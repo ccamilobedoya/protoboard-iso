@@ -69,3 +69,14 @@ export const WIRE_COLORS = {
 
 // Annotation colours for connected groups (nodes): distinct, readable on the board.
 export const NODE_COLORS = ['#2a78d6', '#eb6834', '#1f9d55', '#c2399b', '#c99a06', '#6b4fc8', '#0e9aa7', '#d6455d', '#5f7d1e', '#8a5a2b'];
+
+// Bodies of switches, potentiometers and chips.
+Object.assign(MATERIALS, {
+  switchBase: '#2b2b2e',
+  switchPlate: '#c4c8cd',
+  potBody: '#2f63ad',
+  knob: '#3b3b3f',
+  knobMark: '#f2f2ef',
+  chip: '#27272b',
+  chipMark: '#55555b',
+});

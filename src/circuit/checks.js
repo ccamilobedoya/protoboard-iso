@@ -37,6 +37,10 @@ export function checkLeads(part, pitch) {
     if (span < min - 1e-6) return [issue('warning', 'SPAN_TOO_SHORT', { part: part.id, span: mm(span), min: mm(min), holes: Math.ceil(min / pitch - 1e-6) })];
     if (span > max + 1e-6) return [issue('warning', 'SPAN_TOO_LONG', { part: part.id, span: mm(span), max: mm(max) })];
   }
+  if (pkg.validate) {
+    const found = pkg.validate(pos, part);
+    if (found.length) return found;
+  }
   if (pkg.inline) {
     const step = pkg.inline.pitch * pitch;
     const first = sub(pos[1], pos[0]);
@@ -58,13 +62,32 @@ export function checkConnections(parts, netlist, { netLabels = {} } = {}) {
       if (!byNode.has(hole.node)) byNode.set(hole.node, []);
       byNode.get(hole.node).push(part.pinNames[i]);
     });
+    // Pins joined inside the part (a button's 1–2) may share a group; pins of different
+    // groups may not.
+    const internal = part.def.internal ?? [];
+    const groupOf = (pin) => internal.findIndex((g) => g.includes(pin));
     for (const [node, pins] of byNode) {
-      if (pins.length > 1) out.push(issue('warning', 'PINS_SAME_NODE', { part: part.id, pins: pins.join(', '), node }));
+      if (pins.length < 2) continue;
+      const groups = new Set(pins.map((pin) => (groupOf(pin) >= 0 ? `g${groupOf(pin)}` : pin)));
+      if (groups.size < 2) continue;
+      const code = part.type === 'button' ? 'SWITCH_BYPASSED' : 'PINS_SAME_NODE';
+      out.push(issue('warning', code, { part: part.id, pins: pins.join(', '), node }));
     }
   }
+  const byId = new Map(parts.map((p) => [p.id, p]));
+  const connectedThroughPart = (partId, pin) => {
+    const part = byId.get(partId);
+    const group = (part?.def.internal ?? []).find((g) => g.includes(pin));
+    if (!group) return false;
+    return group.some((mate) => {
+      if (mate === pin) return false;
+      const node = part.holes[part.pinNames.indexOf(mate)]?.node;
+      return (netlist.nodes[node]?.length ?? 0) > 1 || netLabels[node?.split(':')[0]] !== undefined;
+    });
+  };
   for (const [node, members] of Object.entries(netlist.nodes)) {
     const supplied = netLabels[node.split(':')[0]] !== undefined;
-    if (members.length === 1 && !supplied) {
+    if (members.length === 1 && !supplied && !connectedThroughPart(members[0].part, members[0].pin)) {
       const [{ part, pin }] = members;
       out.push(issue('info', 'FLOATING_PIN', { part, pin, node }));
     }

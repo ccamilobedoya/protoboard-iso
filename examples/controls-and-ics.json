@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "title": {
+    "en": "Buttons, potentiometers and chips",
+    "es": "Pulsadores, potenciómetros y chips"
+  },
+  "board": "bb830",
+  "clearance": 3,
+  "netLabels": {
+    "T+": "+5 V",
+    "T-": "GND"
+  },
+  "parts": [
+    {
+      "type": "button",
+      "id": "S1",
+      "pins": [
+        "e7",
+        "f7",
+        "e9",
+        "f9"
+      ]
+    },
+    {
+      "type": "potentiometer",
+      "value": "10k",
+      "position": 0.3,
+      "id": "RV1",
+      "pins": [
+        "c19",
+        "c20",
+        "c21"
+      ]
+    },
+    {
+      "type": "ic",
+      "part": "NE555",
+      "id": "U1",
+      "pin1": "f28"
+    },
+    {
+      "type": "ic",
+      "part": "LM358",
+      "id": "U2",
+      "pin1": "f42"
+    },
+    {
+      "type": "button",
+      "color": "#d33a32",
+      "id": "S2",
+      "pins": [
+        "e55",
+        "f55",
+        "e57",
+        "f57"
+      ]
+    }
+  ]
+}

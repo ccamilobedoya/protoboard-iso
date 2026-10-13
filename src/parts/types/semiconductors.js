@@ -74,4 +74,21 @@ function transistor(type, fallback) {
 }
 
 export const mosfet = transistor('mosfet', 'IRLZ44N');
+
+// Integrated circuits in DIP packages. Place them with "pin1" (e.g. "f10").
+export const ic = {
+  type: 'ic',
+  pins: null, // from the part number
+  resolve(part) {
+    const found = fromPartNumber(part, 'ic', 'NE555');
+    if (found.error) return found;
+    return {
+      package: found.entry.package,
+      pinNames: found.entry.pins,
+      params: { count: found.entry.pins.length, marking: part.marking ?? found.number },
+      label: { text: found.number },
+      electrical: { kind: 'IC', part: found.number, ...found.entry.model },
+    };
+  },
+};
 export const bjt = transistor('bjt', '2N2222A');

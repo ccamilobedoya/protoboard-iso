@@ -66,8 +66,19 @@
       "type": "object",
       "required": [
         "id",
-        "type",
-        "pins"
+        "type"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "pins"
+          ]
+        },
+        {
+          "required": [
+            "pin1"
+          ]
+        }
       ],
       "properties": {
         "id": {
@@ -78,10 +89,13 @@
           "enum": [
             "resistor",
             "capacitor",
+            "potentiometer",
             "diode",
             "led",
             "mosfet",
             "bjt",
+            "ic",
+            "button",
             "wire"
           ]
         },
@@ -181,6 +195,20 @@
             "arc",
             "flat"
           ]
+        },
+        "pin1": {
+          "type": "string",
+          "description": "DIP chips: hole of pin 1 (row e or f); the other pins follow"
+        },
+        "position": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "potentiometer wiper position"
+        },
+        "pressed": {
+          "type": "boolean",
+          "description": "button state"
         }
       },
       "additionalProperties": true

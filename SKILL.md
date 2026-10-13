@@ -90,6 +90,9 @@ nothing unintended. A target is a circuit file or a folder with `circuit.json`.
 | `diode` | `part` (1N4007, 1N4148, 1N5819) | `A`, `K` |
 | `mosfet` | `part` (IRLZ44N, IRF520, IRF9540, 2N7000) | from the part, e.g. `G`, `D`, `S` |
 | `bjt` | `part` (2N2222A, 2N3904, 2N3906, BC547, BC557, TIP120) | from the part, e.g. `E`, `B`, `C` |
+| `potentiometer` | `value` ("10k"), `position` (0…1) | `1`, `W`, `3` (in a row) |
+| `button` | `color`, `pressed` | `1`, `2`, `3`, `4`; across the centre channel (1–2 and 3–4 joined inside) |
+| `ic` | `part` (NE555, LM358, 74HC595, CD4017); place with `pin1` (`"f28"`) | from the part, e.g. `GND`, `TRIG`, `OUT` |
 | `wire` | `color`, `style` (`arc`, `flat`) | `1`, `2` |
 
 Run `node bin/protoboard-iso.js parts` for the current list.
@@ -101,7 +104,9 @@ Run `node bin/protoboard-iso.js parts` for the current list.
 - Axial bodies need room: a 1/4 W resistor needs its leads at least 4 holes apart.
 - LEDs and ceramic capacitors: 1 to 3 holes apart. Electrolytics: 1 hole up to their
   lead spacing plus 2.
-- TO-220 and TO-92: three neighbouring holes in a straight line. Pin 1 is on the left
+- Buttons and DIP chips straddle the centre channel (`suggest` finds the spots). A button
+  turned 90° is always closed (`SWITCH_BYPASSED`).
+- TO-220, TO-92 and potentiometers: three neighbouring holes in a straight line. Pin 1 is on the left
   when you look at the printed face, so the hole order sets which way the part faces.
 - Bodies must not overlap. For lessons, add `"clearance": 3` (mm) to the circuit file and
   spread the parts out: cramped layouts are hard to read and to build.

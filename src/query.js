@@ -19,7 +19,7 @@ import { applyOps } from './ops.js';
 import { evaluate, diffEvaluations } from './diff.js';
 import { distance, sub } from './core/vec.js';
 
-const ID_PREFIX = { resistor: 'R', capacitor: 'C', diode: 'D', led: 'D', mosfet: 'Q', bjt: 'Q', wire: 'W' };
+const ID_PREFIX = { resistor: 'R', capacitor: 'C', potentiometer: 'RV', diode: 'D', led: 'D', mosfet: 'Q', bjt: 'Q', ic: 'U', button: 'S', wire: 'W' };
 const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 
 function stateOf(circuit) {
@@ -130,7 +130,21 @@ function geometricCandidates(state, { pkg, params, pinNames, wanted, centre, win
     return Math.abs(d.x) < 1e-6 || Math.abs(d.y) < 1e-6 ? 0 : 2;
   };
 
-  if (pinNames.length === 2 && pkg.span) {
+  if (pkg.footprints) {
+    // Packages that list their own possible positions (buttons, DIP chips).
+    const byName = new Map(holes.map((h) => [h.id, h]));
+    for (const names of pkg.footprints(state.board, params)) {
+      const set = names.map((n) => byName.get(n));
+      if (set.some((h) => !h)) continue;
+      if (!pinNames.every((pin, i) => (wanted[pin] ? set[i].node === wanted[pin] : !nodeUsed(set[i].node)))) continue;
+      if (new Set(set.map((h) => h.node)).size !== set.length) continue;
+      const mid = { x: set.reduce((s, h) => s + h.pos.x, 0) / set.length, y: set.reduce((s, h) => s + h.pos.y, 0) / set.length, z: 0 };
+      if (centre && distance(mid, centre) > window * 2) continue;
+      // Prefer the orientation that reads from the front (pin 1 in the front row, on the left).
+      const facing = set[0].pos.y <= set.at(-1).pos.y && set[0].pos.x <= set[1].pos.x ? 0 : 0.5;
+      out.push({ holes: set, pre: facing + (centre ? (0.15 * distance(mid, centre)) / P : 0) });
+    }
+  } else if (pinNames.length === 2 && pkg.span) {
     const { min, max } = pkg.span(params);
     const ideal = Math.max(P, Math.ceil(min / P - 1e-6) * P);
     for (const a of optionsFor(pinNames[0])) {

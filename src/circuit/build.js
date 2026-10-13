@@ -82,7 +82,17 @@ export function buildCircuit(circuit) {
       return;
     }
     const pinNames = def.pinNames ?? type.pins;
-    const mapped = mapPins(raw, pinNames);
+    // Packages with many leads (DIP) can be placed by pin 1 only.
+    let source = raw;
+    if (raw.pin1 !== undefined && raw.pins === undefined && pkg.expandPin1) {
+      const holes = pkg.expandPin1(board, raw.pin1, def.params);
+      if (!holes) {
+        issues.push(err('BAD_PIN1', { part: raw.id, hole: String(raw.pin1) }));
+        return;
+      }
+      source = { ...raw, pins: holes };
+    }
+    const mapped = mapPins(source, pinNames);
     issues.push(...mapped.issues);
     if (mapped.issues.length) return;
 

@@ -72,6 +72,21 @@ Guidelines:
 - Register the package in `src/parts/packages/index.js`, add it to
   `examples/parts-showcase.json`, render both views and look at them.
 
+## Package hooks for special shapes
+
+Besides `span` and `inline`, a package may define:
+
+| Hook | For | Example |
+|---|---|---|
+| `validate(pos, part) → issues` | shapes the generic rules cannot check | the button's rectangle, the DIP's two rows |
+| `footprints(board, params) → [[hole, …], …]` | every valid set of holes, so `suggest` can place it | button and DIP: every spot across the channel |
+| `expandPin1(board, pin1, params) → [hole, …]` | placing with `pin1` instead of every hole | DIP chips |
+
+And a type may declare `internal: [['1', '2'], ['3', '4']]`: pins joined inside the part.
+The checker then lets those pins share a strip, warns when pins of different groups do
+(`SWITCH_BYPASSED` for buttons), and does not call a pin floating when its partner is
+connected.
+
 ## 4. A new board
 
 Copy `src/board/boards/bb830.js`, change the dimensions, rows, strips and rails, and add it

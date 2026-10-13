@@ -47,7 +47,8 @@ Goal: a JSON file in, a faithful isometric picture out, with the placement check
 - ⬜ Electrolytic: value printed on the sleeve
 - ✅ Label modes: `labels: 'both' | 'id' | 'value' | false` (`--labels`, MCP `render`)
 - ⬜ Check rail order and colours against the maintainer's real board (`bb830.js`)
-- ⬜ More packages: potentiometer (trimmer and panel), push button 6×6, DIP-8/14/16 (555, op-amps) straddling the channel, header pins, buzzer, 9 V battery clip
+- ✅ Potentiometer (standing, knob to the front, wiper mark), push button 6×6 across the channel (inner pairs, `SWITCH_BYPASSED`), DIP chips placed by `pin1` (NE555, LM358, 74HC595, CD4017); `suggest` places them; example `controls-and-ics.json`
+- ⬜ More packages: trimmer potentiometer, header pins, buzzer, 9 V battery clip, DIP-14 parts
 - ⬜ Painter: sort jumper wires against tall parts more robustly (split long arcs, depth bias)
 - ✅ `check --json`; exit codes documented (0 fine, 1 errors or refused, 2 review CHANGES)
 - ✅ JSON Schema for the circuit file (done in stage 1.5: `schema/`)
@@ -129,3 +130,17 @@ Goal: open a link and explore.
 - ⬜ First public release on GitHub, v0.x; issue templates; contribution guide
 - ⬜ npm package; versioned circuit format with migration notes
 - ⬜ Example gallery site
+
+## Optional, later ⬜
+
+Ideas worth keeping, with no date. Pick them up after the stages above, or when a lesson
+needs them.
+
+- ⬜ **Parametric labels chosen by the user**: what each label shows, per circuit or per
+  part (`name`, `value`, a custom title, a short description), with templates such as
+  `"{id} · {value}"` or `"{name}: {description}"`, translated like the rest
+- ⬜ **Descriptions per part** in the circuit file (`"description": { "en": …, "es": … }`),
+  shown in labels, in `inspect` and in the interactive page
+- ⬜ **Clickable labels** in the interactive page: tap a label or a part to open more
+  information (what it does, its pins and their connections, datasheet link, values from the
+  simulation)

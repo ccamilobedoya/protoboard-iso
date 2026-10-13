@@ -17,7 +17,8 @@ export function buildSchemas() {
   };
   const part = {
     type: 'object',
-    required: ['id', 'type', 'pins'],
+    required: ['id', 'type'],
+    anyOf: [{ required: ['pins'] }, { required: ['pin1'] }],
     properties: {
       id: { type: 'string', description: 'Unique name, e.g. R1' },
       type: { enum: Object.keys(PART_TYPES) },
@@ -37,6 +38,9 @@ export function buildSchemas() {
       pinNames: { type: 'array', items: text },
       marking: { type: 'string' },
       style: { enum: ['arc', 'flat'] },
+      pin1: { type: 'string', description: 'DIP chips: hole of pin 1 (row e or f); the other pins follow' },
+      position: { type: 'number', minimum: 0, maximum: 1, description: 'potentiometer wiper position' },
+      pressed: { type: 'boolean', description: 'button state' },
     },
     additionalProperties: true,
   };
@@ -71,12 +75,12 @@ export function buildSchemas() {
       oneOf: [
         { type: 'object', required: ['op', 'part'], properties: { op: { const: 'add' }, part: { $ref: 'circuit.schema.json#/$defs/part' }, index: { type: 'integer', minimum: 0 } }, additionalProperties: false },
         { type: 'object', required: ['op', 'part'], properties: { op: { const: 'remove' }, part: partRef }, additionalProperties: false },
-        { type: 'object', required: ['op', 'part', 'pins'], properties: { op: { const: 'move' }, part: partRef, pins }, additionalProperties: false },
+        { type: 'object', required: ['op', 'part'], properties: { op: { const: 'move' }, part: partRef, pins, pin1: text }, minProperties: 3, additionalProperties: false },
         {
           type: 'object',
           required: ['op', 'part'],
           properties: { op: { const: 'set' }, part: partRef },
-          not: { anyOf: [{ required: ['id'] }, { required: ['pins'] }] },
+          not: { anyOf: [{ required: ['id'] }, { required: ['pins'] }, { required: ['pin1'] }] },
           minProperties: 3,
           additionalProperties: true,
           description: 'Any part field except id and pins; null deletes the field',

@@ -37,7 +37,7 @@ whole board.
 
 ## Parts
 
-Every part has `id` (unique), `type` and `pins`. `pins` is either a list in pin order or
+Every part has `id` (unique), `type` and `pins` (or `pin1` for DIP chips). `pins` is either a list in pin order or
 an object by pin name:
 
 ```json
@@ -93,6 +93,33 @@ Pin 1 is on the left when you look at the printed face with the leads down, so l
 the holes left to right as seen from the front makes the print face the front.
 
 A part not in the table: give `package` (`TO-220`, `TO-92`) and `pinNames`.
+
+### potentiometer
+
+`value` (end-to-end resistance, default `"10k"`), `position` (wiper, 0…1, default 0.5: the
+white mark on the knob shows it). Pins `1`, `W` (wiper), `3`, three neighbouring holes in a
+row; pin 1 on the left seen from the knob.
+
+### button
+
+6 × 6 mm tactile push button. Pins `1`, `2`, `3`, `4`: 1–2 are always joined inside, and so
+are 3–4; pressing joins the two pairs. Put it **across the centre channel**: 1 and 2 in the
+same column on each side (e.g. `e10`, `f10`), 3 and 4 two columns over (`e12`, `f12`).
+Turned 90° (1 and 3 in the same strip) it is always closed: the checker reports
+`SWITCH_BYPASSED`. `color` sets the cap colour; `pressed` is for the simulator.
+
+### ic
+
+Chips in DIP packages, from the part-number table: NE555, LM358, 74HC595, CD4017. Place
+them with **`pin1`** instead of listing every hole:
+
+```json
+{ "id": "U1", "type": "ic", "part": "NE555", "pin1": "f28" }
+```
+
+Pin 1 in the front row next to the channel (`f`) reads from the front, notch on the left;
+pin 1 in the back row (`e`) turns the chip round. Pin names come from the part (`GND`,
+`TRIG`, `OUT`… for the 555), so other parts can be checked against them.
 
 ### wire
 

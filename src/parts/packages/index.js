@@ -9,5 +9,8 @@ import disc from './disc.js';
 import to220 from './to220.js';
 import to92 from './to92.js';
 import wire from './wire.js';
+import tactile from './tactile.js';
+import pot from './pot.js';
+import dip from './dip.js';
 
-export const PACKAGES = Object.fromEntries([axial, led, radialCan, disc, to220, to92, wire].map((p) => [p.id, p]));
+export const PACKAGES = Object.fromEntries([axial, led, radialCan, disc, to220, to92, pot, tactile, dip, wire].map((p) => [p.id, p]));

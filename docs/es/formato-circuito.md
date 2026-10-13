@@ -40,7 +40,7 @@ a lo largo de toda la protoboard.
 
 ## Componentes
 
-Cada componente tiene `id` (único), `type` y `pins`. `pins` es una lista en el orden de
+Cada componente tiene `id` (único), `type` y `pins` (o `pin1` en los chips DIP). `pins` es una lista en el orden de
 las patas o un objeto por nombre de pata:
 
 ```json
@@ -99,6 +99,35 @@ si pones los agujeros de izquierda a derecha vistos desde el frente, la cara imp
 al frente.
 
 Si el componente no está en la tabla: indica `package` (`TO-220`, `TO-92`) y `pinNames`.
+
+### potentiometer (potenciómetro)
+
+`value` (resistencia de extremo a extremo, por defecto `"10k"`), `position` (cursor, 0…1, por
+defecto 0,5: la marca blanca de la perilla lo muestra). Patas `1`, `W` (cursor), `3`, en tres
+agujeros vecinos en línea; la pata 1 a la izquierda vista desde la perilla.
+
+### button (pulsador)
+
+Pulsador táctil de 6 × 6 mm. Patas `1`, `2`, `3`, `4`: la 1 y la 2 están siempre unidas por
+dentro, igual que la 3 y la 4; al presionar se unen los dos pares. Va **a caballo del canal
+central**: la 1 y la 2 en la misma columna, una a cada lado (por ejemplo, `e10` y `f10`), y la 3
+y la 4 dos columnas más allá (`e12`, `f12`). Girado 90° (la 1 y la 3 en la misma tira) queda
+siempre cerrado: el verificador avisa `SWITCH_BYPASSED`. `color` da el color del botón;
+`pressed` es para el simulador.
+
+### ic (circuito integrado)
+
+Chips en encapsulado DIP, de la tabla de referencias: NE555, LM358, 74HC595, CD4017. Se
+colocan con **`pin1`** en vez de listar todos los agujeros:
+
+```json
+{ "id": "U1", "type": "ic", "part": "NE555", "pin1": "f28" }
+```
+
+Con la pata 1 en la fila delantera junto al canal (`f`) se lee desde el frente, con la muesca
+a la izquierda; con la pata 1 en la fila de atrás (`e`) el chip queda girado. Los nombres de
+las patas salen de la referencia (`GND`, `TRIG`, `OUT`… en el 555), así se puede revisar con
+qué se conecta cada una.
 
 ### wire (cable de puente)
 

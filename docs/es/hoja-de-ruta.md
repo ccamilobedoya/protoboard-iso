@@ -47,7 +47,8 @@ Objetivo: entra un JSON y sale un dibujo isométrico fiel, con la colocación re
 - ⬜ Electrolítico: valor impreso en la funda
 - ✅ Modos de etiqueta: `labels: 'both' | 'id' | 'value' | false` (`--labels`, `render` del MCP)
 - ⬜ Comparar el orden y los colores de los rieles con la protoboard real (`bb830.js`)
-- ⬜ Más encapsulados: potenciómetro (trimmer y de panel), pulsador de 6×6, DIP-8/14/16 (555, amplificadores operacionales) sobre el canal central, pines de cabecera, zumbador, conector de batería de 9 V
+- ✅ Potenciómetro (de pie, perilla al frente, marca del cursor), pulsador de 6×6 a caballo del canal (pares internos, `SWITCH_BYPASSED`), chips DIP colocados con `pin1` (NE555, LM358, 74HC595, CD4017); `suggest` los coloca; ejemplo `controls-and-ics.json`
+- ⬜ Más encapsulados: potenciómetro de ajuste (trimmer), pines de cabecera, zumbador, conector de batería de 9 V, chips DIP-14
 - ⬜ Pintor: ordenar mejor los cables frente a componentes altos (partir arcos largos, sesgo de profundidad)
 - ✅ `check --json`; códigos de salida documentados (0 bien, 1 errores o cambio rechazado, 2 `review` pide cambios)
 - ✅ JSON Schema del archivo de circuito (hecho en la etapa 1.5: `schema/`)
@@ -129,3 +130,18 @@ Objetivo: abrir un enlace y explorar.
 - ⬜ Primera versión pública en GitHub, v0.x; plantillas de issues; guía de contribución
 - ⬜ Paquete en npm; formato de circuito versionado con notas de migración
 - ⬜ Sitio con la galería de ejemplos
+
+## Opcional, más adelante ⬜
+
+Ideas que vale la pena guardar, sin fecha. Se retoman después de las etapas de arriba, o
+cuando una clase las necesite.
+
+- ⬜ **Etiquetas paramétricas elegidas por el usuario**: qué muestra cada etiqueta, por
+  circuito o por componente (`name`, `value`, un título propio, una descripción corta), con
+  plantillas como `"{id} · {value}"` o `"{name}: {description}"`, traducidas como todo lo demás
+- ⬜ **Descripción por componente** en el archivo de circuito
+  (`"description": { "en": …, "es": … }`), visible en las etiquetas, en `inspect` y en la
+  página interactiva
+- ⬜ **Etiquetas en las que se puede hacer clic** en la página interactiva: tocar una etiqueta
+  o un componente abre más información (qué hace, sus patas y con qué se conectan, enlace a la
+  hoja de datos, valores de la simulación)

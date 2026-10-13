@@ -83,7 +83,7 @@ const viewArgs = {
   fit: z.enum(['board', 'parts']).optional().describe('parts = close-up of the area with parts'),
   scale: z.number().positive().optional().describe('px per mm, default 5'),
 };
-const partShape = z.object({ id: z.string(), type: z.string(), pins: z.union([z.array(z.string()), z.record(z.string(), z.string())]) }).passthrough();
+const partShape = z.object({ id: z.string(), type: z.string(), pins: z.union([z.array(z.string()), z.record(z.string(), z.string())]).optional(), pin1: z.string().optional() }).passthrough();
 const opShape = z
   .object({ op: z.enum(OP_NAMES) })
   .passthrough()

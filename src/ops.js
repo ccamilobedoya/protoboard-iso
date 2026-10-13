@@ -3,6 +3,7 @@
 //   { op: 'add',     part: { id, type, …, pins }, index? }
 //   { op: 'remove',  part: 'R1' }
 //   { op: 'move',    part: 'R1', pins: ['c10', 'c14'] }        (list or object by pin name)
+//   { op: 'move',    part: 'U1', pin1: 'f20' }                  (parts placed by pin 1)
 //   { op: 'set',     part: 'R1', value: '4k7', tolerance: null } (null deletes a field)
 //   { op: 'rename',  part: 'R1', to: 'R10' }
 //   { op: 'circuit', clearance: 3, title: { … } }               (top-level fields)
@@ -14,7 +15,7 @@
 
 export const OP_NAMES = ['add', 'remove', 'move', 'set', 'rename', 'circuit'];
 export const CIRCUIT_FIELDS = ['title', 'board', 'view', 'clearance', 'netLabels'];
-const FIXED_PART_FIELDS = ['id', 'pins']; // changed with `rename` and `move`
+const FIXED_PART_FIELDS = ['id', 'pins', 'pin1']; // changed with `rename` and `move`
 
 const clone = (x) => (x === undefined ? undefined : structuredClone(x));
 const error = (code, params) => ({ severity: 'error', code, params });
@@ -61,10 +62,17 @@ export function applyOps(circuit, ops) {
       case 'move': {
         const at = partAt();
         if (at < 0) return;
-        if (!op.pins || typeof op.pins !== 'object') return fail('OP_BAD', { need: 'pins' });
+        const hasPins = op.pins && typeof op.pins === 'object';
+        if (!hasPins && op.pin1 === undefined) return fail('OP_BAD', { need: 'pins or pin1' });
         const part = next.parts[at];
-        inverse.unshift({ op: 'move', part: part.id, pins: clone(part.pins) });
-        part.pins = clone(op.pins);
+        const back = { op: 'move', part: part.id };
+        if (part.pins !== undefined) back.pins = clone(part.pins);
+        if (part.pin1 !== undefined) back.pin1 = part.pin1;
+        inverse.unshift(back);
+        delete part.pins;
+        delete part.pin1;
+        if (hasPins) part.pins = clone(op.pins);
+        else part.pin1 = op.pin1;
         return;
       }
       case 'set': {

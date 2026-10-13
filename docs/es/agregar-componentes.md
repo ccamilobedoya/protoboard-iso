@@ -74,6 +74,21 @@ Pautas:
 - Registra el encapsulado en `src/parts/packages/index.js`, agrégalo a
   `examples/parts-showcase.json`, dibuja las dos vistas y míralas.
 
+## Ganchos de encapsulado para formas especiales
+
+Además de `span` e `inline`, un encapsulado puede definir:
+
+| Gancho | Para | Ejemplo |
+|---|---|---|
+| `validate(pos, part) → observaciones` | formas que las reglas generales no pueden revisar | el rectángulo del pulsador, las dos filas del DIP |
+| `footprints(board, params) → [[agujero, …], …]` | todos los juegos de agujeros válidos, para que `suggest` pueda colocarlo | pulsador y DIP: todos los lugares a caballo del canal |
+| `expandPin1(board, pin1, params) → [agujero, …]` | colocar con `pin1` en vez de listar todos los agujeros | chips DIP |
+
+Y un tipo puede declarar `internal: [['1', '2'], ['3', '4']]`: patas unidas por dentro del
+componente. Entonces el verificador deja que esas patas compartan tira, avisa cuando lo hacen
+patas de grupos distintos (`SWITCH_BYPASSED` en los pulsadores) y no da por suelta una pata
+cuya compañera está conectada.
+
 ## 4. Una protoboard nueva
 
 Copia `src/board/boards/bb830.js`, cambia medidas, filas, tiras y rieles, y agrégala a
