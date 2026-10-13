@@ -1,0 +1,45 @@
+{
+  "name": "protoboard-iso",
+  "version": "0.1.0",
+  "description": "Isometric breadboard circuits in SVG, from a small JSON file. A learning kit and an agent skill.",
+  "type": "module",
+  "license": "MIT",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./workspace": "./src/node/workspace.js",
+    "./schema/*": "./schema/*"
+  },
+  "bin": {
+    "protoboard-iso": "./bin/protoboard-iso.js"
+  },
+  "files": [
+    "SKILL.md",
+    "bin",
+    "docs",
+    "examples",
+    "schema",
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "examples": "node scripts/render-examples.js",
+    "preview": "node scripts/preview.js",
+    "schemas": "node scripts/build-schemas.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "breadboard",
+    "protoboard",
+    "isometric",
+    "svg",
+    "electronics",
+    "education",
+    "agent-skill"
+  ],
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}

@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "circuit.schema.json",
+  "title": "protoboard-iso circuit",
+  "type": "object",
+  "required": [
+    "parts"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Bumped by every change made through apply/undo"
+    },
+    "title": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+        }
+      ]
+    },
+    "board": {
+      "enum": [
+        "bb830",
+        "bb400"
+      ]
+    },
+    "view": {
+      "enum": [
+        "front",
+        "back",
+        "front-left",
+        "back-right"
+      ]
+    },
+    "clearance": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Minimum gap between bodies, mm"
+    },
+    "netLabels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "parts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/part"
+      }
+    }
+  },
+  "$defs": {
+    "part": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "pins"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique name, e.g. R1"
+        },
+        "type": {
+          "enum": [
+            "resistor",
+            "capacitor",
+            "diode",
+            "led",
+            "mosfet",
+            "bjt",
+            "wire"
+          ]
+        },
+        "pins": {
+          "description": "Holes for the leads: a list in the part's pin order, or an object by pin name. Holes: a1…j63, rails T+3, B-12…",
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "minProperties": 2
+            }
+          ]
+        },
+        "value": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "description": "\"330\", \"4k7\", \"100n\", \"470u\""
+        },
+        "tolerance": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "description": "resistor: \"5%\", \"1%\""
+        },
+        "bands": {
+          "enum": [
+            4,
+            5
+          ]
+        },
+        "power": {
+          "type": "string",
+          "description": "resistor: \"1/8\", \"1/4\", \"1/2\", \"1\""
+        },
+        "kind": {
+          "enum": [
+            "ceramic",
+            "electrolytic"
+          ]
+        },
+        "voltage": {
+          "type": "number"
+        },
+        "diameter": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        },
+        "color": {
+          "type": "string"
+        },
+        "size": {
+          "enum": [
+            3,
+            5
+          ]
+        },
+        "part": {
+          "type": "string",
+          "description": "Part number for diode, mosfet, bjt (see src/parts/db.js)"
+        },
+        "package": {
+          "type": "string"
+        },
+        "pinNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "marking": {
+          "type": "string"
+        },
+        "style": {
+          "enum": [
+            "arc",
+            "flat"
+          ]
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "title": { "en": "Common breadboard mistakes (the checker reports each one)", "es": "Errores frecuentes en la protoboard (el verificador avisa cada uno)" },
+  "board": "bb830",
+  "parts": [
+    { "id": "R1", "type": "resistor", "value": "1k", "pins": ["a5", "e5"] },
+    { "id": "R2", "type": "resistor", "value": "1k", "pins": ["c10", "c12"] },
+    { "id": "D1", "type": "led", "color": "green", "pins": ["c12", "c13"] },
+    { "id": "Q1", "type": "mosfet", "part": "IRLZ44N", "pins": ["c20", "d20", "e20"] }
+  ]
+}

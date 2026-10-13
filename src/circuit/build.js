@@ -1,0 +1,119 @@
+// From a circuit file to resolved parts, geometry, connectivity and issues.
+//
+//   circuit file ──resolve types──▶ packages + params ──place on board──▶ hole positions
+//        ──build──▶ 3D primitives          ──board strips──▶ netlist
+//        ──checks──▶ issues
+//
+// The netlist and each part's `electrical` description are what the simulator will
+// read in the next stage; drawing never depends on it.
+
+import { createBoard, BOARDS } from '../board/board.js';
+import { PART_TYPES } from '../parts/types/index.js';
+import { PACKAGES } from '../parts/packages/index.js';
+import { checkOccupancy, checkLeads, checkConnections, checkCollisions } from './checks.js';
+
+const err = (code, params) => ({ severity: 'error', code, params });
+
+function mapPins(part, names) {
+  const given = part.pins;
+  const issues = [];
+  let holes = [];
+  if (Array.isArray(given)) {
+    if (given.length !== names.length) {
+      issues.push(err('PIN_COUNT', { part: part.id, expected: names.length, names: names.join(', '), got: given.length }));
+    } else {
+      holes = given;
+    }
+  } else if (given && typeof given === 'object') {
+    const lower = new Map(names.map((n) => [n.toLowerCase(), n]));
+    const byName = {};
+    for (const [key, hole] of Object.entries(given)) {
+      const name = lower.get(key.toLowerCase());
+      if (!name) issues.push(err('UNKNOWN_PIN', { part: part.id, pin: key, names: names.join(', ') }));
+      else byName[name] = hole;
+    }
+    holes = names.map((n) => byName[n]);
+    names.forEach((n, i) => {
+      if (holes[i] === undefined) issues.push(err('MISSING_PIN', { part: part.id, pin: n }));
+    });
+  } else {
+    issues.push(err('PIN_COUNT', { part: part.id, expected: names.length, names: names.join(', '), got: 0 }));
+  }
+  return { holes, issues };
+}
+
+export function buildCircuit(circuit) {
+  const issues = [];
+  if (!circuit || typeof circuit !== 'object' || !Array.isArray(circuit.parts)) {
+    return { board: null, parts: [], issues: [err('INVALID_CIRCUIT', {})], netlist: { nodes: {} } };
+  }
+  const boardId = circuit.board ?? 'bb830';
+  if (typeof boardId === 'string' && !BOARDS[boardId]) {
+    return { board: null, parts: [], issues: [err('UNKNOWN_BOARD', { board: boardId, options: Object.keys(BOARDS).join(', ') })], netlist: { nodes: {} } };
+  }
+  const board = createBoard(boardId);
+  const parts = [];
+  const seen = new Set();
+
+  circuit.parts.forEach((raw, index) => {
+    if (!raw || !raw.id) {
+      issues.push(err('MISSING_ID', { index: index + 1 }));
+      return;
+    }
+    if (seen.has(raw.id)) {
+      issues.push(err('DUPLICATE_ID', { part: raw.id }));
+      return;
+    }
+    seen.add(raw.id);
+
+    const type = PART_TYPES[raw.type];
+    if (!type) {
+      issues.push(err('UNKNOWN_TYPE', { part: raw.id, type: String(raw.type), options: Object.keys(PART_TYPES).join(', ') }));
+      return;
+    }
+    const def = type.resolve(raw);
+    if (def.error) {
+      issues.push(err(def.error.code, { part: raw.id, ...def.error.params }));
+      return;
+    }
+    const pkg = PACKAGES[def.package];
+    if (!pkg) {
+      issues.push(err('UNKNOWN_PACKAGE', { part: raw.id, package: String(def.package), options: Object.keys(PACKAGES).join(', ') }));
+      return;
+    }
+    const pinNames = def.pinNames ?? type.pins;
+    const mapped = mapPins(raw, pinNames);
+    issues.push(...mapped.issues);
+    if (mapped.issues.length) return;
+
+    const holes = [];
+    let missing = false;
+    mapped.holes.forEach((name, i) => {
+      const hole = board.find(name);
+      if (!hole) {
+        issues.push(err('UNKNOWN_HOLE', { part: raw.id, pin: pinNames[i], hole: String(name) }));
+        missing = true;
+      }
+      holes.push(hole);
+    });
+    if (missing) return;
+
+    const built = pkg.build({ pins: holes.map((h) => h.pos), params: def.params });
+    parts.push({ id: raw.id, type: raw.type, raw, def, pkg, pinNames, holes, built });
+  });
+
+  const nodes = {};
+  for (const part of parts) {
+    part.holes.forEach((hole, i) => {
+      (nodes[hole.node] ??= []).push({ part: part.id, pin: part.pinNames[i], hole: hole.id });
+    });
+  }
+  const netlist = { board: board.spec.id, nodes };
+
+  issues.push(...checkOccupancy(parts));
+  for (const part of parts) issues.push(...checkLeads(part, board.pitch));
+  issues.push(...checkConnections(parts, netlist, { netLabels: circuit.netLabels }));
+  issues.push(...checkCollisions(parts, { clearance: Number(circuit.clearance) || 0 }));
+
+  return { board, parts, issues, netlist };
+}

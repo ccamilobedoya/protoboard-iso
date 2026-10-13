@@ -1,0 +1,76 @@
+# Architecture
+
+*[Español](../es/arquitectura.md)*
+
+## The pipeline
+
+```
+circuit.json ──▶ types ──▶ packages ──▶ primitives ──▶ camera + painter ──▶ SVG
+                   │                         ▲
+                   └──▶ board holes ──▶ netlist ──▶ checks
+```
+
+| Layer | Folder | Knows about | Does not know about |
+|---|---|---|---|
+| Circuit file | `examples/` | which part goes in which hole | geometry |
+| Types | `src/parts/types/` | what a part *is*: value → bands, capacitance → can size, pin names, electrical model | how to draw |
+| Packages | `src/parts/packages/` | physical shape: body size, lead rules, how to build it from primitives | values, electricity |
+| Primitives | `src/geometry/` | prisms, lathes (surfaces of revolution), tubes, flat marks and text on faces | parts |
+| Board | `src/board/` | hole positions, which holes are connected | parts |
+| Checks | `src/circuit/checks.js` | geometry and connectivity of placed parts | drawing |
+| Render | `src/core/camera.js`, `src/render/` | projection, shading, sorting, SVG | parts, electricity |
+| Messages | `src/i18n/` | every user-visible sentence | logic |
+
+The split between **type** and **package** is what makes parts reusable: a 1N4007 diode
+and a resistor share the axial package; an IRLZ44N MOSFET and a TIP120 transistor share
+TO-220. A new part is usually one line in `src/parts/db.js`.
+
+## World space
+
+Millimetres, right-handed: **x** along the columns (column 1 → 63), **y** towards the back
+of the board (the top rails), **z** up. The board surface is `z = 0`. Hole pitch 2.54 mm.
+
+Every package builds its parts from the hole positions it receives, so its orientation
+comes from the holes: a resistor from `c10` to `c14` lies along x, one from `a10` to `e10`
+along y. Nothing in a package depends on the camera.
+
+## Camera and views
+
+`createCamera({ view })` returns an orthographic projection. With the default elevation
+(35.264°) it is a true isometric view. Named views: `front` (from the front-right corner),
+`back` (opposite corner), `front-left`, `back-right`, or any `azimuth` in degrees.
+
+Because geometry is in 3D and the projection is linear, the back view needs no extra work.
+Text printed on the board or on parts is laid on its 3D plane with an SVG `matrix`, so it
+turns with the view like the real print.
+
+## Drawing: the painter's algorithm
+
+1. The board is painted first (it is under everything).
+2. Every other primitive (a body, each segment of a lead or wire) is sorted by the depth of
+   its centre and painted from far to near.
+3. Inside a primitive, faces looking away from the camera are dropped (back-face culling)
+   and the rest are painted far to near; then its decals (marks and text).
+
+Primitives are kept convex or close to it so this stays correct. When two pieces of one
+part sort badly, split them (see the TO-220 tab in `to220.js`).
+
+Shading: each face gets a tone from its normal and a key light fixed relative to the
+camera (`src/render/shading.js`), so both views are lit the same way.
+
+## Connectivity
+
+`createBoard()` gives every hole a node name: `12:a-e` (column 12, rows a–e), `T+` (the
+top + rail). The netlist is just "which part pins share a node". Checks and, later, the
+simulator use it; drawing does not.
+
+## Output
+
+A self-contained SVG: fixed colours, explicit `width`/`height`, white background, no CSS
+variables or scripts. It can go into documents, wikis and slides as an image.
+
+## What comes next
+
+- `src/sim/`: modified nodal analysis, one kind of part at a time (see its README).
+- Animation: the same scene, redrawn in the browser with simulation results (electron
+  dots along leads and wires, voltage colours on strips).
