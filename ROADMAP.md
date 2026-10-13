@@ -50,6 +50,7 @@ Goal: a JSON file in, a faithful isometric picture out, with the placement check
 - ✅ Potentiometer (standing, knob to the front, wiper mark), push button 6×6 across the channel (inner pairs, `SWITCH_BYPASSED`), DIP chips placed by `pin1` (NE555, LM358, 74HC595, CD4017); `suggest` places them; example `controls-and-ics.json`
 - ⬜ More packages: trimmer potentiometer, header pins, buzzer, 9 V battery clip, DIP-14 parts
 - ⬜ Painter: sort jumper wires against tall parts more robustly (split long arcs, depth bias)
+- ✅ **Page to embed** (`out/<name>.html`, `page` command, `render` with `page: true`): one self-contained file per circuit, rewritten on every change under the same name; two views, close-up or whole board, labels on/off, drag to pan, wheel or pinch to zoom. Stages 2–4 grow this same page ([embedding.md](docs/en/embedding.md))
 - ✅ `check --json`; exit codes documented (0 fine, 1 errors or refused, 2 review CHANGES)
 - ✅ JSON Schema for the circuit file (done in stage 1.5: `schema/`)
 
@@ -112,7 +113,7 @@ Goal: see the circuit work.
 
 Goal: open a link and explore.
 
-- ⬜ Single-file interactive page (no build step)
+- ⬜ Single-file interactive page (no build step): grows the embeddable page of stage 1, same file name, so existing embeds keep working
 - ⬜ Dynamic zoom: pinch and wheel zoom, pan, double-tap a part to zoom to it; more detail as you zoom in (hole numbers, part markings)
 - ⬜ Labels on hover or tap only (the static SVG keeps the callouts above the parts)
 - ⬜ Virtual multimeter: probes on holes, voltmeter in parallel, ammeter needs the circuit opened

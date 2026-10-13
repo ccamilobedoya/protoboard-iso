@@ -34,7 +34,7 @@ import {
 import { formatChange } from '../src/diff.js';
 import { queryAt, queryNode, queryFree, suggest } from '../src/query.js';
 import { formatAt, formatNode, formatFree, formatSuggest } from '../src/query-format.js';
-import { resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget } from '../src/node/workspace.js';
+import { resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget, writePage } from '../src/node/workspace.js';
 import { svgToPng, rasterAvailable } from '../src/node/raster.js';
 import { review, formatReview, PROFILES } from '../src/review.js';
 
@@ -317,18 +317,19 @@ server.registerTool(
   'render',
   {
     title: 'Render SVG',
-    description: 'Write the drawing as SVG into the circuit outputs and return its path. Add png_width to also get a PNG image back (slow to read: use only to judge style, keep it small, e.g. 900).',
+    description: 'Write the drawing as SVG into the circuit outputs and return its path. Add png_width to also get a PNG image back (slow to read: use only to judge style, keep it small, e.g. 900). page: true also rewrites the embeddable page out/<name>.html (every change rewrites it anyway; use this for circuits made before the page existed).',
     inputSchema: {
       target: targetArg,
       ...viewArgs,
       annotate: z.union([z.array(z.enum(ANNOTATION_LAYERS)), z.literal('all')]).optional().describe('Extra layers: pins, boxes, nodes, grid, or all'),
       labels: z.union([z.boolean(), z.enum(['both', 'id', 'value'])]).optional().describe('both (default), id, value, or false'),
       png_width: z.number().int().min(200).max(2000).optional(),
+      page: z.boolean().optional().describe('Also rewrite the embeddable page out/<name>.html'),
       lang: common.lang,
     },
     annotations: { ...WRITE, idempotentHint: true },
   },
-  safely(async ({ target, view = 'front', fit, scale, annotate, labels, png_width, lang = DEFAULT_LANG }) => {
+  safely(async ({ target, view = 'front', fit, scale, annotate, labels, png_width, page, lang = DEFAULT_LANG }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
     const { svg, issues } = renderCircuit(circuit, { view, fit, scale, annotate, labels, lang });
@@ -336,7 +337,8 @@ server.registerTool(
     mkdirSync(paths.outDir, { recursive: true });
     const file = join(paths.outDir, `${paths.name}.${view}${fit === 'parts' ? '.zoom' : ''}${annotate ? '.annotated' : ''}.svg`);
     writeFileSync(file, svg);
-    const content = [{ type: 'text', text: JSON.stringify({ svg: rel(file), bytes: Buffer.byteLength(svg), issues: issues.length }) }];
+    const pageFile = page ? writePage(paths, circuit, { lang }).pageFile : null;
+    const content = [{ type: 'text', text: JSON.stringify({ svg: rel(file), ...(pageFile && { page: rel(pageFile) }), bytes: Buffer.byteLength(svg), issues: issues.length }) }];
     if (png_width) {
       if (!(await rasterAvailable())) content.push({ type: 'text', text: 'PNG not available: install @resvg/resvg-js.' });
       else content.push({ type: 'image', mimeType: 'image/png', data: Buffer.from(await svgToPng(svg, { width: png_width })).toString('base64') });

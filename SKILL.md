@@ -22,7 +22,9 @@ Requires Node.js 18 or newer. No npm dependencies.
    (for example, showing a shorted strip on purpose).
 3. Render it: `node <skill>/bin/protoboard-iso.js render circuit.json -o out.svg --view front`.
    Use `--view back` when parts hide each other from the front, and `--fit parts` for a
-   close-up of the area with parts (best on phones).
+   close-up of the area with parts (best on phones). To embed the circuit in documentation,
+   use the page `node <skill>/bin/protoboard-iso.js page <target>` (`out/<name>.html`, rewritten on
+   every change): see `docs/en/embedding.md`.
 4. Inspect it: `node <skill>/bin/protoboard-iso.js inspect circuit.json` (same options as
    `render`). It reports every lead's hole and position, how visible each part is and what
    covers it, and labels or leader lines on top of something. Fix what it reports before

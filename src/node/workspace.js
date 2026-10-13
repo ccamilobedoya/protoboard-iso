@@ -8,13 +8,14 @@
 // The circuit file is the only source of truth. Every change made through applyToTarget
 // or undoTarget bumps `revision` in the circuit and appends one line to the history:
 //   { revision, time, author, note, ops, inverse, undoes? }
-// Outputs (SVG, report.json) are derived and can be deleted at any time.
+// Outputs (SVG, page, report.json) are derived and can be deleted at any time.
 
 import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, mkdirSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { applyOps } from '../ops.js';
 import { evaluate, diffEvaluations } from '../diff.js';
 import { renderCircuit, inspectCircuit } from '../index.js';
+import { renderPage } from '../page.js';
 
 const error = (code, params) => ({ severity: 'error', code, params });
 
@@ -42,16 +43,30 @@ function saveCircuit(paths, circuit) {
   writeFileSync(paths.circuitFile, `${JSON.stringify(circuit, null, 2)}\n`);
 }
 
-// Derived outputs: front SVG (full board) and the inspect report. Cheap to regenerate.
+// Derived outputs: front SVG (full board), the embeddable page and the inspect report.
+// Cheap to regenerate. The page keeps its name across changes, so an embed of it always
+// shows the latest revision.
+export const pageFileOf = (paths) => join(paths.outDir, `${paths.name}.html`);
+
+export function writePage(paths, circuit, options = {}) {
+  const { html, issues } = renderPage(circuit, options);
+  if (!html) return { pageFile: null, issues };
+  mkdirSync(paths.outDir, { recursive: true });
+  const pageFile = options.out ?? pageFileOf(paths);
+  writeFileSync(pageFile, html);
+  return { pageFile, issues };
+}
+
 export function writeOutputs(paths, circuit, { lang = 'en' } = {}) {
   mkdirSync(paths.outDir, { recursive: true });
   const { svg } = renderCircuit(circuit, { lang });
   const svgFile = join(paths.outDir, `${paths.name}.front.svg`);
   const reportFile = join(paths.outDir, `${paths.name}.report.json`);
   if (svg) writeFileSync(svgFile, svg);
+  const { pageFile } = writePage(paths, circuit, { lang });
   const report = inspectCircuit(circuit, { lang });
   writeFileSync(reportFile, `${JSON.stringify({ revision: circuit.revision ?? 0, ...report }, null, 2)}\n`);
-  return { svgFile, reportFile };
+  return { svgFile, pageFile, reportFile };
 }
 
 function commit(paths, circuit, entry) {

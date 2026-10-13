@@ -50,6 +50,7 @@ Objetivo: entra un JSON y sale un dibujo isométrico fiel, con la colocación re
 - ✅ Potenciómetro (de pie, perilla al frente, marca del cursor), pulsador de 6×6 a caballo del canal (pares internos, `SWITCH_BYPASSED`), chips DIP colocados con `pin1` (NE555, LM358, 74HC595, CD4017); `suggest` los coloca; ejemplo `controls-and-ics.json`
 - ⬜ Más encapsulados: potenciómetro de ajuste (trimmer), pines de cabecera, zumbador, conector de batería de 9 V, chips DIP-14
 - ⬜ Pintor: ordenar mejor los cables frente a componentes altos (partir arcos largos, sesgo de profundidad)
+- ✅ **Página para embeber** (`out/<nombre>.html`, comando `page`, `render` con `page: true`): un archivo autónomo por circuito, reescrito con cada cambio con el mismo nombre; dos vistas, de cerca o toda la protoboard, con o sin etiquetas, arrastrar para moverse, rueda o pellizco para acercar. Las etapas 2 a 4 hacen crecer esta misma página ([embeber.md](embeber.md))
 - ✅ `check --json`; códigos de salida documentados (0 bien, 1 errores o cambio rechazado, 2 `review` pide cambios)
 - ✅ JSON Schema del archivo de circuito (hecho en la etapa 1.5: `schema/`)
 
@@ -112,7 +113,7 @@ Objetivo: ver el circuito funcionar.
 
 Objetivo: abrir un enlace y explorar.
 
-- ⬜ Página interactiva de un solo archivo (sin compilación)
+- ⬜ Página interactiva de un solo archivo (sin compilación): crece a partir de la página para embeber de la etapa 1, con el mismo nombre de archivo, así lo ya embebido sigue funcionando
 - ⬜ Zoom dinámico: pellizcar y rueda del mouse, desplazamiento, doble toque en un componente para acercarse; más detalle al acercarse (números de agujero, marcas de los componentes)
 - ⬜ Etiquetas solo al pasar el mouse o al tocar (el SVG estático conserva los globos por encima de los componentes)
 - ⬜ Multímetro virtual: puntas en agujeros; voltímetro en paralelo; el amperímetro obliga a abrir el circuito

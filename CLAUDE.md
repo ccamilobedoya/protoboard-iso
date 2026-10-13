@@ -50,6 +50,7 @@ npm run examples -- --lang es # same, Spanish messages and labels
 npm run preview [-- filter]   # examples/out/*.svg → examples/out/png/*.png (needs npm install)
 node bin/protoboard-iso.js inspect <file.json> [--json]   # the drawing in numbers
 node bin/protoboard-iso.js render <file.json> -o out.svg --annotate all
+node bin/protoboard-iso.js page <target>                  # out/<name>.html, the page to embed (docs/en/embedding.md)
 node bin/protoboard-iso.js apply <target> --ops '<json>' --dry-run   # then without --dry-run
 node bin/protoboard-iso.js undo <target> · history <target>
 node bin/protoboard-iso.js query <target> at c12 | node 9:a-e | free --near e10

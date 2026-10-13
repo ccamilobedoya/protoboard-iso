@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Command line: render, inspect, check and change circuits.
+// Command line: render, inspect, check and change circuits; write the embeddable page.
 // A <target> is a circuit file (examples/led.json) or a circuit folder (circuits/led/).
 //
 // Exit codes: 0 fine · 1 errors (or a refused change, or no placement found) ·
@@ -12,7 +12,7 @@ import { formatChange } from '../src/diff.js';
 import { queryAt, queryNode, queryFree, suggest } from '../src/query.js';
 import { formatAt, formatNode, formatFree, formatSuggest } from '../src/query-format.js';
 import { review, formatReview } from '../src/review.js';
-import { resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory } from '../src/node/workspace.js';
+import { resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory, writePage } from '../src/node/workspace.js';
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -89,6 +89,13 @@ if (command === 'render') {
   }
   writeFileSync(out, svg);
   console.log(t(lang, 'cli.written', { file: out, parts: circuit.parts.length, issues: issues.length }));
+  fail(issues.some((i) => i.severity === 'error') ? 1 : 0);
+} else if (command === 'page') {
+  const circuit = loadCircuit(paths);
+  const { pageFile, issues } = writePage(paths, circuit, { lang, fit: args.fit, out: args.out });
+  printIssues(issues, lang);
+  if (!pageFile) fail(1);
+  console.log(t(lang, 'cli.written', { file: pageFile, parts: circuit.parts.length, issues: issues.length }));
   fail(issues.some((i) => i.severity === 'error') ? 1 : 0);
 } else if (command === 'inspect') {
   const report = inspectCircuit(loadCircuit(paths), viewOptions);

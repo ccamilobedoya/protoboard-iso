@@ -123,8 +123,19 @@ export default {
   'color.gold': 'dorado',
   'color.silver': 'plateado',
 
+  'page.untitled': 'Circuito',
+  'page.view.front': 'De frente',
+  'page.view.back': 'Desde atrás',
+  'page.view.front-left': 'Frente izquierdo',
+  'page.view.back-right': 'Atrás derecho',
+  'page.fit.parts': 'De cerca',
+  'page.fit.board': 'Toda la protoboard',
+  'page.labels': 'Etiquetas',
+  'page.hint': 'Arrastra para moverte · rueda o pellizco para acercar · doble clic para acercar',
+  'page.revision': 'revisión {revision}',
   'cli.usage': `Uso (<objetivo> = un archivo de circuito o una carpeta con circuit.json):
   protoboard-iso render <objetivo> [-o salida.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels]
+  protoboard-iso page <objetivo> [-o pagina.html] [--lang en|es] [--fit parts|board]
   protoboard-iso inspect <objetivo> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
   protoboard-iso check <objetivo> [--lang en|es] [--json]
   protoboard-iso netlist <objetivo>

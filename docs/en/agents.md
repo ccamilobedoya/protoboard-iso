@@ -39,6 +39,7 @@ user request
   → circuit-reviewer (REVIEW BRIEF)    → REVIEW REPORT: APPROVED, or CHANGES with fixes
   → if CHANGES: send the fixes to the same circuit-layout (at most two rounds)
   → show the result: render with fit "parts" (and annotate when teaching holes)
+  → to embed it in documentation: out/<name>.html, already rewritten (docs/en/embedding.md)
 missing component at any point → parts-librarian (PARTS BRIEF) → PARTS REPORT
 ```
 

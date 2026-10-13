@@ -39,6 +39,7 @@ pedido del usuario
   → circuit-reviewer (REVIEW BRIEF)    → REVIEW REPORT: APROBADO, o CAMBIOS con arreglos
   → si hay CAMBIOS: pasar los arreglos al mismo circuit-layout (como mucho dos rondas)
   → mostrar el resultado: render con fit "parts" (y annotate cuando se enseñan agujeros)
+  → para embeberlo en la documentación: out/<nombre>.html, ya reescrita (docs/es/embeber.md)
 si falta un componente en cualquier momento → parts-librarian (PARTS BRIEF) → PARTS REPORT
 ```
 

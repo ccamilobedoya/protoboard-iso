@@ -58,7 +58,7 @@ path of `mcp/server.js` and the environment above.
 | `undo` | undo the latest change (new revision) | yes |
 | `review` | APPROVED or CHANGES from measurements, profile `lesson` or `draft` | no |
 | `history` | revisions, authors, notes, operations | no |
-| `render` | writes the SVG; `png_width` also returns a PNG image | outputs only |
+| `render` | writes the SVG; `png_width` also returns a PNG image; `page: true` rewrites the embeddable page ([embedding.md](embedding.md)) | outputs only |
 | `catalog` | types, part numbers, packages, boards, views, operations, layers | no |
 
 Every tool answers in readable text, or JSON with `format: "json"`. Errors come back as tool

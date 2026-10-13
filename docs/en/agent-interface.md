@@ -16,7 +16,8 @@ A **target** is where a circuit lives:
 | a file, `examples/led.json` | the file | `led.history.jsonl` beside it | `out/` beside it |
 
 The circuit file is the **only source of truth**. History and outputs are derived; outputs
-(`<name>.front.svg`, `<name>.report.json`) can be deleted and regenerated at any time.
+(`<name>.front.svg`, `<name>.html`, `<name>.report.json`) can be deleted and regenerated at any time.
+`<name>.html` is the page to embed in documentation: see [embedding.md](embedding.md).
 
 ## Resuming work
 

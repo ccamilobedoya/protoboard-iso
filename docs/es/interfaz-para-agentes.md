@@ -16,8 +16,9 @@ Un **objetivo** es el lugar donde vive un circuito:
 | un archivo, `examples/led.json` | el archivo | `led.history.jsonl` al lado | `out/` al lado |
 
 El archivo del circuito es la **única fuente de verdad**. El historial y las salidas se
-derivan de él; las salidas (`<nombre>.front.svg`, `<nombre>.report.json`) se pueden borrar y
-regenerar cuando sea.
+derivan de él; las salidas (`<nombre>.front.svg`, `<nombre>.html`, `<nombre>.report.json`) se
+pueden borrar y regenerar cuando sea. `<nombre>.html` es la página para embeber en la
+documentación: ver [embeber.md](embeber.md).
 
 ## Retomar el trabajo
 

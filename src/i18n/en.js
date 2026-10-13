@@ -124,8 +124,19 @@ export default {
   'color.gold': 'gold',
   'color.silver': 'silver',
 
+  'page.untitled': 'Circuit',
+  'page.view.front': 'Front',
+  'page.view.back': 'Back',
+  'page.view.front-left': 'Front left',
+  'page.view.back-right': 'Back right',
+  'page.fit.parts': 'Close-up',
+  'page.fit.board': 'Whole board',
+  'page.labels': 'Labels',
+  'page.hint': 'Drag to move · wheel or pinch to zoom · double-click to zoom in',
+  'page.revision': 'revision {revision}',
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):
   protoboard-iso render <target> [-o out.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels]
+  protoboard-iso page <target> [-o page.html] [--lang en|es] [--fit parts|board]
   protoboard-iso inspect <target> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
   protoboard-iso check <target> [--lang en|es] [--json]
   protoboard-iso netlist <target>

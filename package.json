@@ -42,6 +42,7 @@
     "agent-skill"
   ],
   "devDependencies": {
-    "@resvg/resvg-js": "^2.6.2"
+    "@resvg/resvg-js": "^2.6.2",
+    "jsdom": "^30.1.2"
   }
 }
