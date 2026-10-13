@@ -3,8 +3,8 @@
 *[Español](../es/interfaz-para-agentes.md)*
 
 How an assistant, an agent or a script picks up an existing circuit and changes it safely.
-Every command below also exists in the API; the planned MCP server will expose the same
-functions as tools.
+Every command below also exists in the API and as a tool of the MCP server
+([mcp.md](mcp.md)).
 
 ## Targets
 
@@ -28,6 +28,43 @@ node bin/protoboard-iso.js check <target>              # placement issues and co
 
 Read numbers, not pictures: `inspect` gives every lead's hole and position, visibility and
 label problems (see [inspect-and-annotate.md](inspect-and-annotate.md)).
+
+## Queries: ask instead of computing
+
+```bash
+node bin/protoboard-iso.js query <target> at c12                     # who is in the hole, its group
+node bin/protoboard-iso.js query <target> node 9:a-e                 # a group by name or by any hole (c9)
+node bin/protoboard-iso.js query <target> free --near e10 --limit 10 [--empty]
+node bin/protoboard-iso.js suggest <target> --part '{"type":"resistor","value":"1k"}' --between 10:a-e,T-
+node bin/protoboard-iso.js suggest <target> --part '{"type":"mosfet","part":"IRLZ44N"}' --connect '{"D":"c20"}'
+```
+
+- **`at`**: the hole's group, who holds it, the used and free holes of the group.
+- **`node`**: every hole of a group (`9:a-e`, `T+`, or any hole of it), used and free, and
+  the rail label if any.
+- **`free`**: free holes, nearest to `--near` first (a hole, a group or a column number);
+  `--empty` keeps only groups nobody uses yet.
+- **`suggest`**: valid placements for a **new** part, best first. `--between a,b` gives the
+  groups of a two-lead part in pin order; `--connect '{"pin":"group or hole"}'` names the
+  groups of some pins (the others go to free, empty strips). `--near` centres the search,
+  `--window` (mm, default 20) widens it.
+
+How `suggest` works: a fast geometric pass over every set of holes that respects the lead
+rules and the requested groups, then the best dozen are measured exactly like a dry run.
+Placements that add an error or a warning are dropped; the rest are ranked by span close to
+the ideal, straight along the grid, distance to the centre, notes added (leader crossings,
+parts too close) and the least visible part. Three-lead parts prefer pin 1 on the left so
+their print faces the front view. Each placement carries the `add` operation to apply:
+
+```
+Placements for R2 (Resistor, axial), best first; 12 measured:
+  1. 1→b10, 2→T-11 · span 10.5 mm · score 5.3 · least visible part 81 %
+To use the first one (check with a dry run, then apply):
+  protoboard-iso apply <target> --ops '[{"op":"add","part":{…,"pins":["b10","T-11"]}}]' --dry-run
+```
+
+When nothing fits, it says why: `NO_PLACEMENT`, or `NO_PLACEMENT_RAIL` when a three-lead
+part is asked to reach a rail directly (it cannot: put it in free strips and add a wire).
 
 ## Operations
 
@@ -91,13 +128,23 @@ import { applyToTarget, undoTarget, readHistory } from 'protoboard-iso/workspace
 ## A good loop for an agent
 
 1. `history` and `inspect --json` to understand the current state.
-2. Propose a batch of operations; `apply --dry-run`.
+2. Ask instead of computing: `query` for holes and groups, `suggest` for where a new part
+   goes. Then propose a batch of operations; `apply --dry-run`.
 3. If the diff introduces nothing unintended, apply with `--expect-revision`, an author and
    a note that says why.
-4. Never edit `circuit.json` by hand while others work on it, and never edit outputs.
+4. `review <target>` until it says APPROVED (see [agents.md](agents.md) for profiles).
+5. Never edit `circuit.json` by hand while others work on it, and never edit outputs.
 
-## Coming next (see ROADMAP.md, stage 1.5)
+## Agents
 
-Queries (`at`, `node`, `free`, `suggest`) so placements are computed instead of guessed, an
-MCP server exposing all of this as tools, and agent roles (layout, reviewer, parts
-librarian) that share state through these files.
+Layout, reviewer and parts librarian roles built on these tools: [agents.md](agents.md).
+
+## Exit codes (CLI)
+
+| Code | Meaning |
+|---|---|
+| 0 | fine |
+| 1 | errors in the circuit, a refused change (`REVISION_MISMATCH`, bad operations), nothing to undo, or no placement found |
+| 2 | `review` says CHANGES |
+
+Every command that reports something also takes `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `review`).

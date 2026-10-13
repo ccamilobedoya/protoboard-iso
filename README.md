@@ -61,6 +61,8 @@ breadboard circuit comes up.
 | Translating | [docs/en/translating.md](docs/en/translating.md) | [docs/es/traducir.md](docs/es/traducir.md) |
 | Inspecting and annotating | [docs/en/inspect-and-annotate.md](docs/en/inspect-and-annotate.md) | [docs/es/inspeccionar-y-anotar.md](docs/es/inspeccionar-y-anotar.md) |
 | Agent interface (resume, change, undo) | [docs/en/agent-interface.md](docs/en/agent-interface.md) | [docs/es/interfaz-para-agentes.md](docs/es/interfaz-para-agentes.md) |
+| MCP server | [docs/en/mcp.md](docs/en/mcp.md) | [docs/es/mcp.md](docs/es/mcp.md) |
+| Agents (layout, reviewer, parts librarian) | [docs/en/agents.md](docs/en/agents.md) | [docs/es/agentes.md](docs/es/agentes.md) |
 | Roadmap | [ROADMAP.md](ROADMAP.md) | [docs/es/hoja-de-ruta.md](docs/es/hoja-de-ruta.md) |
 | Planning | [PLANNING.md](PLANNING.md) | [docs/es/planeacion.md](docs/es/planeacion.md) |
 

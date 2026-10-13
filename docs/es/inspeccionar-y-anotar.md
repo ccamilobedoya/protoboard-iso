@@ -52,7 +52,8 @@ node bin/protoboard-iso.js render circuito.json -o salida.svg --annotate all
 | `boxes` | una caja punteada y el id alrededor de cada componente: lo que ocupa exactamente en pantalla |
 | `grid` | todas las columnas numeradas, no solo 1, 5, 10… |
 
-Se pueden combinar; `all` activa todas. Van en su propio grupo,
+Las etiquetas de las patas buscan un lugar libre alrededor de su agujero, así que nunca se
+montan entre sí ni sobre el anillo de un agujero. Se pueden combinar; `all` activa todas. Van en su propio grupo,
 `<g class="annotations">`; `nodes` y `grid` se imprimen sobre la protoboard misma, por
 debajo de los componentes. Sirven para señalar un agujero exacto, para enseñar cómo se
 conectan las tiras o para revisar un montaje.

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "protoboard-iso": {
+      "command": "node",
+      "args": [
+        "mcp/server.js"
+      ],
+      "env": {
+        "PROTOBOARD_ROOT": "."
+      }
+    }
+  }
+}

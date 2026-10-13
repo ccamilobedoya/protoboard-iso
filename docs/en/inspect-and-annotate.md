@@ -51,7 +51,8 @@ node bin/protoboard-iso.js render circuit.json -o out.svg --annotate all
 | `boxes` | a dashed box and the id around every part: its exact screen extent |
 | `grid` | every column numbered, not only 1, 5, 10… |
 
-Combine any of them; `all` turns on every layer. They go into their own group,
+Pin tags look for a free spot around their hole, so they never overlap each other or a
+hole ring. Combine any layers; `all` turns on every one. They go into their own group,
 `<g class="annotations">`; `nodes` and `grid` are printed on the board itself, under the
 parts. Useful to point at an exact hole, to teach how strips connect, or to check a layout.
 

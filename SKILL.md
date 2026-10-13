@@ -30,6 +30,13 @@ Requires Node.js 18 or newer. No npm dependencies.
 5. `--annotate pins,nodes,boxes,grid` (or `all`) adds hole names, connected groups, part
    boxes and full column numbers: use it to point at exact holes or to teach the strips.
 
+## Prefer the MCP tools
+
+If the `protoboard-iso` MCP server is connected (tools `list_circuits`, `inspect`, `query`,
+`suggest`, `apply_ops`, `undo`, `history`, `render`, `catalog`, `create_circuit`), use them
+instead of the CLI: typed inputs, short answers, same functions. The CLI commands below are
+the fallback. Setup: `docs/en/mcp.md`.
+
 ## Changing an existing circuit
 
 Never rewrite the file: use operations, dry run first (details: `docs/en/agent-interface.md`).
@@ -41,7 +48,14 @@ node <skill>/bin/protoboard-iso.js apply <target> --ops '…' --author claude --
 node <skill>/bin/protoboard-iso.js undo <target>
 ```
 
+Ask, do not compute: `query <target> at c12 | node 9:a-e | free --near e10` answers what is
+where; `suggest <target> --part '{"type":"resistor","value":"1k"}' --between 10:a-e,T-`
+returns valid placements, best first, each with the `add` operation ready to dry-run.
+
 Operations: `add`, `remove`, `move`, `set`, `rename`, `circuit` (schema: `schema/ops.schema.json`).
+
+Done means `review <target>` says APPROVED (profile `lesson` for teaching layouts, `draft`
+for quick sketches); it lists what must be fixed and what is only worth knowing.
 The dry run tells what the change fixes and what it breaks; apply only when it introduces
 nothing unintended. A target is a circuit file or a folder with `circuit.json`.
 

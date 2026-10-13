@@ -1,19 +1,19 @@
 // Through-hole LED, 5 mm or 3 mm: flange, cylinder and dome, standing on its two leads.
-// The leads come out 2.54 mm apart and may be spread up to three holes.
+// The leads come out 2.54 mm apart and may be spread up to three holes. The flange has a
+// flat on the cathode side, as on real LEDs.
 //
 // params: size (5 | 3), color, standoff (mm between board and flange, default 3)
 
 import { add, scale, Z } from '../../core/vec.js';
-import { lathe, midpoint } from '../../geometry/primitives.js';
+import { lathe, prism, midpoint } from '../../geometry/primitives.js';
 import { lead, directionBetween, withZ } from './common.js';
 
 const P = 2.54;
 
+// Body above the flange: cylinder and dome.
 function ledProfile(k) {
   const pts = [
-    [0, 0],
-    [2.9 * k, 0],
-    [2.9 * k, 1.0 * k],
+    [0, 1.0 * k],
     [2.5 * k, 1.0 * k],
     [2.5 * k, 5.6 * k],
   ];
@@ -36,12 +36,22 @@ export default {
     const dir = directionBetween(anode, cathode);
     const base = withZ(midpoint(anode, cathode), standoff);
     const body = lathe({ profile: ledProfile(k), origin: base, axis: Z, ref: dir, segments: 22, color, opacity: 0.95 });
+    // Flange: a circle with a flat cut on the cathode side (towards +dir).
+    const R = 2.9 * k;
+    const flat = 2.45 * k;
+    const start = Math.acos(flat / R);
+    const flangeProfile = [];
+    for (let i = 0; i <= 18; i++) {
+      const t = start + ((2 * Math.PI - 2 * start) * i) / 18;
+      flangeProfile.push([R * Math.cos(t), R * Math.sin(t)]);
+    }
+    const flange = prism({ profile: flangeProfile, origin: base, u: dir, height: 1.0 * k, color, opacity: 0.95 });
     const footA = add(base, scale(dir, -1.27 * k));
     const footK = add(base, scale(dir, 1.27 * k));
     const leads = [
       ...lead([withZ(anode, 0), withZ(anode, 1.2), footA], { radius: 0.25 }),
       ...lead([withZ(cathode, 0), withZ(cathode, 1.2), footK], { radius: 0.25 }),
     ];
-    return { primitives: [body, ...leads], body: [body], anchor: withZ(base, standoff + 8.1 * k) };
+    return { primitives: [flange, body, ...leads], body: [flange, body], anchor: withZ(base, standoff + 8.1 * k) };
   },
 };

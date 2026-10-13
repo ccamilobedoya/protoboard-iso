@@ -38,19 +38,21 @@ Objetivo: entra un JSON y sale un dibujo isométrico fiel, con la colocación re
 
 ### Pulido de la etapa 1 (pequeño, en cualquier momento) 🔜
 
-- ⬜ Líneas guía que no se crucen entre sí ni atraviesen componentes (filas ordenadas por profundidad, trazado en codo)
-- ⬜ Que las etiquetas de patas de la capa `pins` no se monten entre sí (medido por `inspect`, como las etiquetas)
-- ⬜ Llevar a cero las notas de `inspect` que quedan en los ejemplos (líneas guía que se cruzan, componentes detrás de Q1)
-- ⬜ LED: lado plano en la pestaña del cátodo; pata del ánodo más larga cuando `standoff` es alto
-- ⬜ Electrolítico: signos «−» en la franja; valor impreso en la funda
-- ⬜ Opción de etiqueta (`labels: 'value' | 'id' | 'both'`)
+- ✅ Líneas guía que nunca se cruzan: verticales siempre que se pueda, y las inclinadas después, en la fila con menos cruces (cero en todos los ejemplos, con prueba)
+- ⬜ Líneas guía que no pasen sobre otros componentes (quedan notas `LEADER_OVER_PART`)
+- ✅ Etiquetas de patas de la capa `pins` que no se montan entre sí ni sobre los anillos de los agujeros (con prueba)
+- ✅ LED: lado plano en la pestaña del cátodo
+- ⬜ LED: pata del ánodo más larga cuando `standoff` es alto
+- ✅ Electrolítico: signos «−» en la franja
+- ⬜ Electrolítico: valor impreso en la funda
+- ✅ Modos de etiqueta: `labels: 'both' | 'id' | 'value' | false` (`--labels`, `render` del MCP)
 - ⬜ Comparar el orden y los colores de los rieles con la protoboard real (`bb830.js`)
 - ⬜ Más encapsulados: potenciómetro (trimmer y de panel), pulsador de 6×6, DIP-8/14/16 (555, amplificadores operacionales) sobre el canal central, pines de cabecera, zumbador, conector de batería de 9 V
 - ⬜ Pintor: ordenar mejor los cables frente a componentes altos (partir arcos largos, sesgo de profundidad)
-- ⬜ Documentar los códigos de salida de `check`; salida JSON para herramientas (`--json`)
-- ⬜ JSON Schema del archivo de circuito (autocompletado en el editor, validación fuera del kit)
+- ✅ `check --json`; códigos de salida documentados (0 bien, 1 errores o cambio rechazado, 2 `review` pide cambios)
+- ✅ JSON Schema del archivo de circuito (hecho en la etapa 1.5: `schema/`)
 
-## Etapa 1.5 — Interfaz para agentes 🔜
+## Etapa 1.5 — Interfaz para agentes ✅
 
 Objetivo: cualquier asistente o agente puede retomar un circuito existente, entenderlo con
 un informe corto y cambiarlo con operaciones pequeñas y validadas, cuyo efecto se mide antes
@@ -64,10 +66,12 @@ de aplicarlas. Las mismas operaciones moverán después el editor interactivo.
 - ✅ **JSON Schemas** del archivo de circuito y de las operaciones (editores, esquemas de las herramientas MCP)
 - ✅ Línea de comandos: `apply`, `undo`, `history`; todos los comandos aceptan un archivo o una carpeta
 - ✅ Documentación: `docs/en/agent-interface.md` / `docs/es/interfaz-para-agentes.md`
-- 🔜 **Consultas**: `at <agujero>`, `node <nodo>`, `free [near]`, `suggest <componente> between <nodo> and <nodo>` (posiciones válidas ordenadas por separación y visibilidad)
-- ⬜ **Servidor MCP** (`mcp/`, paquete propio para que el núcleo siga sin dependencias): `list_circuits`, `get_circuit`, `inspect`, `query`, `apply_ops`, `undo`, `history`, `render`, `catalog`; `.mcp.json` del proyecto
-- ⬜ `SKILL.md` prefiere las herramientas MCP y usa la línea de comandos como respaldo
-- ⬜ Roles de agentes (`.claude/agents/`): montaje, revisor, bibliotecario; comparten el estado por los archivos, no por el chat
+- ✅ **Consultas**: `at <agujero>`, `node <nodo>`, `free [near]`, `suggest <componente> between <nodo> and <nodo>` (posiciones válidas ordenadas por separación y visibilidad)
+- ✅ **Servidor MCP** (`mcp/`, paquete propio para que el núcleo siga sin dependencias): `list_circuits`, `get_circuit`, `inspect`, `query`, `apply_ops`, `undo`, `history`, `render`, `catalog`; `.mcp.json` del proyecto
+- ✅ `SKILL.md` prefiere las herramientas MCP y usa la línea de comandos como respaldo; herramienta `create_circuit`; documentación `docs/es/mcp.md`
+- ✅ `review`: veredicto a partir de mediciones con perfiles `lesson` / `draft` (línea de comandos y herramienta MCP), la definición de «terminado» compartida
+- ✅ Roles de agentes (`.claude/agents/`): `circuit-layout`, `circuit-reviewer`, `parts-librarian`; comparten el estado por los archivos, no por el chat; encargos y ciclo en `docs/es/agentes.md`
+- ⬜ Probar el ciclo de agentes con circuitos reales de clase y ajustar los encargos y el perfil `lesson`
 
 ## Etapa 2 — Simulación (primero DC) ⬜
 

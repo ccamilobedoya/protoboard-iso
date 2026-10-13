@@ -118,6 +118,8 @@ circuit.json ──▶ type ──▶ package ──▶ primitives ──▶ cam
 - **Measure, don't eyeball.** Anything visual that can be measured becomes an `inspect`
   problem and a test, so it never regresses silently.
 - **Fix the kit, not the output.** Never hand-edit a generated SVG.
+- **Agents follow the kit.** `.claude/agents/` names tools, commands, operations, profiles and
+  formats; any change to those updates the agent files in the same change.
 
 ### For the code
 - No runtime dependencies. Plain ES modules, Node ≥ 18, works in the browser.
@@ -155,4 +157,6 @@ circuit.json ──▶ type ──▶ package ──▶ primitives ──▶ cam
 | 2026-10-12 | `inspect` report and coverage raster; scene as a shared display list | Reading PNGs is slow for an assistant; numbers are fast, exact and testable. |
 | 2026-10-12 | Annotation layers (`pins`, `nodes`, `boxes`, `grid`) as a parametric option, not a debug mode | Exact holes and groups are useful to learners too, not only for debugging. |
 | 2026-10-12 | Stage 1.5 agent interface before simulation: operations with dry-run diff, history/undo, queries, MCP server, agent roles | Assistants must resume and adjust circuits cheaply and safely; simulation results will use the same tools. |
+| 2026-10-12 | MCP server in `mcp/` as its own package; root restricted by `PROTOBOARD_ROOT`; text or JSON answers; PNG only on request | Typed tools for any agent while the kit stays dependency-free; safe file access; images are slow to read. |
+| 2026-10-12 | `review` command with profiles as the shared definition of done; three subagents (layout, reviewer read-only, parts librarian) sharing state through files | Verdicts must not depend on an agent's taste; small agents keep the main conversation light. |
 | 2026-10-12 | `@resvg/resvg-js` as dev dependency for PNG previews | Lets an assistant check drawings without a browser; runtime stays dependency-free. |

@@ -38,19 +38,21 @@ Goal: a JSON file in, a faithful isometric picture out, with the placement check
 
 ### Stage 1 polish (small, any time) 🔜
 
-- ⬜ Leader lines that avoid crossing each other and parts (order rows by depth, elbow routing)
-- ⬜ Pin tags of the `pins` layer that avoid each other (measured by `inspect` like labels)
-- ⬜ Turn the remaining `inspect` notes in the examples into zero (leader crossings, parts behind Q1)
-- ⬜ LED: flat side on the cathode flange; longer anode lead when `standoff` is high
-- ⬜ Electrolytic: "−" marks on the stripe; value printed on the sleeve
-- ⬜ Resistor value in a tooltip-like label option (`labels: 'value' | 'id' | 'both'`)
+- ✅ Leader lines that never cross: vertical leaders whenever possible, slanted ones placed after them in the row with the fewest crossings (zero in every example, tested)
+- ⬜ Leader lines that avoid passing over other parts (`LEADER_OVER_PART` notes remain)
+- ✅ Pin tags of the `pins` layer that avoid each other and the hole rings (tested)
+- ✅ LED: flat side on the cathode flange
+- ⬜ LED: longer anode lead when `standoff` is high
+- ✅ Electrolytic: "−" marks on the stripe
+- ⬜ Electrolytic: value printed on the sleeve
+- ✅ Label modes: `labels: 'both' | 'id' | 'value' | false` (`--labels`, MCP `render`)
 - ⬜ Check rail order and colours against the maintainer's real board (`bb830.js`)
 - ⬜ More packages: potentiometer (trimmer and panel), push button 6×6, DIP-8/14/16 (555, op-amps) straddling the channel, header pins, buzzer, 9 V battery clip
 - ⬜ Painter: sort jumper wires against tall parts more robustly (split long arcs, depth bias)
-- ⬜ `check` exit codes documented; JSON output for tools (`--json`)
-- ⬜ JSON Schema for the circuit file (editor autocompletion, validation outside the kit)
+- ✅ `check --json`; exit codes documented (0 fine, 1 errors or refused, 2 review CHANGES)
+- ✅ JSON Schema for the circuit file (done in stage 1.5: `schema/`)
 
-## Stage 1.5 — Agent interface 🔜
+## Stage 1.5 — Agent interface ✅
 
 Goal: any assistant or agent can pick up an existing circuit, understand it from a short
 report, and change it with small validated operations whose effect is measured before it
@@ -64,10 +66,12 @@ is applied. The same operations will drive the interactive editor later.
 - ✅ **JSON Schemas** for the circuit file and the operations (editors, MCP tool schemas)
 - ✅ CLI: `apply`, `undo`, `history`; every command accepts a file or a folder target
 - ✅ Docs: `docs/en/agent-interface.md` / `docs/es/interfaz-para-agentes.md`
-- 🔜 **Queries**: `at <hole>`, `node <node>`, `free [near]`, `suggest <part> between <node> and <node>` (valid placements ranked by clearance and visibility)
-- ⬜ **MCP server** (`mcp/`, own package so the core stays dependency-free): `list_circuits`, `get_circuit`, `inspect`, `query`, `apply_ops`, `undo`, `history`, `render`, `catalog`; project `.mcp.json`
-- ⬜ `SKILL.md` prefers the MCP tools, CLI as fallback
-- ⬜ Agent roles (`.claude/agents/`): layout, reviewer, parts librarian; they share state through the files, not the chat
+- ✅ **Queries**: `at <hole>`, `node <node>`, `free [near]`, `suggest <part> between <node> and <node>` (valid placements ranked by clearance and visibility)
+- ✅ **MCP server** (`mcp/`, own package so the core stays dependency-free): `list_circuits`, `get_circuit`, `inspect`, `query`, `apply_ops`, `undo`, `history`, `render`, `catalog`; project `.mcp.json`
+- ✅ `SKILL.md` prefers the MCP tools, CLI as fallback; `create_circuit` tool; docs `docs/en/mcp.md`
+- ✅ `review`: verdict from measurements with profiles `lesson` / `draft` (CLI and MCP tool), the shared definition of done
+- ✅ Agent roles (`.claude/agents/`): `circuit-layout`, `circuit-reviewer`, `parts-librarian`; they share state through the files, not the chat; briefs and loop in `docs/en/agents.md`
+- ⬜ Try the agent loop on real lesson circuits and tune the briefs and the `lesson` profile
 
 ## Stage 2 — Simulation (DC first) ⬜
 

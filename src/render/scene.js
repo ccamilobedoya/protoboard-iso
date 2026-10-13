@@ -118,37 +118,90 @@ function paintPrimitive(primitive, camera, bounds, out) {
 }
 
 // Labels are callouts in rows above the highest part, so the text never covers a
-// component; a thin leader line joins each label to its part. They are packed left to
-// right by the x of their part; one that would drift too far moves to the next row up.
+// component. Leaders are vertical whenever possible: the label box sits right above its
+// part (it spans the anchor's x), and parallel leaders never cross. A label then needs a
+// row where (1) it does not overlap a label of the same row, (2) no label of a lower row
+// covers its leader, and (3) it does not cover the leader of a label already placed in a
+// higher row. Only when no row allows that does it fall back to a slanted leader, choosing
+// the row with the fewest crossings. Printed rail labels are kept clear.
 const LABEL_GAP = 8; // between labels in a row, px
 const ROW_GAP = 5; // between rows, px
 const CLEARANCE = 22; // between the highest part and the first row, px
+const MAX_ROWS = 10;
+const INSET = 7; // a vertical leader enters the box at least this far from its edge, px
+
+function crosses(a, b) {
+  const d = (p, q, r) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+  const d1 = d(b.from, b.to, a.from);
+  const d2 = d(b.from, b.to, a.to);
+  const d3 = d(a.from, a.to, b.from);
+  const d4 = d(a.from, a.to, b.to);
+  return d1 * d2 < 0 && d3 * d4 < 0;
+}
 
 // `obstacles` are screen boxes labels must not cover (the printed rail labels).
+// Two passes: first every label that can have a vertical leader gets one; then the rest
+// take slanted leaders in the row with the fewest crossings, knowing every vertical one.
 function layoutLabels(labels, top, obstacles = []) {
-  const rowsRight = [];
   const placed = [];
-  for (const label of [...labels].sort((a, b) => a.x - b.x)) {
+  const overlapsBox = (x, y, width, height, o, gap) => x < o.x + o.width + gap && o.x - gap < x + width && y < o.y + o.height + 3 && o.y - 3 < y + height;
+  const measure = (label) => {
     const size = label.size ?? 11;
-    const width = label.text.length * size * 0.58 + 12;
-    const height = size + 9;
-    const wanted = label.x - width / 2;
-    const rowY = (r) => top - CLEARANCE - height - r * (height + ROW_GAP);
-    let row = 0;
-    let x = wanted;
-    for (; row < 8; row++) {
-      x = Math.max(wanted, (rowsRight[row] ?? -Infinity) + LABEL_GAP);
-      const y = rowY(row);
-      for (let guard = 0; guard < obstacles.length; guard++) {
-        const hit = obstacles.find((o) => x < o.x + o.width + 3 && o.x - 3 < x + width && y < o.y + o.height + 3 && o.y - 3 < y + height);
-        if (!hit) break;
-        x = hit.x + hit.width + LABEL_GAP;
+    return { size, width: label.text.length * size * 0.58 + 12, height: size + 9 };
+  };
+  const rowY = (r, height) => top - CLEARANCE - height - r * (height + ROW_GAP);
+  const fits = (x, y, row, width, height) =>
+    !obstacles.some((o) => overlapsBox(x, y, width, height, o, LABEL_GAP)) &&
+    !placed.some((p) => p.row === row && overlapsBox(x, y, width, height, p, LABEL_GAP)) &&
+    // Not covering the vertical leader of a label placed higher up.
+    !placed.some((p) => p.row > row && p.vertical && p.anchor.x > x - 3 && p.anchor.x < x + width + 3);
+  const crossCount = (leader) => placed.filter((p) => crosses(leader, p.leader)).length;
+  const place = (label, m, c) =>
+    placed.push({ x: c.x, y: c.y, width: m.width, height: m.height, row: c.row, vertical: c.vertical, leader: c.leader, size: m.size, anchor: { x: label.x, y: label.y }, text: label.text, part: label.part });
+
+  const pending = [];
+  for (const label of [...labels].sort((a, b) => a.x - b.x)) {
+    const m = measure(label);
+    let choice = null;
+    for (let row = 0; row < MAX_ROWS && !choice; row++) {
+      // No lower label may sit on this leader.
+      if (placed.some((p) => p.row < row && label.x > p.x - 3 && label.x < p.x + p.width + 3)) continue;
+      const y = rowY(row, m.height);
+      const leader = { from: { x: label.x, y: y + m.height }, to: { x: label.x, y: label.y } };
+      if (crossCount(leader)) continue;
+      const centred = label.x - m.width / 2;
+      for (let step = 0; step <= m.width && !choice; step += 2) {
+        for (const x of step ? [centred + step, centred - step] : [centred]) {
+          if (x < label.x - m.width + INSET || x > label.x - INSET || !fits(x, y, row, m.width, m.height)) continue;
+          choice = { row, x, y, vertical: true, leader };
+          break;
+        }
       }
-      if (x - wanted <= width * 0.9) break;
     }
-    rowsRight[row] = x + width;
-    const y = rowY(row);
-    placed.push({ x, y, width, height, row, size, anchor: { x: label.x, y: label.y }, text: label.text, part: label.part });
+    if (choice) place(label, m, choice);
+    else pending.push(label);
+  }
+
+  for (const label of pending) {
+    const m = measure(label);
+    let choice = null;
+    for (let row = 0; row < MAX_ROWS; row++) {
+      const y = rowY(row, m.height);
+      const wanted = label.x - m.width / 2;
+      for (let step = 0; step <= m.width * 2; step += 4) {
+        for (const x of step ? [wanted + step, wanted - step] : [wanted]) {
+          if (!fits(x, y, row, m.width, m.height)) continue;
+          const leader = { from: { x: x + m.width / 2, y: y + m.height }, to: { x: label.x, y: label.y } };
+          const cost = crossCount(leader) * 20 + row * 2 + Math.abs(x - wanted) / m.width;
+          if (!choice || cost < choice.cost) choice = { row, x, y, vertical: false, leader, cost };
+        }
+      }
+    }
+    if (!choice) {
+      const y = rowY(MAX_ROWS, m.height);
+      choice = { row: MAX_ROWS, x: label.x - m.width / 2, y, vertical: true, leader: { from: { x: label.x, y: y + m.height }, to: { x: label.x, y: label.y } } };
+    }
+    place(label, m, choice);
   }
   return placed;
 }
@@ -168,7 +221,7 @@ export function buildScene({ camera, base = [], items = [], labels = [], margin 
   const callouts = layoutLabels(labels, top, obstacles);
   for (const c of callouts) {
     focus.add(c.anchor.x, c.anchor.y);
-    layers.labels.push({ kind: 'line', x1: c.x + c.width / 2, y1: c.y + c.height, x2: c.anchor.x, y2: c.anchor.y, stroke: '#7b8794', strokeWidth: 0.8, part: c.part, role: 'leader' });
+    layers.labels.push({ kind: 'line', x1: c.leader.from.x, y1: c.leader.from.y, x2: c.anchor.x, y2: c.anchor.y, stroke: '#7b8794', strokeWidth: 0.8, part: c.part, role: 'leader' });
     layers.labels.push({ kind: 'circle', cx: c.anchor.x, cy: c.anchor.y, r: 2, fill: '#52606d', stroke: '#ffffff', strokeWidth: 0.8, part: c.part, role: 'leader' });
   }
   for (const c of callouts) {

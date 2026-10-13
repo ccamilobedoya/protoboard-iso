@@ -56,6 +56,7 @@ export default {
   'check.OP_UNKNOWN_PART': 'Operación {index} ({op}): no hay ningún componente {part}.',
   'check.OP_DUPLICATE_ID': 'Operación {index} ({op}): ya existe un componente llamado {part}.',
   'check.REVISION_MISMATCH': 'El circuito está en la revisión {actual}, no en la {expected}: alguien lo cambió. Vuelve a leerlo y reintenta.',
+  'check.TARGET_EXISTS': 'Ya hay un circuito en {target}.',
   'check.NOTHING_TO_UNDO': 'No hay nada que deshacer.',
 
   'change.failed': 'No se cambió nada:',
@@ -69,6 +70,28 @@ export default {
   'change.outputs': 'salidas: {svg}, {report}',
   'history.entry': 'rev {revision} · {time} · {author}{note}: {ops}',
   'history.empty': 'Todavía no hay historial.',
+
+  'check.NO_PLACEMENT': '{part}: no se encontró ninguna posición válida ({considered} candidatas medidas). Prueba con otros grupos, con --near en un lugar con espacio, o con --window para buscar más lejos.',
+  'check.NO_PLACEMENT_RAIL': '{part}: sus patas van en una fila de agujeros vecinos, así que no pueden llegar directo a un riel. Ponlo en tiras libres y une el riel con un cable.',
+
+  'query.noHole': '«{hole}» no es un agujero de esta protoboard.',
+  'query.noNode': '«{node}» no es un grupo conectado ni un agujero de esta protoboard.',
+  'query.occupied': 'ocupado por {part}.{pin}',
+  'query.empty': 'libre',
+  'query.group': 'grupo',
+  'query.node': '{node}{label}: {holes} agujeros · usados: {used} · libres: {free}',
+  'query.free': '{shown} de {total} agujeros libres, primero los más cercanos a {near}:',
+  'query.shared': 'grupo ya en uso',
+  'suggest.header': 'Posiciones para {id} ({type}, {pkg}), de mejor a peor; {considered} medidas:',
+  'suggest.span': 'separación',
+  'suggest.score': 'puntuación',
+  'suggest.visible': 'componente menos visible',
+  'suggest.apply': 'Para usar la primera (revisa con una prueba en seco y luego aplica):',
+
+  'review.approved': 'APROBADO ({profile}, vistas {views}): {parts} componentes, nada que bloquee; notas: {advisory}.',
+  'review.changes': 'HAY QUE CAMBIAR ({profile}, vistas {views}): por arreglar: {blocking}; notas: {advisory}.',
+  'review.blocking': 'Hay que arreglar:',
+  'review.advisory': 'Conviene saber:',
 
   'type.resistor': 'Resistencia',
   'type.capacitor': 'Capacitor',
@@ -92,11 +115,14 @@ export default {
   'color.silver': 'plateado',
 
   'cli.usage': `Uso (<objetivo> = un archivo de circuito o una carpeta con circuit.json):
-  protoboard-iso render <objetivo> [-o salida.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--no-labels]
+  protoboard-iso render <objetivo> [-o salida.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels]
   protoboard-iso inspect <objetivo> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
-  protoboard-iso check <objetivo> [--lang en|es]
+  protoboard-iso check <objetivo> [--lang en|es] [--json]
   protoboard-iso netlist <objetivo>
   protoboard-iso apply <objetivo> [ops.json | -] [--ops '<json>'] [--dry-run] [--author nombre] [--note texto] [--expect-revision n] [--views front,back] [--json]
+  protoboard-iso query <objetivo> at <hole> | node <node|hole> | free [--near <hole|node|column>] [--limit n] [--empty]
+  protoboard-iso suggest <objetivo> --part '<json>' [--between <node>,<node>] [--connect '<json>'] [--near …] [--limit n] [--window mm]
+  protoboard-iso review <objetivo> [--profile lesson|draft] [--views front,back] [--json]
   protoboard-iso undo <objetivo> [--author nombre] [--json]
   protoboard-iso history <objetivo> [--json]
   protoboard-iso parts [--lang en|es]`,

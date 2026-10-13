@@ -58,6 +58,14 @@ part sort badly, split them (see the TO-220 tab in `to220.js`).
 Shading: each face gets a tone from its normal and a key light fixed relative to the
 camera (`src/render/shading.js`), so both views are lit the same way.
 
+## Labels
+
+Labels are callouts in rows above the highest part (`src/render/scene.js`). Leaders are
+vertical whenever the label box can sit right above its part without covering another
+leader; the rest are slanted and placed afterwards in the row with the fewest crossings.
+Printed rail labels are kept clear. `inspect` measures the result (overlaps, crossings,
+leaders over parts) and tests keep it at zero crossings.
+
 ## Connectivity
 
 `createBoard()` gives every hole a node name: `12:a-e` (column 12, rows a–e), `T+` (the

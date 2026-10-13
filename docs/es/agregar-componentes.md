@@ -85,3 +85,8 @@ atrás. `split` es la última columna de la mitad izquierda si los rieles están
 `npm test`. Agrega una prueba para todo lo que tenga una respuesta correcta: código de
 colores, tamaños, reglas de las patas. Todos los ejemplos deben dibujarse desde los dos
 lados sin `NaN`.
+
+## Agentes
+
+El agente `parts-librarian` (`.claude/agents/parts-librarian.md`) sigue esta página. Si
+cambias aquí el orden de trabajo o las comprobaciones, actualiza también ese agente.

@@ -3,8 +3,8 @@
 *[English](../en/agent-interface.md)*
 
 Cómo un asistente, un agente o un script retoma un circuito existente y lo cambia sin
-riesgo. Todos los comandos existen también en la API; el servidor MCP planeado expondrá
-las mismas funciones como herramientas.
+riesgo. Todos los comandos existen también en la API y como herramientas del servidor MCP
+([mcp.md](mcp.md)).
 
 ## Objetivos
 
@@ -29,6 +29,46 @@ node bin/protoboard-iso.js check <objetivo>              # observaciones de colo
 
 Leer números, no imágenes: `inspect` da el agujero y la posición de cada pata, la
 visibilidad y los problemas de etiquetas (ver [inspeccionar-y-anotar.md](inspeccionar-y-anotar.md)).
+
+## Consultas: preguntar en vez de calcular
+
+```bash
+node bin/protoboard-iso.js query <objetivo> at c12                     # quién está en el agujero, su grupo
+node bin/protoboard-iso.js query <objetivo> node 9:a-e                 # un grupo por nombre o por cualquier agujero (c9)
+node bin/protoboard-iso.js query <objetivo> free --near e10 --limit 10 [--empty]
+node bin/protoboard-iso.js suggest <objetivo> --part '{"type":"resistor","value":"1k"}' --between 10:a-e,T-
+node bin/protoboard-iso.js suggest <objetivo> --part '{"type":"mosfet","part":"IRLZ44N"}' --connect '{"D":"c20"}'
+```
+
+- **`at`**: el grupo del agujero, quién lo ocupa, los agujeros usados y libres del grupo.
+- **`node`**: todos los agujeros de un grupo (`9:a-e`, `T+` o cualquier agujero suyo),
+  usados y libres, y la etiqueta del riel si la tiene.
+- **`free`**: agujeros libres, primero los más cercanos a `--near` (un agujero, un grupo o un
+  número de columna); `--empty` deja solo grupos que nadie usa todavía.
+- **`suggest`**: posiciones válidas para un componente **nuevo**, de mejor a peor.
+  `--between a,b` da los grupos de un componente de dos patas, en el orden de las patas;
+  `--connect '{"pata":"grupo o agujero"}'` nombra los grupos de algunas patas (las demás van
+  a tiras libres y vacías). `--near` centra la búsqueda y `--window` (mm, por defecto 20) la
+  amplía.
+
+Cómo funciona `suggest`: una pasada geométrica rápida por todos los juegos de agujeros que
+cumplen las reglas de las patas y los grupos pedidos; luego mide la mejor docena igual que
+una prueba en seco. Descarta las posiciones que agregan un error o un aviso; ordena el resto
+por separación cercana a la ideal, alineación con la cuadrícula, distancia al centro, notas
+nuevas (líneas guía cruzadas, componentes demasiado cerca) y el componente menos visible. Los
+de tres patas prefieren la pata 1 a la izquierda, para que la impresión mire a la vista
+frontal. Cada posición trae la operación `add` lista para aplicar:
+
+```
+Posiciones para R2 (Resistencia, axial), de mejor a peor; 12 medidas:
+  1. 1→b10, 2→T-11 · separación 10,5 mm · puntuación 5,3 · componente menos visible 81 %
+Para usar la primera (revisa con una prueba en seco y luego aplica):
+  protoboard-iso apply <objetivo> --ops '[{"op":"add","part":{…,"pins":["b10","T-11"]}}]' --dry-run
+```
+
+Si nada cabe, dice por qué: `NO_PLACEMENT`, o `NO_PLACEMENT_RAIL` cuando se le pide a un
+componente de tres patas que llegue directo a un riel (no puede: va en tiras libres y se
+agrega un cable).
 
 ## Operaciones
 
@@ -92,13 +132,23 @@ import { applyToTarget, undoTarget, readHistory } from 'protoboard-iso/workspace
 ## Un buen ciclo para un agente
 
 1. `history` e `inspect --json` para entender el estado actual.
-2. Proponer un lote de operaciones; `apply --dry-run`.
+2. Preguntar en vez de calcular: `query` para agujeros y grupos, `suggest` para dónde va un
+   componente nuevo. Luego proponer un lote de operaciones; `apply --dry-run`.
 3. Si la diferencia no introduce nada indeseado, aplicar con `--expect-revision`, un autor y
    una nota que diga por qué.
-4. Nunca editar `circuit.json` a mano mientras otros trabajan en él, ni editar las salidas.
+4. `review <objetivo>` hasta que diga APROBADO (perfiles en [agentes.md](agentes.md)).
+5. Nunca editar `circuit.json` a mano mientras otros trabajan en él, ni editar las salidas.
 
-## Lo que sigue (ver la hoja de ruta, etapa 1.5)
+## Agentes
 
-Consultas (`at`, `node`, `free`, `suggest`) para que las posiciones se calculen en vez de
-adivinarlas, un servidor MCP que exponga todo esto como herramientas y roles de agentes
-(montaje, revisor, bibliotecario) que comparten el estado por estos archivos.
+Los roles de montaje, revisor y bibliotecario, construidos sobre estas herramientas: [agentes.md](agentes.md).
+
+## Códigos de salida (línea de comandos)
+
+| Código | Significado |
+|---|---|
+| 0 | todo bien |
+| 1 | errores en el circuito, un cambio rechazado (`REVISION_MISMATCH`, operaciones mal formadas), nada que deshacer o ninguna posición encontrada |
+| 2 | `review` pide cambios |
+
+Todos los comandos que informan algo aceptan también `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `review`).

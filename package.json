@@ -22,10 +22,12 @@
     "src"
   ],
   "scripts": {
-    "test": "node --test",
+    "test": "node --test test/*.test.js",
     "examples": "node scripts/render-examples.js",
     "preview": "node scripts/preview.js",
-    "schemas": "node scripts/build-schemas.js"
+    "schemas": "node scripts/build-schemas.js",
+    "test:mcp": "npm --prefix mcp test",
+    "mcp": "node mcp/server.js"
   },
   "engines": {
     "node": ">=18"

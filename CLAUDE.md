@@ -8,9 +8,29 @@ kit as a skill, see `SKILL.md`.
 
 ## Resuming a circuit (not the code)
 
+If the `protoboard-iso` MCP server is connected, use its tools (same loop, typed). Setup and
+tools: `docs/en/mcp.md`. Otherwise the CLI:
+
+
 Circuits are changed with operations, never by rewriting the file:
-`history <target>` → `inspect <target> --json` → `apply … --dry-run` → `apply … --expect-revision n`.
+`history <target>` → `inspect <target> --json` → `query`/`suggest` (never compute holes by
+hand) → `apply … --dry-run` → `apply … --expect-revision n`.
 See `docs/en/agent-interface.md`.
+
+## Agents (for circuit work)
+
+`.claude/agents/`: `circuit-layout` builds or changes circuits, `circuit-reviewer` judges them
+(read-only), `parts-librarian` adds components to the kit. Run the loop from the main
+conversation: layout → reviewer → fixes back to the same layout agent (two rounds at most) →
+show a close-up. Brief formats and the loop: `docs/en/agents.md`. Definition of done:
+`review <target>` (profile `lesson`) says APPROVED.
+
+**The agents depend on the kit.** Their files (`.claude/agents/*.md`) name MCP tools, CLI
+commands, operation names, review profiles, brief/report formats and rules from the docs.
+When you change any of those (rename or add a tool or command, change an operation, a
+profile, a workflow rule or a brief format), update the agent files in the same change and
+`docs/en/agents.md` / `docs/es/agentes.md`. `npm run test:mcp` fails if an agent lists an
+MCP tool that no longer exists.
 
 ## Read before working
 
@@ -32,14 +52,18 @@ node bin/protoboard-iso.js inspect <file.json> [--json]   # the drawing in numbe
 node bin/protoboard-iso.js render <file.json> -o out.svg --annotate all
 node bin/protoboard-iso.js apply <target> --ops '<json>' --dry-run   # then without --dry-run
 node bin/protoboard-iso.js undo <target> · history <target>
+node bin/protoboard-iso.js query <target> at c12 | node 9:a-e | free --near e10
+node bin/protoboard-iso.js suggest <target> --part '<json>' --between <node>,<node>
+node bin/protoboard-iso.js review <target> [--profile lesson|draft]   # APPROVED or CHANGES
 npm run schemas               # after changing types, boards, views or operations
+npm run test:mcp              # MCP server end-to-end (needs: cd mcp && npm install)
 node bin/protoboard-iso.js check <file.json> [--lang es]
 node bin/protoboard-iso.js render <file.json> -o out.svg [--view back] [--fit parts]
 ```
 
 ## How to verify a change
 
-1. `npm test` passes.
+1. `npm test` passes (and `npm run test:mcp` when `src/` APIs or `mcp/` changed).
 2. `npm run examples` shows no new issues except the intended ones
    (`common-mistakes.json` is supposed to report problems; `parts-showcase.json` reports
    notes about unconnected pins).
@@ -65,7 +89,8 @@ node bin/protoboard-iso.js render <file.json> -o out.svg [--view back] [--fit pa
   `README.es.md`) in the same change.
 - Code, identifiers and comments in English. One header comment per module saying what it
   is for; comments explain *why*, not *what*.
-- Commit only when asked. Small commits, imperative subject line.
+- Commit only when asked. **Commit messages in English**, even when the conversation is in
+  another language. Small commits, imperative subject line ("Add query commands").
 
 ## Map
 
@@ -76,8 +101,12 @@ src/render/      scene.js (display list: painter, labels, framing), svg.js (writ
                  coverage.js (measuring raster), shading.js
 src/inspect.js   numeric report of a scene; src/annotate.js annotation layers
 src/ops.js       operations (pure, atomic, with inverses); src/diff.js evaluate + diff
+src/query.js     at, node, free, suggest (placements); src/query-format.js text output
+src/review.js    verdict from measurements, profiles lesson/draft
+.claude/agents/  circuit-layout, circuit-reviewer, parts-librarian
 src/schema.js    JSON Schemas (written to schema/ by npm run schemas)
-src/node/        Node-only: workspace.js (targets, history, undo, outputs)
+src/node/        Node-only: workspace.js (targets, history, undo, create, outputs), raster.js (PNG)
+mcp/             MCP server (own package: SDK + zod); server.js, test/; .mcp.json registers it
 src/board/       board.js (holes, nodes), draw-board.js, boards/*.js (data)
 src/parts/       types/ (meaning), packages/ (shape), db.js (part numbers), colors.js
 src/circuit/     build.js (pipeline), checks.js (placement checks)

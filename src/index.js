@@ -7,6 +7,8 @@
 //   formatIssue(issue, lang)         → "warning: R1: …"
 //   applyOps(circuit, ops)           → { circuit, inverse, errors }   (pure, see ops.js)
 //   evaluate / diffEvaluations       → what a change fixes and introduces (see diff.js)
+//   queryAt / queryNode / queryFree / suggest → questions and placements (see query.js)
+//   review(circuit, { profile })     → approved / changes, from measurements (see review.js)
 //   File-based history and undo live in src/node/workspace.js (Node only).
 //
 // Works the same in Node and in the browser: no dependencies, no file access.
@@ -29,6 +31,8 @@ import { resistorBands } from './parts/types/resistor.js';
 
 export { applyOps, OP_NAMES, CIRCUIT_FIELDS } from './ops.js';
 export { evaluate, diffEvaluations, problemKey } from './diff.js';
+export { queryAt, queryNode, queryFree, suggest, resolveNode } from './query.js';
+export { review, formatReview, PROFILES } from './review.js';
 export { ANNOTATION_LAYERS, BOARDS, createBoard, PART_TYPES, PACKAGES, PART_NUMBERS, VIEWS, LANGUAGES, parseValue, formatValue, resistorBands, t, buildCircuit };
 
 export function formatIssue(issue, lang = 'en') {
@@ -82,7 +86,8 @@ function sceneFor(circuit, options = {}) {
   const anchors = [];
   if (labels) {
     for (const part of result.parts) {
-      const text = labelText(part, lang);
+      // labels: true / 'both' → "R1 · 330 Ω", 'id' → "R1", 'value' → "330 Ω"
+      const text = labels === 'id' ? (part.def.label ? part.id : null) : labels === 'value' ? valueText(part, lang) : labelText(part, lang);
       if (!text) continue;
       const at = camera.project(part.built.anchor);
       anchors.push({ x: at.x, y: at.y, text, part: part.id });
@@ -95,7 +100,8 @@ function sceneFor(circuit, options = {}) {
 
 const titleOf = (circuit, lang) => (typeof circuit.title === 'object' ? circuit.title?.[lang] ?? circuit.title?.en : circuit.title);
 
-// options: view, lang, scale (px per mm), labels, fit ('board' | 'parts'),
+// options: view, lang, scale (px per mm), labels (true | 'both' | 'id' | 'value' | false),
+//          fit ('board' | 'parts'),
 //          annotate ('pins,boxes,nodes,grid' | 'all'), background
 export function renderCircuit(circuit, options = {}) {
   const { result, scene, lang } = sceneFor(circuit, options);

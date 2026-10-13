@@ -4,7 +4,7 @@
 // params: diameter, height, leadSpacing (mm), sleeve, stripe, standoff
 
 import { add, scale, cross, Z } from '../../core/vec.js';
-import { lathe, rectDecal, midpoint } from '../../geometry/primitives.js';
+import { lathe, rectDecal, textDecal, midpoint } from '../../geometry/primitives.js';
 import { MATERIALS } from '../colors.js';
 import { tone } from '../../render/shading.js';
 import { lead, directionBetween, withZ } from './common.js';
@@ -50,6 +50,13 @@ export default {
     const vent = tone(MATERIALS.aluminium, 0.78);
     body.decals.push(rectDecal({ center: top, u: dir, v: across, width: D * 0.62, height: 0.28, color: vent }));
     body.decals.push(rectDecal({ center: top, u: dir, v: across, width: 0.28, height: D * 0.62, color: vent }));
+
+    // "−" marks printed down the stripe, on the side of the negative lead.
+    const side = cross(Z, dir);
+    for (const f of [0.3, 0.5, 0.7]) {
+      const at = add(withZ(base, standoff + H * f), scale(dir, R + 0.02));
+      body.decals.push(textDecal({ text: '−', at, right: side, down: scale(Z, -1), size: Math.min(2.2, D * 0.35), color: sleeve, weight: 700 }));
+    }
 
     const half = leadSpacing / 2;
     const leads = [

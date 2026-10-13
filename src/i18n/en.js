@@ -57,6 +57,7 @@ export default {
   'check.OP_UNKNOWN_PART': 'Operation {index} ({op}): there is no part {part}.',
   'check.OP_DUPLICATE_ID': 'Operation {index} ({op}): a part called {part} already exists.',
   'check.REVISION_MISMATCH': 'The circuit is at revision {actual}, not {expected}: someone changed it. Read it again and retry.',
+  'check.TARGET_EXISTS': 'There is already a circuit at {target}.',
   'check.NOTHING_TO_UNDO': 'Nothing to undo.',
 
   'change.failed': 'Nothing was changed:',
@@ -70,6 +71,28 @@ export default {
   'change.outputs': 'outputs: {svg}, {report}',
   'history.entry': 'rev {revision} · {time} · {author}{note}: {ops}',
   'history.empty': 'No history yet.',
+
+  'check.NO_PLACEMENT': '{part}: no valid placement found ({considered} candidates measured). Try other groups, --near somewhere with room, or --window to search wider.',
+  'check.NO_PLACEMENT_RAIL': '{part}: its leads sit in one row of neighbouring holes, so they cannot reach a rail directly. Put the part in free strips and connect the rail with a wire.',
+
+  'query.noHole': '"{hole}" is not a hole on this board.',
+  'query.noNode': '"{node}" is not a connected group or a hole on this board.',
+  'query.occupied': 'holds {part}.{pin}',
+  'query.empty': 'free',
+  'query.group': 'group',
+  'query.node': '{node}{label}: {holes} holes · used: {used} · free: {free}',
+  'query.free': '{shown} of {total} free holes, nearest to {near} first:',
+  'query.shared': 'group already in use',
+  'suggest.header': 'Placements for {id} ({type}, {pkg}), best first; {considered} measured:',
+  'suggest.span': 'span',
+  'suggest.score': 'score',
+  'suggest.visible': 'least visible part',
+  'suggest.apply': 'To use the first one (check with a dry run, then apply):',
+
+  'review.approved': 'APPROVED ({profile}, views {views}): {parts} parts, nothing blocking; notes: {advisory}.',
+  'review.changes': 'CHANGES NEEDED ({profile}, views {views}): to fix: {blocking}; notes: {advisory}.',
+  'review.blocking': 'Must fix:',
+  'review.advisory': 'Worth knowing:',
 
   'type.resistor': 'Resistor',
   'type.capacitor': 'Capacitor',
@@ -93,11 +116,14 @@ export default {
   'color.silver': 'silver',
 
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):
-  protoboard-iso render <target> [-o out.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--no-labels]
+  protoboard-iso render <target> [-o out.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels]
   protoboard-iso inspect <target> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
-  protoboard-iso check <target> [--lang en|es]
+  protoboard-iso check <target> [--lang en|es] [--json]
   protoboard-iso netlist <target>
   protoboard-iso apply <target> [ops.json | -] [--ops '<json>'] [--dry-run] [--author name] [--note text] [--expect-revision n] [--views front,back] [--json]
+  protoboard-iso query <target> at <hole> | node <node|hole> | free [--near <hole|node|column>] [--limit n] [--empty]
+  protoboard-iso suggest <target> --part '<json>' [--between <node>,<node>] [--connect '<json>'] [--near …] [--limit n] [--window mm]
+  protoboard-iso review <target> [--profile lesson|draft] [--views front,back] [--json]
   protoboard-iso undo <target> [--author name] [--json]
   protoboard-iso history <target> [--json]
   protoboard-iso parts [--lang en|es]`,

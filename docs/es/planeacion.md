@@ -128,6 +128,8 @@ circuit.json ──▶ tipo ──▶ encapsulado ──▶ primitivas ──▶
 - **Medir, no adivinar a ojo.** Todo lo visual que se pueda medir se vuelve un problema de
   `inspect` y una prueba, para que nunca empeore sin que se note.
 - **Se arregla el kit, no la salida.** Nunca se edita a mano un SVG generado.
+- **Los agentes siguen al kit.** `.claude/agents/` nombra herramientas, comandos, operaciones,
+  perfiles y formatos; cualquier cambio en eso actualiza los agentes en el mismo cambio.
 
 ### Para el código
 - Sin dependencias en tiempo de ejecución. Módulos ES simples, Node ≥ 18, funciona en el
@@ -167,4 +169,6 @@ circuit.json ──▶ tipo ──▶ encapsulado ──▶ primitivas ──▶
 | 2026-10-12 | Informe `inspect` y raster de cobertura; la escena como lista de dibujo compartida | Leer PNG es lento para un asistente; los números son rápidos, exactos y se pueden probar. |
 | 2026-10-12 | Capas de anotación (`pins`, `nodes`, `boxes`, `grid`) como opción paramétrica, no como modo de depuración | Los agujeros y grupos exactos también le sirven a quien aprende, no solo para depurar. |
 | 2026-10-12 | Etapa 1.5, interfaz para agentes, antes de la simulación: operaciones con prueba en seco y diferencia, historial y deshacer, consultas, servidor MCP, roles de agentes | Los asistentes deben retomar y ajustar circuitos de forma barata y segura; los resultados de la simulación usarán las mismas herramientas. |
+| 2026-10-12 | Servidor MCP en `mcp/` como paquete propio; raíz restringida con `PROTOBOARD_ROOT`; respuestas en texto o JSON; PNG solo si se pide | Herramientas tipadas para cualquier agente sin que el kit tenga dependencias; acceso seguro a archivos; las imágenes son lentas de leer. |
+| 2026-10-12 | Comando `review` con perfiles como definición compartida de «terminado»; tres subagentes (montaje, revisor de solo lectura, bibliotecario) que comparten el estado por los archivos | El veredicto no debe depender del gusto de un agente; agentes pequeños mantienen liviana la conversación principal. |
 | 2026-10-12 | `@resvg/resvg-js` como dependencia de desarrollo para vistas previas en PNG | Permite que un asistente revise los dibujos sin navegador; el kit sigue sin dependencias. |

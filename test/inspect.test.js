@@ -67,3 +67,28 @@ test('annotation layers are drawn only when asked for', () => {
   assert.match(grid, />7<\/text>/, 'every column is numbered');
   assert.doesNotMatch(plain, />7<\/text>/);
 });
+
+test('pin tags of the annotation layer do not overlap each other', () => {
+  for (const name of ['led-resistor.json', 'voltage-divider.json', 'parts-showcase.json', 'common-mistakes.json']) {
+    for (const view of ['front', 'back']) {
+      const { scene } = renderCircuit(example(name), { view, annotate: 'pins' });
+      const tags = scene.layers.annotations.filter((op) => op.role === 'pin-tag').map((op) => op.box);
+      for (let i = 0; i < tags.length; i++) {
+        for (let j = i + 1; j < tags.length; j++) {
+          const a = tags[i];
+          const b = tags[j];
+          const overlap = a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+          assert.ok(!overlap, `${name} ${view}: tags ${i} and ${j} overlap`);
+        }
+      }
+    }
+  }
+});
+
+test('no leader lines cross in the examples', () => {
+  for (const name of ['led-resistor.json', 'voltage-divider.json', 'parts-showcase.json', 'common-mistakes.json']) {
+    for (const view of ['front', 'back']) {
+      assert.ok(!codes(inspectCircuit(example(name), { view })).includes('LEADER_CROSSING'), `${name} ${view}`);
+    }
+  }
+});

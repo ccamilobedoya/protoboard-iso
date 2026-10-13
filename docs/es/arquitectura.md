@@ -60,6 +60,14 @@ mismo componente se ordenan mal, se parten (ver la aleta del TO-220 en `to220.js
 Sombreado: cada cara toma un tono según su normal y una luz fija respecto a la cámara
 (`src/render/shading.js`), así que las dos vistas se iluminan igual.
 
+## Etiquetas
+
+Las etiquetas son globos en filas por encima del componente más alto (`src/render/scene.js`).
+Las líneas guía son verticales siempre que la caja pueda quedar justo encima de su componente
+sin tapar otra línea; las demás son inclinadas y se colocan después, en la fila con menos
+cruces. Las etiquetas impresas de los rieles quedan libres. `inspect` mide el resultado
+(superposiciones, cruces, líneas sobre componentes) y las pruebas lo mantienen en cero cruces.
+
 ## Conexiones
 
 `createBoard()` le da a cada agujero un nombre de nodo: `12:a-e` (columna 12, filas a–e),

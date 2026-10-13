@@ -82,12 +82,26 @@ export function applyToTarget(target, ops, options = {}) {
   return { applied: true, revision: saved.revision, errors: [], diff, files };
 }
 
+// Creates a circuit folder (circuit.json, history.jsonl, out/). Refuses to overwrite.
+export function createTarget(target, circuit, { author = 'unknown', note = 'create', lang = 'en', outputs = true } = {}) {
+  if (existsSync(join(target, 'circuit.json')) || (existsSync(target) && !statSync(target).isDirectory())) {
+    return { applied: false, errors: [error('TARGET_EXISTS', { target })] };
+  }
+  mkdirSync(target, { recursive: true });
+  const paths = resolveTarget(target);
+  const saved = { version: 1, ...circuit, revision: 0 };
+  saveCircuit(paths, saved);
+  appendFileSync(paths.historyFile, `${JSON.stringify({ revision: 0, time: new Date().toISOString(), author, note, created: true, ops: [], inverse: [] })}\n`);
+  const files = outputs ? writeOutputs(paths, saved, { lang }) : null;
+  return { applied: true, revision: 0, errors: [], files };
+}
+
 // Undoes the most recent change that has not been undone yet.
 export function undoTarget(target, { author = 'unknown', views, lang = 'en', outputs = true } = {}) {
   const paths = resolveTarget(target);
   const history = readHistory(paths);
   const undone = new Set(history.filter((h) => h.undoes).map((h) => h.undoes));
-  const last = [...history].reverse().find((h) => !h.undoes && !undone.has(h.revision));
+  const last = [...history].reverse().find((h) => !h.undoes && !h.created && !undone.has(h.revision));
   if (!last) return { applied: false, errors: [error('NOTHING_TO_UNDO', {})] };
 
   const current = loadCircuit(paths);

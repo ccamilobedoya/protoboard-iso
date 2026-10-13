@@ -82,3 +82,8 @@ to `BOARDS` in `src/board/board.js`. Rows are given in pitches from the back edg
 
 `npm test`. Add a test for anything that has a right answer: colour codes, sizes, pin
 rules. Every example must render from both sides without `NaN`.
+
+## Agents
+
+The `parts-librarian` agent (`.claude/agents/parts-librarian.md`) follows this page. If you
+change the order of work or the checks here, update that agent too.
