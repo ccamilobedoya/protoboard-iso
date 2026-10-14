@@ -102,7 +102,8 @@ calma en todo lo demás, para que los componentes resalten.
 - ⬜ Sistema de temas: cada color sale de una paleta con nombre (`theme: 'realistic' | 'study' | …`), ningún color fijo dentro de los encapsulados
 - ⬜ Tema `study`: una protoboard menos realista y más estética (plana, de tono apagado, agujeros e impresión más suaves, bordes discretos) para que resalten los componentes y los cables
 - ⬜ Revisar las paletas de componentes (cables, LED, bandas) por contraste y para personas con daltonismo; las bandas siguen fieles a IEC 60062
-- ⬜ Modo resaltado: atenuar todo menos los componentes o tiras que se están explicando
+- ✅ Modo resaltado: atenuar todo menos los componentes que se están explicando y las tiras bajo sus patas, dibujados encima aunque algo los tape (`--focus`, `page.focus`, tocar en la página; [foco-y-corriente.md](foco-y-corriente.md))
+- ✅ Ver a través: volver transparente un componente para ver qué hay detrás (ficha de la página)
 - ⬜ Tema oscuro para pantallas
 
 ## Etapa 3 — Animación en el navegador ⬜
@@ -110,7 +111,8 @@ calma en todo lo demás, para que los componentes resalten.
 Objetivo: ver el circuito funcionar.
 
 - ⬜ Módulo de navegador que dibuja la misma escena en un SVG vivo (o canvas) en cada cuadro
-- ⬜ Electrones recorriendo patas y cables, velocidad proporcional a la corriente, del − al +
+- ✅ Capa de corriente (`page.flow`): todo atenuado, tiras visibles, puntos por las tiras y a través de los componentes, velocidad según la corriente (escala logarítmica), electrones de − a + o corriente convencional; Kirchhoff en cada tira
+- ⬜ Puntos por el camino real de patas y cables (hoy: líneas rectas a la altura de la protoboard)
 - ⬜ Voltaje como color en tiras y patas, con una escala fija
 - ⬜ Brillo del LED según su corriente; tinte de calor según la potencia
 - ⬜ Controles deslizantes para valores y voltaje de la fuente, que vuelven a resolver al instante
@@ -123,7 +125,8 @@ Objetivo: abrir un enlace y explorar.
 - ⬜ Zoom dinámico: pellizcar y rueda del mouse, desplazamiento, doble toque en un componente para acercarse; más detalle al acercarse (números de agujero, marcas de los componentes)
 - ⬜ Etiquetas solo al pasar el mouse o al tocar (el SVG estático conserva los globos por encima de los componentes)
 - ⬜ Multímetro virtual: puntas en agujeros; voltímetro en paralelo; el amperímetro obliga a abrir el circuito
-- ⬜ Cambiar entre vista frontal y trasera; tocar una tira resalta todo lo conectado a ella
+- ✅ Cambiar entre vista frontal y trasera; tocar un componente lo trae al frente con sus tiras
+- ⬜ Tocar una tira resalta todo lo conectado a ella
 - ⬜ Modo predicción: lecturas ocultas hasta que el estudiante se compromete con una respuesta
 
 ## Etapa 5 — Escribir circuitos más rápido ⬜
@@ -146,9 +149,10 @@ cuando una clase las necesite.
 - ⬜ **Etiquetas paramétricas elegidas por el usuario**: qué muestra cada etiqueta, por
   circuito o por componente (`name`, `value`, un título propio, una descripción corta), con
   plantillas como `"{id} · {value}"` o `"{name}: {description}"`, traducidas como todo lo demás
-- ⬜ **Descripción por componente** en el archivo de circuito
-  (`"description": { "en": …, "es": … }`), visible en las etiquetas, en `inspect` y en la
-  página interactiva
-- ⬜ **Etiquetas en las que se puede hacer clic** en la página interactiva: tocar una etiqueta
-  o un componente abre más información (qué hace, sus patas y con qué se conectan, enlace a la
-  hoja de datos, valores de la simulación)
+- ✅ **Descripción por componente** en el archivo de circuito
+  (`"description": { "en": …, "es": … }`), visible en la ficha de la página, después de la descripción propia del
+  kit para cada tipo de componente (`describe.*`, en cada idioma; `check` avisa si falta uno) (⬜ en las
+  etiquetas y en `inspect`)
+- ✅ **Etiquetas en las que se puede hacer clic** en la página interactiva: tocar una etiqueta
+  o un componente abre una ficha (qué es, su descripción, sus patas y con qué se conectan,
+  valores de la simulación cuando se muestran); ⬜ enlace a la hoja de datos

@@ -30,6 +30,9 @@ import { PART_NUMBERS } from './parts/db.js';
 import { resistorBands } from './parts/types/resistor.js';
 import { simulate } from './sim/index.js';
 import { resultsOverlay } from './sim/overlay.js';
+import { flowOps } from './sim/flow.js';
+import { probeOps } from './sim/probes.js';
+import { focusLayers, veilOps, stripOps, nodesOf } from './render/focus.js';
 
 export { applyOps, OP_NAMES, CIRCUIT_FIELDS } from './ops.js';
 export { evaluate, diffEvaluations, problemKey } from './diff.js';
@@ -97,9 +100,58 @@ function sceneFor(circuit, options = {}) {
   }
   const scene = buildScene({ camera, base, items, labels: anchors, fit });
   if (layers.size) annotateScene(scene, result, layers);
-  // Simulation results (a model): voltages per group, currents per part, in their own layer.
-  if (options.sim) scene.layers.results = resultsOverlay(scene, result, simulate(circuit, { analysis: 'dc' }), lang);
+  addLayers(scene, result, circuit, options, lang);
   return { result, scene, view, scale, lang };
+}
+
+// Optional layers, always in this order: veil, strips, spotlight, flow, results, probes.
+//   focus: ['R1']   dim everything but these parts and their strips (static images)
+//   flow: true      current flow (moving dots in a page; still dots in a static image)
+//   sim: true       simulation results, labelled as a model
+//   interactive     a page: every part tagged and copied, every strip ready, shown by CSS
+function addLayers(scene, built, circuit, options, lang) {
+  const needSim = options.sim || options.flow;
+  const sim = needSim ? simulate(circuit, { analysis: 'dc' }) : null;
+  const extra = { veil: [], strips: [], spotlight: [], flow: [], results: [], probes: [] };
+  if (options.interactive) {
+    extra.veil = veilOps(scene.frame);
+    extra.strips = stripOps(scene, built.board, [...usedNodes(built, circuit)]);
+    // The page clones the focused parts into .spotlight when needed: no copies in the file.
+  } else if (options.focus?.length) {
+    Object.assign(extra, focusLayers(scene, built, options.focus));
+  }
+  if (options.flow) {
+    if (!options.interactive) {
+      extra.veil = veilOps(scene.frame);
+      extra.strips = stripOps(scene, built.board, [...usedNodes(built, circuit)]);
+    }
+    extra.flow = flowOps(scene, built, sim, circuit);
+  }
+  if (options.sim) {
+    extra.results = resultsOverlay(scene, built, sim, lang);
+    // A page shows, on demand, where each tag's value comes from (probes, arrows).
+    if (options.interactive) extra.probes = probeOps(scene, built, sim, circuit);
+    // With a focus, only the focused parts' currents and the voltages of their groups.
+    if (!options.interactive && options.focus?.length) {
+      const ids = new Set(options.focus);
+      const nodes = new Set(nodesOf(built, ids));
+      extra.results = extra.results.filter((op) => op.cls === 'badge' || ids.has(op.part) || nodes.has(op.data?.node));
+    }
+  }
+  Object.assign(scene.layers, extra);
+}
+
+// Groups with a lead in them, plus the rails a supply is clipped to.
+function usedNodes(built, circuit) {
+  const nodes = new Set(Object.keys(built.netlist.nodes));
+  for (const s of Array.isArray(circuit.supplies) ? circuit.supplies : []) {
+    for (const ref of [s.positive ?? 'T+', s.negative ?? 'T-']) {
+      const hole = built.board.find(String(ref));
+      const node = hole ? hole.node : String(ref);
+      if ([...built.board.holes.values()].some((h) => h.node === node)) nodes.add(node);
+    }
+  }
+  return nodes;
 }
 
 const titleOf = (circuit, lang) => (typeof circuit.title === 'object' ? circuit.title?.[lang] ?? circuit.title?.en : circuit.title);
@@ -107,11 +159,13 @@ const titleOf = (circuit, lang) => (typeof circuit.title === 'object' ? circuit.
 // options: view, lang, scale (px per mm), labels (true | 'both' | 'id' | 'value' | false),
 //          fit ('board' | 'parts'),
 //          annotate ('pins,boxes,nodes,grid' | 'all'), background,
-//          sim (true: DC simulation results in the `results` layer, see src/sim/overlay.js)
+//          sim (true: DC simulation results in the `results` layer, see src/sim/overlay.js),
+//          focus (['R1', …]: dim the rest, see src/render/focus.js), flow (true: current flow),
+//          interactive (true: everything a page needs to focus and show flow on demand)
 export function renderCircuit(circuit, options = {}) {
   const { result, scene, lang } = sceneFor(circuit, options);
   if (!scene) return { svg: null, scene: null, issues: result.issues, netlist: result.netlist };
-  const svg = sceneToSvg(scene, { background: options.background ?? '#ffffff', title: titleOf(circuit, lang) });
+  const svg = sceneToSvg(scene, { background: options.background ?? '#ffffff', title: titleOf(circuit, lang), tagParts: Boolean(options.interactive) });
   return { svg, scene, issues: result.issues, netlist: result.netlist };
 }
 

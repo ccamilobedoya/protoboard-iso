@@ -16,6 +16,7 @@ import { applyOps } from '../ops.js';
 import { evaluate, diffEvaluations } from '../diff.js';
 import { renderCircuit, inspectCircuit } from '../index.js';
 import { renderPage } from '../page.js';
+import { pickLanguage } from '../i18n/index.js';
 
 const error = (code, params) => ({ severity: 'error', code, params });
 
@@ -57,7 +58,11 @@ export function writePage(paths, circuit, options = {}) {
   return { pageFile, issues };
 }
 
-export function writeOutputs(paths, circuit, { lang = 'en' } = {}) {
+// Language: one asked for explicitly (outputLang) wins, then the circuit's own `lang`, then
+// the caller's default (lang). So a circuit with "lang": "es" keeps its page in Spanish even
+// when an English-speaking tool changes it.
+export function writeOutputs(paths, circuit, { lang = 'en', outputLang } = {}) {
+  lang = pickLanguage(outputLang, circuit.lang, lang);
   mkdirSync(paths.outDir, { recursive: true });
   const { svg } = renderCircuit(circuit, { lang });
   const svgFile = join(paths.outDir, `${paths.name}.front.svg`);
@@ -77,9 +82,9 @@ function commit(paths, circuit, entry) {
   return saved;
 }
 
-// options: dryRun, author, note, expectRevision, views, lang, outputs (default true)
+// options: dryRun, author, note, expectRevision, views, lang (default), outputLang (asked for), outputs (default true)
 export function applyToTarget(target, ops, options = {}) {
-  const { dryRun = false, author = 'unknown', note = '', expectRevision, views, lang = 'en', outputs = true } = options;
+  const { dryRun = false, author = 'unknown', note = '', expectRevision, views, lang = 'en', outputLang, outputs = true } = options;
   const paths = resolveTarget(target);
   const current = loadCircuit(paths);
   const revision = current.revision ?? 0;
@@ -93,12 +98,12 @@ export function applyToTarget(target, ops, options = {}) {
   if (dryRun) return { applied: false, dryRun: true, revision, nextRevision: revision + 1, errors: [], diff, circuit: result.circuit };
 
   const saved = commit(paths, result.circuit, { author, note, ops, inverse: result.inverse });
-  const files = outputs ? writeOutputs(paths, saved, { lang }) : null;
+  const files = outputs ? writeOutputs(paths, saved, { lang, outputLang }) : null;
   return { applied: true, revision: saved.revision, errors: [], diff, files };
 }
 
 // Creates a circuit folder (circuit.json, history.jsonl, out/). Refuses to overwrite.
-export function createTarget(target, circuit, { author = 'unknown', note = 'create', lang = 'en', outputs = true } = {}) {
+export function createTarget(target, circuit, { author = 'unknown', note = 'create', lang = 'en', outputLang, outputs = true } = {}) {
   if (existsSync(join(target, 'circuit.json')) || (existsSync(target) && !statSync(target).isDirectory())) {
     return { applied: false, errors: [error('TARGET_EXISTS', { target })] };
   }
@@ -107,12 +112,12 @@ export function createTarget(target, circuit, { author = 'unknown', note = 'crea
   const saved = { version: 1, ...circuit, revision: 0 };
   saveCircuit(paths, saved);
   appendFileSync(paths.historyFile, `${JSON.stringify({ revision: 0, time: new Date().toISOString(), author, note, created: true, ops: [], inverse: [] })}\n`);
-  const files = outputs ? writeOutputs(paths, saved, { lang }) : null;
+  const files = outputs ? writeOutputs(paths, saved, { lang, outputLang }) : null;
   return { applied: true, revision: 0, errors: [], files };
 }
 
 // Undoes the most recent change that has not been undone yet.
-export function undoTarget(target, { author = 'unknown', views, lang = 'en', outputs = true } = {}) {
+export function undoTarget(target, { author = 'unknown', views, lang = 'en', outputLang, outputs = true } = {}) {
   const paths = resolveTarget(target);
   const history = readHistory(paths);
   const undone = new Set(history.filter((h) => h.undoes).map((h) => h.undoes));
@@ -124,6 +129,6 @@ export function undoTarget(target, { author = 'unknown', views, lang = 'en', out
   if (result.errors.length) return { applied: false, errors: result.errors };
   const diff = diffEvaluations(evaluate(current, { views, lang }), evaluate(result.circuit, { views, lang }));
   const saved = commit(paths, result.circuit, { author, note: `undo ${last.revision}`, ops: last.inverse, inverse: last.ops, undoes: last.revision });
-  const files = outputs ? writeOutputs(paths, saved, { lang }) : null;
+  const files = outputs ? writeOutputs(paths, saved, { lang, outputLang }) : null;
   return { applied: true, revision: saved.revision, undid: last.revision, errors: [], diff, files };
 }

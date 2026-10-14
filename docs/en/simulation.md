@@ -10,13 +10,18 @@ typical part values, no temperature. The text answer, the drawing and the page s
 node bin/protoboard-iso.js simulate <target> [--lang es] [--json]                 # DC operating point
 node bin/protoboard-iso.js simulate <target> --transient 5,1m [--start zero|dc]    # 5 s in 1 ms steps
 node bin/protoboard-iso.js render <target> --sim --fit parts                       # results drawn on the board
+node bin/protoboard-iso.js render <target> --sim --focus D1                        # only D1's current and its groups' voltages
 ```
+
+In the page (`"page": { "results": true }`) the simulation is always on but never covers the
+board with numbers: **tap a part** to see its current, the voltages of the groups under its
+leads and, in its card, all its values.
 
 MCP: the `simulate` tool (same options) and `render` with `sim: true`.
 
 > **Learners first.** Never show a result someone is asked to predict. Results are only drawn
-> on request (`--sim`), and the embeddable page only offers them when the circuit asks
-> (`"page": { "results": true }`), behind a button, hidden until pressed.
+> on request (`--sim`), and the embeddable page only has them when the circuit asks
+> (`"page": { "results": true }`), and then only for the part that is tapped.
 
 ## Power: `supplies`
 

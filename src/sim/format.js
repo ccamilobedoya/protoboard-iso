@@ -70,3 +70,30 @@ function formatTransient(result, lang, { f, lines, issues }) {
   issues();
   return lines.join('\n');
 }
+
+// One part's readings for a card: [{ key, text }]. `key` names its explanation
+// (i18n "explain.<key>"), so a learner can tap "Ic: 8,82 mA" and read what Ic is.
+export function partLines(p, lang = 'en') {
+  const decimal = decimalSeparator(lang);
+  const f = (value, unit) => (value == null ? t(lang, 'sim.floating') : formatValue(value, unit, { decimal }));
+  const q = (key, value) => ({ key, text: `${t(lang, `sim.q.${key}`)}: ${value}` });
+  const raw = (key, text) => ({ key, text });
+  if (p.unsupported) return [raw('unsupported', t(lang, 'sim.unsupported'))];
+  const lines = [];
+  if (p.kind === 'M') {
+    lines.push(raw(`region.mosfet.${p.region}`, t(lang, `sim.region.mosfet.${p.region}`)), raw('vgs', `Vgs: ${f(p.vgs, 'V')}`), raw('vds', `Vds: ${f(p.vds, 'V')}`), raw('id', `Id: ${f(p.currents.D, 'A')}`), q('power', f(p.power, 'W')));
+  } else if (p.kind === 'Q') {
+    lines.push(raw(`region.bjt.${p.region}`, t(lang, `sim.region.bjt.${p.region}`)), raw('vbe', `Vbe: ${f(p.vbe, 'V')}`), raw('vce', `Vce: ${f(p.vce, 'V')}`), raw('ib', `Ib: ${f(p.currents.B, 'A')}`), raw('ic', `Ic: ${f(p.currents.C, 'A')}`));
+    if (p.region === 'active' && p.beta) lines.push(raw('beta', `β ≈ ${Math.round(p.beta)}`));
+    lines.push(q('power', f(p.power, 'W')));
+  } else if (p.kind === 'POT') {
+    lines.push(raw('pot.current', `I(1): ${f(p.currents['1'], 'A')}`), raw('pot.current', `I(W): ${f(p.currents.W, 'A')}`), raw('pot.current', `I(3): ${f(p.currents['3'], 'A')}`), q('power', f(p.power, 'W')));
+  } else if (p.kind === 'SW') {
+    lines.push(q('state', t(lang, p.pressed ? 'state.pressed' : 'state.released')), q('current', f(p.current, 'A')));
+  } else {
+    lines.push(q('voltage', f(p.voltage, 'V')), q('current', f(p.current, 'A')), q('power', f(p.power, 'W')));
+    if (p.kind === 'LED') lines.push(q('brightness', t(lang, 'sim.brightness', { percent: Math.round(p.brightness * 100) })));
+  }
+  if (p.floating) lines.push(raw('floating', t(lang, 'sim.floating')));
+  return lines;
+}

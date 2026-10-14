@@ -22,7 +22,7 @@ Environment:
 | Variable | Default | Meaning |
 |---|---|---|
 | `PROTOBOARD_ROOT` | current directory | the only folder the server reads and writes; paths outside are refused |
-| `PROTOBOARD_LANG` | `en` | language of text answers (`en`, `es`) |
+| `PROTOBOARD_LANG` | `en` | default language of answers and files (`en`, `es`); a circuit's own `"lang"` and a tool's `lang` argument win over it |
 
 ## Register it
 
@@ -58,7 +58,7 @@ path of `mcp/server.js` and the environment above.
 | `undo` | undo the latest change (new revision) | yes |
 | `review` | APPROVED or CHANGES from measurements, profile `lesson` or `draft` | no |
 | `history` | revisions, authors, notes, operations | no |
-| `render` | writes the SVG; `png_width` also returns a PNG image; `page: true` rewrites the embeddable page ([embedding.md](embedding.md)); `sim: true` draws the simulation results | outputs only |
+| `render` | writes the SVG; `png_width` also returns a PNG image; `page: true` rewrites the embeddable page ([embedding.md](embedding.md)); `sim: true` draws the simulation results; `focus: [ids]` dims the rest; `flow: true` the current layer | outputs only |
 | `simulate` | node voltages and part currents, a model ([simulation.md](simulation.md)); `analysis: dc \| transient`, `stop`, `step`, `start` | no |
 | `catalog` | types, part numbers, packages, boards, views, operations, layers | no |
 

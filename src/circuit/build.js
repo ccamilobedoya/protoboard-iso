@@ -10,7 +10,8 @@
 import { createBoard, BOARDS } from '../board/board.js';
 import { PART_TYPES } from '../parts/types/index.js';
 import { PACKAGES } from '../parts/packages/index.js';
-import { checkOccupancy, checkLeads, checkConnections, checkCollisions } from './checks.js';
+import { checkOccupancy, checkLeads, checkConnections, checkCollisions, checkDescriptions } from './checks.js';
+import { LANGUAGES } from '../i18n/index.js';
 
 const err = (code, params) => ({ severity: 'error', code, params });
 
@@ -124,6 +125,7 @@ export function buildCircuit(circuit) {
   for (const part of parts) issues.push(...checkLeads(part, board.pitch));
   issues.push(...checkConnections(parts, netlist, { netLabels: circuit.netLabels }));
   issues.push(...checkCollisions(parts, { clearance: Number(circuit.clearance) || 0 }));
+  issues.push(...checkDescriptions(parts, Object.keys(LANGUAGES)));
 
   return { board, parts, issues, netlist };
 }

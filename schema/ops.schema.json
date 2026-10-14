@@ -166,6 +166,13 @@
               }
             ]
           },
+          "lang": {
+            "enum": [
+              "en",
+              "es"
+            ],
+            "description": "Language of everything made from this circuit: drawing labels, the page, messages. A language asked for explicitly (--lang, MCP lang) wins."
+          },
           "board": {
             "enum": [
               "bb830",
@@ -245,6 +252,17 @@
               "results": {
                 "type": "boolean",
                 "description": "Add a button that shows the simulation results (hidden until pressed)"
+              },
+              "flow": {
+                "type": "boolean",
+                "description": "Add the current layer: everything dimmed, strips shown, moving dots (needs supplies)"
+              },
+              "focus": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Parts in focus when the page opens (the ones being explained)"
               }
             },
             "additionalProperties": false

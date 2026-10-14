@@ -41,6 +41,10 @@ A circuit file:
 }
 ```
 
+Keys in the JSON are in English so anyone can reuse it; messages, labels and the page come out in
+English or Spanish: `--lang es`, `lang` in the MCP tools, or `"lang": "es"` in the circuit itself
+(see [SKILL.md](SKILL.md#languages)).
+
 The breadboard decides the connections: rows a–e of a column are one node, f–j another,
 each rail one more. From the holes alone the kit knows what is connected and warns about
 shorted strips, occupied holes, leads that cannot reach and bodies that overlap.
@@ -55,6 +59,7 @@ breadboard circuit comes up.
 
 | | English | Español |
 |---|---|---|
+| Code map (start here when coming back to the code) | [docs/en/code-map.md](docs/en/code-map.md) | [docs/es/mapa-del-codigo.md](docs/es/mapa-del-codigo.md) |
 | How it is built | [docs/en/architecture.md](docs/en/architecture.md) | [docs/es/arquitectura.md](docs/es/arquitectura.md) |
 | Circuit file format | [docs/en/circuit-format.md](docs/en/circuit-format.md) | [docs/es/formato-circuito.md](docs/es/formato-circuito.md) |
 | Adding a part or a board | [docs/en/adding-parts.md](docs/en/adding-parts.md) | [docs/es/agregar-componentes.md](docs/es/agregar-componentes.md) |
@@ -63,6 +68,7 @@ breadboard circuit comes up.
 | Agent interface (resume, change, undo) | [docs/en/agent-interface.md](docs/en/agent-interface.md) | [docs/es/interfaz-para-agentes.md](docs/es/interfaz-para-agentes.md) |
 | MCP server | [docs/en/mcp.md](docs/en/mcp.md) | [docs/es/mcp.md](docs/es/mcp.md) |
 | Simulation (voltages and currents, a model) | [docs/en/simulation.md](docs/en/simulation.md) | [docs/es/simulacion.md](docs/es/simulacion.md) |
+| Focus and the current layer | [docs/en/focus-and-flow.md](docs/en/focus-and-flow.md) | [docs/es/foco-y-corriente.md](docs/es/foco-y-corriente.md) |
 | Embedding a circuit in documentation | [docs/en/embedding.md](docs/en/embedding.md) | [docs/es/embeber.md](docs/es/embeber.md) |
 | Agents (layout, reviewer, parts librarian) | [docs/en/agents.md](docs/en/agents.md) | [docs/es/agentes.md](docs/es/agentes.md) |
 | Roadmap | [ROADMAP.md](ROADMAP.md) | [docs/es/hoja-de-ruta.md](docs/es/hoja-de-ruta.md) |

@@ -14,7 +14,7 @@
 // editor all share it.
 
 export const OP_NAMES = ['add', 'remove', 'move', 'set', 'rename', 'circuit'];
-export const CIRCUIT_FIELDS = ['title', 'board', 'view', 'clearance', 'netLabels', 'supplies', 'page'];
+export const CIRCUIT_FIELDS = ['title', 'lang', 'board', 'view', 'clearance', 'netLabels', 'supplies', 'page'];
 const FIXED_PART_FIELDS = ['id', 'pins', 'pin1']; // changed with `rename` and `move`
 
 const clone = (x) => (x === undefined ? undefined : structuredClone(x));

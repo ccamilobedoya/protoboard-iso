@@ -22,8 +22,9 @@
 | `view` | no | Default view: `front`, `back`, `front-left`, `back-right`. The command line `--view` wins. |
 | `clearance` | no | Minimum gap between part bodies, mm. Closer parts are reported as notes. Use 3 or more for teaching layouts. |
 | `netLabels` | no | Text printed next to a rail, by rail id. A labelled rail counts as connected to a supply. |
+| `lang` | no | Language of everything made from this circuit: drawing labels, the page, messages (`en`, `es`). A language asked for in the call (`--lang`, MCP `lang`) wins. |
 | `supplies` | no | Simulation: where the power comes from, e.g. `[{ "id": "V1", "voltage": 5 }]` (between T+ and T-). See [simulation.md](simulation.md). |
-| `page` | no | The embeddable page: `{ "results": true }` adds a button that shows the simulation results. |
+| `page` | no | The embeddable page: `results` (button with the simulation results), `flow` (current layer), `focus` (parts in focus when it opens). See [focus-and-flow.md](focus-and-flow.md). |
 | `parts` | yes | List of parts. |
 
 ## Holes
@@ -46,6 +47,11 @@ an object by pin name:
 { "id": "D1", "type": "led", "pins": ["e9", "e10"] }
 { "id": "D1", "type": "led", "pins": { "anode": "e9", "cathode": "e10" } }
 ```
+
+Any part can also have `description` (how it is used in this circuit, shown in its card in the
+page: a plain string, shown as it is in every language, or `{ "en": …, "es": … }`; leave it out
+when the learner should find it out; see [focus-and-flow.md](focus-and-flow.md)) and `model`
+(simulation values that override the typical ones; see [simulation.md](simulation.md)).
 
 ### resistor
 

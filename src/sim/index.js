@@ -123,8 +123,9 @@ function prepare(circuit) {
         break;
       }
       case 'SW': {
-        for (const [a, b] of e.poles) add(resistor(pin(a), pin(b), WIRE_RESISTANCE));
+        entry.poles = e.poles.map(([a, b]) => ({ a, b, el: add(resistor(pin(a), pin(b), WIRE_RESISTANCE)) }));
         if (e.pressed) entry.main = add(resistor(pin(e.poles[0][0]), pin(e.poles[1][0]), BUTTON_CONTACT));
+        entry.contact = [e.poles[0][0], e.poles[1][0]];
         entry.pressed = e.pressed;
         break;
       }
@@ -300,7 +301,31 @@ function partReading(entry, x, ctx, floating) {
       out.unsupported = true;
   }
   if (isFloating) out.floating = true;
+  out.pinCurrents = pinCurrents(entry, out, x, ctx);
   return out;
+}
+
+// Current into the part at each pin (amperes, positive = into the part). Kirchhoff: they add
+// up to zero. The current-flow layer reads these.
+function pinCurrents(entry, out, x, ctx) {
+  const names = entry.pins.map((p) => p.name);
+  if (out.unsupported) return Object.fromEntries(names.map((n) => [n, 0]));
+  if (out.currents) return { ...out.currents };
+  if (entry.kind === 'SW') {
+    const result = Object.fromEntries(names.map((n) => [n, 0]));
+    for (const { a, b, el } of entry.poles) {
+      const i = el.currents(x, ctx)[0];
+      result[a] += i;
+      result[b] -= i;
+    }
+    if (entry.main) {
+      const i = entry.main.currents(x, ctx)[0];
+      result[entry.contact[0]] += i;
+      result[entry.contact[1]] -= i;
+    }
+    return result;
+  }
+  return { [names[0]]: out.current ?? 0, [names[1]]: -(out.current ?? 0) };
 }
 
 function readAll(prep, x, ctx) {

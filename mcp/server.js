@@ -38,6 +38,7 @@ import { resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, cre
 import { svgToPng, rasterAvailable } from '../src/node/raster.js';
 import { review, formatReview, PROFILES } from '../src/review.js';
 import { simulate } from '../src/sim/index.js';
+import { pickLanguage } from '../src/i18n/index.js';
 import { formatSimulation } from '../src/sim/format.js';
 
 const ROOT = resolve(process.env.PROTOBOARD_ROOT ?? process.cwd());
@@ -65,10 +66,24 @@ const json = (value) => text(JSON.stringify(value, null, 2));
 const answer = (format, value, readable) => (format === 'json' ? json(value) : text(readable()));
 const relFiles = (files) => (files ? Object.fromEntries(Object.entries(files).map(([k, v]) => [k, rel(v)])) : files);
 
+// Language of every answer and every file written: the `lang` the tool was called with, else
+// the circuit's own "lang", else PROTOBOARD_LANG. Resolved here once for all tools; the
+// language asked for explicitly travels on as `outputLang` (it wins over the circuit's).
+function circuitLang(args) {
+  if (args.circuit) return args.circuit.lang;
+  if (!args.target) return undefined;
+  try {
+    const paths = resolveTarget(inside(args.target));
+    return existsSync(paths.circuitFile) ? JSON.parse(readFileSync(paths.circuitFile, 'utf8')).lang : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function safely(handler) {
   return async (args) => {
     try {
-      return await handler(args);
+      return await handler({ ...args, outputLang: args.lang, lang: pickLanguage(args.lang, circuitLang(args), DEFAULT_LANG) });
     } catch (e) {
       return { isError: true, content: [{ type: 'text', text: e.message }] };
     }
@@ -76,7 +91,7 @@ function safely(handler) {
 }
 
 const common = {
-  lang: z.enum(Object.keys(LANGUAGES)).optional().describe('Language of the answer (default from PROTOBOARD_LANG).'),
+  lang: z.enum(Object.keys(LANGUAGES)).optional().describe('Language of the answer and of the files written (default: the circuit\'s "lang", else PROTOBOARD_LANG).'),
   format: z.enum(['text', 'json']).optional().describe('text (default, readable) or json (complete, for tools).'),
 };
 const targetArg = z.string().describe('Circuit file (examples/led.json) or circuit folder (circuits/led), relative to the server root.');
@@ -144,7 +159,7 @@ server.registerTool(
 server.registerTool(
   'get_circuit',
   { title: 'Get circuit', description: 'The circuit file as JSON (the only source of truth), with its revision and placement issues.', inputSchema: { target: targetArg, lang: common.lang }, annotations: READ },
-  safely(async ({ target, lang = DEFAULT_LANG }) => {
+  safely(async ({ target, lang }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
     const { issues } = checkCircuit(circuit);
@@ -166,8 +181,8 @@ server.registerTool(
     },
     annotations: WRITE,
   },
-  safely(async ({ target, circuit, author = 'mcp', note = 'create', lang = DEFAULT_LANG }) => {
-    const result = createTarget(inside(target), circuit, { author, note, lang });
+  safely(async ({ target, circuit, author = 'mcp', note = 'create', lang, outputLang }) => {
+    const result = createTarget(inside(target), circuit, { author, note, lang, outputLang });
     if (result.errors.length) return { isError: true, content: [{ type: 'text', text: result.errors.map((e) => formatIssue(e, lang)).join('\n') }] };
     const { issues } = checkCircuit(loadCircuit(resolveTarget(inside(target))));
     return json({ target, revision: 0, files: relFiles(result.files), issues: issues.map((i) => formatIssue(i, lang)) });
@@ -182,7 +197,7 @@ server.registerTool(
     inputSchema: { target: targetArg, ...viewArgs, part: z.string().optional().describe('Only this part'), ...common },
     annotations: READ,
   },
-  safely(async ({ target, view, fit, scale, part, lang = DEFAULT_LANG, format }) => {
+  safely(async ({ target, view, fit, scale, part, lang, format }) => {
     const { paths } = existing(target);
     const report = inspectCircuit(loadCircuit(paths), { view, fit, scale, lang });
     if (part) {
@@ -210,7 +225,7 @@ server.registerTool(
     },
     annotations: READ,
   },
-  safely(async ({ target, kind, ref, limit, empty, lang = DEFAULT_LANG, format }) => {
+  safely(async ({ target, kind, ref, limit, empty, lang, format }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
     if (kind === 'at') return answer(format, queryAt(circuit, ref), () => formatAt(queryAt(circuit, ref), lang));
@@ -237,7 +252,7 @@ server.registerTool(
     },
     annotations: READ,
   },
-  safely(async ({ target, part, between, connect, near, limit, window, lang = DEFAULT_LANG, format }) => {
+  safely(async ({ target, part, between, connect, near, limit, window, lang, format }) => {
     const { paths } = existing(target);
     const result = suggest(loadCircuit(paths), part, { between, connect, near, limit, window });
     return answer(format, result, () => formatSuggest(result, lang, { formatIssue, target }));
@@ -261,9 +276,9 @@ server.registerTool(
     },
     annotations: WRITE,
   },
-  safely(async ({ target, ops, dry_run, expect_revision, author = 'mcp', note = '', views, lang = DEFAULT_LANG, format }) => {
+  safely(async ({ target, ops, dry_run, expect_revision, author = 'mcp', note = '', views, lang, outputLang, format }) => {
     const { full } = existing(target);
-    const result = applyToTarget(full, ops, { dryRun: dry_run, expectRevision: expect_revision, author, note, views, lang });
+    const result = applyToTarget(full, ops, { dryRun: dry_run, expectRevision: expect_revision, author, note, views, lang, outputLang });
     const out = { ...result, circuit: undefined, files: relFiles(result.files) };
     const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }));
     return result.errors.length ? { ...response, isError: true } : response;
@@ -278,7 +293,7 @@ server.registerTool(
     inputSchema: { target: targetArg, profile: z.enum(Object.keys(PROFILES)).optional(), views: z.array(z.enum(Object.keys(VIEWS))).optional(), ...common },
     annotations: READ,
   },
-  safely(async ({ target, profile, views, lang = DEFAULT_LANG, format }) => {
+  safely(async ({ target, profile, views, lang, format }) => {
     const { paths } = existing(target);
     const result = review(loadCircuit(paths), { profile, views, lang });
     return answer(format, result, () => formatReview(result, lang, { t, formatIssue }));
@@ -301,7 +316,7 @@ server.registerTool(
     },
     annotations: READ,
   },
-  safely(async ({ target, analysis = 'dc', stop, step, start, lang = DEFAULT_LANG, format }) => {
+  safely(async ({ target, analysis = 'dc', stop, step, start, lang, format }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
     const result = simulate(circuit, { analysis, stop, step, start });
@@ -313,9 +328,9 @@ server.registerTool(
 server.registerTool(
   'undo',
   { title: 'Undo', description: 'Undo the latest change not yet undone (recorded as a new revision).', inputSchema: { target: targetArg, author: z.string().optional(), ...common }, annotations: WRITE },
-  safely(async ({ target, author = 'mcp', lang = DEFAULT_LANG, format }) => {
+  safely(async ({ target, author = 'mcp', lang, outputLang, format }) => {
     const { full } = existing(target);
-    const result = undoTarget(full, { author, lang });
+    const result = undoTarget(full, { author, lang, outputLang });
     const out = { ...result, files: relFiles(result.files) };
     const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }));
     return result.errors.length ? { ...response, isError: true } : response;
@@ -325,7 +340,7 @@ server.registerTool(
 server.registerTool(
   'history',
   { title: 'History', description: 'Changes made to a circuit: revision, time, author, note and operations.', inputSchema: { target: targetArg, limit: z.number().int().positive().optional(), ...common }, annotations: READ },
-  safely(async ({ target, limit = 20, lang = DEFAULT_LANG, format }) => {
+  safely(async ({ target, limit = 20, lang, format }) => {
     const { paths } = existing(target);
     const history = readHistory(paths).slice(-limit);
     return answer(format, history, () => {
@@ -352,18 +367,20 @@ server.registerTool(
       labels: z.union([z.boolean(), z.enum(['both', 'id', 'value'])]).optional().describe('both (default), id, value, or false'),
       png_width: z.number().int().min(200).max(2000).optional(),
       page: z.boolean().optional().describe('Also rewrite the embeddable page out/<name>.html'),
+      focus: z.array(z.string()).optional().describe('Dim everything except these parts (ids) and the strips under their leads; they show even where something covers them.'),
+      flow: z.boolean().optional().describe('Current flow as dots along strips and parts (still in the SVG, moving in the page). Needs supplies.'),
       sim: z.boolean().optional().describe('Draw the DC simulation results (voltages per group, currents per part, labelled MODEL). Needs supplies. Never for values a learner must predict.'),
       lang: common.lang,
     },
     annotations: { ...WRITE, idempotentHint: true },
   },
-  safely(async ({ target, view = 'front', fit, scale, annotate, labels, png_width, page, sim, lang = DEFAULT_LANG }) => {
+  safely(async ({ target, view = 'front', fit, scale, annotate, labels, png_width, page, sim, focus, flow, lang }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
-    const { svg, issues } = renderCircuit(circuit, { view, fit, scale, annotate, labels, lang, sim });
+    const { svg, issues } = renderCircuit(circuit, { view, fit, scale, annotate, labels, lang, sim, focus, flow });
     if (!svg) throw new Error(issues.map((i) => formatIssue(i, lang)).join('\n'));
     mkdirSync(paths.outDir, { recursive: true });
-    const file = join(paths.outDir, `${paths.name}.${view}${fit === 'parts' ? '.zoom' : ''}${annotate ? '.annotated' : ''}${sim ? '.sim' : ''}.svg`);
+    const file = join(paths.outDir, `${paths.name}.${view}${fit === 'parts' ? '.zoom' : ''}${annotate ? '.annotated' : ''}${sim ? '.sim' : ''}${focus?.length ? '.focus' : ''}${flow ? '.flow' : ''}.svg`);
     writeFileSync(file, svg);
     const pageFile = page ? writePage(paths, circuit, { lang }).pageFile : null;
     const content = [{ type: 'text', text: JSON.stringify({ svg: rel(file), ...(pageFile && { page: rel(pageFile) }), bytes: Buffer.byteLength(svg), issues: issues.length }) }];
@@ -378,7 +395,7 @@ server.registerTool(
 server.registerTool(
   'catalog',
   { title: 'Catalog', description: 'What the kit knows: part types and their pins, part numbers, packages, boards, views, operations, annotation layers.', inputSchema: { lang: common.lang }, annotations: READ },
-  safely(async ({ lang = DEFAULT_LANG }) =>
+  safely(async ({ lang }) =>
     json({
       types: Object.fromEntries(Object.entries(PART_TYPES).map(([k, v]) => [k, { name: t(lang, `type.${k}`), pins: v.pins ?? 'from the part number' }])),
       partNumbers: Object.fromEntries(Object.entries(PART_NUMBERS).map(([k, v]) => [k, { type: v.type, package: v.package, pins: v.pins }])),

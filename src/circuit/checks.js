@@ -54,6 +54,21 @@ export function checkLeads(part, pitch) {
   return [];
 }
 
+// A part's description has two formats: a plain string (shown as it is, whatever the
+// language) or one text per language. The second should cover every language of the kit, so
+// the page shows it in any of them; a missing one is reported.
+export function checkDescriptions(parts, languages) {
+  const out = [];
+  for (const part of parts) {
+    const d = part.raw.description;
+    if (d == null || typeof d !== 'object') continue;
+    const have = Object.keys(d).filter((k) => String(d[k] ?? '').trim());
+    const missing = languages.filter((l) => !have.includes(l));
+    if (missing.length) out.push({ severity: 'info', code: 'DESCRIPTION_LANGUAGE', params: { part: part.id, missing: missing.join(', '), example: `{ ${languages.map((l) => `"${l}": "…"`).join(', ')} }` } });
+  }
+  return out;
+}
+
 export function checkConnections(parts, netlist, { netLabels = {} } = {}) {
   const out = [];
   for (const part of parts) {

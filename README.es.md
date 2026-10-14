@@ -44,8 +44,10 @@ Un archivo de circuito:
 }
 ```
 
-Las claves del JSON están en inglés para que cualquiera pueda reutilizarlo; los mensajes
-y las etiquetas salen en el idioma que elijas.
+Las claves del JSON están en inglés para que cualquiera pueda reutilizarlo; los mensajes,
+las etiquetas y la página salen en español o inglés: `--lang es`, `lang` en las herramientas
+MCP, o `"lang": "es"` en el propio circuito, que gana sobre el idioma por defecto (ver
+[formato-circuito.md](docs/es/formato-circuito.md)).
 
 La protoboard decide las conexiones: las filas a–e de una columna son un nodo, las f–j
 otro y cada riel uno más. Solo con los agujeros el kit sabe qué está conectado y avisa
@@ -61,6 +63,7 @@ aparece un circuito en protoboard.
 
 | | Español | English |
 |---|---|---|
+| Mapa del código (empezar aquí al volver al código) | [docs/es/mapa-del-codigo.md](docs/es/mapa-del-codigo.md) | [docs/en/code-map.md](docs/en/code-map.md) |
 | Cómo está construido | [docs/es/arquitectura.md](docs/es/arquitectura.md) | [docs/en/architecture.md](docs/en/architecture.md) |
 | Formato del archivo de circuito | [docs/es/formato-circuito.md](docs/es/formato-circuito.md) | [docs/en/circuit-format.md](docs/en/circuit-format.md) |
 | Agregar un componente o una protoboard | [docs/es/agregar-componentes.md](docs/es/agregar-componentes.md) | [docs/en/adding-parts.md](docs/en/adding-parts.md) |
@@ -69,6 +72,7 @@ aparece un circuito en protoboard.
 | Interfaz para agentes (retomar, cambiar, deshacer) | [docs/es/interfaz-para-agentes.md](docs/es/interfaz-para-agentes.md) | [docs/en/agent-interface.md](docs/en/agent-interface.md) |
 | Servidor MCP | [docs/es/mcp.md](docs/es/mcp.md) | [docs/en/mcp.md](docs/en/mcp.md) |
 | Simulación (voltajes y corrientes, un modelo) | [docs/es/simulacion.md](docs/es/simulacion.md) | [docs/en/simulation.md](docs/en/simulation.md) |
+| Foco y capa de corriente | [docs/es/foco-y-corriente.md](docs/es/foco-y-corriente.md) | [docs/en/focus-and-flow.md](docs/en/focus-and-flow.md) |
 | Embeber un circuito en la documentación | [docs/es/embeber.md](docs/es/embeber.md) | [docs/en/embedding.md](docs/en/embedding.md) |
 | Agentes (montaje, revisor, bibliotecario) | [docs/es/agentes.md](docs/es/agentes.md) | [docs/en/agents.md](docs/en/agents.md) |
 | Hoja de ruta | [docs/es/hoja-de-ruta.md](docs/es/hoja-de-ruta.md) | [ROADMAP.md](ROADMAP.md) |

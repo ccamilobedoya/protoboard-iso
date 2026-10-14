@@ -117,3 +117,25 @@ test('dragging pans, pinching zooms, and the frame stays on the board', async (t
   const [bx, by, bw, bh] = svg('front').dataset.board.split(' ').map(Number);
   assert.ok(x + w / 2 >= bx && y + h / 2 >= by && x + w / 2 <= bx + bw && y + h / 2 <= by + bh, 'centre stays on the board');
 });
+
+test('language: the one asked for, else the circuit\'s own "lang", else the default', () => {
+  const target = join(mkdtempSync(join(tmpdir(), 'pbi-lang-')), 'led');
+  const parts = [{ id: 'R1', type: 'resistor', value: '330', pins: ['a10', 'a14'] }];
+  createTarget(target, { lang: 'es', parts }, { lang: 'en' });
+  const page = () => readFileSync(pageFileOf(resolveTarget(target)), 'utf8');
+  assert.match(page(), /<html lang="es">/, 'the circuit says es: the page is in Spanish even for an English caller');
+  applyToTarget(target, [{ op: 'move', part: 'R1', pins: ['b10', 'b14'] }], { lang: 'en' });
+  assert.match(page(), /<html lang="es">/);
+  applyToTarget(target, [{ op: 'move', part: 'R1', pins: ['c10', 'c14'] }], { lang: 'en', outputLang: 'en' });
+  assert.match(page(), /<html lang="en">/, 'asked for explicitly: English');
+  applyToTarget(target, [{ op: 'circuit', lang: 'en' }], { lang: 'es' });
+  assert.match(page(), /<html lang="en">/, 'changing "lang" changes the page');
+});
+
+test('a plain-string description is shown as it is, in any language', () => {
+  const circuit = { parts: [{ id: 'R1', type: 'resistor', value: '330', pins: ['a10', 'a14'], description: 'Limita la corriente del LED.' }] };
+  for (const lang of ['en', 'es']) assert.match(renderPage(circuit, { lang }).html, /Limita la corriente del LED\./);
+  const both = { parts: [{ ...circuit.parts[0], description: { en: 'Limits the LED current.', es: 'Limita la corriente del LED.' } }] };
+  assert.match(renderPage(both, { lang: 'en' }).html, /Limits the LED current\./);
+  assert.doesNotMatch(renderPage(both, { lang: 'en' }).html, /Limita/);
+});

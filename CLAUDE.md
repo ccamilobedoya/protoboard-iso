@@ -34,6 +34,9 @@ MCP tool that no longer exists.
 
 ## Read before working
 
+0. `docs/en/code-map.md`: where everything lives, the three pipelines (drawing, simulation,
+   page) and the conventions that are easy to break (language, texts, layers, data attributes).
+   Keep it up to date when you add a module or a convention.
 1. `ROADMAP.md`: what is done, what is next. Work on the first 🔜/⬜ item that matches the
    request; tick items when they are done.
 2. `PLANNING.md`: architecture, considerations, best practices, decision log. Do not
@@ -52,6 +55,7 @@ node bin/protoboard-iso.js inspect <file.json> [--json]   # the drawing in numbe
 node bin/protoboard-iso.js render <file.json> -o out.svg --annotate all
 node bin/protoboard-iso.js simulate <target> [--transient 5,1m] [--json]   # voltages and currents, a model (docs/en/simulation.md)
 node bin/protoboard-iso.js render <target> --sim   # results drawn on the board
+node bin/protoboard-iso.js render <target> --focus Q1 | --flow   # dim the rest / current layer (docs/en/focus-and-flow.md)
 node bin/protoboard-iso.js page <target>                  # out/<name>.html, the page to embed (docs/en/embedding.md)
 node bin/protoboard-iso.js apply <target> --ops '<json>' --dry-run   # then without --dry-run
 node bin/protoboard-iso.js undo <target> · history <target>

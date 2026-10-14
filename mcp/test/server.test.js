@@ -124,3 +124,12 @@ test('simulate: supplies set with an operation, then voltages and currents (a mo
   assert.equal(tr.analysis, 'transient');
   assert.equal(tr.times[0], 0);
 });
+
+test('language: a circuit with "lang" answers and writes in it; an explicit lang wins', async () => {
+  const created = jsonOf(await call('create_circuit', { target: 'circuits/es', circuit: { ...led, lang: 'es' }, author: 'test' }));
+  assert.match(readFileSync(join(root, created.files.pageFile), 'utf8'), /<html lang="es">/);
+  assert.match(textOf(await call('simulate', { target: 'circuits/es' })), /un modelo, no una medición/, 'Spanish without asking (server default is en)');
+  assert.match(textOf(await call('simulate', { target: 'circuits/es', lang: 'en' })), /a model, not a measurement/);
+  await call('render', { target: 'circuits/es', page: true, lang: 'en' });
+  assert.match(readFileSync(join(root, 'circuits/es/out/es.html'), 'utf8'), /<html lang="en">/, 'page in the language asked for');
+});

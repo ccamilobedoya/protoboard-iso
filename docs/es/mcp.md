@@ -23,7 +23,7 @@ Variables de entorno:
 | Variable | Por defecto | Qué es |
 |---|---|---|
 | `PROTOBOARD_ROOT` | la carpeta actual | la única carpeta que el servidor lee y escribe; rechaza rutas fuera de ella |
-| `PROTOBOARD_LANG` | `en` | idioma de las respuestas en texto (`en`, `es`) |
+| `PROTOBOARD_LANG` | `en` | idioma por defecto de las respuestas y de los archivos (`en`, `es`); el `"lang"` del propio circuito y el argumento `lang` de cada herramienta ganan sobre él |
 
 ## Registrarlo
 
@@ -59,7 +59,7 @@ la ruta absoluta de `mcp/server.js`, y las variables de arriba.
 | `undo` | deshace el último cambio (revisión nueva) | sí |
 | `review` | APROBADO o CAMBIOS a partir de mediciones, perfil `lesson` o `draft` | no |
 | `history` | revisiones, autores, notas, operaciones | no |
-| `render` | escribe el SVG; con `png_width` devuelve también una imagen PNG; con `page: true` reescribe la página para embeber ([embeber.md](embeber.md)); con `sim: true` dibuja los resultados de la simulación | solo salidas |
+| `render` | escribe el SVG; con `png_width` devuelve también una imagen PNG; con `page: true` reescribe la página para embeber ([embeber.md](embeber.md)); con `sim: true` dibuja los resultados de la simulación; `focus: [ids]` atenúa lo demás; `flow: true` la capa de corriente | solo salidas |
 | `simulate` | voltajes de los grupos y corrientes de los componentes, un modelo ([simulacion.md](simulacion.md)); `analysis: dc \| transient`, `stop`, `step`, `start` | no |
 | `catalog` | tipos, referencias, encapsulados, protoboards, vistas, operaciones, capas | no |
 

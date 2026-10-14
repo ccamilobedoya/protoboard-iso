@@ -14,6 +14,21 @@ Hay dos cosas que traducir, y son independientes.
 
 Las claves que faltan se toman del inglés, así que una traducción parcial ya funciona.
 
+Los textos más largos son los que lee quien aprende en la página: `describe.*` (qué es cada tipo
+de componente y cómo funciona por dentro) y `explain.*` (qué significa cada valor de la ficha),
+además de `probe.*` (de dónde sale cada valor simulado). Una prueba exige que cada tipo de
+componente tenga su `describe.*` en todos los idiomas registrados.
+
+## Textos de un circuito
+
+Un circuito puede fijar el idioma de todo lo que se genera a partir de él con `"lang"` (un idioma
+pedido en la llamada gana, luego el del circuito y luego el idioma por defecto).
+
+Lo que un circuito dice de sí mismo tiene dos formatos: un texto plano, que se muestra tal cual en
+cualquier idioma, o un texto por idioma, `{ "en": "…", "es": "…" }` (para `title` y la
+`description` de cada componente). `check` avisa (`DESCRIPTION_LANGUAGE`) cuando a una descripción
+por idioma le falta alguno de los idiomas del kit.
+
 Las claves del archivo de circuito (`parts`, `value`, `pins`…) y los nombres de los
 agujeros **no** se traducen: el mismo archivo sirve en todos los idiomas.
 

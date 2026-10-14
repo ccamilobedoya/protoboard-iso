@@ -15,3 +15,9 @@ export function t(lang, key, params = {}) {
 export function decimalSeparator(lang) {
   return (LANGUAGES[lang] ?? en).meta.decimal;
 }
+
+// The language to write in: the first known one of the candidates, most specific first
+// (what was asked for, the circuit's own `lang`, the default), English otherwise.
+export function pickLanguage(...candidates) {
+  return candidates.find((c) => c && LANGUAGES[c]) ?? 'en';
+}

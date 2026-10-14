@@ -24,8 +24,9 @@ Las claves van en inglés para que el formato sea el mismo en todos los idiomas.
 | `view` | no | Vista por defecto: `front`, `back`, `front-left`, `back-right`. Manda `--view` si se da en la línea de comandos. |
 | `clearance` | no | Separación mínima entre cuerpos, en mm. Los componentes más cercanos se informan como notas. Para montajes de clase, 3 o más. |
 | `netLabels` | no | Texto junto a un riel, por id del riel. Un riel con etiqueta cuenta como conectado a una fuente. |
+| `lang` | no | Idioma de todo lo que se genera a partir del circuito: etiquetas del dibujo, la página, mensajes (`en`, `es`). Un idioma pedido en la llamada (`--lang`, `lang` del MCP) gana. |
 | `supplies` | no | Simulación: de dónde sale la energía, por ejemplo `[{ "id": "V1", "voltage": 5 }]` (entre T+ y T-). Ver [simulacion.md](simulacion.md). |
-| `page` | no | La página para embeber: `{ "results": true }` agrega un botón que muestra los resultados de la simulación. |
+| `page` | no | La página para embeber: `results` (botón con los resultados de la simulación), `flow` (capa de corriente), `focus` (componentes en foco al abrirla). Ver [foco-y-corriente.md](foco-y-corriente.md). |
 | `parts` | sí | Lista de componentes. |
 
 ## Agujeros
@@ -49,6 +50,11 @@ las patas o un objeto por nombre de pata:
 { "id": "D1", "type": "led", "pins": ["e9", "e10"] }
 { "id": "D1", "type": "led", "pins": { "anode": "e9", "cathode": "e10" } }
 ```
+
+Cualquier componente puede llevar además `description` (cómo se usa en este circuito, se ve en su
+ficha en la página: un texto plano, que se muestra tal cual en cualquier idioma, o
+`{ "en": …, "es": … }`; se omite cuando quien aprende debe descubrirlo; ver [foco-y-corriente.md](foco-y-corriente.md))
+y `model` (valores de simulación que reemplazan los típicos; ver [simulacion.md](simulacion.md)).
 
 ### resistor (resistencia)
 

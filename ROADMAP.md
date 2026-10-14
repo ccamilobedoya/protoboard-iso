@@ -102,7 +102,8 @@ everywhere else so the parts stand out.
 - ⬜ Theme system: every colour from a named palette (`theme: 'realistic' | 'study' | …`), no colour hard-coded in packages
 - ⬜ `study` theme: a less realistic, more aesthetic breadboard (flat, muted body, lighter holes and print, softer edges) so components and wires stand out
 - ⬜ Review part palettes (wires, LEDs, bands) for contrast and colour-blind safety; keep resistor bands faithful to IEC 60062
-- ⬜ Highlight mode: dim everything except the parts or strips being explained
+- ✅ Highlight mode: dim everything except the parts being explained and the strips under their leads, drawn on top even when covered (`--focus`, `page.focus`, tap in the page; [focus-and-flow.md](docs/en/focus-and-flow.md))
+- ✅ See-through: make one part transparent to see what is behind it (page card)
 - ⬜ Dark theme for screens
 
 ## Stage 3 — Animation in the browser ⬜
@@ -110,7 +111,8 @@ everywhere else so the parts stand out.
 Goal: see the circuit work.
 
 - ⬜ Browser module rendering the same scene into a live SVG (or canvas) each frame
-- ⬜ Electron dots along leads and wires, speed ∝ current, direction from − to +
+- ✅ Current layer (`page.flow`): everything dimmed, strips shown, dots along strips and through parts, speed from the current (log scale), electrons from − to + or conventional current; Kirchhoff along each strip
+- ⬜ Dots along the real path of leads and wires (today: straight lines at board level)
 - ⬜ Voltage as colour on strips and leads, with a fixed scale
 - ⬜ LED brightness from its current; heat tint from power
 - ⬜ Sliders for values and supply voltage, re-solving instantly
@@ -123,7 +125,8 @@ Goal: open a link and explore.
 - ⬜ Dynamic zoom: pinch and wheel zoom, pan, double-tap a part to zoom to it; more detail as you zoom in (hole numbers, part markings)
 - ⬜ Labels on hover or tap only (the static SVG keeps the callouts above the parts)
 - ⬜ Virtual multimeter: probes on holes, voltmeter in parallel, ammeter needs the circuit opened
-- ⬜ Toggle front/back view; tap a strip to highlight everything connected to it
+- ✅ Toggle front/back view; tap a part to bring it and its strips forward
+- ⬜ Tap a strip to highlight everything connected to it
 - ⬜ Prediction mode: readings hidden until the learner commits to an answer
 
 ## Stage 5 — Faster authoring ⬜
@@ -146,8 +149,9 @@ needs them.
 - ⬜ **Parametric labels chosen by the user**: what each label shows, per circuit or per
   part (`name`, `value`, a custom title, a short description), with templates such as
   `"{id} · {value}"` or `"{name}: {description}"`, translated like the rest
-- ⬜ **Descriptions per part** in the circuit file (`"description": { "en": …, "es": … }`),
-  shown in labels, in `inspect` and in the interactive page
-- ⬜ **Clickable labels** in the interactive page: tap a label or a part to open more
-  information (what it does, its pins and their connections, datasheet link, values from the
-  simulation)
+- ✅ **Descriptions per part** in the circuit file (`"description": { "en": …, "es": … }`),
+  shown in the page card after the kit's own description of each kind of part (`describe.*`, every
+  language; `check` reports a missing language) (⬜ in labels and in `inspect`)
+- ✅ **Clickable labels** in the interactive page: tap a label or a part to open a card (what
+  it is, its description, its pins and their connections, values from the simulation when
+  shown); ⬜ datasheet link

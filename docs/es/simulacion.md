@@ -11,14 +11,19 @@ texto, el dibujo y la página lo dicen.
 node bin/protoboard-iso.js simulate <objetivo> [--lang es] [--json]                 # punto de operación en DC
 node bin/protoboard-iso.js simulate <objetivo> --transient 5,1m [--start zero|dc]    # 5 s en pasos de 1 ms
 node bin/protoboard-iso.js render <objetivo> --sim --fit parts                       # resultados dibujados sobre la protoboard
+node bin/protoboard-iso.js render <objetivo> --sim --focus D1                        # solo la corriente de D1 y el voltaje de sus grupos
 ```
+
+En la página (`"page": { "results": true }`) la simulación está siempre activa, pero nunca llena la
+protoboard de números: **toca un componente** para ver su corriente, el voltaje de los grupos bajo
+sus patas y, en su ficha, todos sus valores.
 
 MCP: la herramienta `simulate` (mismas opciones) y `render` con `sim: true`.
 
 > **Primero quien aprende.** Nunca se muestra un resultado que alguien debe predecir. Los
-> resultados se dibujan solo si se piden (`--sim`), y la página para embeber solo los ofrece
-> cuando el circuito lo pide (`"page": { "results": true }`), detrás de un botón y ocultos hasta
-> que se presiona.
+> resultados se dibujan solo si se piden (`--sim`), y la página para embeber solo los tiene cuando
+> el circuito lo pide (`"page": { "results": true }`), y aun así solo los del componente que se
+> toca.
 
 ## La alimentación: `supplies`
 

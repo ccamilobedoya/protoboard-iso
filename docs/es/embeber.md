@@ -21,8 +21,10 @@ node bin/protoboard-iso.js page <objetivo> [--lang es] [--fit parts|board] [-o p
   vuelven al encuadre). Sobre el dibujo, un dedo mueve el dibujo y no la página que lo
   contiene. Sin JavaScript sigue mostrando la primera vista, de cerca y con etiquetas.
 - **Resultados de la simulación**, solo si el circuito tiene `"page": { "results": true }` (y
-  `supplies`): un botón *Simulación (modelo)* los muestra; quedan ocultos hasta presionarlo, así
-  una página nunca adelanta un valor que alguien debe predecir ([simulacion.md](simulacion.md)).
+  `supplies`): siempre activos, solo para el componente que se toca, así la protoboard nunca se
+  llena de números; no se activan mientras alguien deba predecirlos, así una página nunca adelanta un valor que alguien debe predecir ([simulacion.md](simulacion.md)).
+- **Toca un componente** para enfocarlo y abrir su ficha; capa de corriente opcional
+  (`"page": { "flow": true }`). Ver [foco-y-corriente.md](foco-y-corriente.md).
 - **Llena su marco.** El dibujo se ajusta al ancho y al alto del iframe (o de la ventana), así
   que el tamaño lo decide quien lo embebe.
 - **La misma página crece.** Los resultados de la simulación, la animación y el multímetro

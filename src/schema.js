@@ -7,6 +7,7 @@ import { PART_TYPES } from './parts/types/index.js';
 import { BOARDS } from './board/board.js';
 import { VIEWS } from './core/camera.js';
 import { CIRCUIT_FIELDS } from './ops.js';
+import { LANGUAGES } from './i18n/index.js';
 
 export function buildSchemas() {
   const text = { type: 'string' };
@@ -41,6 +42,7 @@ export function buildSchemas() {
       pin1: { type: 'string', description: 'DIP chips: hole of pin 1 (row e or f); the other pins follow' },
       position: { type: 'number', minimum: 0, maximum: 1, description: 'potentiometer wiper position' },
       pressed: { type: 'boolean', description: 'button state' },
+      description: { ...localized, description: 'How the part is used in this circuit, shown in its card in the page. A plain string is shown as it is in every language; { "en": …, "es": … } is shown in the page language. Leave it out when the learner should find it out.' },
       model: { type: 'object', description: 'Simulation: overrides the typical model, e.g. an LED measured at 20 mA { "vf": 2.95 } (see src/sim/models.js)' },
     },
     additionalProperties: true,
@@ -55,6 +57,7 @@ export function buildSchemas() {
       version: { const: 1 },
       revision: { type: 'integer', minimum: 0, description: 'Bumped by every change made through apply/undo' },
       title: localized,
+      lang: { enum: Object.keys(LANGUAGES), description: 'Language of everything made from this circuit: drawing labels, the page, messages. A language asked for explicitly (--lang, MCP lang) wins.' },
       board: { enum: Object.keys(BOARDS) },
       view: { enum: Object.keys(VIEWS) },
       clearance: { type: 'number', minimum: 0, description: 'Minimum gap between bodies, mm' },
@@ -80,7 +83,11 @@ export function buildSchemas() {
       page: {
         type: 'object',
         description: 'The embeddable page out/<name>.html',
-        properties: { results: { type: 'boolean', description: 'Add a button that shows the simulation results (hidden until pressed)' } },
+        properties: {
+          results: { type: 'boolean', description: 'Add a button that shows the simulation results (hidden until pressed)' },
+          flow: { type: 'boolean', description: 'Add the current layer: everything dimmed, strips shown, moving dots (needs supplies)' },
+          focus: { type: 'array', items: text, description: 'Parts in focus when the page opens (the ones being explained)' },
+        },
         additionalProperties: false,
       },
       parts: { type: 'array', items: { $ref: '#/$defs/part' } },

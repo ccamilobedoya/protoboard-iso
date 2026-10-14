@@ -14,6 +14,21 @@ There are two things to translate, and they are independent.
 
 Missing keys fall back to English, so a partial translation still works.
 
+The longest texts are the ones a learner reads in the page: `describe.*` (what each kind of part
+is and how it works inside) and `explain.*` (what each value of the card means), plus `probe.*`
+(where each simulated value comes from). A test requires every kind of part to have its
+`describe.*` in every registered language.
+
+## A circuit's own texts
+
+A circuit can fix the language of everything made from it with `"lang"` (see SKILL.md,
+*Languages*: a language asked for in the call wins, then the circuit's, then the default).
+
+What a circuit says about itself has two formats: a plain string, shown as it is in every
+language, or one text per language, `{ "en": "…", "es": "…" }` (for `title` and each part's
+`description`). `check` reports (`DESCRIPTION_LANGUAGE`) a per-language description missing one
+of the kit's languages.
+
 Keys of the circuit file (`parts`, `value`, `pins`…) and hole names are **not** translated:
 the same file works in every language.
 

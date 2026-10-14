@@ -322,14 +322,16 @@ test('results drawn on the board: a layer of their own, labelled as a model', as
   assert.match(warned, /llegó a su límite de 5 mA y pasó a corriente constante/);
 });
 
-test('the page offers the results only when the circuit asks, hidden until pressed', async () => {
+test('the page has results only when the circuit asks, and shows them per tapped part', async () => {
   const { renderPage } = await import('../src/page.js');
   const circuit = { ...example('led-resistor.json'), supplies: supply(5), page: undefined };
   const plain = renderPage(circuit, { lang: 'es' }).html;
-  assert.doesNotMatch(plain, /class="results"|Simulación/);
+  assert.doesNotMatch(plain, /class="results"|data-results/);
   const html = renderPage({ ...circuit, page: { results: true } }, { lang: 'es' }).html;
-  assert.match(html, /data-key="results">Simulación \(modelo\)</);
-  assert.match(html, /body:not\(\.show-results\) \.results \{ display: none; \}/);
+  assert.doesNotMatch(html, /data-key="results"/, 'no button: always on');
+  assert.match(html, /<body [^>]*data-results="on"/);
+  assert.match(html, /\.results > \* \{ display: none; \}|\.results > \* \{ display: none; \}/);
+  assert.match(html, /\.strips > \*, \.results > \* \{ display: none; \}/, 'every tag hidden until its part is tapped');
   let JSDOM;
   try {
     ({ JSDOM } = await import('jsdom'));
@@ -338,10 +340,11 @@ test('the page offers the results only when the circuit asks, hidden until press
   }
   const dom = new JSDOM(html, { runScripts: 'outside-only' });
   dom.window.eval(html.match(/<script>([\s\S]*)<\/script>/)[1]);
-  const body = dom.window.document.body;
-  assert.ok(!body.classList.contains('show-results'), 'hidden at first');
-  [...dom.window.document.querySelectorAll('nav button')].find((b) => b.dataset.key === 'results').click();
-  assert.ok(body.classList.contains('show-results'), 'shown after pressing');
+  const doc = dom.window.document;
+  assert.ok(doc.body.classList.contains('show-results'), 'on from the start');
+  doc.querySelector('.parts > [data-part="D1"]').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  assert.match(doc.getElementById('dynamic').textContent, /\.results > \[data-part="D1"\]/);
+  assert.match(doc.querySelector('.info').textContent, /Voltaje \(tensión\): 1,76 V/);
 });
 
 test('supplies can be set with an operation, like any circuit field', async () => {

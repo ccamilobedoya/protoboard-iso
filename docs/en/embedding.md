@@ -19,8 +19,10 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
   the frame). Inside the drawing, one finger moves the drawing, not the host page. Without
   JavaScript it still shows the first view, close-up, with labels.
 - **Simulation results**, only if the circuit has `"page": { "results": true }` (and
-  `supplies`): a *Simulation (model)* button shows them; they stay hidden until pressed, so a
-  page never gives away a value someone is asked to predict ([simulation.md](simulation.md)).
+  `supplies`): always on, shown only for the part that is tapped, so the board never fills with
+  numbers; leave it off while someone is asked to predict them ([simulation.md](simulation.md)).
+- **Tap a part** to focus it and open its card; optional current layer (`"page": { "flow": true }`).
+  See [focus-and-flow.md](focus-and-flow.md).
 - **It fills its frame.** The drawing scales to the width and height of the iframe (or the
   browser window), so the host decides the size.
 - **The same page grows.** Simulation results, animation and the virtual multimeter (stages

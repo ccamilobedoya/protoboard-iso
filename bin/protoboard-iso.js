@@ -5,9 +5,10 @@
 // Exit codes: 0 fine · 1 errors (or a refused change, or no placement found) ·
 //             2 review says CHANGES.
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { renderCircuit, inspectCircuit, formatReport, checkCircuit, formatIssue, PART_TYPES, PART_NUMBERS, t } from '../src/index.js';
+import { pickLanguage } from '../src/i18n/index.js';
 import { formatChange } from '../src/diff.js';
 import { queryAt, queryNode, queryFree, suggest } from '../src/query.js';
 import { formatAt, formatNode, formatFree, formatSuggest } from '../src/query-format.js';
@@ -48,6 +49,8 @@ function parseArgs(argv) {
     else if (a === '--transient') args.transient = argv[++i].split(',');
     else if (a === '--start') args.start = argv[++i];
     else if (a === '--sim') args.sim = true;
+    else if (a === '--focus') args.focus = argv[++i].split(',');
+    else if (a === '--flow') args.flow = true;
     else if (a === '-h' || a === '--help') args.help = true;
     else args._.push(a);
   }
@@ -71,8 +74,17 @@ function readOps(args, source) {
 }
 
 const args = parseArgs(process.argv.slice(2));
-const lang = args.lang ?? 'en';
 const [command, target, extra, extra2] = args._;
+const paths = target ? resolveTarget(target) : null;
+// Language: --lang if given, else the circuit's own "lang", else English.
+const circuitLang = (() => {
+  try {
+    return paths && existsSync(paths.circuitFile) ? loadCircuit(paths).lang : undefined;
+  } catch {
+    return undefined;
+  }
+})();
+const lang = pickLanguage(args.lang, circuitLang, 'en');
 const fail = (code) => process.exit(code);
 
 if (args.help || !command || (command !== 'parts' && !target)) {
@@ -80,8 +92,7 @@ if (args.help || !command || (command !== 'parts' && !target)) {
   fail(command ? 0 : 1);
 }
 
-const paths = target ? resolveTarget(target) : null;
-const viewOptions = { view: args.view, lang, scale: args.scale || undefined, labels: args.labels, fit: args.fit, annotate: args.annotate, sim: args.sim };
+const viewOptions = { view: args.view, lang, scale: args.scale || undefined, labels: args.labels, fit: args.fit, annotate: args.annotate, sim: args.sim, focus: args.focus, flow: args.flow };
 
 if (command === 'render') {
   const circuit = loadCircuit(paths);
@@ -91,7 +102,7 @@ if (command === 'render') {
   let out = args.out;
   if (!out) {
     mkdirSync(paths.outDir, { recursive: true });
-    out = join(paths.outDir, `${paths.name}.${args.view ?? circuit.view ?? 'front'}${args.annotate ? '.annotated' : ''}${args.sim ? '.sim' : ''}.svg`);
+    out = join(paths.outDir, `${paths.name}.${args.view ?? circuit.view ?? 'front'}${args.annotate ? '.annotated' : ''}${args.sim ? '.sim' : ''}${args.focus ? '.focus' : ''}${args.flow ? '.flow' : ''}.svg`);
   }
   writeFileSync(out, svg);
   console.log(t(lang, 'cli.written', { file: out, parts: circuit.parts.length, issues: issues.length }));
@@ -135,7 +146,7 @@ if (command === 'render') {
     console.log(t(lang, 'cli.usage'));
     fail(1);
   }
-  const result = applyToTarget(target, ops, { dryRun: args.dryRun, author: args.author, note: args.note, expectRevision: args.expectRevision, views: args.views, lang, outputs: args.outputs });
+  const result = applyToTarget(target, ops, { dryRun: args.dryRun, author: args.author, note: args.note, expectRevision: args.expectRevision, views: args.views, lang, outputLang: args.lang, outputs: args.outputs });
   console.log(args.json ? JSON.stringify({ ...result, circuit: undefined }, null, 2) : formatChange(result, lang, { t, formatIssue }));
   fail(result.errors.length ? 1 : 0);
 } else if (command === 'query') {
@@ -168,7 +179,7 @@ if (command === 'render') {
   console.log(args.json ? JSON.stringify(result, null, 2) : formatReview(result, lang, { t, formatIssue }));
   fail(result.verdict === 'approved' ? 0 : 2);
 } else if (command === 'undo') {
-  const result = undoTarget(target, { author: args.author, views: args.views, lang, outputs: args.outputs });
+  const result = undoTarget(target, { author: args.author, views: args.views, lang, outputLang: args.lang, outputs: args.outputs });
   console.log(args.json ? JSON.stringify(result, null, 2) : formatChange(result, lang, { t, formatIssue }));
   fail(result.errors.length ? 1 : 0);
 } else if (command === 'history') {

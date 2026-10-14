@@ -118,4 +118,16 @@ Run `node bin/protoboard-iso.js parts` for the current list.
 
 ## Languages
 
-Messages and labels: `--lang en` or `--lang es`. Titles can be `{ "en": …, "es": … }`.
+Everything the kit writes (messages, drawing labels, the page and its cards) comes in English
+or Spanish. Choose it, in this order of priority:
+
+1. asked for in the call: `--lang es` (CLI) or `lang: "es"` (any MCP tool);
+2. the circuit's own `"lang": "es"` (set it when creating the circuit, or with
+   `{ "op": "circuit", "lang": "es" }`): pages and drawings rewritten after each change stay in it;
+3. the default: English (the MCP server uses `PROTOBOARD_LANG`).
+
+Texts written in the circuit (`title`, each part's `description`) are either one plain string,
+shown as it is in every language, or one per language, `{ "en": "…", "es": "…" }`, shown in the
+language chosen (`check` reports a missing one). A part's `description` says how it is used in
+this circuit and is shown directly in its card; leave it out when the learner should work it out
+(the kit's own text on what the part is stays one tap away).
