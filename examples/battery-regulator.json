@@ -31,9 +31,9 @@
       "type": "regulator",
       "part": "7805",
       "pins": {
-        "IN": "c14",
-        "GND": "c15",
-        "OUT": "c16"
+        "IN": "h14",
+        "GND": "h15",
+        "OUT": "h16"
       }
     },
     {
@@ -42,7 +42,7 @@
       "color": "red",
       "pins": [
         "B+13",
-        "e14"
+        "f14"
       ]
     },
     {
@@ -51,7 +51,7 @@
       "color": "black",
       "pins": [
         "B-15",
-        "e15"
+        "f15"
       ]
     },
     {
@@ -59,7 +59,7 @@
       "type": "wire",
       "color": "yellow",
       "pins": [
-        "a16",
+        "j16",
         "T+17"
       ]
     },
@@ -96,7 +96,7 @@
       "color": "red",
       "pins": [
         "T+31",
-        "a30"
+        "j30"
       ]
     },
     {
@@ -104,8 +104,8 @@
       "type": "resistor",
       "value": "330",
       "pins": [
-        "c30",
-        "c34"
+        "h30",
+        "h34"
       ]
     },
     {
@@ -113,7 +113,7 @@
       "type": "led",
       "color": "green",
       "pins": {
-        "anode": "a34",
+        "anode": "j34",
         "cathode": "T-34"
       }
     }

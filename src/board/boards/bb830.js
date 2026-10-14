@@ -2,8 +2,12 @@
 // power rails of 50 holes (200). Rails run the whole length (not split in the middle).
 //
 // Row positions are given in pitches from the top edge of the picture (the back of the
-// board): 0 is the outer top rail, 17 the outer bottom rail. Check the rail order and
-// colours against your own board and edit them here; nothing else depends on them.
+// board): 0 is the outer top rail, 17 the outer bottom rail. As on the maintainer's board:
+// held upright with column 1 at the top, it reads + − a…e | f…j + − from left to right; lying
+// with column 1 on the left, that puts j at the back and a at the front:
+//   back  − + j i h g f | e d c b a − +  front
+// T rails are the back pair (next to j), B rails the front pair (next to a). If your board
+// differs, edit the rows and rails here; nothing else depends on them.
 
 export default {
   id: 'bb830',
@@ -12,16 +16,16 @@ export default {
   size: { length: 165.1, width: 54.6, height: 8.5 },
   columns: 63,
   rows: [
-    { id: 'a', y: 3 },
-    { id: 'b', y: 4 },
-    { id: 'c', y: 5 },
-    { id: 'd', y: 6 },
-    { id: 'e', y: 7 },
-    { id: 'f', y: 10 },
-    { id: 'g', y: 11 },
-    { id: 'h', y: 12 },
-    { id: 'i', y: 13 },
-    { id: 'j', y: 14 },
+    { id: 'j', y: 3 },
+    { id: 'i', y: 4 },
+    { id: 'h', y: 5 },
+    { id: 'g', y: 6 },
+    { id: 'f', y: 7 },
+    { id: 'e', y: 10 },
+    { id: 'd', y: 11 },
+    { id: 'c', y: 12 },
+    { id: 'b', y: 13 },
+    { id: 'a', y: 14 },
   ],
   // Each column is split in two strips of five connected holes, across the centre channel.
   strips: [
@@ -32,8 +36,8 @@ export default {
   rails: [
     { id: 'T-', y: 0, polarity: '-', line: -1 },
     { id: 'T+', y: 1, polarity: '+', line: 1 },
-    { id: 'B+', y: 16, polarity: '+', line: -1 },
-    { id: 'B-', y: 17, polarity: '-', line: 1 },
+    { id: 'B-', y: 16, polarity: '-', line: -1 },
+    { id: 'B+', y: 17, polarity: '+', line: 1 },
   ],
   // Rail holes come in groups of five with one empty position between groups, aligned
   // with the main grid. `split` is the last column of the left half when the rails are

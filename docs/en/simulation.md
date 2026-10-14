@@ -67,7 +67,7 @@ wins over both. `switch: "off"` disconnects it.
 | `kind` | `bench` or `battery` | `bench` |
 | `voltage` | volts | required, unless a battery gives `format` or `chemistry` |
 | `format`, `chemistry`, `cells`, `charge`, `capacity` | a battery described like a battery part | — |
-| `positive`, `negative` | hole (`"T+9"`) or group (`"T+"`, `"12:a-e"`) of each lead | `T+`, `T-` |
+| `positive`, `negative` | hole (`"T+9"`) or group (`"T+"`, `"12:f-j"`) of each lead | `T+`, `T-` |
 | `currentLimit` | bench supply limit, A: above it the supply holds the current (constant current, CC) and its voltage falls | none |
 | `internalResistance` | Ω | bench 0; battery by format, or 0.25 Ω per 1.5 V cell with only a voltage |
 
@@ -93,7 +93,7 @@ Set them with an operation like any circuit field:
 
 ```js
 { analysis: 'dc', model: true, ok: true, ground: 'T-',
-  nodes:    { 'T+': 5, '9:a-e': 1.76, … },               // volts; null = floating
+  nodes:    { 'T+': 5, '9:f-j': 1.76, … },               // volts; null = floating
   supplies: { V1: { voltage, current, power, mode: 'CV' | 'CC' } },
   parts:    { R1: { voltage, current, power, pins: { '1': 5, '2': 1.76 } },
               D1: { …, brightness: 0.49 },                // LED: current / 20 mA

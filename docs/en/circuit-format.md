@@ -30,13 +30,17 @@
 ## Holes
 
 - Main grid: row letter and column, `a1` … `j63` (`a1` … `j30` on `bb400`).
-- Rails: `T-`, `T+` (top), `B+`, `B-` (bottom) followed by the column the hole lines up
-  with: `T+9`, `B-24`. On `bb830` rail holes exist at columns 3–7, 9–13, 15–19, 21–25,
+- Rails: `T-`, `T+` (top: the back pair, next to row j), `B-`, `B+` (bottom: the front pair,
+  next to row a), followed by the column the hole lines up with: `T+9`, `B-24`. On `bb830` rail holes exist at columns 3–7, 9–13, 15–19, 21–25,
   27–31, 33–37, 39–43, 45–49, 51–55, 57–61.
 - Upper or lower case both work.
 
 Connected groups: rows a–e of one column; rows f–j of one column; each rail along the
 whole board.
+
+Layout of `bb830`, from the back of the drawing to the front: `− +` (T rails), rows `j…f`, the
+channel, rows `e…a`, `− +` (B rails), with column 1 on the left. Held upright with column 1
+at the top, it reads `+ − a…j + −` from left to right, as on the maintainer's board.
 
 ## Parts
 
@@ -159,11 +163,11 @@ LM741), NE5532, LM386, 74HC595, CD4017, ULN2003, ULN2803, PC817 (4 pins). Place 
 **`pin1`** instead of listing every hole:
 
 ```json
-{ "id": "U1", "type": "ic", "part": "NE555", "pin1": "f28" }
+{ "id": "U1", "type": "ic", "part": "NE555", "pin1": "e28" }
 ```
 
-Pin 1 in the front row next to the channel (`f`) reads from the front, notch on the left;
-pin 1 in the back row (`e`) turns the chip round. Pin names come from the part (`GND`,
+Pin 1 in the front row next to the channel (`e`) reads from the front, notch on the left;
+pin 1 in the back row (`f`) turns the chip round. Pin names come from the part (`GND`,
 `TRIG`, `OUT`… for the 555), so other parts can be checked against them.
 
 ### regulator

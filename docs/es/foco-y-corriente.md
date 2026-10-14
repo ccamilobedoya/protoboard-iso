@@ -9,7 +9,10 @@ Dos formas de señalar lo importante de un dibujo, hechas con las mismas piezas
 
 Un velo blanco cubre todo; los componentes en foco y las **tiras metálicas bajo sus patas** se
 dibujan otra vez encima. Se ven aunque otro componente los tape (como una radiografía), y las
-tiras muestran con qué está unida de verdad cada pata dentro de la protoboard.
+tiras muestran con qué está unida de verdad cada pata dentro de la protoboard. Los **números de
+columna y las letras de fila** de sus patas se resaltan donde la protoboard los imprime
+(etiquetas oscuras arriba y abajo de la rejilla, y en los dos extremos de cada fila), así se leen
+los agujeros y se encuentran en la protoboard real; los agujeros de riel solo tienen columna.
 
 ```bash
 node bin/protoboard-iso.js render <objetivo> --focus Q1 --fit parts     # imagen estática, por ejemplo para una lección
@@ -23,7 +26,7 @@ página con esos componentes en foco (los que explica la lección).
 - **Toca o haz clic en un componente** (o en su etiqueta): lo demás se atenúa, el componente y
   sus tiras pasan al frente y se abre una **ficha**: nombre y valor, el tipo de componente (al
   tocarlo explica qué es ese tipo de componente y cómo funciona, desde el kit), qué hace **en este
-  circuito** (su `description`, a la vista), y adónde va cada pata y qué más hay ahí («B → h17, columna 17 (filas f–j) —
+  circuito** (su `description`, a la vista), y adónde va cada pata y qué más hay ahí («B → c17, columna 17 (filas a–e) —
   con R1 (2)»).
 - **Ver a través** (en la ficha) vuelve transparente el componente, para ver qué hay detrás.
 - **Toca la protoboard** (o *Cerrar*) para quitar el foco.
@@ -54,7 +57,7 @@ Dos clases de texto, a propósito:
   avisa si falta alguno):
 
 ```json
-{ "id": "Q1", "type": "bjt", "part": "2N2222A", "pins": { "E": "h16", "B": "h17", "C": "h18" },
+{ "id": "Q1", "type": "bjt", "part": "2N2222A", "pins": { "E": "c16", "B": "c17", "C": "c18" },
   "description": { "en": "NPN transistor: the small base current controls the large collector current.",
                    "es": "Transistor NPN: la corriente pequeña de la base controla la grande del colector." } }
 ```

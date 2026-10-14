@@ -46,7 +46,7 @@ Objetivo: entra un JSON y sale un dibujo isométrico fiel, con la colocación re
 - ✅ Electrolítico: signos «−» en la franja
 - ✅ Electrolítico: valor impreso a lo largo de la funda, una copia por vista
 - ✅ Modos de etiqueta: `labels: 'both' | 'id' | 'value' | false` (`--labels`, `render` del MCP)
-- ⬜ Comparar el orden y los colores de los rieles con la protoboard real (`bb830.js`)
+- ✅ `bb830` igual a la protoboard real: de atrás hacia adelante − + j…f | e…a − + (de pie, columna 1 arriba: + − a…j + −); las filas junto al canal se buscan por posición
 - ✅ Potenciómetro (de pie, perilla al frente, marca del cursor), pulsador de 6×6 a caballo del canal (pares internos, `SWITCH_BYPASSED`), chips DIP colocados con `pin1` (NE555, LM358, 74HC595, CD4017); `suggest` los coloca; ejemplo `controls-and-ics.json`
 - ✅ Más encapsulados: trimmer multivuelta (3296W), pines de cabecera, zumbador pasivo, gota del NTC, fotorresistencia, baterías al lado de la protoboard (portapilas AA/AAA/18650, batería de 9 V con su broche, LiPo plana), DIP-14 y otros chips (LM324, LM393, UA741, NE5532, LM386, ULN2003, ULN2803, PC817)
 - ⬜ Pintor: ordenar mejor los cables frente a componentes altos (partir arcos largos, sesgo de profundidad)
@@ -115,8 +115,10 @@ calma en todo lo demás, para que los componentes resalten.
 - ⬜ Sistema de temas: cada color sale de una paleta con nombre (`theme: 'realistic' | 'study' | …`), ningún color fijo dentro de los encapsulados
 - ⬜ Tema `study`: una protoboard menos realista y más estética (plana, de tono apagado, agujeros e impresión más suaves, bordes discretos) para que resalten los componentes y los cables
 - ⬜ Revisar las paletas de componentes (cables, LED, bandas) por contraste y para personas con daltonismo; las bandas siguen fieles a IEC 60062
-- ✅ Modo resaltado: atenuar todo menos los componentes que se están explicando y las tiras bajo sus patas, dibujados encima aunque algo los tape (`--focus`, `page.focus`, tocar en la página; [foco-y-corriente.md](foco-y-corriente.md))
+- ✅ Modo resaltado: atenuar todo menos los componentes que se están explicando y las tiras bajo sus patas, dibujados encima aunque algo los tape, con los números de columna y las letras de fila de sus patas resaltados (`--focus`, `page.focus`, tocar en la página; [foco-y-corriente.md](foco-y-corriente.md))
+- ✅ Página en el celular: la barra de botones es una sola fila que se desliza de lado
 - ✅ Ver a través: volver transparente un componente para ver qué hay detrás (ficha de la página)
+- ⬜ **Qué tapa a qué, planeado en conjunto** (para hacerlo bien más adelante, no a parches caso por caso): en una página con foco, las etiquetas de la simulación (voltajes, corrientes, el sello MODELO) pueden tapar los números de columna resaltados, las posiciones de los agujeros y las patas de las que hablan. Decidir una prioridad entre capas (copia del componente, tiras, etiquetas de coordenadas, de resultados, rótulos, puntas de prueba), ubicar cada etiqueta al lado de lo que taparía (evitando choques, como ya se evitan los rótulos entre sí) y revisarlo con `inspect` como el resto del dibujo
 - ⬜ Tema oscuro para pantallas
 
 ## Etapa 3 — Animación en el navegador ⬜

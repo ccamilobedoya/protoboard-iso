@@ -17,7 +17,8 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
   `front-left` ↔ `back-right`), close-up or whole board, labels on or off; drag to move
   (mouse or one finger), wheel or pinch to zoom, double-click to zoom in (the buttons reset
   the frame). Inside the drawing, one finger moves the drawing, not the host page. Without
-  JavaScript it still shows the first view, close-up, with labels.
+  JavaScript it still shows the first view, close-up, with labels. On a narrow screen (a
+  phone) the buttons sit in one row that scrolls sideways, leaving the room to the drawing.
 - **Simulation results**, only if the circuit has `"page": { "results": true }` (and
   `supplies`): always on, shown only for the part that is tapped, so the board never fills with
   numbers; leave it off while someone is asked to predict them ([simulation.md](simulation.md)).

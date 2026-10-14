@@ -6,8 +6,8 @@
   "supplies": [{ "id": "V1", "voltage": 5, "currentLimit": 0.1 }],
   "page": { "results": true },
   "parts": [
-    { "id": "R1", "type": "resistor", "value": "330", "pins": ["T+9", "c9"] },
-    { "id": "D1", "type": "led", "color": "red", "pins": { "anode": "e9", "cathode": "e10" } },
-    { "id": "W1", "type": "wire", "color": "black", "pins": ["a10", "T-10"] }
+    { "id": "R1", "type": "resistor", "value": "330", "pins": ["T+9", "h9"] },
+    { "id": "D1", "type": "led", "color": "red", "pins": { "anode": "f9", "cathode": "f10" } },
+    { "id": "W1", "type": "wire", "color": "black", "pins": ["j10", "T-10"] }
   ]
 }

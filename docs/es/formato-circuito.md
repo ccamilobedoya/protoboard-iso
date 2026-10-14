@@ -33,13 +33,18 @@ Las claves van en inglés para que el formato sea el mismo en todos los idiomas.
 
 - Rejilla principal: letra de la fila y número de la columna, `a1` … `j63` (`a1` … `j30`
   en `bb400`).
-- Rieles: `T-`, `T+` (arriba), `B+`, `B-` (abajo), seguidos de la columna con la que se
-  alinea el agujero: `T+9`, `B-24`. En `bb830` hay agujeros de riel en las columnas 3–7,
+- Rieles: `T-`, `T+` (arriba: el par de atrás, junto a la fila j), `B-`, `B+` (abajo: el par
+  de adelante, junto a la fila a), seguidos de la columna con la que se alinea el agujero:
+  `T+9`, `B-24`. En `bb830` hay agujeros de riel en las columnas 3–7,
   9–13, 15–19, 21–25, 27–31, 33–37, 39–43, 45–49, 51–55 y 57–61.
 - Da igual mayúsculas o minúsculas.
 
 Grupos conectados: las filas a–e de una columna; las filas f–j de una columna; cada riel
 a lo largo de toda la protoboard.
+
+Disposición de `bb830`, del fondo del dibujo hacia el frente: `− +` (rieles T), filas `j…f`, el
+canal, filas `e…a`, `− +` (rieles B), con la columna 1 a la izquierda. De pie, con la columna 1
+arriba, se lee `+ − a…j + −` de izquierda a derecha, como la protoboard de quien mantiene el kit.
 
 ## Componentes
 
@@ -169,11 +174,11 @@ LM741), NE5532, LM386, 74HC595, CD4017, ULN2003, ULN2803, PC817 (4 patas). Se co
 **`pin1`** en vez de listar todos los agujeros:
 
 ```json
-{ "id": "U1", "type": "ic", "part": "NE555", "pin1": "f28" }
+{ "id": "U1", "type": "ic", "part": "NE555", "pin1": "e28" }
 ```
 
-Con la pata 1 en la fila delantera junto al canal (`f`) se lee desde el frente, con la muesca
-a la izquierda; con la pata 1 en la fila de atrás (`e`) el chip queda girado. Los nombres de
+Con la pata 1 en la fila delantera junto al canal (`e`) se lee desde el frente, con la muesca
+a la izquierda; con la pata 1 en la fila de atrás (`f`) el chip queda girado. Los nombres de
 las patas salen de la referencia (`GND`, `TRIG`, `OUT`… en el 555), así se puede revisar con
 qué se conecta cada una.
 

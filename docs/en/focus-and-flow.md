@@ -9,7 +9,10 @@ Two ways to point at what matters in a drawing, built from the same pieces
 
 Everything is covered by a white veil; the parts in focus, and the **metal strips under their
 leads**, are drawn again on top. They show even where another part covers them (like an
-X-ray), and the strips show what each lead is really joined to inside the board.
+X-ray), and the strips show what each lead is really joined to inside the board. The
+**column numbers and row letters** of its leads light up where the board prints them (dark
+tags above and below the grid, and at both ends of each row), so the holes can be read off
+and found on a real board; rail holes only have their column.
 
 ```bash
 node bin/protoboard-iso.js render <target> --focus Q1 --fit parts     # static image, e.g. for a lesson
@@ -23,7 +26,7 @@ page with those parts in focus (the ones a lesson is about).
 - **Tap or click a part** (or its label): the rest dims, the part and its strips come to the
   front, and a **card** opens: name and value, the kind of part (tap it to read what that kind
   of part is and how it works, from the kit), what it does **in this circuit** (its
-  `description`, shown directly), and where each pin goes and what else is there ("B → h17, column 17 (rows f–j) — with R1 (2)").
+  `description`, shown directly), and where each pin goes and what else is there ("B → c17, column 17 (rows a–e) — with R1 (2)").
 - **See through** (in the card) makes the part transparent, to see what is behind it.
 - **Tap the board** (or *Close*) to clear the focus.
 - With `"page": { "results": true }` the simulation is always on, with no button: the tapped
@@ -54,7 +57,7 @@ Two kinds of text, on purpose:
   reports a missing one):
 
 ```json
-{ "id": "Q1", "type": "bjt", "part": "2N2222A", "pins": { "E": "h16", "B": "h17", "C": "h18" },
+{ "id": "Q1", "type": "bjt", "part": "2N2222A", "pins": { "E": "c16", "B": "c17", "C": "c18" },
   "description": { "en": "NPN transistor: the small base current controls the large collector current.",
                    "es": "Transistor NPN: la corriente pequeña de la base controla la grande del colector." } }
 ```

@@ -14,7 +14,7 @@ It builds the same scene that `render` would draw and reports:
 
 | For every part | Meaning |
 |---|---|
-| pins | each lead: hole (`c9`), connected group (`9:a-e`), board position in mm, screen position in px |
+| pins | each lead: hole (`h9`), connected group (`9:f-j`), board position in mm, screen position in px |
 | box | screen rectangle the part occupies, in px |
 | visible | share of the part that is not covered by other parts, and who covers the rest |
 | label | the callout text, its row and position |

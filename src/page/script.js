@@ -2,7 +2,7 @@
 // no dependencies: it must run inside an iframe or a wiki "web view" as it is.
 //
 // What it reads: the inline SVGs (one per view; data-board / data-parts hold the two frames),
-// and #page-data, a JSON with per part { title, type, value, here, nodes, pins, sim }, the
+// and #page-data, a JSON with per part { title, type, value, here, nodes, cols, rows, pins, sim }, the
 // explanations (explain), the probe captions (probes), the initial focus and UI texts.
 //
 // State: view, fit, labels, results (on when the circuit asks), layer (parts | flow),
@@ -78,7 +78,11 @@ function applyFocus() {
   }
   // Strips under the focused parts; with the results on, their currents and the voltages
   // of their groups (and nothing else: all tags at once is too much to read).
-  const shown = [...ids.map((id) => '.results > [data-part="' + quote(id) + '"]'), ...[...nodes].flatMap((n) => ['.strips > [data-node="' + quote(n) + '"]', '.results > [data-node="' + quote(n) + '"]'])];
+  // And the column numbers and row letters of their leads, where the board prints them.
+  const cols = new Set(ids.flatMap((id) => data.parts[id].cols || []));
+  const rows = new Set(ids.flatMap((id) => data.parts[id].rows || []));
+  const shown = [...ids.map((id) => '.results > [data-part="' + quote(id) + '"]'), ...[...nodes].flatMap((n) => ['.strips > [data-node="' + quote(n) + '"]', '.results > [data-node="' + quote(n) + '"]']),
+    ...[...cols].map((c) => '.coords > [data-col="' + c + '"]'), ...[...rows].map((r) => '.coords > [data-row="' + quote(r) + '"]')];
   const ghosts = [...state.ghost].map((id) => '.under > [data-part="' + quote(id) + '"], .parts > [data-part="' + quote(id) + '"], .spotlight > [data-part="' + quote(id) + '"] { opacity: 0.2; }');
   dynamic.textContent = (shown.length ? shown.join(', ') + ' { display: inline; }' : '') + ghosts.join('');
   document.body.classList.toggle('focusing', ids.length > 0);

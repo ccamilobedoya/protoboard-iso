@@ -49,7 +49,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `circuit/checks.js` | comprobaciones de colocación, idiomas de las descripciones |
 | `render/scene.js` | algoritmo del pintor, globos de las etiquetas, encuadre (`fit`) |
 | `render/svg.js` | escritor de SVG; `tagParts` agrega `data-part`; capas opcionales solo si tienen algo |
-| `render/focus.js` | velo, tiras metálicas, copias en primer plano (foco estático) |
+| `render/focus.js` | velo, tiras metálicas, etiquetas de columna y fila (`coords`), copias en primer plano (foco estático) |
 | `render/coverage.js`, `inspect.js`, `annotate.js` | medir el dibujo; capas de anotación |
 | `ops.js`, `diff.js`, `node/workspace.js` | operaciones con inversa, diferencia en seco, historial, deshacer, salidas |
 | `query.js`, `query-format.js`, `review.js` | preguntas, colocaciones, veredicto a partir de mediciones |
@@ -94,11 +94,15 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 - **Fuentes**: la primera de `supplies` fija la tierra; sin `supplies`, la primera batería. El
   código que necesita saber «dónde está la fuente» (la punta de tierra, la corriente) debe
   atender los dos casos.
-- **Las capas** se escriben siempre en el orden de `addLayers`. Una página las muestra u oculta
-  solo con CSS; lo interactivo nuevo debe seguir la misma idea (marca en el SVG, regla en el CSS).
+- **Las capas** se escriben siempre en el orden de `addLayers`: veil, strips, coords, spotlight, flow,
+  results, probes. Una página las muestra u oculta solo con CSS; lo interactivo nuevo debe seguir
+  la misma idea (marca en el SVG, regla en el CSS). Las etiquetas de coordenadas van debajo de la
+  copia en primer plano para no tapar el componente que se explica, pero las de resultados todavía
+  pueden taparlas: límite conocido, pendiente de una pasada planeada sobre qué tapa a qué (ver la
+  hoja de ruta, estilo visual).
 - **Atributos `data-*`**: `data-part` (id del componente), `data-node` (grupo), `data-q` (magnitud de
   una etiqueta de resultados, que es también su clave de explicación), `data-probe` (`node:<grupo>` o
-  `part:<id>`), `data-flow`.
+  `part:<id>`), `data-flow`, `data-col` / `data-row` (etiquetas de coordenadas).
 - **Los resultados son un modelo** y pueden adelantar una predicción: se dibujan solo si se piden
   (`sim`, `flow`), y en una página solo si el circuito lo pide (`page.results`, `page.flow`) y solo
   para el componente tocado.

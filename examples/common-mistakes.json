@@ -11,8 +11,8 @@
       "type": "resistor",
       "value": "1k",
       "pins": [
-        "a5",
-        "e5"
+        "j5",
+        "f5"
       ]
     },
     {
@@ -20,8 +20,8 @@
       "type": "resistor",
       "value": "1k",
       "pins": [
-        "c10",
-        "c12"
+        "h10",
+        "h12"
       ]
     },
     {
@@ -29,8 +29,8 @@
       "type": "led",
       "color": "green",
       "pins": [
-        "c12",
-        "c13"
+        "h12",
+        "h13"
       ]
     },
     {
@@ -38,19 +38,19 @@
       "type": "mosfet",
       "part": "IRLZ44N",
       "pins": [
-        "c20",
-        "d20",
-        "e20"
+        "h20",
+        "g20",
+        "f20"
       ]
     },
     {
       "id": "S1",
       "type": "button",
       "pins": [
-        "a30",
-        "a33",
-        "c30",
-        "c33"
+        "j30",
+        "j33",
+        "h30",
+        "h33"
       ]
     }
   ]

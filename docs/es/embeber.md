@@ -19,7 +19,9 @@ node bin/protoboard-iso.js page <objetivo> [--lang es] [--fit parts|board] [-o p
   `back-right`), de cerca o toda la protoboard, con o sin etiquetas; arrastrar para moverse
   (mouse o un dedo), rueda o pellizco para acercar, doble clic para acercar (los botones
   vuelven al encuadre). Sobre el dibujo, un dedo mueve el dibujo y no la página que lo
-  contiene. Sin JavaScript sigue mostrando la primera vista, de cerca y con etiquetas.
+  contiene. Sin JavaScript sigue mostrando la primera vista, de cerca y con etiquetas. En una
+  pantalla angosta (celular) los botones van en una sola fila que se desliza de lado, para
+  dejarle el espacio al dibujo.
 - **Resultados de la simulación**, solo si el circuito tiene `"page": { "results": true }` (y
   `supplies`): siempre activos, solo para el componente que se toca, así la protoboard nunca se
   llena de números; no se activan mientras alguien deba predecirlos, así una página nunca adelanta un valor que alguien debe predecir ([simulacion.md](simulacion.md)).

@@ -40,11 +40,11 @@ test('the page follows the circuit view and the fit option', () => {
 
 test('every saved change rewrites the page under the same name', () => {
   const target = join(mkdtempSync(join(tmpdir(), 'pbi-page-')), 'led');
-  const created = createTarget(target, { title: 'LED', parts: [{ id: 'R1', type: 'resistor', value: '330', pins: ['a10', 'a14'] }] });
+  const created = createTarget(target, { title: 'LED', parts: [{ id: 'R1', type: 'resistor', value: '330', pins: ['j10', 'j14'] }] });
   const page = pageFileOf(resolveTarget(target));
   assert.equal(created.files.pageFile, page);
   assert.match(readFileSync(page, 'utf8'), /<meta name="revision" content="0">/);
-  applyToTarget(target, [{ op: 'move', part: 'R1', pins: ['b10', 'b14'] }], { author: 'test' });
+  applyToTarget(target, [{ op: 'move', part: 'R1', pins: ['i10', 'i14'] }], { author: 'test' });
   assert.ok(existsSync(page));
   assert.match(readFileSync(page, 'utf8'), /<meta name="revision" content="1">/);
 });
@@ -120,22 +120,30 @@ test('dragging pans, pinching zooms, and the frame stays on the board', async (t
 
 test('language: the one asked for, else the circuit\'s own "lang", else the default', () => {
   const target = join(mkdtempSync(join(tmpdir(), 'pbi-lang-')), 'led');
-  const parts = [{ id: 'R1', type: 'resistor', value: '330', pins: ['a10', 'a14'] }];
+  const parts = [{ id: 'R1', type: 'resistor', value: '330', pins: ['j10', 'j14'] }];
   createTarget(target, { lang: 'es', parts }, { lang: 'en' });
   const page = () => readFileSync(pageFileOf(resolveTarget(target)), 'utf8');
   assert.match(page(), /<html lang="es">/, 'the circuit says es: the page is in Spanish even for an English caller');
-  applyToTarget(target, [{ op: 'move', part: 'R1', pins: ['b10', 'b14'] }], { lang: 'en' });
+  applyToTarget(target, [{ op: 'move', part: 'R1', pins: ['i10', 'i14'] }], { lang: 'en' });
   assert.match(page(), /<html lang="es">/);
-  applyToTarget(target, [{ op: 'move', part: 'R1', pins: ['c10', 'c14'] }], { lang: 'en', outputLang: 'en' });
+  applyToTarget(target, [{ op: 'move', part: 'R1', pins: ['h10', 'h14'] }], { lang: 'en', outputLang: 'en' });
   assert.match(page(), /<html lang="en">/, 'asked for explicitly: English');
   applyToTarget(target, [{ op: 'circuit', lang: 'en' }], { lang: 'es' });
   assert.match(page(), /<html lang="en">/, 'changing "lang" changes the page');
 });
 
 test('a plain-string description is shown as it is, in any language', () => {
-  const circuit = { parts: [{ id: 'R1', type: 'resistor', value: '330', pins: ['a10', 'a14'], description: 'Limita la corriente del LED.' }] };
+  const circuit = { parts: [{ id: 'R1', type: 'resistor', value: '330', pins: ['j10', 'j14'], description: 'Limita la corriente del LED.' }] };
   for (const lang of ['en', 'es']) assert.match(renderPage(circuit, { lang }).html, /Limita la corriente del LED\./);
   const both = { parts: [{ ...circuit.parts[0], description: { en: 'Limits the LED current.', es: 'Limita la corriente del LED.' } }] };
   assert.match(renderPage(both, { lang: 'en' }).html, /Limits the LED current\./);
   assert.doesNotMatch(renderPage(both, { lang: 'en' }).html, /Limita/);
+});
+
+test('on a narrow screen the button bar is one row that scrolls sideways', () => {
+  const { html } = renderPage(example('led-resistor.json'));
+  const narrow = html.match(/@media \(max-width: 760px\) \{([\s\S]*?)\n\}/)?.[1] ?? '';
+  assert.match(narrow, /nav \{[^}]*flex-wrap: nowrap;[^}]*overflow-x: auto;/);
+  assert.match(narrow, /touch-action: pan-x/, 'the bar scrolls with a finger even though the drawing takes the gestures');
+  assert.match(narrow, /nav > \* \{ flex: none; white-space: nowrap; \}/);
 });

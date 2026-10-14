@@ -5,25 +5,25 @@
   "clearance": 3,
   "netLabels": { "T+": "+5 V", "T-": "GND" },
   "parts": [
-    { "id": "R1", "type": "resistor", "value": "4k7", "tolerance": "5%", "pins": ["c2", "c6"] },
-    { "id": "R2", "type": "resistor", "value": "330", "tolerance": "1%", "pins": ["c9", "c13"] },
-    { "id": "R3", "type": "resistor", "value": "1M", "power": "1/2", "pins": ["c16", "c21"] },
-    { "id": "D1", "type": "diode", "part": "1N4007", "pins": ["h2", "h6"] },
-    { "id": "D2", "type": "diode", "part": "1N4148", "pins": ["h9", "h13"] },
+    { "id": "R1", "type": "resistor", "value": "4k7", "tolerance": "5%", "pins": ["h2", "h6"] },
+    { "id": "R2", "type": "resistor", "value": "330", "tolerance": "1%", "pins": ["h9", "h13"] },
+    { "id": "R3", "type": "resistor", "value": "1M", "power": "1/2", "pins": ["h16", "h21"] },
+    { "id": "D1", "type": "diode", "part": "1N4007", "pins": ["c2", "c6"] },
+    { "id": "D2", "type": "diode", "part": "1N4148", "pins": ["c9", "c13"] },
 
-    { "id": "D3", "type": "led", "color": "red", "pins": ["c25", "c26"] },
-    { "id": "D4", "type": "led", "color": "green", "pins": ["c29", "c30"] },
-    { "id": "D5", "type": "led", "color": "blue", "size": 3, "pins": ["c33", "c34"] },
-    { "id": "C1", "type": "capacitor", "value": "100n", "pins": ["h17", "h18"] },
-    { "id": "C2", "type": "capacitor", "value": "100u", "voltage": 25, "pins": { "+": "h22", "-": "h23" } },
-    { "id": "C3", "type": "capacitor", "value": "1000u", "voltage": 16, "pins": { "+": "h27", "-": "h29" } },
+    { "id": "D3", "type": "led", "color": "red", "pins": ["h25", "h26"] },
+    { "id": "D4", "type": "led", "color": "green", "pins": ["h29", "h30"] },
+    { "id": "D5", "type": "led", "color": "blue", "size": 3, "pins": ["h33", "h34"] },
+    { "id": "C1", "type": "capacitor", "value": "100n", "pins": ["c17", "c18"] },
+    { "id": "C2", "type": "capacitor", "value": "100u", "voltage": 25, "pins": { "+": "c22", "-": "c23" } },
+    { "id": "C3", "type": "capacitor", "value": "1000u", "voltage": 16, "pins": { "+": "c27", "-": "c29" } },
 
-    { "id": "Q1", "type": "mosfet", "part": "IRLZ44N", "pins": ["h36", "h37", "h38"] },
-    { "id": "Q2", "type": "bjt", "part": "2N2222A", "pins": ["h43", "h44", "h45"] },
-    { "id": "Q3", "type": "bjt", "part": "BC547", "pins": ["h48", "h49", "h50"] },
+    { "id": "Q1", "type": "mosfet", "part": "IRLZ44N", "pins": ["c36", "c37", "c38"] },
+    { "id": "Q2", "type": "bjt", "part": "2N2222A", "pins": ["c43", "c44", "c45"] },
+    { "id": "Q3", "type": "bjt", "part": "BC547", "pins": ["c48", "c49", "c50"] },
 
-    { "id": "W1", "type": "wire", "color": "red", "pins": ["T+40", "a40"] },
-    { "id": "W2", "type": "wire", "color": "black", "style": "flat", "pins": ["j55", "B-55"] },
-    { "id": "W3", "type": "wire", "color": "yellow", "pins": ["c45", "c58"] }
+    { "id": "W1", "type": "wire", "color": "red", "pins": ["T+40", "j40"] },
+    { "id": "W2", "type": "wire", "color": "black", "style": "flat", "pins": ["a55", "B-55"] },
+    { "id": "W3", "type": "wire", "color": "yellow", "pins": ["h45", "h58"] }
   ]
 }

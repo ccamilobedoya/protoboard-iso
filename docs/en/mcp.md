@@ -75,7 +75,7 @@ rewrite circuit files directly; PNG only when style matters.
 ```
 list_circuits                       → circuits/led · rev 0 · 3 parts
 inspect   {target: "circuits/led"}  → … De R1 se ve el 81 %; W1 tapa el 15 %.
-suggest   {target, part: {type: "resistor", value: "1k"}, between: ["10:a-e", "T-"]}
+suggest   {target, part: {type: "resistor", value: "1k"}, between: ["10:f-j", "T-"]}
 apply_ops {target, ops: <from suggest>, dry_run: true}         → what it fixes / introduces
 apply_ops {target, ops, expect_revision: 0, author: "claude", note: "pull-down"} → rev 1
 ```

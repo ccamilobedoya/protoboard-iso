@@ -26,10 +26,10 @@
       "type": "bridge",
       "part": "KBP307",
       "pins": {
-        "+": "e10",
-        "AC1": "e11",
-        "AC2": "e13",
-        "-": "e14"
+        "+": "f10",
+        "AC1": "f11",
+        "AC2": "f13",
+        "-": "f14"
       }
     },
     {
@@ -37,7 +37,7 @@
       "type": "wire",
       "color": "yellow",
       "pins": [
-        "a11",
+        "j11",
         "T+11"
       ]
     },
@@ -46,7 +46,7 @@
       "type": "wire",
       "color": "yellow",
       "pins": [
-        "a13",
+        "j13",
         "T-13"
       ]
     },
@@ -55,7 +55,7 @@
       "type": "wire",
       "color": "red",
       "pins": [
-        "d10",
+        "g10",
         "B+7"
       ]
     },
@@ -64,8 +64,8 @@
       "type": "wire",
       "color": "black",
       "pins": [
-        "d14",
-        "B-17"
+        "i14",
+        "B-19"
       ]
     },
     {
@@ -84,8 +84,8 @@
       "value": "47",
       "power": "5",
       "pins": [
-        "g27",
-        "g37"
+        "d27",
+        "d37"
       ]
     },
     {
@@ -93,7 +93,7 @@
       "type": "wire",
       "color": "red",
       "pins": [
-        "j27",
+        "a27",
         "B+28"
       ]
     },
@@ -102,7 +102,7 @@
       "type": "wire",
       "color": "black",
       "pins": [
-        "j37",
+        "a37",
         "B-36"
       ]
     },
@@ -112,7 +112,7 @@
       "value": "1k",
       "pins": [
         "B+40",
-        "j45"
+        "a45"
       ]
     },
     {
@@ -120,8 +120,8 @@
       "type": "led",
       "color": "green",
       "pins": {
-        "anode": "g45",
-        "cathode": "g46"
+        "anode": "d45",
+        "cathode": "d46"
       }
     },
     {
@@ -129,7 +129,7 @@
       "type": "wire",
       "color": "black",
       "pins": [
-        "j46",
+        "a46",
         "B-48"
       ]
     }

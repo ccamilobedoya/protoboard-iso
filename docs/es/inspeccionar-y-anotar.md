@@ -14,7 +14,7 @@ Arma la misma escena que dibujaría `render` e informa:
 
 | Para cada componente | Qué es |
 |---|---|
-| patas | cada pata: agujero (`c9`), grupo conectado (`9:a-e`), posición en la protoboard en mm y en pantalla en px |
+| patas | cada pata: agujero (`h9`), grupo conectado (`9:f-j`), posición en la protoboard en mm y en pantalla en px |
 | caja | el rectángulo de pantalla que ocupa el componente, en px |
 | visible | qué parte del componente no tapan los demás, y quién tapa el resto |
 | etiqueta | el texto del globo, su fila y su posición |

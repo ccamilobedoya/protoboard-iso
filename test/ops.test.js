@@ -13,16 +13,16 @@ const codes = (list) => list.map((i) => i.code);
 test('every operation applies, and its inverse restores the circuit exactly', () => {
   const original = example('led-resistor.json');
   const batches = [
-    [{ op: 'add', part: { id: 'C1', type: 'capacitor', value: '100n', pins: ['d12', 'd13'] } }],
+    [{ op: 'add', part: { id: 'C1', type: 'capacitor', value: '100n', pins: ['g12', 'g13'] } }],
     [{ op: 'remove', part: 'D1' }],
-    [{ op: 'move', part: 'W1', pins: ['a11', 'T-11'] }],
+    [{ op: 'move', part: 'W1', pins: ['j11', 'T-11'] }],
     [{ op: 'set', part: 'R1', value: '220', tolerance: '1%' }],
     [{ op: 'rename', part: 'R1', to: 'R10' }],
     [{ op: 'circuit', clearance: 3, netLabels: null }],
     [
       { op: 'rename', part: 'D1', to: 'LED1' },
       { op: 'set', part: 'LED1', color: 'green' },
-      { op: 'move', part: 'LED1', pins: ['e9', 'e11'] },
+      { op: 'move', part: 'LED1', pins: ['f9', 'f11'] },
     ],
   ];
   for (const ops of batches) {
@@ -37,7 +37,7 @@ test('a batch is atomic: one bad operation and nothing changes', () => {
   const original = example('led-resistor.json');
   const { circuit, errors } = applyOps(original, [
     { op: 'set', part: 'R1', value: '220' },
-    { op: 'move', part: 'R9', pins: ['a1', 'a5'] },
+    { op: 'move', part: 'R9', pins: ['j1', 'j5'] },
   ]);
   assert.deepEqual(codes(errors), ['OP_UNKNOWN_PART']);
   assert.equal(circuit, original);
@@ -46,15 +46,15 @@ test('a batch is atomic: one bad operation and nothing changes', () => {
 test('operations are validated', () => {
   const c = example('led-resistor.json');
   assert.deepEqual(codes(applyOps(c, [{ op: 'explode' }]).errors), ['OP_UNKNOWN']);
-  assert.deepEqual(codes(applyOps(c, [{ op: 'add', part: { id: 'R1', type: 'resistor', pins: ['a1', 'a5'] } }]).errors), ['OP_DUPLICATE_ID']);
-  assert.deepEqual(codes(applyOps(c, [{ op: 'set', part: 'R1', pins: ['a1', 'a5'] }]).errors), ['OP_BAD']);
+  assert.deepEqual(codes(applyOps(c, [{ op: 'add', part: { id: 'R1', type: 'resistor', pins: ['j1', 'j5'] } }]).errors), ['OP_DUPLICATE_ID']);
+  assert.deepEqual(codes(applyOps(c, [{ op: 'set', part: 'R1', pins: ['j1', 'j5'] }]).errors), ['OP_BAD']);
   assert.deepEqual(codes(applyOps(c, [{ op: 'circuit', parts: [] }]).errors), ['OP_BAD']);
   assert.deepEqual(codes(applyOps(c, []).errors), ['OP_BAD']);
 });
 
 test('the diff says what a change fixes and what it breaks', () => {
   const before = example('led-resistor.json');
-  const { circuit: after } = applyOps(before, [{ op: 'move', part: 'W1', pins: ['a11', 'T-11'] }]);
+  const { circuit: after } = applyOps(before, [{ op: 'move', part: 'W1', pins: ['j11', 'T-11'] }]);
   const diff = diffEvaluations(evaluate(before), evaluate(after));
   assert.ok(codes(diff.fixed).includes('PART_HIDDEN'), 'W1 no longer covers R1');
   assert.ok(codes(diff.introduced).includes('FLOATING_PIN'), 'but the LED cathode is now disconnected');

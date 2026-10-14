@@ -34,15 +34,15 @@ visibilidad y los problemas de etiquetas (ver [inspeccionar-y-anotar.md](inspecc
 ## Consultas: preguntar en vez de calcular
 
 ```bash
-node bin/protoboard-iso.js query <objetivo> at c12                     # quién está en el agujero, su grupo
-node bin/protoboard-iso.js query <objetivo> node 9:a-e                 # un grupo por nombre o por cualquier agujero (c9)
-node bin/protoboard-iso.js query <objetivo> free --near e10 --limit 10 [--empty]
-node bin/protoboard-iso.js suggest <objetivo> --part '{"type":"resistor","value":"1k"}' --between 10:a-e,T-
-node bin/protoboard-iso.js suggest <objetivo> --part '{"type":"mosfet","part":"IRLZ44N"}' --connect '{"D":"c20"}'
+node bin/protoboard-iso.js query <objetivo> at h12                     # quién está en el agujero, su grupo
+node bin/protoboard-iso.js query <objetivo> node 9:f-j                 # un grupo por nombre o por cualquier agujero (h9)
+node bin/protoboard-iso.js query <objetivo> free --near f10 --limit 10 [--empty]
+node bin/protoboard-iso.js suggest <objetivo> --part '{"type":"resistor","value":"1k"}' --between 10:f-j,T-
+node bin/protoboard-iso.js suggest <objetivo> --part '{"type":"mosfet","part":"IRLZ44N"}' --connect '{"D":"h20"}'
 ```
 
 - **`at`**: el grupo del agujero, quién lo ocupa, los agujeros usados y libres del grupo.
-- **`node`**: todos los agujeros de un grupo (`9:a-e`, `T+` o cualquier agujero suyo),
+- **`node`**: todos los agujeros de un grupo (`9:f-j`, `T+` o cualquier agujero suyo),
   usados y libres, y la etiqueta del riel si la tiene.
 - **`free`**: agujeros libres, primero los más cercanos a `--near` (un agujero, un grupo o un
   número de columna); `--empty` deja solo grupos que nadie usa todavía.
@@ -62,9 +62,9 @@ frontal. Cada posición trae la operación `add` lista para aplicar:
 
 ```
 Posiciones para R2 (Resistencia, axial), de mejor a peor; 12 medidas:
-  1. 1→b10, 2→T-11 · separación 10,5 mm · puntuación 5,3 · componente menos visible 81 %
+  1. 1→i10, 2→T-11 · separación 10,5 mm · puntuación 5,3 · componente menos visible 81 %
 Para usar la primera (revisa con una prueba en seco y luego aplica):
-  protoboard-iso apply <objetivo> --ops '[{"op":"add","part":{…,"pins":["b10","T-11"]}}]' --dry-run
+  protoboard-iso apply <objetivo> --ops '[{"op":"add","part":{…,"pins":["i10","T-11"]}}]' --dry-run
 ```
 
 Si nada cabe, dice por qué: `NO_PLACEMENT`, o `NO_PLACEMENT_RAIL` cuando se le pide a un
@@ -78,9 +78,9 @@ Un circuito se cambia con operaciones pequeñas en vez de reescribir el archivo.
 
 | Operación | Ejemplo | Inversa |
 |---|---|---|
-| `add` | `{ "op": "add", "part": { "id": "C1", "type": "capacitor", "value": "100n", "pins": ["d12", "d13"] } }` | `remove` |
+| `add` | `{ "op": "add", "part": { "id": "C1", "type": "capacitor", "value": "100n", "pins": ["g12", "g13"] } }` | `remove` |
 | `remove` | `{ "op": "remove", "part": "D2" }` | `add` (en la misma posición) |
-| `move` | `{ "op": "move", "part": "W1", "pins": ["a11", "T-11"] }` | `move` de vuelta |
+| `move` | `{ "op": "move", "part": "W1", "pins": ["j11", "T-11"] }` | `move` de vuelta |
 | `set` | `{ "op": "set", "part": "R1", "value": "4k7", "tolerance": null }` (`null` borra) | `set` con los valores anteriores |
 | `rename` | `{ "op": "rename", "part": "R1", "to": "R10" }` | `rename` de vuelta |
 | `circuit` | `{ "op": "circuit", "clearance": 3 }` (title, board, view, clearance, netLabels) | `circuit` con los valores anteriores |
@@ -101,7 +101,7 @@ el cambio, cuáles introduce y cómo cambia la visibilidad de cada componente. E
 ```
 Prueba en seco (no se guardó nada): la revisión 0 → 1 cambiaría:
   ✔ arregla: nota: De R1 se ve el 81 %; W1 tapa el 15 %.
-  ✖ nuevo: nota: D1: la pata cathode está en columna 10 (filas a–e), que no toca nada más.
+  ✖ nuevo: nota: D1: la pata cathode está en columna 10 (filas f–j), que no toca nada más.
   visibilidad: R1 81 % → 96 %
 ```
 

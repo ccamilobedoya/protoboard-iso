@@ -4,10 +4,11 @@
 //   body.no-labels       labels hidden                 body.focusing    veil shown (a part is tapped)
 //   body.show-results    simulation on (page.results)  body.layer-flow  current layer
 //   body.conventional    dots reversed (conventional current)
-//   #dynamic             strips and result tags of the focused part; see-through rules
+//   #dynamic             strips, coordinates and result tags of the focused part; see-through rules
 //   #probe               the probes/arrows of the result tag hovered or tapped
-// Layers in each SVG: (under), board, parts, labels, (annotations), veil, strips, spotlight (made by the
-// script), flow, results, probes. Hidden by default: veil, flow, strips, results and probes.
+// Layers in each SVG: (under), board, parts, labels, (annotations), veil, strips, coords, spotlight (made
+// by the script), flow, results, probes. Hidden by default: veil, flow, strips, coords, results and probes.
+// On a narrow screen the button bar is one row that scrolls sideways, to leave room for the drawing.
 
 export const STYLE = `
 html, body { margin: 0; height: 100%; background: #ffffff; color: #333333; font-family: Helvetica, Arial, Lato, sans-serif; }
@@ -21,13 +22,20 @@ nav .hint { color: #8a8884; font-size: 12px; }
 nav .hint-results, body.show-results nav .hint-default { display: none; }
 body.show-results nav .hint-results { display: inline; color: #1f5fbf; }
 nav .revision { margin-left: auto; color: #8a8884; font-size: 12px; }
+@media (max-width: 760px) {
+  nav { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; touch-action: pan-x; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 4px 6px; }
+  nav::-webkit-scrollbar { display: none; }
+  nav > * { flex: none; white-space: nowrap; }
+  nav button { padding: 4px 8px; }
+}
 main { flex: 1; min-height: 0; display: flex; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
 main.dragging { cursor: grabbing; }
 main svg { display: block; width: 100%; height: 100%; }
 main svg[hidden] { display: none; }
 body.no-labels .labels { display: none; }
 body:not(.show-results) .results, body:not(.show-results) .info .sim { display: none; }
-.veil, .strips, .flow, .results { pointer-events: none; }
+.veil, .strips, .coords, .flow, .results { pointer-events: none; }
+.coords > * { display: none; }
 .results > [data-q] { pointer-events: auto; cursor: help; }
 .probes { pointer-events: none; }
 .probes > * { display: none; }

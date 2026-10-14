@@ -64,8 +64,8 @@ test('create, find, read and inspect a circuit', async () => {
 });
 
 test('query and suggest, then dry run, apply, history and undo', async () => {
-  assert.match(textOf(await call('query', { target: 'circuits/led', kind: 'at', ref: 'c9' })), /holds R1\.2/);
-  const s = jsonOf(await call('suggest', { target: 'circuits/led', part: { type: 'resistor', value: '1k' }, between: ['10:a-e', 'T-'], format: 'json' }));
+  assert.match(textOf(await call('query', { target: 'circuits/led', kind: 'at', ref: 'h9' })), /holds R1\.2/);
+  const s = jsonOf(await call('suggest', { target: 'circuits/led', part: { type: 'resistor', value: '1k' }, between: ['10:f-j', 'T-'], format: 'json' }));
   assert.ok(s.placements.length > 0);
   const ops = s.placements[0].ops;
 

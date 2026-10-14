@@ -71,7 +71,7 @@ sobre los dos. `switch: "off"` la desconecta.
 | `kind` | `bench` (fuente de banco) o `battery` (batería) | `bench` |
 | `voltage` | voltios | obligatorio, salvo en una batería con `format` o `chemistry` |
 | `format`, `chemistry`, `cells`, `charge`, `capacity` | una batería descrita como una batería dibujada | — |
-| `positive`, `negative` | agujero (`"T+9"`) o grupo (`"T+"`, `"12:a-e"`) de cada cable | `T+`, `T-` |
+| `positive`, `negative` | agujero (`"T+9"`) o grupo (`"T+"`, `"12:f-j"`) de cada cable | `T+`, `T-` |
 | `currentLimit` | límite de la fuente de banco, A: por encima, la fuente sostiene la corriente (corriente constante, CC) y su voltaje baja | ninguno |
 | `internalResistance` | Ω | banco 0; batería según su formato, o 0,25 Ω por cada celda de 1,5 V si solo trae el voltaje |
 
@@ -98,7 +98,7 @@ Se fijan con una operación, como cualquier campo del circuito:
 
 ```js
 { analysis: 'dc', model: true, ok: true, ground: 'T-',
-  nodes:    { 'T+': 5, '9:a-e': 1.76, … },               // voltios; null = flotante
+  nodes:    { 'T+': 5, '9:f-j': 1.76, … },               // voltios; null = flotante
   supplies: { V1: { voltage, current, power, mode: 'CV' | 'CC' } },
   parts:    { R1: { voltage, current, power, pins: { '1': 5, '2': 1.76 } },
               D1: { …, brightness: 0.49 },                // LED: corriente / 20 mA

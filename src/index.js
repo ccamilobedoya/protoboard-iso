@@ -32,7 +32,7 @@ import { simulate } from './sim/index.js';
 import { resultsOverlay } from './sim/overlay.js';
 import { flowOps } from './sim/flow.js';
 import { probeOps } from './sim/probes.js';
-import { focusLayers, veilOps, stripOps, nodesOf } from './render/focus.js';
+import { focusLayers, veilOps, stripOps, coordOps, nodesOf } from './render/focus.js';
 
 export { applyOps, OP_NAMES, CIRCUIT_FIELDS } from './ops.js';
 export { evaluate, diffEvaluations, problemKey } from './diff.js';
@@ -123,7 +123,7 @@ function sceneFor(circuit, options = {}) {
   return { result, scene, view, scale, lang };
 }
 
-// Optional layers, always in this order: veil, strips, spotlight, flow, results, probes.
+// Optional layers, always in this order: veil, strips, coords, spotlight, flow, results, probes.
 //   focus: ['R1']   dim everything but these parts and their strips (static images)
 //   flow: true      current flow (moving dots in a page; still dots in a static image)
 //   sim: true       simulation results, labelled as a model
@@ -131,10 +131,12 @@ function sceneFor(circuit, options = {}) {
 function addLayers(scene, built, circuit, options, lang) {
   const needSim = options.sim || options.flow;
   const sim = needSim ? simulate(circuit, { analysis: 'dc' }) : null;
-  const extra = { veil: [], strips: [], spotlight: [], flow: [], results: [], probes: [] };
+  const extra = { veil: [], strips: [], coords: [], spotlight: [], flow: [], results: [], probes: [] };
   if (options.interactive) {
     extra.veil = veilOps(scene.frame);
     extra.strips = stripOps(scene, built.board, [...usedNodes(built, circuit)]);
+    // Column numbers and row letters of every lead, shown for the tapped part only.
+    extra.coords = coordOps(scene, built.board, built.parts.flatMap((p) => p.holes));
     // The page clones the focused parts into .spotlight when needed: no copies in the file.
   } else if (options.focus?.length) {
     Object.assign(extra, focusLayers(scene, built, options.focus));

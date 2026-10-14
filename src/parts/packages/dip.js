@@ -1,9 +1,9 @@
 // DIP chip (8, 14, 16… pins) straddling the centre channel. Pin 1 is next to the notch;
 // pins count up along one row and back along the other, as seen from above.
 //
-// Placement: give "pin1" (e.g. "f10") instead of listing every hole. With pin 1 in the
-// front row next to the channel the chip reads from the front (notch on the left); with
-// pin 1 in the back row it is turned round.
+// Placement: give "pin1" (e.g. "e10") instead of listing every hole. With pin 1 in the
+// front row next to the channel (e on the bb830) the chip reads from the front (notch on the
+// left); with pin 1 in the back row (f) it is turned round.
 //
 // params: count (number of pins), marking
 
@@ -11,20 +11,18 @@ import { add, sub, scale, normalize, length, dot, cross, Z } from '../../core/ve
 import { box, polygonDecal, circleDecal, textDecal } from '../../geometry/primitives.js';
 import { MATERIALS } from '../colors.js';
 import { lead, withZ } from './common.js';
+import { channelRows } from '../../board/board.js';
 
 const WIDTH = 6.35;
 const HEIGHT = 3.3;
 const STANDOFF = 0.7;
 
-function channelRows(board) {
-  return { back: board.spec.strips[0].rows.at(-1), front: board.spec.strips[1].rows[0] };
-}
 
 // Hole names for every pin, from pin 1, or null when the chip does not fit there.
 export function dipHoles(board, pin1, count) {
   const hole = board.find(String(pin1));
   if (!hole || hole.kind !== 'main') return null;
-  const { back, front } = channelRows(board);
+  const { back, front } = channelRows(board.spec);
   const half = count / 2;
   const c = hole.col;
   let rowA;
@@ -50,7 +48,7 @@ export default {
   },
 
   footprints(board, params) {
-    const { back, front } = channelRows(board);
+    const { back, front } = channelRows(board.spec);
     const out = [];
     for (let c = 1; c <= board.spec.columns; c++) {
       for (const row of [front, back]) {

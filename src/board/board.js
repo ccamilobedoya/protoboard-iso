@@ -23,6 +23,14 @@ export function railColumns(spec) {
   return cols;
 }
 
+// The two rows on either side of the centre channel, by position (not by name or list order):
+// `back` is the row just behind it in the picture, `front` the row just in front.
+export function channelRows(spec) {
+  const back = spec.rows.filter((r) => r.y <= spec.channel.from).sort((a, b) => b.y - a.y)[0];
+  const front = spec.rows.filter((r) => r.y >= spec.channel.to).sort((a, b) => a.y - b.y)[0];
+  return { back: back.id, front: front.id };
+}
+
 export function createBoard(specOrId = 'bb830') {
   const spec = typeof specOrId === 'string' ? BOARDS[specOrId] : specOrId;
   if (!spec) throw new Error(`Unknown board "${specOrId}". Known boards: ${Object.keys(BOARDS).join(', ')}`);

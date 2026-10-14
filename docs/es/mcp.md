@@ -77,7 +77,7 @@ directamente; PNG solo cuando importa el estilo.
 ```
 list_circuits                       → circuits/led · rev 0 · 3 componentes
 inspect   {target: "circuits/led"}  → … De R1 se ve el 81 %; W1 tapa el 15 %.
-suggest   {target, part: {type: "resistor", value: "1k"}, between: ["10:a-e", "T-"]}
+suggest   {target, part: {type: "resistor", value: "1k"}, between: ["10:f-j", "T-"]}
 apply_ops {target, ops: <de suggest>, dry_run: true}         → qué arregla / qué introduce
 apply_ops {target, ops, expect_revision: 0, author: "claude", note: "resistencia de pull-down"} → rev 1
 ```

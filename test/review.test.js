@@ -17,8 +17,8 @@ test('a part hidden from every view blocks a lesson, once; hidden from one view 
   // R1 sits between two tall capacitors: C1 hides it from the front, C2 from the back.
   const boxedIn = {
     parts: [
-      { id: 'R1', type: 'resistor', value: '1k', pins: ['c20', 'c24'] },
-      { id: 'C1', type: 'capacitor', value: '1000u', voltage: 16, pins: ['g27', 'g29'] },
+      { id: 'R1', type: 'resistor', value: '1k', pins: ['h20', 'h24'] },
+      { id: 'C1', type: 'capacitor', value: '1000u', voltage: 16, pins: ['d27', 'd29'] },
       { id: 'C2', type: 'capacitor', value: '1000u', voltage: 16, pins: ['T+17', 'T+19'] },
     ],
   };
@@ -28,7 +28,7 @@ test('a part hidden from every view blocks a lesson, once; hidden from one view 
 });
 
 test('the draft profile only blocks errors and warnings', () => {
-  const crowded = { clearance: 5, parts: [{ id: 'D1', type: 'led', pins: ['c10', 'c11'] }, { id: 'D2', type: 'led', pins: ['c13', 'c14'] }] };
+  const crowded = { clearance: 5, parts: [{ id: 'D1', type: 'led', pins: ['h10', 'h11'] }, { id: 'D2', type: 'led', pins: ['h13', 'h14'] }] };
   assert.equal(review(crowded, { profile: 'lesson' }).verdict, 'changes');
   assert.equal(review(crowded, { profile: 'draft' }).verdict, 'approved');
 });

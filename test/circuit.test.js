@@ -9,7 +9,7 @@ const codes = (issues) => issues.map((i) => i.code);
 test('the LED example is clean and connects R1 to the LED anode', () => {
   const { issues, netlist } = checkCircuit(example('led-resistor.json'));
   assert.deepEqual(issues, []);
-  const node = netlist.nodes['9:a-e'];
+  const node = netlist.nodes['9:f-j'];
   assert.deepEqual(node.map((m) => `${m.part}.${m.pin}`).sort(), ['D1.anode', 'R1.2']);
   assert.ok(netlist.nodes['T+'].some((m) => m.part === 'R1'));
 });
@@ -23,17 +23,17 @@ test('the mistakes example reports each mistake', () => {
 });
 
 test('three-lead packages must sit in a row', () => {
-  const { issues } = checkCircuit({ parts: [{ id: 'Q1', type: 'mosfet', part: 'IRLZ44N', pins: ['c10', 'c11', 'c13'] }] });
+  const { issues } = checkCircuit({ parts: [{ id: 'Q1', type: 'mosfet', part: 'IRLZ44N', pins: ['h10', 'h11', 'h13'] }] });
   assert.ok(codes(issues).includes('NOT_INLINE'));
 });
 
 test('bad input gives readable errors instead of crashing', () => {
   const { issues } = checkCircuit({
     parts: [
-      { id: 'X1', type: 'flux-capacitor', pins: ['a1', 'a2'] },
-      { id: 'R1', type: 'resistor', value: 'lots', pins: ['a1', 'a5'] },
-      { id: 'R2', type: 'resistor', value: '1k', pins: ['a1', 'z99'] },
-      { id: 'D1', type: 'led', pins: { anode: 'a10', gate: 'a11' } },
+      { id: 'X1', type: 'flux-capacitor', pins: ['j1', 'j2'] },
+      { id: 'R1', type: 'resistor', value: 'lots', pins: ['j1', 'j5'] },
+      { id: 'R2', type: 'resistor', value: '1k', pins: ['j1', 'z99'] },
+      { id: 'D1', type: 'led', pins: { anode: 'j10', gate: 'j11' } },
     ],
   });
   assert.deepEqual(codes(issues).slice(0, 5), ['UNKNOWN_TYPE', 'BAD_VALUE', 'UNKNOWN_HOLE', 'UNKNOWN_PIN', 'MISSING_PIN']);
@@ -45,8 +45,8 @@ test('bad input gives readable errors instead of crashing', () => {
 test('overlapping bodies are reported', () => {
   const { issues } = checkCircuit({
     parts: [
-      { id: 'C1', type: 'capacitor', value: '1000u', voltage: 16, pins: ['c10', 'c12'] },
-      { id: 'C2', type: 'capacitor', value: '1000u', voltage: 16, pins: ['c13', 'c15'] },
+      { id: 'C1', type: 'capacitor', value: '1000u', voltage: 16, pins: ['h10', 'h12'] },
+      { id: 'C2', type: 'capacitor', value: '1000u', voltage: 16, pins: ['h13', 'h15'] },
     ],
   });
   assert.ok(codes(issues).includes('COLLISION'));
@@ -54,8 +54,8 @@ test('overlapping bodies are reported', () => {
 
 test('a layout clearance reports parts that are too close, without it nothing', () => {
   const parts = [
-    { id: 'D1', type: 'led', pins: ['c10', 'c11'] },
-    { id: 'D2', type: 'led', pins: ['c13', 'c14'] },
+    { id: 'D1', type: 'led', pins: ['h10', 'h11'] },
+    { id: 'D2', type: 'led', pins: ['h13', 'h14'] },
   ];
   assert.ok(!codes(checkCircuit({ parts }).issues).includes('TOO_CLOSE'));
   assert.ok(codes(checkCircuit({ clearance: 3, parts }).issues).includes('TOO_CLOSE'));

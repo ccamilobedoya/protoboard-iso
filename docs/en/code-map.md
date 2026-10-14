@@ -49,7 +49,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `circuit/checks.js` | placement checks, description languages |
 | `render/scene.js` | painter's algorithm, label callouts, frame (`fit`) |
 | `render/svg.js` | SVG writer; `tagParts` adds `data-part`; optional layers only when not empty |
-| `render/focus.js` | veil, metal strips, spotlight copies (static focus) |
+| `render/focus.js` | veil, metal strips, column and row tags (`coords`), spotlight copies (static focus) |
 | `render/coverage.js`, `inspect.js`, `annotate.js` | measuring the drawing; annotation layers |
 | `ops.js`, `diff.js`, `node/workspace.js` | operations with inverses, dry-run diff, history, undo, outputs |
 | `query.js`, `query-format.js`, `review.js` | questions, placements, verdict from measurements |
@@ -90,10 +90,13 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
   board, so copies near the diagonals give exactly one per view.
 - **Power sources**: the first of `supplies` sets ground; with none, the first battery part.
   Code that needs "where the supply is" (ground probe, flow) must handle both.
-- **Layers** are always written in the order of `addLayers`. A page shows or hides them with CSS
-  only; new interactive features should follow the same idea (tag in the SVG, rule in CSS).
+- **Layers** are always written in the order of `addLayers`: veil, strips, coords, spotlight, flow,
+  results, probes. A page shows or hides them with CSS only; new interactive features should
+  follow the same idea (tag in the SVG, rule in CSS). Coordinate tags sit under the spotlight
+  copy so they never cover the part being explained, but result tags may still cover them: a
+  known limit, left for a planned pass on what covers what (see the roadmap, visual style).
 - **Data attributes**: `data-part` (part id), `data-node` (group), `data-q` (quantity of a result
-  tag, also its explanation key), `data-probe` (`node:<group>` or `part:<id>`), `data-flow`.
+  tag, also its explanation key), `data-probe` (`node:<group>` or `part:<id>`), `data-flow`, `data-col` / `data-row` (coordinate tags).
 - **Results are a model** and may give away a prediction: drawn only on request (`sim`, `flow`),
   in a page only when the circuit asks (`page.results`, `page.flow`) and only for the tapped part.
 - **SVG elements have no `hidden` property**; use the attribute. Test page scripts with jsdom

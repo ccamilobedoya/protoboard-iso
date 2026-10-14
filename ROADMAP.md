@@ -46,7 +46,7 @@ Goal: a JSON file in, a faithful isometric picture out, with the placement check
 - ✅ Electrolytic: "−" marks on the stripe
 - ✅ Electrolytic: value printed up the sleeve, one copy per view
 - ✅ Label modes: `labels: 'both' | 'id' | 'value' | false` (`--labels`, MCP `render`)
-- ⬜ Check rail order and colours against the maintainer's real board (`bb830.js`)
+- ✅ `bb830` laid out like the maintainer's board: back to front − + j…f | e…a − + (upright, column 1 at the top: + − a…j + −); channel rows found by position
 - ✅ Potentiometer (standing, knob to the front, wiper mark), push button 6×6 across the channel (inner pairs, `SWITCH_BYPASSED`), DIP chips placed by `pin1` (NE555, LM358, 74HC595, CD4017); `suggest` places them; example `controls-and-ics.json`
 - ✅ More packages: multi-turn trimmer (3296W), header pins, passive buzzer, NTC bead, photoresistor, batteries beside the board (AA/AAA/18650 holders, 9 V block with its snap, LiPo pouch), DIP-14 and other chips (LM324, LM393, UA741, NE5532, LM386, ULN2003, ULN2803, PC817)
 - ⬜ Painter: sort jumper wires against tall parts more robustly (split long arcs, depth bias)
@@ -115,8 +115,10 @@ everywhere else so the parts stand out.
 - ⬜ Theme system: every colour from a named palette (`theme: 'realistic' | 'study' | …`), no colour hard-coded in packages
 - ⬜ `study` theme: a less realistic, more aesthetic breadboard (flat, muted body, lighter holes and print, softer edges) so components and wires stand out
 - ⬜ Review part palettes (wires, LEDs, bands) for contrast and colour-blind safety; keep resistor bands faithful to IEC 60062
-- ✅ Highlight mode: dim everything except the parts being explained and the strips under their leads, drawn on top even when covered (`--focus`, `page.focus`, tap in the page; [focus-and-flow.md](docs/en/focus-and-flow.md))
+- ✅ Highlight mode: dim everything except the parts being explained and the strips under their leads, drawn on top even when covered, with the column numbers and row letters of their leads highlighted (`--focus`, `page.focus`, tap in the page; [focus-and-flow.md](docs/en/focus-and-flow.md))
+- ✅ Page on a phone: the button bar is one row that scrolls sideways
 - ✅ See-through: make one part transparent to see what is behind it (page card)
+- ⬜ **What covers what, planned as a whole** (to do properly later, not patched case by case): in a focused page the simulation tags (voltages, currents, the MODEL badge) can cover the highlighted column numbers, the hole positions and the leads they talk about. Decide a priority between layers (part copy, strips, coordinate tags, result tags, labels, probes), place tags aside of what they would hide (collision-aware, as the labels already avoid each other), and check it with `inspect` like the rest of the drawing
 - ⬜ Dark theme for screens
 
 ## Stage 3 — Animation in the browser ⬜

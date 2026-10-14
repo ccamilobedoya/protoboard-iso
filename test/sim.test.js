@@ -35,7 +35,7 @@ const supply = (voltage, extra = {}) => [{ id: 'V1', voltage, ...extra }];
 
 test('voltage divider: two equal resistors split the voltage in half (textbook)', () => {
   const r = run({ ...example('voltage-divider.json'), supplies: supply(9) });
-  near(r.nodes['16:a-e'], 4.5, 1e-4, 'middle node');
+  near(r.nodes['16:f-j'], 4.5, 1e-4, 'middle node');
   near(r.parts.R1.current, 9 / 20000, 1e-8, 'current');
   near(r.supplies.V1.current, 9 / 20000, 1e-8, 'supply current');
   assert.equal(r.supplies.V1.mode, 'CV');
@@ -46,17 +46,17 @@ test('series and parallel resistors: 1 kΩ in series with 2 kΩ ∥ 2 kΩ (textb
   const circuit = {
     supplies: supply(6),
     parts: [
-      { id: 'W1', type: 'wire', pins: ['T+5', 'a5'] },
-      { id: 'R1', type: 'resistor', value: '1k', pins: ['b5', 'b10'] },
-      { id: 'R2', type: 'resistor', value: '2k', pins: ['c10', 'c15'] },
-      { id: 'R3', type: 'resistor', value: '2k', pins: ['d10', 'd15'] },
-      { id: 'W2', type: 'wire', color: 'black', pins: ['a15', 'T-15'] },
+      { id: 'W1', type: 'wire', pins: ['T+5', 'j5'] },
+      { id: 'R1', type: 'resistor', value: '1k', pins: ['i5', 'i10'] },
+      { id: 'R2', type: 'resistor', value: '2k', pins: ['h10', 'h15'] },
+      { id: 'R3', type: 'resistor', value: '2k', pins: ['g10', 'g15'] },
+      { id: 'W2', type: 'wire', color: 'black', pins: ['j15', 'T-15'] },
     ],
   };
   const r = run(circuit);
   // 1 k + 1 k = 2 k → 3 mA, 3 V across the pair, 1.5 mA each (wires: 0.05 Ω, negligible).
   near(r.supplies.V1.current, 3e-3, 1e-6, 'total current');
-  near(r.nodes['10:a-e'], 3, 1e-3, 'middle node');
+  near(r.nodes['10:f-j'], 3, 1e-3, 'middle node');
   near(r.parts.R2.current, 1.5e-3, 1e-6, 'one branch');
 });
 
@@ -77,8 +77,8 @@ const forward = (part, current) => {
   return {
     supplies: supply(5, { currentLimit: current }),
     parts: [
-      { id: 'W1', type: 'wire', pins: ['T+5', 'a5'] },
-      { id: 'D1', ...part, pins: ['b5', `b${end}`] },
+      { id: 'W1', type: 'wire', pins: ['T+5', 'j5'] },
+      { id: 'D1', ...part, pins: ['i5', `b${end}`] },
       { id: 'W2', type: 'wire', color: 'black', pins: [`a${end}`, `T-${end}`] },
     ],
   };
@@ -123,8 +123,8 @@ test('resistor dissipating more than its rating is flagged', () => {
   const circuit = {
     supplies: supply(5),
     parts: [
-      { id: 'R1', type: 'resistor', value: '10', pins: ['T+5', 'a5'] },
-      { id: 'W1', type: 'wire', color: 'black', pins: ['b5', 'T-6'] },
+      { id: 'R1', type: 'resistor', value: '10', pins: ['T+5', 'j5'] },
+      { id: 'W1', type: 'wire', color: 'black', pins: ['i5', 'T-6'] },
     ],
   };
   const r = run(circuit);
@@ -136,8 +136,8 @@ test('battery: internal resistance of 1.5 V cells lowers the voltage under load'
   const circuit = {
     supplies: [{ id: 'B1', kind: 'battery', voltage: 9 }],
     parts: [
-      { id: 'R1', type: 'resistor', value: '100', pins: ['T+5', 'a5'] },
-      { id: 'W1', type: 'wire', color: 'black', pins: ['b5', 'T-6'] },
+      { id: 'R1', type: 'resistor', value: '100', pins: ['T+5', 'j5'] },
+      { id: 'W1', type: 'wire', color: 'black', pins: ['i5', 'T-6'] },
     ],
   };
   const r = run(circuit);
@@ -148,10 +148,10 @@ test('battery: internal resistance of 1.5 V cells lowers the voltage under load'
 const mosfetSwitch = (part, gate) => ({
   supplies: supply(5),
   parts: [
-    { id: 'R1', type: 'resistor', value: '10', power: '1', pins: ['T+21', 'a21'] },
-    { id: 'Q1', type: 'mosfet', part, pins: { G: 'c20', D: 'c21', S: 'c22' } },
-    { id: 'W1', type: 'wire', color: gate ? 'red' : 'black', pins: [gate ? 'T+19' : 'T-19', 'a20'] },
-    { id: 'W2', type: 'wire', color: 'black', pins: ['a22', 'T-22'] },
+    { id: 'R1', type: 'resistor', value: '10', power: '1', pins: ['T+21', 'j21'] },
+    { id: 'Q1', type: 'mosfet', part, pins: { G: 'h20', D: 'h21', S: 'h22' } },
+    { id: 'W1', type: 'wire', color: gate ? 'red' : 'black', pins: [gate ? 'T+19' : 'T-19', 'j20'] },
+    { id: 'W2', type: 'wire', color: 'black', pins: ['j22', 'T-22'] },
   ],
 });
 
@@ -191,10 +191,10 @@ test('a MOSFET gate connected to nothing is reported as floating', () => {
 const commonEmitter = (part, rb) => ({
   supplies: supply(5),
   parts: [
-    { id: 'RB', type: 'resistor', value: rb, pins: ['T+30', 'a31'] },
-    { id: 'RC', type: 'resistor', value: '1k', pins: ['T+33', 'a32'] },
-    { id: 'Q1', type: 'bjt', part, pins: { E: 'c30', B: 'c31', C: 'c32' } },
-    { id: 'W1', type: 'wire', color: 'black', pins: ['a30', 'T-29'] },
+    { id: 'RB', type: 'resistor', value: rb, pins: ['T+30', 'j31'] },
+    { id: 'RC', type: 'resistor', value: '1k', pins: ['T+33', 'j32'] },
+    { id: 'Q1', type: 'bjt', part, pins: { E: 'h30', B: 'h31', C: 'h32' } },
+    { id: 'W1', type: 'wire', color: 'black', pins: ['j30', 'T-29'] },
   ],
 });
 
@@ -215,10 +215,10 @@ test('PNP transistor mirrors the NPN one', () => {
   const circuit = {
     supplies: supply(5),
     parts: [
-      { id: 'RB', type: 'resistor', value: '470k', pins: ['T-30', 'a31'] },
-      { id: 'RC', type: 'resistor', value: '1k', pins: ['T-33', 'a32'] },
-      { id: 'Q1', type: 'bjt', part: '2N3906', pins: { E: 'c30', B: 'c31', C: 'c32' } },
-      { id: 'W1', type: 'wire', color: 'red', pins: ['a30', 'T+29'] },
+      { id: 'RB', type: 'resistor', value: '470k', pins: ['T-30', 'j31'] },
+      { id: 'RC', type: 'resistor', value: '1k', pins: ['T-33', 'j32'] },
+      { id: 'Q1', type: 'bjt', part: '2N3906', pins: { E: 'h30', B: 'h31', C: 'h32' } },
+      { id: 'W1', type: 'wire', color: 'red', pins: ['j30', 'T+29'] },
     ],
   };
   const r = run(circuit);
@@ -232,10 +232,10 @@ test('Darlington TIP120 at the datasheet test point: gain above 1000, Vbe below 
   const circuit = {
     supplies: supply(12),
     parts: [
-      { id: 'RB', type: 'resistor', value: '47k', pins: ['T+19', 'a20'] },
-      { id: 'RC', type: 'resistor', value: '20', power: '1', pins: ['T+21', 'a21'] },
-      { id: 'Q1', type: 'bjt', part: 'TIP120', pins: { B: 'c20', C: 'c21', E: 'c22' } },
-      { id: 'W1', type: 'wire', color: 'black', pins: ['a22', 'T-22'] },
+      { id: 'RB', type: 'resistor', value: '47k', pins: ['T+19', 'j20'] },
+      { id: 'RC', type: 'resistor', value: '20', power: '1', pins: ['T+21', 'j21'] },
+      { id: 'Q1', type: 'bjt', part: 'TIP120', pins: { B: 'h20', C: 'h21', E: 'h22' } },
+      { id: 'W1', type: 'wire', color: 'black', pins: ['j22', 'T-22'] },
     ],
   };
   const r = run(circuit);
@@ -250,13 +250,13 @@ test('push button: the LED is on only while it is pressed', () => {
   const circuit = (pressed) => ({
     supplies: supply(5),
     parts: [
-      { id: 'S1', type: 'button', pressed, pins: ['e10', 'e12', 'f10', 'f12'] },
-      { id: 'W1', type: 'wire', color: 'red', pins: ['T+10', 'a10'] },
-      { id: 'R1', type: 'resistor', value: '330', pins: ['j10', 'j14'] },
-      { id: 'D1', type: 'led', pins: { anode: 'h14', cathode: 'h15' } },
-      { id: 'W2', type: 'wire', color: 'black', pins: ['j15', 'B-15'] },
-      { id: 'W3', type: 'wire', color: 'black', pins: ['T-3', 'a3'] },
-      { id: 'W4', type: 'wire', color: 'black', pins: ['b3', 'B-3'] },
+      { id: 'S1', type: 'button', pressed, pins: ['f10', 'f12', 'e10', 'e12'] },
+      { id: 'W1', type: 'wire', color: 'red', pins: ['T+10', 'j10'] },
+      { id: 'R1', type: 'resistor', value: '330', pins: ['a10', 'a14'] },
+      { id: 'D1', type: 'led', pins: { anode: 'c14', cathode: 'c15' } },
+      { id: 'W2', type: 'wire', color: 'black', pins: ['a15', 'B-15'] },
+      { id: 'W3', type: 'wire', color: 'black', pins: ['T-3', 'j3'] },
+      { id: 'W4', type: 'wire', color: 'black', pins: ['i3', 'B-3'] },
     ],
   });
   const on = run(circuit(true));
@@ -269,9 +269,9 @@ test('RC charging follows V·(1 − e^(−t/RC)) (backward Euler, small step)', 
   const circuit = {
     supplies: supply(5),
     parts: [
-      { id: 'R1', type: 'resistor', value: '10k', pins: ['T+5', 'a5'] },
-      { id: 'C1', type: 'capacitor', value: '100u', voltage: 16, pins: { '+': 'b5', '-': 'b7' } },
-      { id: 'W1', type: 'wire', color: 'black', pins: ['a7', 'T-7'] },
+      { id: 'R1', type: 'resistor', value: '10k', pins: ['T+5', 'j5'] },
+      { id: 'C1', type: 'capacitor', value: '100u', voltage: 16, pins: { '+': 'i5', '-': 'i7' } },
+      { id: 'W1', type: 'wire', color: 'black', pins: ['j7', 'T-7'] },
     ],
   };
   const r = run(circuit, { analysis: 'transient', stop: 5, step: 1e-3 });
@@ -290,13 +290,13 @@ test('RC charging follows V·(1 − e^(−t/RC)) (backward Euler, small step)', 
 
 test('what the simulator cannot do is reported, not guessed', () => {
   assert.deepEqual(codes(simulate({ ...example('led-resistor.json'), supplies: undefined }).issues), ['SIM_NO_SUPPLY']);
-  const withChip = { supplies: supply(5), parts: [{ id: 'U1', type: 'ic', part: 'NE555', pin1: 'f10' }] };
+  const withChip = { supplies: supply(5), parts: [{ id: 'U1', type: 'ic', part: 'NE555', pin1: 'e10' }] };
   assert.ok(codes(simulate(withChip).issues).includes('SIM_UNSUPPORTED'));
   const broken = {
     supplies: supply(5),
     parts: [
-      { id: 'R1', type: 'resistor', value: '1k', pins: ['a5', 'a10'] },
-      { id: 'R2', type: 'resistor', value: '1k', pins: ['a5', 'a15'] },
+      { id: 'R1', type: 'resistor', value: '1k', pins: ['j5', 'j10'] },
+      { id: 'R2', type: 'resistor', value: '1k', pins: ['j5', 'j15'] },
     ],
   };
   assert.deepEqual(codes(simulate(broken).issues), ['SIM_PLACEMENT_ERRORS']);

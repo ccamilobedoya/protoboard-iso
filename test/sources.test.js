@@ -26,8 +26,8 @@ const W = 0.05; // jumper wire, ohms
 
 const battery = (extra = {}) => ({ id: 'BT1', type: 'battery', format: 'AA', cells: 4, pins: { '+': 'T+3', '-': 'T-3' }, ...extra });
 const load = (ohms) => [
-  { id: 'R1', type: 'resistor', value: String(ohms), power: '1', pins: ['T+9', 'a12'] },
-  { id: 'W1', type: 'wire', color: 'black', pins: ['c12', 'T-15'] },
+  { id: 'R1', type: 'resistor', value: String(ohms), power: '1', pins: ['T+9', 'j12'] },
+  { id: 'W1', type: 'wire', color: 'black', pins: ['h12', 'T-15'] },
 ];
 
 test('battery model: cells in series add their voltages and resistances', () => {
@@ -95,7 +95,7 @@ test('a battery lies beside the board; the board hides it when it is on the far 
 test('Zener diode: 5.1 V at its 49 mA test current (1N4733A datasheet)', () => {
   const zener = (ohms, extra = {}) => ({
     supplies: [{ id: 'V1', voltage: 12 }],
-    parts: [{ id: 'R1', type: 'resistor', value: String(ohms), power: '1', pins: ['T+9', 'a12'] }, { id: 'D1', type: 'zener', pins: { K: 'c12', A: 'c16' }, ...extra }, { id: 'W1', type: 'wire', color: 'black', pins: ['a16', 'T-17'] }],
+    parts: [{ id: 'R1', type: 'resistor', value: String(ohms), power: '1', pins: ['T+9', 'j12'] }, { id: 'D1', type: 'zener', pins: { K: 'h12', A: 'h16' }, ...extra }, { id: 'W1', type: 'wire', color: 'black', pins: ['j16', 'T-17'] }],
   });
   const atTest = run(zener(140, { part: '1N4733A' }));
   near(-atTest.parts.D1.current, 0.049, 0.002, 'about Izt');
@@ -103,7 +103,7 @@ test('Zener diode: 5.1 V at its 49 mA test current (1N4733A datasheet)', () => {
   const low = run(zener(690, { value: '5V1' }));
   const v = -low.parts.D1.voltage;
   assert.ok(v > 4.8 && v < 5.1, `at 10 mA a little below Vz: ${v}`);
-  const forward = run({ supplies: [{ id: 'V1', voltage: 5 }], parts: [{ id: 'R1', type: 'resistor', value: '220', pins: ['T+9', 'a12'] }, { id: 'D1', type: 'zener', value: '12', pins: { A: 'c12', K: 'c16' } }, { id: 'W1', type: 'wire', color: 'black', pins: ['a16', 'T-17'] }] });
+  const forward = run({ supplies: [{ id: 'V1', voltage: 5 }], parts: [{ id: 'R1', type: 'resistor', value: '220', pins: ['T+9', 'j12'] }, { id: 'D1', type: 'zener', value: '12', pins: { A: 'h12', K: 'h16' } }, { id: 'W1', type: 'wire', color: 'black', pins: ['j16', 'T-17'] }] });
   assert.ok(forward.parts.D1.voltage > 0.6 && forward.parts.D1.voltage < 0.85, 'forward it is a silicon diode');
 });
 
@@ -111,11 +111,11 @@ test('regulators: a 7805 holds 5 V; an LM317 follows 1.25 V · (1 + R2/R1) + Iad
   const r7805 = (vin, ohms) => ({
     supplies: [{ id: 'V1', voltage: vin }],
     parts: [
-      { id: 'U1', type: 'regulator', part: 'L7805CV', pins: { IN: 'a10', GND: 'a11', OUT: 'a12' } },
-      { id: 'W1', type: 'wire', pins: ['T+9', 'c10'] },
-      { id: 'W2', type: 'wire', color: 'black', pins: ['T-11', 'c11'] },
-      { id: 'RL', type: 'resistor', value: String(ohms), power: '1', pins: ['c12', 'c18'] },
-      { id: 'W3', type: 'wire', color: 'black', pins: ['a18', 'T-17'] },
+      { id: 'U1', type: 'regulator', part: 'L7805CV', pins: { IN: 'j10', GND: 'j11', OUT: 'j12' } },
+      { id: 'W1', type: 'wire', pins: ['T+9', 'h10'] },
+      { id: 'W2', type: 'wire', color: 'black', pins: ['T-11', 'h11'] },
+      { id: 'RL', type: 'resistor', value: String(ohms), power: '1', pins: ['h12', 'h18'] },
+      { id: 'W3', type: 'wire', color: 'black', pins: ['j18', 'T-17'] },
     ],
   });
   const ok = run(r7805(9, 100));
@@ -132,12 +132,12 @@ test('regulators: a 7805 holds 5 V; an LM317 follows 1.25 V · (1 + R2/R1) + Iad
   const lm317 = run({
     supplies: [{ id: 'V1', voltage: 12 }],
     parts: [
-      { id: 'U1', type: 'regulator', part: 'LM317T', pins: { ADJ: 'a10', OUT: 'a11', IN: 'a12' } },
-      { id: 'W1', type: 'wire', pins: ['T+11', 'c12'] },
-      { id: 'R1', type: 'resistor', value: '240', pins: ['c11', 'c15'] },
-      { id: 'W2', type: 'wire', pins: ['d15', 'd10'] },
-      { id: 'R2', type: 'resistor', value: '720', pins: ['e10', 'e5'] },
-      { id: 'W3', type: 'wire', color: 'black', pins: ['a5', 'T-5'] },
+      { id: 'U1', type: 'regulator', part: 'LM317T', pins: { ADJ: 'j10', OUT: 'j11', IN: 'j12' } },
+      { id: 'W1', type: 'wire', pins: ['T+11', 'h12'] },
+      { id: 'R1', type: 'resistor', value: '240', pins: ['h11', 'h15'] },
+      { id: 'W2', type: 'wire', pins: ['g15', 'g10'] },
+      { id: 'R2', type: 'resistor', value: '720', pins: ['f10', 'f5'] },
+      { id: 'W3', type: 'wire', color: 'black', pins: ['j5', 'T-5'] },
     ],
   });
   near(lm317.parts.U1.vout, 1.25 * (1 + 720 / 240) + 50e-6 * 720, 0.005, 'LM317 output');
@@ -146,7 +146,7 @@ test('regulators: a 7805 holds 5 V; an LM317 follows 1.25 V · (1 + R2/R1) + Iad
 test('inductor: an RL circuit rises as I·(1 − e^(−t/τ)), τ = L/R (textbook)', () => {
   const circuit = {
     supplies: [{ id: 'V1', voltage: 5 }],
-    parts: [{ id: 'R1', type: 'resistor', value: '100', pins: ['T+3', 'a5'] }, { id: 'L1', type: 'inductor', value: '10m', dcr: 0, pins: ['c5', 'c12'] }, { id: 'W1', type: 'wire', pins: ['a12', 'T-12'] }],
+    parts: [{ id: 'R1', type: 'resistor', value: '100', pins: ['T+3', 'j5'] }, { id: 'L1', type: 'inductor', value: '10m', dcr: 0, pins: ['h5', 'h12'] }, { id: 'W1', type: 'wire', pins: ['j12', 'T-12'] }],
   };
   const dc = run(circuit);
   near(dc.parts.L1.current, 5 / (100 + W + 1e-3), 1e-5, 'in DC it is a wire');
@@ -154,12 +154,12 @@ test('inductor: an RL circuit rises as I·(1 − e^(−t/τ)), τ = L/R (textboo
   const tr = run(circuit, { analysis: 'transient', stop: 5 * tau, step: tau / 200, points: 100 });
   const k = tr.times.findIndex((t) => t >= tau - 1e-12);
   near(tr.parts.L1.current[k], (5 / (100 + W)) * (1 - Math.exp(-tr.times[k] / tau)), 0.0005, 'current at t = τ');
-  const [l] = buildCircuit({ parts: [{ id: 'L1', type: 'inductor', value: '100u', pins: ['a5', 'a10'] }] }).parts;
+  const [l] = buildCircuit({ parts: [{ id: 'L1', type: 'inductor', value: '100u', pins: ['j5', 'j10'] }] }).parts;
   assert.deepEqual(l.def.info.bands, ['brown', 'black', 'brown', 'silver'], '100 µH: 10 × 10¹ µH, 10 %');
 });
 
 test('sensors: NTC B equation, photoresistor curve, buzzer on DC', () => {
-  const divider = (sensor) => ({ supplies: [{ id: 'V1', voltage: 5 }], parts: [{ id: 'S1', pins: ['T+3', 'a5'], ...sensor }, { id: 'R1', type: 'resistor', value: '10k', pins: ['c5', 'T-7'] }] });
+  const divider = (sensor) => ({ supplies: [{ id: 'V1', voltage: 5 }], parts: [{ id: 'S1', pins: ['T+3', 'j5'], ...sensor }, { id: 'R1', type: 'resistor', value: '10k', pins: ['h5', 'T-7'] }] });
   const ntc = run(divider({ type: 'thermistor', value: '10k', temperature: 50 }));
   near(ntc.parts.S1.sensor.resistance, 10e3 * Math.exp(3950 * (1 / 323.15 - 1 / 298.15)), 1e-6, 'R(50 °C)');
   near(ntc.parts.S1.sensor.resistance, 3588, 2, 'MF52 10k B3950 table at 50 °C');
@@ -168,20 +168,20 @@ test('sensors: NTC B equation, photoresistor curve, buzzer on DC', () => {
   const dark = run(divider({ type: 'ldr', light: 0 }));
   near(dark.parts.S1.sensor.resistance, 1e6, 1e-6, 'dark resistance');
   assert.deepEqual(partLines(ntc.parts.S1, 'es').slice(0, 2).map((l) => l.key), ['sensor.temperature', 'sensor.resistance']);
-  const buzz = run({ supplies: [{ id: 'V1', voltage: 5 }], parts: [{ id: 'BZ1', type: 'buzzer', pins: ['T+3', 'a5'] }, { id: 'R1', type: 'resistor', value: '100', pins: ['c5', 'T-7'] }] });
+  const buzz = run({ supplies: [{ id: 'V1', voltage: 5 }], parts: [{ id: 'BZ1', type: 'buzzer', pins: ['T+3', 'j5'] }, { id: 'R1', type: 'resistor', value: '100', pins: ['h5', 'T-7'] }] });
   assert.ok(codes(buzz.issues).includes('SIM_BUZZER_DC'), 'a passive buzzer on DC');
 });
 
 test('header pins by pin1, trimmer code, more part numbers', () => {
-  const { parts, issues } = buildCircuit({ parts: [{ id: 'J1', type: 'header', count: 4, pin1: 'h50' }] });
-  assert.deepEqual(parts[0].holes.map((h) => h.id), ['h50', 'h51', 'h52', 'h53']);
+  const { parts, issues } = buildCircuit({ parts: [{ id: 'J1', type: 'header', count: 4, pin1: 'c50' }] });
+  assert.deepEqual(parts[0].holes.map((h) => h.id), ['c50', 'c51', 'c52', 'c53']);
   assert.ok(!issues.some((i) => i.severity === 'error'));
   assert.deepEqual([valueCode(10e3), valueCode(500), valueCode(1e6), valueCode(50)], ['103', '501', '105', '500']);
-  const [rv] = buildCircuit({ parts: [{ id: 'RV1', type: 'potentiometer', style: 'trimmer', value: '10k', pins: ['a3', 'a4', 'a5'] }] }).parts;
+  const [rv] = buildCircuit({ parts: [{ id: 'RV1', type: 'potentiometer', style: 'trimmer', value: '10k', pins: ['j3', 'j4', 'j5'] }] }).parts;
   assert.equal(rv.def.package, 'trimmer-3296');
-  const [q] = buildCircuit({ parts: [{ id: 'Q1', type: 'bjt', part: '2SC1815', pins: ['a3', 'a4', 'a5'] }] }).parts;
+  const [q] = buildCircuit({ parts: [{ id: 'Q1', type: 'bjt', part: '2SC1815', pins: ['j3', 'j4', 'j5'] }] }).parts;
   assert.deepEqual(q.pinNames, ['E', 'C', 'B'], 'Toshiba pinout, by its other name');
-  const [u] = buildCircuit({ parts: [{ id: 'U1', type: 'ic', part: 'LM324', pin1: 'f10' }] }).parts;
+  const [u] = buildCircuit({ parts: [{ id: 'U1', type: 'ic', part: 'LM324', pin1: 'e10' }] }).parts;
   assert.equal(u.holes.length, 14);
 });
 
@@ -205,11 +205,11 @@ test('bridge rectifier: two diode drops, and the same output polarity either way
     board: 'bb830',
     supplies: [{ id: 'V1', voltage: 9 }],
     parts: [
-      { id: 'BR1', type: 'bridge', part: 'KBP307', pins: { '+': 'e10', AC1: 'e11', AC2: 'e13', '-': 'e14' } },
-      { id: 'W1', type: 'wire', pins: ['a11', ac1] },
-      { id: 'W2', type: 'wire', pins: ['a13', ac2] },
-      { id: 'R1', type: 'resistor', value: '1k', pins: ['c10', 'c4'] },
-      { id: 'W3', type: 'wire', pins: ['a4', 'a14'] },
+      { id: 'BR1', type: 'bridge', part: 'KBP307', pins: { '+': 'f10', AC1: 'f11', AC2: 'f13', '-': 'f14' } },
+      { id: 'W1', type: 'wire', pins: ['j11', ac1] },
+      { id: 'W2', type: 'wire', pins: ['j13', ac2] },
+      { id: 'R1', type: 'resistor', value: '1k', pins: ['h10', 'h4'] },
+      { id: 'W3', type: 'wire', pins: ['j4', 'j14'] },
     ],
   });
   for (const [ac1, ac2] of [['T+11', 'T-13'], ['T-11', 'T+13']]) {
@@ -220,7 +220,7 @@ test('bridge rectifier: two diode drops, and the same output polarity either way
     assert.ok(r.parts.R1.current > 0, `${ac1}: current through the load always the same way`);
     near(Object.values(br.pinCurrents).reduce((s, i) => s + i, 0), 0, 1e-9, 'Kirchhoff at the bridge');
   }
-  const bad = checkCircuit({ version: 1, board: 'bb830', parts: [{ id: 'BR1', type: 'bridge', pins: ['e10', 'e13', 'e14', 'e18'] }] });
+  const bad = checkCircuit({ version: 1, board: 'bb830', parts: [{ id: 'BR1', type: 'bridge', pins: ['f10', 'f13', 'f14', 'f18'] }] });
   assert.ok(codes(bad.issues).includes('BRIDGE_SHAPE'), 'its legs are one or two holes apart');
 });
 
@@ -230,9 +230,9 @@ test('cement resistor (5 W), printed electrolytic value', () => {
     board: 'bb830',
     supplies: [{ id: 'V1', voltage: 9 }],
     parts: [
-      { id: 'R1', type: 'resistor', value: '10', power: '5W', pins: ['T+3', 'a14'] },
-      { id: 'W1', type: 'wire', color: 'black', pins: ['c14', 'T-15'] },
-      { id: 'C1', type: 'capacitor', value: '100u', voltage: 25, pins: { '+': 'h3', '-': 'h4' } },
+      { id: 'R1', type: 'resistor', value: '10', power: '5W', pins: ['T+3', 'j14'] },
+      { id: 'W1', type: 'wire', color: 'black', pins: ['h14', 'T-15'] },
+      { id: 'C1', type: 'capacitor', value: '100u', voltage: 25, pins: { '+': 'c3', '-': 'c4' } },
     ],
   };
   const built = buildCircuit(circuit);

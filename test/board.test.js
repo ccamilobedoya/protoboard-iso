@@ -16,26 +16,26 @@ test('the 400 board has 400 holes', () => {
 
 test('holes in a strip share a node, across the channel they do not', () => {
   const board = createBoard();
-  assert.equal(board.find('a12').node, board.find('e12').node);
-  assert.notEqual(board.find('e12').node, board.find('f12').node);
-  assert.notEqual(board.find('a12').node, board.find('a13').node);
+  assert.equal(board.find('j12').node, board.find('f12').node);
+  assert.notEqual(board.find('f12').node, board.find('e12').node);
+  assert.notEqual(board.find('j12').node, board.find('j13').node);
   assert.equal(board.find('T+3').node, board.find('T+61').node);
 });
 
 test('hole names are case-insensitive and gaps in the rails do not exist', () => {
   const board = createBoard();
-  assert.equal(board.find('C10').id, 'c10');
+  assert.equal(board.find('H10').id, 'h10');
   assert.equal(board.find('t+3').id, 'T+3');
   assert.equal(board.find('T+8'), undefined);
   assert.equal(board.find('k1'), undefined);
-  assert.equal(board.find('a64'), undefined);
+  assert.equal(board.find('j64'), undefined);
 });
 
 test('neighbouring holes are one pitch apart', () => {
   const board = createBoard();
-  const a = board.find('a1').pos;
-  const b = board.find('a2').pos;
-  const c = board.find('b1').pos;
+  const a = board.find('j1').pos;
+  const b = board.find('j2').pos;
+  const c = board.find('i1').pos;
   assert.ok(Math.abs(b.x - a.x - 2.54) < 1e-9);
   assert.ok(Math.abs(a.y - c.y - 2.54) < 1e-9);
 });

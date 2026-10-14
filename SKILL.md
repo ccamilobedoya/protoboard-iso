@@ -82,7 +82,8 @@ nothing unintended. A target is a circuit file or a folder with `circuit.json`.
 }
 ```
 
-- Holes: `a1`…`j63` (row letter + column); rails `T-`, `T+` (top), `B+`, `B-` (bottom)
+- Holes: `a1`…`j63` (row letter + column; j at the back, a at the front); rails `T-`, `T+`
+  (top, next to j), `B-`, `B+` (bottom, next to a)
   plus the column they line up with, e.g. `T+9`. Rail holes come in groups of five:
   columns 3–7, 9–13, 15–19… (6, 8, 14, 20… do not exist).
 - Rows a–e of one column are connected; so are f–j. Each rail is one connection along
@@ -101,7 +102,7 @@ nothing unintended. A target is a circuit file or a folder with `circuit.json`.
 | `bjt` | `part` (2N2222A, 2N2907A, 2N3904, 2N3906, BC547…BC550, BC557, BC558, BC337, BC327, BC517, S8050, S8550, S9012…S9018, C1815, A1015, 2N5551, 2N5401, TIP120) | from the part, e.g. `E`, `B`, `C` |
 | `potentiometer` | `value` ("10k"), `position` (0…1), `style` (`knob`, `trimmer`) | `1`, `W`, `3` (in a row) |
 | `button` | `color`, `pressed` | `1`, `2`, `3`, `4`; across the centre channel (1–2 and 3–4 joined inside) |
-| `ic` | `part` (NE555, LM358, LM324, LM393, UA741, NE5532, LM386, 74HC595, CD4017, ULN2003, ULN2803, PC817); place with `pin1` (`"f28"`) | from the part, e.g. `GND`, `TRIG`, `OUT` |
+| `ic` | `part` (NE555, LM358, LM324, LM393, UA741, NE5532, LM386, 74HC595, CD4017, ULN2003, ULN2803, PC817); place with `pin1` (`"e28"`: front row, reads from the front) | from the part, e.g. `GND`, `TRIG`, `OUT` |
 | `regulator` | `part` (7805…7824, LM317; also "L7805CV", "LM317T") | 78xx `IN`, `GND`, `OUT`; LM317 `ADJ`, `OUT`, `IN` (in a row) |
 | `inductor` | `value` ("100u"), `dcr`, `current` | `1`, `2` (axial, colour rings in µH) |
 | `thermistor` | `value` (R at 25 °C), `beta`, `temperature` (°C) | `1`, `2` |

@@ -92,6 +92,8 @@ function partData(circuit, lang, sim) {
       value: valueLine(part, lang),
       here: localized(part.raw.description, lang) ? t(lang, 'page.info.here', { text: localized(part.raw.description, lang) }) : null,
       nodes: [...new Set(part.holes.map((h) => h.node))],
+      cols: [...new Set(part.holes.map((h) => h.col))],
+      rows: [...new Set(part.holes.filter((h) => h.kind === 'main').map((h) => h.row))],
       pins,
       sim: sim?.ok && sim.parts[part.id] ? partLines(sim.parts[part.id], lang) : [],
     };

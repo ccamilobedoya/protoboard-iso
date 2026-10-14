@@ -18,16 +18,16 @@ const switchCircuit = () => ({
   netLabels: { 'T+': '+5 V', 'T-': 'GND' },
   supplies: [{ id: 'V1', voltage: 5 }],
   parts: [
-    { id: 'S1', type: 'button', pressed: true, pins: ['e10', 'f10', 'e12', 'f12'] },
-    { id: 'W1', type: 'wire', color: 'red', pins: ['T+10', 'a10'] },
-    { id: 'R1', type: 'resistor', value: '10k', pins: ['j12', 'j17'] },
-    { id: 'Q1', type: 'bjt', part: '2N2222A', pins: { E: 'h16', B: 'h17', C: 'h18' }, description: { en: 'NPN transistor', es: 'Transistor NPN' } },
-    { id: 'W2', type: 'wire', color: 'black', pins: ['j16', 'B-16'] },
-    { id: 'R2', type: 'resistor', value: '330', pins: ['T+24', 'c24'] },
-    { id: 'D1', type: 'led', color: 'green', pins: { anode: 'd24', cathode: 'd25' } },
-    { id: 'W3', type: 'wire', color: 'yellow', pins: ['a25', 'f18'] },
-    { id: 'W4', type: 'wire', color: 'black', pins: ['T-3', 'a3'] },
-    { id: 'W5', type: 'wire', color: 'black', pins: ['b3', 'B-3'] },
+    { id: 'S1', type: 'button', pressed: true, pins: ['f10', 'e10', 'f12', 'e12'] },
+    { id: 'W1', type: 'wire', color: 'red', pins: ['T+10', 'j10'] },
+    { id: 'R1', type: 'resistor', value: '10k', pins: ['a12', 'a17'] },
+    { id: 'Q1', type: 'bjt', part: '2N2222A', pins: { E: 'c16', B: 'c17', C: 'c18' }, description: { en: 'NPN transistor', es: 'Transistor NPN' } },
+    { id: 'W2', type: 'wire', color: 'black', pins: ['a16', 'B-16'] },
+    { id: 'R2', type: 'resistor', value: '330', pins: ['T+24', 'h24'] },
+    { id: 'D1', type: 'led', color: 'green', pins: { anode: 'g24', cathode: 'g25' } },
+    { id: 'W3', type: 'wire', color: 'yellow', pins: ['j25', 'e18'] },
+    { id: 'W4', type: 'wire', color: 'black', pins: ['T-3', 'j3'] },
+    { id: 'W5', type: 'wire', color: 'black', pins: ['i3', 'B-3'] },
   ],
 });
 
@@ -35,11 +35,17 @@ test('static focus: a veil, the chosen parts on top, and only their strips', () 
   const { svg } = renderCircuit(switchCircuit(), { focus: ['Q1'] });
   assert.ok(layer(svg, 'veil'), 'veil');
   const strips = [...new Set([...layer(svg, 'strips').matchAll(/data-node="([^"]+)"/g)].map((m) => m[1]))].sort();
-  assert.deepEqual(strips, ['16:f-j', '17:f-j', '18:f-j'], 'the three strips under the transistor');
+  assert.deepEqual(strips, ['16:a-e', '17:a-e', '18:a-e'], 'the three strips under the transistor');
   const spot = layer(svg, 'spotlight');
   assert.ok(spot.length > 1000, 'the transistor is drawn again on top');
   assert.ok(svg.indexOf('class="spotlight"') > svg.indexOf('class="veil"'));
-  assert.doesNotMatch(renderCircuit(switchCircuit(), {}).svg, /class="(veil|strips|spotlight)"/, 'nothing without focus');
+  // Its column numbers and row letter, where the board prints them (two of each), under the copy.
+  const coords = layer(svg, 'coords');
+  const cols = [...coords.matchAll(/<text[^>]*data-col="(\d+)"/g)].map((m) => m[1]).sort();
+  assert.deepEqual(cols, ['16', '16', '17', '17', '18', '18']);
+  assert.equal([...coords.matchAll(/<text[^>]*data-row="c"/g)].length, 2);
+  assert.ok(svg.indexOf('class="coords"') < svg.indexOf('class="spotlight"'));
+  assert.doesNotMatch(renderCircuit(switchCircuit(), {}).svg, /class="(veil|strips|spotlight|coords)"/, 'nothing without focus');
 });
 
 test('current flow obeys Kirchhoff along every strip and goes from − to + as electrons', () => {
@@ -55,10 +61,13 @@ test('current flow obeys Kirchhoff along every strip and goes from − to + as e
   // The + rail carries the whole supply current from the clip (first hole) to the first lead.
   const rail = segments.filter((s) => s.node === 'T+');
   assert.ok(Math.abs(rail[0].current - sim.supplies.V1.current) < 1e-9);
-  // In the LED strip the current goes from R2 (row c) to the LED anode (row d).
-  const anode = segments.filter((s) => s.node === '24:a-e');
+  // In the LED strip the current goes from R2 (row h) to the LED anode (row g).
+  const anode = segments.filter((s) => s.node === '24:f-j');
   assert.equal(anode.length, 1);
-  assert.ok(Math.abs(anode[0].current - sim.parts.D1.current) < 1e-9);
+  const [seg] = anode;
+  const forward = seg.current > 0 ? seg.from : seg.to; // where the conventional current starts
+  assert.ok(Math.abs(Math.abs(seg.current) - sim.parts.D1.current) < 1e-9);
+  assert.deepEqual(forward, built.board.find('h24').pos, 'from R2 towards the anode');
   // Drawn as electrons: the dots run against the conventional current (d → c).
   const { svg } = renderCircuit(circuit, { flow: true });
   const flow = layer(svg, 'flow');
@@ -102,7 +111,7 @@ test('page: tapping a part focuses it and opens its card; tapping the board clea
   assert.ok(!card.hidden);
   assert.equal(card.querySelector('h2').textContent, 'Q1 · 2N2222A');
   assert.match(card.textContent, /Transistor NPN/);
-  assert.match(card.textContent, /B → h17, columna 17 \(filas f–j\) — con R1 \(2\)/);
+  assert.match(card.textContent, /B → c17, columna 17 \(filas a–e\) — con R1 \(2\)/);
   assert.match(card.textContent, /saturado/, 'simulated values are in the card…');
   assert.ok(doc.body.classList.contains('show-results'), '…and shown: the simulation is always on');
   // What this kind of part is: behind its name, opened by the learner.
@@ -117,14 +126,17 @@ test('page: tapping a part focuses it and opens its card; tapping the board clea
   const copies = front.querySelectorAll('.spotlight > [data-part="Q1"]');
   assert.ok(copies.length > 5, 'the transistor is cloned above the veil');
   assert.ok(!front.querySelector('.spotlight > [data-part="R1"]'));
-  assert.match(doc.getElementById('dynamic').textContent, /\.strips > \[data-node="17:f-j"\]/);
+  assert.match(doc.getElementById('dynamic').textContent, /\.strips > \[data-node="17:a-e"\]/);
+  assert.match(doc.getElementById('dynamic').textContent, /\.coords > \[data-col="17"\]/, 'its column numbers are highlighted');
+  assert.match(doc.getElementById('dynamic').textContent, /\.coords > \[data-row="c"\]/, 'and its row letter');
+  assert.doesNotMatch(doc.getElementById('dynamic').textContent, /data-col="24"/, 'not those of other parts');
 
   // Results: the tags exist, but only the focused part's currents and its groups' voltages
   // get a rule that shows them.
   assert.ok(front.querySelector('.results > [data-part="R2"]'), 'every part has its current tag in the file');
   const rules = doc.getElementById('dynamic').textContent;
   assert.match(rules, /\.results > \[data-part="Q1"\]/);
-  assert.match(rules, /\.results > \[data-node="18:f-j"\]/);
+  assert.match(rules, /\.results > \[data-node="18:a-e"\]/);
   assert.doesNotMatch(rules, /data-part="R2"/);
   const ghost = [...card.querySelectorAll('button')].find((b) => b.textContent === 'Ver a través');
   ghost.click();
@@ -161,8 +173,8 @@ test('static focus with results keeps only the focused part\'s tags', () => {
   const count = (svg) => (svg.match(/<text /g) ?? []).length;
   assert.ok(count(focused) < count(all));
   assert.match(focused, /class="badge"/);
-  assert.match(focused, /data-node="24:a-e"/);
-  assert.doesNotMatch(focused, /data-node="17:f-j"/);
+  assert.match(focused, /data-node="24:f-j"/);
+  assert.doesNotMatch(focused, /data-node="17:a-e"/);
 });
 
 test('page: no native tooltip; values explain themselves when tapped or hovered', async (t) => {
@@ -192,7 +204,7 @@ test('page: no native tooltip; values explain themselves when tapped or hovered'
   click(front.querySelector('.results > text[data-part="Q1"]'));
   assert.equal(card.querySelector('h2').textContent, 'R2 · 330 Ω', 'the card does not change');
   assert.ok(doc.body.classList.contains('focusing'), 'still dimmed');
-  click(front.querySelector('.results > text[data-node="24:a-e"]'));
+  click(front.querySelector('.results > text[data-node="24:f-j"]'));
   assert.ok(doc.body.classList.contains('focusing'), 'a voltage tag does not clear the focus either');
 
   // Hover with a mouse: our own box, not the browser's tooltip.
@@ -207,7 +219,7 @@ test('page: a result tag shows where its value comes from (probes, arrows and a 
   const html = renderPage(circuit, { lang: 'es' }).html;
   const front = html.slice(html.indexOf('<svg data-view="front"'), html.indexOf('<svg hidden'));
   const probes = layer(front, 'probes');
-  assert.match(probes, /data-probe="node:17:f-j"/, 'probes for the base voltage');
+  assert.match(probes, /data-probe="node:17:a-e"/, 'probes for the base voltage');
   assert.equal((probes.match(/<polygon [^>]*data-probe="part:Q1"/g) ?? []).length, 2, 'two arrow heads for Ic: in at C, out at E');
   const window = await loadPage(html);
   if (!window) return t.skip('jsdom not installed');
@@ -218,8 +230,8 @@ test('page: a result tag shows where its value comes from (probes, arrows and a 
   const click = (el) => el.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
 
   // Hover with a mouse: probes for that tag only, and the line that says what is measured.
-  svg.querySelector('.results > text[data-node="17:f-j"]').dispatchEvent(new window.MouseEvent('pointerover', { bubbles: true }));
-  assert.match(rule(), /\.probes > \[data-probe="node:17:f-j"\]/);
+  svg.querySelector('.results > text[data-node="17:a-e"]').dispatchEvent(new window.MouseEvent('pointerover', { bubbles: true }));
+  assert.match(rule(), /\.probes > \[data-probe="node:17:a-e"\]/);
   assert.ok(!tip.hidden);
   assert.match(tip.textContent, /punta roja \(\+\) en esa tira, punta negra \(−\) en GND, T-3/);
 
@@ -230,10 +242,10 @@ test('page: a result tag shows where its value comes from (probes, arrows and a 
   assert.match(tip.textContent, /Ic = 8,82 mA: entra por el colector \(C\) y sale por el emisor \(E\)/);
   assert.equal(doc.querySelector('.info h2').textContent, 'Q1 · 2N2222A');
   assert.ok(doc.body.classList.contains('focusing'));
-  click(svg.querySelector('.results > text[data-node="17:f-j"]'));
-  assert.match(rule(), /data-probe="node:17:f-j"/);
+  click(svg.querySelector('.results > text[data-node="17:a-e"]'));
+  assert.match(rule(), /data-probe="node:17:a-e"/);
   assert.ok(doc.body.classList.contains('focusing'), 'still dimmed');
-  click(svg.querySelector('.results > text[data-node="17:f-j"]'));
+  click(svg.querySelector('.results > text[data-node="17:a-e"]'));
   assert.equal(rule(), '', 'the same tag again hides it');
   click(svg.querySelector('.results > text[data-part="R2"]'));
   assert.match(tip.textContent, /8,82 mA atraviesan R2, de la pata 1 a la pata 2/);
@@ -263,9 +275,9 @@ test('page: a battery beside the board can be tapped, focused and explained like
     page: { results: true },
     parts: [
       { id: 'BT1', type: 'battery', format: 'AA', cells: 4, side: 'left', pins: { '+': 'T+3', '-': 'T-3' } },
-      { id: 'R1', type: 'resistor', value: '220', pins: ['T+9', 'a12'] },
-      { id: 'D1', type: 'led', color: 'red', pins: ['c12', 'c13'] },
-      { id: 'W1', type: 'wire', color: 'black', pins: ['a13', 'T-15'] },
+      { id: 'R1', type: 'resistor', value: '220', pins: ['T+9', 'j12'] },
+      { id: 'D1', type: 'led', color: 'red', pins: ['h12', 'h13'] },
+      { id: 'W1', type: 'wire', color: 'black', pins: ['j13', 'T-15'] },
     ],
   };
   const window = await loadPage(renderPage(circuit, { lang: 'es' }).html);
