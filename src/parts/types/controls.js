@@ -19,7 +19,15 @@ export const button = {
   },
 };
 
-// fields: value (end-to-end resistance, "10k"), position (wiper 0…1, default 0.5)
+// Three-digit value code printed on trimmers: two significant digits and the number of
+// zeros, in ohms ("103" = 10 kΩ, "501" = 500 Ω).
+export function valueCode(ohms) {
+  const zeros = Math.max(0, Math.floor(Math.log10(ohms) + 1e-9) - 1);
+  return `${Math.round(ohms / 10 ** zeros)}${zeros}`;
+}
+
+// fields: value (end-to-end resistance, "10k"), position (wiper 0…1, default 0.5),
+//         style ('knob': panel type with a knob, default | 'trimmer': multi-turn 3296W)
 export const potentiometer = {
   type: 'potentiometer',
   pins: ['1', 'W', '3'],
@@ -28,6 +36,16 @@ export const potentiometer = {
     if (!(ohms > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value) } } };
     const position = part.position ?? 0.5;
     if (!(position >= 0 && position <= 1)) return { error: { code: 'BAD_VALUE', params: { value: `position ${part.position}` } } };
+    const style = part.style ?? 'knob';
+    if (style === 'trimmer') {
+      return {
+        package: 'trimmer-3296',
+        params: { code: valueCode(ohms) },
+        label: { value: ohms, unit: 'Ω' },
+        electrical: { kind: 'POT', resistance: ohms, position, trimmer: true },
+      };
+    }
+    if (style !== 'knob') return { error: { code: 'UNKNOWN_KIND', params: { kind: `style ${style}`, options: 'knob, trimmer' } } };
     return {
       package: 'pot-vertical',
       params: { position },

@@ -1,6 +1,7 @@
 // Through-hole LED, 5 mm or 3 mm: flange, cylinder and dome, standing on its two leads.
 // The leads come out 2.54 mm apart and may be spread up to three holes. The flange has a
-// flat on the cathode side, as on real LEDs.
+// flat on the cathode side, as on real LEDs. The anode lead is the longer one: pushed into the
+// board as far as the cathode, its extra length shows as a small kink outwards.
 //
 // params: size (5 | 3), color, standoff (mm between board and flange, default 3)
 
@@ -49,7 +50,7 @@ export default {
     const footA = add(base, scale(dir, -1.27 * k));
     const footK = add(base, scale(dir, 1.27 * k));
     const leads = [
-      ...lead([withZ(anode, 0), withZ(anode, 1.2), footA], { radius: 0.25 }),
+      ...lead([withZ(anode, 0), withZ(anode, 0.8), add(withZ(anode, Math.min(1.8, standoff * 0.6)), scale(dir, -0.9)), footA], { radius: 0.25 }),
       ...lead([withZ(cathode, 0), withZ(cathode, 1.2), footK], { radius: 0.25 }),
     ];
     return { primitives: [flange, body, ...leads], body: [flange, body], anchor: withZ(base, standoff + 8.1 * k) };

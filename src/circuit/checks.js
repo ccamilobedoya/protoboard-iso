@@ -41,7 +41,7 @@ export function checkLeads(part, pitch) {
     const found = pkg.validate(pos, part);
     if (found.length) return found;
   }
-  if (pkg.inline) {
+  if (pkg.inline && pos.length > 1) {
     const step = pkg.inline.pitch * pitch;
     const first = sub(pos[1], pos[0]);
     let ok = Math.abs(length(first) - step) < 0.01;

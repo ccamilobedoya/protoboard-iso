@@ -46,10 +46,13 @@ turns with the view like the real print.
 
 ## Drawing: the painter's algorithm
 
-1. The board is painted first (it is under everything).
-2. Every other primitive (a body, each segment of a lead or wire) is sorted by the depth of
+1. Pieces of off-board parts (a battery on the table) that lie entirely beyond a side face of
+   the board, on the side the camera does not see, are painted first (`under` layer): the
+   board stands between them and the viewer.
+2. Then the board.
+3. Every other primitive (a body, each segment of a lead or wire) is sorted by the depth of
    its centre and painted from far to near.
-3. Inside a primitive, faces looking away from the camera are dropped (back-face culling)
+4. Inside a primitive, faces looking away from the camera are dropped (back-face culling)
    and the rest are painted far to near; then its decals (marks and text).
 
 Primitives are kept convex or close to it so this stays correct. When two pieces of one

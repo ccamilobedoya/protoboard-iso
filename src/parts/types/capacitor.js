@@ -60,7 +60,7 @@ export default {
       return {
         package: 'radial-can',
         pinNames: ['+', '-'],
-        params: { diameter, height, leadSpacing },
+        params: { diameter, height, leadSpacing, print: `${Number((farads * 1e6).toPrecision(3))}µF ${volts}V` },
         label: { value: farads, unit: 'F', extra: `${volts} V` },
         electrical: { kind: 'C', capacitance: farads, polarised: true, voltage: volts },
       };

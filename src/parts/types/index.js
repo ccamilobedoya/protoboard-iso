@@ -5,8 +5,10 @@
 
 import resistor from './resistor.js';
 import capacitor from './capacitor.js';
-import { diode, led, mosfet, bjt, ic } from './semiconductors.js';
+import { diode, zener, bridge, led, mosfet, bjt, ic, regulator } from './semiconductors.js';
 import { button, potentiometer } from './controls.js';
+import battery from './battery.js';
+import { inductor, thermistor, ldr, buzzer, header } from './more.js';
 import { WIRE_COLORS } from '../colors.js';
 
 const wire = {
@@ -25,4 +27,4 @@ const wire = {
   },
 };
 
-export const PART_TYPES = Object.fromEntries([resistor, capacitor, potentiometer, diode, led, mosfet, bjt, ic, button, wire].map((t) => [t.type, t]));
+export const PART_TYPES = Object.fromEntries([resistor, capacitor, potentiometer, diode, zener, bridge, led, mosfet, bjt, ic, regulator, button, wire, battery, inductor, thermistor, ldr, buzzer, header].map((t) => [t.type, t]));

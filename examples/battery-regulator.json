@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "title": {
+    "en": "9 V battery, 7805 regulator and an LED",
+    "es": "Batería de 9 V, regulador 7805 y un LED"
+  },
+  "board": "bb830",
+  "clearance": 3,
+  "netLabels": {
+    "T+": "+5 V",
+    "T-": "GND",
+    "B+": "+9 V",
+    "B-": "GND"
+  },
+  "page": {
+    "results": true
+  },
+  "parts": [
+    {
+      "id": "BT1",
+      "type": "battery",
+      "format": "9V",
+      "side": "left",
+      "pins": {
+        "+": "B+3",
+        "-": "B-3"
+      }
+    },
+    {
+      "id": "U1",
+      "type": "regulator",
+      "part": "7805",
+      "pins": {
+        "IN": "c14",
+        "GND": "c15",
+        "OUT": "c16"
+      }
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "B+13",
+        "e14"
+      ]
+    },
+    {
+      "id": "W2",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "B-15",
+        "e15"
+      ]
+    },
+    {
+      "id": "W3",
+      "type": "wire",
+      "color": "yellow",
+      "pins": [
+        "a16",
+        "T+17"
+      ]
+    },
+    {
+      "id": "C1",
+      "type": "capacitor",
+      "value": "330n",
+      "pins": [
+        "B+10",
+        "B-10"
+      ]
+    },
+    {
+      "id": "C2",
+      "type": "capacitor",
+      "value": "100n",
+      "pins": [
+        "T+19",
+        "T-19"
+      ]
+    },
+    {
+      "id": "W4",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "T-28",
+        "B-28"
+      ]
+    },
+    {
+      "id": "W5",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "T+31",
+        "a30"
+      ]
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "330",
+      "pins": [
+        "c30",
+        "c34"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "green",
+      "pins": {
+        "anode": "a34",
+        "cathode": "T-34"
+      }
+    }
+  ]
+}

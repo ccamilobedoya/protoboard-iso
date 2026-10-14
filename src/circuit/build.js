@@ -109,7 +109,7 @@ export function buildCircuit(circuit) {
     });
     if (missing) return;
 
-    const built = pkg.build({ pins: holes.map((h) => h.pos), params: def.params });
+    const built = pkg.build({ pins: holes.map((h) => h.pos), params: def.params, board });
     parts.push({ id: raw.id, type: raw.type, raw, def, pkg, pinNames, holes, built });
   });
 

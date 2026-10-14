@@ -73,6 +73,21 @@ export function checkCircuit(circuit) {
   return { issues, netlist };
 }
 
+// A piece lying entirely beyond one side face of the board (a battery on the table, the low
+// part of its leads), on the side the camera does not see: the board stands between it and
+// the viewer, so it is painted before the board. Above the board top nothing is hidden, and
+// the board never covers it there either.
+const SIDE_FACES = [
+  [(p, s) => p.x < -0.01, { x: -1, y: 0, z: 0 }],
+  [(p, s) => p.x > s.length + 0.01, { x: 1, y: 0, z: 0 }],
+  [(p, s) => p.y < -0.01, { x: 0, y: -1, z: 0 }],
+  [(p, s) => p.y > s.width + 0.01, { x: 0, y: 1, z: 0 }],
+];
+function behindBoard(primitive, size, camera) {
+  const pts = primitive.faces.flatMap((f) => f.pts);
+  return SIDE_FACES.some(([outside, n]) => n.x * camera.toViewer.x + n.y * camera.toViewer.y < 0 && pts.every((p) => outside(p, size)));
+}
+
 // Shared by render and inspect: circuit → resolved parts → scene (+ annotations).
 function sceneFor(circuit, options = {}) {
   const view = options.view ?? circuit?.view ?? 'front';
@@ -84,10 +99,14 @@ function sceneFor(circuit, options = {}) {
   const camera = createCamera({ view, scale });
   const highlight = layers.has('nodes') ? nodeColors(result.netlist) : new Map();
   const base = [drawBoard(result.board, { netLabels: circuit.netLabels ?? {}, highlight, allNumbers: layers.has('grid') })];
-  const items = result.parts.flatMap((part) => {
-    for (const primitive of part.built.primitives) primitive.part = part.id;
-    return part.built.primitives;
-  });
+  const items = [];
+  const under = [];
+  for (const part of result.parts) {
+    for (const primitive of part.built.primitives) {
+      primitive.part = part.id;
+      (behindBoard(primitive, result.board.spec.size, camera) ? under : items).push(primitive);
+    }
+  }
   const anchors = [];
   if (labels) {
     for (const part of result.parts) {
@@ -98,7 +117,7 @@ function sceneFor(circuit, options = {}) {
       anchors.push({ x: at.x, y: at.y, text, part: part.id });
     }
   }
-  const scene = buildScene({ camera, base, items, labels: anchors, fit });
+  const scene = buildScene({ camera, base, items, under, labels: anchors, fit });
   if (layers.size) annotateScene(scene, result, layers);
   addLayers(scene, result, circuit, options, lang);
   return { result, scene, view, scale, lang };

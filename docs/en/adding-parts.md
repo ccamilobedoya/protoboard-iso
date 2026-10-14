@@ -80,7 +80,11 @@ Besides `span` and `inline`, a package may define:
 |---|---|---|
 | `validate(pos, part) → issues` | shapes the generic rules cannot check | the button's rectangle, the DIP's two rows |
 | `footprints(board, params) → [[hole, …], …]` | every valid set of holes, so `suggest` can place it | button and DIP: every spot across the channel |
-| `expandPin1(board, pin1, params) → [hole, …]` | placing with `pin1` instead of every hole | DIP chips |
+| `expandPin1(board, pin1, params) → [hole, …]` | placing with `pin1` instead of every hole | DIP chips, header pins |
+
+`build` also receives `board` (`build({ pins, params, board })`): a part that lies off the board
+needs its edges (`board.spec.size`). The battery does this; its pieces beyond the far side of
+the board go to the `under` layer by themselves (see `behindBoard` in `src/index.js`).
 
 And a type may declare `internal: [['1', '2'], ['3', '4']]`: pins joined inside the part.
 The checker then lets those pins share a strip, warns when pins of different groups do

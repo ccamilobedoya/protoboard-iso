@@ -42,13 +42,13 @@ Goal: a JSON file in, a faithful isometric picture out, with the placement check
 - ⬜ Leader lines that avoid passing over other parts (`LEADER_OVER_PART` notes remain)
 - ✅ Pin tags of the `pins` layer that avoid each other and the hole rings (tested)
 - ✅ LED: flat side on the cathode flange
-- ⬜ LED: longer anode lead when `standoff` is high
+- ✅ LED: longer anode lead (a small kink above the board)
 - ✅ Electrolytic: "−" marks on the stripe
-- ⬜ Electrolytic: value printed on the sleeve
+- ✅ Electrolytic: value printed up the sleeve, one copy per view
 - ✅ Label modes: `labels: 'both' | 'id' | 'value' | false` (`--labels`, MCP `render`)
 - ⬜ Check rail order and colours against the maintainer's real board (`bb830.js`)
 - ✅ Potentiometer (standing, knob to the front, wiper mark), push button 6×6 across the channel (inner pairs, `SWITCH_BYPASSED`), DIP chips placed by `pin1` (NE555, LM358, 74HC595, CD4017); `suggest` places them; example `controls-and-ics.json`
-- ⬜ More packages: trimmer potentiometer, header pins, buzzer, 9 V battery clip, DIP-14 parts
+- ✅ More packages: multi-turn trimmer (3296W), header pins, passive buzzer, NTC bead, photoresistor, batteries beside the board (AA/AAA/18650 holders, 9 V block with its snap, LiPo pouch), DIP-14 and other chips (LM324, LM393, UA741, NE5532, LM386, ULN2003, ULN2803, PC817)
 - ⬜ Painter: sort jumper wires against tall parts more robustly (split long arcs, depth bias)
 - ✅ **Page to embed** (`out/<name>.html`, `page` command, `render` with `page: true`): one self-contained file per circuit, rewritten on every change under the same name; two views, close-up or whole board, labels on/off, drag to pan, wheel or pinch to zoom. Stages 2–4 grow this same page ([embedding.md](docs/en/embedding.md))
 - ✅ `check --json`; exit codes documented (0 fine, 1 errors or refused, 2 review CHANGES)
@@ -91,8 +91,21 @@ Guide: [docs/en/simulation.md](docs/en/simulation.md).
 - ✅ Results in the CLI and MCP (`simulate`, text or JSON) and in the embeddable page behind a button, only when the circuit asks (`"page": { "results": true }`)
 - ⬜ Compare a few circuits with Falstad CircuitJS as a second reference
 - ⬜ Events during a transient (press a button at a given time), and a chart of the transient in the page
-- ⬜ Chips: behavioural 555 and op-amp; inductors
-- ⬜ Battery drawn as a part (9 V snap; see the stage 1 parts list)
+- ⬜ Chips: behavioural 555 and op-amp
+- ✅ Inductors (axial, colour rings in µH; winding resistance; transient), Zener diodes (1N47xxA, breakdown with a soft or sharp knee), linear regulators (78xx, LM317, with dropout and their own current), NTC thermistor and photoresistor (resistance from `temperature` / `light`), passive buzzer (warns on DC)
+- ✅ Batteries drawn as parts and simulated as sources: format, chemistry, cells in series, state of charge, measured voltage, holder switch; runtime estimate; warnings for short circuit, over-current, charging an alkaline cell ([simulation.md](docs/en/simulation.md))
+
+## Parts and sources, next ⬜
+
+From the course inventory, in rough order of use:
+
+- ⬜ Modules beside or on the board, with header pins and Dupont wires: Arduino UNO, ESP32 DevKit (straddling the board), AMS1117-3.3 and LM2596 modules, TP4056 charger
+- ⬜ Bench supply drawn beside the board, its leads clipped to the rails (today `supplies` is not drawn)
+- ⬜ Battery discharge over time in a transient (charge falling with the current drawn), for runtime lessons
+- ⬜ Step-up (boost) converter module, as a behavioural source
+- ✅ KBP bridge rectifier (`bridge`: four diodes in one body, simulated), cement resistors (3, 5, 10 W, value printed on top); example `rectifier.json`
+- ✅ Battery holders: end walls as tall as the cells, so the + button never peeks over them
+- ⬜ Coin cell (CR2032) in its holder
 
 ## Visual style and themes (cross-cutting, after stage 2) ⬜
 

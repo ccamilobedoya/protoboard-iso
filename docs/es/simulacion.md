@@ -25,7 +25,41 @@ MCP: la herramienta `simulate` (mismas opciones) y `render` con `sim: true`.
 > el circuito lo pide (`"page": { "results": true }`), y aun así solo los del componente que se
 > toca.
 
-## La alimentación: `supplies`
+## La alimentación: baterías y `supplies`
+
+Hay dos formas de decir de dónde sale la energía, y el simulador trata las dos igual (una
+fuente ideal detrás de una resistencia interna):
+
+- una **batería** (`"type": "battery"`), dibujada al lado de la protoboard con sus dos cables en
+  agujeros: formato, química, celdas en serie, estado de carga (ver
+  [formato-circuito.md](formato-circuito.md#battery-batería)). Un circuito con batería no necesita
+  `supplies`.
+- **`supplies`**, sin dibujar: una fuente de banco o una batería enganchada a dos grupos.
+
+```json
+{ "id": "BT1", "type": "battery", "format": "AA", "cells": 4, "pins": { "+": "T+3", "-": "T-3" } }
+```
+
+Las celdas en serie se suman: 4 pilas AA alcalinas dan 6 V nominales con 4 × 0,25 Ω por
+dentro, así que con 330 Ω entregan 6 V / 331 Ω = 18,1 mA y quedan 5,98 V en sus bornes. Su ficha
+muestra el voltaje (tensión) en vacío (fuerza electromotriz), el voltaje en los bornes, la
+caída interna, la corriente y la potencia entregadas, y una autonomía estimada (capacidad /
+corriente).
+
+| Formato | Químicas (la primera, por defecto) | Por celda: nominal · llena | Resistencia interna | Capacidad | Corriente máxima |
+|---|---|---|---|---|---|
+| AA | alkaline, nimh | 1,5 V · 1,6 V; 1,2 V · 1,4 V | 0,25 Ω; 0,03 Ω | 2,5 Ah; 2,0 Ah | 1 A; 2 A |
+| AAA | alkaline, nimh | igual que AA | 0,35 Ω; 0,05 Ω | 1,15 Ah; 0,8 Ah | 0,5 A; 1 A |
+| 18650 | li-ion, lifepo4 | 3,7 V · 4,2 V; 3,2 V · 3,4 V | 0,03 Ω | 3,5 Ah; 1,5 Ah | 10 A; 4,5 A |
+| 9V | alkaline (seis celdas por dentro) | 9 V · 9,6 V | 1,7 Ω | 0,55 Ah | 0,3 A |
+| pouch | lipo (103450) | 3,7 V · 4,2 V | 0,08 Ω | 2,0 Ah | 2 A |
+
+Sin `charge`, una batería está en su voltaje nominal. Con `charge` (0…1), el voltaje en vacío
+sigue la curva de su química (li-ion: 3,0 V vacía, 3,75 V a la mitad, 4,2 V llena) y la
+resistencia interna sube al vaciarse (cuatro veces en las alcalinas). Un `voltage` medido gana
+sobre los dos. `switch: "off"` la desconecta.
+
+### `supplies`
 
 ```json
 "supplies": [{ "id": "V1", "voltage": 5, "positive": "T+", "negative": "T-", "currentLimit": 0.5 }]
@@ -35,12 +69,14 @@ MCP: la herramienta `simulate` (mismas opciones) y `render` con `sim: true`.
 |---|---|---|
 | `id` | nombre en los resultados | `V1`, `V2`… |
 | `kind` | `bench` (fuente de banco) o `battery` (batería) | `bench` |
-| `voltage` | voltios | obligatorio |
+| `voltage` | voltios | obligatorio, salvo en una batería con `format` o `chemistry` |
+| `format`, `chemistry`, `cells`, `charge`, `capacity` | una batería descrita como una batería dibujada | — |
 | `positive`, `negative` | agujero (`"T+9"`) o grupo (`"T+"`, `"12:a-e"`) de cada cable | `T+`, `T-` |
 | `currentLimit` | límite de la fuente de banco, A: por encima, la fuente sostiene la corriente (corriente constante, CC) y su voltaje baja | ninguno |
-| `internalResistance` | Ω | banco 0; batería 0,25 Ω por cada celda de 1,5 V |
+| `internalResistance` | Ω | banco 0; batería según su formato, o 0,25 Ω por cada celda de 1,5 V si solo trae el voltaje |
 
-El negativo de la primera fuente es la **tierra** (0 V). Una segunda fuente sin conexión con la
+El negativo de la primera fuente es la **tierra** (0 V); sin `supplies`, el de la primera
+batería. Una segunda fuente sin conexión con la
 primera alimenta un circuito aparte, medido desde su propio negativo.
 
 Se fijan con una operación, como cualquier campo del circuito:
@@ -51,8 +87,9 @@ Se fijan con una operación, como cualquier campo del circuito:
 - **DC (punto de operación).** Los capacitores quedan abiertos; todo lo demás, en su estado
   estable. Método de Newton sobre análisis nodal modificado (MNA); si no converge, las fuentes
   se suben poco a poco desde el 10 %.
-- **Transitorio.** `stop` y `step` en segundos; los capacitores empiezan descargados
-  (`start: "zero"`, la fuente se enciende en t = 0) o en sus valores de DC (`start: "dc"`).
+- **Transitorio.** `stop` y `step` en segundos; los capacitores empiezan descargados y los
+  inductores sin corriente (`start: "zero"`, la fuente se enciende en t = 0), o en sus valores de
+  DC (`start: "dc"`).
   Euler implícito con paso fijo; se guardan como mucho 400 muestras (`points`).
 
 ## Resultados
@@ -66,7 +103,10 @@ Se fijan con una operación, como cualquier campo del circuito:
   parts:    { R1: { voltage, current, power, pins: { '1': 5, '2': 1.76 } },
               D1: { …, brightness: 0.49 },                // LED: corriente / 20 mA
               Q1: { currents: { C, B, E }, vbe, vce, beta, region: 'off' | 'active' | 'saturation' },
-              M1: { currents: { D, G, S }, vgs, vds, region: 'off' | 'linear' | 'saturation' } },
+              M1: { currents: { D, G, S }, vgs, vds, region: 'off' | 'linear' | 'saturation' },
+              BT1: { voltage, current, power, emf, drop, runtime, charge, on },   // current: la que entrega
+              U1: { vin, vout, headroom, current, quiescent, power, state: 'regulating' | 'dropout' },
+              RT1: { …, sensor: { kind: 'thermistor', temperature, resistance } } },
   issues: [ … ] }
 ```
 
@@ -79,11 +119,14 @@ entran por la pata. El transitorio trae `times` y las mismas magnitudes como lis
 | Código | Cuándo |
 |---|---|
 | `SIM_OVER_POWER` | una resistencia por encima de su potencia (`power`: "1/4" W por defecto) o un transistor por encima de lo que aguanta su encapsulado |
-| `SIM_OVER_CURRENT` | un LED con más de 30 mA, un diodo por encima de su máximo |
+| `SIM_OVER_CURRENT` | un LED con más de 30 mA; un diodo, inductor, regulador o batería por encima de su máximo |
 | `SIM_REVERSE_VOLTAGE` | un LED con más de 5 V en inversa |
 | `SIM_CAP_REVERSED`, `SIM_CAP_OVER_VOLTAGE` | un electrolítico al revés; cualquier capacitor por encima de su voltaje |
 | `SIM_SUPPLY_LIMITED` | una fuente de banco en su límite de corriente (corriente constante) |
-| `SIM_SHORT_CIRCUIT` | una fuente sin límite que entrega más de 3 A |
+| `SIM_SHORT_CIRCUIT` | una fuente sin límite que entrega más de 3 A; una batería cuya carga es de menos de medio ohmio |
+| `SIM_BATTERY_OFF`, `SIM_BATTERY_CHARGING`, `SIM_BATTERY_REVERSE` | una batería apagada; corriente que entra en ella (aviso fuerte si es alcalina, que no se recarga) |
+| `SIM_REG_DROPOUT`, `SIM_REG_HOT` | un regulador sin voltaje de entrada suficiente para regular; disipando más de lo que aguanta un TO-220 sin disipador (2 W) |
+| `SIM_BUZZER_DC` | corriente continua por un zumbador pasivo |
 | `SIM_FLOATING` | grupos sin camino de corriente continua hasta la fuente (por ejemplo, la compuerta de un MOSFET sin conectar) |
 | `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | un componente que todavía no se simula (chips), o una referencia sin modelo propio |
 
@@ -98,17 +141,24 @@ referencia independiente (una fórmula de libro resuelta aparte, o el dato de la
 | resistencia, potenciómetro | ley de Ohm; cursor: R(1–W) = posición · R | divisor, serie y paralelo |
 | pulsador | 0,1 Ω presionado; los pares siempre unidos | el LED prende solo mientras se presiona |
 | capacitor | abierto en DC; Euler implícito en el transitorio | V·(1 − e^(−t/RC)) |
-| diodo | Shockley + resistencia en serie (1N4007, 1N4148, 1N5819) | Vf de la hoja de datos |
+| diodo | Shockley + resistencia en serie, según la referencia | Vf de la hoja de datos |
+| diodo Zener | el diodo más una ruptura en inversa: rodilla suave por debajo de unos 5,5 V (efecto Zener) y brusca por encima (avalancha), detrás de parte de Zzt; exactamente Vz con la corriente de prueba Izt (tabla de los 1N47xxA) | 1N4733A: 5,1 V a 49 mA |
+| puente rectificador | cuatro diodos (AC1 y AC2 suben a +, − sube a cada una), Shockley + resistencia en serie, cerca de 1,0 V cada uno a la corriente nominal (KBP2xx 2 A, KBP3xx 3 A) | la misma polaridad de salida al invertir la entrada; Kirchhoff en sus patas |
+| regulador | salida = referencia + su voltaje (GND + 5 V en un 7805, ADJ + 1,25 V en un LM317), o unos 2 V por debajo de la entrada si esta no alcanza; su corriente propia (5 mA; 50 µA por ADJ) | 7805 con 9 V; fórmula del LM317 con Iadj |
+| inductor | resistencia del alambre en serie; un corto en DC, Euler implícito en el transitorio | RL: I·(1 − e^(−t/τ)) |
+| termistor, fotorresistencia | resistencias cuyo valor sale de la temperatura (ecuación B) o de la luz (curva GL55) | ecuación B a 50 °C; GL5528 a 10 lx |
+| zumbador | su bobina, 16 Ω | — |
 | LED | Shockley + 10 Ω, Vf a 20 mA según el color; `"model": { "vf": 2.95 }` lo cambia | ecuación de la malla resuelta aparte |
 | MOSFET | ley cuadrática con encendido suave, k a partir de Rds(on) | ley cuadrática resuelta aparte, Rds(on) |
 | BJT | Ebers–Moll, β constante; TIP120 como Darlington con sus dos resistencias | Ebers–Moll resuelto aparte; hFE ≥ 1000 |
-| fuente de banco, batería | fuente ideal, límite opcional; batería 0,25 Ω por celda | cortocircuito, batería con carga |
+| fuente de banco, batería | fuente ideal, límite opcional; batería: fem según formato, química, celdas y carga, detrás de su resistencia interna | cortocircuito, ley de Ohm con la resistencia interna |
 
 Cualquier campo del modelo se puede cambiar por componente con `"model": { … }` (por ejemplo, el
 voltaje directo de un LED medido en el banco).
 
 ## Todavía no
 
-Los chips (555, amplificadores operacionales, lógica) quedan sin conectar y se avisa. No hay
-bobinas, ni eventos durante un transitorio (presionar un botón en un momento dado), ni
-temperatura, ni ruptura. La animación (etapa 3) leerá estos mismos resultados.
+Los chips (555, amplificadores operacionales, lógica, optoacopladores) quedan sin conectar y se
+avisa. No hay eventos durante un transitorio (presionar un botón en un momento dado), ni
+autocalentamiento, ni descarga de la batería con el tiempo (`charge` es fija en cada cálculo).
+La animación (etapa 3) leerá estos mismos resultados.

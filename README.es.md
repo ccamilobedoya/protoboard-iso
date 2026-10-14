@@ -53,6 +53,14 @@ La protoboard decide las conexiones: las filas a–e de una columna son un nodo,
 otro y cada riel uno más. Solo con los agujeros el kit sabe qué está conectado y avisa
 de tiras en corto, agujeros ocupados, patas que no alcanzan y cuerpos que se chocan.
 
+Además simula lo que dibuja (un modelo, y lo dice): con una fuente de banco en `supplies`, o
+con una **batería** al lado de la protoboard (AA, AAA, 18650, 9 V o LiPo; las celdas que se
+quieran en serie, su química y su estado de carga), calcula voltajes (tensiones) y
+corrientes, avisa de sobrecargas y cortocircuitos, y muestra los valores de cada componente en
+la página para embeber. Los componentes van de resistencias y LED a diodos Zener, puentes rectificadores, reguladores,
+inductores, sensores, transistores y chips
+([formato-circuito.md](docs/es/formato-circuito.md), [simulacion.md](docs/es/simulacion.md)).
+
 ## Usarlo como skill
 
 Clona o enlaza esta carpeta en tu directorio de skills, por ejemplo

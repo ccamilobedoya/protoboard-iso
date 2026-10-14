@@ -37,7 +37,7 @@ export function stripOps(scene, board, nodes) {
 // Copies of the parts (bodies, leads, labels) in painting order; `ids` null = every part.
 export function spotlightOps(scene, ids = null) {
   const keep = (op) => op.part && (!ids || ids.has(op.part));
-  return [...scene.layers.parts.filter(keep), ...scene.layers.labels.filter(keep)].map((op) => ({ ...op }));
+  return [...scene.layers.under.filter(keep), ...scene.layers.parts.filter(keep), ...scene.layers.labels.filter(keep)].map((op) => ({ ...op }));
 }
 
 // The nodes under the leads of some parts.

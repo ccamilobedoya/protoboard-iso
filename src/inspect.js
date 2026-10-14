@@ -38,7 +38,7 @@ function boxOfOps(ops) {
 
 export function partBoxes(scene) {
   const byPart = new Map();
-  for (const op of scene.layers.parts) {
+  for (const op of [...scene.layers.under, ...scene.layers.parts]) {
     if (op.part == null) continue;
     if (!byPart.has(op.part)) byPart.set(op.part, []);
     byPart.get(op.part).push(op);
@@ -64,7 +64,7 @@ function segmentsCross(a, b) {
 export function inspectScene(scene, result, { view, scale, limits = INSPECT_LIMITS } = {}) {
   const { camera } = scene;
   const coverage = createCoverage(scene.frame);
-  for (const op of scene.layers.parts) if (op.kind === 'polygon') coverage.paint(op.pts, op.part);
+  for (const op of [...scene.layers.under, ...scene.layers.parts]) if (op.kind === 'polygon') coverage.paint(op.pts, op.part);
 
   const visibility = new Map(coverage.visibility().map((v) => [v.part, v]));
   const boxes = partBoxes(scene);
@@ -149,7 +149,7 @@ export function inspectScene(scene, result, { view, scale, limits = INSPECT_LIMI
   }
 
   // Text size on screen.
-  const texts = [...scene.layers.board, ...scene.layers.parts].filter((op) => op.kind === 'text');
+  const texts = [...scene.layers.under, ...scene.layers.board, ...scene.layers.parts].filter((op) => op.kind === 'text');
   // Board print scales with --scale and is reported only as the smallest text; parts'
   // markings (TO-92 print, capacitor codes) are what a learner must be able to read.
   const small = texts.filter((op) => op.part != null && op.px < limits.smallText);

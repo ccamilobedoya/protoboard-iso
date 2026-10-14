@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "title": {
+    "en": "More parts: trimmer, Zener, inductor, sensors, buzzer, header, chips, lithium cells",
+    "es": "Más componentes: trimmer, Zener, inductor, sensores, zumbador, pines, chips, celdas de litio"
+  },
+  "board": "bb830",
+  "clearance": 3,
+  "parts": [
+    { "id": "RV1", "type": "potentiometer", "style": "trimmer", "value": "10k", "pins": ["b3", "b4", "b5"] },
+    { "id": "D1", "type": "zener", "value": "5V1", "pins": { "A": "c9", "K": "c12" } },
+    { "id": "L1", "type": "inductor", "value": "100u", "pins": ["c16", "c21"] },
+    { "id": "RT1", "type": "thermistor", "value": "10k", "pins": ["c25", "c26"] },
+    { "id": "LDR1", "type": "ldr", "part": "GL5528", "pins": ["c30", "c32"] },
+    { "id": "BZ1", "type": "buzzer", "pins": ["c37", "c40"] },
+    { "id": "U1", "type": "ic", "part": "LM324", "pin1": "f45" },
+    { "id": "D2", "type": "diode", "part": "1N5408", "pins": ["h3", "h8"] },
+    { "id": "U2", "type": "regulator", "part": "LM317", "pins": ["h12", "h13", "h14"] },
+    { "id": "Q1", "type": "bjt", "part": "C1815", "pins": ["h19", "h20", "h21"] },
+    { "id": "J1", "type": "header", "count": 4, "pin1": "h25" },
+    { "id": "U3", "type": "ic", "part": "PC817", "pin1": "f55" },
+    { "id": "BT1", "type": "battery", "format": "18650", "cells": 2, "side": "right", "pins": { "+": "B+61", "-": "B-61" } }
+  ]
+}

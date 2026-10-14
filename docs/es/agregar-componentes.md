@@ -82,7 +82,12 @@ Además de `span` e `inline`, un encapsulado puede definir:
 |---|---|---|
 | `validate(pos, part) → observaciones` | formas que las reglas generales no pueden revisar | el rectángulo del pulsador, las dos filas del DIP |
 | `footprints(board, params) → [[agujero, …], …]` | todos los juegos de agujeros válidos, para que `suggest` pueda colocarlo | pulsador y DIP: todos los lugares a caballo del canal |
-| `expandPin1(board, pin1, params) → [agujero, …]` | colocar con `pin1` en vez de listar todos los agujeros | chips DIP |
+| `expandPin1(board, pin1, params) → [agujero, …]` | colocar con `pin1` en vez de listar todos los agujeros | chips DIP, pines de cabecera |
+
+`build` también recibe `board` (`build({ pins, params, board })`): un componente que queda fuera
+de la protoboard necesita saber dónde están sus bordes (`board.spec.size`). Así lo hace la
+batería; sus piezas que quedan más allá del lado lejano de la protoboard pasan solas a la capa
+`under` (ver `behindBoard` en `src/index.js`).
 
 Y un tipo puede declarar `internal: [['1', '2'], ['3', '4']]`: patas unidas por dentro del
 componente. Entonces el verificador deja que esas patas compartan tira, avisa cuando lo hacen

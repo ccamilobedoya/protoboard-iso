@@ -257,3 +257,29 @@ test('page: no circuit description, nothing about its use (the learner finds it 
   assert.doesNotMatch(card.textContent, /En este circuito/);
   assert.ok(card.querySelector('.term').nextElementSibling.hidden, 'and the generic text still waits behind the name');
 });
+
+test('page: a battery beside the board can be tapped, focused and explained like any part', async (t) => {
+  const circuit = {
+    page: { results: true },
+    parts: [
+      { id: 'BT1', type: 'battery', format: 'AA', cells: 4, side: 'left', pins: { '+': 'T+3', '-': 'T-3' } },
+      { id: 'R1', type: 'resistor', value: '220', pins: ['T+9', 'a12'] },
+      { id: 'D1', type: 'led', color: 'red', pins: ['c12', 'c13'] },
+      { id: 'W1', type: 'wire', color: 'black', pins: ['a13', 'T-15'] },
+    ],
+  };
+  const window = await loadPage(renderPage(circuit, { lang: 'es' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const doc = window.document;
+  const front = doc.querySelector('svg[data-view="front"]');
+  // From the front, the battery on the left is behind the board: it lives in the `under` layer.
+  const piece = front.querySelector('.under > [data-part="BT1"]');
+  assert.ok(piece, 'drawn before the board');
+  piece.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.ok(front.querySelectorAll('.spotlight > [data-part="BT1"]').length > 20, 'brought to the front when focused');
+  const card = doc.querySelector('.info').textContent;
+  assert.match(card, /Batería/);
+  assert.match(card, /6 V \(4×AA\)/);
+  assert.match(card, /Fuerza electromotriz/, 'its simulated values');
+  assert.match(card, /Autonomía estimada/);
+});

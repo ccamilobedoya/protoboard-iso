@@ -1,7 +1,8 @@
 // Radial electrolytic capacitor: an aluminium can in a printed sleeve, standing on two
 // leads. The light stripe faces the negative lead, as on real parts.
 //
-// params: diameter, height, leadSpacing (mm), sleeve, stripe, standoff
+// params: diameter, height, leadSpacing (mm), sleeve, stripe, standoff,
+//         print (value printed down the sleeve, "100µF 25V")
 
 import { add, scale, cross, Z } from '../../core/vec.js';
 import { lathe, rectDecal, textDecal, midpoint } from '../../geometry/primitives.js';
@@ -18,7 +19,7 @@ export default {
   span: (params) => ({ min: P * 0.99, max: Math.max(params.leadSpacing, P) + 2 * P + 0.01 }),
 
   build({ pins: [plus, minus], params }) {
-    const { diameter: D, height: H, leadSpacing, sleeve = MATERIALS.capSleeve, stripe = MATERIALS.capStripe, standoff = 0.4 } = params;
+    const { diameter: D, height: H, leadSpacing, sleeve = MATERIALS.capSleeve, stripe = MATERIALS.capStripe, standoff = 0.4, print } = params;
     const R = D / 2;
     const dir = directionBetween(plus, minus);
     const base = withZ(midpoint(plus, minus), standoff);
@@ -56,6 +57,19 @@ export default {
     for (const f of [0.3, 0.5, 0.7]) {
       const at = add(withZ(base, standoff + H * f), scale(dir, R + 0.02));
       body.decals.push(textDecal({ text: '−', at, right: side, down: scale(Z, -1), size: Math.min(2.2, D * 0.35), color: sleeve, weight: 700 }));
+    }
+
+    // The value, printed up the sleeve and repeated around it as on real parts (never over the
+    // stripe). Each copy shows only when it faces the viewer squarely: the isometric views look
+    // at 45° to the board, so with copies near the diagonals each view shows exactly one.
+    if (print) {
+      const size = Math.min(D * 0.26, (H * 0.8) / (print.length * 0.56));
+      for (const turn of [65, 135, 225, 295]) {
+        const a = (turn * Math.PI) / 180;
+        const out = add(scale(dir, Math.cos(a)), scale(side, Math.sin(a)));
+        const at = add(withZ(base, standoff + H * 0.5), scale(out, R + 0.02));
+        body.decals.push({ ...textDecal({ text: print, at, right: Z, down: cross(Z, out), size, color: stripe, weight: 700 }), minFacing: 0.6 });
+      }
     }
 
     const half = leadSpacing / 2;

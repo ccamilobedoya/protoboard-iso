@@ -83,7 +83,7 @@ function paintPrimitive(primitive, camera, bounds, out) {
   }
 
   for (const decal of primitive.decals ?? []) {
-    if (!camera.faces(decal.normal)) continue;
+    if (!camera.faces(decal.normal, decal.minFacing)) continue;
     if (decal.kind === 'polygon') {
       out.push({
         kind: 'polygon',
@@ -207,14 +207,17 @@ function layoutLabels(labels, top, obstacles = []) {
 }
 
 // fit: 'board' frames the whole board; 'parts' frames only the parts and their labels.
-export function buildScene({ camera, base = [], items = [], labels = [], margin = 24, fit = 'board' }) {
+//   under: primitives of parts that lie beside the board on its far side (a battery on the
+//          table): painted before the board, so the board hides them where it should
+export function buildScene({ camera, base = [], items = [], under = [], labels = [], margin = 24, fit = 'board' }) {
   const bounds = createBounds();
   const focus = createBounds();
-  const layers = { board: [], parts: [], labels: [], annotations: [] };
+  const layers = { under: [], board: [], parts: [], labels: [], annotations: [] };
 
+  const byDepth = (list) => list.map((p) => ({ p, depth: centroidDepth(p, camera) })).sort((a, b) => b.depth - a.depth);
+  for (const { p } of byDepth(under)) paintPrimitive(p, camera, focus, layers.under);
   for (const primitive of base) paintPrimitive(primitive, camera, bounds, layers.board);
-  const sorted = items.map((p) => ({ p, depth: centroidDepth(p, camera) })).sort((a, b) => b.depth - a.depth);
-  for (const { p } of sorted) paintPrimitive(p, camera, focus, layers.parts);
+  for (const { p } of byDepth(items)) paintPrimitive(p, camera, focus, layers.parts);
 
   const top = focus.empty() ? bounds.minY : focus.minY;
   const obstacles = layers.board.filter((op) => op.kind === 'text' && op.role === 'net-label').map((op) => op.box);

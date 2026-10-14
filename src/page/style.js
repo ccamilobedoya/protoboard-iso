@@ -6,7 +6,7 @@
 //   body.conventional    dots reversed (conventional current)
 //   #dynamic             strips and result tags of the focused part; see-through rules
 //   #probe               the probes/arrows of the result tag hovered or tapped
-// Layers in each SVG: board, parts, labels, (annotations), veil, strips, spotlight (made by the
+// Layers in each SVG: (under), board, parts, labels, (annotations), veil, strips, spotlight (made by the
 // script), flow, results, probes. Hidden by default: veil, flow, strips, results and probes.
 
 export const STYLE = `

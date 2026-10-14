@@ -6,7 +6,7 @@ import { review, formatReview, t, formatIssue } from '../src/index.js';
 const example = (name) => JSON.parse(readFileSync(new URL(`../examples/${name}`, import.meta.url), 'utf8'));
 
 test('the teaching examples are approved; the mistakes example is not', () => {
-  for (const name of ['led-resistor.json', 'voltage-divider.json', 'parts-showcase.json']) assert.equal(review(example(name)).verdict, 'approved', name);
+  for (const name of ['led-resistor.json', 'voltage-divider.json', 'parts-showcase.json', 'battery-regulator.json', 'more-parts.json']) assert.equal(review(example(name)).verdict, 'approved', name);
   const r = review(example('common-mistakes.json'));
   assert.equal(r.verdict, 'changes');
   const codes = r.blocking.map((p) => p.code);

@@ -35,6 +35,8 @@ export const MATERIALS = {
   tinned: '#d9dce0',
   carbonFilm: '#d8c398',
   metalFilm: '#8db6dc',
+  cement: '#ecebe6',
+  cementPrint: '#2b2b2b',
   epoxyBlack: '#2a2a2d',
   glass: '#e98b3a',
   aluminium: '#b9bdc4',
@@ -80,3 +82,25 @@ Object.assign(MATERIALS, {
   chip: '#27272b',
   chipMark: '#55555b',
 });
+
+// Batteries: holders, cell wraps per chemistry (with the accent at the + end), 9 V block, pouch.
+Object.assign(MATERIALS, {
+  holder: '#232326',
+  nickel: '#d7dadf',
+  cellPrint: '#f2f2ef',
+  slider: '#e8e8e4',
+  trimmer: '#2d6fd1',
+  brass: '#c8a24a',
+  screwSlot: '#6b5420',
+  ldrBody: '#f1ede4',
+  ldrTrack: '#d9772b',
+  buzzer: '#1f1f22',
+  inductor: '#3f8f5a',
+});
+export const CELL_WRAPS = {
+  alkaline: { body: '#2a2c31', accent: '#c9a43b' },
+  nimh: { body: '#e9edf2', accent: '#3a7bd5', print: '#26292d' },
+  'li-ion': { body: '#2f7d5b', accent: '#2f7d5b' },
+  lifepo4: { body: '#3164b0', accent: '#3164b0' },
+  lipo: { body: '#cdd2d9', accent: '#d9a43a', print: '#26292d' },
+};

@@ -2,6 +2,8 @@
 //
 // fields: value ("4k7", 4700), tolerance ("5%", default 5), bands (4 | 5, default from
 //         the tolerance), power ("1/4", default), body (colour name from MATERIALS)
+// From 3 W up ("3", "5", "10") it is a cement resistor: a white ceramic box with its value
+// printed on top instead of colour bands.
 
 import { parseValue } from '../../core/units.js';
 import { BAND_COLORS, DIGIT_COLORS, MULTIPLIER_COLORS, TOLERANCE_COLORS, MATERIALS } from '../colors.js';
@@ -13,6 +15,22 @@ export const RESISTOR_SIZES = {
   '1/2': [9.0, 3.2],
   '1': [11.0, 4.5],
 };
+
+// Cement (wirewound, "SQP") resistors by power: [length, width, height] in mm.
+export const CEMENT_SIZES = {
+  '3': [22, 8, 8],
+  '5': [22, 9.5, 9],
+  '10': [48, 9.5, 9],
+};
+
+// Tolerance letter printed on cement resistors (IEC 60062): J = 5 %.
+const TOLERANCE_LETTERS = { 1: 'F', 2: 'G', 5: 'J', 10: 'K', 20: 'M' };
+
+// "10ΩJ", "0.22ΩJ", "1kΩJ": the value as it is printed on the body.
+function printedValue(ohms, tolerance) {
+  const [factor, prefix] = ohms >= 1e6 ? [1e6, 'M'] : ohms >= 1e3 ? [1e3, 'k'] : [1, ''];
+  return `${Number((ohms / factor).toPrecision(3))}${prefix}Ω${TOLERANCE_LETTERS[tolerance] ?? ''}`;
+}
 
 // Band centres for a 6.3 mm body (scaled to other lengths) and band width.
 const LAYOUT = {
@@ -53,11 +71,21 @@ export default {
     const ohms = parseValue(part.value);
     if (!(ohms > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value) } } };
     const tolerance = parseTolerance(part.tolerance);
+    const power = String(part.power ?? '1/4').replace(/\s*W$/i, '');
+    if (CEMENT_SIZES[power]) {
+      const [length, width, height] = CEMENT_SIZES[power];
+      return {
+        package: 'axial',
+        params: { bodyLength: length, bodyDiameter: width, bodyHeight: height, shape: 'box', color: MATERIALS[part.body] ?? MATERIALS.cement, print: `${power}W ${printedValue(ohms, tolerance)}` },
+        label: { value: ohms, unit: 'Ω' },
+        electrical: { kind: 'R', resistance: ohms, tolerance },
+      };
+    }
     const count = part.bands ?? (tolerance <= 2 ? 5 : 4);
     const names = resistorBands(ohms, tolerance, count);
     if (!names) return { error: { code: 'BAD_VALUE', params: { value: `${part.value} ±${part.tolerance ?? 5}%` } } };
 
-    const [length, diameter] = RESISTOR_SIZES[String(part.power ?? '1/4').replace(/\s*W$/i, '')] ?? RESISTOR_SIZES['1/4'];
+    const [length, diameter] = RESISTOR_SIZES[power] ?? RESISTOR_SIZES['1/4'];
     const layout = LAYOUT[count];
     const k = length / 6.3;
     // With 20 % tolerance there is no last band: drop the tolerance slot.

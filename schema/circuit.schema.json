@@ -63,11 +63,25 @@
     },
     "supplies": {
       "type": "array",
-      "description": "Simulation: where the power comes from. The first supply's negative is ground (0 V).",
+      "description": "Simulation: where the power comes from, besides battery parts. The first supply's negative is ground (0 V); with none, the first battery part's.",
       "items": {
         "type": "object",
-        "required": [
-          "voltage"
+        "anyOf": [
+          {
+            "required": [
+              "voltage"
+            ]
+          },
+          {
+            "required": [
+              "format"
+            ]
+          },
+          {
+            "required": [
+              "chemistry"
+            ]
+          }
         ],
         "properties": {
           "id": {
@@ -79,7 +93,45 @@
               "bench",
               "battery"
             ],
-            "description": "battery: internal resistance 0.25 Ω per 1.5 V cell unless given"
+            "description": "battery: like a battery part (format, chemistry, cells, charge), or only a voltage (0.25 Ω per 1.5 V cell unless given)"
+          },
+          "format": {
+            "enum": [
+              "18650",
+              "AA",
+              "AAA",
+              "9V",
+              "pouch"
+            ]
+          },
+          "chemistry": {
+            "enum": [
+              "alkaline",
+              "nimh",
+              "li-ion",
+              "lipo",
+              "lifepo4"
+            ]
+          },
+          "cells": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "charge": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "capacity": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
           },
           "voltage": {
             "type": "number",
@@ -114,11 +166,11 @@
       "properties": {
         "results": {
           "type": "boolean",
-          "description": "Add a button that shows the simulation results (hidden until pressed)"
+          "description": "Simulation always on in the page: the tapped part shows its values on the board and in its card"
         },
         "flow": {
           "type": "boolean",
-          "description": "Add the current layer: everything dimmed, strips shown, moving dots (needs supplies)"
+          "description": "Add the current layer: everything dimmed, strips shown, moving dots (needs supplies or a battery)"
         },
         "focus": {
           "type": "array",
@@ -167,12 +219,21 @@
             "capacitor",
             "potentiometer",
             "diode",
+            "zener",
+            "bridge",
             "led",
             "mosfet",
             "bjt",
             "ic",
+            "regulator",
             "button",
-            "wire"
+            "wire",
+            "battery",
+            "inductor",
+            "thermistor",
+            "ldr",
+            "buzzer",
+            "header"
           ]
         },
         "pins": {
@@ -224,7 +285,7 @@
         },
         "power": {
           "type": "string",
-          "description": "resistor: \"1/8\", \"1/4\", \"1/2\", \"1\""
+          "description": "resistor: \"1/8\", \"1/4\", \"1/2\", \"1\"; \"3\", \"5\", \"10\" draw a cement resistor"
         },
         "kind": {
           "enum": [
@@ -233,7 +294,8 @@
           ]
         },
         "voltage": {
-          "type": "number"
+          "type": "number",
+          "description": "electrolytic: rated volts; battery: measured open-circuit volts (wins over charge)"
         },
         "diameter": {
           "type": "number"
@@ -252,7 +314,7 @@
         },
         "part": {
           "type": "string",
-          "description": "Part number for diode, mosfet, bjt (see src/parts/db.js)"
+          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr (see src/parts/db.js)"
         },
         "package": {
           "type": "string"
@@ -269,12 +331,15 @@
         "style": {
           "enum": [
             "arc",
-            "flat"
-          ]
+            "flat",
+            "knob",
+            "trimmer"
+          ],
+          "description": "wire: \"arc\" | \"flat\"; potentiometer: \"knob\" (default) | \"trimmer\" (multi-turn 3296W)"
         },
         "pin1": {
           "type": "string",
-          "description": "DIP chips: hole of pin 1 (row e or f); the other pins follow"
+          "description": "DIP chips: hole of pin 1 (row e or f); the other pins follow. Header: first pin, the others towards higher columns"
         },
         "position": {
           "type": "number",
@@ -285,6 +350,114 @@
         "pressed": {
           "type": "boolean",
           "description": "button state"
+        },
+        "format": {
+          "enum": [
+            "18650",
+            "AA",
+            "AAA",
+            "9V",
+            "pouch"
+          ],
+          "description": "battery: AA, AAA, 18650, 9V or pouch (LiPo)"
+        },
+        "chemistry": {
+          "enum": [
+            "alkaline",
+            "nimh",
+            "li-ion",
+            "lipo",
+            "lifepo4"
+          ],
+          "description": "battery: default by format (AA/AAA alkaline, 18650 li-ion, pouch lipo)"
+        },
+        "cells": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12,
+          "description": "battery: cells (or 9 V blocks) in series; voltages add up"
+        },
+        "charge": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "battery: state of charge, 0 empty … 1 full; without it, the nominal voltage"
+        },
+        "capacity": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "description": "battery: \"2000 mAh\" (a number is mAh); default by format"
+        },
+        "internalResistance": {
+          "type": "number",
+          "minimum": 0,
+          "description": "battery: ohms, for the whole pack"
+        },
+        "switch": {
+          "enum": [
+            "on",
+            "off"
+          ],
+          "description": "battery: a holder with a slide switch, and its position"
+        },
+        "side": {
+          "enum": [
+            "left",
+            "right",
+            "back",
+            "front"
+          ],
+          "description": "battery: board edge it lies beside (default: the nearer side edge)"
+        },
+        "offset": {
+          "type": "number",
+          "description": "battery: shift along that edge, mm"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 40,
+          "description": "header: number of pins (place with pin1)"
+        },
+        "beta": {
+          "type": "number",
+          "description": "thermistor: B constant in kelvin (default 3950)"
+        },
+        "temperature": {
+          "type": "number",
+          "description": "thermistor: °C for the simulation (default 25)"
+        },
+        "light": {
+          "type": "number",
+          "minimum": 0,
+          "description": "ldr: illuminance in lux for the simulation (default 100). Parts: GL5516, GL5528, GL5537, GL5539, GL5549"
+        },
+        "dcr": {
+          "type": "number",
+          "minimum": 0,
+          "description": "inductor: winding resistance, ohms"
+        },
+        "current": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "inductor: rated current, amperes"
+        },
+        "resistance": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "description": "buzzer: coil resistance (default 16 Ω)"
         },
         "description": {
           "oneOf": [

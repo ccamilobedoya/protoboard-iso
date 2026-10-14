@@ -61,8 +61,9 @@ export function createCamera({ view = 'front', azimuth, elevation = ISO_ELEVATIO
     projectDir(d) {
       return { x: dot(d, right) * scale, y: -dot(d, up) * scale };
     },
-    faces(normal) {
-      return dot(normal, toViewer) > 1e-6;
+    // min: how squarely it must face the viewer (cosine), for marks repeated around a part.
+    faces(normal, min = 1e-6) {
+      return dot(normal, toViewer) > min;
     },
   };
 }

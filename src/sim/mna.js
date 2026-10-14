@@ -140,6 +140,35 @@ export function capacitor(a, b, c) {
   };
 }
 
+// Backward Euler for an inductor: i = i_prev + (h/L)·v, a conductance h/L and a current
+// source. In DC it is a plain short (its winding resistance is a separate resistor).
+const SHORT = 1e-6;
+export function inductor(a, b, l) {
+  return {
+    nodes: [a, b],
+    links: [[a, b]],
+    iprev: 0,
+    stamp(st, x, ctx) {
+      if (!ctx.h) {
+        st.conductance(a, b, 1 / SHORT);
+        return false;
+      }
+      const g = ctx.h / l;
+      st.conductance(a, b, g);
+      st.current(a, b, this.iprev);
+      return false;
+    },
+    currents(x, ctx = {}) {
+      const v = volt(x, a) - volt(x, b);
+      const i = ctx.h ? this.iprev + (ctx.h / l) * v : v / SHORT;
+      return [i, -i];
+    },
+    accept(x, ctx = {}) {
+      this.iprev = this.currents(x, ctx)[0];
+    },
+  };
+}
+
 // Ideal voltage source from n (−) to p (+); its current unknown sits at row k.
 // x[k] is the current entering the + terminal from the circuit.
 export function voltageSource(p, n, k, voltage) {
@@ -180,13 +209,30 @@ export function currentSource(p, n, current) {
   };
 }
 
-// Shockley junction from a (anode) to k (cathode).
-export function junction(a, k, { is, n }) {
+// Shockley junction from a (anode) to k (cathode). With `bv` it also breaks down in reverse
+// (a Zener diode): beyond −bv a second exponential, ibv · exp(−(v + bv) / (nbv·Vt)), takes
+// the current, and the same junction limiting is applied on that side.
+export function junction(a, k, { is, n, bv, ibv = 1e-3, nbv = 1 }) {
   const vt = n * VT;
   const vcrit = vcritOf(is, vt);
+  const vtb = nbv * VT;
+  const vcritB = bv != null ? vcritOf(ibv, vtb) : 0;
   const evaluate = (v) => {
     const e = Math.exp(Math.min(v / vt, 300));
-    return { i: is * (e - 1), g: (is * e) / vt };
+    let i = is * (e - 1);
+    let g = (is * e) / vt;
+    if (bv != null) {
+      const r = Math.exp(Math.min(-(v + bv) / vtb, 300));
+      i -= ibv * r;
+      g += (ibv * r) / vtb;
+    }
+    return { i, g };
+  };
+  const limit = (vnew, vold) => {
+    if (bv != null && vnew < Math.min(0, -bv + 10 * vtb)) {
+      return -(pnjlim(-(vnew + bv), -(vold + bv), vtb, vcritB) + bv);
+    }
+    return pnjlim(vnew, vold, vt, vcrit);
   };
   return {
     nodes: [a, k],
@@ -194,7 +240,7 @@ export function junction(a, k, { is, n }) {
     vd: 0,
     stamp(st, x) {
       const vnew = volt(x, a) - volt(x, k);
-      const v = pnjlim(vnew, this.vd, vt, vcrit);
+      const v = limit(vnew, this.vd);
       this.vd = v;
       const { i, g } = evaluate(v);
       st.conductance(a, k, g + GMIN);
@@ -205,6 +251,56 @@ export function junction(a, k, { is, n }) {
       const v = volt(x, a) - volt(x, k);
       const i = evaluate(v).i + GMIN * v;
       return [i, -i];
+    },
+  };
+}
+
+// Linear regulator from `inp` to `out`, referred to `ref` (GND of a 78xx, ADJ of an LM317):
+//   V(out) − V(ref) = softmin(vref, softplus(V(inp) − V(ref) − dropout))
+// regulates at vref, and with too little input sits `dropout` below it. The output current
+// comes from the input (its unknown sits at row `branch`, given once every node is known);
+// the chip's own current, quiescent · tanh(u / 0.5 V), flows from inp to ref.
+export function regulatorElement(inp, ref, out, { vref, dropout, quiescent }) {
+  const s = 0.05;
+  const shape = (u) => {
+    const z = (u - dropout) / s;
+    const sp = z > 40 ? u - dropout : s * Math.log1p(Math.exp(z));
+    const dsp = 1 / (1 + Math.exp(-z));
+    const d = sp - vref;
+    const f = Math.min(sp, vref) - s * Math.log1p(Math.exp(-Math.abs(d) / s));
+    const dfsp = 1 / (1 + Math.exp(Math.min(d / s, 300)));
+    return { f, df: dfsp * dsp, regulating: d > 3 * s };
+  };
+  const iq = (u) => quiescent * Math.tanh(u / 0.5);
+  const giq = (u) => (quiescent / 0.5) * (1 - Math.tanh(u / 0.5) ** 2);
+  return {
+    nodes: [inp, ref, out],
+    links: [
+      [out, ref],
+      [inp, ref],
+    ],
+    branch: null,
+    needsRow: true,
+    shape,
+    stamp(st, x) {
+      const k = this.branch;
+      const u = volt(x, inp) - volt(x, ref);
+      const { f, df } = shape(u);
+      st.add(inp, k, 1);
+      st.add(out, k, -1);
+      st.add(k, out, 1);
+      st.add(k, ref, -1 + df);
+      st.add(k, inp, -df);
+      st.rhs(k, f - df * u);
+      const g = giq(u);
+      st.conductance(inp, ref, g);
+      st.current(inp, ref, iq(u) - g * u);
+      return false;
+    },
+    currents(x) {
+      const io = x[this.branch];
+      const q = iq(volt(x, inp) - volt(x, ref));
+      return [io + q, -q, -io];
     },
   };
 }

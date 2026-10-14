@@ -32,7 +32,7 @@ test('a tall part in front hides the one behind it, and only from that side', ()
 });
 
 test('labels never cover parts, each other or the rail labels in the examples', () => {
-  for (const name of ['led-resistor.json', 'voltage-divider.json', 'parts-showcase.json']) {
+  for (const name of ['led-resistor.json', 'voltage-divider.json', 'parts-showcase.json', 'battery-regulator.json', 'more-parts.json']) {
     for (const fit of ['board', 'parts']) {
       const found = codes(inspectCircuit(example(name), { fit }));
       for (const code of ['LABEL_COVERS_PART', 'LABEL_OVERLAP', 'LABEL_HIDES_TEXT']) assert.ok(!found.includes(code), `${name} ${fit}: ${code}`);
@@ -69,7 +69,7 @@ test('annotation layers are drawn only when asked for', () => {
 });
 
 test('pin tags of the annotation layer do not overlap each other', () => {
-  for (const name of ['led-resistor.json', 'voltage-divider.json', 'parts-showcase.json', 'common-mistakes.json']) {
+  for (const name of ['led-resistor.json', 'voltage-divider.json', 'parts-showcase.json', 'common-mistakes.json', 'battery-regulator.json', 'more-parts.json']) {
     for (const view of ['front', 'back']) {
       const { scene } = renderCircuit(example(name), { view, annotate: 'pins' });
       const tags = scene.layers.annotations.filter((op) => op.role === 'pin-tag').map((op) => op.box);
@@ -86,7 +86,7 @@ test('pin tags of the annotation layer do not overlap each other', () => {
 });
 
 test('no leader lines cross in the examples', () => {
-  for (const name of ['led-resistor.json', 'voltage-divider.json', 'parts-showcase.json', 'common-mistakes.json']) {
+  for (const name of ['led-resistor.json', 'voltage-divider.json', 'parts-showcase.json', 'common-mistakes.json', 'battery-regulator.json', 'more-parts.json']) {
     for (const view of ['front', 'back']) {
       assert.ok(!codes(inspectCircuit(example(name), { view })).includes('LEADER_CROSSING'), `${name} ${view}`);
     }

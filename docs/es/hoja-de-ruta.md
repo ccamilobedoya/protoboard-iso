@@ -42,13 +42,13 @@ Objetivo: entra un JSON y sale un dibujo isométrico fiel, con la colocación re
 - ⬜ Líneas guía que no pasen sobre otros componentes (quedan notas `LEADER_OVER_PART`)
 - ✅ Etiquetas de patas de la capa `pins` que no se montan entre sí ni sobre los anillos de los agujeros (con prueba)
 - ✅ LED: lado plano en la pestaña del cátodo
-- ⬜ LED: pata del ánodo más larga cuando `standoff` es alto
+- ✅ LED: pata del ánodo más larga (un quiebre pequeño sobre la protoboard)
 - ✅ Electrolítico: signos «−» en la franja
-- ⬜ Electrolítico: valor impreso en la funda
+- ✅ Electrolítico: valor impreso a lo largo de la funda, una copia por vista
 - ✅ Modos de etiqueta: `labels: 'both' | 'id' | 'value' | false` (`--labels`, `render` del MCP)
 - ⬜ Comparar el orden y los colores de los rieles con la protoboard real (`bb830.js`)
 - ✅ Potenciómetro (de pie, perilla al frente, marca del cursor), pulsador de 6×6 a caballo del canal (pares internos, `SWITCH_BYPASSED`), chips DIP colocados con `pin1` (NE555, LM358, 74HC595, CD4017); `suggest` los coloca; ejemplo `controls-and-ics.json`
-- ⬜ Más encapsulados: potenciómetro de ajuste (trimmer), pines de cabecera, zumbador, conector de batería de 9 V, chips DIP-14
+- ✅ Más encapsulados: trimmer multivuelta (3296W), pines de cabecera, zumbador pasivo, gota del NTC, fotorresistencia, baterías al lado de la protoboard (portapilas AA/AAA/18650, batería de 9 V con su broche, LiPo plana), DIP-14 y otros chips (LM324, LM393, UA741, NE5532, LM386, ULN2003, ULN2803, PC817)
 - ⬜ Pintor: ordenar mejor los cables frente a componentes altos (partir arcos largos, sesgo de profundidad)
 - ✅ **Página para embeber** (`out/<nombre>.html`, comando `page`, `render` con `page: true`): un archivo autónomo por circuito, reescrito con cada cambio con el mismo nombre; dos vistas, de cerca o toda la protoboard, con o sin etiquetas, arrastrar para moverse, rueda o pellizco para acercar. Las etapas 2 a 4 hacen crecer esta misma página ([embeber.md](embeber.md))
 - ✅ `check --json`; códigos de salida documentados (0 bien, 1 errores o cambio rechazado, 2 `review` pide cambios)
@@ -91,8 +91,21 @@ Guía: [simulacion.md](simulacion.md).
 - ✅ Resultados en la línea de comandos y el MCP (`simulate`, texto o JSON) y en la página para embeber detrás de un botón, solo si el circuito lo pide (`"page": { "results": true }`)
 - ⬜ Comparar algunos circuitos con Falstad CircuitJS como segunda referencia
 - ⬜ Eventos durante el transitorio (presionar un botón en un momento dado) y una gráfica del transitorio en la página
-- ⬜ Chips: 555 y amplificador operacional por comportamiento; bobinas
-- ⬜ Batería dibujada como componente (broche de 9 V; ver la lista de componentes de la etapa 1)
+- ⬜ Chips: 555 y amplificador operacional por comportamiento
+- ✅ Inductores (axiales, anillos de colores en µH; resistencia del alambre; transitorio), diodos Zener (1N47xxA, ruptura con rodilla suave o brusca), reguladores lineales (78xx, LM317, con caída mínima y su corriente propia), termistor NTC y fotorresistencia (resistencia según `temperature` / `light`), zumbador pasivo (avisa con continua)
+- ✅ Baterías dibujadas como componentes y simuladas como fuentes: formato, química, celdas en serie, estado de carga, voltaje medido, interruptor del portapilas; autonomía estimada; avisos de cortocircuito, sobrecorriente y de cargar una pila alcalina ([simulacion.md](simulacion.md))
+
+## Componentes y fuentes, lo siguiente ⬜
+
+Del inventario del curso, más o menos en el orden en que se usan:
+
+- ⬜ Módulos al lado o encima de la protoboard, con pines y cables Dupont: Arduino UNO, ESP32 DevKit (a caballo del canal), módulos AMS1117-3.3 y LM2596, cargador TP4056
+- ⬜ Fuente de banco dibujada al lado de la protoboard, con sus caimanes en los rieles (hoy `supplies` no se dibuja)
+- ⬜ Descarga de la batería con el tiempo en un transitorio (la carga baja con la corriente), para lecciones de autonomía
+- ⬜ Módulo elevador (boost) como fuente por comportamiento
+- ✅ Puente rectificador KBP (`bridge`: cuatro diodos en un cuerpo, simulado), resistencias de cemento (3, 5 y 10 W, valor impreso encima); ejemplo `rectifier.json`
+- ✅ Portapilas: paredes de los extremos tan altas como las pilas, para que el botón + nunca asome por encima
+- ⬜ Pila de botón (CR2032) en su portapilas
 
 ## Estilo visual y temas (transversal, después de la etapa 2) ⬜
 

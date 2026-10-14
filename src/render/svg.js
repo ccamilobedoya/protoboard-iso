@@ -5,7 +5,8 @@
 import { buildScene } from './scene.js';
 
 // Layers written only when they have something: the four base layers are always there.
-const OPTIONAL_LAYERS = new Set(['annotations', 'results', 'veil', 'strips', 'spotlight', 'flow', 'probes']);
+// `under` (parts beside the board, behind it from this view) comes before the board.
+const OPTIONAL_LAYERS = new Set(['under', 'annotations', 'results', 'veil', 'strips', 'spotlight', 'flow', 'probes']);
 
 const fmt = (n) => (Math.round(n * 100) / 100).toString();
 

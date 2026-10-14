@@ -31,7 +31,9 @@ Requires Node.js 18 or newer. No npm dependencies.
    anyone looks at the picture; look at a picture only for style.
 5. `--annotate pins,nodes,boxes,grid` (or `all`) adds hole names, connected groups, part
    boxes and full column numbers: use it to point at exact holes or to teach the strips.
-6. Voltages and currents: add `"supplies": [{ "id": "V1", "voltage": 5 }]` and run
+6. Voltages and currents: add a source, either `"supplies": [{ "id": "V1", "voltage": 5 }]` (a
+   bench supply on the rails, not drawn) or a `battery` part (drawn beside the board: `format`
+   AA/AAA/18650/9V/pouch, `cells` in series, `chemistry`, `charge`), and run
    `node <skill>/bin/protoboard-iso.js simulate circuit.json` (or `render --sim`). Never compute
    them by hand, and never show a value a learner is asked to predict. See `docs/en/simulation.md`.
 
@@ -89,15 +91,24 @@ nothing unintended. A target is a circuit file or a folder with `circuit.json`.
 
 | type | fields | pins |
 |---|---|---|
-| `resistor` | `value` ("4k7"), `tolerance` ("5%", "1%"), `power` ("1/4", "1/2") | `1`, `2` (bands read from pin 1) |
+| `resistor` | `value` ("4k7"), `tolerance` ("5%", "1%"), `power` ("1/4", "1/2"; "3", "5", "10" = cement) | `1`, `2` (bands read from pin 1) |
 | `capacitor` | `value` ("100n", "470u"), `kind` (`ceramic`, `electrolytic`), `voltage` | ceramic `1`, `2`; electrolytic `+`, `-` |
 | `led` | `color` (red, green, yellow, blue, white, orange), `size` (5, 3) | `anode`, `cathode` |
-| `diode` | `part` (1N4007, 1N4148, 1N5819) | `A`, `K` |
+| `diode` | `part` (1N4007, 1N4001…6, 1N5399, 1N5408, 1N4148, 1N5819, 1N5822, FR107, FR207) | `A`, `K` |
+| `zener` | `value` ("5V1") or `part` (1N4728A…1N4751A) | `A`, `K` (in use, K to the + side) |
+| `bridge` | `part` (KBP307, KBP2xx, KBP3xx) | `+`, `AC1`, `AC2`, `-` in one row, one or two holes apart (`e10`, `e11`, `e13`, `e14`) |
 | `mosfet` | `part` (IRLZ44N, IRF520, IRF9540, 2N7000) | from the part, e.g. `G`, `D`, `S` |
-| `bjt` | `part` (2N2222A, 2N3904, 2N3906, BC547, BC557, TIP120) | from the part, e.g. `E`, `B`, `C` |
-| `potentiometer` | `value` ("10k"), `position` (0…1) | `1`, `W`, `3` (in a row) |
+| `bjt` | `part` (2N2222A, 2N2907A, 2N3904, 2N3906, BC547…BC550, BC557, BC558, BC337, BC327, BC517, S8050, S8550, S9012…S9018, C1815, A1015, 2N5551, 2N5401, TIP120) | from the part, e.g. `E`, `B`, `C` |
+| `potentiometer` | `value` ("10k"), `position` (0…1), `style` (`knob`, `trimmer`) | `1`, `W`, `3` (in a row) |
 | `button` | `color`, `pressed` | `1`, `2`, `3`, `4`; across the centre channel (1–2 and 3–4 joined inside) |
-| `ic` | `part` (NE555, LM358, 74HC595, CD4017); place with `pin1` (`"f28"`) | from the part, e.g. `GND`, `TRIG`, `OUT` |
+| `ic` | `part` (NE555, LM358, LM324, LM393, UA741, NE5532, LM386, 74HC595, CD4017, ULN2003, ULN2803, PC817); place with `pin1` (`"f28"`) | from the part, e.g. `GND`, `TRIG`, `OUT` |
+| `regulator` | `part` (7805…7824, LM317; also "L7805CV", "LM317T") | 78xx `IN`, `GND`, `OUT`; LM317 `ADJ`, `OUT`, `IN` (in a row) |
+| `inductor` | `value` ("100u"), `dcr`, `current` | `1`, `2` (axial, colour rings in µH) |
+| `thermistor` | `value` (R at 25 °C), `beta`, `temperature` (°C) | `1`, `2` |
+| `ldr` | `part` (GL5528…), `light` (lux) | `1`, `2` |
+| `buzzer` | (passive, 12 mm) | `1`, `2`, two or three holes apart |
+| `header` | `count`; place with `pin1` | `1`…`n` along the row |
+| `battery` | `format` (AA, AAA, 18650, 9V, pouch), `cells`, `chemistry`, `charge`, `voltage`, `switch`, `side` | `+`, `-` (it lies beside the board; it is a power source) |
 | `wire` | `color`, `style` (`arc`, `flat`) | `1`, `2` |
 
 Run `node bin/protoboard-iso.js parts` for the current list.
@@ -111,7 +122,10 @@ Run `node bin/protoboard-iso.js parts` for the current list.
   lead spacing plus 2.
 - Buttons and DIP chips straddle the centre channel (`suggest` finds the spots). A button
   turned 90° is always closed (`SWITCH_BYPASSED`).
-- TO-220, TO-92 and potentiometers: three neighbouring holes in a straight line. Pin 1 is on the left
+- A battery lies on the table beside the board (`side`), its red and black leads in two holes
+  (usually the rails, e.g. `T+3` and `T-3`). Two batteries on the same side overlap: give one
+  another `side` or an `offset`.
+- TO-220, TO-92, potentiometers and trimmers: three neighbouring holes in a straight line. Pin 1 is on the left
   when you look at the printed face, so the hole order sets which way the part faces.
 - Bodies must not overlap. For lessons, add `"clearance": 3` (mm) to the circuit file and
   spread the parts out: cramped layouts are hard to read and to build.

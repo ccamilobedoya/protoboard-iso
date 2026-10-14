@@ -133,7 +133,10 @@ function kindLine(part, lang, kinds) {
 }
 
 // The part's value as a line that can be explained: "Capacitance: 100 µF 25 V".
-const VALUE_KEYS = { resistor: 'resistor', capacitor: 'capacitor', potentiometer: 'potentiometer', led: 'led', diode: 'part', bjt: 'part', mosfet: 'part', ic: 'part' };
+const VALUE_KEYS = {
+  resistor: 'resistor', capacitor: 'capacitor', potentiometer: 'potentiometer', led: 'led', diode: 'part', bjt: 'part', mosfet: 'part', ic: 'part', battery: 'battery',
+  zener: 'zener', bridge: 'part', regulator: 'part', inductor: 'inductor', thermistor: 'thermistor', ldr: 'part',
+};
 function valueLine(part, lang) {
   const value = valueText(part, lang);
   if (part.type === 'button') return { key: 'state', text: t(lang, 'page.value.button', { value }) };
@@ -144,6 +147,10 @@ function valueLine(part, lang) {
 // Every explanation the page may need, once.
 function explanations(lang) {
   const keys = ['voltage', 'current', 'power', 'brightness', 'state', 'vbe', 'vce', 'ib', 'ic', 'beta', 'vgs', 'vds', 'id', 'pot.current', 'floating', 'unsupported',
+    ...['emf', 'voltage', 'drop', 'current', 'power', 'runtime', 'charge', 'off'].map((k) => `battery.${k}`),
+    ...['regulating', 'dropout', 'vin', 'vout', 'headroom', 'iout', 'quiescent'].map((k) => `reg.${k}`),
+    ...['vac', 'vdc', 'current'].map((k) => `bridge.${k}`),
+    ...['temperature', 'light', 'resistance'].map((k) => `sensor.${k}`),
     ...['off', 'active', 'saturation'].map((r) => `region.bjt.${r}`), ...['off', 'linear', 'saturation'].map((r) => `region.mosfet.${r}`),
     ...Object.values(VALUE_KEYS).map((k) => `value.${k}`)];
   return Object.fromEntries(keys.map((k) => [k, t(lang, `explain.${k}`)]));

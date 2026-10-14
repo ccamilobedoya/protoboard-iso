@@ -16,10 +16,14 @@ const RED = '#d63a3a';
 const BLACK = '#26292d';
 const ARROW = '#b5452a';
 
-// Where the reference (−) lead of the first supply touches the board.
+// Where the reference (−) lead of the first supply touches the board: the first of the
+// circuit's supplies, or else the first battery part (the same choice as the simulator).
 export function groundHole(built, circuit) {
   const s = Array.isArray(circuit.supplies) ? circuit.supplies[0] : null;
-  if (!s) return null;
+  if (!s) {
+    const battery = built.parts.find((p) => p.def.electrical?.kind === 'BAT');
+    return battery ? battery.holes[1] : null;
+  }
   const ref = String(s.negative ?? 'T-');
   return built.board.find(ref) ?? stripHoles(built.board, ref)[0] ?? null;
 }

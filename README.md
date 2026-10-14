@@ -49,6 +49,13 @@ The breadboard decides the connections: rows aâ€“e of a column are one node, fâ€
 each rail one more. From the holes alone the kit knows what is connected and warns about
 shorted strips, occupied holes, leads that cannot reach and bodies that overlap.
 
+It also simulates what it draws (a model, labelled as such): give it a bench supply in
+`supplies`, or a **battery** lying beside the board (AA, AAA, 18650, 9 V or LiPo; any number of
+cells in series, chemistry and state of charge), and it computes voltages and currents, warns
+about overloads and shorts, and shows each part's values in the embeddable page. Parts range
+from resistors and LEDs to Zener diodes, bridge rectifiers, regulators, inductors, sensors, transistors and chips
+([circuit-format.md](docs/en/circuit-format.md), [simulation.md](docs/en/simulation.md)).
+
 ## Use it as a skill
 
 Clone or link this folder into your skills directory, for example

@@ -38,6 +38,8 @@ import { resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, cre
 import { svgToPng, rasterAvailable } from '../src/node/raster.js';
 import { review, formatReview, PROFILES } from '../src/review.js';
 import { simulate } from '../src/sim/index.js';
+import { BATTERY_FORMATS } from '../src/parts/batteries.js';
+import { LDR_PARTS } from '../src/parts/types/more.js';
 import { pickLanguage } from '../src/i18n/index.js';
 import { formatSimulation } from '../src/sim/format.js';
 
@@ -104,7 +106,7 @@ const partShape = z.object({ id: z.string(), type: z.string(), pins: z.union([z.
 const opShape = z
   .object({ op: z.enum(OP_NAMES) })
   .passthrough()
-  .describe('add {part} · remove {part: id} · move {part, pins} · set {part, field: value|null} · rename {part, to} · circuit {title|board|view|clearance|netLabels}');
+  .describe('add {part} · remove {part: id} · move {part, pins} · set {part, field: value|null} · rename {part, to} · circuit {title|lang|board|view|clearance|netLabels|supplies|page}');
 const READ = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
 
@@ -305,7 +307,7 @@ server.registerTool(
   {
     title: 'Simulate circuit',
     description:
-      'Node voltages and part currents from the circuit (a model, not a measurement). Needs "supplies" in the circuit (set them with apply_ops, op "circuit"). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, short circuits and floating nodes. Never show results a learner is asked to predict.',
+      'Node voltages and part currents from the circuit (a model, not a measurement). Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit") or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, short circuits and floating nodes. Never show results a learner is asked to predict.',
     inputSchema: {
       target: targetArg,
       analysis: z.enum(['dc', 'transient']).optional(),
@@ -368,8 +370,8 @@ server.registerTool(
       png_width: z.number().int().min(200).max(2000).optional(),
       page: z.boolean().optional().describe('Also rewrite the embeddable page out/<name>.html'),
       focus: z.array(z.string()).optional().describe('Dim everything except these parts (ids) and the strips under their leads; they show even where something covers them.'),
-      flow: z.boolean().optional().describe('Current flow as dots along strips and parts (still in the SVG, moving in the page). Needs supplies.'),
-      sim: z.boolean().optional().describe('Draw the DC simulation results (voltages per group, currents per part, labelled MODEL). Needs supplies. Never for values a learner must predict.'),
+      flow: z.boolean().optional().describe('Current flow as dots along strips and parts (still in the SVG, moving in the page). Needs supplies or a battery part.'),
+      sim: z.boolean().optional().describe('Draw the DC simulation results (voltages per group, currents per part, labelled MODEL). Needs supplies or a battery part. Never for values a learner must predict.'),
       lang: common.lang,
     },
     annotations: { ...WRITE, idempotentHint: true },
@@ -399,6 +401,8 @@ server.registerTool(
     json({
       types: Object.fromEntries(Object.entries(PART_TYPES).map(([k, v]) => [k, { name: t(lang, `type.${k}`), pins: v.pins ?? 'from the part number' }])),
       partNumbers: Object.fromEntries(Object.entries(PART_NUMBERS).map(([k, v]) => [k, { type: v.type, package: v.package, pins: v.pins }])),
+      batteries: Object.fromEntries(Object.entries(BATTERY_FORMATS).map(([k, f]) => [k, { default: f.default, chemistries: Object.keys(f.chemistries) }])),
+      photoresistors: Object.keys(LDR_PARTS),
       packages: Object.keys(PACKAGES),
       boards: Object.keys(BOARDS),
       views: Object.keys(VIEWS),

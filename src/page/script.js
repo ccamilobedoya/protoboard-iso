@@ -74,12 +74,12 @@ function applyFocus() {
   for (const svg of svgs) {
     const g = spotlightOf(svg);
     g.textContent = '';
-    if (ids.length) for (const el of [...svg.querySelectorAll(of('parts')), ...svg.querySelectorAll(of('labels'))]) g.appendChild(el.cloneNode(true));
+    if (ids.length) for (const el of [...svg.querySelectorAll(of('under')), ...svg.querySelectorAll(of('parts')), ...svg.querySelectorAll(of('labels'))]) g.appendChild(el.cloneNode(true));
   }
   // Strips under the focused parts; with the results on, their currents and the voltages
   // of their groups (and nothing else: all tags at once is too much to read).
   const shown = [...ids.map((id) => '.results > [data-part="' + quote(id) + '"]'), ...[...nodes].flatMap((n) => ['.strips > [data-node="' + quote(n) + '"]', '.results > [data-node="' + quote(n) + '"]'])];
-  const ghosts = [...state.ghost].map((id) => '.parts > [data-part="' + quote(id) + '"], .spotlight > [data-part="' + quote(id) + '"] { opacity: 0.2; }');
+  const ghosts = [...state.ghost].map((id) => '.under > [data-part="' + quote(id) + '"], .parts > [data-part="' + quote(id) + '"], .spotlight > [data-part="' + quote(id) + '"] { opacity: 0.2; }');
   dynamic.textContent = (shown.length ? shown.join(', ') + ' { display: inline; }' : '') + ghosts.join('');
   document.body.classList.toggle('focusing', ids.length > 0);
 }

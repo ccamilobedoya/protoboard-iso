@@ -12,7 +12,7 @@ de uso en las demás páginas de `docs/`.
                         ┌─▶ comprobaciones (circuit/checks.js) ─▶ observaciones
 circuit.json ─▶ build ──┤
  (circuit/build.js)     └─▶ componentes + netlist ─┬─▶ escena (render/scene.js) ─▶ SVG (render/svg.js)
-                                                    │      ▲ capas: board, parts, labels, annotations,
+                                                    │      ▲ capas: under, board, parts, labels, annotations,
                                                     │      │ veil, strips, spotlight, flow, results, probes
                                                     └─▶ simulate (sim/) ─▶ resultados ─┘
                                                                            └─▶ texto (sim/format.js)
@@ -39,9 +39,10 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `core/` | vectores, cámara isométrica y vistas, unidades (`parseValue`, `formatValue`) |
 | `geometry/primitives.js` | prismas, tornos, tubos, calcomanías, texto sobre planos (3D, milímetros) |
 | `board/` | protoboards como datos (`boards/bb830.js`), agujeros y grupos, dibujo de la protoboard |
-| `parts/types/` | qué *es* un componente: valor → bandas, patas, etiqueta, modelo `electrical` |
-| `parts/packages/` | formas físicas con medidas de hoja de datos; `expandPin1` para DIP |
-| `parts/db.js` | referencias: encapsulado, orden de patas, modelo |
+| `parts/types/` | qué *es* un componente: valor → bandas, patas, etiqueta, modelo `electrical` (`battery.js`; `more.js`: inductor, termistor, LDR, zumbador, pines) |
+| `parts/packages/` | formas físicas con medidas de hoja de datos; `expandPin1` para DIP y pines; `battery.js` queda al lado de la protoboard (su `build` recibe la protoboard); `small.js`: gota, LDR, zumbador, pines; `trimmer.js`; `sip.js`: puente KBP (`kbp`); `axial.js` también dibuja las resistencias de cemento (`shape: 'box'`) |
+| `parts/db.js` | referencias: encapsulado, orden de patas, modelo; `lookupPartNumber` acepta otros nombres (L7805CV, 2SC1815) |
+| `parts/batteries.js` | formatos y químicas de baterías: medidas, curva de voltaje, resistencia interna, capacidad; `batteryModel` |
 | `parts/describe.js` | qué texto `describe.*` dice qué es cada tipo de componente |
 | `parts/colors.js` | todos los colores: materiales, bandas, LED, cables, grupos |
 | `circuit/build.js` | archivo de circuito → componentes colocados, netlist, observaciones |
@@ -53,9 +54,9 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `ops.js`, `diff.js`, `node/workspace.js` | operaciones con inversa, diferencia en seco, historial, deshacer, salidas |
 | `query.js`, `query-format.js`, `review.js` | preguntas, colocaciones, veredicto a partir de mediciones |
 | `schema.js` | JSON Schemas armados desde los registros (`npm run schemas`) |
-| `sim/models.js` | valores típicos de los dispositivos, cada uno con su fuente |
-| `sim/mna.js` | solucionador lineal, estampado, modelos de los elementos, Newton, subida de fuentes |
-| `sim/index.js` | fuentes, componentes → elementos, grupos flotantes, DC y transitorio, lecturas, avisos |
+| `sim/models.js` | valores típicos de los dispositivos, cada uno con su fuente (diodos, tabla Zener, LED, transistores, reguladores) |
+| `sim/mna.js` | solucionador lineal, estampado, modelos de los elementos (capacitor, inductor), unión con ruptura Zener, regulador, Newton, subida de fuentes |
+| `sim/index.js` | fuentes y baterías, componentes → elementos, grupos flotantes, DC y transitorio, lecturas, avisos |
 | `sim/format.js` | resultados como texto; `partLines` para la ficha (cada una con su clave de explicación) |
 | `sim/overlay.js` | etiquetas de resultados (corriente por componente, voltaje por grupo) con `data-q` y `data-probe` |
 | `sim/flow.js` | corriente por las tiras (Kirchhoff) y por los componentes; puntos en movimiento |
@@ -78,6 +79,21 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 - **Textos del circuito**: `title` y la `description` de cada componente son un texto plano (se
   muestra tal cual) o un texto por idioma (`check` avisa si falta uno). La `description` de un
   componente es cómo se usa en *este* circuito; se omite cuando quien aprende debe descubrirlo.
+- **Componentes fuera de la protoboard** (baterías): se dibujan como cualquier componente;
+  `sceneFor` manda a la capa `under`, que se pinta antes que la protoboard, las piezas que quedan
+  más allá de una cara lateral, del lado opuesto a la cámara. Lo que mira las capas de los
+  componentes (inspect, el foco, el script de la página) lee `under` y `parts` juntas.
+- **Orden del pintor**: se ordenan primitivas enteras por el centro de sus caras, así que una pieza
+  larga junto a otras pequeñas se corta en tajadas (pilas, paredes del portapilas). Antes de añadir
+  una pista de orden, revisar si la geometría misma está bien: el botón + sobre la pared del
+  portapilas sí se veía, porque la pared era demasiado baja para una vista desde 35° arriba.
+- **Marcas repetidas alrededor de una pieza redonda** (el valor del electrolítico) llevan
+  `minFacing` en el calco: solo se ve cuando mira al observador así de de frente. Las vistas
+  isométricas miran a 45° de la protoboard, así que con copias cerca de las diagonales sale
+  exactamente una por vista.
+- **Fuentes**: la primera de `supplies` fija la tierra; sin `supplies`, la primera batería. El
+  código que necesita saber «dónde está la fuente» (la punta de tierra, la corriente) debe
+  atender los dos casos.
 - **Las capas** se escriben siempre en el orden de `addLayers`. Una página las muestra u oculta
   solo con CSS; lo interactivo nuevo debe seguir la misma idea (marca en el SVG, regla en el CSS).
 - **Atributos `data-*`**: `data-part` (id del componente), `data-node` (grupo), `data-q` (magnitud de
@@ -95,5 +111,6 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 
 `npm test` (node:test, sin dependencias; jsdom solo para los scripts de la página) y
 `npm run test:mcp`. Los modelos del simulador se comprueban contra referencias independientes en
-`test/sim.test.js`; el comportamiento de la página en `test/focus.test.js` y `test/page.test.js`;
+`test/sim.test.js` y `test/sources.test.js` (baterías, Zener, reguladores, inductores,
+sensores); el comportamiento de la página en `test/focus.test.js` y `test/page.test.js`;
 los textos en `test/describe.test.js` y `test/i18n.test.js`.

@@ -200,11 +200,25 @@
           },
           "supplies": {
             "type": "array",
-            "description": "Simulation: where the power comes from. The first supply's negative is ground (0 V).",
+            "description": "Simulation: where the power comes from, besides battery parts. The first supply's negative is ground (0 V); with none, the first battery part's.",
             "items": {
               "type": "object",
-              "required": [
-                "voltage"
+              "anyOf": [
+                {
+                  "required": [
+                    "voltage"
+                  ]
+                },
+                {
+                  "required": [
+                    "format"
+                  ]
+                },
+                {
+                  "required": [
+                    "chemistry"
+                  ]
+                }
               ],
               "properties": {
                 "id": {
@@ -216,7 +230,45 @@
                     "bench",
                     "battery"
                   ],
-                  "description": "battery: internal resistance 0.25 Ω per 1.5 V cell unless given"
+                  "description": "battery: like a battery part (format, chemistry, cells, charge), or only a voltage (0.25 Ω per 1.5 V cell unless given)"
+                },
+                "format": {
+                  "enum": [
+                    "18650",
+                    "AA",
+                    "AAA",
+                    "9V",
+                    "pouch"
+                  ]
+                },
+                "chemistry": {
+                  "enum": [
+                    "alkaline",
+                    "nimh",
+                    "li-ion",
+                    "lipo",
+                    "lifepo4"
+                  ]
+                },
+                "cells": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12
+                },
+                "charge": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "capacity": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
                 },
                 "voltage": {
                   "type": "number",
@@ -251,11 +303,11 @@
             "properties": {
               "results": {
                 "type": "boolean",
-                "description": "Add a button that shows the simulation results (hidden until pressed)"
+                "description": "Simulation always on in the page: the tapped part shows its values on the board and in its card"
               },
               "flow": {
                 "type": "boolean",
-                "description": "Add the current layer: everything dimmed, strips shown, moving dots (needs supplies)"
+                "description": "Add the current layer: everything dimmed, strips shown, moving dots (needs supplies or a battery)"
               },
               "focus": {
                 "type": "array",

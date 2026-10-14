@@ -26,6 +26,11 @@ repository root (`node bin/protoboard-iso.js <command> …`, same names: `inspec
   brief does not say otherwise) and spread parts out.
 - Wire to rails through free strips: three-lead parts cannot reach a rail directly; place
   them in free strips and add a wire (`suggest` with `type: "wire"`).
+- Power: a battery the brief names (e.g. "4 × AA", "two 18650 cells") is a `battery` part
+  (`format`, `cells`, `chemistry`; `catalog` lists them), not a `supplies` entry. It lies on the
+  table beside the board; put its leads in rail holes with `suggest` (`between: ["T+", "T-"]`)
+  and set `side` if it would overlap another part or battery. A bench supply stays in
+  `supplies` (`{"op":"circuit","supplies":[…]}`).
 - On `REVISION_MISMATCH`, read the circuit again (`get_circuit`, `history`) before retrying.
 
 ## Work loop

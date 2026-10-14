@@ -16,6 +16,16 @@ const samples = [
   { id: 'D2', type: 'led', pins: ['a5', 'a6'] },
   { id: 'S1', type: 'button', pins: ['e10', 'f10', 'e12', 'f12'] },
   { id: 'W1', type: 'wire', pins: ['a5', 'a9'] },
+  { id: 'RV2', type: 'potentiometer', style: 'trimmer', value: '10k', pins: ['a5', 'a6', 'a7'] },
+  { id: 'D3', type: 'zener', value: '5V1', pins: ['a5', 'a9'] },
+  { id: 'L1', type: 'inductor', value: '100u', pins: ['a5', 'a9'] },
+  { id: 'RT1', type: 'thermistor', value: '10k', pins: ['a5', 'a6'] },
+  { id: 'LDR1', type: 'ldr', pins: ['a5', 'a7'] },
+  { id: 'BZ1', type: 'buzzer', pins: ['a5', 'a8'] },
+  { id: 'J1', type: 'header', count: 3, pin1: 'a5' },
+  ...['AA', 'AAA', '18650', '9V', 'pouch'].map((format, i) => ({ id: `BT${i}`, type: 'battery', format, cells: 2, pins: { '+': 'T+3', '-': 'T-3' } })),
+  { id: 'BT9', type: 'battery', format: 'AA', chemistry: 'nimh', pins: { '+': 'T+3', '-': 'T-3' } },
+  { id: 'BT8', type: 'battery', format: '18650', chemistry: 'lifepo4', pins: { '+': 'T+3', '-': 'T-3' } },
   ...Object.entries(PART_NUMBERS).map(([number, e], i) => ({ id: `P${i}`, type: e.type, part: number, ...(e.type === 'ic' ? { pin1: 'f10' } : { pins: e.pins.map((_, k) => `a${10 + k}`) }) })),
 ];
 

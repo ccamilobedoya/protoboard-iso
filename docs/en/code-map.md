@@ -12,7 +12,7 @@ back to the code (people and assistants alike); the design reasons are in
                         ┌─▶ checks (circuit/checks.js) ─▶ issues
 circuit.json ─▶ build ──┤
  (circuit/build.js)     └─▶ parts + netlist ─┬─▶ scene (render/scene.js) ─▶ SVG (render/svg.js)
-                                              │       ▲ layers: board, parts, labels, annotations,
+                                              │       ▲ layers: under, board, parts, labels, annotations,
                                               │       │ veil, strips, spotlight, flow, results, probes
                                               └─▶ simulate (sim/) ─▶ results ─┘
                                                                      └─▶ text (sim/format.js)
@@ -39,9 +39,10 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `core/` | vectors, isometric camera and views, units (`parseValue`, `formatValue`) |
 | `geometry/primitives.js` | prisms, lathes, tubes, decals, text on planes (3D, millimetres) |
 | `board/` | breadboards as data (`boards/bb830.js`), holes and groups, drawing the board |
-| `parts/types/` | what a part *is*: value → bands, pins, label, `electrical` model |
-| `parts/packages/` | physical shapes from datasheet sizes; `expandPin1` for DIP |
-| `parts/db.js` | part numbers: package, pin order, model |
+| `parts/types/` | what a part *is*: value → bands, pins, label, `electrical` model (`battery.js`; `more.js`: inductor, thermistor, LDR, buzzer, header) |
+| `parts/packages/` | physical shapes from datasheet sizes; `expandPin1` for DIP and headers; `battery.js` lies beside the board (its `build` gets the board); `small.js`: bead, LDR, buzzer, header; `trimmer.js`; `sip.js`: KBP bridge (`kbp`); `axial.js` also draws cement resistors (`shape: 'box'`) |
+| `parts/db.js` | part numbers: package, pin order, model; `lookupPartNumber` accepts other names (L7805CV, 2SC1815) |
+| `parts/batteries.js` | battery formats and chemistries: sizes, voltage curve, internal resistance, capacity; `batteryModel` |
 | `parts/describe.js` | which `describe.*` text says what a kind of part is |
 | `parts/colors.js` | every colour: materials, bands, LEDs, wires, nodes |
 | `circuit/build.js` | circuit file → placed parts, netlist, issues |
@@ -53,9 +54,9 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `ops.js`, `diff.js`, `node/workspace.js` | operations with inverses, dry-run diff, history, undo, outputs |
 | `query.js`, `query-format.js`, `review.js` | questions, placements, verdict from measurements |
 | `schema.js` | JSON Schemas built from the registries (`npm run schemas`) |
-| `sim/models.js` | typical device values, each with its source |
-| `sim/mna.js` | linear solver, stamps, element companions, Newton, source stepping |
-| `sim/index.js` | supplies, parts → elements, floating groups, DC and transient, readings, warnings |
+| `sim/models.js` | typical device values, each with its source (diodes, Zener table, LEDs, transistors, regulators) |
+| `sim/mna.js` | linear solver, stamps, element companions (capacitor, inductor), junction with Zener breakdown, regulator, Newton, source stepping |
+| `sim/index.js` | supplies and battery parts, parts → elements, floating groups, DC and transient, readings, warnings |
 | `sim/format.js` | results as text; `partLines` for the card (each with an explanation key) |
 | `sim/overlay.js` | result tags (current per part, voltage per group) with `data-q` and `data-probe` |
 | `sim/flow.js` | current along strips (Kirchhoff) and through parts; moving dots |
@@ -76,6 +77,19 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 - **Circuit texts**: `title` and each part's `description` are a plain string (shown as it is) or
   one text per language (`check` reports a missing one). A part's `description` is how it is used
   in *this* circuit; leave it out when the learner should find it out.
+- **Off-board parts** (batteries) are drawn like any part; `sceneFor` sends the pieces that lie
+  beyond a side face of the board, on the far side from the camera, to the `under` layer, painted
+  before the board. Anything that looks at part layers (inspect, spotlight, the page script)
+  reads `under` and `parts` together.
+- **Painter's order**: whole primitives are sorted by the centre of their faces, so a long
+  piece next to small ones is cut in slices (battery cells, holder walls). Before adding a sort
+  hint, check whether the geometry itself is right: the + button over the holder wall was really
+  visible, because the wall was too low for a view from 35° above.
+- **Marks repeated around a round part** (the electrolytic's value) set `minFacing` on the decal:
+  it shows only when it faces the viewer that squarely. The isometric views look at 45° to the
+  board, so copies near the diagonals give exactly one per view.
+- **Power sources**: the first of `supplies` sets ground; with none, the first battery part.
+  Code that needs "where the supply is" (ground probe, flow) must handle both.
 - **Layers** are always written in the order of `addLayers`. A page shows or hides them with CSS
   only; new interactive features should follow the same idea (tag in the SVG, rule in CSS).
 - **Data attributes**: `data-part` (part id), `data-node` (group), `data-q` (quantity of a result
@@ -90,6 +104,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 ## Tests
 
 `npm test` (node:test, no dependencies; jsdom only for page scripts) and `npm run test:mcp`.
-Simulator models are checked against independent references in `test/sim.test.js`; page
+Simulator models are checked against independent references in `test/sim.test.js` and
+`test/sources.test.js` (batteries, Zener, regulators, inductors, sensors); page
 behaviour in `test/focus.test.js` and `test/page.test.js`; texts in `test/describe.test.js` and
 `test/i18n.test.js`.

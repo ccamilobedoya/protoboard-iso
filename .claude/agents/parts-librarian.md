@@ -20,7 +20,15 @@ part may only need a line in `src/parts/db.js`.
    (`span` or `inline`), orientation from the holes, convex primitives, colours from
    `src/parts/colors.js`. Register it.
 3. **New type** → `src/parts/types/`, with its `electrical` description for the simulator.
-   Register it; add `type.<name>` to every file in `src/i18n/`.
+   Register it; add `type.<name>` and its `describe.<name>` (what it is, from the physics) to
+   every file in `src/i18n/`, its key in `src/parts/describe.js`, and an id prefix in
+   `src/query.js`. A part that lies off the board gets the board in `build({ pins, params,
+   board })` (see the battery).
+3b. **Simulation model** → typical datasheet values in `src/sim/models.js` (with the source in
+   a comment) or a new element in `src/sim/mna.js`; readings and card lines in
+   `src/sim/index.js` and `src/sim/format.js` (each line with an `explain.*` text). Check it
+   once against an independent reference (datasheet point or formula solved apart) in
+   `test/sim.test.js` or `test/sources.test.js`.
 4. Run `npm run schemas` when types or packages change.
 
 ## Verify
@@ -31,7 +39,8 @@ part may only need a line in `src/parts/db.js`.
   bin/protoboard-iso.js review examples/parts-showcase.json` must stay APPROVED.
 - Look once at a small close-up (`render` with `fit: parts`, `png_width: 700`, or `node
   scripts/preview.js <name> --width 700`) to judge the shape; front and back if geometry is new.
-- Update `docs/*/circuit-format.md` (both languages) and `ROADMAP.md` (both languages).
+- Update `docs/*/circuit-format.md`, `docs/*/simulation.md` (models table) and the roadmap,
+  in both languages, and the parts table in `SKILL.md`.
 
 If `node` is not found, read `CLAUDE.local.md` for the path. Never commit.
 

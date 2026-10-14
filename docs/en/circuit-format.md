@@ -23,8 +23,8 @@
 | `clearance` | no | Minimum gap between part bodies, mm. Closer parts are reported as notes. Use 3 or more for teaching layouts. |
 | `netLabels` | no | Text printed next to a rail, by rail id. A labelled rail counts as connected to a supply. |
 | `lang` | no | Language of everything made from this circuit: drawing labels, the page, messages (`en`, `es`). A language asked for in the call (`--lang`, MCP `lang`) wins. |
-| `supplies` | no | Simulation: where the power comes from, e.g. `[{ "id": "V1", "voltage": 5 }]` (between T+ and T-). See [simulation.md](simulation.md). |
-| `page` | no | The embeddable page: `results` (button with the simulation results), `flow` (current layer), `focus` (parts in focus when it opens). See [focus-and-flow.md](focus-and-flow.md). |
+| `supplies` | no | Simulation: where the power comes from, e.g. `[{ "id": "V1", "voltage": 5 }]` (between T+ and T-). A [battery](#battery) part is a source too. See [simulation.md](simulation.md). |
+| `page` | no | The embeddable page: `results` (simulation always on, values of the tapped part), `flow` (current layer), `focus` (parts in focus when it opens). See [focus-and-flow.md](focus-and-flow.md). |
 | `parts` | yes | List of parts. |
 
 ## Holes
@@ -60,9 +60,13 @@ when the learner should find it out; see [focus-and-flow.md](focus-and-flow.md))
 | `value` | — | `"330"`, `"4k7"`, `"4.7k"`, `"1M"`, `"2R2"`, or a number in ohms |
 | `tolerance` | `"5%"` | sets the last band; ≤ 2 % switches to 5 bands and a blue body |
 | `bands` | from tolerance | `4` or `5` |
-| `power` | `"1/4"` | `"1/8"`, `"1/4"`, `"1/2"`, `"1"`: body size |
+| `power` | `"1/4"` | `"1/8"`, `"1/4"`, `"1/2"`, `"1"`: body size; `"3"`, `"5"`, `"10"`: a cement resistor |
 
 Pins `1`, `2`. The bands read from pin 1 (the tolerance band is next to pin 2).
+
+From 3 W up it is a **cement resistor**: a white ceramic box (5 W: 22 × 9.5 × 9 mm; 10 W: 48 mm
+long) lying on the board, with the power, value and tolerance letter printed on top instead of
+bands (`5W 10ΩJ`; J = 5 %). The simulator checks its power against the rating.
 
 ### capacitor
 
@@ -74,16 +78,42 @@ Pins `1`, `2`. The bands read from pin 1 (the tolerance band is next to pin 2).
 | `diameter`, `height` | from the table | mm, to match a real part |
 
 Ceramic pins `1`, `2` (the three-digit code is printed on it). Electrolytic pins `+`, `-`;
-the stripe faces `-`.
+the stripe faces `-`, and the value is printed up the sleeve (`100µF 25V`), repeated around
+it as on real parts, so each view shows one copy.
 
 ### led
 
 `color`: `red` (default), `green`, `yellow`, `blue`, `white`, `orange`. `size`: `5`
-(default) or `3`. Pins `anode`, `cathode`.
+(default) or `3`. Pins `anode`, `cathode`. The flange is flat on the cathode side, and the
+anode lead is the longer one: its extra length shows as a small kink above the board.
 
 ### diode
 
-`part`: `1N4007` (default), `1N4148`, `1N5819`. Pins `A`, `K`; the band marks `K`.
+`part` (pins `A`, `K`; the band marks `K`):
+
+| part | kind | body |
+|---|---|---|
+| 1N4007 (default), 1N4001…1N4006 | rectifier, 1 A | DO-41 |
+| 1N5399 | rectifier, 1.5 A | DO-15 |
+| 1N5408 | rectifier, 3 A | DO-201AD |
+| 1N4148 | signal | glass |
+| 1N5819, 1N5822 | Schottky, 1 A / 3 A | DO-41 / DO-201AD |
+| FR107, FR207 | fast recovery, 1 A / 2 A | DO-41 / DO-15 |
+
+### zener
+
+Zener diode, 1 W, orange glass body. `value`: the Zener voltage, `"5V1"` (as printed on the
+part), `"5.1"` or `5.1`; or `part`: `1N4728A` (3.3 V) … `1N4751A` (30 V). Pins `A`, `K`; the band
+marks `K`. In use it goes in reverse: `K` towards the positive side, with a series resistor.
+
+### bridge
+
+Bridge rectifier in a KBP case: four diodes in one flat body standing on four leads in a
+row, `+ ~ ~ −`. `part`: `KBP307` (default; 3 A) or any KBP2xx (2 A) / KBP3xx (3 A), e.g.
+`KBP206`, `KBP210`. Pins `+`, `AC1`, `AC2`, `-`. Its leads are 3.8 mm apart, so on the board they
+go in one row with neighbours one or two holes apart (`BRIDGE_SHAPE` otherwise), e.g.
+`e10, e11, e13, e14`. The bevelled corner and the printed `+` mark the `+` pin. The simulator
+uses four diodes (about 1.0 V each at the rated current).
 
 ### mosfet, bjt
 
@@ -93,8 +123,11 @@ the stripe faces `-`.
 |---|---|---|---|
 | IRLZ44N, IRF520, IRF9540 | mosfet | TO-220 | G, D, S |
 | 2N7000 | mosfet | TO-92 | S, G, D |
-| 2N2222A, 2N3904, 2N3906 | bjt | TO-92 | E, B, C |
-| BC547, BC557 | bjt | TO-92 | C, B, E |
+| 2N2222A, 2N2907A, 2N3904, 2N3906, 2N5551, 2N5401 | bjt | TO-92 | E, B, C |
+| S8050, S8550, S9012, S9013, S9014, S9015, S9018 | bjt | TO-92 | E, B, C |
+| BC547, BC548, BC549, BC550, BC557, BC558, BC337, BC327 | bjt | TO-92 | C, B, E |
+| BC517 (Darlington) | bjt | TO-92 | C, B, E |
+| C1815 (2SC1815), A1015 (2SA1015) | bjt | TO-92 | E, C, B |
 | TIP120 | bjt | TO-220 | B, C, E |
 
 Pin 1 is on the left when you look at the printed face with the leads down, so listing
@@ -108,6 +141,9 @@ A part not in the table: give `package` (`TO-220`, `TO-92`) and `pinNames`.
 white mark on the knob shows it). Pins `1`, `W` (wiper), `3`, three neighbouring holes in a
 row; pin 1 on the left seen from the knob.
 
+`style`: `knob` (default) or `trimmer`, a blue multi-turn 3296W with its adjusting screw on top
+and the value printed as a code (`103` = 10 kΩ).
+
 ### button
 
 6 × 6 mm tactile push button. Pins `1`, `2`, `3`, `4`: 1–2 are always joined inside, and so
@@ -118,8 +154,9 @@ Turned 90° (1 and 3 in the same strip) it is always closed: the checker reports
 
 ### ic
 
-Chips in DIP packages, from the part-number table: NE555, LM358, 74HC595, CD4017. Place
-them with **`pin1`** instead of listing every hole:
+Chips in DIP packages, from the part-number table: NE555, LM358, LM324, LM393, UA741 (or
+LM741), NE5532, LM386, 74HC595, CD4017, ULN2003, ULN2803, PC817 (4 pins). Place them with
+**`pin1`** instead of listing every hole:
 
 ```json
 { "id": "U1", "type": "ic", "part": "NE555", "pin1": "f28" }
@@ -128,6 +165,72 @@ them with **`pin1`** instead of listing every hole:
 Pin 1 in the front row next to the channel (`f`) reads from the front, notch on the left;
 pin 1 in the back row (`e`) turns the chip round. Pin names come from the part (`GND`,
 `TRIG`, `OUT`… for the 555), so other parts can be checked against them.
+
+### regulator
+
+Linear voltage regulator in TO-220. `part`: `7805`, `7806`, `7808`, `7809`, `7810`, `7812`,
+`7815`, `7818`, `7824` (pins `IN`, `GND`, `OUT`) or `LM317` (pins `ADJ`, `OUT`, `IN`; output
+1.25 V · (1 + R2/R1)). Other names of the same part work too: `LM7805`, `L7805CV`, `LM317T`.
+
+### inductor
+
+Axial inductor with colour rings, like a fat green resistor; the rings give the value in µH.
+`value`: `"100u"` (100 µH), `"10m"`. `tolerance`: default `"10%"`. `dcr` (winding resistance,
+Ω) and `current` (rated, A): typical values for the size if left out. Pins `1`, `2`.
+
+### thermistor
+
+NTC thermistor (MF52 epoxy bead). `value`: resistance at 25 °C (default `"10k"`); `beta`: B
+constant in kelvin (default 3950); `temperature`: °C the simulation uses (default 25). Pins
+`1`, `2`, one or two holes apart.
+
+### ldr
+
+Photoresistor (light-dependent resistor). `part`: `GL5528` (default), `GL5516`, `GL5537`,
+`GL5539`, `GL5549`; `light`: illuminance in lux for the simulation (default 100, a lit room).
+Pins `1`, `2`, one to three holes apart.
+
+### buzzer
+
+Passive magnetic buzzer, 12 mm. Pins `1`, `2`, two or three holes apart. To the simulator it
+is its coil (`resistance`, default 16 Ω); it warns when steady DC flows through it, since a
+passive buzzer only sounds with a changing signal.
+
+### header
+
+A row of male header pins, to show where a module or a Dupont wire plugs in. Place it with
+`pin1` and `count`; the other pins follow towards higher columns:
+
+```json
+{ "id": "J1", "type": "header", "count": 4, "pin1": "h50" }
+```
+
+Pins `1` … `n`; each is only its own hole.
+
+### battery
+
+A battery lying on the table beside the board, with a red and a black lead to two holes: pins
+`+` and `-`. It is also a power source for the simulator (a circuit with a battery needs no
+`supplies`).
+
+| Field | Default | |
+|---|---|---|
+| `format` | `AA` | `AA`, `AAA` (cells in an open holder), `18650` (lithium cells in a holder), `9V` (block with its snap), `pouch` (flat LiPo, 103450) |
+| `chemistry` | by format | `alkaline` (AA, AAA, 9V), `nimh` (AA, AAA), `li-ion` or `lifepo4` (18650), `lipo` (pouch) |
+| `cells` | `1` | cells (or 9 V blocks) in series: the voltages add up, 4 × AA = 6 V |
+| `charge` | — | 0 (empty) … 1 (full). Without it the battery is at its nominal voltage; with it the open-circuit voltage follows the chemistry's discharge curve (a full lithium cell, 4.2 V) |
+| `voltage` | — | a measured open-circuit voltage: wins over the two above |
+| `internalResistance`, `capacity` | by format | Ω for the whole pack; `"2000 mAh"` |
+| `switch` | — | `on` or `off`: a holder with a slide switch (off: no current) |
+| `side`, `offset` | nearer side edge | where it lies: `left`, `right`, `back`, `front`; mm along that edge |
+
+```json
+{ "id": "BT1", "type": "battery", "format": "AA", "cells": 4, "switch": "on", "pins": { "+": "T+3", "-": "T-3" } }
+{ "id": "BT2", "type": "battery", "format": "18650", "cells": 2, "charge": 0.8, "pins": { "+": "B+60", "-": "B-60" } }
+```
+
+The figures behind each format and chemistry (voltage curve, internal resistance, capacity,
+the largest current each is meant for) are in `src/parts/batteries.js`.
 
 ### wire
 

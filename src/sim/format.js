@@ -39,10 +39,18 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
   for (const [id, p] of Object.entries(result.parts)) {
     let text;
     if (p.unsupported) text = t(lang, 'sim.unsupported');
+    else if (p.kind === 'HDR') continue;
     else if (p.kind === 'M') text = `${t(lang, 'sim.region.mosfet.' + p.region)} · Vgs ${f(p.vgs, 'V')} · Vds ${f(p.vds, 'V')} · Id ${f(p.currents.D, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'Q') text = `${t(lang, 'sim.region.bjt.' + p.region)} · Vbe ${f(p.vbe, 'V')} · Vce ${f(p.vce, 'V')} · Ib ${f(p.currents.B, 'A')} · Ic ${f(p.currents.C, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'POT') text = `I(1) ${f(p.currents['1'], 'A')} · I(W) ${f(p.currents.W, 'A')} · I(3) ${f(p.currents['3'], 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'SW') text = `${t(lang, p.pressed ? 'state.pressed' : 'state.released')} · ${f(p.current, 'A')}`;
+    else if (p.kind === 'BR') text = `${t(lang, 'sim.q.bridge.vac')} ${f(p.vac, 'V')} · ${t(lang, 'sim.q.bridge.vdc')} ${f(p.vdc, 'V')} · ${t(lang, 'sim.q.bridge.current')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
+    else if (p.kind === 'REG') text = `${t(lang, 'sim.reg.' + p.state)} · ${t(lang, 'sim.q.reg.vin')} ${f(p.vin, 'V')} · ${t(lang, 'sim.q.reg.vout')} ${f(p.vout, 'V')} · ${t(lang, 'sim.q.reg.iout')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
+    else if (p.kind === 'BAT' && !p.on) text = t(lang, 'sim.battery.off');
+    else if (p.kind === 'BAT') {
+      text = `${pad(f(p.voltage, 'V'), 10)} ${pad(f(p.current, 'A'), 10)} ${f(p.power, 'W')} · ${t(lang, 'sim.q.battery.emf')} ${f(p.emf, 'V')}`;
+      if (p.runtime != null) text += ` · ${t(lang, 'sim.q.battery.runtime')} ${runtimeText(p.runtime, lang)}`;
+    }
     else {
       text = `${pad(f(p.voltage, 'V'), 10)} ${pad(f(p.current, 'A'), 10)} ${f(p.power, 'W')}`;
       if (p.kind === 'LED') text += ` · ${t(lang, 'sim.brightness', { percent: Math.round(p.brightness * 100) })}`;
@@ -71,6 +79,16 @@ function formatTransient(result, lang, { f, lines, issues }) {
   return lines.join('\n');
 }
 
+// Hours of battery life as "≈ 40 min", "≈ 7,5 h", "≈ 6 días".
+export function runtimeText(hours, lang = 'en') {
+  const decimal = decimalSeparator(lang);
+  const n = (x) => String(x).replace('.', decimal);
+  if (hours < 1) return t(lang, 'sim.runtime.min', { n: Math.max(1, Math.round(hours * 60)) });
+  if (hours < 48) return t(lang, 'sim.runtime.h', { n: n(hours < 10 ? Math.round(hours * 10) / 10 : Math.round(hours)) });
+  const days = hours / 24;
+  return t(lang, 'sim.runtime.d', { n: n(days < 10 ? Math.round(days * 10) / 10 : Math.round(days)) });
+}
+
 // One part's readings for a card: [{ key, text }]. `key` names its explanation
 // (i18n "explain.<key>"), so a learner can tap "Ic: 8,82 mA" and read what Ic is.
 export function partLines(p, lang = 'en') {
@@ -79,6 +97,7 @@ export function partLines(p, lang = 'en') {
   const q = (key, value) => ({ key, text: `${t(lang, `sim.q.${key}`)}: ${value}` });
   const raw = (key, text) => ({ key, text });
   if (p.unsupported) return [raw('unsupported', t(lang, 'sim.unsupported'))];
+  if (p.kind === 'HDR') return [];
   const lines = [];
   if (p.kind === 'M') {
     lines.push(raw(`region.mosfet.${p.region}`, t(lang, `sim.region.mosfet.${p.region}`)), raw('vgs', `Vgs: ${f(p.vgs, 'V')}`), raw('vds', `Vds: ${f(p.vds, 'V')}`), raw('id', `Id: ${f(p.currents.D, 'A')}`), q('power', f(p.power, 'W')));
@@ -90,7 +109,20 @@ export function partLines(p, lang = 'en') {
     lines.push(raw('pot.current', `I(1): ${f(p.currents['1'], 'A')}`), raw('pot.current', `I(W): ${f(p.currents.W, 'A')}`), raw('pot.current', `I(3): ${f(p.currents['3'], 'A')}`), q('power', f(p.power, 'W')));
   } else if (p.kind === 'SW') {
     lines.push(q('state', t(lang, p.pressed ? 'state.pressed' : 'state.released')), q('current', f(p.current, 'A')));
+  } else if (p.kind === 'BR') {
+    lines.push(q('bridge.vac', f(p.vac, 'V')), q('bridge.vdc', f(p.vdc, 'V')), q('bridge.current', f(p.current, 'A')), q('power', f(p.power, 'W')));
+  } else if (p.kind === 'REG') {
+    lines.push(raw(`reg.${p.state}`, t(lang, `sim.reg.${p.state}`)), q('reg.vin', f(p.vin, 'V')), q('reg.vout', f(p.vout, 'V')), q('reg.headroom', f(p.headroom, 'V')), q('reg.iout', f(p.current, 'A')), q('reg.quiescent', f(p.quiescent, 'A')), q('power', f(p.power, 'W')));
+  } else if (p.kind === 'BAT') {
+    if (!p.on) lines.push(raw('battery.off', t(lang, 'sim.battery.off')));
+    else {
+      lines.push(q('battery.emf', f(p.emf, 'V')), q('battery.voltage', f(p.voltage, 'V')), q('battery.drop', f(p.drop, 'V')), q('battery.current', f(p.current, 'A')), q('battery.power', f(p.power, 'W')));
+      if (p.runtime != null) lines.push(q('battery.runtime', runtimeText(p.runtime, lang)));
+    }
+    if (p.charge != null) lines.push(q('battery.charge', `${Math.round(p.charge * 100)} %`));
   } else {
+    if (p.sensor?.kind === 'thermistor') lines.push(q('sensor.temperature', `${String(p.sensor.temperature).replace('.', decimal)} °C`), q('sensor.resistance', f(p.sensor.resistance, 'Ω')));
+    if (p.sensor?.kind === 'ldr') lines.push(q('sensor.light', `${String(p.sensor.light).replace('.', decimal)} lx`), q('sensor.resistance', f(p.sensor.resistance, 'Ω')));
     lines.push(q('voltage', f(p.voltage, 'V')), q('current', f(p.current, 'A')), q('power', f(p.power, 'W')));
     if (p.kind === 'LED') lines.push(q('brightness', t(lang, 'sim.brightness', { percent: Math.round(p.brightness * 100) })));
   }

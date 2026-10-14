@@ -48,10 +48,13 @@ con una `matrix` de SVG, así que gira con la vista igual que la impresión real
 
 ## Dibujo: el algoritmo del pintor
 
-1. Primero se pinta la protoboard (está debajo de todo).
-2. Las demás primitivas (un cuerpo, cada tramo de una pata o de un cable) se ordenan por la
+1. Primero, las piezas de componentes que quedan fuera de la protoboard (una batería sobre la
+   mesa) enteras más allá de una cara lateral, del lado que la cámara no ve (capa `under`): la
+   protoboard queda entre ellas y quien mira.
+2. Luego, la protoboard.
+3. Las demás primitivas (un cuerpo, cada tramo de una pata o de un cable) se ordenan por la
    profundidad de su centro y se pintan de la más lejana a la más cercana.
-3. Dentro de una primitiva se descartan las caras que miran hacia atrás y las demás se
+4. Dentro de una primitiva se descartan las caras que miran hacia atrás y las demás se
    pintan de lejos a cerca; luego sus calcomanías (marcas y textos).
 
 Las primitivas se mantienen convexas, o casi, para que esto funcione. Si dos piezas de un
