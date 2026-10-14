@@ -40,7 +40,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `geometry/primitives.js` | prisms, lathes, tubes, decals, text on planes (3D, millimetres) |
 | `board/` | breadboards as data (`boards/bb830.js`), holes and groups, drawing the board |
 | `parts/types/` | what a part *is*: value → bands, pins, label, `electrical` model (`battery.js`; `more.js`: inductor, thermistor, LDR, buzzer, header) |
-| `parts/packages/` | physical shapes from datasheet sizes; `expandPin1` for DIP and headers; `battery.js` lies beside the board (its `build` gets the board); `small.js`: bead, LDR, buzzer, header; `trimmer.js`; `sip.js`: KBP bridge (`kbp`); `axial.js` also draws cement resistors (`shape: 'box'`) |
+| `parts/packages/` | physical shapes from datasheet sizes; `expandPin1` for DIP and headers; `battery.js` lies beside the board (its `build` gets the board); `small.js`: bead, LDR, buzzer, header; `trimmer.js`; `sip.js`: KBP bridge (`kbp`); `devboard.js` (ESP32 boards across the channel) and `uno.js` (UNO beside the board, Dupont leads), data in `parts/modules.js`; `axial.js` also draws cement resistors (`shape: 'box'`) |
 | `parts/db.js` | part numbers: package, pin order, model; `lookupPartNumber` accepts other names (L7805CV, 2SC1815) |
 | `parts/batteries.js` | battery formats and chemistries: sizes, voltage curve, internal resistance, capacity; `batteryModel` |
 | `parts/describe.js` | which `describe.*` text says what a kind of part is |
@@ -85,6 +85,11 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
   piece next to small ones is cut in slices (battery cells, holder walls). Before adding a sort
   hint, check whether the geometry itself is right: the + button over the holder wall was really
   visible, because the wall was too low for a view from 35° above.
+- **Parts resting on others**: a primitive can name its support with `on` (a primitive or a
+  list): a chip on a PCB, the can on the ESP32 module, a PCB on its header strips. The painter
+  draws it after its support whatever their centres say (`supportsFirst` in `render/scene.js`).
+  Use it for anything built on a large flat piece; slicing (as the battery cells) is for long
+  pieces next to small ones.
 - **Marks repeated around a round part** (the electrolytic's value) set `minFacing` on the decal:
   it shows only when it faces the viewer that squarely. The isometric views look at 45° to the
   board, so copies near the diagonals give exactly one per view.

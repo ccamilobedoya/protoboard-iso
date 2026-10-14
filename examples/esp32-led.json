@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "title": { "en": "ESP32 DevKit lighting an LED from D13", "es": "ESP32 DevKit encendiendo un LED desde D13" },
+  "board": "bb830",
+  "clearance": 1,
+  "netLabels": { "B-": "GND" },
+  "parts": [
+    { "id": "U1", "type": "module", "part": "ESP32-DEVKIT", "pin1": "c5" },
+    { "id": "R1", "type": "resistor", "value": "220", "pins": ["a17", "a24"] },
+    { "id": "D1", "type": "led", "color": "red", "pins": { "anode": "c24", "cathode": "c25" } },
+    { "id": "W1", "type": "wire", "color": "black", "pins": ["a25", "B-27"] },
+    { "id": "W2", "type": "wire", "color": "black", "pins": ["a18", "B-21"] }
+  ]
+}

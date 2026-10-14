@@ -88,7 +88,10 @@ export function buildCircuit(circuit) {
     if (raw.pin1 !== undefined && raw.pins === undefined && pkg.expandPin1) {
       const holes = pkg.expandPin1(board, raw.pin1, def.params);
       if (!holes) {
-        issues.push(err('BAD_PIN1', { part: raw.id, hole: String(raw.pin1) }));
+        // A package may explain where its pin 1 can go (a development board: rows that depend
+        // on its row spacing).
+        const help = pkg.pin1Help?.(board, def.params);
+        issues.push(help ? err(help.code, { part: raw.id, hole: String(raw.pin1), ...help.params }) : err('BAD_PIN1', { part: raw.id, hole: String(raw.pin1) }));
         return;
       }
       source = { ...raw, pins: holes };

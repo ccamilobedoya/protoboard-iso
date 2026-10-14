@@ -40,6 +40,7 @@ import { review, formatReview, PROFILES } from '../src/review.js';
 import { simulate } from '../src/sim/index.js';
 import { BATTERY_FORMATS } from '../src/parts/batteries.js';
 import { LDR_PARTS } from '../src/parts/types/more.js';
+import { MODULES } from '../src/parts/modules.js';
 import { pickLanguage } from '../src/i18n/index.js';
 import { formatSimulation } from '../src/sim/format.js';
 
@@ -403,6 +404,7 @@ server.registerTool(
       partNumbers: Object.fromEntries(Object.entries(PART_NUMBERS).map(([k, v]) => [k, { type: v.type, package: v.package, pins: v.pins }])),
       batteries: Object.fromEntries(Object.entries(BATTERY_FORMATS).map(([k, f]) => [k, { default: f.default, chemistries: Object.keys(f.chemistries) }])),
       photoresistors: Object.keys(LDR_PARTS),
+      modules: Object.fromEntries(Object.entries(MODULES).map(([k, m]) => [k, { name: m.label, mount: m.mount, pins: m.pins ?? m.headers.flatMap((h) => h.pins.map(([n]) => n)) }])),
       packages: Object.keys(PACKAGES),
       boards: Object.keys(BOARDS),
       views: Object.keys(VIEWS),

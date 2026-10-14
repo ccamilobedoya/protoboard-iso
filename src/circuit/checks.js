@@ -102,7 +102,9 @@ export function checkConnections(parts, netlist, { netLabels = {} } = {}) {
   };
   for (const [node, members] of Object.entries(netlist.nodes)) {
     const supplied = netLabels[node.split(':')[0]] !== undefined;
-    if (members.length === 1 && !supplied && !connectedThroughPart(members[0].part, members[0].pin)) {
+    // A development board has many pins and a circuit uses a few: the rest are not a mistake.
+    const spare = byId.get(members[0].part)?.def.spare;
+    if (members.length === 1 && !supplied && !spare && !connectedThroughPart(members[0].part, members[0].pin)) {
       const [{ part, pin }] = members;
       out.push(issue('info', 'FLOATING_PIN', { part, pin, node }));
     }

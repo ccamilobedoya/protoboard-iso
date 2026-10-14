@@ -104,3 +104,19 @@ export const CELL_WRAPS = {
   lifepo4: { body: '#3164b0', accent: '#3164b0' },
   lipo: { body: '#cdd2d9', accent: '#d9a43a', print: '#26292d' },
 };
+
+// Development boards: PCBs, headers, the ESP32 module's metal can and antenna, connectors.
+Object.assign(MATERIALS, {
+  pcbBlack: '#1f2124',
+  pcbBlue: '#1d5fa8',
+  pcbPrint: '#f2f2f2',
+  headerBlack: '#202023',
+  moduleBlue: '#23262b',
+  copper: '#c99a4b',
+  shield: '#c9ccd1',
+  shieldPrint: '#4a4d52',
+  antennaCeramic: '#3a3a3e',
+  ledBlue: '#5aa2ff',
+  resetRed: '#d23b3b',
+  crystal: '#d4d7dc',
+});

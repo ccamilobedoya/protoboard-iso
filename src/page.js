@@ -25,6 +25,7 @@ import { simulate } from './sim/index.js';
 import { partLines } from './sim/format.js';
 import { groundHole } from './sim/probes.js';
 import { describePart, describeKeys } from './parts/describe.js';
+import { MODULES } from './parts/modules.js';
 
 const OPPOSITE = { front: 'back', back: 'front', 'front-left': 'back-right', 'back-right': 'front-left' };
 const box = ({ x, y, width, height }) => `${x} ${y} ${width} ${height}`;
@@ -77,12 +78,21 @@ function partData(circuit, lang, sim) {
   const parts = {};
   const kinds = {};
   for (const part of built.parts) {
-    const pins = part.holes.map((hole, i) => {
+    // A development board lists only the pins in use (it has many), each with its note.
+    const notes = MODULES[part.def.electrical?.module]?.notes ?? {};
+    let pins = part.holes.map((hole, i) => {
       const others = (built.netlist.nodes[hole.node] ?? []).filter((m) => m.part !== part.id).map((m) => `${m.part} (${pinName(m.pin)})`);
       const all = [...others, ...(supplyAt.get(hole.node) ?? [])];
       const where = t(lang, 'page.info.pin', { pin: pinName(part.pinNames[i]), hole: hole.id, node: nodeName(hole.node) });
-      return `${where} — ${all.length ? t(lang, 'page.info.with', { list: all.join(', ') }) : t(lang, 'page.info.alone')}`;
+      const note = localized(notes[part.pinNames[i]], lang);
+      return { used: all.length > 0, text: `${where} — ${all.length ? t(lang, 'page.info.with', { list: all.join(', ') }) : t(lang, 'page.info.alone')}${note ? ` · ${note}` : ''}` };
     });
+    if (part.def.usedPinsOnly) {
+      const free = pins.filter((p) => !p.used).length;
+      pins = pins.filter((p) => p.used);
+      if (free) pins.push({ text: t(lang, 'page.info.free', { n: free }) });
+    }
+    pins = pins.map((p) => p.text);
     parts[part.id] = {
       title: labelText(part, lang) ?? part.id,
       // The kind of part is a value like the others: tap it (or hover it) to read what that kind
@@ -137,7 +147,7 @@ function kindLine(part, lang, kinds) {
 // The part's value as a line that can be explained: "Capacitance: 100 µF 25 V".
 const VALUE_KEYS = {
   resistor: 'resistor', capacitor: 'capacitor', potentiometer: 'potentiometer', led: 'led', diode: 'part', bjt: 'part', mosfet: 'part', ic: 'part', battery: 'battery',
-  zener: 'zener', bridge: 'part', regulator: 'part', inductor: 'inductor', thermistor: 'thermistor', ldr: 'part',
+  zener: 'zener', bridge: 'part', module: 'part', regulator: 'part', inductor: 'inductor', thermistor: 'thermistor', ldr: 'part',
 };
 function valueLine(part, lang) {
   const value = valueText(part, lang);

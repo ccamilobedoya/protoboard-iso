@@ -206,6 +206,30 @@ function layoutLabels(labels, top, obstacles = []) {
   return placed;
 }
 
+// A primitive that rests on another one (`on`: a chip on a PCB, a metal can on a module; or a
+// list, a PCB on its two header strips) is painted after it, whatever their centres say: a large flat PCB sorted by its centre would
+// otherwise cover the parts on its far half. Each one moves to just after its support (what
+// sorted between them is farther than the support, so also behind the part on it).
+export function supportsFirst(sorted) {
+  const list = [...sorted];
+  for (let pass = 0; pass < 4; pass++) {
+    let moved = false;
+    for (let i = 0; i < list.length; i++) {
+      const bases = [].concat(list[i].p.on ?? []);
+      if (!bases.length) continue;
+      const j = Math.max(...bases.map((base) => list.findIndex((e) => e.p === base)));
+      if (j > i) {
+        const [item] = list.splice(i, 1);
+        list.splice(j, 0, item);
+        moved = true;
+        i--;
+      }
+    }
+    if (!moved) break;
+  }
+  return list;
+}
+
 // fit: 'board' frames the whole board; 'parts' frames only the parts and their labels.
 //   under: primitives of parts that lie beside the board on its far side (a battery on the
 //          table): painted before the board, so the board hides them where it should
@@ -214,7 +238,7 @@ export function buildScene({ camera, base = [], items = [], under = [], labels =
   const focus = createBounds();
   const layers = { under: [], board: [], parts: [], labels: [], annotations: [] };
 
-  const byDepth = (list) => list.map((p) => ({ p, depth: centroidDepth(p, camera) })).sort((a, b) => b.depth - a.depth);
+  const byDepth = (list) => supportsFirst(list.map((p) => ({ p, depth: centroidDepth(p, camera) })).sort((a, b) => b.depth - a.depth));
   for (const { p } of byDepth(under)) paintPrimitive(p, camera, focus, layers.under);
   for (const primitive of base) paintPrimitive(primitive, camera, bounds, layers.board);
   for (const { p } of byDepth(items)) paintPrimitive(p, camera, focus, layers.parts);

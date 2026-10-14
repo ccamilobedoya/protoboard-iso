@@ -119,6 +119,46 @@ go in one row with neighbours one or two holes apart (`BRIDGE_SHAPE` otherwise),
 `e10, e11, e13, e14`. The bevelled corner and the printed `+` mark the `+` pin. The simulator
 uses four diodes (about 1.0 V each at the rated current).
 
+### module
+
+A development board. Not simulated yet: its pins only join the groups their holes are in.
+
+| part | where | placement |
+|---|---|---|
+| `ESP32-DEVKIT` (also `ESP32`) | straddles the channel, 30 pins | `pin1` (EN), and `rowSpacing` |
+| `ESP32-C3-SUPERMINI` (also `ESP32-C3`) | straddles the channel, 16 pins | `pin1` (5V), and `rowSpacing` |
+| `UNO` (also `ARDUINO-UNO`) | beside the board | `pins` of the pins in use only |
+
+**Straddling boards** are placed like a DIP chip: pin 1 and the rest follow down that row,
+then back along the other row, `rowSpacing` holes away across the channel (DevKit 9, that is
+0.9"; C3 SuperMini 6). Boards differ (0.9", 1.0" and 1.1" DevKits exist): measure yours and set
+`rowSpacing`. With pin 1 in the front half the board reads from the front. A wrong `pin1`
+says which rows it can go in. The PCB covers the holes under it; a DevKit leaves about one
+free row in front.
+
+```json
+{ "id": "U1", "type": "module", "part": "ESP32-DEVKIT", "pin1": "c5" }
+```
+
+Pin names are the ones printed on the board: DevKit `EN`, `VP`, `VN`, `D34` … `D13`, `GND`,
+`VIN` down one side, `D23`, `D22`, `TX0`, `RX0` … `D15`, `GND2`, `3V3` down the other; C3
+SuperMini `5V`, `GND`, `3V3`, `GPIO4` … `GPIO0` and `GPIO5` … `GPIO21`.
+
+**The UNO** lies beside the board, behind it (`"side": "back"`, default) or in front
+(`"front"`), USB on the left; `offset` moves it along (mm). List only the pins in use: each
+gets a Dupont lead from its header to the hole, coloured by default (5V and VIN red, 3V3
+orange, ground black, signals in turn), or as `wires` says.
+
+```json
+{ "id": "A1", "type": "module", "part": "UNO", "pins": { "D13": "j20", "GND": "T-27" }, "wires": { "D13": "yellow" } }
+```
+
+UNO pins: `D0` … `D13`, `A0` … `A5`, `SCL`, `SDA`, `AREF`, `IOREF`, `RESET`, `3V3`, `5V`, `VIN`
+and the three grounds `GND`, `GND2` (power header) and `GND3` (by D13).
+
+In the page, a board's card lists the pins in use, each with a short note (strapping pin,
+input only, ADC2 not with Wi-Fi, PWM, shared with the USB…).
+
 ### mosfet, bjt
 
 `part` picks the package and the pin names, in package order (pin 1, 2, 3):

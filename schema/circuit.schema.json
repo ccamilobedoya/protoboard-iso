@@ -229,6 +229,7 @@
             "button",
             "wire",
             "battery",
+            "module",
             "inductor",
             "thermistor",
             "ldr",
@@ -314,7 +315,7 @@
         },
         "part": {
           "type": "string",
-          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr (see src/parts/db.js)"
+          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
         },
         "package": {
           "type": "string"
@@ -339,7 +340,20 @@
         },
         "pin1": {
           "type": "string",
-          "description": "DIP chips: hole of pin 1 (row e or f); the other pins follow. Header: first pin, the others towards higher columns"
+          "description": "DIP chips: hole of pin 1 (row e or f); the other pins follow. Header: first pin, the others towards higher columns. Module straddling the channel (ESP32): hole of pin 1, the other row rowSpacing holes away"
+        },
+        "rowSpacing": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 12,
+          "description": "module (ESP32 boards): holes between its two rows of pins; boards differ (DevKit default 9 = 0.9\")"
+        },
+        "wires": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "module UNO: colour of the Dupont lead of each pin, e.g. { \"D13\": \"yellow\" }"
         },
         "position": {
           "type": "number",
@@ -413,11 +427,11 @@
             "back",
             "front"
           ],
-          "description": "battery: board edge it lies beside (default: the nearer side edge)"
+          "description": "battery: board edge it lies beside (default: the nearer side edge); module UNO: back (default) or front"
         },
         "offset": {
           "type": "number",
-          "description": "battery: shift along that edge, mm"
+          "description": "battery, module UNO: shift along that edge, mm"
         },
         "count": {
           "type": "integer",

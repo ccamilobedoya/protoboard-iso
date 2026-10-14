@@ -92,6 +92,7 @@ Guía: [simulacion.md](simulacion.md).
 - ⬜ Comparar algunos circuitos con Falstad CircuitJS como segunda referencia
 - ⬜ Eventos durante el transitorio (presionar un botón en un momento dado) y una gráfica del transitorio en la página
 - ⬜ Chips: 555 y amplificador operacional por comportamiento
+- ⬜ Placas de desarrollo en la simulación (nivel 2, junto con la simulación eléctrica completa): el estado de cada pin fijado en el circuito (`"D13": "high"`, ciclo de PWM), salidas como fuentes con su resistencia interna, entradas de alta impedancia con pull-up opcional, pines 5V y 3V3 como reguladores con sus límites; avisos de corriente por pin, 5 V en un pin de 3,3 V, una salida en corto a tierra. Correr el programa real (avr8js para el UNO, Wokwi para el ESP32) es un paso posterior y aparte
 - ✅ Inductores (axiales, anillos de colores en µH; resistencia del alambre; transitorio), diodos Zener (1N47xxA, ruptura con rodilla suave o brusca), reguladores lineales (78xx, LM317, con caída mínima y su corriente propia), termistor NTC y fotorresistencia (resistencia según `temperature` / `light`), zumbador pasivo (avisa con continua)
 - ✅ Baterías dibujadas como componentes y simuladas como fuentes: formato, química, celdas en serie, estado de carga, voltaje medido, interruptor del portapilas; autonomía estimada; avisos de cortocircuito, sobrecorriente y de cargar una pila alcalina ([simulacion.md](simulacion.md))
 
@@ -99,7 +100,8 @@ Guía: [simulacion.md](simulacion.md).
 
 Del inventario del curso, más o menos en el orden en que se usan:
 
-- ⬜ Módulos al lado o encima de la protoboard, con pines y cables Dupont: Arduino UNO, ESP32 DevKit (a caballo del canal), módulos AMS1117-3.3 y LM2596, cargador TP4056
+- ✅ Placas de desarrollo, dibujadas y revisadas (nivel 1): ESP32 DevKit (30 pines) y ESP32-C3 SuperMini a caballo del canal con `pin1`, con `rowSpacing` porque las placas cambian; Arduino UNO al lado de la protoboard, con cables Dupont solo en los pines que se usan; una nota por pin en la ficha (pines de arranque, solo entrada, ADC2 y Wi-Fi, PWM…). Ejemplos `esp32-led.json`, `uno-led.json`
+- ⬜ Otros módulos: reguladores AMS1117-3.3 y LM2596, cargador TP4056
 - ⬜ Fuente de banco dibujada al lado de la protoboard, con sus caimanes en los rieles (hoy `supplies` no se dibuja)
 - ⬜ Descarga de la batería con el tiempo en un transitorio (la carga baja con la corriente), para lecciones de autonomía
 - ⬜ Módulo elevador (boost) como fuente por comportamiento

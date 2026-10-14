@@ -127,6 +127,46 @@ en la protoboard van en una misma fila, vecinas a uno o dos agujeros (si no, `BR
 p. ej. `e10, e11, e13, e14`. La esquina biselada y el `+` impreso marcan la pata `+`. El
 simulador usa cuatro diodos (cerca de 1,0 V cada uno a la corriente nominal).
 
+### module (placa de desarrollo)
+
+Una placa de desarrollo. Todavía no se simula: sus pines solo unen los grupos de sus agujeros.
+
+| part | dónde | colocación |
+|---|---|---|
+| `ESP32-DEVKIT` (también `ESP32`) | a caballo del canal, 30 pines | `pin1` (EN) y `rowSpacing` |
+| `ESP32-C3-SUPERMINI` (también `ESP32-C3`) | a caballo del canal, 16 pines | `pin1` (5V) y `rowSpacing` |
+| `UNO` (también `ARDUINO-UNO`) | al lado de la protoboard | `pins` solo con los pines que se usan |
+
+**Las placas a caballo del canal** se colocan como un chip DIP: la pata 1 y las demás siguen
+por esa fila, y vuelven por la otra, a `rowSpacing` agujeros al otro lado del canal (DevKit 9, o
+sea 0,9"; C3 SuperMini 6). Las placas cambian (hay DevKit de 0,9", 1,0" y 1,1"): mide la tuya y
+ajusta `rowSpacing`. Con la pata 1 en la mitad de adelante, la placa se lee de frente. Un `pin1`
+equivocado dice en qué filas puede ir. La placa tapa los agujeros que quedan debajo; una DevKit
+deja más o menos una fila libre adelante.
+
+```json
+{ "id": "U1", "type": "module", "part": "ESP32-DEVKIT", "pin1": "c5" }
+```
+
+Los nombres de los pines son los impresos en la placa: DevKit `EN`, `VP`, `VN`, `D34` … `D13`,
+`GND`, `VIN` por un lado, `D23`, `D22`, `TX0`, `RX0` … `D15`, `GND2`, `3V3` por el otro; C3
+SuperMini `5V`, `GND`, `3V3`, `GPIO4` … `GPIO0` y `GPIO5` … `GPIO21`.
+
+**El UNO** va al lado de la protoboard, detrás (`"side": "back"`, por defecto) o adelante
+(`"front"`), con el USB a la izquierda; `offset` lo corre a lo largo (mm). Se listan solo los
+pines que se usan: cada uno lleva un cable Dupont de su conector al agujero, de un color por
+defecto (5V y VIN rojo, 3V3 naranja, tierra negro, señales por turno) o el que diga `wires`.
+
+```json
+{ "id": "A1", "type": "module", "part": "UNO", "pins": { "D13": "j20", "GND": "T-27" }, "wires": { "D13": "yellow" } }
+```
+
+Pines del UNO: `D0` … `D13`, `A0` … `A5`, `SCL`, `SDA`, `AREF`, `IOREF`, `RESET`, `3V3`, `5V`, `VIN`
+y las tres tierras `GND`, `GND2` (conector de alimentación) y `GND3` (junto a D13).
+
+En la página, la ficha de una placa lista los pines en uso, cada uno con una nota corta (pin de
+arranque, solo entrada, ADC2 no con Wi-Fi, PWM, compartido con el USB…).
+
 ### mosfet, bjt (transistor bipolar)
 
 `part` define el encapsulado y los nombres de las patas, en el orden del encapsulado

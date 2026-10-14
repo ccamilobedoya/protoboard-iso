@@ -92,6 +92,7 @@ Guide: [docs/en/simulation.md](docs/en/simulation.md).
 - ⬜ Compare a few circuits with Falstad CircuitJS as a second reference
 - ⬜ Events during a transient (press a button at a given time), and a chart of the transient in the page
 - ⬜ Chips: behavioural 555 and op-amp
+- ⬜ Development boards in the simulation (level 2, with the complete electrical simulation): each pin's state set in the circuit (`"D13": "high"`, PWM duty), outputs as sources with their own resistance, inputs high-impedance with optional pull-up, 5V and 3V3 pins as regulators with their limits; warnings for current per pin, 5 V into a 3.3 V pin, an output shorted to ground. Running real firmware (avr8js for the UNO, Wokwi for the ESP32) is a later, separate step
 - ✅ Inductors (axial, colour rings in µH; winding resistance; transient), Zener diodes (1N47xxA, breakdown with a soft or sharp knee), linear regulators (78xx, LM317, with dropout and their own current), NTC thermistor and photoresistor (resistance from `temperature` / `light`), passive buzzer (warns on DC)
 - ✅ Batteries drawn as parts and simulated as sources: format, chemistry, cells in series, state of charge, measured voltage, holder switch; runtime estimate; warnings for short circuit, over-current, charging an alkaline cell ([simulation.md](docs/en/simulation.md))
 
@@ -99,7 +100,8 @@ Guide: [docs/en/simulation.md](docs/en/simulation.md).
 
 From the course inventory, in rough order of use:
 
-- ⬜ Modules beside or on the board, with header pins and Dupont wires: Arduino UNO, ESP32 DevKit (straddling the board), AMS1117-3.3 and LM2596 modules, TP4056 charger
+- ✅ Development boards, drawn and checked (level 1): ESP32 DevKit (30 pins) and ESP32-C3 SuperMini straddling the channel by `pin1`, with a `rowSpacing` because boards differ; Arduino UNO beside the board, only the pins in use wired with Dupont leads; a note per pin in the card (strapping pins, input only, ADC2 and Wi-Fi, PWM…). Examples `esp32-led.json`, `uno-led.json`
+- ⬜ Other modules: AMS1117-3.3 and LM2596 regulators, TP4056 charger
 - ⬜ Bench supply drawn beside the board, its leads clipped to the rails (today `supplies` is not drawn)
 - ⬜ Battery discharge over time in a transient (charge falling with the current drawn), for runtime lessons
 - ⬜ Step-up (boost) converter module, as a behavioural source
