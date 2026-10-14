@@ -68,6 +68,7 @@ aparece un circuito en protoboard.
 | Inspeccionar y anotar | [docs/es/inspeccionar-y-anotar.md](docs/es/inspeccionar-y-anotar.md) | [docs/en/inspect-and-annotate.md](docs/en/inspect-and-annotate.md) |
 | Interfaz para agentes (retomar, cambiar, deshacer) | [docs/es/interfaz-para-agentes.md](docs/es/interfaz-para-agentes.md) | [docs/en/agent-interface.md](docs/en/agent-interface.md) |
 | Servidor MCP | [docs/es/mcp.md](docs/es/mcp.md) | [docs/en/mcp.md](docs/en/mcp.md) |
+| Simulación (voltajes y corrientes, un modelo) | [docs/es/simulacion.md](docs/es/simulacion.md) | [docs/en/simulation.md](docs/en/simulation.md) |
 | Embeber un circuito en la documentación | [docs/es/embeber.md](docs/es/embeber.md) | [docs/en/embedding.md](docs/en/embedding.md) |
 | Agentes (montaje, revisor, bibliotecario) | [docs/es/agentes.md](docs/es/agentes.md) | [docs/en/agents.md](docs/en/agents.md) |
 | Hoja de ruta | [docs/es/hoja-de-ruta.md](docs/es/hoja-de-ruta.md) | [ROADMAP.md](ROADMAP.md) |

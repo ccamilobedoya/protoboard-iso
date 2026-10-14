@@ -24,6 +24,8 @@ Las claves van en inglés para que el formato sea el mismo en todos los idiomas.
 | `view` | no | Vista por defecto: `front`, `back`, `front-left`, `back-right`. Manda `--view` si se da en la línea de comandos. |
 | `clearance` | no | Separación mínima entre cuerpos, en mm. Los componentes más cercanos se informan como notas. Para montajes de clase, 3 o más. |
 | `netLabels` | no | Texto junto a un riel, por id del riel. Un riel con etiqueta cuenta como conectado a una fuente. |
+| `supplies` | no | Simulación: de dónde sale la energía, por ejemplo `[{ "id": "V1", "voltage": 5 }]` (entre T+ y T-). Ver [simulacion.md](simulacion.md). |
+| `page` | no | La página para embeber: `{ "results": true }` agrega un botón que muestra los resultados de la simulación. |
 | `parts` | sí | Lista de componentes. |
 
 ## Agujeros

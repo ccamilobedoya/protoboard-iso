@@ -22,6 +22,8 @@
 | `view` | no | Default view: `front`, `back`, `front-left`, `back-right`. The command line `--view` wins. |
 | `clearance` | no | Minimum gap between part bodies, mm. Closer parts are reported as notes. Use 3 or more for teaching layouts. |
 | `netLabels` | no | Text printed next to a rail, by rail id. A labelled rail counts as connected to a supply. |
+| `supplies` | no | Simulation: where the power comes from, e.g. `[{ "id": "V1", "voltage": 5 }]` (between T+ and T-). See [simulation.md](simulation.md). |
+| `page` | no | The embeddable page: `{ "results": true }` adds a button that shows the simulation results. |
 | `parts` | yes | List of parts. |
 
 ## Holes

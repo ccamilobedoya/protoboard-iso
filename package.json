@@ -1,6 +1,6 @@
 {
   "name": "protoboard-iso",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Isometric breadboard circuits in SVG, from a small JSON file. A learning kit and an agent skill.",
   "type": "module",
   "license": "MIT",

@@ -75,18 +75,24 @@ de aplicarlas. Las mismas operaciones moverán después el editor interactivo.
 - ✅ Roles de agentes (`.claude/agents/`): `circuit-layout`, `circuit-reviewer`, `parts-librarian`; comparten el estado por los archivos, no por el chat; encargos y ciclo en `docs/es/agentes.md`
 - ⬜ Probar el ciclo de agentes con circuitos reales de clase y ajustar los encargos y el perfil `lesson`
 
-## Etapa 2 — Simulación (primero DC) ⬜
+## Etapa 2 — Simulación (primero DC) ✅ (v0.2)
 
 Objetivo: el voltaje (tensión) de cada nodo y la corriente de cada componente, calculados por el kit.
+Guía: [simulacion.md](simulacion.md).
 
-- ⬜ Fuentes: fuente de banco en los rieles (campo `supplies`), batería como componente
-- ⬜ Solver MNA, DC lineal: resistencias, cables, fuentes de voltaje (`src/sim/`)
-- ⬜ Diodos y LED: modelo de Shockley, iteración de Newton, parámetros por color
-- ⬜ Capacitores: análisis transitorio, Euler implícito
-- ⬜ MOSFET (ley cuadrática) y BJT (Ebers–Moll simplificado)
-- ⬜ Cada modelo comprobado una vez contra una referencia (Falstad o un valor de libro) y guardado como prueba
-- ⬜ Resultados estáticos sobre el SVG: voltajes de nodo, corrientes, potencia; rotulados como **modelo**
-- ⬜ Resultados expuestos por `inspect` y por las herramientas MCP (voltajes y corrientes por nodo y componente)
+- ✅ Fuentes: campo `supplies`: fuente de banco en los rieles con límite de corriente opcional (voltaje constante → corriente constante), batería con resistencia interna; se fijan con la operación `circuit`
+- ✅ Solver MNA (`src/sim/`): LU densa con pivoteo parcial, GMIN, Newton con limitación de las uniones, subida gradual de las fuentes; resistencias, cables (0,05 Ω), potenciómetros, pulsadores
+- ✅ Diodos y LED: modelo de Shockley con resistencia en serie; diodos por referencia, LED por color (Vf a 20 mA), `"model"` para cambiarlo por componente
+- ✅ Capacitores: análisis transitorio, Euler implícito; empiezan descargados o en el punto de DC
+- ✅ MOSFET (ley cuadrática con encendido suave, k a partir de Rds(on)) y BJT (Ebers–Moll de transporte, β constante; TIP120 como Darlington)
+- ✅ Cada modelo comprobado una vez contra una referencia independiente (fórmula de libro resuelta aparte, o la hoja de datos) y guardado como prueba (`test/sim.test.js`)
+- ✅ Los avisos que necesita quien aprende: potencia de más, corriente de más, voltaje inverso, electrolítico al revés, fuente en su límite, cortocircuito, grupos flotantes
+- ✅ Resultados estáticos sobre el SVG (`render --sim`, capa propia `results`): voltajes de los grupos, corrientes, sello «MODELO»; las etiquetas esquivan los componentes
+- ✅ Resultados en la línea de comandos y el MCP (`simulate`, texto o JSON) y en la página para embeber detrás de un botón, solo si el circuito lo pide (`"page": { "results": true }`)
+- ⬜ Comparar algunos circuitos con Falstad CircuitJS como segunda referencia
+- ⬜ Eventos durante el transitorio (presionar un botón en un momento dado) y una gráfica del transitorio en la página
+- ⬜ Chips: 555 y amplificador operacional por comportamiento; bobinas
+- ⬜ Batería dibujada como componente (broche de 9 V; ver la lista de componentes de la etapa 1)
 
 ## Estilo visual y temas (transversal, después de la etapa 2) ⬜
 

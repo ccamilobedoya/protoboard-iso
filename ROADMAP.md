@@ -75,18 +75,24 @@ is applied. The same operations will drive the interactive editor later.
 - ✅ Agent roles (`.claude/agents/`): `circuit-layout`, `circuit-reviewer`, `parts-librarian`; they share state through the files, not the chat; briefs and loop in `docs/en/agents.md`
 - ⬜ Try the agent loop on real lesson circuits and tune the briefs and the `lesson` profile
 
-## Stage 2 — Simulation (DC first) ⬜
+## Stage 2 — Simulation (DC first) ✅ (v0.2)
 
 Goal: voltages at every node and current through every part, computed by the kit.
+Guide: [docs/en/simulation.md](docs/en/simulation.md).
 
-- ⬜ Sources: bench supply on the rails (`supplies` field), battery part
-- ⬜ MNA solver, linear DC: resistors, wires, voltage sources (`src/sim/`)
-- ⬜ Diodes and LEDs: Shockley model, Newton iteration, per-colour parameters
-- ⬜ Capacitors: transient analysis, backward Euler
-- ⬜ MOSFET (square law) and BJT (Ebers–Moll simplified)
-- ⬜ Every part model verified once against a reference (Falstad or a textbook value) and kept as a test
-- ⬜ Static results on the SVG: node voltages, part currents, power; marked as **model**
-- ⬜ Results exposed by `inspect` and the MCP tools (voltages and currents per node and part)
+- ✅ Sources: `supplies` field: bench supply on the rails with optional current limit (constant voltage → constant current), battery with internal resistance; set with the `circuit` operation
+- ✅ MNA solver (`src/sim/`): dense LU with partial pivoting, GMIN, Newton with junction limiting, source stepping; resistors, wires (0.05 Ω), potentiometers, push buttons
+- ✅ Diodes and LEDs: Shockley model with series resistance; diodes per part number, LEDs per colour (Vf at 20 mA), `"model"` overrides per part
+- ✅ Capacitors: transient analysis, backward Euler; start discharged or at the DC point
+- ✅ MOSFET (square law with smooth turn-on, k from Rds(on)) and BJT (Ebers–Moll transport, constant β; TIP120 as a Darlington)
+- ✅ Every part model verified once against an independent reference (textbook formula solved apart, or the datasheet) and kept as a test (`test/sim.test.js`)
+- ✅ Warnings a learner needs: overpower, overcurrent, reverse voltage, reversed electrolytic, supply in current limit, short circuit, floating nodes
+- ✅ Static results on the SVG (`render --sim`, own `results` layer): group voltages, part currents, "MODEL" badge; tags avoid parts
+- ✅ Results in the CLI and MCP (`simulate`, text or JSON) and in the embeddable page behind a button, only when the circuit asks (`"page": { "results": true }`)
+- ⬜ Compare a few circuits with Falstad CircuitJS as a second reference
+- ⬜ Events during a transient (press a button at a given time), and a chart of the transient in the page
+- ⬜ Chips: behavioural 555 and op-amp; inductors
+- ⬜ Battery drawn as a part (9 V snap; see the stage 1 parts list)
 
 ## Visual style and themes (cross-cutting, after stage 2) ⬜
 

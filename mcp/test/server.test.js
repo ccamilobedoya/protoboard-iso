@@ -28,7 +28,7 @@ after(async () => client?.close());
 test('the server lists its tools with schemas and gives work instructions', async () => {
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ['apply_ops', 'catalog', 'create_circuit', 'get_circuit', 'history', 'inspect', 'list_circuits', 'query', 'render', 'review', 'suggest', 'undo']);
+  assert.deepEqual(names, ['apply_ops', 'catalog', 'create_circuit', 'get_circuit', 'history', 'inspect', 'list_circuits', 'query', 'render', 'review', 'simulate', 'suggest', 'undo']);
   for (const tool of tools) assert.ok(tool.description && tool.inputSchema, tool.name);
   assert.ok(tools.find((t) => t.name === 'inspect').annotations.readOnlyHint);
   assert.match(client.getInstructions(), /dry_run/);
@@ -104,4 +104,23 @@ test('paths outside the root and unknown circuits are refused', async () => {
   assert.match(textOf(outside), /outside the allowed folder/);
   const missing = await call('inspect', { target: 'circuits/nope' });
   assert.ok(missing.isError);
+});
+
+test('simulate: supplies set with an operation, then voltages and currents (a model)', async () => {
+  const { supplies, page, ...bare } = led;
+  assert.ok(supplies && page, 'the example has a supply');
+  await call('create_circuit', { target: 'circuits/sim', circuit: bare, author: 'test' });
+  const none = await call('simulate', { target: 'circuits/sim' });
+  assert.ok(none.isError, 'no supply yet');
+  assert.match(textOf(none), /add a supply/);
+  const set = await call('apply_ops', { target: 'circuits/sim', ops: [{ op: 'circuit', supplies: [{ id: 'V1', voltage: 5 }] }], author: 'test' });
+  assert.ok(!set.isError, textOf(set));
+  const text = textOf(await call('simulate', { target: 'circuits/sim', lang: 'es' }));
+  assert.match(text, /un modelo, no una medición/);
+  const dc = jsonOf(await call('simulate', { target: 'circuits/sim', format: 'json' }));
+  assert.ok(dc.ok && dc.model);
+  assert.ok(dc.parts.D1.current > 0.009 && dc.parts.D1.current < 0.011);
+  const tr = jsonOf(await call('simulate', { target: 'circuits/sim', analysis: 'transient', stop: 0.001, format: 'json' }));
+  assert.equal(tr.analysis, 'transient');
+  assert.equal(tr.times[0], 0);
 });

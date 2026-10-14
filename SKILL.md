@@ -31,11 +31,14 @@ Requires Node.js 18 or newer. No npm dependencies.
    anyone looks at the picture; look at a picture only for style.
 5. `--annotate pins,nodes,boxes,grid` (or `all`) adds hole names, connected groups, part
    boxes and full column numbers: use it to point at exact holes or to teach the strips.
+6. Voltages and currents: add `"supplies": [{ "id": "V1", "voltage": 5 }]` and run
+   `node <skill>/bin/protoboard-iso.js simulate circuit.json` (or `render --sim`). Never compute
+   them by hand, and never show a value a learner is asked to predict. See `docs/en/simulation.md`.
 
 ## Prefer the MCP tools
 
 If the `protoboard-iso` MCP server is connected (tools `list_circuits`, `inspect`, `query`,
-`suggest`, `apply_ops`, `undo`, `history`, `render`, `catalog`, `create_circuit`), use them
+`suggest`, `apply_ops`, `undo`, `history`, `render`, `simulate`, `catalog`, `create_circuit`), use them
 instead of the CLI: typed inputs, short answers, same functions. The CLI commands below are
 the fallback. Setup: `docs/en/mcp.md`.
 

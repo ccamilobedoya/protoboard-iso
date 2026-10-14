@@ -12,6 +12,9 @@ import { formatChange } from '../src/diff.js';
 import { queryAt, queryNode, queryFree, suggest } from '../src/query.js';
 import { formatAt, formatNode, formatFree, formatSuggest } from '../src/query-format.js';
 import { review, formatReview } from '../src/review.js';
+import { simulate } from '../src/sim/index.js';
+import { formatSimulation } from '../src/sim/format.js';
+import { parseValue } from '../src/core/units.js';
 import { resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory, writePage } from '../src/node/workspace.js';
 
 function parseArgs(argv) {
@@ -42,6 +45,9 @@ function parseArgs(argv) {
     else if (a === '--window') args.window = Number(argv[++i]);
     else if (a === '--empty') args.empty = true;
     else if (a === '--profile') args.profile = argv[++i];
+    else if (a === '--transient') args.transient = argv[++i].split(',');
+    else if (a === '--start') args.start = argv[++i];
+    else if (a === '--sim') args.sim = true;
     else if (a === '-h' || a === '--help') args.help = true;
     else args._.push(a);
   }
@@ -75,7 +81,7 @@ if (args.help || !command || (command !== 'parts' && !target)) {
 }
 
 const paths = target ? resolveTarget(target) : null;
-const viewOptions = { view: args.view, lang, scale: args.scale || undefined, labels: args.labels, fit: args.fit, annotate: args.annotate };
+const viewOptions = { view: args.view, lang, scale: args.scale || undefined, labels: args.labels, fit: args.fit, annotate: args.annotate, sim: args.sim };
 
 if (command === 'render') {
   const circuit = loadCircuit(paths);
@@ -85,11 +91,19 @@ if (command === 'render') {
   let out = args.out;
   if (!out) {
     mkdirSync(paths.outDir, { recursive: true });
-    out = join(paths.outDir, `${paths.name}.${args.view ?? circuit.view ?? 'front'}${args.annotate ? '.annotated' : ''}.svg`);
+    out = join(paths.outDir, `${paths.name}.${args.view ?? circuit.view ?? 'front'}${args.annotate ? '.annotated' : ''}${args.sim ? '.sim' : ''}.svg`);
   }
   writeFileSync(out, svg);
   console.log(t(lang, 'cli.written', { file: out, parts: circuit.parts.length, issues: issues.length }));
   fail(issues.some((i) => i.severity === 'error') ? 1 : 0);
+} else if (command === 'simulate') {
+  const circuit = loadCircuit(paths);
+  const options = args.transient
+    ? { analysis: 'transient', stop: parseValue(args.transient[0]), step: args.transient[1] ? parseValue(args.transient[1]) : undefined, start: args.start }
+    : { analysis: 'dc' };
+  const result = simulate(circuit, options);
+  console.log(args.json ? JSON.stringify(result, null, 2) : formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }));
+  fail(result.ok ? 0 : 1);
 } else if (command === 'page') {
   const circuit = loadCircuit(paths);
   const { pageFile, issues } = writePage(paths, circuit, { lang, fit: args.fit, out: args.out });

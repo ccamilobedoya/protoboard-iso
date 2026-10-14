@@ -16,8 +16,8 @@ const titleOf = (circuit, lang) => (typeof circuit.title === 'object' ? circuit.
 
 // One view as an inline SVG that scales with the page: the size comes from CSS, the frame
 // (whole board or close-up) from the viewBox, switched by the script.
-function viewSvg(circuit, view, fit, lang) {
-  const board = renderCircuit(circuit, { view, lang });
+function viewSvg(circuit, view, fit, lang, sim) {
+  const board = renderCircuit(circuit, { view, lang, sim });
   if (!board.svg) return { issues: board.issues };
   const parts = renderCircuit(circuit, { view, lang, fit: 'parts' });
   const frames = { board: box(board.scene.frame), parts: box(parts.scene.frame) };
@@ -42,7 +42,8 @@ main { flex: 1; min-height: 0; display: flex; overflow: hidden; touch-action: no
 main.dragging { cursor: grabbing; }
 main svg { display: block; width: 100%; height: 100%; }
 main svg[hidden] { display: none; }
-body.no-labels .labels { display: none; }`;
+body.no-labels .labels { display: none; }
+body:not(.show-results) .results { display: none; }`;
 
 // Works without the script too: the first view, close-up, labels on.
 // With it: buttons, drag to pan (mouse or one finger), wheel or pinch to zoom, double-click
@@ -52,7 +53,8 @@ const SCRIPT = `
 const main = document.querySelector('main');
 const svgs = [...main.querySelectorAll('svg')];
 const buttons = [...document.querySelectorAll('nav button')];
-const state = { view: svgs[0].dataset.view, fit: document.body.dataset.fit, labels: true };
+const state = { view: svgs[0].dataset.view, fit: document.body.dataset.fit, labels: true, results: false };
+const toggles = ['labels', 'results'];
 const numbers = (text) => text.split(' ').map(Number);
 const current = () => svgs.find((s) => s.dataset.view === state.view);
 let box;
@@ -85,10 +87,11 @@ function show() {
   for (const s of svgs) s.toggleAttribute('hidden', s.dataset.view !== state.view);
   setBox(numbers(current().dataset[state.fit]));
   document.body.classList.toggle('no-labels', !state.labels);
-  for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.key === 'labels' ? state.labels : state[b.dataset.key] === b.dataset.value));
+  document.body.classList.toggle('show-results', state.results);
+  for (const b of buttons) b.setAttribute('aria-pressed', String(toggles.includes(b.dataset.key) ? state[b.dataset.key] : state[b.dataset.key] === b.dataset.value));
 }
 for (const b of buttons) b.addEventListener('click', () => {
-  if (b.dataset.key === 'labels') state.labels = !state.labels;
+  if (toggles.includes(b.dataset.key)) state[b.dataset.key] = !state[b.dataset.key];
   else state[b.dataset.key] = b.dataset.value;
   show();
 });
@@ -135,7 +138,10 @@ export function renderPage(circuit, options = {}) {
   const { lang = 'en', fit = 'parts' } = options;
   const first = circuit?.view ?? 'front';
   const views = options.views ?? [first, OPPOSITE[first]].filter(Boolean);
-  const rendered = views.map((view) => ({ view, ...viewSvg(circuit, view, fit, lang) }));
+  // Simulation results only when the circuit asks for them, and hidden until the button is
+  // pressed: a page must never give away a value someone is asked to predict.
+  const results = Boolean(circuit?.page?.results);
+  const rendered = views.map((view) => ({ view, ...viewSvg(circuit, view, fit, lang, results) }));
   const issues = rendered[0]?.issues ?? [];
   if (!rendered.length || rendered.some((r) => !r.svg)) return { html: null, issues };
 
@@ -144,7 +150,7 @@ export function renderPage(circuit, options = {}) {
   const nav = [
     views.length > 1 ? `<span class="group">${views.map((v) => button('view', v, t(lang, `page.view.${v}`))).join('')}</span>` : '',
     `<span class="group">${button('fit', 'parts', t(lang, 'page.fit.parts'))}${button('fit', 'board', t(lang, 'page.fit.board'))}</span>`,
-    `<span class="group">${button('labels', null, t(lang, 'page.labels'))}</span>`,
+    `<span class="group">${button('labels', null, t(lang, 'page.labels'))}${results ? button('results', null, t(lang, 'page.results')) : ''}</span>`,
     `<span class="hint">${escapeXml(t(lang, 'page.hint'))}</span>`,
     `<span class="revision">${escapeXml(t(lang, 'page.revision', { revision: circuit.revision ?? 0 }))}</span>`,
   ].join('');

@@ -18,6 +18,9 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
   (mouse or one finger), wheel or pinch to zoom, double-click to zoom in (the buttons reset
   the frame). Inside the drawing, one finger moves the drawing, not the host page. Without
   JavaScript it still shows the first view, close-up, with labels.
+- **Simulation results**, only if the circuit has `"page": { "results": true }` (and
+  `supplies`): a *Simulation (model)* button shows them; they stay hidden until pressed, so a
+  page never gives away a value someone is asked to predict ([simulation.md](simulation.md)).
 - **It fills its frame.** The drawing scales to the width and height of the iframe (or the
   browser window), so the host decides the size.
 - **The same page grows.** Simulation results, animation and the virtual multimeter (stages

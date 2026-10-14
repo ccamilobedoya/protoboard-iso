@@ -79,6 +79,7 @@ variables or scripts. It can go into documents, wikis and slides as an image.
 
 ## What comes next
 
-- `src/sim/`: modified nodal analysis, one kind of part at a time (see its README).
+- `src/sim/` (stage 2, done): modified nodal analysis over the netlist and each part's
+  `electrical` description; see [simulation.md](simulation.md) and `src/sim/README.md`.
 - Animation: the same scene, redrawn in the browser with simulation results (electron
   dots along leads and wires, voltage colours on strips).

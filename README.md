@@ -62,6 +62,7 @@ breadboard circuit comes up.
 | Inspecting and annotating | [docs/en/inspect-and-annotate.md](docs/en/inspect-and-annotate.md) | [docs/es/inspeccionar-y-anotar.md](docs/es/inspeccionar-y-anotar.md) |
 | Agent interface (resume, change, undo) | [docs/en/agent-interface.md](docs/en/agent-interface.md) | [docs/es/interfaz-para-agentes.md](docs/es/interfaz-para-agentes.md) |
 | MCP server | [docs/en/mcp.md](docs/en/mcp.md) | [docs/es/mcp.md](docs/es/mcp.md) |
+| Simulation (voltages and currents, a model) | [docs/en/simulation.md](docs/en/simulation.md) | [docs/es/simulacion.md](docs/es/simulacion.md) |
 | Embedding a circuit in documentation | [docs/en/embedding.md](docs/en/embedding.md) | [docs/es/embeber.md](docs/es/embeber.md) |
 | Agents (layout, reviewer, parts librarian) | [docs/en/agents.md](docs/en/agents.md) | [docs/es/agentes.md](docs/es/agentes.md) |
 | Roadmap | [ROADMAP.md](ROADMAP.md) | [docs/es/hoja-de-ruta.md](docs/es/hoja-de-ruta.md) |

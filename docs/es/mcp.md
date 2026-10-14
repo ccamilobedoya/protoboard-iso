@@ -59,7 +59,8 @@ la ruta absoluta de `mcp/server.js`, y las variables de arriba.
 | `undo` | deshace el último cambio (revisión nueva) | sí |
 | `review` | APROBADO o CAMBIOS a partir de mediciones, perfil `lesson` o `draft` | no |
 | `history` | revisiones, autores, notas, operaciones | no |
-| `render` | escribe el SVG; con `png_width` devuelve también una imagen PNG; con `page: true` reescribe la página para embeber ([embeber.md](embeber.md)) | solo salidas |
+| `render` | escribe el SVG; con `png_width` devuelve también una imagen PNG; con `page: true` reescribe la página para embeber ([embeber.md](embeber.md)); con `sim: true` dibuja los resultados de la simulación | solo salidas |
+| `simulate` | voltajes de los grupos y corrientes de los componentes, un modelo ([simulacion.md](simulacion.md)); `analysis: dc \| transient`, `stop`, `step`, `start` | no |
 | `catalog` | tipos, referencias, encapsulados, protoboards, vistas, operaciones, capas | no |
 
 Todas responden en texto legible, o en JSON con `format: "json"`. Los errores vuelven como

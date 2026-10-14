@@ -3,6 +3,8 @@
   "title": { "en": "LED with a current-limiting resistor", "es": "LED con resistencia limitadora" },
   "board": "bb830",
   "netLabels": { "T+": "+5 V", "T-": "GND" },
+  "supplies": [{ "id": "V1", "voltage": 5, "currentLimit": 0.1 }],
+  "page": { "results": true },
   "parts": [
     { "id": "R1", "type": "resistor", "value": "330", "pins": ["T+9", "c9"] },
     { "id": "D1", "type": "led", "color": "red", "pins": { "anode": "e9", "cathode": "e10" } },

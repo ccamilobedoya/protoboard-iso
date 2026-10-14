@@ -81,6 +81,7 @@ CSS ni scripts. Se puede pegar como imagen en documentos, wikis y presentaciones
 
 ## Lo que viene
 
-- `src/sim/`: análisis nodal modificado, un tipo de componente a la vez (ver su README).
+- `src/sim/` (etapa 2, hecha): análisis nodal modificado sobre la netlist y la descripción
+  `electrical` de cada componente; ver [simulacion.md](simulacion.md) y `src/sim/README.md`.
 - Animación: la misma escena, redibujada en el navegador con los resultados de la
   simulación (electrones recorriendo patas y cables, voltaje (tensión) como color en las tiras).

@@ -50,6 +50,8 @@ npm run examples -- --lang es # same, Spanish messages and labels
 npm run preview [-- filter]   # examples/out/*.svg → examples/out/png/*.png (needs npm install)
 node bin/protoboard-iso.js inspect <file.json> [--json]   # the drawing in numbers
 node bin/protoboard-iso.js render <file.json> -o out.svg --annotate all
+node bin/protoboard-iso.js simulate <target> [--transient 5,1m] [--json]   # voltages and currents, a model (docs/en/simulation.md)
+node bin/protoboard-iso.js render <target> --sim   # results drawn on the board
 node bin/protoboard-iso.js page <target>                  # out/<name>.html, the page to embed (docs/en/embedding.md)
 node bin/protoboard-iso.js apply <target> --ops '<json>' --dry-run   # then without --dry-run
 node bin/protoboard-iso.js undo <target> · history <target>

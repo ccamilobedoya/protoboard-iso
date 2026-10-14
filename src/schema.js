@@ -41,6 +41,7 @@ export function buildSchemas() {
       pin1: { type: 'string', description: 'DIP chips: hole of pin 1 (row e or f); the other pins follow' },
       position: { type: 'number', minimum: 0, maximum: 1, description: 'potentiometer wiper position' },
       pressed: { type: 'boolean', description: 'button state' },
+      model: { type: 'object', description: 'Simulation: overrides the typical model, e.g. an LED measured at 20 mA { "vf": 2.95 } (see src/sim/models.js)' },
     },
     additionalProperties: true,
   };
@@ -58,6 +59,30 @@ export function buildSchemas() {
       view: { enum: Object.keys(VIEWS) },
       clearance: { type: 'number', minimum: 0, description: 'Minimum gap between bodies, mm' },
       netLabels: { type: 'object', additionalProperties: text },
+      supplies: {
+        type: 'array',
+        description: 'Simulation: where the power comes from. The first supply\'s negative is ground (0 V).',
+        items: {
+          type: 'object',
+          required: ['voltage'],
+          properties: {
+            id: { type: 'string', description: 'e.g. V1' },
+            kind: { enum: ['bench', 'battery'], description: 'battery: internal resistance 0.25 Ω per 1.5 V cell unless given' },
+            voltage: { type: 'number', minimum: 0, description: 'volts' },
+            positive: { type: 'string', description: 'hole or node of the + lead, default "T+"' },
+            negative: { type: 'string', description: 'hole or node of the − lead, default "T-"' },
+            currentLimit: { type: 'number', exclusiveMinimum: 0, description: 'bench supply current limit, amperes (constant current above it)' },
+            internalResistance: { type: 'number', minimum: 0, description: 'ohms' },
+          },
+          additionalProperties: false,
+        },
+      },
+      page: {
+        type: 'object',
+        description: 'The embeddable page out/<name>.html',
+        properties: { results: { type: 'boolean', description: 'Add a button that shows the simulation results (hidden until pressed)' } },
+        additionalProperties: false,
+      },
       parts: { type: 'array', items: { $ref: '#/$defs/part' } },
     },
     $defs: { part },

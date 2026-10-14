@@ -28,6 +28,8 @@ import { PART_TYPES } from './parts/types/index.js';
 import { PACKAGES } from './parts/packages/index.js';
 import { PART_NUMBERS } from './parts/db.js';
 import { resistorBands } from './parts/types/resistor.js';
+import { simulate } from './sim/index.js';
+import { resultsOverlay } from './sim/overlay.js';
 
 export { applyOps, OP_NAMES, CIRCUIT_FIELDS } from './ops.js';
 export { evaluate, diffEvaluations, problemKey } from './diff.js';
@@ -38,7 +40,7 @@ export { ANNOTATION_LAYERS, BOARDS, createBoard, PART_TYPES, PACKAGES, PART_NUMB
 export function formatIssue(issue, lang = 'en') {
   const decimal = decimalSeparator(lang);
   const params = Object.fromEntries(
-    Object.entries(issue.params).map(([k, v]) => [k, typeof v === 'number' ? String(v).replace('.', decimal) : v]),
+    Object.entries(issue.params).map(([k, v]) => [k, typeof v === 'number' ? String(v).replace('.', decimal) : v && typeof v === 'object' && 'unit' in v ? formatValue(v.value, v.unit, { decimal }) : v]),
   );
   if (params.node) {
     const n = nodeParams(params.node);
@@ -95,6 +97,8 @@ function sceneFor(circuit, options = {}) {
   }
   const scene = buildScene({ camera, base, items, labels: anchors, fit });
   if (layers.size) annotateScene(scene, result, layers);
+  // Simulation results (a model): voltages per group, currents per part, in their own layer.
+  if (options.sim) scene.layers.results = resultsOverlay(scene, result, simulate(circuit, { analysis: 'dc' }), lang);
   return { result, scene, view, scale, lang };
 }
 
@@ -102,7 +106,8 @@ const titleOf = (circuit, lang) => (typeof circuit.title === 'object' ? circuit.
 
 // options: view, lang, scale (px per mm), labels (true | 'both' | 'id' | 'value' | false),
 //          fit ('board' | 'parts'),
-//          annotate ('pins,boxes,nodes,grid' | 'all'), background
+//          annotate ('pins,boxes,nodes,grid' | 'all'), background,
+//          sim (true: DC simulation results in the `results` layer, see src/sim/overlay.js)
 export function renderCircuit(circuit, options = {}) {
   const { result, scene, lang } = sceneFor(circuit, options);
   if (!scene) return { svg: null, scene: null, issues: result.issues, netlist: result.netlist };

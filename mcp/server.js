@@ -37,6 +37,8 @@ import { formatAt, formatNode, formatFree, formatSuggest } from '../src/query-fo
 import { resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget, writePage } from '../src/node/workspace.js';
 import { svgToPng, rasterAvailable } from '../src/node/raster.js';
 import { review, formatReview, PROFILES } from '../src/review.js';
+import { simulate } from '../src/sim/index.js';
+import { formatSimulation } from '../src/sim/format.js';
 
 const ROOT = resolve(process.env.PROTOBOARD_ROOT ?? process.cwd());
 const DEFAULT_LANG = LANGUAGES[process.env.PROTOBOARD_LANG] ? process.env.PROTOBOARD_LANG : 'en';
@@ -284,6 +286,31 @@ server.registerTool(
 );
 
 server.registerTool(
+  'simulate',
+  {
+    title: 'Simulate circuit',
+    description:
+      'Node voltages and part currents from the circuit (a model, not a measurement). Needs "supplies" in the circuit (set them with apply_ops, op "circuit"). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, short circuits and floating nodes. Never show results a learner is asked to predict.',
+    inputSchema: {
+      target: targetArg,
+      analysis: z.enum(['dc', 'transient']).optional(),
+      stop: z.number().positive().optional().describe('transient end time, s'),
+      step: z.number().positive().optional().describe('transient step, s (default stop/1000)'),
+      start: z.enum(['zero', 'dc']).optional(),
+      ...common,
+    },
+    annotations: READ,
+  },
+  safely(async ({ target, analysis = 'dc', stop, step, start, lang = DEFAULT_LANG, format }) => {
+    const { paths } = existing(target);
+    const circuit = loadCircuit(paths);
+    const result = simulate(circuit, { analysis, stop, step, start });
+    const response = answer(format, result, () => formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }));
+    return result.ok ? response : { ...response, isError: true };
+  }),
+);
+
+server.registerTool(
   'undo',
   { title: 'Undo', description: 'Undo the latest change not yet undone (recorded as a new revision).', inputSchema: { target: targetArg, author: z.string().optional(), ...common }, annotations: WRITE },
   safely(async ({ target, author = 'mcp', lang = DEFAULT_LANG, format }) => {
@@ -325,17 +352,18 @@ server.registerTool(
       labels: z.union([z.boolean(), z.enum(['both', 'id', 'value'])]).optional().describe('both (default), id, value, or false'),
       png_width: z.number().int().min(200).max(2000).optional(),
       page: z.boolean().optional().describe('Also rewrite the embeddable page out/<name>.html'),
+      sim: z.boolean().optional().describe('Draw the DC simulation results (voltages per group, currents per part, labelled MODEL). Needs supplies. Never for values a learner must predict.'),
       lang: common.lang,
     },
     annotations: { ...WRITE, idempotentHint: true },
   },
-  safely(async ({ target, view = 'front', fit, scale, annotate, labels, png_width, page, lang = DEFAULT_LANG }) => {
+  safely(async ({ target, view = 'front', fit, scale, annotate, labels, png_width, page, sim, lang = DEFAULT_LANG }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
-    const { svg, issues } = renderCircuit(circuit, { view, fit, scale, annotate, labels, lang });
+    const { svg, issues } = renderCircuit(circuit, { view, fit, scale, annotate, labels, lang, sim });
     if (!svg) throw new Error(issues.map((i) => formatIssue(i, lang)).join('\n'));
     mkdirSync(paths.outDir, { recursive: true });
-    const file = join(paths.outDir, `${paths.name}.${view}${fit === 'parts' ? '.zoom' : ''}${annotate ? '.annotated' : ''}.svg`);
+    const file = join(paths.outDir, `${paths.name}.${view}${fit === 'parts' ? '.zoom' : ''}${annotate ? '.annotated' : ''}${sim ? '.sim' : ''}.svg`);
     writeFileSync(file, svg);
     const pageFile = page ? writePage(paths, circuit, { lang }).pageFile : null;
     const content = [{ type: 'text', text: JSON.stringify({ svg: rel(file), ...(pageFile && { page: rel(pageFile) }), bytes: Buffer.byteLength(svg), issues: issues.length }) }];
