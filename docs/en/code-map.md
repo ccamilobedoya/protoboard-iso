@@ -70,6 +70,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `sim/probes.js` | "where a value comes from": probes for voltages, arrows for currents |
 | `page.js`, `page/client/`, `page/style.js` | the embeddable page; `page/client/main.js` is the entry of its script (view, focus, card, tooltip modules) |
 | `node/bundle.js` | the small bundler: allowed ES modules → one classic script for the page (engine, page script) |
+| `sim/falstad.js`, `sim/falstad-layout.js`, `page/client/falstad.js` | export to Falstad's CircuitJS (bundleable): each device writes its part with `falstad(d, f)`; the layout draws it as a schematic (nets as rows by voltage, series parts in one column, the column order with the fewest crossings); the live page's *Open in Falstad* button and its notes. Cross-check: `test/falstad/`, `scripts/falstad.js` ([falstad.md](falstad.md)) |
 | `sim/compile.js`, `sim/engine.js` | compile: circuit → program (plain JSON, Node only); engine: runs a program (no dependencies, bundled into pages) |
 | `i18n/` | every sentence; `pickLanguage` decides the language |
 | `bin/protoboard-iso.js` | command line |
@@ -135,6 +136,6 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 
 `npm test` (node:test, no dependencies; jsdom only for page scripts) and `npm run test:mcp`.
 Simulator models are checked against independent references in `test/sim.test.js` and
-`test/sources.test.js` (batteries, Zener, regulators, inductors, sensors); page
+`test/sources.test.js` (batteries, Zener, regulators, inductors, sensors), and against Falstad's CircuitJS in `test/falstad.test.js` (stored references, offline); page
 behaviour in `test/focus.test.js` and `test/page.test.js`; texts in `test/describe.test.js` and
 `test/i18n.test.js`.

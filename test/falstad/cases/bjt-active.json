@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "title": { "en": "NPN transistor in its active region", "es": "Transistor NPN en la región activa" },
+  "board": "bb830",
+  "supplies": [{ "id": "V1", "voltage": 5 }],
+  "parts": [
+    { "id": "RB", "type": "resistor", "value": "100k", "pins": ["T+9", "h9"] },
+    { "id": "RC", "type": "resistor", "value": "220", "pins": ["T+13", "h14"] },
+    { "id": "Q1", "type": "bjt", "part": "2N3904", "pins": { "E": "f8", "B": "f9", "C": "f10" } },
+    { "id": "W1", "type": "wire", "color": "yellow", "pins": ["j14", "j10"] },
+    { "id": "W2", "type": "wire", "color": "black", "pins": ["j8", "T-9"] }
+  ]
+}

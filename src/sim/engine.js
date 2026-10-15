@@ -301,6 +301,8 @@ export function createEngine(source) {
     },
     timeConstants: () => timeConstants(prep),
     controls: () => controlsOf(program),
+    // The program as the controls left it (a copy): what the page exports to Falstad.
+    program: () => JSON.parse(JSON.stringify(program)),
     set(id, field, value) {
       if (!changeProgram(program, id, field, value)) return false;
       const old = prep;

@@ -17,6 +17,15 @@ export const potentiometer = {
     const r2 = Math.max(p.resistance * (1 - p.position), 1e-3);
     return { upper: h.add(resistorEl(h.pin('1'), h.pin('W'), r1)), lower: h.add(resistorEl(h.pin('W'), h.pin('3'), r2)) };
   },
+  // Falstad's potentiometer: resistance × position from pin 1 to the wiper, as here, but its
+  // slider moves in steps (0.3 becomes 0.302): exact, the two resistors this device adds.
+  falstad(d, f) {
+    const { resistance, position } = d.params;
+    const [one, wiper, three] = ['1', 'W', '3'].map((name) => f.pin(d, name));
+    if (!f.exact) return f.pot({ one, wiper, three }, resistance, position, d.id);
+    f.resistor(one, wiper, Math.max(resistance * position, 1e-3));
+    f.resistor(wiper, three, Math.max(resistance * (1 - position), 1e-3));
+  },
   read(entry, h) {
     const i1 = entry.upper.currents(h.x, h.ctx)[0];
     const i2 = entry.lower.currents(h.x, h.ctx)[0];

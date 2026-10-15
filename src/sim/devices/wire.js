@@ -12,4 +12,5 @@ export const wire = {
   read: (entry, h) => twoTerminal(entry, entry.main, h),
   lines: twoTerminalLines,
   tag: currentTag,
+  falstad: (d, f) => f.wire(d.pins[0].node, d.pins[1].node, WIRE_RESISTANCE),
 };

@@ -7,7 +7,7 @@
 import { resistor as resistorEl } from '../mna.js';
 import { RESISTOR_POWER } from '../models.js';
 import { ntcResistance, ldrResistance } from '../../parts/sensors.js';
-import { stress, note, twoTerminal, twoTerminalLines, currentTag } from './shared.js';
+import { stress, note, q, twoTerminal, twoTerminalLines, currentTag } from './shared.js';
 
 const resistive = {
   kind: 'R',
@@ -31,6 +31,12 @@ const resistive = {
     if (entry.buzzer && Math.abs(r.current) > 1e-3) out.push(note('info', 'SIM_BUZZER_DC', { part: entry.id, current: { value: Math.abs(r.current), unit: 'A' } }));
     out.push(stress('SIM_OVER_POWER', 'power', r.power, entry.maxPower, 'W'));
     return out;
+  },
+  // Falstad's thermistor and photoresistor follow other curves: a fixed resistor at the value now.
+  falstad(d, f) {
+    const p = d.params;
+    f.resistor(d.pins[0].node, d.pins[1].node, p.resistance);
+    if (p.sensor || p.buzzer) f.note(p.buzzer ? 'falstad.buzzer' : 'falstad.sensor', { part: d.id, resistance: q(p.resistance, 'Ω') });
   },
 };
 export const resistor = {

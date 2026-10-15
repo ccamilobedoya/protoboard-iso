@@ -89,7 +89,7 @@ Guide: [docs/en/simulation.md](docs/en/simulation.md).
 - ✅ Warnings a learner needs: overpower, overcurrent, reverse voltage, reversed electrolytic, supply in current limit, short circuit, floating nodes
 - ✅ Static results on the SVG (`render --sim`, own `results` layer): group voltages, part currents, "MODEL" badge; tags avoid parts
 - ✅ Results in the CLI and MCP (`simulate`, text or JSON) and in the embeddable page behind a button, only when the circuit asks (`"page": { "results": true }`)
-- ⬜ Compare a few circuits with Falstad CircuitJS as a second reference
+- ✅ Compare a few circuits with Falstad CircuitJS as a second reference (stage 3, phase 6: [falstad.md](docs/en/falstad.md))
 - ⬜ Events during a transient (press a button at a given time), and a chart of the transient in the page
 - ⬜ Chips: behavioural 555 and op-amp
 - ⬜ Development boards in the simulation (level 2, with the complete electrical simulation): each pin's state set in the circuit (`"D13": "high"`, PWM duty), outputs as sources with their own resistance, inputs high-impedance with optional pull-up, 5V and 3V3 pins as regulators with their limits; warnings for current per pin, 5 V into a 3.3 V pin, an output shorted to ground. Running real firmware (avr8js for the UNO, Wokwi for the ESP32) is a later, separate step
@@ -135,7 +135,10 @@ the plan by sessions: [docs/en/live-simulation.md](docs/en/live-simulation.md).
 - ✅ Phase 3: compiled program (`sim/compile.js`) + dependency-free engine (`sim/engine.js`); devices split into `params` (JSON) and `elements`; a small bundler (`node/bundle.js`), the engine bundled runs alone and matches `simulate()`; the page script as modules (`page/client/`); stamper reused and solved in place (≈ 4× faster, same results)
 - ✅ Phase 4: live simulation in the page (`page/client/live.js`, the engine and the compiled program embedded with `results` or `flow`): dots moved by an accumulated phase, voltage colours, LED glow, heat tint, *Pause* / *Switch on (t = 0)* and a clock for circuits with C or L (speed from the time constants), live tags, probe captions and card; `page.start`
 - ✅ Phase 5: sliders in the card (resistance with E24 stops, temperature, light, potentiometer position, bench voltage, battery charge) and the `page.controls` panel (checked by `check`), momentary push button (on the drawing or in its card); `engine.controls()` / `engine.set()` re-solve at once and carry the state (a capacitor keeps its voltage); limits made visible: amber near the limit, pulsing red past it, latched until cleared or reset, warnings panel; `stress` per part in `simulate`
-- ⬜ Phase 6: compare a few circuits with Falstad CircuitJS (the stage 2 item)
+- ✅ Phase 6: Falstad CircuitJS ([falstad.md](docs/en/falstad.md)): exporter to its text format (`sim/falstad.js`, a `falstad` hook per device, drawn as a schematic, nets labelled with the breadboard groups), *Open in Falstad* button in the live page with the state at that moment and **⚠ n** listing the parts sent as equivalents; cross-check of 7 cases with stored references (`test/falstad/`, `scripts/falstad.js`): same models within 1 µV, MOSFET and Zener within a stated tolerance
+  - ⬜ Falstad's XML format: the MOSFET's λ and Falstad's LM317 (regulators are left out today)
+  - ⬜ Transient cases (RC, RL) in the cross-check, sampled at the same times
+  - ✅ Drawn as a schematic in Falstad (`sim/falstad-layout.js`): nets as rows ordered by voltage, parts standing between them, series parts in one column, jumpers merged, the column order with the fewest crossings
 - ⬜ Phase 7: oscilloscope (V and I against time of the tapped part)
 
 ## Stage 4 — On a phone or tablet ⬜
@@ -154,7 +157,7 @@ Goal: open a link and explore.
 
 - ⬜ Templates: common circuits where only values change (LED + resistor, divider, RC, transistor switch)
 - ⬜ Automatic placement from a netlist ("R1 between 5V and n1"), respecting `clearance` so lessons are never cramped
-- ⬜ Adapters: import/export Wokwi `diagram.json`; export a Falstad CircuitJS link
+- ⬜ Adapters: import/export Wokwi `diagram.json` (✅ a Falstad CircuitJS link: stage 3, phase 6)
 
 ## Stage 6 — Publishing ⬜
 

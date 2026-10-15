@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "title": {
+    "en": "Bridge rectifier, filter capacitor, 5 W load and an LED",
+    "es": "Puente rectificador, capacitor de filtro, carga de 5 W y un LED"
+  },
+  "board": "bb830",
+  "clearance": 3,
+  "netLabels": {
+    "T+": "~ 1",
+    "T-": "~ 2",
+    "B+": "+ DC",
+    "B-": "GND"
+  },
+  "supplies": [
+    {
+      "id": "V1",
+      "voltage": 12,
+      "positive": "T+",
+      "negative": "T-"
+    }
+  ],
+  "parts": [
+    {
+      "id": "BR1",
+      "type": "bridge",
+      "part": "KBP307",
+      "pins": {
+        "+": "f10",
+        "AC1": "f11",
+        "AC2": "f13",
+        "-": "f14"
+      }
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "yellow",
+      "pins": [
+        "j11",
+        "T+11"
+      ]
+    },
+    {
+      "id": "W2",
+      "type": "wire",
+      "color": "yellow",
+      "pins": [
+        "j13",
+        "T-13"
+      ]
+    },
+    {
+      "id": "W3",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "g10",
+        "B+7"
+      ]
+    },
+    {
+      "id": "W4",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "i14",
+        "B-19"
+      ]
+    },
+    {
+      "id": "C1",
+      "type": "capacitor",
+      "value": "1000u",
+      "voltage": 25,
+      "pins": {
+        "+": "B+23",
+        "-": "B-23"
+      }
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "47",
+      "power": "5",
+      "pins": [
+        "d27",
+        "d37"
+      ]
+    },
+    {
+      "id": "W5",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "a27",
+        "B+28"
+      ]
+    },
+    {
+      "id": "W6",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "a37",
+        "B-36"
+      ]
+    },
+    {
+      "id": "R2",
+      "type": "resistor",
+      "value": "1k",
+      "pins": [
+        "B+40",
+        "a45"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "green",
+      "pins": {
+        "anode": "d45",
+        "cathode": "d46"
+      }
+    },
+    {
+      "id": "W7",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "a46",
+        "B-48"
+      ]
+    }
+  ]
+}

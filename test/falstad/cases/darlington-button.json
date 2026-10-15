@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "title": { "en": "Darlington and push button", "es": "Darlington y pulsador" },
+  "board": "bb830",
+  "supplies": [{ "id": "V1", "voltage": 12 }],
+  "parts": [
+    { "id": "S1", "type": "button", "pressed": true, "pins": ["f7", "e7", "f9", "e9"] },
+    { "id": "W1", "type": "wire", "color": "red", "pins": ["j7", "T+7"] },
+    { "id": "RB", "type": "resistor", "value": "1k", "pins": ["c9", "c14"] },
+    { "id": "Q1", "type": "bjt", "part": "TIP120", "pins": { "B": "a14", "C": "a15", "E": "a16" } },
+    { "id": "RL", "type": "resistor", "value": "1k", "pins": ["T+19", "h19"] },
+    { "id": "W2", "type": "wire", "color": "yellow", "pins": ["j19", "e15"] },
+    { "id": "W3", "type": "wire", "color": "black", "pins": ["b16", "B-16"] },
+    { "id": "W4", "type": "wire", "color": "black", "pins": ["B-3", "T-3"] }
+  ]
+}

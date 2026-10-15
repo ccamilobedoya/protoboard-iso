@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "title": { "en": "Potentiometer and Zener diode", "es": "Potenciómetro y diodo Zener" },
+  "board": "bb830",
+  "supplies": [{ "id": "V1", "voltage": 9 }],
+  "parts": [
+    { "id": "RV1", "type": "potentiometer", "value": "10k", "position": 0.3, "pins": ["h30", "h31", "h32"] },
+    { "id": "W1", "type": "wire", "color": "red", "pins": ["j30", "T+30"] },
+    { "id": "W2", "type": "wire", "color": "black", "pins": ["j32", "T-31"] },
+    { "id": "RL", "type": "resistor", "value": "4.7k", "pins": ["j31", "j36"] },
+    { "id": "W3", "type": "wire", "color": "black", "pins": ["i36", "T-36"] },
+    { "id": "RZ", "type": "resistor", "value": "330", "pins": ["T+40", "h40"] },
+    { "id": "D1", "type": "zener", "value": "5V1", "pins": { "A": "h43", "K": "i40" } },
+    { "id": "W4", "type": "wire", "color": "black", "pins": ["j43", "T-43"] }
+  ]
+}

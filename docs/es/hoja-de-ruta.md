@@ -89,7 +89,7 @@ Guía: [simulacion.md](simulacion.md).
 - ✅ Los avisos que necesita quien aprende: potencia de más, corriente de más, voltaje inverso, electrolítico al revés, fuente en su límite, cortocircuito, grupos flotantes
 - ✅ Resultados estáticos sobre el SVG (`render --sim`, capa propia `results`): voltajes de los grupos, corrientes, sello «MODELO»; las etiquetas esquivan los componentes
 - ✅ Resultados en la línea de comandos y el MCP (`simulate`, texto o JSON) y en la página para embeber detrás de un botón, solo si el circuito lo pide (`"page": { "results": true }`)
-- ⬜ Comparar algunos circuitos con Falstad CircuitJS como segunda referencia
+- ✅ Comparar algunos circuitos con Falstad CircuitJS como segunda referencia (etapa 3, fase 6: [falstad.md](falstad.md))
 - ⬜ Eventos durante el transitorio (presionar un botón en un momento dado) y una gráfica del transitorio en la página
 - ⬜ Chips: 555 y amplificador operacional por comportamiento
 - ⬜ Placas de desarrollo en la simulación (nivel 2, junto con la simulación eléctrica completa): el estado de cada pin fijado en el circuito (`"D13": "high"`, ciclo de PWM), salidas como fuentes con su resistencia interna, entradas de alta impedancia con pull-up opcional, pines 5V y 3V3 como reguladores con sus límites; avisos de corriente por pin, 5 V en un pin de 3,3 V, una salida en corto a tierra. Correr el programa real (avr8js para el UNO, Wokwi para el ESP32) es un paso posterior y aparte
@@ -135,7 +135,10 @@ decisiones y plan por sesiones: [simulacion-en-vivo.md](simulacion-en-vivo.md).
 - ✅ Fase 3: programa compilado (`sim/compile.js`) + motor sin dependencias (`sim/engine.js`); dispositivos separados en `params` (JSON) y `elements`; un agrupador pequeño (`node/bundle.js`), el motor agrupado corre solo y coincide con `simulate()`; el script de la página en módulos (`page/client/`); el estampador se reutiliza y resuelve en su lugar (≈ 4× más rápido, mismos resultados)
 - ✅ Fase 4: simulación en vivo en la página (`page/client/live.js`, el motor y el programa compilado embebidos con `results` o `flow`): puntos con fase acumulada, colores de voltaje, brillo del LED, tinte de calor, *Pausa* / *Encender (t = 0)* y reloj en circuitos con C o L (velocidad según las constantes de tiempo), etiquetas, textos de las sondas y ficha en vivo; `page.start`
 - ✅ Fase 5: deslizadores en la ficha (resistencia con paradas E24, temperatura, luz, posición del potenciómetro, voltaje de la fuente, carga de la batería) y panel `page.controls` (lo revisa `check`), pulsador momentáneo (en el dibujo o en su ficha); `engine.controls()` / `engine.set()` resuelven al instante y conservan el estado (un condensador mantiene su voltaje); límites a la vista: ámbar cerca del límite, rojo que late al pasarlo, marca que se queda hasta borrarla o reiniciar, panel de avisos; `stress` por componente en `simulate`
-- ⬜ Fase 6: comparar algunos circuitos con CircuitJS de Falstad (el ítem de la etapa 2)
+- ✅ Fase 6: CircuitJS de Falstad ([falstad.md](falstad.md)): exportador a su formato de texto (`sim/falstad.js`, un gancho `falstad` por dispositivo, dibujado como esquema, cada nodo con el nombre de su grupo de la protoboard), botón *Abrir en Falstad* en la página en vivo con el estado de ese momento y **⚠ n** con los componentes que van como equivalentes; comparación de 7 casos con referencias guardadas (`test/falstad/`, `scripts/falstad.js`): con el mismo modelo, dentro de 1 µV; el MOSFET y el Zener, dentro de una tolerancia explicada
+  - ⬜ El formato XML de Falstad: el λ del MOSFET y el LM317 de Falstad (hoy los reguladores quedan fuera)
+  - ⬜ Casos con transitorio (RC, RL) en la comparación, muestreados en los mismos instantes
+  - ✅ Dibujado como esquema en Falstad (`sim/falstad-layout.js`): nodos como filas ordenadas por voltaje, componentes de pie entre ellas, los que van en serie en una columna, los puentes unidos a su nodo, el orden de columnas con menos cruces
 - ⬜ Fase 7: osciloscopio (V e I contra el tiempo del componente tocado)
 
 ## Etapa 4 — En el celular o la tableta ⬜
@@ -154,7 +157,7 @@ Objetivo: abrir un enlace y explorar.
 
 - ⬜ Plantillas: circuitos comunes donde solo cambian los valores (LED + resistencia, divisor, RC, transistor como interruptor)
 - ⬜ Colocación automática a partir de una netlist («R1 entre 5V y n1»), respetando `clearance` para que las clases nunca queden apretadas
-- ⬜ Adaptadores: importar y exportar `diagram.json` de Wokwi; exportar un enlace de Falstad CircuitJS
+- ⬜ Adaptadores: importar y exportar `diagram.json` de Wokwi (✅ el enlace a Falstad CircuitJS: etapa 3, fase 6)
 
 ## Etapa 6 — Publicación ⬜
 

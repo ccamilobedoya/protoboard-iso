@@ -48,6 +48,20 @@ export const bjt = {
     const region = !on ? 'off' : sign * (vbe - vce) > 0.4 ? 'saturation' : 'active';
     return { currents: { C: ic, B: ib, E: -(ic + ib) }, vbe, vce, power: vce * ic + vbe * ib, region, beta: ib ? ic / ib : null };
   },
+  // Falstad's transistor is Gummel–Poon: with no Early voltage, roll-off or leakage it is this
+  // transport model. A Darlington goes as its two transistors and resistors.
+  falstad(d, f) {
+    const { model } = d.params;
+    const pins = { c: f.pin(d, 'C'), b: f.pin(d, 'B'), e: f.pin(d, 'E') };
+    if (!model.darlington) return f.bjt(pins, model, `kit-${d.id}`);
+    const { first, second, r1, r2 } = model.darlington;
+    const x = f.inner(d.id);
+    f.bjt({ ...pins, e: x }, { ...first, polarity: model.polarity }, `kit-${d.id}-1`);
+    f.bjt({ ...pins, b: x }, { ...second, polarity: model.polarity }, `kit-${d.id}-2`);
+    f.resistor(pins.b, x, r1);
+    f.resistor(x, pins.e, r2);
+    f.note('falstad.darlington', { part: d.id });
+  },
   limits: (entry, r) => [stress('SIM_OVER_POWER', 'power', r.power, entry.model.maxPower, 'W')],
   lines(p, h) {
     const lines = [h.raw(`region.bjt.${p.region}`, h.t(`sim.region.bjt.${p.region}`)), h.raw('vbe', `Vbe: ${h.f(p.vbe, 'V')}`), h.raw('vce', `Vce: ${h.f(p.vce, 'V')}`), h.raw('ib', `Ib: ${h.f(p.currents.B, 'A')}`), h.raw('ic', `Ic: ${h.f(p.currents.C, 'A')}`)];

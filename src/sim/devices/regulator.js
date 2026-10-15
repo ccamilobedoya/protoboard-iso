@@ -23,6 +23,8 @@ export const regulator = {
     const regulating = entry.main.shape(u).regulating;
     return { vin, vout, headroom: vin - vout, current: -iout, quiescent: -iref, power, state: regulating ? 'regulating' : 'dropout', currents: { IN: iin, [entry.ref]: iref, OUT: iout } };
   },
+  // No hook: Falstad's LM317 is a subcircuit that only its XML format can bring in (the text
+  // format needs the state of every transistor inside). The export leaves it out, with a note.
   limits(entry, r) {
     const out = [stress('SIM_REG_HOT', 'power', r.power, entry.model.maxPower, 'W'), stress('SIM_OVER_CURRENT', 'current', r.current, entry.model.maxCurrent, 'A')];
     if (r.state === 'dropout' && r.vin > 0.5) out.push(note('info', 'SIM_REG_DROPOUT', { part: entry.id, vin: q(r.vin, 'V'), vout: q(r.vout, 'V'), dropout: q(entry.model.dropout, 'V') }));

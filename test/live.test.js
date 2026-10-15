@@ -102,3 +102,24 @@ test('live: a capacitor charges in simulated time (textbook RC), pause stops the
   for (let k = 0; k < 10; k++) live.tick(16);
   assert.equal(live.time, stopped);
 });
+
+test('live: "Open in Falstad" carries the circuit as it is now, and its notes', async (t) => {
+  const plain = renderPage((({ page, ...rest }) => rest)(example('led-resistor.json'))).html;
+  assert.doesNotMatch(plain, /falstad\.com/, 'no link without results or the current layer');
+  const window = await loadPage(renderPage({ ...example('more-parts.json'), page: { results: true } }, { lang: 'es' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const link = window.document.querySelector('nav .falstad .open');
+  assert.equal(link.textContent, 'Abrir en Falstad');
+  assert.ok(link.href.startsWith('https://www.falstad.com/circuit/circuitjs.html?cct='));
+  const flag = window.document.querySelector('nav .falstad .flag');
+  assert.equal(flag.hidden, false);
+  flag.click();
+  const notes = [...window.document.querySelectorAll('.side .falstad-notes li')].map((li) => li.textContent);
+  assert.ok(notes.some((n) => /^BT1: una fuente de 7,4 V con /.test(n)), notes.join(' | '));
+  assert.ok(notes.some((n) => n.startsWith('RT1: una resistencia fija de 10 kΩ')), notes.join(' | '));
+  // A slider moved: the next export carries the new value.
+  const before = decodeURIComponent(link.href);
+  window.protoboardLive.engine.set('RT1', 'temperature', 60);
+  link.dispatchEvent(new window.Event('click'));
+  assert.notEqual(decodeURIComponent(link.href), before);
+});

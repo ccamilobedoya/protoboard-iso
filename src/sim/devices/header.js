@@ -8,4 +8,5 @@ export const header = {
   read: (entry) => ({ currents: Object.fromEntries(entry.pins.map((p) => [p.name, 0])) }),
   lines: () => null,
   tag: () => null,
+  falstad: () => {},
 };

@@ -32,7 +32,13 @@ the tests green, this page and the roadmap up to date.
   push button) and `page/client/limits.js` (outlines, latched marks, warnings panel); `stress` per
   part in the DC answer of `simulate`; `check` reviews `page.controls`. Tests in
   `test/sliders.test.js`.
-- Next: phase 6, Falstad cross-check.
+- Phase 6 done: [falstad.md](falstad.md). `sim/falstad.js` exports the program to CircuitJS's text
+  format, drawn as a schematic (`sim/falstad-layout.js`); each device has `falstad(d, f)`; an
+  *Open in Falstad* button in the live page, with the state at that moment (`engine.program()`)
+  and **⚠ n** listing the equivalents. Cross-check: 7 cases in `test/falstad/cases/`, references
+  in `test/falstad/refs/`, `scripts/falstad.js`; 5 agree within 1 µV, the MOSFET (no λ in
+  Falstad) and the Zener (another knee) within their tolerance.
+- Next: phase 7, the oscilloscope.
 
 ## Decisions
 
@@ -198,7 +204,7 @@ As built (phase 5):
 | 3 | 3 · Compile / engine | `compile.js`, `engine.js`, `node/bundle.js`, `page/client/*` (replaces `page/script.js`); no visible change |
 | 4 | 4 · Live page | engine and program embedded, frame loop, dots, voltage colour, glow, heat, time controls, live tags |
 | 5 | 5 · Controls and limits | card sliders, `page.controls`, momentary button, stress levels, latched mark, warnings panel; `stress` per part in `simulate` (a new field) |
-| 6 | 6 · Falstad cross-check | `test/falstad/*.txt`: CircuitJS export and values read there, models matched (RC, divider, LED + R, BJT switch) |
+| 6 | 6 · Falstad cross-check | ✅ exporter (`sim/falstad.js`), *Open in Falstad* button, cases and references in `test/falstad/` with matched models (divider, LED + R, active BJT, Darlington and push button, bridge, MOSFET, potentiometer and Zener) |
 | 6 | 7 · Oscilloscope | ring buffer of V and I of the tapped part, drawn as a polyline panel |
 
 Every phase: docs in English and Spanish, the roadmap ticked (both languages), the decision log in

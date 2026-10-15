@@ -35,7 +35,13 @@ Esta página es la referencia del trabajo, que toma varias sesiones. Cada sesió
   en la ficha, panel `page.controls`, pulsador momentáneo) y `page/client/limits.js` (contornos,
   marcas que se quedan, panel de avisos); `stress` por componente en la respuesta DC de
   `simulate`; `check` revisa `page.controls`. Pruebas en `test/sliders.test.js`.
-- Siguiente: fase 6, comparar con Falstad.
+- Fase 6 hecha: [falstad.md](falstad.md). `sim/falstad.js` exporta el programa al formato de
+  texto de CircuitJS, dibujado como esquema (`sim/falstad-layout.js`); cada dispositivo tiene
+  `falstad(d, f)`; botón *Abrir en Falstad* en la página en vivo, con el estado de ese momento
+  (`engine.program()`) y **⚠ n** con los equivalentes. Comparación: 7 casos en
+  `test/falstad/cases/`, referencias en `test/falstad/refs/`, `scripts/falstad.js`; 5 coinciden
+  dentro de 1 µV, el MOSFET (sin λ en Falstad) y el Zener (otra rodilla) con su tolerancia.
+- Siguiente: fase 7, el osciloscopio.
 
 ## Decisiones
 
@@ -213,7 +219,7 @@ Como quedó (fase 5):
 | 3 | 3 · Compilar / motor | `compile.js`, `engine.js`, `node/bundle.js`, `page/client/*` (reemplaza `page/script.js`); sin cambio visible |
 | 4 | 4 · Página en vivo | motor y programa embebidos, bucle de cuadros, puntos, color de voltaje, brillo, calor, controles de tiempo, etiquetas en vivo |
 | 5 | 5 · Controles y límites | deslizadores en la ficha, `page.controls`, pulsador momentáneo, niveles de esfuerzo, marca que se queda, panel de avisos; `stress` por componente en `simulate` (campo nuevo) |
-| 6 | 6 · Comparación con Falstad | `test/falstad/*.txt`: lo exportado de CircuitJS y los valores leídos allí, con modelos igualados (RC, divisor, LED + R, interruptor con BJT) |
+| 6 | 6 · Comparación con Falstad | ✅ exportador (`sim/falstad.js`), botón *Abrir en Falstad*, casos y referencias en `test/falstad/` con modelos igualados (divisor, LED + R, BJT activo, Darlington y pulsador, puente, MOSFET, potenciómetro y Zener) |
 | 6 | 7 · Osciloscopio | búfer circular de V e I del componente tocado, dibujado como polilínea en un panel |
 
 En cada fase:

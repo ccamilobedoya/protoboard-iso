@@ -76,6 +76,7 @@ breadboard circuit comes up.
 | MCP server | [docs/en/mcp.md](docs/en/mcp.md) | [docs/es/mcp.md](docs/es/mcp.md) |
 | Simulation (voltages and currents, a model) | [docs/en/simulation.md](docs/en/simulation.md) | [docs/es/simulacion.md](docs/es/simulacion.md) |
 | Focus and the current layer | [docs/en/focus-and-flow.md](docs/en/focus-and-flow.md) | [docs/es/foco-y-corriente.md](docs/es/foco-y-corriente.md) |
+| Falstad: open a circuit in CircuitJS, cross-check | [docs/en/falstad.md](docs/en/falstad.md) | [docs/es/falstad.md](docs/es/falstad.md) |
 | Embedding a circuit in documentation | [docs/en/embedding.md](docs/en/embedding.md) | [docs/es/embeber.md](docs/es/embeber.md) |
 | Agents (layout, reviewer, parts librarian) | [docs/en/agents.md](docs/en/agents.md) | [docs/es/agentes.md](docs/es/agentes.md) |
 | Roadmap | [ROADMAP.md](ROADMAP.md) | [docs/es/hoja-de-ruta.md](docs/es/hoja-de-ruta.md) |

@@ -10,6 +10,7 @@
 //   with the speed button.
 // - Four times a second: conductor colours (voltage), LED glow, heat tint, result tags, the
 //   probe captions and the open card.
+// - "Open in Falstad" (falstad.js): the circuit as it is now, in CircuitJS.
 // - Controls (controls.js): sliders in the card and the circuit's panel, the momentary push
 //   button; a change re-solves at once. Limits (limits.js): checked every frame, shown as
 //   outlines and warnings.
@@ -24,6 +25,7 @@ import { formatValue } from '../../core/units.js';
 import { voltageColor, dotSpeed, DOT_PERIOD, centreVoltage, bodyVoltage, glowOpacity, heatOpacity } from '../../sim/look.js';
 import { setupControls } from './controls.js';
 import { setupLimits } from './limits.js';
+import { setupFalstad } from './falstad.js';
 
 const BUDGET = 8; // ms of simulation per frame
 const REFRESH = 250; // ms between repaints of colours, tags and card
@@ -210,6 +212,7 @@ export function setupLive(page) {
   // Limits and controls. A change keeps the speed of time (so a larger R is seen charging more
   // slowly) but never a step too long for the new time constants.
   const limits = setupLimits(page, { engine, t, f });
+  let falstad = null;
   const controls = setupControls(page, {
     engine,
     t,
@@ -222,9 +225,12 @@ export function setupLive(page) {
       stalled = false;
       reading = engine.read();
       limits.check(reading, true);
+      falstad?.update();
       repaint();
     },
   });
+  // After the controls, so the link sits beside them in the bar.
+  falstad = setupFalstad(page, { engine, t, f, reading: () => reading });
 
   let last = null;
   let lastPaint = -Infinity;

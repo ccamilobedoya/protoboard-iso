@@ -145,6 +145,9 @@ output, the result tags, the probes and the page find it there.
   (sensors) in import-free modules such as `src/parts/sensors.js`.
 - Devices that share a `kind` share their reading hooks (`lines`, `tag`, `probe`,
   `currentPins`); `test/devices.test.js` checks it.
+- **Falstad**: `falstad(d, f)` says how the part goes to CircuitJS (the *Open in Falstad* button
+  and the cross-check): the same element, or an equivalent with its note (`f.note`). Without it,
+  the part is left out with a note. See [falstad.md](falstad.md).
 - **One test against an independent reference** (a datasheet point or a formula solved apart)
   in `test/sim.test.js` or `test/sources.test.js`. Never tune a model to make an example look right.
 - Give the package `paths` (section 3) so the conductor view follows its leads.

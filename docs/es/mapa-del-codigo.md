@@ -70,6 +70,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `sim/probes.js` | «de dónde sale un valor»: puntas para voltajes, flechas para corrientes |
 | `page.js`, `page/client/`, `page/style.js` | la página para embeber; `page/client/main.js` es la entrada de su script (módulos view, focus, card, tooltip) |
 | `node/bundle.js` | el agrupador pequeño: módulos ES permitidos → un solo script clásico para la página (motor, script de la página) |
+| `sim/falstad.js`, `sim/falstad-layout.js`, `page/client/falstad.js` | exportar a CircuitJS de Falstad (se puede agrupar): cada dispositivo escribe su parte con `falstad(d, f)`; el acomodo la dibuja como esquema (nodos en filas por voltaje, componentes en serie en una columna, el orden de columnas con menos cruces); el botón *Abrir en Falstad* de la página en vivo, con sus avisos. Comparación: `test/falstad/`, `scripts/falstad.js` ([falstad.md](falstad.md)) |
 | `sim/compile.js`, `sim/engine.js` | compilar: circuito → programa (JSON plano, solo Node); motor: corre un programa (sin dependencias, va dentro de las páginas) |
 | `i18n/` | todas las frases; `pickLanguage` decide el idioma |
 | `bin/protoboard-iso.js` | línea de comandos |
@@ -146,5 +147,5 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 `npm test` (node:test, sin dependencias; jsdom solo para los scripts de la página) y
 `npm run test:mcp`. Los modelos del simulador se comprueban contra referencias independientes en
 `test/sim.test.js` y `test/sources.test.js` (baterías, Zener, reguladores, inductores,
-sensores); el comportamiento de la página en `test/focus.test.js` y `test/page.test.js`;
+sensores) y contra CircuitJS de Falstad en `test/falstad.test.js` (referencias guardadas, sin red); el comportamiento de la página en `test/focus.test.js` y `test/page.test.js`;
 los textos en `test/describe.test.js` y `test/i18n.test.js`.

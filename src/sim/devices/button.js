@@ -21,6 +21,14 @@ export const button = {
     if (p.pressed) entry.main = h.add(resistorEl(h.pin(p.contact[0]), h.pin(p.contact[1]), BUTTON_CONTACT));
     return entry;
   },
+  // Falstad's momentary switch, which a learner can hold down there; exact: the kit's resistances.
+  falstad(d, f) {
+    const p = d.params;
+    for (const [a, b] of p.poles) f.wire(f.pin(d, a), f.pin(d, b), WIRE_RESISTANCE);
+    const [a, b] = p.contact.map((name) => f.pin(d, name));
+    if (!f.exact) f.pushButton(a, b, p.pressed);
+    else if (p.pressed) f.resistor(a, b, BUTTON_CONTACT);
+  },
   read: (entry, h) => ({ pressed: entry.pressed, current: entry.main ? entry.main.currents(h.x, h.ctx)[0] : 0 }),
   pinCurrents(entry, out, h) {
     const result = Object.fromEntries(entry.pins.map((p) => [p.name, 0]));

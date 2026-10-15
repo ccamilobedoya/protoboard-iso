@@ -60,7 +60,7 @@ la ruta absoluta de `mcp/server.js`, y las variables de arriba.
 | `review` | APROBADO o CAMBIOS a partir de mediciones, perfil `lesson` o `draft` | no |
 | `history` | revisiones, autores, notas, operaciones | no |
 | `render` | escribe el SVG; con `png_width` devuelve también una imagen PNG; con `page: true` reescribe la página para embeber ([embeber.md](embeber.md)); con `sim: true` dibuja los resultados de la simulación; `focus: [ids]` atenúa lo demás; `flow: true` la capa de corriente | solo salidas |
-| `simulate` | voltajes de los grupos y corrientes de los componentes, un modelo ([simulacion.md](simulacion.md)); `analysis: dc \| transient`, `stop`, `step`, `start` | no |
+| `simulate` | voltajes de los grupos y corrientes de los componentes, un modelo ([simulacion.md](simulacion.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` agrega el enlace que abre el circuito en Falstad ([falstad.md](falstad.md)) | no |
 | `catalog` | tipos, referencias, encapsulados, protoboards, vistas, operaciones, capas | no |
 
 Todas responden en texto legible, o en JSON con `format: "json"`. Los errores vuelven como

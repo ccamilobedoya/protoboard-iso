@@ -25,6 +25,11 @@ export const mosfet = {
     const region = vov <= 0 ? 'off' : sign * vds < vov ? 'linear' : 'saturation';
     return { currents: { D: id, G: 0, S: -id }, vgs, vds, power: vds * id, region };
   },
+  // Falstad's MOSFET: the same square law, with a sharp turn-on at Vth and no λ.
+  falstad(d, f) {
+    f.mosfet({ d: f.pin(d, 'D'), g: f.pin(d, 'G'), s: f.pin(d, 'S') }, d.params.model);
+    f.note('falstad.mosfet', { part: d.id });
+  },
   limits: (entry, r) => [stress('SIM_OVER_POWER', 'power', r.power, entry.model.maxPower, 'W')],
   lines: (p, h) => [h.raw(`region.mosfet.${p.region}`, h.t(`sim.region.mosfet.${p.region}`)), h.raw('vgs', `Vgs: ${h.f(p.vgs, 'V')}`), h.raw('vds', `Vds: ${h.f(p.vds, 'V')}`), h.raw('id', `Id: ${h.f(p.currents.D, 'A')}`), h.q('power', h.f(p.power, 'W'))],
   tag: (r) => ({ label: 'Id', value: r.currents.D, key: 'id' }),

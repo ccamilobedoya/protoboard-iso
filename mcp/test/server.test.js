@@ -123,6 +123,8 @@ test('simulate: supplies set with an operation, then voltages and currents (a mo
   const tr = jsonOf(await call('simulate', { target: 'circuits/sim', analysis: 'transient', stop: 0.001, format: 'json' }));
   assert.equal(tr.analysis, 'transient');
   assert.equal(tr.times[0], 0);
+  const linked = textOf(await call('simulate', { target: 'circuits/sim', falstad: true, lang: 'es' }));
+  assert.match(linked, /Abrir en Falstad: https:\/\/www\.falstad\.com\/circuit\/circuitjs\.html\?cct=/);
 });
 
 test('language: a circuit with "lang" answers and writes in it; an explicit lang wins', async () => {

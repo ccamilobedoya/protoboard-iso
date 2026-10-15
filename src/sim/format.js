@@ -86,3 +86,12 @@ export const runtimeText = (hours, lang = 'en') => runtimeWords(hours, { t: (key
 
 // One part's readings for a card: [{ key, text }] (see sim/lines.js, which the page also runs).
 export const partLines = (p, lang = 'en') => linesFor(p, { t: (key, params) => t(lang, key, params), decimal: decimalSeparator(lang) });
+
+// The Falstad link (src/sim/falstad.js) as text: the URL, then what went as an equivalent.
+export function formatFalstad(out, lang = 'en') {
+  const decimal = decimalSeparator(lang);
+  const note = (n) => t(lang, n.code, Object.fromEntries(Object.entries(n.params).map(([k, v]) => [k, v && typeof v === 'object' ? formatValue(v.value, v.unit, { decimal }) : v])));
+  const lines = [`${t(lang, 'page.falstad.open')}: ${out.url}`];
+  if (out.notes.length) lines.push(`${t(lang, 'page.falstad.notes')}:`, ...out.notes.map((n) => `  ${note(n)}`));
+  return lines.join('\n');
+}

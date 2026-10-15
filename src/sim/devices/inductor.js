@@ -18,5 +18,14 @@ export const inductor = {
     h.add(resistorEl(h.at(0), mid, Math.max(p.dcr, 1e-3)));
     return { main: h.add(inductorEl(mid, h.at(1), p.inductance)) };
   },
+  // The winding resistance as its own resistor, as above (Falstad's inductor has none).
+  falstad(d, f) {
+    const { dcr, inductance } = d.params;
+    const [a, b] = [d.pins[0].node, d.pins[1].node];
+    if (!f.exact && !(dcr > 0)) return f.inductor(a, b, inductance);
+    const mid = f.inner(d.id);
+    f.resistor(a, mid, Math.max(dcr, 1e-3));
+    f.inductor(mid, b, inductance);
+  },
   limits: (entry, r) => [stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), entry.maxCurrent, 'A')],
 };

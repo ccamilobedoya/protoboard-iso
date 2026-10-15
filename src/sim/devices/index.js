@@ -20,6 +20,9 @@
 //   controls(p)             optional: what a learner may change, { field: control } (see
 //                           ../controls.js); bundleable, so the page builds its sliders from it
 //   set(p, field, value)    the params with that field changed (a pure formula), or null
+//   falstad(d, f)           optional: writes the part for Falstad's CircuitJS with the builder f
+//                           (../falstad.js); an equivalent adds its note with f.note. Without
+//                           it the export leaves the part out, with a note
 //
 // Adding a kind of part: its type in src/parts/types/, one file here, one line below, one test
 // against an independent reference in test/sim.test.js. Nothing else in src/sim changes.

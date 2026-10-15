@@ -42,7 +42,9 @@ import { BATTERY_FORMATS } from '../src/parts/batteries.js';
 import { LDR_PARTS } from '../src/parts/types/more.js';
 import { MODULES } from '../src/parts/modules.js';
 import { pickLanguage } from '../src/i18n/index.js';
-import { formatSimulation } from '../src/sim/format.js';
+import { formatSimulation, formatFalstad } from '../src/sim/format.js';
+import { compile, createEngine } from '../src/sim/index.js';
+import { toFalstad } from '../src/sim/falstad.js';
 
 const ROOT = resolve(process.env.PROTOBOARD_ROOT ?? process.cwd());
 const DEFAULT_LANG = LANGUAGES[process.env.PROTOBOARD_LANG] ? process.env.PROTOBOARD_LANG : 'en';
@@ -308,22 +310,30 @@ server.registerTool(
   {
     title: 'Simulate circuit',
     description:
-      'Node voltages and part currents from the circuit (a model, not a measurement). Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit") or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, short circuits and floating nodes. Never show results a learner is asked to predict.',
+      'Node voltages and part currents from the circuit (a model, not a measurement). Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit") or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, short circuits and floating nodes. falstad: true adds the link that opens the same circuit in Falstad CircuitJS (DC state, parts Falstad lacks as equivalents, listed). Never show results a learner is asked to predict, and Falstad shows every value.',
     inputSchema: {
       target: targetArg,
       analysis: z.enum(['dc', 'transient']).optional(),
       stop: z.number().positive().optional().describe('transient end time, s'),
       step: z.number().positive().optional().describe('transient step, s (default stop/1000)'),
       start: z.enum(['zero', 'dc']).optional(),
+      falstad: z.boolean().optional().describe('also the link that opens this circuit in Falstad CircuitJS'),
       ...common,
     },
     annotations: READ,
   },
-  safely(async ({ target, analysis = 'dc', stop, step, start, lang, format }) => {
+  safely(async ({ target, analysis = 'dc', stop, step, start, falstad = false, lang, format }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
     const result = simulate(circuit, { analysis, stop, step, start });
-    const response = answer(format, result, () => formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }));
+    if (falstad && result.ok) {
+      const { program } = compile(circuit);
+      const engine = createEngine(program);
+      engine.start('dc');
+      result.falstad = toFalstad(program, { reading: engine.read(), timeConstants: engine.timeConstants() });
+      delete result.falstad.text;
+    }
+    const response = answer(format, result, () => [formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }), result.falstad && formatFalstad(result.falstad, lang)].filter(Boolean).join('\n\n'));
     return result.ok ? response : { ...response, isError: true };
   }),
 );

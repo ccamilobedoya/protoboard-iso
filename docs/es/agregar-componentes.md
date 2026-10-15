@@ -148,6 +148,9 @@ texto, las etiquetas de resultados, las sondas y la página lo encuentran ahí.
   un deslizador (sensores), en módulos sin imports como `src/parts/sensors.js`.
 - Los dispositivos que comparten `kind` comparten sus ganchos de lectura (`lines`, `tag`,
   `probe`, `currentPins`); `test/devices.test.js` lo revisa.
+- **Falstad**: `falstad(d, f)` dice cómo va el componente a CircuitJS (el botón *Abrir en
+  Falstad* y la comparación): la misma pieza, o un equivalente con su nota (`f.note`). Sin él,
+  queda fuera con un aviso. Ver [falstad.md](falstad.md).
 - **Una prueba contra una referencia independiente** (un punto de la hoja de datos o una
   fórmula resuelta aparte) en `test/sim.test.js` o `test/sources.test.js`. Nunca se ajusta un
   modelo para que un ejemplo se vea bien.

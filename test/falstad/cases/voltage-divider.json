@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "title": { "en": "Voltage divider, two 10 kΩ resistors", "es": "Divisor de voltaje con dos resistencias de 10 kΩ" },
+  "board": "bb830",
+  "netLabels": { "T+": "+9 V", "T-": "GND" },
+  "supplies": [{ "id": "V1", "voltage": 9 }],
+  "parts": [
+    { "id": "W1", "type": "wire", "color": "red", "pins": ["T+11", "j12"] },
+    { "id": "R1", "type": "resistor", "value": "10k", "pins": ["h12", "h16"] },
+    { "id": "R2", "type": "resistor", "value": "10k", "pins": ["g16", "g21"] },
+    { "id": "W2", "type": "wire", "color": "black", "pins": ["j21", "T-21"] },
+    { "id": "W3", "type": "wire", "color": "yellow", "style": "flat", "pins": ["f16", "e16"] }
+  ]
+}

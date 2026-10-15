@@ -59,7 +59,7 @@ path of `mcp/server.js` and the environment above.
 | `review` | APPROVED or CHANGES from measurements, profile `lesson` or `draft` | no |
 | `history` | revisions, authors, notes, operations | no |
 | `render` | writes the SVG; `png_width` also returns a PNG image; `page: true` rewrites the embeddable page ([embedding.md](embedding.md)); `sim: true` draws the simulation results; `focus: [ids]` dims the rest; `flow: true` the current layer | outputs only |
-| `simulate` | node voltages and part currents, a model ([simulation.md](simulation.md)); `analysis: dc \| transient`, `stop`, `step`, `start` | no |
+| `simulate` | node voltages and part currents, a model ([simulation.md](simulation.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` adds the link that opens the circuit in Falstad ([falstad.md](falstad.md)) | no |
 | `catalog` | types, part numbers, packages, boards, views, operations, layers | no |
 
 Every tool answers in readable text, or JSON with `format: "json"`. Errors come back as tool

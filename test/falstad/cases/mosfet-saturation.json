@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "title": { "en": "MOSFET with its gate on a divider", "es": "MOSFET con la compuerta en un divisor" },
+  "board": "bb830",
+  "supplies": [{ "id": "V1", "voltage": 5 }],
+  "parts": [
+    { "id": "R1", "type": "resistor", "value": "10k", "pins": ["T+19", "h20"] },
+    { "id": "R2", "type": "resistor", "value": "10k", "pins": ["c20", "B-19"] },
+    { "id": "W1", "type": "wire", "color": "blue", "pins": ["f20", "e20"] },
+    { "id": "Q1", "type": "mosfet", "part": "2N7000", "pins": { "S": "g21", "G": "g22", "D": "g23" } },
+    { "id": "W2", "type": "wire", "color": "yellow", "pins": ["j20", "j22"] },
+    { "id": "RD", "type": "resistor", "value": "220", "pins": ["T+25", "h26"] },
+    { "id": "W3", "type": "wire", "color": "yellow", "pins": ["j26", "j23"] },
+    { "id": "W4", "type": "wire", "color": "black", "pins": ["j21", "T-21"] },
+    { "id": "W5", "type": "wire", "color": "black", "pins": ["B-3", "T-3"] }
+  ]
+}

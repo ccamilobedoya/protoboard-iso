@@ -88,6 +88,13 @@ main { position: relative; }
 .side .warnings ul { list-style: none; margin: 0; padding: 0; }
 .side .warning { display: block; width: 100%; text-align: left; font: inherit; color: #7a1f16; background: none; border: none; border-radius: 4px; padding: 3px 4px; cursor: pointer; }
 .side .warning:hover { background: #f8dcd8; }
+.side .falstad-notes { border-color: #d39e00; background: #fffaeb; }
+.side .falstad-notes h3 { font-size: 12px; margin: 2px 0 4px; color: #8a6400; text-transform: uppercase; letter-spacing: 0.04em; }
+.side .falstad-notes ul { margin: 0; padding-left: 16px; color: #5c4400; }
+nav .falstad .open { color: #1f5fbf; text-decoration: none; border: 1px solid #c9c7c2; border-radius: 6px; padding: 4px 10px; background: #f6f5f2; }
+nav .falstad .open::after { content: " ↗"; }
+nav .falstad .flag { color: #8a6400; background: #fff3cd; border-color: #e0c060; }
+nav .falstad .flag[hidden] { display: none; }
 .side .clear, .control .hold { font: inherit; color: #333333; background: #f6f5f2; border: 1px solid #c9c7c2; border-radius: 6px; padding: 3px 9px; cursor: pointer; margin-top: 4px; }
 .control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 8px; margin: 4px 0; }
 .control .name { color: #444444; }
