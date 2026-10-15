@@ -64,6 +64,8 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `sim/overlay.js` | result tags (current per part, voltage per group) with `data-q` and `data-probe` |
 | `sim/look.js`, `sim/lines.js` | bundleable: voltage colours, dot speed, body shading, glow and heat (look); a part's card lines with the texts passed in (lines) |
 | `page/client/live.js` | the live page: runs the engine, moves dots, repaints colours, tags and card, time controls |
+| `page/client/controls.js`, `page/client/limits.js` | live page: sliders (card and `page.controls` panel) and the momentary button; stress outlines (`#stress` rules), latched marks and the warnings panel (in `.side`) |
+| `sim/controls.js` | bundleable: supplies' controls, slider maths (log, E24), stress levels; each device's own controls are in its module (`controls`, `set`) |
 | `sim/paths.js` | conductor view: current paths per part (package `paths` or a straight fallback), strip currents (Kirchhoff), voltage colours, dots of conventional current |
 | `sim/probes.js` | "where a value comes from": probes for voltages, arrows for currents |
 | `page.js`, `page/client/`, `page/style.js` | the embeddable page; `page/client/main.js` is the entry of its script (view, focus, card, tooltip modules) |
@@ -103,6 +105,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 - **Power sources**: the first of `supplies` sets ground; with none, the first battery part.
   Code that needs "where the supply is" (ground probe, flow) must handle both.
 - **Layers** are always written in the order of `addLayers`: veil, strips, coords, spotlight, flow,
+  marks (live page: a hidden box around each part, shown when it nears or passes a limit),
   spotlabels (copies of the focused parts' labels, above the current), results, probes. A page shows or hides them with CSS only; new interactive features should
   follow the same idea (tag in the SVG, rule in CSS). Coordinate tags sit under the spotlight
   copy so they never cover the part being explained, but result tags may still cover them: a
@@ -111,6 +114,18 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
   tag, also its explanation key), `data-probe` (`node:<group>` or `part:<id>`), `data-flow`, `data-col` / `data-row` (coordinate tags).
 - **Results are a model** and may give away a prediction: drawn only on request (`sim`, `flow`),
   in a page only when the circuit asks (`page.results`, `page.flow`) and only for the tapped part.
+- **Controls** (`controls`, `set` in a device) run in the page: `set` is a pure formula and may
+  only import bundleable modules (`ALLOWED` in `node/bundle.js`). A device that adds elements in a
+  different order after a change loses their state on `engine.set` (it is matched by order).
+- **Painting order of the conductor view** (`flowOps`, `paintOrder` in `sim/paths.js`): strips
+  first (they lie inside the board), then one line per pin, ordered where two lines meet on screen
+  by which is nearer there (a topological sort, per view); the middle depth only for what that
+  leaves open. Do not sort by the middle alone: long pieces (a resistor) came out over a jumper
+  crossing them. The page finds pieces by `data-wire` / `data-seg`, never by their order.
+- **No CSS filters on animated pages** (`drop-shadow`, `blur`): the whole SVG is redrawn on every
+  frame the dots move, and a filter is recomputed each time (an outline made with one made the
+  page crawl). Draw the shape once in a layer and change its `display`, `stroke` or `opacity`;
+  animate in a few `steps()`. The dots skip offset changes too small to see.
 - **SVG elements have no `hidden` property**; use the attribute. Test page scripts with jsdom
   (`test/focus.test.js`), which follows the DOM specification.
 - **The agents depend on the kit** (`.claude/agents/*.md`): change them with any tool, command,

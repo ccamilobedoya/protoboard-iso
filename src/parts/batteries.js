@@ -111,6 +111,7 @@ export function batteryModel({ format = 'AA', chemistry, cells = 1, charge, volt
     format: name,
     chemistry: chem,
     cells: n,
+    series, // cells in series, counting the ones inside a package (a 9 V block: 6)
     nominal: series * c.nominal,
     emf,
     resistance,
@@ -118,5 +119,6 @@ export function batteryModel({ format = 'AA', chemistry, cells = 1, charge, volt
     maxCurrent: typical.maxCurrent,
     rechargeable: c.rechargeable,
     charge: charge == null ? null : Number(charge),
+    measured: voltage != null, // the voltage was measured: the charge does not set it
   };
 }

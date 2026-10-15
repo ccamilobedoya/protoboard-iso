@@ -24,3 +24,30 @@ export function simulate(circuit, options = {}) {
   const engine = createEngine(compiled.program);
   return analysis === 'transient' ? engine.transient(options) : engine.dc();
 }
+
+// What `check` says about the controls panel (page.controls): each entry must name a part or a
+// supply and one of its controls (engine.controls()), with a range inside what makes sense.
+export function pageControlIssues(circuit) {
+  const list = circuit?.page?.controls;
+  if (!Array.isArray(list) || !list.length) return [];
+  const warn = (code, params = {}) => ({ severity: 'warning', code, params });
+  const out = [];
+  if (!circuit.page.results && !circuit.page.flow) out.push(warn('PAGE_CONTROLS_NOT_LIVE'));
+  const compiled = compile(circuit);
+  if (compiled.fatal) return [...out, warn('PAGE_CONTROLS_NO_SIM')];
+  const controls = createEngine(compiled.program).controls();
+  list.forEach((c, i) => {
+    const id = c?.part ?? c?.supply;
+    if (!id || (c.part != null && c.supply != null)) return out.push(warn('PAGE_CONTROL_TARGET', { index: i + 1 }));
+    const own = controls.filter((x) => x.id === id);
+    const found = own.find((x) => x.field === c.field);
+    if (!found) return out.push(warn('PAGE_CONTROL_UNKNOWN', { target: id, field: String(c.field), options: own.map((x) => x.field).join(', ') || '—' }));
+    if (found.scale === 'momentary') return;
+    const [lo, hi] = found.limit ?? [found.min, found.max];
+    const min = c.min ?? found.min;
+    const max = c.max ?? found.max;
+    const scale = c.scale ?? found.scale;
+    if (!(min < max) || min < lo || max > hi || (scale === 'log' && !(min > 0))) out.push(warn('PAGE_CONTROL_RANGE', { target: id, field: c.field, min: String(min), max: String(max), lo: String(lo), hi: String(hi) }));
+  });
+  return out;
+}

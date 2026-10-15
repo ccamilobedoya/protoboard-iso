@@ -17,6 +17,9 @@
 //   probe(reading)          optional: what the page says about that tag { key, value }
 //   currentPins(reading)    optional: where the tag's current goes in and out [[pin, ±1]]
 //   source                  true for batteries: their warnings come after the other parts'
+//   controls(p)             optional: what a learner may change, { field: control } (see
+//                           ../controls.js); bundleable, so the page builds its sliders from it
+//   set(p, field, value)    the params with that field changed (a pure formula), or null
 //
 // Adding a kind of part: its type in src/parts/types/, one file here, one line below, one test
 // against an independent reference in test/sim.test.js. Nothing else in src/sim changes.

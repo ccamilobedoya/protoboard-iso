@@ -102,6 +102,8 @@ Set them with an operation like any circuit field:
               BT1: { voltage, current, power, emf, drop, runtime, charge, on },   // current: delivered
               U1: { vin, vout, headroom, current, quiescent, power, state: 'regulating' | 'dropout' },
               RT1: { …, sensor: { kind: 'thermistor', temperature, resistance } } },
+              // DC only: each part against its limits (fine < 80 %, near ≤ 100 %, exceeded)
+              // D1.stress: [{ quantity: 'current', value, max, unit: 'A', ratio, level: 'fine' | 'near' | 'exceeded' }]
   issues: [ … ] }
 ```
 

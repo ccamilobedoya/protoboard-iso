@@ -1,5 +1,6 @@
 // The card of a tapped part: what it is, its value, how it is used here, where each pin goes,
-// and (with the results on) its simulated values. Every value can be tapped to read what it means.
+// (with the results on) its simulated values, and in a live page the limits it went past and
+// its controls (limits.js, controls.js). Every value can be tapped to read what it means.
 
 import { applyFocus } from './focus.js';
 
@@ -44,21 +45,35 @@ function actions(info, buttons) {
   }
 }
 
+function fillSim(page, box, lines, open) {
+  box.textContent = '';
+  item(box, 'h3', page.data.text.results);
+  terms(page, box, lines, open);
+}
+
+// The limits the part went past (live page): "⚠ D1 carries 38 mA, more than its maximum 30 mA."
+function fillNotes(page, box) {
+  box.textContent = '';
+  for (const text of page.stressNotes?.(page.open) ?? []) item(box, 'p', `⚠ ${text}`, 'stress');
+}
+export function refreshNotes(page) {
+  const box = page.info.hidden ? null : page.info.querySelector('.notes');
+  if (box) fillNotes(page, box);
+}
+
 function openInfo(page, id, open) {
   const { data, state, info } = page;
   const p = data.parts[id];
   info.textContent = '';
   item(info, 'h2', p.title);
+  fillNotes(page, item(info, 'div', null, 'notes'));
   terms(page, info, [p.type, p.value].filter(Boolean), open);
   if (p.here) item(info, 'p', p.here, 'here');
   item(info, 'h3', data.text.pins);
   const pins = item(info, 'ul');
   for (const line of p.pins) item(pins, 'li', line);
-  if (p.sim.length) {
-    const sim = item(info, 'div', null, 'sim');
-    item(sim, 'h3', data.text.results);
-    terms(page, sim, p.sim, open);
-  }
+  if (p.sim.length) fillSim(page, item(info, 'div', null, 'sim'), p.sim, open);
+  page.buildControls?.(info, id);
   item(info, 'p', data.text.explain, 'tip');
   actions(info, [
     [data.text.ghost, (b) => {
@@ -90,8 +105,11 @@ export function refreshCard(page) {
   const items = [...page.info.querySelectorAll('.sim .terms > li')];
   const same = items.length === lines.length && items.every((li, k) => (li.querySelector('.term')?.dataset.explain ?? null) === (page.data.explain[lines[k].key] ? lines[k].key : null));
   if (!same) {
-    const expanded = page.info.querySelector('.term[aria-expanded="true"]')?.dataset.explain;
-    return openInfo(page, id, expanded);
+    // Only the values are rebuilt: a slider being dragged lower in the card stays in place.
+    const box = page.info.querySelector('.sim');
+    const expanded = box?.querySelector('.term[aria-expanded="true"]')?.dataset.explain;
+    if (box && lines.length) return fillSim(page, box, lines, expanded);
+    return openInfo(page, id, page.info.querySelector('.term[aria-expanded="true"]')?.dataset.explain);
   }
   items.forEach((li, k) => {
     const label = li.querySelector('.term') ?? li.querySelector('span');

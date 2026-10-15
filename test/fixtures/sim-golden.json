@@ -39,7 +39,17 @@
      "pinCurrents": {
       "+": -0.013942719905576668,
       "-": 0.013942719905576668
-     }
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.013942719905576668,
+       "max": 0.3,
+       "unit": "A",
+       "ratio": 0.0464757330185889,
+       "level": "fine"
+      }
+     ]
     },
     "U1": {
      "kind": "REG",
@@ -64,7 +74,25 @@
       "IN": 0.013942719878646391,
       "GND": -0.0049999999999999975,
       "OUT": -0.008942719878646394
-     }
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0.08042719481835943,
+       "max": 2,
+       "unit": "W",
+       "ratio": 0.040213597409179715,
+       "level": "fine"
+      },
+      {
+       "quantity": "current",
+       "value": 0.008942719878646394,
+       "max": 1.5,
+       "unit": "A",
+       "ratio": 0.005961813252430929,
+       "level": "fine"
+      }
+     ]
     },
     "W1": {
      "kind": "W",
@@ -120,7 +148,17 @@
      "pinCurrents": {
       "1": 0,
       "2": 0
-     }
+     },
+     "stress": [
+      {
+       "quantity": "voltage",
+       "value": 8.976297376175816,
+       "max": 50,
+       "unit": "V",
+       "ratio": 0.17952594752351633,
+       "level": "fine"
+      }
+     ]
     },
     "C2": {
      "kind": "C",
@@ -134,7 +172,17 @@
      "pinCurrents": {
       "1": 0,
       "2": 0
-     }
+     },
+     "stress": [
+      {
+       "quantity": "voltage",
+       "value": 4.999355728013333,
+       "max": 50,
+       "unit": "V",
+       "ratio": 0.09998711456026665,
+       "level": "fine"
+      }
+     ]
     },
     "W4": {
      "kind": "W",
@@ -176,7 +224,17 @@
      "pinCurrents": {
       "1": 0.008942719863686074,
       "2": -0.008942719863686074
-     }
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0.026390838724920606,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 0.10556335489968242,
+       "level": "fine"
+      }
+     ]
     },
     "D1": {
      "kind": "LED",
@@ -191,7 +249,25 @@
      "pinCurrents": {
       "anode": 0.008942719859679106,
       "cathode": -0.008942719859679106
-     }
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.008942719859679106,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 0.2980906619893035,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -2.047811037003495,
+       "max": 5,
+       "unit": "V",
+       "ratio": -0.40956220740069904,
+       "level": "fine"
+      }
+     ]
     }
    },
    "supplies": {
@@ -1325,7 +1401,17 @@
      "pinCurrents": {
       "1": 0.00981272156516388,
       "2": -0.00981272156516388
-     }
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0.03177553649009264,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 0.12710214596037056,
+       "level": "fine"
+      }
+     ]
     },
     "D1": {
      "kind": "LED",
@@ -1340,7 +1426,25 @@
      "pinCurrents": {
       "anode": 0.00981272156173847,
       "cathode": -0.00981272156173847
-     }
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.00981272156173847,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 0.3270907187246157,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -1.7613112474178332,
+       "max": 5,
+       "unit": "V",
+       "ratio": -0.35226224948356666,
+       "level": "fine"
+      }
+     ]
     },
     "W1": {
      "kind": "W",
@@ -1798,7 +1902,17 @@
      "pinCurrents": {
       "+": -1.4775025647395524e-11,
       "-": 1.4775025647395524e-11
-     }
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 1.4775025647395524e-11,
+       "max": 10,
+       "unit": "A",
+       "ratio": 1.4775025647395523e-12,
+       "level": "fine"
+      }
+     ]
     }
    },
    "supplies": {
@@ -3436,7 +3550,17 @@
       "AC1": 0.22932079616501327,
       "AC2": -0.2293207961211248,
       "-": 0.2293207760987179
-     }
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.22932077614260638,
+       "max": 3,
+       "unit": "A",
+       "ratio": 0.07644025871420213,
+       "level": "fine"
+      }
+     ]
     },
     "W1": {
      "kind": "W",
@@ -3506,7 +3630,25 @@
      "pinCurrents": {
       "+": 0,
       "-": 0
-     }
+     },
+     "stress": [
+      {
+       "quantity": "reverse",
+       "value": -10.406883375760698,
+       "max": 0.5,
+       "unit": "V",
+       "ratio": -20.813766751521396,
+       "level": "fine"
+      },
+      {
+       "quantity": "voltage",
+       "value": 10.406883375760698,
+       "max": 25,
+       "unit": "V",
+       "ratio": 0.4162753350304279,
+       "level": "fine"
+      }
+     ]
     },
     "R1": {
      "kind": "R",
@@ -3520,7 +3662,17 @@
      "pinCurrents": {
       "1": 0.2209529379142288,
       "2": -0.2209529379142288
-     }
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 2.294549436327665,
+       "max": 5,
+       "unit": "W",
+       "ratio": 0.458909887265533,
+       "level": "fine"
+      }
+     ]
     },
     "W5": {
      "kind": "W",
@@ -3562,7 +3714,17 @@
      "pinCurrents": {
       "1": 0.008367838194832961,
       "2": -0.008367838194832961
-     }
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0.07002071605490535,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 0.2800828642196214,
+       "level": "fine"
+      }
+     ]
     },
     "D1": {
      "kind": "LED",
@@ -3577,7 +3739,25 @@
      "pinCurrents": {
       "anode": 0.008367838191862386,
       "cathode": -0.008367838191862386
-     }
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.008367838191862386,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 0.2789279397287462,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -2.0386267890183145,
+       "max": 5,
+       "unit": "V",
+       "ratio": -0.4077253578036629,
+       "level": "fine"
+      }
+     ]
     },
     "W7": {
      "kind": "W",
@@ -4007,7 +4187,17 @@
      "pinCurrents": {
       "1": 0,
       "2": 0
-     }
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 0,
+       "level": "fine"
+      }
+     ]
     },
     "D1": {
      "kind": "LED",
@@ -4022,7 +4212,25 @@
      "pinCurrents": {
       "anode": 0,
       "cathode": 0
-     }
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 0,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": 0,
+       "max": 5,
+       "unit": "V",
+       "ratio": 0,
+       "level": "fine"
+      }
+     ]
     },
     "W1": {
      "kind": "W",
@@ -4215,7 +4423,17 @@
      "pinCurrents": {
       "1": 0.00044999775450521985,
       "2": -0.00044999775450521985
-     }
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0.002024979790597401,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 0.008099919162389604,
+       "level": "fine"
+      }
+     ]
     },
     "R2": {
      "kind": "R",
@@ -4229,7 +4447,17 @@
      "pinCurrents": {
       "1": 0.0004499977455172351,
       "2": -0.0004499977455172351
-     }
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0.002024979709705943,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 0.008099918838823772,
+       "level": "fine"
+      }
+     ]
     },
     "W2": {
      "kind": "W",
@@ -4448,7 +4676,17 @@
      "pinCurrents": {
       "1": 0.004999999996671428,
       "2": -0.004999999996671428
-     }
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0.008249999989015714,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 0.032999999956062856,
+       "level": "fine"
+      }
+     ]
     },
     "D1": {
      "kind": "LED",
@@ -4463,7 +4701,25 @@
      "pinCurrents": {
       "anode": 0.004999999993364259,
       "cathode": -0.004999999993364259
-     }
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.004999999993364259,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 0.1666666664454753,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -1.6783230362171295,
+       "max": 5,
+       "unit": "V",
+       "ratio": -0.3356646072434259,
+       "level": "fine"
+      }
+     ]
     },
     "W1": {
      "kind": "W",
@@ -4636,7 +4892,17 @@
      "pinCurrents": {
       "1": 0.03005101006448538,
       "2": -0.03005101006448538
-     }
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0.2980108579456145,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 1.192043431782458,
+       "level": "exceeded"
+      }
+     ]
     },
     "D1": {
      "kind": "LED",
@@ -4651,7 +4917,25 @@
      "pinCurrents": {
       "anode": 0.030051010066811074,
       "cathode": -0.030051010066811074
-     }
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.030051010066811074,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 1.001700335560369,
+       "level": "exceeded"
+      },
+      {
+       "quantity": "reverse",
+       "value": -2.0215621080639385,
+       "max": 5,
+       "unit": "V",
+       "ratio": -0.4043124216127877,
+       "level": "fine"
+      }
+     ]
     },
     "W1": {
      "kind": "W",
@@ -5455,7 +5739,17 @@
      "pinCurrents": {
       "+": -1.4775025647395524e-11,
       "-": 1.4775025647395524e-11
-     }
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 1.4775025647395524e-11,
+       "max": 10,
+       "unit": "A",
+       "ratio": 1.4775025647395523e-12,
+       "level": "fine"
+      }
+     ]
     }
    },
    "supplies": {

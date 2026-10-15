@@ -11,13 +11,13 @@
 // (see-through ids). Everything visual is CSS classes or rules; the script never redraws the scene.
 //
 // Modules: view.js (frame, pan, zoom), focus.js (spotlight, CSS rules), card.js (the card),
-// tooltip.js (probes and explanations); live.js (the running simulation) only when the circuit
-// asks for results or the current layer. They share one `page` object. Entries: static-page.js
+// tooltip.js (probes and explanations); live.js (the running simulation, with controls.js and
+// limits.js) only when the circuit asks for results or the current layer. They share one `page` object. Entries: static-page.js
 // and live-page.js call startPage with the extensions they carry.
 
 import { numbers, setBox, setupView } from './view.js';
 import { applyFocus } from './focus.js';
-import { select, refreshCard } from './card.js';
+import { select, refreshCard, refreshNotes } from './card.js';
 import { tapTag, setupTooltip } from './tooltip.js';
 
 export function startPage(extensions = []) {
@@ -34,12 +34,14 @@ export function startPage(extensions = []) {
     dynamic: document.getElementById('dynamic'),
     probeStyle: document.getElementById('probe'),
     info: document.querySelector('.info'),
+    side: document.querySelector('.side'), // panels on the right (live page: warnings, controls)
     tooltip: document.querySelector('.tooltip'),
     current: () => svgs.find((s) => s.dataset.view === state.view),
     box: null,
     onShow: [], // extensions that react to a change of view, layer or speed
     show: () => show(),
     refreshCard: () => refreshCard(page),
+    refreshNotes: () => refreshNotes(page),
   };
   const toggles = ['labels'];
 
@@ -63,7 +65,7 @@ export function startPage(extensions = []) {
   setupTooltip(page);
   // A tap: a result tag pins its probes (focus untouched), a part selects it, the board clears.
   main.addEventListener('click', (e) => {
-    if (page.dragged || page.info.contains(e.target)) return;
+    if (page.dragged || page.info.contains(e.target) || page.side.contains(e.target)) return;
     if (tapTag(page, e.target)) return;
     const hit = e.target.closest && e.target.closest('[data-part]');
     select(page, hit ? hit.getAttribute('data-part') : null);

@@ -56,6 +56,9 @@ function supplyHoles(board, circuit) {
 const segmentLength = (a, b) => Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
 const lerp3 = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t });
 
+// Pieces of one polyline (each starting where the last ended) as one list of points.
+const joined = (pieces) => pieces.flatMap((p, k) => (k ? p.slice(1) : p));
+
 // A polyline cut in n pieces of equal length.
 function split(points, n) {
   const lengths = points.slice(1).map((p, i) => segmentLength(points[i], p));
@@ -175,32 +178,144 @@ export function liveFlow(built, sim, circuit) {
   return { wires: wires.map((w) => w.ref), dots: dots.map((d) => d.ref), strips, lights: lights.map((l) => l.part), hot: hot.map((h) => h.part), vmax };
 }
 
-// The pieces as drawing operations for the `flow` layer: heat and glow under everything, then
-// the coloured conductors, then the dots.
+// How far a 3D polyline is from the camera: the depth of its middle, weighted by length (a lead
+// with many points along its bend counts as much as a straight one). Bigger = farther.
+function pathDepth(camera, points) {
+  if (points.length === 1) return camera.project(points[0]).depth;
+  let sum = 0;
+  let total = 0;
+  for (let k = 1; k < points.length; k++) {
+    const length = segmentLength(points[k - 1], points[k]);
+    sum += length * camera.project(lerp3(points[k - 1], points[k], 0.5)).depth;
+    total += length;
+  }
+  return total > 0 ? sum / total : camera.project(points[0]).depth;
+}
+
+// Closest points of two segments on screen: { d (distance), s, t (where along each, 0…1) }.
+function closest(a0, a1, b0, b1) {
+  const ux = a1.x - a0.x, uy = a1.y - a0.y, vx = b1.x - b0.x, vy = b1.y - b0.y, wx = a0.x - b0.x, wy = a0.y - b0.y;
+  const a = ux * ux + uy * uy, b = ux * vx + uy * vy, c = vx * vx + vy * vy, d = ux * wx + uy * wy, e = vx * wx + vy * wy;
+  const den = a * c - b * b;
+  const clamp = (x) => Math.min(1, Math.max(0, x));
+  let s = den > 1e-12 ? clamp((b * e - c * d) / den) : 0;
+  let t = c > 1e-12 ? clamp((b * s + e) / c) : 0;
+  s = a > 1e-12 ? clamp((b * t - d) / a) : 0;
+  const dx = wx + ux * s - vx * t, dy = wy + uy * s - vy * t;
+  return { d: Math.hypot(dx, dy), s, t };
+}
+
+// Painting order of lines in 3D, for one view. Two lines can only cover each other where they
+// meet on screen (closer than `reach`, their half widths): there, the one farther from the camera
+// must be painted first. Those pairs give a partial order (a topological sort); the depth of each
+// line's middle decides whatever they leave open, and breaks a cycle (A over B at one crossing, B
+// over A at another). A plain sort by the middle fails for long pieces: a jumper crossing a
+// resistor over its middle came out under the resistor's nearer half.
+//   lines: [{ points: [3D…], group }]   lines of the same group (one part) are never compared
+//   → the indices of `lines`, farthest first
+export function paintOrder(camera, lines, reach) {
+  const proj = lines.map((l) => l.points.map((p) => camera.project(p)));
+  const middle = lines.map((l) => pathDepth(camera, l.points));
+  const n = lines.length;
+  const after = Array.from({ length: n }, () => new Set()); // i → the lines painted over i
+  const before = new Array(n).fill(0); // how many lines must come before each one
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (lines[i].group != null && lines[i].group === lines[j].group) continue;
+      let vote = 0; // > 0: i is farther (painted first)
+      for (let a = 1; a < proj[i].length; a++) {
+        for (let b = 1; b < proj[j].length; b++) {
+          const pa0 = proj[i][a - 1], pa1 = proj[i][a], pb0 = proj[j][b - 1], pb1 = proj[j][b];
+          const m = closest(pa0, pa1, pb0, pb1);
+          if (m.d > reach) continue;
+          const di = pa0.depth + (pa1.depth - pa0.depth) * m.s;
+          const dj = pb0.depth + (pb1.depth - pb0.depth) * m.t;
+          if (Math.abs(di - dj) > 1e-6) vote += di > dj ? 1 : -1;
+        }
+      }
+      if (vote > 0 && !after[i].has(j)) {
+        after[i].add(j);
+        before[j]++;
+      } else if (vote < 0 && !after[j].has(i)) {
+        after[j].add(i);
+        before[i]++;
+      }
+    }
+  }
+  const order = [];
+  const done = new Array(n).fill(false);
+  // Farthest middle first among the lines that are free; if none is free (a cycle), the farthest.
+  const pick = (free) => {
+    let best = -1;
+    for (let k = 0; k < n; k++) if (!done[k] && (!free || before[k] === 0) && (best < 0 || middle[k] > middle[best] + 1e-9)) best = k;
+    return best;
+  };
+  while (order.length < n) {
+    let k = pick(true);
+    if (k < 0) k = pick(false);
+    done[k] = true;
+    order.push(k);
+    for (const j of after[k]) before[j]--;
+  }
+  return order;
+}
+
+// The pieces as drawing operations for the `flow` layer, in painting order for this view:
+// 1. heat and glow, under everything;
+// 2. the metal strips and their dots: they lie inside the board, under every lead and wire (and
+//    strips never cross one another);
+// 3. each pin of each part (its lead, its body pieces, then its dots), ordered where they cross
+//    on screen by which is nearer there (paintOrder): a lead or a jumper in front is drawn over
+//    one behind, in the front view and in the back view alike.
+// The live page finds the pieces by data-wire / data-seg, so their order in the file is free.
 export function flowOps(scene, built, sim, circuit, { live = false } = {}) {
   const { wires, dots, lights, hot, vmax } = conductorPieces(built, sim, circuit, { all: live });
   const project = (points) => points.map((p) => scene.camera.project(p));
   const tag = (ref) => ({ ...(ref.part && { part: ref.part }), data: ref.part ? { flow: ref.part } : { node: ref.node } });
   const peak = Math.max(0, ...dots.map((d) => Math.abs(d.current)));
   const seconds = (speed) => (speed > 0.2 ? (DOT_PERIOD / speed).toFixed(3) : '99999');
-  const ops = [];
+  const under = [];
   if (live) {
     for (const h of hot) {
       const at = scene.camera.project(h.at);
-      ops.push({ kind: 'circle', cx: at.x, cy: at.y, r: 11, fill: HEAT_COLOR, cls: 'heat', style: 'opacity:0', part: h.part, data: { heat: h.part } });
+      under.push({ kind: 'circle', cx: at.x, cy: at.y, r: 11, fill: HEAT_COLOR, cls: 'heat', style: 'opacity:0', part: h.part, data: { heat: h.part } });
     }
   }
-  for (const l of lights) ops.push(...litLed(scene, l, `opacity:${glowOpacity(l.brightness).toFixed(2)}`));
+  for (const l of lights) under.push(...litLed(scene, l, `opacity:${glowOpacity(l.brightness).toFixed(2)}`));
+
+  const strip = { conductors: [], dots: [] };
+  const pins = new Map(); // part|pin → { conductors, dots, depth sum, length }
+  const pinOf = (ref) => {
+    const key = `${ref.part}|${ref.pin}`;
+    if (!pins.has(key)) pins.set(key, { part: ref.part, conductors: [], dots: [], points: [] });
+    return pins.get(key);
+  };
   wires.forEach((w, i) => {
-    ops.push({ kind: 'path', d: pathData(project(w.points)), stroke: voltageColor(w.voltage, vmax), strokeWidth: w.ref.node ? STRIP_WIDTH : CONDUCTOR_WIDTH, cls: 'conductor', ...tag(w.ref), ...(live && { data: { ...tag(w.ref).data, wire: i } }) });
+    const op = { kind: 'path', d: pathData(project(w.points)), stroke: voltageColor(w.voltage, vmax), strokeWidth: w.ref.node ? STRIP_WIDTH : CONDUCTOR_WIDTH, cls: 'conductor', ...tag(w.ref), ...(live && { data: { ...tag(w.ref).data, wire: i } }) };
+    if (w.ref.node) strip.conductors.push(op);
+    else {
+      const pin = pinOf(w.ref);
+      pin.conductors.push(op);
+      pin.points.push(w.points);
+    }
   });
   dots.forEach((piece, i) => {
     // A static image points each piece the way its current goes; the live page draws them all
     // hole → part (strips forwards) and moves the dots either way.
     const points = project(live || piece.current > 0 ? piece.points : piece.points.slice().reverse());
     const base = { kind: 'path', d: pathData(points), stroke: DOT_COLOR, strokeWidth: DOT_WIDTH, dash: `0 ${DOT_PERIOD}`, cls: 'dots', ...tag(piece.ref) };
-    if (live) ops.push({ ...base, data: { ...base.data, seg: i } });
-    else ops.push({ ...base, style: `--lin:${seconds(dotSpeed(piece.current, peak))}s;--log:${seconds(dotSpeed(piece.current, peak, 'log'))}s` });
+    const op = live ? { ...base, data: { ...base.data, seg: i } } : { ...base, style: `--lin:${seconds(dotSpeed(piece.current, peak))}s;--log:${seconds(dotSpeed(piece.current, peak, 'log'))}s` };
+    if (piece.ref.node) strip.dots.push(op);
+    else {
+      const pin = pinOf(piece.ref);
+      pin.dots.push(op);
+      if (!pin.points.length) pin.points.push(piece.points);
+    }
   });
-  return ops;
+  // Each pin is one line (its lead and body pieces joined): where two meet on screen, the
+  // farther goes first (paintOrder). The pins of one part only touch at its middle.
+  const list = [...pins.values()];
+  const ordered = paintOrder(scene.camera, list.map((pin) => ({ points: joined(pin.points), group: pin.part })), CONDUCTOR_WIDTH)
+    .flatMap((k) => [...list[k].conductors, ...list[k].dots]);
+  return [...under, ...strip.conductors, ...strip.dots, ...ordered];
 }

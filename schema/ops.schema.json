@@ -316,6 +316,55 @@
                 },
                 "description": "Parts in focus when the page opens (the ones being explained)"
               },
+              "controls": {
+                "type": "array",
+                "description": "Live page: a panel with the controls a lesson puts in front (every adjustable part also has its own in its card). Each names a part or a supply and one of its controls: resistance (resistor), temperature (thermistor), light (photoresistor), position (potentiometer), pressed (push button, momentary), voltage (bench supply), charge (battery)",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "part": {
+                      "type": "string",
+                      "description": "id of the part"
+                    },
+                    "supply": {
+                      "type": "string",
+                      "description": "id of a supply (a drawn battery: use part)"
+                    },
+                    "field": {
+                      "enum": [
+                        "resistance",
+                        "temperature",
+                        "light",
+                        "position",
+                        "pressed",
+                        "voltage",
+                        "charge"
+                      ]
+                    },
+                    "min": {
+                      "type": "number",
+                      "description": "slider start, in the unit of the field (ohms, °C, lux, 0…1, volts)"
+                    },
+                    "max": {
+                      "type": "number",
+                      "description": "slider end"
+                    },
+                    "scale": {
+                      "enum": [
+                        "linear",
+                        "log"
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "field"
+                  ],
+                  "additionalProperties": false
+                }
+              },
               "start": {
                 "enum": [
                   "dc",

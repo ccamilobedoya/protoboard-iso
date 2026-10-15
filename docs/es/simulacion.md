@@ -107,6 +107,8 @@ Se fijan con una operación, como cualquier campo del circuito:
               BT1: { voltage, current, power, emf, drop, runtime, charge, on },   // current: la que entrega
               U1: { vin, vout, headroom, current, quiescent, power, state: 'regulating' | 'dropout' },
               RT1: { …, sensor: { kind: 'thermistor', temperature, resistance } } },
+              // solo en DC: cada componente frente a sus límites (bien < 80 %, cerca ≤ 100 %, excedido)
+              // D1.stress: [{ quantity: 'current', value, max, unit: 'A', ratio, level: 'fine' | 'near' | 'exceeded' }]
   issues: [ … ] }
 ```
 

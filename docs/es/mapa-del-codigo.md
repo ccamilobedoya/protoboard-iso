@@ -64,6 +64,8 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `sim/overlay.js` | etiquetas de resultados (corriente por componente, voltaje por grupo) con `data-q` y `data-probe` |
 | `sim/look.js`, `sim/lines.js` | se pueden agrupar: colores de voltaje, velocidad de los puntos, degradado en los cuerpos, brillo y calor (look); las líneas de la ficha con los textos que se le pasan (lines) |
 | `page/client/live.js` | la página en vivo: corre el motor, mueve los puntos, repinta colores, etiquetas y ficha, controles de tiempo |
+| `page/client/controls.js`, `page/client/limits.js` | página en vivo: deslizadores (ficha y panel `page.controls`) y el pulsador momentáneo; contornos de esfuerzo (reglas en `#stress`), marcas que se quedan y el panel de avisos (en `.side`) |
+| `sim/controls.js` | se puede agrupar: controles de las fuentes, cuentas de los deslizadores (log, E24), niveles de esfuerzo; los controles de cada dispositivo están en su módulo (`controls`, `set`) |
 | `sim/paths.js` | vista de conductores: caminos de la corriente por componente (`paths` del paquete o una recta de respaldo), corriente de las tiras (Kirchhoff), colores de voltaje, puntos de corriente convencional |
 | `sim/probes.js` | «de dónde sale un valor»: puntas para voltajes, flechas para corrientes |
 | `page.js`, `page/client/`, `page/style.js` | la página para embeber; `page/client/main.js` es la entrada de su script (módulos view, focus, card, tooltip) |
@@ -107,7 +109,8 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
   código que necesita saber «dónde está la fuente» (la punta de tierra, la corriente) debe
   atender los dos casos.
 - **Las capas** se escriben siempre en el orden de `addLayers`: veil, strips, coords, spotlight, flow,
-  spotlabels (copias de las etiquetas de los componentes en foco, encima de la corriente), results, probes. Una página las muestra u oculta solo con CSS; lo interactivo nuevo debe seguir
+  marks (página en vivo: una caja oculta alrededor de cada componente, que se ve cuando se acerca a un
+  límite o lo pasa), spotlabels (copias de las etiquetas de los componentes en foco, encima de la corriente), results, probes. Una página las muestra u oculta solo con CSS; lo interactivo nuevo debe seguir
   la misma idea (marca en el SVG, regla en el CSS). Las etiquetas de coordenadas van debajo de la
   copia en primer plano para no tapar el componente que se explica, pero las de resultados todavía
   pueden taparlas: límite conocido, pendiente de una pasada planeada sobre qué tapa a qué (ver la
@@ -118,6 +121,21 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 - **Los resultados son un modelo** y pueden adelantar una predicción: se dibujan solo si se piden
   (`sim`, `flow`), y en una página solo si el circuito lo pide (`page.results`, `page.flow`) y solo
   para el componente tocado.
+- **Controles** (`controls`, `set` de un dispositivo) corren en la página: `set` es una fórmula
+  pura y solo puede importar módulos que se agrupan (`ALLOWED` en `node/bundle.js`). Un
+  dispositivo que agregue sus elementos en otro orden tras un cambio pierde su estado en
+  `engine.set` (se empareja por orden).
+- **Orden de pintado de la vista de conductores** (`flowOps`, `paintOrder` en `sim/paths.js`):
+  primero las tiras (están dentro de la protoboard), luego una línea por pata, ordenadas donde dos
+  se cruzan en pantalla según cuál está más cerca ahí (orden topológico, por vista); la profundidad
+  del centro solo para lo que eso deja abierto. No ordenar solo por el centro: las piezas largas
+  (una resistencia) quedaban encima de un cable que las cruza. La página encuentra las piezas por
+  `data-wire` / `data-seg`, nunca por su orden.
+- **Nada de filtros CSS en páginas animadas** (`drop-shadow`, `blur`): todo el SVG se vuelve a
+  dibujar en cada cuadro en que se mueven los puntos, y el filtro se recalcula cada vez (un contorno
+  hecho así dejó la página lentísima). Dibujar la forma una vez en una capa y cambiar su `display`,
+  `stroke` u `opacity`; animar en pocos `steps()`. Los puntos se saltan los cambios de
+  desplazamiento demasiado pequeños para verse.
 - **Los elementos SVG no tienen la propiedad `hidden`**; usa el atributo. Los scripts de la página se
   prueban con jsdom (`test/focus.test.js`), que sigue la especificación del DOM.
 - **Los agentes dependen del kit** (`.claude/agents/*.md`): se actualizan con cualquier cambio de

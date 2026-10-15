@@ -1,4 +1,5 @@
 // Potentiometer (and trimmer): two resistors, from pin 1 to the wiper and from the wiper to pin 3.
+// Control: the position of the wiper (0 at pin 1, 1 at pin 3).
 
 import { resistor as resistorEl } from '../mna.js';
 
@@ -9,6 +10,8 @@ export const potentiometer = {
     const e = part.def.electrical;
     return { resistance: e.resistance, position: e.position };
   },
+  controls: (p) => ({ position: { min: 0, max: 1, scale: 'linear', unit: '', percent: true, value: p.position } }),
+  set: (p, field, value) => (field === 'position' ? { ...p, position: value } : null),
   elements(p, h) {
     const r1 = Math.max(p.resistance * p.position, 1e-3);
     const r2 = Math.max(p.resistance * (1 - p.position), 1e-3);

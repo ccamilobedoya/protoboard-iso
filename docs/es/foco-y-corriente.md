@@ -122,3 +122,43 @@ de comandos, incluido en ella). Al cargar muestra los valores en DC, como antes;
   frente a la nominal, desde un quinto de ella), las etiquetas de resultados, los textos de las
   sondas y la ficha abierta.
 - Los resultados siguen siendo un **modelo** y se activan por circuito, como antes.
+
+## Controles y límites
+
+En la página en vivo cada componente ajustable trae sus controles en la ficha, bajo *Ajustar
+(modelo)*: el valor de una resistencia (log, con paradas en los valores normalizados E24), la
+temperatura de un termistor, la luz de una fotorresistencia, la posición de un potenciómetro, el
+voltaje (tensión) de una fuente de banco, la carga de una batería. Un pulsador conduce mientras se
+mantiene presionado, en el dibujo o con *Mantén presionado* en su ficha; *Dejar presionado* lo deja
+presionado (para revisar otros componentes mientras pasa corriente) hasta que se vuelva a tocar. Cada cambio se resuelve al
+instante; un circuito que corre sigue desde donde iba (un condensador conserva su voltaje, así que
+cambiar R mientras carga muestra la constante de tiempo nueva).
+
+Una lección puede poner en un panel los dos o tres controles que importan (arriba a la derecha, se
+pliega):
+
+```json
+"page": {
+  "results": true,
+  "controls": [
+    { "supply": "V1", "field": "voltage", "max": 12, "label": { "en": "Supply", "es": "Fuente" } },
+    { "part": "R1", "field": "resistance", "min": 100, "max": 10000 },
+    { "part": "S1", "field": "pressed" }
+  ]
+}
+```
+
+Campos: `part` o `supply` (una batería dibujada es un `part`), `field` (`resistance`,
+`temperature`, `light`, `position`, `pressed`, `voltage`, `charge`) y, si se quiere, `min`, `max`,
+`scale` (`linear` | `log`) y `label`. `check` avisa si un control no existe o si su rango no tiene
+sentido.
+
+**Límites.** Cada componente se compara con sus límites (corriente, potencia, voltaje, voltaje
+inverso): cerca del límite (80–100 %) se le pone un contorno ámbar; al pasarlo, un contorno rojo que
+late, una línea en *Límites superados* (arriba a la derecha: «D1: la corriente llegó a 100 mA (máximo 30 mA) · ahora 4,07 mA», el pico que quedó marcado y el valor de ahora; al
+tocarla se abre el componente) y otra en su ficha. La marca se queda aunque el deslizador vuelva o
+el pico haya sido breve, hasta *Borrar marcas* o *Encender (t = 0)*. En `simulate`, el `stress` de
+cada componente trae las mismas comparaciones.
+
+Los controles y los contornos solo salen en una página en vivo (`results` o `flow`), que ya sigue
+la regla de no adelantar una predicción pendiente.

@@ -43,7 +43,7 @@ export function setupView(page) {
     return { x, y, d: ps.length > 1 ? Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y) : 0 };
   };
   main.addEventListener('pointerdown', (e) => {
-    if (info.contains(e.target)) return;
+    if (info.contains(e.target) || page.side.contains(e.target)) return;
     if (!pointers.size) page.dragged = false;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
   });

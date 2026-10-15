@@ -10,6 +10,9 @@
 //   with the speed button.
 // - Four times a second: conductor colours (voltage), LED glow, heat tint, result tags, the
 //   probe captions and the open card.
+// - Controls (controls.js): sliders in the card and the circuit's panel, the momentary push
+//   button; a change re-solves at once. Limits (limits.js): checked every frame, shown as
+//   outlines and warnings.
 //
 // Without requestAnimationFrame (jsdom) nothing is scheduled; tests drive it with
 // window.protoboardLive.tick(ms).
@@ -19,10 +22,13 @@ import { linesFor } from '../../sim/lines.js';
 import { deviceOfReading } from '../../sim/devices/index.js';
 import { formatValue } from '../../core/units.js';
 import { voltageColor, dotSpeed, DOT_PERIOD, centreVoltage, bodyVoltage, glowOpacity, heatOpacity } from '../../sim/look.js';
+import { setupControls } from './controls.js';
+import { setupLimits } from './limits.js';
 
 const BUDGET = 8; // ms of simulation per frame
 const REFRESH = 250; // ms between repaints of colours, tags and card
 const TAG_SIZE = 8; // px, as in src/sim/overlay.js
+const MIN_MOVE = 0.05; // px of dot movement worth a redraw
 
 export function setupLive(page) {
   const { data, state, svgs } = page;
@@ -39,7 +45,8 @@ export function setupLive(page) {
   const tauMax = dynamic ? Math.max(...taus) : 0;
   const tauMin = dynamic ? Math.min(...taus) : 0;
   const perSecond = tauMax / 2; // simulated seconds per real second
-  let h = dynamic ? Math.max(tauMin / 50, tauMax / 5000) : 0;
+  const stepFor = (list) => Math.max(Math.min(...list) / 50, Math.max(...list) / 5000);
+  let h = dynamic ? stepFor(taus) : 0;
   let running = dynamic;
   let stalled = false;
   let owed = 0;
@@ -56,6 +63,9 @@ export function setupLive(page) {
   const dots = flow ? per('seg') : [];
   const wires = flow ? per('wire') : [];
   const phase = flow ? new Float64Array(flow.dots.length) : null;
+  const written = flow ? new Float64Array(flow.dots.length) : null; // the offsets on screen
+  // Another view's dots were not written while hidden: write them all on the next frame.
+  if (written) page.onShow.push(() => written.fill(Infinity));
   let peak = 0;
   const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -85,7 +95,11 @@ export function setupLive(page) {
     I.forEach((i, k) => {
       phase[k] = (phase[k] + Math.sign(i) * dotSpeed(i, peak, state.speed) * wall) % DOT_PERIOD;
       const el = visible[k];
-      if (el) el.style.strokeDashoffset = String(-phase[k]);
+      // Each write makes the browser redraw the SVG: skip moves too small to see.
+      if (el && Math.abs(phase[k] - written[k]) >= MIN_MOVE) {
+        written[k] = phase[k];
+        el.style.strokeDashoffset = String(-phase[k]);
+      }
     });
   }
 
@@ -177,6 +191,7 @@ export function setupLive(page) {
     });
     make(t('page.time.reset'), () => {
       engine.start('zero', h);
+      limits.reset();
       reading = engine.read();
       peak = 0;
       running = true;
@@ -191,6 +206,25 @@ export function setupLive(page) {
     nav.insertBefore(group, nav.querySelector('.hint'));
   }
   document.body.classList.add('live');
+
+  // Limits and controls. A change keeps the speed of time (so a larger R is seen charging more
+  // slowly) but never a step too long for the new time constants.
+  const limits = setupLimits(page, { engine, t, f });
+  const controls = setupControls(page, {
+    engine,
+    t,
+    decimal: live.decimal,
+    changed() {
+      if (dynamic) {
+        const now = engine.timeConstants();
+        if (now.length) h = Math.min(h, stepFor(now));
+      }
+      stalled = false;
+      reading = engine.read();
+      limits.check(reading, true);
+      repaint();
+    },
+  });
 
   let last = null;
   let lastPaint = -Infinity;
@@ -212,6 +246,7 @@ export function setupLive(page) {
       }
       if (owed > 4 * h) owed = 0; // too slow to keep up: slow motion instead of a spiral
       reading = engine.read();
+      limits.check(reading);
     }
     if (flow) moveDots(wall);
     if (now - lastPaint >= REFRESH) {
@@ -236,7 +271,9 @@ export function setupLive(page) {
       return phase ? Array.from(phase) : [];
     },
     currents: () => (flow ? currents() : []),
+    set: (id, field, value) => controls.set(id, field, value),
   };
+  limits.check(reading);
   repaint();
   if (typeof requestAnimationFrame === 'function' && (flow || dynamic)) {
     const loop = (now) => {

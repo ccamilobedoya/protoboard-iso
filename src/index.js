@@ -28,7 +28,7 @@ import { PART_TYPES } from './parts/types/index.js';
 import { PACKAGES } from './parts/packages/index.js';
 import { PART_NUMBERS } from './parts/db.js';
 import { resistorBands } from './parts/types/resistor.js';
-import { simulate } from './sim/index.js';
+import { simulate, pageControlIssues } from './sim/index.js';
 import { resultsOverlay } from './sim/overlay.js';
 import { flowOps } from './sim/paths.js';
 import { probeOps } from './sim/probes.js';
@@ -70,7 +70,7 @@ export function labelText(part, lang = 'en') {
 
 export function checkCircuit(circuit) {
   const { issues, netlist } = buildCircuit(circuit);
-  return { issues, netlist };
+  return { issues: [...issues, ...pageControlIssues(circuit)], netlist };
 }
 
 // A piece lying entirely beyond one side face of the board (a battery on the table, the low
@@ -123,17 +123,18 @@ function sceneFor(circuit, options = {}) {
   return { result, scene, view, scale, lang };
 }
 
-// Optional layers, always in this order: veil, strips, coords, spotlight, flow, spotlabels,
-// results, probes.
+// Optional layers, always in this order: veil, strips, coords, spotlight, flow, marks,
+// spotlabels, results, probes.
 //   focus: ['R1']   dim everything but these parts and their strips (static images)
 //   flow: true      conductor view: conductors coloured by voltage, dots for conventional
 //                   current (moving in a page, still in a static image)
 //   sim: true       simulation results, labelled as a model
-//   interactive     a page: every part tagged and copied, every strip ready, shown by CSS
+//   interactive     a page: every part tagged and copied, every strip ready, shown by CSS; with
+//                   sim or flow, a hidden mark around each part (its limits, see markOps)
 function addLayers(scene, built, circuit, options, lang) {
   const needSim = options.sim || options.flow;
   const sim = needSim ? simulate(circuit, { analysis: 'dc' }) : null;
-  const extra = { veil: [], strips: [], coords: [], spotlight: [], flow: [], spotlabels: [], results: [], probes: [] };
+  const extra = { veil: [], strips: [], coords: [], spotlight: [], flow: [], marks: [], spotlabels: [], results: [], probes: [] };
   if (options.interactive) {
     extra.veil = veilOps(scene.frame);
     extra.strips = stripOps(scene, built.board, [...usedNodes(built, circuit)]);
@@ -149,6 +150,7 @@ function addLayers(scene, built, circuit, options, lang) {
     // A page gets every piece, tagged for the live simulation to move and colour.
     extra.flow = flowOps(scene, built, sim, circuit, { live: Boolean(options.interactive) });
   }
+  if (options.interactive && needSim) extra.marks = markOps(scene, built);
   if (options.sim) {
     extra.results = resultsOverlay(scene, built, sim, lang);
     // A page shows, on demand, where each tag's value comes from (probes, arrows).
@@ -161,6 +163,31 @@ function addLayers(scene, built, circuit, options, lang) {
     }
   }
   Object.assign(scene.layers, extra);
+}
+
+// A rounded box around each part on screen (its polygons, leads included), hidden: the live page
+// shows it when the part nears or passes a limit (page/client/limits.js). A plain stroke whose
+// opacity changes, instead of a CSS filter on the part: a blur filter is redrawn on every frame
+// the dots move, and made the page crawl.
+const MARK_PAD = 3;
+function markOps(scene, built) {
+  const box = new Map();
+  for (const op of [...scene.layers.under, ...scene.layers.parts]) {
+    if (op.kind !== 'polygon' || op.part == null) continue;
+    const b = box.get(op.part) ?? { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    for (const p of op.pts) {
+      b.x0 = Math.min(b.x0, p.x);
+      b.y0 = Math.min(b.y0, p.y);
+      b.x1 = Math.max(b.x1, p.x);
+      b.y1 = Math.max(b.y1, p.y);
+    }
+    box.set(op.part, b);
+  }
+  const wires = new Set(built.parts.filter((p) => p.def.electrical?.kind === 'W').map((p) => p.id));
+  return [...box].filter(([id]) => !wires.has(id)).map(([id, b]) => ({
+    kind: 'rect', x: b.x0 - MARK_PAD, y: b.y0 - MARK_PAD, width: b.x1 - b.x0 + 2 * MARK_PAD, height: b.y1 - b.y0 + 2 * MARK_PAD, rx: 4,
+    fill: 'none', stroke: '#d0281a', strokeWidth: 2, cls: 'mark', data: { mark: id },
+  }));
 }
 
 // Groups with a lead in them, plus the rails a supply is clipped to.

@@ -1,5 +1,5 @@
 // Push button (6×6 tactile): each pair of legs is one metal piece (a wire); pressed, the
-// contact joins the two pairs.
+// contact joins the two pairs. Control: momentary, pressed only while held (in the page).
 
 import { resistor as resistorEl } from '../mna.js';
 import { WIRE_RESISTANCE } from '../models.js';
@@ -14,6 +14,8 @@ export const button = {
     const e = part.def.electrical;
     return { poles: e.poles, contact: [e.poles[0][0], e.poles[1][0]], pressed: e.pressed };
   },
+  controls: (p) => ({ pressed: { scale: 'momentary', value: Boolean(p.pressed) } }),
+  set: (p, field, value) => (field === 'pressed' ? { ...p, pressed: Boolean(value) } : null),
   elements(p, h) {
     const entry = { poles: p.poles.map(([a, b]) => ({ a, b, el: h.add(resistorEl(h.pin(a), h.pin(b), WIRE_RESISTANCE)) })) };
     if (p.pressed) entry.main = h.add(resistorEl(h.pin(p.contact[0]), h.pin(p.contact[1]), BUTTON_CONTACT));

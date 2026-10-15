@@ -28,7 +28,14 @@ Esta página es la referencia del trabajo, que toma varias sesiones. Cada sesió
   motor paso a paso: `start`, `step`, `read`, `stresses`, `timeConstants`. Lo visual compartido en
   `sim/look.js` y las líneas de la ficha en `sim/lines.js` (los dos se pueden agrupar). Pruebas en
   `test/live.test.js` (jsdom, cuadros movidos con `window.protoboardLive.tick`).
-- Siguiente: fase 5, controles y límites.
+- Fase 5 hecha: controles y límites. Cada dispositivo puede tener `controls(p)` y un `set(p, field,
+  value)` puro; los controles de las fuentes (voltaje de la fuente de banco, carga de la batería) y
+  las cuentas de los deslizadores (log, E24, niveles de esfuerzo) en `sim/controls.js` (se puede
+  agrupar). `engine.controls()` y `engine.set()`. Página: `page/client/controls.js` (deslizadores
+  en la ficha, panel `page.controls`, pulsador momentáneo) y `page/client/limits.js` (contornos,
+  marcas que se quedan, panel de avisos); `stress` por componente en la respuesta DC de
+  `simulate`; `check` revisa `page.controls`. Pruebas en `test/sliders.test.js`.
+- Siguiente: fase 6, comparar con Falstad.
 
 ## Decisiones
 
@@ -170,6 +177,31 @@ El script de la página pasa de una cadena larga (`page/script.js`) a módulos r
   - Conserva el estado por clave: voltajes de nodo por nombre, memoria de condensadores y bobinas, voltajes de juntura por elemento.
   - Recalcula las islas flotantes.
   - Un circuito estático vuelve a resolver el DC al instante; uno que corre sigue avanzando.
+
+Como quedó (fase 5):
+
+| Control | Componente o fuente | Deslizador | Notas |
+|---|---|---|---|
+| `resistance` | resistencia | log, dos décadas a cada lado del valor del archivo, se detiene en valores E24 | el rango se queda alrededor del valor del archivo (`nominal`) |
+| `temperature` | termistor NTC | −20…100 °C, de a 1 °C | `ntcResistance` |
+| `light` | fotorresistencia | 0,1…10 000 lx, log | `ldrResistance` |
+| `position` | potenciómetro, trimmer | 0…100 % | |
+| `pressed` | pulsador | momentáneo | se mantiene en el dibujo o con *Mantén presionado*; *Dejar presionado* lo deja así hasta volver a tocarlo |
+| `voltage` | fuente de banco | 0…30 V, de a 0,1 V | |
+| `charge` | batería (componente o fuente) | 0…100 % | fem y resistencia interna con `batteryModel`; no hay si su voltaje se midió |
+
+- `min`/`max` son solo el rango por defecto del deslizador; `limit` es lo que el valor puede ser
+  (`page.controls` puede escoger un rango dentro; `check` avisa si no).
+- El estado se empareja por componente y por el orden en que el componente agregó sus elementos
+  (un pulsador presionado agrega su contacto después de sus polos); se copian `vprev`, `iprev`,
+  `vd`, `vgs`, `vds`, `vbe`, `vbc`. Tras un cambio el sistema se resuelve con un paso muy corto (como
+  en t = 0), así un circuito en pausa también muestra el cambio. El tiempo simulado conserva su
+  rapidez (una R mayor se ve cargar más despacio), pero el paso se achica si las constantes de
+  tiempo nuevas lo piden.
+- Los límites se revisan en cada cuadro (no solo al repintar), así un pico breve también queda marcado.
+- Los deslizadores esperan a que el dedo se detenga (`page/client/controls.js`): el valor mostrado
+  sigue al dedo al instante, el circuito se resuelve tras 120 ms quieto, al menos cada 300 ms en un
+  arrastre largo, y al instante al soltar. El primer toque se resuelve al instante.
 
 ## Fases y sesiones
 

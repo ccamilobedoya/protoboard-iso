@@ -3,7 +3,8 @@
 // the browser page.
 //
 //   const engine = createEngine(program)
-//   engine.dc()                                         → operating point
+//   engine.dc()                                         → operating point (each part with its
+//                                                         `stress`: value against each limit)
 //   engine.transient({ stop, step, start, points })     → time series
 // And step by step, for the live page:
 //   engine.start('dc' | 'zero', h) → ok    the state at t = 0 (DC values, or switched on with
@@ -13,6 +14,11 @@
 //   engine.stresses(reading) → { part: [stress…] }   each part against its limits (devices/)
 //   engine.timeConstants() → [seconds…]    τ = C·R and L/R of each capacitor and inductor, with R
 //                                          the resistance it sees at the DC operating point
+// Controls (sliders, the push button):
+//   engine.controls() → [{ id, field, min, max, scale, unit, value… }]   what may change (controls.js)
+//   engine.set(id, field, value) → ok      change it: the system is rebuilt, its state carried
+//                                          over (node voltages by name, capacitor and inductor
+//                                          memory, junction voltages) and solved again at once
 //
 // Every result is a **model**: ideal strips, typical part values (models.js).
 
@@ -20,6 +26,7 @@ import { resistor, voltageSource, currentSource, operatingPoint, newton, Stamper
 import { GMIN } from './models.js';
 import { DEVICE_BY_TYPE } from './devices/index.js';
 import { issue, q, volt, stressIssue } from './devices/shared.js';
+import { supplyControls, setSupply, stressLevel } from './controls.js';
 
 const SHORT_CURRENT = 3; // amperes from an unlimited source that mean "short circuit"
 
@@ -43,6 +50,7 @@ function prepare(program) {
 
   const elements = [];
   const parts = [];
+  const owned = new Map(); // part id → its elements, in the order it added them (state carry-over)
   // Each part: its device adds the elements and keeps what its reading needs (devices/).
   for (const d of program.devices) {
     const entry = { id: d.id, kind: d.kind, pins: d.pins.map((p) => ({ name: p.name, node: p.node, index: nodeIndex(p.node) })) };
@@ -56,6 +64,7 @@ function prepare(program) {
         inner: () => inner(d.id),
         add: (el) => {
           elements.push(el);
+          owned.set(d.id, [...(owned.get(d.id) ?? []), el]);
           return el;
         },
         supplies,
@@ -111,7 +120,7 @@ function prepare(program) {
   for (const s of supplies) if (!s.off) s.source = voltageSource(s.top, s.nIndex, row++, s.voltage);
   const references = tied.map((n) => voltageSource(n, -1, row++, 0));
   const all = [...elements, ...supplies.filter((s) => !s.off).flatMap((s) => [s.source, s.series].filter(Boolean)), ...references, ...anchors.values()];
-  return { issues, members: program.members, supplies, parts, names, index, ground: program.ground, floating, system: { size: row, nodeCount, elements: all } };
+  return { issues, members: program.members, supplies, parts, owned, names, index, ground: program.ground, floating, system: { size: row, nodeCount, elements: all } };
 }
 
 // 1 S from a node to ground, in DC only (no time step): see the floating islands in prepare().
@@ -228,8 +237,11 @@ function solveWithLimits(prep, x0, ctx) {
 
 // ── The engine ──────────────────────────────────────────────────────────────────────
 
-export function createEngine(program) {
+export function createEngine(source) {
+  // Controls change the program, so each engine works on its own copy.
+  const program = JSON.parse(JSON.stringify(source));
   let prep = prepare(program);
+  let lastH = 1e-3;
   // Stepping state. A step's memory (capacitor voltage, inductor current) is accepted at the
   // start of the next one, so read() between steps still sees the current through a capacitor.
   let x = null;
@@ -241,6 +253,7 @@ export function createEngine(program) {
     dc: () => dc(prep),
     transient: (options) => transient(prep, options),
     start(mode = 'dc', h = 1e-3) {
+      lastH = h;
       prep = prepare(program);
       x = new Array(prep.system.size).fill(0);
       if (mode === 'dc') {
@@ -263,6 +276,7 @@ export function createEngine(program) {
       if (pending) for (const el of memories()) el.accept(x, pending);
       pending = null;
       const next = { h };
+      lastH = h;
       const r = newton(prep.system, x, next);
       if (!r.ok) return false;
       x = r.x;
@@ -286,7 +300,83 @@ export function createEngine(program) {
       return out;
     },
     timeConstants: () => timeConstants(prep),
+    controls: () => controlsOf(program),
+    set(id, field, value) {
+      if (!changeProgram(program, id, field, value)) return false;
+      const old = prep;
+      prep = prepare(program);
+      if (!x) return true;
+      // The memories hold the state at this instant; the new elements take it over.
+      if (pending) for (const el of old.system.elements) if ('accept' in el) el.accept(x, pending);
+      carryState(old, prep);
+      const start = new Array(prep.system.size).fill(0);
+      for (const [name, i] of prep.index) {
+        const j = old.index.get(name);
+        if (i >= 0 && j != null && j >= 0) start[i] = x[j];
+      }
+      // Solved at once (a very short step, as at t = 0): a paused circuit shows the change too.
+      const now = { h: lastH * 1e-6 };
+      const r = solveWithLimits(prep, start, now);
+      if (!r.ok) return false;
+      x = r.x;
+      ctx = now;
+      pending = null;
+      return true;
+    },
   };
+}
+
+// What may change, from each device's and supply's controls (devices/*, controls.js). A drawn
+// battery answers by its part id.
+function controlsOf(program) {
+  const out = [];
+  const add = (id, list) => {
+    for (const [field, c] of Object.entries(list ?? {})) out.push({ id, field, ...c });
+  };
+  for (const d of program.devices) {
+    const device = !d.unsupported && DEVICE_BY_TYPE[d.type];
+    if (device?.controls) add(d.id, device.controls(d.params));
+  }
+  for (const s of program.supplies) if (!s.off) add(s.part ?? s.id, supplyControls(s));
+  return out;
+}
+
+// A control's new value in the program (devices: their pure `set`; supplies: controls.js).
+function changeProgram(program, id, field, value) {
+  const control = controlsOf(program).find((c) => c.id === id && c.field === field);
+  if (!control) return false;
+  if (control.scale === 'momentary') value = Boolean(value);
+  else {
+    value = Number(value);
+    if (!Number.isFinite(value)) return false;
+    // The slider's range is a suggestion (a lesson may widen it); `limit` is what makes sense.
+    const [lo, hi] = control.limit ?? [control.min, control.max];
+    value = Math.min(hi, Math.max(lo, value));
+  }
+  const d = program.devices.find((dev) => dev.id === id && !dev.unsupported);
+  const device = d && DEVICE_BY_TYPE[d.type];
+  if (device?.controls?.(d.params)?.[field]) {
+    const params = device.set(d.params, field, value);
+    if (!params) return false;
+    d.params = params;
+    return true;
+  }
+  const s = program.supplies.find((sup) => (sup.part ?? sup.id) === id);
+  return Boolean(s) && setSupply(s, field, value);
+}
+
+// What an element remembers between steps or Newton iterations: capacitor voltage, inductor
+// current, junction and transistor voltages. Matched by part and by the order the part added
+// its elements (a pressed button adds its contact last, after the poles).
+const STATE = ['vprev', 'iprev', 'vd', 'vgs', 'vds', 'vbe', 'vbc'];
+function carryState(old, prep) {
+  for (const [id, list] of prep.owned) {
+    const before = old.owned.get(id) ?? [];
+    list.forEach((el, k) => {
+      const was = before[k];
+      if (was) for (const key of STATE) if (key in was && key in el) el[key] = was[key];
+    });
+  }
 }
 
 // Each capacitor and inductor against the rest of the circuit, linearised at the DC operating
@@ -319,6 +409,13 @@ function dc(prep) {
   const r = solveWithLimits(prep, new Array(prep.system.size).fill(0), ctx);
   if (!r.ok) return { analysis: 'dc', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
   const reading = readAll(prep, r.x, ctx);
+  // Each part against its limits: { quantity, value, max, unit, ratio, level } (controls.js).
+  for (const p of prep.parts) {
+    const part = reading.parts[p.id];
+    if (part.floating) continue;
+    const list = partStresses(p, part).filter((s) => !s.note);
+    if (list.length) part.stress = list.map(({ quantity, value, max, unit, ratio }) => ({ quantity, value, max, unit, ratio, level: stressLevel(ratio) }));
+  }
   return { analysis: 'dc', model: true, ok: true, iterations: r.iterations, ground: prep.ground, ...reading, issues: [...prep.issues, ...limitIssues(prep, reading)] };
 }
 

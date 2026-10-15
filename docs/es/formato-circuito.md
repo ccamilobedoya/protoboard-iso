@@ -26,7 +26,7 @@ Las claves van en inglés para que el formato sea el mismo en todos los idiomas.
 | `netLabels` | no | Texto junto a un riel, por id del riel. Un riel con etiqueta cuenta como conectado a una fuente. |
 | `lang` | no | Idioma de todo lo que se genera a partir del circuito: etiquetas del dibujo, la página, mensajes (`en`, `es`). Un idioma pedido en la llamada (`--lang`, `lang` del MCP) gana. |
 | `supplies` | no | Simulación: de dónde sale la energía, por ejemplo `[{ "id": "V1", "voltage": 5 }]` (entre T+ y T-). Una [batería](#battery-batería) también es una fuente. Ver [simulacion.md](simulacion.md). |
-| `page` | no | La página para embeber: `results` (simulación siempre activa, valores del componente tocado), `flow` (capa de corriente), `focus` (componentes en foco al abrirla), `start` (`dc` o `zero`: cómo arranca la simulación en vivo). Ver [foco-y-corriente.md](foco-y-corriente.md). |
+| `page` | no | La página para embeber: `results` (simulación siempre activa, valores del componente tocado), `flow` (capa de corriente), `focus` (componentes en foco al abrirla), `start` (`dc` o `zero`: cómo arranca la simulación en vivo), `controls` (un panel de deslizadores y botones: componente o fuente, campo, rango y etiqueta opcionales). Ver [foco-y-corriente.md](foco-y-corriente.md). |
 | `parts` | sí | Lista de componentes. |
 
 ## Agujeros

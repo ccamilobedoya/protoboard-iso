@@ -25,7 +25,14 @@ the tests green, this page and the roadmap up to date.
   `start`, `step`, `read`, `stresses`, `timeConstants`. Shared looks in `sim/look.js`, card lines
   in `sim/lines.js` (both bundleable). Tests in `test/live.test.js` (jsdom, frames driven by
   `window.protoboardLive.tick`).
-- Next: phase 5, controls and limits.
+- Phase 5 done: controls and limits. Each device may have `controls(p)` and a pure
+  `set(p, field, value)`; supplies' controls (bench voltage, battery charge) and the slider maths
+  (log, E24, stress levels) in `sim/controls.js` (bundleable). `engine.controls()` and
+  `engine.set()`. Page: `page/client/controls.js` (card sliders, `page.controls` panel, momentary
+  push button) and `page/client/limits.js` (outlines, latched marks, warnings panel); `stress` per
+  part in the DC answer of `simulate`; `check` reviews `page.controls`. Tests in
+  `test/sliders.test.js`.
+- Next: phase 6, Falstad cross-check.
 
 ## Decisions
 
@@ -156,6 +163,30 @@ page keeps **one attribute-less `<script>`**, last; JSON scripts go before it.
 - `engine.set()` updates the parameters and rebuilds the system, carrying the state by key (node
   voltages by name, capacitor and inductor memory, junction voltages by element) and recomputing
   floating islands. A static circuit re-solves DC at once; a running one keeps stepping.
+
+As built (phase 5):
+
+| Control | Part or supply | Slider | Notes |
+|---|---|---|---|
+| `resistance` | resistor | log, two decades either side of the file's value, stops at E24 values | the range stays around the value in the file (`nominal`) |
+| `temperature` | NTC thermistor | −20…100 °C, 1 °C steps | `ntcResistance` |
+| `light` | photoresistor | 0.1…10 000 lx, log | `ldrResistance` |
+| `position` | potentiometer, trimmer | 0…100 % | |
+| `pressed` | push button | momentary | held on the drawing or with *Hold to press*; *Keep pressed* latches it until tapped again |
+| `voltage` | bench supply | 0…30 V, 0.1 V steps | |
+| `charge` | battery (part or supply) | 0…100 % | emf and internal resistance from `batteryModel`; none if its voltage was measured |
+
+- `min`/`max` are only the slider's default range; `limit` is what the value may be at all
+  (`page.controls` may choose a range inside it, `check` says if it does not).
+- The state is matched by part and by the order the part added its elements (a pressed button
+  adds its contact after its poles); copied fields: `vprev`, `iprev`, `vd`, `vgs`, `vds`, `vbe`, `vbc`.
+  After a change the system is solved with a very short step (as at t = 0), so a paused circuit
+  shows the change too. Simulated time keeps its speed (a larger R is seen charging more slowly),
+  but the step shrinks if the new time constants need it.
+- Limits are checked every frame (not only on repaint), so a brief peak is latched too.
+- Sliders are debounced (`page/client/controls.js`): the value shown follows the finger at once,
+  the circuit is solved after 120 ms at rest, at least every 300 ms during a long drag, and at
+  once on release. The first touch solves at once.
 
 ## Phases and sessions
 

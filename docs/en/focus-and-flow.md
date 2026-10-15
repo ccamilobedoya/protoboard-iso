@@ -117,3 +117,38 @@ line, bundled in). At load it shows the DC values, as before; then:
   a heat tint on resistors, regulators and transistors (power against rated power, from a fifth
   of it), the result tags, the probe captions and the open card.
 - Results remain a **model**, and opt-in per circuit like before.
+
+## Controls and limits
+
+In the live page every adjustable part has its controls in its card, under *Adjust (model)*: a
+resistor's value (log, stopping at standard E24 values), a thermistor's temperature, a
+photoresistor's light, a potentiometer's position, a bench supply's voltage, a battery's charge.
+A push button conducts while it is held, on the drawing or with *Hold to press* in its card; *Keep pressed* leaves it pressed (to look at other parts while current flows) until it is tapped again. Each
+change re-solves at once; a running circuit keeps going from where it was (a capacitor keeps
+its voltage, so changing R while it charges shows the new time constant).
+
+A lesson may put the two or three controls that matter in a panel (top right, folds away):
+
+```json
+"page": {
+  "results": true,
+  "controls": [
+    { "supply": "V1", "field": "voltage", "max": 12, "label": { "en": "Supply", "es": "Fuente" } },
+    { "part": "R1", "field": "resistance", "min": 100, "max": 10000 },
+    { "part": "S1", "field": "pressed" }
+  ]
+}
+```
+
+Fields: `part` or `supply` (a drawn battery is a `part`), `field` (`resistance`, `temperature`,
+`light`, `position`, `pressed`, `voltage`, `charge`), optional `min`, `max`, `scale` (`linear` |
+`log`) and `label`. `check` says if a control does not exist or its range makes no sense.
+
+**Limits.** Every part is compared with its limits (current, power, voltage, reverse voltage):
+near the limit (80–100 %) it gets an amber outline; past it, a pulsing red outline, a line in
+*Limits exceeded* (top right: "D1: current reached 100 mA (maximum 30 mA) · now 4.07 mA", the latched peak and the value now; tap it to open the part) and in
+its card. The mark stays even if the slider goes back or the peak was brief, until *Clear marks*
+or *Switch on (t = 0)*. In `simulate`, each part's `stress` lists the same comparisons.
+
+Controls and outlines show only in a live page (`results` or `flow`), which already follows the
+rule of not giving away a pending prediction.

@@ -188,11 +188,12 @@ function explanations(lang) {
 }
 
 // What the live page needs besides the program: the conductor view's pieces (with the current
-// layer), the texts its card lines, tags and clock use, the probe captions to fill in.
+// layer), the texts its card lines, tags, clock, controls and warnings use, the probe captions
+// to fill in, the controls panel.
 function liveData(circuit, lang, flow, templates) {
   const texts = {};
   const dict = { ...LANGUAGES.en, ...(LANGUAGES[lang] ?? {}) };
-  for (const key of Object.keys(dict)) if (/^(sim|state|probe)\.|^page\.(time|live)\./.test(key)) texts[key] = t(lang, key);
+  for (const key of Object.keys(dict)) if (/^(sim|state|probe)\.|^page\.(time|live|control|controls|warnings)\.|^check\.SIM_/.test(key)) texts[key] = t(lang, key);
   const dc = flow ? simulate(circuit, { analysis: 'dc' }) : null;
   return {
     flow: dc?.ok ? liveFlow(buildCircuit(circuit), dc, circuit) : null,
@@ -200,6 +201,8 @@ function liveData(circuit, lang, flow, templates) {
     decimal: decimalSeparator(lang),
     probes: templates,
     start: circuit.page?.start === 'zero' ? 'zero' : 'dc',
+    // The controls panel (page.controls): which control, its range and label in this language.
+    panel: (Array.isArray(circuit.page?.controls) ? circuit.page.controls : []).map((c) => ({ id: c.part ?? c.supply, field: c.field, min: c.min, max: c.max, scale: c.scale, label: localized(c.label, lang) ?? undefined })),
   };
 }
 
@@ -261,6 +264,7 @@ export function renderPage(circuit, options = {}) {
 <main>
 ${svgs.join('\n')}
 <aside class="info" hidden></aside>
+<div class="side"></div>
 <div class="tooltip" hidden></div>
 </main>
 <script type="application/json" id="page-data">${safeJson(data)}</script>

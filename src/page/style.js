@@ -6,9 +6,12 @@
 //   body.speed-log       dot speed on a log scale (each dot path carries --lin and --log)
 //   #dynamic             strips, coordinates and result tags of the focused part; see-through rules
 //   #probe               the probes/arrows of the result tag hovered or tapped
+//   #stress              (live page) the boxes (layer marks) of the parts near or past their limits
+// .side holds the live page's panels (warnings, controls), top right; .info the card, bottom left.
 // Layers in each SVG: (under), board, parts, labels, (annotations), veil, strips, coords, spotlight (made
 // by the script: copies of the tapped parts), flow, spotlabels (made by the script: copies of their
-// labels, above the current), results, probes. Hidden by default: veil, flow, strips, coords,
+// labels, above the current), results, probes; in a live page, marks (boxes around each part,
+// for its limits) between flow and spotlabels. Hidden by default: veil, flow, strips, coords,
 // results and probes.
 // On a narrow screen the button bar is one row that scrolls sideways, to leave room for the drawing.
 
@@ -71,4 +74,32 @@ main { position: relative; }
 .info .explain[hidden] { display: none; }
 .info .tip { color: #8a8884; font-size: 12px; }
 .tooltip { position: absolute; z-index: 2; max-width: 260px; padding: 6px 8px; background: #2b3a4a; color: #ffffff; border-radius: 6px; font-size: 12px; line-height: 1.35; pointer-events: none; }
-.tooltip[hidden] { display: none; }`;
+.tooltip[hidden] { display: none; }
+
+.side { position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; flex-direction: column; gap: 6px; width: min(280px, calc(100% - 16px)); max-height: calc(100% - 16px); overflow: auto; pointer-events: none; cursor: auto; touch-action: auto; user-select: none; -webkit-user-select: none; }
+.side .panel { pointer-events: auto; background: #ffffff; border: 1px solid #c9c7c2; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12); padding: 6px 10px 8px; font-size: 13px; }
+.side .panel[hidden] { display: none; }
+.side .head { display: block; width: 100%; text-align: left; font: inherit; font-size: 12px; color: #6b6a66; text-transform: uppercase; letter-spacing: 0.04em; background: none; border: none; padding: 2px 0; cursor: pointer; }
+.side .head::after { content: " ▾"; }
+.side .head[aria-expanded="false"]::after { content: " ▸"; }
+.side .body[hidden] { display: none; }
+.side .warnings { border-color: #c0392b; background: #fdf2f1; }
+.side .warnings h3 { font-size: 12px; margin: 2px 0 4px; color: #a03024; text-transform: uppercase; letter-spacing: 0.04em; }
+.side .warnings ul { list-style: none; margin: 0; padding: 0; }
+.side .warning { display: block; width: 100%; text-align: left; font: inherit; color: #7a1f16; background: none; border: none; border-radius: 4px; padding: 3px 4px; cursor: pointer; }
+.side .warning:hover { background: #f8dcd8; }
+.side .clear, .control .hold { font: inherit; color: #333333; background: #f6f5f2; border: 1px solid #c9c7c2; border-radius: 6px; padding: 3px 9px; cursor: pointer; margin-top: 4px; }
+.control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 8px; margin: 4px 0; }
+.control .name { color: #444444; }
+.control .value { font-variant-numeric: tabular-nums; color: #1f5fbf; text-align: right; }
+.control input[type="range"] { grid-column: 1 / -1; width: 100%; margin: 2px 0; accent-color: #1f5fbf; touch-action: pan-y; }
+.control .buttons { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.control .hold { margin: 0; touch-action: none; }
+.control .hold[aria-pressed="true"] { color: #ffffff; background: #444444; border-color: #444444; }
+.info .adjust { margin-top: 4px; }
+.info .stress { color: #a03024; font-weight: bold; }
+/* Limits: a box around the part (layer marks), opacity in a few steps: cheap to redraw. */
+.marks { pointer-events: none; }
+.marks > * { display: none; }
+@keyframes stress-pulse { from { opacity: 1; } to { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .marks > * { animation: none !important; } }`;
