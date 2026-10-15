@@ -43,6 +43,15 @@ function profileFor(shape, R, L) {
   ];
 }
 
+// Where current flows (see src/sim/paths.js): up each lead, into the body at its end, to the
+// middle of the body.
+function axialPaths(a, b, zc, start, end, centre) {
+  return [
+    { points: [withZ(a, 0), withZ(a, zc), start, centre], body: 2 },
+    { points: [withZ(b, 0), withZ(b, zc), end, centre], body: 2 },
+  ];
+}
+
 // Cement resistor: the resistance wire sits in a ceramic box filled with cement, which takes
 // the heat away. It lies on the board; its print reads along the top.
 function cement(a, b, { bodyLength: L, bodyDiameter: W, bodyHeight: H = W, color, print, standoff = 0.5 }) {
@@ -58,7 +67,7 @@ function cement(a, b, { bodyLength: L, bodyDiameter: W, bodyHeight: H = W, color
   const end = add(centre, scale(dir, L / 2));
   const leads = [...lead([withZ(a, 0), withZ(a, zc), start], { radius: 0.4 }), ...lead([withZ(b, 0), withZ(b, zc), end], { radius: 0.4 })];
   // The label's leader lands near one end of the top, not on the print.
-  return { primitives: [body, ...leads], body: [body], anchor: add(withZ(centre, standoff + H), scale(dir, L * 0.42)), span: distance(a, b) };
+  return { primitives: [body, ...leads], body: [body], anchor: add(withZ(centre, standoff + H), scale(dir, L * 0.42)), span: distance(a, b), paths: axialPaths(a, b, zc, start, end, centre) };
 }
 
 export default {
@@ -89,6 +98,6 @@ export default {
     });
 
     const leads = [...lead([withZ(a, 0), withZ(a, zc), start]), ...lead([withZ(b, 0), withZ(b, zc), end])];
-    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, zc + R), span: distance(a, b) };
+    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, zc + R), span: distance(a, b), paths: axialPaths(a, b, zc, start, end, centre) };
   },
 };

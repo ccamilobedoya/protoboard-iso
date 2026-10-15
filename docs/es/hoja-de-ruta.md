@@ -123,16 +123,20 @@ calma en todo lo demás, para que los componentes resalten.
 - ⬜ **Qué tapa a qué, planeado en conjunto** (para hacerlo bien más adelante, no a parches caso por caso): en una página con foco, las etiquetas de la simulación (voltajes, corrientes, el sello MODELO) pueden tapar los números de columna resaltados, las posiciones de los agujeros y las patas de las que hablan. Decidir una prioridad entre capas (copia del componente, tiras, etiquetas de coordenadas, de resultados, rótulos, puntas de prueba), ubicar cada etiqueta al lado de lo que taparía (evitando choques, como ya se evitan los rótulos entre sí) y revisarlo con `inspect` como el resto del dibujo
 - ⬜ Tema oscuro para pantallas
 
-## Etapa 3 — Animación en el navegador ⬜
+## Etapa 3 — Simulación en vivo en el navegador 🔜
 
-Objetivo: ver el circuito funcionar.
+Objetivo: ver el circuito funcionar, como en CircuitJS de Falstad, sobre la protoboard. Diseño,
+decisiones y plan por sesiones: [simulacion-en-vivo.md](simulacion-en-vivo.md).
 
-- ⬜ Módulo de navegador que dibuja la misma escena en un SVG vivo (o canvas) en cada cuadro
-- ✅ Capa de corriente (`page.flow`): todo atenuado, tiras visibles, puntos por las tiras y a través de los componentes, velocidad según la corriente (escala logarítmica), electrones de − a + o corriente convencional; Kirchhoff en cada tira
-- ⬜ Puntos por el camino real de patas y cables (hoy: líneas rectas a la altura de la protoboard)
-- ⬜ Voltaje como color en tiras y patas, con una escala fija
-- ⬜ Brillo del LED según su corriente; tinte de calor según la potencia
-- ⬜ Controles deslizantes para valores y voltaje de la fuente, que vuelven a resolver al instante
+- ✅ Capa de corriente (`page.flow`), primera versión: todo atenuado, tiras visibles, puntos por las tiras y a través de los componentes, Kirchhoff en cada tira
+- ✅ Fase 0: prueba *golden* de la salida del simulador (red de seguridad para las reorganizaciones): `scripts/golden.js`, `test/golden.test.js`
+- ✅ Fase 1: vista de conductores: conductores por su camino real (`paths` en los paquetes: axial, LED, cable, TO-92, TO-220, pulsador, batería), con color según el voltaje; solo corriente convencional (sin vista de electrones); velocidad proporcional a la corriente con botón logarítmico; maquetas (`scripts/mockups.js`); paleta de los rieles escogida, degradado empinado dentro de los cuerpos
+- ⬜ Fase 2: módulos de dispositivo, un archivo por tipo de componente (elementos, lectura, esfuerzos, líneas de la ficha, controles)
+- ⬜ Fase 3: programa compilado + motor sin dependencias; un agrupador pequeño; el script de la página en módulos
+- ⬜ Fase 4: simulación en vivo en la página: vista de conductores, voltaje como color, puntos movidos por el script, brillo del LED, tinte de calor, reproducir / pausar / reiniciar / velocidad, etiquetas en vivo
+- ⬜ Fase 5: deslizadores en la ficha y panel `page.controls`, pulsador momentáneo; límites a la vista (niveles de esfuerzo, marca «se excedió», panel de avisos)
+- ⬜ Fase 6: comparar algunos circuitos con CircuitJS de Falstad (el ítem de la etapa 2)
+- ⬜ Fase 7: osciloscopio (V e I contra el tiempo del componente tocado)
 
 ## Etapa 4 — En el celular o la tableta ⬜
 

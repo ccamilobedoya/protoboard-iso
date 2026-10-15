@@ -62,22 +62,35 @@ Two kinds of text, on purpose:
                    "es": "Transistor NPN: la corriente pequeña de la base controla la grande del colector." } }
 ```
 
-## The current layer
+## The current layer: the conductor view
 
-`"page": { "flow": true }` (needs `supplies`) adds two buttons, *Parts* and *Current*. In
-*Current*, everything is dimmed, the strips in use appear, and **dots move** along the strips
-and through every part:
+`"page": { "flow": true }` (needs `supplies` or a battery part) adds the buttons *Parts* and
+*Current*. In *Current* the board and the parts are veiled, and **every conductor in use is drawn
+as one thick line** along its real path: the metal strip between the holes in use, up a lead,
+through the body, down the other lead, along the arc of a jumper wire. On top, **dots move**:
 
-- **Speed** grows with the current, on a logarithmic scale (a microampere crawls, an ampere
-  races); below 1 µA nothing moves.
-- **Direction**: electrons by default (from − to +); *Conventional current* reverses them.
+- **Colour = voltage** (from ground), on a scale that ends at the largest voltage in the circuit:
+  grey at 0 V, red towards +, blue towards − (the colours of the rails). Inside a body the colour
+  goes from one lead's voltage to the other's along a steep S curve, so the drop shows in the
+  middle of the part that causes it. A floating conductor is pale.
+- **Direction**: conventional current, from + to −, as in Falstad's CircuitJS.
+- **Speed is proportional** to the current: the largest current in the circuit moves at
+  60 px/s, half of it at half that speed, so ratios and Kirchhoff can be seen. *Log speed*
+  switches to a logarithmic scale (a microampere crawls, an ampere races) for circuits with very
+  different currents. Below 1 µA nothing moves.
 - The current in each piece of a strip comes from Kirchhoff's current law: walking along the
   strip, it is the sum of what entered at the holes behind.
 - Focus works on top: tap a part to bring it forward while the dots keep moving.
 - With "reduce motion" set in the device, the dots stay still.
 
+Paths come from the packages (`paths` in `build()`, see [adding-parts.md](adding-parts.md));
+a package without them gets straight lines from each hole to the middle of its holes, at board level.
+
 Static images can show the layer too (`render --flow`, MCP `flow: true`): the dots are drawn but
 do not move.
+
+Stage 3 turns this into a live simulation in the page (time, sliders, limits made visible):
+[live-simulation.md](live-simulation.md).
 
 Like the results, the current layer is a **model** and is only in the page when the circuit
 asks: it shows which parts conduct, which can give away an answer someone is asked to predict.

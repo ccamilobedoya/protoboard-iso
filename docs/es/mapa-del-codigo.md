@@ -59,7 +59,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `sim/index.js` | fuentes y baterías, componentes → elementos, grupos flotantes, DC y transitorio, lecturas, avisos |
 | `sim/format.js` | resultados como texto; `partLines` para la ficha (cada una con su clave de explicación) |
 | `sim/overlay.js` | etiquetas de resultados (corriente por componente, voltaje por grupo) con `data-q` y `data-probe` |
-| `sim/flow.js` | corriente por las tiras (Kirchhoff) y por los componentes; puntos en movimiento |
+| `sim/paths.js` | vista de conductores: caminos de la corriente por componente (`paths` del paquete o una recta de respaldo), corriente de las tiras (Kirchhoff), colores de voltaje, puntos de corriente convencional |
 | `sim/probes.js` | «de dónde sale un valor»: puntas para voltajes, flechas para corrientes |
 | `page.js`, `page/script.js`, `page/style.js` | la página para embeber |
 | `i18n/` | todas las frases; `pickLanguage` decide el idioma |

@@ -62,24 +62,39 @@ Dos clases de texto, a propósito:
                    "es": "Transistor NPN: la corriente pequeña de la base controla la grande del colector." } }
 ```
 
-## La capa de corriente
+## La capa de corriente: la vista de conductores
 
-`"page": { "flow": true }` (necesita `supplies`) agrega dos botones, *Componentes* y
-*Corriente*. En *Corriente* todo se atenúa, aparecen las tiras en uso y **unos puntos se
-mueven** por las tiras y a través de cada componente:
+`"page": { "flow": true }` (necesita `supplies` o una batería) agrega los botones *Componentes* y
+*Corriente*. En *Corriente* la protoboard y los componentes quedan velados y **cada conductor en
+uso se dibuja como una línea gruesa** por su camino real: la tira metálica entre los agujeros en
+uso, sube por una pata, atraviesa el cuerpo, baja por la otra pata, sigue el arco de un cable.
+Encima, **unos puntos se mueven**:
 
-- **La velocidad** crece con la corriente, en escala logarítmica (un microamperio se arrastra, un
-  amperio corre); por debajo de 1 µA nada se mueve.
-- **El sentido**: el de los electrones por defecto (de − a +); *Corriente convencional* los
-  invierte.
+- **Color = voltaje (tensión)**, medido desde tierra, en una escala que termina en el voltaje
+  mayor del circuito: gris en 0 V, rojo hacia +, azul hacia − (los colores de los rieles). Dentro de
+  un cuerpo el color pasa del voltaje de una pata al de la otra en una curva en S empinada, así la
+  caída se ve en el centro del componente que la produce. Un
+  conductor flotante queda pálido.
+- **El sentido**: corriente convencional, de + a −, como en CircuitJS de Falstad.
+- **La velocidad es proporcional** a la corriente: la corriente mayor del circuito va a 60 px/s y
+  la mitad, a la mitad, así se ven las proporciones y Kirchhoff. *Velocidad logarítmica* cambia a
+  escala logarítmica (un microamperio se arrastra, un amperio corre) para circuitos con corrientes
+  muy distintas. Por debajo de 1 µA nada se mueve.
 - La corriente en cada tramo de una tira sale de la ley de corrientes de Kirchhoff: recorriendo la
   tira, es la suma de lo que entró por los agujeros de atrás.
 - El foco funciona encima: toca un componente para traerlo al frente mientras los puntos siguen
   moviéndose.
 - Si el dispositivo tiene activado «reducir movimiento», los puntos se quedan quietos.
 
+Los caminos salen de los paquetes (`paths` en `build()`, ver
+[agregar-componentes.md](agregar-componentes.md)); un paquete sin ellos usa rectas desde cada
+agujero hasta el centro de sus agujeros, a ras de la protoboard.
+
 Las imágenes estáticas también pueden mostrar la capa (`render --flow`, MCP `flow: true`): los
 puntos se dibujan pero no se mueven.
+
+La etapa 3 convierte esto en una simulación en vivo en la página (tiempo, deslizadores, límites a
+la vista): [simulacion-en-vivo.md](simulacion-en-vivo.md).
 
 Como los resultados, la capa de corriente es un **modelo** y solo está en la página cuando el
 circuito lo pide: muestra qué componentes conducen, y eso puede adelantar una respuesta que

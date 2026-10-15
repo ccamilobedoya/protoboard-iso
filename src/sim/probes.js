@@ -10,7 +10,7 @@
 
 import { stripOps, stripHoles } from '../render/focus.js';
 import { anchorHole } from './overlay.js';
-import { MIN_CURRENT } from './flow.js';
+import { MIN_CURRENT } from './paths.js';
 
 const RED = '#d63a3a';
 const BLACK = '#26292d';

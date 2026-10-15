@@ -41,7 +41,9 @@ MCP tool that no longer exists.
    request; tick items when they are done.
 2. `PLANNING.md`: architecture, considerations, best practices, decision log. Do not
    reopen a logged decision without a new reason; add new decisions to the log.
-3. `docs/en/architecture.md` when touching geometry or rendering;
+3. `docs/en/live-simulation.md` when working on stage 3 (live simulation in the page): design,
+   decisions and the plan by phases and sessions.
+4. `docs/en/architecture.md` when touching geometry or rendering;
    `docs/en/adding-parts.md` when adding a part, package or board.
 
 ## Commands
@@ -64,6 +66,8 @@ node bin/protoboard-iso.js suggest <target> --part '<json>' --between <node>,<no
 node bin/protoboard-iso.js review <target> [--profile lesson|draft]   # APPROVED or CHANGES
 npm run schemas               # after changing types, boards, views or operations
 npm run test:mcp              # MCP server end-to-end (needs: cd mcp && npm install)
+node scripts/golden.js [--write]  # simulator output against test/fixtures/sim-golden.json (--write after an intended change)
+node scripts/mockups.js [--lang es]  # conductor view mock-ups → examples/out/mockups/
 node bin/protoboard-iso.js check <file.json> [--lang es]
 node bin/protoboard-iso.js render <file.json> -o out.svg [--view back] [--fit parts]
 ```

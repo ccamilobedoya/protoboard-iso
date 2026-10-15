@@ -49,6 +49,10 @@ function opToSvg(op, tagParts = false) {
       const stroke = op.stroke ? ` stroke="${op.stroke}" stroke-width="${op.strokeWidth}"` : '';
       return `<circle cx="${fmt(op.cx)}" cy="${fmt(op.cy)}" r="${fmt(op.r)}" fill="${op.fill}"${stroke}${more}/>`;
     }
+    case 'path': {
+      const dash = op.dash ? ` stroke-dasharray="${op.dash}"` : '';
+      return `<path d="${op.d}" fill="none" stroke="${op.stroke}" stroke-width="${op.strokeWidth}" stroke-linecap="round" stroke-linejoin="round"${dash}${more}/>`;
+    }
     case 'rect': {
       const dash = op.dash ? ` stroke-dasharray="${op.dash}"` : '';
       const opacity = op.fillOpacity !== undefined ? ` fill-opacity="${op.fillOpacity}"` : '';

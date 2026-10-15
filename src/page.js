@@ -5,7 +5,7 @@
 // move and wheel or pinch to zoom. Tap a part: everything else dims, the part and the strips
 // under its leads show on top (even behind other parts) and a card tells what it is and what
 // it connects to. Optional, when the circuit asks (`page`): simulation results for the tapped
-// part, and a current layer with moving dots. Later stages grow this same page, so an embed
+// part, and the conductor view: conductors coloured by voltage, dots for conventional current. Later stages grow this same page, so an embed
 // made today keeps working and gets the new features without changing its link.
 //
 //   renderPage(circuit, { lang, views, fit }) → { html, issues }   (html is null if nothing can be drawn)
@@ -199,7 +199,7 @@ export function renderPage(circuit, options = {}) {
     `<span class="group">${button('fit', 'parts', t(lang, 'page.fit.parts'))}${button('fit', 'board', t(lang, 'page.fit.board'))}</span>`,
     `<span class="group">${button('labels', null, t(lang, 'page.labels'))}</span>`,
     flow ? `<span class="group">${button('layer', 'parts', t(lang, 'page.layer.parts'))}${button('layer', 'flow', t(lang, 'page.layer.flow'))}</span>` : '',
-    flow ? `<span class="group">${button('direction', 'electrons', t(lang, 'page.direction.electrons'))}${button('direction', 'conventional', t(lang, 'page.direction.conventional'))}</span>` : '',
+    flow ? `<span class="group">${button('speed', 'linear', t(lang, 'page.speed.linear'))}${button('speed', 'log', t(lang, 'page.speed.log'))}</span>` : '',
     `<span class="hint hint-default">${escapeXml(t(lang, 'page.hint'))}</span>`,
     results ? `<span class="hint hint-results">${escapeXml(t(lang, 'page.hint.results'))}</span>` : '',
     `<span class="revision">${escapeXml(t(lang, 'page.revision', { revision: circuit.revision ?? 0 }))}</span>`,

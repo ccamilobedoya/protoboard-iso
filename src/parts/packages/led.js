@@ -49,10 +49,15 @@ export default {
     const flange = prism({ profile: flangeProfile, origin: base, u: dir, height: 1.0 * k, color, opacity: 0.95 });
     const footA = add(base, scale(dir, -1.27 * k));
     const footK = add(base, scale(dir, 1.27 * k));
-    const leads = [
-      ...lead([withZ(anode, 0), withZ(anode, 0.8), add(withZ(anode, Math.min(1.8, standoff * 0.6)), scale(dir, -0.9)), footA], { radius: 0.25 }),
-      ...lead([withZ(cathode, 0), withZ(cathode, 1.2), footK], { radius: 0.25 }),
+    const anodeLead = [withZ(anode, 0), withZ(anode, 0.8), add(withZ(anode, Math.min(1.8, standoff * 0.6)), scale(dir, -0.9)), footA];
+    const cathodeLead = [withZ(cathode, 0), withZ(cathode, 1.2), footK];
+    const leads = [...lead(anodeLead, { radius: 0.25 }), ...lead(cathodeLead, { radius: 0.25 })];
+    // Current goes up the leads and meets at the chip, low in the dome (src/sim/paths.js).
+    const chip = withZ(base, standoff + 3 * k);
+    const paths = [
+      { points: [...anodeLead, chip], body: anodeLead.length - 1 },
+      { points: [...cathodeLead, chip], body: cathodeLead.length - 1 },
     ];
-    return { primitives: [flange, body, ...leads], body: [flange, body], anchor: withZ(base, standoff + 8.1 * k) };
+    return { primitives: [flange, body, ...leads], body: [flange, body], anchor: withZ(base, standoff + 8.1 * k), paths };
   },
 };

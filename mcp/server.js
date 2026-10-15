@@ -371,7 +371,7 @@ server.registerTool(
       png_width: z.number().int().min(200).max(2000).optional(),
       page: z.boolean().optional().describe('Also rewrite the embeddable page out/<name>.html'),
       focus: z.array(z.string()).optional().describe('Dim everything except these parts (ids) and the strips under their leads; they show even where something covers them.'),
-      flow: z.boolean().optional().describe('Current flow as dots along strips and parts (still in the SVG, moving in the page). Needs supplies or a battery part.'),
+      flow: z.boolean().optional().describe('Conductor view: conductors coloured by voltage, dots of conventional current (+ to −) along strips, leads and wires (still in the SVG, moving in the page). Needs supplies or a battery part.'),
       sim: z.boolean().optional().describe('Draw the DC simulation results (voltages per group, currents per part, labelled MODEL). Needs supplies or a battery part. Never for values a learner must predict.'),
       lang: common.lang,
     },

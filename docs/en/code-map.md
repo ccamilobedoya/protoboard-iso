@@ -59,7 +59,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `sim/index.js` | supplies and battery parts, parts → elements, floating groups, DC and transient, readings, warnings |
 | `sim/format.js` | results as text; `partLines` for the card (each with an explanation key) |
 | `sim/overlay.js` | result tags (current per part, voltage per group) with `data-q` and `data-probe` |
-| `sim/flow.js` | current along strips (Kirchhoff) and through parts; moving dots |
+| `sim/paths.js` | conductor view: current paths per part (package `paths` or a straight fallback), strip currents (Kirchhoff), voltage colours, dots of conventional current |
 | `sim/probes.js` | "where a value comes from": probes for voltages, arrows for currents |
 | `page.js`, `page/script.js`, `page/style.js` | the embeddable page |
 | `i18n/` | every sentence; `pickLanguage` decides the language |

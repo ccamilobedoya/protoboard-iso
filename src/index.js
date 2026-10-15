@@ -30,7 +30,7 @@ import { PART_NUMBERS } from './parts/db.js';
 import { resistorBands } from './parts/types/resistor.js';
 import { simulate } from './sim/index.js';
 import { resultsOverlay } from './sim/overlay.js';
-import { flowOps } from './sim/flow.js';
+import { flowOps } from './sim/paths.js';
 import { probeOps } from './sim/probes.js';
 import { focusLayers, veilOps, stripOps, coordOps, nodesOf } from './render/focus.js';
 
@@ -125,7 +125,8 @@ function sceneFor(circuit, options = {}) {
 
 // Optional layers, always in this order: veil, strips, coords, spotlight, flow, results, probes.
 //   focus: ['R1']   dim everything but these parts and their strips (static images)
-//   flow: true      current flow (moving dots in a page; still dots in a static image)
+//   flow: true      conductor view: conductors coloured by voltage, dots for conventional
+//                   current (moving in a page, still in a static image)
 //   sim: true       simulation results, labelled as a model
 //   interactive     a page: every part tagged and copied, every strip ready, shown by CSS
 function addLayers(scene, built, circuit, options, lang) {
@@ -142,10 +143,8 @@ function addLayers(scene, built, circuit, options, lang) {
     Object.assign(extra, focusLayers(scene, built, options.focus));
   }
   if (options.flow) {
-    if (!options.interactive) {
-      extra.veil = veilOps(scene.frame);
-      extra.strips = stripOps(scene, built.board, [...usedNodes(built, circuit)]);
-    }
+    // The conductor view draws the strips in use itself, coloured: no grey strips under them.
+    if (!options.interactive) extra.veil = veilOps(scene.frame);
     extra.flow = flowOps(scene, built, sim, circuit);
   }
   if (options.sim) {

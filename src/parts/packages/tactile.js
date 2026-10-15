@@ -52,13 +52,17 @@ export default {
 
     // Legs come out of the sides facing the channel and bend down into the holes.
     const across = normalize(withZ(sub(pins[1], pins[0]), 0));
-    const leads = pins.flatMap((p) => {
+    const legs = pins.map((p) => {
       const rel = sub(withZ(p, 0), withZ(centre, 0));
       const side = Math.sign(dot(rel, across)) * (BODY / 2);
       const edge = add(withZ(p, 1.2), scale(across, side - dot(rel, across)));
-      return lead([withZ(p, 0), withZ(p, 1.2), edge], { radius: 0.3, color: MATERIALS.tinned });
+      return [withZ(p, 0), withZ(p, 1.2), edge];
     });
-    return { primitives: [base, plate, cap, ...leads], body: [base, plate, cap], anchor: withZ(centre, height) };
+    const leads = legs.flatMap((leg) => lead(leg, { radius: 0.3, color: MATERIALS.tinned }));
+    // Current goes up each leg and meets inside the base, where the contacts are (src/sim/paths.js).
+    const inside = withZ(centre, 0.3 + BASE / 2);
+    const paths = legs.map((leg) => ({ points: [...leg, inside], body: leg.length - 1 }));
+    return { primitives: [base, plate, cap, ...leads], body: [base, plate, cap], anchor: withZ(centre, height), paths };
   },
 };
 

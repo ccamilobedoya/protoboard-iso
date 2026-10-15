@@ -42,6 +42,9 @@ export default {
     }
 
     const leads = pins.flatMap((p) => lead([withZ(p, 0), withZ(p, z0)], { radius: 0.4, color: MATERIALS.tinned }));
-    return { primitives: [plastic, tabLow, tab, ...leads], body: [plastic, tabLow, tab], anchor: withZ(centre, z0 + 15.6) };
+    // Current goes up each lead into the middle of the plastic (src/sim/paths.js).
+    const inside = withZ(centre, z0 + 4.6);
+    const paths = pins.map((p) => ({ points: [withZ(p, 0), withZ(p, z0), inside], body: 1 }));
+    return { primitives: [plastic, tabLow, tab, ...leads], body: [plastic, tabLow, tab], anchor: withZ(centre, z0 + 15.6), paths };
   },
 };

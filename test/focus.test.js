@@ -8,7 +8,7 @@ import { renderCircuit } from '../src/index.js';
 import { renderPage } from '../src/page.js';
 import { buildCircuit } from '../src/circuit/build.js';
 import { simulate } from '../src/sim/index.js';
-import { flowSegments, dotSpeed } from '../src/sim/flow.js';
+import { conductorPieces, partPaths, dotSpeed, voltageColor, bodyShare, VOLTAGE_COLORS } from '../src/sim/paths.js';
 
 const example = (name) => JSON.parse(readFileSync(new URL(`../examples/${name}`, import.meta.url), 'utf8'));
 const layer = (svg, name) => svg.match(new RegExp(`<g class="${name}">([\\s\\S]*?)</g>`))?.[1] ?? null;
@@ -48,41 +48,83 @@ test('static focus: a veil, the chosen parts on top, and only their strips', () 
   assert.doesNotMatch(renderCircuit(switchCircuit(), {}).svg, /class="(veil|strips|spotlight|coords)"/, 'nothing without focus');
 });
 
-test('current flow obeys Kirchhoff along every strip and goes from − to + as electrons', () => {
+test('current flow obeys Kirchhoff along every strip and runs + to − (conventional)', () => {
   const circuit = switchCircuit();
   const built = buildCircuit(circuit);
   const sim = simulate(circuit);
-  const segments = flowSegments(built, sim, circuit);
+  const { dots } = conductorPieces(built, sim, circuit);
   // Every part: the currents at its pins add up to zero.
   for (const [id, r] of Object.entries(sim.parts)) {
     const sum = Object.values(r.pinCurrents).reduce((a, b) => a + b, 0);
     assert.ok(Math.abs(sum) < 1e-9, `${id}: pin currents add to zero`);
   }
   // The + rail carries the whole supply current from the clip (first hole) to the first lead.
-  const rail = segments.filter((s) => s.node === 'T+');
+  const rail = dots.filter((s) => s.node === 'T+');
   assert.ok(Math.abs(rail[0].current - sim.supplies.V1.current) < 1e-9);
   // In the LED strip the current goes from R2 (row h) to the LED anode (row g).
-  const anode = segments.filter((s) => s.node === '24:f-j');
+  const anode = dots.filter((s) => s.node === '24:f-j');
   assert.equal(anode.length, 1);
   const [seg] = anode;
-  const forward = seg.current > 0 ? seg.from : seg.to; // where the conventional current starts
+  const forward = seg.current > 0 ? seg.points[0] : seg.points.at(-1); // where the conventional current starts
   assert.ok(Math.abs(Math.abs(seg.current) - sim.parts.D1.current) < 1e-9);
-  assert.deepEqual(forward, built.board.find('h24').pos, 'from R2 towards the anode');
-  // Drawn as electrons: the dots run against the conventional current (d → c).
+  assert.deepEqual([forward.x, forward.y], [built.board.find('h24').pos.x, built.board.find('h24').pos.y], 'from R2 towards the anode');
+  // Through the LED: in at the anode (positive into the part), out at the cathode.
+  const led = dots.filter((d) => d.part === 'D1');
+  assert.equal(led.length, 2);
+  assert.ok(led[0].current > 0 && led[1].current < 0);
+  // Drawn: coloured conductors, then dots whose path starts where the current comes from.
   const { svg } = renderCircuit(circuit, { flow: true });
   const flow = layer(svg, 'flow');
-  assert.match(flow, /class="electrons"/);
-  assert.match(flow, /style="animation-duration:[\d.]+s"/);
-  assert.ok(dotSpeed(0.01) > dotSpeed(0.0001) && dotSpeed(1e-7) === 0, 'faster with more current, still below 1 µA');
+  assert.match(flow, /<path d="M[^"]+" fill="none" stroke="#[0-9a-f]{6}"[^>]*class="conductor"/);
+  assert.match(flow, /class="dots"[^>]*style="--lin:[\d.]+s;--log:[\d.]+s"/);
+  assert.doesNotMatch(flow, /electrons|NaN/);
+  // Proportional speed: half the current, half the speed; the log scale still exists.
+  assert.equal(dotSpeed(0.005, 0.01), dotSpeed(0.01, 0.01) / 2);
+  assert.ok(dotSpeed(0.01, 0.01, 'log') > dotSpeed(0.0001, 0.01, 'log') && dotSpeed(1e-7, 0.01) === 0, 'still below 1 µA');
+});
+
+test('paths follow the real leads: from each hole at board level to a point inside the part', () => {
+  const built = buildCircuit(switchCircuit());
+  for (const part of built.parts) {
+    const paths = partPaths(part);
+    assert.equal(paths.length, part.holes.length, part.id);
+    const end = paths[0].points.at(-1);
+    paths.forEach((p, k) => {
+      assert.deepEqual([p.points[0].x, p.points[0].y, p.points[0].z], [part.holes[k].pos.x, part.holes[k].pos.y, 0], `${part.id} ${p.pin} starts in its hole`);
+      assert.deepEqual(p.points.at(-1), end, `${part.id}: all pins meet at one point`);
+      assert.ok(p.body >= 1 && p.body < p.points.length, `${part.id}: body index`);
+      for (const q of p.points) assert.ok([q.x, q.y, q.z].every(Number.isFinite));
+    });
+  }
+  // Leads and wires rise above the board; the LED path ends inside its dome.
+  const [r1] = partPaths(built.parts.find((p) => p.id === 'R1'));
+  assert.ok(r1.points[1].z > 0);
+  const w = partPaths(built.parts.find((p) => p.id === 'W3'));
+  assert.ok(w[0].points.at(-1).z > 3, 'the middle of the jumper arc');
+  // A battery part: from the hole, along its cable, into the battery.
+  const battery = buildCircuit(example('battery-regulator.json')).parts.find((p) => p.type === 'battery');
+  const bp = partPaths(battery);
+  assert.ok(bp[0].points.length > 5 && bp[0].points.at(-1).x < bp[0].points[0].x - 10, 'inside the battery, beside the board (left)');
+});
+
+test('voltage colours: grey at 0 V, red towards +, blue towards −; floating is pale; steep inside bodies', () => {
+  assert.equal(voltageColor(0, 5), VOLTAGE_COLORS.zero);
+  assert.equal(voltageColor(5, 5), VOLTAGE_COLORS.positive);
+  assert.equal(voltageColor(-9, 5), VOLTAGE_COLORS.negative);
+  assert.notEqual(voltageColor(null, 5), voltageColor(0, 5));
+  // Inside a body the change is gathered in the middle: little near the lead, all of it at the middle.
+  assert.ok(Math.abs(bodyShare(0)) < 1e-12 && Math.abs(bodyShare(1) - 1) < 1e-12);
+  assert.ok(bodyShare(0.25) < 0.05 && bodyShare(0.75) > 0.25, 'steeper than a straight line towards the middle');
 });
 
 test('no flow without a simulation, and nothing moves in a released switch branch', () => {
   const { supplies, ...bare } = switchCircuit();
-  assert.deepEqual(flowSegments(buildCircuit(bare), simulate(bare), bare), []);
+  assert.deepEqual(conductorPieces(buildCircuit(bare), simulate(bare), bare).dots, []);
   const released = switchCircuit();
   released.parts[0].pressed = false;
-  const segments = flowSegments(buildCircuit(released), simulate(released), released);
-  assert.ok(!segments.some((s) => s.part === 'D1' || s.part === 'R1'), 'LED and base resistor carry no current');
+  const { dots, wires } = conductorPieces(buildCircuit(released), simulate(released), released);
+  assert.ok(!dots.some((s) => s.part === 'D1' || s.part === 'R1'), 'LED and base resistor carry no current');
+  assert.ok(wires.some((s) => s.part === 'D1'), 'but their conductors are still drawn');
 });
 
 async function loadPage(html) {
@@ -148,7 +190,7 @@ test('page: tapping a part focuses it and opens its card; tapping the board clea
   assert.equal(front.querySelector('.spotlight').children.length, 0);
 });
 
-test('page: the current layer and its direction, only when the circuit asks', async (t) => {
+test('page: the current layer and its speed scale, only when the circuit asks', async (t) => {
   const plain = renderPage(switchCircuit(), { lang: 'es' }).html;
   assert.doesNotMatch(plain, /data-value="flow"|class="flow"/);
   const html = renderPage({ ...switchCircuit(), page: { flow: true, focus: ['D1'] } }, { lang: 'es' }).html;
@@ -161,8 +203,11 @@ test('page: the current layer and its direction, only when the circuit asks', as
   assert.equal(doc.querySelector('.info h2').textContent, 'D1 · verde');
   click('layer', 'flow');
   assert.ok(doc.body.classList.contains('layer-flow'));
-  click('direction', 'conventional');
-  assert.ok(doc.body.classList.contains('conventional'));
+  assert.equal([...doc.querySelectorAll('nav button')].filter((b) => b.dataset.key === 'direction').length, 0, 'conventional current only');
+  click('speed', 'log');
+  assert.ok(doc.body.classList.contains('speed-log'));
+  click('speed', 'linear');
+  assert.ok(!doc.body.classList.contains('speed-log'));
   click('layer', 'parts');
   assert.ok(!doc.body.classList.contains('layer-flow'));
 });

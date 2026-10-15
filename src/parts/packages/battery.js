@@ -87,8 +87,11 @@ function cable(exit, hole, u, color, gap) {
   const span = distance(withZ(edge, 0), withZ(hole, 0));
   const h = Math.min(14, 3 + span * 0.25);
   const arc = bezier(edge, add(edge, add(scale(u, Math.min(span * 0.3, 8)), scale(Z, h))), withZ(hole, TIP + h), top, Math.max(8, Math.min(24, Math.round(span / 4))));
-  const insulation = tube({ points: [exit, ...rise, ...arc.slice(1)], radius: 0.6, color, segments: 8, caps: 'ends' });
-  return [...insulation, ...lead([withZ(hole, 0), top], { radius: 0.3, color: MATERIALS.tinned })];
+  const line = [exit, ...rise, ...arc.slice(1)];
+  const insulation = tube({ points: line, radius: 0.6, color, segments: 8, caps: 'ends' });
+  // The way current goes, from the hole back to the battery (src/sim/paths.js).
+  const path = [withZ(hole, 0), ...line.slice().reverse()];
+  return { primitives: [...insulation, ...lead([withZ(hole, 0), top], { radius: 0.3, color: MATERIALS.tinned })], path };
 }
 
 // The holder and its cells are cut in slices across their length (about 10 mm each): the
@@ -219,7 +222,11 @@ export default {
       [a, b] = [mid + 1.5, mid - 1.5];
     }
     const exit = (k) => add(face, scale(v, k));
-    const leads = [...cable(exit(a), plus, u, WIRE_COLORS.red, gap), ...cable(exit(b), minus, u, WIRE_COLORS.black, gap)];
-    return { primitives: [...prims, ...leads], body: prims, anchor: withZ(centre, centre.z + dims[2]) };
+    const red = cable(exit(a), plus, u, WIRE_COLORS.red, gap);
+    const black = cable(exit(b), minus, u, WIRE_COLORS.black, gap);
+    // Inside, current goes through the cells: both leads meet in the middle of the battery.
+    const inside = withZ(centre, centre.z + dims[2] / 2);
+    const paths = [red.path, black.path].map((path) => ({ points: [...path, inside], body: path.length - 1 }));
+    return { primitives: [...prims, ...red.primitives, ...black.primitives], body: prims, anchor: withZ(centre, centre.z + dims[2]), paths };
   },
 };

@@ -54,6 +54,7 @@ export default {
       primitives: [...],   // everything to draw
       body: [...],         // the subset used for collision checks
       anchor,              // where the label points (top of the part)
+      paths,               // optional: where current flows, one per pin (conductor view)
     };
   },
 };
@@ -68,6 +69,11 @@ Guidelines:
   `prism` / `box` for anything extruded, `tube` for leads (`lead()` in `common.js`),
   decals for marks and print.
 - **Colours** come from `src/parts/colors.js`. Add new materials there.
+- **Current paths** (`paths`, optional): per pin, `{ points, body }`, a 3D polyline from the hole
+  (z = 0) up the lead to one point inside the part shared by every pin; `body` is the index of the
+  point where the lead enters the body. The conductor view draws current along them
+  (`src/sim/paths.js`); without them it uses straight lines at board level. Reuse the points you
+  already built the leads from.
 - **Keep primitives convex.** If two pieces of one part sort wrongly, split them.
 - Register the package in `src/parts/packages/index.js`, add it to
   `examples/parts-showcase.json`, render both views and look at them.

@@ -56,6 +56,7 @@ export default {
       primitives: [...],   // todo lo que se dibuja
       body: [...],         // lo que cuenta para detectar choques
       anchor,              // adónde apunta la etiqueta (arriba del componente)
+      paths,               // opcional: por dónde pasa la corriente, uno por pata (vista de conductores)
     };
   },
 };
@@ -70,6 +71,11 @@ Pautas:
   redondo, `prism` / `box` para lo extruido, `tube` para las patas (`lead()` en
   `common.js`), calcomanías para marcas e impresión.
 - **Los colores** salen de `src/parts/colors.js`. Los materiales nuevos van ahí.
+- **Caminos de la corriente** (`paths`, opcional): por pata, `{ points, body }`, una polilínea 3D
+  desde el agujero (z = 0) que sube por la pata hasta un punto dentro del componente, común a todas
+  las patas; `body` es el índice del punto donde la pata entra al cuerpo. La vista de conductores
+  dibuja la corriente por ahí (`src/sim/paths.js`); sin ellos usa rectas a ras de la protoboard.
+  Reutiliza los puntos con los que ya armaste las patas.
 - **Primitivas convexas.** Si dos piezas de un componente se pintan en mal orden, pártelas.
 - Registra el encapsulado en `src/parts/packages/index.js`, agrégalo a
   `examples/parts-showcase.json`, dibuja las dos vistas y míralas.

@@ -42,6 +42,9 @@ export default {
       body.decals.push(textDecal({ text: marking, at, right: dir, down: scale(Z, -1), size: 0.7, color: MATERIALS.print, weight: 700 }));
     }
     const leads = pins.flatMap((p) => lead([withZ(p, 0), withZ(p, z0)], { radius: 0.25, color: MATERIALS.tinned }));
-    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, z0 + HEIGHT) };
+    // Current goes up each lead into the middle of the body (src/sim/paths.js).
+    const inside = withZ(centre, z0 + HEIGHT / 2);
+    const paths = pins.map((p) => ({ points: [withZ(p, 0), withZ(p, z0), inside], body: 1 }));
+    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, z0 + HEIGHT), paths };
   },
 };

@@ -6,7 +6,7 @@
 // explanations (explain), the probe captions (probes), the initial focus and UI texts.
 //
 // State: view, fit, labels, results (on when the circuit asks), layer (parts | flow),
-// direction (electrons | conventional), focus (set of part ids), ghost (see-through ids),
+// speed (linear | log: how dot speed follows the current), focus (set of part ids), ghost (see-through ids),
 // pinned (the result tag whose probes stay shown).
 //
 // Flow of a tap: pointerdown/move decide drag vs tap → click: a result tag pins its probes
@@ -21,7 +21,7 @@ const main = document.querySelector('main');
 const svgs = [...main.querySelectorAll('svg')];
 const buttons = [...document.querySelectorAll('nav button')];
 const data = JSON.parse(document.getElementById('page-data').textContent);
-const state = { view: svgs[0].dataset.view, fit: document.body.dataset.fit, labels: true, results: document.body.dataset.results === 'on', layer: 'parts', direction: 'electrons', focus: new Set(data.focus), ghost: new Set() };
+const state = { view: svgs[0].dataset.view, fit: document.body.dataset.fit, labels: true, results: document.body.dataset.results === 'on', layer: 'parts', speed: 'linear', focus: new Set(data.focus), ghost: new Set() };
 const toggles = ['labels'];
 const numbers = (text) => text.split(' ').map(Number);
 const current = () => svgs.find((s) => s.dataset.view === state.view);
@@ -169,7 +169,7 @@ function show() {
   document.body.classList.toggle('no-labels', !state.labels);
   document.body.classList.toggle('show-results', state.results);
   document.body.classList.toggle('layer-flow', state.layer === 'flow');
-  document.body.classList.toggle('conventional', state.direction === 'conventional');
+  document.body.classList.toggle('speed-log', state.speed === 'log');
   for (const b of buttons) b.setAttribute('aria-pressed', String(toggles.includes(b.dataset.key) ? state[b.dataset.key] : state[b.dataset.key] === b.dataset.value));
 }
 for (const b of buttons) b.addEventListener('click', () => {

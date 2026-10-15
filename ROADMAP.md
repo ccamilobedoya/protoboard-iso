@@ -123,16 +123,20 @@ everywhere else so the parts stand out.
 - ⬜ **What covers what, planned as a whole** (to do properly later, not patched case by case): in a focused page the simulation tags (voltages, currents, the MODEL badge) can cover the highlighted column numbers, the hole positions and the leads they talk about. Decide a priority between layers (part copy, strips, coordinate tags, result tags, labels, probes), place tags aside of what they would hide (collision-aware, as the labels already avoid each other), and check it with `inspect` like the rest of the drawing
 - ⬜ Dark theme for screens
 
-## Stage 3 — Animation in the browser ⬜
+## Stage 3 — Live simulation in the browser 🔜
 
-Goal: see the circuit work.
+Goal: see the circuit work, like Falstad's CircuitJS, on the breadboard. Design, decisions and
+the plan by sessions: [docs/en/live-simulation.md](docs/en/live-simulation.md).
 
-- ⬜ Browser module rendering the same scene into a live SVG (or canvas) each frame
-- ✅ Current layer (`page.flow`): everything dimmed, strips shown, dots along strips and through parts, speed from the current (log scale), electrons from − to + or conventional current; Kirchhoff along each strip
-- ⬜ Dots along the real path of leads and wires (today: straight lines at board level)
-- ⬜ Voltage as colour on strips and leads, with a fixed scale
-- ⬜ LED brightness from its current; heat tint from power
-- ⬜ Sliders for values and supply voltage, re-solving instantly
+- ✅ Current layer (`page.flow`), first version: everything dimmed, strips shown, dots along strips and through parts, Kirchhoff along each strip
+- ✅ Phase 0: golden test of the simulator output (safety net for the refactors): `scripts/golden.js`, `test/golden.test.js`
+- ✅ Phase 1: conductor view: conductors along their real paths (package `paths`: axial, LED, wire, TO-92, TO-220, push button, battery), coloured by voltage; conventional current only (electrons view removed); speed proportional to the current with a log toggle; mock-ups (`scripts/mockups.js`); rails palette chosen, steep shading inside bodies
+- ⬜ Phase 2: device modules, one file per kind of part (elements, reading, stresses, card lines, controls)
+- ⬜ Phase 3: compiled program + dependency-free engine; a small bundler; the page script as modules
+- ⬜ Phase 4: live simulation in the page: conductor view, voltage as colour, dots moved by the script, LED glow, heat tint, play / pause / reset / speed, live tags
+- ⬜ Phase 5: sliders in the card and `page.controls` panel, momentary push button; limits made visible (stress levels, latched "exceeded", warnings panel)
+- ⬜ Phase 6: compare a few circuits with Falstad CircuitJS (the stage 2 item)
+- ⬜ Phase 7: oscilloscope (V and I against time of the tapped part)
 
 ## Stage 4 — On a phone or tablet ⬜
 

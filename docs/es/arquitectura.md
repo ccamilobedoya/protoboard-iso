@@ -86,5 +86,7 @@ CSS ni scripts. Se puede pegar como imagen en documentos, wikis y presentaciones
 
 - `src/sim/` (etapa 2, hecha): análisis nodal modificado sobre la netlist y la descripción
   `electrical` de cada componente; ver [simulacion.md](simulacion.md) y `src/sim/README.md`.
-- Animación: la misma escena, redibujada en el navegador con los resultados de la
-  simulación (electrones recorriendo patas y cables, voltaje (tensión) como color en las tiras).
+- Etapa 3, simulación en vivo en la página: conductores con color según el voltaje (tensión),
+  puntos de corriente convencional por los caminos reales, deslizadores, límites a la vista; el
+  dibujo es el que escribió Node y la página solo mueve su capa encima. Ver
+  [simulacion-en-vivo.md](simulacion-en-vivo.md).

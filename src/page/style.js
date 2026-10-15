@@ -3,7 +3,7 @@
 // Visibility is driven by classes on <body> and by two <style> elements the script rewrites:
 //   body.no-labels       labels hidden                 body.focusing    veil shown (a part is tapped)
 //   body.show-results    simulation on (page.results)  body.layer-flow  current layer
-//   body.conventional    dots reversed (conventional current)
+//   body.speed-log       dot speed on a log scale (each dot path carries --lin and --log)
 //   #dynamic             strips, coordinates and result tags of the focused part; see-through rules
 //   #probe               the probes/arrows of the result tag hovered or tapped
 // Layers in each SVG: (under), board, parts, labels, (annotations), veil, strips, coords, spotlight (made
@@ -41,12 +41,12 @@ body:not(.show-results) .results, body:not(.show-results) .info .sim { display: 
 .probes > * { display: none; }
 .veil, .flow, .strips > *, .results > * { display: none; }
 body.focusing .results > .badge { display: inline; }
-body.focusing .veil, body.layer-flow .veil, body.layer-flow .flow, body.layer-flow .strips > * { display: inline; }
+body.focusing .veil, body.layer-flow .veil, body.layer-flow .flow { display: inline; }
 [data-part] { cursor: pointer; }
-.electrons { animation: electrons linear infinite; }
-body.conventional .electrons { animation-direction: reverse; }
-@keyframes electrons { to { stroke-dashoffset: -9; } }
-@media (prefers-reduced-motion: reduce) { .electrons { animation: none; } }
+.dots { animation: dots linear infinite; animation-duration: var(--lin); }
+body.speed-log .dots { animation-duration: var(--log); }
+@keyframes dots { to { stroke-dashoffset: -9; } }
+@media (prefers-reduced-motion: reduce) { .dots { animation: none; } }
 main { position: relative; }
 .info { position: absolute; left: 8px; bottom: 8px; max-width: min(340px, calc(100% - 16px)); max-height: 55%; overflow: auto; background: #ffffff; border: 1px solid #c9c7c2; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12); padding: 10px 12px; font-size: 13px; line-height: 1.4; cursor: auto; user-select: text; -webkit-user-select: text; touch-action: auto; }
 .info[hidden] { display: none; }
