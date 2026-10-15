@@ -83,9 +83,8 @@ test('current flow obeys Kirchhoff along every strip and runs + to − (conventi
   assert.match(flow, /<path d="M[^"]+" fill="none" stroke="#[0-9a-f]{6}"[^>]*class="conductor"/);
   assert.match(flow, /class="dots"[^>]*style="--lin:[\d.]+s;--log:[\d.]+s"/);
   assert.doesNotMatch(flow, /electrons|NaN/);
-  // The LED is drawn lit: dome, halo and rays, all fading together (data-glow).
-  assert.match(flow, /<polygon [^>]*class="glow"[^>]*data-glow="D1"/);
-  assert.ok((flow.match(/data-glow="D1"/g) ?? []).length > 10);
+  // The LED is drawn lit: a halo of rings fading together (data-glow).
+  assert.equal((flow.match(/<circle [^>]*class="glow"[^>]*data-glow="D1"/g) ?? []).length, 3);
   // Proportional speed: half the current, half the speed; the log scale still exists.
   assert.equal(dotSpeed(0.005, 0.01), dotSpeed(0.01, 0.01) / 2);
   assert.ok(dotSpeed(0.01, 0.01, 'log') > dotSpeed(0.0001, 0.01, 'log') && dotSpeed(1e-7, 0.01) === 0, 'still below 1 µA');

@@ -108,9 +108,8 @@ line, bundled in). At load it shows the DC values, as before; then:
   `"page": { "start": "zero" }` opens switched on at t = 0 and running.
 - **Dots** move by an accumulated phase, so they never jump when the current changes; the
   speed scale is the largest current since the start.
-- **A lit LED** is drawn over the conductor view so it reads as on even on a white page: its
-  dome in the colour of its light (a white LED in a cool tint), a highlight, a halo and short
-  rays with a dark edge. Its opacity follows its current against its rated current on a
+- **A lit LED** gets a halo of the colour of its light around its dome, over the conductor view
+  (a white LED slightly yellow, so it shows on a white page). Its opacity follows its current against its rated current on a
   square-root scale, as the eye sees it: a tenth of the rated current still shows clearly.
 - **Labels stay on top**: the label of a tapped part is copied above the current layer
   (`spotlabels`), so the dots never cover it.

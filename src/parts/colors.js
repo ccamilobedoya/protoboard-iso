@@ -57,13 +57,13 @@ export const LED_COLORS = {
 };
 
 // The colour of the light each LED gives, for drawing it lit (vivid, unlike its plastic). A white
-// LED is drawn with a cool tint, or it would vanish on a white page.
+// LED is drawn slightly yellow, or it would vanish on a white page.
 export const LED_LIGHT = {
   red: '#ff2020',
   green: '#1fe04f',
   yellow: '#ffd000',
   blue: '#2a6bff',
-  white: '#8fc3ff',
+  white: '#ffe066',
   orange: '#ff7a00',
 };
 

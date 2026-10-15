@@ -113,9 +113,8 @@ de comandos, incluido en ella). Al cargar muestra los valores en DC, como antes;
   a cámara lenta. `"page": { "start": "zero" }` abre encendida en t = 0 y corriendo.
 - **Los puntos** avanzan con una fase acumulada, así nunca saltan cuando la corriente cambia; la
   escala de velocidad es la corriente mayor desde el arranque.
-- **Un LED encendido** se dibuja encima de la vista de conductores para que se lea encendido aun
-  sobre una página blanca: el domo del color de su luz (un LED blanco, con un tinte frío), un
-  reflejo, un halo y rayos cortos con borde oscuro. Su opacidad sigue su corriente frente a la
+- **Un LED encendido** tiene un halo del color de su luz alrededor del domo, encima de la vista de
+  conductores (el LED blanco, un poco amarillo, para que se note sobre una página blanca). Su opacidad sigue su corriente frente a la
   nominal en escala de raíz, como la ve el ojo: con una décima de la corriente nominal se ve claro.
 - **Las etiquetas quedan encima**: la etiqueta del componente tocado se copia por encima de la capa
   de corriente (`spotlabels`), así los puntos nunca la tapan.
