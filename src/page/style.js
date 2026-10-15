@@ -47,6 +47,8 @@ body.focusing .veil, body.layer-flow .veil, body.layer-flow .flow { display: inl
 body.speed-log .dots { animation-duration: var(--log); }
 @keyframes dots { to { stroke-dashoffset: -9; } }
 @media (prefers-reduced-motion: reduce) { .dots { animation: none; } }
+body.live .dots { animation: none; }
+nav .time .clock { color: #6b6a66; font-size: 12px; font-variant-numeric: tabular-nums; min-width: 7em; }
 main { position: relative; }
 .info { position: absolute; left: 8px; bottom: 8px; max-width: min(340px, calc(100% - 16px)); max-height: 55%; overflow: auto; background: #ffffff; border: 1px solid #c9c7c2; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12); padding: 10px 12px; font-size: 13px; line-height: 1.4; cursor: auto; user-select: text; -webkit-user-select: text; touch-action: auto; }
 .info[hidden] { display: none; }

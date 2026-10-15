@@ -11,58 +11,67 @@
 // (see-through ids). Everything visual is CSS classes or rules; the script never redraws the scene.
 //
 // Modules: view.js (frame, pan, zoom), focus.js (spotlight, CSS rules), card.js (the card),
-// tooltip.js (probes and explanations). They share one `page` object.
+// tooltip.js (probes and explanations); live.js (the running simulation) only when the circuit
+// asks for results or the current layer. They share one `page` object. Entries: static-page.js
+// and live-page.js call startPage with the extensions they carry.
 
 import { numbers, setBox, setupView } from './view.js';
 import { applyFocus } from './focus.js';
-import { select } from './card.js';
+import { select, refreshCard } from './card.js';
 import { tapTag, setupTooltip } from './tooltip.js';
 
-const main = document.querySelector('main');
-const svgs = [...main.querySelectorAll('svg')];
-const data = JSON.parse(document.getElementById('page-data').textContent);
-const state = { view: svgs[0].dataset.view, fit: document.body.dataset.fit, labels: true, results: document.body.dataset.results === 'on', layer: 'parts', speed: 'linear', focus: new Set(data.focus), ghost: new Set() };
-const page = {
-  main,
-  svgs,
-  data,
-  state,
-  buttons: [...document.querySelectorAll('nav button')],
-  dynamic: document.getElementById('dynamic'),
-  probeStyle: document.getElementById('probe'),
-  info: document.querySelector('.info'),
-  tooltip: document.querySelector('.tooltip'),
-  current: () => svgs.find((s) => s.dataset.view === state.view),
-  box: null,
-};
-const toggles = ['labels'];
+export function startPage(extensions = []) {
+  const main = document.querySelector('main');
+  const svgs = [...main.querySelectorAll('svg')];
+  const data = JSON.parse(document.getElementById('page-data').textContent);
+  const state = { view: svgs[0].dataset.view, fit: document.body.dataset.fit, labels: true, results: document.body.dataset.results === 'on', layer: 'parts', speed: 'linear', focus: new Set(data.focus), ghost: new Set() };
+  const page = {
+    main,
+    svgs,
+    data,
+    state,
+    buttons: [...document.querySelectorAll('nav button[data-key]')],
+    dynamic: document.getElementById('dynamic'),
+    probeStyle: document.getElementById('probe'),
+    info: document.querySelector('.info'),
+    tooltip: document.querySelector('.tooltip'),
+    current: () => svgs.find((s) => s.dataset.view === state.view),
+    box: null,
+    onShow: [], // extensions that react to a change of view, layer or speed
+    show: () => show(),
+    refreshCard: () => refreshCard(page),
+  };
+  const toggles = ['labels'];
 
-function show() {
-  for (const s of svgs) s.toggleAttribute('hidden', s.dataset.view !== state.view);
-  setBox(page, numbers(page.current().dataset[state.fit]));
-  document.body.classList.toggle('no-labels', !state.labels);
-  document.body.classList.toggle('show-results', state.results);
-  document.body.classList.toggle('layer-flow', state.layer === 'flow');
-  document.body.classList.toggle('speed-log', state.speed === 'log');
-  for (const b of page.buttons) b.setAttribute('aria-pressed', String(toggles.includes(b.dataset.key) ? state[b.dataset.key] : state[b.dataset.key] === b.dataset.value));
-}
-for (const b of page.buttons) b.addEventListener('click', () => {
-  if (toggles.includes(b.dataset.key)) state[b.dataset.key] = !state[b.dataset.key];
-  else state[b.dataset.key] = b.dataset.value;
+  function show() {
+    for (const hook of page.onShow) hook();
+    for (const s of svgs) s.toggleAttribute('hidden', s.dataset.view !== state.view);
+    setBox(page, numbers(page.current().dataset[state.fit]));
+    document.body.classList.toggle('no-labels', !state.labels);
+    document.body.classList.toggle('show-results', state.results);
+    document.body.classList.toggle('layer-flow', state.layer === 'flow');
+    document.body.classList.toggle('speed-log', state.speed === 'log');
+    for (const b of page.buttons) b.setAttribute('aria-pressed', String(toggles.includes(b.dataset.key) ? state[b.dataset.key] : state[b.dataset.key] === b.dataset.value));
+  }
+  for (const b of page.buttons) b.addEventListener('click', () => {
+    if (toggles.includes(b.dataset.key)) state[b.dataset.key] = !state[b.dataset.key];
+    else state[b.dataset.key] = b.dataset.value;
+    show();
+  });
+
+  setupView(page);
+  setupTooltip(page);
+  // A tap: a result tag pins its probes (focus untouched), a part selects it, the board clears.
+  main.addEventListener('click', (e) => {
+    if (page.dragged || page.info.contains(e.target)) return;
+    if (tapTag(page, e.target)) return;
+    const hit = e.target.closest && e.target.closest('[data-part]');
+    select(page, hit ? hit.getAttribute('data-part') : null);
+  });
+
+  for (const extend of extensions) extend(page);
+  document.querySelector('nav').hidden = false;
   show();
-});
-
-setupView(page);
-setupTooltip(page);
-// A tap: a result tag pins its probes (focus untouched), a part selects it, the board clears.
-main.addEventListener('click', (e) => {
-  if (page.dragged || page.info.contains(e.target)) return;
-  if (tapTag(page, e.target)) return;
-  const hit = e.target.closest && e.target.closest('[data-part]');
-  select(page, hit ? hit.getAttribute('data-part') : null);
-});
-
-document.querySelector('nav').hidden = false;
-show();
-if (state.focus.size === 1) select(page, [...state.focus][0]);
-else applyFocus(page);
+  if (state.focus.size === 1) select(page, [...state.focus][0]);
+  else applyFocus(page);
+}

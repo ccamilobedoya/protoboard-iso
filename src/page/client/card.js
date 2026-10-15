@@ -75,7 +75,26 @@ function openInfo(page, id, open) {
 // Tap a part (or nothing: id null) to focus it and open its card.
 export function select(page, id, open) {
   page.state.focus = new Set(id ? [id] : []);
+  page.open = id;
   if (id) openInfo(page, id, open);
   else page.info.hidden = true;
   applyFocus(page);
+}
+
+// The simulated values of the open card changed (live page): rewrite their texts in place, so
+// an explanation the learner opened stays open. If the lines themselves changed, rebuild it.
+export function refreshCard(page) {
+  const id = page.open;
+  if (!id || page.info.hidden) return;
+  const lines = page.data.parts[id]?.sim ?? [];
+  const items = [...page.info.querySelectorAll('.sim .terms > li')];
+  const same = items.length === lines.length && items.every((li, k) => (li.querySelector('.term')?.dataset.explain ?? null) === (page.data.explain[lines[k].key] ? lines[k].key : null));
+  if (!same) {
+    const expanded = page.info.querySelector('.term[aria-expanded="true"]')?.dataset.explain;
+    return openInfo(page, id, expanded);
+  }
+  items.forEach((li, k) => {
+    const label = li.querySelector('.term') ?? li.querySelector('span');
+    if (label && label.textContent !== lines[k].text) label.textContent = lines[k].text;
+  });
 }

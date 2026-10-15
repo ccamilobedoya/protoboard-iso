@@ -77,7 +77,9 @@ Encima, **unos puntos se mueven**:
   conductor flotante queda pálido.
 - **El sentido**: corriente convencional, de + a −, como en CircuitJS de Falstad.
 - **La velocidad es proporcional** a la corriente: la corriente mayor del circuito va a 60 px/s y
-  la mitad, a la mitad, así se ven las proporciones y Kirchhoff. *Velocidad logarítmica* cambia a
+  la mitad, a la mitad, así se ven las proporciones y Kirchhoff. En la página en vivo la escala es
+  la corriente mayor desde el arranque, así una corriente que se apaga (un condensador que se
+  carga) se ve frenando. *Velocidad logarítmica* cambia a
   escala logarítmica (un microamperio se arrastra, un amperio corre) para circuitos con corrientes
   muy distintas. Por debajo de 1 µA nada se mueve.
 - La corriente en cada tramo de una tira sale de la ley de corrientes de Kirchhoff: recorriendo la
@@ -99,3 +101,20 @@ la vista): [simulacion-en-vivo.md](simulacion-en-vivo.md).
 Como los resultados, la capa de corriente es un **modelo** y solo está en la página cuando el
 circuito lo pide: muestra qué componentes conducen, y eso puede adelantar una respuesta que
 alguien debe predecir.
+
+## La página en vivo
+
+Con `results` o `flow`, la página corre el simulador por su cuenta (el mismo motor de la línea
+de comandos, incluido en ella). Al cargar muestra los valores en DC, como antes; después:
+
+- **Tiempo**: un circuito con condensadores o bobinas tiene *Pausa*, *Encender (t = 0)*
+  (condensadores descargados, todo vuelve a empezar) y un reloj. El tiempo simulado corre de modo
+  que la constante de tiempo más larga tome unos 2 s, sea del tamaño que sea; un paso pesado pasa
+  a cámara lenta. `"page": { "start": "zero" }` abre encendida en t = 0 y corriendo.
+- **Los puntos** avanzan con una fase acumulada, así nunca saltan cuando la corriente cambia; la
+  escala de velocidad es la corriente mayor desde el arranque.
+- **Cuatro veces por segundo**: los colores de los conductores, el brillo del LED (su corriente
+  frente a la nominal), un tinte de calor en resistencias, reguladores y transistores (potencia
+  frente a la nominal, desde un quinto de ella), las etiquetas de resultados, los textos de las
+  sondas y la ficha abierta.
+- Los resultados siguen siendo un **modelo** y se activan por circuito, como antes.

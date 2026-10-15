@@ -178,6 +178,13 @@
             "type": "string"
           },
           "description": "Parts in focus when the page opens (the ones being explained)"
+        },
+        "start": {
+          "enum": [
+            "dc",
+            "zero"
+          ],
+          "description": "Live simulation (with results or flow): 'dc' opens at the DC values (default); 'zero' switches on at t = 0 with capacitors discharged and runs"
         }
       },
       "additionalProperties": false

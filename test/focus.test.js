@@ -59,17 +59,17 @@ test('current flow obeys Kirchhoff along every strip and runs + to − (conventi
     assert.ok(Math.abs(sum) < 1e-9, `${id}: pin currents add to zero`);
   }
   // The + rail carries the whole supply current from the clip (first hole) to the first lead.
-  const rail = dots.filter((s) => s.node === 'T+');
+  const rail = dots.filter((s) => s.ref.node === 'T+');
   assert.ok(Math.abs(rail[0].current - sim.supplies.V1.current) < 1e-9);
   // In the LED strip the current goes from R2 (row h) to the LED anode (row g).
-  const anode = dots.filter((s) => s.node === '24:f-j');
+  const anode = dots.filter((s) => s.ref.node === '24:f-j');
   assert.equal(anode.length, 1);
   const [seg] = anode;
   const forward = seg.current > 0 ? seg.points[0] : seg.points.at(-1); // where the conventional current starts
   assert.ok(Math.abs(Math.abs(seg.current) - sim.parts.D1.current) < 1e-9);
   assert.deepEqual([forward.x, forward.y], [built.board.find('h24').pos.x, built.board.find('h24').pos.y], 'from R2 towards the anode');
   // Through the LED: in at the anode (positive into the part), out at the cathode.
-  const led = dots.filter((d) => d.part === 'D1');
+  const led = dots.filter((d) => d.ref.part === 'D1');
   assert.equal(led.length, 2);
   assert.ok(led[0].current > 0 && led[1].current < 0);
   // Drawn: coloured conductors, then dots whose path starts where the current comes from.
@@ -123,8 +123,8 @@ test('no flow without a simulation, and nothing moves in a released switch branc
   const released = switchCircuit();
   released.parts[0].pressed = false;
   const { dots, wires } = conductorPieces(buildCircuit(released), simulate(released), released);
-  assert.ok(!dots.some((s) => s.part === 'D1' || s.part === 'R1'), 'LED and base resistor carry no current');
-  assert.ok(wires.some((s) => s.part === 'D1'), 'but their conductors are still drawn');
+  assert.ok(!dots.some((s) => s.ref.part === 'D1' || s.ref.part === 'R1'), 'LED and base resistor carry no current');
+  assert.ok(wires.some((s) => s.ref.part === 'D1'), 'but their conductors are still drawn');
 });
 
 async function loadPage(html) {

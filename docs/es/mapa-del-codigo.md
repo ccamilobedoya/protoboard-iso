@@ -62,6 +62,8 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `sim/devices/` | un archivo por tipo de componente: elementos, lectura, límites como esfuerzos, líneas de la ficha, etiqueta de corriente, texto de la sonda; `index.js` los lista y describe la interfaz; `shared.js`, lo común |
 | `sim/format.js` | resultados como texto; `partLines` para la ficha (cada una con su clave de explicación) |
 | `sim/overlay.js` | etiquetas de resultados (corriente por componente, voltaje por grupo) con `data-q` y `data-probe` |
+| `sim/look.js`, `sim/lines.js` | se pueden agrupar: colores de voltaje, velocidad de los puntos, degradado en los cuerpos, brillo y calor (look); las líneas de la ficha con los textos que se le pasan (lines) |
+| `page/client/live.js` | la página en vivo: corre el motor, mueve los puntos, repinta colores, etiquetas y ficha, controles de tiempo |
 | `sim/paths.js` | vista de conductores: caminos de la corriente por componente (`paths` del paquete o una recta de respaldo), corriente de las tiras (Kirchhoff), colores de voltaje, puntos de corriente convencional |
 | `sim/probes.js` | «de dónde sale un valor»: puntas para voltajes, flechas para corrientes |
 | `page.js`, `page/client/`, `page/style.js` | la página para embeber; `page/client/main.js` es la entrada de su script (módulos view, focus, card, tooltip) |

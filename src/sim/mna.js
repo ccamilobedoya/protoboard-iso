@@ -130,6 +130,7 @@ export function capacitor(a, b, c) {
   return {
     nodes: [a, b],
     links: [],
+    memory: { kind: 'C', value: c },
     vprev: 0,
     stamp(st, x, ctx) {
       if (!ctx.h) return false;
@@ -155,6 +156,7 @@ export function inductor(a, b, l) {
   return {
     nodes: [a, b],
     links: [[a, b]],
+    memory: { kind: 'L', value: l },
     iprev: 0,
     stamp(st, x, ctx) {
       if (!ctx.h) {

@@ -24,6 +24,10 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
   numbers; leave it off while someone is asked to predict them ([simulation.md](simulation.md)).
 - **Tap a part** to focus it and open its card; optional current layer (`"page": { "flow": true }`).
   See [focus-and-flow.md](focus-and-flow.md).
+- **Live simulation**: with `results` or `flow`, the page carries the simulator and runs it
+  (about 60 kB more): values, colours and dots follow it, and a circuit with capacitors or
+  inductors gets *Pause* and *Switch on (t = 0)* and a clock. See
+  [focus-and-flow.md](focus-and-flow.md) and [live-simulation.md](live-simulation.md).
 - **It fills its frame.** The drawing scales to the width and height of the iframe (or the
   browser window), so the host decides the size.
 - **The same page grows.** Simulation results, animation and the virtual multimeter (stages

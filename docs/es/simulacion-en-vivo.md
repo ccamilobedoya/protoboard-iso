@@ -23,7 +23,12 @@ Esta página es la referencia del trabajo, que toma varias sesiones. Cada sesió
   `elements`; `node/bundle.js`; el script de la página en `page/client/` (main, view, focus,
   card, tooltip). El motor agrupado pesa ≈ 50 kB sin comentarios; el script de la página, ≈ 12 kB.
   Una escalera RC/diodo de 40 secciones corre ≈ 12 000 pasos/s en Node (`test/engine.test.js`).
-- Siguiente: fase 4, la página en vivo.
+- Fase 4 hecha: `page/client/live.js` corre el programa embebido (entrada `live-page.js`; las
+  páginas sin resultados ni corriente usan `static-page.js` y no llevan motor). Interfaz del
+  motor paso a paso: `start`, `step`, `read`, `stresses`, `timeConstants`. Lo visual compartido en
+  `sim/look.js` y las líneas de la ficha en `sim/lines.js` (los dos se pueden agrupar). Pruebas en
+  `test/live.test.js` (jsdom, cuadros movidos con `window.protoboardLive.tick`).
+- Siguiente: fase 5, controles y límites.
 
 ## Decisiones
 
@@ -141,7 +146,7 @@ El script de la página pasa de una cadena larga (`page/script.js`) a módulos r
   - Se calcula al cargar y al reiniciar, no con cada deslizador: si R crece 100×, se tiene que ver 100× más lento.
 - **Puntos.** Son trazos SVG; el script escribe `stroke-dashoffset` a partir de una fase acumulada, como el `curcount` de Falstad.
   - La velocidad cambia sin saltos y el zoom sale del `viewBox`.
-  - Velocidad ∝ I / pico, con el pico suavizado. Solo se anima la vista visible.
+  - Velocidad ∝ I / pico, donde el pico es la corriente mayor desde el arranque (no baja solo, así una corriente que se apaga se ve frenando). Solo se anima la vista visible.
 - **Colores, brillo, calor, etiquetas y ficha** se refrescan a 4 Hz, para que se puedan leer.
 - **Reproducir, pausar, reiniciar y velocidad** solo aparecen si el circuito tiene un condensador o una bobina.
   - Reiniciar es «encender en t = 0», con los condensadores descargados.

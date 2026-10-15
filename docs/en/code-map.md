@@ -62,6 +62,8 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `sim/devices/` | one file per kind of part: elements, reading, limits as stresses, card lines, current tag, probe text; `index.js` lists them and describes the interface; `shared.js` the common helpers |
 | `sim/format.js` | results as text; `partLines` for the card (each with an explanation key) |
 | `sim/overlay.js` | result tags (current per part, voltage per group) with `data-q` and `data-probe` |
+| `sim/look.js`, `sim/lines.js` | bundleable: voltage colours, dot speed, body shading, glow and heat (look); a part's card lines with the texts passed in (lines) |
+| `page/client/live.js` | the live page: runs the engine, moves dots, repaints colours, tags and card, time controls |
 | `sim/paths.js` | conductor view: current paths per part (package `paths` or a straight fallback), strip currents (Kirchhoff), voltage colours, dots of conventional current |
 | `sim/probes.js` | "where a value comes from": probes for voltages, arrows for currents |
 | `page.js`, `page/client/`, `page/style.js` | the embeddable page; `page/client/main.js` is the entry of its script (view, focus, card, tooltip modules) |

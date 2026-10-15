@@ -145,7 +145,8 @@ function addLayers(scene, built, circuit, options, lang) {
   if (options.flow) {
     // The conductor view draws the strips in use itself, coloured: no grey strips under them.
     if (!options.interactive) extra.veil = veilOps(scene.frame);
-    extra.flow = flowOps(scene, built, sim, circuit);
+    // A page gets every piece, tagged for the live simulation to move and colour.
+    extra.flow = flowOps(scene, built, sim, circuit, { live: Boolean(options.interactive) });
   }
   if (options.sim) {
     extra.results = resultsOverlay(scene, built, sim, lang);

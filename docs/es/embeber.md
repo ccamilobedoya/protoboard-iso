@@ -27,6 +27,10 @@ node bin/protoboard-iso.js page <objetivo> [--lang es] [--fit parts|board] [-o p
   llena de números; no se activan mientras alguien deba predecirlos, así una página nunca adelanta un valor que alguien debe predecir ([simulacion.md](simulacion.md)).
 - **Toca un componente** para enfocarlo y abrir su ficha; capa de corriente opcional
   (`"page": { "flow": true }`). Ver [foco-y-corriente.md](foco-y-corriente.md).
+- **Simulación en vivo**: con `results` o `flow`, la página lleva el simulador y lo corre (unos
+  60 kB más): los valores, los colores y los puntos lo siguen, y un circuito con condensadores o
+  bobinas tiene *Pausa*, *Encender (t = 0)* y un reloj. Ver
+  [foco-y-corriente.md](foco-y-corriente.md) y [simulacion-en-vivo.md](simulacion-en-vivo.md).
 - **Llena su marco.** El dibujo se ajusta al ancho y al alto del iframe (o de la ventana), así
   que el tamaño lo decide quien lo embebe.
 - **La misma página crece.** Los resultados de la simulación, la animación y el multímetro

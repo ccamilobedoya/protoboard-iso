@@ -20,7 +20,12 @@ the tests green, this page and the roadmap up to date.
   `elements`; `node/bundle.js`; the page script in `page/client/` (main, view, focus, card,
   tooltip). Engine bundle ≈ 50 kB without comments; page script ≈ 12 kB. A 40-section RC/diode
   ladder runs ≈ 12 000 steps/s in Node (`test/engine.test.js`).
-- Next: phase 4, the live page.
+- Phase 4 done: `page/client/live.js` runs the embedded program (entry `live-page.js`; pages
+  without results or flow use `static-page.js` and carry no engine). Engine step API:
+  `start`, `step`, `read`, `stresses`, `timeConstants`. Shared looks in `sim/look.js`, card lines
+  in `sim/lines.js` (both bundleable). Tests in `test/live.test.js` (jsdom, frames driven by
+  `window.protoboardLive.tick`).
+- Next: phase 5, controls and limits.
 
 ## Decisions
 
@@ -131,7 +136,8 @@ page keeps **one attribute-less `<script>`**, last; JSON scripts go before it.
   100× larger R looks 100× slower.
 - Dots are SVG dashes; the script writes `stroke-dashoffset` from an accumulated phase (Falstad's
   `curcount`): speed changes without jumps, zoom comes from the `viewBox`. Speed ∝ I / peak, the
-  peak smoothed. Only the visible view is animated.
+  peak being the largest current since the start (it never shrinks on its own, so a dying
+  current is seen slowing down). Only the visible view is animated.
 - Colours, glow, heat, tags and card refresh at 4 Hz, to stay readable.
 - Play / pause / reset / speed only when the circuit has a capacitor or an inductor. Reset means
   "switched on at t = 0" (capacitors discharged); start is `page.start` (default `'dc'`, today's

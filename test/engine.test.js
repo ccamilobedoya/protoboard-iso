@@ -37,3 +37,35 @@ test('engine: a 40-section RC/diode ladder steps fast enough for a page', () => 
   // before a page would stutter.
   assert.ok(perSecond > 2000, `${Math.round(perSecond)} steps/s`);
 });
+
+test('engine: stepping by hand gives exactly what transient() gives', () => {
+  const whole = createEngine(ladder(3)).transient({ stop: 2e-3, step: 1e-5, points: 200 });
+  const engine = createEngine(ladder(3));
+  assert.ok(engine.start('zero', 1e-5));
+  for (let k = 0; k < 200; k++) assert.ok(engine.step(1e-5));
+  const now = engine.read();
+  assert.ok(Math.abs(engine.time - 2e-3) < 1e-12);
+  assert.equal(now.nodes.n3, whole.nodes.n3.at(-1));
+  assert.equal(now.parts.C2.current, whole.parts.C2.current.at(-1), 'a capacitor still shows its current between steps');
+  // From DC nothing moves: the capacitors start charged.
+  const steady = createEngine(ladder(3));
+  steady.start('dc', 1e-5);
+  for (let k = 0; k < 50; k++) steady.step(1e-5);
+  assert.ok(Math.abs(steady.read().parts.C2.current) < 1e-9);
+});
+
+test('engine: time constants from the resistance each capacitor sees (textbook RC)', () => {
+  const [tau] = createEngine(ladder(1)).timeConstants();
+  assert.ok(Math.abs(tau - 1e-3) < 1e-9, `τ = ${tau}`);
+});
+
+test('engine: stresses, a resistor over its rated power (P = V²/R solved apart)', () => {
+  // Two 10 Ω resistors in series on 5 V: 2.5 V across each, P = 2.5² / 10 = 0.625 W on a ¼ W part.
+  const program = ladder(1);
+  program.devices[0].params.resistance = 10;
+  program.devices[1] = { id: 'R1', type: 'resistor', kind: 'R', pins: program.devices[1].pins, params: { resistance: 10, maxPower: 0.25 } };
+  const engine = createEngine(program);
+  const [power] = engine.stresses(engine.dc()).R0;
+  assert.equal(power.quantity, 'power');
+  assert.ok(Math.abs(power.ratio - 2.5 ** 2 / 10 / 0.25) < 1e-6, `ratio ${power.ratio}`);
+});

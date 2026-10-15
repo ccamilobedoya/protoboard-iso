@@ -3,7 +3,7 @@
 import { t, decimalSeparator } from '../i18n/index.js';
 import { formatValue } from '../core/units.js';
 import { nodeParams } from '../circuit/checks.js';
-import { deviceOfReading } from './devices/index.js';
+import { linesFor, runtimeWords } from './lines.js';
 
 const pad = (s, n) => String(s).padEnd(n);
 
@@ -81,26 +81,8 @@ function formatTransient(result, lang, { f, lines, issues }) {
 }
 
 // Hours of battery life as "≈ 40 min", "≈ 7,5 h", "≈ 6 días".
-export function runtimeText(hours, lang = 'en') {
-  const decimal = decimalSeparator(lang);
-  const n = (x) => String(x).replace('.', decimal);
-  if (hours < 1) return t(lang, 'sim.runtime.min', { n: Math.max(1, Math.round(hours * 60)) });
-  if (hours < 48) return t(lang, 'sim.runtime.h', { n: n(hours < 10 ? Math.round(hours * 10) / 10 : Math.round(hours)) });
-  const days = hours / 24;
-  return t(lang, 'sim.runtime.d', { n: n(days < 10 ? Math.round(days * 10) / 10 : Math.round(days)) });
-}
+// How long a battery lasts, as "3,2 h" in the page's language.
+export const runtimeText = (hours, lang = 'en') => runtimeWords(hours, { t: (key, params) => t(lang, key, params), decimal: decimalSeparator(lang) });
 
-// One part's readings for a card: [{ key, text }]. `key` names its explanation
-// (i18n "explain.<key>"), so a learner can tap "Ic: 8,82 mA" and read what Ic is.
-export function partLines(p, lang = 'en') {
-  const decimal = decimalSeparator(lang);
-  const f = (value, unit) => (value == null ? t(lang, 'sim.floating') : formatValue(value, unit, { decimal }));
-  const raw = (key, text) => ({ key, text });
-  if (p.unsupported) return [raw('unsupported', t(lang, 'sim.unsupported'))];
-  const h = { f, decimal, raw, q: (key, value) => ({ key, text: `${t(lang, `sim.q.${key}`)}: ${value}` }), t: (key, params) => t(lang, key, params), runtime: (hours) => runtimeText(hours, lang) };
-  // Each kind of part writes its own lines (src/sim/devices/).
-  const lines = deviceOfReading(p)?.lines(p, h);
-  if (lines === null) return [];
-  if (p.floating) (lines ?? []).push(raw('floating', t(lang, 'sim.floating')));
-  return lines ?? [];
-}
+// One part's readings for a card: [{ key, text }] (see sim/lines.js, which the page also runs).
+export const partLines = (p, lang = 'en') => linesFor(p, { t: (key, params) => t(lang, key, params), decimal: decimalSeparator(lang) });

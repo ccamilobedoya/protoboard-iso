@@ -112,6 +112,7 @@ export function buildSchemas() {
           results: { type: 'boolean', description: 'Simulation always on in the page: the tapped part shows its values on the board and in its card' },
           flow: { type: 'boolean', description: 'Add the current layer: everything dimmed, strips shown, moving dots (needs supplies or a battery)' },
           focus: { type: 'array', items: text, description: 'Parts in focus when the page opens (the ones being explained)' },
+          start: { enum: ['dc', 'zero'], description: "Live simulation (with results or flow): 'dc' opens at the DC values (default); 'zero' switches on at t = 0 with capacitors discharged and runs" },
         },
         additionalProperties: false,
       },

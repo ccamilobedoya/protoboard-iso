@@ -24,7 +24,7 @@
 | `netLabels` | no | Text printed next to a rail, by rail id. A labelled rail counts as connected to a supply. |
 | `lang` | no | Language of everything made from this circuit: drawing labels, the page, messages (`en`, `es`). A language asked for in the call (`--lang`, MCP `lang`) wins. |
 | `supplies` | no | Simulation: where the power comes from, e.g. `[{ "id": "V1", "voltage": 5 }]` (between T+ and T-). A [battery](#battery) part is a source too. See [simulation.md](simulation.md). |
-| `page` | no | The embeddable page: `results` (simulation always on, values of the tapped part), `flow` (current layer), `focus` (parts in focus when it opens). See [focus-and-flow.md](focus-and-flow.md). |
+| `page` | no | The embeddable page: `results` (simulation always on, values of the tapped part), `flow` (current layer), `focus` (parts in focus when it opens), `start` (`dc` or `zero`: how the live simulation starts). See [focus-and-flow.md](focus-and-flow.md). |
 | `parts` | yes | List of parts. |
 
 ## Holes

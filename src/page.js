@@ -22,16 +22,19 @@ import { STYLE } from './page/style.js';
 import { bundleScript } from './node/bundle.js';
 import { buildCircuit } from './circuit/build.js';
 import { nodeParams } from './circuit/checks.js';
-import { simulate } from './sim/index.js';
+import { simulate, compile } from './sim/index.js';
+import { liveFlow } from './sim/paths.js';
+import { LANGUAGES } from './i18n/index.js';
 import { deviceOfReading } from './sim/devices/index.js';
 import { partLines } from './sim/format.js';
 import { groundHole } from './sim/probes.js';
 import { describePart, describeKeys } from './parts/describe.js';
 import { MODULES } from './parts/modules.js';
 
-// The page's script, bundled once per process (src/page/client/main.js and what it imports).
-let script;
-const pageScript = () => (script ??= bundleScript('page/client/main.js', { comments: false }));
+// The page's script, bundled once per process: without the simulation, or with it (the engine
+// runs in the page when the circuit asks for results or the current layer).
+const scripts = {};
+const pageScript = (live) => (scripts[live ? 'live' : 'static'] ??= bundleScript(live ? 'page/client/live-page.js' : 'page/client/static-page.js', { comments: false }));
 
 const OPPOSITE = { front: 'back', back: 'front', 'front-left': 'back-right', 'back-right': 'front-left' };
 const box = ({ x, y, width, height }) => `${x} ${y} ${width} ${height}`;
@@ -116,27 +119,38 @@ function partData(circuit, lang, sim) {
   }
   // What each result tag measures and where, for the box shown with its probes or arrows.
   const probes = {};
+  // The same captions with the value left as \u0001, for the live page to fill in.
+  const templates = {};
+  const MARK = '\u0001';
   if (sim?.ok) {
     const f = (v, unit) => formatValue(Math.abs(v) < 1e-3 && unit === 'V' ? 0 : v, unit, { decimal: decimalSeparator(lang) });
     const ground = groundHole(built, circuit);
     const groundName = ground ? `${netLabels[ground.node] ?? nodeName(ground.node)}, ${ground.id}` : '';
-    for (const node of Object.keys(built.netlist.nodes)) if (sim.nodes[node] != null) probes[`node:${node}`] = t(lang, 'probe.voltage', { value: f(sim.nodes[node], 'V'), node: nodeName(node), ground: groundName });
+    for (const node of Object.keys(built.netlist.nodes)) {
+      if (sim.nodes[node] == null) continue;
+      probes[`node:${node}`] = t(lang, 'probe.voltage', { value: f(sim.nodes[node], 'V'), node: nodeName(node), ground: groundName });
+      templates[`node:${node}`] = { node, text: t(lang, 'probe.voltage', { value: MARK, node: nodeName(node), ground: groundName }) };
+    }
     for (const part of built.parts) {
       const r = sim.parts[part.id];
       if (!r || r.floating || r.unsupported || part.def.electrical?.kind === 'W') continue;
       // A device may say it its own way (a transistor: Ic or Id); otherwise "I flows from … to …".
       const own = deviceOfReading(r)?.probe?.(r);
       let text;
-      if (own) text = t(lang, own.key, own.value != null ? { value: f(own.value, 'A') } : {});
-      else {
+      if (own) {
+        text = t(lang, own.key, own.value != null ? { value: f(own.value, 'A') } : {});
+        templates[`part:${part.id}`] = { part: part.id, text: t(lang, own.key, own.value != null ? { value: MARK } : {}) };
+      } else {
         const [a, b] = r.current >= 0 ? [0, 1] : [1, 0];
         const label = (name) => (/^\d+$/.test(name) ? t(lang, 'page.info.pinNumber', { pin: name }) : pinName(name));
-        text = t(lang, 'probe.current', { value: f(Math.abs(r.current), 'A'), part: part.id, from: label(part.pinNames[a]), to: label(part.pinNames[b]) });
+        const say = (value, x, y) => t(lang, 'probe.current', { value, part: part.id, from: label(part.pinNames[x]), to: label(part.pinNames[y]) });
+        text = say(f(Math.abs(r.current), 'A'), a, b);
+        templates[`part:${part.id}`] = { part: part.id, forward: say(MARK, 0, 1), backward: say(MARK, 1, 0) };
       }
       probes[`part:${part.id}`] = text;
     }
   }
-  return { parts, probes, kinds };
+  return { parts, probes, kinds, templates };
 }
 
 // "Bipolar transistor", explained by the kit's description of that kind of part.
@@ -173,6 +187,22 @@ function explanations(lang) {
   return Object.fromEntries(keys.map((k) => [k, t(lang, `explain.${k}`)]));
 }
 
+// What the live page needs besides the program: the conductor view's pieces (with the current
+// layer), the texts its card lines, tags and clock use, the probe captions to fill in.
+function liveData(circuit, lang, flow, templates) {
+  const texts = {};
+  const dict = { ...LANGUAGES.en, ...(LANGUAGES[lang] ?? {}) };
+  for (const key of Object.keys(dict)) if (/^(sim|state|probe)\.|^page\.(time|live)\./.test(key)) texts[key] = t(lang, key);
+  const dc = flow ? simulate(circuit, { analysis: 'dc' }) : null;
+  return {
+    flow: dc?.ok ? liveFlow(buildCircuit(circuit), dc, circuit) : null,
+    texts,
+    decimal: decimalSeparator(lang),
+    probes: templates,
+    start: circuit.page?.start === 'zero' ? 'zero' : 'dc',
+  };
+}
+
 // JSON inside <script> must never contain "</script>".
 const safeJson = (value) => JSON.stringify(value).replace(/</g, '\\u003c');
 
@@ -189,12 +219,16 @@ export function renderPage(circuit, options = {}) {
   if (!rendered.length || rendered.some((r) => !r.svg)) return { html: null, issues };
 
   const sim = results ? simulate(circuit, { analysis: 'dc' }) : null;
-  const { parts, probes, kinds } = partData(circuit, lang, sim);
+  const { parts, probes, kinds, templates } = partData(circuit, lang, sim);
+  // The simulation runs in the page when the circuit asks for results or the current layer.
+  const compiled = results || flow ? compile(circuit) : null;
+  const live = compiled?.program ? liveData(circuit, lang, flow, templates) : null;
   const data = {
     parts,
     probes,
     explain: { ...explanations(lang), ...kinds },
     focus: Array.isArray(circuit.page?.focus) ? circuit.page.focus : [],
+    ...(live && { live }),
     text: { pins: t(lang, 'page.info.pins'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain') },
   };
   const title = titleOf(circuit, lang) ?? t(lang, 'page.untitled');
@@ -230,7 +264,7 @@ ${svgs.join('\n')}
 <div class="tooltip" hidden></div>
 </main>
 <script type="application/json" id="page-data">${safeJson(data)}</script>
-<script>${pageScript()}</script>
+${live ? `<script type="application/json" id="sim-program">${safeJson(compiled.program)}</script>\n` : ''}<script>${pageScript(Boolean(live))}</script>
 </body>
 </html>
 `;

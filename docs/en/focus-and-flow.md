@@ -75,7 +75,9 @@ through the body, down the other lead, along the arc of a jumper wire. On top, *
   middle of the part that causes it. A floating conductor is pale.
 - **Direction**: conventional current, from + to −, as in Falstad's CircuitJS.
 - **Speed is proportional** to the current: the largest current in the circuit moves at
-  60 px/s, half of it at half that speed, so ratios and Kirchhoff can be seen. *Log speed*
+  60 px/s, half of it at half that speed, so ratios and Kirchhoff can be seen. In the live page
+  the scale is the largest current since the start, so a current that dies away (a capacitor
+  charging) is seen slowing down. *Log speed*
   switches to a logarithmic scale (a microampere crawls, an ampere races) for circuits with very
   different currents. Below 1 µA nothing moves.
 - The current in each piece of a strip comes from Kirchhoff's current law: walking along the
@@ -94,3 +96,19 @@ Stage 3 turns this into a live simulation in the page (time, sliders, limits mad
 
 Like the results, the current layer is a **model** and is only in the page when the circuit
 asks: it shows which parts conduct, which can give away an answer someone is asked to predict.
+
+## The live page
+
+With `results` or `flow`, the page runs the simulator itself (the same engine as the command
+line, bundled in). At load it shows the DC values, as before; then:
+
+- **Time**: a circuit with capacitors or inductors gets *Pause*, *Switch on (t = 0)* (capacitors
+  discharged, everything starts again) and a clock. Simulated time runs so the longest time
+  constant takes about 2 s, whatever its size; a heavy step falls into slow motion.
+  `"page": { "start": "zero" }` opens switched on at t = 0 and running.
+- **Dots** move by an accumulated phase, so they never jump when the current changes; the
+  speed scale is the largest current since the start.
+- **Four times a second**: conductor colours, LED glow (its current against its rated current),
+  a heat tint on resistors, regulators and transistors (power against rated power, from a fifth
+  of it), the result tags, the probe captions and the open card.
+- Results remain a **model**, and opt-in per circuit like before.

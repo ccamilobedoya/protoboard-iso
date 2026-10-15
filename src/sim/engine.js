@@ -5,10 +5,19 @@
 //   const engine = createEngine(program)
 //   engine.dc()                                         → operating point
 //   engine.transient({ stop, step, start, points })     → time series
+// And step by step, for the live page:
+//   engine.start('dc' | 'zero', h) → ok    the state at t = 0 (DC values, or switched on with
+//                                          capacitors discharged)
+//   engine.step(h) → ok                    one time step of h seconds
+//   engine.read() → { nodes, parts, supplies }   the values now;  engine.time  seconds since start
+//   engine.stresses(reading) → { part: [stress…] }   each part against its limits (devices/)
+//   engine.timeConstants() → [seconds…]    τ = C·R and L/R of each capacitor and inductor, with R
+//                                          the resistance it sees at the DC operating point
 //
 // Every result is a **model**: ideal strips, typical part values (models.js).
 
-import { resistor, voltageSource, currentSource, operatingPoint, newton } from './mna.js';
+import { resistor, voltageSource, currentSource, operatingPoint, newton, Stamper, solveInPlace } from './mna.js';
+import { GMIN } from './models.js';
 import { DEVICE_BY_TYPE } from './devices/index.js';
 import { issue, q, volt, stressIssue } from './devices/shared.js';
 
@@ -220,11 +229,89 @@ function solveWithLimits(prep, x0, ctx) {
 // ── The engine ──────────────────────────────────────────────────────────────────────
 
 export function createEngine(program) {
-  const prep = prepare(program);
+  let prep = prepare(program);
+  // Stepping state. A step's memory (capacitor voltage, inductor current) is accepted at the
+  // start of the next one, so read() between steps still sees the current through a capacitor.
+  let x = null;
+  let ctx = {};
+  let pending = null;
+  let time = 0;
+  const memories = () => prep.system.elements.filter((el) => 'accept' in el);
   return {
     dc: () => dc(prep),
     transient: (options) => transient(prep, options),
+    start(mode = 'dc', h = 1e-3) {
+      prep = prepare(program);
+      x = new Array(prep.system.size).fill(0);
+      if (mode === 'dc') {
+        const r = solveWithLimits(prep, x, {});
+        if (!r.ok) return false;
+        x = r.x;
+        for (const el of memories()) el.accept(x, {});
+      }
+      // t = 0: memories hold their starting values (a very short step pins them there).
+      ctx = { h: h * 1e-6 };
+      const first = solveWithLimits(prep, x, ctx);
+      if (!first.ok) return false;
+      x = first.x;
+      pending = null;
+      time = 0;
+      return true;
+    },
+    step(h) {
+      if (!x) return false;
+      if (pending) for (const el of memories()) el.accept(x, pending);
+      pending = null;
+      const next = { h };
+      const r = newton(prep.system, x, next);
+      if (!r.ok) return false;
+      x = r.x;
+      ctx = next;
+      pending = next;
+      time += h;
+      return true;
+    },
+    read: () => (x ? readAll(prep, x, ctx) : null),
+    get time() {
+      return time;
+    },
+    stresses(reading) {
+      const out = {};
+      for (const p of prep.parts) {
+        const r = reading.parts[p.id];
+        if (!r || r.floating) continue;
+        const list = partStresses(p, r).filter((s) => !s.note);
+        if (list.length) out[p.id] = list;
+      }
+      return out;
+    },
+    timeConstants: () => timeConstants(prep),
   };
+}
+
+// Each capacitor and inductor against the rest of the circuit, linearised at the DC operating
+// point: inject 1 A between its two nodes (the element itself left out) and read the voltage,
+// which is the resistance it sees. τ = C·R for a capacitor, L/R for an inductor.
+function timeConstants(prep) {
+  const r = solveWithLimits(prep, new Array(prep.system.size).fill(0), {});
+  if (!r.ok) return [];
+  const out = [];
+  for (const own of prep.system.elements.filter((el) => el.memory)) {
+    const st = new Stamper(prep.system.size);
+    for (let i = 0; i < prep.system.nodeCount; i++) st.add(i, i, GMIN);
+    for (const el of prep.system.elements) if (el !== own) el.stamp(st, r.x, {});
+    // Only the matrix matters: the sources' and the linearisation's constants are dropped.
+    st.b.fill(0);
+    const [a, b] = own.nodes;
+    st.rhs(a, 1);
+    st.rhs(b, -1);
+    const y = solveInPlace(st.A, st.b);
+    if (!y) continue;
+    const resistance = (a >= 0 ? y[a] : 0) - (b >= 0 ? y[b] : 0);
+    if (!(resistance > 0) || !Number.isFinite(resistance) || resistance > 1e9) continue;
+    out.push(own.memory.kind === 'C' ? own.memory.value * resistance : own.memory.value / resistance);
+  }
+  return out;
 }
 
 function dc(prep) {
