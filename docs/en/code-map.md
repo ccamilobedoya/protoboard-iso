@@ -18,7 +18,7 @@ circuit.json ─▶ build ──┤
                                                                      └─▶ text (sim/format.js)
 
 page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.html
-                  └─ browser side: page/script.js (behaviour), page/style.js (CSS)
+                  └─ browser side: page/client/*.js (behaviour, bundled by node/bundle.js), page/style.js (CSS)
 ```
 
 1. **Drawing.** `src/index.js` (`renderCircuit`, `sceneFor`, `addLayers`) builds the scene: the
@@ -31,7 +31,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
    Drawing never depends on it; it only adds layers when asked.
 3. **Page.** `page.js` renders each view with `interactive: true` (every element tagged with
    `data-part`, strips and probes ready but hidden) and writes a JSON (`#page-data`) with what
-   each card says. `page/script.js` only toggles classes and CSS rules; it never redraws.
+   each card says. `page/client/` only toggles classes and CSS rules; it never redraws.
 
 ## Modules
 
@@ -64,7 +64,9 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `sim/overlay.js` | result tags (current per part, voltage per group) with `data-q` and `data-probe` |
 | `sim/paths.js` | conductor view: current paths per part (package `paths` or a straight fallback), strip currents (Kirchhoff), voltage colours, dots of conventional current |
 | `sim/probes.js` | "where a value comes from": probes for voltages, arrows for currents |
-| `page.js`, `page/script.js`, `page/style.js` | the embeddable page |
+| `page.js`, `page/client/`, `page/style.js` | the embeddable page; `page/client/main.js` is the entry of its script (view, focus, card, tooltip modules) |
+| `node/bundle.js` | the small bundler: allowed ES modules → one classic script for the page (engine, page script) |
+| `sim/compile.js`, `sim/engine.js` | compile: circuit → program (plain JSON, Node only); engine: runs a program (no dependencies, bundled into pages) |
 | `i18n/` | every sentence; `pickLanguage` decides the language |
 | `bin/protoboard-iso.js` | command line |
 | `mcp/server.js` | MCP server (own package); tools call the same functions |

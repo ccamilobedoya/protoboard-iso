@@ -116,13 +116,17 @@ src/query.js     at, node, free, suggest (placements); src/query-format.js text 
 src/review.js    verdict from measurements, profiles lesson/draft
 .claude/agents/  circuit-layout, circuit-reviewer, parts-librarian
 src/schema.js    JSON Schemas (written to schema/ by npm run schemas)
-src/node/        Node-only: workspace.js (targets, history, undo, create, outputs), raster.js (PNG)
+src/node/        Node-only: workspace.js (targets, history, undo, create, outputs), raster.js (PNG),
+                 bundle.js (ES modules → one script for the page)
 mcp/             MCP server (own package: SDK + zod); server.js, test/; .mcp.json registers it
 src/board/       board.js (holes, nodes), draw-board.js, boards/*.js (data)
 src/parts/       types/ (meaning), packages/ (shape), db.js (part numbers), colors.js
 src/circuit/     build.js (pipeline), checks.js (placement checks)
 src/i18n/        en.js (reference), es.js, index.js (t)
-src/sim/         stage 2, empty for now (see its README)
+src/sim/         simulator: compile.js (circuit → program), engine.js (runs it, bundled into pages),
+                 mna.js, models.js, devices/ (one file per kind of part), paths.js (conductor view);
+                 see its README
+src/page/        page.js's browser side: client/ (script modules), style.js
 bin/             CLI
 scripts/         render-examples.js (+ gallery), preview.js (PNG)
 examples/        circuits; out/ is generated and ignored by git

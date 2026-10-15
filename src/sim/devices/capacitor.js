@@ -11,10 +11,11 @@ export const capacitor = {
   read: (entry, h) => twoTerminal(entry, entry.main, h),
   lines: twoTerminalLines,
   tag: currentTag,
-  build(part, h) {
-    const { e } = h;
-    return { main: h.add(capacitorEl(h.at(0), h.at(1), e.capacitance)), polarised: Boolean(e.polarised), maxVoltage: e.voltage ?? CERAMIC_VOLTAGE };
+  params(part) {
+    const e = part.def.electrical;
+    return { capacitance: e.capacitance, polarised: Boolean(e.polarised), maxVoltage: e.voltage ?? CERAMIC_VOLTAGE };
   },
+  elements: (p, h) => ({ main: h.add(capacitorEl(h.at(0), h.at(1), p.capacitance)) }),
   limits(entry, r) {
     const out = [];
     if (entry.polarised) out.push(stress('SIM_CAP_REVERSED', 'reverse', -r.voltage, 0.5, 'V', { param: 'voltage', reportMax: false }));

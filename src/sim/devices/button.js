@@ -10,12 +10,13 @@ const BUTTON_CONTACT = 0.1; // closed tactile switch, ohms (datasheets: ≤ 100 
 export const button = {
   types: ['button'],
   kind: 'SW',
-  build(part, h) {
-    const { e } = h;
-    const entry = { poles: e.poles.map(([a, b]) => ({ a, b, el: h.add(resistorEl(h.pin(a), h.pin(b), WIRE_RESISTANCE)) })) };
-    if (e.pressed) entry.main = h.add(resistorEl(h.pin(e.poles[0][0]), h.pin(e.poles[1][0]), BUTTON_CONTACT));
-    entry.contact = [e.poles[0][0], e.poles[1][0]];
-    entry.pressed = e.pressed;
+  params(part) {
+    const e = part.def.electrical;
+    return { poles: e.poles, contact: [e.poles[0][0], e.poles[1][0]], pressed: e.pressed };
+  },
+  elements(p, h) {
+    const entry = { poles: p.poles.map(([a, b]) => ({ a, b, el: h.add(resistorEl(h.pin(a), h.pin(b), WIRE_RESISTANCE)) })) };
+    if (p.pressed) entry.main = h.add(resistorEl(h.pin(p.contact[0]), h.pin(p.contact[1]), BUTTON_CONTACT));
     return entry;
   },
   read: (entry, h) => ({ pressed: entry.pressed, current: entry.main ? entry.main.currents(h.x, h.ctx)[0] : 0 }),

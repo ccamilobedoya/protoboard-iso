@@ -7,13 +7,13 @@ import { issue, stress } from './shared.js';
 export const mosfet = {
   types: ['mosfet'],
   kind: 'M',
-  build(part, h) {
-    const { e, raw } = h;
+  params(part, c) {
+    const e = part.def.electrical;
     const known = MOSFETS[e.part];
-    if (!known) h.issues.push(issue('info', 'SIM_DEFAULT_MODEL', { part: part.id, model: 'MOSFET' }));
-    const model = { ...MOSFET_DEFAULT, ...(e.channel && { channel: e.channel }), ...known, ...raw.model };
-    return { main: h.add(mosfetEl(h.pin('D'), h.pin('G'), h.pin('S'), model)), model };
+    if (!known) c.issues.push(issue('info', 'SIM_DEFAULT_MODEL', { part: part.id, model: 'MOSFET' }));
+    return { model: { ...MOSFET_DEFAULT, ...(e.channel && { channel: e.channel }), ...known, ...part.raw.model } };
   },
+  elements: (p, h) => ({ main: h.add(mosfetEl(h.pin('D'), h.pin('G'), h.pin('S'), p.model)) }),
   read(entry, h) {
     const [d, g, s] = entry.main.nodes;
     const vgs = h.volt(g) - h.volt(s);

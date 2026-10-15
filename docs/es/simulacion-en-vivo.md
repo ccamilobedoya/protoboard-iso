@@ -18,9 +18,12 @@ Esta página es la referencia del trabajo, que toma varias sesiones. Cada sesió
 - Fases 0 y 1 hechas (`ff4070f`): archivo *golden*, vista de conductores por los caminos reales,
   corriente convencional, velocidad proporcional, paleta de los rieles con degradado empinado
   dentro de los cuerpos.
-- Fase 2 hecha: `src/sim/devices/`. Hoy un dispositivo tiene `build(part, h)` (los elementos y lo
-  que necesita su lectura) en vez del par `params` + `elements` del esbozo de abajo; la fase 3 lo
-  separa cuando introduzca el programa compilado (los parámetros tendrán que ser JSON plano).
+- Fase 2 hecha (`af639b0`): `src/sim/devices/`; islas flotantes ancladas en DC.
+- Fase 3 hecha: `compile.js` → programa → `engine.js`; los dispositivos tienen `params` (JSON) y
+  `elements`; `node/bundle.js`; el script de la página en `page/client/` (main, view, focus,
+  card, tooltip). El motor agrupado pesa ≈ 50 kB sin comentarios; el script de la página, ≈ 12 kB.
+  Una escalera RC/diodo de 40 secciones corre ≈ 12 000 pasos/s en Node (`test/engine.test.js`).
+- Siguiente: fase 4, la página en vivo.
 
 ## Decisiones
 

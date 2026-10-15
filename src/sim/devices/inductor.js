@@ -9,11 +9,14 @@ export const inductor = {
   read: (entry, h) => twoTerminal(entry, entry.main, h),
   lines: twoTerminalLines,
   tag: currentTag,
-  build(part, h) {
-    const { e } = h;
-    const mid = h.inner(part.id);
-    h.add(resistorEl(h.at(0), mid, Math.max(e.dcr, 1e-3)));
-    return { main: h.add(inductorEl(mid, h.at(1), e.inductance)), maxCurrent: e.maxCurrent };
+  params(part) {
+    const e = part.def.electrical;
+    return { inductance: e.inductance, dcr: e.dcr, maxCurrent: e.maxCurrent };
+  },
+  elements(p, h) {
+    const mid = h.inner();
+    h.add(resistorEl(h.at(0), mid, Math.max(p.dcr, 1e-3)));
+    return { main: h.add(inductorEl(mid, h.at(1), p.inductance)) };
   },
   limits: (entry, r) => [stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), entry.maxCurrent, 'A')],
 };

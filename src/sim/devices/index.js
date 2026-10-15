@@ -4,9 +4,10 @@
 //   types         part types it handles (`type` in the circuit file)
 //   kind          the reading's kind ('R', 'LED', 'Q'…); devices that share a kind share their
 //                 reading hooks (lines, tag, probe, currentPins), looked up by kind
-//   build(part, h)   adds its MNA elements and returns what reading needs (the "entry")
-//                    h: { e (part.def.electrical), raw (the circuit's part), pin(name), at(i),
-//                         inner(label), add(element), issues, supplies }
+//   params(part, c)  compile time (Node): what the part needs, as plain JSON; c: { issues }
+//   elements(p, h)   run time: adds its MNA elements, returns them by name; the "entry" a
+//                    reading gets is { id, kind, pins, ...params, ...elements }
+//                    h: { id, pin(name), at(i), inner(), add(element), supplies }
 //   read(entry, h)   its values; h: { x, ctx, volt(index), supplyReading(supply) }
 //   pinCurrents(entry, out, h)  optional: current into the part at each pin (default from
 //                               `currents`, or ± `current` for two pins)

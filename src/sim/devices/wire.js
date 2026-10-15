@@ -7,7 +7,8 @@ import { twoTerminal, twoTerminalLines, currentTag } from './shared.js';
 export const wire = {
   types: ['wire'],
   kind: 'W',
-  build: (part, h) => ({ main: h.add(resistor(h.at(0), h.at(1), WIRE_RESISTANCE)) }),
+  params: () => ({}),
+  elements: (p, h) => ({ main: h.add(resistor(h.at(0), h.at(1), WIRE_RESISTANCE)) }),
   read: (entry, h) => twoTerminal(entry, entry.main, h),
   lines: twoTerminalLines,
   tag: currentTag,

@@ -8,15 +8,14 @@ import { stress } from './shared.js';
 export const bridge = {
   types: ['bridge'],
   kind: 'BR',
-  build(part, h) {
-    const { e, raw } = h;
-    const model = { ...(BRIDGES[e.family] ?? BRIDGES.KBP3), ...raw.model };
+  params: (part) => ({ model: { ...(BRIDGES[part.def.electrical.family] ?? BRIDGES.KBP3), ...part.raw.model } }),
+  elements(p, h) {
     const leg = (a, k) => {
-      const mid = h.inner(part.id);
-      h.add(resistor(a, mid, model.rs));
-      return h.add(junction(mid, k, model));
+      const mid = h.inner();
+      h.add(resistor(a, mid, p.model.rs));
+      return h.add(junction(mid, k, p.model));
     };
-    return { legs: [leg(h.pin('AC1'), h.pin('+')), leg(h.pin('AC2'), h.pin('+')), leg(h.pin('-'), h.pin('AC1')), leg(h.pin('-'), h.pin('AC2'))], model };
+    return { legs: [leg(h.pin('AC1'), h.pin('+')), leg(h.pin('AC2'), h.pin('+')), leg(h.pin('-'), h.pin('AC1')), leg(h.pin('-'), h.pin('AC2'))] };
   },
   // Current out of + towards the load, and back in by −; the AC pins carry the rest.
   read(entry, h) {

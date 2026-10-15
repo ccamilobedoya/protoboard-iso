@@ -11,14 +11,15 @@
 //   renderPage(circuit, { lang, views, fit }) → { html, issues }   (html is null if nothing can be drawn)
 //
 // This file builds the HTML: one interactive SVG per view (renderCircuit with interactive) and
-// the JSON the script reads (partData). The browser side is in page/script.js, its CSS in
+// the JSON the script reads (partData). The browser side is in page/client/ (modules bundled
+// into the page's one script by src/node/bundle.js, so this file runs in Node only), its CSS in
 // page/style.js. Language: `lang` here is already resolved (see pickLanguage).
 
 import { renderCircuit, t, labelText, valueText, formatValue } from './index.js';
 import { decimalSeparator } from './i18n/index.js';
 import { escapeXml } from './render/svg.js';
 import { STYLE } from './page/style.js';
-import { SCRIPT } from './page/script.js';
+import { bundleScript } from './node/bundle.js';
 import { buildCircuit } from './circuit/build.js';
 import { nodeParams } from './circuit/checks.js';
 import { simulate } from './sim/index.js';
@@ -27,6 +28,10 @@ import { partLines } from './sim/format.js';
 import { groundHole } from './sim/probes.js';
 import { describePart, describeKeys } from './parts/describe.js';
 import { MODULES } from './parts/modules.js';
+
+// The page's script, bundled once per process (src/page/client/main.js and what it imports).
+let script;
+const pageScript = () => (script ??= bundleScript('page/client/main.js', { comments: false }));
 
 const OPPOSITE = { front: 'back', back: 'front', 'front-left': 'back-right', 'back-right': 'front-left' };
 const box = ({ x, y, width, height }) => `${x} ${y} ${width} ${height}`;
@@ -225,8 +230,7 @@ ${svgs.join('\n')}
 <div class="tooltip" hidden></div>
 </main>
 <script type="application/json" id="page-data">${safeJson(data)}</script>
-<script>${SCRIPT}
-</script>
+<script>${pageScript()}</script>
 </body>
 </html>
 `;

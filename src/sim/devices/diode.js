@@ -6,13 +6,17 @@ import { DIODES, ledModel, zenerModel } from '../models.js';
 import { issue, stress, twoTerminal, twoTerminalLines, currentTag } from './shared.js';
 
 const junctionDevice = {
-  build(part, h) {
-    const { e, raw } = h;
+  params(part, c) {
+    const e = part.def.electrical;
+    const raw = part.raw;
     const model = e.kind === 'LED' ? ledModel(e.color, raw.model) : e.zener ? zenerModel(e.vz, raw.model) : { ...(DIODES[e.part] ?? DIODES['1N4148']), ...raw.model };
-    if (e.kind === 'D' && !e.zener && !DIODES[e.part]) h.issues.push(issue('info', 'SIM_DEFAULT_MODEL', { part: part.id, model: '1N4148' }));
-    const mid = model.rs > 0 ? h.inner(part.id) : h.at(0);
-    if (model.rs > 0) h.add(resistor(h.at(0), mid, model.rs));
-    return { main: h.add(junction(mid, h.at(1), model)), model };
+    if (e.kind === 'D' && !e.zener && !DIODES[e.part]) c.issues.push(issue('info', 'SIM_DEFAULT_MODEL', { part: part.id, model: '1N4148' }));
+    return { model };
+  },
+  elements(p, h) {
+    const mid = p.model.rs > 0 ? h.inner() : h.at(0);
+    if (p.model.rs > 0) h.add(resistor(h.at(0), mid, p.model.rs));
+    return { main: h.add(junction(mid, h.at(1), p.model)) };
   },
   lines: twoTerminalLines,
   tag: currentTag,

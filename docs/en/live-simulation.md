@@ -15,9 +15,12 @@ the tests green, this page and the roadmap up to date.
 
 - Phases 0–1 done (`ff4070f`): golden file, conductor view on real paths, conventional current,
   proportional speed, rail palette with steep shading inside bodies.
-- Phase 2 done: `src/sim/devices/`. A device today has `build(part, h)` (elements and the entry
-  its reading needs) instead of the `params` + `elements` pair sketched below; phase 3 splits it
-  when it introduces the compiled program (params must then be plain JSON).
+- Phase 2 done (`af639b0`): `src/sim/devices/`; floating islands anchored in DC.
+- Phase 3 done: `compile.js` → program → `engine.js`; devices have `params` (JSON) and
+  `elements`; `node/bundle.js`; the page script in `page/client/` (main, view, focus, card,
+  tooltip). Engine bundle ≈ 50 kB without comments; page script ≈ 12 kB. A 40-section RC/diode
+  ladder runs ≈ 12 000 steps/s in Node (`test/engine.test.js`).
+- Next: phase 4, the live page.
 
 ## Decisions
 

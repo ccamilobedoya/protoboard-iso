@@ -8,12 +8,11 @@ import { stress, note, q } from './shared.js';
 export const regulator = {
   types: ['regulator'],
   kind: 'REG',
-  build(part, h) {
-    const { e, raw } = h;
-    const model = { ...(e.adjustable ? REGULATORS.LM317 : REGULATORS.fixed), vref: e.adjustable ? e.reference : e.output, ...raw.model };
-    const ref = e.adjustable ? 'ADJ' : 'GND';
-    return { main: h.add(regulatorElement(h.pin('IN'), h.pin(ref), h.pin('OUT'), model)), model, ref };
+  params(part) {
+    const e = part.def.electrical;
+    return { model: { ...(e.adjustable ? REGULATORS.LM317 : REGULATORS.fixed), vref: e.adjustable ? e.reference : e.output, ...part.raw.model }, ref: e.adjustable ? 'ADJ' : 'GND' };
   },
+  elements: (p, h) => ({ main: h.add(regulatorElement(h.pin('IN'), h.pin(p.ref), h.pin('OUT'), p.model)) }),
   read(entry, h) {
     const [inp, ref, o] = entry.main.nodes;
     const [iin, iref, iout] = entry.main.currents(h.x, h.ctx);

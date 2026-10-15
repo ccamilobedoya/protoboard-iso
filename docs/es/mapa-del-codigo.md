@@ -18,7 +18,7 @@ circuit.json ─▶ build ──┤
                                                                            └─▶ texto (sim/format.js)
 
 página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out/<nombre>.html
-                    └─ en el navegador: page/script.js (comportamiento), page/style.js (CSS)
+                    └─ en el navegador: page/client/*.js (comportamiento, agrupado por node/bundle.js), page/style.js (CSS)
 ```
 
 1. **Dibujo.** `src/index.js` (`renderCircuit`, `sceneFor`, `addLayers`) arma la escena: la
@@ -31,7 +31,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
    componente y pata. El dibujo nunca depende de ella; solo agrega capas cuando se le piden.
 3. **Página.** `page.js` dibuja cada vista con `interactive: true` (cada elemento marcado con
    `data-part`, tiras y sondas listas pero ocultas) y escribe un JSON (`#page-data`) con lo que dice
-   cada ficha. `page/script.js` solo cambia clases y reglas CSS; nunca vuelve a dibujar.
+   cada ficha. `page/client/` solo cambia clases y reglas CSS; nunca vuelve a dibujar.
 
 ## Módulos
 
@@ -64,7 +64,9 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `sim/overlay.js` | etiquetas de resultados (corriente por componente, voltaje por grupo) con `data-q` y `data-probe` |
 | `sim/paths.js` | vista de conductores: caminos de la corriente por componente (`paths` del paquete o una recta de respaldo), corriente de las tiras (Kirchhoff), colores de voltaje, puntos de corriente convencional |
 | `sim/probes.js` | «de dónde sale un valor»: puntas para voltajes, flechas para corrientes |
-| `page.js`, `page/script.js`, `page/style.js` | la página para embeber |
+| `page.js`, `page/client/`, `page/style.js` | la página para embeber; `page/client/main.js` es la entrada de su script (módulos view, focus, card, tooltip) |
+| `node/bundle.js` | el agrupador pequeño: módulos ES permitidos → un solo script clásico para la página (motor, script de la página) |
+| `sim/compile.js`, `sim/engine.js` | compilar: circuito → programa (JSON plano, solo Node); motor: corre un programa (sin dependencias, va dentro de las páginas) |
 | `i18n/` | todas las frases; `pickLanguage` decide el idioma |
 | `bin/protoboard-iso.js` | línea de comandos |
 | `mcp/server.js` | servidor MCP (paquete propio); sus herramientas llaman a las mismas funciones |

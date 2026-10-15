@@ -132,7 +132,7 @@ the plan by sessions: [docs/en/live-simulation.md](docs/en/live-simulation.md).
 - ✅ Phase 0: golden test of the simulator output (safety net for the refactors): `scripts/golden.js`, `test/golden.test.js`
 - ✅ Phase 1: conductor view: conductors along their real paths (package `paths`: axial, LED, wire, TO-92, TO-220, push button, battery), coloured by voltage; conventional current only (electrons view removed); speed proportional to the current with a log toggle; mock-ups (`scripts/mockups.js`); rails palette chosen, steep shading inside bodies
 - ✅ Phase 2: device modules, one file per kind of part (`src/sim/devices/`: elements, reading, limits as stresses, card lines, tag, probe); outputs identical (golden file, pages and drawings byte for byte); floating islands anchored in DC (an isolated inductor made the matrix singular). Controls move to phase 5
-- ⬜ Phase 3: compiled program + dependency-free engine; a small bundler; the page script as modules
+- ✅ Phase 3: compiled program (`sim/compile.js`) + dependency-free engine (`sim/engine.js`); devices split into `params` (JSON) and `elements`; a small bundler (`node/bundle.js`), the engine bundled runs alone and matches `simulate()`; the page script as modules (`page/client/`); stamper reused and solved in place (≈ 4× faster, same results)
 - ⬜ Phase 4: live simulation in the page: conductor view, voltage as colour, dots moved by the script, LED glow, heat tint, play / pause / reset / speed, live tags
 - ⬜ Phase 5: sliders in the card and `page.controls` panel, momentary push button; limits made visible (stress levels, latched "exceeded", warnings panel)
 - ⬜ Phase 6: compare a few circuits with Falstad CircuitJS (the stage 2 item)

@@ -15,9 +15,13 @@ import { VT, GMIN } from './models.js';
 
 // Gaussian elimination with partial pivoting. Returns null if the matrix is singular.
 export function solveLinear(A, b) {
-  const n = b.length;
-  const M = A.map((row) => Float64Array.from(row));
-  const x = Float64Array.from(b);
+  return solveInPlace(A.map((row) => Float64Array.from(row)), Float64Array.from(b));
+}
+
+// The same, overwriting M (rows of Float64Array) and x (the right-hand side, then the answer).
+// Newton uses it on the stamper's own buffers, which it clears for the next iteration anyway.
+export function solveInPlace(M, x) {
+  const n = x.length;
   for (let k = 0; k < n; k++) {
     let p = k;
     for (let i = k + 1; i < n; i++) if (Math.abs(M[i][k]) > Math.abs(M[p][k])) p = i;
@@ -48,6 +52,10 @@ export class Stamper {
   constructor(size) {
     this.A = Array.from({ length: size }, () => new Float64Array(size));
     this.b = new Float64Array(size);
+  }
+  reset() {
+    for (const row of this.A) row.fill(0);
+    this.b.fill(0);
   }
   add(r, c, v) {
     if (r >= 0 && c >= 0) this.A[r][c] += v;
@@ -422,12 +430,14 @@ const MAX_ITERATIONS = 200;
 export function newton(system, x0, ctx = {}) {
   const { size, nodeCount, elements } = system;
   let x = x0.slice();
+  // One stamper per system, cleared each iteration: no new matrices while stepping in time.
+  const st = (system.stamper ??= new Stamper(size));
   for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
-    const st = new Stamper(size);
+    st.reset();
     for (let i = 0; i < nodeCount; i++) st.add(i, i, GMIN);
     let limited = false;
     for (const el of elements) if (el.stamp(st, x, ctx)) limited = true;
-    const next = solveLinear(st.A, st.b);
+    const next = solveInPlace(st.A, st.b);
     if (!next) return { ok: false, reason: 'singular', x, iterations: iteration };
     let done = !limited;
     for (let i = 0; i < size && done; i++) {

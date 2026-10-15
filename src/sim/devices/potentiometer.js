@@ -5,10 +5,13 @@ import { resistor as resistorEl } from '../mna.js';
 export const potentiometer = {
   types: ['potentiometer'],
   kind: 'POT',
-  build(part, h) {
-    const { e } = h;
-    const r1 = Math.max(e.resistance * e.position, 1e-3);
-    const r2 = Math.max(e.resistance * (1 - e.position), 1e-3);
+  params(part) {
+    const e = part.def.electrical;
+    return { resistance: e.resistance, position: e.position };
+  },
+  elements(p, h) {
+    const r1 = Math.max(p.resistance * p.position, 1e-3);
+    const r2 = Math.max(p.resistance * (1 - p.position), 1e-3);
     return { upper: h.add(resistorEl(h.pin('1'), h.pin('W'), r1)), lower: h.add(resistorEl(h.pin('W'), h.pin('3'), r2)) };
   },
   read(entry, h) {

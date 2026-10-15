@@ -8,11 +8,12 @@ export const battery = {
   types: ['battery'],
   kind: 'BAT',
   source: true,
-  build(part, h) {
-    const supply = h.supplies.find((s) => s.part === part.id);
-    if (supply.off) h.issues.push(issue('info', 'SIM_BATTERY_OFF', { part: part.id }));
-    return { supply };
+  params(part, c) {
+    if (!part.def.electrical.on) c.issues.push(issue('info', 'SIM_BATTERY_OFF', { part: part.id }));
+    return {};
   },
+  // The battery is one of the supplies (see ../index.js); its reading comes from there.
+  elements: (p, h) => ({ supply: h.supplies.find((s) => s.part === h.id) }),
   // current: delivered out of + (negative while something charges it).
   read(entry, h) {
     const s = entry.supply;

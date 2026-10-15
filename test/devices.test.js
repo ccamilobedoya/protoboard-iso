@@ -19,7 +19,8 @@ test('devices: one per simulated part type, and only known types', () => {
     if (!NOT_SIMULATED.includes(type)) assert.ok(DEVICE_BY_TYPE[type], `${type} has a device`);
   }
   for (const d of DEVICES) {
-    assert.equal(typeof d.build, 'function', `${d.types}: build`);
+    assert.equal(typeof d.params, 'function', `${d.types}: params`);
+    assert.equal(typeof d.elements, 'function', `${d.types}: elements`);
     assert.equal(typeof d.read, 'function', `${d.types}: read`);
     assert.equal(typeof d.lines, 'function', `${d.types}: lines`);
     assert.equal(typeof d.tag, 'function', `${d.types}: tag`);

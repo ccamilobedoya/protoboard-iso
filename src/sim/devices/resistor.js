@@ -10,14 +10,14 @@ const resistive = {
   kind: 'R',
   lines: twoTerminalLines,
   tag: currentTag,
-  build(part, h) {
-    const { e, raw } = h;
-    const entry = { main: h.add(resistorEl(h.at(0), h.at(1), e.resistance)) };
-    entry.maxPower = e.maxPower ?? RESISTOR_POWER[String(raw.power ?? '1/4').replace(/\s*W$/i, '')] ?? 0.25;
-    if (e.sensor) entry.sensor = { ...e.sensor, resistance: e.resistance };
-    if (e.buzzer) entry.buzzer = true;
-    return entry;
+  params(part) {
+    const e = part.def.electrical;
+    const p = { resistance: e.resistance, maxPower: e.maxPower ?? RESISTOR_POWER[String(part.raw.power ?? '1/4').replace(/\s*W$/i, '')] ?? 0.25 };
+    if (e.sensor) p.sensor = { ...e.sensor, resistance: e.resistance };
+    if (e.buzzer) p.buzzer = true;
+    return p;
   },
+  elements: (p, h) => ({ main: h.add(resistorEl(h.at(0), h.at(1), p.resistance)) }),
   read(entry, h) {
     const out = twoTerminal(entry, entry.main, h);
     if (entry.sensor) out.sensor = entry.sensor;

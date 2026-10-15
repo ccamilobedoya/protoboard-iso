@@ -114,10 +114,14 @@ object:
 export const inductor = {
   types: ['inductor'],               // part types it handles
   kind: 'L',                         // the reading's kind
-  build(part, h) {                   // add MNA elements (src/sim/mna.js); return what reading needs
-    const mid = h.inner(part.id);
-    h.add(resistor(h.at(0), mid, Math.max(h.e.dcr, 1e-3)));
-    return { main: h.add(inductorEl(mid, h.at(1), h.e.inductance)), maxCurrent: h.e.maxCurrent };
+  params(part) {                     // compile time, Node: plain JSON from the resolved part
+    const e = part.def.electrical;
+    return { inductance: e.inductance, dcr: e.dcr, maxCurrent: e.maxCurrent };
+  },
+  elements(p, h) {                   // run time (Node or page): MNA elements (src/sim/mna.js), by name
+    const mid = h.inner();
+    h.add(resistor(h.at(0), mid, Math.max(p.dcr, 1e-3)));
+    return { main: h.add(inductorEl(mid, h.at(1), p.inductance)) };
   },
   read: (entry, h) => twoTerminal(entry, entry.main, h),          // its values
   limits: (entry, r) => [stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), entry.maxCurrent, 'A')],
@@ -125,6 +129,11 @@ export const inductor = {
   tag: currentTag,                   // the current tag on the board
 };
 ```
+
+The reading hooks get the *entry*: `{ id, kind, pins, ...params, ...elements }`. `params` must
+be plain JSON (it travels to the page inside the compiled program, see `src/sim/compile.js`);
+`elements` and everything after it run in the browser too, so they import only from `src/sim`
+and import-free modules such as `src/parts/sensors.js`.
 
 Then list it in `DEVICES` (`src/sim/devices/index.js`). That is all: the simulator, the text
 output, the result tags, the probes and the page find it there.

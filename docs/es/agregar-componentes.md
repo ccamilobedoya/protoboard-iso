@@ -117,10 +117,14 @@ objeto simple:
 export const inductor = {
   types: ['inductor'],               // tipos de componente que maneja
   kind: 'L',                         // la clase de lectura
-  build(part, h) {                   // agrega elementos MNA (src/sim/mna.js); devuelve lo que la lectura necesita
-    const mid = h.inner(part.id);
-    h.add(resistor(h.at(0), mid, Math.max(h.e.dcr, 1e-3)));
-    return { main: h.add(inductorEl(mid, h.at(1), h.e.inductance)), maxCurrent: h.e.maxCurrent };
+  params(part) {                     // al compilar, en Node: JSON plano a partir del componente resuelto
+    const e = part.def.electrical;
+    return { inductance: e.inductance, dcr: e.dcr, maxCurrent: e.maxCurrent };
+  },
+  elements(p, h) {                   // al correr (Node o la página): elementos MNA (src/sim/mna.js), por nombre
+    const mid = h.inner();
+    h.add(resistor(h.at(0), mid, Math.max(p.dcr, 1e-3)));
+    return { main: h.add(inductorEl(mid, h.at(1), p.inductance)) };
   },
   read: (entry, h) => twoTerminal(entry, entry.main, h),          // sus valores
   limits: (entry, r) => [stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), entry.maxCurrent, 'A')],
@@ -128,6 +132,11 @@ export const inductor = {
   tag: currentTag,                   // la etiqueta de corriente sobre la protoboard
 };
 ```
+
+Los ganchos de lectura reciben la *entrada*: `{ id, kind, pins, ...params, ...elements }`.
+`params` tiene que ser JSON plano (viaja a la página dentro del programa compilado, ver
+`src/sim/compile.js`); `elements` y lo que sigue corren también en el navegador, así que solo
+importan de `src/sim` y de módulos sin imports como `src/parts/sensors.js`.
 
 Luego se agrega a `DEVICES` (`src/sim/devices/index.js`). Es todo: el simulador, la salida en
 texto, las etiquetas de resultados, las sondas y la página lo encuentran ahí.

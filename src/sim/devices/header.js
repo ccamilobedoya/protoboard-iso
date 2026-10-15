@@ -3,7 +3,8 @@
 export const header = {
   types: ['header'],
   kind: 'HDR',
-  build: () => ({}),
+  params: () => ({}),
+  elements: () => ({}),
   read: (entry) => ({ currents: Object.fromEntries(entry.pins.map((p) => [p.name, 0])) }),
   lines: () => null,
   tag: () => null,

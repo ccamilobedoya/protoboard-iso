@@ -8,22 +8,25 @@ import { issue, stress } from './shared.js';
 export const bjt = {
   types: ['bjt'],
   kind: 'Q',
-  build(part, h) {
-    const { e, raw } = h;
+  params(part, c) {
+    const e = part.def.electrical;
     const known = BJTS[e.part];
-    if (!known) h.issues.push(issue('info', 'SIM_DEFAULT_MODEL', { part: part.id, model: 'BJT' }));
-    const model = { ...BJT_DEFAULT, ...(e.polarity && { polarity: e.polarity }), ...known, ...raw.model };
+    if (!known) c.issues.push(issue('info', 'SIM_DEFAULT_MODEL', { part: part.id, model: 'BJT' }));
+    return { model: { ...BJT_DEFAULT, ...(e.polarity && { polarity: e.polarity }), ...known, ...part.raw.model } };
+  },
+  elements(p, h) {
+    const { model } = p;
     if (model.darlington) {
       const { first, second, r1, r2 } = model.darlington;
-      const x = h.inner(part.id);
-      const entry = { model };
+      const x = h.inner();
+      const entry = {};
       entry.first = h.add(bjtEl(h.pin('C'), h.pin('B'), x, { ...first, polarity: model.polarity }));
       entry.second = h.add(bjtEl(h.pin('C'), x, h.pin('E'), { ...second, polarity: model.polarity }));
       entry.r1 = h.add(resistor(h.pin('B'), x, r1));
       entry.r2 = h.add(resistor(x, h.pin('E'), r2));
       return entry;
     }
-    return { main: h.add(bjtEl(h.pin('C'), h.pin('B'), h.pin('E'), model)), model };
+    return { main: h.add(bjtEl(h.pin('C'), h.pin('B'), h.pin('E'), model)) };
   },
   read(entry, h) {
     const c = entry.pins.find((p) => p.name === 'C').index;
