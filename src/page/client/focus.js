@@ -6,12 +6,14 @@
 export const quote = (s) => String(s).replace(/["\\]/g, '\\$&');
 const SVG = 'http://www.w3.org/2000/svg';
 
-function spotlightOf(svg) {
-  let g = svg.querySelector(':scope > .spotlight');
+// The copies of the parts go under the current layer (its conductors run through them); the
+// copies of their labels go above it, so the dots never cover a label.
+function groupOf(svg, cls, before) {
+  let g = svg.querySelector(':scope > .' + cls);
   if (!g) {
     g = document.createElementNS(SVG, 'g');
-    g.setAttribute('class', 'spotlight');
-    svg.insertBefore(g, svg.querySelector(':scope > .flow') || svg.querySelector(':scope > .results'));
+    g.setAttribute('class', cls);
+    svg.insertBefore(g, before.map((b) => svg.querySelector(':scope > .' + b)).find(Boolean) || null);
   }
   return g;
 }
@@ -22,9 +24,13 @@ export function applyFocus(page) {
   const nodes = new Set(ids.flatMap((id) => data.parts[id].nodes));
   const of = (layer) => ids.map((id) => ':scope > .' + layer + ' > [data-part="' + quote(id) + '"]').join(', ');
   for (const svg of svgs) {
-    const g = spotlightOf(svg);
-    g.textContent = '';
-    if (ids.length) for (const el of [...svg.querySelectorAll(of('under')), ...svg.querySelectorAll(of('parts')), ...svg.querySelectorAll(of('labels'))]) g.appendChild(el.cloneNode(true));
+    const parts = groupOf(svg, 'spotlight', ['flow', 'results', 'probes']);
+    const labels = groupOf(svg, 'spotlabels', ['results', 'probes']);
+    parts.textContent = '';
+    labels.textContent = '';
+    if (!ids.length) continue;
+    for (const el of [...svg.querySelectorAll(of('under')), ...svg.querySelectorAll(of('parts'))]) parts.appendChild(el.cloneNode(true));
+    for (const el of svg.querySelectorAll(of('labels'))) labels.appendChild(el.cloneNode(true));
   }
   // Strips under the focused parts; with the results on, their currents and the voltages
   // of their groups (and nothing else: all tags at once is too much to read).

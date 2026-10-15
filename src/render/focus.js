@@ -68,10 +68,16 @@ export function coordOps(scene, board, holes) {
   return ops;
 }
 
-// Copies of the parts (bodies, leads, labels) in painting order; `ids` null = every part.
+// Copies of the parts (bodies and leads) in painting order; `ids` null = every part.
 export function spotlightOps(scene, ids = null) {
   const keep = (op) => op.part && (!ids || ids.has(op.part));
-  return [...scene.layers.under.filter(keep), ...scene.layers.parts.filter(keep), ...scene.layers.labels.filter(keep)].map((op) => ({ ...op }));
+  return [...scene.layers.under.filter(keep), ...scene.layers.parts.filter(keep)].map((op) => ({ ...op }));
+}
+
+// Copies of their labels: a layer of their own, above the current layer, so a label is never
+// covered by the conductors and dots.
+export function spotlabelOps(scene, ids = null) {
+  return scene.layers.labels.filter((op) => op.part && (!ids || ids.has(op.part))).map((op) => ({ ...op }));
 }
 
 // The nodes under the leads of some parts.
@@ -83,5 +89,5 @@ export function nodesOf(built, ids) {
 export function focusLayers(scene, built, ids) {
   const set = new Set(ids);
   const holes = built.parts.filter((p) => set.has(p.id)).flatMap((p) => p.holes);
-  return { veil: veilOps(scene.frame), strips: stripOps(scene, built.board, nodesOf(built, set)), coords: coordOps(scene, built.board, holes), spotlight: spotlightOps(scene, set) };
+  return { veil: veilOps(scene.frame), strips: stripOps(scene, built.board, nodesOf(built, set)), coords: coordOps(scene, built.board, holes), spotlight: spotlightOps(scene, set), spotlabels: spotlabelOps(scene, set) };
 }

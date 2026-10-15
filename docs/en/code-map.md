@@ -103,7 +103,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 - **Power sources**: the first of `supplies` sets ground; with none, the first battery part.
   Code that needs "where the supply is" (ground probe, flow) must handle both.
 - **Layers** are always written in the order of `addLayers`: veil, strips, coords, spotlight, flow,
-  results, probes. A page shows or hides them with CSS only; new interactive features should
+  spotlabels (copies of the focused parts' labels, above the current), results, probes. A page shows or hides them with CSS only; new interactive features should
   follow the same idea (tag in the SVG, rule in CSS). Coordinate tags sit under the spotlight
   copy so they never cover the part being explained, but result tags may still cover them: a
   known limit, left for a planned pass on what covers what (see the roadmap, visual style).

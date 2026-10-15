@@ -58,6 +58,9 @@ export default {
       { points: [...anodeLead, chip], body: anodeLead.length - 1 },
       { points: [...cathodeLead, chip], body: cathodeLead.length - 1 },
     ];
-    return { primitives: [flange, body, ...leads], body: [flange, body], anchor: withZ(base, standoff + 8.1 * k), paths };
+    // Where it lights up (src/sim/paths.js draws a lit LED over the conductor view): the dome,
+    // a vertical cylinder from the flange to the top.
+    const light = { base: withZ(base, standoff + 1.0 * k), radius: 2.5 * k, height: 7.1 * k };
+    return { primitives: [flange, body, ...leads], body: [flange, body], anchor: withZ(base, standoff + 8.1 * k), paths, light };
   },
 };

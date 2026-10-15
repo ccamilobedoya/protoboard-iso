@@ -15,6 +15,7 @@
 // index; page/client/live.js moves and colours them from the running simulation).
 
 import { stripHoles } from '../render/focus.js';
+import { LED_LIGHT } from '../parts/colors.js';
 import { MIN_CURRENT, DOT_PERIOD, voltageColor, dotSpeed, bodyShare, bodyVoltage, centreVoltage, glowOpacity } from './look.js';
 
 export { MIN_CURRENT, DOT_PERIOD, MAX_SPEED, VOLTAGE_COLORS, FLOATING_COLOR, voltageColor, dotSpeed, bodyShare } from './look.js';
@@ -119,7 +120,7 @@ export function conductorPieces(built, sim, circuit, { all = false } = {}) {
       if (all || Math.abs(i) >= MIN_CURRENT) dots.push({ points: path.points, ref: { part: part.id, pin: path.pin }, current: i });
     });
     const middle = paths[0].points.at(-1);
-    if (reading.kind === 'LED') lights.push({ part: part.id, at: middle, color: part.def.params?.color ?? '#ff3030', brightness: reading.brightness });
+    if (reading.kind === 'LED') lights.push({ part: part.id, at: middle, light: part.built.light, color: LED_LIGHT[part.def.electrical.color] ?? LED_LIGHT.red, brightness: reading.brightness });
     if (typeof reading.power === 'number' && ['R', 'REG', 'Q', 'M', 'D', 'BR'].includes(reading.kind)) hot.push({ part: part.id, at: middle });
   }
   const nodes = new Set(Object.keys(built.netlist.nodes));
@@ -148,6 +149,56 @@ export function conductorPieces(built, sim, circuit, { all = false } = {}) {
   return { wires, dots, strips, lights, hot, vmax: Math.max(0, ...volts.map(Math.abs)) };
 }
 
+// Convex hull of 2D points (monotone chain), for the outline of a lit LED's dome.
+function hull(points) {
+  const p = points.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const half = (list) => {
+    const out = [];
+    for (const q of list) {
+      while (out.length >= 2 && cross(out.at(-2), out.at(-1), q) <= 0) out.pop();
+      out.push(q);
+    }
+    return out.slice(0, -1);
+  };
+  return [...half(p), ...half(p.slice().reverse())];
+}
+
+// A lit LED, drawn over the veil so it reads as "on" even on a white page: a halo, short rays
+// with a dark edge, the dome in the colour of its light and a highlight. All the pieces share
+// data-glow, so the live page fades them together with the LED's current.
+function litLed(scene, l, style) {
+  const tag = { cls: 'glow', style, part: l.part, data: { glow: l.part } };
+  const project = (p) => scene.camera.project(p);
+  if (!l.light) {
+    const at = project(l.at);
+    return [{ kind: 'circle', cx: at.x, cy: at.y, r: 12, fill: l.color, fillOpacity: 0.6, ...tag }];
+  }
+  const { base, radius, height } = l.light;
+  const ring = [];
+  // The cylinder, then the round top in a few rings (so the outline is not pointed).
+  const top = base.z + height - radius;
+  const rings = [[base.z, radius], [top, radius], ...[30, 60].map((d) => [top + radius * Math.sin((d * Math.PI) / 180), radius * Math.cos((d * Math.PI) / 180)])];
+  for (let k = 0; k < 20; k++) {
+    const a = (k / 20) * 2 * Math.PI;
+    for (const [z, rr] of rings) ring.push(project({ x: base.x + rr * Math.cos(a), y: base.y + rr * Math.sin(a), z }));
+  }
+  ring.push(project({ x: base.x, y: base.y, z: base.z + height }));
+  const outline = hull(ring);
+  const c = project({ x: base.x, y: base.y, z: base.z + height / 2 });
+  const r = Math.max(...outline.map((p) => Math.hypot(p.x - c.x, p.y - c.y)));
+  const ops = [0.07, 0.13, 0.22].map((alpha, k) => ({ kind: 'circle', cx: c.x, cy: c.y, r: r * (2.3 - k * 0.4), fill: l.color, fillOpacity: alpha, ...tag }));
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * 2 * Math.PI + Math.PI / 8;
+    const [x1, y1, x2, y2] = [c.x + Math.cos(a) * r * 1.3, c.y + Math.sin(a) * r * 1.3, c.x + Math.cos(a) * r * 1.85, c.y + Math.sin(a) * r * 1.85];
+    ops.push({ kind: 'line', x1, y1, x2, y2, stroke: '#3a3a3a', strokeWidth: 3.6, opacity: 0.45, linecap: 'round', ...tag });
+    ops.push({ kind: 'line', x1, y1, x2, y2, stroke: l.color, strokeWidth: 2, linecap: 'round', ...tag });
+  }
+  ops.push({ kind: 'polygon', pts: outline, fill: l.color, opacity: 0.95, stroke: '#3a3a3a', strokeWidth: 0.6, ...tag });
+  ops.push({ kind: 'circle', cx: c.x - r * 0.28, cy: c.y - r * 0.4, r: r * 0.2, fill: '#ffffff', fillOpacity: 0.8, ...tag });
+  return ops;
+}
+
 const pathData = (pts) => pts.map((p, i) => `${i ? 'L' : 'M'}${Math.round(p.x * 100) / 100} ${Math.round(p.y * 100) / 100}`).join(' ');
 
 // What the live page needs to drive the pieces flowOps draws with `live`, in the same order.
@@ -171,10 +222,7 @@ export function flowOps(scene, built, sim, circuit, { live = false } = {}) {
       ops.push({ kind: 'circle', cx: at.x, cy: at.y, r: 11, fill: HEAT_COLOR, cls: 'heat', style: 'opacity:0', part: h.part, data: { heat: h.part } });
     }
   }
-  for (const l of lights) {
-    const at = scene.camera.project(l.at);
-    ops.push({ kind: 'circle', cx: at.x, cy: at.y, r: 12, fill: l.color, cls: 'glow', style: `opacity:${glowOpacity(l.brightness).toFixed(2)}`, part: l.part, data: { glow: l.part } });
-  }
+  for (const l of lights) ops.push(...litLed(scene, l, `opacity:${glowOpacity(l.brightness).toFixed(2)}`));
   wires.forEach((w, i) => {
     ops.push({ kind: 'path', d: pathData(project(w.points)), stroke: voltageColor(w.voltage, vmax), strokeWidth: w.ref.node ? STRIP_WIDTH : CONDUCTOR_WIDTH, cls: 'conductor', ...tag(w.ref), ...(live && { data: { ...tag(w.ref).data, wire: i } }) });
   });

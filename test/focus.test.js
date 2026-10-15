@@ -9,6 +9,7 @@ import { renderPage } from '../src/page.js';
 import { buildCircuit } from '../src/circuit/build.js';
 import { simulate } from '../src/sim/index.js';
 import { conductorPieces, partPaths, dotSpeed, voltageColor, bodyShare, VOLTAGE_COLORS } from '../src/sim/paths.js';
+import { glowOpacity } from '../src/sim/look.js';
 
 const example = (name) => JSON.parse(readFileSync(new URL(`../examples/${name}`, import.meta.url), 'utf8'));
 const layer = (svg, name) => svg.match(new RegExp(`<g class="${name}">([\\s\\S]*?)</g>`))?.[1] ?? null;
@@ -46,6 +47,10 @@ test('static focus: a veil, the chosen parts on top, and only their strips', () 
   assert.equal([...coords.matchAll(/<text[^>]*data-row="c"/g)].length, 2);
   assert.ok(svg.indexOf('class="coords"') < svg.indexOf('class="spotlight"'));
   assert.doesNotMatch(renderCircuit(switchCircuit(), {}).svg, /class="(veil|strips|spotlight|coords)"/, 'nothing without focus');
+  // With the current layer too, the label copy sits above it.
+  const both = renderCircuit(switchCircuit(), { focus: ['Q1'], flow: true }).svg;
+  assert.ok(both.indexOf('class="spotlabels"') > both.indexOf('class="flow"'));
+  assert.match(layer(both, 'spotlabels'), /data-part="Q1"|Q1/);
 });
 
 test('current flow obeys Kirchhoff along every strip and runs + to − (conventional)', () => {
@@ -78,6 +83,9 @@ test('current flow obeys Kirchhoff along every strip and runs + to − (conventi
   assert.match(flow, /<path d="M[^"]+" fill="none" stroke="#[0-9a-f]{6}"[^>]*class="conductor"/);
   assert.match(flow, /class="dots"[^>]*style="--lin:[\d.]+s;--log:[\d.]+s"/);
   assert.doesNotMatch(flow, /electrons|NaN/);
+  // The LED is drawn lit: dome, halo and rays, all fading together (data-glow).
+  assert.match(flow, /<polygon [^>]*class="glow"[^>]*data-glow="D1"/);
+  assert.ok((flow.match(/data-glow="D1"/g) ?? []).length > 10);
   // Proportional speed: half the current, half the speed; the log scale still exists.
   assert.equal(dotSpeed(0.005, 0.01), dotSpeed(0.01, 0.01) / 2);
   assert.ok(dotSpeed(0.01, 0.01, 'log') > dotSpeed(0.0001, 0.01, 'log') && dotSpeed(1e-7, 0.01) === 0, 'still below 1 µA');
@@ -113,6 +121,9 @@ test('voltage colours: grey at 0 V, red towards +, blue towards −; floating is
   assert.equal(voltageColor(-9, 5), VOLTAGE_COLORS.negative);
   assert.notEqual(voltageColor(null, 5), voltageColor(0, 5));
   // Inside a body the change is gathered in the middle: little near the lead, all of it at the middle.
+  // A lit LED shows from a tenth of its rated current; none shows nothing.
+  assert.equal(glowOpacity(0), 0);
+  assert.ok(glowOpacity(0.1) > 0.4 && glowOpacity(1) === 1 && glowOpacity(3) === 1);
   assert.ok(Math.abs(bodyShare(0)) < 1e-12 && Math.abs(bodyShare(1) - 1) < 1e-12);
   assert.ok(bodyShare(0.25) < 0.05 && bodyShare(0.75) > 0.25, 'steeper than a straight line towards the middle');
 });
@@ -203,6 +214,13 @@ test('page: the current layer and its speed scale, only when the circuit asks', 
   assert.equal(doc.querySelector('.info h2').textContent, 'D1 · verde');
   click('layer', 'flow');
   assert.ok(doc.body.classList.contains('layer-flow'));
+  // The tapped part's label is copied above the current layer, never under its dots.
+  const front = doc.querySelector('svg[data-view="front"]');
+  const order = [...front.children].map((g) => g.getAttribute('class'));
+  assert.ok(order.indexOf('spotlabels') > order.indexOf('flow'), order.join(' '));
+  assert.ok(order.indexOf('spotlight') < order.indexOf('flow'));
+  assert.ok(front.querySelector('.spotlabels > [data-part="D1"]'), 'D1 label copied');
+  assert.equal(front.querySelector('.spotlight [data-part="D1"] text'), null);
   assert.equal([...doc.querySelectorAll('nav button')].filter((b) => b.dataset.key === 'direction').length, 0, 'conventional current only');
   click('speed', 'log');
   assert.ok(doc.body.classList.contains('speed-log'));

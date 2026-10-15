@@ -6,7 +6,7 @@ import { buildScene } from './scene.js';
 
 // Layers written only when they have something: the four base layers are always there.
 // `under` (parts beside the board, behind it from this view) comes before the board.
-const OPTIONAL_LAYERS = new Set(['under', 'annotations', 'results', 'veil', 'strips', 'spotlight', 'coords', 'flow', 'probes']);
+const OPTIONAL_LAYERS = new Set(['under', 'annotations', 'results', 'veil', 'strips', 'spotlight', 'coords', 'flow', 'spotlabels', 'probes']);
 
 const fmt = (n) => (Math.round(n * 100) / 100).toString();
 
@@ -47,7 +47,8 @@ function opToSvg(op, tagParts = false) {
     }
     case 'circle': {
       const stroke = op.stroke ? ` stroke="${op.stroke}" stroke-width="${op.strokeWidth}"` : '';
-      return `<circle cx="${fmt(op.cx)}" cy="${fmt(op.cy)}" r="${fmt(op.r)}" fill="${op.fill}"${stroke}${more}/>`;
+      const opacity = op.fillOpacity !== undefined ? ` fill-opacity="${op.fillOpacity}"` : '';
+      return `<circle cx="${fmt(op.cx)}" cy="${fmt(op.cy)}" r="${fmt(op.r)}" fill="${op.fill}"${opacity}${stroke}${more}/>`;
     }
     case 'path': {
       const dash = op.dash ? ` stroke-dasharray="${op.dash}"` : '';

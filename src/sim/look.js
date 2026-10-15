@@ -50,7 +50,11 @@ export function centreVoltage(pins) {
   return known.length ? known.reduce((a, b) => a + b, 0) / known.length : null;
 }
 
-// LED glow: opacity from its current against its rated current (brightness), a soft ceiling.
-export const glowOpacity = (brightness) => Math.min(0.85, Math.max(0, brightness ?? 0) * 0.85);
+// A lit LED: opacity from its current against its rated current (brightness), on a square-root
+// scale as the eye sees it: a tenth of the rated current still shows clearly, none shows nothing.
+export function glowOpacity(brightness) {
+  const b = Math.min(1, Math.max(0, brightness ?? 0));
+  return b < 0.002 ? 0 : Math.min(1, 0.2 + 0.8 * Math.sqrt(b));
+}
 // Heat tint: nothing below a fifth of the rated power, full at the rating.
 export const heatOpacity = (ratio) => Math.min(0.7, Math.max(0, ((ratio ?? 0) - 0.2) / 0.8) * 0.7);

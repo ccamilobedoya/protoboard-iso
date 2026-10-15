@@ -107,7 +107,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
   código que necesita saber «dónde está la fuente» (la punta de tierra, la corriente) debe
   atender los dos casos.
 - **Las capas** se escriben siempre en el orden de `addLayers`: veil, strips, coords, spotlight, flow,
-  results, probes. Una página las muestra u oculta solo con CSS; lo interactivo nuevo debe seguir
+  spotlabels (copias de las etiquetas de los componentes en foco, encima de la corriente), results, probes. Una página las muestra u oculta solo con CSS; lo interactivo nuevo debe seguir
   la misma idea (marca en el SVG, regla en el CSS). Las etiquetas de coordenadas van debajo de la
   copia en primer plano para no tapar el componente que se explica, pero las de resultados todavía
   pueden taparlas: límite conocido, pendiente de una pasada planeada sobre qué tapa a qué (ver la

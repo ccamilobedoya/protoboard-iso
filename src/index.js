@@ -123,7 +123,8 @@ function sceneFor(circuit, options = {}) {
   return { result, scene, view, scale, lang };
 }
 
-// Optional layers, always in this order: veil, strips, coords, spotlight, flow, results, probes.
+// Optional layers, always in this order: veil, strips, coords, spotlight, flow, spotlabels,
+// results, probes.
 //   focus: ['R1']   dim everything but these parts and their strips (static images)
 //   flow: true      conductor view: conductors coloured by voltage, dots for conventional
 //                   current (moving in a page, still in a static image)
@@ -132,7 +133,7 @@ function sceneFor(circuit, options = {}) {
 function addLayers(scene, built, circuit, options, lang) {
   const needSim = options.sim || options.flow;
   const sim = needSim ? simulate(circuit, { analysis: 'dc' }) : null;
-  const extra = { veil: [], strips: [], coords: [], spotlight: [], flow: [], results: [], probes: [] };
+  const extra = { veil: [], strips: [], coords: [], spotlight: [], flow: [], spotlabels: [], results: [], probes: [] };
   if (options.interactive) {
     extra.veil = veilOps(scene.frame);
     extra.strips = stripOps(scene, built.board, [...usedNodes(built, circuit)]);

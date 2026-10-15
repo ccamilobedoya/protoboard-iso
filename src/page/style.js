@@ -7,7 +7,9 @@
 //   #dynamic             strips, coordinates and result tags of the focused part; see-through rules
 //   #probe               the probes/arrows of the result tag hovered or tapped
 // Layers in each SVG: (under), board, parts, labels, (annotations), veil, strips, coords, spotlight (made
-// by the script), flow, results, probes. Hidden by default: veil, flow, strips, coords, results and probes.
+// by the script: copies of the tapped parts), flow, spotlabels (made by the script: copies of their
+// labels, above the current), results, probes. Hidden by default: veil, flow, strips, coords,
+// results and probes.
 // On a narrow screen the button bar is one row that scrolls sideways, to leave room for the drawing.
 
 export const STYLE = `
@@ -32,7 +34,7 @@ main { flex: 1; min-height: 0; display: flex; overflow: hidden; touch-action: no
 main.dragging { cursor: grabbing; }
 main svg { display: block; width: 100%; height: 100%; }
 main svg[hidden] { display: none; }
-body.no-labels .labels { display: none; }
+body.no-labels .labels, body.no-labels .spotlabels { display: none; }
 body:not(.show-results) .results, body:not(.show-results) .info .sim { display: none; }
 .veil, .strips, .coords, .flow, .results { pointer-events: none; }
 .coords > * { display: none; }
