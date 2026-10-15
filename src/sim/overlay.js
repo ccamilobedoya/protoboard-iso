@@ -6,21 +6,16 @@
 import { partBoxes } from '../inspect.js';
 import { formatValue } from '../core/units.js';
 import { t, decimalSeparator } from '../i18n/index.js';
+import { deviceOfReading } from './devices/index.js';
 
 const VOLTAGE = '#1f5fbf';
 const CURRENT = '#b5452a';
 const SIZE = 8;
 
+// The current tag of a part, as its device draws it (src/sim/devices/).
 function partCurrent(reading) {
   if (!reading || reading.unsupported || reading.floating) return null;
-  if (reading.kind === 'M') return { label: 'Id', value: reading.currents.D, key: 'id' };
-  if (reading.kind === 'Q') return { label: 'Ic', value: reading.currents.C, key: 'ic' };
-  if (reading.kind === 'BR') return { label: 'I', value: Math.abs(reading.current), key: 'bridge.current' };
-  if (reading.kind === 'REG') return { label: 'Iout', value: Math.abs(reading.current), key: 'reg.iout' };
-  if (reading.kind === 'BAT') return { label: '', value: Math.abs(reading.current), key: 'battery.current' };
-  if (reading.kind === 'POT') return { label: 'I', value: Math.max(Math.abs(reading.currents['1']), Math.abs(reading.currents['3'])), key: 'pot.current' };
-  if (typeof reading.current === 'number') return { label: '', value: Math.abs(reading.current), key: 'current' };
-  return null;
+  return deviceOfReading(reading)?.tag(reading) ?? null;
 }
 
 // Below a millivolt the value is wire resistance, not something to read: show 0 V.

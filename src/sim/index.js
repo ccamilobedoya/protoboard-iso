@@ -11,27 +11,12 @@
 // reported. Runs in Node and in the browser.
 
 import { buildCircuit } from '../circuit/build.js';
-import {
-  WIRE_RESISTANCE,
-  DIODES,
-  BRIDGES,
-  ledModel,
-  MOSFETS,
-  MOSFET_DEFAULT,
-  BJTS,
-  BJT_DEFAULT,
-  RESISTOR_POWER,
-  CERAMIC_VOLTAGE,
-  BATTERY_CELL_RESISTANCE,
-  zenerModel,
-  REGULATORS,
-} from './models.js';
+import { BATTERY_CELL_RESISTANCE } from './models.js';
 import { batteryModel } from '../parts/batteries.js';
-import { resistor, capacitor, inductor, voltageSource, currentSource, junction, mosfet, bjt, regulatorElement, operatingPoint, newton } from './mna.js';
+import { resistor, voltageSource, currentSource, operatingPoint, newton } from './mna.js';
+import { deviceFor } from './devices/index.js';
+import { issue, q, volt, stressIssue } from './devices/shared.js';
 
-const issue = (severity, code, params) => ({ severity, code, params });
-const q = (value, unit) => ({ value, unit }); // a quantity, formatted per language by formatIssue
-const BUTTON_CONTACT = 0.1; // closed tactile switch, ohms (datasheets: ≤ 100 mΩ)
 const SHORT_CURRENT = 3; // amperes from an unlimited source that mean "short circuit"
 
 // ── Netlist → elements ──────────────────────────────────────────────────────────────
@@ -111,121 +96,30 @@ function prepare(circuit) {
   const elements = [];
   const parts = [];
 
+  // Each part: its device adds the elements and keeps what its reading needs (devices/).
   for (const part of built.parts) {
-    const e = part.def.electrical;
-    const raw = part.raw;
-    const pin = (name) => nodeIndex(part.holes[part.pinNames.indexOf(name)].node);
     const at = (i) => nodeIndex(part.holes[i].node);
-    const entry = { id: part.id, kind: e?.kind, pins: part.pinNames.map((name, i) => ({ name, node: part.holes[i].node, index: at(i) })) };
-    const add = (el) => {
-      elements.push(el);
-      return el;
-    };
-    switch (e?.kind) {
-      case 'W':
-        entry.main = add(resistor(at(0), at(1), WIRE_RESISTANCE));
-        break;
-      case 'R': {
-        // Also the parts that are resistors to the simulator: thermistor, photoresistor, buzzer coil.
-        entry.main = add(resistor(at(0), at(1), e.resistance));
-        entry.maxPower = e.maxPower ?? RESISTOR_POWER[String(raw.power ?? '1/4').replace(/\s*W$/i, '')] ?? 0.25;
-        if (e.sensor) entry.sensor = { ...e.sensor, resistance: e.resistance };
-        if (e.buzzer) entry.buzzer = true;
-        break;
-      }
-      case 'L': {
-        // The winding resistance in series, then the ideal inductance.
-        const mid = inner(part.id);
-        add(resistor(at(0), mid, Math.max(e.dcr, 1e-3)));
-        entry.main = add(inductor(mid, at(1), e.inductance));
-        entry.maxCurrent = e.maxCurrent;
-        break;
-      }
-      case 'HDR':
-        break;
-      case 'POT': {
-        const r1 = Math.max(e.resistance * e.position, 1e-3);
-        const r2 = Math.max(e.resistance * (1 - e.position), 1e-3);
-        entry.upper = add(resistor(pin('1'), pin('W'), r1));
-        entry.lower = add(resistor(pin('W'), pin('3'), r2));
-        break;
-      }
-      case 'SW': {
-        entry.poles = e.poles.map(([a, b]) => ({ a, b, el: add(resistor(pin(a), pin(b), WIRE_RESISTANCE)) }));
-        if (e.pressed) entry.main = add(resistor(pin(e.poles[0][0]), pin(e.poles[1][0]), BUTTON_CONTACT));
-        entry.contact = [e.poles[0][0], e.poles[1][0]];
-        entry.pressed = e.pressed;
-        break;
-      }
-      case 'C': {
-        entry.main = add(capacitor(at(0), at(1), e.capacitance));
-        entry.polarised = Boolean(e.polarised);
-        entry.maxVoltage = e.voltage ?? CERAMIC_VOLTAGE;
-        break;
-      }
-      case 'D':
-      case 'LED': {
-        const model = e.kind === 'LED' ? ledModel(e.color, raw.model) : e.zener ? zenerModel(e.vz, raw.model) : { ...(DIODES[e.part] ?? DIODES['1N4148']), ...raw.model };
-        if (e.kind === 'D' && !e.zener && !DIODES[e.part]) issues.push(issue('info', 'SIM_DEFAULT_MODEL', { part: part.id, model: '1N4148' }));
-        const mid = model.rs > 0 ? inner(part.id) : at(0);
-        if (model.rs > 0) add(resistor(at(0), mid, model.rs));
-        entry.main = add(junction(mid, at(1), model));
-        entry.model = model;
-        break;
-      }
-      case 'BR': {
-        // Four diodes, each with its series resistance: AC1 and AC2 up to +, − up to each.
-        const model = { ...(BRIDGES[e.family] ?? BRIDGES.KBP3), ...raw.model };
-        const leg = (a, k) => {
-          const mid = inner(part.id);
-          add(resistor(a, mid, model.rs));
-          return add(junction(mid, k, model));
-        };
-        entry.legs = [leg(pin('AC1'), pin('+')), leg(pin('AC2'), pin('+')), leg(pin('-'), pin('AC1')), leg(pin('-'), pin('AC2'))];
-        entry.model = model;
-        break;
-      }
-      case 'M': {
-        const known = MOSFETS[e.part];
-        if (!known) issues.push(issue('info', 'SIM_DEFAULT_MODEL', { part: part.id, model: 'MOSFET' }));
-        const model = { ...MOSFET_DEFAULT, ...(e.channel && { channel: e.channel }), ...known, ...raw.model };
-        entry.main = add(mosfet(pin('D'), pin('G'), pin('S'), model));
-        entry.model = model;
-        break;
-      }
-      case 'REG': {
-        const model = { ...(e.adjustable ? REGULATORS.LM317 : REGULATORS.fixed), vref: e.adjustable ? e.reference : e.output, ...raw.model };
-        const ref = e.adjustable ? 'ADJ' : 'GND';
-        entry.main = add(regulatorElement(pin('IN'), pin(ref), pin('OUT'), model));
-        entry.model = model;
-        entry.ref = ref;
-        break;
-      }
-      case 'BAT': {
-        entry.supply = supplies.find((s) => s.part === part.id);
-        if (entry.supply.off) issues.push(issue('info', 'SIM_BATTERY_OFF', { part: part.id }));
-        break;
-      }
-      case 'Q': {
-        const known = BJTS[e.part];
-        if (!known) issues.push(issue('info', 'SIM_DEFAULT_MODEL', { part: part.id, model: 'BJT' }));
-        const model = { ...BJT_DEFAULT, ...(e.polarity && { polarity: e.polarity }), ...known, ...raw.model };
-        if (model.darlington) {
-          const { first, second, r1, r2 } = model.darlington;
-          const x = inner(part.id);
-          entry.first = add(bjt(pin('C'), pin('B'), x, { ...first, polarity: model.polarity }));
-          entry.second = add(bjt(pin('C'), x, pin('E'), { ...second, polarity: model.polarity }));
-          entry.r1 = add(resistor(pin('B'), x, r1));
-          entry.r2 = add(resistor(x, pin('E'), r2));
-        } else {
-          entry.main = add(bjt(pin('C'), pin('B'), pin('E'), model));
-        }
-        entry.model = model;
-        break;
-      }
-      default:
-        issues.push(issue('info', 'SIM_UNSUPPORTED', { part: part.id }));
-        entry.unsupported = true;
+    const entry = { id: part.id, kind: part.def.electrical?.kind, pins: part.pinNames.map((name, i) => ({ name, node: part.holes[i].node, index: at(i) })) };
+    const device = deviceFor(part);
+    if (device) {
+      entry.device = device;
+      const h = {
+        e: part.def.electrical,
+        raw: part.raw,
+        pin: (name) => nodeIndex(part.holes[part.pinNames.indexOf(name)].node),
+        at,
+        inner,
+        add: (el) => {
+          elements.push(el);
+          return el;
+        },
+        issues,
+        supplies,
+      };
+      Object.assign(entry, device.build(part, h));
+    } else {
+      issues.push(issue('info', 'SIM_UNSUPPORTED', { part: part.id }));
+      entry.unsupported = true;
     }
     parts.push(entry);
   }
@@ -262,6 +156,12 @@ function prepare(circuit) {
     }
   }
   const floating = new Set(names.filter((name, i) => find(i) !== find(-1) && !name.startsWith('~')));
+  // In DC, each floating island is anchored to ground at one node. No direct current can flow in
+  // it, so nothing changes, but its matrix rows are no longer left with only GMIN, which an
+  // inductor (a 1 MΩ⁻¹ short in DC) makes numerically singular. In a transient the anchor is
+  // off: a capacitor may couple the island to the rest.
+  const anchors = new Map();
+  for (let i = 0; i < names.length; i++) if (find(i) !== find(-1) && !anchors.has(find(i))) anchors.set(find(i), dcAnchor(i));
 
   // Voltage sources and regulators last: their current unknowns go after every node voltage.
   const nodeCount = names.length;
@@ -269,13 +169,24 @@ function prepare(circuit) {
   for (const el of elements) if (el.needsRow) el.branch = row++;
   for (const s of supplies) if (!s.off) s.source = voltageSource(s.top, s.nIndex, row++, s.voltage);
   const references = tied.map((n) => voltageSource(n, -1, row++, 0));
-  const all = [...elements, ...supplies.filter((s) => !s.off).flatMap((s) => [s.source, s.series].filter(Boolean)), ...references];
+  const all = [...elements, ...supplies.filter((s) => !s.off).flatMap((s) => [s.source, s.series].filter(Boolean)), ...references, ...anchors.values()];
   return { issues, built, supplies, parts, names, index, ground, floating, system: { size: row, nodeCount, elements: all } };
 }
 
-// ── Reading results ─────────────────────────────────────────────────────────────────
+// 1 S from a node to ground, in DC only (no time step): see the floating islands in prepare().
+function dcAnchor(node) {
+  return {
+    nodes: [node],
+    links: [],
+    stamp(st, x, ctx) {
+      if (!ctx.h) st.add(node, node, 1);
+      return false;
+    },
+    currents: () => [0],
+  };
+}
 
-const volt = (x, i) => (i >= 0 ? x[i] : 0);
+// ── Reading results ─────────────────────────────────────────────────────────────────
 
 function supplyReading(s, x, ctx) {
   if (s.off) return { voltage: volt(x, s.pIndex) - volt(x, s.nIndex), current: 0, power: 0, mode: 'OFF' };
@@ -291,132 +202,21 @@ function supplyReading(s, x, ctx) {
 function partReading(entry, x, ctx, floating) {
   const pins = Object.fromEntries(entry.pins.map((p) => [p.name, floating.has(p.node) ? null : volt(x, p.index)]));
   const out = { kind: entry.kind, pins };
-  const two = (el) => {
-    const v = volt(x, entry.pins[0].index) - volt(x, entry.pins[1].index);
-    const i = el ? el.currents(x, ctx)[0] : 0;
-    return { voltage: v, current: i, power: v * i };
-  };
-  const isFloating = entry.pins.some((p) => floating.has(p.node));
-  switch (entry.kind) {
-    case 'W':
-    case 'R':
-    case 'C':
-    case 'L':
-      Object.assign(out, two(entry.main));
-      if (entry.sensor) out.sensor = entry.sensor;
-      break;
-    case 'HDR':
-      out.currents = Object.fromEntries(entry.pins.map((p) => [p.name, 0]));
-      break;
-    case 'D':
-    case 'LED': {
-      Object.assign(out, two(entry.main));
-      if (entry.kind === 'LED') out.brightness = Math.max(0, out.current) / entry.model.ratedCurrent;
-      break;
-    }
-    case 'BR': {
-      // Current out of + towards the load, and back in by −; the AC pins carry the rest.
-      const [up1, up2, down1, down2] = entry.legs.map((el) => el.currents(x, ctx)[0]);
-      const v = (name) => volt(x, entry.pins.find((p) => p.name === name).index);
-      const current = up1 + up2;
-      const vac = v('AC1') - v('AC2');
-      const vdc = v('+') - v('-');
-      const power = up1 * (v('AC1') - v('+')) + up2 * (v('AC2') - v('+')) + down1 * (v('-') - v('AC1')) + down2 * (v('-') - v('AC2'));
-      Object.assign(out, { vac, vdc, current, power, currents: { '+': -current, AC1: up1 - down1, AC2: up2 - down2, '-': down1 + down2 } });
-      break;
-    }
-    case 'POT': {
-      const i1 = entry.upper.currents(x, ctx)[0];
-      const i2 = entry.lower.currents(x, ctx)[0];
-      const v1 = volt(x, entry.upper.nodes[0]) - volt(x, entry.upper.nodes[1]);
-      const v2 = volt(x, entry.lower.nodes[0]) - volt(x, entry.lower.nodes[1]);
-      Object.assign(out, { currents: { '1': i1, W: i2 - i1, '3': -i2 }, power: v1 * i1 + v2 * i2 });
-      break;
-    }
-    case 'SW':
-      Object.assign(out, { pressed: entry.pressed, current: entry.main ? entry.main.currents(x, ctx)[0] : 0 });
-      break;
-    case 'REG': {
-      const [inp, ref, o] = entry.main.nodes;
-      const [iin, iref, iout] = entry.main.currents(x, ctx);
-      const vin = volt(x, inp);
-      const vout = volt(x, o);
-      const u = vin - volt(x, ref);
-      const power = (vin - vout) * -iout + (vin - volt(x, ref)) * -iref;
-      const regulating = entry.main.shape(u).regulating;
-      Object.assign(out, { vin, vout, headroom: vin - vout, current: -iout, quiescent: -iref, power, state: regulating ? 'regulating' : 'dropout', currents: { IN: iin, [entry.ref]: iref, OUT: iout } });
-      break;
-    }
-    case 'BAT': {
-      // current: delivered out of + (negative while something charges it).
-      const s = entry.supply;
-      const r = supplyReading(s, x, ctx);
-      const b = s.battery;
-      const runtime = r.current > 1e-6 ? b.capacity / r.current : null; // hours
-      Object.assign(out, { voltage: r.voltage, current: r.current, power: r.power, emf: s.off ? null : b.emf, drop: s.off ? 0 : r.current * b.resistance, runtime, charge: b.charge, on: !s.off, currents: { '+': -r.current, '-': r.current } });
-      break;
-    }
-    case 'M': {
-      const [d, g, s] = entry.main.nodes;
-      const vgs = volt(x, g) - volt(x, s);
-      const vds = volt(x, d) - volt(x, s);
-      const id = entry.main.currents(x, ctx)[0];
-      const m = entry.model;
-      const sign = m.channel === 'p' ? -1 : 1;
-      const vov = sign * vgs - Math.abs(m.vth);
-      const region = vov <= 0 ? 'off' : sign * vds < vov ? 'linear' : 'saturation';
-      Object.assign(out, { currents: { D: id, G: 0, S: -id }, vgs, vds, power: vds * id, region });
-      break;
-    }
-    case 'Q': {
-      const c = entry.pins.find((p) => p.name === 'C').index;
-      const b = entry.pins.find((p) => p.name === 'B').index;
-      const e = entry.pins.find((p) => p.name === 'E').index;
-      let ic;
-      let ib;
-      if (entry.main) [ic, ib] = entry.main.currents(x, ctx);
-      else {
-        const [c1, b1] = entry.first.currents(x, ctx);
-        const [c2] = entry.second.currents(x, ctx);
-        ic = c1 + c2;
-        ib = b1 + entry.r1.currents(x, ctx)[0];
-      }
-      const vbe = volt(x, b) - volt(x, e);
-      const vce = volt(x, c) - volt(x, e);
-      const sign = entry.model.polarity === 'pnp' ? -1 : 1;
-      const on = sign * vbe > (entry.model.darlington ? 1.0 : 0.5);
-      const region = !on ? 'off' : sign * (vbe - vce) > 0.4 ? 'saturation' : 'active';
-      Object.assign(out, { currents: { C: ic, B: ib, E: -(ic + ib) }, vbe, vce, power: vce * ic + vbe * ib, region, beta: ib ? ic / ib : null });
-      break;
-    }
-    default:
-      out.unsupported = true;
-  }
-  if (isFloating) out.floating = true;
-  out.pinCurrents = pinCurrents(entry, out, x, ctx);
+  const h = { x, ctx, volt: (i) => volt(x, i), supplyReading: (s) => supplyReading(s, x, ctx) };
+  if (entry.device) Object.assign(out, entry.device.read(entry, h));
+  else out.unsupported = true;
+  if (entry.pins.some((p) => floating.has(p.node))) out.floating = true;
+  out.pinCurrents = pinCurrents(entry, out, h);
   return out;
 }
 
 // Current into the part at each pin (amperes, positive = into the part). Kirchhoff: they add
 // up to zero. The current-flow layer reads these.
-function pinCurrents(entry, out, x, ctx) {
+function pinCurrents(entry, out, h) {
   const names = entry.pins.map((p) => p.name);
   if (out.unsupported) return Object.fromEntries(names.map((n) => [n, 0]));
+  if (entry.device.pinCurrents) return entry.device.pinCurrents(entry, out, h);
   if (out.currents) return { ...out.currents };
-  if (entry.kind === 'SW') {
-    const result = Object.fromEntries(names.map((n) => [n, 0]));
-    for (const { a, b, el } of entry.poles) {
-      const i = el.currents(x, ctx)[0];
-      result[a] += i;
-      result[b] -= i;
-    }
-    if (entry.main) {
-      const i = entry.main.currents(x, ctx)[0];
-      result[entry.contact[0]] += i;
-      result[entry.contact[1]] -= i;
-    }
-    return result;
-  }
   return { [names[0]]: out.current ?? 0, [names[1]]: -(out.current ?? 0) };
 }
 
@@ -428,53 +228,22 @@ function readAll(prep, x, ctx) {
   return { nodes, parts, supplies };
 }
 
-// Warnings a learner should see: limits exceeded, a supply in current limit, floating nodes.
+// Warnings a learner should see: limits exceeded (each device's stresses), a supply in
+// current limit, floating nodes. Batteries (sources) after every other part.
+export function partStresses(entry, reading) {
+  return entry.device?.limits ? entry.device.limits(entry, reading) : [];
+}
+
 function limitIssues(prep, reading) {
   const out = [];
-  for (const p of prep.parts) {
-    const r = reading.parts[p.id];
-    if (r.floating) continue;
-    if (p.kind === 'L' && Math.abs(r.current) > p.maxCurrent) {
-      out.push(issue('warning', 'SIM_OVER_CURRENT', { part: p.id, current: q(Math.abs(r.current), 'A'), max: q(p.maxCurrent, 'A') }));
+  const say = (p) => {
+    for (const item of partStresses(p, reading.parts[p.id])) {
+      if (item.note) out.push(item.note);
+      else if (item.ratio > 1) out.push(stressIssue(p.id, item));
     }
-    if (p.buzzer && Math.abs(r.current) > 1e-3) out.push(issue('info', 'SIM_BUZZER_DC', { part: p.id, current: q(Math.abs(r.current), 'A') }));
-    if (p.kind === 'R' && p.maxPower && r.power > p.maxPower) {
-      out.push(issue('warning', 'SIM_OVER_POWER', { part: p.id, power: q(r.power, 'W'), max: q(p.maxPower, 'W') }));
-    }
-    if ((p.kind === 'M' || p.kind === 'Q') && p.model.maxPower && r.power > p.model.maxPower) {
-      out.push(issue('warning', 'SIM_OVER_POWER', { part: p.id, power: q(r.power, 'W'), max: q(p.model.maxPower, 'W') }));
-    }
-    if (p.kind === 'D' && p.model.vz && Math.abs(r.power) > p.model.maxPower) {
-      out.push(issue('warning', 'SIM_OVER_POWER', { part: p.id, power: q(Math.abs(r.power), 'W'), max: q(p.model.maxPower, 'W') }));
-    }
-    if (p.kind === 'REG') {
-      if (r.power > p.model.maxPower) out.push(issue('warning', 'SIM_REG_HOT', { part: p.id, power: q(r.power, 'W'), max: q(p.model.maxPower, 'W') }));
-      if (r.current > p.model.maxCurrent) out.push(issue('warning', 'SIM_OVER_CURRENT', { part: p.id, current: q(r.current, 'A'), max: q(p.model.maxCurrent, 'A') }));
-      if (r.state === 'dropout' && r.vin > 0.5) out.push(issue('info', 'SIM_REG_DROPOUT', { part: p.id, vin: q(r.vin, 'V'), vout: q(r.vout, 'V'), dropout: q(p.model.dropout, 'V') }));
-    }
-    if (p.kind === 'BR' && Math.abs(r.current) > p.model.maxCurrent) {
-      out.push(issue('warning', 'SIM_OVER_CURRENT', { part: p.id, current: q(Math.abs(r.current), 'A'), max: q(p.model.maxCurrent, 'A') }));
-    }
-    if ((p.kind === 'LED' || p.kind === 'D') && r.current > p.model.maxCurrent) {
-      out.push(issue('warning', 'SIM_OVER_CURRENT', { part: p.id, current: q(r.current, 'A'), max: q(p.model.maxCurrent, 'A') }));
-    }
-    if (p.kind === 'LED' && -r.voltage > p.model.maxReverse) {
-      out.push(issue('warning', 'SIM_REVERSE_VOLTAGE', { part: p.id, voltage: q(-r.voltage, 'V'), max: q(p.model.maxReverse, 'V') }));
-    }
-    if (p.kind === 'C') {
-      if (p.polarised && r.voltage < -0.5) out.push(issue('warning', 'SIM_CAP_REVERSED', { part: p.id, voltage: q(-r.voltage, 'V') }));
-      if (Math.abs(r.voltage) > p.maxVoltage) out.push(issue('warning', 'SIM_CAP_OVER_VOLTAGE', { part: p.id, voltage: q(Math.abs(r.voltage), 'V'), max: q(p.maxVoltage, 'V') }));
-    }
-  }
-  for (const p of prep.parts) {
-    if (p.kind !== 'BAT' || p.supply.off) continue;
-    const b = p.supply.battery;
-    const r = reading.parts[p.id];
-    // A short: what is outside the battery is less than half an ohm (bare wires).
-    if (r.current > 0.1 && r.voltage / r.current < 0.5) out.push(issue('warning', 'SIM_SHORT_CIRCUIT', { supply: p.id, current: q(r.current, 'A') }));
-    else if (r.current > b.maxCurrent) out.push(issue('warning', 'SIM_OVER_CURRENT', { part: p.id, current: q(r.current, 'A'), max: q(b.maxCurrent, 'A') }));
-    if (r.current < -1e-3) out.push(issue(b.rechargeable ? 'info' : 'warning', b.rechargeable ? 'SIM_BATTERY_CHARGING' : 'SIM_BATTERY_REVERSE', { part: p.id, current: q(-r.current, 'A') }));
-  }
+  };
+  for (const p of prep.parts) if (!p.device?.source && !reading.parts[p.id].floating) say(p);
+  for (const p of prep.parts) if (p.device?.source) say(p);
   for (const s of prep.supplies) {
     if (s.part) continue; // drawn batteries: above
     const r = reading.supplies[s.id];

@@ -25,7 +25,8 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
    board and parts as primitives sorted by depth (painter's algorithm), labels as callouts above
    everything, then the optional layers. `render/svg.js` writes it. `inspect.js` measures the
    same scene, so numbers and picture never disagree.
-2. **Simulation.** `sim/index.js` turns the netlist and each part's `def.electrical` into MNA
+2. **Simulation.** `sim/index.js` turns the netlist and each part's `def.electrical` (through its
+   device, `sim/devices/`) into MNA
    elements (`sim/mna.js`), solves DC or transient, and reads results per node, part and pin.
    Drawing never depends on it; it only adds layers when asked.
 3. **Page.** `page.js` renders each view with `interactive: true` (every element tagged with
@@ -43,6 +44,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `parts/packages/` | physical shapes from datasheet sizes; `expandPin1` for DIP and headers; `battery.js` lies beside the board (its `build` gets the board); `small.js`: bead, LDR, buzzer, header; `trimmer.js`; `sip.js`: KBP bridge (`kbp`); `devboard.js` (ESP32 boards across the channel) and `uno.js` (UNO beside the board, Dupont leads), data in `parts/modules.js`; `axial.js` also draws cement resistors (`shape: 'box'`) |
 | `parts/db.js` | part numbers: package, pin order, model; `lookupPartNumber` accepts other names (L7805CV, 2SC1815) |
 | `parts/batteries.js` | battery formats and chemistries: sizes, voltage curve, internal resistance, capacity; `batteryModel` |
+| `parts/sensors.js` | sensor formulas (NTC, photoresistor) and the GL55xx table; no imports, so the browser engine can bundle them |
 | `parts/describe.js` | which `describe.*` text says what a kind of part is |
 | `parts/colors.js` | every colour: materials, bands, LEDs, wires, nodes |
 | `circuit/build.js` | circuit file → placed parts, netlist, issues |
@@ -56,7 +58,8 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `schema.js` | JSON Schemas built from the registries (`npm run schemas`) |
 | `sim/models.js` | typical device values, each with its source (diodes, Zener table, LEDs, transistors, regulators) |
 | `sim/mna.js` | linear solver, stamps, element companions (capacitor, inductor), junction with Zener breakdown, regulator, Newton, source stepping |
-| `sim/index.js` | supplies and battery parts, parts → elements, floating groups, DC and transient, readings, warnings |
+| `sim/index.js` | supplies, parts → elements through their devices, floating groups (anchored in DC), DC and transient, readings, warnings from stresses |
+| `sim/devices/` | one file per kind of part: elements, reading, limits as stresses, card lines, current tag, probe text; `index.js` lists them and describes the interface; `shared.js` the common helpers |
 | `sim/format.js` | results as text; `partLines` for the card (each with an explanation key) |
 | `sim/overlay.js` | result tags (current per part, voltage per group) with `data-q` and `data-probe` |
 | `sim/paths.js` | conductor view: current paths per part (package `paths` or a straight fallback), strip currents (Kirchhoff), voltage colours, dots of conventional current |

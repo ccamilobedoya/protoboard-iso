@@ -25,7 +25,8 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
    protoboard y los componentes como primitivas ordenadas por profundidad (algoritmo del pintor),
    las etiquetas como globos por encima de todo y después las capas opcionales. `render/svg.js`
    la escribe. `inspect.js` mide esa misma escena, así los números y el dibujo nunca difieren.
-2. **Simulación.** `sim/index.js` convierte la netlist y el `def.electrical` de cada componente en
+2. **Simulación.** `sim/index.js` convierte la netlist y el `def.electrical` de cada componente (a
+   través de su dispositivo, `sim/devices/`) en
    elementos MNA (`sim/mna.js`), resuelve DC o transitorio y lee los resultados por grupo,
    componente y pata. El dibujo nunca depende de ella; solo agrega capas cuando se le piden.
 3. **Página.** `page.js` dibuja cada vista con `interactive: true` (cada elemento marcado con
@@ -43,6 +44,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `parts/packages/` | formas físicas con medidas de hoja de datos; `expandPin1` para DIP y pines; `battery.js` queda al lado de la protoboard (su `build` recibe la protoboard); `small.js`: gota, LDR, zumbador, pines; `trimmer.js`; `sip.js`: puente KBP (`kbp`); `devboard.js` (placas ESP32 a caballo del canal) y `uno.js` (UNO al lado de la protoboard, cables Dupont), datos en `parts/modules.js`; `axial.js` también dibuja las resistencias de cemento (`shape: 'box'`) |
 | `parts/db.js` | referencias: encapsulado, orden de patas, modelo; `lookupPartNumber` acepta otros nombres (L7805CV, 2SC1815) |
 | `parts/batteries.js` | formatos y químicas de baterías: medidas, curva de voltaje, resistencia interna, capacidad; `batteryModel` |
+| `parts/sensors.js` | fórmulas de los sensores (NTC, fotorresistencia) y la tabla GL55xx; sin imports, para que el motor del navegador pueda incluirlas |
 | `parts/describe.js` | qué texto `describe.*` dice qué es cada tipo de componente |
 | `parts/colors.js` | todos los colores: materiales, bandas, LED, cables, grupos |
 | `circuit/build.js` | archivo de circuito → componentes colocados, netlist, observaciones |
@@ -56,7 +58,8 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `schema.js` | JSON Schemas armados desde los registros (`npm run schemas`) |
 | `sim/models.js` | valores típicos de los dispositivos, cada uno con su fuente (diodos, tabla Zener, LED, transistores, reguladores) |
 | `sim/mna.js` | solucionador lineal, estampado, modelos de los elementos (capacitor, inductor), unión con ruptura Zener, regulador, Newton, subida de fuentes |
-| `sim/index.js` | fuentes y baterías, componentes → elementos, grupos flotantes, DC y transitorio, lecturas, avisos |
+| `sim/index.js` | fuentes, componentes → elementos a través de sus dispositivos, grupos flotantes (anclados en DC), DC y transitorio, lecturas, avisos a partir de los esfuerzos |
+| `sim/devices/` | un archivo por tipo de componente: elementos, lectura, límites como esfuerzos, líneas de la ficha, etiqueta de corriente, texto de la sonda; `index.js` los lista y describe la interfaz; `shared.js`, lo común |
 | `sim/format.js` | resultados como texto; `partLines` para la ficha (cada una con su clave de explicación) |
 | `sim/overlay.js` | etiquetas de resultados (corriente por componente, voltaje por grupo) con `data-q` y `data-probe` |
 | `sim/paths.js` | vista de conductores: caminos de la corriente por componente (`paths` del paquete o una recta de respaldo), corriente de las tiras (Kirchhoff), colores de voltaje, puntos de corriente convencional |

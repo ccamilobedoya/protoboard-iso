@@ -11,6 +11,7 @@
 import { stripOps, stripHoles } from '../render/focus.js';
 import { anchorHole } from './overlay.js';
 import { MIN_CURRENT } from './paths.js';
+import { deviceOfReading } from './devices/index.js';
 
 const RED = '#d63a3a';
 const BLACK = '#26292d';
@@ -59,9 +60,10 @@ function arrow(a, b, data) {
 }
 
 // Which pins a current tag is about: [pin name, +1 in | −1 out] (conventional current).
+// A device may name them (a transistor: the collector or drain current only).
 function currentPins(reading) {
-  if (reading.kind === 'Q') return reading.currents.C >= 0 ? [['C', 1], ['E', -1]] : [['E', 1], ['C', -1]];
-  if (reading.kind === 'M') return reading.currents.D >= 0 ? [['D', 1], ['S', -1]] : [['S', 1], ['D', -1]];
+  const own = deviceOfReading(reading)?.currentPins;
+  if (own) return own(reading);
   return Object.entries(reading.pinCurrents ?? {})
     .filter(([, i]) => Math.abs(i) >= MIN_CURRENT)
     .map(([name, i]) => [name, Math.sign(i)]);

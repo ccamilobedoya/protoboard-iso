@@ -13,6 +13,15 @@ Sigue siendo el mismo archivo con el mismo nombre, sin compilación y sin red: f
 
 Esta página es la referencia del trabajo, que toma varias sesiones. Cada sesión termina con las pruebas en verde y con esta página y la hoja de ruta al día.
 
+## Estado
+
+- Fases 0 y 1 hechas (`ff4070f`): archivo *golden*, vista de conductores por los caminos reales,
+  corriente convencional, velocidad proporcional, paleta de los rieles con degradado empinado
+  dentro de los cuerpos.
+- Fase 2 hecha: `src/sim/devices/`. Hoy un dispositivo tiene `build(part, h)` (los elementos y lo
+  que necesita su lectura) en vez del par `params` + `elements` del esbozo de abajo; la fase 3 lo
+  separa cuando introduzca el programa compilado (los parámetros tendrán que ser JSON plano).
+
 ## Decisiones
 
 | Decisión | Por qué |

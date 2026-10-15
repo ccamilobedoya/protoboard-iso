@@ -4,6 +4,9 @@
 import { parseValue } from '../../core/units.js';
 import { BAND_COLORS, MATERIALS } from '../colors.js';
 import { resistorBands, parseTolerance } from './resistor.js';
+import { ntcResistance, ldrResistance, LDR_PARTS } from '../sensors.js';
+
+export { LDR_PARTS, ldrResistance };
 
 // Inductor with colour rings (the small axial kind, like a fat green resistor): the code is
 // the value in microhenries, read like a resistor ("brown black brown" = 10 × 10¹ µH = 100 µH).
@@ -48,8 +51,7 @@ export const thermistor = {
     const beta = Number(part.beta ?? 3950);
     const temperature = Number(part.temperature ?? 25);
     if (!(r25 > 0) || !(beta > 0) || !(temperature > -273.15)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value) } } };
-    const kelvin = temperature + 273.15;
-    const resistance = r25 * Math.exp(beta * (1 / kelvin - 1 / 298.15));
+    const resistance = ntcResistance({ r25, beta }, temperature);
     return {
       package: 'bead',
       params: {},
@@ -61,19 +63,7 @@ export const thermistor = {
 
 // Photoresistor (CdS, GL55xx series): its resistance falls with light,
 //   R = R10 · (lux / 10)^−γ, never above the dark resistance.
-// From the GL55 datasheet table: resistance at 10 lux (middle of the range), γ, dark resistance.
-export const LDR_PARTS = {
-  GL5516: { r10: 7.5e3, gamma: 0.6, dark: 0.5e6 },
-  GL5528: { r10: 15e3, gamma: 0.7, dark: 1e6 },
-  GL5537: { r10: 25e3, gamma: 0.7, dark: 2e6 },
-  GL5539: { r10: 40e3, gamma: 0.8, dark: 5e6 },
-  GL5549: { r10: 90e3, gamma: 0.8, dark: 10e6 },
-};
-export function ldrResistance({ r10, gamma, dark }, lux) {
-  if (!(lux > 0)) return dark;
-  const lit = r10 * (lux / 10) ** -gamma;
-  return 1 / (1 / lit + 1 / dark);
-}
+// (src/parts/sensors.js: the formula and the part table.)
 // fields: part ("GL5528", default), light (illuminance in lux, default 100: a lit room)
 export const ldr = {
   type: 'ldr',

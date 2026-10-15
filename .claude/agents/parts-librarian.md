@@ -24,9 +24,11 @@ part may only need a line in `src/parts/db.js`.
    every file in `src/i18n/`, its key in `src/parts/describe.js`, and an id prefix in
    `src/query.js`. A part that lies off the board gets the board in `build({ pins, params,
    board })` (see the battery).
-3b. **Simulation model** → typical datasheet values in `src/sim/models.js` (with the source in
-   a comment) or a new element in `src/sim/mna.js`; readings and card lines in
-   `src/sim/index.js` and `src/sim/format.js` (each line with an `explain.*` text). Check it
+3b. **Simulation model** → one device file in `src/sim/devices/` (elements, reading, limits as
+   stresses, card lines with an `explain.*` text each, current tag) listed in
+   `src/sim/devices/index.js`, following `docs/en/adding-parts.md` §5; typical datasheet values in
+   `src/sim/models.js` (with the source in a comment), a new element in `src/sim/mna.js` only if
+   no existing one fits. Current paths (`paths`) in the package for the conductor view. Check it
    once against an independent reference (datasheet point or formula solved apart) in
    `test/sim.test.js` or `test/sources.test.js`.
 4. Run `npm run schemas` when types or packages change.

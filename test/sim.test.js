@@ -353,3 +353,12 @@ test('supplies can be set with an operation, like any circuit field', async () =
   assert.deepEqual(errors, []);
   assert.ok(simulate(circuit).ok);
 });
+
+test('an inductor in a floating island does not break DC; the rest still solves (textbook divider)', () => {
+  const circuit = { ...example('voltage-divider.json'), supplies: supply(9) };
+  circuit.parts = [...circuit.parts, { id: 'L1', type: 'inductor', value: '100u', pins: ['h40', 'h45'] }];
+  const r = run(circuit);
+  near(r.nodes['16:f-j'], 4.5, 1e-4, 'middle node');
+  assert.ok(r.parts.L1.floating, 'the inductor is reported floating');
+  assert.ok(codes(r.issues).includes('SIM_FLOATING'));
+});

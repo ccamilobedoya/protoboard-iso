@@ -131,7 +131,7 @@ decisiones y plan por sesiones: [simulacion-en-vivo.md](simulacion-en-vivo.md).
 - ✅ Capa de corriente (`page.flow`), primera versión: todo atenuado, tiras visibles, puntos por las tiras y a través de los componentes, Kirchhoff en cada tira
 - ✅ Fase 0: prueba *golden* de la salida del simulador (red de seguridad para las reorganizaciones): `scripts/golden.js`, `test/golden.test.js`
 - ✅ Fase 1: vista de conductores: conductores por su camino real (`paths` en los paquetes: axial, LED, cable, TO-92, TO-220, pulsador, batería), con color según el voltaje; solo corriente convencional (sin vista de electrones); velocidad proporcional a la corriente con botón logarítmico; maquetas (`scripts/mockups.js`); paleta de los rieles escogida, degradado empinado dentro de los cuerpos
-- ⬜ Fase 2: módulos de dispositivo, un archivo por tipo de componente (elementos, lectura, esfuerzos, líneas de la ficha, controles)
+- ✅ Fase 2: módulos de dispositivo, un archivo por tipo de componente (`src/sim/devices/`: elementos, lectura, límites como esfuerzos, líneas de la ficha, etiqueta, sonda); salidas idénticas (archivo *golden*, páginas y dibujos byte a byte); islas flotantes ancladas en DC (una bobina aislada dejaba la matriz singular). Los controles pasan a la fase 5
 - ⬜ Fase 3: programa compilado + motor sin dependencias; un agrupador pequeño; el script de la página en módulos
 - ⬜ Fase 4: simulación en vivo en la página: vista de conductores, voltaje como color, puntos movidos por el script, brillo del LED, tinte de calor, reproducir / pausar / reiniciar / velocidad, etiquetas en vivo
 - ⬜ Fase 5: deslizadores en la ficha y panel `page.controls`, pulsador momentáneo; límites a la vista (niveles de esfuerzo, marca «se excedió», panel de avisos)

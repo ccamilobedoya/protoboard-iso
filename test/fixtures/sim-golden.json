@@ -1475,7 +1475,341 @@
   "result": {
    "analysis": "dc",
    "model": true,
-   "ok": false,
+   "ok": true,
+   "iterations": 2,
+   "ground": "B-",
+   "nodes": {
+    "B-": 0,
+    "3:f-j": null,
+    "4:f-j": null,
+    "5:f-j": null,
+    "9:f-j": null,
+    "12:f-j": null,
+    "16:f-j": null,
+    "21:f-j": null,
+    "25:f-j": null,
+    "26:f-j": null,
+    "30:f-j": null,
+    "32:f-j": null,
+    "37:f-j": null,
+    "40:f-j": null,
+    "45:a-e": null,
+    "46:a-e": null,
+    "47:a-e": null,
+    "48:a-e": null,
+    "49:a-e": null,
+    "50:a-e": null,
+    "51:a-e": null,
+    "51:f-j": null,
+    "50:f-j": null,
+    "49:f-j": null,
+    "48:f-j": null,
+    "47:f-j": null,
+    "46:f-j": null,
+    "45:f-j": null,
+    "3:a-e": null,
+    "8:a-e": null,
+    "12:a-e": null,
+    "13:a-e": null,
+    "14:a-e": null,
+    "19:a-e": null,
+    "20:a-e": null,
+    "21:a-e": null,
+    "25:a-e": null,
+    "26:a-e": null,
+    "27:a-e": null,
+    "28:a-e": null,
+    "55:a-e": null,
+    "56:a-e": null,
+    "56:f-j": null,
+    "55:f-j": null,
+    "B+": 7.399999999999557
+   },
+   "parts": {
+    "RV1": {
+     "kind": "POT",
+     "pins": {
+      "1": null,
+      "3": null,
+      "W": null
+     },
+     "currents": {
+      "1": 0,
+      "3": 0,
+      "W": 0
+     },
+     "power": 0,
+     "floating": true,
+     "pinCurrents": {
+      "1": 0,
+      "3": 0,
+      "W": 0
+     }
+    },
+    "D1": {
+     "kind": "D",
+     "pins": {
+      "A": null,
+      "K": null
+     },
+     "voltage": 1.3861008544303474e-16,
+     "current": -2.4256671820016746e-25,
+     "power": -3.3622193535361745e-41,
+     "floating": true,
+     "pinCurrents": {
+      "A": -2.4256671820016746e-25,
+      "K": 2.4256671820016746e-25
+     }
+    },
+    "L1": {
+     "kind": "L",
+     "pins": {
+      "1": null,
+      "2": null
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "floating": true,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    },
+    "RT1": {
+     "kind": "R",
+     "pins": {
+      "1": null,
+      "2": null
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "sensor": {
+      "kind": "thermistor",
+      "temperature": 25,
+      "r25": 10000,
+      "beta": 3950,
+      "resistance": 10000
+     },
+     "floating": true,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    },
+    "LDR1": {
+     "kind": "R",
+     "pins": {
+      "1": null,
+      "2": null
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "sensor": {
+      "kind": "ldr",
+      "light": 100,
+      "r10": 15000,
+      "gamma": 0.7,
+      "dark": 1000000,
+      "resistance": 2983.9627896979887
+     },
+     "floating": true,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    },
+    "BZ1": {
+     "kind": "R",
+     "pins": {
+      "1": null,
+      "2": null
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "floating": true,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    },
+    "U1": {
+     "kind": "IC",
+     "pins": {
+      "OUT1": null,
+      "IN1-": null,
+      "IN1+": null,
+      "VCC": null,
+      "IN2+": null,
+      "IN2-": null,
+      "OUT2": null,
+      "OUT3": null,
+      "IN3-": null,
+      "IN3+": null,
+      "GND": null,
+      "IN4+": null,
+      "IN4-": null,
+      "OUT4": null
+     },
+     "unsupported": true,
+     "floating": true,
+     "pinCurrents": {
+      "OUT1": 0,
+      "IN1-": 0,
+      "IN1+": 0,
+      "VCC": 0,
+      "IN2+": 0,
+      "IN2-": 0,
+      "OUT2": 0,
+      "OUT3": 0,
+      "IN3-": 0,
+      "IN3+": 0,
+      "GND": 0,
+      "IN4+": 0,
+      "IN4-": 0,
+      "OUT4": 0
+     }
+    },
+    "D2": {
+     "kind": "D",
+     "pins": {
+      "A": null,
+      "K": null
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "floating": true,
+     "pinCurrents": {
+      "A": 0,
+      "K": 0
+     }
+    },
+    "U2": {
+     "kind": "REG",
+     "pins": {
+      "ADJ": null,
+      "OUT": null,
+      "IN": null
+     },
+     "vin": 6.944664135776957e-21,
+     "vout": -6.943969808249721e-13,
+     "headroom": 6.943969877696362e-13,
+     "current": -6.94396980824972e-25,
+     "quiescent": 6.943969738803078e-25,
+     "power": -4.821871669793188e-37,
+     "state": "dropout",
+     "currents": {
+      "IN": -6.944664228808118e-33,
+      "ADJ": -6.943969738803078e-25,
+      "OUT": 6.94396980824972e-25
+     },
+     "floating": true,
+     "pinCurrents": {
+      "IN": -6.944664228808118e-33,
+      "ADJ": -6.943969738803078e-25,
+      "OUT": 6.94396980824972e-25
+     }
+    },
+    "Q1": {
+     "kind": "Q",
+     "pins": {
+      "E": null,
+      "C": null,
+      "B": null
+     },
+     "currents": {
+      "C": 0,
+      "B": 0,
+      "E": 0
+     },
+     "vbe": 0,
+     "vce": 0,
+     "power": 0,
+     "region": "off",
+     "beta": null,
+     "floating": true,
+     "pinCurrents": {
+      "C": 0,
+      "B": 0,
+      "E": 0
+     }
+    },
+    "J1": {
+     "kind": "HDR",
+     "pins": {
+      "1": null,
+      "2": null,
+      "3": null,
+      "4": null
+     },
+     "currents": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+     },
+     "floating": true,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+     }
+    },
+    "U3": {
+     "kind": "IC",
+     "pins": {
+      "A": null,
+      "K": null,
+      "E": null,
+      "C": null
+     },
+     "unsupported": true,
+     "floating": true,
+     "pinCurrents": {
+      "A": 0,
+      "K": 0,
+      "E": 0,
+      "C": 0
+     }
+    },
+    "BT1": {
+     "kind": "BAT",
+     "pins": {
+      "+": 7.399999999999557,
+      "-": 0
+     },
+     "voltage": 7.399999999999557,
+     "current": 1.4775025647395524e-11,
+     "power": 1.0933518979072033e-10,
+     "emf": 7.4,
+     "drop": 8.865015388437314e-13,
+     "runtime": null,
+     "charge": null,
+     "on": true,
+     "currents": {
+      "+": -1.4775025647395524e-11,
+      "-": 1.4775025647395524e-11
+     },
+     "pinCurrents": {
+      "+": -1.4775025647395524e-11,
+      "-": 1.4775025647395524e-11
+     }
+    }
+   },
+   "supplies": {
+    "BT1": {
+     "kind": "battery",
+     "voltage": 7.399999999999557,
+     "current": 1.4775025647395524e-11,
+     "power": 1.0933518979072033e-10,
+     "mode": "CV"
+    }
+   },
    "issues": [
     {
      "severity": "info",
@@ -1492,15 +1826,514 @@
      }
     },
     {
-     "severity": "error",
-     "code": "SIM_NO_CONVERGENCE",
-     "params": {}
+     "severity": "warning",
+     "code": "SIM_FLOATING",
+     "params": {
+      "nodes": "3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j",
+      "parts": "RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3"
+     }
     }
    ]
   },
   "text": {
-   "en": "No results.\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  note: U3: the simulator does not model this part yet; its pins are left unconnected.\n  error: The simulation did not converge: check for parts connected in an impossible way (for example two supplies in parallel).",
-   "es": "Sin resultados.\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  nota: U3: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  error: La simulación no convergió: revisa si hay componentes conectados de una forma imposible (por ejemplo, dos fuentes en paralelo)."
+   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  BT1    7.4 V      14.8 pA    109 pW     constant voltage\nNodes (voltage from rail B-):\n  rail B-                        0 V\n  column 3 (rows f–j)            floating\n  column 4 (rows f–j)            floating\n  column 5 (rows f–j)            floating\n  column 9 (rows f–j)            floating\n  column 12 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 25 (rows f–j)           floating\n  column 26 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 32 (rows f–j)           floating\n  column 37 (rows f–j)           floating\n  column 40 (rows f–j)           floating\n  column 45 (rows a–e)           floating\n  column 46 (rows a–e)           floating\n  column 47 (rows a–e)           floating\n  column 48 (rows a–e)           floating\n  column 49 (rows a–e)           floating\n  column 50 (rows a–e)           floating\n  column 51 (rows a–e)           floating\n  column 51 (rows f–j)           floating\n  column 50 (rows f–j)           floating\n  column 49 (rows f–j)           floating\n  column 48 (rows f–j)           floating\n  column 47 (rows f–j)           floating\n  column 46 (rows f–j)           floating\n  column 45 (rows f–j)           floating\n  column 3 (rows a–e)            floating\n  column 8 (rows a–e)            floating\n  column 12 (rows a–e)           floating\n  column 13 (rows a–e)           floating\n  column 14 (rows a–e)           floating\n  column 19 (rows a–e)           floating\n  column 20 (rows a–e)           floating\n  column 21 (rows a–e)           floating\n  column 25 (rows a–e)           floating\n  column 26 (rows a–e)           floating\n  column 27 (rows a–e)           floating\n  column 28 (rows a–e)           floating\n  column 55 (rows a–e)           floating\n  column 56 (rows a–e)           floating\n  column 56 (rows f–j)           floating\n  column 55 (rows f–j)           floating\n  rail B+                        7.4 V\nParts:\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · floating\n  D1     0.000139 pV -2.43e-13 pA -3.36e-29 pW · floating\n  L1     0 V        0 A        0 W · floating\n  RT1    0 V        0 A        0 W · floating\n  LDR1   0 V        0 A        0 W · floating\n  BZ1    0 V        0 A        0 W · floating\n  U1     not simulated · floating\n  D2     0 V        0 A        0 W · floating\n  U2     no headroom (not regulating) · Input 6.94e-9 pV · Output -0.694 pV · Output current -6.94e-13 pA · -4.82e-25 pW · floating\n  Q1     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  U3     not simulated · floating\n  BT1    7.4 V      14.8 pA    109 pW · Electromotive force (open circuit) 7.4 V\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  note: U3: the simulator does not model this part yet; its pins are left unconnected.\n  warning: RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3: no DC path to the supply (nodes 3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  BT1    7,4 V      14,8 pA    109 pW     voltaje constante\nGrupos (voltaje medido desde riel B-):\n  riel B-                        0 V\n  columna 3 (filas f–j)          flotante\n  columna 4 (filas f–j)          flotante\n  columna 5 (filas f–j)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 12 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 25 (filas f–j)         flotante\n  columna 26 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 32 (filas f–j)         flotante\n  columna 37 (filas f–j)         flotante\n  columna 40 (filas f–j)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 46 (filas a–e)         flotante\n  columna 47 (filas a–e)         flotante\n  columna 48 (filas a–e)         flotante\n  columna 49 (filas a–e)         flotante\n  columna 50 (filas a–e)         flotante\n  columna 51 (filas a–e)         flotante\n  columna 51 (filas f–j)         flotante\n  columna 50 (filas f–j)         flotante\n  columna 49 (filas f–j)         flotante\n  columna 48 (filas f–j)         flotante\n  columna 47 (filas f–j)         flotante\n  columna 46 (filas f–j)         flotante\n  columna 45 (filas f–j)         flotante\n  columna 3 (filas a–e)          flotante\n  columna 8 (filas a–e)          flotante\n  columna 12 (filas a–e)         flotante\n  columna 13 (filas a–e)         flotante\n  columna 14 (filas a–e)         flotante\n  columna 19 (filas a–e)         flotante\n  columna 20 (filas a–e)         flotante\n  columna 21 (filas a–e)         flotante\n  columna 25 (filas a–e)         flotante\n  columna 26 (filas a–e)         flotante\n  columna 27 (filas a–e)         flotante\n  columna 28 (filas a–e)         flotante\n  columna 55 (filas a–e)         flotante\n  columna 56 (filas a–e)         flotante\n  columna 56 (filas f–j)         flotante\n  columna 55 (filas f–j)         flotante\n  riel B+                        7,4 V\nComponentes:\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · flotante\n  D1     0,000139 pV -2,43e-13 pA -3,36e-29 pW · flotante\n  L1     0 V        0 A        0 W · flotante\n  RT1    0 V        0 A        0 W · flotante\n  LDR1   0 V        0 A        0 W · flotante\n  BZ1    0 V        0 A        0 W · flotante\n  U1     no se simula · flotante\n  D2     0 V        0 A        0 W · flotante\n  U2     sin margen (no regula) · Entrada 6,94e-9 pV · Salida -0,694 pV · Corriente de salida -6,94e-13 pA · -4,82e-25 pW · flotante\n  Q1     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  U3     no se simula · flotante\n  BT1    7,4 V      14,8 pA    109 pW · Fuerza electromotriz (en vacío) 7,4 V\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  nota: U3: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3: no hay camino de corriente continua hasta la fuente (grupos 3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j), así que ahí el voltaje no está definido."
+  },
+  "lines": {
+   "en": {
+    "RV1": [
+     {
+      "key": "pot.current",
+      "text": "I(1): 0 A"
+     },
+     {
+      "key": "pot.current",
+      "text": "I(W): 0 A"
+     },
+     {
+      "key": "pot.current",
+      "text": "I(3): 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0.000139 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -2.43e-13 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: -3.36e-29 pW"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "L1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "RT1": [
+     {
+      "key": "sensor.temperature",
+      "text": "Temperature: 25 °C"
+     },
+     {
+      "key": "sensor.resistance",
+      "text": "Resistance now: 10 kΩ"
+     },
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "LDR1": [
+     {
+      "key": "sensor.light",
+      "text": "Light: 100 lx"
+     },
+     {
+      "key": "sensor.resistance",
+      "text": "Resistance now: 2.98 kΩ"
+     },
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "BZ1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "U1": [
+     {
+      "key": "unsupported",
+      "text": "not simulated"
+     }
+    ],
+    "D2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "U2": [
+     {
+      "key": "reg.dropout",
+      "text": "no headroom (not regulating)"
+     },
+     {
+      "key": "reg.vin",
+      "text": "Input: 6.94e-9 pV"
+     },
+     {
+      "key": "reg.vout",
+      "text": "Output: -0.694 pV"
+     },
+     {
+      "key": "reg.headroom",
+      "text": "Headroom (input − output): 0.694 pV"
+     },
+     {
+      "key": "reg.iout",
+      "text": "Output current: -6.94e-13 pA"
+     },
+     {
+      "key": "reg.quiescent",
+      "text": "Own current: 6.94e-13 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: -4.82e-25 pW"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "Q1": [
+     {
+      "key": "region.bjt.off",
+      "text": "off"
+     },
+     {
+      "key": "vbe",
+      "text": "Vbe: 0 V"
+     },
+     {
+      "key": "vce",
+      "text": "Vce: 0 V"
+     },
+     {
+      "key": "ib",
+      "text": "Ib: 0 A"
+     },
+     {
+      "key": "ic",
+      "text": "Ic: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "J1": [],
+    "U3": [
+     {
+      "key": "unsupported",
+      "text": "not simulated"
+     }
+    ],
+    "BT1": [
+     {
+      "key": "battery.emf",
+      "text": "Electromotive force (open circuit): 7.4 V"
+     },
+     {
+      "key": "battery.voltage",
+      "text": "Voltage at the terminals: 7.4 V"
+     },
+     {
+      "key": "battery.drop",
+      "text": "Internal drop: 0.887 pV"
+     },
+     {
+      "key": "battery.current",
+      "text": "Current delivered: 14.8 pA"
+     },
+     {
+      "key": "battery.power",
+      "text": "Power delivered: 109 pW"
+     }
+    ]
+   },
+   "es": {
+    "RV1": [
+     {
+      "key": "pot.current",
+      "text": "I(1): 0 A"
+     },
+     {
+      "key": "pot.current",
+      "text": "I(W): 0 A"
+     },
+     {
+      "key": "pot.current",
+      "text": "I(3): 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0,000139 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -2,43e-13 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: -3,36e-29 pW"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "L1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "RT1": [
+     {
+      "key": "sensor.temperature",
+      "text": "Temperatura: 25 °C"
+     },
+     {
+      "key": "sensor.resistance",
+      "text": "Resistencia ahora: 10 kΩ"
+     },
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "LDR1": [
+     {
+      "key": "sensor.light",
+      "text": "Luz: 100 lx"
+     },
+     {
+      "key": "sensor.resistance",
+      "text": "Resistencia ahora: 2,98 kΩ"
+     },
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "BZ1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "U1": [
+     {
+      "key": "unsupported",
+      "text": "no se simula"
+     }
+    ],
+    "D2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "U2": [
+     {
+      "key": "reg.dropout",
+      "text": "sin margen (no regula)"
+     },
+     {
+      "key": "reg.vin",
+      "text": "Entrada: 6,94e-9 pV"
+     },
+     {
+      "key": "reg.vout",
+      "text": "Salida: -0,694 pV"
+     },
+     {
+      "key": "reg.headroom",
+      "text": "Margen (entrada − salida): 0,694 pV"
+     },
+     {
+      "key": "reg.iout",
+      "text": "Corriente de salida: -6,94e-13 pA"
+     },
+     {
+      "key": "reg.quiescent",
+      "text": "Corriente propia: 6,94e-13 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: -4,82e-25 pW"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "Q1": [
+     {
+      "key": "region.bjt.off",
+      "text": "apagado (corte)"
+     },
+     {
+      "key": "vbe",
+      "text": "Vbe: 0 V"
+     },
+     {
+      "key": "vce",
+      "text": "Vce: 0 V"
+     },
+     {
+      "key": "ib",
+      "text": "Ib: 0 A"
+     },
+     {
+      "key": "ic",
+      "text": "Ic: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "J1": [],
+    "U3": [
+     {
+      "key": "unsupported",
+      "text": "no se simula"
+     }
+    ],
+    "BT1": [
+     {
+      "key": "battery.emf",
+      "text": "Fuerza electromotriz (en vacío): 7,4 V"
+     },
+     {
+      "key": "battery.voltage",
+      "text": "Voltaje en los bornes: 7,4 V"
+     },
+     {
+      "key": "battery.drop",
+      "text": "Caída interna: 0,887 pV"
+     },
+     {
+      "key": "battery.current",
+      "text": "Corriente entregada: 14,8 pA"
+     },
+     {
+      "key": "battery.power",
+      "text": "Potencia entregada: 109 pW"
+     }
+    ]
+   }
   }
  },
  "parts-showcase.json": {
@@ -4299,7 +5132,341 @@
   "result": {
    "analysis": "dc",
    "model": true,
-   "ok": false,
+   "ok": true,
+   "iterations": 2,
+   "ground": "B-",
+   "nodes": {
+    "B-": 0,
+    "3:f-j": null,
+    "4:f-j": null,
+    "5:f-j": null,
+    "9:f-j": null,
+    "12:f-j": null,
+    "16:f-j": null,
+    "21:f-j": null,
+    "25:f-j": null,
+    "26:f-j": null,
+    "30:f-j": null,
+    "32:f-j": null,
+    "37:f-j": null,
+    "40:f-j": null,
+    "45:a-e": null,
+    "46:a-e": null,
+    "47:a-e": null,
+    "48:a-e": null,
+    "49:a-e": null,
+    "50:a-e": null,
+    "51:a-e": null,
+    "51:f-j": null,
+    "50:f-j": null,
+    "49:f-j": null,
+    "48:f-j": null,
+    "47:f-j": null,
+    "46:f-j": null,
+    "45:f-j": null,
+    "3:a-e": null,
+    "8:a-e": null,
+    "12:a-e": null,
+    "13:a-e": null,
+    "14:a-e": null,
+    "19:a-e": null,
+    "20:a-e": null,
+    "21:a-e": null,
+    "25:a-e": null,
+    "26:a-e": null,
+    "27:a-e": null,
+    "28:a-e": null,
+    "55:a-e": null,
+    "56:a-e": null,
+    "56:f-j": null,
+    "55:f-j": null,
+    "B+": 7.399999999999557
+   },
+   "parts": {
+    "RV1": {
+     "kind": "POT",
+     "pins": {
+      "1": null,
+      "3": null,
+      "W": null
+     },
+     "currents": {
+      "1": 0,
+      "3": 0,
+      "W": 0
+     },
+     "power": 0,
+     "floating": true,
+     "pinCurrents": {
+      "1": 0,
+      "3": 0,
+      "W": 0
+     }
+    },
+    "D1": {
+     "kind": "D",
+     "pins": {
+      "A": null,
+      "K": null
+     },
+     "voltage": 1.3861008544303474e-16,
+     "current": -2.4256671820016746e-25,
+     "power": -3.3622193535361745e-41,
+     "floating": true,
+     "pinCurrents": {
+      "A": -2.4256671820016746e-25,
+      "K": 2.4256671820016746e-25
+     }
+    },
+    "L1": {
+     "kind": "L",
+     "pins": {
+      "1": null,
+      "2": null
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "floating": true,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    },
+    "RT1": {
+     "kind": "R",
+     "pins": {
+      "1": null,
+      "2": null
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "sensor": {
+      "kind": "thermistor",
+      "temperature": 60,
+      "r25": 10000,
+      "beta": 3950,
+      "resistance": 2486.164751473382
+     },
+     "floating": true,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    },
+    "LDR1": {
+     "kind": "R",
+     "pins": {
+      "1": null,
+      "2": null
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "sensor": {
+      "kind": "ldr",
+      "light": 1,
+      "r10": 15000,
+      "gamma": 0.7,
+      "dark": 1000000,
+      "resistance": 69921.5191323472
+     },
+     "floating": true,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    },
+    "BZ1": {
+     "kind": "R",
+     "pins": {
+      "1": null,
+      "2": null
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "floating": true,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    },
+    "U1": {
+     "kind": "IC",
+     "pins": {
+      "OUT1": null,
+      "IN1-": null,
+      "IN1+": null,
+      "VCC": null,
+      "IN2+": null,
+      "IN2-": null,
+      "OUT2": null,
+      "OUT3": null,
+      "IN3-": null,
+      "IN3+": null,
+      "GND": null,
+      "IN4+": null,
+      "IN4-": null,
+      "OUT4": null
+     },
+     "unsupported": true,
+     "floating": true,
+     "pinCurrents": {
+      "OUT1": 0,
+      "IN1-": 0,
+      "IN1+": 0,
+      "VCC": 0,
+      "IN2+": 0,
+      "IN2-": 0,
+      "OUT2": 0,
+      "OUT3": 0,
+      "IN3-": 0,
+      "IN3+": 0,
+      "GND": 0,
+      "IN4+": 0,
+      "IN4-": 0,
+      "OUT4": 0
+     }
+    },
+    "D2": {
+     "kind": "D",
+     "pins": {
+      "A": null,
+      "K": null
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "floating": true,
+     "pinCurrents": {
+      "A": 0,
+      "K": 0
+     }
+    },
+    "U2": {
+     "kind": "REG",
+     "pins": {
+      "ADJ": null,
+      "OUT": null,
+      "IN": null
+     },
+     "vin": 6.944664135776957e-21,
+     "vout": -6.943969808249721e-13,
+     "headroom": 6.943969877696362e-13,
+     "current": -6.94396980824972e-25,
+     "quiescent": 6.943969738803078e-25,
+     "power": -4.821871669793188e-37,
+     "state": "dropout",
+     "currents": {
+      "IN": -6.944664228808118e-33,
+      "ADJ": -6.943969738803078e-25,
+      "OUT": 6.94396980824972e-25
+     },
+     "floating": true,
+     "pinCurrents": {
+      "IN": -6.944664228808118e-33,
+      "ADJ": -6.943969738803078e-25,
+      "OUT": 6.94396980824972e-25
+     }
+    },
+    "Q1": {
+     "kind": "Q",
+     "pins": {
+      "E": null,
+      "C": null,
+      "B": null
+     },
+     "currents": {
+      "C": 0,
+      "B": 0,
+      "E": 0
+     },
+     "vbe": 0,
+     "vce": 0,
+     "power": 0,
+     "region": "off",
+     "beta": null,
+     "floating": true,
+     "pinCurrents": {
+      "C": 0,
+      "B": 0,
+      "E": 0
+     }
+    },
+    "J1": {
+     "kind": "HDR",
+     "pins": {
+      "1": null,
+      "2": null,
+      "3": null,
+      "4": null
+     },
+     "currents": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+     },
+     "floating": true,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+     }
+    },
+    "U3": {
+     "kind": "IC",
+     "pins": {
+      "A": null,
+      "K": null,
+      "E": null,
+      "C": null
+     },
+     "unsupported": true,
+     "floating": true,
+     "pinCurrents": {
+      "A": 0,
+      "K": 0,
+      "E": 0,
+      "C": 0
+     }
+    },
+    "BT1": {
+     "kind": "BAT",
+     "pins": {
+      "+": 7.399999999999557,
+      "-": 0
+     },
+     "voltage": 7.399999999999557,
+     "current": 1.4775025647395524e-11,
+     "power": 1.0933518979072033e-10,
+     "emf": 7.4,
+     "drop": 8.865015388437314e-13,
+     "runtime": null,
+     "charge": null,
+     "on": true,
+     "currents": {
+      "+": -1.4775025647395524e-11,
+      "-": 1.4775025647395524e-11
+     },
+     "pinCurrents": {
+      "+": -1.4775025647395524e-11,
+      "-": 1.4775025647395524e-11
+     }
+    }
+   },
+   "supplies": {
+    "BT1": {
+     "kind": "battery",
+     "voltage": 7.399999999999557,
+     "current": 1.4775025647395524e-11,
+     "power": 1.0933518979072033e-10,
+     "mode": "CV"
+    }
+   },
    "issues": [
     {
      "severity": "info",
@@ -4316,15 +5483,514 @@
      }
     },
     {
-     "severity": "error",
-     "code": "SIM_NO_CONVERGENCE",
-     "params": {}
+     "severity": "warning",
+     "code": "SIM_FLOATING",
+     "params": {
+      "nodes": "3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j",
+      "parts": "RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3"
+     }
     }
    ]
   },
   "text": {
-   "en": "No results.\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  note: U3: the simulator does not model this part yet; its pins are left unconnected.\n  error: The simulation did not converge: check for parts connected in an impossible way (for example two supplies in parallel).",
-   "es": "Sin resultados.\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  nota: U3: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  error: La simulación no convergió: revisa si hay componentes conectados de una forma imposible (por ejemplo, dos fuentes en paralelo)."
+   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  BT1    7.4 V      14.8 pA    109 pW     constant voltage\nNodes (voltage from rail B-):\n  rail B-                        0 V\n  column 3 (rows f–j)            floating\n  column 4 (rows f–j)            floating\n  column 5 (rows f–j)            floating\n  column 9 (rows f–j)            floating\n  column 12 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 25 (rows f–j)           floating\n  column 26 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 32 (rows f–j)           floating\n  column 37 (rows f–j)           floating\n  column 40 (rows f–j)           floating\n  column 45 (rows a–e)           floating\n  column 46 (rows a–e)           floating\n  column 47 (rows a–e)           floating\n  column 48 (rows a–e)           floating\n  column 49 (rows a–e)           floating\n  column 50 (rows a–e)           floating\n  column 51 (rows a–e)           floating\n  column 51 (rows f–j)           floating\n  column 50 (rows f–j)           floating\n  column 49 (rows f–j)           floating\n  column 48 (rows f–j)           floating\n  column 47 (rows f–j)           floating\n  column 46 (rows f–j)           floating\n  column 45 (rows f–j)           floating\n  column 3 (rows a–e)            floating\n  column 8 (rows a–e)            floating\n  column 12 (rows a–e)           floating\n  column 13 (rows a–e)           floating\n  column 14 (rows a–e)           floating\n  column 19 (rows a–e)           floating\n  column 20 (rows a–e)           floating\n  column 21 (rows a–e)           floating\n  column 25 (rows a–e)           floating\n  column 26 (rows a–e)           floating\n  column 27 (rows a–e)           floating\n  column 28 (rows a–e)           floating\n  column 55 (rows a–e)           floating\n  column 56 (rows a–e)           floating\n  column 56 (rows f–j)           floating\n  column 55 (rows f–j)           floating\n  rail B+                        7.4 V\nParts:\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · floating\n  D1     0.000139 pV -2.43e-13 pA -3.36e-29 pW · floating\n  L1     0 V        0 A        0 W · floating\n  RT1    0 V        0 A        0 W · floating\n  LDR1   0 V        0 A        0 W · floating\n  BZ1    0 V        0 A        0 W · floating\n  U1     not simulated · floating\n  D2     0 V        0 A        0 W · floating\n  U2     no headroom (not regulating) · Input 6.94e-9 pV · Output -0.694 pV · Output current -6.94e-13 pA · -4.82e-25 pW · floating\n  Q1     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  U3     not simulated · floating\n  BT1    7.4 V      14.8 pA    109 pW · Electromotive force (open circuit) 7.4 V\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  note: U3: the simulator does not model this part yet; its pins are left unconnected.\n  warning: RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3: no DC path to the supply (nodes 3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  BT1    7,4 V      14,8 pA    109 pW     voltaje constante\nGrupos (voltaje medido desde riel B-):\n  riel B-                        0 V\n  columna 3 (filas f–j)          flotante\n  columna 4 (filas f–j)          flotante\n  columna 5 (filas f–j)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 12 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 25 (filas f–j)         flotante\n  columna 26 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 32 (filas f–j)         flotante\n  columna 37 (filas f–j)         flotante\n  columna 40 (filas f–j)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 46 (filas a–e)         flotante\n  columna 47 (filas a–e)         flotante\n  columna 48 (filas a–e)         flotante\n  columna 49 (filas a–e)         flotante\n  columna 50 (filas a–e)         flotante\n  columna 51 (filas a–e)         flotante\n  columna 51 (filas f–j)         flotante\n  columna 50 (filas f–j)         flotante\n  columna 49 (filas f–j)         flotante\n  columna 48 (filas f–j)         flotante\n  columna 47 (filas f–j)         flotante\n  columna 46 (filas f–j)         flotante\n  columna 45 (filas f–j)         flotante\n  columna 3 (filas a–e)          flotante\n  columna 8 (filas a–e)          flotante\n  columna 12 (filas a–e)         flotante\n  columna 13 (filas a–e)         flotante\n  columna 14 (filas a–e)         flotante\n  columna 19 (filas a–e)         flotante\n  columna 20 (filas a–e)         flotante\n  columna 21 (filas a–e)         flotante\n  columna 25 (filas a–e)         flotante\n  columna 26 (filas a–e)         flotante\n  columna 27 (filas a–e)         flotante\n  columna 28 (filas a–e)         flotante\n  columna 55 (filas a–e)         flotante\n  columna 56 (filas a–e)         flotante\n  columna 56 (filas f–j)         flotante\n  columna 55 (filas f–j)         flotante\n  riel B+                        7,4 V\nComponentes:\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · flotante\n  D1     0,000139 pV -2,43e-13 pA -3,36e-29 pW · flotante\n  L1     0 V        0 A        0 W · flotante\n  RT1    0 V        0 A        0 W · flotante\n  LDR1   0 V        0 A        0 W · flotante\n  BZ1    0 V        0 A        0 W · flotante\n  U1     no se simula · flotante\n  D2     0 V        0 A        0 W · flotante\n  U2     sin margen (no regula) · Entrada 6,94e-9 pV · Salida -0,694 pV · Corriente de salida -6,94e-13 pA · -4,82e-25 pW · flotante\n  Q1     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  U3     no se simula · flotante\n  BT1    7,4 V      14,8 pA    109 pW · Fuerza electromotriz (en vacío) 7,4 V\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  nota: U3: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3: no hay camino de corriente continua hasta la fuente (grupos 3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j), así que ahí el voltaje no está definido."
+  },
+  "lines": {
+   "en": {
+    "RV1": [
+     {
+      "key": "pot.current",
+      "text": "I(1): 0 A"
+     },
+     {
+      "key": "pot.current",
+      "text": "I(W): 0 A"
+     },
+     {
+      "key": "pot.current",
+      "text": "I(3): 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0.000139 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -2.43e-13 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: -3.36e-29 pW"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "L1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "RT1": [
+     {
+      "key": "sensor.temperature",
+      "text": "Temperature: 60 °C"
+     },
+     {
+      "key": "sensor.resistance",
+      "text": "Resistance now: 2.49 kΩ"
+     },
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "LDR1": [
+     {
+      "key": "sensor.light",
+      "text": "Light: 1 lx"
+     },
+     {
+      "key": "sensor.resistance",
+      "text": "Resistance now: 69.9 kΩ"
+     },
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "BZ1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "U1": [
+     {
+      "key": "unsupported",
+      "text": "not simulated"
+     }
+    ],
+    "D2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "U2": [
+     {
+      "key": "reg.dropout",
+      "text": "no headroom (not regulating)"
+     },
+     {
+      "key": "reg.vin",
+      "text": "Input: 6.94e-9 pV"
+     },
+     {
+      "key": "reg.vout",
+      "text": "Output: -0.694 pV"
+     },
+     {
+      "key": "reg.headroom",
+      "text": "Headroom (input − output): 0.694 pV"
+     },
+     {
+      "key": "reg.iout",
+      "text": "Output current: -6.94e-13 pA"
+     },
+     {
+      "key": "reg.quiescent",
+      "text": "Own current: 6.94e-13 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: -4.82e-25 pW"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "Q1": [
+     {
+      "key": "region.bjt.off",
+      "text": "off"
+     },
+     {
+      "key": "vbe",
+      "text": "Vbe: 0 V"
+     },
+     {
+      "key": "vce",
+      "text": "Vce: 0 V"
+     },
+     {
+      "key": "ib",
+      "text": "Ib: 0 A"
+     },
+     {
+      "key": "ic",
+      "text": "Ic: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
+    "J1": [],
+    "U3": [
+     {
+      "key": "unsupported",
+      "text": "not simulated"
+     }
+    ],
+    "BT1": [
+     {
+      "key": "battery.emf",
+      "text": "Electromotive force (open circuit): 7.4 V"
+     },
+     {
+      "key": "battery.voltage",
+      "text": "Voltage at the terminals: 7.4 V"
+     },
+     {
+      "key": "battery.drop",
+      "text": "Internal drop: 0.887 pV"
+     },
+     {
+      "key": "battery.current",
+      "text": "Current delivered: 14.8 pA"
+     },
+     {
+      "key": "battery.power",
+      "text": "Power delivered: 109 pW"
+     }
+    ]
+   },
+   "es": {
+    "RV1": [
+     {
+      "key": "pot.current",
+      "text": "I(1): 0 A"
+     },
+     {
+      "key": "pot.current",
+      "text": "I(W): 0 A"
+     },
+     {
+      "key": "pot.current",
+      "text": "I(3): 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0,000139 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -2,43e-13 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: -3,36e-29 pW"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "L1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "RT1": [
+     {
+      "key": "sensor.temperature",
+      "text": "Temperatura: 60 °C"
+     },
+     {
+      "key": "sensor.resistance",
+      "text": "Resistencia ahora: 2,49 kΩ"
+     },
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "LDR1": [
+     {
+      "key": "sensor.light",
+      "text": "Luz: 1 lx"
+     },
+     {
+      "key": "sensor.resistance",
+      "text": "Resistencia ahora: 69,9 kΩ"
+     },
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "BZ1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "U1": [
+     {
+      "key": "unsupported",
+      "text": "no se simula"
+     }
+    ],
+    "D2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "U2": [
+     {
+      "key": "reg.dropout",
+      "text": "sin margen (no regula)"
+     },
+     {
+      "key": "reg.vin",
+      "text": "Entrada: 6,94e-9 pV"
+     },
+     {
+      "key": "reg.vout",
+      "text": "Salida: -0,694 pV"
+     },
+     {
+      "key": "reg.headroom",
+      "text": "Margen (entrada − salida): 0,694 pV"
+     },
+     {
+      "key": "reg.iout",
+      "text": "Corriente de salida: -6,94e-13 pA"
+     },
+     {
+      "key": "reg.quiescent",
+      "text": "Corriente propia: 6,94e-13 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: -4,82e-25 pW"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "Q1": [
+     {
+      "key": "region.bjt.off",
+      "text": "apagado (corte)"
+     },
+     {
+      "key": "vbe",
+      "text": "Vbe: 0 V"
+     },
+     {
+      "key": "vce",
+      "text": "Vce: 0 V"
+     },
+     {
+      "key": "ib",
+      "text": "Ib: 0 A"
+     },
+     {
+      "key": "ic",
+      "text": "Ic: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "J1": [],
+    "U3": [
+     {
+      "key": "unsupported",
+      "text": "no se simula"
+     }
+    ],
+    "BT1": [
+     {
+      "key": "battery.emf",
+      "text": "Fuerza electromotriz (en vacío): 7,4 V"
+     },
+     {
+      "key": "battery.voltage",
+      "text": "Voltaje en los bornes: 7,4 V"
+     },
+     {
+      "key": "battery.drop",
+      "text": "Caída interna: 0,887 pV"
+     },
+     {
+      "key": "battery.current",
+      "text": "Corriente entregada: 14,8 pA"
+     },
+     {
+      "key": "battery.power",
+      "text": "Potencia entregada: 109 pW"
+     }
+    ]
+   }
   }
  },
  "battery-regulator, transient": {

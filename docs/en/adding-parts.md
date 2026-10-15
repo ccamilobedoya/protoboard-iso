@@ -103,6 +103,43 @@ Copy `src/board/boards/bb830.js`, change the dimensions, rows, strips and rails,
 to `BOARDS` in `src/board/board.js`. Rows are given in pitches from the back edge.
 `split` is the last column of the left half when the rails are cut in the middle.
 
+## 5. Simulating it: a device
+
+What the simulator knows about a kind of part lives in **one file** in `src/sim/devices/`
+(the interface is described at the top of `src/sim/devices/index.js`). A device is a plain
+object:
+
+```js
+// src/sim/devices/inductor.js
+export const inductor = {
+  types: ['inductor'],               // part types it handles
+  kind: 'L',                         // the reading's kind
+  build(part, h) {                   // add MNA elements (src/sim/mna.js); return what reading needs
+    const mid = h.inner(part.id);
+    h.add(resistor(h.at(0), mid, Math.max(h.e.dcr, 1e-3)));
+    return { main: h.add(inductorEl(mid, h.at(1), h.e.inductance)), maxCurrent: h.e.maxCurrent };
+  },
+  read: (entry, h) => twoTerminal(entry, entry.main, h),          // its values
+  limits: (entry, r) => [stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), entry.maxCurrent, 'A')],
+  lines: twoTerminalLines,           // card lines, each with an explain.* text
+  tag: currentTag,                   // the current tag on the board
+};
+```
+
+Then list it in `DEVICES` (`src/sim/devices/index.js`). That is all: the simulator, the text
+output, the result tags, the probes and the page find it there.
+
+- **Limits are stresses**: `stress(code, quantity, value, max, unit)` is a value against the
+  limit it must stay under. Over 1 it becomes the warning `code`; stage 3 shows the ratio as
+  levels (fine, near the limit, exceeded). Things that are not limits are `note(...)`.
+- **Typical values** go in `src/sim/models.js`, with their source; formulas a slider will need
+  (sensors) in import-free modules such as `src/parts/sensors.js`.
+- Devices that share a `kind` share their reading hooks (`lines`, `tag`, `probe`,
+  `currentPins`); `test/devices.test.js` checks it.
+- **One test against an independent reference** (a datasheet point or a formula solved apart)
+  in `test/sim.test.js` or `test/sources.test.js`. Never tune a model to make an example look right.
+- Give the package `paths` (section 3) so the conductor view follows its leads.
+
 ## Tests
 
 `npm test`. Add a test for anything that has a right answer: colour codes, sizes, pin

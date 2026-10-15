@@ -11,6 +11,14 @@ build step, no network: it keeps working inside an iframe or a wiki web view, on
 This page is the reference for the work, which spans several sessions. Each session ends with
 the tests green, this page and the roadmap up to date.
 
+## Status
+
+- Phases 0–1 done (`ff4070f`): golden file, conductor view on real paths, conventional current,
+  proportional speed, rail palette with steep shading inside bodies.
+- Phase 2 done: `src/sim/devices/`. A device today has `build(part, h)` (elements and the entry
+  its reading needs) instead of the `params` + `elements` pair sketched below; phase 3 splits it
+  when it introduces the compiled program (params must then be plain JSON).
+
 ## Decisions
 
 | Decision | Why |

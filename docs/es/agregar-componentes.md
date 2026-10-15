@@ -106,6 +106,44 @@ Copia `src/board/boards/bb830.js`, cambia medidas, filas, tiras y rieles, y agr�
 `BOARDS` en `src/board/board.js`. Las filas se dan en pasos de 2,54 mm desde el borde de
 atrás. `split` es la última columna de la mitad izquierda si los rieles están cortados.
 
+## 5. Simularlo: un dispositivo
+
+Lo que el simulador sabe de un tipo de componente vive en **un archivo** en `src/sim/devices/`
+(la interfaz está descrita al comienzo de `src/sim/devices/index.js`). Un dispositivo es un
+objeto simple:
+
+```js
+// src/sim/devices/inductor.js
+export const inductor = {
+  types: ['inductor'],               // tipos de componente que maneja
+  kind: 'L',                         // la clase de lectura
+  build(part, h) {                   // agrega elementos MNA (src/sim/mna.js); devuelve lo que la lectura necesita
+    const mid = h.inner(part.id);
+    h.add(resistor(h.at(0), mid, Math.max(h.e.dcr, 1e-3)));
+    return { main: h.add(inductorEl(mid, h.at(1), h.e.inductance)), maxCurrent: h.e.maxCurrent };
+  },
+  read: (entry, h) => twoTerminal(entry, entry.main, h),          // sus valores
+  limits: (entry, r) => [stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), entry.maxCurrent, 'A')],
+  lines: twoTerminalLines,           // líneas de la ficha, cada una con su texto explain.*
+  tag: currentTag,                   // la etiqueta de corriente sobre la protoboard
+};
+```
+
+Luego se agrega a `DEVICES` (`src/sim/devices/index.js`). Es todo: el simulador, la salida en
+texto, las etiquetas de resultados, las sondas y la página lo encuentran ahí.
+
+- **Los límites son esfuerzos**: `stress(code, quantity, value, max, unit)` es un valor frente al
+  límite que no debe pasar. Por encima de 1 se vuelve el aviso `code`; la etapa 3 muestra el
+  cociente en niveles (bien, cerca del límite, excedido). Lo que no es un límite va con `note(...)`.
+- **Los valores típicos** van en `src/sim/models.js`, con su fuente; las fórmulas que necesitará
+  un deslizador (sensores), en módulos sin imports como `src/parts/sensors.js`.
+- Los dispositivos que comparten `kind` comparten sus ganchos de lectura (`lines`, `tag`,
+  `probe`, `currentPins`); `test/devices.test.js` lo revisa.
+- **Una prueba contra una referencia independiente** (un punto de la hoja de datos o una
+  fórmula resuelta aparte) en `test/sim.test.js` o `test/sources.test.js`. Nunca se ajusta un
+  modelo para que un ejemplo se vea bien.
+- Dale `paths` al encapsulado (sección 3) para que la vista de conductores siga sus patas.
+
 ## Pruebas
 
 `npm test`. Agrega una prueba para todo lo que tenga una respuesta correcta: código de

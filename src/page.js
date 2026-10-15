@@ -22,6 +22,7 @@ import { SCRIPT } from './page/script.js';
 import { buildCircuit } from './circuit/build.js';
 import { nodeParams } from './circuit/checks.js';
 import { simulate } from './sim/index.js';
+import { deviceOfReading } from './sim/devices/index.js';
 import { partLines } from './sim/format.js';
 import { groundHole } from './sim/probes.js';
 import { describePart, describeKeys } from './parts/describe.js';
@@ -118,11 +119,10 @@ function partData(circuit, lang, sim) {
     for (const part of built.parts) {
       const r = sim.parts[part.id];
       if (!r || r.floating || r.unsupported || part.def.electrical?.kind === 'W') continue;
+      // A device may say it its own way (a transistor: Ic or Id); otherwise "I flows from … to …".
+      const own = deviceOfReading(r)?.probe?.(r);
       let text;
-      if (r.kind === 'Q') text = t(lang, 'probe.ic', { value: f(Math.abs(r.currents.C), 'A') });
-      else if (r.kind === 'M') text = t(lang, 'probe.id', { value: f(Math.abs(r.currents.D), 'A') });
-      else if (r.kind === 'POT') text = t(lang, 'probe.pot');
-      else if (r.kind === 'SW') text = t(lang, 'probe.switch', { value: f(Math.abs(r.current), 'A') });
+      if (own) text = t(lang, own.key, own.value != null ? { value: f(own.value, 'A') } : {});
       else {
         const [a, b] = r.current >= 0 ? [0, 1] : [1, 0];
         const label = (name) => (/^\d+$/.test(name) ? t(lang, 'page.info.pinNumber', { pin: name }) : pinName(name));
