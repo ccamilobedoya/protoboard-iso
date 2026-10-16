@@ -98,7 +98,7 @@ nothing unintended. A target is a circuit file or a folder with `circuit.json`.
 | `diode` | `part` (1N4007, 1N4001…6, 1N5399, 1N5408, 1N4148, 1N5819, 1N5822, FR107, FR207) | `A`, `K` |
 | `zener` | `value` ("5V1") or `part` (1N4728A…1N4751A) | `A`, `K` (in use, K to the + side) |
 | `bridge` | `part` (KBP307, KBP2xx, KBP3xx) | `+`, `AC1`, `AC2`, `-` in one row, one or two holes apart (`e10`, `e11`, `e13`, `e14`) |
-| `module` | `part` (ESP32-DEVKIT, ESP32-C3-SUPERMINI: place with `pin1`, `rowSpacing`; UNO: beside the board) | straddling: printed names, from pin 1 (`EN`, `5V`); UNO: `pins` of the pins in use only, e.g. `{ "D13": "j20", "GND": "T-27" }` |
+| `module` | `part` (ESP32-DEVKIT, ESP32-C3-SUPERMINI: place with `pin1`, `rowSpacing`; UNO, DESPI-C02: beside the board; DESPI-C02 also `rese` ("2.2" \| "0.47"), `panel`) | straddling: printed names, from pin 1 (`EN`, `5V`); UNO, DESPI-C02: `pins` of the pins in use only, e.g. `{ "D13": "j20", "GND": "T-27" }`, `{ "BUSY": "j20", "3.3V": "j24" }` |
 | `mosfet` | `part` (IRLZ44N, IRF520, IRF9540, 2N7000) | from the part, e.g. `G`, `D`, `S` |
 | `bjt` | `part` (2N2222A, 2N2907A, 2N3904, 2N3906, BC547…BC550, BC557, BC558, BC337, BC327, BC517, S8050, S8550, S9012…S9018, C1815, A1015, 2N5551, 2N5401, TIP120) | from the part, e.g. `E`, `B`, `C` |
 | `potentiometer` | `value` ("10k"), `position` (0…1), `style` (`knob`, `trimmer`) | `1`, `W`, `3` (in a row) |
