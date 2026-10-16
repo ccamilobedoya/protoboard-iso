@@ -1,10 +1,12 @@
 // Development boards (see ../modules.js): an ESP32 DevKit or an ESP32-C3 SuperMini straddling
-// the channel, placed with "pin1"; an Arduino UNO beside the board, wired pin by pin.
+// the channel, placed with "pin1"; an Arduino UNO or the DESPI-C02 e-paper adapter beside the
+// board, wired pin by pin.
 //
 // fields: part ("ESP32-DEVKIT", "ESP32-C3-SUPERMINI", "UNO"; other names in modules.js)
 //   straddling boards: pin1, rowSpacing (holes between the two rows; boards differ)
-//   UNO: pins ({ "D13": "j20", "GND": "T-5" }: only the pins in use), wires ({ "D13": "yellow" }),
-//        side ("back" | "front"), offset (mm along the board)
+//   UNO, DESPI-C02: pins ({ "D13": "j20", "GND": "T-5" }: only the pins in use),
+//        wires ({ "D13": "yellow" }), side ("back" | "front"), offset (mm along the board)
+//   DESPI-C02 also: rese ("2.2" as sold | "0.47": the P3 switch), panel (true: its 7.5" panel)
 // Not simulated yet: a module only joins the groups its pins are in (level 2 in the roadmap).
 
 import { MODULES, lookupModule, headerPins } from '../modules.js';
@@ -16,7 +18,7 @@ const SIGNALS = ['yellow', 'green', 'blue', 'white', 'violet', 'brown', 'grey'];
 function wireColor(name, i) {
   if (/^GND/.test(name)) return 'black';
   if (name === '5V' || name === 'VIN') return 'red';
-  if (name === '3V3' || name === 'IOREF') return 'orange';
+  if (name === '3V3' || name === '3.3V' || name === 'IOREF') return 'orange';
   return SIGNALS[i % SIGNALS.length];
 }
 
@@ -27,7 +29,7 @@ export default {
     const found = lookupModule(part.part);
     if (!found) return { error: { code: 'UNKNOWN_MODULE', params: { number: String(part.part), options: Object.keys(MODULES).join(', ') } } };
     const { id, module } = found;
-    const common = { label: { text: module.label }, internal: module.internal, spare: true, electrical: { kind: 'MOD', module: id, family: module.family, logic: module.logic } };
+    const common = { label: { text: module.label }, internal: module.internal, spare: true, electrical: { kind: 'MOD', module: id, family: module.family, role: module.role, logic: module.logic }, ...(module.role && { typeKey: `module.${module.role}` }) };
     if (module.mount === 'straddle') {
       const rowSpacing = Number(part.rowSpacing ?? module.rowSpacing);
       if (!(Number.isInteger(rowSpacing) && rowSpacing >= 4 && rowSpacing <= 12)) return { error: { code: 'BAD_VALUE', params: { value: `rowSpacing ${part.rowSpacing}` } } };
@@ -53,7 +55,14 @@ export default {
       colors[name] = color;
     }
     if (part.side !== undefined && !['back', 'front'].includes(part.side)) return { error: { code: 'UNKNOWN_KIND', params: { kind: String(part.side), options: 'back, front' } } };
-    return { ...common, package: 'uno', pinNames: names, params: { module, names, colors, side: part.side ?? 'back', offset: part.offset } };
+    const params = { module, names, colors, side: part.side ?? 'back', offset: part.offset };
+    if (module.package === 'despi') {
+      // The RESE switch as it is set (as sold: 2.2), and the panel on its FPC if asked for.
+      const rese = String(part.rese ?? '2.2');
+      if (!['2.2', '0.47'].includes(rese)) return { error: { code: 'UNKNOWN_KIND', params: { kind: rese, options: '2.2, 0.47' } } };
+      Object.assign(params, { rese, panel: Boolean(part.panel) });
+    }
+    return { ...common, package: module.package ?? 'uno', pinNames: names, params };
   },
 };
 

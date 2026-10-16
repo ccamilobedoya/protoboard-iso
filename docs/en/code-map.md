@@ -41,7 +41,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `geometry/primitives.js` | prisms, lathes, tubes, decals, text on planes (3D, millimetres) |
 | `board/` | breadboards as data (`boards/bb830.js`), holes and groups, drawing the board |
 | `parts/types/` | what a part *is*: value → bands, pins, label, `electrical` model (`battery.js`; `more.js`: inductor, thermistor, LDR, buzzer, header) |
-| `parts/packages/` | physical shapes from datasheet sizes; `expandPin1` for DIP and headers; `battery.js` lies beside the board (its `build` gets the board); `small.js`: bead, LDR, buzzer, header; `trimmer.js`; `sip.js`: KBP bridge (`kbp`); `devboard.js` (ESP32 boards across the channel) and `uno.js` (UNO beside the board, Dupont leads), data in `parts/modules.js`; `axial.js` also draws cement resistors (`shape: 'box'`) |
+| `parts/packages/` | physical shapes from datasheet sizes; `expandPin1` for DIP and headers; `battery.js` lies beside the board (its `build` gets the board); `small.js`: bead, LDR, buzzer, header; `trimmer.js`; `sip.js`: KBP bridge (`kbp`); `devboard.js` (ESP32 boards across the channel) `uno.js` (UNO beside the board) and `despi.js` (DESPI-C02 e-paper adapter and its panel), sharing `offboard.js` (printed text, Dupont lead); data in `parts/modules.js`; `axial.js` also draws cement resistors (`shape: 'box'`) |
 | `parts/db.js` | part numbers: package, pin order, model; `lookupPartNumber` accepts other names (L7805CV, 2SC1815) |
 | `parts/batteries.js` | battery formats and chemistries: sizes, voltage curve, internal resistance, capacity; `batteryModel` |
 | `parts/sensors.js` | sensor formulas (NTC, photoresistor) and the GL55xx table; no imports, so the browser engine can bundle them |

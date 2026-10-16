@@ -8,16 +8,15 @@
 //
 // Like the battery it needs the board (where its edges are), so build() takes it.
 
-import { v3, add, scale, distance, X, Y, Z } from '../../core/vec.js';
-import { box, rectDecal, textDecal, tube } from '../../geometry/primitives.js';
+import { v3, scale, X, Y } from '../../core/vec.js';
+import { box, rectDecal } from '../../geometry/primitives.js';
 import { MATERIALS } from '../colors.js';
-import { withZ } from './common.js';
+import { flat, dupontLead } from './offboard.js';
 
 const IN = 25.4;
 const GAP = 10; // mm between the board edge and the UNO
 const STANDOFF = 3; // the UNO rests on standoffs: its PCB bottom is this high above the table
 const HEADER = 8.5; // female header height
-const HOUSING = 9; // Dupont housing length
 
 // Printed name of a pin: "13", "~3", "A0", "GND", "3.3V".
 const PWM = new Set(['D3', 'D5', 'D6', 'D9', 'D10', 'D11']);
@@ -26,15 +25,6 @@ function printed(name) {
   if (name === '3V3') return '3.3V';
   if (/^D\d+$/.test(name)) return (PWM.has(name) ? '~' : '') + name.slice(1);
   return name;
-}
-
-// Text lying on the PCB, reading left to right in the front view (turned round if needed, the
-// anchor swapped so it still starts where it should).
-function flat(text, at, right, size, color, anchor = 'middle') {
-  const flip = right.x + right.y < 0;
-  const r = flip ? scale(right, -1) : right;
-  const side = flip ? { start: 'end', end: 'start', middle: 'middle' }[anchor] : anchor;
-  return textDecal({ text, at, right: r, down: v3(r.y, -r.x, 0), size, color, weight: 700, anchor: side });
 }
 
 export default {
@@ -105,29 +95,7 @@ export default {
     pins.forEach((hole, i) => {
       const name = params.names[i];
       const start = where.get(name);
-      if (!start) return;
-      const color = colors[name];
-      const a = withZ(start, start.z + HOUSING);
-      const b = withZ(hole, HOUSING);
-      const housing = box({ center: start, u: X, size: [2.4, 2.4, HOUSING], color: MATERIALS.headerBlack, outline: true });
-      housing.on = stripOf.get(name);
-      out.push(housing);
-      // Pushed all the way in: the housing rests on the board, centred on its hole (lifted, the
-      // isometric view would show it shifted back from the hole).
-      out.push(box({ center: withZ(hole, 0), u: X, size: [2.4, 2.4, HOUSING], color: MATERIALS.headerBlack, outline: true }));
-      const h = 6 + distance(a, b) * 0.22;
-      const pts = [];
-      for (let k = 0; k <= 20; k++) {
-        const t = k / 20;
-        const c0 = (1 - t) ** 3;
-        const c1 = 3 * (1 - t) ** 2 * t;
-        const c2 = 3 * (1 - t) * t * t;
-        const c3 = t ** 3;
-        const p1 = add(a, scale(Z, h));
-        const p2 = add(b, scale(Z, h));
-        pts.push(v3(c0 * a.x + c1 * p1.x + c2 * p2.x + c3 * b.x, c0 * a.y + c1 * p1.y + c2 * p2.y + c3 * b.y, c0 * a.z + c1 * p1.z + c2 * p2.z + c3 * b.z));
-      }
-      out.push(...tube({ points: pts, radius: 0.65, color, segments: 8, caps: 'ends' }));
+      if (start) out.push(...dupontLead({ from: start, hole, color: colors[name], on: stripOf.get(name) }));
     });
     return { primitives: out, body, anchor: on(Lu / 2, Wu / 2, zt + 2) };
   },

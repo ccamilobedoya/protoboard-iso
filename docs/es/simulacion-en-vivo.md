@@ -41,7 +41,7 @@ Esta página es la referencia del trabajo, que toma varias sesiones. Cada sesió
   (`engine.program()`) y **⚠ n** con los equivalentes. Comparación: 7 casos en
   `test/falstad/cases/`, referencias en `test/falstad/refs/`, `scripts/falstad.js`; 5 coinciden
   dentro de 1 µV, el MOSFET (sin λ en Falstad) y el Zener (otra rodilla) con su tolerancia.
-- Siguiente: fase 7, el osciloscopio.
+- Siguiente: fase 7, el osciloscopio; después el generador de señales y las sondas (plan más abajo).
 
 ## Decisiones
 
@@ -53,7 +53,7 @@ Esta página es la referencia del trabajo, que toma varias sesiones. Cada sesió
 | **Deslizadores** automáticos en la ficha de cada componente ajustable, más un panel con los que declare el circuito (`page.controls`) | Explorar queda libre, y una lección igual puede poner al frente los dos o tres que importan. |
 | **Límites a la vista**. Cada dispositivo informa su *esfuerzo* (valor / límite) de corriente, potencia, voltaje y voltaje inverso. Los tres niveles son iguales para todos y la marca «se excedió» se queda | Uno de los objetivos de simular a este nivel es saber si un componente aguanta un voltaje antes de probarlo. |
 | Sin bandera nueva: el motor se embebe cuando el circuito pide `page.results` o `page.flow` | Las dos ya son opcionales, así que nunca se muestra un valor pendiente de predicción. |
-| El osciloscopio (V e I contra el tiempo) es el último ítem de la etapa | Sirve para RC, rectificadores y luego el 555, pero lo demás no lo necesita. |
+| El osciloscopio (V e I contra el tiempo) va al final de la etapa, con el generador de señales y las sondas (fases 7 a 9) | Sirve para RC, rectificadores y luego el 555, pero lo demás no lo necesita. |
 
 ## Cómo se ve
 
@@ -209,6 +209,75 @@ Como quedó (fase 5):
   sigue al dedo al instante, el circuito se resuelve tras 120 ms quieto, al menos cada 300 ms en un
   arrastre largo, y al instante al soltar. El primer toque se resuelve al instante.
 
+## Fases 7 a 9: osciloscopio, generador de señales y sondas (plan del 2026-10-15)
+
+Para la próxima sesión. Decisiones de Cris:
+
+| Decisión | Por qué |
+|---|---|
+| El osciloscopio va **en la ficha del componente seleccionado**. Al cerrar la ficha se va la gráfica | La gráfica explica ese componente, al lado de sus valores y su descripción. |
+| **Sin canales fijados por ahora** (un panel con dos canales, como el ZT-703S, queda para cuando una lección lo necesite), pero el código se escribe reutilizable: la gráfica recibe una lista de trazas | No cargar la página con algo que todavía no se usa, sin cerrarle el camino. |
+| **Generador de señales** como fuente (fase 8) | Sin él, el osciloscopio solo muestra encendidos y cambios; con él se ven el rizado de un rectificador, un filtro RC con onda cuadrada y, después, el 555. Es lo que trae el ZT-703S del banco. |
+| **Sondas en los nodos** (fase 9): tocar una tira muestra su voltaje respecto a tierra, con su osciloscopio | Así se usa el osciloscopio real: mide voltaje contra la tierra común; la corriente no se mide directamente. |
+
+### Fase 7: osciloscopio en la ficha
+
+- **Grabación desde el arranque** (`sim/recorder.js`, se puede agrupar, sin DOM): en cada cuadro
+  guarda, para cada componente, el tiempo y su par (voltaje, corriente) en un búfer circular
+  (`Float64Array`, unas 2048 muestras). Al tocar un componente ya está su historia: un
+  condensador que terminó de cargarse muestra la curva completa. *Encender (t = 0)* la borra.
+- **Qué se grafica**: un gancho nuevo en los módulos de dispositivo, `scope(reading)` →
+  `{ v: { key, value }, i: { key, value } }`.
+  - Por defecto, dos patas: el voltaje (tensión) entre ellas y la corriente.
+  - Transistor: Vce e Ic; MOSFET: Vds e Id; batería: voltaje en bornes y corriente que entrega;
+    potenciómetro: voltaje del cursor e I(W).
+  - El mismo gancho sirve después para las sondas (un nodo: solo voltaje).
+- **Dibujo** (`page/client/scope.js`, `createScope(box, { traces, t, f })`): un SVG en la ficha con
+  dos gráficas apiladas y el mismo eje de tiempo, nunca un eje doble.
+  - Arriba el voltaje, abajo la corriente.
+  - Cuadrícula de pantalla de osciloscopio, escala automática por traza con sus unidades
+    (`formatValue`), marca de «ahora», eje de tiempo con unidades y el rótulo *modelo*.
+  - Recibe una lista de trazas: así sirve para el panel de dos canales futuro y para las sondas.
+  - Se redibuja con el refresco de la página (4 veces por segundo), sin filtros CSS. Al dibujar,
+    se queda con el mínimo y el máximo de cada columna de píxeles, para no perder picos.
+- **Tiempo**:
+  - Circuitos con C o L: tiempo simulado, con una ventana de unas 5 constantes de tiempo (o desde
+    t = 0, si es menos).
+  - Sin C ni L: tiempo real, así el salto del pulsador y de los deslizadores se ve al instante.
+  - *Pausa* congela la gráfica.
+- **Regla de predicción**: igual que los resultados. Solo en la página en vivo y solo para el
+  componente tocado.
+- **Pruebas**:
+  - La grabación coincide con `engine.transient` en los mismos instantes (RC: 63,2 % en τ).
+  - En jsdom: abrir la ficha muestra las dos trazas, cerrarla las quita, reiniciar borra.
+  - Los textos van en inglés y en español.
+
+### Fase 8: generador de señales
+
+- Una fuente nueva en `supplies`:
+  `{ "kind": "generator", "waveform": "sine" | "square" | "triangle", "frequency", "amplitude", "offset", "resistance" }`.
+  `resistance` es la resistencia de salida; la del ZT-703S está por confirmar en el banco.
+  Se dibujará al lado de la protoboard junto con la fuente de banco (ítem pendiente de la hoja de
+  ruta).
+- **Motor**: una fuente que depende del tiempo. En DC vale su valor en t = 0.
+  - El paso de tiempo y el reloj de la página también dependen del período (al menos 50 pasos por
+    período), no solo de las constantes de tiempo.
+  - Deslizadores de frecuencia y amplitud.
+- **Falstad**: la fuente `v` con su forma de onda, sin equivalente.
+- **Casos**:
+  - un rectificador de media onda con condensador (rizado);
+  - un RC con onda cuadrada.
+
+  Con ellos entran los casos con transitorio a la comparación con Falstad.
+
+### Fase 9: sondas en los nodos
+
+- Tocar una tira (un grupo) abre la ficha del nodo: su voltaje respecto a tierra y su osciloscopio
+  con una traza. Reutiliza la grabación (los voltajes de los nodos ya están en la lectura) y
+  `createScope`.
+- Se diseña junto con lo que la etapa 4 tiene pendiente: el multímetro virtual y que tocar una
+  tira resalte lo que está conectado.
+
 ## Fases y sesiones
 
 | Sesión | Fase | Entrega |
@@ -220,7 +289,9 @@ Como quedó (fase 5):
 | 4 | 4 · Página en vivo | motor y programa embebidos, bucle de cuadros, puntos, color de voltaje, brillo, calor, controles de tiempo, etiquetas en vivo |
 | 5 | 5 · Controles y límites | deslizadores en la ficha, `page.controls`, pulsador momentáneo, niveles de esfuerzo, marca que se queda, panel de avisos; `stress` por componente en `simulate` (campo nuevo) |
 | 6 | 6 · Comparación con Falstad | ✅ exportador (`sim/falstad.js`), botón *Abrir en Falstad*, casos y referencias en `test/falstad/` con modelos igualados (divisor, LED + R, BJT activo, Darlington y pulsador, puente, MOSFET, potenciómetro y Zener) |
-| 6 | 7 · Osciloscopio | búfer circular de V e I del componente tocado, dibujado como polilínea en un panel |
+| 7 | 7 · Osciloscopio | en la ficha del componente tocado: grabación desde el arranque (`sim/recorder.js`), gancho `scope` por dispositivo, `page/client/scope.js` (dos gráficas apiladas, V e I, reutilizable) |
+| 8 | 8 · Generador de señales | fuente `generator` (seno, cuadrada, triangular) en el motor, la página, los deslizadores y Falstad; casos con transitorio |
+| 9 | 9 · Sondas en los nodos | ficha del nodo al tocar una tira, con su voltaje y su osciloscopio |
 
 En cada fase:
 - documentación en inglés y en español;

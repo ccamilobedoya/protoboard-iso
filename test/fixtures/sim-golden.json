@@ -997,6 +997,212 @@
    }
   }
  },
+ "epaper-esp32.json": {
+  "result": {
+   "analysis": "dc",
+   "model": true,
+   "ok": true,
+   "iterations": 2,
+   "ground": "T-",
+   "nodes": {
+    "T-": 0,
+    "10:a-e": null,
+    "11:a-e": null,
+    "12:a-e": null,
+    "13:a-e": null,
+    "14:a-e": null,
+    "15:a-e": null,
+    "16:a-e": null,
+    "17:a-e": null,
+    "18:a-e": null,
+    "19:a-e": null,
+    "20:a-e": null,
+    "21:a-e": null,
+    "22:a-e": null,
+    "23:a-e": null,
+    "24:a-e": null,
+    "24:f-j": null,
+    "23:f-j": null,
+    "22:f-j": null,
+    "21:f-j": null,
+    "20:f-j": null,
+    "19:f-j": null,
+    "18:f-j": null,
+    "17:f-j": null,
+    "16:f-j": null,
+    "15:f-j": null,
+    "14:f-j": null,
+    "13:f-j": null,
+    "12:f-j": null,
+    "11:f-j": null,
+    "10:f-j": null,
+    "T+": 5
+   },
+   "parts": {
+    "U1": {
+     "kind": "MOD",
+     "pins": {
+      "EN": null,
+      "VP": null,
+      "VN": null,
+      "D34": null,
+      "D35": null,
+      "D32": null,
+      "D33": null,
+      "D25": null,
+      "D26": null,
+      "D27": null,
+      "D14": null,
+      "D12": null,
+      "D13": null,
+      "GND": null,
+      "VIN": null,
+      "3V3": null,
+      "GND2": null,
+      "D15": null,
+      "D2": null,
+      "D4": null,
+      "RX2": null,
+      "TX2": null,
+      "D5": null,
+      "D18": null,
+      "D19": null,
+      "D21": null,
+      "RX0": null,
+      "TX0": null,
+      "D22": null,
+      "D23": null
+     },
+     "unsupported": true,
+     "floating": true,
+     "pinCurrents": {
+      "EN": 0,
+      "VP": 0,
+      "VN": 0,
+      "D34": 0,
+      "D35": 0,
+      "D32": 0,
+      "D33": 0,
+      "D25": 0,
+      "D26": 0,
+      "D27": 0,
+      "D14": 0,
+      "D12": 0,
+      "D13": 0,
+      "GND": 0,
+      "VIN": 0,
+      "3V3": 0,
+      "GND2": 0,
+      "D15": 0,
+      "D2": 0,
+      "D4": 0,
+      "RX2": 0,
+      "TX2": 0,
+      "D5": 0,
+      "D18": 0,
+      "D19": 0,
+      "D21": 0,
+      "RX0": 0,
+      "TX0": 0,
+      "D22": 0,
+      "D23": 0
+     }
+    },
+    "EP1": {
+     "kind": "MOD",
+     "pins": {
+      "BUSY": null,
+      "RES": null,
+      "D/C": null,
+      "CS": null,
+      "SCK": null,
+      "SDI": null,
+      "GND": null,
+      "3.3V": null
+     },
+     "unsupported": true,
+     "floating": true,
+     "pinCurrents": {
+      "BUSY": 0,
+      "RES": 0,
+      "D/C": 0,
+      "CS": 0,
+      "SCK": 0,
+      "SDI": 0,
+      "GND": 0,
+      "3.3V": 0
+     }
+    }
+   },
+   "supplies": {
+    "V1": {
+     "kind": "bench",
+     "voltage": 5,
+     "current": 5e-12,
+     "power": 2.4999999999999998e-11,
+     "mode": "CV"
+    }
+   },
+   "issues": [
+    {
+     "severity": "info",
+     "code": "SIM_UNSUPPORTED",
+     "params": {
+      "part": "U1"
+     }
+    },
+    {
+     "severity": "info",
+     "code": "SIM_UNSUPPORTED",
+     "params": {
+      "part": "EP1"
+     }
+    },
+    {
+     "severity": "warning",
+     "code": "SIM_FLOATING",
+     "params": {
+      "nodes": "10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, 15:a-e, 16:a-e, 17:a-e, 18:a-e, 19:a-e, 20:a-e, 21:a-e, 22:a-e, 23:a-e, 24:a-e, 24:f-j, 23:f-j, 22:f-j, 21:f-j, 20:f-j, 19:f-j, 18:f-j, 17:f-j, 16:f-j, 15:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j",
+      "parts": "U1, EP1"
+     }
+    }
+   ]
+  },
+  "text": {
+   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T-):\n  rail T-                        0 V\n  column 10 (rows a–e)           floating\n  column 11 (rows a–e)           floating\n  column 12 (rows a–e)           floating\n  column 13 (rows a–e)           floating\n  column 14 (rows a–e)           floating\n  column 15 (rows a–e)           floating\n  column 16 (rows a–e)           floating\n  column 17 (rows a–e)           floating\n  column 18 (rows a–e)           floating\n  column 19 (rows a–e)           floating\n  column 20 (rows a–e)           floating\n  column 21 (rows a–e)           floating\n  column 22 (rows a–e)           floating\n  column 23 (rows a–e)           floating\n  column 24 (rows a–e)           floating\n  column 24 (rows f–j)           floating\n  column 23 (rows f–j)           floating\n  column 22 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 20 (rows f–j)           floating\n  column 19 (rows f–j)           floating\n  column 18 (rows f–j)           floating\n  column 17 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 15 (rows f–j)           floating\n  column 14 (rows f–j)           floating\n  column 13 (rows f–j)           floating\n  column 12 (rows f–j)           floating\n  column 11 (rows f–j)           floating\n  column 10 (rows f–j)           floating\n  rail T+                        5 V\nParts:\n  U1     not simulated · floating\n  EP1    not simulated · floating\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  note: EP1: the simulator does not model this part yet; its pins are left unconnected.\n  warning: U1, EP1: no DC path to the supply (nodes 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, 15:a-e, 16:a-e, 17:a-e, 18:a-e, 19:a-e, 20:a-e, 21:a-e, 22:a-e, 23:a-e, 24:a-e, 24:f-j, 23:f-j, 22:f-j, 21:f-j, 20:f-j, 19:f-j, 18:f-j, 17:f-j, 16:f-j, 15:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T-):\n  riel T-                        0 V\n  columna 10 (filas a–e)         flotante\n  columna 11 (filas a–e)         flotante\n  columna 12 (filas a–e)         flotante\n  columna 13 (filas a–e)         flotante\n  columna 14 (filas a–e)         flotante\n  columna 15 (filas a–e)         flotante\n  columna 16 (filas a–e)         flotante\n  columna 17 (filas a–e)         flotante\n  columna 18 (filas a–e)         flotante\n  columna 19 (filas a–e)         flotante\n  columna 20 (filas a–e)         flotante\n  columna 21 (filas a–e)         flotante\n  columna 22 (filas a–e)         flotante\n  columna 23 (filas a–e)         flotante\n  columna 24 (filas a–e)         flotante\n  columna 24 (filas f–j)         flotante\n  columna 23 (filas f–j)         flotante\n  columna 22 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 20 (filas f–j)         flotante\n  columna 19 (filas f–j)         flotante\n  columna 18 (filas f–j)         flotante\n  columna 17 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 15 (filas f–j)         flotante\n  columna 14 (filas f–j)         flotante\n  columna 13 (filas f–j)         flotante\n  columna 12 (filas f–j)         flotante\n  columna 11 (filas f–j)         flotante\n  columna 10 (filas f–j)         flotante\n  riel T+                        5 V\nComponentes:\n  U1     no se simula · flotante\n  EP1    no se simula · flotante\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  nota: EP1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: U1, EP1: no hay camino de corriente continua hasta la fuente (grupos 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, 15:a-e, 16:a-e, 17:a-e, 18:a-e, 19:a-e, 20:a-e, 21:a-e, 22:a-e, 23:a-e, 24:a-e, 24:f-j, 23:f-j, 22:f-j, 21:f-j, 20:f-j, 19:f-j, 18:f-j, 17:f-j, 16:f-j, 15:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j), así que ahí el voltaje no está definido."
+  },
+  "lines": {
+   "en": {
+    "U1": [
+     {
+      "key": "unsupported",
+      "text": "not simulated"
+     }
+    ],
+    "EP1": [
+     {
+      "key": "unsupported",
+      "text": "not simulated"
+     }
+    ]
+   },
+   "es": {
+    "U1": [
+     {
+      "key": "unsupported",
+      "text": "no se simula"
+     }
+    ],
+    "EP1": [
+     {
+      "key": "unsupported",
+      "text": "no se simula"
+     }
+    ]
+   }
+  }
+ },
  "esp32-led.json": {
   "result": {
    "analysis": "dc",

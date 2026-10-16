@@ -101,6 +101,7 @@ Guide: [docs/en/simulation.md](docs/en/simulation.md).
 From the course inventory, in rough order of use:
 
 - ✅ Development boards, drawn and checked (level 1): ESP32 DevKit (30 pins) and ESP32-C3 SuperMini straddling the channel by `pin1`, with a `rowSpacing` because boards differ; Arduino UNO beside the board, only the pins in use wired with Dupont leads; a note per pin in the card (strapping pins, input only, ADC2 and Wi-Fi, PWM…). Examples `esp32-led.json`, `uno-led.json`
+- ✅ GooDisplay DESPI-C02 e-paper adapter beside the board (right-angle pins with Dupont leads, RESE switch, test pads, FPC connector) and, when asked, the 7.5" GDEY075T7 panel on its flat cable (`panel: true`); card "Adapter board". Example `epaper-esp32.json`
 - ⬜ Other modules: AMS1117-3.3 and LM2596 regulators, TP4056 charger
 - ⬜ Bench supply drawn beside the board, its leads clipped to the rails (today `supplies` is not drawn)
 - ⬜ Battery discharge over time in a transient (charge falling with the current drawn), for runtime lessons
@@ -139,7 +140,33 @@ the plan by sessions: [docs/en/live-simulation.md](docs/en/live-simulation.md).
   - ⬜ Falstad's XML format: the MOSFET's λ and Falstad's LM317 (regulators are left out today)
   - ⬜ Transient cases (RC, RL) in the cross-check, sampled at the same times
   - ✅ Drawn as a schematic in Falstad (`sim/falstad-layout.js`): nets as rows ordered by voltage, parts standing between them, series parts in one column, jumpers merged, the column order with the fewest crossings
-- ⬜ Phase 7: oscilloscope (V and I against time of the tapped part)
+- ⬜ Phase 7: oscilloscope in the card of the tapped part (V and I against time, two stacked plots, recorded from the start; closing the card removes it). Plan: [live-simulation.md](docs/en/live-simulation.md#phases-7-to-9-oscilloscope-signal-generator-and-probes-plan-of-2026-10-15)
+- ⬜ Phase 8: signal generator as a source (sine, square, triangle; frequency and amplitude sliders), like the bench ZT-703S's; transient cases in the Falstad cross-check
+- ⬜ Phase 9: probes on nodes: tap a strip to see its voltage to ground and its oscilloscope
+- ⬜ Later, when a lesson needs it: pin traces to a two-channel oscilloscope panel (the plot code is written for a list of traces)
+
+## User experience (cross-cutting) ⬜
+
+Asked by the maintainer (2026-10-15): the page has many useful features, with more to come. They
+must be organised so a learner does not get lost, above all on a phone. Today there are:
+
+- in the bar: views, framing, labels, current layer, speed, time and *Open in Falstad*;
+- in the card: focus, see-through, results and sliders;
+- in the side panel: limits and warnings, the controls panel and the Falstad equivalents.
+
+The oscilloscope, the generator and the probes are next. Best done after phase 9 and before
+stage 4.
+
+- ⬜ Inventory of every feature: where it lives (bar, card, side panel, gesture), when it appears
+  and which circuit asks for it (`page.*`)
+- ⬜ One interaction model: the bar for the view and time, the card for the tapped part or node,
+  the side panel for what concerns the whole circuit
+- ⬜ Progressive disclosure: the basics in view, the advanced behind a menu; the lesson decides
+  what shows
+- ⬜ The bar on a phone: today it scrolls sideways and grows with every feature; group it into
+  menus
+- ⬜ A short first-time guide when a page opens (what can be tapped)
+- ⬜ Try it with the maintainer on a phone and a tablet, and adjust
 
 ## Stage 4 — On a phone or tablet ⬜
 

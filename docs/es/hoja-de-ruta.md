@@ -101,6 +101,7 @@ Guía: [simulacion.md](simulacion.md).
 Del inventario del curso, más o menos en el orden en que se usan:
 
 - ✅ Placas de desarrollo, dibujadas y revisadas (nivel 1): ESP32 DevKit (30 pines) y ESP32-C3 SuperMini a caballo del canal con `pin1`, con `rowSpacing` porque las placas cambian; Arduino UNO al lado de la protoboard, con cables Dupont solo en los pines que se usan; una nota por pin en la ficha (pines de arranque, solo entrada, ADC2 y Wi-Fi, PWM…). Ejemplos `esp32-led.json`, `uno-led.json`
+- ✅ Adaptador e-paper GooDisplay DESPI-C02 al lado de la protoboard (pines acodados con cables Dupont, interruptor RESE, pistas de prueba, conector FPC) y, a pedido, el panel GDEY075T7 de 7,5" con su cable plano (`panel: true`); ficha «Placa adaptadora». Ejemplo `epaper-esp32.json`
 - ⬜ Otros módulos: reguladores AMS1117-3.3 y LM2596, cargador TP4056
 - ⬜ Fuente de banco dibujada al lado de la protoboard, con sus caimanes en los rieles (hoy `supplies` no se dibuja)
 - ⬜ Descarga de la batería con el tiempo en un transitorio (la carga baja con la corriente), para lecciones de autonomía
@@ -139,7 +140,34 @@ decisiones y plan por sesiones: [simulacion-en-vivo.md](simulacion-en-vivo.md).
   - ⬜ El formato XML de Falstad: el λ del MOSFET y el LM317 de Falstad (hoy los reguladores quedan fuera)
   - ⬜ Casos con transitorio (RC, RL) en la comparación, muestreados en los mismos instantes
   - ✅ Dibujado como esquema en Falstad (`sim/falstad-layout.js`): nodos como filas ordenadas por voltaje, componentes de pie entre ellas, los que van en serie en una columna, los puentes unidos a su nodo, el orden de columnas con menos cruces
-- ⬜ Fase 7: osciloscopio (V e I contra el tiempo del componente tocado)
+- ⬜ Fase 7: osciloscopio en la ficha del componente tocado (V e I contra el tiempo, dos gráficas apiladas, grabadas desde el arranque; al cerrar la ficha se va). Plan: [simulacion-en-vivo.md](simulacion-en-vivo.md#fases-7-a-9-osciloscopio-generador-de-señales-y-sondas-plan-del-2026-10-15)
+- ⬜ Fase 8: generador de señales como fuente (seno, cuadrada, triangular; deslizadores de frecuencia y amplitud), como el del ZT-703S del banco; casos con transitorio en la comparación con Falstad
+- ⬜ Fase 9: sondas en los nodos: tocar una tira muestra su voltaje respecto a tierra y su osciloscopio
+- ⬜ Más adelante, cuando una lección lo necesite: fijar trazas en un panel de osciloscopio de dos canales (la gráfica se escribe para una lista de trazas)
+
+## Experiencia de uso (transversal) ⬜
+
+Pedido de Cris (2026-10-15): la página ya tiene muchas funciones útiles, y vienen más. Hay que
+ordenarlas para que quien aprende no se pierda, sobre todo en el celular. Hoy hay:
+
+- en la barra: vistas, encuadre, etiquetas, capa de corriente, velocidad, tiempo y *Abrir en
+  Falstad*;
+- en la ficha: foco, ver a través, resultados y deslizadores;
+- en el panel lateral: límites y avisos, el panel de controles y los equivalentes de Falstad.
+
+Vienen el osciloscopio, el generador y las sondas. Conviene hacerlo después de la fase 9 y antes
+de la etapa 4.
+
+- ⬜ Inventario de cada función: dónde vive (barra, ficha, panel lateral, gesto), cuándo aparece y
+  qué circuito la pide (`page.*`)
+- ⬜ Un modelo de interacción coherente: la barra para la vista y el tiempo, la ficha para el
+  componente o el nodo tocado, el panel lateral para lo que afecta a todo el circuito
+- ⬜ Revelación progresiva: lo básico a la vista y lo avanzado detrás de un menú; la lección decide
+  qué se muestra
+- ⬜ La barra en el celular: hoy se desliza en horizontal y crece con cada función; agruparla en
+  menús
+- ⬜ Una ayuda corta la primera vez que se abre una página (qué se puede tocar)
+- ⬜ Probarlo con Cris en el celular y en la tableta, y ajustar
 
 ## Etapa 4 — En el celular o la tableta ⬜
 

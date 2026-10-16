@@ -156,7 +156,7 @@ function partData(circuit, lang, sim) {
 // "Bipolar transistor", explained by the kit's description of that kind of part.
 function kindLine(part, lang, kinds) {
   const keys = describeKeys(part);
-  const text = t(lang, `type.${part.type}`);
+  const text = t(lang, `type.${part.def?.typeKey ?? part.type}`);
   if (!keys.length) return { key: null, text };
   const key = `describe.${keys.join('+')}`;
   kinds[key] = describePart(part, lang);

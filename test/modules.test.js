@@ -44,6 +44,24 @@ test('an Arduino UNO lies beside the board and wires only the pins listed', () =
   for (const view of ['front', 'back']) assert.doesNotMatch(renderCircuit(example('uno-led.json'), { view }).svg, /NaN|undefined/);
 });
 
+test('the DESPI-C02 e-paper adapter lies beside the board, its RESE switch and panel as asked', () => {
+  const despi = (pins, extra) => ({ parts: [{ id: 'EP1', type: 'module', part: 'DESPI-C02', pins, ...extra }] });
+  assert.deepEqual(holesOf(despi({ busy: 'j20', 'd/c': 'j18', '3.3V': 'j24' }), 'EP1'), { BUSY: 'j20', 'D/C': 'j18', '3.3V': 'j24' });
+  assert.deepEqual(codes(checkCircuit(despi({ MOSI: 'j20' })).issues), ['UNKNOWN_PIN']);
+  assert.deepEqual(codes(checkCircuit(despi({ BUSY: 'j20' }, { rese: '3' })).issues), ['UNKNOWN_KIND']);
+  const [ep] = buildCircuit(despi({ GND: 'j23', '3.3V': 'j24', SCK: 'j16' })).parts;
+  assert.equal(ep.def.params.rese, '2.2', 'as sold');
+  assert.equal(ep.def.params.colors.GND, '#2b2b2e', 'ground black');
+  assert.equal(ep.def.params.colors['3.3V'], buildCircuit({ parts: [{ id: 'A', type: 'module', part: 'UNO', pins: { '3V3': 'j1' } }] }).parts[0].def.params.colors['3V3'], '3.3 V orange, as on the other boards');
+  assert.ok(ep.built.anchor.y > buildCircuit(despi({ SCK: 'j16' })).board.spec.size.width, 'behind the board by default');
+  const plain = renderCircuit(despi({ SCK: 'j16' })).svg;
+  const withPanel = renderCircuit(despi({ SCK: 'j16' }, { panel: true })).svg;
+  assert.ok(withPanel.length > plain.length, 'the panel is drawn');
+  for (const view of ['front', 'back']) assert.doesNotMatch(renderCircuit(example('epaper-esp32.json'), { view }).svg, /NaN|undefined/);
+  const card = pageData(renderPage(example('epaper-esp32.json'), { lang: 'es' }).html).parts.EP1;
+  assert.match(card.pins.find((l) => l.startsWith('BUSY')), /activo en bajo/);
+});
+
 test('a board\'s card lists the pins in use with their notes', () => {
   const { html } = renderPage(example('esp32-led.json'), { lang: 'es' });
   const { pins } = pageData(html).parts.U1;

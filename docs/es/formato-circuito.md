@@ -136,6 +136,7 @@ Una placa de desarrollo. Todavía no se simula: sus pines solo unen los grupos d
 | `ESP32-DEVKIT` (también `ESP32`) | a caballo del canal, 30 pines | `pin1` (EN) y `rowSpacing` |
 | `ESP32-C3-SUPERMINI` (también `ESP32-C3`) | a caballo del canal, 16 pines | `pin1` (5V) y `rowSpacing` |
 | `UNO` (también `ARDUINO-UNO`) | al lado de la protoboard | `pins` solo con los pines que se usan |
+| `DESPI-C02` (también `DESPI`) | al lado de la protoboard | `pins` solo con los pines que se usan; `rese`, `panel` |
 
 **Las placas a caballo del canal** se colocan como un chip DIP: la pata 1 y las demás siguen
 por esa fila, y vuelven por la otra, a `rowSpacing` agujeros al otro lado del canal (DevKit 9, o
@@ -163,6 +164,17 @@ defecto (5V y VIN rojo, 3V3 naranja, tierra negro, señales por turno) o el que 
 
 Pines del UNO: `D0` … `D13`, `A0` … `A5`, `SCL`, `SDA`, `AREF`, `IOREF`, `RESET`, `3V3`, `5V`, `VIN`
 y las tres tierras `GND`, `GND2` (conector de alimentación) y `GND3` (junto a D13).
+
+**El adaptador e-paper DESPI-C02** de GooDisplay también va al lado de la protoboard, con sus 8
+pines acodados hacia ella y un cable Dupont en cada pin que se usa (`pins`, `wires`, `side`,
+`offset`, como el UNO). Pines: `BUSY`, `RES`, `D/C`, `CS`, `SCK`, `SDI`, `GND`, `3.3V`.
+`"rese": "0.47"` o `"2.2"` (como viene de fábrica) dibuja el interruptor P3 en esa posición: 0,47
+para controladores UltraChip como el UC8179 del GDEY075T7. Con `"panel": true` se dibuja el panel
+GDEY075T7 de 7,5" con su cable plano en el conector P1. Su ficha se titula «Placa adaptadora».
+
+```json
+{ "id": "EP1", "type": "module", "part": "DESPI-C02", "rese": "0.47", "panel": true, "pins": { "BUSY": "j20", "SCK": "j16", "SDI": "j10", "GND": "j23", "3.3V": "j24" } }
+```
 
 En la página, la ficha de una placa lista los pines en uso, cada uno con una nota corta (pin de
 arranque, solo entrada, ADC2 no con Wi-Fi, PWM, compartido con el USB…).

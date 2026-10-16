@@ -1,7 +1,7 @@
 // Development boards (modules): what each one is, its pins in order and a short note per pin.
 // The drawing lives in packages/devboard.js (boards that straddle the channel, placed with
-// "pin1") and packages/uno.js (an Arduino UNO lying beside the board, wired with Dupont
-// leads). Electrically a module is not simulated yet: its pins only join the groups their
+// "pin1"), packages/uno.js (an Arduino UNO lying beside the board, wired with Dupont
+// leads) and packages/despi.js (the DESPI-C02 e-paper adapter, also beside the board). Electrically a module is not simulated yet: its pins only join the groups their
 // holes are in (simulating its pins is level 2 in the roadmap).
 //
 // Sizes and pin data: Espressif datasheets (ESP32 v5.3, ESP32-C3 v2.4), the Arduino UNO R3
@@ -152,6 +152,33 @@ export const MODULES = {
       VIN: n('entrada de 7 a 12 V al regulador', '7 to 12 V input to the regulator'),
     },
   },
+
+  // GooDisplay DESPI-C02: adapter for 24-pin SPI e-paper panels (GDEY075T7 and others). It passes
+  // the panel's 0.5 mm FPC to 8 right-angle male pins and makes the panel's high voltages with a
+  // charge pump (L1, Q1, D1–D3). Lies beside the board, wired with Dupont leads; optionally with
+  // its 7.5" panel (`panel: true`). The RESE switch (P3) must match the panel's controller:
+  // 0.47 Ω for UltraChip (UC8179) and Fitipower, 2.2 Ω for SSD. Datasheet DESPI-C02 Rev 1.1.
+  'DESPI-C02': {
+    family: 'epaper',
+    role: 'adapter',
+    mount: 'beside',
+    package: 'despi',
+    label: 'DESPI-C02',
+    size: [41, 22, 1.6],
+    pins: ['BUSY', 'RES', 'D/C', 'CS', 'SCK', 'SDI', 'GND', '3.3V'],
+    internal: [],
+    logic: 3.3,
+    notes: {
+      BUSY: n('salida del panel: ocupado mientras refresca (en el UC8179, activo en bajo) · entrada en el micro', 'panel output: busy while refreshing (UC8179: active low) · an input on the micro'),
+      RES: n('reinicio del panel, activo en bajo', 'panel reset, active low'),
+      'D/C': n('alto = dato, bajo = comando', 'high = data, low = command'),
+      CS: n('selección de chip del SPI, activo en bajo', 'SPI chip select, active low'),
+      SCK: n('reloj del SPI', 'SPI clock'),
+      SDI: n('datos del SPI hacia el panel (MOSI del micro)', 'SPI data into the panel (the micro\'s MOSI)'),
+      GND,
+      '3.3V': n('alimentación: solo 3,3 V, nunca 5 V', 'supply: 3.3 V only, never 5 V'),
+    },
+  },
 };
 
 // Other names for the same board.
@@ -165,6 +192,9 @@ const ALIASES = {
   'ARDUINO-UNO': 'UNO',
   'UNO-R3': 'UNO',
   'ARDUINO-UNO-R3': 'UNO',
+  DESPI: 'DESPI-C02',
+  DESPIC02: 'DESPI-C02',
+  'DESPI-C02-ADAPTER': 'DESPI-C02',
 };
 
 export function lookupModule(name) {
@@ -174,4 +204,4 @@ export function lookupModule(name) {
 }
 
 // Every pin name of a beside-the-board module, in header order.
-export const headerPins = (module) => module.headers.flatMap((h) => h.pins.map(([name]) => name));
+export const headerPins = (module) => (module.headers ? module.headers.flatMap((h) => h.pins.map(([name]) => name)) : module.pins);

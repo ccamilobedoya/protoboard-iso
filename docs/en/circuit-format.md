@@ -128,6 +128,7 @@ A development board. Not simulated yet: its pins only join the groups their hole
 | `ESP32-DEVKIT` (also `ESP32`) | straddles the channel, 30 pins | `pin1` (EN), and `rowSpacing` |
 | `ESP32-C3-SUPERMINI` (also `ESP32-C3`) | straddles the channel, 16 pins | `pin1` (5V), and `rowSpacing` |
 | `UNO` (also `ARDUINO-UNO`) | beside the board | `pins` of the pins in use only |
+| `DESPI-C02` (also `DESPI`) | beside the board | `pins` of the pins in use only; `rese`, `panel` |
 
 **Straddling boards** are placed like a DIP chip: pin 1 and the rest follow down that row,
 then back along the other row, `rowSpacing` holes away across the channel (DevKit 9, that is
@@ -155,6 +156,17 @@ orange, ground black, signals in turn), or as `wires` says.
 
 UNO pins: `D0` … `D13`, `A0` … `A5`, `SCL`, `SDA`, `AREF`, `IOREF`, `RESET`, `3V3`, `5V`, `VIN`
 and the three grounds `GND`, `GND2` (power header) and `GND3` (by D13).
+
+**GooDisplay's DESPI-C02 e-paper adapter** also lies beside the board, its 8 right-angle pins
+towards it and a Dupont lead on each pin in use (`pins`, `wires`, `side`, `offset`, as the UNO).
+Pins: `BUSY`, `RES`, `D/C`, `CS`, `SCK`, `SDI`, `GND`, `3.3V`. `"rese": "0.47"` or `"2.2"` (as
+sold) draws the P3 switch in that position: 0.47 for UltraChip controllers such as the
+GDEY075T7's UC8179. With `"panel": true` the 7.5" GDEY075T7 panel is drawn with its flat cable
+in the P1 connector. Its card is titled "Adapter board".
+
+```json
+{ "id": "EP1", "type": "module", "part": "DESPI-C02", "rese": "0.47", "panel": true, "pins": { "BUSY": "j20", "SCK": "j16", "SDI": "j10", "GND": "j23", "3.3V": "j24" } }
+```
 
 In the page, a board's card lists the pins in use, each with a short note (strapping pin,
 input only, ADC2 not with Wi-Fi, PWM, shared with the USB…).

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "title": { "en": "ESP32 driving a 7.5\" e-paper panel through the DESPI-C02 adapter", "es": "ESP32 con un panel e-paper de 7,5\" a través del adaptador DESPI-C02" },
+  "board": "bb830",
+  "parts": [
+    { "id": "U1", "type": "module", "part": "ESP32-DEVKIT", "pin1": "b10" },
+    {
+      "id": "EP1", "type": "module", "part": "DESPI-C02", "rese": "0.47", "panel": true,
+      "pins": { "BUSY": "j20", "RES": "j19", "D/C": "j18", "CS": "j17", "SCK": "j16", "SDI": "j10", "GND": "j23", "3.3V": "j24" },
+      "description": { "en": "SPI to the ESP32 with GxEPD2's default pins; RESE on 0.47 for the panel's UC8179", "es": "SPI al ESP32 con los pines por defecto de GxEPD2; RESE en 0,47 para el UC8179 del panel" }
+    }
+  ]
+}

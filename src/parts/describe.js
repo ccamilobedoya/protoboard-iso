@@ -58,7 +58,7 @@ export function describeKeys(part) {
     case 'ic':
       return ['ic', ...(IC_FUNCTIONS[e.function] ?? [])];
     case 'module':
-      return ['module', `module.${e.family}`];
+      return [e.role ? `module.${e.role}` : 'module', `module.${e.family}`];
     case 'battery':
       return ['battery', `battery.${e.chemistry}`, ...(e.cells > 1 ? ['battery.series'] : [])];
     default:
