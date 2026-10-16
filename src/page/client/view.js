@@ -20,6 +20,24 @@ function toBox(page, px, py) {
   const k = Math.max(box[2] / r.width, box[3] / r.height);
   return [box[0] + box[2] / 2 + (px - r.left - r.width / 2) * k, box[1] + box[3] / 2 + (py - r.top - r.height / 2) * k, k];
 }
+// The strip in use under a screen point (page.js's `hits`: the holes of every strip on screen),
+// or null: a tap that is on no part may still be on a strip (phase 9, the node's card).
+export function stripAt(page, px, py) {
+  const hits = page.data.hits?.[page.state.view];
+  if (!hits?.r || !page.box) return null;
+  const [x, y] = toBox(page, px, py);
+  const { holes, r } = hits;
+  let best = null;
+  let near = r * r;
+  for (let k = 0; k < holes.length; k += 3) {
+    const d = (holes[k] - x) ** 2 + (holes[k + 1] - y) ** 2;
+    if (d <= near) {
+      near = d;
+      best = holes[k + 2];
+    }
+  }
+  return best == null ? null : page.data.strips[best];
+}
 function zoomAt(page, px, py, f) {
   const [x, y] = toBox(page, px, py);
   const { box } = page;

@@ -4,7 +4,8 @@
 //   body.no-labels       labels hidden                 body.focusing    veil shown (a part is tapped)
 //   body.show-results    simulation on (page.results)  body.layer-flow  current layer
 //   body.speed-log       dot speed on a log scale (each dot path carries --lin and --log)
-//   #dynamic             strips, coordinates and result tags of the focused part; see-through rules
+//   #dynamic             strips, coordinates and result tags of the focused part (or the tapped
+//                        strip, with its probes); see-through rules
 //   #probe               the probes/arrows of the result tag hovered or tapped
 //   #stress              (live page) the boxes (layer marks) of the parts near or past their limits
 // .side holds the live page's panels (warnings, controls), top right; .info the card, bottom left.
@@ -70,6 +71,9 @@ main { position: relative; }
 .info .term { display: block; width: 100%; text-align: left; background: none; border: none; border-radius: 4px; padding: 2px 4px; margin: 0; cursor: help; }
 .info .term::after { content: " ⓘ"; color: #9a9893; }
 .info .term:hover, .info .term[aria-expanded="true"] { background: #eef3fb; }
+.info .link { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: none; border-radius: 4px; padding: 1px 4px; margin: 0 0 0 -4px; cursor: pointer; }
+.info .link::after { content: " ›"; color: #9a9893; }
+.info .link:hover { background: #eef3fb; }
 .info .explain { margin: 2px 4px 6px; padding: 6px 8px; background: #f4f7fc; border-left: 3px solid #1f5fbf; border-radius: 4px; color: #2b3a4a; }
 .info .explain[hidden] { display: none; }
 .info .tip { color: #8a8884; font-size: 12px; }

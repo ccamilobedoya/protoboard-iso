@@ -24,6 +24,9 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
   numbers; leave it off while someone is asked to predict them ([simulation.md](simulation.md)).
 - **Tap a part** to focus it and open its card; optional current layer (`"page": { "flow": true }`).
   See [focus-and-flow.md](focus-and-flow.md).
+- **Tap a strip** in use (or a pin in a part's card) to open the strip's card: what a strip is,
+  what is clipped to it, those parts brought forward; with the results, its voltage to ground
+  (with the probes drawn), the current of each lead into or out of it and its oscilloscope.
 - **Live simulation**: with `results` or `flow`, the page carries the simulator and runs it
   (about 60 kB more): values, colours and dots follow it, and a circuit with capacitors or
   inductors gets *Pause* and *Switch on (t = 0)* and a clock. See

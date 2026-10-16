@@ -11,8 +11,9 @@
 // - Four times a second: conductor colours (voltage), LED glow, heat tint, result tags, the
 //   probe captions and the open card.
 // - "Open in Falstad" (falstad.js): the circuit as it is now, in CircuitJS.
-// - The oscilloscope (scope.js): every part recorded from the start (sim/recorder.js), the
-//   tapped part's voltage and current drawn in its card.
+// - The oscilloscope (scope.js): every part and every strip in use recorded from the start
+//   (sim/recorder.js), the tapped part's voltage and current, or the tapped strip's voltage to
+//   ground, drawn in its card.
 // - Controls (controls.js): sliders in the card and the circuit's panel, the momentary push
 //   button; a change re-solves at once. Limits (limits.js): checked every frame, shown as
 //   outlines and warnings.
@@ -21,7 +22,7 @@
 // window.protoboardLive.tick(ms).
 
 import { createEngine } from '../../sim/engine.js';
-import { linesFor } from '../../sim/lines.js';
+import { linesFor, nodeLines } from '../../sim/lines.js';
 import { deviceOfReading } from '../../sim/devices/index.js';
 import { formatValue } from '../../core/units.js';
 import { voltageColor, dotSpeed, DOT_PERIOD, centreVoltage, bodyVoltage, glowOpacity, heatOpacity } from '../../sim/look.js';
@@ -94,10 +95,19 @@ export function setupLive(page) {
       const s = scopeOf(r.parts[id]);
       if (s) recorder.push(id, time, s.v?.value ?? NaN, s.i?.value ?? NaN);
     }
+    for (const node of Object.keys(data.nodes ?? {})) {
+      const v = r.nodes[node];
+      if (v != null) recorder.push('node:' + node, time, v, NaN);
+    }
+  }
+  // What the card of `key` plots: a part's (sim/scope.js), or a strip's voltage to ground.
+  function scopeFor(key) {
+    if (!key.startsWith('node:')) return scopeOf(reading?.parts[key]);
+    return reading?.nodes[key.slice(5)] != null ? { v: { label: t('page.scope.node'), value: reading.nodes[key.slice(5)] }, i: null } : null;
   }
   function drawScope() {
     if (!openScope || page.info.hidden || page.open !== openScope.id) return;
-    const s = scopeOf(reading?.parts[openScope.id]);
+    const s = scopeFor(openScope.id);
     if (!s) return;
     const end = Math.max(scopeTime(), scopeWindow);
     const from = Math.max(0, end - 2 * scopeWindow);
@@ -107,10 +117,11 @@ export function setupLive(page) {
     if (s.i) traces.push({ label: s.i.label ?? t('page.scope.current'), unit: 'A', ...SCOPE_I, points: samplesOf(rec, 'b', from, end) });
     openScope.scope.draw({ traces, from, to: end });
   }
-  // The card asks for it when it opens (card.js); closing the card takes it away.
+  // The card asks for it when it opens (card.js); closing the card takes it away. `id`: a part's,
+  // or "node:<group>" for a strip.
   page.buildScope = (info, id) => {
     openScope = null;
-    if (!recorder || !scopeOf(reading?.parts[id])) return;
+    if (!recorder || !scopeFor(id)) return;
     openScope = { id, scope: createScope(info, { t, f }) };
     drawScope();
   };
@@ -229,6 +240,7 @@ export function setupLive(page) {
     }
     if (data.text.results) {
       for (const id of Object.keys(data.parts)) if (reading.parts[id]) data.parts[id].sim = linesFor(reading.parts[id], { t, decimal: live.decimal });
+      for (const [node, n] of Object.entries(data.nodes ?? {})) n.sim = nodeLines(reading, node, n.leads, { t, decimal: live.decimal });
       page.refreshCard?.();
     }
     if (clock) clock.textContent = t('page.time.at', { t: f(engine.time, 's') });

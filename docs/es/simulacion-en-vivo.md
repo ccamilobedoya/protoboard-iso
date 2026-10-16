@@ -61,7 +61,24 @@ Esta página es la referencia del trabajo, que toma varias sesiones. Cada sesió
   - Comparación con transitorios: `rc-square` (5 nV) y `rectifier-half-wave` (1 mV, la tolerancia
     de Newton en el diodo).
   - Pruebas en `test/generator.test.js`.
-- Siguiente: fase 9, las sondas en los nodos (plan más abajo).
+- Fase 9 hecha: las sondas en los nodos.
+  - Un toque que no cae en un componente busca una tira en uso debajo (`stripAt` en
+    `page/client/view.js`): la página lleva, por vista, los agujeros de cada tira en uso en la
+    pantalla (`hits`, `strips`), y un toque a menos de 0,7 de la separación entre agujeros cae en
+    esa tira. Las tiras quedan debajo de los componentes, así que un componente gana donde está
+    dibujado; cada pata en la ficha de un componente abre su tira, y cada pata en la ficha de una
+    tira, su componente.
+  - La ficha de la tira (`selectNode` en `page/client/card.js`; `page.open` es `node:<grupo>`): qué
+    es una tira o un riel, qué está conectado y dónde; los componentes conectados pasan al frente
+    con esa tira sola, y las coordenadas de los agujeros en uso.
+  - Con resultados: su voltaje respecto a tierra, con las puntas de su etiqueta de voltaje
+    dibujadas (roja en la tira, negra en tierra); la corriente de cada pata que entra o sale de la
+    tira (`nodeLines` en `sim/lines.js`), para leer la ley de corrientes de Kirchhoff línea por
+    línea; su osciloscopio con una traza, grabado desde el arranque como el de los componentes
+    (clave `node:<grupo>`).
+  - Sin resultados: sin valores y sin grabar nada (la regla de predicción).
+  - Pruebas en `test/node-card.test.js`.
+- Siguiente: la pasada de experiencia de uso de la página (hoja de ruta) y luego la etapa 4.
 
 ## Decisiones
 
@@ -298,6 +315,8 @@ Para la próxima sesión. Decisiones de Cris:
   `createScope`.
 - Se diseña junto con lo que la etapa 4 tiene pendiente: el multímetro virtual y que tocar una
   tira resalte lo que está conectado.
+- ✅ Hecha (ver el estado arriba). Resaltar lo conectado vino con ella; el multímetro virtual
+  (puntas en dos agujeros cualesquiera) sigue en la etapa 4.
 
 ## Fases y sesiones
 
@@ -312,7 +331,7 @@ Para la próxima sesión. Decisiones de Cris:
 | 6 | 6 · Comparación con Falstad | ✅ exportador (`sim/falstad.js`), botón *Abrir en Falstad*, casos y referencias en `test/falstad/` con modelos igualados (divisor, LED + R, BJT activo, Darlington y pulsador, puente, MOSFET, potenciómetro y Zener) |
 | 7 | 7 · Osciloscopio | ✅ en la ficha del componente tocado: grabación desde el arranque (`sim/recorder.js`), gancho `scope` por dispositivo (`sim/scope.js`), `page/client/scope.js` (dos gráficas apiladas, V e I, reutilizable) |
 | 8 | 8 · Generador de señales | ✅ fuente `generator` (seno, cuadrada, triangular) en el motor, la página, los deslizadores y Falstad; transitorios en la comparación (`rc-square`, `rectifier-half-wave`) |
-| 9 | 9 · Sondas en los nodos | ficha del nodo al tocar una tira, con su voltaje y su osciloscopio |
+| 9 | 9 · Sondas en los nodos | ✅ la ficha de una tira al tocarla (o desde una pata en la ficha de un componente): qué está conectado, su voltaje respecto a tierra con las puntas, la corriente de cada pata (Kirchhoff) y su osciloscopio (`stripAt`, `selectNode`, `nodeLines`) |
 
 En cada fase:
 - documentación en inglés y en español;

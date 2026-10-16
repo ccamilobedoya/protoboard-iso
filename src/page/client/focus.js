@@ -1,6 +1,6 @@
 // Focus: the veil dims everything; the focused parts are cloned (in painting order) into a
 // .spotlight group above it, and CSS rules written on the fly show the strips under their
-// leads. See-through lowers a part's opacity, in the drawing and in its copy.
+// leads (or, for a tapped strip, that strip and the parts clipped to it). See-through lowers a part's opacity, in the drawing and in its copy.
 // Careful: SVG elements have no `hidden` property (only HTML elements do); use the attribute.
 
 export const quote = (s) => String(s).replace(/["\\]/g, '\\$&');
@@ -35,11 +35,17 @@ export function applyFocus(page) {
   // Strips under the focused parts; with the results on, their currents and the voltages
   // of their groups (and nothing else: all tags at once is too much to read).
   // And the column numbers and row letters of their leads, where the board prints them.
-  const cols = new Set(ids.flatMap((id) => data.parts[id].cols || []));
-  const rows = new Set(ids.flatMap((id) => data.parts[id].rows || []));
-  const shown = [...ids.map((id) => '.results > [data-part="' + quote(id) + '"]'), ...[...nodes].flatMap((n) => ['.strips > [data-node="' + quote(n) + '"]', '.results > [data-node="' + quote(n) + '"]']),
+  // A tapped strip (state.node) instead: that strip only, its voltage with the two probes that
+  // read it (red on the strip, black on ground), and the coordinates of the holes in use there.
+  const strip = state.node != null ? data.nodes[state.node] : null;
+  const cols = new Set(strip ? strip.cols : ids.flatMap((id) => data.parts[id].cols || []));
+  const rows = new Set(strip ? strip.rows : ids.flatMap((id) => data.parts[id].rows || []));
+  const node = strip ? quote(state.node) : null;
+  const shown = [
+    ...(strip ? ['.strips > [data-node="' + node + '"]', '.results > [data-node="' + node + '"]', '.probes > [data-probe="node:' + node + '"]']
+      : [...ids.map((id) => '.results > [data-part="' + quote(id) + '"]'), ...[...nodes].flatMap((n) => ['.strips > [data-node="' + quote(n) + '"]', '.results > [data-node="' + quote(n) + '"]'])]),
     ...[...cols].map((c) => '.coords > [data-col="' + c + '"]'), ...[...rows].map((r) => '.coords > [data-row="' + quote(r) + '"]')];
   const ghosts = [...state.ghost].map((id) => '.under > [data-part="' + quote(id) + '"], .parts > [data-part="' + quote(id) + '"], .spotlight > [data-part="' + quote(id) + '"] { opacity: 0.2; }');
   page.dynamic.textContent = (shown.length ? shown.join(', ') + ' { display: inline; }' : '') + ghosts.join('');
-  document.body.classList.toggle('focusing', ids.length > 0);
+  document.body.classList.toggle('focusing', ids.length > 0 || strip != null);
 }

@@ -71,7 +71,8 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `page.js`, `page/client/`, `page/style.js` | the embeddable page; `page/client/main.js` is the entry of its script (view, focus, card, tooltip modules) |
 | `node/bundle.js` | the small bundler: allowed ES modules → one classic script for the page (engine, page script) |
 | `sim/generator.js` | the signal generator (bundleable): its waves (Falstad's), its peak; the engine sets the source to `waveAt` before each step |
-| `sim/recorder.js`, `sim/scope.js`, `page/client/scope.js` | oscilloscope (bundleable): recording per part from the start, what each kind plots (`scope` hook), the drawing in the card (a list of traces, 10 × 4 screen) |
+| `sim/recorder.js`, `sim/scope.js`, `page/client/scope.js` | oscilloscope (bundleable): recording per part (and per strip in use, key `node:<group>`) from the start, what each kind plots (`scope` hook), the drawing in the card (a list of traces, 10 × 4 screen) |
+| `page/client/view.js` `stripAt`, `page/client/card.js` `selectNode`, `sim/lines.js` `nodeLines` | a strip's card (phase 9): the tap found by position in `hits` (the strips lie under the parts), what is clipped to it, its voltage to ground and the current of each lead |
 | `sim/falstad.js`, `sim/falstad-layout.js`, `page/client/falstad.js` | export to Falstad's CircuitJS (bundleable): each device writes its part with `falstad(d, f)`; the layout draws it as a schematic (nets as rows by voltage, series parts in one column, the column order with the fewest crossings); the live page's *Open in Falstad* button and its notes. Cross-check: `test/falstad/`, `scripts/falstad.js` ([falstad.md](falstad.md)) |
 | `sim/compile.js`, `sim/engine.js` | compile: circuit → program (plain JSON, Node only); engine: runs a program (no dependencies, bundled into pages) |
 | `i18n/` | every sentence; `pickLanguage` decides the language |

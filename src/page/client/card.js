@@ -2,6 +2,10 @@
 // (with the results on) its simulated values, and in a live page the limits it went past, its
 // oscilloscope and its controls (limits.js, scope.js, controls.js). Every value can be tapped to
 // read what it means.
+//
+// The card of a tapped strip (a node, stage 3 phase 9): what a strip is, what is clipped to it and
+// where, and with the results its voltage to ground, the current of each lead and its
+// oscilloscope. page.open is the part's id, or "node:<group>" for a strip.
 
 import { applyFocus } from './focus.js';
 
@@ -71,8 +75,16 @@ function openInfo(page, id, open) {
   terms(page, info, [p.type, p.value].filter(Boolean), open);
   if (p.here) item(info, 'p', p.here, 'here');
   item(info, 'h3', data.text.pins);
+  // Each pin's line opens the card of its strip, which the part often covers on screen.
   const pins = item(info, 'ul');
-  for (const line of p.pins) item(pins, 'li', line);
+  p.pins.forEach((line, k) => {
+    const node = p.pinNodes?.[k];
+    if (node == null || !data.nodes?.[node]) return item(pins, 'li', line);
+    const b = item(item(pins, 'li'), 'button', line, 'link');
+    b.type = 'button';
+    b.title = data.text.strip;
+    b.addEventListener('click', () => selectNode(page, node));
+  });
   if (p.sim.length) fillSim(page, item(info, 'div', null, 'sim'), p.sim, open);
   page.buildScope?.(info, id);
   page.buildControls?.(info, id);
@@ -89,9 +101,47 @@ function openInfo(page, id, open) {
   info.hidden = false;
 }
 
+function openNodeInfo(page, node, open) {
+  const { data, info } = page;
+  const n = data.nodes[node];
+  info.textContent = '';
+  item(info, 'h2', n.title);
+  item(info, 'p', n.about, 'here');
+  item(info, 'h3', data.text.leads);
+  const leads = item(info, 'ul');
+  // Each part's line opens its card: from a strip to what is clipped to it, and back.
+  for (const lead of n.leads) {
+    if (!lead.part || !data.parts[lead.part]) {
+      item(leads, 'li', lead.text);
+      continue;
+    }
+    const b = item(item(leads, 'li'), 'button', lead.text, 'link');
+    b.type = 'button';
+    b.addEventListener('click', () => select(page, lead.part));
+  }
+  if (n.sim.length) fillSim(page, item(info, 'div', null, 'sim'), n.sim, open);
+  page.buildScope?.(info, 'node:' + node);
+  if (n.sim.length) item(info, 'p', data.text.explain, 'tip');
+  actions(info, [[data.text.close, () => select(page, null)]]);
+  info.hidden = false;
+}
+
+// Tap a strip in use: the parts clipped to it come forward with that strip (and, with the
+// results, the probes that read its voltage), and its card opens.
+export function selectNode(page, node, open) {
+  const n = page.data.nodes[node];
+  if (!n) return select(page, null);
+  page.state.focus = new Set(n.parts);
+  page.state.node = node;
+  page.open = 'node:' + node;
+  openNodeInfo(page, node, open);
+  applyFocus(page);
+}
+
 // Tap a part (or nothing: id null) to focus it and open its card.
 export function select(page, id, open) {
   page.state.focus = new Set(id ? [id] : []);
+  page.state.node = null;
   page.open = id;
   if (id) openInfo(page, id, open);
   else page.info.hidden = true;
@@ -103,7 +153,9 @@ export function select(page, id, open) {
 export function refreshCard(page) {
   const id = page.open;
   if (!id || page.info.hidden) return;
-  const lines = page.data.parts[id]?.sim ?? [];
+  const node = id.startsWith('node:') ? id.slice(5) : null;
+  const lines = (node != null ? page.data.nodes[node] : page.data.parts[id])?.sim ?? [];
+  const reopen = (expanded) => (node != null ? openNodeInfo(page, node, expanded) : openInfo(page, id, expanded));
   const items = [...page.info.querySelectorAll('.sim .terms > li')];
   const same = items.length === lines.length && items.every((li, k) => (li.querySelector('.term')?.dataset.explain ?? null) === (page.data.explain[lines[k].key] ? lines[k].key : null));
   if (!same) {
@@ -111,7 +163,7 @@ export function refreshCard(page) {
     const box = page.info.querySelector('.sim');
     const expanded = box?.querySelector('.term[aria-expanded="true"]')?.dataset.explain;
     if (box && lines.length) return fillSim(page, box, lines, expanded);
-    return openInfo(page, id, page.info.querySelector('.term[aria-expanded="true"]')?.dataset.explain);
+    return reopen(page.info.querySelector('.term[aria-expanded="true"]')?.dataset.explain);
   }
   items.forEach((li, k) => {
     const label = li.querySelector('.term') ?? li.querySelector('span');

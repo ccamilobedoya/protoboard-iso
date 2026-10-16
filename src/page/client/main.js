@@ -4,27 +4,29 @@
 //
 // What it reads: the inline SVGs (one per view; data-board / data-parts hold the two frames),
 // and #page-data, a JSON with per part { title, type, value, here, nodes, cols, rows, pins, sim },
-// the explanations (explain), the probe captions (probes), the initial focus and UI texts.
+// per strip in use (nodes) { title, about, leads, parts, cols, rows, sim } and where its holes are
+// on screen in each view (strips, hits), the explanations (explain), the probe captions (probes),
+// the initial focus and UI texts.
 //
 // State: view, fit, labels, results (on when the circuit asks), layer (parts | flow),
-// speed (linear | log: how dot speed follows the current), focus (set of part ids), ghost
-// (see-through ids). Everything visual is CSS classes or rules; the script never redraws the scene.
+// speed (linear | log: how dot speed follows the current), focus (set of part ids), node (the
+// tapped strip, or null), ghost (see-through ids). Everything visual is CSS classes or rules; the script never redraws the scene.
 //
 // Modules: view.js (frame, pan, zoom), focus.js (spotlight, CSS rules), card.js (the card),
 // tooltip.js (probes and explanations); live.js (the running simulation, with controls.js and
 // limits.js) only when the circuit asks for results or the current layer. They share one `page` object. Entries: static-page.js
 // and live-page.js call startPage with the extensions they carry.
 
-import { numbers, setBox, setupView } from './view.js';
+import { numbers, setBox, setupView, stripAt } from './view.js';
 import { applyFocus } from './focus.js';
-import { select, refreshCard, refreshNotes } from './card.js';
+import { select, selectNode, refreshCard, refreshNotes } from './card.js';
 import { tapTag, setupTooltip } from './tooltip.js';
 
 export function startPage(extensions = []) {
   const main = document.querySelector('main');
   const svgs = [...main.querySelectorAll('svg')];
   const data = JSON.parse(document.getElementById('page-data').textContent);
-  const state = { view: svgs[0].dataset.view, fit: document.body.dataset.fit, labels: true, results: document.body.dataset.results === 'on', layer: 'parts', speed: 'linear', focus: new Set(data.focus), ghost: new Set() };
+  const state = { view: svgs[0].dataset.view, fit: document.body.dataset.fit, labels: true, results: document.body.dataset.results === 'on', layer: 'parts', speed: 'linear', focus: new Set(data.focus), node: null, ghost: new Set() };
   const page = {
     main,
     svgs,
@@ -63,12 +65,17 @@ export function startPage(extensions = []) {
 
   setupView(page);
   setupTooltip(page);
-  // A tap: a result tag pins its probes (focus untouched), a part selects it, the board clears.
+  // A tap: a result tag pins its probes (focus untouched), a part selects it, a strip in use
+  // opens its card (found by where the tap is: the strips are under the parts), the board clears.
   main.addEventListener('click', (e) => {
-    if (page.dragged || page.info.contains(e.target) || page.side.contains(e.target)) return;
+    // A button in the card that rebuilt it (a pin opening its strip) is no longer in the page.
+    if (page.dragged || !e.target.isConnected || page.info.contains(e.target) || page.side.contains(e.target)) return;
     if (tapTag(page, e.target)) return;
     const hit = e.target.closest && e.target.closest('[data-part]');
-    select(page, hit ? hit.getAttribute('data-part') : null);
+    if (hit) return select(page, hit.getAttribute('data-part'));
+    const node = stripAt(page, e.clientX, e.clientY);
+    if (node != null) return selectNode(page, node);
+    select(page, null);
   });
 
   for (const extend of extensions) extend(page);

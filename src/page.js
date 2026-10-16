@@ -28,6 +28,8 @@ import { LANGUAGES } from './i18n/index.js';
 import { deviceOfReading } from './sim/devices/index.js';
 import { partLines } from './sim/format.js';
 import { groundHole } from './sim/probes.js';
+import { nodeLines } from './sim/lines.js';
+import { stripHoles } from './render/focus.js';
 import { describePart, describeKeys } from './parts/describe.js';
 import { MODULES } from './parts/modules.js';
 
@@ -55,7 +57,24 @@ function viewSvg(circuit, view, fit, lang, { sim, flow }) {
     .replace(/<title>[\s\S]*?<\/title>/, '')
     .replace(/^<svg ([^>]*?)width="[^"]*" height="[^"]*" viewBox="[^"]*"/, `<svg $1viewBox="${frames[fit]}"`)
     .replace(/^<svg /, `<svg data-view="${view}" data-board="${frames.board}" data-parts="${frames.parts}" role="img"${name ? ` aria-label="${escapeXml(name)}"` : ''} `);
-  return { svg, issues: board.issues };
+  return { svg, scene: board.scene, issues: board.issues };
+}
+
+// Where each strip in use is on screen, for a tap to find it (page/client/main.js): every hole
+// of the strip, projected, with the strip's index; a tap within `r` of a hole is on that strip.
+// r: a little more than half the distance between neighbouring holes, so the whole width of a
+// strip answers but the gap between two strips, the channel and the board's edge do not.
+function stripHits(scene, built, nodes) {
+  const holes = [];
+  let pitch = Infinity;
+  nodes.forEach((node, k) => {
+    const points = stripHoles(built.board, node).map((h) => scene.camera.project(h.pos));
+    points.forEach((p, i) => {
+      holes.push(Math.round(p.x * 10) / 10, Math.round(p.y * 10) / 10, k);
+      if (i) pitch = Math.min(pitch, Math.hypot(p.x - points[i - 1].x, p.y - points[i - 1].y));
+    });
+  });
+  return { r: Number.isFinite(pitch) ? Math.round(pitch * 0.7 * 100) / 100 : 0, holes };
 }
 
 
@@ -75,11 +94,14 @@ function partData(circuit, lang, sim) {
     return netLabels[node] ? `${name} (${netLabels[node]})` : name;
   };
   const supplyAt = new Map();
+  const supplyLeads = new Map(); // node → the supply terminals clipped to it, for its card
   (Array.isArray(circuit.supplies) ? circuit.supplies : []).forEach((s, i) => {
     for (const [ref, sign] of [[s.positive ?? 'T+', '+'], [s.negative ?? 'T-', '−']]) {
       const hole = built.board?.find(String(ref));
       const node = hole ? hole.node : String(ref);
-      supplyAt.set(node, [...(supplyAt.get(node) ?? []), t(lang, 'page.info.supply', { supply: s.id ?? `V${i + 1}`, sign })]);
+      const name = t(lang, 'page.info.supply', { supply: s.id ?? `V${i + 1}`, sign });
+      supplyAt.set(node, [...(supplyAt.get(node) ?? []), name]);
+      supplyLeads.set(node, [...(supplyLeads.get(node) ?? []), { name, supply: s.id ?? `V${i + 1}`, sign: sign === '+' ? 1 : -1, hole: hole?.id ?? null }]);
     }
   });
   // Pin names are identifiers ("anode"); show them in the page's language when there is a word.
@@ -94,13 +116,15 @@ function partData(circuit, lang, sim) {
       const all = [...others, ...(supplyAt.get(hole.node) ?? [])];
       const where = t(lang, 'page.info.pin', { pin: pinName(part.pinNames[i]), hole: hole.id, node: nodeName(hole.node) });
       const note = localized(notes[part.pinNames[i]], lang);
-      return { used: all.length > 0, text: `${where} — ${all.length ? t(lang, 'page.info.with', { list: all.join(', ') }) : t(lang, 'page.info.alone')}${note ? ` · ${note}` : ''}` };
+      return { used: all.length > 0, node: hole.node, text: `${where} — ${all.length ? t(lang, 'page.info.with', { list: all.join(', ') }) : t(lang, 'page.info.alone')}${note ? ` · ${note}` : ''}` };
     });
     if (part.def.usedPinsOnly) {
       const free = pins.filter((p) => !p.used).length;
       pins = pins.filter((p) => p.used);
       if (free) pins.push({ text: t(lang, 'page.info.free', { n: free }) });
     }
+    // The strip of each line, so the card can open it (a part often hides its strip on screen).
+    const pinNodes = pins.map((p) => p.node ?? null);
     pins = pins.map((p) => p.text);
     parts[part.id] = {
       title: labelText(part, lang) ?? part.id,
@@ -114,7 +138,30 @@ function partData(circuit, lang, sim) {
       cols: [...new Set(part.holes.map((h) => h.col))],
       rows: [...new Set(part.holes.filter((h) => h.kind === 'main').map((h) => h.row))],
       pins,
+      pinNodes,
       sim: sim?.ok && sim.parts[part.id] ? partLines(sim.parts[part.id], lang) : [],
+    };
+  }
+  // The card of each strip in use (stage 3, phase 9): what is clipped to it and, with the
+  // results, its voltage to ground and the current of each lead.
+  const nodes = {};
+  for (const node of stripNodes(built, supplyLeads)) {
+    const members = built.netlist.nodes[node] ?? [];
+    const holes = stripHoles(built.board, node);
+    const leads = [
+      ...members.map((m) => ({ name: t(lang, 'page.node.lead', { part: m.part, pin: /^\d+$/.test(m.pin) ? t(lang, 'page.node.pinNumber', { pin: m.pin }) : pinName(m.pin) }), part: m.part, pin: m.pin, hole: m.hole })),
+      ...(supplyLeads.get(node) ?? []),
+    ];
+    const used = new Set(leads.map((l) => l.hole).filter(Boolean));
+    const ends = `${holes[0].id}–${holes.at(-1).id}`;
+    nodes[node] = {
+      title: nodeName(node),
+      about: t(lang, /^\d+:/.test(node) ? 'page.node.strip' : 'page.node.rail', { holes: ends, n: holes.length }),
+      leads: leads.map(({ name, part, pin, supply, sign, hole }) => ({ name, ...(part ? { part, pin } : { supply, sign }), text: hole ? t(lang, 'page.node.at', { who: name, hole }) : name })),
+      parts: [...new Set(members.map((m) => m.part))],
+      cols: [...new Set(holes.filter((h) => used.has(h.id)).map((h) => h.col))],
+      rows: [...new Set(holes.filter((h) => used.has(h.id) && h.kind === 'main').map((h) => h.row))],
+      sim: sim?.ok ? nodeLines(sim, node, leads, { t: (key, params) => t(lang, key, params), decimal: decimalSeparator(lang) }) : [],
     };
   }
   // What each result tag measures and where, for the box shown with its probes or arrows.
@@ -150,7 +197,13 @@ function partData(circuit, lang, sim) {
       probes[`part:${part.id}`] = text;
     }
   }
-  return { parts, probes, kinds, templates };
+  return { built, parts, nodes, probes, kinds, templates };
+}
+
+// The strips a tap can open: every group with a lead in it, and the rails a supply is clipped to.
+function stripNodes(built, supplyLeads) {
+  const exists = new Set([...built.board.holes.values()].map((h) => h.node));
+  return [...new Set([...Object.keys(built.netlist.nodes), ...supplyLeads.keys()])].filter((n) => exists.has(n));
 }
 
 // "Bipolar transistor", explained by the kit's description of that kind of part.
@@ -177,7 +230,7 @@ function valueLine(part, lang) {
 
 // Every explanation the page may need, once.
 function explanations(lang) {
-  const keys = ['voltage', 'current', 'power', 'brightness', 'state', 'vbe', 'vce', 'ib', 'ic', 'beta', 'vgs', 'vds', 'id', 'pot.current', 'floating', 'unsupported',
+  const keys = ['voltage', 'current', 'power', 'node.voltage', 'node.current', 'brightness', 'state', 'vbe', 'vce', 'ib', 'ic', 'beta', 'vgs', 'vds', 'id', 'pot.current', 'floating', 'unsupported',
     ...['emf', 'voltage', 'drop', 'current', 'power', 'runtime', 'charge', 'off'].map((k) => `battery.${k}`),
     ...['regulating', 'dropout', 'vin', 'vout', 'headroom', 'iout', 'quiescent'].map((k) => `reg.${k}`),
     ...['vac', 'vdc', 'current'].map((k) => `bridge.${k}`),
@@ -193,7 +246,7 @@ function explanations(lang) {
 function liveData(circuit, lang, flow, templates) {
   const texts = {};
   const dict = { ...LANGUAGES.en, ...(LANGUAGES[lang] ?? {}) };
-  for (const key of Object.keys(dict)) if (/^(sim|state|probe)\.|^page\.(time|live|control|controls|warnings|falstad|scope)\.|^check\.SIM_|^falstad\./.test(key)) texts[key] = t(lang, key);
+  for (const key of Object.keys(dict)) if (/^(sim|state|probe)\.|^page\.(time|live|control|controls|warnings|falstad|scope|node)\.|^check\.SIM_|^falstad\./.test(key)) texts[key] = t(lang, key);
   const dc = flow ? simulate(circuit, { analysis: 'dc' }) : null;
   return {
     flow: dc?.ok ? liveFlow(buildCircuit(circuit), dc, circuit) : null,
@@ -222,17 +275,23 @@ export function renderPage(circuit, options = {}) {
   if (!rendered.length || rendered.some((r) => !r.svg)) return { html: null, issues };
 
   const sim = results ? simulate(circuit, { analysis: 'dc' }) : null;
-  const { parts, probes, kinds, templates } = partData(circuit, lang, sim);
+  const { built, parts, nodes, probes, kinds, templates } = partData(circuit, lang, sim);
+  const order = Object.keys(nodes);
+
   // The simulation runs in the page when the circuit asks for results or the current layer.
   const compiled = results || flow ? compile(circuit) : null;
   const live = compiled?.program ? liveData(circuit, lang, flow, templates) : null;
   const data = {
     parts,
+    nodes,
+    // Per view: the holes of the strips in use on screen (index into `strips`), for a tap.
+    strips: order,
+    hits: Object.fromEntries(rendered.map((r) => [r.view, stripHits(r.scene, built, order)])),
     probes,
     explain: { ...explanations(lang), ...kinds },
     focus: Array.isArray(circuit.page?.focus) ? circuit.page.focus : [],
     ...(live && { live }),
-    text: { pins: t(lang, 'page.info.pins'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain') },
+    text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain') },
   };
   const title = titleOf(circuit, lang) ?? t(lang, 'page.untitled');
   const svgs = rendered.map((r, i) => (i ? r.svg.replace(/^<svg /, '<svg hidden ') : r.svg));

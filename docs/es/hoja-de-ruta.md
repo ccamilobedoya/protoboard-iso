@@ -142,7 +142,7 @@ decisiones y plan por sesiones: [simulacion-en-vivo.md](simulacion-en-vivo.md).
   - ✅ Dibujado como esquema en Falstad (`sim/falstad-layout.js`): nodos como filas ordenadas por voltaje, componentes de pie entre ellas, los que van en serie en una columna, los puentes unidos a su nodo, el orden de columnas con menos cruces
 - ✅ Fase 7: osciloscopio en la ficha del componente tocado: V e I contra el tiempo en una pantalla oscura de 10 × 4, dos gráficas apiladas con su propia escala, grabado desde el arranque para todos los componentes (`sim/recorder.js`), qué grafica cada tipo en su dispositivo (`scope`: Vce e Ic en un transistor), desde t = 0 hasta 10 constantes de tiempo y después avanza (reloj de pared sin C ni L), solo donde la ficha muestra resultados; al cerrar la ficha se va. Plan: [simulacion-en-vivo.md](simulacion-en-vivo.md#fases-7-a-9-osciloscopio-generador-de-señales-y-sondas-plan-del-2026-10-15)
 - ✅ Fase 8: generador de señales como fuente (`kind: "generator"`: seno, cuadrada y triangular con las formas de Falstad; frecuencia, amplitud de pico, desplazamiento, salida de 50 Ω si no se da), que el motor sigue paso a paso; deslizadores de frecuencia y amplitud; la página va al ritmo de su período; a Falstad como su propia fuente; casos con transitorio en la comparación, muestra por muestra (RC con onda cuadrada dentro de 5 nV, rectificador de media onda dentro de 1 mV). Ejemplos `half-wave-rectifier.json`, `rc-square-wave.json`
-- ⬜ Fase 9: sondas en los nodos: tocar una tira muestra su voltaje respecto a tierra y su osciloscopio
+- ✅ Fase 9: sondas en los nodos: tocar una tira en uso abre su ficha (se encuentra por dónde cae el toque, porque las tiras quedan debajo de los componentes; cada pata en la ficha de un componente abre también su tira, y cada pata en la ficha de una tira, su componente): qué es una tira, qué está conectado y dónde, los componentes conectados al frente junto con esa tira; con resultados, su voltaje respecto a tierra con las puntas roja y negra dibujadas, la corriente de cada pata que entra o sale de la tira (Kirchhoff) y su osciloscopio, grabado desde el arranque como el de los componentes
 - ⬜ Más adelante, cuando una lección lo necesite: fijar trazas en un panel de osciloscopio de dos canales (la gráfica se escribe para una lista de trazas)
 
 ## Experiencia de uso (transversal) ⬜
@@ -152,11 +152,12 @@ ordenarlas para que quien aprende no se pierda, sobre todo en el celular. Hoy ha
 
 - en la barra: vistas, encuadre, etiquetas, capa de corriente, velocidad, tiempo y *Abrir en
   Falstad*;
-- en la ficha: foco, ver a través, resultados y deslizadores;
+- en la ficha: foco, ver a través, resultados, deslizadores y el osciloscopio; la ficha de una
+  tira, con enlaces entre las fichas;
 - en el panel lateral: límites y avisos, el panel de controles y los equivalentes de Falstad.
 
-Vienen el osciloscopio, el generador y las sondas. Conviene hacerlo después de la fase 9 y antes
-de la etapa 4.
+El osciloscopio, el generador y las sondas llegaron con las fases 7 a 9. Conviene hacerlo ahora,
+antes de la etapa 4.
 
 - ⬜ Inventario de cada función: dónde vive (barra, ficha, panel lateral, gesto), cuándo aparece y
   qué circuito la pide (`page.*`)
@@ -178,7 +179,7 @@ Objetivo: abrir un enlace y explorar.
 - ⬜ Etiquetas solo al pasar el mouse o al tocar (el SVG estático conserva los globos por encima de los componentes)
 - ⬜ Multímetro virtual: puntas en agujeros; voltímetro en paralelo; el amperímetro obliga a abrir el circuito
 - ✅ Cambiar entre vista frontal y trasera; tocar un componente lo trae al frente con sus tiras
-- ⬜ Tocar una tira resalta todo lo conectado a ella
+- ✅ Tocar una tira resalta todo lo conectado a ella (etapa 3, fase 9)
 - ⬜ Modo predicción: lecturas ocultas hasta que el estudiante se compromete con una respuesta
 
 ## Etapa 5 — Escribir circuitos más rápido ⬜

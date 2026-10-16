@@ -27,3 +27,31 @@ export function linesFor(p, { t, decimal }) {
   if (p.floating) (lines ?? []).push(raw('floating', t('sim.floating')));
   return lines ?? [];
 }
+
+// A node's card (stage 3, phase 9: a strip tapped): its voltage to ground, then the current of
+// every lead clipped to it, into or out of the strip (conventional current). What goes in comes
+// out (Kirchhoff), which the learner can check line by line.
+//
+//   leads: [{ name, part, pin } | { name, supply, sign }]   (sign: +1 the supply's +, −1 its −)
+//   nodeLines(reading, node, leads, { t, decimal }) → [{ key, text }]
+const NO_CURRENT = 1e-9; // A: below a nanoampere it is the solver's leakage (a charged capacitor), not a current
+
+export function leadCurrent(reading, lead) {
+  if (lead.supply) return lead.sign * (reading.supplies?.[lead.supply]?.current ?? 0);
+  const r = reading.parts?.[lead.part];
+  return !r || r.floating ? 0 : -(r.pinCurrents?.[lead.pin] ?? 0);
+}
+
+export function nodeLines(reading, node, leads, { t, decimal }) {
+  const v = reading.nodes?.[node];
+  const volts = v == null ? t('sim.floating') : formatValue(Math.abs(v) < 1e-3 ? 0 : v, 'V', { decimal });
+  const lines = [{ key: 'node.voltage', text: t('page.node.voltage', { value: volts }) }];
+  if (v == null) return lines;
+  for (const lead of leads) {
+    const i = leadCurrent(reading, lead);
+    const value = formatValue(Math.abs(i), 'A', { decimal });
+    const key = Math.abs(i) < NO_CURRENT ? 'page.node.none' : i > 0 ? 'page.node.in' : 'page.node.out';
+    lines.push({ key: 'node.current', text: t(key, { who: lead.name, value }) });
+  }
+  return lines;
+}

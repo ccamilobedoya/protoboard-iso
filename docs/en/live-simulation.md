@@ -58,7 +58,22 @@ the tests green, this page and the roadmap up to date.
   - Transient cross-check: `rc-square` (5 nV) and `rectifier-half-wave` (1 mV, Newton's tolerance
     at the diode).
   - Tests in `test/generator.test.js`.
-- Next: phase 9, probes on nodes (plan below).
+- Phase 9 done: probes on nodes.
+  - A tap on no part looks for a strip in use under it (`stripAt` in `page/client/view.js`): the
+    page carries, per view, the holes of every strip in use on screen (`hits`, `strips`), and a
+    tap within 0.7 of a hole pitch of one is on that strip. Strips lie under the parts, so a part
+    still wins where it is drawn; each pin of a part's card opens its strip, and each lead of a
+    strip's card opens its part.
+  - The strip's card (`selectNode` in `page/client/card.js`; `page.open` is `node:<group>`): what a
+    strip or a rail is, what is clipped to it and where; the parts clipped to it come forward
+    with that strip only, and the coordinates of the holes in use.
+  - With results: its voltage to ground, with the probes of its voltage tag drawn (red on the
+    strip, black on ground); the current of each lead into or out of the strip (`nodeLines` in
+    `sim/lines.js`), so Kirchhoff's current law can be read line by line; its oscilloscope with
+    one trace, recorded from the start like the parts' (key `node:<group>`).
+  - Without results: no values and nothing recorded (the prediction rule).
+  - Tests in `test/node-card.test.js`.
+- Next: the pass on how the page is used (roadmap), then stage 4.
 
 ## Decisions
 
@@ -279,6 +294,8 @@ For the next session. The maintainer's decisions:
   one trace. It reuses the recording (node voltages are already in the reading) and `createScope`.
 - Designed together with what stage 4 has pending: the virtual multimeter and highlighting what is
   connected to a tapped strip.
+- ✅ Done (see the status above). Highlighting what is connected came with it; the virtual
+  multimeter (probes on any two holes) stays in stage 4.
 
 ## Phases and sessions
 
@@ -293,7 +310,7 @@ For the next session. The maintainer's decisions:
 | 6 | 6 · Falstad cross-check | ✅ exporter (`sim/falstad.js`), *Open in Falstad* button, cases and references in `test/falstad/` with matched models (divider, LED + R, active BJT, Darlington and push button, bridge, MOSFET, potentiometer and Zener) |
 | 7 | 7 · Oscilloscope | ✅ in the tapped part's card: recording from the start (`sim/recorder.js`), a `scope` device hook (`sim/scope.js`), `page/client/scope.js` (two stacked plots, V and I, reusable) |
 | 8 | 8 · Signal generator | ✅ `generator` supply (sine, square, triangle) in the engine, the page, the sliders and Falstad; transients in the cross-check (`rc-square`, `rectifier-half-wave`) |
-| 9 | 9 · Probes on nodes | a node's card when a strip is tapped, with its voltage and its oscilloscope |
+| 9 | 9 · Probes on nodes | ✅ a strip's card when it is tapped (or from a pin in a part's card): what is clipped to it, its voltage to ground with the probes, the current of each lead (Kirchhoff) and its oscilloscope (`stripAt`, `selectNode`, `nodeLines`) |
 
 Every phase: docs in English and Spanish, the roadmap ticked (both languages), the decision log in
 `PLANNING.md`, new strings through `t()` in every `src/i18n` file, the code map updated.

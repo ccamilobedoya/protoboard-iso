@@ -142,7 +142,7 @@ the plan by sessions: [docs/en/live-simulation.md](docs/en/live-simulation.md).
   - ✅ Drawn as a schematic in Falstad (`sim/falstad-layout.js`): nets as rows ordered by voltage, parts standing between them, series parts in one column, jumpers merged, the column order with the fewest crossings
 - ✅ Phase 7: oscilloscope in the card of the tapped part: V and I against time on a dark 10 × 4 screen, two stacked plots with their own scale, recorded from the start for every part (`sim/recorder.js`), what each kind plots in its device (`scope`: Vce and Ic for a transistor), from t = 0 until 10 time constants and then scrolling (wall clock without C or L), only where the card shows results; closing the card removes it. Plan: [live-simulation.md](docs/en/live-simulation.md#phases-7-to-9-oscilloscope-signal-generator-and-probes-plan-of-2026-10-15)
 - ✅ Phase 8: signal generator as a supply (`kind: "generator"`: sine, square, triangle with Falstad's shapes; frequency, peak amplitude, offset, 50 Ω output unless given), followed step by step by the engine; frequency and amplitude sliders; the page paced by its period; exported to Falstad as its own source; transient cases in the cross-check, sample by sample (RC with a square wave within 5 nV, half-wave rectifier within 1 mV). Examples `half-wave-rectifier.json`, `rc-square-wave.json`
-- ⬜ Phase 9: probes on nodes: tap a strip to see its voltage to ground and its oscilloscope
+- ✅ Phase 9: probes on nodes: tapping a strip in use opens its card (found by where the tap is, since strips lie under the parts; each pin of a part's card also opens its strip, and each lead of a strip's card its part): what a strip is, what is clipped to it and where, the parts brought forward with that strip; with results, its voltage to ground with the red and black probes drawn, the current of each lead into or out of the strip (Kirchhoff) and its oscilloscope, recorded from the start like the parts'
 - ⬜ Later, when a lesson needs it: pin traces to a two-channel oscilloscope panel (the plot code is written for a list of traces)
 
 ## User experience (cross-cutting) ⬜
@@ -151,10 +151,11 @@ Asked by the maintainer (2026-10-15): the page has many useful features, with mo
 must be organised so a learner does not get lost, above all on a phone. Today there are:
 
 - in the bar: views, framing, labels, current layer, speed, time and *Open in Falstad*;
-- in the card: focus, see-through, results and sliders;
+- in the card: focus, see-through, results, sliders and the oscilloscope; a strip's card, with
+  links between the cards;
 - in the side panel: limits and warnings, the controls panel and the Falstad equivalents.
 
-The oscilloscope, the generator and the probes are next. Best done after phase 9 and before
+The oscilloscope, the generator and the probes came with phases 7 to 9. Best done now, before
 stage 4.
 
 - ⬜ Inventory of every feature: where it lives (bar, card, side panel, gesture), when it appears
@@ -177,7 +178,7 @@ Goal: open a link and explore.
 - ⬜ Labels on hover or tap only (the static SVG keeps the callouts above the parts)
 - ⬜ Virtual multimeter: probes on holes, voltmeter in parallel, ammeter needs the circuit opened
 - ✅ Toggle front/back view; tap a part to bring it and its strips forward
-- ⬜ Tap a strip to highlight everything connected to it
+- ✅ Tap a strip to highlight everything connected to it (stage 3, phase 9)
 - ⬜ Prediction mode: readings hidden until the learner commits to an answer
 
 ## Stage 5 — Faster authoring ⬜
