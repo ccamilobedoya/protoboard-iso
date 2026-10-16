@@ -95,6 +95,18 @@ nav .falstad .open { color: #1f5fbf; text-decoration: none; border: 1px solid #c
 nav .falstad .open::after { content: " ↗"; }
 nav .falstad .flag { color: #8a6400; background: #fff3cd; border-color: #e0c060; }
 nav .falstad .flag[hidden] { display: none; }
+.info .scope { margin-top: 8px; }
+.info .scope h3 { margin: 0 0 2px; }
+.info .scope svg { display: block; width: 100%; height: auto; font-family: inherit; }
+.scope-screen { fill: #0d1418; }
+.scope-grid { stroke: #22333a; stroke-width: 0.6; }
+.scope-zero { stroke: #557079; stroke-width: 0.8; }
+.scope-trace { fill: none; stroke-width: 1.5; stroke-linejoin: round; }
+.scope-label { font-size: 10px; font-weight: 600; }
+.scope-scale { fill: #9fb3bb; font-size: 8px; text-anchor: end; }
+.scope-time { fill: #6b6a66; font-size: 9px; }
+.scope-end { text-anchor: end; }
+.scope-model { text-anchor: middle; font-style: italic; }
 .side .clear, .control .hold { font: inherit; color: #333333; background: #f6f5f2; border: 1px solid #c9c7c2; border-radius: 6px; padding: 3px 9px; cursor: pointer; margin-top: 4px; }
 .control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 8px; margin: 4px 0; }
 .control .name { color: #444444; }

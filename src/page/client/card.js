@@ -1,6 +1,7 @@
 // The card of a tapped part: what it is, its value, how it is used here, where each pin goes,
-// (with the results on) its simulated values, and in a live page the limits it went past and
-// its controls (limits.js, controls.js). Every value can be tapped to read what it means.
+// (with the results on) its simulated values, and in a live page the limits it went past, its
+// oscilloscope and its controls (limits.js, scope.js, controls.js). Every value can be tapped to
+// read what it means.
 
 import { applyFocus } from './focus.js';
 
@@ -73,6 +74,7 @@ function openInfo(page, id, open) {
   const pins = item(info, 'ul');
   for (const line of p.pins) item(pins, 'li', line);
   if (p.sim.length) fillSim(page, item(info, 'div', null, 'sim'), p.sim, open);
+  page.buildScope?.(info, id);
   page.buildControls?.(info, id);
   item(info, 'p', data.text.explain, 'tip');
   actions(info, [

@@ -11,6 +11,8 @@
 // - Four times a second: conductor colours (voltage), LED glow, heat tint, result tags, the
 //   probe captions and the open card.
 // - "Open in Falstad" (falstad.js): the circuit as it is now, in CircuitJS.
+// - The oscilloscope (scope.js): every part recorded from the start (sim/recorder.js), the
+//   tapped part's voltage and current drawn in its card.
 // - Controls (controls.js): sliders in the card and the circuit's panel, the momentary push
 //   button; a change re-solves at once. Limits (limits.js): checked every frame, shown as
 //   outlines and warnings.
@@ -26,11 +28,19 @@ import { voltageColor, dotSpeed, DOT_PERIOD, centreVoltage, bodyVoltage, glowOpa
 import { setupControls } from './controls.js';
 import { setupLimits } from './limits.js';
 import { setupFalstad } from './falstad.js';
+import { createScope } from './scope.js';
+import { createRecorder, samplesOf } from '../../sim/recorder.js';
+import { scopeOf } from '../../sim/scope.js';
 
 const BUDGET = 8; // ms of simulation per frame
 const REFRESH = 250; // ms between repaints of colours, tags and card
 const TAG_SIZE = 8; // px, as in src/sim/overlay.js
 const MIN_MOVE = 0.05; // px of dot movement worth a redraw
+const SCOPE_SAMPLES = 2048; // per part
+const WALL_WINDOW = 10; // s of the oscilloscope when nothing changes by itself (no C or L)
+// Oscilloscope colours: the line on the dark screen, and its name on the white card.
+const SCOPE_V = { color: '#f5c518', ink: '#8a6a00' };
+const SCOPE_I = { color: '#4fc3f7', ink: '#1f6f9c' };
 
 export function setupLive(page) {
   const { data, state, svgs } = page;
@@ -54,6 +64,49 @@ export function setupLive(page) {
   let owed = 0;
   engine.start(live.start ?? 'dc', h || 1e-3);
   let reading = engine.read();
+
+  // The oscilloscope (phase 7): every part recorded from the start, so a part tapped later shows
+  // its whole story; drawn in the open card only. Only where the card shows the results.
+  // Time: the simulated one when the circuit has C or L, else the clock on the wall (a button press
+  // or a slider shows as a step). The screen shows from t = 0: first a window of 5 time constants
+  // (or 10 s), then it stretches with the time up to twice that, and only then scrolls, so the
+  // whole charge of a capacitor stays in view while it matters.
+  const recorder = data.text.results ? createRecorder(SCOPE_SAMPLES) : null;
+  let scopeWindow = dynamic ? 5 * tauMax : WALL_WINDOW;
+  let wallTime = 0;
+  let lastRecord = -Infinity;
+  let openScope = null;
+  const scopeTime = () => (dynamic ? engine.time : wallTime);
+  function record(r, force = false) {
+    if (!recorder || !r) return;
+    const time = scopeTime();
+    if (!force && time - lastRecord < (2 * scopeWindow) / (dynamic ? 1500 : 500)) return;
+    lastRecord = time;
+    for (const id of Object.keys(data.parts)) {
+      const s = scopeOf(r.parts[id]);
+      if (s) recorder.push(id, time, s.v?.value ?? NaN, s.i?.value ?? NaN);
+    }
+  }
+  function drawScope() {
+    if (!openScope || page.info.hidden || page.open !== openScope.id) return;
+    const s = scopeOf(reading?.parts[openScope.id]);
+    if (!s) return;
+    const end = Math.max(scopeTime(), scopeWindow);
+    const from = Math.max(0, end - 2 * scopeWindow);
+    const rec = recorder.get(openScope.id);
+    const traces = [];
+    if (s.v) traces.push({ label: s.v.label ?? t('page.scope.voltage'), unit: 'V', ...SCOPE_V, points: samplesOf(rec, 'a', from, end) });
+    if (s.i) traces.push({ label: s.i.label ?? t('page.scope.current'), unit: 'A', ...SCOPE_I, points: samplesOf(rec, 'b', from, end) });
+    openScope.scope.draw({ traces, from, to: end });
+  }
+  // The card asks for it when it opens (card.js); closing the card takes it away.
+  page.buildScope = (info, id) => {
+    openScope = null;
+    if (!recorder || !scopeOf(reading?.parts[id])) return;
+    openScope = { id, scope: createScope(info, { t, f }) };
+    drawScope();
+  };
+  record(reading, true);
 
   // The pieces in every view, by index.
   const flow = live.flow;
@@ -171,6 +224,7 @@ export function setupLive(page) {
       page.refreshCard?.();
     }
     if (clock) clock.textContent = t('page.time.at', { t: f(engine.time, 's') });
+    drawScope();
   }
 
   // Time controls, when the circuit has something that changes with time.
@@ -195,6 +249,8 @@ export function setupLive(page) {
       engine.start('zero', h);
       limits.reset();
       reading = engine.read();
+      recorder?.clear();
+      record(reading, true);
       peak = 0;
       running = true;
       stalled = false;
@@ -220,10 +276,14 @@ export function setupLive(page) {
     changed() {
       if (dynamic) {
         const now = engine.timeConstants();
-        if (now.length) h = Math.min(h, stepFor(now));
+        if (now.length) {
+          h = Math.min(h, stepFor(now));
+          scopeWindow = 5 * Math.max(...now);
+        }
       }
       stalled = false;
       reading = engine.read();
+      record(reading, true);
       limits.check(reading, true);
       falstad?.update();
       repaint();
@@ -249,10 +309,15 @@ export function setupLive(page) {
           break;
         }
         owed -= h;
+        if (recorder && engine.time - lastRecord >= (2 * scopeWindow) / 1500) record(engine.read());
       }
       if (owed > 4 * h) owed = 0; // too slow to keep up: slow motion instead of a spiral
       reading = engine.read();
       limits.check(reading);
+    }
+    if (recorder && !dynamic) {
+      wallTime += wall;
+      record(reading);
     }
     if (flow) moveDots(wall);
     if (now - lastPaint >= REFRESH) {
@@ -277,11 +342,12 @@ export function setupLive(page) {
       return phase ? Array.from(phase) : [];
     },
     currents: () => (flow ? currents() : []),
+    recording: (id) => recorder?.get(id) ?? null,
     set: (id, field, value) => controls.set(id, field, value),
   };
   limits.check(reading);
   repaint();
-  if (typeof requestAnimationFrame === 'function' && (flow || dynamic)) {
+  if (typeof requestAnimationFrame === 'function' && (flow || dynamic || recorder)) {
     const loop = (now) => {
       frame(now);
       requestAnimationFrame(loop);

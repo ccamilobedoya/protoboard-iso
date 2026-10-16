@@ -33,6 +33,7 @@ export const mosfet = {
   limits: (entry, r) => [stress('SIM_OVER_POWER', 'power', r.power, entry.model.maxPower, 'W')],
   lines: (p, h) => [h.raw(`region.mosfet.${p.region}`, h.t(`sim.region.mosfet.${p.region}`)), h.raw('vgs', `Vgs: ${h.f(p.vgs, 'V')}`), h.raw('vds', `Vds: ${h.f(p.vds, 'V')}`), h.raw('id', `Id: ${h.f(p.currents.D, 'A')}`), h.q('power', h.f(p.power, 'W'))],
   tag: (r) => ({ label: 'Id', value: r.currents.D, key: 'id' }),
+  scope: (r) => ({ v: { label: 'Vds', value: r.vds }, i: { label: 'Id', value: r.currents.D } }),
   probe: (r) => ({ key: 'probe.id', value: Math.abs(r.currents.D) }),
   currentPins: (r) => (r.currents.D >= 0 ? [['D', 1], ['S', -1]] : [['S', 1], ['D', -1]]),
 };

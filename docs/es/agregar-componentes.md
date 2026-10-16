@@ -148,6 +148,8 @@ texto, las etiquetas de resultados, las sondas y la página lo encuentran ahí.
   un deslizador (sensores), en módulos sin imports como `src/parts/sensors.js`.
 - Los dispositivos que comparten `kind` comparten sus ganchos de lectura (`lines`, `tag`,
   `probe`, `currentPins`); `test/devices.test.js` lo revisa.
+- **Osciloscopio**: `scope(reading)` dice qué grafica el componente en su ficha (`{ v, i }`, cada uno
+  `{ label, value }` o `null`). Sin él, uno de dos patas grafica el voltaje entre ellas y su corriente.
 - **Falstad**: `falstad(d, f)` dice cómo va el componente a CircuitJS (el botón *Abrir en
   Falstad* y la comparación): la misma pieza, o un equivalente con su nota (`f.note`). Sin él,
   queda fuera con un aviso. Ver [falstad.md](falstad.md).

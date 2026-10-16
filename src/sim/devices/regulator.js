@@ -32,4 +32,5 @@ export const regulator = {
   },
   lines: (p, h) => [h.raw(`reg.${p.state}`, h.t(`sim.reg.${p.state}`)), h.q('reg.vin', h.f(p.vin, 'V')), h.q('reg.vout', h.f(p.vout, 'V')), h.q('reg.headroom', h.f(p.headroom, 'V')), h.q('reg.iout', h.f(p.current, 'A')), h.q('reg.quiescent', h.f(p.quiescent, 'A')), h.q('power', h.f(p.power, 'W'))],
   tag: (r) => ({ label: 'Iout', value: Math.abs(r.current), key: 'reg.iout' }),
+  scope: (r) => ({ v: { label: 'Vout', value: r.vout }, i: { label: 'Iout', value: r.current } }),
 };

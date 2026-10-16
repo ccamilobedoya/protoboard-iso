@@ -38,7 +38,15 @@ the tests green, this page and the roadmap up to date.
   and **⚠ n** listing the equivalents. Cross-check: 7 cases in `test/falstad/cases/`, references
   in `test/falstad/refs/`, `scripts/falstad.js`; 5 agree within 1 µV, the MOSFET (no λ in
   Falstad) and the Zener (another knee) within their tolerance.
-- Next: phase 7, the oscilloscope; then the signal generator and the probes (plan below).
+- Phase 7 done: the oscilloscope in the tapped part's card.
+  - `sim/recorder.js`: a ring buffer per part, recorded from the start.
+  - `sim/scope.js`: what each kind plots, through the device's `scope` hook.
+  - `page/client/scope.js`: the drawing, reusable for a list of traces.
+  - The screen shows from t = 0 up to 10 time constants and only then scrolls; with no C or L,
+    the wall clock (10 to 20 s).
+  - Only where the card shows the results. Tests in `test/scope.test.js`.
+  - Values under 1e-15 are written as 0: they are the solver's rounding.
+- Next: phase 8, the signal generator; then the probes (plan below).
 
 ## Decisions
 
@@ -225,8 +233,9 @@ For the next session. The maintainer's decisions:
   - Redrawn at the page's refresh rate (4 times a second), no CSS filters. When drawing, it keeps
     each pixel column's minimum and maximum, so peaks are not lost.
 - **Time**:
-  - Circuits with C or L: simulated time, a window of about 5 time constants (or from t = 0 when
-    shorter).
+  - Circuits with C or L: simulated time. The screen shows from t = 0: first 5 time constants, then
+    it stretches with the time up to 10, and only then scrolls, so a capacitor's whole charge stays
+    in view.
   - With neither: wall-clock time, so a push button's or a slider's step shows at once.
   - *Pause* freezes the plot.
 - **Prediction rule**: as the results. Only in the live page, only for the tapped part.
@@ -270,7 +279,7 @@ For the next session. The maintainer's decisions:
 | 4 | 4 · Live page | engine and program embedded, frame loop, dots, voltage colour, glow, heat, time controls, live tags |
 | 5 | 5 · Controls and limits | card sliders, `page.controls`, momentary button, stress levels, latched mark, warnings panel; `stress` per part in `simulate` (a new field) |
 | 6 | 6 · Falstad cross-check | ✅ exporter (`sim/falstad.js`), *Open in Falstad* button, cases and references in `test/falstad/` with matched models (divider, LED + R, active BJT, Darlington and push button, bridge, MOSFET, potentiometer and Zener) |
-| 7 | 7 · Oscilloscope | in the tapped part's card: recording from the start (`sim/recorder.js`), a `scope` device hook, `page/client/scope.js` (two stacked plots, V and I, reusable) |
+| 7 | 7 · Oscilloscope | ✅ in the tapped part's card: recording from the start (`sim/recorder.js`), a `scope` device hook (`sim/scope.js`), `page/client/scope.js` (two stacked plots, V and I, reusable) |
 | 8 | 8 · Signal generator | `generator` supply (sine, square, triangle) in the engine, the page, the sliders and Falstad; transient cases |
 | 9 | 9 · Probes on nodes | a node's card when a strip is tapped, with its voltage and its oscilloscope |
 

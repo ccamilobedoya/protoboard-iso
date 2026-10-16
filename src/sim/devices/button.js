@@ -47,4 +47,5 @@ export const button = {
   lines: (p, h) => [h.q('state', h.t(p.pressed ? 'state.pressed' : 'state.released')), h.q('current', h.f(p.current, 'A'))],
   tag: currentTag,
   probe: (r) => ({ key: 'probe.switch', value: Math.abs(r.current) }),
+  scope: (r) => ({ v: null, i: { label: null, value: r.current } }),
 };

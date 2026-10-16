@@ -36,4 +36,6 @@ export const potentiometer = {
   lines: (p, h) => [h.raw('pot.current', `I(1): ${h.f(p.currents['1'], 'A')}`), h.raw('pot.current', `I(W): ${h.f(p.currents.W, 'A')}`), h.raw('pot.current', `I(3): ${h.f(p.currents['3'], 'A')}`), h.q('power', h.f(p.power, 'W'))],
   tag: (r) => ({ label: 'I', value: Math.max(Math.abs(r.currents['1']), Math.abs(r.currents['3'])), key: 'pot.current' }),
   probe: () => ({ key: 'probe.pot' }),
+  // The wiper: its voltage (to ground) and the current out of it.
+  scope: (r) => ({ v: { label: 'V(W)', value: r.pins?.W ?? NaN }, i: { label: 'I(W)', value: r.currents.W } }),
 };

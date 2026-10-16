@@ -70,6 +70,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `sim/probes.js` | «de dónde sale un valor»: puntas para voltajes, flechas para corrientes |
 | `page.js`, `page/client/`, `page/style.js` | la página para embeber; `page/client/main.js` es la entrada de su script (módulos view, focus, card, tooltip) |
 | `node/bundle.js` | el agrupador pequeño: módulos ES permitidos → un solo script clásico para la página (motor, script de la página) |
+| `sim/recorder.js`, `sim/scope.js`, `page/client/scope.js` | osciloscopio (se pueden agrupar): grabación por componente desde el arranque, qué grafica cada tipo (gancho `scope`), el dibujo en la ficha (una lista de trazas, pantalla de 10 × 4) |
 | `sim/falstad.js`, `sim/falstad-layout.js`, `page/client/falstad.js` | exportar a CircuitJS de Falstad (se puede agrupar): cada dispositivo escribe su parte con `falstad(d, f)`; el acomodo la dibuja como esquema (nodos en filas por voltaje, componentes en serie en una columna, el orden de columnas con menos cruces); el botón *Abrir en Falstad* de la página en vivo, con sus avisos. Comparación: `test/falstad/`, `scripts/falstad.js` ([falstad.md](falstad.md)) |
 | `sim/compile.js`, `sim/engine.js` | compilar: circuito → programa (JSON plano, solo Node); motor: corre un programa (sin dependencias, va dentro de las páginas) |
 | `i18n/` | todas las frases; `pickLanguage` decide el idioma |

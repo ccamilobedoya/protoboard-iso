@@ -2156,8 +2156,8 @@
    ]
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  BT1    7.4 V      14.8 pA    109 pW     constant voltage\nNodes (voltage from rail B-):\n  rail B-                        0 V\n  column 3 (rows f–j)            floating\n  column 4 (rows f–j)            floating\n  column 5 (rows f–j)            floating\n  column 9 (rows f–j)            floating\n  column 12 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 25 (rows f–j)           floating\n  column 26 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 32 (rows f–j)           floating\n  column 37 (rows f–j)           floating\n  column 40 (rows f–j)           floating\n  column 45 (rows a–e)           floating\n  column 46 (rows a–e)           floating\n  column 47 (rows a–e)           floating\n  column 48 (rows a–e)           floating\n  column 49 (rows a–e)           floating\n  column 50 (rows a–e)           floating\n  column 51 (rows a–e)           floating\n  column 51 (rows f–j)           floating\n  column 50 (rows f–j)           floating\n  column 49 (rows f–j)           floating\n  column 48 (rows f–j)           floating\n  column 47 (rows f–j)           floating\n  column 46 (rows f–j)           floating\n  column 45 (rows f–j)           floating\n  column 3 (rows a–e)            floating\n  column 8 (rows a–e)            floating\n  column 12 (rows a–e)           floating\n  column 13 (rows a–e)           floating\n  column 14 (rows a–e)           floating\n  column 19 (rows a–e)           floating\n  column 20 (rows a–e)           floating\n  column 21 (rows a–e)           floating\n  column 25 (rows a–e)           floating\n  column 26 (rows a–e)           floating\n  column 27 (rows a–e)           floating\n  column 28 (rows a–e)           floating\n  column 55 (rows a–e)           floating\n  column 56 (rows a–e)           floating\n  column 56 (rows f–j)           floating\n  column 55 (rows f–j)           floating\n  rail B+                        7.4 V\nParts:\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · floating\n  D1     0.000139 pV -2.43e-13 pA -3.36e-29 pW · floating\n  L1     0 V        0 A        0 W · floating\n  RT1    0 V        0 A        0 W · floating\n  LDR1   0 V        0 A        0 W · floating\n  BZ1    0 V        0 A        0 W · floating\n  U1     not simulated · floating\n  D2     0 V        0 A        0 W · floating\n  U2     no headroom (not regulating) · Input 6.94e-9 pV · Output -0.694 pV · Output current -6.94e-13 pA · -4.82e-25 pW · floating\n  Q1     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  U3     not simulated · floating\n  BT1    7.4 V      14.8 pA    109 pW · Electromotive force (open circuit) 7.4 V\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  note: U3: the simulator does not model this part yet; its pins are left unconnected.\n  warning: RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3: no DC path to the supply (nodes 3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j), so the voltage there is not defined.",
-   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  BT1    7,4 V      14,8 pA    109 pW     voltaje constante\nGrupos (voltaje medido desde riel B-):\n  riel B-                        0 V\n  columna 3 (filas f–j)          flotante\n  columna 4 (filas f–j)          flotante\n  columna 5 (filas f–j)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 12 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 25 (filas f–j)         flotante\n  columna 26 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 32 (filas f–j)         flotante\n  columna 37 (filas f–j)         flotante\n  columna 40 (filas f–j)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 46 (filas a–e)         flotante\n  columna 47 (filas a–e)         flotante\n  columna 48 (filas a–e)         flotante\n  columna 49 (filas a–e)         flotante\n  columna 50 (filas a–e)         flotante\n  columna 51 (filas a–e)         flotante\n  columna 51 (filas f–j)         flotante\n  columna 50 (filas f–j)         flotante\n  columna 49 (filas f–j)         flotante\n  columna 48 (filas f–j)         flotante\n  columna 47 (filas f–j)         flotante\n  columna 46 (filas f–j)         flotante\n  columna 45 (filas f–j)         flotante\n  columna 3 (filas a–e)          flotante\n  columna 8 (filas a–e)          flotante\n  columna 12 (filas a–e)         flotante\n  columna 13 (filas a–e)         flotante\n  columna 14 (filas a–e)         flotante\n  columna 19 (filas a–e)         flotante\n  columna 20 (filas a–e)         flotante\n  columna 21 (filas a–e)         flotante\n  columna 25 (filas a–e)         flotante\n  columna 26 (filas a–e)         flotante\n  columna 27 (filas a–e)         flotante\n  columna 28 (filas a–e)         flotante\n  columna 55 (filas a–e)         flotante\n  columna 56 (filas a–e)         flotante\n  columna 56 (filas f–j)         flotante\n  columna 55 (filas f–j)         flotante\n  riel B+                        7,4 V\nComponentes:\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · flotante\n  D1     0,000139 pV -2,43e-13 pA -3,36e-29 pW · flotante\n  L1     0 V        0 A        0 W · flotante\n  RT1    0 V        0 A        0 W · flotante\n  LDR1   0 V        0 A        0 W · flotante\n  BZ1    0 V        0 A        0 W · flotante\n  U1     no se simula · flotante\n  D2     0 V        0 A        0 W · flotante\n  U2     sin margen (no regula) · Entrada 6,94e-9 pV · Salida -0,694 pV · Corriente de salida -6,94e-13 pA · -4,82e-25 pW · flotante\n  Q1     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  U3     no se simula · flotante\n  BT1    7,4 V      14,8 pA    109 pW · Fuerza electromotriz (en vacío) 7,4 V\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  nota: U3: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3: no hay camino de corriente continua hasta la fuente (grupos 3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j), así que ahí el voltaje no está definido."
+   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  BT1    7.4 V      14.8 pA    109 pW     constant voltage\nNodes (voltage from rail B-):\n  rail B-                        0 V\n  column 3 (rows f–j)            floating\n  column 4 (rows f–j)            floating\n  column 5 (rows f–j)            floating\n  column 9 (rows f–j)            floating\n  column 12 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 25 (rows f–j)           floating\n  column 26 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 32 (rows f–j)           floating\n  column 37 (rows f–j)           floating\n  column 40 (rows f–j)           floating\n  column 45 (rows a–e)           floating\n  column 46 (rows a–e)           floating\n  column 47 (rows a–e)           floating\n  column 48 (rows a–e)           floating\n  column 49 (rows a–e)           floating\n  column 50 (rows a–e)           floating\n  column 51 (rows a–e)           floating\n  column 51 (rows f–j)           floating\n  column 50 (rows f–j)           floating\n  column 49 (rows f–j)           floating\n  column 48 (rows f–j)           floating\n  column 47 (rows f–j)           floating\n  column 46 (rows f–j)           floating\n  column 45 (rows f–j)           floating\n  column 3 (rows a–e)            floating\n  column 8 (rows a–e)            floating\n  column 12 (rows a–e)           floating\n  column 13 (rows a–e)           floating\n  column 14 (rows a–e)           floating\n  column 19 (rows a–e)           floating\n  column 20 (rows a–e)           floating\n  column 21 (rows a–e)           floating\n  column 25 (rows a–e)           floating\n  column 26 (rows a–e)           floating\n  column 27 (rows a–e)           floating\n  column 28 (rows a–e)           floating\n  column 55 (rows a–e)           floating\n  column 56 (rows a–e)           floating\n  column 56 (rows f–j)           floating\n  column 55 (rows f–j)           floating\n  rail B+                        7.4 V\nParts:\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · floating\n  D1     0 V        0 A        0 W · floating\n  L1     0 V        0 A        0 W · floating\n  RT1    0 V        0 A        0 W · floating\n  LDR1   0 V        0 A        0 W · floating\n  BZ1    0 V        0 A        0 W · floating\n  U1     not simulated · floating\n  D2     0 V        0 A        0 W · floating\n  U2     no headroom (not regulating) · Input 0 V · Output -0.694 pV · Output current 0 A · 0 W · floating\n  Q1     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  U3     not simulated · floating\n  BT1    7.4 V      14.8 pA    109 pW · Electromotive force (open circuit) 7.4 V\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  note: U3: the simulator does not model this part yet; its pins are left unconnected.\n  warning: RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3: no DC path to the supply (nodes 3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  BT1    7,4 V      14,8 pA    109 pW     voltaje constante\nGrupos (voltaje medido desde riel B-):\n  riel B-                        0 V\n  columna 3 (filas f–j)          flotante\n  columna 4 (filas f–j)          flotante\n  columna 5 (filas f–j)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 12 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 25 (filas f–j)         flotante\n  columna 26 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 32 (filas f–j)         flotante\n  columna 37 (filas f–j)         flotante\n  columna 40 (filas f–j)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 46 (filas a–e)         flotante\n  columna 47 (filas a–e)         flotante\n  columna 48 (filas a–e)         flotante\n  columna 49 (filas a–e)         flotante\n  columna 50 (filas a–e)         flotante\n  columna 51 (filas a–e)         flotante\n  columna 51 (filas f–j)         flotante\n  columna 50 (filas f–j)         flotante\n  columna 49 (filas f–j)         flotante\n  columna 48 (filas f–j)         flotante\n  columna 47 (filas f–j)         flotante\n  columna 46 (filas f–j)         flotante\n  columna 45 (filas f–j)         flotante\n  columna 3 (filas a–e)          flotante\n  columna 8 (filas a–e)          flotante\n  columna 12 (filas a–e)         flotante\n  columna 13 (filas a–e)         flotante\n  columna 14 (filas a–e)         flotante\n  columna 19 (filas a–e)         flotante\n  columna 20 (filas a–e)         flotante\n  columna 21 (filas a–e)         flotante\n  columna 25 (filas a–e)         flotante\n  columna 26 (filas a–e)         flotante\n  columna 27 (filas a–e)         flotante\n  columna 28 (filas a–e)         flotante\n  columna 55 (filas a–e)         flotante\n  columna 56 (filas a–e)         flotante\n  columna 56 (filas f–j)         flotante\n  columna 55 (filas f–j)         flotante\n  riel B+                        7,4 V\nComponentes:\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · flotante\n  D1     0 V        0 A        0 W · flotante\n  L1     0 V        0 A        0 W · flotante\n  RT1    0 V        0 A        0 W · flotante\n  LDR1   0 V        0 A        0 W · flotante\n  BZ1    0 V        0 A        0 W · flotante\n  U1     no se simula · flotante\n  D2     0 V        0 A        0 W · flotante\n  U2     sin margen (no regula) · Entrada 0 V · Salida -0,694 pV · Corriente de salida 0 A · 0 W · flotante\n  Q1     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  U3     no se simula · flotante\n  BT1    7,4 V      14,8 pA    109 pW · Fuerza electromotriz (en vacío) 7,4 V\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  nota: U3: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3: no hay camino de corriente continua hasta la fuente (grupos 3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j), así que ahí el voltaje no está definido."
   },
   "lines": {
    "en": {
@@ -2186,15 +2186,15 @@
     "D1": [
      {
       "key": "voltage",
-      "text": "Voltage: 0.000139 pV"
+      "text": "Voltage: 0 V"
      },
      {
       "key": "current",
-      "text": "Current: -2.43e-13 pA"
+      "text": "Current: 0 A"
      },
      {
       "key": "power",
-      "text": "Power: -3.36e-29 pW"
+      "text": "Power: 0 W"
      },
      {
       "key": "floating",
@@ -2320,7 +2320,7 @@
      },
      {
       "key": "reg.vin",
-      "text": "Input: 6.94e-9 pV"
+      "text": "Input: 0 V"
      },
      {
       "key": "reg.vout",
@@ -2332,15 +2332,15 @@
      },
      {
       "key": "reg.iout",
-      "text": "Output current: -6.94e-13 pA"
+      "text": "Output current: 0 A"
      },
      {
       "key": "reg.quiescent",
-      "text": "Own current: 6.94e-13 pA"
+      "text": "Own current: 0 A"
      },
      {
       "key": "power",
-      "text": "Power: -4.82e-25 pW"
+      "text": "Power: 0 W"
      },
      {
       "key": "floating",
@@ -2433,15 +2433,15 @@
     "D1": [
      {
       "key": "voltage",
-      "text": "Voltaje (tensión): 0,000139 pV"
+      "text": "Voltaje (tensión): 0 V"
      },
      {
       "key": "current",
-      "text": "Corriente: -2,43e-13 pA"
+      "text": "Corriente: 0 A"
      },
      {
       "key": "power",
-      "text": "Potencia: -3,36e-29 pW"
+      "text": "Potencia: 0 W"
      },
      {
       "key": "floating",
@@ -2567,7 +2567,7 @@
      },
      {
       "key": "reg.vin",
-      "text": "Entrada: 6,94e-9 pV"
+      "text": "Entrada: 0 V"
      },
      {
       "key": "reg.vout",
@@ -2579,15 +2579,15 @@
      },
      {
       "key": "reg.iout",
-      "text": "Corriente de salida: -6,94e-13 pA"
+      "text": "Corriente de salida: 0 A"
      },
      {
       "key": "reg.quiescent",
-      "text": "Corriente propia: 6,94e-13 pA"
+      "text": "Corriente propia: 0 A"
      },
      {
       "key": "power",
-      "text": "Potencia: -4,82e-25 pW"
+      "text": "Potencia: 0 W"
      },
      {
       "key": "floating",
@@ -3009,8 +3009,8 @@
    ]
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     5 V        9.98 pA    49.9 pW    constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  column 2 (rows f–j)            floating\n  column 6 (rows f–j)            floating\n  column 9 (rows f–j)            floating\n  column 13 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 2 (rows a–e)            floating\n  column 6 (rows a–e)            floating\n  column 9 (rows a–e)            floating\n  column 13 (rows a–e)           floating\n  column 25 (rows f–j)           floating\n  column 26 (rows f–j)           floating\n  column 29 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 33 (rows f–j)           floating\n  column 34 (rows f–j)           floating\n  column 17 (rows a–e)           floating\n  column 18 (rows a–e)           floating\n  column 22 (rows a–e)           floating\n  column 23 (rows a–e)           floating\n  column 27 (rows a–e)           floating\n  column 29 (rows a–e)           floating\n  column 36 (rows a–e)           floating\n  column 37 (rows a–e)           floating\n  column 38 (rows a–e)           floating\n  column 43 (rows a–e)           floating\n  column 44 (rows a–e)           floating\n  column 45 (rows a–e)           floating\n  column 48 (rows a–e)           floating\n  column 49 (rows a–e)           floating\n  column 50 (rows a–e)           floating\n  rail T+ (+5 V)                 5 V\n  column 40 (rows f–j)           5 V\n  column 55 (rows a–e)           floating\n  rail B-                        floating\n  column 45 (rows f–j)           floating\n  column 58 (rows f–j)           floating\nParts:\n  R1     0 V        0 A        0 W · floating\n  R2     0 V        0 A        0 W · floating\n  R3     0 V        0 A        0 W · floating\n  D1     0 V        0 A        0 W · floating\n  D2     0 V        0 A        0 W · floating\n  D3     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  D4     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  D5     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  C1     0 V        0 A        0 W · floating\n  C2     0 V        0 A        0 W · floating\n  C3     0 V        0 A        0 W · floating\n  Q1     off · Vgs 0 V · Vds 0 V · Id 0 A · 0 W · floating\n  Q2     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  Q3     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  W1     0.25 pV    5.01 pA    1.25e-12 pW\n  W2     0 V        0 A        0 W · floating\n  W3     0 V        0 A        0 W · floating\nNotes:\n  warning: R1, R2, R3, D1, D2, D3, D4, D5, C1, C2, C3, Q1, Q2, Q3, W2, W3: no DC path to the supply (nodes 2:f-j, 6:f-j, 9:f-j, 13:f-j, 16:f-j, 21:f-j, 2:a-e, 6:a-e, 9:a-e, 13:a-e, 25:f-j, 26:f-j, 29:f-j, 30:f-j, 33:f-j, 34:f-j, 17:a-e, 18:a-e, 22:a-e, 23:a-e, 27:a-e, 29:a-e, 36:a-e, 37:a-e, 38:a-e, 43:a-e, 44:a-e, 45:a-e, 48:a-e, 49:a-e, 50:a-e, 55:a-e, B-, 45:f-j, 58:f-j), so the voltage there is not defined.",
-   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     5 V        9,98 pA    49,9 pW    voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  columna 2 (filas f–j)          flotante\n  columna 6 (filas f–j)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 13 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 2 (filas a–e)          flotante\n  columna 6 (filas a–e)          flotante\n  columna 9 (filas a–e)          flotante\n  columna 13 (filas a–e)         flotante\n  columna 25 (filas f–j)         flotante\n  columna 26 (filas f–j)         flotante\n  columna 29 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 33 (filas f–j)         flotante\n  columna 34 (filas f–j)         flotante\n  columna 17 (filas a–e)         flotante\n  columna 18 (filas a–e)         flotante\n  columna 22 (filas a–e)         flotante\n  columna 23 (filas a–e)         flotante\n  columna 27 (filas a–e)         flotante\n  columna 29 (filas a–e)         flotante\n  columna 36 (filas a–e)         flotante\n  columna 37 (filas a–e)         flotante\n  columna 38 (filas a–e)         flotante\n  columna 43 (filas a–e)         flotante\n  columna 44 (filas a–e)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 48 (filas a–e)         flotante\n  columna 49 (filas a–e)         flotante\n  columna 50 (filas a–e)         flotante\n  riel T+ (+5 V)                 5 V\n  columna 40 (filas f–j)         5 V\n  columna 55 (filas a–e)         flotante\n  riel B-                        flotante\n  columna 45 (filas f–j)         flotante\n  columna 58 (filas f–j)         flotante\nComponentes:\n  R1     0 V        0 A        0 W · flotante\n  R2     0 V        0 A        0 W · flotante\n  R3     0 V        0 A        0 W · flotante\n  D1     0 V        0 A        0 W · flotante\n  D2     0 V        0 A        0 W · flotante\n  D3     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  D4     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  D5     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  C1     0 V        0 A        0 W · flotante\n  C2     0 V        0 A        0 W · flotante\n  C3     0 V        0 A        0 W · flotante\n  Q1     apagado · Vgs 0 V · Vds 0 V · Id 0 A · 0 W · flotante\n  Q2     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  Q3     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  W1     0,25 pV    5,01 pA    1,25e-12 pW\n  W2     0 V        0 A        0 W · flotante\n  W3     0 V        0 A        0 W · flotante\nObservaciones:\n  aviso: R1, R2, R3, D1, D2, D3, D4, D5, C1, C2, C3, Q1, Q2, Q3, W2, W3: no hay camino de corriente continua hasta la fuente (grupos 2:f-j, 6:f-j, 9:f-j, 13:f-j, 16:f-j, 21:f-j, 2:a-e, 6:a-e, 9:a-e, 13:a-e, 25:f-j, 26:f-j, 29:f-j, 30:f-j, 33:f-j, 34:f-j, 17:a-e, 18:a-e, 22:a-e, 23:a-e, 27:a-e, 29:a-e, 36:a-e, 37:a-e, 38:a-e, 43:a-e, 44:a-e, 45:a-e, 48:a-e, 49:a-e, 50:a-e, 55:a-e, B-, 45:f-j, 58:f-j), así que ahí el voltaje no está definido."
+   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     5 V        9.98 pA    49.9 pW    constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  column 2 (rows f–j)            floating\n  column 6 (rows f–j)            floating\n  column 9 (rows f–j)            floating\n  column 13 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 2 (rows a–e)            floating\n  column 6 (rows a–e)            floating\n  column 9 (rows a–e)            floating\n  column 13 (rows a–e)           floating\n  column 25 (rows f–j)           floating\n  column 26 (rows f–j)           floating\n  column 29 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 33 (rows f–j)           floating\n  column 34 (rows f–j)           floating\n  column 17 (rows a–e)           floating\n  column 18 (rows a–e)           floating\n  column 22 (rows a–e)           floating\n  column 23 (rows a–e)           floating\n  column 27 (rows a–e)           floating\n  column 29 (rows a–e)           floating\n  column 36 (rows a–e)           floating\n  column 37 (rows a–e)           floating\n  column 38 (rows a–e)           floating\n  column 43 (rows a–e)           floating\n  column 44 (rows a–e)           floating\n  column 45 (rows a–e)           floating\n  column 48 (rows a–e)           floating\n  column 49 (rows a–e)           floating\n  column 50 (rows a–e)           floating\n  rail T+ (+5 V)                 5 V\n  column 40 (rows f–j)           5 V\n  column 55 (rows a–e)           floating\n  rail B-                        floating\n  column 45 (rows f–j)           floating\n  column 58 (rows f–j)           floating\nParts:\n  R1     0 V        0 A        0 W · floating\n  R2     0 V        0 A        0 W · floating\n  R3     0 V        0 A        0 W · floating\n  D1     0 V        0 A        0 W · floating\n  D2     0 V        0 A        0 W · floating\n  D3     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  D4     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  D5     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  C1     0 V        0 A        0 W · floating\n  C2     0 V        0 A        0 W · floating\n  C3     0 V        0 A        0 W · floating\n  Q1     off · Vgs 0 V · Vds 0 V · Id 0 A · 0 W · floating\n  Q2     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  Q3     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  W1     0.25 pV    5.01 pA    0 W\n  W2     0 V        0 A        0 W · floating\n  W3     0 V        0 A        0 W · floating\nNotes:\n  warning: R1, R2, R3, D1, D2, D3, D4, D5, C1, C2, C3, Q1, Q2, Q3, W2, W3: no DC path to the supply (nodes 2:f-j, 6:f-j, 9:f-j, 13:f-j, 16:f-j, 21:f-j, 2:a-e, 6:a-e, 9:a-e, 13:a-e, 25:f-j, 26:f-j, 29:f-j, 30:f-j, 33:f-j, 34:f-j, 17:a-e, 18:a-e, 22:a-e, 23:a-e, 27:a-e, 29:a-e, 36:a-e, 37:a-e, 38:a-e, 43:a-e, 44:a-e, 45:a-e, 48:a-e, 49:a-e, 50:a-e, 55:a-e, B-, 45:f-j, 58:f-j), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     5 V        9,98 pA    49,9 pW    voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  columna 2 (filas f–j)          flotante\n  columna 6 (filas f–j)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 13 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 2 (filas a–e)          flotante\n  columna 6 (filas a–e)          flotante\n  columna 9 (filas a–e)          flotante\n  columna 13 (filas a–e)         flotante\n  columna 25 (filas f–j)         flotante\n  columna 26 (filas f–j)         flotante\n  columna 29 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 33 (filas f–j)         flotante\n  columna 34 (filas f–j)         flotante\n  columna 17 (filas a–e)         flotante\n  columna 18 (filas a–e)         flotante\n  columna 22 (filas a–e)         flotante\n  columna 23 (filas a–e)         flotante\n  columna 27 (filas a–e)         flotante\n  columna 29 (filas a–e)         flotante\n  columna 36 (filas a–e)         flotante\n  columna 37 (filas a–e)         flotante\n  columna 38 (filas a–e)         flotante\n  columna 43 (filas a–e)         flotante\n  columna 44 (filas a–e)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 48 (filas a–e)         flotante\n  columna 49 (filas a–e)         flotante\n  columna 50 (filas a–e)         flotante\n  riel T+ (+5 V)                 5 V\n  columna 40 (filas f–j)         5 V\n  columna 55 (filas a–e)         flotante\n  riel B-                        flotante\n  columna 45 (filas f–j)         flotante\n  columna 58 (filas f–j)         flotante\nComponentes:\n  R1     0 V        0 A        0 W · flotante\n  R2     0 V        0 A        0 W · flotante\n  R3     0 V        0 A        0 W · flotante\n  D1     0 V        0 A        0 W · flotante\n  D2     0 V        0 A        0 W · flotante\n  D3     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  D4     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  D5     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  C1     0 V        0 A        0 W · flotante\n  C2     0 V        0 A        0 W · flotante\n  C3     0 V        0 A        0 W · flotante\n  Q1     apagado · Vgs 0 V · Vds 0 V · Id 0 A · 0 W · flotante\n  Q2     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  Q3     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  W1     0,25 pV    5,01 pA    0 W\n  W2     0 V        0 A        0 W · flotante\n  W3     0 V        0 A        0 W · flotante\nObservaciones:\n  aviso: R1, R2, R3, D1, D2, D3, D4, D5, C1, C2, C3, Q1, Q2, Q3, W2, W3: no hay camino de corriente continua hasta la fuente (grupos 2:f-j, 6:f-j, 9:f-j, 13:f-j, 16:f-j, 21:f-j, 2:a-e, 6:a-e, 9:a-e, 13:a-e, 25:f-j, 26:f-j, 29:f-j, 30:f-j, 33:f-j, 34:f-j, 17:a-e, 18:a-e, 22:a-e, 23:a-e, 27:a-e, 29:a-e, 36:a-e, 37:a-e, 38:a-e, 43:a-e, 44:a-e, 45:a-e, 48:a-e, 49:a-e, 50:a-e, 55:a-e, B-, 45:f-j, 58:f-j), así que ahí el voltaje no está definido."
   },
   "lines": {
    "en": {
@@ -3321,7 +3321,7 @@
      },
      {
       "key": "power",
-      "text": "Power: 1.25e-12 pW"
+      "text": "Power: 0 W"
      }
     ],
     "W2": [
@@ -3669,7 +3669,7 @@
      },
      {
       "key": "power",
-      "text": "Potencia: 1,25e-12 pW"
+      "text": "Potencia: 0 W"
      }
     ],
     "W2": [
@@ -4706,8 +4706,8 @@
    "issues": []
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     9 V        450 µA     4.05 mW    constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  rail T+ (+9 V)                 9 V\n  column 12 (rows f–j)           9 V\n  column 16 (rows f–j)           4.5 V\n  column 21 (rows f–j)           22.5 µV\n  column 16 (rows a–e)           4.5 V\nParts:\n  W1     22.5 µV    450 µA     10.1 nW\n  R1     4.5 V      450 µA     2.02 mW\n  R2     4.5 V      450 µA     2.02 mW\n  W2     22.5 µV    450 µA     10.1 nW\n  W3     0.224 pV   4.48 pA    1e-12 pW",
-   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     9 V        450 µA     4,05 mW    voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  riel T+ (+9 V)                 9 V\n  columna 12 (filas f–j)         9 V\n  columna 16 (filas f–j)         4,5 V\n  columna 21 (filas f–j)         22,5 µV\n  columna 16 (filas a–e)         4,5 V\nComponentes:\n  W1     22,5 µV    450 µA     10,1 nW\n  R1     4,5 V      450 µA     2,02 mW\n  R2     4,5 V      450 µA     2,02 mW\n  W2     22,5 µV    450 µA     10,1 nW\n  W3     0,224 pV   4,48 pA    1e-12 pW"
+   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     9 V        450 µA     4.05 mW    constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  rail T+ (+9 V)                 9 V\n  column 12 (rows f–j)           9 V\n  column 16 (rows f–j)           4.5 V\n  column 21 (rows f–j)           22.5 µV\n  column 16 (rows a–e)           4.5 V\nParts:\n  W1     22.5 µV    450 µA     10.1 nW\n  R1     4.5 V      450 µA     2.02 mW\n  R2     4.5 V      450 µA     2.02 mW\n  W2     22.5 µV    450 µA     10.1 nW\n  W3     0.224 pV   4.48 pA    0 W",
+   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     9 V        450 µA     4,05 mW    voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  riel T+ (+9 V)                 9 V\n  columna 12 (filas f–j)         9 V\n  columna 16 (filas f–j)         4,5 V\n  columna 21 (filas f–j)         22,5 µV\n  columna 16 (filas a–e)         4,5 V\nComponentes:\n  W1     22,5 µV    450 µA     10,1 nW\n  R1     4,5 V      450 µA     2,02 mW\n  R2     4,5 V      450 µA     2,02 mW\n  W2     22,5 µV    450 µA     10,1 nW\n  W3     0,224 pV   4,48 pA    0 W"
   },
   "lines": {
    "en": {
@@ -4778,7 +4778,7 @@
      },
      {
       "key": "power",
-      "text": "Power: 1e-12 pW"
+      "text": "Power: 0 W"
      }
     ]
    },
@@ -4850,7 +4850,7 @@
      },
      {
       "key": "power",
-      "text": "Potencia: 1e-12 pW"
+      "text": "Potencia: 0 W"
      }
     ]
    }
@@ -5993,8 +5993,8 @@
    ]
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  BT1    7.4 V      14.8 pA    109 pW     constant voltage\nNodes (voltage from rail B-):\n  rail B-                        0 V\n  column 3 (rows f–j)            floating\n  column 4 (rows f–j)            floating\n  column 5 (rows f–j)            floating\n  column 9 (rows f–j)            floating\n  column 12 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 25 (rows f–j)           floating\n  column 26 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 32 (rows f–j)           floating\n  column 37 (rows f–j)           floating\n  column 40 (rows f–j)           floating\n  column 45 (rows a–e)           floating\n  column 46 (rows a–e)           floating\n  column 47 (rows a–e)           floating\n  column 48 (rows a–e)           floating\n  column 49 (rows a–e)           floating\n  column 50 (rows a–e)           floating\n  column 51 (rows a–e)           floating\n  column 51 (rows f–j)           floating\n  column 50 (rows f–j)           floating\n  column 49 (rows f–j)           floating\n  column 48 (rows f–j)           floating\n  column 47 (rows f–j)           floating\n  column 46 (rows f–j)           floating\n  column 45 (rows f–j)           floating\n  column 3 (rows a–e)            floating\n  column 8 (rows a–e)            floating\n  column 12 (rows a–e)           floating\n  column 13 (rows a–e)           floating\n  column 14 (rows a–e)           floating\n  column 19 (rows a–e)           floating\n  column 20 (rows a–e)           floating\n  column 21 (rows a–e)           floating\n  column 25 (rows a–e)           floating\n  column 26 (rows a–e)           floating\n  column 27 (rows a–e)           floating\n  column 28 (rows a–e)           floating\n  column 55 (rows a–e)           floating\n  column 56 (rows a–e)           floating\n  column 56 (rows f–j)           floating\n  column 55 (rows f–j)           floating\n  rail B+                        7.4 V\nParts:\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · floating\n  D1     0.000139 pV -2.43e-13 pA -3.36e-29 pW · floating\n  L1     0 V        0 A        0 W · floating\n  RT1    0 V        0 A        0 W · floating\n  LDR1   0 V        0 A        0 W · floating\n  BZ1    0 V        0 A        0 W · floating\n  U1     not simulated · floating\n  D2     0 V        0 A        0 W · floating\n  U2     no headroom (not regulating) · Input 6.94e-9 pV · Output -0.694 pV · Output current -6.94e-13 pA · -4.82e-25 pW · floating\n  Q1     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  U3     not simulated · floating\n  BT1    7.4 V      14.8 pA    109 pW · Electromotive force (open circuit) 7.4 V\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  note: U3: the simulator does not model this part yet; its pins are left unconnected.\n  warning: RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3: no DC path to the supply (nodes 3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j), so the voltage there is not defined.",
-   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  BT1    7,4 V      14,8 pA    109 pW     voltaje constante\nGrupos (voltaje medido desde riel B-):\n  riel B-                        0 V\n  columna 3 (filas f–j)          flotante\n  columna 4 (filas f–j)          flotante\n  columna 5 (filas f–j)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 12 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 25 (filas f–j)         flotante\n  columna 26 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 32 (filas f–j)         flotante\n  columna 37 (filas f–j)         flotante\n  columna 40 (filas f–j)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 46 (filas a–e)         flotante\n  columna 47 (filas a–e)         flotante\n  columna 48 (filas a–e)         flotante\n  columna 49 (filas a–e)         flotante\n  columna 50 (filas a–e)         flotante\n  columna 51 (filas a–e)         flotante\n  columna 51 (filas f–j)         flotante\n  columna 50 (filas f–j)         flotante\n  columna 49 (filas f–j)         flotante\n  columna 48 (filas f–j)         flotante\n  columna 47 (filas f–j)         flotante\n  columna 46 (filas f–j)         flotante\n  columna 45 (filas f–j)         flotante\n  columna 3 (filas a–e)          flotante\n  columna 8 (filas a–e)          flotante\n  columna 12 (filas a–e)         flotante\n  columna 13 (filas a–e)         flotante\n  columna 14 (filas a–e)         flotante\n  columna 19 (filas a–e)         flotante\n  columna 20 (filas a–e)         flotante\n  columna 21 (filas a–e)         flotante\n  columna 25 (filas a–e)         flotante\n  columna 26 (filas a–e)         flotante\n  columna 27 (filas a–e)         flotante\n  columna 28 (filas a–e)         flotante\n  columna 55 (filas a–e)         flotante\n  columna 56 (filas a–e)         flotante\n  columna 56 (filas f–j)         flotante\n  columna 55 (filas f–j)         flotante\n  riel B+                        7,4 V\nComponentes:\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · flotante\n  D1     0,000139 pV -2,43e-13 pA -3,36e-29 pW · flotante\n  L1     0 V        0 A        0 W · flotante\n  RT1    0 V        0 A        0 W · flotante\n  LDR1   0 V        0 A        0 W · flotante\n  BZ1    0 V        0 A        0 W · flotante\n  U1     no se simula · flotante\n  D2     0 V        0 A        0 W · flotante\n  U2     sin margen (no regula) · Entrada 6,94e-9 pV · Salida -0,694 pV · Corriente de salida -6,94e-13 pA · -4,82e-25 pW · flotante\n  Q1     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  U3     no se simula · flotante\n  BT1    7,4 V      14,8 pA    109 pW · Fuerza electromotriz (en vacío) 7,4 V\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  nota: U3: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3: no hay camino de corriente continua hasta la fuente (grupos 3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j), así que ahí el voltaje no está definido."
+   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  BT1    7.4 V      14.8 pA    109 pW     constant voltage\nNodes (voltage from rail B-):\n  rail B-                        0 V\n  column 3 (rows f–j)            floating\n  column 4 (rows f–j)            floating\n  column 5 (rows f–j)            floating\n  column 9 (rows f–j)            floating\n  column 12 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 25 (rows f–j)           floating\n  column 26 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 32 (rows f–j)           floating\n  column 37 (rows f–j)           floating\n  column 40 (rows f–j)           floating\n  column 45 (rows a–e)           floating\n  column 46 (rows a–e)           floating\n  column 47 (rows a–e)           floating\n  column 48 (rows a–e)           floating\n  column 49 (rows a–e)           floating\n  column 50 (rows a–e)           floating\n  column 51 (rows a–e)           floating\n  column 51 (rows f–j)           floating\n  column 50 (rows f–j)           floating\n  column 49 (rows f–j)           floating\n  column 48 (rows f–j)           floating\n  column 47 (rows f–j)           floating\n  column 46 (rows f–j)           floating\n  column 45 (rows f–j)           floating\n  column 3 (rows a–e)            floating\n  column 8 (rows a–e)            floating\n  column 12 (rows a–e)           floating\n  column 13 (rows a–e)           floating\n  column 14 (rows a–e)           floating\n  column 19 (rows a–e)           floating\n  column 20 (rows a–e)           floating\n  column 21 (rows a–e)           floating\n  column 25 (rows a–e)           floating\n  column 26 (rows a–e)           floating\n  column 27 (rows a–e)           floating\n  column 28 (rows a–e)           floating\n  column 55 (rows a–e)           floating\n  column 56 (rows a–e)           floating\n  column 56 (rows f–j)           floating\n  column 55 (rows f–j)           floating\n  rail B+                        7.4 V\nParts:\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · floating\n  D1     0 V        0 A        0 W · floating\n  L1     0 V        0 A        0 W · floating\n  RT1    0 V        0 A        0 W · floating\n  LDR1   0 V        0 A        0 W · floating\n  BZ1    0 V        0 A        0 W · floating\n  U1     not simulated · floating\n  D2     0 V        0 A        0 W · floating\n  U2     no headroom (not regulating) · Input 0 V · Output -0.694 pV · Output current 0 A · 0 W · floating\n  Q1     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  U3     not simulated · floating\n  BT1    7.4 V      14.8 pA    109 pW · Electromotive force (open circuit) 7.4 V\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  note: U3: the simulator does not model this part yet; its pins are left unconnected.\n  warning: RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3: no DC path to the supply (nodes 3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  BT1    7,4 V      14,8 pA    109 pW     voltaje constante\nGrupos (voltaje medido desde riel B-):\n  riel B-                        0 V\n  columna 3 (filas f–j)          flotante\n  columna 4 (filas f–j)          flotante\n  columna 5 (filas f–j)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 12 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 25 (filas f–j)         flotante\n  columna 26 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 32 (filas f–j)         flotante\n  columna 37 (filas f–j)         flotante\n  columna 40 (filas f–j)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 46 (filas a–e)         flotante\n  columna 47 (filas a–e)         flotante\n  columna 48 (filas a–e)         flotante\n  columna 49 (filas a–e)         flotante\n  columna 50 (filas a–e)         flotante\n  columna 51 (filas a–e)         flotante\n  columna 51 (filas f–j)         flotante\n  columna 50 (filas f–j)         flotante\n  columna 49 (filas f–j)         flotante\n  columna 48 (filas f–j)         flotante\n  columna 47 (filas f–j)         flotante\n  columna 46 (filas f–j)         flotante\n  columna 45 (filas f–j)         flotante\n  columna 3 (filas a–e)          flotante\n  columna 8 (filas a–e)          flotante\n  columna 12 (filas a–e)         flotante\n  columna 13 (filas a–e)         flotante\n  columna 14 (filas a–e)         flotante\n  columna 19 (filas a–e)         flotante\n  columna 20 (filas a–e)         flotante\n  columna 21 (filas a–e)         flotante\n  columna 25 (filas a–e)         flotante\n  columna 26 (filas a–e)         flotante\n  columna 27 (filas a–e)         flotante\n  columna 28 (filas a–e)         flotante\n  columna 55 (filas a–e)         flotante\n  columna 56 (filas a–e)         flotante\n  columna 56 (filas f–j)         flotante\n  columna 55 (filas f–j)         flotante\n  riel B+                        7,4 V\nComponentes:\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · flotante\n  D1     0 V        0 A        0 W · flotante\n  L1     0 V        0 A        0 W · flotante\n  RT1    0 V        0 A        0 W · flotante\n  LDR1   0 V        0 A        0 W · flotante\n  BZ1    0 V        0 A        0 W · flotante\n  U1     no se simula · flotante\n  D2     0 V        0 A        0 W · flotante\n  U2     sin margen (no regula) · Entrada 0 V · Salida -0,694 pV · Corriente de salida 0 A · 0 W · flotante\n  Q1     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  U3     no se simula · flotante\n  BT1    7,4 V      14,8 pA    109 pW · Fuerza electromotriz (en vacío) 7,4 V\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  nota: U3: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: RV1, D1, L1, RT1, LDR1, BZ1, U1, D2, U2, Q1, J1, U3: no hay camino de corriente continua hasta la fuente (grupos 3:f-j, 4:f-j, 5:f-j, 9:f-j, 12:f-j, 16:f-j, 21:f-j, 25:f-j, 26:f-j, 30:f-j, 32:f-j, 37:f-j, 40:f-j, 45:a-e, 46:a-e, 47:a-e, 48:a-e, 49:a-e, 50:a-e, 51:a-e, 51:f-j, 50:f-j, 49:f-j, 48:f-j, 47:f-j, 46:f-j, 45:f-j, 3:a-e, 8:a-e, 12:a-e, 13:a-e, 14:a-e, 19:a-e, 20:a-e, 21:a-e, 25:a-e, 26:a-e, 27:a-e, 28:a-e, 55:a-e, 56:a-e, 56:f-j, 55:f-j), así que ahí el voltaje no está definido."
   },
   "lines": {
    "en": {
@@ -6023,15 +6023,15 @@
     "D1": [
      {
       "key": "voltage",
-      "text": "Voltage: 0.000139 pV"
+      "text": "Voltage: 0 V"
      },
      {
       "key": "current",
-      "text": "Current: -2.43e-13 pA"
+      "text": "Current: 0 A"
      },
      {
       "key": "power",
-      "text": "Power: -3.36e-29 pW"
+      "text": "Power: 0 W"
      },
      {
       "key": "floating",
@@ -6157,7 +6157,7 @@
      },
      {
       "key": "reg.vin",
-      "text": "Input: 6.94e-9 pV"
+      "text": "Input: 0 V"
      },
      {
       "key": "reg.vout",
@@ -6169,15 +6169,15 @@
      },
      {
       "key": "reg.iout",
-      "text": "Output current: -6.94e-13 pA"
+      "text": "Output current: 0 A"
      },
      {
       "key": "reg.quiescent",
-      "text": "Own current: 6.94e-13 pA"
+      "text": "Own current: 0 A"
      },
      {
       "key": "power",
-      "text": "Power: -4.82e-25 pW"
+      "text": "Power: 0 W"
      },
      {
       "key": "floating",
@@ -6270,15 +6270,15 @@
     "D1": [
      {
       "key": "voltage",
-      "text": "Voltaje (tensión): 0,000139 pV"
+      "text": "Voltaje (tensión): 0 V"
      },
      {
       "key": "current",
-      "text": "Corriente: -2,43e-13 pA"
+      "text": "Corriente: 0 A"
      },
      {
       "key": "power",
-      "text": "Potencia: -3,36e-29 pW"
+      "text": "Potencia: 0 W"
      },
      {
       "key": "floating",
@@ -6404,7 +6404,7 @@
      },
      {
       "key": "reg.vin",
-      "text": "Entrada: 6,94e-9 pV"
+      "text": "Entrada: 0 V"
      },
      {
       "key": "reg.vout",
@@ -6416,15 +6416,15 @@
      },
      {
       "key": "reg.iout",
-      "text": "Corriente de salida: -6,94e-13 pA"
+      "text": "Corriente de salida: 0 A"
      },
      {
       "key": "reg.quiescent",
-      "text": "Corriente propia: 6,94e-13 pA"
+      "text": "Corriente propia: 0 A"
      },
      {
       "key": "power",
-      "text": "Potencia: -4,82e-25 pW"
+      "text": "Potencia: 0 W"
      },
      {
       "key": "floating",

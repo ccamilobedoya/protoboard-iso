@@ -140,7 +140,7 @@ the plan by sessions: [docs/en/live-simulation.md](docs/en/live-simulation.md).
   - ⬜ Falstad's XML format: the MOSFET's λ and Falstad's LM317 (regulators are left out today)
   - ⬜ Transient cases (RC, RL) in the cross-check, sampled at the same times
   - ✅ Drawn as a schematic in Falstad (`sim/falstad-layout.js`): nets as rows ordered by voltage, parts standing between them, series parts in one column, jumpers merged, the column order with the fewest crossings
-- ⬜ Phase 7: oscilloscope in the card of the tapped part (V and I against time, two stacked plots, recorded from the start; closing the card removes it). Plan: [live-simulation.md](docs/en/live-simulation.md#phases-7-to-9-oscilloscope-signal-generator-and-probes-plan-of-2026-10-15)
+- ✅ Phase 7: oscilloscope in the card of the tapped part: V and I against time on a dark 10 × 4 screen, two stacked plots with their own scale, recorded from the start for every part (`sim/recorder.js`), what each kind plots in its device (`scope`: Vce and Ic for a transistor), from t = 0 until 10 time constants and then scrolling (wall clock without C or L), only where the card shows results; closing the card removes it. Plan: [live-simulation.md](docs/en/live-simulation.md#phases-7-to-9-oscilloscope-signal-generator-and-probes-plan-of-2026-10-15)
 - ⬜ Phase 8: signal generator as a source (sine, square, triangle; frequency and amplitude sliders), like the bench ZT-703S's; transient cases in the Falstad cross-check
 - ⬜ Phase 9: probes on nodes: tap a strip to see its voltage to ground and its oscilloscope
 - ⬜ Later, when a lesson needs it: pin traces to a two-channel oscilloscope panel (the plot code is written for a list of traces)

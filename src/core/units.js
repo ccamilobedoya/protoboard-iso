@@ -47,7 +47,8 @@ const ENGINEERING = [
 // formatValue(4700, 'Ω', { decimal: ',' }) → "4,7 kΩ"
 export function formatValue(value, unit = '', { decimal = '.', digits = 3 } = {}) {
   if (!Number.isFinite(value)) return '?';
-  if (value === 0) return `0 ${unit}`.trim();
+  // Below a femto it is the solver's rounding, not a value ("-1,52e-18 pV" for a switched-off part).
+  if (value === 0 || Math.abs(value) < 1e-15) return `0 ${unit}`.trim();
   const magnitude = Math.abs(value);
   const [factor, prefix] = ENGINEERING.find(([f]) => magnitude >= f * 0.9995) ?? ENGINEERING.at(-1);
   const mantissa = Number((value / factor).toPrecision(digits));

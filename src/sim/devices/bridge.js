@@ -37,4 +37,5 @@ export const bridge = {
   limits: (entry, r) => [stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), entry.model.maxCurrent, 'A')],
   lines: (p, h) => [h.q('bridge.vac', h.f(p.vac, 'V')), h.q('bridge.vdc', h.f(p.vdc, 'V')), h.q('bridge.current', h.f(p.current, 'A')), h.q('power', h.f(p.power, 'W'))],
   tag: (r) => ({ label: 'I', value: Math.abs(r.current), key: 'bridge.current' }),
+  scope: (r) => ({ v: { label: 'Vdc', value: r.vdc }, i: { label: 'I', value: r.current } }),
 };

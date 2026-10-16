@@ -41,7 +41,15 @@ Esta página es la referencia del trabajo, que toma varias sesiones. Cada sesió
   (`engine.program()`) y **⚠ n** con los equivalentes. Comparación: 7 casos en
   `test/falstad/cases/`, referencias en `test/falstad/refs/`, `scripts/falstad.js`; 5 coinciden
   dentro de 1 µV, el MOSFET (sin λ en Falstad) y el Zener (otra rodilla) con su tolerancia.
-- Siguiente: fase 7, el osciloscopio; después el generador de señales y las sondas (plan más abajo).
+- Fase 7 hecha: el osciloscopio en la ficha del componente tocado.
+  - `sim/recorder.js`: búfer circular por componente, grabado desde el arranque.
+  - `sim/scope.js`: qué grafica cada tipo, con el gancho `scope` del dispositivo.
+  - `page/client/scope.js`: el dibujo, reutilizable para una lista de trazas.
+  - La ventana muestra desde t = 0 hasta 10 constantes de tiempo y solo después avanza; sin C ni L,
+    el reloj de pared (10 a 20 s).
+  - Solo donde la ficha muestra resultados. Pruebas en `test/scope.test.js`.
+  - Los valores por debajo de 1e-15 se escriben como 0: es redondeo del simulador.
+- Siguiente: fase 8, el generador de señales; después las sondas (plan más abajo).
 
 ## Decisiones
 
@@ -241,8 +249,9 @@ Para la próxima sesión. Decisiones de Cris:
   - Se redibuja con el refresco de la página (4 veces por segundo), sin filtros CSS. Al dibujar,
     se queda con el mínimo y el máximo de cada columna de píxeles, para no perder picos.
 - **Tiempo**:
-  - Circuitos con C o L: tiempo simulado, con una ventana de unas 5 constantes de tiempo (o desde
-    t = 0, si es menos).
+  - Circuitos con C o L: tiempo simulado. La pantalla muestra desde t = 0: primero 5 constantes de
+    tiempo, luego se estira con el tiempo hasta 10 y solo entonces avanza, para que la carga entera
+    de un condensador quede a la vista.
   - Sin C ni L: tiempo real, así el salto del pulsador y de los deslizadores se ve al instante.
   - *Pausa* congela la gráfica.
 - **Regla de predicción**: igual que los resultados. Solo en la página en vivo y solo para el
@@ -289,7 +298,7 @@ Para la próxima sesión. Decisiones de Cris:
 | 4 | 4 · Página en vivo | motor y programa embebidos, bucle de cuadros, puntos, color de voltaje, brillo, calor, controles de tiempo, etiquetas en vivo |
 | 5 | 5 · Controles y límites | deslizadores en la ficha, `page.controls`, pulsador momentáneo, niveles de esfuerzo, marca que se queda, panel de avisos; `stress` por componente en `simulate` (campo nuevo) |
 | 6 | 6 · Comparación con Falstad | ✅ exportador (`sim/falstad.js`), botón *Abrir en Falstad*, casos y referencias en `test/falstad/` con modelos igualados (divisor, LED + R, BJT activo, Darlington y pulsador, puente, MOSFET, potenciómetro y Zener) |
-| 7 | 7 · Osciloscopio | en la ficha del componente tocado: grabación desde el arranque (`sim/recorder.js`), gancho `scope` por dispositivo, `page/client/scope.js` (dos gráficas apiladas, V e I, reutilizable) |
+| 7 | 7 · Osciloscopio | ✅ en la ficha del componente tocado: grabación desde el arranque (`sim/recorder.js`), gancho `scope` por dispositivo (`sim/scope.js`), `page/client/scope.js` (dos gráficas apiladas, V e I, reutilizable) |
 | 8 | 8 · Generador de señales | fuente `generator` (seno, cuadrada, triangular) en el motor, la página, los deslizadores y Falstad; casos con transitorio |
 | 9 | 9 · Sondas en los nodos | ficha del nodo al tocar una tira, con su voltaje y su osciloscopio |
 

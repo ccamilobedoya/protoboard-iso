@@ -70,6 +70,7 @@ export const bjt = {
     return lines;
   },
   tag: (r) => ({ label: 'Ic', value: r.currents.C, key: 'ic' }),
+  scope: (r) => ({ v: { label: 'Vce', value: r.vce }, i: { label: 'Ic', value: r.currents.C } }),
   probe: (r) => ({ key: 'probe.ic', value: Math.abs(r.currents.C) }),
   currentPins: (r) => (r.currents.C >= 0 ? [['C', 1], ['E', -1]] : [['E', 1], ['C', -1]]),
 };

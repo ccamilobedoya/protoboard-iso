@@ -20,6 +20,8 @@
 //   controls(p)             optional: what a learner may change, { field: control } (see
 //                           ../controls.js); bundleable, so the page builds its sliders from it
 //   set(p, field, value)    the params with that field changed (a pure formula), or null
+//   scope(reading)          optional: what the oscilloscope plots, { v, i } each { label, value }
+//                           or null (../scope.js); default: voltage and current of two leads
 //   falstad(d, f)           optional: writes the part for Falstad's CircuitJS with the builder f
 //                           (../falstad.js); an equivalent adds its note with f.note. Without
 //                           it the export leaves the part out, with a note
