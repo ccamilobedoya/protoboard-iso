@@ -68,7 +68,8 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `sim/controls.js` | se puede agrupar: controles de las fuentes, cuentas de los deslizadores (log, E24), niveles de esfuerzo; los controles de cada dispositivo están en su módulo (`controls`, `set`) |
 | `sim/paths.js` | vista de conductores: caminos de la corriente por componente (`paths` del paquete o una recta de respaldo), corriente de las tiras (Kirchhoff), colores de voltaje, puntos de corriente convencional |
 | `sim/probes.js` | «de dónde sale un valor»: puntas para voltajes, flechas para corrientes |
-| `page.js`, `page/client/`, `page/style.js` | la página para embeber; `page/client/main.js` es la entrada de su script (módulos view, focus, card, tooltip) |
+| `page.js`, `page/client/`, `page/style.js` | la página para embeber; `page/client/main.js` es la entrada de su script (módulos view, focus, card, tooltip); `view.js`: encuadre, gestos según el contexto, botones de zoom; `bar.js`: el menú ⋯ (`page.menuAdd`) y la ayuda de primera vez; `icons.js`: los íconos de línea, compartidos con `page.js` |
+| `scripts/ux-shots.js` | capturas de páginas en cinco tamaños, solas y dentro de una nota (un fragmento de Playwright), para la pasada de experiencia de uso |
 | `node/bundle.js` | el agrupador pequeño: módulos ES permitidos → un solo script clásico para la página (motor, script de la página) |
 | `sim/generator.js` | el generador de señales (se puede agrupar): las ondas (las de Falstad), su pico; el motor pone la fuente en `waveAt` antes de cada paso |
 | `sim/recorder.js`, `sim/scope.js`, `page/client/scope.js` | osciloscopio (se pueden agrupar): grabación por componente (y por tira en uso, clave `node:<grupo>`) desde el arranque, qué grafica cada tipo (gancho `scope`), el dibujo en la ficha (una lista de trazas, pantalla de 10 × 4) |
@@ -141,7 +142,26 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
   `stroke` u `opacity`; animar en pocos `steps()`. Los puntos se saltan los cambios de
   desplazamiento demasiado pequeños para verse.
 - **Los elementos SVG no tienen la propiedad `hidden`**; usa el atributo. Los scripts de la página se
-  prueban con jsdom (`test/focus.test.js`), que sigue la especificación del DOM.
+  prueban con jsdom (`test/focus.test.js`), que sigue la especificación del DOM;
+  `loadPage(html, { embedded: true })` en `test/page.test.js` carga una página dentro de un iframe.
+- **Los colores de la página son tokens** (`page/style.js`, `:root`, claro y oscuro): nunca un
+  valor hex fuera de los bloques de tokens (`test/page.test.js` lo revisa). Los colores del dibujo en
+  la página se cambian con CSS sobre los atributos de presentación del SVG (fondo, velo, etiquetas,
+  etiquetas de resultados por `data-q`), así el SVG estático nunca cambia. El código del cliente pone
+  clases, no colores (el osciloscopio: `kind: 'v' | 'i'`; los límites: `var(--warn)`).
+- **La barra** (`page.js`, pasada de experiencia de uso U3): un botón de dos estados lleva
+  `data-key`, `data-on` y `data-off` (main.js alterna entre ellos y pone `aria-pressed`); las
+  opciones del menú ⋯ son `role="menuitemradio"` con `data-value` (`aria-checked`). Las etiquetas
+  van en `.label` (se ocultan en una pantalla angosta, así que cada botón tiene `title`). Los módulos
+  ponen lo que se usa poco en el menú con `page.menuAdd(el)`, nunca como grupos nuevos de la barra.
+- **Las vistas son `main > svg`**: los botones también llevan íconos svg, así que nunca se selecciona
+  `main svg`. Las cajas de la interfaz dentro de `main` (ficha, panel lateral, botones de zoom) están
+  en `page.inChrome`, así un toque o un gesto sobre ellas no es un toque en la protoboard.
+- **Gestos según el contexto** (`page/client/view.js`, pasada de experiencia de uso U1):
+  `page.embedded` (dentro de un iframe y no en pantalla completa) y `body.embedded`; embebida, el
+  tacto va por los eventos táctiles (un dedo se deja al navegador, dos se manejan), la rueda sola no
+  se cancela. Los cambios de gestos se revisan también en un navegador real (`scripts/ux-shots.js`,
+  emulación táctil por CDP): jsdom no desplaza.
 - **Los agentes dependen del kit** (`.claude/agents/*.md`): se actualizan con cualquier cambio de
   herramienta, comando, operación o formato; `npm run test:mcp` detecta herramientas que ya no existen.
 

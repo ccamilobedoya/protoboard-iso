@@ -19,6 +19,7 @@ import { renderCircuit, t, labelText, valueText, formatValue } from './index.js'
 import { decimalSeparator } from './i18n/index.js';
 import { escapeXml } from './render/svg.js';
 import { STYLE } from './page/style.js';
+import { iconSvg } from './page/client/icons.js';
 import { bundleScript } from './node/bundle.js';
 import { buildCircuit } from './circuit/build.js';
 import { nodeParams } from './circuit/checks.js';
@@ -79,7 +80,15 @@ function stripHits(scene, built, nodes) {
 
 
 
-const button = (key, value, text) => `<button type="button" data-key="${key}"${value ? ` data-value="${value}"` : ''}>${escapeXml(text)}</button>`;
+const iconButton = (what, label) => `<button type="button" data-zoom="${what}" title="${escapeXml(label)}" aria-label="${escapeXml(label)}">${iconSvg(what)}</button>`;
+
+// A bar button: an icon and a short label (the label hides on a narrow screen, so it is also the
+// button's title). `toggle` = [on, off]: one button for two states (aria-pressed when on).
+function barButton(key, icon, label, { toggle, value, title } = {}) {
+  const attrs = [`data-key="${key}"`, toggle ? `data-on="${toggle[0]}" data-off="${toggle[1]}"` : '', value ? `data-value="${value}"` : ''].filter(Boolean).join(' ');
+  return `<button type="button" ${attrs} title="${escapeXml(title ?? label)}" aria-pressed="false">${iconSvg(icon)}<span class="label">${escapeXml(label)}</span></button>`;
+}
+
 
 const localized = (value, lang) => (value && typeof value === 'object' ? value[lang] ?? value.en ?? Object.values(value)[0] : value);
 
@@ -291,25 +300,39 @@ export function renderPage(circuit, options = {}) {
     explain: { ...explanations(lang), ...kinds },
     focus: Array.isArray(circuit.page?.focus) ? circuit.page.focus : [],
     ...(live && { live }),
-    text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain') },
+    text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit') },
   };
   const title = titleOf(circuit, lang) ?? t(lang, 'page.untitled');
   const svgs = rendered.map((r, i) => (i ? r.svg.replace(/^<svg /, '<svg hidden ') : r.svg));
+  // The bar, grouped by job (UX pass, U3): view, layers, (time, added by live.js), then the ⋯ menu
+  // with what is used less (dot speed, Falstad, the hint again, the revision).
+  const menuItem = (key, value, text) => `<button type="button" role="menuitemradio" data-key="${key}" data-value="${value}" aria-checked="false">${escapeXml(text)}</button>`;
   const nav = [
-    views.length > 1 ? `<span class="group">${views.map((v) => button('view', v, t(lang, `page.view.${v}`))).join('')}</span>` : '',
-    `<span class="group">${button('fit', 'parts', t(lang, 'page.fit.parts'))}${button('fit', 'board', t(lang, 'page.fit.board'))}</span>`,
-    `<span class="group">${button('labels', null, t(lang, 'page.labels'))}</span>`,
-    flow ? `<span class="group">${button('layer', 'parts', t(lang, 'page.layer.parts'))}${button('layer', 'flow', t(lang, 'page.layer.flow'))}</span>` : '',
-    flow ? `<span class="group">${button('speed', 'linear', t(lang, 'page.speed.linear'))}${button('speed', 'log', t(lang, 'page.speed.log'))}</span>` : '',
-    `<span class="hint hint-default">${escapeXml(t(lang, 'page.hint'))}</span>`,
-    results ? `<span class="hint hint-results">${escapeXml(t(lang, 'page.hint.results'))}</span>` : '',
+    '<span class="group view">',
+    views.length > 1 ? barButton('view', 'flip', t(lang, 'page.flip'), { toggle: [views[1], views[0]], title: t(lang, 'page.flip.title') }) : '',
+    barButton('fit', 'board', t(lang, 'page.fit.board'), { toggle: ['board', 'parts'], title: t(lang, 'page.fit.title') }),
+    '</span><span class="group layers">',
+    barButton('labels', 'labels', t(lang, 'page.labels')),
+    flow ? barButton('layer', 'current', t(lang, 'page.layer.flow'), { toggle: ['flow', 'parts'], title: t(lang, 'page.layer.title') }) : '',
+    '</span><span class="spacer"></span>',
+    `<span class="more"><button type="button" class="more-button" aria-haspopup="menu" aria-expanded="false" title="${escapeXml(t(lang, 'page.more'))}" aria-label="${escapeXml(t(lang, 'page.more'))}">${iconSvg('more')}</button>`,
+    `<span class="menu" role="menu" hidden>`,
+    flow ? `<span class="menu-group" role="group" aria-label="${escapeXml(t(lang, 'page.speed.title'))}"><span class="menu-title">${escapeXml(t(lang, 'page.speed.title'))}</span>${menuItem('speed', 'linear', t(lang, 'page.speed.linear'))}${menuItem('speed', 'log', t(lang, 'page.speed.log'))}</span>` : '',
+    `<button type="button" role="menuitem" class="again">${escapeXml(t(lang, 'page.hint.again'))}</button>`,
     `<span class="revision">${escapeXml(t(lang, 'page.revision', { revision: circuit.revision ?? 0 }))}</span>`,
+    '</span></span>',
   ].join('');
+  // The first-time hint over the drawing: what can be tapped, and how to move (alone or in a note).
+  const hint = `<div class="first-hint" hidden><span>${escapeXml(t(lang, results ? 'page.hint.results' : 'page.hint'))}</span><small class="alone">${escapeXml(t(lang, 'page.hint.move'))}</small><small class="framed">${escapeXml(t(lang, 'page.hint.moveEmbedded'))}</small></div>`;  // Theme: the system's unless the circuit fixes it (page.theme); ?theme= in the link wins (main.js).
+  const theme = ['light', 'dark'].includes(circuit.page?.theme) ? circuit.page.theme : null;
   const html = `<!doctype html>
-<html lang="${lang}">
+<html lang="${lang}"${theme ? ` data-theme="${theme}"` : ''}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#e8e5dc">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#272623">
 <meta name="generator" content="protoboard-iso">
 <meta name="revision" content="${circuit.revision ?? 0}">
 <title>${escapeXml(title)}</title>
@@ -323,6 +346,9 @@ export function renderPage(circuit, options = {}) {
 <main>
 ${svgs.join('\n')}
 <aside class="info" hidden></aside>
+<div class="zoom" hidden>${['in', 'out', 'fit'].map((w) => iconButton(w, t(lang, `page.zoom.${w}`))).join('')}${iconButton('full', t(lang, 'page.fullscreen'))}</div>
+<div class="gesture-hint" aria-live="polite"></div>
+${hint}
 <div class="side"></div>
 <div class="tooltip" hidden></div>
 </main>

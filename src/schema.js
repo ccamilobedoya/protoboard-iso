@@ -136,6 +136,7 @@ export function buildSchemas() {
               additionalProperties: false,
             },
           },
+          theme: { enum: ['auto', 'light', 'dark'], description: "Colours of the page: 'auto' follows the system (default); 'light' or 'dark' fixes them. A link's ?theme= wins over this" },
           start: { enum: ['dc', 'zero'], description: "Live simulation (with results or flow): 'dc' opens at the DC values (default); 'zero' switches on at t = 0 with capacitors discharged and runs" },
         },
         additionalProperties: false,

@@ -13,12 +13,29 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
 - **Rewritten on every change.** `create`, `apply` and `undo` (CLI or MCP) rewrite it with
   the other outputs, always under the same name. An embed of that file always shows the latest
   revision; the page carries it in `<meta name="revision">` and in its toolbar.
-- **What it shows today:** the circuit view and its opposite (`front` ↔ `back`,
-  `front-left` ↔ `back-right`), close-up or whole board, labels on or off; drag to move
-  (mouse or one finger), wheel or pinch to zoom, double-click to zoom in (the buttons reset
-  the frame). Inside the drawing, one finger moves the drawing, not the host page. Without
-  JavaScript it still shows the first view, close-up, with labels. On a narrow screen (a
-  phone) the buttons sit in one row that scrolls sideways, leaving the room to the drawing.
+- **What it shows today:** a bar in one row, grouped by job: **Flip** (the circuit view and its
+  opposite, `front` ↔ `back` or `front-left` ↔ `back-right`), **Whole board** (↔ close-up),
+  **Labels**, **Current** (with `page.flow`), the time controls (live pages with C, L or a
+  generator), and a **⋯** menu with what is used less: the dots' speed scale, *Open in Falstad*,
+  *What can I tap?* and the revision. On a narrow screen (a phone) the labels give way to icons
+  and nothing scrolls sideways. Zoom buttons sit in the bottom-right corner (in, out, back to the
+  frame). The first time a page of the kit is opened in a browser, a short hint over the drawing
+  says what can be tapped and how to move; it goes at the first touch. Without JavaScript the page
+  still shows the first view, close-up, with labels.
+- **Gestures depend on where the page is** (like an embedded map):
+
+  | | One finger / mouse drag | Two fingers | Wheel | Double tap or double-click |
+  |---|---|---|---|---|
+  | **Inside an iframe** (a note) | a finger scrolls the note (a tap still taps); the mouse moves the drawing | move and zoom | scrolls the note; **Ctrl/⌘ + wheel** or a trackpad pinch zooms | frames the part (or zooms in) |
+  | **Alone, or full screen** | moves the drawing | move and zoom | zooms | frames the part (or zooms in) |
+
+  Inside an iframe a short hint over the drawing says how ("Use two fingers…", "Use Ctrl + scroll…")
+  when someone tries the other way, and the zoom buttons add **Full screen** (the Fullscreen API;
+  if the host does not allow it, the page opens alone in a new tab). For full screen inside an
+  iframe the host must allow it (`<iframe allowfullscreen>`).
+- **Light or dark** like the device (`prefers-color-scheme`); the circuit can fix it with
+  `"page": { "theme": "light" | "dark" }`, and a link wins over both: `…/led.html?theme=dark`
+  (`auto` follows the system again). Only the page's colours change; the board keeps its own.
 - **Simulation results**, only if the circuit has `"page": { "results": true }` (and
   `supplies`): always on, shown only for the part that is tapped, so the board never fills with
   numbers; leave it off while someone is asked to predict them ([simulation.md](simulation.md)).

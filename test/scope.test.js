@@ -106,6 +106,7 @@ test('page: the capacitor\'s voltage rises and its current falls in its card, as
   assert.equal(scope.querySelector('h3').textContent, 'Osciloscopio');
   const lines = [...scope.querySelectorAll('polyline')];
   assert.equal(lines.length, 2, 'voltage and current');
+  assert.deepEqual(lines.map((l) => [l.getAttribute('class'), l.getAttribute('stroke')]), [['scope-trace v', null], ['scope-trace i', null]], 'colours from the theme, not written on the trace');
   const labels = [...scope.querySelectorAll('.scope-label')].map((e) => e.textContent);
   assert.match(labels[0], /^Voltaje: /);
   assert.match(labels[1], /^Corriente: /);

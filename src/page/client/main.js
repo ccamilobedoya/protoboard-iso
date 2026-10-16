@@ -21,10 +21,20 @@ import { numbers, setBox, setupView, stripAt } from './view.js';
 import { applyFocus } from './focus.js';
 import { select, selectNode, refreshCard, refreshNotes } from './card.js';
 import { tapTag, setupTooltip } from './tooltip.js';
+import { setupBar } from './bar.js';
+
+// ?theme=light|dark|auto in the link wins over the circuit's page.theme (<html data-theme>).
+function applyTheme(doc, search) {
+  const asked = new URLSearchParams(search).get('theme');
+  if (!['light', 'dark', 'auto'].includes(asked)) return;
+  if (asked === 'auto') delete doc.documentElement.dataset.theme;
+  else doc.documentElement.dataset.theme = asked;
+}
 
 export function startPage(extensions = []) {
+  applyTheme(document, location.search);
   const main = document.querySelector('main');
-  const svgs = [...main.querySelectorAll('svg')];
+  const svgs = [...main.querySelectorAll(':scope > svg')]; // the views (icons are svg too)
   const data = JSON.parse(document.getElementById('page-data').textContent);
   const state = { view: svgs[0].dataset.view, fit: document.body.dataset.fit, labels: true, results: document.body.dataset.results === 'on', layer: 'parts', speed: 'linear', focus: new Set(data.focus), node: null, ghost: new Set() };
   const page = {
@@ -37,6 +47,9 @@ export function startPage(extensions = []) {
     probeStyle: document.getElementById('probe'),
     info: document.querySelector('.info'),
     side: document.querySelector('.side'), // panels on the right (live page: warnings, controls)
+    zoom: document.querySelector('.zoom'), // zoom buttons, bottom right
+    gestureHint: document.querySelector('.gesture-hint'), // "use two fingers…" when embedded
+    inChrome: (el) => [page.info, page.side, page.zoom].some((c) => c && c.contains(el)),
     tooltip: document.querySelector('.tooltip'),
     current: () => svgs.find((s) => s.dataset.view === state.view),
     box: null,
@@ -55,21 +68,31 @@ export function startPage(extensions = []) {
     document.body.classList.toggle('show-results', state.results);
     document.body.classList.toggle('layer-flow', state.layer === 'flow');
     document.body.classList.toggle('speed-log', state.speed === 'log');
-    for (const b of page.buttons) b.setAttribute('aria-pressed', String(toggles.includes(b.dataset.key) ? state[b.dataset.key] : state[b.dataset.key] === b.dataset.value));
+    // A button for two states (data-on / data-off), a plain toggle, a choice in the menu, a value.
+    for (const b of page.buttons) {
+      const key = b.dataset.key;
+      if (b.dataset.on) b.setAttribute('aria-pressed', String(state[key] === b.dataset.on));
+      else if (toggles.includes(key)) b.setAttribute('aria-pressed', String(state[key]));
+      else if (b.getAttribute('role') === 'menuitemradio') b.setAttribute('aria-checked', String(state[key] === b.dataset.value));
+      else b.setAttribute('aria-pressed', String(state[key] === b.dataset.value));
+    }
   }
   for (const b of page.buttons) b.addEventListener('click', () => {
-    if (toggles.includes(b.dataset.key)) state[b.dataset.key] = !state[b.dataset.key];
-    else state[b.dataset.key] = b.dataset.value;
+    const key = b.dataset.key;
+    if (b.dataset.on) state[key] = state[key] === b.dataset.on ? b.dataset.off : b.dataset.on;
+    else if (toggles.includes(key)) state[key] = !state[key];
+    else state[key] = b.dataset.value;
     show();
   });
 
   setupView(page);
   setupTooltip(page);
+  setupBar(page);
   // A tap: a result tag pins its probes (focus untouched), a part selects it, a strip in use
   // opens its card (found by where the tap is: the strips are under the parts), the board clears.
   main.addEventListener('click', (e) => {
     // A button in the card that rebuilt it (a pin opening its strip) is no longer in the page.
-    if (page.dragged || !e.target.isConnected || page.info.contains(e.target) || page.side.contains(e.target)) return;
+    if (page.dragged || !e.target.isConnected || page.inChrome(e.target)) return;
     if (tapTag(page, e.target)) return;
     const hit = e.target.closest && e.target.closest('[data-part]');
     if (hit) return select(page, hit.getAttribute('data-part'));

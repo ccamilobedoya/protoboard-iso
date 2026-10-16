@@ -67,6 +67,7 @@ node bin/protoboard-iso.js review <target> [--profile lesson|draft]   # APPROVED
 npm run schemas               # after changing types, boards, views or operations
 npm run test:mcp              # MCP server end-to-end (needs: cd mcp && npm install)
 node scripts/golden.js [--write]  # simulator output against test/fixtures/sim-golden.json (--write after an intended change)
+node scripts/ux-shots.js <targets…> -o <dir> [--browser-dir d] [--tap ID]  # page screenshots at five sizes, alone and in a note (docs/en/ux-pass.md)
 node scripts/mockups.js [--lang es]  # conductor view mock-ups → examples/out/mockups/
 node bin/protoboard-iso.js check <file.json> [--lang es]
 node bin/protoboard-iso.js render <file.json> -o out.svg [--view back] [--fit parts]

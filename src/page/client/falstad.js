@@ -3,6 +3,8 @@
 // new tab. Only in the live page, so only where the circuit already shows its results: Falstad
 // shows every value.
 //
+// The link lives in the bar's ⋯ menu (bar.js).
+//
 // When a part goes as an equivalent (a battery as a source and a resistor, a sensor as a fixed
 // resistor) or is left out, a "⚠ n" button beside the link opens the list in a side panel. The
 // export happens anyway.
@@ -18,16 +20,17 @@ function el(parent, tag, text, cls) {
 }
 
 export function setupFalstad(page, { engine, t, f, reading }) {
-  const nav = document.querySelector('nav');
   const group = el(null, 'span', null, 'group falstad');
   const link = el(group, 'a', t('page.falstad.open'), 'open');
+  link.setAttribute('role', 'menuitem');
   link.target = '_blank';
   link.rel = 'noopener';
   link.title = t('page.falstad.title');
   const flag = el(group, 'button', null, 'flag');
   flag.type = 'button';
   flag.hidden = true;
-  nav.insertBefore(group, nav.querySelector('.hint'));
+  if (page.menuAdd) page.menuAdd(group);
+  else document.querySelector('nav').appendChild(group);
 
   const panel = el(null, 'section', null, 'panel falstad-notes');
   panel.hidden = true;

@@ -5,7 +5,7 @@
 [CircuitJS de Falstad](https://www.falstad.com/circuit/) es el simulador de circuitos en el
 navegador más usado para aprender. El kit lo usa de dos maneras:
 
-1. **Abrir en Falstad**: la página en vivo de cada circuito tiene un botón que abre el mismo
+1. **Abrir en Falstad**: la página en vivo de cada circuito tiene un enlace en su menú ⋯ que abre el mismo
    circuito en CircuitJS, como está en ese momento (los deslizadores, el pulsador, la carga de la
    batería).
 2. **Segunda referencia**: unos circuitos de prueba se corren en los dos simuladores con los

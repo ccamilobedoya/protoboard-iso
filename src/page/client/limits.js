@@ -12,6 +12,7 @@
 import { stressLevel } from '../../sim/controls.js';
 import { quote } from './focus.js';
 import { select } from './card.js';
+import { iconSvg } from './icons.js';
 
 function el(parent, tag, text, cls) {
   const e = document.createElement(tag);
@@ -32,6 +33,18 @@ export function setupLimits(page, { engine, t, f }) {
   const clear = el(panel, 'button', t('page.warnings.clear'), 'clear');
   clear.type = 'button';
   clear.addEventListener('click', () => reset());
+  // On the bar, beside the menu: how many limits were passed, so they are never missed; it leads to the panel.
+  const flag = el(null, 'button', null, 'warn-flag');
+  flag.type = 'button';
+  flag.hidden = true;
+  flag.title = t('page.warnings.flag');
+  flag.innerHTML = `${iconSvg('warning')}<span class="count"></span>`;
+  flag.addEventListener('click', () => {
+    panel.scrollIntoView?.({ block: 'nearest' });
+    panel.querySelector('button')?.focus();
+  });
+  const nav = document.querySelector('nav');
+  nav?.insertBefore(flag, nav.querySelector('.more'));
 
   const latched = new Map(); // part|code → the stress at its peak, with the part id and `now`
   const rows = new Map(); // part|code → its button in the panel
@@ -81,7 +94,7 @@ export function setupLimits(page, { engine, t, f }) {
     if (signature !== outlined) {
       outlined = signature;
       const rule = (ids, body) => (ids.length ? `${ids.map((id) => `.marks > [data-mark="${quote(id)}"]`).join(', ')} { display: inline; ${body} }` : '');
-      style.textContent = rule([...near].filter((id) => !exceeded.has(id)), 'stroke: #e0a000;') + rule([...exceeded], 'animation: stress-pulse 1s steps(4, jump-none) infinite alternate;');
+      style.textContent = rule([...near].filter((id) => !exceeded.has(id)), 'stroke: var(--warn);') + rule([...exceeded], 'animation: stress-pulse 1s steps(4, jump-none) infinite alternate;');
     }
     // The panel: a row per latched limit, built when one appears, its text updated in place
     // (at most four times a second while the simulation runs, at once after a change).
@@ -97,6 +110,9 @@ export function setupLimits(page, { engine, t, f }) {
         rows.set(key, b);
       }
       panel.hidden = rows.size === 0;
+      flag.hidden = rows.size === 0;
+      flag.lastChild.textContent = String(rows.size);
+      flag.setAttribute('aria-label', `${t('page.warnings.flag')}: ${rows.size}`);
     }
     const clock = typeof performance === 'object' ? performance.now() : Date.now();
     if (!rebuilt && !force && clock - lastText < 250) return;

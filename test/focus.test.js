@@ -202,17 +202,20 @@ test('page: tapping a part focuses it and opens its card; tapping the board clea
 
 test('page: the current layer and its speed scale, only when the circuit asks', async (t) => {
   const plain = renderPage(switchCircuit(), { lang: 'es' }).html;
-  assert.doesNotMatch(plain, /data-value="flow"|class="flow"/);
+  assert.doesNotMatch(plain, /data-on="flow"|class="flow"/);
   const html = renderPage({ ...switchCircuit(), page: { flow: true, focus: ['D1'] } }, { lang: 'es' }).html;
   assert.match(html, /class="flow"/);
   const window = await loadPage(html);
   if (!window) return t.skip('jsdom not installed');
   const doc = window.document;
-  const click = (key, value) => [...doc.querySelectorAll('nav button')].find((b) => b.dataset.key === key && b.dataset.value === value).click();
+  // The bar's buttons: Current is one button for two states, the speeds are choices in the menu.
+  const button = (key, value) => [...doc.querySelectorAll('nav button')].find((b) => b.dataset.key === key && [b.dataset.value, b.dataset.on, b.dataset.off].includes(value));
+  const click = (key, value) => button(key, value).click();
   assert.ok(doc.body.classList.contains('focusing'), 'focus given by the circuit');
   assert.equal(doc.querySelector('.info h2').textContent, 'D1 · verde');
   click('layer', 'flow');
   assert.ok(doc.body.classList.contains('layer-flow'));
+  assert.equal(button('layer', 'flow').getAttribute('aria-pressed'), 'true');
   // The tapped part's label is copied above the current layer, never under its dots.
   const front = doc.querySelector('svg[data-view="front"]');
   const order = [...front.children].map((g) => g.getAttribute('class'));
@@ -223,10 +226,12 @@ test('page: the current layer and its speed scale, only when the circuit asks', 
   assert.equal([...doc.querySelectorAll('nav button')].filter((b) => b.dataset.key === 'direction').length, 0, 'conventional current only');
   click('speed', 'log');
   assert.ok(doc.body.classList.contains('speed-log'));
+  assert.equal(button('speed', 'log').getAttribute('aria-checked'), 'true');
   click('speed', 'linear');
   assert.ok(!doc.body.classList.contains('speed-log'));
   click('layer', 'parts');
-  assert.ok(!doc.body.classList.contains('layer-flow'));
+  assert.ok(!doc.body.classList.contains('layer-flow'), 'pressed again: back to the parts');
+  assert.equal(button('layer', 'flow').getAttribute('aria-pressed'), 'false');
 });
 
 test('static focus with results keeps only the focused part\'s tags', () => {

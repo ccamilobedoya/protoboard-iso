@@ -32,6 +32,7 @@ import { setupFalstad } from './falstad.js';
 import { createScope } from './scope.js';
 import { createRecorder, samplesOf } from '../../sim/recorder.js';
 import { scopeOf } from '../../sim/scope.js';
+import { iconSvg } from './icons.js';
 
 const BUDGET = 8; // ms of simulation per frame
 const REFRESH = 250; // ms between repaints of colours, tags and card
@@ -40,8 +41,9 @@ const MIN_MOVE = 0.05; // px of dot movement worth a redraw
 const SCOPE_SAMPLES = 2048; // per part
 const WALL_WINDOW = 10; // s of the oscilloscope when nothing changes by itself (no C or L)
 // Oscilloscope colours: the line on the dark screen, and its name on the white card.
-const SCOPE_V = { color: '#f5c518', ink: '#8a6a00' };
-const SCOPE_I = { color: '#4fc3f7', ink: '#1f6f9c' };
+// The scope's colours are tokens in page/style.js (.scope-trace.v / .i), so they follow the theme.
+const SCOPE_V = { kind: 'v' };
+const SCOPE_I = { kind: 'i' };
 
 export function setupLive(page) {
   const { data, state, svgs } = page;
@@ -253,19 +255,25 @@ export function setupLive(page) {
   if (dynamic) {
     const group = document.createElement('span');
     group.className = 'group time';
-    const make = (text, act) => {
+    // An icon and a label (hidden on a narrow screen, so it is the title too).
+    const make = (icon, text, act) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = text;
       b.addEventListener('click', act);
       group.appendChild(b);
+      label(b, icon, text);
       return b;
     };
-    const pause = make(t('page.time.pause'), () => {
+    const label = (b, icon, text) => {
+      b.innerHTML = `${iconSvg(icon)}<span class="label"></span>`;
+      b.lastChild.textContent = text;
+      b.title = text;
+    };
+    const pause = make('pause', t('page.time.pause'), () => {
       running = !running;
-      pause.textContent = t(running ? 'page.time.pause' : 'page.time.play');
+      label(pause, running ? 'pause' : 'play', t(running ? 'page.time.pause' : 'page.time.play'));
     });
-    make(t('page.time.reset'), () => {
+    make('restart', t('page.time.reset'), () => {
       engine.start('zero', h);
       limits.reset();
       reading = engine.read();
@@ -275,13 +283,13 @@ export function setupLive(page) {
       running = true;
       stalled = false;
       owed = 0;
-      pause.textContent = t('page.time.pause');
+      label(pause, 'pause', t('page.time.pause'));
       repaint();
     });
     clock = document.createElement('span');
     clock.className = 'clock';
     group.appendChild(clock);
-    nav.insertBefore(group, nav.querySelector('.hint'));
+    nav.insertBefore(group, nav.querySelector('.spacer'));
   }
   document.body.classList.add('live');
 

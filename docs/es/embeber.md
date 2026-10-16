@@ -15,13 +15,32 @@ node bin/protoboard-iso.js page <objetivo> [--lang es] [--fit parts|board] [-o p
   MCP) la reescriben con las demás salidas, siempre con el mismo nombre. Lo que embeba ese
   archivo muestra siempre la última revisión; la página la lleva en `<meta name="revision">` y
   en su barra.
-- **Lo que muestra hoy:** la vista del circuito y la opuesta (`front` ↔ `back`, `front-left` ↔
-  `back-right`), de cerca o toda la protoboard, con o sin etiquetas; arrastrar para moverse
-  (mouse o un dedo), rueda o pellizco para acercar, doble clic para acercar (los botones
-  vuelven al encuadre). Sobre el dibujo, un dedo mueve el dibujo y no la página que lo
-  contiene. Sin JavaScript sigue mostrando la primera vista, de cerca y con etiquetas. En una
-  pantalla angosta (celular) los botones van en una sola fila que se desliza de lado, para
-  dejarle el espacio al dibujo.
+- **Lo que muestra hoy:** una barra en una sola fila, agrupada por lo que hace: **Girar** (la
+  vista del circuito y la opuesta, `front` ↔ `back` o `front-left` ↔ `back-right`), **Toda la
+  protoboard** (↔ de cerca), **Etiquetas**, **Corriente** (con `page.flow`), los controles de
+  tiempo (páginas en vivo con C, L o generador) y un menú **⋯** con lo que se usa menos: la escala
+  de velocidad de los puntos, *Abrir en Falstad*, *¿Qué se puede tocar?* y la revisión. En una
+  pantalla angosta (celular) las etiquetas de los botones dejan solo los íconos y nada se desliza de
+  lado. Los botones de zoom están en la esquina inferior derecha (acercar, alejar, volver al
+  encuadre). La primera vez que se abre una página del kit en un navegador, una ayuda corta sobre el
+  dibujo dice qué se puede tocar y cómo moverse; se va al primer toque. Sin JavaScript la página
+  sigue mostrando la primera vista, de cerca y con etiquetas.
+- **Los gestos dependen de dónde está la página** (como un mapa embebido):
+
+  | | Un dedo / arrastre con ratón | Dos dedos | Rueda | Doble toque o doble clic |
+  |---|---|---|---|---|
+  | **Dentro de un iframe** (una nota) | un dedo desplaza la nota (un toque sigue eligiendo); el ratón mueve el dibujo | mueven y acercan | desplaza la nota; **Ctrl/⌘ + rueda** o pellizcar en el panel táctil acerca | encuadra el componente (o acerca) |
+  | **Sola, o en pantalla completa** | mueve el dibujo | mueven y acercan | acerca | encuadra el componente (o acerca) |
+
+  Dentro de un iframe, un aviso corto sobre el dibujo dice cómo («Usa dos dedos…», «Usa Ctrl +
+  rueda…») cuando alguien lo intenta de la otra forma, y los botones de zoom agregan **Pantalla
+  completa** (la API de pantalla completa; si la página que la contiene no lo permite, se abre sola
+  en una pestaña nueva). Para la pantalla completa dentro de un iframe, este debe permitirla
+  (`<iframe allowfullscreen>`).
+- **Clara u oscura** como el dispositivo (`prefers-color-scheme`); el circuito la puede fijar con
+  `"page": { "theme": "light" | "dark" }`, y un enlace gana sobre los dos: `…/led.html?theme=dark`
+  (`auto` vuelve a seguir al sistema). Solo cambian los colores de la página; la protoboard conserva
+  los suyos.
 - **Resultados de la simulación**, solo si el circuito tiene `"page": { "results": true }` (y
   `supplies`): siempre activos, solo para el componente que se toca, así la protoboard nunca se
   llena de números; no se activan mientras alguien deba predecirlos, así una página nunca adelanta un valor que alguien debe predecir ([simulacion.md](simulacion.md)).

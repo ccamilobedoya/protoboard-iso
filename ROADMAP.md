@@ -122,7 +122,7 @@ everywhere else so the parts stand out.
 - ✅ Page on a phone: the button bar is one row that scrolls sideways
 - ✅ See-through: make one part transparent to see what is behind it (page card)
 - ⬜ **What covers what, planned as a whole** (to do properly later, not patched case by case): in a focused page the simulation tags (voltages, currents, the MODEL badge) can cover the highlighted column numbers, the hole positions and the leads they talk about. Decide a priority between layers (part copy, strips, coordinate tags, result tags, labels, probes), place tags aside of what they would hide (collision-aware, as the labels already avoid each other), and check it with `inspect` like the rest of the drawing
-- ⬜ Dark theme for screens
+- ✅ Dark theme for screens: the page (UX pass, U2); the board drawing keeps its colours
 
 ## Stage 3 — Live simulation in the browser 🔜
 
@@ -158,16 +158,20 @@ must be organised so a learner does not get lost, above all on a phone. Today th
 The oscilloscope, the generator and the probes came with phases 7 to 9. Best done now, before
 stage 4.
 
-- ⬜ Inventory of every feature: where it lives (bar, card, side panel, gesture), when it appears
-  and which circuit asks for it (`page.*`)
-- ⬜ One interaction model: the bar for the view and time, the card for the tapped part or node,
-  the side panel for what concerns the whole circuit
-- ⬜ Progressive disclosure: the basics in view, the advanced behind a menu; the lesson decides
-  what shows
-- ⬜ The bar on a phone: today it scrolls sideways and grows with every feature; group it into
-  menus
-- ⬜ A short first-time guide when a page opens (what can be tapped)
-- ⬜ Try it with the maintainer on a phone and a tablet, and adjust
+Plan of 2026-10-16, from a review of the live page with the UI/UX skills: design, decisions and
+sessions in [docs/en/ux-pass.md](docs/en/ux-pass.md); visual system in
+[`.interface-design/system.md`](.interface-design/system.md).
+
+- ✅ Review of the live page (desktop, tablet, phone, embedded) and inventory of every feature: where it lives, when it appears, which `page.*` asks for it
+- ✅ Visual system chosen: bench palette as tokens, light and dark (`system.md`)
+- ✅ U0 · Safety net: `scripts/ux-shots.js`, screenshots at five sizes (inside an iframe too)
+- ✅ U1 · Gestures and embedding: no scroll trap inside a note (one finger and the wheel go to the host; two fingers, Ctrl/⌘ + wheel and pinch zoom), zoom buttons, double tap to a part, full screen (tried on the maintainer's phone)
+- ✅ U2 · Tokens, dark theme (follows the system; `page.theme` and `?theme=` override it), touch baseline
+- ✅ U3 · The bar: grouped by job, icons, Flip and Fit as single buttons, ⋯ menu, first-time hint
+- ⬜ U4 · The inspector: one card with a sticky header, a Circuit tab (controls, warnings, Falstad), right panel on wide screens and a bottom sheet on phones; the selected part never covered; MODEL badge with the right mode
+- ⬜ U5 · Motion: flip keeping the focus, framing, sheet, press feedback, reduced motion
+- ⬜ U6 · Details: labels by context, larger tap areas, portrait framing
+- ⬜ U7 · Try it with the maintainer on a phone, an iPad and inside Trilium, and adjust
 
 ## Stage 4 — On a phone or tablet ⬜
 

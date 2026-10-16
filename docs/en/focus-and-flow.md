@@ -64,8 +64,8 @@ Two kinds of text, on purpose:
 
 ## The current layer: the conductor view
 
-`"page": { "flow": true }` (needs `supplies` or a battery part) adds the buttons *Parts* and
-*Current*. In *Current* the board and the parts are veiled, and **every conductor in use is drawn
+`"page": { "flow": true }` (needs `supplies` or a battery part) adds the *Current* button
+(pressed: the current layer; pressed again: the parts). With it the board and the parts are veiled, and **every conductor in use is drawn
 as one thick line** along its real path: the metal strip between the holes in use, up a lead,
 through the body, down the other lead, along the arc of a jumper wire. On top, **dots move**:
 
@@ -77,7 +77,7 @@ through the body, down the other lead, along the arc of a jumper wire. On top, *
 - **Speed is proportional** to the current: the largest current in the circuit moves at
   60 px/s, half of it at half that speed, so ratios and Kirchhoff can be seen. In the live page
   the scale is the largest current since the start, so a current that dies away (a capacitor
-  charging) is seen slowing down. *Log speed*
+  charging) is seen slowing down. *Log speed* (in the bar's ⋯ menu)
   switches to a logarithmic scale (a microampere crawls, an ampere races) for circuits with very
   different currents. Below 1 µA nothing moves.
 - The current in each piece of a strip comes from Kirchhoff's current law: walking along the

@@ -4,8 +4,9 @@
 // and says its value now; the time axis gives the window's ends. Labelled as a model.
 //
 //   const scope = createScope(parent, { t, f })
-//   scope.draw({ traces: [{ label, unit, color, ink, points: [[t, v], …] }], from, to })
-//   (color: the line on the screen; ink: its name on the white card)
+//   scope.draw({ traces: [{ label, unit, kind, color, ink, points: [[t, v], …] }], from, to })
+//   (kind 'v' or 'i': the colours of the page's theme, see page/style.js; or, without a kind,
+//   color: the line on the screen and ink: its name on the card)
 //
 // Reusable for more channels and for probes on nodes (phase 9): it only draws what it is given.
 // Each plot keeps the minimum and the maximum of every pixel column, so no peak is lost.
@@ -101,7 +102,7 @@ export function createScope(parent, { t, f }) {
         const top = k * (GAP + H) + GAP;
         const [lo, hi] = scaleOf(trace.points);
         const now = trace.points.length ? trace.points[trace.points.length - 1][1] : null;
-        el(svg, 'text', { x: LEFT, y: top - 4, class: 'scope-label', fill: trace.ink ?? trace.color }, `${trace.label}${now != null ? `: ${f(now, trace.unit)}` : ''}`);
+        el(svg, 'text', { x: LEFT, y: top - 4, class: trace.kind ? `scope-label ${trace.kind}` : 'scope-label', ...(trace.kind ? {} : { fill: trace.ink ?? trace.color }) }, `${trace.label}${now != null ? `: ${f(now, trace.unit)}` : ''}`);
         const g = el(svg, 'g', { transform: `translate(0 ${top})` });
         el(g, 'rect', { x: 0, y: 0, width: W, height: H, class: 'scope-screen' });
         for (let i = 1; i < 10; i++) el(g, 'line', { x1: (W / 10) * i, y1: 0, x2: (W / 10) * i, y2: H, class: 'scope-grid' });
@@ -111,7 +112,7 @@ export function createScope(parent, { t, f }) {
         el(g, 'line', { x1: 0, y1: zero, x2: W, y2: zero, class: 'scope-zero' });
         el(g, 'text', { x: W - 3, y: 10, class: 'scope-scale' }, f(hi, trace.unit));
         el(g, 'text', { x: W - 3, y: H - 3, class: 'scope-scale' }, f(lo, trace.unit));
-        if (trace.points.length) el(g, 'polyline', { points: pathOf(trace.points, from, to, lo, hi), stroke: trace.color, class: 'scope-trace' });
+        if (trace.points.length) el(g, 'polyline', { points: pathOf(trace.points, from, to, lo, hi), class: trace.kind ? `scope-trace ${trace.kind}` : 'scope-trace', ...(trace.kind ? {} : { stroke: trace.color }) });
       });
       const base = traces.length * (GAP + H) + 12;
       el(svg, 'text', { x: LEFT, y: base, class: 'scope-time' }, f(from, 's'));

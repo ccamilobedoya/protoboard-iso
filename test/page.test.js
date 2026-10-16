@@ -7,7 +7,8 @@ import { renderPage } from '../src/page.js';
 import { createTarget, applyToTarget, pageFileOf, resolveTarget } from '../src/node/workspace.js';
 
 const example = (name) => JSON.parse(readFileSync(new URL(`../examples/${name}`, import.meta.url), 'utf8'));
-const svgTags = (html) => [...html.matchAll(/<svg [^>]*>/g)].map((m) => m[0]);
+// The views' SVGs (the zoom buttons carry small svg icons too).
+const svgTags = (html) => [...html.matchAll(/<svg [^>]*data-view[^>]*>/g)].map((m) => m[0]);
 
 test('the page holds both views, scales with its frame and starts close-up', () => {
   const { html } = renderPage(example('controls-and-ics.json'), { lang: 'es' });
@@ -22,8 +23,8 @@ test('the page holds both views, scales with its frame and starts close-up', () 
     assert.match(tag, /data-board="[-\d. ]+"/);
   }
   assert.match(html, /<html lang="es">/);
-  assert.match(html, />De cerca</);
-  assert.match(html, />Desde atrás</);
+  assert.match(html, />Girar</);
+  assert.match(html, />Toda la protoboard</);
   assert.match(html, /<nav hidden>/, 'controls appear only when the script runs');
   assert.doesNotMatch(html, /<script src|<link |https?:\/\/(?!www\.w3\.org)/, 'no network');
 });
@@ -51,44 +52,58 @@ test('every saved change rewrites the page under the same name', () => {
 
 // The page script in a DOM that follows the spec (jsdom, dev only): SVG elements have no
 // `hidden` property, so a script that sets it would silently do nothing.
-async function loadPage(html) {
+// With `embedded`, the page is loaded inside an iframe of another page, as in a lesson note.
+async function loadPage(html, { embedded = false, url } = {}) {
   let JSDOM;
   try {
     ({ JSDOM } = await import('jsdom'));
   } catch {
     return null;
   }
-  const dom = new JSDOM(html, { runScripts: 'outside-only' });
-  const { window } = dom;
+  let window;
+  if (embedded) {
+    const host = new JSDOM('<iframe></iframe>', { runScripts: 'outside-only' });
+    window = host.window.document.querySelector('iframe').contentWindow;
+    window.document.open();
+    window.document.write(html.replace(/<script>[\s\S]*<\/script>/, ''));
+    window.document.close();
+  } else window = new JSDOM(html, { runScripts: 'outside-only', ...(url && { url }) }).window;
   for (const svg of window.document.querySelectorAll('svg')) {
     svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 500 });
   }
   window.eval(html.match(/<script>([\s\S]*)<\/script>/)[1]);
   const doc = window.document;
-  const pointer = (type, id, x, y) => {
-    const e = new window.Event(type, { bubbles: true });
-    Object.assign(e, { pointerId: id, clientX: x, clientY: y });
-    doc.querySelector('main').dispatchEvent(e);
+  const fire = (type, props, target = doc.querySelector('main')) => {
+    const e = new window.Event(type, { bubbles: true, cancelable: true });
+    Object.assign(e, props);
+    target.dispatchEvent(e);
+    return e;
   };
-  return { window, doc, pointer, svg: (view) => doc.querySelector(`svg[data-view="${view}"]`) };
+  const pointer = (type, id, x, y, pointerType = 'mouse') => fire(type, { pointerId: id, clientX: x, clientY: y, pointerType });
+  const touch = (type, points) => fire(type, { touches: points.map(([clientX, clientY]) => ({ clientX, clientY })) });
+  return { window, doc, fire, pointer, touch, svg: (view) => doc.querySelector(`svg[data-view="${view}"]`) };
 }
 
 test('page buttons switch views, frames and labels in a real DOM', async (t) => {
   const page = await loadPage(renderPage(example('controls-and-ics.json'), { lang: 'es' }).html);
   if (!page) return t.skip('jsdom not installed');
   const { doc, svg } = page;
-  const click = (text) => [...doc.querySelectorAll('nav button')].find((b) => b.textContent === text).click();
+  const button = (key) => doc.querySelector(`nav button[data-key="${key}"]`);
   assert.equal(doc.querySelector('nav').hasAttribute('hidden'), false);
   assert.ok(!svg('front').hasAttribute('hidden') && svg('back').hasAttribute('hidden'));
-  click('Desde atrás');
-  assert.ok(svg('front').hasAttribute('hidden') && !svg('back').hasAttribute('hidden'), 'back view shown');
+  button('view').click();
+  assert.ok(svg('front').hasAttribute('hidden') && !svg('back').hasAttribute('hidden'), 'Flip: back view shown');
+  assert.equal(button('view').getAttribute('aria-pressed'), 'true');
   assert.equal(svg('back').getAttribute('viewBox'), svg('back').dataset.parts);
-  click('Toda la protoboard');
-  assert.equal(svg('back').getAttribute('viewBox'), svg('back').dataset.board);
-  click('Etiquetas');
+  button('fit').click();
+  assert.equal(svg('back').getAttribute('viewBox'), svg('back').dataset.board, 'whole board');
+  button('fit').click();
+  assert.equal(svg('back').getAttribute('viewBox'), svg('back').dataset.parts, 'pressed again: close-up');
+  button('labels').click();
   assert.ok(doc.body.classList.contains('no-labels'));
-  click('De frente');
-  assert.ok(!svg('front').hasAttribute('hidden') && svg('back').hasAttribute('hidden'));
+  assert.equal(button('labels').getAttribute('aria-pressed'), 'false');
+  button('view').click();
+  assert.ok(!svg('front').hasAttribute('hidden') && svg('back').hasAttribute('hidden'), 'Flip again: front');
 });
 
 test('dragging pans, pinching zooms, and the frame stays on the board', async (t) => {
@@ -140,10 +155,136 @@ test('a plain-string description is shown as it is, in any language', () => {
   assert.doesNotMatch(renderPage(both, { lang: 'en' }).html, /Limita/);
 });
 
-test('on a narrow screen the button bar is one row that scrolls sideways', () => {
-  const { html } = renderPage(example('led-resistor.json'));
+test('the bar is one row grouped by job; on a narrow screen its labels give way to icons', () => {
+  const { html } = renderPage(example('half-wave-rectifier.json'), { lang: 'es' });
+  const nav = html.match(/<nav hidden>([\s\S]*?)<\/nav>/)[1];
+  assert.deepEqual([...nav.matchAll(/class="group ([a-z]+)"/g)].map((m) => m[1]), ['view', 'layers']);
+  assert.match(nav, /class="menu" role="menu" hidden/);
+  assert.match(nav, /role="menuitemradio" data-key="speed" data-value="log"/, 'the dot speed is in the menu');
+  assert.doesNotMatch(nav, /class="hint/, 'the hint is not in the bar any more');
   const narrow = html.match(/@media \(max-width: 760px\) \{([\s\S]*?)\n\}/)?.[1] ?? '';
-  assert.match(narrow, /nav \{[^}]*flex-wrap: nowrap;[^}]*overflow-x: auto;/);
-  assert.match(narrow, /touch-action: pan-x/, 'the bar scrolls with a finger even though the drawing takes the gestures');
-  assert.match(narrow, /nav > \* \{ flex: none; white-space: nowrap; \}/);
+  assert.match(narrow, /nav \.label \{ display: none; \}/);
+  assert.doesNotMatch(html.match(/<style>([\s\S]*?)<\/style>/)[1], /nav \{[^}]*overflow-x: auto/, 'no sideways scrolling');
+});
+
+test('the ⋯ menu opens, closes on Escape, outside or a choice; the first-time hint goes at the first touch', async (t) => {
+  const html = renderPage(example('half-wave-rectifier.json'), { lang: 'es' }).html;
+  const page = await loadPage(html, { url: 'https://example.org/rect.html' });
+  if (!page) return t.skip('jsdom not installed');
+  const { doc, window, fire } = page;
+  const more = doc.querySelector('nav .more-button');
+  const menu = doc.querySelector('nav .menu');
+  const hint = doc.querySelector('.first-hint');
+  assert.equal(hint.hidden, false, 'first time: the hint shows');
+  assert.match(hint.textContent, /Toca un componente/);
+  fire('pointerdown', { pointerId: 1, clientX: 10, clientY: 10, pointerType: 'mouse' });
+  assert.equal(hint.hidden, true, 'gone at the first touch');
+
+  more.click();
+  assert.equal(menu.hidden, false);
+  assert.equal(more.getAttribute('aria-expanded'), 'true');
+  fire('keydown', { key: 'Escape' }, menu);
+  assert.equal(menu.hidden, true, 'Escape closes');
+  more.click();
+  fire('pointerdown', { pointerId: 2, clientX: 10, clientY: 10, pointerType: 'mouse' }, doc.querySelector('main'));
+  assert.equal(menu.hidden, true, 'a tap outside closes');
+  more.click();
+  menu.querySelector('[data-value="log"]').click();
+  await new Promise((r) => window.setTimeout(r, 5));
+  assert.ok(doc.body.classList.contains('speed-log'));
+  assert.equal(menu.hidden, true, 'a choice closes');
+  more.click();
+  menu.querySelector('.again').click();
+  assert.equal(hint.hidden, false, '"What can I tap?" shows the hint again');
+
+});
+
+test('embedded in a note: one finger and the plain wheel go to the note, two fingers and Ctrl + wheel move the drawing', async (t) => {
+  const page = await loadPage(renderPage(example('controls-and-ics.json'), { lang: 'es' }).html, { embedded: true });
+  if (!page) return t.skip('jsdom not installed');
+  const { doc, fire, touch, svg } = page;
+  const box = () => svg('front').getAttribute('viewBox');
+  assert.ok(doc.body.classList.contains('embedded'));
+  const start = box();
+
+  const plain = fire('wheel', { deltaY: -100, clientX: 400, clientY: 250 });
+  assert.equal(plain.defaultPrevented, false, 'the note scrolls');
+  assert.equal(box(), start);
+  assert.ok(doc.querySelector('.gesture-hint').classList.contains('on'));
+  assert.match(doc.querySelector('.gesture-hint').textContent, /Ctrl/);
+
+  const ctrl = fire('wheel', { deltaY: -100, ctrlKey: true, clientX: 400, clientY: 250 });
+  assert.equal(ctrl.defaultPrevented, true);
+  assert.notEqual(box(), start, 'Ctrl + wheel (or a trackpad pinch) zooms');
+
+  const zoomed = box();
+  touch('touchstart', [[400, 250]]);
+  const one = touch('touchmove', [[400, 100]]);
+  assert.equal(one.defaultPrevented, false, 'one finger scrolls the note');
+  assert.equal(box(), zoomed);
+  assert.match(doc.querySelector('.gesture-hint').textContent, /dos dedos/);
+  touch('touchend', []);
+
+  touch('touchstart', [[300, 250], [500, 250]]);
+  const two = touch('touchmove', [[200, 250], [600, 250]]);
+  assert.equal(two.defaultPrevented, true);
+  const [, , w] = box().split(' ').map(Number);
+  assert.ok(w < Number(zoomed.split(' ')[2]), 'spreading two fingers zooms in');
+  touch('touchend', []);
+
+  assert.equal(doc.querySelector('[data-zoom="full"]').hidden, false, 'full screen is offered when embedded');
+});
+
+test('alone, the wheel zooms; the zoom buttons zoom in, out and back to the frame', async (t) => {
+  const page = await loadPage(renderPage(example('controls-and-ics.json')).html);
+  if (!page) return t.skip('jsdom not installed');
+  const { doc, fire, svg } = page;
+  const width = () => Number(svg('front').getAttribute('viewBox').split(' ')[2]);
+  assert.ok(!doc.body.classList.contains('embedded'));
+  assert.equal(doc.querySelector('[data-zoom="full"]').hidden, true);
+  const start = width();
+  assert.equal(fire('wheel', { deltaY: -100, clientX: 400, clientY: 250 }).defaultPrevented, true);
+  assert.ok(width() < start);
+  doc.querySelector('[data-zoom="fit"]').click();
+  assert.equal(svg('front').getAttribute('viewBox'), svg('front').dataset.parts);
+  doc.querySelector('[data-zoom="in"]').click();
+  assert.ok(width() < start);
+  doc.querySelector('[data-zoom="out"]').click();
+  doc.querySelector('[data-zoom="out"]').click();
+  assert.ok(width() > start);
+  assert.equal(doc.querySelector('.info').hidden, true, 'the buttons are not taps on the board');
+});
+
+test('double-click on a part frames that part', async (t) => {
+  const page = await loadPage(renderPage(example('led-resistor.json')).html);
+  if (!page) return t.skip('jsdom not installed');
+  const { fire, svg } = page;
+  const view = () => svg('front').getAttribute('viewBox').split(' ').map(Number);
+  const els = svg('front').querySelectorAll('.parts [data-part="R1"]');
+  for (const el of els) el.getBoundingClientRect = () => ({ left: 380, top: 240, right: 420, bottom: 260, width: 40, height: 20 });
+  const [, , before] = view();
+  fire('dblclick', { clientX: 400, clientY: 250 }, els[0]);
+  const [x, y, w, h] = view();
+  assert.ok(w < before / 3, 'zoomed in to about two and a half times the part');
+  const [bx, by, bw, bh] = svg('front').dataset.parts.split(' ').map(Number);
+  assert.ok(Math.abs(x + w / 2 - (bx + bw / 2)) < 1 && Math.abs(y + h / 2 - (by + bh / 2)) < 1, 'centred on the part (here, the middle of the frame)');
+});
+
+test('colours are tokens, light and dark; the circuit can fix the theme and the link wins', async (t) => {
+  const { STYLE } = await import('../src/page/style.js');
+  const outside = STYLE.replace(/:root[^{]*\{[^}]*\}/g, '').replace(/@media \(prefers-color-scheme: dark\) \{\s*\}/g, '');
+  assert.deepEqual(outside.match(/#[0-9a-f]{3,8}\b/gi) ?? [], [], 'no colour outside the token blocks');
+  assert.match(STYLE, /@media \(prefers-color-scheme: dark\) \{ :root:not\(\[data-theme="light"\]\) \{/);
+  assert.match(STYLE, /:root\[data-theme="dark"\] \{/);
+
+  const circuit = example('led-resistor.json');
+  assert.match(renderPage(circuit).html, /<html lang="en">/, 'auto by default: no data-theme');
+  const dark = renderPage({ ...circuit, page: { ...circuit.page, theme: 'dark' } }).html;
+  assert.match(dark, /<html lang="en" data-theme="dark">/);
+
+  const page = await loadPage(dark, { url: 'https://example.org/led.html?theme=light' });
+  if (!page) return t.skip('jsdom not installed');
+  assert.equal(page.doc.documentElement.dataset.theme, 'light', '?theme= wins over page.theme');
+  const auto = await loadPage(dark, { url: 'https://example.org/led.html?theme=auto' });
+  assert.equal(auto.doc.documentElement.dataset.theme, undefined, '?theme=auto follows the system');
 });

@@ -64,8 +64,8 @@ Dos clases de texto, a propósito:
 
 ## La capa de corriente: la vista de conductores
 
-`"page": { "flow": true }` (necesita `supplies` o una batería) agrega los botones *Componentes* y
-*Corriente*. En *Corriente* la protoboard y los componentes quedan velados y **cada conductor en
+`"page": { "flow": true }` (necesita `supplies` o una batería) agrega el botón *Corriente*
+(presionado: la capa de corriente; otra vez: los componentes). Con ella la protoboard y los componentes quedan velados y **cada conductor en
 uso se dibuja como una línea gruesa** por su camino real: la tira metálica entre los agujeros en
 uso, sube por una pata, atraviesa el cuerpo, baja por la otra pata, sigue el arco de un cable.
 Encima, **unos puntos se mueven**:
@@ -79,7 +79,7 @@ Encima, **unos puntos se mueven**:
 - **La velocidad es proporcional** a la corriente: la corriente mayor del circuito va a 60 px/s y
   la mitad, a la mitad, así se ven las proporciones y Kirchhoff. En la página en vivo la escala es
   la corriente mayor desde el arranque, así una corriente que se apaga (un condensador que se
-  carga) se ve frenando. *Velocidad logarítmica* cambia a
+  carga) se ve frenando. *Velocidad logarítmica* (en el menú ⋯ de la barra) cambia a
   escala logarítmica (un microamperio se arrastra, un amperio corre) para circuitos con corrientes
   muy distintas. Por debajo de 1 µA nada se mueve.
 - La corriente en cada tramo de una tira sale de la ley de corrientes de Kirchhoff: recorriendo la

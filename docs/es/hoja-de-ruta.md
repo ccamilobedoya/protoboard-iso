@@ -122,7 +122,7 @@ calma en todo lo demás, para que los componentes resalten.
 - ✅ Página en el celular: la barra de botones es una sola fila que se desliza de lado
 - ✅ Ver a través: volver transparente un componente para ver qué hay detrás (ficha de la página)
 - ⬜ **Qué tapa a qué, planeado en conjunto** (para hacerlo bien más adelante, no a parches caso por caso): en una página con foco, las etiquetas de la simulación (voltajes, corrientes, el sello MODELO) pueden tapar los números de columna resaltados, las posiciones de los agujeros y las patas de las que hablan. Decidir una prioridad entre capas (copia del componente, tiras, etiquetas de coordenadas, de resultados, rótulos, puntas de prueba), ubicar cada etiqueta al lado de lo que taparía (evitando choques, como ya se evitan los rótulos entre sí) y revisarlo con `inspect` como el resto del dibujo
-- ⬜ Tema oscuro para pantallas
+- ✅ Tema oscuro para pantallas: la página (pasada de experiencia de uso, U2); el dibujo de la protoboard conserva sus colores
 
 ## Etapa 3 — Simulación en vivo en el navegador 🔜
 
@@ -159,16 +159,20 @@ ordenarlas para que quien aprende no se pierda, sobre todo en el celular. Hoy ha
 El osciloscopio, el generador y las sondas llegaron con las fases 7 a 9. Conviene hacerlo ahora,
 antes de la etapa 4.
 
-- ⬜ Inventario de cada función: dónde vive (barra, ficha, panel lateral, gesto), cuándo aparece y
-  qué circuito la pide (`page.*`)
-- ⬜ Un modelo de interacción coherente: la barra para la vista y el tiempo, la ficha para el
-  componente o el nodo tocado, el panel lateral para lo que afecta a todo el circuito
-- ⬜ Revelación progresiva: lo básico a la vista y lo avanzado detrás de un menú; la lección decide
-  qué se muestra
-- ⬜ La barra en el celular: hoy se desliza en horizontal y crece con cada función; agruparla en
-  menús
-- ⬜ Una ayuda corta la primera vez que se abre una página (qué se puede tocar)
-- ⬜ Probarlo con Cris en el celular y en la tableta, y ajustar
+Plan del 2026-10-16, a partir de una revisión de la página en vivo con los skills de UI/UX:
+diseño, decisiones y sesiones en [experiencia-de-uso.md](experiencia-de-uso.md); sistema visual en
+[`.interface-design/system.md`](../../.interface-design/system.md).
+
+- ✅ Revisión de la página en vivo (escritorio, tableta, celular, embebida) e inventario de cada función: dónde vive, cuándo aparece, qué `page.*` la pide
+- ✅ Sistema visual elegido: paleta de banco como tokens, claro y oscuro (`system.md`)
+- ✅ U0 · Red de seguridad: `scripts/ux-shots.js`, capturas en cinco tamaños (también dentro de un iframe)
+- ✅ U1 · Gestos y embebido: sin desplazamiento atrapado dentro de una nota (un dedo y la rueda van a la página que la contiene; dos dedos, Ctrl/⌘ + rueda y pellizcar acercan), botones de zoom, doble toque a un componente, pantalla completa (probado en el celular del mantenedor)
+- ✅ U2 · Tokens, tema oscuro (sigue al sistema; `page.theme` y `?theme=` lo cambian), base táctil
+- ✅ U3 · La barra: agrupada por lo que hace, íconos, Girar y Encuadrar como un solo botón, menú ⋯, ayuda de primera vez
+- ⬜ U4 · El inspector: una sola ficha con encabezado fijo, una pestaña Circuito (controles, avisos, Falstad), panel a la derecha en pantallas anchas y hoja inferior en el celular; el componente elegido nunca queda tapado; insignia MODELO con el modo correcto
+- ⬜ U5 · Movimiento: giro que conserva el foco, encuadre, hoja, respuesta al presionar, movimiento reducido
+- ⬜ U6 · Detalles: etiquetas según el contexto, áreas de toque más grandes, encuadre vertical
+- ⬜ U7 · Probarlo con Cris en el celular, el iPad y dentro de Trilium, y ajustar
 
 ## Etapa 4 — En el celular o la tableta ⬜
 

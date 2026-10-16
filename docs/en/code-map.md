@@ -68,7 +68,8 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `sim/controls.js` | bundleable: supplies' controls, slider maths (log, E24), stress levels; each device's own controls are in its module (`controls`, `set`) |
 | `sim/paths.js` | conductor view: current paths per part (package `paths` or a straight fallback), strip currents (Kirchhoff), voltage colours, dots of conventional current |
 | `sim/probes.js` | "where a value comes from": probes for voltages, arrows for currents |
-| `page.js`, `page/client/`, `page/style.js` | the embeddable page; `page/client/main.js` is the entry of its script (view, focus, card, tooltip modules) |
+| `page.js`, `page/client/`, `page/style.js` | the embeddable page; `page/client/main.js` is the entry of its script (view, focus, card, tooltip modules); `view.js`: frame, gestures by context, zoom buttons; `bar.js`: the ⋯ menu (`page.menuAdd`) and the first-time hint; `icons.js`: the line icons, shared with `page.js` |
+| `scripts/ux-shots.js` | screenshots of pages at five sizes, alone and inside a note (a Playwright snippet), for the UX pass |
 | `node/bundle.js` | the small bundler: allowed ES modules → one classic script for the page (engine, page script) |
 | `sim/generator.js` | the signal generator (bundleable): its waves (Falstad's), its peak; the engine sets the source to `waveAt` before each step |
 | `sim/recorder.js`, `sim/scope.js`, `page/client/scope.js` | oscilloscope (bundleable): recording per part (and per strip in use, key `node:<group>`) from the start, what each kind plots (`scope` hook), the drawing in the card (a list of traces, 10 × 4 screen) |
@@ -131,7 +132,25 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
   page crawl). Draw the shape once in a layer and change its `display`, `stroke` or `opacity`;
   animate in a few `steps()`. The dots skip offset changes too small to see.
 - **SVG elements have no `hidden` property**; use the attribute. Test page scripts with jsdom
-  (`test/focus.test.js`), which follows the DOM specification.
+  (`test/focus.test.js`), which follows the DOM specification; `loadPage(html, { embedded: true })`
+  in `test/page.test.js` loads a page inside an iframe.
+- **Colours of the page are tokens** (`page/style.js`, `:root`, light and dark): never a hex value
+  outside the token blocks (`test/page.test.js` checks). The drawing's colours in the page are
+  changed by CSS over the SVG's presentation attributes (background, veil, labels, result tags by
+  `data-q`), so the static SVG never changes. Client code sets classes, not colours (the scope:
+  `kind: 'v' | 'i'`; limits: `var(--warn)`).
+- **The bar** (`page.js`, UX pass U3): a button for two states carries `data-key`, `data-on` and
+  `data-off` (main.js toggles between them and sets `aria-pressed`); choices in the ⋯ menu are
+  `role="menuitemradio"` with `data-value` (`aria-checked`). Labels sit in `.label` (hidden on a
+  narrow screen, so every button has a `title`). Modules put rarely used things in the menu with
+  `page.menuAdd(el)`, never as new bar groups.
+- **The views are `main > svg`**: buttons carry small svg icons too, so never select `main svg`.
+  Interface boxes inside `main` (card, side panel, zoom buttons) are listed in `page.inChrome`, so a
+  tap or a gesture on them is not a tap on the board.
+- **Gestures by context** (`page/client/view.js`, UX pass U1): `page.embedded` (inside an iframe and
+  not full screen) and `body.embedded`; embedded, touch goes through the touch events (one finger is
+  left to the browser, two are handled), the plain wheel is not prevented. Check gesture changes in
+  a real browser too (`scripts/ux-shots.js`, CDP touch emulation): jsdom does not scroll.
 - **The agents depend on the kit** (`.claude/agents/*.md`): change them with any tool, command,
   operation or format change; `npm run test:mcp` catches tools that no longer exist.
 

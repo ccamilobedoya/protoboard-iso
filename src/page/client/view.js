@@ -1,6 +1,12 @@
 // Moving around the drawing: the visible frame (the SVG viewBox), drag to pan, pinch or wheel to
-// zoom, double tap to zoom in. A press that does not move is a tap, left to the click handler
-// (page.dragged says which it was).
+// zoom, double tap to zoom to a part, and the zoom buttons. A press that does not move is a tap,
+// left to the click handler (page.dragged says which it was).
+//
+// Where the page lives decides what a finger and the wheel do (UX pass, U1). Alone, or full
+// screen, the drawing takes every gesture. Inside an iframe (a lesson note) it behaves like an
+// embedded map: one finger and the plain wheel scroll the note, two fingers move and zoom the
+// drawing, and Ctrl/⌘ + wheel or a trackpad pinch (a wheel event with ctrlKey) zoom; a short
+// hint says so when someone tries the other way. A mouse drag moves the drawing in both cases.
 
 export const numbers = (text) => text.split(' ').map(Number);
 
@@ -49,19 +55,71 @@ function panBy(page, dx, dy) {
   setBox(page, [box[0] - dx * k, box[1] - dy * k, box[2], box[3]]);
 }
 
-// Pointers: one moves the drawing, two also zoom (pinch).
+// Inside a frame of another page, unless the page is full screen.
+export function isEmbedded(win) {
+  if (win.document.fullscreenElement) return false;
+  try {
+    return win.self !== win.top;
+  } catch {
+    return true; // a cross-origin parent can deny even the comparison
+  }
+}
+
+// Frame a part: the box of what is drawn for it, a little more than twice its size.
+function zoomToPart(page, id) {
+  const els = [...page.current().querySelectorAll(`.parts [data-part="${id.replace(/["\\]/g, '\\$&')}"]`)];
+  const rects = els.map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
+  if (!rects.length) return false;
+  const [x0, y0] = toBox(page, Math.min(...rects.map((r) => r.left)), Math.min(...rects.map((r) => r.top)));
+  const [x1, y1] = toBox(page, Math.max(...rects.map((r) => r.right)), Math.max(...rects.map((r) => r.bottom)));
+  const w = Math.max(x1 - x0, 1) * 2.5;
+  const h = Math.max(y1 - y0, 1) * 2.5;
+  setBox(page, [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h]);
+  return true;
+}
+
+function doubleTap(page, target, x, y) {
+  const hit = target.closest && target.closest('[data-part]');
+  if (!hit || !zoomToPart(page, hit.getAttribute('data-part'))) zoomAt(page, x, y, 0.5);
+}
+
+// The hint over the drawing, shown for a moment when a gesture went to the page around it.
+function hinter(page) {
+  let timer = null;
+  return (key) => {
+    const el = page.gestureHint;
+    if (!el) return;
+    el.textContent = page.data.text[key];
+    el.classList.add('on');
+    clearTimeout(timer);
+    timer = setTimeout(() => el.classList.remove('on'), 1400);
+  };
+}
+
+// Pointers: one moves the drawing, two also zoom (pinch). Embedded, touch goes through the touch
+// events instead: one finger is left to the browser (it scrolls the note), two are ours.
 export function setupView(page) {
-  const { main, info } = page;
+  const { main } = page;
+  const win = main.ownerDocument.defaultView;
   const pointers = new Map();
+  const hint = hinter(page);
   page.dragged = false;
+  const update = () => {
+    page.embedded = isEmbedded(win);
+    main.ownerDocument.body.classList.toggle('embedded', page.embedded);
+  };
+  update();
+  main.ownerDocument.addEventListener('fullscreenchange', update);
+
   const centre = () => {
     const ps = [...pointers.values()];
     const x = ps.reduce((a, p) => a + p.x, 0) / ps.length;
     const y = ps.reduce((a, p) => a + p.y, 0) / ps.length;
     return { x, y, d: ps.length > 1 ? Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y) : 0 };
   };
+  const touchByTouchEvents = (e) => page.embedded && e.pointerType === 'touch';
   main.addEventListener('pointerdown', (e) => {
-    if (info.contains(e.target) || page.side.contains(e.target)) return;
+    if (page.inChrome(e.target) || touchByTouchEvents(e)) return;
     if (!pointers.size) page.dragged = false;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
   });
@@ -84,9 +142,105 @@ export function setupView(page) {
   };
   main.addEventListener('pointerup', release);
   main.addEventListener('pointercancel', release);
+
+  // Embedded touch: two fingers move and zoom; one finger scrolls the note (and a tap still taps).
+  let pair = null;
+  let one = null;
+  const two = (e) => {
+    const [a, b] = e.touches;
+    return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2, d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) };
+  };
+  main.addEventListener('touchstart', (e) => {
+    if (!page.embedded || page.inChrome(e.target)) return;
+    if (e.touches.length >= 2) {
+      pair = two(e);
+      one = null;
+      page.dragged = true;
+    } else {
+      pair = null;
+      one = { x: e.touches[0].clientX, y: e.touches[0].clientY, hinted: false };
+      page.dragged = false;
+    }
+  }, { passive: true });
+  main.addEventListener('touchmove', (e) => {
+    if (!page.embedded || page.inChrome(e.target)) return;
+    if (e.touches.length >= 2 && pair) {
+      if (e.cancelable) e.preventDefault();
+      const now = two(e);
+      panBy(page, now.x - pair.x, now.y - pair.y);
+      if (pair.d && now.d) zoomAt(page, now.x, now.y, pair.d / now.d);
+      pair = now;
+    } else if (one && !one.hinted && Math.hypot(e.touches[0].clientX - one.x, e.touches[0].clientY - one.y) > 12) {
+      one.hinted = true;
+      hint('gestureTouch');
+    }
+  }, { passive: false });
+  main.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) pair = null;
+  });
+
   main.addEventListener('wheel', (e) => {
+    if (page.inChrome(e.target)) return;
+    if (page.embedded && !e.ctrlKey && !e.metaKey) return hint('gestureWheel'); // the note scrolls
     e.preventDefault();
     zoomAt(page, e.clientX, e.clientY, Math.exp(e.deltaY * (e.ctrlKey ? 0.01 : 0.002)));
   }, { passive: false });
-  main.addEventListener('dblclick', (e) => zoomAt(page, e.clientX, e.clientY, 0.5));
+
+  // Double tap (touch, either way) and double-click: zoom to the part, or in by two.
+  let lastTap = null;
+  let touchZoomed = 0;
+  const downs = new Map();
+  main.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch') downs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  });
+  main.addEventListener('pointerup', (e) => {
+    const d = downs.get(e.pointerId);
+    downs.delete(e.pointerId);
+    if (e.pointerType !== 'touch' || !d || page.inChrome(e.target) || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 10) return;
+    const now = e.timeStamp;
+    if (lastTap && now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) {
+      lastTap = null;
+      touchZoomed = now;
+      doubleTap(page, e.target, e.clientX, e.clientY);
+    } else lastTap = { t: now, x: e.clientX, y: e.clientY };
+  });
+  main.addEventListener('dblclick', (e) => {
+    if (page.inChrome(e.target) || e.timeStamp - touchZoomed < 600) return;
+    doubleTap(page, e.target, e.clientX, e.clientY);
+  });
+
+  // The zoom buttons: in, out, fit the frame chosen in the bar, full screen (embedded only).
+  const zoom = page.zoom;
+  if (!zoom) return;
+  const middle = () => {
+    const r = page.current().getBoundingClientRect();
+    return [r.left + r.width / 2, r.top + r.height / 2];
+  };
+  const doc = main.ownerDocument;
+  const full = zoom.querySelector('[data-zoom="full"]');
+  const canFull = Boolean(doc.fullscreenEnabled && doc.documentElement.requestFullscreen);
+  const refresh = () => {
+    if (!full) return;
+    const on = Boolean(doc.fullscreenElement);
+    full.hidden = !page.embedded && !on;
+    full.setAttribute('aria-pressed', String(on));
+    full.title = page.data.text[on ? 'fullscreenExit' : 'fullscreen'];
+    full.setAttribute('aria-label', full.title);
+  };
+  refresh();
+  doc.addEventListener('fullscreenchange', refresh);
+  zoom.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-zoom]');
+    if (!b) return;
+    const what = b.dataset.zoom;
+    if (what === 'in') zoomAt(page, ...middle(), 1 / 1.5);
+    else if (what === 'out') zoomAt(page, ...middle(), 1.5);
+    else if (what === 'fit') setBox(page, numbers(page.current().dataset[page.state.fit]));
+    else if (what === 'full') {
+      if (doc.fullscreenElement) doc.exitFullscreen();
+      else if (canFull) doc.documentElement.requestFullscreen().catch(() => win.open(win.location.href, '_blank', 'noopener'));
+      else win.open(win.location.href, '_blank', 'noopener');
+    }
+  });
+  zoom.hidden = false;
 }

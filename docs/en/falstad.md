@@ -5,7 +5,7 @@
 [Falstad's CircuitJS](https://www.falstad.com/circuit/) is the most used in-browser circuit
 simulator for learning. The kit uses it in two ways:
 
-1. **Open in Falstad**: each circuit's live page has a button that opens the same circuit in
+1. **Open in Falstad**: each circuit's live page has a link in its ⋯ menu that opens the same circuit in
    CircuitJS, as it is at that moment (sliders, push button, battery charge).
 2. **Second reference**: a few test circuits run in both simulators with the same models, and a
    test checks that they agree.

@@ -28,7 +28,7 @@ const pageData = (window) => JSON.parse(window.document.getElementById('page-dat
 
 // A click on the screen point where a drawing point is (the inverse of view.js's toBox).
 function clickAt(window, x, y) {
-  const svg = window.document.querySelector('svg:not([hidden])');
+  const svg = window.document.querySelector('main > svg:not([hidden])');
   const [bx, by, bw, bh] = svg.getAttribute('viewBox').split(' ').map(Number);
   const k = Math.max(bw / 800, bh / 500);
   const px = (x - bx - bw / 2) / k + 400;
@@ -38,7 +38,7 @@ function clickAt(window, x, y) {
 // A tap on a hole of a strip, from the page's own hit table (k: which hole of that strip).
 function tapStrip(window, node, k = 0) {
   const data = pageData(window);
-  const view = window.document.querySelector('svg:not([hidden])').dataset.view;
+  const view = window.document.querySelector('main > svg:not([hidden])').dataset.view;
   const { holes } = data.hits[view];
   const index = data.strips.indexOf(node);
   const mine = [];
@@ -116,7 +116,7 @@ test('static page: a tapped strip shows what it is and brings forward what is cl
   [...info.querySelectorAll('button.link')].find((b) => b.textContent.startsWith('R2')).click();
   assert.equal(info.querySelector('h2').textContent, data.parts.R2.title);
   assert.ok(!info.hidden);
-  const [bx, by] = doc.querySelector('svg:not([hidden])').getAttribute('viewBox').split(' ').map(Number);
+  const [bx, by] = doc.querySelector('main > svg:not([hidden])').getAttribute('viewBox').split(' ').map(Number);
   clickAt(window, bx + 1, by + 1);
   assert.ok(info.hidden, 'a tap far from any strip closes the card');
 });
