@@ -22,6 +22,7 @@ import { applyFocus } from './focus.js';
 import { select, selectNode, refreshCard, refreshNotes } from './card.js';
 import { tapTag, setupTooltip } from './tooltip.js';
 import { setupBar } from './bar.js';
+import { setupInspector } from './inspector.js';
 
 // ?theme=light|dark|auto in the link wins over the circuit's page.theme (<html data-theme>).
 function applyTheme(doc, search) {
@@ -49,7 +50,8 @@ export function startPage(extensions = []) {
     side: document.querySelector('.side'), // panels on the right (live page: warnings, controls)
     zoom: document.querySelector('.zoom'), // zoom buttons, bottom right
     gestureHint: document.querySelector('.gesture-hint'), // "use two fingers…" when embedded
-    inChrome: (el) => [page.info, page.side, page.zoom].some((c) => c && c.contains(el)),
+    inspector: document.querySelector('.inspector'), // holds the card (.info) and the circuit's panels (.side)
+    inChrome: (el) => [page.inspector ?? page.info, page.inspector ?? page.side, page.zoom].some((c) => c && c.contains(el)),
     tooltip: document.querySelector('.tooltip'),
     current: () => svgs.find((s) => s.dataset.view === state.view),
     box: null,
@@ -88,6 +90,7 @@ export function startPage(extensions = []) {
   setupView(page);
   setupTooltip(page);
   setupBar(page);
+  setupInspector(page);
   // A tap: a result tag pins its probes (focus untouched), a part selects it, a strip in use
   // opens its card (found by where the tap is: the strips are under the parts), the board clears.
   main.addEventListener('click', (e) => {

@@ -169,7 +169,7 @@ diseño, decisiones y sesiones en [experiencia-de-uso.md](experiencia-de-uso.md)
 - ✅ U1 · Gestos y embebido: sin desplazamiento atrapado dentro de una nota (un dedo y la rueda van a la página que la contiene; dos dedos, Ctrl/⌘ + rueda y pellizcar acercan), botones de zoom, doble toque a un componente, pantalla completa (probado en el celular del mantenedor)
 - ✅ U2 · Tokens, tema oscuro (sigue al sistema; `page.theme` y `?theme=` lo cambian), base táctil
 - ✅ U3 · La barra: agrupada por lo que hace, íconos, Girar y Encuadrar como un solo botón, menú ⋯, ayuda de primera vez
-- ⬜ U4 · El inspector: una sola ficha con encabezado fijo, una pestaña Circuito (controles, avisos, Falstad), panel a la derecha en pantallas anchas y hoja inferior en el celular; el componente elegido nunca queda tapado; insignia MODELO con el modo correcto
+- ✅ U4 · El inspector: una sola ficha con encabezado fijo, una pestaña Circuito (controles, avisos, Falstad), panel a la derecha en pantallas anchas y hoja inferior en el celular; el componente elegido nunca queda tapado; insignia MODELO con el modo correcto
 - ⬜ U5 · Movimiento: giro que conserva el foco, encuadre, hoja, respuesta al presionar, movimiento reducido
 - ⬜ U6 · Detalles: etiquetas según el contexto, áreas de toque más grandes, encuadre vertical
 - ⬜ U7 · Probarlo con Cris en el celular, el iPad y dentro de Trilium, y ajustar

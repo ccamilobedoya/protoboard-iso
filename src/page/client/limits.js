@@ -40,6 +40,7 @@ export function setupLimits(page, { engine, t, f }) {
   flag.title = t('page.warnings.flag');
   flag.innerHTML = `${iconSvg('warning')}<span class="count"></span>`;
   flag.addEventListener('click', () => {
+    page.showCircuit?.();
     panel.scrollIntoView?.({ block: 'nearest' });
     panel.querySelector('button')?.focus();
   });

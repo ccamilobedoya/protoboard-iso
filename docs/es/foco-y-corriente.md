@@ -28,8 +28,19 @@ página con esos componentes en foco (los que explica la lección).
   tocarlo explica qué es ese tipo de componente y cómo funciona, desde el kit), qué hace **en este
   circuito** (su `description`, a la vista), y adónde va cada pata y qué más hay ahí («B → c17, columna 17 (filas a–e) —
   con R1 (2)»).
-- **Ver a través** (en la ficha) vuelve transparente el componente, para ver qué hay detrás.
-- **Toca la protoboard** (o *Cerrar*) para quitar el foco.
+- **La ficha vive en el inspector**: un panel a la derecha en una pantalla ancha, una hoja inferior
+  en el celular (tres alturas: una franja con el nombre y los valores, media, completa; se arrastra o
+  se toca su encabezado). Su encabezado queda arriba: el nombre, **Ver a través** (el ojo: vuelve
+  transparente el componente, para ver qué hay detrás) y **Cerrar** (✕). En el celular, con la hoja
+  plegada, una línea debajo muestra una etiqueta *MODELO* y los valores principales, cada uno en una
+  casilla fija para que un valor que cambia no empuje a los demás (abierta, la sección *Simulación*
+  dice lo mismo, así que la línea se oculta). Después, qué es, sus valores, su
+  osciloscopio, sus controles y las patas, plegadas. Cuando el inspector se abre encima del
+  componente, el dibujo se mueve para que siga a la vista.
+- **La pestaña Circuito** del inspector tiene lo que es de todo el circuito: el panel de controles,
+  los avisos y las notas de Falstad. Sin nada tocado es lo que muestra el inspector (en el celular,
+  plegado a una franja abajo para dejar libre el circuito).
+- **Toca la protoboard** (o ✕) para quitar el foco.
 - Con `"page": { "results": true }` la simulación está siempre activa, sin botón: el componente
   tocado muestra sobre la protoboard su corriente simulada y el voltaje de sus grupos, y en la
   ficha todos sus valores. Nada más lleva etiqueta: todas a la vez son demasiado para leer.
@@ -134,8 +145,8 @@ presionado (para revisar otros componentes mientras pasa corriente) hasta que se
 instante; un circuito que corre sigue desde donde iba (un condensador conserva su voltaje, así que
 cambiar R mientras carga muestra la constante de tiempo nueva).
 
-Una lección puede poner en un panel los dos o tres controles que importan (arriba a la derecha, se
-pliega):
+Una lección puede poner en un panel los dos o tres controles que importan (en la pestaña *Circuito*
+del inspector):
 
 ```json
 "page": {
@@ -155,7 +166,7 @@ sentido.
 
 **Límites.** Cada componente se compara con sus límites (corriente, potencia, voltaje, voltaje
 inverso): cerca del límite (80–100 %) se le pone un contorno ámbar; al pasarlo, un contorno rojo que
-late, una línea en *Límites superados* (arriba a la derecha: «D1: la corriente llegó a 100 mA (máximo 30 mA) · ahora 4,07 mA», el pico que quedó marcado y el valor de ahora; al
+late, una línea en *Límites superados* (en la pestaña *Circuito*, con un ⚠ n en la barra que lleva allí: «D1: la corriente llegó a 100 mA (máximo 30 mA) · ahora 4,07 mA», el pico que quedó marcado y el valor de ahora; al
 tocarla se abre el componente) y otra en su ficha. La marca se queda aunque el deslizador vuelva o
 el pico haya sido breve, hasta *Borrar marcas* o *Encender (t = 0)*. En `simulate`, el `stress` de
 cada componente trae las mismas comparaciones.

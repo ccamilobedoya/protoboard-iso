@@ -49,7 +49,7 @@ function zoomAt(page, px, py, f) {
   const { box } = page;
   setBox(page, [x - (x - box[0]) * f, y - (y - box[1]) * f, box[2] * f, box[3] * f]);
 }
-function panBy(page, dx, dy) {
+export function panBy(page, dx, dy) {
   const k = toBox(page, 0, 0)[2];
   const { box } = page;
   setBox(page, [box[0] - dx * k, box[1] - dy * k, box[2], box[3]]);
@@ -65,13 +65,20 @@ export function isEmbedded(win) {
   }
 }
 
+// Where some parts are drawn on screen (the union of their pieces), or null.
+export function partsRect(page, ids) {
+  const els = ids.flatMap((id) => [...page.current().querySelectorAll(`.parts [data-part="${id.replace(/["\\]/g, '\\$&')}"]`)]);
+  const rects = els.map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
+  if (!rects.length) return null;
+  return { left: Math.min(...rects.map((r) => r.left)), top: Math.min(...rects.map((r) => r.top)), right: Math.max(...rects.map((r) => r.right)), bottom: Math.max(...rects.map((r) => r.bottom)) };
+}
+
 // Frame a part: the box of what is drawn for it, a little more than twice its size.
 function zoomToPart(page, id) {
-  const els = [...page.current().querySelectorAll(`.parts [data-part="${id.replace(/["\\]/g, '\\$&')}"]`)];
-  const rects = els.map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
-  if (!rects.length) return false;
-  const [x0, y0] = toBox(page, Math.min(...rects.map((r) => r.left)), Math.min(...rects.map((r) => r.top)));
-  const [x1, y1] = toBox(page, Math.max(...rects.map((r) => r.right)), Math.max(...rects.map((r) => r.bottom)));
+  const r = partsRect(page, [id]);
+  if (!r) return false;
+  const [x0, y0] = toBox(page, r.left, r.top);
+  const [x1, y1] = toBox(page, r.right, r.bottom);
   const w = Math.max(x1 - x0, 1) * 2.5;
   const h = Math.max(y1 - y0, 1) * 2.5;
   setBox(page, [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h]);

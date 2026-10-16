@@ -288,3 +288,43 @@ test('colours are tokens, light and dark; the circuit can fix the theme and the 
   const auto = await loadPage(dark, { url: 'https://example.org/led.html?theme=auto' });
   assert.equal(auto.doc.documentElement.dataset.theme, undefined, '?theme=auto follows the system');
 });
+
+test('the inspector holds the card and the circuit\'s panels: tabs, a fixed head, folded pins', async (t) => {
+  // A static page: nothing for the whole circuit, so the inspector shows only with a tapped part.
+  const plain = await loadPage(renderPage(example('led-resistor.json'), { lang: 'es' }).html);
+  if (!plain) return t.skip('jsdom not installed');
+  const box = plain.doc.querySelector('.inspector');
+  assert.ok(box.contains(plain.doc.querySelector('.info')) && box.contains(plain.doc.querySelector('.side')));
+  const part = plain.svg('front').querySelector('.parts [data-part="R1"]');
+  part.dispatchEvent(new plain.window.MouseEvent('click', { bubbles: true }));
+  assert.equal(box.hidden, false);
+  assert.equal(box.dataset.tab, 'part');
+  const head = plain.doc.querySelector('.info .head');
+  assert.match(head.querySelector('h2').textContent, /^R1/);
+  assert.deepEqual([...head.querySelectorAll('.actions button')].map((b) => b.title), ['Ver a través', 'Cerrar'], 'see-through and close, as icons, in the head');
+  assert.ok(plain.doc.querySelector('.info details.pins ul > li'), 'pins folded');
+  assert.match(plain.doc.querySelector('.info .summary').textContent, /^MODELO/, 'the summary starts with the MODEL chip');
+  assert.equal(plain.doc.querySelectorAll('.info .summary .values > .slot').length, 3, 'one slot per value, so a change never pushes the others');
+  head.querySelector('.actions button:last-child').click();
+  assert.equal(plain.doc.querySelector('.info').hidden, true);
+  assert.equal(box.hidden, true, 'nothing left to show');
+
+  // A live page with a controls panel: the Circuit tab, and back to it when the card closes.
+  const live = await loadPage(renderPage(example('half-wave-rectifier.json'), { lang: 'es' }).html);
+  const lbox = live.doc.querySelector('.inspector');
+  await new Promise((r) => live.window.setTimeout(r, 0)); // the panels arrive after the page starts
+  assert.equal(lbox.hidden, false);
+  assert.equal(lbox.dataset.tab, 'circuit');
+  assert.ok(live.doc.querySelector('.side .controls .control'));
+  live.svg('front').querySelector('.parts [data-part="D1"]').dispatchEvent(new live.window.MouseEvent('click', { bubbles: true }));
+  assert.equal(lbox.dataset.tab, 'part');
+  const tabs = [...lbox.querySelectorAll('[role="tab"]')];
+  assert.deepEqual(tabs.map((b) => [b.textContent, b.hidden, b.getAttribute('aria-selected')]), [['Componente', false, 'true'], ['Circuito', false, 'false']]);
+  tabs[1].click();
+  assert.equal(lbox.dataset.tab, 'circuit');
+  tabs[0].click();
+  live.doc.querySelector('.info .head .actions button:last-child').click();
+  assert.equal(lbox.dataset.tab, 'circuit', 'closing the card goes back to the circuit');
+  assert.ok(live.doc.querySelector('.model-badge'), 'the MODEL badge in the frame');
+  assert.match(renderPage(example('half-wave-rectifier.json')).html, /\.results \.badge \{ display: none !important; \}/, "the drawing's stamp gives way to it");
+});

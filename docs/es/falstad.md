@@ -21,7 +21,7 @@ Las dos usan el mismo exportador: `toFalstad(program, opciones)` en `src/sim/fal
 - Cada vez que se toca, exporta el circuito de nuevo con el estado del motor
   (`engine.program()`): lo que se ve es lo que se abre.
 - Si algún componente se exporta como un **equivalente** o queda fuera, al lado aparece
-  **⚠ n**. Al tocarlo se abre la lista en un panel lateral. La exportación se hace de todas
+  **⚠ n**. Al tocarlo se abre la lista en la pestaña *Circuito* del inspector. La exportación se hace de todas
   maneras.
 
 | En el kit | En Falstad | Aviso |

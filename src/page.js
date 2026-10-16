@@ -255,7 +255,7 @@ function explanations(lang) {
 function liveData(circuit, lang, flow, templates) {
   const texts = {};
   const dict = { ...LANGUAGES.en, ...(LANGUAGES[lang] ?? {}) };
-  for (const key of Object.keys(dict)) if (/^(sim|state|probe)\.|^page\.(time|live|control|controls|warnings|falstad|scope|node)\.|^check\.SIM_|^falstad\./.test(key)) texts[key] = t(lang, key);
+  for (const key of Object.keys(dict)) if (/^(sim|state|probe)\.|^page\.(time|live|control|controls|warnings|falstad|scope|node|model)\.|^check\.SIM_|^falstad\./.test(key)) texts[key] = t(lang, key);
   const dc = flow ? simulate(circuit, { analysis: 'dc' }) : null;
   return {
     flow: dc?.ok ? liveFlow(buildCircuit(circuit), dc, circuit) : null,
@@ -300,7 +300,7 @@ export function renderPage(circuit, options = {}) {
     explain: { ...explanations(lang), ...kinds },
     focus: Array.isArray(circuit.page?.focus) ? circuit.page.focus : [],
     ...(live && { live }),
-    text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit') },
+    text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit'), tabPart: t(lang, 'page.tab.part'), tabStrip: t(lang, 'page.tab.strip'), model: t(lang, 'sim.badge'), modelShort: t(lang, 'page.model') },
   };
   const title = titleOf(circuit, lang) ?? t(lang, 'page.untitled');
   const svgs = rendered.map((r, i) => (i ? r.svg.replace(/^<svg /, '<svg hidden ') : r.svg));
@@ -323,7 +323,16 @@ export function renderPage(circuit, options = {}) {
     '</span></span>',
   ].join('');
   // The first-time hint over the drawing: what can be tapped, and how to move (alone or in a note).
-  const hint = `<div class="first-hint" hidden><span>${escapeXml(t(lang, results ? 'page.hint.results' : 'page.hint'))}</span><small class="alone">${escapeXml(t(lang, 'page.hint.move'))}</small><small class="framed">${escapeXml(t(lang, 'page.hint.moveEmbedded'))}</small></div>`;  // Theme: the system's unless the circuit fixes it (page.theme); ?theme= in the link wins (main.js).
+  const hint = `<div class="first-hint" hidden><span>${escapeXml(t(lang, results ? 'page.hint.results' : 'page.hint'))}</span><small class="alone">${escapeXml(t(lang, 'page.hint.move'))}</small><small class="framed">${escapeXml(t(lang, 'page.hint.moveEmbedded'))}</small></div>`;  // The inspector (UX pass, U4): the card of what was tapped and the circuit's panels, in tabs;
+  // a panel on the right on a wide screen, a bottom sheet on a phone (page/client/inspector.js).
+  const fold = escapeXml(t(lang, 'page.inspector.fold'));
+  const inspector = `<aside class="inspector" hidden data-tab="circuit" data-size="half">
+<div class="grip" aria-hidden="true"></div>
+<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="part" hidden>${escapeXml(t(lang, 'page.tab.part'))}</button><button type="button" role="tab" data-tab="circuit" hidden>${escapeXml(t(lang, 'page.tab.circuit'))}</button><span class="spacer"></span><button type="button" class="collapse" aria-expanded="true" title="${fold}" aria-label="${fold}">${iconSvg('chevron')}</button></div>
+<div class="info" role="tabpanel" hidden></div>
+<div class="side" role="tabpanel"></div>
+</aside>`;
+  // Theme: the system's unless the circuit fixes it (page.theme); ?theme= in the link wins (main.js).
   const theme = ['light', 'dark'].includes(circuit.page?.theme) ? circuit.page.theme : null;
   const html = `<!doctype html>
 <html lang="${lang}"${theme ? ` data-theme="${theme}"` : ''}>
@@ -345,11 +354,11 @@ export function renderPage(circuit, options = {}) {
 <nav hidden>${nav}</nav>
 <main>
 ${svgs.join('\n')}
-<aside class="info" hidden></aside>
+${inspector}
 <div class="zoom" hidden>${['in', 'out', 'fit'].map((w) => iconButton(w, t(lang, `page.zoom.${w}`))).join('')}${iconButton('full', t(lang, 'page.fullscreen'))}</div>
 <div class="gesture-hint" aria-live="polite"></div>
 ${hint}
-<div class="side"></div>
+${results ? `<div class="model-badge">${escapeXml(t(lang, 'sim.badge'))}</div>` : ''}
 <div class="tooltip" hidden></div>
 </main>
 <script type="application/json" id="page-data">${safeJson(data)}</script>

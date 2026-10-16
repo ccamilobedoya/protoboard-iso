@@ -27,6 +27,7 @@
 
 export const STYLE = `
 :root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --sans: system-ui, -apple-system, "Segoe UI", Lato, Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
   color-scheme: light;
@@ -101,12 +102,14 @@ nav .menu .revision { padding: 6px 8px 2px; margin-top: 4px; border-top: 1px sol
   nav .group { padding: 0 2px; }
 }
 @media (max-width: 400px) { nav .time .clock { display: none; } }
-main { flex: 1; min-height: 0; display: flex; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; background: var(--canvas); }
+main { flex: 1; min-height: 0; display: flex; overflow: hidden; user-select: none; -webkit-user-select: none; cursor: grab; background: var(--canvas); }
 main.dragging { cursor: grabbing; }
-main > svg { display: block; width: 100%; height: 100%; }
+/* Gestures belong to the drawing only: on main itself, touch-action would also reach the inspector
+   inside it in some browsers (Safari), and its card would not scroll. */
+main > svg { display: block; width: 100%; height: 100%; touch-action: none; }
 main > svg[hidden] { display: none; }
 /* Embedded (inside an iframe): one finger scrolls the note; two fingers are handled by the script. */
-body.embedded main { touch-action: pan-x pan-y; }
+body.embedded main > svg { touch-action: pan-x pan-y; }
 /* The drawing, in the page only: its background, veil, labels and result tags follow the theme. */
 main > svg > rect:first-child { fill: var(--canvas); }
 .veil > * { fill: var(--veil); }
@@ -128,7 +131,8 @@ body:not(.show-results) .results, body:not(.show-results) .info .sim { display: 
 .probes { pointer-events: none; }
 .probes > * { display: none; }
 .veil, .flow, .strips > *, .results > * { display: none; }
-body.focusing .results > .badge { display: inline; }
+/* The MODEL stamp of the drawing gives way to the page's own badge (top left, and in the card). */
+.results .badge { display: none !important; }
 body.focusing .veil, body.layer-flow .veil, body.layer-flow .flow { display: inline; }
 [data-part] { cursor: pointer; }
 .dots { animation: dots linear infinite; animation-duration: var(--lin); }
@@ -138,9 +142,23 @@ body.speed-log .dots { animation-duration: var(--log); }
 body.live .dots { animation: none; }
 nav .time .clock { margin-left: 4px; color: var(--ink-3); font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; min-width: 6.5em; }
 main { position: relative; }
-.info { position: absolute; left: 8px; bottom: 8px; max-width: min(340px, calc(100% - 16px)); max-height: 55%; overflow: auto; color: var(--ink); background: var(--card); border: 1px solid var(--hair); border-radius: 6px; padding: 10px 12px; font-size: 13px; line-height: 1.4; font-variant-numeric: tabular-nums; cursor: auto; user-select: text; -webkit-user-select: text; touch-action: auto; }
+.info { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 0 12px 10px; color: var(--ink); font-size: 13px; line-height: 1.4; font-variant-numeric: tabular-nums; cursor: auto; user-select: text; -webkit-user-select: text; touch-action: auto; }
 .info[hidden] { display: none; }
-.info h2 { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+.info .head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 8px 0 4px; background: var(--card); }
+.info h2 { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; margin: 0; }
+.info .head .actions { margin: 0; gap: 2px; flex: none; }
+.info .icon-button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; color: var(--ink-2); background: none; border: none; border-radius: 4px; }
+.info .icon-button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.info .summary { display: none; align-items: baseline; gap: 8px; padding: 0 0 6px; white-space: nowrap; overflow: hidden; }
+/* Only in a peeking sheet (all it shows); open, the Simulation section below says the same. Each
+   value has a slot of its own, so a value that changes length never pushes the others. */
+@media (max-width: 760px) { .inspector[data-size="peek"] .info .summary:not([hidden]) { display: flex; } }
+.info .summary .slot { display: inline-block; width: 8.5ch; text-align: right; } /* sign, three digits, unit: at most 8 */
+.info .summary .model, .model-badge { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: var(--ink-3); border: 1px solid var(--hair); border-radius: 4px; padding: 1px 5px; }
+.info .summary .values { display: flex; gap: 6px; font-family: var(--mono); font-size: 12px; color: var(--accent); }
+.info details.pins { margin-top: 8px; }
+.info details.pins > summary { font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; }
 .info h3 { font-size: 11px; font-weight: 600; margin: 8px 0 2px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
 .info p { margin: 2px 0; }
 .info .type { color: var(--ink-2); }
@@ -160,22 +178,22 @@ main { position: relative; }
 .info .explain { margin: 2px 4px 6px; padding: 6px 8px; background: var(--well); border-left: 3px solid var(--accent); border-radius: 4px; color: var(--ink-2); }
 .info .explain[hidden] { display: none; }
 .info .tip { color: var(--ink-3); font-size: 12px; }
-.tooltip { position: absolute; z-index: 2; max-width: 260px; padding: 6px 8px; background: var(--tooltip); color: var(--on-tooltip); border-radius: 4px; font-size: 12px; line-height: 1.35; pointer-events: none; }
+.tooltip { position: absolute; z-index: 6; max-width: 260px; padding: 6px 8px; background: var(--tooltip); color: var(--on-tooltip); border-radius: 4px; font-size: 12px; line-height: 1.35; pointer-events: none; }
 .tooltip[hidden] { display: none; }
 
-.side { position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; flex-direction: column; gap: 6px; width: min(280px, calc(100% - 16px)); max-height: calc(100% - 16px); overflow: auto; pointer-events: none; cursor: auto; touch-action: auto; user-select: none; -webkit-user-select: none; }
-.side .panel { pointer-events: auto; color: var(--ink); background: var(--card); border: 1px solid var(--hair); border-radius: 6px; padding: 6px 10px 8px; font-size: 13px; }
+.side { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 6px; padding: 4px 10px 10px; cursor: auto; touch-action: auto; user-select: none; -webkit-user-select: none; }
+.side .panel { color: var(--ink); font-size: 13px; padding: 2px 0; }
 .side .panel[hidden] { display: none; }
 .side .head { display: block; width: 100%; text-align: left; font: inherit; font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; background: none; border: none; padding: 2px 0; cursor: pointer; }
 .side .head::after { content: " ▾"; }
 .side .head[aria-expanded="false"]::after { content: " ▸"; }
 .side .body[hidden] { display: none; }
-.side .warnings { border-color: var(--danger); background: var(--danger-soft); }
+.side .warnings { border: 1px solid var(--danger); background: var(--danger-soft); border-radius: 6px; padding: 6px 10px 8px; }
 .side .warnings h3 { font-size: 11px; margin: 2px 0 4px; color: var(--danger-ink); text-transform: uppercase; letter-spacing: 0.05em; }
 .side .warnings ul { list-style: none; margin: 0; padding: 0; }
 .side .warning { display: block; width: 100%; text-align: left; font: inherit; color: var(--danger-ink); background: none; border: none; border-radius: 4px; padding: 3px 4px; cursor: pointer; }
 .side .warning:active { background: var(--danger-hover); }
-.side .falstad-notes { border-color: var(--warn); background: var(--warn-soft); }
+.side .falstad-notes { border: 1px solid var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 6px 10px 8px; }
 .side .falstad-notes h3 { font-size: 11px; margin: 2px 0 4px; color: var(--warn-ink); text-transform: uppercase; letter-spacing: 0.05em; }
 .side .falstad-notes ul { margin: 0; padding-left: 16px; color: var(--warn-ink); }
 nav .falstad { display: flex; align-items: center; gap: 4px; }
@@ -221,7 +239,6 @@ nav .falstad .flag[hidden] { display: none; }
 .zoom button:first-child { border-top: none; }
 .zoom button:active { background: var(--press); }
 .zoom button[aria-pressed="true"] { color: var(--accent); }
-@media (max-width: 760px) { .info:not([hidden]) ~ .zoom { display: none; } }
 .gesture-hint { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; padding: 16px; text-align: center; font-size: 16px; color: var(--on-hint); background: var(--hint); opacity: 0; transition: opacity 200ms ease-out; pointer-events: none; }
 .gesture-hint.on { opacity: 1; }
 /* Hover only where there is a mouse: on touch a hover state sticks after the tap. */
@@ -237,10 +254,42 @@ nav .falstad .flag[hidden] { display: none; }
   nav button { height: 40px; min-width: 40px; }
   nav .menu button, nav .menu a { min-height: 40px; }
   .info .actions button, .side .clear, .control .hold { min-height: 40px; }
+  .info .icon-button { width: 40px; height: 40px; }
   .zoom button { width: 40px; height: 40px; }
 }
 /* The first-time hint (bar.js): what can be tapped and how to move, alone or inside a note. */
 .first-hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 2; box-sizing: border-box; width: max-content; max-width: calc(100% - 24px); display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; text-align: center; color: var(--on-tooltip); background: var(--tooltip); border-radius: 6px; font-size: 13px; line-height: 1.35; pointer-events: none; }
 .first-hint[hidden] { display: none; }
 .first-hint small { font-size: 12px; opacity: 0.8; }
-body.embedded .first-hint .alone, body:not(.embedded) .first-hint .framed { display: none; }`;
+body.embedded .first-hint .alone, body:not(.embedded) .first-hint .framed { display: none; }
+/* The inspector (inspector.js, UX pass U4): the card and the circuit's panels, in tabs. */
+.inspector { position: absolute; z-index: 2; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; color: var(--ink); background: var(--card); border: 1px solid var(--hair); cursor: auto; }
+.inspector[hidden] { display: none; }
+.inspector[data-tab="part"] .side, .inspector[data-tab="circuit"] .info { display: none; }
+.inspector .grip { display: none; flex: none; width: 36px; height: 4px; margin: 6px auto 0; border-radius: 2px; background: var(--hair-strong); }
+.inspector .tabs { flex: none; display: flex; align-items: center; gap: 2px; padding: 2px 4px 0 6px; border-bottom: 1px solid var(--hair-soft); }
+.inspector .tabs .spacer { flex: 1; }
+.inspector [role="tab"] { font: inherit; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 8px 6px; cursor: pointer; }
+.inspector [role="tab"][hidden] { display: none; }
+.inspector [role="tab"][aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.inspector .tabs.single [role="tab"] { border-bottom-color: transparent; }
+.inspector .collapse { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; color: var(--ink-3); background: none; border: none; border-radius: 4px; cursor: pointer; }
+.inspector .collapse:active { background: var(--press); }
+.inspector .collapse .icon { transition: transform 160ms var(--ease-out); }
+.model-badge { position: absolute; left: 8px; top: 8px; z-index: 1; display: none; background: var(--card); pointer-events: none; }
+body.show-results.focusing .model-badge { display: block; }
+@media (min-width: 761px) {
+  .inspector { top: 8px; right: 8px; width: 300px; max-height: calc(100% - 16px); border-radius: 6px; }
+  .inspector .collapse[aria-expanded="true"] .icon { transform: rotate(180deg); }
+  .zoom { right: auto; left: 8px; }
+}
+@media (max-width: 760px) {
+  .inspector { left: 0; right: 0; bottom: 0; height: 85%; border-bottom: none; border-radius: 12px 12px 0 0; transition: transform 280ms var(--ease-drawer); }
+  .inspector.dragging { transition: none; }
+  .inspector .grip { display: block; }
+  .inspector .tabs, .inspector .grip { touch-action: none; }
+  .inspector .collapse[aria-expanded="false"] .icon { transform: rotate(180deg); }
+  body.sheet-up .zoom { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .inspector { transition: none; } }
+@media (hover: hover) and (pointer: fine) { .inspector [role="tab"]:hover, .inspector .collapse:hover { color: var(--ink); } }`;

@@ -292,6 +292,12 @@ export function setupLive(page) {
     nav.insertBefore(group, nav.querySelector('.spacer'));
   }
   document.body.classList.add('live');
+  // The MODEL badge says which simulation this is: over time (C, L, a generator) or DC.
+  if (dynamic) {
+    page.modelText = t('page.model.time');
+    const badge = document.querySelector('.model-badge');
+    if (badge) badge.textContent = page.modelText;
+  }
 
   // Limits and controls. A change keeps the speed of time (so a larger R is seen charging more
   // slowly) but never a step too long for the new time constants.

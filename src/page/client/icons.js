@@ -16,6 +16,9 @@ export const ICONS = {
   restart: 'M3 8a5 5 0 1 0 1.6-3.7M3 2.5v3h3',
   more: 'M3.5 8v0M8 8v0M12.5 8v0',
   warning: 'M8 2l6.5 11.5h-13zM8 6.5v3M8 11.6v0',
+  chevron: 'M4 6l4 4 4-4',
+  eye: 'M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8zM8 9.8a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z',
+  close: 'M4 4l8 8M12 4l-8 8',
 };
 
 export const iconSvg = (name) => `<svg class="icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="${ICONS[name]}"/></svg>`;

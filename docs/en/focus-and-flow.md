@@ -27,8 +27,17 @@ page with those parts in focus (the ones a lesson is about).
   front, and a **card** opens: name and value, the kind of part (tap it to read what that kind
   of part is and how it works, from the kit), what it does **in this circuit** (its
   `description`, shown directly), and where each pin goes and what else is there ("B → c17, column 17 (rows a–e) — with R1 (2)").
-- **See through** (in the card) makes the part transparent, to see what is behind it.
-- **Tap the board** (or *Close*) to clear the focus.
+- **The card lives in the inspector**: a panel on the right on a wide screen, a bottom sheet on a
+  phone (three heights: a strip with the name and the values, half, full; drag it or tap its head).
+  Its head stays at the top: the name, **See through** (the eye: makes the part transparent, to see
+  what is behind it) and **Close** (✕). On a phone with the sheet folded, a line under it shows a
+  *MODEL* chip and the main values, each in a fixed slot so a changing value never pushes the others
+  (open, the *Simulation* section says the same, so the line hides). Then what it is, its values, its oscilloscope, its controls, and the pins, folded. When the
+  inspector opens over the part, the drawing moves so the part stays in view.
+- **The Circuit tab** of the inspector holds what concerns the whole circuit: the controls panel,
+  the warnings and the Falstad notes. With nothing tapped it is what the inspector shows (on a
+  phone, folded to a strip at the bottom so the circuit is free).
+- **Tap the board** (or ✕) to clear the focus.
 - With `"page": { "results": true }` the simulation is always on, with no button: the tapped
   part shows its simulated current and the voltages of its groups on the board, and all its
   values in the card.
@@ -127,7 +136,7 @@ A push button conducts while it is held, on the drawing or with *Hold to press* 
 change re-solves at once; a running circuit keeps going from where it was (a capacitor keeps
 its voltage, so changing R while it charges shows the new time constant).
 
-A lesson may put the two or three controls that matter in a panel (top right, folds away):
+A lesson may put the two or three controls that matter in a panel (in the inspector's *Circuit* tab):
 
 ```json
 "page": {
@@ -146,7 +155,7 @@ Fields: `part` or `supply` (a drawn battery is a `part`), `field` (`resistance`,
 
 **Limits.** Every part is compared with its limits (current, power, voltage, reverse voltage):
 near the limit (80–100 %) it gets an amber outline; past it, a pulsing red outline, a line in
-*Limits exceeded* (top right: "D1: current reached 100 mA (maximum 30 mA) · now 4.07 mA", the latched peak and the value now; tap it to open the part) and in
+*Limits exceeded* (in the *Circuit* tab, with a ⚠ n on the bar that leads there: "D1: current reached 100 mA (maximum 30 mA) · now 4.07 mA", the latched peak and the value now; tap it to open the part) and in
 its card. The mark stays even if the slider goes back or the peak was brief, until *Clear marks*
 or *Switch on (t = 0)*. In `simulate`, each part's `stress` lists the same comparisons.
 

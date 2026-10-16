@@ -19,7 +19,7 @@ Both use one exporter: `toFalstad(program, options)` in `src/sim/falstad.js`.
 - Each tap exports again from the engine's state (`engine.program()`): what you see is what
   opens.
 - When a part goes as an **equivalent** or is left out, **⚠ n** appears beside it; tapping it
-  opens the list in a side panel. The export happens anyway.
+  opens the list in the inspector's *Circuit* tab. The export happens anyway.
 
 | In the kit | In Falstad | Note |
 |---|---|---|

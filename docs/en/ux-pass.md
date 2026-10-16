@@ -30,7 +30,19 @@ with the tests green, this page and the roadmap up to date.
   menu (dot speed, Open in Falstad with its ⚠ n, What can I tap?, revision) with keyboard and
   focus handled, a warnings flag on the bar, the first-time hint over the drawing. Checked at
   390 px: no sideways scrolling (the clock hides below 400 px).
-- Next: U4.
+- ✅ U4 (2026-10-16): the inspector: one box with tabs (Part or Strip, Circuit), the card with a
+  head that stays at the top (title, eye, ✕) and a summary (a MODEL chip and the values), pins
+  folded, the circuit's panels in the Circuit tab; a panel on the right on wide screens, a bottom
+  sheet on phones (peek, half, full; dragged 1:1 with rubber band, landing by release velocity;
+  tapping its head steps it); the selected parts kept in the free area; the drawing's MODEL stamp
+  replaced by a badge in the frame's corner that says DC or *over time*. Checked in Chromium with
+  touch emulation (tap, flick up, flick down, tap the head).
+  - After the maintainer tried it (2026-10-16): the summary line shows only in a folded sheet (open,
+    it repeated the Simulation section) and each value has a fixed slot (8.5ch, monospaced) so a
+    value changing length no longer pushes the others; the card scrolls to its end at half height
+    (room at the bottom for the part of the sheet below the screen) and scrolls at all on Safari
+    (`touch-action: none` moved from `main` to the drawing's SVGs).
+- Next: U5.
 
 ## Who and what for
 

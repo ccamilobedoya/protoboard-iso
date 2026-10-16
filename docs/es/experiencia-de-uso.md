@@ -34,7 +34,21 @@ sesión termina con las pruebas en verde, esta página y la hoja de ruta al día
   Falstad con su ⚠ n, ¿Qué se puede tocar?, revisión) con teclado y foco resueltos, un aviso de
   límites en la barra, la ayuda de primera vez sobre el dibujo. Revisado a 390 px: nada se desliza
   de lado (el reloj se oculta por debajo de 400 px).
-- Sigue: U4.
+- ✅ U4 (2026-10-16): el inspector: una caja con pestañas (Componente o Tira, Circuito), la ficha con
+  un encabezado que queda arriba (título, ojo, ✕) y un resumen (una etiqueta MODELO y los valores),
+  las patas plegadas, los paneles del circuito en la pestaña Circuito; panel a la derecha en
+  pantallas anchas, hoja inferior en el celular (asomada, media, completa; se arrastra 1:1 con
+  resistencia en los extremos y cae según la velocidad al soltar; tocar su encabezado la sube); los
+  componentes elegidos quedan en la zona libre; el sello MODELO del dibujo pasa a una insignia en la
+  esquina del cuadro que dice DC o *en el tiempo*. Revisado en Chromium con emulación táctil (toque,
+  lanzar hacia arriba, hacia abajo, tocar el encabezado).
+  - Después de que el mantenedor la probó (2026-10-16): la línea de resumen solo aparece con la hoja
+    plegada (abierta, repetía la sección Simulación) y cada valor tiene una casilla fija (8,5ch,
+    monoespaciada) para que un valor que cambia de largo ya no empuje a los demás; la ficha se
+    desplaza hasta el final a media altura (espacio abajo para la parte de la hoja que queda fuera de
+    la pantalla) y se desplaza también en Safari (`touch-action: none` pasó de `main` a los SVG del
+    dibujo).
+- Sigue: U5.
 
 ## Para quién y para qué
 

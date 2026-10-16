@@ -68,7 +68,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `sim/controls.js` | bundleable: supplies' controls, slider maths (log, E24), stress levels; each device's own controls are in its module (`controls`, `set`) |
 | `sim/paths.js` | conductor view: current paths per part (package `paths` or a straight fallback), strip currents (Kirchhoff), voltage colours, dots of conventional current |
 | `sim/probes.js` | "where a value comes from": probes for voltages, arrows for currents |
-| `page.js`, `page/client/`, `page/style.js` | the embeddable page; `page/client/main.js` is the entry of its script (view, focus, card, tooltip modules); `view.js`: frame, gestures by context, zoom buttons; `bar.js`: the ⋯ menu (`page.menuAdd`) and the first-time hint; `icons.js`: the line icons, shared with `page.js` |
+| `page.js`, `page/client/`, `page/style.js` | the embeddable page; `page/client/main.js` is the entry of its script (view, focus, card, tooltip modules); `view.js`: frame, gestures by context, zoom buttons; `bar.js`: the ⋯ menu (`page.menuAdd`) and the first-time hint; `icons.js`: the line icons, shared with `page.js`; `inspector.js`: the box of the card (`.info`) and the circuit's panels (`.side`), tabs, panel or bottom sheet, keeping the selected parts in view |
 | `scripts/ux-shots.js` | screenshots of pages at five sizes, alone and inside a note (a Playwright snippet), for the UX pass |
 | `node/bundle.js` | the small bundler: allowed ES modules → one classic script for the page (engine, page script) |
 | `sim/generator.js` | the signal generator (bundleable): its waves (Falstad's), its peak; the engine sets the source to `waveAt` before each step |
@@ -144,8 +144,12 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
   `role="menuitemradio"` with `data-value` (`aria-checked`). Labels sit in `.label` (hidden on a
   narrow screen, so every button has a `title`). Modules put rarely used things in the menu with
   `page.menuAdd(el)`, never as new bar groups.
+- **The inspector** (`inspector.js`, U4): card.js fills `.info`, the live modules put their panels in
+  `.side` (`page.side`); neither positions anything. card.js calls `page.cardChanged()` after a card
+  opens or closes; panels that appear or hide are seen by a MutationObserver. The card's head
+  (`.head`: title and icon buttons) and `.summary` are what a peeking sheet shows, so keep them first.
 - **The views are `main > svg`**: buttons carry small svg icons too, so never select `main svg`.
-  Interface boxes inside `main` (card, side panel, zoom buttons) are listed in `page.inChrome`, so a
+  Interface boxes inside `main` (the inspector, the zoom buttons) are listed in `page.inChrome`, so a
   tap or a gesture on them is not a tap on the board.
 - **Gestures by context** (`page/client/view.js`, UX pass U1): `page.embedded` (inside an iframe and
   not full screen) and `body.embedded`; embedded, touch goes through the touch events (one finger is
