@@ -1,7 +1,8 @@
 // The kit against Falstad's CircuitJS, and the export itself (src/sim/falstad.js).
 //
 // Comparison: each case in test/falstad/cases/ against what Falstad gave for its exact export
-// (test/falstad/refs/, written by scripts/falstad.js). Offline: a case without a reference, or
+// (test/falstad/refs/, written by scripts/falstad.js): the DC operating point, or for the cases
+// with a signal generator the transient from t = 0, sample by sample with Falstad's step. Offline: a case without a reference, or
 // whose reference was run on another export (the exporter or a model changed), is skipped and
 // says so; run it again in Falstad (scripts/falstad.js snippet, then save).
 
@@ -20,6 +21,7 @@ const EXACT = 1e-6;
 const ALLOWED = {
   'mosfet-saturation': [0.08, "Falstad's text format has no channel-length modulation (λ = 0.01 /V here)"],
   'pot-zener': [0.08, "Falstad's Zener breakdown has another knee (both pass 5 mA at the same voltage)"],
+  'rectifier-half-wave': [0.003, "Newton's tolerance at the diode: each simulator stops iterating at a slightly different point (1 mV of 10 V)"],
 };
 
 for (const name of caseNames()) {
@@ -28,9 +30,22 @@ for (const name of caseNames()) {
   const skip = !ref ? 'no reference yet: run it in Falstad (scripts/falstad.js)' : ref.text !== text ? 'stale reference: the export changed, run it again in Falstad' : false;
   test(`falstad: ${name}`, { skip }, () => {
     assert.ok(ref.settled, 'Falstad had not settled');
+    const [tolerance, why] = ALLOWED[name] ?? [EXACT, 'same models'];
+    if (ref.times) {
+      // A transient: the kit with Falstad's step, from t = 0, sample by sample.
+      const kit = simulate(readCase(name), { analysis: 'transient', start: 'zero', stop: ref.times.at(-1), step: ref.step, points: 1e6 });
+      assert.ok(kit.ok);
+      for (const [node, values] of Object.entries(ref.nodes)) {
+        values.forEach((v, i) => {
+          const k = Math.round(ref.times[i] / ref.step);
+          const diff = Math.abs(kit.nodes[node][k] - v);
+          assert.ok(diff <= tolerance + EXACT * Math.abs(v), `${node} at ${ref.times[i]} s: kit ${kit.nodes[node][k]} V, Falstad ${v} V (${why})`);
+        });
+      }
+      return;
+    }
     const kit = simulate(readCase(name), { analysis: 'dc' });
     assert.ok(kit.ok);
-    const [tolerance, why] = ALLOWED[name] ?? [EXACT, 'same models'];
     for (const [node, v] of Object.entries(ref.nodes)) {
       const diff = Math.abs(kit.nodes[node] - v);
       assert.ok(diff <= tolerance + EXACT * Math.abs(v), `${node}: kit ${kit.nodes[node]} V, Falstad ${v} V (${why})`);

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "title": { "en": "RC driven by a square wave", "es": "RC con una onda cuadrada" },
+  "board": "bb830",
+  "supplies": [{ "id": "G1", "kind": "generator", "waveform": "square", "frequency": 100, "amplitude": 2.5, "offset": 2.5 }],
+  "parts": [
+    { "id": "R1", "type": "resistor", "value": "1k", "pins": ["T+24", "h24"] },
+    { "id": "C1", "type": "capacitor", "value": "1u", "pins": ["f24", "f25"] },
+    { "id": "W1", "type": "wire", "color": "black", "pins": ["j25", "T-25"] }
+  ]
+}

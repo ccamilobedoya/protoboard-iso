@@ -46,7 +46,19 @@ the tests green, this page and the roadmap up to date.
     the wall clock (10 to 20 s).
   - Only where the card shows the results. Tests in `test/scope.test.js`.
   - Values under 1e-15 are written as 0: they are the solver's rounding.
-- Next: phase 8, the signal generator; then the probes (plan below).
+- Phase 8 done: the signal generator.
+  - `sim/generator.js`: Falstad's waves (sine, square, triangle).
+  - A `kind: "generator"` supply, which the engine sets to its value at every step (transient and
+    live) and which gives `engine.periods()`.
+  - Frequency and amplitude sliders.
+  - The page runs one period a second, with at least 100 steps per period and a window of 4
+    periods.
+  - Falstad: the same source. In exact mode it is one step ahead, because Falstad uses the source
+    at the start of each step and the kit at its end.
+  - Transient cross-check: `rc-square` (5 nV) and `rectifier-half-wave` (1 mV, Newton's tolerance
+    at the diode).
+  - Tests in `test/generator.test.js`.
+- Next: phase 9, probes on nodes (plan below).
 
 ## Decisions
 
@@ -280,7 +292,7 @@ For the next session. The maintainer's decisions:
 | 5 | 5 · Controls and limits | card sliders, `page.controls`, momentary button, stress levels, latched mark, warnings panel; `stress` per part in `simulate` (a new field) |
 | 6 | 6 · Falstad cross-check | ✅ exporter (`sim/falstad.js`), *Open in Falstad* button, cases and references in `test/falstad/` with matched models (divider, LED + R, active BJT, Darlington and push button, bridge, MOSFET, potentiometer and Zener) |
 | 7 | 7 · Oscilloscope | ✅ in the tapped part's card: recording from the start (`sim/recorder.js`), a `scope` device hook (`sim/scope.js`), `page/client/scope.js` (two stacked plots, V and I, reusable) |
-| 8 | 8 · Signal generator | `generator` supply (sine, square, triangle) in the engine, the page, the sliders and Falstad; transient cases |
+| 8 | 8 · Signal generator | ✅ `generator` supply (sine, square, triangle) in the engine, the page, the sliders and Falstad; transients in the cross-check (`rc-square`, `rectifier-half-wave`) |
 | 9 | 9 · Probes on nodes | a node's card when a strip is tapped, with its voltage and its oscilloscope |
 
 Every phase: docs in English and Spanish, the roadmap ticked (both languages), the decision log in

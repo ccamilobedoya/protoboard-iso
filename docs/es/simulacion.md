@@ -68,12 +68,34 @@ sobre los dos. `switch: "off"` la desconecta.
 | Campo | Qué es | Por defecto |
 |---|---|---|
 | `id` | nombre en los resultados | `V1`, `V2`… |
-| `kind` | `bench` (fuente de banco) o `battery` (batería) | `bench` |
+| `kind` | `bench` (fuente de banco), `battery` (batería) o `generator` (generador de señales, abajo) | `bench` |
 | `voltage` | voltios | obligatorio, salvo en una batería con `format` o `chemistry` |
 | `format`, `chemistry`, `cells`, `charge`, `capacity` | una batería descrita como una batería dibujada | — |
 | `positive`, `negative` | agujero (`"T+9"`) o grupo (`"T+"`, `"12:f-j"`) de cada cable | `T+`, `T-` |
 | `currentLimit` | límite de la fuente de banco, A: por encima, la fuente sostiene la corriente (corriente constante, CC) y su voltaje baja | ninguno |
 | `internalResistance` | Ω | banco 0; batería según su formato, o 0,25 Ω por cada celda de 1,5 V si solo trae el voltaje |
+
+**Generador de señales** (`"kind": "generator"`): una fuente cuyo voltaje (tensión) cambia con el
+tiempo, como la salida de generador de un osciloscopio de banco.
+
+```json
+"supplies": [{ "id": "G1", "kind": "generator", "waveform": "sine", "frequency": 50, "amplitude": 10 }]
+```
+
+| Campo | Qué es | Por defecto |
+|---|---|---|
+| `waveform` | `sine` (seno), `square` (cuadrada) o `triangle` (triangular) | `sine` |
+| `frequency` | Hz | obligatorio |
+| `amplitude` | voltios de pico (la mitad del pico a pico) | 1 |
+| `offset` | desplazamiento de continua, voltios | 0 |
+| `resistance` | resistencia de salida, Ω (la de un generador de banco típico) | 50 |
+
+Las ondas son las de Falstad: el seno empieza en el desplazamiento subiendo, la cuadrada empieza
+arriba y la triangular empieza abajo. En DC vale su valor en t = 0; en el transitorio y en la página
+en vivo sigue la onda paso a paso. Su ficha no existe (no es un componente dibujado), pero el
+panel de controles puede llevar su frecuencia y su amplitud (`"field": "frequency"` /
+`"amplitude"`). En la página, el tiempo corre a un período por segundo y el paso da al menos 100
+por período. Ejemplos `half-wave-rectifier.json` y `rc-square-wave.json`.
 
 El negativo de la primera fuente es la **tierra** (0 V); sin `supplies`, el de la primera
 batería. Una segunda fuente sin conexión con la

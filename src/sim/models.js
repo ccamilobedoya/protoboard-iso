@@ -139,6 +139,10 @@ export const CERAMIC_VOLTAGE = 50;
 // parts, and supplies given a format or chemistry, use src/parts/batteries.js instead.)
 export const BATTERY_CELL_RESISTANCE = 0.25;
 
+// Signal generators: output resistance when the circuit does not give one. 50 Ω is the usual
+// value of bench function generators; give `resistance` when a generator's own is known.
+export const GENERATOR_RESISTANCE = 50;
+
 // Linear regulators (TO-220). The output follows the reference (GND for a 78xx, ADJ for the
 // LM317) plus its voltage, unless the input is too low: then it sits `dropout` volts below
 // the input (out of regulation). `quiescent`: current the chip itself takes from IN (to GND

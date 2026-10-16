@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "title": { "en": "Half-wave rectifier with a filter capacitor (signal generator, 50 Hz)", "es": "Rectificador de media onda con condensador de filtro (generador de señales, 50 Hz)" },
+  "board": "bb830",
+  "netLabels": { "T+": "G1", "T-": "GND" },
+  "supplies": [{ "id": "G1", "kind": "generator", "waveform": "sine", "frequency": 50, "amplitude": 10 }],
+  "page": {
+    "results": true,
+    "flow": true,
+    "controls": [
+      { "supply": "G1", "field": "frequency", "min": 1, "max": 1000, "label": { "en": "Generator frequency", "es": "Frecuencia del generador" } },
+      { "supply": "G1", "field": "amplitude", "max": 15, "label": { "en": "Generator amplitude (peak)", "es": "Amplitud del generador (pico)" } },
+      { "part": "R1", "field": "resistance", "label": { "en": "Load", "es": "Carga" } }
+    ]
+  },
+  "parts": [
+    { "id": "W1", "type": "wire", "color": "red", "pins": ["T+10", "j10"] },
+    { "id": "D1", "type": "diode", "part": "1N4007", "pins": { "A": "h10", "K": "h16" } },
+    { "id": "C1", "type": "capacitor", "value": "100u", "voltage": 25, "pins": { "+": "f16", "-": "f17" } },
+    { "id": "R1", "type": "resistor", "value": "1k", "pins": ["i16", "i21"] },
+    { "id": "W2", "type": "wire", "color": "black", "pins": ["j17", "T-17"] },
+    { "id": "W3", "type": "wire", "color": "black", "pins": ["j21", "T-21"] }
+  ]
+}

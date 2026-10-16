@@ -50,15 +50,23 @@ export function setupLive(page) {
   const f = (value, unit) => formatValue(value, unit, { decimal: live.decimal });
   const volts = (v) => f(Math.abs(v) < 1e-3 ? 0 : v, 'V');
 
-  // Time: how fast simulated time runs, and the step.
+  // Time: how fast simulated time runs, the step and the oscilloscope's window. With a signal
+  // generator, its period sets the pace: one period of the slowest per second, at least 100
+  // steps per period, a window of 4 periods. Otherwise the time constants: the longest every
+  // 2 s, a window of 5 of them.
   const engine = createEngine(program);
-  const taus = engine.timeConstants();
-  const dynamic = taus.length > 0;
-  const tauMax = dynamic ? Math.max(...taus) : 0;
-  const tauMin = dynamic ? Math.min(...taus) : 0;
-  const perSecond = tauMax / 2; // simulated seconds per real second
   const stepFor = (list) => Math.max(Math.min(...list) / 50, Math.max(...list) / 5000);
-  let h = dynamic ? stepFor(taus) : 0;
+  function timing(taus, periods) {
+    if (periods.length) {
+      const h = Math.min(taus.length ? stepFor(taus) : Infinity, Math.min(...periods) / 100);
+      return { h, perSecond: Math.max(...periods), window: 4 * Math.max(...periods), periodic: true };
+    }
+    if (taus.length) return { h: stepFor(taus), perSecond: Math.max(...taus) / 2, window: 5 * Math.max(...taus) };
+    return { h: 0, perSecond: 0, window: WALL_WINDOW };
+  }
+  let pace = timing(engine.timeConstants(), engine.periods());
+  const dynamic = pace.h > 0;
+  let h = pace.h;
   let running = dynamic;
   let stalled = false;
   let owed = 0;
@@ -72,7 +80,7 @@ export function setupLive(page) {
   // (or 10 s), then it stretches with the time up to twice that, and only then scrolls, so the
   // whole charge of a capacitor stays in view while it matters.
   const recorder = data.text.results ? createRecorder(SCOPE_SAMPLES) : null;
-  let scopeWindow = dynamic ? 5 * tauMax : WALL_WINDOW;
+  let scopeWindow = pace.window;
   let wallTime = 0;
   let lastRecord = -Infinity;
   let openScope = null;
@@ -275,10 +283,14 @@ export function setupLive(page) {
     decimal: live.decimal,
     changed() {
       if (dynamic) {
-        const now = engine.timeConstants();
-        if (now.length) {
-          h = Math.min(h, stepFor(now));
-          scopeWindow = 5 * Math.max(...now);
+        // A slider may change a time constant or a generator's frequency. Time keeps its speed
+        // (a larger R charges visibly slower, a higher frequency shows more periods a second);
+        // the step follows the new period (or never gets too long for a new time constant), and
+        // the oscilloscope's window too.
+        const now = timing(engine.timeConstants(), engine.periods());
+        if (now.h > 0) {
+          h = now.periodic ? now.h : Math.min(h, now.h);
+          scopeWindow = now.window;
         }
       }
       stalled = false;
@@ -298,7 +310,7 @@ export function setupLive(page) {
     const wall = last == null ? 0 : Math.min(now - last, 100) / 1000;
     last = now;
     if (running && dynamic && !stalled) {
-      owed += wall * perSecond;
+      owed += wall * pace.perSecond;
       const t0 = performance.now();
       while (owed >= h && performance.now() - t0 < BUDGET) {
         let ok = engine.step(h);

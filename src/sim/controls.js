@@ -16,8 +16,16 @@ import { batteryModel, cellVoltage } from '../parts/batteries.js';
 export const BENCH_MAX = 30; // volts: a common bench supply (0–30 V)
 
 // What a supply lets you change: a bench supply its voltage; a battery its charge (unless its
-// voltage was measured: then the charge says nothing about it).
+// voltage was measured: then the charge says nothing about it); a signal generator its frequency
+// and amplitude.
 export function supplyControls(s) {
+  if (s.generator) {
+    const g = s.generator;
+    return {
+      frequency: { min: 0.1, max: Math.max(10000, g.frequency), limit: [1e-3, 1e6], scale: 'log', unit: 'Hz', value: g.frequency },
+      amplitude: { min: 0, max: Math.max(10, g.amplitude), limit: [0, 1000], scale: 'linear', unit: 'V', step: 0.1, value: g.amplitude },
+    };
+  }
   if (s.battery) {
     if (s.battery.measured) return {};
     return { charge: { min: 0, max: 1, scale: 'linear', unit: '', percent: true, value: s.battery.charge ?? chargeFor(s.battery) } };
@@ -27,6 +35,12 @@ export function supplyControls(s) {
 
 // A new value for a supply (it is changed in place). False if the field is not one of its controls.
 export function setSupply(s, field, value) {
+  if (s.generator) {
+    if (field !== 'frequency' && field !== 'amplitude') return false;
+    if (field === 'frequency' && !(value > 0)) return false;
+    s.generator = { ...s.generator, [field]: value };
+    return true;
+  }
   if (field === 'voltage' && !s.battery) {
     s.voltage = value;
     return true;

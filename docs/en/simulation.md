@@ -64,12 +64,34 @@ wins over both. `switch: "off"` disconnects it.
 | Field | Meaning | Default |
 |---|---|---|
 | `id` | name in the results | `V1`, `V2`… |
-| `kind` | `bench` or `battery` | `bench` |
+| `kind` | `bench`, `battery` or `generator` (signal generator, below) | `bench` |
 | `voltage` | volts | required, unless a battery gives `format` or `chemistry` |
 | `format`, `chemistry`, `cells`, `charge`, `capacity` | a battery described like a battery part | — |
 | `positive`, `negative` | hole (`"T+9"`) or group (`"T+"`, `"12:f-j"`) of each lead | `T+`, `T-` |
 | `currentLimit` | bench supply limit, A: above it the supply holds the current (constant current, CC) and its voltage falls | none |
 | `internalResistance` | Ω | bench 0; battery by format, or 0.25 Ω per 1.5 V cell with only a voltage |
+
+**Signal generator** (`"kind": "generator"`): a supply whose voltage changes with time, like a
+bench oscilloscope's generator output.
+
+```json
+"supplies": [{ "id": "G1", "kind": "generator", "waveform": "sine", "frequency": 50, "amplitude": 10 }]
+```
+
+| Field | What | Default |
+|---|---|---|
+| `waveform` | `sine`, `square` or `triangle` | `sine` |
+| `frequency` | Hz | required |
+| `amplitude` | peak volts (half of peak to peak) | 1 |
+| `offset` | DC offset, volts | 0 |
+| `resistance` | output resistance, Ω (a typical bench generator's) | 50 |
+
+The waves are Falstad's: the sine starts at its offset rising, the square starts high and the
+triangle at the bottom. In DC it is its value at t = 0; in a transient and in the live page it
+follows the wave step by step. It has no card (it is not a drawn part), but the controls panel
+may carry its frequency and amplitude (`"field": "frequency"` / `"amplitude"`). In the page,
+time runs one period a second, with at least 100 steps per period. Examples
+`half-wave-rectifier.json` and `rc-square-wave.json`.
 
 The first supply's negative is **ground** (0 V); with no `supplies`, the first battery part's. A second supply with no connection to the
 first one feeds a separate circuit, measured from its own negative.

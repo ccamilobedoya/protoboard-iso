@@ -159,6 +159,7 @@ export default {
   'sim.unsupported': 'not simulated',
   'sim.mode.CV': 'constant voltage',
   'sim.mode.CC': 'constant current (at its limit)',
+  'sim.mode.GEN': 'signal generator (its value now)',
   'sim.brightness': 'brightness {percent} % of 20 mA',
   'sim.region.mosfet.off': 'off',
   'sim.region.mosfet.linear': 'on (linear region)',

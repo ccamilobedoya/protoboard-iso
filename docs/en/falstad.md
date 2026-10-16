@@ -27,6 +27,7 @@ Both use one exporter: `toFalstad(program, options)` in `src/sim/falstad.js`.
 | Diode, LED (with its colour), bipolar transistor | The same element, with the kit's model (`34` and `32` lines) | — |
 | Push button | Falstad's momentary switch: hold it with the mouse | — |
 | Bench supply | Ideal source (with its internal resistance, if any) | Only if its current limit is acting |
+| Signal generator | Falstad's source with the same wave, plus its output resistance | — |
 | Battery | Source with its internal resistance in series | Yes: its charge does not run down |
 | NTC, photoresistor | Fixed resistor at its value now | Yes: Falstad's sensors follow other curves |
 | Buzzer | Its coil, as a resistor | Yes |
@@ -85,7 +86,11 @@ version (`exact: true`):
 - capacitors and inductors integrate with backward Euler, as the kit does.
 
 Falstad runs each case until the voltages settle and returns every label's voltage, stored in
-`test/falstad/refs/<case>.json` with the exported text. `test/falstad.test.js` compares the kit
+`test/falstad/refs/<case>.json` with the exported text. Cases with a signal generator (`TRANSIENT`
+in `test/falstad/cases.js`) run from t = 0 to `stop` and are recorded step by step (`ontimestep`)
+with Falstad's step; the test runs the kit's transient with that same step and compares sample by
+sample. Falstad sets each source to its value at the start of a step, the kit at its end: in exact
+mode the generator is one step ahead (a 2π·f·h phase) so both use the same value. `test/falstad.test.js` compares the kit
 with those references **offline**:
 
 - with the same model, they must agree within 1 µV;
@@ -104,6 +109,8 @@ Results on 2026-10-15:
 | `bridge-rectifier` | 58 pV | same model |
 | `mosfet-saturation` (2N7000) | 57 mV | Falstad has no λ: 3 % less current |
 | `pot-zener` | 67 mV at the Zener; 0 at the potentiometer | the Zener's knee |
+| `rc-square` (transient, 952 steps) | 5 nV | same model |
+| `rectifier-half-wave` (transient, 500 steps) | 1 mV | Newton's tolerance at the diode |
 
 ### Running the cases in Falstad
 

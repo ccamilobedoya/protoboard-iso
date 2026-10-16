@@ -218,6 +218,11 @@
                   "required": [
                     "chemistry"
                   ]
+                },
+                {
+                  "required": [
+                    "frequency"
+                  ]
                 }
               ],
               "properties": {
@@ -228,9 +233,37 @@
                 "kind": {
                   "enum": [
                     "bench",
-                    "battery"
+                    "battery",
+                    "generator"
                   ],
-                  "description": "battery: like a battery part (format, chemistry, cells, charge), or only a voltage (0.25 Ω per 1.5 V cell unless given)"
+                  "description": "battery: like a battery part (format, chemistry, cells, charge), or only a voltage (0.25 Ω per 1.5 V cell unless given); generator: a signal generator (waveform, frequency, amplitude, offset, resistance)"
+                },
+                "waveform": {
+                  "enum": [
+                    "sine",
+                    "square",
+                    "triangle"
+                  ],
+                  "description": "generator: sine (default), square or triangle"
+                },
+                "frequency": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "description": "generator: hertz"
+                },
+                "amplitude": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "generator: peak volts (half of peak to peak), default 1"
+                },
+                "offset": {
+                  "type": "number",
+                  "description": "generator: DC offset, volts, default 0"
+                },
+                "resistance": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "generator: output resistance, ohms, default 50"
                 },
                 "format": {
                   "enum": [
@@ -318,7 +351,7 @@
               },
               "controls": {
                 "type": "array",
-                "description": "Live page: a panel with the controls a lesson puts in front (every adjustable part also has its own in its card). Each names a part or a supply and one of its controls: resistance (resistor), temperature (thermistor), light (photoresistor), position (potentiometer), pressed (push button, momentary), voltage (bench supply), charge (battery)",
+                "description": "Live page: a panel with the controls a lesson puts in front (every adjustable part also has its own in its card). Each names a part or a supply and one of its controls: resistance (resistor), temperature (thermistor), light (photoresistor), position (potentiometer), pressed (push button, momentary), voltage (bench supply), charge (battery), frequency and amplitude (signal generator)",
                 "items": {
                   "type": "object",
                   "properties": {
@@ -338,7 +371,9 @@
                         "position",
                         "pressed",
                         "voltage",
-                        "charge"
+                        "charge",
+                        "frequency",
+                        "amplitude"
                       ]
                     },
                     "min": {

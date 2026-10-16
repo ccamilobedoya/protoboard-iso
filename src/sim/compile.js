@@ -10,14 +10,15 @@
 //   ground:   name of the group at 0 V (the first supply's −)
 //   nodes:    every other group, in index order (board groups, then supply groups)
 //   members:  group → ids of the parts with a lead in it (for the floating warning)
-//   supplies: [{ id, kind, part?, voltage, internalResistance, p, n, currentLimit, battery?, off? }]
+//   supplies: [{ id, kind, part?, voltage, internalResistance, p, n, currentLimit, battery?, generator?, off? }]
 //   devices:  [{ id, type, kind, pins: [{ name, node }], params } | { id, kind, pins, unsupported: true }]
 //   issues:   what compiling found (default models, parts not simulated, a battery switched off)
 // }
 
 import { buildCircuit } from '../circuit/build.js';
-import { BATTERY_CELL_RESISTANCE } from './models.js';
+import { BATTERY_CELL_RESISTANCE, GENERATOR_RESISTANCE } from './models.js';
 import { batteryModel } from '../parts/batteries.js';
+import { WAVEFORMS, waveAt } from './generator.js';
 import { deviceFor } from './devices/index.js';
 import { issue } from './devices/shared.js';
 
@@ -31,12 +32,20 @@ function resolveSupplyNode(board, ref) {
 
 // A battery in `supplies` may be described like a battery part (format, chemistry, cells,
 // charge) or only by its voltage (then 0.25 Ω per 1.5 V of cells, as alkaline AA cells).
+// A signal generator (kind "generator"): waveform, frequency (Hz), amplitude (peak volts), offset
+// (volts) and its output resistance (default GENERATOR_RESISTANCE); its `voltage` is the one at
+// t = 0, and the engine moves it with time (generator.js).
 const BATTERY_FIELDS = ['format', 'chemistry', 'cells', 'charge', 'capacity'];
 
 function supplyList(circuit) {
   return (Array.isArray(circuit.supplies) ? circuit.supplies : []).map((s, i) => {
     const kind = s.kind ?? 'bench';
     const common = { id: s.id ?? `V${i + 1}`, kind, positive: s.positive ?? 'T+', negative: s.negative ?? 'T-', currentLimit: s.currentLimit === undefined ? null : Number(s.currentLimit) };
+    if (kind === 'generator') {
+      const generator = { waveform: s.waveform ?? 'sine', frequency: Number(s.frequency), amplitude: Number(s.amplitude ?? 1), offset: Number(s.offset ?? 0) };
+      const ok = WAVEFORMS.includes(generator.waveform) && generator.frequency > 0 && generator.amplitude >= 0 && Number.isFinite(generator.offset);
+      return { ...common, generator, voltage: ok ? waveAt(generator, 0) : NaN, internalResistance: Number(s.resistance ?? s.internalResistance ?? GENERATOR_RESISTANCE) };
+    }
     if (kind === 'battery' && BATTERY_FIELDS.some((f) => s[f] !== undefined)) {
       const model = batteryModel(s);
       if (model.error) return { ...common, voltage: NaN };
@@ -67,7 +76,7 @@ export function compile(circuit) {
   for (const s of supplies) {
     s.p = resolveSupplyNode(built.board, s.positive);
     s.n = resolveSupplyNode(built.board, s.negative);
-    if (!s.p || !s.n || s.p === s.n || !(Number.isFinite(s.voltage) && s.voltage >= 0)) {
+    if (!s.p || !s.n || s.p === s.n || !(Number.isFinite(s.voltage) && (s.voltage >= 0 || s.generator))) {
       return { issues: [issue('error', 'SIM_BAD_SUPPLY', { supply: s.id })], fatal: true };
     }
     delete s.positive;

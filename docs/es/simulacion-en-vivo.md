@@ -49,7 +49,19 @@ Esta página es la referencia del trabajo, que toma varias sesiones. Cada sesió
     el reloj de pared (10 a 20 s).
   - Solo donde la ficha muestra resultados. Pruebas en `test/scope.test.js`.
   - Los valores por debajo de 1e-15 se escriben como 0: es redondeo del simulador.
-- Siguiente: fase 8, el generador de señales; después las sondas (plan más abajo).
+- Fase 8 hecha: el generador de señales.
+  - `sim/generator.js`: las ondas de Falstad (seno, cuadrada, triangular).
+  - Una fuente `kind: "generator"`, que el motor pone en su valor en cada paso (en el transitorio y
+    en vivo) y que da `engine.periods()`.
+  - Deslizadores de frecuencia y amplitud.
+  - La página corre a un período por segundo, con al menos 100 pasos por período y una ventana de
+    4 períodos.
+  - Falstad: la misma fuente. En el modo exacto va adelantada un paso, porque Falstad usa la fuente
+    al empezar cada paso y el kit al terminarlo.
+  - Comparación con transitorios: `rc-square` (5 nV) y `rectifier-half-wave` (1 mV, la tolerancia
+    de Newton en el diodo).
+  - Pruebas en `test/generator.test.js`.
+- Siguiente: fase 9, las sondas en los nodos (plan más abajo).
 
 ## Decisiones
 
@@ -299,7 +311,7 @@ Para la próxima sesión. Decisiones de Cris:
 | 5 | 5 · Controles y límites | deslizadores en la ficha, `page.controls`, pulsador momentáneo, niveles de esfuerzo, marca que se queda, panel de avisos; `stress` por componente en `simulate` (campo nuevo) |
 | 6 | 6 · Comparación con Falstad | ✅ exportador (`sim/falstad.js`), botón *Abrir en Falstad*, casos y referencias en `test/falstad/` con modelos igualados (divisor, LED + R, BJT activo, Darlington y pulsador, puente, MOSFET, potenciómetro y Zener) |
 | 7 | 7 · Osciloscopio | ✅ en la ficha del componente tocado: grabación desde el arranque (`sim/recorder.js`), gancho `scope` por dispositivo (`sim/scope.js`), `page/client/scope.js` (dos gráficas apiladas, V e I, reutilizable) |
-| 8 | 8 · Generador de señales | fuente `generator` (seno, cuadrada, triangular) en el motor, la página, los deslizadores y Falstad; casos con transitorio |
+| 8 | 8 · Generador de señales | ✅ fuente `generator` (seno, cuadrada, triangular) en el motor, la página, los deslizadores y Falstad; transitorios en la comparación (`rc-square`, `rectifier-half-wave`) |
 | 9 | 9 · Sondas en los nodos | ficha del nodo al tocar una tira, con su voltaje y su osciloscopio |
 
 En cada fase:

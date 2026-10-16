@@ -32,8 +32,10 @@ Requires Node.js 18 or newer. No npm dependencies.
 5. `--annotate pins,nodes,boxes,grid` (or `all`) adds hole names, connected groups, part
    boxes and full column numbers: use it to point at exact holes or to teach the strips.
 6. Voltages and currents: add a source, either `"supplies": [{ "id": "V1", "voltage": 5 }]` (a
-   bench supply on the rails, not drawn) or a `battery` part (drawn beside the board: `format`
-   AA/AAA/18650/9V/pouch, `cells` in series, `chemistry`, `charge`), and run
+   bench supply on the rails, not drawn), a signal generator (`"kind": "generator"`, `waveform`
+   sine/square/triangle, `frequency`, `amplitude` peak, `offset`) or a `battery` part (drawn
+   beside the board: `format` AA/AAA/18650/9V/pouch, `cells` in series, `chemistry`, `charge`),
+   and run
    `node <skill>/bin/protoboard-iso.js simulate circuit.json` (or `render --sim`). Never compute
    them by hand, and never show a value a learner is asked to predict. See `docs/en/simulation.md`.
 

@@ -3,6 +3,7 @@
 // fails if the files are out of date. Editors use them for completion, the MCP server for
 // its tool input schemas.
 
+import { WAVEFORMS } from './sim/generator.js';
 import { PART_TYPES } from './parts/types/index.js';
 import { BOARDS } from './board/board.js';
 import { VIEWS } from './core/camera.js';
@@ -87,10 +88,15 @@ export function buildSchemas() {
         description: 'Simulation: where the power comes from, besides battery parts. The first supply\'s negative is ground (0 V); with none, the first battery part\'s.',
         items: {
           type: 'object',
-          anyOf: [{ required: ['voltage'] }, { required: ['format'] }, { required: ['chemistry'] }],
+          anyOf: [{ required: ['voltage'] }, { required: ['format'] }, { required: ['chemistry'] }, { required: ['frequency'] }],
           properties: {
             id: { type: 'string', description: 'e.g. V1' },
-            kind: { enum: ['bench', 'battery'], description: 'battery: like a battery part (format, chemistry, cells, charge), or only a voltage (0.25 Ω per 1.5 V cell unless given)' },
+            kind: { enum: ['bench', 'battery', 'generator'], description: 'battery: like a battery part (format, chemistry, cells, charge), or only a voltage (0.25 Ω per 1.5 V cell unless given); generator: a signal generator (waveform, frequency, amplitude, offset, resistance)' },
+            waveform: { enum: WAVEFORMS, description: 'generator: sine (default), square or triangle' },
+            frequency: { type: 'number', exclusiveMinimum: 0, description: 'generator: hertz' },
+            amplitude: { type: 'number', minimum: 0, description: 'generator: peak volts (half of peak to peak), default 1' },
+            offset: { type: 'number', description: 'generator: DC offset, volts, default 0' },
+            resistance: { type: 'number', minimum: 0, description: 'generator: output resistance, ohms, default 50' },
             format: { enum: Object.keys(BATTERY_FORMATS) },
             chemistry: { enum: BATTERY_CHEMISTRIES },
             cells: { type: 'integer', minimum: 1, maximum: 12 },
@@ -114,13 +120,13 @@ export function buildSchemas() {
           focus: { type: 'array', items: text, description: 'Parts in focus when the page opens (the ones being explained)' },
           controls: {
             type: 'array',
-            description: 'Live page: a panel with the controls a lesson puts in front (every adjustable part also has its own in its card). Each names a part or a supply and one of its controls: resistance (resistor), temperature (thermistor), light (photoresistor), position (potentiometer), pressed (push button, momentary), voltage (bench supply), charge (battery)',
+            description: 'Live page: a panel with the controls a lesson puts in front (every adjustable part also has its own in its card). Each names a part or a supply and one of its controls: resistance (resistor), temperature (thermistor), light (photoresistor), position (potentiometer), pressed (push button, momentary), voltage (bench supply), charge (battery), frequency and amplitude (signal generator)',
             items: {
               type: 'object',
               properties: {
                 part: { type: 'string', description: 'id of the part' },
                 supply: { type: 'string', description: 'id of a supply (a drawn battery: use part)' },
-                field: { enum: ['resistance', 'temperature', 'light', 'position', 'pressed', 'voltage', 'charge'] },
+                field: { enum: ['resistance', 'temperature', 'light', 'position', 'pressed', 'voltage', 'charge', 'frequency', 'amplitude'] },
                 min: { type: 'number', description: 'slider start, in the unit of the field (ohms, °C, lux, 0…1, volts)' },
                 max: { type: 'number', description: 'slider end' },
                 scale: { enum: ['linear', 'log'] },

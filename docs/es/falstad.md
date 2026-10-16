@@ -30,6 +30,7 @@ Las dos usan el mismo exportador: `toFalstad(program, opciones)` en `src/sim/fal
 | Diodo, LED (con su color), transistor bipolar | La misma pieza, con el modelo del kit (líneas `34` y `32`) | — |
 | Pulsador | El interruptor momentáneo de Falstad: se mantiene presionado con el mouse | — |
 | Fuente de banco | Fuente ideal (con su resistencia interna, si tiene) | Solo si su límite de corriente está actuando |
+| Generador de señales | La fuente de Falstad con la misma onda, más su resistencia de salida | — |
 | Batería | Fuente con su resistencia interna en serie | Sí: la carga no baja con el uso |
 | NTC, fotorresistencia | Resistencia fija con su valor de ahora | Sí: los sensores de Falstad siguen otra curva |
 | Zumbador | Su bobina, como resistencia | Sí |
@@ -88,7 +89,11 @@ la versión **exacta** (`exact: true`):
 - condensadores y bobinas usan Euler hacia atrás, como el kit.
 
 Falstad corre cada caso hasta que los voltajes (tensiones) se quietan y devuelve el voltaje de
-cada etiqueta. Eso se guarda en `test/falstad/refs/<caso>.json`, junto con el texto exportado.
+cada etiqueta. Los casos con un generador de señales (`TRANSIENT` en `test/falstad/cases.js`) se
+corren desde t = 0 hasta `stop` y se guardan paso a paso (con `ontimestep`), con el paso de Falstad;
+la prueba corre el transitorio del kit con ese mismo paso y compara muestra por muestra. Falstad
+pone cada fuente en su valor al empezar el paso y el kit al terminarlo: en el modo exacto el
+generador va adelantado un paso (un desfase de 2π·f·h) para que los dos usen el mismo valor. Eso se guarda en `test/falstad/refs/<caso>.json`, junto con el texto exportado.
 `test/falstad.test.js` compara el kit con esas referencias **sin red**:
 
 - con el mismo modelo, la diferencia debe ser menor que 1 µV;
@@ -107,6 +112,8 @@ Resultado del 2026-10-15:
 | `bridge-rectifier` | 58 pV | mismo modelo |
 | `mosfet-saturation` (2N7000) | 57 mV | Falstad sin λ: 3 % menos corriente |
 | `pot-zener` | 67 mV en el Zener; 0 en el potenciómetro | la rodilla del Zener |
+| `rc-square` (transitorio, 952 pasos) | 5 nV | mismo modelo |
+| `rectifier-half-wave` (transitorio, 500 pasos) | 1 mV | la tolerancia de Newton en el diodo |
 
 ### Correr los casos en Falstad
 

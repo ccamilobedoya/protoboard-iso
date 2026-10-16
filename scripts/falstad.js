@@ -33,7 +33,8 @@ import { createEngine } from '../src/sim/engine.js';
 import { toFalstad, FALSTAD_URL } from '../src/sim/falstad.js';
 import { caseNames, exportCase, readRef, refFile, REFS, CASES } from '../test/falstad/cases.js';
 
-// Runs in Falstad's page: import, run, wait until no node moves more than 1 µV in 300 ms.
+// Runs in Falstad's page: import, run, and either wait until no node moves more than 1 µV in
+// 300 ms (DC), or record every time step up to `stop` (transient: at most 1000 samples kept).
 function browserRun(cases) {
   return (async () => {
     const sim = window.CircuitJS1;
@@ -43,6 +44,28 @@ function browserRun(cases) {
     // give Falstad a moment, and count as settled only a run whose clock moved on.
     await wait(1000);
     for (const c of cases) {
+      if (c.stop) {
+        const samples = [];
+        let done = false;
+        const every = Math.max(1, Math.round(c.stop / c.step / 1000));
+        let k = 0;
+        sim.ontimestep = () => {
+          if (done) return;
+          const time = sim.getTime();
+          if (k++ % every === 0 || time >= c.stop) samples.push([time, ...c.nodes.map((n) => sim.getNodeVoltage(n))]);
+          if (time >= c.stop - c.step / 2) {
+            done = true;
+            sim.setSimRunning(false);
+          }
+        };
+        sim.importCircuit(c.text, false);
+        sim.setSimRunning(true);
+        for (let w = 0; w < 600 && !done; w++) await wait(100);
+        sim.ontimestep = null;
+        sim.setSimRunning(false);
+        out.cases[c.name] = { text: c.text, time: sim.getTime(), settled: done, step: sim.getTimeStep(), times: samples.map((s) => s[0]), nodes: Object.fromEntries(c.nodes.map((n, i) => [n, samples.map((s) => s[i + 1])])) };
+        continue;
+      }
       sim.importCircuit(c.text, false);
       sim.setSimRunning(true);
       let last = null;
@@ -71,7 +94,7 @@ if (command === 'list') {
 } else if (command === 'snippet') {
   const value = (flag) => (args.includes(flag) ? args[args.indexOf(flag) + 1] : null);
   const names = args.filter((a, i) => !a.startsWith('-') && !['-o', '--browser-dir'].includes(args[i - 1]));
-  const cases = (names.length ? names : caseNames()).map(exportCase).map(({ name, text, nodes }) => ({ name, text, nodes }));
+  const cases = (names.length ? names : caseNames()).map(exportCase).map(({ name, text, nodes, stop, step }) => ({ name, text, nodes, stop, step }));
   const out = value('-o');
   let code;
   if (args.includes('--playwright')) {
@@ -106,7 +129,8 @@ if (command === 'list') {
       continue;
     }
     if (!c.settled) console.warn(`${name}: Falstad had not settled after ${c.time} s of simulated time`);
-    writeFileSync(refFile(name), JSON.stringify({ falstad: result.falstad, text: c.text, time: c.time, settled: c.settled, nodes: c.nodes }, null, 1) + '\n');
+    const { text, time, settled, nodes, step, times } = c;
+    writeFileSync(refFile(name), JSON.stringify({ falstad: result.falstad, text, time, settled, ...(times && { step, times }), nodes }, null, 1) + '\n');
     console.log(`Saved test/falstad/refs/${name}.json`);
   }
 } else if (command === 'url') {

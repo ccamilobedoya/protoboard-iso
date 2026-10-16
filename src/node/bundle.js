@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, relative, resolve } from 'node:path';
 
 const SRC = dirname(dirname(fileURLToPath(import.meta.url)));
-export const ALLOWED = ['sim/engine.js', 'sim/controls.js', 'sim/mna.js', 'sim/models.js', 'sim/look.js', 'sim/lines.js', 'sim/falstad.js', 'sim/falstad-layout.js', 'sim/scope.js', 'sim/recorder.js', 'sim/devices/', 'parts/batteries.js', 'parts/sensors.js', 'core/units.js', 'page/client/'];
+export const ALLOWED = ['sim/engine.js', 'sim/controls.js', 'sim/mna.js', 'sim/models.js', 'sim/look.js', 'sim/lines.js', 'sim/falstad.js', 'sim/falstad-layout.js', 'sim/scope.js', 'sim/recorder.js', 'sim/generator.js', 'sim/devices/', 'parts/batteries.js', 'parts/sensors.js', 'core/units.js', 'page/client/'];
 
 const IMPORT = /^import\s*\{([^}]*)\}\s*from\s*'([^']+)';?[ \t]*$/gm;
 const EXPORT = /^export\s+(?:async\s+)?(?:function\*?|const|let|class)\s+([A-Za-z_$][\w$]*)/gm;

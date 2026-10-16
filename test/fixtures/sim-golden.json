@@ -1581,6 +1581,336 @@
    }
   }
  },
+ "half-wave-rectifier.json": {
+  "result": {
+   "analysis": "dc",
+   "model": true,
+   "ok": true,
+   "iterations": 1,
+   "ground": "T-",
+   "nodes": {
+    "T-": 0,
+    "T+": 0,
+    "10:f-j": 0,
+    "16:f-j": 0,
+    "17:f-j": 0,
+    "21:f-j": 0
+   },
+   "parts": {
+    "W1": {
+     "kind": "W",
+     "pins": {
+      "1": 0,
+      "2": 0
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    },
+    "D1": {
+     "kind": "D",
+     "pins": {
+      "A": 0,
+      "K": 0
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "pinCurrents": {
+      "A": 0,
+      "K": 0
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0,
+       "max": 1,
+       "unit": "A",
+       "ratio": 0,
+       "level": "fine"
+      }
+     ]
+    },
+    "C1": {
+     "kind": "C",
+     "pins": {
+      "+": 0,
+      "-": 0
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "pinCurrents": {
+      "+": 0,
+      "-": 0
+     },
+     "stress": [
+      {
+       "quantity": "reverse",
+       "value": 0,
+       "max": 0.5,
+       "unit": "V",
+       "ratio": 0,
+       "level": "fine"
+      },
+      {
+       "quantity": "voltage",
+       "value": 0,
+       "max": 25,
+       "unit": "V",
+       "ratio": 0,
+       "level": "fine"
+      }
+     ]
+    },
+    "R1": {
+     "kind": "R",
+     "pins": {
+      "1": 0,
+      "2": 0
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 0,
+       "level": "fine"
+      }
+     ]
+    },
+    "W2": {
+     "kind": "W",
+     "pins": {
+      "1": 0,
+      "2": 0
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    },
+    "W3": {
+     "kind": "W",
+     "pins": {
+      "1": 0,
+      "2": 0
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    }
+   },
+   "supplies": {
+    "G1": {
+     "kind": "generator",
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "mode": "GEN",
+     "peak": 10
+    }
+   },
+   "issues": []
+  },
+  "text": {
+   "en": "DC operating point — a model, not a measurement (1 Newton iterations).\nSupplies:\n  G1     0 V        0 A        0 W        signal generator (its value now)\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  rail T+ (G1)                   0 V\n  column 10 (rows f–j)           0 V\n  column 16 (rows f–j)           0 V\n  column 17 (rows f–j)           0 V\n  column 21 (rows f–j)           0 V\nParts:\n  W1     0 V        0 A        0 W\n  D1     0 V        0 A        0 W\n  C1     0 V        0 A        0 W\n  R1     0 V        0 A        0 W\n  W2     0 V        0 A        0 W\n  W3     0 V        0 A        0 W",
+   "es": "Punto de operación en DC — un modelo, no una medición (1 iteraciones de Newton).\nFuentes:\n  G1     0 V        0 A        0 W        generador de señales (su valor ahora)\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  riel T+ (G1)                   0 V\n  columna 10 (filas f–j)         0 V\n  columna 16 (filas f–j)         0 V\n  columna 17 (filas f–j)         0 V\n  columna 21 (filas f–j)         0 V\nComponentes:\n  W1     0 V        0 A        0 W\n  D1     0 V        0 A        0 W\n  C1     0 V        0 A        0 W\n  R1     0 V        0 A        0 W\n  W2     0 V        0 A        0 W\n  W3     0 V        0 A        0 W"
+  },
+  "lines": {
+   "en": {
+    "W1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "C1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "R1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W3": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ]
+   },
+   "es": {
+    "W1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "C1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "R1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W3": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ]
+   }
+  }
+ },
  "led-resistor.json": {
   "result": {
    "analysis": "dc",
@@ -3706,6 +4036,198 @@
      {
       "key": "floating",
       "text": "flotante"
+     }
+    ]
+   }
+  }
+ },
+ "rc-square-wave.json": {
+  "result": {
+   "analysis": "dc",
+   "model": true,
+   "ok": true,
+   "iterations": 2,
+   "ground": "T-",
+   "nodes": {
+    "T-": 0,
+    "T+": 4.9999999995,
+    "24:f-j": 4.9999999944999995,
+    "25:f-j": 0
+   },
+   "parts": {
+    "R1": {
+     "kind": "R",
+     "pins": {
+      "1": 4.9999999995,
+      "2": 4.9999999944999995
+     },
+     "voltage": 5.000000413701855e-9,
+     "current": 5.000000413701855e-12,
+     "power": 2.500000413701872e-20,
+     "pinCurrents": {
+      "1": 5.000000413701855e-12,
+      "2": -5.000000413701855e-12
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 2.500000413701872e-20,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 1.0000001654807488e-19,
+       "level": "fine"
+      }
+     ]
+    },
+    "C1": {
+     "kind": "C",
+     "pins": {
+      "+": 4.9999999944999995,
+      "-": 0
+     },
+     "voltage": 4.9999999944999995,
+     "current": 0,
+     "power": 0,
+     "pinCurrents": {
+      "+": 0,
+      "-": 0
+     },
+     "stress": [
+      {
+       "quantity": "reverse",
+       "value": -4.9999999944999995,
+       "max": 0.5,
+       "unit": "V",
+       "ratio": -9.999999988999999,
+       "level": "fine"
+      },
+      {
+       "quantity": "voltage",
+       "value": 4.9999999944999995,
+       "max": 25,
+       "unit": "V",
+       "ratio": 0.19999999978,
+       "level": "fine"
+      }
+     ]
+    },
+    "W1": {
+     "kind": "W",
+     "pins": {
+      "1": 0,
+      "2": 0
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    }
+   },
+   "supplies": {
+    "G1": {
+     "kind": "generator",
+     "voltage": 4.9999999995,
+     "current": 1.4999996145355354e-11,
+     "power": 7.499998071927678e-11,
+     "mode": "GEN",
+     "peak": 5
+    }
+   },
+   "issues": []
+  },
+  "text": {
+   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  G1     5 V        15 pA      75 pW      signal generator (its value now)\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  rail T+ (G1)                   5 V\n  column 24 (rows f–j)           5 V\n  column 25 (rows f–j)           0 V\nParts:\n  R1     5 nV       5 pA       0 W\n  C1     5 V        0 A        0 W\n  W1     0 V        0 A        0 W",
+   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  G1     5 V        15 pA      75 pW      generador de señales (su valor ahora)\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  riel T+ (G1)                   5 V\n  columna 24 (filas f–j)         5 V\n  columna 25 (filas f–j)         0 V\nComponentes:\n  R1     5 nV       5 pA       0 W\n  C1     5 V        0 A        0 W\n  W1     0 V        0 A        0 W"
+  },
+  "lines": {
+   "en": {
+    "R1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 5 nV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 5 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "C1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 5 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ]
+   },
+   "es": {
+    "R1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 5 nV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 5 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "C1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 5 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
      }
     ]
    }

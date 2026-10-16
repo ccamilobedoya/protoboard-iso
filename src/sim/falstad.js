@@ -20,6 +20,7 @@
 
 import { VT } from './models.js';
 import { DEVICE_BY_TYPE } from './devices/index.js';
+import { FALSTAD_WAVEFORM, peakOf } from './generator.js';
 import { createEngine } from './engine.js';
 import { layoutFalstad, escapeName } from './falstad-layout.js';
 
@@ -83,8 +84,10 @@ export function createBuilder({ exact = false } = {}) {
     pushButton(a, b, pressed) {
       f.two('s', a, b, [pressed ? 0 : 1, 'true']);
     },
-    voltage(minus, plus, v) {
-      f.two('v', minus, plus, [0, 40, num(v), 0, 0, 0.5]);
+    // A source: DC, or a generator's wave (VoltageElm: waveform, frequency, peak, offset).
+    // phase (radians): see exportSupply.
+    voltage(minus, plus, v, wave = null, phase = 0) {
+      f.two('v', minus, plus, wave ? [FALSTAD_WAVEFORM[wave.waveform], num(wave.frequency), num(wave.amplitude), num(wave.offset), num(phase), 0.5] : [0, 40, num(v), 0, 0, 0.5]);
     },
     ground(node) {
       ground = node;
@@ -95,14 +98,17 @@ export function createBuilder({ exact = false } = {}) {
 }
 
 // A supply: an ideal source behind its internal resistance (none for a bench supply set so).
-function exportSupply(s, f, reading) {
+// A generator in exact mode is shifted by one time step h: Falstad sets a source to its value at
+// the start of each step, the kit (backward Euler) at its end, and the shift makes both solve
+// every step with the same value.
+function exportSupply(s, f, reading, h) {
   if (s.off) {
     if (s.part) f.note('falstad.batteryOff', { part: s.part });
     return;
   }
   const r = s.internalResistance ?? 0;
   const top = r > 0 ? f.inner(s.part ?? s.id) : s.p;
-  f.voltage(s.n, top, s.voltage);
+  f.voltage(s.n, top, s.voltage, s.generator, s.generator && f.exact ? 2 * Math.PI * s.generator.frequency * h : 0);
   if (r > 0) f.resistor(top, s.p, r);
   if (s.part || s.battery) f.note('falstad.battery', { part: s.part ?? s.id, voltage: { value: s.voltage, unit: 'V' }, resistance: { value: r, unit: 'Ω' } });
   // The current limit of a bench supply is not exported: say so when it is acting now.
@@ -110,10 +116,12 @@ function exportSupply(s, f, reading) {
   if (now?.mode === 'CC') f.note('falstad.currentLimit', { supply: s.id, limit: { value: s.currentLimit, unit: 'A' } });
 }
 
-// The step Falstad starts with: as the live page (live.js stepFor), or 5 µs with no C or L.
-function timeStep(taus) {
-  if (!taus?.length) return 5e-6;
-  const h = Math.max(Math.min(...taus) / 50, Math.max(...taus) / 5000);
+// The step Falstad starts with: as the live page (live.js stepFor), at least 100 per period of a
+// generator, or 5 µs with neither C, L nor a generator.
+function timeStep(taus, periods = []) {
+  let h = taus?.length ? Math.max(Math.min(...taus) / 50, Math.max(...taus) / 5000) : Infinity;
+  if (periods.length) h = Math.min(h, Math.min(...periods) / 100);
+  if (!Number.isFinite(h)) return 5e-6;
   return Math.min(1e-2, Math.max(1e-9, h));
 }
 
@@ -125,9 +133,11 @@ export function toFalstad(program, { exact = false, reading = null, timeConstant
     if (!reading && engine.start('dc')) reading = engine.read();
     timeConstants ??= engine.timeConstants();
   }
+  const periods = program.supplies.filter((s) => s.generator && !s.off).map((s) => 1 / s.generator.frequency);
+  const step = timeStep(timeConstants, periods);
   const f = createBuilder({ exact });
   f.ground(program.ground);
-  for (const s of program.supplies) exportSupply(s, f, reading);
+  for (const s of program.supplies) exportSupply(s, f, reading, step);
   for (const d of program.devices) {
     const device = !d.unsupported && DEVICE_BY_TYPE[d.type];
     if (device?.falstad) device.falstad(d, f);
@@ -135,10 +145,10 @@ export function toFalstad(program, { exact = false, reading = null, timeConstant
     else if (device && !device.source) f.note('falstad.missing', { part: d.id });
     else if (!device) f.note('falstad.unsupported', { part: d.id });
   }
-  const range = Math.max(5, ...program.supplies.map((s) => s.voltage || 0));
-  const header = `$ 1 ${num(timeStep(timeConstants))} 10.2 50 ${num(range)} 50 5e-11`;
+  const range = Math.max(5, ...program.supplies.map((s) => (s.generator ? peakOf(s.generator) : s.voltage) || 0));
+  const header = `$ 1 ${num(step)} 10.2 50 ${num(range)} 50 5e-11`;
   const text = f.done(header, reading?.nodes ?? {});
   // Falstad reads `cct` with decodeURI (reserved characters such as ":" stay encoded), so the
   // text goes with encodeURI; names are escaped (escapeName), so no "&", "#" or "+" is left.
-  return { text, url: `${FALSTAD_URL}?cct=${encodeURI(text).replace(/[&#]/g, encodeURIComponent)}`, notes: f.notes };
+  return { text, url: `${FALSTAD_URL}?cct=${encodeURI(text).replace(/[&#]/g, encodeURIComponent)}`, notes: f.notes, step };
 }

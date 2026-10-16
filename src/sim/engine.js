@@ -14,6 +14,8 @@
 //   engine.stresses(reading) → { part: [stress…] }   each part against its limits (devices/)
 //   engine.timeConstants() → [seconds…]    τ = C·R and L/R of each capacitor and inductor, with R
 //                                          the resistance it sees at the DC operating point
+//   engine.periods() → [seconds…]          the period of each signal generator (generator.js);
+//                                          their sources follow the wave at every time step
 // Controls (sliders, the push button):
 //   engine.controls() → [{ id, field, min, max, scale, unit, value… }]   what may change (controls.js)
 //   engine.set(id, field, value) → ok      change it: the system is rebuilt, its state carried
@@ -27,6 +29,7 @@ import { GMIN } from './models.js';
 import { DEVICE_BY_TYPE } from './devices/index.js';
 import { issue, q, volt, stressIssue } from './devices/shared.js';
 import { supplyControls, setSupply, stressLevel } from './controls.js';
+import { waveAt, peakOf } from './generator.js';
 
 const SHORT_CURRENT = 3; // amperes from an unlimited source that mean "short circuit"
 
@@ -123,6 +126,11 @@ function prepare(program) {
   return { issues, members: program.members, supplies, parts, owned, names, index, ground: program.ground, floating, system: { size: row, nodeCount, elements: all } };
 }
 
+// Signal generators: their sources at time t (DC and the start are t = 0).
+function setTime(prep, t) {
+  for (const s of prep.supplies) if (s.generator && s.source && s.mode === 'CV') s.source.voltage = waveAt(s.generator, t);
+}
+
 // 1 S from a node to ground, in DC only (no time step): see the floating islands in prepare().
 function dcAnchor(node) {
   return {
@@ -140,6 +148,11 @@ function dcAnchor(node) {
 
 function supplyReading(s, x, ctx) {
   if (s.off) return { voltage: volt(x, s.pIndex) - volt(x, s.nIndex), current: 0, power: 0, mode: 'OFF' };
+  if (s.generator) {
+    const current = -s.source.currents(x, ctx)[0];
+    const v = volt(x, s.pIndex) - volt(x, s.nIndex);
+    return { voltage: v, current, power: v * current, mode: 'GEN', peak: peakOf(s.generator) };
+  }
   if (s.mode === 'CC') {
     const v = volt(x, s.pIndex) - volt(x, s.nIndex);
     return { voltage: v, current: s.cc.current, power: v * s.cc.current, mode: 'CC' };
@@ -255,6 +268,7 @@ export function createEngine(source) {
     start(mode = 'dc', h = 1e-3) {
       lastH = h;
       prep = prepare(program);
+      setTime(prep, 0);
       x = new Array(prep.system.size).fill(0);
       if (mode === 'dc') {
         const r = solveWithLimits(prep, x, {});
@@ -277,6 +291,7 @@ export function createEngine(source) {
       pending = null;
       const next = { h };
       lastH = h;
+      setTime(prep, time + h);
       const r = newton(prep.system, x, next);
       if (!r.ok) return false;
       x = r.x;
@@ -300,6 +315,7 @@ export function createEngine(source) {
       return out;
     },
     timeConstants: () => timeConstants(prep),
+    periods: () => program.supplies.filter((s) => s.generator && !s.off).map((s) => 1 / s.generator.frequency),
     controls: () => controlsOf(program),
     // The program as the controls left it (a copy): what the page exports to Falstad.
     program: () => JSON.parse(JSON.stringify(program)),
@@ -307,6 +323,7 @@ export function createEngine(source) {
       if (!changeProgram(program, id, field, value)) return false;
       const old = prep;
       prep = prepare(program);
+      setTime(prep, time);
       if (!x) return true;
       // The memories hold the state at this instant; the new elements take it over.
       if (pending) for (const el of old.system.elements) if ('accept' in el) el.accept(x, pending);
@@ -408,6 +425,7 @@ function timeConstants(prep) {
 
 function dc(prep) {
   const ctx = {};
+  setTime(prep, 0); // a generator's operating point is the one at t = 0
   const r = solveWithLimits(prep, new Array(prep.system.size).fill(0), ctx);
   if (!r.ok) return { analysis: 'dc', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
   const reading = readAll(prep, r.x, ctx);
@@ -434,6 +452,7 @@ function transient(prep, { stop, step, start = 'zero', points = 400 } = {}) {
   if (steps > 2e5) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_BAD_TIME', {})] };
 
   let x = new Array(prep.system.size).fill(0);
+  setTime(prep, 0);
   if (start === 'dc') {
     const r = solveWithLimits(prep, x, {});
     if (!r.ok) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
@@ -456,6 +475,7 @@ function transient(prep, { stop, step, start = 'zero', points = 400 } = {}) {
   const ctx = { h: step };
   const warnings = new Map();
   for (let k = 1; k <= steps; k++) {
+    setTime(prep, k * step);
     const r = newton(prep.system, x, ctx);
     if (!r.ok) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE_AT', { time: q(k * step, 's') })] };
     x = r.x;

@@ -148,7 +148,8 @@ export function conductorPieces(built, sim, circuit, { all = false } = {}) {
       if (all || Math.abs(running) >= MIN_CURRENT) dots.push({ points: [{ ...holes[k].pos, z: 0 }, { ...holes[k + 1].pos, z: 0 }], ref: { node, k: k - first }, current: running });
     }
   }
-  const volts = [...Object.values(sim.nodes), ...Object.values(sim.supplies).map((s) => s.voltage)].filter((v) => Number.isFinite(v));
+  // A signal generator's colours end at its peak, not at its value at t = 0.
+  const volts = [...Object.values(sim.nodes), ...Object.values(sim.supplies).map((s) => s.peak ?? s.voltage)].filter((v) => Number.isFinite(v));
   return { wires, dots, strips, lights, hot, vmax: Math.max(0, ...volts.map(Math.abs)) };
 }
 
