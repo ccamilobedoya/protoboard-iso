@@ -148,6 +148,10 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
   `.side` (`page.side`); neither positions anything. card.js calls `page.cardChanged()` after a card
   opens or closes; panels that appear or hide are seen by a MutationObserver. The card's head
   (`.head`: title and icon buttons) and `.summary` are what a peeking sheet shows, so keep them first.
+- **Moving the frame** (`view.js`, U5): gestures use `setBox` (at once, and it stops any motion);
+  buttons and code that move the frame for the learner use `frameTo` (220 ms, interruptible).
+  Changing the view goes through `flipView` + `flipFrame` (immediate); `show()` in main.js changes the frame
+  only when the view or the framing changed.
 - **The views are `main > svg`**: buttons carry small svg icons too, so never select `main svg`.
   Interface boxes inside `main` (the inspector, the zoom buttons) are listed in `page.inChrome`, so a
   tap or a gesture on them is not a tap on the board.

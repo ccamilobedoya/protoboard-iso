@@ -159,6 +159,10 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
   abrir o cerrar una ficha; los paneles que aparecen o se ocultan los ve un MutationObserver. El
   encabezado de la ficha (`.head`: título y botones de íconos) y `.summary` son lo que muestra la
   hoja asomada, así que van primero.
+- **Mover el encuadre** (`view.js`, U5): los gestos usan `setBox` (al instante, y detiene cualquier
+  movimiento); los botones y el código que mueven el encuadre por el estudiante usan `frameTo`
+  (220 ms, interrumpible). Cambiar de vista pasa por `flipView` + `flipFrame` (inmediato); `show()` en main.js
+  cambia el encuadre solo cuando cambió la vista o el encuadre.
 - **Las vistas son `main > svg`**: los botones también llevan íconos svg, así que nunca se selecciona
   `main svg`. Las cajas de la interfaz dentro de `main` (el inspector, los botones de zoom) están
   en `page.inChrome`, así un toque o un gesto sobre ellas no es un toque en la protoboard.

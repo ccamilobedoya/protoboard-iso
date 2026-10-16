@@ -42,7 +42,15 @@ with the tests green, this page and the roadmap up to date.
     value changing length no longer pushes the others; the card scrolls to its end at half height
     (room at the bottom for the part of the sheet below the screen) and scrolls at all on Safari
     (`touch-action: none` moved from `main` to the drawing's SVGs).
-- Next: U5.
+- ✅ U5 (2026-10-16): motion, checked against the `review-animations` standard. Tokens
+  (`--ease-out`, `--ease-in-out`, `--ease-drawer`, `--t-press`). Flip: immediate (the maintainer
+  tried a 260 ms turn and preferred no transition), keeping the zoom and the focused part on the
+  same spot of the screen. Framing (Whole board, zoom buttons, double tap, keeping a part free):
+  220 ms ease-out, grabbed at once by a gesture. Entrances: the ⋯ menu grows from its button
+  (150 ms), the desktop panel slides in, the phone sheet comes up from the edge. Press feedback
+  (`scale(0.96)`) on bar, zoom and card-head buttons. Found on the way: toggling Labels or a
+  layer reset the frame; now only Flip and Fit change it.
+- Next: U6.
 
 ## Who and what for
 
@@ -92,7 +100,7 @@ Taken from the skills and the review; every phase is checked against them.
    collapsed section). The lesson decides what exists (`page.*`); the page decides what shows first.
 4. **Respond on press.** Feedback on pointer-down; 40 px targets on touch; hover only where there
    is a mouse (`@media (hover: hover) and (pointer: fine)`).
-5. **Motion explains or does not happen.** Only the flip, the sheet and the panel move; under
+5. **Motion explains or does not happen.** Only the framing, the sheet and the panel move (the flip is immediate); under
    300 ms, strong ease-out / ease-in-out curves as tokens; a fade with `prefers-reduced-motion`.
    No CSS filters (see the code map). Frequent actions (tap a part, toggle a layer) don't animate.
 6. **Tokens and themes.** Every colour of the page's chrome from a token; light and dark; the
@@ -146,9 +154,8 @@ the same spot picks the part underneath (a wire over a resistor).
 
 ### Flip and framing
 
-Flipping keeps the focused part (or the centre) in the same place on screen and the same zoom; a
-short transition (≈ 250 ms, `--ease-in-out`) shows that it is the same board turned over (a
-horizontal squeeze and expand of the drawing; a cross-fade with reduced motion). Changing the
+Flipping keeps the focused part (or the centre) in the same place on screen and the same zoom,
+at once (no transition: the maintainer's choice after trying one). Changing the
 framing animates the viewBox (≈ 200 ms, `--ease-out`). Portrait framing fits the area left free by
 the bar and the sheet.
 

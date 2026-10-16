@@ -328,3 +328,21 @@ test('the inspector holds the card and the circuit\'s panels: tabs, a fixed head
   assert.ok(live.doc.querySelector('.model-badge'), 'the MODEL badge in the frame');
   assert.match(renderPage(example('half-wave-rectifier.json')).html, /\.results \.badge \{ display: none !important; \}/, "the drawing's stamp gives way to it");
 });
+
+test('the frame stays where the learner was: labels and layers keep it, a flip keeps the zoom', async (t) => {
+  const page = await loadPage(renderPage(example('controls-and-ics.json'), { lang: 'es' }).html);
+  if (!page) return t.skip('jsdom not installed');
+  const { doc, fire, svg } = page;
+  const view = (v) => svg(v).getAttribute('viewBox').split(' ').map(Number);
+  fire('wheel', { deltaY: -300, clientX: 300, clientY: 200 });
+  const zoomed = view('front');
+  doc.querySelector('nav button[data-key="labels"]').click();
+  assert.deepEqual(view('front'), zoomed, 'toggling the labels does not reset the frame');
+  doc.querySelector('nav button[data-key="view"]').click();
+  assert.ok(!svg('back').hasAttribute('hidden') && svg('front').hasAttribute('hidden'));
+  const share = (v, box) => box[2] / Number(svg(v).dataset.board.split(' ')[2]);
+  assert.ok(Math.abs(share('back', view('back')) - share('front', zoomed)) < 1e-3, 'the same share of the board after the flip');
+  assert.ok(!doc.querySelector('main').classList.contains('flipping'), 'without motion the flip ends at once');
+  doc.querySelector('nav button[data-key="view"]').click();
+  assert.ok(Math.abs(view('front')[2] - zoomed[2]) < 0.5, 'and back again');
+});

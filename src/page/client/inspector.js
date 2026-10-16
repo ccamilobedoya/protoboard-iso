@@ -85,17 +85,23 @@ export function setupInspector(page) {
     const cy = (parts.top + parts.bottom) / 2;
     if (narrow()) {
       const free = m.top + (m.height - visible(box.dataset.size)) / 2;
-      if (parts.bottom > m.bottom - visible(box.dataset.size) - 8 || parts.top < m.top) panBy(page, 0, free - cy);
+      if (parts.bottom > m.bottom - visible(box.dataset.size) - 8 || parts.top < m.top) panBy(page, 0, free - cy, true);
     } else if (parts.right > b.left - 8) {
-      panBy(page, (m.left + (b.left - m.left) / 2) - cx, 0);
+      panBy(page, (m.left + (b.left - m.left) / 2) - cx, 0, true);
     }
   }
 
   function layout({ size, tab, free = false } = {}) {
     const part = hasPart();
     const circuit = hasCircuit();
+    const was = box.hidden;
     box.hidden = !part && !circuit;
     if (box.hidden) return place();
+    // A sheet that appears comes up from the bottom edge (its transition, style.js).
+    if (was && narrow()) {
+      box.style.transform = `translateY(${box.getBoundingClientRect().height}px)`;
+      void box.offsetHeight;
+    }
     if (tab) box.dataset.tab = tab;
     if (box.dataset.tab === 'part' && !part) box.dataset.tab = 'circuit';
     if (box.dataset.tab === 'circuit' && !circuit) box.dataset.tab = 'part';

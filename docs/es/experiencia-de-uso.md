@@ -48,7 +48,17 @@ sesión termina con las pruebas en verde, esta página y la hoja de ruta al día
     desplaza hasta el final a media altura (espacio abajo para la parte de la hoja que queda fuera de
     la pantalla) y se desplaza también en Safari (`touch-action: none` pasó de `main` a los SVG del
     dibujo).
-- Sigue: U5.
+- ✅ U5 (2026-10-16): movimiento, revisado contra el estándar de `review-animations`. Tokens
+  (`--ease-out`, `--ease-in-out`, `--ease-drawer`, `--t-press`). Girar: inmediato (el
+  mantenedor probó una vuelta de 260 ms y prefirió sin transición), conserva el zoom y el componente
+  enfocado en el mismo punto de la pantalla. Encuadre (Toda la
+  protoboard, botones de zoom, doble toque, mantener libre un componente): 220 ms *ease-out*, y un
+  gesto lo toma al instante. Entradas: el menú ⋯ crece desde su botón (150 ms), el panel del
+  escritorio entra deslizándose, la hoja del celular sube desde el borde. Respuesta al presionar
+  (`scale(0.96)`) en los botones de la barra, del zoom y del encabezado de la ficha. Encontrado en
+  el camino: prender o apagar Etiquetas o una capa reiniciaba el encuadre; ahora solo lo cambian
+  Girar y Encuadrar.
+- Sigue: U6.
 
 ## Para quién y para qué
 
@@ -100,7 +110,7 @@ Tomados de los skills y de la revisión; cada fase se revisa contra ellos.
    La lección decide qué existe (`page.*`); la página decide qué se ve primero.
 4. **Responder al presionar.** Respuesta en *pointer-down*; objetivos de 40 px al tacto; *hover*
    solo donde hay ratón (`@media (hover: hover) and (pointer: fine)`).
-5. **El movimiento explica o no ocurre.** Solo se mueven el giro, la hoja y el panel; menos de
+5. **El movimiento explica o no ocurre.** Solo se mueven el encuadre, la hoja y el panel (el giro es inmediato); menos de
    300 ms, curvas fuertes *ease-out* / *ease-in-out* como tokens; un fundido con
    `prefers-reduced-motion`. Sin filtros CSS (ver el mapa del código). Las acciones frecuentes
    (tocar un componente, prender una capa) no se animan.
@@ -160,9 +170,7 @@ debajo (un cable sobre una resistencia).
 ### Girar y encuadrar
 
 Al girar se conserva el componente enfocado (o el centro) en el mismo lugar de la pantalla y el
-mismo zoom; una transición corta (≈ 250 ms, `--ease-in-out`) muestra que es la misma protoboard
-dada vuelta (el dibujo se estrecha y se vuelve a abrir en horizontal; un fundido con movimiento
-reducido). Cambiar el encuadre anima el `viewBox` (≈ 200 ms, `--ease-out`). El encuadre vertical
+mismo zoom, al instante (sin transición: lo eligió el mantenedor después de probar una). Cambiar el encuadre anima el `viewBox` (≈ 200 ms, `--ease-out`). El encuadre vertical
 se ajusta al espacio que dejan libre la barra y la hoja.
 
 ### Etiquetas y el sello MODELO

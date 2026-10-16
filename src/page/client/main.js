@@ -17,7 +17,7 @@
 // limits.js) only when the circuit asks for results or the current layer. They share one `page` object. Entries: static-page.js
 // and live-page.js call startPage with the extensions they carry.
 
-import { numbers, setBox, setupView, stripAt } from './view.js';
+import { numbers, setBox, setupView, stripAt, frameTo, flipView, flipFrame, partsRect } from './view.js';
 import { applyFocus } from './focus.js';
 import { select, selectNode, refreshCard, refreshNotes } from './card.js';
 import { tapTag, setupTooltip } from './tooltip.js';
@@ -62,10 +62,26 @@ export function startPage(extensions = []) {
   };
   const toggles = ['labels'];
 
+  // What is on screen now: the frame changes only when the view or the framing does (U5: toggling
+  // the labels or a layer keeps where the learner was looking).
+  let shown = { view: null, fit: null };
+  const same = (a, b) => a.every((n, i) => Math.abs(n - b[i]) < 0.5);
   function show() {
     for (const hook of page.onShow) hook();
-    for (const s of svgs) s.toggleAttribute('hidden', s.dataset.view !== state.view);
-    setBox(page, numbers(page.current().dataset[state.fit]));
+    const fitBox = () => numbers(page.current().dataset[state.fit]);
+    if (shown.view && shown.view !== state.view) {
+      const from = svgs.find((s) => s.dataset.view === shown.view);
+      const old = page.box.slice();
+      const untouched = shown.fit === state.fit && same(old, numbers(from.dataset[shown.fit]));
+      const r = state.focus.size ? partsRect(page, [...state.focus], from) : null;
+      const anchor = r && [(r.left + r.right) / 2, (r.top + r.bottom) / 2];
+      flipView(page, from, page.current(), () => (untouched && !anchor ? setBox(page, fitBox()) : flipFrame(page, from, old, anchor)));
+    } else {
+      for (const s of svgs) s.toggleAttribute('hidden', s.dataset.view !== state.view);
+      if (!shown.view) setBox(page, fitBox());
+      else if (shown.fit !== state.fit) frameTo(page, fitBox());
+    }
+    shown = { view: state.view, fit: state.fit };
     document.body.classList.toggle('no-labels', !state.labels);
     document.body.classList.toggle('show-results', state.results);
     document.body.classList.toggle('layer-flow', state.layer === 'flow');

@@ -10,13 +10,81 @@
 
 export const numbers = (text) => text.split(' ').map(Number);
 
-export function setBox(page, [x, y, w, h]) {
+// A frame kept on the board: zoom between a twelfth and twice the board, centre on it.
+function clampBox(page, [x, y, w, h]) {
   const [bx, by, bw, bh] = numbers(page.current().dataset.board);
   const f = Math.min(Math.max(w, bw / 12), bw * 2) / w;
   const cx = Math.min(Math.max(x + w / 2, bx), bx + bw);
   const cy = Math.min(Math.max(y + h / 2, by), by + bh);
-  page.box = [cx - (w * f) / 2, cy - (h * f) / 2, w * f, h * f];
-  page.current().setAttribute('viewBox', page.box.map((n) => Math.round(n * 100) / 100).join(' '));
+  return [cx - (w * f) / 2, cy - (h * f) / 2, w * f, h * f];
+}
+function apply(page, box) {
+  page.box = box;
+  page.current().setAttribute('viewBox', box.map((n) => Math.round(n * 100) / 100).join(' '));
+}
+// Gestures set the frame at once (1:1 with the finger), and stop a frame that was moving.
+export function setBox(page, box) {
+  stopFrame(page);
+  apply(page, clampBox(page, box));
+}
+
+// Motion (UX pass, U5). The frame moves to a new place in 220 ms (strong ease-out) when a button
+// asks for it (fit, zoom, double tap, keeping a part in view); a gesture grabs it at once from
+// where it is. The viewBox is not a CSS property, so this is a short requestAnimationFrame loop.
+// Reduced motion, or no requestAnimationFrame (jsdom): at once.
+const winOf = (page) => page.main.ownerDocument.defaultView;
+const reduced = (win) => Boolean(win.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+const FRAME_MS = 220;
+export function stopFrame(page) {
+  if (page.frameAnim) winOf(page).cancelAnimationFrame(page.frameAnim);
+  page.frameAnim = null;
+}
+export function frameTo(page, target) {
+  const win = winOf(page);
+  const to = clampBox(page, target);
+  stopFrame(page);
+  if (!page.box || typeof win.requestAnimationFrame !== 'function' || reduced(win)) return apply(page, to);
+  const from = page.box.slice();
+  let t0 = null;
+  const step = (now) => {
+    t0 ??= now;
+    const k = Math.min(1, (now - t0) / FRAME_MS);
+    const e = 1 - (1 - k) ** 4; // close to cubic-bezier(0.23, 1, 0.32, 1)
+    apply(page, from.map((f, i) => f + (to[i] - f) * e));
+    page.frameAnim = k < 1 ? win.requestAnimationFrame(step) : null;
+  };
+  page.frameAnim = win.requestAnimationFrame(step);
+}
+
+// Turning the board over is immediate (the maintainer's choice, 2026-10-16: no transition): the
+// new view shows at once, with the same zoom and the focused parts where they were. Both views lie
+// over each other (main.flipping) only while `frame()` measures the new one.
+export function flipView(page, from, to, frame) {
+  page.main.classList.add('flipping');
+  to.removeAttribute('hidden');
+  frame();
+  from.setAttribute('hidden', '');
+  page.main.classList.remove('flipping');
+}
+
+// The new view's frame after a flip: the same zoom (a share of the board), with the focused parts
+// where they were on screen (`anchor`, measured before the flip), else on the same place of the
+// board seen from the other side (left and right swap).
+export function flipFrame(page, from, old, anchor) {
+  const [bx, by, bw, bh] = numbers(from.dataset.board);
+  const [nx, ny, nw, nh] = numbers(page.current().dataset.board);
+  const u = (old[0] + old[2] / 2 - bx) / bw;
+  const v = (old[1] + old[3] / 2 - by) / bh;
+  const w = (old[2] / bw) * nw;
+  const h = (w * old[3]) / old[2];
+  setBox(page, [nx + (1 - u) * nw - w / 2, ny + v * nh - h / 2, w, h]);
+  const r = anchor && page.state.focus.size ? partsRect(page, [...page.state.focus]) : null;
+  if (!r) return;
+  // The parts' centre in the drawing, and the drawing point now under the anchor: move by the gap.
+  const [cx, cy] = toBox(page, (r.left + r.right) / 2, (r.top + r.bottom) / 2);
+  const [ax, ay] = toBox(page, anchor[0], anchor[1]);
+  const b = page.box;
+  setBox(page, [b[0] + cx - ax, b[1] + cy - ay, b[2], b[3]]);
 }
 
 // Screen point → drawing point, and drawing units per screen pixel (the SVG keeps its aspect ratio).
@@ -44,15 +112,16 @@ export function stripAt(page, px, py) {
   }
   return best == null ? null : page.data.strips[best];
 }
-function zoomAt(page, px, py, f) {
+// `animate`: a button or a double tap asked (the frame moves); a gesture did not (it follows).
+function zoomAt(page, px, py, f, animate = false) {
   const [x, y] = toBox(page, px, py);
   const { box } = page;
-  setBox(page, [x - (x - box[0]) * f, y - (y - box[1]) * f, box[2] * f, box[3] * f]);
+  (animate ? frameTo : setBox)(page, [x - (x - box[0]) * f, y - (y - box[1]) * f, box[2] * f, box[3] * f]);
 }
-export function panBy(page, dx, dy) {
+export function panBy(page, dx, dy, animate = false) {
   const k = toBox(page, 0, 0)[2];
   const { box } = page;
-  setBox(page, [box[0] - dx * k, box[1] - dy * k, box[2], box[3]]);
+  (animate ? frameTo : setBox)(page, [box[0] - dx * k, box[1] - dy * k, box[2], box[3]]);
 }
 
 // Inside a frame of another page, unless the page is full screen.
@@ -66,8 +135,8 @@ export function isEmbedded(win) {
 }
 
 // Where some parts are drawn on screen (the union of their pieces), or null.
-export function partsRect(page, ids) {
-  const els = ids.flatMap((id) => [...page.current().querySelectorAll(`.parts [data-part="${id.replace(/["\\]/g, '\\$&')}"]`)]);
+export function partsRect(page, ids, svg = page.current()) {
+  const els = ids.flatMap((id) => [...svg.querySelectorAll(`.parts [data-part="${id.replace(/["\\]/g, '\\$&')}"]`)]);
   const rects = els.map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
   if (!rects.length) return null;
   return { left: Math.min(...rects.map((r) => r.left)), top: Math.min(...rects.map((r) => r.top)), right: Math.max(...rects.map((r) => r.right)), bottom: Math.max(...rects.map((r) => r.bottom)) };
@@ -81,13 +150,13 @@ function zoomToPart(page, id) {
   const [x1, y1] = toBox(page, r.right, r.bottom);
   const w = Math.max(x1 - x0, 1) * 2.5;
   const h = Math.max(y1 - y0, 1) * 2.5;
-  setBox(page, [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h]);
+  frameTo(page, [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h]);
   return true;
 }
 
 function doubleTap(page, target, x, y) {
   const hit = target.closest && target.closest('[data-part]');
-  if (!hit || !zoomToPart(page, hit.getAttribute('data-part'))) zoomAt(page, x, y, 0.5);
+  if (!hit || !zoomToPart(page, hit.getAttribute('data-part'))) zoomAt(page, x, y, 0.5, true);
 }
 
 // The hint over the drawing, shown for a moment when a gesture went to the page around it.
@@ -240,9 +309,9 @@ export function setupView(page) {
     const b = e.target.closest('button[data-zoom]');
     if (!b) return;
     const what = b.dataset.zoom;
-    if (what === 'in') zoomAt(page, ...middle(), 1 / 1.5);
-    else if (what === 'out') zoomAt(page, ...middle(), 1.5);
-    else if (what === 'fit') setBox(page, numbers(page.current().dataset[page.state.fit]));
+    if (what === 'in') zoomAt(page, ...middle(), 1 / 1.5, true);
+    else if (what === 'out') zoomAt(page, ...middle(), 1.5, true);
+    else if (what === 'fit') frameTo(page, numbers(page.current().dataset[page.state.fit]));
     else if (what === 'full') {
       if (doc.fullscreenElement) doc.exitFullscreen();
       else if (canFull) doc.documentElement.requestFullscreen().catch(() => win.open(win.location.href, '_blank', 'noopener'));

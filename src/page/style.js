@@ -27,7 +27,10 @@
 
 export const STYLE = `
 :root {
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Motion (U5, from the review-animations standard): enter and exit ease-out, on-screen movement
+     ease-in-out, the sheet the drawer curve; UI under 300 ms; presses 120 ms. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --t-press: 120ms;
   --sans: system-ui, -apple-system, "Segoe UI", Lato, Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
   color-scheme: light;
@@ -72,7 +75,9 @@ export const STYLE = `
 html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; height: 100%; background: var(--bench); color: var(--ink); font-family: var(--sans); }
 body { display: flex; flex-direction: column; }
-button { touch-action: manipulation; -webkit-user-select: none; user-select: none; transition: background-color 100ms ease-out, color 100ms ease-out; }
+button { touch-action: manipulation; -webkit-user-select: none; user-select: none; transition: background-color 100ms ease-out, color 100ms ease-out, transform var(--t-press) var(--ease-out); }
+/* Press feedback on the buttons that are pressed often (not on the rows of a menu or a card). */
+nav > .group button:active, nav .more-button:active, nav .warn-flag:active, .zoom button:active, .info .icon-button:active, .inspector .collapse:active { transform: scale(0.96); }
 /* The bar (UX pass, U3): one row, grouped by job; labels give way to icons on a narrow screen. */
 nav { position: relative; z-index: 4; display: flex; flex-wrap: nowrap; align-items: center; gap: 2px; min-height: 36px; box-sizing: border-box; padding: 3px 4px; font-size: 13px; background: var(--well); border-bottom: 1px solid var(--hair); }
 nav[hidden] { display: none; }
@@ -108,6 +113,8 @@ main.dragging { cursor: grabbing; }
    inside it in some browsers (Safari), and its card would not scroll. */
 main > svg { display: block; width: 100%; height: 100%; touch-action: none; }
 main > svg[hidden] { display: none; }
+/* While a flip measures the new view (view.js flipView) both views lie over each other. */
+main.flipping > svg { position: absolute; inset: 0; }
 /* Embedded (inside an iframe): one finger scrolls the note; two fingers are handled by the script. */
 body.embedded main > svg { touch-action: pan-x pan-y; }
 /* The drawing, in the page only: its background, veil, labels and result tags follow the theme. */
@@ -292,4 +299,15 @@ body.show-results.focusing .model-badge { display: block; }
   body.sheet-up .zoom { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .inspector { transition: none; } }
-@media (hover: hover) and (pointer: fine) { .inspector [role="tab"]:hover, .inspector .collapse:hover { color: var(--ink); } }`;
+@media (hover: hover) and (pointer: fine) { .inspector [role="tab"]:hover, .inspector .collapse:hover { color: var(--ink); } }
+/* Entrances (U5): the menu grows from its button, the panel slides in a little; exits are instant. */
+nav .menu { transform-origin: top right; transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out); }
+@starting-style { nav .menu { opacity: 0; transform: scale(0.96); } }
+@media (min-width: 761px) {
+  .inspector { transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out); }
+  @starting-style { .inspector { opacity: 0; transform: translateX(12px); } }
+}
+@media (prefers-reduced-motion: reduce) {
+  nav .menu, .inspector { transition: none; }
+  nav > .group button:active, nav .more-button:active, nav .warn-flag:active, .zoom button:active, .info .icon-button:active, .inspector .collapse:active { transform: none; }
+}`;

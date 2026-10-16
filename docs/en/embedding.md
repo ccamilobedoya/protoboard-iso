@@ -19,7 +19,7 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
   generator), and a **⋯** menu with what is used less: the dots' speed scale, *Open in Falstad*,
   *What can I tap?* and the revision. On a narrow screen (a phone) the labels give way to icons
   and nothing scrolls sideways. Zoom buttons sit in the bottom-right corner (in, out, back to the
-  frame). The first time a page of the kit is opened in a browser, a short hint over the drawing
+  frame). **Flip** turns the board over at once, keeping the zoom and the tapped part where it was; framing changes glide (a fade and no movement with *reduce motion*). The first time a page of the kit is opened in a browser, a short hint over the drawing
   says what can be tapped and how to move; it goes at the first touch. Without JavaScript the page
   still shows the first view, close-up, with labels.
 - **Gestures depend on where the page is** (like an embedded map):

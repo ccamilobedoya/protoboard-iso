@@ -22,7 +22,9 @@ node bin/protoboard-iso.js page <objetivo> [--lang es] [--fit parts|board] [-o p
   de velocidad de los puntos, *Abrir en Falstad*, *¿Qué se puede tocar?* y la revisión. En una
   pantalla angosta (celular) las etiquetas de los botones dejan solo los íconos y nada se desliza de
   lado. Los botones de zoom están en la esquina inferior derecha (acercar, alejar, volver al
-  encuadre). La primera vez que se abre una página del kit en un navegador, una ayuda corta sobre el
+  encuadre). **Girar** da vuelta la protoboard al instante y conserva el zoom y el componente tocado
+  donde estaba; los cambios de encuadre se deslizan (un fundido y sin movimiento con
+  *movimiento reducido*). La primera vez que se abre una página del kit en un navegador, una ayuda corta sobre el
   dibujo dice qué se puede tocar y cómo moverse; se va al primer toque. Sin JavaScript la página
   sigue mostrando la primera vista, de cerca y con etiquetas.
 - **Los gestos dependen de dónde está la página** (como un mapa embebido):
