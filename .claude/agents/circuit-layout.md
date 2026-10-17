@@ -60,9 +60,16 @@ repository root (`node bin/protoboard-iso.js <command> …`, same names: `inspec
 
 ## Work loop
 
-1. Read the brief. `catalog` once. Existing circuit: `history` and `inspect`. New circuit:
-   `create_circuit` with only the fixed parts the brief gives positions for (or none), then add
-   the rest.
+0. **New circuit without fixed positions: `layout` first.** One call with the parts (no pins, in
+   signal order) and the nets (`[["D1.K", "S1.1"], {"pins": ["U1.GND", "T-"], "color": "black"}]`;
+   a rail is named like a pin; a pin alone is `["D1.A"]`), `supplies` (a pin may stand for its strip:
+   `"positive": "D1.A"`), `netLabels`, `page`. It places everything, adds the jumpers, checks the
+   nets and reviews, in about a second, on the elastic board by default. If it answers APPROVED and
+   "every connection asked for is there", add the descriptions with one `apply_ops` of `set` ops and
+   report. Only what it lists as blocking or failed is left for the loop below. Without the MCP tool,
+   the CLI: `node bin/protoboard-iso.js layout <target> <spec.json>`.
+1. Read the brief. `catalog` once. Existing circuit: `history` and `inspect`. New circuit with
+   fixed positions: `create_circuit` with only those parts, then add the rest.
 2. Place the parts in groups with one `suggest` call each: `parts` in the order of the
    connections, each `{part, between | connect}`, with `profile` set to the brief's (`lesson` by
    default). A later part names an earlier one's pins as its groups (`"R1.2"`, `"U1.OUT"`), so

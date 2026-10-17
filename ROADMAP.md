@@ -19,6 +19,7 @@ Goal: a JSON file in, a faithful isometric picture out, with the placement check
 - ✅ Painter's algorithm with back-face culling, per-face shading relative to the camera
 - ✅ Boards as data: `bb830` and `bb400`, continuous rails, optional `split`
 - ✅ Elastic board `auto`: a bb400's cross-section, as many columns as the circuit uses (2026-10-17)
+- ✅ `layout`: a whole circuit placed by an algorithm from its parts and nets, in about a second (2026-10-17)
 - ✅ Packages: axial, LED 5/3 mm, radial electrolytic, ceramic disc, TO-220, TO-92, jumper wire (arc/flat)
 - ✅ Types: resistor (4/5 bands, IEC 60062), capacitor (code "104", can size from C·V), LED, diode, MOSFET, BJT, wire
 - ✅ Part-number table (`src/parts/db.js`)

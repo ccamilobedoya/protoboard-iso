@@ -97,6 +97,16 @@ export default {
   'check.OP_SET_FORM': 'Operation {index} ({op}): set takes the fields themselves, not "field" and "value": {"op":"set","part":"{part}","description":{"es":"…","en":"…"}}. Fields of {part}: {fields}.',
   'check.NO_FIT_RAIL': '{part}: no set of holes fits its leads between {groups}. The rail {rail} has holes only in columns {columns}: put the other lead in a strip of one of those columns, or reach the rail with a wire.',
   'check.VIA_WIRE': '{part} goes in a free strip, joined to {node} (pin {pin}) by the jumper {wire}: there was no room on that group itself.',
+  'layout.header': 'Laid out {placed} parts and {wires} jumpers in {ms} ms ({columns} columns):',
+  'layout.rails': 'straight to the rail: {pins}',
+  'layout.shared': 'sharing a strip: {pins}',
+  'layout.netsOk': 'Nets: every connection asked for is there, and nothing is shorted.',
+  'layout.missing': 'Net {net}: {pins} not connected to the rest.',
+  'layout.shorted': 'Nets {nets} ended up joined (a short).',
+  'layout.approved': 'Review (lesson): APPROVED.',
+  'layout.changes': 'Review (lesson): CHANGES, {count} to fix:',
+  'check.LAYOUT_PART_FAILED': '{part} found no place (reasons below).',
+  'check.LAYOUT_WIRE_FAILED': 'No jumper fits from {from} to {to}.',
   'check.NO_ROOM_LEFT': '{part} there would leave {node} with {left} usable free holes, and {need} more connections must go there (strip with a lone pin, or named by a later part). Place it elsewhere or connect that group first.',
   'check.GROUP_FULL': '{part}: {node} (for pin {pin}) has no free hole a lead can reach ({free} free, {covered} of them under another part). Connect it through a wire from another hole of that net, or move what fills it.',
   'check.NO_FIT': '{part}: no set of holes fits its leads between {groups}. The groups are too far apart or too close for this part: join one of them to a nearer strip with a wire.',
@@ -385,6 +395,7 @@ export default {
   'page.hint.results': 'Tap a part or a strip to see what it is and its simulated values',
   'page.revision': 'revision {revision}',
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):
+  protoboard-iso layout <new target> <spec.json|->   # the whole circuit placed from its parts and nets (docs/en/agents.md)
   protoboard-iso render <target> [-o out.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <target> [--transient stop[,step]] [--start zero|dc] [--lang en|es] [--json]
   protoboard-iso page <target> [-o page.html] [--lang en|es] [--fit parts|board]

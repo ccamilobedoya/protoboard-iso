@@ -39,6 +39,7 @@ import { compile, createEngine } from '../src/sim/index.js';
 import { toFalstad } from '../src/sim/falstad.js';
 import { nets, formatNets } from '../src/nets.js';
 import { createBoard, boardLayout, BOARDS } from '../src/board/board.js';
+import { autoLayout, formatLayout } from '../src/layout.js';
 import { formatBoardLayout } from '../src/board/layout-text.js';
 import { compactCatalog, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
 
@@ -288,6 +289,38 @@ server.registerTool(
     if (!part) throw new Error('Give part (one new part) or parts (several).');
     const result = suggest(circuit, part, { between, connect, near, limit, window, profile, reserve });
     return answer(format, result, () => formatSuggest(result, lang, { formatIssue, target }));
+  }),
+);
+
+server.registerTool(
+  'layout',
+  {
+    title: 'Lay out a whole circuit',
+    description:
+      'Create a NEW circuit placed in one call from its parts and nets, without trial and error: parts left to right in the order given (the signal\'s), each in its own stretch of columns; a lead goes straight into a rail its net names when it reaches, or shares a strip when it stays visible; nets left in several strips are joined by jumpers. Answers the placement, the nets check (missing, shorted) and the lesson review. Use it first for a new circuit; then fix what the review lists with suggest and apply_ops. Board "auto" (default) grows in length as needed.',
+    inputSchema: {
+      target: z.string().describe('New folder, relative to the root (e.g. m2-fuente)'),
+      parts: z.array(z.object({ id: z.string(), type: z.string() }).passthrough()).min(1).describe('Parts without pins, in signal order, e.g. {"id":"R1","type":"resistor","value":"1k"}'),
+      nets: z
+        .array(z.union([z.array(z.string()), z.object({ pins: z.array(z.string()), color: z.string().optional() })]))
+        .describe('Each net: the pins it joins ("D1.K", "U1.OUT") and rails ("T-", "B+"), as a list or {pins, color}. A pin alone in a net (["D1.A"]) is fine.'),
+      supplies: z.array(z.object({}).passthrough()).optional().describe('As in the circuit; positive/negative may name a pin ("D1.A"): a free hole of its strip'),
+      board: z.string().optional().describe('auto (default, grows in length), bb400 or bb830'),
+      title: z.union([z.string(), z.record(z.string(), z.string())]).optional(),
+      netLabels: z.record(z.string(), z.string()).optional(),
+      page: z.object({}).passthrough().optional(),
+      clearance: z.number().optional(),
+      author: z.string().optional(),
+      note: z.string().optional(),
+      lang: common.lang,
+    },
+    annotations: WRITE,
+  },
+  safely(async ({ target, parts, nets, supplies, board, title, netLabels, page, clearance, author = 'layout', note = 'layout', lang, outputLang }) => {
+    const result = autoLayout({ parts, nets, supplies, board, title, netLabels, page, clearance, lang });
+    const created = createTarget(inside(target), result.circuit, { author, note, lang: lang ?? 'en', outputLang });
+    if (created.errors.length) return { isError: true, content: [{ type: 'text', text: created.errors.map((e) => formatIssue(e, lang)).join('\n') }] };
+    return text(`${formatLayout(result, pickLanguage(lang), { t, formatIssue })}\n${rel(inside(target))} · rev 0`);
   }),
 );
 

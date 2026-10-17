@@ -19,6 +19,7 @@ Objetivo: entra un JSON y sale un dibujo isométrico fiel, con la colocación re
 - ✅ Algoritmo del pintor con descarte de caras traseras y sombreado por cara relativo a la cámara
 - ✅ Protoboards como datos: `bb830` y `bb400`, rieles continuos, `split` opcional
 - ✅ Protoboard elástica `auto`: la sección de una bb400 y tantas columnas como use el circuito (2026-10-17)
+- ✅ `layout`: un circuito entero ubicado por un algoritmo a partir de sus componentes y redes, en alrededor de un segundo (2026-10-17)
 - ✅ Encapsulados: axial, LED de 5 y 3 mm, electrolítico radial, cerámico de disco, TO-220, TO-92, cable (arco o plano)
 - ✅ Tipos: resistencia (4 o 5 bandas, IEC 60062), capacitor (código «104», tamaño según C·V), LED, diodo, MOSFET, BJT, cable
 - ✅ Tabla de referencias (`src/parts/db.js`)

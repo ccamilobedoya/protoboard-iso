@@ -96,6 +96,16 @@ export default {
   'check.OP_SET_FORM': 'Operación {index} ({op}): set recibe los campos mismos, no «field» y «value»: {"op":"set","part":"{part}","description":{"es":"…","en":"…"}}. Campos de {part}: {fields}.',
   'check.NO_FIT_RAIL': '{part}: ningún juego de agujeros le sirve a sus patas entre {groups}. El riel {rail} solo tiene agujeros en las columnas {columns}: pon la otra pata en una tira de esas columnas, o llega al riel con un cable.',
   'check.VIA_WIRE': '{part} va en una tira libre, unido a {node} (pata {pin}) por el cable {wire}: en ese grupo no había espacio.',
+  'layout.header': 'Montaje de {placed} componentes y {wires} cables en {ms} ms ({columns} columnas):',
+  'layout.rails': 'directo al riel: {pins}',
+  'layout.shared': 'comparte tira: {pins}',
+  'layout.netsOk': 'Redes: están todas las conexiones pedidas y no hay cortos.',
+  'layout.missing': 'Red {net}: {pins} no quedó conectado con el resto.',
+  'layout.shorted': 'Las redes {nets} quedaron unidas (un corto).',
+  'layout.approved': 'Revisión (lesson): APROBADO.',
+  'layout.changes': 'Revisión (lesson): HAY QUE CAMBIAR, {count} por arreglar:',
+  'check.LAYOUT_PART_FAILED': '{part} no encontró lugar (los motivos, abajo).',
+  'check.LAYOUT_WIRE_FAILED': 'Ningún cable cabe de {from} a {to}.',
   'check.NO_ROOM_LEFT': '{part} ahí dejaría {node} con {left} agujeros libres utilizables, y faltan {need} conexiones que deben llegar ahí (una tira con una pata sola, o nombrada por una pieza posterior). Ponlo en otro lugar o conecta antes ese grupo.',
   'check.GROUP_FULL': '{part}: {node} (para la pata {pin}) no tiene ningún agujero libre al que llegue una pata ({free} libres, {covered} de ellos debajo de otro componente). Llega con un cable desde otro agujero de esa red, o mueve lo que la llena.',
   'check.NO_FIT': '{part}: ningún juego de agujeros le sirve a sus patas entre {groups}. Los grupos quedan demasiado lejos o demasiado cerca para este componente: une uno de ellos con un cable a una tira más cercana.',
@@ -384,6 +394,7 @@ export default {
   'page.hint.results': 'Toca un componente o una tira para ver qué es y sus valores simulados',
   'page.revision': 'revisión {revision}',
   'cli.usage': `Uso (<objetivo> = un archivo de circuito o una carpeta con circuit.json):
+  protoboard-iso layout <objetivo nuevo> <spec.json|->   # el circuito entero, ubicado a partir de sus componentes y redes (docs/es/agentes.md)
   protoboard-iso render <objetivo> [-o salida.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <objetivo> [--transient fin[,paso]] [--start zero|dc] [--lang en|es] [--json]
   protoboard-iso page <objetivo> [-o pagina.html] [--lang en|es] [--fit parts|board]

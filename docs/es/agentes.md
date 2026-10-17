@@ -68,6 +68,16 @@ llamadas y unos 185 000 tokens. Lo que lo reduce:
 - El servidor recarga el kit cuando cambia su código ([mcp.md](mcp.md)), así nadie tiene que
   reconectarlo después de actualizar el kit.
 
+## `layout`: el circuito entero en una llamada (desde el 2026-10-17)
+
+Para un circuito nuevo sin posiciones fijas, el agente de montaje empieza con `layout` (herramienta
+MCP o `protoboard-iso layout <objetivo> <spec.json>`): los componentes sin patas en el orden de la
+señal y las redes como listas de patas y rieles. El algoritmo ubica los componentes por capas
+(distancia a la fuente) y con reglas según el tipo de pieza, agrega los cables y verifica las redes
+y la revisión lesson, en alrededor de un segundo; medido con la fuente de dos rieles del curso (10
+componentes, 10 redes): aprobada, 7 cables, 1,8 s. Lo que no logra resolver vuelve como puntos que
+bloquean para el ciclo de siempre.
+
 ## El ciclo (lo maneja la conversación principal)
 
 ```

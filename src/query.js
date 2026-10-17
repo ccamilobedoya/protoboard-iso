@@ -226,7 +226,27 @@ function geometricCandidates(state, { pkg, params, pinNames, wanted, centre, win
 // depends on the drawing scale, not on the placement.
 function blockingOf(before, after, id, policy) {
   const introduced = diffEvaluations(before, after).introduced.filter((p) => !(p.code === 'FLOATING_PIN' && p.params.part === id) && p.code !== 'TEXT_TOO_SMALL');
-  return { introduced, blocking: introduced.filter((p) => p.severity !== 'info' || policy?.block.includes(p.code)) };
+  const blocking = introduced.filter((p) => p.severity !== 'info' || policy?.block.includes(p.code));
+  // The review's rule for a profile like lesson: a part partly hidden in every view measured is
+  // blocked (each view alone is only a note). A change that newly hides one everywhere blocks too.
+  if (policy?.hiddenEverywhere) {
+    const everywhere = (evaluation) => {
+      const byPart = new Map();
+      for (const p of evaluation.problems.filter((x) => x.code === 'PART_HIDDEN' && x.view)) {
+        if (!byPart.has(p.params.part)) byPart.set(p.params.part, []);
+        byPart.get(p.params.part).push(p);
+      }
+      const views = new Set(Object.keys(evaluation.visibility).map((k) => k.split('@')[1]).filter(Boolean));
+      return new Map([...byPart].filter(([, list]) => views.size > 1 && new Set(list.map((p) => p.view)).size >= views.size));
+    };
+    const was = everywhere(before);
+    for (const [part, list] of everywhere(after)) {
+      if (was.has(part) || blocking.some((b) => b.params?.part === part)) continue;
+      const worst = list.reduce((a, b) => (b.params.visible < a.params.visible ? b : a));
+      blocking.push({ ...worst, severity: 'warning' });
+    }
+  }
+  return { introduced, blocking };
 }
 
 const PROBE = '__probe';
@@ -386,6 +406,8 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
       return null;
     }
     const minVisible = Math.min(1, ...Object.values(after.visibility));
+    // The new part's own share in view (its least visible view), apart from the circuit's least visible part.
+    const ownVisible = Math.min(1, ...Object.entries(after.visibility).filter(([k]) => k === id || k.startsWith(`${id}@`)).map(([, v]) => v));
     const nearest = nearestBody(buildCircuit(next).parts, id);
     // Crowding: a body closer than CROWD mm to another pays for it, so where the board has room
     // (a joined board) parts spread out instead of piling up next to the last one.
@@ -397,6 +419,7 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
       span: round(distance(candidate.holes[0].pos, candidate.holes.at(-1).pos), 1),
       score: round(score, 2),
       minVisible: round(minVisible, 3),
+      visible: round(ownVisible, 3),
       nearest,
       fixes: diff.fixed,
       notes: introduced,

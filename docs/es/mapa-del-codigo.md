@@ -54,6 +54,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `render/focus.js` | velo, tiras metálicas, etiquetas de columna y fila (`coords`), copias en primer plano (foco estático) |
 | `render/coverage.js`, `inspect.js`, `annotate.js` | medir el dibujo; capas de anotación |
 | `ops.js`, `diff.js`, `node/workspace.js` | operaciones con inversa, diferencia en seco, historial, deshacer, salidas |
+| `layout.js` | un circuito entero a partir de sus componentes y redes (`autoLayout`: capas, reglas de colocación comprobadas solo con geometría, cables, se rehace mientras la revisión bloquea algo), `checkNets` (redes pedidas contra las armadas), `formatLayout`; CLI `layout`, MCP `layout` |
 | `query.js`, `query-format.js`, `review.js` | preguntas, colocaciones (`suggest`, `suggestMany`; grupos por agujero, nombre o pata ya colocada; reserva espacio para las conexiones que faltan con cables de prueba, mira un nivel adelante y da `reasons` cuando nada cabe), veredicto a partir de mediciones (lo que bloquea, con sus componentes y vistas) |
 | `nets.js` | el circuito como redes: grupos unidos por cables, con sus patas (MCP `netlist`, CLI `nets`) |
 | `node/catalog.js` | lo que conoce el kit, compacto o una entrada en detalle con sus campos (`TYPE_FIELDS`, al día con el esquema gracias a una prueba) y un ejemplo de `examples/` |

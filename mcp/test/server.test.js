@@ -28,7 +28,7 @@ after(async () => client?.close());
 test('the server lists its tools with schemas and gives work instructions', async () => {
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ['apply_ops', 'catalog', 'create_circuit', 'get_circuit', 'history', 'inspect', 'list_circuits', 'netlist', 'query', 'render', 'review', 'simulate', 'suggest', 'undo']);
+  assert.deepEqual(names, ['apply_ops', 'catalog', 'create_circuit', 'get_circuit', 'history', 'inspect', 'layout', 'list_circuits', 'netlist', 'query', 'render', 'review', 'simulate', 'suggest', 'undo']);
   for (const tool of tools) assert.ok(tool.description && tool.inputSchema, tool.name);
   assert.ok(tools.find((t) => t.name === 'inspect').annotations.readOnlyHint);
   assert.match(client.getInstructions(), /dry_run/);
@@ -188,4 +188,17 @@ test('suggest with parts answers one batch; review names the parts of each block
   assert.ok((await call('suggest', { target: 'circuits/led' })).isError, 'part or parts');
   const explained = jsonOf(await call('review', { target: 'circuits/led', explain: true, format: 'json' }));
   assert.ok(explained.rules);
+});
+
+test('layout creates a whole circuit from parts and nets, with the nets check and the review', async () => {
+  const r = await call('layout', {
+    target: 'circuits/laid-out',
+    parts: [{ id: 'R1', type: 'resistor', value: '330' }, { id: 'D1', type: 'led', color: 'red' }],
+    nets: [['R1.1', 'T+'], ['R1.2', 'D1.anode'], ['D1.cathode', 'T-']],
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
+  });
+  const text = r.content[0].text;
+  assert.match(text, /Nets: every connection asked for is there/);
+  assert.ok((await call('get_circuit', { target: 'circuits/laid-out' })).content[0].text.includes('"D1"'));
+  assert.ok((await call('layout', { target: 'circuits/laid-out', parts: [{ id: 'R1', type: 'resistor', value: '1k' }], nets: [] })).isError, 'refuses to overwrite');
 });

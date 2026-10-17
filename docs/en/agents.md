@@ -66,6 +66,15 @@ Measured on 2026-10-16: a layout agent rebuilding a two-rail supply took 68 call
 - The server reloads the kit when its code changes ([mcp.md](mcp.md)), so nobody has to
   reconnect it after a kit update.
 
+## `layout`: the whole circuit in one call (since 2026-10-17)
+
+For a new circuit without fixed positions the layout agent starts with `layout` (MCP tool or
+`protoboard-iso layout <target> <spec.json>`): parts without pins in signal order, and nets as
+lists of pins and rails. The algorithm places the parts by layers (distance from the source), by
+rules per part kind, adds the jumpers and checks the nets and the lesson review, in about a second;
+measured on the course's two-rail supply (10 parts, 10 nets): approved, 7 jumpers, 1.8 s. What it
+cannot solve comes back as blocking items for the usual loop.
+
 ## The loop (run by the main conversation)
 
 ```
