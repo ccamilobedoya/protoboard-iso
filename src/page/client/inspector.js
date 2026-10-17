@@ -102,6 +102,7 @@ export function setupInspector(page) {
       box.style.transform = `translateY(${box.getBoundingClientRect().height}px)`;
       void box.offsetHeight;
     }
+    const appeared = was && narrow();
     if (tab) box.dataset.tab = tab;
     if (box.dataset.tab === 'part' && !part) box.dataset.tab = 'circuit';
     if (box.dataset.tab === 'circuit' && !circuit) box.dataset.tab = 'part';
@@ -113,6 +114,7 @@ export function setupInspector(page) {
     for (const b of [tabPart, tabCircuit]) b.setAttribute('aria-selected', String(b.dataset.tab === box.dataset.tab));
     place();
     if (free) keepFree();
+    else if (appeared) page.refit?.();
   }
 
   // A part or a strip was tapped (or the card closed): card.js calls this.
@@ -122,6 +124,8 @@ export function setupInspector(page) {
   };
   // The circuit's panels come and go (a warning, the Falstad notes): show them, small on a phone.
   page.panelsChanged = () => layout();
+  // How much of the drawing a phone's sheet covers at the bottom (for the portrait frame, view.js).
+  page.sheetHeight = () => (!box.hidden && narrow() ? visible(box.dataset.size) : 0);
   page.showCircuit = () => layout({ tab: 'circuit', size: 'half' });
 
   for (const b of [tabPart, tabCircuit]) {

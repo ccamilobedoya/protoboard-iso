@@ -58,7 +58,20 @@ sesión termina con las pruebas en verde, esta página y la hoja de ruta al día
   (`scale(0.96)`) en los botones de la barra, del zoom y del encabezado de la ficha. Encontrado en
   el camino: prender o apagar Etiquetas o una capa reiniciaba el encuadre; ahora solo lo cambian
   Girar y Encuadrar.
-- Sigue: U6.
+- ✅ U6 (2026-10-16), reducida por el mantenedor a dos puntos (se descartaron los de etiquetas):
+  - **Componentes pequeños**: un toque que no cae en ningún componente ni en una tira toma el
+    componente que esté a pocos píxeles (3 y 6 px con ratón, 6 y 12 px con el dedo); tocar otra vez
+    el componente abierto donde hay otro debajo abre ese (W1 sobre R1: R1 → W1 → R1), salvo dentro
+    de 350 ms (un doble toque encuadra el componente). «Otra vez» es el componente abierto, no el
+    mismo punto de la pantalla: abrir una ficha puede mover el dibujo.
+  - **Encuadre vertical**: en una pantalla más alta que ancha, el encuadre de cerca pasa a ser los
+    componentes y sus etiquetas tal como están dibujados (incluidas las placas y paneles al lado de
+    la protoboard), con un margen del 6 %, ocupando el ancho y centrado por encima de la hoja
+    inferior; se vuelve a encuadrar cuando la hoja aparece sobre un encuadre que nadie movió. El LED
+    y la resistencia se ven más o menos el doble de grandes en el celular.
+  - Encontrado en el camino: las piezas de las placas y paneles al lado de la protoboard (un UNO, el
+    adaptador e-paper y su panel) están en la capa `under`, y encuadrar un componente las ignoraba.
+- Sigue: U7 (el mantenedor la prueba y ajustamos).
 
 ## Para quién y para qué
 
@@ -175,9 +188,9 @@ se ajusta al espacio que dejan libre la barra y la hoja.
 
 ### Etiquetas y el sello MODELO
 
-Como se decidió el 2026-10-12, en la página las etiquetas siguen al toque: en el celular solo se
-ve la del componente elegido (y todas con *Etiquetas* prendido); en el escritorio todas, con un
-tamaño máximo en pantalla para que nunca superen a la interfaz. El sello MODELO sale del dibujo y
+Las etiquetas se quedan como están (el mantenedor quitó de U6 «solo la del componente elegido en el
+celular» y «un tamaño máximo en el escritorio», 2026-10-16); el botón *Etiquetas* las oculta todas.
+El sello MODELO sale del dibujo y
 pasa al inspector (insignia sobre los valores) y a la esquina del cuadro, con el modo correcto
 (*DC* o *transitorio*).
 
@@ -238,7 +251,7 @@ Tomadas por el mantenedor el 2026-10-16.
 |---|---|---|
 | Un dedo en una página embebida | desplaza la nota; **dos dedos mueven el dibujo**, como un mapa de Google embebido (con su aviso corto) | U1 ✅ |
 | Inspector en el escritorio | un **panel sobre el cuadro**; el cuadro se corre para que el componente elegido quede libre | U4 |
-| Etiquetas en el celular | **solo la del componente elegido** (todas con *Etiquetas* prendido) | U6 |
+| Etiquetas en el celular | ~~solo la del componente elegido~~ **descartado** (2026-10-16): se quedan como están | – |
 | Tema | **sigue al sistema**; un ajuste lo cambia: `page.theme` en el circuito, y `?theme=` en el enlace por encima de los dos | U2 |
 | Paleta | los tokens de `system.md`, afinados en U7 | U7 |
 

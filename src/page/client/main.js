@@ -17,7 +17,7 @@
 // limits.js) only when the circuit asks for results or the current layer. They share one `page` object. Entries: static-page.js
 // and live-page.js call startPage with the extensions they carry.
 
-import { numbers, setBox, setupView, stripAt, frameTo, flipView, flipFrame, partsRect } from './view.js';
+import { numbers, setBox, setupView, stripAt, flipView, flipFrame, partsRect, fitTo, isLastFit, partsAt, partNear } from './view.js';
 import { applyFocus } from './focus.js';
 import { select, selectNode, refreshCard, refreshNotes } from './card.js';
 import { tapTag, setupTooltip } from './tooltip.js';
@@ -57,6 +57,8 @@ export function startPage(extensions = []) {
     box: null,
     onShow: [], // extensions that react to a change of view, layer or speed
     show: () => show(),
+    // The bottom sheet came up over a frame nobody moved: fit again around it (inspector.js).
+    refit: () => isLastFit(page) && fitTo(page, numbers(page.current().dataset[state.fit]), true),
     refreshCard: () => refreshCard(page),
     refreshNotes: () => refreshNotes(page),
   };
@@ -78,8 +80,10 @@ export function startPage(extensions = []) {
       flipView(page, from, page.current(), () => (untouched && !anchor ? setBox(page, fitBox()) : flipFrame(page, from, old, anchor)));
     } else {
       for (const s of svgs) s.toggleAttribute('hidden', s.dataset.view !== state.view);
-      if (!shown.view) setBox(page, fitBox());
-      else if (shown.fit !== state.fit) frameTo(page, fitBox());
+      if (!shown.view) {
+        setBox(page, fitBox()); // a first frame to measure from, then the one for this screen
+        fitTo(page, fitBox());
+      } else if (shown.fit !== state.fit) fitTo(page, fitBox(), true);
     }
     shown = { view: state.view, fit: state.fit };
     document.body.classList.toggle('no-labels', !state.labels);
@@ -107,17 +111,30 @@ export function startPage(extensions = []) {
   setupTooltip(page);
   setupBar(page);
   setupInspector(page);
-  // A tap: a result tag pins its probes (focus untouched), a part selects it, a strip in use
-  // opens its card (found by where the tap is: the strips are under the parts), the board clears.
+  // A tap: a result tag pins its probes (focus untouched), a part selects it (the open part tapped
+  // again, the part under it), a strip in use opens its card (found by where the tap is: the
+  // strips are under the parts), a part a few pixels away is taken, else the board clears.
+  let lastTap = null;
   main.addEventListener('click', (e) => {
     // A button in the card that rebuilt it (a pin opening its strip) is no longer in the page.
     if (page.dragged || !e.target.isConnected || page.inChrome(e.target)) return;
     if (tapTag(page, e.target)) return;
     const hit = e.target.closest && e.target.closest('[data-part]');
-    if (hit) return select(page, hit.getAttribute('data-part'));
+    // Later than a double tap (that one frames the part, view.js). Not "the same spot on screen":
+    // opening a card may move the drawing so the part stays in view.
+    const later = !lastTap || e.timeStamp - lastTap > 350;
+    lastTap = e.timeStamp;
+    if (hit) {
+      // The open part tapped again where another lies under it (a wire over a resistor): that one.
+      const under = partsAt(page, e.clientX, e.clientY);
+      const k = later ? under.indexOf(page.open) : -1;
+      return select(page, k >= 0 && under.length > 1 ? under[(k + 1) % under.length] : hit.getAttribute('data-part'));
+    }
     const node = stripAt(page, e.clientX, e.clientY);
     if (node != null) return selectNode(page, node);
-    select(page, null);
+    // Nothing under the tap: a small part a few pixels away (a lead, a thin wire).
+    const near = partNear(page, e.clientX, e.clientY);
+    select(page, near);
   });
 
   for (const extend of extensions) extend(page);

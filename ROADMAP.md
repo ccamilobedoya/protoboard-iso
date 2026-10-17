@@ -170,7 +170,7 @@ sessions in [docs/en/ux-pass.md](docs/en/ux-pass.md); visual system in
 - ✅ U3 · The bar: grouped by job, icons, Flip and Fit as single buttons, ⋯ menu, first-time hint
 - ✅ U4 · The inspector: one card with a sticky header, a Circuit tab (controls, warnings, Falstad), right panel on wide screens and a bottom sheet on phones; the selected part never covered; MODEL badge with the right mode
 - ✅ U5 · Motion: flip keeping the focus, framing, sheet, press feedback, reduced motion
-- ⬜ U6 · Details: labels by context, larger tap areas, portrait framing
+- ✅ U6 · Details: small parts easier to tap (a part nearby, the part underneath on a second tap), portrait framing (the labels items were dropped)
 - ⬜ U7 · Try it with the maintainer on a phone, an iPad and inside Trilium, and adjust
 
 ## Stage 4 — On a phone or tablet ⬜

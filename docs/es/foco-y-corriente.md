@@ -40,6 +40,9 @@ página con esos componentes en foco (los que explica la lección).
 - **La pestaña Circuito** del inspector tiene lo que es de todo el circuito: el panel de controles,
   los avisos y las notas de Falstad. Sin nada tocado es lo que muestra el inspector (en el celular,
   plegado a una franja abajo para dejar libre el circuito).
+- **Componentes pequeños**: un toque justo al lado de un cable delgado o de una pata igual lo toma;
+  donde un componente queda encima de otro (un puente sobre una resistencia), toca otra vez el
+  abierto para abrir el de debajo.
 - **Toca la protoboard** (o ✕) para quitar el foco.
 - Con `"page": { "results": true }` la simulación está siempre activa, sin botón: el componente
   tocado muestra sobre la protoboard su corriente simulada y el voltaje de sus grupos, y en la

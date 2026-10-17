@@ -50,7 +50,19 @@ with the tests green, this page and the roadmap up to date.
   (150 ms), the desktop panel slides in, the phone sheet comes up from the edge. Press feedback
   (`scale(0.96)`) on bar, zoom and card-head buttons. Found on the way: toggling Labels or a
   layer reset the frame; now only Flip and Fit change it.
-- Next: U6.
+- ✅ U6 (2026-10-16), reduced by the maintainer to two items (the label ones dropped):
+  - **Small parts**: a tap that hits no part and no strip takes the part a few pixels away
+    (3 and 6 px with a mouse, 6 and 12 px with a finger); the open part tapped again where another
+    lies under it opens that one (W1 over R1: R1 → W1 → R1), not within 350 ms (a double tap
+    frames the part). "Again" is the open part, not the same spot on screen: opening a card may
+    move the drawing.
+  - **Portrait framing**: on a screen taller than wide, the close-up frame becomes the parts and
+    their labels as drawn (boards and panels beside the breadboard included), with a 6 % margin,
+    filling the width and centred above the bottom sheet; it fits again when the sheet appears
+    over an untouched frame. The LED and resistor show about twice as large on a phone.
+  - Found on the way: the pieces of boards and panels beside the breadboard (an UNO, the e-paper
+    adapter and its panel) are in the `under` layer, and framing a part ignored them.
+- Next: U7 (the maintainer tries it and we adjust).
 
 ## Who and what for
 
@@ -161,9 +173,8 @@ the bar and the sheet.
 
 ### Labels and the MODEL stamp
 
-As decided on 2026-10-12, labels in the page follow the tap: on a phone only the selected part's
-label shows (and all with *Labels* on); on a desktop all, at a size capped on screen so they never
-outgrow the interface. The MODEL stamp moves out of the drawing into the inspector (badge on the
+Labels stay as they are (the maintainer dropped "only the selected part's on a phone" and "a size
+cap on a desktop" from U6, 2026-10-16); the *Labels* button hides them all. The MODEL stamp moves out of the drawing into the inspector (badge on the
 values) and the frame's corner, with the right mode (*DC* or *transient*).
 
 ### Visual system
@@ -222,7 +233,7 @@ Taken by the maintainer on 2026-10-16.
 |---|---|---|
 | One finger on an embedded page | scrolls the note; **two fingers move the drawing**, like an embedded Google Map (with its short hint) | U1 ✅ |
 | Inspector on a desktop | a **panel over the frame**; the frame shifts so the selected part stays free | U4 |
-| Labels on a phone | **only the selected part's** (all with *Labels* on) | U6 |
+| Labels on a phone | ~~only the selected part's~~ **dropped** (2026-10-16): they stay as they are | – |
 | Theme | **follows the system**; a setting overrides it: `page.theme` in the circuit, and `?theme=` in the link over both | U2 |
 | Palette | the tokens of `system.md`, tuned in U7 | U7 |
 

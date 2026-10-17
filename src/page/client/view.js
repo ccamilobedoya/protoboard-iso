@@ -56,6 +56,62 @@ export function frameTo(page, target) {
   page.frameAnim = win.requestAnimationFrame(step);
 }
 
+// The frame a button asks for (UX pass, U6). On a portrait screen the close-up frame (wide, made for
+// a landscape page) is replaced by the parts and their labels as they are drawn, with a small
+// margin, filling the width, centred in the area the bottom sheet leaves free. page.lastFit keeps
+// the frame given, so the inspector can fit again when its sheet appears over an untouched frame.
+export function fitFrame(page, base) {
+  const m = page.main.getBoundingClientRect();
+  if (page.state.fit !== 'parts' || !(m.height > m.width * 1.1)) return base;
+  const els = [...page.current().querySelectorAll('.under [data-part], .parts [data-part], .labels [data-part]')];
+  const rects = els.map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
+  if (!rects.length) return base;
+  const [x0, y0] = toBox(page, Math.min(...rects.map((r) => r.left)), Math.min(...rects.map((r) => r.top)));
+  const [x1, y1] = toBox(page, Math.max(...rects.map((r) => r.right)), Math.max(...rects.map((r) => r.bottom)));
+  const pad = 0.06 * Math.max(x1 - x0, y1 - y0);
+  const sheet = page.sheetHeight?.() ?? 0;
+  const free = Math.max(m.height - sheet, m.height / 2);
+  // Width first; if the parts are then taller than the free area, widen until they fit.
+  let w = x1 - x0 + 2 * pad;
+  const tall = ((y1 - y0 + 2 * pad) * m.width) / w;
+  if (tall > free) w *= tall / free;
+  const h = (w * m.height) / m.width;
+  const k = w / m.width; // drawing units per pixel
+  return [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 + (sheet / 2) * k - h / 2, w, h];
+}
+export function fitTo(page, base, animate = false) {
+  const box = fitFrame(page, base);
+  page.lastFit = clampBox(page, box);
+  (animate ? frameTo : setBox)(page, box);
+}
+export const isLastFit = (page) => Boolean(page.lastFit && page.box && page.lastFit.every((n, i) => Math.abs(n - page.box[i]) < 0.5));
+
+// Taps (U6): the parts under a point, topmost first (a copy in the spotlight, a label, the part),
+// and the part nearest to a tap that hit none, within a few pixels (more with a finger).
+export function partsAt(page, x, y) {
+  const doc = page.main.ownerDocument;
+  if (typeof doc.elementsFromPoint !== 'function') return [];
+  const svg = page.current();
+  const ids = [];
+  for (const el of doc.elementsFromPoint(x, y)) {
+    if (!svg.contains(el)) continue;
+    const id = el.closest('[data-part]')?.getAttribute('data-part');
+    if (id && page.data.parts[id] && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+export function partNear(page, x, y) {
+  const coarse = Boolean(winOf(page).matchMedia?.('(pointer: coarse)').matches);
+  for (const r of coarse ? [6, 12] : [3, 6]) {
+    for (let k = 0; k < 8; k++) {
+      const a = (k * Math.PI) / 4;
+      const [id] = partsAt(page, x + r * Math.cos(a), y + r * Math.sin(a));
+      if (id) return id;
+    }
+  }
+  return null;
+}
+
 // Turning the board over is immediate (the maintainer's choice, 2026-10-16: no transition): the
 // new view shows at once, with the same zoom and the focused parts where they were. Both views lie
 // over each other (main.flipping) only while `frame()` measures the new one.
@@ -134,9 +190,11 @@ export function isEmbedded(win) {
   }
 }
 
-// Where some parts are drawn on screen (the union of their pieces), or null.
+// Where some parts are drawn on screen (the union of their pieces), or null. Boards and panels
+// beside the breadboard (an UNO, the e-paper adapter and its panel) are drawn in the `under` layer.
 export function partsRect(page, ids, svg = page.current()) {
-  const els = ids.flatMap((id) => [...svg.querySelectorAll(`.parts [data-part="${id.replace(/["\\]/g, '\\$&')}"]`)]);
+  const q = (id) => id.replace(/["\\]/g, '\\$&');
+  const els = ids.flatMap((id) => [...svg.querySelectorAll(`.under [data-part="${q(id)}"], .parts [data-part="${q(id)}"]`)]);
   const rects = els.map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
   if (!rects.length) return null;
   return { left: Math.min(...rects.map((r) => r.left)), top: Math.min(...rects.map((r) => r.top)), right: Math.max(...rects.map((r) => r.right)), bottom: Math.max(...rects.map((r) => r.bottom)) };
@@ -311,7 +369,7 @@ export function setupView(page) {
     const what = b.dataset.zoom;
     if (what === 'in') zoomAt(page, ...middle(), 1 / 1.5, true);
     else if (what === 'out') zoomAt(page, ...middle(), 1.5, true);
-    else if (what === 'fit') frameTo(page, numbers(page.current().dataset[page.state.fit]));
+    else if (what === 'fit') fitTo(page, numbers(page.current().dataset[page.state.fit]), true);
     else if (what === 'full') {
       if (doc.fullscreenElement) doc.exitFullscreen();
       else if (canFull) doc.documentElement.requestFullscreen().catch(() => win.open(win.location.href, '_blank', 'noopener'));

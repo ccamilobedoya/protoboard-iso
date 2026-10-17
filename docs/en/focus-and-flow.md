@@ -37,6 +37,8 @@ page with those parts in focus (the ones a lesson is about).
 - **The Circuit tab** of the inspector holds what concerns the whole circuit: the controls panel,
   the warnings and the Falstad notes. With nothing tapped it is what the inspector shows (on a
   phone, folded to a strip at the bottom so the circuit is free).
+- **Small parts**: a tap just off a thin wire or a lead still takes it; where one part lies over
+  another (a jumper over a resistor), tap the open one again to open the one under it.
 - **Tap the board** (or ✕) to clear the focus.
 - With `"page": { "results": true }` the simulation is always on, with no button: the tapped
   part shows its simulated current and the voltages of its groups on the board, and all its

@@ -346,3 +346,36 @@ test('the frame stays where the learner was: labels and layers keep it, a flip k
   doc.querySelector('nav button[data-key="view"]').click();
   assert.ok(Math.abs(view('front')[2] - zoomed[2]) < 0.5, 'and back again');
 });
+
+test('taps: the open part tapped again picks the part under it; a tap that hits nothing takes a part nearby', async (t) => {
+  const page = await loadPage(renderPage(example('led-resistor.json'), { lang: 'es' }).html);
+  if (!page) return t.skip('jsdom not installed');
+  const { doc, window, svg } = page;
+  const front = svg('front');
+  const el = (id) => front.querySelector(`.parts [data-part="${id}"]`);
+  const ids = [...new Set([...front.querySelectorAll('.parts [data-part]')].map((e) => e.getAttribute('data-part')))];
+  const [a, b] = ids;
+  const open = () => doc.querySelector('.info h2')?.textContent ?? null;
+  const title = (id) => JSON.parse(doc.getElementById('page-data').textContent).parts[id].title;
+  const click = (target, x, y) => target.dispatchEvent(new window.MouseEvent('click', { bubbles: true, clientX: x, clientY: y }));
+  const wait = (ms) => new Promise((r) => window.setTimeout(r, ms));
+
+  // Two parts under one point, `a` on top.
+  doc.elementsFromPoint = (x, y) => (Math.hypot(x - 300, y - 200) < 2 ? [el(a), el(b)] : []);
+  click(el(a), 300, 200);
+  assert.equal(open(), title(a), 'the first tap: the part on top');
+  click(el(a), 300, 200);
+  assert.equal(open(), title(a), 'a quick second tap (a double tap) does not change it');
+  await wait(380);
+  click(el(a), 300, 200);
+  assert.equal(open(), title(b), 'tapped again later: the part under it');
+  await wait(380);
+  click(el(a), 300, 200);
+  assert.equal(open(), title(a), 'and round again');
+
+  // A tap a few pixels off a part, on nothing: that part.
+  doc.querySelector('.info .head .actions button:last-child').click();
+  doc.elementsFromPoint = (x, y) => (Math.hypot(x - 12, y - 8) > 1 ? [el(b)] : []);
+  click(front.querySelector('.board'), 12, 8);
+  assert.equal(open(), title(b));
+});
