@@ -51,7 +51,8 @@ export function formatChange(result, lang, { t, formatIssue }) {
   else lines.push(t(lang, 'change.applied', { revision: result.revision }));
   const { fixed, introduced, visibility } = result.diff;
   for (const p of fixed) lines.push(`  ✔ ${t(lang, 'change.fixed')}: ${formatIssue(p, lang)}${p.view ? ` [${p.view}]` : ''}`);
-  for (const p of introduced) lines.push(`  ✖ ${t(lang, 'change.introduced')}: ${formatIssue(p, lang)}${p.view ? ` [${p.view}]` : ''}`);
+  // A note is worth knowing, not a problem: it gets a dot, not a cross.
+  for (const p of introduced) lines.push(`  ${p.severity === 'info' ? '·' : '✖'} ${t(lang, 'change.introduced')}: ${formatIssue(p, lang)}${p.view ? ` [${p.view}]` : ''}`);
   if (!fixed.length && !introduced.length) lines.push(`  ${t(lang, 'change.same')}`);
   const pct = (v) => (v === null ? '—' : `${Math.round(v * 100)} %`);
   if (visibility.length) lines.push(`  ${t(lang, 'change.visibility')}: ${visibility.map((v) => `${v.part} ${pct(v.before)} → ${pct(v.after)}`).join(', ')}`);

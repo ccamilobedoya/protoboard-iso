@@ -61,7 +61,10 @@ llamadas y unos 185 000 tokens. Lo que lo reduce:
   bb400` dan el mapa de la protoboard (los rieles tienen agujeros por grupos: en una bb400 no
   existe `B-7`), y un agujero que no existe nombra los más cercanos. `between` acepta `null` para una pata que va a
   una tira libre, y `set` rechaza los campos que el tipo de pieza no tiene (un `set` con `{"field":
-  …, "value": …}` se guardaba sin aviso y la descripción no quedaba).
+  …, "value": …}` se guardaba sin aviso y la descripción no quedaba). Cuando una pieza no cabe en el grupo pedido, `suggest` la pone en
+  una tira libre cercana y la une con un cable en el mismo lote (nota `VIA_WIRE`; `via: false` lo
+  apaga); un cuerpo pegado a otro paga en la puntuación, y una pata sin grupo pedido nunca cae en un
+  riel.
 - El servidor recarga el kit cuando cambia su código ([mcp.md](mcp.md)), así nadie tiene que
   reconectarlo después de actualizar el kit.
 

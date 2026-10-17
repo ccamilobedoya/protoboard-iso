@@ -95,6 +95,7 @@ export default {
   'check.OP_UNKNOWN_FIELD': 'Operación {index} ({op}): {part} no tiene el campo «{field}». Sus campos: {fields}.',
   'check.OP_SET_FORM': 'Operación {index} ({op}): set recibe los campos mismos, no «field» y «value»: {"op":"set","part":"{part}","description":{"es":"…","en":"…"}}. Campos de {part}: {fields}.',
   'check.NO_FIT_RAIL': '{part}: ningún juego de agujeros le sirve a sus patas entre {groups}. El riel {rail} solo tiene agujeros en las columnas {columns}: pon la otra pata en una tira de esas columnas, o llega al riel con un cable.',
+  'check.VIA_WIRE': '{part} va en una tira libre, unido a {node} (pata {pin}) por el cable {wire}: en ese grupo no había espacio.',
   'check.NO_ROOM_LEFT': '{part} ahí dejaría {node} con {left} agujeros libres utilizables, y faltan {need} conexiones que deben llegar ahí (una tira con una pata sola, o nombrada por una pieza posterior). Ponlo en otro lugar o conecta antes ese grupo.',
   'check.GROUP_FULL': '{part}: {node} (para la pata {pin}) no tiene ningún agujero libre al que llegue una pata ({free} libres, {covered} de ellos debajo de otro componente). Llega con un cable desde otro agujero de esa red, o mueve lo que la llena.',
   'check.NO_FIT': '{part}: ningún juego de agujeros le sirve a sus patas entre {groups}. Los grupos quedan demasiado lejos o demasiado cerca para este componente: une uno de ellos con un cable a una tira más cercana.',

@@ -59,7 +59,10 @@ Measured on 2026-10-16: a layout agent rebuilding a two-rail supply took 68 call
   board layout (rail holes come in groups: `B-7` does not exist on a bb400), and a hole that is
   not on the board names the nearest ones. `between` takes `null` for a lead to a free strip, and
   `set` refuses fields the part type does not have (a `{"field": …, "value": …}` set used to be
-  saved silently and left the description out).
+  saved silently and left the description out). When a part does not fit on the group it is
+  asked for, `suggest` puts it in a free strip nearby and joins it with a jumper in the same batch
+  (note `VIA_WIRE`; `via: false` turns it off); a body crowding another pays in the score, and a
+  lead with no group asked for never lands on a rail.
 - The server reloads the kit when its code changes ([mcp.md](mcp.md)), so nobody has to
   reconnect it after a kit update.
 

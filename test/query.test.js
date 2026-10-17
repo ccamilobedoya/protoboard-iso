@@ -48,9 +48,13 @@ test('suggest: placements connect the asked groups and add no errors or warnings
 test('suggest: three-lead parts face the front and need free neighbouring strips', () => {
   const ok = suggest(led, { type: 'mosfet', part: 'IRLZ44N' }, { connect: { D: 'h20' } });
   assert.deepEqual(ok.placements[0].pins.map((h) => h.slice(1)), ['19', '20', '21'], 'pin 1 on the left: print towards the front view');
-  const blocked = suggest(led, { type: 'mosfet', part: 'IRLZ44N' }, { connect: { D: '10:f-j' } });
+  const blocked = suggest(led, { type: 'mosfet', part: 'IRLZ44N' }, { connect: { D: '10:f-j' }, via: false });
   assert.equal(blocked.placements.length, 0, 'strip 9 is in use, so G has nowhere to go');
   assert.equal(blocked.hint.code, 'NO_PLACEMENT');
+  // With the detour (default) it goes in free strips, joined to strip 10 by a jumper.
+  const detour = suggest(led, { type: 'mosfet', part: 'IRLZ44N' }, { connect: { D: '10:f-j' } });
+  assert.equal(detour.placements[0].notes[0].code, 'VIA_WIRE');
+  assert.equal(detour.placements[0].ops.length, 2);
   const rail = suggest(led, { type: 'mosfet', part: 'IRLZ44N' }, { connect: { S: 'T-' } });
   assert.equal(rail.hint.code, 'NO_PLACEMENT_RAIL');
 });

@@ -96,6 +96,7 @@ export default {
   'check.OP_UNKNOWN_FIELD': 'Operation {index} ({op}): {part} has no field "{field}". Its fields: {fields}.',
   'check.OP_SET_FORM': 'Operation {index} ({op}): set takes the fields themselves, not "field" and "value": {"op":"set","part":"{part}","description":{"es":"…","en":"…"}}. Fields of {part}: {fields}.',
   'check.NO_FIT_RAIL': '{part}: no set of holes fits its leads between {groups}. The rail {rail} has holes only in columns {columns}: put the other lead in a strip of one of those columns, or reach the rail with a wire.',
+  'check.VIA_WIRE': '{part} goes in a free strip, joined to {node} (pin {pin}) by the jumper {wire}: there was no room on that group itself.',
   'check.NO_ROOM_LEFT': '{part} there would leave {node} with {left} usable free holes, and {need} more connections must go there (strip with a lone pin, or named by a later part). Place it elsewhere or connect that group first.',
   'check.GROUP_FULL': '{part}: {node} (for pin {pin}) has no free hole a lead can reach ({free} free, {covered} of them under another part). Connect it through a wire from another hole of that net, or move what fills it.',
   'check.NO_FIT': '{part}: no set of holes fits its leads between {groups}. The groups are too far apart or too close for this part: join one of them to a nearer strip with a wire.',

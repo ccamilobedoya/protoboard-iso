@@ -93,7 +93,10 @@ function centreOf(state, refs) {
       const holes = node ? state.nodeHoles.get(node) : [];
       // For a rail, the centre of its used holes is more useful than the middle of the board.
       const usedHoles = holes.filter((h) => state.used.has(h.id));
-      for (const h of usedHoles.length ? usedHoles : holes) pts.push(h.pos);
+      // An unused rail of joined boards: the middle of the first board, not the seam.
+      const seg = state.board.spec.segments;
+      const pool = usedHoles.length ? usedHoles : seg ? holes.filter((h) => h.pos.x <= seg.length) : holes;
+      for (const h of pool) pts.push(h.pos);
     }
   }
   if (!pts.length) return null;
@@ -131,7 +134,9 @@ function geometricCandidates(state, { pkg, params, pinNames, wanted, centre, win
   const optionsFor = (pin) => {
     const node = wanted[pin];
     if (node) return holes.filter((h) => h.node === node);
-    return holes.filter((h) => !nodeUsed(h.node) && (!centre || distance(h.pos, centre) <= window));
+    // A pin with no group asked for goes to an empty strip, never to a rail (an unused B+ is
+    // empty too, and a lead there would join that rail).
+    return holes.filter((h) => h.kind === 'main' && !nodeUsed(h.node) && (!centre || distance(h.pos, centre) <= window));
   };
   const out = [];
   const valid = (set) => {
@@ -223,6 +228,8 @@ function blockingOf(before, after, id, policy) {
 }
 
 const PROBE = '__probe';
+const CROWD = 6; // mm
+const CROWD_WEIGHT = 0.3;
 
 // Room left for the connections still to come. A strip that holds a lone pin (it still needs
 // a connection) and every group named in `reserve` ({ ref: count }, refs as in connect) must
@@ -289,7 +296,7 @@ function dependentProblem(next, dependents, { id, profile, views }) {
   for (const dep of dependents) {
     const refs = [...(dep.between ?? []), ...Object.values(dep.connect ?? {})].map((r) => /^([^.\s]+)\./.exec(String(r))?.[1]).filter(Boolean);
     if (!refs.includes(id) || refs.some((other) => !placedIds.has(other))) continue;
-    const r = suggest(next, dep.part, { between: dep.between, connect: dep.connect, near: dep.near, profile, views, limit: 1, candidates: 4, maxCandidates: 16, room: false });
+    const r = suggest(next, dep.part, { between: dep.between, connect: dep.connect, near: dep.near, profile, views, limit: 1, candidates: 4, maxCandidates: 16, room: false, via: false });
     if (!r.placements?.length) return { severity: 'info', code: 'DEPENDENT_BLOCKED', params: { part: id, other: r.id ?? dep.part?.id ?? dep.part?.type, why: r.hint?.reasons?.[0]?.example?.code ?? r.error?.code ?? '—' } };
   }
   return null;
@@ -315,7 +322,7 @@ function tally(reasons) {
 // room (default true): leave out placements that take the last usable hole of a strip still
 // waiting for a connection, or of a group named in `reserve` ({ "U1.OUT": 2 }: two more
 // connections will go there). When nothing is left, hint.reasons says why, most frequent first.
-export function suggest(circuit, part, { connect, between, near, limit = 5, candidates = 12, maxCandidates = 48, views, profile, window = 20, reserve, room = true, dependents } = {}) {
+export function suggest(circuit, part, { connect, between, near, limit = 5, candidates = 12, maxCandidates = 48, views, profile, window = 20, reserve, room = true, dependents, via = true } = {}) {
   const policy = profile ? PROFILES[profile] : null;
   if (profile && !policy) return { error: { severity: 'error', code: 'UNKNOWN_PROFILE', params: { profile, options: Object.keys(PROFILES).join(', ') } } };
   views ??= policy?.hiddenEverywhere ? ['front', 'back'] : ['front'];
@@ -352,7 +359,8 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
     }
     wanted[name] = node;
   }
-  const centre = centreOf(state, near ? [near] : Object.values(asked)) ?? { x: state.board.spec.size.length / 2, y: state.board.spec.size.width / 2, z: 0 };
+  const firstBoard = state.board.spec.segments?.length ?? state.board.spec.size.length;
+  const centre = centreOf(state, near ? [near] : Object.values(asked)) ?? { x: firstBoard / 2, y: state.board.spec.size.width / 2, z: 0 };
   const id = part.id ?? nextId(circuit, part.type);
 
   const pool = geometricCandidates(state, { pkg, params: def.params, pinNames, wanted, centre, window, byName }).slice(0, Math.max(candidates, maxCandidates));
@@ -377,7 +385,10 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
     }
     const minVisible = Math.min(1, ...Object.values(after.visibility));
     const nearest = nearestBody(buildCircuit(next).parts, id);
-    const score = candidate.pre + introduced.length + 5 * (1 - minVisible);
+    // Crowding: a body closer than CROWD mm to another pays for it, so where the board has room
+    // (a joined board) parts spread out instead of piling up next to the last one.
+    const crowd = nearest ? CROWD_WEIGHT * Math.max(0, CROWD - nearest.gap) : 0;
+    const score = candidate.pre + introduced.length + 5 * (1 - minVisible) + crowd;
     return {
       pins,
       nodes: candidate.holes.map((h) => h.node),
@@ -437,6 +448,29 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
     delete p.next;
     delete p.after;
   }
+  // Nothing fits on the group asked for (a tall regulator beside it, no room left): put the part
+  // in a free strip nearby and join it to that group with a jumper, as one would on the bench.
+  if (!placements.length && via && !byName) {
+    for (const pin of pinNames) {
+      const node = wanted[pin];
+      if (!node || (state.nodeHoles.get(node) ?? [])[0]?.kind !== 'main') continue;
+      const rest = Object.fromEntries(Object.entries(wanted).filter(([k]) => k !== pin));
+      const moved = suggest(circuit, part, { connect: rest, near: near ?? node, limit: 3, candidates, maxCandidates, views, profile, window, reserve, room, dependents, via: false });
+      for (const p of moved.placements) {
+        const far = p.pins[pinNames.indexOf(pin)];
+        const next = applyOps(circuit, p.ops).circuit;
+        const taken = new Set((next.parts ?? []).map((q) => q.id));
+        const wireId = taken.has(`W${id}`) ? nextId(next, 'wire') : `W${id}`;
+        const w = suggest(next, { type: 'wire', id: wireId }, { between: [node, far], limit: 1, views, profile, window, room: false, via: false });
+        const link = w.placements?.[0];
+        if (!link) continue;
+        const note = { severity: 'info', code: 'VIA_WIRE', params: { part: id, pin, node, wire: wireId } };
+        placements.push({ ...p, ops: [...p.ops, ...link.ops], notes: [note, ...p.notes, ...link.notes], via: { pin, node, wire: wireId } });
+        break;
+      }
+      if (placements.length) break;
+    }
+  }
   const hint = placements.length
     ? null
     : { severity: 'warning', code: pkg.inline && Object.values(wanted).some((n) => !n.includes(':')) ? 'NO_PLACEMENT_RAIL' : 'NO_PLACEMENT', params: { part: id, considered }, reasons: tally(reasons) };
@@ -456,7 +490,15 @@ function noCandidates(state, { id, pinNames, wanted }) {
     if (!reachable.length) return { severity: 'info', code: 'GROUP_FULL', params: { part: id, pin, node, free: free.length, covered: free.length - reachable.length } };
   }
   const rail = Object.values(wanted).find((n) => (state.nodeHoles.get(n) ?? [])[0]?.kind === 'rail');
-  if (rail) return { severity: 'info', code: 'NO_FIT_RAIL', params: { part: id, groups: Object.values(wanted).join(', '), rail, columns: boardLayout(state.board).railColumns } };
+  // Name the rail's columns only when that is the trouble: a strip asked for has no rail hole
+  // within a column of it.
+  const strips = Object.values(wanted).filter((n) => (state.nodeHoles.get(n) ?? [])[0]?.kind === 'main');
+  const railCols = new Set(state.board.railColumns);
+  const missing = strips.some((n) => {
+    const col = state.nodeHoles.get(n)[0].col;
+    return ![col - 1, col, col + 1].some((c) => railCols.has(c));
+  });
+  if (rail && missing) return { severity: 'info', code: 'NO_FIT_RAIL', params: { part: id, groups: Object.values(wanted).join(', '), rail, columns: boardLayout(state.board).railColumns } };
   return { severity: 'info', code: 'NO_FIT', params: { part: id, groups: Object.values(wanted).join(', ') || '—' } };
 }
 
