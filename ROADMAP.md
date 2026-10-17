@@ -102,13 +102,49 @@ From the course inventory, in rough order of use:
 
 - ✅ Development boards, drawn and checked (level 1): ESP32 DevKit (30 pins) and ESP32-C3 SuperMini straddling the channel by `pin1`, with a `rowSpacing` because boards differ; Arduino UNO beside the board, only the pins in use wired with Dupont leads; a note per pin in the card (strapping pins, input only, ADC2 and Wi-Fi, PWM…). Examples `esp32-led.json`, `uno-led.json`
 - ✅ GooDisplay DESPI-C02 e-paper adapter beside the board (right-angle pins with Dupont leads, RESE switch, test pads, FPC connector) and, when asked, the 7.5" GDEY075T7 panel on its flat cable (`panel: true`); card "Adapter board". Example `epaper-esp32.json`
-- ⬜ Other modules: AMS1117-3.3 and LM2596 regulators, TP4056 charger
 - ⬜ Bench supply drawn beside the board, its leads clipped to the rails (today `supplies` is not drawn)
 - ⬜ Battery discharge over time in a transient (charge falling with the current drawn), for runtime lessons
 - ⬜ Step-up (boost) converter module, as a behavioural source
 - ✅ KBP bridge rectifier (`bridge`: four diodes in one body, simulated), cement resistors (3, 5, 10 W, value printed on top); example `rectifier.json`
 - ✅ Battery holders: end walls as tall as the cells, so the + button never peeks over them
 - ⬜ Coin cell (CR2032) in its holder
+
+What the course bench has and the kit does not yet draw (from the inventory, 2026-10-16):
+
+- ⬜ Off-board switches, on the table and wired with alligator clips and Dupont leads, simulated as switches (on/off in the card): the KCD1 rocker (SPST); the 7 × 7 latching push button (it does not fit across the channel)
+- ⬜ Alligator clip leads as wires off the board (to the rails, to an off-board switch, to the supply)
+- ⬜ Regulator and power modules, drawn and simulated: AMS1117-3.3 (3 right-angle pins; a regulator with dropout), LM2596 buck (plain ZX-001 and V591 with LED voltmeter), TP4056 USB-C charger with protection, CN3791 MPPT solar charger, 2S BMS
+- ⬜ **USB as the power source for chips**: a USB cable (computer or charger: 5 V with its limit) into a development board (UNO, ESP32 DevKit, ESP32-C3, Pico) powering its 5V and 3V3 pins and what hangs from them, drawn and simulated; a USB-C input module on the board as well
+- ⬜ More development boards: Raspberry Pi Pico (RP2040) and ESP32-CAM with its MB programmer
+- ⬜ Display and input modules: OLED 0.96" (GME12864: VCC GND SCL SDA) and 0.91" SSD1306 over I2C, EC11 rotary encoder module, TTC MX key switches (keyboard block)
+- ⬜ Sensor modules: the 22-module kit (DHT11, BMP280, MH-RD rain, soil moisture, KY-018…), BME280, capacitive soil sensor (TLC555), HC-SR04 ultrasonic
+- ⬜ Actuators: SG90 and MG90S servos (3-pin lead), TB6612FNG motor driver, DC gear motors, mini submersible pump
+- ⬜ Energy: 6 V 2 W solar panel; single 18650 holder, LiPo 103450 on a JST PH lead
+- ⬜ On the board: TO-220 heatsink, XH connectors, DIP sockets
+- ⬜ Instruments on the circuit: multimeter leads on a strip (stage 4's virtual multimeter), the oscilloscope probe and the ZT-703S generator output, logic analyzer leads
+
+## Faster circuits for lessons (from the two-rail supply test) ⬜
+
+On 2026-10-16 a fresh `circuit-layout` rebuilt the M2 two-rail supply from the learner's notes and
+photo: 19 min, 68 calls, about 185 000 tokens (half a session's budget) to copy the photo, and the
+result passed review with resistors crossing other parts, three parts stood in by pin headers and
+no simulation (the switch is missing). The maintainer's rule from then on: **the same function, not
+the same picture**. Kept as it came out (`m2-fuente-dos-rieles` in the course's `circuitos/`, revision 6) to rebuild it
+with the improvements below and compare.
+
+- ✅ Brief: `Target: <name>` without a `circuits/` prefix; `Fidelity: functional` by default; the layout agent checks every part with `catalog` first and gives up a constraint after three attempts ([agents.md](docs/en/agents.md))
+- ⬜ The MCP server reloads (or warns) when the kit's code changed since it started: a long-lived server kept writing pages with the old interface
+- ⬜ The MCP strips or rejects a `circuits/` prefix in targets (it nested `circuitos/circuits/…`)
+- ⬜ Labels on any group, not only rails (`netLabels` for strips, e.g. `"8:a-e": "TP3"`), drawn on the board and in the card, checked by the reviewer: test points are what measuring lessons are about
+- ⬜ `review` (lesson) blocks parts that cross or pass through each other
+- ⬜ `suggest` reports collisions and clearance for each placement, as `apply_ops` does
+- ⬜ Place several parts at once (`suggest` for a set of parts against a review profile)
+- ⬜ `review --explain`: which part triggers each blocking item, and the profile's rules in the answer (what blocks, in how many views)
+- ⬜ `catalog` with a `type` filter and a compact list of types (its full answer is too long to read)
+- ⬜ An MCP tool for the whole netlist (nets with their pins), like the CLI's `netlist`, instead of one `query node` per strip
+- ⬜ A "stands for" marker for a part the kit still lacks: drawn flat, no collisions, named in the card (only while the part is pending)
+- ⬜ Photos: a table for the course's board standing up (left rail = B+/B−, right = T−/T+; the photo's rows are the kit's columns) and an annotated grid render to compare with a photo
+- ⬜ Measure again: rebuild `m2-fuente-dos-rieles` with these improvements (`Fidelity: functional`) and compare time, calls and tokens
 
 ## Visual style and themes (cross-cutting, after stage 2) ⬜
 

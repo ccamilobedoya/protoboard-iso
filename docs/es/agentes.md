@@ -54,17 +54,26 @@ español, y el agente responde en el idioma del encargo.
 
 ```
 LAYOUT BRIEF
-Target: circuits/<nombre> (new | existing, revision n)
+Target: <nombre> (una carpeta bajo la raíz del MCP, sin prefijo "circuits/"; new | existing, revision n)
 Goal: <para qué sirve el circuito, una línea>
 Connections: <una línea cada una: "R1 entre el riel T+ y el ánodo del LED", "cátodo del LED a T- por W1">
 Parts: <id, tipo, valor o referencia; posiciones solo si el usuario las fijó>
 Constraints: <clearance (3 por defecto para clases), zona de la protoboard, vista>
+Fidelity: functional (por defecto) | exact
 Done when: review <perfil> APPROVED
 ```
 
+`Fidelity: functional` (por defecto, decisión del mantenedor después de que la fuente de dos rieles
+del 2026-10-16 gastó la mitad de los tokens de una sesión copiando una foto): las mismas conexiones y
+el mismo comportamiento (se simula cuando tiene fuente), ningún componente atravesando a otro,
+review aprobado; las posiciones de una foto son una pista, no un objetivo. `exact` solo cuando la
+lección trata de dónde va cada cosa en la protoboard. Cada pieza del encargo tiene que existir en el
+kit (`catalog`) antes de empezar el montaje; si falta, va primero a `parts-librarian`, no a un
+marcador.
+
 ```
 REVIEW BRIEF
-Target: circuits/<nombre> · revision <n>
+Target: <nombre> · revision <n>
 Profile: lesson | draft
 Intent: <las conexiones que debe tener el circuito, como en el encargo de montaje>
 ```

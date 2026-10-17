@@ -52,17 +52,25 @@ An agent does not see the conversation: everything it needs goes in the brief.
 
 ```
 LAYOUT BRIEF
-Target: circuits/<name> (new | existing, revision n)
+Target: <name> (a folder under the MCP root, without a "circuits/" prefix; new | existing, revision n)
 Goal: <what the circuit is for, one line>
 Connections: <one line each: "R1 between rail T+ and the LED anode", "LED cathode to T- via W1">
 Parts: <id, type, value or part number; positions only if the user fixed them>
 Constraints: <clearance (default 3 for lessons), area of the board, view>
+Fidelity: functional (default) | exact
 Done when: review <profile> APPROVED
 ```
 
+`Fidelity: functional` (the default, the maintainer's choice after the two-rail supply of
+2026-10-16 took half a session's tokens to copy a photo): the same connections and the same
+behaviour (it simulates when it has a supply), no part crossing another, review approved;
+positions from a photo are a hint, not a target. `exact` only when the lesson is about where
+things go on the board. Every part of the brief must exist in the kit (`catalog`) before the
+layout starts; a missing one goes to `parts-librarian` first, not to a placeholder.
+
 ```
 REVIEW BRIEF
-Target: circuits/<name> · revision <n>
+Target: <name> · revision <n>
 Profile: lesson | draft
 Intent: <the connections the circuit must have, as in the layout brief>
 ```

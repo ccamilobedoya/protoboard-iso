@@ -32,6 +32,15 @@ repository root (`node bin/protoboard-iso.js <command> …`, same names: `inspec
   and set `side` if it would overlap another part or battery. A bench supply stays in
   `supplies` (`{"op":"circuit","supplies":[…]}`).
 - On `REVISION_MISMATCH`, read the circuit again (`get_circuit`, `history`) before retrying.
+- **Fidelity** (brief field, `functional` by default): match the connections and the behaviour,
+  not the photo. Positions from a photo are a hint; never map pixels to holes by hand or with
+  external tools.
+- **Missing parts**: check every part of the brief with `catalog` first. If one is missing, stop
+  and report it (the main conversation asks `parts-librarian`); do not stand in a `header` or
+  another part for it.
+- **Budget**: if a constraint (clearance, an area, a position) cannot be met after three
+  attempts, relax it, say so in the report and move on. No exhaustive searches, no scripts that
+  try placements in bulk.
 
 ## Work loop
 

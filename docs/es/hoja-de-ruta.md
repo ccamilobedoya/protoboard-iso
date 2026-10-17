@@ -102,13 +102,50 @@ Del inventario del curso, más o menos en el orden en que se usan:
 
 - ✅ Placas de desarrollo, dibujadas y revisadas (nivel 1): ESP32 DevKit (30 pines) y ESP32-C3 SuperMini a caballo del canal con `pin1`, con `rowSpacing` porque las placas cambian; Arduino UNO al lado de la protoboard, con cables Dupont solo en los pines que se usan; una nota por pin en la ficha (pines de arranque, solo entrada, ADC2 y Wi-Fi, PWM…). Ejemplos `esp32-led.json`, `uno-led.json`
 - ✅ Adaptador e-paper GooDisplay DESPI-C02 al lado de la protoboard (pines acodados con cables Dupont, interruptor RESE, pistas de prueba, conector FPC) y, a pedido, el panel GDEY075T7 de 7,5" con su cable plano (`panel: true`); ficha «Placa adaptadora». Ejemplo `epaper-esp32.json`
-- ⬜ Otros módulos: reguladores AMS1117-3.3 y LM2596, cargador TP4056
 - ⬜ Fuente de banco dibujada al lado de la protoboard, con sus caimanes en los rieles (hoy `supplies` no se dibuja)
 - ⬜ Descarga de la batería con el tiempo en un transitorio (la carga baja con la corriente), para lecciones de autonomía
 - ⬜ Módulo elevador (boost) como fuente por comportamiento
 - ✅ Puente rectificador KBP (`bridge`: cuatro diodos en un cuerpo, simulado), resistencias de cemento (3, 5 y 10 W, valor impreso encima); ejemplo `rectifier.json`
 - ✅ Portapilas: paredes de los extremos tan altas como las pilas, para que el botón + nunca asome por encima
 - ⬜ Pila de botón (CR2032) en su portapilas
+
+Lo que tiene el banco del curso y el kit todavía no dibuja (del inventario, 2026-10-16):
+
+- ⬜ Interruptores fuera de la protoboard, sobre la mesa y unidos con pinzas caimán y cables Dupont, simulados como interruptores (prendido/apagado en la ficha): el basculante KCD1 (SPST); el pulsador de enclavamiento de 7 × 7 (no entra a caballo del canal)
+- ⬜ Cables con pinzas caimán fuera de la protoboard (a los rieles, a un interruptor de afuera, a la fuente)
+- ⬜ Módulos reguladores y de energía, dibujados y simulados: AMS1117-3.3 (3 pines en ángulo; un regulador con caída de abandono), buck LM2596 (ZX-001 sencillo y V591 con voltímetro LED), cargador TP4056 USB-C con protección, cargador solar MPPT CN3791, BMS 2S
+- ⬜ **USB como fuente de alimentación de los chips**: un cable USB (computador o cargador: 5 V con su límite) a una placa de desarrollo (UNO, ESP32 DevKit, ESP32-C3, Pico) que alimenta sus pines 5V y 3V3 y lo que cuelga de ellos, dibujado y simulado; también un módulo de entrada USB-C en la protoboard
+- ⬜ Más placas de desarrollo: Raspberry Pi Pico (RP2040) y ESP32-CAM con su programador MB
+- ⬜ Módulos de pantalla y de entrada: OLED de 0,96" (GME12864: VCC GND SCL SDA) y de 0,91" SSD1306 por I2C, módulo encoder rotatorio EC11, switches de teclado TTC MX (bloque de teclado)
+- ⬜ Módulos de sensores: el kit de 22 módulos (DHT11, BMP280, lluvia MH-RD, humedad de suelo, KY-018…), BME280, sensor de suelo capacitivo (TLC555), ultrasónico HC-SR04
+- ⬜ Actuadores: servos SG90 y MG90S (cable de 3 pines), driver de motores TB6612FNG, motorreductores DC, mini bomba sumergible
+- ⬜ Energía: panel solar de 6 V 2 W; portapilas de una 18650, LiPo 103450 con conector JST PH
+- ⬜ En la protoboard: disipador TO-220, conectores XH, zócalos DIP
+- ⬜ Instrumentos sobre el circuito: puntas del multímetro en una tira (el multímetro virtual de la etapa 4), la punta del osciloscopio y la salida del generador del ZT-703S, cables del analizador lógico
+
+## Circuitos más rápidos para las clases (de la prueba de la fuente de dos rieles) ⬜
+
+El 2026-10-16 un `circuit-layout` sin contexto rehízo la fuente de dos rieles de M2 a partir de las
+notas y la foto del estudiante: 19 min, 68 llamadas y unos 185 000 tokens (la mitad del presupuesto
+de una sesión) para copiar la foto, y el resultado pasó la revisión con resistencias atravesando
+otros componentes, tres piezas reemplazadas por pines sueltos y sin simulación (falta el
+interruptor). La regla del mantenedor desde entonces: **la misma función, no el mismo dibujo**. Se
+guardó tal como salió (`m2-fuente-dos-rieles` en `circuitos/` del curso, revisión 6) para rehacerlo con las mejoras
+de abajo y comparar.
+
+- ✅ Encargo: `Target: <nombre>` sin prefijo `circuits/`; `Fidelity: functional` por defecto; el agente de montaje revisa cada pieza con `catalog` primero y suelta una restricción después de tres intentos ([agentes.md](agentes.md))
+- ⬜ El servidor MCP se recarga (o avisa) cuando el código del kit cambió desde que arrancó: un servidor que llevaba horas prendido siguió escribiendo páginas con la interfaz vieja
+- ⬜ El MCP quita o rechaza un prefijo `circuits/` en los destinos (anidó `circuitos/circuits/…`)
+- ⬜ Etiquetas en cualquier grupo, no solo en los rieles (`netLabels` para tiras, p. ej. `"8:a-e": "TP3"`), dibujadas en la protoboard y en la ficha, revisadas por el revisor: los puntos de prueba son de lo que tratan las clases de medición
+- ⬜ `review` (lesson) bloquea componentes que se cruzan o se atraviesan
+- ⬜ `suggest` informa choques y separación para cada colocación, como lo hace `apply_ops`
+- ⬜ Colocar varias piezas a la vez (`suggest` para un conjunto de piezas contra un perfil de revisión)
+- ⬜ `review --explain`: qué pieza dispara cada bloqueo, y las reglas del perfil en la respuesta (qué bloquea, en cuántas vistas)
+- ⬜ `catalog` con filtro por `type` y una lista compacta de tipos (su respuesta completa es demasiado larga para leer)
+- ⬜ Una herramienta MCP para la lista de nodos completa (redes con sus patas), como `netlist` en la CLI, en vez de un `query node` por tira
+- ⬜ Un marcador «representa a» para una pieza que el kit todavía no tiene: dibujado plano, sin choques, con nombre en la ficha (solo mientras la pieza está pendiente)
+- ⬜ Fotos: una tabla para la protoboard del curso de pie (riel izquierdo = B+/B−, derecho = T−/T+; las filas de la foto son las columnas del kit) y un dibujo con la cuadrícula anotada para comparar con una foto
+- ⬜ Medir otra vez: rehacer `m2-fuente-dos-rieles` con estas mejoras (`Fidelity: functional`) y comparar tiempo, llamadas y tokens
 
 ## Estilo visual y temas (transversal, después de la etapa 2) ⬜
 
