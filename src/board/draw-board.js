@@ -33,16 +33,34 @@ export function drawBoard(board, { netLabels = {}, highlight = new Map(), allNum
   const channelY = (yOf(spec.channel.from) + yOf(spec.channel.to)) / 2;
   decals.push(rectDecal({ center: onTop(L / 2, channelY), u: X, v: Y, width: L - 2 * P, height: P, color: c.channel }));
 
-  const railCols = board.railColumns;
-  const railStart = xOf(railCols[0]) - P;
-  const railEnd = xOf(railCols.at(-1)) + P;
+  // Joined boards: each board has its own rail lines, edge marks and row letters; a seam line
+  // between boards, and a jumper bridging each rail across it.
+  const seg = spec.segments ?? { count: 1, columns: spec.columns, length: L };
+  const ends = Array.from({ length: seg.count }, (_, k) => [k * seg.columns + 1, (k + 1) * seg.columns]);
+  for (let k = 1; k < seg.count; k++) {
+    decals.push(rectDecal({ center: onTop(k * seg.length, W / 2), u: X, v: Y, width: 0.5, height: W, color: c.channel }));
+  }
   for (const rail of spec.rails) {
     const y = yOf(rail.y + rail.line * 0.6);
     const color = rail.polarity === '+' ? c.plus : c.minus;
-    decals.push(rectDecal({ center: onTop((railStart + railEnd) / 2, y), u: X, v: Y, width: railEnd - railStart, height: 0.45, color }));
+    for (const cols of board.railSegments) {
+      const railStart = xOf(cols[0]) - P;
+      const railEnd = xOf(cols.at(-1)) + P;
+      decals.push(rectDecal({ center: onTop((railStart + railEnd) / 2, y), u: X, v: Y, width: railEnd - railStart, height: 0.45, color }));
+    }
     const symbol = rail.polarity === '+' ? '+' : '−';
-    for (const x of [xOf(firstCol) - 1.9, xOf(lastCol) + 1.9]) {
-      decals.push(textDecal({ text: symbol, at: onTop(x, yOf(rail.y)), right: X, down: DOWN, size: 2.2, color, weight: 700 }));
+    for (const [a, b] of ends) {
+      for (const x of [xOf(a) - 1.9, xOf(b) + 1.9]) {
+        decals.push(textDecal({ text: symbol, at: onTop(x, yOf(rail.y)), right: X, down: DOWN, size: 2.2, color, weight: 700 }));
+      }
+    }
+    // The bridge: a flat jumper in the rail's colour, plugged in at both ends.
+    for (const bridge of board.railBridges) {
+      const x0 = xOf(bridge.from);
+      const x1 = xOf(bridge.to);
+      const yRail = yOf(rail.y);
+      decals.push({ ...rectDecal({ center: onTop((x0 + x1) / 2, yRail), u: X, v: Y, width: x1 - x0, height: 0.9, color }), role: 'bridge' });
+      for (const x of [x0, x1]) decals.push(rectDecal({ center: onTop(x, yRail), u: X, v: Y, width: 1.3, height: 1.3, color: c.hole }));
     }
     if (netLabels[rail.id]) {
       decals.push({
@@ -79,7 +97,7 @@ export function drawBoard(board, { netLabels = {}, highlight = new Map(), allNum
     }
   }
   for (const row of spec.rows) {
-    for (const x of [xOf(firstCol) - 1.9, xOf(lastCol) + 1.9]) {
+    for (const x of ends.flatMap(([a, b]) => [xOf(a) - 1.9, xOf(b) + 1.9])) {
       decals.push(textDecal({ text: row.id, at: onTop(x, yOf(row.y)), right: X, down: DOWN, size: 1.5, color: c.print }));
     }
   }

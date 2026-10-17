@@ -23,9 +23,24 @@ repository root (`node bin/protoboard-iso.js <command> …`, same names: `inspec
   with `expect_revision`, `author: "circuit-layout"` and a `note` that says why.
 - A diff that introduces an error or a warning is not applied. Find another placement.
 - Teaching layouts use `clearance: 3` (set it with `{"op":"circuit","clearance":3}` when the
-  brief does not say otherwise) and spread parts out.
+  brief does not say otherwise) and spread parts out. On a `bb400` (30 columns) use 1 unless the
+  brief says otherwise: 3 leaves no room for a regulator circuit.
+- **Room to spread**: when the brief says the board may grow (`Board: bb400, may grow`), and
+  `suggest` reasons or the review blocks are mostly about parts hiding or crowding each other,
+  switch to the joined board (`{"op":"circuit","board":"bb400x2"}`; `bb830x2` for a bb830): the
+  first board keeps every hole, and the next branch goes into columns 31 and up (`near: "40"`).
+  Do it early, not after rounds of fixes. Without that line in the brief, keep the board.
+- **Know the board before naming holes**: `create_circuit` and `inspect` start with its layout
+  (columns, which rails lie beside rows a–e and f–j, and the columns where the rails have holes:
+  on a `bb400` they come in groups, so `B-7` does not exist). `catalog` with `name: "bb400"` gives
+  it too.
 - Wire to rails through free strips: three-lead parts cannot reach a rail directly; place
   them in free strips and add a wire (`suggest` with `type: "wire"`).
+- Parts beside the board (a `switch`, an `UNO`) are placed with `suggest` too: `connect` names
+  the pins in use (`{"1": "D1.K"}`; a rocker switch gets both contacts).
+- When `suggest` finds nothing it says why (`reasons`, most frequent first: a part that hides it,
+  parts too close, a group with no room left, a group that is full). Act on the reason (a wire to
+  a strip further away, another order) instead of calling it again with the same input.
 - Power: a battery the brief names (e.g. "4 × AA", "two 18650 cells") is a `battery` part
   (`format`, `cells`, `chemistry`; `catalog` lists them), not a `supplies` entry. It lies on the
   table beside the board; put its leads in rail holes with `suggest` (`between: ["T+", "T-"]`)
@@ -51,8 +66,12 @@ repository root (`node bin/protoboard-iso.js <command> …`, same names: `inspec
 2. Place the parts in groups with one `suggest` call each: `parts` in the order of the
    connections, each `{part, between | connect}`, with `profile` set to the brief's (`lesson` by
    default). A later part names an earlier one's pins as its groups (`"R1.2"`, `"U1.OUT"`), so
-   a chain (supply → regulator → LED → resistor → ground) is one call. Dry run the batch it
-   returns, apply. For one part alone, `part` instead of `parts`.
+   a chain (supply → regulator → LED → resistor → ground) is one call. Each part keeps room
+   (usable holes) for the later ones that name its pins, and is checked so that the ones hanging
+   from it still fit; a note `DEPENDENT_BLOCKED` on a placed part means one of them may not, so
+   plan a wire from that group to a freer strip. Put the parts in signal order, wires to rails
+   last. Dry run the batch it returns, apply. For one part alone, `part` instead of `parts`
+   (`reserve: {"U1.OUT": 2}` keeps room by hand).
 3. Wires go in the same batches: `{part: {type: "wire"}, between: [group, group]}`.
 4. `netlist`: one call shows every net with its pins; compare it with the brief's connections and
    fix what differs before reviewing.

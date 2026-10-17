@@ -18,6 +18,7 @@ Objetivo: entra un JSON y sale un dibujo isométrico fiel, con la colocación re
 - ✅ Primitivas: prisma/caja, torno, tubo, calcomanías (polígono, círculo, rectángulo), texto sobre planos 3D
 - ✅ Algoritmo del pintor con descarte de caras traseras y sombreado por cara relativo a la cámara
 - ✅ Protoboards como datos: `bb830` y `bb400`, rieles continuos, `split` opcional
+- ✅ Protoboards unidas `bb400x2`, `bb400x3`, `bb830x2`: espacio para repartir un montaje, con los rieles puenteados en cada junta (2026-10-17)
 - ✅ Encapsulados: axial, LED de 5 y 3 mm, electrolítico radial, cerámico de disco, TO-220, TO-92, cable (arco o plano)
 - ✅ Tipos: resistencia (4 o 5 bandas, IEC 60062), capacitor (código «104», tamaño según C·V), LED, diodo, MOSFET, BJT, cable
 - ✅ Tabla de referencias (`src/parts/db.js`)

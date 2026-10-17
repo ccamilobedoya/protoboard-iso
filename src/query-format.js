@@ -5,7 +5,7 @@ import { t, decimalSeparator } from './i18n/index.js';
 const n = (lang, x) => String(x).replace('.', decimalSeparator(lang));
 
 export function formatAt(r, lang) {
-  if (!r.exists) return t(lang, 'query.noHole', { hole: r.hole });
+  if (!r.exists) return `${t(lang, 'query.noHole', { hole: r.hole })}${r.nearest?.length ? ` ${t(lang, 'check.nearest', { nearest: r.nearest.join(', ') })}` : ''}`;
   const who = r.occupant ? t(lang, 'query.occupied', { part: r.occupant.part, pin: r.occupant.pin }) : t(lang, 'query.empty');
   const group = r.group.holes.map((h) => {
     const u = r.group.used.find((x) => x.hole === h);
@@ -21,17 +21,22 @@ export function formatNode(r, lang) {
 }
 
 export function formatFree(r, lang) {
+  if (r.exists === false) return `${t(lang, 'query.noNode', { node: r.near })}${r.nearest?.length ? ` ${t(lang, 'check.nearest', { nearest: r.nearest.join(', ') })}` : ''}`;
   const lines = [t(lang, 'query.free', { total: r.total, shown: r.holes.length, near: r.near ?? '—' })];
   for (const h of r.holes) lines.push(`  ${h.hole.padEnd(6)} ${h.node.padEnd(9)} ${h.distance === null ? '' : `${n(lang, h.distance)} mm`}${h.emptyNode ? '' : ` · ${t(lang, 'query.shared')}`}`);
   return lines.join('\n');
 }
+
+// The reasons behind a NO_PLACEMENT hint: how many candidates each kind of problem turned down.
+const reasonLines = (hint, lang, formatIssue, indent) =>
+  hint?.reasons?.length ? [`${indent}${t(lang, 'suggest.reasons')}`, ...hint.reasons.map((r) => `${indent}  ×${r.count} ${formatIssue(r.example, lang)}`)] : [];
 
 const nearest = (p, lang) => (p.nearest ? ` · ${t(lang, 'suggest.nearest', { part: p.nearest.part, gap: n(lang, p.nearest.gap) })}` : '');
 
 export function formatSuggest(r, lang, { formatIssue, target }) {
   if (r.error) return formatIssue(r.error, lang);
   const lines = [t(lang, 'suggest.header', { id: r.id, type: t(lang, `type.${r.type}`), pkg: r.package, considered: r.considered })];
-  if (r.hint) lines.push(`  ${formatIssue(r.hint, lang)}`);
+  if (r.hint) lines.push(`  ${formatIssue(r.hint, lang)}`, ...reasonLines(r.hint, lang, formatIssue, '    '));
   r.placements.forEach((p, i) => {
     const pins = r.pinNames.map((name, k) => `${name}→${p.pins[k]}`).join(', ');
     lines.push(`  ${i + 1}. ${pins} · ${t(lang, 'suggest.span')} ${n(lang, p.span)} mm · ${t(lang, 'suggest.score')} ${n(lang, p.score)} · ${t(lang, 'suggest.visible')} ${Math.round(p.minVisible * 100)} %${nearest(p, lang)}`);
@@ -53,7 +58,7 @@ export function formatSuggestMany(r, lang, { formatIssue }) {
     lines.push(`  ${p.id} (${t(lang, `type.${p.type}`)}): ${p.pinNames.map((name, k) => `${name}→${p.pins[k]}`).join(', ')} · ${t(lang, 'suggest.visible')} ${Math.round(p.minVisible * 100)} %${nearest(p, lang)}`);
     for (const note of p.notes) lines.push(`       · ${formatIssue(note, lang)}${note.view ? ` [${note.view}]` : ''}`);
   }
-  for (const f of r.failed) lines.push(`  ✖ ${f.id}: ${f.problem ? formatIssue(f.problem, lang) : '—'}`);
+  for (const f of r.failed) lines.push(`  ✖ ${f.id}: ${f.problem ? formatIssue(f.problem, lang) : '—'}`, ...reasonLines(f.problem, lang, formatIssue, '      '));
   if (r.ops.length) {
     lines.push('');
     lines.push(t(lang, 'suggest.batch'));

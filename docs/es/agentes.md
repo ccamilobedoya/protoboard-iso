@@ -49,6 +49,19 @@ llamadas y unos 185 000 tokens. Lo que lo reduce:
   candidatos cuando los primeros fallan, en vez de responder «no hay posición».
 - `netlist` revisa todas las conexiones contra el encargo en una llamada (antes era un `query
   node` por tira).
+- Desde el 2026-10-17 (después de dos corridas con un modelo más pequeño que se encerraron
+  solas): `suggest` reserva espacio para lo que viene. Una tira con una pata sola, y cada grupo
+  que nombra una pieza posterior de la cadena, conserva un agujero utilizable por cada conexión
+  pendiente: que no esté debajo de un cuerpo y que un cable de prueba desde ahí pase la misma
+  evaluación que una colocación. En una cadena también prueba las piezas que cuelgan de la que
+  coloca y, si ninguna de sus seis mejores posiciones las deja caber, se queda con la mejor y una
+  nota `DEPENDENT_BLOCKED`. Cuando nada cabe dice por qué (`reasons`), así el agente no repite la
+  misma llamada; también coloca las piezas que van al lado de la protoboard (interruptor, UNO), y
+  una pieza que cuelga de otra que falló lo dice. `create_circuit`, `inspect` y `catalog name:
+  bb400` dan el mapa de la protoboard (los rieles tienen agujeros por grupos: en una bb400 no
+  existe `B-7`), y un agujero que no existe nombra los más cercanos. `between` acepta `null` para una pata que va a
+  una tira libre, y `set` rechaza los campos que el tipo de pieza no tiene (un `set` con `{"field":
+  …, "value": …}` se guardaba sin aviso y la descripción no quedaba).
 - El servidor recarga el kit cuando cambia su código ([mcp.md](mcp.md)), así nadie tiene que
   reconectarlo después de actualizar el kit.
 
@@ -79,6 +92,7 @@ Target: <nombre> (una carpeta bajo la raíz del MCP, sin prefijo "circuits/"; ne
 Goal: <para qué sirve el circuito, una línea>
 Connections: <una línea cada una: "R1 entre el riel T+ y el ánodo del LED", "cátodo del LED a T- por W1">
 Parts: <id, tipo, valor o referencia; posiciones solo si el usuario las fijó>
+Board: <bb400 | bb830 …>, may grow (si el montaje puede pasar a protoboards unidas, bb400x2)
 Constraints: <clearance (3 por defecto para clases), zona de la protoboard, vista>
 Fidelity: functional (por defecto) | exact
 Done when: review <perfil> APPROVED

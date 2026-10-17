@@ -38,6 +38,8 @@ import { formatSimulation, formatFalstad } from '../src/sim/format.js';
 import { compile, createEngine } from '../src/sim/index.js';
 import { toFalstad } from '../src/sim/falstad.js';
 import { nets, formatNets } from '../src/nets.js';
+import { createBoard, boardLayout, BOARDS } from '../src/board/board.js';
+import { formatBoardLayout } from '../src/board/layout-text.js';
 import { compactCatalog, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
 
 const ROOT = resolve(process.env.PROTOBOARD_ROOT ?? process.cwd());
@@ -198,8 +200,11 @@ server.registerTool(
   safely(async ({ target, circuit, author = 'mcp', note = 'create', lang, outputLang }) => {
     const result = createTarget(inside(target), circuit, { author, note, lang, outputLang });
     if (result.errors.length) return { isError: true, content: [{ type: 'text', text: result.errors.map((e) => formatIssue(e, lang)).join('\n') }] };
-    const { issues } = checkCircuit(loadCircuit(resolveTarget(inside(target))));
-    return json({ target: rel(inside(target)), revision: 0, files: relFiles(result.files), issues: issues.map((i) => formatIssue(i, lang)) });
+    const created = loadCircuit(resolveTarget(inside(target)));
+    const { issues } = checkCircuit(created);
+    const boardId = BOARDS[created.board] ? created.board : 'bb830';
+    const board = formatBoardLayout(boardLayout(createBoard(boardId)), pickLanguage(lang, created.lang));
+    return json({ target: rel(inside(target)), revision: 0, board, files: relFiles(result.files), issues: issues.map((i) => formatIssue(i, lang)) });
   }),
 );
 
@@ -254,33 +259,34 @@ server.registerTool(
   {
     title: 'Suggest placements',
     description:
-      'Valid placements for a NEW part, best first, each with the add operation ready for apply_ops and the nearest body with its gap. Never adds errors or warnings (nor, with profile, what that review would block). Use between for two-lead parts (groups in pin order) or connect for named pins; a group can be named by a pin already placed ("R1.2"). parts: several new parts at once, each placed given the ones before it (a later one may name an earlier one\'s pins), answered as one batch of adds.',
+      'Valid placements for a NEW part, best first, each with the add operation ready for apply_ops and the nearest body with its gap. Never adds errors or warnings (nor, with profile, what that review would block). Use between for two-lead parts (groups in pin order) or connect for named pins; a group can be named by a pin already placed ("R1.2"). parts: several new parts at once, each placed given the ones before it (a later one may name an earlier one\'s pins), answered as one batch of adds; each keeps room (usable holes) for the later parts that name its pins, and checks that the ones hanging from it still fit. Off-board parts (switch, UNO) take connect with the pins in use. When nothing fits, the answer says why (reasons, most frequent first).',
     inputSchema: {
       target: targetArg,
       part: z.object({ type: z.string() }).passthrough().optional().describe('The new part without pins, e.g. {"type":"resistor","value":"1k"}; id optional'),
-      between: z.array(z.string()).optional().describe('Groups, holes or placed pins ("R1.2") for the leads, in pin order'),
+      between: z.array(z.string().nullable()).optional().describe('Groups, holes or placed pins ("R1.2") for the leads, in pin order; null leaves that lead to a free strip'),
       connect: z.record(z.string(), z.string()).optional().describe('{"pin": "group, hole or placed pin"} for some pins; the rest go to free strips'),
       parts: z
-        .array(z.object({ part: z.object({ type: z.string() }).passthrough(), between: z.array(z.string()).optional(), connect: z.record(z.string(), z.string()).optional(), near: z.string().optional() }))
+        .array(z.object({ part: z.object({ type: z.string() }).passthrough(), between: z.array(z.string().nullable()).optional(), connect: z.record(z.string(), z.string()).optional(), near: z.string().optional() }))
         .optional()
         .describe('Several new parts in order, each {part, between | connect, near?}, instead of part'),
       near: z.string().optional().describe('Centre of the search: hole, group or column'),
       profile: z.enum(Object.keys(PROFILES)).optional().describe('Also leave out what review with this profile blocks (lesson: parts too close, label trouble); measures both views'),
       limit: z.number().int().positive().optional(),
       window: z.number().positive().optional().describe('Search radius in mm (default 20)'),
+      reserve: z.record(z.string(), z.number().int().positive()).optional().describe('{"U1.OUT": 2}: groups that more connections will reach; placements keep that many usable holes there. With parts it is worked out from the later parts.'),
       ...common,
     },
     annotations: READ,
   },
-  safely(async ({ target, part, parts, between, connect, near, profile, limit, window, lang, format }) => {
+  safely(async ({ target, part, parts, between, connect, near, profile, limit, window, reserve, lang, format }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
     if (parts?.length) {
-      const many = suggestMany(circuit, parts, { profile, window });
+      const many = suggestMany(circuit, parts, { profile, window, reserve });
       return answer(format, many, () => formatSuggestMany(many, lang, { formatIssue }));
     }
     if (!part) throw new Error('Give part (one new part) or parts (several).');
-    const result = suggest(circuit, part, { between, connect, near, limit, window, profile });
+    const result = suggest(circuit, part, { between, connect, near, limit, window, profile, reserve });
     return answer(format, result, () => formatSuggest(result, lang, { formatIssue, target }));
   }),
 );

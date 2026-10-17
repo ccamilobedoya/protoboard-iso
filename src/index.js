@@ -16,7 +16,7 @@
 import { createCamera, VIEWS } from './core/camera.js';
 import { formatValue, parseValue } from './core/units.js';
 import { drawBoard } from './board/draw-board.js';
-import { BOARDS, createBoard } from './board/board.js';
+import { BOARDS, createBoard, boardLayout } from './board/board.js';
 import { buildScene } from './render/scene.js';
 import { sceneToSvg } from './render/svg.js';
 import { inspectScene, formatReport as formatReportWith } from './inspect.js';
@@ -49,7 +49,8 @@ export function formatIssue(issue, lang = 'en') {
     const n = nodeParams(params.node);
     params.node = t(lang, n.key, n.params);
   }
-  return `${t(lang, `severity.${issue.severity}`)}: ${t(lang, `check.${issue.code}`, params)}`;
+  const nearest = params.nearest ? ` ${t(lang, 'check.nearest', params)}` : '';
+  return `${t(lang, `severity.${issue.severity}`)}: ${t(lang, `check.${issue.code}`, params)}${nearest}`;
 }
 
 // Value as shown to people: "4,7 kΩ", "rojo", "IRLZ44N" (null for wires).
@@ -223,6 +224,7 @@ export function inspectCircuit(circuit, options = {}) {
   const { result, scene, view, scale, lang } = sceneFor(circuit, options);
   if (!scene) return { view, scale, frame: null, parts: [], text: null, problems: [], issues: result.issues };
   const report = inspectScene(scene, result, { view, scale });
+  report.board = boardLayout(result.board);
   const byId = new Map(result.parts.map((p) => [p.id, p]));
   for (const p of report.parts) p.value = valueText(byId.get(p.id), lang);
   return report;

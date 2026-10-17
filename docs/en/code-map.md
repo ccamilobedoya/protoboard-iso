@@ -54,7 +54,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `render/focus.js` | veil, metal strips, column and row tags (`coords`), spotlight copies (static focus) |
 | `render/coverage.js`, `inspect.js`, `annotate.js` | measuring the drawing; annotation layers |
 | `ops.js`, `diff.js`, `node/workspace.js` | operations with inverses, dry-run diff, history, undo, outputs |
-| `query.js`, `query-format.js`, `review.js` | questions, placements (`suggest`, `suggestMany`; groups by hole, name or placed pin), verdict from measurements (blocking items with their parts and views) |
+| `query.js`, `query-format.js`, `review.js` | questions, placements (`suggest`, `suggestMany`; groups by hole, name or placed pin; room kept for later connections with probe jumpers, one level of look-ahead, `reasons` when nothing fits), verdict from measurements (blocking items with their parts and views) |
 | `nets.js` | the circuit as nets: groups joined by jumper wires, with their pins (MCP `netlist`, CLI `nets`) |
 | `node/catalog.js` | what the kit knows, compact or one entry in detail with its fields (`TYPE_FIELDS`, kept in step with the schema by a test) and an example from `examples/` |
 | `schema.js` | JSON Schemas built from the registries (`npm run schemas`) |

@@ -8,6 +8,7 @@
 
 import { createCoverage } from './render/coverage.js';
 import { t, decimalSeparator } from './i18n/index.js';
+import { formatBoardLayout } from './board/layout-text.js';
 
 const round = (n, d = 1) => Math.round(n * 10 ** d) / 10 ** d;
 const boxRound = (b) => ({ x: round(b.x), y: round(b.y), width: round(b.width), height: round(b.height) });
@@ -181,6 +182,7 @@ export function formatReport(report, lang = 'en', formatIssue) {
   const lines = [];
   const f = report.frame;
   lines.push(t(lang, 'inspect.scene', { view: report.view, scale: n(report.scale), width: f.width, height: f.height, x: f.x, y: f.y }));
+  if (report.board) lines.push(formatBoardLayout(report.board, lang));
   lines.push('');
   for (const p of report.parts) {
     lines.push(`${p.id.padEnd(5)} ${t(lang, `type.${p.type}`)}${p.value ? ` · ${p.value}` : ''}`);

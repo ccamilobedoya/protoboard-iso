@@ -13,6 +13,7 @@
 // they must be applied. It is pure (no files), so the CLI, the MCP server and a browser
 // editor all share it.
 
+import { COMMON_FIELDS, TYPE_FIELDS } from './parts/fields.js';
 export const OP_NAMES = ['add', 'remove', 'move', 'set', 'rename', 'circuit'];
 export const CIRCUIT_FIELDS = ['title', 'lang', 'board', 'view', 'clearance', 'netLabels', 'supplies', 'page'];
 const FIXED_PART_FIELDS = ['id', 'pins', 'pin1']; // changed with `rename` and `move`
@@ -83,6 +84,10 @@ export function applyOps(circuit, ops) {
         const fixed = fields.find(([k]) => FIXED_PART_FIELDS.includes(k));
         if (fixed) return fail('OP_BAD', { need: `"${fixed[0]}" changes with ${fixed[0] === 'id' ? 'rename' : 'move'}` });
         const part = next.parts[at];
+        // Only fields the part's type knows: a stray key would be saved and silently ignored.
+        const known = TYPE_FIELDS[part.type] ? [...COMMON_FIELDS, ...TYPE_FIELDS[part.type]] : null;
+        const stray = known && fields.find(([k, v]) => !known.includes(k) && v !== null); // null still deletes it
+        if (stray) return fail(stray[0] === 'field' ? 'OP_SET_FORM' : 'OP_UNKNOWN_FIELD', { part: part.id, field: stray[0], fields: known.filter((f) => !FIXED_PART_FIELDS.includes(f) && f !== 'type').join(', ') });
         const old = {};
         for (const [k, v] of fields) {
           old[k] = k in part ? clone(part[k]) : null;

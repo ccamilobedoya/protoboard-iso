@@ -207,6 +207,33 @@ export function checkCrossings(parts, { depth = 0.2, step = 0.5 } = {}) {
   return out;
 }
 
+// Holes a new lead or jumper can no longer reach because another part's body is over them
+// (a standing TO-220 over the strip behind it, a module board lying on its rows). Each hole is
+// probed with a vertical line from just above the board up to the body's top, tested against
+// the bodies' convex primitives as checkCrossings does. Returns a Set of hole ids.
+export function coveredHoles(parts, holes, { depth = 0.05, step = 1, from = 0.4 } = {}) {
+  const covered = new Set();
+  for (const part of parts) {
+    if (part.type === 'wire' || !part.built?.body?.length) continue;
+    const b = bounds(part.built.body);
+    let list = null;
+    const own = new Set((part.holes ?? []).map((h) => h?.id));
+    for (const hole of holes) {
+      if (covered.has(hole.id) || own.has(hole.id)) continue;
+      const { x, y } = hole.pos;
+      if (x < b.min[0] || x > b.max[0] || y < b.min[1] || y > b.max[1]) continue;
+      list ??= part.built.body.map(convex).filter(Boolean);
+      for (let z = Math.max(from, b.min[2]); z <= b.max[2]; z += step) {
+        if (list.some((c) => insideConvex(c, { x, y, z }, depth))) {
+          covered.add(hole.id);
+          break;
+        }
+      }
+    }
+  }
+  return covered;
+}
+
 function sample(points, step) {
   const out = [];
   for (let i = 0; i + 1 < points.length; i++) {

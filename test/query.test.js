@@ -112,3 +112,82 @@ test('suggestMany places parts in order, later ones naming earlier pins, as one 
   assert.ok(!checkCircuit(circuit).issues.some((i) => i.severity !== 'info'));
   assert.match(formatSuggestMany(r, 'es', { formatIssue }), /2 colocados, 1 no/);
 });
+
+test('a hole that is not on the board names the nearest ones; free with an unknown centre is an error', () => {
+  const half = { version: 1, board: 'bb400', parts: [] };
+  const r = suggest(half, { type: 'resistor', value: '1k' }, { between: ['B-7', 'a10'] });
+  assert.equal(r.error.code, 'UNKNOWN_HOLE');
+  assert.equal(r.error.params.nearest, 'B-6, B-8');
+  assert.match(formatIssue(r.error, 'es'), /B-6, B-8/);
+  assert.deepEqual(queryAt(half, 'B-7').nearest, ['B-6', 'B-8']);
+  const free = queryFree(half, { near: 'B-38' });
+  assert.equal(free.exists, false);
+  assert.match(formatFree(free, 'en'), /B-30/);
+});
+
+test('board layout: columns, the rails beside each strip, and the rail columns with gaps', async () => {
+  const { boardLayout, createBoard } = await import('../src/board/board.js');
+  const { formatBoardLayout } = await import('../src/board/layout-text.js');
+  const layout = boardLayout(createBoard('bb400'));
+  assert.equal(layout.columns, 30);
+  assert.equal(layout.railColumns, '2–6, 8–12, 14–18, 20–24, 26–30');
+  assert.deepEqual(layout.strips.map((s) => [s.rows, s.rails.sort()]), [['a–e', ['B+', 'B-']], ['f–j', ['T+', 'T-']]]);
+  assert.doesNotMatch(formatBoardLayout(layout, 'es'), /\{\w+\}/);
+});
+
+test('suggest keeps room: a group named in reserve keeps that many usable holes, and says why when it cannot', () => {
+  const r = suggest(led, { type: 'resistor', value: '1k' }, { connect: { 1: '10:f-j' }, reserve: { '10:f-j': 5 } });
+  assert.equal(r.placements.length, 0);
+  assert.equal(r.hint.code, 'NO_PLACEMENT');
+  assert.equal(r.hint.reasons[0].code, 'NO_ROOM_LEFT');
+  assert.match(formatSuggest(r, 'es', { formatIssue }), /Por qué se descartaron/);
+  // Without the reservation the same part fits.
+  assert.ok(suggest(led, { type: 'resistor', value: '1k' }, { connect: { 1: '10:f-j' } }).placements.length > 0);
+});
+
+test('suggest places a switch beside the board: one hole per contact, pins by name', () => {
+  const r = suggest(led, { type: 'switch', id: 'S1' }, { connect: { 1: '10:f-j' } });
+  assert.ok(r.placements.length > 0);
+  const pins = r.placements[0].ops[0].part.pins;
+  assert.deepEqual(Object.keys(pins), ['1', '2']);
+  assert.equal(r.placements[0].nodes[0], '10:f-j');
+  assert.equal(checkCircuit(applyOps(led, r.placements[0].ops).circuit).issues.filter((i) => i.severity === 'error').length, 0);
+});
+
+test('suggestMany: a part that hangs from one that failed says so', () => {
+  const r = suggestMany(led, [
+    { part: { id: 'R9', type: 'resistor', value: '1k' }, between: ['zz1', 'T-'] },
+    { part: { id: 'D9', type: 'led', color: 'red' }, between: ['R9.2', 'T-'] },
+  ]);
+  assert.equal(r.failed[1].problem.code, 'DEPENDS_ON_FAILED');
+  assert.equal(r.failed[1].problem.params.other, 'R9');
+});
+
+test('between with null leaves that lead to a free strip', () => {
+  const r = suggest(led, { type: 'resistor', value: '1k' }, { between: ['10:f-j', null] });
+  assert.ok(r.placements.length > 0);
+  assert.equal(r.placements[0].nodes[0], '10:f-j');
+});
+
+test('set refuses fields the part type does not have, and explains the field/value mix-up', () => {
+  const wrong = applyOps(led, [{ op: 'set', part: 'D1', field: 'description', value: { es: 'x' } }]);
+  assert.equal(wrong.errors[0].code, 'OP_SET_FORM');
+  assert.match(formatIssue(wrong.errors[0], 'es'), /"description"/);
+  assert.equal(applyOps(led, [{ op: 'set', part: 'D1', colour: 'red' }]).errors[0].code, 'OP_UNKNOWN_FIELD');
+  assert.equal(applyOps(led, [{ op: 'set', part: 'D1', description: { es: 'x', en: 'y' } }]).errors.length, 0);
+});
+
+test('joined boards: columns straight through, the first board unchanged, rails bridged at the seam', async () => {
+  const { createBoard, boardLayout } = await import('../src/board/board.js');
+  const one = createBoard('bb400');
+  const two = createBoard('bb400x2');
+  assert.equal(two.spec.columns, 60);
+  for (const h of ['a1', 'j30', 'B-26', 'T+29']) assert.deepEqual(two.find(h).pos, one.find(h).pos);
+  assert.ok(two.xOf(31) - two.xOf(30) > one.pitch * 2, 'the seam sits between the two boards');
+  assert.equal(two.find('T-30'), undefined, 'the bridge takes the rail holes beside the seam');
+  assert.equal(two.find('T-2').node, two.find('T-60').node, 'each rail is still one group');
+  assert.deepEqual(boardLayout(two).joinedAt, [30]);
+  // A circuit moves from bb400 to bb400x2 without moving anything.
+  const moved = applyOps({ ...led, board: 'bb400', parts: [] }, [{ op: 'circuit', board: 'bb400x2' }]);
+  assert.equal(moved.errors.length, 0);
+});

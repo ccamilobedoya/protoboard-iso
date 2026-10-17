@@ -10,39 +10,16 @@ import { PACKAGES } from '../parts/packages/index.js';
 import { MODULES } from '../parts/modules.js';
 import { BATTERY_FORMATS } from '../parts/batteries.js';
 import { LDR_PARTS } from '../parts/types/more.js';
-import { BOARDS } from '../board/board.js';
+import { BOARDS, createBoard, boardLayout } from '../board/board.js';
+import { formatBoardLayout } from '../board/layout-text.js';
 import { VIEWS } from '../core/camera.js';
 import { OP_NAMES } from '../ops.js';
 import { ANNOTATION_LAYERS } from '../annotate.js';
 import { LANGUAGES, t } from '../i18n/index.js';
 import { buildSchemas } from '../schema.js';
 
-// Fields every part takes, and the ones that belong to some types only. A test checks that
-// every field of the circuit schema is in one of the two, so the list cannot drift.
-export const COMMON_FIELDS = ['id', 'type', 'pins', 'description', 'model', 'label'];
-export const TYPE_FIELDS = {
-  resistor: ['value', 'tolerance', 'bands', 'power'],
-  capacitor: ['value', 'kind', 'voltage', 'diameter', 'height'],
-  potentiometer: ['value', 'style', 'position'],
-  diode: ['part'],
-  zener: ['part'],
-  bridge: ['part'],
-  led: ['color', 'size'],
-  mosfet: ['part'],
-  bjt: ['part'],
-  ic: ['part', 'pin1', 'package', 'pinNames', 'marking'],
-  regulator: ['part', 'led'],
-  button: ['pressed'],
-  switch: ['style', 'on', 'wires', 'side', 'offset'],
-  wire: ['color', 'style', 'height'],
-  battery: ['format', 'chemistry', 'cells', 'charge', 'capacity', 'voltage', 'internalResistance', 'switch', 'side', 'offset'],
-  module: ['part', 'pin1', 'rowSpacing', 'wires', 'side', 'offset', 'rese', 'panel'],
-  inductor: ['value', 'dcr', 'current'],
-  thermistor: ['value', 'beta', 'temperature'],
-  ldr: ['part', 'light'],
-  buzzer: ['resistance'],
-  header: ['count', 'pin1', 'color'],
-};
+export { COMMON_FIELDS, TYPE_FIELDS } from '../parts/fields.js';
+import { TYPE_FIELDS } from '../parts/fields.js';
 
 const EXAMPLES = new URL('../../examples/', import.meta.url);
 
@@ -99,6 +76,8 @@ export function compactCatalog(lang = 'en') {
 // (UNO). Returns null when the kit does not know it.
 export function catalogEntry(name, lang = 'en') {
   const key = String(name ?? '').trim();
+  const boardId = Object.keys(BOARDS).find((b) => b.toLowerCase() === key.toLowerCase());
+  if (boardId) return { kind: 'board', type: 'board', part: boardId, name: BOARDS[boardId].name?.[lang] ?? BOARDS[boardId].name?.en, layout: boardLayout(createBoard(boardId)) };
   if (PART_TYPES[key]) {
     const type = PART_TYPES[key];
     const numbers = Object.entries(PART_NUMBERS).filter(([, e]) => e.type === key);
@@ -161,6 +140,7 @@ export function formatCompactCatalog(c, lang = 'en') {
 }
 
 export function formatCatalogEntry(e, lang = 'en') {
+  if (e.kind === 'board') return `${e.part} (${e.name})\n  ${formatBoardLayout(e.layout, lang)}`;
   const head = e.kind === 'type' ? `${e.type} (${e.name})` : `${e.part} → ${e.type}${e.package ? ` · ${e.package}` : ''}${e.mount ? ` · ${e.mount}` : ''}`;
   const lines = [head];
   if (e.pins) lines.push(`  ${t(lang, 'catalog.pins')} ${e.pins.join(' ')}`);

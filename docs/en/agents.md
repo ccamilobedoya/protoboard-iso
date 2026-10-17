@@ -48,6 +48,18 @@ Measured on 2026-10-16: a layout agent rebuilding a two-rail supply took 68 call
   fail, instead of answering "no placement".
 - `netlist` checks every connection against the brief in one call (it was one `query node` per
   strip).
+- Since 2026-10-17 (after two runs with a smaller model got stuck): `suggest` keeps room for what
+  comes next. A strip with a lone pin, and each group a later part of the chain names, keeps a
+  usable hole per connection to come: not under a body, and a probe jumper from there passes the
+  same evaluation as a placement. In a chain it also tries the parts that hang from the one being
+  placed and, when none of its best six positions lets them fit, keeps the best one with a
+  `DEPENDENT_BLOCKED` note. When nothing fits it says why (`reasons`), so the agent does not
+  repeat the same call; parts beside the board (switch, UNO) are placed too; a part that hangs
+  from one that failed says so. `create_circuit`, `inspect` and `catalog name: bb400` give the
+  board layout (rail holes come in groups: `B-7` does not exist on a bb400), and a hole that is
+  not on the board names the nearest ones. `between` takes `null` for a lead to a free strip, and
+  `set` refuses fields the part type does not have (a `{"field": …, "value": …}` set used to be
+  saved silently and left the description out).
 - The server reloads the kit when its code changes ([mcp.md](mcp.md)), so nobody has to
   reconnect it after a kit update.
 
@@ -76,6 +88,7 @@ Target: <name> (a folder under the MCP root, without a "circuits/" prefix; new |
 Goal: <what the circuit is for, one line>
 Connections: <one line each: "R1 between rail T+ and the LED anode", "LED cathode to T- via W1">
 Parts: <id, type, value or part number; positions only if the user fixed them>
+Board: <bb400 | bb830 …>, may grow (when the layout may move to a joined board, bb400x2)
 Constraints: <clearance (default 3 for lessons), area of the board, view>
 Fidelity: functional (default) | exact
 Done when: review <profile> APPROVED

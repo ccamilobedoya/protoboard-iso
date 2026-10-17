@@ -7,11 +7,17 @@
 // The netlist and each part's `electrical` description are what the simulator will
 // read in the next stage; drawing never depends on it.
 
-import { createBoard, BOARDS } from '../board/board.js';
+import { nearestHoles, createBoard, BOARDS } from '../board/board.js';
 import { PART_TYPES } from '../parts/types/index.js';
 import { PACKAGES } from '../parts/packages/index.js';
 import { checkOccupancy, checkLeads, checkConnections, checkCollisions, checkCrossings, checkDescriptions } from './checks.js';
 import { LANGUAGES } from '../i18n/index.js';
+
+// { nearest: 'B-6, B-8' } for a hole name that is not on the board, or nothing.
+const nearestOf = (board, name) => {
+  const list = nearestHoles(board, name);
+  return list.length ? { nearest: list.join(', ') } : {};
+};
 
 const err = (code, params) => ({ severity: 'error', code, params });
 
@@ -105,7 +111,7 @@ export function buildCircuit(circuit) {
     mapped.holes.forEach((name, i) => {
       const hole = board.find(name);
       if (!hole) {
-        issues.push(err('UNKNOWN_HOLE', { part: raw.id, pin: pinNames[i], hole: String(name) }));
+        issues.push(err('UNKNOWN_HOLE', { part: raw.id, pin: pinNames[i], hole: String(name), ...nearestOf(board, name) }));
         missing = true;
       }
       holes.push(hole);

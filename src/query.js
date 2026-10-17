@@ -15,11 +15,13 @@
 import { buildCircuit } from './circuit/build.js';
 import { PART_TYPES } from './parts/types/index.js';
 import { PACKAGES } from './parts/packages/index.js';
+import { SWITCH_STYLES } from './parts/types/switch.js';
 import { applyOps } from './ops.js';
 import { evaluate, diffEvaluations } from './diff.js';
 import { PROFILES } from './review.js';
-import { nearestBody } from './circuit/checks.js';
+import { nearestBody, coveredHoles } from './circuit/checks.js';
 import { distance, sub } from './core/vec.js';
+import { nearestHoles, boardLayout } from './board/board.js';
 
 const ID_PREFIX = { resistor: 'R', capacitor: 'C', potentiometer: 'RV', diode: 'D', led: 'D', mosfet: 'Q', bjt: 'Q', ic: 'U', button: 'S', switch: 'S', wire: 'W', battery: 'BT', zener: 'D', bridge: 'BR', module: 'U', regulator: 'U', inductor: 'L', thermistor: 'RT', ldr: 'LDR', buzzer: 'BZ', header: 'J' };
 const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
@@ -67,7 +69,7 @@ function nodeSummary(state, node) {
 export function queryAt(circuit, holeName) {
   const state = stateOf(circuit);
   const hole = state.board.find(String(holeName));
-  if (!hole) return { hole: String(holeName), exists: false };
+  if (!hole) return { hole: String(holeName), exists: false, nearest: nearestHoles(state.board, holeName) };
   return { hole: hole.id, exists: true, node: hole.node, occupant: state.used.get(hole.id) ?? null, group: nodeSummary(state, hole.node) };
 }
 
@@ -102,6 +104,8 @@ function centreOf(state, refs) {
 export function queryFree(circuit, { near, limit = 20, emptyNodes = false } = {}) {
   const state = stateOf(circuit);
   const centre = centreOf(state, [near]);
+  // A centre that names nothing on the board is an error, not "anywhere".
+  if (near != null && !centre) return { near: String(near), exists: false, nearest: nearestHoles(state.board, near), total: 0, holes: [] };
   const nodeUsed = (node) => (state.nodeHoles.get(node) ?? []).some((h) => state.used.has(h.id));
   const holes = [...state.board.holes.values()]
     .filter((h) => !state.used.has(h.id) && (!emptyNodes || !nodeUsed(h.node)))
@@ -117,9 +121,11 @@ function nextId(circuit, type) {
 }
 
 // Candidate hole sets for the package, before any measuring.
-function geometricCandidates(state, { pkg, params, pinNames, wanted, centre, window }) {
+function geometricCandidates(state, { pkg, params, pinNames, wanted, centre, window, byName }) {
   const P = state.board.pitch;
-  const holes = [...state.board.holes.values()].filter((h) => !state.used.has(h.id));
+  // Holes under another part's body are out: a lead there would go through it.
+  const covered = coveredHoles(state.parts, [...state.board.holes.values()]);
+  const holes = [...state.board.holes.values()].filter((h) => !state.used.has(h.id) && !covered.has(h.id));
   const nodeUsed = (node) => (state.nodeHoles.get(node) ?? []).some((h) => state.used.has(h.id));
   // Holes a pin may use: the free holes of its group, or free holes of empty groups nearby.
   const optionsFor = (pin) => {
@@ -166,6 +172,22 @@ function geometricCandidates(state, { pkg, params, pinNames, wanted, centre, win
         out.push({ holes: [a, b], pre });
       }
     }
+  } else if (byName) {
+    // Beside the board (a switch, an Arduino): each pin's Dupont lead goes to a hole of its own,
+    // in the group asked for or in an empty strip near the centre.
+    const nearest = (list, k) => list.map((h) => ({ h, d: centre ? distance(h.pos, centre) : 0 })).sort((a, b) => a.d - b.d).slice(0, k);
+    const choices = pinNames.map((pin) => (wanted[pin] ? nearest(optionsFor(pin), 3) : nearest(optionsFor(pin).filter((h) => h.kind === 'main'), 6)));
+    const combos = [[]];
+    for (const options of choices) {
+      const grown = [];
+      for (const combo of combos) for (const o of options) if (grown.length < 64) grown.push([...combo, o]);
+      combos.splice(0, combos.length, ...grown);
+    }
+    for (const combo of combos) {
+      const set = combo.map((o) => o.h);
+      if (!valid(set)) continue;
+      out.push({ holes: set, pre: combo.reduce((sum, o) => sum + (0.15 * o.d) / P, 0) });
+    }
   } else if (pkg.inline) {
     // Leads in a straight line, neighbouring holes: along a row (each lead in its own strip).
     const step = pkg.inline.pitch * P;
@@ -192,57 +214,171 @@ function geometricCandidates(state, { pkg, params, pinNames, wanted, centre, win
   return out.sort((a, b) => a.pre - b.pre);
 }
 
+// Problems a change introduces that a placement may not bring: anything above a note, and
+// what the profile blocks. The new part's own unconnected pins are expected, and text size
+// depends on the drawing scale, not on the placement.
+function blockingOf(before, after, id, policy) {
+  const introduced = diffEvaluations(before, after).introduced.filter((p) => !(p.code === 'FLOATING_PIN' && p.params.part === id) && p.code !== 'TEXT_TOO_SMALL');
+  return { introduced, blocking: introduced.filter((p) => p.severity !== 'info' || policy?.block.includes(p.code)) };
+}
+
+const PROBE = '__probe';
+
+// Room left for the connections still to come. A strip that holds a lone pin (it still needs
+// a connection) and every group named in `reserve` ({ ref: count }, refs as in connect) must
+// keep that many free holes where a jumper can still go: not under a body, and a jumper from
+// there (tried towards a few free holes around) passes the same evaluation as a placement.
+// Only strips near the new part are checked, since it cannot change room elsewhere.
+// Returns null when there is room, else the first group that is short.
+function roomProblem(next, after, { id, reserve, views, policy }) {
+  const state = stateOf(next);
+  const me = state.parts.find((p) => p.id === id);
+  if (!me) return null;
+  const P = state.board.pitch;
+  const all = [...state.board.holes.values()];
+  const covered = coveredHoles(state.parts, all);
+  const needs = new Map();
+  for (const [ref, count] of Object.entries(reserve ?? {})) {
+    const node = resolveNode(state, ref);
+    if (node && Number(count) > 0) needs.set(node, Math.max(needs.get(node) ?? 0, Number(count)));
+  }
+  const close = (h) => me.holes.some((m) => distance(m.pos, h.pos) <= 6 * P);
+  for (const [node, holes] of state.nodeHoles) {
+    if (needs.has(node) || holes[0].kind !== 'main' || !holes.some(close)) continue;
+    if (holes.filter((h) => state.used.has(h.id)).length === 1) needs.set(node, 1);
+  }
+  const nodeUsed = (node) => (state.nodeHoles.get(node) ?? []).some((h) => state.used.has(h.id));
+  for (const [node, need] of needs) {
+    const holes = state.nodeHoles.get(node) ?? [];
+    if (holes[0]?.kind !== 'main') continue; // a rail always has room
+    const free = holes.filter((h) => !state.used.has(h.id) && !covered.has(h.id));
+    let ok = 0;
+    for (const start of free) {
+      if (ok >= need) break;
+      // Probe jumpers towards free holes of empty groups, one per direction, nearest first.
+      const targets = all
+        .filter((h) => h.node !== node && !state.used.has(h.id) && !covered.has(h.id) && (h.kind !== 'main' || !nodeUsed(h.node)))
+        .map((h) => ({ h, d: distance(h.pos, start.pos) }))
+        .filter(({ d }) => d >= 2 * P - 1e-6 && d <= 8 * P)
+        .sort((a, b) => a.d - b.d);
+      const seen = new Set();
+      for (const { h } of targets) {
+        const dir = `${Math.sign(Math.round(h.pos.x - start.pos.x))},${Math.sign(Math.round(h.pos.y - start.pos.y))}`;
+        if (seen.has(dir)) continue;
+        seen.add(dir);
+        const probe = applyOps(next, [{ op: 'add', part: { type: 'wire', id: PROBE, pins: [start.id, h.id] } }]);
+        if (probe.errors.length) continue;
+        if (!blockingOf(after, evaluate(probe.circuit, { views }), PROBE, policy).blocking.length) {
+          ok++;
+          break;
+        }
+        if (seen.size >= 4) break;
+      }
+    }
+    if (ok < need) return { severity: 'info', code: 'NO_ROOM_LEFT', params: { part: id, node, need, left: ok } };
+  }
+  return null;
+}
+
+const LOOKAHEAD = 6;
+
+// The first later part (one that names a pin of `id`, and nothing still to be placed) that would
+// find no place once `id` is where `next` has it: { code: DEPENDENT_BLOCKED, … } or null.
+function dependentProblem(next, dependents, { id, profile, views }) {
+  const placedIds = new Set((next.parts ?? []).map((p) => p.id));
+  for (const dep of dependents) {
+    const refs = [...(dep.between ?? []), ...Object.values(dep.connect ?? {})].map((r) => /^([^.\s]+)\./.exec(String(r))?.[1]).filter(Boolean);
+    if (!refs.includes(id) || refs.some((other) => !placedIds.has(other))) continue;
+    const r = suggest(next, dep.part, { between: dep.between, connect: dep.connect, near: dep.near, profile, views, limit: 1, candidates: 4, maxCandidates: 16, room: false });
+    if (!r.placements?.length) return { severity: 'info', code: 'DEPENDENT_BLOCKED', params: { part: id, other: r.id ?? dep.part?.id ?? dep.part?.type, why: r.hint?.reasons?.[0]?.example?.code ?? r.error?.code ?? '—' } };
+  }
+  return null;
+}
+
+// Why candidates were turned down, most frequent first: { code, count, example }.
+function tally(reasons) {
+  const byCode = new Map();
+  for (const r of reasons) {
+    const entry = byCode.get(r.code) ?? { code: r.code, count: 0, example: r };
+    entry.count++;
+    byCode.set(r.code, entry);
+  }
+  return [...byCode.values()].sort((a, b) => b.count - a.count).slice(0, 3);
+}
+
 // part: the new part without pins ({ type, value, … }; id optional).
 // connect: { pinName: node or hole }; between: [node, node] for two-lead parts, in pin order.
 // profile: also leave out placements that a review with that profile would block (lesson: parts
 // too close, labels in trouble), measured in both views.
 // At least `candidates` placements are measured, and more (up to `maxCandidates`) while fewer
 // than `limit` pass: near the first choices everything may cross another part.
-export function suggest(circuit, part, { connect, between, near, limit = 5, candidates = 12, maxCandidates = 48, views, profile, window = 20 } = {}) {
+// room (default true): leave out placements that take the last usable hole of a strip still
+// waiting for a connection, or of a group named in `reserve` ({ "U1.OUT": 2 }: two more
+// connections will go there). When nothing is left, hint.reasons says why, most frequent first.
+export function suggest(circuit, part, { connect, between, near, limit = 5, candidates = 12, maxCandidates = 48, views, profile, window = 20, reserve, room = true, dependents } = {}) {
   const policy = profile ? PROFILES[profile] : null;
   if (profile && !policy) return { error: { severity: 'error', code: 'UNKNOWN_PROFILE', params: { profile, options: Object.keys(PROFILES).join(', ') } } };
   views ??= policy?.hiddenEverywhere ? ['front', 'back'] : ['front'];
   const state = stateOf(circuit);
   const type = PART_TYPES[part?.type];
   if (!type) return { error: { severity: 'error', code: 'UNKNOWN_TYPE', params: { part: part?.id ?? '?', type: String(part?.type), options: Object.keys(PART_TYPES).join(', ') } } };
-  const def = type.resolve(part);
+  let def = type.resolve(part);
+  // Parts beside the board take their pins by name, only the ones in use ("pins": { "1": "e5" }):
+  // the pins named in connect, and for a switch the contacts they close.
+  const byName = def.error?.code === 'MODULE_PINS' && !!(connect || between);
+  if (byName) {
+    const style = part.type === 'switch' ? SWITCH_STYLES[part.style ?? 'rocker'] : null;
+    let names = connect ? Object.keys(connect) : style ? style.pins.slice(0, between.length) : [];
+    if (style) {
+      const partners = style.on.filter((pair) => pair.some((n) => names.some((k) => k.toLowerCase() === n.toLowerCase()))).flat();
+      names = style.pins.filter((n) => partners.includes(n) || names.some((k) => k.toLowerCase() === n.toLowerCase()));
+    }
+    if (names.length) def = type.resolve({ ...part, pins: Object.fromEntries(names.map((n) => [n, 'a1'])) });
+  }
   if (def.error) return { error: { severity: 'error', ...def.error, params: { part: part.id ?? '?', ...def.error.params } } };
   const pkg = PACKAGES[def.package];
   const pinNames = def.pinNames ?? type.pins;
 
   const wanted = {};
-  const asked = connect ?? (between ? Object.fromEntries(between.map((n, i) => [pinNames[i], n])) : {});
+  // A null in between leaves that pin to a free strip ("from U1.OUT to anywhere free").
+  const asked = connect ?? (between ? Object.fromEntries(between.map((n, i) => [pinNames[i], n]).filter(([, n]) => n != null)) : {});
   for (const [pin, ref] of Object.entries(asked)) {
     const name = pinNames.find((p) => p.toLowerCase() === pin.toLowerCase());
     const node = resolveNode(state, ref);
     if (!name) return { error: { severity: 'error', code: 'UNKNOWN_PIN', params: { part: part.id ?? part.type, pin, names: pinNames.join(', ') } } };
-    if (!node) return { error: { severity: 'error', code: 'UNKNOWN_HOLE', params: { part: part.id ?? part.type, pin: name, hole: String(ref) } } };
+    if (!node) {
+      const nearest = nearestHoles(state.board, ref);
+      return { error: { severity: 'error', code: 'UNKNOWN_HOLE', params: { part: part.id ?? part.type, pin: name, hole: String(ref), ...(nearest.length && { nearest: nearest.join(', ') }) } } };
+    }
     wanted[name] = node;
   }
   const centre = centreOf(state, near ? [near] : Object.values(asked)) ?? { x: state.board.spec.size.length / 2, y: state.board.spec.size.width / 2, z: 0 };
   const id = part.id ?? nextId(circuit, part.type);
 
-  const pool = geometricCandidates(state, { pkg, params: def.params, pinNames, wanted, centre, window }).slice(0, Math.max(candidates, maxCandidates));
+  const pool = geometricCandidates(state, { pkg, params: def.params, pinNames, wanted, centre, window, byName }).slice(0, Math.max(candidates, maxCandidates));
   const before = evaluate(circuit, { views });
-  const measured = [];
-  let considered = 0;
-  for (const candidate of pool) {
-    if (considered >= candidates && measured.length >= limit) break;
-    considered++;
+  const reasons = [];
+  if (!pool.length) reasons.push(noCandidates(state, { id, pinNames, wanted }));
+  // Measure a candidate as a dry run would; null (and a reason) when it brings a problem.
+  const measure = (candidate) => {
     const pins = candidate.holes.map((h) => h.id);
-    const add = { op: 'add', part: { ...part, id, pins } };
+    const add = { op: 'add', part: { ...part, id, pins: byName ? Object.fromEntries(pinNames.map((n, i) => [n, pins[i]])) : pins } };
     const { circuit: next, errors } = applyOps(circuit, [add]);
-    if (errors.length) continue;
+    if (errors.length) {
+      reasons.push(errors[0]);
+      return null;
+    }
     const after = evaluate(next, { views });
     const diff = diffEvaluations(before, after);
-    // Unconnected pins of the new part are expected. Text size depends on the drawing
-    // scale, not on the placement (counting it would reward hiding a part's marking).
-    const introduced = diff.introduced.filter((p) => !(p.code === 'FLOATING_PIN' && p.params.part === id) && p.code !== 'TEXT_TOO_SMALL');
-    if (introduced.some((p) => p.severity !== 'info' || policy?.block.includes(p.code))) continue;
+    const { introduced, blocking } = blockingOf(before, after, id, policy);
+    if (blocking.length) {
+      reasons.push(blocking[0]);
+      return null;
+    }
     const minVisible = Math.min(1, ...Object.values(after.visibility));
     const nearest = nearestBody(buildCircuit(next).parts, id);
     const score = candidate.pre + introduced.length + 5 * (1 - minVisible);
-    measured.push({
+    return {
       pins,
       nodes: candidate.holes.map((h) => h.node),
       span: round(distance(candidate.holes[0].pos, candidate.holes.at(-1).pos), 1),
@@ -252,14 +388,76 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
       fixes: diff.fixed,
       notes: introduced,
       ops: [add],
-    });
+      next,
+      after,
+    };
+  };
+  // Measure in batches, best first; the room check (probe jumpers, slower) runs only on the
+  // best of each batch, and a new batch is measured while fewer than `limit` pass it.
+  const placements = [];
+  let considered = 0;
+  let looked = 0;
+  let fallback = null;
+  while (placements.length < limit && considered < pool.length && !(dependents?.length && looked >= LOOKAHEAD)) {
+    const batch = [];
+    while (considered < pool.length && (considered < candidates || batch.length < limit - placements.length)) {
+      const m = measure(pool[considered++]);
+      if (m) batch.push(m);
+    }
+    batch.sort((a, b) => a.score - b.score);
+    for (const m of batch) {
+      if (placements.length >= limit) break;
+      const short = room ? roomProblem(m.next, m.after, { id, reserve, views, policy }) : null;
+      if (short) {
+        reasons.push(short);
+        continue;
+      }
+      // Look ahead (from suggestMany): the later parts that hang from this one must still fit.
+      // Tried on the best few only, since each try is a small suggest of its own.
+        if (dependents?.length) {
+        if (looked >= LOOKAHEAD) break;
+        looked++;
+        const blocked = dependentProblem(m.next, dependents, { id, profile, views });
+        if (blocked) {
+          reasons.push(blocked);
+          fallback ??= m;
+          continue;
+        }
+      }
+      placements.push(m);
+    }
   }
-  measured.sort((a, b) => a.score - b.score);
-  const placements = measured.slice(0, limit);
+  // Nothing passed the look-ahead: keep the best that has room, and say what may not fit.
+  if (!placements.length && fallback) {
+    fallback.notes = [...fallback.notes, ...reasons.filter((r) => r.code === 'DEPENDENT_BLOCKED').slice(0, 1)];
+    placements.push(fallback);
+  }
+  placements.sort((a, b) => a.score - b.score);
+  for (const p of placements) {
+    delete p.next;
+    delete p.after;
+  }
   const hint = placements.length
     ? null
-    : { severity: 'warning', code: pkg.inline && Object.values(wanted).some((n) => !n.includes(':')) ? 'NO_PLACEMENT_RAIL' : 'NO_PLACEMENT', params: { part: id, considered } };
+    : { severity: 'warning', code: pkg.inline && Object.values(wanted).some((n) => !n.includes(':')) ? 'NO_PLACEMENT_RAIL' : 'NO_PLACEMENT', params: { part: id, considered }, reasons: tally(reasons) };
   return { id, type: part.type, package: def.package, pinNames, connect: wanted, considered, ...(profile && { profile }), placements, hint };
+}
+
+// Why there was nothing to measure: a group asked for has no free hole a lead can reach, or
+// no set of holes fits the part's leads between the groups asked for.
+function noCandidates(state, { id, pinNames, wanted }) {
+  const covered = coveredHoles(state.parts, [...state.board.holes.values()]);
+  for (const pin of pinNames) {
+    const node = wanted[pin];
+    if (!node) continue;
+    const holes = state.nodeHoles.get(node) ?? [];
+    const free = holes.filter((h) => !state.used.has(h.id));
+    const reachable = free.filter((h) => !covered.has(h.id));
+    if (!reachable.length) return { severity: 'info', code: 'GROUP_FULL', params: { part: id, pin, node, free: free.length, covered: free.length - reachable.length } };
+  }
+  const rail = Object.values(wanted).find((n) => (state.nodeHoles.get(n) ?? [])[0]?.kind === 'rail');
+  if (rail) return { severity: 'info', code: 'NO_FIT_RAIL', params: { part: id, groups: Object.values(wanted).join(', '), rail, columns: boardLayout(state.board).railColumns } };
+  return { severity: 'info', code: 'NO_FIT', params: { part: id, groups: Object.values(wanted).join(', ') || '—' } };
 }
 
 // Several new parts in one call: each takes the best placement given the ones before it, so a
@@ -271,8 +469,20 @@ export function suggestMany(circuit, items, options = {}) {
   const placed = [];
   const failed = [];
   const ops = [];
-  for (const item of items ?? []) {
-    const r = suggest(current, item.part, { ...options, between: item.between, connect: item.connect, near: item.near, limit: 1 });
+  const list = items ?? [];
+  // What the later items will connect to ("U1.OUT", "9:a-e"): each needs a hole there, so
+  // every placement keeps that room (refs to parts not placed yet resolve once they are).
+  const refsOf = (item) => [...(item.between ?? []), ...Object.values(item.connect ?? {})].filter((r) => typeof r === 'string');
+  for (const [k, item] of list.entries()) {
+    const reserve = { ...options.reserve };
+    for (const later of list.slice(k + 1)) for (const ref of refsOf(later)) reserve[ref] = (reserve[ref] ?? 0) + 1;
+    // A part that hangs from one that could not be placed waits for it (not "not a hole").
+    const missing = refsOf(item).map((ref) => /^([^.\s]+)\./.exec(ref)?.[1]).find((other) => other && failed.some((f) => f.id === other));
+    if (missing) {
+      failed.push({ id: item.part?.id ?? item.part?.type, problem: { severity: 'info', code: 'DEPENDS_ON_FAILED', params: { part: item.part?.id ?? item.part?.type, other: missing } } });
+      continue;
+    }
+    const r = suggest(current, item.part, { ...options, between: item.between, connect: item.connect, near: item.near, limit: 1, reserve, dependents: list.slice(k + 1) });
     const best = r.placements?.[0];
     if (!best) {
       failed.push({ id: r.id ?? item.part?.id ?? item.part?.type, problem: r.error ?? r.hint });

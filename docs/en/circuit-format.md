@@ -18,7 +18,7 @@
 | `version` | no | Format version, `1`. |
 | `revision` | no | Set by `apply` and `undo`; do not edit by hand. |
 | `title` | no | A string, or one string per language. Goes into the SVG `<title>`. |
-| `board` | no | `bb830` (default) or `bb400`. |
+| `board` | no | `bb830` (default) or `bb400`; joined boards `bb400x2`, `bb400x3`, `bb830x2` (several boards end to end, columns numbered straight through, each rail bridged across a seam by a jumper drawn with the board; the first board keeps the holes of the board alone, so a circuit can grow from `bb400` to `bb400x2` with `{"op":"circuit","board":"bb400x2"}`). |
 | `view` | no | Default view: `front`, `back`, `front-left`, `back-right`. The command line `--view` wins. |
 | `clearance` | no | Minimum gap between part bodies, mm. Closer parts are reported as notes. Use 3 or more for teaching layouts. |
 | `netLabels` | no | Text printed next to a rail, by rail id. A labelled rail counts as connected to a supply. |

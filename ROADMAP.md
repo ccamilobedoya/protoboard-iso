@@ -18,6 +18,7 @@ Goal: a JSON file in, a faithful isometric picture out, with the placement check
 - ✅ Primitives: prism/box, lathe, tube, polygon/circle/rect decals, text laid on 3D planes
 - ✅ Painter's algorithm with back-face culling, per-face shading relative to the camera
 - ✅ Boards as data: `bb830` and `bb400`, continuous rails, optional `split`
+- ✅ Joined boards `bb400x2`, `bb400x3`, `bb830x2`: room to spread a layout, rails bridged at each seam (2026-10-17)
 - ✅ Packages: axial, LED 5/3 mm, radial electrolytic, ceramic disc, TO-220, TO-92, jumper wire (arc/flat)
 - ✅ Types: resistor (4/5 bands, IEC 60062), capacitor (code "104", can size from C·V), LED, diode, MOSFET, BJT, wire
 - ✅ Part-number table (`src/parts/db.js`)
