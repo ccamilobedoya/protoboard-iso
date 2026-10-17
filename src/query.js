@@ -26,8 +26,11 @@ import { nearestHoles, boardLayout } from './board/board.js';
 const ID_PREFIX = { resistor: 'R', capacitor: 'C', potentiometer: 'RV', diode: 'D', led: 'D', mosfet: 'Q', bjt: 'Q', ic: 'U', button: 'S', switch: 'S', wire: 'W', battery: 'BT', zener: 'D', bridge: 'BR', module: 'U', regulator: 'U', inductor: 'L', thermistor: 'RT', ldr: 'LDR', buzzer: 'BZ', header: 'J' };
 const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 
+// An elastic board is measured with room to grow: placements may go past its last column.
+const HEADROOM = 18;
+
 function stateOf(circuit) {
-  const result = buildCircuit(circuit);
+  const result = buildCircuit(circuit, { headroom: HEADROOM });
   if (!result.board) throw new Error('The circuit has no valid board.');
   const used = new Map();
   for (const part of result.parts) part.holes.forEach((h, i) => used.set(h.id, { part: part.id, pin: part.pinNames[i] }));
@@ -93,9 +96,8 @@ function centreOf(state, refs) {
       const holes = node ? state.nodeHoles.get(node) : [];
       // For a rail, the centre of its used holes is more useful than the middle of the board.
       const usedHoles = holes.filter((h) => state.used.has(h.id));
-      // An unused rail of joined boards: the middle of the first board, not the seam.
-      const seg = state.board.spec.segments;
-      const pool = usedHoles.length ? usedHoles : seg ? holes.filter((h) => h.pos.x <= seg.length) : holes;
+      // An unused rail of an elastic board: its first 30 columns, not the middle of the room left.
+      const pool = usedHoles.length ? usedHoles : state.board.spec.elastic ? holes.filter((h) => h.col <= 30) : holes;
       for (const h of pool) pts.push(h.pos);
     }
   }
@@ -359,8 +361,8 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
     }
     wanted[name] = node;
   }
-  const firstBoard = state.board.spec.segments?.length ?? state.board.spec.size.length;
-  const centre = centreOf(state, near ? [near] : Object.values(asked)) ?? { x: firstBoard / 2, y: state.board.spec.size.width / 2, z: 0 };
+  const middle = state.board.spec.elastic ? state.board.xOf(15) : state.board.spec.size.length / 2;
+  const centre = centreOf(state, near ? [near] : Object.values(asked)) ?? { x: middle, y: state.board.spec.size.width / 2, z: 0 };
   const id = part.id ?? nextId(circuit, part.type);
 
   const pool = geometricCandidates(state, { pkg, params: def.params, pinNames, wanted, centre, window, byName }).slice(0, Math.max(candidates, maxCandidates));

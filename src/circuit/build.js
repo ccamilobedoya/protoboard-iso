@@ -7,7 +7,7 @@
 // The netlist and each part's `electrical` description are what the simulator will
 // read in the next stage; drawing never depends on it.
 
-import { nearestHoles, createBoard, BOARDS } from '../board/board.js';
+import { nearestHoles, createBoard, columnsUsed, BOARDS } from '../board/board.js';
 import { PART_TYPES } from '../parts/types/index.js';
 import { PACKAGES } from '../parts/packages/index.js';
 import { checkOccupancy, checkLeads, checkConnections, checkCollisions, checkCrossings, checkDescriptions } from './checks.js';
@@ -49,7 +49,8 @@ function mapPins(part, names) {
   return { holes, issues };
 }
 
-export function buildCircuit(circuit) {
+// headroom: extra columns for an elastic board beyond the ones the circuit uses (suggest).
+export function buildCircuit(circuit, { headroom = 0 } = {}) {
   const issues = [];
   if (!circuit || typeof circuit !== 'object' || !Array.isArray(circuit.parts)) {
     return { board: null, parts: [], issues: [err('INVALID_CIRCUIT', {})], netlist: { nodes: {} } };
@@ -58,7 +59,7 @@ export function buildCircuit(circuit) {
   if (typeof boardId === 'string' && !BOARDS[boardId]) {
     return { board: null, parts: [], issues: [err('UNKNOWN_BOARD', { board: boardId, options: Object.keys(BOARDS).join(', ') })], netlist: { nodes: {} } };
   }
-  const board = createBoard(boardId);
+  const board = createBoard(boardId, { columns: columnsUsed(circuit) + 2 + headroom });
   const parts = [];
   const seen = new Set();
 

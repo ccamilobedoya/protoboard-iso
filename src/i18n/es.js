@@ -87,7 +87,7 @@ export default {
   'check.DEPENDS_ON_FAILED': '{part}: espera a {other}, que no se pudo colocar (ver arriba).',
   'check.DEPENDENT_BLOCKED': '{part} ahí no le dejaría lugar a {other}, que cuelga de él ({why}).',
   'board.layout': 'Protoboard {id}: columnas 1–{columns}; tiras de cinco agujeros, una por columna: {strips}. Rieles {rails}: agujeros solo en las columnas {railColumns} (cada riel es un solo grupo{split}).',
-  'board.joined': 'Protoboards unidas: una junta después de la columna {after}; cada riel la cruza por un puente en las columnas {bridges} (se dibuja con la protoboard), así sigue siendo un solo grupo.',
+  'board.elastic': 'Es elástica: crece de seis en seis columnas a medida que el circuito las usa (los rieles siguen el mismo patrón), así que pon piezas más allá de la última columna cuando haga falta espacio.',
   'board.strip': 'filas {rows} (junto a los rieles {rails})',
   'board.and': ' y ',
   'board.split': ', cortado después de la columna {split}',

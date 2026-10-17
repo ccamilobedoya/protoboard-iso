@@ -91,7 +91,7 @@ Target: <name> (a folder under the MCP root, without a "circuits/" prefix; new |
 Goal: <what the circuit is for, one line>
 Connections: <one line each: "R1 between rail T+ and the LED anode", "LED cathode to T- via W1">
 Parts: <id, type, value or part number; positions only if the user fixed them>
-Board: <bb400 | bb830 …>, may grow (when the layout may move to a joined board, bb400x2)
+Board: <bb400 | bb830 …>, may grow (when the layout may move to the elastic board, auto)
 Constraints: <clearance (default 3 for lessons), area of the board, view>
 Fidelity: functional (default) | exact
 Done when: review <profile> APPROVED

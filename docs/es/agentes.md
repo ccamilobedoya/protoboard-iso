@@ -95,7 +95,7 @@ Target: <nombre> (una carpeta bajo la raíz del MCP, sin prefijo "circuits/"; ne
 Goal: <para qué sirve el circuito, una línea>
 Connections: <una línea cada una: "R1 entre el riel T+ y el ánodo del LED", "cátodo del LED a T- por W1">
 Parts: <id, tipo, valor o referencia; posiciones solo si el usuario las fijó>
-Board: <bb400 | bb830 …>, may grow (si el montaje puede pasar a protoboards unidas, bb400x2)
+Board: <bb400 | bb830 …>, may grow (si el montaje puede pasar a la protoboard elástica, auto)
 Constraints: <clearance (3 por defecto para clases), zona de la protoboard, vista>
 Fidelity: functional (por defecto) | exact
 Done when: review <perfil> APPROVED

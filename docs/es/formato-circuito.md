@@ -20,7 +20,7 @@ Las claves van en inglés para que el formato sea el mismo en todos los idiomas.
 | `version` | no | Versión del formato, `1`. |
 | `revision` | no | Lo ponen `apply` y `undo`; no se edita a mano. |
 | `title` | no | Un texto, o uno por idioma. Va en el `<title>` del SVG. |
-| `board` | no | `bb830` (por defecto) o `bb400`; protoboards unidas `bb400x2`, `bb400x3`, `bb830x2` (varias, una tras otra, con las columnas numeradas de corrido y cada riel puenteado en la junta por un cable que se dibuja con la protoboard; la primera conserva los agujeros de la protoboard sola, así un circuito crece de `bb400` a `bb400x2` con `{"op":"circuit","board":"bb400x2"}`). |
+| `board` | no | `bb830` (por defecto) o `bb400`; o `auto`, una protoboard elástica: la sección de una bb400 (filas a–j, cuatro rieles y el canal del medio) y tantas columnas como use el circuito, de seis en seis; sus agujeros no se mueven al crecer, así un circuito pasa de `bb400` a `auto` con `{"op":"circuit","board":"auto"}`. No es una protoboard real: en el banco se unen varias. |
 | `view` | no | Vista por defecto: `front`, `back`, `front-left`, `back-right`. Manda `--view` si se da en la línea de comandos. |
 | `clearance` | no | Separación mínima entre cuerpos, en mm. Los componentes más cercanos se informan como notas. Para montajes de clase, 3 o más. |
 | `netLabels` | no | Texto junto a un riel, por id del riel. Un riel con etiqueta cuenta como conectado a una fuente. |

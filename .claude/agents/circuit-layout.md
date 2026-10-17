@@ -27,8 +27,8 @@ repository root (`node bin/protoboard-iso.js <command> …`, same names: `inspec
   brief says otherwise: 3 leaves no room for a regulator circuit.
 - **Room to spread**: when the brief says the board may grow (`Board: bb400, may grow`), and
   `suggest` reasons or the review blocks are mostly about parts hiding or crowding each other,
-  switch to the joined board (`{"op":"circuit","board":"bb400x2"}`; `bb830x2` for a bb830): the
-  first board keeps every hole, and the next branch goes into columns 31 and up (`near: "40"`).
+  switch to the elastic board (`{"op":"circuit","board":"auto"}`): its holes do not move, and it
+  grows as parts go past its last column (`near: "40"` for the next branch).
   Do it early, not after rounds of fixes. Without that line in the brief, keep the board.
 - **Know the board before naming holes**: `create_circuit` and `inspect` start with its layout
   (columns, which rails lie beside rows a–e and f–j, and the columns where the rails have holes:

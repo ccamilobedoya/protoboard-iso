@@ -88,7 +88,7 @@ export default {
   'check.DEPENDS_ON_FAILED': '{part}: waits for {other}, which could not be placed (see above).',
   'check.DEPENDENT_BLOCKED': '{part} there would leave no place for {other}, which hangs from it ({why}).',
   'board.layout': 'Board {id}: columns 1–{columns}; five-hole strips, one per column: {strips}. Rails {rails}: holes only in columns {railColumns} (each rail is one group{split}).',
-  'board.joined': 'Joined boards: a seam after column {after}; each rail is bridged across it by a jumper in columns {bridges} (drawn with the board), so it stays one group.',
+  'board.elastic': 'It is elastic: it grows in steps of six columns as the circuit uses them (rails continue the same pattern), so place parts past the last column when you need room.',
   'board.strip': 'rows {rows} (next to rails {rails})',
   'board.and': ' and ',
   'board.split': ', cut after column {split}',

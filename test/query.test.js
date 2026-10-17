@@ -181,17 +181,20 @@ test('set refuses fields the part type does not have, and explains the field/val
   assert.equal(applyOps(led, [{ op: 'set', part: 'D1', description: { es: 'x', en: 'y' } }]).errors.length, 0);
 });
 
-test('joined boards: columns straight through, the first board unchanged, rails bridged at the seam', async () => {
-  const { createBoard, boardLayout } = await import('../src/board/board.js');
-  const one = createBoard('bb400');
-  const two = createBoard('bb400x2');
-  assert.equal(two.spec.columns, 60);
-  for (const h of ['a1', 'j30', 'B-26', 'T+29']) assert.deepEqual(two.find(h).pos, one.find(h).pos);
-  assert.ok(two.xOf(31) - two.xOf(30) > one.pitch * 2, 'the seam sits between the two boards');
-  assert.equal(two.find('T-30'), undefined, 'the bridge takes the rail holes beside the seam');
-  assert.equal(two.find('T-2').node, two.find('T-60').node, 'each rail is still one group');
-  assert.deepEqual(boardLayout(two).joinedAt, [30]);
-  // A circuit moves from bb400 to bb400x2 without moving anything.
-  const moved = applyOps({ ...led, board: 'bb400', parts: [] }, [{ op: 'circuit', board: 'bb400x2' }]);
-  assert.equal(moved.errors.length, 0);
+test('elastic board: as long as the circuit needs, the cross-section and the holes it has never move', async () => {
+  const { createBoard } = await import('../src/board/board.js');
+  const { buildCircuit } = await import('../src/circuit/build.js');
+  const base = createBoard('auto');
+  assert.equal(base.spec.columns, 30);
+  const long = createBoard('auto', { columns: 44 });
+  assert.equal(long.spec.columns, 48);
+  for (const h of ['a1', 'j30', 'B-26', 'T+29']) assert.deepEqual(long.find(h).pos, base.find(h).pos);
+  assert.equal(long.find('T-2').node, long.find('T-48').node, 'each rail is one group');
+  assert.equal(long.spec.size.width, base.spec.size.width);
+  // A part past column 30 grows the board; suggest sees room past the last column.
+  const circuit = { version: 1, board: 'auto', parts: [{ id: 'R1', type: 'resistor', value: '1k', pins: ['a40', 'a44'] }] };
+  assert.equal(buildCircuit(circuit).board.spec.columns, 48);
+  assert.equal(checkCircuit(circuit).issues.filter((i) => i.severity === 'error').length, 0);
+  const r = suggest(circuit, { type: 'resistor', value: '1k' }, { near: 'a52' });
+  assert.ok(r.placements.length > 0);
 });
