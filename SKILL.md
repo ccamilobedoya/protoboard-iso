@@ -42,9 +42,11 @@ Requires Node.js 18 or newer. No npm dependencies.
 ## Prefer the MCP tools
 
 If the `protoboard-iso` MCP server is connected (tools `list_circuits`, `inspect`, `query`,
-`suggest`, `apply_ops`, `undo`, `history`, `render`, `simulate`, `catalog`, `create_circuit`), use them
-instead of the CLI: typed inputs, short answers, same functions. The CLI commands below are
-the fallback. Setup: `docs/en/mcp.md`.
+`netlist`, `suggest`, `apply_ops`, `undo`, `history`, `review`, `render`, `simulate`, `catalog`,
+`create_circuit`), use them instead of the CLI: typed inputs, short answers, same functions. The
+CLI commands below are the fallback. Setup: `docs/en/mcp.md`. To spend few calls: `catalog` once
+(compact), `suggest` with `parts` and `profile: "lesson"` for a chain of parts (later ones name
+earlier pins, `"R1.2"`), one `netlist` to check the connections, then `review`.
 
 ## Changing an existing circuit
 

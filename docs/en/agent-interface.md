@@ -38,6 +38,8 @@ node bin/protoboard-iso.js query <target> node 9:f-j                 # a group b
 node bin/protoboard-iso.js query <target> free --near f10 --limit 10 [--empty]
 node bin/protoboard-iso.js suggest <target> --part '{"type":"resistor","value":"1k"}' --between 10:f-j,T-
 node bin/protoboard-iso.js suggest <target> --part '{"type":"mosfet","part":"IRLZ44N"}' --connect '{"D":"h20"}'
+node bin/protoboard-iso.js suggest <target> --parts '[{"part":{"type":"led"},"between":["20:f-j","21:f-j"]},{"part":{"type":"resistor","value":"330"},"between":["D2.cathode","T-"]}]' --profile lesson
+node bin/protoboard-iso.js nets <target>                             # every net (groups joined by wires) with its pins
 ```
 
 - **`at`**: the hole's group, who holds it, the used and free holes of the group.
@@ -48,14 +50,22 @@ node bin/protoboard-iso.js suggest <target> --part '{"type":"mosfet","part":"IRL
 - **`suggest`**: valid placements for a **new** part, best first. `--between a,b` gives the
   groups of a two-lead part in pin order; `--connect '{"pin":"group or hole"}'` names the
   groups of some pins (the others go to free, empty strips). `--near` centres the search,
-  `--window` (mm, default 20) widens it.
+  `--window` (mm, default 20) widens it. `--profile lesson` also drops what that review would
+  block (parts too close, label trouble), measured in both views. `--parts '[…]'` places
+  several new parts in order, each given the ones before it, and prints one batch of adds.
+- **Groups by pin**: wherever a group is asked for, a pin of a part already placed names it
+  (`R1.2`, `U1.OUT`).
+- **`nets`**: the circuit as electrical nets (board groups joined by jumper wires), each with
+  the pins on it (`R1.1@d20`), its labels, and the pins alone on a net. The MCP tool is `netlist`.
 
 How `suggest` works: a fast geometric pass over every set of holes that respects the lead
-rules and the requested groups, then the best dozen are measured exactly like a dry run.
-Placements that add an error or a warning are dropped; the rest are ranked by span close to
+rules and the requested groups, then the best dozen are measured exactly like a dry run (and
+more, up to four dozen, while fewer than `--limit` pass: near the first choices every placement
+may cross another part). Placements that add an error or a warning are dropped; the rest are ranked by span close to
 the ideal, straight along the grid, distance to the centre, notes added (leader crossings,
 parts too close) and the least visible part. Three-lead parts prefer pin 1 on the left so
-their print faces the front view. Each placement carries the `add` operation to apply:
+their print faces the front view. Each placement carries the `add` operation to apply and the
+nearest body with its gap:
 
 ```
 Placements for R2 (Resistor, axial), best first; 12 measured:
@@ -148,4 +158,4 @@ Layout, reviewer and parts librarian roles built on these tools: [agents.md](age
 | 1 | errors in the circuit, a refused change (`REVISION_MISMATCH`, bad operations), nothing to undo, or no placement found |
 | 2 | `review` says CHANGES |
 
-Every command that reports something also takes `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `review`).
+Every command that reports something also takes `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `nets`, `review`).

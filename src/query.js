@@ -17,6 +17,8 @@ import { PART_TYPES } from './parts/types/index.js';
 import { PACKAGES } from './parts/packages/index.js';
 import { applyOps } from './ops.js';
 import { evaluate, diffEvaluations } from './diff.js';
+import { PROFILES } from './review.js';
+import { nearestBody } from './circuit/checks.js';
 import { distance, sub } from './core/vec.js';
 
 const ID_PREFIX = { resistor: 'R', capacitor: 'C', potentiometer: 'RV', diode: 'D', led: 'D', mosfet: 'Q', bjt: 'Q', ic: 'U', button: 'S', wire: 'W', battery: 'BT', zener: 'D', bridge: 'BR', module: 'U', regulator: 'U', inductor: 'L', thermistor: 'RT', ldr: 'LDR', buzzer: 'BZ', header: 'J' };
@@ -35,13 +37,20 @@ function stateOf(circuit) {
   return { ...result, used, nodeHoles };
 }
 
-// A node can be named directly ("9:a-e", "T+") or by any of its holes ("c9").
+// A node can be named directly ("9:a-e", "T+"), by any of its holes ("c9") or by a pin of a
+// part already placed ("R1.2", "U1.OUT"): the group that pin is in.
 export function resolveNode(state, ref) {
   if (ref == null) return null;
   const hole = state.board.find(String(ref));
   if (hole) return hole.node;
   const name = String(ref).trim();
   for (const candidate of [name, name.toLowerCase(), name.toUpperCase()]) if (state.nodeHoles.has(candidate)) return candidate;
+  const pin = /^([^.\s]+)\.([^.\s]+)$/.exec(name);
+  const part = pin && state.parts.find((p) => p.id === pin[1]);
+  if (part) {
+    const i = part.pinNames.findIndex((n) => n.toLowerCase() === pin[2].toLowerCase());
+    if (i >= 0) return part.holes[i].node;
+  }
   return null;
 }
 
@@ -185,7 +194,14 @@ function geometricCandidates(state, { pkg, params, pinNames, wanted, centre, win
 
 // part: the new part without pins ({ type, value, … }; id optional).
 // connect: { pinName: node or hole }; between: [node, node] for two-lead parts, in pin order.
-export function suggest(circuit, part, { connect, between, near, limit = 5, candidates = 12, views = ['front'], window = 20 } = {}) {
+// profile: also leave out placements that a review with that profile would block (lesson: parts
+// too close, labels in trouble), measured in both views.
+// At least `candidates` placements are measured, and more (up to `maxCandidates`) while fewer
+// than `limit` pass: near the first choices everything may cross another part.
+export function suggest(circuit, part, { connect, between, near, limit = 5, candidates = 12, maxCandidates = 48, views, profile, window = 20 } = {}) {
+  const policy = profile ? PROFILES[profile] : null;
+  if (profile && !policy) return { error: { severity: 'error', code: 'UNKNOWN_PROFILE', params: { profile, options: Object.keys(PROFILES).join(', ') } } };
+  views ??= policy?.hiddenEverywhere ? ['front', 'back'] : ['front'];
   const state = stateOf(circuit);
   const type = PART_TYPES[part?.type];
   if (!type) return { error: { severity: 'error', code: 'UNKNOWN_TYPE', params: { part: part?.id ?? '?', type: String(part?.type), options: Object.keys(PART_TYPES).join(', ') } } };
@@ -206,10 +222,13 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
   const centre = centreOf(state, near ? [near] : Object.values(asked)) ?? { x: state.board.spec.size.length / 2, y: state.board.spec.size.width / 2, z: 0 };
   const id = part.id ?? nextId(circuit, part.type);
 
-  const pool = geometricCandidates(state, { pkg, params: def.params, pinNames, wanted, centre, window }).slice(0, candidates);
+  const pool = geometricCandidates(state, { pkg, params: def.params, pinNames, wanted, centre, window }).slice(0, Math.max(candidates, maxCandidates));
   const before = evaluate(circuit, { views });
   const measured = [];
+  let considered = 0;
   for (const candidate of pool) {
+    if (considered >= candidates && measured.length >= limit) break;
+    considered++;
     const pins = candidate.holes.map((h) => h.id);
     const add = { op: 'add', part: { ...part, id, pins } };
     const { circuit: next, errors } = applyOps(circuit, [add]);
@@ -219,8 +238,9 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
     // Unconnected pins of the new part are expected. Text size depends on the drawing
     // scale, not on the placement (counting it would reward hiding a part's marking).
     const introduced = diff.introduced.filter((p) => !(p.code === 'FLOATING_PIN' && p.params.part === id) && p.code !== 'TEXT_TOO_SMALL');
-    if (introduced.some((p) => p.severity !== 'info')) continue;
+    if (introduced.some((p) => p.severity !== 'info' || policy?.block.includes(p.code))) continue;
     const minVisible = Math.min(1, ...Object.values(after.visibility));
+    const nearest = nearestBody(buildCircuit(next).parts, id);
     const score = candidate.pre + introduced.length + 5 * (1 - minVisible);
     measured.push({
       pins,
@@ -228,6 +248,7 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
       span: round(distance(candidate.holes[0].pos, candidate.holes.at(-1).pos), 1),
       score: round(score, 2),
       minVisible: round(minVisible, 3),
+      nearest,
       fixes: diff.fixed,
       notes: introduced,
       ops: [add],
@@ -237,7 +258,30 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
   const placements = measured.slice(0, limit);
   const hint = placements.length
     ? null
-    : { severity: 'warning', code: pkg.inline && Object.values(wanted).some((n) => !n.includes(':')) ? 'NO_PLACEMENT_RAIL' : 'NO_PLACEMENT', params: { part: id, considered: pool.length } };
-  return { id, type: part.type, package: def.package, pinNames, connect: wanted, considered: pool.length, placements, hint };
+    : { severity: 'warning', code: pkg.inline && Object.values(wanted).some((n) => !n.includes(':')) ? 'NO_PLACEMENT_RAIL' : 'NO_PLACEMENT', params: { part: id, considered } };
+  return { id, type: part.type, package: def.package, pinNames, connect: wanted, considered, ...(profile && { profile }), placements, hint };
+}
+
+// Several new parts in one call: each takes the best placement given the ones before it, so a
+// later part can name an earlier one's pins ("R1.2"). Returns every add in one batch for
+// apply_ops, and what could not be placed.
+// items: [{ part, between?, connect?, near? }]
+export function suggestMany(circuit, items, options = {}) {
+  let current = circuit;
+  const placed = [];
+  const failed = [];
+  const ops = [];
+  for (const item of items ?? []) {
+    const r = suggest(current, item.part, { ...options, between: item.between, connect: item.connect, near: item.near, limit: 1 });
+    const best = r.placements?.[0];
+    if (!best) {
+      failed.push({ id: r.id ?? item.part?.id ?? item.part?.type, problem: r.error ?? r.hint });
+      continue;
+    }
+    placed.push({ id: r.id, type: r.type, pinNames: r.pinNames, pins: best.pins, nodes: best.nodes, minVisible: best.minVisible, nearest: best.nearest, notes: best.notes });
+    ops.push(...best.ops);
+    current = applyOps(current, best.ops).circuit;
+  }
+  return { placed, failed, ops, ...(options.profile && { profile: options.profile }) };
 }
 

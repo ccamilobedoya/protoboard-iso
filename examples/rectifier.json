@@ -55,7 +55,7 @@
       "type": "wire",
       "color": "red",
       "pins": [
-        "g10",
+        "j10",
         "B+7"
       ]
     },

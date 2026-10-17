@@ -48,13 +48,15 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `parts/describe.js` | qué texto `describe.*` dice qué es cada tipo de componente |
 | `parts/colors.js` | todos los colores: materiales, bandas, LED, cables, grupos |
 | `circuit/build.js` | archivo de circuito → componentes colocados, netlist, observaciones |
-| `circuit/checks.js` | comprobaciones de colocación, idiomas de las descripciones |
+| `circuit/checks.js` | comprobaciones de colocación (agujeros, patas, conexiones, cuerpos que chocan, patas y cables que atraviesan otros componentes), idiomas de las descripciones |
 | `render/scene.js` | algoritmo del pintor, globos de las etiquetas, encuadre (`fit`) |
 | `render/svg.js` | escritor de SVG; `tagParts` agrega `data-part`; capas opcionales solo si tienen algo |
 | `render/focus.js` | velo, tiras metálicas, etiquetas de columna y fila (`coords`), copias en primer plano (foco estático) |
 | `render/coverage.js`, `inspect.js`, `annotate.js` | medir el dibujo; capas de anotación |
 | `ops.js`, `diff.js`, `node/workspace.js` | operaciones con inversa, diferencia en seco, historial, deshacer, salidas |
-| `query.js`, `query-format.js`, `review.js` | preguntas, colocaciones, veredicto a partir de mediciones |
+| `query.js`, `query-format.js`, `review.js` | preguntas, colocaciones (`suggest`, `suggestMany`; grupos por agujero, nombre o pata ya colocada), veredicto a partir de mediciones (lo que bloquea, con sus componentes y vistas) |
+| `nets.js` | el circuito como redes: grupos unidos por cables, con sus patas (MCP `netlist`, CLI `nets`) |
+| `node/catalog.js` | lo que conoce el kit, compacto o una entrada en detalle con sus campos (`TYPE_FIELDS`, al día con el esquema gracias a una prueba) y un ejemplo de `examples/` |
 | `schema.js` | JSON Schemas armados desde los registros (`npm run schemas`) |
 | `sim/models.js` | valores típicos de los dispositivos, cada uno con su fuente (diodos, tabla Zener, LED, transistores, reguladores) |
 | `sim/mna.js` | solucionador lineal, estampado, modelos de los elementos (capacitor, inductor), unión con ruptura Zener, regulador, Newton, subida de fuentes |
@@ -78,7 +80,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `sim/compile.js`, `sim/engine.js` | compilar: circuito → programa (JSON plano, solo Node); motor: corre un programa (sin dependencias, va dentro de las páginas) |
 | `i18n/` | todas las frases; `pickLanguage` decide el idioma |
 | `bin/protoboard-iso.js` | línea de comandos |
-| `mcp/server.js` | servidor MCP (paquete propio); sus herramientas llaman a las mismas funciones |
+| `mcp/server.js`, `mcp/tools.js`, `mcp/kit-worker.js` | servidor MCP (paquete propio): `tools.js` define las herramientas, que llaman a las mismas funciones; `server.js` las registra y las corre en un *worker* que reinicia cuando cambia el código del kit |
 
 ## Convenciones fáciles de romper
 

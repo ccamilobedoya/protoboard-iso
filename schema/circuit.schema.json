@@ -454,6 +454,17 @@
           },
           "description": "module UNO: colour of the Dupont lead of each pin, e.g. { \"D13\": \"yellow\" }"
         },
+        "rese": {
+          "enum": [
+            "2.2",
+            "0.47"
+          ],
+          "description": "module DESPI-C02: position of its RESE switch, ohms (\"2.2\" as sold, \"0.47\" for some panels)"
+        },
+        "panel": {
+          "type": "boolean",
+          "description": "module DESPI-C02: also draw the 7.5\" GDEY075T7 panel on its flat cable"
+        },
         "position": {
           "type": "number",
           "minimum": 0,

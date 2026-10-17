@@ -134,15 +134,15 @@ guardó tal como salió (`m2-fuente-dos-rieles` en `circuitos/` del curso, revis
 de abajo y comparar.
 
 - ✅ Encargo: `Target: <nombre>` sin prefijo `circuits/`; `Fidelity: functional` por defecto; el agente de montaje revisa cada pieza con `catalog` primero y suelta una restricción después de tres intentos ([agentes.md](agentes.md))
-- ⬜ El servidor MCP se recarga (o avisa) cuando el código del kit cambió desde que arrancó: un servidor que llevaba horas prendido siguió escribiendo páginas con la interfaz vieja
-- ⬜ El MCP quita o rechaza un prefijo `circuits/` en los destinos (anidó `circuitos/circuits/…`)
+- ✅ El servidor MCP se recarga cuando el código del kit cambió desde que arrancó: sus herramientas corren en un *worker* que reinicia (`mcp/kit-worker.js`), y esa respuesta lo dice; si cambió la lista de herramientas, todavía pide reconectar ([mcp.md](mcp.md))
+- ✅ El MCP quita un prefijo `circuits/` (o el nombre de la propia raíz) que no existe bajo la raíz (anidó `circuitos/circuits/…`); el ejemplo de `targetArg` ya no lo sugiere
 - ⬜ Etiquetas en cualquier grupo, no solo en los rieles (`netLabels` para tiras, p. ej. `"8:a-e": "TP3"`), dibujadas en la protoboard y en la ficha, revisadas por el revisor: los puntos de prueba son de lo que tratan las clases de medición
-- ⬜ `review` (lesson) bloquea componentes que se cruzan o se atraviesan
-- ⬜ `suggest` informa choques y separación para cada colocación, como lo hace `apply_ops`
-- ⬜ Colocar varias piezas a la vez (`suggest` para un conjunto de piezas contra un perfil de revisión)
-- ⬜ `review --explain`: qué pieza dispara cada bloqueo, y las reglas del perfil en la respuesta (qué bloquea, en cuántas vistas)
-- ⬜ `catalog` con filtro por `type` y una lista compacta de tipos (su respuesta completa es demasiado larga para leer)
-- ⬜ Una herramienta MCP para la lista de nodos completa (redes con sus patas), como `netlist` en la CLI, en vez de un `query node` por tira
+- ✅ Las patas y los cables que atraviesan otro componente son avisos (`LEAD_THROUGH_PART`, `WIRE_THROUGH_PART`, `checkCrossings`: muestras de cada pata contra las primitivas convexas de los demás), así que todo perfil los bloquea y `suggest` los evita; encontró la pata de R2 atravesando los pines en `m2-fuente-dos-rieles`, y dos ejemplos del kit (corregidos)
+- ✅ `suggest` da en cada colocación el cuerpo más cercano y su holgura (`nearest`), acepta un `profile` de revisión (deja fuera lo que bloquearía, en las dos vistas) y mide más candidatos (hasta 48) mientras pasen menos que `limit`
+- ✅ Colocar varias piezas a la vez: `suggest` con `parts` (CLI `--parts`), cada una según las anteriores, con un solo lote de add en la respuesta; los grupos se pueden nombrar por una pata ya colocada (`R1.2`, `U1.OUT`) en todas partes
+- ✅ `review`: cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `--explain` (`explain: true`) agrega las reglas del perfil
+- ✅ `catalog`: una lista compacta por defecto (2 KB en vez de 20); `name` (un tipo, número de parte o módulo) da patas, encapsulado, campos y un ejemplo real de `examples/`; el registro completo con `format: "json"` (`src/node/catalog.js`)
+- ✅ Herramienta MCP `netlist` (CLI `nets`): redes como grupos unidos por cables, con sus patas, etiquetas y las patas solas en su red (`src/nets.js`)
 - ⬜ Un marcador «representa a» para una pieza que el kit todavía no tiene: dibujado plano, sin choques, con nombre en la ficha (solo mientras la pieza está pendiente)
 - ⬜ Fotos: una tabla para la protoboard del curso de pie (riel izquierdo = B+/B−, derecho = T−/T+; las filas de la foto son las columnas del kit) y un dibujo con la cuadrícula anotada para comparar con una foto
 - ⬜ Medir otra vez: rehacer `m2-fuente-dos-rieles` con estas mejoras (`Fidelity: functional`) y comparar tiempo, llamadas y tokens

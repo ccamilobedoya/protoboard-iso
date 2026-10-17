@@ -40,6 +40,8 @@ export default {
   'check.PINS_SAME_NODE': '{part}: las patas {pins} están en el mismo grupo conectado ({node}), así que quedan en corto.',
   'check.FLOATING_PIN': '{part}: la pata {pin} está en {node}, que no toca nada más.',
   'check.COLLISION': '{first} y {second} ocupan el mismo espacio.',
+  'check.LEAD_THROUGH_PART': 'Una pata de {part} atraviesa {other}: mueve uno de los dos.',
+  'check.WIRE_THROUGH_PART': 'El cable {part} atraviesa {other}: llévalo por otro lado o mueve {other}.',
 
   'check.TOO_CLOSE': '{first} y {second} quedan a {gap} mm; este montaje pide al menos {clearance} mm.',
 
@@ -81,6 +83,7 @@ export default {
   'history.empty': 'Todavía no hay historial.',
 
   'check.NO_PLACEMENT': '{part}: no se encontró ninguna posición válida ({considered} candidatas medidas). Prueba con otros grupos, con --near en un lugar con espacio, o con --window para buscar más lejos.',
+  'check.UNKNOWN_PROFILE': 'No hay un perfil de revisión «{profile}». Perfiles: {options}.',
   'check.NO_PLACEMENT_RAIL': '{part}: sus patas van en una fila de agujeros vecinos, así que no pueden llegar directo a un riel. Ponlo en tiras libres y une el riel con un cable.',
 
   'query.noHole': '«{hole}» no es un agujero de esta protoboard.',
@@ -96,11 +99,17 @@ export default {
   'suggest.score': 'puntuación',
   'suggest.visible': 'componente menos visible',
   'suggest.apply': 'Para usar la primera (revisa con una prueba en seco y luego aplica):',
+  'suggest.nearest': 'más cerca: {part} a {gap} mm',
+  'suggest.many': '{placed} colocados, {failed} no (perfil {profile}); cada uno toma el mejor lugar dados los anteriores:',
+  'suggest.batch': 'Todos los add en un solo lote (apply_ops: primero en seco):',
 
   'review.approved': 'APROBADO ({profile}, vistas {views}): {parts} componentes, nada que bloquee; notas: {advisory}.',
   'review.changes': 'HAY QUE CAMBIAR ({profile}, vistas {views}): por arreglar: {blocking}; notas: {advisory}.',
   'review.blocking': 'Hay que arreglar:',
   'review.advisory': 'Conviene saber:',
+  'review.rules': 'Bloquea: todo error y aviso, y en cualquier vista: {codes}.',
+  'review.rulesHidden': 'Bloquea también: un componente oculto en todas las vistas (oculto en una sola es una nota: se mira desde la otra).',
+  'review.parts': 'componentes {parts}',
 
   'type.resistor': 'Resistencia',
   'type.capacitor': 'Capacitor',
@@ -349,10 +358,12 @@ export default {
   protoboard-iso inspect <objetivo> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
   protoboard-iso check <objetivo> [--lang en|es] [--json]
   protoboard-iso netlist <objetivo>
+  protoboard-iso nets <objetivo> [--lang en|es] [--json]
   protoboard-iso apply <objetivo> [ops.json | -] [--ops '<json>'] [--dry-run] [--author nombre] [--note texto] [--expect-revision n] [--views front,back] [--json]
   protoboard-iso query <objetivo> at <hole> | node <node|hole> | free [--near <hole|node|column>] [--limit n] [--empty]
-  protoboard-iso suggest <objetivo> --part '<json>' [--between <node>,<node>] [--connect '<json>'] [--near …] [--limit n] [--window mm]
-  protoboard-iso review <objetivo> [--profile lesson|draft] [--views front,back] [--json]
+  protoboard-iso suggest <objetivo> --part '<json>' [--between <node>,<node>] [--connect '<json>'] [--near …] [--limit n] [--window mm] [--profile lesson|draft]
+  protoboard-iso suggest <objetivo> --parts '[{"part": {…}, "between": […]}, …]' [--profile lesson|draft]
+  protoboard-iso review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]
   protoboard-iso undo <objetivo> [--author nombre] [--json]
   protoboard-iso history <objetivo> [--json]
   protoboard-iso parts [--lang en|es]`,
@@ -403,6 +414,22 @@ export default {
   'type.ldr': 'Fotorresistencia (LDR)',
   'type.buzzer': 'Zumbador',
   'type.header': 'Pines de cabecera',
+  'catalog.types': 'Tipos (patas en orden · números de parte):',
+  'catalog.pinsFromPart': 'patas según el número de parte',
+  'catalog.modules': 'Módulos:',
+  'catalog.batteries': 'Baterías:',
+  'catalog.photoresistors': 'fotorresistencias:',
+  'catalog.boards': 'Protoboards:',
+  'catalog.views': 'vistas:',
+  'catalog.operations': 'operaciones:',
+  'catalog.more': 'Detalle de un tipo, número de parte o módulo (campos, patas, un ejemplo para copiar): catalog con name.',
+  'catalog.pins': 'patas:',
+  'catalog.parts': 'partes:',
+  'catalog.fields': 'campos:',
+  'catalog.example': 'ejemplo ({file}):',
+  'catalog.unknown': 'El kit no conoce «{name}». Tipos: {types}. Sin name, la lista completa.',
+  'nets.header': '{nets} redes (grupos unidos por cables · cables · patas):',
+  'nets.floating': 'Solas en su red: {pins}',
   'type.bridge': 'Puente rectificador',
   'type.module': 'Placa de desarrollo',
   'type.module.adapter': 'Placa adaptadora',

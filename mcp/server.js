@@ -1,428 +1,104 @@
 #!/usr/bin/env node
-// MCP server for protoboard-iso: the same functions as the command line, as tools an
-// assistant or agent can call. Runs over stdio.
+// MCP server for protoboard-iso, over stdio. The tools are defined in tools.js; their handlers run
+// in a worker (kit-worker.js). Before each call the server checks whether the kit's code (src/ and
+// the tools) changed since the worker started; if so it starts a new worker, so the answers and the
+// pages written always come from the current code, without reconnecting. Changing a tool's name or
+// its input schema still needs a reconnect: the answer says so.
 //
-// Environment
-//   PROTOBOARD_ROOT  folder the server may read and write (default: current directory).
-//                    Every target path is resolved inside it; anything outside is refused.
-//   PROTOBOARD_LANG  default language of the text answers (en, es). Default en.
-//
-// Every tool answers in readable text by default, or JSON with format: "json".
+// Environment: PROTOBOARD_ROOT, PROTOBOARD_LANG (see tools.js).
 
-import { readdirSync, readFileSync, writeFileSync, mkdirSync, statSync, existsSync } from 'node:fs';
-import { resolve, relative, join, sep } from 'node:path';
+import { readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Worker } from 'node:worker_threads';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { z } from 'zod';
+import { TOOLS, INSTRUCTIONS, VERSION } from './tools.js';
 
-import {
-  renderCircuit,
-  inspectCircuit,
-  formatReport,
-  checkCircuit,
-  formatIssue,
-  t,
-  PART_TYPES,
-  PART_NUMBERS,
-  PACKAGES,
-  BOARDS,
-  VIEWS,
-  ANNOTATION_LAYERS,
-  OP_NAMES,
-  LANGUAGES,
-} from '../src/index.js';
-import { formatChange } from '../src/diff.js';
-import { queryAt, queryNode, queryFree, suggest } from '../src/query.js';
-import { formatAt, formatNode, formatFree, formatSuggest } from '../src/query-format.js';
-import { resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget, writePage } from '../src/node/workspace.js';
-import { svgToPng, rasterAvailable } from '../src/node/raster.js';
-import { review, formatReview, PROFILES } from '../src/review.js';
-import { simulate } from '../src/sim/index.js';
-import { BATTERY_FORMATS } from '../src/parts/batteries.js';
-import { LDR_PARTS } from '../src/parts/types/more.js';
-import { MODULES } from '../src/parts/modules.js';
-import { pickLanguage } from '../src/i18n/index.js';
-import { formatSimulation, formatFalstad } from '../src/sim/format.js';
-import { compile, createEngine } from '../src/sim/index.js';
-import { toFalstad } from '../src/sim/falstad.js';
+const HERE = fileURLToPath(new URL('.', import.meta.url));
+const WATCHED = [join(HERE, '..', 'src'), join(HERE, 'tools.js'), join(HERE, 'kit-worker.js')];
 
-const ROOT = resolve(process.env.PROTOBOARD_ROOT ?? process.cwd());
-const DEFAULT_LANG = LANGUAGES[process.env.PROTOBOARD_LANG] ? process.env.PROTOBOARD_LANG : 'en';
-const VERSION = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
-
-// ---------------------------------------------------------------- helpers
-
-function inside(target) {
-  const full = resolve(ROOT, String(target));
-  if (full !== ROOT && !full.startsWith(ROOT + sep)) throw new Error(`"${target}" is outside the allowed folder (${ROOT}).`);
-  return full;
-}
-const rel = (full) => relative(ROOT, full) || '.';
-
-function existing(target) {
-  const full = inside(target);
-  const paths = resolveTarget(full);
-  if (!existsSync(paths.circuitFile)) throw new Error(`No circuit at "${target}". Use list_circuits to see what exists.`);
-  return { full, paths };
-}
-
-const text = (s) => ({ content: [{ type: 'text', text: s }] });
-const json = (value) => text(JSON.stringify(value, null, 2));
-const answer = (format, value, readable) => (format === 'json' ? json(value) : text(readable()));
-const relFiles = (files) => (files ? Object.fromEntries(Object.entries(files).map(([k, v]) => [k, rel(v)])) : files);
-
-// Language of every answer and every file written: the `lang` the tool was called with, else
-// the circuit's own "lang", else PROTOBOARD_LANG. Resolved here once for all tools; the
-// language asked for explicitly travels on as `outputLang` (it wins over the circuit's).
-function circuitLang(args) {
-  if (args.circuit) return args.circuit.lang;
-  if (!args.target) return undefined;
-  try {
-    const paths = resolveTarget(inside(args.target));
-    return existsSync(paths.circuitFile) ? JSON.parse(readFileSync(paths.circuitFile, 'utf8')).lang : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function safely(handler) {
-  return async (args) => {
+// The newest modification time of the kit's code: a cheap stat walk (a few hundred files).
+function codeStamp() {
+  let newest = 0;
+  const walk = (path) => {
+    let s;
     try {
-      return await handler({ ...args, outputLang: args.lang, lang: pickLanguage(args.lang, circuitLang(args), DEFAULT_LANG) });
-    } catch (e) {
-      return { isError: true, content: [{ type: 'text', text: e.message }] };
+      s = statSync(path);
+    } catch {
+      return;
     }
+    if (s.isDirectory()) for (const name of readdirSync(path)) walk(join(path, name));
+    else if (/\.(m?js|json)$/.test(path) && s.mtimeMs > newest) newest = s.mtimeMs;
   };
+  WATCHED.forEach(walk);
+  return newest;
 }
 
-const common = {
-  lang: z.enum(Object.keys(LANGUAGES)).optional().describe('Language of the answer and of the files written (default: the circuit\'s "lang", else PROTOBOARD_LANG).'),
-  format: z.enum(['text', 'json']).optional().describe('text (default, readable) or json (complete, for tools).'),
-};
-const targetArg = z.string().describe('Circuit file (examples/led.json) or circuit folder (circuits/led), relative to the server root.');
-const viewArgs = {
-  view: z.enum(Object.keys(VIEWS)).optional(),
-  fit: z.enum(['board', 'parts']).optional().describe('parts = close-up of the area with parts'),
-  scale: z.number().positive().optional().describe('px per mm, default 5'),
-};
-const partShape = z.object({ id: z.string(), type: z.string(), pins: z.union([z.array(z.string()), z.record(z.string(), z.string())]).optional(), pin1: z.string().optional() }).passthrough();
-const opShape = z
-  .object({ op: z.enum(OP_NAMES) })
-  .passthrough()
-  .describe('add {part} · remove {part: id} · move {part, pins} · set {part, field: value|null} · rename {part, to} · circuit {title|lang|board|view|clearance|netLabels|supplies|page}');
-const READ = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
-const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
+const registered = TOOLS.map((tool) => tool.name);
+let worker = null;
+let stamp = 0;
+let ready = null;
+let next = 1;
+const pending = new Map();
 
-function findCircuits(dir, depth = 0, out = []) {
-  if (depth > 4) return out;
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name.startsWith('.') || ['node_modules', 'out', 'schema'].includes(entry.name)) continue;
-    const full = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (existsSync(join(full, 'circuit.json'))) out.push(full);
-      else findCircuits(full, depth + 1, out);
-    } else if (entry.name.endsWith('.json') && !['package.json', 'package-lock.json', 'circuit.json'].includes(entry.name)) {
-      try {
-        const data = JSON.parse(readFileSync(full, 'utf8'));
-        if (Array.isArray(data?.parts)) out.push(full);
-      } catch {
-        // not a circuit
+function startWorker() {
+  stamp = codeStamp();
+  const w = new Worker(new URL('./kit-worker.js', import.meta.url));
+  worker = w;
+  ready = new Promise((resolveReady, rejectReady) => {
+    w.on('message', (msg) => {
+      if (msg.ready) return resolveReady(msg.tools);
+      const done = pending.get(msg.id);
+      if (!done) return;
+      pending.delete(msg.id);
+      done.resolve(msg.result);
+    });
+    w.on('error', (e) => {
+      rejectReady(e);
+      for (const [id, done] of pending) {
+        if (done.worker !== w) continue;
+        pending.delete(id);
+        done.resolve({ isError: true, content: [{ type: 'text', text: `The kit failed: ${e.message}` }] });
       }
-    }
-  }
-  return out;
+      if (worker === w) worker = null;
+    });
+    w.on('exit', () => {
+      if (worker === w) worker = null;
+    });
+  });
+  ready.catch(() => {});
 }
 
-// ---------------------------------------------------------------- server
+async function call(name, args) {
+  const notes = [];
+  if (worker && codeStamp() !== stamp) {
+    worker.terminate();
+    worker = null;
+    notes.push('The kit\'s code changed: reloaded it before answering.');
+  }
+  if (!worker) startWorker();
+  let tools;
+  try {
+    tools = await ready;
+  } catch (e) {
+    worker = null;
+    return { isError: true, content: [{ type: 'text', text: `The kit does not load (fix it and call again): ${e.message}` }] };
+  }
+  if (notes.length && (tools.length !== registered.length || tools.some((n) => !registered.includes(n)))) {
+    notes.push('Its list of tools changed too: reconnect the MCP server (/mcp) to see the new ones.');
+  }
+  const w = worker;
+  const id = next++;
+  const result = await new Promise((resolveCall) => {
+    pending.set(id, { resolve: resolveCall, worker: w });
+    w.postMessage({ id, name, args });
+  });
+  return notes.length ? { ...result, content: [...(result.content ?? []), { type: 'text', text: notes.join(' ') }] } : result;
+}
 
-const server = new McpServer(
-  { name: 'protoboard-iso', version: VERSION },
-  {
-    instructions: [
-      'Breadboard circuits drawn in isometric SVG, with placement checks, a numeric inspector and change history.',
-      'Work loop: list_circuits → history and inspect (numbers, not pictures) → query / suggest (never compute holes or colour codes yourself) → apply_ops with dry_run → apply_ops with expect_revision, author and note → review until APPROVED → undo if needed.',
-      'Never rewrite circuit files directly; change them only with apply_ops. render writes an SVG (and returns a PNG only when asked: images are slow to read).',
-      'Holes: a1…j63 (row letter + column), rails T-, T+, B+, B- plus the column (T+9). Rows a–e of a column are connected, f–j too; each rail is one group.',
-    ].join('\n'),
-  },
-);
+const server = new McpServer({ name: 'protoboard-iso', version: VERSION }, { instructions: INSTRUCTIONS });
+for (const tool of TOOLS) server.registerTool(tool.name, tool.config, (args) => call(tool.name, args));
 
-server.registerTool(
-  'list_circuits',
-  { title: 'List circuits', description: 'Circuits under the server root: files with a "parts" list and folders with circuit.json.', inputSchema: { format: common.format }, annotations: READ },
-  safely(async ({ format }) => {
-    const items = findCircuits(ROOT).map((full) => {
-      const paths = resolveTarget(full);
-      const c = loadCircuit(paths);
-      const title = typeof c.title === 'object' ? c.title?.en ?? Object.values(c.title)[0] : c.title;
-      return { target: rel(full), title: title ?? null, revision: c.revision ?? 0, parts: c.parts.length };
-    });
-    return answer(format, { root: ROOT, circuits: items }, () => [`root: ${ROOT}`, ...items.map((i) => `${i.target} · rev ${i.revision} · ${i.parts} parts${i.title ? ` · ${i.title}` : ''}`)].join('\n'));
-  }),
-);
-
-server.registerTool(
-  'get_circuit',
-  { title: 'Get circuit', description: 'The circuit file as JSON (the only source of truth), with its revision and placement issues.', inputSchema: { target: targetArg, lang: common.lang }, annotations: READ },
-  safely(async ({ target, lang }) => {
-    const { paths } = existing(target);
-    const circuit = loadCircuit(paths);
-    const { issues } = checkCircuit(circuit);
-    return json({ target, revision: circuit.revision ?? 0, circuit, issues: issues.map((i) => formatIssue(i, lang)) });
-  }),
-);
-
-server.registerTool(
-  'create_circuit',
-  {
-    title: 'Create circuit',
-    description: 'Create a new circuit folder (circuit.json, history.jsonl, out/). Refuses to overwrite. Check the answer for placement issues.',
-    inputSchema: {
-      target: z.string().describe('New folder, relative to the root, e.g. circuits/led'),
-      circuit: z.object({ parts: z.array(partShape) }).passthrough().describe('Circuit file content (see schema/circuit.schema.json)'),
-      author: z.string().optional(),
-      note: z.string().optional(),
-      lang: common.lang,
-    },
-    annotations: WRITE,
-  },
-  safely(async ({ target, circuit, author = 'mcp', note = 'create', lang, outputLang }) => {
-    const result = createTarget(inside(target), circuit, { author, note, lang, outputLang });
-    if (result.errors.length) return { isError: true, content: [{ type: 'text', text: result.errors.map((e) => formatIssue(e, lang)).join('\n') }] };
-    const { issues } = checkCircuit(loadCircuit(resolveTarget(inside(target))));
-    return json({ target, revision: 0, files: relFiles(result.files), issues: issues.map((i) => formatIssue(i, lang)) });
-  }),
-);
-
-server.registerTool(
-  'inspect',
-  {
-    title: 'Inspect drawing',
-    description: 'The drawing in numbers: every lead (hole, group, mm, px), each part box and visible share, label and leader problems, smallest text, plus placement issues. Optionally one part only.',
-    inputSchema: { target: targetArg, ...viewArgs, part: z.string().optional().describe('Only this part'), ...common },
-    annotations: READ,
-  },
-  safely(async ({ target, view, fit, scale, part, lang, format }) => {
-    const { paths } = existing(target);
-    const report = inspectCircuit(loadCircuit(paths), { view, fit, scale, lang });
-    if (part) {
-      const one = report.parts.find((p) => p.id === part);
-      if (!one) throw new Error(`No part ${part}.`);
-      const related = [...report.issues, ...report.problems].filter((p) => Object.values(p.params ?? {}).some((v) => String(v).split(', ').includes(part)));
-      return json({ part: one, problems: related.map((p) => formatIssue(p, lang)) });
-    }
-    return answer(format, report, () => formatReport(report, lang));
-  }),
-);
-
-server.registerTool(
-  'query',
-  {
-    title: 'Query holes and groups',
-    description: 'at: who is in a hole and its group · node: a connected group by name (9:a-e, T+) or any of its holes · free: free holes nearest to a hole, group or column.',
-    inputSchema: {
-      target: targetArg,
-      kind: z.enum(['at', 'node', 'free']),
-      ref: z.string().optional().describe('Hole for at, group or hole for node, centre for free'),
-      limit: z.number().int().positive().optional(),
-      empty: z.boolean().optional().describe('free: only groups nobody uses'),
-      ...common,
-    },
-    annotations: READ,
-  },
-  safely(async ({ target, kind, ref, limit, empty, lang, format }) => {
-    const { paths } = existing(target);
-    const circuit = loadCircuit(paths);
-    if (kind === 'at') return answer(format, queryAt(circuit, ref), () => formatAt(queryAt(circuit, ref), lang));
-    if (kind === 'node') return answer(format, queryNode(circuit, ref), () => formatNode(queryNode(circuit, ref), lang));
-    const r = queryFree(circuit, { near: ref, limit, emptyNodes: empty });
-    return answer(format, r, () => formatFree(r, lang));
-  }),
-);
-
-server.registerTool(
-  'suggest',
-  {
-    title: 'Suggest placements',
-    description: 'Valid placements for a NEW part, best first, each with the add operation ready for apply_ops. Never adds errors or warnings. Use between for two-lead parts (groups in pin order) or connect for named pins.',
-    inputSchema: {
-      target: targetArg,
-      part: z.object({ type: z.enum(Object.keys(PART_TYPES)) }).passthrough().describe('The new part without pins, e.g. {"type":"resistor","value":"1k"}; id optional'),
-      between: z.array(z.string()).optional().describe('Groups or holes for the leads, in pin order'),
-      connect: z.record(z.string(), z.string()).optional().describe('{"pin": "group or hole"} for some pins; the rest go to free strips'),
-      near: z.string().optional().describe('Centre of the search: hole, group or column'),
-      limit: z.number().int().positive().optional(),
-      window: z.number().positive().optional().describe('Search radius in mm (default 20)'),
-      ...common,
-    },
-    annotations: READ,
-  },
-  safely(async ({ target, part, between, connect, near, limit, window, lang, format }) => {
-    const { paths } = existing(target);
-    const result = suggest(loadCircuit(paths), part, { between, connect, near, limit, window });
-    return answer(format, result, () => formatSuggest(result, lang, { formatIssue, target }));
-  }),
-);
-
-server.registerTool(
-  'apply_ops',
-  {
-    title: 'Apply operations',
-    description: 'Change a circuit with an atomic batch of operations. dry_run (recommended first) saves nothing and tells what the change fixes and introduces. Without dry_run it saves a new revision, records history and regenerates outputs. Pass expect_revision to avoid overwriting someone else.',
-    inputSchema: {
-      target: targetArg,
-      ops: z.array(opShape).min(1),
-      dry_run: z.boolean().optional(),
-      expect_revision: z.number().int().min(0).optional(),
-      author: z.string().optional(),
-      note: z.string().optional().describe('Why the change is made'),
-      views: z.array(z.enum(Object.keys(VIEWS))).optional().describe('Views to measure (default front)'),
-      ...common,
-    },
-    annotations: WRITE,
-  },
-  safely(async ({ target, ops, dry_run, expect_revision, author = 'mcp', note = '', views, lang, outputLang, format }) => {
-    const { full } = existing(target);
-    const result = applyToTarget(full, ops, { dryRun: dry_run, expectRevision: expect_revision, author, note, views, lang, outputLang });
-    const out = { ...result, circuit: undefined, files: relFiles(result.files) };
-    const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }));
-    return result.errors.length ? { ...response, isError: true } : response;
-  }),
-);
-
-server.registerTool(
-  'review',
-  {
-    title: 'Review circuit',
-    description: 'Verdict from measurements in both views: APPROVED or CHANGES, with what must be fixed (blocking) and what is worth knowing. Profile lesson (default) is strict for teaching layouts; draft only blocks errors and warnings.',
-    inputSchema: { target: targetArg, profile: z.enum(Object.keys(PROFILES)).optional(), views: z.array(z.enum(Object.keys(VIEWS))).optional(), ...common },
-    annotations: READ,
-  },
-  safely(async ({ target, profile, views, lang, format }) => {
-    const { paths } = existing(target);
-    const result = review(loadCircuit(paths), { profile, views, lang });
-    return answer(format, result, () => formatReview(result, lang, { t, formatIssue }));
-  }),
-);
-
-server.registerTool(
-  'simulate',
-  {
-    title: 'Simulate circuit',
-    description:
-      'Node voltages and part currents from the circuit (a model, not a measurement). Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit"; kind "generator" for a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, short circuits and floating nodes. falstad: true adds the link that opens the same circuit in Falstad CircuitJS (DC state, parts Falstad lacks as equivalents, listed). Never show results a learner is asked to predict, and Falstad shows every value.',
-    inputSchema: {
-      target: targetArg,
-      analysis: z.enum(['dc', 'transient']).optional(),
-      stop: z.number().positive().optional().describe('transient end time, s'),
-      step: z.number().positive().optional().describe('transient step, s (default stop/1000)'),
-      start: z.enum(['zero', 'dc']).optional(),
-      falstad: z.boolean().optional().describe('also the link that opens this circuit in Falstad CircuitJS'),
-      ...common,
-    },
-    annotations: READ,
-  },
-  safely(async ({ target, analysis = 'dc', stop, step, start, falstad = false, lang, format }) => {
-    const { paths } = existing(target);
-    const circuit = loadCircuit(paths);
-    const result = simulate(circuit, { analysis, stop, step, start });
-    if (falstad && result.ok) {
-      const { program } = compile(circuit);
-      const engine = createEngine(program);
-      engine.start('dc');
-      result.falstad = toFalstad(program, { reading: engine.read(), timeConstants: engine.timeConstants() });
-      delete result.falstad.text;
-    }
-    const response = answer(format, result, () => [formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }), result.falstad && formatFalstad(result.falstad, lang)].filter(Boolean).join('\n\n'));
-    return result.ok ? response : { ...response, isError: true };
-  }),
-);
-
-server.registerTool(
-  'undo',
-  { title: 'Undo', description: 'Undo the latest change not yet undone (recorded as a new revision).', inputSchema: { target: targetArg, author: z.string().optional(), ...common }, annotations: WRITE },
-  safely(async ({ target, author = 'mcp', lang, outputLang, format }) => {
-    const { full } = existing(target);
-    const result = undoTarget(full, { author, lang, outputLang });
-    const out = { ...result, files: relFiles(result.files) };
-    const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }));
-    return result.errors.length ? { ...response, isError: true } : response;
-  }),
-);
-
-server.registerTool(
-  'history',
-  { title: 'History', description: 'Changes made to a circuit: revision, time, author, note and operations.', inputSchema: { target: targetArg, limit: z.number().int().positive().optional(), ...common }, annotations: READ },
-  safely(async ({ target, limit = 20, lang, format }) => {
-    const { paths } = existing(target);
-    const history = readHistory(paths).slice(-limit);
-    return answer(format, history, () => {
-      if (!history.length) return t(lang, 'history.empty');
-      return history
-        .map((h) => {
-          const ops = h.ops.map((o) => `${o.op}${o.part ? ` ${typeof o.part === 'string' ? o.part : o.part.id}` : ''}`).join(', ') || (h.created ? 'create' : '—');
-          return t(lang, 'history.entry', { revision: h.revision, time: h.time, author: h.author, note: h.note ? ` (${h.note})` : '', ops });
-        })
-        .join('\n');
-    });
-  }),
-);
-
-server.registerTool(
-  'render',
-  {
-    title: 'Render SVG',
-    description: 'Write the drawing as SVG into the circuit outputs and return its path. Add png_width to also get a PNG image back (slow to read: use only to judge style, keep it small, e.g. 900). page: true also rewrites the embeddable page out/<name>.html (every change rewrites it anyway; use this for circuits made before the page existed).',
-    inputSchema: {
-      target: targetArg,
-      ...viewArgs,
-      annotate: z.union([z.array(z.enum(ANNOTATION_LAYERS)), z.literal('all')]).optional().describe('Extra layers: pins, boxes, nodes, grid, or all'),
-      labels: z.union([z.boolean(), z.enum(['both', 'id', 'value'])]).optional().describe('both (default), id, value, or false'),
-      png_width: z.number().int().min(200).max(2000).optional(),
-      page: z.boolean().optional().describe('Also rewrite the embeddable page out/<name>.html'),
-      focus: z.array(z.string()).optional().describe('Dim everything except these parts (ids) and the strips under their leads; they show even where something covers them.'),
-      flow: z.boolean().optional().describe('Conductor view: conductors coloured by voltage, dots of conventional current (+ to −) along strips, leads and wires (still in the SVG, moving in the page). Needs supplies or a battery part.'),
-      sim: z.boolean().optional().describe('Draw the DC simulation results (voltages per group, currents per part, labelled MODEL). Needs supplies or a battery part. Never for values a learner must predict.'),
-      lang: common.lang,
-    },
-    annotations: { ...WRITE, idempotentHint: true },
-  },
-  safely(async ({ target, view = 'front', fit, scale, annotate, labels, png_width, page, sim, focus, flow, lang }) => {
-    const { paths } = existing(target);
-    const circuit = loadCircuit(paths);
-    const { svg, issues } = renderCircuit(circuit, { view, fit, scale, annotate, labels, lang, sim, focus, flow });
-    if (!svg) throw new Error(issues.map((i) => formatIssue(i, lang)).join('\n'));
-    mkdirSync(paths.outDir, { recursive: true });
-    const file = join(paths.outDir, `${paths.name}.${view}${fit === 'parts' ? '.zoom' : ''}${annotate ? '.annotated' : ''}${sim ? '.sim' : ''}${focus?.length ? '.focus' : ''}${flow ? '.flow' : ''}.svg`);
-    writeFileSync(file, svg);
-    const pageFile = page ? writePage(paths, circuit, { lang }).pageFile : null;
-    const content = [{ type: 'text', text: JSON.stringify({ svg: rel(file), ...(pageFile && { page: rel(pageFile) }), bytes: Buffer.byteLength(svg), issues: issues.length }) }];
-    if (png_width) {
-      if (!(await rasterAvailable())) content.push({ type: 'text', text: 'PNG not available: install @resvg/resvg-js.' });
-      else content.push({ type: 'image', mimeType: 'image/png', data: Buffer.from(await svgToPng(svg, { width: png_width })).toString('base64') });
-    }
-    return { content };
-  }),
-);
-
-server.registerTool(
-  'catalog',
-  { title: 'Catalog', description: 'What the kit knows: part types and their pins, part numbers, packages, boards, views, operations, annotation layers.', inputSchema: { lang: common.lang }, annotations: READ },
-  safely(async ({ lang }) =>
-    json({
-      types: Object.fromEntries(Object.entries(PART_TYPES).map(([k, v]) => [k, { name: t(lang, `type.${k}`), pins: v.pins ?? 'from the part number' }])),
-      partNumbers: Object.fromEntries(Object.entries(PART_NUMBERS).map(([k, v]) => [k, { type: v.type, package: v.package, pins: v.pins }])),
-      batteries: Object.fromEntries(Object.entries(BATTERY_FORMATS).map(([k, f]) => [k, { default: f.default, chemistries: Object.keys(f.chemistries) }])),
-      photoresistors: Object.keys(LDR_PARTS),
-      modules: Object.fromEntries(Object.entries(MODULES).map(([k, m]) => [k, { name: m.label, mount: m.mount, pins: m.pins ?? m.headers.flatMap((h) => h.pins.map(([n]) => n)) }])),
-      packages: Object.keys(PACKAGES),
-      boards: Object.keys(BOARDS),
-      views: Object.keys(VIEWS),
-      operations: OP_NAMES,
-      annotations: ANNOTATION_LAYERS,
-      languages: Object.keys(LANGUAGES),
-    }),
-  ),
-);
-
+startWorker();
 await server.connect(new StdioServerTransport());

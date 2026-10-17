@@ -133,15 +133,15 @@ the same picture**. Kept as it came out (`m2-fuente-dos-rieles` in the course's 
 with the improvements below and compare.
 
 - ✅ Brief: `Target: <name>` without a `circuits/` prefix; `Fidelity: functional` by default; the layout agent checks every part with `catalog` first and gives up a constraint after three attempts ([agents.md](docs/en/agents.md))
-- ⬜ The MCP server reloads (or warns) when the kit's code changed since it started: a long-lived server kept writing pages with the old interface
-- ⬜ The MCP strips or rejects a `circuits/` prefix in targets (it nested `circuitos/circuits/…`)
+- ✅ The MCP server reloads when the kit's code changed since it started: its tools run in a worker that it restarts (`mcp/kit-worker.js`), and that answer says so; a changed list of tools still asks for a reconnect ([mcp.md](docs/en/mcp.md))
+- ✅ The MCP drops a `circuits/` (or the root's own name) prefix that does not exist under the root (it nested `circuitos/circuits/…`); `targetArg`'s example no longer suggests it
 - ⬜ Labels on any group, not only rails (`netLabels` for strips, e.g. `"8:a-e": "TP3"`), drawn on the board and in the card, checked by the reviewer: test points are what measuring lessons are about
-- ⬜ `review` (lesson) blocks parts that cross or pass through each other
-- ⬜ `suggest` reports collisions and clearance for each placement, as `apply_ops` does
-- ⬜ Place several parts at once (`suggest` for a set of parts against a review profile)
-- ⬜ `review --explain`: which part triggers each blocking item, and the profile's rules in the answer (what blocks, in how many views)
-- ⬜ `catalog` with a `type` filter and a compact list of types (its full answer is too long to read)
-- ⬜ An MCP tool for the whole netlist (nets with their pins), like the CLI's `netlist`, instead of one `query node` per strip
+- ✅ Leads and jumpers that pass through another part are warnings (`LEAD_THROUGH_PART`, `WIRE_THROUGH_PART`, `checkCrossings`: lead samples against the other parts' convex primitives), so every profile blocks them and `suggest` avoids them; it found the R2 lead through the header in `m2-fuente-dos-rieles`, and two kit examples (fixed)
+- ✅ `suggest` gives each placement its nearest body and gap (`nearest`), takes a review `profile` (leaves out what it would block, both views) and measures more candidates (up to 48) while fewer than `limit` pass
+- ✅ Place several parts at once: `suggest` with `parts` (CLI `--parts`), each placed given the ones before it, answered as one batch of adds; groups can be named by a placed pin (`R1.2`, `U1.OUT`) everywhere
+- ✅ `review`: each blocking item names its `parts` and `views`; `--explain` (`explain: true`) adds the profile's rules
+- ✅ `catalog`: a compact list by default (2 KB instead of 20); `name` (a type, part number or module) for its pins, package, fields and a real example from `examples/`; the full registry with `format: "json"` (`src/node/catalog.js`)
+- ✅ MCP tool `netlist` (CLI `nets`): nets as groups joined by wires, with their pins, labels and the pins alone on a net (`src/nets.js`)
 - ⬜ A "stands for" marker for a part the kit still lacks: drawn flat, no collisions, named in the card (only while the part is pending)
 - ⬜ Photos: a table for the course's board standing up (left rail = B+/B−, right = T−/T+; the photo's rows are the kit's columns) and an annotated grid render to compare with a photo
 - ⬜ Measure again: rebuild `m2-fuente-dos-rieles` with these improvements (`Fidelity: functional`) and compare time, calls and tokens

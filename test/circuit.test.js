@@ -52,6 +52,31 @@ test('overlapping bodies are reported', () => {
   assert.ok(codes(issues).includes('COLLISION'));
 });
 
+test('a lead or a wire through another part is reported; one passing by is not', () => {
+  // The resistor's lead from d25 runs over e25, where the header stands.
+  const lead = checkCircuit({
+    parts: [
+      { id: 'U2', type: 'header', count: 3, pin1: 'e24' },
+      { id: 'R2', type: 'resistor', value: '470', pins: ['d25', 'h22'] },
+    ],
+  }).issues;
+  assert.deepEqual(lead.filter((i) => i.code === 'LEAD_THROUGH_PART').map((i) => i.params), [{ part: 'R2', other: 'U2' }]);
+  // A jumper from the far side of a tall regulator to the rail behind it goes through it.
+  const regulator = { id: 'U1', type: 'regulator', part: '7805', pins: ['c14', 'c15', 'c16'] };
+  const through = checkCircuit({ parts: [regulator, { id: 'W1', type: 'wire', pins: ['e14', 'B+13'] }] }).issues;
+  assert.ok(codes(through).includes('WIRE_THROUGH_PART'));
+  const around = checkCircuit({ parts: [regulator, { id: 'W1', type: 'wire', pins: ['a14', 'B+13'] }] }).issues;
+  assert.ok(!codes(around).includes('WIRE_THROUGH_PART'));
+  // A resistor lying over a flat jumper is fine.
+  const over = checkCircuit({
+    parts: [
+      { id: 'R1', type: 'resistor', value: '1k', pins: ['c10', 'c16'] },
+      { id: 'W1', type: 'wire', style: 'flat', pins: ['b12', 'd12'] },
+    ],
+  }).issues;
+  assert.ok(!codes(over).some((c) => c.endsWith('_THROUGH_PART')), JSON.stringify(over));
+});
+
 test('a layout clearance reports parts that are too close, without it nothing', () => {
   const parts = [
     { id: 'D1', type: 'led', pins: ['h10', 'h11'] },

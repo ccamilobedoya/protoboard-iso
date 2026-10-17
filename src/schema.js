@@ -45,6 +45,8 @@ export function buildSchemas() {
       pin1: { type: 'string', description: 'DIP chips: hole of pin 1 (row e or f); the other pins follow. Header: first pin, the others towards higher columns. Module straddling the channel (ESP32): hole of pin 1, the other row rowSpacing holes away' },
       rowSpacing: { type: 'integer', minimum: 4, maximum: 12, description: 'module (ESP32 boards): holes between its two rows of pins; boards differ (DevKit default 9 = 0.9")' },
       wires: { type: 'object', additionalProperties: { type: 'string' }, description: 'module UNO: colour of the Dupont lead of each pin, e.g. { "D13": "yellow" }' },
+      rese: { enum: ['2.2', '0.47'], description: 'module DESPI-C02: position of its RESE switch, ohms ("2.2" as sold, "0.47" for some panels)' },
+      panel: { type: 'boolean', description: 'module DESPI-C02: also draw the 7.5" GDEY075T7 panel on its flat cable' },
       position: { type: 'number', minimum: 0, maximum: 1, description: 'potentiometer wiper position' },
       pressed: { type: 'boolean', description: 'button state' },
       format: { enum: Object.keys(BATTERY_FORMATS), description: 'battery: AA, AAA, 18650, 9V or pouch (LiPo)' },

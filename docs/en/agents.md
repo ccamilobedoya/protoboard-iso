@@ -16,7 +16,7 @@ tools ([mcp.md](mcp.md)) and fall back to the CLI.
 ## `review`: the shared definition of done
 
 ```bash
-node bin/protoboard-iso.js review <target> [--profile lesson|draft] [--views front,back] [--json]
+node bin/protoboard-iso.js review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
 ```
 
 Turns `check` and `inspect` (both views) into a verdict, so every agent and every person
@@ -27,9 +27,29 @@ gets the same answer:
 | `lesson` (default) | errors and warnings, labels covering parts or each other, parts closer than `clearance`, a part hidden in **every** view |
 | `draft` | errors and warnings only |
 
-Everything else is advisory (unconnected pins, leader lines, small text, a part hidden from
-one view only: use the other). Exit code 0 when approved, 2 when changes are needed. Also an
-MCP tool (`review`).
+Errors and warnings include parts that take up the same space and, since 2026-10-16, a lead or
+a jumper that passes through another part (`LEAD_THROUGH_PART`, `WIRE_THROUGH_PART`): a
+resistor lead bent over a header, a jumper under a regulator. Everything else is advisory
+(unconnected pins, leader lines, small text, a part hidden from one view only: use the other).
+Each blocking item names the parts it is about and the views it shows in; `--explain`
+(`explain: true`) adds the profile's rules. Exit code 0 when approved, 2 when changes are
+needed. Also an MCP tool (`review`).
+
+## Fewer calls per circuit
+
+Measured on 2026-10-16: a layout agent rebuilding a two-rail supply took 68 calls and about
+185 000 tokens. What cuts that down:
+
+- `catalog` without `name` is a compact list (about 2 KB instead of 20); `name` gives one type's
+  fields and a real example only when needed.
+- `suggest` with `parts` places a chain of parts in one call, each given the ones before it,
+  naming earlier pins as groups (`"R1.2"`); with `profile: "lesson"` it leaves out what review
+  would block, so fewer review rounds. It also measures more candidates when the first ones all
+  fail, instead of answering "no placement".
+- `netlist` checks every connection against the brief in one call (it was one `query node` per
+  strip).
+- The server reloads the kit when its code changes ([mcp.md](mcp.md)), so nobody has to
+  reconnect it after a kit update.
 
 ## The loop (run by the main conversation)
 
@@ -43,8 +63,8 @@ user request
 missing component at any point → parts-librarian (PARTS BRIEF) → PARTS REPORT
 ```
 
-The reviewer also checks **intent**: it queries the groups the brief names and blocks a
-missing or wrong connection even when the measurements pass.
+The reviewer also checks **intent**: it reads the `netlist` and blocks a missing or wrong
+connection even when the measurements pass.
 
 ## Briefs
 

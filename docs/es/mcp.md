@@ -9,7 +9,15 @@ tipadas y respuestas cortas y estructuradas. Es una capa delgada sobre las misma
 de la línea de comandos (ver [interfaz-para-agentes.md](interfaz-para-agentes.md)).
 
 Vive en su propio paquete (`mcp/package.json`) porque necesita el SDK de MCP y Zod; el kit en
-sí sigue sin dependencias.
+sí sigue sin dependencias. Las herramientas se definen en `mcp/tools.js`; `mcp/server.js` las
+registra y corre sus funciones en un hilo aparte (*worker*, `mcp/kit-worker.js`).
+
+**Recarga el kit solo.** Antes de cada llamada, el servidor mira si el código del kit (`src/`,
+`mcp/tools.js`) cambió desde que arrancó su *worker*; si cambió, arranca uno nuevo, así que las
+respuestas y las páginas que escribe salen siempre del código actual, y esa respuesta termina con
+una nota que lo dice. Antes, un servidor que llevaba rato prendido seguía escribiendo páginas con
+la interfaz vieja hasta que alguien lo reconectaba. Cambiar el nombre de una herramienta, agregar
+una o cambiar sus entradas sigue pidiendo reconectar (`/mcp` en Claude Code): la nota avisa cuándo.
 
 ## Instalar y probar
 
@@ -54,14 +62,22 @@ la ruta absoluta de `mcp/server.js`, y las variables de arriba.
 | `create_circuit` | carpeta de circuito nueva (no sobrescribe) | sí |
 | `inspect` | el dibujo en números; `part` para un solo componente | no |
 | `query` | `kind: at \| node \| free` con `ref` | no |
-| `suggest` | posiciones válidas para un componente nuevo, cada una con su operación `add` | no |
+| `netlist` | el circuito como redes: grupos unidos por cables, las patas de cada una (`R1.1@d20`), etiquetas, patas solas en su red | no |
+| `suggest` | posiciones válidas para un componente nuevo, cada una con su operación `add` y el cuerpo más cercano (`nearest`: componente y holgura); `profile` deja fuera también lo que esa revisión bloquea; `parts` coloca varios en orden y responde un solo lote | no |
 | `apply_ops` | lote atómico; primero `dry_run`, luego `expect_revision`, `author`, `note` | sí |
 | `undo` | deshace el último cambio (revisión nueva) | sí |
-| `review` | APROBADO o CAMBIOS a partir de mediciones, perfil `lesson` o `draft` | no |
+| `review` | APROBADO o CAMBIOS a partir de mediciones, perfil `lesson` o `draft`; cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `explain: true` agrega las reglas del perfil | no |
 | `history` | revisiones, autores, notas, operaciones | no |
 | `render` | escribe el SVG; con `png_width` devuelve también una imagen PNG; con `page: true` reescribe la página para embeber ([embeber.md](embeber.md)); con `sim: true` dibuja los resultados de la simulación; `focus: [ids]` atenúa lo demás; `flow: true` la capa de corriente | solo salidas |
 | `simulate` | voltajes de los grupos y corrientes de los componentes, un modelo ([simulacion.md](simulacion.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` agrega el enlace que abre el circuito en Falstad ([falstad.md](falstad.md)) | no |
-| `catalog` | tipos, referencias, encapsulados, protoboards, vistas, operaciones, capas | no |
+| `catalog` | sin `name`: una lista compacta (tipos con sus patas, números de parte por tipo, módulos, baterías, protoboards, vistas, operaciones); con `name` (un tipo, número de parte o módulo): patas, encapsulado, los campos que acepta y un componente real de `examples/` para copiar; `format: "json"` sin `name`: todos los registros completos | no |
+
+**Grupos por pata.** Donde una herramienta pide un grupo (`between` y `connect` de `suggest`,
+`query node`), una pata de un componente ya colocado nombra el grupo donde está: `"R1.2"`, `"U1.OUT"`.
+
+**Destinos** relativos a la raíz, como los muestra `list_circuits`. Un destino que empieza con una
+carpeta que no existe ahí (`circuits/led` o `circuitos/led` cuando la raíz ya es la carpeta de
+circuitos) se lee sin ella, así el circuito no queda anidado un nivel más abajo.
 
 Todas responden en texto legible, o en JSON con `format: "json"`. Los errores vuelven como
 errores de la herramienta con un mensaje legible (`isError`), nunca como una caída. Las de
@@ -78,6 +94,10 @@ directamente; PNG solo cuando importa el estilo.
 list_circuits                       → circuits/led · rev 0 · 3 componentes
 inspect   {target: "circuits/led"}  → … De R1 se ve el 81 %; W1 tapa el 15 %.
 suggest   {target, part: {type: "resistor", value: "1k"}, between: ["10:f-j", "T-"]}
+suggest   {target, parts: [{part: {type: "led"}, between: ["20:f-j", "21:f-j"]},
+                           {part: {type: "resistor", value: "330"}, between: ["D2.cathode", "T-"]}],
+           profile: "lesson"}                                    → un solo lote de add
+netlist   {target}                   → cada red con sus patas, para compararla con el encargo
 apply_ops {target, ops: <de suggest>, dry_run: true}         → qué arregla / qué introduce
 apply_ops {target, ops, expect_revision: 0, author: "claude", note: "resistencia de pull-down"} → rev 1
 ```

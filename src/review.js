@@ -6,7 +6,9 @@
 //   lesson  for teaching layouts: nothing hidden, no label trouble, parts not cramped
 //   draft   only errors and warnings block
 //
-// review(circuit, { profile, views }) → { verdict: 'approved' | 'changes', blocking, advisory, summary }
+// review(circuit, { profile, views, explain }) → { verdict: 'approved' | 'changes', blocking, advisory, summary }
+// Each blocking item names the parts it is about (`parts`) and the views it shows in (`views`), so
+// the fix is clear without another inspect; `explain` adds the profile's rules (`rules`).
 
 import { evaluate } from './diff.js';
 
@@ -21,9 +23,31 @@ export const PROFILES = {
   draft: { block: [], hiddenEverywhere: false, advise: null },
 };
 
-export function review(circuit, { profile = 'lesson', views = ['front', 'back'], lang = 'en' } = {}) {
+// Parameters that name parts, in the issues and drawing problems.
+const PART_PARAMS = ['part', 'first', 'second', 'other', 'by', 'parts', 'over', 'covered'];
+
+function partsOf(p, ids) {
+  const out = [];
+  for (const [k, v] of Object.entries(p.params ?? {})) {
+    for (const token of String(v).split(/,\s*/)) {
+      const id = ids.has(token) ? token : token.split('.')[0]; // "R2.2" is a pin of R2
+      if ((PART_PARAMS.includes(k) || token.includes('.') || ids.has(token)) && ids.has(id) && !out.includes(id)) out.push(id);
+    }
+  }
+  return out;
+}
+
+export function review(circuit, { profile = 'lesson', views = ['front', 'back'], lang = 'en', explain = false } = {}) {
   const policy = PROFILES[profile] ?? PROFILES.lesson;
   const { problems } = evaluate(circuit, { views, lang });
+  const ids = new Set((circuit.parts ?? []).map((p) => p.id));
+  // Which views each problem shows in (the same code and params, any view).
+  const viewsOf = new Map();
+  for (const p of problems) {
+    const key = `${p.code} ${JSON.stringify(p.params)}`;
+    if (!viewsOf.has(key)) viewsOf.set(key, new Set());
+    viewsOf.get(key).add(p.view ?? 'any');
+  }
   const blocking = [];
   const advisory = [];
   const seen = new Set();
@@ -58,9 +82,15 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
     else if (!policy.advise || policy.advise.includes(p.code)) once(advisory, view ? { ...plain, view } : plain);
   }
 
+  for (const p of blocking) {
+    p.parts = partsOf(p, ids);
+    const seenIn = [...(viewsOf.get(`${p.code} ${JSON.stringify(p.params)}`) ?? [])].filter((v) => v !== 'any');
+    if (seenIn.length) p.views = seenIn;
+  }
   return {
     profile,
     views,
+    ...(explain && { rules: { blocks: ['error', 'warning', ...policy.block], hiddenEverywhere: policy.hiddenEverywhere, advise: policy.advise ?? 'everything else' } }),
     verdict: blocking.length ? 'changes' : 'approved',
     blocking,
     advisory,
@@ -70,9 +100,17 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
 
 export function formatReview(r, lang, { t, formatIssue }) {
   const lines = [t(lang, r.verdict === 'approved' ? 'review.approved' : 'review.changes', { profile: r.profile, views: r.views.join(', '), ...r.summary })];
+  if (r.rules) {
+    const codes = r.rules.blocks.filter((c) => c !== 'error' && c !== 'warning');
+    lines.push(t(lang, 'review.rules', { codes: codes.join(', ') || '—' }));
+    if (r.rules.hiddenEverywhere) lines.push(t(lang, 'review.rulesHidden'));
+  }
   if (r.blocking.length) {
     lines.push(t(lang, 'review.blocking'));
-    for (const p of r.blocking) lines.push(`  ✖ ${formatIssue(p, lang)}`);
+    for (const p of r.blocking) {
+      const where = [p.views?.length ? p.views.join(', ') : null, p.parts?.length ? t(lang, 'review.parts', { parts: p.parts.join(', ') }) : null].filter(Boolean).join(' · ');
+      lines.push(`  ✖ ${formatIssue(p, lang)}${where ? ` [${where}]` : ''}`);
+    }
   }
   if (r.advisory.length) {
     lines.push(t(lang, 'review.advisory'));

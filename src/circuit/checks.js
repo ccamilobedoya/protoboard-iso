@@ -151,3 +151,118 @@ export function checkCollisions(parts, { margin = 0.15, clearance = 0 } = {}) {
   }
   return out;
 }
+
+// The body nearest to a part's, and the gap between them on the board (mm), measured as
+// checkCollisions does; what suggest reports for each placement. Null when nothing else has a body.
+export function nearestBody(parts, id) {
+  const boxOf = (p) => (p.built?.body?.length ? bounds(p.built.body) : null);
+  const me = parts.find((p) => p.id === id);
+  const a = me && boxOf(me);
+  if (!a) return null;
+  let best = null;
+  for (const other of parts) {
+    if (other.id === id) continue;
+    const c = boxOf(other);
+    if (!c) continue;
+    const gap = Math.hypot(...[0, 1].map((k) => Math.max(0, a.min[k] - c.max[k], c.min[k] - a.max[k])));
+    if (!best || gap < best.gap) best = { part: other.id, gap: mm(gap) };
+  }
+  return best;
+}
+
+// Leads and wires that pass through another part. checkCollisions compares bodies only, so a
+// resistor lead bent over a header, or a jumper under a chip, went through unnoticed. Each lead
+// (the conductor part of the package's `paths`, before its `body`; a whole jumper) is sampled
+// every `step` mm and each sample is tested against the other parts' convex primitives: their
+// bodies, and for leads also the jumpers' insulation. A sample must be `depth` mm inside to
+// count, so touching is not reported. Jumpers crossing jumpers are fine on a real board.
+export function checkCrossings(parts, { depth = 0.2, step = 0.5 } = {}) {
+  const solids = new Map(); // part id → { body: [convex], wire: [convex] }
+  for (const part of parts) {
+    if (!part.built) continue;
+    const isWire = part.type === 'wire';
+    const prims = isWire ? part.built.primitives : part.built.body ?? [];
+    if (!prims.length) continue;
+    const b = bounds(prims);
+    const box = { min: { x: b.min[0], y: b.min[1], z: b.min[2] }, max: { x: b.max[0], y: b.max[1], z: b.max[2] } };
+    // The planes are worked out only for parts some lead comes near.
+    let list = null;
+    solids.set(part.id, { isWire, box, list: () => (list ??= prims.map(convex).filter(Boolean)) });
+  }
+  const out = [];
+  for (const part of parts) {
+    const paths = part.built?.paths;
+    if (!Array.isArray(paths)) continue;
+    const isWire = part.type === 'wire';
+    const samples = paths.flatMap((p) => sample(p.points.slice(0, (p.body ?? p.points.length - 1) + 1), step));
+    if (!samples.length) continue;
+    const reach = boxOfBoxes([{ min: { x: Math.min(...samples.map((q) => q.x)), y: Math.min(...samples.map((q) => q.y)), z: Math.min(...samples.map((q) => q.z)) }, max: { x: Math.max(...samples.map((q) => q.x)), y: Math.max(...samples.map((q) => q.y)), z: Math.max(...samples.map((q) => q.z)) } }]);
+    for (const [other, { list, isWire: otherIsWire, box }] of solids) {
+      if (other === part.id || (isWire && otherIsWire) || !boxesMeet(reach, box)) continue;
+      if (samples.some((s) => list().some((c) => insideConvex(c, s, depth)))) {
+        out.push(issue('warning', isWire ? 'WIRE_THROUGH_PART' : 'LEAD_THROUGH_PART', { part: part.id, other }));
+      }
+    }
+  }
+  return out;
+}
+
+function sample(points, step) {
+  const out = [];
+  for (let i = 0; i + 1 < points.length; i++) {
+    const a = points[i];
+    const b = points[i + 1];
+    const n = Math.max(1, Math.ceil(distance(a, b) / step));
+    for (let k = i ? 1 : 0; k <= n; k++) out.push({ x: a.x + ((b.x - a.x) * k) / n, y: a.y + ((b.y - a.y) * k) / n, z: a.z + ((b.z - a.z) * k) / n });
+  }
+  return out;
+}
+
+// A convex primitive as planes facing out (Newell normals, oriented away from the centroid),
+// with its box for a quick reject.
+function convex(prim) {
+  const pts = prim.faces.flatMap((f) => f.pts);
+  if (pts.length < 4) return null;
+  const c = pts.reduce((s, p) => ({ x: s.x + p.x / pts.length, y: s.y + p.y / pts.length, z: s.z + p.z / pts.length }), { x: 0, y: 0, z: 0 });
+  const planes = [];
+  for (const f of prim.faces) {
+    const n = { x: 0, y: 0, z: 0 };
+    f.pts.forEach((p, i) => {
+      const q = f.pts[(i + 1) % f.pts.length];
+      n.x += (p.y - q.y) * (p.z + q.z);
+      n.y += (p.z - q.z) * (p.x + q.x);
+      n.z += (p.x - q.x) * (p.y + q.y);
+    });
+    const len = length(n);
+    if (len < 1e-9) continue;
+    let u = { x: n.x / len, y: n.y / len, z: n.z / len };
+    let d = dot(u, f.pts[0]);
+    if (dot(u, c) - d > 0) {
+      u = { x: -u.x, y: -u.y, z: -u.z };
+      d = -d;
+    }
+    planes.push({ u, d });
+  }
+  if (planes.length < 4) return null;
+  const min = { x: Math.min(...pts.map((p) => p.x)), y: Math.min(...pts.map((p) => p.y)), z: Math.min(...pts.map((p) => p.z)) };
+  const max = { x: Math.max(...pts.map((p) => p.x)), y: Math.max(...pts.map((p) => p.y)), z: Math.max(...pts.map((p) => p.z)) };
+  return { planes, min, max };
+}
+
+function boxOfBoxes(list) {
+  const min = { x: Infinity, y: Infinity, z: Infinity };
+  const max = { x: -Infinity, y: -Infinity, z: -Infinity };
+  for (const b of list) {
+    for (const k of ['x', 'y', 'z']) {
+      min[k] = Math.min(min[k], b.min[k]);
+      max[k] = Math.max(max[k], b.max[k]);
+    }
+  }
+  return { min, max };
+}
+const boxesMeet = (a, b) => ['x', 'y', 'z'].every((k) => a.min[k] <= b.max[k] && b.min[k] <= a.max[k]);
+
+function insideConvex(c, p, depth) {
+  if (p.x < c.min.x + depth || p.x > c.max.x - depth || p.y < c.min.y + depth || p.y > c.max.y - depth || p.z < c.min.z + depth || p.z > c.max.z - depth) return false;
+  return c.planes.every(({ u, d }) => dot(u, p) - d < -depth);
+}

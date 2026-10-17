@@ -113,13 +113,15 @@ src/render/      scene.js (display list: painter, labels, framing), svg.js (writ
                  coverage.js (measuring raster), shading.js
 src/inspect.js   numeric report of a scene; src/annotate.js annotation layers
 src/ops.js       operations (pure, atomic, with inverses); src/diff.js evaluate + diff
-src/query.js     at, node, free, suggest (placements); src/query-format.js text output
+src/query.js     at, node, free, suggest, suggestMany (placements); src/query-format.js text output
+src/nets.js      nets: groups joined by wires, with their pins
 src/review.js    verdict from measurements, profiles lesson/draft
 .claude/agents/  circuit-layout, circuit-reviewer, parts-librarian
 src/schema.js    JSON Schemas (written to schema/ by npm run schemas)
 src/node/        Node-only: workspace.js (targets, history, undo, create, outputs), raster.js (PNG),
                  bundle.js (ES modules → one script for the page)
-mcp/             MCP server (own package: SDK + zod); server.js, test/; .mcp.json registers it
+mcp/             MCP server (own package: SDK + zod); tools.js (the tools), server.js (registers them,
+                 runs them in kit-worker.js, reloaded when src/ changes), test/; .mcp.json registers it
 src/board/       board.js (holes, nodes), draw-board.js, boards/*.js (data)
 src/parts/       types/ (meaning), packages/ (shape), db.js (part numbers), colors.js
 src/circuit/     build.js (pipeline), checks.js (placement checks)

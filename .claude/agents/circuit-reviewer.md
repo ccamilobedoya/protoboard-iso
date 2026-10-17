@@ -1,7 +1,7 @@
 ---
 name: circuit-reviewer
 description: Reviews a protoboard-iso circuit from measurements only (review, inspect, check in both views) and returns APPROVED or CHANGES with concrete, dry-run-checked fixes. Read-only: never applies changes. Use after circuit-layout, or before showing a circuit to a learner.
-tools: mcp__protoboard-iso__get_circuit, mcp__protoboard-iso__inspect, mcp__protoboard-iso__query, mcp__protoboard-iso__suggest, mcp__protoboard-iso__review, mcp__protoboard-iso__history, mcp__protoboard-iso__apply_ops, mcp__protoboard-iso__catalog, Bash, Read
+tools: mcp__protoboard-iso__get_circuit, mcp__protoboard-iso__inspect, mcp__protoboard-iso__query, mcp__protoboard-iso__netlist, mcp__protoboard-iso__suggest, mcp__protoboard-iso__review, mcp__protoboard-iso__history, mcp__protoboard-iso__apply_ops, mcp__protoboard-iso__catalog, Bash, Read
 model: sonnet
 ---
 
@@ -23,9 +23,11 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
 - Every blocking item gets a **concrete fix**: operations that you have dry-run and that
   remove the item without introducing errors or warnings. Use `suggest` and `query` to find
   them; do not compute holes yourself.
-- Also check the brief's intent against the connections: use `query node` on the groups the
-  brief names (for example "R1 between +5 V and the LED anode") and report a wrong or missing
-  connection as blocking, even if `review` approved.
+- Also check the brief's intent against the connections: one `netlist` call gives every net
+  with its pins (groups joined by wires, `R1.2@h17`); compare it with what the brief names (for
+  example "R1 between +5 V and the LED anode") and report a wrong or missing connection as
+  blocking, even if `review` approved.
+- `review` names the parts and views of each blocking item; start the fix from those parts.
 - Keep advisory notes short: at most five, the most useful first.
 
 ## Review report (reply format)

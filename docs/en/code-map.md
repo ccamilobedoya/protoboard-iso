@@ -48,13 +48,15 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `parts/describe.js` | which `describe.*` text says what a kind of part is |
 | `parts/colors.js` | every colour: materials, bands, LEDs, wires, nodes |
 | `circuit/build.js` | circuit file → placed parts, netlist, issues |
-| `circuit/checks.js` | placement checks, description languages |
+| `circuit/checks.js` | placement checks (holes, leads, connections, bodies that collide, leads and jumpers through other parts), description languages |
 | `render/scene.js` | painter's algorithm, label callouts, frame (`fit`) |
 | `render/svg.js` | SVG writer; `tagParts` adds `data-part`; optional layers only when not empty |
 | `render/focus.js` | veil, metal strips, column and row tags (`coords`), spotlight copies (static focus) |
 | `render/coverage.js`, `inspect.js`, `annotate.js` | measuring the drawing; annotation layers |
 | `ops.js`, `diff.js`, `node/workspace.js` | operations with inverses, dry-run diff, history, undo, outputs |
-| `query.js`, `query-format.js`, `review.js` | questions, placements, verdict from measurements |
+| `query.js`, `query-format.js`, `review.js` | questions, placements (`suggest`, `suggestMany`; groups by hole, name or placed pin), verdict from measurements (blocking items with their parts and views) |
+| `nets.js` | the circuit as nets: groups joined by jumper wires, with their pins (MCP `netlist`, CLI `nets`) |
+| `node/catalog.js` | what the kit knows, compact or one entry in detail with its fields (`TYPE_FIELDS`, kept in step with the schema by a test) and an example from `examples/` |
 | `schema.js` | JSON Schemas built from the registries (`npm run schemas`) |
 | `sim/models.js` | typical device values, each with its source (diodes, Zener table, LEDs, transistors, regulators) |
 | `sim/mna.js` | linear solver, stamps, element companions (capacitor, inductor), junction with Zener breakdown, regulator, Newton, source stepping |
@@ -78,7 +80,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `sim/compile.js`, `sim/engine.js` | compile: circuit → program (plain JSON, Node only); engine: runs a program (no dependencies, bundled into pages) |
 | `i18n/` | every sentence; `pickLanguage` decides the language |
 | `bin/protoboard-iso.js` | command line |
-| `mcp/server.js` | MCP server (own package); tools call the same functions |
+| `mcp/server.js`, `mcp/tools.js`, `mcp/kit-worker.js` | MCP server (own package): `tools.js` defines the tools, which call the same functions; `server.js` registers them and runs them in a worker it restarts when the kit's code changes |
 
 ## Conventions that are easy to break
 

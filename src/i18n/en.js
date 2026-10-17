@@ -41,6 +41,8 @@ export default {
   'check.PINS_SAME_NODE': '{part}: pins {pins} are in the same connected group ({node}), so they are shorted.',
   'check.FLOATING_PIN': '{part}: pin {pin} is in {node}, which nothing else touches.',
   'check.COLLISION': '{first} and {second} take up the same space.',
+  'check.LEAD_THROUGH_PART': 'A lead of {part} passes through {other}: move one of them.',
+  'check.WIRE_THROUGH_PART': 'Wire {part} passes through {other}: route it around, or move {other}.',
 
   'check.TOO_CLOSE': '{first} and {second} are {gap} mm apart; this layout asks for at least {clearance} mm.',
 
@@ -82,6 +84,7 @@ export default {
   'history.empty': 'No history yet.',
 
   'check.NO_PLACEMENT': '{part}: no valid placement found ({considered} candidates measured). Try other groups, --near somewhere with room, or --window to search wider.',
+  'check.UNKNOWN_PROFILE': 'No review profile "{profile}". Profiles: {options}.',
   'check.NO_PLACEMENT_RAIL': '{part}: its leads sit in one row of neighbouring holes, so they cannot reach a rail directly. Put the part in free strips and connect the rail with a wire.',
 
   'query.noHole': '"{hole}" is not a hole on this board.',
@@ -97,11 +100,17 @@ export default {
   'suggest.score': 'score',
   'suggest.visible': 'least visible part',
   'suggest.apply': 'To use the first one (check with a dry run, then apply):',
+  'suggest.nearest': 'nearest {part} {gap} mm',
+  'suggest.many': '{placed} placed, {failed} not (profile {profile}); each takes the best place given the ones before it:',
+  'suggest.batch': 'Every add in one batch (apply_ops: dry run first):',
 
   'review.approved': 'APPROVED ({profile}, views {views}): {parts} parts, nothing blocking; notes: {advisory}.',
   'review.changes': 'CHANGES NEEDED ({profile}, views {views}): to fix: {blocking}; notes: {advisory}.',
   'review.blocking': 'Must fix:',
   'review.advisory': 'Worth knowing:',
+  'review.rules': 'Blocks: every error and warning, and in any view: {codes}.',
+  'review.rulesHidden': 'Blocks too: a part hidden in every view (hidden in one view only is a note: look at it from the other).',
+  'review.parts': 'parts {parts}',
 
   'type.resistor': 'Resistor',
   'type.capacitor': 'Capacitor',
@@ -350,10 +359,12 @@ export default {
   protoboard-iso inspect <target> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
   protoboard-iso check <target> [--lang en|es] [--json]
   protoboard-iso netlist <target>
+  protoboard-iso nets <target> [--lang en|es] [--json]
   protoboard-iso apply <target> [ops.json | -] [--ops '<json>'] [--dry-run] [--author name] [--note text] [--expect-revision n] [--views front,back] [--json]
   protoboard-iso query <target> at <hole> | node <node|hole> | free [--near <hole|node|column>] [--limit n] [--empty]
-  protoboard-iso suggest <target> --part '<json>' [--between <node>,<node>] [--connect '<json>'] [--near …] [--limit n] [--window mm]
-  protoboard-iso review <target> [--profile lesson|draft] [--views front,back] [--json]
+  protoboard-iso suggest <target> --part '<json>' [--between <node>,<node>] [--connect '<json>'] [--near …] [--limit n] [--window mm] [--profile lesson|draft]
+  protoboard-iso suggest <target> --parts '[{"part": {…}, "between": […]}, …]' [--profile lesson|draft]
+  protoboard-iso review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
   protoboard-iso undo <target> [--author name] [--json]
   protoboard-iso history <target> [--json]
   protoboard-iso parts [--lang en|es]`,
@@ -404,6 +415,22 @@ export default {
   'type.ldr': 'Photoresistor (LDR)',
   'type.buzzer': 'Buzzer',
   'type.header': 'Header pins',
+  'catalog.types': 'Types (pins in order · part numbers):',
+  'catalog.pinsFromPart': 'pins from the part number',
+  'catalog.modules': 'Modules:',
+  'catalog.batteries': 'Batteries:',
+  'catalog.photoresistors': 'photoresistors:',
+  'catalog.boards': 'Boards:',
+  'catalog.views': 'views:',
+  'catalog.operations': 'operations:',
+  'catalog.more': 'Details of one type, part number or module (fields, pins, an example to copy): catalog with name.',
+  'catalog.pins': 'pins:',
+  'catalog.parts': 'parts:',
+  'catalog.fields': 'fields:',
+  'catalog.example': 'example ({file}):',
+  'catalog.unknown': 'The kit does not know "{name}". Types: {types}. Without name, the whole list.',
+  'nets.header': '{nets} nets (groups joined by wires · wires · pins):',
+  'nets.floating': 'Alone on their net: {pins}',
   'type.bridge': 'Bridge rectifier',
   'type.module': 'Development board',
   'type.module.adapter': 'Adapter board',

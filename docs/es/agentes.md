@@ -16,7 +16,7 @@ Usan las herramientas MCP ([mcp.md](mcp.md)) y, si no están, la línea de coman
 ## `review`: la definición de «terminado» que todos comparten
 
 ```bash
-node bin/protoboard-iso.js review <objetivo> [--profile lesson|draft] [--views front,back] [--json]
+node bin/protoboard-iso.js review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]
 ```
 
 Convierte `check` e `inspect` (en las dos vistas) en un veredicto, así todos los agentes y
@@ -27,9 +27,30 @@ todas las personas reciben la misma respuesta:
 | `lesson` (por defecto) | errores y avisos, etiquetas que tapan componentes o se montan entre sí, componentes más cerca que `clearance`, un componente tapado en **todas** las vistas |
 | `draft` | solo errores y avisos |
 
-Todo lo demás son notas (patas sin conectar, líneas guía, texto pequeño, un componente tapado
-solo en una vista: usar la otra). Código de salida 0 si se aprueba y 2 si hay que cambiar
-algo. También existe como herramienta MCP (`review`).
+Entre los errores y avisos están los componentes que ocupan el mismo espacio y, desde el
+2026-10-16, una pata o un cable que atraviesa otro componente (`LEAD_THROUGH_PART`,
+`WIRE_THROUGH_PART`): la pata de una resistencia doblada por encima de unos pines de cabecera, un
+cable por debajo de un regulador. Todo lo demás son notas (patas sin conectar, líneas guía, texto
+pequeño, un componente tapado solo en una vista: usar la otra). Cada punto que bloquea nombra sus
+componentes y las vistas donde aparece; `--explain` (`explain: true`) agrega las reglas del perfil.
+Código de salida 0 si se aprueba y 2 si hay que cambiar algo. También existe como herramienta MCP
+(`review`).
+
+## Menos llamadas por circuito
+
+Medido el 2026-10-16: un agente de montaje que rehízo una fuente de dos rieles necesitó 68
+llamadas y unos 185 000 tokens. Lo que lo reduce:
+
+- `catalog` sin `name` es una lista compacta (unos 2 KB en vez de 20); `name` da los campos y un
+  ejemplo real de un tipo solo cuando hace falta.
+- `suggest` con `parts` coloca una cadena de componentes en una llamada, cada uno según los
+  anteriores, nombrando patas ya colocadas como grupos (`"R1.2"`); con `profile: "lesson"` deja
+  fuera lo que la revisión bloquearía, así hay menos rondas de revisión. Además mide más
+  candidatos cuando los primeros fallan, en vez de responder «no hay posición».
+- `netlist` revisa todas las conexiones contra el encargo en una llamada (antes era un `query
+  node` por tira).
+- El servidor recarga el kit cuando cambia su código ([mcp.md](mcp.md)), así nadie tiene que
+  reconectarlo después de actualizar el kit.
 
 ## El ciclo (lo maneja la conversación principal)
 
@@ -43,8 +64,8 @@ pedido del usuario
 si falta un componente en cualquier momento → parts-librarian (PARTS BRIEF) → PARTS REPORT
 ```
 
-El revisor también revisa la **intención**: consulta los grupos que nombra el encargo y
-bloquea una conexión que falte o esté mal aunque las mediciones pasen.
+El revisor también revisa la **intención**: lee la `netlist` y bloquea una conexión que falte
+o esté mal aunque las mediciones pasen.
 
 ## Encargos
 

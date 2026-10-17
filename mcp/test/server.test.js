@@ -15,7 +15,7 @@ let client;
 
 const call = async (name, args = {}) => client.callTool({ name, arguments: args });
 const textOf = (r) => r.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n');
-const jsonOf = (r) => JSON.parse(textOf(r));
+const jsonOf = (r) => JSON.parse(r.content.find((c) => c.type === 'text').text); // a reload note may follow as its own block
 
 before(async () => {
   client = new Client({ name: 'test', version: '0.0.0' });
@@ -28,7 +28,7 @@ after(async () => client?.close());
 test('the server lists its tools with schemas and gives work instructions', async () => {
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ['apply_ops', 'catalog', 'create_circuit', 'get_circuit', 'history', 'inspect', 'list_circuits', 'query', 'render', 'review', 'simulate', 'suggest', 'undo']);
+  assert.deepEqual(names, ['apply_ops', 'catalog', 'create_circuit', 'get_circuit', 'history', 'inspect', 'list_circuits', 'netlist', 'query', 'render', 'review', 'simulate', 'suggest', 'undo']);
   for (const tool of tools) assert.ok(tool.description && tool.inputSchema, tool.name);
   assert.ok(tools.find((t) => t.name === 'inspect').annotations.readOnlyHint);
   assert.match(client.getInstructions(), /dry_run/);
@@ -134,4 +134,58 @@ test('language: a circuit with "lang" answers and writes in it; an explicit lang
   assert.match(textOf(await call('simulate', { target: 'circuits/es', lang: 'en' })), /a model, not a measurement/);
   await call('render', { target: 'circuits/es', page: true, lang: 'en' });
   assert.match(readFileSync(join(root, 'circuits/es/out/es.html'), 'utf8'), /<html lang="en">/, 'page in the language asked for');
+});
+
+test('catalog: a compact list by default, one entry in detail by name', async () => {
+  const compact = textOf(await call('catalog', {}));
+  assert.match(compact, /regulator \(.*\) · .*7805/);
+  assert.ok(compact.length < 4000, `compact catalog is ${compact.length} characters`);
+  const one = jsonOf(await call('catalog', { name: 'L7805CV', format: 'json' }));
+  assert.equal(one.part, '7805');
+  assert.deepEqual(one.pins, ['IN', 'GND', 'OUT']);
+  const type = jsonOf(await call('catalog', { name: 'header', format: 'json' }));
+  assert.ok(type.fields.count && type.fields.pin1);
+  assert.equal(type.example.part.type, 'header');
+  assert.ok((await call('catalog', { name: 'flux-capacitor' })).isError);
+  assert.ok(jsonOf(await call('catalog', { format: 'json' })).partNumbers['1N4007'], 'the full registry as JSON');
+});
+
+test('netlist: groups joined by wires, with the pins on each net', async () => {
+  const r = jsonOf(await call('netlist', { target: 'circuits/led', format: 'json' }));
+  const all = r.nets.flatMap((n) => n.pins);
+  assert.ok(all.includes('R1.1@T+9'));
+  assert.ok(r.nets.every((n) => n.pins.every((p) => !p.startsWith('W'))), 'wires are listed apart, not as pins');
+  assert.match(textOf(await call('netlist', { target: 'circuits/led', lang: 'es' })), /redes/);
+});
+
+test('a target prefixed with a folder that does not exist lands next to the other circuits', async () => {
+  await call('create_circuit', { target: 'flat', circuit: led, author: 'test' });
+  const nested = jsonOf(await call('create_circuit', { target: 'circuitos/flat2', circuit: led, author: 'test' }));
+  assert.equal(nested.target, 'flat2');
+  assert.ok(existsSync(join(root, 'flat2/circuit.json')));
+  assert.ok(!(await call('get_circuit', { target: 'circuits/flat2' })).isError, 'circuits/ exists here, but flat2 is found either way');
+});
+
+test('the server reloads the kit when its code changes', async () => {
+  const { utimesSync, statSync } = await import('node:fs');
+  const file = new URL('../../src/nets.js', import.meta.url);
+  const before = statSync(file);
+  assert.doesNotMatch(textOf(await call('list_circuits', {})), /reloaded/);
+  utimesSync(file, before.atime, new Date(Date.now() + 1000));
+  try {
+    assert.match(textOf(await call('list_circuits', {})), /code changed: reloaded/);
+    assert.doesNotMatch(textOf(await call('list_circuits', {})), /reloaded/);
+  } finally {
+    utimesSync(file, before.atime, before.mtime);
+  }
+});
+
+test('suggest with parts answers one batch; review names the parts of each blocking item', async () => {
+  const r = jsonOf(await call('suggest', { target: 'circuits/led', parts: [{ part: { type: 'led', color: 'green' }, between: ['20:f-j', '21:f-j'] }, { part: { type: 'resistor', value: '330' }, between: ['D2.cathode', 'T-'] }], profile: 'lesson', format: 'json' }));
+  assert.equal(r.ops.length, 2);
+  const dry = jsonOf(await call('apply_ops', { target: 'circuits/led', ops: r.ops, dry_run: true, format: 'json' }));
+  assert.deepEqual(dry.errors, []);
+  assert.ok((await call('suggest', { target: 'circuits/led' })).isError, 'part or parts');
+  const explained = jsonOf(await call('review', { target: 'circuits/led', explain: true, format: 'json' }));
+  assert.ok(explained.rules);
 });

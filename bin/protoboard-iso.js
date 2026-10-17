@@ -10,8 +10,9 @@ import { join } from 'node:path';
 import { renderCircuit, inspectCircuit, formatReport, checkCircuit, formatIssue, PART_TYPES, PART_NUMBERS, t } from '../src/index.js';
 import { pickLanguage } from '../src/i18n/index.js';
 import { formatChange } from '../src/diff.js';
-import { queryAt, queryNode, queryFree, suggest } from '../src/query.js';
-import { formatAt, formatNode, formatFree, formatSuggest } from '../src/query-format.js';
+import { queryAt, queryNode, queryFree, suggest, suggestMany } from '../src/query.js';
+import { formatAt, formatNode, formatFree, formatSuggest, formatSuggestMany } from '../src/query-format.js';
+import { nets, formatNets } from '../src/nets.js';
 import { review, formatReview } from '../src/review.js';
 import { simulate } from '../src/sim/index.js';
 import { formatSimulation } from '../src/sim/format.js';
@@ -33,6 +34,8 @@ function parseArgs(argv) {
     else if (a === '--annotate') args.annotate = argv[++i];
     else if (a === '--json') args.json = true;
     else if (a === '--ops') args.ops = argv[++i];
+    else if (a === '--parts') args.parts = argv[++i];
+    else if (a === '--explain') args.explain = true;
     else if (a === '--dry-run') args.dryRun = true;
     else if (a === '--author') args.author = argv[++i];
     else if (a === '--note') args.note = argv[++i];
@@ -140,6 +143,9 @@ if (command === 'render') {
   fail(issues.some((i) => i.severity === 'error') ? 1 : 0);
 } else if (command === 'netlist') {
   console.log(JSON.stringify(checkCircuit(loadCircuit(paths)).netlist, null, 2));
+} else if (command === 'nets') {
+  const r = nets(loadCircuit(paths));
+  console.log(args.json ? JSON.stringify(r, null, 2) : formatNets(r, lang, { t }));
 } else if (command === 'apply') {
   const ops = readOps(args, extra);
   if (!ops) {
@@ -159,6 +165,10 @@ if (command === 'render') {
     console.log(t(lang, 'cli.usage'));
     fail(1);
   }
+} else if (command === 'suggest' && args.parts) {
+  const result = suggestMany(loadCircuit(paths), JSON.parse(args.parts), { profile: args.profile, window: args.window, views: args.views });
+  console.log(args.json ? JSON.stringify(result, null, 2) : formatSuggestMany(result, lang, { formatIssue }));
+  fail(result.failed.length ? 1 : 0);
 } else if (command === 'suggest') {
   if (!args.part) {
     console.log(t(lang, 'cli.usage'));
@@ -171,11 +181,12 @@ if (command === 'render') {
     limit: args.limit,
     window: args.window,
     views: args.views,
+    profile: args.profile,
   });
   console.log(args.json ? JSON.stringify(result, null, 2) : formatSuggest(result, lang, { formatIssue, target }));
   fail(result.error || !result.placements.length ? 1 : 0);
 } else if (command === 'review') {
-  const result = review(loadCircuit(paths), { profile: args.profile, views: args.views, lang });
+  const result = review(loadCircuit(paths), { profile: args.profile, views: args.views, lang, explain: args.explain });
   console.log(args.json ? JSON.stringify(result, null, 2) : formatReview(result, lang, { t, formatIssue }));
   fail(result.verdict === 'approved' ? 0 : 2);
 } else if (command === 'undo') {

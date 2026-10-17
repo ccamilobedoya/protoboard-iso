@@ -36,3 +36,14 @@ test('the draft profile only blocks errors and warnings', () => {
 test('the review text fills every placeholder', () => {
   for (const lang of ['en', 'es']) assert.doesNotMatch(formatReview(review(example('common-mistakes.json'), { lang }), lang, { t, formatIssue }), /\{\w+\}/);
 });
+
+test('each blocking item names its parts and views; explain gives the rules', () => {
+  const r = review(example('common-mistakes.json'), { explain: true });
+  const occupied = r.blocking.find((p) => p.code === 'HOLE_OCCUPIED');
+  assert.deepEqual(occupied.parts.sort(), ['D1', 'R2']);
+  assert.ok(r.rules.blocks.includes('TOO_CLOSE') && r.rules.hiddenEverywhere);
+  const text = formatReview(r, 'es', { t, formatIssue });
+  assert.match(text, /Bloquea: todo error y aviso/);
+  assert.match(text, /\[componentes D1, R2\]|\[componentes R2, D1\]/);
+  assert.equal(review(example('led-resistor.json')).rules, undefined, 'rules only when asked');
+});

@@ -39,6 +39,8 @@ node bin/protoboard-iso.js query <objetivo> node 9:f-j                 # un grup
 node bin/protoboard-iso.js query <objetivo> free --near f10 --limit 10 [--empty]
 node bin/protoboard-iso.js suggest <objetivo> --part '{"type":"resistor","value":"1k"}' --between 10:f-j,T-
 node bin/protoboard-iso.js suggest <objetivo> --part '{"type":"mosfet","part":"IRLZ44N"}' --connect '{"D":"h20"}'
+node bin/protoboard-iso.js suggest <objetivo> --parts '[{"part":{"type":"led"},"between":["20:f-j","21:f-j"]},{"part":{"type":"resistor","value":"330"},"between":["D2.cathode","T-"]}]' --profile lesson
+node bin/protoboard-iso.js nets <objetivo>                             # cada red (grupos unidos por cables) con sus patas
 ```
 
 - **`at`**: el grupo del agujero, quién lo ocupa, los agujeros usados y libres del grupo.
@@ -50,15 +52,24 @@ node bin/protoboard-iso.js suggest <objetivo> --part '{"type":"mosfet","part":"I
   `--between a,b` da los grupos de un componente de dos patas, en el orden de las patas;
   `--connect '{"pata":"grupo o agujero"}'` nombra los grupos de algunas patas (las demás van
   a tiras libres y vacías). `--near` centra la búsqueda y `--window` (mm, por defecto 20) la
-  amplía.
+  amplía. `--profile lesson` deja fuera también lo que esa revisión bloquearía (componentes
+  demasiado cerca, problemas de etiquetas), medido en las dos vistas. `--parts '[…]'` coloca
+  varios componentes nuevos en orden, cada uno según los anteriores, y escribe un solo lote de add.
+- **Grupos por pata**: donde se pide un grupo, una pata de un componente ya colocado lo nombra
+  (`R1.2`, `U1.OUT`).
+- **`nets`**: el circuito como redes eléctricas (grupos de la protoboard unidos por cables), cada
+  una con sus patas (`R1.1@d20`), sus etiquetas y las patas que quedan solas en su red. La
+  herramienta MCP es `netlist`.
 
 Cómo funciona `suggest`: una pasada geométrica rápida por todos los juegos de agujeros que
 cumplen las reglas de las patas y los grupos pedidos; luego mide la mejor docena igual que
-una prueba en seco. Descarta las posiciones que agregan un error o un aviso; ordena el resto
+una prueba en seco (y más, hasta cuatro docenas, mientras pasen menos que `--limit`: cerca de
+las primeras opciones puede que todas crucen otro componente). Descarta las posiciones que agregan un error o un aviso; ordena el resto
 por separación cercana a la ideal, alineación con la cuadrícula, distancia al centro, notas
 nuevas (líneas guía cruzadas, componentes demasiado cerca) y el componente menos visible. Los
 de tres patas prefieren la pata 1 a la izquierda, para que la impresión mire a la vista
-frontal. Cada posición trae la operación `add` lista para aplicar:
+frontal. Cada posición trae la operación `add` lista para aplicar y el cuerpo más cercano con
+su holgura:
 
 ```
 Posiciones para R2 (Resistencia, axial), de mejor a peor; 12 medidas:
@@ -152,4 +163,4 @@ Los roles de montaje, revisor y bibliotecario, construidos sobre estas herramien
 | 1 | errores en el circuito, un cambio rechazado (`REVISION_MISMATCH`, operaciones mal formadas), nada que deshacer o ninguna posición encontrada |
 | 2 | `review` pide cambios |
 
-Todos los comandos que informan algo aceptan también `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `review`).
+Todos los comandos que informan algo aceptan también `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `nets`, `review`).
