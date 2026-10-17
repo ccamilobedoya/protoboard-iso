@@ -214,6 +214,7 @@ As built (phase 5):
 | `light` | photoresistor | 0.1…10 000 lx, log | `ldrResistance` |
 | `position` | potentiometer, trimmer | 0…100 % | |
 | `pressed` | push button | momentary | held on the drawing or with *Hold to press*; *Keep pressed* latches it until tapped again |
+| `on` | switch (KCD1, 7 × 7 latching) | toggle | *Turn on* / *Turn off*; it stays where it is left |
 | `voltage` | bench supply | 0…30 V, 0.1 V steps | |
 | `charge` | battery (part or supply) | 0…100 % | emf and internal resistance from `batteryModel`; none if its voltage was measured |
 

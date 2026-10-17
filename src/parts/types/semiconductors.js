@@ -99,19 +99,33 @@ export const zener = {
   },
 };
 
-// Linear voltage regulator in TO-220: 78xx (IN, GND, OUT) or LM317 (ADJ, OUT, IN).
+// Linear voltage regulator in TO-220: 78xx (IN, GND, OUT) or LM317 (ADJ, OUT, IN); or an
+// AMS1117 module (IN, OUT, GND) with its power LED.
+// fields: part; marking; led (modules: the LED's resistor, "1k" as most are sold, "200" on
+//         some boards of the same panel, or "none")
 export const regulator = {
   type: 'regulator',
   pins: null, // from the part number
   resolve(part) {
     const found = fromPartNumber(part, 'regulator', '7805');
     if (found.error) return found;
+    const { led: hasLed, ...model } = found.entry.model;
+    const electrical = { kind: 'REG', part: found.number, ...model };
+    if (hasLed) {
+      const asked = part.led ?? '1k';
+      if (asked !== 'none') {
+        const ohms = parseValue(asked);
+        if (!(ohms > 0)) return { error: { code: 'BAD_VALUE', params: { value: `led ${asked}` } } };
+        electrical.led = { resistance: ohms, color: 'red' };
+      }
+    }
+    const marking = part.marking ?? (model.family ? `${model.output.toFixed(1)}V` : found.number);
     return {
       package: found.entry.package,
       pinNames: found.entry.pins,
-      params: { marking: part.marking ?? found.number },
+      params: { marking },
       label: { text: found.number },
-      electrical: { kind: 'REG', part: found.number, ...found.entry.model },
+      electrical,
     };
   },
 };

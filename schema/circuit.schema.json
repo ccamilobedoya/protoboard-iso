@@ -329,6 +329,7 @@
             "wire",
             "battery",
             "module",
+            "switch",
             "inductor",
             "thermistor",
             "ldr",
@@ -433,9 +434,11 @@
             "arc",
             "flat",
             "knob",
-            "trimmer"
+            "trimmer",
+            "rocker",
+            "latching"
           ],
-          "description": "wire: \"arc\" | \"flat\"; potentiometer: \"knob\" (default) | \"trimmer\" (multi-turn 3296W)"
+          "description": "wire: \"arc\" | \"flat\"; potentiometer: \"knob\" (default) | \"trimmer\" (multi-turn 3296W); switch: \"rocker\" (KCD1, default) | \"latching\" (7 × 7 push button)"
         },
         "pin1": {
           "type": "string",
@@ -452,7 +455,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "module UNO: colour of the Dupont lead of each pin, e.g. { \"D13\": \"yellow\" }"
+          "description": "module UNO, switch: colour of the lead of each pin, e.g. { \"D13\": \"yellow\" }"
         },
         "rese": {
           "enum": [
@@ -465,6 +468,10 @@
           "type": "boolean",
           "description": "module DESPI-C02: also draw the 7.5\" GDEY075T7 panel on its flat cable"
         },
+        "led": {
+          "type": "string",
+          "description": "regulator module (AMS1117): its power LED's resistor, \"1k\" (default), \"200\", or \"none\""
+        },
         "position": {
           "type": "number",
           "minimum": 0,
@@ -474,6 +481,10 @@
         "pressed": {
           "type": "boolean",
           "description": "button state"
+        },
+        "on": {
+          "type": "boolean",
+          "description": "switch: on (rocker on I, latching button down); default off"
         },
         "format": {
           "enum": [
@@ -537,11 +548,11 @@
             "back",
             "front"
           ],
-          "description": "battery: board edge it lies beside (default: the nearer side edge); module UNO: back (default) or front"
+          "description": "battery: board edge it lies beside (default: the nearer side edge); module UNO: back (default) or front; switch: front (default) or back"
         },
         "offset": {
           "type": "number",
-          "description": "battery, module UNO: shift along that edge, mm"
+          "description": "battery, module UNO, switch: shift along that edge, mm"
         },
         "count": {
           "type": "integer",

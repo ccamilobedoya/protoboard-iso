@@ -38,13 +38,16 @@ export function describeKeys(part) {
     case 'wire':
     case 'zener':
     case 'bridge':
-    case 'regulator':
     case 'inductor':
     case 'thermistor':
     case 'ldr':
     case 'buzzer':
     case 'header':
       return [part.type, ...(e.adjustable ? ['regulator.adjustable'] : [])];
+    case 'regulator':
+      return ['regulator', ...(e.adjustable ? ['regulator.adjustable'] : []), ...(e.family === 'AMS1117' ? ['regulator.ldo'] : [])];
+    case 'switch':
+      return [`switch.${e.style}`];
     case 'potentiometer':
       return ['potentiometer', ...(e.trimmer ? ['potentiometer.trimmer'] : [])];
     case 'capacitor':

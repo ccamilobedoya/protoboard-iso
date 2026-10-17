@@ -107,8 +107,9 @@ nothing unintended. A target is a circuit file or a folder with `circuit.json`.
 | `bjt` | `part` (2N2222A, 2N2907A, 2N3904, 2N3906, BC547…BC550, BC557, BC558, BC337, BC327, BC517, S8050, S8550, S9012…S9018, C1815, A1015, 2N5551, 2N5401, TIP120) | from the part, e.g. `E`, `B`, `C` |
 | `potentiometer` | `value` ("10k"), `position` (0…1), `style` (`knob`, `trimmer`) | `1`, `W`, `3` (in a row) |
 | `button` | `color`, `pressed` | `1`, `2`, `3`, `4`; across the centre channel (1–2 and 3–4 joined inside) |
+| `switch` | `style` ("rocker" KCD1, "latching" 7 × 7), `on`, `wires`, `side`, `offset` | beside the board, only the pins in use: rocker `1`, `2`; latching `NC1` `C1` `NO1` `NC2` `C2` `NO2` |
 | `ic` | `part` (NE555, LM358, LM324, LM393, UA741, NE5532, LM386, 74HC595, CD4017, ULN2003, ULN2803, PC817); place with `pin1` (`"e28"`: front row, reads from the front) | from the part, e.g. `GND`, `TRIG`, `OUT` |
-| `regulator` | `part` (7805…7824, LM317; also "L7805CV", "LM317T") | 78xx `IN`, `GND`, `OUT`; LM317 `ADJ`, `OUT`, `IN` (in a row) |
+| `regulator` | `part` (7805…7824, LM317, AMS1117-3.3 module; also "L7805CV", "LM317T"); `led` (module: "1k", "200", "none") | 78xx `IN`, `GND`, `OUT`; LM317 `ADJ`, `OUT`, `IN`; AMS1117 `IN`, `OUT`, `GND` (in a row) |
 | `inductor` | `value` ("100u"), `dcr`, `current` | `1`, `2` (axial, colour rings in µH) |
 | `thermistor` | `value` (R at 25 °C), `beta`, `temperature` (°C) | `1`, `2` |
 | `ldr` | `part` (GL5528…), `light` (lux) | `1`, `2` |

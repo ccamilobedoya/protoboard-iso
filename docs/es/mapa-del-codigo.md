@@ -41,7 +41,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `geometry/primitives.js` | prismas, tornos, tubos, calcomanías, texto sobre planos (3D, milímetros) |
 | `board/` | protoboards como datos (`boards/bb830.js`), agujeros y grupos, dibujo de la protoboard |
 | `parts/types/` | qué *es* un componente: valor → bandas, patas, etiqueta, modelo `electrical` (`battery.js`; `more.js`: inductor, termistor, LDR, zumbador, pines) |
-| `parts/packages/` | formas físicas con medidas de hoja de datos; `expandPin1` para DIP y pines; `battery.js` queda al lado de la protoboard (su `build` recibe la protoboard); `small.js`: gota, LDR, zumbador, pines; `trimmer.js`; `sip.js`: puente KBP (`kbp`); `devboard.js` (placas ESP32 a caballo del canal) `uno.js` (UNO al lado de la protoboard) y `despi.js` (adaptador e-paper DESPI-C02 y su panel), con lo que comparten en `offboard.js` (texto impreso, cable Dupont); datos en `parts/modules.js`; `axial.js` también dibuja las resistencias de cemento (`shape: 'box'`) |
+| `parts/packages/` | formas físicas con medidas de hoja de datos; `expandPin1` para DIP y pines; `battery.js` queda al lado de la protoboard (su `build` recibe la protoboard); `small.js`: gota, LDR, zumbador, pines; `trimmer.js`; `sip.js`: puente KBP (`kbp`); `devboard.js` (placas ESP32 a caballo del canal) `uno.js` (UNO al lado de la protoboard) y `despi.js` (adaptador e-paper DESPI-C02 y su panel), con lo que comparten en `offboard.js` (texto impreso, cable Dupont); datos en `parts/modules.js`; `axial.js` también dibuja las resistencias de cemento (`shape: 'box'`); `ams1117.js`: el módulo AMS1117 de pie sobre pines en ángulo (sus piezas de una sola cara, `side`); `switch.js`: basculante KCD1 y pulsador de enclavamiento 7 × 7 sobre la mesa, cableados con `wireToHole` (`offboard.js`) |
 | `parts/db.js` | referencias: encapsulado, orden de patas, modelo; `lookupPartNumber` acepta otros nombres (L7805CV, 2SC1815) |
 | `parts/batteries.js` | formatos y químicas de baterías: medidas, curva de voltaje, resistencia interna, capacidad; `batteryModel` |
 | `parts/sensors.js` | fórmulas de los sensores (NTC, fotorresistencia) y la tabla GL55xx; sin imports, para que el motor del navegador pueda incluirlas |
@@ -108,6 +108,9 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
   sobre sus tiras de pines. El pintor la dibuja después de su soporte, digan lo que digan sus
   centros (`supportsFirst` en `render/scene.js`). Sirve para todo lo que va sobre una pieza grande
   y plana; cortar en tajadas (como las pilas) es para piezas largas junto a otras pequeñas.
+- **Piezas en una cara de una placa de pie** (el módulo AMS1117): llevan además `side`, la normal
+  de esa cara. Vistas desde esa cara, el pintor las dibuja después de la placa (`on`); desde la
+  otra, justo antes, así la placa las tapa y solo se ve lo que asoma por el costado.
 - **Marcas repetidas alrededor de una pieza redonda** (el valor del electrolítico) llevan
   `minFacing` en el calco: solo se ve cuando mira al observador así de de frente. Las vistas
   isométricas miran a 45° de la protoboard, así que con copias cerca de las diagonales sale

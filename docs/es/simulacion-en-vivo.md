@@ -230,6 +230,7 @@ Como quedó (fase 5):
 | `light` | fotorresistencia | 0,1…10 000 lx, log | `ldrResistance` |
 | `position` | potenciómetro, trimmer | 0…100 % | |
 | `pressed` | pulsador | momentáneo | se mantiene en el dibujo o con *Mantén presionado*; *Dejar presionado* lo deja así hasta volver a tocarlo |
+| `on` | interruptor (KCD1, enclavamiento 7 × 7) | alternar (`toggle`) | *Encender* / *Apagar*; se queda como se deja |
 | `voltage` | fuente de banco | 0…30 V, de a 0,1 V | |
 | `charge` | batería (componente o fuente) | 0…100 % | fem y resistencia interna con `batteryModel`; no hay si su voltaje se midió |
 

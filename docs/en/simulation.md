@@ -159,11 +159,12 @@ reference (a textbook formula solved separately, or the datasheet figure).
 | wire | 0.05 Ω (wire and two contacts) | — |
 | resistor, potentiometer | Ohm's law; wiper: R(1–W) = position · R | divider, series–parallel |
 | push button | 0.1 Ω when pressed; pairs always joined | LED on only while pressed |
+| switch (KCD1, 7 × 7 latching) | each contact closed in its position, 50 mΩ / 0.1 Ω; open ones absent; stress over 3 A / 100 mA | Ohm's law through the contact; NC and NO swap |
 | capacitor | open in DC; backward Euler in transient | V·(1 − e^(−t/RC)) |
 | diode | Shockley + series resistance, per part number | datasheet Vf |
 | Zener diode | the diode plus a reverse breakdown: a soft knee below about 5.5 V (Zener effect), a sharp one above (avalanche), behind part of Zzt; exactly Vz at the test current Izt (1N47xxA table) | 1N4733A: 5.1 V at 49 mA |
 | bridge rectifier | four diodes (AC1 and AC2 up to +, − up to each), Shockley + series resistance, about 1.0 V each at the rated current (KBP2xx 2 A, KBP3xx 3 A) | same output polarity either way round; Kirchhoff at its pins |
-| regulator | output = reference + its voltage (GND + 5 V for a 7805, ADJ + 1.25 V for an LM317), or about 2 V below the input when that is too low; its own current (5 mA; 50 µA out of ADJ) | 7805 at 9 V; LM317 formula with Iadj |
+| regulator | output = reference + its voltage (GND + 5 V for a 7805, ADJ + 1.25 V for an LM317), or about 2 V below the input when that is too low (1.1 V for the AMS1117); its own current (5 mA; 50 µA out of ADJ); the AMS1117 module's power LED and resistor from OUT to GND, counted in what it draws | 7805 at 9 V; LM317 formula with Iadj; AMS1117 output and dropout from its datasheet |
 | inductor | winding resistance in series; a short in DC, backward Euler in transient | RL: I·(1 − e^(−t/τ)) |
 | thermistor, photoresistor | resistors whose value comes from the temperature (B equation) or the light (GL55 curve) | B equation at 50 °C; GL5528 at 10 lx |
 | buzzer | its coil, 16 Ω | — |

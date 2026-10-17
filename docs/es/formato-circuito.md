@@ -219,6 +219,28 @@ y la 4 dos columnas más allá (`e12`, `f12`). Girado 90° (la 1 y la 3 en la mi
 siempre cerrado: el verificador avisa `SWITCH_BYPASSED`. `color` da el color del botón;
 `pressed` es para el simulador.
 
+### switch (interruptor)
+
+Un interruptor que se queda en la posición en que se deja y no entra en la protoboard: va sobre
+la mesa a su lado (`side`: `"front"`, por defecto, o `"back"`; `offset` en mm a lo largo del
+borde), con los contactos hacia la protoboard. Como en el UNO, `pins` lista solo las patas en uso,
+cada una con su cable hasta el agujero, terminado en un pin Dupont macho; `wires` elige los
+colores. `on` (por defecto `false`) es su posición.
+
+- `style: "rocker"` (por defecto): basculante KCD1, SPST, patas `1` y `2`; sus terminales faston
+  llevan pinzas caimán. Encendido (I), 1–2 queda cerrado (50 mΩ); apagado (O), abierto. Hasta 3 A
+  en la simulación (el fabricante no da el dato en continua).
+- `style: "latching"`: pulsador de enclavamiento de 7 × 7 mm, DPDT, patas `NC1`, `C1`, `NO1` y
+  `NC2`, `C2`, `NO2` (cada fila un conmutador, con un cable soldado a cada pata en uso). Suelto, C
+  se une a NC; hundido (`on`), C se une a NO. Unos 100 mA.
+
+```json
+{ "id": "S1", "type": "switch", "style": "rocker", "on": true, "pins": { "1": "a3", "2": "B+5" } }
+```
+
+En la página en vivo su ficha trae *Encender* / *Apagar*; `page.controls` puede ponerlo en el
+panel (`{ "part": "S1", "field": "on" }`). Ejemplo: `examples/switches.json`.
+
 ### ic (circuito integrado)
 
 Chips en encapsulado DIP, de la tabla de referencias: NE555, LM358, LM324, LM393, UA741 (o
@@ -240,6 +262,14 @@ Regulador lineal en TO-220. `part`: `7805`, `7806`, `7808`, `7809`, `7810`, `781
 `7818`, `7824` (patas `IN`, `GND`, `OUT`) o `LM317` (patas `ADJ`, `OUT`, `IN`; salida
 1,25 V · (1 + R2/R1)). Sirven también otros nombres de la misma pieza: `LM7805`, `L7805CV`,
 `LM317T`.
+
+`AMS1117-3.3` (o `AMS1117-5.0`; también `AMS1117-3V3`) es el módulo regulador pequeño, de pie
+sobre tres pines en ángulo en fila, patas `IN`, `OUT`, `GND` (impresas VIN, OUT, GND). Su placa
+queda encima de las dos filas siguientes, hacia donde mira su serigrafía (el frente, con los
+agujeros en columnas crecientes): usa las filas del otro extremo de la tira. `led`: la resistencia
+de su LED de encendido, `"1k"` (por defecto), `"200"` (algunas placas del mismo panel) o
+`"none"`. La corriente del LED es parte de lo que consume el módulo (`quiescent`), no de la
+corriente de salida.
 
 ### inductor
 

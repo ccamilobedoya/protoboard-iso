@@ -1,4 +1,5 @@
-// Controls in the live page (stage 3, phase 5): sliders and the momentary push button.
+// Controls in the live page (stage 3, phase 5): sliders, the momentary push button and the
+// on/off button of a switch that stays put.
 //
 // - In the card of a tapped part: every control its device has (engine.controls(), from
 //   src/sim/devices/* and src/sim/controls.js), under "Adjust".
@@ -51,7 +52,22 @@ export function setupControls(page, { engine, t, decimal, changed }) {
     r.dataset.id = c.id;
     r.dataset.field = c.field;
     el(r, 'span', label, 'name');
-    if (c.scale === 'momentary') {
+    if (c.scale === 'toggle') {
+      // A switch that stays put: one button that turns it on or off.
+      const b = el(r, 'button', null, 'hold toggle');
+      b.type = 'button';
+      let on = Boolean(c.value);
+      b.addEventListener('click', () => {
+        on = !on;
+        set(c.id, c.field, on, r);
+        r.update({ value: on });
+      });
+      r.update = (cur) => {
+        on = Boolean(cur?.value);
+        b.textContent = t(on ? 'page.controls.turnOff' : 'page.controls.turnOn');
+        b.setAttribute('aria-pressed', String(on));
+      };
+    } else if (c.scale === 'momentary') {
       // Two ways: "Hold to press" conducts only while held; "Keep pressed" leaves it pressed (to
       // look at other parts while current flows) until it is tapped again.
       const key = `${c.id}|${c.field}`;

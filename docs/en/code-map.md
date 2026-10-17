@@ -41,7 +41,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `geometry/primitives.js` | prisms, lathes, tubes, decals, text on planes (3D, millimetres) |
 | `board/` | breadboards as data (`boards/bb830.js`), holes and groups, drawing the board |
 | `parts/types/` | what a part *is*: value → bands, pins, label, `electrical` model (`battery.js`; `more.js`: inductor, thermistor, LDR, buzzer, header) |
-| `parts/packages/` | physical shapes from datasheet sizes; `expandPin1` for DIP and headers; `battery.js` lies beside the board (its `build` gets the board); `small.js`: bead, LDR, buzzer, header; `trimmer.js`; `sip.js`: KBP bridge (`kbp`); `devboard.js` (ESP32 boards across the channel) `uno.js` (UNO beside the board) and `despi.js` (DESPI-C02 e-paper adapter and its panel), sharing `offboard.js` (printed text, Dupont lead); data in `parts/modules.js`; `axial.js` also draws cement resistors (`shape: 'box'`) |
+| `parts/packages/` | physical shapes from datasheet sizes; `expandPin1` for DIP and headers; `battery.js` lies beside the board (its `build` gets the board); `small.js`: bead, LDR, buzzer, header; `trimmer.js`; `sip.js`: KBP bridge (`kbp`); `devboard.js` (ESP32 boards across the channel) `uno.js` (UNO beside the board) and `despi.js` (DESPI-C02 e-paper adapter and its panel), sharing `offboard.js` (printed text, Dupont lead); data in `parts/modules.js`; `axial.js` also draws cement resistors (`shape: 'box'`); `ams1117.js`: the AMS1117 module standing on right-angle pins (its parts one-sided, `side`); `switch.js`: KCD1 rocker and 7 × 7 latching button on the table, wired with `wireToHole` (`offboard.js`) |
 | `parts/db.js` | part numbers: package, pin order, model; `lookupPartNumber` accepts other names (L7805CV, 2SC1815) |
 | `parts/batteries.js` | battery formats and chemistries: sizes, voltage curve, internal resistance, capacity; `batteryModel` |
 | `parts/sensors.js` | sensor formulas (NTC, photoresistor) and the GL55xx table; no imports, so the browser engine can bundle them |
@@ -106,6 +106,9 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
   draws it after its support whatever their centres say (`supportsFirst` in `render/scene.js`).
   Use it for anything built on a large flat piece; slicing (as the battery cells) is for long
   pieces next to small ones.
+- **Parts on one side of a standing board** (the AMS1117 module) also set `side`, the normal of
+  that side: seen from that side the painter draws them after the board (`on`); from the other,
+  just before it, so the board covers them and only what sticks out beside it shows.
 - **Marks repeated around a round part** (the electrolytic's value) set `minFacing` on the decal:
   it shows only when it faces the viewer that squarely. The isometric views look at 45° to the
   board, so copies near the diagonals give exactly one per view.

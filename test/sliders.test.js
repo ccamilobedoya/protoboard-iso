@@ -270,6 +270,28 @@ test('page: a push button conducts while held, in its card and on the drawing', 
   assert.ok(Math.abs(live.reading.parts.R1.current) < 1e-9, 'released');
 });
 
+test('page: a switch stays where it is left, on or off from its card and the panel', async (t) => {
+  const window = await loadPage(renderPage(example('switches.json'), { lang: 'es' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const doc = window.document;
+  const live = window.protoboardLive;
+  const green = () => live.reading.parts.D2.current;
+  const yellow = () => live.reading.parts.D3.current;
+  assert.ok(green() > 5e-3 && Math.abs(yellow()) < 1e-9, 'released: C1–NC1, the green LED');
+  tap(window, 'S2');
+  const button = doc.querySelector('.info .adjust .toggle');
+  assert.equal(button.textContent, 'Encender');
+  button.click();
+  assert.equal(button.getAttribute('aria-pressed'), 'true');
+  assert.equal(button.textContent, 'Apagar');
+  assert.ok(yellow() > 5e-3 && Math.abs(green()) < 1e-9, 'latched: C1–NO1, the yellow LED');
+  tap(window, 'R2');
+  assert.ok(yellow() > 5e-3, 'it stays on while another card is open');
+  const panel = [...doc.querySelectorAll('.panel.controls .control')].find((r) => r.dataset.id === 'S1');
+  panel.querySelector('.toggle').click();
+  assert.ok(Math.abs(live.reading.parts.D1.current) < 1e-9 && Math.abs(yellow()) < 1e-9, 'the main switch off: nothing lit');
+});
+
 test('page: while dragging, a slider shows its value at once but solves only after resting', async (t) => {
   const window = await loadPage(renderPage(example('led-resistor.json'), { lang: 'es' }).html);
   if (!window) return t.skip('jsdom not installed');

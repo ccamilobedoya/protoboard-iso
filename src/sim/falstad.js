@@ -84,6 +84,10 @@ export function createBuilder({ exact = false } = {}) {
     pushButton(a, b, pressed) {
       f.two('s', a, b, [pressed ? 0 : 1, 'true']);
     },
+    // A switch that stays where it is put (not momentary).
+    toggle(a, b, closed) {
+      f.two('s', a, b, [closed ? 0 : 1, 'false']);
+    },
     // A source: DC, or a generator's wave (VoltageElm: waveform, frequency, peak, offset).
     // phase (radians): see exportSupply.
     voltage(minus, plus, v, wave = null, phase = 0) {

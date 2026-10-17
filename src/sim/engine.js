@@ -364,7 +364,7 @@ function controlsOf(program) {
 function changeProgram(program, id, field, value) {
   const control = controlsOf(program).find((c) => c.id === id && c.field === field);
   if (!control) return false;
-  if (control.scale === 'momentary') value = Boolean(value);
+  if (control.scale === 'momentary' || control.scale === 'toggle') value = Boolean(value);
   else {
     value = Number(value);
     if (!Number.isFinite(value)) return false;

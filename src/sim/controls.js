@@ -5,7 +5,8 @@
 //   min, max the slider's default range (page.controls may choose another one inside `limit`)
 //   limit    [lo, hi] what the value may be at all (default [min, max])
 //   scale    'log' (resistance, light), 'linear' (voltage, temperature, position, charge) or
-//            'momentary' (a push button: true while held)
+//            'momentary' (a push button: true while held) or 'toggle' (a switch: on or off, it
+//            stays as it is left)
 //   snap     'E24': a log slider stops at standard resistor values
 //   percent  shown as a percentage (0…1 → 0…100 %)
 // Each device says its own (devices/*: `controls(params)` and `set(params, field, value)`);

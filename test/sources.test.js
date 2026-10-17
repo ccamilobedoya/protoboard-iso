@@ -143,6 +143,76 @@ test('regulators: a 7805 holds 5 V; an LM317 follows 1.25 V · (1 + R2/R1) + Iad
   near(lm317.parts.U1.vout, 1.25 * (1 + 720 / 240) + 50e-6 * 720, 0.005, 'LM317 output');
 });
 
+test('AMS1117-3.3 module: 3.3 V from 5 V, 1.1 V of dropout (datasheet), its LED part of what it draws', () => {
+  const ams = (vin, ohms, extra = {}) => ({
+    supplies: [{ id: 'V1', voltage: vin }],
+    parts: [
+      { id: 'U1', type: 'regulator', part: 'AMS1117-3V3', pins: { IN: 'j10', OUT: 'j11', GND: 'j12' }, ...extra },
+      { id: 'W1', type: 'wire', pins: ['T+9', 'f10'] },
+      { id: 'W2', type: 'wire', color: 'black', pins: ['T-13', 'f12'] },
+      { id: 'RL', type: 'resistor', value: String(ohms), power: '1', pins: ['g11', 'g18'] },
+      { id: 'W3', type: 'wire', color: 'black', pins: ['j18', 'T-17'] },
+    ],
+  });
+  const ok = run(ams(5, 33));
+  const u = ok.parts.U1;
+  near(u.vout, 3.3, 0.033, 'output within ± 1 % (3.267 … 3.333 V)');
+  assert.equal(u.state, 'regulating');
+  near(u.current, 3.3 / 33, 1e-3, 'the load takes 3.3 V / 33 Ω');
+  // Red LED at about 1.8 V behind 1 kΩ: (3.3 − 1.8) / 1000 ≈ 1.5 mA, apart from the chip's 5 mA.
+  near(u.led.current, 1.5e-3, 0.3e-3, 'power LED current');
+  near(u.quiescent, 5e-3 + u.led.current, 1e-6, 'what the module draws on its own: chip + LED');
+  near(u.currents.IN, u.current + u.quiescent, 1e-9, 'input = load + module');
+  assert.ok(run(ams(5, 33, { led: '200' })).parts.U1.led.current > 4 * u.led.current, 'the 200 Ω boards light brighter');
+  assert.equal(run(ams(5, 33, { led: 'none' })).parts.U1.led, undefined);
+
+  // 4 V in: below 3.3 + 1.1, the output sits about 1.1 V under the input (datasheet: 1.1 V typ).
+  const low = run(ams(4, 33));
+  assert.equal(low.parts.U1.state, 'dropout');
+  near(low.parts.U1.vout, 4 - 1.1, 0.06, 'dropout');
+  assert.ok(codes(low.issues).includes('SIM_REG_DROPOUT'));
+  // 12 V in, 330 mA out: (12 − 3.3) × 0.33 ≈ 2.9 W, far above the 1 W its little board sheds.
+  assert.ok(codes(run(ams(12, 10)).issues).includes('SIM_REG_HOT_MODULE'));
+  assert.ok(!codes(run(ams(12, 10)).issues).includes('SIM_REG_HOT'), 'not the TO-220 message');
+});
+
+test('switches off the board: a closed contact is Ohm\'s law through its milliohms; a changeover swaps NC and NO', () => {
+  const rocker = (on) => ({
+    supplies: [{ id: 'V1', voltage: 5 }],
+    parts: [
+      { id: 'S1', type: 'switch', style: 'rocker', on, pins: { 1: 'T+3', 2: 'j10' } },
+      { id: 'R1', type: 'resistor', value: '100', pins: ['h10', 'h16'] },
+      { id: 'W1', type: 'wire', color: 'black', pins: ['j16', 'T-17'] },
+    ],
+  });
+  const on = run(rocker(true));
+  // 5 V across 100 Ω + 0.05 Ω of contact + the jumper: I = 5 / (100.05 + W).
+  near(on.parts.R1.current, 5 / (100 + 0.05 + W), 1e-6, 'current with the rocker on I');
+  near(on.parts.S1.pins['1'] - on.parts.S1.pins['2'], on.parts.R1.current * 0.05, 1e-7, 'drop across the contact');
+  assert.equal(on.parts.S1.on, true);
+  near(Math.abs(run(rocker(false)).parts.R1.current), 0, 1e-9, 'open on O');
+
+  const latching = (down) => ({
+    supplies: [{ id: 'V1', voltage: 5 }],
+    parts: [
+      { id: 'S2', type: 'switch', style: 'latching', on: down, side: 'back', pins: { C1: 'T+3', NC1: 'j10', NO1: 'j20' } },
+      { id: 'R1', type: 'resistor', value: '1k', pins: ['h10', 'h16'] },
+      { id: 'R2', type: 'resistor', value: '1k', pins: ['h20', 'h26'] },
+      { id: 'W1', type: 'wire', color: 'black', pins: ['j16', 'T-17'] },
+      { id: 'W2', type: 'wire', color: 'black', pins: ['j26', 'T-27'] },
+    ],
+  });
+  const up = run(latching(false));
+  assert.ok(up.parts.R1.current > 4.9e-3 && Math.abs(up.parts.R2.current) < 1e-9, 'released: C1–NC1');
+  const pressed = run(latching(true));
+  assert.ok(pressed.parts.R2.current > 4.9e-3 && Math.abs(pressed.parts.R1.current) < 1e-9, 'latched down: C1–NO1');
+  // 22 Ω straight from 5 V: about 0.23 A, more than the little contacts take (100 mA).
+  const heavy = { ...latching(false), parts: latching(false).parts.map((p) => (p.id === 'R1' ? { ...p, value: '22' } : p)) };
+  assert.ok(codes(run(heavy).issues).includes('SIM_OVER_CURRENT'), '5 V / 22 Ω ≈ 0.23 A through a 100 mA contact');
+  const bad = checkCircuit({ parts: [{ id: 'S3', type: 'switch', style: 'latching', pins: { COM: 'j3' } }] }).issues;
+  assert.ok(codes(bad).includes('UNKNOWN_PIN'), 'pin names are NC1 C1 NO1 NC2 C2 NO2');
+});
+
 test('inductor: an RL circuit rises as I·(1 − e^(−t/τ)), τ = L/R (textbook)', () => {
   const circuit = {
     supplies: [{ id: 'V1', voltage: 5 }],

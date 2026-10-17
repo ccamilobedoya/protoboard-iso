@@ -24,6 +24,7 @@
 
     { "id": "W1", "type": "wire", "color": "red", "pins": ["T+40", "j40"] },
     { "id": "W2", "type": "wire", "color": "black", "style": "flat", "pins": ["a55", "B-55"] },
-    { "id": "W3", "type": "wire", "color": "yellow", "pins": ["h45", "h58"] }
+    { "id": "W3", "type": "wire", "color": "yellow", "pins": ["h45", "h58"] },
+    { "id": "U1", "type": "regulator", "part": "AMS1117-3.3", "pins": { "IN": "a60", "OUT": "a61", "GND": "a62" } }
   ]
 }

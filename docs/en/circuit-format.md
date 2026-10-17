@@ -208,6 +208,27 @@ same column on each side (e.g. `e10`, `f10`), 3 and 4 two columns over (`e12`, `
 Turned 90° (1 and 3 in the same strip) it is always closed: the checker reports
 `SWITCH_BYPASSED`. `color` sets the cap colour; `pressed` is for the simulator.
 
+### switch
+
+A switch that stays where it is put and does not fit the board, lying on the table beside it
+(`side`: `"front"`, default, or `"back"`; `offset` in mm along the edge), its contacts pointing at
+the board. Like the UNO, `pins` lists only the pins in use, each wired to its hole with a lead
+ending in a Dupont male pin; `wires` chooses their colours. `on` (default `false`) is its position.
+
+- `style: "rocker"` (default): KCD1 rocker, SPST, pins `1` and `2`; its faston tabs take
+  alligator clips. On (I), 1–2 is closed (50 mΩ); off (O), open. Up to 3 A in the simulation (the
+  maker gives no DC rating).
+- `style: "latching"`: 7 × 7 mm latching push button, DPDT, pins `NC1`, `C1`, `NO1` and `NC2`,
+  `C2`, `NO2` (each row a changeover, a wire soldered to each pin in use). Released, C joins NC;
+  latched down (`on`), C joins NO. About 100 mA.
+
+```json
+{ "id": "S1", "type": "switch", "style": "rocker", "on": true, "pins": { "1": "a3", "2": "B+5" } }
+```
+
+In the live page its card has *Turn on* / *Turn off*; `page.controls` can put it in the panel
+(`{ "part": "S1", "field": "on" }`). Example: `examples/switches.json`.
+
 ### ic
 
 Chips in DIP packages, from the part-number table: NE555, LM358, LM324, LM393, UA741 (or
@@ -227,6 +248,13 @@ pin 1 in the back row (`f`) turns the chip round. Pin names come from the part (
 Linear voltage regulator in TO-220. `part`: `7805`, `7806`, `7808`, `7809`, `7810`, `7812`,
 `7815`, `7818`, `7824` (pins `IN`, `GND`, `OUT`) or `LM317` (pins `ADJ`, `OUT`, `IN`; output
 1.25 V · (1 + R2/R1)). Other names of the same part work too: `LM7805`, `L7805CV`, `LM317T`.
+
+`AMS1117-3.3` (or `AMS1117-5.0`; also `AMS1117-3V3`) is the small regulator module standing on
+three right-angle pins in a row, pins `IN`, `OUT`, `GND` (printed VIN, OUT, GND). Its board stands
+over the next two rows on the side its print faces (the front with the holes in increasing
+columns): use the far rows of the strip. `led`: the resistor of its power LED, `"1k"` (default),
+`"200"` (some boards of the same panel) or `"none"`. The LED's current is part of what the module
+draws (`quiescent`), not of the output current.
 
 ### inductor
 

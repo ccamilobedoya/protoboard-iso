@@ -130,4 +130,17 @@ Object.assign(MATERIALS, {
   ledBlue: '#5aa2ff',
   resetRed: '#d23b3b',
   crystal: '#d4d7dc',
+  smdCap: '#b9946a', // ceramic chip capacitor
+  smdLed: '#f3d9d4', // chip LED, off (clear lens over a red die)
+});
+
+// Switches off the board (KCD1 rocker, 7 × 7 latching button) and the clips that wire them.
+Object.assign(MATERIALS, {
+  rockerBody: '#1c1c1f',
+  rockerRed: '#c8242b',
+  rockerPrint: '#f4f0ea',
+  latchBody: '#202024',
+  latchCap: '#f1f1ee',
+  clipJaw: '#c9ccd1',
+  clipBoot: '#d23b3b',
 });

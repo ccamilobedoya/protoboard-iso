@@ -44,6 +44,7 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
     else if (p.kind === 'M') text = `${t(lang, 'sim.region.mosfet.' + p.region)} · Vgs ${f(p.vgs, 'V')} · Vds ${f(p.vds, 'V')} · Id ${f(p.currents.D, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'Q') text = `${t(lang, 'sim.region.bjt.' + p.region)} · Vbe ${f(p.vbe, 'V')} · Vce ${f(p.vce, 'V')} · Ib ${f(p.currents.B, 'A')} · Ic ${f(p.currents.C, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'POT') text = `I(1) ${f(p.currents['1'], 'A')} · I(W) ${f(p.currents.W, 'A')} · I(3) ${f(p.currents['3'], 'A')} · ${f(p.power, 'W')}`;
+    else if (p.kind === 'SWT') text = [t(lang, p.on ? 'state.on' : 'state.off'), ...p.contacts.map((c) => t(lang, 'sim.switch.contact', { a: c.a, b: c.b, current: f(c.current, 'A') }))].join(' · ');
     else if (p.kind === 'SW') text = `${t(lang, p.pressed ? 'state.pressed' : 'state.released')} · ${f(p.current, 'A')}`;
     else if (p.kind === 'BR') text = `${t(lang, 'sim.q.bridge.vac')} ${f(p.vac, 'V')} · ${t(lang, 'sim.q.bridge.vdc')} ${f(p.vdc, 'V')} · ${t(lang, 'sim.q.bridge.current')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'REG') text = `${t(lang, 'sim.reg.' + p.state)} · ${t(lang, 'sim.q.reg.vin')} ${f(p.vin, 'V')} · ${t(lang, 'sim.q.reg.vout')} ${f(p.vout, 'V')} · ${t(lang, 'sim.q.reg.iout')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;

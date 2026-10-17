@@ -111,9 +111,10 @@ From the course inventory, in rough order of use:
 
 What the course bench has and the kit does not yet draw (from the inventory, 2026-10-16):
 
-- ⬜ Off-board switches, on the table and wired with alligator clips and Dupont leads, simulated as switches (on/off in the card): the KCD1 rocker (SPST); the 7 × 7 latching push button (it does not fit across the channel)
+- ✅ Off-board switches (`switch`), on the table in front of or behind the board, simulated as switches that stay put (*Turn on* / *Turn off* in the card, control `on` with the new `toggle` scale): the KCD1 rocker (SPST, alligator clips on its faston tabs) and the 7 × 7 latching push button (DPDT, a wire soldered to each pin in use); example `switches.json`
 - ⬜ Alligator clip leads as wires off the board (to the rails, to an off-board switch, to the supply)
-- ⬜ Regulator and power modules, drawn and simulated: AMS1117-3.3 (3 right-angle pins; a regulator with dropout), LM2596 buck (plain ZX-001 and V591 with LED voltmeter), TP4056 USB-C charger with protection, CN3791 MPPT solar charger, 2S BMS
+- ✅ AMS1117-3.3 (and -5.0) regulator module: a `regulator` part number, standing on its three right-angle pins `IN` · `OUT` · `GND` (VIN OUT GND printed facing the front view; chip, capacitors and power LED on the side towards the row, seen from the back), simulated as a low-dropout regulator (1.1 V) with its power LED inside (`led`: `"1k"`, `"200"`, `"none"`); warnings for heat on its small board, input over the maximum, and reverse polarity. Primitives may sit on one face of a standing board (`side`: painted after the board from that face, before it from the other)
+- ⬜ Regulator and power modules, drawn and simulated: LM2596 buck (plain ZX-001 and V591 with LED voltmeter), TP4056 USB-C charger with protection, CN3791 MPPT solar charger, 2S BMS
 - ⬜ **USB as the power source for chips**: a USB cable (computer or charger: 5 V with its limit) into a development board (UNO, ESP32 DevKit, ESP32-C3, Pico) powering its 5V and 3V3 pins and what hangs from them, drawn and simulated; a USB-C input module on the board as well
 - ⬜ More development boards: Raspberry Pi Pico (RP2040) and ESP32-CAM with its MB programmer
 - ⬜ Display and input modules: OLED 0.96" (GME12864: VCC GND SCL SDA) and 0.91" SSD1306 over I2C, EC11 rotary encoder module, TTC MX key switches (keyboard block)

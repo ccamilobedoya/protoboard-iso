@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "title": { "en": "Switches off the board", "es": "Interruptores fuera de la protoboard" },
+  "board": "bb830",
+  "supplies": [{ "id": "V1", "voltage": 5, "currentLimit": 0.1, "positive": "c3", "negative": "B-" }],
+  "page": { "results": true, "controls": [{ "part": "S1", "field": "on" }, { "part": "S2", "field": "on" }] },
+  "parts": [
+    { "id": "S1", "type": "switch", "style": "rocker", "on": true, "pins": { "1": "a3", "2": "B+5" },
+      "description": { "en": "Main switch: the supply reaches the + rail only through it.", "es": "Interruptor general: la fuente llega al riel + solo a través de él." } },
+    { "id": "R1", "type": "resistor", "value": "330", "pins": ["B+11", "a14"] },
+    { "id": "D1", "type": "led", "color": "red", "pins": ["c14", "c15"] },
+    { "id": "W1", "type": "wire", "color": "black", "pins": ["a15", "B-16"] },
+    { "id": "W2", "type": "wire", "color": "red", "pins": ["B+25", "T+25"] },
+    { "id": "W5", "type": "wire", "color": "black", "pins": ["B-28", "T-28"] },
+    { "id": "S2", "type": "switch", "style": "latching", "side": "back", "pins": { "C1": "T+21", "NC1": "j30", "NO1": "j40" },
+      "description": { "en": "Changeover: released it lights the green LED, latched down the yellow one.", "es": "Conmutador: suelto enciende el LED verde; hundido, el amarillo." } },
+    { "id": "R2", "type": "resistor", "value": "330", "pins": ["f30", "f34"] },
+    { "id": "D2", "type": "led", "color": "green", "pins": ["g34", "g35"] },
+    { "id": "W3", "type": "wire", "color": "black", "pins": ["j35", "T-36"] },
+    { "id": "R3", "type": "resistor", "value": "330", "pins": ["f40", "f44"] },
+    { "id": "D3", "type": "led", "color": "yellow", "pins": ["g44", "g45"] },
+    { "id": "W4", "type": "wire", "color": "black", "pins": ["j45", "T-46"] }
+  ]
+}

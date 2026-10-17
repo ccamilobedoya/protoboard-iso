@@ -56,6 +56,9 @@ export const PART_NUMBERS = {
   // Linear voltage regulators (TO-220). 78xx: fixed output; LM317: 1.25 V above ADJ.
   ...Object.fromEntries([5, 6, 8, 9, 10, 12, 15, 18, 24].map((v) => [`78${String(v).padStart(2, '0')}`, { type: 'regulator', package: 'TO-220', pins: ['IN', 'GND', 'OUT'], model: { output: v } }])),
   LM317: { type: 'regulator', package: 'TO-220', pins: ['ADJ', 'OUT', 'IN'], model: { adjustable: true, reference: 1.25 } },
+  // AMS1117 low-dropout regulator on its small module (right-angle pins VIN · OUT · GND, power
+  // LED on the output). The pin is called IN like the other regulators; the board prints VIN.
+  ...Object.fromEntries([['3.3', 3.3], ['5.0', 5]].map(([name, v]) => [`AMS1117-${name}`, { type: 'regulator', package: 'ams1117-module', pins: ['IN', 'OUT', 'GND'], model: { output: v, family: 'AMS1117', led: true } }])),
 
   // Diodes (axial)
   '1N4007': { type: 'diode', package: 'axial', pins: ['A', 'K'], body: { length: 5.2, diameter: 2.7, color: 'epoxyBlack', band: 'lead' } },
@@ -79,12 +82,18 @@ export const PART_NUMBERS = {
   ...Object.fromEntries([3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1, 10, 11, 12, 13, 15, 16, 18, 20, 22, 24, 27, 30].map((vz, i) => [`1N${4728 + i}A`, { type: 'zener', package: 'axial', pins: ['A', 'K'], model: { vz } }])),
 };
 
-// Other names for the same part: "LM7805", "L7805CV" and "MC7805" are a 7805; "LM317T" an LM317.
+// Other names for the same part: "LM7805", "L7805CV" and "MC7805" are a 7805; "LM317T" an LM317;
+// "AMS1117-3V3" and "AMS1117-33" an AMS1117-3.3.
 export function lookupPartNumber(number) {
   const n = String(number ?? '').toUpperCase().replace(/\s+/g, '');
   if (PART_NUMBERS[n]) return { number: n, entry: PART_NUMBERS[n] };
   const regulator = /^(?:LM|L|MC|KA|UA)?(78\d\d)(?:C?[VTP]|A?CT)?$/.exec(n) ?? /^(LM317)[TK]?$/.exec(n);
   if (regulator && PART_NUMBERS[regulator[1]]) return { number: regulator[1], entry: PART_NUMBERS[regulator[1]] };
+  const ams = /^AMS1117-?(3[.V]?3|5(?:[.V]0?)?)$/.exec(n);
+  if (ams) {
+    const number = ams[1].startsWith('3') ? 'AMS1117-3.3' : 'AMS1117-5.0';
+    return { number, entry: PART_NUMBERS[number] };
+  }
   const named = { '2SC1815': 'C1815', '2SA1015': 'A1015', '2N2907': '2N2907A', '2N2222': '2N2222A', LM741: 'UA741' }[n];
   return named ? { number: named, entry: PART_NUMBERS[named] } : null;
 }

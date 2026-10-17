@@ -21,7 +21,7 @@ import { PROFILES } from './review.js';
 import { nearestBody } from './circuit/checks.js';
 import { distance, sub } from './core/vec.js';
 
-const ID_PREFIX = { resistor: 'R', capacitor: 'C', potentiometer: 'RV', diode: 'D', led: 'D', mosfet: 'Q', bjt: 'Q', ic: 'U', button: 'S', wire: 'W', battery: 'BT', zener: 'D', bridge: 'BR', module: 'U', regulator: 'U', inductor: 'L', thermistor: 'RT', ldr: 'LDR', buzzer: 'BZ', header: 'J' };
+const ID_PREFIX = { resistor: 'R', capacitor: 'C', potentiometer: 'RV', diode: 'D', led: 'D', mosfet: 'Q', bjt: 'Q', ic: 'U', button: 'S', switch: 'S', wire: 'W', battery: 'BT', zener: 'D', bridge: 'BR', module: 'U', regulator: 'U', inductor: 'L', thermistor: 'RT', ldr: 'LDR', buzzer: 'BZ', header: 'J' };
 const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 
 function stateOf(circuit) {

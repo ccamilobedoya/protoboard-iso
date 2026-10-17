@@ -42,7 +42,7 @@ export function pageControlIssues(circuit) {
     const own = controls.filter((x) => x.id === id);
     const found = own.find((x) => x.field === c.field);
     if (!found) return out.push(warn('PAGE_CONTROL_UNKNOWN', { target: id, field: String(c.field), options: own.map((x) => x.field).join(', ') || '—' }));
-    if (found.scale === 'momentary') return;
+    if (found.scale === 'momentary' || found.scale === 'toggle') return;
     const [lo, hi] = found.limit ?? [found.min, found.max];
     const min = c.min ?? found.min;
     const max = c.max ?? found.max;

@@ -35,6 +35,7 @@ import { capacitor } from './capacitor.js';
 import { inductor } from './inductor.js';
 import { potentiometer } from './potentiometer.js';
 import { button } from './button.js';
+import { toggle } from './switch.js';
 import { header } from './header.js';
 import { diode, led } from './diode.js';
 import { bridge } from './bridge.js';
@@ -43,7 +44,7 @@ import { bjt } from './bjt.js';
 import { regulator } from './regulator.js';
 import { battery } from './battery.js';
 
-export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, header, diode, led, bridge, mosfet, bjt, regulator, battery];
+export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, bridge, mosfet, bjt, regulator, battery];
 
 export const DEVICE_BY_TYPE = Object.fromEntries(DEVICES.flatMap((d) => d.types.map((t) => [t, d])));
 // The first device of each kind answers for the readings of that kind.

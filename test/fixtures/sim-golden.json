@@ -61,6 +61,7 @@
      "vin": 8.975600240181437,
      "vout": 5.000249999999999,
      "headroom": 3.975350240181438,
+     "across": 8.975350240181438,
      "current": 0.008942719878646394,
      "quiescent": 0.0049999999999999975,
      "power": 0.08042719481835943,
@@ -2338,6 +2339,7 @@
      "vin": 6.944664135776957e-21,
      "vout": -6.943969808249721e-13,
      "headroom": 6.943969877696362e-13,
+     "across": 6.943969738803077e-21,
      "current": -6.94396980824972e-25,
      "quiescent": 6.943969738803078e-25,
      "power": -4.821871669793188e-37,
@@ -3031,7 +3033,10 @@
     "55:a-e": null,
     "B-": null,
     "45:f-j": null,
-    "58:f-j": null
+    "58:f-j": null,
+    "60:a-e": null,
+    "61:a-e": null,
+    "62:a-e": null
    },
    "parts": {
     "R1": {
@@ -3316,6 +3321,37 @@
       "1": 0,
       "2": 0
      }
+    },
+    "U1": {
+     "kind": "REG",
+     "pins": {
+      "IN": null,
+      "OUT": null,
+      "GND": null
+     },
+     "vin": -2.789468139804655e-23,
+     "vout": 1.3947340463769016e-11,
+     "headroom": -1.3947340463796911e-11,
+     "across": -1.3975695179144707e-21,
+     "current": 2.789468139670477e-23,
+     "quiescent": 1.3696772013704982e-33,
+     "power": -5.839803974503311e-34,
+     "state": "dropout",
+     "currents": {
+      "IN": 2.789468139807444e-23,
+      "GND": -1.3696772013704982e-33,
+      "OUT": -2.789468139670477e-23
+     },
+     "led": {
+      "current": 1.3975695180514384e-23,
+      "brightness": 6.987847590257192e-22
+     },
+     "floating": true,
+     "pinCurrents": {
+      "IN": 2.789468139807444e-23,
+      "GND": -1.3696772013704982e-33,
+      "OUT": -2.789468139670477e-23
+     }
     }
    },
    "supplies": {
@@ -3332,15 +3368,15 @@
      "severity": "warning",
      "code": "SIM_FLOATING",
      "params": {
-      "nodes": "2:f-j, 6:f-j, 9:f-j, 13:f-j, 16:f-j, 21:f-j, 2:a-e, 6:a-e, 9:a-e, 13:a-e, 25:f-j, 26:f-j, 29:f-j, 30:f-j, 33:f-j, 34:f-j, 17:a-e, 18:a-e, 22:a-e, 23:a-e, 27:a-e, 29:a-e, 36:a-e, 37:a-e, 38:a-e, 43:a-e, 44:a-e, 45:a-e, 48:a-e, 49:a-e, 50:a-e, 55:a-e, B-, 45:f-j, 58:f-j",
-      "parts": "R1, R2, R3, D1, D2, D3, D4, D5, C1, C2, C3, Q1, Q2, Q3, W2, W3"
+      "nodes": "2:f-j, 6:f-j, 9:f-j, 13:f-j, 16:f-j, 21:f-j, 2:a-e, 6:a-e, 9:a-e, 13:a-e, 25:f-j, 26:f-j, 29:f-j, 30:f-j, 33:f-j, 34:f-j, 17:a-e, 18:a-e, 22:a-e, 23:a-e, 27:a-e, 29:a-e, 36:a-e, 37:a-e, 38:a-e, 43:a-e, 44:a-e, 45:a-e, 48:a-e, 49:a-e, 50:a-e, 55:a-e, B-, 45:f-j, 58:f-j, 60:a-e, 61:a-e, 62:a-e",
+      "parts": "R1, R2, R3, D1, D2, D3, D4, D5, C1, C2, C3, Q1, Q2, Q3, W2, W3, U1"
      }
     }
    ]
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     5 V        9.98 pA    49.9 pW    constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  column 2 (rows f–j)            floating\n  column 6 (rows f–j)            floating\n  column 9 (rows f–j)            floating\n  column 13 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 2 (rows a–e)            floating\n  column 6 (rows a–e)            floating\n  column 9 (rows a–e)            floating\n  column 13 (rows a–e)           floating\n  column 25 (rows f–j)           floating\n  column 26 (rows f–j)           floating\n  column 29 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 33 (rows f–j)           floating\n  column 34 (rows f–j)           floating\n  column 17 (rows a–e)           floating\n  column 18 (rows a–e)           floating\n  column 22 (rows a–e)           floating\n  column 23 (rows a–e)           floating\n  column 27 (rows a–e)           floating\n  column 29 (rows a–e)           floating\n  column 36 (rows a–e)           floating\n  column 37 (rows a–e)           floating\n  column 38 (rows a–e)           floating\n  column 43 (rows a–e)           floating\n  column 44 (rows a–e)           floating\n  column 45 (rows a–e)           floating\n  column 48 (rows a–e)           floating\n  column 49 (rows a–e)           floating\n  column 50 (rows a–e)           floating\n  rail T+ (+5 V)                 5 V\n  column 40 (rows f–j)           5 V\n  column 55 (rows a–e)           floating\n  rail B-                        floating\n  column 45 (rows f–j)           floating\n  column 58 (rows f–j)           floating\nParts:\n  R1     0 V        0 A        0 W · floating\n  R2     0 V        0 A        0 W · floating\n  R3     0 V        0 A        0 W · floating\n  D1     0 V        0 A        0 W · floating\n  D2     0 V        0 A        0 W · floating\n  D3     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  D4     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  D5     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  C1     0 V        0 A        0 W · floating\n  C2     0 V        0 A        0 W · floating\n  C3     0 V        0 A        0 W · floating\n  Q1     off · Vgs 0 V · Vds 0 V · Id 0 A · 0 W · floating\n  Q2     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  Q3     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  W1     0.25 pV    5.01 pA    0 W\n  W2     0 V        0 A        0 W · floating\n  W3     0 V        0 A        0 W · floating\nNotes:\n  warning: R1, R2, R3, D1, D2, D3, D4, D5, C1, C2, C3, Q1, Q2, Q3, W2, W3: no DC path to the supply (nodes 2:f-j, 6:f-j, 9:f-j, 13:f-j, 16:f-j, 21:f-j, 2:a-e, 6:a-e, 9:a-e, 13:a-e, 25:f-j, 26:f-j, 29:f-j, 30:f-j, 33:f-j, 34:f-j, 17:a-e, 18:a-e, 22:a-e, 23:a-e, 27:a-e, 29:a-e, 36:a-e, 37:a-e, 38:a-e, 43:a-e, 44:a-e, 45:a-e, 48:a-e, 49:a-e, 50:a-e, 55:a-e, B-, 45:f-j, 58:f-j), so the voltage there is not defined.",
-   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     5 V        9,98 pA    49,9 pW    voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  columna 2 (filas f–j)          flotante\n  columna 6 (filas f–j)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 13 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 2 (filas a–e)          flotante\n  columna 6 (filas a–e)          flotante\n  columna 9 (filas a–e)          flotante\n  columna 13 (filas a–e)         flotante\n  columna 25 (filas f–j)         flotante\n  columna 26 (filas f–j)         flotante\n  columna 29 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 33 (filas f–j)         flotante\n  columna 34 (filas f–j)         flotante\n  columna 17 (filas a–e)         flotante\n  columna 18 (filas a–e)         flotante\n  columna 22 (filas a–e)         flotante\n  columna 23 (filas a–e)         flotante\n  columna 27 (filas a–e)         flotante\n  columna 29 (filas a–e)         flotante\n  columna 36 (filas a–e)         flotante\n  columna 37 (filas a–e)         flotante\n  columna 38 (filas a–e)         flotante\n  columna 43 (filas a–e)         flotante\n  columna 44 (filas a–e)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 48 (filas a–e)         flotante\n  columna 49 (filas a–e)         flotante\n  columna 50 (filas a–e)         flotante\n  riel T+ (+5 V)                 5 V\n  columna 40 (filas f–j)         5 V\n  columna 55 (filas a–e)         flotante\n  riel B-                        flotante\n  columna 45 (filas f–j)         flotante\n  columna 58 (filas f–j)         flotante\nComponentes:\n  R1     0 V        0 A        0 W · flotante\n  R2     0 V        0 A        0 W · flotante\n  R3     0 V        0 A        0 W · flotante\n  D1     0 V        0 A        0 W · flotante\n  D2     0 V        0 A        0 W · flotante\n  D3     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  D4     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  D5     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  C1     0 V        0 A        0 W · flotante\n  C2     0 V        0 A        0 W · flotante\n  C3     0 V        0 A        0 W · flotante\n  Q1     apagado · Vgs 0 V · Vds 0 V · Id 0 A · 0 W · flotante\n  Q2     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  Q3     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  W1     0,25 pV    5,01 pA    0 W\n  W2     0 V        0 A        0 W · flotante\n  W3     0 V        0 A        0 W · flotante\nObservaciones:\n  aviso: R1, R2, R3, D1, D2, D3, D4, D5, C1, C2, C3, Q1, Q2, Q3, W2, W3: no hay camino de corriente continua hasta la fuente (grupos 2:f-j, 6:f-j, 9:f-j, 13:f-j, 16:f-j, 21:f-j, 2:a-e, 6:a-e, 9:a-e, 13:a-e, 25:f-j, 26:f-j, 29:f-j, 30:f-j, 33:f-j, 34:f-j, 17:a-e, 18:a-e, 22:a-e, 23:a-e, 27:a-e, 29:a-e, 36:a-e, 37:a-e, 38:a-e, 43:a-e, 44:a-e, 45:a-e, 48:a-e, 49:a-e, 50:a-e, 55:a-e, B-, 45:f-j, 58:f-j), así que ahí el voltaje no está definido."
+   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     5 V        9.98 pA    49.9 pW    constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  column 2 (rows f–j)            floating\n  column 6 (rows f–j)            floating\n  column 9 (rows f–j)            floating\n  column 13 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 2 (rows a–e)            floating\n  column 6 (rows a–e)            floating\n  column 9 (rows a–e)            floating\n  column 13 (rows a–e)           floating\n  column 25 (rows f–j)           floating\n  column 26 (rows f–j)           floating\n  column 29 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 33 (rows f–j)           floating\n  column 34 (rows f–j)           floating\n  column 17 (rows a–e)           floating\n  column 18 (rows a–e)           floating\n  column 22 (rows a–e)           floating\n  column 23 (rows a–e)           floating\n  column 27 (rows a–e)           floating\n  column 29 (rows a–e)           floating\n  column 36 (rows a–e)           floating\n  column 37 (rows a–e)           floating\n  column 38 (rows a–e)           floating\n  column 43 (rows a–e)           floating\n  column 44 (rows a–e)           floating\n  column 45 (rows a–e)           floating\n  column 48 (rows a–e)           floating\n  column 49 (rows a–e)           floating\n  column 50 (rows a–e)           floating\n  rail T+ (+5 V)                 5 V\n  column 40 (rows f–j)           5 V\n  column 55 (rows a–e)           floating\n  rail B-                        floating\n  column 45 (rows f–j)           floating\n  column 58 (rows f–j)           floating\n  column 60 (rows a–e)           floating\n  column 61 (rows a–e)           floating\n  column 62 (rows a–e)           floating\nParts:\n  R1     0 V        0 A        0 W · floating\n  R2     0 V        0 A        0 W · floating\n  R3     0 V        0 A        0 W · floating\n  D1     0 V        0 A        0 W · floating\n  D2     0 V        0 A        0 W · floating\n  D3     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  D4     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  D5     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  C1     0 V        0 A        0 W · floating\n  C2     0 V        0 A        0 W · floating\n  C3     0 V        0 A        0 W · floating\n  Q1     off · Vgs 0 V · Vds 0 V · Id 0 A · 0 W · floating\n  Q2     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  Q3     off · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · floating\n  W1     0.25 pV    5.01 pA    0 W\n  W2     0 V        0 A        0 W · floating\n  W3     0 V        0 A        0 W · floating\n  U1     no headroom (not regulating) · Input 0 V · Output 13.9 pV · Output current 0 A · 0 W · floating\nNotes:\n  warning: R1, R2, R3, D1, D2, D3, D4, D5, C1, C2, C3, Q1, Q2, Q3, W2, W3, U1: no DC path to the supply (nodes 2:f-j, 6:f-j, 9:f-j, 13:f-j, 16:f-j, 21:f-j, 2:a-e, 6:a-e, 9:a-e, 13:a-e, 25:f-j, 26:f-j, 29:f-j, 30:f-j, 33:f-j, 34:f-j, 17:a-e, 18:a-e, 22:a-e, 23:a-e, 27:a-e, 29:a-e, 36:a-e, 37:a-e, 38:a-e, 43:a-e, 44:a-e, 45:a-e, 48:a-e, 49:a-e, 50:a-e, 55:a-e, B-, 45:f-j, 58:f-j, 60:a-e, 61:a-e, 62:a-e), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     5 V        9,98 pA    49,9 pW    voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  columna 2 (filas f–j)          flotante\n  columna 6 (filas f–j)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 13 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 2 (filas a–e)          flotante\n  columna 6 (filas a–e)          flotante\n  columna 9 (filas a–e)          flotante\n  columna 13 (filas a–e)         flotante\n  columna 25 (filas f–j)         flotante\n  columna 26 (filas f–j)         flotante\n  columna 29 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 33 (filas f–j)         flotante\n  columna 34 (filas f–j)         flotante\n  columna 17 (filas a–e)         flotante\n  columna 18 (filas a–e)         flotante\n  columna 22 (filas a–e)         flotante\n  columna 23 (filas a–e)         flotante\n  columna 27 (filas a–e)         flotante\n  columna 29 (filas a–e)         flotante\n  columna 36 (filas a–e)         flotante\n  columna 37 (filas a–e)         flotante\n  columna 38 (filas a–e)         flotante\n  columna 43 (filas a–e)         flotante\n  columna 44 (filas a–e)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 48 (filas a–e)         flotante\n  columna 49 (filas a–e)         flotante\n  columna 50 (filas a–e)         flotante\n  riel T+ (+5 V)                 5 V\n  columna 40 (filas f–j)         5 V\n  columna 55 (filas a–e)         flotante\n  riel B-                        flotante\n  columna 45 (filas f–j)         flotante\n  columna 58 (filas f–j)         flotante\n  columna 60 (filas a–e)         flotante\n  columna 61 (filas a–e)         flotante\n  columna 62 (filas a–e)         flotante\nComponentes:\n  R1     0 V        0 A        0 W · flotante\n  R2     0 V        0 A        0 W · flotante\n  R3     0 V        0 A        0 W · flotante\n  D1     0 V        0 A        0 W · flotante\n  D2     0 V        0 A        0 W · flotante\n  D3     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  D4     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  D5     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  C1     0 V        0 A        0 W · flotante\n  C2     0 V        0 A        0 W · flotante\n  C3     0 V        0 A        0 W · flotante\n  Q1     apagado · Vgs 0 V · Vds 0 V · Id 0 A · 0 W · flotante\n  Q2     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  Q3     apagado (corte) · Vbe 0 V · Vce 0 V · Ib 0 A · Ic 0 A · 0 W · flotante\n  W1     0,25 pV    5,01 pA    0 W\n  W2     0 V        0 A        0 W · flotante\n  W3     0 V        0 A        0 W · flotante\n  U1     sin margen (no regula) · Entrada 0 V · Salida 13,9 pV · Corriente de salida 0 A · 0 W · flotante\nObservaciones:\n  aviso: R1, R2, R3, D1, D2, D3, D4, D5, C1, C2, C3, Q1, Q2, Q3, W2, W3, U1: no hay camino de corriente continua hasta la fuente (grupos 2:f-j, 6:f-j, 9:f-j, 13:f-j, 16:f-j, 21:f-j, 2:a-e, 6:a-e, 9:a-e, 13:a-e, 25:f-j, 26:f-j, 29:f-j, 30:f-j, 33:f-j, 34:f-j, 17:a-e, 18:a-e, 22:a-e, 23:a-e, 27:a-e, 29:a-e, 36:a-e, 37:a-e, 38:a-e, 43:a-e, 44:a-e, 45:a-e, 48:a-e, 49:a-e, 50:a-e, 55:a-e, B-, 45:f-j, 58:f-j, 60:a-e, 61:a-e, 62:a-e), así que ahí el voltaje no está definido."
   },
   "lines": {
    "en": {
@@ -3689,6 +3725,44 @@
       "key": "floating",
       "text": "floating"
      }
+    ],
+    "U1": [
+     {
+      "key": "reg.dropout",
+      "text": "no headroom (not regulating)"
+     },
+     {
+      "key": "reg.vin",
+      "text": "Input: 0 V"
+     },
+     {
+      "key": "reg.vout",
+      "text": "Output: 13.9 pV"
+     },
+     {
+      "key": "reg.headroom",
+      "text": "Headroom (input − output): -13.9 pV"
+     },
+     {
+      "key": "reg.iout",
+      "text": "Output current: 0 A"
+     },
+     {
+      "key": "reg.quiescent",
+      "text": "Own current: 0 A"
+     },
+     {
+      "key": "reg.led",
+      "text": "Power LED: 0 A (0 % of the brightness at 20 mA)"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
     ]
    },
    "es": {
@@ -4028,6 +4102,44 @@
      {
       "key": "current",
       "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
+    "U1": [
+     {
+      "key": "reg.dropout",
+      "text": "sin margen (no regula)"
+     },
+     {
+      "key": "reg.vin",
+      "text": "Entrada: 0 V"
+     },
+     {
+      "key": "reg.vout",
+      "text": "Salida: 13,9 pV"
+     },
+     {
+      "key": "reg.headroom",
+      "text": "Margen (entrada − salida): -13,9 pV"
+     },
+     {
+      "key": "reg.iout",
+      "text": "Corriente de salida: 0 A"
+     },
+     {
+      "key": "reg.quiescent",
+      "text": "Corriente propia: 0 A"
+     },
+     {
+      "key": "reg.led",
+      "text": "LED de encendido: 0 A (brillo 0 % del de 20 mA)"
      },
      {
       "key": "power",
@@ -4871,6 +4983,727 @@
      {
       "key": "power",
       "text": "Potencia: 3,5 µW"
+     }
+    ]
+   }
+  }
+ },
+ "switches.json": {
+  "result": {
+   "analysis": "dc",
+   "model": true,
+   "ok": true,
+   "iterations": 13,
+   "ground": "B-",
+   "nodes": {
+    "B-": 0,
+    "3:a-e": 5,
+    "B+": 4.9990626644288385,
+    "14:a-e": 1.7617602994335677,
+    "15:a-e": 0.0004905003581613217,
+    "T+": 4.998615829216259,
+    "T-": 0.0004468352118794674,
+    "30:f-j": 4.997722158791599,
+    "40:f-j": 0.00011171212487828866,
+    "34:f-j": 2.0486097590638037,
+    "35:f-j": 0.0008936704237589964,
+    "44:f-j": 0.00011171212491515366,
+    "45:f-j": 0.0004468352118794281
+   },
+   "parts": {
+    "S1": {
+     "kind": "SWT",
+     "pins": {
+      "1": 5,
+      "2": 4.9990626644288385
+     },
+     "on": true,
+     "contacts": [
+      {
+       "a": "1",
+       "b": "2",
+       "current": 0.01874671142322981
+      }
+     ],
+     "current": 0.01874671142322981,
+     "pinCurrents": {
+      "1": 0.01874671142322981,
+      "2": -0.01874671142322981
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.01874671142322981,
+       "max": 3,
+       "unit": "A",
+       "ratio": 0.006248903807743271,
+       "level": "fine"
+      }
+     ]
+    },
+    "R1": {
+     "kind": "R",
+     "pins": {
+      "1": 4.9990626644288385,
+      "2": 1.7617602994335677
+     },
+     "voltage": 3.237302364995271,
+     "current": 0.009810007166652337,
+     "power": 0.03175795940122417,
+     "pinCurrents": {
+      "1": 0.009810007166652337,
+      "2": -0.009810007166652337
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0.03175795940122417,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 0.12703183760489667,
+       "level": "fine"
+      }
+     ]
+    },
+    "D1": {
+     "kind": "LED",
+     "pins": {
+      "anode": 1.7617602994335677,
+      "cathode": 0.0004905003581613217
+     },
+     "voltage": 1.7612697990754065,
+     "current": 0.009810007163226971,
+     "power": 0.017278069345305066,
+     "brightness": 0.4905003581613485,
+     "pinCurrents": {
+      "anode": 0.009810007163226971,
+      "cathode": -0.009810007163226971
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.009810007163226971,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 0.3270002387742324,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -1.7612697990754065,
+       "max": 5,
+       "unit": "V",
+       "ratio": -0.3522539598150813,
+       "level": "fine"
+      }
+     ]
+    },
+    "W1": {
+     "kind": "W",
+     "pins": {
+      "1": 0.0004905003581613217,
+      "2": 0
+     },
+     "voltage": 0.0004905003581613217,
+     "current": 0.009810007163226435,
+     "power": 0.000004811812027127698,
+     "pinCurrents": {
+      "1": 0.009810007163226435,
+      "2": -0.009810007163226435
+     }
+    },
+    "W2": {
+     "kind": "W",
+     "pins": {
+      "1": 4.9990626644288385,
+      "2": 4.998615829216259
+     },
+     "voltage": 0.0004468352125792663,
+     "current": 0.008936704251585326,
+     "power": 0.000003993234144015161,
+     "pinCurrents": {
+      "1": 0.008936704251585326,
+      "2": -0.008936704251585326
+     }
+    },
+    "W5": {
+     "kind": "W",
+     "pins": {
+      "1": 0,
+      "2": 0.0004468352118794674
+     },
+     "voltage": -0.0004468352118794674,
+     "current": -0.008936704237589348,
+     "power": 0.000003993234131507371,
+     "pinCurrents": {
+      "1": -0.008936704237589348,
+      "2": 0.008936704237589348
+     }
+    },
+    "S2": {
+     "kind": "SWT",
+     "pins": {
+      "C1": 4.998615829216259,
+      "NC1": 4.997722158791599,
+      "NO1": 0.00011171212487828866
+     },
+     "on": false,
+     "contacts": [
+      {
+       "a": "C1",
+       "b": "NC1",
+       "current": 0.008936704246602645
+      }
+     ],
+     "current": 0.008936704246602645,
+     "pinCurrents": {
+      "C1": 0.008936704246602645,
+      "NC1": -0.008936704246602645,
+      "NO1": 0
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.008936704246602645,
+       "max": 0.1,
+       "unit": "A",
+       "ratio": 0.08936704246602645,
+       "level": "fine"
+      }
+     ]
+    },
+    "R2": {
+     "kind": "R",
+     "pins": {
+      "1": 4.997722158791599,
+      "2": 2.0486097590638037
+     },
+     "voltage": 2.9491123997277953,
+     "current": 0.00893670424159938,
+     "power": 0.026355345291600715,
+     "pinCurrents": {
+      "1": 0.00893670424159938,
+      "2": -0.00893670424159938
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0.026355345291600715,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 0.10542138116640286,
+       "level": "fine"
+      }
+     ]
+    },
+    "D2": {
+     "kind": "LED",
+     "pins": {
+      "anode": 2.0486097590638037,
+      "cathode": 0.0008936704237589964
+     },
+     "voltage": 2.0477160886400445,
+     "current": 0.008936704237591426,
+     "power": 0.018299833046733625,
+     "brightness": 0.44683521187957126,
+     "pinCurrents": {
+      "anode": 0.008936704237591426,
+      "cathode": -0.008936704237591426
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.008936704237591426,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 0.2978901412530475,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -2.0477160886400445,
+       "max": 5,
+       "unit": "V",
+       "ratio": -0.4095432177280089,
+       "level": "fine"
+      }
+     ]
+    },
+    "W3": {
+     "kind": "W",
+     "pins": {
+      "1": 0.0008936704237589964,
+      "2": 0.0004468352118794674
+     },
+     "voltage": 0.000446835211879529,
+     "current": 0.00893670423759058,
+     "power": 0.000003993234131508471,
+     "pinCurrents": {
+      "1": 0.00893670423759058,
+      "2": -0.00893670423759058
+     }
+    },
+    "R3": {
+     "kind": "R",
+     "pins": {
+      "1": 0.00011171212487828866,
+      "2": 0.00011171212491515366
+     },
+     "voltage": -3.6865001611270654e-14,
+     "current": -1.1171212609475955e-16,
+     "power": 4.118267708481781e-30,
+     "pinCurrents": {
+      "1": -1.1171212609475955e-16,
+      "2": 1.1171212609475955e-16
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 4.118267708481781e-30,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 1.6473070833927125e-29,
+       "level": "fine"
+      }
+     ]
+    },
+    "D3": {
+     "kind": "LED",
+     "pins": {
+      "anode": 0.00011171212491515366,
+      "cathode": 0.0004468352118794281
+     },
+     "voltage": -0.00033512308696427443,
+     "current": -3.351372777349664e-16,
+     "power": 1.1231223907134535e-19,
+     "brightness": 0,
+     "pinCurrents": {
+      "anode": -3.351372777349664e-16,
+      "cathode": 3.351372777349664e-16
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": -3.351372777349664e-16,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": -1.1171242591165548e-14,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": 0.00033512308696427443,
+       "max": 5,
+       "unit": "V",
+       "ratio": 0.00006702461739285489,
+       "level": "fine"
+      }
+     ]
+    },
+    "W4": {
+     "kind": "W",
+     "pins": {
+      "1": 0.0004468352118794281,
+      "2": 0.0004468352118794674
+     },
+     "voltage": -3.9302328752599536e-17,
+     "current": -7.860465750519907e-16,
+     "power": 3.0893460907548244e-32,
+     "pinCurrents": {
+      "1": -7.860465750519907e-16,
+      "2": 7.860465750519907e-16
+     }
+    }
+   },
+   "supplies": {
+    "V1": {
+     "kind": "bench",
+     "voltage": 5,
+     "current": 0.01874671142822179,
+     "power": 0.09373355714110895,
+     "mode": "CV"
+    }
+   },
+   "issues": []
+  },
+  "text": {
+   "en": "DC operating point — a model, not a measurement (13 Newton iterations).\nSupplies:\n  V1     5 V        18.7 mA    93.7 mW    constant voltage\nNodes (voltage from rail B-):\n  rail B-                        0 V\n  column 3 (rows a–e)            5 V\n  rail B+                        5 V\n  column 14 (rows a–e)           1.76 V\n  column 15 (rows a–e)           491 µV\n  rail T+                        5 V\n  rail T-                        447 µV\n  column 30 (rows f–j)           5 V\n  column 40 (rows f–j)           112 µV\n  column 34 (rows f–j)           2.05 V\n  column 35 (rows f–j)           894 µV\n  column 44 (rows f–j)           112 µV\n  column 45 (rows f–j)           447 µV\nParts:\n  S1     on · 1–2 closed, 18.7 mA\n  R1     3.24 V     9.81 mA    31.8 mW\n  D1     1.76 V     9.81 mA    17.3 mW · brightness 49 % of 20 mA\n  W1     491 µV     9.81 mA    4.81 µW\n  W2     447 µV     8.94 mA    3.99 µW\n  W5     -447 µV    -8.94 mA   3.99 µW\n  S2     off · C1–NC1 closed, 8.94 mA\n  R2     2.95 V     8.94 mA    26.4 mW\n  D2     2.05 V     8.94 mA    18.3 mW · brightness 45 % of 20 mA\n  W3     447 µV     8.94 mA    3.99 µW\n  R3     -0.0369 pV 0 A        0 W\n  D3     -335 µV    0 A        0 W · brightness 0 % of 20 mA\n  W4     0 V        0 A        0 W",
+   "es": "Punto de operación en DC — un modelo, no una medición (13 iteraciones de Newton).\nFuentes:\n  V1     5 V        18,7 mA    93,7 mW    voltaje constante\nGrupos (voltaje medido desde riel B-):\n  riel B-                        0 V\n  columna 3 (filas a–e)          5 V\n  riel B+                        5 V\n  columna 14 (filas a–e)         1,76 V\n  columna 15 (filas a–e)         491 µV\n  riel T+                        5 V\n  riel T-                        447 µV\n  columna 30 (filas f–j)         5 V\n  columna 40 (filas f–j)         112 µV\n  columna 34 (filas f–j)         2,05 V\n  columna 35 (filas f–j)         894 µV\n  columna 44 (filas f–j)         112 µV\n  columna 45 (filas f–j)         447 µV\nComponentes:\n  S1     encendido · 1–2 cerrado, 18,7 mA\n  R1     3,24 V     9,81 mA    31,8 mW\n  D1     1,76 V     9,81 mA    17,3 mW · brillo 49 % del de 20 mA\n  W1     491 µV     9,81 mA    4,81 µW\n  W2     447 µV     8,94 mA    3,99 µW\n  W5     -447 µV    -8,94 mA   3,99 µW\n  S2     apagado · C1–NC1 cerrado, 8,94 mA\n  R2     2,95 V     8,94 mA    26,4 mW\n  D2     2,05 V     8,94 mA    18,3 mW · brillo 45 % del de 20 mA\n  W3     447 µV     8,94 mA    3,99 µW\n  R3     -0,0369 pV 0 A        0 W\n  D3     -335 µV    0 A        0 W · brillo 0 % del de 20 mA\n  W4     0 V        0 A        0 W"
+  },
+  "lines": {
+   "en": {
+    "S1": [
+     {
+      "key": "switch.state",
+      "text": "Position: on"
+     },
+     {
+      "key": "switch.contact",
+      "text": "Contact: 1–2 closed, 18.7 mA"
+     }
+    ],
+    "R1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 3.24 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 9.81 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 31.8 mW"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 1.76 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 9.81 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 17.3 mW"
+     },
+     {
+      "key": "brightness",
+      "text": "Brightness: brightness 49 % of 20 mA"
+     }
+    ],
+    "W1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 491 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 9.81 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 4.81 µW"
+     }
+    ],
+    "W2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 447 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 8.94 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 3.99 µW"
+     }
+    ],
+    "W5": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -447 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -8.94 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 3.99 µW"
+     }
+    ],
+    "S2": [
+     {
+      "key": "switch.state",
+      "text": "Position: off"
+     },
+     {
+      "key": "switch.contact",
+      "text": "Contact: C1–NC1 closed, 8.94 mA"
+     }
+    ],
+    "R2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 2.95 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 8.94 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 26.4 mW"
+     }
+    ],
+    "D2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 2.05 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 8.94 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 18.3 mW"
+     },
+     {
+      "key": "brightness",
+      "text": "Brightness: brightness 45 % of 20 mA"
+     }
+    ],
+    "W3": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 447 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 8.94 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 3.99 µW"
+     }
+    ],
+    "R3": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -0.0369 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "D3": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -335 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "brightness",
+      "text": "Brightness: brightness 0 % of 20 mA"
+     }
+    ],
+    "W4": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ]
+   },
+   "es": {
+    "S1": [
+     {
+      "key": "switch.state",
+      "text": "Posición: encendido"
+     },
+     {
+      "key": "switch.contact",
+      "text": "Contacto: 1–2 cerrado, 18,7 mA"
+     }
+    ],
+    "R1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 3,24 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 9,81 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 31,8 mW"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 1,76 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 9,81 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 17,3 mW"
+     },
+     {
+      "key": "brightness",
+      "text": "Brillo: brillo 49 % del de 20 mA"
+     }
+    ],
+    "W1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 491 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 9,81 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 4,81 µW"
+     }
+    ],
+    "W2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 447 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 8,94 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 3,99 µW"
+     }
+    ],
+    "W5": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -447 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -8,94 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 3,99 µW"
+     }
+    ],
+    "S2": [
+     {
+      "key": "switch.state",
+      "text": "Posición: apagado"
+     },
+     {
+      "key": "switch.contact",
+      "text": "Contacto: C1–NC1 cerrado, 8,94 mA"
+     }
+    ],
+    "R2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 2,95 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 8,94 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 26,4 mW"
+     }
+    ],
+    "D2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 2,05 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 8,94 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 18,3 mW"
+     },
+     {
+      "key": "brightness",
+      "text": "Brillo: brillo 45 % del de 20 mA"
+     }
+    ],
+    "W3": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 447 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 8,94 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 3,99 µW"
+     }
+    ],
+    "R3": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -0,0369 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "D3": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -335 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "brightness",
+      "text": "Brillo: brillo 0 % del de 20 mA"
+     }
+    ],
+    "W4": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
      }
     ]
    }
@@ -6367,6 +7200,7 @@
      "vin": 6.944664135776957e-21,
      "vout": -6.943969808249721e-13,
      "headroom": 6.943969877696362e-13,
+     "across": 6.943969738803077e-21,
      "current": -6.94396980824972e-25,
      "quiescent": 6.943969738803078e-25,
      "power": -4.821871669793188e-37,

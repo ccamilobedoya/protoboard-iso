@@ -241,7 +241,8 @@ function valueLine(part, lang) {
 function explanations(lang) {
   const keys = ['voltage', 'current', 'power', 'node.voltage', 'node.current', 'brightness', 'state', 'vbe', 'vce', 'ib', 'ic', 'beta', 'vgs', 'vds', 'id', 'pot.current', 'floating', 'unsupported',
     ...['emf', 'voltage', 'drop', 'current', 'power', 'runtime', 'charge', 'off'].map((k) => `battery.${k}`),
-    ...['regulating', 'dropout', 'vin', 'vout', 'headroom', 'iout', 'quiescent'].map((k) => `reg.${k}`),
+    ...['regulating', 'dropout', 'vin', 'vout', 'headroom', 'iout', 'quiescent', 'led'].map((k) => `reg.${k}`),
+    'switch.state', 'switch.contact',
     ...['vac', 'vdc', 'current'].map((k) => `bridge.${k}`),
     ...['temperature', 'light', 'resistance'].map((k) => `sensor.${k}`),
     ...['off', 'active', 'saturation'].map((r) => `region.bjt.${r}`), ...['off', 'linear', 'saturation'].map((r) => `region.mosfet.${r}`),

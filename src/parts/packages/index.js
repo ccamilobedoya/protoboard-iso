@@ -18,6 +18,8 @@ import kbp from './sip.js';
 import devboard from './devboard.js';
 import uno from './uno.js';
 import despi from './despi.js';
+import ams1117 from './ams1117.js';
+import { rocker, latching } from './switch.js';
 import { bead, ldr, buzzer, header } from './small.js';
 
-export const PACKAGES = Object.fromEntries([axial, led, radialCan, disc, to220, to92, pot, tactile, dip, wire, battery, trimmer, kbp, devboard, uno, despi, bead, ldr, buzzer, header].map((p) => [p.id, p]));
+export const PACKAGES = Object.fromEntries([axial, led, radialCan, disc, to220, to92, pot, tactile, dip, wire, battery, trimmer, kbp, devboard, uno, despi, ams1117, rocker, latching, bead, ldr, buzzer, header].map((p) => [p.id, p]));

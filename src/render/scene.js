@@ -210,13 +210,26 @@ function layoutLabels(labels, top, obstacles = []) {
 // list, a PCB on its two header strips) is painted after it, whatever their centres say: a large flat PCB sorted by its centre would
 // otherwise cover the parts on its far half. Each one moves to just after its support (what
 // sorted between them is farther than the support, so also behind the part on it).
-export function supportsFirst(sorted) {
+//
+// A primitive on one face of a board that stands up also names that face (`side`, its normal):
+// seen from that face it is painted after the board as above; seen from the other one, before it,
+// so the board covers it and only what sticks out beside the board shows.
+export function supportsFirst(sorted, camera = null) {
   const list = [...sorted];
   for (let pass = 0; pass < 4; pass++) {
     let moved = false;
     for (let i = 0; i < list.length; i++) {
       const bases = [].concat(list[i].p.on ?? []);
       if (!bases.length) continue;
+      if (list[i].p.side && camera && !camera.faces(list[i].p.side)) {
+        const j = Math.min(...bases.map((base) => list.findIndex((e) => e.p === base)).filter((k) => k >= 0));
+        if (j < i) {
+          const [item] = list.splice(i, 1);
+          list.splice(j, 0, item);
+          moved = true;
+        }
+        continue;
+      }
       const j = Math.max(...bases.map((base) => list.findIndex((e) => e.p === base)));
       if (j > i) {
         const [item] = list.splice(i, 1);
@@ -238,7 +251,7 @@ export function buildScene({ camera, base = [], items = [], under = [], labels =
   const focus = createBounds();
   const layers = { under: [], board: [], parts: [], labels: [], annotations: [] };
 
-  const byDepth = (list) => supportsFirst(list.map((p) => ({ p, depth: centroidDepth(p, camera) })).sort((a, b) => b.depth - a.depth));
+  const byDepth = (list) => supportsFirst(list.map((p) => ({ p, depth: centroidDepth(p, camera) })).sort((a, b) => b.depth - a.depth), camera);
   for (const { p } of byDepth(under)) paintPrimitive(p, camera, focus, layers.under);
   for (const primitive of base) paintPrimitive(primitive, camera, bounds, layers.board);
   for (const { p } of byDepth(items)) paintPrimitive(p, camera, focus, layers.parts);

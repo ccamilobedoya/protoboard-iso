@@ -151,4 +151,9 @@ export const GENERATOR_RESISTANCE = 50;
 export const REGULATORS = {
   fixed: { dropout: 2.0, quiescent: 5e-3, maxCurrent: 1.5, maxPower: 2 },
   LM317: { dropout: 2.0, quiescent: 50e-6, maxCurrent: 1.5, maxPower: 2 },
+  // AMS1117 (SOT-223) on its small module: dropout 1.1 V typical at 800 mA (1.3 V max), 5 mA
+  // own current (10 mA max), 800 mA rated. maxPower: the tab soldered to a few mm² of copper,
+  // about 90-100 °C/W, so 1 W takes the junction from 25 °C to its 125 °C. Source: Advanced
+  // Monolithic Systems AMS1117 datasheet; the module's seller sheet (4.75-12 V in, 800 mA).
+  AMS1117: { dropout: 1.1, quiescent: 5e-3, maxCurrent: 0.8, maxPower: 1, maxInput: 15 },
 };
