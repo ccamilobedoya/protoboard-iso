@@ -114,7 +114,7 @@ Parts: <id, tipo, valor o referencia; posiciones solo si el usuario las fijó>
 Board: <bb400 | bb830 …>, may grow (si el montaje puede pasar a la protoboard elástica, auto)
 Constraints: <clearance (3 por defecto para clases), zona de la protoboard, vista>
 Fidelity: functional (por defecto) | exact
-Page: simulation button (por defecto) | none (un valor por predecir: page.simulation false) | pressed (page.results)
+Page: live (por defecto: simulación activa, botón Corriente) | no simulation (un valor por predecir: page.simulation false)
 Done when: review <perfil> APPROVED
 ```
 

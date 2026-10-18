@@ -154,7 +154,7 @@ export const INSTRUCTIONS = [
   'Work loop: list_circuits → history and inspect (numbers, not pictures) → query / suggest (never compute holes or colour codes yourself) → apply_ops with dry_run → apply_ops with expect_revision, author and note → review until APPROVED → undo if needed.',
   'Never rewrite circuit files directly; change them only with apply_ops. render writes an SVG (and returns a PNG only when asked: images are slow to read).',
   'Holes: a1…j63 (row letter + column), rails T-, T+, B+, B- plus the column (T+9). Rows a–e of a column are connected, f–j too; each rail is one group.',
-  'The page out/<name>.html of a circuit with a source has a Simulation button, not pressed; page.results presses it from the start, page.simulation false removes it (a value a learner must predict first).',
+  'The page out/<name>.html of a circuit with a source runs the simulation by default: values of the tapped part, oscilloscope, lit LEDs, and the Current button in the bar (not pressed). Turn it off with page.simulation false while a learner must predict a value (page.results false or page.flow false turn off one each).',
 ].join('\n');
 
 // Tools as data: server.js registers them, kit-worker.js runs their handlers.
@@ -310,7 +310,7 @@ server.registerTool(
       board: z.string().optional().describe('auto (default, grows in length), bb400 or bb830'),
       title: z.union([z.string(), z.record(z.string(), z.string())]).optional(),
       netLabels: z.record(z.string(), z.string()).optional(),
-      page: z.object({}).passthrough().optional().describe('As in the circuit. With a source the page has a Simulation button, not pressed; {"results": true} presses it from the start; {"simulation": false} removes it while a learner must predict a value'),
+      page: z.object({}).passthrough().optional().describe('As in the circuit. With a source the page runs the simulation by default (values, oscilloscope, lit LEDs, a Current button not pressed): nothing to add. {"simulation": false} turns it off while a learner must predict a value'),
       clearance: z.number().optional().describe('Gap between bodies in mm (default 1; 3 for a roomier lesson)'),
       check_only: z.boolean().optional().describe('Only check the parts and nets (unknown names with the closest ones, nets naming a missing part or pin, parts in no net) and create nothing'),
       author: z.string().optional(),

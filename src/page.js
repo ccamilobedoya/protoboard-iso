@@ -23,7 +23,7 @@ import { iconSvg } from './page/client/icons.js';
 import { bundleScript } from './node/bundle.js';
 import { buildCircuit } from './circuit/build.js';
 import { nodeParams } from './circuit/checks.js';
-import { simulate, compile, simulationOffer } from './sim/index.js';
+import { simulate, compile, pageSimulation } from './sim/index.js';
 import { liveFlow } from './sim/paths.js';
 import { LANGUAGES } from './i18n/index.js';
 import { deviceOfReading } from './sim/devices/index.js';
@@ -276,11 +276,10 @@ export function renderPage(circuit, options = {}) {
   const { lang = 'en', fit = 'parts' } = options;
   const first = circuit?.view ?? 'front';
   const views = options.views ?? [first, OPPOSITE[first]].filter(Boolean);
-  // Simulation results (simulationOffer: a Simulation button by default when the circuit has a
-  // source, pressed with page.results, none with page.simulation: false) and the current flow
-  // (page.flow). Results show only for the part that is tapped (on the board and in its card),
-  // and only while the button is pressed: never all at once.
-  const { offered: results, pressed, flow } = simulationOffer(circuit);
+  // Simulation results and the current layer whenever the circuit can be simulated, unless it
+  // turns them off (pageSimulation). Results show only for the part that is tapped (on the board
+  // and in its card): never all at once. The current layer is a button in the bar, not pressed.
+  const { results, flow } = pageSimulation(circuit);
   const rendered = views.map((view) => ({ view, ...viewSvg(circuit, view, fit, lang, { sim: results, flow }) }));
   const issues = rendered[0]?.issues ?? [];
   if (!rendered.length || rendered.some((r) => !r.svg)) return { html: null, issues };
@@ -289,7 +288,7 @@ export function renderPage(circuit, options = {}) {
   const { built, parts, nodes, probes, kinds, templates } = partData(circuit, lang, sim);
   const order = Object.keys(nodes);
 
-  // The simulation runs in the page when the circuit asks for results or the current layer.
+  // The simulation runs in the page with the results or the current layer.
   const compiled = results || flow ? compile(circuit) : null;
   const live = compiled?.program ? liveData(circuit, lang, flow, templates) : null;
   const data = {
@@ -315,7 +314,6 @@ export function renderPage(circuit, options = {}) {
     barButton('fit', 'board', t(lang, 'page.fit.board'), { toggle: ['board', 'parts'], title: t(lang, 'page.fit.title') }),
     '</span><span class="group layers">',
     barButton('labels', 'labels', t(lang, 'page.labels')),
-    results ? barButton('results', 'sim', t(lang, 'page.results.button'), { title: t(lang, 'page.results.title') }) : '',
     flow ? barButton('layer', 'current', t(lang, 'page.layer.flow'), { toggle: ['flow', 'parts'], title: t(lang, 'page.layer.title') }) : '',
     '</span><span class="spacer"></span>',
     `<span class="more"><button type="button" class="more-button" aria-haspopup="menu" aria-expanded="false" title="${escapeXml(t(lang, 'page.more'))}" aria-label="${escapeXml(t(lang, 'page.more'))}">${iconSvg('more')}</button>`,
@@ -326,7 +324,7 @@ export function renderPage(circuit, options = {}) {
     '</span></span>',
   ].join('');
   // The first-time hint over the drawing: what can be tapped, and how to move (alone or in a note).
-  const hint = `<div class="first-hint" hidden><span>${escapeXml(t(lang, pressed ? 'page.hint.results' : 'page.hint'))}</span><small class="alone">${escapeXml(t(lang, 'page.hint.move'))}</small><small class="framed">${escapeXml(t(lang, 'page.hint.moveEmbedded'))}</small></div>`;  // The inspector (UX pass, U4): the card of what was tapped and the circuit's panels, in tabs;
+  const hint = `<div class="first-hint" hidden><span>${escapeXml(t(lang, results ? 'page.hint.results' : 'page.hint'))}</span><small class="alone">${escapeXml(t(lang, 'page.hint.move'))}</small><small class="framed">${escapeXml(t(lang, 'page.hint.moveEmbedded'))}</small></div>`;  // The inspector (UX pass, U4): the card of what was tapped and the circuit's panels, in tabs;
   // a panel on the right on a wide screen, a bottom sheet on a phone (page/client/inspector.js).
   const fold = escapeXml(t(lang, 'page.inspector.fold'));
   const inspector = `<aside class="inspector" hidden data-tab="circuit" data-size="half">
@@ -353,7 +351,7 @@ export function renderPage(circuit, options = {}) {
 <style id="dynamic"></style>
 <style id="probe"></style>
 </head>
-<body data-fit="${fit}"${pressed ? ' data-results="on"' : ''}>
+<body data-fit="${fit}"${results ? ' data-results="on"' : ''}>
 <nav hidden>${nav}</nav>
 <main>
 ${svgs.join('\n')}

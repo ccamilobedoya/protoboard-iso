@@ -35,20 +35,20 @@ const rc = () => ({
   ],
 });
 
-test('live: a page carries the engine when it offers the simulation or the current layer', () => {
+test('live: every page that can be simulated carries the engine, unless page.simulation is false', () => {
   const { page, ...noPage } = example('led-resistor.json');
-  const plain = renderPage({ ...noPage, page: { simulation: false } }).html;
-  assert.doesNotMatch(plain, /id="sim-program"/);
-  assert.doesNotMatch(plain, /createEngine/, 'no engine in the script');
+  const off = renderPage({ ...noPage, page: { simulation: false } }).html;
+  assert.doesNotMatch(off, /id="sim-program"/);
+  assert.doesNotMatch(off, /createEngine/, 'no engine in the script');
+  assert.doesNotMatch(off, /class="lights"|data-on="flow"/);
   const sourceless = renderPage({ ...noPage, supplies: undefined }).html;
   assert.doesNotMatch(sourceless, /id="sim-program"/, 'nothing to simulate without a source');
   const byDefault = renderPage(noPage).html;
-  assert.match(byDefault, /id="sim-program"/, 'a circuit with a source offers it by default');
-  assert.match(byDefault, /data-key="results"/, 'as a Simulation button');
-  assert.doesNotMatch(byDefault, /<body [^>]*data-results="on"/, 'not pressed');
-  const asking = renderPage(example('led-resistor.json')).html;
-  assert.match(asking, /id="sim-program"/, 'led-resistor asks for results');
-  assert.match(asking, /createEngine/);
+  assert.match(byDefault, /id="sim-program"/, 'a source is enough');
+  assert.match(byDefault, /createEngine/);
+  assert.match(byDefault, /<body [^>]*data-results="on"/, 'results always on');
+  assert.match(byDefault, /data-key="layer" data-on="flow"/, 'the current layer in the bar');
+  assert.match(byDefault, /<g class="lights">[\s\S]*?data-glow="D1"/, 'the LED glows on the board');
 });
 
 test('live: dots advance in proportion to the current, + to −', async (t) => {
@@ -111,7 +111,7 @@ test('live: a capacitor charges in simulated time (textbook RC), pause stops the
 
 test('live: "Open in Falstad" carries the circuit as it is now, and its notes', async (t) => {
   const plain = renderPage({ ...example('led-resistor.json'), page: { simulation: false } }).html;
-  assert.doesNotMatch(plain, /falstad\.com/, 'no link without the simulation or the current layer');
+  assert.doesNotMatch(plain, /falstad\.com/, 'no link without the simulation');
   const window = await loadPage(renderPage({ ...example('more-parts.json'), page: { results: true } }, { lang: 'es' }).html);
   if (!window) return t.skip('jsdom not installed');
   const link = window.document.querySelector('nav .falstad .open');

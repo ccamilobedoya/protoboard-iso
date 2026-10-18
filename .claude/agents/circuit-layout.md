@@ -73,9 +73,9 @@ repository root (`node bin/protoboard-iso.js <command> …`, same names: `inspec
    all and call it again; `check_only: true` checks without creating. Only what it lists as
    blocking or failed is left for the loop below. Without the MCP tool,
    the CLI: `node bin/protoboard-iso.js layout <target> <spec.json>`. With a source, the page gets a
-   Simulation button (not pressed) by default: the brief's `Page:` line says otherwise —
-   `none` → `page: {"simulation": false}` (a value still to be predicted), `pressed` →
-   `page: {"results": true}`. If `layout` itself seems wrong (a part kind placed badly every time),
+   live simulation by default (values of the tapped part, oscilloscope, lit LEDs, a Current button
+   not pressed): add nothing for it. Only when the brief's `Page:` line says `no simulation` (a
+   value still to be predicted) pass `page: {"simulation": false}`. If `layout` itself seems wrong (a part kind placed badly every time),
    say so in the report: its rules are in `docs/en/layout.md`.
 1. Read the brief. `catalog` once. Existing circuit: `history` and `inspect`. New circuit with
    fixed positions: `create_circuit` with only those parts, then add the rest.

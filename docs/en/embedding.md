@@ -15,7 +15,7 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
   revision; the page carries it in `<meta name="revision">` and in its toolbar.
 - **What it shows today:** a bar in one row, grouped by job: **Flip** (the circuit view and its
   opposite, `front` ↔ `back` or `front-left` ↔ `back-right`), **Whole board** (↔ close-up),
-  **Labels**, **Current** (with `page.flow`), the time controls (live pages with C, L or a
+  **Labels**, **Current** (whenever the circuit can be simulated; `page.flow: false` removes it), the time controls (live pages with C, L or a
   generator), and a **⋯** menu with what is used less: the dots' speed scale, *Open in Falstad*,
   *What can I tap?* and the revision. On a narrow screen (a phone) the labels give way to icons
   and nothing scrolls sideways. Zoom buttons sit in the bottom-right corner (in, out, back to the
@@ -36,17 +36,18 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
 - **Light or dark** like the device (`prefers-color-scheme`); the circuit can fix it with
   `"page": { "theme": "light" | "dark" }`, and a link wins over both: `…/led.html?theme=dark`
   (`auto` follows the system again). Only the page's colours change; the board keeps its own.
-- **Simulation results**: a circuit with a source (`supplies` or a battery part) gets a
-  **Simulation** button in the bar, not pressed; pressed, the part that is tapped shows its values,
-  so the board never fills with numbers. `"page": { "results": true }` presses it from the start;
-  `"page": { "simulation": false }` leaves it out, for a value someone is asked to predict
+- **Simulation results**, whenever the circuit has a source (`supplies` or a battery part):
+  always on, shown only for the part that is tapped, so the board never fills with numbers; LEDs
+  glow with their current. Turn them off while someone is asked to predict them:
+  `"page": { "simulation": false }` (the whole simulation) or `"page": { "results": false }`
   ([simulation.md](simulation.md)).
-- **Tap a part** to focus it and open its card; optional current layer (`"page": { "flow": true }`).
+- **Tap a part** to focus it and open its card; the current layer is a button in the bar
+  (`"page": { "flow": false }` removes it).
   See [focus-and-flow.md](focus-and-flow.md).
 - **Tap a strip** in use (or a pin in a part's card) to open the strip's card: what a strip is,
   what is clipped to it, those parts brought forward; with the results, its voltage to ground
   (with the probes drawn), the current of each lead into or out of it and its oscilloscope.
-- **Live simulation**: with the Simulation button (or `flow`), the page carries the simulator and runs it
+- **Live simulation**: whenever the circuit can be simulated, the page carries the simulator and runs it
   (about 60 kB more): values, colours and dots follow it, and a circuit with capacitors or
   inductors gets *Pause* and *Switch on (t = 0)* and a clock. See
   [focus-and-flow.md](focus-and-flow.md) and [live-simulation.md](live-simulation.md).

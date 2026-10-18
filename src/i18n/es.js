@@ -12,7 +12,7 @@ export default {
 
   'check.INVALID_CIRCUIT': 'El archivo del circuito debe ser un objeto con una lista "parts".',
   'check.UNKNOWN_BOARD': 'Protoboard desconocida: "{board}". Las conocidas son: {options}.',
-  'check.PAGE_CONTROLS_NOT_LIVE': 'page.controls solo se ve en una página en vivo: dale al circuito una fuente (o page.results), o page.flow; page.simulation false la apaga.',
+  'check.PAGE_CONTROLS_NOT_LIVE': 'page.controls solo se ve en una página en vivo: el circuito necesita una fuente, y page.simulation, page.results y page.flow no pueden estar todos apagados.',
   'check.PAGE_CONTROLS_NO_SIM': 'page.controls necesita un circuito que se pueda simular (fuentes o una batería, sin errores de colocación).',
   'check.PAGE_CONTROL_TARGET': 'page.controls, entrada {index}: nombra un componente (part) o una fuente (supply), uno solo.',
   'check.PAGE_CONTROL_UNKNOWN': 'page.controls: {target} no tiene el control «{field}» (tiene: {options}).',
@@ -215,8 +215,6 @@ export default {
   'sim.region.bjt.active': 'activo (Ic = β·Ib)',
   'sim.region.bjt.saturation': 'saturado (encendido del todo)',
   'sim.badge': 'MODELO · simulación DC',
-  'page.results.button': 'Simulación',
-  'page.results.title': 'Muestra los voltajes y corrientes del modelo en lo que toques',
   'page.results': 'Simulación (modelo)',
   'sim.q.voltage': 'Voltaje (tensión)',
   'sim.q.current': 'Corriente',

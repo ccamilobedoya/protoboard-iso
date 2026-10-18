@@ -17,7 +17,7 @@ node bin/protoboard-iso.js page <objetivo> [--lang es] [--fit parts|board] [-o p
   en su barra.
 - **Lo que muestra hoy:** una barra en una sola fila, agrupada por lo que hace: **Girar** (la
   vista del circuito y la opuesta, `front` ↔ `back` o `front-left` ↔ `back-right`), **Toda la
-  protoboard** (↔ de cerca), **Etiquetas**, **Corriente** (con `page.flow`), los controles de
+  protoboard** (↔ de cerca), **Etiquetas**, **Corriente** (siempre que el circuito se pueda simular; `page.flow: false` lo quita), los controles de
   tiempo (páginas en vivo con C, L o generador) y un menú **⋯** con lo que se usa menos: la escala
   de velocidad de los puntos, *Abrir en Falstad*, *¿Qué se puede tocar?* y la revisión. En una
   pantalla angosta (celular) las etiquetas de los botones dejan solo los íconos y nada se desliza de
@@ -43,18 +43,18 @@ node bin/protoboard-iso.js page <objetivo> [--lang es] [--fit parts|board] [-o p
   `"page": { "theme": "light" | "dark" }`, y un enlace gana sobre los dos: `…/led.html?theme=dark`
   (`auto` vuelve a seguir al sistema). Solo cambian los colores de la página; la protoboard conserva
   los suyos.
-- **Resultados de la simulación**: un circuito con fuente (`supplies` o una batería) trae en la
-  barra un botón **Simulación**, sin presionar; presionado, el componente que se toca muestra sus
-  valores, así la protoboard nunca se llena de números. `"page": { "results": true }` lo deja
-  presionado desde el inicio; `"page": { "simulation": false }` lo quita, para un valor que alguien
-  debe predecir ([simulacion.md](simulacion.md)).
-- **Toca un componente** para enfocarlo y abrir su ficha; capa de corriente opcional
-  (`"page": { "flow": true }`). Ver [foco-y-corriente.md](foco-y-corriente.md).
+- **Resultados de la simulación**, siempre que el circuito tenga fuente (`supplies` o una
+  batería): siempre activos, solo para el componente que se toca, así la protoboard nunca se
+  llena de números; los LED brillan con su corriente. Se apagan mientras alguien deba
+  predecirlos: `"page": { "simulation": false }` (toda la simulación) o
+  `"page": { "results": false }` ([simulacion.md](simulacion.md)).
+- **Toca un componente** para enfocarlo y abrir su ficha; la capa de corriente es un botón de la
+  barra (`"page": { "flow": false }` lo quita). Ver [foco-y-corriente.md](foco-y-corriente.md).
 - **Toca una tira** en uso (o una pata en la ficha de un componente) para abrir la ficha de la
   tira: qué es una tira, qué está conectado, esos componentes al frente; con los resultados, su
   voltaje (tensión) respecto a tierra (con las puntas dibujadas), la corriente de cada pata que
   entra o sale y su osciloscopio.
-- **Simulación en vivo**: con el botón Simulación (o `flow`), la página lleva el simulador y lo corre (unos
+- **Simulación en vivo**: siempre que el circuito se pueda simular, la página lleva el simulador y lo corre (unos
   60 kB más): los valores, los colores y los puntos lo siguen, y un circuito con condensadores o
   bobinas tiene *Pausa*, *Encender (t = 0)* y un reloj. Ver
   [foco-y-corriente.md](foco-y-corriente.md) y [simulacion-en-vivo.md](simulacion-en-vivo.md).

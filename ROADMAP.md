@@ -90,7 +90,7 @@ Guide: [docs/en/simulation.md](docs/en/simulation.md).
 - ✅ Every part model verified once against an independent reference (textbook formula solved apart, or the datasheet) and kept as a test (`test/sim.test.js`)
 - ✅ Warnings a learner needs: overpower, overcurrent, reverse voltage, reversed electrolytic, supply in current limit, short circuit, floating nodes
 - ✅ Static results on the SVG (`render --sim`, own `results` layer): group voltages, part currents, "MODEL" badge; tags avoid parts
-- ✅ Results in the CLI and MCP (`simulate`, text or JSON) and in the embeddable page behind a button, only when the circuit asks (`"page": { "results": true }`)
+- ✅ Results in the CLI and MCP (`simulate`, text or JSON) and in the embeddable page, only for the tapped part (since 2026-10-18 on by default with a source, with lit LEDs and the Current button; `"page": { "simulation": false }` turns it off)
 - ✅ Compare a few circuits with Falstad CircuitJS as a second reference (stage 3, phase 6: [falstad.md](docs/en/falstad.md))
 - ⬜ Events during a transient (press a button at a given time), and a chart of the transient in the page
 - ⬜ Chips: behavioural 555 and op-amp

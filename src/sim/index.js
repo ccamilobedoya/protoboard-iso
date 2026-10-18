@@ -27,15 +27,16 @@ export function simulate(circuit, options = {}) {
 
 // What `check` says about the controls panel (page.controls): each entry must name a part or a
 // supply and one of its controls (engine.controls()), with a range inside what makes sense.
-// What the page offers of the simulation. By default, a circuit with a source (supplies or a
-// battery part) gets a Simulation button in the bar, not pressed; `page.results: true` presses it
-// from the start (as before), and `page.simulation: false` leaves it out (a value the learner has
-// to predict first). The current layer (`page.flow`) runs the simulation too.
-export function simulationOffer(circuit) {
+// What the page runs of the simulation. By default, whenever it can (a circuit with a source:
+// supplies or a battery part), everything: the results always on (the tapped part's values, its
+// oscilloscope, limits, lit LEDs) and the current layer offered in the bar, not pressed. Each can
+// be turned off on its own (`page.results: false`, `page.flow: false`), or both with
+// `page.simulation: false` (a value the learner must predict first).
+export function pageSimulation(circuit) {
   const page = circuit?.page ?? {};
+  if (page.simulation === false) return { results: false, flow: false };
   const hasSource = Boolean(circuit?.supplies?.length) || (circuit?.parts ?? []).some((p) => p?.type === 'battery');
-  const offered = page.simulation !== false && (Boolean(page.results) || hasSource);
-  return { offered, pressed: offered && Boolean(page.results), flow: Boolean(page.flow) };
+  return { results: page.results ?? hasSource, flow: page.flow ?? hasSource };
 }
 
 export function pageControlIssues(circuit) {
@@ -43,8 +44,8 @@ export function pageControlIssues(circuit) {
   if (!Array.isArray(list) || !list.length) return [];
   const warn = (code, params = {}) => ({ severity: 'warning', code, params });
   const out = [];
-  const offer = simulationOffer(circuit);
-  if (!offer.offered && !offer.flow) out.push(warn('PAGE_CONTROLS_NOT_LIVE'));
+  const live = pageSimulation(circuit);
+  if (!live.results && !live.flow) out.push(warn('PAGE_CONTROLS_NOT_LIVE'));
   const compiled = compile(circuit);
   if (compiled.fatal) return [...out, warn('PAGE_CONTROLS_NO_SIM')];
   const controls = createEngine(compiled.program).controls();

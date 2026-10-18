@@ -14,18 +14,19 @@ node bin/protoboard-iso.js render <objetivo> --sim --fit parts                  
 node bin/protoboard-iso.js render <objetivo> --sim --focus D1                        # solo la corriente de D1 y el voltaje de sus grupos
 ```
 
-En la página, un circuito con fuente trae en la barra un botón **Simulación**, sin presionar
-(`"page": { "results": true }` lo deja presionado desde el inicio). Nunca llena la protoboard de
-números: con el botón activo, **toca un componente** para ver su corriente, el voltaje de los
-grupos bajo sus patas y, en su ficha, todos sus valores. Mientras está apagado, la ficha no
-muestra valores, el osciloscopio no graba y no se marcan límites.
+En la página, la simulación está siempre activa cuando el circuito tiene fuente, pero nunca llena
+la protoboard de números: **toca un componente** para ver su corriente, el voltaje de los grupos
+bajo sus patas y, en su ficha, todos sus valores; los LED brillan con su corriente, y el botón
+*Corriente* (sin presionar) muestra los conductores coloreados por voltaje, con la corriente en
+movimiento.
 
 MCP: la herramienta `simulate` (mismas opciones) y `render` con `sim: true`.
 
 > **Primero quien aprende.** Nunca se muestra un resultado que alguien debe predecir. Los
-> resultados se dibujan solo si se piden (`--sim`); la página para embeber los ofrece detrás de su
-> botón Simulación, y aun así solo los del componente que se toca. Para un valor que todavía hay
-> que predecir: `"page": { "simulation": false }` (sin botón y sin simulador en la página).
+> resultados se dibujan solo si se piden (`--sim`); la página para embeber los tiene por defecto,
+> solo los del componente que se toca, así que un circuito con un valor pendiente de predicción
+> los apaga: `"page": { "simulation": false }` (todo) o `"page": { "results": false }` (los
+> valores; el brillo de los LED se va con ellos).
 
 ## La alimentación: baterías y `supplies`
 

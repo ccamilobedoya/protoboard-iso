@@ -261,6 +261,12 @@ export function paintOrder(camera, lines, reach) {
   return order;
 }
 
+// The lit LEDs alone, for the `lights` layer: drawn over the parts whenever there are simulation
+// results (not only in the current layer), so an LED that conducts is seen glowing.
+export function lightOps(scene, built, sim, circuit) {
+  return conductorPieces(built, sim, circuit).lights.flatMap((l) => litLed(scene, l, `opacity:${glowOpacity(l.brightness).toFixed(2)}`));
+}
+
 // The pieces as drawing operations for the `flow` layer, in painting order for this view:
 // 1. heat and glow, under everything;
 // 2. the metal strips and their dots: they lie inside the board, under every lead and wire (and

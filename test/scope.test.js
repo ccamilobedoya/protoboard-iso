@@ -147,7 +147,7 @@ test('page: without C or L the time is the clock on the wall; a pressed button s
 });
 
 test('page: no oscilloscope where the card shows no results', async (t) => {
-  const window = await loadPage(renderPage(rc({ flow: true }), { lang: 'en' }).html);
+  const window = await loadPage(renderPage(rc({ results: false }), { lang: 'en' }).html);
   if (!window) return t.skip('jsdom not installed');
   window.protoboardLive.tick(100);
   assert.equal(window.protoboardLive.recording('C1'), null, 'nothing recorded');

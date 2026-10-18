@@ -32,8 +32,7 @@ Puntos de entrada; todos llaman a `autoLayout(spec, { profile, checkOnly })`:
     { "pins": ["U1.GND", "T-"], "color": "black" }
   ],
   "supplies": [{ "id": "V1", "voltage": 12, "positive": "S1.1", "negative": "T-" }],
-  "netLabels": { "T-": "GND" },
-  "page": { "results": true }
+  "netLabels": { "T-": "GND" }
 }
 ```
 

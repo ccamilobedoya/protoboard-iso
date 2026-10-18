@@ -30,7 +30,7 @@ import { PART_NUMBERS } from './parts/db.js';
 import { resistorBands } from './parts/types/resistor.js';
 import { simulate, pageControlIssues } from './sim/index.js';
 import { resultsOverlay } from './sim/overlay.js';
-import { flowOps } from './sim/paths.js';
+import { flowOps, lightOps } from './sim/paths.js';
 import { probeOps } from './sim/probes.js';
 import { focusLayers, veilOps, stripOps, coordOps, nodesOf } from './render/focus.js';
 
@@ -124,8 +124,8 @@ function sceneFor(circuit, options = {}) {
   return { result, scene, view, scale, lang };
 }
 
-// Optional layers, always in this order: veil, strips, coords, spotlight, flow, marks,
-// spotlabels, results, probes.
+// Optional layers, always in this order: lights (right after the parts), veil, strips, coords,
+// spotlight, flow, marks, spotlabels, results, probes.
 //   focus: ['R1']   dim everything but these parts and their strips (static images)
 //   flow: true      conductor view: conductors coloured by voltage, dots for conventional
 //                   current (moving in a page, still in a static image)
@@ -153,6 +153,8 @@ function addLayers(scene, built, circuit, options, lang) {
   }
   if (options.interactive && needSim) extra.marks = markOps(scene, built);
   if (options.sim) {
+    // LEDs glow with their current, over the parts (the current layer draws its own glow).
+    if (options.interactive || !options.flow) extra.lights = lightOps(scene, built, sim, circuit);
     extra.results = resultsOverlay(scene, built, sim, lang);
     // A page shows, on demand, where each tag's value comes from (probes, arrows).
     if (options.interactive) extra.probes = probeOps(scene, built, sim, circuit);
@@ -163,7 +165,10 @@ function addLayers(scene, built, circuit, options, lang) {
       extra.results = extra.results.filter((op) => op.cls === 'badge' || ids.has(op.part) || nodes.has(op.data?.node));
     }
   }
-  Object.assign(scene.layers, extra);
+  // The lit LEDs go right over the parts, under the labels and everything else.
+  const { lights = [], ...rest } = extra;
+  const { under, board, parts, ...others } = scene.layers;
+  scene.layers = { under, board, parts, lights, ...others, ...rest };
 }
 
 // A rounded box around each part on screen (its polygons, leads included), hidden: the live page

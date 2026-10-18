@@ -200,10 +200,11 @@ test('page: tapping a part focuses it and opens its card; tapping the board clea
   assert.equal(front.querySelector('.spotlight').children.length, 0);
 });
 
-test('page: the current layer and its speed scale, only when the circuit asks', async (t) => {
-  const plain = renderPage(switchCircuit(), { lang: 'es' }).html;
-  assert.doesNotMatch(plain, /data-on="flow"|class="flow"/);
-  const html = renderPage({ ...switchCircuit(), page: { flow: true, focus: ['D1'] } }, { lang: 'es' }).html;
+test('page: the current layer and its speed scale, by default with a source, not pressed', async (t) => {
+  const off = renderPage({ ...switchCircuit(), page: { flow: false } }, { lang: 'es' }).html;
+  assert.doesNotMatch(off, /data-on="flow"|class="flow"/, 'page.flow false leaves it out');
+  const html = renderPage({ ...switchCircuit(), page: { focus: ['D1'] } }, { lang: 'es' }).html;
+  assert.match(html, /data-key="layer" data-on="flow"[^>]*aria-pressed="false"/, 'in the bar, not pressed');
   assert.match(html, /class="flow"/);
   const window = await loadPage(html);
   if (!window) return t.skip('jsdom not installed');

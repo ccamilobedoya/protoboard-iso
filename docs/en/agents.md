@@ -109,7 +109,7 @@ Parts: <id, type, value or part number; positions only if the user fixed them>
 Board: <bb400 | bb830 …>, may grow (when the layout may move to the elastic board, auto)
 Constraints: <clearance (default 3 for lessons), area of the board, view>
 Fidelity: functional (default) | exact
-Page: simulation button (default) | none (a value to predict: page.simulation false) | pressed (page.results)
+Page: live (default: simulation on, Current button) | no simulation (a value to predict: page.simulation false)
 Done when: review <profile> APPROVED
 ```
 

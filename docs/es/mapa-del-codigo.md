@@ -131,10 +131,11 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
   una etiqueta de resultados, que es también su clave de explicación), `data-probe` (`node:<grupo>` o
   `part:<id>`), `data-flow`, `data-col` / `data-row` (etiquetas de coordenadas).
 - **Los resultados son un modelo** y pueden adelantar una predicción: se dibujan solo si se piden
-  (`sim`, `flow`), y en una página detrás del botón Simulación (`simulationOffer` en `sim/index.js`:
-  por defecto si el circuito tiene fuente, presionado con `page.results`, ninguno con
-  `page.simulation: false`) o con la capa de corriente (`page.flow`), y solo para el componente
-  tocado; la ficha, la grabación del osciloscopio y las marcas de límite miran `page.state.results`.
+  (`sim`, `flow`), y en una página siempre que el circuito se pueda simular (`pageSimulation` en
+  `sim/index.js`: resultados siempre activos y el botón Corriente por defecto con fuente;
+  `page.results: false`, `page.flow: false`, o `page.simulation: false` para las dos), y solo para
+  el componente tocado. Los LED encendidos son la capa `lights` (`lightOps` en `sim/paths.js`), que
+  se dibuja con los resultados.
 - **Controles** (`controls`, `set` de un dispositivo) corren en la página: `set` es una fórmula
   pura y solo puede importar módulos que se agrupan (`ALLOWED` en `node/bundle.js`). Un
   dispositivo que agregue sus elementos en otro orden tras un cambio pierde su estado en

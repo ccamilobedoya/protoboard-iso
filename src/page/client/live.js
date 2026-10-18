@@ -89,8 +89,7 @@ export function setupLive(page) {
   let openScope = null;
   const scopeTime = () => (dynamic ? engine.time : wallTime);
   function record(r, force = false) {
-    // Nothing is recorded while the Simulation button is off (a value may be waiting for a prediction).
-    if (!recorder || !r || !page.state.results) return;
+    if (!recorder || !r) return;
     const time = scopeTime();
     if (!force && time - lastRecord < (2 * scopeWindow) / (dynamic ? 1500 : 500)) return;
     lastRecord = time;
@@ -124,7 +123,7 @@ export function setupLive(page) {
   // or "node:<group>" for a strip.
   page.buildScope = (info, id) => {
     openScope = null;
-    if (!recorder || !page.state.results || !scopeFor(id)) return;
+    if (!recorder || !scopeFor(id)) return;
     openScope = { id, scope: createScope(info, { t, f }) };
     drawScope();
   };
@@ -197,12 +196,15 @@ export function setupLive(page) {
       for (const list of wires) list.forEach((el, k) => el && el.setAttribute('stroke', colours[k]));
       const stresses = engine.stresses(reading);
       for (const svg of svgs) {
-        for (const el of svg.querySelectorAll('.flow > [data-glow]')) el.style.opacity = glowOpacity(reading.parts[el.dataset.glow]?.brightness).toFixed(2);
         for (const el of svg.querySelectorAll('.flow > [data-heat]')) {
           const power = (stresses[el.dataset.heat] ?? []).find((s) => s.quantity === 'power');
           el.style.opacity = heatOpacity(power?.ratio).toFixed(2);
         }
       }
+    }
+    // LEDs lit with their current: on the board (.lights, with the results) and in the current layer.
+    for (const svg of svgs) {
+      for (const el of svg.querySelectorAll('.lights > [data-glow], .flow > [data-glow]')) el.style.opacity = glowOpacity(reading.parts[el.dataset.glow]?.brightness).toFixed(2);
     }
     // Result tags: the same place, the new value, the box resized around its centre.
     for (const svg of svgs) {

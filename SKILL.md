@@ -48,9 +48,10 @@ By hand, or to change a circuit:
    and run
    `node <skill>/bin/protoboard-iso.js simulate circuit.json` (or `render --sim`). Never compute
    them by hand, and never show a value a learner is asked to predict. See `docs/en/simulation.md`.
-   The page of a circuit with a source has a **Simulation** button in its bar, not pressed: the
-   learner presses it to see values. `"page": { "results": true }` presses it from the start;
-   `"page": { "simulation": false }` removes it, for a value the learner must predict first.
+   The page of a circuit with a source runs the simulation by itself, nothing to add: values of
+   the tapped part, its oscilloscope, LEDs glowing, and the **Current** button in the bar (not
+   pressed). For a value the learner must predict first, turn it off:
+   `"page": { "simulation": false }` (or only `"results": false` / `"flow": false`).
 
 ## Prefer the MCP tools
 

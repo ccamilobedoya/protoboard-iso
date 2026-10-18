@@ -90,7 +90,7 @@ Guía: [simulacion.md](simulacion.md).
 - ✅ Cada modelo comprobado una vez contra una referencia independiente (fórmula de libro resuelta aparte, o la hoja de datos) y guardado como prueba (`test/sim.test.js`)
 - ✅ Los avisos que necesita quien aprende: potencia de más, corriente de más, voltaje inverso, electrolítico al revés, fuente en su límite, cortocircuito, grupos flotantes
 - ✅ Resultados estáticos sobre el SVG (`render --sim`, capa propia `results`): voltajes de los grupos, corrientes, sello «MODELO»; las etiquetas esquivan los componentes
-- ✅ Resultados en la línea de comandos y el MCP (`simulate`, texto o JSON) y en la página para embeber detrás de un botón, solo si el circuito lo pide (`"page": { "results": true }`)
+- ✅ Resultados en la línea de comandos y el MCP (`simulate`, texto o JSON) y en la página para embeber, solo los del componente tocado (desde el 2026-10-18 por defecto con fuente, con los LED encendidos y el botón Corriente; `"page": { "simulation": false }` la apaga)
 - ✅ Comparar algunos circuitos con Falstad CircuitJS como segunda referencia (etapa 3, fase 6: [falstad.md](falstad.md))
 - ⬜ Eventos durante el transitorio (presionar un botón en un momento dado) y una gráfica del transitorio en la página
 - ⬜ Chips: 555 y amplificador operacional por comportamiento

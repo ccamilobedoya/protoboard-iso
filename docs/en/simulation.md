@@ -13,18 +13,18 @@ node bin/protoboard-iso.js render <target> --sim --fit parts                    
 node bin/protoboard-iso.js render <target> --sim --focus D1                        # only D1's current and its groups' voltages
 ```
 
-In the page, a circuit with a source gets a **Simulation** button in the bar, not pressed
-(`"page": { "results": true }` presses it from the start). It never covers the board with
-numbers: with it on, **tap a part** to see its current, the voltages of the groups under its
-leads and, in its card, all its values. While it is off the card shows no values, the
-oscilloscope records nothing and no limit is marked.
+In the page the simulation is always on whenever the circuit has a source, but never covers the
+board with numbers: **tap a part** to see its current, the voltages of the groups under its
+leads and, in its card, all its values; LEDs glow with their current, and the *Current* button
+(not pressed) shows the conductors coloured by voltage with the current moving.
 
 MCP: the `simulate` tool (same options) and `render` with `sim: true`.
 
 > **Learners first.** Never show a result someone is asked to predict. Results are only drawn
-> on request (`--sim`); the embeddable page offers them behind its Simulation button, and then
-> only for the part that is tapped. For a value still to be predicted, set
-> `"page": { "simulation": false }`: no button, no engine in the page.
+> on request (`--sim`); the embeddable page has them by default, only for the part that is
+> tapped, so a circuit with a value still to be predicted turns them off:
+> `"page": { "simulation": false }` (everything) or `"page": { "results": false }` (the values;
+> the lit LEDs go with them).
 
 ## Power: battery parts and `supplies`
 

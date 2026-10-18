@@ -85,7 +85,7 @@ test('node lines: the voltage, then each lead into or out of the strip, adding u
 });
 
 test('static page: a tapped strip shows what it is and brings forward what is clipped to it', async (t) => {
-  const window = await loadPage(renderPage(divider(), { lang: 'es' }).html);
+  const window = await loadPage(renderPage(divider({ simulation: false }), { lang: 'es' }).html);
   if (!window) return t.skip('jsdom not installed');
   const doc = window.document;
   const data = pageData(window);
@@ -166,7 +166,7 @@ test('live page: a strip\'s voltage, its currents and its oscilloscope follow th
 });
 
 test('prediction rule: without results a strip\'s card has no values and nothing is recorded', async (t) => {
-  const window = await loadPage(renderPage(rc({ flow: true }), { lang: 'en' }).html);
+  const window = await loadPage(renderPage(rc({ results: false }), { lang: 'en' }).html);
   if (!window) return t.skip('jsdom not installed');
   window.protoboardLive.tick(100);
   assert.equal(window.protoboardLive.recording('node:24:f-j'), null);

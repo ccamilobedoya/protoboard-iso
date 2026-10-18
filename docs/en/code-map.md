@@ -125,10 +125,10 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 - **Data attributes**: `data-part` (part id), `data-node` (group), `data-q` (quantity of a result
   tag, also its explanation key), `data-probe` (`node:<group>` or `part:<id>`), `data-flow`, `data-col` / `data-row` (coordinate tags).
 - **Results are a model** and may give away a prediction: drawn only on request (`sim`, `flow`),
-  in a page behind the Simulation button (`simulationOffer` in `sim/index.js`: by default when the
-  circuit has a source, pressed with `page.results`, none with `page.simulation: false`) or the
-  current layer (`page.flow`), and only for the tapped part; the card, the scope recorder and the
-  limit marks check `page.state.results`.
+  in a page whenever the circuit can be simulated (`pageSimulation` in `sim/index.js`: results
+  always on and the Current button by default with a source; `page.results: false`,
+  `page.flow: false`, or `page.simulation: false` for both), and only for the tapped part. Lit LEDs
+  are the `lights` layer (`lightOps` in `sim/paths.js`), drawn with the results.
 - **Controls** (`controls`, `set` in a device) run in the page: `set` is a pure formula and may
   only import bundleable modules (`ALLOWED` in `node/bundle.js`). A device that adds elements in a
   different order after a change loses their state on `engine.set` (it is matched by order).
