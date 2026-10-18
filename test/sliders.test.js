@@ -160,7 +160,8 @@ test('check: page.controls names real controls with sensible ranges', () => {
   assert.deepEqual(codes({ results: true, controls: [{ part: 'D1', field: 'resistance' }] }), ['PAGE_CONTROL_UNKNOWN']);
   assert.deepEqual(codes({ results: true, controls: [{ part: 'R1', field: 'resistance', min: 0, max: 100 }] }), ['PAGE_CONTROL_RANGE']);
   assert.deepEqual(codes({ results: true, controls: [{ field: 'voltage' }] }), ['PAGE_CONTROL_TARGET']);
-  assert.deepEqual(codes({ controls: [{ supply: 'V1', field: 'voltage' }] }), ['PAGE_CONTROLS_NOT_LIVE']);
+  assert.deepEqual(codes({ controls: [{ supply: 'V1', field: 'voltage' }] }), [], 'a source offers the simulation by default');
+  assert.deepEqual(codes({ simulation: false, controls: [{ supply: 'V1', field: 'voltage' }] }), ['PAGE_CONTROLS_NOT_LIVE']);
 });
 
 async function loadPage(html) {

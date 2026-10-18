@@ -40,9 +40,10 @@ page with those parts in focus (the ones a lesson is about).
 - **Small parts**: a tap just off a thin wire or a lead still takes it; where one part lies over
   another (a jumper over a resistor), tap the open one again to open the one under it.
 - **Tap the board** (or ✕) to clear the focus.
-- With `"page": { "results": true }` the simulation is always on, with no button: the tapped
-  part shows its simulated current and the voltages of its groups on the board, and all its
-  values in the card.
+- With the **Simulation** button on (there by default when the circuit has a source; pressed
+  from the start with `"page": { "results": true }`; left out with `"page": { "simulation":
+  false }`) the tapped part shows its simulated current and the voltages of its groups on the
+  board, and all its values in the card.
   Nothing else is labelled: every tag at once is too much to read.
 - **Every value explains itself.** Tap a line of the card ("Capacitance: 100 µF", "Ic: 8.82 mA",
   "saturated"…) to open what it means; with a mouse, hovering shows the same text in a small box.
@@ -110,7 +111,7 @@ asks: it shows which parts conduct, which can give away an answer someone is ask
 
 ## The live page
 
-With `results` or `flow`, the page runs the simulator itself (the same engine as the command
+With the Simulation button (or `flow`), the page runs the simulator itself (the same engine as the command
 line, bundled in). At load it shows the DC values, as before; then:
 
 - **Time**: a circuit with capacitors or inductors gets *Pause*, *Switch on (t = 0)* (capacitors

@@ -94,7 +94,8 @@ export function setupLimits(page, { engine, t, f }) {
     const signature = JSON.stringify([[...exceeded], [...near]]);
     if (signature !== outlined) {
       outlined = signature;
-      const rule = (ids, body) => (ids.length ? `${ids.map((id) => `.marks > [data-mark="${quote(id)}"]`).join(', ')} { display: inline; ${body} }` : '');
+      // Only while the Simulation button is on (body.show-results): a mark gives a value away.
+      const rule = (ids, body) => (ids.length ? `${ids.map((id) => `body.show-results .marks > [data-mark="${quote(id)}"]`).join(', ')} { display: inline; ${body} }` : '');
       style.textContent = rule([...near].filter((id) => !exceeded.has(id)), 'stroke: var(--warn);') + rule([...exceeded], 'animation: stress-pulse 1s steps(4, jump-none) infinite alternate;');
     }
     // The panel: a row per latched limit, built when one appears, its text updated in place

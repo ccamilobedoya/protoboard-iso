@@ -43,16 +43,18 @@ node bin/protoboard-iso.js page <objetivo> [--lang es] [--fit parts|board] [-o p
   `"page": { "theme": "light" | "dark" }`, y un enlace gana sobre los dos: `…/led.html?theme=dark`
   (`auto` vuelve a seguir al sistema). Solo cambian los colores de la página; la protoboard conserva
   los suyos.
-- **Resultados de la simulación**, solo si el circuito tiene `"page": { "results": true }` (y
-  `supplies`): siempre activos, solo para el componente que se toca, así la protoboard nunca se
-  llena de números; no se activan mientras alguien deba predecirlos, así una página nunca adelanta un valor que alguien debe predecir ([simulacion.md](simulacion.md)).
+- **Resultados de la simulación**: un circuito con fuente (`supplies` o una batería) trae en la
+  barra un botón **Simulación**, sin presionar; presionado, el componente que se toca muestra sus
+  valores, así la protoboard nunca se llena de números. `"page": { "results": true }` lo deja
+  presionado desde el inicio; `"page": { "simulation": false }` lo quita, para un valor que alguien
+  debe predecir ([simulacion.md](simulacion.md)).
 - **Toca un componente** para enfocarlo y abrir su ficha; capa de corriente opcional
   (`"page": { "flow": true }`). Ver [foco-y-corriente.md](foco-y-corriente.md).
 - **Toca una tira** en uso (o una pata en la ficha de un componente) para abrir la ficha de la
   tira: qué es una tira, qué está conectado, esos componentes al frente; con los resultados, su
   voltaje (tensión) respecto a tierra (con las puntas dibujadas), la corriente de cada pata que
   entra o sale y su osciloscopio.
-- **Simulación en vivo**: con `results` o `flow`, la página lleva el simulador y lo corre (unos
+- **Simulación en vivo**: con el botón Simulación (o `flow`), la página lleva el simulador y lo corre (unos
   60 kB más): los valores, los colores y los puntos lo siguen, y un circuito con condensadores o
   bobinas tiene *Pausa*, *Encender (t = 0)* y un reloj. Ver
   [foco-y-corriente.md](foco-y-corriente.md) y [simulacion-en-vivo.md](simulacion-en-vivo.md).

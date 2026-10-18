@@ -13,7 +13,7 @@ export default {
 
   'check.INVALID_CIRCUIT': 'The circuit file must be an object with a "parts" list.',
   'check.UNKNOWN_BOARD': 'Unknown board "{board}". Known boards: {options}.',
-  'check.PAGE_CONTROLS_NOT_LIVE': 'page.controls is shown only in a live page: add page.results or page.flow.',
+  'check.PAGE_CONTROLS_NOT_LIVE': 'page.controls is shown only in a live page: give the circuit a source (or page.results), or page.flow; page.simulation false turns it off.',
   'check.PAGE_CONTROLS_NO_SIM': 'page.controls needs a circuit that can be simulated (supplies or a battery, no placement errors).',
   'check.PAGE_CONTROL_TARGET': 'page.controls entry {index}: name either a part or a supply.',
   'check.PAGE_CONTROL_UNKNOWN': 'page.controls: {target} has no control "{field}" (it has: {options}).',
@@ -216,6 +216,8 @@ export default {
   'sim.region.bjt.active': 'active (Ic = β·Ib)',
   'sim.region.bjt.saturation': 'saturated (fully on)',
   'sim.badge': 'MODEL · DC simulation',
+  'page.results.button': 'Simulation',
+  'page.results.title': 'Show the model\'s voltages and currents on what you tap',
   'page.results': 'Simulation (model)',
   'sim.q.voltage': 'Voltage',
   'sim.q.current': 'Current',

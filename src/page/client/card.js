@@ -70,6 +70,7 @@ function fillSim(page, box, lines, open) {
 // The limits the part went past (live page): "⚠ D1 carries 38 mA, more than its maximum 30 mA."
 function fillNotes(page, box) {
   box.textContent = '';
+  if (!page.state.results) return; // limits give values away: only with the Simulation button on
   for (const text of page.stressNotes?.(page.open) ?? []) item(box, 'p', `⚠ ${text}`, 'stress');
 }
 export function refreshNotes(page) {
@@ -112,11 +113,13 @@ function openInfo(page, id, open) {
     }, state.ghost.has(id), 'eye'],
     [data.text.close, () => select(page, null), undefined, 'close'],
   ]);
-  fillSummary(page, item(info, 'div', null, 'summary'), p.sim);
+  // Simulated values only while the Simulation button is on.
+  const sim = page.state.results ? p.sim : [];
+  fillSummary(page, item(info, 'div', null, 'summary'), sim);
   fillNotes(page, item(info, 'div', null, 'notes'));
   terms(page, info, [p.type, p.value].filter(Boolean), open);
   if (p.here) item(info, 'p', p.here, 'here');
-  if (p.sim.length) fillSim(page, item(info, 'div', null, 'sim'), p.sim, open);
+  if (sim.length) fillSim(page, item(info, 'div', null, 'sim'), sim, open);
   page.buildScope?.(info, id);
   page.buildControls?.(info, id);
   // Each pin's line opens the card of its strip, which the part often covers on screen. Folded:
@@ -141,7 +144,8 @@ function openNodeInfo(page, node, open) {
   const n = data.nodes[node];
   info.textContent = '';
   head(page, n.title, [[data.text.close, () => select(page, null), undefined, 'close']]);
-  fillSummary(page, item(info, 'div', null, 'summary'), n.sim);
+  const sim = page.state.results ? n.sim : [];
+  fillSummary(page, item(info, 'div', null, 'summary'), sim);
   item(info, 'p', n.about, 'here');
   item(info, 'h3', data.text.leads);
   const leads = item(info, 'ul');
@@ -155,9 +159,9 @@ function openNodeInfo(page, node, open) {
     b.type = 'button';
     b.addEventListener('click', () => select(page, lead.part));
   }
-  if (n.sim.length) fillSim(page, item(info, 'div', null, 'sim'), n.sim, open);
+  if (sim.length) fillSim(page, item(info, 'div', null, 'sim'), sim, open);
   page.buildScope?.(info, 'node:' + node);
-  if (n.sim.length) item(info, 'p', data.text.explain, 'tip');
+  if (sim.length) item(info, 'p', data.text.explain, 'tip');
   info.hidden = false;
 }
 
@@ -191,7 +195,7 @@ export function refreshCard(page) {
   const id = page.open;
   if (!id || page.info.hidden) return;
   const node = id.startsWith('node:') ? id.slice(5) : null;
-  const lines = (node != null ? page.data.nodes[node] : page.data.parts[id])?.sim ?? [];
+  const lines = page.state.results ? (node != null ? page.data.nodes[node] : page.data.parts[id])?.sim ?? [] : [];
   const reopen = (expanded) => (node != null ? openNodeInfo(page, node, expanded) : openInfo(page, id, expanded));
   const summary = page.info.querySelector('.summary');
   if (summary) fillSummary(page, summary, lines);

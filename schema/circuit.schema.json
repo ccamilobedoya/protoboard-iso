@@ -200,7 +200,11 @@
       "properties": {
         "results": {
           "type": "boolean",
-          "description": "Simulation always on in the page: the tapped part shows its values on the board and in its card"
+          "description": "Simulation button pressed from the start: the tapped part shows its values on the board and in its card"
+        },
+        "simulation": {
+          "type": "boolean",
+          "description": "false: no Simulation button (a circuit with a source gets one by default, not pressed), e.g. while a value is to be predicted"
         },
         "flow": {
           "type": "boolean",

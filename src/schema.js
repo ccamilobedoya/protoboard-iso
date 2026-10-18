@@ -119,7 +119,8 @@ export function buildSchemas() {
         type: 'object',
         description: 'The embeddable page out/<name>.html',
         properties: {
-          results: { type: 'boolean', description: 'Simulation always on in the page: the tapped part shows its values on the board and in its card' },
+          results: { type: 'boolean', description: 'Simulation button pressed from the start: the tapped part shows its values on the board and in its card' },
+          simulation: { type: 'boolean', description: 'false: no Simulation button (a circuit with a source gets one by default, not pressed), e.g. while a value is to be predicted' },
           flow: { type: 'boolean', description: 'Add the current layer: everything dimmed, strips shown, moving dots (needs supplies or a battery)' },
           focus: { type: 'array', items: text, description: 'Parts in focus when the page opens (the ones being explained)' },
           controls: {

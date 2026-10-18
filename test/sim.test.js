@@ -322,13 +322,16 @@ test('results drawn on the board: a layer of their own, labelled as a model', as
   assert.match(warned, /llegó a su límite de 5 mA y pasó a corriente constante/);
 });
 
-test('the page has results only when the circuit asks, and shows them per tapped part', async () => {
+test('the page offers the simulation as a button (pressed with page.results), and shows it per tapped part', async () => {
   const { renderPage } = await import('../src/page.js');
   const circuit = { ...example('led-resistor.json'), supplies: supply(5), page: undefined };
+  const off = renderPage({ ...circuit, page: { simulation: false } }, { lang: 'es' }).html;
+  assert.doesNotMatch(off, /class="results"|data-results|data-key="results"/, 'page.simulation false: no button, no results');
   const plain = renderPage(circuit, { lang: 'es' }).html;
-  assert.doesNotMatch(plain, /class="results"|data-results/);
+  assert.match(plain, /data-key="results"/, 'by default: the button');
+  assert.doesNotMatch(plain, /<body [^>]*data-results="on"/, 'not pressed');
   const html = renderPage({ ...circuit, page: { results: true } }, { lang: 'es' }).html;
-  assert.doesNotMatch(html, /data-key="results"/, 'no button: always on');
+  assert.match(html, /data-key="results"/, 'the button, pressed from the start');
   assert.match(html, /<body [^>]*data-results="on"/);
   assert.match(html, /\.results > \* \{ display: none; \}|\.results > \* \{ display: none; \}/);
   assert.match(html, /\.strips > \*, \.results > \* \{ display: none; \}/, 'every tag hidden until its part is tapped');
@@ -361,4 +364,30 @@ test('an inductor in a floating island does not break DC; the rest still solves 
   near(r.nodes['16:f-j'], 4.5, 1e-4, 'middle node');
   assert.ok(r.parts.L1.floating, 'the inductor is reported floating');
   assert.ok(codes(r.issues).includes('SIM_FLOATING'));
+});
+
+test('the Simulation button: off at first (no values in the card), pressed shows them, pressed again hides them', async () => {
+  const { renderPage } = await import('../src/page.js');
+  let JSDOM;
+  try {
+    ({ JSDOM } = await import('jsdom'));
+  } catch {
+    return;
+  }
+  const html = renderPage({ ...example('led-resistor.json'), supplies: supply(5), page: undefined }, { lang: 'es' }).html;
+  const dom = new JSDOM(html, { runScripts: 'outside-only' });
+  for (const svg of dom.window.document.querySelectorAll('svg')) svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 500 });
+  dom.window.eval(html.match(/<script>([\s\S]*)<\/script>/)[1]);
+  const doc = dom.window.document;
+  const button = doc.querySelector('nav button[data-key="results"]');
+  assert.equal(button.getAttribute('aria-pressed'), 'false');
+  assert.ok(!doc.body.classList.contains('show-results'));
+  doc.querySelector('.parts > [data-part="D1"]').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  assert.equal(doc.querySelector('.info .sim'), null, 'no values while off');
+  button.click();
+  assert.equal(button.getAttribute('aria-pressed'), 'true');
+  assert.ok(doc.body.classList.contains('show-results'));
+  assert.ok(doc.querySelector('.info .sim'), 'the open card gains its values');
+  button.click();
+  assert.equal(doc.querySelector('.info .sim'), null, 'and loses them again');
 });

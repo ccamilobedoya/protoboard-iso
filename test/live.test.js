@@ -35,11 +35,17 @@ const rc = () => ({
   ],
 });
 
-test('live: only pages that ask for results or the current layer carry the engine', () => {
+test('live: a page carries the engine when it offers the simulation or the current layer', () => {
   const { page, ...noPage } = example('led-resistor.json');
-  const plain = renderPage(noPage).html;
+  const plain = renderPage({ ...noPage, page: { simulation: false } }).html;
   assert.doesNotMatch(plain, /id="sim-program"/);
   assert.doesNotMatch(plain, /createEngine/, 'no engine in the script');
+  const sourceless = renderPage({ ...noPage, supplies: undefined }).html;
+  assert.doesNotMatch(sourceless, /id="sim-program"/, 'nothing to simulate without a source');
+  const byDefault = renderPage(noPage).html;
+  assert.match(byDefault, /id="sim-program"/, 'a circuit with a source offers it by default');
+  assert.match(byDefault, /data-key="results"/, 'as a Simulation button');
+  assert.doesNotMatch(byDefault, /<body [^>]*data-results="on"/, 'not pressed');
   const asking = renderPage(example('led-resistor.json')).html;
   assert.match(asking, /id="sim-program"/, 'led-resistor asks for results');
   assert.match(asking, /createEngine/);
@@ -104,8 +110,8 @@ test('live: a capacitor charges in simulated time (textbook RC), pause stops the
 });
 
 test('live: "Open in Falstad" carries the circuit as it is now, and its notes', async (t) => {
-  const plain = renderPage((({ page, ...rest }) => rest)(example('led-resistor.json'))).html;
-  assert.doesNotMatch(plain, /falstad\.com/, 'no link without results or the current layer');
+  const plain = renderPage({ ...example('led-resistor.json'), page: { simulation: false } }).html;
+  assert.doesNotMatch(plain, /falstad\.com/, 'no link without the simulation or the current layer');
   const window = await loadPage(renderPage({ ...example('more-parts.json'), page: { results: true } }, { lang: 'es' }).html);
   if (!window) return t.skip('jsdom not installed');
   const link = window.document.querySelector('nav .falstad .open');

@@ -8,7 +8,7 @@
 // on screen in each view (strips, hits), the explanations (explain), the probe captions (probes),
 // the initial focus and UI texts.
 //
-// State: view, fit, labels, results (on when the circuit asks), layer (parts | flow),
+// State: view, fit, labels, results (the Simulation button; pressed at the start with page.results), layer (parts | flow),
 // speed (linear | log: how dot speed follows the current), focus (set of part ids), node (the
 // tapped strip, or null), ghost (see-through ids). Everything visual is CSS classes or rules; the script never redraws the scene.
 //
@@ -62,7 +62,7 @@ export function startPage(extensions = []) {
     refreshCard: () => refreshCard(page),
     refreshNotes: () => refreshNotes(page),
   };
-  const toggles = ['labels'];
+  const toggles = ['labels', 'results'];
 
   // What is on screen now: the frame changes only when the view or the framing does (U5: toggling
   // the labels or a layer keeps where the learner was looking).
@@ -85,7 +85,9 @@ export function startPage(extensions = []) {
         fitTo(page, fitBox());
       } else if (shown.fit !== state.fit) fitTo(page, fitBox(), true);
     }
-    shown = { view: state.view, fit: state.fit };
+    // The Simulation button changed: the open card gains or loses its values.
+    if (shown.results !== undefined && shown.results !== state.results) page.refreshCard();
+    shown = { view: state.view, fit: state.fit, results: state.results };
     document.body.classList.toggle('no-labels', !state.labels);
     document.body.classList.toggle('show-results', state.results);
     document.body.classList.toggle('layer-flow', state.layer === 'flow');

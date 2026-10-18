@@ -14,7 +14,8 @@ Both use one exporter: `toFalstad(program, options)` in `src/sim/falstad.js`.
 
 ## The button
 
-- Only in the live page, that is when the circuit asks for `page.results` or `page.flow`:
+- Only in the live page, that is when it offers the simulation (a source, unless
+  `page.simulation` is false) or the current layer (`page.flow`):
   Falstad shows every value, so it follows the same prediction rule as the results.
 - Each tap exports again from the engine's state (`engine.program()`): what you see is what
   opens.

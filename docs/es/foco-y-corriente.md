@@ -44,9 +44,10 @@ página con esos componentes en foco (los que explica la lección).
   donde un componente queda encima de otro (un puente sobre una resistencia), toca otra vez el
   abierto para abrir el de debajo.
 - **Toca la protoboard** (o ✕) para quitar el foco.
-- Con `"page": { "results": true }` la simulación está siempre activa, sin botón: el componente
-  tocado muestra sobre la protoboard su corriente simulada y el voltaje de sus grupos, y en la
-  ficha todos sus valores. Nada más lleva etiqueta: todas a la vez son demasiado para leer.
+- Con el botón **Simulación** activo (está por defecto si el circuito tiene fuente; presionado
+  desde el inicio con `"page": { "results": true }`; se quita con `"page": { "simulation": false
+  }`) el componente tocado muestra sobre la protoboard su corriente simulada y el voltaje de sus
+  grupos, y en la ficha todos sus valores. Nada más lleva etiqueta: todas a la vez son demasiado para leer.
 - **Cada valor se explica solo.** Toca una línea de la ficha («Capacitancia: 100 µF», «Ic: 8,82 mA»,
   «saturado»…) para abrir qué significa; con mouse, al pasar por encima aparece el mismo texto en un
   cuadro pequeño. Los textos están en `src/i18n` (`explain.*`), traducidos como todo lo demás.
@@ -118,7 +119,7 @@ alguien debe predecir.
 
 ## La página en vivo
 
-Con `results` o `flow`, la página corre el simulador por su cuenta (el mismo motor de la línea
+Con el botón Simulación (o `flow`), la página corre el simulador por su cuenta (el mismo motor de la línea
 de comandos, incluido en ella). Al cargar muestra los valores en DC, como antes; después:
 
 - **Tiempo**: un circuito con condensadores o bobinas tiene *Pausa*, *Encender (t = 0)*

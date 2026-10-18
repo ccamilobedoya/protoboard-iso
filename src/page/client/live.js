@@ -89,7 +89,8 @@ export function setupLive(page) {
   let openScope = null;
   const scopeTime = () => (dynamic ? engine.time : wallTime);
   function record(r, force = false) {
-    if (!recorder || !r) return;
+    // Nothing is recorded while the Simulation button is off (a value may be waiting for a prediction).
+    if (!recorder || !r || !page.state.results) return;
     const time = scopeTime();
     if (!force && time - lastRecord < (2 * scopeWindow) / (dynamic ? 1500 : 500)) return;
     lastRecord = time;
@@ -123,7 +124,7 @@ export function setupLive(page) {
   // or "node:<group>" for a strip.
   page.buildScope = (info, id) => {
     openScope = null;
-    if (!recorder || !scopeFor(id)) return;
+    if (!recorder || !page.state.results || !scopeFor(id)) return;
     openScope = { id, scope: createScope(info, { t, f }) };
     drawScope();
   };

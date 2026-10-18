@@ -84,7 +84,7 @@ the tests green, this page and the roadmap up to date.
 | **Conductor view** ("X-ray"): board veiled, parts faint, every conductor drawn as one continuous thick path (strip → lead → body → lead → wire), coloured by voltage, dots on top; tapping a part brings it back | The path of the current is what a learner needs to see. Drawn over a veiled picture, nothing has to be hidden behind parts. Lines over the realistic drawing (dots showing through bodies) and schematic badges were discarded. |
 | **Sliders** automatic in each adjustable part's card, plus a panel of controls the circuit declares (`page.controls`) | Exploring is free; a lesson can still put the two or three that matter in front. |
 | **Limits made visible**: every device reports its *stress* (value / limit) for current, power, voltage, reverse voltage; three levels for all parts; a latched "exceeded" mark | One of the goals of simulating at this level is to tell whether a part will survive a voltage before trying it. |
-| No new page flag: the engine is embedded when the circuit asks for `page.results` or `page.flow` | Both are already opt-in, so a value pending a learner's prediction is never shown. |
+| No new page flag: the engine is embedded when the circuit asks for `page.results` or `page.flow` | Both are already opt-in, so a value pending a learner's prediction is never shown. (Superseded 2026-10-17: the Simulation button is there by default, off; `page.simulation: false` opts out. See PLANNING.md.) |
 | The oscilloscope (V and I against time) comes at the end of the stage, with the signal generator and the probes (phases 7 to 9) | Useful for RC, rectifiers and later the 555, but not needed for the rest. |
 
 ## How it looks

@@ -15,7 +15,8 @@ Las dos usan el mismo exportador: `toFalstad(program, opciones)` en `src/sim/fal
 
 ## El botón
 
-- Aparece solo en la página en vivo, o sea cuando el circuito pide `page.results` o `page.flow`.
+- Aparece solo en la página en vivo, o sea cuando ofrece la simulación (tiene fuente y
+  `page.simulation` no es false) o la capa de corriente (`page.flow`).
   Falstad muestra todos los valores, así que sigue la misma regla de predicción que los
   resultados.
 - Cada vez que se toca, exporta el circuito de nuevo con el estado del motor

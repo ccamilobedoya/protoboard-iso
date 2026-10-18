@@ -2,7 +2,7 @@
 //
 // Visibility is driven by classes on <body> and by two <style> elements the script rewrites:
 //   body.no-labels       labels hidden                 body.focusing    veil shown (a part is tapped)
-//   body.show-results    simulation on (page.results)  body.layer-flow  current layer
+//   body.show-results    Simulation button pressed (at the start with page.results)  body.layer-flow  current layer
 //   body.speed-log       dot speed on a log scale (each dot path carries --lin and --log)
 //   #dynamic             strips, coordinates and result tags of the focused part (or the tapped
 //                        strip, with its probes); see-through rules
@@ -131,7 +131,7 @@ main > svg > rect:first-child { fill: var(--canvas); }
 .results text[data-q]:not([data-q="node"]) { fill: var(--tag-i); }
 .results .badge { fill: var(--ink-3); stroke: var(--canvas); }
 body.no-labels .labels, body.no-labels .spotlabels { display: none; }
-body:not(.show-results) .results, body:not(.show-results) .info .sim { display: none; }
+body:not(.show-results) .results, body:not(.show-results) .info .sim, body:not(.show-results) .panel.warnings, body:not(.show-results) nav .warn-flag { display: none; }
 .veil, .strips, .coords, .flow, .results { pointer-events: none; }
 .coords > * { display: none; }
 .results > [data-q] { pointer-events: auto; cursor: help; }
