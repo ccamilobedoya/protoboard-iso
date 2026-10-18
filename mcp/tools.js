@@ -150,9 +150,11 @@ function findCircuits(dir, depth = 0, out = []) {
 
 export const INSTRUCTIONS = [
   'Breadboard circuits drawn in isometric SVG, with placement checks, a numeric inspector and change history.',
+  'New circuit without fixed positions: layout first (parts without pins and nets → placed, wired, nets checked and reviewed in about a second); then the loop below only for what it lists as blocking.',
   'Work loop: list_circuits → history and inspect (numbers, not pictures) → query / suggest (never compute holes or colour codes yourself) → apply_ops with dry_run → apply_ops with expect_revision, author and note → review until APPROVED → undo if needed.',
   'Never rewrite circuit files directly; change them only with apply_ops. render writes an SVG (and returns a PNG only when asked: images are slow to read).',
   'Holes: a1…j63 (row letter + column), rails T-, T+, B+, B- plus the column (T+9). Rows a–e of a column are connected, f–j too; each rail is one group.',
+  'The page out/<name>.html of a circuit with a source has a Simulation button, not pressed; page.results presses it from the start, page.simulation false removes it (a value a learner must predict first).',
 ].join('\n');
 
 // Tools as data: server.js registers them, kit-worker.js runs their handlers.
@@ -297,7 +299,7 @@ server.registerTool(
   {
     title: 'Lay out a whole circuit',
     description:
-      'Create a NEW circuit placed in one call from its parts and nets, without trial and error: parts left to right in the order given (the signal\'s), each in its own stretch of columns; a lead goes straight into a rail its net names when it reaches, or shares a strip when it stays visible; nets left in several strips are joined by jumpers. Answers the placement, the nets check (missing, shorted) and the lesson review. Use it first for a new circuit; then fix what the review lists with suggest and apply_ops. Board "auto" (default) grows in length as needed.',
+      'Create a NEW circuit placed in one call from its parts and nets, without trial and error: parts left to right by distance from the source over the nets (ties in the order given), each in its own stretch of columns; a two-lead part whose net names a rail stands upright into it, others share the strip of the part before them; three-lead parts sit on fresh strips (tall ones in rows b/g); parts off the board (switch, Arduino) wire to their nets\' strips; anything else goes through suggest. Nets left in several strips are joined by the shortest jumpers that pass. Then it checks the nets (missing, shorted) and runs the lesson review, laying out again a few times without the place of what the review blocks. Answers the placement, the nets check and the verdict. Use it first for a new circuit; then fix only what it lists as blocking or failed, with suggest and apply_ops. Board "auto" (default) grows in length as needed.',
     inputSchema: {
       target: z.string().describe('New folder, relative to the root (e.g. m2-fuente)'),
       parts: z.array(z.object({ id: z.string() }).passthrough()).min(1).describe('Parts without pins, in signal order: a type ({"id":"R1","type":"resistor","value":"1k"}) or just a part number, module or alias ({"id":"U1","part":"7805"}, {"id":"S1","part":"KCD1"}); no need to look them up in the catalog first'),
@@ -308,8 +310,8 @@ server.registerTool(
       board: z.string().optional().describe('auto (default, grows in length), bb400 or bb830'),
       title: z.union([z.string(), z.record(z.string(), z.string())]).optional(),
       netLabels: z.record(z.string(), z.string()).optional(),
-      page: z.object({}).passthrough().optional(),
-      clearance: z.number().optional(),
+      page: z.object({}).passthrough().optional().describe('As in the circuit. With a source the page has a Simulation button, not pressed; {"results": true} presses it from the start; {"simulation": false} removes it while a learner must predict a value'),
+      clearance: z.number().optional().describe('Gap between bodies in mm (default 1; 3 for a roomier lesson)'),
       check_only: z.boolean().optional().describe('Only check the parts and nets (unknown names with the closest ones, nets naming a missing part or pin, parts in no net) and create nothing'),
       author: z.string().optional(),
       note: z.string().optional(),

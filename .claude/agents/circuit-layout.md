@@ -72,7 +72,11 @@ repository root (`node bin/protoboard-iso.js <command> …`, same names: `inspec
    with the closest ones, a net naming a pin a part does not have, with the pins it has): fix them
    all and call it again; `check_only: true` checks without creating. Only what it lists as
    blocking or failed is left for the loop below. Without the MCP tool,
-   the CLI: `node bin/protoboard-iso.js layout <target> <spec.json>`.
+   the CLI: `node bin/protoboard-iso.js layout <target> <spec.json>`. With a source, the page gets a
+   Simulation button (not pressed) by default: the brief's `Page:` line says otherwise —
+   `none` → `page: {"simulation": false}` (a value still to be predicted), `pressed` →
+   `page: {"results": true}`. If `layout` itself seems wrong (a part kind placed badly every time),
+   say so in the report: its rules are in `docs/en/layout.md`.
 1. Read the brief. `catalog` once. Existing circuit: `history` and `inspect`. New circuit with
    fixed positions: `create_circuit` with only those parts, then add the rest.
 2. Place the parts in groups with one `suggest` call each: `parts` in the order of the

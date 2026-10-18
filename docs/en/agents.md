@@ -78,7 +78,8 @@ module or alias (`"part": "7805"`, `"KCD1"`, `"UNO"`, `"resistencia"`), so the a
 them up first; a list with mistakes places nothing and answers every problem at once (unknown
 names with the closest ones, nets naming a missing part or pin with the pins it has); `check_only`
 only checks. Measured with a smaller model on the same supply: 13 calls and 52 s, nine of them
-`catalog` lookups that this makes unnecessary.
+`catalog` lookups that this makes unnecessary. How the algorithm works, its limits and how to
+change it: [layout.md](layout.md).
 
 ## The loop (run by the main conversation)
 
@@ -108,6 +109,7 @@ Parts: <id, type, value or part number; positions only if the user fixed them>
 Board: <bb400 | bb830 …>, may grow (when the layout may move to the elastic board, auto)
 Constraints: <clearance (default 3 for lessons), area of the board, view>
 Fidelity: functional (default) | exact
+Page: simulation button (default) | none (a value to predict: page.simulation false) | pressed (page.results)
 Done when: review <profile> APPROVED
 ```
 
@@ -146,6 +148,7 @@ brief and report formats. A change to any of those can require changing the agen
 | an MCP tool (name, inputs, what it returns) or a CLI command | the `tools:` list and the instructions of every agent that uses it |
 | operations (`src/ops.js`) or review profiles (`src/review.js`) | `circuit-layout` and `circuit-reviewer` rules and loops |
 | how parts are added (`docs/*/adding-parts.md`, registries, schemas) | `parts-librarian` order of work and checks |
+| the layout algorithm (`src/layout.js`: its spec, what it answers, what it leaves to the loop) | `circuit-layout` step 0, the MCP `layout` description, [layout.md](layout.md) |
 | a brief or report format, or the loop | the agent files and this page (both languages) |
 
 Do it in the same change. `npm run test:mcp` checks that every `mcp__protoboard-iso__…` tool

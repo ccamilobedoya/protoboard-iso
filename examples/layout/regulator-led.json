@@ -1,0 +1,17 @@
+{
+  "title": { "en": "5 V regulator with a pilot LED", "es": "Regulador de 5 V con LED piloto" },
+  "board": "auto",
+  "parts": [
+    { "id": "U1", "type": "regulator", "part": "7805" },
+    { "id": "C1", "type": "capacitor", "kind": "ceramic", "value": "100n" },
+    { "id": "R1", "type": "resistor", "value": "1k" },
+    { "id": "D1", "type": "led", "color": "red" }
+  ],
+  "nets": [
+    ["U1.IN", "T+"],
+    { "pins": ["U1.OUT", "C1.1", "R1.1"], "color": "orange" },
+    ["R1.2", "D1.anode"],
+    ["U1.GND", "C1.2", "D1.cathode", "T-"]
+  ],
+  "supplies": [{ "id": "V1", "kind": "bench", "voltage": 9, "positive": "T+", "negative": "T-" }]
+}

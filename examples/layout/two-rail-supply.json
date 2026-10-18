@@ -1,0 +1,30 @@
+{
+  "title": { "en": "Two-rail supply (12 V → 5 V → 3.3 V)", "es": "Fuente de dos rieles (12 V → 5 V → 3,3 V)" },
+  "board": "auto",
+  "parts": [
+    { "id": "D1", "part": "1N4007" },
+    { "id": "S1", "part": "KCD1", "on": true },
+    { "id": "U1", "part": "7805" },
+    { "id": "C1", "type": "capacitor", "kind": "ceramic", "value": "100n" },
+    { "id": "C2", "type": "capacitor", "kind": "ceramic", "value": "100n" },
+    { "id": "R1", "type": "resistor", "value": "1k", "tolerance": "1%" },
+    { "id": "LED1", "type": "led", "color": "red" },
+    { "id": "U2", "part": "AMS1117-3.3" },
+    { "id": "R2", "type": "resistor", "value": "470", "tolerance": "1%" },
+    { "id": "LED2", "type": "led", "color": "yellow" }
+  ],
+  "nets": [
+    ["D1.A"],
+    ["D1.K", "S1.1"],
+    ["S1.2", "U1.IN", "C1.1"],
+    { "pins": ["U1.GND", "C1.2", "C2.2", "LED1.cathode", "T-"], "color": "black" },
+    ["U1.OUT", "C2.1", "R1.1", "U2.IN"],
+    ["R1.2", "LED1.anode"],
+    ["U2.OUT", "R2.1"],
+    ["R2.2", "LED2.anode"],
+    { "pins": ["U2.GND", "LED2.cathode", "B-"], "color": "black" },
+    { "pins": ["T-", "B-"], "color": "black" }
+  ],
+  "supplies": [{ "id": "V1", "kind": "bench", "voltage": 12, "currentLimit": 0.04, "positive": "D1.A", "negative": "T-" }],
+  "netLabels": { "T-": "GND", "B-": "GND 3.3 V" }
+}

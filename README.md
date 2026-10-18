@@ -78,6 +78,7 @@ breadboard circuit comes up.
 | Focus and the current layer | [docs/en/focus-and-flow.md](docs/en/focus-and-flow.md) | [docs/es/foco-y-corriente.md](docs/es/foco-y-corriente.md) |
 | Falstad: open a circuit in CircuitJS, cross-check | [docs/en/falstad.md](docs/en/falstad.md) | [docs/es/falstad.md](docs/es/falstad.md) |
 | Embedding a circuit in documentation | [docs/en/embedding.md](docs/en/embedding.md) | [docs/es/embeber.md](docs/es/embeber.md) |
+| Layout: the algorithm that places a whole circuit | [docs/en/layout.md](docs/en/layout.md) | [docs/es/montaje-automatico.md](docs/es/montaje-automatico.md) |
 | Agents (layout, reviewer, parts librarian) | [docs/en/agents.md](docs/en/agents.md) | [docs/es/agentes.md](docs/es/agentes.md) |
 | Roadmap | [ROADMAP.md](ROADMAP.md) | [docs/es/hoja-de-ruta.md](docs/es/hoja-de-ruta.md) |
 | Planning | [PLANNING.md](PLANNING.md) | [docs/es/planeacion.md](docs/es/planeacion.md) |

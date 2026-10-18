@@ -81,7 +81,8 @@ alias (`"part": "7805"`, `"KCD1"`, `"UNO"`, `"resistencia"`), así el agente no 
 una lista con errores no coloca nada y responde todos los problemas de una vez (nombres que no
 conoce con los más parecidos, redes que nombran una pieza o pata que no existe con las patas que
 tiene); `check_only` solo revisa. Medido con un modelo más pequeño con la misma fuente: 13
-llamadas y 52 s, nueve de ellas consultas a `catalog` que esto vuelve innecesarias.
+llamadas y 52 s, nueve de ellas consultas a `catalog` que esto vuelve innecesarias. Cómo funciona
+el algoritmo, sus límites y cómo cambiarlo: [montaje-automatico.md](montaje-automatico.md).
 
 ## El ciclo (lo maneja la conversación principal)
 
@@ -113,6 +114,7 @@ Parts: <id, tipo, valor o referencia; posiciones solo si el usuario las fijó>
 Board: <bb400 | bb830 …>, may grow (si el montaje puede pasar a la protoboard elástica, auto)
 Constraints: <clearance (3 por defecto para clases), zona de la protoboard, vista>
 Fidelity: functional (por defecto) | exact
+Page: simulation button (por defecto) | none (un valor por predecir: page.simulation false) | pressed (page.results)
 Done when: review <perfil> APPROVED
 ```
 
@@ -153,6 +155,7 @@ cambiar los agentes:
 | una herramienta MCP (nombre, entradas, lo que devuelve) o un comando | la lista `tools:` y las instrucciones de cada agente que la use |
 | las operaciones (`src/ops.js`) o los perfiles de revisión (`src/review.js`) | las reglas y el ciclo de `circuit-layout` y `circuit-reviewer` |
 | cómo se agregan componentes (`docs/*/agregar-componentes.md`, registros, esquemas) | el orden de trabajo y las comprobaciones de `parts-librarian` |
+| el algoritmo de montaje (`src/layout.js`: su especificación, lo que responde, lo que deja al ciclo) | el paso 0 de `circuit-layout`, la descripción de la herramienta MCP `layout`, [montaje-automatico.md](montaje-automatico.md) |
 | un formato de encargo o de respuesta, o el ciclo | los archivos de los agentes y esta página (en los dos idiomas) |
 
 Se hace en el mismo cambio. `npm run test:mcp` comprueba que cada herramienta

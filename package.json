@@ -26,6 +26,7 @@
     "examples": "node scripts/render-examples.js",
     "preview": "node scripts/preview.js",
     "schemas": "node scripts/build-schemas.js",
+    "layout-bench": "node scripts/layout-bench.js",
     "test:mcp": "npm --prefix mcp test",
     "mcp": "node mcp/server.js"
   },

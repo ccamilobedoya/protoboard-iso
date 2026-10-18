@@ -55,7 +55,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `render/coverage.js`, `inspect.js`, `annotate.js` | medir el dibujo; capas de anotación |
 | `ops.js`, `diff.js`, `node/workspace.js` | operaciones con inversa, diferencia en seco, historial, deshacer, salidas |
 | `parts/resolve.js` | un componente a partir de lo que escribe una persona (`resolvePart`: número de parte, módulo, alias como KCD1 o resistencia; `closestNames` si no lo conoce), `pinsOf`; los alias en `PART_ALIASES` |
-| `layout.js` | un circuito entero a partir de sus componentes y redes (`validateSpec` primero: todos los problemas de una vez; `autoLayout`: capas, reglas de colocación comprobadas solo con geometría, cables, se rehace mientras la revisión bloquea algo), `checkNets` (redes pedidas contra las armadas), `formatLayout`; CLI `layout`, MCP `layout` |
+| `layout.js` | un circuito entero a partir de sus componentes y redes (`validateSpec` primero: todos los problemas de una vez; `autoLayout`: capas, reglas de colocación comprobadas solo con geometría, cables, se rehace mientras la revisión bloquea algo), `checkNets` (redes pedidas contra las armadas), `formatLayout`; CLI `layout`, MCP `layout`; cómo funciona y cómo cambiarlo: [montaje-automatico.md](montaje-automatico.md), banco `npm run layout-bench` |
 | `query.js`, `query-format.js`, `review.js` | preguntas, colocaciones (`suggest`, `suggestMany`; grupos por agujero, nombre o pata ya colocada; reserva espacio para las conexiones que faltan con cables de prueba, mira un nivel adelante y da `reasons` cuando nada cabe), veredicto a partir de mediciones (lo que bloquea, con sus componentes y vistas) |
 | `nets.js` | el circuito como redes: grupos unidos por cables, con sus patas (MCP `netlist`, CLI `nets`) |
 | `node/catalog.js` | lo que conoce el kit, compacto o una entrada en detalle con sus campos (`TYPE_FIELDS`, al día con el esquema gracias a una prueba) y un ejemplo de `examples/` |
@@ -131,8 +131,10 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
   una etiqueta de resultados, que es también su clave de explicación), `data-probe` (`node:<grupo>` o
   `part:<id>`), `data-flow`, `data-col` / `data-row` (etiquetas de coordenadas).
 - **Los resultados son un modelo** y pueden adelantar una predicción: se dibujan solo si se piden
-  (`sim`, `flow`), y en una página solo si el circuito lo pide (`page.results`, `page.flow`) y solo
-  para el componente tocado.
+  (`sim`, `flow`), y en una página detrás del botón Simulación (`simulationOffer` en `sim/index.js`:
+  por defecto si el circuito tiene fuente, presionado con `page.results`, ninguno con
+  `page.simulation: false`) o con la capa de corriente (`page.flow`), y solo para el componente
+  tocado; la ficha, la grabación del osciloscopio y las marcas de límite miran `page.state.results`.
 - **Controles** (`controls`, `set` de un dispositivo) corren en la página: `set` es una fórmula
   pura y solo puede importar módulos que se agrupan (`ALLOWED` en `node/bundle.js`). Un
   dispositivo que agregue sus elementos en otro orden tras un cambio pierde su estado en

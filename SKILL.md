@@ -15,6 +15,16 @@ Requires Node.js 18 or newer. No npm dependencies.
 
 ## Workflow
 
+**A new circuit without fixed positions: let `layout` place it.** Give the parts (no pins, in
+signal order; a part number or alias is enough: `{"id": "U1", "part": "7805"}`) and the nets
+(`[["U1.OUT", "R1.1"], {"pins": ["U1.GND", "T-"], "color": "black"}]`), and it places every part,
+adds the jumpers, checks the nets and reviews, in about a second:
+`node <skill>/bin/protoboard-iso.js layout <new folder> spec.json` (MCP tool `layout`; `--check`
+only validates the spec). Then fix only what it lists as blocking, with the operations below.
+How the algorithm works and how to improve it: `docs/en/layout.md`.
+
+By hand, or to change a circuit:
+
 1. Write the circuit file (format below; full reference in `docs/en/circuit-format.md`).
    Start from the closest file in `examples/` when one fits.
 2. Check it: `node <skill>/bin/protoboard-iso.js check circuit.json --lang en`.
@@ -38,14 +48,17 @@ Requires Node.js 18 or newer. No npm dependencies.
    and run
    `node <skill>/bin/protoboard-iso.js simulate circuit.json` (or `render --sim`). Never compute
    them by hand, and never show a value a learner is asked to predict. See `docs/en/simulation.md`.
+   The page of a circuit with a source has a **Simulation** button in its bar, not pressed: the
+   learner presses it to see values. `"page": { "results": true }` presses it from the start;
+   `"page": { "simulation": false }` removes it, for a value the learner must predict first.
 
 ## Prefer the MCP tools
 
-If the `protoboard-iso` MCP server is connected (tools `list_circuits`, `inspect`, `query`,
-`netlist`, `suggest`, `apply_ops`, `undo`, `history`, `review`, `render`, `simulate`, `catalog`,
-`create_circuit`), use them instead of the CLI: typed inputs, short answers, same functions. The
-CLI commands below are the fallback. Setup: `docs/en/mcp.md`. To spend few calls: `catalog` once
-(compact), `suggest` with `parts` and `profile: "lesson"` for a chain of parts (later ones name
+If the `protoboard-iso` MCP server is connected (tools `list_circuits`, `layout`, `inspect`,
+`query`, `netlist`, `suggest`, `apply_ops`, `undo`, `history`, `review`, `render`, `simulate`,
+`catalog`, `create_circuit`), use them instead of the CLI: typed inputs, short answers, same
+functions. The CLI commands below are the fallback. Setup: `docs/en/mcp.md`. To spend few calls:
+`layout` for a new circuit; otherwise `catalog` once (compact), `suggest` with `parts` and `profile: "lesson"` for a chain of parts (later ones name
 earlier pins, `"R1.2"`), one `netlist` to check the connections, then `review`.
 
 ## Changing an existing circuit

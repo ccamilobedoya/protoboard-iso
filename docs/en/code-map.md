@@ -55,7 +55,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `render/coverage.js`, `inspect.js`, `annotate.js` | measuring the drawing; annotation layers |
 | `ops.js`, `diff.js`, `node/workspace.js` | operations with inverses, dry-run diff, history, undo, outputs |
 | `parts/resolve.js` | a part from what a person writes (`resolvePart`: part number, module, alias like KCD1 or resistencia; `closestNames` when unknown), `pinsOf`; aliases in `PART_ALIASES` |
-| `layout.js` | a whole circuit from its parts and nets (`validateSpec` first: every problem at once; `autoLayout`: layers, placement rules checked by geometry only, jumpers, relayout while the review blocks), `checkNets` (nets asked vs built), `formatLayout`; CLI `layout`, MCP `layout` |
+| `layout.js` | a whole circuit from its parts and nets (`validateSpec` first: every problem at once; `autoLayout`: layers, placement rules checked by geometry only, jumpers, relayout while the review blocks), `checkNets` (nets asked vs built), `formatLayout`; CLI `layout`, MCP `layout`; how it works and how to change it: [layout.md](layout.md), bench `npm run layout-bench` |
 | `query.js`, `query-format.js`, `review.js` | questions, placements (`suggest`, `suggestMany`; groups by hole, name or placed pin; room kept for later connections with probe jumpers, one level of look-ahead, `reasons` when nothing fits), verdict from measurements (blocking items with their parts and views) |
 | `nets.js` | the circuit as nets: groups joined by jumper wires, with their pins (MCP `netlist`, CLI `nets`) |
 | `node/catalog.js` | what the kit knows, compact or one entry in detail with its fields (`TYPE_FIELDS`, kept in step with the schema by a test) and an example from `examples/` |
@@ -125,7 +125,10 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 - **Data attributes**: `data-part` (part id), `data-node` (group), `data-q` (quantity of a result
   tag, also its explanation key), `data-probe` (`node:<group>` or `part:<id>`), `data-flow`, `data-col` / `data-row` (coordinate tags).
 - **Results are a model** and may give away a prediction: drawn only on request (`sim`, `flow`),
-  in a page only when the circuit asks (`page.results`, `page.flow`) and only for the tapped part.
+  in a page behind the Simulation button (`simulationOffer` in `sim/index.js`: by default when the
+  circuit has a source, pressed with `page.results`, none with `page.simulation: false`) or the
+  current layer (`page.flow`), and only for the tapped part; the card, the scope recorder and the
+  limit marks check `page.state.results`.
 - **Controls** (`controls`, `set` in a device) run in the page: `set` is a pure formula and may
   only import bundleable modules (`ALLOWED` in `node/bundle.js`). A device that adds elements in a
   different order after a change loses their state on `engine.set` (it is matched by order).

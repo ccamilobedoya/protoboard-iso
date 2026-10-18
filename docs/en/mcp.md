@@ -62,7 +62,7 @@ path of `mcp/server.js` and the environment above.
 | `inspect` | the drawing in numbers; `part` for one part only | no |
 | `query` | `kind: at \| node \| free` with `ref` | no |
 | `netlist` | the circuit as nets: groups joined by wires, the pins on each (`R1.1@d20`), labels, pins alone on a net | no |
-| `layout` | a NEW circuit placed in one call from its parts (no pins, signal order) and nets: layers by distance from the source, rules per part kind, jumpers for what is left in several strips, then the nets check (missing, shorted) and the lesson review; relays itself a few times without the place of whatever the review blocks. Parts by part number, module or alias; a wrong list places nothing and answers every problem; `check_only` only checks | yes |
+| `layout` | a NEW circuit placed in one call from its parts (no pins, signal order) and nets: layers by distance from the source, rules per part kind, jumpers for what is left in several strips, then the nets check (missing, shorted) and the lesson review; lays itself out again a few times without the place of whatever the review blocks. Parts by part number, module or alias; a wrong list places nothing and answers every problem; `check_only` only checks. The algorithm: [layout.md](layout.md) | yes |
 | `suggest` | valid placements for a new part, each with its `add` operation and the nearest body (`nearest`: part and gap); `profile` also leaves out what that review blocks; `parts` places several in order and answers one batch | no |
 | `apply_ops` | atomic batch; `dry_run` first, then `expect_revision`, `author`, `note` | yes |
 | `undo` | undo the latest change (new revision) | yes |
