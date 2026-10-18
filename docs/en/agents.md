@@ -73,7 +73,12 @@ For a new circuit without fixed positions the layout agent starts with `layout` 
 lists of pins and rails. The algorithm places the parts by layers (distance from the source), by
 rules per part kind, adds the jumpers and checks the nets and the lesson review, in about a second;
 measured on the course's two-rail supply (10 parts, 10 nets): approved, 7 jumpers, 1.8 s. What it
-cannot solve comes back as blocking items for the usual loop.
+cannot solve comes back as blocking items for the usual loop. Parts can be given by part number,
+module or alias (`"part": "7805"`, `"KCD1"`, `"UNO"`, `"resistencia"`), so the agent does not look
+them up first; a list with mistakes places nothing and answers every problem at once (unknown
+names with the closest ones, nets naming a missing part or pin with the pins it has); `check_only`
+only checks. Measured with a smaller model on the same supply: 13 calls and 52 s, nine of them
+`catalog` lookups that this makes unnecessary.
 
 ## The loop (run by the main conversation)
 

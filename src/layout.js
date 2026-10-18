@@ -32,6 +32,7 @@ import { review } from './review.js';
 import { PART_TYPES } from './parts/types/index.js';
 import { PACKAGES } from './parts/packages/index.js';
 import { SWITCH_STYLES } from './parts/types/switch.js';
+import { resolvePart, pinsOf } from './parts/resolve.js';
 
 const RAILS = ['T+', 'T-', 'B+', 'B-'];
 const PALETTE = ['orange', 'green', 'yellow', 'blue', 'white', 'violet'];
@@ -60,8 +61,51 @@ const blocking = (issues) => issues.filter((i) => i.severity !== 'info' || i.cod
 // second, so this is simpler and more predictable than patching in place. Keeps the best try.
 const TRIES = 8;
 
-export function autoLayout(spec, { profile = 'lesson' } = {}) {
+// Everything a list of parts and nets can get wrong, found in one pass before placing anything:
+// names the kit does not know (with the closest ones), repeated ids, nets that name a part or a
+// pin that is not there (with the pins it has), parts in no net. Parts come back resolved
+// ("7805" → regulator 7805, "KCD1" → rocker switch).
+export function validateSpec(spec) {
+  const problems = [];
+  const parts = [];
+  const seen = new Set();
+  for (const raw of spec.parts ?? []) {
+    if (!raw?.id) {
+      problems.push({ severity: 'error', code: 'MISSING_ID', params: { index: parts.length + 1 } });
+      continue;
+    }
+    if (seen.has(raw.id)) problems.push({ severity: 'error', code: 'DUPLICATE_ID', params: { part: raw.id } });
+    seen.add(raw.id);
+    const r = resolvePart(raw);
+    if (r.error) problems.push(r.error);
+    else parts.push(r.part);
+  }
+  const byId = new Map(parts.map((p) => [p.id, p]));
+  const inNet = new Set();
+  const checkRef = (ref, where) => {
+    if (railName(ref)) return;
+    const m = /^([^.\s]+)\.([^.\s]+)$/.exec(String(ref).trim());
+    if (!m) return problems.push({ severity: 'error', code: 'NET_BAD_REF', params: { where, ref: String(ref) } });
+    const part = byId.get(m[1]);
+    if (!part) {
+      if (!seen.has(m[1])) problems.push({ severity: 'error', code: 'NET_UNKNOWN_PART', params: { where, ref: String(ref), part: m[1], parts: [...seen].join(', ') } });
+      return;
+    }
+    inNet.add(part.id);
+    const names = pinsOf(part);
+    if (names.length && !names.some((n) => n.toLowerCase() === m[2].toLowerCase())) problems.push({ severity: 'error', code: 'NET_UNKNOWN_PIN', params: { where, ref: String(ref), part: part.id, pin: m[2], names: names.join(', ') } });
+  };
+  (spec.nets ?? []).forEach((n, i) => (Array.isArray(n) ? n : n?.pins ?? []).forEach((ref) => checkRef(ref, i + 1)));
+  for (const s of spec.supplies ?? []) for (const ref of [s.positive, s.negative]) if (ref != null) checkRef(ref, s.id ?? 'supply');
+  for (const p of parts) if (!inNet.has(p.id)) problems.push({ severity: 'warning', code: 'PART_IN_NO_NET', params: { part: p.id } });
+  return { parts, problems, ok: !problems.some((p) => p.severity === 'error') };
+}
+
+export function autoLayout(spec, { profile = 'lesson', checkOnly = false } = {}) {
   const started = Date.now();
+  const valid = validateSpec(spec);
+  if (checkOnly || !valid.ok) return { invalid: !valid.ok, checked: true, parts: valid.parts, problems: valid.problems, ms: Date.now() - started };
+  spec = { ...spec, parts: valid.parts };
   const forbid = new Set(); // "id pins" keys
   let best = null;
   let tries = 0;
@@ -434,6 +478,12 @@ export function checkNets(circuit, asked) {
 
 // Readable answer for the CLI and the MCP tool.
 export function formatLayout(r, lang, { t, formatIssue }) {
+  if (r.checked) {
+    const lines = [t(lang, r.invalid ? 'layout.invalid' : 'layout.valid', { parts: r.parts.length })];
+    for (const p of r.parts) lines.push(`  ${p.id}: ${p.type}${p.part ? ` ${p.part}` : ''}${p.style ? ` (${p.style})` : ''}${p.value ? ` ${p.value}` : ''}`);
+    for (const p of r.problems) lines.push(`  ${p.severity === 'error' ? '✖' : '·'} ${formatIssue(p, lang)}`);
+    return lines.join('\n');
+  }
   const lines = [t(lang, 'layout.header', { placed: r.placed.length, wires: r.wires, ms: r.ms, columns: r.columns ?? '—' })];
   for (const p of r.placed) {
     const how = [p.rails.length ? t(lang, 'layout.rails', { pins: p.rails.join(', ') }) : '', p.shared.length ? t(lang, 'layout.shared', { pins: p.shared.join(', ') }) : ''].filter(Boolean).join(' · ');

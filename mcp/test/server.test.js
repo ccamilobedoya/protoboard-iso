@@ -202,3 +202,13 @@ test('layout creates a whole circuit from parts and nets, with the nets check an
   assert.ok((await call('get_circuit', { target: 'circuits/laid-out' })).content[0].text.includes('"D1"'));
   assert.ok((await call('layout', { target: 'circuits/laid-out', parts: [{ id: 'R1', type: 'resistor', value: '1k' }], nets: [] })).isError, 'refuses to overwrite');
 });
+
+test('layout check_only reads parts by name and reports every problem without creating anything', async () => {
+  const ok = await call('layout', { target: 'circuits/checked', parts: [{ id: 'U1', part: 'L7805CV' }, { id: 'S1', part: 'KCD1' }], nets: [['U1.IN', 'S1.2'], ['S1.1', 'T+'], ['U1.GND', 'T-'], ['U1.OUT']], check_only: true });
+  assert.ok(!ok.isError);
+  assert.match(ok.content[0].text, /U1: regulator 7805/);
+  const bad = await call('layout', { target: 'circuits/checked', parts: [{ id: 'U1', part: '7805' }], nets: [['U1.VIN', 'T+']], check_only: true });
+  assert.ok(bad.isError);
+  assert.match(bad.content[0].text, /IN, GND, OUT/);
+  assert.ok((await call('get_circuit', { target: 'circuits/checked' })).isError, 'nothing created');
+});

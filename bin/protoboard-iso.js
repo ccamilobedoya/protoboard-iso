@@ -55,6 +55,7 @@ function parseArgs(argv) {
     else if (a === '--sim') args.sim = true;
     else if (a === '--focus') args.focus = argv[++i].split(',');
     else if (a === '--flow') args.flow = true;
+    else if (a === '--check') args.check = true;
     else if (a === '-h' || a === '--help') args.help = true;
     else args._.push(a);
   }
@@ -105,8 +106,12 @@ if (command === 'layout') {
     fail(1);
   }
   const spec = JSON.parse(extra === '-' ? readFileSync(0, 'utf8') : readFileSync(extra, 'utf8'));
-  const result = autoLayout(spec);
+  const result = autoLayout(spec, { checkOnly: args.check });
   const outLang = pickLanguage(args.lang, spec.lang, 'en');
+  if (result.checked) {
+    console.log(args.json ? JSON.stringify(result, null, 2) : formatLayout(result, outLang, { t, formatIssue }));
+    fail(result.invalid ? 1 : 0);
+  }
   const created = createTarget(target, result.circuit, { author: args.author ?? 'layout', note: args.note ?? 'layout', lang: outLang, outputs: args.outputs });
   if (created.errors.length) {
     printIssues(created.errors, outLang);

@@ -44,3 +44,33 @@ test('checkNets: nets that share a rail are one net; a missing pin and a short a
   const wrong = checkNets(r.circuit, asked([['U1.OUT', 'R1.2']]));
   assert.equal(wrong.missing.length, 1);
 });
+
+test('parts by name: part numbers, modules and aliases resolve without a type; unknown ones suggest', async () => {
+  const { resolvePart, pinsOf } = await import('../src/parts/resolve.js');
+  assert.deepEqual(resolvePart({ id: 'U1', part: 'L7805CV' }).part, { id: 'U1', type: 'regulator', part: '7805' });
+  assert.deepEqual(resolvePart({ id: 'S1', part: 'KCD1', on: true }).part, { id: 'S1', type: 'switch', style: 'rocker', on: true });
+  assert.equal(resolvePart({ id: 'R1', type: 'resistencia', value: '1k' }).part.type, 'resistor');
+  assert.equal(resolvePart({ id: 'D1', part: 'LED', color: 'red' }).part.type, 'led');
+  assert.equal(resolvePart({ id: 'A1', part: 'Arduino UNO' }).error?.code ?? resolvePart({ id: 'A1', part: 'UNO' }).part.type, 'module');
+  const unknown = resolvePart({ id: 'D2', part: '1N4148W' });
+  assert.equal(unknown.error.code, 'UNKNOWN_PART_NAME');
+  assert.match(unknown.error.params.suggestions, /1N4148/);
+  assert.deepEqual(pinsOf({ type: 'switch' }), ['1', '2']);
+});
+
+test('validateSpec finds everything wrong in one pass, and layout places nothing then', () => {
+  const bad = {
+    parts: [{ id: 'U1', part: '7805' }, { id: 'U1', part: '7805' }, { id: 'X', part: 'warp-core' }, { id: 'D1', part: 'LED' }],
+    nets: [['U1.VIN', 'T+'], ['Q7.B', 'T-'], ['nonsense'], ['D1.anode', 'T+']],
+  };
+  const r = autoLayout(bad);
+  assert.ok(r.invalid && r.checked);
+  const codes = r.problems.map((p) => p.code).sort();
+  for (const code of ['DUPLICATE_ID', 'UNKNOWN_PART_NAME', 'NET_UNKNOWN_PIN', 'NET_UNKNOWN_PART', 'NET_BAD_REF']) assert.ok(codes.includes(code), code);
+  assert.match(formatLayout(r, 'es', { t, formatIssue }), /Sus patas: IN, GND, OUT/);
+  // check only: a good spec comes back resolved, nothing placed.
+  const ok = autoLayout({ parts: [{ id: 'U1', part: '7805' }], nets: [['U1.IN', 'T+'], ['U1.GND', 'T-'], ['U1.OUT']] }, { checkOnly: true });
+  assert.equal(ok.invalid, false);
+  assert.equal(ok.parts[0].type, 'regulator');
+  assert.equal(ok.circuit, undefined);
+});

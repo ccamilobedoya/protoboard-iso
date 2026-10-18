@@ -41,7 +41,7 @@ import { nets, formatNets } from '../src/nets.js';
 import { createBoard, boardLayout, BOARDS } from '../src/board/board.js';
 import { autoLayout, formatLayout } from '../src/layout.js';
 import { formatBoardLayout } from '../src/board/layout-text.js';
-import { compactCatalog, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
+import { compactCatalog, catalogSuggestions, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
 
 const ROOT = resolve(process.env.PROTOBOARD_ROOT ?? process.cwd());
 const DEFAULT_LANG = LANGUAGES[process.env.PROTOBOARD_LANG] ? process.env.PROTOBOARD_LANG : 'en';
@@ -300,7 +300,7 @@ server.registerTool(
       'Create a NEW circuit placed in one call from its parts and nets, without trial and error: parts left to right in the order given (the signal\'s), each in its own stretch of columns; a lead goes straight into a rail its net names when it reaches, or shares a strip when it stays visible; nets left in several strips are joined by jumpers. Answers the placement, the nets check (missing, shorted) and the lesson review. Use it first for a new circuit; then fix what the review lists with suggest and apply_ops. Board "auto" (default) grows in length as needed.',
     inputSchema: {
       target: z.string().describe('New folder, relative to the root (e.g. m2-fuente)'),
-      parts: z.array(z.object({ id: z.string(), type: z.string() }).passthrough()).min(1).describe('Parts without pins, in signal order, e.g. {"id":"R1","type":"resistor","value":"1k"}'),
+      parts: z.array(z.object({ id: z.string() }).passthrough()).min(1).describe('Parts without pins, in signal order: a type ({"id":"R1","type":"resistor","value":"1k"}) or just a part number, module or alias ({"id":"U1","part":"7805"}, {"id":"S1","part":"KCD1"}); no need to look them up in the catalog first'),
       nets: z
         .array(z.union([z.array(z.string()), z.object({ pins: z.array(z.string()), color: z.string().optional() })]))
         .describe('Each net: the pins it joins ("D1.K", "U1.OUT") and rails ("T-", "B+"), as a list or {pins, color}. A pin alone in a net (["D1.A"]) is fine.'),
@@ -310,14 +310,16 @@ server.registerTool(
       netLabels: z.record(z.string(), z.string()).optional(),
       page: z.object({}).passthrough().optional(),
       clearance: z.number().optional(),
+      check_only: z.boolean().optional().describe('Only check the parts and nets (unknown names with the closest ones, nets naming a missing part or pin, parts in no net) and create nothing'),
       author: z.string().optional(),
       note: z.string().optional(),
       lang: common.lang,
     },
     annotations: WRITE,
   },
-  safely(async ({ target, parts, nets, supplies, board, title, netLabels, page, clearance, author = 'layout', note = 'layout', lang, outputLang }) => {
-    const result = autoLayout({ parts, nets, supplies, board, title, netLabels, page, clearance, lang });
+  safely(async ({ target, parts, nets, supplies, board, title, netLabels, page, clearance, check_only: checkOnly, author = 'layout', note = 'layout', lang, outputLang }) => {
+    const result = autoLayout({ parts, nets, supplies, board, title, netLabels, page, clearance, lang }, { checkOnly });
+    if (result.checked) return { ...(result.invalid && { isError: true }), content: [{ type: 'text', text: formatLayout(result, pickLanguage(lang), { t, formatIssue }) }] };
     const created = createTarget(inside(target), result.circuit, { author, note, lang: lang ?? 'en', outputLang });
     if (created.errors.length) return { isError: true, content: [{ type: 'text', text: created.errors.map((e) => formatIssue(e, lang)).join('\n') }] };
     return text(`${formatLayout(result, pickLanguage(lang), { t, formatIssue })}\n${rel(inside(target))} · rev 0`);
@@ -477,7 +479,10 @@ server.registerTool(
   safely(async ({ name, lang, format }) => {
     if (name) {
       const entry = catalogEntry(name, lang);
-      if (!entry) return { isError: true, content: [{ type: 'text', text: t(lang, 'catalog.unknown', { name, types: Object.keys(PART_TYPES).join(', ') }) }] };
+      if (!entry) {
+        const close = catalogSuggestions(name);
+        return { isError: true, content: [{ type: 'text', text: `${t(lang, 'catalog.unknown', { name, types: Object.keys(PART_TYPES).join(', ') })}${close.length ? ` ${t(lang, 'catalog.closest', { names: close.join(', ') })}` : ''}` }] };
+      }
       return answer(format, entry, () => formatCatalogEntry(entry, lang));
     }
     if (format === 'json') return json(fullCatalog(lang));

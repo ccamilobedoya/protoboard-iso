@@ -12,6 +12,7 @@ import { BATTERY_FORMATS } from '../parts/batteries.js';
 import { LDR_PARTS } from '../parts/types/more.js';
 import { BOARDS, createBoard, boardLayout } from '../board/board.js';
 import { formatBoardLayout } from '../board/layout-text.js';
+import { resolvePart, closestNames } from '../parts/resolve.js';
 import { VIEWS } from '../core/camera.js';
 import { OP_NAMES } from '../ops.js';
 import { ANNOTATION_LAYERS } from '../annotate.js';
@@ -74,7 +75,7 @@ export function compactCatalog(lang = 'en') {
 
 // One entry in detail. `name` is a type (resistor), a part number (7805, L7805CV) or a module
 // (UNO). Returns null when the kit does not know it.
-export function catalogEntry(name, lang = 'en') {
+function catalogEntryExact(name, lang = 'en') {
   const key = String(name ?? '').trim();
   const boardId = Object.keys(BOARDS).find((b) => b.toLowerCase() === key.toLowerCase());
   if (boardId) return { kind: 'board', type: 'board', part: boardId, name: BOARDS[boardId].name?.[lang] ?? BOARDS[boardId].name?.en, layout: boardLayout(createBoard(boardId)) };
@@ -109,6 +110,21 @@ export function catalogEntry(name, lang = 'en') {
   return null;
 }
 
+// One entry by any name the kit answers to: a type, a part number, a module, a board, or an alias
+// ("KCD1" → the rocker switch, "resistencia" → resistor), which comes back with what it stands for.
+export function catalogEntry(name, lang = 'en') {
+  const exact = catalogEntryExact(name, lang);
+  if (exact) return exact;
+  const r = resolvePart({ id: '?', part: String(name ?? '') });
+  if (r.error) return null;
+  const { id, ...fields } = r.part;
+  const entry = catalogEntryExact(fields.part ?? fields.type, lang);
+  return entry ? { ...entry, alias: { name: String(name), fields } } : null;
+}
+
+// The closest names to one the catalog does not know.
+export const catalogSuggestions = (name) => closestNames(name);
+
 // Every registry in full (the catalog's former answer), for tools that want it all.
 export function fullCatalog(lang = 'en') {
   return {
@@ -140,6 +156,7 @@ export function formatCompactCatalog(c, lang = 'en') {
 }
 
 export function formatCatalogEntry(e, lang = 'en') {
+  const aliasLine = e.alias ? `\n  ${t(lang, 'catalog.alias', { name: e.alias.name, fields: JSON.stringify(e.alias.fields) })}` : '';
   if (e.kind === 'board') return `${e.part} (${e.name})\n  ${formatBoardLayout(e.layout, lang)}`;
   const head = e.kind === 'type' ? `${e.type} (${e.name})` : `${e.part} → ${e.type}${e.package ? ` · ${e.package}` : ''}${e.mount ? ` · ${e.mount}` : ''}`;
   const lines = [head];
@@ -155,5 +172,5 @@ export function formatCatalogEntry(e, lang = 'en') {
     for (const [f, d] of fields) lines.push(`    ${f}${d ? `: ${d}` : ''}`);
   }
   if (e.example) lines.push(`  ${t(lang, 'catalog.example', { file: e.example.file })} ${JSON.stringify(e.example.part)}`);
-  return lines.join('\n');
+  return `${lines.join('\n')}${aliasLine}`;
 }

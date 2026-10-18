@@ -63,7 +63,7 @@ la ruta absoluta de `mcp/server.js`, y las variables de arriba.
 | `inspect` | el dibujo en números; `part` para un solo componente | no |
 | `query` | `kind: at \| node \| free` con `ref` | no |
 | `netlist` | el circuito como redes: grupos unidos por cables, las patas de cada una (`R1.1@d20`), etiquetas, patas solas en su red | no |
-| `layout` | un circuito NUEVO ubicado en una llamada a partir de sus componentes (sin patas, en el orden de la señal) y sus redes: capas por distancia a la fuente, reglas por tipo de pieza, cables para lo que queda en varias tiras, y después la verificación de redes (lo que falta, los cortos) y la revisión lesson; se repite unas veces sin la posición de lo que la revisión bloquea | sí |
+| `layout` | un circuito NUEVO ubicado en una llamada a partir de sus componentes (sin patas, en el orden de la señal) y sus redes: capas por distancia a la fuente, reglas por tipo de pieza, cables para lo que queda en varias tiras, y después la verificación de redes (lo que falta, los cortos) y la revisión lesson; se repite unas veces sin la posición de lo que la revisión bloquea. Componentes por número de parte, módulo o alias; una lista con errores no coloca nada y responde todos los problemas; `check_only` solo revisa | sí |
 | `suggest` | posiciones válidas para un componente nuevo, cada una con su operación `add` y el cuerpo más cercano (`nearest`: componente y holgura); `profile` deja fuera también lo que esa revisión bloquea; `parts` coloca varios en orden y responde un solo lote | no |
 | `apply_ops` | lote atómico; primero `dry_run`, luego `expect_revision`, `author`, `note` | sí |
 | `undo` | deshace el último cambio (revisión nueva) | sí |

@@ -76,7 +76,12 @@ señal y las redes como listas de patas y rieles. El algoritmo ubica los compone
 (distancia a la fuente) y con reglas según el tipo de pieza, agrega los cables y verifica las redes
 y la revisión lesson, en alrededor de un segundo; medido con la fuente de dos rieles del curso (10
 componentes, 10 redes): aprobada, 7 cables, 1,8 s. Lo que no logra resolver vuelve como puntos que
-bloquean para el ciclo de siempre.
+bloquean para el ciclo de siempre. Los componentes se pueden dar por número de parte, módulo o
+alias (`"part": "7805"`, `"KCD1"`, `"UNO"`, `"resistencia"`), así el agente no los busca antes;
+una lista con errores no coloca nada y responde todos los problemas de una vez (nombres que no
+conoce con los más parecidos, redes que nombran una pieza o pata que no existe con las patas que
+tiene); `check_only` solo revisa. Medido con un modelo más pequeño con la misma fuente: 13
+llamadas y 52 s, nueve de ellas consultas a `catalog` que esto vuelve innecesarias.
 
 ## El ciclo (lo maneja la conversación principal)
 

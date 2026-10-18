@@ -107,6 +107,13 @@ export default {
   'layout.changes': 'Review (lesson): CHANGES, {count} to fix:',
   'check.LAYOUT_PART_FAILED': '{part} found no place (reasons below).',
   'check.LAYOUT_WIRE_FAILED': 'No jumper fits from {from} to {to}.',
+  'layout.valid': 'The parts and nets are consistent ({parts} parts, as the kit reads them):',
+  'layout.invalid': 'Nothing was placed: fix these first ({parts} parts read):',
+  'check.UNKNOWN_PART_NAME': '{part}: the kit does not know "{name}". Closest: {suggestions}.',
+  'check.NET_BAD_REF': 'Net {where}: "{ref}" is neither a pin ("U1.OUT") nor a rail (T+, T-, B+, B-).',
+  'check.NET_UNKNOWN_PART': 'Net {where}: "{ref}" names {part}, which is not in the parts ({parts}).',
+  'check.NET_UNKNOWN_PIN': 'Net {where}: {part} has no pin "{pin}". Its pins: {names}.',
+  'check.PART_IN_NO_NET': '{part} is in no net: it would be placed with nothing connected.',
   'check.NO_ROOM_LEFT': '{part} there would leave {node} with {left} usable free holes, and {need} more connections must go there (strip with a lone pin, or named by a later part). Place it elsewhere or connect that group first.',
   'check.GROUP_FULL': '{part}: {node} (for pin {pin}) has no free hole a lead can reach ({free} free, {covered} of them under another part). Connect it through a wire from another hole of that net, or move what fills it.',
   'check.NO_FIT': '{part}: no set of holes fits its leads between {groups}. The groups are too far apart or too close for this part: join one of them to a nearer strip with a wire.',
@@ -395,7 +402,7 @@ export default {
   'page.hint.results': 'Tap a part or a strip to see what it is and its simulated values',
   'page.revision': 'revision {revision}',
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):
-  protoboard-iso layout <new target> <spec.json|->   # the whole circuit placed from its parts and nets (docs/en/agents.md)
+  protoboard-iso layout <new target> <spec.json|-> [--check]   # the whole circuit placed from its parts and nets (docs/en/agents.md)
   protoboard-iso render <target> [-o out.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <target> [--transient stop[,step]] [--start zero|dc] [--lang en|es] [--json]
   protoboard-iso page <target> [-o page.html] [--lang en|es] [--fit parts|board]
@@ -471,6 +478,8 @@ export default {
   'catalog.parts': 'parts:',
   'catalog.fields': 'fields:',
   'catalog.example': 'example ({file}):',
+  'catalog.alias': '"{name}" is a name for: {fields}. Write it as such in a circuit, or just {"part": "{name}"} in a layout.',
+  'catalog.closest': 'Closest names: {names}.',
   'catalog.unknown': 'The kit does not know "{name}". Types: {types}. Without name, the whole list.',
   'nets.header': '{nets} nets (groups joined by wires · wires · pins):',
   'nets.floating': 'Alone on their net: {pins}',
