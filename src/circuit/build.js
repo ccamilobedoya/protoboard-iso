@@ -12,6 +12,7 @@ import { PART_TYPES } from '../parts/types/index.js';
 import { PACKAGES } from '../parts/packages/index.js';
 import { checkOccupancy, checkLeads, checkConnections, checkCollisions, checkCrossings, checkDescriptions } from './checks.js';
 import { LANGUAGES } from '../i18n/index.js';
+import { strayFields, fieldsOfType } from '../parts/fields.js';
 
 // { nearest: 'B-6, B-8' } for a hole name that is not on the board, or nothing.
 const nearestOf = (board, name) => {
@@ -79,6 +80,7 @@ export function buildCircuit(circuit, { headroom = 0 } = {}) {
       issues.push(err('UNKNOWN_TYPE', { part: raw.id, type: String(raw.type), options: Object.keys(PART_TYPES).join(', ') }));
       return;
     }
+    for (const field of strayFields(raw)) issues.push({ severity: 'warning', code: 'UNKNOWN_FIELD', params: { part: raw.id, field, fields: fieldsOfType(raw.type).join(', ') } });
     const def = type.resolve(raw);
     if (def.error) {
       issues.push(err(def.error.code, { part: raw.id, ...def.error.params }));

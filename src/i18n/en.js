@@ -114,6 +114,7 @@ export default {
   'check.NET_UNKNOWN_PART': 'Net {where}: "{ref}" names {part}, which is not in the parts ({parts}).',
   'check.NET_UNKNOWN_PIN': 'Net {where}: {part} has no pin "{pin}". Its pins: {names}.',
   'check.PART_IN_NO_NET': '{part} is in no net: it would be placed with nothing connected.',
+  'check.UNKNOWN_FIELD': '{part} has a field "{field}" that its type does not take, so it is ignored. Its fields: {fields}.',
   'check.NO_ROOM_LEFT': '{part} there would leave {node} with {left} usable free holes, and {need} more connections must go there (strip with a lone pin, or named by a later part). Place it elsewhere or connect that group first.',
   'check.GROUP_FULL': '{part}: {node} (for pin {pin}) has no free hole a lead can reach ({free} free, {covered} of them under another part). Connect it through a wire from another hole of that net, or move what fills it.',
   'check.NO_FIT': '{part}: no set of holes fits its leads between {groups}. The groups are too far apart or too close for this part: join one of them to a nearer strip with a wire.',

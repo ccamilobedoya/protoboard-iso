@@ -33,6 +33,7 @@ import { PART_TYPES } from './parts/types/index.js';
 import { PACKAGES } from './parts/packages/index.js';
 import { SWITCH_STYLES } from './parts/types/switch.js';
 import { resolvePart, pinsOf } from './parts/resolve.js';
+import { strayFields, fieldsOfType } from './parts/fields.js';
 
 const RAILS = ['T+', 'T-', 'B+', 'B-'];
 const PALETTE = ['orange', 'green', 'yellow', 'blue', 'white', 'violet'];
@@ -78,7 +79,10 @@ export function validateSpec(spec) {
     seen.add(raw.id);
     const r = resolvePart(raw);
     if (r.error) problems.push(r.error);
-    else parts.push(r.part);
+    else {
+      parts.push(r.part);
+      for (const field of strayFields(r.part)) problems.push({ severity: 'error', code: 'UNKNOWN_FIELD', params: { part: r.part.id, field, fields: fieldsOfType(r.part.type).join(', ') } });
+    }
   }
   const byId = new Map(parts.map((p) => [p.id, p]));
   const inNet = new Set();

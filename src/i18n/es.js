@@ -113,6 +113,7 @@ export default {
   'check.NET_UNKNOWN_PART': 'Red {where}: «{ref}» nombra a {part}, que no está entre los componentes ({parts}).',
   'check.NET_UNKNOWN_PIN': 'Red {where}: {part} no tiene la pata «{pin}». Sus patas: {names}.',
   'check.PART_IN_NO_NET': '{part} no está en ninguna red: quedaría colocado sin nada conectado.',
+  'check.UNKNOWN_FIELD': '{part} tiene un campo «{field}» que su tipo no usa, así que se ignora. Sus campos: {fields}.',
   'check.NO_ROOM_LEFT': '{part} ahí dejaría {node} con {left} agujeros libres utilizables, y faltan {need} conexiones que deben llegar ahí (una tira con una pata sola, o nombrada por una pieza posterior). Ponlo en otro lugar o conecta antes ese grupo.',
   'check.GROUP_FULL': '{part}: {node} (para la pata {pin}) no tiene ningún agujero libre al que llegue una pata ({free} libres, {covered} de ellos debajo de otro componente). Llega con un cable desde otro agujero de esa red, o mueve lo que la llena.',
   'check.NO_FIT': '{part}: ningún juego de agujeros le sirve a sus patas entre {groups}. Los grupos quedan demasiado lejos o demasiado cerca para este componente: une uno de ellos con un cable a una tira más cercana.',

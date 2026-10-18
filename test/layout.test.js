@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { autoLayout, checkNets, formatLayout } from '../src/layout.js';
-import { formatIssue, t } from '../src/index.js';
+import { formatIssue, t, checkCircuit } from '../src/index.js';
 
 // A 5 V regulator with its capacitors and a pilot LED, from a 9 V battery's strip.
 const spec = {
@@ -73,4 +73,14 @@ test('validateSpec finds everything wrong in one pass, and layout places nothing
   assert.equal(ok.invalid, false);
   assert.equal(ok.parts[0].type, 'regulator');
   assert.equal(ok.circuit, undefined);
+});
+
+test('a field the part type does not take is a warning in a circuit and an error in a layout spec', () => {
+  const circuit = { version: 1, board: 'auto', parts: [{ id: 'S1', type: 'switch', state: 'on', pins: { 1: 'e5', 2: 'e7' } }] };
+  const warning = checkCircuit(circuit).issues.find((i) => i.code === 'UNKNOWN_FIELD');
+  assert.equal(warning?.severity, 'warning');
+  assert.match(formatIssue(warning, 'es'), /«state».*on/);
+  const r = autoLayout({ parts: [{ id: 'S1', part: 'KCD1', state: 'on' }], nets: [['S1.1', 'T+'], ['S1.2']] });
+  assert.ok(r.invalid);
+  assert.equal(r.problems[0].code, 'UNKNOWN_FIELD');
 });
