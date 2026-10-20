@@ -25,6 +25,13 @@ conversation: layout → reviewer → fixes back to the same layout agent (two r
 show a close-up. Brief formats and the loop: `docs/en/agents.md`. Definition of done:
 `review <target>` (profile `lesson`) says APPROVED.
 
+**Circuit work should run on a small model.** Building or fixing a circuit is meant to be
+cheap: delegate it to the agents (they run on `sonnet`, or smaller when it is enough) instead
+of doing it in a large-model conversation with long reasoning. If a circuit task needs heavy
+thinking or many tool calls, treat that as a gap in the kit, not in the model: when you
+develop the kit, move the judgement into tools (`layout`, `suggest`, `review`, clearer
+errors and reports) so a smaller model with less reasoning can do the same work.
+
 **The agents depend on the kit.** Their files (`.claude/agents/*.md`) name MCP tools, CLI
 commands, operation names, review profiles, brief/report formats and rules from the docs.
 When you change any of those (rename or add a tool or command, change an operation, a
