@@ -13,6 +13,7 @@ import { PACKAGES } from '../parts/packages/index.js';
 import { checkOccupancy, checkLeads, checkConnections, checkCollisions, checkCrossings, checkDescriptions } from './checks.js';
 import { LANGUAGES } from '../i18n/index.js';
 import { strayFields, fieldsOfType } from '../parts/fields.js';
+import { findPin } from '../parts/pin-names.js';
 
 // { nearest: 'B-6, B-8' } for a hole name that is not on the board, or nothing.
 const nearestOf = (board, name) => {
@@ -33,10 +34,9 @@ function mapPins(part, names) {
       holes = given;
     }
   } else if (given && typeof given === 'object') {
-    const lower = new Map(names.map((n) => [n.toLowerCase(), n]));
-    const byName = {};
+        const byName = {};
     for (const [key, hole] of Object.entries(given)) {
-      const name = lower.get(key.toLowerCase());
+      const name = findPin(names, key);
       if (!name) issues.push(err('UNKNOWN_PIN', { part: part.id, pin: key, names: names.join(', ') }));
       else byName[name] = hole;
     }

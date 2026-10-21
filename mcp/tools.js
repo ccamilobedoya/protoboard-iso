@@ -29,7 +29,7 @@ import {
 import { formatChange } from '../src/diff.js';
 import { queryAt, queryNode, queryFree, suggest, suggestMany } from '../src/query.js';
 import { formatAt, formatNode, formatFree, formatSuggest, formatSuggestMany } from '../src/query-format.js';
-import { resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget, writePage } from '../src/node/workspace.js';
+import { resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget, relayoutTarget, writePage } from '../src/node/workspace.js';
 import { svgToPng, rasterAvailable } from '../src/node/raster.js';
 import { review, formatReview, PROFILES } from '../src/review.js';
 import { simulate } from '../src/sim/index.js';
@@ -39,7 +39,7 @@ import { compile, createEngine } from '../src/sim/index.js';
 import { toFalstad } from '../src/sim/falstad.js';
 import { nets, formatNets } from '../src/nets.js';
 import { createBoard, boardLayout, BOARDS } from '../src/board/board.js';
-import { autoLayout, formatLayout } from '../src/layout.js';
+import { autoLayout, formatLayout, specFromCircuit } from '../src/layout.js';
 import { formatBoardLayout } from '../src/board/layout-text.js';
 import { compactCatalog, catalogSuggestions, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
 
@@ -149,10 +149,11 @@ function findCircuits(dir, depth = 0, out = []) {
 // ---------------------------------------------------------------- server
 
 export const INSTRUCTIONS = [
-  'Breadboard circuits drawn in isometric SVG, with placement checks, a numeric inspector and change history.',
-  'New circuit without fixed positions: layout first (parts without pins and nets → placed, wired, nets checked and reviewed in about a second); then the loop below only for what it lists as blocking.',
-  'Work loop: list_circuits → history and inspect (numbers, not pictures) → query / suggest (never compute holes or colour codes yourself) → apply_ops with dry_run → apply_ops with expect_revision, author and note → review until APPROVED → undo if needed.',
-  'Never rewrite circuit files directly; change them only with apply_ops. render writes an SVG (and returns a PNG only when asked: images are slow to read).',
+  'Breadboard circuits: describe what is connected; the kit places, draws, checks and simulates it. Never compute holes, colour codes, voltages or currents yourself, and never rewrite circuit files.',
+  'Which tool: a new circuit → layout (parts without holes, nets of pins and rails). Other connections or parts in a circuit made by layout (get_circuit shows a spec) → layout again on the same target with only what changes and expect_revision (parts keep their holes; undo restores). A value, a description, a fix or a hand-made circuit → apply_ops.',
+  'layout ends in one line, STATUS: DONE (ready) · CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review) · FIX_SPEC (nothing created: fix every ✖ in the spec and call again) · SPEC_OK (check_only).',
+  'Operations: history and inspect (numbers, not pictures) → query / suggest → apply_ops with dry_run → apply_ops with expect_revision, author and note → review until APPROVED → undo if needed.',
+  'Check: review is the definition of done (it also checks the nets of a circuit made by layout); netlist lists every net; simulate gives a model, and a value a learner must predict is never shown. render returns a PNG only when asked: images are slow to read.',
   'Holes: a1…j63 (row letter + column), rails T-, T+, B+, B- plus the column (T+9). Rows a–e of a column are connected, f–j too; each rail is one group.',
   'The page out/<name>.html of a circuit with a source runs the simulation by default: values of the tapped part, oscilloscope, lit LEDs, and the Current button in the bar (not pressed). Turn it off with page.simulation false while a learner must predict a value (page.results false or page.flow false turn off one each).',
 ].join('\n');
@@ -177,7 +178,7 @@ server.registerTool(
 
 server.registerTool(
   'get_circuit',
-  { title: 'Get circuit', description: 'The circuit file as JSON (the only source of truth), with its revision and placement issues.', inputSchema: { target: targetArg, lang: common.lang }, annotations: READ },
+  { title: 'Get circuit', description: 'The circuit file as JSON (the only source of truth), with its revision and placement issues. A circuit made by layout carries spec: spec.nets are the connections it was asked for (edit them and pass them to layout to change what is connected).', inputSchema: { target: targetArg, lang: common.lang }, annotations: READ },
   safely(async ({ target, lang }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
@@ -190,7 +191,7 @@ server.registerTool(
   'create_circuit',
   {
     title: 'Create circuit',
-    description: 'Create a new circuit folder (circuit.json, history.jsonl, out/). Refuses to overwrite. Check the answer for placement issues.',
+    description: 'Create a new circuit folder (circuit.json, history.jsonl, out/) from a full circuit with its holes, written by hand. Refuses to overwrite. For a new circuit without fixed positions use layout instead. Check the answer for placement issues.',
     inputSchema: {
       target: z.string().describe('New folder, relative to the root, next to the ones list_circuits shows (e.g. m2-led)'),
       circuit: z.object({ parts: z.array(partShape) }).passthrough().describe('Circuit file content (see schema/circuit.schema.json)'),
@@ -299,19 +300,22 @@ server.registerTool(
   {
     title: 'Lay out a whole circuit',
     description:
-      'Create a NEW circuit placed in one call from its parts and nets, without trial and error: parts left to right by distance from the source over the nets (ties in the order given), each in its own stretch of columns; a two-lead part whose net names a rail stands upright into it, others share the strip of the part before them; three-lead parts sit on fresh strips (tall ones in rows b/g); parts off the board (switch, Arduino) wire to their nets\' strips; anything else goes through suggest. Nets left in several strips are joined by the shortest jumpers that pass. Then it checks the nets (missing, shorted) and runs the lesson review, laying out again a few times without the place of what the review blocks. Answers the placement, the nets check and the verdict. Use it first for a new circuit; then fix only what it lists as blocking or failed, with suggest and apply_ops. Board "auto" (default) grows in length as needed.',
+      'Place a whole circuit in one call from its parts (no holes, in signal order; a part number, module or alias is enough) and its nets (pins and rails; usual pin names work: D1.K, U1.VIN, U1.DISCH, U1.GPIO4): parts left to right by distance from the source, jumpers for what is left apart, ground nets to a − rail, then the nets check and the lesson review, laid out again a few times and repaired jumper by jumper. On an existing target it lays the circuit out again as one revision (undo restores it): give only what changes; each part keeps its holes when it still fits. The nets are kept in the circuit (spec) and review checks them. The answer ends in STATUS: DONE (ready), CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review), FIX_SPEC (nothing created: fix every ✖ in the spec and call again) or SPEC_OK (check_only).',
+
     inputSchema: {
-      target: z.string().describe('New folder, relative to the root (e.g. m2-fuente)'),
-      parts: z.array(z.object({ id: z.string() }).passthrough()).min(1).describe('Parts without pins, in signal order: a type ({"id":"R1","type":"resistor","value":"1k"}) or just a part number, module or alias ({"id":"U1","part":"7805"}, {"id":"S1","part":"KCD1"}); no need to look them up in the catalog first'),
+      target: z.string().describe('Folder relative to the root (e.g. m2-fuente): new, or an existing circuit to lay out again'),
+      parts: z.array(z.object({ id: z.string() }).passthrough()).min(1).optional().describe('Required for a new circuit; for an existing one, omit to keep its parts. ' + 'Parts without pins, in signal order: a type ({"id":"R1","type":"resistor","value":"1k"}) or just a part number, module or alias ({"id":"U1","part":"7805"}, {"id":"S1","part":"KCD1"}); no need to look them up in the catalog first'),
       nets: z
         .array(z.union([z.array(z.string()), z.object({ pins: z.array(z.string()), color: z.string().optional() })]))
-        .describe('Each net: the pins it joins ("D1.K", "U1.OUT") and rails ("T-", "B+"), as a list or {pins, color}. A pin alone in a net (["D1.A"]) is fine.'),
+        .optional()
+        .describe('Each net: the pins it joins ("D1.K", "U1.OUT") and rails ("T-", "B+"), as a list or {pins, color}. Common pin names are understood (A/K or anode/cathode, VIN, VOUT, DISCH, GPIO4, VDD…). A pin alone in a net (["D1.A"]) is fine. Required for a new circuit; for an existing one made by layout, omit to keep its nets.'),
       supplies: z.array(z.object({}).passthrough()).optional().describe('As in the circuit; positive/negative may name a pin ("D1.A"): a free hole of its strip'),
       board: z.string().optional().describe('auto (default, grows in length), bb400 or bb830'),
       title: z.union([z.string(), z.record(z.string(), z.string())]).optional(),
       netLabels: z.record(z.string(), z.string()).optional(),
       page: z.object({}).passthrough().optional().describe('As in the circuit. With a source the page runs the simulation by default (values, oscilloscope, lit LEDs, a Current button not pressed): nothing to add. {"simulation": false} turns it off while a learner must predict a value'),
       clearance: z.number().optional().describe('Gap between bodies in mm (default 1; 3 for a roomier lesson)'),
+      expect_revision: z.number().int().min(0).optional().describe('Existing circuit: refuse if it changed since this revision'),
       check_only: z.boolean().optional().describe('Only check the parts and nets (unknown names with the closest ones, nets naming a missing part or pin, parts in no net) and create nothing'),
       author: z.string().optional(),
       note: z.string().optional(),
@@ -319,12 +323,23 @@ server.registerTool(
     },
     annotations: WRITE,
   },
-  safely(async ({ target, parts, nets, supplies, board, title, netLabels, page, clearance, check_only: checkOnly, author = 'layout', note = 'layout', lang, outputLang }) => {
-    const result = autoLayout({ parts, nets, supplies, board, title, netLabels, page, clearance, lang }, { checkOnly });
-    if (result.checked) return { ...(result.invalid && { isError: true }), content: [{ type: 'text', text: formatLayout(result, pickLanguage(lang), { t, formatIssue }) }] };
-    const created = createTarget(inside(target), result.circuit, { author, note, lang: lang ?? 'en', outputLang });
-    if (created.errors.length) return { isError: true, content: [{ type: 'text', text: created.errors.map((e) => formatIssue(e, lang)).join('\n') }] };
-    return text(`${formatLayout(result, pickLanguage(lang), { t, formatIssue })}\n${rel(inside(target))} · rev 0`);
+  safely(async ({ target, parts, nets, supplies, board, title, netLabels, page, clearance, expect_revision: expectRevision, check_only: checkOnly, author = 'layout', note = 'layout', lang, outputLang }) => {
+    const full = inside(target);
+    const paths = resolveTarget(full);
+    const previous = existsSync(paths.circuitFile) ? loadCircuit(paths) : null;
+    const given = Object.fromEntries(Object.entries({ parts, nets, supplies, board, title, netLabels, page, clearance, lang }).filter(([, v]) => v !== undefined));
+    const refuse = (code) => ({ isError: true, content: [{ type: 'text', text: formatIssue({ severity: 'error', code, params: { target } }, lang) }] });
+    if (previous && !nets && !previous.spec?.nets) return refuse('LAYOUT_NO_SPEC');
+    if (!previous && (!parts || !nets)) return refuse('LAYOUT_NEEDS_SPEC');
+    const spec = previous ? specFromCircuit(previous, given) : given;
+    const result = autoLayout(spec, { checkOnly, previous });
+    const out = pickLanguage(lang, spec.lang);
+    if (result.checked) return { ...(result.invalid && { isError: true }), content: [{ type: 'text', text: formatLayout(result, out, { t, formatIssue }) }] };
+    const saved = previous
+      ? relayoutTarget(full, result.circuit, { expectRevision, author, note, lang: lang ?? 'en', outputLang })
+      : createTarget(full, result.circuit, { author, note, lang: lang ?? 'en', outputLang });
+    if (saved.errors.length) return { isError: true, content: [{ type: 'text', text: saved.errors.map((e) => formatIssue(e, lang)).join('\n') }] };
+    return text(`${formatLayout(result, out, { t, formatIssue })}\n${rel(full)} · rev ${saved.revision}`);
   }),
 );
 
@@ -332,7 +347,7 @@ server.registerTool(
   'apply_ops',
   {
     title: 'Apply operations',
-    description: 'Change a circuit with an atomic batch of operations. dry_run (recommended first) saves nothing and tells what the change fixes and introduces. Without dry_run it saves a new revision, records history and regenerates outputs. Pass expect_revision to avoid overwriting someone else.',
+    description: 'Change a circuit with an atomic batch of operations. dry_run (recommended first) saves nothing and tells what the change fixes and introduces. Without dry_run it saves a new revision, records history and regenerates outputs. Pass expect_revision to avoid overwriting someone else. To change what a circuit made by layout connects, call layout again on it instead.',
     inputSchema: {
       target: targetArg,
       ops: z.array(opShape).min(1),
@@ -358,7 +373,7 @@ server.registerTool(
   'review',
   {
     title: 'Review circuit',
-    description: 'Verdict from measurements in both views: APPROVED or CHANGES, with what must be fixed (blocking: each with the parts it is about and the views it shows in) and what is worth knowing. Profile lesson (default) is strict for teaching layouts; draft only blocks errors and warnings. explain: true adds the profile\'s rules (what blocks).',
+    description: 'Verdict from measurements in both views: APPROVED or CHANGES, with what must be fixed (blocking: each with the parts it is about and the views it shows in) and what is worth knowing. Profile lesson (default) is strict for teaching layouts; draft only blocks errors and warnings. explain: true adds the profile\'s rules (what blocks). lesson blocks a part hidden in every view (its best view shows less than 70 % of it); a circuit made by layout also has its nets checked against its spec.',
     inputSchema: { target: targetArg, profile: z.enum(Object.keys(PROFILES)).optional(), views: z.array(z.enum(Object.keys(VIEWS))).optional(), explain: z.boolean().optional(), ...common },
     annotations: READ,
   },

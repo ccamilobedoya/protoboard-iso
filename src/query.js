@@ -22,6 +22,7 @@ import { PROFILES } from './review.js';
 import { nearestBody, coveredHoles } from './circuit/checks.js';
 import { distance, sub } from './core/vec.js';
 import { nearestHoles, boardLayout } from './board/board.js';
+import { findPin } from './parts/pin-names.js';
 
 const ID_PREFIX = { resistor: 'R', capacitor: 'C', potentiometer: 'RV', diode: 'D', led: 'D', mosfet: 'Q', bjt: 'Q', ic: 'U', button: 'S', switch: 'S', wire: 'W', battery: 'BT', zener: 'D', bridge: 'BR', module: 'U', regulator: 'U', inductor: 'L', thermistor: 'RT', ldr: 'LDR', buzzer: 'BZ', header: 'J' };
 const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
@@ -50,10 +51,10 @@ export function resolveNode(state, ref) {
   if (hole) return hole.node;
   const name = String(ref).trim();
   for (const candidate of [name, name.toLowerCase(), name.toUpperCase()]) if (state.nodeHoles.has(candidate)) return candidate;
-  const pin = /^([^.\s]+)\.([^.\s]+)$/.exec(name);
+  const pin = /^([^.\s]+)\.(\S+)$/.exec(name);
   const part = pin && state.parts.find((p) => p.id === pin[1]);
   if (part) {
-    const i = part.pinNames.findIndex((n) => n.toLowerCase() === pin[2].toLowerCase());
+    const i = part.pinNames.indexOf(findPin(part.pinNames, pin[2]));
     if (i >= 0) return part.holes[i].node;
   }
   return null;
@@ -372,7 +373,7 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
   // A null in between leaves that pin to a free strip ("from U1.OUT to anywhere free").
   const asked = connect ?? (between ? Object.fromEntries(between.map((n, i) => [pinNames[i], n]).filter(([, n]) => n != null)) : {});
   for (const [pin, ref] of Object.entries(asked)) {
-    const name = pinNames.find((p) => p.toLowerCase() === pin.toLowerCase());
+    const name = findPin(pinNames, pin);
     const node = resolveNode(state, ref);
     if (!name) return { error: { severity: 'error', code: 'UNKNOWN_PIN', params: { part: part.id ?? part.type, pin, names: pinNames.join(', ') } } };
     if (!node) {

@@ -12,7 +12,7 @@
 
 import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, mkdirSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
-import { applyOps } from '../ops.js';
+import { applyOps, CIRCUIT_FIELDS } from '../ops.js';
 import { evaluate, diffEvaluations } from '../diff.js';
 import { renderCircuit, inspectCircuit } from '../index.js';
 import { renderPage } from '../page.js';
@@ -114,6 +114,16 @@ export function createTarget(target, circuit, { author = 'unknown', note = 'crea
   appendFileSync(paths.historyFile, `${JSON.stringify({ revision: 0, time: new Date().toISOString(), author, note, created: true, ops: [], inverse: [] })}\n`);
   const files = outputs ? writeOutputs(paths, saved, { lang, outputLang }) : null;
   return { applied: true, revision: 0, errors: [], files };
+}
+
+// Lays a circuit out again (layout on an existing target): one revision that removes every part,
+// sets the circuit's fields (spec included) and adds the new parts, so history shows it and undo
+// brings the old layout back.
+export function relayoutTarget(target, circuit, options = {}) {
+  const current = loadCircuit(resolveTarget(target));
+  const fields = Object.fromEntries(CIRCUIT_FIELDS.filter((k) => k !== 'view').map((k) => [k, circuit[k] ?? null]).filter(([k, v]) => v !== null || k in current));
+  const ops = [...(current.parts ?? []).map((p) => ({ op: 'remove', part: p.id })), ...(Object.keys(fields).length ? [{ op: 'circuit', ...fields }] : []), ...circuit.parts.map((part) => ({ op: 'add', part }))];
+  return applyToTarget(target, ops, options);
 }
 
 // Undoes the most recent change that has not been undone yet.

@@ -149,6 +149,45 @@ with the improvements below and compare.
 - ⬜ Photos: a table for the course's board standing up (left rail = B+/B−, right = T−/T+; the photo's rows are the kit's columns) and an annotated grid render to compare with a photo
 - ⬜ Measure again: rebuild `m2-fuente-dos-rieles` with these improvements (`Fidelity: functional`) and compare time, calls and tokens
 
+## Circuits with a small model, and with any model (review of 2026-10-20) 🔜
+
+Goal: a circuit comes out right at the first try from a cheap model with little reasoning, and from
+assistants other than Claude, by reusing proven patterns instead of working each circuit out.
+From a review of the kit, its agents and its docs, and a try of `layout` with four usual lesson
+circuits: an NPN switch and a potentiometer divider came out ready; a 555 astable was left with
+parts hidden from the back view; an ESP32 with a pull-up button found no room for its ground jumper
+(the board covers the strips) while the text still ended in "Review: APPROVED"; and **none** of the
+four passed the first try, because of pin names (`D1.K` on an LED, `U1.DISCH` on a 555).
+
+**Mistakes that cost a round each (done 2026-10-20)**
+
+- ✅ The layout agent's tools list lacked `layout` (its step 0 said "layout first") and `simulate`; the reviewer lacked `simulate`. Both now run `simulate` once and report warnings only, never values. `npm run test:mcp` fails when an agent's instructions name a tool its list does not have
+- ✅ The layout agent's file without contradictions: one choice of path at the top (A: `layout` for a new circuit, no `catalog` before it; B: operations for changes and fixes), instead of "catalog first" and "no catalog before layout" in the same file
+- ✅ Pin names as people write them (`src/parts/pin-names.js`, `findPin`): synonyms (`A`/`anode`, `K`/`cathode`, `VIN`/`IN`, `DISCH`/`DIS`, `THRESHOLD`/`THR`, `VDD`/`VCC`, `3.3V`/`3V3`…) and GPIO numbers on boards (`GPIO4` → the DevKit's `D4`), only when one pin matches; in `layout`, circuits, `query` and `suggest`. A pin name may contain a dot (`U2.3.3V`)
+- ✅ One verdict: `layout` ends in `STATUS: DONE | CHANGES | FIX_SPEC | SPEC_OK` with what to do next (`status` in JSON); the CLI exits 0 only when done
+
+**Proven patterns instead of working each circuit out**
+
+- ⬜ **Recipes**: a library of layout specs for lesson circuits (LED + resistor, divider, potentiometer, NPN and MOSFET switch, button with pull-up / pull-down, RC, 555 astable, 7805 and AMS1117, bridge rectifier, Zener, ESP32 LED and button), called by name with only the values (`layout { recipe: "npn-switch", values: { R1: "1k" } }`); each one a case of `layout-bench`. Replaces stage 5's "templates"
+- ✅ **The spec as the desired state** (2026-10-20): the circuit keeps what `layout` was asked (`spec`: nets with resolved pin names, supplies that name pins, the ids of its jumpers); `review` checks those nets in every circuit that has them (`SPEC_NET_MISSING`, `SPEC_NETS_SHORTED`); `layout` on an existing target lays it out again as one revision (undo brings the old one back), with only what changes given, every part and jumper trying its present holes first (a second LED on the 555 moved nothing); `rename` follows into the spec. Kept inside `circuit.json` rather than a `spec.json` beside it, so history and undo cover it
+- ✅ **Repairs inside `layout`** (2026-10-20): what the relayout loop leaves (a net apart, a jumper named by a blocking item) is routed again once with `suggest` (lesson profile, `VIA_WIRE`), kept only if it improves; a ground net without a rail goes to the − rail the others use, else `B-` (notes `LAYOUT_REPAIRED`, `LAYOUT_GROUND_TO_RAIL`)
+- ✅ Found on the way: the lesson profile blocked a part as hidden in every view when it was under 85 % visible in each, and counted two parts covering it in one view as two views. Now it blocks when its best view shows less than 70 % (`hiddenBelow`): both bench circuits pass at the first try (the two-rail supply: 8 tries and 1.5 s → 1 try and 0.3 s) and the 555 astable passes
+- ⬜ The brief carries the nets as JSON (or a recipe's name) instead of prose ("R1 between T+ and the LED anode") the agent must translate; a recipe circuit is laid out by one `layout` call from the main conversation, and the agent is kept for `CHANGES`
+
+**The algorithm** (limits already listed in [layout.md](docs/en/layout.md#known-limits-and-where-to-improve))
+
+- ⬜ Visibility in the placement check: with the 70 % threshold it rarely blocks, but jumpers still arch over chips (the 555's back view)
+- ⬜ Wide boards (ESP32 DevKit) that cover the strips: reach a net through another strip of it or through a rail when no jumper fits the covered one
+- ⬜ A bigger bench: the recipes and the four circuits of this review in `examples/layout/`
+
+**Any model, not only Claude**
+
+- ⬜ `AGENTS.md` at the root (read by Codex, Gemini CLI, Cursor and others) with the short workflow; `SKILL.md` and `.claude/agents/` stay for Claude Code
+- ⬜ MCP prompts (`build_circuit`, `review_circuit`): the agents' procedure served by the MCP server, so any MCP client gets it, not only the tools
+- ⬜ `schema/layout.schema.json`: the spec's JSON Schema, for models that generate JSON constrained by a schema
+- ✅ `SKILL.md` reordered (2026-10-20): a table of which tool for which task, `layout` first with a worked example (a test checks it lays out to `DONE`), the `STATUS:` lines, changing a circuit by laying it out again, the operations loop, checking and showing; the hand-written format left to `docs/en/circuit-format.md` (11.5 KB → 8.7 KB). The MCP server's instructions and tool descriptions say the same (⬜ recipes first, when they exist)
+- ⬜ Agent bench: N briefs × model (a small Claude, another provider's model), measuring calls, tokens, time and first-try success, so each change to the kit is measured (continues "Measure again" above)
+
 ## Visual style and themes (cross-cutting, after stage 2) ⬜
 
 Goal: drawings that teach first. Realism where it helps to recognise a part; calm
@@ -226,8 +265,8 @@ Goal: open a link and explore.
 
 ## Stage 5 — Faster authoring ⬜
 
-- ⬜ Templates: common circuits where only values change (LED + resistor, divider, RC, transistor switch)
-- ⬜ Automatic placement from a netlist ("R1 between 5V and n1"), respecting `clearance` so lessons are never cramped
+- ⬜ Templates: common circuits where only values change: now the **recipes** of "Circuits with a small model" above
+- ✅ Automatic placement from a netlist, respecting `clearance`: `layout` (2026-10-17)
 - ⬜ Adapters: import/export Wokwi `diagram.json` (✅ a Falstad CircuitJS link: stage 3, phase 6)
 
 ## Stage 6 — Publishing ⬜

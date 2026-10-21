@@ -72,6 +72,14 @@ en un interruptor, cuyo campo es `on`), una red que nombra un componente o una p
 error no se ubica nada y vuelven todos los problemas juntos, así se corrigen en una sola ronda.
 `check_only` / `--check` se detiene aquí.
 
+Los nombres de las patas se leen como los escribe la gente (`findPin`, `src/parts/pin-names.js`):
+primero el nombre propio de la pata, sin distinguir mayúsculas; luego sinónimos (`A`/`anode`,
+`K`/`cathode`, `VIN`/`IN`, `VOUT`/`OUT`, `DISCH`/`DIS`, `THRESHOLD`/`THR`, `VDD`/`VCC`, `VSS`/`GND`,
+`3.3V`/`3V3`, `E`/`emitter`, `G`/`gate`…) y números de GPIO en una placa (`GPIO4`, `IO4`, `4` → el
+`D4` del DevKit), solo cuando coincide exactamente una pata. Las redes vuelven con los nombres
+propios (`D1.K` → `D1.cathode`), así los pasos siguientes nunca ven un alias. Los circuitos,
+`query` y `suggest` leen las patas igual.
+
 ### 1. Capas: el orden de la señal desde la fuente
 
 Una búsqueda en anchura sobre las redes, como en los esquemas al estilo Sugiyama: el componente de
@@ -151,11 +159,59 @@ que prohibir o después de `TRIES`. Se queda el mejor intento, según
 
 Rehacer el montaje es más simple y predecible que parcharlo: un intento tarda 0,05–0,2 s.
 
+### Reparaciones y convenciones (desde el 2026-10-20)
+
+- **La tierra, al riel.** Antes de montar, una red con una pata de tierra (`GND`, `GND2`, `VSS`, `0V`,
+  o el `negative` de una fuente) y sin riel recibe el riel − que usan las otras redes, o si no `B-`
+  (`groundToRail`), con la nota `LAYOUT_GROUND_TO_RAIL`. Es lo que se hace en cualquier protoboard: un
+  cable corto por tira en vez de una cadena a lo largo de la placa. El spec guardado en el circuito
+  es lo que se pidió, sin la convención.
+- **Reparación.** Si el mejor intento todavía no es perfecto, `repair` lo toma una vez más, cable por
+  cable: una red que quedó aparte (`LAYOUT_WIRE_FAILED`) y cada cable que nombra un punto bloqueante
+  se trazan de nuevo con `suggest` (perfil lesson: mide lo que tapa un cable en las dos vistas y puede
+  pasar por una tira libre, `VIA_WIRE`). Una reparación se queda solo si mejora el puntaje (redes,
+  problemas, bloqueantes), con la nota `LAYOUT_REPAIRED`.
+
+### Volver a montar un circuito que ya existe (desde el 2026-10-20)
+
+`layout` guarda en el circuito lo que se le pidió, como `spec`: las redes (con los nombres de las
+patas ya resueltos), las fuentes que nombran patas y los id de sus propios cables (`spec.wires`). Con
+eso:
+
+- **`review` revisa las conexiones** de todo circuito con `spec`, también después de cambios a mano:
+  una red que ya no está unida bloquea (`SPEC_NET_MISSING`), y dos unidas también (`SPEC_NETS_SHORTED`).
+- **`layout` sobre un destino que ya existe lo vuelve a montar** en una sola revisión (quita todas las
+  piezas, fija los campos y agrega las nuevas: `relayoutTarget`), así `undo` trae el montaje anterior.
+  Lo que no se da sale del circuito (`specFromCircuit`: sus piezas sin agujeros y sin los cables de
+  layout, las redes y fuentes guardadas, la placa, el clearance, el título, las etiquetas y la
+  página). Cada pieza y cada cable **prueba primero los agujeros que ya tiene**, así agregar un LED no
+  mueve nada más (medido con el 555: un segundo LED y su resistencia, y todo lo demás en su lugar).
+  `expect_revision` lo protege.
+- La operación `rename` también cambia el nombre en el spec. Un circuito sin `spec` (hecho a mano)
+  solo se vuelve a montar si la llamada da sus redes (si no, `LAYOUT_NO_SPEC`); entonces sus cables se
+  dejan fuera, porque las redes ya dicen qué unen.
+
+Así el spec es el estado deseado: cambiar conexiones es dar redes nuevas y volver a llamar `layout`;
+valores, descripciones y retoques finos siguen siendo operaciones (`apply_ops`).
+
 ### La respuesta
 
-`{ circuit, placed: [{ id, type, pins, rails, shared }], wires, columns, problems, sequence, check,
-review, tries, ms }`; `formatLayout` la escribe para la consola y la herramienta MCP (textos
+`{ status, circuit, placed: [{ id, type, pins, rails, shared }], wires, columns, problems, sequence,
+check, review, tries, ms }`; `formatLayout` la escribe para la consola y la herramienta MCP (textos
 `layout.*` en `src/i18n/`).
+
+`status` es el veredicto único de toda la respuesta, y el texto termina con él en su propia línea:
+quien lea solo la última línea (sobre todo un modelo pequeño) sabe qué hacer.
+
+| `STATUS:` | Significa | Sigue |
+|---|---|---|
+| `DONE` | están todas las redes, nada quedó sin ubicar y la revisión aprueba | reportar |
+| `CHANGES` | se creó, pero una red, una ubicación o la revisión dejaron algo (✖) | arreglar solo eso con `suggest` y `apply_ops`, luego `review` |
+| `FIX_SPEC` | no se creó nada: la especificación tiene errores | arreglar cada ✖ y volver a llamar |
+| `SPEC_OK` | `check_only`: la especificación es coherente | volver a llamar sin él |
+
+Antes del 2026-10-20 el texto terminaba con el veredicto de la revisión, que podía decir APROBADO
+con una red sin conectar. La consola sale con 0 solo con `DONE` (1 con `FIX_SPEC`, 2 con `CHANGES`).
 
 ## Los números que lo gobiernan
 
@@ -171,17 +227,23 @@ review, tries, ms }`; `formatLayout` la escribe para la consola y la herramienta
 | búsqueda de cables | 40 pares, agujeros de riel a 6 columnas o menos, largo ≥ 2 pasos | paso 3 |
 | `clearance` | 1 mm (por defecto en la especificación) | separación entre cuerpos; 3 para una clase más holgada |
 
-## Medido (2026-10-18, `npm run layout-bench`)
+## Medido (`npm run layout-bench`)
 
-| Especificación | Resultado | Cables | Columnas | Intentos | Tiempo |
-|---|---|---|---|---|---|
-| `regulator-led.json` (4 componentes, 4 redes) | aprobado | 2 | 30 | 4 | 0,3 s |
-| `two-rail-supply.json` (10 componentes, 10 redes: la fuente de M2 del curso) | aprobado | 7 | 36 | **8 de 8** | 1,5 s |
+| Especificación | 2026-10-18 | 2026-10-20 |
+|---|---|---|
+| `regulator-led.json` (4 componentes, 4 redes) | aprobado · 4 intentos · 0,3 s | aprobado · **1 intento** · 0,1 s |
+| `two-rail-supply.json` (10 componentes, 10 redes: la fuente de M2 del curso) | aprobado · **8 de 8** intentos · 1,5 s | aprobado · **1 intento** · 0,3 s |
 
-En el primer intento, las dos quedan bien en geometría y con todas las redes correctas; lo único
-que bloquea es la visibilidad (`PART_HIDDEN`: «De R2 se ve el 41 %; LED2 tapa el 59 %»). El ciclo lo
-arregla, pero la fuente de dos rieles gasta todos los intentos que tiene: con un componente más de
-ese tipo volvería con CAMBIOS.
+El 2026-10-18 lo único que bloqueaba era la visibilidad: el perfil lesson daba por oculta en todas
+las vistas una pieza apenas bajaba del 85 % visible en cada una (el umbral de nota del inspector), y
+contaba como dos vistas dos piezas que la tapaban en la misma. Desde el 2026-10-20 bloquea cuando la
+**mejor vista** de la pieza muestra menos del 70 % (`hiddenBelow` en `PROFILES.lesson`), contado por
+vista. Un 555 que se ve 73 % de frente y 69 % desde atrás ya no bloquea; se lee bien.
+
+Cuatro circuitos de clase más, probados el 2026-10-20 (todavía no están en el banco): el NPN como
+interruptor, el divisor con potenciómetro y el 555 astable salen aprobados al primer intento; el
+ESP32 DevKit con pulsador y LED deja su pata de tierra aparte, porque la placa tapa esa tira (límite
+6, abajo).
 
 ## Cambiar el algoritmo
 
@@ -211,8 +273,9 @@ En orden de lo que más rendiría:
 
 1. **La visibilidad no está en la comprobación al ubicar.** El paso 2 conoce cuerpos y patas, pero
    no qué tapa qué en el dibujo isométrico, así que las piezas altas de adelante (LED,
-   electrolíticos, reguladores) tapan las bajas de atrás y solo el ciclo de reintentos lo
-   descubre. Una estimación barata en `tryOps` (qué tan alto es el cuerpo nuevo y qué tan cerca
+   electrolíticos, reguladores) tapan las bajas de atrás y solo el ciclo de reintentos (y la
+   reparación, para los cables) lo descubre. Desde que el umbral de lesson pasó al 70 % casi nunca
+   bloquea, pero todavía hay cables que pasan en arco sobre los chips (la vista de atrás del 555). Una estimación barata en `tryOps` (qué tan alto es el cuerpo nuevo y qué tan cerca
    están las piezas bajas detrás de él, en cada vista), o medir la visibilidad solo de la
    candidata elegida (`inspect` de un componente), haría pasar el primer intento y dejaría el
    ciclo para los conflictos de verdad.
@@ -226,6 +289,10 @@ En orden de lo que más rendiría:
    vacías cerca del cursor, que puede quedar lejos de donde se conectan; los cables lo compensan.
 5. **Chips DIP y pulsadores** pasan por `suggest`, que funciona pero es más lento y no sabe de las
    etapas del cursor más allá de `near`.
+6. **Las placas anchas tapan sus tiras.** Un ESP32 DevKit a caballo del canal no deja ningún agujero
+   libre al que llegue un cable en las tiras de algunas de sus patas (la placa queda encima), así que
+   una red ahí falla incluso después de la reparación. Llegar a la red por la otra pata de la placa
+   con el mismo nombre (`GND2`) o ubicar la placa dejando una fila libre lo arreglaría.
 
 ## Ver también
 

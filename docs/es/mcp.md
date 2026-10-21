@@ -58,16 +58,16 @@ la ruta absoluta de `mcp/server.js`, y las variables de arriba.
 | Herramienta | Hace | ¿Modifica archivos? |
 |---|---|---|
 | `list_circuits` | circuitos bajo la raíz (archivos con `parts`, carpetas con `circuit.json`) | no |
-| `get_circuit` | el JSON del circuito, su revisión y observaciones de colocación | no |
-| `create_circuit` | carpeta de circuito nueva (no sobrescribe) | sí |
+| `get_circuit` | el JSON del circuito, su revisión y observaciones de colocación; un circuito hecho con `layout` trae `spec` (las redes que se le pidieron) | no |
+| `create_circuit` | carpeta de circuito nueva a partir de un circuito completo con sus agujeros, escrito a mano (no sobrescribe); sin posiciones fijas, mejor `layout` | sí |
 | `inspect` | el dibujo en números; `part` para un solo componente | no |
 | `query` | `kind: at \| node \| free` con `ref` | no |
 | `netlist` | el circuito como redes: grupos unidos por cables, las patas de cada una (`R1.1@d20`), etiquetas, patas solas en su red | no |
-| `layout` | un circuito NUEVO ubicado en una llamada a partir de sus componentes (sin patas, en el orden de la señal) y sus redes: capas por distancia a la fuente, reglas por tipo de pieza, cables para lo que queda en varias tiras, y después la verificación de redes (lo que falta, los cortos) y la revisión lesson; se repite unas veces sin la posición de lo que la revisión bloquea. Componentes por número de parte, módulo o alias; una lista con errores no coloca nada y responde todos los problemas; `check_only` solo revisa. El algoritmo: [montaje-automatico.md](montaje-automatico.md) | sí |
+| `layout` | un circuito entero ubicado en una llamada a partir de sus componentes (sin agujeros, en el orden de la señal; números de parte, módulos y alias) y sus redes (patas y rieles; valen los nombres de pata usuales: `D1.K`, `U1.VIN`, `U1.GPIO4`): capas por distancia a la fuente, reglas por tipo de pieza, cables, redes de tierra a un riel −, la revisión de redes y la revisión lesson, con reintentos y reparación cable por cable. Sobre un destino que ya existe, lo vuelve a montar en una sola revisión dando solo lo que cambia (`expect_revision`; las piezas conservan sus agujeros; `undo` lo deshace). Las redes quedan en el circuito (`spec`). Termina en `STATUS: DONE \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` solo revisa. El algoritmo: [montaje-automatico.md](montaje-automatico.md) | sí |
 | `suggest` | posiciones válidas para un componente nuevo, cada una con su operación `add` y el cuerpo más cercano (`nearest`: componente y holgura); `profile` deja fuera también lo que esa revisión bloquea; `parts` coloca varios en orden y responde un solo lote | no |
 | `apply_ops` | lote atómico; primero `dry_run`, luego `expect_revision`, `author`, `note` | sí |
 | `undo` | deshace el último cambio (revisión nueva) | sí |
-| `review` | APROBADO o CAMBIOS a partir de mediciones, perfil `lesson` o `draft`; cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `explain: true` agrega las reglas del perfil | no |
+| `review` | APROBADO o CAMBIOS a partir de mediciones, perfil `lesson` o `draft`; cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `explain: true` agrega las reglas del perfil; un circuito con `spec` también tiene sus redes revisadas | no |
 | `history` | revisiones, autores, notas, operaciones | no |
 | `render` | escribe el SVG; con `png_width` devuelve también una imagen PNG; con `page: true` reescribe la página para embeber ([embeber.md](embeber.md)); con `sim: true` dibuja los resultados de la simulación; `focus: [ids]` atenúa lo demás; `flow: true` la capa de corriente | solo salidas |
 | `simulate` | voltajes de los grupos y corrientes de los componentes, un modelo ([simulacion.md](simulacion.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` agrega el enlace que abre el circuito en Falstad ([falstad.md](falstad.md)) | no |
@@ -84,24 +84,29 @@ Todas responden en texto legible, o en JSON con `format: "json"`. Los errores vu
 errores de la herramienta con un mensaje legible (`isError`), nunca como una caída. Las de
 solo lectura llevan `readOnlyHint`, para que los clientes puedan permitirlas sin preguntar.
 
-El servidor envía además **instrucciones** con el ciclo de trabajo: listar →
-historial/inspeccionar → consultar/sugerir → apply_ops en seco → apply_ops con
-expect_revision → deshacer si hace falta; nunca reescribir los archivos de circuito
-directamente; PNG solo cuando importa el estilo.
+El servidor envía además **instrucciones**, la misma guía de `SKILL.md` en pocas líneas: qué
+herramienta para qué tarea (un circuito nuevo → `layout`; otras conexiones en un circuito hecho con
+`layout` → `layout` otra vez; un valor o un arreglo → `apply_ops`), qué significa cada `STATUS:`, el
+ciclo de operaciones, cómo revisar (`review`, `netlist`, `simulate`, sin mostrar nunca un valor por
+predecir), los agujeros y la simulación de la página. Nunca reescribir los archivos de circuito; PNG
+solo cuando importa el estilo.
 
 ## Ejemplo de sesión
 
 ```
-list_circuits                       → circuits/led · rev 0 · 3 componentes
-inspect   {target: "circuits/led"}  → … De R1 se ve el 81 %; W1 tapa el 15 %.
-suggest   {target, part: {type: "resistor", value: "1k"}, between: ["10:f-j", "T-"]}
-suggest   {target, parts: [{part: {type: "led"}, between: ["20:f-j", "21:f-j"]},
-                           {part: {type: "resistor", value: "330"}, between: ["D2.cathode", "T-"]}],
-           profile: "lesson"}                                    → un solo lote de add
-netlist   {target}                   → cada red con sus patas, para compararla con el encargo
-apply_ops {target, ops: <de suggest>, dry_run: true}         → qué arregla / qué introduce
-apply_ops {target, ops, expect_revision: 0, author: "claude", note: "resistencia de pull-down"} → rev 1
+layout    {target: "interruptor", parts: [...], nets: [["R2.2", "D1.A"], ["D1.K", "Q1.C"], …]}
+                                     → … STATUS: DONE · rev 0
+get_circuit {target: "interruptor"}  → el circuito con spec.nets
+layout    {target: "interruptor", nets: <spec.nets con un cambio>, expect_revision: 0}
+                                     → … STATUS: DONE · rev 1 (todo lo demás en su lugar)
+apply_ops {target, ops: [{op: "set", part: "R2", value: "470"}], dry_run: true} → qué arregla / qué introduce
+apply_ops {target, ops, expect_revision: 1, author: "claude", note: "LED menos brillante"} → rev 2
+review    {target}                   → APROBADO (redes revisadas contra el spec)
+undo      {target}                   → rev 3, R2 vuelve a 330
 ```
+
+Un circuito hecho a mano pasa en cambio por el ciclo de operaciones: `inspect`, luego `suggest`
+(`parts` para una cadena, `profile: "lesson"`), `apply_ops` en seco, `netlist`, `review`.
 
 ## Los agentes usan estas herramientas
 

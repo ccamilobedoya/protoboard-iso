@@ -47,3 +47,8 @@ test('each blocking item names its parts and views; explain gives the rules', ()
   assert.match(text, /\[componentes D1, R2\]|\[componentes R2, D1\]/);
   assert.equal(review(example('led-resistor.json')).rules, undefined, 'rules only when asked');
 });
+
+test('lesson: a part blocks as hidden only when its best view shows less than hiddenBelow', async () => {
+  const { PROFILES } = await import('../src/review.js');
+  assert.equal(PROFILES.lesson.hiddenBelow, 70);
+});

@@ -11,13 +11,18 @@
 // the fix is clear without another inspect; `explain` adds the profile's rules (`rules`).
 
 import { evaluate } from './diff.js';
+import { checkNets } from './nets.js';
 
 export const PROFILES = {
   lesson: {
     // codes that block in any view
     block: ['LABEL_COVERS_PART', 'LABEL_OVERLAP', 'TOO_CLOSE'],
-    // a part hidden in every view blocks (in one view only: advise the other view)
+    // a part hidden in every view blocks (in one view only: advise the other view): one whose best
+    // view shows less than this share of it (percent). Measured 2026-10-20: at the inspector's 85 %
+    // a 555 seen 73 % from the front and 69 % from the back blocked, and the two-rail supply needed
+    // all 8 layout tries; 70 % in one view is readable.
     hiddenEverywhere: true,
+    hiddenBelow: 70,
     advise: ['FLOATING_PIN', 'LEADER_CROSSING', 'LEADER_OVER_PART', 'LABEL_HIDES_TEXT', 'TEXT_TOO_SMALL', 'PART_HIDDEN'],
   },
   draft: { block: [], hiddenEverywhere: false, advise: null },
@@ -69,7 +74,10 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
     const { view, ...plain } = p;
     if (p.code === 'PART_HIDDEN') {
       const all = hiddenIn.get(p.params.part);
-      const everywhere = all.length >= views.length;
+      // Its best view: the least it is covered there (two parts covering it in one view are one view).
+      const shown = (v) => Math.min(100, ...all.filter((x) => x.view === v).map((x) => x.params.visible));
+      const best = Math.max(...views.map(shown));
+      const everywhere = best < (policy.hiddenBelow ?? 100);
       if (policy.hiddenEverywhere && everywhere) {
         // One entry per part: the view where it is least visible.
         const worst = all.reduce((a, b) => (b.params.visible < a.params.visible ? b : a));
@@ -82,6 +90,15 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
     else if (!policy.advise || policy.advise.includes(p.code)) once(advisory, view ? { ...plain, view } : plain);
   }
 
+  // The connections asked for: a circuit laid out by layout keeps its nets (spec), so every
+  // review checks them, also after later changes by hand or by operations.
+  if (circuit.spec?.nets?.length) {
+    const asked = circuit.spec.nets.map((n) => (Array.isArray(n) ? { pins: n } : n));
+    const nets = checkNets(circuit, asked);
+    for (const m of nets.missing) once(blocking, { severity: 'error', code: 'SPEC_NET_MISSING', params: { net: m.net, pins: m.pins.join(', ') } });
+    for (const s of nets.shorted) once(blocking, { severity: 'error', code: 'SPEC_NETS_SHORTED', params: { nets: s.nets.join(' + ') } });
+  }
+
   for (const p of blocking) {
     p.parts = partsOf(p, ids);
     const seenIn = [...(viewsOf.get(`${p.code} ${JSON.stringify(p.params)}`) ?? [])].filter((v) => v !== 'any');
@@ -90,7 +107,7 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
   return {
     profile,
     views,
-    ...(explain && { rules: { blocks: ['error', 'warning', ...policy.block], hiddenEverywhere: policy.hiddenEverywhere, advise: policy.advise ?? 'everything else' } }),
+    ...(explain && { rules: { blocks: ['error', 'warning', ...policy.block], hiddenEverywhere: policy.hiddenEverywhere, hiddenBelow: policy.hiddenBelow, advise: policy.advise ?? 'everything else' } }),
     verdict: blocking.length ? 'changes' : 'approved',
     blocking,
     advisory,
@@ -103,7 +120,7 @@ export function formatReview(r, lang, { t, formatIssue }) {
   if (r.rules) {
     const codes = r.rules.blocks.filter((c) => c !== 'error' && c !== 'warning');
     lines.push(t(lang, 'review.rules', { codes: codes.join(', ') || '—' }));
-    if (r.rules.hiddenEverywhere) lines.push(t(lang, 'review.rulesHidden'));
+    if (r.rules.hiddenEverywhere) lines.push(t(lang, 'review.rulesHidden', { below: r.rules.hiddenBelow ?? 100 }));
   }
   if (r.blocking.length) {
     lines.push(t(lang, 'review.blocking'));

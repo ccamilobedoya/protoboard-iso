@@ -150,6 +150,46 @@ de abajo y comparar.
 - ⬜ Fotos: una tabla para la protoboard del curso de pie (riel izquierdo = B+/B−, derecho = T−/T+; las filas de la foto son las columnas del kit) y un dibujo con la cuadrícula anotada para comparar con una foto
 - ⬜ Medir otra vez: rehacer `m2-fuente-dos-rieles` con estas mejoras (`Fidelity: functional`) y comparar tiempo, llamadas y tokens
 
+## Circuitos con un modelo pequeño, y con cualquier modelo (revisión del 2026-10-20) 🔜
+
+Objetivo: que un circuito salga bien al primer intento con un modelo barato y poco razonamiento, y
+con asistentes que no son Claude, reutilizando patrones probados en vez de resolver cada circuito.
+Sale de una revisión del kit, sus agentes y su documentación, y de probar `layout` con cuatro
+circuitos típicos de clase: el transistor NPN como interruptor y el divisor con potenciómetro
+salieron listos; el 555 astable quedó con piezas tapadas desde atrás; el ESP32 con pulsador pull-up
+no encontró lugar para su cable de tierra (la placa tapa las tiras) y aun así el texto terminaba en
+«Revisión: APROBADO»; y **ninguno** de los cuatro pasó al primer intento por los nombres de las
+patas (`D1.K` en un LED, `U1.DISCH` en un 555).
+
+**Errores que cuestan una vuelta cada uno (hecho el 2026-10-20)**
+
+- ✅ A la lista de herramientas del agente de montaje le faltaba `layout` (su paso 0 decía «layout primero») y `simulate`; al revisor, `simulate`. Ahora los dos corren `simulate` una vez y reportan solo avisos, nunca valores. `npm run test:mcp` falla si las instrucciones de un agente nombran una herramienta que su lista no tiene
+- ✅ El archivo del agente de montaje sin contradicciones: arriba se elige el camino (A: `layout` para un circuito nuevo, sin `catalog` antes; B: operaciones para cambios y arreglos), en vez de «catalog primero» y «sin catalog antes de layout» en el mismo archivo
+- ✅ Nombres de patas como los escribe la gente (`src/parts/pin-names.js`, `findPin`): sinónimos (`A`/`anode`, `K`/`cathode`, `VIN`/`IN`, `DISCH`/`DIS`, `THRESHOLD`/`THR`, `VDD`/`VCC`, `3.3V`/`3V3`…) y números de GPIO en las placas (`GPIO4` → el `D4` del DevKit), solo cuando coincide una sola pata; en `layout`, los circuitos, `query` y `suggest`. El nombre de una pata puede llevar punto (`U2.3.3V`)
+- ✅ Un solo veredicto: `layout` termina en `STATUS: DONE | CHANGES | FIX_SPEC | SPEC_OK` con lo que sigue (`status` en JSON); la consola sale con 0 solo cuando está listo
+
+**Patrones probados en vez de resolver cada circuito**
+
+- ⬜ **Recetas**: una biblioteca de especificaciones de `layout` para los circuitos de clase (LED + resistencia, divisor, potenciómetro, NPN y MOSFET como interruptor, pulsador con pull-up / pull-down, RC, 555 astable, 7805 y AMS1117, puente rectificador, Zener, LED y pulsador con ESP32), llamadas por nombre con solo los valores (`layout { recipe: "npn-switch", values: { R1: "1k" } }`); cada una es un caso de `layout-bench`. Reemplaza las «plantillas» de la etapa 5
+- ✅ **La especificación como estado deseado** (2026-10-20): el circuito guarda lo que se le pidió a `layout` (`spec`: redes con los nombres de patas resueltos, fuentes que nombran patas, los id de sus cables); `review` revisa esas redes en todo circuito que las tenga (`SPEC_NET_MISSING`, `SPEC_NETS_SHORTED`); `layout` sobre un destino que ya existe lo vuelve a montar en una sola revisión (`undo` trae el anterior), dando solo lo que cambia, y cada pieza y cable prueba primero sus agujeros actuales (un segundo LED en el 555 no movió nada); `rename` también cambia el spec. Va dentro de `circuit.json` en vez de un `spec.json` aparte, así el historial y `undo` lo cubren
+- ✅ **Reparaciones dentro de `layout`** (2026-10-20): lo que deja el ciclo de reintentos (una red aparte, un cable que nombra un punto bloqueante) se traza otra vez con `suggest` (perfil lesson, `VIA_WIRE`) y se queda solo si mejora; una red de tierra sin riel va al riel − que usan las otras, o si no a `B-` (notas `LAYOUT_REPAIRED`, `LAYOUT_GROUND_TO_RAIL`)
+- ✅ Encontrado de paso: el perfil lesson bloqueaba una pieza por oculta en todas las vistas si bajaba del 85 % visible en cada una, y contaba como dos vistas dos piezas que la tapaban en la misma. Ahora bloquea cuando su mejor vista muestra menos del 70 % (`hiddenBelow`): las dos del banco pasan al primer intento (la fuente de dos rieles: 8 intentos y 1,5 s → 1 intento y 0,3 s) y el 555 astable pasa
+- ⬜ El encargo lleva las redes en JSON (o el nombre de una receta) en vez de prosa («R1 entre T+ y el ánodo del LED») que el agente tiene que traducir; un circuito de receta se monta con una sola llamada a `layout` desde la conversación principal, y el agente queda para `CHANGES`
+
+**El algoritmo** (límites ya listados en [montaje-automatico.md](montaje-automatico.md))
+
+- ⬜ Visibilidad en la revisión al ubicar: con el umbral del 70 % casi nunca bloquea, pero todavía hay cables que pasan en arco sobre los chips (la vista de atrás del 555)
+- ⬜ Placas anchas (ESP32 DevKit) que tapan las tiras: llegar a una red por otra de sus tiras o por un riel cuando ningún cable cabe en la tapada
+- ⬜ Un banco más grande: las recetas y los cuatro circuitos de esta revisión en `examples/layout/`
+
+**Cualquier modelo, no solo Claude**
+
+- ⬜ `AGENTS.md` en la raíz (lo leen Codex, Gemini CLI, Cursor y otros) con el flujo corto; `SKILL.md` y `.claude/agents/` quedan para Claude Code
+- ⬜ Prompts MCP (`build_circuit`, `review_circuit`): el procedimiento de los agentes servido por el servidor MCP, así cualquier cliente MCP lo recibe, no solo las herramientas
+- ⬜ `schema/layout.schema.json`: el JSON Schema de la especificación, para modelos que generan JSON restringido por un esquema
+- ✅ `SKILL.md` reordenado (2026-10-20): una tabla de qué herramienta para qué tarea, `layout` primero con un ejemplo resuelto (un test comprueba que sale `DONE`), las líneas `STATUS:`, cambiar un circuito volviéndolo a montar, el ciclo de operaciones, revisar y mostrar; el formato escrito a mano queda en `docs/es/formato-circuito.md` (11,5 KB → 8,7 KB). Las instrucciones del servidor MCP y las descripciones de sus herramientas dicen lo mismo (⬜ las recetas primero, cuando existan)
+- ⬜ Banco de agentes: N encargos × modelo (un Claude pequeño, un modelo de otro proveedor), midiendo llamadas, tokens, tiempo y éxito al primer intento, para medir cada cambio del kit (sigue a «Medir otra vez», arriba)
+
 ## Estilo visual y temas (transversal, después de la etapa 2) ⬜
 
 Objetivo: dibujos que primero enseñen. Realismo donde ayuda a reconocer un componente;
@@ -228,8 +268,8 @@ Objetivo: abrir un enlace y explorar.
 
 ## Etapa 5 — Escribir circuitos más rápido ⬜
 
-- ⬜ Plantillas: circuitos comunes donde solo cambian los valores (LED + resistencia, divisor, RC, transistor como interruptor)
-- ⬜ Colocación automática a partir de una netlist («R1 entre 5V y n1»), respetando `clearance` para que las clases nunca queden apretadas
+- ⬜ Plantillas: circuitos comunes donde solo cambian los valores: ahora son las **recetas** de «Circuitos con un modelo pequeño», arriba
+- ✅ Colocación automática a partir de una netlist, respetando `clearance`: `layout` (2026-10-17)
 - ⬜ Adaptadores: importar y exportar `diagram.json` de Wokwi (✅ el enlace a Falstad CircuitJS: etapa 3, fase 6)
 
 ## Etapa 6 — Publicación ⬜

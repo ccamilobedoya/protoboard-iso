@@ -87,6 +87,16 @@ export function buildSchemas() {
       view: { enum: Object.keys(VIEWS) },
       clearance: { type: 'number', minimum: 0, description: 'Minimum gap between bodies, mm' },
       netLabels: { type: 'object', additionalProperties: text },
+      spec: {
+        type: 'object',
+        description: 'What layout was asked for, kept so the circuit can be laid out again (layout on an existing target) and so review can check the connections: nets of pin references, supplies that name pins, and the ids of the jumpers layout added',
+        properties: {
+          nets: { type: 'array', items: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'object', properties: { pins: { type: 'array', items: { type: 'string' } }, color: { type: 'string' } }, required: ['pins'] }] } },
+          supplies: { type: 'array', items: { type: 'object' } },
+          wires: { type: 'array', items: { type: 'string' }, description: 'jumpers added by layout (not parts of the spec)' },
+        },
+        additionalProperties: false,
+      },
       supplies: {
         type: 'array',
         description: 'Simulation: where the power comes from, besides battery parts. The first supply\'s negative is ground (0 V); with none, the first battery part\'s.',

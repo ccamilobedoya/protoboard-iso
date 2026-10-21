@@ -107,8 +107,18 @@ export default {
   'layout.changes': 'Review (lesson): CHANGES, {count} to fix:',
   'check.LAYOUT_PART_FAILED': '{part} found no place (reasons below).',
   'check.LAYOUT_WIRE_FAILED': 'No jumper fits from {from} to {to}.',
+  'check.LAYOUT_NO_SPEC': '{target} was not made by layout, so it has no nets to lay out again: pass nets (and parts) to lay it out from scratch.',
+  'check.LAYOUT_NEEDS_SPEC': '{target} is a new circuit: layout needs its parts and nets.',
+  'check.LAYOUT_GROUND_TO_RAIL': 'Net {net} ({pin}) is ground: joined to the {rail} rail, as on any breadboard.',
+  'check.LAYOUT_REPAIRED': 'Jumper from {from} to {to} routed again so nothing is hidden or left apart.',
+  'check.SPEC_NET_MISSING': 'Net {net} of the spec: {pins} not connected to the rest. To change what is connected, call layout again with new nets; otherwise add the missing jumper.',
+  'check.SPEC_NETS_SHORTED': 'Nets {nets} of the spec ended up joined (a short).',
   'layout.valid': 'The parts and nets are consistent ({parts} parts, as the kit reads them):',
   'layout.invalid': 'Nothing was placed: fix these first ({parts} parts read):',
+  'layout.status.done': 'the circuit is ready: every net is there and the lesson review approves it. Add descriptions if the brief asks, and report.',
+  'layout.status.changes': 'the circuit was created, with {count} items marked ✖ above still open. Fix only those (suggest, then apply_ops with a dry run), then run review.',
+  'layout.status.fix_spec': 'nothing was created. Fix every ✖ above in the spec and call layout again.',
+  'layout.status.spec_ok': 'the spec is consistent. Call layout again without check_only (CLI: without --check) to place it.',
   'check.UNKNOWN_PART_NAME': '{part}: the kit does not know "{name}". Closest: {suggestions}.',
   'check.NET_BAD_REF': 'Net {where}: "{ref}" is neither a pin ("U1.OUT") nor a rail (T+, T-, B+, B-).',
   'check.NET_UNKNOWN_PART': 'Net {where}: "{ref}" names {part}, which is not in the parts ({parts}).',
@@ -143,7 +153,7 @@ export default {
   'review.blocking': 'Must fix:',
   'review.advisory': 'Worth knowing:',
   'review.rules': 'Blocks: every error and warning, and in any view: {codes}.',
-  'review.rulesHidden': 'Blocks too: a part hidden in every view (hidden in one view only is a note: look at it from the other).',
+  'review.rulesHidden': 'Blocks too: a part hidden in every view, less than {below} % of it visible from its best view (hidden in one view only is a note: look at it from the other).',
   'review.parts': 'parts {parts}',
 
   'type.resistor': 'Resistor',
@@ -403,7 +413,7 @@ export default {
   'page.hint.results': 'Tap a part or a strip to see what it is and its simulated values',
   'page.revision': 'revision {revision}',
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):
-  protoboard-iso layout <new target> <spec.json|-> [--check]   # the whole circuit placed from its parts and nets (docs/en/agents.md)
+  protoboard-iso layout <target> [spec.json|-] [--check] [--expect-revision n]   # the whole circuit placed from its parts and nets; an existing target is laid out again (docs/en/layout.md)
   protoboard-iso render <target> [-o out.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <target> [--transient stop[,step]] [--start zero|dc] [--lang en|es] [--json]
   protoboard-iso page <target> [-o page.html] [--lang en|es] [--fit parts|board]

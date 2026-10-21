@@ -15,7 +15,7 @@
 
 import { COMMON_FIELDS, TYPE_FIELDS } from './parts/fields.js';
 export const OP_NAMES = ['add', 'remove', 'move', 'set', 'rename', 'circuit'];
-export const CIRCUIT_FIELDS = ['title', 'lang', 'board', 'view', 'clearance', 'netLabels', 'supplies', 'page'];
+export const CIRCUIT_FIELDS = ['title', 'lang', 'board', 'view', 'clearance', 'netLabels', 'supplies', 'page', 'spec'];
 const FIXED_PART_FIELDS = ['id', 'pins', 'pin1']; // changed with `rename` and `move`
 
 const clone = (x) => (x === undefined ? undefined : structuredClone(x));
@@ -104,6 +104,8 @@ export function applyOps(circuit, ops) {
         if (indexOf(op.to) >= 0) return fail('OP_DUPLICATE_ID', { part: op.to });
         const part = next.parts[at];
         inverse.unshift({ op: 'rename', part: op.to, to: part.id });
+        // The layout spec names pins by part id ("R1.2"): it follows the rename.
+        if (next.spec) next.spec = renameInSpec(next.spec, part.id, op.to);
         part.id = op.to;
         return;
       }
@@ -128,4 +130,15 @@ export function applyOps(circuit, ops) {
 
   if (errors.length) return { circuit, inverse: [], errors };
   return { circuit: next, inverse, errors };
+}
+
+// The layout spec (what layout was asked for: nets of pin references, supplies, the ids of its
+// jumpers) with a part renamed.
+function renameInSpec(spec, from, to) {
+  const ref = (r) => (typeof r === 'string' && r.startsWith(`${from}.`) ? `${to}${r.slice(from.length)}` : r);
+  const out = clone(spec);
+  if (out.nets) out.nets = out.nets.map((n) => (Array.isArray(n) ? n.map(ref) : { ...n, pins: (n.pins ?? []).map(ref) }));
+  if (out.supplies) out.supplies = out.supplies.map((s) => ({ ...s, positive: ref(s.positive), negative: ref(s.negative) }));
+  if (out.wires) out.wires = out.wires.map((w) => (w === from ? to : w));
+  return out;
 }

@@ -54,3 +54,68 @@ export function formatNets(r, lang, { t }) {
   if (r.floating.length) lines.push(t(lang, 'nets.floating', { pins: r.floating.join(', ') }));
   return lines.join('\n');
 }
+
+const RAIL_NAMES = ['T+', 'T-', 'B+', 'B-'];
+const railName = (ref) => RAIL_NAMES.find((r) => r === String(ref).trim().toUpperCase()) ?? null;
+const pinKey = (ref) => {
+  const m = /^([^.\s]+)\.(\S+)$/.exec(String(ref).trim());
+  return m ? `${m[1]}.${m[2].toLowerCase()}` : null;
+};
+
+// The nets asked for against the circuit built: every pin of a net on one electrical net
+// (missing: the pins left out), and no two nets asked for on the same one (shorted).
+export function checkNets(circuit, asked) {
+  // Nets asked for that share a pin or a rail are one net (a ground bridge: [T-, B-]).
+  const nets = [];
+  for (const net of asked) {
+    const keys = new Set(net.pins.map((p) => railName(p) ?? pinKey(p)));
+    const into = nets.find((n) => [...keys].some((k) => n.keys.has(k)));
+    if (into) {
+      keys.forEach((k) => into.keys.add(k));
+      into.pins.push(...net.pins);
+    } else nets.push({ index: nets.length, keys, pins: [...net.pins] });
+  }
+  for (let merged = true; merged; ) {
+    merged = false;
+    for (let i = 0; i < nets.length && !merged; i++) {
+      for (let j = i + 1; j < nets.length && !merged; j++) {
+        if ([...nets[j].keys].some((k) => nets[i].keys.has(k))) {
+          nets[j].keys.forEach((k) => nets[i].keys.add(k));
+          nets[i].pins.push(...nets[j].pins);
+          nets.splice(j, 1);
+          merged = true;
+        }
+      }
+    }
+  }
+  nets.forEach((n, i) => (n.index = i));
+  const built = buildCircuit(circuit);
+  const parent = new Map();
+  const find = (x) => {
+    if (!parent.has(x)) parent.set(x, x);
+    while (parent.get(x) !== x) x = parent.get(x);
+    return x;
+  };
+  for (const w of built.parts.filter((p) => p.type === 'wire' && p.holes.length === 2)) parent.set(find(w.holes[0].node), find(w.holes[1].node));
+  const holeOf = new Map();
+  for (const p of built.parts) p.pinNames.forEach((n, i) => p.holes[i] && holeOf.set(`${p.id}.${n.toLowerCase()}`, p.holes[i]));
+  const rootOf = (ref) => (railName(ref) ? find(railName(ref)) : holeOf.has(pinKey(ref)) ? find(holeOf.get(pinKey(ref)).node) : null);
+  const missing = [];
+  const owner = new Map();
+  const shorted = [];
+  for (const net of nets) {
+    const roots = net.pins.map((ref) => [ref, rootOf(ref)]);
+    const counts = new Map();
+    for (const [, r] of roots) if (r) counts.set(r, (counts.get(r) ?? 0) + 1);
+    const main = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    const off = roots.filter(([, r]) => r !== main).map(([ref]) => ref);
+    if (off.length) missing.push({ net: net.index + 1, pins: off });
+    if (main) {
+      if (owner.has(main) && owner.get(main) !== net.index) shorted.push({ nets: [owner.get(main) + 1, net.index + 1] });
+      owner.set(main, net.index);
+    }
+  }
+  return { ok: !missing.length && !shorted.length, missing, shorted };
+}
+
+// Readable answer for the CLI and the MCP tool.

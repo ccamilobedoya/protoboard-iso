@@ -33,6 +33,10 @@ import { PART_TYPES } from './parts/types/index.js';
 import { PACKAGES } from './parts/packages/index.js';
 import { SWITCH_STYLES } from './parts/types/switch.js';
 import { resolvePart, pinsOf } from './parts/resolve.js';
+import { findPin } from './parts/pin-names.js';
+import { checkNets } from './nets.js';
+
+export { checkNets };
 import { strayFields, fieldsOfType } from './parts/fields.js';
 
 const RAILS = ['T+', 'T-', 'B+', 'B-'];
@@ -43,7 +47,7 @@ const HALF_ROWS = { T: ['j', 'i', 'h', 'g', 'f'], B: ['a', 'b', 'c', 'd', 'e'] }
 const SPAN = 8; // columns a part may slide past the cursor looking for room
 const railName = (ref) => RAILS.find((r) => r === String(ref).trim().toUpperCase()) ?? null;
 const pinKey = (ref) => {
-  const m = /^([^.\s]+)\.([^.\s]+)$/.exec(String(ref).trim());
+  const m = /^([^.\s]+)\.(\S+)$/.exec(String(ref).trim());
   return m ? `${m[1]}.${m[2].toLowerCase()}` : null;
 };
 const halfOfRow = (row) => (HALF_ROWS.T.includes(row) ? 'T' : 'B');
@@ -88,8 +92,11 @@ export function validateSpec(spec) {
   const inNet = new Set();
   const checkRef = (ref, where) => {
     if (railName(ref)) return;
-    const m = /^([^.\s]+)\.([^.\s]+)$/.exec(String(ref).trim());
-    if (!m) return problems.push({ severity: 'error', code: 'NET_BAD_REF', params: { where, ref: String(ref) } });
+    const m = /^([^.\s]+)\.(\S+)$/.exec(String(ref).trim());
+    if (!m) {
+      problems.push({ severity: 'error', code: 'NET_BAD_REF', params: { where, ref: String(ref) } });
+      return undefined;
+    }
     const part = byId.get(m[1]);
     if (!part) {
       if (!seen.has(m[1])) problems.push({ severity: 'error', code: 'NET_UNKNOWN_PART', params: { where, ref: String(ref), part: m[1], parts: [...seen].join(', ') } });
@@ -97,25 +104,41 @@ export function validateSpec(spec) {
     }
     inNet.add(part.id);
     const names = pinsOf(part);
-    if (names.length && !names.some((n) => n.toLowerCase() === m[2].toLowerCase())) problems.push({ severity: 'error', code: 'NET_UNKNOWN_PIN', params: { where, ref: String(ref), part: part.id, pin: m[2], names: names.join(', ') } });
+    if (!names.length) return ref;
+    const name = findPin(names, m[2]);
+    if (name === undefined) problems.push({ severity: 'error', code: 'NET_UNKNOWN_PIN', params: { where, ref: String(ref), part: part.id, pin: m[2], names: names.join(', ') } });
+    return name === undefined ? ref : `${part.id}.${name}`;
   };
-  (spec.nets ?? []).forEach((n, i) => (Array.isArray(n) ? n : n?.pins ?? []).forEach((ref) => checkRef(ref, i + 1)));
-  for (const s of spec.supplies ?? []) for (const ref of [s.positive, s.negative]) if (ref != null) checkRef(ref, s.id ?? 'supply');
+  // Pin references come back in the part's own names ("D1.K" → "D1.cathode", "U1.GPIO4" → "U1.D4").
+  const nets = (spec.nets ?? []).map((n, i) => {
+    const pins = (Array.isArray(n) ? n : n?.pins ?? []).map((ref) => checkRef(ref, i + 1) ?? ref);
+    return Array.isArray(n) ? pins : { ...n, pins };
+  });
+  const supplies = spec.supplies?.map((s) => {
+    const out = { ...s };
+    for (const key of ['positive', 'negative']) if (s[key] != null) out[key] = checkRef(s[key], s.id ?? 'supply') ?? s[key];
+    return out;
+  });
   for (const p of parts) if (!inNet.has(p.id)) problems.push({ severity: 'warning', code: 'PART_IN_NO_NET', params: { part: p.id } });
-  return { parts, problems, ok: !problems.some((p) => p.severity === 'error') };
+  return { parts, nets, ...(supplies && { supplies }), problems, ok: !problems.some((p) => p.severity === 'error') };
 }
 
-export function autoLayout(spec, { profile = 'lesson', checkOnly = false } = {}) {
+// previous: the circuit as it is (layout again on an existing target). Each part and jumper first
+// tries the holes it already has, so a change moves only what it must and a learner's build stays
+// as it is.
+export function autoLayout(spec, { profile = 'lesson', checkOnly = false, previous = null } = {}) {
   const started = Date.now();
   const valid = validateSpec(spec);
-  if (checkOnly || !valid.ok) return { invalid: !valid.ok, checked: true, parts: valid.parts, problems: valid.problems, ms: Date.now() - started };
-  spec = { ...spec, parts: valid.parts };
+  if (checkOnly || !valid.ok) return { status: valid.ok ? 'spec_ok' : 'fix_spec', invalid: !valid.ok, checked: true, parts: valid.parts, problems: valid.problems, ms: Date.now() - started };
+  const asked = { nets: valid.nets, ...(valid.supplies?.some((s) => pinKey(s.positive) || pinKey(s.negative)) && { supplies: valid.supplies }) };
+  const notes = [];
+  spec = { ...spec, parts: valid.parts, nets: groundToRail(valid.nets, valid.parts, valid.supplies, notes), ...(valid.supplies && { supplies: valid.supplies }) };
   const forbid = new Set(); // "id pins" keys
   let best = null;
   let tries = 0;
   for (let attempt = 0; attempt < TRIES; attempt++) {
     tries++;
-    const r = layoutOnce(spec, { profile, forbid });
+    const r = layoutOnce(spec, { profile, forbid, previous });
     const score = (x) => (x.check.ok ? 0 : 100) + x.problems.length * 10 + x.review.blocking.length;
     if (!best || score(r) < score(best)) best = r;
     if (r.check.ok && r.review.verdict === 'approved' && !r.problems.length) break;
@@ -134,12 +157,100 @@ export function autoLayout(spec, { profile = 'lesson', checkOnly = false } = {})
     }
     if (!added) break;
   }
-  return { ...best, tries, ms: Date.now() - started };
+  if (!(best.check.ok && best.review.verdict === 'approved' && !best.problems.length)) best = repair(best, spec, { profile });
+  // Kept in the circuit: what was asked (not the conventions added to it) and which wires are
+  // layout's own jumpers, so layout can run again on it and review can check the connections.
+  const ids = new Set(spec.parts.map((p) => p.id));
+  const circuit = { ...best.circuit, spec: { ...asked, wires: best.circuit.parts.filter((p) => p.type === 'wire' && !ids.has(p.id)).map((p) => p.id) } };
+  // One verdict for the whole answer: the nets, the placement problems and the review together,
+  // so a caller that reads only the last line cannot take "review approved" for done.
+  const status = best.check.ok && best.review.verdict === 'approved' && !best.problems.length ? 'done' : 'changes';
+  return { ...best, circuit, notes: [...notes, ...(best.notes ?? [])], status, tries, ms: Date.now() - started };
 }
 
-const forbidKey = (part) => (part.type === 'wire' ? `wire ${[...part.pins].sort().join(' ')}` : `${part.id} ${JSON.stringify(part.pins)}`);
+// Pins that are ground by name: GND, GND2, VSS, 0V.
+const GROUND_PIN = /^(GND\d*|VSS|0V)$/i;
 
-function layoutOnce(spec, { profile, forbid }) {
+// Convention of every breadboard: ground lives on a − rail. A net with a ground pin (or a supply's
+// negative) and no rail gets the − rail the other nets use, else B−. One short jumper per strip
+// then joins it, instead of a chain of jumpers along the board.
+function groundToRail(nets, parts, supplies, notes) {
+  const negatives = new Set((supplies ?? []).map((s) => pinKey(s.negative)).filter(Boolean));
+  const pinsOfNet = (n) => (Array.isArray(n) ? n : n.pins);
+  const rail = nets.flatMap(pinsOfNet).map(railName).find((r) => r?.endsWith('-')) ?? 'B-';
+  return nets.map((n, i) => {
+    const pins = pinsOfNet(n);
+    if (pins.some(railName)) return n;
+    const ground = pins.find((ref) => negatives.has(pinKey(ref)) || GROUND_PIN.test(String(ref).split('.').slice(1).join('.')));
+    if (!ground) return n;
+    notes.push({ severity: 'info', code: 'LAYOUT_GROUND_TO_RAIL', params: { net: i + 1, pin: ground, rail } });
+    return Array.isArray(n) ? [...pins, rail] : { ...n, pins: [...pins, rail] };
+  });
+}
+
+// What the relayout loop could not fix, tried once more on the best try, jumper by jumper: a net
+// left apart and a jumper named by a blocking item are routed again with suggest (which measures
+// what a wire hides in both views, and may go through a free strip: VIA_WIRE). A repair is kept
+// only when the nets stay right and nothing new blocks.
+function repair(best, spec, { profile }) {
+  let { circuit, problems, check, review: verdict } = best;
+  const notes = [];
+  const score = (c, v, p) => (c.ok ? 0 : 100) + p.length * 10 + v.blocking.length;
+  const nets = spec.nets.map((n) => (Array.isArray(n) ? { pins: n } : n));
+  const attempt = (remove, between, color, fixed) => {
+    const base = remove ? applyOps(circuit, [{ op: 'remove', part: remove }]).circuit : circuit;
+    const s = suggest(base, { type: 'wire', ...(color && { color }) }, { between, profile, limit: 1, via: true });
+    const ops = s.placements?.[0]?.ops;
+    if (!ops) return false;
+    const r = applyOps(base, ops);
+    if (r.errors.length) return false;
+    const c = checkNets(r.circuit, nets);
+    const v = review(r.circuit, { profile, views: ['front', 'back'] });
+    const p = problems.filter((x) => x !== fixed);
+    if (score(c, v, p) >= score(check, verdict, problems)) return false;
+    ({ circuit, check, review: verdict, problems } = { circuit: r.circuit, check: c, review: v, problems: p });
+    notes.push({ severity: 'info', code: 'LAYOUT_REPAIRED', params: { from: between[0], to: between[1] } });
+    return true;
+  };
+  for (const p of problems.filter((x) => x.code === 'LAYOUT_WIRE_FAILED')) attempt(null, [p.params.from, p.params.to], null, p);
+  const wiresOf = (b) => (b.parts ?? []).map((id) => circuit.parts.find((q) => q.id === id)).filter((q) => q?.type === 'wire');
+  for (const b of [...verdict.blocking]) {
+    for (const w of wiresOf(b)) {
+      if (!circuit.parts.includes(w)) continue;
+      const built = buildCircuit(circuit).parts.find((q) => q.id === w.id);
+      if (built?.holes?.length !== 2) continue;
+      attempt(w.id, built.holes.map((h) => h.node), w.color, null);
+    }
+  }
+  return { ...best, circuit, problems, check, review: verdict, notes };
+}
+
+// The spec of a circuit already laid out, for layout again: its parts (without holes and without
+// layout's jumpers, or without any wire when it has no spec: the nets say what they join), the nets
+// and supplies it was laid out with, and its settings; anything given replaces what is there.
+export function specFromCircuit(circuit, given = {}) {
+  const jumpers = new Set(circuit.spec?.wires ?? []);
+  const parts = (circuit.parts ?? []).filter((p) => (circuit.spec ? !jumpers.has(p.id) : p.type !== 'wire')).map(({ pins, pin1, ...rest }) => rest);
+  const pick = (k) => given[k] ?? circuit[k];
+  return Object.fromEntries(
+    Object.entries({
+      parts: given.parts ?? parts,
+      nets: given.nets ?? circuit.spec?.nets,
+      supplies: given.supplies ?? circuit.spec?.supplies ?? circuit.supplies,
+      board: pick('board'),
+      clearance: pick('clearance'),
+      title: pick('title'),
+      lang: pick('lang'),
+      netLabels: pick('netLabels'),
+      page: pick('page'),
+    }).filter(([, v]) => v !== undefined),
+  );
+}
+
+const forbidKey = (part) => (part.type === 'wire' ? `wire ${[...part.pins].sort().join(' ')}` : `${part.id} ${JSON.stringify(part.pins ?? part.pin1)}`);
+
+function layoutOnce(spec, { profile, forbid, previous }) {
+  const before0 = new Map((previous?.parts ?? []).map((p) => [p.id, p]));
   const started = Date.now();
   const problems = [];
   let circuit = Object.fromEntries(
@@ -307,8 +418,19 @@ function layoutOnce(spec, { profile, forbid }) {
       for (const row of rows) for (const c of columns) if (emptyStrip(row, c) && emptyStrip(row, c + k)) add([`${row}${c}`, `${row}${c + k}`]);
     }
 
+    // Where it is now, first (layout again on an existing circuit).
+    const was = before0.get(part.id);
+    if (was?.type === part.type && was.pins && !was.pin1) {
+      const now = Array.isArray(was.pins) ? (was.pins.length === pinNames.length ? was.pins : null) : pinNames.every((n) => was.pins[n]) ? Object.fromEntries(pinNames.map((n) => [n, was.pins[n]])) : null;
+      if (now) candidates.unshift(now);
+    }
     let done = null;
-    for (const pins of candidates) {
+    if (was?.type === part.type && was.pin1) {
+      // Chips and boards placed by pin 1: the same pin 1 (and row spacing) as before.
+      const op = { op: 'add', part: { ...part, pin1: was.pin1, ...(was.rowSpacing !== undefined && part.rowSpacing === undefined && { rowSpacing: was.rowSpacing }) } };
+      if (!forbid.has(forbidKey(op.part)) && tryOps([op])) done = built.parts.find((p) => p.id === part.id).holes.map((h) => h?.id);
+    }
+    for (const pins of done ? [] : candidates) {
       const pinMap = Array.isArray(pins) ? pins : pinNames.map((n) => pins[n]);
       const op = { op: 'add', part: { ...part, pins: beside ? Object.fromEntries(pinNames.map((n, i) => [n, pinMap[i]])) : pinMap } };
       if (forbid.has(forbidKey(op.part))) continue;
@@ -362,9 +484,16 @@ function layoutOnce(spec, { profile, forbid }) {
     return out.sort((p, q) => p.cost - q.cost);
   };
   const jumpers = []; // { id, net, a, b, tried: Set }
+  // Jumpers the circuit already had between two groups, tried first (layout again).
+  const oldJumpers = (previous?.parts ?? []).filter((p) => p.type === 'wire' && Array.isArray(p.pins) && (!previous.spec || previous.spec.wires?.includes(p.id)));
+  const kept = (a, b) =>
+    oldJumpers
+      .map((w) => w.pins.map((id) => built.board.find(id)))
+      .filter(([x, y]) => x && y && !used().has(x.id) && !used().has(y.id) && ((x.node === a && y.node === b) || (x.node === b && y.node === a)))
+      .map(([x, y]) => ({ x, y }));
   const join = (net, a, b, skip = new Set()) => {
     const col = (node) => built.board.holes.get([...built.board.holes.keys()].find((k) => built.board.holes.get(k).node === node))?.col;
-    for (const { x, y } of pairs(a, b, col(a) ?? col(b)).slice(0, 40)) {
+    for (const { x, y } of [...kept(a, b), ...pairs(a, b, col(a) ?? col(b)).slice(0, 40)]) {
       const key = `${x.id}-${y.id}`;
       if (skip.has(key)) continue;
       const id = nextWireId();
@@ -424,68 +553,12 @@ function layoutOnce(spec, { profile, forbid }) {
   return { circuit, placed, wires, columns, problems, sequence, check: checkNets(circuit, nets), review: verdict, ms: Date.now() - started };
 }
 
-// The nets asked for against the circuit built: every pin of a net on one electrical net
-// (missing: the pins left out), and no two nets asked for on the same one (shorted).
-export function checkNets(circuit, asked) {
-  // Nets asked for that share a pin or a rail are one net (a ground bridge: [T-, B-]).
-  const nets = [];
-  for (const net of asked) {
-    const keys = new Set(net.pins.map((p) => railName(p) ?? pinKey(p)));
-    const into = nets.find((n) => [...keys].some((k) => n.keys.has(k)));
-    if (into) {
-      keys.forEach((k) => into.keys.add(k));
-      into.pins.push(...net.pins);
-    } else nets.push({ index: nets.length, keys, pins: [...net.pins] });
-  }
-  for (let merged = true; merged; ) {
-    merged = false;
-    for (let i = 0; i < nets.length && !merged; i++) {
-      for (let j = i + 1; j < nets.length && !merged; j++) {
-        if ([...nets[j].keys].some((k) => nets[i].keys.has(k))) {
-          nets[j].keys.forEach((k) => nets[i].keys.add(k));
-          nets[i].pins.push(...nets[j].pins);
-          nets.splice(j, 1);
-          merged = true;
-        }
-      }
-    }
-  }
-  nets.forEach((n, i) => (n.index = i));
-  const built = buildCircuit(circuit);
-  const parent = new Map();
-  const find = (x) => {
-    if (!parent.has(x)) parent.set(x, x);
-    while (parent.get(x) !== x) x = parent.get(x);
-    return x;
-  };
-  for (const w of built.parts.filter((p) => p.type === 'wire' && p.holes.length === 2)) parent.set(find(w.holes[0].node), find(w.holes[1].node));
-  const holeOf = new Map();
-  for (const p of built.parts) p.pinNames.forEach((n, i) => p.holes[i] && holeOf.set(`${p.id}.${n.toLowerCase()}`, p.holes[i]));
-  const rootOf = (ref) => (railName(ref) ? find(railName(ref)) : holeOf.has(pinKey(ref)) ? find(holeOf.get(pinKey(ref)).node) : null);
-  const missing = [];
-  const owner = new Map();
-  const shorted = [];
-  for (const net of nets) {
-    const roots = net.pins.map((ref) => [ref, rootOf(ref)]);
-    const counts = new Map();
-    for (const [, r] of roots) if (r) counts.set(r, (counts.get(r) ?? 0) + 1);
-    const main = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-    const off = roots.filter(([, r]) => r !== main).map(([ref]) => ref);
-    if (off.length) missing.push({ net: net.index + 1, pins: off });
-    if (main) {
-      if (owner.has(main) && owner.get(main) !== net.index) shorted.push({ nets: [owner.get(main) + 1, net.index + 1] });
-      owner.set(main, net.index);
-    }
-  }
-  return { ok: !missing.length && !shorted.length, missing, shorted };
-}
-
-// Readable answer for the CLI and the MCP tool.
 export function formatLayout(r, lang, { t, formatIssue }) {
   if (r.checked) {
     const lines = [t(lang, r.invalid ? 'layout.invalid' : 'layout.valid', { parts: r.parts.length })];
     for (const p of r.parts) lines.push(`  ${p.id}: ${p.type}${p.part ? ` ${p.part}` : ''}${p.style ? ` (${p.style})` : ''}${p.value ? ` ${p.value}` : ''}`);
     for (const p of r.problems) lines.push(`  ${p.severity === 'error' ? '✖' : '·'} ${formatIssue(p, lang)}`);
+    lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, `layout.status.${r.status}`)}`);
     return lines.join('\n');
   }
   const lines = [t(lang, 'layout.header', { placed: r.placed.length, wires: r.wires, ms: r.ms, columns: r.columns ?? '—' })];
@@ -493,6 +566,7 @@ export function formatLayout(r, lang, { t, formatIssue }) {
     const how = [p.rails.length ? t(lang, 'layout.rails', { pins: p.rails.join(', ') }) : '', p.shared.length ? t(lang, 'layout.shared', { pins: p.shared.join(', ') }) : ''].filter(Boolean).join(' · ');
     lines.push(`  ${p.id}: ${Object.entries(p.pins).map(([n, h]) => `${n}→${h}`).join(', ')}${how ? ` · ${how}` : ''}`);
   }
+  for (const n of r.notes ?? []) lines.push(`  · ${formatIssue(n, lang)}`);
   for (const p of r.problems) {
     lines.push(`  ✖ ${formatIssue(p, lang)}`);
     for (const reason of p.reasons ?? []) lines.push(`      ×${reason.count} ${formatIssue(reason.example, lang)}`);
@@ -502,5 +576,7 @@ export function formatLayout(r, lang, { t, formatIssue }) {
   for (const s of r.check.shorted) lines.push(`  ✖ ${t(lang, 'layout.shorted', { nets: s.nets.join(' + ') })}`);
   lines.push(t(lang, r.review.verdict === 'approved' ? 'layout.approved' : 'layout.changes', { count: r.review.blocking.length }));
   for (const b of r.review.blocking) lines.push(`  ✖ ${formatIssue(b, lang)}${b.views ? ` [${b.views.join(', ')}]` : ''}`);
+  const open = r.problems.length + r.check.missing.length + r.check.shorted.length + r.review.blocking.length;
+  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, `layout.status.${r.status}`, { count: open })}`);
   return lines.join('\n');
 }

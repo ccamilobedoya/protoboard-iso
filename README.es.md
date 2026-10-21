@@ -11,9 +11,9 @@ Son dos cosas a la vez:
 
 - una **librería de JavaScript y una herramienta de línea de comandos**, sin
   dependencias, que funciona igual en Node y en el navegador;
-- un **skill para agentes** (`SKILL.md`): un asistente de IA escribe el JSON y el kit lo
-  dibuja y lo revisa, así que el asistente nunca calcula a mano la geometría ni el
-  código de colores.
+- un **skill para agentes** (`SKILL.md`) y un **servidor MCP** (`mcp/`): un asistente de IA dice
+  qué componentes y qué conexiones, y el kit los ubica en la protoboard, dibuja, revisa y simula el
+  circuito, así que el asistente nunca calcula a mano agujeros, geometría ni código de colores.
 
 Inspirado en [Anatomy](https://github.com/wheresryan22/anatomy) (máquinas en isométrico) y
 en el [simulador de circuitos de Falstad](https://www.falstad.com/circuit/) (ver cómo
@@ -22,6 +22,7 @@ circula la corriente).
 ## Inicio rápido
 
 ```bash
+node bin/protoboard-iso.js layout mi-circuito examples/layout/regulator-led.json --lang es   # ubicado a partir de sus componentes y redes
 node bin/protoboard-iso.js check examples/led-resistor.json --lang es
 node bin/protoboard-iso.js inspect examples/led-resistor.json --lang es   # el dibujo en números
 node bin/protoboard-iso.js render examples/led-resistor.json -o led.svg --lang es

@@ -9,7 +9,7 @@ Usan las herramientas MCP ([mcp.md](mcp.md)) y, si no están, la línea de coman
 
 | Agente | Hace | Modifica |
 |---|---|---|
-| `circuit-layout` (montaje) | arma o cambia un circuito a partir de un encargo: `suggest` → prueba en seco → aplicar → `review` hasta que se aprueba | el circuito (con `apply_ops`) |
+| `circuit-layout` (montaje) | arma o cambia un circuito a partir de un encargo: uno nuevo con `layout` (camino A), cambios y arreglos con `suggest` → prueba en seco → aplicar → `review` (camino B); al final, `simulate` para los avisos | el circuito (con `layout` y `apply_ops`) |
 | `circuit-reviewer` (revisor) | veredicto a partir de mediciones (`review`, `inspect`, conexiones), con arreglos ya probados en seco | nada |
 | `parts-librarian` (bibliotecario) | agrega componentes al kit desde hojas de datos: referencias, encapsulados, tipos, pruebas, documentación | el código del kit |
 
@@ -24,7 +24,7 @@ todas las personas reciben la misma respuesta:
 
 | Perfil | Bloquea |
 |---|---|
-| `lesson` (por defecto) | errores y avisos, etiquetas que tapan componentes o se montan entre sí, componentes más cerca que `clearance`, un componente tapado en **todas** las vistas |
+| `lesson` (por defecto) | errores y avisos, etiquetas que tapan componentes o se montan entre sí, componentes más cerca que `clearance`, un componente tapado en **todas** las vistas (menos del 70 % a la vista desde su mejor vista), una red del `spec` del circuito que ya no está conectada |
 | `draft` | solo errores y avisos |
 
 Entre los errores y avisos están los componentes que ocupan el mismo espacio y, desde el
@@ -84,6 +84,23 @@ tiene); `check_only` solo revisa. Medido con un modelo más pequeño con la mism
 llamadas y 52 s, nueve de ellas consultas a `catalog` que esto vuelve innecesarias. Cómo funciona
 el algoritmo, sus límites y cómo cambiarlo: [montaje-automatico.md](montaje-automatico.md).
 
+Desde el 2026-10-20 (pensando en modelos pequeños): el archivo del agente empieza eligiendo camino
+(A: `layout` para un circuito nuevo; B: operaciones para cambios y arreglos) en vez de un solo ciclo
+largo; `layout` lee los nombres de las patas como los escribe la gente (`D1.K` para el cátodo de un
+LED, `U1.DISCH`, `U1.GPIO4`, `U1.VIN`); su respuesta termina en una sola línea `STATUS:` (`DONE`,
+`CHANGES`, `FIX_SPEC`) que dice qué sigue; y el agente de montaje y el revisor corren `simulate` una
+vez para ver los avisos (corto, límite superado, grupo flotante), sin reportar valores. Hasta ese
+día la lista de herramientas del agente de montaje no tenía `layout`; `npm run test:mcp` ahora falla
+si las instrucciones de un agente nombran una herramienta que su lista no tiene.
+
+También desde el 2026-10-20: un circuito hecho con `layout` guarda sus redes (`spec`), `review` las
+revisa, y cambiar conexiones o piezas es otra llamada a `layout` sobre el mismo destino con las redes
+nuevas (camino A): cada pieza conserva sus agujeros si todavía cabe, y `undo` trae el montaje
+anterior. Las redes de tierra van a un riel − por convención, y lo que deja el ciclo de reintentos se
+intenta una vez más cable por cable. El perfil lesson bloquea una pieza por oculta cuando su mejor
+vista muestra menos del 70 % (antes, 85 % en cada vista): las dos del banco pasan al primer intento.
+Detalle en [montaje-automatico.md](montaje-automatico.md).
+
 ## El ciclo (lo maneja la conversación principal)
 
 ```
@@ -123,8 +140,9 @@ del 2026-10-16 gastó la mitad de los tokens de una sesión copiando una foto): 
 el mismo comportamiento (se simula cuando tiene fuente), ningún componente atravesando a otro,
 review aprobado; las posiciones de una foto son una pista, no un objetivo. `exact` solo cuando la
 lección trata de dónde va cada cosa en la protoboard. Cada pieza del encargo tiene que existir en el
-kit (`catalog`) antes de empezar el montaje; si falta, va primero a `parts-librarian`, no a un
-marcador.
+kit: `layout` revisa los nombres él mismo (los que no conoce vuelven con los más parecidos, sin crear
+nada), y el camino B consulta un tipo en `catalog` solo si no lo ha usado. Si falta una pieza, va
+primero a `parts-librarian`, no a un marcador.
 
 ```
 REVIEW BRIEF

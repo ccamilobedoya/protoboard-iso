@@ -70,6 +70,13 @@ field is `on`), a net naming a part or a pin that is not there (with the pins it
 in no net (a warning). Any error → nothing is placed and every problem comes back together, so the
 caller fixes them all in one round. `check_only` / `--check` stops here.
 
+Pin names are read as people write them (`findPin`, `src/parts/pin-names.js`): the part's own name
+first, ignoring case, then synonyms (`A`/`anode`, `K`/`cathode`, `VIN`/`IN`, `VOUT`/`OUT`,
+`DISCH`/`DIS`, `THRESHOLD`/`THR`, `VDD`/`VCC`, `VSS`/`GND`, `3.3V`/`3V3`, `E`/`emitter`, `G`/`gate`…)
+and GPIO numbers on a board (`GPIO4`, `IO4`, `4` → the DevKit's `D4`), only when exactly one pin
+matches. The nets come back with the part's own names (`D1.K` → `D1.cathode`), so the steps below
+never see an alias. Circuits, `query` and `suggest` read pins the same way.
+
 ### 1. Layers: signal order from the source
 
 A breadth-first search over the nets, as in Sugiyama-style schematic layout: the source part is
@@ -147,11 +154,56 @@ perfect, when no new place can be forbidden, or after `TRIES`. The best try is k
 Laying out again is simpler and more predictable than patching a layout in place: one try takes
 0.05–0.2 s.
 
+### Repairs and conventions (since 2026-10-20)
+
+- **Ground to a rail.** Before laying out, a net with a ground pin (`GND`, `GND2`, `VSS`, `0V`, or a
+  supply's `negative`) and no rail gets the − rail the other nets use, else `B-` (`groundToRail`),
+  with a note `LAYOUT_GROUND_TO_RAIL`. It is what any breadboard does: one short jumper per strip
+  instead of a chain along the board. The spec kept in the circuit is what was asked, without it.
+- **Repair.** When the best try is still not perfect, `repair` takes it once more, jumper by jumper:
+  a net left apart (`LAYOUT_WIRE_FAILED`) and each jumper named by a blocking item are routed again
+  with `suggest` (lesson profile: it measures what a wire hides in both views, and may go through a
+  free strip, `VIA_WIRE`). A repair is kept only when the score improves (nets, problems, blocking),
+  with a note `LAYOUT_REPAIRED`.
+
+### Laying out again: an existing circuit (since 2026-10-20)
+
+`layout` keeps what it was asked in the circuit, as `spec`: the nets (pin names already resolved), the
+supplies that name pins, and the ids of its own jumpers (`spec.wires`). With it:
+
+- **`review` checks the connections** of every circuit that has a `spec`, also after later changes by
+  hand: a net no longer joined blocks (`SPEC_NET_MISSING`), two joined block too (`SPEC_NETS_SHORTED`).
+- **`layout` on an existing target lays it out again** as one revision (remove every part, set the
+  fields, add the new ones: `relayoutTarget`), so `undo` brings the old layout back. What is not
+  given comes from the circuit (`specFromCircuit`: its parts without holes and without layout's
+  jumpers, the kept nets and supplies, board, clearance, title, labels, page). Each part and jumper
+  **first tries the holes it already has**, so adding an LED moves nothing else (measured on the 555:
+  a second LED and its resistor, every other part where it was). `expect_revision` guards it.
+- A `rename` operation renames the part in the spec too. A circuit without `spec` (made by hand) is
+  laid out again only when the call gives its nets (`LAYOUT_NO_SPEC` otherwise); its wires are then
+  left out, since the nets say what they join.
+
+So the spec is the desired state: a change of connections is new nets and `layout` again; values,
+descriptions and fine touches stay operations (`apply_ops`).
+
 ### The answer
 
-`{ circuit, placed: [{ id, type, pins, rails, shared }], wires, columns, problems, sequence, check,
-review, tries, ms }`; `formatLayout` writes it for the CLI and the MCP tool (texts `layout.*` in
+`{ status, circuit, placed: [{ id, type, pins, rails, shared }], wires, columns, problems, sequence,
+check, review, tries, ms }`; `formatLayout` writes it for the CLI and the MCP tool (texts `layout.*` in
 `src/i18n/`).
+
+`status` is the one verdict of the whole answer, and the text ends with it in a line of its own, so
+a caller (above all a small model) that reads only the last line knows what to do:
+
+| `STATUS:` | Means | Next |
+|---|---|---|
+| `DONE` | every net is there, nothing failed to place, the review approves | report |
+| `CHANGES` | created, but a net, a placement or the review left something (✖) | fix only those, with `suggest` and `apply_ops`, then `review` |
+| `FIX_SPEC` | nothing created: the spec has errors | fix every ✖ and call again |
+| `SPEC_OK` | `check_only`: the spec is consistent | call again without it |
+
+Before 2026-10-20 the text ended with the review's verdict, which could say APPROVED with a net
+missing. The CLI exits 0 only for `DONE` (1 for `FIX_SPEC`, 2 for `CHANGES`).
 
 ## The numbers that steer it
 
@@ -167,17 +219,22 @@ review, tries, ms }`; `formatLayout` writes it for the CLI and the MCP tool (tex
 | jumper search | 40 pairs, rail holes within 6 columns, length ≥ 2 pitches | step 3 |
 | `clearance` | 1 mm (spec default) | gap between bodies; 3 for a roomier lesson |
 
-## Measured (2026-10-18, `npm run layout-bench`)
+## Measured (`npm run layout-bench`)
 
-| Spec | Result | Jumpers | Columns | Tries | Time |
-|---|---|---|---|---|---|
-| `regulator-led.json` (4 parts, 4 nets) | approved | 2 | 30 | 4 | 0.3 s |
-| `two-rail-supply.json` (10 parts, 10 nets: the course's M2 supply) | approved | 7 | 36 | **8 of 8** | 1.5 s |
+| Spec | 2026-10-18 | 2026-10-20 |
+|---|---|---|
+| `regulator-led.json` (4 parts, 4 nets) | approved · 4 tries · 0.3 s | approved · **1 try** · 0.1 s |
+| `two-rail-supply.json` (10 parts, 10 nets: the course's M2 supply) | approved · **8 of 8** tries · 1.5 s | approved · **1 try** · 0.3 s |
 
-On the first try both are geometrically right and every net is correct; what blocks is only
-visibility (`PART_HIDDEN`: "R2 is 41 % visible; LED2 covers 59 % of it"). The loop fixes it, but the
-two-rail supply needs every try it has: one more part of that kind and it would come back with
-CHANGES.
+On 2026-10-18 what blocked was only visibility: the lesson profile took a part as hidden in every
+view as soon as it was below 85 % visible in each (the inspector's note threshold), and counted two
+parts covering it in one view as two views. Since 2026-10-20 it blocks when the part's **best view**
+shows less than 70 % of it (`hiddenBelow` in `PROFILES.lesson`), counted per view. A 555 seen 73 %
+from the front and 69 % from the back no longer blocks; it reads well.
+
+Four more lesson circuits tried on 2026-10-20 (not yet in the bench): an NPN switch, a potentiometer
+divider and a 555 astable come out approved at the first try; an ESP32 DevKit with a button and an
+LED is left with its ground pin apart, since the board covers that strip (limit 6 below).
 
 ## Changing the algorithm
 
@@ -207,7 +264,9 @@ In order of what would pay most:
 
 1. **Visibility is not in the placement check.** Step 2 knows bodies and leads but not what hides
    what in the isometric drawing, so tall parts in front (LEDs, electrolytics, regulators) hide low
-   ones behind them and only the relayout loop finds it. A cheap estimate in `tryOps` (how tall the
+   ones behind them and only the relayout loop (and the repair, for jumpers) finds it. Since the
+   lesson threshold moved to 70 % this rarely blocks, but jumpers still arch over chips (the 555's
+   back view). A cheap estimate in `tryOps` (how tall the
    new body is and how close the low parts behind it are, in each view), or measuring visibility
    for the chosen candidate only (`inspect` on one part), would make the first try pass and free
    the loop for real conflicts.
@@ -222,6 +281,10 @@ In order of what would pay most:
    up for it.
 5. **DIP chips and buttons** go through `suggest`, which works but is slower and does not know about
    the cursor's stages beyond `near`.
+6. **Wide boards cover their strips.** An ESP32 DevKit across the channel leaves no free hole that a
+   jumper can reach on some of its pins' strips (the board sits over them), so a net there fails even
+   after the repair. Reaching the net through the board's other pin of the same name (`GND2`) or
+   placing the board with a free row would fix it.
 
 ## See also
 

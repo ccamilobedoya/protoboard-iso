@@ -106,8 +106,18 @@ export default {
   'layout.changes': 'Revisión (lesson): HAY QUE CAMBIAR, {count} por arreglar:',
   'check.LAYOUT_PART_FAILED': '{part} no encontró lugar (los motivos, abajo).',
   'check.LAYOUT_WIRE_FAILED': 'Ningún cable cabe de {from} a {to}.',
+  'check.LAYOUT_NO_SPEC': '{target} no se hizo con layout, así que no tiene redes para volver a montarlo: pasa nets (y parts) para montarlo desde cero.',
+  'check.LAYOUT_NEEDS_SPEC': '{target} es un circuito nuevo: layout necesita sus parts y nets.',
+  'check.LAYOUT_GROUND_TO_RAIL': 'La red {net} ({pin}) es tierra: va al riel {rail}, como en cualquier protoboard.',
+  'check.LAYOUT_REPAIRED': 'El cable de {from} a {to} se volvió a trazar para que nada quede tapado ni suelto.',
+  'check.SPEC_NET_MISSING': 'Red {net} del spec: {pins} no quedó conectado con el resto. Para cambiar qué se conecta, vuelve a llamar layout con las redes nuevas; si no, agrega el cable que falta.',
+  'check.SPEC_NETS_SHORTED': 'Las redes {nets} del spec quedaron unidas (un corto).',
   'layout.valid': 'Los componentes y las redes son coherentes ({parts} componentes, así los entiende el kit):',
   'layout.invalid': 'No se colocó nada: primero arregla esto ({parts} componentes leídos):',
+  'layout.status.done': 'el circuito está listo: están todas las redes y la revisión lesson lo aprueba. Agrega las descripciones si el encargo las pide, y reporta.',
+  'layout.status.changes': 'el circuito se creó, pero quedan {count} puntos marcados con ✖ arriba. Arregla solo esos (suggest y luego apply_ops con dry run) y vuelve a correr review.',
+  'layout.status.fix_spec': 'no se creó nada. Arregla en el spec cada ✖ de arriba y vuelve a llamar layout.',
+  'layout.status.spec_ok': 'el spec es coherente. Vuelve a llamar layout sin check_only (CLI: sin --check) para colocarlo.',
   'check.UNKNOWN_PART_NAME': '{part}: el kit no conoce «{name}». Lo más parecido: {suggestions}.',
   'check.NET_BAD_REF': 'Red {where}: «{ref}» no es una pata («U1.OUT») ni un riel (T+, T-, B+, B-).',
   'check.NET_UNKNOWN_PART': 'Red {where}: «{ref}» nombra a {part}, que no está entre los componentes ({parts}).',
@@ -142,7 +152,7 @@ export default {
   'review.blocking': 'Hay que arreglar:',
   'review.advisory': 'Conviene saber:',
   'review.rules': 'Bloquea: todo error y aviso, y en cualquier vista: {codes}.',
-  'review.rulesHidden': 'Bloquea también: un componente oculto en todas las vistas (oculto en una sola es una nota: se mira desde la otra).',
+  'review.rulesHidden': 'Bloquea también: un componente oculto en todas las vistas, con menos del {below} % a la vista desde su mejor vista (oculto en una sola es una nota: se mira desde la otra).',
   'review.parts': 'componentes {parts}',
 
   'type.resistor': 'Resistencia',
@@ -402,7 +412,7 @@ export default {
   'page.hint.results': 'Toca un componente o una tira para ver qué es y sus valores simulados',
   'page.revision': 'revisión {revision}',
   'cli.usage': `Uso (<objetivo> = un archivo de circuito o una carpeta con circuit.json):
-  protoboard-iso layout <objetivo nuevo> <spec.json|-> [--check]   # el circuito entero, ubicado a partir de sus componentes y redes (docs/es/agentes.md)
+  protoboard-iso layout <objetivo> [spec.json|-] [--check] [--expect-revision n]   # el circuito entero, ubicado a partir de sus componentes y redes; si ya existe, se vuelve a montar (docs/es/montaje-automatico.md)
   protoboard-iso render <objetivo> [-o salida.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <objetivo> [--transient fin[,paso]] [--start zero|dc] [--lang en|es] [--json]
   protoboard-iso page <objetivo> [-o pagina.html] [--lang en|es] [--fit parts|board]

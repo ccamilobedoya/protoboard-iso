@@ -46,6 +46,21 @@ test('every MCP tool an agent lists exists in the server', async () => {
   }
 });
 
+test('every MCP tool named in an agent\'s instructions is in its tools list', async () => {
+  // The layout agent's instructions said "layout first" for days while its tools list lacked
+  // layout: it could only reach it through the CLI.
+  const { readdirSync } = await import('node:fs');
+  const { tools } = await client.listTools();
+  const dir = new URL('../../.claude/agents/', import.meta.url);
+  for (const file of readdirSync(dir).filter((f) => f.endsWith('.md'))) {
+    const [, front = '', ...rest] = readFileSync(new URL(file, dir), 'utf8').split('---');
+    const listed = new Set([...front.matchAll(/mcp__protoboard-iso__(\w+)/g)].map((m) => m[1]));
+    if (!listed.size) continue;
+    const body = rest.join('---');
+    for (const { name } of tools) if (body.includes(`\`${name}\``)) assert.ok(listed.has(name), `${file} tells the agent to use "${name}" but does not list mcp__protoboard-iso__${name}`);
+  }
+});
+
 test('create, find, read and inspect a circuit', async () => {
   const created = await call('create_circuit', { target: 'circuits/led', circuit: led, author: 'test' });
   assert.ok(!created.isError, textOf(created));
@@ -200,15 +215,48 @@ test('layout creates a whole circuit from parts and nets, with the nets check an
   const text = r.content[0].text;
   assert.match(text, /Nets: every connection asked for is there/);
   assert.ok((await call('get_circuit', { target: 'circuits/laid-out' })).content[0].text.includes('"D1"'));
-  assert.ok((await call('layout', { target: 'circuits/laid-out', parts: [{ id: 'R1', type: 'resistor', value: '1k' }], nets: [] })).isError, 'refuses to overwrite');
+  const before = JSON.parse((await call('get_circuit', { target: 'circuits/laid-out', format: 'json' })).content[0].text).circuit;
+  assert.deepEqual(before.spec.nets, [['R1.1', 'T+'], ['R1.2', 'D1.anode'], ['D1.cathode', 'T-']]);
+  assert.ok(before.spec.wires.every((id) => before.parts.find((p) => p.id === id).type === 'wire'));
+
+  // Lay it out again: a new value and one more part on the LED's strip, nets kept for the rest.
+  assert.ok((await call('layout', { target: 'circuits/laid-out', nets: [['R1.1', 'T+']], expect_revision: 7 })).isError, 'revision guard');
+  const again = await call('layout', {
+    target: 'circuits/laid-out',
+    parts: [{ id: 'R1', type: 'resistor', value: '1k' }, { id: 'D1', type: 'led', color: 'red' }],
+    expect_revision: 0,
+  });
+  assert.ok(!again.isError, again.content[0].text);
+  assert.match(again.content[0].text, /STATUS: DONE[\s\S]*rev 1/);
+  const after = JSON.parse((await call('get_circuit', { target: 'circuits/laid-out', format: 'json' })).content[0].text).circuit;
+  const pinsOf = (c, id) => JSON.stringify(c.parts.find((p) => p.id === id).pins);
+  assert.equal(pinsOf(after, 'R1'), pinsOf(before, 'R1'), 'R1 keeps its holes');
+  assert.equal(pinsOf(after, 'D1'), pinsOf(before, 'D1'), 'D1 keeps its holes');
+  assert.equal(after.parts.find((p) => p.id === 'R1').value, '1k');
+  assert.ok(!(await call('undo', { target: 'circuits/laid-out' })).isError);
+  const undone = JSON.parse((await call('get_circuit', { target: 'circuits/laid-out', format: 'json' })).content[0].text).circuit;
+  assert.equal(undone.parts.find((p) => p.id === 'R1').value, '330');
+
+  // The kept nets are checked by every review: a jumper removed by hand blocks.
+  const jumper = undone.spec.wires[0];
+  assert.ok(!(await call('apply_ops', { target: 'circuits/laid-out', ops: [{ op: 'remove', part: jumper }] })).isError);
+  assert.match((await call('review', { target: 'circuits/laid-out' })).content[0].text, /Net \d of the spec/);
+});
+
+test('layout on a circuit not made by layout needs its nets', async () => {
+  assert.ok(!(await call('create_circuit', { target: 'circuits/by-hand', circuit: led })).isError);
+  const r = await call('layout', { target: 'circuits/by-hand' });
+  assert.ok(r.isError);
+  assert.match(r.content[0].text, /not made by layout/);
 });
 
 test('layout check_only reads parts by name and reports every problem without creating anything', async () => {
   const ok = await call('layout', { target: 'circuits/checked', parts: [{ id: 'U1', part: 'L7805CV' }, { id: 'S1', part: 'KCD1' }], nets: [['U1.IN', 'S1.2'], ['S1.1', 'T+'], ['U1.GND', 'T-'], ['U1.OUT']], check_only: true });
   assert.ok(!ok.isError);
   assert.match(ok.content[0].text, /U1: regulator 7805/);
-  const bad = await call('layout', { target: 'circuits/checked', parts: [{ id: 'U1', part: '7805' }], nets: [['U1.VIN', 'T+']], check_only: true });
+  const bad = await call('layout', { target: 'circuits/checked', parts: [{ id: 'U1', part: '7805' }], nets: [['U1.SENSE', 'T+']], check_only: true });
   assert.ok(bad.isError);
   assert.match(bad.content[0].text, /IN, GND, OUT/);
+  assert.match(bad.content[0].text, /STATUS: FIX_SPEC/);
   assert.ok((await call('get_circuit', { target: 'circuits/checked' })).isError, 'nothing created');
 });

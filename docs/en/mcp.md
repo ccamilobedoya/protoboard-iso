@@ -57,16 +57,16 @@ path of `mcp/server.js` and the environment above.
 | Tool | Does | Changes files |
 |---|---|---|
 | `list_circuits` | circuits under the root (files with `parts`, folders with `circuit.json`) | no |
-| `get_circuit` | the circuit JSON, its revision and placement issues | no |
-| `create_circuit` | new circuit folder (refuses to overwrite) | yes |
+| `get_circuit` | the circuit JSON, its revision and placement issues; a circuit made by `layout` carries `spec` (the nets it was asked for) | no |
+| `create_circuit` | new circuit folder from a full circuit with its holes, written by hand (refuses to overwrite); without fixed positions use `layout` | yes |
 | `inspect` | the drawing in numbers; `part` for one part only | no |
 | `query` | `kind: at \| node \| free` with `ref` | no |
 | `netlist` | the circuit as nets: groups joined by wires, the pins on each (`R1.1@d20`), labels, pins alone on a net | no |
-| `layout` | a NEW circuit placed in one call from its parts (no pins, signal order) and nets: layers by distance from the source, rules per part kind, jumpers for what is left in several strips, then the nets check (missing, shorted) and the lesson review; lays itself out again a few times without the place of whatever the review blocks. Parts by part number, module or alias; a wrong list places nothing and answers every problem; `check_only` only checks. The algorithm: [layout.md](layout.md) | yes |
+| `layout` | a whole circuit placed in one call from its parts (no holes, signal order; part numbers, modules and aliases) and nets (pins and rails; usual pin names work: `D1.K`, `U1.VIN`, `U1.GPIO4`): layers by distance from the source, rules per part kind, jumpers, ground nets to a − rail, the nets check and the lesson review, laid out again and repaired jumper by jumper. On an existing target, laid out again as one revision with only what changes (`expect_revision`; parts keep their holes; `undo` restores). The nets stay in the circuit (`spec`). Ends in `STATUS: DONE \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` only checks. The algorithm: [layout.md](layout.md) | yes |
 | `suggest` | valid placements for a new part, each with its `add` operation and the nearest body (`nearest`: part and gap); `profile` also leaves out what that review blocks; `parts` places several in order and answers one batch | no |
 | `apply_ops` | atomic batch; `dry_run` first, then `expect_revision`, `author`, `note` | yes |
 | `undo` | undo the latest change (new revision) | yes |
-| `review` | APPROVED or CHANGES from measurements, profile `lesson` or `draft`; each blocking item names its `parts` and `views`; `explain: true` adds the profile's rules | no |
+| `review` | APPROVED or CHANGES from measurements, profile `lesson` or `draft`; each blocking item names its `parts` and `views`; `explain: true` adds the profile's rules; a circuit with `spec` also gets its nets checked | no |
 | `history` | revisions, authors, notes, operations | no |
 | `render` | writes the SVG; `png_width` also returns a PNG image; `page: true` rewrites the embeddable page ([embedding.md](embedding.md)); `sim: true` draws the simulation results; `focus: [ids]` dims the rest; `flow: true` the current layer | outputs only |
 | `simulate` | node voltages and part currents, a model ([simulation.md](simulation.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` adds the link that opens the circuit in Falstad ([falstad.md](falstad.md)) | no |
@@ -83,23 +83,28 @@ Every tool answers in readable text, or JSON with `format: "json"`. Errors come 
 errors with a readable message (`isError`), never as a crash. Read-only tools are annotated
 `readOnlyHint`, so clients can allow them without asking.
 
-The server also sends **instructions** with the work loop: list → history/inspect →
-query/suggest → apply_ops dry_run → apply_ops with expect_revision → undo if needed; never
-rewrite circuit files directly; PNG only when style matters.
+The server also sends **instructions**, the same guide as `SKILL.md` in a few lines: which tool for
+which task (a new circuit → `layout`; other connections in a circuit made by `layout` → `layout`
+again; a value or a fix → `apply_ops`), what each `STATUS:` means, the operations loop, how to check
+(`review`, `netlist`, `simulate`, never showing a value to predict), the holes, and the page's
+simulation. Never rewrite circuit files; PNG only when style matters.
 
 ## Example session
 
 ```
-list_circuits                       → circuits/led · rev 0 · 3 parts
-inspect   {target: "circuits/led"}  → … De R1 se ve el 81 %; W1 tapa el 15 %.
-suggest   {target, part: {type: "resistor", value: "1k"}, between: ["10:f-j", "T-"]}
-suggest   {target, parts: [{part: {type: "led"}, between: ["20:f-j", "21:f-j"]},
-                           {part: {type: "resistor", value: "330"}, between: ["D2.cathode", "T-"]}],
-           profile: "lesson"}                                    → one batch of adds
-netlist   {target}                   → every net with its pins, to check against the brief
-apply_ops {target, ops: <from suggest>, dry_run: true}         → what it fixes / introduces
-apply_ops {target, ops, expect_revision: 0, author: "claude", note: "pull-down"} → rev 1
+layout    {target: "switch", parts: [...], nets: [["R2.2", "D1.A"], ["D1.K", "Q1.C"], …]}
+                                     → … STATUS: DONE · rev 0
+get_circuit {target: "switch"}       → circuit with spec.nets
+layout    {target: "switch", nets: <spec.nets with one change>, expect_revision: 0}
+                                     → … STATUS: DONE · rev 1 (every other part where it was)
+apply_ops {target, ops: [{op: "set", part: "R2", value: "470"}], dry_run: true} → what it fixes / introduces
+apply_ops {target, ops, expect_revision: 1, author: "claude", note: "dimmer LED"} → rev 2
+review    {target}                   → APPROVED (nets checked against the spec)
+undo      {target}                   → rev 3, R2 back to 330
 ```
+
+A circuit made by hand goes through the operations loop instead: `inspect`, then `suggest`
+(`parts` for a chain, `profile: "lesson"`), `apply_ops` with a dry run, `netlist`, `review`.
 
 ## Agents use these tools
 

@@ -10,8 +10,9 @@ It is two things at once:
 
 - a **JavaScript library and command line tool** with no dependencies, that runs the same
   in Node and in the browser;
-- an **agent skill** (`SKILL.md`): an AI assistant writes the JSON, the kit draws and
-  checks it, so the assistant never computes geometry or colour codes by hand.
+- an **agent skill** (`SKILL.md`) and an **MCP server** (`mcp/`): an AI assistant says which parts
+  and which connections, the kit places them on the board, draws, checks and simulates the circuit,
+  so the assistant never computes holes, geometry or colour codes by hand.
 
 Inspired by [Anatomy](https://github.com/wheresryan22/anatomy) (isometric machines) and by
 the [Falstad circuit simulator](https://www.falstad.com/circuit/) (seeing current flow).
@@ -19,6 +20,7 @@ the [Falstad circuit simulator](https://www.falstad.com/circuit/) (seeing curren
 ## Quick start
 
 ```bash
+node bin/protoboard-iso.js layout my-circuit examples/layout/regulator-led.json   # placed from its parts and nets
 node bin/protoboard-iso.js check examples/led-resistor.json
 node bin/protoboard-iso.js inspect examples/led-resistor.json        # the drawing in numbers
 node bin/protoboard-iso.js render examples/led-resistor.json -o led.svg

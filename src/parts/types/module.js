@@ -11,6 +11,7 @@
 
 import { MODULES, lookupModule, headerPins } from '../modules.js';
 import { WIRE_COLORS } from '../colors.js';
+import { findPin } from '../pin-names.js';
 
 // Lead colours when the circuit does not choose: power red, 3.3 V orange, ground black, signals
 // in turn from a palette that avoids those three.
@@ -43,7 +44,7 @@ export default {
     if (!given.length) return { error: { code: 'MODULE_PINS', params: { example: '{ "D13": "j20", "GND": "T-5" }', names: all.join(', ') } } };
     const names = [];
     for (const key of given) {
-      const name = all.find((n) => n.toLowerCase() === key.toLowerCase());
+      const name = findPin(all, key);
       if (!name) return { error: { code: 'UNKNOWN_PIN', params: { pin: key, names: all.join(', ') } } };
       names.push(name);
     }

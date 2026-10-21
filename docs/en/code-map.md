@@ -53,11 +53,12 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `render/svg.js` | SVG writer; `tagParts` adds `data-part`; optional layers only when not empty |
 | `render/focus.js` | veil, metal strips, column and row tags (`coords`), spotlight copies (static focus) |
 | `render/coverage.js`, `inspect.js`, `annotate.js` | measuring the drawing; annotation layers |
-| `ops.js`, `diff.js`, `node/workspace.js` | operations with inverses, dry-run diff, history, undo, outputs |
+| `ops.js`, `diff.js`, `node/workspace.js` | operations with inverses, dry-run diff, history, undo, outputs; `relayoutTarget` (layout again as one revision) |
 | `parts/resolve.js` | a part from what a person writes (`resolvePart`: part number, module, alias like KCD1 or resistencia; `closestNames` when unknown), `pinsOf`; aliases in `PART_ALIASES` |
+| `parts/pin-names.js` | a pin from what a person writes (`findPin`: exact name ignoring case, then synonyms like K/cathode, DISCH/DIS, VDD/VCC, then GPIO numbers on boards; nothing when not unique); used by circuits, `query`, `suggest` and `layout` |
 | `layout.js` | a whole circuit from its parts and nets (`validateSpec` first: every problem at once; `autoLayout`: layers, placement rules checked by geometry only, jumpers, relayout while the review blocks), `checkNets` (nets asked vs built), `formatLayout`; CLI `layout`, MCP `layout`; how it works and how to change it: [layout.md](layout.md), bench `npm run layout-bench` |
 | `query.js`, `query-format.js`, `review.js` | questions, placements (`suggest`, `suggestMany`; groups by hole, name or placed pin; room kept for later connections with probe jumpers, one level of look-ahead, `reasons` when nothing fits), verdict from measurements (blocking items with their parts and views) |
-| `nets.js` | the circuit as nets: groups joined by jumper wires, with their pins (MCP `netlist`, CLI `nets`) |
+| `nets.js` | the circuit as nets: groups joined by jumper wires, with their pins (MCP `netlist`, CLI `nets`); `checkNets`: nets asked for against the circuit (used by `layout` and by `review` for a circuit's `spec`) |
 | `node/catalog.js` | what the kit knows, compact or one entry in detail with its fields (`TYPE_FIELDS`, kept in step with the schema by a test) and an example from `examples/` |
 | `schema.js` | JSON Schemas built from the registries (`npm run schemas`) |
 | `sim/models.js` | typical device values, each with its source (diodes, Zener table, LEDs, transistors, regulators) |

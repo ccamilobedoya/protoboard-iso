@@ -9,7 +9,7 @@ tools ([mcp.md](mcp.md)) and fall back to the CLI.
 
 | Agent | Does | Changes |
 |---|---|---|
-| `circuit-layout` | builds or changes a circuit from a brief: `suggest` → dry run → apply → `review` until approved | the circuit (through `apply_ops`) |
+| `circuit-layout` | builds or changes a circuit from a brief: a new one with `layout` (path A), changes and fixes with `suggest` → dry run → apply → `review` (path B); `simulate` for warnings at the end | the circuit (through `layout` and `apply_ops`) |
 | `circuit-reviewer` | verdict from measurements (`review`, `inspect`, connections) with dry-run-checked fixes | nothing |
 | `parts-librarian` | adds parts to the kit from datasheets: part numbers, packages, types, tests, docs | the kit's code |
 
@@ -24,7 +24,7 @@ gets the same answer:
 
 | Profile | Blocks |
 |---|---|
-| `lesson` (default) | errors and warnings, labels covering parts or each other, parts closer than `clearance`, a part hidden in **every** view |
+| `lesson` (default) | errors and warnings, labels covering parts or each other, parts closer than `clearance`, a part hidden in **every** view (less than 70 % of it seen from its best view), a net of the circuit's `spec` no longer connected |
 | `draft` | errors and warnings only |
 
 Errors and warnings include parts that take up the same space and, since 2026-10-16, a lead or
@@ -81,6 +81,21 @@ only checks. Measured with a smaller model on the same supply: 13 calls and 52 s
 `catalog` lookups that this makes unnecessary. How the algorithm works, its limits and how to
 change it: [layout.md](layout.md).
 
+Since 2026-10-20 (aimed at small models): the agent's file starts with a choice of path (A: `layout`
+for a new circuit; B: operations for changes and fixes) instead of one long loop; `layout` reads pin
+names as people write them (`D1.K` for an LED's cathode, `U1.DISCH`, `U1.GPIO4`, `U1.VIN`); its
+answer ends in one `STATUS:` line (`DONE`, `CHANGES`, `FIX_SPEC`) that says what to do next; and the
+layout agent and the reviewer run `simulate` once for warnings (short, over a limit, floating),
+reporting no values. Until then the layout agent's tools list lacked `layout` itself;
+`npm run test:mcp` now fails when an agent's instructions name a tool its list does not have.
+
+Also since 2026-10-20: a circuit made by `layout` keeps its nets (`spec`), `review` checks them, and
+other connections or parts are one more `layout` call on the same target with the new nets (path A):
+every part keeps its holes when it still fits, and `undo` brings the old layout back. Ground nets
+go to a − rail by convention, and what the relayout loop leaves is tried once more jumper by jumper.
+The lesson profile blocks a part as hidden when its best view shows less than 70 % of it (it was
+85 % in every view): both bench circuits now pass at the first try. Details in [layout.md](layout.md).
+
 ## The loop (run by the main conversation)
 
 ```
@@ -117,8 +132,10 @@ Done when: review <profile> APPROVED
 2026-10-16 took half a session's tokens to copy a photo): the same connections and the same
 behaviour (it simulates when it has a supply), no part crossing another, review approved;
 positions from a photo are a hint, not a target. `exact` only when the lesson is about where
-things go on the board. Every part of the brief must exist in the kit (`catalog`) before the
-layout starts; a missing one goes to `parts-librarian` first, not to a placeholder.
+things go on the board. Every part of the brief must exist in the kit: `layout` checks the names
+itself (unknown ones come back with the closest names, nothing created), and path B looks a type up
+with `catalog` only when it has not used it. A missing part goes to `parts-librarian` first, not to a
+placeholder.
 
 ```
 REVIEW BRIEF

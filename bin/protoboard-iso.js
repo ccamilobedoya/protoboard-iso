@@ -17,8 +17,8 @@ import { review, formatReview } from '../src/review.js';
 import { simulate } from '../src/sim/index.js';
 import { formatSimulation } from '../src/sim/format.js';
 import { parseValue } from '../src/core/units.js';
-import { resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory, writePage, createTarget } from '../src/node/workspace.js';
-import { autoLayout, formatLayout } from '../src/layout.js';
+import { resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory, writePage, createTarget, relayoutTarget } from '../src/node/workspace.js';
+import { autoLayout, formatLayout, specFromCircuit } from '../src/layout.js';
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -100,25 +100,33 @@ if (args.help || !command || (command !== 'parts' && !target)) {
 const viewOptions = { view: args.view, lang, scale: args.scale || undefined, labels: args.labels, fit: args.fit, annotate: args.annotate, sim: args.sim, focus: args.focus, flow: args.flow };
 
 if (command === 'layout') {
-  // layout <new target> <spec.json | ->: the whole circuit placed from its parts and nets.
-  if (!extra) {
+  // layout <target> [spec.json | -]: the whole circuit placed from its parts and nets; on an
+  // existing target, laid out again (the spec's fields replace the circuit's, the rest stays).
+  const previous = existsSync(paths.circuitFile) ? loadCircuit(paths) : null;
+  if (!extra && !previous) {
     console.log(t(lang, 'cli.usage'));
     fail(1);
   }
-  const spec = JSON.parse(extra === '-' ? readFileSync(0, 'utf8') : readFileSync(extra, 'utf8'));
-  const result = autoLayout(spec, { checkOnly: args.check });
+  const given = extra ? JSON.parse(extra === '-' ? readFileSync(0, 'utf8') : readFileSync(extra, 'utf8')) : {};
+  if (previous && !given.nets && !previous.spec?.nets) {
+    printIssues([{ severity: 'error', code: 'LAYOUT_NO_SPEC', params: { target } }], lang);
+    fail(1);
+  }
+  const spec = previous ? specFromCircuit(previous, given) : given;
+  const result = autoLayout(spec, { checkOnly: args.check, previous });
   const outLang = pickLanguage(args.lang, spec.lang, 'en');
   if (result.checked) {
     console.log(args.json ? JSON.stringify(result, null, 2) : formatLayout(result, outLang, { t, formatIssue }));
     fail(result.invalid ? 1 : 0);
   }
-  const created = createTarget(target, result.circuit, { author: args.author ?? 'layout', note: args.note ?? 'layout', lang: outLang, outputs: args.outputs });
+  const save = { author: args.author ?? 'layout', note: args.note ?? 'layout', lang: outLang, outputs: args.outputs };
+  const created = previous ? relayoutTarget(target, result.circuit, { ...save, expectRevision: args.expectRevision }) : createTarget(target, result.circuit, save);
   if (created.errors.length) {
     printIssues(created.errors, outLang);
     fail(1);
   }
   console.log(args.json ? JSON.stringify({ ...result, circuit: undefined }, null, 2) : formatLayout(result, outLang, { t, formatIssue }));
-  fail(result.check.ok && result.review.verdict === 'approved' ? 0 : 2);
+  fail(result.status === 'done' ? 0 : 2);
 } else if (command === 'render') {
   const circuit = loadCircuit(paths);
   const { svg, issues } = renderCircuit(circuit, viewOptions);
