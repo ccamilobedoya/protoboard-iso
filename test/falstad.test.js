@@ -75,7 +75,7 @@ test('falstad export: equivalents and parts left out are noted', () => {
   assert.deepEqual(codes('led-resistor.json'), []);
   assert.deepEqual(codes('rectifier.json'), ['falstad.bridge:BR1']);
   const more = codes('more-parts.json');
-  for (const c of ['falstad.battery:BT1', 'falstad.zener:D1', 'falstad.sensor:RT1', 'falstad.sensor:LDR1', 'falstad.buzzer:BZ1', 'falstad.unsupported:U1', 'falstad.missing:U2']) assert.ok(more.includes(c), c);
+  for (const c of ['falstad.battery:BT1', 'falstad.zener:D1', 'falstad.sensor:RT1', 'falstad.sensor:LDR1', 'falstad.buzzer:BZ1', 'falstad.missing:U1', 'falstad.missing:U2']) assert.ok(more.includes(c), c);
   assert.ok(!more.some((c) => c.endsWith(':J1')), 'header pins say nothing');
 });
 

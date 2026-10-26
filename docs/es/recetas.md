@@ -36,6 +36,11 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `zener-regulator` | Zener y su resistencia en serie que sostienen una carga | R1 = 470, D1 = 1N4733A (cualquier 1N47xx), R2 = 1k (carga), V1 = 9 V (3–30) |
 | `esp32-led` | ESP32 DevKit que enciende un LED desde D13 | R1 = 220, D1 = red |
 | `esp32-button` | ESP32 DevKit que lee un pulsador en D27 (pull-up interno) | — |
+| `opamp-comparator` | LM358 que compara un potenciómetro con la mitad de la fuente; un LED en su salida | RV1 = 10k (cursor en 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 5 V (5–30) |
+| `lm393-comparator` | Comparador LM393: su colector abierto hunde la corriente de un LED alimentado desde la fuente | RV1 = 10k (cursor en 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, V1 = 5 V (3–30) |
+| `opamp-follower` | Seguidor de voltaje con LM358: la salida copia un potenciómetro y alimenta un LED | RV1 = 100k, R1 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30) |
+| `opamp-noninverting` | Amplificador no inversor con LM358, ganancia 1 + R2/R1, una senoidal del generador en V+ | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0,5 V de pico (0,01–5) |
+| `opamp-inverting` | Amplificador inversor con LM358, ganancia −R2/R1 alrededor de la mitad de la fuente (un divisor en V+) | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0,5 V de pico (0,01–3) |
 
 `catalog` (MCP) o `parts` (consola) las listan con sus valores; `catalog` con el nombre de una receta
 (`parts <nombre>` en la consola) muestra lo que enseña, sus componentes, redes, fuente, y el papel y

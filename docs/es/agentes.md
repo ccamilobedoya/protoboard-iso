@@ -101,7 +101,7 @@ intenta una vez más cable por cable. El perfil lesson bloquea una pieza por ocu
 vista muestra menos del 70 % (antes, 85 % en cada vista): las dos del banco pasan al primer intento.
 Detalle en [montaje-automatico.md](montaje-automatico.md).
 
-Desde el 2026-10-26: **recetas** ([recetas.md](recetas.md)), quince circuitos de clase habituales
+Desde el 2026-10-26: **recetas** ([recetas.md](recetas.md)), los circuitos de clase habituales
 que `layout` recibe por nombre con solo los valores que cambian (`{"recipe": "npn-switch", "values":
 {"R1": "470"}}`), cada uno probado para que salga `DONE` en una llamada. Un circuito de receta no
 necesita agente: la conversación principal llama a `layout` ella misma y deja al agente de montaje

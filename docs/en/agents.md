@@ -96,7 +96,7 @@ go to a − rail by convention, and what the relayout loop leaves is tried once 
 The lesson profile blocks a part as hidden when its best view shows less than 70 % of it (it was
 85 % in every view): both bench circuits now pass at the first try. Details in [layout.md](layout.md).
 
-Since 2026-10-26: **recipes** ([recipes.md](recipes.md)), fifteen usual lesson circuits that
+Since 2026-10-26: **recipes** ([recipes.md](recipes.md)), the usual lesson circuits that
 `layout` takes by name with only the values that change (`{"recipe": "npn-switch", "values":
 {"R1": "470"}}`), each one tested to come out `DONE` in one call. A recipe circuit needs no agent:
 the main conversation calls `layout` itself and keeps the layout agent for `CHANGES` (or passes

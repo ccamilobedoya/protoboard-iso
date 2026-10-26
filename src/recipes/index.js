@@ -23,9 +23,14 @@ import bridgeRectifier from './bridge-rectifier.js';
 import zenerRegulator from './zener-regulator.js';
 import esp32Led from './esp32-led.js';
 import esp32Button from './esp32-button.js';
+import opampComparator from './opamp-comparator.js';
+import lm393Comparator from './lm393-comparator.js';
+import opampFollower from './opamp-follower.js';
+import opampNoninverting from './opamp-noninverting.js';
+import opampInverting from './opamp-inverting.js';
 
 export const RECIPES = Object.fromEntries(
-  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button].map((r) => [r.name, r]),
+  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting].map((r) => [r.name, r]),
 );
 
 // Fields a value may set besides its main one, by the kind of item (a part's type or "supply").

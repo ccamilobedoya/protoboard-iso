@@ -44,7 +44,7 @@ export const timer = {
   },
   limits(entry, r) {
     const m = entry.model;
-    return [stress('SIM_TIMER_SUPPLY', 'voltage', r.vcc, m.maxSupply, 'V'), stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), m.maxCurrent, 'A'), stress('SIM_OVER_POWER', 'power', r.power, m.maxPower, 'W')];
+    return [stress('SIM_IC_SUPPLY', 'voltage', r.vcc, m.maxSupply, 'V'), stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), m.maxCurrent, 'A'), stress('SIM_OVER_POWER', 'power', r.power, m.maxPower, 'W')];
   },
   lines(p, h) {
     return [

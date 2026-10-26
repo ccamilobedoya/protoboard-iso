@@ -19,7 +19,7 @@
 // Without it, wires are ideal and the push button is Falstad's own, so a learner can press it.
 
 import { VT } from './models.js';
-import { DEVICE_BY_TYPE } from './devices/index.js';
+import { deviceOfProgram } from './devices/index.js';
 import { FALSTAD_WAVEFORM, peakOf } from './generator.js';
 import { createEngine } from './engine.js';
 import { layoutFalstad, escapeName } from './falstad-layout.js';
@@ -143,7 +143,7 @@ export function toFalstad(program, { exact = false, reading = null, timeConstant
   f.ground(program.ground);
   for (const s of program.supplies) exportSupply(s, f, reading, step);
   for (const d of program.devices) {
-    const device = !d.unsupported && DEVICE_BY_TYPE[d.type];
+    const device = !d.unsupported && deviceOfProgram(d);
     if (device?.falstad) device.falstad(d, f);
     // A part the kit simulates but Falstad has nothing for, or one the kit does not simulate.
     else if (device && !device.source) f.note('falstad.missing', { part: d.id });

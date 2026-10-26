@@ -160,6 +160,26 @@ export const TIMERS = {
   NE555: { divider: 5000, quiescentResistance: 1875, highDrop: 0.9, highResistance: 8, lowLevel: 0.025, lowResistance: 7.5, dischargeResistance: 18, resetThreshold: 0.7, maxSupply: 16, maxCurrent: 0.2, maxPower: 0.6 },
 };
 
+// Op-amps and comparators (behavioural, DC and low frequency: no bandwidth or slew rate). Each
+// amplifier: open-loop gain `gain`; its output follows gain·(V+ − V−), centred on mid-supply,
+// saturating softly `swingLow` above the negative supply and `swingHigh` below the positive one,
+// behind `outputResistance`; its current comes from the positive supply pin when sourcing and goes
+// to the negative one when sinking. A comparator (`openCollector`) only sinks: its output
+// transistor pulls OUT to the negative supply through `onResistance` while V− > V+, and is off
+// otherwise (it needs a pull-up). `quiescent`: the whole chip's own current. Limits: `maxSupply`
+// (total), `maxCurrent` per output (short-circuit current), `maxPower` (DIP). Inputs draw no
+// current at `quiescentAt` volts of total supply (a resistor). `channels`: [IN+, IN−, OUT] of each amplifier; `supply`: [positive, negative] pins.
+// Sources: TI LM358 (SLOS068), LM324 (SLOS066), LM393 (SLCS005), µA741 (SLOS094), NE5532 (SLOS075).
+const DUAL = [['IN1+', 'IN1-', 'OUT1'], ['IN2+', 'IN2-', 'OUT2']];
+const LM358 = { gain: 1e5, swingLow: 0.005, swingHigh: 1.5, outputResistance: 50, quiescent: 0.7e-3, quiescentAt: 5, maxSupply: 32, maxCurrent: 0.04, maxPower: 0.8, channels: DUAL, supply: ['VCC', 'GND'] };
+export const OPAMPS = {
+  LM358,
+  LM324: { ...LM358, channels: [...DUAL, ['IN3+', 'IN3-', 'OUT3'], ['IN4+', 'IN4-', 'OUT4']] },
+  UA741: { gain: 2e5, swingLow: 2, swingHigh: 2, outputResistance: 75, quiescent: 1.7e-3, quiescentAt: 30, maxSupply: 36, maxCurrent: 0.025, maxPower: 0.5, channels: [['IN+', 'IN-', 'OUT']], supply: ['V+', 'V-'] },
+  NE5532: { gain: 1e5, swingLow: 1.5, swingHigh: 1.5, outputResistance: 30, quiescent: 8e-3, quiescentAt: 30, maxSupply: 44, maxCurrent: 0.038, maxPower: 0.8, channels: DUAL, supply: ['V+', 'V-'] },
+  LM393: { openCollector: true, gain: 2e5, onResistance: 60, quiescent: 0.4e-3, quiescentAt: 5, maxSupply: 36, maxCurrent: 0.02, maxPower: 0.6, channels: DUAL, supply: ['VCC', 'GND'] },
+};
+
 export const REGULATORS = {
   fixed: { dropout: 2.0, quiescent: 5e-3, maxCurrent: 1.5, maxPower: 2 },
   LM317: { dropout: 2.0, quiescent: 50e-6, maxCurrent: 1.5, maxPower: 2 },

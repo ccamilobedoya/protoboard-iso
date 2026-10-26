@@ -6,7 +6,8 @@
 //                 others are unsupported
 //   kind          the reading's kind ('R', 'LED', 'Q'…); devices that share a kind share their
 //                 reading hooks (lines, tag, probe, currentPins), looked up by kind
-//   params(part, c)  compile time (Node): what the part needs, as plain JSON; c: { issues }
+//   params(part, c)  compile time (Node): what the part needs, as plain JSON; c: { issues,
+//                    members (node → ids of the parts on it) }
 //   elements(p, h)   run time: adds its MNA elements, returns them by name; the "entry" a
 //                    reading gets is { id, kind, pins, ...params, ...elements }
 //                    h: { id, pin(name), at(i), inner(), add(element), supplies }
@@ -45,17 +46,20 @@ import { mosfet } from './mosfet.js';
 import { bjt } from './bjt.js';
 import { regulator } from './regulator.js';
 import { timer } from './timer.js';
+import { opamp } from './opamp.js';
 import { battery } from './battery.js';
 
-export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, bridge, mosfet, bjt, regulator, timer, battery];
+export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, bridge, mosfet, bjt, regulator, timer, opamp, battery];
 
-export const DEVICE_BY_TYPE = Object.fromEntries(DEVICES.flatMap((d) => d.types.map((t) => [t, d])));
+// Several devices may share a type (the ICs: timer, op-amp); each one accepts its own parts.
+const BY_TYPE = {};
+for (const d of DEVICES) for (const t of d.types) (BY_TYPE[t] ??= []).push(d);
+// The device that runs a compiled part ({ type, kind }): the only one of its type, else the one of
+// its kind (compile.js writes the kind of the device it chose).
+export const deviceOfProgram = (d) => (BY_TYPE[d.type]?.length > 1 ? BY_TYPE[d.type].find((x) => x.kind === d.kind) : BY_TYPE[d.type]?.[0]) ?? null;
 // The first device of each kind answers for the readings of that kind.
 export const DEVICE_BY_KIND = {};
 for (const d of DEVICES) DEVICE_BY_KIND[d.kind] ??= d;
 
-export const deviceFor = (part) => {
-  const device = DEVICE_BY_TYPE[part.type];
-  return device && (!device.accepts || device.accepts(part)) ? device : null;
-};
+export const deviceFor = (part) => (BY_TYPE[part.type] ?? []).find((d) => !d.accepts || d.accepts(part)) ?? null;
 export const deviceOfReading = (reading) => (reading && !reading.unsupported ? DEVICE_BY_KIND[reading.kind] ?? null : null);

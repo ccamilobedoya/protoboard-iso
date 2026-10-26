@@ -290,7 +290,7 @@ test('RC charging follows V·(1 − e^(−t/RC)) (backward Euler, small step)', 
 
 test('what the simulator cannot do is reported, not guessed', () => {
   assert.deepEqual(codes(simulate({ ...example('led-resistor.json'), supplies: undefined }).issues), ['SIM_NO_SUPPLY']);
-  const withChip = { supplies: supply(5), parts: [{ id: 'U1', type: 'ic', part: 'LM358', pin1: 'e10' }] };
+  const withChip = { supplies: supply(5), parts: [{ id: 'U1', type: 'ic', part: '74HC595', pin1: 'e10' }] };
   assert.ok(codes(simulate(withChip).issues).includes('SIM_UNSUPPORTED'));
   const broken = {
     supplies: supply(5),
@@ -397,4 +397,45 @@ test('NE555 astable: frequency and duty cycle from the textbook formula; RESET h
   assert.equal(core.q, 1, 'TRIG below CTRL/2 sets');
   core.accept(at({ trig: 2.9, thr: 2.9, reset: 0.3 }));
   assert.equal(core.q, 0, 'RESET low wins');
+});
+
+// Op-amps against the textbook, through the recipes: non-inverting gain 1 + R2/R1, inverting
+// −R2/R1 around the reference on V+, the follower copies V+, an open-loop LM358 saturates near its
+// datasheet swing (VOH = VCC − 1.5 V, VOL a few mV), the LM393's open collector sinks or opens.
+test('op-amps: gain from the resistors, follower, saturation, open collector; unused halves stay quiet', async () => {
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  const { autoLayout } = await import('../src/layout.js');
+  const { buildCircuit } = await import('../src/index.js');
+  const lay = (name, values) => autoLayout(expandRecipe(name, values).spec).circuit;
+  const node = (c, id, pin) => {
+    const p = buildCircuit(c).parts.find((x) => x.id === id);
+    return p.holes[p.pinNames.indexOf(pin)].node;
+  };
+  for (const [name, input, gain, ref] of [['opamp-noninverting', ['U1', 'IN1+'], 3, 0], ['opamp-inverting', ['R1', '1'], -2, 4.5]]) {
+    const c = lay(name);
+    const r = simulate(c, { analysis: 'transient', stop: 0.02, step: 1e-5, points: 50 });
+    assert.ok(r.ok, `${name}: ${JSON.stringify(r.issues)}`);
+    const vi = r.nodes[node(c, ...input)];
+    const vo = r.nodes[node(c, 'U1', 'OUT1')];
+    vi.forEach((v, k) => assert.ok(Math.abs(vo[k] - (ref + gain * (v - ref))) < 1e-3, `${name} at ${k}: ${vo[k]} for ${v}`));
+    assert.ok(Math.max(...vi) - Math.min(...vi) > 0.9, 'the input swings');
+  }
+  const amp = (name, position) => {
+    const r = simulate(lay(name, { RV1: { position } }));
+    assert.ok(r.ok, JSON.stringify(r.issues));
+    assert.ok(!codes(r.issues).includes('SIM_FLOATING'), `${name}: the unused half is not floating`);
+    return { ...r.parts.U1.amps[0], led: r.parts.D1.current, count: r.parts.U1.amps.length };
+  };
+  const follow = amp('opamp-follower', 0.3);
+  assert.ok(Math.abs(follow.vout - 9 * 0.7) < 2e-3 && follow.state === 'linear' && follow.count === 1);
+  const high = amp('opamp-comparator', 0.3);
+  assert.equal(high.state, 'high');
+  assert.ok(Math.abs(high.vout - (5 - 1.5 - high.current * 50)) < 0.02, `VOH ${high.vout}`);
+  const low = amp('opamp-comparator', 0.7);
+  assert.ok(low.state === 'low' && low.vout < 0.01 && low.led < 1e-6);
+  const sink = amp('lm393-comparator', 0.3);
+  assert.equal(sink.state, 'sinking');
+  assert.ok(Math.abs(sink.vout - -sink.current * 60) < 1e-3 && sink.led > 5e-3, `sink ${sink.vout} at ${sink.current}`);
+  const open = amp('lm393-comparator', 0.7);
+  assert.ok(open.state === 'open' && open.led < 1e-6);
 });

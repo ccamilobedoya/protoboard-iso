@@ -168,6 +168,8 @@ function transistor(type, fallback) {
 export const mosfet = transistor('mosfet', 'IRLZ44N');
 
 // Integrated circuits in DIP packages. Place them with "pin1" (e.g. "f10").
+const ICS = { timer: 'TMR', 'op-amp': 'OPA', 'dual op-amp': 'OPA', 'quad op-amp': 'OPA', 'dual comparator': 'OPA' };
+
 export const ic = {
   type: 'ic',
   pins: null, // from the part number
@@ -179,8 +181,9 @@ export const ic = {
       pinNames: found.entry.pins,
       params: { count: found.entry.pins.length, marking: part.marking ?? found.number },
       label: { text: found.number },
-      // A timer (NE555) is simulated (src/sim/devices/timer.js); other ICs are drawn only.
-      electrical: { kind: found.entry.model?.function === 'timer' ? 'TMR' : 'IC', part: found.number, ...found.entry.model },
+      // Simulated: a timer (NE555, src/sim/devices/timer.js), op-amps and comparators
+      // (src/sim/devices/opamp.js). Other ICs are drawn only.
+      electrical: { kind: ICS[found.entry.model?.function] ?? 'IC', part: found.number, ...found.entry.model },
     };
   },
 };

@@ -48,6 +48,9 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 | `bridge-rectifier` | bridge, filter capacitor and an LED, from a sine on the top rails |
 | `zener-regulator` | Zener and its series resistor holding a load |
 | `esp32-led`, `esp32-button` | ESP32 DevKit driving an LED (D13) / reading a button (D27) |
+| `opamp-comparator`, `lm393-comparator` | potentiometer against a reference, an LED on the output (LM358; LM393 open collector) |
+| `opamp-follower` | LM358 copying a potentiometer and driving an LED |
+| `opamp-noninverting`, `opamp-inverting` | LM358 amplifiers, gain from R1 and R2, a sine from the generator |
 
 - **values**: the main field by id (`"R1": "470"`, `"D1": "green"`, `"Q1": "BC547"`, `"V1": 9`) or
   some fields (`"R1": {"value": "470", "tolerance": "1%"}`). Only the ids a recipe lists can change,

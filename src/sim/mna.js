@@ -359,6 +359,123 @@ export function timerCore({ gnd, trig, out, reset, ctrl, thr, dis, vcc }, m) {
   };
 }
 
+// One op-amp's output (models.js, OPAMPS) between its inputs p (+) and n (−), the supply pins
+// vcc and vee, and an inner node o behind the output resistance. Its row: V(o) − V(vee) = f(u),
+// u = gain·vd + S/2 with vd = V(p) − V(n) and S = V(vcc) − V(vee), f a clamp of u between swingLow
+// and S − swingHigh with soft corners (softplus, SOFT volts), so Newton sees a smooth slope 1 → 0.
+// Deep in saturation the slope is nearly zero, and with feedback Newton would jump from one rail
+// to the other: like a junction's voltage, vd is limited between iterations. The first time u
+// would leave the linear range it stops just inside it (LIMIT volts from the edge, where the slope
+// is near 1 and the next step is nearly exact); if the next iteration still wants out on that
+// side, the output really saturates and it goes.
+// The output current x[branch] comes from vcc while it sources and goes to vee while it sinks,
+// split smoothly at a few microamperes so the supply pins carry what they would.
+const SOFT = 0.02;
+const LIMIT = 2 * SOFT;
+const softplus = (z) => (z > 40 ? z : z < -40 ? 0 : Math.log1p(Math.exp(z)));
+const logistic = (z) => 1 / (1 + Math.exp(-Math.max(-300, Math.min(300, z))));
+const SPLIT = 1e-6;
+export function opampStage({ p, n, vcc, vee, o }, m) {
+  const range = (S) => {
+    const lo = m.swingLow;
+    // Below swingLow + swingHigh of supply (switched off, or the first guess at 0 V) the
+    // output has no room: it sits at swingLow.
+    const top = S - m.swingHigh;
+    return { lo, hi: Math.max(top, lo), follows: top > lo ? 1 : 0 };
+  };
+  const evaluate = (vd, S) => {
+    const { lo, hi, follows } = range(S);
+    const u = m.gain * vd + S / 2;
+    const f = lo + SOFT * softplus((u - lo) / SOFT) - SOFT * softplus((u - hi) / SOFT);
+    const sLo = logistic((u - lo) / SOFT);
+    const sHi = logistic((u - hi) / SOFT);
+    return { f, du: sLo - sHi, dS: (sLo - sHi) / 2 + sHi * follows, u, lo, hi };
+  };
+  const shape = (x) => evaluate(volt(x, p) - volt(x, n), volt(x, vcc) - volt(x, vee));
+  const source = (i) => (i + Math.hypot(i, SPLIT)) / 2; // the part of i drawn from vcc
+  return {
+    nodes: [p, n, vcc, vee, o],
+    links: [
+      [o, vee],
+      [o, vcc],
+    ],
+    branch: null,
+    needsRow: true,
+    vd: 0,
+    edge: null,
+    shape,
+    stamp(st, x) {
+      const k = this.branch;
+      const S = volt(x, vcc) - volt(x, vee);
+      const { lo, hi } = range(S);
+      const want = volt(x, p) - volt(x, n);
+      const uOf = (vd) => m.gain * vd + S / 2;
+      let vd = want;
+      let edge = null;
+      if (uOf(want) > hi + LIMIT && uOf(this.vd) < hi + LIMIT && this.edge !== 'hi') edge = 'hi';
+      else if (uOf(want) < lo - LIMIT && uOf(this.vd) > lo - LIMIT && this.edge !== 'lo') edge = 'lo';
+      if (edge) vd = ((edge === 'hi' ? hi - LIMIT : lo + LIMIT) - S / 2) / m.gain;
+      this.edge = edge;
+      const limited = edge !== null;
+      this.vd = vd;
+      const { f, du, dS } = evaluate(vd, S);
+      // Row k, linear around (vd, S): V(o) − V(vee) − [f + du·gain·(vd' − vd) + dS·(S' − S)] = 0.
+      // A list, not a map: two of these may be the same node (both inputs on one strip).
+      const J = [
+        [o, 1],
+        [vee, -1 + dS],
+        [vcc, -dS],
+        [p, -m.gain * du],
+        [n, m.gain * du],
+      ];
+      for (const [node, j] of J) st.add(k, node, j);
+      st.rhs(k, f - du * m.gain * vd - dS * S);
+      // The current: into o, out of vcc (sourcing part) and vee (the rest).
+      const i0 = x[k] ?? 0;
+      const s0 = source(i0);
+      const ds = (1 + i0 / Math.hypot(i0, SPLIT)) / 2;
+      st.add(o, k, -1);
+      st.add(vcc, k, ds);
+      st.rhs(vcc, -(s0 - ds * i0));
+      st.add(vee, k, 1 - ds);
+      st.rhs(vee, s0 - ds * i0);
+      return limited;
+    },
+    // Into the element at each node, in `nodes` order (o: the output current leaves it).
+    currents(x) {
+      const i = x[this.branch];
+      return [0, 0, source(i), i - source(i), -i];
+    },
+  };
+}
+
+// A comparator's open-collector output (LM393): a transistor from out to vee that conducts while
+// V(n) > V(p), its conductance switching over WIDTH volts of input; off, it leaks nothing.
+const WIDTH = 1e-4;
+export function comparatorStage({ p, n, out, vee }, m) {
+  const gon = 1 / m.onResistance;
+  return {
+    nodes: [out, vee, p, n],
+    links: [[out, vee]],
+    stamp(st, x) {
+      const v = [volt(x, out), volt(x, vee), volt(x, p), volt(x, n)];
+      const s = logistic((v[3] - v[2]) / WIDTH);
+      const g = gon * s + GMIN;
+      const dg = (gon * s * (1 - s)) / WIDTH; // ∂g/∂V(n); ∂g/∂V(p) = −dg
+      const vo = v[0] - v[1];
+      const i = g * vo;
+      st.device(this.nodes, [i, -i, 0, 0], [[g, -g, -dg * vo, dg * vo], [-g, g, dg * vo, -dg * vo], [0, 0, 0, 0], [0, 0, 0, 0]], v);
+      return false;
+    },
+    currents(x) {
+      const s = logistic((volt(x, n) - volt(x, p)) / WIDTH);
+      const i = (gon * s + GMIN) * (volt(x, out) - volt(x, vee));
+      return [i, -i, 0, 0];
+    },
+    on: (x) => volt(x, n) > volt(x, p),
+  };
+}
+
 // MOSFET drain current (from d to s) of an n-channel device, with smooth turn-on.
 function nChannel(vgs, vds, { vth, k, lambda }) {
   if (vds < 0) {

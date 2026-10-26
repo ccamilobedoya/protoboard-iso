@@ -108,7 +108,7 @@ export function compile(circuit) {
       issues.push(issue('info', 'SIM_UNSUPPORTED', { part: part.id }));
       return { id: part.id, kind, pins, unsupported: true };
     }
-    return { id: part.id, type: part.type, kind, pins, params: device.params(part, { issues }) };
+    return { id: part.id, type: part.type, kind, pins, params: device.params(part, { issues, members }) };
   });
   return { program: { v: 1, ground, nodes, members, supplies, devices, issues } };
 }

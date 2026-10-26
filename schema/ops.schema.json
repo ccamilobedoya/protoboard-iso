@@ -490,7 +490,12 @@
                       "bridge-rectifier",
                       "zener-regulator",
                       "esp32-led",
-                      "esp32-button"
+                      "esp32-button",
+                      "opamp-comparator",
+                      "lm393-comparator",
+                      "opamp-follower",
+                      "opamp-noninverting",
+                      "opamp-inverting"
                     ]
                   },
                   "values": {

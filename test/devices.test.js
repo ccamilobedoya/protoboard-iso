@@ -1,22 +1,25 @@
-// The device registry (src/sim/devices/): every part type the simulator handles has exactly one
-// device, devices that share a reading kind share its reading hooks, and every warning a stress
+// The device registry (src/sim/devices/): every part type the simulator handles has a device (a
+// type shared by several only when each accepts its own parts: the ICs), devices that share a reading kind share its reading hooks, and every warning a stress
 // can raise has its text in every language.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PART_TYPES } from '../src/parts/types/index.js';
-import { DEVICES, DEVICE_BY_TYPE } from '../src/sim/devices/index.js';
+import { DEVICES } from '../src/sim/devices/index.js';
 import { stress, stressIssue } from '../src/sim/devices/shared.js';
 import { LANGUAGES, t } from '../src/i18n/index.js';
 
-const NOT_SIMULATED = ['ic', 'module']; // left unconnected and reported (SIM_UNSUPPORTED)
+const NOT_SIMULATED = ['module']; // left unconnected and reported (SIM_UNSUPPORTED)
 
 test('devices: one per simulated part type, and only known types', () => {
   const types = DEVICES.flatMap((d) => d.types);
-  assert.equal(new Set(types).size, types.length, 'no type in two devices');
-  for (const type of types) assert.ok(PART_TYPES[type], `${type} is a part type`);
+  for (const type of types) {
+    assert.ok(PART_TYPES[type], `${type} is a part type`);
+    const sharing = DEVICES.filter((d) => d.types.includes(type));
+    if (sharing.length > 1) for (const d of sharing) assert.equal(typeof d.accepts, 'function', `${type}: ${d.kind} must say which parts it takes`);
+  }
   for (const type of Object.keys(PART_TYPES)) {
-    if (!NOT_SIMULATED.includes(type)) assert.ok(DEVICE_BY_TYPE[type], `${type} has a device`);
+    if (!NOT_SIMULATED.includes(type)) assert.ok(types.includes(type), `${type} has a device`);
   }
   for (const d of DEVICES) {
     assert.equal(typeof d.params, 'function', `${d.types}: params`);

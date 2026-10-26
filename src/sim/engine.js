@@ -26,7 +26,7 @@
 
 import { resistor, voltageSource, currentSource, operatingPoint, newton, Stamper, solveInPlace } from './mna.js';
 import { GMIN } from './models.js';
-import { DEVICE_BY_TYPE } from './devices/index.js';
+import { deviceOfProgram } from './devices/index.js';
 import { issue, q, volt, stressIssue } from './devices/shared.js';
 import { supplyControls, setSupply, stressLevel } from './controls.js';
 import { waveAt, peakOf } from './generator.js';
@@ -59,7 +59,7 @@ function prepare(program) {
     const entry = { id: d.id, kind: d.kind, pins: d.pins.map((p) => ({ name: p.name, node: p.node, index: nodeIndex(p.node) })) };
     if (d.unsupported) entry.unsupported = true;
     else {
-      const device = DEVICE_BY_TYPE[d.type];
+      const device = deviceOfProgram(d);
       const h = {
         id: d.id,
         pin: (name) => entry.pins.find((p) => p.name === name).index,
@@ -353,7 +353,7 @@ function controlsOf(program) {
     for (const [field, c] of Object.entries(list ?? {})) out.push({ id, field, ...c });
   };
   for (const d of program.devices) {
-    const device = !d.unsupported && DEVICE_BY_TYPE[d.type];
+    const device = !d.unsupported && deviceOfProgram(d);
     if (device?.controls) add(d.id, device.controls(d.params));
   }
   for (const s of program.supplies) if (!s.off) add(s.part ?? s.id, supplyControls(s));
@@ -373,7 +373,7 @@ function changeProgram(program, id, field, value) {
     value = Math.min(hi, Math.max(lo, value));
   }
   const d = program.devices.find((dev) => dev.id === id && !dev.unsupported);
-  const device = d && DEVICE_BY_TYPE[d.type];
+  const device = d && deviceOfProgram(d);
   if (device?.controls?.(d.params)?.[field]) {
     const params = device.set(d.params, field, value);
     if (!params) return false;
