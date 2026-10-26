@@ -105,7 +105,7 @@ Guide: [docs/en/simulation.md](docs/en/simulation.md).
 
 ## Parts and sources, next ⬜
 
-From the course inventory, in rough order of use:
+From a usual beginner's kit, in rough order of use:
 
 - ✅ Development boards, drawn and checked (level 1): ESP32 DevKit (30 pins) and ESP32-C3 SuperMini straddling the channel by `pin1`, with a `rowSpacing` because boards differ; Arduino UNO beside the board, only the pins in use wired with Dupont leads; a note per pin in the card (strapping pins, input only, ADC2 and Wi-Fi, PWM…). Examples `esp32-led.json`, `uno-led.json`
 - ✅ GooDisplay DESPI-C02 e-paper adapter beside the board (right-angle pins with Dupont leads, RESE switch, test pads, FPC connector) and, when asked, the 7.5" GDEY075T7 panel on its flat cable (`panel: true`); card "Adapter board". Example `epaper-esp32.json`
@@ -116,7 +116,7 @@ From the course inventory, in rough order of use:
 - ✅ Battery holders: end walls as tall as the cells, so the + button never peeks over them
 - ⬜ Coin cell (CR2032) in its holder
 
-What the course bench has and the kit does not yet draw (from the inventory, 2026-10-16):
+Usual bench parts the kit does not draw yet (2026-10-16):
 
 - ✅ Off-board switches (`switch`), on the table in front of or behind the board, simulated as switches that stay put (*Turn on* / *Turn off* in the card, control `on` with the new `toggle` scale): the KCD1 rocker (SPST, alligator clips on its faston tabs) and the 7 × 7 latching push button (DPDT, a wire soldered to each pin in use); example `switches.json`
 - ⬜ Alligator clip leads as wires off the board (to the rails, to an off-board switch, to the supply)
@@ -129,30 +129,30 @@ What the course bench has and the kit does not yet draw (from the inventory, 202
 - ⬜ Actuators: SG90 and MG90S servos (3-pin lead), TB6612FNG motor driver, DC gear motors, mini submersible pump
 - ⬜ Energy: 6 V 2 W solar panel; single 18650 holder, LiPo 103450 on a JST PH lead
 - ⬜ On the board: TO-220 heatsink, XH connectors, DIP sockets
-- ⬜ Instruments on the circuit: multimeter leads on a strip (stage 4's virtual multimeter), the oscilloscope probe and the ZT-703S generator output, logic analyzer leads
+- ⬜ Instruments on the circuit: multimeter leads on a strip (stage 4's virtual multimeter), the oscilloscope probe and a bench generator's output, logic analyzer leads
 
 ## Faster circuits for lessons (from the two-rail supply test) ⬜
 
-On 2026-10-16 a fresh `circuit-layout` rebuilt the M2 two-rail supply from the learner's notes and
+On 2026-10-16 a fresh `circuit-layout` rebuilt a two-rail supply from a learner's notes and
 photo: 19 min, 68 calls, about 185 000 tokens (half a session's budget) to copy the photo, and the
 result passed review with resistors crossing other parts, three parts stood in by pin headers and
 no simulation (the switch is missing). The maintainer's rule from then on: **the same function, not
-the same picture**. Kept as it came out (`m2-fuente-dos-rieles` in the course's `circuitos/`, revision 6) to rebuild it
+the same picture**. Its spec is `examples/layout/two-rail-supply.json`, kept to rebuild it
 with the improvements below and compare.
 
 - ✅ Brief: `Target: <name>` without a `circuits/` prefix; `Fidelity: functional` by default; the layout agent checks every part with `catalog` first and gives up a constraint after three attempts ([agents.md](docs/en/agents.md))
 - ✅ The MCP server reloads when the kit's code changed since it started: its tools run in a worker that it restarts (`mcp/kit-worker.js`), and that answer says so; a changed list of tools still asks for a reconnect ([mcp.md](docs/en/mcp.md))
 - ✅ The MCP drops a `circuits/` (or the root's own name) prefix that does not exist under the root (it nested `circuitos/circuits/…`); `targetArg`'s example no longer suggests it
 - ⬜ Labels on any group, not only rails (`netLabels` for strips, e.g. `"8:a-e": "TP3"`), drawn on the board and in the card, checked by the reviewer: test points are what measuring lessons are about
-- ✅ Leads and jumpers that pass through another part are warnings (`LEAD_THROUGH_PART`, `WIRE_THROUGH_PART`, `checkCrossings`: lead samples against the other parts' convex primitives), so every profile blocks them and `suggest` avoids them; it found the R2 lead through the header in `m2-fuente-dos-rieles`, and two kit examples (fixed)
+- ✅ Leads and jumpers that pass through another part are warnings (`LEAD_THROUGH_PART`, `WIRE_THROUGH_PART`, `checkCrossings`: lead samples against the other parts' convex primitives), so every profile blocks them and `suggest` avoids them; it found the R2 lead through the header in a two-rail supply, and two kit examples (fixed)
 - ✅ `suggest` gives each placement its nearest body and gap (`nearest`), takes a review `profile` (leaves out what it would block, both views) and measures more candidates (up to 48) while fewer than `limit` pass
 - ✅ Place several parts at once: `suggest` with `parts` (CLI `--parts`), each placed given the ones before it, answered as one batch of adds; groups can be named by a placed pin (`R1.2`, `U1.OUT`) everywhere
 - ✅ `review`: each blocking item names its `parts` and `views`; `--explain` (`explain: true`) adds the profile's rules
 - ✅ `catalog`: a compact list by default (2 KB instead of 20); `name` (a type, part number or module) for its pins, package, fields and a real example from `examples/`; the full registry with `format: "json"` (`src/node/catalog.js`)
 - ✅ MCP tool `netlist` (CLI `nets`): nets as groups joined by wires, with their pins, labels and the pins alone on a net (`src/nets.js`)
 - ⬜ A "stands for" marker for a part the kit still lacks: drawn flat, no collisions, named in the card (only while the part is pending)
-- ⬜ Photos: a table for the course's board standing up (left rail = B+/B−, right = T−/T+; the photo's rows are the kit's columns) and an annotated grid render to compare with a photo
-- ⬜ Measure again: rebuild `m2-fuente-dos-rieles` with these improvements (`Fidelity: functional`) and compare time, calls and tokens
+- ⬜ Photos: a table for a board standing up (left rail = B+/B−, right = T−/T+; the photo's rows are the kit's columns) and an annotated grid render to compare with a photo
+- ⬜ Measure again: rebuild the two-rail supply with these improvements (`Fidelity: functional`) and compare time, calls and tokens
 
 ## Circuits with a small model, and with any model (review of 2026-10-20) 🔜
 
@@ -254,7 +254,7 @@ sessions in [docs/en/ux-pass.md](docs/en/ux-pass.md); visual system in
 - ✅ U4 · The inspector: one card with a sticky header, a Circuit tab (controls, warnings, Falstad), right panel on wide screens and a bottom sheet on phones; the selected part never covered; MODEL badge with the right mode
 - ✅ U5 · Motion: flip keeping the focus, framing, sheet, press feedback, reduced motion
 - ✅ U6 · Details: small parts easier to tap (a part nearby, the part underneath on a second tap), portrait framing (the labels items were dropped)
-- ⬜ U7 · Try it with the maintainer on a phone, an iPad and inside Trilium, and adjust
+- ⬜ U7 · Try it with the maintainer on a phone, an iPad and inside a notes app, and adjust
 
 ## Stage 4 — On a phone or tablet ⬜
 
@@ -274,11 +274,45 @@ Goal: open a link and explore.
 - ✅ Automatic placement from a netlist, respecting `clearance`: `layout` (2026-10-17)
 - ⬜ Adapters: import/export Wokwi `diagram.json` (✅ a Falstad CircuitJS link: stage 3, phase 6)
 
-## Stage 6 — Publishing ⬜
+## Stage 6 — Publishing 🔜
 
-- ⬜ First public release on GitHub, v0.x; issue templates; contribution guide
-- ⬜ npm package; versioned circuit format with migration notes
-- ⬜ Example gallery site
+The repository is already public on GitHub. The goal: someone who arrives understands it in a
+minute, can try it without installing anything, and can install it as a skill, a plugin or a
+package. Planned on 2026-10-26 after a review of licences and private data.
+
+**A · Clean-up** ✅ (2026-10-26)
+- ✅ Licences reviewed: MIT; no runtime dependencies; the MCP server's dependencies are MIT, ISC or BSD; `@resvg/resvg-js` (MPL-2.0) is a development or optional dependency, never redistributed; no fonts, images or third-party code in git; Falstad only through its text format
+- ✅ Private context removed from the docs (names, private paths, the notes app, own equipment); git history checked: no hostnames or note ids
+- ✅ Privacy rules in `CLAUDE.md` and `PLANNING.md`; `test/privacy.test.js` over tracked and new files (generic patterns + an untracked `privacy.local.txt` of personal words)
+- ✅ `package.json`: `repository`, `homepage`, `bugs`, keywords; Node ≥ 20 (18 is out of support)
+
+**B · README and images** ✅ (2026-10-26)
+- ✅ README (en/es) rewritten: what it is, a one-minute try, from a description to a lesson in six pictures, the page, recipes, three ways to use it, what it is and is not, docs split into using and developing, contributing, credits
+- ✅ `scripts/readme-images.js`: the README and examples images drawn by the kit (`docs/img/`); `live-page.png` is a screenshot (`scripts/ux-shots.js`)
+- ✅ `scripts/demo-site.js` and `.github/workflows/pages.yml`: every recipe and every example with a source as a live page, in English and Spanish, with an index
+- ⬜ Turn on GitHub Pages (Settings → Pages → Source: GitHub Actions) so the README's demo link works
+- ⬜ A short GIF or video of the live page (current flowing, the oscilloscope, a slider)
+
+**C · Examples** ✅ (2026-10-26)
+- ✅ `examples/README.md` (en/es): the three ways to describe a circuit (by hand, layout, recipe), the examples by theme with a thumbnail each, `common-mistakes.json` marked as wrong on purpose, how to add one
+
+**D · What a public project needs**
+- ⬜ CI on GitHub Actions: `npm test`, `npm run test:mcp`, `node scripts/golden.js`, `npm run examples`, `npm run layout-bench`, on Node 20, 22 and 24
+- ⬜ `CONTRIBUTING.md` (en/es), mostly how to add a part; `CODE_OF_CONDUCT.md`; `SECURITY.md`; `CHANGELOG.md`
+- ⬜ Issue templates: a new part, a wrong drawing, a wrong simulation
+- ⬜ Version 0.3.0, a git tag and a GitHub release; repository description, topics and social preview image
+- ⬜ Versioned circuit format with migration notes
+- ⬜ Decide the copyright line (today "protoboard-iso contributors") and the `author` field
+
+**E · Packaging the skill**
+- ⬜ Claude Code plugin: `.claude-plugin/plugin.json` and a `marketplace.json` in this repository, bundling the skill, the three agents and the MCP server (`/plugin marketplace add …`). To solve: the MCP server needs `npm install` (bundle it into one file, or publish it to npm and start it with `npx`); `.mcp.json` paths with `${CLAUDE_PLUGIN_ROOT}`; check how a plugin prefixes MCP tool names, and update the agents' tool lists (`npm run test:mcp` catches stale names)
+- ⬜ A skill zip for claude.ai or the API, CLI only (no dependencies): `scripts/pack-skill.js` with `SKILL.md`, `bin`, `src`, `schema`, the essential docs and the examples, no tests or development notes; first check that Node is available where those skills run
+- ⬜ npm packages: `protoboard-iso` (CLI, `npx protoboard-iso`) and the MCP server as a second package (today `files` leaves `mcp/` out); then list it in MCP server directories
+- ⬜ Skill evaluations: a few requests ("an LED with its resistor on 9 V") that must end in `review` APPROVED, to check that the skill triggers and that a small model uses it well
+- ⬜ `AGENTS.md` (see "Circuits with a small model")
+
+**F · Launch**
+- ⬜ Release published, demo online, a short announcement with the GIF
 
 ## Optional, later ⬜
 

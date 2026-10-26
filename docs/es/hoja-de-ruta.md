@@ -105,7 +105,7 @@ Guía: [simulacion.md](simulacion.md).
 
 ## Componentes y fuentes, lo siguiente ⬜
 
-Del inventario del curso, más o menos en el orden en que se usan:
+De un kit de principiante habitual, más o menos en el orden en que se usan:
 
 - ✅ Placas de desarrollo, dibujadas y revisadas (nivel 1): ESP32 DevKit (30 pines) y ESP32-C3 SuperMini a caballo del canal con `pin1`, con `rowSpacing` porque las placas cambian; Arduino UNO al lado de la protoboard, con cables Dupont solo en los pines que se usan; una nota por pin en la ficha (pines de arranque, solo entrada, ADC2 y Wi-Fi, PWM…). Ejemplos `esp32-led.json`, `uno-led.json`
 - ✅ Adaptador e-paper GooDisplay DESPI-C02 al lado de la protoboard (pines acodados con cables Dupont, interruptor RESE, pistas de prueba, conector FPC) y, a pedido, el panel GDEY075T7 de 7,5" con su cable plano (`panel: true`); ficha «Placa adaptadora». Ejemplo `epaper-esp32.json`
@@ -116,7 +116,7 @@ Del inventario del curso, más o menos en el orden en que se usan:
 - ✅ Portapilas: paredes de los extremos tan altas como las pilas, para que el botón + nunca asome por encima
 - ⬜ Pila de botón (CR2032) en su portapilas
 
-Lo que tiene el banco del curso y el kit todavía no dibuja (del inventario, 2026-10-16):
+Lo habitual en un banco que el kit todavía no dibuja (2026-10-16):
 
 - ✅ Interruptores fuera de la protoboard (`switch`), sobre la mesa delante o detrás de ella, simulados como interruptores que se quedan como se dejan (*Encender* / *Apagar* en la ficha, control `on` con la escala nueva `toggle`): el basculante KCD1 (SPST, pinzas caimán en sus terminales faston) y el pulsador de enclavamiento de 7 × 7 (DPDT, un cable soldado a cada pata en uso); ejemplo `switches.json`
 - ⬜ Cables con pinzas caimán fuera de la protoboard (a los rieles, a un interruptor de afuera, a la fuente)
@@ -129,31 +129,31 @@ Lo que tiene el banco del curso y el kit todavía no dibuja (del inventario, 202
 - ⬜ Actuadores: servos SG90 y MG90S (cable de 3 pines), driver de motores TB6612FNG, motorreductores DC, mini bomba sumergible
 - ⬜ Energía: panel solar de 6 V 2 W; portapilas de una 18650, LiPo 103450 con conector JST PH
 - ⬜ En la protoboard: disipador TO-220, conectores XH, zócalos DIP
-- ⬜ Instrumentos sobre el circuito: puntas del multímetro en una tira (el multímetro virtual de la etapa 4), la punta del osciloscopio y la salida del generador del ZT-703S, cables del analizador lógico
+- ⬜ Instrumentos sobre el circuito: puntas del multímetro en una tira (el multímetro virtual de la etapa 4), la punta del osciloscopio y la salida de un generador de banco, cables del analizador lógico
 
 ## Circuitos más rápidos para las clases (de la prueba de la fuente de dos rieles) ⬜
 
-El 2026-10-16 un `circuit-layout` sin contexto rehízo la fuente de dos rieles de M2 a partir de las
+El 2026-10-16 un `circuit-layout` sin contexto rehízo una fuente de dos rieles a partir de las
 notas y la foto del estudiante: 19 min, 68 llamadas y unos 185 000 tokens (la mitad del presupuesto
 de una sesión) para copiar la foto, y el resultado pasó la revisión con resistencias atravesando
 otros componentes, tres piezas reemplazadas por pines sueltos y sin simulación (falta el
-interruptor). La regla del mantenedor desde entonces: **la misma función, no el mismo dibujo**. Se
-guardó tal como salió (`m2-fuente-dos-rieles` en `circuitos/` del curso, revisión 6) para rehacerlo con las mejoras
+interruptor). La regla del mantenedor desde entonces: **la misma función, no el mismo dibujo**. Su
+especificación es `examples/layout/two-rail-supply.json`, guardada para rehacerla con las mejoras
 de abajo y comparar.
 
 - ✅ Encargo: `Target: <nombre>` sin prefijo `circuits/`; `Fidelity: functional` por defecto; el agente de montaje revisa cada pieza con `catalog` primero y suelta una restricción después de tres intentos ([agentes.md](agentes.md))
 - ✅ El servidor MCP se recarga cuando el código del kit cambió desde que arrancó: sus herramientas corren en un *worker* que reinicia (`mcp/kit-worker.js`), y esa respuesta lo dice; si cambió la lista de herramientas, todavía pide reconectar ([mcp.md](mcp.md))
 - ✅ El MCP quita un prefijo `circuits/` (o el nombre de la propia raíz) que no existe bajo la raíz (anidó `circuitos/circuits/…`); el ejemplo de `targetArg` ya no lo sugiere
 - ⬜ Etiquetas en cualquier grupo, no solo en los rieles (`netLabels` para tiras, p. ej. `"8:a-e": "TP3"`), dibujadas en la protoboard y en la ficha, revisadas por el revisor: los puntos de prueba son de lo que tratan las clases de medición
-- ✅ Las patas y los cables que atraviesan otro componente son avisos (`LEAD_THROUGH_PART`, `WIRE_THROUGH_PART`, `checkCrossings`: muestras de cada pata contra las primitivas convexas de los demás), así que todo perfil los bloquea y `suggest` los evita; encontró la pata de R2 atravesando los pines en `m2-fuente-dos-rieles`, y dos ejemplos del kit (corregidos)
+- ✅ Las patas y los cables que atraviesan otro componente son avisos (`LEAD_THROUGH_PART`, `WIRE_THROUGH_PART`, `checkCrossings`: muestras de cada pata contra las primitivas convexas de los demás), así que todo perfil los bloquea y `suggest` los evita; encontró la pata de R2 atravesando los pines en una fuente de dos rieles, y dos ejemplos del kit (corregidos)
 - ✅ `suggest` da en cada colocación el cuerpo más cercano y su holgura (`nearest`), acepta un `profile` de revisión (deja fuera lo que bloquearía, en las dos vistas) y mide más candidatos (hasta 48) mientras pasen menos que `limit`
 - ✅ Colocar varias piezas a la vez: `suggest` con `parts` (CLI `--parts`), cada una según las anteriores, con un solo lote de add en la respuesta; los grupos se pueden nombrar por una pata ya colocada (`R1.2`, `U1.OUT`) en todas partes
 - ✅ `review`: cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `--explain` (`explain: true`) agrega las reglas del perfil
 - ✅ `catalog`: una lista compacta por defecto (2 KB en vez de 20); `name` (un tipo, número de parte o módulo) da patas, encapsulado, campos y un ejemplo real de `examples/`; el registro completo con `format: "json"` (`src/node/catalog.js`)
 - ✅ Herramienta MCP `netlist` (CLI `nets`): redes como grupos unidos por cables, con sus patas, etiquetas y las patas solas en su red (`src/nets.js`)
 - ⬜ Un marcador «representa a» para una pieza que el kit todavía no tiene: dibujado plano, sin choques, con nombre en la ficha (solo mientras la pieza está pendiente)
-- ⬜ Fotos: una tabla para la protoboard del curso de pie (riel izquierdo = B+/B−, derecho = T−/T+; las filas de la foto son las columnas del kit) y un dibujo con la cuadrícula anotada para comparar con una foto
-- ⬜ Medir otra vez: rehacer `m2-fuente-dos-rieles` con estas mejoras (`Fidelity: functional`) y comparar tiempo, llamadas y tokens
+- ⬜ Fotos: una tabla para una protoboard de pie (riel izquierdo = B+/B−, derecho = T−/T+; las filas de la foto son las columnas del kit) y un dibujo con la cuadrícula anotada para comparar con una foto
+- ⬜ Medir otra vez: rehacer la fuente de dos rieles con estas mejoras (`Fidelity: functional`) y comparar tiempo, llamadas y tokens
 
 ## Circuitos con un modelo pequeño, y con cualquier modelo (revisión del 2026-10-20) 🔜
 
@@ -232,7 +232,7 @@ decisiones y plan por sesiones: [simulacion-en-vivo.md](simulacion-en-vivo.md).
 
 ## Experiencia de uso (transversal) ⬜
 
-Pedido de Cris (2026-10-15): la página ya tiene muchas funciones útiles, y vienen más. Hay que
+Pedido del mantenedor (2026-10-15): la página ya tiene muchas funciones útiles, y vienen más. Hay que
 ordenarlas para que quien aprende no se pierda, sobre todo en el celular. Hoy hay:
 
 - en la barra: vistas, encuadre, etiquetas, capa de corriente, velocidad, tiempo y *Abrir en
@@ -257,7 +257,7 @@ diseño, decisiones y sesiones en [experiencia-de-uso.md](experiencia-de-uso.md)
 - ✅ U4 · El inspector: una sola ficha con encabezado fijo, una pestaña Circuito (controles, avisos, Falstad), panel a la derecha en pantallas anchas y hoja inferior en el celular; el componente elegido nunca queda tapado; insignia MODELO con el modo correcto
 - ✅ U5 · Movimiento: giro que conserva el foco, encuadre, hoja, respuesta al presionar, movimiento reducido
 - ✅ U6 · Detalles: componentes pequeños más fáciles de tocar (un componente cercano, el de debajo con un segundo toque), encuadre vertical (se descartaron los puntos de etiquetas)
-- ⬜ U7 · Probarlo con Cris en el celular, el iPad y dentro de Trilium, y ajustar
+- ⬜ U7 · Probarlo con el mantenedor en el celular, el iPad y dentro de una app de notas, y ajustar
 
 ## Etapa 4 — En el celular o la tableta ⬜
 
@@ -277,11 +277,45 @@ Objetivo: abrir un enlace y explorar.
 - ✅ Colocación automática a partir de una netlist, respetando `clearance`: `layout` (2026-10-17)
 - ⬜ Adaptadores: importar y exportar `diagram.json` de Wokwi (✅ el enlace a Falstad CircuitJS: etapa 3, fase 6)
 
-## Etapa 6 — Publicación ⬜
+## Etapa 6 — Publicación 🔜
 
-- ⬜ Primera versión pública en GitHub, v0.x; plantillas de issues; guía de contribución
-- ⬜ Paquete en npm; formato de circuito versionado con notas de migración
-- ⬜ Sitio con la galería de ejemplos
+El repositorio ya es público en GitHub. La meta: que quien llegue lo entienda en un minuto, lo
+pruebe sin instalar nada y lo pueda instalar como skill, plugin o paquete. Planeada el 2026-10-26
+después de revisar licencias y datos privados.
+
+**A · Limpieza** ✅ (2026-10-26)
+- ✅ Licencias revisadas: MIT; sin dependencias en tiempo de ejecución; las del servidor MCP son MIT, ISC o BSD; `@resvg/resvg-js` (MPL-2.0) es de desarrollo u opcional y nunca se redistribuye; sin fuentes, imágenes ni código de terceros en git; Falstad solo por su formato de texto
+- ✅ Se quitó el contexto privado de la documentación (nombres, rutas privadas, la app de notas, equipos propios); historial de git revisado: sin nombres de equipos ni ids de notas
+- ✅ Reglas de privacidad en `CLAUDE.md` y `PLANNING.md`; `test/privacy.test.js` sobre los archivos versionados y nuevos (patrones genéricos + un `privacy.local.txt` de palabras personales fuera de git)
+- ✅ `package.json`: `repository`, `homepage`, `bugs`, palabras clave; Node ≥ 20 (el 18 ya no tiene soporte)
+
+**B · README e imágenes** ✅ (2026-10-26)
+- ✅ README (en/es) reescrito: qué es, pruébalo en un minuto, de una descripción a una lección en seis imágenes, la página, recetas, tres formas de usarlo, qué es y qué no es, documentación separada en usar y desarrollar, contribuir, créditos
+- ✅ `scripts/readme-images.js`: las imágenes del README y de los ejemplos dibujadas por el kit (`docs/img/`); `live-page.png` es una captura (`scripts/ux-shots.js`)
+- ✅ `scripts/demo-site.js` y `.github/workflows/pages.yml`: cada receta y cada ejemplo con fuente como página en vivo, en inglés y español, con un índice
+- ⬜ Activar GitHub Pages (Settings → Pages → Source: GitHub Actions) para que funcione el enlace a la demostración del README
+- ⬜ Un GIF o video corto de la página en vivo (la corriente circulando, el osciloscopio, un deslizador)
+
+**C · Ejemplos** ✅ (2026-10-26)
+- ✅ `examples/README.md` (en/es): las tres formas de describir un circuito (a mano, `layout`, receta), los ejemplos por tema con una miniatura cada uno, `common-mistakes.json` marcado como mal a propósito, cómo agregar uno
+
+**D · Lo que necesita un proyecto público**
+- ⬜ Integración continua en GitHub Actions: `npm test`, `npm run test:mcp`, `node scripts/golden.js`, `npm run examples`, `npm run layout-bench`, en Node 20, 22 y 24
+- ⬜ `CONTRIBUTING.md` (en/es), sobre todo cómo agregar un componente; `CODE_OF_CONDUCT.md`; `SECURITY.md`; `CHANGELOG.md`
+- ⬜ Plantillas de issues: componente nuevo, dibujo incorrecto, simulación incorrecta
+- ⬜ Versión 0.3.0, etiqueta de git y release en GitHub; descripción, temas e imagen para compartir del repositorio
+- ⬜ Formato de circuito versionado con notas de migración
+- ⬜ Decidir la línea de copyright (hoy «protoboard-iso contributors») y el campo `author`
+
+**E · Empaquetar el skill**
+- ⬜ Plugin de Claude Code: `.claude-plugin/plugin.json` y un `marketplace.json` en este repositorio, con el skill, los tres agentes y el servidor MCP (`/plugin marketplace add …`). Por resolver: el servidor MCP necesita `npm install` (agruparlo en un solo archivo, o publicarlo en npm y arrancarlo con `npx`); rutas de `.mcp.json` con `${CLAUDE_PLUGIN_ROOT}`; revisar qué prefijo pone un plugin a los nombres de las herramientas MCP y actualizar las listas de los agentes (`npm run test:mcp` detecta nombres viejos)
+- ⬜ Un zip del skill para claude.ai o la API, solo con la línea de comandos (sin dependencias): `scripts/pack-skill.js` con `SKILL.md`, `bin`, `src`, `schema`, la documentación esencial y los ejemplos, sin pruebas ni notas de desarrollo; antes, comprobar que haya Node donde corren esos skills
+- ⬜ Paquetes en npm: `protoboard-iso` (línea de comandos, `npx protoboard-iso`) y el servidor MCP como segundo paquete (hoy `files` deja fuera `mcp/`); después, listarlo en los directorios de servidores MCP
+- ⬜ Evaluaciones del skill: unos cuantos pedidos («un LED con su resistencia a 9 V») que deben terminar en `review` APPROVED, para comprobar que el skill se activa y que un modelo pequeño lo usa bien
+- ⬜ `AGENTS.md` (ver «Circuitos con un modelo pequeño»)
+
+**F · Lanzamiento**
+- ⬜ Release publicada, demostración en línea, un anuncio corto con el GIF
 
 ## Opcional, más adelante ⬜
 

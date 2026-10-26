@@ -1,9 +1,17 @@
 {
   "name": "protoboard-iso",
   "version": "0.2.0",
-  "description": "Isometric breadboard circuits in SVG, from a small JSON file. A learning kit and an agent skill.",
+  "description": "Breadboard circuits laid out, checked, drawn in isometric SVG and simulated from a short JSON file. A learning kit, an MCP server and an agent skill.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ccamilobedoya/protoboard-iso.git"
+  },
+  "homepage": "https://github.com/ccamilobedoya/protoboard-iso#readme",
+  "bugs": {
+    "url": "https://github.com/ccamilobedoya/protoboard-iso/issues"
+  },
   "main": "./src/index.js",
   "exports": {
     ".": "./src/index.js",
@@ -31,7 +39,7 @@
     "mcp": "node mcp/server.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "keywords": [
     "breadboard",
@@ -40,7 +48,11 @@
     "svg",
     "electronics",
     "education",
-    "agent-skill"
+    "agent-skill",
+    "circuit",
+    "simulation",
+    "mcp",
+    "claude-skill"
   ],
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",

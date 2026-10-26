@@ -11,7 +11,7 @@ or edit a circuit file: ask the tools. If something cannot be expressed, extend 
 (`docs/en/adding-parts.md`), never patch the output.
 
 Use the **MCP tools** (`protoboard-iso` server) when they are connected; otherwise the CLI,
-`node <skill>/bin/protoboard-iso.js <command>`, with the same names (Node.js ≥ 18, no npm
+`node <skill>/bin/protoboard-iso.js <command>`, with the same names (Node.js ≥ 20, no npm
 dependencies). Setup: `docs/en/mcp.md`.
 
 ## What do you want to do?
