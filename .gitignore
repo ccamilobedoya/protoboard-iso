@@ -3,3 +3,5 @@ examples/out/
 *.log
 .DS_Store
 CLAUDE.local.md
+site/
+privacy.local.txt

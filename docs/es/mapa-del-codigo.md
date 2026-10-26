@@ -76,6 +76,8 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `sim/probes.js` | «de dónde sale un valor»: puntas para voltajes, flechas para corrientes |
 | `page.js`, `page/client/`, `page/style.js` | la página para embeber; `page/client/main.js` es la entrada de su script (módulos view, focus, card, tooltip); `view.js`: encuadre, gestos según el contexto, botones de zoom; `bar.js`: el menú ⋯ (`page.menuAdd`) y la ayuda de primera vez; `icons.js`: los íconos de línea, compartidos con `page.js`; `inspector.js`: la caja de la ficha (`.info`) y de los paneles del circuito (`.side`), pestañas, panel u hoja inferior, mantener a la vista los componentes elegidos |
 | `scripts/ux-shots.js` | capturas de páginas en cinco tamaños, solas y dentro de una nota (un fragmento de Playwright), para la pasada de experiencia de uso |
+| `scripts/readme-images.js`, `docs/img/` | las imágenes del README y de los ejemplos, dibujadas por el kit a partir de recetas y ejemplos (PNG); `live-page.png` es una captura de `ux-shots.js` |
+| `scripts/demo-site.js`, `.github/workflows/pages.yml` | el sitio de demostración en GitHub Pages: cada receta y cada ejemplo con fuente como página en vivo (en, es) y un índice; lo genera el flujo de trabajo, nunca se sube |
 | `node/bundle.js` | el agrupador pequeño: módulos ES permitidos → un solo script clásico para la página (motor, script de la página) |
 | `sim/generator.js` | el generador de señales (se puede agrupar): las ondas (las de Falstad), su pico; el motor pone la fuente en `waveAt` antes de cada paso |
 | `sim/recorder.js`, `sim/scope.js`, `page/client/scope.js` | osciloscopio (se pueden agrupar): grabación por componente (y por tira en uso, clave `node:<grupo>`) desde el arranque, qué grafica cada tipo (gancho `scope`), el dibujo en la ficha (una lista de trazas, pantalla de 10 × 4) |
@@ -88,6 +90,10 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 
 ## Convenciones fáciles de romper
 
+- **Privacidad.** El repositorio es público: nada de nombres, correos, rutas privadas, nombres de
+  equipos, ids de la app de notas ni los equipos propios del mantenedor en ningún archivo versionado.
+  `test/privacy.test.js` revisa los archivos versionados y nuevos con patrones genéricos y con las
+  palabras personales de un `privacy.local.txt` fuera de git (CLAUDE.md, «Privacy»).
 - **Idioma.** `pickLanguage(pedido, circuit.lang, por defecto)`: un `--lang` o `lang` del MCP
   explícito gana, luego el `lang` del circuito y luego el idioma por defecto (inglés, o
   `PROTOBOARD_LANG` en el servidor MCP). Los archivos escritos tras un cambio siguen la misma
@@ -192,4 +198,4 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 `npm run test:mcp`. Los modelos del simulador se comprueban contra referencias independientes en
 `test/sim.test.js` y `test/sources.test.js` (baterías, Zener, reguladores, inductores,
 sensores) y contra CircuitJS de Falstad en `test/falstad.test.js` (referencias guardadas, sin red); el comportamiento de la página en `test/focus.test.js` y `test/page.test.js`;
-los textos en `test/describe.test.js` y `test/i18n.test.js`.
+los textos en `test/describe.test.js` y `test/i18n.test.js`; que no haya nada privado en el repositorio, en `test/privacy.test.js`.

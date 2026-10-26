@@ -6,6 +6,24 @@ kit as a skill, see `SKILL.md`.
 **If `CLAUDE.local.md` exists, read it first**: it holds the maintainer's personal context
 (language, machine setup, course). It is not in git.
 
+## Privacy: the repository is public
+
+Everything committed is published. Personal context lives only in `CLAUDE.local.md` (and the
+maintainer's own notes), never in the repository:
+
+- No names of people (write "the maintainer", "a learner"), emails, private paths (anything inside a
+  home folder), machine or host names, private URLs, notes-app names or note ids, course or
+  lesson names, or the maintainer's own equipment by model when a generic word works ("a bench
+  generator").
+- No screenshots, photos or files from private folders; images in `docs/img/` are drawn by the kit.
+- Decisions in `PLANNING.md` and the roadmap say *what* was decided and why, not who asked or where.
+- Before copying anything from `CLAUDE.local.md` or a private conversation into a tracked file,
+  make it generic.
+- `npm test` runs `test/privacy.test.js` over tracked and new files: generic patterns (emails, home
+  folders, private hosts and IPs, secrets) plus the maintainer's own words in `privacy.local.txt`
+  (one regular expression per line, not in git). A failure there is fixed by rewording, never by
+  weakening the patterns.
+
 ## Resuming a circuit (not the code)
 
 If the `protoboard-iso` MCP server is connected, use its tools (same loop, typed). Setup and
@@ -76,6 +94,8 @@ npm run test:mcp              # MCP server end-to-end (needs: cd mcp && npm inst
 node scripts/golden.js [--write]  # simulator output against test/fixtures/sim-golden.json (--write after an intended change)
 node scripts/ux-shots.js <targets…> -o <dir> [--browser-dir d] [--tap ID]  # page screenshots at five sizes, alone and in a note (docs/en/ux-pass.md)
 node scripts/mockups.js [--lang es]  # conductor view mock-ups → examples/out/mockups/
+node scripts/readme-images.js [filter]  # docs/img/*.png for the READMEs (needs npm install)
+node scripts/demo-site.js [-o site]     # the demo site: every recipe and example as a live page
 node bin/protoboard-iso.js check <file.json> [--lang es]
 node bin/protoboard-iso.js render <file.json> -o out.svg [--view back] [--fit parts]
 ```
@@ -93,6 +113,7 @@ node bin/protoboard-iso.js render <file.json> -o out.svg [--view back] [--fit pa
    `node scripts/preview.js <name> --width 900`, then open that one PNG. Small and few:
    images are slow to read. `--annotate all` helps to see holes, nodes and part boxes.
 5. Update `ROADMAP.md` (and its Spanish copy `docs/es/hoja-de-ruta.md`).
+6. When the drawing changed visibly, `node scripts/readme-images.js` refreshes the README images.
 
 ## Rules
 
@@ -108,6 +129,7 @@ node bin/protoboard-iso.js render <file.json> -o out.svg [--view back] [--fit pa
   `README.es.md`) in the same change.
 - Code, identifiers and comments in English. One header comment per module saying what it
   is for; comments explain *why*, not *what*.
+- Nothing private in the repository (see "Privacy" above).
 - Commit only when asked. **Commit messages in English**, even when the conversation is in
   another language. Small commits, imperative subject line ("Add query commands").
 
@@ -139,7 +161,9 @@ src/sim/         simulator: compile.js (circuit → program), engine.js (runs it
                  see its README
 src/page/        page.js's browser side: client/ (script modules), style.js
 bin/             CLI
-scripts/         render-examples.js (+ gallery), preview.js (PNG)
-examples/        circuits; out/ is generated and ignored by git
+scripts/         render-examples.js (+ gallery), preview.js (PNG), readme-images.js (docs/img),
+                 demo-site.js (GitHub Pages, .github/workflows/pages.yml)
+examples/        circuits (README.md indexes them); out/ is generated and ignored by git
+docs/img/        README images, drawn by scripts/readme-images.js (live-page.png is a screenshot)
 test/            node:test suites
 ```

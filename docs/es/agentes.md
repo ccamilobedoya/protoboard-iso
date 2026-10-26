@@ -74,7 +74,7 @@ Para un circuito nuevo sin posiciones fijas, el agente de montaje empieza con `l
 MCP o `protoboard-iso layout <objetivo> <spec.json>`): los componentes sin patas en el orden de la
 señal y las redes como listas de patas y rieles. El algoritmo ubica los componentes por capas
 (distancia a la fuente) y con reglas según el tipo de pieza, agrega los cables y verifica las redes
-y la revisión lesson, en alrededor de un segundo; medido con la fuente de dos rieles del curso (10
+y la revisión lesson, en alrededor de un segundo; medido con la fuente de dos rieles de `examples/layout/two-rail-supply.json` (10
 componentes, 10 redes): aprobada, 7 cables, 1,8 s. Lo que no logra resolver vuelve como puntos que
 bloquean para el ciclo de siempre. Los componentes se pueden dar por número de parte, módulo o
 alias (`"part": "7805"`, `"KCD1"`, `"UNO"`, `"resistencia"`), así el agente no los busca antes;
@@ -182,6 +182,7 @@ cambiar los agentes:
 | una herramienta MCP (nombre, entradas, lo que devuelve) o un comando | la lista `tools:` y las instrucciones de cada agente que la use |
 | las operaciones (`src/ops.js`) o los perfiles de revisión (`src/review.js`) | las reglas y el ciclo de `circuit-layout` y `circuit-reviewer` |
 | cómo se agregan componentes (`docs/*/agregar-componentes.md`, registros, esquemas) | el orden de trabajo y las comprobaciones de `parts-librarian` |
+| las reglas de privacidad (`CLAUDE.md`, «Privacy»; `test/privacy.test.js`) | la regla de `parts-librarian` sobre lo que escribe |
 | el algoritmo de montaje (`src/layout.js`: su especificación, lo que responde, lo que deja al ciclo) | el paso 0 de `circuit-layout`, la descripción de la herramienta MCP `layout`, [montaje-automatico.md](montaje-automatico.md) |
 | un formato de encargo o de respuesta, o el ciclo | los archivos de los agentes y esta página (en los dos idiomas) |
 

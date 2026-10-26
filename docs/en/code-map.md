@@ -76,6 +76,8 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `sim/probes.js` | "where a value comes from": probes for voltages, arrows for currents |
 | `page.js`, `page/client/`, `page/style.js` | the embeddable page; `page/client/main.js` is the entry of its script (view, focus, card, tooltip modules); `view.js`: frame, gestures by context, zoom buttons; `bar.js`: the ⋯ menu (`page.menuAdd`) and the first-time hint; `icons.js`: the line icons, shared with `page.js`; `inspector.js`: the box of the card (`.info`) and the circuit's panels (`.side`), tabs, panel or bottom sheet, keeping the selected parts in view |
 | `scripts/ux-shots.js` | screenshots of pages at five sizes, alone and inside a note (a Playwright snippet), for the UX pass |
+| `scripts/readme-images.js`, `docs/img/` | the README and examples images, drawn by the kit from recipes and examples (PNG); `live-page.png` is a `ux-shots.js` screenshot |
+| `scripts/demo-site.js`, `.github/workflows/pages.yml` | the demo site on GitHub Pages: every recipe and every example with a source as a live page (en, es) and an index; built by the workflow, never committed |
 | `node/bundle.js` | the small bundler: allowed ES modules → one classic script for the page (engine, page script) |
 | `sim/generator.js` | the signal generator (bundleable): its waves (Falstad's), its peak; the engine sets the source to `waveAt` before each step |
 | `sim/recorder.js`, `sim/scope.js`, `page/client/scope.js` | oscilloscope (bundleable): recording per part (and per strip in use, key `node:<group>`) from the start, what each kind plots (`scope` hook), the drawing in the card (a list of traces, 10 × 4 screen) |
@@ -88,6 +90,10 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 
 ## Conventions that are easy to break
 
+- **Privacy.** The repository is public: no names, emails, private paths, hostnames, notes-app
+  ids or the maintainer's own equipment in any tracked file. `test/privacy.test.js` checks tracked
+  and new files with generic patterns and the personal words of an untracked `privacy.local.txt`
+  (CLAUDE.md, "Privacy").
 - **Language.** `pickLanguage(asked, circuit.lang, default)`: an explicit `--lang` / MCP `lang`
   wins, then the circuit's `lang`, then the default (English, or `PROTOBOARD_LANG` in the MCP
   server). Files written after a change use the same rule (`outputLang` in `workspace.js`).
@@ -180,4 +186,4 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 Simulator models are checked against independent references in `test/sim.test.js` and
 `test/sources.test.js` (batteries, Zener, regulators, inductors, sensors), and against Falstad's CircuitJS in `test/falstad.test.js` (stored references, offline); page
 behaviour in `test/focus.test.js` and `test/page.test.js`; texts in `test/describe.test.js` and
-`test/i18n.test.js`.
+`test/i18n.test.js`; nothing private in the repository in `test/privacy.test.js`.

@@ -72,7 +72,7 @@ For a new circuit without fixed positions the layout agent starts with `layout` 
 `protoboard-iso layout <target> <spec.json>`): parts without pins in signal order, and nets as
 lists of pins and rails. The algorithm places the parts by layers (distance from the source), by
 rules per part kind, adds the jumpers and checks the nets and the lesson review, in about a second;
-measured on the course's two-rail supply (10 parts, 10 nets): approved, 7 jumpers, 1.8 s. What it
+measured on the two-rail supply of `examples/layout/two-rail-supply.json` (10 parts, 10 nets): approved, 7 jumpers, 1.8 s. What it
 cannot solve comes back as blocking items for the usual loop. Parts can be given by part number,
 module or alias (`"part": "7805"`, `"KCD1"`, `"UNO"`, `"resistencia"`), so the agent does not look
 them up first; a list with mistakes places nothing and answers every problem at once (unknown
@@ -174,6 +174,7 @@ brief and report formats. A change to any of those can require changing the agen
 | an MCP tool (name, inputs, what it returns) or a CLI command | the `tools:` list and the instructions of every agent that uses it |
 | operations (`src/ops.js`) or review profiles (`src/review.js`) | `circuit-layout` and `circuit-reviewer` rules and loops |
 | how parts are added (`docs/*/adding-parts.md`, registries, schemas) | `parts-librarian` order of work and checks |
+| the privacy rules (`CLAUDE.md`, "Privacy"; `test/privacy.test.js`) | `parts-librarian`'s rule on what it writes |
 | the layout algorithm (`src/layout.js`: its spec, what it answers, what it leaves to the loop) | `circuit-layout` step 0, the MCP `layout` description, [layout.md](layout.md) |
 | a brief or report format, or the loop | the agent files and this page (both languages) |
 
