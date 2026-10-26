@@ -7,7 +7,7 @@ processor, but what a learner sees at the pins. Each GPIO behaves electrically l
 and a short program in Arduino's own functions decides, in time, what each pin does. The same code
 serves every board; what changes are each family's numbers.
 
-Planned with the maintainer on 2026-10-26. Phases M1 and M2 are done; M3 and M4 follow.
+Planned with the maintainer on 2026-10-26. Phases M1 to M3 are done; M4 follows.
 
 ## Why not emulate the processor
 
@@ -59,9 +59,9 @@ board's pins in `src/parts/modules.js` (`power`, `gpio`, `adc`, `inputOnly`).
   current, what it reads (0, 1 or neither) and its ADC count.
 - **Every pin has protection diodes** to the rail and to ground, so 5 V through a resistor into an
   ESP32 pin shows the current it pushes into the chip, with the warning.
-- **No PWM yet.** An average (a conductance to the rail and one to ground) would let current run
-  through the chip from the rail to ground, and an LED's average current is not its current at the
-  average voltage. PWM switches in time in M3.
+- **PWM is not an average.** An average (a conductance to the rail and one to ground) would let
+  current run through the chip from the rail to ground, and an LED's average current is not its
+  current at the average voltage: a program's PWM switches in time (M3, below).
 - Tests: `test/mcu.test.js` (VOH with the output resistance, pull-up current, the UNO at 5 V, 5 V on
   an ESP32 pin, `io` mistakes, `usb: false`).
 
@@ -103,10 +103,30 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - **Not run:** classes, pointers, templates, function-like macros, libraries (an `#include` other
   than Arduino's is noted: `SIM_PROGRAM_LIBRARY`); a call to a function nobody defines returns 0
   (`SIM_PROGRAM_UNSUPPORTED`); a line it cannot read stops it (`SIM_PROGRAM_ERROR`, with the line);
-  a missing file (`SIM_PROGRAM_FILE`). `analogWrite`, `ledcWrite` and `tone` do nothing yet (M3)
-  and say so in the card.
+  a missing file (`SIM_PROGRAM_FILE`).
 - Tests: `test/program.test.js` (the translator, blink against time, a button read by the program
   through the engine's steps and a rebuild, the `.ino` file).
+
+## PWM, tone and the serial monitor (phase M3, done)
+
+- **PWM switches in time.** `analogWrite(pin, 0…255)`: on an ESP32 any output pin, 1 kHz; on an
+  UNO its PWM pins (3, 9, 10, 11 at 490 Hz; 5, 6 at 980 Hz), any other pin taking it as
+  `digitalWrite` (128 and up is HIGH), as its core does. `ledcAttach(pin, freq, bits)` +
+  `ledcWrite(pin, duty)` (ESP32 core 3) and `ledcSetup(ch, freq, bits)` + `ledcAttachPin(pin, ch)` +
+  `ledcWrite(ch, duty)` (core 2). `tone(pin, freq[, ms])` is a square wave at half duty, `noTone`
+  stops it. A duty of 0 or full is a plain level.
+- At each step the pin is high or low by its phase at that moment (`levelAt` in
+  `src/sim/program.js`), so the oscilloscope shows the square wave and the current is what it is
+  in each half. No average (an average would let current run through the chip from its rail to
+  ground).
+- **In the page:** while a PWM or a tone runs, the step shrinks to a twentieth of its period
+  (`engine.stepHint()`, never under 5 µs: past what the page can do in real time it slows down by
+  itself). An LED's glow is its brightness averaged over the steps since the last paint
+  (`engine.glow()`), what the eye sees: `analogWrite(13, 64)` lights it at a quarter.
+- **Serial monitor:** the last 12 lines the program printed, in the board's card.
+- The card shows a PWM pin as "PWM 25 % at 1 kHz" with its voltage and current at that instant.
+- Tests in `test/program.test.js`: duty and frequency of `analogWrite`, both LEDC styles, `tone`
+  with a duration, the UNO's non-PWM pin, the step hint and the averaged glow.
 
 ## The plan
 
@@ -114,9 +134,9 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 |---|---|---|
 | **M1** | Pin model with fixed states (`io`), the board on USB as a source, limits and warnings | ✅ 2026-10-26 |
 | **M2** | The program: the `.ino` beside the circuit (or its text), translated to JavaScript; `pinMode`, `digitalWrite`, `digitalRead`, `delay`, `millis`, `Serial`; run between time steps, `delay` waits in simulated time; the page runs it in real time | ✅ 2026-10-26 |
-| **M3** | PWM as a real square wave in time (`analogWrite` on the UNO, `ledcWrite` on the ESP32), `tone`, a Serial console panel in the page (today: lines in the board's card), `analogRead` against the ADC's real curve | ⬜ |
+| **M3** | PWM as a real square wave in time (`analogWrite`, `ledcWrite`), `tone`, the step it needs in the page and the LED's averaged glow, the serial monitor in the board's card | ✅ 2026-10-26 |
 | **M4** | Recipes for the UNO and the C3 (LED, button, potentiometer with ADC and PWM); the ESP32 recipes already have their program (2026-10-26) | ⬜ |
-| later | Interrupts (`attachInterrupt`), simplified stand-ins for common libraries, real UNO firmware with avr8js as an optional mode, both ESP32 headers in one circuit (the layout limit) | — |
+| later | A serial console panel of its own in the page, `analogRead` against the ESP32 ADC's real curve, interrupts (`attachInterrupt`), simplified stand-ins for common libraries, real UNO firmware with avr8js as an optional mode, both ESP32 headers in one circuit (the layout limit) | — |
 
 The program drives the memory the pins keep (`gpioStage`: `mode`, `level`, `pull`) through one
 element with no current of its own (the board's controller), so the engine only learned to run

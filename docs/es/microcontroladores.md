@@ -7,7 +7,7 @@ procesador, sino lo que se ve en los pines. Cada GPIO se comporta eléctricament
 programa corto con las funciones de Arduino decide, en el tiempo, qué hace cada pin. El mismo código
 sirve para todas las placas; lo que cambia son los números de cada familia.
 
-Planeado con el mantenedor el 2026-10-26. Las fases M1 y M2 están hechas; siguen M3 y M4.
+Planeado con el mantenedor el 2026-10-26. Las fases M1 a M3 están hechas; sigue M4.
 
 ## Por qué no emular el procesador
 
@@ -59,9 +59,9 @@ de cada placa en `src/parts/modules.js` (`power`, `gpio`, `adc`, `inputOnly`).
   voltaje, corriente, lo que lee (0, 1 o ninguno) y su valor de ADC.
 - **Cada pin tiene diodos de protección** hacia el riel y hacia tierra, así que 5 V por una
   resistencia hacia un pin del ESP32 muestran la corriente que meten al chip, con el aviso.
-- **Todavía sin PWM.** Un promedio (una conductancia al riel y otra a tierra) dejaría pasar corriente
-  por dentro del chip del riel a tierra, y la corriente promedio de un LED no es su corriente al
-  voltaje promedio. El PWM conmuta en el tiempo en M3.
+- **El PWM no es un promedio.** Un promedio (una conductancia al riel y otra a tierra) dejaría pasar
+  corriente por dentro del chip del riel a tierra, y la corriente promedio de un LED no es su
+  corriente al voltaje promedio: el PWM de un programa conmuta en el tiempo (M3, más abajo).
 - Pruebas: `test/mcu.test.js` (VOH con la resistencia de salida, corriente del pull-up, el UNO a 5 V,
   5 V en un pin del ESP32, errores en `io`, `usb: false`).
 
@@ -105,10 +105,32 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - **Lo que no corre:** clases, punteros, plantillas, macros con parámetros, librerías (un
   `#include` distinto del de Arduino se avisa: `SIM_PROGRAM_LIBRARY`); llamar a una función que nadie
   define devuelve 0 (`SIM_PROGRAM_UNSUPPORTED`); una línea que no entiende lo detiene
-  (`SIM_PROGRAM_ERROR`, con la línea); un archivo que falta (`SIM_PROGRAM_FILE`). `analogWrite`,
-  `ledcWrite` y `tone` todavía no hacen nada (M3) y lo dicen en la ficha.
+  (`SIM_PROGRAM_ERROR`, con la línea); un archivo que falta (`SIM_PROGRAM_FILE`).
 - Pruebas: `test/program.test.js` (el traductor, el parpadeo contra el tiempo, un pulsador leído por
   el programa a través de los pasos del motor y una reconstrucción, el archivo `.ino`).
+
+## PWM, tone y el monitor serie (fase M3, hecha)
+
+- **El PWM conmuta en el tiempo.** `analogWrite(pin, 0…255)`: en un ESP32 cualquier pin de salida,
+  1 kHz; en un UNO sus pines PWM (3, 9, 10, 11 a 490 Hz; 5, 6 a 980 Hz), y cualquier otro pin lo
+  toma como `digitalWrite` (128 o más es HIGH), como hace su núcleo. `ledcAttach(pin, frec, bits)` +
+  `ledcWrite(pin, ciclo)` (núcleo 3 del ESP32) y `ledcSetup(canal, frec, bits)` +
+  `ledcAttachPin(pin, canal)` + `ledcWrite(canal, ciclo)` (núcleo 2). `tone(pin, frec[, ms])` es una
+  onda cuadrada a la mitad del ciclo, `noTone` la detiene. Un ciclo de 0 o lleno es un nivel fijo.
+- En cada paso el pin está alto o bajo según su fase en ese instante (`levelAt` en
+  `src/sim/program.js`), así que el osciloscopio muestra la onda cuadrada y la corriente es la que
+  corresponde a cada mitad. Sin promedio (un promedio dejaría pasar corriente por dentro del chip
+  de su riel a tierra).
+- **En la página:** mientras corre un PWM o un tono, el paso se acorta a la vigésima parte de su
+  período (`engine.stepHint()`, nunca por debajo de 5 µs: si la página no alcanza el tiempo real, se
+  pone en cámara lenta sola). El brillo de un LED es su brillo promediado en los pasos desde la
+  última vez que se pintó (`engine.glow()`), lo que ve el ojo: `analogWrite(13, 64)` lo enciende a
+  un cuarto.
+- **Monitor serie:** las últimas 12 líneas que imprimió el programa, en la ficha de la placa.
+- La ficha muestra un pin con PWM como «PWM al 25 % a 1 kHz» con su voltaje y su corriente en ese
+  instante.
+- Pruebas en `test/program.test.js`: ciclo y frecuencia de `analogWrite`, las dos formas de LEDC,
+  `tone` con duración, el pin sin PWM del UNO, el paso sugerido y el brillo promediado.
 
 ## El plan
 
@@ -116,9 +138,9 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 |---|---|---|
 | **M1** | Modelo de pines con estados fijos (`io`), la placa con USB como fuente, límites y avisos | ✅ 2026-10-26 |
 | **M2** | El programa: el `.ino` junto al circuito (o su texto), traducido a JavaScript; `pinMode`, `digitalWrite`, `digitalRead`, `delay`, `millis`, `Serial`; corre entre pasos de tiempo, `delay` espera en tiempo simulado; la página lo corre en tiempo real | ✅ 2026-10-26 |
-| **M3** | PWM como una onda cuadrada real en el tiempo (`analogWrite` en el UNO, `ledcWrite` en el ESP32), `tone`, un panel de consola Serial en la página (hoy: líneas en la ficha de la placa), `analogRead` con la curva real del ADC | ⬜ |
+| **M3** | PWM como una onda cuadrada real en el tiempo (`analogWrite`, `ledcWrite`), `tone`, el paso que necesita en la página y el brillo promediado del LED, el monitor serie en la ficha de la placa | ✅ 2026-10-26 |
 | **M4** | Recetas para el UNO y el C3 (LED, pulsador, potenciómetro con ADC y PWM); las recetas del ESP32 ya tienen su programa (2026-10-26) | ⬜ |
-| después | Interrupciones (`attachInterrupt`), versiones simplificadas de librerías comunes, firmware real del UNO con avr8js como modo opcional, las dos filas de pines del ESP32 en un circuito (el límite del montaje) | — |
+| después | Un panel propio de consola serie en la página, `analogRead` con la curva real del ADC del ESP32, interrupciones (`attachInterrupt`), versiones simplificadas de librerías comunes, firmware real del UNO con avr8js como modo opcional, las dos filas de pines del ESP32 en un circuito (el límite del montaje) | — |
 
 El programa maneja la memoria que guardan los pines (`gpioStage`: `mode`, `level`, `pull`) a
 través de un elemento sin corriente propia (el controlador de la placa), así que el motor solo

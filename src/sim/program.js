@@ -7,7 +7,10 @@
 //   const runner = createRunner(js, board)
 //     board: { family, gpio: [numbers wired], read(gpio) → { volts, vdd } | null, vil, vih,
 //              adcBits, adcFull, states: { gpio: { mode, level, pull } } (from io) }
-//   runner.advance(seconds) → true when a pin changed      runner.pins: gpio → { mode, level, pull }
+//   runner.advance(seconds) → true when a pin changed
+//   runner.pins: gpio → { mode, level, pull, pwm: { freq, duty } | null }: a pin with pwm switches
+//     in time (the board sets its level at each step from runner.time: levelAt)
+//   runner.fastest() → the shortest PWM or tone period now (seconds), or null
 //   runner.time, runner.waitingUntil, runner.log (Serial lines), runner.error, runner.notes
 
 const BUDGET = 2000; // loop turns or loop() calls per advance before it lets the step go on
@@ -20,11 +23,18 @@ const ANALOG = {
   esp32c3: [0, 1, 2, 3, 4, 5],
 };
 const BUILTIN_LED = { uno: 13, esp32: 2, esp32c3: 8 };
+// analogWrite: the UNO's PWM pins and their frequencies (timer 0 on 5 and 6 runs twice as fast);
+// on an ESP32 (Arduino core 3) any output pin, 1 kHz, 8 bits.
+const UNO_PWM = { 3: 490, 5: 980, 6: 980, 9: 490, 10: 490, 11: 490 };
+const ESP_PWM = 1000;
+
+// A PWM pin's level at time t: high for the first `duty` of each period.
+export const levelAt = (pwm, t) => (pwm.duty >= 1 ? 1 : pwm.duty <= 0 ? 0 : (t * pwm.freq) % 1 < pwm.duty ? 1 : 0);
 
 export function createRunner(js, board) {
   const pins = {};
   for (const [gpio, s] of Object.entries(board.states ?? {})) pins[gpio] = { ...s };
-  const pin = (n) => (pins[n] ??= { mode: 'input', level: 0, pull: null });
+  const pin = (n) => (pins[n] ??= { mode: 'input', level: 0, pull: null, pwm: null });
   const runner = { read: board.read, pins, time: 0, wait: 0, log: [], line: '', error: null, notes: [], changed: false, waitingUntil: 0 };
   const note = (text) => {
     if (!runner.notes.includes(text)) runner.notes.push(text);
@@ -41,6 +51,14 @@ export function createRunner(js, board) {
   // Read through runner.read: a rebuilt circuit (a control changed) hands the runner its own.
   const volts = (n) => runner.read(n);
   const lastRead = {};
+  const ledc = { pins: {}, channels: {} };
+  const tones = {}; // pin → time its tone ends
+  // A duty of 0 or 1 is a plain level, no wave to step through.
+  const pwmOf = (freq, duty) => (duty <= 0 ? { level: 0, pwm: null } : duty >= 1 ? { level: 1, pwm: null } : { pwm: { freq, duty } });
+  runner.fastest = () => {
+    const periods = Object.values(pins).filter((p) => p.pwm && p.mode === 'output').map((p) => 1 / p.pwm.freq);
+    return periods.length ? Math.min(...periods) : null;
+  };
   let seed = 1;
   const write = (text) => {
     const parts = (runner.line + text).split('\n');
@@ -59,11 +77,11 @@ export function createRunner(js, board) {
     PI: Math.PI,
     pinMode(n, mode) {
       if (mode === MODE.OUTPUT) set(n, { mode: 'output', pull: null });
-      else set(n, { mode: 'input', pull: mode === MODE.INPUT_PULLUP ? 'up' : mode === MODE.INPUT_PULLDOWN ? 'down' : null });
+      else set(n, { mode: 'input', pull: mode === MODE.INPUT_PULLUP ? 'up' : mode === MODE.INPUT_PULLDOWN ? 'down' : null, pwm: null });
     },
     digitalWrite(n, value) {
       const p = pin(n);
-      if (p.mode === 'output') set(n, { level: value ? 1 : 0 });
+      if (p.mode === 'output') set(n, { level: value ? 1 : 0, pwm: null });
       // On an AVR, writing HIGH to an input turns its pull-up on (the old way to ask for it).
       else if (board.family === 'uno') set(n, { pull: value ? 'up' : null });
     },
@@ -80,19 +98,44 @@ export function createRunner(js, board) {
       if (!r) return 0;
       return Math.round(Math.min(1, Math.max(0, r.volts / board.adcFull)) * (2 ** board.adcBits - 1));
     },
-    analogWrite(n) {
-      note('analogWrite');
+    // PWM, 8 bits: 0 is LOW, 255 HIGH, in between a square wave. On an UNO only its PWM pins;
+    // any other reads it as digitalWrite (128 and up is HIGH), as the core does.
+    analogWrite(n, value) {
+      const v = Math.min(255, Math.max(0, Math.round(value)));
+      const freq = board.family === 'uno' ? UNO_PWM[n] : ESP_PWM;
+      if (!freq) return set(n, { mode: 'output', level: v >= 128 ? 1 : 0, pwm: null, pull: null });
+      set(n, { mode: 'output', pull: null, ...pwmOf(freq, v / 255) });
     },
-    ledcWrite() {
-      note('ledcWrite');
+    // ESP32 LEDC: core 3 attaches a pin (ledcAttach(pin, freq, bits), ledcWrite(pin, duty)); core 2
+    // sets a channel up and attaches pins to it (ledcSetup(ch, freq, bits), ledcAttachPin(pin, ch),
+    // ledcWrite(ch, duty)).
+    ledcAttach(n, freq, bits) {
+      ledc.pins[n] = { freq, bits };
+      set(n, { mode: 'output', pull: null });
+      return true;
     },
-    ledcAttach() {},
-    ledcAttachPin() {},
-    ledcSetup() {},
-    tone() {
-      note('tone');
+    ledcSetup(ch, freq, bits) {
+      ledc.channels[ch] = { freq, bits, pins: ledc.channels[ch]?.pins ?? [] };
+      return freq;
     },
-    noTone() {},
+    ledcAttachPin(n, ch) {
+      (ledc.channels[ch] ??= { freq: 5000, bits: 8, pins: [] }).pins.push(n);
+      set(n, { mode: 'output', pull: null });
+    },
+    ledcWrite(target, duty) {
+      const one = (n, freq, bits) => set(n, { mode: 'output', ...pwmOf(freq, duty / (2 ** bits - 1)) });
+      if (ledc.pins[target]) one(target, ledc.pins[target].freq, ledc.pins[target].bits);
+      else for (const n of ledc.channels[target]?.pins ?? []) one(n, ledc.channels[target].freq, ledc.channels[target].bits);
+    },
+    // A square wave at freq Hz, half the time high; for `ms` milliseconds when given.
+    tone(n, freq, ms) {
+      set(n, { mode: 'output', pull: null, ...pwmOf(freq, 0.5) });
+      tones[n] = ms > 0 ? runner.time + ms / 1e3 : Infinity;
+    },
+    noTone(n) {
+      delete tones[n];
+      set(n, { level: 0, pwm: null });
+    },
     millis: () => Math.floor(runner.time * 1e3 + 1e-9),
     micros: () => Math.floor(runner.time * 1e6 + 1e-6),
     abs: Math.abs,
@@ -144,6 +187,7 @@ export function createRunner(js, board) {
     if (runner.error) return false;
     runner.time += dt;
     runner.wait -= dt;
+    for (const [n, end] of Object.entries(tones)) if (runner.time >= end) api.noTone(Number(n));
     let turns = 0;
     while (runner.wait <= 1e-12) {
       let r;

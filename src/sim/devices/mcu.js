@@ -12,7 +12,7 @@
 
 import { resistor, junction, regulatorElement, partSource, gpioStage } from '../mna.js';
 import { MCUS } from '../models.js';
-import { createRunner } from '../program.js';
+import { createRunner, levelAt } from '../program.js';
 import { issue, stress, note, q } from './shared.js';
 
 const ESD = { is: 1e-14, n: 1 }; // the protection diodes on every pin
@@ -79,7 +79,8 @@ export const mcu = {
       const sync = () => {
         for (const [gpio, stage] of byGpio) {
           const st = entry.ctrl.runner.pins[gpio];
-          if (st) Object.assign(stage, { mode: st.mode, level: st.level, pull: st.pull });
+          // A PWM or tone switches in time: its level at the runner's clock (this step's start).
+          if (st) Object.assign(stage, { mode: st.mode, level: st.pwm ? levelAt(st.pwm, entry.ctrl.runner.time) : st.level, pull: st.pull, pwm: st.pwm ?? null });
         }
       };
       const volt = (i) => (i >= 0 ? entry.ctrl.x?.[i] ?? 0 : 0);
@@ -157,11 +158,11 @@ export const mcu = {
         const vdd = v(entry.vdd);
         const read = voltage < m.vil * vdd ? 0 : voltage > m.vih * vdd ? 1 : null;
         const adc = info.adc ? Math.round(Math.min(1, Math.max(0, voltage / m.adcFull)) * (2 ** m.adcBits - 1)) : null;
-        return { name: info.name, gpio: info.gpio, mode: s.stage.mode, level: s.stage.level, pull: s.stage.pull, voltage, current, read, adc };
+        return { name: info.name, gpio: info.gpio, mode: s.stage.mode, level: s.stage.level, pull: s.stage.pull, ...(s.stage.pwm && { pwm: s.stage.pwm }), voltage, current, read, adc };
       });
     const power = entry.pins.reduce((sum, x) => sum + h.volt(x.index) * (currents[x.name] ?? 0), 0) + (entry.usb ? 5 * usb : 0);
     const run = entry.ctrl?.runner;
-    const program = run ? { error: run.error, time: run.time, until: run.waitingUntil, serial: [...run.log, ...(run.line ? [run.line] : [])].slice(-6), notes: [...run.notes] } : null;
+    const program = run ? { error: run.error, time: run.time, until: run.waitingUntil, serial: [...run.log, ...(run.line ? [run.line] : [])].slice(-12), notes: [...run.notes] } : null;
     return { usb: entry.usb ? { voltage: v(entry.vbus), current: usb } : null, vdd: v(entry.vdd), rail, pins, power, currents, ...(program && { program }) };
   },
   limits(entry, r) {
@@ -178,14 +179,18 @@ export const mcu = {
     if (p.program) {
       const pr = p.program;
       if (pr.error) lines.push(h.raw('mcu.program', h.t('sim.mcu.programError', { error: pr.error })));
-      else lines.push(h.raw('mcu.program', h.t(pr.until > pr.time + 1e-9 ? 'sim.mcu.programWaits' : 'sim.mcu.programRuns', { time: h.f(pr.time, 's'), until: h.f(pr.until, 's') })));
+      else lines.push(h.raw('mcu.program', h.t(pr.until > pr.time + 1e-9 ? 'sim.mcu.programWaits' : 'sim.mcu.programRuns', { time: h.f(pr.time, 's'), left: h.f(pr.until - pr.time, 's') })));
       if (pr.notes.length) lines.push(h.raw('mcu.notYet', h.t('sim.mcu.notYet', { names: pr.notes.join(', ') })));
       for (const text of pr.serial) lines.push(h.raw('mcu.serial', `› ${text}`));
     }
     if (p.usb) lines.push(h.q('mcu.usb', `${h.f(p.usb.voltage, 'V')} · ${h.f(p.usb.current, 'A')}`));
     lines.push(h.q('mcu.vdd', `${h.f(p.vdd, 'V')}${p.rail != null ? ` · ${h.f(p.rail, 'A')}` : ''}`));
     for (const x of p.pins) {
-      const what = x.mode === 'output' ? h.t(`sim.mcu.${x.level ? 'high' : 'low'}`) : h.t(`sim.mcu.input${x.pull ? `.${x.pull}` : ''}`);
+      const what = x.pwm
+        ? h.t('sim.mcu.pwm', { percent: Math.round(x.pwm.duty * 100), freq: h.f(x.pwm.freq, 'Hz') })
+        : x.mode === 'output'
+          ? h.t(`sim.mcu.${x.level ? 'high' : 'low'}`)
+          : h.t(`sim.mcu.input${x.pull ? `.${x.pull}` : ''}`);
       const read = x.mode === 'input' ? ` · ${h.t(x.read == null ? 'sim.mcu.readsNone' : 'sim.mcu.reads', { value: x.read })}` : '';
       const adc = x.mode === 'input' && x.adc != null ? ` · ADC ${x.adc}` : '';
       lines.push(h.raw(`mcu.${x.mode}`, `${x.name} (GPIO${x.gpio}): ${what} · ${h.f(x.voltage, 'V')} · ${h.f(x.current, 'A')}${read}${adc}`));

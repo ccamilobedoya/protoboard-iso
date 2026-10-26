@@ -4,7 +4,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { translateSketch } from '../src/sim/sketch.js';
@@ -110,4 +110,58 @@ test('the program as a .ino file beside the circuit; a missing one is reported',
   const loaded = loadCircuit(resolveTarget(folder));
   assert.ok(simulate(loaded).parts.D1.current > 5e-3);
   assert.deepEqual(codes(simulate(circuit).issues), ['SIM_PROGRAM_FILE'], 'without its folder');
+});
+
+// Phase M3: PWM and tone switch in time; the page's LED glow is their average.
+const ledWith = (sketch) => laid(expandRecipe('esp32-led', { U1: sketch }).spec);
+const pwmOf = (sketch, stop = 0.01, step = 1e-5) => {
+  const r = simulate(ledWith(sketch), { analysis: 'transient', stop, step, points: 1e7 });
+  assert.ok(r.ok, JSON.stringify(r.issues));
+  const i = r.parts.D1.current;
+  const high = Math.max(...i);
+  let rising = 0;
+  for (let k = 1; k < i.length; k++) if (i[k - 1] < high / 2 && i[k] >= high / 2) rising++;
+  return { duty: i.filter((v) => v > high / 2).length / i.length, rising, high };
+};
+
+test('analogWrite on an ESP32: 1 kHz, its duty in 8 bits; 0 and 255 are plain levels', () => {
+  const quarter = pwmOf('void setup() { pinMode(13, OUTPUT); analogWrite(13, 64); }\nvoid loop() { delay(1000); }');
+  assert.ok(Math.abs(quarter.duty - 64 / 255) < 0.02, `duty ${quarter.duty}`);
+  assert.equal(quarter.rising, 9, 'ten periods in 10 ms, the first already high');
+  const full = simulate(ledWith('void setup() { analogWrite(13, 255); }\nvoid loop() { delay(10); }'));
+  assert.ok(full.parts.D1.current > 5e-3);
+  assert.equal(full.parts.U1.pins[0].pwm, undefined, 'no wave to step through');
+});
+
+test('ESP32 LEDC, core 3 and core 2; tone with a duration, then quiet', () => {
+  const core3 = pwmOf('void setup() { ledcAttach(13, 2000, 10); ledcWrite(13, 768); }\nvoid loop() { delay(1000); }');
+  assert.ok(Math.abs(core3.duty - 768 / 1023) < 0.03, `duty ${core3.duty}`);
+  assert.equal(core3.rising, 19);
+  const core2 = pwmOf('void setup() { ledcSetup(0, 500, 8); ledcAttachPin(13, 0); ledcWrite(0, 128); }\nvoid loop() { delay(1000); }');
+  assert.ok(Math.abs(core2.duty - 128 / 255) < 0.03 && core2.rising === 4, JSON.stringify(core2));
+  const beep = pwmOf('void setup() { tone(13, 1000, 5); }\nvoid loop() { delay(1000); }', 0.02);
+  assert.equal(beep.rising, 4, 'five periods in its 5 ms, the first already high');
+  assert.ok(Math.abs(beep.duty - 0.125) < 0.02, 'half of 5 ms out of 20 ms');
+});
+
+test('analogWrite on an UNO: its PWM pins at 490 / 980 Hz; any other pin reads it as digitalWrite', () => {
+  const circuit = JSON.parse(readFileSync(new URL('../examples/uno-led.json', import.meta.url), 'utf8'));
+  const board = circuit.parts.find((p) => p.type === 'module');
+  // D13 has no PWM on an UNO: 200 is HIGH.
+  board.program = 'void setup() { pinMode(13, OUTPUT); analogWrite(13, 200); }\nvoid loop() { delay(100); }';
+  const r = simulate(circuit);
+  assert.equal(r.parts[board.id].pins[0].mode, 'output');
+  assert.equal(r.parts[board.id].pins[0].pwm, undefined);
+  assert.ok(r.parts.D1.current > 5e-3);
+});
+
+test('the engine asks for shorter steps while a PWM runs, and averages the LED for the page', () => {
+  const engine = createEngine(compile(ledWith('void setup() { pinMode(13, OUTPUT); analogWrite(13, 128); }\nvoid loop() { delay(1000); }')).program);
+  assert.ok(engine.start('dc', 1e-3));
+  assert.equal(engine.stepHint(), 1e-3 / 20, 'a twentieth of the 1 kHz period');
+  for (let k = 0; k < 400; k++) engine.step(5e-5);
+  const glow = engine.glow().D1;
+  const steady = simulate(ledWith('void setup() { pinMode(13, OUTPUT); digitalWrite(13, HIGH); }\nvoid loop() { delay(1000); }')).parts.D1.brightness;
+  assert.ok(Math.abs(glow / steady - 0.5) < 0.06, `averaged ${glow} against ${steady}`);
+  assert.equal(engine.glow(), null, 'nothing since the last call');
 });

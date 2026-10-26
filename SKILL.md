@@ -94,8 +94,8 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
   powered by USB (no supply needed) and takes each pin's state for the simulation:
   `{"id": "U1", "part": "ESP32-DEVKIT", "io": {"D13": "high", "D27": "input_pullup"}}`, or runs a
   program: `"program": "blink.ino"` (a file beside the circuit, the Arduino sketch as uploaded) or the
-  sketch's text; `setup()`, `loop()`, `pinMode`, `digitalWrite`, `digitalRead`, `delay`, `millis`,
-  `Serial.println` run in simulated time, and the page runs them in real time
+  sketch's text; `setup()`, `loop()`, `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`,
+  `analogWrite`/`ledcWrite` (PWM), `tone`, `delay`, `millis`, `Serial.println` run in simulated time, and the page runs them in real time
   (`docs/en/microcontrollers.md`).
 - **nets**: each one the pins it joins (`"R1.2"`) and rails (`"T+"`, `"T-"`, `"B+"`, `"B-"`), as a
   list or `{pins, color}`. Pin names as people write them work: `A`/`K` or `anode`/`cathode`,

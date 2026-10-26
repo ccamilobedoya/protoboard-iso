@@ -263,6 +263,10 @@ export function createEngine(source) {
   let ctx = {};
   let pending = null;
   let time = 0;
+  // LED brightness summed over the steps since the page last asked (glow()): a PWM switches faster
+  // than the page paints, and the eye sees the average.
+  let glowSum = new Map();
+  let glowTime = 0;
   const memories = () => prep.system.elements.filter((el) => 'accept' in el);
   return {
     dc: () => dc(prep),
@@ -300,6 +304,11 @@ export function createEngine(source) {
       ctx = next;
       pending = next;
       time += h;
+      for (const p of prep.parts) {
+        if (p.kind !== 'LED' || p.unsupported) continue;
+        glowSum.set(p.id, (glowSum.get(p.id) ?? 0) + (partReading(p, x, ctx, prep.floating).brightness ?? 0) * h);
+      }
+      glowTime += h;
       return true;
     },
     read: () => (x ? readAll(prep, x, ctx) : null),
@@ -319,6 +328,20 @@ export function createEngine(source) {
     timeConstants: () => timeConstants(prep),
     // A board runs a program: the page steps in real time even with no C, L or generator.
     hasProgram: () => prep.system.elements.some((el) => el.settle),
+    // The step a running PWM or tone needs (a twentieth of its period), or null.
+    stepHint() {
+      const periods = prep.system.elements.map((el) => el.runner?.fastest?.()).filter((p) => p > 0);
+      return periods.length ? Math.min(...periods) / 20 : null;
+    },
+    // Each LED's brightness averaged over the steps since the last call ({ id: brightness }), or
+    // null when no step ran.
+    glow() {
+      if (!glowTime) return null;
+      const out = Object.fromEntries([...glowSum].map(([id, sum]) => [id, sum / glowTime]));
+      glowSum = new Map();
+      glowTime = 0;
+      return out;
+    },
     periods: () => program.supplies.filter((s) => s.generator && !s.off).map((s) => 1 / s.generator.frequency),
     controls: () => controlsOf(program),
     // The program as the controls left it (a copy): what the page exports to Falstad.

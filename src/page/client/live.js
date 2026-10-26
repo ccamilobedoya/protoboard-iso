@@ -210,7 +210,9 @@ export function setupLive(page) {
     }
     // LEDs lit with their current: on the board (.lights, with the results) and in the current layer.
     for (const svg of svgs) {
-      for (const el of svg.querySelectorAll('.lights > [data-glow], .flow > [data-glow]')) el.style.opacity = glowOpacity(reading.parts[el.dataset.glow]?.brightness).toFixed(2);
+      // Averaged over the steps since the last paint (a PWM is faster than the page): what the eye sees.
+      const glow = engine.glow?.() ?? {};
+      for (const el of svg.querySelectorAll('.lights > [data-glow], .flow > [data-glow]')) el.style.opacity = glowOpacity(glow[el.dataset.glow] ?? reading.parts[el.dataset.glow]?.brightness).toFixed(2);
     }
     // Result tags: the same place, the new value, the box resized around its centre.
     for (const svg of svgs) {
@@ -345,6 +347,10 @@ export function setupLive(page) {
     const wall = last == null ? 0 : Math.min(now - last, 100) / 1000;
     last = now;
     if (running && dynamic && !stalled) {
+      // A program that starts a PWM or a tone needs shorter steps (never under 5 µs: below that
+      // the page falls back to slow motion by itself).
+      const hint = engine.stepHint?.();
+      if (hint && hint < h) h = Math.max(5e-6, hint);
       owed += wall * pace.perSecond;
       const t0 = performance.now();
       while (owed >= h && performance.now() - t0 < BUDGET) {
