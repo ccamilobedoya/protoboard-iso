@@ -168,17 +168,17 @@ four passed the first try, because of pin names (`D1.K` on an LED, `U1.DISCH` on
 
 **Proven patterns instead of working each circuit out**
 
-- ⬜ **Recipes**: a library of layout specs for lesson circuits (LED + resistor, divider, potentiometer, NPN and MOSFET switch, button with pull-up / pull-down, RC, 555 astable, 7805 and AMS1117, bridge rectifier, Zener, ESP32 LED and button), called by name with only the values (`layout { recipe: "npn-switch", values: { R1: "1k" } }`); each one a case of `layout-bench`. Replaces stage 5's "templates"
+- ✅ **Recipes** (2026-10-26, [recipes.md](docs/en/recipes.md)): fifteen lesson circuits as layout specs in `src/recipes/` (`led-resistor`, `divider`, `npn-switch`, `potentiometer-led`, `mosfet-switch`, `button-pullup`, `button-pulldown`, `rc-square`, `555-astable`, `regulator-7805`, `regulator-ams1117`, `bridge-rectifier`, `zener-regulator`, `esp32-led`, `esp32-button`), called by name with only the values (`layout { recipe: "npn-switch", values: { R1: "1k" } }`, CLI `--recipe` / `--values`); only the ids each recipe lists change, within choices or ranges (`RECIPE_*` errors say what is allowed); never with `parts` or `nets`; `catalog` lists them with their values and details one by name; the circuit keeps `spec.recipe`, and the same call with new values keeps every part's holes. All fifteen end in `DONE` in one call in `layout-bench` and in `test/recipes.test.js` (every part choice too) and simulate without stressing a part. `SKILL.md`, the MCP instructions ("recipes first") and the layout agent start with them. Replaces stage 5's "templates"
 - ✅ **The spec as the desired state** (2026-10-20): the circuit keeps what `layout` was asked (`spec`: nets with resolved pin names, supplies that name pins, the ids of its jumpers); `review` checks those nets in every circuit that has them (`SPEC_NET_MISSING`, `SPEC_NETS_SHORTED`); `layout` on an existing target lays it out again as one revision (undo brings the old one back), with only what changes given, every part and jumper trying its present holes first (a second LED on the 555 moved nothing); `rename` follows into the spec. Kept inside `circuit.json` rather than a `spec.json` beside it, so history and undo cover it
 - ✅ **Repairs inside `layout`** (2026-10-20): what the relayout loop leaves (a net apart, a jumper named by a blocking item) is routed again once with `suggest` (lesson profile, `VIA_WIRE`), kept only if it improves; a ground net without a rail goes to the − rail the others use, else `B-` (notes `LAYOUT_REPAIRED`, `LAYOUT_GROUND_TO_RAIL`)
 - ✅ Found on the way: the lesson profile blocked a part as hidden in every view when it was under 85 % visible in each, and counted two parts covering it in one view as two views. Now it blocks when its best view shows less than 70 % (`hiddenBelow`): both bench circuits pass at the first try (the two-rail supply: 8 tries and 1.5 s → 1 try and 0.3 s) and the 555 astable passes
-- ⬜ The brief carries the nets as JSON (or a recipe's name) instead of prose ("R1 between T+ and the LED anode") the agent must translate; a recipe circuit is laid out by one `layout` call from the main conversation, and the agent is kept for `CHANGES`
+- 🔜 The brief carries the nets as JSON (or a recipe's name: done 2026-10-26, the `Recipe:` line, and a recipe circuit is one `layout` call from the main conversation) instead of prose ("R1 between T+ and the LED anode") the agent must translate; a recipe circuit is laid out by one `layout` call from the main conversation, and the agent is kept for `CHANGES`
 
 **The algorithm** (limits already listed in [layout.md](docs/en/layout.md#known-limits-and-where-to-improve))
 
 - ⬜ Visibility in the placement check: with the 70 % threshold it rarely blocks, but jumpers still arch over chips (the 555's back view)
-- ⬜ Wide boards (ESP32 DevKit) that cover the strips: reach a net through another strip of it or through a rail when no jumper fits the covered one
-- ⬜ A bigger bench: the recipes and the four circuits of this review in `examples/layout/`
+- 🔜 Wide boards (ESP32 DevKit) that cover the strips: since 2026-10-26 the board is placed by pin 1 so the pins in its nets keep a free row past its PCB, and a group no jumper reaches waits for the rest of its net (rails last): a circuit on one header comes out ready (`esp32-led`, `esp32-button`). Left: nets on both headers (`3V3` and `D4`), through the other pin of the same name or a rail
+- ✅ A bigger bench (2026-10-26): `layout-bench` runs every recipe after `examples/layout/`, and the four circuits of this review are recipes (`npn-switch`, `potentiometer-led`, `555-astable`, `esp32-led` / `esp32-button`)
 
 **Any model, not only Claude**
 
@@ -265,7 +265,7 @@ Goal: open a link and explore.
 
 ## Stage 5 — Faster authoring ⬜
 
-- ⬜ Templates: common circuits where only values change: now the **recipes** of "Circuits with a small model" above
+- ✅ Templates: common circuits where only values change: now the **recipes** of "Circuits with a small model" above (2026-10-26)
 - ✅ Automatic placement from a netlist, respecting `clearance`: `layout` (2026-10-17)
 - ⬜ Adapters: import/export Wokwi `diagram.json` (✅ a Falstad CircuitJS link: stage 3, phase 6)
 

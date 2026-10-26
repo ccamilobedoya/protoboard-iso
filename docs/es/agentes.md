@@ -9,7 +9,7 @@ Usan las herramientas MCP ([mcp.md](mcp.md)) y, si no están, la línea de coman
 
 | Agente | Hace | Modifica |
 |---|---|---|
-| `circuit-layout` (montaje) | arma o cambia un circuito a partir de un encargo: uno nuevo con `layout` (camino A), cambios y arreglos con `suggest` → prueba en seco → aplicar → `review` (camino B); al final, `simulate` para los avisos | el circuito (con `layout` y `apply_ops`) |
+| `circuit-layout` (montaje) | arma o cambia un circuito a partir de un encargo: una receta o uno nuevo con `layout` (camino A), cambios y arreglos con `suggest` → prueba en seco → aplicar → `review` (camino B); al final, `simulate` para los avisos | el circuito (con `layout` y `apply_ops`) |
 | `circuit-reviewer` (revisor) | veredicto a partir de mediciones (`review`, `inspect`, conexiones), con arreglos ya probados en seco | nada |
 | `parts-librarian` (bibliotecario) | agrega componentes al kit desde hojas de datos: referencias, encapsulados, tipos, pruebas, documentación | el código del kit |
 
@@ -101,10 +101,18 @@ intenta una vez más cable por cable. El perfil lesson bloquea una pieza por ocu
 vista muestra menos del 70 % (antes, 85 % en cada vista): las dos del banco pasan al primer intento.
 Detalle en [montaje-automatico.md](montaje-automatico.md).
 
+Desde el 2026-10-26: **recetas** ([recetas.md](recetas.md)), quince circuitos de clase habituales
+que `layout` recibe por nombre con solo los valores que cambian (`{"recipe": "npn-switch", "values":
+{"R1": "470"}}`), cada uno probado para que salga `DONE` en una llamada. Un circuito de receta no
+necesita agente: la conversación principal llama a `layout` ella misma y deja al agente de montaje
+para `CHANGES` (o pasa la receta en la línea `Recipe:` del encargo). El camino A del agente empieza
+por la receta cuando el encargo pide uno de esos circuitos.
+
 ## El ciclo (lo maneja la conversación principal)
 
 ```
 pedido del usuario
+  → ¿una receta? layout con recipe y values desde aquí (STATUS: DONE → mostrarlo)
   → circuit-layout   (LAYOUT BRIEF)    → LAYOUT REPORT, circuito en la revisión n
   → circuit-reviewer (REVIEW BRIEF)    → REVIEW REPORT: APROBADO, o CAMBIOS con arreglos
   → si hay CAMBIOS: pasar los arreglos al mismo circuit-layout (como mucho dos rondas)
@@ -126,6 +134,7 @@ español, y el agente responde en el idioma del encargo.
 LAYOUT BRIEF
 Target: <nombre> (una carpeta bajo la raíz del MCP, sin prefijo "circuits/"; new | existing, revision n)
 Goal: <para qué sirve el circuito, una línea>
+Recipe: <nombre y valores, {"R1": "470"}, cuando es una; entonces sin Connections ni Parts>
 Connections: <una línea cada una: "R1 entre el riel T+ y el ánodo del LED", "cátodo del LED a T- por W1">
 Parts: <id, tipo, valor o referencia; posiciones solo si el usuario las fijó>
 Board: <bb400 | bb830 …>, may grow (si el montaje puede pasar a la protoboard elástica, auto)

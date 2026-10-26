@@ -260,3 +260,22 @@ test('layout check_only reads parts by name and reports every problem without cr
   assert.match(bad.content[0].text, /STATUS: FIX_SPEC/);
   assert.ok((await call('get_circuit', { target: 'circuits/checked' })).isError, 'nothing created');
 });
+
+test('layout with a recipe: ready in one call, the catalog lists it, bad values change nothing', async () => {
+  const listed = await call('catalog', {});
+  assert.match(listed.content[0].text, /npn-switch \(.*\) · R1=1k/);
+  assert.match((await call('catalog', { name: 'npn-switch' })).content[0].text, /Q1: part = 2N2222A \[2N2222A, 2N3904/);
+  const made = await call('layout', { target: 'recipe-switch', recipe: 'npn-switch', values: { R1: '470', V1: 9 } });
+  assert.ok(!made.isError, made.content[0].text);
+  assert.match(made.content[0].text, /STATUS: DONE/);
+  const circuit = JSON.parse((await call('get_circuit', { target: 'recipe-switch', format: 'json' })).content[0].text).circuit;
+  assert.deepEqual(circuit.spec.recipe, { name: 'npn-switch', values: { R1: '470', V1: 9 } });
+  assert.equal(circuit.parts.find((p) => p.id === 'R1').value, '470');
+  const bad = await call('layout', { target: 'recipe-bad', recipe: 'npn-switch', values: { Q1: 'IRLZ44N' } });
+  assert.ok(bad.isError);
+  assert.match(bad.content[0].text, /RECIPE|2N3904/);
+  assert.match(bad.content[0].text, /STATUS: FIX_SPEC/);
+  const both = await call('layout', { target: 'recipe-bad', recipe: 'divider', nets: [['R1.1', 'T+']] });
+  assert.ok(both.isError);
+  assert.ok((await call('get_circuit', { target: 'recipe-bad' })).isError, 'nothing created');
+});

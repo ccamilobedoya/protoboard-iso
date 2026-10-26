@@ -20,6 +20,7 @@ the [Falstad circuit simulator](https://www.falstad.com/circuit/) (seeing curren
 ## Quick start
 
 ```bash
+node bin/protoboard-iso.js layout my-switch --recipe npn-switch --values '{"R1":"470"}'   # a lesson circuit by name
 node bin/protoboard-iso.js layout my-circuit examples/layout/regulator-led.json   # placed from its parts and nets
 node bin/protoboard-iso.js check examples/led-resistor.json
 node bin/protoboard-iso.js inspect examples/led-resistor.json        # the drawing in numbers
@@ -81,6 +82,7 @@ breadboard circuit comes up.
 | Falstad: open a circuit in CircuitJS, cross-check | [docs/en/falstad.md](docs/en/falstad.md) | [docs/es/falstad.md](docs/es/falstad.md) |
 | Embedding a circuit in documentation | [docs/en/embedding.md](docs/en/embedding.md) | [docs/es/embeber.md](docs/es/embeber.md) |
 | Layout: the algorithm that places a whole circuit | [docs/en/layout.md](docs/en/layout.md) | [docs/es/montaje-automatico.md](docs/es/montaje-automatico.md) |
+| Recipes: lesson circuits by name for `layout` | [docs/en/recipes.md](docs/en/recipes.md) | [docs/es/recetas.md](docs/es/recetas.md) |
 | Agents (layout, reviewer, parts librarian) | [docs/en/agents.md](docs/en/agents.md) | [docs/es/agentes.md](docs/es/agentes.md) |
 | Roadmap | [ROADMAP.md](ROADMAP.md) | [docs/es/hoja-de-ruta.md](docs/es/hoja-de-ruta.md) |
 | Planning | [PLANNING.md](PLANNING.md) | [docs/es/planeacion.md](docs/es/planeacion.md) |

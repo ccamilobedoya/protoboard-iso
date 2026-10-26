@@ -18,11 +18,47 @@ dependencies). Setup: `docs/en/mcp.md`.
 
 | Task | Tool |
 |---|---|
-| A **new circuit** | `layout` with the parts and the nets (below) |
+| A **usual lesson circuit** (LED, divider, transistor switch, 555, regulator…) | `layout` with a **recipe** and only the values that change (section 0) |
+| Another **new circuit** | `layout` with the parts and the nets (section 1) |
 | **Other connections or parts** in a circuit made by `layout` (`get_circuit` shows a `spec`) | `layout` again on the same target, with the new nets or parts |
 | A **value, a description**, a small fix, or a circuit made by hand | `apply_ops` (operations, below) |
 | Is it right? | `review` (the definition of done), `netlist`, `simulate` |
 | Show it | the page `out/<name>.html` (written on every change), `render` |
+
+## 0. Recipes first
+
+A recipe is a lesson circuit the kit already knows: proven parts, nets and supply, laid out ready
+(`STATUS: DONE`) in one call. Give its name and only what changes, by id:
+
+```json
+{ "target": "switch", "recipe": "npn-switch", "values": { "R1": "470", "D1": "green", "V1": 9 } }
+```
+
+| Recipe | What it is |
+|---|---|
+| `led-resistor` | LED with its series resistor |
+| `divider` | two resistors, the output where they meet |
+| `npn-switch` | button → base resistor → NPN transistor switching an LED |
+| `potentiometer-led` | potentiometer's wiper dimming an LED |
+| `mosfet-switch` | button → logic-level MOSFET switching an LED, with a gate pull-down |
+| `button-pullup`, `button-pulldown` | button with a pull-up / pull-down, an LED showing the output |
+| `rc-square` | RC charged by a square wave (see τ against the period) |
+| `555-astable` | NE555 blinking an LED |
+| `regulator-7805`, `regulator-ams1117` | linear regulator with an LED on its output |
+| `bridge-rectifier` | bridge, filter capacitor and an LED, from a sine on the top rails |
+| `zener-regulator` | Zener and its series resistor holding a load |
+| `esp32-led`, `esp32-button` | ESP32 DevKit driving an LED (D13) / reading a button (D27) |
+
+- **values**: the main field by id (`"R1": "470"`, `"D1": "green"`, `"Q1": "BC547"`, `"V1": 9`) or
+  some fields (`"R1": {"value": "470", "tolerance": "1%"}`). Only the ids a recipe lists can change,
+  some within choices or a range: `catalog` lists every recipe with its values and defaults,
+  `catalog` with the recipe's name shows its parts, nets and limits. A wrong value is a `FIX_SPEC`
+  that says what is allowed.
+- `title`, `board`, `clearance`, `netLabels`, `page` and `lang` may be given beside the recipe. Never
+  `parts` or `nets`: to add to a recipe circuit, call `layout` on it again with the full parts and
+  nets (`get_circuit` shows them).
+- **Change a value later**: `layout` on the same target with the recipe and the new values; every
+  part keeps its holes.
 
 ## 1. `layout`: describe it, the kit places it
 
@@ -137,13 +173,14 @@ in its card; leave it out when the learner should work it out.
 ## CLI
 
 ```bash
+node bin/protoboard-iso.js layout <target> --recipe npn-switch [--values '{"R1":"470"}']
 node bin/protoboard-iso.js layout <target> [spec.json] [--check] [--expect-revision n]
 node bin/protoboard-iso.js apply <target> --ops '<json>' --dry-run      # then --expect-revision n
 node bin/protoboard-iso.js review | netlist | inspect | history | undo <target>
 node bin/protoboard-iso.js suggest <target> --part '<json>' --between <group>,<group>
 node bin/protoboard-iso.js simulate <target> [--transient stop,step]
 node bin/protoboard-iso.js render <target> -o out.svg [--view back] [--fit parts]
-node bin/protoboard-iso.js page <target> · parts      # parts: every type, its pins and part numbers
+node bin/protoboard-iso.js page <target> · parts [name]   # parts: every type, its pins and part numbers, and the recipes
 ```
 
 A target is a circuit folder (`circuit.json`, `history.jsonl`, `out/`) or a circuit file.

@@ -9,7 +9,7 @@ tools ([mcp.md](mcp.md)) and fall back to the CLI.
 
 | Agent | Does | Changes |
 |---|---|---|
-| `circuit-layout` | builds or changes a circuit from a brief: a new one with `layout` (path A), changes and fixes with `suggest` → dry run → apply → `review` (path B); `simulate` for warnings at the end | the circuit (through `layout` and `apply_ops`) |
+| `circuit-layout` | builds or changes a circuit from a brief: a recipe or a new one with `layout` (path A), changes and fixes with `suggest` → dry run → apply → `review` (path B); `simulate` for warnings at the end | the circuit (through `layout` and `apply_ops`) |
 | `circuit-reviewer` | verdict from measurements (`review`, `inspect`, connections) with dry-run-checked fixes | nothing |
 | `parts-librarian` | adds parts to the kit from datasheets: part numbers, packages, types, tests, docs | the kit's code |
 
@@ -96,10 +96,18 @@ go to a − rail by convention, and what the relayout loop leaves is tried once 
 The lesson profile blocks a part as hidden when its best view shows less than 70 % of it (it was
 85 % in every view): both bench circuits now pass at the first try. Details in [layout.md](layout.md).
 
+Since 2026-10-26: **recipes** ([recipes.md](recipes.md)), fifteen usual lesson circuits that
+`layout` takes by name with only the values that change (`{"recipe": "npn-switch", "values":
+{"R1": "470"}}`), each one tested to come out `DONE` in one call. A recipe circuit needs no agent:
+the main conversation calls `layout` itself and keeps the layout agent for `CHANGES` (or passes
+the recipe in the brief's `Recipe:` line). The agent's path A starts with the recipe when the brief
+asks for one of those circuits.
+
 ## The loop (run by the main conversation)
 
 ```
 user request
+  → a recipe? layout with recipe and values from here (STATUS: DONE → show it)
   → circuit-layout   (LAYOUT BRIEF)    → LAYOUT REPORT, circuit at revision n
   → circuit-reviewer (REVIEW BRIEF)    → REVIEW REPORT: APPROVED, or CHANGES with fixes
   → if CHANGES: send the fixes to the same circuit-layout (at most two rounds)
@@ -119,6 +127,7 @@ An agent does not see the conversation: everything it needs goes in the brief.
 LAYOUT BRIEF
 Target: <name> (a folder under the MCP root, without a "circuits/" prefix; new | existing, revision n)
 Goal: <what the circuit is for, one line>
+Recipe: <name and values, {"R1": "470"}, when it is one; then no Connections or Parts>
 Connections: <one line each: "R1 between rail T+ and the LED anode", "LED cathode to T- via W1">
 Parts: <id, type, value or part number; positions only if the user fixed them>
 Board: <bb400 | bb830 …>, may grow (when the layout may move to the elastic board, auto)

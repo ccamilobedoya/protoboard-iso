@@ -18,7 +18,9 @@ import { simulate } from '../src/sim/index.js';
 import { formatSimulation } from '../src/sim/format.js';
 import { parseValue } from '../src/core/units.js';
 import { resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory, writePage, createTarget, relayoutTarget } from '../src/node/workspace.js';
-import { autoLayout, formatLayout, specFromCircuit } from '../src/layout.js';
+import { autoLayout, formatLayout, specFromCircuit, specProblems } from '../src/layout.js';
+import { resolveRecipe } from '../src/recipes/index.js';
+import { catalogEntry, formatCatalogEntry, compactCatalog, recipeLine } from '../src/node/catalog.js';
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -56,6 +58,8 @@ function parseArgs(argv) {
     else if (a === '--focus') args.focus = argv[++i].split(',');
     else if (a === '--flow') args.flow = true;
     else if (a === '--check') args.check = true;
+    else if (a === '--recipe') args.recipe = argv[++i];
+    else if (a === '--values') args.values = JSON.parse(argv[++i]);
     else if (a === '-h' || a === '--help') args.help = true;
     else args._.push(a);
   }
@@ -102,12 +106,19 @@ const viewOptions = { view: args.view, lang, scale: args.scale || undefined, lab
 if (command === 'layout') {
   // layout <target> [spec.json | -]: the whole circuit placed from its parts and nets; on an
   // existing target, laid out again (the spec's fields replace the circuit's, the rest stays).
+  // --recipe name [--values json]: a recipe instead of a spec (or "recipe" in the spec file).
   const previous = existsSync(paths.circuitFile) ? loadCircuit(paths) : null;
-  if (!extra && !previous) {
+  if (!extra && !previous && !args.recipe) {
     console.log(t(lang, 'cli.usage'));
     fail(1);
   }
-  const given = extra ? JSON.parse(extra === '-' ? readFileSync(0, 'utf8') : readFileSync(extra, 'utf8')) : {};
+  const file = extra ? JSON.parse(extra === '-' ? readFileSync(0, 'utf8') : readFileSync(extra, 'utf8')) : {};
+  const fromRecipe = resolveRecipe({ ...file, ...(args.recipe && { recipe: args.recipe }), ...(args.values && { values: args.values }) });
+  if (fromRecipe.problems.length) {
+    console.log(formatLayout(specProblems(fromRecipe.problems), lang, { t, formatIssue }));
+    fail(1);
+  }
+  const given = fromRecipe.spec;
   if (previous && !given.nets && !previous.spec?.nets) {
     printIssues([{ severity: 'error', code: 'LAYOUT_NO_SPEC', params: { target } }], lang);
     fail(1);
@@ -233,12 +244,22 @@ if (command === 'layout') {
       console.log(t(lang, 'history.entry', { revision: h.revision, time: h.time, author: h.author, note: h.note ? ` (${h.note})` : '', ops }));
     }
   }
+} else if (command === 'parts' && target) {
+  // parts <name>: one type, part number, module, board or recipe in detail.
+  const entry = catalogEntry(target, lang);
+  if (!entry) {
+    console.log(t(lang, 'catalog.unknown', { name: target, types: Object.keys(PART_TYPES).join(', ') }));
+    fail(1);
+  }
+  console.log(formatCatalogEntry(entry, lang));
 } else if (command === 'parts') {
   for (const [type, def] of Object.entries(PART_TYPES)) {
     const numbers = Object.entries(PART_NUMBERS).filter(([, e]) => e.type === type).map(([n]) => n);
     const pins = def.pins ? def.pins.join(', ') : '—';
     console.log(`${type.padEnd(10)} ${t(lang, `type.${type}`).padEnd(20)} pins: ${pins}${numbers.length ? `  parts: ${numbers.join(', ')}` : ''}`);
   }
+  console.log(t(lang, 'catalog.recipes'));
+  for (const [name, r] of Object.entries(compactCatalog(lang).recipes)) console.log(recipeLine(name, r));
 } else {
   console.log(t(lang, 'cli.usage'));
   fail(1);

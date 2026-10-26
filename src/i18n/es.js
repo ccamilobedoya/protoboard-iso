@@ -110,10 +110,17 @@ export default {
   'check.LAYOUT_NEEDS_SPEC': '{target} es un circuito nuevo: layout necesita sus parts y nets.',
   'check.LAYOUT_GROUND_TO_RAIL': 'La red {net} ({pin}) es tierra: va al riel {rail}, como en cualquier protoboard.',
   'check.LAYOUT_REPAIRED': 'El cable de {from} a {to} se volvió a trazar para que nada quede tapado ni suelto.',
+  'check.RECIPE_UNKNOWN': 'No hay una receta «{name}». Recetas: {recipes}.',
+  'check.RECIPE_VALUE_UNKNOWN': '{id} no se puede cambiar en la receta {recipe}; se pueden: {ids}.',
+  'check.RECIPE_VALUE_FIELD': '{id}.{field} no se puede cambiar en la receta {recipe}; sus campos: {fields}.',
+  'check.RECIPE_VALUE_CHOICE': '{id} = {value} no es una de las opciones de esta receta: {choices}.',
+  'check.RECIPE_VALUE_RANGE': '{id} = {value} está fuera del rango de esta receta ({min} a {max}).',
+  'check.RECIPE_AND_PARTS': 'Da la receta «{recipe}» con sus valores, o los componentes y las redes, no las dos cosas. Para agregar algo a un circuito hecho con una receta, llama otra vez a layout sobre él con todos los componentes y las redes (get_circuit los muestra).',
   'check.SPEC_NET_MISSING': 'Red {net} del spec: {pins} no quedó conectado con el resto. Para cambiar qué se conecta, vuelve a llamar layout con las redes nuevas; si no, agrega el cable que falta.',
   'check.SPEC_NETS_SHORTED': 'Las redes {nets} del spec quedaron unidas (un corto).',
   'layout.valid': 'Los componentes y las redes son coherentes ({parts} componentes, así los entiende el kit):',
   'layout.invalid': 'No se colocó nada: primero arregla esto ({parts} componentes leídos):',
+  'layout.net': 'red {net}:',
   'layout.status.done': 'el circuito está listo: están todas las redes y la revisión lesson lo aprueba. Agrega las descripciones si el encargo las pide, y reporta.',
   'layout.status.changes': 'el circuito se creó, pero quedan {count} puntos marcados con ✖ arriba. Arregla solo esos (suggest y luego apply_ops con dry run) y vuelve a correr review.',
   'layout.status.fix_spec': 'no se creó nada. Arregla en el spec cada ✖ de arriba y vuelve a llamar layout.',
@@ -413,6 +420,7 @@ export default {
   'page.revision': 'revisión {revision}',
   'cli.usage': `Uso (<objetivo> = un archivo de circuito o una carpeta con circuit.json):
   protoboard-iso layout <objetivo> [spec.json|-] [--check] [--expect-revision n]   # el circuito entero, ubicado a partir de sus componentes y redes; si ya existe, se vuelve a montar (docs/es/montaje-automatico.md)
+  protoboard-iso layout <objetivo> --recipe <nombre> [--values '<json>']   # un circuito de clase por su nombre (docs/es/recetas.md)
   protoboard-iso render <objetivo> [-o salida.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <objetivo> [--transient fin[,paso]] [--start zero|dc] [--lang en|es] [--json]
   protoboard-iso page <objetivo> [-o pagina.html] [--lang en|es] [--fit parts|board]
@@ -427,7 +435,7 @@ export default {
   protoboard-iso review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]
   protoboard-iso undo <objetivo> [--author nombre] [--json]
   protoboard-iso history <objetivo> [--json]
-  protoboard-iso parts [--lang en|es]`,
+  protoboard-iso parts [nombre] [--lang en|es]`,
   'cli.written': 'Escrito {file} ({parts} componentes, {issues} observaciones).',
   'cli.noIssues': 'Sin problemas.',
   'cli.nodes': 'Grupos conectados en uso:',
@@ -483,7 +491,11 @@ export default {
   'catalog.boards': 'Protoboards:',
   'catalog.views': 'vistas:',
   'catalog.operations': 'operaciones:',
-  'catalog.more': 'Detalle de un tipo, número de parte, módulo o protoboard (campos, patas, un ejemplo para copiar; de una protoboard, sus columnas y dónde tienen agujeros los rieles): catalog con name.',
+  'catalog.more': 'Detalle de un tipo, número de parte, módulo, protoboard o receta (campos, patas, un ejemplo para copiar; de una protoboard, sus columnas y dónde tienen agujeros los rieles; de una receta, sus componentes, redes y valores): catalog con name.',
+  'catalog.recipes': 'Recetas (layout con recipe y values; los valores que se pueden cambiar, con su valor por defecto):',
+  'catalog.teaches': 'enseña:',
+  'catalog.recipeValues': 'valores (layout { recipe, values: { id: valor } }):',
+  'catalog.nets': 'redes:',
   'catalog.pins': 'patas:',
   'catalog.parts': 'partes:',
   'catalog.fields': 'campos:',

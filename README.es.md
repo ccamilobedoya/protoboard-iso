@@ -22,6 +22,7 @@ circula la corriente).
 ## Inicio rápido
 
 ```bash
+node bin/protoboard-iso.js layout mi-interruptor --recipe npn-switch --values '{"R1":"470"}' --lang es   # un circuito de clase por su nombre
 node bin/protoboard-iso.js layout mi-circuito examples/layout/regulator-led.json --lang es   # ubicado a partir de sus componentes y redes
 node bin/protoboard-iso.js check examples/led-resistor.json --lang es
 node bin/protoboard-iso.js inspect examples/led-resistor.json --lang es   # el dibujo en números
@@ -84,6 +85,7 @@ aparece un circuito en protoboard.
 | Foco y capa de corriente | [docs/es/foco-y-corriente.md](docs/es/foco-y-corriente.md) | [docs/en/focus-and-flow.md](docs/en/focus-and-flow.md) |
 | Falstad: abrir un circuito en CircuitJS, comparar | [docs/es/falstad.md](docs/es/falstad.md) | [docs/en/falstad.md](docs/en/falstad.md) |
 | Embeber un circuito en la documentación | [docs/es/embeber.md](docs/es/embeber.md) | [docs/en/embedding.md](docs/en/embedding.md) |
+| Recetas: circuitos de clase por su nombre para `layout` | [docs/es/recetas.md](docs/es/recetas.md) | [docs/en/recipes.md](docs/en/recipes.md) |
 | Agentes (montaje, revisor, bibliotecario) | [docs/es/agentes.md](docs/es/agentes.md) | [docs/en/agents.md](docs/en/agents.md) |
 | Hoja de ruta | [docs/es/hoja-de-ruta.md](docs/es/hoja-de-ruta.md) | [ROADMAP.md](ROADMAP.md) |
 | Planeación | [docs/es/planeacion.md](docs/es/planeacion.md) | [PLANNING.md](PLANNING.md) |

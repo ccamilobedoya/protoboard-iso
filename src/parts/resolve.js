@@ -58,10 +58,10 @@ function distance(a, b) {
 }
 
 // The kit's names closest to one it does not know: the same start, contained, or a few edits away.
-export function closestNames(name, count = 3) {
+export function closestNames(name, count = 3, names = ALL_NAMES) {
   const n = norm(name);
   if (!n) return [];
-  return ALL_NAMES.map((candidate) => {
+  return names.map((candidate) => {
     const c = norm(candidate);
     const score = c === n ? 0 : c.startsWith(n) || n.startsWith(c) ? 1 : c.includes(n) || n.includes(c) ? 1.5 : distance(n, c);
     return { candidate, score };

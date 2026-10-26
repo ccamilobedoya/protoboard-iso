@@ -111,10 +111,17 @@ export default {
   'check.LAYOUT_NEEDS_SPEC': '{target} is a new circuit: layout needs its parts and nets.',
   'check.LAYOUT_GROUND_TO_RAIL': 'Net {net} ({pin}) is ground: joined to the {rail} rail, as on any breadboard.',
   'check.LAYOUT_REPAIRED': 'Jumper from {from} to {to} routed again so nothing is hidden or left apart.',
+  'check.RECIPE_UNKNOWN': 'There is no recipe "{name}". Recipes: {recipes}.',
+  'check.RECIPE_VALUE_UNKNOWN': '{id} cannot be changed in recipe {recipe}; these can: {ids}.',
+  'check.RECIPE_VALUE_FIELD': '{id}.{field} cannot be changed in recipe {recipe}; its fields: {fields}.',
+  'check.RECIPE_VALUE_CHOICE': "{id} = {value} is not one of this recipe's choices: {choices}.",
+  'check.RECIPE_VALUE_RANGE': "{id} = {value} is out of this recipe's range ({min} to {max}).",
+  'check.RECIPE_AND_PARTS': 'Give recipe "{recipe}" with values, or parts and nets, not both. To add to a circuit made from a recipe, call layout again on it with the full parts and nets (get_circuit shows them).',
   'check.SPEC_NET_MISSING': 'Net {net} of the spec: {pins} not connected to the rest. To change what is connected, call layout again with new nets; otherwise add the missing jumper.',
   'check.SPEC_NETS_SHORTED': 'Nets {nets} of the spec ended up joined (a short).',
   'layout.valid': 'The parts and nets are consistent ({parts} parts, as the kit reads them):',
   'layout.invalid': 'Nothing was placed: fix these first ({parts} parts read):',
+  'layout.net': 'net {net}:',
   'layout.status.done': 'the circuit is ready: every net is there and the lesson review approves it. Add descriptions if the brief asks, and report.',
   'layout.status.changes': 'the circuit was created, with {count} items marked ✖ above still open. Fix only those (suggest, then apply_ops with a dry run), then run review.',
   'layout.status.fix_spec': 'nothing was created. Fix every ✖ above in the spec and call layout again.',
@@ -414,6 +421,7 @@ export default {
   'page.revision': 'revision {revision}',
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):
   protoboard-iso layout <target> [spec.json|-] [--check] [--expect-revision n]   # the whole circuit placed from its parts and nets; an existing target is laid out again (docs/en/layout.md)
+  protoboard-iso layout <target> --recipe <name> [--values '<json>']   # a lesson circuit by name (docs/en/recipes.md)
   protoboard-iso render <target> [-o out.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <target> [--transient stop[,step]] [--start zero|dc] [--lang en|es] [--json]
   protoboard-iso page <target> [-o page.html] [--lang en|es] [--fit parts|board]
@@ -428,7 +436,7 @@ export default {
   protoboard-iso review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
   protoboard-iso undo <target> [--author name] [--json]
   protoboard-iso history <target> [--json]
-  protoboard-iso parts [--lang en|es]`,
+  protoboard-iso parts [name] [--lang en|es]`,
   'cli.written': 'Written {file} ({parts} parts, {issues} issues).',
   'cli.noIssues': 'No problems found.',
   'cli.nodes': 'Connected groups in use:',
@@ -484,7 +492,11 @@ export default {
   'catalog.boards': 'Boards:',
   'catalog.views': 'views:',
   'catalog.operations': 'operations:',
-  'catalog.more': 'Details of one type, part number, module or board (fields, pins, an example to copy; for a board, its columns and where the rails have holes): catalog with name.',
+  'catalog.more': 'Details of one type, part number, module, board or recipe (fields, pins, an example to copy; for a board, its columns and where the rails have holes; for a recipe, its parts, nets and values): catalog with name.',
+  'catalog.recipes': 'Recipes (layout with recipe and values; the values that can change, with their defaults):',
+  'catalog.teaches': 'teaches:',
+  'catalog.recipeValues': 'values (layout { recipe, values: { id: value } }):',
+  'catalog.nets': 'nets:',
   'catalog.pins': 'pins:',
   'catalog.parts': 'parts:',
   'catalog.fields': 'fields:',

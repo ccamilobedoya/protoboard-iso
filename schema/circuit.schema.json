@@ -108,6 +108,38 @@
             "type": "string"
           },
           "description": "jumpers added by layout (not parts of the spec)"
+        },
+        "recipe": {
+          "type": "object",
+          "description": "The recipe the circuit was laid out from (src/recipes/), with the values given; gone once it is laid out again with other parts or nets",
+          "properties": {
+            "name": {
+              "enum": [
+                "led-resistor",
+                "divider",
+                "npn-switch",
+                "potentiometer-led",
+                "mosfet-switch",
+                "button-pullup",
+                "button-pulldown",
+                "rc-square",
+                "555-astable",
+                "regulator-7805",
+                "regulator-ams1117",
+                "bridge-rectifier",
+                "zener-regulator",
+                "esp32-led",
+                "esp32-button"
+              ]
+            },
+            "values": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

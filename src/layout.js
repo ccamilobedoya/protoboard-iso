@@ -15,11 +15,14 @@
 //      the part before it in the net when that has room, else on a fresh strip;
 //    - two leads otherwise: along a row, from the strip of the part before it in the net;
 //    - off the board (switch, Arduino): each lead to the strip of its net, or a fresh one;
+//    - a development board over the channel (ESP32 DevKit): pin 1 where its pins in nets keep free
+//      holes past its PCB;
 //    - anything else (DIP chips, buttons) or when no rule fits: suggest, near the cursor.
 //    A column cursor moves past each part, so stages do not pile up; the elastic board (`auto`)
 //    grows with it.
 // 3. Jumpers join each net's strips and rails: the shortest pair of holes that passes the same
-//    geometric check, in the net's colour (black for a − rail, red for a +, else one per net).
+//    geometric check, in the net's colour (black for a − rail, red for a +, else one per net); a
+//    strip no jumper reaches is tried again once the rest of its net is joined.
 // 4. Verify: the nets built against the nets asked for (nothing missing, nothing shorted) and the
 //    lesson review; while it blocks something, lay out again without the place of the part or
 //    jumper placed last among those it names (autoLayout, a few tries).
@@ -129,8 +132,12 @@ export function validateSpec(spec) {
 export function autoLayout(spec, { profile = 'lesson', checkOnly = false, previous = null } = {}) {
   const started = Date.now();
   const valid = validateSpec(spec);
-  if (checkOnly || !valid.ok) return { status: valid.ok ? 'spec_ok' : 'fix_spec', invalid: !valid.ok, checked: true, parts: valid.parts, problems: valid.problems, ms: Date.now() - started };
-  const asked = { nets: valid.nets, ...(valid.supplies?.some((s) => pinKey(s.positive) || pinKey(s.negative)) && { supplies: valid.supplies }) };
+  if (checkOnly || !valid.ok) return { status: valid.ok ? 'spec_ok' : 'fix_spec', invalid: !valid.ok, checked: true, parts: valid.parts, nets: valid.nets, problems: valid.problems, ms: Date.now() - started };
+  const asked = {
+    ...(spec.recipe && { recipe: spec.recipe }),
+    nets: valid.nets,
+    ...(valid.supplies?.some((s) => pinKey(s.positive) || pinKey(s.negative)) && { supplies: valid.supplies }),
+  };
   const notes = [];
   spec = { ...spec, parts: valid.parts, nets: groundToRail(valid.nets, valid.parts, valid.supplies, notes), ...(valid.supplies && { supplies: valid.supplies }) };
   const forbid = new Set(); // "id pins" keys
@@ -227,7 +234,8 @@ function repair(best, spec, { profile }) {
 
 // The spec of a circuit already laid out, for layout again: its parts (without holes and without
 // layout's jumpers, or without any wire when it has no spec: the nets say what they join), the nets
-// and supplies it was laid out with, and its settings; anything given replaces what is there.
+// and supplies it was laid out with, and its settings; anything given replaces what is there. The
+// recipe it came from stays only while its parts and nets do.
 export function specFromCircuit(circuit, given = {}) {
   const jumpers = new Set(circuit.spec?.wires ?? []);
   const parts = (circuit.parts ?? []).filter((p) => (circuit.spec ? !jumpers.has(p.id) : p.type !== 'wire')).map(({ pins, pin1, ...rest }) => rest);
@@ -236,6 +244,7 @@ export function specFromCircuit(circuit, given = {}) {
     Object.entries({
       parts: given.parts ?? parts,
       nets: given.nets ?? circuit.spec?.nets,
+      recipe: given.recipe ?? (given.parts || given.nets ? undefined : circuit.spec?.recipe),
       supplies: given.supplies ?? circuit.spec?.supplies ?? circuit.supplies,
       board: pick('board'),
       clearance: pick('clearance'),
@@ -360,6 +369,7 @@ function layoutOnce(spec, { profile, forbid, previous }) {
     const freeIn = (hole, rows) => rows.map((r) => `${r}${hole.col}`).find((id) => free(id) && built.board.find(id).node === hole.node);
     const candidates = [];
     const add = (pins) => candidates.push(pins);
+    let pin1s = []; // boards placed by pin 1
     const columns = Array.from({ length: SPAN }, (_, k) => cursor + k);
 
     if (beside) {
@@ -377,6 +387,27 @@ function layoutOnce(spec, { profile, forbid, previous }) {
         }
       }
       add(pins);
+    } else if (part.type === 'module' && pkg?.expandPin1) {
+      // A board over the channel hides the holes between its two rows of pins and under its PCB:
+      // pin 1 where every pin in a net keeps free holes on its strip, most first (a DevKit with
+      // pin 1 in row a hides the rest of those strips; in row c it leaves row a).
+      const y = new Map(built.board.spec.rows.map((r) => [r.id, r.y]));
+      const over = Math.max(0, ((def.params.size?.[1] ?? 0) / built.board.pitch - def.params.rowSpacing) / 2); // PCB past its pins, in rows
+      const options = [];
+      for (const c of columns) {
+        for (const row of built.board.spec.rows) {
+          const holes = pkg.expandPin1(built.board, `${row.id}${c}`, def.params);
+          if (!holes) continue;
+          const span = holes.map((id) => y.get(built.board.find(id).row));
+          const [lo, hi] = [Math.min(...span), Math.max(...span)];
+          const spare = named.map((n) => {
+            const h = built.board.find(holes[pinNames.findIndex((x) => x.toLowerCase() === n)]);
+            return h ? [...built.board.holes.values()].filter((o) => o.node === h.node && (y.get(o.row) < lo - over || y.get(o.row) > hi + over) && !used().has(o.id)).length : 0;
+          });
+          options.push({ pin1: `${row.id}${c}`, score: Math.min(2, ...spare) * 100 + spare.reduce((a, b) => a + b, 0) });
+        }
+      }
+      pin1s = options.sort((a, b) => b.score - a.score).slice(0, 6).map((o) => o.pin1);
     } else if (pkg?.inline && pinNames.length === 3) {
       const row = TALL.has(def.package) ? (half === 'T' ? 'g' : 'b') : half === 'T' ? 'h' : 'c';
       for (const c of columns) if ([0, 1, 2].every((k) => emptyStrip(row, c + k))) add(pinNames.map((_, k) => `${row}${c + k}`));
@@ -429,6 +460,11 @@ function layoutOnce(spec, { profile, forbid, previous }) {
       // Chips and boards placed by pin 1: the same pin 1 (and row spacing) as before.
       const op = { op: 'add', part: { ...part, pin1: was.pin1, ...(was.rowSpacing !== undefined && part.rowSpacing === undefined && { rowSpacing: was.rowSpacing }) } };
       if (!forbid.has(forbidKey(op.part)) && tryOps([op])) done = built.parts.find((p) => p.id === part.id).holes.map((h) => h?.id);
+    }
+    for (const pin1 of done ? [] : pin1s) {
+      const op = { op: 'add', part: { ...part, pin1 } };
+      if (!forbid.has(forbidKey(op.part)) && tryOps([op])) done = built.parts.find((p) => p.id === part.id).holes.map((h) => h?.id);
+      if (done) break;
     }
     for (const pins of done ? [] : candidates) {
       const pinMap = Array.isArray(pins) ? pins : pinNames.map((n) => pins[n]);
@@ -520,13 +556,20 @@ function layoutOnce(spec, { profile, forbid, previous }) {
     if (groups.length < 2) continue;
     groups.sort((p, q) => (p.col ?? Infinity) - (q.col ?? Infinity));
     const joined = [groups[0]];
-    for (const g of groups.slice(1)) {
+    const apart = []; // groups no jumper reached yet: tried again once the rest is joined (a rail comes last)
+    const reach = (g) => {
       const find = joinedRoots();
-      if (!joined.some((j) => find(j.node) === find(g.node))) {
-        const targets = [...joined].sort((p, q) => Math.abs((p.col ?? g.col ?? 0) - (g.col ?? 0)) - Math.abs((q.col ?? g.col ?? 0) - (g.col ?? 0)));
-        if (!targets.some((t) => join(net, g.node, t.node))) problems.push({ severity: 'warning', code: 'LAYOUT_WIRE_FAILED', params: { from: g.node, to: targets[0].node } });
-      }
-      joined.push(g);
+      if (joined.some((j) => find(j.node) === find(g.node))) return true;
+      const targets = [...joined].sort((p, q) => Math.abs((p.col ?? g.col ?? 0) - (g.col ?? 0)) - Math.abs((q.col ?? g.col ?? 0) - (g.col ?? 0)));
+      return targets.some((t) => join(net, g.node, t.node));
+    };
+    for (const g of groups.slice(1)) {
+      if (reach(g)) joined.push(g);
+      else apart.push(g);
+    }
+    for (const g of apart) {
+      if (reach(g)) joined.push(g);
+      else problems.push({ severity: 'warning', code: 'LAYOUT_WIRE_FAILED', params: { from: g.node, to: joined[0].node } });
     }
   }
 
@@ -553,10 +596,14 @@ function layoutOnce(spec, { profile, forbid, previous }) {
   return { circuit, placed, wires, columns, problems, sequence, check: checkNets(circuit, nets), review: verdict, ms: Date.now() - started };
 }
 
+// Nothing laid out: the spec has errors found before validating it (a recipe's values).
+export const specProblems = (problems) => ({ status: 'fix_spec', invalid: true, checked: true, parts: [], problems, ms: 0 });
+
 export function formatLayout(r, lang, { t, formatIssue }) {
   if (r.checked) {
     const lines = [t(lang, r.invalid ? 'layout.invalid' : 'layout.valid', { parts: r.parts.length })];
-    for (const p of r.parts) lines.push(`  ${p.id}: ${p.type}${p.part ? ` ${p.part}` : ''}${p.style ? ` (${p.style})` : ''}${p.value ? ` ${p.value}` : ''}`);
+    for (const p of r.parts) lines.push(`  ${p.id}: ${p.type}${p.part ? ` ${p.part}` : ''}${p.style ? ` (${p.style})` : ''}${p.value ? ` ${p.value}` : ''}${p.color ? ` ${p.color}` : ''}`);
+    if (!r.invalid) for (const [i, n] of (r.nets ?? []).entries()) lines.push(`  ${t(lang, 'layout.net', { net: i + 1 })} ${(Array.isArray(n) ? n : n.pins).join(', ')}`);
     for (const p of r.problems) lines.push(`  ${p.severity === 'error' ? '✖' : '·'} ${formatIssue(p, lang)}`);
     lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, `layout.status.${r.status}`)}`);
     return lines.join('\n');

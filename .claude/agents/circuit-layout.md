@@ -1,6 +1,6 @@
 ---
 name: circuit-layout
-description: Builds or changes a breadboard circuit of protoboard-iso from a layout brief (what to connect, which parts, constraints). A new circuit goes through layout (one call places, wires, checks and reviews it); changes and fixes go through suggest and validated operations with a dry run first. Never edits circuit files by hand. Use it to create a new circuit or to apply a reviewer's fixes.
+description: Builds or changes a breadboard circuit of protoboard-iso from a layout brief (what to connect, which parts, constraints, or a recipe's name and values). A usual lesson circuit is a recipe (layout with its name and values); another new circuit goes through layout (one call places, wires, checks and reviews it); changes and fixes go through suggest and validated operations with a dry run first. Never edits circuit files by hand. Use it to create a new circuit or to apply a reviewer's fixes.
 tools: mcp__protoboard-iso__layout, mcp__protoboard-iso__list_circuits, mcp__protoboard-iso__get_circuit, mcp__protoboard-iso__create_circuit, mcp__protoboard-iso__inspect, mcp__protoboard-iso__query, mcp__protoboard-iso__netlist, mcp__protoboard-iso__suggest, mcp__protoboard-iso__apply_ops, mcp__protoboard-iso__undo, mcp__protoboard-iso__history, mcp__protoboard-iso__review, mcp__protoboard-iso__simulate, mcp__protoboard-iso__catalog, Bash, Read
 model: sonnet
 ---
@@ -12,12 +12,22 @@ brief** and return a short **layout report**. You do not talk to the end user.
 
 | The brief asks for… | Path |
 |---|---|
+| a recipe (`Recipe:` line), or a usual lesson circuit that is one (see Path A, step 0) | **A** · `layout` with `recipe` |
 | a new circuit, no positions fixed | **A** · `layout` |
 | other connections or parts in a circuit made by `layout` (`get_circuit` shows a `spec`) | **A** · `layout` on the same target |
 | a new circuit with some positions fixed, a value or a description, a circuit without `spec`, or a reviewer's fixes | **B** · operations |
 
 ## Path A · `layout` (new circuit)
 
+0. **Recipe first.** If the brief names a recipe, or asks for one of these circuits, call `layout`
+   with `target`, `recipe` and only the `values` that change, by id (`{"R1": "470", "D1": "green",
+   "V1": 9}`), plus `title`, `clearance`, `lang` or `page` if the brief gives them; never `parts` or
+   `nets` with it. Recipes: `led-resistor`, `divider`, `npn-switch`, `potentiometer-led`,
+   `mosfet-switch`, `button-pullup`, `button-pulldown`, `rc-square`, `555-astable`,
+   `regulator-7805`, `regulator-ams1117`, `bridge-rectifier`, `zener-regulator`, `esp32-led`,
+   `esp32-button`. `catalog` with the recipe's name gives its ids and limits when the brief's values
+   need them. A changed value on a recipe circuit: `layout` again with the recipe, the new values and
+   `expect_revision`. Then step 2.
 1. Call `layout` once. **No `catalog` before it**: it checks every name and pin itself.
    - `target`: the brief's `Target`.
    - `parts`: no pins, in signal order. A part number, module or alias is enough:
@@ -83,7 +93,7 @@ brief** and return a short **layout report**. You do not talk to the end user.
 - **Budget**: a constraint (clearance, area, position) that fails three times is relaxed; say so
   in the report. No exhaustive searches, no scripts that try placements in bulk.
 - Without the MCP tools, the CLI from the repository root, same names:
-  `node bin/protoboard-iso.js layout <target> <spec.json>`, `suggest`, `apply … --dry-run`, `review`.
+  `node bin/protoboard-iso.js layout <target> <spec.json>` (or `--recipe <name> --values '<json>'`), `suggest`, `apply … --dry-run`, `review`.
   If `node` is not found, read `CLAUDE.local.md` for the path. If `layout` places a kind of part
   badly every time, say so in the report (its rules: `docs/en/layout.md`).
 

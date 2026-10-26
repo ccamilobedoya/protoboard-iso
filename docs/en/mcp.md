@@ -62,7 +62,7 @@ path of `mcp/server.js` and the environment above.
 | `inspect` | the drawing in numbers; `part` for one part only | no |
 | `query` | `kind: at \| node \| free` with `ref` | no |
 | `netlist` | the circuit as nets: groups joined by wires, the pins on each (`R1.1@d20`), labels, pins alone on a net | no |
-| `layout` | a whole circuit placed in one call from its parts (no holes, signal order; part numbers, modules and aliases) and nets (pins and rails; usual pin names work: `D1.K`, `U1.VIN`, `U1.GPIO4`): layers by distance from the source, rules per part kind, jumpers, ground nets to a − rail, the nets check and the lesson review, laid out again and repaired jumper by jumper. On an existing target, laid out again as one revision with only what changes (`expect_revision`; parts keep their holes; `undo` restores). The nets stay in the circuit (`spec`). Ends in `STATUS: DONE \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` only checks. The algorithm: [layout.md](layout.md) | yes |
+| `layout` | a usual lesson circuit by name: `recipe` and only the `values` that change ([recipes.md](recipes.md)); otherwise a whole circuit placed in one call from its parts (no holes, signal order; part numbers, modules and aliases) and nets (pins and rails; usual pin names work: `D1.K`, `U1.VIN`, `U1.GPIO4`): layers by distance from the source, rules per part kind, jumpers, ground nets to a − rail, the nets check and the lesson review, laid out again and repaired jumper by jumper. On an existing target, laid out again as one revision with only what changes (`expect_revision`; parts keep their holes; `undo` restores). The nets stay in the circuit (`spec`). Ends in `STATUS: DONE \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` only checks. The algorithm: [layout.md](layout.md) | yes |
 | `suggest` | valid placements for a new part, each with its `add` operation and the nearest body (`nearest`: part and gap); `profile` also leaves out what that review blocks; `parts` places several in order and answers one batch | no |
 | `apply_ops` | atomic batch; `dry_run` first, then `expect_revision`, `author`, `note` | yes |
 | `undo` | undo the latest change (new revision) | yes |
@@ -70,7 +70,7 @@ path of `mcp/server.js` and the environment above.
 | `history` | revisions, authors, notes, operations | no |
 | `render` | writes the SVG; `png_width` also returns a PNG image; `page: true` rewrites the embeddable page ([embedding.md](embedding.md)); `sim: true` draws the simulation results; `focus: [ids]` dims the rest; `flow: true` the current layer | outputs only |
 | `simulate` | node voltages and part currents, a model ([simulation.md](simulation.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` adds the link that opens the circuit in Falstad ([falstad.md](falstad.md)) | no |
-| `catalog` | without `name`: a compact list (types with their pins, part numbers by type, modules, batteries, boards, views, operations); with `name` (a type, part number or module): pins, package, the fields it takes and a real part from `examples/` to copy; `format: "json"` without `name`: every registry in full | no |
+| `catalog` | without `name`: a compact list (types with their pins, part numbers by type, modules, batteries, boards, views, operations); and the recipes with their values; with `name` (a type, part number, module or recipe): pins, package, the fields it takes and a real part from `examples/` to copy (for a recipe, its parts, nets and values with their limits); `format: "json"` without `name`: every registry in full | no |
 
 **Groups by pin.** Wherever a tool takes a group (`suggest`'s `between` and `connect`,
 `query node`), a pin of a part already placed names the group it is in: `"R1.2"`, `"U1.OUT"`.
@@ -84,7 +84,7 @@ errors with a readable message (`isError`), never as a crash. Read-only tools ar
 `readOnlyHint`, so clients can allow them without asking.
 
 The server also sends **instructions**, the same guide as `SKILL.md` in a few lines: which tool for
-which task (a new circuit → `layout`; other connections in a circuit made by `layout` → `layout`
+which task (recipes first: a usual lesson circuit → `layout` with `recipe`; another new circuit → `layout`; other connections in a circuit made by `layout` → `layout`
 again; a value or a fix → `apply_ops`), what each `STATUS:` means, the operations loop, how to check
 (`review`, `netlist`, `simulate`, never showing a value to predict), the holes, and the page's
 simulation. Never rewrite circuit files; PNG only when style matters.
@@ -92,6 +92,8 @@ simulation. Never rewrite circuit files; PNG only when style matters.
 ## Example session
 
 ```
+layout    {target: "blink", recipe: "555-astable", values: {C1: "22u"}}
+                                     → … STATUS: DONE · rev 0
 layout    {target: "switch", parts: [...], nets: [["R2.2", "D1.A"], ["D1.K", "Q1.C"], …]}
                                      → … STATUS: DONE · rev 0
 get_circuit {target: "switch"}       → circuit with spec.nets

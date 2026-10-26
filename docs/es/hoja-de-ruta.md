@@ -170,17 +170,17 @@ patas (`D1.K` en un LED, `U1.DISCH` en un 555).
 
 **Patrones probados en vez de resolver cada circuito**
 
-- ⬜ **Recetas**: una biblioteca de especificaciones de `layout` para los circuitos de clase (LED + resistencia, divisor, potenciómetro, NPN y MOSFET como interruptor, pulsador con pull-up / pull-down, RC, 555 astable, 7805 y AMS1117, puente rectificador, Zener, LED y pulsador con ESP32), llamadas por nombre con solo los valores (`layout { recipe: "npn-switch", values: { R1: "1k" } }`); cada una es un caso de `layout-bench`. Reemplaza las «plantillas» de la etapa 5
+- ✅ **Recetas** (2026-10-26, [recetas.md](recetas.md)): quince circuitos de clase como especificaciones de `layout` en `src/recipes/` (`led-resistor`, `divider`, `npn-switch`, `potentiometer-led`, `mosfet-switch`, `button-pullup`, `button-pulldown`, `rc-square`, `555-astable`, `regulator-7805`, `regulator-ams1117`, `bridge-rectifier`, `zener-regulator`, `esp32-led`, `esp32-button`), llamadas por nombre con solo los valores (`layout { recipe: "npn-switch", values: { R1: "1k" } }`, en la consola `--recipe` / `--values`); solo cambian los identificadores que lista cada receta, dentro de opciones o rangos (los errores `RECIPE_*` dicen qué se permite); nunca con `parts` ni `nets`; `catalog` las lista con sus valores y detalla una por nombre; el circuito guarda `spec.recipe`, y la misma llamada con valores nuevos conserva los agujeros de cada pieza. Las quince terminan en `DONE` en una llamada en `layout-bench` y en `test/recipes.test.js` (también con cada opción de componente) y se simulan sin forzar ninguna pieza. `SKILL.md`, las instrucciones del MCP («primero las recetas») y el agente de montaje empiezan por ellas. Reemplaza las «plantillas» de la etapa 5
 - ✅ **La especificación como estado deseado** (2026-10-20): el circuito guarda lo que se le pidió a `layout` (`spec`: redes con los nombres de patas resueltos, fuentes que nombran patas, los id de sus cables); `review` revisa esas redes en todo circuito que las tenga (`SPEC_NET_MISSING`, `SPEC_NETS_SHORTED`); `layout` sobre un destino que ya existe lo vuelve a montar en una sola revisión (`undo` trae el anterior), dando solo lo que cambia, y cada pieza y cable prueba primero sus agujeros actuales (un segundo LED en el 555 no movió nada); `rename` también cambia el spec. Va dentro de `circuit.json` en vez de un `spec.json` aparte, así el historial y `undo` lo cubren
 - ✅ **Reparaciones dentro de `layout`** (2026-10-20): lo que deja el ciclo de reintentos (una red aparte, un cable que nombra un punto bloqueante) se traza otra vez con `suggest` (perfil lesson, `VIA_WIRE`) y se queda solo si mejora; una red de tierra sin riel va al riel − que usan las otras, o si no a `B-` (notas `LAYOUT_REPAIRED`, `LAYOUT_GROUND_TO_RAIL`)
 - ✅ Encontrado de paso: el perfil lesson bloqueaba una pieza por oculta en todas las vistas si bajaba del 85 % visible en cada una, y contaba como dos vistas dos piezas que la tapaban en la misma. Ahora bloquea cuando su mejor vista muestra menos del 70 % (`hiddenBelow`): las dos del banco pasan al primer intento (la fuente de dos rieles: 8 intentos y 1,5 s → 1 intento y 0,3 s) y el 555 astable pasa
-- ⬜ El encargo lleva las redes en JSON (o el nombre de una receta) en vez de prosa («R1 entre T+ y el ánodo del LED») que el agente tiene que traducir; un circuito de receta se monta con una sola llamada a `layout` desde la conversación principal, y el agente queda para `CHANGES`
+- 🔜 El encargo lleva las redes en JSON (o el nombre de una receta: hecho el 2026-10-26, la línea `Recipe:`, y un circuito de receta es una llamada a `layout` desde la conversación principal) en vez de prosa («R1 entre T+ y el ánodo del LED») que el agente tiene que traducir; un circuito de receta se monta con una sola llamada a `layout` desde la conversación principal, y el agente queda para `CHANGES`
 
 **El algoritmo** (límites ya listados en [montaje-automatico.md](montaje-automatico.md))
 
 - ⬜ Visibilidad en la revisión al ubicar: con el umbral del 70 % casi nunca bloquea, pero todavía hay cables que pasan en arco sobre los chips (la vista de atrás del 555)
-- ⬜ Placas anchas (ESP32 DevKit) que tapan las tiras: llegar a una red por otra de sus tiras o por un riel cuando ningún cable cabe en la tapada
-- ⬜ Un banco más grande: las recetas y los cuatro circuitos de esta revisión en `examples/layout/`
+- 🔜 Placas anchas (ESP32 DevKit) que tapan las tiras: desde el 2026-10-26 la placa se ubica por su pata 1 para que las patas en redes conserven una fila libre fuera de su circuito impreso, y un grupo al que no llega ningún cable espera al resto de su red (los rieles al final): un circuito en una sola fila de pines sale listo (`esp32-led`, `esp32-button`). Falta: redes en las dos filas (`3V3` y `D4`), por la otra pata del mismo nombre o por un riel
+- ✅ Un banco más grande (2026-10-26): `layout-bench` corre todas las recetas después de `examples/layout/`, y los cuatro circuitos de esta revisión son recetas (`npn-switch`, `potentiometer-led`, `555-astable`, `esp32-led` / `esp32-button`)
 
 **Cualquier modelo, no solo Claude**
 
@@ -268,7 +268,7 @@ Objetivo: abrir un enlace y explorar.
 
 ## Etapa 5 — Escribir circuitos más rápido ⬜
 
-- ⬜ Plantillas: circuitos comunes donde solo cambian los valores: ahora son las **recetas** de «Circuitos con un modelo pequeño», arriba
+- ✅ Plantillas: circuitos comunes donde solo cambian los valores: ahora son las **recetas** de «Circuitos con un modelo pequeño», arriba (2026-10-26)
 - ✅ Colocación automática a partir de una netlist, respetando `clearance`: `layout` (2026-10-17)
 - ⬜ Adaptadores: importar y exportar `diagram.json` de Wokwi (✅ el enlace a Falstad CircuitJS: etapa 3, fase 6)
 

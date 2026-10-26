@@ -63,7 +63,7 @@ la ruta absoluta de `mcp/server.js`, y las variables de arriba.
 | `inspect` | el dibujo en números; `part` para un solo componente | no |
 | `query` | `kind: at \| node \| free` con `ref` | no |
 | `netlist` | el circuito como redes: grupos unidos por cables, las patas de cada una (`R1.1@d20`), etiquetas, patas solas en su red | no |
-| `layout` | un circuito entero ubicado en una llamada a partir de sus componentes (sin agujeros, en el orden de la señal; números de parte, módulos y alias) y sus redes (patas y rieles; valen los nombres de pata usuales: `D1.K`, `U1.VIN`, `U1.GPIO4`): capas por distancia a la fuente, reglas por tipo de pieza, cables, redes de tierra a un riel −, la revisión de redes y la revisión lesson, con reintentos y reparación cable por cable. Sobre un destino que ya existe, lo vuelve a montar en una sola revisión dando solo lo que cambia (`expect_revision`; las piezas conservan sus agujeros; `undo` lo deshace). Las redes quedan en el circuito (`spec`). Termina en `STATUS: DONE \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` solo revisa. El algoritmo: [montaje-automatico.md](montaje-automatico.md) | sí |
+| `layout` | un circuito de clase habitual por su nombre: `recipe` y solo los `values` que cambian ([recetas.md](recetas.md)); si no, un circuito entero ubicado en una llamada a partir de sus componentes (sin agujeros, en el orden de la señal; números de parte, módulos y alias) y sus redes (patas y rieles; valen los nombres de pata usuales: `D1.K`, `U1.VIN`, `U1.GPIO4`): capas por distancia a la fuente, reglas por tipo de pieza, cables, redes de tierra a un riel −, la revisión de redes y la revisión lesson, con reintentos y reparación cable por cable. Sobre un destino que ya existe, lo vuelve a montar en una sola revisión dando solo lo que cambia (`expect_revision`; las piezas conservan sus agujeros; `undo` lo deshace). Las redes quedan en el circuito (`spec`). Termina en `STATUS: DONE \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` solo revisa. El algoritmo: [montaje-automatico.md](montaje-automatico.md) | sí |
 | `suggest` | posiciones válidas para un componente nuevo, cada una con su operación `add` y el cuerpo más cercano (`nearest`: componente y holgura); `profile` deja fuera también lo que esa revisión bloquea; `parts` coloca varios en orden y responde un solo lote | no |
 | `apply_ops` | lote atómico; primero `dry_run`, luego `expect_revision`, `author`, `note` | sí |
 | `undo` | deshace el último cambio (revisión nueva) | sí |
@@ -71,7 +71,7 @@ la ruta absoluta de `mcp/server.js`, y las variables de arriba.
 | `history` | revisiones, autores, notas, operaciones | no |
 | `render` | escribe el SVG; con `png_width` devuelve también una imagen PNG; con `page: true` reescribe la página para embeber ([embeber.md](embeber.md)); con `sim: true` dibuja los resultados de la simulación; `focus: [ids]` atenúa lo demás; `flow: true` la capa de corriente | solo salidas |
 | `simulate` | voltajes de los grupos y corrientes de los componentes, un modelo ([simulacion.md](simulacion.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` agrega el enlace que abre el circuito en Falstad ([falstad.md](falstad.md)) | no |
-| `catalog` | sin `name`: una lista compacta (tipos con sus patas, números de parte por tipo, módulos, baterías, protoboards, vistas, operaciones); con `name` (un tipo, número de parte o módulo): patas, encapsulado, los campos que acepta y un componente real de `examples/` para copiar; `format: "json"` sin `name`: todos los registros completos | no |
+| `catalog` | sin `name`: una lista compacta (tipos con sus patas, números de parte por tipo, módulos, baterías, protoboards, vistas, operaciones); y las recetas con sus valores; con `name` (un tipo, número de parte, módulo o receta): patas, encapsulado, los campos que acepta y un componente real de `examples/` para copiar (de una receta, sus componentes, redes y valores con sus límites); `format: "json"` sin `name`: todos los registros completos | no |
 
 **Grupos por pata.** Donde una herramienta pide un grupo (`between` y `connect` de `suggest`,
 `query node`), una pata de un componente ya colocado nombra el grupo donde está: `"R1.2"`, `"U1.OUT"`.
@@ -85,7 +85,7 @@ errores de la herramienta con un mensaje legible (`isError`), nunca como una ca�
 solo lectura llevan `readOnlyHint`, para que los clientes puedan permitirlas sin preguntar.
 
 El servidor envía además **instrucciones**, la misma guía de `SKILL.md` en pocas líneas: qué
-herramienta para qué tarea (un circuito nuevo → `layout`; otras conexiones en un circuito hecho con
+herramienta para qué tarea (primero las recetas: un circuito de clase habitual → `layout` con `recipe`; otro circuito nuevo → `layout`; otras conexiones en un circuito hecho con
 `layout` → `layout` otra vez; un valor o un arreglo → `apply_ops`), qué significa cada `STATUS:`, el
 ciclo de operaciones, cómo revisar (`review`, `netlist`, `simulate`, sin mostrar nunca un valor por
 predecir), los agujeros y la simulación de la página. Nunca reescribir los archivos de circuito; PNG
@@ -94,6 +94,8 @@ solo cuando importa el estilo.
 ## Ejemplo de sesión
 
 ```
+layout    {target: "parpadeo", recipe: "555-astable", values: {C1: "22u"}}
+                                     → … STATUS: DONE · rev 0
 layout    {target: "interruptor", parts: [...], nets: [["R2.2", "D1.A"], ["D1.K", "Q1.C"], …]}
                                      → … STATUS: DONE · rev 0
 get_circuit {target: "interruptor"}  → el circuito con spec.nets

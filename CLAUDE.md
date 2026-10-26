@@ -123,6 +123,7 @@ src/ops.js       operations (pure, atomic, with inverses); src/diff.js evaluate 
 src/query.js     at, node, free, suggest, suggestMany (placements); src/query-format.js text output
 src/nets.js      nets: groups joined by wires, with their pins
 src/review.js    verdict from measurements, profiles lesson/draft
+src/recipes/     lesson circuits by name for layout (one data module each; index.js expands them)
 .claude/agents/  circuit-layout, circuit-reviewer, parts-librarian
 src/schema.js    JSON Schemas (written to schema/ by npm run schemas)
 src/node/        Node-only: workspace.js (targets, history, undo, create, outputs), raster.js (PNG),

@@ -18,6 +18,7 @@ import { OP_NAMES } from '../ops.js';
 import { ANNOTATION_LAYERS } from '../annotate.js';
 import { LANGUAGES, t } from '../i18n/index.js';
 import { buildSchemas } from '../schema.js';
+import { recipeSummary, recipeEntry } from '../recipes/index.js';
 
 export { COMMON_FIELDS, TYPE_FIELDS } from '../parts/fields.js';
 import { TYPE_FIELDS } from '../parts/fields.js';
@@ -70,6 +71,7 @@ export function compactCatalog(lang = 'en') {
     views: Object.keys(VIEWS),
     operations: OP_NAMES,
     languages: Object.keys(LANGUAGES),
+    recipes: recipeSummary(lang),
   };
 }
 
@@ -113,6 +115,8 @@ function catalogEntryExact(name, lang = 'en') {
 // One entry by any name the kit answers to: a type, a part number, a module, a board, or an alias
 // ("KCD1" → the rocker switch, "resistencia" → resistor), which comes back with what it stands for.
 export function catalogEntry(name, lang = 'en') {
+  const recipe = recipeEntry(name, lang);
+  if (recipe) return recipe;
   const exact = catalogEntryExact(name, lang);
   if (exact) return exact;
   const r = resolvePart({ id: '?', part: String(name ?? '') });
@@ -142,6 +146,9 @@ export function fullCatalog(lang = 'en') {
   };
 }
 
+// One recipe in a line: its name, title and the values that can change, with their defaults.
+export const recipeLine = (name, r) => `  ${name} (${r.title})${Object.keys(r.values).length ? ` · ${Object.entries(r.values).map(([id, v]) => `${id}=${v}`).join(' ')}` : ''}`;
+
 export function formatCompactCatalog(c, lang = 'en') {
   const lines = [t(lang, 'catalog.types')];
   for (const [k, v] of Object.entries(c.types)) {
@@ -151,12 +158,26 @@ export function formatCompactCatalog(c, lang = 'en') {
   lines.push(`${t(lang, 'catalog.modules')} ${Object.entries(c.modules).map(([k, m]) => `${k} (${m.mount})`).join(', ')}`);
   lines.push(`${t(lang, 'catalog.batteries')} ${c.batteries.join(', ')} · ${t(lang, 'catalog.photoresistors')} ${c.photoresistors.join(', ')}`);
   lines.push(`${t(lang, 'catalog.boards')} ${c.boards.join(', ')} · ${t(lang, 'catalog.views')} ${c.views.join(', ')} · ${t(lang, 'catalog.operations')} ${c.operations.join(', ')}`);
+  if (c.recipes) {
+    lines.push(t(lang, 'catalog.recipes'));
+    for (const [k, r] of Object.entries(c.recipes)) lines.push(recipeLine(k, r));
+  }
   lines.push(t(lang, 'catalog.more'));
   return lines.join('\n');
 }
 
 export function formatCatalogEntry(e, lang = 'en') {
   const aliasLine = e.alias ? `\n  ${t(lang, 'catalog.alias', { name: e.alias.name, fields: JSON.stringify(e.alias.fields) })}` : '';
+  if (e.kind === 'recipe') {
+    const lines = [`${e.recipe} (${e.title})`, `  ${t(lang, 'catalog.teaches')} ${e.teaches}`, `  ${t(lang, 'catalog.parts')} ${e.parts.map((p) => JSON.stringify(p)).join(', ')}`, `  ${t(lang, 'catalog.nets')} ${e.nets.map((n) => `[${n.join(', ')}]`).join(' ')}`];
+    if (e.supplies) lines.push(`  supplies: ${e.supplies.map((x) => JSON.stringify(x)).join(', ')}`);
+    lines.push(`  ${t(lang, 'catalog.recipeValues')}`);
+    for (const [id, v] of Object.entries(e.values)) {
+      const limits = v.choices ? ` [${v.choices.join(', ')}]` : v.min !== undefined || v.max !== undefined ? ` [${v.min ?? ''}…${v.max ?? ''}]` : '';
+      lines.push(`    ${id}: ${v.field} = ${v.default}${limits}${v.role ? ` · ${v.role}` : ''}`);
+    }
+    return lines.join('\n');
+  }
   if (e.kind === 'board') return `${e.part} (${e.name})\n  ${formatBoardLayout(e.layout, lang)}`;
   const head = e.kind === 'type' ? `${e.type} (${e.name})` : `${e.part} → ${e.type}${e.package ? ` · ${e.package}` : ''}${e.mount ? ` · ${e.mount}` : ''}`;
   const lines = [head];

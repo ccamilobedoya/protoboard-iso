@@ -12,10 +12,14 @@ Puntos de entrada; todos llaman a `autoLayout(spec, { profile, checkOnly })`:
 
 | Desde | Llamada |
 |---|---|
-| MCP | herramienta `layout` (`target`, `parts`, `nets`, `supplies`, `board`, `title`, `netLabels`, `page`, `clearance`, `check_only`) |
-| Consola | `node bin/protoboard-iso.js layout <objetivo nuevo> <spec.json \| -> [--check] [--json]` (sale con 0 si se aprueba, 2 si hay cambios) |
-| Código | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'` |
-| Banco de pruebas | `npm run layout-bench [-- spec.json …]` (corre `examples/layout/*.json`) |
+| MCP | herramienta `layout` (`target`, `recipe` y `values`, o `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `page`, `clearance`, `check_only`) |
+| Consola | `node bin/protoboard-iso.js layout <objetivo nuevo> <spec.json \| -> [--check] [--json]`, o `--recipe <nombre> [--values '<json>']` (sale con 0 si queda listo, 2 si hay cambios) |
+| Código | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'`; una receta pasa antes a especificación con `resolveRecipe` (`src/recipes/index.js`) |
+| Banco de pruebas | `npm run layout-bench [-- spec.json …]` (corre `examples/layout/*.json` y todas las recetas) |
+
+Una **receta** ([recetas.md](recetas.md)) es una especificación guardada en el kit para un circuito
+de clase habitual, que se llama por su nombre con solo los valores que cambian; se convierte en una
+especificación común antes de que corra todo lo de abajo.
 
 ## La especificación
 
@@ -103,6 +107,7 @@ primera que acepta `tryOps`:
 | Tipo de componente | Cómo se reconoce | Candidatas |
 |---|---|---|
 | Fuera de la protoboard (interruptor, Arduino, adaptador e-paper) | `resolve` responde `MODULE_PINS` | cada pata en un agujero libre de la tira de su red (del canal hacia afuera); si no, una tira nueva en el cursor, en la fila `e`/`f`, a dos columnas una de otra. De un interruptor solo cuentan las patas en uso y sus pares. |
+| Placa de desarrollo sobre el canal (ESP32 DevKit, C3 SuperMini) | tipo `module` con un encapsulado que se ubica por la pata 1 | la pata 1 en cada fila y columna cerca del cursor, puntuada por los agujeros libres que conserva en su tira cada pata que está en una red, fuera de la placa y de lo que sobresale su circuito impreso; se prueban las seis mejores. Un DevKit cuyas redes usan una sola fila de pines queda con la pata 1 en la fila `c` y la fila `a` libre (desde el 2026-10-26) |
 | Tres en línea (TO-220, TO-92, módulo AMS1117) | encapsulado `inline`, tres patas | tres tiras vacías seguidas dentro de `SPAN` columnas desde el cursor; las altas (`TALL`) en la fila `b`/`g`, las demás en `c`/`h` |
 | Dos patas con un riel en una de sus redes (un capacitor o un LED a tierra) | encapsulado `span`, dos patas, `max ≥ 2` pasos | de pie: una pata en el riel y la otra en la fila de al lado, en la tira del componente anterior si queda del mismo lado; si no, en una tira nueva |
 | Dos patas, en otro caso (una resistencia en serie) | encapsulado `span`, dos patas | a lo largo de una fila: una pata en la tira del componente anterior y la otra `k`, `k+1` o `k+2` columnas más allá (`k` = la separación mínima del encapsulado), en una tira vacía; después, cualquier par de tiras vacías en la 2.ª–4.ª fila desde el riel |
@@ -132,7 +137,10 @@ grupo más cercano que ya está en la red, con **el par de agujeros libres más 
   recto se lee mejor); los pares de menos de dos pasos se saltan (demasiado cortos para verse);
 - agujeros de riel solo a 6 columnas o menos del grupo (un cable no recorre la protoboard para
   llegar a un riel);
-- se prueban los primeros 40 pares; si ninguno pasa, `LAYOUT_WIRE_FAILED`.
+- se prueban los primeros 40 pares; si ninguno pasa, el grupo espera a que el resto de la red quede
+  unido (el riel se une al final) y se prueba una vez más contra todo eso (desde el 2026-10-26: la
+  tira de tierra de un pulsador que no alcanza la tira GND tapada por la placa llega al riel −); si
+  tampoco, `LAYOUT_WIRE_FAILED`.
 
 Color: el `color` de la red; si no tiene, negro para una red con un riel `−`, rojo para una con un
 riel `+` y, si no, el siguiente de `PALETTE` (uno por red).
@@ -240,10 +248,16 @@ contaba como dos vistas dos piezas que la tapaban en la misma. Desde el 2026-10-
 **mejor vista** de la pieza muestra menos del 70 % (`hiddenBelow` en `PROFILES.lesson`), contado por
 vista. Un 555 que se ve 73 % de frente y 69 % desde atrás ya no bloquea; se lee bien.
 
-Cuatro circuitos de clase más, probados el 2026-10-20 (todavía no están en el banco): el NPN como
-interruptor, el divisor con potenciómetro y el 555 astable salen aprobados al primer intento; el
-ESP32 DevKit con pulsador y LED deja su pata de tierra aparte, porque la placa tapa esa tira (límite
-6, abajo).
+Cuatro circuitos de clase más, probados el 2026-10-20: el NPN como interruptor, el divisor con
+potenciómetro y el 555 astable salen aprobados al primer intento; el ESP32 DevKit con pulsador y LED
+dejaba su pata de tierra aparte, porque la placa tapa esa tira (límite 6, abajo).
+
+Desde el 2026-10-26 el banco corre también las quince recetas con sus valores por defecto, y una
+receta falla si no termina en `DONE`: las quince lo logran, entre 30 y 520 ms, al primer intento
+salvo `mosfet-switch` (2 intentos) y `555-astable` (3). Dos recetas pidieron cambiar el algoritmo y
+no la receta: las del ESP32 (la regla de las placas y el grupo que espera, arriba); una pidió cambiar
+la receta: `bridge-rectifier` deja el lado de continua fuera de los rieles y su condensador de
+filtro al final, así cualquier valor habitual (100 µF a 2200 µF) deja los cables a la vista.
 
 ## Cambiar el algoritmo
 
@@ -289,10 +303,13 @@ En orden de lo que más rendiría:
    vacías cerca del cursor, que puede quedar lejos de donde se conectan; los cables lo compensan.
 5. **Chips DIP y pulsadores** pasan por `suggest`, que funciona pero es más lento y no sabe de las
    etapas del cursor más allá de `near`.
-6. **Las placas anchas tapan sus tiras.** Un ESP32 DevKit a caballo del canal no deja ningún agujero
-   libre al que llegue un cable en las tiras de algunas de sus patas (la placa queda encima), así que
-   una red ahí falla incluso después de la reparación. Llegar a la red por la otra pata de la placa
-   con el mismo nombre (`GND2`) o ubicar la placa dejando una fila libre lo arreglaría.
+6. **Las placas anchas tapan sus tiras.** Un ESP32 DevKit a caballo del canal tapa 11 filas con su
+   circuito impreso: solo las tiras de una fila de pines conservan una fila libre (la `a`, con la
+   pata 1 en la `c`). Desde el 2026-10-26 la placa se ubica para que las patas que están en redes
+   conserven esa fila, lo que cubre un circuito en una sola fila de pines (`esp32-led`,
+   `esp32-button`). Redes en las dos filas (`3V3` y `D4`) todavía dejan un lado sin agujero: llegar
+   por la otra pata de la placa con el mismo nombre (`GND2`), o una protoboard más ancha con el
+   DevKit fuera de ella, lo arreglaría.
 
 ## Ver también
 

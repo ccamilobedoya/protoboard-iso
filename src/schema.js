@@ -11,6 +11,7 @@ import { CIRCUIT_FIELDS } from './ops.js';
 import { LANGUAGES } from './i18n/index.js';
 import { BATTERY_FORMATS, BATTERY_CHEMISTRIES } from './parts/batteries.js';
 import { LDR_PARTS } from './parts/types/more.js';
+import { RECIPES } from './recipes/index.js';
 
 export function buildSchemas() {
   const text = { type: 'string' };
@@ -94,6 +95,13 @@ export function buildSchemas() {
           nets: { type: 'array', items: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'object', properties: { pins: { type: 'array', items: { type: 'string' } }, color: { type: 'string' } }, required: ['pins'] }] } },
           supplies: { type: 'array', items: { type: 'object' } },
           wires: { type: 'array', items: { type: 'string' }, description: 'jumpers added by layout (not parts of the spec)' },
+          recipe: {
+            type: 'object',
+            description: 'The recipe the circuit was laid out from (src/recipes/), with the values given; gone once it is laid out again with other parts or nets',
+            properties: { name: { enum: Object.keys(RECIPES) }, values: { type: 'object' } },
+            required: ['name'],
+            additionalProperties: false,
+          },
         },
         additionalProperties: false,
       },

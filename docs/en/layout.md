@@ -12,10 +12,13 @@ Entry points, all calling `autoLayout(spec, { profile, checkOnly })`:
 
 | From | Call |
 |---|---|
-| MCP | tool `layout` (`target`, `parts`, `nets`, `supplies`, `board`, `title`, `netLabels`, `page`, `clearance`, `check_only`) |
-| CLI | `node bin/protoboard-iso.js layout <new target> <spec.json \| -> [--check] [--json]` (exit 0 approved, 2 changes) |
-| Code | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'` |
-| Bench | `npm run layout-bench [-- spec.json …]` (runs `examples/layout/*.json`) |
+| MCP | tool `layout` (`target`, `recipe` and `values`, or `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `page`, `clearance`, `check_only`) |
+| CLI | `node bin/protoboard-iso.js layout <new target> <spec.json \| -> [--check] [--json]`, or `--recipe <name> [--values '<json>']` (exit 0 done, 2 changes) |
+| Code | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'`; a recipe is turned into a spec first by `resolveRecipe` (`src/recipes/index.js`) |
+| Bench | `npm run layout-bench [-- spec.json …]` (runs `examples/layout/*.json` and every recipe) |
+
+A **recipe** ([recipes.md](recipes.md)) is a spec kept in the kit for a usual lesson circuit, called
+by name with only the values that change; it becomes an ordinary spec before anything below runs.
 
 ## The spec
 
@@ -99,6 +102,7 @@ wins:
 | Part kind | How it is recognised | Candidates |
 |---|---|---|
 | Off the board (switch, Arduino, e-paper adapter) | `resolve` answers `MODULE_PINS` | each lead in a free hole of the strip of its net (from the channel outwards), else a fresh strip at the cursor in row `e`/`f`, two columns apart. A switch keeps only the pins in use and their partners. |
+| Development board over the channel (ESP32 DevKit, C3 SuperMini) | type `module` with a package placed by pin 1 | pin 1 in every row and column near the cursor, scored by the free holes each pin in a net keeps on its strip outside the board and its overhanging PCB; the best six are tried. A DevKit whose nets use one header lands with pin 1 in row `c`, leaving row `a` free (since 2026-10-26) |
 | Three in a row (TO-220, TO-92, AMS1117 module) | package `inline`, three pins | three consecutive empty strips within `SPAN` columns of the cursor; tall ones (`TALL`) in row `b`/`g`, others in `c`/`h` |
 | Two leads, a rail in one net (a capacitor or LED to ground) | package `span`, two pins, `max ≥ 2` pitches | upright: one lead in the rail, the other in the row next to it, on the strip of the part before it when that is on the same side, else on a fresh strip |
 | Two leads, otherwise (a resistor in series) | package `span`, two pins | along a row: one lead on the strip of the part before it, the other `k`, `k+1` or `k+2` columns on (`k` = the package's minimum span), on an empty strip; then any two empty strips in the 2nd–4th rows from the rail |
@@ -127,7 +131,10 @@ nearest group already in the net, with the **shortest pair of free holes that pa
   better); pairs shorter than two pitches are skipped (too short to see);
 - rail holes only within 6 columns of the group (a jumper does not run along the board to reach a
   rail);
-- the first 40 pairs are tried; none passes → `LAYOUT_WIRE_FAILED`.
+- the first 40 pairs are tried; none passes → the group waits until the rest of the net is joined
+  (a rail is joined last) and is tried once more against all of it (since 2026-10-26: a button's
+  ground strip that cannot reach the board's covered GND strip reaches the − rail instead); still
+  none → `LAYOUT_WIRE_FAILED`.
 
 Colour: the net's `color`, else black for a net with a `−` rail, red for one with a `+` rail, else
 the next of `PALETTE` (one per net).
@@ -232,9 +239,16 @@ parts covering it in one view as two views. Since 2026-10-20 it blocks when the 
 shows less than 70 % of it (`hiddenBelow` in `PROFILES.lesson`), counted per view. A 555 seen 73 %
 from the front and 69 % from the back no longer blocks; it reads well.
 
-Four more lesson circuits tried on 2026-10-20 (not yet in the bench): an NPN switch, a potentiometer
-divider and a 555 astable come out approved at the first try; an ESP32 DevKit with a button and an
-LED is left with its ground pin apart, since the board covers that strip (limit 6 below).
+Four more lesson circuits tried on 2026-10-20: an NPN switch, a potentiometer divider and a 555
+astable come out approved at the first try; an ESP32 DevKit with a button and an LED was left with
+its ground pin apart, since the board covers that strip (limit 6 below).
+
+Since 2026-10-26 the bench also runs the fifteen recipes with their default values, and a recipe
+fails the bench unless it ends in `DONE`: all fifteen do, in 30 to 520 ms, at the first try except
+`mosfet-switch` (2 tries) and `555-astable` (3). Two recipes needed the algorithm, not the recipe:
+the ESP32 ones (the board rule and the waiting group above); one needed the recipe:
+`bridge-rectifier` keeps its DC side off the rails and its filter capacitor last, so any usual
+value (100 µF to 2200 µF) leaves the jumpers in sight.
 
 ## Changing the algorithm
 
@@ -281,10 +295,12 @@ In order of what would pay most:
    up for it.
 5. **DIP chips and buttons** go through `suggest`, which works but is slower and does not know about
    the cursor's stages beyond `near`.
-6. **Wide boards cover their strips.** An ESP32 DevKit across the channel leaves no free hole that a
-   jumper can reach on some of its pins' strips (the board sits over them), so a net there fails even
-   after the repair. Reaching the net through the board's other pin of the same name (`GND2`) or
-   placing the board with a free row would fix it.
+6. **Wide boards cover their strips.** An ESP32 DevKit across the channel covers 11 rows with its
+   PCB: only one header's strips keep a free row (row `a` with pin 1 in `c`). Since 2026-10-26 the
+   board is placed so the pins in its nets keep that row, which covers a circuit on one header
+   (`esp32-led`, `esp32-button`). Nets on both headers (`3V3` and `D4`) still leave one side with no
+   hole: reaching it through the board's other pin of the same name (`GND2`), or a second board
+   width with the DevKit off the board, would fix it.
 
 ## See also
 
