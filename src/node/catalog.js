@@ -147,7 +147,7 @@ export function fullCatalog(lang = 'en') {
 }
 
 // One recipe in a line: its name, title and the values that can change, with their defaults.
-export const recipeLine = (name, r) => `  ${name} (${r.title})${Object.keys(r.values).length ? ` · ${Object.entries(r.values).map(([id, v]) => `${id}=${v}`).join(' ')}` : ''}`;
+export const recipeLine = (name, r) => `  ${name} (${r.title})${Object.keys(r.values).length ? ` · ${Object.entries(r.values).map(([id, v]) => `${id}=${String(v).includes('\n') ? '(sketch)' : v}`).join(' ')}` : ''}`;
 
 export function formatCompactCatalog(c, lang = 'en') {
   const lines = [t(lang, 'catalog.types')];

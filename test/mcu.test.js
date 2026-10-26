@@ -15,10 +15,12 @@ const laid = (spec) => {
   assert.equal(r.status, 'done');
   return r.circuit;
 };
-const withIo = (circuit, id, io, extra = {}) => ({ ...circuit, parts: circuit.parts.map((p) => (p.id === id ? { ...p, ...extra, io } : p)) });
+const withIo = (circuit, id, io, extra = {}) => ({ ...circuit, parts: circuit.parts.map((p) => (p.id === id ? { ...p, program: undefined, ...extra, io } : p)) });
+// The recipes' boards run a program (phase M2); these tests fix the pins with io instead (M1).
+const fixed = (name, io) => withIo(laid(expandRecipe(name).spec), 'U1', io);
 
 test('ESP32 output HIGH: 3.3 V behind its output resistance; the board on USB is the only source', () => {
-  const circuit = laid(expandRecipe('esp32-led').spec);
+  const circuit = fixed('esp32-led', { D13: 'high' });
   const r = simulate(circuit);
   assert.ok(r.ok, JSON.stringify(r.issues));
   const pin = r.parts.U1.pins.find((x) => x.name === 'D13');
@@ -36,7 +38,7 @@ test('ESP32 output HIGH: 3.3 V behind its output resistance; the board on USB is
 });
 
 test('ESP32 input with pull-up: reads 1 released, 0 pressed, through its 45 kΩ', () => {
-  const circuit = laid(expandRecipe('esp32-button').spec);
+  const circuit = fixed('esp32-button', { D27: 'input_pullup' });
   const released = simulate(circuit).parts.U1.pins.find((x) => x.name === 'D27');
   assert.deepEqual([released.mode, released.pull, released.read], ['input', 'up', 1]);
   assert.ok(released.voltage > 3.29);
@@ -77,7 +79,7 @@ test('5 V on an ESP32 pin: its protection diodes conduct, and the page says so',
 });
 
 test('io mistakes are reported and left out: an unknown pin, an unknown state, an output on an input-only pin', () => {
-  const circuit = laid(expandRecipe('esp32-led').spec);
+  const circuit = fixed('esp32-led', {});
   const r = simulate(withIo(circuit, 'U1', { D13: 'high', D99: 'high', D27: 'sideways', D34: 'high' }));
   assert.ok(r.ok);
   assert.deepEqual(codes(r.issues).filter((c) => c.startsWith('SIM_PIN')).sort(), ['SIM_PIN_INPUT_ONLY', 'SIM_PIN_STATE', 'SIM_PIN_UNKNOWN']);
@@ -86,7 +88,7 @@ test('io mistakes are reported and left out: an unknown pin, an unknown state, a
 });
 
 test('a board with usb: false is no source; other modules stay unsupported', () => {
-  const circuit = laid(expandRecipe('esp32-led').spec);
+  const circuit = fixed('esp32-led', {});
   assert.deepEqual(codes(simulate(withIo(circuit, 'U1', { D13: 'high' }, { usb: false })).issues), ['SIM_NO_SUPPLY']);
   const epaper = JSON.parse(readFileSync(new URL('../examples/epaper-esp32.json', import.meta.url), 'utf8'));
   const r = simulate(epaper);

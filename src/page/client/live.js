@@ -60,6 +60,12 @@ export function setupLive(page) {
   const engine = createEngine(program);
   const stepFor = (list) => Math.max(Math.min(...list) / 50, Math.max(...list) / 5000);
   function timing(taus, periods) {
+    // A board's program runs in real time, its delay() in seconds as on the bench: steps of
+    // 1 ms, or shorter for a fast RC beside it (never under 0.1 ms, so the page keeps up).
+    if (engine.hasProgram?.()) {
+      const h = Math.max(1e-4, Math.min(1e-3, taus.length ? stepFor(taus) : 1e-3, periods.length ? Math.min(...periods) / 100 : 1e-3));
+      return { h, perSecond: 1, window: Math.max(4, ...periods.map((p) => 4 * p)), periodic: periods.length > 0 };
+    }
     if (periods.length) {
       const h = Math.min(taus.length ? stepFor(taus) : Infinity, Math.min(...periods) / 100);
       return { h, perSecond: Math.max(...periods), window: 4 * Math.max(...periods), periodic: true };

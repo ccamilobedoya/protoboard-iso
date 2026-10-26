@@ -280,7 +280,7 @@ export function createEngine(source) {
       }
       // t = 0: memories hold their starting values (a very short step pins them there).
       ctx = { h: h * 1e-6 };
-      const first = solveWithLimits(prep, x, ctx);
+      const first = settle(prep, solveWithLimits(prep, x, ctx), ctx);
       if (!first.ok) return false;
       x = first.x;
       pending = null;
@@ -317,6 +317,8 @@ export function createEngine(source) {
       return out;
     },
     timeConstants: () => timeConstants(prep),
+    // A board runs a program: the page steps in real time even with no C, L or generator.
+    hasProgram: () => prep.system.elements.some((el) => el.settle),
     periods: () => program.supplies.filter((s) => s.generator && !s.off).map((s) => 1 / s.generator.frequency),
     controls: () => controlsOf(program),
     // The program as the controls left it (a copy): what the page exports to Falstad.
@@ -389,7 +391,7 @@ function changeProgram(program, id, field, value) {
 // What an element remembers between steps or Newton iterations: capacitor voltage, inductor
 // current, junction and transistor voltages. Matched by part and by the order the part added
 // its elements (a pressed button adds its contact last, after the poles).
-const STATE = ['vprev', 'iprev', 'vd', 'vgs', 'vds', 'vbe', 'vbc', 'q', 'mode', 'level', 'pull'];
+const STATE = ['vprev', 'iprev', 'vd', 'vgs', 'vds', 'vbe', 'vbc', 'q', 'mode', 'level', 'pull', 'runner'];
 function carryState(old, prep) {
   for (const [id, list] of prep.owned) {
     const before = old.owned.get(id) ?? [];
@@ -425,10 +427,23 @@ function timeConstants(prep) {
   return out;
 }
 
+// Programs (a board's sketch, devices/mcu.js) start at t = 0 from the voltages there: run them
+// (setup, then loop until it waits) and solve again while they change a pin.
+function settle(prep, r, ctx) {
+  const programs = prep.system.elements.filter((el) => el.settle);
+  for (let round = 0; round < 5 && r.ok && programs.length; round++) {
+    let changed = false;
+    for (const el of programs) if (el.settle(r.x)) changed = true;
+    if (!changed) break;
+    r = solveWithLimits(prep, r.x, ctx);
+  }
+  return r;
+}
+
 function dc(prep) {
   const ctx = {};
   setTime(prep, 0); // a generator's operating point is the one at t = 0
-  const r = solveWithLimits(prep, new Array(prep.system.size).fill(0), ctx);
+  const r = settle(prep, solveWithLimits(prep, new Array(prep.system.size).fill(0), ctx), ctx);
   if (!r.ok) return { analysis: 'dc', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
   const reading = readAll(prep, r.x, ctx);
   // Each part against its limits: { quantity, value, max, unit, ratio, level } (controls.js).
@@ -462,7 +477,7 @@ function transient(prep, { stop, step, start = 'zero', points = 400 } = {}) {
     for (const c of caps) c.accept(x, {});
   }
   // t = 0: the capacitors hold their starting voltage (a very short step pins them there).
-  const first = solveWithLimits(prep, x, { h: step * 1e-6 });
+  const first = settle(prep, solveWithLimits(prep, x, { h: step * 1e-6 }), { h: step * 1e-6 });
   if (!first.ok) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
   x = first.x;
 

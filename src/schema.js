@@ -53,6 +53,7 @@ export function buildSchemas() {
         additionalProperties: { enum: ['high', 'low', 'input', 'input_pullup', 'input_pulldown'] },
         description: 'module, microcontroller boards (ESP32 DevKit, ESP32-C3 SuperMini, UNO): the state of each GPIO for the simulation, by printed name, GPIO name or number ({"D13": "high", "D27": "input_pullup"}); unlisted pins are inputs (docs/en/microcontrollers.md)',
       },
+      program: { type: 'string', description: 'module, microcontroller boards: its program for the simulation, the Arduino C++ subset a lesson uses: the sketch\'s text, or the name of a .ino file beside the circuit ("blink.ino"). setup() once, then loop(); delay() waits in simulated time (docs/en/microcontrollers.md)' },
       usb: { type: 'boolean', description: 'module, microcontroller boards: powered by USB (default true): the board is a 5 V source and its regulator makes the 3.3 V rail' },
       led: { type: 'string', description: 'regulator module (AMS1117): its power LED\'s resistor, "1k" (default), "200", or "none"' },
       position: { type: 'number', minimum: 0, maximum: 1, description: 'potentiometer wiper position' },

@@ -157,7 +157,7 @@ export const INSTRUCTIONS = [
   'Operations: history and inspect (numbers, not pictures) → query / suggest → apply_ops with dry_run → apply_ops with expect_revision, author and note → review until APPROVED → undo if needed.',
   'Check: review is the definition of done (it also checks the nets of a circuit made by layout); netlist lists every net; simulate gives a model, and a value a learner must predict is never shown. render returns a PNG only when asked: images are slow to read.',
   'Holes: a1…j63 (row letter + column), rails T-, T+, B+, B- plus the column (T+9). Rows a–e of a column are connected, f–j too; each rail is one group.',
-  'Microcontroller boards (ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO) are simulated pin by pin: on USB they are a source (no supplies needed), and each GPIO state goes in the part: "io": {"D13": "high", "D27": "input_pullup"} (high, low, input, input_pullup, input_pulldown).',
+  'Microcontroller boards (ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO) are simulated pin by pin: on USB they are a source (no supplies needed), and each GPIO state goes in the part: "io": {"D13": "high", "D27": "input_pullup"} (high, low, input, input_pullup, input_pulldown), or it runs a program: "program": "blink.ino" (a file beside the circuit) or the sketch\'s text (setup, loop, pinMode, digitalWrite, digitalRead, delay, millis, Serial).',
   'The page out/<name>.html of a circuit with a source runs the simulation by default: values of the tapped part, oscilloscope, lit LEDs, and the Current button in the bar (not pressed). Turn it off with page.simulation false while a learner must predict a value (page.results false or page.flow false turn off one each).',
 ].join('\n');
 

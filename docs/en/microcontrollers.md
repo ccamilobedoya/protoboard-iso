@@ -7,7 +7,7 @@ processor, but what a learner sees at the pins. Each GPIO behaves electrically l
 and a short program in Arduino's own functions decides, in time, what each pin does. The same code
 serves every board; what changes are each family's numbers.
 
-Planned with the maintainer on 2026-10-26. Phase M1 is done; M2 to M4 follow.
+Planned with the maintainer on 2026-10-26. Phases M1 and M2 are done; M3 and M4 follow.
 
 ## Why not emulate the processor
 
@@ -65,18 +65,62 @@ board's pins in `src/parts/modules.js` (`power`, `gpio`, `adc`, `inputOnly`).
 - Tests: `test/mcu.test.js` (VOH with the output resistance, pull-up current, the UNO at 5 V, 5 V on
   an ESP32 pin, `io` mistakes, `usb: false`).
 
+## The program (phase M2, done)
+
+```json
+{ "id": "U1", "type": "module", "part": "ESP32-DEVKIT", "pin1": "c5", "program": "blink.ino" }
+```
+
+`program` is the name of a `.ino` file beside the circuit (`circuit.json`'s folder), or the sketch's
+text itself (examples, recipes). It is the sketch one would upload:
+
+```cpp
+const int LED = 13;
+void setup() { pinMode(LED, OUTPUT); }
+void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay(500); }
+```
+
+- **What it reads** (`src/sim/sketch.js`, translated once when the circuit is compiled): globals and
+  constants, `#define NAME value`, its own functions, `int`/`long`/`float`/`bool`/`byte`/`unsigned …`
+  and arrays with `{ … }`, `if`/`else`, `while`, `do … while`, `for`, `switch`, `break`, `continue`,
+  `return`, the operators C and JavaScript share, casts (`(int) x`), char literals, number suffixes
+  (`1000UL`). Integer variables keep integer division (`7 / 2` → 3).
+- **What it can call** (`src/sim/program.js`): `pinMode` (`INPUT`, `OUTPUT`, `INPUT_PULLUP`,
+  `INPUT_PULLDOWN`), `digitalWrite`, `digitalRead`, `delay`, `delayMicroseconds`, `millis`,
+  `micros`, `Serial.begin/print/println` (its last lines show in the board's card), `analogRead`
+  (the ADC count), `map`, `constrain`, `min`, `max`, `abs`, `random` (a fixed sequence), the bit
+  functions, `LED_BUILTIN` (2 on the DevKit, 8 on the C3, 13 on the UNO) and `A0`…`A5`. On an UNO,
+  `digitalWrite(pin, HIGH)` on an input turns its pull-up on, as on the real chip.
+- **How it runs:** every function becomes a generator, so `delay()` waits in simulated time. The
+  program runs between time steps, from the voltages of the step before, as the 555's latch: a
+  change takes effect one step later (1 ms in the page). At t = 0 it starts over from the
+  voltages there until its pins come out the same (its setup may turn on a pull-up its loop reads).
+  A loop that never waits gets 2000 turns per step, so the page does not freeze. When a control is
+  used (a button pressed), the program goes on where it was.
+- **In the page:** a circuit with a program runs in real time (`delay(500)` is half a second),
+  with steps of 1 ms (shorter, down to 0.1 ms, for a fast RC beside it). The board's card shows the
+  program (running, or in `delay()` until when), its Serial lines and each pin.
+- **Not run:** classes, pointers, templates, function-like macros, libraries (an `#include` other
+  than Arduino's is noted: `SIM_PROGRAM_LIBRARY`); a call to a function nobody defines returns 0
+  (`SIM_PROGRAM_UNSUPPORTED`); a line it cannot read stops it (`SIM_PROGRAM_ERROR`, with the line);
+  a missing file (`SIM_PROGRAM_FILE`). `analogWrite`, `ledcWrite` and `tone` do nothing yet (M3)
+  and say so in the card.
+- Tests: `test/program.test.js` (the translator, blink against time, a button read by the program
+  through the engine's steps and a rebuild, the `.ino` file).
+
 ## The plan
 
 | Phase | What | State |
 |---|---|---|
 | **M1** | Pin model with fixed states (`io`), the board on USB as a source, limits and warnings | ✅ 2026-10-26 |
-| **M2** | The program: the `.ino` beside the circuit, translated to JavaScript; `pinMode`, `digitalWrite`, `digitalRead`, `delay`, `millis`; run between time steps (as the 555's latch), `delay` waits in simulated time; the page shows it running (an LED blinks at the program's rhythm) | ⬜ |
-| **M3** | `analogRead` (the ADC), PWM as a real square wave in time (`analogWrite` on the UNO, `ledcWrite` on the ESP32), `Serial.print` to a console panel in the page | ⬜ |
-| **M4** | Recipes for the UNO and the C3 (LED, button, potentiometer with ADC and PWM), the existing ESP32 recipes with their program, docs and agents | ⬜ |
+| **M2** | The program: the `.ino` beside the circuit (or its text), translated to JavaScript; `pinMode`, `digitalWrite`, `digitalRead`, `delay`, `millis`, `Serial`; run between time steps, `delay` waits in simulated time; the page runs it in real time | ✅ 2026-10-26 |
+| **M3** | PWM as a real square wave in time (`analogWrite` on the UNO, `ledcWrite` on the ESP32), `tone`, a Serial console panel in the page (today: lines in the board's card), `analogRead` against the ADC's real curve | ⬜ |
+| **M4** | Recipes for the UNO and the C3 (LED, button, potentiometer with ADC and PWM); the ESP32 recipes already have their program (2026-10-26) | ⬜ |
 | later | Interrupts (`attachInterrupt`), simplified stand-ins for common libraries, real UNO firmware with avr8js as an optional mode, both ESP32 headers in one circuit (the layout limit) | — |
 
-The program will drive the same memory the pins keep now (`gpioStage`: `mode`, `level`, `pull`),
-read at each step, so M2 adds no element to the engine.
+The program drives the memory the pins keep (`gpioStage`: `mode`, `level`, `pull`) through one
+element with no current of its own (the board's controller), so the engine only learned to run
+programs at t = 0 (`settle`) and to tell the page it has one (`hasProgram`).
 
 ## See also
 

@@ -33,8 +33,8 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `regulator-ams1117` | AMS1117 module feeding an LED | U1 = AMS1117-3.3 (AMS1117-3.3, AMS1117-5.0), R1 = 220, D1 = red, V1 = 5 V (4.5–15) |
 | `bridge-rectifier` | Bridge, filter capacitor and an LED, from a sine on the top rails | C1 = 470u, R1 = 1k, D1 = red, G1 = 12 V peak (3–30) |
 | `zener-regulator` | Zener and its series resistor holding a load | R1 = 470, D1 = 1N4733A (any 1N47xx), R2 = 1k (load), V1 = 9 V (3–30) |
-| `esp32-led` | ESP32 DevKit lighting an LED from D13 | R1 = 220, D1 = red |
-| `esp32-button` | ESP32 DevKit reading a button on D27 (internal pull-up) | — |
+| `esp32-led` | ESP32 DevKit blinking an LED on D13, with its program | R1 = 220, D1 = red, U1 = its sketch (`program`) |
+| `esp32-button` | ESP32 DevKit reading a button on D27 (internal pull-up), printing what it reads | U1 = its sketch (`program`) |
 | `opamp-comparator` | LM358 comparing a potentiometer with half the supply; an LED on its output | RV1 = 10k (wiper at 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 5 V (5–30) |
 | `lm393-comparator` | LM393 comparator: its open collector sinks an LED fed from the supply | RV1 = 10k (wiper at 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, V1 = 5 V (3–30) |
 | `opamp-follower` | LM358 voltage follower: the output copies a potentiometer and drives an LED | RV1 = 100k, R1 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30) |
@@ -68,8 +68,8 @@ and `undo` brings the old values back. To add parts or connections, call `layout
 full `parts` and `nets` (`get_circuit` shows them): it is then a circuit of its own and loses
 `spec.recipe`. A value or a description alone can also be changed with `apply_ops`.
 
-What a recipe does not do yet: the ESP32 recipes set their pins with `io` (D13 high, D27 an input
-with its pull-up) until programs come ([microcontrollers.md](microcontrollers.md), phase M2), and the
+The ESP32 recipes run a program ([microcontrollers.md](microcontrollers.md)); `values: { "U1":
+"blink.ino" }` puts one's own sketch in its place (a file beside the circuit, or its text). Their
 pins are fixed (D13, D27). The 555 is simulated since 2026-10-26: its page
 blinks, in slow motion (the page's time follows the slowest time constant).
 

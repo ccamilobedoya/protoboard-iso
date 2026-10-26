@@ -21,6 +21,35 @@ import { batteryModel } from '../parts/batteries.js';
 import { WAVEFORMS, waveAt } from './generator.js';
 import { deviceFor } from './devices/index.js';
 import { issue } from './devices/shared.js';
+import { translateSketch } from './sketch.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+// The folder a circuit was loaded from (node/workspace.js sets it, unsaved): where a board's
+// program file ("program": "blink.ino") is read from.
+export const CIRCUIT_FOLDER = Symbol.for('protoboard-iso.folder');
+
+// A board's program (docs/en/microcontrollers.md, M2): the sketch's text in "program", or the name
+// of a .ino file beside the circuit; translated once here, run by the page and by simulate.
+const SKETCH_SEVERITY = { SIM_PROGRAM_ERROR: 'warning', SIM_PROGRAM_NO_LOOP: 'warning', SIM_PROGRAM_UNSUPPORTED: 'warning', SIM_PROGRAM_LIBRARY: 'info' };
+function sketchOf(circuit, part, issues) {
+  const given = part.raw.program;
+  if (given == null || given === '') return null;
+  let text = String(given);
+  if (/\.ino$/i.test(text.trim()) && !text.includes('\n')) {
+    const folder = circuit[CIRCUIT_FOLDER];
+    try {
+      if (!folder) throw new Error('no folder');
+      text = readFileSync(join(folder, text.trim()), 'utf8');
+    } catch {
+      issues.push(issue('warning', 'SIM_PROGRAM_FILE', { part: part.id, file: text.trim() }));
+      return null;
+    }
+  }
+  const r = translateSketch(text);
+  for (const i of r.issues) issues.push(issue(SKETCH_SEVERITY[i.code] ?? 'warning', i.code, { part: part.id, line: i.line, ...(i.name && { name: i.name }), ...(i.message && { message: i.message }) }));
+  return r.js;
+}
 
 function resolveSupplyNode(board, ref) {
   if (ref == null) return null;
@@ -115,7 +144,8 @@ export function compile(circuit) {
       issues.push(issue('info', 'SIM_UNSUPPORTED', { part: part.id }));
       return { id: part.id, kind, pins, unsupported: true };
     }
-    return { id: part.id, type: part.type, kind, pins, params: device.params(part, { issues, members }) };
+    const sketch = kind === 'MCU' ? sketchOf(circuit, part, issues) : null;
+    return { id: part.id, type: part.type, kind, pins, params: device.params(part, { issues, members, sketch }) };
   });
   return { program: { v: 1, ground, nodes, members, supplies, devices, issues } };
 }

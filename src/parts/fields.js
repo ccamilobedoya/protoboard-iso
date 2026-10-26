@@ -17,7 +17,7 @@ export const TYPE_FIELDS = {
   switch: ['style', 'on', 'wires', 'side', 'offset'],
   wire: ['color', 'style', 'height'],
   battery: ['format', 'chemistry', 'cells', 'charge', 'capacity', 'voltage', 'internalResistance', 'switch', 'side', 'offset'],
-  module: ['part', 'pin1', 'rowSpacing', 'wires', 'side', 'offset', 'rese', 'panel', 'io', 'usb'],
+  module: ['part', 'pin1', 'rowSpacing', 'wires', 'side', 'offset', 'rese', 'panel', 'io', 'usb', 'program'],
   inductor: ['value', 'dcr', 'current'],
   thermistor: ['value', 'beta', 'temperature'],
   ldr: ['part', 'light'],

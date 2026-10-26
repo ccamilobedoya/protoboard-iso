@@ -12,6 +12,7 @@
 
 import { resistor, junction, regulatorElement, partSource, gpioStage } from '../mna.js';
 import { MCUS } from '../models.js';
+import { createRunner } from '../program.js';
 import { issue, stress, note, q } from './shared.js';
 
 const ESD = { is: 1e-14, n: 1 }; // the protection diodes on every pin
@@ -42,7 +43,7 @@ export const mcu = {
     const gpios = part.pinNames
       .filter((name) => board.gpio[name] !== undefined)
       .map((name) => ({ name, gpio: board.gpio[name], adc: board.adc?.includes(board.gpio[name]) ?? false, state: io[name] ?? null, used: Boolean(io[name]) || !alone(name) }));
-    return { model, power: board.power, gpios, wired: part.pinNames, usb: part.raw.usb !== false, ground: `~${part.id}:GND` };
+    return { model, family: e.family, power: board.power, gpios, wired: part.pinNames, usb: part.raw.usb !== false, ground: `~${part.id}:GND`, sketch: c.sketch ?? null };
   },
   elements(p, h) {
     const m = p.model;
@@ -69,6 +70,52 @@ export const mcu = {
     add(resistor(entry.vdd, gnd, m.vdd / m.own));
     if (has(p.power.reset)) add(resistor(h.pin(p.power.reset), entry.vdd, RESET_PULL));
     if (has(p.power.ioref)) add(resistor(h.pin(p.power.ioref), entry.vdd, 1e-3));
+    // The program (phase M2): an element with no current of its own, first in the list so its
+    // pin states reach the stages before they stamp. It runs when a step is accepted, from that
+    // step's voltages; `settle` runs it at t = 0 (setup, then loop until it waits).
+    const byGpio = new Map();
+    if (p.sketch) {
+      const states = Object.fromEntries(p.gpios.filter((g) => g.state).map((g) => [g.gpio, g.state]));
+      const sync = () => {
+        for (const [gpio, stage] of byGpio) {
+          const st = entry.ctrl.runner.pins[gpio];
+          if (st) Object.assign(stage, { mode: st.mode, level: st.level, pull: st.pull });
+        }
+      };
+      const volt = (i) => (i >= 0 ? entry.ctrl.x?.[i] ?? 0 : 0);
+      const read = (gpio) => {
+        const stage = byGpio.get(gpio);
+        return stage ? { volts: volt(stage.nodes[0]) - volt(gnd), vdd: volt(entry.vdd) - volt(gnd) } : null;
+      };
+      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull });
+      entry.ctrl = h.add({
+        nodes: [],
+        links: [],
+        x: null,
+        runner: fresh(),
+        stamp() {
+          sync();
+          return false;
+        },
+        currents: () => [],
+        // At t = 0 the program starts over from these voltages each time (its setup may have
+        // changed what loop reads: a pull-up turned on), until its pins come out the same.
+        settle(x) {
+          this.x = x;
+          const before = JSON.stringify(this.runner.pins);
+          this.runner = fresh();
+          this.runner.advance?.(0);
+          sync();
+          return JSON.stringify(this.runner.pins) !== before;
+        },
+        accept(x, ctx = {}) {
+          this.x = x;
+          this.runner.read = read;
+          if (ctx.h) this.runner.advance?.(ctx.h);
+          sync();
+        },
+      });
+    }
     entry.stages = p.gpios.map((pin) => {
       const node = h.pin(pin.name);
       if (!pin.used) {
@@ -76,8 +123,10 @@ export const mcu = {
         h.add({ nodes: [], links: [[node, gnd]], stamp: () => false, currents: () => [] });
         return null;
       }
+      const stage = gpioStage({ pin: node, vdd: entry.vdd, gnd }, m, pin.state ?? {});
+      byGpio.set(pin.gpio, stage);
       return {
-        stage: add(gpioStage({ pin: node, vdd: entry.vdd, gnd }, m, pin.state ?? {})),
+        stage: add(stage),
         up: add(junction(node, entry.vdd, ESD)),
         down: add(junction(gnd, node, ESD)),
       };
@@ -111,7 +160,9 @@ export const mcu = {
         return { name: info.name, gpio: info.gpio, mode: s.stage.mode, level: s.stage.level, pull: s.stage.pull, voltage, current, read, adc };
       });
     const power = entry.pins.reduce((sum, x) => sum + h.volt(x.index) * (currents[x.name] ?? 0), 0) + (entry.usb ? 5 * usb : 0);
-    return { usb: entry.usb ? { voltage: v(entry.vbus), current: usb } : null, vdd: v(entry.vdd), rail, pins, power, currents };
+    const run = entry.ctrl?.runner;
+    const program = run ? { error: run.error, time: run.time, until: run.waitingUntil, serial: [...run.log, ...(run.line ? [run.line] : [])].slice(-6), notes: [...run.notes] } : null;
+    return { usb: entry.usb ? { voltage: v(entry.vbus), current: usb } : null, vdd: v(entry.vdd), rail, pins, power, currents, ...(program && { program }) };
   },
   limits(entry, r) {
     const m = entry.model;
@@ -124,6 +175,13 @@ export const mcu = {
   },
   lines(p, h) {
     const lines = [];
+    if (p.program) {
+      const pr = p.program;
+      if (pr.error) lines.push(h.raw('mcu.program', h.t('sim.mcu.programError', { error: pr.error })));
+      else lines.push(h.raw('mcu.program', h.t(pr.until > pr.time + 1e-9 ? 'sim.mcu.programWaits' : 'sim.mcu.programRuns', { time: h.f(pr.time, 's'), until: h.f(pr.until, 's') })));
+      if (pr.notes.length) lines.push(h.raw('mcu.notYet', h.t('sim.mcu.notYet', { names: pr.notes.join(', ') })));
+      for (const text of pr.serial) lines.push(h.raw('mcu.serial', `› ${text}`));
+    }
     if (p.usb) lines.push(h.q('mcu.usb', `${h.f(p.usb.voltage, 'V')} · ${h.f(p.usb.current, 'A')}`));
     lines.push(h.q('mcu.vdd', `${h.f(p.vdd, 'V')}${p.rail != null ? ` · ${h.f(p.rail, 'A')}` : ''}`));
     for (const x of p.pins) {

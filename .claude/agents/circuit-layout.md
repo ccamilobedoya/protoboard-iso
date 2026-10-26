@@ -41,6 +41,9 @@ brief** and return a short **layout report**. You do not talk to the end user.
      itself: no `supplies`. The brief's pin states go in its `io`: `{"id": "U1", "part":
      "ESP32-DEVKIT", "io": {"D13": "high", "D27": "input_pullup"}}` (`high`, `low`, `input`,
      `input_pullup`, `input_pulldown`); `simulate` warns about a pin name or state it does not know.
+     A brief with a program: `"program": "<name>.ino"` when the file is beside the circuit, else the
+     sketch's text as given; `simulate` reports a line it cannot read (`SIM_PROGRAM_ERROR`) or a
+     function it does not know. Never rewrite the learner's sketch.
    - `supplies` only for a bench supply (a pin may stand for its strip: `"positive": "D1.A"`). A
      battery the brief names ("4 × AA", "two 18650") is a part: `{"id": "BT1", "type": "battery",
      "format": "AA", "cells": 4}`, its `+` and `-` in the nets.

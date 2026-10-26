@@ -34,8 +34,8 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `regulator-ams1117` | Módulo AMS1117 que alimenta un LED | U1 = AMS1117-3.3 (AMS1117-3.3, AMS1117-5.0), R1 = 220, D1 = red, V1 = 5 V (4,5–15) |
 | `bridge-rectifier` | Puente, condensador de filtro y un LED, con una senoidal en los rieles de arriba | C1 = 470u, R1 = 1k, D1 = red, G1 = 12 V de pico (3–30) |
 | `zener-regulator` | Zener y su resistencia en serie que sostienen una carga | R1 = 470, D1 = 1N4733A (cualquier 1N47xx), R2 = 1k (carga), V1 = 9 V (3–30) |
-| `esp32-led` | ESP32 DevKit que enciende un LED desde D13 | R1 = 220, D1 = red |
-| `esp32-button` | ESP32 DevKit que lee un pulsador en D27 (pull-up interno) | — |
+| `esp32-led` | ESP32 DevKit que hace parpadear un LED en D13, con su programa | R1 = 220, D1 = red, U1 = su programa (`program`) |
+| `esp32-button` | ESP32 DevKit que lee un pulsador en D27 (pull-up interno) e imprime lo que lee | U1 = su programa (`program`) |
 | `opamp-comparator` | LM358 que compara un potenciómetro con la mitad de la fuente; un LED en su salida | RV1 = 10k (cursor en 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 5 V (5–30) |
 | `lm393-comparator` | Comparador LM393: su colector abierto hunde la corriente de un LED alimentado desde la fuente | RV1 = 10k (cursor en 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, V1 = 5 V (3–30) |
 | `opamp-follower` | Seguidor de voltaje con LM358: la salida copia un potenciómetro y alimenta un LED | RV1 = 100k, R1 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30) |
@@ -72,9 +72,9 @@ conexiones se llama a `layout` sobre él con `parts` y `nets` completos (`get_ci
 desde ahí es un circuito propio y pierde `spec.recipe`. Un valor o una descripción sola también se
 cambian con `apply_ops`.
 
-Lo que una receta todavía no hace: las recetas del ESP32 fijan sus pines con `io` (D13 en alto, D27
-como entrada con su pull-up) hasta que lleguen los programas ([microcontroladores.md](microcontroladores.md),
-fase M2), y los pines son fijos (D13, D27). El 555 se simula desde el 2026-10-26: su
+Las recetas del ESP32 corren un programa ([microcontroladores.md](microcontroladores.md));
+`values: { "U1": "parpadeo.ino" }` pone el programa propio en su lugar (un archivo junto al circuito,
+o su texto). Sus pines son fijos (D13, D27). El 555 se simula desde el 2026-10-26: su
 página parpadea, en cámara lenta (el tiempo de la página sigue a la constante de tiempo más lenta).
 
 ## Agregar una receta

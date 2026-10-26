@@ -160,10 +160,12 @@ and the three grounds `GND`, `GND2` (power header) and `GND3` (by D13).
 **In the simulation** (ESP32 DevKit, ESP32-C3 SuperMini, UNO; [microcontrollers.md](microcontrollers.md)):
 `"io"` sets each GPIO by printed name, GPIO name or number, `high`, `low`, `input`, `input_pullup` or
 `input_pulldown` (unlisted pins are inputs), and the board on USB is a 5 V source with its 3.3 V
-regulator (`"usb": false` to power it from the circuit instead):
+regulator (`"usb": false` to power it from the circuit instead). `"program"` runs a sketch: the name
+of a `.ino` file beside the circuit, or its text (`setup()`, `loop()`, `delay()` in simulated time):
 
 ```json
 { "id": "U1", "type": "module", "part": "ESP32-DEVKIT", "pin1": "c5", "io": { "D13": "high", "D27": "input_pullup" } }
+{ "id": "U1", "type": "module", "part": "ESP32-DEVKIT", "pin1": "c5", "program": "blink.ino" }
 ```
 
 **GooDisplay's DESPI-C02 e-paper adapter** also lies beside the board, its 8 right-angle pins

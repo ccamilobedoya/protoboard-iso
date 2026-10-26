@@ -168,10 +168,13 @@ y las tres tierras `GND`, `GND2` (conector de alimentación) y `GND3` (junto a D
 **En la simulación** (ESP32 DevKit, ESP32-C3 SuperMini, UNO; [microcontroladores.md](microcontroladores.md)):
 `"io"` fija cada GPIO por su nombre impreso, su nombre GPIO o su número: `high`, `low`, `input`,
 `input_pullup` o `input_pulldown` (los que no aparecen son entradas), y la placa con USB es una fuente
-de 5 V con su regulador de 3,3 V (`"usb": false` para alimentarla desde el circuito):
+de 5 V con su regulador de 3,3 V (`"usb": false` para alimentarla desde el circuito). `"program"`
+corre un programa: el nombre de un archivo `.ino` junto al circuito, o su texto (`setup()`, `loop()`,
+`delay()` en tiempo simulado):
 
 ```json
 { "id": "U1", "type": "module", "part": "ESP32-DEVKIT", "pin1": "c5", "io": { "D13": "high", "D27": "input_pullup" } }
+{ "id": "U1", "type": "module", "part": "ESP32-DEVKIT", "pin1": "c5", "program": "parpadeo.ino" }
 ```
 
 **El adaptador e-paper DESPI-C02** de GooDisplay también va al lado de la protoboard, con sus 8

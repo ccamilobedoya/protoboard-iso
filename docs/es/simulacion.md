@@ -193,8 +193,9 @@ voltaje directo de un LED medido en el banco).
 ## Todavía no
 
 Los chips que no son el 555, los amplificadores operacionales ni el LM393 (lógica, optoacopladores, el
-LM386, los arreglos ULN) quedan sin conectar y se avisa, igual que el adaptador DESPI-C02; el programa de
-una placa con microcontrolador llega en la fase M2 ([microcontroladores.md](microcontroladores.md)). Los amplificadores operacionales todavía no
+LM386, los arreglos ULN) quedan sin conectar y se avisa, igual que el adaptador DESPI-C02; una placa con
+microcontrolador corre su programa (`"program"`), pero el PWM y `tone` llegan en la fase M3
+([microcontroladores.md](microcontroladores.md)). Los amplificadores operacionales todavía no
 tienen ancho de banda ni velocidad de subida: una señal rápida sale como si el chip fuera ideal. El 555 todavía no tiene recorridos en la vista de conductores: su corriente
 se ve en sus patas y sus tiras. No hay eventos durante un transitorio (presionar un botón en un momento dado), ni
 autocalentamiento, ni descarga de la batería con el tiempo (`charge` es fija en cada cálculo).

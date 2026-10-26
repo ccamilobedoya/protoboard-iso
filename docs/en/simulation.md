@@ -187,6 +187,6 @@ voltage of an LED measured on the bench).
 
 ## Not yet
 
-Chips other than the 555, the op-amps and the LM393 (logic, optocouplers, the LM386, the ULN arrays) are left unconnected and reported, and so is the DESPI-C02 adapter; a microcontroller board's program comes in phase M2 ([microcontrollers.md](microcontrollers.md)). Op-amps have no bandwidth or slew rate yet: a fast signal comes out as if the chip were ideal. The 555 has no paths in the conductor view yet: its current shows at its pins and strips. No events during
+Chips other than the 555, the op-amps and the LM393 (logic, optocouplers, the LM386, the ULN arrays) are left unconnected and reported, and so is the DESPI-C02 adapter; a microcontroller board runs its program (`"program"`), but PWM and `tone` come in phase M3 ([microcontrollers.md](microcontrollers.md)). Op-amps have no bandwidth or slew rate yet: a fast signal comes out as if the chip were ideal. The 555 has no paths in the conductor view yet: its current shows at its pins and strips. No events during
 a transient (pressing a button at a given time), no self-heating, no battery discharge over
 time (`charge` is fixed for a run). Animation (stage 3) will read these same results.

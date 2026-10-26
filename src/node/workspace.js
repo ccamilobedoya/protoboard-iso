@@ -17,6 +17,7 @@ import { evaluate, diffEvaluations } from '../diff.js';
 import { renderCircuit, inspectCircuit } from '../index.js';
 import { renderPage } from '../page.js';
 import { pickLanguage } from '../i18n/index.js';
+import { CIRCUIT_FOLDER } from '../sim/compile.js';
 
 const error = (code, params) => ({ severity: 'error', code, params });
 
@@ -28,9 +29,12 @@ export function resolveTarget(target) {
   return { circuitFile: target, historyFile: join(dirname(target), `${name}.history.jsonl`), outDir: join(dirname(target), 'out'), name };
 }
 
+// The circuit, with the folder it lives in kept beside it (not saved: a symbol), so a board's
+// program file ("program": "blink.ino") is read from there when it is simulated.
 export function loadCircuit(paths) {
-  return JSON.parse(readFileSync(paths.circuitFile, 'utf8'));
+  return withFolder(JSON.parse(readFileSync(paths.circuitFile, 'utf8')), paths);
 }
+const withFolder = (circuit, paths) => Object.defineProperty(circuit, CIRCUIT_FOLDER, { value: dirname(paths.circuitFile), enumerable: false, configurable: true });
 
 export function readHistory(paths) {
   if (!existsSync(paths.historyFile)) return [];
@@ -63,6 +67,7 @@ export function writePage(paths, circuit, options = {}) {
 // when an English-speaking tool changes it.
 export function writeOutputs(paths, circuit, { lang = 'en', outputLang } = {}) {
   lang = pickLanguage(outputLang, circuit.lang, lang);
+  withFolder(circuit, paths);
   mkdirSync(paths.outDir, { recursive: true });
   const { svg } = renderCircuit(circuit, { lang });
   const svgFile = join(paths.outDir, `${paths.name}.front.svg`);
