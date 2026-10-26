@@ -48,6 +48,7 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
     else if (p.kind === 'SW') text = `${t(lang, p.pressed ? 'state.pressed' : 'state.released')} · ${f(p.current, 'A')}`;
     else if (p.kind === 'BR') text = `${t(lang, 'sim.q.bridge.vac')} ${f(p.vac, 'V')} · ${t(lang, 'sim.q.bridge.vdc')} ${f(p.vdc, 'V')} · ${t(lang, 'sim.q.bridge.current')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'REG') text = `${t(lang, 'sim.reg.' + p.state)} · ${t(lang, 'sim.q.reg.vin')} ${f(p.vin, 'V')} · ${t(lang, 'sim.q.reg.vout')} ${f(p.vout, 'V')} · ${t(lang, 'sim.q.reg.iout')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
+    else if (p.kind === 'TMR') text = `${t(lang, 'sim.timer.' + p.state)} · ${t(lang, 'sim.q.timer.vout')} ${f(p.vout, 'V')} · ${t(lang, 'sim.q.timer.vthr')} ${f(p.vthr, 'V')} · ${t(lang, 'sim.q.timer.iout')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'BAT' && !p.on) text = t(lang, 'sim.battery.off');
     else if (p.kind === 'BAT') {
       text = `${pad(f(p.voltage, 'V'), 10)} ${pad(f(p.current, 'A'), 10)} ${f(p.power, 'W')} · ${t(lang, 'sim.q.battery.emf')} ${f(p.emf, 'V')}`;

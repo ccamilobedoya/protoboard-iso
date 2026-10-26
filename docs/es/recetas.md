@@ -67,9 +67,9 @@ conexiones se llama a `layout` sobre él con `parts` y `nets` completos (`get_ci
 desde ahí es un circuito propio y pierde `spec.recipe`. Un valor o una descripción sola también se
 cambian con `apply_ops`.
 
-Lo que una receta todavía no hace: el 555 y el ESP32 DevKit se dibujan y se revisan, pero no se
-simulan (la página del 555 no parpadea; las recetas del ESP32 no tienen fuente), y los pines del
-ESP32 son fijos (D13, D27).
+Lo que una receta todavía no hace: el ESP32 DevKit se dibuja y se revisa, pero no se simula (sus
+recetas no tienen fuente), y sus pines son fijos (D13, D27). El 555 se simula desde el 2026-10-26: su
+página parpadea, en cámara lenta (el tiempo de la página sigue a la constante de tiempo más lenta).
 
 ## Agregar una receta
 

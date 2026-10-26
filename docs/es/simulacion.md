@@ -155,7 +155,8 @@ entran por la pata. El transitorio trae `times` y las mismas magnitudes como lis
 | `SIM_REG_DROPOUT`, `SIM_REG_HOT` | un regulador sin voltaje de entrada suficiente para regular; disipando más de lo que aguanta un TO-220 sin disipador (2 W) |
 | `SIM_BUZZER_DC` | corriente continua por un zumbador pasivo |
 | `SIM_FLOATING` | grupos sin camino de corriente continua hasta la fuente (por ejemplo, la compuerta de un MOSFET sin conectar) |
-| `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | un componente que todavía no se simula (chips), o una referencia sin modelo propio |
+| `SIM_TIMER_SUPPLY` | un 555 alimentado con más de 16 V |
+| `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | un componente que todavía no se simula (los chips que no son el 555), o una referencia sin modelo propio |
 
 ## Modelos
 
@@ -173,6 +174,7 @@ referencia independiente (una fórmula de libro resuelta aparte, o el dato de la
 | diodo Zener | el diodo más una ruptura en inversa: rodilla suave por debajo de unos 5,5 V (efecto Zener) y brusca por encima (avalancha), detrás de parte de Zzt; exactamente Vz con la corriente de prueba Izt (tabla de los 1N47xxA) | 1N4733A: 5,1 V a 49 mA |
 | puente rectificador | cuatro diodos (AC1 y AC2 suben a +, − sube a cada una), Shockley + resistencia en serie, cerca de 1,0 V cada uno a la corriente nominal (KBP2xx 2 A, KBP3xx 3 A) | la misma polaridad de salida al invertir la entrada; Kirchhoff en sus patas |
 | regulador | salida = referencia + su voltaje (GND + 5 V en un 7805, ADJ + 1,25 V en un LM317), o unos 2 V por debajo de la entrada si esta no alcanza (1,1 V en el AMS1117); su corriente propia (5 mA; 50 µA por ADJ); en el módulo AMS1117, el LED de encendido con su resistencia de OUT a GND, contado en lo que consume | 7805 con 9 V; fórmula del LM317 con Iadj; salida y caída del AMS1117 según su hoja de datos |
+| temporizador NE555 | de comportamiento: su divisor de 5 kΩ pone CTRL en 2/3 de VCC; THR por encima de CTRL desactiva el biestable (salida baja, descarga activa), TRIG por debajo de CTRL/2 lo activa, RESET por debajo de 0,7 V lo mantiene en bajo; el biestable cambia entre pasos de tiempo; salida alta unos 0,9 V por debajo de VCC tras 8 Ω, baja tras 7,5 Ω; descarga 18 Ω; consumo propio 3 mA a 5 V; límites 16 V, 200 mA, 600 mW. En DC muestra su estado al encender (salida alta): un astable solo oscila en un transitorio o en la página en vivo | astable: f = 1,44 / ((R1 + 2·R2)·C) con 4 % de margen y su ciclo útil; la tabla de verdad del biestable |
 | inductor | resistencia del alambre en serie; un corto en DC, Euler implícito en el transitorio | RL: I·(1 − e^(−t/τ)) |
 | termistor, fotorresistencia | resistencias cuyo valor sale de la temperatura (ecuación B) o de la luz (curva GL55) | ecuación B a 50 °C; GL5528 a 10 lx |
 | zumbador | su bobina, 16 Ω | — |
@@ -186,7 +188,8 @@ voltaje directo de un LED medido en el banco).
 
 ## Todavía no
 
-Los chips (555, amplificadores operacionales, lógica, optoacopladores) quedan sin conectar y se
-avisa. No hay eventos durante un transitorio (presionar un botón en un momento dado), ni
+Los chips que no son el 555 (amplificadores operacionales, lógica, optoacopladores) quedan sin
+conectar y se avisa. El 555 todavía no tiene recorridos en la vista de conductores: su corriente
+se ve en sus patas y sus tiras. No hay eventos durante un transitorio (presionar un botón en un momento dado), ni
 autocalentamiento, ni descarga de la batería con el tiempo (`charge` es fija en cada cálculo).
 La animación (etapa 3) leerá estos mismos resultados.

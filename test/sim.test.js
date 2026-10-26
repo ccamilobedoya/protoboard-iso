@@ -290,7 +290,7 @@ test('RC charging follows V·(1 − e^(−t/RC)) (backward Euler, small step)', 
 
 test('what the simulator cannot do is reported, not guessed', () => {
   assert.deepEqual(codes(simulate({ ...example('led-resistor.json'), supplies: undefined }).issues), ['SIM_NO_SUPPLY']);
-  const withChip = { supplies: supply(5), parts: [{ id: 'U1', type: 'ic', part: 'NE555', pin1: 'e10' }] };
+  const withChip = { supplies: supply(5), parts: [{ id: 'U1', type: 'ic', part: 'LM358', pin1: 'e10' }] };
   assert.ok(codes(simulate(withChip).issues).includes('SIM_UNSUPPORTED'));
   const broken = {
     supplies: supply(5),
@@ -361,4 +361,40 @@ test('an inductor in a floating island does not break DC; the rest still solves 
   near(r.nodes['16:f-j'], 4.5, 1e-4, 'middle node');
   assert.ok(r.parts.L1.floating, 'the inductor is reported floating');
   assert.ok(codes(r.issues).includes('SIM_FLOATING'));
+});
+
+// NE555 astable against the textbook: f = 1.44 / ((R1 + 2·R2)·C), high for 0.693·(R1 + R2)·C.
+// The model is a little slower (its discharge pin sits ~0.15 V above ground, as the datasheet's),
+// so within 4 %. RESET low holds the output low.
+test('NE555 astable: frequency and duty cycle from the textbook formula; RESET holds it low', async () => {
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  const { autoLayout } = await import('../src/layout.js');
+  for (const [R1, R2, C] of [[1e3, 10e3, 10e-6], [1e3, 4.7e3, 1e-6]]) {
+    const circuit = autoLayout(expandRecipe('555-astable', { R1: String(R1), R2: String(R2), C1: `${C * 1e6}u` }).spec).circuit;
+    const f0 = 1.44 / ((R1 + 2 * R2) * C);
+    const r = simulate(circuit, { analysis: 'transient', stop: 5 / f0, step: 1 / f0 / 2000, points: 1e6 });
+    assert.ok(r.ok, JSON.stringify(r.issues));
+    const i = r.parts.D1.current;
+    const up = [];
+    for (let k = 1; k < i.length; k++) if (i[k - 1] < 1e-3 && i[k] >= 1e-3) up.push(r.times[k]);
+    const period = (up.at(-1) - up[1]) / (up.length - 2);
+    assert.ok(Math.abs(1 / period / f0 - 1) < 0.04, `f ${1 / period} against ${f0}`);
+    const on = r.times.filter((t, k) => t >= up[1] && t < up.at(-1) && i[k] > 1e-3).length / r.times.filter((t) => t >= up[1] && t < up.at(-1)).length;
+    const duty = (R1 + R2) / (R1 + 2 * R2);
+    assert.ok(Math.abs(on - duty) < 0.03, `duty ${on} against ${duty}`);
+  }
+  // The latch alone: node indices 0…6 for TRIG, OUT, RESET, CTRL, THR, DIS, VCC; GND is ground.
+  const { timerCore } = await import('../src/sim/mna.js');
+  const { TIMERS } = await import('../src/sim/models.js');
+  const core = timerCore({ gnd: -1, trig: 0, out: 1, reset: 2, ctrl: 3, thr: 4, dis: 5, vcc: 6 }, TIMERS.NE555);
+  const at = ({ trig, reset = 9, thr }) => [trig, 0, reset, 6, thr, 0, 9];
+  assert.equal(core.q, 1, 'switched on high');
+  core.accept(at({ trig: 5, thr: 6.1 }));
+  assert.equal(core.q, 0, 'THR above CTRL resets');
+  core.accept(at({ trig: 5, thr: 5 }));
+  assert.equal(core.q, 0, 'between the thresholds it keeps its state');
+  core.accept(at({ trig: 2.9, thr: 2.9 }));
+  assert.equal(core.q, 1, 'TRIG below CTRL/2 sets');
+  core.accept(at({ trig: 2.9, thr: 2.9, reset: 0.3 }));
+  assert.equal(core.q, 0, 'RESET low wins');
 });

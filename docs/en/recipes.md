@@ -63,9 +63,9 @@ and `undo` brings the old values back. To add parts or connections, call `layout
 full `parts` and `nets` (`get_circuit` shows them): it is then a circuit of its own and loses
 `spec.recipe`. A value or a description alone can also be changed with `apply_ops`.
 
-What a recipe does not do yet: the 555 and the ESP32 DevKit are drawn and checked but not simulated
-(the 555's page shows no blinking; the ESP32 recipes have no source), and pins on an ESP32 are fixed
-(D13, D27).
+What a recipe does not do yet: the ESP32 DevKit is drawn and checked but not simulated (its recipes
+have no source), and its pins are fixed (D13, D27). The 555 is simulated since 2026-10-26: its page
+blinks, in slow motion (the page's time follows the slowest time constant).
 
 ## Adding a recipe
 

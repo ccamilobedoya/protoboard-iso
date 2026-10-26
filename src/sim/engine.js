@@ -387,7 +387,7 @@ function changeProgram(program, id, field, value) {
 // What an element remembers between steps or Newton iterations: capacitor voltage, inductor
 // current, junction and transistor voltages. Matched by part and by the order the part added
 // its elements (a pressed button adds its contact last, after the poles).
-const STATE = ['vprev', 'iprev', 'vd', 'vgs', 'vds', 'vbe', 'vbc'];
+const STATE = ['vprev', 'iprev', 'vd', 'vgs', 'vds', 'vbe', 'vbc', 'q'];
 function carryState(old, prep) {
   for (const [id, list] of prep.owned) {
     const before = old.owned.get(id) ?? [];

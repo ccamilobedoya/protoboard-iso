@@ -315,6 +315,50 @@ export function regulatorElement(inp, ref, out, { vref, dropout, quiescent }) {
   };
 }
 
+// The NE555's latch, output stage and discharge transistor (models.js, TIMERS), between the
+// pins as node indices. The latch is a memory: it changes only when a step is accepted, from the
+// voltages of that step, so every step solves a linear stage (high: VCC − highDrop through
+// highResistance; low: lowLevel through lowResistance; discharge on only while low).
+export function timerCore({ gnd, trig, out, reset, ctrl, thr, dis, vcc }, m) {
+  const gh = 1 / m.highResistance;
+  const gl = 1 / m.lowResistance;
+  const gd = 1 / m.dischargeResistance;
+  const stage = (q, x) => (q ? gh * (volt(x, out) - volt(x, vcc) + m.highDrop) : gl * (volt(x, out) - volt(x, gnd) - m.lowLevel));
+  return {
+    nodes: [gnd, trig, out, reset, ctrl, thr, dis, vcc],
+    links: [
+      [out, vcc],
+      [out, gnd],
+      [dis, gnd],
+    ],
+    q: 1, // switched on with the timing capacitor empty: TRIG low, output high
+    stamp(st) {
+      if (this.q) {
+        st.conductance(out, vcc, gh);
+        st.current(out, vcc, gh * m.highDrop);
+      } else {
+        st.conductance(out, gnd, gl);
+        st.current(out, gnd, -gl * m.lowLevel);
+      }
+      st.conductance(dis, gnd, this.q ? GMIN : gd);
+      return false;
+    },
+    // Into the element at each node, in `nodes` order.
+    currents(x) {
+      const io = stage(this.q, x);
+      const id = (volt(x, dis) - volt(x, gnd)) * (this.q ? GMIN : gd);
+      return [(this.q ? 0 : -io) - id, 0, io, 0, 0, 0, id, this.q ? -io : 0];
+    },
+    accept(x) {
+      const v = (n) => volt(x, n) - volt(x, gnd);
+      const c = v(ctrl);
+      if (v(reset) < m.resetThreshold) this.q = 0;
+      else if (v(trig) < c / 2) this.q = 1;
+      else if (v(thr) > c) this.q = 0;
+    },
+  };
+}
+
 // MOSFET drain current (from d to s) of an n-channel device, with smooth turn-on.
 function nChannel(vgs, vds, { vth, k, lambda }) {
   if (vds < 0) {

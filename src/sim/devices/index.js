@@ -2,6 +2,8 @@
 //
 // A device is a plain object:
 //   types         part types it handles (`type` in the circuit file)
+//   accepts(part) optional: whether it handles this part of its types (one IC of many); the
+//                 others are unsupported
 //   kind          the reading's kind ('R', 'LED', 'Q'…); devices that share a kind share their
 //                 reading hooks (lines, tag, probe, currentPins), looked up by kind
 //   params(part, c)  compile time (Node): what the part needs, as plain JSON; c: { issues }
@@ -42,14 +44,18 @@ import { bridge } from './bridge.js';
 import { mosfet } from './mosfet.js';
 import { bjt } from './bjt.js';
 import { regulator } from './regulator.js';
+import { timer } from './timer.js';
 import { battery } from './battery.js';
 
-export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, bridge, mosfet, bjt, regulator, battery];
+export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, bridge, mosfet, bjt, regulator, timer, battery];
 
 export const DEVICE_BY_TYPE = Object.fromEntries(DEVICES.flatMap((d) => d.types.map((t) => [t, d])));
 // The first device of each kind answers for the readings of that kind.
 export const DEVICE_BY_KIND = {};
 for (const d of DEVICES) DEVICE_BY_KIND[d.kind] ??= d;
 
-export const deviceFor = (part) => DEVICE_BY_TYPE[part.type] ?? null;
+export const deviceFor = (part) => {
+  const device = DEVICE_BY_TYPE[part.type];
+  return device && (!device.accepts || device.accepts(part)) ? device : null;
+};
 export const deviceOfReading = (reading) => (reading && !reading.unsupported ? DEVICE_BY_KIND[reading.kind] ?? null : null);

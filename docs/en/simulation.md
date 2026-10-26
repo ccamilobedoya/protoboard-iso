@@ -150,7 +150,8 @@ answer has `times` and the same quantities as arrays.
 | `SIM_REG_DROPOUT`, `SIM_REG_HOT` | a regulator without enough input voltage to regulate; dissipating more than a TO-220 handles without a heatsink (2 W) |
 | `SIM_BUZZER_DC` | steady DC through a passive buzzer |
 | `SIM_FLOATING` | groups with no DC path to the supply (an unconnected MOSFET gate, for example) |
-| `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | a part not simulated yet (chips), or a part number without its own model |
+| `SIM_TIMER_SUPPLY` | a 555 fed above 16 V |
+| `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | a part not simulated yet (chips other than the 555), or a part number without its own model |
 
 ## Models
 
@@ -168,6 +169,7 @@ reference (a textbook formula solved separately, or the datasheet figure).
 | Zener diode | the diode plus a reverse breakdown: a soft knee below about 5.5 V (Zener effect), a sharp one above (avalanche), behind part of Zzt; exactly Vz at the test current Izt (1N47xxA table) | 1N4733A: 5.1 V at 49 mA |
 | bridge rectifier | four diodes (AC1 and AC2 up to +, − up to each), Shockley + series resistance, about 1.0 V each at the rated current (KBP2xx 2 A, KBP3xx 3 A) | same output polarity either way round; Kirchhoff at its pins |
 | regulator | output = reference + its voltage (GND + 5 V for a 7805, ADJ + 1.25 V for an LM317), or about 2 V below the input when that is too low (1.1 V for the AMS1117); its own current (5 mA; 50 µA out of ADJ); the AMS1117 module's power LED and resistor from OUT to GND, counted in what it draws | 7805 at 9 V; LM317 formula with Iadj; AMS1117 output and dropout from its datasheet |
+| NE555 timer | behavioural: its 5 kΩ divider sets CTRL at 2/3 of VCC; THR above CTRL resets the latch (output low, discharge on), TRIG below CTRL/2 sets it, RESET under 0.7 V holds it low; the latch changes between time steps; output high about 0.9 V below VCC behind 8 Ω, low behind 7.5 Ω; discharge 18 Ω; own current 3 mA at 5 V; limits 16 V, 200 mA, 600 mW. In DC it shows its state at switch-on (output high): an astable only oscillates in a transient or the live page | astable: f = 1.44 / ((R1 + 2·R2)·C) within 4 % and its duty cycle; the latch's truth table |
 | inductor | winding resistance in series; a short in DC, backward Euler in transient | RL: I·(1 − e^(−t/τ)) |
 | thermistor, photoresistor | resistors whose value comes from the temperature (B equation) or the light (GL55 curve) | B equation at 50 °C; GL5528 at 10 lx |
 | buzzer | its coil, 16 Ω | — |
@@ -181,6 +183,6 @@ voltage of an LED measured on the bench).
 
 ## Not yet
 
-Chips (555, op-amps, logic, optocouplers) are left unconnected and reported. No events during
+Chips other than the 555 (op-amps, logic, optocouplers) are left unconnected and reported. The 555 has no paths in the conductor view yet: its current shows at its pins and strips. No events during
 a transient (pressing a button at a given time), no self-heating, no battery discharge over
 time (`charge` is fixed for a run). Animation (stage 3) will read these same results.

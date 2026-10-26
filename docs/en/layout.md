@@ -124,17 +124,20 @@ behind the body in one of the two views, so a hole that is free is still unusabl
 ### 3. Jumpers
 
 For each net: the groups it touches (the strips of its placed pins, and its rails), sorted by
-column. Each group not yet joined (union-find over the jumpers placed so far) is joined to the
-nearest group already in the net, with the **shortest pair of free holes that passes `tryOps`**:
+column. Each group not yet joined (union-find over the jumpers placed so far) is joined to a group
+already in the net, with the **cheapest pair of free holes that passes `tryOps`**, all the joined
+groups weighed together (since 2026-10-26; before, the nearest group by column was tried first):
 
 - cost = straight length + 1 if the two holes are not in the same column (a straight jumper reads
-  better); pairs shorter than two pitches are skipped (too short to see);
+  better) + `OVER_COST` (12 mm) for each body its line crosses seen from above (a jumper arches over
+  what lies between its holes and hides it: a way round a chip, or to a farther strip of the net,
+  wins when it is short); pairs shorter than two pitches are skipped (too short to see);
 - rail holes only within 6 columns of the group (a jumper does not run along the board to reach a
   rail);
-- the first 40 pairs are tried; none passes → the group waits until the rest of the net is joined
+- the first 80 pairs per group are tried; none passes → the group waits until the rest of the net is joined
   (a rail is joined last) and is tried once more against all of it (since 2026-10-26: a button's
   ground strip that cannot reach the board's covered GND strip reaches the − rail instead); still
-  none → `LAYOUT_WIRE_FAILED`.
+  none → `LAYOUT_WIRE_FAILED`, naming the nearest group by column (where the repair goes).
 
 Colour: the net's `color`, else black for a net with a `−` rail, red for one with a `+` rail, else
 the next of `PALETTE` (one per net).
@@ -276,11 +279,12 @@ next call.
 
 In order of what would pay most:
 
-1. **Visibility is not in the placement check.** Step 2 knows bodies and leads but not what hides
-   what in the isometric drawing, so tall parts in front (LEDs, electrolytics, regulators) hide low
-   ones behind them and only the relayout loop (and the repair, for jumpers) finds it. Since the
-   lesson threshold moved to 70 % this rarely blocks, but jumpers still arch over chips (the 555's
-   back view). A cheap estimate in `tryOps` (how tall the
+1. **Visibility is only partly in the placement check.** Since 2026-10-26 a jumper pays for each
+   body it crosses (step 3), which took the 555 astable from 70 % to 100 % visible in its best view
+   and from 3 tries to 1. Step 2 still knows bodies and leads but not what hides what in the
+   isometric drawing, so tall parts in front (LEDs, electrolytics, regulators) hide low ones behind
+   them and only the relayout loop (and the repair, for jumpers) finds it; the RESET-to-VCC jumper
+   of a 555 still crosses the chip, as on any bench. A cheap estimate in `tryOps` (how tall the
    new body is and how close the low parts behind it are, in each view), or measuring visibility
    for the chosen candidate only (`inspect` on one part), would make the first try pass and free
    the loop for real conflicts.

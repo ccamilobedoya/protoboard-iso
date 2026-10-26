@@ -129,18 +129,23 @@ tiras queda detrás del cuerpo en una de las dos vistas, así que un agujero lib
 ### 3. Cables puente
 
 Por cada red: los grupos que toca (las tiras de sus patas ya ubicadas y sus rieles), ordenados por
-columna. Cada grupo que aún no está unido (unión-búsqueda sobre los cables ya puestos) se une al
-grupo más cercano que ya está en la red, con **el par de agujeros libres más corto que pasa
-`tryOps`**:
+columna. Cada grupo que aún no está unido (unión-búsqueda sobre los cables ya puestos) se une a un
+grupo que ya está en la red, con **el par de agujeros libres más barato que pasa `tryOps`**,
+comparando todos los grupos unidos a la vez (desde el 2026-10-26; antes se probaba primero el más
+cercano por columna):
 
 - costo = largo en línea recta, + 1 si los dos agujeros no están en la misma columna (un cable
-  recto se lee mejor); los pares de menos de dos pasos se saltan (demasiado cortos para verse);
+  recto se lee mejor), + `OVER_COST` (12 mm) por cada cuerpo que cruza su línea vista desde arriba
+  (un cable pasa en arco sobre lo que queda entre sus agujeros y lo tapa: rodear un chip, o ir a
+  una tira más lejana de la red, gana si es corto); los pares de menos de dos pasos se saltan
+  (demasiado cortos para verse);
 - agujeros de riel solo a 6 columnas o menos del grupo (un cable no recorre la protoboard para
   llegar a un riel);
-- se prueban los primeros 40 pares; si ninguno pasa, el grupo espera a que el resto de la red quede
+- se prueban los primeros 80 pares por grupo; si ninguno pasa, el grupo espera a que el resto de la red quede
   unido (el riel se une al final) y se prueba una vez más contra todo eso (desde el 2026-10-26: la
   tira de tierra de un pulsador que no alcanza la tira GND tapada por la placa llega al riel −); si
-  tampoco, `LAYOUT_WIRE_FAILED`.
+  tampoco, `LAYOUT_WIRE_FAILED`, que nombra el grupo más cercano por columna (adonde va la
+  reparación).
 
 Color: el `color` de la red; si no tiene, negro para una red con un riel `−`, rojo para una con un
 riel `+` y, si no, el siguiente de `PALETTE` (uno por red).
@@ -285,11 +290,13 @@ en su siguiente llamada.
 
 En orden de lo que más rendiría:
 
-1. **La visibilidad no está en la comprobación al ubicar.** El paso 2 conoce cuerpos y patas, pero
-   no qué tapa qué en el dibujo isométrico, así que las piezas altas de adelante (LED,
-   electrolíticos, reguladores) tapan las bajas de atrás y solo el ciclo de reintentos (y la
-   reparación, para los cables) lo descubre. Desde que el umbral de lesson pasó al 70 % casi nunca
-   bloquea, pero todavía hay cables que pasan en arco sobre los chips (la vista de atrás del 555). Una estimación barata en `tryOps` (qué tan alto es el cuerpo nuevo y qué tan cerca
+1. **La visibilidad está solo en parte en la comprobación al ubicar.** Desde el 2026-10-26 un cable
+   paga por cada cuerpo que cruza (paso 3), lo que llevó al 555 astable del 70 % al 100 % visible en
+   su mejor vista y de 3 intentos a 1. El paso 2 todavía conoce cuerpos y patas, pero no qué tapa
+   qué en el dibujo isométrico, así que las piezas altas de adelante (LED, electrolíticos,
+   reguladores) tapan las bajas de atrás y solo el ciclo de reintentos (y la reparación, para los
+   cables) lo descubre; el cable de RESET a VCC de un 555 todavía cruza el chip, como en cualquier
+   banco. Una estimación barata en `tryOps` (qué tan alto es el cuerpo nuevo y qué tan cerca
    están las piezas bajas detrás de él, en cada vista), o medir la visibilidad solo de la
    candidata elegida (`inspect` de un componente), haría pasar el primer intento y dejaría el
    ciclo para los conflictos de verdad.

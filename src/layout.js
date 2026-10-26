@@ -48,12 +48,35 @@ const TALL = new Set(['TO-220', 'ams1117-module']);
 const BESIDE = new Set(['switch', 'module', 'battery']); // bodies off the board: only their holes count
 const HALF_ROWS = { T: ['j', 'i', 'h', 'g', 'f'], B: ['a', 'b', 'c', 'd', 'e'] }; // from the rail inwards
 const SPAN = 8; // columns a part may slide past the cursor looking for room
+const OVER_COST = 12; // mm of extra wire a jumper is worth not to arch over a body
+const OVER_MARGIN = 0.3; // mm: a jumper ending at a body's edge does not cross it
 const railName = (ref) => RAILS.find((r) => r === String(ref).trim().toUpperCase()) ?? null;
 const pinKey = (ref) => {
   const m = /^([^.\s]+)\.(\S+)$/.exec(String(ref).trim());
   return m ? `${m[1]}.${m[2].toLowerCase()}` : null;
 };
 const halfOfRow = (row) => (HALF_ROWS.T.includes(row) ? 'T' : 'B');
+
+// Whether the segment p–q passes over a box { x0, x1, y0, y1 } shrunk by `margin` (Liang–Barsky):
+// a jumper that only ends beside a body does not cross it.
+function crosses(p, q, box, margin) {
+  const [x0, x1, y0, y1] = [box.x0 + margin, box.x1 - margin, box.y0 + margin, box.y1 - margin];
+  if (x0 >= x1 || y0 >= y1) return false;
+  const dx = q.x - p.x;
+  const dy = q.y - p.y;
+  let lo = 0;
+  let hi = 1;
+  for (const [d, n] of [[-dx, p.x - x0], [dx, x1 - p.x], [-dy, p.y - y0], [dy, y1 - p.y]]) {
+    if (d === 0) {
+      if (n < 0) return false;
+    } else {
+      const r = n / d;
+      if (d < 0) lo = Math.max(lo, r);
+      else hi = Math.min(hi, r);
+    }
+  }
+  return lo < hi;
+}
 
 function bodyRight(part) {
   let max = -Infinity;
@@ -508,18 +531,36 @@ function layoutOnce(spec, { profile, forbid, previous }) {
     for (const w of built.parts.filter((p) => p.type === 'wire' && p.holes.length === 2)) parent.set(find(w.holes[0].node), find(w.holes[1].node));
     return find;
   };
+  // A jumper arches over what lies between its holes and hides it in the drawing (a chip under
+  // three jumpers is barely seen): each body its line crosses, seen from above, costs as much as
+  // OVER_COST mm more of wire, so a short way round wins and crossing stays the last resort.
+  const footprints = () =>
+    built.parts
+      .filter((p) => p.type !== 'wire' && !BESIDE.has(p.type) && p.built?.body?.length)
+      .map((p) => {
+        const box = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
+        for (const prim of p.built.body) for (const f of prim.faces) for (const q of f.pts) {
+          box.x0 = Math.min(box.x0, q.x);
+          box.x1 = Math.max(box.x1, q.x);
+          box.y0 = Math.min(box.y0, q.y);
+          box.y1 = Math.max(box.y1, q.y);
+        }
+        return box;
+      });
   const pairs = (a, b, near) => {
     const holesOf = (node) => [...built.board.holes.values()].filter((h) => h.node === node && !used().has(h.id) && (h.kind === 'main' || !near || Math.abs(h.col - near) <= 6));
+    const bodies = footprints();
     const out = [];
     for (const x of holesOf(a)) for (const y of holesOf(b)) {
       const dx = Math.abs(x.col - y.col);
       const len = Math.hypot(x.pos.x - y.pos.x, x.pos.y - y.pos.y);
       if (len < 2 * built.board.pitch) continue; // too short to see
-      out.push({ x, y, cost: len + (dx === 0 ? 0 : 1) });
+      const over = bodies.filter((box) => crosses(x.pos, y.pos, box, OVER_MARGIN)).length;
+      out.push({ x, y, cost: len + (dx === 0 ? 0 : 1) + over * OVER_COST });
     }
     return out.sort((p, q) => p.cost - q.cost);
   };
-  const jumpers = []; // { id, net, a, b, tried: Set }
+  const jumpers = []; // { id, net, a, b }
   // Jumpers the circuit already had between two groups, tried first (layout again).
   const oldJumpers = (previous?.parts ?? []).filter((p) => p.type === 'wire' && Array.isArray(p.pins) && (!previous.spec || previous.spec.wires?.includes(p.id)));
   const kept = (a, b) =>
@@ -527,15 +568,18 @@ function layoutOnce(spec, { profile, forbid, previous }) {
       .map((w) => w.pins.map((id) => built.board.find(id)))
       .filter(([x, y]) => x && y && !used().has(x.id) && !used().has(y.id) && ((x.node === a && y.node === b) || (x.node === b && y.node === a)))
       .map(([x, y]) => ({ x, y }));
-  const join = (net, a, b, skip = new Set()) => {
+  // Group a joined to the nearest of the groups `to`, all of them weighed together by cost, so a
+  // jumper round a chip to a farther strip of the net beats one over it to the nearest.
+  const join = (net, a, to) => {
     const col = (node) => built.board.holes.get([...built.board.holes.keys()].find((k) => built.board.holes.get(k).node === node))?.col;
-    for (const { x, y } of [...kept(a, b), ...pairs(a, b, col(a) ?? col(b)).slice(0, 40)]) {
-      const key = `${x.id}-${y.id}`;
-      if (skip.has(key)) continue;
+    const old = to.flatMap((b) => kept(a, b).map((p) => ({ ...p, b })));
+    // 80 per group: the first ones by cost may all go round a body and fail; the short ones over it come next.
+    const fresh = to.flatMap((b) => pairs(a, b, col(a) ?? col(b)).slice(0, 80).map((p) => ({ ...p, b }))).sort((p, q) => p.cost - q.cost);
+    for (const { x, y, b } of [...old, ...fresh]) {
       const id = nextWireId();
       if (forbid.has(forbidKey({ type: 'wire', pins: [x.id, y.id] }))) continue;
       if (tryOps([{ op: 'add', part: { id, type: 'wire', color: colourOf(net), pins: [x.id, y.id] } }])) {
-        jumpers.push({ id, net, a, b, tried: new Set([...skip, key]) });
+        jumpers.push({ id, net, a, b });
         wires++;
         return true;
       }
@@ -560,8 +604,7 @@ function layoutOnce(spec, { profile, forbid, previous }) {
     const reach = (g) => {
       const find = joinedRoots();
       if (joined.some((j) => find(j.node) === find(g.node))) return true;
-      const targets = [...joined].sort((p, q) => Math.abs((p.col ?? g.col ?? 0) - (g.col ?? 0)) - Math.abs((q.col ?? g.col ?? 0) - (g.col ?? 0)));
-      return targets.some((t) => join(net, g.node, t.node));
+      return join(net, g.node, joined.map((t) => t.node));
     };
     for (const g of groups.slice(1)) {
       if (reach(g)) joined.push(g);
@@ -569,7 +612,11 @@ function layoutOnce(spec, { profile, forbid, previous }) {
     }
     for (const g of apart) {
       if (reach(g)) joined.push(g);
-      else problems.push({ severity: 'warning', code: 'LAYOUT_WIRE_FAILED', params: { from: g.node, to: joined[0].node } });
+      else {
+        // The nearest group of the net by column: where the repair (suggest, through a free strip) goes.
+        const near = [...joined].sort((p, q) => Math.abs((p.col ?? g.col ?? 0) - (g.col ?? 0)) - Math.abs((q.col ?? g.col ?? 0) - (g.col ?? 0)))[0];
+        problems.push({ severity: 'warning', code: 'LAYOUT_WIRE_FAILED', params: { from: g.node, to: near.node } });
+      }
     }
   }
 

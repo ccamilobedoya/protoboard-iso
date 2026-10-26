@@ -93,7 +93,7 @@ Guide: [docs/en/simulation.md](docs/en/simulation.md).
 - ✅ Results in the CLI and MCP (`simulate`, text or JSON) and in the embeddable page, only for the tapped part (since 2026-10-18 on by default with a source, with lit LEDs and the Current button; `"page": { "simulation": false }` turns it off)
 - ✅ Compare a few circuits with Falstad CircuitJS as a second reference (stage 3, phase 6: [falstad.md](docs/en/falstad.md))
 - ⬜ Events during a transient (press a button at a given time), and a chart of the transient in the page
-- ⬜ Chips: behavioural 555 and op-amp
+- 🔜 Chips: behavioural 555 ✅ (2026-10-26: `sim/devices/timer.js`, comparators at CTRL and CTRL/2 with the internal 5 kΩ divider, a latch that changes between time steps, output and discharge stages from the NE555 datasheet; the `555-astable` recipe blinks in the live page; tested against f = 1.44 / ((R1 + 2·R2)·C)); op-amp next. The 555 has no conductor-view paths yet
 - ⬜ Development boards in the simulation (level 2, with the complete electrical simulation): each pin's state set in the circuit (`"D13": "high"`, PWM duty), outputs as sources with their own resistance, inputs high-impedance with optional pull-up, 5V and 3V3 pins as regulators with their limits; warnings for current per pin, 5 V into a 3.3 V pin, an output shorted to ground. Running real firmware (avr8js for the UNO, Wokwi for the ESP32) is a later, separate step
 - ✅ Inductors (axial, colour rings in µH; winding resistance; transient), Zener diodes (1N47xxA, breakdown with a soft or sharp knee), linear regulators (78xx, LM317, with dropout and their own current), NTC thermistor and photoresistor (resistance from `temperature` / `light`), passive buzzer (warns on DC)
 - ✅ Batteries drawn as parts and simulated as sources: format, chemistry, cells in series, state of charge, measured voltage, holder switch; runtime estimate; warnings for short circuit, over-current, charging an alkaline cell ([simulation.md](docs/en/simulation.md))
@@ -176,7 +176,7 @@ four passed the first try, because of pin names (`D1.K` on an LED, `U1.DISCH` on
 
 **The algorithm** (limits already listed in [layout.md](docs/en/layout.md#known-limits-and-where-to-improve))
 
-- ⬜ Visibility in the placement check: with the 70 % threshold it rarely blocks, but jumpers still arch over chips (the 555's back view)
+- 🔜 Visibility in the placement check: since 2026-10-26 a jumper pays 12 mm for each body it crosses seen from above, and every joined group of the net is weighed together (not the nearest by column first): the 555 astable went from 70 % to 100 % visible in its best view and from 3 tries to 1. Left: tall parts hiding low ones behind them (step 2)
 - 🔜 Wide boards (ESP32 DevKit) that cover the strips: since 2026-10-26 the board is placed by pin 1 so the pins in its nets keep a free row past its PCB, and a group no jumper reaches waits for the rest of its net (rails last): a circuit on one header comes out ready (`esp32-led`, `esp32-button`). Left: nets on both headers (`3V3` and `D4`), through the other pin of the same name or a rail
 - ✅ A bigger bench (2026-10-26): `layout-bench` runs every recipe after `examples/layout/`, and the four circuits of this review are recipes (`npn-switch`, `potentiometer-led`, `555-astable`, `esp32-led` / `esp32-button`)
 

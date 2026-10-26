@@ -148,6 +148,18 @@ export const GENERATOR_RESISTANCE = 50;
 // the input (out of regulation). `quiescent`: current the chip itself takes from IN (to GND
 // for a 78xx; the 50 µA out of ADJ for the LM317). Limits for a TO-220 with no heatsink.
 // Sources: TI LM340/LM78xx and LM317 datasheets (typical values).
+// NE555 bipolar timer, as a behavioural model: the internal 5 kΩ divider sets CTRL at 2/3 of the
+// supply; THR above V(CTRL) resets the latch (output low, discharge on), TRIG below V(CTRL)/2 sets
+// it (output high, discharge off), RESET below 0.7 V forces it low. Output high sits highDrop
+// below VCC through highResistance; low sits lowLevel above GND through lowResistance (from VOH
+// 13.3 V at 100 mA and 12.5 V at 200 mA with VCC 15 V; VOL 0.1 V at 10 mA and 0.4 V at 50 mA). The
+// discharge transistor: 0.15 V at 8 mA. Own current 3 mA at 5 V (10 mA at 15 V), a resistance
+// beside the divider. Limits: 16 V supply (recommended), 200 mA output, 600 mW in a DIP-8.
+// Source: Texas Instruments NE555 datasheet (SLFS022).
+export const TIMERS = {
+  NE555: { divider: 5000, quiescentResistance: 1875, highDrop: 0.9, highResistance: 8, lowLevel: 0.025, lowResistance: 7.5, dischargeResistance: 18, resetThreshold: 0.7, maxSupply: 16, maxCurrent: 0.2, maxPower: 0.6 },
+};
+
 export const REGULATORS = {
   fixed: { dropout: 2.0, quiescent: 5e-3, maxCurrent: 1.5, maxPower: 2 },
   LM317: { dropout: 2.0, quiescent: 50e-6, maxCurrent: 1.5, maxPower: 2 },

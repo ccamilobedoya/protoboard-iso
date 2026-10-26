@@ -179,7 +179,8 @@ export const ic = {
       pinNames: found.entry.pins,
       params: { count: found.entry.pins.length, marking: part.marking ?? found.number },
       label: { text: found.number },
-      electrical: { kind: 'IC', part: found.number, ...found.entry.model },
+      // A timer (NE555) is simulated (src/sim/devices/timer.js); other ICs are drawn only.
+      electrical: { kind: found.entry.model?.function === 'timer' ? 'TMR' : 'IC', part: found.number, ...found.entry.model },
     };
   },
 };

@@ -761,7 +761,7 @@
      }
     },
     "U1": {
-     "kind": "IC",
+     "kind": "TMR",
      "pins": {
       "GND": null,
       "TRIG": null,
@@ -772,17 +772,35 @@
       "DIS": null,
       "VCC": null
      },
-     "unsupported": true,
+     "state": "high",
+     "vcc": 1.5000038184605272e-9,
+     "vout": -0.8999999984927961,
+     "vthr": -9.000022904073979e-13,
+     "vtrig": -9.000022904073979e-13,
+     "vctrl": 1.0000025414691743e-9,
+     "current": -9.000022949123831e-13,
+     "supply": -3.0018313747612267e-21,
+     "power": -8.100020640646579e-13,
+     "currents": {
+      "GND": -9.00002290408298e-13,
+      "TRIG": 0,
+      "OUT": 9.000022949123831e-13,
+      "RESET": 0,
+      "CTRL": -1.0009025008717423e-21,
+      "THR": 0,
+      "DIS": -4.500011452036989e-25,
+      "VCC": -3.0018313747612267e-21
+     },
      "floating": true,
      "pinCurrents": {
-      "GND": 0,
+      "GND": -9.00002290408298e-13,
       "TRIG": 0,
-      "OUT": 0,
+      "OUT": 9.000022949123831e-13,
       "RESET": 0,
-      "CTRL": 0,
+      "CTRL": -1.0009025008717423e-21,
       "THR": 0,
-      "DIS": 0,
-      "VCC": 0
+      "DIS": -4.500011452036989e-25,
+      "VCC": -3.0018313747612267e-21
      }
     },
     "U2": {
@@ -843,13 +861,6 @@
      "severity": "info",
      "code": "SIM_UNSUPPORTED",
      "params": {
-      "part": "U1"
-     }
-    },
-    {
-     "severity": "info",
-     "code": "SIM_UNSUPPORTED",
-     "params": {
       "part": "U2"
      }
     },
@@ -864,8 +875,8 @@
    ]
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  column 7 (rows f–j)            floating\n  column 7 (rows a–e)            floating\n  column 9 (rows f–j)            floating\n  column 9 (rows a–e)            floating\n  column 19 (rows f–j)           floating\n  column 20 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 28 (rows a–e)           floating\n  column 29 (rows a–e)           floating\n  column 30 (rows a–e)           floating\n  column 31 (rows a–e)           floating\n  column 31 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 29 (rows f–j)           floating\n  column 28 (rows f–j)           floating\n  column 42 (rows a–e)           floating\n  column 43 (rows a–e)           floating\n  column 44 (rows a–e)           floating\n  column 45 (rows a–e)           floating\n  column 45 (rows f–j)           floating\n  column 44 (rows f–j)           floating\n  column 43 (rows f–j)           floating\n  column 42 (rows f–j)           floating\n  column 55 (rows f–j)           floating\n  column 55 (rows a–e)           floating\n  column 57 (rows f–j)           floating\n  column 57 (rows a–e)           floating\n  rail T+ (+5 V)                 5 V\nParts:\n  S1     push button · 0 A · floating\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · floating\n  U1     not simulated · floating\n  U2     not simulated · floating\n  S2     push button · 0 A · floating\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  note: U2: the simulator does not model this part yet; its pins are left unconnected.\n  warning: S1, RV1, U1, U2, S2: no DC path to the supply (nodes 7:f-j, 7:a-e, 9:f-j, 9:a-e, 19:f-j, 20:f-j, 21:f-j, 28:a-e, 29:a-e, 30:a-e, 31:a-e, 31:f-j, 30:f-j, 29:f-j, 28:f-j, 42:a-e, 43:a-e, 44:a-e, 45:a-e, 45:f-j, 44:f-j, 43:f-j, 42:f-j, 55:f-j, 55:a-e, 57:f-j, 57:a-e), so the voltage there is not defined.",
-   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  columna 7 (filas f–j)          flotante\n  columna 7 (filas a–e)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 9 (filas a–e)          flotante\n  columna 19 (filas f–j)         flotante\n  columna 20 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 28 (filas a–e)         flotante\n  columna 29 (filas a–e)         flotante\n  columna 30 (filas a–e)         flotante\n  columna 31 (filas a–e)         flotante\n  columna 31 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 29 (filas f–j)         flotante\n  columna 28 (filas f–j)         flotante\n  columna 42 (filas a–e)         flotante\n  columna 43 (filas a–e)         flotante\n  columna 44 (filas a–e)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 45 (filas f–j)         flotante\n  columna 44 (filas f–j)         flotante\n  columna 43 (filas f–j)         flotante\n  columna 42 (filas f–j)         flotante\n  columna 55 (filas f–j)         flotante\n  columna 55 (filas a–e)         flotante\n  columna 57 (filas f–j)         flotante\n  columna 57 (filas a–e)         flotante\n  riel T+ (+5 V)                 5 V\nComponentes:\n  S1     pulsador · 0 A · flotante\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · flotante\n  U1     no se simula · flotante\n  U2     no se simula · flotante\n  S2     pulsador · 0 A · flotante\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  nota: U2: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: S1, RV1, U1, U2, S2: no hay camino de corriente continua hasta la fuente (grupos 7:f-j, 7:a-e, 9:f-j, 9:a-e, 19:f-j, 20:f-j, 21:f-j, 28:a-e, 29:a-e, 30:a-e, 31:a-e, 31:f-j, 30:f-j, 29:f-j, 28:f-j, 42:a-e, 43:a-e, 44:a-e, 45:a-e, 45:f-j, 44:f-j, 43:f-j, 42:f-j, 55:f-j, 55:a-e, 57:f-j, 57:a-e), así que ahí el voltaje no está definido."
+   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  column 7 (rows f–j)            floating\n  column 7 (rows a–e)            floating\n  column 9 (rows f–j)            floating\n  column 9 (rows a–e)            floating\n  column 19 (rows f–j)           floating\n  column 20 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 28 (rows a–e)           floating\n  column 29 (rows a–e)           floating\n  column 30 (rows a–e)           floating\n  column 31 (rows a–e)           floating\n  column 31 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 29 (rows f–j)           floating\n  column 28 (rows f–j)           floating\n  column 42 (rows a–e)           floating\n  column 43 (rows a–e)           floating\n  column 44 (rows a–e)           floating\n  column 45 (rows a–e)           floating\n  column 45 (rows f–j)           floating\n  column 44 (rows f–j)           floating\n  column 43 (rows f–j)           floating\n  column 42 (rows f–j)           floating\n  column 55 (rows f–j)           floating\n  column 55 (rows a–e)           floating\n  column 57 (rows f–j)           floating\n  column 57 (rows a–e)           floating\n  rail T+ (+5 V)                 5 V\nParts:\n  S1     push button · 0 A · floating\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · floating\n  U1     output high (charging the timing capacitor) · Output -900 mV · THR -0.9 pV · Output current -0.9 pA · -0.81 pW · floating\n  U2     not simulated · floating\n  S2     push button · 0 A · floating\nNotes:\n  note: U2: the simulator does not model this part yet; its pins are left unconnected.\n  warning: S1, RV1, U1, U2, S2: no DC path to the supply (nodes 7:f-j, 7:a-e, 9:f-j, 9:a-e, 19:f-j, 20:f-j, 21:f-j, 28:a-e, 29:a-e, 30:a-e, 31:a-e, 31:f-j, 30:f-j, 29:f-j, 28:f-j, 42:a-e, 43:a-e, 44:a-e, 45:a-e, 45:f-j, 44:f-j, 43:f-j, 42:f-j, 55:f-j, 55:a-e, 57:f-j, 57:a-e), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  columna 7 (filas f–j)          flotante\n  columna 7 (filas a–e)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 9 (filas a–e)          flotante\n  columna 19 (filas f–j)         flotante\n  columna 20 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 28 (filas a–e)         flotante\n  columna 29 (filas a–e)         flotante\n  columna 30 (filas a–e)         flotante\n  columna 31 (filas a–e)         flotante\n  columna 31 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 29 (filas f–j)         flotante\n  columna 28 (filas f–j)         flotante\n  columna 42 (filas a–e)         flotante\n  columna 43 (filas a–e)         flotante\n  columna 44 (filas a–e)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 45 (filas f–j)         flotante\n  columna 44 (filas f–j)         flotante\n  columna 43 (filas f–j)         flotante\n  columna 42 (filas f–j)         flotante\n  columna 55 (filas f–j)         flotante\n  columna 55 (filas a–e)         flotante\n  columna 57 (filas f–j)         flotante\n  columna 57 (filas a–e)         flotante\n  riel T+ (+5 V)                 5 V\nComponentes:\n  S1     pulsador · 0 A · flotante\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · flotante\n  U1     salida alta (cargando el condensador de tiempo) · Salida -900 mV · THR -0,9 pV · Corriente de salida -0,9 pA · -0,81 pW · flotante\n  U2     no se simula · flotante\n  S2     pulsador · 0 A · flotante\nObservaciones:\n  nota: U2: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: S1, RV1, U1, U2, S2: no hay camino de corriente continua hasta la fuente (grupos 7:f-j, 7:a-e, 9:f-j, 9:a-e, 19:f-j, 20:f-j, 21:f-j, 28:a-e, 29:a-e, 30:a-e, 31:a-e, 31:f-j, 30:f-j, 29:f-j, 28:f-j, 42:a-e, 43:a-e, 44:a-e, 45:a-e, 45:f-j, 44:f-j, 43:f-j, 42:f-j, 55:f-j, 55:a-e, 57:f-j, 57:a-e), así que ahí el voltaje no está definido."
   },
   "lines": {
    "en": {
@@ -907,8 +918,40 @@
     ],
     "U1": [
      {
-      "key": "unsupported",
-      "text": "not simulated"
+      "key": "timer.high",
+      "text": "output high (charging the timing capacitor)"
+     },
+     {
+      "key": "timer.vout",
+      "text": "Output: -900 mV"
+     },
+     {
+      "key": "timer.vthr",
+      "text": "THR: -0.9 pV"
+     },
+     {
+      "key": "timer.vtrig",
+      "text": "TRIG: -0.9 pV"
+     },
+     {
+      "key": "timer.vctrl",
+      "text": "CTRL: 1 nV"
+     },
+     {
+      "key": "timer.iout",
+      "text": "Output current: -0.9 pA"
+     },
+     {
+      "key": "timer.supply",
+      "text": "Supply current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: -0.81 pW"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
      }
     ],
     "U2": [
@@ -971,8 +1014,40 @@
     ],
     "U1": [
      {
-      "key": "unsupported",
-      "text": "no se simula"
+      "key": "timer.high",
+      "text": "salida alta (cargando el condensador de tiempo)"
+     },
+     {
+      "key": "timer.vout",
+      "text": "Salida: -900 mV"
+     },
+     {
+      "key": "timer.vthr",
+      "text": "THR: -0,9 pV"
+     },
+     {
+      "key": "timer.vtrig",
+      "text": "TRIG: -0,9 pV"
+     },
+     {
+      "key": "timer.vctrl",
+      "text": "CTRL: 1 nV"
+     },
+     {
+      "key": "timer.iout",
+      "text": "Corriente de salida: -0,9 pA"
+     },
+     {
+      "key": "timer.supply",
+      "text": "Corriente de alimentación: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: -0,81 pW"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
      }
     ],
     "U2": [
@@ -6736,7 +6811,7 @@
      }
     },
     "U1": {
-     "kind": "IC",
+     "kind": "TMR",
      "pins": {
       "GND": null,
       "TRIG": null,
@@ -6747,17 +6822,35 @@
       "DIS": null,
       "VCC": null
      },
-     "unsupported": true,
+     "state": "high",
+     "vcc": 1.5000038184605272e-9,
+     "vout": -0.8999999984927961,
+     "vthr": -9.000022904073979e-13,
+     "vtrig": -9.000022904073979e-13,
+     "vctrl": 1.0000025414691743e-9,
+     "current": -9.000022949123831e-13,
+     "supply": -3.0018313747612267e-21,
+     "power": -8.100020640646579e-13,
+     "currents": {
+      "GND": -9.00002290408298e-13,
+      "TRIG": 0,
+      "OUT": 9.000022949123831e-13,
+      "RESET": 0,
+      "CTRL": -1.0009025008717423e-21,
+      "THR": 0,
+      "DIS": -4.500011452036989e-25,
+      "VCC": -3.0018313747612267e-21
+     },
      "floating": true,
      "pinCurrents": {
-      "GND": 0,
+      "GND": -9.00002290408298e-13,
       "TRIG": 0,
-      "OUT": 0,
+      "OUT": 9.000022949123831e-13,
       "RESET": 0,
-      "CTRL": 0,
+      "CTRL": -1.0009025008717423e-21,
       "THR": 0,
-      "DIS": 0,
-      "VCC": 0
+      "DIS": -4.500011452036989e-25,
+      "VCC": -3.0018313747612267e-21
      }
     },
     "U2": {
@@ -6818,13 +6911,6 @@
      "severity": "info",
      "code": "SIM_UNSUPPORTED",
      "params": {
-      "part": "U1"
-     }
-    },
-    {
-     "severity": "info",
-     "code": "SIM_UNSUPPORTED",
-     "params": {
       "part": "U2"
      }
     },
@@ -6839,8 +6925,8 @@
    ]
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     9 V        9 pA       81 pW      constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  column 7 (rows f–j)            floating\n  column 7 (rows a–e)            floating\n  column 9 (rows f–j)            floating\n  column 9 (rows a–e)            floating\n  column 19 (rows f–j)           floating\n  column 20 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 28 (rows a–e)           floating\n  column 29 (rows a–e)           floating\n  column 30 (rows a–e)           floating\n  column 31 (rows a–e)           floating\n  column 31 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 29 (rows f–j)           floating\n  column 28 (rows f–j)           floating\n  column 42 (rows a–e)           floating\n  column 43 (rows a–e)           floating\n  column 44 (rows a–e)           floating\n  column 45 (rows a–e)           floating\n  column 45 (rows f–j)           floating\n  column 44 (rows f–j)           floating\n  column 43 (rows f–j)           floating\n  column 42 (rows f–j)           floating\n  column 55 (rows f–j)           floating\n  column 55 (rows a–e)           floating\n  column 57 (rows f–j)           floating\n  column 57 (rows a–e)           floating\n  rail T+ (+5 V)                 9 V\nParts:\n  S1     pressed · 0 A · floating\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · floating\n  U1     not simulated · floating\n  U2     not simulated · floating\n  S2     pressed · 0 A · floating\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  note: U2: the simulator does not model this part yet; its pins are left unconnected.\n  warning: S1, RV1, U1, U2, S2: no DC path to the supply (nodes 7:f-j, 7:a-e, 9:f-j, 9:a-e, 19:f-j, 20:f-j, 21:f-j, 28:a-e, 29:a-e, 30:a-e, 31:a-e, 31:f-j, 30:f-j, 29:f-j, 28:f-j, 42:a-e, 43:a-e, 44:a-e, 45:a-e, 45:f-j, 44:f-j, 43:f-j, 42:f-j, 55:f-j, 55:a-e, 57:f-j, 57:a-e), so the voltage there is not defined.",
-   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     9 V        9 pA       81 pW      voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  columna 7 (filas f–j)          flotante\n  columna 7 (filas a–e)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 9 (filas a–e)          flotante\n  columna 19 (filas f–j)         flotante\n  columna 20 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 28 (filas a–e)         flotante\n  columna 29 (filas a–e)         flotante\n  columna 30 (filas a–e)         flotante\n  columna 31 (filas a–e)         flotante\n  columna 31 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 29 (filas f–j)         flotante\n  columna 28 (filas f–j)         flotante\n  columna 42 (filas a–e)         flotante\n  columna 43 (filas a–e)         flotante\n  columna 44 (filas a–e)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 45 (filas f–j)         flotante\n  columna 44 (filas f–j)         flotante\n  columna 43 (filas f–j)         flotante\n  columna 42 (filas f–j)         flotante\n  columna 55 (filas f–j)         flotante\n  columna 55 (filas a–e)         flotante\n  columna 57 (filas f–j)         flotante\n  columna 57 (filas a–e)         flotante\n  riel T+ (+5 V)                 9 V\nComponentes:\n  S1     presionado · 0 A · flotante\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · flotante\n  U1     no se simula · flotante\n  U2     no se simula · flotante\n  S2     presionado · 0 A · flotante\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  nota: U2: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: S1, RV1, U1, U2, S2: no hay camino de corriente continua hasta la fuente (grupos 7:f-j, 7:a-e, 9:f-j, 9:a-e, 19:f-j, 20:f-j, 21:f-j, 28:a-e, 29:a-e, 30:a-e, 31:a-e, 31:f-j, 30:f-j, 29:f-j, 28:f-j, 42:a-e, 43:a-e, 44:a-e, 45:a-e, 45:f-j, 44:f-j, 43:f-j, 42:f-j, 55:f-j, 55:a-e, 57:f-j, 57:a-e), así que ahí el voltaje no está definido."
+   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     9 V        9 pA       81 pW      constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  column 7 (rows f–j)            floating\n  column 7 (rows a–e)            floating\n  column 9 (rows f–j)            floating\n  column 9 (rows a–e)            floating\n  column 19 (rows f–j)           floating\n  column 20 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 28 (rows a–e)           floating\n  column 29 (rows a–e)           floating\n  column 30 (rows a–e)           floating\n  column 31 (rows a–e)           floating\n  column 31 (rows f–j)           floating\n  column 30 (rows f–j)           floating\n  column 29 (rows f–j)           floating\n  column 28 (rows f–j)           floating\n  column 42 (rows a–e)           floating\n  column 43 (rows a–e)           floating\n  column 44 (rows a–e)           floating\n  column 45 (rows a–e)           floating\n  column 45 (rows f–j)           floating\n  column 44 (rows f–j)           floating\n  column 43 (rows f–j)           floating\n  column 42 (rows f–j)           floating\n  column 55 (rows f–j)           floating\n  column 55 (rows a–e)           floating\n  column 57 (rows f–j)           floating\n  column 57 (rows a–e)           floating\n  rail T+ (+5 V)                 9 V\nParts:\n  S1     pressed · 0 A · floating\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · floating\n  U1     output high (charging the timing capacitor) · Output -900 mV · THR -0.9 pV · Output current -0.9 pA · -0.81 pW · floating\n  U2     not simulated · floating\n  S2     pressed · 0 A · floating\nNotes:\n  note: U2: the simulator does not model this part yet; its pins are left unconnected.\n  warning: S1, RV1, U1, U2, S2: no DC path to the supply (nodes 7:f-j, 7:a-e, 9:f-j, 9:a-e, 19:f-j, 20:f-j, 21:f-j, 28:a-e, 29:a-e, 30:a-e, 31:a-e, 31:f-j, 30:f-j, 29:f-j, 28:f-j, 42:a-e, 43:a-e, 44:a-e, 45:a-e, 45:f-j, 44:f-j, 43:f-j, 42:f-j, 55:f-j, 55:a-e, 57:f-j, 57:a-e), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     9 V        9 pA       81 pW      voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  columna 7 (filas f–j)          flotante\n  columna 7 (filas a–e)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 9 (filas a–e)          flotante\n  columna 19 (filas f–j)         flotante\n  columna 20 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 28 (filas a–e)         flotante\n  columna 29 (filas a–e)         flotante\n  columna 30 (filas a–e)         flotante\n  columna 31 (filas a–e)         flotante\n  columna 31 (filas f–j)         flotante\n  columna 30 (filas f–j)         flotante\n  columna 29 (filas f–j)         flotante\n  columna 28 (filas f–j)         flotante\n  columna 42 (filas a–e)         flotante\n  columna 43 (filas a–e)         flotante\n  columna 44 (filas a–e)         flotante\n  columna 45 (filas a–e)         flotante\n  columna 45 (filas f–j)         flotante\n  columna 44 (filas f–j)         flotante\n  columna 43 (filas f–j)         flotante\n  columna 42 (filas f–j)         flotante\n  columna 55 (filas f–j)         flotante\n  columna 55 (filas a–e)         flotante\n  columna 57 (filas f–j)         flotante\n  columna 57 (filas a–e)         flotante\n  riel T+ (+5 V)                 9 V\nComponentes:\n  S1     presionado · 0 A · flotante\n  RV1    I(1) 0 A · I(W) 0 A · I(3) 0 A · 0 W · flotante\n  U1     salida alta (cargando el condensador de tiempo) · Salida -900 mV · THR -0,9 pV · Corriente de salida -0,9 pA · -0,81 pW · flotante\n  U2     no se simula · flotante\n  S2     presionado · 0 A · flotante\nObservaciones:\n  nota: U2: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: S1, RV1, U1, U2, S2: no hay camino de corriente continua hasta la fuente (grupos 7:f-j, 7:a-e, 9:f-j, 9:a-e, 19:f-j, 20:f-j, 21:f-j, 28:a-e, 29:a-e, 30:a-e, 31:a-e, 31:f-j, 30:f-j, 29:f-j, 28:f-j, 42:a-e, 43:a-e, 44:a-e, 45:a-e, 45:f-j, 44:f-j, 43:f-j, 42:f-j, 55:f-j, 55:a-e, 57:f-j, 57:a-e), así que ahí el voltaje no está definido."
   },
   "lines": {
    "en": {
@@ -6882,8 +6968,40 @@
     ],
     "U1": [
      {
-      "key": "unsupported",
-      "text": "not simulated"
+      "key": "timer.high",
+      "text": "output high (charging the timing capacitor)"
+     },
+     {
+      "key": "timer.vout",
+      "text": "Output: -900 mV"
+     },
+     {
+      "key": "timer.vthr",
+      "text": "THR: -0.9 pV"
+     },
+     {
+      "key": "timer.vtrig",
+      "text": "TRIG: -0.9 pV"
+     },
+     {
+      "key": "timer.vctrl",
+      "text": "CTRL: 1 nV"
+     },
+     {
+      "key": "timer.iout",
+      "text": "Output current: -0.9 pA"
+     },
+     {
+      "key": "timer.supply",
+      "text": "Supply current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: -0.81 pW"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
      }
     ],
     "U2": [
@@ -6946,8 +7064,40 @@
     ],
     "U1": [
      {
-      "key": "unsupported",
-      "text": "no se simula"
+      "key": "timer.high",
+      "text": "salida alta (cargando el condensador de tiempo)"
+     },
+     {
+      "key": "timer.vout",
+      "text": "Salida: -900 mV"
+     },
+     {
+      "key": "timer.vthr",
+      "text": "THR: -0,9 pV"
+     },
+     {
+      "key": "timer.vtrig",
+      "text": "TRIG: -0,9 pV"
+     },
+     {
+      "key": "timer.vctrl",
+      "text": "CTRL: 1 nV"
+     },
+     {
+      "key": "timer.iout",
+      "text": "Corriente de salida: -0,9 pA"
+     },
+     {
+      "key": "timer.supply",
+      "text": "Corriente de alimentación: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: -0,81 pW"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
      }
     ],
     "U2": [
