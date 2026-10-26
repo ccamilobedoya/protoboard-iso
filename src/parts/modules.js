@@ -2,7 +2,11 @@
 // The drawing lives in packages/devboard.js (boards that straddle the channel, placed with
 // "pin1"), packages/uno.js (an Arduino UNO lying beside the board, wired with Dupont
 // leads) and packages/despi.js (the DESPI-C02 e-paper adapter, also beside the board). Electrically a module is not simulated yet: its pins only join the groups their
-// holes are in (simulating its pins is level 2 in the roadmap).
+// holes are in. A microcontroller board (family in sim/models.js, MCUS) is simulated pin by pin
+// (sim/devices/mcu.js, docs/en/microcontrollers.md): `power` names its supply pins (`usb`: where
+// the USB's 5 V arrives, `logic`: the rail its GPIO work from, `v3`: a 3.3 V regulator output when
+// the logic rail is not it, `ground`, `reset`) and `gpio` gives each pin's GPIO number (the number
+// a program uses: digitalWrite(13, …)); `adc` and `inputOnly` list GPIO numbers.
 //
 // Sizes and pin data: Espressif datasheets (ESP32 v5.3, ESP32-C3 v2.4), the Arduino UNO R3
 // reference design, and the boards on the maintainer's bench. Notes are short: what the pin
@@ -14,6 +18,9 @@ const n = (es, en) => ({ es, en });
 const BOOT = n('⚠ pin de arranque: no forzarlo al reiniciar', '⚠ strapping pin: do not force it at reset');
 const INPUT_ONLY = (gpio) => n(`GPIO${gpio} · solo entrada · ADC1`, `GPIO${gpio} · input only · ADC1`);
 const GND = n('tierra (0 V)', 'ground (0 V)');
+
+// GPIO numbers of pins printed "D13", "GPIO4" or "IO4", plus the ones printed otherwise.
+const gpioOf = (pins, extra = {}) => Object.fromEntries([...pins.flatMap((p) => (/^(?:D|GPIO|IO)(\d+)$/.exec(p) ? [[p, Number(RegExp.$1)]] : [])), ...Object.entries(extra)]);
 
 // ESP32 DevKit (ESP32-WROOM-32, CP2102, USB-C), 30 pins. Pins in the order of a DIP: down
 // the side that starts at the antenna end (pin 1 = EN), then back up the other side. Seen
@@ -43,6 +50,11 @@ export const MODULES = {
     pins: [...DEVKIT_LEFT, ...[...DEVKIT_RIGHT].reverse()],
     internal: [['GND', 'GND2']],
     logic: 3.3,
+    // USB 5 V reaches VIN (through a Schottky diode on most DevKits); an AMS1117 makes 3V3.
+    power: { usb: 'VIN', logic: '3V3', ground: ['GND', 'GND2'], reset: 'EN' },
+    gpio: gpioOf([...DEVKIT_LEFT, ...DEVKIT_RIGHT], { VP: 36, VN: 39, TX0: 1, RX0: 3, TX2: 17, RX2: 16 }),
+    adc: [32, 33, 34, 35, 36, 39, 0, 2, 4, 12, 13, 14, 15, 25, 26, 27],
+    inputOnly: [34, 35, 36, 39],
     notes: {
       EN: n('reinicio: a 0 V apaga el chip', 'reset: at 0 V the chip is off'),
       VP: INPUT_ONLY(36),
@@ -91,6 +103,11 @@ export const MODULES = {
     pins: [...C3_LEFT, ...[...C3_RIGHT].reverse()],
     internal: [],
     logic: 3.3,
+    // USB 5 V on the 5V pin; an ME6211 makes 3V3.
+    power: { usb: '5V', logic: '3V3', ground: ['GND'] },
+    gpio: gpioOf([...C3_LEFT, ...C3_RIGHT]),
+    adc: [0, 1, 2, 3, 4, 5],
+    inputOnly: [],
     notes: {
       '5V': n('entrada de 5 V (o salida, alimentada por USB)', '5 V input (or output, when powered by USB)'),
       GND,
@@ -125,6 +142,12 @@ export const MODULES = {
     ],
     internal: [['GND', 'GND2', 'GND3'], ['SDA', 'A4'], ['SCL', 'A5']],
     logic: 5,
+    // USB 5 V is the logic rail (IOREF says so to shields); an LP2985 makes 3V3.
+    power: { usb: '5V', logic: '5V', v3: '3V3', ground: ['GND', 'GND2', 'GND3'], reset: 'RESET', ioref: 'IOREF' },
+    gpio: { ...gpioOf(['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12', 'D13']), A0: 14, A1: 15, A2: 16, A3: 17, A4: 18, A5: 19, SDA: 18, SCL: 19 },
+    adc: [14, 15, 16, 17, 18, 19],
+    pwm: [3, 5, 6, 9, 10, 11],
+    inputOnly: [],
     notes: {
       D0: n('RX: compartido con el USB, dejarlo libre al cargar', 'RX: shared with the USB, leave it free while uploading'),
       D1: n('TX: compartido con el USB, dejarlo libre al cargar', 'TX: shared with the USB, leave it free while uploading'),

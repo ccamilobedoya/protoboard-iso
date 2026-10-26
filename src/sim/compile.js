@@ -72,7 +72,10 @@ export function compile(circuit) {
   }
   // Drawn batteries after the circuit's supplies: the first supply's − is ground (0 V).
   const supplies = [...supplyList(circuit), ...built.parts.filter((p) => p.def.electrical?.kind === 'BAT').map(batterySupply)];
-  if (!supplies.length) return { issues: [issue('error', 'SIM_NO_SUPPLY', {})], fatal: true };
+  // A microcontroller board on USB is a source of its own (devices/mcu.js): with no other, ground
+  // is its GND (a pin's group, or a node of its own when no GND pin is wired).
+  const boards = built.parts.filter((p) => p.def.electrical?.kind === 'MCU' && p.raw.usb !== false);
+  if (!supplies.length && !boards.length) return { issues: [issue('error', 'SIM_NO_SUPPLY', {})], fatal: true };
   for (const s of supplies) {
     s.p = resolveSupplyNode(built.board, s.positive);
     s.n = resolveSupplyNode(built.board, s.negative);
@@ -84,7 +87,11 @@ export function compile(circuit) {
   }
 
   // Node order: ground, then the board groups with a lead, then the groups the supplies touch.
-  const ground = supplies[0].n;
+  const boardGround = (p) => {
+    const i = p.pinNames.findIndex((name) => /^GND\d*$/.test(name));
+    return i >= 0 ? p.holes[i].node : `~${p.id}:GND`;
+  };
+  const ground = supplies.length ? supplies[0].n : boardGround(boards[0]);
   const nodes = [];
   const seen = new Set([ground]);
   const add = (name) => {

@@ -50,7 +50,6 @@ test('recipes: each value names an item that has that field', () => {
 
 test('recipes with a source simulate without errors and without stressing a part', () => {
   for (const name of Object.keys(RECIPES)) {
-    if (!RECIPES[name].supplies) continue;
     const s = simulate(layoutOf(name).circuit);
     assert.ok(s.ok, `${name}: ${JSON.stringify(s.issues)}`);
     const over = Object.entries(s.parts).flatMap(([id, p]) => (p.stress ?? []).filter((x) => x.level !== 'fine').map((x) => `${id} ${x.quantity} ${x.level}`));

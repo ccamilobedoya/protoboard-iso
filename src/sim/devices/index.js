@@ -10,7 +10,7 @@
 //                    members (node → ids of the parts on it) }
 //   elements(p, h)   run time: adds its MNA elements, returns them by name; the "entry" a
 //                    reading gets is { id, kind, pins, ...params, ...elements }
-//                    h: { id, pin(name), at(i), inner(), add(element), supplies }
+//                    h: { id, pin(name), at(i), inner(), node(name), add(element), supplies }
 //   read(entry, h)   its values; h: { x, ctx, volt(index), supplyReading(supply) }
 //   pinCurrents(entry, out, h)  optional: current into the part at each pin (default from
 //                               `currents`, or ± `current` for two pins)
@@ -47,9 +47,10 @@ import { bjt } from './bjt.js';
 import { regulator } from './regulator.js';
 import { timer } from './timer.js';
 import { opamp } from './opamp.js';
+import { mcu } from './mcu.js';
 import { battery } from './battery.js';
 
-export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, bridge, mosfet, bjt, regulator, timer, opamp, battery];
+export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, bridge, mosfet, bjt, regulator, timer, opamp, mcu, battery];
 
 // Several devices may share a type (the ICs: timer, op-amp); each one accepts its own parts.
 const BY_TYPE = {};

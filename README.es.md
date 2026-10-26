@@ -85,6 +85,7 @@ aparece un circuito en protoboard.
 | Foco y capa de corriente | [docs/es/foco-y-corriente.md](docs/es/foco-y-corriente.md) | [docs/en/focus-and-flow.md](docs/en/focus-and-flow.md) |
 | Falstad: abrir un circuito en CircuitJS, comparar | [docs/es/falstad.md](docs/es/falstad.md) | [docs/en/falstad.md](docs/en/falstad.md) |
 | Embeber un circuito en la documentación | [docs/es/embeber.md](docs/es/embeber.md) | [docs/en/embedding.md](docs/en/embedding.md) |
+| Microcontroladores en la simulación (ESP32, UNO) | [docs/es/microcontroladores.md](docs/es/microcontroladores.md) | [docs/en/microcontrollers.md](docs/en/microcontrollers.md) |
 | Recetas: circuitos de clase por su nombre para `layout` | [docs/es/recetas.md](docs/es/recetas.md) | [docs/en/recipes.md](docs/en/recipes.md) |
 | Agentes (montaje, revisor, bibliotecario) | [docs/es/agentes.md](docs/es/agentes.md) | [docs/en/agents.md](docs/en/agents.md) |
 | Hoja de ruta | [docs/es/hoja-de-ruta.md](docs/es/hoja-de-ruta.md) | [ROADMAP.md](ROADMAP.md) |

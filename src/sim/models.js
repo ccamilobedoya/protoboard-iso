@@ -180,6 +180,24 @@ export const OPAMPS = {
   LM393: { openCollector: true, gain: 2e5, onResistance: 60, quiescent: 0.4e-3, quiescentAt: 5, maxSupply: 36, maxCurrent: 0.02, maxPower: 0.6, channels: DUAL, supply: ['VCC', 'GND'] },
 };
 
+// Microcontroller boards (sim/devices/mcu.js), by family. A GPIO driven as an output is a source
+// of `vdd`·level behind `outputResistance` (a PWM duty is its average); an input draws nothing,
+// with an optional pull-up or pull-down (`pull` ohms); every pin has protection diodes to the
+// logic rail and to ground. Reading an input: below `vil`·vdd it reads 0, above `vih`·vdd 1, in
+// between it is undefined. ADC: `adcBits` over 0…`adcFull` volts (linear here). The board takes
+// `own` amperes from its logic rail (the chip running, no radio); USB gives 5 V behind
+// `usbResistance` (cable and fuse); `regulator`: the 3.3 V regulator's model (REGULATORS or its
+// own numbers). Limits: `maxPin` per pin (absolute maximum), `vdd` + 0.3 V on any pin.
+// Sources: Espressif ESP32 datasheet v5.3 (VOH 0.8·VDD at 40 mA, VIL 0.25·VDD, VIH 0.75·VDD,
+// pull-ups 45 kΩ, ADC 12 bits up to about 3.1 V at 11 dB); ESP32-C3 datasheet v2.4 (ADC up to
+// 2.5 V at 11 dB); Microchip ATmega328P datasheet (VOH 4.2 V at 20 mA, VIL 0.3·VCC, VIH 0.6·VCC,
+// pull-ups 20–50 kΩ, 40 mA absolute per pin, ADC 10 bits on AVCC); Arduino UNO R3 schematic.
+export const MCUS = {
+  esp32: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 3.1, own: 0.04, maxPin: 0.04, usbResistance: 0.2, regulator: { dropout: 1.1, quiescent: 5e-3, maxCurrent: 0.8, maxPower: 1 } },
+  esp32c3: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 2.5, own: 0.02, maxPin: 0.04, usbResistance: 0.2, regulator: { dropout: 0.1, quiescent: 40e-6, maxCurrent: 0.5, maxPower: 0.5 } },
+  uno: { vdd: 5, outputResistance: 40, pull: 35e3, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5, own: 0.045, maxPin: 0.04, usbResistance: 0.3, regulator: { dropout: 0.28, quiescent: 1e-3, maxCurrent: 0.15, maxPower: 0.3 } },
+};
+
 export const REGULATORS = {
   fixed: { dropout: 2.0, quiescent: 5e-3, maxCurrent: 1.5, maxPower: 2 },
   LM317: { dropout: 2.0, quiescent: 50e-6, maxCurrent: 1.5, maxPower: 2 },

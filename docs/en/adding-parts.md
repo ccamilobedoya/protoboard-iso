@@ -145,6 +145,12 @@ output, the result tags, the probes and the page find it there.
   (sensors) in import-free modules such as `src/parts/sensors.js`.
 - Devices that share a `kind` share their reading hooks (`lines`, `tag`, `probe`,
   `currentPins`); `test/devices.test.js` checks it.
+- Several devices may share a part `type` (the ICs: timer, op-amps): each says which parts it
+  takes with `accepts(part)`, and the program records its `kind`.
+- **A new microcontroller board** needs no device: in `src/parts/modules.js` give it `power` (its
+  USB, logic, ground and reset pins), `gpio` (each pin's GPIO number), `adc` and `inputOnly`; its
+  family's numbers go in `MCUS` (`src/sim/models.js`), from its datasheet
+  ([microcontrollers.md](microcontrollers.md)).
 - **Oscilloscope**: `scope(reading)` says what the part plots in its card (`{ v, i }`, each
   `{ label, value }` or `null`). Without it, a two-lead part plots the voltage across it and its current.
 - **Falstad**: `falstad(d, f)` says how the part goes to CircuitJS (the *Open in Falstad* button

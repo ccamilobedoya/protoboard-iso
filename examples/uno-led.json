@@ -5,7 +5,7 @@
   "clearance": 3,
   "netLabels": { "T-": "GND" },
   "parts": [
-    { "id": "A1", "type": "module", "part": "UNO", "pins": { "D13": "j20", "GND": "T-27" } },
+    { "id": "A1", "type": "module", "part": "UNO", "pins": { "D13": "j20", "GND": "T-27" }, "io": { "D13": "high" } },
     { "id": "R1", "type": "resistor", "value": "330", "pins": ["f20", "f26"] },
     { "id": "D1", "type": "led", "color": "green", "pins": { "anode": "i26", "cathode": "i27" } },
     { "id": "W1", "type": "wire", "color": "black", "pins": ["j27", "T-28"] }

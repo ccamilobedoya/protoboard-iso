@@ -5,7 +5,7 @@
   "clearance": 1,
   "netLabels": { "B-": "GND" },
   "parts": [
-    { "id": "U1", "type": "module", "part": "ESP32-DEVKIT", "pin1": "c5" },
+    { "id": "U1", "type": "module", "part": "ESP32-DEVKIT", "pin1": "c5", "io": { "D13": "high" } },
     { "id": "R1", "type": "resistor", "value": "220", "pins": ["a17", "a24"] },
     { "id": "D1", "type": "led", "color": "red", "pins": { "anode": "c24", "cathode": "c25" } },
     { "id": "W1", "type": "wire", "color": "black", "pins": ["a25", "B-27"] },

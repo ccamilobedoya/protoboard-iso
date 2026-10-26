@@ -90,7 +90,10 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
   `"KCD1"`, `"UNO"`, `"ESP32-DEVKIT"`, `"resistencia"`); otherwise a `type` with its fields. No need
   to look them up first: unknown names come back with the closest ones. A battery the circuit uses
   ("4 × AA") is a part: `{"id": "BT1", "type": "battery", "format": "AA", "cells": 4}`, with `BT1.+`
-  and `BT1.-` in the nets.
+  and `BT1.-` in the nets. A microcontroller board (`ESP32-DEVKIT`, `ESP32-C3-SUPERMINI`, `UNO`) is
+  powered by USB (no supply needed) and takes each pin's state for the simulation:
+  `{"id": "U1", "part": "ESP32-DEVKIT", "io": {"D13": "high", "D27": "input_pullup"}}`
+  (`docs/en/microcontrollers.md`; programs that change pins in time come later).
 - **nets**: each one the pins it joins (`"R1.2"`) and rails (`"T+"`, `"T-"`, `"B+"`, `"B-"`), as a
   list or `{pins, color}`. Pin names as people write them work: `A`/`K` or `anode`/`cathode`,
   `VIN`, `VOUT`, `DISCH`, `THRESHOLD`, `VDD`, `GPIO4` (the DevKit's `D4`), `3.3V`. A ground net

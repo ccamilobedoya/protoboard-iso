@@ -37,6 +37,10 @@ brief** and return a short **layout report**. You do not talk to the end user.
    - `nets`: lists of pins and rails, `[["D1.K", "R1.2"], {"pins": ["U1.GND", "T-"], "color": "black"}]`.
      Pin names as usual work (`D1.A`/`D1.K` or `anode`/`cathode`, `U1.VIN`, `U1.GPIO4`). A pin
      alone (`["D1.A"]`) is fine.
+   - A microcontroller board (`ESP32-DEVKIT`, `ESP32-C3-SUPERMINI`, `UNO`) on USB is a source by
+     itself: no `supplies`. The brief's pin states go in its `io`: `{"id": "U1", "part":
+     "ESP32-DEVKIT", "io": {"D13": "high", "D27": "input_pullup"}}` (`high`, `low`, `input`,
+     `input_pullup`, `input_pulldown`); `simulate` warns about a pin name or state it does not know.
    - `supplies` only for a bench supply (a pin may stand for its strip: `"positive": "D1.A"`). A
      battery the brief names ("4 × AA", "two 18650") is a part: `{"id": "BT1", "type": "battery",
      "format": "AA", "cells": 4}`, its `+` and `-` in the nets.

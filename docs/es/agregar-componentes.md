@@ -138,6 +138,13 @@ Los ganchos de lectura reciben la *entrada*: `{ id, kind, pins, ...params, ...el
 `src/sim/compile.js`); `elements` y lo que sigue corren también en el navegador, así que solo
 importan de `src/sim` y de módulos sin imports como `src/parts/sensors.js`.
 
+Varios dispositivos pueden compartir un `type` (los circuitos integrados: temporizador,
+amplificadores operacionales): cada uno dice qué componentes toma con `accepts(part)`, y el programa
+guarda su `kind`. **Una placa con microcontrolador nueva** no necesita dispositivo: en
+`src/parts/modules.js` se le dan `power` (sus pines de USB, lógica, tierra y reinicio), `gpio` (el
+número de GPIO de cada pin), `adc` e `inputOnly`; los números de su familia van en `MCUS`
+(`src/sim/models.js`), según su hoja de datos ([microcontroladores.md](microcontroladores.md)).
+
 Luego se agrega a `DEVICES` (`src/sim/devices/index.js`). Es todo: el simulador, la salida en
 texto, las etiquetas de resultados, las sondas y la página lo encuentran ahí.
 

@@ -48,6 +48,12 @@ export function buildSchemas() {
       wires: { type: 'object', additionalProperties: { type: 'string' }, description: 'module UNO, switch: colour of the lead of each pin, e.g. { "D13": "yellow" }' },
       rese: { enum: ['2.2', '0.47'], description: 'module DESPI-C02: position of its RESE switch, ohms ("2.2" as sold, "0.47" for some panels)' },
       panel: { type: 'boolean', description: 'module DESPI-C02: also draw the 7.5" GDEY075T7 panel on its flat cable' },
+      io: {
+        type: 'object',
+        additionalProperties: { enum: ['high', 'low', 'input', 'input_pullup', 'input_pulldown'] },
+        description: 'module, microcontroller boards (ESP32 DevKit, ESP32-C3 SuperMini, UNO): the state of each GPIO for the simulation, by printed name, GPIO name or number ({"D13": "high", "D27": "input_pullup"}); unlisted pins are inputs (docs/en/microcontrollers.md)',
+      },
+      usb: { type: 'boolean', description: 'module, microcontroller boards: powered by USB (default true): the board is a 5 V source and its regulator makes the 3.3 V rail' },
       led: { type: 'string', description: 'regulator module (AMS1117): its power LED\'s resistor, "1k" (default), "200", or "none"' },
       position: { type: 'number', minimum: 0, maximum: 1, description: 'potentiometer wiper position' },
       pressed: { type: 'boolean', description: 'button state' },

@@ -7,7 +7,9 @@
 //   UNO, DESPI-C02: pins ({ "D13": "j20", "GND": "T-5" }: only the pins in use),
 //        wires ({ "D13": "yellow" }), side ("back" | "front"), offset (mm along the board)
 //   DESPI-C02 also: rese ("2.2" as sold | "0.47": the P3 switch), panel (true: its 7.5" panel)
-// Not simulated yet: a module only joins the groups its pins are in (level 2 in the roadmap).
+// Microcontroller boards (those with `gpio` in modules.js) are simulated pin by pin
+// (src/sim/devices/mcu.js): io ({ "D13": "high", "D27": "input_pullup" }) and usb
+// (default true: powered by USB). Other modules only join the groups their pins are in.
 
 import { MODULES, lookupModule, headerPins } from '../modules.js';
 import { WIRE_COLORS } from '../colors.js';
@@ -30,7 +32,7 @@ export default {
     const found = lookupModule(part.part);
     if (!found) return { error: { code: 'UNKNOWN_MODULE', params: { number: String(part.part), options: Object.keys(MODULES).join(', ') } } };
     const { id, module } = found;
-    const common = { label: { text: module.label }, internal: module.internal, spare: true, electrical: { kind: 'MOD', module: id, family: module.family, role: module.role, logic: module.logic }, ...(module.role && { typeKey: `module.${module.role}` }) };
+    const common = { label: { text: module.label }, internal: module.internal, spare: true, electrical: { kind: module.gpio ? 'MCU' : 'MOD', module: id, family: module.family, role: module.role, logic: module.logic, ...(module.gpio && { power: module.power, gpio: module.gpio, adc: module.adc ?? [], inputOnly: module.inputOnly ?? [] }) }, ...(module.role && { typeKey: `module.${module.role}` }) };
     if (module.mount === 'straddle') {
       const rowSpacing = Number(part.rowSpacing ?? module.rowSpacing);
       if (!(Number.isInteger(rowSpacing) && rowSpacing >= 4 && rowSpacing <= 12)) return { error: { code: 'BAD_VALUE', params: { value: `rowSpacing ${part.rowSpacing}` } } };

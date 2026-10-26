@@ -1093,7 +1093,7 @@
    "analysis": "dc",
    "model": true,
    "ok": true,
-   "iterations": 2,
+   "iterations": 4,
    "ground": "T-",
    "nodes": {
     "T-": 0,
@@ -1131,43 +1131,84 @@
    },
    "parts": {
     "U1": {
-     "kind": "MOD",
-     "pins": {
-      "EN": null,
-      "VP": null,
-      "VN": null,
-      "D34": null,
-      "D35": null,
-      "D32": null,
-      "D33": null,
-      "D25": null,
-      "D26": null,
-      "D27": null,
-      "D14": null,
-      "D12": null,
-      "D13": null,
-      "GND": null,
-      "VIN": null,
-      "3V3": null,
-      "GND2": null,
-      "D15": null,
-      "D2": null,
-      "D4": null,
-      "RX2": null,
-      "TX2": null,
-      "D5": null,
-      "D18": null,
-      "D19": null,
-      "D21": null,
-      "RX0": null,
-      "TX0": null,
-      "D22": null,
-      "D23": null
+     "kind": "MCU",
+     "pins": [
+      {
+       "name": "D4",
+       "gpio": 4,
+       "mode": "input",
+       "level": 0,
+       "pull": null,
+       "voltage": 2.199999720394554,
+       "current": -1.099999808585635e-12,
+       "read": null,
+       "adc": 2906
+      },
+      {
+       "name": "RX2",
+       "gpio": 16,
+       "mode": "input",
+       "level": 0,
+       "pull": null,
+       "voltage": 2.199999720394554,
+       "current": -1.099999808585635e-12,
+       "read": null,
+       "adc": null
+      },
+      {
+       "name": "TX2",
+       "gpio": 17,
+       "mode": "input",
+       "level": 0,
+       "pull": null,
+       "voltage": 2.199999720394554,
+       "current": -1.099999808585635e-12,
+       "read": null,
+       "adc": null
+      },
+      {
+       "name": "D5",
+       "gpio": 5,
+       "mode": "input",
+       "level": 0,
+       "pull": null,
+       "voltage": 2.199999720394554,
+       "current": -1.099999808585635e-12,
+       "read": null,
+       "adc": null
+      },
+      {
+       "name": "D18",
+       "gpio": 18,
+       "mode": "input",
+       "level": 0,
+       "pull": null,
+       "voltage": 2.199999720394554,
+       "current": -1.099999808585635e-12,
+       "read": null,
+       "adc": null
+      },
+      {
+       "name": "D23",
+       "gpio": 23,
+       "mode": "input",
+       "level": 0,
+       "pull": null,
+       "voltage": 2.199999720394554,
+       "current": -1.099999808585635e-12,
+       "read": null,
+       "adc": null
+      }
+     ],
+     "usb": {
+      "voltage": 4.991000000892166,
+      "current": 0.044999995540866214
      },
-     "unsupported": true,
-     "floating": true,
-     "pinCurrents": {
-      "EN": 0,
+     "vdd": 3.2999996322034724,
+     "rail": 0.03999999555884157,
+     "power": 0.22499997767073662,
+     "currents": {
+      "EN": -1.03212962523331e-11,
       "VP": 0,
       "VN": 0,
       "D34": 0,
@@ -1180,23 +1221,56 @@
       "D14": 0,
       "D12": 0,
       "D13": 0,
-      "GND": 0,
-      "VIN": 0,
-      "3V3": 0,
-      "GND2": 0,
+      "GND": 4.8925714027821235e-12,
+      "VIN": -1.692174178558048e-12,
+      "3V3": -2.5887711010219743e-18,
+      "GND2": 2.220446049250313e-12,
       "D15": 0,
       "D2": 0,
-      "D4": 0,
-      "RX2": 0,
-      "TX2": 0,
-      "D5": 0,
-      "D18": 0,
+      "D4": 1.099999808585635e-12,
+      "RX2": 1.099999808585635e-12,
+      "TX2": 1.099999808585635e-12,
+      "D5": 1.099999808585635e-12,
+      "D18": 1.099999808585635e-12,
       "D19": 0,
       "D21": 0,
       "RX0": 0,
       "TX0": 0,
       "D22": 0,
-      "D23": 0
+      "D23": 1.099999808585635e-12
+     },
+     "floating": true,
+     "pinCurrents": {
+      "EN": -1.03212962523331e-11,
+      "VP": 0,
+      "VN": 0,
+      "D34": 0,
+      "D35": 0,
+      "D32": 0,
+      "D33": 0,
+      "D25": 0,
+      "D26": 0,
+      "D27": 0,
+      "D14": 0,
+      "D12": 0,
+      "D13": 0,
+      "GND": 4.8925714027821235e-12,
+      "VIN": -1.692174178558048e-12,
+      "3V3": -2.5887711010219743e-18,
+      "GND2": 2.220446049250313e-12,
+      "D15": 0,
+      "D2": 0,
+      "D4": 1.099999808585635e-12,
+      "RX2": 1.099999808585635e-12,
+      "TX2": 1.099999808585635e-12,
+      "D5": 1.099999808585635e-12,
+      "D18": 1.099999808585635e-12,
+      "D19": 0,
+      "D21": 0,
+      "RX0": 0,
+      "TX0": 0,
+      "D22": 0,
+      "D23": 1.099999808585635e-12
      }
     },
     "EP1": {
@@ -1239,13 +1313,6 @@
      "severity": "info",
      "code": "SIM_UNSUPPORTED",
      "params": {
-      "part": "U1"
-     }
-    },
-    {
-     "severity": "info",
-     "code": "SIM_UNSUPPORTED",
-     "params": {
       "part": "EP1"
      }
     },
@@ -1260,15 +1327,51 @@
    ]
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T-):\n  rail T-                        0 V\n  column 10 (rows a–e)           floating\n  column 11 (rows a–e)           floating\n  column 12 (rows a–e)           floating\n  column 13 (rows a–e)           floating\n  column 14 (rows a–e)           floating\n  column 15 (rows a–e)           floating\n  column 16 (rows a–e)           floating\n  column 17 (rows a–e)           floating\n  column 18 (rows a–e)           floating\n  column 19 (rows a–e)           floating\n  column 20 (rows a–e)           floating\n  column 21 (rows a–e)           floating\n  column 22 (rows a–e)           floating\n  column 23 (rows a–e)           floating\n  column 24 (rows a–e)           floating\n  column 24 (rows f–j)           floating\n  column 23 (rows f–j)           floating\n  column 22 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 20 (rows f–j)           floating\n  column 19 (rows f–j)           floating\n  column 18 (rows f–j)           floating\n  column 17 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 15 (rows f–j)           floating\n  column 14 (rows f–j)           floating\n  column 13 (rows f–j)           floating\n  column 12 (rows f–j)           floating\n  column 11 (rows f–j)           floating\n  column 10 (rows f–j)           floating\n  rail T+                        5 V\nParts:\n  U1     not simulated · floating\n  EP1    not simulated · floating\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  note: EP1: the simulator does not model this part yet; its pins are left unconnected.\n  warning: U1, EP1: no DC path to the supply (nodes 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, 15:a-e, 16:a-e, 17:a-e, 18:a-e, 19:a-e, 20:a-e, 21:a-e, 22:a-e, 23:a-e, 24:a-e, 24:f-j, 23:f-j, 22:f-j, 21:f-j, 20:f-j, 19:f-j, 18:f-j, 17:f-j, 16:f-j, 15:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j), so the voltage there is not defined.",
-   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T-):\n  riel T-                        0 V\n  columna 10 (filas a–e)         flotante\n  columna 11 (filas a–e)         flotante\n  columna 12 (filas a–e)         flotante\n  columna 13 (filas a–e)         flotante\n  columna 14 (filas a–e)         flotante\n  columna 15 (filas a–e)         flotante\n  columna 16 (filas a–e)         flotante\n  columna 17 (filas a–e)         flotante\n  columna 18 (filas a–e)         flotante\n  columna 19 (filas a–e)         flotante\n  columna 20 (filas a–e)         flotante\n  columna 21 (filas a–e)         flotante\n  columna 22 (filas a–e)         flotante\n  columna 23 (filas a–e)         flotante\n  columna 24 (filas a–e)         flotante\n  columna 24 (filas f–j)         flotante\n  columna 23 (filas f–j)         flotante\n  columna 22 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 20 (filas f–j)         flotante\n  columna 19 (filas f–j)         flotante\n  columna 18 (filas f–j)         flotante\n  columna 17 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 15 (filas f–j)         flotante\n  columna 14 (filas f–j)         flotante\n  columna 13 (filas f–j)         flotante\n  columna 12 (filas f–j)         flotante\n  columna 11 (filas f–j)         flotante\n  columna 10 (filas f–j)         flotante\n  riel T+                        5 V\nComponentes:\n  U1     no se simula · flotante\n  EP1    no se simula · flotante\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  nota: EP1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: U1, EP1: no hay camino de corriente continua hasta la fuente (grupos 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, 15:a-e, 16:a-e, 17:a-e, 18:a-e, 19:a-e, 20:a-e, 21:a-e, 22:a-e, 23:a-e, 24:a-e, 24:f-j, 23:f-j, 22:f-j, 21:f-j, 20:f-j, 19:f-j, 18:f-j, 17:f-j, 16:f-j, 15:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j), así que ahí el voltaje no está definido."
+   "en": "DC operating point — a model, not a measurement (4 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T-):\n  rail T-                        0 V\n  column 10 (rows a–e)           floating\n  column 11 (rows a–e)           floating\n  column 12 (rows a–e)           floating\n  column 13 (rows a–e)           floating\n  column 14 (rows a–e)           floating\n  column 15 (rows a–e)           floating\n  column 16 (rows a–e)           floating\n  column 17 (rows a–e)           floating\n  column 18 (rows a–e)           floating\n  column 19 (rows a–e)           floating\n  column 20 (rows a–e)           floating\n  column 21 (rows a–e)           floating\n  column 22 (rows a–e)           floating\n  column 23 (rows a–e)           floating\n  column 24 (rows a–e)           floating\n  column 24 (rows f–j)           floating\n  column 23 (rows f–j)           floating\n  column 22 (rows f–j)           floating\n  column 21 (rows f–j)           floating\n  column 20 (rows f–j)           floating\n  column 19 (rows f–j)           floating\n  column 18 (rows f–j)           floating\n  column 17 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 15 (rows f–j)           floating\n  column 14 (rows f–j)           floating\n  column 13 (rows f–j)           floating\n  column 12 (rows f–j)           floating\n  column 11 (rows f–j)           floating\n  column 10 (rows f–j)           floating\n  rail T+                        5 V\nParts:\n  U1     floating   floating   225 mW · floating\n  EP1    not simulated · floating\nNotes:\n  note: EP1: the simulator does not model this part yet; its pins are left unconnected.\n  warning: U1, EP1: no DC path to the supply (nodes 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, 15:a-e, 16:a-e, 17:a-e, 18:a-e, 19:a-e, 20:a-e, 21:a-e, 22:a-e, 23:a-e, 24:a-e, 24:f-j, 23:f-j, 22:f-j, 21:f-j, 20:f-j, 19:f-j, 18:f-j, 17:f-j, 16:f-j, 15:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (4 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T-):\n  riel T-                        0 V\n  columna 10 (filas a–e)         flotante\n  columna 11 (filas a–e)         flotante\n  columna 12 (filas a–e)         flotante\n  columna 13 (filas a–e)         flotante\n  columna 14 (filas a–e)         flotante\n  columna 15 (filas a–e)         flotante\n  columna 16 (filas a–e)         flotante\n  columna 17 (filas a–e)         flotante\n  columna 18 (filas a–e)         flotante\n  columna 19 (filas a–e)         flotante\n  columna 20 (filas a–e)         flotante\n  columna 21 (filas a–e)         flotante\n  columna 22 (filas a–e)         flotante\n  columna 23 (filas a–e)         flotante\n  columna 24 (filas a–e)         flotante\n  columna 24 (filas f–j)         flotante\n  columna 23 (filas f–j)         flotante\n  columna 22 (filas f–j)         flotante\n  columna 21 (filas f–j)         flotante\n  columna 20 (filas f–j)         flotante\n  columna 19 (filas f–j)         flotante\n  columna 18 (filas f–j)         flotante\n  columna 17 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 15 (filas f–j)         flotante\n  columna 14 (filas f–j)         flotante\n  columna 13 (filas f–j)         flotante\n  columna 12 (filas f–j)         flotante\n  columna 11 (filas f–j)         flotante\n  columna 10 (filas f–j)         flotante\n  riel T+                        5 V\nComponentes:\n  U1     flotante   flotante   225 mW · flotante\n  EP1    no se simula · flotante\nObservaciones:\n  nota: EP1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: U1, EP1: no hay camino de corriente continua hasta la fuente (grupos 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, 15:a-e, 16:a-e, 17:a-e, 18:a-e, 19:a-e, 20:a-e, 21:a-e, 22:a-e, 23:a-e, 24:a-e, 24:f-j, 23:f-j, 22:f-j, 21:f-j, 20:f-j, 19:f-j, 18:f-j, 17:f-j, 16:f-j, 15:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j), así que ahí el voltaje no está definido."
   },
   "lines": {
    "en": {
     "U1": [
      {
-      "key": "unsupported",
-      "text": "not simulated"
+      "key": "mcu.usb",
+      "text": "USB: 4.99 V · 45 mA"
+     },
+     {
+      "key": "mcu.vdd",
+      "text": "Logic rail: 3.3 V · 40 mA"
+     },
+     {
+      "key": "mcu.input",
+      "text": "D4 (GPIO4): input · 2.2 V · -1.1 pA · reads neither 0 nor 1 · ADC 2906"
+     },
+     {
+      "key": "mcu.input",
+      "text": "RX2 (GPIO16): input · 2.2 V · -1.1 pA · reads neither 0 nor 1"
+     },
+     {
+      "key": "mcu.input",
+      "text": "TX2 (GPIO17): input · 2.2 V · -1.1 pA · reads neither 0 nor 1"
+     },
+     {
+      "key": "mcu.input",
+      "text": "D5 (GPIO5): input · 2.2 V · -1.1 pA · reads neither 0 nor 1"
+     },
+     {
+      "key": "mcu.input",
+      "text": "D18 (GPIO18): input · 2.2 V · -1.1 pA · reads neither 0 nor 1"
+     },
+     {
+      "key": "mcu.input",
+      "text": "D23 (GPIO23): input · 2.2 V · -1.1 pA · reads neither 0 nor 1"
+     },
+     {
+      "key": "power",
+      "text": "Power: 225 mW"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
      }
     ],
     "EP1": [
@@ -1281,8 +1384,44 @@
    "es": {
     "U1": [
      {
-      "key": "unsupported",
-      "text": "no se simula"
+      "key": "mcu.usb",
+      "text": "USB: 4,99 V · 45 mA"
+     },
+     {
+      "key": "mcu.vdd",
+      "text": "Riel lógico: 3,3 V · 40 mA"
+     },
+     {
+      "key": "mcu.input",
+      "text": "D4 (GPIO4): entrada · 2,2 V · -1,1 pA · no lee ni 0 ni 1 · ADC 2906"
+     },
+     {
+      "key": "mcu.input",
+      "text": "RX2 (GPIO16): entrada · 2,2 V · -1,1 pA · no lee ni 0 ni 1"
+     },
+     {
+      "key": "mcu.input",
+      "text": "TX2 (GPIO17): entrada · 2,2 V · -1,1 pA · no lee ni 0 ni 1"
+     },
+     {
+      "key": "mcu.input",
+      "text": "D5 (GPIO5): entrada · 2,2 V · -1,1 pA · no lee ni 0 ni 1"
+     },
+     {
+      "key": "mcu.input",
+      "text": "D18 (GPIO18): entrada · 2,2 V · -1,1 pA · no lee ni 0 ni 1"
+     },
+     {
+      "key": "mcu.input",
+      "text": "D23 (GPIO23): entrada · 2,2 V · -1,1 pA · no lee ni 0 ni 1"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 225 mW"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
      }
     ],
     "EP1": [
@@ -1299,7 +1438,7 @@
    "analysis": "dc",
    "model": true,
    "ok": true,
-   "iterations": 2,
+   "iterations": 14,
    "ground": "T-",
    "nodes": {
     "T-": 0,
@@ -1340,43 +1479,29 @@
    },
    "parts": {
     "U1": {
-     "kind": "MOD",
-     "pins": {
-      "EN": null,
-      "VP": null,
-      "VN": null,
-      "D34": null,
-      "D35": null,
-      "D32": null,
-      "D33": null,
-      "D25": null,
-      "D26": null,
-      "D27": null,
-      "D14": null,
-      "D12": null,
-      "D13": null,
-      "GND": null,
-      "VIN": null,
-      "3V3": null,
-      "GND2": null,
-      "D15": null,
-      "D2": null,
-      "D4": null,
-      "RX2": null,
-      "TX2": null,
-      "D5": null,
-      "D18": null,
-      "D19": null,
-      "D21": null,
-      "RX0": null,
-      "TX0": null,
-      "D22": null,
-      "D23": null
+     "kind": "MCU",
+     "pins": [
+      {
+       "name": "D13",
+       "gpio": 13,
+       "mode": "output",
+       "level": 1,
+       "pull": null,
+       "voltage": 3.1860346152123946,
+       "current": 0.00670382393781729,
+       "read": 1,
+       "adc": 4095
+      }
+     ],
+     "usb": {
+      "voltage": 4.989659236128939,
+      "current": 0.05170381935701004
      },
-     "unsupported": true,
-     "floating": true,
-     "pinCurrents": {
-      "EN": 0,
+     "vdd": 3.299999622207516,
+     "rail": 0.04670381937510233,
+     "power": 0.2371604816066411,
+     "currents": {
+      "EN": -1.339185113452133e-11,
       "VP": 0,
       "VN": 0,
       "D34": 0,
@@ -1388,11 +1513,44 @@
       "D27": 0,
       "D14": 0,
       "D12": 0,
-      "D13": 0,
-      "GND": 0,
-      "VIN": 0,
-      "3V3": 0,
-      "GND2": 0,
+      "D13": -0.00670382393781729,
+      "GND": 0.006703823951490189,
+      "VIN": -1.6895165821928515e-12,
+      "3V3": 4.816597210156104e-18,
+      "GND2": 3.1086244689504383e-12,
+      "D15": 0,
+      "D2": 0,
+      "D4": 0,
+      "RX2": 0,
+      "TX2": 0,
+      "D5": 0,
+      "D18": 0,
+      "D19": 0,
+      "D21": 0,
+      "RX0": 0,
+      "TX0": 0,
+      "D22": 0,
+      "D23": 0
+     },
+     "floating": true,
+     "pinCurrents": {
+      "EN": -1.339185113452133e-11,
+      "VP": 0,
+      "VN": 0,
+      "D34": 0,
+      "D35": 0,
+      "D32": 0,
+      "D33": 0,
+      "D25": 0,
+      "D26": 0,
+      "D27": 0,
+      "D14": 0,
+      "D12": 0,
+      "D13": -0.00670382393781729,
+      "GND": 0.006703823951490189,
+      "VIN": -1.6895165821928515e-12,
+      "3V3": 4.816597210156104e-18,
+      "GND2": 3.1086244689504383e-12,
       "D15": 0,
       "D2": 0,
       "D4": 0,
@@ -1414,13 +1572,13 @@
       "1": null,
       "2": null
      },
-     "voltage": 0,
-     "current": 0,
-     "power": 0,
+     "voltage": 1.4748412663448762,
+     "current": 0.0067038239379312555,
+     "power": 0.009887076185971629,
      "floating": true,
      "pinCurrents": {
-      "1": 0,
-      "2": 0
+      "1": 0.0067038239379312555,
+      "2": -0.0067038239379312555
      }
     },
     "D1": {
@@ -1429,14 +1587,14 @@
       "anode": null,
       "cathode": null
      },
-     "voltage": 0,
-     "current": 0,
-     "power": 0,
-     "brightness": 0,
+     "voltage": 1.7105229664729065,
+     "current": 0.006703823944303556,
+     "power": 0.011467044819922218,
+     "brightness": 0.33519119721517776,
      "floating": true,
      "pinCurrents": {
-      "anode": 0,
-      "cathode": 0
+      "anode": 0.006703823944303556,
+      "cathode": -0.006703823944303556
      }
     },
     "W1": {
@@ -1445,13 +1603,13 @@
       "1": null,
       "2": null
      },
-     "voltage": 0,
-     "current": 0,
-     "power": 0,
+     "voltage": 0.00033519119722447144,
+     "current": 0.006703823944489429,
+     "power": 0.0000022470627739354903,
      "floating": true,
      "pinCurrents": {
-      "1": 0,
-      "2": 0
+      "1": 0.006703823944489429,
+      "2": -0.006703823944489429
      }
     },
     "W2": {
@@ -1460,13 +1618,13 @@
       "1": null,
       "2": null
      },
-     "voltage": 0,
-     "current": 0,
-     "power": 0,
+     "voltage": -0.0003351911973874522,
+     "current": -0.0067038239477490436,
+     "power": 0.0000022470627761206786,
      "floating": true,
      "pinCurrents": {
-      "1": 0,
-      "2": 0
+      "1": -0.0067038239477490436,
+      "2": 0.0067038239477490436
      }
     }
    },
@@ -1481,13 +1639,6 @@
    },
    "issues": [
     {
-     "severity": "info",
-     "code": "SIM_UNSUPPORTED",
-     "params": {
-      "part": "U1"
-     }
-    },
-    {
      "severity": "warning",
      "code": "SIM_FLOATING",
      "params": {
@@ -1498,29 +1649,45 @@
    ]
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T-):\n  rail T-                        0 V\n  column 5 (rows a–e)            floating\n  column 6 (rows a–e)            floating\n  column 7 (rows a–e)            floating\n  column 8 (rows a–e)            floating\n  column 9 (rows a–e)            floating\n  column 10 (rows a–e)           floating\n  column 11 (rows a–e)           floating\n  column 12 (rows a–e)           floating\n  column 13 (rows a–e)           floating\n  column 14 (rows a–e)           floating\n  column 15 (rows a–e)           floating\n  column 16 (rows a–e)           floating\n  column 17 (rows a–e)           floating\n  column 18 (rows a–e)           floating\n  column 19 (rows a–e)           floating\n  column 19 (rows f–j)           floating\n  column 18 (rows f–j)           floating\n  column 17 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 15 (rows f–j)           floating\n  column 14 (rows f–j)           floating\n  column 13 (rows f–j)           floating\n  column 12 (rows f–j)           floating\n  column 11 (rows f–j)           floating\n  column 10 (rows f–j)           floating\n  column 9 (rows f–j)            floating\n  column 8 (rows f–j)            floating\n  column 7 (rows f–j)            floating\n  column 6 (rows f–j)            floating\n  column 5 (rows f–j)            floating\n  column 24 (rows a–e)           floating\n  column 25 (rows a–e)           floating\n  rail B- (GND)                  floating\n  rail T+                        5 V\nParts:\n  U1     not simulated · floating\n  R1     0 V        0 A        0 W · floating\n  D1     0 V        0 A        0 W · brightness 0 % of 20 mA · floating\n  W1     0 V        0 A        0 W · floating\n  W2     0 V        0 A        0 W · floating\nNotes:\n  note: U1: the simulator does not model this part yet; its pins are left unconnected.\n  warning: U1, R1, W2, D1, W1: no DC path to the supply (nodes 5:a-e, 6:a-e, 7:a-e, 8:a-e, 9:a-e, 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, 15:a-e, 16:a-e, 17:a-e, 18:a-e, 19:a-e, 19:f-j, 18:f-j, 17:f-j, 16:f-j, 15:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j, 9:f-j, 8:f-j, 7:f-j, 6:f-j, 5:f-j, 24:a-e, 25:a-e, B-), so the voltage there is not defined.",
-   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T-):\n  riel T-                        0 V\n  columna 5 (filas a–e)          flotante\n  columna 6 (filas a–e)          flotante\n  columna 7 (filas a–e)          flotante\n  columna 8 (filas a–e)          flotante\n  columna 9 (filas a–e)          flotante\n  columna 10 (filas a–e)         flotante\n  columna 11 (filas a–e)         flotante\n  columna 12 (filas a–e)         flotante\n  columna 13 (filas a–e)         flotante\n  columna 14 (filas a–e)         flotante\n  columna 15 (filas a–e)         flotante\n  columna 16 (filas a–e)         flotante\n  columna 17 (filas a–e)         flotante\n  columna 18 (filas a–e)         flotante\n  columna 19 (filas a–e)         flotante\n  columna 19 (filas f–j)         flotante\n  columna 18 (filas f–j)         flotante\n  columna 17 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 15 (filas f–j)         flotante\n  columna 14 (filas f–j)         flotante\n  columna 13 (filas f–j)         flotante\n  columna 12 (filas f–j)         flotante\n  columna 11 (filas f–j)         flotante\n  columna 10 (filas f–j)         flotante\n  columna 9 (filas f–j)          flotante\n  columna 8 (filas f–j)          flotante\n  columna 7 (filas f–j)          flotante\n  columna 6 (filas f–j)          flotante\n  columna 5 (filas f–j)          flotante\n  columna 24 (filas a–e)         flotante\n  columna 25 (filas a–e)         flotante\n  riel B- (GND)                  flotante\n  riel T+                        5 V\nComponentes:\n  U1     no se simula · flotante\n  R1     0 V        0 A        0 W · flotante\n  D1     0 V        0 A        0 W · brillo 0 % del de 20 mA · flotante\n  W1     0 V        0 A        0 W · flotante\n  W2     0 V        0 A        0 W · flotante\nObservaciones:\n  nota: U1: el simulador todavía no modela este componente; sus patas quedan sin conectar.\n  aviso: U1, R1, W2, D1, W1: no hay camino de corriente continua hasta la fuente (grupos 5:a-e, 6:a-e, 7:a-e, 8:a-e, 9:a-e, 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, 15:a-e, 16:a-e, 17:a-e, 18:a-e, 19:a-e, 19:f-j, 18:f-j, 17:f-j, 16:f-j, 15:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j, 9:f-j, 8:f-j, 7:f-j, 6:f-j, 5:f-j, 24:a-e, 25:a-e, B-), así que ahí el voltaje no está definido."
+   "en": "DC operating point — a model, not a measurement (14 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T-):\n  rail T-                        0 V\n  column 5 (rows a–e)            floating\n  column 6 (rows a–e)            floating\n  column 7 (rows a–e)            floating\n  column 8 (rows a–e)            floating\n  column 9 (rows a–e)            floating\n  column 10 (rows a–e)           floating\n  column 11 (rows a–e)           floating\n  column 12 (rows a–e)           floating\n  column 13 (rows a–e)           floating\n  column 14 (rows a–e)           floating\n  column 15 (rows a–e)           floating\n  column 16 (rows a–e)           floating\n  column 17 (rows a–e)           floating\n  column 18 (rows a–e)           floating\n  column 19 (rows a–e)           floating\n  column 19 (rows f–j)           floating\n  column 18 (rows f–j)           floating\n  column 17 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  column 15 (rows f–j)           floating\n  column 14 (rows f–j)           floating\n  column 13 (rows f–j)           floating\n  column 12 (rows f–j)           floating\n  column 11 (rows f–j)           floating\n  column 10 (rows f–j)           floating\n  column 9 (rows f–j)            floating\n  column 8 (rows f–j)            floating\n  column 7 (rows f–j)            floating\n  column 6 (rows f–j)            floating\n  column 5 (rows f–j)            floating\n  column 24 (rows a–e)           floating\n  column 25 (rows a–e)           floating\n  rail B- (GND)                  floating\n  rail T+                        5 V\nParts:\n  U1     floating   floating   237 mW · floating\n  R1     1.47 V     6.7 mA     9.89 mW · floating\n  D1     1.71 V     6.7 mA     11.5 mW · brightness 34 % of 20 mA · floating\n  W1     335 µV     6.7 mA     2.25 µW · floating\n  W2     -335 µV    -6.7 mA    2.25 µW · floating\nNotes:\n  warning: U1, R1, W2, D1, W1: no DC path to the supply (nodes 5:a-e, 6:a-e, 7:a-e, 8:a-e, 9:a-e, 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, 15:a-e, 16:a-e, 17:a-e, 18:a-e, 19:a-e, 19:f-j, 18:f-j, 17:f-j, 16:f-j, 15:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j, 9:f-j, 8:f-j, 7:f-j, 6:f-j, 5:f-j, 24:a-e, 25:a-e, B-), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (14 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T-):\n  riel T-                        0 V\n  columna 5 (filas a–e)          flotante\n  columna 6 (filas a–e)          flotante\n  columna 7 (filas a–e)          flotante\n  columna 8 (filas a–e)          flotante\n  columna 9 (filas a–e)          flotante\n  columna 10 (filas a–e)         flotante\n  columna 11 (filas a–e)         flotante\n  columna 12 (filas a–e)         flotante\n  columna 13 (filas a–e)         flotante\n  columna 14 (filas a–e)         flotante\n  columna 15 (filas a–e)         flotante\n  columna 16 (filas a–e)         flotante\n  columna 17 (filas a–e)         flotante\n  columna 18 (filas a–e)         flotante\n  columna 19 (filas a–e)         flotante\n  columna 19 (filas f–j)         flotante\n  columna 18 (filas f–j)         flotante\n  columna 17 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  columna 15 (filas f–j)         flotante\n  columna 14 (filas f–j)         flotante\n  columna 13 (filas f–j)         flotante\n  columna 12 (filas f–j)         flotante\n  columna 11 (filas f–j)         flotante\n  columna 10 (filas f–j)         flotante\n  columna 9 (filas f–j)          flotante\n  columna 8 (filas f–j)          flotante\n  columna 7 (filas f–j)          flotante\n  columna 6 (filas f–j)          flotante\n  columna 5 (filas f–j)          flotante\n  columna 24 (filas a–e)         flotante\n  columna 25 (filas a–e)         flotante\n  riel B- (GND)                  flotante\n  riel T+                        5 V\nComponentes:\n  U1     flotante   flotante   237 mW · flotante\n  R1     1,47 V     6,7 mA     9,89 mW · flotante\n  D1     1,71 V     6,7 mA     11,5 mW · brillo 34 % del de 20 mA · flotante\n  W1     335 µV     6,7 mA     2,25 µW · flotante\n  W2     -335 µV    -6,7 mA    2,25 µW · flotante\nObservaciones:\n  aviso: U1, R1, W2, D1, W1: no hay camino de corriente continua hasta la fuente (grupos 5:a-e, 6:a-e, 7:a-e, 8:a-e, 9:a-e, 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, 15:a-e, 16:a-e, 17:a-e, 18:a-e, 19:a-e, 19:f-j, 18:f-j, 17:f-j, 16:f-j, 15:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j, 9:f-j, 8:f-j, 7:f-j, 6:f-j, 5:f-j, 24:a-e, 25:a-e, B-), así que ahí el voltaje no está definido."
   },
   "lines": {
    "en": {
     "U1": [
      {
-      "key": "unsupported",
-      "text": "not simulated"
+      "key": "mcu.usb",
+      "text": "USB: 4.99 V · 51.7 mA"
+     },
+     {
+      "key": "mcu.vdd",
+      "text": "Logic rail: 3.3 V · 46.7 mA"
+     },
+     {
+      "key": "mcu.output",
+      "text": "D13 (GPIO13): output HIGH · 3.19 V · 6.7 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 237 mW"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
      }
     ],
     "R1": [
      {
       "key": "voltage",
-      "text": "Voltage: 0 V"
+      "text": "Voltage: 1.47 V"
      },
      {
       "key": "current",
-      "text": "Current: 0 A"
+      "text": "Current: 6.7 mA"
      },
      {
       "key": "power",
-      "text": "Power: 0 W"
+      "text": "Power: 9.89 mW"
      },
      {
       "key": "floating",
@@ -1530,19 +1697,19 @@
     "D1": [
      {
       "key": "voltage",
-      "text": "Voltage: 0 V"
+      "text": "Voltage: 1.71 V"
      },
      {
       "key": "current",
-      "text": "Current: 0 A"
+      "text": "Current: 6.7 mA"
      },
      {
       "key": "power",
-      "text": "Power: 0 W"
+      "text": "Power: 11.5 mW"
      },
      {
       "key": "brightness",
-      "text": "Brightness: brightness 0 % of 20 mA"
+      "text": "Brightness: brightness 34 % of 20 mA"
      },
      {
       "key": "floating",
@@ -1552,15 +1719,15 @@
     "W1": [
      {
       "key": "voltage",
-      "text": "Voltage: 0 V"
+      "text": "Voltage: 335 µV"
      },
      {
       "key": "current",
-      "text": "Current: 0 A"
+      "text": "Current: 6.7 mA"
      },
      {
       "key": "power",
-      "text": "Power: 0 W"
+      "text": "Power: 2.25 µW"
      },
      {
       "key": "floating",
@@ -1570,15 +1737,15 @@
     "W2": [
      {
       "key": "voltage",
-      "text": "Voltage: 0 V"
+      "text": "Voltage: -335 µV"
      },
      {
       "key": "current",
-      "text": "Current: 0 A"
+      "text": "Current: -6.7 mA"
      },
      {
       "key": "power",
-      "text": "Power: 0 W"
+      "text": "Power: 2.25 µW"
      },
      {
       "key": "floating",
@@ -1589,22 +1756,38 @@
    "es": {
     "U1": [
      {
-      "key": "unsupported",
-      "text": "no se simula"
+      "key": "mcu.usb",
+      "text": "USB: 4,99 V · 51,7 mA"
+     },
+     {
+      "key": "mcu.vdd",
+      "text": "Riel lógico: 3,3 V · 46,7 mA"
+     },
+     {
+      "key": "mcu.output",
+      "text": "D13 (GPIO13): salida en ALTO · 3,19 V · 6,7 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 237 mW"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
      }
     ],
     "R1": [
      {
       "key": "voltage",
-      "text": "Voltaje (tensión): 0 V"
+      "text": "Voltaje (tensión): 1,47 V"
      },
      {
       "key": "current",
-      "text": "Corriente: 0 A"
+      "text": "Corriente: 6,7 mA"
      },
      {
       "key": "power",
-      "text": "Potencia: 0 W"
+      "text": "Potencia: 9,89 mW"
      },
      {
       "key": "floating",
@@ -1614,19 +1797,19 @@
     "D1": [
      {
       "key": "voltage",
-      "text": "Voltaje (tensión): 0 V"
+      "text": "Voltaje (tensión): 1,71 V"
      },
      {
       "key": "current",
-      "text": "Corriente: 0 A"
+      "text": "Corriente: 6,7 mA"
      },
      {
       "key": "power",
-      "text": "Potencia: 0 W"
+      "text": "Potencia: 11,5 mW"
      },
      {
       "key": "brightness",
-      "text": "Brillo: brillo 0 % del de 20 mA"
+      "text": "Brillo: brillo 34 % del de 20 mA"
      },
      {
       "key": "floating",
@@ -1636,15 +1819,15 @@
     "W1": [
      {
       "key": "voltage",
-      "text": "Voltaje (tensión): 0 V"
+      "text": "Voltaje (tensión): 335 µV"
      },
      {
       "key": "current",
-      "text": "Corriente: 0 A"
+      "text": "Corriente: 6,7 mA"
      },
      {
       "key": "power",
-      "text": "Potencia: 0 W"
+      "text": "Potencia: 2,25 µW"
      },
      {
       "key": "floating",
@@ -1654,15 +1837,15 @@
     "W2": [
      {
       "key": "voltage",
-      "text": "Voltaje (tensión): 0 V"
+      "text": "Voltaje (tensión): -335 µV"
      },
      {
       "key": "current",
-      "text": "Corriente: 0 A"
+      "text": "Corriente: -6,7 mA"
      },
      {
       "key": "power",
-      "text": "Potencia: 0 W"
+      "text": "Potencia: 2,25 µW"
      },
      {
       "key": "floating",
@@ -5825,48 +6008,77 @@
    "analysis": "dc",
    "model": true,
    "ok": true,
-   "iterations": 2,
+   "iterations": 13,
    "ground": "T-",
    "nodes": {
     "T-": 0,
-    "20:f-j": 0,
-    "26:f-j": 0,
-    "27:f-j": 0,
+    "20:f-j": 4.6650680698022615,
+    "26:f-j": 2.0326447577260645,
+    "27:f-j": 0.00039885201678194757,
     "T+": 5
    },
    "parts": {
     "A1": {
-     "kind": "MOD",
-     "pins": {
-      "D13": 0,
-      "GND": 0
+     "kind": "MCU",
+     "pins": [
+      {
+       "name": "D13",
+       "gpio": 13,
+       "mode": "output",
+       "level": 1,
+       "pull": null,
+       "voltage": 4.6650680698022615,
+       "current": 0.007977040344289903,
+       "read": 1,
+       "adc": null
+      }
+     ],
+     "usb": {
+      "voltage": 4.984149683747697,
+      "current": 0.05283438751267927
      },
-     "unsupported": true,
+     "vdd": 4.984149683747697,
+     "rail": null,
+     "power": 0.22695850136172507,
+     "currents": {
+      "D13": -0.007977040344289903,
+      "GND": 0.007977040354274932
+     },
      "pinCurrents": {
-      "D13": 0,
-      "GND": 0
-     }
+      "D13": -0.007977040344289903,
+      "GND": 0.007977040354274932
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.007977040344289903,
+       "max": 0.04,
+       "unit": "A",
+       "ratio": 0.19942600860724757,
+       "level": "fine"
+      }
+     ]
     },
     "R1": {
      "kind": "R",
      "pins": {
-      "1": 0,
-      "2": 0
+      "1": 4.6650680698022615,
+      "2": 2.0326447577260645
      },
-     "voltage": 0,
-     "current": 0,
-     "power": 0,
+     "voltage": 2.632423312076197,
+     "current": 0.00797704033962484,
+     "power": 0.020998946951400654,
      "pinCurrents": {
-      "1": 0,
-      "2": 0
+      "1": 0.00797704033962484,
+      "2": -0.00797704033962484
      },
      "stress": [
       {
        "quantity": "power",
-       "value": 0,
+       "value": 0.020998946951400654,
        "max": 0.25,
        "unit": "W",
-       "ratio": 0,
+       "ratio": 0.08399578780560261,
        "level": "fine"
       }
      ]
@@ -5874,32 +6086,32 @@
     "D1": {
      "kind": "LED",
      "pins": {
-      "anode": 0,
-      "cathode": 0
+      "anode": 2.0326447577260645,
+      "cathode": 0.00039885201678194757
      },
-     "voltage": 0,
-     "current": 0,
-     "power": 0,
-     "brightness": 0,
+     "voltage": 2.0322459057092823,
+     "current": 0.007977040335639373,
+     "power": 0.016211307561780915,
+     "brightness": 0.3988520167819687,
      "pinCurrents": {
-      "anode": 0,
-      "cathode": 0
+      "anode": 0.007977040335639373,
+      "cathode": -0.007977040335639373
      },
      "stress": [
       {
        "quantity": "current",
-       "value": 0,
+       "value": 0.007977040335639373,
        "max": 0.03,
        "unit": "A",
-       "ratio": 0,
+       "ratio": 0.2659013445213125,
        "level": "fine"
       },
       {
        "quantity": "reverse",
-       "value": 0,
+       "value": -2.0322459057092823,
        "max": 5,
        "unit": "V",
-       "ratio": 0,
+       "ratio": -0.40644918114185646,
        "level": "fine"
       }
      ]
@@ -5907,15 +6119,15 @@
     "W1": {
      "kind": "W",
      "pins": {
-      "1": 0,
+      "1": 0.00039885201678194757,
       "2": 0
      },
-     "voltage": 0,
-     "current": 0,
-     "power": 0,
+     "voltage": 0.00039885201678194757,
+     "current": 0.007977040335638952,
+     "power": 0.00000318165862582054,
      "pinCurrents": {
-      "1": 0,
-      "2": 0
+      "1": 0.007977040335638952,
+      "2": -0.007977040335638952
      }
     }
    },
@@ -5928,126 +6140,142 @@
      "mode": "CV"
     }
    },
-   "issues": [
-    {
-     "severity": "info",
-     "code": "SIM_UNSUPPORTED",
-     "params": {
-      "part": "A1"
-     }
-    }
-   ]
+   "issues": []
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  column 20 (rows f–j)           0 V\n  column 26 (rows f–j)           0 V\n  column 27 (rows f–j)           0 V\n  rail T+                        5 V\nParts:\n  A1     not simulated\n  R1     0 V        0 A        0 W\n  D1     0 V        0 A        0 W · brightness 0 % of 20 mA\n  W1     0 V        0 A        0 W\nNotes:\n  note: A1: the simulator does not model this part yet; its pins are left unconnected.",
-   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  columna 20 (filas f–j)         0 V\n  columna 26 (filas f–j)         0 V\n  columna 27 (filas f–j)         0 V\n  riel T+                        5 V\nComponentes:\n  A1     no se simula\n  R1     0 V        0 A        0 W\n  D1     0 V        0 A        0 W · brillo 0 % del de 20 mA\n  W1     0 V        0 A        0 W\nObservaciones:\n  nota: A1: el simulador todavía no modela este componente; sus patas quedan sin conectar."
+   "en": "DC operating point — a model, not a measurement (13 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  column 20 (rows f–j)           4.67 V\n  column 26 (rows f–j)           2.03 V\n  column 27 (rows f–j)           399 µV\n  rail T+                        5 V\nParts:\n  A1     floating   floating   227 mW\n  R1     2.63 V     7.98 mA    21 mW\n  D1     2.03 V     7.98 mA    16.2 mW · brightness 40 % of 20 mA\n  W1     399 µV     7.98 mA    3.18 µW",
+   "es": "Punto de operación en DC — un modelo, no una medición (13 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  columna 20 (filas f–j)         4,67 V\n  columna 26 (filas f–j)         2,03 V\n  columna 27 (filas f–j)         399 µV\n  riel T+                        5 V\nComponentes:\n  A1     flotante   flotante   227 mW\n  R1     2,63 V     7,98 mA    21 mW\n  D1     2,03 V     7,98 mA    16,2 mW · brillo 40 % del de 20 mA\n  W1     399 µV     7,98 mA    3,18 µW"
   },
   "lines": {
    "en": {
     "A1": [
      {
-      "key": "unsupported",
-      "text": "not simulated"
+      "key": "mcu.usb",
+      "text": "USB: 4.98 V · 52.8 mA"
+     },
+     {
+      "key": "mcu.vdd",
+      "text": "Logic rail: 4.98 V"
+     },
+     {
+      "key": "mcu.output",
+      "text": "D13 (GPIO13): output HIGH · 4.67 V · 7.98 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 227 mW"
      }
     ],
     "R1": [
      {
       "key": "voltage",
-      "text": "Voltage: 0 V"
+      "text": "Voltage: 2.63 V"
      },
      {
       "key": "current",
-      "text": "Current: 0 A"
+      "text": "Current: 7.98 mA"
      },
      {
       "key": "power",
-      "text": "Power: 0 W"
+      "text": "Power: 21 mW"
      }
     ],
     "D1": [
      {
       "key": "voltage",
-      "text": "Voltage: 0 V"
+      "text": "Voltage: 2.03 V"
      },
      {
       "key": "current",
-      "text": "Current: 0 A"
+      "text": "Current: 7.98 mA"
      },
      {
       "key": "power",
-      "text": "Power: 0 W"
+      "text": "Power: 16.2 mW"
      },
      {
       "key": "brightness",
-      "text": "Brightness: brightness 0 % of 20 mA"
+      "text": "Brightness: brightness 40 % of 20 mA"
      }
     ],
     "W1": [
      {
       "key": "voltage",
-      "text": "Voltage: 0 V"
+      "text": "Voltage: 399 µV"
      },
      {
       "key": "current",
-      "text": "Current: 0 A"
+      "text": "Current: 7.98 mA"
      },
      {
       "key": "power",
-      "text": "Power: 0 W"
+      "text": "Power: 3.18 µW"
      }
     ]
    },
    "es": {
     "A1": [
      {
-      "key": "unsupported",
-      "text": "no se simula"
+      "key": "mcu.usb",
+      "text": "USB: 4,98 V · 52,8 mA"
+     },
+     {
+      "key": "mcu.vdd",
+      "text": "Riel lógico: 4,98 V"
+     },
+     {
+      "key": "mcu.output",
+      "text": "D13 (GPIO13): salida en ALTO · 4,67 V · 7,98 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 227 mW"
      }
     ],
     "R1": [
      {
       "key": "voltage",
-      "text": "Voltaje (tensión): 0 V"
+      "text": "Voltaje (tensión): 2,63 V"
      },
      {
       "key": "current",
-      "text": "Corriente: 0 A"
+      "text": "Corriente: 7,98 mA"
      },
      {
       "key": "power",
-      "text": "Potencia: 0 W"
+      "text": "Potencia: 21 mW"
      }
     ],
     "D1": [
      {
       "key": "voltage",
-      "text": "Voltaje (tensión): 0 V"
+      "text": "Voltaje (tensión): 2,03 V"
      },
      {
       "key": "current",
-      "text": "Corriente: 0 A"
+      "text": "Corriente: 7,98 mA"
      },
      {
       "key": "power",
-      "text": "Potencia: 0 W"
+      "text": "Potencia: 16,2 mW"
      },
      {
       "key": "brightness",
-      "text": "Brillo: brillo 0 % del de 20 mA"
+      "text": "Brillo: brillo 40 % del de 20 mA"
      }
     ],
     "W1": [
      {
       "key": "voltage",
-      "text": "Voltaje (tensión): 0 V"
+      "text": "Voltaje (tensión): 399 µV"
      },
      {
       "key": "current",
-      "text": "Corriente: 0 A"
+      "text": "Corriente: 7,98 mA"
      },
      {
       "key": "power",
-      "text": "Potencia: 0 W"
+      "text": "Potencia: 3,18 µW"
      }
     ]
    }

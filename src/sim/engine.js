@@ -65,6 +65,8 @@ function prepare(program) {
         pin: (name) => entry.pins.find((p) => p.name === name).index,
         at: (i) => entry.pins[i].index,
         inner: () => inner(d.id),
+        // A node by name, shared with the program (a board's own ground when no pin of it is wired).
+        node: (name) => nodeIndex(name),
         add: (el) => {
           elements.push(el);
           owned.set(d.id, [...(owned.get(d.id) ?? []), el]);
@@ -387,7 +389,7 @@ function changeProgram(program, id, field, value) {
 // What an element remembers between steps or Newton iterations: capacitor voltage, inductor
 // current, junction and transistor voltages. Matched by part and by the order the part added
 // its elements (a pressed button adds its contact last, after the poles).
-const STATE = ['vprev', 'iprev', 'vd', 'vgs', 'vds', 'vbe', 'vbc', 'q'];
+const STATE = ['vprev', 'iprev', 'vd', 'vgs', 'vds', 'vbe', 'vbc', 'q', 'mode', 'level', 'pull'];
 function carryState(old, prep) {
   for (const [id, list] of prep.owned) {
     const before = old.owned.get(id) ?? [];

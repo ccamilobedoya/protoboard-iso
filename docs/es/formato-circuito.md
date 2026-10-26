@@ -165,6 +165,15 @@ defecto (5V y VIN rojo, 3V3 naranja, tierra negro, señales por turno) o el que 
 Pines del UNO: `D0` … `D13`, `A0` … `A5`, `SCL`, `SDA`, `AREF`, `IOREF`, `RESET`, `3V3`, `5V`, `VIN`
 y las tres tierras `GND`, `GND2` (conector de alimentación) y `GND3` (junto a D13).
 
+**En la simulación** (ESP32 DevKit, ESP32-C3 SuperMini, UNO; [microcontroladores.md](microcontroladores.md)):
+`"io"` fija cada GPIO por su nombre impreso, su nombre GPIO o su número: `high`, `low`, `input`,
+`input_pullup` o `input_pulldown` (los que no aparecen son entradas), y la placa con USB es una fuente
+de 5 V con su regulador de 3,3 V (`"usb": false` para alimentarla desde el circuito):
+
+```json
+{ "id": "U1", "type": "module", "part": "ESP32-DEVKIT", "pin1": "c5", "io": { "D13": "high", "D27": "input_pullup" } }
+```
+
 **El adaptador e-paper DESPI-C02** de GooDisplay también va al lado de la protoboard, con sus 8
 pines acodados hacia ella y un cable Dupont en cada pin que se usa (`pins`, `wires`, `side`,
 `offset`, como el UNO). Pines: `BUSY`, `RES`, `D/C`, `CS`, `SCK`, `SDI`, `GND`, `3.3V`.

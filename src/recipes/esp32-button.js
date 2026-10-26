@@ -5,7 +5,7 @@ export default {
   title: { en: 'ESP32 reading a button', es: 'ESP32 que lee un pulsador' },
   teaches: { en: 'A GPIO pin as an input with the internal pull-up: pinMode(27, INPUT_PULLUP) reads LOW while S1 is pressed', es: 'Un pin GPIO como entrada con el pull-up interno: pinMode(27, INPUT_PULLUP) lee LOW mientras S1 está presionado' },
   parts: [
-    { id: 'U1', part: 'ESP32-DEVKIT' },
+    { id: 'U1', part: 'ESP32-DEVKIT', io: { D27: 'input_pullup' } },
     { id: 'S1', type: 'button' },
   ],
   nets: [['U1.D27', 'S1.1'], ['S1.3', 'U1.GND']],

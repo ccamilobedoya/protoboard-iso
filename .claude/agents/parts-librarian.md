@@ -28,7 +28,10 @@ part may only need a line in `src/parts/db.js`.
    stresses, card lines with an `explain.*` text each, current tag) listed in
    `src/sim/devices/index.js`, following `docs/en/adding-parts.md` §5; typical datasheet values in
    `src/sim/models.js` (with the source in a comment), a new element in `src/sim/mna.js` only if
-   no existing one fits. Current paths (`paths`) in the package for the conductor view. Check it
+   no existing one fits. Current paths (`paths`) in the package for the conductor view.
+   A microcontroller board needs no device file: its pins' data (`power`, `gpio`, `adc`,
+   `inputOnly`) in `src/parts/modules.js` and its family's numbers in `MCUS`
+   (`docs/en/microcontrollers.md`). Check it
    once against an independent reference (datasheet point or formula solved apart) in
    `test/sim.test.js` or `test/sources.test.js`.
 4. Run `npm run schemas` when types or packages change.

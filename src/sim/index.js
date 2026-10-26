@@ -14,6 +14,8 @@
 
 import { compile } from './compile.js';
 import { createEngine } from './engine.js';
+import { lookupModule } from '../parts/modules.js';
+
 
 export { compile, createEngine };
 
@@ -28,14 +30,15 @@ export function simulate(circuit, options = {}) {
 // What `check` says about the controls panel (page.controls): each entry must name a part or a
 // supply and one of its controls (engine.controls()), with a range inside what makes sense.
 // What the page runs of the simulation. By default, whenever it can (a circuit with a source:
-// supplies or a battery part), everything: the results always on (the tapped part's values, its
+// supplies, a battery part or a microcontroller board on USB), everything: the results always on (the tapped part's values, its
 // oscilloscope, limits, lit LEDs) and the current layer offered in the bar, not pressed. Each can
 // be turned off on its own (`page.results: false`, `page.flow: false`), or both with
 // `page.simulation: false` (a value the learner must predict first).
 export function pageSimulation(circuit) {
   const page = circuit?.page ?? {};
   if (page.simulation === false) return { results: false, flow: false };
-  const hasSource = Boolean(circuit?.supplies?.length) || (circuit?.parts ?? []).some((p) => p?.type === 'battery');
+  const usbBoard = (p) => p?.type === 'module' && p.usb !== false && Boolean(lookupModule(p.part)?.module.gpio);
+  const hasSource = Boolean(circuit?.supplies?.length) || (circuit?.parts ?? []).some((p) => p?.type === 'battery' || usbBoard(p));
   return { results: page.results ?? hasSource, flow: page.flow ?? hasSource };
 }
 

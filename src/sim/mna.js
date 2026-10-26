@@ -476,6 +476,69 @@ export function comparatorStage({ p, n, out, vee }, m) {
   };
 }
 
+// A voltage source owned by a part (a board's USB): like voltageSource, its current unknown at
+// the row prepare() gives it (x[branch] enters the + terminal from the circuit).
+export function partSource(p, n, voltage) {
+  return {
+    nodes: [p, n],
+    links: [[p, n]],
+    branch: null,
+    needsRow: true,
+    voltage,
+    stamp(st, x, ctx) {
+      const k = this.branch;
+      st.add(p, k, 1);
+      st.add(n, k, -1);
+      st.add(k, p, 1);
+      st.add(k, n, -1);
+      st.rhs(k, this.voltage * (ctx.scale ?? 1));
+      return false;
+    },
+    currents(x) {
+      return [x[this.branch], -x[this.branch]];
+    },
+  };
+}
+
+// One GPIO of a microcontroller (models.js, MCUS) between its pin and the board's logic rail
+// (vdd) and ground. Its state is a memory a program changes between time steps:
+//   mode 'output', level 1 or 0: vdd or ground behind outputResistance (a PWM is not an average
+//     of both: that would let current run from vdd to ground inside the chip; it will switch
+//     level in time, docs/en/microcontrollers.md, phase M3);
+//   mode 'input': nothing, but `pull` 'up' or 'down' adds the internal resistor.
+// Linear in every state, so a change costs no convergence.
+export function gpioStage({ pin, vdd, gnd }, m, state = {}) {
+  const g = 1 / m.outputResistance;
+  const gp = 1 / m.pull;
+  const conductances = (el) => {
+    const out = el.mode === 'output';
+    return [(out ? el.level * g : 0) + (el.pull === 'up' ? gp : 0), (out ? (1 - el.level) * g : 0) + (el.pull === 'down' ? gp : 0)];
+  };
+  return {
+    nodes: [pin, vdd, gnd],
+    links: [
+      [pin, vdd],
+      [pin, gnd],
+    ],
+    mode: state.mode ?? 'input',
+    level: state.level ?? 0,
+    pull: state.pull ?? null,
+    stamp(st) {
+      const [up, down] = conductances(this);
+      if (up) st.conductance(pin, vdd, up);
+      if (down) st.conductance(pin, gnd, down);
+      return false;
+    },
+    // Into the element at each node, in `nodes` order (at the pin: what flows into the chip).
+    currents(x) {
+      const [up, down] = conductances(this);
+      const toVdd = up * (volt(x, pin) - volt(x, vdd));
+      const toGnd = down * (volt(x, pin) - volt(x, gnd));
+      return [toVdd + toGnd, -toVdd, -toGnd];
+    },
+  };
+}
+
 // MOSFET drain current (from d to s) of an n-channel device, with smooth turn-on.
 function nChannel(vgs, vds, { vth, k, lambda }) {
   if (vds < 0) {

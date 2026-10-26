@@ -155,6 +155,7 @@ entran por la pata. El transitorio trae `times` y las mismas magnitudes como lis
 | `SIM_REG_DROPOUT`, `SIM_REG_HOT` | un regulador sin voltaje de entrada suficiente para regular; disipando más de lo que aguanta un TO-220 sin disipador (2 W) |
 | `SIM_BUZZER_DC` | corriente continua por un zumbador pasivo |
 | `SIM_FLOATING` | grupos sin camino de corriente continua hasta la fuente (por ejemplo, la compuerta de un MOSFET sin conectar) |
+| `SIM_PIN_OVERVOLTAGE`, `SIM_PIN_UNKNOWN`, `SIM_PIN_STATE`, `SIM_PIN_INPUT_ONLY` | un pin de un microcontrolador fuera de su riel (diodos de protección conduciendo); una entrada de `io` que no nombra un GPIO conectado, un estado que no conoce o una salida en un pin que solo puede ser entrada |
 | `SIM_IC_SUPPLY` | un chip alimentado por encima de su máximo (555: 16 V; LM358: 32 V; 741: 36 V en total) |
 | `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | un componente que todavía no se simula (los chips que no son el 555), o una referencia sin modelo propio |
 
@@ -174,6 +175,7 @@ referencia independiente (una fórmula de libro resuelta aparte, o el dato de la
 | diodo Zener | el diodo más una ruptura en inversa: rodilla suave por debajo de unos 5,5 V (efecto Zener) y brusca por encima (avalancha), detrás de parte de Zzt; exactamente Vz con la corriente de prueba Izt (tabla de los 1N47xxA) | 1N4733A: 5,1 V a 49 mA |
 | puente rectificador | cuatro diodos (AC1 y AC2 suben a +, − sube a cada una), Shockley + resistencia en serie, cerca de 1,0 V cada uno a la corriente nominal (KBP2xx 2 A, KBP3xx 3 A) | la misma polaridad de salida al invertir la entrada; Kirchhoff en sus patas |
 | regulador | salida = referencia + su voltaje (GND + 5 V en un 7805, ADJ + 1,25 V en un LM317), o unos 2 V por debajo de la entrada si esta no alcanza (1,1 V en el AMS1117); su corriente propia (5 mA; 50 µA por ADJ); en el módulo AMS1117, el LED de encendido con su resistencia de OUT a GND, contado en lo que consume | 7805 con 9 V; fórmula del LM317 con Iadj; salida y caída del AMS1117 según su hoja de datos |
+| placa con microcontrolador (ESP32 DevKit, ESP32-C3, UNO) | cada GPIO en su estado de `io`: una salida es el riel lógico o tierra tras 17 Ω (ESP32) o 40 Ω (UNO), una entrada no toma corriente y puede tener un pull de 45 kΩ / 35 kΩ; diodos de protección al riel y a tierra; con USB, una fuente de 5 V con su regulador de 3,3 V y el consumo propio del chip ([microcontroladores.md](microcontroladores.md)) | VOH = VDD − I·R; corriente del pull-up; 5 V en un pin del ESP32 |
 | amplificador operacional (LM358, LM324, µA741, NE5532) | de comportamiento, DC y baja frecuencia (sin ancho de banda ni velocidad de subida): salida = ganancia·(V+ − V−) centrada en la mitad de la fuente, limitada con suavidad entre swingLow por encima de la fuente negativa y swingHigh por debajo de la positiva (LM358: 5 mV y 1,5 V; 741: 2 V cada uno), detrás de su resistencia de salida; corriente desde la pata positiva cuando entrega y hacia la negativa cuando recibe; las entradas no toman corriente; un amplificador sin nada conectado se deja fuera; límites: fuente total, corriente de salida (cortocircuito), potencia | no inversor 1 + R2/R1 e inversor −R2/R1 con menos de 1 mV de error; seguidor; VOH = VCC − 1,5 V, VOL de pocos mV |
 | comparador (LM393) | colector abierto: OUT unido a la fuente negativa por 60 Ω mientras V− > V+, abierto si no (necesita un pull-up) | estados activo y abierto, el LED que maneja |
 | temporizador NE555 | de comportamiento: su divisor de 5 kΩ pone CTRL en 2/3 de VCC; THR por encima de CTRL desactiva el biestable (salida baja, descarga activa), TRIG por debajo de CTRL/2 lo activa, RESET por debajo de 0,7 V lo mantiene en bajo; el biestable cambia entre pasos de tiempo; salida alta unos 0,9 V por debajo de VCC tras 8 Ω, baja tras 7,5 Ω; descarga 18 Ω; consumo propio 3 mA a 5 V; límites 16 V, 200 mA, 600 mW. En DC muestra su estado al encender (salida alta): un astable solo oscila en un transitorio o en la página en vivo | astable: f = 1,44 / ((R1 + 2·R2)·C) con 4 % de margen y su ciclo útil; la tabla de verdad del biestable |
@@ -191,7 +193,8 @@ voltaje directo de un LED medido en el banco).
 ## Todavía no
 
 Los chips que no son el 555, los amplificadores operacionales ni el LM393 (lógica, optoacopladores, el
-LM386, los arreglos ULN) quedan sin conectar y se avisa. Los amplificadores operacionales todavía no
+LM386, los arreglos ULN) quedan sin conectar y se avisa, igual que el adaptador DESPI-C02; el programa de
+una placa con microcontrolador llega en la fase M2 ([microcontroladores.md](microcontroladores.md)). Los amplificadores operacionales todavía no
 tienen ancho de banda ni velocidad de subida: una señal rápida sale como si el chip fuera ideal. El 555 todavía no tiene recorridos en la vista de conductores: su corriente
 se ve en sus patas y sus tiras. No hay eventos durante un transitorio (presionar un botón en un momento dado), ni
 autocalentamiento, ni descarga de la batería con el tiempo (`charge` es fija en cada cálculo).

@@ -82,6 +82,7 @@ breadboard circuit comes up.
 | Falstad: open a circuit in CircuitJS, cross-check | [docs/en/falstad.md](docs/en/falstad.md) | [docs/es/falstad.md](docs/es/falstad.md) |
 | Embedding a circuit in documentation | [docs/en/embedding.md](docs/en/embedding.md) | [docs/es/embeber.md](docs/es/embeber.md) |
 | Layout: the algorithm that places a whole circuit | [docs/en/layout.md](docs/en/layout.md) | [docs/es/montaje-automatico.md](docs/es/montaje-automatico.md) |
+| Microcontrollers in the simulation (ESP32, UNO) | [docs/en/microcontrollers.md](docs/en/microcontrollers.md) | [docs/es/microcontroladores.md](docs/es/microcontroladores.md) |
 | Recipes: lesson circuits by name for `layout` | [docs/en/recipes.md](docs/en/recipes.md) | [docs/es/recetas.md](docs/es/recetas.md) |
 | Agents (layout, reviewer, parts librarian) | [docs/en/agents.md](docs/en/agents.md) | [docs/es/agentes.md](docs/es/agentes.md) |
 | Roadmap | [ROADMAP.md](ROADMAP.md) | [docs/es/hoja-de-ruta.md](docs/es/hoja-de-ruta.md) |

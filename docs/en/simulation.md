@@ -150,6 +150,7 @@ answer has `times` and the same quantities as arrays.
 | `SIM_REG_DROPOUT`, `SIM_REG_HOT` | a regulator without enough input voltage to regulate; dissipating more than a TO-220 handles without a heatsink (2 W) |
 | `SIM_BUZZER_DC` | steady DC through a passive buzzer |
 | `SIM_FLOATING` | groups with no DC path to the supply (an unconnected MOSFET gate, for example) |
+| `SIM_PIN_OVERVOLTAGE`, `SIM_PIN_UNKNOWN`, `SIM_PIN_STATE`, `SIM_PIN_INPUT_ONLY` | a microcontroller pin beyond its rail (protection diodes conducting); an `io` entry naming no wired GPIO, a state it does not know, or an output on an input-only pin |
 | `SIM_IC_SUPPLY` | a chip fed above its maximum (555: 16 V; LM358: 32 V; 741: 36 V in total) |
 | `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | a part not simulated yet (chips other than the 555), or a part number without its own model |
 
@@ -169,6 +170,7 @@ reference (a textbook formula solved separately, or the datasheet figure).
 | Zener diode | the diode plus a reverse breakdown: a soft knee below about 5.5 V (Zener effect), a sharp one above (avalanche), behind part of Zzt; exactly Vz at the test current Izt (1N47xxA table) | 1N4733A: 5.1 V at 49 mA |
 | bridge rectifier | four diodes (AC1 and AC2 up to +, − up to each), Shockley + series resistance, about 1.0 V each at the rated current (KBP2xx 2 A, KBP3xx 3 A) | same output polarity either way round; Kirchhoff at its pins |
 | regulator | output = reference + its voltage (GND + 5 V for a 7805, ADJ + 1.25 V for an LM317), or about 2 V below the input when that is too low (1.1 V for the AMS1117); its own current (5 mA; 50 µA out of ADJ); the AMS1117 module's power LED and resistor from OUT to GND, counted in what it draws | 7805 at 9 V; LM317 formula with Iadj; AMS1117 output and dropout from its datasheet |
+| microcontroller board (ESP32 DevKit, ESP32-C3, UNO) | each GPIO in its `io` state: an output is the logic rail or ground behind 17 Ω (ESP32) or 40 Ω (UNO), an input draws nothing with an optional 45 kΩ / 35 kΩ pull; protection diodes to the rail and ground; on USB a 5 V source with its 3.3 V regulator and the chip's own current ([microcontrollers.md](microcontrollers.md)) | VOH = VDD − I·R; pull-up current; 5 V into an ESP32 pin |
 | op-amp (LM358, LM324, µA741, NE5532) | behavioural, DC and low frequency (no bandwidth or slew rate): output = gain·(V+ − V−) centred on mid-supply, clamped softly between swingLow above the negative supply and swingHigh below the positive one (LM358: 5 mV and 1.5 V; 741: 2 V each), behind its output resistance; current from the positive pin when sourcing, to the negative one when sinking; inputs draw nothing; an amplifier with nothing wired to it is left out; limits: total supply, output current (short-circuit), power | non-inverting 1 + R2/R1 and inverting −R2/R1 within 1 mV; follower; VOH = VCC − 1.5 V, VOL a few mV |
 | comparator (LM393) | open collector: OUT pulled to the negative supply through 60 Ω while V− > V+, open otherwise (needs a pull-up) | sinking and open states, the LED it drives |
 | NE555 timer | behavioural: its 5 kΩ divider sets CTRL at 2/3 of VCC; THR above CTRL resets the latch (output low, discharge on), TRIG below CTRL/2 sets it, RESET under 0.7 V holds it low; the latch changes between time steps; output high about 0.9 V below VCC behind 8 Ω, low behind 7.5 Ω; discharge 18 Ω; own current 3 mA at 5 V; limits 16 V, 200 mA, 600 mW. In DC it shows its state at switch-on (output high): an astable only oscillates in a transient or the live page | astable: f = 1.44 / ((R1 + 2·R2)·C) within 4 % and its duty cycle; the latch's truth table |
@@ -185,6 +187,6 @@ voltage of an LED measured on the bench).
 
 ## Not yet
 
-Chips other than the 555, the op-amps and the LM393 (logic, optocouplers, the LM386, the ULN arrays) are left unconnected and reported. Op-amps have no bandwidth or slew rate yet: a fast signal comes out as if the chip were ideal. The 555 has no paths in the conductor view yet: its current shows at its pins and strips. No events during
+Chips other than the 555, the op-amps and the LM393 (logic, optocouplers, the LM386, the ULN arrays) are left unconnected and reported, and so is the DESPI-C02 adapter; a microcontroller board's program comes in phase M2 ([microcontrollers.md](microcontrollers.md)). Op-amps have no bandwidth or slew rate yet: a fast signal comes out as if the chip were ideal. The 555 has no paths in the conductor view yet: its current shows at its pins and strips. No events during
 a transient (pressing a button at a given time), no self-heating, no battery discharge over
 time (`charge` is fixed for a run). Animation (stage 3) will read these same results.
