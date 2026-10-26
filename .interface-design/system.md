@@ -10,7 +10,7 @@ the UX pass implements it in `src/page/style.js` as tokens on `:root`.
 - **Feel:** a lab notebook next to a bench instrument. Calm, precise, quiet; the circuit leads,
   the chrome stays in the background until it is needed.
 - **Who:** a self-taught adult learning electronics at the bench, often on a phone or an iPad,
-  usually inside a lesson note (Trilium web view, iframe ~460 px high).
+  usually inside a lesson note (a notes app's web view, iframe ~460 px high).
 - **Signature:** the toolbar as an instrument's front panel, grouped by job; values in a
   monospaced, tabular face like a meter's readout; the oscilloscope as a dark well cut into
   the panel.

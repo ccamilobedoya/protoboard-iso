@@ -67,7 +67,7 @@ with the tests green, this page and the roadmap up to date.
 ## Who and what for
 
 - **Who:** a self-taught adult learning electronics at the bench, with the lesson open in a
-  notes app (a Trilium web view: an iframe about 460 px high inside a page that scrolls), often
+  notes app (a web view: an iframe about 460 px high inside a page that scrolls), often
   on a phone or an iPad, sometimes on a desktop.
 - **What they do:** look at how a circuit is built, tap a part or a strip to understand it, read
   its values, move a slider, watch the current or the scope, flip the board to see the strips.
@@ -76,8 +76,7 @@ with the tests green, this page and the roadmap up to date.
 
 ## What the review found
 
-Screenshots and the full table: `~/proyectos/electronica/diagramas/vista-previa-kit/ux/`
-(`index.html`, `findings.md`), on the maintainer's machine.
+Screenshots and the full table (`index.html`, `findings.md`) were kept outside the repository.
 
 | # | Severity | Finding |
 |---|---|---|
@@ -86,7 +85,7 @@ Screenshots and the full table: `~/proyectos/electronica/diagramas/vista-previa-
 | 3 | Blocker | **A flat bar.** 13 controls of equal weight: two rows on a desktop, three rows embedded at 900 px (≈ 95 of 460 px); on a phone a 1,844 px row with a hidden scrollbar, so *Current*, *Pause* and *Falstad* cannot be found. |
 | 4 | Should fix | *Close* and *See through* are at the bottom of the card, below the oscilloscope. |
 | 5 | Should fix | Small parts are hard to tap: R1's centre opened W1 (the wire on top wins). |
-| 6 | Should fix | The MODEL stamp is drawn in board coordinates and falls off the screen (x = −221 px); it says *DC* on a page that runs a transient. Saying "model" is a rule of the course. |
+| 6 | Should fix | The MODEL stamp is drawn in board coordinates and falls off the screen (x = −221 px); it says *DC* on a page that runs a transient. Saying "model" is a rule of the kit. |
 | 7 | Should fix | Flipping the board and changing the framing are instant and reset the zoom and position. |
 | 8 | Should fix | No visible zoom or reset; double-click only zooms in. |
 | 9 | Should fix | No tokens (≈ 30 hex values in `style.js`), no dark theme; the board's labels grow with the zoom and are larger than any interface text. |
@@ -218,7 +217,7 @@ tokens too (the static SVG keeps its colours).
 | 4–5 | **U4 · The inspector** | one container with sticky header and section order; Circuit tab (controls, warnings, Falstad notes); right panel on wide screens, bottom sheet with peek/half/full on narrow ones; the frame keeps the selected part in the free area; MODEL badge with the right mode. Findings 2, 4 and 6. |
 | 6 | **U5 · Motion** | motion tokens (`--ease-out`, `--ease-in-out`, `--ease-drawer`, durations), flip keeping the focus and zoom, framing transition, sheet and panel motion, press feedback, reduced motion; checked with the `review-animations` bar. Finding 7. |
 | 6 | **U6 · Details** | labels by context with a screen-size cap, larger tap areas and tap-again to pick the part underneath, portrait framing. Findings 5, 9 (labels) and 12. |
-| 7 | **U7 · Try and tune** | the maintainer tries it on a phone, an iPad and inside Trilium; adjustments; `/design-review` until approved; palette tuned; docs. |
+| 7 | **U7 · Try and tune** | the maintainer tries it on a phone, an iPad and inside a notes app; adjustments; `/design-review` until approved; palette tuned; docs. |
 
 Every phase: docs in English and Spanish ([embedding.md](embedding.md),
 [focus-and-flow.md](focus-and-flow.md), [code-map.md](code-map.md)), the roadmap ticked in both
@@ -260,4 +259,4 @@ Taken by the maintainer on 2026-10-16.
 - The skills' checks: `interface-design` (squint, swap, signature and token tests; the
   `design-review` approval bar), `review-animations` for U5, `mobile-native` lists what needs a
   real phone.
-- The maintainer on a phone, an iPad and inside Trilium (U7).
+- The maintainer on a phone, an iPad and inside a notes app (U7).

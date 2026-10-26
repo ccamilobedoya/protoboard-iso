@@ -249,13 +249,13 @@ Como quedó (fase 5):
 
 ## Fases 7 a 9: osciloscopio, generador de señales y sondas (plan del 2026-10-15)
 
-Para la próxima sesión. Decisiones de Cris:
+Para la próxima sesión. Decisiones del mantenedor:
 
 | Decisión | Por qué |
 |---|---|
 | El osciloscopio va **en la ficha del componente seleccionado**. Al cerrar la ficha se va la gráfica | La gráfica explica ese componente, al lado de sus valores y su descripción. |
-| **Sin canales fijados por ahora** (un panel con dos canales, como el ZT-703S, queda para cuando una lección lo necesite), pero el código se escribe reutilizable: la gráfica recibe una lista de trazas | No cargar la página con algo que todavía no se usa, sin cerrarle el camino. |
-| **Generador de señales** como fuente (fase 8) | Sin él, el osciloscopio solo muestra encendidos y cambios; con él se ven el rizado de un rectificador, un filtro RC con onda cuadrada y, después, el 555. Es lo que trae el ZT-703S del banco. |
+| **Sin canales fijados por ahora** (un panel con dos canales, como un osciloscopio de banco, queda para cuando una lección lo necesite), pero el código se escribe reutilizable: la gráfica recibe una lista de trazas | No cargar la página con algo que todavía no se usa, sin cerrarle el camino. |
+| **Generador de señales** como fuente (fase 8) | Sin él, el osciloscopio solo muestra encendidos y cambios; con él se ven el rizado de un rectificador, un filtro RC con onda cuadrada y, después, el 555. Lo traen los multiinstrumentos de banco habituales. |
 | **Sondas en los nodos** (fase 9): tocar una tira muestra su voltaje respecto a tierra, con su osciloscopio | Así se usa el osciloscopio real: mide voltaje contra la tierra común; la corriente no se mide directamente. |
 
 ### Fase 7: osciloscopio en la ficha
@@ -295,7 +295,7 @@ Para la próxima sesión. Decisiones de Cris:
 
 - Una fuente nueva en `supplies`:
   `{ "kind": "generator", "waveform": "sine" | "square" | "triangle", "frequency", "amplitude", "offset", "resistance" }`.
-  `resistance` es la resistencia de salida; la del ZT-703S está por confirmar en el banco.
+  `resistance` es la resistencia de salida; 50 Ω por defecto, como la mayoría de los generadores de banco.
   Se dibujará al lado de la protoboard junto con la fuente de banco (ítem pendiente de la hoja de
   ruta).
 - **Motor**: una fuente que depende del tiempo. En DC vale su valor en t = 0.

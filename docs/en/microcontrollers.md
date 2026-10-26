@@ -29,7 +29,7 @@ optional mode, apart from the kit.
   those calls are reported.
 - It lives in **a `.ino` file beside the circuit** (`<circuit folder>/<name>.ino`), not inside
   `circuit.json`.
-- First board: the **ESP32 DevKit** (the one the course uses most), then the UNO and the C3.
+- First board: the **ESP32 DevKit** (the most common in beginner kits), then the UNO and the C3.
 
 ## The pin model (phase M1, done)
 

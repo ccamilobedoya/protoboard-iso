@@ -76,7 +76,7 @@ sesión termina con las pruebas en verde, esta página y la hoja de ruta al día
 ## Para quién y para qué
 
 - **Quién:** un adulto que aprende electrónica por su cuenta en el banco, con la lección abierta
-  en una app de notas (una vista web de Trilium: un iframe de unos 460 px de alto dentro de una
+  en una app de notas (una vista web: un iframe de unos 460 px de alto dentro de una
   página que se desplaza), muchas veces en el celular o el iPad, a veces en el escritorio.
 - **Qué hace:** mira cómo está montado un circuito, toca un componente o una tira para entenderlo,
   lee sus valores, mueve un deslizador, mira la corriente o el osciloscopio, gira la protoboard
@@ -87,8 +87,7 @@ sesión termina con las pruebas en verde, esta página y la hoja de ruta al día
 
 ## Lo que encontró la revisión
 
-Capturas y la tabla completa: `~/proyectos/electronica/diagramas/vista-previa-kit/ux/`
-(`index.html`, `findings.md`), en el equipo del mantenedor.
+Las capturas y la tabla completa (`index.html`, `findings.md`) quedaron fuera del repositorio.
 
 | # | Gravedad | Hallazgo |
 |---|---|---|
@@ -97,7 +96,7 @@ Capturas y la tabla completa: `~/proyectos/electronica/diagramas/vista-previa-ki
 | 3 | Bloquea | **Una barra plana.** 13 controles con el mismo peso: dos filas en el escritorio, tres filas embebida a 900 px (≈ 95 de 460 px); en el celular una fila de 1844 px con la barra de desplazamiento oculta, así que *Corriente*, *Pausa* y *Falstad* no se encuentran. |
 | 4 | Corregir | *Cerrar* y *Ver a través* están al final de la ficha, debajo del osciloscopio. |
 | 5 | Corregir | Los componentes pequeños cuestan de tocar: el centro de R1 abrió W1 (gana el cable de encima). |
-| 6 | Corregir | El sello MODELO se dibuja en coordenadas de la protoboard y se sale de la pantalla (x = −221 px); dice *DC* en una página que corre un transitorio. Decir «modelo» es una regla del curso. |
+| 6 | Corregir | El sello MODELO se dibuja en coordenadas de la protoboard y se sale de la pantalla (x = −221 px); dice *DC* en una página que corre un transitorio. Decir «modelo» es una regla del kit. |
 | 7 | Corregir | Girar la protoboard y cambiar el encuadre son instantáneos y reinician el zoom y la posición. |
 | 8 | Corregir | No hay zoom ni reinicio visibles; el doble clic solo acerca. |
 | 9 | Corregir | Sin tokens (≈ 30 valores hex en `style.js`), sin tema oscuro; las etiquetas crecen con el zoom y quedan más grandes que cualquier texto de la interfaz. |
@@ -236,7 +235,7 @@ SVG estático conserva sus colores).
 | 4–5 | **U4 · El inspector** | un contenedor con encabezado fijo y el orden de secciones; pestaña Circuito (controles, avisos, notas de Falstad); panel a la derecha en pantallas anchas, hoja inferior asomada/media/completa en las angostas; el cuadro mantiene el componente elegido en la zona libre; insignia MODELO con el modo correcto. Hallazgos 2, 4 y 6. |
 | 6 | **U5 · Movimiento** | tokens de movimiento (`--ease-out`, `--ease-in-out`, `--ease-drawer`, duraciones), giro que conserva el foco y el zoom, transición del encuadre, movimiento de la hoja y del panel, respuesta al presionar, movimiento reducido; revisado con el estándar de `review-animations`. Hallazgo 7. |
 | 6 | **U6 · Detalles** | etiquetas según el contexto con tamaño máximo en pantalla, áreas de toque más grandes y tocar otra vez para elegir el componente de debajo, encuadre vertical. Hallazgos 5, 9 (etiquetas) y 12. |
-| 7 | **U7 · Probar y afinar** | el mantenedor la prueba en el celular, el iPad y dentro de Trilium; ajustes; `/design-review` hasta aprobar; paleta afinada; documentación. |
+| 7 | **U7 · Probar y afinar** | el mantenedor la prueba en el celular, el iPad y dentro de una app de notas; ajustes; `/design-review` hasta aprobar; paleta afinada; documentación. |
 
 En cada fase: documentación en inglés y español ([embeber.md](embeber.md),
 [foco-y-corriente.md](foco-y-corriente.md), [mapa-del-codigo.md](mapa-del-codigo.md)), la hoja de
@@ -280,4 +279,4 @@ Tomadas por el mantenedor el 2026-10-16.
 - Las revisiones de los skills: `interface-design` (pruebas de entrecerrar los ojos, de cambio, de
   firma y de tokens; el estándar de aprobación de `design-review`), `review-animations` para U5,
   `mobile-native` dice qué necesita un celular de verdad.
-- El mantenedor en el celular, el iPad y dentro de Trilium (U7).
+- El mantenedor en el celular, el iPad y dentro de una app de notas (U7).

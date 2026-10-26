@@ -234,7 +234,7 @@ missing. The CLI exits 0 only for `DONE` (1 for `FIX_SPEC`, 2 for `CHANGES`).
 | Spec | 2026-10-18 | 2026-10-20 |
 |---|---|---|
 | `regulator-led.json` (4 parts, 4 nets) | approved · 4 tries · 0.3 s | approved · **1 try** · 0.1 s |
-| `two-rail-supply.json` (10 parts, 10 nets: the course's M2 supply) | approved · **8 of 8** tries · 1.5 s | approved · **1 try** · 0.3 s |
+| `two-rail-supply.json` (10 parts, 10 nets: a two-rail lesson supply) | approved · **8 of 8** tries · 1.5 s | approved · **1 try** · 0.3 s |
 
 On 2026-10-18 what blocked was only visibility: the lesson profile took a part as hidden in every
 view as soon as it was below 85 % visible in each (the inspector's note threshold), and counted two

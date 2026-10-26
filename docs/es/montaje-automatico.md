@@ -245,7 +245,7 @@ con una red sin conectar. La consola sale con 0 solo con `DONE` (1 con `FIX_SPEC
 | Especificación | 2026-10-18 | 2026-10-20 |
 |---|---|---|
 | `regulator-led.json` (4 componentes, 4 redes) | aprobado · 4 intentos · 0,3 s | aprobado · **1 intento** · 0,1 s |
-| `two-rail-supply.json` (10 componentes, 10 redes: la fuente de M2 del curso) | aprobado · **8 de 8** intentos · 1,5 s | aprobado · **1 intento** · 0,3 s |
+| `two-rail-supply.json` (10 componentes, 10 redes: una fuente de dos rieles de lección) | aprobado · **8 de 8** intentos · 1,5 s | aprobado · **1 intento** · 0,3 s |
 
 El 2026-10-18 lo único que bloqueaba era la visibilidad: el perfil lesson daba por oculta en todas
 las vistas una pieza apenas bajaba del 85 % visible en cada una (el umbral de nota del inspector), y

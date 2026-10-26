@@ -237,8 +237,8 @@ For the next session. The maintainer's decisions:
 | Decision | Why |
 |---|---|
 | The oscilloscope lives **in the card of the selected part**; closing the card removes it | The plot explains that part, next to its values and description. |
-| **No pinned channels for now** (a two-channel panel, like the ZT-703S, comes when a lesson needs it), but reusable code: the plot takes a list of traces | Keep the page light without closing the door. |
-| **Signal generator** as a source (phase 8) | Without it the scope only shows switching on and changes; with it, a rectifier's ripple, an RC filter with a square wave, later the 555. The bench ZT-703S has one. |
+| **No pinned channels for now** (a two-channel panel, like a bench scope, comes when a lesson needs it), but reusable code: the plot takes a list of traces | Keep the page light without closing the door. |
+| **Signal generator** as a source (phase 8) | Without it the scope only shows switching on and changes; with it, a rectifier's ripple, an RC filter with a square wave, later the 555. Usual bench multi-instruments have one. |
 | **Probes on nodes** (phase 9): tapping a strip shows its voltage to ground, with its scope | That is how a real scope is used: voltage against the common ground; current is not measured directly. |
 
 ### Phase 7: oscilloscope in the card
@@ -276,7 +276,7 @@ For the next session. The maintainer's decisions:
 
 - A new kind of supply:
   `{ "kind": "generator", "waveform": "sine" | "square" | "triangle", "frequency", "amplitude", "offset", "resistance" }`.
-  `resistance` is the output resistance; the ZT-703S's is still to be confirmed on the bench.
+  `resistance` is the output resistance; 50 Ω by default, as most bench generators.
   It will be drawn beside the board together with the bench supply (an open roadmap item).
 - **Engine**: a time-dependent source; in DC, its value at t = 0.
   - The time step and the page clock also follow the period (at least 50 steps per period), not

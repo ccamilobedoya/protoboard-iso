@@ -306,7 +306,7 @@ server.registerTool(
       'Place a whole circuit in one call. A usual lesson circuit first: recipe with only the values that change ({"recipe":"npn-switch","values":{"R1":"470"}}; catalog lists the recipes and their values). Otherwise from its parts (no holes, in signal order; a part number, module or alias is enough) and its nets (pins and rails; usual pin names work: D1.K, U1.VIN, U1.DISCH, U1.GPIO4): parts left to right by distance from the source, jumpers for what is left apart, ground nets to a − rail, then the nets check and the lesson review, laid out again a few times and repaired jumper by jumper. On an existing target it lays the circuit out again as one revision (undo restores it): give only what changes; each part keeps its holes when it still fits. The nets are kept in the circuit (spec) and review checks them. The answer ends in STATUS: DONE (ready), CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review), FIX_SPEC (nothing created: fix every ✖ in the spec and call again) or SPEC_OK (check_only).',
 
     inputSchema: {
-      target: z.string().describe('Folder relative to the root (e.g. m2-fuente): new, or an existing circuit to lay out again'),
+      target: z.string().describe('Folder relative to the root (e.g. led-switch): new, or an existing circuit to lay out again'),
       recipe: z.enum(Object.keys(RECIPES)).optional().describe('A lesson circuit by name, instead of parts and nets (never with them). catalog with the name shows its parts, nets and values'),
       values: z
         .record(z.string(), z.union([z.string(), z.number(), z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]))]))

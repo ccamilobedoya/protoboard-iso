@@ -29,7 +29,7 @@ después como modo opcional, aparte del kit.
   e-paper) no corre: esas llamadas se avisan.
 - Vive en **un archivo `.ino` junto al circuito** (`<carpeta del circuito>/<nombre>.ino`), no dentro
   de `circuit.json`.
-- Primera placa: el **ESP32 DevKit** (la que más usa el curso), después el UNO y el C3.
+- Primera placa: el **ESP32 DevKit** (la más común en los kits de principiante), después el UNO y el C3.
 
 ## El modelo de pines (fase M1, hecha)
 
