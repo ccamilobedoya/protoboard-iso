@@ -47,7 +47,9 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 | `regulator-7805`, `regulator-ams1117` | linear regulator with an LED on its output |
 | `bridge-rectifier` | bridge, filter capacitor and an LED, from a sine on the top rails |
 | `zener-regulator` | Zener and its series resistor holding a load |
-| `esp32-led`, `esp32-button` | ESP32 DevKit driving an LED (D13) / reading a button (D27) |
+| `esp32-led`, `esp32-button` | ESP32 DevKit blinking an LED (D13) / reading a button (D27), with their program |
+| `uno-blink`, `uno-button`, `uno-pot-pwm` | Arduino UNO: blink, a button lights an LED, a potentiometer dims an LED (ADC, PWM) |
+| `c3-blink`, `c3-pot-pwm` | ESP32-C3 SuperMini: blink, a potentiometer dims an LED (ADC, PWM) |
 | `opamp-comparator`, `lm393-comparator` | potentiometer against a reference, an LED on the output (LM358; LM393 open collector) |
 | `opamp-follower` | LM358 copying a potentiometer and driving an LED |
 | `opamp-noninverting`, `opamp-inverting` | LM358 amplifiers, gain from R1 and R2, a sine from the generator |

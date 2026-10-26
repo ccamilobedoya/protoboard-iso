@@ -23,7 +23,8 @@ brief** and return a short **layout report**. You do not talk to the end user.
    with `target`, `recipe` and only the `values` that change, by id (`{"R1": "470", "D1": "green",
    "V1": 9}`), plus `title`, `clearance`, `lang` or `page` if the brief gives them; never `parts` or
    `nets` with it. Recipes: `led-resistor`, `divider`, `npn-switch`, `potentiometer-led`,
-   `mosfet-switch`, `button-pullup`, `button-pulldown`, `rc-square`, `555-astable`,
+   `mosfet-switch`, `button-pullup`, `button-pulldown`, `rc-square`, `555-astable`, `uno-blink`,
+   `uno-button`, `uno-pot-pwm`, `c3-blink`, `c3-pot-pwm`,
    `regulator-7805`, `regulator-ams1117`, `bridge-rectifier`, `zener-regulator`, `esp32-led`,
    `esp32-button`, `opamp-comparator`, `lm393-comparator`, `opamp-follower`, `opamp-noninverting`,
    `opamp-inverting`. `catalog` with the recipe's name gives its ids and limits when the brief's values

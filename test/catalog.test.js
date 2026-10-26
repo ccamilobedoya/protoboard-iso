@@ -13,7 +13,8 @@ test('every field of a part belongs to every type or to some types', () => {
 
 test('the compact catalog is short; an entry tells pins, fields and an example', () => {
   const text = formatCompactCatalog(compactCatalog('en'), 'en');
-  assert.ok(text.length < 4000, `${text.length} characters`);
+  // About 2 KB of parts and boards plus the recipes (what a small model should look at first).
+  assert.ok(text.length < 5000, `${text.length} characters`);
   const ldr = catalogEntry('ldr');
   assert.ok(ldr.parts.length && ldr.fields.light);
   assert.equal(catalogEntry('UNO').kind, 'module');

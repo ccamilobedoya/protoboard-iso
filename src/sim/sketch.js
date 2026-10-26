@@ -21,6 +21,8 @@ const INTEGER = new Set(['int', 'long', 'short', 'byte', 'char', 'unsigned', 'si
 export const SKETCH_API = ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'analogWrite', 'millis', 'micros', 'abs', 'min', 'max', 'map', 'constrain', 'random', 'randomSeed', 'sqrt', 'pow', 'sin', 'cos', 'round', 'floor', 'ceil', 'bitRead', 'bitWrite', 'bitSet', 'bitClear', 'ledcAttach', 'ledcAttachPin', 'ledcSetup', 'ledcWrite', 'tone', 'noTone'];
 const SKETCH_CONSTANTS = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial'];
 const ASSIGN = new Set(['=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=']);
+// Runtime functions that return an integer (an int divided by them stays an int).
+const INT_API = new Set(['digitalRead', 'analogRead', 'millis', 'micros', 'map', 'random', 'constrain', 'abs', 'min', 'max', 'bitRead']);
 
 // ── Tokens ──────────────────────────────────────────────────────────────────────────
 const PUNCT = ['<<=', '>>=', '...', '->', '++', '--', '<<', '>>', '<=', '>=', '==', '!=', '&&', '||', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '::', '+', '-', '*', '/', '%', '<', '>', '=', '!', '~', '&', '|', '^', '?', ':', ';', ',', '.', '(', ')', '[', ']', '{', '}'];
@@ -110,9 +112,16 @@ export function translateSketch(source) {
   // Names: the functions the sketch defines (their calls become yield*), and each scope's
   // integer variables (assignments to them keep integer division).
   const functions = new Set();
+  const intFunctions = new Set();
   for (let k = 0; k + 2 < tokens.length; k++) {
-    if (tokens[k].t === 'id' && TYPES.has(tokens[k].v) && tokens[k + 1].t === 'id' && tokens[k + 2].v === '(') functions.add(tokens[k + 1].v);
+    if (tokens[k].t === 'id' && TYPES.has(tokens[k].v) && tokens[k + 1].t === 'id' && tokens[k + 2].v === '(') {
+      functions.add(tokens[k + 1].v);
+      if (INTEGER.has(tokens[k].v)) intFunctions.add(tokens[k + 1].v);
+    }
   }
+  // Whether the term just read is an integer (for division): set by term().
+  let termInt = false;
+  let exprInt = false; // whether the expression just read has only integer terms
   const missing = new Set();
   let returnsInt = false; // the function being read returns an integer type
   const scopes = [new Map()];
@@ -138,9 +147,11 @@ export function translateSketch(source) {
     return integer;
   }
 
-  // An expression up to (not including) one of the stop tokens at depth 0, as JavaScript.
+  // An expression up to (not including) one of the stop tokens at depth 0, as JavaScript. A
+  // division whose two sides are integers stays integer, as in C: a * b / c → __int((a * b) / c).
   function expression(stops) {
     const parts = [];
+    const ints = []; // per part: an integer term, or null for an operator
     let depth = 0;
     while (pos < tokens.length) {
       const t = peek();
@@ -151,8 +162,25 @@ export function translateSketch(source) {
         if (depth === 0) break;
         depth--;
       }
+      const isOp = t.t === 'p' && !['(', '[', '{'].includes(t.v);
+      termInt = false;
       parts.push(term());
+      ints.push(isOp ? null : termInt);
     }
+    for (let i = 1; i + 1 < parts.length; i++) {
+      if (parts[i] !== '/' || ints[i] !== null) continue;
+      // The left side: the operands joined by * / % before it (they bind as tightly).
+      let j = i - 1;
+      while (j >= 2 && ['*', '/', '%'].includes(parts[j - 1]) && ints[j - 1] === null) j -= 2;
+      const left = parts.slice(j, i);
+      const leftInt = left.every((part, k) => (k % 2 ? true : ints[j + k]));
+      if (!leftInt || !ints[i + 1]) continue;
+      const merged = `__int((${left.join(' ')}) / ${parts[i + 1]})`;
+      parts.splice(j, i + 2 - j, merged);
+      ints.splice(j, i + 2 - j, true);
+      i = j;
+    }
+    exprInt = parts.length > 0 && ints.every((k) => k !== false);
     return parts.join(' ');
   }
   // One token of an expression, turning calls, casts and C-only words into JavaScript.
@@ -166,6 +194,7 @@ export function translateSketch(source) {
         const integer = tokens.slice(pos + 1, pos + k).some((x) => INTEGER.has(x.v));
         pos += k + 1;
         const operand = term();
+        termInt = integer;
         return integer ? `__int(${operand})` : `(${operand})`;
       }
     }
@@ -181,6 +210,7 @@ export function translateSketch(source) {
       pos += 2;
       const args = expression([')']);
       expect(')');
+      termInt = intFunctions.has(name) || INT_API.has(name);
       if (name === 'delay') return `(yield ((${args}) / 1e3))`;
       if (name === 'delayMicroseconds') return `(yield ((${args}) / 1e6))`;
       if (functions.has(name)) return `(yield* ${name}(${args}))`;
@@ -196,9 +226,12 @@ export function translateSketch(source) {
       pos++;
       const inner = expression([]);
       expect(')');
+      termInt = exprInt;
       return `(${inner})`;
     }
     pos++;
+    if (t.t === 'num') termInt = /^(\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/.test(t.v);
+    if (t.t === 'id') termInt = typeOf(t.v) === 'int' || ['HIGH', 'LOW', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'].includes(t.v) || defines.has(t.v);
     if (t.t === 'id' && t.v === 'NULL') return '0';
     if (t.t === 'id' && (t.v === 'sizeof' || t.v === 'new' || t.v === 'delete')) throw new SketchError(t.line, t.v);
     if (t.t === 'p' && (t.v === '->' || t.v === '::')) throw new SketchError(t.line, t.v);
@@ -387,6 +420,7 @@ export function translateSketch(source) {
   // Top level: #define, #include, globals and functions.
   const out = [];
   const defined = [];
+  const defines = new Set(); // #define names with an integer value
   try {
     while (pos < tokens.length) {
       const t = peek();
@@ -399,6 +433,7 @@ export function translateSketch(source) {
           const inner = translateSketchExpression(define[3] || '1', t.line, issues);
           out.push(`const ${define[1]} = ${inner};`);
           defined.push(define[1]);
+          if (/^-?\d+$/.test(define[3].trim())) defines.add(define[1]);
         } else if (include && !/^Arduino\.h$/i.test(include[1])) issues.push({ code: 'SIM_PROGRAM_LIBRARY', line: t.line, name: include[1] });
         continue;
       }

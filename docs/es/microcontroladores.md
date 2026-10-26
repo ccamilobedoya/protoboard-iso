@@ -7,7 +7,7 @@ procesador, sino lo que se ve en los pines. Cada GPIO se comporta eléctricament
 programa corto con las funciones de Arduino decide, en el tiempo, qué hace cada pin. El mismo código
 sirve para todas las placas; lo que cambia son los números de cada familia.
 
-Planeado con el mantenedor el 2026-10-26. Las fases M1 a M3 están hechas; sigue M4.
+Planeado con el mantenedor el 2026-10-26. Las fases M1 a M4 están hechas.
 
 ## Por qué no emular el procesador
 
@@ -85,7 +85,10 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   `int`/`long`/`float`/`bool`/`byte`/`unsigned …` y arreglos con `{ … }`, `if`/`else`, `while`,
   `do … while`, `for`, `switch`, `break`, `continue`, `return`, los operadores que comparten C y
   JavaScript, conversiones (`(int) x`), caracteres entre comillas simples, sufijos numéricos
-  (`1000UL`). Las variables enteras conservan la división entera (`7 / 2` → 3).
+  (`1000UL`). Una división entre enteros sigue siendo entera, como en C (`7 / 2` → 3,
+  `analogRead(A0) / 4` → 127 con 510): el traductor sabe qué términos son enteros (literales,
+  variables y funciones de tipo entero, `analogRead`, `millis` …, conversiones, `#define` enteros) y
+  respeta que `*`, `/` y `%` se agrupan de izquierda a derecha.
 - **Lo que puede llamar** (`src/sim/program.js`): `pinMode` (`INPUT`, `OUTPUT`, `INPUT_PULLUP`,
   `INPUT_PULLDOWN`), `digitalWrite`, `digitalRead`, `delay`, `delayMicroseconds`, `millis`,
   `micros`, `Serial.begin/print/println` (sus últimas líneas salen en la ficha de la placa),
@@ -139,7 +142,7 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 | **M1** | Modelo de pines con estados fijos (`io`), la placa con USB como fuente, límites y avisos | ✅ 2026-10-26 |
 | **M2** | El programa: el `.ino` junto al circuito (o su texto), traducido a JavaScript; `pinMode`, `digitalWrite`, `digitalRead`, `delay`, `millis`, `Serial`; corre entre pasos de tiempo, `delay` espera en tiempo simulado; la página lo corre en tiempo real | ✅ 2026-10-26 |
 | **M3** | PWM como una onda cuadrada real en el tiempo (`analogWrite`, `ledcWrite`), `tone`, el paso que necesita en la página y el brillo promediado del LED, el monitor serie en la ficha de la placa | ✅ 2026-10-26 |
-| **M4** | Recetas para el UNO y el C3 (LED, pulsador, potenciómetro con ADC y PWM); las recetas del ESP32 ya tienen su programa (2026-10-26) | ⬜ |
+| **M4** | Recetas con su programa: `esp32-led`, `esp32-button`, `uno-blink`, `uno-button`, `uno-pot-pwm`, `c3-blink`, `c3-pot-pwm`; probado potenciómetro → ADC → PWM con los números de cada placa | ✅ 2026-10-26 |
 | después | Un panel propio de consola serie en la página, `analogRead` con la curva real del ADC del ESP32, interrupciones (`attachInterrupt`), versiones simplificadas de librerías comunes, firmware real del UNO con avr8js como modo opcional, las dos filas de pines del ESP32 en un circuito (el límite del montaje) | — |
 
 El programa maneja la memoria que guardan los pines (`gpioStage`: `mode`, `level`, `pull`) a

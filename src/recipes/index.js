@@ -28,9 +28,14 @@ import lm393Comparator from './lm393-comparator.js';
 import opampFollower from './opamp-follower.js';
 import opampNoninverting from './opamp-noninverting.js';
 import opampInverting from './opamp-inverting.js';
+import unoBlink from './uno-blink.js';
+import unoButton from './uno-button.js';
+import unoPotPwm from './uno-pot-pwm.js';
+import c3Blink from './c3-blink.js';
+import c3PotPwm from './c3-pot-pwm.js';
 
 export const RECIPES = Object.fromEntries(
-  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting].map((r) => [r.name, r]),
+  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm].map((r) => [r.name, r]),
 );
 
 // Fields a value may set besides its main one, by the kind of item (a part's type or "supply").

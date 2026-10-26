@@ -134,7 +134,12 @@
                 "lm393-comparator",
                 "opamp-follower",
                 "opamp-noninverting",
-                "opamp-inverting"
+                "opamp-inverting",
+                "uno-blink",
+                "uno-button",
+                "uno-pot-pwm",
+                "c3-blink",
+                "c3-pot-pwm"
               ]
             },
             "values": {

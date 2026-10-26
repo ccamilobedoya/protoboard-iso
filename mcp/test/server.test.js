@@ -154,7 +154,8 @@ test('language: a circuit with "lang" answers and writes in it; an explicit lang
 test('catalog: a compact list by default, one entry in detail by name', async () => {
   const compact = textOf(await call('catalog', {}));
   assert.match(compact, /regulator \(.*\) · .*7805/);
-  assert.ok(compact.length < 4000, `compact catalog is ${compact.length} characters`);
+  // Parts and boards plus the recipes (what a small model should look at first).
+  assert.ok(compact.length < 5000, `compact catalog is ${compact.length} characters`);
   const one = jsonOf(await call('catalog', { name: 'L7805CV', format: 'json' }));
   assert.equal(one.part, '7805');
   assert.deepEqual(one.pins, ['IN', 'GND', 'OUT']);

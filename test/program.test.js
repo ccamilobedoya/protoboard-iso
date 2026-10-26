@@ -165,3 +165,20 @@ test('the engine asks for shorter steps while a PWM runs, and averages the LED f
   assert.ok(Math.abs(glow / steady - 0.5) < 0.06, `averaged ${glow} against ${steady}`);
   assert.equal(engine.glow(), null, 'nothing since the last call');
 });
+
+// Phase M4: the UNO and C3 recipes, potentiometer → ADC → PWM, against the boards' numbers.
+test('potentiometer → analogRead → analogWrite: the UNO (10 bits, 5 V) and the C3 (12 bits, 2.5 V)', () => {
+  for (const [name, bits, full, divide, freq] of [['uno-pot-pwm', 10, 5, 4, 490], ['c3-pot-pwm', 12, 2.5, 16, 1000]]) {
+    const circuit = laid(expandRecipe(name, { RV1: { position: 0.5 } }).spec);
+    const r = simulate(circuit, { analysis: 'transient', stop: 0.02, step: 2e-5, points: 1e6 });
+    assert.ok(r.ok, JSON.stringify(r.issues));
+    const board = simulate(circuit).parts.U1;
+    // Wiper at half of the board's rail (the rail drops a little with the cable's resistance).
+    const expected = Math.round(Math.min(1, (board.vdd / 2) / full) * (2 ** bits - 1));
+    assert.ok(Math.abs(Number(board.program.serial[0]) - expected) <= 2, `${name} reads ${board.program.serial[0]}, ${expected} expected`);
+    const pwm = board.pins.find((x) => x.pwm)?.pwm;
+    assert.equal(pwm.freq, freq);
+    // The duty follows what the program read: reading / divide out of 255.
+    assert.ok(Math.abs(pwm.duty - Math.trunc(Number(board.program.serial[0]) / divide) / 255) < 1e-9, `${name} duty ${pwm.duty}`);
+  }
+});

@@ -7,7 +7,7 @@ processor, but what a learner sees at the pins. Each GPIO behaves electrically l
 and a short program in Arduino's own functions decides, in time, what each pin does. The same code
 serves every board; what changes are each family's numbers.
 
-Planned with the maintainer on 2026-10-26. Phases M1 to M3 are done; M4 follows.
+Planned with the maintainer on 2026-10-26. Phases M1 to M4 are done.
 
 ## Why not emulate the processor
 
@@ -84,7 +84,10 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   constants, `#define NAME value`, its own functions, `int`/`long`/`float`/`bool`/`byte`/`unsigned …`
   and arrays with `{ … }`, `if`/`else`, `while`, `do … while`, `for`, `switch`, `break`, `continue`,
   `return`, the operators C and JavaScript share, casts (`(int) x`), char literals, number suffixes
-  (`1000UL`). Integer variables keep integer division (`7 / 2` → 3).
+  (`1000UL`). A division between integers stays integer, as in C (`7 / 2` → 3, `analogRead(A0) / 4`
+  → 127 for 510): the translator knows which terms are integers (literals, `int`-like variables and
+  functions, `analogRead`, `millis` …, casts, integer `#define`s) and keeps `*`, `/`, `%` binding
+  left to right.
 - **What it can call** (`src/sim/program.js`): `pinMode` (`INPUT`, `OUTPUT`, `INPUT_PULLUP`,
   `INPUT_PULLDOWN`), `digitalWrite`, `digitalRead`, `delay`, `delayMicroseconds`, `millis`,
   `micros`, `Serial.begin/print/println` (its last lines show in the board's card), `analogRead`
@@ -135,7 +138,7 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 | **M1** | Pin model with fixed states (`io`), the board on USB as a source, limits and warnings | ✅ 2026-10-26 |
 | **M2** | The program: the `.ino` beside the circuit (or its text), translated to JavaScript; `pinMode`, `digitalWrite`, `digitalRead`, `delay`, `millis`, `Serial`; run between time steps, `delay` waits in simulated time; the page runs it in real time | ✅ 2026-10-26 |
 | **M3** | PWM as a real square wave in time (`analogWrite`, `ledcWrite`), `tone`, the step it needs in the page and the LED's averaged glow, the serial monitor in the board's card | ✅ 2026-10-26 |
-| **M4** | Recipes for the UNO and the C3 (LED, button, potentiometer with ADC and PWM); the ESP32 recipes already have their program (2026-10-26) | ⬜ |
+| **M4** | Recipes with their program: `esp32-led`, `esp32-button`, `uno-blink`, `uno-button`, `uno-pot-pwm`, `c3-blink`, `c3-pot-pwm`; tested potentiometer → ADC → PWM against each board's numbers | ✅ 2026-10-26 |
 | later | A serial console panel of its own in the page, `analogRead` against the ESP32 ADC's real curve, interrupts (`attachInterrupt`), simplified stand-ins for common libraries, real UNO firmware with avr8js as an optional mode, both ESP32 headers in one circuit (the layout limit) | — |
 
 The program drives the memory the pins keep (`gpioStage`: `mode`, `level`, `pull`) through one
