@@ -317,6 +317,55 @@ después de revisar licencias y datos privados.
 **F · Lanzamiento**
 - ⬜ Release publicada, demostración en línea, un anuncio corto con el GIF
 
+## Herramientas del repositorio ⬜
+
+Comprobaciones y protecciones del propio repositorio, no de los circuitos. Planeadas el 2026-10-29
+tras una revisión de solo lectura en `11d6de2`, en el orden en que rinden: primero la seguridad,
+después el falso verde, la CI, el contexto y los agentes, el consumo y el proceso. Cada ítem dice
+qué agregar y, después de «Hoy», por qué; el código entre paréntesis nombra la comprobación. Los
+nombres de archivo siguen las convenciones del repositorio: las comprobaciones son suites de
+`node:test` en `test/`, las herramientas son `scripts/*.js`, los datos y las opciones van en JSON y
+las decisiones en el registro de `PLANNING.md`.
+
+**A · Seguridad**
+- ⬜ Lista de lo que nunca se versiona (N03): `test/privacy.test.js` también falla con archivos versionados cuyo nombre coincide con una lista que no distingue mayúsculas (`local.env`, `*.env`, claves SSH, `*.pem`, `*.srl`, `CLAUDE.local.md`, `privacy.local.txt`). Hoy: solo `.gitignore`, que `git add -f` se salta
+- ⬜ Revisión de privacidad más firme (N06): `gitleaks` (solo en desarrollo), términos privados comparados después de normalizar a NFC, nombres de archivo leídos con `git ls-files -z`, un archivo ilegible contado como hallazgo y un juego de casos en `test/privacy/cases/` que deben coincidir y que no. Hoy: patrones genéricos y `privacy.local.txt` (la única lista fuera del repositorio), pero sin `gitleaks` ni casos que prueben que los patrones funcionan
+- ⬜ Opciones de Claude Code compartidas (N07): `.claude/settings.json` con `permissions.deny` para las rutas de secretos, un hook `PreToolUse` que impide leerlas o escribirlas y un hook `Stop` que avisa del trabajo sin commit. Hoy: solo un `.claude/settings.local.json` fuera de git
+- ⬜ Regla de entrada externa y prueba de ataque (N14): una regla en `CLAUDE.md` (topes de tamaño, rutas confinadas a la carpeta del circuito, nada de `eval` ni `new Function` sobre la entrada) y una prueba que le da circuitos, operaciones y programas hostiles. Hoy: `src/sim/program.js` corre el programa traducido con `new Function`, `src/sim/compile.js` lee `"program"` con `join(folder, name)`, así que `../` sale de la carpeta, y nada limita el tamaño de un circuito, un programa o una lista de operaciones
+- ⬜ Revisión de licencias de las dependencias, sin red (O02): una prueba que lee los `node_modules` instalados (raíz y `mcp/`) y falla con una licencia fuera de una lista permitida, con `license-exceptions.json` para las conocidas (`@resvg/resvg-js`, MPL-2.0). Hoy: las licencias se revisaron a mano una vez (etapa 6, A); nada revisa una dependencia nueva
+
+**B · Sin falso verde**
+- ⬜ Hooks de git (N04): `scripts/hooks/pre-commit` (privacidad y pruebas rápidas) y `scripts/hooks/pre-push` (la verificación completa), activados por `scripts/setup.js` (`git config core.hooksPath scripts/hooks`). Hoy: no hay hooks de git
+- ⬜ Un comando de verificación con tres salidas (N05): `scripts/verify.js` (`npm run verify`) corre los pasos de «How to verify a change» de `CLAUDE.md` y sale con 0 (pasa), 1 (falla) o 2 (un paso no pudo correr, por ejemplo el servidor MCP sin `npm install`). Se llama `verify` y no `review` porque `review` ya es la revisión de circuitos. Hoy: cada paso se corre a mano y un paso saltado parece aprobado
+- ⬜ Bloque de humo en el README (N12): marcar los comandos de prueba rápida del README con `<!-- smoke -->` y correrlos en la CI. Hoy: nada demuestra que esos comandos siguen funcionando
+- ⬜ Pruebas sin el reloj real (N15): `mock.timers` de `node:test`, nombres temporales únicos por prueba y una comprobación que falla con `setTimeout` en `test/`. Hoy: `test/page.test.js` y `test/sliders.test.js` usan el reloj real
+- ⬜ Herramientas de Node, solo en desarrollo (Q01): un linter (Biome), umbrales de cobertura con c8, `knip` que bloquea con archivos y exportaciones sin uso, `jscpd` para las copias; `parseArgs` estricto en `bin/`. Hoy: solo `node:test`, sin linter, cobertura ni código muerto
+- ⬜ Documentos (Q05): `lychee --offline` (enlaces y anclas) y `markdownlint-cli2` en `npm run verify`. Hoy: nada revisa los documentos; los enlaces relativos a archivos resuelven en `11d6de2`, las anclas no se revisan
+- ⬜ Prueba estática de los agentes (A02): `test/agents.test.js` comprueba que cada agente declara `model:` y que ninguno remite al lector a un archivo privado. Hoy: `npm run test:mcp` ya falla cuando un agente nombra una herramienta MCP que no existe o que no está en sus `tools:`, pero `parts-librarian` no tiene `model:` y nada lo detecta
+- ⬜ Una línea de estado por informe de agente (A04): cada informe (`LAYOUT REPORT`, `REVIEW REPORT`, el del bibliotecario) termina en una línea `STATUS:`, como ya hace `layout`, con un validador en `scripts/report-status.js` que usa el banco de agentes. Hoy: los informes tienen formato fijo, pero no una última línea única que leer, y nada los comprueba
+
+**C · CI y versiones**
+- ⬜ CI (C01): `.github/workflows/ci.yml` corre `npm run verify` en cada push y pull request, sin `privacy.local.txt` (la prueba de privacidad debe pasar solo con los patrones genéricos) y con las acciones fijadas por SHA. Es el mismo ítem que la CI de la etapa 6, D: hacerlo una sola vez. Hoy: solo `pages.yml`, que no corre pruebas
+- ⬜ `.github/dependabot.yml` (C02): npm para la raíz y para `mcp/`, y `github-actions`. Hoy: no hay
+- ⬜ Proteger `main` (C03): `scripts/github-ruleset.js` (con `gh api`) para que lo corra el dueño: un ruleset para `main` (CI obligatoria, sin push forzado) y el escaneo de secretos con protección al hacer push. Hoy: nada protege `main`
+- ⬜ `CHANGELOG.md`, versión y tags (N11): un registro de cambios a partir de la versión de `package.json`, un tag por etapa o fase, `engines` que coincidan con lo que prueba la CI (raíz y `mcp/`). Comparte el `CHANGELOG.md` y la versión 0.3.0 de la etapa 6, D. Hoy: no hay registro de cambios ni tags, y la versión es 0.2.0 aunque la página en vivo y los microcontroladores vinieron después
+
+**D · Contexto y agentes**
+- ⬜ `model:` y `tools:` cerrados por rol (A01): cada agente declara los dos, y el revisor de solo lectura no recibe ninguna herramienta que escriba. Hoy: `parts-librarian` no tiene `model:`, y `circuit-reviewer` (solo lectura, solo pruebas en seco) tiene `apply_ops`, que también aplica
+- ⬜ Banco de agentes (A03): `scripts/agent-bench.js`, como `layout-bench.js`: tres encargos fijos corridos con `claude -p --output-format json`, con sus líneas de estado, llamadas y costo comparados con la corrida anterior. Hoy: nada mide si un cambio en el kit dejó mejores o peores a los agentes
+- ⬜ Opciones con nombre (A05): `project.json` con `review_rounds` (hoy «dos rondas como máximo») y `briefs_per_agent` (cuándo empezar un agente nuevo), citados por `CLAUDE.md`, `docs/en/agents.md` y los agentes. Hoy: los límites están en prosa en varios archivos
+- ⬜ Bloque de opciones generado en `CLAUDE.md` (N01): un bloque entre marcas `<!-- generated: project.json -->`, escrito desde `project.json` y comprobado por una prueba. Hoy: no hay
+- ⬜ `CLAUDE.local.md.example` y ningún archivo privado en los agentes (N02): agregar el ejemplo (300 palabras como máximo: qué va en el archivo privado) y cambiar en los tres agentes «lee `CLAUDE.local.md` para la ruta» por una pista genérica (Node instalado con un gestor de versiones puede no estar en el `PATH`). Hoy: no hay ejemplo, y los tres agentes remiten al archivo privado
+- ⬜ Presupuesto del contexto de arranque (N08): una prueba que suma `CLAUDE.md`, los agentes y `.mcp.json` contra `context_kb` de `project.json`, y una forma de leer el contexto real de arranque en la línea de estado. Hoy: nada lo mide
+
+**E · Consumo**
+- ⬜ Registro de consumo (B01): un hook `Stop` y `SubagentStop` (`scripts/hooks/usage.js`) que suma tokens, costo, llamadas y aciertos de caché en un `.claude/state/usage.jsonl` ignorado por git. Hoy: no queda registro de lo que cuesta el trabajo de circuitos, así que «el trabajo de circuitos debe correr en un modelo pequeño» no se puede comprobar
+
+**F · Proceso y documentos**
+- ⬜ Prueba de paridad inglés–español (I01): cada documento de `docs/en/` tiene su copia en `docs/es/` (y `README`, `ROADMAP`, `PLANNING`, `examples/README`), con los mismos títulos y bloques de código; cada par se declara una vez. Hoy: 22 pares mantenidos a mano, nada los comprueba
+- ⬜ Estado por decisión (N09): cada entrada del registro de decisiones de `PLANNING.md` (y `planeacion.md`) lleva un estado, y una reemplazada dice «reemplazada por N»; una prueba lo comprueba. Hoy: las entradas no tienen estado, y quien lee no sabe cuáles siguen en pie
+- ⬜ Índice de los documentos (N18): `docs/en/README.md` y `docs/es/README.md` con un bloque generado, una línea por documento (título y para qué sirve), y un paso de `npm run verify` que falla cuando queda viejo. Hoy: el README y el mapa del código enlazan documentos, pero nada los lista todos
+
 ## Opcional, más adelante ⬜
 
 Ideas que vale la pena guardar, sin fecha. Se retoman después de las etapas de arriba, o

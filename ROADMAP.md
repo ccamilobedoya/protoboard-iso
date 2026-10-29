@@ -314,6 +314,54 @@ package. Planned on 2026-10-26 after a review of licences and private data.
 **F · Launch**
 - ⬜ Release published, demo online, a short announcement with the GIF
 
+## Repository tooling ⬜
+
+Checks and guards for the repository itself, not for the circuits. Planned on 2026-10-29 after a
+read-only check at `11d6de2`, in the order they pay off: security first, then false greens, CI,
+context and agents, usage, and process. Each item says what to add and, after "Today", why; the
+code in brackets names the check. File names follow the repository's conventions: checks are
+`node:test` suites in `test/`, tools are `scripts/*.js`, data and settings are JSON, decisions go
+in the log of `PLANNING.md`.
+
+**A · Security**
+- ⬜ Never-commit list (N03): `test/privacy.test.js` also fails on tracked files whose name matches a case-insensitive list (`local.env`, `*.env`, SSH keys, `*.pem`, `*.srl`, `CLAUDE.local.md`, `privacy.local.txt`). Today: only `.gitignore`, which `git add -f` skips
+- ⬜ Privacy scan, stronger (N06): `gitleaks` (development only), private terms matched after NFC normalisation, file names read with `git ls-files -z`, an unreadable file counted as a finding, and a set of cases in `test/privacy/cases/` that must and must not match. Today: generic patterns and `privacy.local.txt` (the one list outside the repository), but no `gitleaks` and no cases that prove the patterns work
+- ⬜ Shared Claude Code settings (N07): `.claude/settings.json` with `permissions.deny` for secret paths, a `PreToolUse` hook that blocks reading or writing them, and a `Stop` hook that warns about uncommitted work. Today: only an untracked `.claude/settings.local.json`
+- ⬜ External input rule and attack test (N14): a rule in `CLAUDE.md` (size caps, paths confined to the circuit's folder, no `eval` or `new Function` on input) and a test that feeds hostile circuits, operations and sketches. Today: `src/sim/program.js` runs the translated sketch with `new Function`, `src/sim/compile.js` reads `"program"` with `join(folder, name)`, so `../` leaves the folder, and nothing caps the size of a circuit, a sketch or an operation list
+- ⬜ Dependency licence check, offline (O02): a test that reads the installed `node_modules` (root and `mcp/`) and fails on a licence outside an allowed list, with `license-exceptions.json` for the known ones (`@resvg/resvg-js`, MPL-2.0). Today: the licences were reviewed by hand once (stage 6, A); nothing checks a new dependency
+
+**B · No false green**
+- ⬜ Git hooks (N04): `scripts/hooks/pre-commit` (privacy and fast tests) and `scripts/hooks/pre-push` (the whole verification), turned on by `scripts/setup.js` (`git config core.hooksPath scripts/hooks`). Today: no git hooks
+- ⬜ One verification command with three exits (N05): `scripts/verify.js` (`npm run verify`) runs the steps of "How to verify a change" in `CLAUDE.md` and exits 0 (pass), 1 (fail) or 2 (a step could not run, for example the MCP server without `npm install`). Named `verify`, not `review`, because `review` is already the circuit review. Today: each step is run by hand and a skipped step looks like a pass
+- ⬜ README smoke block (N12): mark the README's try-it commands with `<!-- smoke -->` and run them in CI. Today: nothing proves those commands still work
+- ⬜ Tests without the real clock (N15): `mock.timers` from `node:test`, unique temporary names per test, and a check that fails on `setTimeout` in `test/`. Today: `test/page.test.js` and `test/sliders.test.js` use the real clock
+- ⬜ Node tooling, development only (Q01): a linter (Biome), coverage thresholds with c8, `knip` that blocks on unused files and exports, `jscpd` for copies; strict `parseArgs` in `bin/`. Today: `node:test` only, no linter, coverage or dead-code check
+- ⬜ Documents (Q05): `lychee --offline` (links and anchors) and `markdownlint-cli2` in `npm run verify`. Today: nothing checks the documents; relative file links resolve at `11d6de2`, anchors are unchecked
+- ⬜ Static agent test (A02): `test/agents.test.js` checks that each agent declares `model:` and that no agent sends the reader to a private file. Today: `npm run test:mcp` already fails when an agent names an MCP tool that does not exist or is not in its `tools:`, but `parts-librarian` has no `model:` and nothing catches it
+- ⬜ One status line per agent report (A04): every report (`LAYOUT REPORT`, `REVIEW REPORT`, the librarian's) ends in one `STATUS:` line, like `layout` already does, with a validator in `scripts/report-status.js` used by the agent bench. Today: the reports have fixed formats but no single last line to read and nothing that checks them
+
+**C · CI and releases**
+- ⬜ CI (C01): `.github/workflows/ci.yml` runs `npm run verify` on push and pull request, with no `privacy.local.txt` (the privacy test must pass with the generic patterns alone) and with actions pinned by SHA. The same item as the CI of stage 6, D: do it once. Today: only `pages.yml`, which runs no tests
+- ⬜ `.github/dependabot.yml` (C02): npm for the root and for `mcp/`, and `github-actions`. Today: none
+- ⬜ Protecting `main` (C03): `scripts/github-ruleset.js` (through `gh api`) for the owner to run: a ruleset for `main` (CI required, no force push) and secret scanning with push protection. Today: nothing protects `main`
+- ⬜ `CHANGELOG.md`, version and tags (N11): a changelog from the version in `package.json`, a tag per stage or phase, `engines` that match what CI tests (root and `mcp/`). Shares the `CHANGELOG.md` and version 0.3.0 of stage 6, D. Today: no changelog, no tags, version 0.2.0 although the live page and the microcontrollers came after it
+
+**D · Context and agents**
+- ⬜ Closed `model:` and `tools:` per role (A01): each agent declares both, and the read-only reviewer gets no tool that writes. Today: `parts-librarian` has no `model:`, and `circuit-reviewer` (read-only, dry runs only) has `apply_ops`, which can also apply
+- ⬜ Agent bench (A03): `scripts/agent-bench.js`, like `layout-bench.js`: three fixed briefs run with `claude -p --output-format json`, their status lines, calls and cost compared with the last run. Today: nothing measures whether a change to the kit made the agents better or worse
+- ⬜ Named options (A05): `project.json` with `review_rounds` (today "two rounds at most") and `briefs_per_agent` (when to start a fresh agent), cited by `CLAUDE.md`, `docs/en/agents.md` and the agents. Today: the limits are prose in several files
+- ⬜ Generated options block in `CLAUDE.md` (N01): a block between `<!-- generated: project.json -->` markers, written from `project.json` and checked by a test. Today: none
+- ⬜ `CLAUDE.local.md.example` and no private file in the agents (N02): add the example (300 words at most: what goes in the private file), and replace "read `CLAUDE.local.md` for the path" in the three agents with a generic hint (Node from a version manager may not be on `PATH`). Today: no example, and the three agents point to the private file
+- ⬜ Startup context budget (N08): a test that sums `CLAUDE.md`, the agents and `.mcp.json` against `context_kb` in `project.json`, and a way to read the real startup context from the status line. Today: nothing measures it
+
+**E · Usage**
+- ⬜ Usage log (B01): a `Stop` and `SubagentStop` hook (`scripts/hooks/usage.js`) that adds tokens, cost, calls and cache hit rate to an ignored `.claude/state/usage.jsonl`. Today: no record of what circuit work costs, so "circuit work should run on a small model" cannot be checked
+
+**F · Process and documents**
+- ⬜ English–Spanish parity test (I01): every document in `docs/en/` has its copy in `docs/es/` (and `README`, `ROADMAP`, `PLANNING`, `examples/README`), with the same headings and code blocks; each pair declared once. Today: 22 pairs kept by hand, nothing checks them
+- ⬜ Status per decision (N09): every entry of the decision log in `PLANNING.md` (and `planeacion.md`) gets a status, and a replaced one says «replaced by N»; a test checks it. Today: entries have no status, so a reader cannot tell which ones still hold
+- ⬜ Index of the documents (N18): `docs/en/README.md` and `docs/es/README.md` with a generated block, one line per document (title and what it is for), and a step in `npm run verify` that fails when it is stale. Today: the README and the code map link documents, but nothing lists them all
+
 ## Optional, later ⬜
 
 Ideas worth keeping, with no date. Pick them up after the stages above, or when a lesson
