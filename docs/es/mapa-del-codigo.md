@@ -54,6 +54,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `render/focus.js` | velo, tiras metálicas, etiquetas de columna y fila (`coords`), copias en primer plano (foco estático) |
 | `render/coverage.js`, `inspect.js`, `annotate.js` | medir el dibujo; capas de anotación |
 | `ops.js`, `diff.js`, `node/workspace.js` | operaciones con inversa, diferencia en seco, historial, deshacer, salidas; `relayoutTarget` (volver a montar en una sola revisión) |
+| `limits.js` | topes de tamaño de la entrada externa (bytes del circuito, componentes, operaciones, largo del programa) y sus errores; los comprueban `ops.js`, `node/workspace.js`, `sim/compile.js` y `sim/sketch.js` (CLAUDE.md, «External input») |
 | `parts/resolve.js` | un componente a partir de lo que escribe una persona (`resolvePart`: número de parte, módulo, alias como KCD1 o resistencia; `closestNames` si no lo conoce), `pinsOf`; los alias en `PART_ALIASES` |
 | `parts/pin-names.js` | una pata a partir de lo que escribe una persona (`findPin`: el nombre exacto sin distinguir mayúsculas, luego sinónimos como K/cathode, DISCH/DIS, VDD/VCC, luego números de GPIO en las placas; nada si no es única); la usan los circuitos, `query`, `suggest` y `layout` |
 | `recipes/` | circuitos de clase como especificaciones de `layout`, un módulo de datos por receta (`led-resistor.js`, `npn-switch.js`…); `index.js`: el registro, `expandRecipe` (nombre + valores → especificación, solo los valores que lista cada receta), `resolveRecipe` (un pedido a `layout` con `recipe` → especificación, para la consola y el MCP), las entradas del catálogo ([recetas.md](recetas.md)) |
@@ -93,7 +94,14 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 - **Privacidad.** El repositorio es público: nada de nombres, correos, rutas privadas, nombres de
   equipos, ids de la app de notas ni los equipos propios del mantenedor en ningún archivo versionado.
   `test/privacy.test.js` revisa los archivos versionados y nuevos con patrones genéricos y con las
-  palabras personales de un `privacy.local.txt` fuera de git (CLAUDE.md, «Privacy»).
+  palabras personales de un `privacy.local.txt` fuera de git (CLAUDE.md, «Privacy»), y los nombres
+  que nunca se versionan; la revisión está en `test/privacy/scan.js` (nombres leídos con
+  `git ls-files -z`, texto en NFC), probada con sus casos en la prueba.
+- **Entrada externa.** Un circuito, unas operaciones o un programa pueden venir de cualquiera:
+  topes de tamaño en `limits.js`, un archivo de programa solo desde la carpeta del circuito, nada
+  de la entrada corre como código (un programa solo a través de `sim/sketch.js`, cuya salida no
+  nombra nada más que el entorno de ejecución), todo texto escapado. `test/attack.test.js` le da
+  entradas hostiles (CLAUDE.md, «External input»).
 - **Idioma.** `pickLanguage(pedido, circuit.lang, por defecto)`: un `--lang` o `lang` del MCP
   explícito gana, luego el `lang` del circuito y luego el idioma por defecto (inglés, o
   `PROTOBOARD_LANG` en el servidor MCP). Los archivos escritos tras un cambio siguen la misma
@@ -189,6 +197,10 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
   tacto va por los eventos táctiles (un dedo se deja al navegador, dos se manejan), la rueda sola no
   se cancela. Los cambios de gestos se revisan también en un navegador real (`scripts/ux-shots.js`,
   emulación táctil por CDP): jsdom no desplaza.
+- **Opciones de Claude Code** (`.claude/settings.json`, compartido): reglas `deny` y un hook que
+  mantienen las herramientas lejos de los secretos, una sola lista de nombres de secretos
+  (`.claude/hooks/secret-paths.js`) para el hook y la prueba de privacidad, y un aviso del trabajo
+  sin commit al terminar un turno. Las opciones personales van en `.claude/settings.local.json`.
 - **Los agentes dependen del kit** (`.claude/agents/*.md`): se actualizan con cualquier cambio de
   herramienta, comando, operación o formato; `npm run test:mcp` detecta herramientas que ya no existen.
 
@@ -198,4 +210,4 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 `npm run test:mcp`. Los modelos del simulador se comprueban contra referencias independientes en
 `test/sim.test.js` y `test/sources.test.js` (baterías, Zener, reguladores, inductores,
 sensores) y contra CircuitJS de Falstad en `test/falstad.test.js` (referencias guardadas, sin red); el comportamiento de la página en `test/focus.test.js` y `test/page.test.js`;
-los textos en `test/describe.test.js` y `test/i18n.test.js`; que no haya nada privado en el repositorio, en `test/privacy.test.js`.
+los textos en `test/describe.test.js` y `test/i18n.test.js`; que no haya nada privado en el repositorio, en `test/privacy.test.js`; las entradas hostiles, en `test/attack.test.js`; los hooks y las opciones de Claude Code, en `test/hooks.test.js`; las licencias de las dependencias, en `test/licenses.test.js`.

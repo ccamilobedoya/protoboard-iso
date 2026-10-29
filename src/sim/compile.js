@@ -22,8 +22,9 @@ import { WAVEFORMS, waveAt } from './generator.js';
 import { deviceFor } from './devices/index.js';
 import { issue } from './devices/shared.js';
 import { translateSketch } from './sketch.js';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, statSync, existsSync, realpathSync } from 'node:fs';
+import { resolve, relative, isAbsolute, sep } from 'node:path';
+import { LIMITS } from '../limits.js';
 
 // The folder a circuit was loaded from (node/workspace.js sets it, unsaved): where a board's
 // program file ("program": "blink.ino") is read from.
@@ -31,23 +32,40 @@ export const CIRCUIT_FOLDER = Symbol.for('protoboard-iso.folder');
 
 // A board's program (docs/en/microcontrollers.md, M2): the sketch's text in "program", or the name
 // of a .ino file beside the circuit; translated once here, run by the page and by simulate.
-const SKETCH_SEVERITY = { SIM_PROGRAM_ERROR: 'warning', SIM_PROGRAM_NO_LOOP: 'warning', SIM_PROGRAM_UNSUPPORTED: 'warning', SIM_PROGRAM_LIBRARY: 'info' };
+// The file must stay inside the circuit's folder (after links are followed): a circuit from
+// someone else must not read other files (CLAUDE.md, "External input").
+const SKETCH_SEVERITY = { SIM_PROGRAM_ERROR: 'warning', SIM_PROGRAM_NO_LOOP: 'warning', SIM_PROGRAM_UNSUPPORTED: 'warning', SIM_PROGRAM_LIBRARY: 'info', SIM_PROGRAM_TOO_LARGE: 'warning' };
+const within = (folder, file) => {
+  const rel = relative(folder, file);
+  return rel !== '' && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
+};
 function sketchOf(circuit, part, issues) {
   const given = part.raw.program;
   if (given == null || given === '') return null;
   let text = String(given);
   if (/\.ino$/i.test(text.trim()) && !text.includes('\n')) {
+    const name = text.trim();
     const folder = circuit[CIRCUIT_FOLDER];
+    const file = folder ? resolve(folder, name) : null;
+    if (file && (!within(resolve(folder), file) || (existsSync(file) && !within(realpathSync(folder), realpathSync(file))))) {
+      issues.push(issue('warning', 'SIM_PROGRAM_OUTSIDE', { part: part.id, file: name }));
+      return null;
+    }
     try {
-      if (!folder) throw new Error('no folder');
-      text = readFileSync(join(folder, text.trim()), 'utf8');
+      if (!file) throw new Error('no folder');
+      const size = statSync(file).size;
+      if (size > LIMITS.sketchChars) {
+        issues.push(issue('warning', 'SIM_PROGRAM_TOO_LARGE', { part: part.id, size, limit: LIMITS.sketchChars }));
+        return null;
+      }
+      text = readFileSync(file, 'utf8');
     } catch {
-      issues.push(issue('warning', 'SIM_PROGRAM_FILE', { part: part.id, file: text.trim() }));
+      issues.push(issue('warning', 'SIM_PROGRAM_FILE', { part: part.id, file: name }));
       return null;
     }
   }
   const r = translateSketch(text);
-  for (const i of r.issues) issues.push(issue(SKETCH_SEVERITY[i.code] ?? 'warning', i.code, { part: part.id, line: i.line, ...(i.name && { name: i.name }), ...(i.message && { message: i.message }) }));
+  for (const i of r.issues) issues.push(issue(SKETCH_SEVERITY[i.code] ?? 'warning', i.code, { part: part.id, line: i.line, ...(i.name && { name: i.name }), ...(i.message && { message: i.message }), ...(i.limit && { size: i.size, limit: i.limit }) }));
   return r.js;
 }
 

@@ -32,13 +32,13 @@ void loop() {
   delay(WAIT);
 }`);
   assert.deepEqual(r.issues, []);
-  assert.match(r.js, /function\* loop\(\)/);
-  assert.match(r.js, /\(yield \(\(WAIT\) \/ 1e3\)\)/, 'delay waits in seconds');
-  assert.match(r.js, /yield\* half\(5\)/, 'a call to its own function');
+  assert.match(r.js, /function\* \$loop\(\)/, 'names of the sketch get a $');
+  assert.match(r.js, /\(yield \(\(\$WAIT\) \/ 1e3\)\)/, 'delay waits in seconds');
+  assert.match(r.js, /yield\* \$half\(5\)/, 'a call to its own function');
   // Run it with a stub API and look at what it computes.
   const seen = {};
   const api = new Proxy({ HIGH: 1, LOW: 0, OUTPUT: 1, __int: Math.trunc, Serial: { begin() {} }, digitalWrite: (p, v) => (seen[p] = v), pinMode() {} }, { get: (o, k) => (k in o ? o[k] : () => 0) });
-  const program = run(`${r.js.replace('return {', 'globalThis.__probe = () => ({ count }); return {')}`)(api);
+  const program = run(`${r.js.replace('return {', 'globalThis.__probe = () => ({ count: $count }); return {')}`)(api);
   [...program.setup()];
   const steps = [...program.loop()];
   assert.deepEqual(steps.filter((s) => s > 0), [0.25], 'one delay of 250 ms');

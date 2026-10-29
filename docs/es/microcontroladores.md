@@ -109,6 +109,12 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   `#include` distinto del de Arduino se avisa: `SIM_PROGRAM_LIBRARY`); llamar a una función que nadie
   define devuelve 0 (`SIM_PROGRAM_UNSUPPORTED`); una línea que no entiende lo detiene
   (`SIM_PROGRAM_ERROR`, con la línea); un archivo que falta (`SIM_PROGRAM_FILE`).
+- **Un programa es entrada externa** (CLAUDE.md, «External input»): su JavaScript solo nombra lo
+  que da el entorno de ejecución (los nombres propios del programa llevan `$`, `Serial.<método>` es
+  el único miembro, los índices son números, las cadenas quedan fuera del código), los arreglos
+  tienen un tope de 100 000 elementos, un programa de más de 65 536 caracteres no se lee
+  (`SIM_PROGRAM_TOO_LARGE`) y un archivo `.ino` fuera de la carpeta del circuito tampoco
+  (`SIM_PROGRAM_OUTSIDE`). Pruebas: `test/attack.test.js`.
 - Pruebas: `test/program.test.js` (el traductor, el parpadeo contra el tiempo, un pulsador leído por
   el programa a través de los pasos del motor y una reconstrucción, el archivo `.ino`).
 

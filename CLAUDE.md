@@ -21,8 +21,40 @@ maintainer's own notes), never in the repository:
   make it generic.
 - `npm test` runs `test/privacy.test.js` over tracked and new files: generic patterns (emails, home
   folders, private hosts and IPs, secrets) plus the maintainer's own words in `privacy.local.txt`
-  (one regular expression per line, not in git). A failure there is fixed by rewording, never by
-  weakening the patterns.
+  (one regular expression per line, not in git), in names and text normalised to NFC; files that are
+  never committed (local settings, keys, certificates, `CLAUDE.local.md`, `privacy.local.txt`) fail
+  it even when `git add -f` put them past `.gitignore`; an unreadable file is a finding; and
+  `gitleaks`, when it is installed, over the history, the changes not committed and the new files,
+  after it proves on a throwaway repository that it sees a token in each (skipped otherwise, never a
+  pass). The scan is `test/privacy/scan.js`, its cases are in the test. A failure there is fixed
+  by rewording, never by weakening the patterns.
+- `.claude/settings.json` (shared, in git) keeps Claude Code away from secrets: `permissions.deny`
+  for their usual names, and a `PreToolUse` hook (`.claude/hooks/guard-secrets.js`) that also reads
+  Bash commands and the paths of Grep and Glob. A `Stop` hook reminds of work not committed or not
+  pushed. The list of secret names is one, `.claude/hooks/secret-paths.js`, shared with the privacy
+  test. A command refused only because it names such a file in text: write the text with Write or
+  Edit. Personal settings go in `.claude/settings.local.json`, never in the shared file.
+- `test/licenses.test.js` reads the lockfiles: every dependency must have a permissive licence or
+  an entry in `license-exceptions.json` (its licence and the kind of dependency it may be).
+
+## External input
+
+A circuit, a list of operations or a board's program may come from anyone (a shared file, an
+agent, a page someone sends). The kit treats them as hostile:
+
+- **Caps.** Every input has a size cap in `src/limits.js` (circuit bytes, parts, operations,
+  program length), checked before the work, with its own error code. A new kind of input gets one.
+- **Confined paths.** A file named inside a circuit (today a board's `.ino`) is read only from the
+  circuit's folder, after links are followed (`SIM_PROGRAM_OUTSIDE`). The MCP server keeps every
+  target inside its root.
+- **No eval of input.** Nothing from the input runs as code. The one place that runs generated
+  code, a board's program (`new Function` in `src/sim/program.js`), runs only what
+  `src/sim/sketch.js` writes: the sketch's names prefixed with `$`, `Serial.<method>` as the only
+  member access, numeric indexes, and strings kept out of the code (header of `sketch.js`).
+- **Text is never markup.** Every text from a circuit goes through `escapeXml` in the SVG and the
+  page, and JSON inside `<script>` through `safeJson`.
+- `test/attack.test.js` feeds hostile sketches, paths, texts and sizes. A change to any of the
+  above adds its case there.
 
 ## Resuming a circuit (not the code)
 
@@ -147,6 +179,7 @@ src/nets.js      nets: groups joined by wires, with their pins
 src/review.js    verdict from measurements, profiles lesson/draft
 src/recipes/     lesson circuits by name for layout (one data module each; index.js expands them)
 .claude/agents/  circuit-layout, circuit-reviewer, parts-librarian
+.claude/hooks/   Claude Code hooks wired in .claude/settings.json (secrets guard, uncommitted reminder)
 src/schema.js    JSON Schemas (written to schema/ by npm run schemas)
 src/node/        Node-only: workspace.js (targets, history, undo, create, outputs), raster.js (PNG),
                  bundle.js (ES modules → one script for the page)

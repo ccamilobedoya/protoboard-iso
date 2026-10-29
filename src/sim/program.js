@@ -15,6 +15,8 @@
 
 const BUDGET = 2000; // loop turns or loop() calls per advance before it lets the step go on
 const LOG = 40; // Serial lines kept
+const LINE_MAX = 1000; // characters kept of one Serial line
+const ARRAY_MAX = 100_000; // elements of one array (an ESP32 has 320 KB of RAM)
 const MODE = { INPUT: 0, OUTPUT: 1, INPUT_PULLUP: 2, INPUT_PULLDOWN: 3 };
 // Analog pin names: GPIO numbers on each family (Arduino-ESP32 and the UNO's core).
 const ANALOG = {
@@ -61,7 +63,7 @@ export function createRunner(js, board) {
   };
   let seed = 1;
   const write = (text) => {
-    const parts = (runner.line + text).split('\n');
+    const parts = (runner.line + text).split('\n').map((p) => p.slice(0, LINE_MAX));
     runner.line = parts.pop();
     runner.log.push(...parts);
     if (runner.log.length > LOG) runner.log.splice(0, runner.log.length - LOG);
@@ -172,6 +174,10 @@ export function createRunner(js, board) {
     },
     __int: (x) => (Number.isFinite(x) ? Math.trunc(x) : 0),
     __missing: () => 0,
+    // An index is always a whole number, so a[i] can never name a property ("constructor").
+    __idx: (i) => (Number.isFinite(Number(i)) ? Math.trunc(Number(i)) : 0),
+    // int a[n]: n capped, so a sketch cannot take the machine's memory.
+    __array: (n) => new Array(Math.min(ARRAY_MAX, Math.max(0, Math.trunc(Number(n)) || 0))).fill(0),
   };
   let program;
   try {

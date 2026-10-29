@@ -69,6 +69,9 @@ export default {
   'check.OP_DUPLICATE_ID': 'Operation {index} ({op}): a part called {part} already exists.',
   'check.REVISION_MISMATCH': 'The circuit is at revision {actual}, not {expected}: someone changed it. Read it again and retry.',
   'check.TARGET_EXISTS': 'There is already a circuit at {target}.',
+  'check.OPS_TOO_MANY': '{size} operations in one change, more than the {limit} the kit accepts. Split them into smaller changes.',
+  'check.CIRCUIT_TOO_MANY_PARTS': 'The circuit would have {size} parts, more than the {limit} the kit accepts.',
+  'check.CIRCUIT_TOO_LARGE': 'The circuit takes {size} bytes, more than the {limit} the kit accepts; it is not read.',
   'check.NOTHING_TO_UNDO': 'Nothing to undo.',
 
   'change.failed': 'Nothing was changed:',
@@ -550,6 +553,8 @@ export default {
   'explain.mcu.serial': 'What the program printed with Serial.print / Serial.println, the last lines.',
   'explain.mcu.notYet': 'These functions come in a later phase of the simulator (PWM, tones): here they do nothing.',
   'check.SIM_PROGRAM_FILE': '{part}: its program file {file} was not found beside the circuit.',
+  'check.SIM_PROGRAM_OUTSIDE': '{part}: its program file {file} is outside the circuit\'s folder; it is not read. Put the .ino file beside the circuit.',
+  'check.SIM_PROGRAM_TOO_LARGE': '{part}: the program has {size} characters, more than the {limit} the kit reads; it does not run.',
   'check.SIM_PROGRAM_ERROR': '{part}: the program does not read at line {line} (near "{message}"); it does not run.',
   'check.SIM_PROGRAM_UNSUPPORTED': '{part}: {name}() at line {line} is not something the simulator knows; it returns 0.',
   'check.SIM_PROGRAM_LIBRARY': '{part}: the library {name} (line {line}) is not simulated.',

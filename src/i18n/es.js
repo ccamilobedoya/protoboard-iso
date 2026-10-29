@@ -68,6 +68,9 @@ export default {
   'check.OP_DUPLICATE_ID': 'Operación {index} ({op}): ya existe un componente llamado {part}.',
   'check.REVISION_MISMATCH': 'El circuito está en la revisión {actual}, no en la {expected}: alguien lo cambió. Vuelve a leerlo y reintenta.',
   'check.TARGET_EXISTS': 'Ya hay un circuito en {target}.',
+  'check.OPS_TOO_MANY': '{size} operaciones en un solo cambio, más de las {limit} que acepta el kit. Divídelas en cambios más pequeños.',
+  'check.CIRCUIT_TOO_MANY_PARTS': 'El circuito quedaría con {size} componentes, más de los {limit} que acepta el kit.',
+  'check.CIRCUIT_TOO_LARGE': 'El circuito ocupa {size} bytes, más de los {limit} que acepta el kit; no se lee.',
   'check.NOTHING_TO_UNDO': 'No hay nada que deshacer.',
 
   'change.failed': 'No se cambió nada:',
@@ -549,6 +552,8 @@ export default {
   'explain.mcu.serial': 'Lo que el programa imprimió con Serial.print / Serial.println, las últimas líneas.',
   'explain.mcu.notYet': 'Estas funciones llegan en una fase posterior del simulador (PWM, tonos): aquí no hacen nada.',
   'check.SIM_PROGRAM_FILE': '{part}: no se encontró su archivo de programa {file} junto al circuito.',
+  'check.SIM_PROGRAM_OUTSIDE': '{part}: su archivo de programa {file} está fuera de la carpeta del circuito; no se lee. Pon el archivo .ino junto al circuito.',
+  'check.SIM_PROGRAM_TOO_LARGE': '{part}: el programa tiene {size} caracteres, más de los {limit} que lee el kit; no corre.',
   'check.SIM_PROGRAM_ERROR': '{part}: el programa no se entiende en la línea {line} (cerca de «{message}»); no corre.',
   'check.SIM_PROGRAM_UNSUPPORTED': '{part}: {name}() en la línea {line} no es algo que el simulador conozca; devuelve 0.',
   'check.SIM_PROGRAM_LIBRARY': '{part}: la librería {name} (línea {line}) no se simula.',

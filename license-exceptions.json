@@ -1,0 +1,11 @@
+{
+  "$comment": "Dependencies whose licence is outside the allowed list of test/licenses.test.js, each reviewed by hand. A name ending in * covers its platform packages. The test fails if the licence changes, if the package stops being a development or optional dependency, or if an entry no longer matches anything.",
+  "exceptions": [
+    {
+      "package": "@resvg/resvg-js*",
+      "license": "MPL-2.0",
+      "only": ["dev", "optional"],
+      "why": "Rasterises SVG to PNG for previews, README images and the MCP render tool. A development dependency at the root and an optional one in mcp/; it is never bundled into the kit or the pages, so MPL-2.0 file-level copyleft never applies to the kit's code."
+    }
+  ]
+}

@@ -13,6 +13,19 @@
 // Integer variables keep integer division (7 / 2 → 3) where an int is assigned.
 // Not read: classes, pointers, templates, function-like macros, libraries other than Arduino's
 // own (an #include is noted; a call to a function nobody defines returns 0 and is noted).
+//
+// A sketch is external input (CLAUDE.md, "External input") and its JavaScript runs with
+// new Function, in Node and in the page, so what comes out can only reach what the runtime gives:
+// - every name the sketch writes gets a "$" (C names cannot have one): count → $count, so a sketch
+//   cannot name globalThis, process, Function or the runtime's own helpers;
+// - the only member access is Serial.<method>; an index is a number (a[__idx(i)]), never a key
+//   such as "constructor";
+// - text in quotes becomes __str[n], from a JSON list at the top, so no character of a string
+//   lands in the code (a "/" before it could otherwise make a regular expression that ends inside
+//   it, and the rest of the string would be code); a "/" where a value goes is refused for the same
+//   reason;
+// - a program longer than LIMITS.sketchChars is not read.
+import { LIMITS } from '../limits.js';
 
 const TYPES = new Set(['void', 'int', 'long', 'short', 'byte', 'bool', 'boolean', 'char', 'float', 'double', 'unsigned', 'signed', 'size_t', 'word', 'String', 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t']);
 const QUALIFIERS = new Set(['const', 'static', 'volatile', 'unsigned', 'signed']);
@@ -23,6 +36,14 @@ const SKETCH_CONSTANTS = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INP
 const ASSIGN = new Set(['=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=']);
 // Runtime functions that return an integer (an int divided by them stays an int).
 const INT_API = new Set(['digitalRead', 'analogRead', 'millis', 'micros', 'map', 'random', 'constrain', 'abs', 'min', 'max', 'bitRead']);
+// Serial's methods in the runtime; another one is noted and returns 0.
+const SERIAL_METHODS = new Set(['begin', 'print', 'println', 'available', 'read']);
+// Names written as they are; every other name the sketch writes is its own: "$" + name.
+const RAW_NAMES = new Set([...SKETCH_CONSTANTS, 'true', 'false']);
+const own = (name) => `$${name}`;
+const C_ESCAPES = { n: '\n', t: '\t', r: '\r', 0: '\0', a: '\x07', b: '\b', f: '\f', v: '\v' };
+// A string literal's text, with C's escapes read.
+const unquote = (s) => s.slice(1, -1).replace(/\\(x[0-9a-fA-F]{1,2}|[\s\S])/g, (_, e) => (e[0] === 'x' && e.length > 1 ? String.fromCharCode(parseInt(e.slice(1), 16)) : C_ESCAPES[e] ?? e));
 
 // ── Tokens ──────────────────────────────────────────────────────────────────────────
 const PUNCT = ['<<=', '>>=', '...', '->', '++', '--', '<<', '>>', '<=', '>=', '==', '!=', '&&', '||', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '::', '+', '-', '*', '/', '%', '<', '>', '=', '!', '~', '&', '|', '^', '?', ':', ';', ',', '.', '(', ')', '[', ']', '{', '}'];
@@ -60,7 +81,11 @@ function tokenize(source, issues) {
     } else if (c === '"') {
       let j = i + 1;
       while (j < source.length && source[j] !== '"') j += source[j] === '\\' ? 2 : 1;
-      out.push({ t: 'str', v: source.slice(i, j + 1), line });
+      if (j >= source.length) {
+        issues.push({ code: 'SIM_PROGRAM_ERROR', line, message: '"' });
+        break;
+      }
+      out.push({ t: 'str', v: source.slice(i, j + 1), value: unquote(source.slice(i, j + 1)), line });
       i = j + 1;
     } else if (c === "'") {
       const m = /^'(\\.|[^'])'/.exec(source.slice(i));
@@ -94,9 +119,12 @@ class SketchError extends Error {
 }
 
 // ── Translation ─────────────────────────────────────────────────────────────────────
-export function translateSketch(source) {
+// strings: the list of quoted texts, shared with a #define's value (translateSketchExpression).
+export function translateSketch(source, { strings = [] } = {}) {
   const issues = [];
-  const tokens = tokenize(String(source ?? ''), issues);
+  const text = String(source ?? '');
+  if (text.length > LIMITS.sketchChars) return { js: null, issues: [{ code: 'SIM_PROGRAM_TOO_LARGE', line: 1, size: text.length, limit: LIMITS.sketchChars }] };
+  const tokens = tokenize(text, issues);
   let pos = 0;
   const peek = (k = 0) => tokens[pos + k];
   const is = (v, k = 0) => peek(k)?.v === v && peek(k)?.t !== 'str';
@@ -147,25 +175,32 @@ export function translateSketch(source) {
     return integer;
   }
 
-  // An expression up to (not including) one of the stop tokens at depth 0, as JavaScript. A
-  // division whose two sides are integers stays integer, as in C: a * b / c → __int((a * b) / c).
+  // An expression up to (not including) one of the stop tokens, as JavaScript. A division whose
+  // two sides are integers stays integer, as in C: a * b / c → __int((a * b) / c).
   function expression(stops) {
     const parts = [];
     const ints = []; // per part: an integer term, or null for an operator
-    let depth = 0;
+    let value = true; // whether a value comes next (and not an operator)
     while (pos < tokens.length) {
       const t = peek();
-      if (depth === 0 && t.t === 'p' && stops.includes(t.v)) break;
-      // A "(" is taken whole by term() (a group, a call, a cast); brackets and braces are counted.
-      if (t.t === 'p' && ['[', '{'].includes(t.v)) depth++;
-      if (t.t === 'p' && [')', ']', '}'].includes(t.v)) {
-        if (depth === 0) break;
-        depth--;
+      if (t.t === 'p' && (stops.includes(t.v) || [')', ']', '}'].includes(t.v))) break;
+      // An index belongs to the value before it: a[i] / 2 divides the element.
+      if (t.t === 'p' && t.v === '[' && parts.length && !value) {
+        pos++;
+        const index = expression([']']);
+        expect(']');
+        parts[parts.length - 1] += `[__idx(${index})]`;
+        continue;
       }
-      const isOp = t.t === 'p' && !['(', '[', '{'].includes(t.v);
+      // Where a value goes, a "/" would start a regular expression in JavaScript.
+      if (value && t.t === 'p' && (t.v === '/' || t.v === '/=')) fail(t.v);
+      const isOp = t.t === 'p' && t.v !== '(';
       termInt = false;
       parts.push(term());
       ints.push(isOp ? null : termInt);
+      // After a value an operator comes, except after x++ / x--; after an operator, a value.
+      if (!isOp) value = false;
+      else if (!(['++', '--'].includes(t.v) && !value)) value = true;
     }
     for (let i = 1; i + 1 < parts.length; i++) {
       if (parts[i] !== '/' || ints[i] !== null) continue;
@@ -198,12 +233,20 @@ export function translateSketch(source) {
         return integer ? `__int(${operand})` : `(${operand})`;
       }
     }
-    // A method of an object the runtime gives (Serial.println): called as it is.
-    if (t.t === 'id' && peek(1)?.v === '(' && tokens[pos - 1]?.v === '.' && tokens[pos - 1]?.t === 'p') {
-      pos += 2;
+    // Serial.println(…): the one object with methods. Any other "." is refused.
+    if (t.t === 'id' && t.v === 'Serial' && is('.', 1)) {
+      const method = peek(2);
+      if (method?.t !== 'id' || !is('(', 3)) throw new SketchError(t.line, '.');
+      pos += 4;
       const args = expression([')']);
       expect(')');
-      return `${t.v}(${args})`;
+      if (SERIAL_METHODS.has(method.v)) return `Serial.${method.v}(${args})`;
+      const name = `Serial.${method.v}`;
+      if (!missing.has(name)) {
+        missing.add(name);
+        issues.push({ code: 'SIM_PROGRAM_UNSUPPORTED', line: t.line, name });
+      }
+      return `__missing(${JSON.stringify(name)}, ${args || 'undefined'})`;
     }
     if (t.t === 'id' && peek(1)?.v === '(') {
       const name = t.v;
@@ -213,7 +256,7 @@ export function translateSketch(source) {
       termInt = intFunctions.has(name) || INT_API.has(name);
       if (name === 'delay') return `(yield ((${args}) / 1e3))`;
       if (name === 'delayMicroseconds') return `(yield ((${args}) / 1e6))`;
-      if (functions.has(name)) return `(yield* ${name}(${args}))`;
+      if (functions.has(name)) return `(yield* ${own(name)}(${args}))`;
       if (SKETCH_API.includes(name)) return `${name}(${args})`;
       if (TYPES.has(name)) return INTEGER.has(name) ? `__int(${args})` : `(${args})`; // int(x), float(x)
       if (!missing.has(name)) {
@@ -230,12 +273,13 @@ export function translateSketch(source) {
       return `(${inner})`;
     }
     pos++;
+    if (t.t === 'str') return `__str[${strings.push(t.value) - 1}]`;
     if (t.t === 'num') termInt = /^(\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/.test(t.v);
     if (t.t === 'id') termInt = typeOf(t.v) === 'int' || ['HIGH', 'LOW', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'].includes(t.v) || defines.has(t.v);
     if (t.t === 'id' && t.v === 'NULL') return '0';
     if (t.t === 'id' && (t.v === 'sizeof' || t.v === 'new' || t.v === 'delete')) throw new SketchError(t.line, t.v);
-    if (t.t === 'p' && (t.v === '->' || t.v === '::')) throw new SketchError(t.line, t.v);
-    if (t.t === 'id' && t.v === 'Serial' && peek()?.v === '.') return 'Serial';
+    if (t.t === 'p' && ['->', '::', '.', '[', '{'].includes(t.v)) throw new SketchError(t.line, t.v);
+    if (t.t === 'id') return RAW_NAMES.has(t.v) ? t.v : own(t.v);
     return t.v;
   }
 
@@ -243,7 +287,7 @@ export function translateSketch(source) {
   function assignment(stops) {
     const start = pos;
     if (peek()?.t === 'id' && peek(1)?.t === 'p' && ASSIGN.has(peek(1).v) && typeOf(peek().v) === 'int') {
-      const name = tokens[pos++].v;
+      const name = own(tokens[pos++].v);
       const op = tokens[pos++].v;
       const value = expression(stops);
       if (op === '=' ) return `${name} = __int(${value})`;
@@ -269,7 +313,7 @@ export function translateSketch(source) {
         expect(']');
         array = true;
       }
-      let value = array ? `new Array(${size ?? 0}).fill(0)` : '0';
+      let value = array ? `__array(${size ?? 0})` : '0';
       if (is('=')) {
         pos++;
         if (is('{')) {
@@ -287,7 +331,7 @@ export function translateSketch(source) {
           value = integer && !array ? `__int(${v})` : v;
         }
       }
-      out.push(`${name} = ${value}`);
+      out.push(`${own(name)} = ${value}`);
       if (is(',')) {
         pos++;
         continue;
@@ -430,8 +474,8 @@ export function translateSketch(source) {
         const include = /^#\s*include\s*[<"]([^>"]+)[>"]/.exec(t.v);
         if (define && define[2]) issues.push({ code: 'SIM_PROGRAM_ERROR', line: t.line, message: `#define ${define[1]}(…)` });
         else if (define) {
-          const inner = translateSketchExpression(define[3] || '1', t.line, issues);
-          out.push(`const ${define[1]} = ${inner};`);
+          const inner = translateSketchExpression(define[3] || '1', t.line, issues, strings);
+          out.push(`const ${own(define[1])} = ${inner};`);
           defined.push(define[1]);
           if (/^-?\d+$/.test(define[3].trim())) defines.add(define[1]);
         } else if (include && !/^Arduino\.h$/i.test(include[1])) issues.push({ code: 'SIM_PROGRAM_LIBRARY', line: t.line, name: include[1] });
@@ -452,9 +496,10 @@ export function translateSketch(source) {
           }
           const isInt = readType();
           while (is('&') || is('*')) pos++;
+          if (peek()?.t !== 'id') fail('name');
           const p = tokens[pos++].v;
           scopes[scopes.length - 1].set(p, isInt ? 'int' : 'num');
-          params.push(p);
+          params.push(own(p));
           if (is(',')) pos++;
         }
         expect(')');
@@ -464,7 +509,7 @@ export function translateSketch(source) {
           scopes.pop();
           continue;
         }
-        out.push(`function* ${name}(${params.join(', ')}) ${block()}`);
+        out.push(`function* ${own(name)}(${params.join(', ')}) ${block()}`);
         scopes.pop();
       } else {
         const decl = declarators(integer, 'let', [';']);
@@ -478,17 +523,17 @@ export function translateSketch(source) {
     return { js: null, issues };
   }
   if (!functions.has('setup') || !functions.has('loop')) issues.push({ code: 'SIM_PROGRAM_NO_LOOP', line: 1 });
-  const prelude = `const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__missing'].join(', ')} } = api;`;
-  const js = `${prelude}\n${out.join('\n')}\nreturn { setup: typeof setup === 'function' ? setup : function* () {}, loop: typeof loop === 'function' ? loop : function* () {} };`;
+  const prelude = `const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__missing', '__idx', '__array'].join(', ')} } = api;\nconst __str = ${JSON.stringify(strings)};`;
+  const js = `${prelude}\n${out.join('\n')}\nreturn { setup: typeof $setup === 'function' ? $setup : function* () {}, loop: typeof $loop === 'function' ? $loop : function* () {} };`;
   return { js: issues.some((i) => i.code === 'SIM_PROGRAM_ERROR') ? null : js, issues };
 }
 
 // The value of a #define: an expression on its own.
-function translateSketchExpression(text, line, issues) {
-  const r = translateSketch(`float __v = ${text};`);
+function translateSketchExpression(text, line, issues, strings) {
+  const r = translateSketch(`float __v = ${text};`, { strings });
   if (!r.js) {
     issues.push({ code: 'SIM_PROGRAM_ERROR', line, message: text });
     return '0';
   }
-  return /let __v = (.*);/.exec(r.js)?.[1] ?? '0';
+  return /^let \$__v = (.*);$/m.exec(r.js)?.[1] ?? '0';
 }

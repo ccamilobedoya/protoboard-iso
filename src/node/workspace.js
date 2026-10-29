@@ -16,7 +16,8 @@ import { applyOps, CIRCUIT_FIELDS } from '../ops.js';
 import { evaluate, diffEvaluations } from '../diff.js';
 import { renderCircuit, inspectCircuit } from '../index.js';
 import { renderPage } from '../page.js';
-import { pickLanguage } from '../i18n/index.js';
+import { pickLanguage, t } from '../i18n/index.js';
+import { circuitTooLarge, fileTooLarge } from '../limits.js';
 import { CIRCUIT_FOLDER } from '../sim/compile.js';
 
 const error = (code, params) => ({ severity: 'error', code, params });
@@ -30,8 +31,11 @@ export function resolveTarget(target) {
 }
 
 // The circuit, with the folder it lives in kept beside it (not saved: a symbol), so a board's
-// program file ("program": "blink.ino") is read from there when it is simulated.
+// program file ("program": "blink.ino") is read from there when it is simulated. A file over
+// the size cap is not read at all (src/limits.js).
 export function loadCircuit(paths) {
+  const large = fileTooLarge(statSync(paths.circuitFile).size);
+  if (large) throw Object.assign(new Error(t('en', `check.${large.code}`, large.params)), { issue: large });
   return withFolder(JSON.parse(readFileSync(paths.circuitFile, 'utf8')), paths);
 }
 const withFolder = (circuit, paths) => Object.defineProperty(circuit, CIRCUIT_FOLDER, { value: dirname(paths.circuitFile), enumerable: false, configurable: true });
@@ -112,6 +116,8 @@ export function createTarget(target, circuit, { author = 'unknown', note = 'crea
   if (existsSync(join(target, 'circuit.json')) || (existsSync(target) && !statSync(target).isDirectory())) {
     return { applied: false, errors: [error('TARGET_EXISTS', { target })] };
   }
+  const large = circuitTooLarge(circuit);
+  if (large) return { applied: false, errors: [large] };
   mkdirSync(target, { recursive: true });
   const paths = resolveTarget(target);
   const saved = { version: 1, ...circuit, revision: 0 };

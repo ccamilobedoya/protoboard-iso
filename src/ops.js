@@ -14,6 +14,7 @@
 // editor all share it.
 
 import { COMMON_FIELDS, TYPE_FIELDS } from './parts/fields.js';
+import { opsTooMany, circuitTooLarge } from './limits.js';
 export const OP_NAMES = ['add', 'remove', 'move', 'set', 'rename', 'circuit'];
 export const CIRCUIT_FIELDS = ['title', 'lang', 'board', 'view', 'clearance', 'netLabels', 'supplies', 'page', 'spec'];
 const FIXED_PART_FIELDS = ['id', 'pins', 'pin1']; // changed with `rename` and `move`
@@ -27,6 +28,8 @@ function fieldsOf(op, skip) {
 
 export function applyOps(circuit, ops) {
   if (!Array.isArray(ops) || !ops.length) return { circuit, inverse: [], errors: [error('OP_BAD', { index: 0, op: '—', need: 'a non-empty list of operations' })] };
+  const many = opsTooMany(ops);
+  if (many) return { circuit, inverse: [], errors: [many] };
   const next = clone(circuit ?? {});
   next.parts ??= [];
   const inverse = [];
@@ -128,6 +131,8 @@ export function applyOps(circuit, ops) {
     }
   });
 
+  const large = errors.length ? null : circuitTooLarge(next);
+  if (large) errors.push(large);
   if (errors.length) return { circuit, inverse: [], errors };
   return { circuit: next, inverse, errors };
 }

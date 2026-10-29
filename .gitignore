@@ -5,3 +5,23 @@ examples/out/
 CLAUDE.local.md
 site/
 privacy.local.txt
+# Never committed (test/privacy/scan.js, NEVER_COMMIT checks it even past git add -f)
+.env
+.env.*
+!.env.example
+*.env
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+!*.pub
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.srl
+.netrc
+.pgpass
+credentials.json

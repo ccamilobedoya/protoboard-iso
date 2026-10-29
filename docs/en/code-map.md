@@ -54,6 +54,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `render/focus.js` | veil, metal strips, column and row tags (`coords`), spotlight copies (static focus) |
 | `render/coverage.js`, `inspect.js`, `annotate.js` | measuring the drawing; annotation layers |
 | `ops.js`, `diff.js`, `node/workspace.js` | operations with inverses, dry-run diff, history, undo, outputs; `relayoutTarget` (layout again as one revision) |
+| `limits.js` | size caps on external input (circuit bytes, parts, operations, program length) and their errors; checked by `ops.js`, `node/workspace.js`, `sim/compile.js` and `sim/sketch.js` (CLAUDE.md, "External input") |
 | `parts/resolve.js` | a part from what a person writes (`resolvePart`: part number, module, alias like KCD1 or resistencia; `closestNames` when unknown), `pinsOf`; aliases in `PART_ALIASES` |
 | `parts/pin-names.js` | a pin from what a person writes (`findPin`: exact name ignoring case, then synonyms like K/cathode, DISCH/DIS, VDD/VCC, then GPIO numbers on boards; nothing when not unique); used by circuits, `query`, `suggest` and `layout` |
 | `recipes/` | lesson circuits as layout specs, one data module each (`led-resistor.js`, `npn-switch.js`…); `index.js`: the registry, `expandRecipe` (name + values → spec, only the values each recipe lists), `resolveRecipe` (a layout request with `recipe` → spec, for the CLI and MCP), the catalog's entries ([recipes.md](recipes.md)) |
@@ -93,7 +94,12 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 - **Privacy.** The repository is public: no names, emails, private paths, hostnames, notes-app
   ids or the maintainer's own equipment in any tracked file. `test/privacy.test.js` checks tracked
   and new files with generic patterns and the personal words of an untracked `privacy.local.txt`
-  (CLAUDE.md, "Privacy").
+  (CLAUDE.md, "Privacy"), and names never committed; the scan is `test/privacy/scan.js` (names read
+  with `git ls-files -z`, text in NFC), proved by its cases in the test.
+- **External input.** A circuit, operations or a program may come from anyone: size caps in
+  `limits.js`, a program file only from the circuit's folder, nothing from the input run as code
+  (a sketch only through `sim/sketch.js`, whose output names nothing but the runtime), every text
+  escaped. `test/attack.test.js` feeds hostile input (CLAUDE.md, "External input").
 - **Language.** `pickLanguage(asked, circuit.lang, default)`: an explicit `--lang` / MCP `lang`
   wins, then the circuit's `lang`, then the default (English, or `PROTOBOARD_LANG` in the MCP
   server). Files written after a change use the same rule (`outputLang` in `workspace.js`).
@@ -177,6 +183,10 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
   not full screen) and `body.embedded`; embedded, touch goes through the touch events (one finger is
   left to the browser, two are handled), the plain wheel is not prevented. Check gesture changes in
   a real browser too (`scripts/ux-shots.js`, CDP touch emulation): jsdom does not scroll.
+- **Claude Code settings** (`.claude/settings.json`, shared): deny rules and a hook that keep tools
+  away from secrets, one list of secret names (`.claude/hooks/secret-paths.js`) for the hook and the
+  privacy test, and a reminder of uncommitted work when a turn ends. Personal settings live in
+  `.claude/settings.local.json`.
 - **The agents depend on the kit** (`.claude/agents/*.md`): change them with any tool, command,
   operation or format change; `npm run test:mcp` catches tools that no longer exist.
 
@@ -186,4 +196,4 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 Simulator models are checked against independent references in `test/sim.test.js` and
 `test/sources.test.js` (batteries, Zener, regulators, inductors, sensors), and against Falstad's CircuitJS in `test/falstad.test.js` (stored references, offline); page
 behaviour in `test/focus.test.js` and `test/page.test.js`; texts in `test/describe.test.js` and
-`test/i18n.test.js`; nothing private in the repository in `test/privacy.test.js`.
+`test/i18n.test.js`; nothing private in the repository in `test/privacy.test.js`; hostile input in `test/attack.test.js`; the Claude Code hooks and settings in `test/hooks.test.js`; the licences of the dependencies in `test/licenses.test.js`.

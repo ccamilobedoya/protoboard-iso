@@ -107,6 +107,11 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   than Arduino's is noted: `SIM_PROGRAM_LIBRARY`); a call to a function nobody defines returns 0
   (`SIM_PROGRAM_UNSUPPORTED`); a line it cannot read stops it (`SIM_PROGRAM_ERROR`, with the line);
   a missing file (`SIM_PROGRAM_FILE`).
+- **A program is external input** (CLAUDE.md, "External input"): its JavaScript names only what
+  the runtime gives (the sketch's own names get a `$`, `Serial.<method>` is the only member,
+  indexes are numbers, strings stay out of the code), arrays are capped at 100 000 elements, a
+  program longer than 65 536 characters is not read (`SIM_PROGRAM_TOO_LARGE`) and a `.ino` file
+  outside the circuit's folder is not read (`SIM_PROGRAM_OUTSIDE`). Tests: `test/attack.test.js`.
 - Tests: `test/program.test.js` (the translator, blink against time, a button read by the program
   through the engine's steps and a rebuild, the `.ino` file).
 
