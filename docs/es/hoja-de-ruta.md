@@ -317,7 +317,7 @@ después de revisar licencias y datos privados.
 **F · Lanzamiento**
 - ⬜ Release publicada, demostración en línea, un anuncio corto con el GIF
 
-## Herramientas del repositorio ⬜
+## Herramientas del repositorio ✅
 
 Comprobaciones y protecciones del propio repositorio, no de los circuitos. Planeadas el 2026-10-29
 tras una revisión de solo lectura en `11d6de2`, en el orden en que rinden: primero la seguridad,
@@ -358,13 +358,13 @@ las decisiones en el registro de `PLANNING.md`.
 - ✅ `CLAUDE.local.md.example` y ningún archivo privado en los agentes (N02): agregar el ejemplo (300 palabras como máximo: qué va en el archivo privado) y cambiar en los tres agentes «lee `CLAUDE.local.md` para la ruta» por una pista genérica (Node instalado con un gestor de versiones puede no estar en el `PATH`). Hoy: no hay ejemplo, y los tres agentes remiten al archivo privado — hecho el 2026-10-29: el ejemplo (228 palabras), citado desde `CLAUDE.md`; lo de los agentes, con A02
 - ✅ Presupuesto del contexto de arranque (N08): una prueba que suma `CLAUDE.md`, los agentes y `.mcp.json` contra `context_kb` de `project.json`, y una forma de leer el contexto real de arranque en la línea de estado. Hoy: nada lo mide — hecho el 2026-10-29: `scripts/context-size.js` (hoy 44,0 KB, `context_kb` 48), la cifra real con `/context` en una sesión
 
-**E · Consumo**
-- ⬜ Registro de consumo (B01): un hook `Stop` y `SubagentStop` (`scripts/hooks/usage.js`) que suma tokens, costo, llamadas y aciertos de caché en un `.claude/state/usage.jsonl` ignorado por git. Hoy: no queda registro de lo que cuesta el trabajo de circuitos, así que «el trabajo de circuitos debe correr en un modelo pequeño» no se puede comprobar
+**E · Consumo** ✅ (2026-10-29)
+- ✅ Registro de consumo (B01): un hook `Stop` y `SubagentStop` (`scripts/hooks/usage.js`) que suma tokens, costo, llamadas y aciertos de caché en un `.claude/state/usage.jsonl` ignorado por git. Hoy: no queda registro de lo que cuesta el trabajo de circuitos, así que «el trabajo de circuitos debe correr en un modelo pequeño» no se puede comprobar — hecho el 2026-10-29: `.claude/hooks/usage.js` en Stop y SubagentStop (tokens, llamadas, herramientas, aciertos de caché; el costo queda vacío: las transcripciones no lo traen, el banco de agentes sí), `--summary`
 
-**F · Proceso y documentos**
-- ⬜ Prueba de paridad inglés–español (I01): cada documento de `docs/en/` tiene su copia en `docs/es/` (y `README`, `ROADMAP`, `PLANNING`, `examples/README`), con los mismos títulos y bloques de código; cada par se declara una vez. Hoy: 22 pares mantenidos a mano, nada los comprueba
-- ⬜ Estado por decisión (N09): cada entrada del registro de decisiones de `PLANNING.md` (y `planeacion.md`) lleva un estado, y una reemplazada dice «reemplazada por N»; una prueba lo comprueba. Hoy: las entradas no tienen estado, y quien lee no sabe cuáles siguen en pie
-- ⬜ Índice de los documentos (N18): `docs/en/README.md` y `docs/es/README.md` con un bloque generado, una línea por documento (título y para qué sirve), y un paso de `npm run verify` que falla cuando queda viejo. Hoy: el README y el mapa del código enlazan documentos, pero nada los lista todos
+**F · Proceso y documentos** ✅ (2026-10-29)
+- ✅ Prueba de paridad inglés–español (I01): cada documento de `docs/en/` tiene su copia en `docs/es/` (y `README`, `ROADMAP`, `PLANNING`, `examples/README`), con los mismos títulos y bloques de código; cada par se declara una vez. Hoy: 22 pares mantenidos a mano, nada los comprueba — hecho el 2026-10-29: `test/parity.test.js`, los pares por sus enlaces de idioma; encontró cuatro decisiones que faltaban en el registro en español (agregadas) y una oración que faltaba en el formato del circuito en inglés (agregada)
+- ✅ Estado por decisión (N09): cada entrada del registro de decisiones de `PLANNING.md` (y `planeacion.md`) lleva un estado, y una reemplazada dice «reemplazada por N»; una prueba lo comprueba. Hoy: las entradas no tienen estado, y quien lee no sabe cuáles siguen en pie — hecho el 2026-10-29: una columna de estado en los dos registros (76 vigentes, 5 reemplazadas del todo o en parte), `test/decisions.test.js`
+- ✅ Índice de los documentos (N18): `docs/en/README.md` y `docs/es/README.md` con un bloque generado, una línea por documento (título y para qué sirve), y un paso de `npm run verify` que falla cuando queda viejo. Hoy: el README y el mapa del código enlazan documentos, pero nada los lista todos — hecho el 2026-10-29: `docs/en/README.md`, `docs/es/README.md`, `scripts/docs-index.js`; la comprobación vive en `test/docs.test.js` (parte de `npm test`, y así de `npm run verify`)
 
 ## Opcional, más adelante ⬜
 

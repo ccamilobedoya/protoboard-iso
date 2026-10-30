@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { refusal } from '../.claude/hooks/guard-secrets.js';
 import { secretPath, SECRET_NAMES } from '../.claude/hooks/secret-paths.js';
+import { usageOf, latest } from '../.claude/hooks/usage.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const hook = (file, input, env = {}) => execFileSync(process.execPath, [join(root, '.claude/hooks', file)], { input: JSON.stringify(input), encoding: 'utf8', env: { ...process.env, ...env } });
@@ -92,4 +93,26 @@ test('settings: valid, wiring hooks that exist, denying every kind of secret for
   for (const p of paths('Read')) assert.ok(secretPath(sample(p)), p);
   for (const [what] of SECRET_NAMES) assert.ok(paths('Read').some((p) => secretPath(sample(p)) === what), what);
   assert.ok(settings.hooks.PreToolUse.some((g) => ['Read', 'Edit', 'Write', 'Bash', 'Grep', 'Glob'].every((tool) => new RegExp(`^(?:${g.matcher})$`).test(tool))), 'the guard sees every file tool and Bash');
+});
+
+
+test('usage: a transcript summed once per response, with tools and the cache hit rate', () => {
+  const msg = (id, usage, content = []) => JSON.stringify({ type: 'assistant', message: { id, model: 'claude-x', usage, content } });
+  const u = { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 70, cache_creation_input_tokens: 20 };
+  const jsonl = [msg('m1', u, [{ type: 'text' }]), msg('m1', u, [{ type: 'tool_use', id: 't1' }]), msg('m2', u, [{ type: 'tool_use', id: 't2' }]), '{"type":"user"}', 'not json'].join('\n');
+  assert.deepEqual(usageOf(jsonl), { calls: 2, tools: 2, input: 20, output: 10, cacheRead: 140, cacheWrite: 40, cacheHit: 0.7, models: ['claude-x'], cost: null });
+  assert.deepEqual(latest([{ session: 'a', n: 1 }, { session: 'a', n: 2 }, { session: 'a', agent: 'circuit-layout', n: 3 }]).map((l) => l.n), [2, 3]);
+});
+
+test('usage: as a hook it appends one line under .claude/state and prints nothing', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pbi-usage-'));
+  const transcript = join(dir, 't.jsonl');
+  writeFileSync(transcript, JSON.stringify({ type: 'assistant', message: { id: 'm1', model: 'claude-x', usage: { input_tokens: 1, output_tokens: 2 }, content: [] } }));
+  const input = { hook_event_name: 'SubagentStop', session_id: 's', agent_type: 'circuit-layout', agent_transcript_path: transcript };
+  assert.equal(hook('usage.js', input, { CLAUDE_PROJECT_DIR: dir }), '');
+  assert.equal(hook('usage.js', { hook_event_name: 'Stop', transcript_path: join(dir, 'missing.jsonl') }, { CLAUDE_PROJECT_DIR: dir }), '', 'no transcript: nothing, no error');
+  const lines = readFileSync(join(dir, '.claude/state/usage.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0].agent, 'circuit-layout');
+  assert.equal(lines[0].output, 2);
 });

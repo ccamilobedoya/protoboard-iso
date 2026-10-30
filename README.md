@@ -136,6 +136,8 @@ const { svg, issues } = renderCircuit(circuit, { view: 'front', lang: 'en' });
 
 ## Documentation
 
+Every document with what it is for: [docs/en/README.md](docs/en/README.md).
+
 **Using the kit**
 
 | | English | Español |

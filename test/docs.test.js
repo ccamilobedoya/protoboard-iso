@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
+import { FOLDERS, indexOf } from '../scripts/docs-index.js';
 
 const root = new URL('../', import.meta.url).pathname;
 
@@ -84,4 +85,18 @@ test('docs: every code block names its language, and no blank line is doubled', 
     if (open) found.push(`${file}: a code block never closed`);
   }
   assert.deepEqual(found, []);
+});
+
+// The index of each docs folder is written from the documents (scripts/docs-index.js).
+
+test('docs: the index of each folder is current, one line per document', () => {
+  for (const folder of FOLDERS) {
+    const readme = readFileSync(join(root, folder, 'README.md'), 'utf8');
+    const index = indexOf(folder);
+    assert.ok(readme.includes(index), `${folder}/README.md is stale: npm run docs-index -- --write`);
+    const lines = index.split('\n').filter((l) => l.startsWith('- ['));
+    for (const l of lines) assert.match(l, /^- \[[^\]]+\]\([^)]+\.md\): \S.{10,}/, l);
+    const docs = execFileSync('git', ['ls-files', '-co', '--exclude-standard', `${folder}/*.md`], { cwd: root, encoding: 'utf8' }).split('\n').filter((f) => f && !f.endsWith('/README.md'));
+    assert.equal(lines.length, docs.length, `${folder}: every document listed`);
+  }
 });

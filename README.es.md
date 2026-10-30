@@ -139,6 +139,8 @@ const { svg, issues } = renderCircuit(circuit, { view: 'front', lang: 'es' });
 
 ## Documentación
 
+Cada documento con para qué sirve: [docs/es/README.md](docs/es/README.md).
+
 **Usar el kit**
 
 | | Español | English |

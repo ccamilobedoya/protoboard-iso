@@ -314,7 +314,7 @@ package. Planned on 2026-10-26 after a review of licences and private data.
 **F · Launch**
 - ⬜ Release published, demo online, a short announcement with the GIF
 
-## Repository tooling ⬜
+## Repository tooling ✅
 
 Checks and guards for the repository itself, not for the circuits. Planned on 2026-10-29 after a
 read-only check at `11d6de2`, in the order they pay off: security first, then false greens, CI,
@@ -354,13 +354,13 @@ in the log of `PLANNING.md`.
 - ✅ `CLAUDE.local.md.example` and no private file in the agents (N02): add the example (300 words at most: what goes in the private file), and replace "read `CLAUDE.local.md` for the path" in the three agents with a generic hint (Node from a version manager may not be on `PATH`). Today: no example, and the three agents point to the private file — done 2026-10-29: the example (228 words), pointed at from `CLAUDE.md`; the agents part with A02
 - ✅ Startup context budget (N08): a test that sums `CLAUDE.md`, the agents and `.mcp.json` against `context_kb` in `project.json`, and a way to read the real startup context from the status line. Today: nothing measures it — done 2026-10-29: `scripts/context-size.js` (44.0 KB today, `context_kb` 48), the real figure with `/context` in a session
 
-**E · Usage**
-- ⬜ Usage log (B01): a `Stop` and `SubagentStop` hook (`scripts/hooks/usage.js`) that adds tokens, cost, calls and cache hit rate to an ignored `.claude/state/usage.jsonl`. Today: no record of what circuit work costs, so "circuit work should run on a small model" cannot be checked
+**E · Usage** ✅ (2026-10-29)
+- ✅ Usage log (B01): a `Stop` and `SubagentStop` hook (`scripts/hooks/usage.js`) that adds tokens, cost, calls and cache hit rate to an ignored `.claude/state/usage.jsonl`. Today: no record of what circuit work costs, so "circuit work should run on a small model" cannot be checked — done 2026-10-29: `.claude/hooks/usage.js` on Stop and SubagentStop (tokens, calls, tools, cache hit rate; cost stays null: transcripts carry no cost, the agent bench has it), `--summary`
 
-**F · Process and documents**
-- ⬜ English–Spanish parity test (I01): every document in `docs/en/` has its copy in `docs/es/` (and `README`, `ROADMAP`, `PLANNING`, `examples/README`), with the same headings and code blocks; each pair declared once. Today: 22 pairs kept by hand, nothing checks them
-- ⬜ Status per decision (N09): every entry of the decision log in `PLANNING.md` (and `planeacion.md`) gets a status, and a replaced one says «replaced by N»; a test checks it. Today: entries have no status, so a reader cannot tell which ones still hold
-- ⬜ Index of the documents (N18): `docs/en/README.md` and `docs/es/README.md` with a generated block, one line per document (title and what it is for), and a step in `npm run verify` that fails when it is stale. Today: the README and the code map link documents, but nothing lists them all
+**F · Process and documents** ✅ (2026-10-29)
+- ✅ English–Spanish parity test (I01): every document in `docs/en/` has its copy in `docs/es/` (and `README`, `ROADMAP`, `PLANNING`, `examples/README`), with the same headings and code blocks; each pair declared once. Today: 22 pairs kept by hand, nothing checks them — done 2026-10-29: `test/parity.test.js`, pairs by their language links; it found four decisions missing from the Spanish log (added) and a sentence missing from the English circuit format (added)
+- ✅ Status per decision (N09): every entry of the decision log in `PLANNING.md` (and `planeacion.md`) gets a status, and a replaced one says «replaced by N»; a test checks it. Today: entries have no status, so a reader cannot tell which ones still hold — done 2026-10-29: a status column in both logs (76 in force, 5 replaced in whole or in part), `test/decisions.test.js`
+- ✅ Index of the documents (N18): `docs/en/README.md` and `docs/es/README.md` with a generated block, one line per document (title and what it is for), and a step in `npm run verify` that fails when it is stale. Today: the README and the code map link documents, but nothing lists them all — done 2026-10-29: `docs/en/README.md`, `docs/es/README.md`, `scripts/docs-index.js`; the check lives in `test/docs.test.js` (part of `npm test`, so of `npm run verify`)
 
 ## Optional, later ⬜
 

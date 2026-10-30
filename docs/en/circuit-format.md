@@ -2,6 +2,8 @@
 
 *[Español](../es/formato-circuito.md)*
 
+Keys are in English, so the format is the same in every language.
+
 ```json
 {
   "version": 1,

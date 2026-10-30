@@ -107,6 +107,8 @@ MCP tool that no longer exists.
    request; tick items when they are done.
 2. `PLANNING.md`: architecture, considerations, best practices, decision log. Do not
    reopen a logged decision without a new reason; add new decisions to the log.
+   Each decision has a status (`in force`, `replaced by <date> (<what>)`); a new decision that
+   replaces one marks the old one in both languages (`test/decisions.test.js`).
 3. `docs/en/live-simulation.md` when working on stage 3 (live simulation in the page): design,
    decisions and the plan by phases and sessions.
 4. `docs/en/architecture.md` when touching geometry or rendering;
@@ -122,6 +124,8 @@ npm run lint · npm run knip · npm run dupes · npm run coverage   # Biome, unu
 node scripts/github-ruleset.js [--apply]   # the owner, once: protect main (CI required), secret scanning
 node scripts/agent-bench.js [--run]        # the agents on three fixed briefs (--run spends tokens), compared with the last run
 npm run options [-- --write] · npm run context-size   # project.json's options block in CLAUDE.md; what a session loads at start
+npm run docs-index [-- --write]   # docs/en/README.md and docs/es/README.md, written from the documents
+node .claude/hooks/usage.js --summary   # tokens, calls and cache hits per session and agent (.claude/state/usage.jsonl)
 npm run examples              # examples/*.json → examples/out/*.svg + index.html gallery
 npm run examples -- --lang es # same, Spanish messages and labels
 npm run preview [-- filter]   # examples/out/*.svg → examples/out/png/*.png (needs npm install)
@@ -198,7 +202,8 @@ src/nets.js      nets: groups joined by wires, with their pins
 src/review.js    verdict from measurements, profiles lesson/draft
 src/recipes/     lesson circuits by name for layout (one data module each; index.js expands them)
 .claude/agents/  circuit-layout, circuit-reviewer, parts-librarian
-.claude/hooks/   Claude Code hooks wired in .claude/settings.json (secrets guard, uncommitted reminder)
+.claude/hooks/   Claude Code hooks wired in .claude/settings.json (secrets guard, uncommitted reminder,
+                 usage log)
 src/schema.js    JSON Schemas (written to schema/ by npm run schemas)
 src/node/        Node-only: workspace.js (targets, history, undo, create, outputs), raster.js (PNG),
                  bundle.js (ES modules → one script for the page)
