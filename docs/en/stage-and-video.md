@@ -296,6 +296,106 @@ written as a complete brief (files, exact values, tests) so a medium model can e
 
 ## Verification
 
+## Session briefs
+
+One brief per phase, short on purpose: enough to keep the order and the decisions, not the step
+list (that is written by the session itself at its start, against the code as it is). Every
+session starts by reading this page, `CLAUDE.md` and the brief of its phase, checks the names
+below against the code (a previous phase may have chosen others), ends with `npm test` and
+`npm run verify` green, this page's *Status* and the roadmap (both languages) updated, a
+`STATUS:` line, and asks before committing (message in English). Phases are built in order.
+
+### V0 · Safety net
+
+- **Build:** Playwright as a dev dependency and Chromium (`npx playwright install chromium`);
+  `test/frames/` with one case per recipe (`npn-switch`, `rc-square`, `led-resistor`: viewport,
+  the `tick(ms, steps)` calls after loading `out/<name>.html`, the PNG's SHA-256); a script in
+  `scripts/` that renders and compares, `--write` to regenerate on purpose; a step of
+  `npm run verify` (0 pass, 1 fail, 2 could not run; without a browser SKIPPED, never a pass).
+- **Honour:** `scripts/ux-shots.js` stays; nothing visible changes.
+- **Done when:** two runs over the 3 recipes give identical hashes.
+
+### V1 · One clock
+
+- **Build:** `page/client/director.js` with `start` and `tick(ms)`; the camera interpolated by
+  the clock (`frameAt` in `view.js`, `frameTo` keeps `requestAnimationFrame` for the interactive
+  page); controls tweened per tick through `engine.set`; dots, glow and colours written per tick;
+  `?director=1`; jsdom tests driving `tick`.
+- **Honour:** `window.protoboardLive` keeps `tick`, `set`, `currents`, `recording`; pages without
+  `?director=1` do not change; no CSS filters.
+- **Done when:** any sequence replays from `tick(1000/30)` without reading the system clock, and
+  the V0 hashes are unchanged.
+
+### V2 · Timeline and player
+
+- **Build:** the JSON format of *The timeline* and its schema (`npm run schemas`); the seven moves
+  of *Rhythm* as tokens (curve and duration each) with the alternation rule checked by the schema;
+  the actions listed there, `insert` and `wait-until` included; `page.tour` (a file beside the
+  circuit, confined to its folder) and *See how it works* in the ⋯ menu, a tap stops it; caps in
+  `src/limits.js` and cases in `test/attack.test.js`; strings through `t()` in every `src/i18n`.
+- **Honour:** the tour is in the page from this phase (decision); captions are plain or per
+  language; nothing from the file runs as code.
+- **Done when:** `npn-switch` has a timeline and the page plays it the same on a phone and a
+  desktop (jsdom values at given times, plus the maintainer on a phone).
+
+### V3 · The drawing that tells
+
+- **Build, in this order:** (1) the current layer as a plan: `partPaths()` style `plan` in
+  `src/sim/paths.js`, a pad at every landing (the strip's hole dot grown), a line through two-pin
+  parts and along wires, a stub of one pitch per pin on the others, internal links a package
+  declares (the push button's pairs and bridge), the net's name printed beside a rail's pad
+  (`netLabels`), told parts at 50 % in the current layer, widths unchanged, `page.flow.style`
+  (`real` | `plan`, default `plan`), `render --flow` follows; (2) coordinates: the board's own
+  decals lit, unnumbered columns get the same decal, `coordOps`' pills removed; (3) result tags
+  at a fixed screen size and off their part; (4) the page at rest: short labels beside the parts,
+  the portrait frame computed with them, the MODEL badge into the bar, Labels and Current keep
+  their word on a phone, zoom buttons quiet; (5) a collinear-overlap check in `inspect`.
+- **Honour:** every item of *The drawing that tells*; the examples' images change on purpose
+  (`npm run verify -- --write-examples`, `scripts/readme-images.js`); the static SVG keeps its
+  colours.
+- **Done when:** `inspect` reports zero collisions of coordinates and tags with parts; the
+  maintainer approves the plan view and the page at rest on a phone.
+
+### V4 · The stage
+
+- **Build:** `[data-theme="stage"]` as *notebook at night* (slate ground, the engineering grid in
+  pale blue, chalk ink, the system serif for captions); the hole grid as `main`'s background in
+  every theme (the SVG's background rect transparent in the page); the caption layer with its
+  sizes as tokens (56 / 44 / 30 px at 1080 wide, 52 at 1920); director rules (one label, no tags);
+  the reserved margin in `fitFrame` (vertical: captions between 16 % and 40 %, horizontal: the
+  left half); safe bands (15 % top, 25 % bottom) measured in the screenshots.
+- **Honour:** the light bench theme stays the default of lessons; its dark mode is *bench at
+  night* with the grid; the system's typeface, no network.
+- **Done when:** the gallery's mock-ups come out of the real page with no extra CSS, at phone,
+  desktop, 1080 × 1920 and 1920 × 1080. Ask the maintainer for a real browser to run the
+  contrast and target gates.
+
+### V5 · Frames
+
+- **Build:** `scripts/render-frames.js` (Playwright, dev only): opens `out/<name>.html?director=1`,
+  loads the timeline, sets the viewport (both formats), calls `tick(1000/fps)` per frame, writes
+  `frames/NNNNNN.png` and `timeline.json` (captions with their times, values, moves); the ffmpeg
+  command in the guide, not run by the kit; a 45 s test video of three recipes.
+- **Honour:** two runs give identical frames (hashes); the runtime stays without dependencies.
+- **Done when:** the maintainer approves the video on a phone.
+
+### V6 · The chosen moves
+
+- **Build, one by one, each with a jsdom test and a golden frame:** M1 arrival, M2 push, M6 the
+  current starts, M8 the LED lights, M9 the value counts, M12 captions arrive, M14 closing, M15
+  insertion, M16 lift on tap; then M4, M5, M7, M10, M11; M3 and M13 only join the clock.
+- **Honour:** the moves table (durations, curves, purposes); transform and opacity only; reduced
+  motion keeps the final state.
+- **Done when:** each move appears in an example timeline and its golden frame is in the safety
+  net.
+
+### V7 · Bench and guide
+
+- **Build:** a timeline per recipe to be recorded; the frame golden in `npm run verify`; the guide
+  in English and Spanish (how to write a timeline, how to get the video, the ffmpeg command); the
+  roadmap ticked; the code map; the agents' files if a tool or command changed.
+- **Done when:** a medium model makes a new video of a recipe with the guide alone.
+
 - `npm test` in every phase; `test/live.test.js` and `test/sliders.test.js` stay green.
 - Determinism: the frame golden (hashes) in `npm run verify`; a change of the drawing regenerates it
   on purpose (`--write`), never by accident.

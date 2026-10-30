@@ -313,6 +313,116 @@ modelo mediano la ejecute solo.
 
 ## Verificación
 
+## Encargos por sesión
+
+Un encargo por fase, corto a propósito: lo justo para no perder el orden ni las decisiones, no la
+lista de pasos (esa la escribe la propia sesión al empezar, contra el código tal como está). Cada
+sesión empieza leyendo esta página, `CLAUDE.md` y el encargo de su fase, comprueba los nombres de
+abajo contra el código (una fase anterior pudo elegir otros), termina con `npm test` y
+`npm run verify` en verde, el *Estado* de esta página y la hoja de ruta (los dos idiomas) al día,
+una línea `STATUS:`, y pregunta antes de hacer commit (mensaje en inglés). Las fases se
+construyen en orden.
+
+### V0 · Red de seguridad
+
+- **Construir:** Playwright como dependencia de desarrollo y Chromium (`npx playwright install
+  chromium`); `test/frames/` con un caso por receta (`npn-switch`, `rc-square`, `led-resistor`:
+  tamaño de ventana, las llamadas a `tick(ms, steps)` tras cargar `out/<nombre>.html`, el SHA-256
+  del PNG); un script en `scripts/` que dibuja y compara, `--write` para regenerar a propósito; un
+  paso de `npm run verify` (0 pasa, 1 falla, 2 no pudo correr; sin navegador SKIPPED, nunca pasa).
+- **Respetar:** `scripts/ux-shots.js` se queda; nada visible cambia.
+- **Terminada cuando:** dos corridas sobre las 3 recetas dan hashes idénticos.
+
+### V1 · Un reloj
+
+- **Construir:** `page/client/director.js` con `start` y `tick(ms)`; la cámara interpolada por el
+  reloj (`frameAt` en `view.js`, `frameTo` conserva `requestAnimationFrame` para la página
+  interactiva); controles interpolados por tick con `engine.set`; puntos, halo y colores escritos
+  por tick; `?director=1`; pruebas en jsdom que manejan `tick`.
+- **Respetar:** `window.protoboardLive` conserva `tick`, `set`, `currents`, `recording`; las
+  páginas sin `?director=1` no cambian; sin filtros CSS.
+- **Terminada cuando:** cualquier secuencia se reproduce con `tick(1000/30)` sin leer el reloj del
+  sistema, y los hashes de V0 no cambian.
+
+### V2 · Línea de tiempo y reproductor
+
+- **Construir:** el formato JSON de *La línea de tiempo* y su esquema (`npm run schemas`); los
+  siete movimientos de *Ritmo* como tokens (curva y duración cada uno) con la regla de alternancia
+  comprobada por el esquema; las acciones listadas allí, `insert` y `wait-until` incluidas;
+  `page.tour` (un archivo junto al circuito, confinado a su carpeta) y *Ver cómo funciona* en el
+  menú ⋯, un toque lo detiene; topes en `src/limits.js` y casos en `test/attack.test.js`; cadenas
+  por `t()` en todo `src/i18n`.
+- **Respetar:** el recorrido va en la página desde esta fase (decisión); los subtítulos son
+  planos o por idioma; nada del archivo corre como código.
+- **Terminada cuando:** `npn-switch` tiene su línea de tiempo y la página la reproduce igual en
+  celular y escritorio (valores en jsdom a tiempos dados, más el mantenedor en un celular).
+
+### V3 · El dibujo que cuenta
+
+- **Construir, en este orden:** (1) la capa de corriente en planta: estilo `plan` de
+  `partPaths()` en `src/sim/paths.js`, una pastilla en cada aterrizaje (el punto de agujero de la
+  tira, crecido), una recta a través de las piezas de dos patas y a lo largo de los cables, un
+  tramo corto de un paso por pata en las demás, los enlaces internos que declare un paquete (los
+  pares y el puente del pulsador), el nombre de la red impreso junto a la pastilla de un riel
+  (`netLabels`), las piezas contadas al 50 % en la capa de corriente, grosores sin cambio,
+  `page.flow.style` (`real` | `plan`, por defecto `plan`), `render --flow` lo sigue; (2)
+  coordenadas: los propios calcos de la tabla encendidos, las columnas sin número reciben el mismo
+  calco, las píldoras de `coordOps` fuera; (3) etiquetas de resultado a tamaño fijo de pantalla y
+  fuera de su pieza; (4) la página en reposo: rótulos cortos junto a las piezas, el encuadre
+  vertical calculado con ellos, la insignia MODEL a la barra, Rótulos y Corriente conservan su
+  palabra en el celular, botones de zoom callados; (5) una comprobación de superposiciones
+  colineales en `inspect`.
+- **Respetar:** cada punto de *El dibujo que cuenta*; las imágenes de los ejemplos cambian a
+  propósito (`npm run verify -- --write-examples`, `scripts/readme-images.js`); el SVG estático
+  conserva sus colores.
+- **Terminada cuando:** `inspect` reporta cero choques de coordenadas y etiquetas con piezas; el
+  mantenedor aprueba la vista en planta y la página en reposo en un celular.
+
+### V4 · La escena
+
+- **Construir:** `[data-theme="stage"]` como *cuaderno de noche* (fondo pizarra, la cuadrícula de
+  ingeniería en azul pálido, tinta tiza, la serifa del sistema para los subtítulos); la retícula de
+  agujeros como fondo de `main` en todos los temas (el rectángulo de fondo del SVG transparente en
+  la página); la capa de subtítulos con sus tamaños como tokens (56 / 44 / 30 px a 1080 de ancho,
+  52 a 1920); las reglas del director (un rótulo, sin etiquetas); el margen reservado en `fitFrame`
+  (vertical: subtítulos entre el 16 % y el 40 %, horizontal: la mitad izquierda); las franjas
+  seguras (15 % arriba, 25 % abajo) medidas en las capturas.
+- **Respetar:** el tema claro de banco sigue por defecto en las lecciones; su modo oscuro es
+  *banco de noche* con la retícula; la fuente del sistema, sin red.
+- **Terminada cuando:** las maquetas de la galería salen de la página real sin CSS extra, en
+  celular, escritorio, 1080 × 1920 y 1920 × 1080. Pedirle al mantenedor un navegador real para
+  correr las puertas de contraste y de tamaño de toque.
+
+### V5 · Fotogramas
+
+- **Construir:** `scripts/render-frames.js` (Playwright, solo desarrollo): abre
+  `out/<nombre>.html?director=1`, carga la línea de tiempo, fija el tamaño (los dos formatos),
+  llama `tick(1000/fps)` por fotograma, escribe `frames/NNNNNN.png` y `timeline.json` (subtítulos
+  con sus tiempos, valores, movimientos); el comando de ffmpeg en la guía, no lo corre el kit; un
+  video de prueba de 45 s con tres recetas.
+- **Respetar:** dos corridas dan fotogramas idénticos (hashes); el tiempo de ejecución sigue sin
+  dependencias.
+- **Terminada cuando:** el mantenedor aprueba el video en un celular.
+
+### V6 · Los movimientos elegidos
+
+- **Construir, uno por uno, cada uno con prueba en jsdom y fotograma golden:** M1 llegada, M2
+  empuje, M6 arranca la corriente, M8 el LED enciende, M9 el valor cuenta, M12 subtítulos que
+  llegan, M14 cierre, M15 inserción, M16 relieve al tocar; después M4, M5, M7, M10, M11; M3 y M13
+  solo se conectan al reloj.
+- **Respetar:** la tabla de movimientos (duraciones, curvas, propósitos); solo transform y
+  opacidad; el movimiento reducido conserva el estado final.
+- **Terminada cuando:** cada movimiento aparece en una línea de tiempo de ejemplo y su fotograma
+  golden está en la red de seguridad.
+
+### V7 · Banco y guía
+
+- **Construir:** una línea de tiempo por receta que se grabe; el golden de fotogramas en
+  `npm run verify`; la guía en inglés y español (cómo escribir una línea de tiempo, cómo sacar el
+  video, el comando de ffmpeg); la hoja de ruta marcada; el mapa del código; los archivos de los
+  agentes si cambió una herramienta o un comando.
+- **Terminada cuando:** un modelo mediano saca un video nuevo de una receta solo con la guía.
+
 - `npm test` en cada fase; `test/live.test.js` y `test/sliders.test.js` siguen en verde.
 - Determinismo: el *golden* de fotogramas (hashes) en `npm run verify`; un cambio del dibujo lo
   regenera a propósito (`--write`), nunca por accidente.
