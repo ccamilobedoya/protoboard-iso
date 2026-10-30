@@ -48,7 +48,10 @@ jobs:
       # agree, since the stored hashes come from the maintainer's fonts.
       - name: Install Chromium
         run: npx playwright install --with-deps chromium-headless-shell
+      # Outside the checkout: the privacy test scans new files, and the archive and the binary
+      # carry gitleaks' own sample secrets and paths.
       - name: Install gitleaks
+        working-directory: ${{ runner.temp }}
         run: |
           file="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           curl -sSfLO "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${file}"

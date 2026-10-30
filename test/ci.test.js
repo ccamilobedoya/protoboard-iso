@@ -20,6 +20,7 @@ test('ci: the whole verification on every push and pull request, with gitleaks p
   assert.match(ci, /fetch-depth: 0/, 'gitleaks reads the whole history');
   assert.match(ci, /GITLEAKS_SHA256: [0-9a-f]{64}/);
   assert.match(ci, /sha256sum -c -/);
+  assert.match(ci, /name: Install gitleaks\n\s+working-directory: \$\{\{ runner\.temp \}\}/, 'gitleaks downloaded outside the checkout, where the privacy test would scan it');
   assert.doesNotMatch(ci.replace(/^\s*#.*$/gm, ''), /privacy\.local/, 'the private word list never reaches the CI');
 });
 

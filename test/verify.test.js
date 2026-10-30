@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { examplesIssues, issueChanges, exitCode, STEPS } from '../scripts/verify.js';
+import { examplesIssues, issueChanges, exitCode, failureDetail, STEPS } from '../scripts/verify.js';
 
 const root = new URL('../', import.meta.url).pathname;
 
@@ -16,6 +16,16 @@ test('verify: 0 when all passed, 1 when one failed, 2 when one could not run', (
   assert.equal(exitCode([pass, skip]), 2, 'a step that did not run is not a pass');
   assert.equal(exitCode([skip, fail, pass]), 1, 'a failure wins');
   assert.equal(exitCode([]), 0);
+});
+
+test('verify: a failed step names its failing tests, not only the coverage table at the end', () => {
+  const table = Array.from({ length: 20 }, (_, i) => `file${i}.js | 90`);
+  const output = ['✔ ok', '✖ failing tests:', '', 'test at test/a.test.js:3:1', '✖ hooks are executable', "  AssertionError: pre-commit is executable", ...table].join('\n');
+  const detail = failureDetail(output);
+  assert.match(detail, /✖ hooks are executable/);
+  assert.match(detail, /AssertionError/);
+  assert.match(detail, /file19\.js/, 'and the last lines');
+  assert.equal(failureDetail('a\nb'), 'a\nb');
 });
 
 test('verify: the issues of each example, read from npm run examples and compared', () => {

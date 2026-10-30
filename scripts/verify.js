@@ -30,10 +30,21 @@ export function issueChanges(expected, found) {
   return names.filter((n) => expected[n] !== found[n]).map((n) => `${n}: ${expected[n] ?? 'none'} expected, ${found[n] ?? 'none'} now`);
 }
 
+// What a failed step shows: node:test's list of failing tests when there is one (the tail alone
+// is the coverage table, and on the CI the log is all there is), then the last lines.
+export function failureDetail(output) {
+  const lines = output.trim().split('\n');
+  const tail = lines.slice(-15);
+  const start = lines.findIndex((l) => /^✖ failing tests:/.test(l));
+  if (start < 0) return tail.join('\n');
+  const failing = lines.slice(start, start + 80).filter((l) => !tail.includes(l));
+  return [...failing, ...(lines.length - start > 80 ? ['…'] : []), ...tail].join('\n');
+}
+
 // Each step: run() → { status: 'pass' | 'fail' | 'skip', detail }.
 const command = (args, opts) => () => {
   const r = run(args, opts);
-  return r.status === 0 ? { status: 'pass' } : { status: 'fail', detail: `${r.stdout ?? ''}${r.stderr ?? ''}`.trim().split('\n').slice(-15).join('\n') };
+  return r.status === 0 ? { status: 'pass' } : { status: 'fail', detail: failureDetail(`${r.stdout ?? ''}${r.stderr ?? ''}`) };
 };
 const QUICK = ['test/privacy.test.js', 'test/licenses.test.js', 'test/hooks.test.js', 'test/attack.test.js'];
 // A development tool from node_modules/.bin (npm install), or a step that cannot run without it.
