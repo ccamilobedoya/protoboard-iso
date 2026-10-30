@@ -109,6 +109,7 @@ npm test                      # unit + rendering tests (node:test, no dependenci
 npm run verify [-- --quick]    # the whole verification below as one command: exit 0 pass, 1 fail, 2 a step could not run
 npm run setup                 # once per clone: git hooks (pre-commit: verify --quick; pre-push: verify)
 npm run lint · npm run knip · npm run dupes · npm run coverage   # Biome, unused code, copies, c8 thresholds
+node scripts/github-ruleset.js [--apply]   # the owner, once: protect main (CI required), secret scanning
 npm run examples              # examples/*.json → examples/out/*.svg + index.html gallery
 npm run examples -- --lang es # same, Spanish messages and labels
 npm run preview [-- filter]   # examples/out/*.svg → examples/out/png/*.png (needs npm install)
@@ -202,7 +203,9 @@ src/page/        page.js's browser side: client/ (script modules), style.js
 bin/             CLI
 scripts/         render-examples.js (+ gallery), preview.js (PNG), readme-images.js (docs/img),
                  demo-site.js (GitHub Pages, .github/workflows/pages.yml), verify.js (npm run verify),
-                 setup.js + hooks/ (git hooks), report-status.js (agents' STATUS line)
+                 setup.js + hooks/ (git hooks), report-status.js (agents' STATUS line),
+                 github-ruleset.js (main's ruleset, run by the owner)
+.github/         workflows/ci.yml (npm run verify on Node 22 and 24), pages.yml (demo), dependabot.yml
 examples/        circuits (README.md indexes them); out/ is generated and ignored by git
 docs/img/        README images, drawn by scripts/readme-images.js (live-page.png is a screenshot)
 test/            node:test suites

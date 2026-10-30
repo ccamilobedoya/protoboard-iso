@@ -45,7 +45,7 @@
     "dupes": "jscpd --config .jscpd.json"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "keywords": [
     "breadboard",

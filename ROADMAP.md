@@ -297,7 +297,7 @@ package. Planned on 2026-10-26 after a review of licences and private data.
 - ✅ `examples/README.md` (en/es): the three ways to describe a circuit (by hand, layout, recipe), the examples by theme with a thumbnail each, `common-mistakes.json` marked as wrong on purpose, how to add one
 
 **D · What a public project needs**
-- ⬜ CI on GitHub Actions: `npm test`, `npm run test:mcp`, `node scripts/golden.js`, `npm run examples`, `npm run layout-bench`, on Node 20, 22 and 24
+- ✅ CI on GitHub Actions: `npm test`, `npm run test:mcp`, `node scripts/golden.js`, `npm run examples`, `npm run layout-bench`, on Node 20, 22 and 24 — done as C01 of "Repository tooling" (2026-10-29): `npm run verify` on Node 22 and 24; the layout bench left out (it measures time)
 - ⬜ `CONTRIBUTING.md` (en/es), mostly how to add a part; `CODE_OF_CONDUCT.md`; `SECURITY.md`; `CHANGELOG.md`
 - ⬜ Issue templates: a new part, a wrong drawing, a wrong simulation
 - ⬜ Version 0.3.0, a git tag and a GitHub release; repository description, topics and social preview image
@@ -340,11 +340,11 @@ in the log of `PLANNING.md`.
 - ✅ Static agent test (A02): `test/agents.test.js` checks that each agent declares `model:` and that no agent sends the reader to a private file. Today: `npm run test:mcp` already fails when an agent names an MCP tool that does not exist or is not in its `tools:`, but `parts-librarian` has no `model:` and nothing catches it — done 2026-10-29: `test/agents.test.js`; `parts-librarian` got `model: sonnet`, and the three agents no longer send the reader to `CLAUDE.local.md` (half of N02)
 - ✅ One status line per agent report (A04): every report (`LAYOUT REPORT`, `REVIEW REPORT`, the librarian's) ends in one `STATUS:` line, like `layout` already does, with a validator in `scripts/report-status.js` used by the agent bench. Today: the reports have fixed formats but no single last line to read and nothing that checks them — done 2026-10-29: the three report formats end in `STATUS:`, `scripts/report-status.js` checks it against the report; agents.md (en/es)
 
-**C · CI and releases**
-- ⬜ CI (C01): `.github/workflows/ci.yml` runs `npm run verify` on push and pull request, with no `privacy.local.txt` (the privacy test must pass with the generic patterns alone) and with actions pinned by SHA. The same item as the CI of stage 6, D: do it once. Today: only `pages.yml`, which runs no tests
-- ⬜ `.github/dependabot.yml` (C02): npm for the root and for `mcp/`, and `github-actions`. Today: none
-- ⬜ Protecting `main` (C03): `scripts/github-ruleset.js` (through `gh api`) for the owner to run: a ruleset for `main` (CI required, no force push) and secret scanning with push protection. Today: nothing protects `main`
-- ⬜ `CHANGELOG.md`, version and tags (N11): a changelog from the version in `package.json`, a tag per stage or phase, `engines` that match what CI tests (root and `mcp/`). Shares the `CHANGELOG.md` and version 0.3.0 of stage 6, D. Today: no changelog, no tags, version 0.2.0 although the live page and the microcontrollers came after it
+**C · CI and releases** ✅ (2026-10-29)
+- ✅ CI (C01): `.github/workflows/ci.yml` runs `npm run verify` on push and pull request, with no `privacy.local.txt` (the privacy test must pass with the generic patterns alone) and with actions pinned by SHA. The same item as the CI of stage 6, D: do it once. Today: only `pages.yml`, which runs no tests — done 2026-10-29: Node 22 and 24 (Node 20 is out of support; `engines` raised to 22), gitleaks at 8.30.1 by checksum, the demo's actions pinned too; `test/ci.test.js`
+- ✅ `.github/dependabot.yml` (C02): npm for the root and for `mcp/`, and `github-actions`. Today: none — done 2026-10-29: weekly, minor and patch grouped per ecosystem
+- ✅ Protecting `main` (C03): `scripts/github-ruleset.js` (through `gh api`) for the owner to run: a ruleset for `main` (CI required, no force push) and secret scanning with push protection. Today: nothing protects `main` — done 2026-10-29: `scripts/github-ruleset.js` (shows the plan; `--apply` does it); admins may bypass, since the maintainer pushes to main; ⬜ the owner runs it with `--apply`
+- ✅ `CHANGELOG.md`, version and tags (N11): a changelog from the version in `package.json`, a tag per stage or phase, `engines` that match what CI tests (root and `mcp/`). Shares the `CHANGELOG.md` and version 0.3.0 of stage 6, D. Today: no changelog, no tags, version 0.2.0 although the live page and the microcontrollers came after it — done 2026-10-29: `CHANGELOG.md` (0.1.0, 0.2.0, Unreleased), tags `v0.1.0` and `v0.2.0` on the commits that had those versions, `engines` >=22 in both packages, `test/changelog.test.js`; 0.3.0 stays with stage 6, D
 
 **D · Context and agents**
 - ⬜ Closed `model:` and `tools:` per role (A01): each agent declares both, and the read-only reviewer gets no tool that writes. Today: `parts-librarian` has no `model:`, and `circuit-reviewer` (read-only, dry runs only) has `apply_ops`, which can also apply

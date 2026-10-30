@@ -16,7 +16,7 @@ circuit, draws it in isometric SVG and simulates it in a page you can embed in a
   light up, warnings when a part is pushed past its limits, even an Arduino sketch running.
 - **Made for assistants**: a skill (`SKILL.md`), an MCP server and three agents, so an AI
   assistant describes the circuit and the kit does the geometry. It never computes a hole by hand.
-- **No dependencies**: plain JavaScript, Node ≥ 20 or a browser. English and Spanish.
+- **No dependencies**: plain JavaScript, Node ≥ 22 or a browser. English and Spanish.
 
 **Live demo:** [every recipe as a live page](https://ccamilobedoya.github.io/protoboard-iso/)
 (tap a part, press *Current*, turn the board around).

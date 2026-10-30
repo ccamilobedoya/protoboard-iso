@@ -1,0 +1,23 @@
+# Weekly updates for the development tools (the kit itself has no runtime dependencies), the MCP
+# server's dependencies and the pinned GitHub Actions. Minor and patch updates come grouped, one
+# pull request per ecosystem; each runs the CI before it is merged.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      dev-tools:
+        update-types: [minor, patch]
+  - package-ecosystem: npm
+    directory: /mcp
+    schedule: { interval: weekly }
+    groups:
+      mcp:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions:
+        update-types: [minor, patch]

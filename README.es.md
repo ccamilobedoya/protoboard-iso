@@ -18,7 +18,7 @@ embeber en una lección.
   avisos cuando un componente pasa de su límite, y hasta un programa de Arduino corriendo.
 - **Hecho para asistentes**: un skill (`SKILL.md`), un servidor MCP y tres agentes, para que un
   asistente de IA describa el circuito y el kit haga la geometría. Nunca calcula un agujero a mano.
-- **Sin dependencias**: JavaScript simple, Node ≥ 20 o un navegador. En inglés y en español.
+- **Sin dependencias**: JavaScript simple, Node ≥ 22 o un navegador. En inglés y en español.
 
 **Demostración en vivo:** [todas las recetas como páginas en vivo](https://ccamilobedoya.github.io/protoboard-iso/es/)
 (toca un componente, pulsa *Corriente*, dale la vuelta a la protoboard).
