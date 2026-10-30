@@ -1,0 +1,31 @@
+# CLAUDE.local.md: your own context (copy this file, drop the .example; it never goes to git)
+
+CLAUDE.md is for everyone who works on the repository; this file is for you alone. Claude Code
+reads it at the start of a session in this folder. Keep it short: it costs context every session.
+
+## Who and how
+
+- The language to answer in, and how you like explanations (drawings, short steps, examples).
+- What you use the kit for, in a sentence.
+
+## Your machine
+
+- How Node is installed when a plain `node` is not on the shell's `PATH` (a version manager such
+  as nvm), and the line that puts it there.
+- Tools that are only here (a browser for screenshots, gitleaks), and where.
+- How you see a drawing when you are not at this computer (a preview server, a phone).
+
+## Git
+
+- The identity to commit with, if git has none configured here.
+- When to commit and push (for example: only when asked).
+
+## Where things stand
+
+- The work in progress and the next step, so a new session can pick it up.
+- Decisions you made that are not yet in PLANNING.md.
+
+## Private words
+
+Every name, host, path or id that must never reach the repository goes in `privacy.local.txt`
+too (one regular expression per line), so `npm test` catches it.

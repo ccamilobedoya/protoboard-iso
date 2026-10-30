@@ -163,6 +163,9 @@ export const INSTRUCTIONS = [
 
 // Tools as data: server.js registers them, kit-worker.js runs their handlers.
 export const TOOLS = [];
+// Each tool as a client sees it at start: its name, description and input as JSON Schema
+// (scripts/context-size.js measures what a session loads).
+export const toolSchemas = () => TOOLS.map((t) => ({ name: t.name, description: t.config.description, inputSchema: z.toJSONSchema(z.object(t.config.inputSchema)) }));
 const server = { registerTool: (name, config, handler) => TOOLS.push({ name, config, handler }) };
 
 server.registerTool(
@@ -375,6 +378,29 @@ server.registerTool(
     const { full } = existing(target);
     const result = applyToTarget(full, ops, { dryRun: dry_run, expectRevision: expect_revision, author, note, views, lang, outputLang });
     const out = { ...result, circuit: undefined, files: relFiles(result.files) };
+    const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }));
+    return result.errors.length ? { ...response, isError: true } : response;
+  }),
+);
+
+// apply_ops that can only dry-run: what a read-only role (the reviewer) checks a fix with.
+server.registerTool(
+  'try_ops',
+  {
+    title: 'Try operations (dry run)',
+    description: 'What a batch of operations would change, without saving anything: the issues it fixes and the ones it introduces, and the new revision it would make. The same operations as apply_ops; use it to check a fix before proposing or applying it.',
+    inputSchema: {
+      target: targetArg,
+      ops: z.array(opShape).min(1),
+      views: z.array(z.enum(Object.keys(VIEWS))).optional().describe('Views to measure (default front)'),
+      ...common,
+    },
+    annotations: READ,
+  },
+  safely(async ({ target, ops, views, lang, format }) => {
+    const { full } = existing(target);
+    const result = applyToTarget(full, ops, { dryRun: true, views, lang });
+    const out = { ...result, circuit: undefined, files: undefined };
     const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }));
     return result.errors.length ? { ...response, isError: true } : response;
   }),

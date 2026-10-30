@@ -126,7 +126,7 @@ its holes when it still fits, the circuit keeps the new nets, and `undo` brings 
 ```text
 history / inspect          what happened, the drawing in numbers
 query / suggest            what is where; where a part fits (never compute holes)
-apply_ops dry_run: true    what the change fixes and what it breaks
+apply_ops dry_run: true    what the change fixes and what it breaks (try_ops: the same, never saves)
 apply_ops expect_revision, author, note      → a new revision
 review                     until APPROVED · undo when needed
 ```

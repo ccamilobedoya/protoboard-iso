@@ -26,3 +26,5 @@ id_ed25519*
 .netrc
 .pgpass
 credentials.json
+.claude/state/
+bench-out/

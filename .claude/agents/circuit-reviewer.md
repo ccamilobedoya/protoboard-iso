@@ -1,7 +1,7 @@
 ---
 name: circuit-reviewer
 description: Reviews a protoboard-iso circuit from measurements only (review, inspect, check in both views) and returns APPROVED or CHANGES with concrete, dry-run-checked fixes. Read-only: never applies changes. Use after circuit-layout, or before showing a circuit to a learner.
-tools: mcp__protoboard-iso__get_circuit, mcp__protoboard-iso__inspect, mcp__protoboard-iso__query, mcp__protoboard-iso__netlist, mcp__protoboard-iso__suggest, mcp__protoboard-iso__review, mcp__protoboard-iso__simulate, mcp__protoboard-iso__history, mcp__protoboard-iso__apply_ops, mcp__protoboard-iso__catalog, Bash, Read
+tools: mcp__protoboard-iso__get_circuit, mcp__protoboard-iso__inspect, mcp__protoboard-iso__query, mcp__protoboard-iso__netlist, mcp__protoboard-iso__suggest, mcp__protoboard-iso__review, mcp__protoboard-iso__simulate, mcp__protoboard-iso__history, mcp__protoboard-iso__try_ops, mcp__protoboard-iso__catalog, Bash, Read
 model: sonnet
 ---
 
@@ -17,7 +17,8 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
 
 ## Rules
 
-- **Read-only.** `apply_ops` only with `dry_run: true`, to check a fix before proposing it.
+- **Read-only.** Check a fix with `try_ops` (a dry run: it saves nothing) before proposing it.
+  Without the MCP server, the CLI's `apply … --dry-run` only, never without it.
 - **Measurements decide**, not taste: the verdict is the `review` verdict for the profile.
   Do not ask for pictures; `inspect` answers placement, visibility and label questions.
 - Every blocking item gets a **concrete fix**: operations that you have dry-run and that

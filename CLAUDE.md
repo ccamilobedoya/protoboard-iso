@@ -4,7 +4,7 @@ Guide for Claude Code (and any AI assistant) working **on** this repository. To 
 kit as a skill, see `SKILL.md`.
 
 **If `CLAUDE.local.md` exists, read it first**: it holds the maintainer's personal context
-(language, machine setup, course). It is not in git.
+(language, machine setup, course). It is not in git; `CLAUDE.local.md.example` says what goes in it.
 
 ## Privacy: the repository is public
 
@@ -70,9 +70,19 @@ See `docs/en/agent-interface.md`.
 
 `.claude/agents/`: `circuit-layout` builds or changes circuits, `circuit-reviewer` judges them
 (read-only), `parts-librarian` adds components to the kit. Run the loop from the main
-conversation: layout → reviewer → fixes back to the same layout agent (two rounds at most) →
-show a close-up. Brief formats and the loop: `docs/en/agents.md`. Definition of done:
-`review <target>` (profile `lesson`) says APPROVED.
+conversation: layout → reviewer → fixes back to the same layout agent (at most `review_rounds`
+rounds) → show a close-up; a new circuit gets a new agent (`briefs_per_agent`). Brief formats and
+the loop: `docs/en/agents.md`. Definition of done: `review <target>` (profile `lesson`) says
+APPROVED. Every agent report ends in a `STATUS:` line (`scripts/report-status.js`).
+
+The named options live in `project.json`; this block is written from it (`npm run options --
+--write`, and a test fails when it is stale):
+
+<!-- generated: project.json (npm run options -- --write) -->
+- `review_rounds` = 2: fix rounds between circuit-reviewer and the same circuit-layout agent before the main conversation steps in.
+- `briefs_per_agent` = 1: circuits one agent works on; a new circuit gets a new agent (its fix rounds stay with it).
+- `context_kb` = 48: what a session in this repository loads at start, at most (CLAUDE.md, agent headers, MCP instructions and tool schemas; scripts/context-size.js).
+<!-- /generated -->
 
 **Circuit work should run on a small model.** Building or fixing a circuit is meant to be
 cheap: delegate it to the agents (they run on `sonnet`, or smaller when it is enough) instead
@@ -110,6 +120,8 @@ npm run verify [-- --quick]    # the whole verification below as one command: ex
 npm run setup                 # once per clone: git hooks (pre-commit: verify --quick; pre-push: verify)
 npm run lint · npm run knip · npm run dupes · npm run coverage   # Biome, unused code, copies, c8 thresholds
 node scripts/github-ruleset.js [--apply]   # the owner, once: protect main (CI required), secret scanning
+node scripts/agent-bench.js [--run]        # the agents on three fixed briefs (--run spends tokens), compared with the last run
+npm run options [-- --write] · npm run context-size   # project.json's options block in CLAUDE.md; what a session loads at start
 npm run examples              # examples/*.json → examples/out/*.svg + index.html gallery
 npm run examples -- --lang es # same, Spanish messages and labels
 npm run preview [-- filter]   # examples/out/*.svg → examples/out/png/*.png (needs npm install)
@@ -204,7 +216,9 @@ bin/             CLI
 scripts/         render-examples.js (+ gallery), preview.js (PNG), readme-images.js (docs/img),
                  demo-site.js (GitHub Pages, .github/workflows/pages.yml), verify.js (npm run verify),
                  setup.js + hooks/ (git hooks), report-status.js (agents' STATUS line),
-                 github-ruleset.js (main's ruleset, run by the owner)
+                 github-ruleset.js (main's ruleset, run by the owner), agent-bench.js,
+                 project-options.js (CLAUDE.md's options block), context-size.js
+project.json     named options (review_rounds, briefs_per_agent, context_kb)
 .github/         workflows/ci.yml (npm run verify on Node 22 and 24), pages.yml (demo), dependabot.yml
 examples/        circuits (README.md indexes them); out/ is generated and ignored by git
 docs/img/        README images, drawn by scripts/readme-images.js (live-page.png is a screenshot)

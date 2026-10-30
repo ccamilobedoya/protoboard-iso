@@ -28,7 +28,7 @@ after(async () => client?.close());
 test('the server lists its tools with schemas and gives work instructions', async () => {
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ['apply_ops', 'catalog', 'create_circuit', 'get_circuit', 'history', 'inspect', 'layout', 'list_circuits', 'netlist', 'query', 'render', 'review', 'simulate', 'suggest', 'undo']);
+  assert.deepEqual(names, ['apply_ops', 'catalog', 'create_circuit', 'get_circuit', 'history', 'inspect', 'layout', 'list_circuits', 'netlist', 'query', 'render', 'review', 'simulate', 'suggest', 'try_ops', 'undo']);
   for (const tool of tools) assert.ok(tool.description && tool.inputSchema, tool.name);
   assert.ok(tools.find((t) => t.name === 'inspect').annotations.readOnlyHint);
   assert.match(client.getInstructions(), /dry_run/);
@@ -86,6 +86,10 @@ test('query and suggest, then dry run, apply, history and undo', async () => {
 
   const dry = jsonOf(await call('apply_ops', { target: 'circuits/led', ops, dry_run: true, format: 'json' }));
   assert.equal(dry.applied, false);
+  const tried = jsonOf(await call('try_ops', { target: 'circuits/led', ops, format: 'json' }));
+  assert.equal(tried.applied, false, 'try_ops only dry-runs');
+  assert.deepEqual(tried.diff, dry.diff, 'the same answer as apply_ops with dry_run');
+  assert.equal(jsonOf(await call('get_circuit', { target: 'circuits/led', format: 'json' })).revision, 0, 'nothing saved');
   const stale = await call('apply_ops', { target: 'circuits/led', ops, expect_revision: 7 });
   assert.ok(stale.isError);
   assert.match(textOf(stale), /revision 0, not 7/);

@@ -115,7 +115,7 @@ pedido del usuario
   → ¿una receta? layout con recipe y values desde aquí (STATUS: DONE → mostrarlo)
   → circuit-layout   (LAYOUT BRIEF)    → LAYOUT REPORT, circuito en la revisión n
   → circuit-reviewer (REVIEW BRIEF)    → REVIEW REPORT: APROBADO, o CAMBIOS con arreglos
-  → si hay CAMBIOS: pasar los arreglos al mismo circuit-layout (como mucho dos rondas)
+  → si hay CAMBIOS: pasar los arreglos al mismo circuit-layout (como mucho review_rounds rondas)
   → mostrar el resultado: render con fit "parts" (y annotate cuando se enseñan agujeros)
   → para embeberlo en la documentación: out/<nombre>.html, ya reescrita (docs/es/embeber.md)
 si falta un componente en cualquier momento → parts-librarian (PARTS BRIEF) → PARTS REPORT
@@ -201,3 +201,5 @@ renombrada o eliminada no pasa desapercibida.
   hizo qué.
 - Agentes de vida corta: uno nuevo por tarea; se reutiliza solo para las rondas de arreglos
   del mismo circuito.
+  Los números son opciones con nombre en `project.json` (`review_rounds`, `briefs_per_agent`),
+  que se ven en `CLAUDE.md`.

@@ -71,3 +71,16 @@ test('report status: the last line, checked against the report', () => {
   assert.match(reportStatus('Done, all good.').error, /no report header/);
   assert.match(reportStatus('PARTS REPORT\nSTATUS: DONE\nSTATUS: BLOCKED').error, /more than one|ends in/);
 });
+
+// Tools that change files: a read-only role (its description says so) gets none of them. Bash
+// stays for the CLI when the MCP server is not there; the agent's own rules keep it to dry runs.
+const WRITES = new Set(['Edit', 'Write', 'NotebookEdit', 'mcp__protoboard-iso__apply_ops', 'mcp__protoboard-iso__undo', 'mcp__protoboard-iso__create_circuit', 'mcp__protoboard-iso__layout', 'mcp__protoboard-iso__render']);
+
+test('agents: a read-only role gets no tool that writes', () => {
+  const readOnly = agents.filter((a) => /read-only/i.test(a.description));
+  assert.ok(readOnly.length >= 1, 'the reviewer says it is read-only');
+  for (const a of readOnly) {
+    assert.deepEqual(a.tools.filter((t) => WRITES.has(t)), [], a.file);
+    if (a.tools.includes('Bash')) assert.match(a.body, /--dry-run/, `${a.file}: its rules keep Bash to dry runs`);
+  }
+});

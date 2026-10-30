@@ -110,7 +110,7 @@ user request
   → a recipe? layout with recipe and values from here (STATUS: DONE → show it)
   → circuit-layout   (LAYOUT BRIEF)    → LAYOUT REPORT, circuit at revision n
   → circuit-reviewer (REVIEW BRIEF)    → REVIEW REPORT: APPROVED, or CHANGES with fixes
-  → if CHANGES: send the fixes to the same circuit-layout (at most two rounds)
+  → if CHANGES: send the fixes to the same circuit-layout (at most review_rounds rounds)
   → show the result: render with fit "parts" (and annotate when teaching holes)
   → to embed it in documentation: out/<name>.html, already rewritten (docs/en/embedding.md)
 missing component at any point → parts-librarian (PARTS BRIEF) → PARTS REPORT
@@ -189,4 +189,5 @@ an agent lists exists in the server, so a renamed or removed tool is caught.
 - Agents are loaded when a Claude Code session starts in this repository; MCP tools too.
 - Each agent writes its name as `author`, so `history` shows who did what.
 - Keep agents short-lived: a new agent per task, reuse it only for the fix rounds of the same
-  circuit.
+  circuit. The numbers are named options in `project.json` (`review_rounds`, `briefs_per_agent`),
+  shown in `CLAUDE.md`.

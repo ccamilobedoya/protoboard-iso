@@ -1,0 +1,17 @@
+{
+  "$comment": "Named options of how work runs in this repository. CLAUDE.md shows them in a block written by scripts/project-options.js (npm run options); tests read the values from here.",
+  "options": {
+    "review_rounds": {
+      "value": 2,
+      "means": "fix rounds between circuit-reviewer and the same circuit-layout agent before the main conversation steps in"
+    },
+    "briefs_per_agent": {
+      "value": 1,
+      "means": "circuits one agent works on; a new circuit gets a new agent (its fix rounds stay with it)"
+    },
+    "context_kb": {
+      "value": 48,
+      "means": "what a session in this repository loads at start, at most (CLAUDE.md, agent headers, MCP instructions and tool schemas; scripts/context-size.js)"
+    }
+  }
+}
