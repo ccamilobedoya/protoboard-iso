@@ -26,7 +26,19 @@ página y la hoja de ruta al día.
   mueve la página. `npm run verify` lo corre con `--runs 2`; en CI (`CI` definida, otras fuentes)
   con `--determinism`: solo que los dos renders coincidan, no los hashes guardados. Sin Playwright o sin navegador, o con
   hashes escritos por otro navegador, el caso queda SKIPPED (salida 2), nunca aprobado.
-- ⬜ V1 a V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
+- ✅ V1 · Un reloj (2026-10-30): `src/page/client/director.js`, solo con `?director=1` en una página
+  viva (`window.protoboardLive.director`, `body.director`). `start(cues)` (señales `{ at, run(director) }`,
+  el gancho por el que pasa el reproductor de V2), `frame(destino, { ms, ease })` (una caja, `board`,
+  `parts` o el id de una pieza), `set(id, campo, valor, { ms, ease })` (números por la curva, por
+  razones en una escala log; botones al instante) y `tick(ms)`: señales, cámara (`frameAt` en
+  `view.js`), controles y luego la simulación con puntos, halo, colores y etiquetas repintados en
+  cada tick. Con el director un cuadro no tiene presupuesto de tiempo de pared (a lo sumo 20 000
+  pasos), `protoboardLive.tick` pasa por él, el `frameTo` de la página se mueve con su reloj, los
+  puntos se mueven también con movimiento reducido y el freno de los textos de los límites lee su
+  tiempo; el ciclo de `requestAnimationFrame` de la página llama `tick` con el tiempo que pasó.
+  `test/director.test.js` reproduce una secuencia con el reloj del sistema hecho para fallar; los
+  hashes de V0 no cambiaron (solo los de las páginas: el script creció).
+- ⬜ V2 a V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
 

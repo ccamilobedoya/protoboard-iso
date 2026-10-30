@@ -11,7 +11,7 @@
 export const numbers = (text) => text.split(' ').map(Number);
 
 // A frame kept on the board: zoom between a twelfth and twice the board, centre on it.
-function clampBox(page, [x, y, w, h]) {
+export function clampBox(page, [x, y, w, h]) {
   const [bx, by, bw, bh] = numbers(page.current().dataset.board);
   const f = Math.min(Math.max(w, bw / 12), bw * 2) / w;
   const cx = Math.min(Math.max(x + w / 2, bx), bx + bw);
@@ -31,16 +31,25 @@ export function setBox(page, box) {
 // Motion (UX pass, U5). The frame moves to a new place in 220 ms (strong ease-out) when a button
 // asks for it (fit, zoom, double tap, keeping a part in view); a gesture grabs it at once from
 // where it is. The viewBox is not a CSS property, so this is a short requestAnimationFrame loop.
-// Reduced motion, or no requestAnimationFrame (jsdom): at once.
+// Reduced motion, or no requestAnimationFrame (jsdom): at once. Under the director (?director=1,
+// director.js) the same move runs on its clock instead, so a recording never reads the wall.
 const winOf = (page) => page.main.ownerDocument.defaultView;
 const reduced = (win) => Boolean(win.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 const FRAME_MS = 220;
+export const easeOut = (k) => 1 - (1 - k) ** 4; // close to cubic-bezier(0.23, 1, 0.32, 1)
 export function stopFrame(page) {
   if (page.frameAnim) winOf(page).cancelAnimationFrame(page.frameAnim);
   page.frameAnim = null;
+  page.director?.stopFrame();
+}
+// The frame a share `e` (already eased) of the way from one box to another: what frameTo draws on
+// each animation frame and the director on each tick.
+export function frameAt(page, from, to, e) {
+  apply(page, from.map((f, i) => f + (to[i] - f) * e));
 }
 export function frameTo(page, target) {
   const win = winOf(page);
+  if (page.director) return page.director.frame(target, { ms: FRAME_MS, ease: easeOut });
   const to = clampBox(page, target);
   stopFrame(page);
   if (!page.box || typeof win.requestAnimationFrame !== 'function' || reduced(win)) return apply(page, to);
@@ -49,8 +58,7 @@ export function frameTo(page, target) {
   const step = (now) => {
     t0 ??= now;
     const k = Math.min(1, (now - t0) / FRAME_MS);
-    const e = 1 - (1 - k) ** 4; // close to cubic-bezier(0.23, 1, 0.32, 1)
-    apply(page, from.map((f, i) => f + (to[i] - f) * e));
+    frameAt(page, from, to, easeOut(k));
     page.frameAnim = k < 1 ? win.requestAnimationFrame(step) : null;
   };
   page.frameAnim = win.requestAnimationFrame(step);
@@ -200,16 +208,20 @@ export function partsRect(page, ids, svg = page.current()) {
   return { left: Math.min(...rects.map((r) => r.left)), top: Math.min(...rects.map((r) => r.top)), right: Math.max(...rects.map((r) => r.right)), bottom: Math.max(...rects.map((r) => r.bottom)) };
 }
 
-// Frame a part: the box of what is drawn for it, a little more than twice its size.
-function zoomToPart(page, id) {
+// Frame a part: the box of what is drawn for it, a little more than twice its size, or null.
+export function partBox(page, id) {
   const r = partsRect(page, [id]);
-  if (!r) return false;
+  if (!r) return null;
   const [x0, y0] = toBox(page, r.left, r.top);
   const [x1, y1] = toBox(page, r.right, r.bottom);
   const w = Math.max(x1 - x0, 1) * 2.5;
   const h = Math.max(y1 - y0, 1) * 2.5;
-  frameTo(page, [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h]);
-  return true;
+  return [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h];
+}
+function zoomToPart(page, id) {
+  const box = partBox(page, id);
+  if (box) frameTo(page, box);
+  return Boolean(box);
 }
 
 function doubleTap(page, target, x, y) {

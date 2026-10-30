@@ -71,6 +71,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `sim/overlay.js` | etiquetas de resultados (corriente por componente, voltaje por grupo) con `data-q` y `data-probe` |
 | `sim/look.js`, `sim/lines.js` | se pueden agrupar: colores de voltaje, velocidad de los puntos, degradado en los cuerpos, brillo y calor (look); las líneas de la ficha con los textos que se le pasan (lines) |
 | `page/client/live.js` | la página en vivo: corre el motor, mueve los puntos, repinta colores, etiquetas y ficha, controles de tiempo |
+| `page/client/director.js` | el director (escena y video, V1): con `?director=1`, un reloj (`tick`) para señales, cámara, controles y simulación; nada en un tick lee el reloj del sistema |
 | `page/client/controls.js`, `page/client/limits.js` | página en vivo: deslizadores (ficha y panel `page.controls`) y el pulsador momentáneo; contornos de esfuerzo (reglas en `#stress`), marcas que se quedan y el panel de avisos (en `.side`) |
 | `sim/controls.js` | se puede agrupar: controles de las fuentes, cuentas de los deslizadores (log, E24), niveles de esfuerzo; los controles de cada dispositivo están en su módulo (`controls`, `set`) |
 | `sim/paths.js` | vista de conductores: caminos de la corriente por componente (`paths` del paquete o una recta de respaldo), corriente de las tiras (Kirchhoff), colores de voltaje, puntos de corriente convencional |
@@ -198,7 +199,8 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
   hoja asomada, así que van primero.
 - **Mover el encuadre** (`view.js`, U5): los gestos usan `setBox` (al instante, y detiene cualquier
   movimiento); los botones y el código que mueven el encuadre por el estudiante usan `frameTo`
-  (220 ms, interrumpible). Cambiar de vista pasa por `flipView` + `flipFrame` (inmediato); `show()` en main.js
+  (220 ms, interrumpible; con el director corre con su reloj, y `frameAt` es la interpolación
+  común). Cambiar de vista pasa por `flipView` + `flipFrame` (inmediato); `show()` en main.js
   cambia el encuadre solo cuando cambió la vista o el encuadre.
 - **Las vistas son `main > svg`**: los botones también llevan íconos svg, así que nunca se selecciona
   `main svg`. Las cajas de la interfaz dentro de `main` (el inspector, los botones de zoom) están

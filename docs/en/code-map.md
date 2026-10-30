@@ -71,6 +71,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `sim/overlay.js` | result tags (current per part, voltage per group) with `data-q` and `data-probe` |
 | `sim/look.js`, `sim/lines.js` | bundleable: voltage colours, dot speed, body shading, glow and heat (look); a part's card lines with the texts passed in (lines) |
 | `page/client/live.js` | the live page: runs the engine, moves dots, repaints colours, tags and card, time controls |
+| `page/client/director.js` | the director (stage and video, V1): with `?director=1`, one clock (`tick`) for cues, camera, controls and the simulation; nothing in a tick reads the system clock |
 | `page/client/controls.js`, `page/client/limits.js` | live page: sliders (card and `page.controls` panel) and the momentary button; stress outlines (`#stress` rules), latched marks and the warnings panel (in `.side`) |
 | `sim/controls.js` | bundleable: supplies' controls, slider maths (log, E24), stress levels; each device's own controls are in its module (`controls`, `set`) |
 | `sim/paths.js` | conductor view: current paths per part (package `paths` or a straight fallback), strip currents (Kirchhoff), voltage colours, dots of conventional current |
@@ -184,7 +185,8 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
   opens or closes; panels that appear or hide are seen by a MutationObserver. The card's head
   (`.head`: title and icon buttons) and `.summary` are what a peeking sheet shows, so keep them first.
 - **Moving the frame** (`view.js`, U5): gestures use `setBox` (at once, and it stops any motion);
-  buttons and code that move the frame for the learner use `frameTo` (220 ms, interruptible).
+  buttons and code that move the frame for the learner use `frameTo` (220 ms, interruptible; under
+  the director it runs on the director's clock, and `frameAt` is the shared interpolation).
   Changing the view goes through `flipView` + `flipFrame` (immediate); `show()` in main.js changes the frame
   only when the view or the framing changed.
 - **The views are `main > svg`**: buttons carry small svg icons too, so never select `main svg`.

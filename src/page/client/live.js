@@ -20,6 +20,10 @@
 //
 // Without requestAnimationFrame (jsdom) nothing is scheduled; tests drive it with
 // window.protoboardLive.tick(ms).
+//
+// With ?director=1 (director.js) the director owns the time: tick goes through it, a frame has no
+// budget of wall time (every step owed is taken, at most DIRECTOR_STEPS), everything is repainted
+// on every tick, dots move under reduced motion too, and nothing reads the system clock.
 
 import { createEngine } from '../../sim/engine.js';
 import { linesFor, nodeLines } from '../../sim/lines.js';
@@ -33,8 +37,11 @@ import { createScope } from './scope.js';
 import { createRecorder, samplesOf } from '../../sim/recorder.js';
 import { scopeOf } from '../../sim/scope.js';
 import { iconSvg } from './icons.js';
+import { createDirector, wantsDirector } from './director.js';
 
 const BUDGET = 8; // ms of simulation per frame
+const DIRECTOR_STEPS = 20000; // steps per frame at most under the director (its frames take what they need)
+const LONGEST = 100; // ms: a longer frame is slow motion (a tab that was hidden), or split by the director
 const REFRESH = 250; // ms between repaints of colours, tags and card
 const TAG_SIZE = 8; // px, as in src/sim/overlay.js
 const MIN_MOVE = 0.05; // px of dot movement worth a redraw
@@ -149,7 +156,9 @@ export function setupLive(page) {
   // Another view's dots were not written while hidden: write them all on the next frame.
   if (written) page.onShow.push(() => written.fill(Infinity));
   let peak = 0;
-  const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const directed = wantsDirector(location.search);
+  let director = null; // set below, once the controls it moves exist
+  const reduced = !directed && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Current along each dot piece: into the part at a pin, or Kirchhoff along a strip.
   function currents() {
@@ -312,7 +321,8 @@ export function setupLive(page) {
 
   // Limits and controls. A change keeps the speed of time (so a larger R is seen charging more
   // slowly) but never a step too long for the new time constants.
-  const limits = setupLimits(page, { engine, t, f });
+  // Its own clock under the director (the time it has played), else the page's.
+  const limits = setupLimits(page, { engine, t, f, now: directed ? () => director?.time ?? 0 : undefined });
   let falstad = null;
   const controls = setupControls(page, {
     engine,
@@ -335,7 +345,7 @@ export function setupLive(page) {
       record(reading, true);
       limits.check(reading, true);
       falstad?.update();
-      repaint();
+      if (!quiet) repaint();
     },
   });
   // After the controls, so the link sits beside them in the bar.
@@ -343,8 +353,9 @@ export function setupLive(page) {
 
   let last = null;
   let lastPaint = -Infinity;
+  let quiet = false; // the director is moving controls: its frame repaints once after them
   function frame(now) {
-    const wall = last == null ? 0 : Math.min(now - last, 100) / 1000;
+    const wall = last == null ? 0 : Math.min(now - last, LONGEST) / 1000;
     last = now;
     if (running && dynamic && !stalled) {
       // A program that starts a PWM or a tone needs shorter steps (never under 5 µs: below that
@@ -352,8 +363,9 @@ export function setupLive(page) {
       const hint = engine.stepHint?.();
       if (hint && hint < h) h = Math.max(5e-6, hint);
       owed += wall * pace.perSecond;
-      const t0 = performance.now();
-      while (owed >= h && performance.now() - t0 < BUDGET) {
+      const t0 = directed ? 0 : performance.now();
+      let n = 0;
+      while (owed >= h && (directed ? n++ < DIRECTOR_STEPS : performance.now() - t0 < BUDGET)) {
         let ok = engine.step(h);
         for (let k = 0; !ok && k < 4; k++) ok = engine.step((h /= 2));
         if (!ok) {
@@ -373,15 +385,43 @@ export function setupLive(page) {
       record(reading);
     }
     if (flow) moveDots(wall);
-    if (now - lastPaint >= REFRESH) {
+    if (directed || now - lastPaint >= REFRESH) {
       lastPaint = now;
       repaint();
     }
   }
+  director = directed
+    ? createDirector(page, {
+        controls: () => engine.controls(),
+        set: (id, field, value) => controls.set(id, field, value),
+        // The director's time is whole: its first tick moves too, a long one goes in pieces.
+        advance(ms) {
+          last ??= 0;
+          for (let left = ms; left > 0; left -= LONGEST) frame(last + Math.min(left, LONGEST));
+          if (!(ms > 0)) frame(last);
+        },
+        batch(fn) {
+          quiet = true;
+          try {
+            fn();
+          } finally {
+            quiet = false;
+          }
+        },
+      })
+    : null;
+  if (director) {
+    page.director = director;
+    document.body.classList.add('director');
+  }
   window.protoboardLive = {
     tick(ms, steps = 1) {
-      for (let k = 0; k < steps; k++) frame((last ?? 0) + ms);
+      for (let k = 0; k < steps; k++) {
+        if (director) director.tick(ms);
+        else frame((last ?? 0) + ms);
+      }
     },
+    director,
     get engine() {
       return engine;
     },
@@ -400,9 +440,12 @@ export function setupLive(page) {
   };
   limits.check(reading);
   repaint();
-  if (typeof requestAnimationFrame === 'function' && (flow || dynamic || recorder)) {
+  if (typeof requestAnimationFrame === 'function' && (director || flow || dynamic || recorder)) {
+    let before = null;
     const loop = (now) => {
-      frame(now);
+      if (director) director.tick(before == null ? 0 : Math.min(now - before, LONGEST));
+      else frame(now);
+      before = now;
       requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);

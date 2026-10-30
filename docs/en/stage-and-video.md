@@ -26,7 +26,18 @@ up to date.
   page. `npm run verify` runs it with `--runs 2`; on the CI (`CI` set, other fonts) with
   `--determinism`: only that the two renders agree, not the stored hashes. Without Playwright or a browser, or with hashes
   written by another browser, a case is SKIPPED (exit 2), never passed.
-- ⬜ V1 to V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
+- ✅ V1 · One clock (2026-10-30): `src/page/client/director.js`, only with `?director=1` in a live
+  page (`window.protoboardLive.director`, `body.director`). `start(cues)` (cues `{ at, run(director) }`,
+  the hook V2's player goes through), `frame(target, { ms, ease })` (a box, `board`, `parts` or a
+  part's id), `set(id, field, value, { ms, ease })` (numbers along the curve, by ratios on a log
+  scale; buttons at once) and `tick(ms)`: cues, camera (`frameAt` in `view.js`), controls, then the
+  simulation with dots, glow, colours and tags repainted on every tick. Under the director a frame
+  has no budget of wall time (at most 20 000 steps), `protoboardLive.tick` goes through it, the
+  page's `frameTo` moves on its clock, dots move under reduced motion too, and the limits' text
+  throttle reads its time; the page's `requestAnimationFrame` loop calls `tick` with the time that
+  passed. `test/director.test.js` plays a sequence with the system clock made to throw; the V0
+  hashes did not change (only the pages' hashes, the script grew).
+- ⬜ V2 to V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
 

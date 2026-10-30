@@ -22,7 +22,7 @@ function el(parent, tag, text, cls) {
   return e;
 }
 
-export function setupLimits(page, { engine, t, f }) {
+export function setupLimits(page, { engine, t, f, now = () => (typeof performance === 'object' ? performance.now() : Date.now()) }) {
   const style = el(document.head, 'style');
   style.id = 'stress';
   const panel = el(null, 'section', null, 'panel warnings');
@@ -115,7 +115,7 @@ export function setupLimits(page, { engine, t, f }) {
       flag.lastChild.textContent = String(rows.size);
       flag.setAttribute('aria-label', `${t('page.warnings.flag')}: ${rows.size}`);
     }
-    const clock = typeof performance === 'object' ? performance.now() : Date.now();
+    const clock = now();
     if (!rebuilt && !force && clock - lastText < 250) return;
     lastText = clock;
     for (const [key, b] of rows) {
