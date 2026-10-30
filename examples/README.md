@@ -29,6 +29,7 @@ The format of each field: [circuit-format.md](../docs/en/circuit-format.md).
 | <img src="../docs/img/examples/led-resistor.png" width="280" alt="LED with a resistor"> | **[led-resistor.json](led-resistor.json)**: an LED with its current-limiting resistor on 5 V. The smallest circuit with a simulation; the README's pictures are drawn from it. |
 | <img src="../docs/img/examples/voltage-divider.png" width="280" alt="Voltage divider"> | **[voltage-divider.json](voltage-divider.json)**: two 10 kΩ resistors split 9 V in half; the page shows the voltage where they meet. |
 | <img src="../docs/img/examples/controls-and-ics.png" width="280" alt="Buttons, potentiometers and chips"> | **[controls-and-ics.json](controls-and-ics.json)**: push buttons across the centre channel, potentiometers and DIP chips (NE555, LM358) placed by their pin 1. Drawing only, no source. |
+| <img src="../docs/img/examples/npn-switch.png" width="280" alt="NPN transistor switch"> | **[npn-switch.json](npn-switch.json)**: the `npn-switch` recipe as laid out, with a tour ([tours/npn-switch.json](tours/npn-switch.json)): *See how it works* in the page's ⋯ menu presses S1 and follows the current to the LED. |
 
 ## Power
 

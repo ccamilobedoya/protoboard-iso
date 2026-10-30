@@ -71,6 +71,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `sim/overlay.js` | etiquetas de resultados (corriente por componente, voltaje por grupo) con `data-q` y `data-probe` |
 | `sim/look.js`, `sim/lines.js` | se pueden agrupar: colores de voltaje, velocidad de los puntos, degradado en los cuerpos, brillo y calor (look); las líneas de la ficha con los textos que se le pasan (lines) |
 | `page/client/live.js` | la página en vivo: corre el motor, mueve los puntos, repinta colores, etiquetas y ficha, controles de tiempo |
+| `tour.js`, `beside.js`, `page/client/tour.js`, `page/client/moves.js` | la línea de tiempo de un circuito (escena y video, V2): leída junto al circuito (`beside.js`, compartido con los programas `.ino`), revisada (`TOUR_*`) y pasada a la página; el director la reproduce en la página (*Ver cómo funciona*); los siete movimientos como una tabla y tokens CSS |
 | `page/client/director.js` | el director (escena y video, V1): con `?director=1`, un reloj (`tick`) para señales, cámara, controles y simulación; nada en un tick lee el reloj del sistema |
 | `page/client/controls.js`, `page/client/limits.js` | página en vivo: deslizadores (ficha y panel `page.controls`) y el pulsador momentáneo; contornos de esfuerzo (reglas en `#stress`), marcas que se quedan y el panel de avisos (en `.side`) |
 | `sim/controls.js` | se puede agrupar: controles de las fuentes, cuentas de los deslizadores (log, E24), niveles de esfuerzo; los controles de cada dispositivo están en su módulo (`controls`, `set`) |

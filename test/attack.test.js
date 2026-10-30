@@ -1,6 +1,6 @@
-// Hostile input (CLAUDE.md, "External input"): a circuit, a list of operations or a board's
-// program may come from anyone. A sketch must not reach anything but the runtime, a program
-// file must stay inside the circuit's folder, text must not become markup, and every input has a
+// Hostile input (CLAUDE.md, "External input"): a circuit, a list of operations, a board's
+// program or a page's timeline may come from anyone. A sketch must not reach anything but the
+// runtime, a program or timeline file must stay inside the circuit's folder, text must not become markup, and every input has a
 // size cap (src/limits.js).
 
 import { test } from 'node:test';
@@ -18,6 +18,8 @@ import { applyOps } from '../src/ops.js';
 import { renderCircuit } from '../src/index.js';
 import { renderPage } from '../src/page.js';
 import { LIMITS } from '../src/limits.js';
+import { tourIssues } from '../src/tour.js';
+import { CIRCUIT_FOLDER } from '../src/beside.js';
 
 const codes = (issues) => issues.map((i) => i.code);
 const board = { family: 'uno', states: {}, read: () => null, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 };
@@ -166,4 +168,46 @@ test('attack: circuits and operations have size caps', () => {
   assert.deepEqual(codes(createTarget(join(root, 'big'), { parts: [], title: 'x'.repeat(LIMITS.circuitBytes) }, { outputs: false }).errors), ['CIRCUIT_TOO_LARGE']);
   writeFileSync(join(root, 'huge.json'), JSON.stringify({ parts: [], title: 'x'.repeat(LIMITS.circuitBytes) }));
   assert.throws(() => loadCircuit(resolveTarget(join(root, 'huge.json'))), (e) => e.issue?.code === 'CIRCUIT_TOO_LARGE');
+});
+
+// A page's timeline (page.tour, stage and video V2): read only beside the circuit, capped, checked
+// field by field, and its texts reach the page as text.
+test('attack: a timeline stays inside the circuit\'s folder, has caps and is never markup', () => {
+  const circuit = () => ({ ...autoLayout({ board: 'auto', ...expandRecipe('led-resistor').spec }).circuit });
+  const beside = (tour, files = {}) => {
+    const root = mkdtempSync(join(tmpdir(), 'pbi-tour-'));
+    const folder = join(root, 'circuit');
+    mkdirSync(folder);
+    writeFileSync(join(root, 'secret.json'), JSON.stringify({ steps: [] }));
+    for (const [name, text] of Object.entries(files)) writeFileSync(join(folder, name), text);
+    const c = Object.defineProperty({ ...circuit(), page: { tour } }, CIRCUIT_FOLDER, { value: folder });
+    return { c, root, folder };
+  };
+  assert.deepEqual(codes(tourIssues(beside('../secret.json').c)), ['TOUR_OUTSIDE']);
+  const link = beside('link.json');
+  symlinkSync(join(link.root, 'secret.json'), join(link.folder, 'link.json'));
+  assert.deepEqual(codes(tourIssues(link.c)), ['TOUR_OUTSIDE'], 'a link that leads out');
+  assert.deepEqual(codes(tourIssues(beside('big.json', { 'big.json': ' '.repeat(LIMITS.tourBytes + 1) }).c)), ['TOUR_TOO_LARGE']);
+  assert.deepEqual(codes(tourIssues(beside('bad.json', { 'bad.json': '{ steps: [' }).c)), ['TOUR_JSON']);
+  assert.deepEqual(codes(tourIssues({ ...circuit(), page: { tour: 'missing.json' } })), ['TOUR_FILE'], 'no folder: nothing is read');
+  // Caps on the timeline given whole.
+  const given = (tour) => codes(tourIssues({ ...circuit(), page: { tour } }));
+  const step = { at: 0, do: 'caption', text: 'x' };
+  assert.deepEqual(given({ steps: Array.from({ length: LIMITS.tourSteps + 1 }, () => step) }), ['TOUR_TOO_MANY_STEPS']);
+  assert.deepEqual(given({ steps: [{ ...step, text: { en: 'x'.repeat(LIMITS.tourText + 1) } }] }), ['TOUR_TEXT_TOO_LONG']);
+  assert.deepEqual(given({ steps: [{ at: LIMITS.tourMs, do: 'frame', target: 'board', move: 'arrival' }] }), ['TOUR_TOO_LONG']);
+  assert.deepEqual(given({ steps: [{ ...step, text: 'x'.repeat(LIMITS.tourBytes) }] }), ['TOUR_TOO_LARGE']);
+  // Nothing outside the closed lists: an action, a field, a value of the wrong kind.
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'eval', code: 'alert(1)' }] }), ['TOUR_ACTION']);
+  assert.deepEqual(given({ steps: [{ ...step, onload: 'alert(1)' }] }), ['TOUR_FIELD']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'set', part: 'R1', field: 'resistance', value: 'alert(1)' }] }), ['TOUR_FIELD']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'value', part: 'D1', field: 'constructor' }] }), ['TOUR_FIELD']);
+  assert.deepEqual(given([step]), ['TOUR_SHAPE']);
+  // Texts: data in the page, written with textContent; never a tag.
+  const evil = '</script><script>alert(1)</script><img src=x onerror="alert(1)">';
+  const { html } = renderPage({ ...circuit(), page: { tour: { steps: [{ ...step, text: evil }, { at: 0, do: 'value', part: 'D1', field: 'current', label: evil }] } } });
+  const kit = ['<script type="application/json" id="page-data">', '<script type="application/json" id="sim-program">', '<script>'];
+  for (const tag of html.match(/<script\b[^>]*>/g)) assert.ok(kit.includes(tag), tag);
+  assert.ok(!/<img/i.test(html), 'no tag from the timeline');
+  assert.match(html, /"tour":\{/, 'the tour is in the page, as data');
 });

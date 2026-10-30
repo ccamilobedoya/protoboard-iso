@@ -1,0 +1,23 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "npn-switch",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A transistor as a switch", "es": "Un transistor como interruptor" } },
+    { "at": 1200, "do": "frame", "target": "S1", "move": "arrival" },
+    { "at": 1200, "do": "focus", "parts": ["S1"] },
+    { "at": 2400, "do": "caption", "text": { "en": "Press S1: a small current into the base turns the LED on", "es": "Al apretar S1, la corriente de base enciende el LED" } },
+    { "at": 3000, "do": "set", "part": "S1", "field": "pressed", "value": true, "move": "hit" },
+    { "at": 3000, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 3200, "do": "wait-until", "part": "D1", "field": "brightness", "above": 0.05 },
+    { "at": 3400, "do": "focus", "parts": ["Q1", "D1"] },
+    { "at": 3400, "do": "frame", "target": "D1", "move": "travel" },
+    { "at": 3400, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
+    { "at": 5000, "do": "frame", "target": "D1", "zoom": 1.25, "move": "push", "ms": 5000 },
+    { "at": 10000, "do": "set", "part": "S1", "field": "pressed", "value": false, "move": "hit" },
+    { "at": 10000, "do": "caption", "text": { "en": "Let go: no base current, and the LED goes out", "es": "Al soltarlo, sin corriente de base, el LED se apaga" } },
+    { "at": 10000, "do": "frame", "target": "parts", "move": "travel" },
+    { "at": 11500, "do": "focus", "parts": [] }
+  ]
+}

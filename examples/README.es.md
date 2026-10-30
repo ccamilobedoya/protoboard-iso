@@ -30,6 +30,7 @@ El formato de cada campo: [formato-circuito.md](../docs/es/formato-circuito.md).
 | <img src="../docs/img/examples/led-resistor.png" width="280" alt="LED con resistencia"> | **[led-resistor.json](led-resistor.json)**: un LED con su resistencia limitadora a 5 V. El circuito más pequeño con simulación; las imágenes del README salen de él. |
 | <img src="../docs/img/examples/voltage-divider.png" width="280" alt="Divisor de voltaje"> | **[voltage-divider.json](voltage-divider.json)**: dos resistencias de 10 kΩ parten 9 V por la mitad; la página muestra el voltaje donde se unen. |
 | <img src="../docs/img/examples/controls-and-ics.png" width="280" alt="Pulsadores, potenciómetros y chips"> | **[controls-and-ics.json](controls-and-ics.json)**: pulsadores a caballo del canal central, potenciómetros y chips DIP (NE555, LM358) ubicados por su pata 1. Solo dibujo, sin fuente. |
+| <img src="../docs/img/examples/npn-switch.png" width="280" alt="Interruptor con transistor NPN"> | **[npn-switch.json](npn-switch.json)**: la receta `npn-switch` tal como la monta `layout`, con un recorrido ([tours/npn-switch.json](tours/npn-switch.json)): *Ver cómo funciona* en el menú ⋯ de la página aprieta S1 y sigue la corriente hasta el LED. |
 
 ## Fuentes de alimentación
 

@@ -2,17 +2,19 @@
 // a page that tells a circuit. Only with ?director=1 in the link and only in a live page; every
 // other page keeps its own loop (live.js) and does not change.
 //
-// tick(ms) advances, in this order: the cues due (start(cues): { at, run(director) }, the hook the
-// timeline of V2 plays through), the camera, the controls being moved, and the simulation with its
-// dots, glow, colours and tags, all written once per tick. Nothing in a tick reads the system clock:
+// tick(ms) advances, in this order: the cues due (start(cues): { at, run(director) }, how the
+// timeline's player, tour.js, plays), the camera, the controls and tweens being moved, and the
+// simulation with its dots, glow, colours and tags, all written once per tick; then the `after`
+// hooks (a value shown from the new reading). Cues follow their own clock, which stands still
+// while a hold waits for a condition (a timeline's wait-until), so later steps move with it. Nothing in a tick reads the system clock:
 // a sequence played with tick(1000/30) gives the same frames every time. In the page a
 // requestAnimationFrame loop calls tick with the time that passed (live.js); a recorder calls it
 // with 1000/fps.
 //
 // The director moves things on purpose, so it ignores prefers-reduced-motion: what a learner's
-// page does under reduced motion is the timeline player's choice (V2), not the clock's.
+// page does under reduced motion is the timeline player's choice (tour.js), not the clock's.
 
-import { clampBox, frameAt, easeOut, numbers, partBox, setBox } from './view.js';
+import { clampBox, frameAt, easeOut, numbers, partBox, setBox, fitFrame } from './view.js';
 
 export const wantsDirector = (search) => new URLSearchParams(search).get('director') === '1';
 
@@ -22,16 +24,26 @@ export const wantsDirector = (search) => new URLSearchParams(search).get('direct
 // does not repaint: advance does, once, at the end).
 export function createDirector(page, sim) {
   let time = 0;
+  let cueTime = 0; // the cues' clock: stands still while a hold waits
   let cues = [];
+  let hold = null; // { test, left }: cues wait until test() is true, at most `left` ms
   let camera = null; // { from, to, t0, ms, ease }
   const moving = new Map(); // id|field → { id, field, from, to, log, t0, ms, ease }
+  const tweens = new Set(); // { apply(e), t0, ms, ease }
+  const after = new Set();
 
-  // A target is a box [x, y, w, h], 'board' or 'parts' (the page's two frames) or a part's id.
-  function boxOf(target) {
-    if (Array.isArray(target)) return target;
+  // A target is a box [x, y, w, h], 'board' or 'parts' (the page's two frames; 'parts' as a
+  // button fits it, filling a portrait screen) or a part's id. `zoom` closes in on its centre.
+  function boxOf(target, zoom = 1) {
     const svg = page.current();
-    if (target === 'board' || target === 'parts') return numbers(svg.dataset[target]);
-    return partBox(page, target);
+    let box;
+    if (Array.isArray(target)) box = target;
+    else if (target === 'board') box = numbers(svg.dataset.board);
+    else if (target === 'parts') box = fitFrame(page, numbers(svg.dataset.parts));
+    else box = partBox(page, target);
+    if (!box || zoom === 1) return box;
+    const [x, y, w, h] = box;
+    return [x + (w - w / zoom) / 2, y + (h - h / zoom) / 2, w / zoom, h / zoom];
   }
   const progress = (m) => (m.ms > 0 ? Math.min(1, (time - m.t0) / m.ms) : 1);
 
@@ -41,14 +53,40 @@ export function createDirector(page, sim) {
     },
     // From t = 0 with these cues (run in order of `at`, those with the same `at` in the order given).
     start(list = []) {
+      director.stop();
       time = 0;
+      cueTime = 0;
       cues = list.map((c, k) => ({ ...c, k })).sort((a, b) => a.at - b.at || a.k - b.k);
+    },
+    // Everything that was moving stays where it is; nothing more happens.
+    stop() {
+      cues = [];
+      hold = null;
       camera = null;
       moving.clear();
+      tweens.clear();
+      after.clear();
+    },
+    // Something still to come or still moving.
+    get busy() {
+      return cues.length > 0 || hold != null || camera != null || moving.size > 0 || tweens.size > 0;
+    },
+    // Cues wait until test() is true (checked on each tick, on the last reading), at most `max` ms.
+    hold(test, max) {
+      hold = { test, left: max };
+    },
+    // apply(e) on every tick for `ms`, e going 0 → 1 along `ease`.
+    tween(apply, { ms = 0, ease = easeOut } = {}) {
+      if (!(ms > 0)) return apply(1);
+      tweens.add({ apply, t0: time, ms, ease });
+    },
+    // fn() after every tick's simulation, until stop().
+    after(fn) {
+      after.add(fn);
     },
     // Move the frame there in `ms` along `ease` (k → share of the way), from where it is now.
-    frame(target, { ms = 0, ease = easeOut } = {}) {
-      const box = boxOf(target);
+    frame(target, { ms = 0, ease = easeOut, zoom = 1 } = {}) {
+      const box = boxOf(target, zoom);
       if (!box) return false;
       camera = null;
       if (!(ms > 0) || !page.box) setBox(page, box);
@@ -75,10 +113,30 @@ export function createDirector(page, sim) {
       const dt = Math.max(0, Number(ms) || 0);
       const end = time + dt;
       // A cue starts its moves at its own time, not at the end of the tick that reached it.
-      while (cues.length && cues[0].at <= end) {
-        const cue = cues.shift();
-        time = Math.max(time, cue.at);
-        cue.run(director);
+      let left = dt;
+      for (;;) {
+        if (hold) {
+          if (hold.test()) hold = null;
+          else {
+            const wait = Math.min(left, hold.left);
+            hold.left -= wait;
+            left -= wait;
+            time += wait;
+            if (hold.left > 0) break;
+            hold = null;
+          }
+        }
+        const next = cues[0];
+        if (!next || next.at > cueTime + left) {
+          cueTime += left;
+          break;
+        }
+        const gap = Math.max(0, next.at - cueTime);
+        cueTime += gap;
+        left -= gap;
+        time += gap;
+        cues.shift();
+        next.run(director);
       }
       time = end;
       if (camera) {
@@ -93,8 +151,14 @@ export function createDirector(page, sim) {
           sim.set(m.id, m.field, k >= 1 ? m.to : m.log ? m.from * (m.to / m.from) ** e : m.from + (m.to - m.from) * e);
           if (k >= 1) moving.delete(key);
         }
+        for (const tw of tweens) {
+          const k = progress(tw);
+          tw.apply(tw.ease(k));
+          if (k >= 1) tweens.delete(tw);
+        }
         sim.advance(dt);
       });
+      for (const fn of after) fn();
     },
   };
   return director;

@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "title": {
+    "en": "NPN transistor switch",
+    "es": "Interruptor con transistor NPN"
+  },
+  "board": "auto",
+  "clearance": 1,
+  "description": {
+    "en": "The npn-switch recipe as laid out, with a tour: See how it works in the menu.",
+    "es": "La receta npn-switch tal como la monta layout, con un recorrido: Ver cómo funciona en el menú."
+  },
+  "page": {
+    "tour": "tours/npn-switch.json"
+  },
+  "parts": [
+    {
+      "id": "S1",
+      "type": "button",
+      "pins": [
+        "f3",
+        "e3",
+        "f5",
+        "e5"
+      ]
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "1k",
+      "pins": [
+        "i5",
+        "i9"
+      ]
+    },
+    {
+      "id": "R2",
+      "type": "resistor",
+      "value": "330",
+      "pins": [
+        "g3",
+        "g7"
+      ]
+    },
+    {
+      "id": "Q1",
+      "part": "2N2222A",
+      "type": "bjt",
+      "pins": [
+        "h11",
+        "h12",
+        "h13"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "red",
+      "pins": [
+        "f7",
+        "f10"
+      ]
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "T+2",
+        "j3"
+      ]
+    },
+    {
+      "id": "W2",
+      "type": "wire",
+      "color": "orange",
+      "pins": [
+        "j12",
+        "j9"
+      ]
+    },
+    {
+      "id": "W3",
+      "type": "wire",
+      "color": "green",
+      "pins": [
+        "j13",
+        "j10"
+      ]
+    },
+    {
+      "id": "W4",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "T-8",
+        "j11"
+      ]
+    }
+  ],
+  "supplies": [
+    {
+      "id": "V1",
+      "kind": "bench",
+      "voltage": 5,
+      "positive": "T+",
+      "negative": "T-"
+    }
+  ],
+  "spec": {
+    "recipe": {
+      "name": "npn-switch"
+    },
+    "nets": [
+      [
+        "T+",
+        "S1.1",
+        "R2.1"
+      ],
+      [
+        "S1.3",
+        "R1.1"
+      ],
+      [
+        "R1.2",
+        "Q1.B"
+      ],
+      [
+        "R2.2",
+        "D1.anode"
+      ],
+      [
+        "D1.cathode",
+        "Q1.C"
+      ],
+      [
+        "Q1.E",
+        "T-"
+      ]
+    ],
+    "wires": [
+      "W1",
+      "W2",
+      "W3",
+      "W4"
+    ]
+  }
+}

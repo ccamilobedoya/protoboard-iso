@@ -6,6 +6,7 @@
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { renderPage } from '../src/page.js';
+import { CIRCUIT_FOLDER } from '../src/beside.js';
 import { autoLayout } from '../src/layout.js';
 import { RECIPES, expandRecipe, recipeEntry } from '../src/recipes/index.js';
 import { pageSimulation } from '../src/sim/index.js';
@@ -25,7 +26,8 @@ for (const name of Object.keys(RECIPES)) {
   circuits.push({ group: 'recipes', name, circuit: r.circuit, about: (lang) => recipeEntry(name, lang).teaches });
 }
 for (const file of readdirSync(join(root, 'examples')).filter((f) => f.endsWith('.json')).sort()) {
-  const circuit = JSON.parse(readFileSync(join(root, 'examples', file), 'utf8'));
+  // Read from its folder, so a tour or a program beside it (page.tour, "program") is found.
+  const circuit = Object.defineProperty(JSON.parse(readFileSync(join(root, 'examples', file), 'utf8')), CIRCUIT_FOLDER, { value: join(root, 'examples') });
   if (!pageSimulation(circuit).results) continue;
   circuits.push({ group: 'examples', name: basename(file, '.json'), circuit, about: (lang) => text(circuit.description, lang) });
 }

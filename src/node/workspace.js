@@ -18,7 +18,7 @@ import { renderCircuit, inspectCircuit } from '../index.js';
 import { renderPage } from '../page.js';
 import { pickLanguage, t } from '../i18n/index.js';
 import { circuitTooLarge, fileTooLarge } from '../limits.js';
-import { CIRCUIT_FOLDER } from '../sim/compile.js';
+import { CIRCUIT_FOLDER } from '../beside.js';
 
 const error = (code, params) => ({ severity: 'error', code, params });
 

@@ -1,0 +1,577 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "timeline.schema.json",
+  "title": "protoboard-iso timeline",
+  "description": "A tour of a circuit's page and the script of a video: written once, played the same every time.",
+  "type": "object",
+  "required": [
+    "steps"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "circuit": {
+      "type": "string",
+      "description": "The circuit (or recipe) it tells"
+    },
+    "format": {
+      "enum": [
+        "vertical",
+        "horizontal"
+      ],
+      "description": "The video: vertical 1080 × 1920 (default) or horizontal 1920 × 1080"
+    },
+    "theme": {
+      "type": "string",
+      "description": "The theme of the video (stage, from V4)"
+    },
+    "steps": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "target"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "frame"
+              },
+              "target": {
+                "type": "string",
+                "description": "board, parts or a part id"
+              },
+              "zoom": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 20
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "parts"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "focus"
+              },
+              "parts": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "id of a part (or a supply)"
+                },
+                "description": "The parts brought forward; [] clears"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "view"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "flip"
+              },
+              "view": {
+                "type": "string",
+                "description": "A view of the page (front, back…)"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "part",
+              "field",
+              "value"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "set"
+              },
+              "part": {
+                "type": "string",
+                "description": "id of a part (or a supply)"
+              },
+              "field": {
+                "type": "string",
+                "description": "A control of the part (resistance, pressed, voltage…)"
+              },
+              "value": {
+                "type": [
+                  "number",
+                  "boolean"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "on"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "flow"
+              },
+              "on": {
+                "type": "boolean"
+              },
+              "ramp": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10000,
+                "description": "ms for the dots to reach their speed"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "text"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "caption"
+              },
+              "text": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "At most 280 characters"
+              },
+              "line": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "At most 280 characters"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "part",
+              "field"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "value"
+              },
+              "part": {
+                "type": "string",
+                "description": "id of a part (or a supply)"
+              },
+              "field": {
+                "enum": [
+                  "current",
+                  "voltage",
+                  "power",
+                  "brightness"
+                ],
+                "description": "What is read from the part: current (A), voltage (V), power (W), brightness (0…1)"
+              },
+              "label": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "At most 280 characters"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "probe"
+              },
+              "part": {
+                "type": "string",
+                "description": "id of a part (or a supply)"
+              },
+              "node": {
+                "type": "string",
+                "description": "A strip, as the page names it"
+              }
+            },
+            "additionalProperties": false,
+            "oneOf": [
+              {
+                "required": [
+                  "part"
+                ]
+              },
+              {
+                "required": [
+                  "node"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "part"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "insert"
+              },
+              "part": {
+                "type": "string",
+                "description": "id of a part (or a supply)"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "part",
+              "field"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "wait-until"
+              },
+              "part": {
+                "type": "string",
+                "description": "id of a part (or a supply)"
+              },
+              "field": {
+                "enum": [
+                  "current",
+                  "voltage",
+                  "power",
+                  "brightness"
+                ],
+                "description": "What is read from the part: current (A), voltage (V), power (W), brightness (0…1)"
+              },
+              "above": {
+                "type": "number"
+              },
+              "below": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 60000,
+                "description": "ms to wait at most (default 10000)"
+              }
+            },
+            "additionalProperties": false,
+            "oneOf": [
+              {
+                "required": [
+                  "above"
+                ]
+              },
+              {
+                "required": [
+                  "below"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

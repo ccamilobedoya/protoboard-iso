@@ -43,6 +43,10 @@ node bin/protoboard-iso.js page <objetivo> [--lang es] [--fit parts|board] [-o p
   `"page": { "theme": "light" | "dark" }`, y un enlace gana sobre los dos: `…/led.html?theme=dark`
   (`auto` vuelve a seguir al sistema). Solo cambian los colores de la página; la protoboard conserva
   los suyos.
+- **Un recorrido**, cuando el circuito tiene uno (`"page": { "tour": "tours/nombre.json" }`, un
+  archivo junto a él): *Ver cómo funciona* en el menú ⋯ mueve la cámara, aprieta botones, enciende
+  la corriente y escribe subtítulos; un toque en cualquier lugar lo detiene donde está. Con
+  movimiento reducido sus movimientos son cortes ([escena-y-video.md](escena-y-video.md)).
 - **Resultados de la simulación**, siempre que el circuito tenga fuente (`supplies` o una
   batería): siempre activos, solo para el componente que se toca, así la protoboard nunca se
   llena de números; los LED brillan con su corriente. Se apagan mientras alguien deba

@@ -25,8 +25,17 @@
 // by CSS over their presentation attributes: the static SVG keeps its own colours.
 // Touch: hover only with a fine pointer, feedback on :active, 40 px targets on a coarse pointer.
 
+import { MOVES } from './client/moves.js';
+
+// The moves of a timeline as tokens (page/client/moves.js): --move-<name>-ms and, with a curve,
+// --move-<name>-ease.
+const MOVE_TOKENS = Object.entries(MOVES)
+  .map(([name, m]) => `--move-${name}-ms: ${m.ms}ms;${m.curve ? ` --move-${name}-ease: cubic-bezier(${m.curve.join(', ')});` : ''}`)
+  .join('\n  ');
+
 export const STYLE = `
 :root {
+  ${MOVE_TOKENS}
   /* Motion (U5, from the review-animations standard): enter and exit ease-out, on-screen movement
      ease-in-out, the sheet the drawer curve; UI under 300 ms; presses 120 ms. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
@@ -268,6 +277,18 @@ nav .falstad .flag[hidden] { display: none; }
 /* The first-time hint (bar.js): what can be tapped and how to move, alone or inside a note. */
 .first-hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 2; box-sizing: border-box; width: max-content; max-width: calc(100% - 24px); display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; text-align: center; color: var(--on-tooltip); background: var(--tooltip); border-radius: 6px; font-size: 13px; line-height: 1.35; pointer-events: none; }
 .first-hint[hidden] { display: none; }
+/* The tour (stage and video, V2): its caption over the top of the drawing, text from the timeline.
+   The video's caption layer and sizes come with the stage theme (V4). */
+.tour-caption { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 3; box-sizing: border-box; width: max-content; max-width: min(560px, calc(100% - 24px)); padding: 10px 14px; color: var(--on-tooltip); background: var(--tooltip); border-radius: 8px; pointer-events: none; }
+.tour-caption p { margin: 0; }
+.tour-caption .text { font-size: 17px; line-height: 1.35; font-weight: 600; }
+.tour-caption .line { margin-top: 2px; font-size: 14px; line-height: 1.35; opacity: 0.85; }
+.tour-caption .value { margin-top: 6px; display: flex; align-items: baseline; gap: 8px; }
+.tour-caption .value .label { font-size: 13px; opacity: 0.85; }
+.tour-caption .value .number { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 24px; font-weight: 600; }
+.tour-caption .stop { display: block; margin-top: 6px; font-size: 12px; opacity: 0.7; }
+.tour-caption[hidden], .tour-caption [hidden] { display: none; }
+body.touring .first-hint { display: none; }
 .first-hint small { font-size: 12px; opacity: 0.8; }
 body.embedded .first-hint .alone, body:not(.embedded) .first-hint .framed { display: none; }
 /* The inspector (inspector.js, UX pass U4): the card and the circuit's panels, in tabs. */

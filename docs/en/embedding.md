@@ -41,6 +41,10 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
   glow with their current. Turn them off while someone is asked to predict them:
   `"page": { "simulation": false }` (the whole simulation) or `"page": { "results": false }`
   ([simulation.md](simulation.md)).
+- **A tour**, when the circuit has one (`"page": { "tour": "tours/name.json" }`, a file beside it):
+  *See how it works* in the ⋯ menu moves the camera, presses buttons, turns the current on and
+  writes captions; a tap anywhere stops it where it is. Under reduced motion its moves are cuts
+  ([stage-and-video.md](stage-and-video.md)).
 - **Tap a part** to focus it and open its card; the current layer is a button in the bar
   (`"page": { "flow": false }` removes it).
   See [focus-and-flow.md](focus-and-flow.md).

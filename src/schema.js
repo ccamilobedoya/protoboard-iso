@@ -12,6 +12,9 @@ import { LANGUAGES } from './i18n/index.js';
 import { BATTERY_FORMATS, BATTERY_CHEMISTRIES } from './parts/batteries.js';
 import { LDR_PARTS } from './parts/types/more.js';
 import { RECIPES } from './recipes/index.js';
+import { MOVES } from './page/client/moves.js';
+import { READINGS, FORMATS } from './tour.js';
+import { LIMITS } from './limits.js';
 
 export function buildSchemas() {
   const text = { type: 'string' };
@@ -167,6 +170,10 @@ export function buildSchemas() {
             },
           },
           theme: { enum: ['auto', 'light', 'dark'], description: "Colours of the page: 'auto' follows the system (default); 'light' or 'dark' fixes them. A link's ?theme= wins over this" },
+          tour: {
+            description: 'The timeline the page plays as *See how it works* (and a video is made from): the name of a JSON file beside the circuit (timeline.schema.json), read only from its folder, or the timeline itself',
+            oneOf: [{ type: 'string', pattern: '\\.json$' }, { $ref: 'timeline.schema.json' }],
+          },
           start: { enum: ['dc', 'zero'], description: "Live simulation (with results or flow): 'dc' opens at the DC values (default); 'zero' switches on at t = 0 with capacitors discharged and runs" },
         },
         additionalProperties: false,
@@ -209,5 +216,53 @@ export function buildSchemas() {
       ],
     },
   };
-  return { 'circuit.schema.json': circuit, 'ops.schema.json': ops };
+  return { 'circuit.schema.json': circuit, 'ops.schema.json': ops, 'timeline.schema.json': timelineSchema(localized) };
+}
+
+// A timeline (docs/en/stage-and-video.md, "The timeline"): steps at a time in ms, each an action
+// and, for what moves, one of the seven named moves. The rhythm (no two slow moves in a row, no
+// two hits without a breath) needs the order of the steps: check reports it (src/tour.js).
+function timelineSchema(localized) {
+  const text = { allOf: [localized], description: `At most ${LIMITS.tourText} characters` };
+  const id = { type: 'string', description: 'id of a part (or a supply)' };
+  const reading = { enum: Object.keys(READINGS), description: 'What is read from the part: current (A), voltage (V), power (W), brightness (0…1)' };
+  const common = {
+    at: { type: 'number', minimum: 0, description: 'ms from the start; steps with the same at start together' },
+    move: { enum: Object.keys(MOVES), description: Object.entries(MOVES).map(([n, m]) => `${n} ${m.min === m.max ? `${m.ms} ms` : `${m.min}…${m.max} ms`}`).join(', ') },
+    ms: { type: 'number', minimum: 0, description: "The move's duration, within its range (push needs it most)" },
+  };
+  const action = (name, properties, required = [], extra = {}) => ({ type: 'object', required: ['at', 'do', ...required], properties: { ...common, do: { const: name }, ...properties }, additionalProperties: false, ...extra });
+  return {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: 'timeline.schema.json',
+    title: 'protoboard-iso timeline',
+    description: 'A tour of a circuit\'s page and the script of a video: written once, played the same every time.',
+    type: 'object',
+    required: ['steps'],
+    properties: {
+      $schema: { type: 'string' },
+      circuit: { type: 'string', description: 'The circuit (or recipe) it tells' },
+      format: { enum: FORMATS, description: 'The video: vertical 1080 × 1920 (default) or horizontal 1920 × 1080' },
+      theme: { type: 'string', description: 'The theme of the video (stage, from V4)' },
+      steps: {
+        type: 'array',
+        maxItems: LIMITS.tourSteps,
+        items: {
+          oneOf: [
+            action('frame', { target: { type: 'string', description: 'board, parts or a part id' }, zoom: { type: 'number', exclusiveMinimum: 0, maximum: 20 } }, ['target']),
+            action('focus', { parts: { type: 'array', items: id, description: 'The parts brought forward; [] clears' } }, ['parts']),
+            action('flip', { view: { type: 'string', description: 'A view of the page (front, back…)' } }, ['view']),
+            action('set', { part: id, field: { type: 'string', description: 'A control of the part (resistance, pressed, voltage…)' }, value: { type: ['number', 'boolean'] } }, ['part', 'field', 'value']),
+            action('flow', { on: { type: 'boolean' }, ramp: { type: 'number', minimum: 0, maximum: 10000, description: 'ms for the dots to reach their speed' } }, ['on']),
+            action('caption', { text, line: text }, ['text']),
+            action('value', { part: id, field: reading, label: text }, ['part', 'field']),
+            action('probe', { part: id, node: { type: 'string', description: 'A strip, as the page names it' } }, [], { oneOf: [{ required: ['part'] }, { required: ['node'] }] }),
+            action('insert', { part: id }, ['part']),
+            action('wait-until', { part: id, field: reading, above: { type: 'number' }, below: { type: 'number' }, max: { type: 'number', minimum: 0, maximum: 60000, description: 'ms to wait at most (default 10000)' } }, ['part', 'field'], { oneOf: [{ required: ['above'] }, { required: ['below'] }] }),
+          ],
+        },
+      },
+    },
+    additionalProperties: false,
+  };
 }

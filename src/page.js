@@ -33,6 +33,7 @@ import { nodeLines } from './sim/lines.js';
 import { stripHoles } from './render/focus.js';
 import { describePart, describeKeys } from './parts/describe.js';
 import { MODULES } from './parts/modules.js';
+import { loadTour } from './tour.js';
 
 // The page's script, bundled once per process: without the simulation, or with it (the engine
 // runs in the page when the circuit asks for results or the current layer).
@@ -256,7 +257,7 @@ function explanations(lang) {
 function liveData(circuit, lang, flow, templates) {
   const texts = {};
   const dict = { ...LANGUAGES.en, ...(LANGUAGES[lang] ?? {}) };
-  for (const key of Object.keys(dict)) if (/^(sim|state|probe)\.|^page\.(time|live|control|controls|warnings|falstad|scope|node|model)\.|^check\.SIM_|^falstad\./.test(key)) texts[key] = t(lang, key);
+  for (const key of Object.keys(dict)) if (/^(sim|state|probe)\.|^page\.(time|live|control|controls|warnings|falstad|scope|node|model|tour)\.|^check\.SIM_|^falstad\./.test(key)) texts[key] = t(lang, key);
   const dc = flow ? simulate(circuit, { analysis: 'dc' }) : null;
   return {
     flow: dc?.ok ? liveFlow(buildCircuit(circuit), dc, circuit) : null,
@@ -291,6 +292,8 @@ export function renderPage(circuit, options = {}) {
   // The simulation runs in the page with the results or the current layer.
   const compiled = results || flow ? compile(circuit) : null;
   const live = compiled?.program ? liveData(circuit, lang, flow, templates) : null;
+  // The tour plays in a live page only: its steps move controls and read the simulation.
+  const tour = live ? loadTour(circuit, lang).tour : null;
   const data = {
     parts,
     nodes,
@@ -301,6 +304,7 @@ export function renderPage(circuit, options = {}) {
     explain: { ...explanations(lang), ...kinds },
     focus: Array.isArray(circuit.page?.focus) ? circuit.page.focus : [],
     ...(live && { live }),
+    ...(tour && { tour }),
     text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit'), tabPart: t(lang, 'page.tab.part'), tabStrip: t(lang, 'page.tab.strip'), model: t(lang, 'sim.badge'), modelShort: t(lang, 'page.model') },
   };
   const title = titleOf(circuit, lang) ?? t(lang, 'page.untitled');

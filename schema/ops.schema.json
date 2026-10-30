@@ -413,6 +413,18 @@
                 ],
                 "description": "Colours of the page: 'auto' follows the system (default); 'light' or 'dark' fixes them. A link's ?theme= wins over this"
               },
+              "tour": {
+                "description": "The timeline the page plays as *See how it works* (and a video is made from): the name of a JSON file beside the circuit (timeline.schema.json), read only from its folder, or the timeline itself",
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "\\.json$"
+                  },
+                  {
+                    "$ref": "timeline.schema.json"
+                  }
+                ]
+              },
               "start": {
                 "enum": [
                   "dc",

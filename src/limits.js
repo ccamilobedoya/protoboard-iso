@@ -9,6 +9,10 @@ export const LIMITS = {
   parts: 1000, // parts in one circuit
   ops: 3000, // operations in one change (a layout again removes and adds every part)
   sketchChars: 65_536, // a board's program, as text or as a .ino file
+  tourBytes: 100_000, // a page's timeline (page.tour), as a file or given whole
+  tourSteps: 200, // steps in one timeline
+  tourText: 280, // characters in one caption, second line or value label
+  tourMs: 600_000, // ms: the last move of a timeline ends within ten minutes
 };
 
 const tooLarge = (code, size, limit) => ({ severity: 'error', code, params: { size, limit } });

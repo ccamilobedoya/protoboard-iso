@@ -38,7 +38,31 @@ página y la hoja de ruta al día.
   tiempo; el ciclo de `requestAnimationFrame` de la página llama `tick` con el tiempo que pasó.
   `test/director.test.js` reproduce una secuencia con el reloj del sistema hecho para fallar; los
   hashes de V0 no cambiaron (solo los de las páginas: el script creció).
-- ⬜ V2 a V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
+- ✅ V2 · Línea de tiempo y reproductor (2026-10-30): `src/tour.js` lee `page.tour` (un archivo JSON
+  junto al circuito, por medio de `src/beside.js`, el lector que comparten los `.ino`, o la línea de
+  tiempo misma), la revisa (`TOUR_*` en `check`) y le da a la página sus pasos en orden, con los
+  textos en el idioma de la página. `schema/timeline.schema.json` describe el formato; el ritmo
+  necesita el orden de los pasos, así que lo informa `check` (`TOUR_RHYTHM_SLOW`: dos `push`
+  seguidos; `TOUR_RHYTHM_HIT`: dos golpes a menos de un respiro, 400 ms). Los siete movimientos son
+  una tabla, `src/page/client/moves.js` (duración, rango para `ms`, cubic-bezier), escrita como
+  tokens `--move-<nombre>-ms` y `--move-<nombre>-ease`. Los problemas de forma, tamaño y archivo
+  dejan la página sin recorrido; un componente o control desconocido, un `ms` fuera de rango o un
+  ritmo roto es un aviso y el recorrido igual corre. Topes en `src/limits.js` (100 kB, 200 pasos,
+  280 caracteres por texto, diez minutos) y casos en `test/attack.test.js`. El reproductor,
+  `src/page/client/tour.js`, convierte los pasos en señales del director: *Ver cómo funciona* en el
+  menú ⋯ de una página viva con recorrido; un toque en cualquier lugar o Escape lo detiene donde
+  está, y al final la página queda como la dejó. Mientras corre, el director tiene el tiempo
+  (`page.direct`); con movimiento reducido sus movimientos son cortes (no en una grabación,
+  `?director=1`, que lo arranca con `protoboardLive.tour.play()`). El director ganó `hold`
+  (`wait-until`, que corre los pasos siguientes; `max`, 10 s por defecto), `tween` (la `ramp` de los
+  puntos, la cuenta de 500 ms del valor), `after` y `stop`. Por ahora, hasta sus fases: el subtítulo
+  es una caja simple arriba (la capa y los tamaños del video llegan con V4), `probe` abre la ficha
+  con su osciloscopio (el recuadro es M11) e `insert` pone la pieza en foco (la bajada es M15, V6).
+  `examples/npn-switch.json` y `examples/tours/npn-switch.json`: `test/tour.test.js` lo reproduce en
+  jsdom a tamaño de celular y de escritorio y obtiene los mismos subtítulos, valores, controles y
+  foco a los mismos tiempos. Un repintado ya no busca sus elementos cada vez (de 120 ms a 2 ms por
+  tick en jsdom). Los hashes de V0 no cambiaron.
+- ⬜ V3 a V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
 

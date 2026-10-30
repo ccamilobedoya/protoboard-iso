@@ -37,7 +37,30 @@ up to date.
   throttle reads its time; the page's `requestAnimationFrame` loop calls `tick` with the time that
   passed. `test/director.test.js` plays a sequence with the system clock made to throw; the V0
   hashes did not change (only the pages' hashes, the script grew).
-- ⬜ V2 to V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
+- ✅ V2 · Timeline and player (2026-10-30): `src/tour.js` reads `page.tour` (a JSON file beside the
+  circuit, through `src/beside.js`, the reader `.ino` files share, or the timeline itself), checks
+  it (`TOUR_*` in `check`) and gives the page its steps in order, texts in the page's language.
+  `schema/timeline.schema.json` describes the format; the rhythm needs the order of the steps, so
+  `check` reports it (`TOUR_RHYTHM_SLOW`: two `push` in a row; `TOUR_RHYTHM_HIT`: two hits less
+  than a breath, 400 ms, apart). The seven moves are one table, `src/page/client/moves.js`
+  (duration, range for `ms`, cubic-bezier), written as tokens `--move-<name>-ms` and
+  `--move-<name>-ease`. Shape, size and file problems drop the tour; an unknown part or control,
+  an `ms` out of range or a broken rhythm is a warning and the tour still plays. Caps in
+  `src/limits.js` (100 kB, 200 steps, 280 characters a text, ten minutes) and cases in
+  `test/attack.test.js`. The player, `src/page/client/tour.js`, turns the steps into the
+  director's cues: *See how it works* in the ⋯ menu of a live page with a tour, a tap anywhere or
+  Escape stops it where it is, and at the end the page stays as the tour left it. While it plays
+  the director has the time (`page.direct`); under reduced motion its moves are cuts (not in a
+  recording, `?director=1`, which starts it with `protoboardLive.tour.play()`). The director gained
+  `hold` (`wait-until`, which moves the later steps; `max`, 10 s by default), `tween` (the dots'
+  `ramp`, the value's count of 500 ms), `after` and `stop`. For now, until their phases: the caption
+  is a plain box at the top (the video's layer and sizes come with V4), `probe` opens the card with
+  its oscilloscope (the inset is M11), and `insert` brings the part into focus (the descent is M15,
+  V6). `examples/npn-switch.json` and `examples/tours/npn-switch.json`: `test/tour.test.js` plays it
+  in jsdom at phone and desktop sizes and gets the same captions, values, controls and focus at
+  the same times. A repaint no longer looks its elements up each time (120 ms → 2 ms a tick in
+  jsdom). The V0 hashes did not change.
+- ⬜ V3 to V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
 
