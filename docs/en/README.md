@@ -22,6 +22,7 @@ planning live at the root: [ROADMAP.md](../../ROADMAP.md), [PLANNING.md](../../P
 - [Microcontrollers in the simulation](microcontrollers.md): How the kit simulates development boards (ESP32 DevKit, ESP32-C3 SuperMini, Arduino UNO): not the processor, but what a learner sees at the pins.
 - [Recipes: lesson circuits by name](recipes.md): A recipe is a `layout` spec the kit keeps for a usual lesson circuit: its parts with default values, in signal order, its nets and its supply.
 - [Simulation](simulation.md): The kit computes the voltage of every connected group and the current through every part, from the same circuit file that draws the board.
+- [Stage and video: design and plan](stage-and-video.md): The live page learns to **tell** a circuit step by step: a declarative timeline that the page plays as a tour, and that a script turns into the frames of a short video, under one external clock, so the same file gives the same pictures every time.
 - [Translating](translating.md): There are two things to translate, and they are independent.
 - [User experience pass: design and plan](ux-pass.md): Stage 3 left the page with many useful features: views, framing, labels, the current layer, time controls, Falstad, cards for parts and strips with their values, sliders and oscilloscope, a controls panel and warnings.
 <!-- /generated -->

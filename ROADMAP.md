@@ -256,6 +256,23 @@ sessions in [docs/en/ux-pass.md](docs/en/ux-pass.md); visual system in
 - ✅ U6 · Details: small parts easier to tap (a part nearby, the part underneath on a second tap), portrait framing (the labels items were dropped)
 - ⬜ U7 · Try it with the maintainer on a phone, an iPad and inside a notes app, and adjust
 
+## Stage and video (cross-cutting) ⬜
+
+Asked by the maintainer (2026-10-30): the page should tell a circuit step by step, look the part,
+and give short videos without an assistant in the loop. Design, mock-ups and the plan by sessions in
+[docs/en/stage-and-video.md](docs/en/stage-and-video.md): a declarative timeline (one JSON per
+video), one external clock, a rhythm grammar of seven moves, a `stage` theme chosen from mock-ups,
+and a frame exporter. Decisions taken with the maintainer on 2026-10-30: C dark for video as a `stage` theme, light A stays in lessons, the grid in page and video, the first wave of moves, the tour from V2.
+
+- ⬜ V0 · Safety net: a frame golden (recipe, viewport, `tick` calls, PNG hash), skipped without a browser, never passed
+- ⬜ V1 · One clock: `director.js`; camera, tweens, dots, glow and colours written per `tick`; `?director=1`
+- ⬜ V2 · Timeline and player: the JSON format and schema, the seven moves as tokens, `wait-until`, *See how it works* in the page, caps and attack cases
+- ⬜ V3 · The drawing that tells: the board's own printed coordinates lit (the same decals; unnumbered columns get one in the same format), covered by parts like the print; the current layer as a plan (a pad at every landing, a line through two-pin parts and along wires, a stub per pin on the others); result tags at a fixed screen size and off their part; short labels at rest and the frame computed with them
+- ⬜ V4 · The stage: the chosen direction as `[data-theme="stage"]`, the hole grid continued under the drawing, the caption layer, one label and no tags in a frame, the reserved margin, safe bands measured
+- ⬜ V5 · Frames: `scripts/render-frames.js` (Playwright, dev only) → PNG sequence + `timeline.json`; ffmpeg command documented; a 45 s test video of three recipes approved on a phone
+- ⬜ V6 · The chosen moves (M1 to M16 in the plan), each with a jsdom test and a golden frame
+- ⬜ V7 · Bench and guide: a timeline per recorded recipe, the golden in `npm run verify`, the guide in en and es
+
 ## Stage 4 — On a phone or tablet ⬜
 
 Goal: open a link and explore.
@@ -291,7 +308,7 @@ package. Planned on 2026-10-26 after a review of licences and private data.
 - ✅ `scripts/readme-images.js`: the README and examples images drawn by the kit (`docs/img/`); `live-page.png` is a screenshot (`scripts/ux-shots.js`)
 - ✅ `scripts/demo-site.js` and `.github/workflows/pages.yml`: every recipe and every example with a source as a live page, in English and Spanish, with an index
 - ✅ Turn on GitHub Pages (Settings → Pages → Source: GitHub Actions) so the README's demo link works: on, checked 2026-10-29 (the demo answers, the workflow runs on every push)
-- ⬜ A short GIF or video of the live page (current flowing, the oscilloscope, a slider)
+- ⬜ A short GIF or video of the live page (current flowing, the oscilloscope, a slider); made with the frame exporter of *Stage and video* (V5)
 
 **C · Examples** ✅ (2026-10-26)
 - ✅ `examples/README.md` (en/es): the three ways to describe a circuit (by hand, layout, recipe), the examples by theme with a thumbnail each, `common-mistakes.json` marked as wrong on purpose, how to add one

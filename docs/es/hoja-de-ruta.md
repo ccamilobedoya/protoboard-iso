@@ -259,6 +259,25 @@ diseño, decisiones y sesiones en [experiencia-de-uso.md](experiencia-de-uso.md)
 - ✅ U6 · Detalles: componentes pequeños más fáciles de tocar (un componente cercano, el de debajo con un segundo toque), encuadre vertical (se descartaron los puntos de etiquetas)
 - ⬜ U7 · Probarlo con el mantenedor en el celular, el iPad y dentro de una app de notas, y ajustar
 
+## Escena y video (transversal) ⬜
+
+Pedido del mantenedor (2026-10-30): la página debe contar un circuito paso a paso, verse a la altura,
+y dar videos cortos sin un asistente en el ciclo. Diseño, maquetas y plan por sesiones en
+[docs/es/escena-y-video.md](escena-y-video.md): una línea de tiempo declarativa (un JSON por video),
+un solo reloj externo, una gramática de ritmo de siete movimientos, un tema `stage` elegido entre
+maquetas, y un exportador de fotogramas. Decisiones tomadas con el mantenedor el 2026-10-30: C oscura para video como tema `stage`, la A
+clara sigue en las lecciones, la retícula en página y video, la primera tanda de movimientos, el
+recorrido desde V2.
+
+- ⬜ V0 · Red de seguridad: un *golden* de fotogramas (receta, tamaño, llamadas a `tick`, hash del PNG), saltado sin navegador, nunca aprobado
+- ⬜ V1 · Un reloj: `director.js`; cámara, interpolaciones, puntos, halo y colores escritos por `tick`; `?director=1`
+- ⬜ V2 · Línea de tiempo y reproductor: el formato JSON y su esquema, los siete movimientos como tokens, `wait-until`, *Ver cómo funciona* en la página, topes y casos de ataque
+- ⬜ V3 · El dibujo que cuenta: las propias coordenadas impresas de la tabla encendidas (los mismos calcos; las columnas sin número reciben uno en el mismo formato), tapadas por las piezas como la impresión; la capa de corriente en planta (una pastilla en cada aterrizaje, una recta a través de las piezas de dos patas y a lo largo de los cables, un tramo corto por pata en las demás); etiquetas de resultado a tamaño fijo de pantalla y fuera de su pieza; rótulos cortos en reposo y el encuadre calculado con ellos
+- ⬜ V4 · La escena: la dirección elegida como `[data-theme="stage"]`, la retícula de agujeros continuada bajo el dibujo, la capa de subtítulos, un rótulo y sin etiquetas en un fotograma, el margen reservado, franjas seguras medidas
+- ⬜ V5 · Fotogramas: `scripts/render-frames.js` (Playwright, solo desarrollo) → secuencia PNG + `timeline.json`; comando de ffmpeg documentado; un video de prueba de 45 s con tres recetas aprobado en el celular
+- ⬜ V6 · Los movimientos elegidos (M1 a M16 en el plan), cada uno con prueba en jsdom y fotograma *golden*
+- ⬜ V7 · Banco y guía: una línea de tiempo por receta grabada, el *golden* en `npm run verify`, la guía en en y es
+
 ## Etapa 4 — En el celular o la tableta ⬜
 
 Objetivo: abrir un enlace y explorar.
@@ -294,7 +313,7 @@ después de revisar licencias y datos privados.
 - ✅ `scripts/readme-images.js`: las imágenes del README y de los ejemplos dibujadas por el kit (`docs/img/`); `live-page.png` es una captura (`scripts/ux-shots.js`)
 - ✅ `scripts/demo-site.js` y `.github/workflows/pages.yml`: cada receta y cada ejemplo con fuente como página en vivo, en inglés y español, con un índice
 - ✅ Activar GitHub Pages (Settings → Pages → Source: GitHub Actions) para que funcione el enlace a la demostración del README: activado, comprobado el 2026-10-29 (la demostración responde y el flujo corre en cada push)
-- ⬜ Un GIF o video corto de la página en vivo (la corriente circulando, el osciloscopio, un deslizador)
+- ⬜ Un GIF o video corto de la página en vivo (la corriente circulando, el osciloscopio, un deslizador); hecho con el exportador de fotogramas de *Escena y video* (V5)
 
 **C · Ejemplos** ✅ (2026-10-26)
 - ✅ `examples/README.md` (en/es): las tres formas de describir un circuito (a mano, `layout`, receta), los ejemplos por tema con una miniatura cada uno, `common-mistakes.json` marcado como mal a propósito, cómo agregar uno
