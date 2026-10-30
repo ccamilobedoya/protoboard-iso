@@ -293,7 +293,7 @@ después de revisar licencias y datos privados.
 - ✅ README (en/es) reescrito: qué es, pruébalo en un minuto, de una descripción a una lección en seis imágenes, la página, recetas, tres formas de usarlo, qué es y qué no es, documentación separada en usar y desarrollar, contribuir, créditos
 - ✅ `scripts/readme-images.js`: las imágenes del README y de los ejemplos dibujadas por el kit (`docs/img/`); `live-page.png` es una captura (`scripts/ux-shots.js`)
 - ✅ `scripts/demo-site.js` y `.github/workflows/pages.yml`: cada receta y cada ejemplo con fuente como página en vivo, en inglés y español, con un índice
-- ⬜ Activar GitHub Pages (Settings → Pages → Source: GitHub Actions) para que funcione el enlace a la demostración del README
+- ✅ Activar GitHub Pages (Settings → Pages → Source: GitHub Actions) para que funcione el enlace a la demostración del README: activado, comprobado el 2026-10-29 (la demostración responde y el flujo corre en cada push)
 - ⬜ Un GIF o video corto de la página en vivo (la corriente circulando, el osciloscopio, un deslizador)
 
 **C · Ejemplos** ✅ (2026-10-26)

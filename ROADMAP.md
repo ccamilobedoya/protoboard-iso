@@ -290,7 +290,7 @@ package. Planned on 2026-10-26 after a review of licences and private data.
 - ✅ README (en/es) rewritten: what it is, a one-minute try, from a description to a lesson in six pictures, the page, recipes, three ways to use it, what it is and is not, docs split into using and developing, contributing, credits
 - ✅ `scripts/readme-images.js`: the README and examples images drawn by the kit (`docs/img/`); `live-page.png` is a screenshot (`scripts/ux-shots.js`)
 - ✅ `scripts/demo-site.js` and `.github/workflows/pages.yml`: every recipe and every example with a source as a live page, in English and Spanish, with an index
-- ⬜ Turn on GitHub Pages (Settings → Pages → Source: GitHub Actions) so the README's demo link works
+- ✅ Turn on GitHub Pages (Settings → Pages → Source: GitHub Actions) so the README's demo link works: on, checked 2026-10-29 (the demo answers, the workflow runs on every push)
 - ⬜ A short GIF or video of the live page (current flowing, the oscilloscope, a slider)
 
 **C · Examples** ✅ (2026-10-26)
