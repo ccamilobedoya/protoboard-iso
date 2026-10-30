@@ -269,7 +269,7 @@ maquetas, y un exportador de fotogramas. Decisiones tomadas con el mantenedor el
 clara sigue en las lecciones, la retícula en página y video, la primera tanda de movimientos, el
 recorrido desde V2.
 
-- ⬜ V0 · Red de seguridad: un *golden* de fotogramas (receta, tamaño, llamadas a `tick`, hash del PNG), saltado sin navegador, nunca aprobado
+- ✅ V0 · Red de seguridad: un *golden* de fotogramas (receta, tamaño, llamadas a `tick`, hash del PNG) en `test/frames/`, `scripts/frames.js` (el reloj falso de Playwright), un paso de `npm run verify`; saltado sin navegador, nunca aprobado
 - ⬜ V1 · Un reloj: `director.js`; cámara, interpolaciones, puntos, halo y colores escritos por `tick`; `?director=1`
 - ⬜ V2 · Línea de tiempo y reproductor: el formato JSON y su esquema, los siete movimientos como tokens, `wait-until`, *Ver cómo funciona* en la página, topes y casos de ataque
 - ⬜ V3 · El dibujo que cuenta: las propias coordenadas impresas de la tabla encendidas (los mismos calcos; las columnas sin número reciben uno en el mismo formato), tapadas por las piezas como la impresión; la capa de corriente en planta (una pastilla en cada aterrizaje, una recta a través de las piezas de dos patas y a lo largo de los cables, un tramo corto por pata en las demás); etiquetas de resultado a tamaño fijo de pantalla y fuera de su pieza; rótulos cortos en reposo y el encuadre calculado con ellos

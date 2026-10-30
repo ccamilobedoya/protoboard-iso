@@ -264,7 +264,7 @@ and give short videos without an assistant in the loop. Design, mock-ups and the
 video), one external clock, a rhythm grammar of seven moves, a `stage` theme chosen from mock-ups,
 and a frame exporter. Decisions taken with the maintainer on 2026-10-30: C dark for video as a `stage` theme, light A stays in lessons, the grid in page and video, the first wave of moves, the tour from V2.
 
-- ⬜ V0 · Safety net: a frame golden (recipe, viewport, `tick` calls, PNG hash), skipped without a browser, never passed
+- ✅ V0 · Safety net: a frame golden (recipe, viewport, `tick` calls, PNG hash) in `test/frames/`, `scripts/frames.js` (Playwright's fake clock), a step of `npm run verify`; skipped without a browser, never passed
 - ⬜ V1 · One clock: `director.js`; camera, tweens, dots, glow and colours written per `tick`; `?director=1`
 - ⬜ V2 · Timeline and player: the JSON format and schema, the seven moves as tokens, `wait-until`, *See how it works* in the page, caps and attack cases
 - ⬜ V3 · The drawing that tells: the board's own printed coordinates lit (the same decals; unnumbered columns get one in the same format), covered by parts like the print; the current layer as a plan (a pad at every landing, a line through two-pin parts and along wires, a stub per pin on the others); result tags at a fixed screen size and off their part; short labels at rest and the frame computed with them

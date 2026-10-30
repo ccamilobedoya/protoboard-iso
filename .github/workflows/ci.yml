@@ -44,6 +44,10 @@ jobs:
         run: |
           npm ci
           npm --prefix mcp ci
+      # Chromium for the golden frames (scripts/frames.js); here they only check that two renders
+      # agree, since the stored hashes come from the maintainer's fonts.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium-headless-shell
       - name: Install gitleaks
         run: |
           file="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"

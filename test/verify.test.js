@@ -30,7 +30,7 @@ test('verify: the issues of each example, read from npm run examples and compare
 
 test('verify: the steps of "How to verify a change", and the quick ones for pre-commit', () => {
   const full = STEPS.filter((s) => s.full).map((s) => s.name);
-  for (const what of ['coverage', 'lint', 'knip', 'dupes', 'test:mcp', 'golden', 'examples']) assert.ok(full.some((n) => n.includes(what)), what);
+  for (const what of ['coverage', 'lint', 'knip', 'dupes', 'test:mcp', 'golden', 'frames', 'examples']) assert.ok(full.some((n) => n.includes(what)), what);
   assert.ok(STEPS.some((s) => s.quick && /privacy/.test(s.name)));
 });
 

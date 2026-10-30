@@ -61,6 +61,18 @@ export const STEPS = [
   },
   { name: 'simulator against the golden file', run: command([node, 'scripts/golden.js']), full: true },
   {
+    name: 'golden frames of the live page (scripts/frames.js, Chromium)',
+    full: true,
+    // Two renders of each case, so a page that is not deterministic fails here and not later.
+    // Its own exit 2 (no Playwright, no browser) is a step that could not run. On the CI (another
+    // machine, other fonts) only that the two renders agree, not the stored hashes.
+    run: () => {
+      const r = run([node, 'scripts/frames.js', '--runs', '2', ...(process.env.CI ? ['--determinism'] : [])]);
+      const detail = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim();
+      return r.status === 0 ? { status: 'pass' } : { status: r.status === 2 ? 'skip' : 'fail', detail };
+    },
+  },
+  {
     name: 'examples report only the expected issues',
     full: true,
     run: () => {

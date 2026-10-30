@@ -17,7 +17,16 @@ página y la hoja de ruta al día.
 
 ## Estado
 
-- ⬜ V0 a V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
+- ✅ V0 · Red de seguridad (2026-10-30): `test/frames/` tiene tres casos (`npn-switch` a 390 × 760,
+  `rc-square` a 1280 × 800, `led-resistor` a 900 × 620), cada uno con sus llamadas a `tick`, el
+  SHA-256 de la página y del PNG, y el navegador que los hizo. `node scripts/frames.js [--runs n]
+  [--out dir] [--write]` los dibuja en Chromium sin cabeza (Playwright, dependencia de desarrollo)
+  bajo el reloj falso de Playwright, instalado y pausado antes de cargar la página, nunca avanzado:
+  `requestAnimationFrame` nunca se dispara y `performance.now()` queda quieto, así que solo `tick`
+  mueve la página. `npm run verify` lo corre con `--runs 2`; en CI (`CI` definida, otras fuentes)
+  con `--determinism`: solo que los dos renders coincidan, no los hashes guardados. Sin Playwright o sin navegador, o con
+  hashes escritos por otro navegador, el caso queda SKIPPED (salida 2), nunca aprobado.
+- ⬜ V1 a V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
 
@@ -305,14 +314,6 @@ de decisiones en `PLANNING.md`, cadenas nuevas por `t()` en todo `src/i18n`, el 
 día. Cada fase se escribe como un encargo completo (archivos, valores exactos, pruebas) para que un
 modelo mediano la ejecute solo.
 
-## Compatibilidad
-
-- Las páginas sin `page.tour` y los enlaces sin `?director=1` no cambian: mismo marco, mismo ciclo.
-- `window.protoboardLive` conserva `tick`, `set`, `currents`, `recording`; el director agrega.
-- El SVG estático conserva sus colores; el tema de escena es de la página.
-
-## Verificación
-
 ## Encargos por sesión
 
 Un encargo por fase, corto a propósito: lo justo para no perder el orden ni las decisiones, no la
@@ -422,6 +423,14 @@ construyen en orden.
   video, el comando de ffmpeg); la hoja de ruta marcada; el mapa del código; los archivos de los
   agentes si cambió una herramienta o un comando.
 - **Terminada cuando:** un modelo mediano saca un video nuevo de una receta solo con la guía.
+
+## Compatibilidad
+
+- Las páginas sin `page.tour` y los enlaces sin `?director=1` no cambian: mismo marco, mismo ciclo.
+- `window.protoboardLive` conserva `tick`, `set`, `currents`, `recording`; el director agrega.
+- El SVG estático conserva sus colores; el tema de escena es de la página.
+
+## Verificación
 
 - `npm test` en cada fase; `test/live.test.js` y `test/sliders.test.js` siguen en verde.
 - Determinismo: el *golden* de fotogramas (hashes) en `npm run verify`; un cambio del dibujo lo

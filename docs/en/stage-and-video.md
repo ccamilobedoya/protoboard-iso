@@ -17,7 +17,16 @@ up to date.
 
 ## Status
 
-- ⬜ V0 to V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
+- ✅ V0 · Safety net (2026-10-30): `test/frames/` holds three cases (`npn-switch` at 390 × 760,
+  `rc-square` at 1280 × 800, `led-resistor` at 900 × 620), each with its `tick` calls and the
+  SHA-256 of the page and of the PNG, and the browser that made them. `node scripts/frames.js
+  [--runs n] [--out dir] [--write]` renders them in headless Chromium (Playwright, a development
+  dependency) under Playwright's fake clock, installed and paused before the page loads, never advanced:
+  `requestAnimationFrame` never fires and `performance.now()` stands still, so only `tick` moves the
+  page. `npm run verify` runs it with `--runs 2`; on the CI (`CI` set, other fonts) with
+  `--determinism`: only that the two renders agree, not the stored hashes. Without Playwright or a browser, or with hashes
+  written by another browser, a case is SKIPPED (exit 2), never passed.
+- ⬜ V1 to V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
 
@@ -288,14 +297,6 @@ Every phase: docs in English and Spanish, the roadmap ticked (both languages), t
 `PLANNING.md`, new strings through `t()` in every `src/i18n` file, the code map updated. Each phase is
 written as a complete brief (files, exact values, tests) so a medium model can execute it alone.
 
-## Compatibility
-
-- Pages without `page.tour` and links without `?director=1` do not change: same chrome, same loop.
-- `window.protoboardLive` keeps `tick`, `set`, `currents`, `recording`; the director adds to it.
-- The static SVG keeps its own colours; the stage theme is the page's.
-
-## Verification
-
 ## Session briefs
 
 One brief per phase, short on purpose: enough to keep the order and the decisions, not the step
@@ -395,6 +396,14 @@ below against the code (a previous phase may have chosen others), ends with `npm
   in English and Spanish (how to write a timeline, how to get the video, the ffmpeg command); the
   roadmap ticked; the code map; the agents' files if a tool or command changed.
 - **Done when:** a medium model makes a new video of a recipe with the guide alone.
+
+## Compatibility
+
+- Pages without `page.tour` and links without `?director=1` do not change: same chrome, same loop.
+- `window.protoboardLive` keeps `tick`, `set`, `currents`, `recording`; the director adds to it.
+- The static SVG keeps its own colours; the stage theme is the page's.
+
+## Verification
 
 - `npm test` in every phase; `test/live.test.js` and `test/sliders.test.js` stay green.
 - Determinism: the frame golden (hashes) in `npm run verify`; a change of the drawing regenerates it

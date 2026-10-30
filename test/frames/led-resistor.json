@@ -1,0 +1,9 @@
+{
+  "recipe": "led-resistor",
+  "lang": "en",
+  "viewport": {"width":900,"height":620},
+  "ticks": [[0,1],[16,30]],
+  "renderer": "chromium 156.0.8078.4 linux-x64",
+  "html": "a36d39f9f211bd8d15e5af986db0911c3882c69449df6ea8c75028c247ec3fce",
+  "png": "1a7cf4566342bec77d9ba34b934a0302361f21053072ad785ec622552764daf7"
+}

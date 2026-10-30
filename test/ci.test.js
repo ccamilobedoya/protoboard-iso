@@ -16,6 +16,7 @@ test('ci: the whole verification on every push and pull request, with gitleaks p
   assert.match(ci, /^on:\n {2}push:\n {2}pull_request:/m);
   assert.match(ci, /run: npm run verify$/m);
   assert.match(ci, /npm ci\n\s+npm --prefix mcp ci/, 'the development tools and the MCP server installed');
+  assert.match(ci, /npx playwright install --with-deps chromium-headless-shell$/m, 'a browser for the golden frames');
   assert.match(ci, /fetch-depth: 0/, 'gitleaks reads the whole history');
   assert.match(ci, /GITLEAKS_SHA256: [0-9a-f]{64}/);
   assert.match(ci, /sha256sum -c -/);
