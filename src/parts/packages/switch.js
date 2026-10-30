@@ -18,7 +18,6 @@ import { box, prism, textDecal } from '../../geometry/primitives.js';
 import { MATERIALS } from '../colors.js';
 import { wireToHole } from './offboard.js';
 
-const GAP = 10; // mm between the board edge and the nearest end of the leads
 
 // Where the switch lies: `at(d, x, z)` is d mm away from the board edge, x mm along it from the
 // switch's centre, at height z (the board's top is 0, the table −H).

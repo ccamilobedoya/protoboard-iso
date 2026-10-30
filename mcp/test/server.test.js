@@ -187,7 +187,7 @@ test('the server reloads the kit when its code changes', async () => {
   const file = new URL('../../src/nets.js', import.meta.url);
   const before = statSync(file);
   assert.doesNotMatch(textOf(await call('list_circuits', {})), /reloaded/);
-  utimesSync(file, before.atime, new Date(Date.now() + 1000));
+  utimesSync(file, before.atime, new Date(Date.now() + 1000)); // real clock: a file time, not a wait
   try {
     assert.match(textOf(await call('list_circuits', {})), /code changed: reloaded/);
     assert.doesNotMatch(textOf(await call('list_circuits', {})), /reloaded/);

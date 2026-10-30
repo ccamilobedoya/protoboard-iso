@@ -16,7 +16,7 @@ const out = outArg > 0 ? process.argv[outArg + 1] : join(root, 'site');
 const REPO = 'https://github.com/ccamilobedoya/protoboard-iso';
 
 const text = (v, lang) => (v && typeof v === 'object' ? v[lang] ?? v.en : v ?? '');
-const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 const circuits = [];
 for (const name of Object.keys(RECIPES)) {
@@ -62,7 +62,7 @@ const index = (lang, items) => {
   const list = (group) =>
     items
       .filter((i) => i.group === group)
-      .map((i) => `<li><a href="${i.name}.html">${escape(text(i.circuit.title, lang) || i.name)}</a>${i.about(lang) ? `<span>${escape(i.about(lang))}</span>` : ''}</li>`)
+      .map((i) => `<li><a href="${i.name}.html">${escapeHtml(text(i.circuit.title, lang) || i.name)}</a>${i.about(lang) ? `<span>${escapeHtml(i.about(lang))}</span>` : ''}</li>`)
       .join('\n');
   return `<!doctype html>
 <html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">

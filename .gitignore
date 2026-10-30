@@ -4,6 +4,7 @@ examples/out/
 .DS_Store
 CLAUDE.local.md
 site/
+coverage/
 privacy.local.txt
 # Never committed (test/privacy/scan.js, NEVER_COMMIT checks it even past git add -f)
 .env

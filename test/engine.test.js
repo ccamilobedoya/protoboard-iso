@@ -27,11 +27,13 @@ test('engine: a program written by hand solves (one RC section, textbook charge)
   assert.ok(Math.abs(v - 5 * (1 - Math.exp(-1))) < 0.005, `V(τ) = ${v}`);
 });
 
-test('engine: a 40-section RC/diode ladder steps fast enough for a page', () => {
+test('engine: a 40-section RC/diode ladder steps fast enough for a page', (t) => {
+  // Coverage (c8) instruments every line and runs several times slower: speed means nothing then.
+  if (process.env.NODE_V8_COVERAGE) return t.skip('not measured under coverage');
   const steps = 2000;
-  const t0 = performance.now();
+  const t0 = performance.now(); // real clock: this test measures speed
   const r = createEngine(ladder()).transient({ stop: steps * 1e-5, step: 1e-5, points: 10 });
-  const perSecond = steps / ((performance.now() - t0) / 1000);
+  const perSecond = steps / ((performance.now() - t0) / 1000); // real clock: speed
   assert.ok(r.ok);
   // About 12 000 steps/s on the maintainer's desktop; a phone is a few times slower. Fail well
   // before a page would stutter.

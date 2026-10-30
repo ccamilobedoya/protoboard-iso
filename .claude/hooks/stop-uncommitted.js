@@ -24,7 +24,7 @@ export function reminder() {
   return parts.length ? `protoboard-iso: ${parts.join(', ')}.` : null;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const text = reminder();
   if (text) process.stdout.write(JSON.stringify({ systemMessage: text }));
 }

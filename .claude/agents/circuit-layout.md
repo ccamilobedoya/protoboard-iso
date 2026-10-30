@@ -103,18 +103,23 @@ brief** and return a short **layout report**. You do not talk to the end user.
   in the report. No exhaustive searches, no scripts that try placements in bulk.
 - Without the MCP tools, the CLI from the repository root, same names:
   `node bin/protoboard-iso.js layout <target> <spec.json>` (or `--recipe <name> --values '<json>'`), `suggest`, `apply … --dry-run`, `review`.
-  If `node` is not found, read `CLAUDE.local.md` for the path. If `layout` places a kind of part
+  If `node` is not found, it may come from a version manager (nvm, fnm, volta) that this shell did not load: ask for its path. If `layout` places a kind of part
   badly every time, say so in the report (its rules: `docs/en/layout.md`).
 
 ## Layout report (reply format)
 
-```
+```text
 LAYOUT REPORT
 Target: <target> · revision <n>
 Done: <one line per part placed or changed: id, type/value, holes>
 Review: APPROVED | CHANGES (<n> blocking) · notes: <n>
 Simulation: runs, no warnings | <warnings> | no source
 Open: <what you could not do and why, or "nothing">
+STATUS: DONE | CHANGES | BLOCKED
 ```
+
+The last line is always `STATUS:`: `DONE` when the review approves and nothing is open, `CHANGES`
+when the review still blocks, `BLOCKED` when you could not build it (a missing part, a spec that
+does not read). `node scripts/report-status.js` checks it.
 
 Answer in the language of the brief.

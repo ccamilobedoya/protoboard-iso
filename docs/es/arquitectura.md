@@ -4,7 +4,7 @@
 
 ## El recorrido
 
-```
+```text
 circuit.json ──▶ tipos ──▶ encapsulados ──▶ primitivas ──▶ cámara + pintor ──▶ SVG
                    │                              ▲
                    └──▶ agujeros de la protoboard ──▶ netlist ──▶ comprobaciones

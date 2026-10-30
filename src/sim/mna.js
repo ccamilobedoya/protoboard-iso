@@ -13,12 +13,8 @@ import { VT, GMIN } from './models.js';
 
 // ── Linear algebra ──────────────────────────────────────────────────────────────────
 
-// Gaussian elimination with partial pivoting. Returns null if the matrix is singular.
-export function solveLinear(A, b) {
-  return solveInPlace(A.map((row) => Float64Array.from(row)), Float64Array.from(b));
-}
-
-// The same, overwriting M (rows of Float64Array) and x (the right-hand side, then the answer).
+// Gaussian elimination with partial pivoting, overwriting M (rows of Float64Array) and x (the
+// right-hand side, then the answer); null if the matrix is singular.
 // Newton uses it on the stamper's own buffers, which it clears for the next iteration anyway.
 export function solveInPlace(M, x) {
   const n = x.length;

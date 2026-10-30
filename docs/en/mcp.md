@@ -91,7 +91,7 @@ simulation. Never rewrite circuit files; PNG only when style matters.
 
 ## Example session
 
-```
+```text
 layout    {target: "blink", recipe: "555-astable", values: {C1: "22u"}}
                                      → … STATUS: DONE · rev 0
 layout    {target: "switch", parts: [...], nets: [["R2.2", "D1.A"], ["D1.K", "Q1.C"], …]}

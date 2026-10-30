@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { checkCircuit } from '../src/index.js';
 import { simulate, compile, createEngine } from '../src/sim/index.js';
 import { renderPage } from '../src/page.js';
+import { installClock } from './clock.js';
 import { ntcResistance, ldrResistance, LDR_PARTS } from '../src/parts/sensors.js';
 import { batteryModel } from '../src/parts/batteries.js';
 import { fromSlider, toSlider, snapE24, stressLevel } from '../src/sim/controls.js';
@@ -174,6 +175,7 @@ async function loadPage(html) {
   const dom = new JSDOM(html, { runScripts: 'outside-only' });
   const { window } = dom;
   for (const svg of window.document.querySelectorAll('svg')) svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 500 });
+  window.testClock = installClock(window); // time moves by hand: window.testClock.tick(ms)
   window.eval(html.match(/<script>([\s\S]*)<\/script>/)[1]);
   return window;
 }
@@ -307,7 +309,9 @@ test('page: while dragging, a slider shows its value at once but solves only aft
   for (const k of [520, 540, 560, 580]) drag(window, input, k); // a quick drag: shown, not solved
   assert.equal(solves.length, 1);
   assert.equal(doc.querySelector('.info .adjust output').textContent, '680 Ω', 'the label follows the finger');
-  await new Promise((resolve) => setTimeout(resolve, 200)); // at rest: the last value is solved
+  window.testClock.tick(119);
+  assert.equal(solves.length, 1, 'still moving: not yet');
+  window.testClock.tick(1); // at rest for 120 ms: the last value is solved
   assert.equal(solves.length, 2);
   assert.equal(solves[1], live.engine.controls().find((c) => c.id === 'R1').value);
 });

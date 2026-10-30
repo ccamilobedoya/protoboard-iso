@@ -13,7 +13,7 @@ change the circuit.
 
 Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the repository root
 (`node bin/protoboard-iso.js review|inspect|check|query|suggest|apply … --dry-run`). If
-`node` is not found, read `CLAUDE.local.md` for the path.
+`node` is not found, it may come from a version manager (nvm, fnm, volta) that this shell did not load: ask for its path.
 
 ## Rules
 
@@ -38,7 +38,7 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
 
 ## Review report (reply format)
 
-```
+```text
 REVIEW REPORT
 Target: <target> · revision <n> · profile <profile>
 Verdict: APPROVED | CHANGES
@@ -47,6 +47,10 @@ Blocking:
 Connections: <ok | what is wrong>
 Simulation: <runs, no warnings | warnings | no source>
 Notes: <up to five>
+STATUS: APPROVED | CHANGES
 ```
+
+The last line is always `STATUS:`, the same word as `Verdict`. `node scripts/report-status.js`
+checks it.
 
 Answer in the language of the brief.

@@ -110,7 +110,7 @@ por la receta cuando el encargo pide uno de esos circuitos.
 
 ## El ciclo (lo maneja la conversación principal)
 
-```
+```text
 pedido del usuario
   → ¿una receta? layout con recipe y values desde aquí (STATUS: DONE → mostrarlo)
   → circuit-layout   (LAYOUT BRIEF)    → LAYOUT REPORT, circuito en la revisión n
@@ -130,7 +130,7 @@ Un agente no ve la conversación: todo lo que necesita va en el encargo. Los for
 en inglés porque los agentes son parte del repositorio público; el contenido puede ir en
 español, y el agente responde en el idioma del encargo.
 
-```
+```text
 LAYOUT BRIEF
 Target: <nombre> (una carpeta bajo la raíz del MCP, sin prefijo "circuits/"; new | existing, revision n)
 Goal: <para qué sirve el circuito, una línea>
@@ -153,14 +153,14 @@ kit: `layout` revisa los nombres él mismo (los que no conoce vuelven con los m�
 nada), y el camino B consulta un tipo en `catalog` solo si no lo ha usado. Si falta una pieza, va
 primero a `parts-librarian`, no a un marcador.
 
-```
+```text
 REVIEW BRIEF
 Target: <nombre> · revision <n>
 Profile: lesson | draft
 Intent: <las conexiones que debe tener el circuito, como en el encargo de montaje>
 ```
 
-```
+```text
 PARTS BRIEF
 Part: <referencia> · <para qué se usa>
 Datasheet: <URL, si se conoce>
@@ -168,7 +168,10 @@ Needed for: <circuito o clase>
 ```
 
 Las respuestas siguen los formatos del final de cada archivo de agente (`LAYOUT REPORT`,
-`REVIEW REPORT`, `PARTS REPORT`).
+`REVIEW REPORT`, `PARTS REPORT`). Cada una termina en una sola línea `STATUS:`, así la conversación
+principal sabe qué sigue sin leer el resto: montaje `DONE | CHANGES | BLOCKED`, revisión
+`APPROVED | CHANGES` (la misma palabra que su veredicto), componentes `DONE | BLOCKED`.
+`node scripts/report-status.js < informe` comprueba la línea y que coincida con el informe.
 
 ## Mantener los agentes al día
 

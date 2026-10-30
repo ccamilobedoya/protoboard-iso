@@ -15,7 +15,6 @@
 // A note in both languages.
 const n = (es, en) => ({ es, en });
 
-const BOOT = n('⚠ pin de arranque: no forzarlo al reiniciar', '⚠ strapping pin: do not force it at reset');
 const INPUT_ONLY = (gpio) => n(`GPIO${gpio} · solo entrada · ADC1`, `GPIO${gpio} · input only · ADC1`);
 const GND = n('tierra (0 V)', 'ground (0 V)');
 

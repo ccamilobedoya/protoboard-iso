@@ -22,45 +22,53 @@ import { autoLayout, formatLayout, specFromCircuit, specProblems } from '../src/
 import { resolveRecipe } from '../src/recipes/index.js';
 import { catalogEntry, formatCatalogEntry, compactCatalog, recipeLine } from '../src/node/catalog.js';
 
+// Strict: an option nobody knows, or one whose value is missing, is an error (args.errors), so a
+// typo never runs a command with a default the person did not ask for.
 function parseArgs(argv) {
-  const args = { _: [] };
+  const args = { _: [], errors: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '-o' || a === '--out') args.out = argv[++i];
-    else if (a === '--view') args.view = argv[++i];
-    else if (a === '--views') args.views = argv[++i].split(',');
-    else if (a === '--lang') args.lang = argv[++i];
-    else if (a === '--scale') args.scale = Number(argv[++i]);
+    const value = () => {
+      if (i + 1 < argv.length) return argv[++i];
+      args.errors.push(['cli.missingValue', { option: a }]);
+      return undefined;
+    };
+    if (a === '-o' || a === '--out') args.out = value();
+    else if (a === '--view') args.view = value();
+    else if (a === '--views') args.views = value()?.split(',');
+    else if (a === '--lang') args.lang = value();
+    else if (a === '--scale') args.scale = Number(value());
     else if (a === '--no-labels') args.labels = false;
-    else if (a === '--labels') args.labels = argv[++i];
-    else if (a === '--fit') args.fit = argv[++i];
-    else if (a === '--annotate') args.annotate = argv[++i];
+    else if (a === '--labels') args.labels = value();
+    else if (a === '--fit') args.fit = value();
+    else if (a === '--annotate') args.annotate = value();
     else if (a === '--json') args.json = true;
-    else if (a === '--ops') args.ops = argv[++i];
-    else if (a === '--parts') args.parts = argv[++i];
+    else if (a === '--ops') args.ops = value();
+    else if (a === '--parts') args.parts = value();
     else if (a === '--explain') args.explain = true;
     else if (a === '--dry-run') args.dryRun = true;
-    else if (a === '--author') args.author = argv[++i];
-    else if (a === '--note') args.note = argv[++i];
-    else if (a === '--expect-revision') args.expectRevision = Number(argv[++i]);
+    else if (a === '--author') args.author = value();
+    else if (a === '--note') args.note = value();
+    else if (a === '--expect-revision') args.expectRevision = Number(value());
     else if (a === '--no-outputs') args.outputs = false;
-    else if (a === '--part') args.part = argv[++i];
-    else if (a === '--between') args.between = argv[++i].split(',');
-    else if (a === '--connect') args.connect = argv[++i];
-    else if (a === '--near') args.near = argv[++i];
-    else if (a === '--limit') args.limit = Number(argv[++i]);
-    else if (a === '--window') args.window = Number(argv[++i]);
+    else if (a === '--part') args.part = value();
+    else if (a === '--between') args.between = value()?.split(',');
+    else if (a === '--connect') args.connect = value();
+    else if (a === '--near') args.near = value();
+    else if (a === '--limit') args.limit = Number(value());
+    else if (a === '--window') args.window = Number(value());
     else if (a === '--empty') args.empty = true;
-    else if (a === '--profile') args.profile = argv[++i];
-    else if (a === '--transient') args.transient = argv[++i].split(',');
-    else if (a === '--start') args.start = argv[++i];
+    else if (a === '--profile') args.profile = value();
+    else if (a === '--transient') args.transient = value()?.split(',');
+    else if (a === '--start') args.start = value();
     else if (a === '--sim') args.sim = true;
-    else if (a === '--focus') args.focus = argv[++i].split(',');
+    else if (a === '--focus') args.focus = value()?.split(',');
     else if (a === '--flow') args.flow = true;
     else if (a === '--check') args.check = true;
-    else if (a === '--recipe') args.recipe = argv[++i];
-    else if (a === '--values') args.values = JSON.parse(argv[++i]);
+    else if (a === '--recipe') args.recipe = value();
+    else if (a === '--values') args.values = ((v) => (v === undefined ? undefined : JSON.parse(v)))(value());
     else if (a === '-h' || a === '--help') args.help = true;
+    else if (/^--?[A-Za-z]/.test(a)) args.errors.push(['cli.unknownOption', { option: a }]);
     else args._.push(a);
   }
   return args;
@@ -95,6 +103,12 @@ const circuitLang = (() => {
 })();
 const lang = pickLanguage(args.lang, circuitLang, 'en');
 const fail = (code) => process.exit(code);
+
+if (args.errors.length) {
+  for (const [key, params] of args.errors) console.error(t(lang, key, params));
+  console.error(t(lang, 'cli.seeHelp'));
+  fail(2);
+}
 
 if (args.help || !command || (command !== 'parts' && !target)) {
   console.log(t(lang, 'cli.usage'));

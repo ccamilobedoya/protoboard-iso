@@ -38,9 +38,6 @@ export function createRunner(js, board) {
   for (const [gpio, s] of Object.entries(board.states ?? {})) pins[gpio] = { ...s };
   const pin = (n) => (pins[n] ??= { mode: 'input', level: 0, pull: null, pwm: null });
   const runner = { read: board.read, pins, time: 0, wait: 0, log: [], line: '', error: null, notes: [], changed: false, waitingUntil: 0 };
-  const note = (text) => {
-    if (!runner.notes.includes(text)) runner.notes.push(text);
-  };
   const set = (n, values) => {
     const p = pin(n);
     for (const [k, v] of Object.entries(values)) {

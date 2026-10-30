@@ -54,7 +54,7 @@ especificación común antes de que corra todo lo de abajo.
 
 ## El flujo
 
-```
+```text
 spec ─▶ 0 validar ─▶ 1 capas ─▶ 2 ubicar ─▶ 3 cables ─▶ fuentes ─▶ 4 verificar ─┐
           │ (todos los problemas                                                │
           │  juntos, nada ubicado)        ◀── se rehace, prohibiendo un lugar ──┤ algo bloquea

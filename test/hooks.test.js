@@ -45,6 +45,9 @@ test('guard: tools stay away from secrets, by path or in a Bash command', () => 
     ['Bash', { command: `printf '*${dot}env\\n' >> ${dot}gitignore` }],
     ['Bash', { command: `echo "${dot}env${dot}*" >> ${dot}gitignore && echo '*${dot}env' >> ${dot}gitignore` }],
     ['Bash', { command: 'echo $HOME && ls $HOME/work' }],
+    // JavaScript's environment objects are code, not a file named *.env.
+    ['Bash', { command: `node -e 'run({ ...process${dot}env, A: 1 }); console.log(process${dot}env.HOME)'` }],
+    ['Bash', { command: `node -e 'f(import.meta${dot}env)'` }],
     ['Bash', { command: `git ls-files | grep -i keys${dot}js` }],
     ['Grep', { pattern: 'id_rsa', path: 'src' }],
   ];

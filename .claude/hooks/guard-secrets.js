@@ -14,6 +14,8 @@ import { pathToFileURL } from 'node:url';
 import { secretName, secretPlace, secretPath } from './secret-paths.js';
 
 const PATTERN = /[*?[\]{}$]/; // a glob, or a variable other than HOME: not one file
+// JavaScript's environment objects, common in node -e: code, not a file named *.env.
+const CODE = /(?:^|[^\w$])(?:process|import\.meta)\.env$/;
 const words = (command) =>
   String(command ?? '')
     .replace(/\$\{HOME\}|\$HOME\b/g, '~')
@@ -22,7 +24,7 @@ const words = (command) =>
 
 // The paths a tool call touches, each with what it holds: the reason, or null.
 export function secretsOf(tool, input = {}) {
-  if (tool === 'Bash') return words(input.command).map((w) => [w, secretPlace(w) ?? (PATTERN.test(w) ? null : secretName(w))]);
+  if (tool === 'Bash') return words(input.command).map((w) => [w, secretPlace(w) ?? (PATTERN.test(w) || CODE.test(w) ? null : secretName(w))]);
   return [input.file_path, input.notebook_path, input.path].filter(Boolean).map((p) => [p, secretPath(p)]);
 }
 
@@ -34,7 +36,7 @@ export function refusal(tool, input) {
   return null;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { tool_name: tool, tool_input: input } = JSON.parse(readFileSync(0, 'utf8') || '{}');
   const reason = refusal(tool, input);
   if (reason) process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason } }));

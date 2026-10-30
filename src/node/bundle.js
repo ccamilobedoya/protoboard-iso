@@ -78,6 +78,7 @@ export function bundleScript(entry, { expose, comments = true } = {}) {
   const start = resolve(SRC, entry);
   visit(start);
   const chunks = order.map((mod) => {
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: \u0000 marks an import, a character no source file has
     const body = mod.body.replace(/\u0000(\d+)/g, (m, k) => {
       const i = mod.imports[Number(k)];
       return `const { ${i.bindings.join(', ')} } = ${ids.get(i.file)};`;

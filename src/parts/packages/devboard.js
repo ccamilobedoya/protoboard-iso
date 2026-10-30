@@ -151,7 +151,8 @@ function devkit(at, u, v, L, W, top) {
   const usbChip = box({ center: at(end - 15, 3.5, top), u, size: [5, 5, 0.9], color: MATERIALS.chip, outline: true }); // CP2102
   usbChip.decals.push(flat('CP2102', at(end - 15, 3.5, top + 0.91), u, 0.8, MATERIALS.print));
   out.push(usbChip);
-  for (const [b, name] of [[-8, 'EN'], [8, 'BOOT']]) {
+  for (const b of [-8, 8]) {
+    // the EN and BOOT buttons
     const button = box({ center: at(end - 4.5, b, top), u, size: [4, 3, 1.2], color: MATERIALS.shield, outline: true });
     const cap = box({ center: at(end - 4.5, b, top + 1.2), u, size: [1.6, 1.2, 0.6], color: MATERIALS.chip, outline: true });
     cap.on = button;

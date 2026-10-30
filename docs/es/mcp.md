@@ -93,7 +93,7 @@ solo cuando importa el estilo.
 
 ## Ejemplo de sesión
 
-```
+```text
 layout    {target: "parpadeo", recipe: "555-astable", values: {C1: "22u"}}
                                      → … STATUS: DONE · rev 0
 layout    {target: "interruptor", parts: [...], nets: [["R2.2", "D1.A"], ["D1.K", "Q1.C"], …]}

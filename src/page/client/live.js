@@ -73,7 +73,7 @@ export function setupLive(page) {
     if (taus.length) return { h: stepFor(taus), perSecond: Math.max(...taus) / 2, window: 5 * Math.max(...taus) };
     return { h: 0, perSecond: 0, window: WALL_WINDOW };
   }
-  let pace = timing(engine.timeConstants(), engine.periods());
+  const pace = timing(engine.timeConstants(), engine.periods());
   const dynamic = pace.h > 0;
   let h = pace.h;
   let running = dynamic;

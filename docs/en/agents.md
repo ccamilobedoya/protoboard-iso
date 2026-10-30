@@ -105,7 +105,7 @@ asks for one of those circuits.
 
 ## The loop (run by the main conversation)
 
-```
+```text
 user request
   → a recipe? layout with recipe and values from here (STATUS: DONE → show it)
   → circuit-layout   (LAYOUT BRIEF)    → LAYOUT REPORT, circuit at revision n
@@ -123,7 +123,7 @@ connection even when the measurements pass.
 
 An agent does not see the conversation: everything it needs goes in the brief.
 
-```
+```text
 LAYOUT BRIEF
 Target: <name> (a folder under the MCP root, without a "circuits/" prefix; new | existing, revision n)
 Goal: <what the circuit is for, one line>
@@ -146,14 +146,14 @@ itself (unknown ones come back with the closest names, nothing created), and pat
 with `catalog` only when it has not used it. A missing part goes to `parts-librarian` first, not to a
 placeholder.
 
-```
+```text
 REVIEW BRIEF
 Target: <name> · revision <n>
 Profile: lesson | draft
 Intent: <the connections the circuit must have, as in the layout brief>
 ```
 
-```
+```text
 PARTS BRIEF
 Part: <part number> · <what it is used for>
 Datasheet: <URL, if known>
@@ -161,7 +161,10 @@ Needed for: <circuit or lesson>
 ```
 
 Replies follow the formats at the end of each agent file (`LAYOUT REPORT`, `REVIEW REPORT`,
-`PARTS REPORT`).
+`PARTS REPORT`). Each ends in one `STATUS:` line, so the main conversation knows what comes next
+without reading the rest: layout `DONE | CHANGES | BLOCKED`, review `APPROVED | CHANGES` (the same
+word as its verdict), parts `DONE | BLOCKED`. `node scripts/report-status.js < report` checks the
+line and that it agrees with the report.
 
 ## Keeping the agents up to date
 

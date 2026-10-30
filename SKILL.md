@@ -123,7 +123,7 @@ its holes when it still fits, the circuit keeps the new nets, and `undo` brings 
 
 ## 2. Operations: small, checked changes
 
-```
+```text
 history / inspect          what happened, the drawing in numbers
 query / suggest            what is where; where a part fits (never compute holes)
 apply_ops dry_run: true    what the change fixes and what it breaks

@@ -4,6 +4,7 @@ import { readFileSync, mkdtempSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { renderPage } from '../src/page.js';
+import { installClock } from './clock.js';
 import { createTarget, applyToTarget, pageFileOf, resolveTarget } from '../src/node/workspace.js';
 
 const example = (name) => JSON.parse(readFileSync(new URL(`../examples/${name}`, import.meta.url), 'utf8'));
@@ -71,6 +72,7 @@ async function loadPage(html, { embedded = false, url } = {}) {
   for (const svg of window.document.querySelectorAll('svg')) {
     svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 500 });
   }
+  const clock = installClock(window); // time moves by hand: clock.tick(ms)
   window.eval(html.match(/<script>([\s\S]*)<\/script>/)[1]);
   const doc = window.document;
   const fire = (type, props, target = doc.querySelector('main')) => {
@@ -81,7 +83,7 @@ async function loadPage(html, { embedded = false, url } = {}) {
   };
   const pointer = (type, id, x, y, pointerType = 'mouse') => fire(type, { pointerId: id, clientX: x, clientY: y, pointerType });
   const touch = (type, points) => fire(type, { touches: points.map(([clientX, clientY]) => ({ clientX, clientY })) });
-  return { window, doc, fire, pointer, touch, svg: (view) => doc.querySelector(`svg[data-view="${view}"]`) };
+  return { window, doc, fire, pointer, touch, clock, svg: (view) => doc.querySelector(`svg[data-view="${view}"]`) };
 }
 
 test('page buttons switch views, frames and labels in a real DOM', async (t) => {
@@ -171,7 +173,7 @@ test('the ⋯ menu opens, closes on Escape, outside or a choice; the first-time 
   const html = renderPage(example('half-wave-rectifier.json'), { lang: 'es' }).html;
   const page = await loadPage(html, { url: 'https://example.org/rect.html' });
   if (!page) return t.skip('jsdom not installed');
-  const { doc, window, fire } = page;
+  const { doc, fire } = page;
   const more = doc.querySelector('nav .more-button');
   const menu = doc.querySelector('nav .menu');
   const hint = doc.querySelector('.first-hint');
@@ -190,7 +192,7 @@ test('the ⋯ menu opens, closes on Escape, outside or a choice; the first-time 
   assert.equal(menu.hidden, true, 'a tap outside closes');
   more.click();
   menu.querySelector('[data-value="log"]').click();
-  await new Promise((r) => window.setTimeout(r, 5));
+  page.clock.tick(5);
   assert.ok(doc.body.classList.contains('speed-log'));
   assert.equal(menu.hidden, true, 'a choice closes');
   more.click();
@@ -312,7 +314,7 @@ test('the inspector holds the card and the circuit\'s panels: tabs, a fixed head
   // A live page with a controls panel: the Circuit tab, and back to it when the card closes.
   const live = await loadPage(renderPage(example('half-wave-rectifier.json'), { lang: 'es' }).html);
   const lbox = live.doc.querySelector('.inspector');
-  await new Promise((r) => live.window.setTimeout(r, 0)); // the panels arrive after the page starts
+  live.clock.tick(0); // the panels arrive after the page starts
   assert.equal(lbox.hidden, false);
   assert.equal(lbox.dataset.tab, 'circuit');
   assert.ok(live.doc.querySelector('.side .controls .control'));
@@ -357,8 +359,8 @@ test('taps: the open part tapped again picks the part under it; a tap that hits 
   const [a, b] = ids;
   const open = () => doc.querySelector('.info h2')?.textContent ?? null;
   const title = (id) => JSON.parse(doc.getElementById('page-data').textContent).parts[id].title;
-  const click = (target, x, y) => target.dispatchEvent(new window.MouseEvent('click', { bubbles: true, clientX: x, clientY: y }));
-  const wait = (ms) => new Promise((r) => window.setTimeout(r, ms));
+  const click = (target, x, y) => target.dispatchEvent(page.clock.stamp(new window.MouseEvent('click', { bubbles: true, clientX: x, clientY: y })));
+  const wait = (ms) => page.clock.tick(ms);
 
   // Two parts under one point, `a` on top.
   doc.elementsFromPoint = (x, y) => (Math.hypot(x - 300, y - 200) < 2 ? [el(a), el(b)] : []);
@@ -366,10 +368,10 @@ test('taps: the open part tapped again picks the part under it; a tap that hits 
   assert.equal(open(), title(a), 'the first tap: the part on top');
   click(el(a), 300, 200);
   assert.equal(open(), title(a), 'a quick second tap (a double tap) does not change it');
-  await wait(380);
+  wait(380);
   click(el(a), 300, 200);
   assert.equal(open(), title(b), 'tapped again later: the part under it');
-  await wait(380);
+  wait(380);
   click(el(a), 300, 200);
   assert.equal(open(), title(a), 'and round again');
 

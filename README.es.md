@@ -25,6 +25,7 @@ embeber en una lección.
 
 ## Pruébalo en un minuto
 
+<!-- smoke -->
 ```bash
 git clone https://github.com/ccamilobedoya/protoboard-iso.git
 cd protoboard-iso                      # no hay nada que instalar
@@ -35,10 +36,11 @@ Eso monta un interruptor con transistor a partir de una **receta**, lo revisa y 
 `mi-interruptor/`: el circuito (`circuit.json`), su historial y `out/mi-interruptor.html`, una sola
 página con el dibujo y la simulación en vivo. Ábrela en un navegador. Después:
 
+<!-- smoke -->
 ```bash
 node bin/protoboard-iso.js simulate mi-interruptor --lang es          # voltajes y corrientes, en texto
 node bin/protoboard-iso.js render mi-interruptor --view back --lang es # el dibujo desde el otro lado
-node bin/protoboard-iso.js review mi-interruptor --lang es             # APPROVED o CHANGES, y por qué
+node bin/protoboard-iso.js review mi-interruptor --lang es             # APROBADO o HAY QUE CAMBIAR, y por qué
 ```
 
 ## De una descripción a una lección

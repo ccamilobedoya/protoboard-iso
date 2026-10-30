@@ -8,7 +8,7 @@ back to the code (people and assistants alike); the design reasons are in
 
 ## Three pipelines
 
-```
+```text
                         ┌─▶ checks (circuit/checks.js) ─▶ issues
 circuit.json ─▶ build ──┤
  (circuit/build.js)     └─▶ parts + netlist ─┬─▶ scene (render/scene.js) ─▶ SVG (render/svg.js)
@@ -79,6 +79,9 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `scripts/ux-shots.js` | screenshots of pages at five sizes, alone and inside a note (a Playwright snippet), for the UX pass |
 | `scripts/readme-images.js`, `docs/img/` | the README and examples images, drawn by the kit from recipes and examples (PNG); `live-page.png` is a `ux-shots.js` screenshot |
 | `scripts/demo-site.js`, `.github/workflows/pages.yml` | the demo site on GitHub Pages: every recipe and every example with a source as a live page (en, es) and an index; built by the workflow, never committed |
+| `scripts/verify.js`, `scripts/setup.js`, `scripts/hooks/` | `npm run verify`: the whole verification as one command (tests with coverage, lint, knip, jscpd, MCP, golden, the examples' expected issues in `test/fixtures/examples-issues.json`), exits 0/1/2; `npm run setup` turns on the git hooks (pre-commit `--quick`, pre-push the whole) |
+| `scripts/report-status.js` | the `STATUS:` line that ends every agent report, checked against the report |
+| `biome.jsonc`, `knip.json`, `.jscpd.json`, `.c8rc.json` | development tools only: lint rules (and why some are off), entry points, copy threshold, coverage thresholds |
 | `node/bundle.js` | the small bundler: allowed ES modules → one classic script for the page (engine, page script) |
 | `sim/generator.js` | the signal generator (bundleable): its waves (Falstad's), its peak; the engine sets the source to `waveAt` before each step |
 | `sim/recorder.js`, `sim/scope.js`, `page/client/scope.js` | oscilloscope (bundleable): recording per part (and per strip in use, key `node:<group>`) from the start, what each kind plots (`scope` hook), the drawing in the card (a list of traces, 10 × 4 screen) |
@@ -196,4 +199,4 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 Simulator models are checked against independent references in `test/sim.test.js` and
 `test/sources.test.js` (batteries, Zener, regulators, inductors, sensors), and against Falstad's CircuitJS in `test/falstad.test.js` (stored references, offline); page
 behaviour in `test/focus.test.js` and `test/page.test.js`; texts in `test/describe.test.js` and
-`test/i18n.test.js`; nothing private in the repository in `test/privacy.test.js`; hostile input in `test/attack.test.js`; the Claude Code hooks and settings in `test/hooks.test.js`; the licences of the dependencies in `test/licenses.test.js`.
+`test/i18n.test.js`; nothing private in the repository in `test/privacy.test.js`; hostile input in `test/attack.test.js`; the Claude Code hooks and settings in `test/hooks.test.js`; the licences of the dependencies in `test/licenses.test.js`; the README's try-it commands in `test/readme.test.js`; the documents' links, anchors and code blocks in `test/docs.test.js`; the agents' files and report lines in `test/agents.test.js`; the strict command line in `test/cli.test.js`; `npm run verify` in `test/verify.test.js`. Page tests move time with `test/clock.js` (`test/clock.test.js` fails on a real-clock wait without a `// real clock:` reason).

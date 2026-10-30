@@ -1,0 +1,5 @@
+#!/bin/sh
+# Git pre-push hook (turned on by: npm run setup). The whole verification before a push
+# (scripts/verify.js): a step that failed or could not run stops the push. Skip once,
+# knowingly: git push --no-verify.
+exec node "$(git rev-parse --show-toplevel)/scripts/verify.js"

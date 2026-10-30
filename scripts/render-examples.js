@@ -32,10 +32,10 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith('.json')).sort()) {
 }
 
 // A plain page to look at everything at once: open examples/out/index.html in a browser.
-const escape = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+const escapeHtml = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
 const cards = gallery
   .map(({ name, issues }) => {
-    const list = issues.length ? `<ul>${issues.map((i) => `<li>${escape(i)}</li>`).join('')}</ul>` : '';
+    const list = issues.length ? `<ul>${issues.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : '';
     return `<figure><a href="${name}"><img src="${name}" alt="${name}" loading="lazy"></a><figcaption>${name}${list}</figcaption></figure>`;
   })
   .join('\n');

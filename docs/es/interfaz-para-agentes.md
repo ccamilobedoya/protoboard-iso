@@ -71,7 +71,7 @@ de tres patas prefieren la pata 1 a la izquierda, para que la impresión mire a 
 frontal. Cada posición trae la operación `add` lista para aplicar y el cuerpo más cercano con
 su holgura:
 
-```
+```text
 Posiciones para R2 (Resistencia, axial), de mejor a peor; 12 medidas:
   1. 1→i10, 2→T-11 · separación 10,5 mm · puntuación 5,3 · componente menos visible 81 %
 Para usar la primera (revisa con una prueba en seco y luego aplica):
@@ -109,7 +109,7 @@ node bin/protoboard-iso.js apply <objetivo> ops.json        # o "-" para leer de
 Los dos responden con una **diferencia**: qué observaciones y problemas del dibujo arregla
 el cambio, cuáles introduce y cómo cambia la visibilidad de cada componente. Ejemplo:
 
-```
+```text
 Prueba en seco (no se guardó nada): la revisión 0 → 1 cambiaría:
   ✔ arregla: nota: De R1 se ve el 81 %; W1 tapa el 15 %.
   ✖ nuevo: nota: D1: la pata cathode está en columna 10 (filas f–j), que no toca nada más.

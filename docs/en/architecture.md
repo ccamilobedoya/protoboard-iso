@@ -4,7 +4,7 @@
 
 ## The pipeline
 
-```
+```text
 circuit.json ──▶ types ──▶ packages ──▶ primitives ──▶ camera + painter ──▶ SVG
                    │                         ▲
                    └──▶ board holes ──▶ netlist ──▶ checks

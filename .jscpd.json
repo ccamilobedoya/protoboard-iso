@@ -1,0 +1,22 @@
+{
+  "path": [
+    "src",
+    "bin",
+    "scripts",
+    "mcp/tools.js",
+    "mcp/server.js",
+    "mcp/kit-worker.js",
+    ".claude/hooks"
+  ],
+  "format": [
+    "javascript"
+  ],
+  "minLines": 8,
+  "minTokens": 70,
+  "reporters": [
+    "console"
+  ],
+  "silent": true,
+  "gitignore": true,
+  "threshold": 1
+}

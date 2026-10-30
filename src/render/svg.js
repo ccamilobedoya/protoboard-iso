@@ -78,6 +78,7 @@ export function sceneToSvg(scene, { background = '#ffffff', title, tagParts = fa
 }
 
 // One-call helper kept for simple uses: primitives in, SVG string out.
+/** @public */
 export function renderScene({ background, title, overlays, ...options }) {
   return sceneToSvg(buildScene({ labels: overlays, ...options }), { background, title });
 }

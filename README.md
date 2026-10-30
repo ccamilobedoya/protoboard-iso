@@ -23,6 +23,7 @@ circuit, draws it in isometric SVG and simulates it in a page you can embed in a
 
 ## Try it in a minute
 
+<!-- smoke -->
 ```bash
 git clone https://github.com/ccamilobedoya/protoboard-iso.git
 cd protoboard-iso                      # nothing to install
@@ -33,6 +34,7 @@ That lays out a transistor switch from a **recipe**, reviews it, and writes `my-
 circuit (`circuit.json`), its history, and `out/my-switch.html`, a single page with the drawing and
 the live simulation. Open it in a browser. Then:
 
+<!-- smoke -->
 ```bash
 node bin/protoboard-iso.js simulate my-switch          # voltages and currents, as text
 node bin/protoboard-iso.js render my-switch --view back # the drawing from the other side

@@ -1,0 +1,9 @@
+{
+  "include": ["src/**"],
+  "reporter": ["text-summary"],
+  "check-coverage": true,
+  "lines": 97,
+  "statements": 97,
+  "functions": 93,
+  "branches": 88
+}

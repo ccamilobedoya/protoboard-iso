@@ -4,7 +4,6 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { waveAt, peakOf } from '../src/sim/generator.js';
 import { simulate, compile, createEngine } from '../src/sim/index.js';
 import { toFalstad } from '../src/sim/falstad.js';

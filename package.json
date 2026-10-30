@@ -36,7 +36,13 @@
     "schemas": "node scripts/build-schemas.js",
     "layout-bench": "node scripts/layout-bench.js",
     "test:mcp": "npm --prefix mcp test",
-    "mcp": "node mcp/server.js"
+    "mcp": "node mcp/server.js",
+    "verify": "node scripts/verify.js",
+    "setup": "node scripts/setup.js",
+    "lint": "biome lint .",
+    "coverage": "c8 npm test",
+    "knip": "knip --no-progress",
+    "dupes": "jscpd --config .jscpd.json"
   },
   "engines": {
     "node": ">=20"
@@ -55,7 +61,11 @@
     "claude-skill"
   ],
   "devDependencies": {
+    "@biomejs/biome": "^2.6.4",
     "@resvg/resvg-js": "^2.6.2",
-    "jsdom": "^30.1.2"
+    "c8": "^12.0.0",
+    "jscpd": "^5.4.2",
+    "jsdom": "^30.1.2",
+    "knip": "^6.44.0"
   }
 }

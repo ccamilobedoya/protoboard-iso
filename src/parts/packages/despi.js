@@ -11,7 +11,7 @@
 //
 // params: names, colors, side, offset, module, rese ("2.2" | "0.47"), panel (boolean)
 
-import { v3, add, scale, cross, X, Y, Z } from '../../core/vec.js';
+import { v3, add, scale, cross, Y, Z } from '../../core/vec.js';
 import { box, rectDecal, circleDecal } from '../../geometry/primitives.js';
 import { MATERIALS } from '../colors.js';
 import { flat, dupontLead } from './offboard.js';

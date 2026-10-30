@@ -61,7 +61,6 @@ agent, a page someone sends). The kit treats them as hostile:
 If the `protoboard-iso` MCP server is connected, use its tools (same loop, typed). Setup and
 tools: `docs/en/mcp.md`. Otherwise the CLI:
 
-
 Circuits are changed with operations, never by rewriting the file:
 `history <target>` → `inspect <target> --json` → `query`/`suggest` (never compute holes by
 hand) → `apply … --dry-run` → `apply … --expect-revision n`.
@@ -107,6 +106,9 @@ MCP tool that no longer exists.
 
 ```bash
 npm test                      # unit + rendering tests (node:test, no dependencies)
+npm run verify [-- --quick]    # the whole verification below as one command: exit 0 pass, 1 fail, 2 a step could not run
+npm run setup                 # once per clone: git hooks (pre-commit: verify --quick; pre-push: verify)
+npm run lint · npm run knip · npm run dupes · npm run coverage   # Biome, unused code, copies, c8 thresholds
 npm run examples              # examples/*.json → examples/out/*.svg + index.html gallery
 npm run examples -- --lang es # same, Spanish messages and labels
 npm run preview [-- filter]   # examples/out/*.svg → examples/out/png/*.png (needs npm install)
@@ -133,6 +135,10 @@ node bin/protoboard-iso.js render <file.json> -o out.svg [--view back] [--fit pa
 ```
 
 ## How to verify a change
+
+`npm run verify` runs steps 1 and 2 (plus lint, unused code, copies and coverage) and exits 0, 1
+or 2; a step that could not run (a missing `npm install`) is never a pass. The pre-push hook runs
+it. After an intended change of the examples' issues: `npm run verify -- --write-examples`.
 
 1. `npm test` passes (and `npm run test:mcp` when `src/` APIs or `mcp/` changed).
 2. `npm run examples` shows no new issues except the intended ones
@@ -167,7 +173,7 @@ node bin/protoboard-iso.js render <file.json> -o out.svg [--view back] [--fit pa
 
 ## Map
 
-```
+```text
 src/core/        vec.js (3D maths), camera.js (views, projection, light), units.js ("4k7")
 src/geometry/    primitives.js: prism, box, lathe, cylinder, tube, decals, textDecal
 src/render/      scene.js (display list: painter, labels, framing), svg.js (writer),
@@ -195,7 +201,8 @@ src/sim/         simulator: compile.js (circuit → program), engine.js (runs it
 src/page/        page.js's browser side: client/ (script modules), style.js
 bin/             CLI
 scripts/         render-examples.js (+ gallery), preview.js (PNG), readme-images.js (docs/img),
-                 demo-site.js (GitHub Pages, .github/workflows/pages.yml)
+                 demo-site.js (GitHub Pages, .github/workflows/pages.yml), verify.js (npm run verify),
+                 setup.js + hooks/ (git hooks), report-status.js (agents' STATUS line)
 examples/        circuits (README.md indexes them); out/ is generated and ignored by git
 docs/img/        README images, drawn by scripts/readme-images.js (live-page.png is a screenshot)
 test/            node:test suites

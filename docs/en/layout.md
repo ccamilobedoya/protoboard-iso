@@ -52,7 +52,7 @@ by name with only the values that change; it becomes an ordinary spec before any
 
 ## The pipeline
 
-```
+```text
 spec ─▶ 0 validate ─▶ 1 layers ─▶ 2 place ─▶ 3 jumpers ─▶ supplies ─▶ 4 verify ─┐
           │ (all problems                                                        │
           │  at once, nothing placed)          ◀── relayout, forbidding a place ─┤ blocking

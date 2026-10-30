@@ -1,0 +1,30 @@
+// Biome as a linter only (npm run lint): the formatter stays off so the code keeps its own style.
+// The recommended rules, without the ones that fight a style the code uses on purpose.
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": { "includes": ["**/*.js", "!**/node_modules", "!examples/out", "!site", "!schema"] },
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      // Style only: 'a' + b is as clear as a template when short.
+      "style": { "useTemplate": "off" },
+      "complexity": {
+        // Style only.
+        "useOptionalChain": "off",
+        // (log.push(x), next()) in small test helpers.
+        "noCommaOperator": "off"
+      },
+      // A device's or a package's functions take the whole interface; not every one uses it all.
+      "correctness": { "noUnusedFunctionParameters": "off" },
+      "suspicious": {
+        // forEach((x) => found.push(x)) returns nothing anyone reads.
+        "useIterableCallbackReturn": "off",
+        // (seen[p] = v) in callbacks, (pins[n] ??= {...}) as a cache.
+        "noAssignInExpressions": "off"
+      }
+    }
+  }
+}

@@ -67,7 +67,7 @@ parts too close) and the least visible part. Three-lead parts prefer pin 1 on th
 their print faces the front view. Each placement carries the `add` operation to apply and the
 nearest body with its gap:
 
-```
+```text
 Placements for R2 (Resistor, axial), best first; 12 measured:
   1. 1→i10, 2→T-11 · span 10.5 mm · score 5.3 · least visible part 81 %
 To use the first one (check with a dry run, then apply):
@@ -104,7 +104,7 @@ node bin/protoboard-iso.js apply <target> ops.json        # or "-" to read stand
 Both answer with a **diff**: which issues and drawing problems the change fixes, which it
 introduces, and how part visibility moves. Example:
 
-```
+```text
 Dry run (nothing saved): revision 0 → 1 would change:
   ✔ fixed: note: R1 is 81 % visible; W1 covers 15 % of it.
   ✖ new: note: D1: pin cathode is in column 10 (rows f–j), which nothing else touches.

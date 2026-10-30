@@ -443,6 +443,9 @@ export default {
   protoboard-iso parts [name] [--lang en|es]`,
   'cli.written': 'Written {file} ({parts} parts, {issues} issues).',
   'cli.noIssues': 'No problems found.',
+  'cli.unknownOption': 'Unknown option {option}.',
+  'cli.missingValue': 'The option {option} needs a value after it.',
+  'cli.seeHelp': 'See the options with --help.',
   'cli.nodes': 'Connected groups in use:',
 
   // Batteries

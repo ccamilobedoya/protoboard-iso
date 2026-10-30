@@ -8,7 +8,7 @@ de uso en las demás páginas de `docs/`.
 
 ## Tres recorridos
 
-```
+```text
                         ┌─▶ comprobaciones (circuit/checks.js) ─▶ observaciones
 circuit.json ─▶ build ──┤
  (circuit/build.js)     └─▶ componentes + netlist ─┬─▶ escena (render/scene.js) ─▶ SVG (render/svg.js)
@@ -79,6 +79,9 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `scripts/ux-shots.js` | capturas de páginas en cinco tamaños, solas y dentro de una nota (un fragmento de Playwright), para la pasada de experiencia de uso |
 | `scripts/readme-images.js`, `docs/img/` | las imágenes del README y de los ejemplos, dibujadas por el kit a partir de recetas y ejemplos (PNG); `live-page.png` es una captura de `ux-shots.js` |
 | `scripts/demo-site.js`, `.github/workflows/pages.yml` | el sitio de demostración en GitHub Pages: cada receta y cada ejemplo con fuente como página en vivo (en, es) y un índice; lo genera el flujo de trabajo, nunca se sube |
+| `scripts/verify.js`, `scripts/setup.js`, `scripts/hooks/` | `npm run verify`: toda la verificación en un comando (pruebas con cobertura, lint, knip, jscpd, MCP, golden, los avisos esperados de los ejemplos en `test/fixtures/examples-issues.json`), sale con 0/1/2; `npm run setup` activa los hooks de git (pre-commit `--quick`, pre-push todo) |
+| `scripts/report-status.js` | la línea `STATUS:` con que termina cada informe de agente, comprobada contra el informe |
+| `biome.jsonc`, `knip.json`, `.jscpd.json`, `.c8rc.json` | solo herramientas de desarrollo: reglas de lint (y por qué algunas están apagadas), puntos de entrada, tope de copias, umbrales de cobertura |
 | `node/bundle.js` | el agrupador pequeño: módulos ES permitidos → un solo script clásico para la página (motor, script de la página) |
 | `sim/generator.js` | el generador de señales (se puede agrupar): las ondas (las de Falstad), su pico; el motor pone la fuente en `waveAt` antes de cada paso |
 | `sim/recorder.js`, `sim/scope.js`, `page/client/scope.js` | osciloscopio (se pueden agrupar): grabación por componente (y por tira en uso, clave `node:<grupo>`) desde el arranque, qué grafica cada tipo (gancho `scope`), el dibujo en la ficha (una lista de trazas, pantalla de 10 × 4) |
@@ -210,4 +213,4 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 `npm run test:mcp`. Los modelos del simulador se comprueban contra referencias independientes en
 `test/sim.test.js` y `test/sources.test.js` (baterías, Zener, reguladores, inductores,
 sensores) y contra CircuitJS de Falstad en `test/falstad.test.js` (referencias guardadas, sin red); el comportamiento de la página en `test/focus.test.js` y `test/page.test.js`;
-los textos en `test/describe.test.js` y `test/i18n.test.js`; que no haya nada privado en el repositorio, en `test/privacy.test.js`; las entradas hostiles, en `test/attack.test.js`; los hooks y las opciones de Claude Code, en `test/hooks.test.js`; las licencias de las dependencias, en `test/licenses.test.js`.
+los textos en `test/describe.test.js` y `test/i18n.test.js`; que no haya nada privado en el repositorio, en `test/privacy.test.js`; las entradas hostiles, en `test/attack.test.js`; los hooks y las opciones de Claude Code, en `test/hooks.test.js`; las licencias de las dependencias, en `test/licenses.test.js`; los comandos de prueba rápida del README, en `test/readme.test.js`; los enlaces, anclas y bloques de código de los documentos, en `test/docs.test.js`; los archivos y las líneas de estado de los agentes, en `test/agents.test.js`; la línea de comandos estricta, en `test/cli.test.js`; `npm run verify`, en `test/verify.test.js`. Las pruebas de la página mueven el tiempo con `test/clock.js` (`test/clock.test.js` falla con una espera del reloj real sin un motivo `// real clock:`).

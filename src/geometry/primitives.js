@@ -125,6 +125,7 @@ export function lathe({ profile, origin, axis = Z, ref, segments = 24, color, co
 }
 
 // A round rod with flat ends between two points.
+/** @public a primitive for packages, like the others in this file */
 export function cylinder({ from, to, radius, segments = 12, ...rest }) {
   const axis = sub(to, from);
   const h = length(axis);
@@ -191,5 +192,7 @@ export function textDecal({ text, at, right, down, size, color, anchor = 'middle
 }
 
 export const midpoint = (a, b) => scale(add(a, b), 0.5);
+/** @public helpers for packages */
 export const horizontal = (d) => normalize(v3(d.x, d.y, 0));
+/** @public */
 export { dot };

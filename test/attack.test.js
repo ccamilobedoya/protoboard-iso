@@ -94,16 +94,14 @@ test('attack: the JavaScript of every recipe and of hostile sketches names nothi
   }
 });
 
-test('attack: a sketch cannot take the memory or the time of the machine', () => {
+test('attack: a sketch cannot take the memory or the time of the machine', { timeout: 5000 }, () => {
   const long = translateSketch(sketch(`int x = 0; ${'x++; '.repeat(LIMITS.sketchChars / 5)}`));
   assert.equal(long.js, null);
   assert.deepEqual(codes(long.issues), ['SIM_PROGRAM_TOO_LARGE']);
-  const started = Date.now();
   const big = run('int a[1000000000];\n' + sketch('a[5] = 7; Serial.println(a[5]);'));
   assert.deepEqual(big.log, ['7'], 'an array is capped, not refused');
   const busy = run('void setup() { while (true) { } }\nvoid loop() { }');
   assert.equal(busy.error, null, 'a loop that never waits gives the step back');
-  assert.ok(Date.now() - started < 5000);
   assert.equal(run('void f(int "x") { }\n' + sketch('')).r.js, null, 'a parameter must be a name');
 });
 

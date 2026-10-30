@@ -18,7 +18,7 @@ import { stripHoles } from '../render/focus.js';
 import { LED_LIGHT } from '../parts/colors.js';
 import { MIN_CURRENT, DOT_PERIOD, voltageColor, dotSpeed, bodyShare, bodyVoltage, centreVoltage, glowOpacity } from './look.js';
 
-export { MIN_CURRENT, DOT_PERIOD, MAX_SPEED, VOLTAGE_COLORS, FLOATING_COLOR, voltageColor, dotSpeed, bodyShare } from './look.js';
+export { MIN_CURRENT, VOLTAGE_COLORS, voltageColor, dotSpeed, bodyShare } from './look.js';
 
 export const CONDUCTOR_WIDTH = 3.2; // leads, bodies, wires (px)
 export const STRIP_WIDTH = 4.2; // metal strips inside the board: wider, they carry more
@@ -200,7 +200,7 @@ function closest(a0, a1, b0, b1) {
   const den = a * c - b * b;
   const clamp = (x) => Math.min(1, Math.max(0, x));
   let s = den > 1e-12 ? clamp((b * e - c * d) / den) : 0;
-  let t = c > 1e-12 ? clamp((b * s + e) / c) : 0;
+  const t = c > 1e-12 ? clamp((b * s + e) / c) : 0;
   s = a > 1e-12 ? clamp((b * t - d) / a) : 0;
   const dx = wx + ux * s - vx * t, dy = wy + uy * s - vy * t;
   return { d: Math.hypot(dx, dy), s, t };

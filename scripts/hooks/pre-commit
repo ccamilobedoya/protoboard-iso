@@ -1,0 +1,5 @@
+#!/bin/sh
+# Git pre-commit hook (turned on by: npm run setup). The quick checks before every commit:
+# privacy, licences, the Claude Code hooks, hostile input (scripts/verify.js --quick, a few seconds).
+# Skip once, knowingly: git commit --no-verify.
+exec node "$(git rev-parse --show-toplevel)/scripts/verify.js" --quick
