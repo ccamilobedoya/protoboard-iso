@@ -58,7 +58,11 @@ brief** and return a short **layout report**. You do not talk to the end user.
    - `FIX_SPEC` → nothing was created. Fix **every** ✖ in your spec (each one lists the names it
      accepts) and call `layout` again, same target. If a part is unknown and none of the closest
      names is it, stop: report it as missing.
-   - `CHANGES` → the circuit exists. Fix only the ✖ items, with Path B steps 3 to 6.
+   - `CHANGES` → the circuit exists. Fix only the ✖ items, with Path B steps 3 to 6. A ✖ saying a
+     pin cannot be reached because a board covers its strip (`LAYOUT_PIN_COVERED`) has no fix by
+     operations: name another pin with the same signal in the nets (`GND2` for `GND`) and call
+     `layout` again, or report it. (With `board` left to `auto`, layout already moves such a board
+     to `double`, two boards side by side, and says so: `LAYOUT_DOUBLE_BOARD`.)
 3. Descriptions, if the brief asks for them: one `apply_ops` with `set` ops (dry run first).
 4. With a source: `simulate` once. Report only whether it runs and its warnings (short, over
    current, floating), **never values**: a value may be waiting for a learner's prediction.
@@ -93,7 +97,8 @@ brief** and return a short **layout report**. You do not talk to the end user.
   the same picture. Positions from a photo are a hint; never map pixels to holes.
 - **Missing parts**: never stand in a `header` or another part for one. Report it; the main
   conversation asks `parts-librarian`.
-- **Board**: `layout` uses the elastic board (`auto`), which grows as needed. In Path B, keep the
+- **Board**: `layout` uses the elastic board (`auto`), which grows as needed (or `double`, two side
+  by side with rows k–t and rails `U±` behind, when a DevKit needs both headers). In Path B, keep the
   circuit's board; switch to `auto` (`{"op": "circuit", "board": "auto"}`) only when the brief says
   it may grow and parts crowd or hide each other. Rail holes come in groups on a `bb400` (`B-7`
   does not exist): `create_circuit`, `inspect` or `catalog name: "bb400"` give the layout.

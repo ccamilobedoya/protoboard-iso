@@ -144,3 +144,94 @@ test('the example in SKILL.md lays out to STATUS: DONE (the first thing an assis
   const r = autoLayout(example);
   assert.equal(r.status, 'done', formatLayout(r, 'en', { t, formatIssue }));
 });
+
+// The algorithm since 2026-10-31: sides across the channel, scored candidates, jumpers as a
+// spanning tree (docs/en/layout.md).
+const exampleSpec = async (name) => {
+  const { readFileSync } = await import('node:fs');
+  const { bench, ...spec } = JSON.parse(readFileSync(new URL(`../examples/layout/${name}`, import.meta.url), 'utf8'));
+  return spec;
+};
+
+test('layout is deterministic: the same spec gives the same circuit, byte for byte', async () => {
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  for (const name of ['555-astable', 'opamp-comparator', 'uno-button']) {
+    const spec = expandRecipe(name).spec;
+    const [a, b] = [autoLayout(spec), autoLayout(spec)];
+    assert.equal(JSON.stringify(a.circuit), JSON.stringify(b.circuit), name);
+    assert.equal(a.tries, b.tries, name);
+  }
+});
+
+test('sides: a chip across the channel puts its pins on both halves, its neighbours follow their pin, a rail pulls to its half', async () => {
+  const { assignSides } = await import('../src/layout-sides.js');
+  // U1 like a DIP: pins a, b on its own half (rel 0), c on the other one (rel 1).
+  const elements = [
+    { id: 'U1', weight: 5, straddles: true, pins: [{ key: 'u1.a', rel: 0 }, { key: 'u1.c', rel: 1 }] },
+    { id: 'R1', weight: 6, pins: [{ key: 'r1.1', rel: 0 }, { key: 'r1.2', rel: 0 }] },
+    { id: 'R2', weight: 6, pins: [{ key: 'r2.1', rel: 0 }, { key: 'r2.2', rel: 0 }] },
+    { id: 'D1', weight: 2, pins: [{ key: 'd1.k', rel: 0 }] },
+  ];
+  const nets = [
+    { pins: ['u1.a', 'r1.1'], anchor: null },
+    { pins: ['u1.c', 'r2.1'], anchor: null },
+    { pins: ['d1.k'], anchor: 'B' }, // a net with a B rail only
+  ];
+  const side = assignSides({ elements, nets });
+  const other = { T: 'B', B: 'T' };
+  assert.equal(side.get('R1'), side.get('U1'), 'R1 on the half of the pin it joins');
+  assert.equal(side.get('R2'), other[side.get('U1')], 'R2 on the half of the chip pin across the channel');
+  assert.equal(side.get('D1'), 'B', 'D1 on the half of its rail');
+  assert.deepEqual(assignSides({ elements, nets }), side, 'deterministic');
+});
+
+test('sides in a layout: parts on a B rail land in rows a–e, the chip neighbours on their pin\'s half', async () => {
+  const r = autoLayout({
+    parts: [{ id: 'R1', type: 'resistor', value: '330' }, { id: 'D1', type: 'led', color: 'red' }],
+    nets: [['B+', 'R1.1'], ['R1.2', 'D1.anode'], ['D1.cathode', 'B-']],
+  });
+  assert.equal(r.status, 'done', formatLayout(r, 'en', { t, formatIssue }));
+  for (const p of r.placed) for (const h of Object.values(p.pins)) assert.match(h, /^([a-e]\d+|B[+-]\d+)$/, `${p.id} in ${h}`);
+  // An op-amp follower: the LED resistor on OUT1 sits on the half of OUT1 (pin 1).
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  const f = autoLayout(expandRecipe('opamp-follower').spec);
+  assert.equal(f.status, 'done');
+  const pins = (id) => f.placed.find((p) => p.id === id).pins;
+  const half = (hole) => (/^[a-e]/.test(hole) ? 'B' : 'T');
+  assert.equal(half(pins('R1')['1']), half(pins('U1').OUT1));
+});
+
+test('an Arduino UNO beside the board with seven pins in nets: every lead gets a strip, laid out to DONE', async () => {
+  const r = autoLayout(await exampleSpec('uno-many-pins.json'));
+  assert.equal(r.status, 'done', formatLayout(r, 'en', { t, formatIssue }));
+  assert.equal(Object.keys(r.placed.find((p) => p.id === 'U1').pins).length, 6);
+});
+
+test('an ESP32 DevKit whose board covers a header in nets, on one board named in the spec, fails fast and says which pins have no hole', async () => {
+  // On `auto` it goes to two boards side by side (test/double-board.test.js); a board asked for stays.
+  const r = autoLayout({ ...(await exampleSpec('esp32-both-headers.json')), board: 'bb830' });
+  assert.equal(r.status, 'changes');
+  const covered = r.problems.filter((p) => p.code === 'LAYOUT_PIN_COVERED');
+  assert.ok(covered.length && covered.every((p) => p.params.part === 'U1' && p.params.pin && p.params.hole), JSON.stringify(covered));
+  assert.equal(r.tries, 1, 'no relayout: another place cannot uncover the strip');
+  const text = formatLayout(r, 'es', { t, formatIssue });
+  assert.match(text, /no se llega a U1\./i);
+  assert.doesNotMatch(text, /check\.LAYOUT/);
+});
+
+test('layout again on a recipe circuit with one more LED moves nothing that was there', async () => {
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  const { specFromCircuit } = await import('../src/layout.js');
+  const first = autoLayout(expandRecipe('555-astable').spec);
+  assert.equal(first.status, 'done');
+  const back = specFromCircuit(first.circuit);
+  const again = autoLayout(
+    specFromCircuit(first.circuit, {
+      parts: [...back.parts, { id: 'R4', type: 'resistor', value: '330' }, { id: 'D2', type: 'led', color: 'green' }],
+      nets: [...first.circuit.spec.nets, ['U1.OUT', 'R4.1'], ['R4.2', 'D2.anode'], ['D2.cathode', 'T-']],
+    }),
+    { previous: first.circuit },
+  );
+  assert.equal(again.status, 'done', formatLayout(again, 'en', { t, formatIssue }));
+  for (const p of first.circuit.parts.filter((q) => q.type !== 'wire')) assert.deepEqual(again.circuit.parts.find((q) => q.id === p.id).pins, p.pins, p.id);
+});

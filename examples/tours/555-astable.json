@@ -3,7 +3,7 @@
   "circuit": "555-astable",
   "format": "vertical",
   "steps": [
-    { "at": 0, "do": "probe", "node": "14:a-e", "field": "voltage" },
+    { "at": 0, "do": "probe", "node": "10:f-j", "field": "voltage" },
     { "at": 0, "do": "frame", "target": "board", "move": "cut" },
     { "at": 0, "do": "caption", "text": { "en": "A 555 makes an LED blink", "es": "Un 555 hace parpadear un LED" } },
 
