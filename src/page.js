@@ -26,6 +26,7 @@ import { nodeParams } from './circuit/checks.js';
 import { simulate, compile, pageSimulation } from './sim/index.js';
 import { liveFlow, flowStyle } from './sim/paths.js';
 import { LANGUAGES } from './i18n/index.js';
+import { Z } from './core/vec.js';
 import { deviceOfReading } from './sim/devices/index.js';
 import { partLines } from './sim/format.js';
 import { groundHole } from './sim/probes.js';
@@ -319,6 +320,9 @@ export function renderPage(circuit, options = {}) {
     explain: { ...explanations(lang), ...kinds },
     focus: Array.isArray(circuit.page?.focus) ? circuit.page.focus : [],
     flowStyle: flow ? flowStyle(circuit) : null,
+    // Screen units a millimetre up the drawing's z (the same in every view): how high a part lifted
+    // off the board is drawn (M15, M16; page/client/focus.js).
+    lift: Math.round(-rendered[0].scene.camera.projectDir(Z).y * 1000) / 1000,
     ...(live && { live }),
     ...(tour && { tour }),
     text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit'), tabPart: t(lang, 'page.tab.part'), tabStrip: t(lang, 'page.tab.strip'), model: t(lang, 'sim.badge'), modelShort: t(lang, 'page.model') },

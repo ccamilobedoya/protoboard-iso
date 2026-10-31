@@ -135,7 +135,36 @@ página y la hoja de ruta al día.
   subtítulos al lado; `--burn` los dibuja en la imagen. En una grabación una pieza se encuadra con
   su rótulo corto, así el rótulo también queda en el área libre. Cómo sacar el video: *Grabar un
   video*, abajo.
-- ⬜ V6 y V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
+- 🔜 V6 · Los movimientos elegidos (2026-10-30), la primera tanda hecha; faltan M4, M5, M7 y M11.
+  Cada movimiento tiene su prueba en jsdom (`test/moves.test.js`, valores a tiempos dados) y su
+  fotograma *golden* (`test/frames/move-*.json`); la línea de tiempo de ejemplo es
+  `examples/tours/npn-switch-moves.json` (y `led-resistor` para M10). M1 llegada y M14 cierre: un
+  `focus` con `move` trae el velo, las tiras y las coordenadas con la cámara, o se los lleva (con la
+  capa de corriente el velo se queda); el cierre termina en un subtítulo, sin QR. M2 empuje, M6 la
+  corriente arranca (`ramp`) y M9 el valor cuenta ya estaban en el reloj desde V2. M8: el halo de un
+  LED sube a su brillo en 180 ms por la curva del golpe y se apaga de una vez (un LED es rápido; lo
+  que el ojo sigue es la luz que llega); en reposo al cargar, inmediato con movimiento reducido. M12:
+  el subtítulo anterior se va en 200 ms (una copia que se desvanece encima) y después cada línea sube
+  desde su base dentro de una máscara (`clip-path` en cada línea), 400 ms con la curva de llegada,
+  90 ms entre líneas; el valor sube igual al aparecer. M15 (`insert`): la pieza empieza 12 mm arriba
+  (`page.data.lift`, unidades de pantalla por milímetro de z) y baja en 700 ms; en el aire la pieza
+  de abajo no se ve, su rótulo sube con ella y el circuito entero queda sin corriente (puntos quietos,
+  luces apagadas), porque en el banco sacar una pieza abre el circuito; al asentar, los puntos suben
+  en 600 ms (M6) y la luz en 180 ms (M8). M16 (`raise`, cambiado a pedido del mantenedor el mismo día: no en cada toque, sino un paso opcional de
+  la línea de tiempo para resaltar una pieza en un video): la pieza sube 3 mm (`mm`, hasta 12) por su
+  movimiento, una llegada por defecto, más lenta que un toque, y se queda arriba hasta un `raise` a
+  0 mm; sigue en el circuito (la simulación no cambia) y entra en foco. Al terminar o detenerse un
+  recorrido en la página, toda pieza levantada vuelve a sus agujeros. Las dos usan `liftPart` (`focus.js`): cada copia de la pieza y de su rótulo en un grupo
+  con `transform`. M10 (un deslizador que se mueve solo) es un `set` con `travel`, sin código nuevo.
+  M3 (giro) y M13 (coordenadas) ya corrían como señales del reloj: solo se agregaron a la línea de
+  tiempo y a la red de seguridad. `scripts/frames.js` acepta casos con `tour` (una grabación,
+  `?director=1`) y lanza Chromium con las opciones del compositor de `stage-shots.js` (sin ellas un
+  fotograma difería de vez en cuando). De paso: `render-frames.js` tomaba como circuito otra línea de tiempo
+  con el nombre del circuito junto a la suya; ahora la salta. Los hashes de V0 no cambiaron.
+  Pendientes: M4 (armar el circuito: las piezas que aún no bajan deben estar ocultas), M5 (cables
+  que se trazan), M7 (un pulso por el camino), M11 (osciloscopio en recuadro); el pulso al cargar
+  (V3) tampoco se hizo.
+- ⬜ V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
 
@@ -341,11 +370,11 @@ exportador de fotogramas. Un asistente lo escribe; desde entonces nada se genera
 
 - `at` es tiempo de pared simulado en ms desde el inicio del recorrido; los pasos con el mismo `at`
   arrancan juntos. `ms` cambia la duración por defecto del movimiento (solo `push` la necesita).
-- Acciones: `frame` (`board`, `parts` o el id de una pieza, con `zoom` opcional), `focus` (ids de
+- Acciones: `frame` (`board`, `parts` o el id de una pieza, con `zoom` opcional), `focus` (con un `move`, el velo llega o se va con él; ids de
   piezas), `flip` (`front` | `back`), `set` (un control, interpolado durante el movimiento), `flow`
   (la capa de corriente, con una `ramp` desde cero), `caption` (texto; se permite una segunda
   `line`), `value` (una lectura de una pieza, grande, junto al subtítulo; cuenta hasta su valor en
-  500 ms), `probe` (el osciloscopio de una tira o pieza en un recuadro), `insert` (M15: la pieza baja a sus agujeros), `wait-until` (una condición
+  500 ms), `probe` (el osciloscopio de una tira o pieza en un recuadro), `insert` (M15: la pieza baja a sus agujeros; `ms`, 700 por defecto), `raise` (M16: la pieza sube `mm`, 3 por defecto, y se queda arriba, en el circuito; `mm: 0` la baja), `wait-until` (una condición
   sobre una lectura: `{ "part": "D1", "field": "brightness", "above": 0.5 }`; los pasos siguientes
   se corren lo que dure la espera).
 - Los textos son planos o por idioma, como la `description` de un circuito.
@@ -373,7 +402,7 @@ Cada movimiento tiene un propósito nombrado (sin él no se construye), un costo
 | M13 | Coordenadas que se encienden | los números de columna y letras de fila de la pieza se iluminan un instante al llegar | bajo (existe) |
 | M14 | Cierre | la cámara vuelve a la tabla entera con `travel`, el velo se va, aparece la página o un QR | bajo |
 | M15 | Inserción | la pieza empieza 12 mm por encima de la tabla y baja con `arrival` (700 ms) por el eje z del dibujo (la vertical de la pantalla); al asentar, un `hit`: arranca la corriente (M6) y enciende la luz (M8); en el aire no tiene corriente y su rótulo la acompaña; una sombra como elipse tenue debajo, opcional (una forma, sin filtro). Encadenada, es como M4 arma el circuito | medio-bajo |
-| M16 | Relieve al tocar | en la página, la pieza tocada sube 2 mm en 150 ms y asienta en 250 ms (salida fuerte); con movimiento reducido se queda; propósito: confirmar el toque y decir «esta» | bajo |
+| M16 | Pieza levantada | en un video (`raise`), la pieza sube 3 mm con una llegada y se queda arriba hasta bajarla, sin salir del circuito; propósito: decir «esta» (primero se pensó al tocar en la página, 150 + 250 ms; el mantenedor lo prefirió opcional y más lento, solo para videos) | bajo |
 
 Fuera a propósito: librerías de animación, 3D real, giros de cámara (la vista isométrica es fija),
 partículas y desenfoques, transiciones entre circuitos distintos (eso lo hace ffmpeg).
@@ -518,7 +547,7 @@ construyen en orden.
 
 - **Construir, uno por uno, cada uno con prueba en jsdom y fotograma golden:** M1 llegada, M2
   empuje, M6 arranca la corriente, M8 el LED enciende, M9 el valor cuenta, M12 subtítulos que
-  llegan, M14 cierre, M15 inserción, M16 relieve al tocar; después M4, M5, M7, M10, M11; M3 y M13
+  llegan, M14 cierre, M15 inserción, M16 pieza levantada; después M4, M5, M7, M10, M11; M3 y M13
   solo se conectan al reloj.
 - **Respetar:** la tabla de movimientos (duraciones, curvas, propósitos); solo transform y
   opacidad; el movimiento reducido conserva el estado final.

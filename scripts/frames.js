@@ -3,6 +3,10 @@
 // names a recipe, a window size and the calls to window.protoboardLive.tick(ms, steps) made after
 // the page loads; the PNG that results must hash the same as the stored one.
 //
+// A move's case (V6) adds `tour` (a timeline file, from the repository's root): the page is opened
+// as a recording (?director=1), the tour starts, and the ticks go through the director, so the
+// frame is the move at that time.
+//
 //   node scripts/frames.js [names…] [--runs n] [--out dir]   compare (n renders of each, all equal)
 //   node scripts/frames.js --write                            store the hashes now (an intended change)
 //   node scripts/frames.js --determinism                      only that 2 (or --runs n) renders agree
@@ -25,6 +29,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { autoLayout } from '../src/layout.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { renderPage } from '../src/page.js';
+import { CHROMIUM_ARGS } from './stage-shots.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const CASES = join(root, 'test/frames');
@@ -42,7 +47,8 @@ export const loadCases = (dir = CASES) =>
 export function casePage(c) {
   const r = autoLayout(expandRecipe(c.recipe, c.values).spec);
   if (r.status !== 'done') throw new Error(`recipe ${c.recipe}: ${r.status}`);
-  const { html } = renderPage(r.circuit, { lang: c.lang ?? 'en' });
+  const circuit = c.tour ? { ...r.circuit, page: { ...r.circuit.page, tour: JSON.parse(readFileSync(join(root, c.tour), 'utf8')) } } : r.circuit;
+  const { html } = renderPage(circuit, { lang: c.lang ?? 'en' });
   return html;
 }
 
@@ -72,7 +78,9 @@ async function openBrowser() {
     return { missing: 'Playwright is not installed (npm install)' };
   }
   try {
-    const browser = await chromium.launch();
+    // The same compositor settings as a recording (stage-shots.js): without them a frame came out
+    // a few colour units off now and then.
+    const browser = await chromium.launch({ args: CHROMIUM_ARGS });
     return { browser, renderer: `chromium ${browser.version()} ${process.platform}-${process.arch}` };
   } catch (e) {
     const first = String(e.message).split('\n').find((l) => /not found|Executable|install|error while loading/i.test(l)) ?? String(e.message).split('\n')[0];
@@ -87,14 +95,15 @@ async function shoot(browser, c, file) {
     // install alone lets time run; paused, it stands still until the page is gone.
     await page.clock.install({ time: 0 });
     await page.clock.pauseAt(1000);
-    await page.goto(pathToFileURL(file).href);
+    await page.goto(pathToFileURL(file).href + (c.tour ? '?director=1' : ''));
     await page.evaluate(async () => {
       await document.fonts.ready;
     });
-    await page.evaluate((ticks) => {
+    await page.evaluate(({ ticks, tour }) => {
       if (!window.protoboardLive) throw new Error('the page has no live simulation');
+      if (tour) window.protoboardLive.tour.play();
       for (const [ms, steps] of ticks) window.protoboardLive.tick(ms, steps);
-    }, c.ticks);
+    }, { ticks: c.ticks, tour: Boolean(c.tour) });
     return await page.screenshot({ animations: 'disabled', caret: 'hide' });
   } finally {
     await context.close();

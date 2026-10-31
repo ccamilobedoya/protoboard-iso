@@ -120,7 +120,7 @@
                   "type": "string",
                   "description": "id of a part (or a supply)"
                 },
-                "description": "The parts brought forward; [] clears"
+                "description": "The parts brought forward; [] clears. With a move, the veil, strips and coordinates come in (or leave) along it"
               }
             },
             "additionalProperties": false
@@ -498,7 +498,55 @@
                 "description": "id of a part (or a supply)"
               }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "The part comes down 12 mm to its holes (700 ms, or ms); the circuit has no current until it lands"
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "part"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "raise"
+              },
+              "part": {
+                "type": "string",
+                "description": "id of a part (or a supply)"
+              },
+              "mm": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 12,
+                "description": "How high, in mm (default 3); 0 puts it back"
+              }
+            },
+            "additionalProperties": false,
+            "description": "The part rises along its move (an arrival by default) to set it apart, and stays up until a raise to 0; it stays in the circuit"
           },
           {
             "type": "object",

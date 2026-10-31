@@ -355,10 +355,12 @@ body.touched .zoom, .zoom:focus-within { opacity: 1; pointer-events: auto; }
 /* The tour (stage and video, V2): its caption over the top of the drawing, text from the timeline.
    In a recording (body.director) it is the video's caption layer instead, below. */
 .tour-caption { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 3; box-sizing: border-box; width: max-content; max-width: min(560px, calc(100% - 24px)); padding: 10px 14px; color: var(--on-tooltip); background: var(--tooltip); border-radius: 8px; pointer-events: none; }
-.tour-caption p { margin: 0; }
+.tour-caption p { margin: 0; clip-path: inset(-0.5em -100vw -0.25em -100vw); } /* each line a mask its text rises into (M12) */
+.tour-caption .in { display: block; }
 .tour-caption .text { font-size: 17px; line-height: 1.35; font-weight: 600; }
 .tour-caption .line { margin-top: 2px; font-size: 14px; line-height: 1.35; opacity: 0.85; }
-.tour-caption .value { margin-top: 6px; display: flex; align-items: baseline; gap: 8px; }
+.tour-caption .value { margin-top: 6px; }
+.tour-caption .value .in { display: flex; align-items: baseline; gap: 8px; }
 .tour-caption .value .label { font-size: 13px; opacity: 0.85; }
 .tour-caption .value .number { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 24px; font-weight: 600; }
 .tour-caption .stop { display: block; margin-top: 6px; font-size: 12px; opacity: 0.7; }
@@ -387,7 +389,8 @@ body.director .tour-caption { left: 0; right: 0; top: var(--cap-top); transform:
 @media (orientation: landscape) { body.director .tour-caption { right: 50%; } }
 body.director .tour-caption .text { max-width: 22ch; font: var(--cap-weight, 600) var(--cap-text)/1.15 var(--cap-face); text-wrap: balance; }
 body.director .tour-caption .line { margin-top: var(--cap-gap); font: 500 var(--cap-line)/1.2 var(--sans); color: var(--cap-ink-2); opacity: 1; }
-body.director .tour-caption .value { flex-direction: row-reverse; justify-content: flex-end; gap: var(--cap-gap); margin-top: var(--cap-gap); }
+body.director .tour-caption .value { margin-top: var(--cap-gap); }
+body.director .tour-caption .value .in { flex-direction: row-reverse; justify-content: flex-end; gap: var(--cap-gap); }
 body.director .tour-caption .value .number { font-size: var(--cap-number); font-weight: 500; line-height: 1; color: var(--cap-value); }
 body.director .tour-caption .value .label { font-size: var(--cap-label); color: var(--cap-ink-2); opacity: 1; }
 .first-hint small { font-size: 12px; opacity: 0.8; }

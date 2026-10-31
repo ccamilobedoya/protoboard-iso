@@ -56,9 +56,19 @@ export function timelineCircuit(file, timeline, named) {
   const self = resolve(file);
   for (const dir of [dirname(self), dirname(dirname(self))]) {
     const candidate = join(dir, `${name}.json`);
-    if (candidate !== self && existsSync(candidate)) return loadCircuit(resolveTarget(candidate));
+    // Beside a timeline there may be another one of that name (tours/npn-switch.json beside
+    // tours/npn-switch-moves.json): a circuit has parts, a timeline steps.
+    if (candidate !== self && existsSync(candidate) && !isTimeline(candidate)) return loadCircuit(resolveTarget(candidate));
   }
   return recipeCircuit(name);
+}
+function isTimeline(file) {
+  try {
+    const x = JSON.parse(readFileSync(file, 'utf8'));
+    return Array.isArray(x?.steps) && !Array.isArray(x?.parts);
+  } catch {
+    return false;
+  }
 }
 function recipeCircuit(name) {
   const { spec } = expandRecipe(name);

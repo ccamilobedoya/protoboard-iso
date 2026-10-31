@@ -1,0 +1,28 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "npn-switch",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A transistor as a switch", "es": "Un transistor como interruptor" } },
+    { "at": 900, "do": "frame", "target": "S1", "move": "arrival" },
+    { "at": 900, "do": "focus", "parts": ["S1"], "move": "arrival" },
+    { "at": 2100, "do": "caption", "text": { "en": "Press S1: a small current into the base", "es": "Al apretar S1, una corriente pequeña entra a la base" }, "line": { "en": "and the LED turns on", "es": "y el LED se enciende" } },
+    { "at": 2700, "do": "set", "part": "S1", "field": "pressed", "value": true, "move": "hit" },
+    { "at": 2700, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 3300, "do": "focus", "parts": ["Q1", "D1"] },
+    { "at": 3300, "do": "frame", "target": "D1", "move": "travel" },
+    { "at": 3300, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
+    { "at": 4800, "do": "frame", "target": "D1", "zoom": 1.25, "move": "push", "ms": 4000 },
+    { "at": 5200, "do": "raise", "part": "D1" },
+    { "at": 7800, "do": "raise", "part": "D1", "mm": 0 },
+    { "at": 8800, "do": "caption", "text": { "en": "From below: the metal strips join the holes", "es": "Por debajo: las tiras de metal unen los agujeros" } },
+    { "at": 8800, "do": "flip", "view": "back" },
+    { "at": 10000, "do": "flip", "view": "front" },
+    { "at": 10000, "do": "caption", "text": { "en": "Take the LED out and put it back", "es": "Saca el LED y vuelve a ponerlo" } },
+    { "at": 10400, "do": "insert", "part": "D1" },
+    { "at": 12400, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 12400, "do": "focus", "parts": [], "move": "travel" },
+    { "at": 12400, "do": "caption", "text": { "en": "protoboard-iso: the page does the same", "es": "protoboard-iso: la página hace lo mismo" } }
+  ]
+}

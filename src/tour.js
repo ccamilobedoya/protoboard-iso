@@ -14,12 +14,12 @@
 
 import { LIMITS } from './limits.js';
 import { readBeside } from './beside.js';
-import { MOVES, moveTiming } from './page/client/moves.js';
+import { MOVES, moveTiming, INSERT, RAISE } from './page/client/moves.js';
 import { THEMES } from './page/client/themes.js';
 import { compile } from './sim/index.js';
 import { createEngine } from './sim/engine.js';
 
-export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'wait-until'];
+export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'raise', 'wait-until'];
 // What a `value` or `wait-until` step reads from a part's reading, and its unit.
 export const READINGS = { current: 'A', voltage: 'V', power: 'W', brightness: '%' };
 export const FORMATS = ['vertical', 'horizontal'];
@@ -27,7 +27,7 @@ export const FORMATS = ['vertical', 'horizontal'];
 export { THEMES } from './page/client/themes.js';
 const FRAMES = ['board', 'parts'];
 // The move a step makes when it names none.
-const DEFAULT_MOVE = { frame: 'arrival', set: 'hit', insert: 'arrival' };
+const DEFAULT_MOVE = { frame: 'arrival', set: 'hit', insert: 'arrival', raise: 'arrival' };
 const BREATH = MOVES.breath.min; // ms of rest that count as a breath between two hits
 
 const warn = (code, params = {}) => ({ severity: 'warning', code, params });
@@ -47,9 +47,10 @@ const FIELDS = {
   value: { part: (v) => typeof v === 'string', field: (v) => Object.hasOwn(READINGS, v), label: isText },
   probe: { part: (v) => typeof v === 'string', node: (v) => typeof v === 'string' },
   insert: { part: (v) => typeof v === 'string' },
+  raise: { part: (v) => typeof v === 'string', mm: (v) => num(v) && v >= 0 && v <= RAISE.max },
   'wait-until': { part: (v) => typeof v === 'string', field: (v) => Object.hasOwn(READINGS, v), above: num, below: num, max: (v) => num(v) && v >= 0 && v <= 60_000 },
 };
-const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], caption: ['text'], value: ['part', 'field'], insert: ['part'], 'wait-until': ['part', 'field'] };
+const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], caption: ['text'], value: ['part', 'field'], insert: ['part'], raise: ['part'], 'wait-until': ['part', 'field'] };
 
 // The timeline as given, or why there is none to read: { raw, issues }.
 function readTour(circuit) {
@@ -107,7 +108,7 @@ function shapeIssues(raw) {
 // When each step's move ends, in ms from the start.
 const ends = (s) => s.at + timing(s).ms;
 const moveOf = (s) => s.move ?? DEFAULT_MOVE[s.do] ?? 'cut';
-const timing = (s) => (s.do === 'frame' || s.do === 'set' || s.do === 'insert' || s.move ? moveTiming(moveOf(s), s.ms) : { ms: 0 });
+const timing = (s) => (s.do === 'frame' || s.do === 'set' || s.do === 'insert' || s.do === 'raise' || s.move ? moveTiming(moveOf(s), s.ms ?? (s.do === 'insert' ? INSERT.ms : undefined)) : { ms: 0 });
 
 // What the circuit can do with the steps, and the rhythm: problems that leave the tour playable.
 function meaningIssues(circuit, steps) {

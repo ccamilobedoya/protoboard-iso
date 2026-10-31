@@ -270,7 +270,7 @@ and a frame exporter. Decisions taken with the maintainer on 2026-10-30: C dark 
 - ✅ V3 · The drawing that tells: the board's own printed coordinates lit (the same decals; unnumbered columns get one in the same format), covered by parts like the print; the current layer as a plan (a pad at every landing, a line through two-pin parts and along wires, a stub per pin on the others); result tags at a fixed screen size and off their part; short labels at rest and the frame computed with them
 - ✅ V4 · The stage: the chosen direction as `[data-theme="stage"]`, the hole grid continued under the drawing, the caption layer, one label and no tags in a frame, the reserved margin, safe bands measured
 - 🔜 V5 · Frames (built, the test video waits for approval): `scripts/render-frames.js` (Playwright, dev only) → PNG sequence + `timeline.json`; ffmpeg command documented; a 45 s test video of three recipes approved on a phone
-- ⬜ V6 · The chosen moves (M1 to M16 in the plan), each with a jsdom test and a golden frame
+- 🔜 V6 · The chosen moves (M1 to M16 in the plan), each with a jsdom test and a golden frame: done M1, M2, M3, M6, M8, M9, M10, M12, M13, M14, M15, M16 (`test/moves.test.js`, `test/frames/move-*.json`, `examples/tours/npn-switch-moves.json`); left M4 (the circuit builds itself), M5 (wires drawn), M7 (a pulse along the path), M11 (the oscilloscope inset) and the pulse on load
 - ⬜ V7 · Bench and guide: a timeline per recorded recipe, the golden in `npm run verify`, the guide in en and es
 
 ## Stage 4 — On a phone or tablet ⬜

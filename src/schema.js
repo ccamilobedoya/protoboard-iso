@@ -12,7 +12,7 @@ import { LANGUAGES } from './i18n/index.js';
 import { BATTERY_FORMATS, BATTERY_CHEMISTRIES } from './parts/batteries.js';
 import { LDR_PARTS } from './parts/types/more.js';
 import { RECIPES } from './recipes/index.js';
-import { MOVES } from './page/client/moves.js';
+import { MOVES, RAISE } from './page/client/moves.js';
 import { READINGS, FORMATS, THEMES } from './tour.js';
 import { LIMITS } from './limits.js';
 
@@ -253,14 +253,15 @@ function timelineSchema(localized) {
         items: {
           oneOf: [
             action('frame', { target: { type: 'string', description: 'board, parts or a part id' }, zoom: { type: 'number', exclusiveMinimum: 0, maximum: 20 } }, ['target']),
-            action('focus', { parts: { type: 'array', items: id, description: 'The parts brought forward; [] clears' } }, ['parts']),
+            action('focus', { parts: { type: 'array', items: id, description: 'The parts brought forward; [] clears. With a move, the veil, strips and coordinates come in (or leave) along it' } }, ['parts']),
             action('flip', { view: { type: 'string', description: 'A view of the page (front, back…)' } }, ['view']),
             action('set', { part: id, field: { type: 'string', description: 'A control of the part (resistance, pressed, voltage…)' }, value: { type: ['number', 'boolean'] } }, ['part', 'field', 'value']),
             action('flow', { on: { type: 'boolean' }, ramp: { type: 'number', minimum: 0, maximum: 10000, description: 'ms for the dots to reach their speed' } }, ['on']),
             action('caption', { text, line: text }, ['text']),
             action('value', { part: id, field: reading, label: text }, ['part', 'field']),
             action('probe', { part: id, node: { type: 'string', description: 'A strip, as the page names it' } }, [], { oneOf: [{ required: ['part'] }, { required: ['node'] }] }),
-            action('insert', { part: id }, ['part']),
+            action('insert', { part: id }, ['part'], { description: 'The part comes down 12 mm to its holes (700 ms, or ms); the circuit has no current until it lands' }),
+            action('raise', { part: id, mm: { type: 'number', minimum: 0, maximum: RAISE.max, description: 'How high, in mm (default 3); 0 puts it back' } }, ['part'], { description: 'The part rises along its move (an arrival by default) to set it apart, and stays up until a raise to 0; it stays in the circuit' }),
             action('wait-until', { part: id, field: reading, above: { type: 'number' }, below: { type: 'number' }, max: { type: 'number', minimum: 0, maximum: 60000, description: 'ms to wait at most (default 10000)' } }, ['part', 'field'], { oneOf: [{ required: ['above'] }, { required: ['below'] }] }),
           ],
         },

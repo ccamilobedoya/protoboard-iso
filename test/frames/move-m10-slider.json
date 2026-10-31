@@ -1,0 +1,10 @@
+{
+  "recipe": "led-resistor",
+  "tour": "examples/tours/led-resistor.json",
+  "lang": "en",
+  "viewport": {"width":360,"height":640},
+  "ticks": [[0,1],[33.333333333333336,165]],
+  "renderer": "chromium 156.0.8078.4 linux-x64",
+  "html": "e7280b46d07cc2b5a90f70c3727f6d675aaa94ed390e3bd1c84337ee87e218bf",
+  "png": "d82f5de5a494495824143cef519506ad6894f47bda48abf6a79ade5123bf4edf"
+}

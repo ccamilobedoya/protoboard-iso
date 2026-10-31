@@ -42,6 +42,7 @@ import { iconSvg } from './icons.js';
 import { createDirector, wantsDirector } from './director.js';
 import { setupTour } from './tour.js';
 import { stageInset } from './view.js';
+import { bezier, LIGHT } from './moves.js';
 
 const BUDGET = 8; // ms of simulation per frame
 const DIRECTOR_STEPS = 20000; // steps per frame at most under the director (its frames take what they need)
@@ -208,6 +209,38 @@ export function setupLive(page) {
   let tags = null;
   let bridges = null;
 
+  // The halo of each LED (M8): it rises to its brightness along a hit instead of appearing, and goes
+  // out at once. At rest when the page loads, at once under reduced motion; dark while a part is
+  // in the air (M15: the circuit is not closed yet). id → { shown, written, rise: { from, ms } }.
+  const lights = new Map();
+  let dark = false;
+  const lightEase = bezier(LIGHT.curve);
+  function aim(id, target) {
+    const to = dark ? 0 : target;
+    const l = lights.get(id);
+    if (!l) return lights.set(id, { shown: to, to, written: null, rise: null });
+    l.to = to;
+    if (reduced || to <= l.shown) {
+      l.shown = to;
+      l.rise = null;
+    } else if (!l.rise) l.rise = { from: l.shown, ms: 0 };
+  }
+  function riseLights(wall) {
+    for (const l of lights.values()) {
+      if (!l.rise) continue;
+      l.rise.ms += wall * 1000;
+      const k = Math.min(1, l.rise.ms / LIGHT.ms);
+      l.shown = l.rise.from + (l.to - l.rise.from) * lightEase(k);
+      if (k >= 1) l.rise = null;
+    }
+  }
+  function writeLights() {
+    for (const el of glows) {
+      const text = lights.get(el.dataset.glow)?.shown.toFixed(2) ?? '0.00';
+      if (el.style.opacity !== text) el.style.opacity = text;
+    }
+  }
+
   // Colours, glow, heat, tags, captions, card.
   function repaint() {
     heats ??= each('.flow > [data-heat]');
@@ -238,7 +271,8 @@ export function setupLive(page) {
     // LEDs lit with their current: on the board (.lights, with the results) and in the current layer.
     // Averaged over the steps since the last paint (a PWM is faster than the page): what the eye sees.
     const glow = engine.glow?.() ?? {};
-    for (const el of glows) el.style.opacity = glowOpacity(glow[el.dataset.glow] ?? reading.parts[el.dataset.glow]?.brightness).toFixed(2);
+    for (const el of glows) aim(el.dataset.glow, glowOpacity(glow[el.dataset.glow] ?? reading.parts[el.dataset.glow]?.brightness));
+    writeLights();
     // Result tags: the same place, the new value, the box resized around its centre.
     for (const text of tags) {
       let value = null;
@@ -399,10 +433,12 @@ export function setupLive(page) {
       record(reading);
     }
     if (flow) moveDots(wall);
+    const rising = [...lights.values()].some((l) => l.rise);
+    riseLights(wall);
     if (directing || now - lastPaint >= REFRESH) {
       lastPaint = now;
       repaint();
-    }
+    } else if (rising) writeLights();
   }
   director = recording || data.tour
     ? createDirector(page, {
@@ -450,6 +486,11 @@ export function setupLive(page) {
         reading: () => reading,
         dots: (k) => {
           dotScale = k;
+        },
+        // M15: the lights held dark while a part is in the air, then let rise (M8).
+        lights: (on) => {
+          dark = !on;
+          if (!on) for (const id of lights.keys()) aim(id, 0);
         },
       })
     : null;

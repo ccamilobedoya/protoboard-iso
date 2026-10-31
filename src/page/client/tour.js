@@ -6,9 +6,15 @@
 // Each step becomes a cue at its `at`. Moves are the named ones of moves.js; under reduced motion
 // (not in a recording) they all become cuts: the camera, controls, ramps and counts arrive at once,
 // while breaths and waits keep their time. Texts go in with textContent: a timeline is data.
+//
+// The moves of V6 (the plan's table) that live here: a focus with a move brings the veil, the strips
+// and the coordinates in with it, or takes them away (M1 arrival, M14 close); a caption's lines rise
+// from their baseline after the caption before has left (M12); an insert brings a part down to its
+// holes, the circuit without current until it lands (M15); a raise lifts a part to set it apart and
+// keeps it up, in the circuit (M16). Only transform and opacity move.
 
-import { moveTiming } from './moves.js';
-import { applyFocus } from './focus.js';
+import { moveTiming, bezier, CAPTION, INSERT, RAISE } from './moves.js';
+import { applyFocus, liftPart } from './focus.js';
 import { select, selectNode } from './card.js';
 
 const COUNT_MS = 500; // a value counts up to its reading (M9)
@@ -22,22 +28,34 @@ function el(parent, tag, cls) {
   return e;
 }
 
-export function setupTour(page, { director, t, f, recording, reading, dots }) {
+// How long a step moves things, from its `at`: its move, a ramp, a caption coming in, a landing.
+const CAPTION_MS = CAPTION.out + 2 * CAPTION.stagger + CAPTION.in;
+function stepMs(s, timing) {
+  if (s.do === 'flow') return s.ramp ?? 0;
+  if (s.do === 'caption' || s.do === 'value') return CAPTION_MS;
+  if (s.do === 'insert') return (s.ms ?? INSERT.ms) + INSERT.ramp;
+  return timing(s).ms;
+}
+
+export function setupTour(page, { director, t, f, recording, reading, dots, lights = () => {} }) {
   const steps = page.data.tour.steps;
   const reduced = !recording && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const timing = (s) => (reduced ? { ms: 0, ease: () => 1 } : moveTiming(s.move, s.ms));
-  const end = Math.max(0, ...steps.map((s) => s.at + (s.do === 'flow' ? s.ramp ?? 0 : timing(s).ms)));
+  const end = Math.max(0, ...steps.map((s) => s.at + (reduced ? 0 : stepMs(s, timing))));
 
   // The caption over the drawing: a text, a second line, a value; the way to stop it.
   const box = el(page.main, 'div', 'tour-caption');
   box.hidden = true;
   box.setAttribute('aria-live', 'polite');
-  const text = el(box, 'p', 'text');
-  const line = el(box, 'p', 'line');
+  // Each line is a mask (page/style.js) around what rises in it (M12).
+  const text = el(el(box, 'p', 'text'), 'span', 'in');
+  const line = el(el(box, 'p', 'line'), 'span', 'in');
   const value = el(box, 'p', 'value');
-  const label = el(value, 'span', 'label');
-  const number = el(value, 'span', 'number');
-  line.hidden = true;
+  const rise = el(value, 'span', 'in');
+  const label = el(rise, 'span', 'label');
+  const number = el(rise, 'span', 'number');
+  const lineRow = line.parentNode;
+  lineRow.hidden = true;
   value.hidden = true;
   const hint = el(box, 'small', 'stop');
   hint.textContent = t('page.tour.stop');
@@ -60,16 +78,95 @@ export function setupTour(page, { director, t, f, recording, reading, dots }) {
     page.told = id ?? null;
     applyFocus(page);
   };
+  // M1, M14: what a focus brings with it (the veil, unless the current layer keeps it; the strips;
+  // the coordinates) at `k` of its opacity.
+  const fade = (k) => {
+    const layers = page.state.layer === 'flow' ? ['strips', 'coords'] : ['veil', 'strips', 'coords'];
+    for (const svg of page.svgs) {
+      for (const name of layers) {
+        const g = svg.querySelector(':scope > .' + name);
+        if (g) g.style.opacity = k < 1 ? k.toFixed(3) : '';
+      }
+    }
+  };
+  const focusOn = (parts) => {
+    page.state.node = null;
+    page.state.focus = new Set(parts);
+    if (page.told !== undefined) page.told = parts.at(-1) ?? null;
+    applyFocus(page);
+  };
+
+  // M12: lines rise into their masks, one after the other, once the caption before has left (a
+  // copy of it fades out on top). `rows`: the elements that rise, top to bottom.
+  const rising = bezier(CAPTION.curve);
+  const leaving = () => {
+    if (reduced || box.hidden) return null;
+    const old = box.cloneNode(true);
+    old.classList.add('leaving');
+    return old;
+  };
+  function riseIn(rows, old) {
+    if (reduced) return;
+    const after = Boolean(old);
+    if (old) {
+      old.setAttribute('aria-hidden', 'true');
+      box.after(old);
+      director.tween((e) => {
+        old.style.opacity = (1 - e).toFixed(3);
+        if (e >= 1) old.remove();
+      }, { ms: CAPTION.out, ease: (k) => k });
+    }
+    const wait = after ? CAPTION.out : 0;
+    const total = wait + (rows.length - 1) * CAPTION.stagger + CAPTION.in;
+    const place = (e) => {
+      const ms = e * total;
+      rows.forEach((row, k) => {
+        const local = Math.min(1, Math.max(0, (ms - wait - k * CAPTION.stagger) / CAPTION.in));
+        row.style.transform = local >= 1 ? '' : 'translateY(' + (130 * (1 - rising(local))).toFixed(2) + '%)';
+      });
+    };
+    place(0);
+    director.tween(place, { ms: total, ease: (k) => k });
+  }
+
+  // Every part lifted (an insert in the air, a raise) back in its holes: the tour stopped, or a
+  // tour in the page ended (a raised part out of focus would be nowhere).
+  const lower = () => {
+    for (const id of [...(page.lifted?.keys() ?? [])]) liftPart(page, id, 0);
+  };
+
+  // M15: parts in the air; the circuit has no current until the last one lands.
+  const aloft = new Set();
+  function land(id) {
+    liftPart(page, id, 0);
+    aloft.delete(id);
+    if (aloft.size) return;
+    lights(true);
+    if (reduced) return dots(1);
+    director.tween(dots, { ms: INSERT.ramp, ease: moveTiming('arrival').ease });
+  }
+
   const act = {
     frame: (s) => {
       if (page.data.parts[s.target]) tell(s.target);
       return director.frame(s.target, { ...timing(s), zoom: s.zoom ?? 1 });
     },
     focus: (s) => {
-      page.state.node = null;
-      page.state.focus = new Set(s.parts);
-      if (page.told !== undefined) page.told = s.parts.at(-1) ?? null;
-      applyFocus(page);
+      const { ms, ease } = timing(s);
+      const was = document.body.classList.contains('focusing');
+      const on = s.parts.some((id) => page.data.parts[id]);
+      if (!(ms > 0) || on === was) return focusOn(s.parts);
+      if (on) {
+        focusOn(s.parts);
+        fade(0);
+        return director.tween(fade, { ms, ease });
+      }
+      director.tween((e) => {
+        fade(1 - e);
+        if (e < 1) return;
+        focusOn(s.parts);
+        fade(1);
+      }, { ms, ease });
     },
     flip: (s) => {
       if (!page.svgs.some((svg) => svg.dataset.view === s.view) || page.state.view === s.view) return;
@@ -85,16 +182,19 @@ export function setupTour(page, { director, t, f, recording, reading, dots }) {
       director.tween(dots, { ms: s.ramp, ease: moveTiming('arrival').ease });
     },
     caption: (s) => {
+      const old = leaving();
       box.hidden = false;
       text.textContent = s.text;
       line.textContent = s.line ?? '';
-      line.hidden = !s.line;
+      lineRow.hidden = !s.line;
       shown = null;
       value.hidden = true;
+      riseIn(s.line ? [text, line] : [text], old);
     },
     value: (s) => {
       box.hidden = false;
       value.hidden = false;
+      riseIn([rise], null);
       label.textContent = s.label ?? '';
       shown = { part: s.part, field: s.field, k: 0 };
       director.tween((e) => {
@@ -103,11 +203,37 @@ export function setupTour(page, { director, t, f, recording, reading, dots }) {
       showValue();
     },
     probe: (s) => (s.node != null ? selectNode(page, s.node) : select(page, s.part)),
-    // The descent into the holes (M15) comes with the moves (V6): for now the part is in focus.
+    // M15: in focus, 12 mm up, then down to its holes along an arrival; landed, a hit.
     insert: (s) => {
+      if (!page.data.parts[s.part]) return;
+      page.state.node = null;
       page.state.focus.add(s.part);
       if (page.told !== undefined) page.told = s.part;
       applyFocus(page);
+      if (reduced) return;
+      aloft.add(s.part);
+      lights(false);
+      dots(0);
+      const ease = moveTiming('arrival').ease;
+      director.tween((e) => {
+        if (e < 1) liftPart(page, s.part, INSERT.mm * (1 - ease(e)));
+        else land(s.part);
+      }, { ms: s.ms ?? INSERT.ms, ease: (k) => k });
+    },
+    // M16: up (or back down, mm 0) along its move, from where it is; in focus while it is up.
+    // The simulation goes on: raised is not taken out.
+    raise: (s) => {
+      if (!page.data.parts[s.part]) return;
+      const to = s.mm ?? RAISE.mm;
+      if (to > 0) {
+        page.state.node = null;
+        page.state.focus.add(s.part);
+        if (page.told !== undefined) page.told = s.part;
+        applyFocus(page);
+      }
+      const from = page.lifted?.get(s.part) ?? 0;
+      const { ms, ease } = timing(s);
+      director.tween((e) => liftPart(page, s.part, from + (to - from) * e), { ms, ease });
     },
     'wait-until': (s) => {
       const test = () => {
@@ -124,7 +250,12 @@ export function setupTour(page, { director, t, f, recording, reading, dots }) {
     if (!playing) return;
     playing = false;
     director.stop();
+    lower();
+    aloft.clear();
+    lights(true);
     dots(1);
+    fade(1);
+    for (const old of page.main.querySelectorAll('.tour-caption.leaving')) old.remove();
     box.hidden = true;
     shown = null;
     document.body.classList.remove('touring');
@@ -153,6 +284,7 @@ export function setupTour(page, { director, t, f, recording, reading, dots }) {
         playing = false;
         director.stop();
         if (!recording) {
+          lower();
           box.hidden = true;
           document.body.classList.remove('touring');
         }

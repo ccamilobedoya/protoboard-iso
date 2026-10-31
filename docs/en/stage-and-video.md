@@ -121,7 +121,34 @@ up to date.
   with ffmpeg when it is installed (else prints the command and exits 2) and writes the captions
   beside it; `--burn` draws them in. In a recording a part is framed with its short label, so the
   label stays in the free area too. Making the video: *Recording a video* below.
-- ⬜ V6 and V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
+- 🔜 V6 · The chosen moves (2026-10-30), the first wave done; M4, M5, M7 and M11 remain. Each move
+  has its jsdom test (`test/moves.test.js`, values at given times) and its golden frame
+  (`test/frames/move-*.json`); the example timeline is `examples/tours/npn-switch-moves.json` (and
+  `led-resistor` for M10). M1 arrival and M14 close: a `focus` with a `move` brings the veil, the
+  strips and the coordinates in with the camera, or takes them away (with the current layer the veil
+  stays); the close ends on a caption, no QR. M2 push, M6 the current starts (`ramp`) and M9 the value
+  counts were on the clock since V2. M8: an LED's halo rises to its brightness in 180 ms along the
+  hit's curve and goes out at once (an LED is fast; what the eye follows is the light coming); at
+  rest when the page loads, at once under reduced motion. M12: the caption before leaves in 200 ms (a
+  copy fading out on top), then each line rises from its baseline inside a mask (a `clip-path` on
+  each line), 400 ms along the arrival's curve, 90 ms apart; a value rises the same way when it
+  appears. M15 (`insert`): the part starts 12 mm up (`page.data.lift`, screen units per mm of z) and
+  comes down in 700 ms; in the air the part below is not seen, its label rises with it and the whole
+  circuit has no current (dots still, lights off), because on the bench taking a part out opens the
+  circuit; when it lands the dots come up in 600 ms (M6) and the light in 180 ms (M8). M16 (`raise`, changed at the maintainer's request the same day: not on every tap, but an optional
+  step of a timeline to set a part apart in a video): the part rises 3 mm (`mm`, up to 12) along its
+  move, an arrival by default, slower than a tap, and stays up until a `raise` to 0 mm; it stays in
+  the circuit (the simulation does not change) and comes into focus. When a tour in the page ends or
+  stops, every lifted part goes back to its holes. Both use `liftPart` (`focus.js`): each copy of the part
+  and of its label in a group that takes the `transform`. M10 (a slider that moves by itself) is a
+  `set` with `travel`, no new code. M3 (flip) and M13 (coordinates) already ran as cues on the clock:
+  they were only added to the timeline and the safety net. `scripts/frames.js` takes cases with
+  `tour` (a recording, `?director=1`) and launches Chromium with `stage-shots.js`'s compositor flags
+  (without them a frame differed now and then). In passing: `render-frames.js` took another timeline named like the circuit
+  beside its own as the circuit; it now skips it. The hashes of V0 did not change. Left: M4 (the
+  circuit builds itself: the parts not yet down must be hidden), M5 (wires drawn), M7 (a pulse along
+  the path), M11 (the oscilloscope inset); the pulse on load (V3) was not done either.
+- ⬜ V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
 
@@ -315,11 +342,11 @@ exporter follows. An assistant writes it; from then on nothing is generated.
 
 - `at` is simulated wall time in ms from the start of the tour; steps with the same `at` start
   together. `ms` overrides the move's default duration (only `push` needs it).
-- Actions: `frame` (`board`, `parts` or a part id, with an optional `zoom`), `focus` (part ids),
+- Actions: `frame` (`board`, `parts` or a part id, with an optional `zoom`), `focus` (part ids; with a `move` the veil comes in or leaves along it),
   `flip` (`front` | `back`), `set` (a control, tweened over the move's duration), `flow` (the current
   layer, with a `ramp` from zero), `caption` (text; a second `line` is allowed), `value` (a reading of
   a part, large, next to the caption; it counts up over 500 ms), `probe` (a strip's or part's
-  oscilloscope in a corner box), `insert` (M15: the part comes down into its holes), `wait-until` (a condition on a reading: `{ "part": "D1", "field":
+  oscilloscope in a corner box), `insert` (M15: the part comes down into its holes; `ms`, 700 by default), `raise` (M16: the part rises `mm`, 3 by default, and stays up, in the circuit; `mm: 0` puts it back), `wait-until` (a condition on a reading: `{ "part": "D1", "field":
   "brightness", "above": 0.5 }`; the next steps shift by the wait).
 - The texts are plain or per language, like a circuit's `description`.
 - Caps (`src/limits.js`): steps per timeline, text length, total duration. Texts go through
@@ -346,7 +373,7 @@ Each move has a named purpose (without one it is not built), a cost, and runs un
 | M13 | Coordinates light up | the column numbers and row letters of the part light for an instant on arrival | low (exists) |
 | M14 | Closing | the camera returns to the whole board with `travel`, the veil goes, the page or a QR appears | low |
 | M15 | Insertion | the part starts 12 mm above the board and comes down with `arrival` (700 ms) along the drawing's z axis (the screen's vertical); on seating, a `hit`: the current starts (M6) and the light comes on (M8); in the air it has no current and its label follows it; a shadow as a faint ellipse under it, optional (a shape, no filter). Chained, it is how M4 builds the circuit | medium-low |
-| M16 | Lift on tap | in the page, the tapped part rises 2 mm in 150 ms and settles in 250 ms (strong ease-out); with reduced motion it stays; purpose: confirm the tap and say "this one" | low |
+| M16 | Raised part | in a video (`raise`), the part rises 3 mm with an arrival and stays up until lowered, without leaving the circuit; purpose: say "this one" (first planned on a tap in the page, 150 + 250 ms; the maintainer preferred it optional and slower, for videos only) | low |
 
 Left out on purpose: animation libraries, real 3D, camera orbits (the isometric view is fixed),
 particles and blurs, scene transitions between different circuits (ffmpeg does those).
@@ -479,7 +506,7 @@ below against the code (a previous phase may have chosen others), ends with `npm
 
 - **Build, one by one, each with a jsdom test and a golden frame:** M1 arrival, M2 push, M6 the
   current starts, M8 the LED lights, M9 the value counts, M12 captions arrive, M14 closing, M15
-  insertion, M16 lift on tap; then M4, M5, M7, M10, M11; M3 and M13 only join the clock.
+  insertion, M16 raised part; then M4, M5, M7, M10, M11; M3 and M13 only join the clock.
 - **Honour:** the moves table (durations, curves, purposes); transform and opacity only; reduced
   motion keeps the final state.
 - **Done when:** each move appears in an example timeline and its golden frame is in the safety

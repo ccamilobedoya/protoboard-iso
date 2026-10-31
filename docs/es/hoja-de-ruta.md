@@ -275,7 +275,7 @@ recorrido desde V2.
 - ✅ V3 · El dibujo que cuenta: las propias coordenadas impresas de la tabla encendidas (los mismos calcos; las columnas sin número reciben uno en el mismo formato), tapadas por las piezas como la impresión; la capa de corriente en planta (una pastilla en cada aterrizaje, una recta a través de las piezas de dos patas y a lo largo de los cables, un tramo corto por pata en las demás); etiquetas de resultado a tamaño fijo de pantalla y fuera de su pieza; rótulos cortos en reposo y el encuadre calculado con ellos
 - ✅ V4 · La escena: la dirección elegida como `[data-theme="stage"]`, la retícula de agujeros continuada bajo el dibujo, la capa de subtítulos, un rótulo y sin etiquetas en un fotograma, el margen reservado, franjas seguras medidas
 - 🔜 V5 · Fotogramas (construida, el video de prueba espera aprobación): `scripts/render-frames.js` (Playwright, solo desarrollo) → secuencia PNG + `timeline.json`; comando de ffmpeg documentado; un video de prueba de 45 s con tres recetas aprobado en el celular
-- ⬜ V6 · Los movimientos elegidos (M1 a M16 en el plan), cada uno con prueba en jsdom y fotograma *golden*
+- 🔜 V6 · Los movimientos elegidos (M1 a M16 en el plan), cada uno con prueba en jsdom y fotograma *golden*: hechos M1, M2, M3, M6, M8, M9, M10, M12, M13, M14, M15, M16 (`test/moves.test.js`, `test/frames/move-*.json`, `examples/tours/npn-switch-moves.json`); faltan M4 (el circuito se arma), M5 (los cables se dibujan), M7 (un pulso por el camino), M11 (osciloscopio en recuadro) y el pulso al cargar
 - ⬜ V7 · Banco y guía: una línea de tiempo por receta grabada, el *golden* en `npm run verify`, la guía en en y es
 
 ## Etapa 4 — En el celular o la tableta ⬜

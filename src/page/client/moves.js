@@ -53,3 +53,17 @@ export function moveTiming(name, ms) {
   const split = m.back / total;
   return { ms: total, ease: (k) => (k < split ? -m.recoil * Math.sin((Math.PI * k) / split) : ease((k - split) / (1 - split))) };
 }
+
+// The moves built from those (stage and video, V6; the plan's table of moves): sizes and times.
+// M8: a halo rises to its brightness in a hit instead of appearing (and goes out at once: an LED is
+// fast, what the eye follows is the light coming).
+export const LIGHT = { ms: 180, curve: MOVES.hit.curve };
+// M12: each line of a caption rises from its baseline behind a mask, 90 ms after the one above; the
+// caption before leaves first, in 200 ms.
+export const CAPTION = { in: 400, stagger: 90, out: 200, curve: MOVES.arrival.curve };
+// M15: a part starts 12 mm above the board and comes down to its holes (an arrival of 700 ms);
+// when it lands the current starts (M6, a ramp of 600 ms) and the lights come on (M8).
+export const INSERT = { mm: 12, ms: 700, ramp: 600 };
+// M16: a part raised to set it apart in a video (a timeline's `raise`): 3 mm by default, along its
+// move (an arrival); it stays up until a `raise` to 0 mm. Raised, it is still in the circuit.
+export const RAISE = { mm: 3, max: 12 };

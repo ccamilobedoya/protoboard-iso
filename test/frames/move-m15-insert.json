@@ -1,0 +1,10 @@
+{
+  "recipe": "npn-switch",
+  "tour": "examples/tours/npn-switch-moves.json",
+  "lang": "en",
+  "viewport": {"width":360,"height":640},
+  "ticks": [[0,1],[33.333333333333336,315]],
+  "renderer": "chromium 156.0.8078.4 linux-x64",
+  "html": "ec2ec2723b0ebb36dba4b35d976654431d83df7b704517079ce474c09657c4c9",
+  "png": "ea0813ef2d7a3dc755f66406341d968b004eb07d08663569b97b7ef573789ba9"
+}
