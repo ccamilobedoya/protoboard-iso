@@ -99,6 +99,7 @@ function paintPrimitive(primitive, camera, bounds, out) {
       strokeWidth: primitive.outline ? 0.6 : 0.35,
       opacity: face.opacity !== undefined && face.opacity < 1 ? face.opacity : undefined,
       part,
+      ...(primitive.along != null && { along: primitive.along }),
     });
   }
 

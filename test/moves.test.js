@@ -10,11 +10,12 @@ import { renderPage } from '../src/page.js';
 import { loadTour } from '../src/tour.js';
 import { CIRCUIT_FOLDER } from '../src/beside.js';
 import { DOT_PERIOD } from '../src/sim/look.js';
-import { CAPTION, INSERT, LIGHT, RAISE, MOVES } from '../src/page/client/moves.js';
+import { CAPTION, INSERT, LIGHT, RAISE, MOVES, ASSEMBLE } from '../src/page/client/moves.js';
 
 const FRAME = 1000 / 30;
 const examples = fileURLToPath(new URL('../examples/', import.meta.url));
 const timeline = JSON.parse(readFileSync(`${examples}tours/npn-switch-moves.json`, 'utf8'));
+const build = JSON.parse(readFileSync(`${examples}tours/npn-switch-build.json`, 'utf8'));
 const npn = (tour = timeline) => ({ ...JSON.parse(readFileSync(`${examples}npn-switch.json`, 'utf8')), page: { tour } });
 const at = (ms) => timeline.steps.find((s) => s.at === ms) && ms;
 
@@ -37,15 +38,21 @@ async function loadPage(html, { url = 'https://page.test/npn.html?director=1', b
 }
 
 // A recording of the moves timeline, moved on frame by frame to each time asked.
-async function recording(steps) {
-  const window = await loadPage(renderPage(npn(steps ? { steps } : timeline), { lang: 'en' }).html);
+async function recording(steps, from = timeline) {
+  const window = await loadPage(renderPage(npn(steps ? { steps } : from), { lang: 'en' }).html);
   if (!window) return null;
   const live = window.protoboardLive;
   const doc = window.document;
   live.tour.play();
   live.tick(0);
   let now = 0;
+  // Long stretches in steps of 100 ms (the director takes any step; jsdom repaints slowly), the
+  // last 300 ms frame by frame, as a recording would.
   const to = (ms) => {
+    while (now < ms - 300) {
+      live.tick(100);
+      now += 100;
+    }
     while (now < ms - 1e-6) {
       live.tick(FRAME);
       now += FRAME;
@@ -59,9 +66,14 @@ async function recording(steps) {
   } };
 }
 
-test('moves: the timeline of the moves is the npn-switch circuit, without a warning', () => {
-  const circuit = Object.defineProperty(npn(), CIRCUIT_FOLDER, { value: examples });
-  assert.deepEqual(loadTour(circuit).issues, []);
+test('moves: the timelines of the moves are the npn-switch circuit, without a warning', () => {
+  for (const tour of [timeline, build]) assert.deepEqual(loadTour(Object.defineProperty(npn(tour), CIRCUIT_FOLDER, { value: examples })).issues, []);
+  const codes = (steps) => loadTour(npn({ steps })).issues.map((i) => i.code);
+  assert.deepEqual(codes([{ at: 0, do: 'probe', off: true }]), []);
+  assert.deepEqual(codes([{ at: 0, do: 'probe', part: 'D1', off: true }]), ['TOUR_FIELD'], 'one of part, node or off');
+  assert.deepEqual(codes([{ at: 0, do: 'assemble', parts: ['D1', 'X9'] }]), ['TOUR_UNKNOWN_PART']);
+  assert.deepEqual(codes([{ at: 0, do: 'assemble', gap: 50 }]), ['TOUR_FIELD'], 'gap within its range');
+  assert.deepEqual(codes([{ at: 595_000, do: 'assemble' }]), ['TOUR_TOO_LONG'], 'as long as its parts take');
 });
 
 test('moves: M1 arrival and M14 close bring the veil in with the camera and take it away', async (t) => {
@@ -249,4 +261,57 @@ test('moves: under reduced motion a tour keeps every final state and moves nothi
   to(10400 + FRAME);
   assert.equal(svg.querySelector(':scope > .spotlight > .lift'), null, 'nothing lifted');
   assert.ok(Number(svg.querySelector('.lights > [data-glow="D1"]').style.opacity) > 0, 'the LED stays lit');
+});
+
+const opacity = (svg, layer, id) => [...svg.querySelectorAll(`:scope > .${layer} > [data-part="${id}"]`)].map((el) => el.style.opacity);
+
+test('moves: M4 the circuit builds itself one part after the other, M5 a wire drawn end to end', async (t) => {
+  const r = await recording(null, build);
+  if (!r) return t.skip('jsdom not installed');
+  const step = build.steps.find((s) => s.do === 'assemble');
+  const ids = Object.keys(JSON.parse(r.doc.getElementById('page-data').textContent).parts);
+  const startOf = (id) => step.at + ids.indexOf(id) * step.gap;
+  r.to(step.at - FRAME);
+  assert.ok(opacity(r.svg(), 'parts', 'D1').every((o) => o === ''), 'all on the board before');
+  r.to(step.at + FRAME);
+  assert.ok(opacity(r.svg(), 'parts', 'D1').every((o) => o === '0'), 'then off it');
+  // R1 on its way down: the part itself moves (it is not in focus), its label with it.
+  r.to(startOf('R1') + ASSEMBLE.ms / 3);
+  const lift = r.svg().querySelector(':scope > .parts > .lift[data-part="R1"]');
+  assert.match(lift?.getAttribute('transform') ?? '', /translate\(0 -[\d.]+\)/);
+  assert.ok(opacity(r.svg(), 'parts', 'S1').every((o) => o === ''), 'S1 is in');
+  assert.equal(r.svg().querySelector(':scope > .parts > .lift[data-part="S1"]'), null, 'and unwrapped');
+  assert.ok(opacity(r.svg(), 'parts', 'D1').every((o) => o === '0'), 'D1 not yet');
+  // W1 drawn: the pieces near its start shown, those near its end not yet.
+  r.to(startOf('W1') + ASSEMBLE.ms / 3);
+  const pieces = [...r.svg().querySelectorAll(':scope > .parts > [data-part="W1"][data-along]')];
+  const shown = pieces.filter((el) => el.style.opacity === '');
+  assert.ok(shown.length > 0 && shown.length < pieces.length, `${shown.length} of ${pieces.length}`);
+  assert.ok(Math.max(...shown.map((el) => Number(el.dataset.along))) < Math.min(...pieces.filter((el) => el.style.opacity === '0').map((el) => Number(el.dataset.along))), 'from one end');
+  r.to(step.at + (ids.length - 1) * step.gap + ASSEMBLE.ms + FRAME);
+  for (const id of ids) assert.ok(opacity(r.svg(), 'parts', id).every((o) => o === ''), `${id} in`);
+  assert.equal(r.svg().querySelector('.lift'), null);
+});
+
+test('moves: M7 a flash runs the current path from + to −, M11 the oscilloscope in a box of its own', async (t) => {
+  const r = await recording(null, build);
+  if (!r) return t.skip('jsdom not installed');
+  const pulse = build.steps.find((s) => s.do === 'pulse').at;
+  const lit = () => [...r.svg().querySelectorAll(':scope > .pulse > *')].map((el) => Number(el.style.opacity));
+  r.to(pulse + 300);
+  const early = lit();
+  assert.ok(early.length > 0 && early.some((o) => o > 0) && early.some((o) => o === 0), 'some pieces lit, not all');
+  r.to(pulse + 1200);
+  assert.notDeepEqual(lit(), early, 'the flash moved on');
+  r.to(pulse + MOVES.travel.ms + FRAME);
+  assert.equal(r.svg().querySelector(':scope > .pulse'), null, 'gone at the end');
+  const probe = build.steps.find((s) => s.do === 'probe').at;
+  r.to(probe + FRAME);
+  assert.ok(r.doc.body.classList.contains('with-scope'));
+  assert.ok(r.doc.querySelector('.scope-inset svg polyline.scope-trace.i'), 'the current, as asked');
+  assert.equal(r.doc.querySelectorAll('.scope-inset .scope-trace').length, 1, 'one trace');
+  const off = build.steps.find((s) => s.do === 'probe' && s.off).at;
+  r.to(off + FRAME);
+  assert.equal(r.doc.querySelector('.scope-inset'), null);
+  assert.ok(!r.doc.body.classList.contains('with-scope'));
 });

@@ -12,7 +12,7 @@ import { LANGUAGES } from './i18n/index.js';
 import { BATTERY_FORMATS, BATTERY_CHEMISTRIES } from './parts/batteries.js';
 import { LDR_PARTS } from './parts/types/more.js';
 import { RECIPES } from './recipes/index.js';
-import { MOVES, RAISE } from './page/client/moves.js';
+import { MOVES, RAISE, ASSEMBLE } from './page/client/moves.js';
 import { READINGS, FORMATS, THEMES } from './tour.js';
 import { LIMITS } from './limits.js';
 
@@ -259,9 +259,11 @@ function timelineSchema(localized) {
             action('flow', { on: { type: 'boolean' }, ramp: { type: 'number', minimum: 0, maximum: 10000, description: 'ms for the dots to reach their speed' } }, ['on']),
             action('caption', { text, line: text }, ['text']),
             action('value', { part: id, field: reading, label: text }, ['part', 'field']),
-            action('probe', { part: id, node: { type: 'string', description: 'A strip, as the page names it' } }, [], { oneOf: [{ required: ['part'] }, { required: ['node'] }] }),
+            action('probe', { part: id, node: { type: 'string', description: 'A strip, as the page names it' }, field: { enum: ['voltage', 'current'], description: "In a recording, the trace in the oscilloscope's box (default voltage)" }, off: { const: true, description: 'Takes the oscilloscope (or the card) away' } }, [], { description: "The page opens the part's or strip's card with its oscilloscope; a recording shows the oscilloscope in a box of its own, the camera leaving it room", oneOf: [{ required: ['part'] }, { required: ['node'] }, { required: ['off'] }] }),
             action('insert', { part: id }, ['part'], { description: 'The part comes down 12 mm to its holes (700 ms, or ms); the circuit has no current until it lands' }),
             action('raise', { part: id, mm: { type: 'number', minimum: 0, maximum: RAISE.max, description: 'How high, in mm (default 3); 0 puts it back' } }, ['part'], { description: 'The part rises along its move (an arrival by default) to set it apart, and stays up until a raise to 0; it stays in the circuit' }),
+            action('assemble', { parts: { type: 'array', items: id, description: "The parts, in the order they come in (default: all, in the circuit's order)" }, gap: { type: 'number', minimum: ASSEMBLE.min, maximum: ASSEMBLE.max, description: 'ms from one part to the next (default 1100)' } }, [], { description: 'The circuit builds itself: the parts leave the board, then each comes down to its holes and each wire is drawn end to end; the current starts when the last one is in' }),
+            action('pulse', {}, [], { description: 'A flash runs along the path of the current, from + to −, in its move (a travel); with the current layer on' }),
             action('wait-until', { part: id, field: reading, above: { type: 'number' }, below: { type: 'number' }, max: { type: 'number', minimum: 0, maximum: 60000, description: 'ms to wait at most (default 10000)' } }, ['part', 'field'], { oneOf: [{ required: ['above'] }, { required: ['below'] }] }),
           ],
         },

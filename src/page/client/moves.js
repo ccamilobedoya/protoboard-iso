@@ -67,3 +67,10 @@ export const INSERT = { mm: 12, ms: 700, ramp: 600 };
 // M16: a part raised to set it apart in a video (a timeline's `raise`): 3 mm by default, along its
 // move (an arrival); it stays up until a `raise` to 0 mm. Raised, it is still in the circuit.
 export const RAISE = { mm: 3, max: 12 };
+// M4, M5: the circuit builds itself (a timeline's assemble): one part after the other, `gap` ms
+// apart, each coming down like an insert or, a wire, drawn from one end to the other, in `ms`; the
+// current starts when the last one is in.
+export const ASSEMBLE = { gap: 1100, ms: 700, min: 300, max: 3000 };
+// M7: a flash runs the current's path from + to − (a timeline's pulse), each piece lit for this share
+// of the run.
+export const PULSE = { width: 0.25 };

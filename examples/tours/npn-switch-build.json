@@ -1,0 +1,19 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "npn-switch",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "parts", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "One part at a time", "es": "Una pieza a la vez" } },
+    { "at": 300, "do": "assemble", "gap": 800 },
+    { "at": 7700, "do": "caption", "text": { "en": "Press S1 and follow the current", "es": "Aprieta S1 y sigue la corriente" } },
+    { "at": 8100, "do": "set", "part": "S1", "field": "pressed", "value": true, "move": "hit" },
+    { "at": 8100, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 9000, "do": "pulse" },
+    { "at": 10900, "do": "caption", "text": { "en": "The current through the LED, since the start", "es": "La corriente por el LED, desde el comienzo" } },
+    { "at": 10900, "do": "probe", "part": "D1", "field": "current" },
+    { "at": 13900, "do": "probe", "off": true },
+    { "at": 13900, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 13900, "do": "caption", "text": { "en": "protoboard-iso: the page does the same", "es": "protoboard-iso: la página hace lo mismo" } }
+  ]
+}

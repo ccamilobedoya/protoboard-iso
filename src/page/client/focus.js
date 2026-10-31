@@ -62,38 +62,77 @@ export function applyFocus(page) {
       : [...ids.map((id) => '.results > [data-part="' + quote(id) + '"]'), ...[...nodes].flatMap((n) => ['.strips > [data-node="' + quote(n) + '"]', '.results > [data-node="' + quote(n) + '"]'])]),
     ...[...cols].map((c) => '.coords > [data-col="' + c + '"]'), ...[...rows].map((r) => '.coords > [data-row="' + quote(r) + '"]')];
   const ghosts = [...state.ghost].map((id) => '.under > [data-part="' + quote(id) + '"], .parts > [data-part="' + quote(id) + '"], .spotlight > [data-part="' + quote(id) + '"] { opacity: 0.2; }');
-  for (const [id, mm] of page.lifted ?? []) placeLift(page, id, mm);
+  page.pieces?.clear();
+  for (const [id, mm] of page.lifted ?? []) liftPart(page, id, mm);
   page.dynamic.textContent = (shown.length ? shown.join(', ') + ' { display: inline; }' : '') + ghosts.join('');
   document.body.classList.toggle('focusing', ids.length > 0 || strip != null);
 }
 
 // A part `mm` above its holes: its copies over the veil (and its label's) moved up the screen, the
 // drawing's z being the screen's vertical (page.data.lift units a mm), and the part itself unseen
-// below while it is in the air. 0 puts it back. Each copy is wrapped once in a group that takes the
-// transform (a copy may carry its own, a text's matrix), so the painting order stays as it was.
+// below while it is in the air. A part out of focus has no copies (a timeline's assemble, M4): the
+// part itself and its labels move. 0 puts it back. Each piece is wrapped in a group that takes the
+// transform (a piece may carry its own, a text's matrix), so the painting order stays as it was; a
+// part's own pieces are unwrapped again when it lands. These run on every tick of a move, so a
+// part's pieces are found once (page.pieces; applyFocus forgets them, its copies are new).
+const ownLayers = ['under', 'parts', 'labels', 'shortlabels'];
+function piecesOf(page, id) {
+  page.pieces ??= new Map();
+  let found = page.pieces.get(id);
+  if (!found) {
+    const part = '[data-part="' + quote(id) + '"]';
+    found = page.svgs.map((svg) => {
+      const own = [...svg.querySelectorAll(ownLayers.map((l) => ':scope > .' + l + ' > ' + part).join(', '))].map((el) => (el.classList.contains('lift') ? el.firstChild : el));
+      return {
+        copies: [...svg.querySelectorAll(':scope > .spotlight > ' + part + ', :scope > .spotlabels > ' + part)].map((el) => (el.classList.contains('lift') ? el.firstChild : el)),
+        own,
+        body: own.filter((el) => ['under', 'parts'].some((l) => el.closest('svg > g')?.classList.contains(l))),
+        wire: own.filter((el) => el.dataset?.along != null),
+      };
+    });
+    page.pieces.set(id, found);
+  }
+  return found;
+}
 export function liftPart(page, id, mm) {
   page.lifted ??= new Map();
   if (mm > 0) page.lifted.set(id, mm);
   else page.lifted.delete(id);
-  placeLift(page, id, mm);
-}
-function placeLift(page, id, mm) {
-  const part = '[data-part="' + quote(id) + '"]';
-  const dy = -(mm * (page.data.lift ?? 0));
-  for (const svg of page.svgs) {
-    for (const el of svg.querySelectorAll(':scope > .spotlight > ' + part + ', :scope > .spotlabels > ' + part)) {
-      let g = el;
-      if (!el.classList.contains('lift')) {
+  const transform = 'translate(0 ' + (-(mm * (page.data.lift ?? 0))).toFixed(2) + ')';
+  const move = (els, unwrap) => {
+    for (const el of els) {
+      let g = el.parentNode?.classList?.contains('lift') ? el.parentNode : null;
+      if (!(mm > 0)) {
+        if (g && unwrap) g.replaceWith(el);
+        else g?.removeAttribute('transform');
+        continue;
+      }
+      if (!g) {
         g = document.createElementNS(SVG, 'g');
         g.setAttribute('class', 'lift');
         g.setAttribute('data-part', id);
         el.replaceWith(g);
         g.appendChild(el);
       }
-      if (mm > 0) g.setAttribute('transform', 'translate(0 ' + dy.toFixed(2) + ')');
-      else g.removeAttribute('transform');
+      g.setAttribute('transform', transform);
     }
-    for (const el of svg.querySelectorAll(':scope > .under > ' + part + ', :scope > .parts > ' + part)) el.style.opacity = mm > 0 ? '0' : '';
+  };
+  for (const { copies, own, body } of piecesOf(page, id)) {
+    if (copies.length) {
+      move(copies, false);
+      for (const el of body) el.style.opacity = mm > 0 ? '0' : '';
+    } else move(own, true);
   }
 }
 
+// A part not on the board yet (a timeline's assemble, M4): it and its labels unseen.
+export function hidePart(page, id, hidden) {
+  for (const { own } of piecesOf(page, id)) for (const el of own) el.style.opacity = hidden ? '0' : '';
+}
+
+// A wire's pieces carry where they lie along it (data-along, 0 at one end, 1 at the other): drawn
+// up to `k`, the rest unseen (M5). A part that is not a wire has none.
+export const isWire = (page, id) => piecesOf(page, id).some((p) => p.wire.length > 0);
+export function traceWire(page, id, k) {
+  for (const { wire } of piecesOf(page, id)) for (const el of wire) el.style.opacity = Number(el.dataset.along) <= k ? '' : '0';
+}

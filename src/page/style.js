@@ -54,7 +54,7 @@ export const STYLE = `
   --danger: #d93829; --danger-ink: #a82a1e; --danger-soft: #fbeeec; --danger-hover: #f6dcd8;
   --warn: #c98a00; --warn-ink: #7a5600; --warn-soft: #fdf6e3; --warn-edge: #e0c060;
   --tooltip: #1a1a1a; --on-tooltip: #f3f1ea; --hint: rgba(0, 0, 0, 0.5); --on-hint: #ffffff;
-  --veil: #fbfaf7; --label-edge: #52606d; --leader: #7b8794; --label-ink: #1f2933;
+  --pulse: #f2a900; --veil: #fbfaf7; --label-edge: #52606d; --leader: #7b8794; --label-ink: #1f2933;
   --tag-v: #1b6ec2; --tag-i: #b5452a;
   --scope: #0d1418; --scope-grid: rgba(255, 255, 255, 0.09); --scope-zero: #557079; --scope-scale: #9fb3bb;
   --trace-v: #f5a623; --trace-v-ink: #8a5a00; --trace-i: #00e5ff; --trace-i-ink: #00687a;
@@ -76,7 +76,7 @@ export const STYLE = `
   --label-edge: #8a96a3; --leader: #8a96a3; --label-ink: #eceae4;
   --tag-v: #6fa8e8; --tag-i: #ef8a6e;
   --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
-  --canvas: #121211; --veil: #121211; --cap-value: #ffb340;
+  --pulse: #fff3c4; --canvas: #121211; --veil: #121211; --cap-value: #ffb340;
   --grid-dot: rgba(255, 255, 255, 0.18); --grid-dot-major: rgba(255, 255, 255, 0.3);
 } }
 :root[data-theme="dark"] {
@@ -91,7 +91,7 @@ export const STYLE = `
   --label-edge: #8a96a3; --leader: #8a96a3; --label-ink: #eceae4;
   --tag-v: #6fa8e8; --tag-i: #ef8a6e;
   --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
-  --canvas: #121211; --veil: #121211; --cap-value: #ffb340;
+  --pulse: #fff3c4; --canvas: #121211; --veil: #121211; --cap-value: #ffb340;
   --grid-dot: rgba(255, 255, 255, 0.18); --grid-dot-major: rgba(255, 255, 255, 0.3);
 }
 :root[data-theme="stage"] {
@@ -105,7 +105,7 @@ export const STYLE = `
   --danger: #e8705f; --danger-ink: #f09a8c; --danger-soft: #3a2522; --danger-hover: #4a2c28;
   --warn: #e0b040; --warn-ink: #f0cc70; --warn-soft: #362d17; --warn-edge: #7a6020;
   --tooltip: #efe9da; --on-tooltip: #151a21;
-  --veil: #151a21; --label-edge: #7f8c9b; --leader: #7f8c9b; --label-ink: #efe9da;
+  --pulse: #fff3c4; --veil: #151a21; --label-edge: #7f8c9b; --leader: #7f8c9b; --label-ink: #efe9da;
   --tag-v: #9cc6ff; --tag-i: #ffcc5c;
   --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
   --grid-dot: transparent; --grid-dot-major: transparent; --grid-line: rgba(156, 198, 255, 0.1); --grid-line-major: rgba(156, 198, 255, 0.22);
@@ -121,7 +121,7 @@ export const STYLE = `
   --hair: rgba(28, 26, 22, 0.14); --hair-strong: rgba(28, 26, 22, 0.25); --hair-soft: rgba(28, 26, 22, 0.07);
   --accent: #184f8f; --accent-deep: #123d6f; --accent-soft: #e2e9f3; --on-accent: #fbf8f0;
   --tooltip: #1c1a16; --on-tooltip: #f4efe2;
-  --veil: #f4efe2; --label-edge: #6b665c; --leader: #8f897d; --label-ink: #1c1a16;
+  --pulse: #e09400; --veil: #f4efe2; --label-edge: #6b665c; --leader: #8f897d; --label-ink: #1c1a16;
   --tag-v: #184f8f; --tag-i: #a3461f;
   --grid-dot: transparent; --grid-dot-major: transparent; --grid-line: rgba(24, 79, 143, 0.1); --grid-line-major: rgba(24, 79, 143, 0.22);
   --cap-face: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
@@ -210,6 +210,8 @@ body.no-labels .labels, body:not(.no-labels) .shortlabels { display: none; }
 .shortlabels text, .spotlabels .short { fill: var(--label-ink); stroke: var(--bench); }
 body:not(.show-results) .results, body:not(.show-results) .info .sim { display: none; }
 .veil, .strips, .coords, .flow, .results, .lights { pointer-events: none; }
+.pulse { pointer-events: none; }
+.pulse > * { stroke: var(--pulse); stroke-width: 4.5px; stroke-dasharray: none; stroke-linecap: round; } /* M7: the flash along the current's path */
 body.layer-flow .lights { display: none; } /* the current layer draws its own glow, over the veil */
 /* The plan (stage and video, V3): the parts in focus are drawn over the current layer, seen through,
    so its lines read under their bodies; a pad's edge is the colour behind it. */
@@ -393,6 +395,14 @@ body.director .tour-caption .value { margin-top: var(--cap-gap); }
 body.director .tour-caption .value .in { flex-direction: row-reverse; justify-content: flex-end; gap: var(--cap-gap); }
 body.director .tour-caption .value .number { font-size: var(--cap-number); font-weight: 500; line-height: 1; color: var(--cap-value); }
 body.director .tour-caption .value .label { font-size: var(--cap-label); color: var(--cap-ink-2); opacity: 1; }
+/* M11: the oscilloscope in a box of its own (a recording's probe): portrait, the band from 56 % to 75 %
+   (view.js keeps the circuit above it); landscape, under the caption in the left half. */
+.scope-inset { display: none; }
+body.director .scope-inset { display: block; position: absolute; z-index: 2; left: var(--cap-pad); right: var(--cap-pad); top: 56%; height: 19%; box-sizing: border-box; padding: var(--cap-gap); background: var(--veil); border-radius: var(--cap-gap); }
+@media (orientation: landscape) { body.director .scope-inset { right: calc(50% + var(--cap-pad) / 2); top: 50%; height: 40%; } }
+body.director .scope-inset .scope { height: 100%; display: flex; flex-direction: column; }
+body.director .scope-inset h3 { margin: 0 0 var(--cap-gap); font: 500 var(--cap-label)/1.2 var(--sans); color: var(--cap-ink-2); }
+body.director .scope-inset svg { flex: 1 1 auto; min-height: 0; width: 100%; font-family: var(--sans); }
 .first-hint small { font-size: 12px; opacity: 0.8; }
 body.embedded .first-hint .alone, body:not(.embedded) .first-hint .framed { display: none; }
 /* The inspector (inspector.js, UX pass U4): the card and the circuit's panels, in tabs. */

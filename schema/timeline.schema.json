@@ -444,9 +444,21 @@
               "node": {
                 "type": "string",
                 "description": "A strip, as the page names it"
+              },
+              "field": {
+                "enum": [
+                  "voltage",
+                  "current"
+                ],
+                "description": "In a recording, the trace in the oscilloscope's box (default voltage)"
+              },
+              "off": {
+                "const": true,
+                "description": "Takes the oscilloscope (or the card) away"
               }
             },
             "additionalProperties": false,
+            "description": "The page opens the part's or strip's card with its oscilloscope; a recording shows the oscilloscope in a box of its own, the camera leaving it room",
             "oneOf": [
               {
                 "required": [
@@ -456,6 +468,11 @@
               {
                 "required": [
                   "node"
+                ]
+              },
+              {
+                "required": [
+                  "off"
                 ]
               }
             ]
@@ -547,6 +564,92 @@
             },
             "additionalProperties": false,
             "description": "The part rises along its move (an arrival by default) to set it apart, and stays up until a raise to 0; it stays in the circuit"
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "assemble"
+              },
+              "parts": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "id of a part (or a supply)"
+                },
+                "description": "The parts, in the order they come in (default: all, in the circuit's order)"
+              },
+              "gap": {
+                "type": "number",
+                "minimum": 300,
+                "maximum": 3000,
+                "description": "ms from one part to the next (default 1100)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "The circuit builds itself: the parts leave the board, then each comes down to its holes and each wire is drawn end to end; the current starts when the last one is in"
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most)"
+              },
+              "do": {
+                "const": "pulse"
+              }
+            },
+            "additionalProperties": false,
+            "description": "A flash runs along the path of the current, from + to −, in its move (a travel); with the current layer on"
           },
           {
             "type": "object",

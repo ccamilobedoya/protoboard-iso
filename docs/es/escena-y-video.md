@@ -135,7 +135,7 @@ página y la hoja de ruta al día.
   subtítulos al lado; `--burn` los dibuja en la imagen. En una grabación una pieza se encuadra con
   su rótulo corto, así el rótulo también queda en el área libre. Cómo sacar el video: *Grabar un
   video*, abajo.
-- 🔜 V6 · Los movimientos elegidos (2026-10-30), la primera tanda hecha; faltan M4, M5, M7 y M11.
+- ✅ V6 · Los movimientos elegidos (2026-10-30 y 31): los dieciséis, en dos tandas.
   Cada movimiento tiene su prueba en jsdom (`test/moves.test.js`, valores a tiempos dados) y su
   fotograma *golden* (`test/frames/move-*.json`); la línea de tiempo de ejemplo es
   `examples/tours/npn-switch-moves.json` (y `led-resistor` para M10). M1 llegada y M14 cierre: un
@@ -161,9 +161,21 @@ página y la hoja de ruta al día.
   `?director=1`) y lanza Chromium con las opciones del compositor de `stage-shots.js` (sin ellas un
   fotograma difería de vez en cuando). De paso: `render-frames.js` tomaba como circuito otra línea de tiempo
   con el nombre del circuito junto a la suya; ahora la salta. Los hashes de V0 no cambiaron.
-  Pendientes: M4 (armar el circuito: las piezas que aún no bajan deben estar ocultas), M5 (cables
-  que se trazan), M7 (un pulso por el camino), M11 (osciloscopio en recuadro); el pulso al cargar
-  (V3) tampoco se hizo.
+  Segunda tanda (2026-10-31), en `examples/tours/npn-switch-build.json`: M4 y M5 son un paso,
+  `assemble` (`parts`, por defecto todas en el orden del circuito; `gap`, 1100 ms por defecto, de 300
+  a 3000): las piezas salen de la tabla y entran una tras otra, cada una baja 12 mm a sus agujeros en
+  700 ms (sin estar en foco: se mueve la pieza misma, con sus rótulos) y cada cable se traza de un
+  extremo al otro (sus piezas llevan `data-along`, de 0 a 1, solo en la página); el circuito queda sin
+  corriente hasta que entra la última, y entonces los puntos y la luz suben como en M15. M7, `pulse`
+  (un `travel` por defecto): una copia de cada pieza por la que pasa la corriente, en el color
+  `--pulse`, se enciende por turno desde el voltaje más alto al más bajo; solo con la capa de
+  corriente. M11: en una grabación, `probe` muestra el osciloscopio en un recuadro propio (una traza,
+  `field`: `voltage` por defecto o `current`, desde t = 0) en la franja del 56 % al 75 % en vertical
+  (la cámara deja libre esa franja y vuelve a encuadrar lo último encuadrado) o bajo el subtítulo en
+  horizontal; `"off": true` lo quita (en la página, cierra la ficha). Los pasos que se repiten en cada
+  tick encuentran las piezas una vez (`page.pieces`): el armado pasó de 400 ms a 2 ms por tick en
+  jsdom. El pulso al cargar (V3) queda sin hacer: es movimiento sin pedirlo, y el mantenedor prefirió
+  que el movimiento sea para los videos (decidir antes de hacerlo).
 - ⬜ V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
@@ -374,7 +386,7 @@ exportador de fotogramas. Un asistente lo escribe; desde entonces nada se genera
   piezas), `flip` (`front` | `back`), `set` (un control, interpolado durante el movimiento), `flow`
   (la capa de corriente, con una `ramp` desde cero), `caption` (texto; se permite una segunda
   `line`), `value` (una lectura de una pieza, grande, junto al subtítulo; cuenta hasta su valor en
-  500 ms), `probe` (el osciloscopio de una tira o pieza en un recuadro), `insert` (M15: la pieza baja a sus agujeros; `ms`, 700 por defecto), `raise` (M16: la pieza sube `mm`, 3 por defecto, y se queda arriba, en el circuito; `mm: 0` la baja), `wait-until` (una condición
+  500 ms), `probe` (el osciloscopio de una tira o pieza en un recuadro; `field`, `"off": true`), `insert` (M15: la pieza baja a sus agujeros; `ms`, 700 por defecto), `raise` (M16: la pieza sube `mm`, 3 por defecto, y se queda arriba, en el circuito; `mm: 0` la baja), `assemble` (M4, M5: el circuito se arma, `parts` y `gap`), `pulse` (M7: un destello por el camino de la corriente), `wait-until` (una condición
   sobre una lectura: `{ "part": "D1", "field": "brightness", "above": 0.5 }`; los pasos siguientes
   se corren lo que dure la espera).
 - Los textos son planos o por idioma, como la `description` de un circuito.

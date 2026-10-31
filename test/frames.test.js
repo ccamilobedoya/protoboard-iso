@@ -15,7 +15,7 @@ test('frames: three recipes and a frame per move, each with a size, ticks and a 
   assert.deepEqual([...new Set(cases.map((c) => c.recipe))].sort(), ['led-resistor', 'npn-switch', 'rc-square']);
   // V6: one golden frame for each move built (the plan's M numbers), from a timeline or a tap.
   const moves = cases.filter((c) => c.name.startsWith('move-')).map((c) => c.name.slice(5, 8));
-  assert.deepEqual(moves, ['m01', 'm02', 'm03', 'm08', 'm09', 'm10', 'm12', 'm13', 'm14', 'm15', 'm16']);
+  assert.deepEqual(moves, ['m01', 'm02', 'm03', 'm04', 'm05', 'm07', 'm08', 'm09', 'm10', 'm11', 'm12', 'm13', 'm14', 'm15', 'm16']);
   for (const c of cases.filter((x) => x.tour)) assert.ok(existsSync(fileURLToPath(new URL(`../${c.tour}`, import.meta.url))), c.name);
   for (const c of cases) {
     assert.ok(RECIPES[c.recipe], c.name);

@@ -13,11 +13,13 @@ const fmt = (n) => (Math.round(n * 100) / 100).toString();
 export const escapeXml = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c]);
 
-// Extra attributes for pages: the part an element belongs to (click, focus), a class and
+// Extra attributes for pages: the part an element belongs to (click, focus) and where a piece lies
+// along a wire (data-along, drawn end to end by a timeline), a class and
 // data-* values (strips, current flow), an inline style (animation speed).
 function extra(op, tagParts) {
   let out = '';
   if (tagParts && op.part) out += ` data-part="${escapeXml(op.part)}"`;
+  if (tagParts && op.along != null) out += ` data-along="${fmt(op.along)}"`;
   if (op.cls) out += ` class="${op.cls}"`;
   if (op.data) for (const [k, v] of Object.entries(op.data)) out += ` data-${k}="${escapeXml(v)}"`;
   if (op.style) out += ` style="${op.style}"`;

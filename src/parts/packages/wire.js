@@ -21,7 +21,9 @@ export default {
     const { color, style = 'arc' } = params;
     const span = distance(a, b);
     const tipHeight = style === 'flat' ? FLAT_HEIGHT : TIP;
-    const tips = [a, b].flatMap((p) => lead([withZ(p, 0), withZ(p, tipHeight)], { radius: 0.32, color: MATERIALS.tinned }));
+    // `along`: where a piece is from a (0) to b (1), so a page can draw the wire end to end (a
+    // timeline's assemble, M5).
+    const tips = [a, b].flatMap((p, k) => lead([withZ(p, 0), withZ(p, tipHeight)], { radius: 0.32, color: MATERIALS.tinned }).map((x) => ({ ...x, along: k })));
 
     let path;
     let middle;
@@ -36,7 +38,7 @@ export default {
       for (let i = 0; i <= steps; i++) path.push(at(i / steps));
       middle = at(0.5);
     }
-    const insulation = tube({ points: path, radius: 0.7, color, segments: 10, caps: 'ends' });
+    const insulation = tube({ points: path, radius: 0.7, color, segments: 10, caps: 'ends' }).map((x, i, all) => ({ ...x, along: (i + 0.5) / all.length }));
     const peak = path.reduce((best, p) => (p.z > best.z ? p : best), path[0]);
     // Current runs along the centre of the wire, from each end to its middle (src/sim/paths.js);
     // a wire has no body, so every point is conductor.

@@ -121,7 +121,7 @@ up to date.
   with ffmpeg when it is installed (else prints the command and exits 2) and writes the captions
   beside it; `--burn` draws them in. In a recording a part is framed with its short label, so the
   label stays in the free area too. Making the video: *Recording a video* below.
-- 🔜 V6 · The chosen moves (2026-10-30), the first wave done; M4, M5, M7 and M11 remain. Each move
+- ✅ V6 · The chosen moves (2026-10-30 and 31): all sixteen, in two waves. Each move
   has its jsdom test (`test/moves.test.js`, values at given times) and its golden frame
   (`test/frames/move-*.json`); the example timeline is `examples/tours/npn-switch-moves.json` (and
   `led-resistor` for M10). M1 arrival and M14 close: a `focus` with a `move` brings the veil, the
@@ -145,9 +145,21 @@ up to date.
   they were only added to the timeline and the safety net. `scripts/frames.js` takes cases with
   `tour` (a recording, `?director=1`) and launches Chromium with `stage-shots.js`'s compositor flags
   (without them a frame differed now and then). In passing: `render-frames.js` took another timeline named like the circuit
-  beside its own as the circuit; it now skips it. The hashes of V0 did not change. Left: M4 (the
-  circuit builds itself: the parts not yet down must be hidden), M5 (wires drawn), M7 (a pulse along
-  the path), M11 (the oscilloscope inset); the pulse on load (V3) was not done either.
+  beside its own as the circuit; it now skips it. The hashes of V0 did not change. Second wave
+  (2026-10-31), in `examples/tours/npn-switch-build.json`: M4 and M5 are one step, `assemble`
+  (`parts`, all in the circuit's order by default; `gap`, 1100 ms by default, 300 to 3000): the parts
+  leave the board and come in one after the other, each down 12 mm to its holes in 700 ms (not in
+  focus: the part itself moves, with its labels) and each wire drawn from one end to the other (its
+  pieces carry `data-along`, 0 to 1, in the page only); the circuit has no current until the last one
+  is in, then the dots and the light come up as in M15. M7, `pulse` (a `travel` by default): a copy of
+  each piece the current runs through, in the colour `--pulse`, lights in turn from the highest
+  voltage to the lowest; with the current layer only. M11: in a recording, `probe` shows the
+  oscilloscope in a box of its own (one trace, `field`: `voltage` by default or `current`, from t = 0)
+  in the band from 56 % to 75 % in portrait (the camera leaves that band free and frames again what it
+  framed last) or under the caption in landscape; `"off": true` takes it away (in the page, it closes
+  the card). Steps repeated on every tick find a part's pieces once (`page.pieces`): the assembly went
+  from 400 ms to 2 ms a tick in jsdom. The pulse on load (V3) is not done: it is motion nobody asked
+  for, and the maintainer wants motion for videos (to decide before building it).
 - ⬜ V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
@@ -346,7 +358,7 @@ exporter follows. An assistant writes it; from then on nothing is generated.
   `flip` (`front` | `back`), `set` (a control, tweened over the move's duration), `flow` (the current
   layer, with a `ramp` from zero), `caption` (text; a second `line` is allowed), `value` (a reading of
   a part, large, next to the caption; it counts up over 500 ms), `probe` (a strip's or part's
-  oscilloscope in a corner box), `insert` (M15: the part comes down into its holes; `ms`, 700 by default), `raise` (M16: the part rises `mm`, 3 by default, and stays up, in the circuit; `mm: 0` puts it back), `wait-until` (a condition on a reading: `{ "part": "D1", "field":
+  oscilloscope in a corner box; `field`, `"off": true`), `insert` (M15: the part comes down into its holes; `ms`, 700 by default), `raise` (M16: the part rises `mm`, 3 by default, and stays up, in the circuit; `mm: 0` puts it back), `assemble` (M4, M5: the circuit builds itself, `parts` and `gap`), `pulse` (M7: a flash along the current's path), `wait-until` (a condition on a reading: `{ "part": "D1", "field":
   "brightness", "above": 0.5 }`; the next steps shift by the wait).
 - The texts are plain or per language, like a circuit's `description`.
 - Caps (`src/limits.js`): steps per timeline, text length, total duration. Texts go through

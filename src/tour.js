@@ -14,12 +14,12 @@
 
 import { LIMITS } from './limits.js';
 import { readBeside } from './beside.js';
-import { MOVES, moveTiming, INSERT, RAISE } from './page/client/moves.js';
+import { MOVES, moveTiming, INSERT, RAISE, ASSEMBLE } from './page/client/moves.js';
 import { THEMES } from './page/client/themes.js';
 import { compile } from './sim/index.js';
 import { createEngine } from './sim/engine.js';
 
-export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'raise', 'wait-until'];
+export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'raise', 'assemble', 'pulse', 'wait-until'];
 // What a `value` or `wait-until` step reads from a part's reading, and its unit.
 export const READINGS = { current: 'A', voltage: 'V', power: 'W', brightness: '%' };
 export const FORMATS = ['vertical', 'horizontal'];
@@ -27,7 +27,7 @@ export const FORMATS = ['vertical', 'horizontal'];
 export { THEMES } from './page/client/themes.js';
 const FRAMES = ['board', 'parts'];
 // The move a step makes when it names none.
-const DEFAULT_MOVE = { frame: 'arrival', set: 'hit', insert: 'arrival', raise: 'arrival' };
+const DEFAULT_MOVE = { frame: 'arrival', set: 'hit', insert: 'arrival', raise: 'arrival', pulse: 'travel' };
 const BREATH = MOVES.breath.min; // ms of rest that count as a breath between two hits
 
 const warn = (code, params = {}) => ({ severity: 'warning', code, params });
@@ -45,9 +45,11 @@ const FIELDS = {
   flow: { on: (v) => typeof v === 'boolean', ramp: (v) => num(v) && v >= 0 && v <= 10_000 },
   caption: { text: isText, line: isText },
   value: { part: (v) => typeof v === 'string', field: (v) => Object.hasOwn(READINGS, v), label: isText },
-  probe: { part: (v) => typeof v === 'string', node: (v) => typeof v === 'string' },
+  probe: { part: (v) => typeof v === 'string', node: (v) => typeof v === 'string', field: (v) => v === 'voltage' || v === 'current', off: (v) => v === true },
   insert: { part: (v) => typeof v === 'string' },
   raise: { part: (v) => typeof v === 'string', mm: (v) => num(v) && v >= 0 && v <= RAISE.max },
+  assemble: { parts: (v) => Array.isArray(v) && v.every((p) => typeof p === 'string'), gap: (v) => num(v) && v >= ASSEMBLE.min && v <= ASSEMBLE.max },
+  pulse: {},
   'wait-until': { part: (v) => typeof v === 'string', field: (v) => Object.hasOwn(READINGS, v), above: num, below: num, max: (v) => num(v) && v >= 0 && v <= 60_000 },
 };
 const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], caption: ['text'], value: ['part', 'field'], insert: ['part'], raise: ['part'], 'wait-until': ['part', 'field'] };
@@ -95,7 +97,7 @@ function shapeIssues(raw) {
       } else if (!fields[key] || !fields[key](v)) out.push(warn('TOUR_FIELD', { step, field: key.slice(0, 40) }));
     }
     for (const key of REQUIRED[s.do] ?? []) if (s[key] == null) out.push(warn('TOUR_FIELD', { step, field: key }));
-    if (s.do === 'probe' && (s.part == null) === (s.node == null)) out.push(warn('TOUR_FIELD', { step, field: 'part' }));
+    if (s.do === 'probe' && [s.part, s.node, s.off].filter((x) => x != null).length !== 1) out.push(warn('TOUR_FIELD', { step, field: 'part' }));
     if (s.do === 'wait-until' && (s.above == null) === (s.below == null)) out.push(warn('TOUR_FIELD', { step, field: 'above' }));
     for (const key of ['text', 'line', 'label']) {
       const long = texts(s[key]).find((x) => x.length > LIMITS.tourText);
@@ -106,9 +108,10 @@ function shapeIssues(raw) {
 }
 
 // When each step's move ends, in ms from the start.
-const ends = (s) => s.at + timing(s).ms;
+// An assemble lasts as long as its parts take, one `gap` after the other (all of the circuit's by default).
+const ends = (s, count = 0) => s.at + (s.do === 'assemble' ? Math.max(0, (s.parts?.length ?? count) - 1) * (s.gap ?? ASSEMBLE.gap) + ASSEMBLE.ms : timing(s).ms);
 const moveOf = (s) => s.move ?? DEFAULT_MOVE[s.do] ?? 'cut';
-const timing = (s) => (s.do === 'frame' || s.do === 'set' || s.do === 'insert' || s.do === 'raise' || s.move ? moveTiming(moveOf(s), s.ms ?? (s.do === 'insert' ? INSERT.ms : undefined)) : { ms: 0 });
+const timing = (s) => (s.do === 'frame' || s.do === 'set' || s.do === 'insert' || s.do === 'raise' || s.do === 'pulse' || s.move ? moveTiming(moveOf(s), s.ms ?? (s.do === 'insert' ? INSERT.ms : undefined)) : { ms: 0 });
 
 // What the circuit can do with the steps, and the rhythm: problems that leave the tour playable.
 function meaningIssues(circuit, steps) {
@@ -123,14 +126,15 @@ function meaningIssues(circuit, steps) {
   };
   steps.forEach((s, i) => {
     const step = i + 1;
-    const named = [s.part, ...(s.do === 'focus' ? s.parts : []), ...(s.do === 'frame' && !FRAMES.includes(s.target) ? [s.target] : [])].filter((x) => x != null);
+    const named = [s.part, ...(s.do === 'focus' || s.do === 'assemble' ? s.parts ?? [] : []), ...(s.do === 'frame' && !FRAMES.includes(s.target) ? [s.target] : [])].filter((x) => x != null);
     for (const id of named) if (!ids.has(id)) out.push(warn('TOUR_UNKNOWN_PART', { step, part: id }));
     if (s.do === 'set' && ids.has(s.part) && !controlsOf().some((c) => c.id === s.part && c.field === s.field)) {
       out.push(warn('TOUR_UNKNOWN_CONTROL', { step, part: s.part, field: s.field, options: controlsOf().filter((c) => c.id === s.part).map((c) => c.field).join(', ') || '—' }));
     }
     const m = MOVES[moveOf(s)];
     if (s.ms != null && m && (s.ms < m.min || s.ms > m.max)) out.push(warn('TOUR_MOVE_MS', { step, move: moveOf(s), ms: s.ms, min: m.min, max: m.max }));
-    if (ends(s) > LIMITS.tourMs) out.push(warn('TOUR_TOO_LONG', { step, size: Math.round(ends(s)), limit: LIMITS.tourMs }));
+    const last = ends(s, (circuit?.parts ?? []).length);
+    if (last > LIMITS.tourMs) out.push(warn('TOUR_TOO_LONG', { step, size: Math.round(last), limit: LIMITS.tourMs }));
   });
   // The rhythm: never two slow moves in a row, never two hits without a breath between them.
   const moving = steps.map((s, i) => ({ s, step: i + 1, move: moveOf(s) })).filter((x) => timing(x.s).ms > 0 || x.move === 'hit').sort((a, b) => a.s.at - b.s.at || a.step - b.step);

@@ -11,10 +11,12 @@
 // and the coordinates in with it, or takes them away (M1 arrival, M14 close); a caption's lines rise
 // from their baseline after the caption before has left (M12); an insert brings a part down to its
 // holes, the circuit without current until it lands (M15); a raise lifts a part to set it apart and
-// keeps it up, in the circuit (M16). Only transform and opacity move.
+// keeps it up, in the circuit (M16); an assemble builds the circuit one part after the other, the
+// wires drawn end to end (M4, M5); a pulse runs a flash along the current's path (M7). Only transform
+// and opacity move.
 
-import { moveTiming, bezier, CAPTION, INSERT, RAISE } from './moves.js';
-import { applyFocus, liftPart } from './focus.js';
+import { moveTiming, bezier, CAPTION, INSERT, RAISE, ASSEMBLE, PULSE } from './moves.js';
+import { applyFocus, liftPart, hidePart, isWire, traceWire } from './focus.js';
 import { select, selectNode } from './card.js';
 
 const COUNT_MS = 500; // a value counts up to its reading (M9)
@@ -30,18 +32,20 @@ function el(parent, tag, cls) {
 
 // How long a step moves things, from its `at`: its move, a ramp, a caption coming in, a landing.
 const CAPTION_MS = CAPTION.out + 2 * CAPTION.stagger + CAPTION.in;
-function stepMs(s, timing) {
+const assembleMs = (s, count) => Math.max(0, (s.parts?.length ?? count) - 1) * (s.gap ?? ASSEMBLE.gap) + ASSEMBLE.ms;
+function stepMs(s, timing, count) {
   if (s.do === 'flow') return s.ramp ?? 0;
+  if (s.do === 'assemble') return assembleMs(s, count) + INSERT.ramp;
   if (s.do === 'caption' || s.do === 'value') return CAPTION_MS;
   if (s.do === 'insert') return (s.ms ?? INSERT.ms) + INSERT.ramp;
   return timing(s).ms;
 }
 
-export function setupTour(page, { director, t, f, recording, reading, dots, lights = () => {} }) {
+export function setupTour(page, { director, t, f, recording, reading, dots, lights = () => {}, carrying = () => [] }) {
   const steps = page.data.tour.steps;
   const reduced = !recording && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const timing = (s) => (reduced ? { ms: 0, ease: () => 1 } : moveTiming(s.move, s.ms));
-  const end = Math.max(0, ...steps.map((s) => s.at + (reduced ? 0 : stepMs(s, timing))));
+  const end = Math.max(0, ...steps.map((s) => s.at + (reduced ? 0 : stepMs(s, timing, Object.keys(page.data.parts).length))));
 
   // The caption over the drawing: a text, a second line, a value; the way to stop it.
   const box = el(page.main, 'div', 'tour-caption');
@@ -129,25 +133,60 @@ export function setupTour(page, { director, t, f, recording, reading, dots, ligh
     director.tween(place, { ms: total, ease: (k) => k });
   }
 
-  // Every part lifted (an insert in the air, a raise) back in its holes: the tour stopped, or a
-  // tour in the page ended (a raised part out of focus would be nowhere).
+  // Every part back on the board as it is (lifted ones in their holes, parts and wires an assemble
+  // had not brought yet in place): the tour stopped, or a tour in the page ended.
+  const building = new Set();
   const lower = () => {
     for (const id of [...(page.lifted?.keys() ?? [])]) liftPart(page, id, 0);
+    for (const id of building) {
+      hidePart(page, id, false);
+      traceWire(page, id, 1);
+    }
+    building.clear();
   };
 
-  // M15: parts in the air; the circuit has no current until the last one lands.
+  // M15, M4: parts in the air or a circuit being built; it has no current until the last one lands.
   const aloft = new Set();
-  function land(id) {
-    liftPart(page, id, 0);
-    aloft.delete(id);
+  function release(key) {
+    aloft.delete(key);
     if (aloft.size) return;
     lights(true);
     if (reduced) return dots(1);
     director.tween(dots, { ms: INSERT.ramp, ease: moveTiming('arrival').ease });
   }
+  function land(id) {
+    liftPart(page, id, 0);
+    release(id);
+  }
 
+  // M7: a copy of each piece the current runs through, lit in turn from the highest voltage to the
+  // lowest, over the drawing; gone at the end.
+  function pulse(ms) {
+    const pieces = carrying();
+    if (!pieces.length || page.state.layer !== 'flow') return;
+    const svg = page.current();
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'pulse');
+    svg.querySelector(':scope > .flow')?.after(g);
+    const top = Math.max(...pieces.map((p) => p.v));
+    const span = top - Math.min(...pieces.map((p) => p.v)) || 1;
+    const lit = pieces.map((p) => {
+      const copy = p.el.cloneNode(false);
+      copy.removeAttribute('style');
+      copy.style.opacity = '0';
+      g.appendChild(copy);
+      return { copy, at: ((top - p.v) / span) * (1 - PULSE.width) + PULSE.width / 2 };
+    });
+    director.tween((e) => {
+      for (const p of lit) p.copy.style.opacity = Math.max(0, 1 - Math.abs(e - p.at) / (PULSE.width / 2)).toFixed(3);
+      if (e >= 1) g.remove();
+    }, { ms, ease: (k) => k });
+  }
+
+  let framed = null; // the last frame step, for a probe to frame again
   const act = {
     frame: (s) => {
+      framed = s;
       if (page.data.parts[s.target]) tell(s.target);
       return director.frame(s.target, { ...timing(s), zoom: s.zoom ?? 1 });
     },
@@ -202,7 +241,16 @@ export function setupTour(page, { director, t, f, recording, reading, dots, ligh
       }, { ms: reduced ? 0 : COUNT_MS, ease: (k) => k });
       showValue();
     },
-    probe: (s) => (s.node != null ? selectNode(page, s.node) : select(page, s.part)),
+    // In the page, the card with its oscilloscope; in a recording, the oscilloscope in a box of its
+    // own (M11), the camera bringing the last thing it framed back into the room it leaves.
+    probe: (s) => {
+      if (!recording) {
+        if (s.off) return select(page, null);
+        return s.node != null ? selectNode(page, s.node) : select(page, s.part);
+      }
+      page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v');
+      if (framed) director.frame(framed.target, { ...moveTiming('arrival'), zoom: framed.zoom ?? 1 });
+    },
     // M15: in focus, 12 mm up, then down to its holes along an arrival; landed, a hit.
     insert: (s) => {
       if (!page.data.parts[s.part]) return;
@@ -220,6 +268,45 @@ export function setupTour(page, { director, t, f, recording, reading, dots, ligh
         else land(s.part);
       }, { ms: s.ms ?? INSERT.ms, ease: (k) => k });
     },
+    // M4, M5: every part listed (all, in the circuit's order, by default) leaves the board, then
+    // each comes in `gap` ms after the one before: down to its holes, or a wire drawn end to end.
+    assemble: (s) => {
+      const ids = (s.parts ?? Object.keys(page.data.parts)).filter((id) => page.data.parts[id]);
+      if (reduced || !ids.length) return;
+      const gap = s.gap ?? ASSEMBLE.gap;
+      const total = (ids.length - 1) * gap + ASSEMBLE.ms;
+      const ease = moveTiming('arrival').ease;
+      const state = ids.map(() => 'out');
+      const key = {};
+      aloft.add(key);
+      lights(false);
+      dots(0);
+      for (const id of ids) {
+        building.add(id);
+        hidePart(page, id, true);
+      }
+      director.tween((e) => {
+        const t = e * total;
+        ids.forEach((id, k) => {
+          const local = (t - k * gap) / ASSEMBLE.ms;
+          if (local < 0 || state[k] === 'in') return;
+          const done = local >= 1;
+          if (isWire(page, id)) {
+            hidePart(page, id, false);
+            traceWire(page, id, done ? 1 : ease(local));
+          } else {
+            hidePart(page, id, false);
+            liftPart(page, id, done ? 0 : INSERT.mm * (1 - ease(local)));
+          }
+          if (done) {
+            state[k] = 'in';
+            building.delete(id);
+          }
+        });
+        if (e >= 1) release(key);
+      }, { ms: total, ease: (k) => k });
+    },
+    pulse: (s) => pulse(timing(s).ms),
     // M16: up (or back down, mm 0) along its move, from where it is; in focus while it is up.
     // The simulation goes on: raised is not taken out.
     raise: (s) => {
@@ -255,7 +342,7 @@ export function setupTour(page, { director, t, f, recording, reading, dots, ligh
     lights(true);
     dots(1);
     fade(1);
-    for (const old of page.main.querySelectorAll('.tour-caption.leaving')) old.remove();
+    for (const old of page.main.querySelectorAll('.tour-caption.leaving, svg > .pulse')) old.remove();
     box.hidden = true;
     shown = null;
     document.body.classList.remove('touring');
