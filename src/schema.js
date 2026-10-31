@@ -12,7 +12,7 @@ import { LANGUAGES } from './i18n/index.js';
 import { BATTERY_FORMATS, BATTERY_CHEMISTRIES } from './parts/batteries.js';
 import { LDR_PARTS } from './parts/types/more.js';
 import { RECIPES } from './recipes/index.js';
-import { MOVES, RAISE, ASSEMBLE } from './page/client/moves.js';
+import { MOVES, RAISE, ASSEMBLE, PULSE_COLORS } from './page/client/moves.js';
 import { READINGS, FORMATS, THEMES } from './tour.js';
 import { LIMITS } from './limits.js';
 
@@ -232,8 +232,17 @@ function timelineSchema(localized) {
   const common = {
     at: { type: 'number', minimum: 0, description: 'ms from the start; steps with the same at start together' },
     move: { enum: Object.keys(MOVES), description: Object.entries(MOVES).map(([n, m]) => `${n} ${m.min === m.max ? `${m.ms} ms` : `${m.min}…${m.max} ms`}`).join(', ') },
-    ms: { type: 'number', minimum: 0, description: "The move's duration, within its range (push needs it most)" },
+    ms: { type: 'number', minimum: 0, description: "The move's duration, within its range (push needs it most); in an assemble, each part's" },
+    curve: { type: 'array', items: { type: 'number' }, minItems: 4, maxItems: 4, description: "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve" },
   };
+  const bool = { type: 'boolean' };
+  const ms = (max, what) => ({ type: 'number', minimum: 0, maximum: max, description: what });
+  const enter = { enum: ['drop', 'fade', 'cut'], description: 'How a part comes in: drop (down from height mm, default), fade, cut' };
+  const wire = { enum: ['draw', 'fade', 'cut'], description: 'How a wire comes in: draw (end to end, default), fade, cut' };
+  const from = { enum: ['start', 'end'], description: "The wire's end it is drawn from: start (its first pin, default) or end" };
+  const show = { enum: ['rise', 'fade', 'cut'], description: 'How the lines come in: rise (from their baseline, default), fade, cut' };
+  const height = { type: 'number', minimum: 0, maximum: 40, description: 'mm above the board a part starts from (default 12)' };
+  const dark = { type: 'boolean', description: 'No current while it comes in (default true)' };
   const action = (name, properties, required = [], extra = {}) => ({ type: 'object', required: ['at', 'do', ...required], properties: { ...common, do: { const: name }, ...properties }, additionalProperties: false, ...extra });
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -252,18 +261,19 @@ function timelineSchema(localized) {
         maxItems: LIMITS.tourSteps,
         items: {
           oneOf: [
-            action('frame', { target: { type: 'string', description: 'board, parts or a part id' }, zoom: { type: 'number', exclusiveMinimum: 0, maximum: 20 } }, ['target']),
+            action('frame', { target: { oneOf: [{ type: 'string' }, { type: 'array', items: id, minItems: 1 }], description: 'board, parts, here (the frame as it is), a part id or a list of part ids' }, zoom: { type: 'number', minimum: 0.05, maximum: 20, description: 'Closer in (above 1) or farther out (below 1), about the centre' }, pan: { type: 'array', items: { type: 'number', minimum: -3, maximum: 3 }, minItems: 2, maxItems: 2, description: 'Then moved by [x, y] shares of the frame: [0.2, 0] a fifth to the right, [0, -0.1] a tenth up' } }, ['target']),
             action('focus', { parts: { type: 'array', items: id, description: 'The parts brought forward; [] clears. With a move, the veil, strips and coordinates come in (or leave) along it' } }, ['parts']),
             action('flip', { view: { type: 'string', description: 'A view of the page (front, back…)' } }, ['view']),
             action('set', { part: id, field: { type: 'string', description: 'A control of the part (resistance, pressed, voltage…)' }, value: { type: ['number', 'boolean'] } }, ['part', 'field', 'value']),
             action('flow', { on: { type: 'boolean' }, ramp: { type: 'number', minimum: 0, maximum: 10000, description: 'ms for the dots to reach their speed' } }, ['on']),
-            action('caption', { text, line: text }, ['text']),
-            action('value', { part: id, field: reading, label: text }, ['part', 'field']),
-            action('probe', { part: id, node: { type: 'string', description: 'A strip, as the page names it' }, field: { enum: ['voltage', 'current'], description: "In a recording, the trace in the oscilloscope's box (default voltage)" }, off: { const: true, description: 'Takes the oscilloscope (or the card) away' } }, [], { description: "The page opens the part's or strip's card with its oscilloscope; a recording shows the oscilloscope in a box of its own, the camera leaving it room", oneOf: [{ required: ['part'] }, { required: ['node'] }, { required: ['off'] }] }),
-            action('insert', { part: id }, ['part'], { description: 'The part comes down 12 mm to its holes (700 ms, or ms); the circuit has no current until it lands' }),
+            action('caption', { text, line: text, off: { const: true, description: 'Takes the caption away' }, enter: show, in: ms(3000, 'ms each line takes to come in (default 400)'), stagger: ms(1000, 'ms between two lines (default 90)'), out: ms(2000, 'ms the caption before takes to leave (default 200)') }, [], { oneOf: [{ required: ['text'] }, { required: ['off'] }] }),
+            action('value', { part: id, field: reading, label: text, count: ms(5000, 'ms it counts up to its reading (default 500; 0 shows it as it is)'), enter: show, in: ms(3000, 'ms it takes to come in (default 400)') }, ['part', 'field']),
+            action('probe', { part: id, node: { type: 'string', description: 'A strip, as the page names it' }, field: { enum: ['voltage', 'current'], description: "In a recording, the trace in the oscilloscope's box (default voltage)" }, off: { const: true, description: 'Takes the oscilloscope (or the card) away' }, title: { ...text, description: "In a recording, the box's title instead of the kit's (\"\" for none)" }, label: { ...text, description: "The trace's name instead of the kit's" }, note: { ...text, description: 'The note under the trace instead of the kit\'s ("" for none)' } }, [], { description: "The page opens the part's or strip's card with its oscilloscope; a recording shows the oscilloscope in a box of its own, the camera leaving it room", oneOf: [{ required: ['part'] }, { required: ['node'] }, { required: ['off'] }] }),
+            action('insert', { part: id, enter, height, dark }, ['part'], { description: 'The part comes into its holes along its move (an arrival of 700 ms by default); by default it drops 12 mm and the circuit has no current until it lands' }),
             action('raise', { part: id, mm: { type: 'number', minimum: 0, maximum: RAISE.max, description: 'How high, in mm (default 3); 0 puts it back' } }, ['part'], { description: 'The part rises along its move (an arrival by default) to set it apart, and stays up until a raise to 0; it stays in the circuit' }),
-            action('assemble', { parts: { type: 'array', items: id, description: "The parts, in the order they come in (default: all, in the circuit's order)" }, gap: { type: 'number', minimum: ASSEMBLE.min, maximum: ASSEMBLE.max, description: 'ms from one part to the next (default 1100)' } }, [], { description: 'The circuit builds itself: the parts leave the board, then each comes down to its holes and each wire is drawn end to end; the current starts when the last one is in' }),
-            action('pulse', {}, [], { description: 'A flash runs along the path of the current, from + to −, in its move (a travel); with the current layer on' }),
+            action('assemble', { parts: { type: 'array', minItems: 1, items: { oneOf: [id, { type: 'object', required: ['part'], properties: { part: id, enter, wire, from }, additionalProperties: false }] }, description: "The parts, in the order they come in (default: all, in the circuit's order); one may be { part, enter, wire, from } with its own way in" }, gap: { type: 'number', minimum: ASSEMBLE.min, maximum: ASSEMBLE.max, description: 'ms from one part to the next (default 1100)' }, enter, wire, from, height, dark }, [], { description: 'The circuit builds itself: the parts leave the board, then each comes down to its holes and each wire is drawn end to end; the current starts when the last one is in' }),
+            action('pulse', { through: { type: 'array', items: { type: 'string' }, minItems: 1, description: 'Only the pieces of these parts or strips (default: the whole path)' }, direction: { enum: ['forward', 'back'], description: 'forward: from + to −, as the current runs (default); back: the other way' }, color: { type: 'string', description: `${Object.keys(PULSE_COLORS).join(', ')} (the theme's colours; default pulse) or #rrggbb` }, width: { type: 'number', minimum: 0.05, maximum: 1, description: 'Share of the run each piece is lit (default 0.25): smaller is a sharper flash' }, size: { type: 'number', minimum: 1, maximum: 12, description: 'Thickness of the flash in drawing units (default 4.5)' } }, [], { description: 'A flash runs along the path of the current, from + to −, in its move (a travel); with the current layer on' }),
+            action('label', { part: id, text }, ['part', 'text'], { description: "The part's short label (the one a recording keeps) in other words; \"\" for none" }),
             action('wait-until', { part: id, field: reading, above: { type: 'number' }, below: { type: 'number' }, max: { type: 'number', minimum: 0, maximum: 60000, description: 'ms to wait at most (default 10000)' } }, ['part', 'field'], { oneOf: [{ required: ['above'] }, { required: ['below'] }] }),
           ],
         },

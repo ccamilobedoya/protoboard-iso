@@ -64,19 +64,52 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "frame"
               },
               "target": {
-                "type": "string",
-                "description": "board, parts or a part id"
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "id of a part (or a supply)"
+                    },
+                    "minItems": 1
+                  }
+                ],
+                "description": "board, parts, here (the frame as it is), a part id or a list of part ids"
               },
               "zoom": {
                 "type": "number",
-                "exclusiveMinimum": 0,
-                "maximum": 20
+                "minimum": 0.05,
+                "maximum": 20,
+                "description": "Closer in (above 1) or farther out (below 1), about the centre"
+              },
+              "pan": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": -3,
+                  "maximum": 3
+                },
+                "minItems": 2,
+                "maxItems": 2,
+                "description": "Then moved by [x, y] shares of the frame: [0.2, 0] a fifth to the right, [0, -0.1] a tenth up"
               }
             },
             "additionalProperties": false
@@ -109,7 +142,16 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "focus"
@@ -153,7 +195,16 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "flip"
@@ -195,7 +246,16 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "set"
@@ -245,7 +305,16 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "flow"
@@ -266,8 +335,7 @@
             "type": "object",
             "required": [
               "at",
-              "do",
-              "text"
+              "do"
             ],
             "properties": {
               "at": {
@@ -290,7 +358,16 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "caption"
@@ -332,9 +409,51 @@
                   }
                 ],
                 "description": "At most 280 characters"
+              },
+              "off": {
+                "const": true,
+                "description": "Takes the caption away"
+              },
+              "enter": {
+                "enum": [
+                  "rise",
+                  "fade",
+                  "cut"
+                ],
+                "description": "How the lines come in: rise (from their baseline, default), fade, cut"
+              },
+              "in": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 3000,
+                "description": "ms each line takes to come in (default 400)"
+              },
+              "stagger": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000,
+                "description": "ms between two lines (default 90)"
+              },
+              "out": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2000,
+                "description": "ms the caption before takes to leave (default 200)"
               }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "oneOf": [
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "off"
+                ]
+              }
+            ]
           },
           {
             "type": "object",
@@ -365,7 +484,16 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "value"
@@ -401,6 +529,26 @@
                   }
                 ],
                 "description": "At most 280 characters"
+              },
+              "count": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 5000,
+                "description": "ms it counts up to its reading (default 500; 0 shows it as it is)"
+              },
+              "enter": {
+                "enum": [
+                  "rise",
+                  "fade",
+                  "cut"
+                ],
+                "description": "How the lines come in: rise (from their baseline, default), fade, cut"
+              },
+              "in": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 3000,
+                "description": "ms it takes to come in (default 400)"
               }
             },
             "additionalProperties": false
@@ -432,7 +580,16 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "probe"
@@ -455,6 +612,63 @@
               "off": {
                 "const": true,
                 "description": "Takes the oscilloscope (or the card) away"
+              },
+              "title": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "In a recording, the box's title instead of the kit's (\"\" for none)"
+              },
+              "label": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "The trace's name instead of the kit's"
+              },
+              "note": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "The note under the trace instead of the kit's (\"\" for none)"
               }
             },
             "additionalProperties": false,
@@ -505,7 +719,16 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "insert"
@@ -513,10 +736,28 @@
               "part": {
                 "type": "string",
                 "description": "id of a part (or a supply)"
+              },
+              "enter": {
+                "enum": [
+                  "drop",
+                  "fade",
+                  "cut"
+                ],
+                "description": "How a part comes in: drop (down from height mm, default), fade, cut"
+              },
+              "height": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 40,
+                "description": "mm above the board a part starts from (default 12)"
+              },
+              "dark": {
+                "type": "boolean",
+                "description": "No current while it comes in (default true)"
               }
             },
             "additionalProperties": false,
-            "description": "The part comes down 12 mm to its holes (700 ms, or ms); the circuit has no current until it lands"
+            "description": "The part comes into its holes along its move (an arrival of 700 ms by default); by default it drops 12 mm and the circuit has no current until it lands"
           },
           {
             "type": "object",
@@ -546,7 +787,16 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "raise"
@@ -592,24 +842,107 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "assemble"
               },
               "parts": {
                 "type": "array",
+                "minItems": 1,
                 "items": {
-                  "type": "string",
-                  "description": "id of a part (or a supply)"
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "description": "id of a part (or a supply)"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "part"
+                      ],
+                      "properties": {
+                        "part": {
+                          "type": "string",
+                          "description": "id of a part (or a supply)"
+                        },
+                        "enter": {
+                          "enum": [
+                            "drop",
+                            "fade",
+                            "cut"
+                          ],
+                          "description": "How a part comes in: drop (down from height mm, default), fade, cut"
+                        },
+                        "wire": {
+                          "enum": [
+                            "draw",
+                            "fade",
+                            "cut"
+                          ],
+                          "description": "How a wire comes in: draw (end to end, default), fade, cut"
+                        },
+                        "from": {
+                          "enum": [
+                            "start",
+                            "end"
+                          ],
+                          "description": "The wire's end it is drawn from: start (its first pin, default) or end"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
                 },
-                "description": "The parts, in the order they come in (default: all, in the circuit's order)"
+                "description": "The parts, in the order they come in (default: all, in the circuit's order); one may be { part, enter, wire, from } with its own way in"
               },
               "gap": {
                 "type": "number",
                 "minimum": 300,
                 "maximum": 3000,
                 "description": "ms from one part to the next (default 1100)"
+              },
+              "enter": {
+                "enum": [
+                  "drop",
+                  "fade",
+                  "cut"
+                ],
+                "description": "How a part comes in: drop (down from height mm, default), fade, cut"
+              },
+              "wire": {
+                "enum": [
+                  "draw",
+                  "fade",
+                  "cut"
+                ],
+                "description": "How a wire comes in: draw (end to end, default), fade, cut"
+              },
+              "from": {
+                "enum": [
+                  "start",
+                  "end"
+                ],
+                "description": "The wire's end it is drawn from: start (its first pin, default) or end"
+              },
+              "height": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 40,
+                "description": "mm above the board a part starts from (default 12)"
+              },
+              "dark": {
+                "type": "boolean",
+                "description": "No current while it comes in (default true)"
               }
             },
             "additionalProperties": false,
@@ -642,14 +975,124 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "pulse"
+              },
+              "through": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "description": "Only the pieces of these parts or strips (default: the whole path)"
+              },
+              "direction": {
+                "enum": [
+                  "forward",
+                  "back"
+                ],
+                "description": "forward: from + to −, as the current runs (default); back: the other way"
+              },
+              "color": {
+                "type": "string",
+                "description": "pulse, accent, value, voltage, current (the theme's colours; default pulse) or #rrggbb"
+              },
+              "width": {
+                "type": "number",
+                "minimum": 0.05,
+                "maximum": 1,
+                "description": "Share of the run each piece is lit (default 0.25): smaller is a sharper flash"
+              },
+              "size": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 12,
+                "description": "Thickness of the flash in drawing units (default 4.5)"
               }
             },
             "additionalProperties": false,
             "description": "A flash runs along the path of the current, from + to −, in its move (a travel); with the current layer on"
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "part",
+              "text"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
+              },
+              "do": {
+                "const": "label"
+              },
+              "part": {
+                "type": "string",
+                "description": "id of a part (or a supply)"
+              },
+              "text": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "At most 280 characters"
+              }
+            },
+            "additionalProperties": false,
+            "description": "The part's short label (the one a recording keeps) in other words; \"\" for none"
           },
           {
             "type": "object",
@@ -680,7 +1123,16 @@
               "ms": {
                 "type": "number",
                 "minimum": 0,
-                "description": "The move's duration, within its range (push needs it most)"
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
               },
               "do": {
                 "const": "wait-until"

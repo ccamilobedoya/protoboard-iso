@@ -176,6 +176,17 @@ página y la hoja de ruta al día.
   tick encuentran las piezas una vez (`page.pieces`): el armado pasó de 400 ms a 2 ms por tick en
   jsdom. El pulso al cargar (V3) queda sin hacer: es movimiento sin pedirlo, y el mantenedor prefirió
   que el movimiento sea para los videos (decidir antes de hacerlo).
+  Controles (2026-10-31, pedido del mantenedor: «tener control sobre toda la animación»): cada
+  decisión que estaba fija es un campo opcional con el valor de antes por defecto, documentado en
+  [linea-de-tiempo.md](linea-de-tiempo.md): `curve` (una cubic-bezier propia en cualquier paso con
+  movimiento); `frame` con una lista de piezas, `here` (desde el encuadre de ahora) y `pan`, para
+  mover el encuadre a mano (sin `frame` la cámara no se mueve: lo automático sigue igual); `caption`
+  con `enter` (`rise`, `fade`, `cut`), `in`, `stagger`, `out` y `off`; `value` con `count`, `enter`
+  e `in`; `insert` con `enter` (`drop`, `fade`, `cut`), `height` y `dark`; `assemble` con `ms` por
+  pieza, `enter`, `wire` (`draw`, `fade`, `cut`), `from`, `height`, `dark` y piezas con su propia
+  entrada; `pulse` con `through`, `direction`, `color`, `width` y `size`; `probe` con `title`,
+  `label` y `note`; y la acción `label`, el rótulo corto de una pieza con otras palabras. Los textos
+  del kit son solo los números y esos valores por defecto.
 - ⬜ V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
@@ -354,6 +365,8 @@ página ya nombra como tokens (`--ease-out`, `--ease-in-out`) más dos nuevas; l
 ser tokens también.
 
 ## La línea de tiempo
+
+Cada paso y cada opción, con su valor por defecto: [linea-de-tiempo.md](linea-de-tiempo.md).
 
 Un archivo JSON por video. Es el guion, lo que la página reproduce como recorrido y lo que sigue el
 exportador de fotogramas. Un asistente lo escribe; desde entonces nada se genera.

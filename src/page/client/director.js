@@ -34,16 +34,20 @@ export function createDirector(page, sim) {
   const tweens = new Set(); // { apply(e), t0, ms, ease }
   const after = new Set();
 
-  // A target is a box [x, y, w, h] (a frame as it is), 'board' or 'parts' (the page's two frames;
-  // 'parts' as a button fits it, filling a portrait screen) or a part's id. `zoom` closes in on
-  // its centre. With a reserved margin (page.inset: a recording, V4) a named target is shown in
-  // the area the margin leaves free.
-  function boxOf(target, zoom = 1) {
-    if (Array.isArray(target)) return target;
+  // A target is a box [x, y, w, h] of numbers (a frame as it is), 'board' or 'parts' (the page's
+  // two frames; 'parts' as a button fits it, filling a portrait screen), 'here' (the frame as it is
+  // now), a part's id or a list of ids (all of them). `zoom` closes in on its centre (below 1, out);
+  // `pan` then moves it by shares of its own width and height ([0.2, 0]: a fifth of the frame to the
+  // right). With a reserved margin (page.inset: a recording, V4) a named target is shown in the area
+  // the margin leaves free.
+  function boxOf(target, zoom = 1, pan = null) {
+    if (Array.isArray(target) && target.every((n) => typeof n === 'number')) return target;
     const svg = page.current();
     const inset = page.inset?.();
+    const here = target === 'here';
     let box;
-    if (target === 'board') box = numbers(svg.dataset.board);
+    if (here) box = page.box?.slice() ?? numbers(svg.getAttribute('viewBox'));
+    else if (target === 'board') box = numbers(svg.dataset.board);
     else if (target === 'parts') box = inset ? partsBounds(page) ?? numbers(svg.dataset.parts) : fitFrame(page, numbers(svg.dataset.parts));
     else box = partBox(page, target, { label: page.told !== undefined });
     if (!box) return null;
@@ -51,7 +55,8 @@ export function createDirector(page, sim) {
       const [x, y, w, h] = box;
       box = [x + (w - w / zoom) / 2, y + (h - h / zoom) / 2, w / zoom, h / zoom];
     }
-    return inset ? insetFrame(page, box, inset) : box;
+    if (pan) box = [box[0] + pan[0] * box[2], box[1] + pan[1] * box[3], box[2], box[3]];
+    return inset && !here ? insetFrame(page, box, inset) : box;
   }
   const progress = (m) => (m.ms > 0 ? Math.min(1, (time - m.t0) / m.ms) : 1);
 
@@ -93,8 +98,8 @@ export function createDirector(page, sim) {
       after.add(fn);
     },
     // Move the frame there in `ms` along `ease` (k → share of the way), from where it is now.
-    frame(target, { ms = 0, ease = easeOut, zoom = 1 } = {}) {
-      const box = boxOf(target, zoom);
+    frame(target, { ms = 0, ease = easeOut, zoom = 1, pan = null } = {}) {
+      const box = boxOf(target, zoom, pan);
       if (!box) return false;
       camera = null;
       if (!(ms > 0) || !page.box) setBox(page, box);

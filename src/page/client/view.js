@@ -304,11 +304,15 @@ export function partsRect(page, ids, svg = page.current()) {
 // Frame a part: the box of what is drawn for it, a little more than twice its size, or null.
 // `label`: with its short label too (a recording frames the told part and the label it keeps; the
 // layer is hidden there by visibility, so it still measures).
+// `id` may be a list: the frame of all of them.
 export function partBox(page, id, { label = false } = {}) {
-  let r = partsRect(page, [id]);
+  const ids = [id].flat();
+  let r = partsRect(page, ids);
   if (!r) return null;
-  const tag = label && page.current().querySelector(`.shortlabels [data-part="${id.replace(/["\\]/g, '\\$&')}"]`)?.getBoundingClientRect();
-  if (tag && (tag.width || tag.height)) r = { left: Math.min(r.left, tag.left), top: Math.min(r.top, tag.top), right: Math.max(r.right, tag.right), bottom: Math.max(r.bottom, tag.bottom) };
+  for (const one of label ? ids : []) {
+    const tag = page.current().querySelector(`.shortlabels [data-part="${one.replace(/["\\]/g, '\\$&')}"]`)?.getBoundingClientRect();
+    if (tag && (tag.width || tag.height)) r = { left: Math.min(r.left, tag.left), top: Math.min(r.top, tag.top), right: Math.max(r.right, tag.right), bottom: Math.max(r.bottom, tag.bottom) };
+  }
   const [x0, y0] = toBox(page, r.left, r.top);
   const [x1, y1] = toBox(page, r.right, r.bottom);
   const w = Math.max(x1 - x0, 1) * 2.5;

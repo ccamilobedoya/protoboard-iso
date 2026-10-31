@@ -160,6 +160,17 @@ up to date.
   the card). Steps repeated on every tick find a part's pieces once (`page.pieces`): the assembly went
   from 400 ms to 2 ms a tick in jsdom. The pulse on load (V3) is not done: it is motion nobody asked
   for, and the maintainer wants motion for videos (to decide before building it).
+  Controls (2026-10-31, the maintainer's request: "control over the whole animation"): every choice
+  that was fixed is an optional field with the former value as its default, documented in
+  [timeline.md](timeline.md): `curve` (a cubic-bezier of one's own on any step with a move); `frame`
+  with a list of parts, `here` (from the frame as it is) and `pan`, to move the frame by hand (with
+  no `frame` the camera does not move: the automatic stays as it was); `caption` with `enter`
+  (`rise`, `fade`, `cut`), `in`, `stagger`, `out` and `off`; `value` with `count`, `enter` and `in`;
+  `insert` with `enter` (`drop`, `fade`, `cut`), `height` and `dark`; `assemble` with `ms` per part,
+  `enter`, `wire` (`draw`, `fade`, `cut`), `from`, `height`, `dark` and parts with their own way in;
+  `pulse` with `through`, `direction`, `color`, `width` and `size`; `probe` with `title`, `label` and
+  `note`; and the action `label`, a part's short label in other words. The kit's own texts are only
+  the numbers and those defaults.
 - ⬜ V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
@@ -326,6 +337,8 @@ two hits without a breath between them. The curves are the ones the page already
 (`--ease-out`, `--ease-in-out`) plus two new ones; the durations become tokens too.
 
 ## The timeline
+
+Every step and option, with its default: [timeline.md](timeline.md).
 
 One JSON file per video. It is the script, what the page plays as a tour and what the frame
 exporter follows. An assistant writes it; from then on nothing is generated.

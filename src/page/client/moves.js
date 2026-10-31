@@ -42,12 +42,13 @@ export function bezier([x1, y1, x2, y2]) {
   };
 }
 
-// The whole time of a move (anticipation adds its recoil) and its curve over that time.
-export function moveTiming(name, ms) {
+// The whole time of a move (anticipation adds its recoil) and its curve over that time. `curve`, a
+// step's own cubic-bezier, replaces the move's (a cut stays a cut).
+export function moveTiming(name, ms, curve) {
   const m = MOVES[name] ?? MOVES.cut;
   const own = ms ?? m.ms;
   if (!m.curve) return { ms: name === 'breath' ? own : 0, ease: (k) => (k >= 1 ? 1 : 0) };
-  const ease = bezier(m.curve);
+  const ease = bezier(curve ?? m.curve);
   if (!m.back) return { ms: own, ease };
   const total = m.back + own;
   const split = m.back / total;
@@ -73,4 +74,6 @@ export const RAISE = { mm: 3, max: 12 };
 export const ASSEMBLE = { gap: 1100, ms: 700, min: 300, max: 3000 };
 // M7: a flash runs the current's path from + to − (a timeline's pulse), each piece lit for this share
 // of the run.
-export const PULSE = { width: 0.25 };
+export const PULSE = { width: 0.25, size: 4.5 };
+// M7's colours by name (the theme's tokens); a step may also give one as #rrggbb.
+export const PULSE_COLORS = { pulse: 'var(--pulse)', accent: 'var(--accent)', value: 'var(--cap-value)', voltage: 'var(--trace-v)', current: 'var(--trace-i)' };

@@ -125,14 +125,30 @@ export function liftPart(page, id, mm) {
   }
 }
 
-// A part not on the board yet (a timeline's assemble, M4): it and its labels unseen.
-export function hidePart(page, id, hidden) {
-  for (const { own } of piecesOf(page, id)) for (const el of own) el.style.opacity = hidden ? '0' : '';
+// A part at `k` of its opacity, 0 unseen (not on the board yet: a timeline's assemble, M4) to 1 as
+// drawn: its copies over the veil when it is in focus (the part below unseen until it is whole),
+// else the part itself and its labels.
+export function showPart(page, id, k) {
+  const o = k >= 1 ? '' : Math.max(0, k).toFixed(3);
+  for (const { copies, own, body } of piecesOf(page, id)) {
+    if (!copies.length) {
+      for (const el of own) el.style.opacity = o;
+      continue;
+    }
+    for (const el of copies) el.style.opacity = o;
+    for (const el of body) el.style.opacity = k >= 1 ? '' : '0';
+  }
 }
 
 // A wire's pieces carry where they lie along it (data-along, 0 at one end, 1 at the other): drawn
 // up to `k`, the rest unseen (M5). A part that is not a wire has none.
 export const isWire = (page, id) => piecesOf(page, id).some((p) => p.wire.length > 0);
-export function traceWire(page, id, k) {
-  for (const { wire } of piecesOf(page, id)) for (const el of wire) el.style.opacity = Number(el.dataset.along) <= k ? '' : '0';
+// `from`: 'start' draws it from its first pin, 'end' from its second.
+export function traceWire(page, id, k, from = 'start') {
+  for (const { wire } of piecesOf(page, id)) {
+    for (const el of wire) {
+      const at = Number(el.dataset.along);
+      el.style.opacity = (from === 'end' ? 1 - at : at) <= k ? '' : '0';
+    }
+  }
 }

@@ -19,6 +19,7 @@ está en la raíz.
 - [Hoja de ruta](hoja-de-ruta.md): Cada etapa termina en algo que sirve por sí solo.
 - [Inspeccionar y anotar un dibujo](inspeccionar-y-anotar.md): Dos herramientas para saber exactamente qué contiene un dibujo, sin tener que mirarlo.
 - [Interfaz para agentes: retomar, inspeccionar, cambiar](interfaz-para-agentes.md): Cómo un asistente, un agente o un script retoma un circuito existente y lo cambia sin riesgo.
+- [Líneas de tiempo: cada paso y cada opción](linea-de-tiempo.md): Una línea de tiempo es el guion de un video y del recorrido de una página (*Ver cómo funciona*): un archivo JSON de pasos, cada uno en un tiempo, cada uno haciendo una cosa.
 - [Mapa del código](mapa-del-codigo.md): Dónde vive cada cosa y cómo se hablan las piezas.
 - [Servidor MCP](mcp.md): `mcp/server.js` expone el kit como herramientas del [Model Context Protocol](https://modelcontextprotocol.io), para que cualquier asistente compatible (Claude Code, Claude Desktop, otros agentes) retome, inspeccione y cambie circuitos con entradas tipadas y respuestas cortas y estructuradas.
 - [Microcontroladores en la simulación](microcontroladores.md): Cómo simula el kit las placas de desarrollo (ESP32 DevKit, ESP32-C3 SuperMini, Arduino UNO): no el procesador, sino lo que se ve en los pines.

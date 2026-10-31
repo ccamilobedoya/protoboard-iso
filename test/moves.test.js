@@ -315,3 +315,113 @@ test('moves: M7 a flash runs the current path from + to −, M11 the oscilloscop
   assert.equal(r.doc.querySelector('.scope-inset'), null);
   assert.ok(!r.doc.body.classList.contains('with-scope'));
 });
+
+// The controls (2026-10-31): every move's way can be said in the timeline; left out, the default.
+test('controls: check knows each field and its range', () => {
+  const codes = (steps) => loadTour(npn({ steps })).issues.map((i) => i.code);
+  const fine = [
+    { at: 0, do: 'frame', target: ['R1', 'D1'], zoom: 0.8, pan: [0.2, -0.1], curve: [0.2, 0, 0.2, 1] },
+    { at: 0, do: 'frame', target: 'here', pan: [0, 0.3], move: 'travel' },
+    { at: 0, do: 'caption', text: 'a', enter: 'fade', in: 600, stagger: 0, out: 0 },
+    { at: 900, do: 'caption', off: true },
+    { at: 900, do: 'value', part: 'D1', field: 'current', count: 0, enter: 'cut' },
+    { at: 900, do: 'insert', part: 'D1', enter: 'fade', height: 30, dark: false },
+    { at: 900, do: 'assemble', parts: ['S1', { part: 'W1', wire: 'draw', from: 'end' }], ms: 300, enter: 'fade', wire: 'cut', height: 5, dark: false },
+    { at: 900, do: 'pulse', through: ['D1', 'R1'], direction: 'back', color: '#ff00aa', width: 0.1, size: 8 },
+    { at: 900, do: 'pulse', color: 'value' },
+    { at: 900, do: 'label', part: 'D1', text: { en: 'The LED', es: 'El LED' } },
+    { at: 900, do: 'probe', part: 'D1', title: '', label: 'I', note: 'model' },
+  ];
+  assert.deepEqual(codes(fine), []);
+  const field = (step) => loadTour(npn({ steps: [{ at: 0, ...step }] })).issues.filter((i) => i.code === 'TOUR_FIELD').map((i) => i.params.field);
+  assert.deepEqual(field({ do: 'insert', part: 'D1', enter: 'spin' }), ['enter']);
+  assert.deepEqual(field({ do: 'frame', target: 'board', pan: [5, 0] }), ['pan']);
+  assert.deepEqual(field({ do: 'pulse', color: 'red' }), ['color']);
+  assert.deepEqual(field({ do: 'frame', target: 'board', curve: [2, 0, 1, 1] }), ['curve']);
+  assert.deepEqual(field({ do: 'caption' }), ['text'], 'a text, or off');
+  assert.deepEqual(field({ do: 'assemble', parts: [{ part: 'W1', from: 'middle' }] }), ['parts']);
+});
+
+test('controls: frame by a list of parts, from here, panned', async (t) => {
+  const r = await recording([
+    { at: 0, do: 'frame', target: 'board', move: 'cut' },
+    { at: 100, do: 'frame', target: 'here', zoom: 2, pan: [0.25, 0], move: 'cut' },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  const box = () => r.svg().getAttribute('viewBox').split(' ').map(Number);
+  r.to(50);
+  const [x, y, w, h] = box();
+  r.to(150);
+  const [x2, y2, w2, h2] = box();
+  assert.ok(Math.abs(w2 - w / 2) < 0.1 && Math.abs(h2 - h / 2) < 0.1, 'zoom 2 about the centre');
+  assert.ok(Math.abs(x2 - (x + w / 4 + w2 / 4)) < 0.1, 'then a quarter of the frame to the right');
+  assert.ok(Math.abs(y2 - (y + h / 4)) < 0.1);
+});
+
+test('controls: captions fade or cut, go off; a value shown as it is', async (t) => {
+  const r = await recording([
+    { at: 0, do: 'caption', text: 'one' },
+    { at: 1000, do: 'caption', text: 'two', enter: 'fade', in: 600, out: 0 },
+    { at: 2000, do: 'caption', text: 'three', enter: 'cut' },
+    { at: 2000, do: 'value', part: 'D1', field: 'voltage', count: 0, enter: 'cut' },
+    { at: 3000, do: 'caption', off: true },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  const row = () => r.doc.querySelector('.tour-caption:not(.leaving) .text > .in');
+  r.to(1000 + 300);
+  const o = Number(row().style.opacity);
+  assert.ok(o > 0 && o < 1, `fading in: ${o}`);
+  assert.equal(row().style.transform, '', 'no rise');
+  r.to(2000 + FRAME);
+  assert.equal(row().textContent, 'three');
+  assert.equal(row().style.opacity, '');
+  assert.equal(row().style.transform, '', 'at once');
+  assert.match(r.doc.querySelector('.tour-caption .value .number').textContent, /^\d/, 'the reading, not a count from 0');
+  const v = r.doc.querySelector('.tour-caption .value .number').textContent;
+  r.to(2000 + 300);
+  assert.equal(r.doc.querySelector('.tour-caption .value .number').textContent, v);
+  r.to(3000 + 400);
+  assert.ok(r.doc.querySelector('.tour-caption:not(.leaving)').hidden, 'off');
+});
+
+test('controls: insert fading in with the current on; assemble with a part of its own way and a wire drawn from its end', async (t) => {
+  const r = await recording([
+    { at: 0, do: 'set', part: 'S1', field: 'pressed', value: true, move: 'cut' },
+    { at: 300, do: 'insert', part: 'D1', enter: 'fade', dark: false },
+    { at: 2000, do: 'assemble', parts: ['R1', { part: 'W1', from: 'end' }, { part: 'Q1', enter: 'cut' }], gap: 400, ms: 600 },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  r.to(300 + 300);
+  const copy = r.svg().querySelector(':scope > .spotlight > [data-part="D1"]');
+  const o = Number(copy.style.opacity);
+  assert.ok(o > 0 && o < 1, `fading: ${o}`);
+  assert.equal(r.svg().querySelector('.lift'), null, 'not dropped');
+  assert.ok(r.glow() > 0, 'the current stays on');
+  r.to(2000 + 400 + 50); // W1 begun (an arrival: most of the way early)
+  const pieces = [...r.svg().querySelectorAll(':scope > .parts > [data-part="W1"][data-along]')];
+  const shown = pieces.filter((el) => el.style.opacity === '').map((el) => Number(el.dataset.along));
+  assert.ok(shown.length > 0 && shown.length < pieces.length, `${shown.length} of ${pieces.length}`);
+  assert.ok(Math.min(...shown) > 0.3 && Math.max(...shown) === Math.max(...pieces.map((el) => Number(el.dataset.along))), `from its end: ${Math.min(...shown)}`);
+  r.to(2000 + 800 + FRAME); // Q1 at once
+  assert.equal(r.svg().querySelector(':scope > .parts > .lift[data-part="Q1"]'), null);
+  assert.ok(opacity(r.svg(), 'parts', 'Q1').every((x) => x === ''));
+});
+
+test('controls: a pulse through some parts only, back, in its own colour; a label and the oscilloscope in other words', async (t) => {
+  const r = await recording([
+    { at: 0, do: 'set', part: 'S1', field: 'pressed', value: true, move: 'cut' },
+    { at: 0, do: 'flow', on: true },
+    { at: 500, do: 'pulse', through: ['D1'], direction: 'back', color: 'value', size: 7 },
+    { at: 500, do: 'label', part: 'D1', text: 'The LED' },
+    { at: 500, do: 'probe', part: 'D1', title: 'Scope', label: 'Through D1', note: '' },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  r.to(500 + FRAME);
+  const copies = [...r.svg().querySelectorAll(':scope > .pulse > *')];
+  assert.ok(copies.length > 0 && copies.every((el) => el.getAttribute('data-part') === 'D1'), 'only D1');
+  assert.ok(copies.every((el) => el.style.stroke === 'var(--cap-value)' && el.style.strokeWidth === '7'));
+  assert.equal(r.svg().querySelector(':scope > .shortlabels > [data-part="D1"]').textContent, 'The LED');
+  assert.equal(r.doc.querySelector('.scope-inset h3').textContent, 'Scope');
+  assert.match(r.doc.querySelector('.scope-inset .scope-label').textContent, /^Through D1/);
+  assert.equal(r.doc.querySelector('.scope-inset .scope-model').textContent, '');
+});

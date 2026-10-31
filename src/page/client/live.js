@@ -126,15 +126,15 @@ export function setupLive(page) {
     return reading?.nodes[key.slice(5)] != null ? { v: { label: t('page.scope.node'), value: reading.nodes[key.slice(5)] }, i: null } : null;
   }
   // `only`: 'v' or 'i' for one trace (the inset of a recording), else both.
-  function drawOne({ id, scope, only }) {
+  function drawOne({ id, scope, only, label }) {
     const s = scopeFor(id);
     if (!s) return;
     const end = Math.max(scopeTime(), scopeWindow);
     const from = Math.max(0, end - 2 * scopeWindow);
     const rec = recorder.get(id);
     const traces = [];
-    if (s.v && only !== 'i') traces.push({ label: s.v.label ?? t('page.scope.voltage'), unit: 'V', ...SCOPE_V, points: samplesOf(rec, 'a', from, end) });
-    if (s.i && only !== 'v') traces.push({ label: s.i.label ?? t('page.scope.current'), unit: 'A', ...SCOPE_I, points: samplesOf(rec, 'b', from, end) });
+    if (s.v && only !== 'i') traces.push({ label: label ?? s.v.label ?? t('page.scope.voltage'), unit: 'V', ...SCOPE_V, points: samplesOf(rec, 'a', from, end) });
+    if (s.i && only !== 'v') traces.push({ label: label ?? s.i.label ?? t('page.scope.current'), unit: 'A', ...SCOPE_I, points: samplesOf(rec, 'b', from, end) });
     scope.draw({ traces, from, to: end });
   }
   function drawScope() {
@@ -143,9 +143,10 @@ export function setupLive(page) {
     drawOne(openScope);
   }
   // M11: the oscilloscope of a part or a strip in a box of its own over the drawing (a recording's
-  // probe), one trace, from t = 0; null takes it away. The camera leaves it room (view.js).
+  // probe), one trace, from t = 0; null takes it away. The camera leaves it room (view.js). The
+  // timeline may say its title, the trace's name and the note under it otherwise ("" for none).
   let inset = null;
-  page.insetScope = (id, only = 'v') => {
+  page.insetScope = (id, only = 'v', { title, label, note } = {}) => {
     inset?.box.remove();
     inset = null;
     document.body.classList.remove('with-scope');
@@ -153,7 +154,8 @@ export function setupLive(page) {
     const box = document.createElement('div');
     box.className = 'scope-inset';
     page.main.appendChild(box);
-    inset = { id, box, only, scope: createScope(box, { t, f }) };
+    const own = { 'page.scope.title': title, 'page.scope.model': note };
+    inset = { id, box, only, label, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f }) };
     document.body.classList.add('with-scope');
     drawOne(inset);
     return true;
@@ -515,7 +517,7 @@ export function setupLive(page) {
           const shown = dots[svgs.indexOf(page.current())] ?? [];
           const tiny = Math.max(0, ...I.map(Math.abs)) * 1e-3;
           const volts = (ref) => (ref.node ? reading.nodes[ref.node] : reading.parts[ref.part]?.pins?.[ref.pin]) ?? null;
-          return flow.dots.map((ref, k) => ({ el: shown[k], v: volts(ref), i: I[k] })).filter((p) => p.el && p.v != null && Math.abs(p.i) > tiny);
+          return flow.dots.map((ref, k) => ({ el: shown[k], v: volts(ref), i: I[k], part: ref.part, node: ref.node })).filter((p) => p.el && p.v != null && Math.abs(p.i) > tiny);
         },
         // M15: the lights held dark while a part is in the air, then let rise (M8).
         lights: (on) => {
