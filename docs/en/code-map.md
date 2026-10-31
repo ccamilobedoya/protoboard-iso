@@ -39,7 +39,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 |---|---|
 | `core/` | vectors, isometric camera and views, units (`parseValue`, `formatValue`) |
 | `geometry/primitives.js` | prisms, lathes, tubes, decals, text on planes (3D, millimetres) |
-| `board/` | breadboards as data (`boards/bb830.js`), holes and groups, drawing the board |
+| `board/` | breadboards as data (`boards/bb830.js`; `doubleBoard` in `board.js` makes `double` and `bb830x2`, two boards side by side), holes and groups, hole names (`parseHole`, `railName`, `RAIL_IDS`), the halves layout works with (`boardSides`), channels (`channelPairs`), where the coordinates are printed (`printRows`), drawing the board (one block, or two) |
 | `parts/types/` | what a part *is*: value → bands, pins, label, `electrical` model (`battery.js`; `more.js`: inductor, thermistor, LDR, buzzer, header) |
 | `parts/packages/` | physical shapes from datasheet sizes; `expandPin1` for DIP and headers; `battery.js` lies beside the board (its `build` gets the board); `small.js`: bead, LDR, buzzer, header; `trimmer.js`; `sip.js`: KBP bridge (`kbp`); `devboard.js` (ESP32 boards across the channel) `uno.js` (UNO beside the board) and `despi.js` (DESPI-C02 e-paper adapter and its panel), sharing `offboard.js` (printed text, Dupont lead); data in `parts/modules.js`; `axial.js` also draws cement resistors (`shape: 'box'`); `ams1117.js`: the AMS1117 module standing on right-angle pins (its parts one-sided, `side`); `switch.js`: KCD1 rocker and 7 × 7 latching button on the table, wired with `wireToHole` (`offboard.js`) |
 | `parts/db.js` | part numbers: package, pin order, model; `lookupPartNumber` accepts other names (L7805CV, 2SC1815) |
@@ -58,9 +58,9 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `parts/resolve.js` | a part from what a person writes (`resolvePart`: part number, module, alias like KCD1 or resistencia; `closestNames` when unknown), `pinsOf`; aliases in `PART_ALIASES` |
 | `parts/pin-names.js` | a pin from what a person writes (`findPin`: exact name ignoring case, then synonyms like K/cathode, DISCH/DIS, VDD/VCC, then GPIO numbers on boards; nothing when not unique); used by circuits, `query`, `suggest` and `layout` |
 | `recipes/` | lesson circuits as layout specs, one data module each (`led-resistor.js`, `npn-switch.js`…); `index.js`: the registry, `expandRecipe` (name + values → spec, only the values each recipe lists), `resolveRecipe` (a layout request with `recipe` → spec, for the CLI and MCP), the catalog's entries ([recipes.md](recipes.md)) |
-| `layout.js` | a whole circuit from its parts and nets (`validateSpec` first: every problem at once; `autoLayout`: layers, placement rules checked by geometry only, jumpers, relayout while the review blocks), `checkNets` (nets asked vs built), `formatLayout`; CLI `layout`, MCP `layout`; how it works and how to change it: [layout.md](layout.md), bench `npm run layout-bench` |
+| `layout.js`, `layout-sides.js` | a whole circuit from its parts and nets (`validateSpec` first: every problem at once; `autoLayout`: layers, each part's half across the channel (`assignSides`, a partition of the nets), scored candidates checked by geometry only, jumpers as a spanning tree per net, relayout while the review blocks), `checkNets` (nets asked vs built), `formatLayout`; CLI `layout`, MCP `layout`; how it works and how to change it: [layout.md](layout.md), bench `npm run layout-bench` (`scripts/layout-metrics.js` measures each result; `--save` / `--compare`) |
 | `query.js`, `query-format.js`, `review.js` | questions, placements (`suggest`, `suggestMany`; groups by hole, name or placed pin; room kept for later connections with probe jumpers, one level of look-ahead, `reasons` when nothing fits), verdict from measurements (blocking items with their parts and views) |
-| `nets.js` | the circuit as nets: groups joined by jumper wires, with their pins (MCP `netlist`, CLI `nets`); `checkNets`: nets asked for against the circuit (used by `layout` and by `review` for a circuit's `spec`) |
+| `nets.js` | the circuit as nets: groups joined by jumper wires, with their pins (MCP `netlist`, CLI `nets`); `checkNets`: nets asked for against the circuit (used by `layout` and by `review` for a circuit's `spec`); pins a development board joins inside it (`internalLinks`: GND and GND2) count as one group |
 | `node/catalog.js` | what the kit knows, compact or one entry in detail with its fields (`TYPE_FIELDS`, kept in step with the schema by a test) and an example from `examples/` |
 | `schema.js` | JSON Schemas built from the registries (`npm run schemas`) |
 | `sim/models.js` | typical device values, each with its source (diodes, Zener table, LEDs, transistors, regulators) |
@@ -119,6 +119,11 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
   `limits.js`, a program file only from the circuit's folder, nothing from the input run as code
   (a sketch only through `sim/sketch.js`, whose output names nothing but the runtime), every text
   escaped. `test/attack.test.js` feeds hostile input (CLAUDE.md, "External input").
+- **Rows and rails come from the board's spec.** Hole names are parsed by `parseHole` and rails
+  recognised by `railName` (`src/board/board.js`); a double board has rows a–t and rails `B±`, `U±`
+  (no `T`), so nothing may assume rows a–j or the T rails: read `spec.rows`, `spec.rails`,
+  `boardSides` and `supplyRails` (where a supply goes by default). Single-board output must stay byte
+  for byte the same (the frame hashes in `test/frames/` pin it).
 - **Language.** `pickLanguage(asked, circuit.lang, default)`: an explicit `--lang` / MCP `lang`
   wins, then the circuit's `lang`, then the default (English, or `PROTOBOARD_LANG` in the MCP
   server). Files written after a change use the same rule (`outputLang` in `workspace.js`).

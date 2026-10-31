@@ -20,7 +20,7 @@ Las claves van en inglés para que el formato sea el mismo en todos los idiomas.
 | `version` | no | Versión del formato, `1`. |
 | `revision` | no | Lo ponen `apply` y `undo`; no se edita a mano. |
 | `title` | no | Un texto, o uno por idioma. Va en el `<title>` del SVG. |
-| `board` | no | `bb830` (por defecto) o `bb400`; o `auto`, una protoboard elástica: la sección de una bb400 (filas a–j, cuatro rieles y el canal del medio) y tantas columnas como use el circuito, de seis en seis; sus agujeros no se mueven al crecer, así un circuito pasa de `bb400` a `auto` con `{"op":"circuit","board":"auto"}`. No es una protoboard real: en el banco se unen varias. |
+| `board` | no | `bb830` (por defecto) o `bb400`; o `auto`, una protoboard elástica: la sección de una bb400 (filas a–j, cuatro rieles y el canal del medio) y tantas columnas como use el circuito, de seis en seis; sus agujeros no se mueven al crecer, así un circuito pasa de `bb400` a `auto` con `{"op":"circuit","board":"auto"}`. No es una protoboard real: en el banco se unen varias. `double` (elástica) y `bb830x2`: dos protoboards lado a lado para una placa de desarrollo ancha, ver [Dos protoboards lado a lado](#dos-protoboards-lado-a-lado). |
 | `view` | no | Vista por defecto: `front`, `back`, `front-left`, `back-right`. Manda `--view` si se da en la línea de comandos. |
 | `clearance` | no | Separación mínima entre cuerpos, en mm. Los componentes más cercanos se informan como notas. Para montajes de clase, 3 o más. |
 | `netLabels` | no | Texto junto a un riel, por id del riel. Un riel con etiqueta cuenta como conectado a una fuente. |
@@ -32,7 +32,7 @@ Las claves van en inglés para que el formato sea el mismo en todos los idiomas.
 ## Agujeros
 
 - Rejilla principal: letra de la fila y número de la columna, `a1` … `j63` (`a1` … `j30`
-  en `bb400`).
+  en `bb400`; también las filas k–t en una protoboard doble, más abajo).
 - Rieles: `T-`, `T+` (arriba: el par de atrás, junto a la fila j), `B-`, `B+` (abajo: el par
   de adelante, junto a la fila a), seguidos de la columna con la que se alinea el agujero:
   `T+9`, `B-24`. En `bb830` hay agujeros de riel en las columnas 3–7,
@@ -45,6 +45,36 @@ a lo largo de toda la protoboard.
 Disposición de `bb830`, del fondo del dibujo hacia el frente: `− +` (rieles T), filas `j…f`, el
 canal, filas `e…a`, `− +` (rieles B), con la columna 1 a la izquierda. De pie, con la columna 1
 arriba, se lee `+ − a…j + −` de izquierda a derecha, como la protoboard de quien mantiene el kit.
+
+### Dos protoboards lado a lado
+
+Un ESP32 DevKit tiene de 0,9" a 1,1" entre sus filas de pines sobre un circuito impreso de unos 11
+agujeros de ancho: en una sola protoboard tapa todos los agujeros libres de las tiras de una de
+ellas. En el banco se unen dos protoboards por el lado largo, sin las tiras de rieles que quedan
+entre ellas (casi todas traen los rieles desmontables), y el DevKit pasa por encima de la unión. La
+protoboard `double` (elástica, como `auto`) y `bb830x2` (dos `bb830`) modelan eso. Del fondo del
+dibujo hacia el frente:
+
+```text
+U- U+  t s r q p | o n m l k  · unión ·  j i h g f | e d c b a  B- B+
+```
+
+- La protoboard de adelante es una protoboard normal sin sus rieles de atrás: filas a–j y rieles
+  `B-`, `B+` como siempre.
+- Las filas de la de atrás siguen el alfabeto alejándose del frente: sus filas a…j son k…t (tiras
+  `12:k-o` y `12:p-t`). Sus rieles, detrás de la fila t, son `U-` (el de afuera) y `U+`. No hay
+  rieles `T`: son los que se quitan. Una fuente sin `positive`/`negative` va a `U+`/`U-`.
+- Entre las filas j y k queda un paso vacío (`junction` en la especificación de la protoboard,
+  `doubleBoard` en `src/board/board.js`): supone que cada bloque principal termina un paso después
+  de su fila de afuera, así los dos bloques juntos conservan una sola retícula de 0,1". **Mide tus
+  protoboards**: si la unión es distinta, los agujeros de la de atrás quedan corridos en esa medida.
+- Nada pasa por encima de la unión salvo una placa de desarrollo: un DIP o un pulsador van sobre el
+  canal de una de las dos. Un DevKit con la pata 1 en la fila j tiene su otra fila en la p
+  (`rowSpacing` 9): cada fila de pines conserva filas libres en la tira de su propia protoboard
+  (h…f y r…t). `layout` pasa solo un circuito ahí cuando una protoboard no alcanza (ver
+  [montaje-automatico.md](montaje-automatico.md)).
+- Los números de columna se imprimen a lo largo de los dos bordes de afuera; en la unión los de las
+  dos protoboards se encimarían.
 
 ## Componentes
 

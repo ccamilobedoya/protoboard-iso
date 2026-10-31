@@ -8,6 +8,7 @@
 import { v3, X, Y, scale } from '../core/vec.js';
 import { textDecal } from '../geometry/primitives.js';
 import { decalTextOp } from './scene.js';
+import { printRows } from '../board/board.js';
 
 export const VEIL_OPACITY = 0.8;
 
@@ -47,8 +48,8 @@ export const COORD_COLOR = '#1b6ec2';
 const DOWN = scale(Y, -1);
 export function coordOps(scene, board, holes) {
   const { spec, xOf, yOf } = board;
-  const ys = spec.rows.map((r) => r.y);
-  const numberRows = [Math.min(...ys) - 0.8, Math.max(...ys) + 0.8].map(yOf);
+  const { numbers, letterOffset } = printRows(spec);
+  const numberRows = numbers.map(yOf);
   const lit = (text, x, y, size, data) => {
     const { box, px, ...op } = decalTextOp(scene.camera, textDecal({ text, at: v3(x, y, 0), right: X, down: DOWN, size, color: COORD_COLOR }));
     return { ...op, cls: 'coord', data };
@@ -59,7 +60,7 @@ export function coordOps(scene, board, holes) {
   for (const col of cols) for (const y of numberRows) ops.push(lit(String(col), xOf(col), y, 1.4, { col }));
   for (const row of rows) {
     const y = yOf(spec.rows.find((r) => r.id === row).y);
-    for (const x of [xOf(1) - 1.9, xOf(spec.columns) + 1.9]) ops.push(lit(row, x, y, 1.5, { row }));
+    for (const x of [xOf(1) - letterOffset, xOf(spec.columns) + letterOffset]) ops.push(lit(row, x, y, 1.5, { row }));
   }
   return ops;
 }

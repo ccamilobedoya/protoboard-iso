@@ -15,6 +15,7 @@
 // into the page's one script by src/node/bundle.js, so this file runs in Node only), its CSS in
 // page/style.js. Language: `lang` here is already resolved (see pickLanguage).
 
+import { supplyRails } from './board/board.js';
 import { renderCircuit, t, labelText, valueText, formatValue } from './index.js';
 import { decimalSeparator } from './i18n/index.js';
 import { escapeXml } from './render/svg.js';
@@ -122,7 +123,8 @@ function partData(circuit, lang, sim) {
   const supplyAt = new Map();
   const supplyLeads = new Map(); // node → the supply terminals clipped to it, for its card
   (Array.isArray(circuit.supplies) ? circuit.supplies : []).forEach((s, i) => {
-    for (const [ref, sign] of [[s.positive ?? 'T+', '+'], [s.negative ?? 'T-', '−']]) {
+    const [positive, negative] = supplyRails(built.board?.spec);
+    for (const [ref, sign] of [[s.positive ?? positive, '+'], [s.negative ?? negative, '−']]) {
       const hole = built.board?.find(String(ref));
       const node = hole ? hole.node : String(ref);
       const name = t(lang, 'page.info.supply', { supply: s.id ?? `V${i + 1}`, sign });

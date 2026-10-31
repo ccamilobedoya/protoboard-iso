@@ -39,7 +39,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 |---|---|
 | `core/` | vectores, cámara isométrica y vistas, unidades (`parseValue`, `formatValue`) |
 | `geometry/primitives.js` | prismas, tornos, tubos, calcomanías, texto sobre planos (3D, milímetros) |
-| `board/` | protoboards como datos (`boards/bb830.js`), agujeros y grupos, dibujo de la protoboard |
+| `board/` | protoboards como datos (`boards/bb830.js`; `doubleBoard` en `board.js` hace `double` y `bb830x2`, dos protoboards lado a lado), agujeros y grupos, nombres de agujero (`parseHole`, `railName`, `RAIL_IDS`), las mitades con que trabaja layout (`boardSides`), canales (`channelPairs`), dónde van impresas las coordenadas (`printRows`), dibujo de la protoboard (un bloque, o dos) |
 | `parts/types/` | qué *es* un componente: valor → bandas, patas, etiqueta, modelo `electrical` (`battery.js`; `more.js`: inductor, termistor, LDR, zumbador, pines) |
 | `parts/packages/` | formas físicas con medidas de hoja de datos; `expandPin1` para DIP y pines; `battery.js` queda al lado de la protoboard (su `build` recibe la protoboard); `small.js`: gota, LDR, zumbador, pines; `trimmer.js`; `sip.js`: puente KBP (`kbp`); `devboard.js` (placas ESP32 a caballo del canal) `uno.js` (UNO al lado de la protoboard) y `despi.js` (adaptador e-paper DESPI-C02 y su panel), con lo que comparten en `offboard.js` (texto impreso, cable Dupont); datos en `parts/modules.js`; `axial.js` también dibuja las resistencias de cemento (`shape: 'box'`); `ams1117.js`: el módulo AMS1117 de pie sobre pines en ángulo (sus piezas de una sola cara, `side`); `switch.js`: basculante KCD1 y pulsador de enclavamiento 7 × 7 sobre la mesa, cableados con `wireToHole` (`offboard.js`) |
 | `parts/db.js` | referencias: encapsulado, orden de patas, modelo; `lookupPartNumber` acepta otros nombres (L7805CV, 2SC1815) |
@@ -58,9 +58,9 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `parts/resolve.js` | un componente a partir de lo que escribe una persona (`resolvePart`: número de parte, módulo, alias como KCD1 o resistencia; `closestNames` si no lo conoce), `pinsOf`; los alias en `PART_ALIASES` |
 | `parts/pin-names.js` | una pata a partir de lo que escribe una persona (`findPin`: el nombre exacto sin distinguir mayúsculas, luego sinónimos como K/cathode, DISCH/DIS, VDD/VCC, luego números de GPIO en las placas; nada si no es única); la usan los circuitos, `query`, `suggest` y `layout` |
 | `recipes/` | circuitos de clase como especificaciones de `layout`, un módulo de datos por receta (`led-resistor.js`, `npn-switch.js`…); `index.js`: el registro, `expandRecipe` (nombre + valores → especificación, solo los valores que lista cada receta), `resolveRecipe` (un pedido a `layout` con `recipe` → especificación, para la consola y el MCP), las entradas del catálogo ([recetas.md](recetas.md)) |
-| `layout.js` | un circuito entero a partir de sus componentes y redes (`validateSpec` primero: todos los problemas de una vez; `autoLayout`: capas, reglas de colocación comprobadas solo con geometría, cables, se rehace mientras la revisión bloquea algo), `checkNets` (redes pedidas contra las armadas), `formatLayout`; CLI `layout`, MCP `layout`; cómo funciona y cómo cambiarlo: [montaje-automatico.md](montaje-automatico.md), banco `npm run layout-bench` |
+| `layout.js`, `layout-sides.js` | un circuito entero a partir de sus componentes y redes (`validateSpec` primero: todos los problemas de una vez; `autoLayout`: capas, la mitad de cada componente a través del canal (`assignSides`, una partición de las redes), candidatas con puntaje comprobadas solo con geometría, cables como árbol de expansión por red, se rehace mientras la revisión bloquea algo), `checkNets` (redes pedidas contra las armadas), `formatLayout`; CLI `layout`, MCP `layout`; cómo funciona y cómo cambiarlo: [montaje-automatico.md](montaje-automatico.md), banco `npm run layout-bench` (`scripts/layout-metrics.js` mide cada resultado; `--save` / `--compare`) |
 | `query.js`, `query-format.js`, `review.js` | preguntas, colocaciones (`suggest`, `suggestMany`; grupos por agujero, nombre o pata ya colocada; reserva espacio para las conexiones que faltan con cables de prueba, mira un nivel adelante y da `reasons` cuando nada cabe), veredicto a partir de mediciones (lo que bloquea, con sus componentes y vistas) |
-| `nets.js` | el circuito como redes: grupos unidos por cables, con sus patas (MCP `netlist`, CLI `nets`); `checkNets`: las redes pedidas contra el circuito (la usan `layout` y `review` para el `spec` de un circuito) |
+| `nets.js` | el circuito como redes: grupos unidos por cables, con sus patas (MCP `netlist`, CLI `nets`); `checkNets`: las redes pedidas contra el circuito (la usan `layout` y `review` para el `spec` de un circuito); las patas que una placa de desarrollo une por dentro (`internalLinks`: GND y GND2) cuentan como un solo grupo |
 | `node/catalog.js` | lo que conoce el kit, compacto o una entrada en detalle con sus campos (`TYPE_FIELDS`, al día con el esquema gracias a una prueba) y un ejemplo de `examples/` |
 | `schema.js` | JSON Schemas armados desde los registros (`npm run schemas`) |
 | `sim/models.js` | valores típicos de los dispositivos, cada uno con su fuente (diodos, tabla Zener, LED, transistores, reguladores) |
@@ -121,6 +121,12 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
   de la entrada corre como código (un programa solo a través de `sim/sketch.js`, cuya salida no
   nombra nada más que el entorno de ejecución), todo texto escapado. `test/attack.test.js` le da
   entradas hostiles (CLAUDE.md, «External input»).
+- **Las filas y los rieles salen de la especificación de la protoboard.** Los nombres de agujero se
+  leen con `parseHole` y los rieles se reconocen con `railName` (`src/board/board.js`); una
+  protoboard doble tiene filas a–t y rieles `B±`, `U±` (sin `T`), así que nada puede suponer filas
+  a–j ni los rieles T: se leen `spec.rows`, `spec.rails`, `boardSides` y `supplyRails` (adónde va una
+  fuente por defecto). Lo que sale en una sola protoboard debe quedar idéntico byte a byte (lo fijan
+  los hashes de fotogramas de `test/frames/`).
 - **Idioma.** `pickLanguage(pedido, circuit.lang, por defecto)`: un `--lang` o `lang` del MCP
   explícito gana, luego el `lang` del circuito y luego el idioma por defecto (inglés, o
   `PROTOBOARD_LANG` en el servidor MCP). Los archivos escritos tras un cambio siguen la misma

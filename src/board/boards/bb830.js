@@ -28,9 +28,10 @@ export default {
     { id: 'a', y: 14 },
   ],
   // Each column is split in two strips of five connected holes, across the centre channel.
+  // `side`: the strip's half of the board, named after the rails beside it (layout's halves).
   strips: [
-    { id: 'a-e', rows: ['a', 'b', 'c', 'd', 'e'] },
-    { id: 'f-j', rows: ['f', 'g', 'h', 'i', 'j'] },
+    { id: 'a-e', rows: ['a', 'b', 'c', 'd', 'e'], side: 'B' },
+    { id: 'f-j', rows: ['f', 'g', 'h', 'i', 'j'], side: 'T' },
   ],
   channel: { from: 7, to: 10 },
   rails: [

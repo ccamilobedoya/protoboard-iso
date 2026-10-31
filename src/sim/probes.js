@@ -8,6 +8,7 @@
 //
 // Each operation carries data-probe = "node:<group>" or "part:<id>", the key its tag has.
 
+import { supplyRails } from '../board/board.js';
 import { stripOps, stripHoles } from '../render/focus.js';
 import { anchorHole } from './overlay.js';
 import { MIN_CURRENT } from './paths.js';
@@ -25,7 +26,7 @@ export function groundHole(built, circuit) {
     const battery = built.parts.find((p) => p.def.electrical?.kind === 'BAT');
     return battery ? battery.holes[1] : null;
   }
-  const ref = String(s.negative ?? 'T-');
+  const ref = String(s.negative ?? supplyRails(built.board.spec)[1]);
   return built.board.find(ref) ?? stripHoles(built.board, ref)[0] ?? null;
 }
 

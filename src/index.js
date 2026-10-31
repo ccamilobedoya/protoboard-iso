@@ -16,7 +16,7 @@
 import { createCamera, VIEWS } from './core/camera.js';
 import { formatValue, parseValue } from './core/units.js';
 import { drawBoard } from './board/draw-board.js';
-import { BOARDS, createBoard, boardLayout } from './board/board.js';
+import { BOARDS, createBoard, boardLayout, supplyRails } from './board/board.js';
 import { buildScene } from './render/scene.js';
 import { sceneToSvg } from './render/svg.js';
 import { inspectScene, formatReport as formatReportWith } from './inspect.js';
@@ -101,7 +101,9 @@ function sceneFor(circuit, options = {}) {
 
   const camera = createCamera({ view, scale });
   const highlight = layers.has('nodes') ? nodeColors(result.netlist) : new Map();
-  const base = [drawBoard(result.board, { netLabels: circuit.netLabels ?? {}, highlight, allNumbers: layers.has('grid') })];
+  // The board's blocks (two on a double board), the far one first: they are drawn in this order.
+  const base = drawBoard(result.board, { netLabels: circuit.netLabels ?? {}, highlight, allNumbers: layers.has('grid') });
+  if (camera.toViewer.y < 0) base.reverse();
   const items = [];
   const under = [];
   for (const part of result.parts) {
@@ -214,7 +216,8 @@ const pick = (obj, keys) => Object.fromEntries(keys.map((k) => [k, obj[k]]));
 function usedNodes(built, circuit) {
   const nodes = new Set(Object.keys(built.netlist.nodes));
   for (const s of Array.isArray(circuit.supplies) ? circuit.supplies : []) {
-    for (const ref of [s.positive ?? 'T+', s.negative ?? 'T-']) {
+    const [positive, negative] = supplyRails(built.board.spec);
+    for (const ref of [s.positive ?? positive, s.negative ?? negative]) {
       const hole = built.board.find(String(ref));
       const node = hole ? hole.node : String(ref);
       if ([...built.board.holes.values()].some((h) => h.node === node)) nodes.add(node);

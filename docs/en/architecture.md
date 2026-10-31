@@ -49,7 +49,8 @@ turns with the view like the real print.
 1. Pieces of off-board parts (a battery on the table) that lie entirely beyond a side face of
    the board, on the side the camera does not see, are painted first (`under` layer): the
    board stands between them and the viewer.
-2. Then the board.
+2. Then the board: one block, or the two blocks of a double board, the far one first for the
+   camera (`sceneFor` in `src/index.js`), so the near block's edge at the joint covers the far one.
 3. Every other primitive (a body, each segment of a lead or wire) is sorted by the depth of
    its centre and painted from far to near.
 4. Inside a primitive, faces looking away from the camera are dropped (back-face culling)
@@ -72,7 +73,8 @@ leaders over parts) and tests keep it at zero crossings.
 ## Connectivity
 
 `createBoard()` gives every hole a node name: `12:a-e` (column 12, rows a–e), `T+` (the
-top + rail). The netlist is just "which part pins share a node". Checks and, later, the
+top + rail); on a double board also `12:k-o`, `12:p-t` and `U+` (rows and rails of the back board,
+[circuit-format.md](circuit-format.md#two-boards-side-by-side)). The netlist is just "which part pins share a node". Checks and, later, the
 simulator use it; drawing does not.
 
 ## Output

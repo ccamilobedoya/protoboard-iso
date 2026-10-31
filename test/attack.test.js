@@ -158,6 +158,14 @@ test('attack: text in a circuit is never markup in the drawing or the page', () 
   assert.ok(!/\son\w+=["']alert/i.test(html), 'no event attribute in the page');
 });
 
+test('attack: a hole of a row or rail the board does not have is an error, not a crash', () => {
+  for (const [board, holes] of [['bb830', ['k5', 't9']], ['double', ['T+5', 'v3']], ['auto', ['U-3', 'a999999999999']]]) {
+    const circuit = { version: 1, board, parts: [{ id: 'R1', type: 'resistor', value: '1k', pins: holes }] };
+    const r = renderCircuit(circuit);
+    assert.deepEqual([...new Set(r.issues.filter((i) => i.severity === 'error').map((i) => i.code))], ['UNKNOWN_HOLE'], `${board}: ${holes}`);
+  }
+});
+
 test('attack: circuits and operations have size caps', () => {
   const many = Array.from({ length: LIMITS.ops + 1 }, () => ({ op: 'circuit', clearance: 1 }));
   assert.deepEqual(codes(applyOps({ parts: [] }, many).errors), ['OPS_TOO_MANY']);

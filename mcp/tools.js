@@ -156,7 +156,7 @@ export const INSTRUCTIONS = [
   'layout ends in one line, STATUS: DONE (ready) · CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review) · FIX_SPEC (nothing created: fix every ✖ in the spec and call again) · SPEC_OK (check_only).',
   'Operations: history and inspect (numbers, not pictures) → query / suggest → apply_ops with dry_run → apply_ops with expect_revision, author and note → review until APPROVED → undo if needed.',
   'Check: review is the definition of done (it also checks the nets of a circuit made by layout); netlist lists every net; simulate gives a model, and a value a learner must predict is never shown. render returns a PNG only when asked: images are slow to read.',
-  'Holes: a1…j63 (row letter + column), rails T-, T+, B+, B- plus the column (T+9). Rows a–e of a column are connected, f–j too; each rail is one group.',
+  'Holes: a1…j63 (row letter + column), rails T-, T+, B+, B- plus the column (T+9). Rows a–e of a column are connected, f–j too; each rail is one group. Board "double": two boards side by side for a wide development board across the joint, rows a–t (k–o, p–t on the back board), rails B± and U± (no T); layout picks it by itself when a DevKit would cover a pin\'s strip.',
   'Microcontroller boards (ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO) are simulated pin by pin: on USB they are a source (no supplies needed), and each GPIO state goes in the part: "io": {"D13": "high", "D27": "input_pullup"} (high, low, input, input_pullup, input_pulldown), or it runs a program: "program": "blink.ino" (a file beside the circuit) or the sketch\'s text (setup, loop, pinMode, digitalWrite, digitalRead, analogRead, analogWrite/ledcWrite PWM, tone, delay, millis, Serial).',
   'The page out/<name>.html of a circuit with a source runs the simulation by default: values of the tapped part, oscilloscope, lit LEDs, and the Current button in the bar (not pressed). Turn it off with page.simulation false while a learner must predict a value (page.results false or page.flow false turn off one each).',
 ].join('\n');
@@ -321,7 +321,7 @@ server.registerTool(
         .optional()
         .describe('Each net: the pins it joins ("D1.K", "U1.OUT") and rails ("T-", "B+"), as a list or {pins, color}. Common pin names are understood (A/K or anode/cathode, VIN, VOUT, DISCH, GPIO4, VDD…). A pin alone in a net (["D1.A"]) is fine. Required for a new circuit; for an existing one made by layout, omit to keep its nets.'),
       supplies: z.array(z.object({}).passthrough()).optional().describe('As in the circuit; positive/negative may name a pin ("D1.A"): a free hole of its strip'),
-      board: z.string().optional().describe('auto (default, grows in length), bb400 or bb830'),
+      board: z.string().optional().describe('auto (default, grows in length; becomes double when a development board needs it), double (two elastic boards side by side), bb400, bb830 or bb830x2'),
       title: z.union([z.string(), z.record(z.string(), z.string())]).optional(),
       netLabels: z.record(z.string(), z.string()).optional(),
       page: z.object({}).passthrough().optional().describe('As in the circuit. With a source the page runs the simulation by default (values, oscilloscope, lit LEDs, a Current button not pressed): nothing to add. {"simulation": false} turns it off while a learner must predict a value'),

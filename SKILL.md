@@ -164,7 +164,9 @@ review                     until APPROVED · undo when needed
 
 Holes `a1`…`j63` (row letter + column); rails `T-`, `T+` (next to row j) and `B+`, `B-` (next to
 row a) plus a column (`T+9`). Rows a–e of one column are connected, f–j too; each rail is one
-connection. Buttons and DIP chips straddle the centre channel. `layout` and `suggest` know all this;
+connection. Buttons and DIP chips straddle the centre channel. Board `double`: two boards side by
+side (rows k–o, p–t on the back one, rails `U-`, `U+` behind; no T rails) for a DevKit across the
+joint; `layout` picks it when the DevKit would cover a pin's strip. `layout` and `suggest` know all this;
 `catalog` lists every part type with its pins, part numbers, modules and boards (`name` for one
 entry's fields and an example).
 

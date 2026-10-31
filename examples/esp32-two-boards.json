@@ -1,0 +1,224 @@
+{
+  "version": 1,
+  "title": {
+    "en": "ESP32 DevKit across two breadboards",
+    "es": "ESP32 DevKit sobre dos protoboards"
+  },
+  "board": "double",
+  "clearance": 1,
+  "description": {
+    "en": "An ESP32 DevKit with nets on both pin headers: on one breadboard it would cover a whole strip of one header, so layout put it on two boards side by side (board double), across the joint, with a free strip under each header. D4 lights the LED, D15 reads the button, D34 the potentiometer.",
+    "es": "Un ESP32 DevKit con redes en las dos filas de pines: en una sola protoboard taparía toda una tira de una de ellas, así que layout lo puso en dos protoboards lado a lado (board double), sobre la unión, con una tira libre bajo cada fila de pines. D4 enciende el LED, D15 lee el pulsador y D34 el potenciómetro."
+  },
+  "netLabels": {
+    "B-": "GND",
+    "U-": "GND"
+  },
+  "parts": [
+    {
+      "id": "U1",
+      "type": "module",
+      "part": "ESP32-DEVKIT",
+      "usb": true,
+      "io": {
+        "D4": "high",
+        "D15": "input"
+      },
+      "pin1": "j2"
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "220",
+      "pins": [
+        "s12",
+        "s18"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "red",
+      "pins": [
+        "t18",
+        "U-18"
+      ]
+    },
+    {
+      "id": "R2",
+      "type": "resistor",
+      "value": "10k",
+      "pins": [
+        "j24",
+        "j20"
+      ]
+    },
+    {
+      "id": "S1",
+      "type": "button",
+      "pins": [
+        "f20",
+        "e20",
+        "f18",
+        "e18"
+      ]
+    },
+    {
+      "id": "R3",
+      "type": "resistor",
+      "value": "10k",
+      "pins": [
+        "r21",
+        "r15"
+      ]
+    },
+    {
+      "id": "RV1",
+      "type": "potentiometer",
+      "value": "10k",
+      "pins": [
+        "h25",
+        "h26",
+        "h27"
+      ]
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "t15",
+        "U-15"
+      ]
+    },
+    {
+      "id": "W2",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "f15",
+        "B-15"
+      ]
+    },
+    {
+      "id": "W3",
+      "type": "wire",
+      "color": "orange",
+      "pins": [
+        "s16",
+        "i24"
+      ]
+    },
+    {
+      "id": "W4",
+      "type": "wire",
+      "color": "orange",
+      "pins": [
+        "t16",
+        "j25"
+      ]
+    },
+    {
+      "id": "W5",
+      "type": "wire",
+      "color": "green",
+      "pins": [
+        "r14",
+        "i20"
+      ]
+    },
+    {
+      "id": "W6",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "i15",
+        "i18"
+      ]
+    },
+    {
+      "id": "W7",
+      "type": "wire",
+      "color": "yellow",
+      "pins": [
+        "g5",
+        "j26"
+      ]
+    },
+    {
+      "id": "W8",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "h15",
+        "j27"
+      ]
+    },
+    {
+      "id": "W9",
+      "type": "wire",
+      "color": "blue",
+      "pins": [
+        "t2",
+        "t21"
+      ]
+    }
+  ],
+  "spec": {
+    "nets": [
+      [
+        "U1.D4",
+        "R1.1"
+      ],
+      [
+        "R1.2",
+        "D1.anode"
+      ],
+      [
+        "D1.cathode",
+        "U1.GND"
+      ],
+      [
+        "U1.3V3",
+        "R2.1",
+        "RV1.1"
+      ],
+      [
+        "R2.2",
+        "S1.1",
+        "U1.D15"
+      ],
+      [
+        "S1.3",
+        "U1.GND"
+      ],
+      [
+        "RV1.W",
+        "U1.D34"
+      ],
+      [
+        "RV1.3",
+        "U1.GND"
+      ],
+      [
+        "U1.D23",
+        "R3.1"
+      ],
+      [
+        "R3.2",
+        "U1.GND"
+      ]
+    ],
+    "wires": [
+      "W1",
+      "W2",
+      "W3",
+      "W4",
+      "W5",
+      "W6",
+      "W7",
+      "W8",
+      "W9"
+    ]
+  }
+}

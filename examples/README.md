@@ -53,6 +53,7 @@ The format of each field: [circuit-format.md](../docs/en/circuit-format.md).
 | | |
 |---|---|
 | <img src="../docs/img/examples/esp32-led.png" width="280" alt="ESP32 lighting an LED"> | **[esp32-led.json](esp32-led.json)**: an ESP32 DevKit over the centre channel lights an LED from D13 (the pin's state set in `io`). On USB it is the source. |
+| <img src="../docs/img/examples/esp32-two-boards.png" width="280" alt="ESP32 across two breadboards"> | **[esp32-two-boards.json](esp32-two-boards.json)**: an ESP32 DevKit with nets on both pin headers, laid out on two breadboards side by side (board `double`), across the joint, so each header keeps a free strip: an LED on D4, a button on D15, a potentiometer on D34. Made by `layout` from [layout/esp32-both-headers.json](layout/esp32-both-headers.json). |
 | <img src="../docs/img/examples/uno-led.png" width="280" alt="Arduino UNO lighting an LED"> | **[uno-led.json](uno-led.json)**: an Arduino UNO beside the board, Dupont leads to an LED on D13. |
 | <img src="../docs/img/examples/epaper-esp32.png" width="280" alt="ESP32 with an e-paper panel"> | **[epaper-esp32.json](epaper-esp32.json)**: an ESP32 driving a 7.5" e-paper panel through the DESPI-C02 adapter. |
 

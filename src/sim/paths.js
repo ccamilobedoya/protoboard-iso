@@ -23,6 +23,7 @@
 // live page (`live`: every piece, drawn hole → part and strip forwards, each tagged with its
 // index; page/client/live.js moves and colours them from the running simulation).
 
+import { supplyRails } from '../board/board.js';
 import { stripHoles } from '../render/focus.js';
 import { decalTextOp } from '../render/scene.js';
 import { textDecal } from '../geometry/primitives.js';
@@ -140,7 +141,8 @@ function supplyHoles(board, circuit) {
       const r = String(ref ?? fallback);
       return board.find(r) ?? stripHoles(board, r)[0] ?? null;
     };
-    return { id: s.id ?? `V${i + 1}`, positive: pick(s.positive, 'T+'), negative: pick(s.negative, 'T-') };
+    const [positive, negative] = supplyRails(board.spec);
+    return { id: s.id ?? `V${i + 1}`, positive: pick(s.positive, positive), negative: pick(s.negative, negative) };
   });
 }
 

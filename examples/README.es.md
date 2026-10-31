@@ -54,6 +54,7 @@ El formato de cada campo: [formato-circuito.md](../docs/es/formato-circuito.md).
 | | |
 |---|---|
 | <img src="../docs/img/examples/esp32-led.png" width="280" alt="ESP32 encendiendo un LED"> | **[esp32-led.json](esp32-led.json)**: un ESP32 DevKit sobre el canal central enciende un LED desde D13 (el estado del pin va en `io`). Conectado por USB, es la fuente. |
+| <img src="../docs/img/examples/esp32-two-boards.png" width="280" alt="ESP32 sobre dos protoboards"> | **[esp32-two-boards.json](esp32-two-boards.json)**: un ESP32 DevKit con redes en las dos filas de pines, montado en dos protoboards lado a lado (board `double`), sobre la unión, así cada fila de pines conserva una tira libre: un LED en D4, un pulsador en D15 y un potenciómetro en D34. Lo hizo `layout` a partir de [layout/esp32-both-headers.json](layout/esp32-both-headers.json). |
 | <img src="../docs/img/examples/uno-led.png" width="280" alt="Arduino UNO encendiendo un LED"> | **[uno-led.json](uno-led.json)**: un Arduino UNO al lado de la protoboard, con cables Dupont hasta un LED en D13. |
 | <img src="../docs/img/examples/epaper-esp32.png" width="280" alt="ESP32 con un panel e-paper"> | **[epaper-esp32.json](epaper-esp32.json)**: un ESP32 que maneja un panel e-paper de 7,5" a través del adaptador DESPI-C02. |
 

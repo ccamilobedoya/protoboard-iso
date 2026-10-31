@@ -15,6 +15,7 @@
 //   issues:   what compiling found (default models, parts not simulated, a battery switched off)
 // }
 
+import { supplyRails } from '../board/board.js';
 import { buildCircuit } from '../circuit/build.js';
 import { BATTERY_CELL_RESISTANCE, GENERATOR_RESISTANCE } from './models.js';
 import { batteryModel } from '../parts/batteries.js';
@@ -70,10 +71,11 @@ function resolveSupplyNode(board, ref) {
 // t = 0, and the engine moves it with time (generator.js).
 const BATTERY_FIELDS = ['format', 'chemistry', 'cells', 'charge', 'capacity'];
 
-function supplyList(circuit) {
+function supplyList(circuit, board) {
+  const [positive, negative] = supplyRails(board?.spec);
   return (Array.isArray(circuit.supplies) ? circuit.supplies : []).map((s, i) => {
     const kind = s.kind ?? 'bench';
-    const common = { id: s.id ?? `V${i + 1}`, kind, positive: s.positive ?? 'T+', negative: s.negative ?? 'T-', currentLimit: s.currentLimit === undefined ? null : Number(s.currentLimit) };
+    const common = { id: s.id ?? `V${i + 1}`, kind, positive: s.positive ?? positive, negative: s.negative ?? negative, currentLimit: s.currentLimit === undefined ? null : Number(s.currentLimit) };
     if (kind === 'generator') {
       const generator = { waveform: s.waveform ?? 'sine', frequency: Number(s.frequency), amplitude: Number(s.amplitude ?? 1), offset: Number(s.offset ?? 0) };
       const ok = WAVEFORMS.includes(generator.waveform) && generator.frequency > 0 && generator.amplitude >= 0 && Number.isFinite(generator.offset);
@@ -104,7 +106,7 @@ export function compile(circuit) {
     return { issues: [issue('error', 'SIM_PLACEMENT_ERRORS', {})], fatal: true };
   }
   // Drawn batteries after the circuit's supplies: the first supply's − is ground (0 V).
-  const supplies = [...supplyList(circuit), ...built.parts.filter((p) => p.def.electrical?.kind === 'BAT').map(batterySupply)];
+  const supplies = [...supplyList(circuit, built.board), ...built.parts.filter((p) => p.def.electrical?.kind === 'BAT').map(batterySupply)];
   // A microcontroller board on USB is a source of its own (devices/mcu.js): with no other, ground
   // is its GND (a pin's group, or a node of its own when no GND pin is wired).
   const boards = built.parts.filter((p) => p.def.electrical?.kind === 'MCU' && p.raw.usb !== false);

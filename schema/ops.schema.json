@@ -59,7 +59,7 @@
             "description": "id of an existing part"
           },
           "pins": {
-            "description": "Holes for the leads: a list in the part's pin order, or an object by pin name. Holes: a1…j63, rails T+3, B-12…",
+            "description": "Holes for the leads: a list in the part's pin order, or an object by pin name. Holes: a1…j63 (a1…t63 on a double board), rails T+3, B-12… (U+3 on a double board)",
             "oneOf": [
               {
                 "type": "array",
@@ -177,7 +177,9 @@
             "enum": [
               "bb830",
               "bb400",
-              "auto"
+              "auto",
+              "double",
+              "bb830x2"
             ]
           },
           "view": {

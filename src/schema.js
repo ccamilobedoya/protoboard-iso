@@ -20,7 +20,7 @@ export function buildSchemas() {
   const text = { type: 'string' };
   const localized = { oneOf: [text, { type: 'object', additionalProperties: text, description: 'One string per language code, e.g. { "en": "…", "es": "…" }' }] };
   const pins = {
-    description: "Holes for the leads: a list in the part's pin order, or an object by pin name. Holes: a1…j63, rails T+3, B-12…",
+    description: "Holes for the leads: a list in the part's pin order, or an object by pin name. Holes: a1…j63 (a1…t63 on a double board), rails T+3, B-12… (U+3 on a double board)",
     oneOf: [{ type: 'array', items: text, minItems: 2 }, { type: 'object', additionalProperties: text, minProperties: 2 }],
   };
   const part = {

@@ -3,9 +3,9 @@
 // on the board and the PCB sits on top, so the holes under it can no longer be reached.
 //
 // Placement: "pin1" (e.g. "e10"), as for a DIP. Pins count along one row from pin 1, then back
-// along the other row, `rowSpacing` holes away across the channel. With pin 1 in the front
-// half (rows a–e) the board reads from the front, pin-1 end on the left; with pin 1 in the back
-// half it is turned round.
+// along the other row, `rowSpacing` holes away across the channel (or, on a double board, the
+// joint between the two boards). With the other row behind pin 1 (pin 1 in rows a–e) the board
+// reads from the front, pin-1 end on the left; with it in front it is turned round.
 //
 // params: count (pins), rowSpacing (holes between the two rows), size ([along, across, PCB
 //         thickness] mm), look ('devkit' | 'supermini'), labels (printed pin names, in pin order),
@@ -19,17 +19,22 @@ import { withZ } from './common.js';
 const P = 2.54;
 const HEADER = 2.5; // plastic strip of the male headers, between the board and the PCB
 
-// Hole names for every pin, from pin 1, or null when the board does not fit there.
+// Hole names for every pin, from pin 1, or null when the board does not fit there. The other
+// row is `rowSpacing` holes behind pin 1's row (the board reads from the front, pin-1 end on the
+// left) or, when there is no row of another strip there, in front of it (turned round). On a
+// double board that is how a DevKit straddles the joint: pin 1 in row j, the other row in p.
 export function devboardHoles(board, pin1, { count, rowSpacing }) {
   const hole = board.find(String(pin1));
   if (!hole || hole.kind !== 'main') return null;
-  const { rows, channel, columns } = board.spec;
+  const { rows, strips, columns } = board.spec;
   const row = rows.find((r) => r.id === hole.row);
-  const front = row.y >= channel.to;
-  const other = rows.find((r) => r.y === row.y + (front ? -rowSpacing : rowSpacing));
-  // The other row must be across the channel.
-  if (!other || (other.y >= channel.to) === front) return null;
-  const step = front ? 1 : -1;
+  const stripOf = (r) => strips.find((s) => s.rows.includes(r.id));
+  // The other row must be on another strip (across the channel or the joint).
+  const across = (dy) => rows.find((r) => r.y === row.y + dy && stripOf(r) !== stripOf(row));
+  const behind = across(-rowSpacing);
+  const other = behind ?? across(rowSpacing);
+  if (!other) return null;
+  const step = behind ? 1 : -1;
   const half = count / 2;
   const last = hole.col + step * (half - 1);
   if (last < 1 || last > columns) return null;

@@ -8,7 +8,7 @@ import { add, sub, scale, normalize, length, dot, Z } from '../../core/vec.js';
 import { box, lathe } from '../../geometry/primitives.js';
 import { MATERIALS } from '../colors.js';
 import { lead, withZ } from './common.js';
-import { channelRows } from '../../board/board.js';
+import { channelPairs } from '../../board/board.js';
 
 const BODY = 6;
 const BASE = 3.5;
@@ -32,11 +32,12 @@ export default {
   // Every free spot across the centre channel: legs in the two rows next to it, two
   // columns apart, in both orientations.
   footprints(board) {
-    const { back: top, front: bottom } = channelRows(board.spec);
     const out = [];
-    for (let c = 1; c + 2 <= board.spec.columns; c++) {
-      out.push([`${top}${c}`, `${bottom}${c}`, `${top}${c + 2}`, `${bottom}${c + 2}`]);
-      out.push([`${top}${c + 2}`, `${bottom}${c + 2}`, `${top}${c}`, `${bottom}${c}`]);
+    for (const { back: top, front: bottom } of channelPairs(board.spec)) {
+      for (let c = 1; c + 2 <= board.spec.columns; c++) {
+        out.push([`${top}${c}`, `${bottom}${c}`, `${top}${c + 2}`, `${bottom}${c + 2}`]);
+        out.push([`${top}${c + 2}`, `${bottom}${c + 2}`, `${top}${c}`, `${bottom}${c}`]);
+      }
     }
     return out;
   },

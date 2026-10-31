@@ -4,6 +4,7 @@
 // nets(circuit) → { nets: [{ groups, wires, label, pins: ['R1.1@d20', …] }], floating: […] }
 
 import { buildCircuit } from './circuit/build.js';
+import { railName } from './board/board.js';
 
 export function nets(circuit) {
   const built = buildCircuit(circuit);
@@ -55,12 +56,25 @@ export function formatNets(r, lang, { t }) {
   return lines.join('\n');
 }
 
-const RAIL_NAMES = ['T+', 'T-', 'B+', 'B-'];
-const railName = (ref) => RAIL_NAMES.find((r) => r === String(ref).trim().toUpperCase()) ?? null;
 const pinKey = (ref) => {
   const m = /^([^.\s]+)\.(\S+)$/.exec(String(ref).trim());
   return m ? `${m[1]}.${m[2].toLowerCase()}` : null;
 };
+
+// Groups a development board joins inside itself (a DevKit's GND and GND2, an UNO's SDA and A4):
+// pairs of the nodes its pins of one internal group are in. Only boards (type module): a button's
+// legs are joined too, but checking them is a change of its own.
+export function internalLinks(built) {
+  const out = [];
+  for (const p of built.parts) {
+    if (p.type !== 'module') continue;
+    for (const group of p.def?.internal ?? []) {
+      const nodes = group.map((n) => p.holes[p.pinNames.indexOf(n)]?.node).filter(Boolean);
+      for (let k = 1; k < nodes.length; k++) out.push([nodes[0], nodes[k]]);
+    }
+  }
+  return out;
+}
 
 // The nets asked for against the circuit built: every pin of a net on one electrical net
 // (missing: the pins left out), and no two nets asked for on the same one (shorted).
@@ -97,6 +111,7 @@ export function checkNets(circuit, asked) {
     return x;
   };
   for (const w of built.parts.filter((p) => p.type === 'wire' && p.holes.length === 2)) parent.set(find(w.holes[0].node), find(w.holes[1].node));
+  for (const [a, b] of internalLinks(built)) if (find(a) !== find(b)) parent.set(find(a), find(b));
   const holeOf = new Map();
   for (const p of built.parts) p.pinNames.forEach((n, i) => p.holes[i] && holeOf.set(`${p.id}.${n.toLowerCase()}`, p.holes[i]));
   const rootOf = (ref) => (railName(ref) ? find(railName(ref)) : holeOf.has(pinKey(ref)) ? find(holeOf.get(pinKey(ref)).node) : null);

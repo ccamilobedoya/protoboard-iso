@@ -13,6 +13,7 @@ export const LIMITS = {
   tourSteps: 200, // steps in one timeline
   tourText: 280, // characters in one caption, second line or value label
   tourMs: 600_000, // ms: the last move of a timeline ends within ten minutes
+  boardColumns: 600, // columns an elastic board grows to at most (a hole past them is not on the board)
 };
 
 const tooLarge = (code, size, limit) => ({ severity: 'error', code, params: { size, limit } });

@@ -20,7 +20,7 @@ Keys are in English, so the format is the same in every language.
 | `version` | no | Format version, `1`. |
 | `revision` | no | Set by `apply` and `undo`; do not edit by hand. |
 | `title` | no | A string, or one string per language. Goes into the SVG `<title>`. |
-| `board` | no | `bb830` (default) or `bb400`; or `auto`, an elastic board: the cross-section of a bb400 (rows a–j, four rails, the centre channel) and as many columns as the circuit uses, in steps of six; its holes never move as it grows, so a circuit can go from `bb400` to `auto` with `{"op":"circuit","board":"auto"}`. Not a real board: on the bench, join several. |
+| `board` | no | `bb830` (default) or `bb400`; or `auto`, an elastic board: the cross-section of a bb400 (rows a–j, four rails, the centre channel) and as many columns as the circuit uses, in steps of six; its holes never move as it grows, so a circuit can go from `bb400` to `auto` with `{"op":"circuit","board":"auto"}`. Not a real board: on the bench, join several. `double` (elastic) and `bb830x2`: two boards side by side for a wide development board, see [Two boards side by side](#two-boards-side-by-side). |
 | `view` | no | Default view: `front`, `back`, `front-left`, `back-right`. The command line `--view` wins. |
 | `clearance` | no | Minimum gap between part bodies, mm. Closer parts are reported as notes. Use 3 or more for teaching layouts. |
 | `netLabels` | no | Text printed next to a rail, by rail id. A labelled rail counts as connected to a supply. |
@@ -31,7 +31,8 @@ Keys are in English, so the format is the same in every language.
 
 ## Holes
 
-- Main grid: row letter and column, `a1` … `j63` (`a1` … `j30` on `bb400`).
+- Main grid: row letter and column, `a1` … `j63` (`a1` … `j30` on `bb400`; rows k–t too on a
+  double board, below).
 - Rails: `T-`, `T+` (top: the back pair, next to row j), `B-`, `B+` (bottom: the front pair,
   next to row a), followed by the column the hole lines up with: `T+9`, `B-24`. On `bb830` rail holes exist at columns 3–7, 9–13, 15–19, 21–25,
   27–31, 33–37, 39–43, 45–49, 51–55, 57–61.
@@ -43,6 +44,33 @@ whole board.
 Layout of `bb830`, from the back of the drawing to the front: `− +` (T rails), rows `j…f`, the
 channel, rows `e…a`, `− +` (B rails), with column 1 on the left. Held upright with column 1
 at the top, it reads `+ − a…j + −` from left to right, as on the maintainer's board.
+
+### Two boards side by side
+
+An ESP32 DevKit is 0.9" to 1.1" between its headers on a PCB about 11 holes wide: on one board it
+covers every free hole of one header's strips. On the bench, two boards are clipped together along
+their long edge with the rail strips between them taken off (most boards have detachable rail
+strips), and the DevKit straddles the joint. Board `double` (elastic, like `auto`) and `bb830x2`
+(two `bb830`) model that. From the back of the drawing to the front:
+
+```text
+U- U+  t s r q p | o n m l k  · joint ·  j i h g f | e d c b a  B- B+
+```
+
+- The front board is a single board without its back rails: rows a–j and rails `B-`, `B+` as usual.
+- The back board's rows continue the alphabet away from the front: its rows a…j are k…t (strips
+  `12:k-o` and `12:p-t`). Its rails, behind row t, are `U-` (outermost) and `U+`. There are no `T`
+  rails: those are the ones taken off. A supply with no `positive`/`negative` goes to `U+`/`U-`.
+- One empty pitch lies between rows j and k (`junction` in the board's spec, `doubleBoard` in
+  `src/board/board.js`): it assumes each main block ends one pitch past its outer row, so the two
+  blocks butted together keep one 0.1" lattice. **Measure your boards**: if the joint differs, the
+  holes of the back board are off by that much.
+- Nothing straddles the joint but a development board: a DIP or a button goes across a channel of
+  either board. A DevKit with pin 1 in row j has its other row in p (`rowSpacing` 9): each header
+  keeps free rows on its own board's strip (h…f and r…t). `layout` moves a circuit there by itself
+  when one board is not enough (see [layout.md](layout.md)).
+- The column numbers are printed along the two outer edges; at the joint the two boards' numbers
+  would overlap.
 
 ## Parts
 

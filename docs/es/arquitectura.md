@@ -51,7 +51,8 @@ con una `matrix` de SVG, así que gira con la vista igual que la impresión real
 1. Primero, las piezas de componentes que quedan fuera de la protoboard (una batería sobre la
    mesa) enteras más allá de una cara lateral, del lado que la cámara no ve (capa `under`): la
    protoboard queda entre ellas y quien mira.
-2. Luego, la protoboard.
+2. Luego, la protoboard: un bloque, o los dos de una protoboard doble, primero el más lejano a la
+   cámara (`sceneFor` en `src/index.js`), así el borde del más cercano en la unión tapa al otro.
 3. Las demás primitivas (un cuerpo, cada tramo de una pata o de un cable) se ordenan por la
    profundidad de su centro y se pintan de la más lejana a la más cercana.
 4. Dentro de una primitiva se descartan las caras que miran hacia atrás y las demás se
@@ -74,7 +75,8 @@ cruces. Las etiquetas impresas de los rieles quedan libres. `inspect` mide el re
 ## Conexiones
 
 `createBoard()` le da a cada agujero un nombre de nodo: `12:a-e` (columna 12, filas a–e),
-`T+` (el riel + de arriba). La netlist es solo «qué patas comparten nodo». La usan las
+`T+` (el riel + de arriba); en una protoboard doble también `12:k-o`, `12:p-t` y `U+` (filas y rieles
+de la de atrás, [formato-circuito.md](formato-circuito.md#dos-protoboards-lado-a-lado)). La netlist es solo «qué patas comparten nodo». La usan las
 comprobaciones y, más adelante, el simulador; el dibujo no.
 
 ## Salida

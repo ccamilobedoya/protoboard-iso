@@ -11,7 +11,7 @@ import { add, sub, scale, normalize, length, dot, cross, Z } from '../../core/ve
 import { box, polygonDecal, circleDecal, textDecal } from '../../geometry/primitives.js';
 import { MATERIALS } from '../colors.js';
 import { lead, withZ } from './common.js';
-import { channelRows } from '../../board/board.js';
+import { channelPairs } from '../../board/board.js';
 
 const WIDTH = 6.35;
 const HEIGHT = 3.3;
@@ -22,15 +22,13 @@ const STANDOFF = 0.7;
 export function dipHoles(board, pin1, count) {
   const hole = board.find(String(pin1));
   if (!hole || hole.kind !== 'main') return null;
-  const { back, front } = channelRows(board.spec);
+  // Across a channel (a double board has two; never across the joint between its boards).
+  const pair = channelPairs(board.spec).find((p) => hole.row === p.front || hole.row === p.back);
+  if (!pair) return null;
+  const { back, front } = pair;
   const half = count / 2;
   const c = hole.col;
-  let rowA;
-  let rowB;
-  let step;
-  if (hole.row === front) [rowA, rowB, step] = [front, back, 1];
-  else if (hole.row === back) [rowA, rowB, step] = [back, front, -1];
-  else return null;
+  const [rowA, rowB, step] = hole.row === front ? [front, back, 1] : [back, front, -1];
   const last = c + step * (half - 1);
   if (last < 1 || last > board.spec.columns) return null;
   const names = [];
@@ -48,12 +46,13 @@ export default {
   },
 
   footprints(board, params) {
-    const { back, front } = channelRows(board.spec);
     const out = [];
-    for (let c = 1; c <= board.spec.columns; c++) {
-      for (const row of [front, back]) {
-        const holes = dipHoles(board, `${row}${c}`, params.count);
-        if (holes) out.push(holes);
+    for (const { back, front } of channelPairs(board.spec)) {
+      for (let c = 1; c <= board.spec.columns; c++) {
+        for (const row of [front, back]) {
+          const holes = dipHoles(board, `${row}${c}`, params.count);
+          if (holes) out.push(holes);
+        }
       }
     }
     return out;
