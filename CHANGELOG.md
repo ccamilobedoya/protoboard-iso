@@ -9,6 +9,8 @@ detail.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-31
+
 ### Added
 
 - **`?director=landing`**: a live page with a tour as the background of a site's landing, dressed
@@ -25,7 +27,16 @@ detail.
   rectifier, Zener diodes, op-amps and comparators, the NE555, inductors, NTC, LDR, buzzer,
   trimmer, headers, switches beside the board, the DESPI-C02 e-paper adapter.
 - **`layout`**: a whole circuit placed by an algorithm from its parts and nets, on a board that grows
-  in length; **recipes**: lesson circuits by name with only their values.
+  in length; **recipes**: lesson circuits by name with only their values. Its second version takes
+  the channel as the axis (parts split by side, scored candidates, jumpers by a spanning tree), is
+  measured by a bench, and picks a **double breadboard** by itself when a development board would
+  cover a pin's strip.
+- **Stage and video**: deterministic frames of the live page, a director (`?director=1`) and tours
+  (`page.tour`, a timeline JSON), the `stage` and `notebook` themes with a theme picker, the plan
+  view of the current layer, moves (focus, insert, assemble, pulse, probe), `render-frames.js` and
+  `assemble.js` for vertical and horizontal videos with subtitles, and a guide to make one.
+- **Falstad export** of development boards and linear regulators as equivalents, and of any board's
+  rails.
 - **Publishing**: the READMEs with images drawn by the kit, a demo site on GitHub Pages, an index of
   the examples.
 - **Repository tooling**: a rule and an attack test for external input, a stronger privacy scan,
@@ -62,6 +73,7 @@ detail.
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ccamilobedoya/protoboard-iso/releases/tag/v0.1.0

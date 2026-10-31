@@ -320,7 +320,7 @@ package. Planned on 2026-10-26 after a review of licences and private data.
 - ✅ CI on GitHub Actions: `npm test`, `npm run test:mcp`, `node scripts/golden.js`, `npm run examples`, `npm run layout-bench`, on Node 20, 22 and 24 — done as C01 of "Repository tooling" (2026-10-29): `npm run verify` on Node 22 and 24; the layout bench left out (it measures time)
 - ⬜ `CONTRIBUTING.md` (en/es), mostly how to add a part; `CODE_OF_CONDUCT.md`; `SECURITY.md`; `CHANGELOG.md`
 - ⬜ Issue templates: a new part, a wrong drawing, a wrong simulation
-- ⬜ Version 0.3.0, a git tag and a GitHub release; repository description, topics and social preview image
+- 🔜 Version 0.3.0, a git tag and a GitHub release; repository description, topics and social preview image — 0.3.0, its tag and its release done 2026-10-31; the description, topics and image remain
 - ⬜ Versioned circuit format with migration notes
 - ⬜ Decide the copyright line (today "protoboard-iso contributors") and the `author` field
 
