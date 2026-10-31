@@ -31,9 +31,10 @@ import { resistorBands } from './parts/types/resistor.js';
 import { simulate, pageControlIssues } from './sim/index.js';
 import { tourIssues } from './tour.js';
 import { resultsOverlay } from './sim/overlay.js';
-import { flowOps, lightOps } from './sim/paths.js';
+import { flowOps, lightOps, flowStyle } from './sim/paths.js';
 import { probeOps } from './sim/probes.js';
 import { focusLayers, veilOps, stripOps, coordOps, nodesOf } from './render/focus.js';
+import { shortLabelOps } from './render/short-labels.js';
 
 export { applyOps, OP_NAMES, CIRCUIT_FIELDS } from './ops.js';
 export { evaluate, diffEvaluations, problemKey } from './diff.js';
@@ -125,24 +126,30 @@ function sceneFor(circuit, options = {}) {
   return { result, scene, view, scale, lang };
 }
 
-// Optional layers, always in this order: lights (right after the parts), veil, strips, coords,
-// spotlight, flow, marks, spotlabels, results, probes.
+// Optional layers, always in this order: lights (right after the parts), shortlabels (right after
+// the labels, a page only), veil, strips, coords, spotlight, flow, marks, spotlabels, results,
+// probes; in the plan, flow before spotlight.
 //   focus: ['R1']   dim everything but these parts and their strips (static images)
 //   flow: true      conductor view: conductors coloured by voltage, dots for conventional
-//                   current (moving in a page, still in a static image)
+//                   current (moving in a page, still in a static image); flowStyle 'plan' (the
+//                   default, or the circuit's page.flow.style) or 'real' (src/sim/paths.js)
 //   sim: true       simulation results, labelled as a model
 //   interactive     a page: every part tagged and copied, every strip ready, shown by CSS; with
 //                   sim or flow, a hidden mark around each part (its limits, see markOps)
 function addLayers(scene, built, circuit, options, lang) {
   const needSim = options.sim || options.flow;
   const sim = needSim ? simulate(circuit, { analysis: 'dc' }) : null;
-  const extra = { veil: [], strips: [], coords: [], spotlight: [], flow: [], marks: [], spotlabels: [], results: [], probes: [] };
+  const extra = { shortlabels: [], veil: [], strips: [], coords: [], spotlight: [], flow: [], marks: [], spotlabels: [], results: [], probes: [] };
   if (options.interactive) {
     extra.veil = veilOps(scene.frame);
     extra.strips = stripOps(scene, built.board, [...usedNodes(built, circuit)]);
     // Column numbers and row letters of every lead, shown for the tapped part only.
     extra.coords = coordOps(scene, built.board, built.parts.flatMap((p) => p.holes));
     // The page clones the focused parts into .spotlight when needed: no copies in the file.
+    // At rest it names the parts with short labels beside them (render/short-labels.js).
+    const wires = new Set(built.parts.filter((p) => p.def.electrical?.kind === 'W').map((p) => p.id));
+    const texts = built.parts.map((p) => ({ part: p.id, text: labelText(p, lang) })).filter((x) => x.text);
+    extra.shortlabels = shortLabelOps(scene, texts, wires);
   } else if (options.focus?.length) {
     Object.assign(extra, focusLayers(scene, built, options.focus));
   }
@@ -150,7 +157,7 @@ function addLayers(scene, built, circuit, options, lang) {
     // The conductor view draws the strips in use itself, coloured: no grey strips under them.
     if (!options.interactive) extra.veil = veilOps(scene.frame);
     // A page gets every piece, tagged for the live simulation to move and colour.
-    extra.flow = flowOps(scene, built, sim, circuit, { live: Boolean(options.interactive) });
+    extra.flow = flowOps(scene, built, sim, circuit, { live: Boolean(options.interactive), style: options.flowStyle ?? flowStyle(circuit) });
   }
   if (options.interactive && needSim) extra.marks = markOps(scene, built);
   if (options.sim) {
@@ -166,10 +173,14 @@ function addLayers(scene, built, circuit, options, lang) {
       extra.results = extra.results.filter((op) => op.cls === 'badge' || ids.has(op.part) || nodes.has(op.data?.node));
     }
   }
-  // The lit LEDs go right over the parts, under the labels and everything else.
-  const { lights = [], ...rest } = extra;
-  const { under, board, parts, ...others } = scene.layers;
-  scene.layers = { under, board, parts, lights, ...others, ...rest };
+  // The lit LEDs go right over the parts, under the labels and everything else. In the plan the
+  // parts in focus go over the current layer, seen through (the page sets their opacity), so its
+  // lines read under their bodies.
+  const { lights = [], shortlabels, spotlight, flow, ...rest } = extra;
+  const { under, board, parts, labels, ...others } = scene.layers;
+  const plan = options.flow && (options.flowStyle ?? flowStyle(circuit)) === 'plan';
+  const told = plan ? { flow, spotlight: options.interactive ? spotlight : spotlight.map((op) => ({ ...op, opacity: 0.5 })) } : { spotlight, flow };
+  scene.layers = { under, board, parts, lights, labels, shortlabels, ...others, ...pick(rest, ['veil', 'strips', 'coords']), ...told, ...rest };
 }
 
 // A rounded box around each part on screen (its polygons, leads included), hidden: the live page
@@ -196,6 +207,8 @@ function markOps(scene, built) {
     fill: 'none', stroke: '#d0281a', strokeWidth: 2, cls: 'mark', data: { mark: id },
   }));
 }
+
+const pick = (obj, keys) => Object.fromEntries(keys.map((k) => [k, obj[k]]));
 
 // Groups with a lead in them, plus the rails a supply is clipped to.
 function usedNodes(built, circuit) {

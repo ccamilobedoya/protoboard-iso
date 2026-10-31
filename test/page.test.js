@@ -101,9 +101,13 @@ test('page buttons switch views, frames and labels in a real DOM', async (t) => 
   assert.equal(svg('back').getAttribute('viewBox'), svg('back').dataset.board, 'whole board');
   button('fit').click();
   assert.equal(svg('back').getAttribute('viewBox'), svg('back').dataset.parts, 'pressed again: close-up');
-  button('labels').click();
-  assert.ok(doc.body.classList.contains('no-labels'));
+  // At rest the parts carry short labels (no-labels); Labels shows the boxes with leaders.
+  assert.ok(doc.body.classList.contains('no-labels'), 'short labels at rest');
   assert.equal(button('labels').getAttribute('aria-pressed'), 'false');
+  assert.ok(svg('front').querySelector('.shortlabels > text[data-part]'), 'a short label per part');
+  button('labels').click();
+  assert.ok(!doc.body.classList.contains('no-labels'));
+  assert.equal(button('labels').getAttribute('aria-pressed'), 'true');
   button('view').click();
   assert.ok(!svg('front').hasAttribute('hidden') && svg('back').hasAttribute('hidden'), 'Flip again: front');
 });
@@ -264,12 +268,13 @@ test('double-click on a part frames that part', async (t) => {
   const view = () => svg('front').getAttribute('viewBox').split(' ').map(Number);
   const els = svg('front').querySelectorAll('.parts [data-part="R1"]');
   for (const el of els) el.getBoundingClientRect = () => ({ left: 380, top: 240, right: 420, bottom: 260, width: 40, height: 20 });
-  const [, , before] = view();
+  // From the whole board, so the closest zoom the page allows is not reached.
+  svg('front').ownerDocument.querySelector('nav button[data-key="fit"]').click();
+  const [bx, by, before, bh] = view();
   fire('dblclick', { clientX: 400, clientY: 250 }, els[0]);
   const [x, y, w, h] = view();
   assert.ok(w < before / 3, 'zoomed in to about two and a half times the part');
-  const [bx, by, bw, bh] = svg('front').dataset.parts.split(' ').map(Number);
-  assert.ok(Math.abs(x + w / 2 - (bx + bw / 2)) < 1 && Math.abs(y + h / 2 - (by + bh / 2)) < 1, 'centred on the part (here, the middle of the frame)');
+  assert.ok(Math.abs(x + w / 2 - (bx + before / 2)) < 1 && Math.abs(y + h / 2 - (by + bh / 2)) < 1, 'centred on the part (here, the middle of the frame)');
 });
 
 test('colours are tokens, light and dark; the circuit can fix the theme and the link wins', async (t) => {

@@ -82,9 +82,28 @@ Dos clases de texto, a propósito:
 
 Un circuito que se puede simular trae el botón *Corriente* en la barra, sin presionar
 (presionado: la capa de corriente; otra vez: los componentes); `"page": { "flow": false }` lo quita. Con ella la protoboard y los componentes quedan velados y **cada conductor en
-uso se dibuja como una línea gruesa** por su camino real: la tira metálica entre los agujeros en
-uso, sube por una pata, atraviesa el cuerpo, baja por la otra pata, sigue el arco de un cable.
-Encima, **unos puntos se mueven**:
+uso se dibuja como una línea gruesa**. Por defecto la capa es una **vista en planta**, todo a ras
+de la tabla (escena y video, V3):
+
+- **Una pastilla en cada aterrizaje**: el punto del agujero crecido, del color de su voltaje. Las
+  líneas que se cruzan sin pastilla no están unidas, como en un esquema.
+- **Una recta a través de una pieza de dos patas** (resistencia, LED, diodo, condensador, cable)
+  de pastilla a pastilla; dos que caerían en una misma línea (dos cables a lo largo de una fila) se
+  corren un poco de lado.
+- **Un tramo corto de un paso por pata** en una pieza de tres o más (transistor, regulador, chip,
+  pulsador), hacia su cuerpo, uno al lado del otro si las patas van en fila: los puntos de cada pata
+  muestran su corriente (pocos en una base, muchos en un colector) y ninguna línea cruza otra.
+- **Los enlaces que declara una pieza** entre sus pastillas: los dos pares de un pulsador y el puente
+  que se cierra mientras está apretado.
+- **El nombre de la red de un riel** (`netLabels`) impreso junto a su pastilla.
+- Las piezas en foco se dibujan encima de las líneas, a medio ver a través, para que las líneas se
+  lean debajo de sus cuerpos. Las piezas fuera de la tabla (baterías, placas con cables Dupont,
+  interruptores con pinzas) conservan sus caminos reales.
+
+`"page": { "flow": { "style": "real" } }` dibuja en cambio los caminos reales (y `render --flow` sigue
+el estilo del circuito): la tira metálica entre los agujeros en uso, sube por una pata, atraviesa el
+cuerpo, baja por la otra pata, sigue el arco de un cable. Encima, en los dos, **unos puntos se
+mueven**:
 
 - **Color = voltaje (tensión)**, medido desde tierra, en una escala que termina en el voltaje
   mayor del circuito: gris en 0 V, rojo hacia +, azul hacia − (los colores de los rieles). Dentro de

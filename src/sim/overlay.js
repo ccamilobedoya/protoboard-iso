@@ -34,7 +34,8 @@ export function resultsOverlay(scene, built, sim, lang = 'en') {
   const decimal = decimalSeparator(lang);
   const ops = [];
   const boxes = partBoxes(scene);
-  // Tags never cover a part (wires excepted: they are thin) nor another tag, if there is room.
+  // Tags never cover a part (wires excepted: they are thin) nor another tag, if there is room; a
+  // current tag never covers the part it measures (stage and video, V3).
   const obstacles = built.parts.filter((p) => p.def.electrical?.kind !== 'W').map((p) => boxes.get(p.id)).filter(Boolean);
   const taken = [];
   // data-q names the quantity, so a page can explain it when the tag is tapped.
@@ -43,8 +44,14 @@ export function resultsOverlay(scene, built, sim, lang = 'en') {
     const width = text.length * SIZE * 0.6 + 6;
     const height = SIZE + 5;
     const place = (x, y) => ({ x: x - width / 2, y: y - height / 2, width, height });
-    const free = candidates.map(([x, y]) => place(x, y)).find((b) => !taken.some((o) => overlaps(b, o)) && !obstacles.some((o) => overlaps(b, o, 0)));
-    const box = free ?? candidates.map(([x, y]) => place(x, y)).find((b) => !taken.some((o) => overlaps(b, o))) ?? place(...candidates[0]);
+    const own = part ? boxes.get(part) : null;
+    const clear = (b) => !own || !overlaps(b, own, 0);
+    const boxesAt = candidates.map(([x, y]) => place(x, y));
+    const box =
+      boxesAt.find((b) => !taken.some((o) => overlaps(b, o)) && !obstacles.some((o) => overlaps(b, o, 0))) ??
+      boxesAt.find((b) => clear(b) && !taken.some((o) => overlaps(b, o))) ??
+      boxesAt.find(clear) ??
+      boxesAt[0];
     taken.push(box);
     ops.push({ kind: 'rect', ...box, rx: 3, fill: '#ffffff', fillOpacity: 0.92, stroke: color, strokeWidth: 0.7, part, data });
     ops.push({ kind: 'text', text, size: SIZE, x: box.x + width / 2, y: box.y + height / 2, anchor: 'middle', fill: color, weight: 700, px: SIZE, part, data });
@@ -65,7 +72,10 @@ export function resultsOverlay(scene, built, sim, lang = 'en') {
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
     const w = text.length * SIZE * 0.6 + 6;
-    tag(text, [[cx, box.y + box.height + 9], [box.x + box.width + w / 2 + 4, cy], [box.x - w / 2 - 4, cy], [cx, box.y - 9], [cx, box.y + box.height + 22]], CURRENT, { part: part.id, q: current.key });
+    const below = box.y + box.height;
+    const right = box.x + box.width + w / 2;
+    const left = box.x - w / 2;
+    tag(text, [[cx, below + 9], [right + 4, cy], [left - 4, cy], [cx, box.y - 9], [cx, below + 22], [right + 4, below + 9], [left - 4, below + 9], [cx, below + 36], [right + 16, cy], [left - 16, cy]], CURRENT, { part: part.id, q: current.key });
   }
   for (const [node, members] of Object.entries(built.netlist.nodes)) {
     const v = sim.nodes[node];

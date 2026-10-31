@@ -17,9 +17,13 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
   opposite, `front` ↔ `back` or `front-left` ↔ `back-right`), **Whole board** (↔ close-up),
   **Labels**, **Current** (whenever the circuit can be simulated; `page.flow: false` removes it), the time controls (live pages with C, L or a
   generator), and a **⋯** menu with what is used less: the dots' speed scale, *Open in Falstad*,
-  *What can I tap?* and the revision. On a narrow screen (a phone) the labels give way to icons
-  and nothing scrolls sideways. Zoom buttons sit in the bottom-right corner (in, out, back to the
-  frame). **Flip** turns the board over at once, keeping the zoom and the tapped part where it was; framing changes glide (a fade and no movement with *reduce motion*). The first time a page of the kit is opened in a browser, a short hint over the drawing
+  *What can I tap?* and the revision; *MODEL* on the right while a card is open. On a narrow
+  screen (a phone) Flip and Whole board give way to icons, Labels and Current keep their word, and
+  nothing scrolls sideways. At rest each part is named by a **short label** beside it (its name and
+  value); **Labels** shows the boxes with leaders instead, and the close-up is framed on the parts
+  and their short labels. Result tags keep their size on screen when zooming in, so they never grow
+  over the part they measure. Zoom buttons sit in the bottom-right corner (in, out, back to the
+  frame), quiet until the drawing is first touched. **Flip** turns the board over at once, keeping the zoom and the tapped part where it was; framing changes glide (a fade and no movement with *reduce motion*). The first time a page of the kit is opened in a browser, a short hint over the drawing
   says what can be tapped and how to move; it goes at the first touch. Without JavaScript the page
   still shows the first view, close-up, with labels.
 - **Gestures depend on where the page is** (like an embedded map):

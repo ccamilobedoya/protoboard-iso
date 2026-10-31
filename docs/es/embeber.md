@@ -19,10 +19,14 @@ node bin/protoboard-iso.js page <objetivo> [--lang es] [--fit parts|board] [-o p
   vista del circuito y la opuesta, `front` ↔ `back` o `front-left` ↔ `back-right`), **Toda la
   protoboard** (↔ de cerca), **Etiquetas**, **Corriente** (siempre que el circuito se pueda simular; `page.flow: false` lo quita), los controles de
   tiempo (páginas en vivo con C, L o generador) y un menú **⋯** con lo que se usa menos: la escala
-  de velocidad de los puntos, *Abrir en Falstad*, *¿Qué se puede tocar?* y la revisión. En una
-  pantalla angosta (celular) las etiquetas de los botones dejan solo los íconos y nada se desliza de
-  lado. Los botones de zoom están en la esquina inferior derecha (acercar, alejar, volver al
-  encuadre). **Girar** da vuelta la protoboard al instante y conserva el zoom y el componente tocado
+  de velocidad de los puntos, *Abrir en Falstad*, *¿Qué se puede tocar?* y la revisión; *MODELO* a la
+  derecha mientras hay una ficha abierta. En una pantalla angosta (celular) Girar y Toda la
+  protoboard quedan como íconos, Etiquetas y Corriente conservan su palabra, y nada se desliza de
+  lado. En reposo cada componente lleva un **rótulo corto** al lado (nombre y valor); **Etiquetas**
+  muestra en cambio las cajas con línea guía, y el encuadre de cerca se calcula con los componentes y
+  sus rótulos cortos. Las etiquetas de resultado conservan su tamaño en pantalla al acercarse, así
+  nunca crecen encima del componente que miden. Los botones de zoom están en la esquina inferior
+  derecha (acercar, alejar, volver al encuadre), callados hasta el primer toque del dibujo. **Girar** da vuelta la protoboard al instante y conserva el zoom y el componente tocado
   donde estaba; los cambios de encuadre se deslizan (un fundido y sin movimiento con
   *movimiento reducido*). La primera vez que se abre una página del kit en un navegador, una ayuda corta sobre el
   dibujo dice qué se puede tocar y cómo moverse; se va al primer toque. Sin JavaScript la página

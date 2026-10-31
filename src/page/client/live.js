@@ -205,12 +205,16 @@ export function setupLive(page) {
   let heats = null;
   let glows = null;
   let tags = null;
+  let bridges = null;
 
   // Colours, glow, heat, tags, captions, card.
   function repaint() {
     heats ??= each('.flow > [data-heat]');
     glows ??= each('.lights > [data-glow], .flow > [data-glow]');
     tags ??= each('.results > text[data-q]');
+    bridges ??= each('.flow > [data-bridge]');
+    // A push button's bridge in the plan, drawn while it is pressed.
+    for (const el of bridges) el.style.display = reading.parts[el.dataset.bridge]?.pressed ? '' : 'none';
     if (!reading) return;
     if (flow) {
       const centres = {};

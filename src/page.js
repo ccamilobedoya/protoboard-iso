@@ -24,7 +24,7 @@ import { bundleScript } from './node/bundle.js';
 import { buildCircuit } from './circuit/build.js';
 import { nodeParams } from './circuit/checks.js';
 import { simulate, compile, pageSimulation } from './sim/index.js';
-import { liveFlow } from './sim/paths.js';
+import { liveFlow, flowStyle } from './sim/paths.js';
 import { LANGUAGES } from './i18n/index.js';
 import { deviceOfReading } from './sim/devices/index.js';
 import { partLines } from './sim/format.js';
@@ -44,13 +44,26 @@ const OPPOSITE = { front: 'back', back: 'front', 'front-left': 'back-right', 'ba
 const box = ({ x, y, width, height }) => `${x} ${y} ${width} ${height}`;
 const titleOf = (circuit, lang) => (typeof circuit.title === 'object' ? circuit.title?.[lang] ?? circuit.title?.en : circuit.title);
 
+// A frame grown to hold some text boxes, with a small margin around what it adds.
+function withBoxes(frame, ops) {
+  const boxes = ops.map((op) => op.box).filter(Boolean);
+  if (!boxes.length) return frame;
+  const x0 = Math.min(frame.x, ...boxes.map((b) => b.x - 4));
+  const y0 = Math.min(frame.y, ...boxes.map((b) => b.y - 4));
+  const x1 = Math.max(frame.x + frame.width, ...boxes.map((b) => b.x + b.width + 4));
+  const y1 = Math.max(frame.y + frame.height, ...boxes.map((b) => b.y + b.height + 4));
+  return { x: Math.floor(x0), y: Math.floor(y0), width: Math.ceil(x1 - x0), height: Math.ceil(y1 - y0) };
+}
+
 // One view as an inline SVG that scales with the page: the size comes from CSS, the frame
 // (whole board or close-up) from the viewBox, switched by the script.
 function viewSvg(circuit, view, fit, lang, { sim, flow }) {
   const board = renderCircuit(circuit, { view, lang, sim, flow, interactive: true });
   if (!board.svg) return { issues: board.issues };
-  const parts = renderCircuit(circuit, { view, lang, fit: 'parts' });
-  const frames = { board: box(board.scene.frame), parts: box(parts.scene.frame) };
+  // The close-up frames what the page shows at rest (V3): the parts and their short labels, not
+  // the ladder of boxes above them (Labels shows it; the learner can fit or zoom out then).
+  const parts = renderCircuit(circuit, { view, lang, fit: 'parts', labels: false });
+  const frames = { board: box(board.scene.frame), parts: box(withBoxes(parts.scene.frame, board.scene.layers.shortlabels ?? [])) };
   // No <title> inside: browsers show it as a tooltip over the whole drawing. The name goes to
   // aria-label instead, for screen readers.
   const name = titleOf(circuit, lang);
@@ -260,7 +273,7 @@ function liveData(circuit, lang, flow, templates) {
   for (const key of Object.keys(dict)) if (/^(sim|state|probe)\.|^page\.(time|live|control|controls|warnings|falstad|scope|node|model|tour)\.|^check\.SIM_|^falstad\./.test(key)) texts[key] = t(lang, key);
   const dc = flow ? simulate(circuit, { analysis: 'dc' }) : null;
   return {
-    flow: dc?.ok ? liveFlow(buildCircuit(circuit), dc, circuit) : null,
+    flow: dc?.ok ? liveFlow(buildCircuit(circuit), dc, circuit, flowStyle(circuit)) : null,
     texts,
     decimal: decimalSeparator(lang),
     probes: templates,
@@ -303,6 +316,7 @@ export function renderPage(circuit, options = {}) {
     probes,
     explain: { ...explanations(lang), ...kinds },
     focus: Array.isArray(circuit.page?.focus) ? circuit.page.focus : [],
+    flowStyle: flow ? flowStyle(circuit) : null,
     ...(live && { live }),
     ...(tour && { tour }),
     text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit'), tabPart: t(lang, 'page.tab.part'), tabStrip: t(lang, 'page.tab.strip'), model: t(lang, 'sim.badge'), modelShort: t(lang, 'page.model') },
@@ -320,6 +334,7 @@ export function renderPage(circuit, options = {}) {
     barButton('labels', 'labels', t(lang, 'page.labels')),
     flow ? barButton('layer', 'current', t(lang, 'page.layer.flow'), { toggle: ['flow', 'parts'], title: t(lang, 'page.layer.title') }) : '',
     '</span><span class="spacer"></span>',
+    results ? `<span class="model-badge">${escapeXml(t(lang, 'sim.badge'))}</span>` : '',
     `<span class="more"><button type="button" class="more-button" aria-haspopup="menu" aria-expanded="false" title="${escapeXml(t(lang, 'page.more'))}" aria-label="${escapeXml(t(lang, 'page.more'))}">${iconSvg('more')}</button>`,
     `<span class="menu" role="menu" hidden>`,
     flow ? `<span class="menu-group" role="group" aria-label="${escapeXml(t(lang, 'page.speed.title'))}"><span class="menu-title">${escapeXml(t(lang, 'page.speed.title'))}</span>${menuItem('speed', 'linear', t(lang, 'page.speed.linear'))}${menuItem('speed', 'log', t(lang, 'page.speed.log'))}</span>` : '',
@@ -355,7 +370,7 @@ export function renderPage(circuit, options = {}) {
 <style id="dynamic"></style>
 <style id="probe"></style>
 </head>
-<body data-fit="${fit}"${results ? ' data-results="on"' : ''}>
+<body data-fit="${fit}"${results ? ' data-results="on"' : ''}${flow ? ` data-flow="${flowStyle(circuit)}"` : ''}>
 <nav hidden>${nav}</nav>
 <main>
 ${svgs.join('\n')}
@@ -363,7 +378,6 @@ ${inspector}
 <div class="zoom" hidden>${['in', 'out', 'fit'].map((w) => iconButton(w, t(lang, `page.zoom.${w}`))).join('')}${iconButton('full', t(lang, 'page.fullscreen'))}</div>
 <div class="gesture-hint" aria-live="polite"></div>
 ${hint}
-${results ? `<div class="model-badge">${escapeXml(t(lang, 'sim.badge'))}</div>` : ''}
 <div class="tooltip" hidden></div>
 </main>
 <script type="application/json" id="page-data">${safeJson(data)}</script>

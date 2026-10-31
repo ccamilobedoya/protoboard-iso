@@ -51,6 +51,9 @@ export default {
   'check.LABEL_OVERLAP': 'The labels of {first} and {second} overlap.',
   'check.LABEL_HIDES_TEXT': 'The label of {part} hides the printed text "{text}".',
   'check.LEADER_CROSSING': 'The leader lines of {first} and {second} cross.',
+  'check.TAG_OVER_PART': 'The current tag of {part} lies over {part} itself.',
+  'check.COORD_COVERED': 'The lit coordinate {coord} is under a tag or a label ({by}).',
+  'check.FLOW_COLLINEAR': 'In the current layer, conductors of {first} and {second} lie along one line: they cannot be told apart.',
   'check.LEADER_OVER_PART': 'The leader line of {part} passes over {over}.',
   'check.TEXT_TOO_SMALL': '{count} printed texts are under {limit} px tall (smallest {smallest} px; parts: {parts}). Use a larger --scale or --fit parts.',
 

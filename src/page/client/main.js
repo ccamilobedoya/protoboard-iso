@@ -37,7 +37,7 @@ export function startPage(extensions = []) {
   const main = document.querySelector('main');
   const svgs = [...main.querySelectorAll(':scope > svg')]; // the views (icons are svg too)
   const data = JSON.parse(document.getElementById('page-data').textContent);
-  const state = { view: svgs[0].dataset.view, fit: document.body.dataset.fit, labels: true, results: document.body.dataset.results === 'on', layer: 'parts', speed: 'linear', focus: new Set(data.focus), node: null, ghost: new Set() };
+  const state = { view: svgs[0].dataset.view, fit: document.body.dataset.fit, labels: false, results: document.body.dataset.results === 'on', layer: 'parts', speed: 'linear', focus: new Set(data.focus), node: null, ghost: new Set() };
   const page = {
     main,
     svgs,
@@ -67,9 +67,17 @@ export function startPage(extensions = []) {
   // What is on screen now: the frame changes only when the view or the framing does (U5: toggling
   // the labels or a layer keeps where the learner was looking).
   let shown = { view: null, fit: null };
+  const classes = () => {
+    document.body.classList.toggle('no-labels', !state.labels);
+    document.body.classList.toggle('show-results', state.results);
+    document.body.classList.toggle('layer-flow', state.layer === 'flow');
+    document.body.classList.toggle('speed-log', state.speed === 'log');
+  };
   const same = (a, b) => a.every((n, i) => Math.abs(n - b[i]) < 0.5);
   function show() {
     for (const hook of page.onShow) hook();
+    // First what is shown, then the frame: a portrait frame is measured on what is on screen.
+    classes();
     const fitBox = () => numbers(page.current().dataset[state.fit]);
     if (shown.view && shown.view !== state.view) {
       const from = svgs.find((s) => s.dataset.view === shown.view);
@@ -86,10 +94,6 @@ export function startPage(extensions = []) {
       } else if (shown.fit !== state.fit) fitTo(page, fitBox(), true);
     }
     shown = { view: state.view, fit: state.fit };
-    document.body.classList.toggle('no-labels', !state.labels);
-    document.body.classList.toggle('show-results', state.results);
-    document.body.classList.toggle('layer-flow', state.layer === 'flow');
-    document.body.classList.toggle('speed-log', state.speed === 'log');
     // A button for two states (data-on / data-off), a plain toggle, a choice in the menu, a value.
     for (const b of page.buttons) {
       const key = b.dataset.key;

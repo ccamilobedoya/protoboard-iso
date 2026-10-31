@@ -3,9 +3,18 @@
 // dots moving along it in the direction of conventional current (+ to −, as in Falstad's
 // CircuitJS), at a speed proportional to the current. LEDs glow with their current.
 //
-// Paths come from the packages: `build()` may return `paths`, one per pin, each a 3D polyline
-// from the hole (z = 0) to a point inside the part shared by all its pins, with `body` the index
-// where the body starts. Without them, a straight line from the hole to the middle of the holes.
+// Two styles (stage and video, V3; docs/en/stage-and-video.md, "The drawing that tells"):
+// - `plan` (the default): everything at board level. A pad at every landing (the hole's dot grown,
+//   in the colour of its voltage); a straight line through a part of two pins (a resistor, an LED,
+//   a jumper) from pad to pad; a short stub of one pitch per pin towards the body of a part with
+//   more pins, so each pin's dots show its current without lines crossing; the internal links a
+//   part declares (a push button's pairs, and its bridge while pressed) between its pads; a rail's
+//   net name printed beside its pad. Parts beside the board (batteries, boards on Dupont leads,
+//   switches on clips) keep their real paths.
+// - `real`: the paths of the packages: `build()` may return `paths`, one per pin, each a 3D
+//   polyline from the hole (z = 0) to a point inside the part shared by all its pins, with `body`
+//   the index where the body starts. Without them, a straight line from the hole to the middle of
+//   the holes.
 //
 // The current in each piece of a strip comes from Kirchhoff's current law: walking along the
 // strip, the current between two holes is the sum of what entered at the holes behind.
@@ -15,6 +24,9 @@
 // index; page/client/live.js moves and colours them from the running simulation).
 
 import { stripHoles } from '../render/focus.js';
+import { decalTextOp } from '../render/scene.js';
+import { textDecal } from '../geometry/primitives.js';
+import { v3, X, Y, scale } from '../core/vec.js';
 import { LED_LIGHT } from '../parts/colors.js';
 import { MIN_CURRENT, DOT_PERIOD, voltageColor, dotSpeed, bodyShare, bodyVoltage, centreVoltage, glowOpacity } from './look.js';
 
@@ -26,6 +38,11 @@ export const DOT_WIDTH = 2.4; // narrower than the conductor, so its colour show
 export const DOT_COLOR = '#ffd21f';
 export const HEAT_COLOR = '#ff6a00';
 const BODY_PIECES = 6; // per pin, from the lead to the middle of the body
+export const PAD_WIDTH = 6; // a landing in the plan: the hole's dot grown (px, a round cap)
+const PAD_EDGE = 1.6; // px of the background around a pad
+const PAD_EDGE_COLOR = '#fbfaf7'; // the page's veil (CSS gives it the theme's)
+const PITCH = 2.54; // mm: the stub of a pin on a part of three or more
+export const FLOW_STYLES = ['plan', 'real'];
 
 const average = (points) => ({
   x: points.reduce((s, p) => s + p.x, 0) / points.length,
@@ -40,6 +57,80 @@ export function partPaths(part) {
   }
   const centre = { ...average(part.holes.map((h) => h.pos)), z: 0 };
   return part.holes.map((h, i) => ({ pin: part.pinNames[i], points: [{ ...h.pos, z: 0 }, centre], body: 1 }));
+}
+
+// The plan of a part: each pin from its hole at board level, to the middle of the holes (two
+// pins) or one pitch towards the body (more). A part whose body lies beside the board keeps `real`.
+function planPaths(part, real, board) {
+  const { length: L, width: W } = board.spec.size;
+  const end = real[0]?.points.at(-1);
+  if (!end || end.x < 0 || end.x > L || end.y < 0 || end.y > W) return real;
+  const at = (h) => ({ x: h.pos.x, y: h.pos.y, z: 0 });
+  const middle = { ...average(part.holes.map(at)), z: 0 };
+  if (part.holes.length === 2) return part.holes.map((h, i) => ({ pin: part.pinNames[i], points: [at(h), middle], body: 1 }));
+  // In a row (a TO-92, a regulator, a potentiometer): stubs side by side, across the row, towards
+  // the side where the body is. Otherwise towards the middle of the holes.
+  const a = at(part.holes[0]);
+  const b = at(part.holes.at(-1));
+  const along = { x: b.x - a.x, y: b.y - a.y };
+  const span = Math.hypot(along.x, along.y);
+  const inRow = span > 0 && part.holes.every((h) => Math.abs(((h.pos.x - a.x) * along.y - (h.pos.y - a.y) * along.x) / span) < 0.3);
+  let across = null;
+  if (inRow) {
+    across = { x: -along.y / span, y: along.x / span };
+    const side = (end.x - middle.x) * across.x + (end.y - middle.y) * across.y;
+    if (side < 0) across = { x: -across.x, y: -across.y };
+  }
+  return part.holes.map((h, i) => {
+    const p = at(h);
+    let dir = across;
+    let length = PITCH;
+    if (!dir) {
+      const d = Math.hypot(middle.x - p.x, middle.y - p.y);
+      dir = d > 1e-9 ? { x: (middle.x - p.x) / d, y: (middle.y - p.y) / d } : { x: 0, y: -1 };
+      length = Math.min(PITCH, 0.45 * d) || PITCH;
+    }
+    return { pin: part.pinNames[i], points: [p, { x: p.x + dir.x * length, y: p.y + dir.y * length, z: 0 }], body: 1 };
+  });
+}
+
+// Two flat lines on one line (two jumpers along a row, overlapping) cannot be told apart: a line
+// of two pins that would lie on one already drawn moves aside, a little (its pads stay on the holes).
+const ASIDE = [0.9, -0.9, 1.6, -1.6]; // mm across the line, tried in turn
+function setAside(paths, drawn) {
+  if (paths.length !== 2 || paths.some((p) => p.points.length !== 2)) return paths;
+  const [a, b] = [paths[0].points[0], paths[1].points[0]];
+  const len = Math.hypot(b.x - a.x, b.y - a.y);
+  if (!(len > 0)) return paths;
+  const u = { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
+  const on = (shift) => drawn.some(([p, q]) => {
+    const off = (r) => Math.abs((r.x - a.x - shift.x) * u.y - (r.y - a.y - shift.y) * u.x);
+    if (off(p) > 0.3 || off(q) > 0.3) return false;
+    const along = (r) => (r.x - a.x) * u.x + (r.y - a.y) * u.y;
+    const [s0, s1] = [along(p), along(q)].sort((m, n) => m - n);
+    return Math.min(len, s1) - Math.max(0, s0) > 1;
+  });
+  const none = { x: 0, y: 0 };
+  const shift = on(none) ? (ASIDE.map((k) => ({ x: -u.y * k, y: u.x * k })).find((s) => !on(s)) ?? none) : none;
+  drawn.push([a, b].map((p) => ({ x: p.x + shift.x, y: p.y + shift.y })));
+  if (shift === none) return paths;
+  return paths.map((p) => {
+    const [hole, mid] = p.points;
+    const moved = [hole, { ...hole, x: hole.x + shift.x, y: hole.y + shift.y }, { ...mid, x: mid.x + shift.x, y: mid.y + shift.y }];
+    return { ...p, points: moved, body: moved.length - 1 };
+  });
+}
+
+// The links inside a part, between its pads: each pole of a switch (pins of one metal piece), and
+// the bridge between its first two poles while it is pressed. [{ from, to, pin, bridge }]
+function partLinks(part) {
+  const poles = part.def.electrical?.poles;
+  if (!Array.isArray(poles)) return [];
+  const hole = (pin) => part.holes[part.pinNames.indexOf(pin)];
+  const out = [];
+  for (const pole of poles) for (let k = 1; k < pole.length; k++) out.push({ from: hole(pole[k - 1]), to: hole(pole[k]), pin: pole[0] });
+  if (poles.length > 1) out.push({ from: hole(poles[0][0]), to: hole(poles[1][0]), pin: poles[0][0], bridge: true });
+  return out.filter((l) => l.from && l.to);
 }
 
 // Where each supply lead touches the board: the hole given, or the first hole of its group.
@@ -93,11 +184,17 @@ function split(points, n) {
 //           tap { part, pin } (enters the strip: −pin current) | { supply, sign } (± supply current)
 //   lights: [{ part, at, color }]  LEDs, glowing at the chip;  hot: [{ part, at }] parts that heat
 //   vmax:   the voltage the colour scale ends at
+// In the plan, wires also hold the pads (`pad`, a point: { at }) and the links inside parts
+// (`link`; `bridge` with the part's id, drawn while it is pressed); rails: the rail pads, for
+// their net names.
 // `all`: every piece, even with no current (the live page); otherwise only those with current.
-export function conductorPieces(built, sim, circuit, { all = false } = {}) {
-  const empty = { wires: [], dots: [], strips: {}, lights: [], hot: [], vmax: 0 };
+export function conductorPieces(built, sim, circuit, { all = false, style = 'plan' } = {}) {
+  const empty = { wires: [], dots: [], strips: {}, lights: [], hot: [], rails: [], vmax: 0 };
   if (!sim?.ok) return empty;
-  const { wires, dots, strips, lights, hot } = empty;
+  const { wires, dots, strips, lights, hot, rails } = empty;
+  const plan = style === 'plan';
+  const pads = new Map(); // hole id → the hole, every landing
+  const flat = []; // the plan's lines of two pins drawn so far, for setAside
   const taps = new Map(); // hole id → taps entering the strip there
   const tapAt = (hole, tap) => taps.set(hole.id, [...(taps.get(hole.id) ?? []), tap]);
   const entering = (tap) => (tap.part ? -(sim.parts[tap.part]?.floating ? 0 : sim.parts[tap.part]?.pinCurrents?.[tap.pin] ?? 0) : tap.sign * (sim.supplies[tap.supply]?.current ?? 0));
@@ -105,8 +202,18 @@ export function conductorPieces(built, sim, circuit, { all = false } = {}) {
   for (const part of built.parts) {
     const reading = sim.parts[part.id];
     if (!reading?.pinCurrents) continue;
-    const paths = partPaths(part);
+    const real = partPaths(part);
+    const planned = plan ? planPaths(part, real, built.board) : real;
+    const paths = plan && planned !== real ? setAside(planned, flat) : planned;
     const centre = centreVoltage(reading.pins);
+    if (plan) {
+      for (const h of part.holes) pads.set(h.id, h);
+      for (const l of partLinks(part)) {
+        const ref = { part: part.id, pin: l.pin };
+        if (l.bridge && !all && !reading.pressed) continue;
+        wires.push({ points: [l.from, l.to].map((h) => ({ ...h.pos, z: 0 })), ref, voltage: reading.pins?.[l.pin] ?? null, link: true, ...(l.bridge && { bridge: part.id }) });
+      }
+    }
     paths.forEach((path, k) => {
       tapAt(part.holes[k], { part: part.id, pin: path.pin });
       const v = reading.pins?.[path.pin] ?? null;
@@ -122,7 +229,7 @@ export function conductorPieces(built, sim, circuit, { all = false } = {}) {
       const i = reading.floating ? 0 : reading.pinCurrents[path.pin] ?? 0;
       if (all || Math.abs(i) >= MIN_CURRENT) dots.push({ points: path.points, ref: { part: part.id, pin: path.pin }, current: i });
     });
-    const middle = paths[0].points.at(-1);
+    const middle = real[0].points.at(-1);
     if (reading.kind === 'LED') lights.push({ part: part.id, at: middle, light: part.built.light, color: LED_LIGHT[part.def.electrical.color] ?? LED_LIGHT.red, brightness: reading.brightness });
     if (typeof reading.power === 'number' && ['R', 'REG', 'Q', 'M', 'D', 'BR'].includes(reading.kind)) hot.push({ part: part.id, at: middle });
   }
@@ -131,6 +238,7 @@ export function conductorPieces(built, sim, circuit, { all = false } = {}) {
     if (!sim.supplies[s.id] || !s.positive || !s.negative) continue;
     tapAt(s.positive, { supply: s.id, sign: 1 });
     tapAt(s.negative, { supply: s.id, sign: -1 });
+    if (plan) pads.set(s.positive.id, s.positive).set(s.negative.id, s.negative);
     nodes.add(s.positive.node).add(s.negative.node);
   }
   for (const node of nodes) {
@@ -148,9 +256,13 @@ export function conductorPieces(built, sim, circuit, { all = false } = {}) {
       if (all || Math.abs(running) >= MIN_CURRENT) dots.push({ points: [{ ...holes[k].pos, z: 0 }, { ...holes[k + 1].pos, z: 0 }], ref: { node, k: k - first }, current: running });
     }
   }
+  for (const h of pads.values()) {
+    wires.push({ points: [{ ...h.pos, z: 0 }, { ...h.pos, z: 0 }], ref: { node: h.node }, voltage: sim.nodes[h.node] ?? null, pad: true });
+    if (h.kind === 'rail' && !rails.some((r) => r.node === h.node)) rails.push(h);
+  }
   // A signal generator's colours end at its peak, not at its value at t = 0.
   const volts = [...Object.values(sim.nodes), ...Object.values(sim.supplies).map((s) => s.peak ?? s.voltage)].filter((v) => Number.isFinite(v));
-  return { wires, dots, strips, lights, hot, vmax: Math.max(0, ...volts.map(Math.abs)) };
+  return { wires, dots, strips, lights, hot, rails, vmax: Math.max(0, ...volts.map(Math.abs)) };
 }
 
 // A lit LED: a halo of the colour of its light around its dome, drawn over the veil. Its rings
@@ -174,9 +286,23 @@ function litLed(scene, l, style) {
 const pathData = (pts) => pts.map((p, i) => `${i ? 'L' : 'M'}${Math.round(p.x * 100) / 100} ${Math.round(p.y * 100) / 100}`).join(' ');
 
 // What the live page needs to drive the pieces flowOps draws with `live`, in the same order.
-export function liveFlow(built, sim, circuit) {
-  const { wires, dots, strips, lights, hot, vmax } = conductorPieces(built, sim, circuit, { all: true });
+export function liveFlow(built, sim, circuit, style = 'plan') {
+  const { wires, dots, strips, lights, hot, vmax } = conductorPieces(built, sim, circuit, { all: true, style });
   return { wires: wires.map((w) => w.ref), dots: dots.map((d) => d.ref), strips, lights: lights.map((l) => l.part), hot: hot.map((h) => h.part), vmax };
+}
+
+// The style a circuit asks for: page.flow.style, else the plan.
+export const flowStyle = (circuit) => (FLOW_STYLES.includes(circuit?.page?.flow?.style) ? circuit.page.flow.style : 'plan');
+
+// A rail's net name (netLabels) printed flat beside its pad, as the board prints it at its end.
+function railName(scene, board, circuit, hole) {
+  const text = circuit.netLabels?.[hole.node];
+  const rail = board.spec.rails.find((r) => r.id === hole.node);
+  if (!text || !rail) return null;
+  const color = rail.polarity === '+' ? board.spec.colors.plus : board.spec.colors.minus;
+  const decal = textDecal({ text, at: v3(hole.pos.x + 1.6, hole.pos.y, 0), right: X, down: scale(Y, -1), size: 2.4, color, anchor: 'start', weight: 700 });
+  const { box, px, ...op } = decalTextOp(scene.camera, decal);
+  return { ...op, cls: 'net', data: { net: hole.node } };
 }
 
 // How far a 3D polyline is from the camera: the depth of its middle, weighted by length (a lead
@@ -275,8 +401,8 @@ export function lightOps(scene, built, sim, circuit) {
 //    on screen by which is nearer there (paintOrder): a lead or a jumper in front is drawn over
 //    one behind, in the front view and in the back view alike.
 // The live page finds the pieces by data-wire / data-seg, so their order in the file is free.
-export function flowOps(scene, built, sim, circuit, { live = false } = {}) {
-  const { wires, dots, lights, hot, vmax } = conductorPieces(built, sim, circuit, { all: live });
+export function flowOps(scene, built, sim, circuit, { live = false, style = 'plan' } = {}) {
+  const { wires, dots, lights, hot, rails, vmax } = conductorPieces(built, sim, circuit, { all: live, style });
   const project = (points) => points.map((p) => scene.camera.project(p));
   const tag = (ref) => ({ ...(ref.part && { part: ref.part }), data: ref.part ? { flow: ref.part } : { node: ref.node } });
   const peak = Math.max(0, ...dots.map((d) => Math.abs(d.current)));
@@ -291,6 +417,8 @@ export function flowOps(scene, built, sim, circuit, { live = false } = {}) {
   for (const l of lights) under.push(...litLed(scene, l, `opacity:${glowOpacity(l.brightness).toFixed(2)}`));
 
   const strip = { conductors: [], dots: [] };
+  const links = [];
+  const pads = [];
   const pins = new Map(); // part|pin → { conductors, dots, depth sum, length }
   const pinOf = (ref) => {
     const key = `${ref.part}|${ref.pin}`;
@@ -298,8 +426,13 @@ export function flowOps(scene, built, sim, circuit, { live = false } = {}) {
     return pins.get(key);
   };
   wires.forEach((w, i) => {
-    const op = { kind: 'path', d: pathData(project(w.points)), stroke: voltageColor(w.voltage, vmax), strokeWidth: w.ref.node ? STRIP_WIDTH : CONDUCTOR_WIDTH, cls: 'conductor', ...tag(w.ref), ...(live && { data: { ...tag(w.ref).data, wire: i } }) };
-    if (w.ref.node) strip.conductors.push(op);
+    const d = pathData(project(w.points));
+    const width = w.pad ? PAD_WIDTH : w.ref.node ? STRIP_WIDTH : CONDUCTOR_WIDTH;
+    const data = { ...tag(w.ref).data, ...(w.bridge && { bridge: w.bridge }), ...(live && { wire: i }) };
+    const op = { kind: 'path', d, stroke: voltageColor(w.voltage, vmax), strokeWidth: width, cls: w.pad ? 'conductor pad' : w.link ? 'conductor link' : 'conductor', ...tag(w.ref), data };
+    if (w.pad) pads.push({ kind: 'path', d, stroke: PAD_EDGE_COLOR, strokeWidth: PAD_WIDTH + 2 * PAD_EDGE, cls: 'pad-edge' }, op);
+    else if (w.link) links.push(op);
+    else if (w.ref.node) strip.conductors.push(op);
     else {
       const pin = pinOf(w.ref);
       pin.conductors.push(op);
@@ -324,5 +457,8 @@ export function flowOps(scene, built, sim, circuit, { live = false } = {}) {
   const list = [...pins.values()];
   const ordered = paintOrder(scene.camera, list.map((pin) => ({ points: joined(pin.points), group: pin.part })), CONDUCTOR_WIDTH)
     .flatMap((k) => [...list[k].conductors, ...list[k].dots]);
-  return [...under, ...strip.conductors, ...strip.dots, ...ordered];
+  // Pads over the lines that land on them (a line that crosses another without a pad is not
+  // joined to it, as in a schematic), the rails' names beside theirs.
+  const names = rails.map((h) => railName(scene, built.board, circuit, h)).filter(Boolean);
+  return [...under, ...strip.conductors, ...strip.dots, ...links, ...ordered, ...pads, ...names];
 }

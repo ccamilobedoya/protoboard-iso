@@ -5,7 +5,9 @@
 //
 // Layers, in drawing order: veil → strips → coords → spotlight (→ flow, see src/sim/flow.js).
 
-import { v3 } from '../core/vec.js';
+import { v3, X, Y, scale } from '../core/vec.js';
+import { textDecal } from '../geometry/primitives.js';
+import { decalTextOp } from './scene.js';
 
 export const VEIL_OPACITY = 0.8;
 
@@ -36,34 +38,28 @@ export function stripOps(scene, board, nodes) {
   return ops;
 }
 
-// The coordinates of some holes, highlighted where the board prints them: the column number
-// above and below the grid, the row letter at both ends (rail holes only have a column). Each
-// tag is a dark pill with the number in white, upright on screen so it reads at any zoom, and
-// carries data-col or data-row so a page can show only the tapped part's.
-export const COORD_FILL = '#2b3a4a';
+// The coordinates of some holes, lit (stage and video, V3): the board's own print, the same glyph,
+// size and place, lying on the board, in the accent colour. A column the board does not number gets
+// the same print. Drawn on the board, so the parts cover them as they cover the print (nothing is
+// drawn over the board to say where a lead is). Each carries data-col or data-row so a page can
+// show only the tapped part's. The layout matches draw-board.js.
+export const COORD_COLOR = '#1b6ec2';
+const DOWN = scale(Y, -1);
 export function coordOps(scene, board, holes) {
   const { spec, xOf, yOf } = board;
   const ys = spec.rows.map((r) => r.y);
   const numberRows = [Math.min(...ys) - 0.8, Math.max(...ys) + 0.8].map(yOf);
-  const at = (x, y) => scene.camera.project(v3(x, y, 0));
-  const a = at(xOf(1), numberRows[0]);
-  const b = at(xOf(2), numberRows[0]);
-  const size = Math.hypot(b.x - a.x, b.y - a.y) * 0.62; // one pitch on screen, so neighbours never overlap
-  const tag = (text, p, data) => {
-    const width = size * (0.6 * text.length + 0.5);
-    const height = size * 1.35;
-    return [
-      { kind: 'rect', x: p.x - width / 2, y: p.y - height / 2, width, height, rx: height / 2, fill: COORD_FILL, stroke: '#ffffff', strokeWidth: size * 0.12, cls: 'coord', data },
-      { kind: 'text', text, x: p.x, y: p.y, size, weight: 700, anchor: 'middle', fill: '#ffffff', cls: 'coord', data },
-    ];
+  const lit = (text, x, y, size, data) => {
+    const { box, px, ...op } = decalTextOp(scene.camera, textDecal({ text, at: v3(x, y, 0), right: X, down: DOWN, size, color: COORD_COLOR }));
+    return { ...op, cls: 'coord', data };
   };
   const cols = [...new Set(holes.map((h) => h.col))].sort((m, n) => m - n);
   const rows = [...new Set(holes.filter((h) => h.kind === 'main').map((h) => h.row))].sort();
   const ops = [];
-  for (const col of cols) for (const y of numberRows) ops.push(...tag(String(col), at(xOf(col), y), { col }));
+  for (const col of cols) for (const y of numberRows) ops.push(lit(String(col), xOf(col), y, 1.4, { col }));
   for (const row of rows) {
     const y = yOf(spec.rows.find((r) => r.id === row).y);
-    for (const x of [xOf(1) - 1.9, xOf(spec.columns) + 1.9]) ops.push(...tag(row, at(x, y), { row }));
+    for (const x of [xOf(1) - 1.9, xOf(spec.columns) + 1.9]) ops.push(lit(row, x, y, 1.5, { row }));
   }
   return ops;
 }

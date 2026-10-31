@@ -79,8 +79,27 @@ Two kinds of text, on purpose:
 
 A circuit that can be simulated gets the *Current* button in the bar, not pressed (pressed: the
 current layer; pressed again: the parts); `"page": { "flow": false }` leaves it out. With it the board and the parts are veiled, and **every conductor in use is drawn
-as one thick line** along its real path: the metal strip between the holes in use, up a lead,
-through the body, down the other lead, along the arc of a jumper wire. On top, **dots move**:
+as one thick line**. By default the layer is a **plan**, everything at board level (stage and
+video, V3):
+
+- **A pad at every landing**: the hole's dot grown, in the colour of its voltage. Lines that cross
+  without a pad are not joined, as in a schematic.
+- **A straight line through a part of two pins** (a resistor, an LED, a diode, a capacitor, a
+  jumper) from pad to pad; two that would lie on one line (two jumpers along a row) move aside a
+  little.
+- **A stub of one pitch per pin** on a part of three or more (a transistor, a regulator, a chip, a
+  push button), towards its body, side by side for pins in a row: each pin's dots show its current
+  (few at a base, many at a collector) and no line crosses another.
+- **The links a part declares** between its pads: a push button's two pairs, and the bridge that
+  closes while it is pressed.
+- **A rail's net name** (`netLabels`) printed beside its pad.
+- The parts in focus are drawn over the lines, half see-through, so the lines read under their
+  bodies. Parts beside the board (batteries, boards on Dupont leads, switches on clips) keep their
+  real paths.
+
+`"page": { "flow": { "style": "real" } }` draws the real paths instead (and `render --flow` follows
+the circuit's style): the metal strip between the holes in use, up a lead, through the body, down
+the other lead, along the arc of a jumper wire. On top, in both, **dots move**:
 
 - **Colour = voltage** (from ground), on a scale that ends at the largest voltage in the circuit:
   grey at 0 V, red towards +, blue towards − (the colours of the rails). Inside a body the colour

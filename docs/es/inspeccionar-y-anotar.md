@@ -25,6 +25,9 @@ Arma la misma escena que dibujaría `render` e informa:
 | `LABEL_COVERS_PART`, `LABEL_OVERLAP`: una etiqueta tapa un componente u otra etiqueta | aviso |
 | `LABEL_HIDES_TEXT`: una etiqueta tapa una etiqueta impresa de riel («+5 V») | nota |
 | `LEADER_CROSSING`, `LEADER_OVER_PART`: líneas guía que se cruzan o pasan sobre componentes | nota |
+| `TAG_OVER_PART`: una etiqueta de corriente (`--sim`) encima del componente que mide | aviso |
+| `COORD_COVERED`: una coordenada encendida (`--focus`) debajo de una etiqueta o un rótulo | aviso |
+| `FLOW_COLLINEAR`: dos conductores de la capa de corriente (`--flow`) sobre una misma línea | nota |
 | `TEXT_TOO_SMALL`: marcas de los componentes de menos de 6 px de alto a esta escala | nota |
 
 También incluye las observaciones de colocación de `check`. `--json` imprime el informe

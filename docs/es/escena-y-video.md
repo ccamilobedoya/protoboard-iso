@@ -62,7 +62,28 @@ página y la hoja de ruta al día.
   jsdom a tamaño de celular y de escritorio y obtiene los mismos subtítulos, valores, controles y
   foco a los mismos tiempos. Un repintado ya no busca sus elementos cada vez (de 120 ms a 2 ms por
   tick en jsdom). Los hashes de V0 no cambiaron.
-- ⬜ V3 a V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
+- ✅ V3 · El dibujo que cuenta (2026-10-30), en el orden de su encargo: (1) la capa de corriente
+  en planta, por defecto (`style` de `conductorPieces`/`flowOps` en `src/sim/paths.js`; `page.flow`
+  acepta `{ "style": "plan" | "real" }`, `render --flow` sigue al circuito): una pastilla en cada
+  aterrizaje (una línea redonda de 6 px con borde del color del fondo), una recta a través de las
+  piezas de dos patas y los cables, un tramo corto de un paso por pata en las demás (uno al lado del
+  otro si las patas van en fila), los pares de un pulsador y su puente mientras está apretado (de
+  sus `poles`; la página muestra el puente por `data-bridge`), el nombre de la red de un riel junto
+  a su pastilla, las piezas en foco encima de la capa al 50 %, grosores sin cambio; dos líneas planas
+  sobre una misma línea se corren de lado (0,9 mm); las piezas fuera de la tabla conservan sus
+  caminos reales. (2) Coordenadas: `coordOps` enciende la propia impresión de la tabla
+  (`decalTextOp`, compartido con `scene.js`); se acabaron las píldoras. (3) Etiquetas de resultado:
+  una etiqueta de corriente nunca encima del componente que mide (se prueban más lugares); en la
+  página `--tag-k` las deja en 13 px de pantalla al acercarse y nunca más grandes que como se
+  colocaron. (4) La página en reposo: rótulos cortos (`src/render/short-labels.js`, capa
+  `shortlabels`) y el botón Etiquetas para las cajas; el encuadre de cerca calculado con los
+  componentes y sus rótulos cortos; *MODELO* en la barra; Etiquetas y Corriente conservan su palabra
+  en el celular; botones de zoom callados hasta el primer toque. El pulso al cargar (medio) queda
+  para los movimientos (V6). (5) `inspect`: `TAG_OVER_PART`, `COORD_COVERED`, `FLOW_COLLINEAR`.
+  `test/plan.test.js`: cero choques en cada ejemplo con cada uno de sus primeros componentes en foco
+  (y 456 escenas, las dos vistas y los dos encuadres, revisadas una vez a mano). Las imágenes de los
+  ejemplos, la imagen de corriente del README y los hashes de V0 cambiaron a propósito.
+- ⬜ V4 a V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
 

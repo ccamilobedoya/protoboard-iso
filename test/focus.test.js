@@ -221,7 +221,10 @@ test('page: the current layer and its speed scale, by default with a source, not
   const front = doc.querySelector('svg[data-view="front"]');
   const order = [...front.children].map((g) => g.getAttribute('class'));
   assert.ok(order.indexOf('spotlabels') > order.indexOf('flow'), order.join(' '));
-  assert.ok(order.indexOf('spotlight') < order.indexOf('flow'));
+  // In the plan the copies of the parts go over the current layer, seen through, its lines under them.
+  assert.ok(order.indexOf('spotlight') > order.indexOf('flow') && order.indexOf('spotlight') < order.indexOf('spotlabels'), order.join(' '));
+  assert.equal(doc.body.dataset.flow, 'plan');
+  assert.ok(front.querySelector('.flow > .pad'), 'a pad at every landing');
   assert.ok(front.querySelector('.spotlabels > [data-part="D1"]'), 'D1 label copied');
   assert.equal(front.querySelector('.spotlight [data-part="D1"] text'), null);
   assert.equal([...doc.querySelectorAll('nav button')].filter((b) => b.dataset.key === 'direction').length, 0, 'conventional current only');

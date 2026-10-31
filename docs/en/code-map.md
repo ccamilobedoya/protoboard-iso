@@ -72,6 +72,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `sim/look.js`, `sim/lines.js` | bundleable: voltage colours, dot speed, body shading, glow and heat (look); a part's card lines with the texts passed in (lines) |
 | `page/client/live.js` | the live page: runs the engine, moves dots, repaints colours, tags and card, time controls |
 | `tour.js`, `beside.js`, `page/client/tour.js`, `page/client/moves.js` | a circuit's timeline (stage and video, V2): read beside the circuit (`beside.js`, shared with `.ino` programs), checked (`TOUR_*`) and given to the page; played by the director in the page (*See how it works*); the seven moves as one table and CSS tokens |
+| `render/short-labels.js` | the page at rest (stage and video, V3): a short label beside each part, placed off the parts and off each other; layer `shortlabels`, shown while the Labels button is off |
 | `page/client/director.js` | the director (stage and video, V1): with `?director=1`, one clock (`tick`) for cues, camera, controls and the simulation; nothing in a tick reads the system clock |
 | `page/client/controls.js`, `page/client/limits.js` | live page: sliders (card and `page.controls` panel) and the momentary button; stress outlines (`#stress` rules), latched marks and the warnings panel (in `.side`) |
 | `sim/controls.js` | bundleable: supplies' controls, slider maths (log, E24), stress levels; each device's own controls are in its module (`controls`, `set`) |

@@ -57,6 +57,26 @@ function textBox(text, size, anchor, m) {
   return { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
 }
 
+// A text printed flat on a surface (textDecal), as drawn from this camera: the board's print, and
+// the copies of it that other layers light up (coordinates, a rail's net name in the current layer).
+export function decalTextOp(camera, decal) {
+  const o = camera.project(decal.at);
+  const r = camera.projectDir(decal.right);
+  const d = camera.projectDir(decal.down);
+  const matrix = [r.x, r.y, d.x, d.y, o.x, o.y];
+  return {
+    kind: 'text',
+    text: String(decal.text),
+    size: decal.size,
+    weight: decal.weight,
+    anchor: decal.anchor,
+    fill: decal.color,
+    matrix,
+    box: textBox(decal.text, decal.size, decal.anchor, matrix),
+    px: decal.size * Math.hypot(d.x, d.y), // on-screen letter height
+  };
+}
+
 function paintPrimitive(primitive, camera, bounds, out) {
   const part = primitive.part;
   const visible = [];
@@ -94,25 +114,9 @@ function paintPrimitive(primitive, camera, bounds, out) {
         role: decal.role,
       });
     } else if (decal.kind === 'text') {
-      const o = camera.project(decal.at);
-      const r = camera.projectDir(decal.right);
-      const d = camera.projectDir(decal.down);
-      const matrix = [r.x, r.y, d.x, d.y, o.x, o.y];
-      const box = textBox(decal.text, decal.size, decal.anchor, matrix);
-      bounds.addBox(box);
-      out.push({
-        kind: 'text',
-        text: String(decal.text),
-        size: decal.size,
-        weight: decal.weight,
-        anchor: decal.anchor,
-        fill: decal.color,
-        matrix,
-        box,
-        px: decal.size * Math.hypot(d.x, d.y), // on-screen letter height
-        part,
-        role: decal.role,
-      });
+      const op = decalTextOp(camera, decal);
+      bounds.addBox(op.box);
+      out.push({ ...op, part, role: decal.role });
     }
   }
 }

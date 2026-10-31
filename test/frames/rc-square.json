@@ -4,6 +4,6 @@
   "viewport": {"width":1280,"height":800},
   "ticks": [[0,1],[16,120]],
   "renderer": "chromium 156.0.8078.4 linux-x64",
-  "html": "9935e76d2bf3356d258657048bd76106aafea30c7654effd5af9def71f43c085",
-  "png": "e763c949a919568587060e582f7b53853d3c72964a769ffd9c8e2360161abead"
+  "html": "3a68a7ea2e062c348a1d18c43cae2beae4794824c0ccc76e35b2f02e5aa87ffa",
+  "png": "9aacfa5d784c8d4985d0a341be208e712397cb75443e432c14021745cedb8829"
 }

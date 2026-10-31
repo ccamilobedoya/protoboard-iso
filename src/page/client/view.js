@@ -18,9 +18,16 @@ export function clampBox(page, [x, y, w, h]) {
   const cy = Math.min(Math.max(y + h / 2, by), by + bh);
   return [cx - (w * f) / 2, cy - (h * f) / 2, w * f, h * f];
 }
+// Result tags keep their size on screen (stage and video, V3): closer in, they shrink in the
+// drawing, so they never grow over the part they measure; farther out than where they were placed
+// they stay as drawn. --tag-k scales each one about its centre (page/style.js).
+const TAG_PX = 13; // the tags' letters on screen, px (8 drawing units in sim/overlay.js)
 function apply(page, box) {
   page.box = box;
-  page.current().setAttribute('viewBox', box.map((n) => Math.round(n * 100) / 100).join(' '));
+  const svg = page.current();
+  svg.setAttribute('viewBox', box.map((n) => Math.round(n * 100) / 100).join(' '));
+  const r = svg.getBoundingClientRect();
+  if (r.width > 0 && r.height > 0) svg.style.setProperty('--tag-k', Math.min(1, (TAG_PX / 8) * Math.max(box[2] / r.width, box[3] / r.height)).toFixed(4));
 }
 // Gestures set the frame at once (1:1 with the finger), and stop a frame that was moving.
 export function setBox(page, box) {
@@ -71,7 +78,8 @@ export function frameTo(page, target) {
 export function fitFrame(page, base) {
   const m = page.main.getBoundingClientRect();
   if (page.state.fit !== 'parts' || !(m.height > m.width * 1.1)) return base;
-  const els = [...page.current().querySelectorAll('.under [data-part], .parts [data-part], .labels [data-part]')];
+  // The labels shown (boxes, or the short labels at rest): hidden ones measure nothing.
+  const els = [...page.current().querySelectorAll('.under [data-part], .parts [data-part], .labels [data-part], .shortlabels [data-part]')];
   const rects = els.map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
   if (!rects.length) return base;
   const [x0, y0] = toBox(page, Math.min(...rects.map((r) => r.left)), Math.min(...rects.map((r) => r.top)));
@@ -264,6 +272,9 @@ export function setupView(page) {
     return { x, y, d: ps.length > 1 ? Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y) : 0 };
   };
   const touchByTouchEvents = (e) => page.embedded && e.pointerType === 'touch';
+  // The zoom buttons show from the first touch of the drawing on (page/style.js).
+  const touched = () => main.ownerDocument.body.classList.add('touched');
+  for (const type of ['pointerdown', 'wheel', 'touchstart']) main.addEventListener(type, touched, { passive: true });
   main.addEventListener('pointerdown', (e) => {
     if (page.inChrome(e.target) || touchByTouchEvents(e)) return;
     if (!pointers.size) page.dragged = false;

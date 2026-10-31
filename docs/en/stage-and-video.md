@@ -60,7 +60,26 @@ up to date.
   in jsdom at phone and desktop sizes and gets the same captions, values, controls and focus at
   the same times. A repaint no longer looks its elements up each time (120 ms → 2 ms a tick in
   jsdom). The V0 hashes did not change.
-- ⬜ V3 to V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
+- ✅ V3 · The drawing that tells (2026-10-30), in the order of its brief:
+  (1) the current layer as a plan, the default (`style` of `conductorPieces`/`flowOps` in
+  `src/sim/paths.js`; `page.flow` takes `{ "style": "plan" | "real" }`, `render --flow` follows
+  the circuit): a pad at every landing (a round line of 6 px with an edge of the background),
+  a line through two-pin parts and jumpers, a stub of one pitch per pin on the others (side by
+  side across a row of pins), a push button's pairs and its bridge while pressed (from its
+  `poles`; the page shows the bridge by `data-bridge`), a rail's net name beside its pad, parts in
+  focus drawn over the layer at 50 %, widths unchanged; two flat lines on one line move aside
+  (0.9 mm); parts beside the board keep their real paths. (2) Coordinates: `coordOps` lights the
+  board's own print (`decalTextOp`, shared with `scene.js`), the pills are gone. (3) Result tags:
+  a current tag never over the part it measures (more places tried); in the page `--tag-k` keeps
+  them at 13 px on screen when zooming in and never larger than placed. (4) The page at rest:
+  short labels (`src/render/short-labels.js`, the `shortlabels` layer) and the Labels button for
+  the boxes; the close-up frame computed with the parts and their short labels; *MODEL* in the bar;
+  Labels and Current keep their word on a phone; zoom buttons quiet until the first touch. The
+  pulse on load (medium) is left for the moves (V6). (5) `inspect`: `TAG_OVER_PART`,
+  `COORD_COVERED`, `FLOW_COLLINEAR`. `test/plan.test.js`: zero clashes for every example with
+  each of its first parts in focus (and 456 scenes, both views and frames, checked once by hand).
+  The example images, the README's current image and the V0 hashes changed on purpose.
+- ⬜ V4 to V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
 

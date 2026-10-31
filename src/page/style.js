@@ -3,6 +3,7 @@
 // Visibility is driven by classes on <body> and by two <style> elements the script rewrites:
 //   body.no-labels       labels hidden                 body.focusing    veil shown (a part is tapped)
 //   body.show-results    simulation results on (pageSimulation)  body.layer-flow  current layer
+//   body[data-flow]      the style of the current layer: plan or real (src/sim/paths.js)
 //   body.speed-log       dot speed on a log scale (each dot path carries --lin and --log)
 //   #dynamic             strips, coordinates and result tags of the focused part (or the tapped
 //                        strip, with its probes); see-through rules
@@ -111,7 +112,9 @@ nav .menu-group { display: flex; flex-direction: column; padding-bottom: 4px; ma
 nav .menu-title { padding: 4px 8px 2px; font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
 nav .menu .revision { padding: 6px 8px 2px; margin-top: 4px; border-top: 1px solid var(--hair-soft); color: var(--ink-3); font-size: 12px; }
 @media (max-width: 760px) {
+  /* The two buttons that change what is shown keep their word (V3); flip and frame are icons. */
   nav .label { display: none; }
+  nav button[data-key="labels"] .label, nav button[data-key="layer"] .label { display: inline; }
   nav button { padding: 0 6px; }
   nav .group { padding: 0 2px; }
 }
@@ -139,10 +142,20 @@ main > svg > rect:first-child { fill: var(--canvas); }
 .results rect[data-q]:not([data-q="node"]) { stroke: var(--tag-i); }
 .results text[data-q]:not([data-q="node"]) { fill: var(--tag-i); }
 .results .badge { fill: var(--ink-3); stroke: var(--canvas); }
-body.no-labels .labels, body.no-labels .spotlabels { display: none; }
+/* At rest (stage and video, V3) the parts are named by short labels beside them; Labels shows the
+   boxes with leaders instead. A tapped part's box comes forward either way (spotlabels). */
+body.no-labels .labels, body:not(.no-labels) .shortlabels { display: none; }
+.shortlabels text { fill: var(--label-ink); stroke: var(--bench); }
 body:not(.show-results) .results, body:not(.show-results) .info .sim { display: none; }
 .veil, .strips, .coords, .flow, .results, .lights { pointer-events: none; }
 body.layer-flow .lights { display: none; } /* the current layer draws its own glow, over the veil */
+/* The plan (stage and video, V3): the parts in focus are drawn over the current layer, seen through,
+   so its lines read under their bodies; a pad's edge is the colour behind it. */
+body.layer-flow[data-flow="plan"] .spotlight { opacity: 0.5; }
+.flow .pad-edge { stroke: var(--veil); }
+/* Result tags at a fixed size on screen, each about its own centre (--tag-k from view.js). */
+.results > rect, .results > text { transform-box: fill-box; transform-origin: center; transform: scale(var(--tag-k, 1)); }
+.coords > text { fill: var(--accent); }
 .coords > * { display: none; }
 .results > [data-q] { pointer-events: auto; cursor: help; }
 .probes { pointer-events: none; }
@@ -250,9 +263,11 @@ nav .falstad .flag[hidden] { display: none; }
 .marks > * { display: none; }
 @keyframes stress-pulse { from { opacity: 1; } to { opacity: 0.25; } }
 @media (prefers-reduced-motion: reduce) { .marks > * { animation: none !important; } }
-.zoom { position: absolute; right: 8px; bottom: 8px; z-index: 1; display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--hair); border-radius: 6px; overflow: hidden; cursor: auto; touch-action: manipulation; }
+/* Quiet until the drawing is first moved or tapped (V3): no frame, the canvas's colour, see-through. */
+.zoom { position: absolute; right: 8px; bottom: 8px; z-index: 1; display: flex; flex-direction: column; background: color-mix(in srgb, var(--canvas) 72%, transparent); border: none; border-radius: 6px; overflow: hidden; cursor: auto; touch-action: manipulation; opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease-out); }
+body.touched .zoom, .zoom:focus-within { opacity: 1; pointer-events: auto; }
 .zoom[hidden], .zoom button[hidden] { display: none; }
-.zoom button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; margin: 0; color: var(--ink); background: none; border: none; border-top: 1px solid var(--hair-soft); cursor: pointer; }
+.zoom button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; margin: 0; color: var(--ink); background: none; border: none; cursor: pointer; }
 .zoom button:first-child { border-top: none; }
 .zoom button:active { background: var(--press); }
 .zoom button[aria-pressed="true"] { color: var(--accent); }
@@ -305,8 +320,9 @@ body.embedded .first-hint .alone, body:not(.embedded) .first-hint .framed { disp
 .inspector .collapse { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; color: var(--ink-3); background: none; border: none; border-radius: 4px; cursor: pointer; }
 .inspector .collapse:active { background: var(--press); }
 .inspector .collapse .icon { transition: transform 160ms var(--ease-out); }
-.model-badge { position: absolute; left: 8px; top: 8px; z-index: 1; display: none; background: var(--card); pointer-events: none; }
-body.show-results.focusing .model-badge { display: block; }
+/* MODEL lives in the bar, right, as grey text (V3): shown with the first card, not at rest. */
+nav .model-badge { display: none; align-self: center; margin: 0 6px; border: none; padding: 0; white-space: nowrap; pointer-events: none; }
+body.show-results.focusing nav .model-badge { display: block; }
 @media (min-width: 761px) {
   .inspector { top: 8px; right: 8px; width: 300px; max-height: calc(100% - 16px); border-radius: 6px; }
   .inspector .collapse[aria-expanded="true"] .icon { transform: rotate(180deg); }

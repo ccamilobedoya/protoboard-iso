@@ -39,7 +39,9 @@ export function pageSimulation(circuit) {
   if (page.simulation === false) return { results: false, flow: false };
   const usbBoard = (p) => p?.type === 'module' && p.usb !== false && Boolean(lookupModule(p.part)?.module.gpio);
   const hasSource = Boolean(circuit?.supplies?.length) || (circuit?.parts ?? []).some((p) => p?.type === 'battery' || usbBoard(p));
-  return { results: page.results ?? hasSource, flow: page.flow ?? hasSource };
+  // page.flow: a boolean, or { style } (the layer offered, drawn in that style; src/sim/paths.js).
+  const flow = page.flow != null && typeof page.flow === 'object' ? hasSource : page.flow;
+  return { results: page.results ?? hasSource, flow: flow ?? hasSource };
 }
 
 export function pageControlIssues(circuit) {

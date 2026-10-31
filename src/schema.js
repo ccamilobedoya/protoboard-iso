@@ -149,7 +149,10 @@ export function buildSchemas() {
         properties: {
           simulation: { type: 'boolean', description: 'false: no simulation in the page at all (a value the learner must predict first). By default a circuit with a source gets it' },
           results: { type: 'boolean', description: 'Simulation results always on in the page (default: true with a source): the tapped part shows its values on the board and in its card, its oscilloscope and limits; LEDs light up. false turns them off' },
-          flow: { type: 'boolean', description: 'The current layer as a button in the bar, not pressed (default: true with a source): everything dimmed, conductors coloured by voltage, moving dots. false leaves it out' },
+          flow: {
+            description: "The current layer as a button in the bar, not pressed (default: true with a source): everything dimmed, conductors coloured by voltage, moving dots. false leaves it out; { style } keeps it and chooses how it is drawn: 'plan' (default: at board level, a pad at every landing, a line through two-pin parts and jumpers, a stub per pin on the others) or 'real' (along the leads and through the bodies)",
+            oneOf: [{ type: 'boolean' }, { type: 'object', properties: { style: { enum: ['plan', 'real'] } }, additionalProperties: false }],
+          },
           focus: { type: 'array', items: text, description: 'Parts in focus when the page opens (the ones being explained)' },
           controls: {
             type: 'array',

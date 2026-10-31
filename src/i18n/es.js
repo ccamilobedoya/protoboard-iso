@@ -50,6 +50,9 @@ export default {
   'check.LABEL_OVERLAP': 'Las etiquetas de {first} y {second} se montan una sobre otra.',
   'check.LABEL_HIDES_TEXT': 'La etiqueta de {part} tapa el texto impreso «{text}».',
   'check.LEADER_CROSSING': 'Las líneas guía de {first} y {second} se cruzan.',
+  'check.TAG_OVER_PART': 'La etiqueta de corriente de {part} queda encima de {part}.',
+  'check.COORD_COVERED': 'La coordenada encendida {coord} queda debajo de una etiqueta o un rótulo ({by}).',
+  'check.FLOW_COLLINEAR': 'En la capa de corriente, conductores de {first} y {second} van sobre una misma línea: no se distinguen.',
   'check.LEADER_OVER_PART': 'La línea guía de {part} pasa por encima de {over}.',
   'check.TEXT_TOO_SMALL': '{count} textos impresos miden menos de {limit} px de alto (el menor, {smallest} px; componentes: {parts}). Usa un --scale mayor o --fit parts.',
 

@@ -62,6 +62,39 @@ function segmentsCross(a, b) {
   return d1 * d2 < 0 && d3 * d4 < 0;
 }
 
+// Conductors of the current layer (paths of parts and jumpers; not strips or pads) of two parts
+// that lie along one line on screen for a stretch: in the plan two flat lines on one line cannot
+// be told apart. → [{ first, second }]
+const COLLINEAR = { angle: 0.05, gap: 2, length: 6 }; // rad, px apart, px along
+function collinear(flowOps) {
+  const lines = [];
+  for (const op of flowOps) {
+    if (op.kind !== 'path' || !String(op.cls).startsWith('conductor') || /\b(pad|link)\b/.test(op.cls) || op.part == null) continue;
+    const pts = [...op.d.matchAll(/[ML](-?[\d.]+) (-?[\d.]+)/g)].map((m) => ({ x: Number(m[1]), y: Number(m[2]) }));
+    for (let k = 1; k < pts.length; k++) if (Math.hypot(pts[k].x - pts[k - 1].x, pts[k].y - pts[k - 1].y) > 1) lines.push({ a: pts[k - 1], b: pts[k], part: op.part });
+  }
+  const found = new Map();
+  for (let i = 0; i < lines.length; i++) {
+    for (let j = i + 1; j < lines.length; j++) {
+      const [p, q] = [lines[i], lines[j]];
+      if (p.part === q.part) continue;
+      const u = { x: p.b.x - p.a.x, y: p.b.y - p.a.y };
+      const len = Math.hypot(u.x, u.y);
+      const v = { x: q.b.x - q.a.x, y: q.b.y - q.a.y };
+      const angle = Math.abs(Math.asin(Math.max(-1, Math.min(1, (u.x * v.y - u.y * v.x) / (len * Math.hypot(v.x, v.y))))));
+      if (angle > COLLINEAR.angle) continue;
+      const off = (r) => Math.abs((r.x - p.a.x) * u.y - (r.y - p.a.y) * u.x) / len;
+      if (off(q.a) > COLLINEAR.gap || off(q.b) > COLLINEAR.gap) continue;
+      const along = (r) => ((r.x - p.a.x) * u.x + (r.y - p.a.y) * u.y) / len;
+      const [s0, s1] = [along(q.a), along(q.b)].sort((m, n) => m - n);
+      if (Math.min(len, s1) - Math.max(0, s0) < COLLINEAR.length) continue;
+      const pair = [p.part, q.part].sort();
+      found.set(pair.join('|'), { first: pair[0], second: pair[1] });
+    }
+  }
+  return [...found.values()];
+}
+
 export function inspectScene(scene, result, { view, scale, limits = INSPECT_LIMITS } = {}) {
   const { camera } = scene;
   const coverage = createCoverage(scene.frame);
@@ -148,6 +181,21 @@ export function inspectScene(scene, result, { view, scale, limits = INSPECT_LIMI
       if (segmentsCross(leaders[i], leaders[j])) problems.push({ severity: 'info', code: 'LEADER_CROSSING', params: { first: leaders[i].part, second: leaders[j].part } });
     }
   }
+
+  // Stage and video, V3: a current tag over the part it measures; a lit coordinate under a tag or a
+  // label (they are drawn over it); two conductors of the current layer lying along one line.
+  const layer = (name) => scene.layers[name] ?? [];
+  const tagRects = layer('results').filter((op) => op.kind === 'rect');
+  for (const rect of tagRects) {
+    const id = String(rect.data?.probe ?? '').startsWith('part:') ? rect.data.probe.slice(5) : null;
+    if (id && coverage.under(rect).some((u) => u.part === id && u.share > 0.02)) problems.push({ severity: 'warning', code: 'TAG_OVER_PART', params: { part: id } });
+  }
+  const covers = [...tagRects, ...labelRects];
+  for (const text of layer('coords').filter((op) => op.kind === 'text' && op.box)) {
+    const over = covers.find((r) => overlaps(r, text.box));
+    if (over) problems.push({ severity: 'warning', code: 'COORD_COVERED', params: { coord: text.text, by: over.part ?? over.data?.node ?? '?' } });
+  }
+  for (const pair of collinear(layer('flow'))) problems.push({ severity: 'info', code: 'FLOW_COLLINEAR', params: pair });
 
   // Text size on screen.
   const texts = [...scene.layers.under, ...scene.layers.board, ...scene.layers.parts].filter((op) => op.kind === 'text');

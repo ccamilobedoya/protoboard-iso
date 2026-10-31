@@ -24,7 +24,9 @@ export function applyFocus(page) {
   const nodes = new Set(ids.flatMap((id) => data.parts[id].nodes));
   const of = (layer) => ids.map((id) => ':scope > .' + layer + ' > [data-part="' + quote(id) + '"]').join(', ');
   for (const svg of svgs) {
-    const parts = groupOf(svg, 'spotlight', ['flow', 'results', 'probes']);
+    // In the plan the copies go over the current layer, seen through (page/style.js), so its
+    // lines read under their bodies; otherwise under it.
+    const parts = groupOf(svg, 'spotlight', data.flowStyle === 'plan' ? ['marks', 'spotlabels', 'results', 'probes'] : ['flow', 'results', 'probes']);
     const labels = groupOf(svg, 'spotlabels', ['results', 'probes']);
     parts.textContent = '';
     labels.textContent = '';

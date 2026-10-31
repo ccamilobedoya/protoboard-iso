@@ -25,6 +25,9 @@ It builds the same scene that `render` would draw and reports:
 | `LABEL_COVERS_PART`, `LABEL_OVERLAP`: a label covers a part or another label | warning |
 | `LABEL_HIDES_TEXT`: a label covers a printed rail label ("+5 V") | note |
 | `LEADER_CROSSING`, `LEADER_OVER_PART`: leader lines that cross or pass over parts | note |
+| `TAG_OVER_PART`: a current tag (`--sim`) over the part it measures | warning |
+| `COORD_COVERED`: a lit coordinate (`--focus`) under a tag or a label | warning |
+| `FLOW_COLLINEAR`: two conductors of the current layer (`--flow`) on one line | note |
 | `TEXT_TOO_SMALL`: markings on parts under 6 px tall at this scale | note |
 
 The placement issues of `check` are included too. `--json` prints the full report for
