@@ -1,0 +1,87 @@
+{
+  "title": {
+    "en": "Arduino UNO with an LED, a button with pull-up, a potentiometer and a second LED",
+    "es": "Arduino UNO con un LED, un pulsador con pull-up, un potenciómetro y un segundo LED"
+  },
+  "board": "auto",
+  "parts": [
+    {
+      "id": "U1",
+      "part": "UNO",
+      "usb": true
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "220"
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "red"
+    },
+    {
+      "id": "S1",
+      "type": "button"
+    },
+    {
+      "id": "R2",
+      "type": "resistor",
+      "value": "10k"
+    },
+    {
+      "id": "RV1",
+      "type": "potentiometer",
+      "value": "10k"
+    },
+    {
+      "id": "R3",
+      "type": "resistor",
+      "value": "220"
+    },
+    {
+      "id": "D2",
+      "type": "led",
+      "color": "green"
+    }
+  ],
+  "nets": [
+    [
+      "U1.D13",
+      "R1.1"
+    ],
+    [
+      "R1.2",
+      "D1.anode"
+    ],
+    [
+      "U1.D2",
+      "S1.1",
+      "R2.1"
+    ],
+    [
+      "U1.5V",
+      "R2.2",
+      "RV1.1"
+    ],
+    [
+      "RV1.2",
+      "U1.A0"
+    ],
+    [
+      "U1.D9",
+      "R3.1"
+    ],
+    [
+      "R3.2",
+      "D2.anode"
+    ],
+    [
+      "U1.GND",
+      "D1.cathode",
+      "S1.3",
+      "RV1.3",
+      "D2.cathode"
+    ]
+  ]
+}

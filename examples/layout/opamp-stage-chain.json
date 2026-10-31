@@ -1,0 +1,103 @@
+{
+  "title": {
+    "en": "Two LM358 stages in series: non-inverting, then inverting, on one supply",
+    "es": "Dos etapas LM358 en serie: no inversora y después inversora, con una sola fuente"
+  },
+  "board": "auto",
+  "parts": [
+    {
+      "id": "RV1",
+      "type": "potentiometer",
+      "value": "10k"
+    },
+    {
+      "id": "U1",
+      "part": "LM358"
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "10k"
+    },
+    {
+      "id": "R2",
+      "type": "resistor",
+      "value": "20k"
+    },
+    {
+      "id": "R3",
+      "type": "resistor",
+      "value": "10k"
+    },
+    {
+      "id": "R4",
+      "type": "resistor",
+      "value": "10k"
+    },
+    {
+      "id": "R5",
+      "type": "resistor",
+      "value": "10k"
+    },
+    {
+      "id": "R6",
+      "type": "resistor",
+      "value": "20k"
+    }
+  ],
+  "nets": [
+    [
+      "T+",
+      "RV1.1",
+      "R3.1",
+      "U1.VCC"
+    ],
+    [
+      "RV1.3",
+      "R4.2",
+      "U1.GND",
+      "T-"
+    ],
+    [
+      "RV1.2",
+      "U1.IN1+"
+    ],
+    [
+      "U1.IN1-",
+      "R1.1",
+      "R2.1"
+    ],
+    [
+      "R1.2",
+      "T-"
+    ],
+    [
+      "R2.2",
+      "U1.OUT1",
+      "R5.1"
+    ],
+    [
+      "R3.2",
+      "R4.1",
+      "U1.IN2+"
+    ],
+    [
+      "R5.2",
+      "R6.1",
+      "U1.IN2-"
+    ],
+    [
+      "R6.2",
+      "U1.OUT2"
+    ]
+  ],
+  "supplies": [
+    {
+      "id": "V1",
+      "kind": "bench",
+      "voltage": 9,
+      "positive": "T+",
+      "negative": "T-"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "title": { "en": "ESP32 DevKit with nets on both pin headers", "es": "ESP32 DevKit con redes en las dos filas de pines" },
+  "parts": [{"id":"U1","type":"module","part":"ESP32-DEVKIT","usb":true},{"id":"R1","type":"resistor","value":"220"},{"id":"D1","type":"led","color":"red"},{"id":"R2","type":"resistor","value":"10k"},{"id":"S1","type":"button"},{"id":"R3","type":"resistor","value":"10k"},{"id":"RV1","type":"potentiometer","value":"10k"}],
+  "nets": [["U1.D4","R1.1"],["R1.2","D1.anode"],["D1.cathode","U1.GND"],["U1.3V3","R2.1","RV1.1"],["R2.2","S1.1","U1.D15"],["S1.3","U1.GND"],["RV1.2","U1.D34"],["RV1.3","U1.GND"],["U1.D23","R3.1"],["R3.2","U1.GND"]]
+}
