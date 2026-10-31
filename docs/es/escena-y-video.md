@@ -113,7 +113,8 @@ página y la hoja de ruta al día.
   contada y su rótulo en el área libre, un rótulo, sin etiquetas, sin barra); `test/stage.test.js`.
   Los hashes de V0 cambiaron a propósito (la retícula). Faltan las puertas de contraste y de tamaño
   de toque en un navegador real (las del mantenedor).
-- 🔜 V5 · Fotogramas (2026-10-30), construida; falta que el mantenedor apruebe el video de prueba en
+- ✅ V5 · Fotogramas (2026-10-30; el mantenedor aprobó el video de prueba en el celular el 2026-10-31).
+  Antes: construida; faltaba que el mantenedor aprobara el video de prueba en
   un celular. `scripts/render-frames.js <timeline.json> [--format vertical|horizontal|both] [--fps 30]
   [--lang] [--tail ms] [--check]`: el circuito es un archivo con el nombre del `circuit` de la línea
   de tiempo, a su lado o una carpeta arriba, o si no la receta de ese nombre; su página con la línea
@@ -631,6 +632,12 @@ el tiempo) o cuando dos corridas difieren.
 ## Compatibilidad
 
 - Las páginas sin `page.tour` y los enlaces sin `?director=1` no cambian: mismo marco, mismo ciclo.
+- `?director=landing` (solo en una página con `page.tour`): el fondo vivo de la portada de un sitio.
+  El marco de una grabación (sin barra, el subtítulo en el suelo, un rótulo, el tema de la línea de
+  tiempo salvo `?theme=`) con el circuito encuadrado más cerca (`LANDING_INSET` en `view.js`), con el
+  reloj propio de la página: el recorrido arranca solo y se repite tras `LANDING_PAUSE` ms, un toque
+  no lo detiene, y con movimiento reducido espera a `protoboardLive.tour.play()`, va en cortes y no
+  se repite.
 - `window.protoboardLive` conserva `tick`, `set`, `currents`, `recording`; el director agrega.
 - El SVG estático conserva sus colores; el tema de escena es de la página.
 

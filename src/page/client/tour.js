@@ -21,6 +21,7 @@ import { select, selectNode } from './card.js';
 
 const COUNT_MS = 500; // a value counts up to its reading (M9), unless a step says otherwise
 const WAIT_MS = 10_000; // a wait-until that never comes true gives up after this
+export const LANDING_PAUSE = 1800; // ms a landing rests on the last frame before it plays again
 const UNITS = { current: 'A', voltage: 'V', power: 'W', brightness: '%' };
 
 function el(parent, tag, cls) {
@@ -41,7 +42,7 @@ function stepMs(s, timing, count) {
   return timing(s).ms;
 }
 
-export function setupTour(page, { director, t, f, recording, reading, dots, lights = () => {}, carrying = () => [] }) {
+export function setupTour(page, { director, t, f, recording, landing = false, reading, dots, lights = () => {}, carrying = () => [] }) {
   const steps = page.data.tour.steps;
   const reduced = !recording && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const timing = (s) => (reduced ? { ms: 0, ease: () => 1 } : moveTiming(s.move, s.ms ?? (s.do === 'insert' ? INSERT.ms : undefined), s.curve));
@@ -63,7 +64,7 @@ export function setupTour(page, { director, t, f, recording, reading, dots, ligh
   value.hidden = true;
   const hint = el(box, 'small', 'stop');
   hint.textContent = t('page.tour.stop');
-  hint.hidden = recording;
+  hint.hidden = recording || landing;
 
   let shown = null; // { part, field, k } the value on screen, k: share of its count
   const readingOf = (part, field) => reading()?.parts[part]?.[field];
@@ -403,8 +404,11 @@ export function setupTour(page, { director, t, f, recording, reading, dots, ligh
   };
 
   let playing = false;
+  let again = null; // a landing's next play, after its pause
   const log = []; // in a recording: each step as it ran, at the director's time (a wait moves the later ones)
   function stop() {
+    clearTimeout(again);
+    again = null;
     if (!playing) return;
     playing = false;
     director.stop();
@@ -447,6 +451,8 @@ export function setupTour(page, { director, t, f, recording, reading, dots, ligh
           document.body.classList.remove('touring');
         }
         page.direct(false);
+        // A landing loops (not under reduced motion: there it played because it was asked to).
+        if (landing && !reduced) again = setTimeout(play, LANDING_PAUSE);
       }
     });
   }
@@ -460,7 +466,7 @@ export function setupTour(page, { director, t, f, recording, reading, dots, ligh
   item.textContent = t('page.tour.play');
   item.addEventListener('click', () => play());
   page.menuAdd?.(item);
-  if (!recording) {
+  if (!recording && !landing) {
     document.addEventListener('pointerdown', stop, true);
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') stop();

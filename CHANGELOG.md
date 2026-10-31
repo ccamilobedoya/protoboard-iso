@@ -11,6 +11,8 @@ detail.
 
 ### Added
 
+- **`?director=landing`**: a live page with a tour as the background of a site's landing, dressed
+  like a recording, framed closer, looping on its own clock and respecting reduced motion.
 - **Live simulation in the page** (stage 3): the conductor view, current flowing along real paths,
   lit LEDs, sliders and buttons for the parts that can change, limits with three levels and a mark
   when a part was pushed past one, an oscilloscope in the part's card, a signal generator as a

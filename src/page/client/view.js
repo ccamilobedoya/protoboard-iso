@@ -136,6 +136,13 @@ export const STAGE_INSET = { vertical: { top: 0.4, right: 0.0667, bottom: 0.25, 
 // With the oscilloscope's box (M11, body.with-scope; page/style.js) a portrait frame also leaves
 // free the band it takes, from 56 % to 75 %; in landscape it lies under the caption, in the left half.
 const SCOPE_BOTTOM = 0.44;
+// A landing (?director=landing) frames the circuit closer: narrow sides, and in portrait the band
+// at the bottom left for the site's headline and buttons; in landscape the caption's left half.
+export const LANDING_INSET = { vertical: { top: 0.34, right: 0.03, bottom: 0.3, left: 0.03 }, horizontal: { top: 0.08, right: 0.03, bottom: 0.22, left: 0.45 } };
+export function landingInset(page) {
+  const m = page.main.getBoundingClientRect();
+  return m.width > m.height ? LANDING_INSET.horizontal : LANDING_INSET.vertical;
+}
 export function stageInset(page) {
   const m = page.main.getBoundingClientRect();
   if (m.width > m.height) return STAGE_INSET.horizontal;

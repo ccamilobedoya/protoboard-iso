@@ -101,7 +101,7 @@ up to date.
   the frame's rules on the DOM (caption band and sizes, the told part and its label in the free
   area, one label, no tags, no chrome); `test/stage.test.js`. The V0 hashes changed on purpose (the
   grid). The contrast and touch-size gates in a real browser are still to run (the maintainer's).
-- 🔜 V5 · Frames (2026-10-30), built; waiting for the maintainer to approve the test video on a phone.
+- ✅ V5 · Frames (2026-10-30; the maintainer approved the test video on a phone on 2026-10-31).
   `scripts/render-frames.js <timeline.json> [--format vertical|horizontal|both] [--fps 30] [--lang]
   [--tail ms] [--check]`: the circuit is a file of the timeline's `circuit` name beside it or one
   folder up, else the recipe of that name; its page with the timeline as its tour, opened with
@@ -586,6 +586,11 @@ when two runs differ.
 ## Compatibility
 
 - Pages without `page.tour` and links without `?director=1` do not change: same chrome, same loop.
+- `?director=landing` (a page with `page.tour` only): the live background of a site's landing. The
+  chrome of a recording (no bar, the caption on the ground, one label, the timeline's theme unless
+  `?theme=`) with the circuit framed closer (`LANDING_INSET` in `view.js`), on the page's own clock:
+  the tour plays by itself and again after `LANDING_PAUSE` ms, a tap does not stop it, and under
+  reduced motion it waits for `protoboardLive.tour.play()`, plays as cuts and does not loop.
 - `window.protoboardLive` keeps `tick`, `set`, `currents`, `recording`; the director adds to it.
 - The static SVG keeps its own colours; the stage theme is the page's.
 

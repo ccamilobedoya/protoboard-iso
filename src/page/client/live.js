@@ -39,9 +39,9 @@ import { createScope } from './scope.js';
 import { createRecorder, samplesOf } from '../../sim/recorder.js';
 import { scopeOf } from '../../sim/scope.js';
 import { iconSvg } from './icons.js';
-import { createDirector, wantsDirector } from './director.js';
+import { createDirector, wantsDirector, wantsLanding } from './director.js';
 import { setupTour } from './tour.js';
-import { stageInset } from './view.js';
+import { stageInset, landingInset } from './view.js';
 import { bezier, LIGHT } from './moves.js';
 
 const BUDGET = 8; // ms of simulation per frame
@@ -185,6 +185,7 @@ export function setupLive(page) {
   if (written) page.onShow.push(() => written.fill(Infinity));
   let peak = 0;
   const recording = wantsDirector(location.search);
+  const landing = !recording && Boolean(data.tour) && wantsLanding(location.search);
   let director = null; // set below, once the controls it moves exist
   let directing = false; // the director has the time: a recording, or a tour playing
   const reduced = !recording && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -500,12 +501,20 @@ export function setupLive(page) {
     page.inset = () => stageInset(page);
     page.told = null;
   }
+  // A landing (director.js, wantsLanding) dresses like a recording and keeps the page's own time.
+  if (landing) {
+    document.body.classList.add('director', 'landing');
+    if (!new URLSearchParams(location.search).has('theme')) document.documentElement.dataset.theme = data.tour.theme ?? 'stage';
+    page.inset = () => landingInset(page);
+    page.told = null;
+  }
   const tour = data.tour && director
     ? setupTour(page, {
         director,
         t,
         f,
         recording,
+        landing,
         reading: () => reading,
         dots: (k) => {
           dotScale = k;
@@ -565,4 +574,6 @@ export function setupLive(page) {
     };
     requestAnimationFrame(loop);
   }
+  // A landing plays by itself, unless the reader asked for less motion.
+  if (landing && !reduced) tour.play();
 }

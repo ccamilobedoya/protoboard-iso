@@ -19,6 +19,11 @@ import { clampBox, frameAt, easeOut, numbers, partBox, partsBounds, insetFrame, 
 const EPSILON = 1e-6; // ms
 
 export const wantsDirector = (search) => new URLSearchParams(search).get('director') === '1';
+// ?director=landing: the page as the live background of a site's landing, not a recording. The same
+// chrome as a recording (no bar, the caption on the ground, one label) with the circuit framed
+// closer, but the page keeps its own clock between plays and the reader's reduced motion: its tour
+// plays by itself and again after a pause, and under reduced motion only when asked (tour.play()).
+export const wantsLanding = (search) => new URLSearchParams(search).get('director') === 'landing';
 
 // `sim`: what live.js lends the director — controls() (engine.controls()), set(id, field, value)
 // (controls.js, so the rows in the card and the panel follow), advance(ms) (the page's frame for

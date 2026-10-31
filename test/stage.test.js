@@ -137,6 +137,62 @@ test('stage: a recording keeps one label, the told part\'s short one; a tour in 
   assert.ok(!labelled(page).some((el) => el.classList.contains('short')));
 });
 
+// The landing's pause, read from the source: importing a client module here would count the whole
+// client (which runs bundled, in jsdom) as uncovered.
+const LANDING_PAUSE = Number(readFileSync(new URL('../src/page/client/tour.js', import.meta.url), 'utf8').match(/LANDING_PAUSE = (\d+)/)[1]);
+// ?director=landing: the live background of a site's landing. Timers and reduced motion are the
+// window's, so the test stands in for both before the page's script runs.
+async function landingPage(html, { reduced = false } = {}) {
+  const timers = [];
+  const win = await loadPage(html, '?director=landing', { width: 390, height: 844 }, (w) => {
+    w.matchMedia = (q) => ({ matches: reduced && q.includes('reduced-motion'), addEventListener() {} });
+    w.setTimeout = (fn, ms) => timers.push({ fn, ms }) && timers.length;
+    w.clearTimeout = () => {};
+  });
+  return win && { win, timers };
+}
+const finish = (win) => {
+  for (let t = 0; t < 60_000 && win.protoboardLive.tour.playing; t += FRAME) win.protoboardLive.tick(FRAME);
+};
+
+test('stage: a landing dresses like a recording, plays by itself and again after a pause', async (t) => {
+  const html = renderPage(npn()).html;
+  const got = await landingPage(html);
+  if (!got) return t.skip('jsdom not installed');
+  const { win, timers } = got;
+  const body = win.document.body;
+  assert.ok(body.classList.contains('director') && body.classList.contains('landing'));
+  assert.equal(win.document.documentElement.dataset.theme, 'stage');
+  assert.equal(win.protoboardLive.director, null, 'not a recording: no director handed out');
+  assert.ok(win.protoboardLive.tour.playing, 'it plays without being asked');
+  assert.ok(win.document.querySelector('.tour-caption .stop').hidden, 'no «tap to stop» hint');
+  // A tap does not stop it: the site's link above the page takes the tap.
+  body.dispatchEvent(new win.Event('pointerdown', { bubbles: true }));
+  assert.ok(win.protoboardLive.tour.playing);
+  finish(win);
+  assert.ok(!win.protoboardLive.tour.playing);
+  const next = timers.find((x) => x.ms === LANDING_PAUSE);
+  assert.ok(next, 'the next play waits LANDING_PAUSE ms');
+  next.fn();
+  assert.ok(win.protoboardLive.tour.playing, 'and plays again');
+  // A page without a tour has no landing: the link changes nothing.
+  const plain = await loadPage(renderPage({ ...npn(), page: {} }).html, '?director=landing');
+  assert.ok(!plain.document.body.classList.contains('landing'));
+});
+
+test('stage: a landing under reduced motion waits to be asked, plays once and does not loop', async (t) => {
+  const got = await landingPage(renderPage(npn()).html, { reduced: true });
+  if (!got) return t.skip('jsdom not installed');
+  const { win, timers } = got;
+  assert.ok(win.document.body.classList.contains('landing'));
+  assert.ok(!win.protoboardLive.tour.playing);
+  win.protoboardLive.tour.play();
+  assert.ok(win.protoboardLive.tour.playing);
+  finish(win);
+  assert.ok(!win.protoboardLive.tour.playing);
+  assert.ok(!timers.some((x) => x.ms === LANDING_PAUSE));
+});
+
 test('stage: the reserved margin frames a target in the area the caption and the platforms leave free', async (t) => {
   const html = renderPage(npn()).html;
   for (const [format, size, u, v] of [['vertical', { width: 1080, height: 1920 }, 0.5, 0.575], ['horizontal', { width: 1920, height: 1080 }, 0.5 + (1 - 0.5 - 0.0375) / 2, 0.5]]) {
