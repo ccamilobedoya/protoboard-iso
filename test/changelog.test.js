@@ -34,7 +34,7 @@ test('changelog: each released version has its git tag, on a commit with that ve
     return t.skip('not a git checkout');
   }
   for (const { version } of versions(changelog).slice(1)) {
-    assert.ok(tags.includes(`v${version}`), `tag v${version} (git tag -a v${version} <commit>, then push it)`);
+    assert.ok(tags.includes(`v${version}`), `tag v${version} (git tag -a v${version} <commit>, then push it with the commit in one push, git push origin main v${version}, or CI runs on the commit before the tag exists)`);
     const pkg = JSON.parse(execFileSync('git', ['show', `v${version}:package.json`], { cwd: root, encoding: 'utf8' }));
     assert.equal(pkg.version, version, `v${version} points at a commit whose package.json is ${pkg.version}`);
   }

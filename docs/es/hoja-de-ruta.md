@@ -325,7 +325,7 @@ después de revisar licencias y datos privados.
 - ✅ Integración continua en GitHub Actions: `npm test`, `npm run test:mcp`, `node scripts/golden.js`, `npm run examples`, `npm run layout-bench`, en Node 20, 22 y 24 — hecho como C01 de «Herramientas del repositorio» (2026-10-29): `npm run verify` en Node 22 y 24; el banco de layout queda fuera (mide tiempo)
 - ⬜ `CONTRIBUTING.md` (en/es), sobre todo cómo agregar un componente; `CODE_OF_CONDUCT.md`; `SECURITY.md`; `CHANGELOG.md`
 - ⬜ Plantillas de issues: componente nuevo, dibujo incorrecto, simulación incorrecta
-- 🔜 Versión 0.3.0, etiqueta de git y release en GitHub; descripción, temas e imagen para compartir del repositorio — la 0.3.0, su etiqueta y su release hechas el 2026-10-31; quedan la descripción, los temas y la imagen
+- 🔜 Versión 0.3.0, etiqueta de git y release en GitHub; descripción, temas e imagen para compartir del repositorio — la 0.3.0, su etiqueta, su release, la descripción, los temas y el sitio hechos el 2026-10-31; la imagen para compartir (hecha con `docs/img/hero.png`, 1280 × 640) la sube el dueño en Settings, GitHub no tiene API para eso
 - ⬜ Formato de circuito versionado con notas de migración
 - ⬜ Decidir la línea de copyright (hoy «protoboard-iso contributors») y el campo `author`
 
