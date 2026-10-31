@@ -271,7 +271,7 @@ and a frame exporter. Decisions taken with the maintainer on 2026-10-30: C dark 
 - ✅ V4 · The stage: the chosen direction as `[data-theme="stage"]`, the hole grid continued under the drawing, the caption layer, one label and no tags in a frame, the reserved margin, safe bands measured
 - 🔜 V5 · Frames (built, the test video waits for approval): `scripts/render-frames.js` (Playwright, dev only) → PNG sequence + `timeline.json`; ffmpeg command documented; a 45 s test video of three recipes approved on a phone
 - ✅ V6 · The chosen moves (M1 to M16 in the plan), each with a jsdom test (`test/moves.test.js`) and a golden frame (`test/frames/move-*.json`), from `examples/tours/npn-switch-moves.json` and `npn-switch-build.json`; new steps `raise` (M16), `assemble` (M4, M5), `pulse` (M7), `probe` in a recording as an oscilloscope box (M11). Every choice of a move is an optional field of the timeline, documented in `docs/en/timeline.md` (2026-10-31). Left for a decision: the pulse on load
-- ⬜ V7 · Bench and guide: a timeline per recorded recipe, the golden in `npm run verify`, the guide in en and es
+- ✅ V7 · Bench and guide: the guide `docs/en/making-a-video.md` (es: `hacer-un-video.md`), `render-frames.js --parts` and `--validate`, `TOUR_VALUE_HIDDEN`, short labels that follow a control; nine recipe timelines in `examples/tours/`, six of them written by a medium model with the guide alone; the golden in `npm run verify` (since V0)
 
 ## Stage 4 — On a phone or tablet ⬜
 

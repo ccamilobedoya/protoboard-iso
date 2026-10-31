@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "mosfet-switch",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A MOSFET as a switch", "es": "Un MOSFET como interruptor" } },
+
+    { "at": 1200, "do": "frame", "target": "Q1", "move": "arrival" },
+    { "at": 1200, "do": "focus", "parts": ["Q1"] },
+    { "at": 1200, "do": "flow", "on": true, "ramp": 600 },
+
+    { "at": 2400, "do": "caption", "text": { "en": "Without a press the gate stays low", "es": "Sin presionar, la compuerta queda baja" } },
+    { "at": 2400, "do": "focus", "parts": ["Q1", "R2"] },
+    { "at": 4600, "do": "caption", "text": { "en": "A press lifts the gate and the LED lights", "es": "Al presionar sube la compuerta y el LED enciende" } },
+    { "at": 4600, "do": "set", "part": "S1", "field": "pressed", "value": true, "move": "hit" },
+    { "at": 4600, "do": "focus", "parts": ["Q1", "D1"] },
+    { "at": 4600, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
+
+    { "at": 10100, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 10100, "do": "caption", "text": { "en": "Try it in the page: tap S1", "es": "Pruébalo en la página: toca S1" } },
+    { "at": 11600, "do": "focus", "parts": [] }
+  ]
+}

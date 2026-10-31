@@ -16,6 +16,7 @@ está en la raíz.
 - [Falstad: abrir el circuito allá y comparar los dos simuladores](falstad.md): [CircuitJS de Falstad](https://www.falstad.com/circuit/) es el simulador de circuitos en el navegador más usado para aprender.
 - [Foco y capa de corriente](foco-y-corriente.md): Dos formas de señalar lo importante de un dibujo, hechas con las mismas piezas (`src/render/focus.js`, `src/sim/flow.js`) para imágenes estáticas y para la página interactiva.
 - [Formato del archivo de circuito (versión 1)](formato-circuito.md): Las claves van en inglés para que el formato sea el mismo en todos los idiomas.
+- [Hacer un video de un circuito](hacer-un-video.md): Una guía paso a paso, desde el nombre de una receta hasta un `.mp4` para el celular.
 - [Hoja de ruta](hoja-de-ruta.md): Cada etapa termina en algo que sirve por sí solo.
 - [Inspeccionar y anotar un dibujo](inspeccionar-y-anotar.md): Dos herramientas para saber exactamente qué contiene un dibujo, sin tener que mirarlo.
 - [Interfaz para agentes: retomar, inspeccionar, cambiar](interfaz-para-agentes.md): Cómo un asistente, un agente o un script retoma un circuito existente y lo cambia sin riesgo.

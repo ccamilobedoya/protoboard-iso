@@ -79,6 +79,13 @@ test('tour: check names what a step cannot do and a rhythm broken, and the tour 
   ]);
   assert.deepEqual(codes(tourIssues(hits(100))), ['TOUR_RHYTHM_HIT']);
   assert.deepEqual(codes(tourIssues(hits(MOVES.breath.min))), [], 'a breath between them');
+  // A value a caption takes away before it can be read.
+  const shown = (gap) => withTour([
+    { at: 0, do: 'value', part: 'D1', field: 'current' },
+    { at: gap, do: 'caption', text: 'Next' },
+  ]);
+  assert.deepEqual(codes(tourIssues(shown(0))), ['TOUR_VALUE_HIDDEN'], 'the caption written after it, at the same time');
+  assert.deepEqual(codes(tourIssues(shown(2000))), [], 'read for two seconds');
   // Shape problems leave no tour.
   const broken = withTour([{ at: 0, do: 'frame', target: 'board', move: 'zoom-in' }]);
   assert.deepEqual(codes(tourIssues(broken)), ['TOUR_MOVE']);

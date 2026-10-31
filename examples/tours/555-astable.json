@@ -1,0 +1,25 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "555-astable",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "probe", "node": "14:a-e", "field": "voltage" },
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A 555 makes an LED blink", "es": "Un 555 hace parpadear un LED" } },
+
+    { "at": 1500, "do": "frame", "target": "D1", "move": "arrival" },
+    { "at": 1500, "do": "focus", "parts": ["D1"] },
+    { "at": 1500, "do": "flow", "on": true, "ramp": 600 },
+
+    { "at": 3000, "do": "caption", "text": { "en": "The output swings high and low", "es": "La salida sube y baja sola" } },
+
+    { "at": 7500, "do": "caption", "text": { "en": "A bigger R2 makes it blink slower", "es": "Con R2 mayor parpadea más lento" } },
+    { "at": 7500, "do": "frame", "target": "R2", "move": "arrival" },
+    { "at": 7500, "do": "focus", "parts": ["R2"] },
+    { "at": 9000, "do": "set", "part": "R2", "field": "resistance", "value": 47000, "move": "travel", "ms": 1800 },
+
+    { "at": 13500, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 13500, "do": "caption", "text": { "en": "Try it in the page: tap R2", "es": "Pruébalo en la página: toca R2" } },
+    { "at": 15000, "do": "focus", "parts": [] }
+  ]
+}

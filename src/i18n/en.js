@@ -419,6 +419,7 @@ export default {
   'check.TOUR_UNKNOWN_CONTROL': 'page.tour, step {step}: {part} has no control "{field}" (it has: {options}); the step does nothing.',
   'check.TOUR_RHYTHM_SLOW': 'page.tour, step {step}: two slow moves in a row (with step {before}); put a faster one between them.',
   'check.TOUR_RHYTHM_HIT': 'page.tour, step {step}: two hits without a breath (with step {before}); leave {ms} ms or a breath between them.',
+  'check.TOUR_VALUE_HIDDEN': 'page.tour, step {step}: the caption of step {caption} takes this value away less than {ms} ms after it appears; put the value after that caption.',
   'page.tour.play': 'See how it works',
   'page.tour.stop': 'Tap anywhere to stop',
   'page.hint.again': 'What can I tap?',

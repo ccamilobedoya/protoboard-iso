@@ -9,7 +9,7 @@ opciones de abajo son opcionales salvo las que dicen *obligatorio*: si se dejan 
 lo que el kit hace por defecto, así que una línea de tiempo corta ya se ve bien y una larga puede
 controlar cada movimiento.
 
-Esta página es la referencia. El plan y las decisiones detrás están en
+Hacer un video de principio a fin, paso a paso: [hacer-un-video.md](hacer-un-video.md). Esta página es la referencia. El plan y las decisiones detrás están en
 [escena-y-video.md](escena-y-video.md); el esquema es `schema/timeline.schema.json` (los editores
 completan y revisan los campos con él). Líneas de tiempo de ejemplo: `examples/tours/`.
 
@@ -252,7 +252,8 @@ tiempo.
 `node bin/protoboard-iso.js check <circuito>` lee la línea de tiempo del circuito. Un problema de
 forma, tamaño o archivo deja la página sin recorrido (`TOUR_SHAPE`, `TOUR_FIELD`, `TOUR_ACTION`,
 `TOUR_MOVE`, `TOUR_JSON`, `TOUR_TOO_LARGE`…); una pieza o un control desconocido, un `ms` fuera del
-rango de su movimiento, un ritmo roto o una línea de tiempo de más de diez minutos es un aviso y
+rango de su movimiento, un ritmo roto, un valor que el subtítulo siguiente quita antes de un segundo
+(`TOUR_VALUE_HIDDEN`) o una línea de tiempo de más de diez minutos es un aviso y
 igual se reproduce. Topes: 100 kB, 200 pasos, 280 caracteres por texto, diez minutos.
 
 ## Grabar

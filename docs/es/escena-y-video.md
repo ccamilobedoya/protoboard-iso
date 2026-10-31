@@ -187,7 +187,19 @@ página y la hoja de ruta al día.
   entrada; `pulse` con `through`, `direction`, `color`, `width` y `size`; `probe` con `title`,
   `label` y `note`; y la acción `label`, el rótulo corto de una pieza con otras palabras. Los textos
   del kit son solo los números y esos valores por defecto.
-- ⬜ V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
+- ✅ V7 (2026-10-31): la guía paso a paso, [hacer-un-video.md](hacer-un-video.md) (en:
+  `making-a-video.md`); `render-frames.js --parts <receta|circuito>` lista lo que una línea de
+  tiempo puede nombrar (piezas, las lecturas que la simulación da de cada una, controles con sus
+  rangos, tiras) y `--validate` revisa una línea de tiempo sin navegador (y dice cuándo corre su
+  último paso); un aviso nuevo, `TOUR_VALUE_HIDDEN` (un valor que el subtítulo siguiente quita antes
+  de un segundo); el rótulo corto de una pieza dice el valor nuevo de un control después de un
+  `set` (se quedaba con el nominal). El banco: seis líneas de tiempo nuevas en `examples/tours/`
+  (`divider`, `button-pullup`, `mosfet-switch`, `rc-square`, `zener-regulator`, `555-astable`),
+  cada una escrita por un modelo mediano solo con la guía, en dos sesiones en paralelo, todas con
+  `--check` bien en su primer render completo; lo que les pareció poco claro pasó a la guía o al
+  kit. El *golden* de fotogramas ya estaba en `npm run verify` (V0); `npm test` reproduce cada
+  línea de tiempo del banco contra su circuito.
+- Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
 
@@ -589,7 +601,7 @@ construyen en orden.
 
 ## Grabar un video
 
-Construido en V5; V7 lo convierte en la guía completa. El kit hace los fotogramas; ffmpeg, fuera del
+Construido en V5; la guía completa, paso a paso, es [hacer-un-video.md](hacer-un-video.md) (V7). El kit hace los fotogramas; ffmpeg, fuera del
 kit (no es una dependencia: `apt install ffmpeg`, o una versión estática), hace el video, por medio
 de `scripts/assemble.js` (solo desarrollo, como Playwright).
 

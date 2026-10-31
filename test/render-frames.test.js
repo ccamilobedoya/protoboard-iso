@@ -9,7 +9,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { timelineCircuit, toSrt } from '../scripts/render-frames.js';
+import { timelineCircuit, timelineParts, toSrt } from '../scripts/render-frames.js';
 import { frameProblems } from '../scripts/stage-shots.js';
 import { tourIssues } from '../src/tour.js';
 import { renderPage } from '../src/page.js';
@@ -35,6 +35,19 @@ test('render-frames: a timeline tells the circuit beside it, else the recipe of 
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('render-frames --parts: what a timeline can name, from the simulation', () => {
+  const file = join(tours, 'npn-switch.json');
+  const { simulated, parts, supplies, nodes } = timelineParts(timelineCircuit(file, read(file)));
+  assert.equal(simulated, true);
+  const of = (id) => [...parts, ...supplies].find((p) => p.id === id);
+  assert.deepEqual(of('D1').readings, ['current', 'voltage', 'power', 'brightness']);
+  assert.deepEqual(of('W1').readings, [], 'a wire is framed and assembled, not read');
+  assert.deepEqual(of('S1').controls.map((c) => c.field), ['pressed']);
+  assert.equal(of('R1').controls[0].scale, 'log');
+  assert.ok(supplies.some((s) => s.controls.some((c) => c.field === 'voltage')), 'the bench supply is set, not drawn');
+  assert.ok(nodes.some((n) => n.node === 'T+'), 'strips by the names a probe takes');
 });
 
 test('render-frames: every example timeline plays its circuit without a warning', () => {

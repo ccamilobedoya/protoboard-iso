@@ -418,6 +418,7 @@ export default {
   'check.TOUR_UNKNOWN_CONTROL': 'page.tour, paso {step}: {part} no tiene el control «{field}» (tiene: {options}); el paso no hace nada.',
   'check.TOUR_RHYTHM_SLOW': 'page.tour, paso {step}: dos movimientos lentos seguidos (con el paso {before}); pon uno más rápido entre ellos.',
   'check.TOUR_RHYTHM_HIT': 'page.tour, paso {step}: dos golpes sin un respiro (con el paso {before}); deja {ms} ms o un respiro entre ellos.',
+  'check.TOUR_VALUE_HIDDEN': 'page.tour, paso {step}: el subtítulo del paso {caption} quita este valor menos de {ms} ms después de que aparece; pon el valor después de ese subtítulo.',
   'page.tour.play': 'Ver cómo funciona',
   'page.tour.stop': 'Toca en cualquier lugar para detenerlo',
   'page.hint.again': '¿Qué se puede tocar?',

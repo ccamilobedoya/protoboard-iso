@@ -171,7 +171,18 @@ up to date.
   `pulse` with `through`, `direction`, `color`, `width` and `size`; `probe` with `title`, `label` and
   `note`; and the action `label`, a part's short label in other words. The kit's own texts are only
   the numbers and those defaults.
-- ⬜ V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
+- ✅ V7 (2026-10-31): the guide, step by step, [making-a-video.md](making-a-video.md) (es:
+  `hacer-un-video.md`); `render-frames.js --parts <recipe|circuit>` lists what a timeline can name
+  (parts, the readings the simulation gives each, controls with their ranges, strips) and
+  `--validate` checks a timeline without a browser (and says when its last step runs); a new
+  warning, `TOUR_VALUE_HIDDEN` (a value the next caption takes away within a second); a part's
+  short label states a control's new value after a `set` (it kept the nominal one). The bench:
+  six new timelines in `examples/tours/` (`divider`, `button-pullup`, `mosfet-switch`,
+  `rc-square`, `zener-regulator`, `555-astable`), each written by a medium model with the guide
+  alone, in two parallel sessions, every one through `--check` on its first full render; what they
+  found unclear went into the guide or the kit. The frame golden was already in `npm run verify`
+  (V0); `npm test` plays every timeline of the bench against its circuit.
+- The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
 
@@ -546,7 +557,7 @@ below against the code (a previous phase may have chosen others), ends with `npm
 
 ## Recording a video
 
-Built in V5; V7 turns it into the full guide. The kit makes the frames; ffmpeg, outside the kit
+Built in V5; the full guide, step by step, is [making-a-video.md](making-a-video.md) (V7). The kit makes the frames; ffmpeg, outside the kit
 (not a dependency: `apt install ffmpeg`, or a static build), makes the video, through
 `scripts/assemble.js` (development only, like Playwright).
 

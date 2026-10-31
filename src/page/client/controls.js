@@ -8,10 +8,12 @@
 // - A push button conducts while it is held (on the drawing itself or with *Hold to press*), or
 //   stays pressed with *Keep pressed* until that is tapped again.
 // Every row of the same control is kept in step; a change re-solves (engine.set, sliders
-// debounced) and `changed` repaints.
+// debounced) and `changed` repaints. A part's short label that states the control's value
+// ("R2 · 10 kΩ") states the new one.
 
 import { fromSlider, toSlider, SLIDER } from '../../sim/controls.js';
 import { formatValue } from '../../core/units.js';
+import { applyFocus } from './focus.js';
 
 const DEBOUNCE = 120; // ms of rest before a slider's value is solved
 const MAX_WAIT = 300; // ms: during a long drag, still solved this often
@@ -36,10 +38,28 @@ export function setupControls(page, { engine, t, decimal, changed }) {
   };
   const nameOf = (c) => t(`page.control.${c.field}`);
 
+  // The label is the kit's own text, so the value in it is written as show() writes it.
+  function restate(id, before, after) {
+    if (!before || !after || before.scale === 'toggle' || before.percent) return;
+    const [was, now] = [show(before, before.value), show(after, after.value)];
+    if (was === now) return;
+    let found = false;
+    for (const svg of page.svgs) {
+      for (const label of svg.querySelectorAll(':scope > .shortlabels > [data-part="' + id.replace(/["\\]/g, '\\$&') + '"]')) {
+        if (!label.textContent.endsWith(' · ' + was)) continue;
+        label.textContent = label.textContent.slice(0, -was.length) + now;
+        found = true;
+      }
+    }
+    if (found) applyFocus(page);
+  }
+
   function set(id, field, value, from) {
+    const before = find(engine.controls(), id, field);
     if (!engine.set(id, field, value)) return;
     changed();
     const list = engine.controls();
+    restate(id, before, find(list, id, field));
     for (const r of rows) {
       if (!r.isConnected) rows.delete(r);
       else if (r !== from) r.update(find(list, r.dataset.id, r.dataset.field));

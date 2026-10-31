@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "divider",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "Two resistors share the voltage", "es": "Dos resistencias se reparten el voltaje" } },
+
+    { "at": 1200, "do": "frame", "target": "R2", "move": "arrival" },
+    { "at": 1200, "do": "focus", "parts": ["R2"] },
+    { "at": 1200, "do": "flow", "on": true, "ramp": 600 },
+
+    { "at": 2400, "do": "caption", "text": { "en": "R2 takes its share of the supply", "es": "R2 toma su parte de la fuente" } },
+    { "at": 2400, "do": "focus", "parts": ["R1", "R2"] },
+    { "at": 2400, "do": "value", "part": "R2", "field": "voltage", "label": { "en": "across R2", "es": "en R2" } },
+    { "at": 4400, "do": "caption", "text": { "en": "More resistance, a bigger share", "es": "Más resistencia, una parte mayor" } },
+    { "at": 4400, "do": "value", "part": "R2", "field": "voltage", "label": { "en": "across R2", "es": "en R2" } },
+    { "at": 4400, "do": "set", "part": "R2", "field": "resistance", "value": 47000, "move": "travel", "ms": 1800 },
+
+    { "at": 10100, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 10100, "do": "caption", "text": { "en": "Try it in the page: tap R2", "es": "Pruébalo en la página: toca R2" } },
+    { "at": 11600, "do": "focus", "parts": [] }
+  ]
+}

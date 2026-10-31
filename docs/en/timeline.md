@@ -8,7 +8,7 @@ shown; the kit writes no text of its own into a caption. Every option below is o
 says *required*: left out, the step does what the kit does by default, so a short timeline already
 looks right and a long one can control each move.
 
-This page is the reference. The plan and the decisions behind it are in
+Making a video from start to end, step by step: [making-a-video.md](making-a-video.md). This page is the reference. The plan and the decisions behind it are in
 [stage-and-video.md](stage-and-video.md); the schema is `schema/timeline.schema.json` (editors
 complete and check the fields with it). Example timelines: `examples/tours/`.
 
@@ -246,7 +246,8 @@ can replace. Captions are always the timeline's.
 `node bin/protoboard-iso.js check <circuit>` reads the circuit's timeline. A shape, size or file
 problem leaves the page without a tour (`TOUR_SHAPE`, `TOUR_FIELD`, `TOUR_ACTION`, `TOUR_MOVE`,
 `TOUR_JSON`, `TOUR_TOO_LARGE`…); an unknown part or control, an `ms` outside its move's range, a
-broken rhythm or a timeline over ten minutes is a warning and it still plays. Caps: 100 kB, 200
+broken rhythm, a value the next caption takes away within a second (`TOUR_VALUE_HIDDEN`) or a
+timeline over ten minutes is a warning and it still plays. Caps: 100 kB, 200
 steps, 280 characters a text, ten minutes.
 
 ## Recording

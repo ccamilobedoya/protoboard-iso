@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "rc-square",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "probe", "node": "6:f-j", "field": "voltage" },
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A square wave meets an RC filter", "es": "Una onda cuadrada llega a un filtro RC" } },
+
+    { "at": 1500, "do": "frame", "target": "C1", "move": "arrival" },
+    { "at": 1500, "do": "focus", "parts": ["C1"] },
+    { "at": 1500, "do": "flow", "on": true, "ramp": 600 },
+
+    { "at": 3000, "do": "caption", "text": { "en": "The capacitor charges and discharges", "es": "El condensador se carga y se descarga" } },
+    { "at": 3000, "do": "value", "part": "C1", "field": "voltage", "label": { "en": "across the capacitor", "es": "en el condensador" } },
+
+    { "at": 6500, "do": "caption", "text": { "en": "Faster signal, smaller swing", "es": "Señal más rápida, menos oscilación" } },
+    { "at": 6500, "do": "set", "part": "G1", "field": "frequency", "value": 2000, "move": "travel", "ms": 1800 },
+
+    { "at": 11500, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 11500, "do": "caption", "text": { "en": "Try it in the page: tap C1", "es": "Pruébalo en la página: toca C1" } },
+    { "at": 13000, "do": "focus", "parts": [] }
+  ]
+}

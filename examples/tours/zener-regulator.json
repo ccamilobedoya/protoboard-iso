@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "zener-regulator",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A Zener holds the voltage steady", "es": "Un Zener mantiene el voltaje estable" } },
+
+    { "at": 1500, "do": "frame", "target": "D1", "move": "arrival" },
+    { "at": 1500, "do": "focus", "parts": ["D1"] },
+    { "at": 1500, "do": "flow", "on": true, "ramp": 600 },
+
+    { "at": 3000, "do": "caption", "text": { "en": "The Zener clamps the load voltage", "es": "El Zener fija el voltaje de la carga" } },
+    { "at": 3000, "do": "focus", "parts": ["D1", "R2"] },
+    { "at": 3000, "do": "value", "part": "R2", "field": "voltage", "label": { "en": "across the load", "es": "en la carga" } },
+
+    { "at": 5500, "do": "caption", "text": { "en": "A heavier load, the same voltage", "es": "Más carga, el mismo voltaje" } },
+    { "at": 5500, "do": "set", "part": "R2", "field": "resistance", "value": 330, "move": "travel", "ms": 1800 },
+
+    { "at": 10000, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 10000, "do": "caption", "text": { "en": "Try it in the page: tap R2", "es": "Pruébalo en la página: toca R2" } },
+    { "at": 11500, "do": "focus", "parts": [] }
+  ]
+}

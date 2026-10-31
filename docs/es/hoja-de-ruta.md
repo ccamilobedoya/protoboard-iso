@@ -276,7 +276,7 @@ recorrido desde V2.
 - ✅ V4 · La escena: la dirección elegida como `[data-theme="stage"]`, la retícula de agujeros continuada bajo el dibujo, la capa de subtítulos, un rótulo y sin etiquetas en un fotograma, el margen reservado, franjas seguras medidas
 - 🔜 V5 · Fotogramas (construida, el video de prueba espera aprobación): `scripts/render-frames.js` (Playwright, solo desarrollo) → secuencia PNG + `timeline.json`; comando de ffmpeg documentado; un video de prueba de 45 s con tres recetas aprobado en el celular
 - ✅ V6 · Los movimientos elegidos (M1 a M16 en el plan), cada uno con prueba en jsdom (`test/moves.test.js`) y fotograma *golden* (`test/frames/move-*.json`), de `examples/tours/npn-switch-moves.json` y `npn-switch-build.json`; pasos nuevos `raise` (M16), `assemble` (M4, M5), `pulse` (M7), `probe` en una grabación como recuadro de osciloscopio (M11). Cada decisión de un movimiento es un campo opcional de la línea de tiempo, documentado en `docs/es/linea-de-tiempo.md` (2026-10-31). Queda para decidir: el pulso al cargar
-- ⬜ V7 · Banco y guía: una línea de tiempo por receta grabada, el *golden* en `npm run verify`, la guía en en y es
+- ✅ V7 · Banco y guía: la guía `docs/es/hacer-un-video.md` (en: `making-a-video.md`), `render-frames.js --parts` y `--validate`, `TOUR_VALUE_HIDDEN`, rótulos cortos que siguen a un control; nueve líneas de tiempo de recetas en `examples/tours/`, seis escritas por un modelo mediano solo con la guía; el *golden* en `npm run verify` (desde V0)
 
 ## Etapa 4 — En el celular o la tableta ⬜
 

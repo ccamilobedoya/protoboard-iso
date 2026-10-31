@@ -6,6 +6,8 @@
 //
 //   node scripts/render-frames.js <timeline.json> [-o dir] [--format vertical|horizontal|both]
 //        [--fps 30] [--lang en|es] [--theme t] [--tail ms] [--circuit target] [--no-captions] [--check]
+//   node scripts/render-frames.js <timeline.json> --validate     the checks only, no browser
+//   node scripts/render-frames.js --parts <recipe|circuit>        what a timeline can name
 //
 // The circuit is the timeline's `circuit`: a circuit file of that name beside the timeline or in
 // its parent folder (examples/tours/x.json → examples/x.json), else the recipe of that name laid
@@ -24,6 +26,12 @@
 // --no-captions leaves the caption layer out of the frames (their times still go to timeline.json
 // and captions.srt): for a video whose subtitles are added later (scripts/assemble.js --burn).
 //
+// --validate stops before the browser: the timeline's problems (shape, unknown parts and controls,
+// moves, rhythm), exit 0 with none and 1 with any. --parts lists what a timeline of that circuit can
+// name: the parts (for frame, focus, insert, assemble, raise, label), the readings of each (value,
+// wait-until), the controls with their ranges (set) and the strips (probe's node). Both are for
+// whoever writes a timeline (docs/en/making-a-video.md): nothing is worked out by hand.
+//
 // --check renders it again in a fresh browser and compares every frame's hash: the same timeline
 // must give the same frames. Exits 0 when the frames were written (and, with --check, agreed) and every rule held;
 // 1 when a rule failed or two runs differed; 2 when it could not run (no Playwright or no
@@ -39,6 +47,9 @@ import { autoLayout } from '../src/layout.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { renderPage } from '../src/page.js';
 import { loadTour } from '../src/tour.js';
+import { buildCircuit } from '../src/circuit/build.js';
+import { compile } from '../src/sim/compile.js';
+import { createEngine } from '../src/sim/engine.js';
 import { CHROMIUM_ARGS, frameProblems, measure, RULES } from './stage-shots.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -76,6 +87,41 @@ function recipeCircuit(name) {
   const r = autoLayout(spec);
   if (r.status !== 'done') throw new Error(`recipe ${name}: ${r.status}`);
   return r.circuit;
+}
+
+const READINGS = ['current', 'voltage', 'power', 'brightness'];
+
+// What a timeline of this circuit can name, as data (--parts).
+export function timelineParts(circuit) {
+  const compiled = compile(circuit);
+  const engine = compiled.fatal ? null : createEngine(compiled.program);
+  const controls = engine?.controls() ?? [];
+  // The readings a step can show: those the simulation gives this part, among the four a value takes.
+  const reading = engine ? engine.dc().parts ?? {} : {};
+  const control = (c) => ({ field: c.field, value: c.value, ...(c.min != null && { min: c.min, max: c.max }), ...(c.unit && { unit: c.unit }), ...(c.scale && { scale: c.scale }) });
+  const readings = (id, type) => (type === 'wire' ? [] : READINGS.filter((f) => typeof reading[id]?.[f] === 'number'));
+  const entry = (id, type, extra) => ({ id, type, ...extra, readings: readings(id, type), controls: controls.filter((c) => c.id === id).map(control) });
+  const parts = (circuit.parts ?? []).map((p) => entry(p.id, p.type, { ...(p.value != null && { value: p.value }), ...(p.part && { part: p.part }), ...(p.color && { color: p.color }) }));
+  const supplies = (circuit.supplies ?? []).map((s) => entry(s.id, s.kind ?? 'supply', {}));
+  const nodes = Object.entries(buildCircuit(circuit).netlist.nodes).map(([node, members]) => ({ node, pins: members.map((m) => `${m.part}.${m.pin}`) }));
+  return { simulated: !compiled.fatal, parts, supplies, nodes };
+}
+
+function printParts(name, { simulated, parts, supplies, nodes }) {
+  const range = (c) => (c.min != null ? ` ${c.min}…${c.max}` : '');
+  console.log(`${name}: ${simulated ? 'simulated (a timeline can play)' : 'NOT simulated: no source, no tour'}`);
+  const show = (p) => {
+    const what = [p.type, p.part, p.value, p.color].filter(Boolean).join(' ');
+    console.log(`  ${p.id.padEnd(4)} ${what}`);
+    if (p.readings.length) console.log(`       readings (value, wait-until): ${p.readings.join(', ')}`);
+    for (const c of p.controls) console.log(`       set ${c.field} = ${c.value}${c.unit ? ` ${c.unit}` : ''}${range(c)}${c.scale === 'log' ? ' (log)' : ''}`);
+  };
+  console.log('parts (frame, focus, insert, assemble, raise, label):');
+  parts.forEach(show);
+  if (supplies.length) console.log('supplies (not drawn on the board: only set):');
+  supplies.forEach(show);
+  console.log('strips (probe "node"):');
+  for (const n of nodes) console.log(`  ${n.node.padEnd(8)} ${n.pins.join(' ')}`);
 }
 
 // SubRip time: 00:00:01,234.
@@ -205,7 +251,7 @@ async function record(browser, file, { format, fps, tail, theme, captions: shown
 }
 
 function parse(argv) {
-  const args = { timeline: null, out: null, formats: null, fps: 30, lang: 'en', theme: null, tail: 1000, circuit: null, captions: true, check: false };
+  const args = { parts: null, validate: false, timeline: null, out: null, formats: null, fps: 30, lang: 'en', theme: null, tail: 1000, circuit: null, captions: true, check: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '-o') args.out = resolve(argv[++i]);
@@ -216,11 +262,14 @@ function parse(argv) {
     else if (a === '--tail') args.tail = Math.max(0, Number(argv[++i]) || 0);
     else if (a === '--circuit') args.circuit = argv[++i];
     else if (a === '--check') args.check = true;
+    else if (a === '--validate') args.validate = true;
+    else if (a === '--parts') args.parts = argv[++i];
     else if (a === '--no-captions') args.captions = false;
     else if (a.startsWith('-')) throw new Error(`unknown option ${a}`);
     else args.timeline = resolve(a);
   }
-  if (!args.timeline) throw new Error('usage: node scripts/render-frames.js <timeline.json> [-o dir] [--format vertical|horizontal|both] [--fps 30] [--lang en|es] [--theme t] [--tail ms] [--circuit target] [--no-captions] [--check]');
+  if (args.parts) return args;
+  if (!args.timeline) throw new Error('usage: node scripts/render-frames.js <timeline.json> [-o dir] [--format vertical|horizontal|both] [--fps 30] [--lang en|es] [--theme t] [--tail ms] [--circuit target] [--no-captions] [--check] [--validate] | --parts <recipe|circuit>');
   if (!(args.fps > 0 && args.fps <= 120)) throw new Error('--fps: between 1 and 120');
   for (const f of args.formats ?? []) if (!RULES[f]) throw new Error(`--format: vertical, horizontal or both, not ${f}`);
   return args;
@@ -228,6 +277,11 @@ function parse(argv) {
 
 async function main() {
   const args = parse(process.argv.slice(2));
+  if (args.parts) {
+    const circuit = existsSync(args.parts) ? loadCircuit(resolveTarget(args.parts)) : recipeCircuit(args.parts);
+    printParts(args.parts, timelineParts(circuit));
+    return 0;
+  }
   const timeline = JSON.parse(readFileSync(args.timeline, 'utf8'));
   const circuit = timelineCircuit(args.timeline, timeline, args.circuit);
   // The timeline is the page's tour, whatever the circuit says.
@@ -235,6 +289,11 @@ async function main() {
   const { tour, issues } = loadTour(circuit, args.lang);
   for (const i of issues) console.log(`  ${i.severity} ${i.code} ${JSON.stringify(i.params)}`);
   if (!tour) throw new Error('the timeline cannot be played (see above)');
+  if (args.validate) {
+    const last = Math.max(0, ...tour.steps.map((s) => s.at)) / 1000;
+    console.log(issues.length ? `✖ ${issues.length} problem(s) above` : `✔ ${basename(args.timeline)}: ${tour.steps.length} steps, the last at ${last.toFixed(1)} s, no problems`);
+    return issues.length ? 1 : 0;
+  }
   const { html } = renderPage(circuit, { lang: args.lang });
   if (!html) throw new Error('the circuit has no page');
   const name = basename(args.timeline).replace(/\.json$/, '');

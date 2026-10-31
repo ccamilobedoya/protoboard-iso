@@ -208,6 +208,10 @@ test('page: a slider in the card re-solves; past a limit the part is marked unti
   slide(window, input, 100); // 3.3 Ω · 10^(4·0.1) → E24
   const r = live.engine.controls().find((c) => c.id === 'R1').value;
   assert.equal(r, 8.2);
+  // Its short label states the new value, as the kit writes it (V7: a recording read 10 kΩ at 47 kΩ).
+  const labels = [...doc.querySelectorAll('.shortlabels > [data-part="R1"]')];
+  assert.ok(labels.length > 0);
+  for (const label of labels) assert.equal(label.textContent, 'R1 · 8,2 Ω');
   assert.ok(live.reading.parts.D1.current > 0.1, 'far past the LED maximum');
   // Marked: outline rule, warning in the panel and in the card.
   assert.match(doc.getElementById('stress').textContent, /data-mark="D1"[^}]*stress-pulse/);

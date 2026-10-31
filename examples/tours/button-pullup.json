@@ -1,0 +1,23 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "button-pullup",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A button with a pull-up resistor", "es": "Un pulsador con resistencia pull-up" } },
+
+    { "at": 1200, "do": "frame", "target": "S1", "move": "arrival" },
+    { "at": 1200, "do": "focus", "parts": ["S1"] },
+    { "at": 1200, "do": "flow", "on": true, "ramp": 600 },
+
+    { "at": 2400, "do": "caption", "text": { "en": "Released: the pull-up holds the line high", "es": "Suelto: el pull-up mantiene la línea alta" } },
+    { "at": 2400, "do": "focus", "parts": ["S1", "R1"] },
+    { "at": 4600, "do": "caption", "text": { "en": "Pressed: the line goes to ground", "es": "Presionado: la línea baja a tierra" } },
+    { "at": 4600, "do": "set", "part": "S1", "field": "pressed", "value": true, "move": "hit" },
+    { "at": 4600, "do": "value", "part": "R1", "field": "current", "label": { "en": "through the pull-up", "es": "por el pull-up" } },
+
+    { "at": 10100, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 10100, "do": "caption", "text": { "en": "Try it in the page: tap S1", "es": "Pruébalo en la página: toca S1" } },
+    { "at": 11600, "do": "focus", "parts": [] }
+  ]
+}

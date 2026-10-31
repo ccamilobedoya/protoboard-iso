@@ -134,6 +134,8 @@ const ends = (s, count = 0) => s.at + (s.do === 'assemble' ? Math.max(0, (s.part
 const moveOf = (s) => s.move ?? DEFAULT_MOVE[s.do] ?? 'cut';
 const timing = (s) => (s.do === 'frame' || s.do === 'set' || s.do === 'insert' || s.do === 'raise' || s.do === 'pulse' || s.move ? moveTiming(moveOf(s), s.ms ?? (s.do === 'insert' ? INSERT.ms : undefined)) : { ms: 0 });
 
+const VALUE_READ = 1000; // ms a value stays before a caption may take it away
+
 // What the circuit can do with the steps, and the rhythm: problems that leave the tour playable.
 function meaningIssues(circuit, steps) {
   const out = [];
@@ -164,6 +166,13 @@ function meaningIssues(circuit, steps) {
     if (a.move === 'push' && b.move === 'push') out.push(warn('TOUR_RHYTHM_SLOW', { step: b.step, before: a.step }));
     if (a.move === 'hit' && b.move === 'hit' && b.s.at - ends(a.s) < BREATH) out.push(warn('TOUR_RHYTHM_HIT', { step: b.step, before: a.step, ms: BREATH }));
   }
+  // A value shows until the next caption: one that comes within a second leaves it unread.
+  const ordered = steps.map((s, i) => ({ s, step: i + 1 })).sort((a, b) => a.s.at - b.s.at || a.step - b.step);
+  ordered.forEach((v, k) => {
+    if (v.s.do !== 'value') return;
+    const next = ordered.slice(k + 1).find((x) => x.s.do === 'caption');
+    if (next && next.s.at - v.s.at < VALUE_READ) out.push(warn('TOUR_VALUE_HIDDEN', { step: v.step, caption: next.step, ms: VALUE_READ }));
+  });
   return out;
 }
 
