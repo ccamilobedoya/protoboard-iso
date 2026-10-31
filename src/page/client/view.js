@@ -20,14 +20,34 @@ export function clampBox(page, [x, y, w, h]) {
 }
 // Result tags keep their size on screen (stage and video, V3): closer in, they shrink in the
 // drawing, so they never grow over the part they measure; farther out than where they were placed
-// they stay as drawn. --tag-k scales each one about its centre (page/style.js).
+// they stay as drawn. Each tag (its text and the box before it) is scaled about the text's point,
+// the box's centre, by a transform attribute: CSS transform-box measures a text's box differently
+// in each browser (its font), and the text left its box in some.
 const TAG_PX = 13; // the tags' letters on screen, px (8 drawing units in sim/overlay.js)
+const tagsOf = new WeakMap(); // svg → [{ text, rect, x, y }]
+function scaleTags(svg, k) {
+  if (!tagsOf.has(svg)) {
+    tagsOf.set(svg, [...svg.querySelectorAll('.results > text')].map((text) => ({ text, rect: text.previousElementSibling?.tagName.toLowerCase() === 'rect' ? text.previousElementSibling : null, x: Number(text.getAttribute('x')), y: Number(text.getAttribute('y')) })));
+  }
+  for (const t of tagsOf.get(svg)) {
+    const transform = k === 1 ? null : `translate(${t.x} ${t.y}) scale(${k}) translate(${-t.x} ${-t.y})`;
+    for (const el of [t.text, t.rect]) {
+      if (!el) continue;
+      if (transform) el.setAttribute('transform', transform);
+      else el.removeAttribute('transform');
+    }
+  }
+}
 function apply(page, box) {
   page.box = box;
   const svg = page.current();
   svg.setAttribute('viewBox', box.map((n) => Math.round(n * 100) / 100).join(' '));
   const r = svg.getBoundingClientRect();
-  if (r.width > 0 && r.height > 0) svg.style.setProperty('--tag-k', Math.min(1, (TAG_PX / 8) * Math.max(box[2] / r.width, box[3] / r.height)).toFixed(4));
+  if (!(r.width > 0 && r.height > 0)) return;
+  const k = Math.round(Math.min(1, (TAG_PX / 8) * Math.max(box[2] / r.width, box[3] / r.height)) * 1000) / 1000;
+  if (svg.dataset.tagK === String(k)) return;
+  svg.dataset.tagK = String(k);
+  scaleTags(svg, k);
 }
 // Gestures set the frame at once (1:1 with the finger), and stop a frame that was moving.
 export function setBox(page, box) {

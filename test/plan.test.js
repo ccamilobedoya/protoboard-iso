@@ -122,3 +122,31 @@ test('short labels: the page at rest names each part beside it, framed with them
   assert.ok(w > 0);
   assert.deepEqual(renderCircuit(circuit).scene.layers.shortlabels, [], 'only in a page');
 });
+
+test('result tags: zooming in, the text and its box get one transform about their common centre', async (t) => {
+  let JSDOM;
+  try {
+    ({ JSDOM } = await import('jsdom'));
+  } catch {
+    return t.skip('jsdom not installed');
+  }
+  const html = renderPage(example('led-resistor.json')).html;
+  const { window } = new JSDOM(html, { runScripts: 'outside-only' });
+  for (const svg of window.document.querySelectorAll('svg')) svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 500, right: 800, bottom: 500 });
+  window.eval(html.match(/<script>([\s\S]*)<\/script>/)[1]);
+  const svg = window.document.querySelector('main > svg:not([hidden])');
+  for (let k = 0; k < 4; k++) window.document.querySelector('[data-zoom="in"]').click();
+  const tags = [...svg.querySelectorAll('.results > rect + text')];
+  assert.ok(tags.length);
+  for (const text of tags) {
+    const transform = text.getAttribute('transform');
+    const [x, y] = [text.getAttribute('x'), text.getAttribute('y')];
+    const m = transform.match(/^translate\((\S+) (\S+)\) scale\((\S+)\) translate\((\S+) (\S+)\)$/);
+    assert.ok(m, transform);
+    const [tx, ty, k, bx, by] = m.slice(1).map(Number);
+    assert.deepEqual([tx, ty, bx, by], [Number(x), Number(y), -Number(x), -Number(y)], 'about the text');
+    assert.ok(k > 0 && k < 1, 'smaller');
+    assert.equal(text.previousElementSibling.getAttribute('transform'), transform, 'its box, the same');
+  }
+  assert.doesNotMatch(html, /transform-box/, 'no CSS transform on SVG text');
+});

@@ -70,7 +70,7 @@ up to date.
   focus drawn over the layer at 50 %, widths unchanged; two flat lines on one line move aside
   (0.9 mm); parts beside the board keep their real paths. (2) Coordinates: `coordOps` lights the
   board's own print (`decalTextOp`, shared with `scene.js`), the pills are gone. (3) Result tags:
-  a current tag never over the part it measures (more places tried); in the page `--tag-k` keeps
+  a current tag never over the part it measures (more places tried); in the page a transform attribute about each tag's centre keeps
   them at 13 px on screen when zooming in and never larger than placed. (4) The page at rest:
   short labels (`src/render/short-labels.js`, the `shortlabels` layer) and the Labels button for
   the boxes; the close-up frame computed with the parts and their short labels; *MODEL* in the bar;

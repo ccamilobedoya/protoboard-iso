@@ -74,7 +74,7 @@ página y la hoja de ruta al día.
   caminos reales. (2) Coordenadas: `coordOps` enciende la propia impresión de la tabla
   (`decalTextOp`, compartido con `scene.js`); se acabaron las píldoras. (3) Etiquetas de resultado:
   una etiqueta de corriente nunca encima del componente que mide (se prueban más lugares); en la
-  página `--tag-k` las deja en 13 px de pantalla al acercarse y nunca más grandes que como se
+  página una transformación (atributo) sobre el centro de cada etiqueta las deja en 13 px de pantalla al acercarse y nunca más grandes que como se
   colocaron. (4) La página en reposo: rótulos cortos (`src/render/short-labels.js`, capa
   `shortlabels`) y el botón Etiquetas para las cajas; el encuadre de cerca calculado con los
   componentes y sus rótulos cortos; *MODELO* en la barra; Etiquetas y Corriente conservan su palabra

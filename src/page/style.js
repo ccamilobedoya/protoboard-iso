@@ -153,8 +153,6 @@ body.layer-flow .lights { display: none; } /* the current layer draws its own gl
    so its lines read under their bodies; a pad's edge is the colour behind it. */
 body.layer-flow[data-flow="plan"] .spotlight { opacity: 0.5; }
 .flow .pad-edge { stroke: var(--veil); }
-/* Result tags at a fixed size on screen, each about its own centre (--tag-k from view.js). */
-.results > rect, .results > text { transform-box: fill-box; transform-origin: center; transform: scale(var(--tag-k, 1)); }
 .coords > text { fill: var(--accent); }
 .coords > * { display: none; }
 .results > [data-q] { pointer-events: auto; cursor: help; }
