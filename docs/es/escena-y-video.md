@@ -113,7 +113,29 @@ página y la hoja de ruta al día.
   contada y su rótulo en el área libre, un rótulo, sin etiquetas, sin barra); `test/stage.test.js`.
   Los hashes de V0 cambiaron a propósito (la retícula). Faltan las puertas de contraste y de tamaño
   de toque en un navegador real (las del mantenedor).
-- ⬜ V5 a V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
+- 🔜 V5 · Fotogramas (2026-10-30), construida; falta que el mantenedor apruebe el video de prueba en
+  un celular. `scripts/render-frames.js <timeline.json> [--format vertical|horizontal|both] [--fps 30]
+  [--lang] [--tail ms] [--check]`: el circuito es un archivo con el nombre del `circuit` de la línea
+  de tiempo, a su lado o una carpeta arriba, o si no la receta de ese nombre; su página con la línea
+  de tiempo como recorrido, abierta con `?director=1` al tamaño del formato en Chromium sin cabeza
+  bajo un reloj falso en pausa; por fotograma, `tick(1000 / fps)` y un PNG, hasta que el recorrido
+  termina y `--tail` más. Escribe `frames/NNNNNN.png`, `frames.sha256`, `captions.srt` y
+  `timeline.json` (subtítulos y valores con los tiempos en que estuvieron en pantalla, cada paso con
+  el tiempo en que corrió, del `log` del recorrido, y las reglas del fotograma medidas en cada
+  subtítulo y cada segundo, la pieza contada solo donde la cámara está quieta); `--check` dibuja otra
+  vez en un navegador nuevo y compara cada fotograma. Chromium corre sin repintados parciales y con
+  todas las etapas del compositor hechas antes de dibujar un cuadro (`CHROMIUM_ARGS` en
+  `stage-shots.js`): sin eso, más o menos una corrida de cada cinco dibujaba uno o dos fotogramas con
+  unas pocas unidades de color de diferencia; con eso, doce corridas seguidas coincidieron. Líneas de tiempo del video de prueba: `examples/tours/`
+  (`led-resistor`, `npn-switch`, `potentiometer-led`, que cierran en la tabla entera). De paso: el
+  margen reservado toma el margen lateral del subtítulo, un fotograma horizontal puede mostrar hasta
+  tres anchos de tabla, y las reglas del fotograma permiten no tener rótulo (la tabla entera). `--no-captions` deja fuera la capa de
+  subtítulos. `scripts/assemble.js <carpetas…> -o video.mp4 [--burn]` une carpetas de fotogramas en
+  un video H.264 con ffmpeg si está instalado (si no, imprime el comando y sale con 2) y escribe los
+  subtítulos al lado; `--burn` los dibuja en la imagen. En una grabación una pieza se encuadra con
+  su rótulo corto, así el rótulo también queda en el área libre. Cómo sacar el video: *Grabar un
+  video*, abajo.
+- ⬜ V6 y V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
 
@@ -510,6 +532,35 @@ construyen en orden.
   video, el comando de ffmpeg); la hoja de ruta marcada; el mapa del código; los archivos de los
   agentes si cambió una herramienta o un comando.
 - **Terminada cuando:** un modelo mediano saca un video nuevo de una receta solo con la guía.
+
+## Grabar un video
+
+Construido en V5; V7 lo convierte en la guía completa. El kit hace los fotogramas; ffmpeg, fuera del
+kit (no es una dependencia: `apt install ffmpeg`, o una versión estática), hace el video, por medio
+de `scripts/assemble.js` (solo desarrollo, como Playwright).
+
+```bash
+# Los fotogramas de una línea de tiempo: examples/out/video/<línea>/<formato>/frames/*.png,
+# frames.sha256, captions.srt, timeline.json. --check dibuja dos veces y compara cada fotograma.
+node scripts/render-frames.js examples/tours/npn-switch.json --format both --lang es --check
+
+# Un video de una o más carpetas de fotogramas del mismo tamaño y fps, una tras otra (H.264, se ve
+# en cualquier celular y plataforma), con sus subtítulos al lado como video.srt.
+node scripts/assemble.js examples/out/video/{led-resistor,npn-switch,potentiometer-led}/vertical -o video.mp4
+```
+
+`assemble.js` corre ffmpeg si está instalado; si no, imprime el comando y sale con 2. Su `--burn`
+dibuja los subtítulos de los `timeline.json` de los clips bajo la imagen, por encima de la franja de
+abajo de las plataformas: para fotogramas hechos con `render-frames.js --no-captions` (sin la capa de
+subtítulos, con los tiempos igual registrados), cuando los subtítulos se ponen después. A mano, un
+clip:
+
+```bash
+ffmpeg -framerate 30 -i frames/%06d.png -c:v libx264 -pix_fmt yuv420p -crf 18 -movflags +faststart clip.mp4
+```
+
+`render-frames.js` sale con 1 cuando un fotograma en reposo rompe una regla de *El fotograma* (dice
+el tiempo) o cuando dos corridas difieren.
 
 ## Compatibilidad
 

@@ -31,28 +31,34 @@ const FRAME = 1000 / 30;
 
 // The rules of a frame (fractions of the screen; px at the format's width).
 export const RULES = {
-  vertical: { width: 1080, height: 1920, caption: { top: [0.15, 0.17], bottom: [0, 0.4] }, free: { top: 0.4, bottom: 0.75, left: 0, right: 1 }, sizes: { text: 56, number: 44, line: 30 } },
-  horizontal: { width: 1920, height: 1080, caption: { top: [0, 1], bottom: [0, 1], right: [0, 0.5] }, free: { top: 0, bottom: 1, left: 0.5, right: 1 }, sizes: { text: 52 } },
+  vertical: { width: 1080, height: 1920, caption: { top: [0.15, 0.17], bottom: [0, 0.4] }, free: { top: 0.4, bottom: 0.75, left: 0.0667, right: 0.9333 }, sizes: { text: 56, number: 44, line: 30 } },
+  horizontal: { width: 1920, height: 1080, caption: { top: [0, 1], bottom: [0, 1], right: [0, 0.5] }, free: { top: 0.09, bottom: 0.91, left: 0.5, right: 0.9625 }, sizes: { text: 52 } },
 };
+// Chromium's flags for frames that do not depend on timing: every compositor stage done before a
+// frame is drawn, and a changed area repainted with its whole tile. Without them, about one run in
+// five of a recording drew a frame or two a few colour units apart (a partial repaint of the parts
+// seen through at 50 %); with them, twelve runs in a row gave the same frames.
+export const CHROMIUM_ARGS = ['--disable-partial-raster', '--run-all-compositor-stages-before-draw', '--disable-checker-imaging'];
 const TOLERANCE = 0.01; // of the screen: a part's antialiased edge
 const PX = 1; // a font size, rounded by the browser
 
 // What is wrong with a frame's measurements, as sentences (none: the frame keeps every rule).
-export function frameProblems(format, m) {
+// `moving`: the camera is between two frames; the told part and its label may cross the bands
+// then (the rules are for a frame at rest), the caption and the labels may not.
+export function frameProblems(format, m, { moving = false } = {}) {
   const r = RULES[format];
   const out = [];
   const within = (v, [lo, hi]) => v >= lo - 1e-6 && v <= hi + 1e-6;
-  if (!m.caption) out.push('no caption on screen');
-  else for (const [side, range] of Object.entries(r.caption)) if (!within(m.caption[side], range)) out.push(`caption ${side} at ${pct(m.caption[side])}, not within ${pct(range[0])}…${pct(range[1])}`);
+  if (m.caption) for (const [side, range] of Object.entries(r.caption)) if (!within(m.caption[side], range)) out.push(`caption ${side} at ${pct(m.caption[side])}, not within ${pct(range[0])}…${pct(range[1])}`);
   // Each size shown (a step may have no second line or no value).
   for (const [k, px] of Object.entries(r.sizes)) if (m.sizes?.[k] != null && !(Math.abs(m.sizes[k] - px) <= PX)) out.push(`caption ${k} ${m.sizes[k]} px, not ${px}`);
-  if (!m.told) out.push('no told part (one label in the frame)');
-  else {
+  // The told part, when there is one (a frame of the whole board may have none).
+  if (m.told && !moving) {
     const f = r.free;
     if (m.told.top < f.top - TOLERANCE || m.told.bottom > f.bottom + TOLERANCE || m.told.left < f.left - TOLERANCE || m.told.right > f.right + TOLERANCE) out.push(`${m.told.id} at ${pct(m.told.left)}…${pct(m.told.right)} × ${pct(m.told.top)}…${pct(m.told.bottom)}, out of the free area ${pct(f.left)}…${pct(f.right)} × ${pct(f.top)}…${pct(f.bottom)}`);
   }
-  if (m.labels !== 1) out.push(`${m.labels} labels, not 1`);
-  else if (m.label) {
+  if (m.labels > 1) out.push(`${m.labels} labels, not 1`);
+  else if (m.label && !moving) {
     const f = r.free;
     if (m.label.top < f.top - TOLERANCE || m.label.bottom > f.bottom + TOLERANCE || m.label.left < f.left - TOLERANCE || m.label.right > f.right + TOLERANCE) out.push(`the label of ${m.told?.id} out of the free area`);
   }
@@ -63,12 +69,13 @@ export function frameProblems(format, m) {
 const pct = (v) => `${Math.round(v * 1000) / 10} %`;
 
 // Runs in the page: where the caption, the told part and the rest are, as shares of the screen.
-function measure() {
+export function measure() {
   const W = innerWidth;
   const H = innerHeight;
   const shown = (el) => {
     const r = el.getBoundingClientRect();
-    return getComputedStyle(el).display !== 'none' && (r.width > 0 || r.height > 0) ? r : null;
+    const style = getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden' && (r.width > 0 || r.height > 0) ? r : null;
   };
   const frac = (r) => ({ top: r.top / H, bottom: r.bottom / H, left: r.left / W, right: r.right / W });
   const svg = document.querySelector('main > svg:not([hidden])');
@@ -87,6 +94,7 @@ function measure() {
   const visible = (sel) => [...document.querySelectorAll(sel)].filter(shown);
   return {
     theme: document.documentElement.dataset.theme ?? null,
+    viewBox: svg.getAttribute('viewBox'),
     caption: capRect ? frac(capRect) : null,
     sizes: { text: size('.text'), number: size('.value .number'), line: size('.line') },
     labelled: labels,
@@ -106,7 +114,7 @@ async function openBrowser() {
     return { missing: 'Playwright is not installed (npm install)' };
   }
   try {
-    return { browser: await chromium.launch() };
+    return { browser: await chromium.launch({ args: CHROMIUM_ARGS }) };
   } catch (e) {
     return { missing: `Chromium could not start: ${String(e.message).split('\n')[0]}` };
   }

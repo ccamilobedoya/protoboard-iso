@@ -29,6 +29,7 @@
   },
   "ignoreExportsUsedInFile": true,
   "ignoreBinaries": [
-    "gitleaks"
+    "gitleaks",
+    "ffmpeg"
   ]
 }

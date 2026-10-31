@@ -139,7 +139,7 @@ test('stage: a recording keeps one label, the told part\'s short one; a tour in 
 
 test('stage: the reserved margin frames a target in the area the caption and the platforms leave free', async (t) => {
   const html = renderPage(npn()).html;
-  for (const [format, size, u, v] of [['vertical', { width: 1080, height: 1920 }, 0.5, 0.575], ['horizontal', { width: 1920, height: 1080 }, 0.75, 0.5]]) {
+  for (const [format, size, u, v] of [['vertical', { width: 1080, height: 1920 }, 0.5, 0.575], ['horizontal', { width: 1920, height: 1080 }, 0.5 + (1 - 0.5 - 0.0375) / 2, 0.5]]) {
     const window = await loadPage(html, '?director=1', size);
     if (!window) return t.skip('jsdom not installed');
     const svg = window.document.querySelector('main > svg:not([hidden])');

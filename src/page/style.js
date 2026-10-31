@@ -381,7 +381,8 @@ body.director {
 :is([data-theme="stage"], [data-theme="notebook"]) body.director { --cap-weight: 500; }
 body.director nav, body.director .zoom, body.director .inspector, body.director .gesture-hint, body.director .first-hint, body.director .tooltip { display: none !important; }
 body.director main { cursor: default; }
-body.director .labels, body.director .shortlabels, body.director .results, body.director .probes { display: none !important; }
+body.director .labels, body.director .results, body.director .probes { display: none !important; }
+body.director .shortlabels { visibility: hidden; } /* still measured: a part is framed with its label */
 body.director .tour-caption { left: 0; right: 0; top: var(--cap-top); transform: none; width: auto; max-width: none; padding: 0 var(--cap-pad); background: none; border-radius: 0; color: var(--cap-ink); }
 @media (orientation: landscape) { body.director .tour-caption { right: 50%; } }
 body.director .tour-caption .text { max-width: 22ch; font: var(--cap-weight, 600) var(--cap-text)/1.15 var(--cap-face); text-wrap: balance; }

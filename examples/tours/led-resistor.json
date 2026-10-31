@@ -1,0 +1,23 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "led-resistor",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "An LED needs a resistor", "es": "Un LED necesita una resistencia" } },
+    { "at": 1200, "do": "frame", "target": "D1", "move": "arrival" },
+    { "at": 1200, "do": "focus", "parts": ["D1"] },
+    { "at": 1200, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 2400, "do": "caption", "text": { "en": "R1 sets the current through the LED", "es": "R1 fija la corriente que pasa por el LED" } },
+    { "at": 2400, "do": "focus", "parts": ["R1", "D1"] },
+    { "at": 2400, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
+    { "at": 4400, "do": "caption", "text": { "en": "More resistance, less current", "es": "Más resistencia, menos corriente" } },
+    { "at": 4400, "do": "set", "part": "R1", "field": "resistance", "value": 1000, "move": "travel" },
+    { "at": 6400, "do": "set", "part": "R1", "field": "resistance", "value": 3300, "move": "travel" },
+    { "at": 8600, "do": "caption", "text": { "en": "Less resistance, more current, and more light", "es": "Menos resistencia, más corriente y más luz" } },
+    { "at": 8600, "do": "set", "part": "R1", "field": "resistance", "value": 220, "move": "travel", "ms": 1800 },
+    { "at": 11200, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 11200, "do": "caption", "text": { "en": "Try it in the page: tap R1", "es": "Pruébalo en la página: toca R1" } },
+    { "at": 12700, "do": "focus", "parts": [] }
+  ]
+}

@@ -101,7 +101,27 @@ up to date.
   the frame's rules on the DOM (caption band and sizes, the told part and its label in the free
   area, one label, no tags, no chrome); `test/stage.test.js`. The V0 hashes changed on purpose (the
   grid). The contrast and touch-size gates in a real browser are still to run (the maintainer's).
-- ⬜ V5 to V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
+- 🔜 V5 · Frames (2026-10-30), built; waiting for the maintainer to approve the test video on a phone.
+  `scripts/render-frames.js <timeline.json> [--format vertical|horizontal|both] [--fps 30] [--lang]
+  [--tail ms] [--check]`: the circuit is a file of the timeline's `circuit` name beside it or one
+  folder up, else the recipe of that name; its page with the timeline as its tour, opened with
+  `?director=1` at the format's size in headless Chromium under a paused fake clock; per frame
+  `tick(1000 / fps)` and a PNG, until the tour ends and `--tail` more. It writes `frames/NNNNNN.png`,
+  `frames.sha256`, `captions.srt` and `timeline.json` (captions and values with the times they were
+  on screen, each step with the time it ran, from the tour's `log`, and the frame's rules measured
+  at every caption and every second, the told part only where the camera stands still); `--check`
+  renders again in a fresh browser and compares every frame. Chromium runs with partial repaints
+  off and every compositor stage done before a frame is drawn (`CHROMIUM_ARGS` in
+  `stage-shots.js`): without them about one run in five drew a frame or two a few colour units
+  apart; with them twelve runs in a row agreed. Timelines for the test video: `examples/tours/`
+  (`led-resistor`, `npn-switch`, `potentiometer-led`, closing on the whole board). On the way: the
+  reserved margin takes the caption's side margin, a landscape frame may show up to three boards'
+  width, and a frame's rules allow no label (a frame of the whole board). `--no-captions` leaves the caption layer
+  out. `scripts/assemble.js <dir…> -o video.mp4 [--burn]` joins frame folders into one H.264 video
+  with ffmpeg when it is installed (else prints the command and exits 2) and writes the captions
+  beside it; `--burn` draws them in. In a recording a part is framed with its short label, so the
+  label stays in the free area too. Making the video: *Recording a video* below.
+- ⬜ V6 and V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
 
@@ -471,6 +491,34 @@ below against the code (a previous phase may have chosen others), ends with `npm
   in English and Spanish (how to write a timeline, how to get the video, the ffmpeg command); the
   roadmap ticked; the code map; the agents' files if a tool or command changed.
 - **Done when:** a medium model makes a new video of a recipe with the guide alone.
+
+## Recording a video
+
+Built in V5; V7 turns it into the full guide. The kit makes the frames; ffmpeg, outside the kit
+(not a dependency: `apt install ffmpeg`, or a static build), makes the video, through
+`scripts/assemble.js` (development only, like Playwright).
+
+```bash
+# The frames of a timeline: examples/out/video/<timeline>/<format>/frames/*.png, frames.sha256,
+# captions.srt, timeline.json. --check renders twice and compares every frame.
+node scripts/render-frames.js examples/tours/npn-switch.json --format both --lang es --check
+
+# One video from one or more frame folders of the same size and fps, one after the other (H.264,
+# plays on every phone and platform), and their captions beside it as video.srt.
+node scripts/assemble.js examples/out/video/{led-resistor,npn-switch,potentiometer-led}/vertical -o video.mp4
+```
+
+`assemble.js` runs ffmpeg when it is installed; without it, it prints the command and exits 2. Its
+`--burn` draws the captions of the clips' `timeline.json` under the picture, above the platforms'
+bottom band: for frames made with `render-frames.js --no-captions` (no caption layer, the times
+still recorded), when the subtitles come later. By hand, one clip:
+
+```bash
+ffmpeg -framerate 30 -i frames/%06d.png -c:v libx264 -pix_fmt yuv420p -crf 18 -movflags +faststart clip.mp4
+```
+
+`render-frames.js` exits 1 when a frame at rest breaks a rule of *The frame* (it names the time) or
+when two runs differ.
 
 ## Compatibility
 

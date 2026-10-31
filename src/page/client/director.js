@@ -16,6 +16,8 @@
 
 import { clampBox, frameAt, easeOut, numbers, partBox, partsBounds, insetFrame, setBox, fitFrame } from './view.js';
 
+const EPSILON = 1e-6; // ms
+
 export const wantsDirector = (search) => new URLSearchParams(search).get('director') === '1';
 
 // `sim`: what live.js lends the director — controls() (engine.controls()), set(id, field, value)
@@ -43,7 +45,7 @@ export function createDirector(page, sim) {
     let box;
     if (target === 'board') box = numbers(svg.dataset.board);
     else if (target === 'parts') box = inset ? partsBounds(page) ?? numbers(svg.dataset.parts) : fitFrame(page, numbers(svg.dataset.parts));
-    else box = partBox(page, target);
+    else box = partBox(page, target, { label: page.told !== undefined });
     if (!box) return null;
     if (zoom !== 1) {
       const [x, y, w, h] = box;
@@ -133,7 +135,9 @@ export function createDirector(page, sim) {
           }
         }
         const next = cues[0];
-        if (!next || next.at > cueTime + left) {
+        // A cue due at the end of this tick runs in it: 72 ticks of 1000/30 ms add up to a hair
+        // under 2400 in floating point, and a cue at 2400 would wait a frame.
+        if (!next || next.at > cueTime + left + EPSILON) {
           cueTime += left;
           break;
         }

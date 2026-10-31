@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "potentiometer-led",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A potentiometer as a dimmer", "es": "Un potenciómetro como regulador de brillo" } },
+    { "at": 1200, "do": "frame", "target": "RV1", "move": "arrival" },
+    { "at": 1200, "do": "focus", "parts": ["RV1"] },
+    { "at": 1200, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 2600, "do": "caption", "text": { "en": "Turning it changes the resistance in the LED's path", "es": "Al girarlo cambia la resistencia en el camino del LED" } },
+    { "at": 2600, "do": "focus", "parts": ["RV1", "D1"] },
+    { "at": 2600, "do": "frame", "target": "D1", "move": "travel" },
+    { "at": 2600, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
+    { "at": 4600, "do": "caption", "text": { "en": "One way, more current and more light", "es": "Hacia un lado, más corriente y más luz" } },
+    { "at": 4600, "do": "set", "part": "RV1", "field": "position", "value": 0.02, "move": "travel", "ms": 1800 },
+    { "at": 7400, "do": "caption", "text": { "en": "The other way, the LED goes out", "es": "Hacia el otro, el LED se apaga" } },
+    { "at": 7400, "do": "set", "part": "RV1", "field": "position", "value": 0.95, "move": "travel", "ms": 1800 },
+    { "at": 10200, "do": "set", "part": "RV1", "field": "position", "value": 0.1, "move": "travel" },
+    { "at": 11700, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 11700, "do": "caption", "text": { "en": "Try it in the page: tap RV1", "es": "Pruébalo en la página: toca RV1" } },
+    { "at": 13200, "do": "focus", "parts": [] }
+  ]
+}

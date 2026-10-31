@@ -10,10 +10,11 @@
 
 export const numbers = (text) => text.split(' ').map(Number);
 
-// A frame kept on the board: zoom between a twelfth and twice the board, centre on it.
+// A frame kept on the board: zoom between a twelfth and three times the board (a landscape
+// recording shows the whole board in its right half: a little more than twice), centre on it.
 export function clampBox(page, [x, y, w, h]) {
   const [bx, by, bw, bh] = numbers(page.current().dataset.board);
-  const f = Math.min(Math.max(w, bw / 12), bw * 2) / w;
+  const f = Math.min(Math.max(w, bw / 12), bw * 3) / w;
   const cx = Math.min(Math.max(x + w / 2, bx), bx + bw);
   const cy = Math.min(Math.max(y + h / 2, by), by + bh);
   return [cx - (w * f) / 2, cy - (h * f) / 2, w * f, h * f];
@@ -128,8 +129,10 @@ export function partsBounds(page) {
 // The reserved margin of a recording (stage and video, V4): the shares of the screen kept free,
 // for the caption and for the buttons a platform draws over a video. Portrait (a vertical video):
 // the caption from 16 % to 40 % of the height and the bottom 25 %, so the circuit lies between 40
-// and 75 %; landscape: the left half, the caption's.
-export const STAGE_INSET = { vertical: { top: 0.4, right: 0, bottom: 0.25, left: 0 }, horizontal: { top: 0, right: 0, bottom: 0, left: 0.5 } };
+// and 75 %; landscape: the left half, the caption's. At the sides, the caption's own margin
+// (page/style.js, --cap-pad: 72 px at 1080 wide and at 1920 wide), so text and circuit line up;
+// landscape keeps the caption's top (9 %) at the top and the bottom too.
+export const STAGE_INSET = { vertical: { top: 0.4, right: 0.0667, bottom: 0.25, left: 0.0667 }, horizontal: { top: 0.09, right: 0.0375, bottom: 0.09, left: 0.5 } };
 export function stageInset(page) {
   const m = page.main.getBoundingClientRect();
   return STAGE_INSET[m.width > m.height ? 'horizontal' : 'vertical'];
@@ -295,9 +298,13 @@ export function partsRect(page, ids, svg = page.current()) {
 }
 
 // Frame a part: the box of what is drawn for it, a little more than twice its size, or null.
-export function partBox(page, id) {
-  const r = partsRect(page, [id]);
+// `label`: with its short label too (a recording frames the told part and the label it keeps; the
+// layer is hidden there by visibility, so it still measures).
+export function partBox(page, id, { label = false } = {}) {
+  let r = partsRect(page, [id]);
   if (!r) return null;
+  const tag = label && page.current().querySelector(`.shortlabels [data-part="${id.replace(/["\\]/g, '\\$&')}"]`)?.getBoundingClientRect();
+  if (tag && (tag.width || tag.height)) r = { left: Math.min(r.left, tag.left), top: Math.min(r.top, tag.top), right: Math.max(r.right, tag.right), bottom: Math.max(r.bottom, tag.bottom) };
   const [x0, y0] = toBox(page, r.left, r.top);
   const [x1, y1] = toBox(page, r.right, r.bottom);
   const w = Math.max(x1 - x0, 1) * 2.5;

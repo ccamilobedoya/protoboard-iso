@@ -119,6 +119,7 @@ export function setupTour(page, { director, t, f, recording, reading, dots }) {
   };
 
   let playing = false;
+  const log = []; // in a recording: each step as it ran, at the director's time (a wait moves the later ones)
   function stop() {
     if (!playing) return;
     playing = false;
@@ -135,7 +136,16 @@ export function setupTour(page, { director, t, f, recording, reading, dots }) {
     page.direct(true);
     document.body.classList.add('touring');
     select(page, null);
-    director.start(steps.map((s) => ({ at: s.at, run: () => act[s.do]?.(s) })));
+    log.length = 0;
+    director.start(
+      steps.map((s) => ({
+        at: s.at,
+        run: () => {
+          if (recording) log.push({ t: director.time, step: s });
+          act[s.do]?.(s);
+        },
+      })),
+    );
     director.after(() => {
       showValue();
       // The last move has ended and nothing waits: the page stays as the tour left it.
@@ -172,6 +182,10 @@ export function setupTour(page, { director, t, f, recording, reading, dots }) {
     stop,
     get playing() {
       return playing;
+    },
+    // What ran and when, for the recorder's timeline.json (scripts/render-frames.js).
+    get log() {
+      return log;
     },
   };
 }
