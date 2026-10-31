@@ -637,7 +637,9 @@ el tiempo) o cuando dos corridas difieren.
   tiempo salvo `?theme=`) con el circuito encuadrado más cerca (`LANDING_INSET` en `view.js`), con el
   reloj propio de la página: el recorrido arranca solo y se repite tras `LANDING_PAUSE` ms, un toque
   no lo detiene, y con movimiento reducido espera a `protoboardLive.tour.play()`, va en cortes y no
-  se repite.
+  se repite. Es más calmado que un video (`LANDING` en `tour.js`): su reloj va a 0,75, los
+  movimientos de cámara aceleran y frenan suave, y al final la cámara vuelve sin corte al primer
+  encuadre del recorrido (el subtítulo se desvanece), así la siguiente vuelta empieza sin salto.
 - `window.protoboardLive` conserva `tick`, `set`, `currents`, `recording`; el director agrega.
 - El SVG estático conserva sus colores; el tema de escena es de la página.
 

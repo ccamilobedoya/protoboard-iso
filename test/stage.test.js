@@ -165,12 +165,19 @@ test('stage: a landing dresses like a recording, plays by itself and again after
   assert.equal(win.document.documentElement.dataset.theme, 'stage');
   assert.equal(win.protoboardLive.director, null, 'not a recording: no director handed out');
   assert.ok(win.protoboardLive.tour.playing, 'it plays without being asked');
+  const view = () => win.document.querySelector('main > svg:not([hidden])').getAttribute('viewBox');
+  win.protoboardLive.tick(FRAME);
+  const start = view();
   assert.ok(win.document.querySelector('.tour-caption .stop').hidden, 'no «tap to stop» hint');
   // A tap does not stop it: the site's link above the page takes the tap.
   body.dispatchEvent(new win.Event('pointerdown', { bubbles: true }));
   assert.ok(win.protoboardLive.tour.playing);
   finish(win);
   assert.ok(!win.protoboardLive.tour.playing);
+  // It ends where it starts: the camera went back to the first frame, so the next play has no jump.
+  const at = (v) => v.split(' ').map(Number);
+  at(view()).forEach((n, k) => assert.ok(Math.abs(n - at(start)[k]) < 0.5, `viewBox ${view()} vs ${start}`));
+  assert.equal(win.document.querySelector('.tour-caption').style.opacity, '');
   const next = timers.find((x) => x.ms === LANDING_PAUSE);
   assert.ok(next, 'the next play waits LANDING_PAUSE ms');
   next.fn();

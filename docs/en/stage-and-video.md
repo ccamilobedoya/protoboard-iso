@@ -590,7 +590,10 @@ when two runs differ.
   chrome of a recording (no bar, the caption on the ground, one label, the timeline's theme unless
   `?theme=`) with the circuit framed closer (`LANDING_INSET` in `view.js`), on the page's own clock:
   the tour plays by itself and again after `LANDING_PAUSE` ms, a tap does not stop it, and under
-  reduced motion it waits for `protoboardLive.tour.play()`, plays as cuts and does not loop.
+  reduced motion it waits for `protoboardLive.tour.play()`, plays as cuts and does not loop. It is
+  calmer than a video (`LANDING` in `tour.js`): its clock runs at 0.75, camera moves ease in and out,
+  and at the end the camera glides back to the tour's first frame (the caption fading out), so the
+  next play starts without a jump.
 - `window.protoboardLive` keeps `tick`, `set`, `currents`, `recording`; the director adds to it.
 - The static SVG keeps its own colours; the stage theme is the page's.
 

@@ -21,7 +21,13 @@ import { select, selectNode } from './card.js';
 
 const COUNT_MS = 500; // a value counts up to its reading (M9), unless a step says otherwise
 const WAIT_MS = 10_000; // a wait-until that never comes true gives up after this
-export const LANDING_PAUSE = 1800; // ms a landing rests on the last frame before it plays again
+export const LANDING_PAUSE = 1800; // ms a landing rests on its first frame before it plays again
+// A landing is calmer than a video (which must catch the eye): its clock runs at `rate` (every step,
+// move and caption takes 1 / rate as long), its camera moves ease in and out instead of arriving
+// fast, and at the end the camera goes back to where the tour starts in `back` ms, so the next play
+// begins without a jump.
+export const LANDING = { rate: 0.75, curve: [0.45, 0, 0.55, 1], back: 1800 };
+const CAMERA_MOVES = new Set(['arrival', 'travel', 'push', 'anticipation']);
 const UNITS = { current: 'A', voltage: 'V', power: 'W', brightness: '%' };
 
 function el(parent, tag, cls) {
@@ -45,7 +51,12 @@ function stepMs(s, timing, count) {
 export function setupTour(page, { director, t, f, recording, landing = false, reading, dots, lights = () => {}, carrying = () => [] }) {
   const steps = page.data.tour.steps;
   const reduced = !recording && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const timing = (s) => (reduced ? { ms: 0, ease: () => 1 } : moveTiming(s.move, s.ms ?? (s.do === 'insert' ? INSERT.ms : undefined), s.curve));
+  const calm = bezier(LANDING.curve);
+  const timing = (s) => {
+    if (reduced) return { ms: 0, ease: () => 1 };
+    const t = moveTiming(s.move, s.ms ?? (s.do === 'insert' ? INSERT.ms : undefined), s.curve);
+    return landing && !s.curve && CAMERA_MOVES.has(s.move ?? (s.do === 'frame' ? 'arrival' : '')) ? { ...t, ease: calm } : t;
+  };
   const end = Math.max(0, ...steps.map((s) => s.at + (reduced ? 0 : stepMs(s, timing, Object.keys(page.data.parts).length))));
 
   // The caption over the drawing: a text, a second line, a value; the way to stop it.
@@ -439,10 +450,22 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         },
       })),
     );
+    let back = false; // a landing's camera on its way back to the first frame
     director.after(() => {
       showValue();
-      // The last move has ended and nothing waits: the page stays as the tour left it.
+      // The last move has ended and nothing waits: the page stays as the tour left it. A landing
+      // first takes the camera back to where the tour starts, the caption fading out on the way.
+      if (!director.busy && director.time >= end && landing && !reduced && !back) {
+        back = true;
+        const first = steps.find((s) => s.do === 'frame');
+        if (first) director.frame(first.target, { ms: LANDING.back, ease: calm, zoom: first.zoom ?? 1, pan: first.pan ?? null });
+        director.tween((e) => {
+          box.style.opacity = String(1 - e);
+        }, { ms: LANDING.back / 2, ease: calm });
+        return;
+      }
       if (!director.busy && director.time >= end) {
+        box.style.opacity = '';
         playing = false;
         director.stop();
         if (!recording) {

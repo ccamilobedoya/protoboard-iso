@@ -40,7 +40,7 @@ import { createRecorder, samplesOf } from '../../sim/recorder.js';
 import { scopeOf } from '../../sim/scope.js';
 import { iconSvg } from './icons.js';
 import { createDirector, wantsDirector, wantsLanding } from './director.js';
-import { setupTour } from './tour.js';
+import { setupTour, LANDING } from './tour.js';
 import { stageInset, landingInset } from './view.js';
 import { bezier, LIGHT } from './moves.js';
 
@@ -186,6 +186,7 @@ export function setupLive(page) {
   let peak = 0;
   const recording = wantsDirector(location.search);
   const landing = !recording && Boolean(data.tour) && wantsLanding(location.search);
+  const rate = landing ? LANDING.rate : 1; // a landing's tour runs calmer (tour.js, LANDING)
   let director = null; // set below, once the controls it moves exist
   let directing = false; // the director has the time: a recording, or a tour playing
   const reduced = !recording && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -567,7 +568,7 @@ export function setupLive(page) {
   if (typeof requestAnimationFrame === 'function' && (director || flow || dynamic || recorder)) {
     let before = null;
     const loop = (now) => {
-      if (directing) director.tick(before == null ? 0 : Math.min(now - before, LONGEST));
+      if (directing) director.tick(before == null ? 0 : Math.min(now - before, LONGEST) * rate);
       else frame(now);
       before = now;
       requestAnimationFrame(loop);
