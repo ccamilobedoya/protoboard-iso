@@ -47,8 +47,26 @@ export const regulator = {
     }
     return out;
   },
-  // No hook: Falstad's LM317 is a subcircuit that only its XML format can bring in (the text
-  // format needs the state of every transistor inside). The export leaves it out, with a note.
+  // Falstad's LM317 is a subcircuit that only its XML format can bring in (the text format
+  // needs the state of every transistor inside), so every regulator goes as an equivalent: an
+  // ideal source of the output from the reference node (GND, or ADJ) to OUT, and a resistor on
+  // IN sized from the quiescent current so the input net is not left floating. In dropout (the
+  // reading says so) the source is the input less the dropout.
+  falstad(d, f) {
+    const p = d.params;
+    const [inp, out, ref] = ['IN', 'OUT', p.ref].map((name) => f.pin(d, name));
+    const now = f.reading?.parts?.[d.id];
+    const across = now?.across > 1 ? now.across : null;
+    const vout = now?.state === 'dropout' && across ? Math.max(0, across - p.model.dropout) : p.model.vref;
+    f.voltage(ref, out, vout);
+    f.resistor(inp, ref, across ? Math.min(1e6, Math.max(100, across / p.model.quiescent)) : 10e3);
+    if (p.led) {
+      const mid = f.inner(d.id);
+      f.resistor(out, mid, p.led.resistance);
+      f.diode('d', mid, ref, `kit-${d.id}`, p.led.model);
+    }
+    f.note('falstad.regulator', { part: d.id, voltage: { value: vout, unit: 'V' } });
+  },
   limits(entry, r) {
     const out = [stress(entry.module ? 'SIM_REG_HOT_MODULE' : 'SIM_REG_HOT', 'power', r.power, entry.model.maxPower, 'W'), stress('SIM_OVER_CURRENT', 'current', r.current, entry.model.maxCurrent, 'A')];
     if (entry.model.maxInput) out.push(stress('SIM_REG_INPUT', 'voltage', r.across, entry.model.maxInput, 'V'));

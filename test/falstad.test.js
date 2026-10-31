@@ -21,6 +21,8 @@ const EXACT = 1e-6;
 const ALLOWED = {
   'mosfet-saturation': [0.08, "Falstad's text format has no channel-length modulation (λ = 0.01 /V here)"],
   'pot-zener': [0.08, "Falstad's Zener breakdown has another knee (both pass 5 mA at the same voltage)"],
+  'regulator-7805': [0.05, 'the regulator goes as an ideal source (no knee near dropout, no load or line regulation)'],
+  'esp32-gpio': [0.01, 'the GPIO stages are linear sources and resistors; the kit adds the pins\' protection diodes'],
   'rectifier-half-wave': [0.003, "Newton's tolerance at the diode: each simulator stops iterating at a slightly different point (1 mV of 10 V)"],
 };
 
@@ -75,7 +77,7 @@ test('falstad export: equivalents and parts left out are noted', () => {
   assert.deepEqual(codes('led-resistor.json'), []);
   assert.deepEqual(codes('rectifier.json'), ['falstad.bridge:BR1']);
   const more = codes('more-parts.json');
-  for (const c of ['falstad.battery:BT1', 'falstad.zener:D1', 'falstad.sensor:RT1', 'falstad.sensor:LDR1', 'falstad.buzzer:BZ1', 'falstad.missing:U1', 'falstad.missing:U2']) assert.ok(more.includes(c), c);
+  for (const c of ['falstad.battery:BT1', 'falstad.zener:D1', 'falstad.sensor:RT1', 'falstad.sensor:LDR1', 'falstad.buzzer:BZ1', 'falstad.missing:U1', 'falstad.regulator:U2']) assert.ok(more.includes(c), c);
   assert.ok(!more.some((c) => c.endsWith(':J1')), 'header pins say nothing');
 });
 

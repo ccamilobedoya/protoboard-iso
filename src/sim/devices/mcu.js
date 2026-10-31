@@ -134,6 +134,54 @@ export const mcu = {
     });
     return entry;
   },
+  // Falstad has no microcontroller: the board goes as what the kit simulates, sources and
+  // resistors. Power from USB (5 V behind the cable, the logic rail an ideal source), every
+  // ground pin joined, and each GPIO with a state as its output stage (a source behind the
+  // output resistance, or a pull). A program does not run there: the pins are frozen as the
+  // reading has them now (a PWM keeps its duty and frequency as a square wave).
+  falstad(d, f) {
+    const p = d.params;
+    const m = p.model;
+    const has = (name) => Boolean(name) && p.wired.includes(name);
+    const grounds = p.power.ground.filter(has);
+    const gnd = grounds.length ? f.pin(d, grounds[0]) : p.ground;
+    for (const name of grounds.slice(1)) f.wire(f.pin(d, name), gnd, 1e-3);
+    const rail = (name) => (has(name) ? f.pin(d, name) : f.inner(d.id));
+    const vbus = rail(p.power.usb);
+    if (p.usb) {
+      const top = f.inner(d.id);
+      f.voltage(gnd, top, 5);
+      f.resistor(top, vbus, m.usbResistance);
+    }
+    // The logic rail: the 5 V itself (UNO), else an ideal 3.3 V source where the board has the pin.
+    const logic = p.power.logic === p.power.usb ? vbus : rail(p.power.logic);
+    if (logic !== vbus && (p.usb || !has(p.power.logic))) f.voltage(gnd, logic, m.vdd);
+    // What the board itself draws (`own`), taken from the USB bus as the kit's regulator does, so
+    // the bus shows the same drop across the cable's resistance.
+    f.resistor(p.usb ? vbus : logic, gnd, (p.usb ? 5 : m.vdd) / m.own);
+    if (has(p.power.v3) && p.power.v3 !== p.power.logic) f.voltage(gnd, f.pin(d, p.power.v3), m.vdd);
+    // The board's own pull-up on EN / RESET, as the kit simulates it: the pin reads vdd when free.
+    if (has(p.power.reset)) f.resistor(f.pin(d, p.power.reset), logic, RESET_PULL);
+    const live = new Map((f.reading?.parts?.[d.id]?.pins ?? []).map((x) => [x.name, x]));
+    for (const g of p.gpios) {
+      const now = live.get(g.name);
+      const state = now ? { mode: now.mode, level: now.level, pull: now.pull, pwm: now.pwm } : g.state;
+      if (!state || !g.used) continue;
+      const pin = f.pin(d, g.name);
+      if (state.mode === 'output' && state.pwm) {
+        const top = f.inner(d.id);
+        f.voltage(gnd, top, 0, { waveform: 'square', frequency: state.pwm.freq, amplitude: m.vdd / 2, offset: m.vdd / 2, duty: state.pwm.duty });
+        f.resistor(top, pin, m.outputResistance);
+      } else if (state.mode === 'output' && state.level) {
+        const top = f.inner(d.id);
+        f.voltage(gnd, top, m.vdd);
+        f.resistor(top, pin, m.outputResistance);
+      } else if (state.mode === 'output') f.resistor(pin, gnd, m.outputResistance);
+      else if (state.pull) f.resistor(pin, state.pull === 'up' ? logic : gnd, m.pull);
+    }
+    f.note('falstad.mcu', { part: d.id });
+    if (p.sketch) f.note('falstad.program', { part: d.id });
+  },
   read(entry, h) {
     const m = entry.model;
     const v = (i) => h.volt(i) - h.volt(entry.gnd);

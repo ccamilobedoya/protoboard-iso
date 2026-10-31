@@ -33,7 +33,7 @@ const BACK_EULER = 2; // CapacitorElm / InductorElm.FLAG_BACK_EULER
 
 const num = (v) => String(Number.isFinite(v) ? Number(v.toPrecision(12)) : 0);
 
-export function createBuilder({ exact = false } = {}) {
+export function createBuilder({ exact = false, reading = null } = {}) {
   const items = [];
   const merges = [];
   const models = new Map();
@@ -42,6 +42,7 @@ export function createBuilder({ exact = false } = {}) {
   let inner = 0;
   const f = {
     exact,
+    reading, // the kit's reading now (engine.read()), for equivalents that freeze a state
     notes,
     note: (code, params) => notes.push({ code, params }),
     // A node only Falstad needs (between a source and its resistance, inside a Darlington).
@@ -91,7 +92,7 @@ export function createBuilder({ exact = false } = {}) {
     // A source: DC, or a generator's wave (VoltageElm: waveform, frequency, peak, offset).
     // phase (radians): see exportSupply.
     voltage(minus, plus, v, wave = null, phase = 0) {
-      f.two('v', minus, plus, wave ? [FALSTAD_WAVEFORM[wave.waveform], num(wave.frequency), num(wave.amplitude), num(wave.offset), num(phase), 0.5] : [0, 40, num(v), 0, 0, 0.5]);
+      f.two('v', minus, plus, wave ? [FALSTAD_WAVEFORM[wave.waveform], num(wave.frequency), num(wave.amplitude), num(wave.offset), num(phase), num(wave.duty ?? 0.5)] : [0, 40, num(v), 0, 0, 0.5]);
     },
     ground(node) {
       ground = node;
@@ -139,7 +140,7 @@ export function toFalstad(program, { exact = false, reading = null, timeConstant
   }
   const periods = program.supplies.filter((s) => s.generator && !s.off).map((s) => 1 / s.generator.frequency);
   const step = timeStep(timeConstants, periods);
-  const f = createBuilder({ exact });
+  const f = createBuilder({ exact, reading });
   f.ground(program.ground);
   for (const s of program.supplies) exportSupply(s, f, reading, step);
   for (const d of program.devices) {

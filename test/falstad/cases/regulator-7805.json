@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "title": {
+    "en": "7805 regulator from a 9 V bench supply, with an LED",
+    "es": "Regulador 7805 desde una fuente de banco de 9 V, con un LED"
+  },
+  "board": "auto",
+  "clearance": 1,
+  "parts": [
+    {
+      "id": "C1",
+      "type": "capacitor",
+      "value": "330n",
+      "pins": [
+        "j2",
+        "T-2"
+      ]
+    },
+    {
+      "id": "U1",
+      "part": "7805",
+      "type": "regulator",
+      "pins": [
+        "g5",
+        "g6",
+        "g7"
+      ]
+    },
+    {
+      "id": "C2",
+      "type": "capacitor",
+      "value": "100n",
+      "pins": [
+        "i7",
+        "i9"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "red",
+      "pins": [
+        "j11",
+        "T-11"
+      ]
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "1k",
+      "pins": [
+        "f7",
+        "f13"
+      ]
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "j5",
+        "T+4"
+      ]
+    },
+    {
+      "id": "W2",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "i2",
+        "i5"
+      ]
+    },
+    {
+      "id": "W3",
+      "type": "wire",
+      "color": "orange",
+      "pins": [
+        "i11",
+        "j13"
+      ]
+    },
+    {
+      "id": "W4",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "T-6",
+        "j6"
+      ]
+    },
+    {
+      "id": "W5",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "T-8",
+        "j9"
+      ]
+    }
+  ],
+  "supplies": [
+    {
+      "id": "V1",
+      "kind": "bench",
+      "voltage": 9,
+      "currentLimit": 0.5,
+      "positive": "T+",
+      "negative": "T-"
+    }
+  ],
+  "netLabels": {
+    "T+": "+9 V",
+    "T-": "GND"
+  }
+}

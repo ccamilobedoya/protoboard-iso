@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "board": "double",
+  "clearance": 1,
+  "parts": [
+    {
+      "id": "U1",
+      "type": "module",
+      "part": "ESP32-DEVKIT",
+      "usb": true,
+      "io": {
+        "D4": "high",
+        "D15": "input_pullup"
+      },
+      "pin1": "j2"
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "220",
+      "pins": [
+        "s12",
+        "s18"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "red",
+      "pins": [
+        "t18",
+        "U-18"
+      ]
+    },
+    {
+      "id": "R2",
+      "type": "resistor",
+      "value": "10k",
+      "pins": [
+        "s22",
+        "s26"
+      ]
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "t15",
+        "U-15"
+      ]
+    },
+    {
+      "id": "W2",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "f15",
+        "B-15"
+      ]
+    },
+    {
+      "id": "W3",
+      "type": "wire",
+      "color": "orange",
+      "pins": [
+        "t14",
+        "t22"
+      ]
+    },
+    {
+      "id": "W4",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "t26",
+        "U-26"
+      ]
+    }
+  ],
+  "title": {
+    "en": "ESP32 DevKit on USB: D4 high lights an LED, D15 pulled up through 10k",
+    "es": "ESP32 DevKit por USB: D4 en alto enciende un LED, D15 con pull-up por 10k"
+  }
+}

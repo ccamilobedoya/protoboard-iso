@@ -38,8 +38,9 @@ Las dos usan el mismo exportador: `toFalstad(program, opciones)` en `src/sim/fal
 | Darlington (TIP120, BC517) | Sus dos transistores y sus dos resistencias | Sí |
 | Zener | El Zener de Falstad, calibrado para dejar pasar 5 mA al mismo voltaje | Sí: la rodilla es distinta |
 | MOSFET | El MOSFET de Falstad (misma Vth y k) | Sí: se enciende de golpe y no tiene λ |
-| Regulador (78xx, LM317) | Nada | Sí: el LM317 de Falstad es un subcircuito que solo entra con su formato XML |
-| Chips y placas | Nada | Sí: el kit todavía no los simula |
+| Regulador (78xx, LM317, AMS1117) | Una fuente ideal de su salida entre GND (o ADJ) y OUT, una resistencia de IN a tierra calculada con la corriente propia y el LED piloto del módulo | Sí: sin curva de caída ni regulación de carga o de línea (el LM317 de Falstad es un subcircuito que solo entra con su formato XML) |
+| Placa con microcontrolador (ESP32, C3, UNO) | El USB como 5 V tras la resistencia del cable, el riel lógico como fuente ideal, todos los pines de tierra unidos y cada GPIO con estado como una fuente tras la resistencia de salida (alto), una resistencia a tierra (bajo) o un pull-up/pull-down | Sí: el programa no corre allí (los pines van como están ahora, un PWM como onda cuadrada con su ciclo de trabajo) y una entrada solo lee, algo que Falstad no puede mostrar |
+| Otros chips | Nada | Sí: el kit todavía no los simula, o no tienen equivalente |
 | Pines de cabecera | Nada | — |
 
 ### Cómo se dibuja en Falstad
@@ -148,3 +149,9 @@ Cada módulo de dispositivo puede tener `falstad(d, f)`
 propio), `f.pin(d, nombre)`, `f.exact` y `f.note(código, parámetros)`. Un equivalente siempre
 lleva su nota (`falstad.*` en `src/i18n`). Sin `falstad`, el componente queda fuera con la nota
 `falstad.missing`.
+
+Las placas y los reguladores los escriben `devices/mcu.js` y `devices/regulator.js`; los dos leen
+`f.reading` (la lectura del kit al exportar) para congelar lo que cambia con el tiempo: los pines
+tal como los dejó el programa, o un regulador en caída. Avisos: `falstad.mcu`, `falstad.program`
+(una placa con programa) y `falstad.regulator`. Los rieles se nombran desde la placa (`T+`, `B-`,
+`U+`, `U-` de la doble), con la tierra primero.

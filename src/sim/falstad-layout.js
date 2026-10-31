@@ -29,7 +29,7 @@ const HALF = 48;
 const TOP = 64;
 const LEFT = 64;
 const ESCAPE = 4; // LabeledNodeElm.FLAG_ESCAPE
-const RAIL = /^[TB][+-]$/;
+const RAIL = /^[A-Z][+\-−]$/; // any rail id of the board: T+, B-, U+, U-
 
 export const escapeName = (s) => (s.length ? String(s).replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/ /g, '\\s').replace(/\+/g, '\\p').replace(/=/g, '\\q').replace(/#/g, '\\h').replace(/&/g, '\\a').replace(/\r/g, '\\r') : '\\0');
 

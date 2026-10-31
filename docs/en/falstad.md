@@ -35,8 +35,9 @@ Both use one exporter: `toFalstad(program, options)` in `src/sim/falstad.js`.
 | Darlington (TIP120, BC517) | Its two transistors and two resistors | Yes |
 | Zener | Falstad's Zener, set to pass 5 mA at the same voltage | Yes: another knee |
 | MOSFET | Falstad's MOSFET (same Vth and k) | Yes: sharp turn-on, no λ |
-| Regulator (78xx, LM317) | Nothing | Yes: Falstad's LM317 is a subcircuit only its XML format can bring in |
-| Chips and boards | Nothing | Yes: the kit does not simulate them yet |
+| Regulator (78xx, LM317, AMS1117) | An ideal source of its output from GND (or ADJ) to OUT, a resistor from IN to ground sized from the quiescent current, and the module's pilot LED | Yes: no dropout curve, no load or line regulation (Falstad's LM317 is a subcircuit only its XML format can bring in) |
+| Microcontroller board (ESP32, C3, UNO) | USB as 5 V behind the cable's resistance, the logic rail as an ideal source, every ground pin joined, each GPIO with a state as a source behind the output resistance (high), a resistor to ground (low) or a pull-up/pull-down | Yes: a program does not run there (the pins go as they are now, a PWM as a square wave with its duty), and an input only reads, which Falstad cannot show |
+| Other chips | Nothing | Yes: the kit does not simulate them yet, or they have no equivalent |
 | Header pins | Nothing | — |
 
 ### How it looks in Falstad
@@ -143,3 +144,9 @@ compiled device (`d.pins`, `d.params`) and the builder `f`: `f.resistor`, `f.cap
 `f.inner(id)` (a node of its own), `f.pin(d, name)`, `f.exact` and `f.note(code, params)`. An
 equivalent always comes with its note (`falstad.*` in `src/i18n`). Without `falstad`, the part is
 left out with the note `falstad.missing`.
+
+Boards and regulators are written by `devices/mcu.js` and `devices/regulator.js`; both read
+`f.reading` (the kit's reading when the export was made) to freeze what changes in time: the pins
+a program has set now, or a regulator in dropout. Notes: `falstad.mcu`, `falstad.program` (a board
+running a program) and `falstad.regulator`. Rails are named from the board (`T+`, `B-`, `U+`, `U-`
+of the double board), ground first.
