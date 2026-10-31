@@ -23,8 +23,13 @@
       "description": "The video: vertical 1080 × 1920 (default) or horizontal 1920 × 1080"
     },
     "theme": {
-      "type": "string",
-      "description": "The theme of the video (stage, from V4)"
+      "enum": [
+        "light",
+        "dark",
+        "notebook",
+        "stage"
+      ],
+      "description": "The page's theme in a recording: stage (default, the notebook at night), notebook (by day), light or dark (the bench). A link's ?theme= wins over this"
     },
     "steps": {
       "type": "array",

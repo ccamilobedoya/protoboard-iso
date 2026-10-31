@@ -79,7 +79,29 @@ up to date.
   `COORD_COVERED`, `FLOW_COLLINEAR`. `test/plan.test.js`: zero clashes for every example with
   each of its first parts in focus (and 456 scenes, both views and frames, checked once by hand).
   The example images, the README's current image and the V0 hashes changed on purpose.
-- ⬜ V4 to V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
+- ✅ V4 · The stage (2026-10-30): `[data-theme="stage"]` in `src/page/style.js`, the notebook at
+  night (slate `#151a21`, the engineering grid in pale blue, chalk ink `#efe9da`, the system's
+  serif for captions, amber values); `page.theme`, `?theme=` and a timeline's `theme` take it. Its day version, `[data-theme="notebook"]` (cream paper `#f4efe2`, the grid in blue ink `#184f8f`, near-black ink, current tags in terracotta `#a3461f`; the first round's C), is one more theme for lessons and videos alike: the lessons' default is still the light bench. The reader chooses among the five (like the device, bench, bench at night, notebook, notebook at night) in the ⋯ menu; the choice is kept in the browser for every page of the same site (`page/client/themes.js`, `main.js`); a link's `?theme=` still wins, and a recording keeps the timeline's. The
+  grid of holes continues past the board in every theme (`src/render/hole-grid.js`): an SVG
+  pattern in the drawing, on the board's own isometric lattice (2.54 mm, major marks every five
+  holes through the numbered columns 5, 10, 15…), so it moves and scales with the board as a
+  canvas's or a map's grid does; its marks keep their size on screen and the minor ones fade
+  when they crowd (`view.js`); dots on the bench, lines on the stage. The
+  dark bench is the *bench at night* (canvas `#121211`, the bar without a ground). A recording
+  (`?director=1`) takes the timeline's theme (the stage by default; `?theme=` wins), hides the
+  chrome, the labels, the short labels and the result tags, and keeps one label: the told part's
+  short label (`page.told`, set by the tour's `frame` on a part, `focus` and `insert`; `focus.js`).
+  The caption is the video's layer there (`body.director .tour-caption`): no box, its sizes as
+  shares of the width (`--cap-text` 56 px, `--cap-number` 44, `--cap-line` 30 at 1080 wide; 52 at
+  1920 wide), from 16 % of the height in portrait, the left half in landscape. The reserved margin:
+  `insetFrame` and `stageInset` in `view.js` (portrait: the top 40 % and the bottom 25 % free;
+  landscape: the left half), used by `fitFrame` and by the director for `board`, `parts` and a
+  part. `scripts/stage-shots.js` draws the mock-ups' shots from the real page (stage and dark
+  bench, phone and desk, at rest and tapped; 1080 × 1920 and 1920 × 1080 recordings) and measures
+  the frame's rules on the DOM (caption band and sizes, the told part and its label in the free
+  area, one label, no tags, no chrome); `test/stage.test.js`. The V0 hashes changed on purpose (the
+  grid). The contrast and touch-size gates in a real browser are still to run (the maintainer's).
+- ⬜ V5 to V7: not started. The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
 

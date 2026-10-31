@@ -10,7 +10,7 @@
 //   #probe               the probes/arrows of the result tag hovered or tapped
 //   #stress              (live page) the boxes (layer marks) of the parts near or past their limits
 // .side holds the live page's panels (warnings, controls), top right; .info the card, bottom left.
-// Layers in each SVG: (under), board, parts, labels, (annotations), veil, strips, coords, spotlight (made
+// Layers in each SVG: holegrid (the page only), (under), board, parts, labels, (annotations), veil, strips, coords, spotlight (made
 // by the script: copies of the tapped parts), flow, spotlabels (made by the script: copies of their
 // labels, above the current), results, probes; in a live page, marks (boxes around each part,
 // for its limits) between flow and spotlabels. Hidden by default: veil, flow, strips, coords,
@@ -21,8 +21,11 @@
 //
 // Colours (UX pass, U2): every colour of the page is a token on :root, from
 // .interface-design/system.md (bench palette). Dark follows the system unless <html data-theme>
-// says light or dark (page.theme in the circuit, or ?theme= in the link; see page/client/main.js).
-// In the page only, the drawing's background, veil, labels and result tags take the tokens too,
+// fixes a theme: light or dark (the bench), notebook or stage (the notebook by day and at night,
+// V4); page.theme in the circuit, the reader's choice in the ⋯ menu, or ?theme= in the link (see
+// page/client/main.js).
+// In the page only, the drawing's background, veil, labels, result tags and the grid of holes
+// (render/hole-grid.js) take the tokens too,
 // by CSS over their presentation attributes: the static SVG keeps its own colours.
 // Touch: hover only with a fine pointer, feedback on :active, 40 px targets on a coarse pointer.
 
@@ -55,33 +58,86 @@ export const STYLE = `
   --tag-v: #1b6ec2; --tag-i: #b5452a;
   --scope: #0d1418; --scope-grid: rgba(255, 255, 255, 0.09); --scope-zero: #557079; --scope-scale: #9fb3bb;
   --trace-v: #f5a623; --trace-v-ink: #8a5a00; --trace-i: #00e5ff; --trace-i-ink: #00687a;
+  /* The grid of holes continued under the drawing (stage and video, V4; render/hole-grid.js): in
+     the drawing, so it moves and scales with the board; dots on the bench, lines on the stage. */
+  --grid-dot: rgba(26, 26, 26, 0.22); --grid-dot-major: rgba(26, 26, 26, 0.38); --grid-line: transparent; --grid-line-major: transparent;
+  /* The video's caption (V4): the face, its inks, and its sizes as a share of the frame's width. */
+  --cap-face: var(--sans); --cap-ink: var(--ink); --cap-ink-2: var(--ink-3); --cap-value: var(--accent);
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) {
   color-scheme: dark;
-  --bench: #1e1d1b; --well: #272623; --card: #2c2b28; --canvas: #181816; --press: #3a3935;
+  --bench: #1e1d1b; --well: #272623; --card: #2c2b28; --press: #3a3935;
   --ink: #eceae4; --ink-2: #c4c1b8; --ink-3: #9a978e; --ink-4: #75736c;
   --hair: rgba(255, 255, 255, 0.1); --hair-strong: rgba(255, 255, 255, 0.18); --hair-soft: rgba(255, 255, 255, 0.06);
   --accent: #6fa8e8; --accent-deep: #4a86c9; --accent-soft: #263445; --on-accent: #111111;
   --danger: #e8705f; --danger-ink: #f09a8c; --danger-soft: #3a2522; --danger-hover: #4a2c28;
   --warn: #e0b040; --warn-ink: #f0cc70; --warn-soft: #362d17; --warn-edge: #7a6020;
   --tooltip: #eceae4; --on-tooltip: #1e1d1b;
-  --veil: #181816; --label-edge: #8a96a3; --leader: #8a96a3; --label-ink: #eceae4;
+  --label-edge: #8a96a3; --leader: #8a96a3; --label-ink: #eceae4;
   --tag-v: #6fa8e8; --tag-i: #ef8a6e;
   --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
+  --canvas: #121211; --veil: #121211; --cap-value: #ffb340;
+  --grid-dot: rgba(255, 255, 255, 0.18); --grid-dot-major: rgba(255, 255, 255, 0.3);
 } }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bench: #1e1d1b; --well: #272623; --card: #2c2b28; --canvas: #181816; --press: #3a3935;
+  --bench: #1e1d1b; --well: #272623; --card: #2c2b28; --press: #3a3935;
   --ink: #eceae4; --ink-2: #c4c1b8; --ink-3: #9a978e; --ink-4: #75736c;
   --hair: rgba(255, 255, 255, 0.1); --hair-strong: rgba(255, 255, 255, 0.18); --hair-soft: rgba(255, 255, 255, 0.06);
   --accent: #6fa8e8; --accent-deep: #4a86c9; --accent-soft: #263445; --on-accent: #111111;
   --danger: #e8705f; --danger-ink: #f09a8c; --danger-soft: #3a2522; --danger-hover: #4a2c28;
   --warn: #e0b040; --warn-ink: #f0cc70; --warn-soft: #362d17; --warn-edge: #7a6020;
   --tooltip: #eceae4; --on-tooltip: #1e1d1b;
-  --veil: #181816; --label-edge: #8a96a3; --leader: #8a96a3; --label-ink: #eceae4;
+  --label-edge: #8a96a3; --leader: #8a96a3; --label-ink: #eceae4;
   --tag-v: #6fa8e8; --tag-i: #ef8a6e;
   --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
+  --canvas: #121211; --veil: #121211; --cap-value: #ffb340;
+  --grid-dot: rgba(255, 255, 255, 0.18); --grid-dot-major: rgba(255, 255, 255, 0.3);
 }
+:root[data-theme="stage"] {
+  /* The stage (V4): the notebook at night. A slate ground with the engineering grid in pale blue,
+     chalk ink, the system's serif for what is told. The video's theme; a page may take it too. */
+  color-scheme: dark;
+  --bench: #151a21; --well: #151a21; --card: #1d232c; --canvas: #151a21; --press: #2a323d;
+  --ink: #efe9da; --ink-2: #c9c3b4; --ink-3: #9aa3ad; --ink-4: #75808c;
+  --hair: rgba(255, 255, 255, 0.09); --hair-strong: rgba(255, 255, 255, 0.18); --hair-soft: rgba(255, 255, 255, 0.05);
+  --accent: #9cc6ff; --accent-deep: #6fa3e6; --accent-soft: #223247; --on-accent: #0e1218;
+  --danger: #e8705f; --danger-ink: #f09a8c; --danger-soft: #3a2522; --danger-hover: #4a2c28;
+  --warn: #e0b040; --warn-ink: #f0cc70; --warn-soft: #362d17; --warn-edge: #7a6020;
+  --tooltip: #efe9da; --on-tooltip: #151a21;
+  --veil: #151a21; --label-edge: #7f8c9b; --leader: #7f8c9b; --label-ink: #efe9da;
+  --tag-v: #9cc6ff; --tag-i: #ffcc5c;
+  --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
+  --grid-dot: transparent; --grid-dot-major: transparent; --grid-line: rgba(156, 198, 255, 0.1); --grid-line-major: rgba(156, 198, 255, 0.22);
+  --cap-face: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --cap-ink: #efe9da; --cap-ink-2: #9aa3ad; --cap-value: #ffcc5c;
+}
+:root[data-theme="notebook"] {
+  /* The notebook (V4): the lab notebook by day. Cream engineering paper with the grid in blue ink,
+     near-black ink, the system's serif for what is told. A theme for lessons and videos alike. */
+  color-scheme: light;
+  --bench: #f4efe2; --well: #ebe4d3; --card: #fbf8f0; --canvas: #f4efe2; --press: #e0d8c4;
+  --ink: #1c1a16; --ink-2: #4a463f; --ink-3: #6b665c; --ink-4: #8f897d;
+  --hair: rgba(28, 26, 22, 0.14); --hair-strong: rgba(28, 26, 22, 0.25); --hair-soft: rgba(28, 26, 22, 0.07);
+  --accent: #184f8f; --accent-deep: #123d6f; --accent-soft: #e2e9f3; --on-accent: #fbf8f0;
+  --tooltip: #1c1a16; --on-tooltip: #f4efe2;
+  --veil: #f4efe2; --label-edge: #6b665c; --leader: #8f897d; --label-ink: #1c1a16;
+  --tag-v: #184f8f; --tag-i: #a3461f;
+  --grid-dot: transparent; --grid-dot-major: transparent; --grid-line: rgba(24, 79, 143, 0.1); --grid-line-major: rgba(24, 79, 143, 0.22);
+  --cap-face: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --cap-ink: #1c1a16; --cap-ink-2: #6b665c; --cap-value: #184f8f;
+}
+/* The two notebooks (stage and notebook): square corners, chalk or ink on the pressed buttons, the
+   serif for a card's title. */
+:is([data-theme="stage"], [data-theme="notebook"]) :is(nav button, .info button, .info .explain, .inspector) { border-radius: 2px; }
+:is([data-theme="stage"], [data-theme="notebook"]) nav button[aria-pressed="true"] { color: var(--on-accent); background: var(--ink); }
+:is([data-theme="stage"], [data-theme="notebook"]) .inspector { border-color: transparent; }
+:is([data-theme="stage"], [data-theme="notebook"]) .info h2 { font-family: var(--cap-face); font-size: 18px; }
+/* At night and on paper the bar has no ground of its own: the drawing's ground goes up to the top. */
+:is([data-theme="dark"], [data-theme="stage"], [data-theme="notebook"]) nav { background: transparent; border-bottom-color: transparent; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) nav { background: transparent; border-bottom-color: transparent; } }
+:is([data-theme="dark"], [data-theme="stage"], [data-theme="notebook"]) body { background: var(--canvas); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) body { background: var(--canvas); } }
 html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; height: 100%; background: var(--bench); color: var(--ink); font-family: var(--sans); }
 body { display: flex; flex-direction: column; }
@@ -131,6 +187,12 @@ main.flipping > svg { position: absolute; inset: 0; }
 body.embedded main > svg { touch-action: pan-x pan-y; }
 /* The drawing, in the page only: its background, veil, labels and result tags follow the theme. */
 main > svg > rect:first-child { fill: var(--canvas); }
+/* The grid of holes (V4): its marks' sizes and the minor ones' fading are set per zoom (view.js). */
+.holegrid { pointer-events: none; }
+.holegrid .grid-minor .grid-dot { fill: var(--grid-dot); }
+.holegrid .grid-major .grid-dot { fill: var(--grid-dot-major); }
+.holegrid .grid-minor .grid-line { stroke: var(--grid-line); }
+.holegrid .grid-major .grid-line { stroke: var(--grid-line-major); }
 .veil > * { fill: var(--veil); }
 .labels rect, .spotlabels rect { fill: var(--card); stroke: var(--label-edge); }
 .labels text, .spotlabels text { fill: var(--label-ink); }
@@ -145,7 +207,7 @@ main > svg > rect:first-child { fill: var(--canvas); }
 /* At rest (stage and video, V3) the parts are named by short labels beside them; Labels shows the
    boxes with leaders instead. A tapped part's box comes forward either way (spotlabels). */
 body.no-labels .labels, body:not(.no-labels) .shortlabels { display: none; }
-.shortlabels text { fill: var(--label-ink); stroke: var(--bench); }
+.shortlabels text, .spotlabels .short { fill: var(--label-ink); stroke: var(--bench); }
 body:not(.show-results) .results, body:not(.show-results) .info .sim { display: none; }
 .veil, .strips, .coords, .flow, .results, .lights { pointer-events: none; }
 body.layer-flow .lights { display: none; } /* the current layer draws its own glow, over the veil */
@@ -291,7 +353,7 @@ body.touched .zoom, .zoom:focus-within { opacity: 1; pointer-events: auto; }
 .first-hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 2; box-sizing: border-box; width: max-content; max-width: calc(100% - 24px); display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; text-align: center; color: var(--on-tooltip); background: var(--tooltip); border-radius: 6px; font-size: 13px; line-height: 1.35; pointer-events: none; }
 .first-hint[hidden] { display: none; }
 /* The tour (stage and video, V2): its caption over the top of the drawing, text from the timeline.
-   The video's caption layer and sizes come with the stage theme (V4). */
+   In a recording (body.director) it is the video's caption layer instead, below. */
 .tour-caption { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 3; box-sizing: border-box; width: max-content; max-width: min(560px, calc(100% - 24px)); padding: 10px 14px; color: var(--on-tooltip); background: var(--tooltip); border-radius: 8px; pointer-events: none; }
 .tour-caption p { margin: 0; }
 .tour-caption .text { font-size: 17px; line-height: 1.35; font-weight: 600; }
@@ -302,6 +364,31 @@ body.touched .zoom, .zoom:focus-within { opacity: 1; pointer-events: auto; }
 .tour-caption .stop { display: block; margin-top: 6px; font-size: 12px; opacity: 0.7; }
 .tour-caption[hidden], .tour-caption [hidden] { display: none; }
 body.touring .first-hint { display: none; }
+/* A recording (?director=1; stage and video, V4): the frame of a video. No chrome, one label (the
+   told part's, tour.js), no result tags (the value that matters is in the caption, large). The
+   caption has no box: the text on the ground, its sizes a share of the frame's width (56, 44 and
+   30 px at 1080 wide; 52 at 1920 wide). Portrait (vertical video): from 16 % of the height, the
+   circuit below it (the director's inset, live.js); landscape: the left half, the circuit right.
+   The top 15 % and bottom 25 % of a vertical frame are the platforms' (their buttons). */
+body.director {
+  --cap-text: 5.1852vw; --cap-number: 4.0741vw; --cap-line: 2.7778vw; --cap-label: 2.4074vw;
+  --cap-pad: 6.6667vw; --cap-top: 16%; --cap-gap: 1.2963vw;
+}
+@media (orientation: landscape) { body.director {
+  --cap-text: 2.7083vw; --cap-number: 2.1354vw; --cap-line: 1.4583vw; --cap-label: 1.25vw;
+  --cap-pad: 3.75vw; --cap-top: 9%; --cap-gap: 0.7292vw;
+} }
+:is([data-theme="stage"], [data-theme="notebook"]) body.director { --cap-weight: 500; }
+body.director nav, body.director .zoom, body.director .inspector, body.director .gesture-hint, body.director .first-hint, body.director .tooltip { display: none !important; }
+body.director main { cursor: default; }
+body.director .labels, body.director .shortlabels, body.director .results, body.director .probes { display: none !important; }
+body.director .tour-caption { left: 0; right: 0; top: var(--cap-top); transform: none; width: auto; max-width: none; padding: 0 var(--cap-pad); background: none; border-radius: 0; color: var(--cap-ink); }
+@media (orientation: landscape) { body.director .tour-caption { right: 50%; } }
+body.director .tour-caption .text { max-width: 22ch; font: var(--cap-weight, 600) var(--cap-text)/1.15 var(--cap-face); text-wrap: balance; }
+body.director .tour-caption .line { margin-top: var(--cap-gap); font: 500 var(--cap-line)/1.2 var(--sans); color: var(--cap-ink-2); opacity: 1; }
+body.director .tour-caption .value { flex-direction: row-reverse; justify-content: flex-end; gap: var(--cap-gap); margin-top: var(--cap-gap); }
+body.director .tour-caption .value .number { font-size: var(--cap-number); font-weight: 500; line-height: 1; color: var(--cap-value); }
+body.director .tour-caption .value .label { font-size: var(--cap-label); color: var(--cap-ink-2); opacity: 1; }
 .first-hint small { font-size: 12px; opacity: 0.8; }
 body.embedded .first-hint .alone, body:not(.embedded) .first-hint .framed { display: none; }
 /* The inspector (inspector.js, UX pass U4): the card and the circuit's panels, in tabs. */

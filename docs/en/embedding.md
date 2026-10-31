@@ -39,7 +39,11 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
   iframe the host must allow it (`<iframe allowfullscreen>`).
 - **Light or dark** like the device (`prefers-color-scheme`); the circuit can fix it with
   `"page": { "theme": "light" | "dark" }`, and a link wins over both: `…/led.html?theme=dark`
-  (`auto` follows the system again). Only the page's colours change; the board keeps its own.
+  (`auto` follows the system again). `notebook` is cream paper with a blue grid and `stage` the
+  same at night, the videos' theme ([stage and video](stage-and-video.md)). Whoever reads can
+  change it in the ⋯ menu (*Theme*); the choice is kept for the other pages of the same site, and a
+  link's `?theme=` still wins. Only the page's colours change; the board keeps
+  its own. Behind the board the grid of holes goes on as the page's background.
 - **Simulation results**, whenever the circuit has a source (`supplies` or a battery part):
   always on, shown only for the part that is tapped, so the board never fills with numbers; LEDs
   glow with their current. Turn them off while someone is asked to predict them:

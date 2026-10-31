@@ -38,12 +38,34 @@ function scaleTags(svg, k) {
     }
   }
 }
+// The grid of holes (V4, render/hole-grid.js) is in the drawing and scales with it; its marks keep
+// their size on screen (lines 1 px, dots of radius 1.8 and 2.6 px) and the minor ones fade out as they crowd
+// (fully shown from 10 px apart, gone at 5), as a canvas's grid does. `k`: drawing units per pixel.
+const gridOf = new WeakMap(); // svg → { step, minor, major, minorRect } or null
+function scaleGrid(svg, k) {
+  if (!gridOf.has(svg)) {
+    const g = svg.querySelector(':scope > .holegrid');
+    const marks = (name) => ({ line: g.querySelector(`pattern.grid-${name} .grid-line`), dot: g.querySelector(`pattern.grid-${name} .grid-dot`) });
+    gridOf.set(svg, g ? { step: Number(g.dataset.step), minor: marks('minor'), major: marks('major'), minorRect: g.querySelector(':scope > rect.grid-minor') } : null);
+  }
+  const grid = gridOf.get(svg);
+  if (!grid?.step) return;
+  const px = k / grid.step; // a pixel, in the pattern's units (one pitch = 1)
+  const r3 = (x) => String(Number(x.toPrecision(3)));
+  for (const [m, dot] of [[grid.minor, 1.8], [grid.major, 2.6]]) {
+    m.line?.setAttribute('stroke-width', r3(px));
+    m.dot?.setAttribute('r', r3(px * dot));
+  }
+  const fade = Math.min(1, Math.max(0, (grid.step / k - 5) / 5));
+  grid.minorRect?.setAttribute('opacity', r3(fade));
+}
 function apply(page, box) {
   page.box = box;
   const svg = page.current();
   svg.setAttribute('viewBox', box.map((n) => Math.round(n * 100) / 100).join(' '));
   const r = svg.getBoundingClientRect();
   if (!(r.width > 0 && r.height > 0)) return;
+  scaleGrid(svg, Math.max(box[2] / r.width, box[3] / r.height));
   const k = Math.round(Math.min(1, (TAG_PX / 8) * Math.max(box[2] / r.width, box[3] / r.height)) * 1000) / 1000;
   if (svg.dataset.tagK === String(k)) return;
   svg.dataset.tagK = String(k);
@@ -91,29 +113,65 @@ export function frameTo(page, target) {
   page.frameAnim = win.requestAnimationFrame(step);
 }
 
+// What the parts take on screen, as they are drawn now, with the labels shown (boxes, or the short
+// labels at rest: hidden ones measure nothing) and a small margin, in drawing units; or null.
+export function partsBounds(page) {
+  const els = [...page.current().querySelectorAll('.under [data-part], .parts [data-part], .labels [data-part], .shortlabels [data-part]')];
+  const rects = els.map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
+  if (!rects.length) return null;
+  const [x0, y0] = toBox(page, Math.min(...rects.map((r) => r.left)), Math.min(...rects.map((r) => r.top)));
+  const [x1, y1] = toBox(page, Math.max(...rects.map((r) => r.right)), Math.max(...rects.map((r) => r.bottom)));
+  const pad = 0.06 * Math.max(x1 - x0, y1 - y0);
+  return [x0 - pad, y0 - pad, x1 - x0 + 2 * pad, y1 - y0 + 2 * pad];
+}
+
+// The reserved margin of a recording (stage and video, V4): the shares of the screen kept free,
+// for the caption and for the buttons a platform draws over a video. Portrait (a vertical video):
+// the caption from 16 % to 40 % of the height and the bottom 25 %, so the circuit lies between 40
+// and 75 %; landscape: the left half, the caption's.
+export const STAGE_INSET = { vertical: { top: 0.4, right: 0, bottom: 0.25, left: 0 }, horizontal: { top: 0, right: 0, bottom: 0, left: 0.5 } };
+export function stageInset(page) {
+  const m = page.main.getBoundingClientRect();
+  return STAGE_INSET[m.width > m.height ? 'horizontal' : 'vertical'];
+}
+// The frame that shows `box` (drawing units), whole, in the part of the screen an inset leaves
+// free, centred there. The frame has the screen's proportions, so the drawing is not letterboxed.
+export function insetFrame(page, [x, y, w, h], { top = 0, right = 0, bottom = 0, left = 0 }) {
+  const m = page.main.getBoundingClientRect();
+  if (!(m.width > 0 && m.height > 0)) return [x, y, w, h];
+  const fw = m.width * Math.max(0.05, 1 - left - right);
+  const fh = m.height * Math.max(0.05, 1 - top - bottom);
+  const k = Math.max(w / fw, h / fh); // drawing units per pixel
+  const W = m.width * k;
+  const H = m.height * k;
+  // The free area's centre, as a share of the screen.
+  const u = left + (1 - left - right) / 2;
+  const v = top + (1 - top - bottom) / 2;
+  return [x + w / 2 - u * W, y + h / 2 - v * H, W, H];
+}
+
 // The frame a button asks for (UX pass, U6). On a portrait screen the close-up frame (wide, made for
 // a landscape page) is replaced by the parts and their labels as they are drawn, with a small
 // margin, filling the width, centred in the area the bottom sheet leaves free. page.lastFit keeps
 // the frame given, so the inspector can fit again when its sheet appears over an untouched frame.
+// A recording (page.inset, V4) fits the same in the area its reserved margin leaves free.
 export function fitFrame(page, base) {
+  const inset = page.inset?.();
+  if (inset) return insetFrame(page, (page.state.fit === 'parts' && partsBounds(page)) || base, inset);
   const m = page.main.getBoundingClientRect();
   if (page.state.fit !== 'parts' || !(m.height > m.width * 1.1)) return base;
-  // The labels shown (boxes, or the short labels at rest): hidden ones measure nothing.
-  const els = [...page.current().querySelectorAll('.under [data-part], .parts [data-part], .labels [data-part], .shortlabels [data-part]')];
-  const rects = els.map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
-  if (!rects.length) return base;
-  const [x0, y0] = toBox(page, Math.min(...rects.map((r) => r.left)), Math.min(...rects.map((r) => r.top)));
-  const [x1, y1] = toBox(page, Math.max(...rects.map((r) => r.right)), Math.max(...rects.map((r) => r.bottom)));
-  const pad = 0.06 * Math.max(x1 - x0, y1 - y0);
+  const bounds = partsBounds(page);
+  if (!bounds) return base;
+  const [bx, by, bw, bh] = bounds;
   const sheet = page.sheetHeight?.() ?? 0;
   const free = Math.max(m.height - sheet, m.height / 2);
   // Width first; if the parts are then taller than the free area, widen until they fit.
-  let w = x1 - x0 + 2 * pad;
-  const tall = ((y1 - y0 + 2 * pad) * m.width) / w;
+  let w = bw;
+  const tall = (bh * m.width) / w;
   if (tall > free) w *= tall / free;
   const h = (w * m.height) / m.width;
   const k = w / m.width; // drawing units per pixel
-  return [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 + (sheet / 2) * k - h / 2, w, h];
+  return [bx + bw / 2 - w / 2, by + bh / 2 + (sheet / 2) * k - h / 2, w, h];
 }
 export function fitTo(page, base, animate = false) {
   const box = fitFrame(page, base);

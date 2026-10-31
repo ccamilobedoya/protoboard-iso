@@ -14,7 +14,7 @@
 // The director moves things on purpose, so it ignores prefers-reduced-motion: what a learner's
 // page does under reduced motion is the timeline player's choice (tour.js), not the clock's.
 
-import { clampBox, frameAt, easeOut, numbers, partBox, setBox, fitFrame } from './view.js';
+import { clampBox, frameAt, easeOut, numbers, partBox, partsBounds, insetFrame, setBox, fitFrame } from './view.js';
 
 export const wantsDirector = (search) => new URLSearchParams(search).get('director') === '1';
 
@@ -32,18 +32,24 @@ export function createDirector(page, sim) {
   const tweens = new Set(); // { apply(e), t0, ms, ease }
   const after = new Set();
 
-  // A target is a box [x, y, w, h], 'board' or 'parts' (the page's two frames; 'parts' as a
-  // button fits it, filling a portrait screen) or a part's id. `zoom` closes in on its centre.
+  // A target is a box [x, y, w, h] (a frame as it is), 'board' or 'parts' (the page's two frames;
+  // 'parts' as a button fits it, filling a portrait screen) or a part's id. `zoom` closes in on
+  // its centre. With a reserved margin (page.inset: a recording, V4) a named target is shown in
+  // the area the margin leaves free.
   function boxOf(target, zoom = 1) {
+    if (Array.isArray(target)) return target;
     const svg = page.current();
+    const inset = page.inset?.();
     let box;
-    if (Array.isArray(target)) box = target;
-    else if (target === 'board') box = numbers(svg.dataset.board);
-    else if (target === 'parts') box = fitFrame(page, numbers(svg.dataset.parts));
+    if (target === 'board') box = numbers(svg.dataset.board);
+    else if (target === 'parts') box = inset ? partsBounds(page) ?? numbers(svg.dataset.parts) : fitFrame(page, numbers(svg.dataset.parts));
     else box = partBox(page, target);
-    if (!box || zoom === 1) return box;
-    const [x, y, w, h] = box;
-    return [x + (w - w / zoom) / 2, y + (h - h / zoom) / 2, w / zoom, h / zoom];
+    if (!box) return null;
+    if (zoom !== 1) {
+      const [x, y, w, h] = box;
+      box = [x + (w - w / zoom) / 2, y + (h - h / zoom) / 2, w / zoom, h / zoom];
+    }
+    return inset ? insetFrame(page, box, inset) : box;
   }
   const progress = (m) => (m.ms > 0 ? Math.min(1, (time - m.t0) / m.ms) : 1);
 

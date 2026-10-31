@@ -53,11 +53,22 @@ export function setupTour(page, { director, t, f, recording, reading, dots }) {
     number.textContent = unit === '%' ? `${Math.round(v * shown.k * 100)} %` : f(v * shown.k, unit);
   }
 
+  // In a recording the told part is the one the camera last went to, or the last one brought
+  // forward: only its label stays in the frame (focus.js).
+  const tell = (id) => {
+    if (page.told === undefined) return;
+    page.told = id ?? null;
+    applyFocus(page);
+  };
   const act = {
-    frame: (s) => director.frame(s.target, { ...timing(s), zoom: s.zoom ?? 1 }),
+    frame: (s) => {
+      if (page.data.parts[s.target]) tell(s.target);
+      return director.frame(s.target, { ...timing(s), zoom: s.zoom ?? 1 });
+    },
     focus: (s) => {
       page.state.node = null;
       page.state.focus = new Set(s.parts);
+      if (page.told !== undefined) page.told = s.parts.at(-1) ?? null;
       applyFocus(page);
     },
     flip: (s) => {
@@ -95,6 +106,7 @@ export function setupTour(page, { director, t, f, recording, reading, dots }) {
     // The descent into the holes (M15) comes with the moves (V6): for now the part is in focus.
     insert: (s) => {
       page.state.focus.add(s.part);
+      if (page.told !== undefined) page.told = s.part;
       applyFocus(page);
     },
     'wait-until': (s) => {

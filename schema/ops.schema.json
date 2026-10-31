@@ -425,9 +425,11 @@
                 "enum": [
                   "auto",
                   "light",
-                  "dark"
+                  "dark",
+                  "notebook",
+                  "stage"
                 ],
-                "description": "Colours of the page: 'auto' follows the system (default); 'light' or 'dark' fixes them. A link's ?theme= wins over this"
+                "description": "Colours of the page: 'auto' follows the system (default); 'light' or 'dark' (the bench), 'notebook' (cream paper, a blue grid) or 'stage' (the notebook at night, the videos') fix them. The reader's choice in the page's menu and a link's ?theme= win over this"
               },
               "tour": {
                 "description": "The timeline the page plays as *See how it works* (and a video is made from): the name of a JSON file beside the circuit (timeline.schema.json), read only from its folder, or the timeline itself",

@@ -18,6 +18,15 @@ function groupOf(svg, cls, before) {
   return g;
 }
 
+// A recording (V4) keeps one label in the frame, the told part's (page.told, set by tour.js), and
+// it is its short label, beside the part: a box's leader would reach up into the caption. A page
+// has no page.told and brings every focused part's box forward.
+function labelsOf(page, svg, ids, of) {
+  if (page.told === undefined) return [...svg.querySelectorAll(of('labels'))];
+  if (!ids.includes(page.told)) return [];
+  return [...svg.querySelectorAll(':scope > .shortlabels > [data-part="' + quote(page.told) + '"]')];
+}
+
 export function applyFocus(page) {
   const { data, state, svgs } = page;
   const ids = [...state.focus].filter((id) => data.parts[id]);
@@ -32,7 +41,11 @@ export function applyFocus(page) {
     labels.textContent = '';
     if (!ids.length) continue;
     for (const el of [...svg.querySelectorAll(of('under')), ...svg.querySelectorAll(of('parts'))]) parts.appendChild(el.cloneNode(true));
-    for (const el of svg.querySelectorAll(of('labels'))) labels.appendChild(el.cloneNode(true));
+    for (const el of labelsOf(page, svg, ids, of)) {
+      const copy = el.cloneNode(true);
+      if (page.told !== undefined) copy.classList.add('short');
+      labels.appendChild(copy);
+    }
   }
   // Strips under the focused parts; with the results on, their currents and the voltages
   // of their groups (and nothing else: all tags at once is too much to read).

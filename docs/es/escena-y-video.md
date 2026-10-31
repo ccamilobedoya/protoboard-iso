@@ -83,7 +83,37 @@ página y la hoja de ruta al día.
   `test/plan.test.js`: cero choques en cada ejemplo con cada uno de sus primeros componentes en foco
   (y 456 escenas, las dos vistas y los dos encuadres, revisadas una vez a mano). Las imágenes de los
   ejemplos, la imagen de corriente del README y los hashes de V0 cambiaron a propósito.
-- ⬜ V4 a V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
+- ✅ V4 · La escena (2026-10-30): `[data-theme="stage"]` en `src/page/style.js`, el cuaderno de
+  noche (pizarra `#151a21`, la cuadrícula de ingeniería en azul pálido, tinta tiza `#efe9da`, la
+  serifa del sistema para los subtítulos, valores en ámbar); lo toman `page.theme`, `?theme=` y el
+  `theme` de una línea de tiempo. Su versión de día, `[data-theme="notebook"]` (papel crema `#f4efe2`,
+  la cuadrícula en tinta azul `#184f8f`, tinta casi negra, etiquetas de corriente en terracota
+  `#a3461f`; la C de la primera vuelta), es un tema más para lecciones y videos: el de las lecciones
+  por defecto sigue siendo el banco claro. Quien lee elige entre los cinco (como el dispositivo,
+  banco, banco de noche, cuaderno, cuaderno de noche) en el menú ⋯; la elección se guarda en el
+  navegador para todas las páginas del mismo sitio (`page/client/themes.js`, `main.js`); `?theme=`
+  en un enlace sigue ganando, y una grabación conserva el de la línea de tiempo. La retícula de agujeros sigue más allá de la tabla en todos
+  los temas (`src/render/hole-grid.js`): un patrón SVG dentro del dibujo, sobre la propia red
+  isométrica de la tabla (2,54 mm, marcas mayores cada cinco agujeros por las columnas numeradas
+  5, 10, 15…), así que se mueve y se escala con la tabla como la cuadrícula de un lienzo o de un
+  mapa; sus marcas conservan su tamaño en pantalla y las menores se desvanecen cuando se
+  amontonan (`view.js`); puntos en el banco, líneas en la escena. El banco oscuro es el *banco de noche* (lienzo `#121211`,
+  la barra sin fondo). Una grabación (`?director=1`) toma el tema de la línea de tiempo (la escena
+  por defecto; `?theme=` gana), oculta la barra y los controles, los rótulos, los rótulos cortos y
+  las etiquetas de resultado, y conserva un rótulo: el rótulo corto de la pieza contada
+  (`page.told`, que fijan en el recorrido `frame` sobre una pieza, `focus` e `insert`; `focus.js`).
+  Ahí el subtítulo es la capa del video (`body.director .tour-caption`): sin caja, sus tamaños como
+  fracción del ancho (`--cap-text` 56 px, `--cap-number` 44, `--cap-line` 30 a 1080 de ancho; 52 a
+  1920), desde el 16 % del alto en vertical, la mitad izquierda en horizontal. El margen
+  reservado: `insetFrame` y `stageInset` en `view.js` (vertical: libres el 40 % de arriba y el 25 %
+  de abajo; horizontal: la mitad izquierda), que usan `fitFrame` y el director para `board`,
+  `parts` y una pieza. `scripts/stage-shots.js` saca las capturas de las maquetas de la página real
+  (escena y banco oscuro, celular y escritorio, en reposo y con un toque; grabaciones de 1080 × 1920
+  y 1920 × 1080) y mide en el DOM las reglas del fotograma (franja y tamaños del subtítulo, la pieza
+  contada y su rótulo en el área libre, un rótulo, sin etiquetas, sin barra); `test/stage.test.js`.
+  Los hashes de V0 cambiaron a propósito (la retícula). Faltan las puertas de contraste y de tamaño
+  de toque en un navegador real (las del mantenedor).
+- ⬜ V5 a V7: sin empezar. Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
 

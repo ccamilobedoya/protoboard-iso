@@ -13,7 +13,7 @@ import { BATTERY_FORMATS, BATTERY_CHEMISTRIES } from './parts/batteries.js';
 import { LDR_PARTS } from './parts/types/more.js';
 import { RECIPES } from './recipes/index.js';
 import { MOVES } from './page/client/moves.js';
-import { READINGS, FORMATS } from './tour.js';
+import { READINGS, FORMATS, THEMES } from './tour.js';
 import { LIMITS } from './limits.js';
 
 export function buildSchemas() {
@@ -172,7 +172,7 @@ export function buildSchemas() {
               additionalProperties: false,
             },
           },
-          theme: { enum: ['auto', 'light', 'dark'], description: "Colours of the page: 'auto' follows the system (default); 'light' or 'dark' fixes them. A link's ?theme= wins over this" },
+          theme: { enum: ['auto', ...THEMES], description: "Colours of the page: 'auto' follows the system (default); 'light' or 'dark' (the bench), 'notebook' (cream paper, a blue grid) or 'stage' (the notebook at night, the videos') fix them. The reader's choice in the page's menu and a link's ?theme= win over this" },
           tour: {
             description: 'The timeline the page plays as *See how it works* (and a video is made from): the name of a JSON file beside the circuit (timeline.schema.json), read only from its folder, or the timeline itself',
             oneOf: [{ type: 'string', pattern: '\\.json$' }, { $ref: 'timeline.schema.json' }],
@@ -246,7 +246,7 @@ function timelineSchema(localized) {
       $schema: { type: 'string' },
       circuit: { type: 'string', description: 'The circuit (or recipe) it tells' },
       format: { enum: FORMATS, description: 'The video: vertical 1080 × 1920 (default) or horizontal 1920 × 1080' },
-      theme: { type: 'string', description: 'The theme of the video (stage, from V4)' },
+      theme: { enum: THEMES, description: "The page's theme in a recording: stage (default, the notebook at night), notebook (by day), light or dark (the bench). A link's ?theme= wins over this" },
       steps: {
         type: 'array',
         maxItems: LIMITS.tourSteps,

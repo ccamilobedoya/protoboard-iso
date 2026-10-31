@@ -15,6 +15,7 @@
 import { LIMITS } from './limits.js';
 import { readBeside } from './beside.js';
 import { MOVES, moveTiming } from './page/client/moves.js';
+import { THEMES } from './page/client/themes.js';
 import { compile } from './sim/index.js';
 import { createEngine } from './sim/engine.js';
 
@@ -22,6 +23,8 @@ export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'val
 // What a `value` or `wait-until` step reads from a part's reading, and its unit.
 export const READINGS = { current: 'A', voltage: 'V', power: 'W', brightness: '%' };
 export const FORMATS = ['vertical', 'horizontal'];
+// The page's themes a recording can take; a video is on the stage by default (V4).
+export { THEMES } from './page/client/themes.js';
 const FRAMES = ['board', 'parts'];
 // The move a step makes when it names none.
 const DEFAULT_MOVE = { frame: 'arrival', set: 'hit', insert: 'arrival' };
@@ -74,6 +77,7 @@ function shapeIssues(raw) {
   const out = [];
   for (const key of Object.keys(raw)) if (!['circuit', 'format', 'theme', 'steps', '$schema'].includes(key)) out.push(warn('TOUR_FIELD', { step: 0, field: key }));
   if (raw.format != null && !FORMATS.includes(raw.format)) out.push(warn('TOUR_FIELD', { step: 0, field: 'format' }));
+  if (raw.theme != null && !THEMES.includes(raw.theme)) out.push(warn('TOUR_FIELD', { step: 0, field: 'theme' }));
   if (raw.steps.length > LIMITS.tourSteps) return [...out, warn('TOUR_TOO_MANY_STEPS', { size: raw.steps.length, limit: LIMITS.tourSteps })];
   raw.steps.forEach((s, i) => {
     const step = i + 1;
@@ -157,5 +161,5 @@ export function loadTour(circuit, lang = 'en') {
       for (const key of ['text', 'line', 'label']) if (s[key] != null) out[key] = localized(s[key], lang);
       return out;
     });
-  return { tour: { format: raw.format ?? 'vertical', steps }, issues: [...issues, ...meaning] };
+  return { tour: { format: raw.format ?? 'vertical', theme: raw.theme ?? 'stage', steps }, issues: [...issues, ...meaning] };
 }

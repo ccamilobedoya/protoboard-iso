@@ -41,6 +41,7 @@ import { scopeOf } from '../../sim/scope.js';
 import { iconSvg } from './icons.js';
 import { createDirector, wantsDirector } from './director.js';
 import { setupTour } from './tour.js';
+import { stageInset } from './view.js';
 
 const BUDGET = 8; // ms of simulation per frame
 const DIRECTOR_STEPS = 20000; // steps per frame at most under the director (its frames take what they need)
@@ -430,9 +431,15 @@ export function setupLive(page) {
     page.director = directing ? director : null;
     if (!directing) last = null;
   };
+  // A recording is the frame of a video (V4): the timeline's theme (the stage unless it says
+  // otherwise; ?theme= in the link wins), the reserved margin for the caption and the platforms'
+  // buttons, and one label, the told part's (tour.js sets page.told; focus.js reads it).
   if (recording) {
     page.direct(true);
     document.body.classList.add('director');
+    if (!new URLSearchParams(location.search).has('theme')) document.documentElement.dataset.theme = data.tour?.theme ?? 'stage';
+    page.inset = () => stageInset(page);
+    page.told = null;
   }
   const tour = data.tour && director
     ? setupTour(page, {

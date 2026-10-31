@@ -31,9 +31,11 @@ import { partLines } from './sim/format.js';
 import { groundHole } from './sim/probes.js';
 import { nodeLines } from './sim/lines.js';
 import { stripHoles } from './render/focus.js';
+import { holeLattice, holeGridSvg } from './render/hole-grid.js';
 import { describePart, describeKeys } from './parts/describe.js';
 import { MODULES } from './parts/modules.js';
 import { loadTour } from './tour.js';
+import { THEMES } from './page/client/themes.js';
 
 // The page's script, bundled once per process: without the simulation, or with it (the engine
 // runs in the page when the circuit asks for results or the current layer).
@@ -322,7 +324,9 @@ export function renderPage(circuit, options = {}) {
     text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit'), tabPart: t(lang, 'page.tab.part'), tabStrip: t(lang, 'page.tab.strip'), model: t(lang, 'sim.badge'), modelShort: t(lang, 'page.model') },
   };
   const title = titleOf(circuit, lang) ?? t(lang, 'page.untitled');
-  const svgs = rendered.map((r, i) => (i ? r.svg.replace(/^<svg /, '<svg hidden ') : r.svg));
+  // The grid of holes continued under the drawing, in it, so it moves with the board (V4).
+  const withGrid = (r) => r.svg.replace(/^(<svg[^>]*>\s*<rect[^>]*\/>)/, (head) => head + holeGridSvg(holeLattice(r.scene, built.board), r.scene.frame, `grid-${r.view}`));
+  const svgs = rendered.map((r, i) => (i ? withGrid(r).replace(/^<svg /, '<svg hidden ') : withGrid(r)));
   // The bar, grouped by job (UX pass, U3): view, layers, (time, added by live.js), then the ⋯ menu
   // with what is used less (dot speed, Falstad, the hint again, the revision).
   const menuItem = (key, value, text) => `<button type="button" role="menuitemradio" data-key="${key}" data-value="${value}" aria-checked="false">${escapeXml(text)}</button>`;
@@ -338,6 +342,8 @@ export function renderPage(circuit, options = {}) {
     `<span class="more"><button type="button" class="more-button" aria-haspopup="menu" aria-expanded="false" title="${escapeXml(t(lang, 'page.more'))}" aria-label="${escapeXml(t(lang, 'page.more'))}">${iconSvg('more')}</button>`,
     `<span class="menu" role="menu" hidden>`,
     flow ? `<span class="menu-group" role="group" aria-label="${escapeXml(t(lang, 'page.speed.title'))}"><span class="menu-title">${escapeXml(t(lang, 'page.speed.title'))}</span>${menuItem('speed', 'linear', t(lang, 'page.speed.linear'))}${menuItem('speed', 'log', t(lang, 'page.speed.log'))}</span>` : '',
+    // The theme, the reader's to choose (kept for the next pages of the same site; main.js).
+    `<span class="menu-group" role="group" aria-label="${escapeXml(t(lang, 'page.theme.title'))}"><span class="menu-title">${escapeXml(t(lang, 'page.theme.title'))}</span>${['auto', ...THEMES].map((v) => menuItem('theme', v, t(lang, `page.theme.${v}`))).join('')}</span>`,
     `<button type="button" role="menuitem" class="again">${escapeXml(t(lang, 'page.hint.again'))}</button>`,
     `<span class="revision">${escapeXml(t(lang, 'page.revision', { revision: circuit.revision ?? 0 }))}</span>`,
     '</span></span>',
@@ -352,8 +358,9 @@ export function renderPage(circuit, options = {}) {
 <div class="info" role="tabpanel" hidden></div>
 <div class="side" role="tabpanel"></div>
 </aside>`;
-  // Theme: the system's unless the circuit fixes it (page.theme); ?theme= in the link wins (main.js).
-  const theme = ['light', 'dark'].includes(circuit.page?.theme) ? circuit.page.theme : null;
+  // Theme: the system's unless the circuit fixes it (page.theme); the reader's choice in the menu
+  // and ?theme= in the link win (main.js).
+  const theme = THEMES.includes(circuit.page?.theme) ? circuit.page.theme : null;
   const html = `<!doctype html>
 <html lang="${lang}"${theme ? ` data-theme="${theme}"` : ''}>
 <head>

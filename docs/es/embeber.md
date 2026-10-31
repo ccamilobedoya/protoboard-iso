@@ -45,8 +45,11 @@ node bin/protoboard-iso.js page <objetivo> [--lang es] [--fit parts|board] [-o p
   (`<iframe allowfullscreen>`).
 - **Clara u oscura** como el dispositivo (`prefers-color-scheme`); el circuito la puede fijar con
   `"page": { "theme": "light" | "dark" }`, y un enlace gana sobre los dos: `…/led.html?theme=dark`
-  (`auto` vuelve a seguir al sistema). Solo cambian los colores de la página; la protoboard conserva
-  los suyos.
+  (`auto` vuelve a seguir al sistema). `notebook` es papel crema con cuadrícula azul y `stage`
+  lo mismo de noche, el tema de los videos ([escena y video](escena-y-video.md)). Quien lee lo puede
+  cambiar en el menú ⋯ (*Tema*); la elección se guarda para las demás páginas del mismo sitio, y
+  `?theme=` en un enlace sigue ganando. Solo cambian los colores de la página; la
+  protoboard conserva los suyos. Detrás de la tabla, la retícula de agujeros sigue como fondo.
 - **Un recorrido**, cuando el circuito tiene uno (`"page": { "tour": "tours/nombre.json" }`, un
   archivo junto a él): *Ver cómo funciona* en el menú ⋯ mueve la cámara, aprieta botones, enciende
   la corriente y escribe subtítulos; un toque en cualquier lugar lo detiene donde está. Con

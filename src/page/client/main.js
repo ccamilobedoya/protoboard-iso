@@ -9,6 +9,7 @@
 // the initial focus and UI texts.
 //
 // State: view, fit, labels, results (on when the circuit can be simulated), layer (parts | flow),
+// theme (auto or one of themes.js, the ⋯ menu's choice),
 // speed (linear | log: how dot speed follows the current), focus (set of part ids), node (the
 // tapped strip, or null), ghost (see-through ids). Everything visual is CSS classes or rules; the script never redraws the scene.
 //
@@ -23,13 +24,30 @@ import { select, selectNode, refreshCard, refreshNotes } from './card.js';
 import { tapTag, setupTooltip } from './tooltip.js';
 import { setupBar } from './bar.js';
 import { setupInspector } from './inspector.js';
+import { THEMES, THEME_KEY } from './themes.js';
 
-// ?theme=light|dark|auto in the link wins over the circuit's page.theme (<html data-theme>).
+// The theme: ?theme= in the link wins, then the reader's choice in the ⋯ menu (kept in the
+// browser for every page of the same site), then the circuit's page.theme (<html data-theme>, written
+// by page.js), else the device's (light or dark). A recording sets its own after this (live.js).
+const storage = (win) => {
+  try {
+    return win.localStorage;
+  } catch {
+    return null; // blocked storage (a private window, a sandboxed frame): the choice lasts the visit
+  }
+};
+function setTheme(doc, theme) {
+  if (theme === 'auto') delete doc.documentElement.dataset.theme;
+  else doc.documentElement.dataset.theme = theme;
+}
 function applyTheme(doc, search) {
   const asked = new URLSearchParams(search).get('theme');
-  if (!['light', 'dark', 'auto'].includes(asked)) return;
-  if (asked === 'auto') delete doc.documentElement.dataset.theme;
-  else doc.documentElement.dataset.theme = asked;
+  let chosen = null;
+  try {
+    chosen = storage(doc.defaultView)?.getItem(THEME_KEY);
+  } catch {}
+  const theme = ['auto', ...THEMES].includes(asked) ? asked : ['auto', ...THEMES].includes(chosen) ? chosen : null;
+  if (theme) setTheme(doc, theme);
 }
 
 export function startPage(extensions = []) {
@@ -74,7 +92,17 @@ export function startPage(extensions = []) {
     document.body.classList.toggle('speed-log', state.speed === 'log');
   };
   const same = (a, b) => a.every((n, i) => Math.abs(n - b[i]) < 0.5);
+  let theme = null; // the theme on the page, as the menu shows it
   function show() {
+    // The menu's choice (state.theme): applied and kept when the reader changed it.
+    if (state.theme == null) state.theme = theme = document.documentElement.dataset.theme ?? 'auto';
+    else if (state.theme !== theme) {
+      theme = state.theme;
+      setTheme(document, theme);
+      try {
+        storage(window)?.setItem(THEME_KEY, theme);
+      } catch {}
+    }
     for (const hook of page.onShow) hook();
     // First what is shown, then the frame: a portrait frame is measured on what is on screen.
     classes();

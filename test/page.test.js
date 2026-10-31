@@ -281,7 +281,8 @@ test('colours are tokens, light and dark; the circuit can fix the theme and the 
   const { STYLE } = await import('../src/page/style.js');
   const outside = STYLE.replace(/:root[^{]*\{[^}]*\}/g, '').replace(/@media \(prefers-color-scheme: dark\) \{\s*\}/g, '');
   assert.deepEqual(outside.match(/#[0-9a-f]{3,8}\b/gi) ?? [], [], 'no colour outside the token blocks');
-  assert.match(STYLE, /@media \(prefers-color-scheme: dark\) \{ :root:not\(\[data-theme="light"\]\) \{/);
+  // The device's dark only when the page fixes no theme (a fixed notebook stays on paper).
+  assert.match(STYLE, /@media \(prefers-color-scheme: dark\) \{ :root:not\(\[data-theme\]\) \{/);
   assert.match(STYLE, /:root\[data-theme="dark"\] \{/);
 
   const circuit = example('led-resistor.json');
