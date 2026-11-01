@@ -276,6 +276,18 @@ and a frame exporter. Decisions taken with the maintainer on 2026-10-30: C dark 
 - ✅ V6 · The chosen moves (M1 to M16 in the plan), each with a jsdom test (`test/moves.test.js`) and a golden frame (`test/frames/move-*.json`), from `examples/tours/npn-switch-moves.json` and `npn-switch-build.json`; new steps `raise` (M16), `assemble` (M4, M5), `pulse` (M7), `probe` in a recording as an oscilloscope box (M11). Every choice of a move is an optional field of the timeline, documented in `docs/en/timeline.md` (2026-10-31). Left for a decision: the pulse on load
 - ✅ V7 · Bench and guide: the guide `docs/en/making-a-video.md` (es: `hacer-un-video.md`), `render-frames.js --parts` and `--validate`, `TOUR_VALUE_HIDDEN`, short labels that follow a control; nine recipe timelines in `examples/tours/`, six of them written by a medium model with the guide alone; the golden in `npm run verify` (since V0)
 
+## A video about one part (cross-cutting) 🔜
+
+Asked by the maintainer (2026-11-01): a video format about one concrete part (a transistor, a MOSFET, an LED, a 555) that explains how it works on a pedestal before taking it to the breadboard, where the recipe's circuit builds itself around it, directed by the same timeline. Design, measurements and the plan by sessions in [docs/en/component-focus.md](docs/en/component-focus.md). Approved: the pedestal is the same circuit with the board hidden, the fixed camera, 2D callouts, data by type and by part number, the first wave (BJT, MOSFET, LED, 555), the bench as the current layer, the board rising under the part. Open: the same view in the page (a live trial after F4).
+
+- ✅ F0 · Measure and choose: `scripts/focus-mockups.js` (three directions from the real page, both formats, measurements of zoom, marking and bands), the design document, the decisions in `PLANNING.md`; chosen: the technical pinout with the schematic symbol beside the part, in both formats; timelines `focus-<part>.json`
+- ⬜ F1 · The pedestal: `scene` and `land` (M17, M18); first, a raised part that a later focus hides
+- ⬜ F2 · Anatomy: `pin` and orientation as data (M19, M20)
+- ⬜ F3 · The bench: `bench` (M21)
+- ⬜ F4 · `symbol` and `inside` (M22, M23), then the trial of the page view
+- ⬜ F5 · The part in the page, only if the trial says so
+- ⬜ F6 · Four timelines and the guide's section; a medium model writes a fifth from the guide alone
+
 ## Stage 4 — On a phone or tablet ⬜
 
 Goal: open a link and explore.

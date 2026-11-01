@@ -12,6 +12,7 @@ planning live at the root: [ROADMAP.md](../../ROADMAP.md), [PLANNING.md](../../P
 - [Architecture](architecture.md): The split between **type** and **package** is what makes parts reusable: a 1N4007 diode and a resistor share the axial package; an IRLZ44N MOSFET and a TIP120 transistor share TO-220.
 - [Circuit file format (version 1)](circuit-format.md): Keys are in English, so the format is the same in every language.
 - [Code map](code-map.md): Where everything lives and how the pieces talk to each other.
+- [A video about one part: design and plan](component-focus.md): A video format for **one concrete part** (a transistor, a MOSFET, an LED, a 555): the part alone and large on the same dark stage, its pins lighting up with their names, its symbol and what is inside it, the simulation running on it as on a test bench, and a continuous move to the breadboard where the recipe's circuit builds itself around it and works.
 - [Embedding a circuit in documentation](embedding.md): Every circuit has one page meant to be embedded: `out/<name>.html`, next to its other outputs.
 - [Falstad: open the circuit there, and compare both simulators](falstad.md): [Falstad's CircuitJS](https://www.falstad.com/circuit/) is the most used in-browser circuit simulator for learning.
 - [Focus and the current layer](focus-and-flow.md): Two ways to point at what matters in a drawing, built from the same pieces (`src/render/focus.js`, `src/sim/flow.js`) for static images and for the interactive page.

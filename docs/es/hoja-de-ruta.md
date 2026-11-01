@@ -281,6 +281,18 @@ recorrido desde V2.
 - ✅ V6 · Los movimientos elegidos (M1 a M16 en el plan), cada uno con prueba en jsdom (`test/moves.test.js`) y fotograma *golden* (`test/frames/move-*.json`), de `examples/tours/npn-switch-moves.json` y `npn-switch-build.json`; pasos nuevos `raise` (M16), `assemble` (M4, M5), `pulse` (M7), `probe` en una grabación como recuadro de osciloscopio (M11). Cada decisión de un movimiento es un campo opcional de la línea de tiempo, documentado en `docs/es/linea-de-tiempo.md` (2026-10-31). Queda para decidir: el pulso al cargar
 - ✅ V7 · Banco y guía: la guía `docs/es/hacer-un-video.md` (en: `making-a-video.md`), `render-frames.js --parts` y `--validate`, `TOUR_VALUE_HIDDEN`, rótulos cortos que siguen a un control; nueve líneas de tiempo de recetas en `examples/tours/`, seis escritas por un modelo mediano solo con la guía; el *golden* en `npm run verify` (desde V0)
 
+## Un video sobre una pieza (transversal) 🔜
+
+Pedido del mantenedor (2026-11-01): un formato de video sobre una pieza concreta (un transistor, un MOSFET, un LED, un 555) que explica cómo funciona en un pedestal antes de llevarla a la protoboard, donde el circuito de la receta se arma a su alrededor, dirigido por la misma línea de tiempo. Diseño, medidas y plan por sesiones en [docs/es/foco-en-componente.md](foco-en-componente.md). Aprobado: el pedestal es el mismo circuito con la protoboard oculta, la cámara fija, rótulos 2D, datos por tipo y por número de parte, la primera tanda (BJT, MOSFET, LED, 555), el banco como capa de corriente, la protoboard que sube bajo la pieza. Abierto: la misma vista en la página (un ensayo en vivo después de F4).
+
+- ✅ F0 · Medir y elegir: `scripts/focus-mockups.js` (tres direcciones sobre la página real, los dos formatos, medidas de zoom, marcado y bandas), el documento de diseño, las decisiones en `PLANNING.md`; elegido: el diagrama de patas técnico con el símbolo de esquema al lado de la pieza, en los dos formatos; líneas de tiempo `focus-<pieza>.json`
+- ⬜ F1 · El pedestal: `scene` y `land` (M17, M18); primero, una pieza levantada que un foco posterior oculta
+- ⬜ F2 · Anatomía: `pin` y la orientación como dato (M19, M20)
+- ⬜ F3 · El banco: `bench` (M21)
+- ⬜ F4 · `symbol` e `inside` (M22, M23), y después el ensayo de la vista en la página
+- ⬜ F5 · La pieza en la página, solo si el ensayo lo dice
+- ⬜ F6 · Cuatro líneas de tiempo y la sección de la guía; un modelo mediano escribe una quinta solo con la guía
+
 ## Etapa 4 — En el celular o la tableta ⬜
 
 Objetivo: abrir un enlace y explorar.
