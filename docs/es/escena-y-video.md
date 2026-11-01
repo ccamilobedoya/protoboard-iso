@@ -443,6 +443,8 @@ Cada movimiento tiene un propósito nombrado (sin él no se construye), un costo
 | M16 | Pieza levantada | en un video (`raise`), la pieza sube 3 mm con una llegada y se queda arriba hasta bajarla, sin salir del circuito; propósito: decir «esta» (primero se pensó al tocar en la página, 150 + 250 ms; el mantenedor lo prefirió opcional y más lento, solo para videos) | bajo |
 | M17 | Pedestal | un video sobre una pieza (`scene` en modo `part`; [foco-en-componente.md](foco-en-componente.md)): se van la protoboard, las demás piezas y sus luces (un corte por defecto, un fundido con un movimiento), la pieza sube 3 mm sobre la retícula, encuadrada como la encuadra un `frame`, todavía en el circuito | bajo |
 | M18 | La protoboard sube | `land`, un `travel`: la pieza baja mientras la cámara la sigue, así que queda quieta en pantalla y la protoboard sube debajo; un `assemble` después trae las demás piezas y deja esta | bajo |
+| M19 | La pata se enciende | `pin`: un punto en la punta de la pata crece en el primer cuarto de un `arrival` (el rótulo corto de la pieza se va mientras haya patas encendidas) | bajo |
+| M20 | Llega el rótulo | con él, la línea guía y la fila de la pata suben bajo la pieza, dentro del área libre, sin que dos líneas se crucen; `pin` con `mark` escribe lo que dice la marca del paquete en una línea discreta (la marca ya se ve en el dibujo) | bajo |
 
 Fuera a propósito: librerías de animación, 3D real, giros de cámara (la vista isométrica es fija),
 partículas y desenfoques, transiciones entre circuitos distintos (eso lo hace ffmpeg).

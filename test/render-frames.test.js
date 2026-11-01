@@ -46,6 +46,11 @@ test('render-frames --parts: what a timeline can name, from the simulation', () 
   assert.deepEqual(of('W1').readings, [], 'a wire is framed and assembled, not read');
   assert.equal(of('Q1').pedestal, true, 'a part can stand on a pedestal (scene, land)');
   assert.equal(of('W1').pedestal, false, 'a wire cannot');
+  // F2: a part's pins (what a pin step names) and whether its package has a mark.
+  assert.deepEqual(of('Q1').pins.map((p) => p.ref), ['Q1.E', 'Q1.B', 'Q1.C']);
+  assert.equal(of('Q1').pins[2].text, 'collector · the load');
+  assert.equal(of('Q1').mark, true);
+  assert.equal(of('R1').mark, false, 'a resistor has none');
   assert.deepEqual(of('S1').controls.map((c) => c.field), ['pressed']);
   assert.equal(of('R1').controls[0].scale, 'log');
   assert.ok(supplies.some((s) => s.controls.some((c) => c.field === 'voltage')), 'the bench supply is set, not drawn');
@@ -71,6 +76,11 @@ test('render-frames: captions as SubRip, the moving camera spares the told part'
   assert.equal(frameProblems('vertical', m).length, 1, 'at rest: in the bottom band');
   assert.deepEqual(frameProblems('vertical', m, { moving: true }), [], 'passing through, while the camera moves');
   assert.equal(frameProblems('vertical', { ...m, labels: 2 }, { moving: true }).length, 1, 'never two labels');
+  // A part's pinout keeps to the free area at rest (it may cross it while the camera moves).
+  const pinned = { ...m, told: null, pinout: { top: 0.5, bottom: 0.8, left: 0.1, right: 0.9 } };
+  assert.equal(frameProblems('vertical', pinned).length, 1, 'into the bottom band');
+  assert.deepEqual(frameProblems('vertical', { ...pinned, pinout: { ...pinned.pinout, bottom: 0.74 } }), []);
+  assert.deepEqual(frameProblems('vertical', pinned, { moving: true }), []);
 });
 
 test('render-frames: a recording logs each step when it ran; a wait moves the later ones', async (t) => {

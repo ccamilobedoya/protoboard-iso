@@ -3,8 +3,8 @@
   "tour": "examples/tours/focus-npn.json",
   "lang": "en",
   "viewport": {"width":360,"height":640},
-  "ticks": [[0,1],[33.333333333333336,113]],
+  "ticks": [[0,1],[33.333333333333336,203]],
   "renderer": "chromium 156.0.8078.4 linux-x64",
-  "html": "b557964015d647c300a5b52f889cdd90fbcb83e6a84e9efc49f3820b768e8adb",
-  "png": "61797410be49b7565b2dcd3352b108da41a1b1fbee2c720e9321bddc71a5a353"
+  "html": "b457f784fae269e04343a3c6e5aec6a039b3a5824c7d6f985d8d916d5af3e34e",
+  "png": "4e63877a2eb7b6b7b11ec6ef7b5527cc1599c5d1c7c32ff0544b49ec54c77654"
 }

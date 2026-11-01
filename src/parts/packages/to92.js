@@ -3,6 +3,7 @@
 // Same convention as TO-220: flat printed face towards you, leads down, pin 1 left.
 //
 // params: marking, standoff (default 3)
+// mark: the flat face (its middle and the way it faces), for a pinout (src/pinout.js).
 
 import { add, scale, cross, Z } from '../../core/vec.js';
 import { prism, textDecal } from '../../geometry/primitives.js';
@@ -45,6 +46,8 @@ export default {
     // Current goes up each lead into the middle of the body (src/sim/paths.js).
     const inside = withZ(centre, z0 + HEIGHT / 2);
     const paths = pins.map((p) => ({ points: [withZ(p, 0), withZ(p, z0), inside], body: 1 }));
-    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, z0 + HEIGHT), paths };
+    // How to tell its pins apart (a video about one part, F2): the flat face, the way it faces.
+    const mark = { kind: 'flat', at: add(withZ(centre, z0 + HEIGHT / 2), scale(front, -FLAT)), normal: front };
+    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, z0 + HEIGHT), paths, mark };
   },
 };

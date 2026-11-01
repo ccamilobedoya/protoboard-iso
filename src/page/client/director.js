@@ -45,7 +45,9 @@ export function createDirector(page, sim) {
   // `pan` then moves it by shares of its own width and height ([0.2, 0]: a fifth of the frame to the
   // right). With a reserved margin (page.inset: a recording, V4) a named target is shown in the area
   // the margin leaves free.
-  function boxOf(target, zoom = 1, pan = null) {
+  // `alone`: a part framed without its label, in the middle (the pedestal of a video about one part,
+  // where the caption names it and its label is not shown).
+  function boxOf(target, zoom = 1, pan = null, alone = false) {
     if (Array.isArray(target) && target.every((n) => typeof n === 'number')) return target;
     const svg = page.current();
     const inset = page.inset?.();
@@ -56,7 +58,7 @@ export function createDirector(page, sim) {
     else if (target === 'parts') box = inset ? partsBounds(page) ?? numbers(svg.dataset.parts) : fitFrame(page, numbers(svg.dataset.parts));
     // A recording frames a part with its label (both must be in the video); a landing frames the part
     // alone, so it sits in the middle (the label is the lesser thing there).
-    else box = partBox(page, target, { label: page.told !== undefined && !page.landing });
+    else box = partBox(page, target, { label: page.told !== undefined && !page.landing && !alone });
     if (!box) return null;
     if (zoom !== 1) {
       const [x, y, w, h] = box;
@@ -109,8 +111,8 @@ export function createDirector(page, sim) {
       after.add(fn);
     },
     // Move the frame there in `ms` along `ease` (k → share of the way), from where it is now.
-    frame(target, { ms = 0, ease = easeOut, zoom = 1, pan = null } = {}) {
-      const box = boxOf(target, zoom, pan);
+    frame(target, { ms = 0, ease = easeOut, zoom = 1, pan = null, alone = false } = {}) {
+      const box = boxOf(target, zoom, pan, alone);
       if (!box) return false;
       camera = null;
       if (!(ms > 0) || !page.box) setBox(page, box);

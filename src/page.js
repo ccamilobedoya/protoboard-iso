@@ -37,6 +37,7 @@ import { holeLattice, holeGridSvg } from './render/hole-grid.js';
 import { describePart, describeKeys } from './parts/describe.js';
 import { MODULES } from './parts/modules.js';
 import { loadTour } from './tour.js';
+import { pinoutOf } from './pinout.js';
 import { THEMES } from './page/client/themes.js';
 
 // The page's script, bundled once per process: without the simulation, or with it (the engine
@@ -288,6 +289,16 @@ function liveData(circuit, lang, flow, templates) {
   };
 }
 
+// The pinouts a tour's `pin` steps show (a video about one part, F2; src/pinout.js), per view: each
+// pin's name, its row of text and where it goes into the board, and the package's mark. Only the
+// parts the steps name: a page without them carries nothing more.
+function pinoutData(tour, built, rendered, lang) {
+  const ids = new Set(tour.steps.filter((s) => s.do === 'pin').map((s) => s.part ?? s.mark).filter((id) => id != null));
+  const parts = built.parts.filter((p) => ids.has(p.id));
+  if (!parts.length) return null;
+  return { pinouts: Object.fromEntries(rendered.map((r) => [r.view, Object.fromEntries(parts.map((p) => [p.id, pinoutOf(p, r.scene.camera, lang)]))])) };
+}
+
 // JSON inside <script> must never contain "</script>".
 const safeJson = (value) => JSON.stringify(value).replace(/</g, '\\u003c');
 
@@ -327,6 +338,7 @@ export function renderPage(circuit, options = {}) {
     lift: Math.round(-rendered[0].scene.camera.projectDir(Z).y * 1000) / 1000,
     ...(live && { live }),
     ...(tour && { tour }),
+    ...(tour && pinoutData(tour, built, rendered, lang)),
     text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit'), tabPart: t(lang, 'page.tab.part'), tabStrip: t(lang, 'page.tab.strip'), model: t(lang, 'sim.badge'), modelShort: t(lang, 'page.model') },
   };
   const title = titleOf(circuit, lang) ?? t(lang, 'page.untitled');

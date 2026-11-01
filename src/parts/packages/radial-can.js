@@ -77,6 +77,8 @@ export default {
       ...lead([withZ(plus, 0), add(base, scale(dir, -half))]),
       ...lead([withZ(minus, 0), add(base, scale(dir, half))]),
     ];
-    return { primitives: [body, ...leads], body: [body], anchor: top };
+    // How to tell its leads apart (src/pinout.js): the stripe, on the negative lead's side.
+    const mark = { kind: 'stripe', at: add(withZ(base, standoff + H * 0.5), scale(dir, R)) };
+    return { primitives: [body, ...leads], body: [body], anchor: top, mark };
   },
 };

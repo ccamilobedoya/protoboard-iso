@@ -31,7 +31,7 @@ export const diode = {
         color: MATERIALS[body.color],
         opacity: body.opacity,
         // The band marks the cathode (pin K, the second lead).
-        bands: [{ from: body.length - 1.4, to: body.length - 0.6, color: MATERIALS[body.band] }],
+        bands: [{ from: body.length - 1.4, to: body.length - 0.6, color: MATERIALS[body.band], mark: true }],
       },
       label: { text: found.number },
       electrical: { kind: 'D', part: found.number },
@@ -91,7 +91,7 @@ export const zener = {
         shape: 'plain',
         color: MATERIALS.glass,
         opacity: 0.85,
-        bands: [{ from: 4.2 - 1.2, to: 4.2 - 0.5, color: MATERIALS.epoxyBlack }],
+        bands: [{ from: 4.2 - 1.2, to: 4.2 - 0.5, color: MATERIALS.epoxyBlack, mark: true }],
       },
       label: { value: vz, unit: 'V', extra: number ?? undefined },
       electrical: { kind: 'D', zener: true, vz, part: number },

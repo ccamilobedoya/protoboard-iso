@@ -390,6 +390,15 @@ body.director {
    lights of the other parts are hidden by a rule tour.js writes with the part's id. */
 main[data-scene="part"] > svg > :is(.under, .board, .parts, .labels, .shortlabels, .veil, .strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
 main[data-scene="land"] > svg > :is(.veil, .strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
+/* A part's pinout (M19, M20; page/client/pinout.js): the leaders, dots and rows under the part's copy;
+   sizes are set by the script, in drawing units, for px on screen. */
+.pinout { pointer-events: none; }
+.pinout .lead { fill: none; stroke: var(--accent); stroke-linejoin: round; stroke-linecap: round; }
+.pinout .tip { fill: var(--accent); }
+.pinout .row, .pinout .quiet { font-family: var(--mono); letter-spacing: 0.02em; }
+.pinout .row { fill: var(--ink); }
+.pinout .quiet { fill: var(--ink-3); }
+.pinout .quiet.mark { fill: var(--ink-2); }
 body.director nav, body.director .zoom, body.director .inspector, body.director .gesture-hint, body.director .first-hint, body.director .tooltip { display: none !important; }
 body.director main { cursor: default; }
 body.director .labels, body.director .results, body.director .probes { display: none !important; }

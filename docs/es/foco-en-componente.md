@@ -20,11 +20,16 @@ patas técnico con el símbolo de esquema de la vitrina al lado de la pieza (ver
 |---|---|---|
 | F0 | Medir y elegir: maquetas de tres direcciones sobre la página real, medidas de zoom y bandas, este documento, las decisiones en `PLANNING.md` | ✅ dirección elegida el 2026-11-01 |
 | F1 | El pedestal: `scene` y `land` | ✅ 2026-11-01 |
-| F2 | Anatomía: `pin` y orientación | ⬜ |
+| F2 | Anatomía: `pin` y orientación | ✅ construida el 2026-11-01; falta aprobar un fotograma de cada una |
 | F3 | El banco: `bench` | ⬜ |
 | F4 | `symbol` e `inside` | ⬜ |
 | F5 | La pieza en la página (interactiva), solo si D7 lo dice | ⬜ abierta |
 | F6 | Banco de líneas de tiempo y guía | ⬜ |
+
+**Para revisar más adelante** (el mantenedor, después de ver el video de F1 el 2026-11-01): los
+subtítulos de un video sobre una pieza (sus palabras, su tamaño y sus tiempos); y si el pedestal
+necesita un zoom inicial sobre la pieza o basta con el encuadre como lo presenta F1. Las dos se juzgan
+en F6, con las cuatro líneas de tiempo.
 
 ## El formato
 
@@ -223,6 +228,27 @@ cruza la pieza; las patas encendidas se acumulan hasta `pin off`. `orientation` 
 y función; `--validate`: `TOUR_UNKNOWN_PIN`. Movimientos M19 *la pata se enciende* y M20 *llega el
 rótulo*. Terminada cuando `focus-npn.json` y `focus-555.json` encienden todas sus patas, `--check` pasa
 y el mantenedor aprueba un fotograma de cada una.
+
+**Cómo quedó (2026-11-01).** Los nombres cambiaron un poco frente al plan de arriba: la marca es un campo
+de lo que construye el paquete, `mark: { kind: 'flat' | 'tab' | 'notch' | 'flange' | 'stripe', at, normal }`,
+y una sola acción hace patas y marcas: `pin` con `pin`, `mark` (la pieza) u `off` (no hay acción
+`orientation`). Los textos de las patas van por tipo de pieza (`pin.role.bjt.E`), con el número de parte
+primero cuando tiene los suyos (`pin.role.NE555.TRIG`); la fila de un chip dice su número. La frase de
+la marca sale de la cámara (hacia dónde mira una cara plana o una lengüeta, de qué lado queda una muesca
+o una franja), así que la vista de atrás dice lo otro. Los rótulos se dibujan dentro del dibujo, en una
+capa bajo la copia de la pieza (las líneas de la fila de atrás salen por debajo del cuerpo sin medir qué
+queda oculto), repartidos en px de pantalla cada vez que se mueve el encuadre. Dos hallazgos de F0
+pidieron una regla cada uno: una fila demasiado larga para su espacio primero se achica con las demás
+(hasta el 65 %), y cuando dos columnas igual cortarían una fila, todas las filas van a una sola columna
+del lado con más espacio (tampoco se cruza ninguna línea: arriba las patas más cercanas a ella); dos
+patas en una misma x reciben líneas a 10 px, y se mueve la de la punta más alta, porque si no la otra
+línea empezaría encima de ella (un cruce que encontró un caso en jsdom). `render-frames.js` mide el
+diagrama de patas contra el área libre. Se agregó `TOUR_NO_MARK` para un `mark` en una pieza sin marca.
+Al ver los primeros fotogramas, el mantenedor pidió dos cambios: la pieza en el centro (el pedestal ahora
+encuadra la pieza sola, en el centro; ahí no se muestra su rótulo corto, porque el subtítulo ya la
+nombra, así que el rótulo ya no corre a un lado una pieza pequeña y las filas se acomodan a su
+alrededor), y sin anillo en la marca (la cara plana ya se ve en el dibujo; la
+marca es solo su frase).
 
 ### F3 · El banco: `bench`
 

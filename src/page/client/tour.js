@@ -13,12 +13,13 @@
 // holes, the circuit without current until it lands (M15); a raise lifts a part to set it apart and
 // keeps it up, in the circuit (M16); an assemble builds the circuit one part after the other, the
 // wires drawn end to end (M4, M5); a pulse runs a flash along the current's path (M7); a scene puts
-// one part alone on a pedestal (M17) and a land brings the board up under it (M18). Only transform
-// and opacity move.
+// one part alone on a pedestal (M17) and a land brings the board up under it (M18); a pin lights a
+// pin of it with its row of text (M19, M20; pinout.js). Only transform and opacity move.
 
 import { moveTiming, bezier, CAPTION, INSERT, RAISE, SCENE, ASSEMBLE, PULSE, PULSE_COLORS } from './moves.js';
 import { applyFocus, liftPart, showPart, isWire, traceWire, quote } from './focus.js';
 import { select, selectNode } from './card.js';
+import { setupPinout } from './pinout.js';
 
 const COUNT_MS = 500; // a value counts up to its reading (M9), unless a step says otherwise
 const WAIT_MS = 10_000; // a wait-until that never comes true gives up after this
@@ -291,6 +292,15 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     }, { ms, ease });
   }
 
+  // M19, M20: a part's pins lit one by one with their rows (pinout.js); the part's short label stays
+  // away while any is lit (the pinout is what is told).
+  const pins = setupPinout(page);
+  const pinRule = el(document.head, 'style');
+  const unpin = () => {
+    pins.clear();
+    pinRule.textContent = '';
+  };
+
   let framed = null; // the last frame step, for a probe to frame again
   const act = {
     // The camera (M1, M2, M14): to a target (board, parts, here, a part or a list of parts), with
@@ -367,7 +377,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         return s.node != null ? selectNode(page, s.node) : select(page, s.part);
       }
       page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note });
-      if (framed) director.frame(framed.target, { ...moveTiming('arrival'), zoom: framed.zoom ?? 1, pan: framed.pan ?? null });
+      if (framed) director.frame(framed.target, { ...moveTiming('arrival'), zoom: framed.zoom ?? 1, pan: framed.pan ?? null, alone: framed.alone ?? false });
     },
     // M15: in focus, then into its holes (`enter`: drop from `height` mm, the default 12; fade;
     // cut) along its move; landed, a hit. `dark` (default true): no current while it comes in.
@@ -459,7 +469,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       const { ms, ease } = timing(s);
       director.tween((e) => liftPart(page, s.part, from + (to - from) * e), { ms, ease });
     },
-    // M17: the part alone on a pedestal (mode part), framed as a frame step on it frames (`zoom`),
+    // M17: the part alone on a pedestal (mode part), framed in the middle without its label (`zoom`),
     // raised SCENE.mm; the board and the other parts fade along the move and are then not drawn.
     // Mode board: back to the board as a land does, the camera where it is.
     scene: (s) => {
@@ -468,13 +478,15 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       if (!page.data.parts[id]) return;
       const { ms, ease } = timing(s);
       // The frame first, while the part is drawn on its board (a layer not drawn measures nothing).
-      framed = { target: id, zoom: s.zoom ?? 1 };
-      director.frame(id, { ms, ease, zoom: s.zoom ?? 1 });
+      // The part alone in the middle of the free area: it is what is told (the caption names it, so its
+      // short label stays away on the pedestal) and the pinout fits around it.
+      framed = { target: id, zoom: s.zoom ?? 1, alone: true };
+      director.frame(id, { ms, ease, zoom: s.zoom ?? 1, alone: true });
       pedestal = id;
       landed.delete(id);
       page.state.node = null;
       focusOn([id]);
-      sceneRule.textContent = 'main[data-scene] > svg > .lights > :not([data-glow="' + quote(id) + '"]) { display: none !important; }';
+      sceneRule.textContent = 'main[data-scene] > svg > .lights > :not([data-glow="' + quote(id) + '"]), main[data-scene] > svg > :is(.spotlabels, .shortlabels) > [data-part="' + quote(id) + '"] { display: none !important; }';
       const from = page.lifted?.get(id) ?? 0;
       const enter = () => {
         page.main.dataset.scene = 'part';
@@ -488,6 +500,17 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     },
     // M18: the board rises under the part (a travel by default).
     land: (s) => toBoard(s, true),
+    // M19, M20: a pin lit (`pin`, resolved by src/tour.js to its part and index), the package's mark
+    // (`mark`: the part), or all of them off (`off`); each comes in along its move (an arrival).
+    pin: (s) => {
+      if (s.off) return unpin();
+      const id = s.mark ?? s.part;
+      if (!id || !page.data.pinouts?.[page.state.view]?.[id] || (s.mark == null && !(s.index >= 0))) return;
+      const move = s.mark != null ? pins.mark(id) : pins.light(id, s.index, s.text);
+      pinRule.textContent = pins.parts.map((p) => 'main > svg > :is(.spotlabels, .shortlabels) > [data-part="' + quote(p) + '"]').join(', ') + ' { display: none !important; }';
+      const { ms, ease } = timing(s);
+      director.tween(move, { ms, ease });
+    },
     'wait-until': (s) => {
       const test = () => {
         const v = readingOf(s.part, s.field);
@@ -508,6 +531,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     director.stop();
     lower();
     leaveScene();
+    unpin();
     landed.clear();
     aloft.clear();
     lights(true);
@@ -522,6 +546,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
   function play() {
     stop();
     leaveScene();
+    unpin();
     landed.clear();
     playing = true;
     page.direct(true);
@@ -537,6 +562,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         },
       })),
     );
+    director.after(pins.draw);
     let back = false; // a landing's camera on its way back to the first frame
     const startLayer = page.state.layer; // a landing leaves the layer as it found it
     const startControls = landing ? director.controls() : []; // and the controls too

@@ -20,11 +20,15 @@ pinout with the showcase's schematic symbol beside the part (see *The direction 
 |---|---|---|
 | F0 | Measure and choose: mock-ups of three directions from the real page, zoom and band measurements, this document, the decisions in `PLANNING.md` | ✅ direction chosen 2026-11-01 |
 | F1 | The pedestal: `scene` and `land` | ✅ 2026-11-01 |
-| F2 | Anatomy: `pin` and orientation | ⬜ |
+| F2 | Anatomy: `pin` and orientation | ✅ built 2026-11-01; a frame of each waits for approval |
 | F3 | The bench: `bench` | ⬜ |
 | F4 | `symbol` and `inside` | ⬜ |
 | F5 | The part in the page (interactive), only if D7 says so | ⬜ open |
 | F6 | Bench of timelines and guide | ⬜ |
+
+**To review later** (the maintainer, after seeing F1's video on 2026-11-01): the captions of a video
+about one part (their words, size and timing); and whether the pedestal needs an opening zoom on the
+part, or the frame as F1 presents it is enough. Both are judged at F6, with the four timelines.
 
 ## The format
 
@@ -215,6 +219,25 @@ part; lit pins add up until `pin off`. `orientation` (or `pin` with `"mark": tru
 writes its text. `--parts` lists each part's pins with name and function; `--validate`:
 `TOUR_UNKNOWN_PIN`. Moves M19 *pin lights* and M20 *callout arrives*. Done when `focus-npn.json` and
 `focus-555.json` light every pin, `--check` passes, and the maintainer approves a frame of each.
+
+**As built (2026-11-01).** The names changed a little against the plan above: the mark is a field of
+the package's build, `mark: { kind: 'flat' | 'tab' | 'notch' | 'flange' | 'stripe', at, normal }`, and
+one action does pins and marks: `pin` with `pin`, `mark` (the part) or `off` (no `orientation` action).
+The pins' texts are by kind of part (`pin.role.bjt.E`), with a part number first when it has its own
+(`pin.role.NE555.TRIG`); a chip's row says its number. The mark's sentence comes from the camera
+(which way a flat face or tab faces, which side a notch or stripe is on), so the back view says the
+other thing. The callouts are drawn in the drawing, in a layer under the part's copy (the leaders of
+the back row come out from under the body with no measurement of what is hidden), laid out in screen
+px each time the frame moves. Two of F0's findings needed a rule each: a row too long for its room
+first shrinks with the others (to 65 %), and when two columns would still cut a row, all the rows go
+to one column on the roomier side (no leader crosses either: the pins nearest it at the top); two
+pins at one x get leaders 10 px apart, and the one that moves is the higher tip, since the other
+leader would otherwise start on it (a crossing a jsdom case found). `render-frames.js` measures the
+pinout against the free area. `TOUR_NO_MARK` was added for a `mark` on a part without one. After
+seeing the first frames, the maintainer asked for two changes: the part in the middle (the pedestal
+now frames the part alone, in the middle; its short label is not shown there, since the caption names
+the part, so the label no longer pushes a small part aside and the rows fit around it), and no ring on the mark (the flat face shows in the drawing; the mark is
+its sentence only).
 
 ### F3 · The bench: `bench`
 

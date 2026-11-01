@@ -216,9 +216,16 @@ test('attack: a timeline stays inside the circuit\'s folder, has caps and is nev
   assert.deepEqual(given({ steps: [{ at: 0, do: 'scene', mode: 'eval', part: 'D1' }] }), ['TOUR_FIELD']);
   assert.deepEqual(given({ steps: [{ at: 0, do: 'scene', mode: 'part', part: { toString: 'D1' } }] }), ['TOUR_FIELD']);
   assert.deepEqual(given({ steps: [{ at: 0, do: 'land', part: '__proto__' }] }), ['TOUR_UNKNOWN_PART']);
+  // A pin (a video about one part, F2): a part of the circuit and one of its pins, read by the kit.
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'pin', pin: '"] {} * { display: none } [x=".B' }] }), ['TOUR_UNKNOWN_PART']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'pin', pin: 'D1.__proto__' }] }), ['TOUR_UNKNOWN_PIN']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'pin', pin: 'D1.constructor' }] }), ['TOUR_UNKNOWN_PIN']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'pin', pin: `D1.${'9'.repeat(400)}` }] }), ['TOUR_UNKNOWN_PIN']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'pin', mark: '__proto__' }] }), ['TOUR_UNKNOWN_PART']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'pin', pin: ['D1', 'anode'] }] }), ['TOUR_FIELD']);
   // Texts: data in the page, written with textContent; never a tag.
   const evil = '</script><script>alert(1)</script><img src=x onerror="alert(1)">';
-  const { html } = renderPage({ ...circuit(), page: { tour: { steps: [{ ...step, text: evil }, { at: 0, do: 'value', part: 'D1', field: 'current', label: evil }] } } });
+  const { html } = renderPage({ ...circuit(), page: { tour: { steps: [{ ...step, text: evil }, { at: 0, do: 'value', part: 'D1', field: 'current', label: evil }, { at: 0, do: 'pin', pin: 'D1.anode', text: evil }] } } });
   const kit = ['<script type="application/json" id="page-data">', '<script type="application/json" id="sim-program">', '<script>'];
   for (const tag of html.match(/<script\b[^>]*>/g)) assert.ok(kit.includes(tag), tag);
   assert.ok(!/<img/i.test(html), 'no tag from the timeline');

@@ -50,6 +50,7 @@ import { loadTour, onPedestal } from '../src/tour.js';
 import { buildCircuit } from '../src/circuit/build.js';
 import { compile } from '../src/sim/compile.js';
 import { createEngine } from '../src/sim/engine.js';
+import { pinList } from '../src/pinout.js';
 import { CHROMIUM_ARGS, frameProblems, measure, RULES } from './stage-shots.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -92,7 +93,8 @@ function recipeCircuit(name) {
 const READINGS = ['current', 'voltage', 'power', 'brightness'];
 
 // What a timeline of this circuit can name, as data (--parts).
-export function timelineParts(circuit) {
+export function timelineParts(circuit, lang = 'en') {
+  const built = buildCircuit(circuit);
   const compiled = compile(circuit);
   const engine = compiled.fatal ? null : createEngine(compiled.program);
   const controls = engine?.controls() ?? [];
@@ -101,9 +103,15 @@ export function timelineParts(circuit) {
   const control = (c) => ({ field: c.field, value: c.value, ...(c.min != null && { min: c.min, max: c.max }), ...(c.unit && { unit: c.unit }), ...(c.scale && { scale: c.scale }) });
   const readings = (id, type) => (type === 'wire' ? [] : READINGS.filter((f) => typeof reading[id]?.[f] === 'number'));
   const entry = (id, type, extra) => ({ id, type, ...extra, readings: readings(id, type), controls: controls.filter((c) => c.id === id).map(control) });
-  const parts = (circuit.parts ?? []).map((p) => entry(p.id, p.type, { ...(p.value != null && { value: p.value }), ...(p.part && { part: p.part }), ...(p.color && { color: p.color }), pedestal: onPedestal(p) }));
+  // A part's pins (a pin step names them "Q1.B"; a chip's also by number) and whether its package has
+  // a mark that tells them apart (a pin step's `mark`).
+  const pinsOf = (id) => {
+    const b = built.parts.find((x) => x.id === id);
+    return b && b.type !== 'wire' ? { pins: pinList(b, lang), mark: Boolean(b.built?.mark) } : { pins: [], mark: false };
+  };
+  const parts = (circuit.parts ?? []).map((p) => entry(p.id, p.type, { ...(p.value != null && { value: p.value }), ...(p.part && { part: p.part }), ...(p.color && { color: p.color }), pedestal: onPedestal(p), ...pinsOf(p.id) }));
   const supplies = (circuit.supplies ?? []).map((s) => entry(s.id, s.kind ?? 'supply', {}));
-  const nodes = Object.entries(buildCircuit(circuit).netlist.nodes).map(([node, members]) => ({ node, pins: members.map((m) => `${m.part}.${m.pin}`) }));
+  const nodes = Object.entries(built.netlist.nodes).map(([node, members]) => ({ node, pins: members.map((m) => `${m.part}.${m.pin}`) }));
   return { simulated: !compiled.fatal, parts, supplies, nodes };
 }
 
@@ -115,6 +123,7 @@ function printParts(name, { simulated, parts, supplies, nodes }) {
     console.log(`  ${p.id.padEnd(4)} ${what}${p.pedestal ? ' · pedestal (scene, land)' : ''}`);
     if (p.readings.length) console.log(`       readings (value, wait-until): ${p.readings.join(', ')}`);
     for (const c of p.controls) console.log(`       set ${c.field} = ${c.value}${c.unit ? ` ${c.unit}` : ''}${range(c)}${c.scale === 'log' ? ' (log)' : ''}`);
+    if (p.pedestal && p.pins?.length) console.log(`       pins (pin): ${p.pins.map((x) => `${x.ref} ${x.text === x.name ? '' : `(${x.text})`}`.trim()).join(' · ')}${p.mark ? ` · mark (pin "mark": "${p.id}")` : ''}`);
   };
   console.log('parts (frame, focus, insert, assemble, raise, label):');
   parts.forEach(show);
@@ -279,7 +288,7 @@ async function main() {
   const args = parse(process.argv.slice(2));
   if (args.parts) {
     const circuit = existsSync(args.parts) ? loadCircuit(resolveTarget(args.parts)) : recipeCircuit(args.parts);
-    printParts(args.parts, timelineParts(circuit));
+    printParts(args.parts, timelineParts(circuit, args.lang));
     return 0;
   }
   const timeline = JSON.parse(readFileSync(args.timeline, 'utf8'));

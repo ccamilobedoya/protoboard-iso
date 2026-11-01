@@ -10,6 +10,7 @@ import { renderPage } from '../src/page.js';
 import { loadTour } from '../src/tour.js';
 import { CIRCUIT_FOLDER } from '../src/beside.js';
 import { DOT_PERIOD } from '../src/sim/look.js';
+import { timelineCircuit } from '../scripts/render-frames.js';
 import { CAPTION, INSERT, LIGHT, RAISE, MOVES, ASSEMBLE } from '../src/page/client/moves.js';
 
 const FRAME = 1000 / 30;
@@ -492,6 +493,126 @@ test('moves: M18 a land keeps the part still on screen while the board rises, th
   assert.equal(s1.style.opacity, '', 'S1 came in first');
   r.to(1000 + 9 * 300 + ASSEMBLE.ms + FRAME);
   for (const el of r.svg().querySelectorAll(':scope > .parts > [data-part]')) assert.equal(el.style.opacity, '', el.getAttribute('data-part'));
+});
+
+// The anatomy of a part on its pedestal (F2; docs/en/component-focus.md): M19 a pin lights, M20 its
+// row comes in; `mark` lights the package's mark and writes what it tells.
+const anatomy = [
+  { at: 0, do: 'scene', mode: 'part', part: 'Q1' },
+  { at: 100, do: 'pin', pin: 'Q1.E' },
+  { at: 500, do: 'pin', pin: 'Q1.base' },
+  { at: 900, do: 'pin', pin: 'Q1.C', text: 'the load' },
+  { at: 1300, do: 'pin', mark: 'Q1' },
+  { at: 3000, do: 'pin', off: true },
+];
+
+// The pinout drawn, back on screen (px of the 360 × 640 page): each lit pin's leader as segments,
+// its row's text, where it starts and how it is anchored.
+function pinoutOnScreen(r) {
+  const [bx, by, bw, bh] = r.svg().getAttribute('viewBox').split(' ').map(Number);
+  const k = Math.max(bw / 360, bh / 640);
+  const sx = (x) => 180 + (x - bx - bw / 2) / k;
+  const sy = (y) => 320 + (y - by - bh / 2) / k;
+  return [...r.svg().querySelectorAll(':scope > .pinout > g[data-pin]')].map((g) => {
+    const d = g.querySelector('.lead').getAttribute('d');
+    const [, x0, y0, x1, y1, x2] = d.match(/^M(-?[\d.]+) (-?[\d.]+)H(-?[\d.]+)V(-?[\d.]+)H(-?[\d.]+)$/).map(Number);
+    const text = g.querySelector('text');
+    const size = Number(text.getAttribute('font-size')) / k;
+    const points = [[x0, y0], [x1, y0], [x1, y1], [x2, y1]].map(([x, y]) => [sx(x), sy(y)]);
+    return { pin: g.getAttribute('data-pin'), opacity: Number(g.getAttribute('opacity')), points, text: text.textContent, x: sx(Number(text.getAttribute('x'))), y: sy(Number(text.getAttribute('y'))), anchor: text.getAttribute('text-anchor'), size };
+  });
+}
+// Two leaders cross: a segment of one meets a segment of the other (they are horizontal or vertical).
+function cross(a, b) {
+  const seg = (p) => p.points.slice(1).map((q, i) => [p.points[i], q]);
+  const meets = ([[ax, ay], [bx, by]], [[cx, cy], [dx, dy]]) => {
+    const [x0, x1, y0, y1] = [Math.min(ax, bx), Math.max(ax, bx), Math.min(ay, by), Math.max(ay, by)];
+    const [u0, u1, v0, v1] = [Math.min(cx, dx), Math.max(cx, dx), Math.min(cy, dy), Math.max(cy, dy)];
+    return x0 <= u1 + 0.01 && u0 <= x1 + 0.01 && y0 <= v1 + 0.01 && v0 <= y1 + 0.01;
+  };
+  return seg(a).some((s) => seg(b).some((t) => meets(s, t)));
+}
+// The rules of F0's findings for every lit row: inside the free area (STAGE_INSET of a portrait
+// recording), its text ending before its own leader, no two leaders crossing.
+function assertPinout(rows) {
+  for (const p of rows) {
+    const width = p.text.length * 0.62 * p.size;
+    const [left, right] = p.anchor === 'end' ? [p.x - width, p.x] : [p.x, p.x + width];
+    const end = p.points[3][0];
+    assert.ok(left >= 0.0667 * 360 - 0.5 && right <= (1 - 0.0667) * 360 + 0.5, `${p.pin}: ${left.toFixed(1)}…${right.toFixed(1)} px, out of the free width`);
+    assert.ok(p.y <= 0.75 * 640 && p.points[2][1] <= 0.75 * 640, `${p.pin}: below the free area`);
+    assert.ok(p.anchor === 'end' ? left >= end - 0.5 : right <= end + 0.5, `${p.pin}: "${p.text}" runs over its leader`);
+  }
+  for (const [i, a] of rows.entries()) for (const b of rows.slice(i + 1)) assert.ok(!cross(a, b), `${a.pin} and ${b.pin} cross`);
+}
+
+test('moves: a pin step names a pin of a part, or its mark, or none', () => {
+  const codes = (steps) => loadTour(npn({ steps })).issues.map((i) => i.code);
+  assert.deepEqual(codes(anatomy), []);
+  assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'Q1.X' }]), ['TOUR_UNKNOWN_PIN']);
+  assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'Q1.2' }]), ['TOUR_UNKNOWN_PIN'], 'a number names a chip\'s pin only');
+  assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'X9.B' }]), ['TOUR_UNKNOWN_PART']);
+  assert.deepEqual(codes([{ at: 0, do: 'pin', mark: 'R1' }]), ['TOUR_NO_MARK'], 'a resistor has no mark');
+  assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'Q1.E', off: true }]), ['TOUR_FIELD'], 'one of pin, mark or off');
+  assert.deepEqual(codes([{ at: 0, do: 'pin' }]), ['TOUR_FIELD']);
+  assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'Q1' }]), ['TOUR_FIELD'], 'part.pin');
+  // The page gets the part and the pin's index (an alias read by the kit).
+  const steps = loadTour(npn({ steps: anatomy }), 'en').tour.steps.filter((s) => s.do === 'pin' && s.pin);
+  assert.deepEqual(steps.map((s) => [s.part, s.index]), [['Q1', 0], ['Q1', 1], ['Q1', 2]]);
+  // A page carries the pinouts its steps name, and nothing more without them.
+  const data = (tour) => JSON.parse(renderPage(npn(tour), { lang: 'en' }).html.match(/<script type="application\/json" id="page-data">([\s\S]*?)<\/script>/)[1]);
+  assert.deepEqual(Object.keys(data({ steps: anatomy }).pinouts.front), ['Q1']);
+  assert.equal(data({ steps: pedestal }).pinouts, undefined);
+});
+
+test('moves: M19 a pin lights and M20 its row comes in, under the part, in the free area, no leaders crossing', async (t) => {
+  const r = await recording(anatomy);
+  if (!r) return t.skip('jsdom not installed');
+  r.to(100 + 100);
+  const coming = pinoutOnScreen(r);
+  assert.deepEqual(coming.map((p) => p.pin), ['Q1.E']);
+  assert.ok(coming[0].opacity > 0 && coming[0].opacity < 1, `arriving: ${coming[0].opacity}`);
+  r.to(1300 + MOVES.arrival.ms + FRAME);
+  const rows = pinoutOnScreen(r);
+  assert.deepEqual(rows.map((p) => [p.pin, p.text, p.opacity]), [['Q1.E', 'emitter · common to both', 1], ['Q1.B', 'base · the small current', 1], ['Q1.C', 'the load', 1]]);
+  assertPinout(rows);
+  // Under the part's copy: a pin behind a body shows its leader from under it. The mark is its sentence
+  // only (the mark itself shows in the drawing).
+  const layers = [...r.svg().children].map((el) => el.getAttribute('class'));
+  assert.equal(layers.indexOf('pinout'), layers.indexOf('spotlight') - 1, layers.join(' '));
+  assert.deepEqual([...r.svg().querySelectorAll(':scope > .pinout > .quiet')].map((q) => q.textContent), ['Bipolar transistor · TO-92', 'Flat face toward you: E B C from the left']);
+  // The part's label stays away while the pinout tells it.
+  assert.match([...r.doc.querySelectorAll('head style')].map((s) => s.textContent).join(''), /\.shortlabels\) > \[data-part="Q1"\] \{ display: none/);
+  r.to(3000 + FRAME);
+  assert.equal(r.svg().querySelector(':scope > .pinout').children.length, 0, 'off');
+});
+
+test('moves: a chip\'s pinout keeps the rules: two leaders at the same x apart, rows whole, nothing crossing', async (t) => {
+  const file = `${examples}tours/focus-555.json`;
+  const timeline555 = JSON.parse(readFileSync(file, 'utf8'));
+  const circuit = timelineCircuit(file, timeline555);
+  assert.deepEqual(loadTour(Object.defineProperty({ ...circuit, page: { tour: timeline555 } }, CIRCUIT_FOLDER, { value: examples })).issues, []);
+  const window = await loadPage(renderPage({ ...circuit, page: { tour: timeline555 } }, { lang: 'en' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const live = window.protoboardLive;
+  live.tour.play();
+  for (let ms = 0; ms < 7000; ms += 100) live.tick(100);
+  // jsdom draws nothing, so the scene could not frame the part: frame it as a recording does, its
+  // pins in the upper half of the free area, then let the pinout follow.
+  const pins = JSON.parse(window.document.getElementById('page-data').textContent).pinouts.front.U1.pins;
+  const [x0, x1] = [Math.min(...pins.map((p) => p.x)), Math.max(...pins.map((p) => p.x))];
+  const w = (x1 - x0) * 4;
+  const h = (w * 640) / 360;
+  live.director.frame([(x0 + x1) / 2 - w / 2, pins[0].y - 0.5 * h, w, h]);
+  live.tick(FRAME);
+  const r = { svg: () => window.document.querySelector('main > svg:not([hidden])') };
+  const rows = pinoutOnScreen(r);
+  assert.equal(rows.length, 8);
+  assertPinout(rows);
+  // Pins 4 and 8 go into the same column of holes, one behind the other: their leaders apart.
+  const x = (pin) => rows.find((p) => p.pin === pin).points[1][0];
+  assert.ok(Math.abs(x('U1.RESET') - x('U1.VCC')) >= 3, `${x('U1.RESET')} and ${x('U1.VCC')}`);
+  assert.deepEqual([...r.svg().querySelectorAll(':scope > .pinout > .quiet')].map((q) => q.textContent), ['Integrated circuit · DIP-8', 'Notch on the right: pin 1 beside it']);
 });
 
 test('moves: a part raised and then focused again stays seen (its copies keep their opacity)', async (t) => {

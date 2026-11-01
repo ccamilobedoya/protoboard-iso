@@ -101,6 +101,8 @@ export default {
       return lead([withZ(p, 0), withZ(p, 1.4), edge], { radius: 0.25, color: MATERIALS.tinned });
     });
     // Labels point at the back edge of the top face, clear of the printed marking.
-    return { primitives: [body, ...leads], body: [body], anchor: add(top, scale(acrossDir, WIDTH / 2 - 0.5)) };
+    // How to find pin 1 (src/pinout.js): the notch, at the pin-1 end of the top face.
+    const mark = { kind: 'notch', at: end };
+    return { primitives: [body, ...leads], body: [body], anchor: add(top, scale(acrossDir, WIDTH / 2 - 0.5)), mark };
   },
 };

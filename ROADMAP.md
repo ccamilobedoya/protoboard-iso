@@ -282,7 +282,7 @@ Asked by the maintainer (2026-11-01): a video format about one concrete part (a 
 
 - ✅ F0 · Measure and choose: `scripts/focus-mockups.js` (three directions from the real page, both formats, measurements of zoom, marking and bands), the design document, the decisions in `PLANNING.md`; chosen: the technical pinout with the schematic symbol beside the part, in both formats; timelines `focus-<part>.json`
 - ✅ F1 · The pedestal: `scene` (mode `part` or `board`) and `land` (M17, M18) in the timeline, the player, the schema and `--parts`; `TOUR_SCENE_PART`; a part raised and then focused again no longer disappears; `examples/tours/focus-npn.json`, jsdom cases (the part still on screen within a pixel while the board rises) and two golden frames
-- ⬜ F2 · Anatomy: `pin` and orientation as data (M19, M20)
+- ✅ F2 · Anatomy: `pin` (a pin, the package's mark, or off; M19, M20) with rows that never cross and stay in the free area; orientation as data in six packages, its sentence from the camera; pin texts by kind of part and by part number (`pin.role.*`); `TOUR_UNKNOWN_PIN`, `TOUR_NO_MARK`; `--parts` lists the pins; `examples/tours/focus-555.json`, the pins in `focus-npn.json`, jsdom cases and two golden frames (a frame of each waits for the maintainer)
 - ⬜ F3 · The bench: `bench` (M21)
 - ⬜ F4 · `symbol` and `inside` (M22, M23), then the trial of the page view
 - ⬜ F5 · The part in the page, only if the trial says so

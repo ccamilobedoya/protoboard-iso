@@ -62,6 +62,11 @@ export function frameProblems(format, m, { moving = false } = {}) {
     const f = r.free;
     if (m.label.top < f.top - TOLERANCE || m.label.bottom > f.bottom + TOLERANCE || m.label.left < f.left - TOLERANCE || m.label.right > f.right + TOLERANCE) out.push(`the label of ${m.told?.id} out of the free area`);
   }
+  // A part's pinout (a video about one part, F2): its leaders, dots, rows and quiet lines.
+  if (m.pinout && !moving) {
+    const f = r.free;
+    if (m.pinout.top < f.top - TOLERANCE || m.pinout.bottom > f.bottom + TOLERANCE || m.pinout.left < f.left - TOLERANCE || m.pinout.right > f.right + TOLERANCE) out.push(`the pinout at ${pct(m.pinout.left)}…${pct(m.pinout.right)} × ${pct(m.pinout.top)}…${pct(m.pinout.bottom)}, out of the free area`);
+  }
   if (m.tags) out.push(`${m.tags} result tags shown`);
   if (m.chrome.length) out.push(`chrome shown: ${m.chrome.join(', ')}`);
   return out;
@@ -92,6 +97,8 @@ export function measure() {
   const tag = id ? [...svg.querySelectorAll(`.spotlabels > [data-part="${id}"]`)].map(shown).filter(Boolean)[0] : null;
   const told = pieces.length ? { id, ...frac({ top: Math.min(...pieces.map((r) => r.top)), bottom: Math.max(...pieces.map((r) => r.bottom)), left: Math.min(...pieces.map((r) => r.left)), right: Math.max(...pieces.map((r) => r.right)) }) } : null;
   const visible = (sel) => [...document.querySelectorAll(sel)].filter(shown);
+  const pinned = [...svg.querySelectorAll(':scope > .pinout > *')].map(shown).filter(Boolean);
+  const pinout = pinned.length ? frac({ top: Math.min(...pinned.map((r) => r.top)), bottom: Math.max(...pinned.map((r) => r.bottom)), left: Math.min(...pinned.map((r) => r.left)), right: Math.max(...pinned.map((r) => r.right)) }) : null;
   return {
     theme: document.documentElement.dataset.theme ?? null,
     viewBox: svg.getAttribute('viewBox'),
@@ -100,6 +107,7 @@ export function measure() {
     labelled: labels,
     label: tag ? frac(tag) : null,
     told,
+    pinout,
     labels: labels.length,
     tags: visible('main > svg:not([hidden]) .results > [data-q], main > svg:not([hidden]) .labels > *, main > svg:not([hidden]) .shortlabels > *').length,
     chrome: ['nav', '.zoom', '.inspector', '.first-hint'].filter((sel) => visible(sel).length),

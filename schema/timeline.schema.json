@@ -1225,6 +1225,100 @@
             "type": "object",
             "required": [
               "at",
+              "do"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
+              },
+              "do": {
+                "const": "pin"
+              },
+              "pin": {
+                "type": "string",
+                "pattern": "\\.",
+                "description": "A pin of a part, \"part.pin\": its name (\"Q1.B\"), a usual alias (\"Q1.base\", \"D1.K\") or a chip's number (\"U1.2\"); render-frames.js --parts lists them"
+              },
+              "mark": {
+                "type": "string",
+                "description": "The part whose package's mark (a flat face, a notch, a stripe) lights, with what it tells on a quiet line"
+              },
+              "off": {
+                "const": true,
+                "description": "Every pin and mark off"
+              },
+              "text": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "The pin's row in other words (default: the kit's, what the pin does)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "A video about one part (M19, M20): the pin lights at its tip and its row comes in under the part, an arrival by default; lit pins add up until off",
+            "oneOf": [
+              {
+                "required": [
+                  "pin"
+                ]
+              },
+              {
+                "required": [
+                  "mark"
+                ]
+              },
+              {
+                "required": [
+                  "off"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
               "do",
               "part",
               "field"

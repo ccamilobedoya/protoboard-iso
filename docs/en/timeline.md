@@ -205,7 +205,7 @@ A raised part is still in the circuit: the simulation does not change.
 
 For a video about one part ([component-focus.md](component-focus.md)). In mode `part` the board, the
 other parts, their labels and lights go away (the hole grid stays), the part is raised 3 mm and
-framed as a `frame` on it frames; it stays in the circuit, so `set`, `value` and `probe` still work.
+framed alone in the middle of the free area, without its short label (the caption names it); it stays in the circuit, so `set`, `value` and `probe` still work.
 
 | Field | Values | Default | |
 |---|---|---|---|
@@ -230,6 +230,32 @@ brings the other parts one by one (they wait unseen) and leaves the landed part 
 { "at": 3000, "do": "land", "part": "Q1" },
 { "at": 4800, "do": "frame", "target": "parts", "move": "travel" },
 { "at": 4800, "do": "assemble", "gap": 600 }
+```
+
+### `pin`: a part's pins, one by one (M19, M20)
+
+On the pedestal (or on the board), a pin lights at its tip and its row of text comes in under the
+part, as a datasheet prints it: what the pin does, from the kit (`pin.role.*`), a chip's with its
+number ("3 OUT · output"). Lit pins add up until `off`. The rows stay inside the free area, each
+column takes the pins on its side of the part, and no two leaders cross (a pin behind a chip's body
+shows its leader coming out from under it); while any pin is lit, the part's short label stays away.
+
+| Field | Values | Default | |
+|---|---|---|---|
+| `pin` | `"part.pin"` | | its name (`"Q1.B"`), a usual alias (`"Q1.base"`, `"D1.K"`) or a chip's number (`"U1.2"`); `render-frames.js --parts` lists each part's pins (`TOUR_UNKNOWN_PIN`) |
+| `mark` | an id | | the package's mark instead (a TO-92's flat face, a TO-220's tab, a chip's notch, an LED's flat edge, a stripe): on a quiet line at the bottom the kind of part and what the mark tells, from the drawing ("Flat face toward you: E B C from the left"); a part without one: `TOUR_NO_MARK` |
+| `off` | `true` | | every pin and mark off |
+| `text` | a text | the kit's | the pin's row in other words |
+| `move`, `ms`, `curve` | | `arrival` | the dot lights in the first quarter, the row rises in with the rest |
+
+One of `pin`, `mark` and `off`. Leave 400 ms between two pins, and turn them off before a `land`.
+
+```json
+{ "at": 1600, "do": "pin", "pin": "Q1.E" },
+{ "at": 2000, "do": "pin", "pin": "Q1.B" },
+{ "at": 2400, "do": "pin", "pin": "Q1.C" },
+{ "at": 3200, "do": "pin", "mark": "Q1" },
+{ "at": 6000, "do": "pin", "off": true }
 ```
 
 ### `flip`: the other side
@@ -277,7 +303,7 @@ can replace. Captions are always the timeline's.
 `node bin/protoboard-iso.js check <circuit>` reads the circuit's timeline. A shape, size or file
 problem leaves the page without a tour (`TOUR_SHAPE`, `TOUR_FIELD`, `TOUR_ACTION`, `TOUR_MOVE`,
 `TOUR_JSON`, `TOUR_TOO_LARGE`…); an unknown part or control, an `ms` outside its move's range, a
-broken rhythm, a value the next caption takes away within a second (`TOUR_VALUE_HIDDEN`) or a
+broken rhythm, a value the next caption takes away within a second (`TOUR_VALUE_HIDDEN`), a pin a part does not have (`TOUR_UNKNOWN_PIN`), a mark it does not have (`TOUR_NO_MARK`) or a
 timeline over ten minutes is a warning and it still plays. Caps: 100 kB, 200
 steps, 280 characters a text, ten minutes.
 

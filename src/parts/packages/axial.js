@@ -7,7 +7,8 @@
 //                box, bodyDiameter wide and `bodyHeight` tall, its leads out of the end centres)
 //   print        text printed along the top of a 'box' body ("5W 10ΩJ")
 //   color        body colour
-//   bands        [{ from, to, color }] colour rings, mm measured from the pin-1 end
+//   bands        [{ from, to, color, mark }] colour rings, mm measured from the pin-1 end (mark: the
+//                one that tells the leads apart, a diode's cathode)
 //   opacity      for glass bodies
 //   standoff     gap between body and board, mm (default 0.8)
 
@@ -98,6 +99,9 @@ export default {
     });
 
     const leads = [...lead([withZ(a, 0), withZ(a, zc), start]), ...lead([withZ(b, 0), withZ(b, zc), end])];
-    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, zc + R), span: distance(a, b), paths: axialPaths(a, b, zc, start, end, centre) };
+    // A band that tells the leads apart (a diode's cathode, `mark: true`): where it is, on top (src/pinout.js).
+    const marked = bands.find((band) => band.mark);
+    const mark = marked ? { kind: 'stripe', at: add(withZ(start, zc + R), scale(dir, (marked.from + marked.to) / 2)) } : undefined;
+    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, zc + R), span: distance(a, b), paths: axialPaths(a, b, zc, start, end, centre), ...(mark && { mark }) };
   },
 };

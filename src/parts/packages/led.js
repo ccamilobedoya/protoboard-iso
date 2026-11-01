@@ -61,6 +61,8 @@ export default {
     // Where it lights up (src/sim/paths.js draws a lit LED over the conductor view): the dome,
     // a vertical cylinder from the flange to the top.
     const light = { base: withZ(base, standoff + 1.0 * k), radius: 2.5 * k, height: 7.1 * k };
-    return { primitives: [flange, body, ...leads], body: [flange, body], anchor: withZ(base, standoff + 8.1 * k), paths, light };
+    // How to tell its leads apart (src/pinout.js): the flat of the flange, on the cathode's side.
+    const mark = { kind: 'flange', at: add(withZ(base, standoff + 0.5 * k), scale(dir, flat)) };
+    return { primitives: [flange, body, ...leads], body: [flange, body], anchor: withZ(base, standoff + 8.1 * k), paths, light, mark };
   },
 };

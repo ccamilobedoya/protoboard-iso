@@ -287,7 +287,7 @@ Pedido del mantenedor (2026-11-01): un formato de video sobre una pieza concreta
 
 - ✅ F0 · Medir y elegir: `scripts/focus-mockups.js` (tres direcciones sobre la página real, los dos formatos, medidas de zoom, marcado y bandas), el documento de diseño, las decisiones en `PLANNING.md`; elegido: el diagrama de patas técnico con el símbolo de esquema al lado de la pieza, en los dos formatos; líneas de tiempo `focus-<pieza>.json`
 - ✅ F1 · El pedestal: `scene` (modo `part` o `board`) y `land` (M17, M18) en la línea de tiempo, el reproductor, el esquema y `--parts`; `TOUR_SCENE_PART`; una pieza levantada y enfocada otra vez ya no desaparece; `examples/tours/focus-npn.json`, casos en jsdom (la pieza quieta en pantalla, a menos de un píxel, mientras sube la protoboard) y dos fotogramas *golden*
-- ⬜ F2 · Anatomía: `pin` y la orientación como dato (M19, M20)
+- ✅ F2 · Anatomía: `pin` (una pata, la marca del paquete o apagar; M19, M20) con filas que no se cruzan y quedan en el área libre; la orientación como dato en seis paquetes, con su frase sacada de la cámara; los textos de las patas por tipo de pieza y por número de parte (`pin.role.*`); `TOUR_UNKNOWN_PIN`, `TOUR_NO_MARK`; `--parts` lista las patas; `examples/tours/focus-555.json`, las patas en `focus-npn.json`, casos en jsdom y dos fotogramas *golden* (falta que el mantenedor apruebe un fotograma de cada una)
 - ⬜ F3 · El banco: `bench` (M21)
 - ⬜ F4 · `symbol` e `inside` (M22, M23), y después el ensayo de la vista en la página
 - ⬜ F5 · La pieza en la página, solo si el ensayo lo dice

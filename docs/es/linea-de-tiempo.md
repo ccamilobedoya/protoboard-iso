@@ -209,7 +209,7 @@ Una pieza levantada sigue en el circuito: la simulación no cambia.
 
 Para un video sobre una pieza ([foco-en-componente.md](foco-en-componente.md)). En modo `part` se van
 la protoboard, las demás piezas, sus rótulos y sus luces (la retícula de agujeros sigue), la pieza
-sube 3 mm y queda encuadrada como la encuadra un `frame`; sigue en el circuito, así que `set`, `value`
+sube 3 mm y queda encuadrada sola en el centro del área libre, sin su rótulo corto (el subtítulo la nombra); sigue en el circuito, así que `set`, `value`
 y `probe` funcionan igual.
 
 | Campo | Valores | Por defecto | |
@@ -235,6 +235,33 @@ protoboard, con las demás piezas, sube debajo; después se va el foco. Un `asse
 { "at": 3000, "do": "land", "part": "Q1" },
 { "at": 4800, "do": "frame", "target": "parts", "move": "travel" },
 { "at": 4800, "do": "assemble", "gap": 600 }
+```
+
+### `pin`: las patas de una pieza, una por una (M19, M20)
+
+En el pedestal (o en la protoboard), una pata se enciende en su punta y su fila de texto entra bajo la
+pieza, como la imprime una hoja de datos: qué hace la pata, del kit (`pin.role.*`), la de un chip con
+su número («3 OUT · salida»). Las patas encendidas se suman hasta `off`. Las filas quedan dentro del
+área libre, cada columna toma las patas de su lado de la pieza y dos líneas guía nunca se cruzan (una
+pata detrás del cuerpo de un chip muestra su línea saliendo por debajo); mientras haya una pata
+encendida, el rótulo corto de la pieza no se ve.
+
+| Campo | Valores | Por defecto | |
+|---|---|---|---|
+| `pin` | `"pieza.pata"` | | su nombre (`"Q1.B"`), un alias usual (`"Q1.base"`, `"D1.K"`) o el número de la pata de un chip (`"U1.2"`); `render-frames.js --parts` lista las patas de cada pieza (`TOUR_UNKNOWN_PIN`) |
+| `mark` | un id | | en su lugar, la marca del paquete (la cara plana de un TO-92, la lengüeta de un TO-220, la muesca de un chip, el borde plano de un LED, una franja): en una línea discreta abajo, el tipo de pieza y lo que dice la marca, sacado del dibujo («Cara plana hacia ti: E B C desde la izquierda»); una pieza sin marca: `TOUR_NO_MARK` |
+| `off` | `true` | | apaga todas las patas y la marca |
+| `text` | un texto | el del kit | la fila de la pata con otras palabras |
+| `move`, `ms`, `curve` | | `arrival` | el punto se enciende en el primer cuarto y la fila sube con el resto |
+
+Uno de `pin`, `mark` y `off`. Deja 400 ms entre dos patas, y apágalas antes de un `land`.
+
+```json
+{ "at": 1600, "do": "pin", "pin": "Q1.E" },
+{ "at": 2000, "do": "pin", "pin": "Q1.B" },
+{ "at": 2400, "do": "pin", "pin": "Q1.C" },
+{ "at": 3200, "do": "pin", "mark": "Q1" },
+{ "at": 6000, "do": "pin", "off": true }
 ```
 
 ### `flip`: el otro lado
@@ -285,7 +312,7 @@ tiempo.
 forma, tamaño o archivo deja la página sin recorrido (`TOUR_SHAPE`, `TOUR_FIELD`, `TOUR_ACTION`,
 `TOUR_MOVE`, `TOUR_JSON`, `TOUR_TOO_LARGE`…); una pieza o un control desconocido, un `ms` fuera del
 rango de su movimiento, un ritmo roto, un valor que el subtítulo siguiente quita antes de un segundo
-(`TOUR_VALUE_HIDDEN`) o una línea de tiempo de más de diez minutos es un aviso y
+(`TOUR_VALUE_HIDDEN`), una pata que la pieza no tiene (`TOUR_UNKNOWN_PIN`), una marca que no tiene (`TOUR_NO_MARK`) o una línea de tiempo de más de diez minutos es un aviso y
 igual se reproduce. Topes: 100 kB, 200 pasos, 280 caracteres por texto, diez minutos.
 
 ## Grabar
