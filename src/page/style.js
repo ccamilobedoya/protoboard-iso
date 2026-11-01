@@ -399,6 +399,16 @@ main[data-scene="land"] > svg > :is(.veil, .strips, .coords, .flow, .marks, .res
 .pinout .row { fill: var(--ink); }
 .pinout .quiet { fill: var(--ink-3); }
 .pinout .quiet.mark { fill: var(--ink-2); }
+/* A part's bench (M21; page/client/bench.js): stubs and pads in the voltage's colour, the dots of the
+   current layer, the readings in the caption's tokens. On the pedestal the part stays solid even with
+   the current layer on (elsewhere the plan sees through the parts in focus). */
+.bench { pointer-events: none; }
+.bench .stub, .bench .dots { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.bench text { font-family: var(--mono); }
+.bench .name, .bench .to { fill: var(--ink-3); }
+.bench .volts { fill: var(--cap-value); font-weight: 600; }
+.bench .amps { fill: var(--ink-2); }
+body.layer-flow main[data-scene] > svg > .spotlight { opacity: 1; }
 body.director nav, body.director .zoom, body.director .inspector, body.director .gesture-hint, body.director .first-hint, body.director .tooltip { display: none !important; }
 body.director main { cursor: default; }
 body.director .labels, body.director .results, body.director .probes { display: none !important; }

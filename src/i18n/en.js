@@ -465,6 +465,7 @@ export default {
   'check.TOUR_SCENE_PART': 'page.tour, step {step}: {part} is a wire or a supply; a pedestal shows a part of the circuit alone. The step does nothing.',
   'check.TOUR_UNKNOWN_PIN': 'page.tour, step {step}: {part} has no pin "{pin}" (its pins: {pins}). The step does nothing.',
   'check.TOUR_NO_MARK': 'page.tour, step {step}: {part} has no mark that tells its pins apart (only TO-92, TO-220, DIP, LEDs, diodes and electrolytic capacitors have one). The step does nothing.',
+  'check.TOUR_BENCH_NOT_SIMULATED': 'page.tour, step {step}: the bench of {part} reads the simulation, and this circuit is not simulated (no source). The step does nothing.',
   'check.TOUR_UNKNOWN_PART': 'page.tour, step {step}: the circuit has no part {part}; the step does nothing.',
   'check.TOUR_UNKNOWN_CONTROL': 'page.tour, step {step}: {part} has no control "{field}" (it has: {options}); the step does nothing.',
   'check.TOUR_RHYTHM_SLOW': 'page.tour, step {step}: two slow moves in a row (with step {before}); put a faster one between them.',

@@ -21,10 +21,15 @@ patas técnico con el símbolo de esquema de la vitrina al lado de la pieza (ver
 | F0 | Medir y elegir: maquetas de tres direcciones sobre la página real, medidas de zoom y bandas, este documento, las decisiones en `PLANNING.md` | ✅ dirección elegida el 2026-11-01 |
 | F1 | El pedestal: `scene` y `land` | ✅ 2026-11-01 |
 | F2 | Anatomía: `pin` y orientación | ✅ construida el 2026-11-01; falta aprobar un fotograma de cada una |
-| F3 | El banco: `bench` | ⬜ |
+| F3 | El banco: `bench` | ✅ construida el 2026-11-01; falta aprobar un fotograma |
 | F4 | `symbol` e `inside` | ⬜ |
 | F5 | La pieza en la página (interactiva), solo si D7 lo dice | ⬜ abierta |
 | F6 | Banco de líneas de tiempo y guía | ⬜ |
+
+**Todo se pide** (el mantenedor, 2026-11-01): el pedestal muestra solo lo que piden los pasos de su
+línea de tiempo. El diagrama de patas, el banco, el símbolo y el «por dentro» son cada uno de un paso,
+que los enciende y los apaga; ninguno se dibuja por defecto, y un video puede usar cualquiera, en
+cualquier orden, o ninguno.
 
 **Para revisar más adelante** (el mantenedor, después de ver el video de F1 el 2026-11-01): los
 subtítulos de un video sobre una pieza (sus palabras, su tamaño y sus tiempos); y si el pedestal
@@ -262,6 +267,18 @@ formas con opacidad, sin filtros. `--validate`: `TOUR_BENCH_NOT_SIMULATED`. Movi
 conecta* (los tramos se trazan como M5, 400 ms). Terminada cuando en `focus-npn.json` el tiempo 3
 muestra un `set` de R1 (oculta) cambiando la pastilla de la base y la corriente de colector, en los dos
 formatos, y el mantenedor lo aprueba.
+
+**Cómo quedó (2026-11-01).** No en `src/sim/paths.js`: la página dibuja el banco como el diagrama de patas
+(`page/client/bench.js`), en px de pantalla a partir de la lectura del motor, que ya da el voltaje y la
+corriente de cada pata; la escala de color, la velocidad de los puntos y su color son los de la capa de
+corriente. Bajo cada pastilla: la pata, su voltaje, la corriente que entra por ella y con qué se une
+(`page.js`, `benchLabel`). Los tramos bajan a un mismo nivel y van rectos a su pastilla, con las
+pastillas en el orden de las patas en pantalla, así que ninguno se cruza (también las dos filas de un
+chip, medido en jsdom); una lectura por debajo de un milivoltio es 0 V. Cada línea bajo una pastilla se
+ajusta a nueve décimas de la separación entre pastillas, así que los ocho bloques de un chip quedan uno
+al lado del otro (escalonarlos sacaba del área libre el banco del 555). El banco y el diagrama de patas
+comparten el espacio bajo la pieza: cada uno apaga al otro. En el pedestal la pieza sigue sólida con la
+capa de corriente encendida.
 
 ### F4 · `symbol` e `inside`
 

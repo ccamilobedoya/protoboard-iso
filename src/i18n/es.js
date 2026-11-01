@@ -464,6 +464,7 @@ export default {
   'check.TOUR_SCENE_PART': 'page.tour, paso {step}: {part} es un cable o una fuente; un pedestal muestra sola una pieza del circuito. El paso no hace nada.',
   'check.TOUR_UNKNOWN_PIN': 'page.tour, paso {step}: {part} no tiene la pata «{pin}» (sus patas: {pins}). El paso no hace nada.',
   'check.TOUR_NO_MARK': 'page.tour, paso {step}: {part} no tiene una marca que distinga sus patas (solo la tienen TO-92, TO-220, DIP, LED, diodos y condensadores electrolíticos). El paso no hace nada.',
+  'check.TOUR_BENCH_NOT_SIMULATED': 'page.tour, paso {step}: el banco de {part} lee la simulación, y este circuito no se simula (no tiene fuente). El paso no hace nada.',
   'check.TOUR_UNKNOWN_PART': 'page.tour, paso {step}: el circuito no tiene el componente {part}; el paso no hace nada.',
   'check.TOUR_UNKNOWN_CONTROL': 'page.tour, paso {step}: {part} no tiene el control «{field}» (tiene: {options}); el paso no hace nada.',
   'check.TOUR_RHYTHM_SLOW': 'page.tour, paso {step}: dos movimientos lentos seguidos (con el paso {before}); pon uno más rápido entre ellos.',

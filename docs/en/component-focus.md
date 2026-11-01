@@ -21,10 +21,14 @@ pinout with the showcase's schematic symbol beside the part (see *The direction 
 | F0 | Measure and choose: mock-ups of three directions from the real page, zoom and band measurements, this document, the decisions in `PLANNING.md` | ✅ direction chosen 2026-11-01 |
 | F1 | The pedestal: `scene` and `land` | ✅ 2026-11-01 |
 | F2 | Anatomy: `pin` and orientation | ✅ built 2026-11-01; a frame of each waits for approval |
-| F3 | The bench: `bench` | ⬜ |
+| F3 | The bench: `bench` | ✅ built 2026-11-01; a frame waits for approval |
 | F4 | `symbol` and `inside` | ⬜ |
 | F5 | The part in the page (interactive), only if D7 says so | ⬜ open |
 | F6 | Bench of timelines and guide | ⬜ |
+
+**Everything is asked for** (the maintainer, 2026-11-01): the pedestal shows only what its timeline's
+steps ask for. The pinout, the bench, the symbol and the inside view are each a step's, on and off;
+none is drawn by default, and a video may use any of them, in any order, or none.
 
 **To review later** (the maintainer, after seeing F1's video on 2026-11-01): the captions of a video
 about one part (their words, size and timing); and whether the pedestal needs an opening zoom on the
@@ -250,6 +254,16 @@ base resistor and the base pad changes). In `src/sim/paths.js` (a `bench` style 
 *bench connects* (stubs traced like M5, 400 ms). Done when in `focus-npn.json` beat 3 shows a `set` of
 R1 (hidden) changing the base pad and the collector current, in both formats, and the maintainer
 approves it.
+
+**As built (2026-11-01).** Not in `src/sim/paths.js`: the bench is drawn by the page like the pinout
+(`page/client/bench.js`), in screen px from the engine's reading, which already gives each pin's voltage
+and current; the colour scale, the dots' speed and their colour are the current layer's. Under each pad:
+the pin, its voltage, the current into it and what it is joined to (`page.js`, `benchLabel`). The stubs
+go down to one level and straight to their pad, the pads in the order of the pins on screen, so none
+cross (a chip's two rows included, measured in jsdom); a reading under a millivolt is 0 V. Each line
+under a pad fits nine tenths of the pads' pitch, so a chip's eight blocks stand side by side (staggering
+them took the 555's bench out of the free area). A bench and a pinout share the room under the part:
+each turns the other off. On the pedestal the part stays solid with the current layer on.
 
 ### F4 · `symbol` and `inside`
 

@@ -414,6 +414,7 @@ Each move has a named purpose (without one it is not built), a cost, and runs un
 | M18 | The board rises | `land`, a travel: the part comes down while the camera follows it, so it stays still on screen and the board rises under it; an `assemble` after it brings the other parts and leaves this one | low |
 | M19 | Pin lights | `pin`: a dot at the pin's tip grows in the first quarter of an arrival (the part's short label goes while pins are lit) | low |
 | M20 | Callout arrives | with it, the pin's leader and row rise in under the part, inside the free area, no two leaders crossing; `pin` with `mark` writes what the package's mark tells on a quiet line (the mark itself shows in the drawing) | low |
+| M21 | The bench connects | `bench`: each pin's stub is traced down to a pad in the voltage's colour, then the pad's readings come (an arrival); with the current layer on, the stubs carry its dots | low |
 
 Left out on purpose: animation libraries, real 3D, camera orbits (the isometric view is fixed),
 particles and blurs, scene transitions between different circuits (ffmpeg does those).

@@ -1,0 +1,10 @@
+{
+  "recipe": "npn-switch",
+  "tour": "examples/tours/focus-npn.json",
+  "lang": "en",
+  "viewport": {"width":360,"height":640},
+  "ticks": [[0,1],[33.333333333333336,192]],
+  "renderer": "chromium 156.0.8078.4 linux-x64",
+  "html": "c198647f94849b17449fd59af8930e3284f6781c0de8b241ca2185230a36ab9c",
+  "png": "219636b8bb4795c5395a73af6a58172480003ba3261ef6f088704efbb17582a9"
+}

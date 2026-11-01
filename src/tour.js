@@ -21,7 +21,7 @@ import { createEngine } from './sim/engine.js';
 import { buildCircuit } from './circuit/build.js';
 import { pinIndex } from './pinout.js';
 
-export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'raise', 'assemble', 'pulse', 'label', 'scene', 'land', 'pin', 'wait-until'];
+export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'raise', 'assemble', 'pulse', 'label', 'scene', 'land', 'pin', 'bench', 'wait-until'];
 // The parts a pedestal can show (`scene` in mode part, a video about one part): a part of the
 // circuit, not a wire or a supply.
 export const onPedestal = (part) => part?.type !== 'wire';
@@ -32,7 +32,7 @@ export const FORMATS = ['vertical', 'horizontal'];
 export { THEMES } from './page/client/themes.js';
 const FRAMES = ['board', 'parts', 'here'];
 // The move a step makes when it names none.
-const DEFAULT_MOVE = { frame: 'arrival', set: 'hit', insert: 'arrival', raise: 'arrival', assemble: 'arrival', pulse: 'travel', scene: 'cut', land: 'travel', pin: 'arrival' };
+const DEFAULT_MOVE = { frame: 'arrival', set: 'hit', insert: 'arrival', raise: 'arrival', assemble: 'arrival', pulse: 'travel', scene: 'cut', land: 'travel', pin: 'arrival', bench: 'arrival' };
 const BREATH = MOVES.breath.min; // ms of rest that count as a breath between two hits
 
 const warn = (code, params = {}) => ({ severity: 'warning', code, params });
@@ -71,9 +71,10 @@ const FIELDS = {
   scene: { mode: oneOf('part', 'board'), part: id, zoom: within(0.5, 3) },
   land: { part: id },
   pin: { pin: (v) => id(v) && v.includes('.'), mark: id, off: (v) => v === true, text: isText },
+  bench: { part: id, on: (v) => typeof v === 'boolean' },
   'wait-until': { part: id, field: (v) => Object.hasOwn(READINGS, v), above: num, below: num, max: within(0, 60_000) },
 };
-const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], value: ['part', 'field'], insert: ['part'], raise: ['part'], label: ['part', 'text'], scene: ['mode'], land: ['part'], 'wait-until': ['part', 'field'] };
+const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], value: ['part', 'field'], insert: ['part'], raise: ['part'], label: ['part', 'text'], scene: ['mode'], land: ['part'], bench: ['on'], 'wait-until': ['part', 'field'] };
 // Texts a step may carry, plain or one per language.
 const TEXTS = ['text', 'line', 'label', 'title', 'note'];
 // A cubic-bezier of CSS: the time coordinates between 0 and 1.
@@ -129,6 +130,7 @@ function shapeIssues(raw) {
     if (s.do === 'caption' && (s.text == null) === (s.off == null)) out.push(warn('TOUR_FIELD', { step, field: 'text' }));
     if (s.do === 'scene' && s.mode === 'part' && s.part == null) out.push(warn('TOUR_FIELD', { step, field: 'part' }));
     if (s.do === 'pin' && [s.pin, s.mark, s.off].filter((x) => x != null).length !== 1) out.push(warn('TOUR_FIELD', { step, field: 'pin' }));
+    if (s.do === 'bench' && s.on === true && s.part == null) out.push(warn('TOUR_FIELD', { step, field: 'part' }));
     if (s.do === 'assemble' && s.ms != null && !(s.ms >= 0 && s.ms <= 5000)) out.push(warn('TOUR_FIELD', { step, field: 'ms' }));
     for (const key of TEXTS) {
       const long = texts(s[key]).find((x) => x.length > LIMITS.tourText);
@@ -151,9 +153,11 @@ function meaningIssues(circuit, steps) {
   const out = [];
   const ids = new Set([...(circuit?.parts ?? []).map((p) => p?.id), ...(circuit?.supplies ?? []).map((s) => s?.id)]);
   let controls = null;
+  let simulated = null;
   const controlsOf = () => {
     if (controls) return controls;
     const compiled = compile(circuit);
+    simulated = !compiled.fatal;
     controls = compiled.fatal ? [] : createEngine(compiled.program).controls();
     return controls;
   };
@@ -177,6 +181,8 @@ function meaningIssues(circuit, steps) {
       if (part && pinIndex(part, pinned.pin) < 0) out.push(warn('TOUR_UNKNOWN_PIN', { step, part: pinned.part, pin: pinned.pin.slice(0, 40), pins: part.pinNames.join(', ') }));
     }
     if (s.do === 'pin' && s.mark != null && ids.has(s.mark) && partOf(s.mark) && !partOf(s.mark).built?.mark) out.push(warn('TOUR_NO_MARK', { step, part: s.mark }));
+    // A bench reads the simulation: without one its pads have nothing to say.
+    if (s.do === 'bench' && s.on === true && ids.has(s.part) && (controlsOf(), !simulated)) out.push(warn('TOUR_BENCH_NOT_SIMULATED', { step, part: s.part }));
     if (s.do === 'set' && ids.has(s.part) && !controlsOf().some((c) => c.id === s.part && c.field === s.field)) {
       out.push(warn('TOUR_UNKNOWN_CONTROL', { step, part: s.part, field: s.field, options: controlsOf().filter((c) => c.id === s.part).map((c) => c.field).join(', ') || '—' }));
     }

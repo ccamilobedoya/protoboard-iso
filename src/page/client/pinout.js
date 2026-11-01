@@ -18,11 +18,11 @@
 const NS = 'http://www.w3.org/2000/svg';
 // Sizes in px at the format's width (1080 portrait, 1920 landscape), never under `min` on a small screen.
 export const PINOUT = { row: 28, rowMany: 24, rowH: 52, rowHMany: 46, gap: 60, quiet: 24, dot: 9, line: 2, apart: 10, pad: 14, shrink: 0.65, min: 11 };
-const CHAR = 0.62; // a monospaced letter's width, in em (0.6 and a little room)
+export const CHAR = 0.62; // a monospaced letter's width, in em (0.6 and a little room)
 const FREE = { top: 0.1, right: 0.06, bottom: 0.1, left: 0.06 }; // in the page, outside a recording
 
-const fixed = (v) => String(Math.round(v * 100) / 100);
-function make(parent, tag, attrs) {
+export const fixed = (v) => String(Math.round(v * 100) / 100);
+export function make(parent, tag, attrs) {
   const e = parent.ownerDocument.createElementNS(NS, tag);
   for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, typeof v === 'number' ? fixed(v) : v);
   parent.appendChild(e);
@@ -88,49 +88,63 @@ function arrange(pins, tips, free, u, split) {
   return { rows, size, cut: cutBy };
 }
 
+// The screen of the current view for a layer drawn in the drawing in px (this pinout, the bench):
+// `k` drawing units per px, `toScreen`/`at` between the two (px from the SVG's corner), `u` the
+// format's px (1 at 1080 portrait or 1920 landscape), `free` the area a recording leaves free. Null
+// when there is nothing to measure yet.
+export function screenOf(page) {
+  const svg = page.current();
+  const r = svg.getBoundingClientRect();
+  const box = page.box;
+  if (!box || !(r.width > 0 && r.height > 0)) return null;
+  const k = Math.max(box[2] / r.width, box[3] / r.height);
+  const toScreen = (x, y) => ({ x: r.width / 2 + (x - box[0] - box[2] / 2) / k, y: r.height / 2 + (y - box[1] - box[3] / 2) / k });
+  const at = (x, y) => [box[0] + box[2] / 2 + (x - r.width / 2) * k, box[1] + box[3] / 2 + (y - r.height / 2) * k].map(fixed);
+  const u = r.width / (r.width > r.height ? 1920 : 1080);
+  const inset = page.inset?.() ?? FREE;
+  const free = { x0: inset.left * r.width, x1: (1 - inset.right) * r.width, y1: (1 - inset.bottom) * r.height };
+  return { svg, key: [page.state.view, box, r.width, r.height], k, toScreen, at, u, free };
+}
+// A layer of the current view, just under the spotlight (a pin behind a body shows its line coming
+// out from under it), made once per view.
+export function layerOf(page, name, layers) {
+  const svg = page.current();
+  if (!layers.has(svg)) {
+    const g = svg.ownerDocument.createElementNS(NS, 'g');
+    g.setAttribute('class', name);
+    const spot = svg.querySelector(':scope > .spotlight');
+    if (spot) spot.before(g);
+    else svg.append(g);
+    layers.set(svg, g);
+  }
+  return layers.get(svg);
+}
+// A pin's tips on screen, the part raised as it is now.
+export function tipsOf(page, id, pins, screen) {
+  const up = (page.lifted?.get(id) ?? 0) * (page.data.lift ?? 0);
+  return pins.map((p) => screen.toScreen(p.x, p.y - up));
+}
+
 export function setupPinout(page) {
   const lit = new Map(); // part → Map(index → { text, k })
   const marks = new Map(); // part → k
   const layers = new WeakMap(); // svg → its layer
   let drawn = '';
 
-  const layer = (svg) => {
-    if (!layers.has(svg)) {
-      const g = svg.ownerDocument.createElementNS(NS, 'g');
-      g.setAttribute('class', 'pinout');
-      const spot = svg.querySelector(':scope > .spotlight');
-      if (spot) spot.before(g);
-      else svg.append(g);
-      layers.set(svg, g);
-    }
-    return layers.get(svg);
-  };
-
   function draw() {
-    const svg = page.current();
-    const view = page.state.view;
-    const data = page.data.pinouts?.[view] ?? {};
-    const r = svg.getBoundingClientRect();
-    const box = page.box;
+    const data = page.data.pinouts?.[page.state.view] ?? {};
+    const screen = screenOf(page);
     const ids = [...new Set([...lit.keys(), ...marks.keys()])].filter((id) => data[id]);
-    const key = JSON.stringify([view, box, r.width, r.height, ids.map((id) => [id, page.lifted?.get(id) ?? 0, [...(lit.get(id) ?? [])].map(([i, p]) => [i, p.k, p.text]), marks.get(id) ?? null])]);
+    const key = JSON.stringify([screen?.key, ids.map((id) => [id, page.lifted?.get(id) ?? 0, [...(lit.get(id) ?? [])].map(([i, p]) => [i, p.k, p.text]), marks.get(id) ?? null])]);
     if (key === drawn) return;
     drawn = key;
     for (const s of page.svgs) layers.get(s)?.replaceChildren();
-    if (!ids.length || !box || !(r.width > 0 && r.height > 0)) return;
-    const under = layer(svg);
-    // Drawing units per px, and the two ways between the drawing and the screen (px from the SVG's corner).
-    const k = Math.max(box[2] / r.width, box[3] / r.height);
-    const toScreen = (x, y) => ({ x: r.width / 2 + (x - box[0] - box[2] / 2) / k, y: r.height / 2 + (y - box[1] - box[3] / 2) / k });
-    const toDrawing = (x, y) => [box[0] + box[2] / 2 + (x - r.width / 2) * k, box[1] + box[3] / 2 + (y - r.height / 2) * k];
-    const u = Math.max(r.width, r.height) > 0 ? r.width / (r.width > r.height ? 1920 : 1080) : 1;
-    const inset = page.inset?.() ?? FREE;
-    const free = { x0: inset.left * r.width, x1: (1 - inset.right) * r.width, y1: (1 - inset.bottom) * r.height };
-    const at = (x, y) => toDrawing(x, y).map(fixed);
+    if (!ids.length || !screen) return;
+    const under = layerOf(page, 'pinout', layers);
+    const { k, at, u, free } = screen;
     for (const id of ids) {
       const pinout = data[id];
-      const up = (page.lifted?.get(id) ?? 0) * (page.data.lift ?? 0);
-      const tips = pinout.pins.map((p) => toScreen(p.x, p.y - up));
+      const tips = tipsOf(page, id, pinout.pins, screen);
       // A step's own text takes the pin's row (and its room).
       const own = lit.get(id) ?? new Map();
       const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: own.get(i)?.text ?? p.text })), tips, free, u);

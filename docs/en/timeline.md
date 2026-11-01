@@ -258,6 +258,30 @@ One of `pin`, `mark` and `off`. Leave 400 ms between two pins, and turn them off
 { "at": 6000, "do": "pin", "off": true }
 ```
 
+### `bench`: the part on a test bench (M21)
+
+On the pedestal, each pin's stub runs down to a pad in a row under the part. The pad takes the colour
+of the pin's voltage (the current layer's scale) and under it are the pin, its voltage (under a
+millivolt, 0 V), the current into it, and what it is joined to in the circuit (the net's name, a
+supply's terminal, or the first other part: "→ R1 1 kΩ"). The circuit keeps running hidden: a `set`
+on a part not shown (the base resistor) changes the pads. With `flow` on, dots run along the stubs
+at the current layer's speed. The stubs never cross, and the pads and their readings stay in the free
+area. A bench takes the room under the part: it turns its pins' callouts off, and a `pin` after it
+turns the bench off.
+
+| Field | Values | Default | |
+|---|---|---|---|
+| `on` | `true`, `false`, *required* | | `false`: the bench goes |
+| `part` | an id, *required* with `on: true` | | the part on the pedestal; a circuit without a simulation cannot have one (`TOUR_BENCH_NOT_SIMULATED`) |
+| `move`, `ms`, `curve` | | `arrival` | the stubs are traced, then the pads and readings come |
+
+```json
+{ "at": 6000, "do": "bench", "part": "Q1", "on": true },
+{ "at": 7200, "do": "flow", "on": true, "ramp": 600 },
+{ "at": 9500, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 },
+{ "at": 14000, "do": "bench", "on": false }
+```
+
 ### `flip`: the other side
 
 | Field | Values | Default | |
@@ -303,7 +327,7 @@ can replace. Captions are always the timeline's.
 `node bin/protoboard-iso.js check <circuit>` reads the circuit's timeline. A shape, size or file
 problem leaves the page without a tour (`TOUR_SHAPE`, `TOUR_FIELD`, `TOUR_ACTION`, `TOUR_MOVE`,
 `TOUR_JSON`, `TOUR_TOO_LARGE`…); an unknown part or control, an `ms` outside its move's range, a
-broken rhythm, a value the next caption takes away within a second (`TOUR_VALUE_HIDDEN`), a pin a part does not have (`TOUR_UNKNOWN_PIN`), a mark it does not have (`TOUR_NO_MARK`) or a
+broken rhythm, a value the next caption takes away within a second (`TOUR_VALUE_HIDDEN`), a pin a part does not have (`TOUR_UNKNOWN_PIN`), a mark it does not have (`TOUR_NO_MARK`), a bench in a circuit not simulated (`TOUR_BENCH_NOT_SIMULATED`) or a
 timeline over ten minutes is a warning and it still plays. Caps: 100 kB, 200
 steps, 280 characters a text, ten minutes.
 

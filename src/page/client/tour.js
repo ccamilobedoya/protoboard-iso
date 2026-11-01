@@ -14,12 +14,14 @@
 // keeps it up, in the circuit (M16); an assemble builds the circuit one part after the other, the
 // wires drawn end to end (M4, M5); a pulse runs a flash along the current's path (M7); a scene puts
 // one part alone on a pedestal (M17) and a land brings the board up under it (M18); a pin lights a
-// pin of it with its row of text (M19, M20; pinout.js). Only transform and opacity move.
+// pin of it with its row of text (M19, M20; pinout.js); a bench connects its pins to pads that read the
+// circuit (M21; bench.js). Only transform and opacity move.
 
 import { moveTiming, bezier, CAPTION, INSERT, RAISE, SCENE, ASSEMBLE, PULSE, PULSE_COLORS } from './moves.js';
 import { applyFocus, liftPart, showPart, isWire, traceWire, quote } from './focus.js';
 import { select, selectNode } from './card.js';
 import { setupPinout } from './pinout.js';
+import { setupBench } from './bench.js';
 
 const COUNT_MS = 500; // a value counts up to its reading (M9), unless a step says otherwise
 const WAIT_MS = 10_000; // a wait-until that never comes true gives up after this
@@ -50,7 +52,7 @@ function stepMs(s, timing, count) {
   return timing(s).ms;
 }
 
-export function setupTour(page, { director, t, f, recording, landing = false, reading, dots, lights = () => {}, carrying = () => [] }) {
+export function setupTour(page, { director, t, f, recording, landing = false, reading, dots, lights = () => {}, carrying = () => [], look = () => ({ vmax: 0, peak: 0, speed: 'linear', scale: 1, flowing: false }) }) {
   const steps = page.data.tour.steps;
   const reduced = !recording && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const calm = bezier(LANDING.curve);
@@ -300,6 +302,8 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     pins.clear();
     pinRule.textContent = '';
   };
+  // M21: the part's pins joined to pads that read the circuit (bench.js).
+  const bench = setupBench(page, { reading, look, f, now: () => director.time });
 
   let framed = null; // the last frame step, for a probe to frame again
   const act = {
@@ -500,10 +504,18 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     },
     // M18: the board rises under the part (a travel by default).
     land: (s) => toBoard(s, true),
+    // M21: the part on the bench (its pins' callouts go: the pads take the room under it), or off.
+    bench: (s) => {
+      if (!s.on) return bench.clear();
+      if (!page.data.pinouts?.[page.state.view]?.[s.part]) return;
+      unpin();
+      director.tween(bench.show(s.part), timing(s));
+    },
     // M19, M20: a pin lit (`pin`, resolved by src/tour.js to its part and index), the package's mark
     // (`mark`: the part), or all of them off (`off`); each comes in along its move (an arrival).
     pin: (s) => {
       if (s.off) return unpin();
+      if (bench.part) bench.clear(); // the callouts take the room under the part back
       const id = s.mark ?? s.part;
       if (!id || !page.data.pinouts?.[page.state.view]?.[id] || (s.mark == null && !(s.index >= 0))) return;
       const move = s.mark != null ? pins.mark(id) : pins.light(id, s.index, s.text);
@@ -532,6 +544,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     lower();
     leaveScene();
     unpin();
+    bench.clear();
     landed.clear();
     aloft.clear();
     lights(true);
@@ -547,6 +560,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     stop();
     leaveScene();
     unpin();
+    bench.clear();
     landed.clear();
     playing = true;
     page.direct(true);
@@ -563,6 +577,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       })),
     );
     director.after(pins.draw);
+    director.after(bench.draw);
     let back = false; // a landing's camera on its way back to the first frame
     const startLayer = page.state.layer; // a landing leaves the layer as it found it
     const startControls = landing ? director.controls() : []; // and the controls too

@@ -445,6 +445,7 @@ Cada movimiento tiene un propósito nombrado (sin él no se construye), un costo
 | M18 | La protoboard sube | `land`, un `travel`: la pieza baja mientras la cámara la sigue, así que queda quieta en pantalla y la protoboard sube debajo; un `assemble` después trae las demás piezas y deja esta | bajo |
 | M19 | La pata se enciende | `pin`: un punto en la punta de la pata crece en el primer cuarto de un `arrival` (el rótulo corto de la pieza se va mientras haya patas encendidas) | bajo |
 | M20 | Llega el rótulo | con él, la línea guía y la fila de la pata suben bajo la pieza, dentro del área libre, sin que dos líneas se crucen; `pin` con `mark` escribe lo que dice la marca del paquete en una línea discreta (la marca ya se ve en el dibujo) | bajo |
+| M21 | El banco se conecta | `bench`: el tramo de cada pata se traza hasta una pastilla del color de su voltaje y después llegan sus lecturas (un `arrival`); con la capa de corriente encendida, los tramos llevan sus puntos | bajo |
 
 Fuera a propósito: librerías de animación, 3D real, giros de cámara (la vista isométrica es fija),
 partículas y desenfoques, transiciones entre circuitos distintos (eso lo hace ffmpeg).

@@ -530,6 +530,8 @@ export function setupLive(page) {
           const volts = (ref) => (ref.node ? reading.nodes[ref.node] : reading.parts[ref.part]?.pins?.[ref.pin]) ?? null;
           return flow.dots.map((ref, k) => ({ el: shown[k], v: volts(ref), i: I[k], part: ref.part, node: ref.node })).filter((p) => p.el && p.v != null && Math.abs(p.i) > tiny);
         },
+        // M21: what a part's bench needs to colour its pads and move its dots as the current layer does.
+        look: () => ({ vmax: flow?.vmax ?? 0, peak, speed: state.speed, scale: dotScale, flowing: state.layer === 'flow' }),
         // M15: the lights held dark while a part is in the air, then let rise (M8).
         lights: (on) => {
           dark = !on;

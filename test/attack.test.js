@@ -223,6 +223,10 @@ test('attack: a timeline stays inside the circuit\'s folder, has caps and is nev
   assert.deepEqual(given({ steps: [{ at: 0, do: 'pin', pin: `D1.${'9'.repeat(400)}` }] }), ['TOUR_UNKNOWN_PIN']);
   assert.deepEqual(given({ steps: [{ at: 0, do: 'pin', mark: '__proto__' }] }), ['TOUR_UNKNOWN_PART']);
   assert.deepEqual(given({ steps: [{ at: 0, do: 'pin', pin: ['D1', 'anode'] }] }), ['TOUR_FIELD']);
+  // A bench (F3): a part of the circuit, on or off, nothing else.
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'bench', part: '"] {} * { display: none } [x="', on: true }] }), ['TOUR_UNKNOWN_PART']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'bench', part: 'D1', on: 'yes' }] }), ['TOUR_FIELD']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'bench', part: 'D1', on: true, onload: 'alert(1)' }] }), ['TOUR_FIELD']);
   // Texts: data in the page, written with textContent; never a tag.
   const evil = '</script><script>alert(1)</script><img src=x onerror="alert(1)">';
   const { html } = renderPage({ ...circuit(), page: { tour: { steps: [{ ...step, text: evil }, { at: 0, do: 'value', part: 'D1', field: 'current', label: evil }, { at: 0, do: 'pin', pin: 'D1.anode', text: evil }] } } });

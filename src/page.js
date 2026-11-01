@@ -292,11 +292,42 @@ function liveData(circuit, lang, flow, templates) {
 // The pinouts a tour's `pin` steps show (a video about one part, F2; src/pinout.js), per view: each
 // pin's name, its row of text and where it goes into the board, and the package's mark. Only the
 // parts the steps name: a page without them carries nothing more.
-function pinoutData(tour, built, rendered, lang) {
-  const ids = new Set(tour.steps.filter((s) => s.do === 'pin').map((s) => s.part ?? s.mark).filter((id) => id != null));
+function pinoutData(circuit, tour, built, rendered, lang) {
+  const ids = new Set(tour.steps.filter((s) => s.do === 'pin' || s.do === 'bench').map((s) => s.part ?? s.mark).filter((id) => id != null));
   const parts = built.parts.filter((p) => ids.has(p.id));
   if (!parts.length) return null;
-  return { pinouts: Object.fromEntries(rendered.map((r) => [r.view, Object.fromEntries(parts.map((p) => [p.id, pinoutOf(p, r.scene.camera, lang)]))])) };
+  const benched = new Set(tour.steps.filter((s) => s.do === 'bench' && s.part).map((s) => s.part));
+  const pinout = (p, camera) => {
+    const out = pinoutOf(p, camera, lang);
+    if (benched.has(p.id)) out.pins.forEach((pin, i) => (pin.to = benchLabel(circuit, built, p, i, lang)));
+    return out;
+  };
+  return { pinouts: Object.fromEntries(rendered.map((r) => [r.view, Object.fromEntries(parts.map((p) => [p.id, pinout(p, r.scene.camera)]))])) };
+}
+
+// What a pin of a part on the bench is joined to (a video about one part, F3), for its pad: the net's
+// name when it has one, a supply's terminal, or the first other part on that net ("→ R1 1 kΩ"; a
+// chip's pads, narrower, say only the part), following jumper wires. Null when nothing else is there.
+function benchLabel(circuit, built, part, i, lang) {
+  const parent = new Map(Object.keys(built.netlist.nodes).map((n) => [n, n]));
+  const find = (x) => (parent.get(x) === x || !parent.has(x) ? x : find(parent.get(x)));
+  for (const w of built.parts.filter((p) => p.type === 'wire' && p.holes.length === 2)) parent.set(find(w.holes[0].node), find(w.holes[1].node));
+  const root = find(part.holes[i].node);
+  const nodes = [...parent.keys()].filter((n) => find(n) === root);
+  const named = nodes.map((n) => circuit.netLabels?.[n]).find(Boolean);
+  if (named) return named;
+  const [positive, negative] = supplyRails(built.board?.spec);
+  for (const [k, s] of (Array.isArray(circuit.supplies) ? circuit.supplies : []).entries()) {
+    for (const [ref, sign] of [[s.positive ?? positive, '+'], [s.negative ?? negative, '−']]) {
+      const hole = built.board?.find(String(ref));
+      if (nodes.includes(hole ? hole.node : String(ref))) return `→ ${s.id ?? `V${k + 1}`} ${sign}`;
+    }
+  }
+  const members = new Set(nodes.flatMap((n) => built.netlist.nodes[n] ?? []).map((m) => m.part));
+  const other = built.parts.find((p) => p.type !== 'wire' && p.id !== part.id && members.has(p.id));
+  if (!other) return null;
+  const value = part.holes.length > 4 ? null : valueText(other, lang);
+  return `→ ${other.id}${value ? ` ${value}` : ''}`;
 }
 
 // JSON inside <script> must never contain "</script>".
@@ -338,7 +369,7 @@ export function renderPage(circuit, options = {}) {
     lift: Math.round(-rendered[0].scene.camera.projectDir(Z).y * 1000) / 1000,
     ...(live && { live }),
     ...(tour && { tour }),
-    ...(tour && pinoutData(tour, built, rendered, lang)),
+    ...(tour && pinoutData(circuit, tour, built, rendered, lang)),
     text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit'), tabPart: t(lang, 'page.tab.part'), tabStrip: t(lang, 'page.tab.strip'), model: t(lang, 'sim.badge'), modelShort: t(lang, 'page.model') },
   };
   const title = titleOf(circuit, lang) ?? t(lang, 'page.untitled');

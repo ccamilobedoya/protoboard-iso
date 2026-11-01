@@ -264,6 +264,31 @@ Uno de `pin`, `mark` y `off`. Deja 400 ms entre dos patas, y apágalas antes de 
 { "at": 6000, "do": "pin", "off": true }
 ```
 
+### `bench`: la pieza en un banco de pruebas (M21)
+
+En el pedestal, el tramo de cada pata baja hasta una pastilla en una fila bajo la pieza. La pastilla
+toma el color del voltaje de la pata (la escala de la capa de corriente) y debajo van la pata, su
+voltaje (por debajo de un milivoltio, 0 V), la corriente que entra por ella y con qué se une en el
+circuito (el nombre de la red, el borne de una fuente o la primera otra pieza: «→ R1 1 kΩ»). El
+circuito sigue funcionando oculto: un `set` sobre una pieza que no se ve (la resistencia de base)
+cambia las pastillas. Con `flow` encendido, los puntos corren por los tramos a la velocidad de la capa
+de corriente. Los tramos nunca se cruzan, y las pastillas y sus lecturas quedan en el área libre. El
+banco ocupa el espacio bajo la pieza: apaga los rótulos de sus patas, y un `pin` después de él apaga
+el banco.
+
+| Campo | Valores | Por defecto | |
+|---|---|---|---|
+| `on` | `true`, `false`, *obligatorio* | | `false`: se va el banco |
+| `part` | un id, *obligatorio* con `on: true` | | la pieza del pedestal; un circuito sin simulación no puede tenerlo (`TOUR_BENCH_NOT_SIMULATED`) |
+| `move`, `ms`, `curve` | | `arrival` | se trazan los tramos y después llegan las pastillas y las lecturas |
+
+```json
+{ "at": 6000, "do": "bench", "part": "Q1", "on": true },
+{ "at": 7200, "do": "flow", "on": true, "ramp": 600 },
+{ "at": 9500, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 },
+{ "at": 14000, "do": "bench", "on": false }
+```
+
 ### `flip`: el otro lado
 
 | Campo | Valores | Por defecto | |
@@ -312,7 +337,7 @@ tiempo.
 forma, tamaño o archivo deja la página sin recorrido (`TOUR_SHAPE`, `TOUR_FIELD`, `TOUR_ACTION`,
 `TOUR_MOVE`, `TOUR_JSON`, `TOUR_TOO_LARGE`…); una pieza o un control desconocido, un `ms` fuera del
 rango de su movimiento, un ritmo roto, un valor que el subtítulo siguiente quita antes de un segundo
-(`TOUR_VALUE_HIDDEN`), una pata que la pieza no tiene (`TOUR_UNKNOWN_PIN`), una marca que no tiene (`TOUR_NO_MARK`) o una línea de tiempo de más de diez minutos es un aviso y
+(`TOUR_VALUE_HIDDEN`), una pata que la pieza no tiene (`TOUR_UNKNOWN_PIN`), una marca que no tiene (`TOUR_NO_MARK`), un banco en un circuito que no se simula (`TOUR_BENCH_NOT_SIMULATED`) o una línea de tiempo de más de diez minutos es un aviso y
 igual se reproduce. Topes: 100 kB, 200 pasos, 280 caracteres por texto, diez minutos.
 
 ## Grabar

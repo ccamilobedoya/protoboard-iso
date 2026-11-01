@@ -13,12 +13,19 @@
     { "at": 3200, "do": "pin", "mark": "Q1" },
 
     { "at": 6000, "do": "pin", "off": true },
-    { "at": 6000, "do": "caption", "text": { "en": "On the breadboard", "es": "En la protoboard" }, "line": { "en": "The circuit builds itself around it", "es": "El circuito se arma a su alrededor" } },
-    { "at": 6000, "do": "land", "part": "Q1" },
-    { "at": 7800, "do": "frame", "target": "parts", "move": "travel" },
-    { "at": 7800, "do": "assemble", "gap": 600 },
-    { "at": 14000, "do": "caption", "text": { "en": "Press S1 and the LED lights", "es": "Al apretar S1 el LED se enciende" } },
-    { "at": 14000, "do": "set", "part": "S1", "field": "pressed", "value": true },
-    { "at": 14000, "do": "flow", "on": true, "ramp": 600 }
+    { "at": 6000, "do": "bench", "part": "Q1", "on": true },
+    { "at": 6000, "do": "caption", "text": { "en": "On the bench", "es": "En el banco" }, "line": { "en": "Each leg reads the circuit around it", "es": "Cada pata lee el circuito a su alrededor" } },
+    { "at": 7200, "do": "set", "part": "S1", "field": "pressed", "value": true },
+    { "at": 7200, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 9000, "do": "caption", "text": { "en": "A bigger base resistor", "es": "Una resistencia de base mayor" }, "line": { "en": "less base current, less collector current", "es": "menos corriente de base, menos de colector" } },
+    { "at": 9500, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 },
+    { "at": 12500, "do": "set", "part": "R1", "field": "resistance", "value": 1000, "move": "travel", "ms": 1200 },
+
+    { "at": 14000, "do": "bench", "on": false },
+    { "at": 14000, "do": "caption", "text": { "en": "On the breadboard", "es": "En la protoboard" }, "line": { "en": "The circuit builds itself around it", "es": "El circuito se arma a su alrededor" } },
+    { "at": 14000, "do": "land", "part": "Q1" },
+    { "at": 15800, "do": "frame", "target": "parts", "move": "travel" },
+    { "at": 15800, "do": "assemble", "gap": 600 },
+    { "at": 22000, "do": "caption", "text": { "en": "S1 pressed, the LED lights", "es": "Con S1 apretado, el LED se enciende" } }
   ]
 }

@@ -615,6 +615,97 @@ test('moves: a chip\'s pinout keeps the rules: two leaders at the same x apart, 
   assert.deepEqual([...r.svg().querySelectorAll(':scope > .pinout > .quiet')].map((q) => q.textContent), ['Integrated circuit · DIP-8', 'Notch on the right: pin 1 beside it']);
 });
 
+// The bench (F3; docs/en/component-focus.md): M21 the part's pins joined to pads that read the
+// circuit, a hidden part's change seen on them.
+const benched = [
+  { at: 0, do: 'scene', mode: 'part', part: 'Q1' },
+  { at: 100, do: 'bench', part: 'Q1', on: true },
+  { at: 100, do: 'set', part: 'S1', field: 'pressed', value: true, move: 'cut' },
+  { at: 100, do: 'flow', on: true },
+  { at: 2000, do: 'set', part: 'R1', field: 'resistance', value: 100000, move: 'cut' },
+  { at: 3000, do: 'bench', on: false },
+];
+// Each pad on screen: its pin, the readings written under it, and its stub as segments (px).
+function benchOnScreen(r) {
+  const [bx, by, bw, bh] = r.svg().getAttribute('viewBox').split(' ').map(Number);
+  const k = Math.max(bw / 360, bh / 640);
+  const px = ([x, y]) => [180 + (x - bx - bw / 2) / k, 320 + (y - by - bh / 2) / k];
+  return [...r.svg().querySelectorAll(':scope > .bench > g[data-bench]')].map((g) => ({
+    pin: g.getAttribute('data-bench'),
+    text: Object.fromEntries([...g.querySelectorAll('text')].map((t) => [t.getAttribute('class'), t.textContent])),
+    points: g.querySelector('.stub').getAttribute('d').match(/-?[\d.]+ -?[\d.]+/g).map((p) => px(p.split(' ').map(Number))),
+    dots: g.querySelector('.dots')?.getAttribute('stroke-dashoffset') ?? null,
+  }));
+}
+// Two stubs cross: a segment of one meets a segment of the other (any slope).
+function stubsCross(a, b) {
+  const side = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+  const seg = (s) => s.points.slice(1).map((q, i) => [s.points[i], q]);
+  return seg(a).some(([p, q]) => seg(b).some(([r, t]) => side(p, q, r) * side(p, q, t) < 0 && side(r, t, p) * side(r, t, q) < 0));
+}
+
+test('moves: a bench names a part of a simulated circuit', () => {
+  const codes = (steps, circuit = npn({ steps })) => loadTour(circuit).issues.map((i) => i.code);
+  assert.deepEqual(codes(benched), []);
+  assert.deepEqual(codes([{ at: 0, do: 'bench', on: true }]), ['TOUR_FIELD'], 'on names its part');
+  assert.deepEqual(codes([{ at: 0, do: 'bench' }]), ['TOUR_FIELD'], 'on or off');
+  assert.deepEqual(codes([{ at: 0, do: 'bench', part: 'X9', on: true }]), ['TOUR_UNKNOWN_PART']);
+  const dark = { ...npn({ steps: [{ at: 0, do: 'bench', part: 'Q1', on: true }] }), supplies: [] };
+  assert.deepEqual(codes(null, dark), ['TOUR_BENCH_NOT_SIMULATED'], 'no source, nothing to read');
+});
+
+test('moves: M21 a bench joins each pin to a pad that reads the circuit; a hidden part\'s change shows on it', async (t) => {
+  const r = await recording(benched);
+  if (!r) return t.skip('jsdom not installed');
+  r.to(100 + 300);
+  const coming = benchOnScreen(r);
+  assert.equal(coming.length, 3);
+  assert.deepEqual(coming[0].text, {}, 'the stubs are traced first, the pads after');
+  r.to(1900);
+  const before = benchOnScreen(r);
+  assert.deepEqual(before.map((p) => [p.pin, p.text.name, p.text.to]), [['Q1.E', 'E', '→ V1 −'], ['Q1.B', 'B', '→ R1 1 kΩ'], ['Q1.C', 'C', '→ D1 red']]);
+  // The figures are the engine's: the base at a junction's drop, the collector near ground (saturated).
+  const reading = r.live.engine.read().parts.Q1;
+  const volts = (text) => Number.parseFloat(text) * (/mV/.test(text) ? 1e-3 : 1);
+  assert.ok(Math.abs(volts(before[1].text.volts) - reading.pins.B) < 0.01, before[1].text.volts);
+  assert.ok(volts(before[2].text.volts) < 0.2, `collector ${before[2].text.volts}`);
+  assert.match(before[0].text.volts, /^0 V$/, 'under a millivolt reads 0 V');
+  for (const [i, a] of before.entries()) for (const b of before.slice(i + 1)) assert.ok(!stubsCross(a, b), `${a.pin} and ${b.pin}`);
+  // The dots run with the current layer on.
+  r.to(1900 + 200);
+  assert.notEqual(benchOnScreen(r)[1].dots, before[1].dots, 'the base\'s dots moved');
+  // R1 is hidden on the pedestal, and still in the circuit: a hundred times more, the base current falls.
+  r.to(2600);
+  const after = benchOnScreen(r);
+  const amps = (text) => Number.parseFloat(text) * { mA: 1e-3, µA: 1e-6, A: 1 }[text.split(' ')[1]];
+  assert.ok(amps(after[1].text.amps) < amps(before[1].text.amps) / 20, `${before[1].text.amps} → ${after[1].text.amps}`);
+  // Under the part's copy; off at the end.
+  const layers = [...r.svg().children].map((el) => el.getAttribute('class'));
+  assert.ok(layers.indexOf('bench') < layers.indexOf('spotlight'), layers.join(' '));
+  r.to(3000 + FRAME);
+  assert.equal(r.svg().querySelector(':scope > .bench').children.length, 0);
+});
+
+test('moves: a chip\'s bench keeps its eight stubs apart, none crossing', async (t) => {
+  const file = `${examples}tours/focus-555.json`;
+  const timeline555 = JSON.parse(readFileSync(file, 'utf8'));
+  const circuit = timelineCircuit(file, timeline555);
+  const window = await loadPage(renderPage({ ...circuit, page: { tour: timeline555 } }, { lang: 'en' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const live = window.protoboardLive;
+  live.tour.play();
+  for (let ms = 0; ms < 10000; ms += 100) live.tick(100);
+  const pins = JSON.parse(window.document.getElementById('page-data').textContent).pinouts.front.U1.pins;
+  const [x0, x1] = [Math.min(...pins.map((p) => p.x)), Math.max(...pins.map((p) => p.x))];
+  const w = (x1 - x0) * 4;
+  live.director.frame([(x0 + x1) / 2 - w / 2, pins[0].y - (0.5 * w * 640) / 360, w, (w * 640) / 360]);
+  live.tick(FRAME);
+  const r = { svg: () => window.document.querySelector('main > svg:not([hidden])') };
+  const pads = benchOnScreen(r);
+  assert.equal(pads.length, 8);
+  for (const [i, a] of pads.entries()) for (const b of pads.slice(i + 1)) assert.ok(!stubsCross(a, b), `${a.pin} and ${b.pin}`);
+});
+
 test('moves: a part raised and then focused again stays seen (its copies keep their opacity)', async (t) => {
   const r = await recording([{ at: 0, do: 'raise', part: 'D1', move: 'cut' }, { at: 100, do: 'focus', parts: ['D1', 'R2'] }]);
   if (!r) return t.skip('jsdom not installed');
