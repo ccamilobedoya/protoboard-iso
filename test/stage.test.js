@@ -178,6 +178,8 @@ test('stage: a landing dresses like a recording, plays by itself and again after
   const at = (v) => v.split(' ').map(Number);
   at(view()).forEach((n, k) => assert.ok(Math.abs(n - at(start)[k]) < 0.5, `viewBox ${view()} vs ${start}`));
   assert.equal(win.document.querySelector('.tour-caption').style.opacity, '');
+  // The tour turned the current on; the landing turns it off again, so the next play starts solid.
+  assert.ok(!body.classList.contains('layer-flow'), 'the current layer is off again');
   const next = timers.find((x) => x.ms === LANDING_PAUSE);
   assert.ok(next, 'the next play waits LANDING_PAUSE ms');
   next.fn();

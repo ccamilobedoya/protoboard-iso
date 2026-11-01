@@ -451,6 +451,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       })),
     );
     let back = false; // a landing's camera on its way back to the first frame
+    const startLayer = page.state.layer; // a landing leaves the layer as it found it
     director.after(() => {
       showValue();
       // The last move has ended and nothing waits: the page stays as the tour left it. A landing
@@ -462,6 +463,16 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         director.tween((e) => {
           box.style.opacity = String(1 - e);
         }, { ms: LANDING.back / 2, ease: calm });
+        // The current's dots fade out and the parts come back solid, as on the first frame.
+        if (page.state.layer !== startLayer) {
+          director.tween((e) => {
+            dots(1 - e);
+            if (e < 1) return;
+            page.state.layer = startLayer;
+            page.show();
+            dots(1);
+          }, { ms: LANDING.back / 2, ease: calm });
+        }
         return;
       }
       if (!director.busy && director.time >= end) {

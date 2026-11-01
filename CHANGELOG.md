@@ -12,7 +12,8 @@ detail.
 ### Changed
 
 - **A calmer landing** (`?director=landing`): its tour runs at 0.75, camera moves ease in and out,
-  and at the end the camera glides back to the first frame, so the loop has no jump.
+  and at the end the camera glides back to the first frame and the current layer is turned off
+  again, so the loop has no jump and starts solid; a little more margin keeps the subject inside.
 
 ## [0.3.0] - 2026-10-31
 

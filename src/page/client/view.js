@@ -138,7 +138,7 @@ export const STAGE_INSET = { vertical: { top: 0.4, right: 0.0667, bottom: 0.25, 
 const SCOPE_BOTTOM = 0.44;
 // A landing (?director=landing) frames the circuit closer: narrow sides, and in portrait the band
 // at the bottom left for the site's headline and buttons; in landscape the caption's left half.
-export const LANDING_INSET = { vertical: { top: 0.34, right: 0.03, bottom: 0.3, left: 0.03 }, horizontal: { top: 0.08, right: 0.03, bottom: 0.22, left: 0.45 } };
+export const LANDING_INSET = { vertical: { top: 0.34, right: 0.06, bottom: 0.3, left: 0.06 }, horizontal: { top: 0.1, right: 0.08, bottom: 0.24, left: 0.45 } };
 export function landingInset(page) {
   const m = page.main.getBoundingClientRect();
   return m.width > m.height ? LANDING_INSET.horizontal : LANDING_INSET.vertical;
