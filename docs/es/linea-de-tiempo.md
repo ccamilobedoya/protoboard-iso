@@ -205,6 +205,38 @@ otro. Mejor antes de encender la capa de corriente.
 
 Una pieza levantada sigue en el circuito: la simulación no cambia.
 
+### `scene`: una pieza sola en un pedestal (M17)
+
+Para un video sobre una pieza ([foco-en-componente.md](foco-en-componente.md)). En modo `part` se van
+la protoboard, las demás piezas, sus rótulos y sus luces (la retícula de agujeros sigue), la pieza
+sube 3 mm y queda encuadrada como la encuadra un `frame`; sigue en el circuito, así que `set`, `value`
+y `probe` funcionan igual.
+
+| Campo | Valores | Por defecto | |
+|---|---|---|---|
+| `mode` | `part`, `board`, *obligatorio* | | `board`: vuelve a la protoboard como un `land`, con la cámara donde está |
+| `part` | un id, *obligatorio* con `part` | | una pieza del circuito, no un cable ni una fuente (`TOUR_SCENE_PART`); `render-frames.js --parts` marca las que pueden ir |
+| `zoom` | 0.5…3 | 1 | más cerca o más lejos que el encuadre de la pieza |
+| `move`, `ms`, `curve` | | `cut` | con un movimiento, la protoboard se desvanece a lo largo de él y la cámara llega |
+
+### `land`: la protoboard sube bajo la pieza (M18)
+
+| Campo | Valores | Por defecto | |
+|---|---|---|---|
+| `part` | un id, *obligatorio* | | la pieza del pedestal |
+| `move`, `ms`, `curve` | | `travel` | |
+
+La pieza baja a sus agujeros mientras la cámara la sigue, así que queda quieta en pantalla y la
+protoboard, con las demás piezas, sube debajo; después se va el foco. Un `assemble` después de un
+`land` trae las demás piezas una por una (esperan sin verse) y deja en su sitio la pieza que bajó.
+
+```json
+{ "at": 0, "do": "scene", "mode": "part", "part": "Q1" },
+{ "at": 3000, "do": "land", "part": "Q1" },
+{ "at": 4800, "do": "frame", "target": "parts", "move": "travel" },
+{ "at": 4800, "do": "assemble", "gap": 600 }
+```
+
 ### `flip`: el otro lado
 
 | Campo | Valores | Por defecto | |

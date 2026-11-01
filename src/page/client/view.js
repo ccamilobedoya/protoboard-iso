@@ -302,8 +302,10 @@ export function isEmbedded(win) {
 // beside the breadboard (an UNO, the e-paper adapter and its panel) are drawn in the `under` layer.
 export function partsRect(page, ids, svg = page.current()) {
   const q = (id) => id.replace(/["\\]/g, '\\$&');
-  const els = ids.flatMap((id) => [...svg.querySelectorAll(`.under [data-part="${q(id)}"], .parts [data-part="${q(id)}"]`)]);
-  const rects = els.map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
+  const measure = (layers) => ids.flatMap((id) => [...svg.querySelectorAll(layers.map((l) => `.${l} [data-part="${q(id)}"]`).join(', '))]).map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
+  // On a pedestal (a video about one part) the board's layers are not drawn: the part is its copy.
+  let rects = measure(['under', 'parts']);
+  if (!rects.length) rects = measure(['spotlight']);
   if (!rects.length) return null;
   return { left: Math.min(...rects.map((r) => r.left)), top: Math.min(...rects.map((r) => r.top)), right: Math.max(...rects.map((r) => r.right)), bottom: Math.max(...rects.map((r) => r.bottom)) };
 }

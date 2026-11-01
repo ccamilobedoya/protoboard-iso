@@ -44,6 +44,8 @@ test('render-frames --parts: what a timeline can name, from the simulation', () 
   const of = (id) => [...parts, ...supplies].find((p) => p.id === id);
   assert.deepEqual(of('D1').readings, ['current', 'voltage', 'power', 'brightness']);
   assert.deepEqual(of('W1').readings, [], 'a wire is framed and assembled, not read');
+  assert.equal(of('Q1').pedestal, true, 'a part can stand on a pedestal (scene, land)');
+  assert.equal(of('W1').pedestal, false, 'a wire cannot');
   assert.deepEqual(of('S1').controls.map((c) => c.field), ['pressed']);
   assert.equal(of('R1').controls[0].scale, 'log');
   assert.ok(supplies.some((s) => s.controls.some((c) => c.field === 'voltage')), 'the bench supply is set, not drawn');

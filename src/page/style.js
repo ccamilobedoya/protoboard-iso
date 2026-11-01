@@ -383,6 +383,13 @@ body.director {
   --cap-pad: 3.75vw; --cap-top: 9%; --cap-gap: 0.7292vw;
 } }
 :is([data-theme="stage"], [data-theme="notebook"]) body.director { --cap-weight: 500; }
+/* A video about one part (M17, M18; docs/en/component-focus.md). On the pedestal (data-scene="part")
+   only the told part's copy stays, over the hole grid: the board, the other parts, their labels and
+   the focus's own layers unseen (display, not opacity: nothing left to paint). Landing
+   (data-scene="land") the board and the parts come back while the focus's layers stay away. The
+   lights of the other parts are hidden by a rule tour.js writes with the part's id. */
+main[data-scene="part"] > svg > :is(.under, .board, .parts, .labels, .shortlabels, .veil, .strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
+main[data-scene="land"] > svg > :is(.veil, .strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
 body.director nav, body.director .zoom, body.director .inspector, body.director .gesture-hint, body.director .first-hint, body.director .tooltip { display: none !important; }
 body.director main { cursor: default; }
 body.director .labels, body.director .results, body.director .probes { display: none !important; }

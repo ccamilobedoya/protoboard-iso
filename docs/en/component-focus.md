@@ -19,7 +19,7 @@ pinout with the showcase's schematic symbol beside the part (see *The direction 
 | Session | What | State |
 |---|---|---|
 | F0 | Measure and choose: mock-ups of three directions from the real page, zoom and band measurements, this document, the decisions in `PLANNING.md` | ✅ direction chosen 2026-11-01 |
-| F1 | The pedestal: `scene` and `land` | ⬜ |
+| F1 | The pedestal: `scene` and `land` | ✅ 2026-11-01 |
 | F2 | Anatomy: `pin` and orientation | ⬜ |
 | F3 | The bench: `bench` | ⬜ |
 | F4 | `symbol` and `inside` | ⬜ |

@@ -410,6 +410,8 @@ Each move has a named purpose (without one it is not built), a cost, and runs un
 | M14 | Closing | the camera returns to the whole board with `travel`, the veil goes, the page or a QR appears | low |
 | M15 | Insertion | the part starts 12 mm above the board and comes down with `arrival` (700 ms) along the drawing's z axis (the screen's vertical); on seating, a `hit`: the current starts (M6) and the light comes on (M8); in the air it has no current and its label follows it; a shadow as a faint ellipse under it, optional (a shape, no filter). Chained, it is how M4 builds the circuit | medium-low |
 | M16 | Raised part | in a video (`raise`), the part rises 3 mm with an arrival and stays up until lowered, without leaving the circuit; purpose: say "this one" (first planned on a tap in the page, 150 + 250 ms; the maintainer preferred it optional and slower, for videos only) | low |
+| M17 | Pedestal | a video about one part (`scene` in mode `part`; [component-focus.md](component-focus.md)): the board, the other parts and their lights go (a cut by default, a fade with a move), the part raised 3 mm over the hole grid, framed as a frame on it, still in the circuit | low |
+| M18 | The board rises | `land`, a travel: the part comes down while the camera follows it, so it stays still on screen and the board rises under it; an `assemble` after it brings the other parts and leaves this one | low |
 
 Left out on purpose: animation libraries, real 3D, camera orbits (the isometric view is fixed),
 particles and blurs, scene transitions between different circuits (ffmpeg does those).

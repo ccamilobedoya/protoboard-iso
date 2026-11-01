@@ -426,6 +426,7 @@ export default {
   'check.TOUR_ACTION': 'page.tour, step {step}: no action "{action}" (actions: {actions}); the tour is not used.',
   'check.TOUR_MOVE': 'page.tour, step {step}: no move "{move}" (moves: {moves}); the tour is not used.',
   'check.TOUR_MOVE_MS': 'page.tour, step {step}: {move} lasts {min}…{max} ms, not {ms}.',
+  'check.TOUR_SCENE_PART': 'page.tour, step {step}: {part} is a wire or a supply; a pedestal shows a part of the circuit alone. The step does nothing.',
   'check.TOUR_UNKNOWN_PART': 'page.tour, step {step}: the circuit has no part {part}; the step does nothing.',
   'check.TOUR_UNKNOWN_CONTROL': 'page.tour, step {step}: {part} has no control "{field}" (it has: {options}); the step does nothing.',
   'check.TOUR_RHYTHM_SLOW': 'page.tour, step {step}: two slow moves in a row (with step {before}); put a faster one between them.',

@@ -425,6 +425,7 @@ export default {
   'check.TOUR_ACTION': 'page.tour, paso {step}: no hay acción «{action}» (acciones: {actions}); el recorrido no se usa.',
   'check.TOUR_MOVE': 'page.tour, paso {step}: no hay movimiento «{move}» (movimientos: {moves}); el recorrido no se usa.',
   'check.TOUR_MOVE_MS': 'page.tour, paso {step}: {move} dura {min}…{max} ms, no {ms}.',
+  'check.TOUR_SCENE_PART': 'page.tour, paso {step}: {part} es un cable o una fuente; un pedestal muestra sola una pieza del circuito. El paso no hace nada.',
   'check.TOUR_UNKNOWN_PART': 'page.tour, paso {step}: el circuito no tiene el componente {part}; el paso no hace nada.',
   'check.TOUR_UNKNOWN_CONTROL': 'page.tour, paso {step}: {part} no tiene el control «{field}» (tiene: {options}); el paso no hace nada.',
   'check.TOUR_RHYTHM_SLOW': 'page.tour, paso {step}: dos movimientos lentos seguidos (con el paso {before}); pon uno más rápido entre ellos.',

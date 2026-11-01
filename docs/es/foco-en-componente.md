@@ -19,7 +19,7 @@ patas técnico con el símbolo de esquema de la vitrina al lado de la pieza (ver
 | Sesión | Qué | Estado |
 |---|---|---|
 | F0 | Medir y elegir: maquetas de tres direcciones sobre la página real, medidas de zoom y bandas, este documento, las decisiones en `PLANNING.md` | ✅ dirección elegida el 2026-11-01 |
-| F1 | El pedestal: `scene` y `land` | ⬜ |
+| F1 | El pedestal: `scene` y `land` | ✅ 2026-11-01 |
 | F2 | Anatomía: `pin` y orientación | ⬜ |
 | F3 | El banco: `bench` | ⬜ |
 | F4 | `symbol` e `inside` | ⬜ |

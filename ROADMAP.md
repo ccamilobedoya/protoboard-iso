@@ -281,7 +281,7 @@ and a frame exporter. Decisions taken with the maintainer on 2026-10-30: C dark 
 Asked by the maintainer (2026-11-01): a video format about one concrete part (a transistor, a MOSFET, an LED, a 555) that explains how it works on a pedestal before taking it to the breadboard, where the recipe's circuit builds itself around it, directed by the same timeline. Design, measurements and the plan by sessions in [docs/en/component-focus.md](docs/en/component-focus.md). Approved: the pedestal is the same circuit with the board hidden, the fixed camera, 2D callouts, data by type and by part number, the first wave (BJT, MOSFET, LED, 555), the bench as the current layer, the board rising under the part. Open: the same view in the page (a live trial after F4).
 
 - ✅ F0 · Measure and choose: `scripts/focus-mockups.js` (three directions from the real page, both formats, measurements of zoom, marking and bands), the design document, the decisions in `PLANNING.md`; chosen: the technical pinout with the schematic symbol beside the part, in both formats; timelines `focus-<part>.json`
-- ⬜ F1 · The pedestal: `scene` and `land` (M17, M18); first, a raised part that a later focus hides
+- ✅ F1 · The pedestal: `scene` (mode `part` or `board`) and `land` (M17, M18) in the timeline, the player, the schema and `--parts`; `TOUR_SCENE_PART`; a part raised and then focused again no longer disappears; `examples/tours/focus-npn.json`, jsdom cases (the part still on screen within a pixel while the board rises) and two golden frames
 - ⬜ F2 · Anatomy: `pin` and orientation as data (M19, M20)
 - ⬜ F3 · The bench: `bench` (M21)
 - ⬜ F4 · `symbol` and `inside` (M22, M23), then the trial of the page view

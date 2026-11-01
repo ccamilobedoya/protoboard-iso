@@ -71,6 +71,11 @@ export const RAISE = { mm: 3, max: 12 };
 // M4, M5: the circuit builds itself (a timeline's assemble): one part after the other, `gap` ms
 // apart, each coming down like an insert or, a wire, drawn from one end to the other, in `ms`; the
 // current starts when the last one is in.
+// M17: a part alone on its pedestal (a timeline's `scene` in mode part, a video about one part): the
+// board and the other parts unseen, the part raised 3 mm over the hole grid. M18: back to the board
+// (`land`, a travel): the part comes down while the camera follows it, so it stays still on screen
+// and the board rises under it.
+export const SCENE = { mm: 3 };
 export const ASSEMBLE = { gap: 1100, ms: 700, min: 300, max: 3000 };
 // M7: a flash runs the current's path from + to − (a timeline's pulse), each piece lit for this share
 // of the run.

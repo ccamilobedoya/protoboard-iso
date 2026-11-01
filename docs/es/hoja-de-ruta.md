@@ -286,7 +286,7 @@ recorrido desde V2.
 Pedido del mantenedor (2026-11-01): un formato de video sobre una pieza concreta (un transistor, un MOSFET, un LED, un 555) que explica cómo funciona en un pedestal antes de llevarla a la protoboard, donde el circuito de la receta se arma a su alrededor, dirigido por la misma línea de tiempo. Diseño, medidas y plan por sesiones en [docs/es/foco-en-componente.md](foco-en-componente.md). Aprobado: el pedestal es el mismo circuito con la protoboard oculta, la cámara fija, rótulos 2D, datos por tipo y por número de parte, la primera tanda (BJT, MOSFET, LED, 555), el banco como capa de corriente, la protoboard que sube bajo la pieza. Abierto: la misma vista en la página (un ensayo en vivo después de F4).
 
 - ✅ F0 · Medir y elegir: `scripts/focus-mockups.js` (tres direcciones sobre la página real, los dos formatos, medidas de zoom, marcado y bandas), el documento de diseño, las decisiones en `PLANNING.md`; elegido: el diagrama de patas técnico con el símbolo de esquema al lado de la pieza, en los dos formatos; líneas de tiempo `focus-<pieza>.json`
-- ⬜ F1 · El pedestal: `scene` y `land` (M17, M18); primero, una pieza levantada que un foco posterior oculta
+- ✅ F1 · El pedestal: `scene` (modo `part` o `board`) y `land` (M17, M18) en la línea de tiempo, el reproductor, el esquema y `--parts`; `TOUR_SCENE_PART`; una pieza levantada y enfocada otra vez ya no desaparece; `examples/tours/focus-npn.json`, casos en jsdom (la pieza quieta en pantalla, a menos de un píxel, mientras sube la protoboard) y dos fotogramas *golden*
 - ⬜ F2 · Anatomía: `pin` y la orientación como dato (M19, M20)
 - ⬜ F3 · El banco: `bench` (M21)
 - ⬜ F4 · `symbol` e `inside` (M22, M23), y después el ensayo de la vista en la página

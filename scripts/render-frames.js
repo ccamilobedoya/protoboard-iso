@@ -46,7 +46,7 @@ import { resolveTarget, loadCircuit } from '../src/node/workspace.js';
 import { autoLayout } from '../src/layout.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { renderPage } from '../src/page.js';
-import { loadTour } from '../src/tour.js';
+import { loadTour, onPedestal } from '../src/tour.js';
 import { buildCircuit } from '../src/circuit/build.js';
 import { compile } from '../src/sim/compile.js';
 import { createEngine } from '../src/sim/engine.js';
@@ -101,7 +101,7 @@ export function timelineParts(circuit) {
   const control = (c) => ({ field: c.field, value: c.value, ...(c.min != null && { min: c.min, max: c.max }), ...(c.unit && { unit: c.unit }), ...(c.scale && { scale: c.scale }) });
   const readings = (id, type) => (type === 'wire' ? [] : READINGS.filter((f) => typeof reading[id]?.[f] === 'number'));
   const entry = (id, type, extra) => ({ id, type, ...extra, readings: readings(id, type), controls: controls.filter((c) => c.id === id).map(control) });
-  const parts = (circuit.parts ?? []).map((p) => entry(p.id, p.type, { ...(p.value != null && { value: p.value }), ...(p.part && { part: p.part }), ...(p.color && { color: p.color }) }));
+  const parts = (circuit.parts ?? []).map((p) => entry(p.id, p.type, { ...(p.value != null && { value: p.value }), ...(p.part && { part: p.part }), ...(p.color && { color: p.color }), pedestal: onPedestal(p) }));
   const supplies = (circuit.supplies ?? []).map((s) => entry(s.id, s.kind ?? 'supply', {}));
   const nodes = Object.entries(buildCircuit(circuit).netlist.nodes).map(([node, members]) => ({ node, pins: members.map((m) => `${m.part}.${m.pin}`) }));
   return { simulated: !compiled.fatal, parts, supplies, nodes };
@@ -112,7 +112,7 @@ function printParts(name, { simulated, parts, supplies, nodes }) {
   console.log(`${name}: ${simulated ? 'simulated (a timeline can play)' : 'NOT simulated: no source, no tour'}`);
   const show = (p) => {
     const what = [p.type, p.part, p.value, p.color].filter(Boolean).join(' ');
-    console.log(`  ${p.id.padEnd(4)} ${what}`);
+    console.log(`  ${p.id.padEnd(4)} ${what}${p.pedestal ? ' · pedestal (scene, land)' : ''}`);
     if (p.readings.length) console.log(`       readings (value, wait-until): ${p.readings.join(', ')}`);
     for (const c of p.controls) console.log(`       set ${c.field} = ${c.value}${c.unit ? ` ${c.unit}` : ''}${range(c)}${c.scale === 'log' ? ' (log)' : ''}`);
   };

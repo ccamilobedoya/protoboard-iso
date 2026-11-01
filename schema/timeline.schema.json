@@ -1099,6 +1099,133 @@
             "required": [
               "at",
               "do",
+              "mode"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
+              },
+              "do": {
+                "const": "scene"
+              },
+              "mode": {
+                "enum": [
+                  "part",
+                  "board"
+                ],
+                "description": "part: the part alone on a pedestal (the board and the other parts unseen, the part raised 3 mm over the hole grid, framed as a frame step on it frames); board: back to the board, the camera where it is"
+              },
+              "part": {
+                "type": "string",
+                "description": "The part on the pedestal (not a wire or a supply); required with mode part"
+              },
+              "zoom": {
+                "type": "number",
+                "minimum": 0.5,
+                "maximum": 3,
+                "description": "Closer in or farther out than the part's frame (default 1)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "A video about one part (M17): a cut by default; with a move, the board fades along it",
+            "anyOf": [
+              {
+                "properties": {
+                  "mode": {
+                    "const": "board"
+                  }
+                }
+              },
+              {
+                "required": [
+                  "part"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "part"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
+              },
+              "do": {
+                "const": "land"
+              },
+              "part": {
+                "type": "string",
+                "description": "id of a part (or a supply)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "From the pedestal back to the board (M18), a travel by default: the part comes down while the camera follows it, so it stays still on screen and the board rises under it; an assemble after it brings the other parts and leaves this one in place"
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
               "part",
               "field"
             ],

@@ -19,7 +19,10 @@ import { THEMES } from './page/client/themes.js';
 import { compile } from './sim/index.js';
 import { createEngine } from './sim/engine.js';
 
-export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'raise', 'assemble', 'pulse', 'label', 'wait-until'];
+export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'raise', 'assemble', 'pulse', 'label', 'scene', 'land', 'wait-until'];
+// The parts a pedestal can show (`scene` in mode part, a video about one part): a part of the
+// circuit, not a wire or a supply.
+export const onPedestal = (part) => part?.type !== 'wire';
 // What a `value` or `wait-until` step reads from a part's reading, and its unit.
 export const READINGS = { current: 'A', voltage: 'V', power: 'W', brightness: '%' };
 export const FORMATS = ['vertical', 'horizontal'];
@@ -27,7 +30,7 @@ export const FORMATS = ['vertical', 'horizontal'];
 export { THEMES } from './page/client/themes.js';
 const FRAMES = ['board', 'parts', 'here'];
 // The move a step makes when it names none.
-const DEFAULT_MOVE = { frame: 'arrival', set: 'hit', insert: 'arrival', raise: 'arrival', assemble: 'arrival', pulse: 'travel' };
+const DEFAULT_MOVE = { frame: 'arrival', set: 'hit', insert: 'arrival', raise: 'arrival', assemble: 'arrival', pulse: 'travel', scene: 'cut', land: 'travel' };
 const BREATH = MOVES.breath.min; // ms of rest that count as a breath between two hits
 
 const warn = (code, params = {}) => ({ severity: 'warning', code, params });
@@ -63,9 +66,11 @@ const FIELDS = {
   assemble: { parts: (v) => Array.isArray(v) && v.length > 0 && v.every(assembled), gap: within(ASSEMBLE.min, ASSEMBLE.max), enter: ENTER, wire: WIRE, from: oneOf('start', 'end'), height: within(0, 40), dark: (v) => typeof v === 'boolean' },
   pulse: { through: ids, direction: oneOf('forward', 'back'), color, width: within(0.05, 1), size: within(1, 12) },
   label: { part: id, text: isText },
+  scene: { mode: oneOf('part', 'board'), part: id, zoom: within(0.5, 3) },
+  land: { part: id },
   'wait-until': { part: id, field: (v) => Object.hasOwn(READINGS, v), above: num, below: num, max: within(0, 60_000) },
 };
-const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], value: ['part', 'field'], insert: ['part'], raise: ['part'], label: ['part', 'text'], 'wait-until': ['part', 'field'] };
+const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], value: ['part', 'field'], insert: ['part'], raise: ['part'], label: ['part', 'text'], scene: ['mode'], land: ['part'], 'wait-until': ['part', 'field'] };
 // Texts a step may carry, plain or one per language.
 const TEXTS = ['text', 'line', 'label', 'title', 'note'];
 // A cubic-bezier of CSS: the time coordinates between 0 and 1.
@@ -119,6 +124,7 @@ function shapeIssues(raw) {
     if (s.do === 'probe' && [s.part, s.node, s.off].filter((x) => x != null).length !== 1) out.push(warn('TOUR_FIELD', { step, field: 'part' }));
     if (s.do === 'wait-until' && (s.above == null) === (s.below == null)) out.push(warn('TOUR_FIELD', { step, field: 'above' }));
     if (s.do === 'caption' && (s.text == null) === (s.off == null)) out.push(warn('TOUR_FIELD', { step, field: 'text' }));
+    if (s.do === 'scene' && s.mode === 'part' && s.part == null) out.push(warn('TOUR_FIELD', { step, field: 'part' }));
     if (s.do === 'assemble' && s.ms != null && !(s.ms >= 0 && s.ms <= 5000)) out.push(warn('TOUR_FIELD', { step, field: 'ms' }));
     for (const key of TEXTS) {
       const long = texts(s[key]).find((x) => x.length > LIMITS.tourText);
@@ -132,7 +138,7 @@ function shapeIssues(raw) {
 // An assemble lasts as long as its parts take, one `gap` after the other (all of the circuit's by default).
 const ends = (s, count = 0) => s.at + (s.do === 'assemble' ? Math.max(0, (s.parts?.length ?? count) - 1) * (s.gap ?? ASSEMBLE.gap) + (s.ms ?? ASSEMBLE.ms) : timing(s).ms);
 const moveOf = (s) => s.move ?? DEFAULT_MOVE[s.do] ?? 'cut';
-const timing = (s) => (s.do === 'frame' || s.do === 'set' || s.do === 'insert' || s.do === 'raise' || s.do === 'pulse' || s.move ? moveTiming(moveOf(s), s.ms ?? (s.do === 'insert' ? INSERT.ms : undefined)) : { ms: 0 });
+const timing = (s) => (['frame', 'set', 'insert', 'raise', 'pulse', 'land'].includes(s.do) || s.move ? moveTiming(moveOf(s), s.ms ?? (s.do === 'insert' ? INSERT.ms : undefined)) : { ms: 0 });
 
 const VALUE_READ = 1000; // ms a value stays before a caption may take it away
 
@@ -151,6 +157,10 @@ function meaningIssues(circuit, steps) {
     const step = i + 1;
     const named = [s.part, ...(s.do === 'focus' ? s.parts : []), ...(s.do === 'assemble' ? (s.parts ?? []).map((p) => (typeof p === 'string' ? p : p.part)) : []), ...(s.do === 'frame' ? [s.target].flat().filter((x) => !FRAMES.includes(x)) : [])].filter((x) => x != null);
     for (const id of named) if (!ids.has(id)) out.push(warn('TOUR_UNKNOWN_PART', { step, part: id }));
+    // A pedestal shows a part: a wire or a supply cannot stand there alone.
+    if ((s.do === 'scene' || s.do === 'land') && s.part != null && ids.has(s.part) && !onPedestal((circuit?.parts ?? []).find((p) => p?.id === s.part) ?? { type: 'wire' })) {
+      out.push(warn('TOUR_SCENE_PART', { step, part: s.part }));
+    }
     if (s.do === 'set' && ids.has(s.part) && !controlsOf().some((c) => c.id === s.part && c.field === s.field)) {
       out.push(warn('TOUR_UNKNOWN_CONTROL', { step, part: s.part, field: s.field, options: controlsOf().filter((c) => c.id === s.part).map((c) => c.field).join(', ') || '—' }));
     }

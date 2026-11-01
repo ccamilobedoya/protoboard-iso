@@ -201,6 +201,37 @@ other. Best before the current layer is on.
 
 A raised part is still in the circuit: the simulation does not change.
 
+### `scene`: a part alone on a pedestal (M17)
+
+For a video about one part ([component-focus.md](component-focus.md)). In mode `part` the board, the
+other parts, their labels and lights go away (the hole grid stays), the part is raised 3 mm and
+framed as a `frame` on it frames; it stays in the circuit, so `set`, `value` and `probe` still work.
+
+| Field | Values | Default | |
+|---|---|---|---|
+| `mode` | `part`, `board`, *required* | | `board`: back to the board as a `land` does, the camera where it is |
+| `part` | an id, *required* with `part` | | a part of the circuit, not a wire or a supply (`TOUR_SCENE_PART`); `render-frames.js --parts` marks those that can stand there |
+| `zoom` | 0.5…3 | 1 | closer in or farther out than the part's frame |
+| `move`, `ms`, `curve` | | `cut` | with a move, the board fades along it and the camera arrives |
+
+### `land`: the board rises under the part (M18)
+
+| Field | Values | Default | |
+|---|---|---|---|
+| `part` | an id, *required* | | the part on the pedestal |
+| `move`, `ms`, `curve` | | `travel` | |
+
+The part comes down to its holes while the camera follows it, so it stays still on screen and the
+board, with the other parts, rises under it; then the focus goes. An `assemble` after a `land`
+brings the other parts one by one (they wait unseen) and leaves the landed part in place.
+
+```json
+{ "at": 0, "do": "scene", "mode": "part", "part": "Q1" },
+{ "at": 3000, "do": "land", "part": "Q1" },
+{ "at": 4800, "do": "frame", "target": "parts", "move": "travel" },
+{ "at": 4800, "do": "assemble", "gap": 600 }
+```
+
 ### `flip`: the other side
 
 | Field | Values | Default | |

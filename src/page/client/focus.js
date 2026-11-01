@@ -41,7 +41,12 @@ export function applyFocus(page) {
     parts.textContent = '';
     labels.textContent = '';
     if (!ids.length) continue;
-    for (const el of [...svg.querySelectorAll(of('under')), ...svg.querySelectorAll(of('parts'))]) parts.appendChild(el.cloneNode(true));
+    for (const el of [...svg.querySelectorAll(of('under')), ...svg.querySelectorAll(of('parts'))]) {
+      const copy = el.cloneNode(true);
+      // A part in the air has its own pieces unseen (liftPart): its new copies must not be.
+      if (page.lifted?.has(el.getAttribute('data-part'))) copy.style.removeProperty('opacity');
+      parts.appendChild(copy);
+    }
     for (const el of labelsOf(page, svg, ids, of)) {
       const copy = el.cloneNode(true);
       if (page.told !== undefined) copy.classList.add('short');

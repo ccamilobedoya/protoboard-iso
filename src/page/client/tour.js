@@ -12,11 +12,12 @@
 // from their baseline after the caption before has left (M12); an insert brings a part down to its
 // holes, the circuit without current until it lands (M15); a raise lifts a part to set it apart and
 // keeps it up, in the circuit (M16); an assemble builds the circuit one part after the other, the
-// wires drawn end to end (M4, M5); a pulse runs a flash along the current's path (M7). Only transform
+// wires drawn end to end (M4, M5); a pulse runs a flash along the current's path (M7); a scene puts
+// one part alone on a pedestal (M17) and a land brings the board up under it (M18). Only transform
 // and opacity move.
 
-import { moveTiming, bezier, CAPTION, INSERT, RAISE, ASSEMBLE, PULSE, PULSE_COLORS } from './moves.js';
-import { applyFocus, liftPart, showPart, isWire, traceWire } from './focus.js';
+import { moveTiming, bezier, CAPTION, INSERT, RAISE, SCENE, ASSEMBLE, PULSE, PULSE_COLORS } from './moves.js';
+import { applyFocus, liftPart, showPart, isWire, traceWire, quote } from './focus.js';
 import { select, selectNode } from './card.js';
 
 const COUNT_MS = 500; // a value counts up to its reading (M9), unless a step says otherwise
@@ -237,6 +238,59 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     liftPart(page, id, enter === 'drop' && k < 1 ? height * (1 - k) : 0);
   }
 
+  // M17, M18: a part alone on a pedestal (a video about one part; docs/en/component-focus.md). The
+  // board and the other parts are not drawn (main[data-scene="part"], page/style.js); their lights
+  // are hidden by a rule with the part's id. The layers fade along a scene's move and come back
+  // along a land's.
+  const sceneRule = el(document.head, 'style');
+  let pedestal = null; // the part on the pedestal
+  const landed = new Set(); // parts brought down by a land: an assemble after it leaves them in place
+  const BOARD_LAYERS = ['under', 'board', 'parts', 'labels', 'lights', 'veil', 'strips', 'coords', 'flow', 'marks'];
+  const sceneFade = (k) => {
+    for (const svg of page.svgs) {
+      for (const name of BOARD_LAYERS) {
+        const g = svg.querySelector(':scope > .' + name);
+        if (g) g.style.opacity = k < 1 ? k.toFixed(3) : '';
+      }
+    }
+  };
+  const leaveScene = () => {
+    delete page.main.dataset.scene;
+    sceneRule.textContent = '';
+    sceneFade(1);
+    pedestal = null;
+  };
+  // The parts an assemble will bring (its list, or every part but those already landed).
+  const assembling = (s) => (s.parts ?? Object.keys(page.data.parts).filter((id) => !landed.has(id))).map((p) => (typeof p === 'string' ? p : p.part)).filter((id) => page.data.parts[id]);
+  // Back to the board from the pedestal: the part comes down, the board and the other parts come
+  // back along the move (those a later assemble brings stay away for it). `follow` (a land, M18):
+  // the camera goes down as the part does, so the part stays still on screen and the board rises
+  // under it.
+  function toBoard(s, follow) {
+    const id = pedestal ?? s.part;
+    if (!id || !page.data.parts[id]) return;
+    const { ms, ease } = timing(s);
+    const height = page.lifted?.get(id) ?? 0;
+    const next = steps.find((x) => x !== s && x.at >= s.at && x.do === 'assemble');
+    landed.add(id);
+    for (const p of next ? assembling(next) : []) {
+      if (p === id) continue;
+      building.add(p);
+      showPart(page, p, 0);
+    }
+    page.main.dataset.scene = 'land';
+    sceneFade(0);
+    const dy = height * (page.data.lift ?? 0);
+    if (follow && page.box && dy) director.frame([page.box[0], page.box[1] + dy, page.box[2], page.box[3]], { ms, ease });
+    director.tween((e) => {
+      liftPart(page, id, height * (1 - e));
+      sceneFade(e);
+      if (e < 1) return;
+      leaveScene();
+      focusOn([]);
+    }, { ms, ease });
+  }
+
   let framed = null; // the last frame step, for a probe to frame again
   const act = {
     // The camera (M1, M2, M14): to a target (board, parts, here, a part or a list of parts), with
@@ -343,7 +397,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     // `from` names, fade, cut). A part listed as { part, enter, wire, from } has its own. `dark`
     // (default true): no current until the last one is in.
     assemble: (s) => {
-      const list = (s.parts ?? Object.keys(page.data.parts)).map((p) => (typeof p === 'string' ? { part: p } : p)).filter((p) => page.data.parts[p.part]);
+      const list = (s.parts ?? Object.keys(page.data.parts).filter((id) => !landed.has(id))).map((p) => (typeof p === 'string' ? { part: p } : p)).filter((p) => page.data.parts[p.part]);
       if (reduced || !list.length) return;
       const gap = s.gap ?? ASSEMBLE.gap;
       const each = s.ms ?? ASSEMBLE.ms;
@@ -405,6 +459,35 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       const { ms, ease } = timing(s);
       director.tween((e) => liftPart(page, s.part, from + (to - from) * e), { ms, ease });
     },
+    // M17: the part alone on a pedestal (mode part), framed as a frame step on it frames (`zoom`),
+    // raised SCENE.mm; the board and the other parts fade along the move and are then not drawn.
+    // Mode board: back to the board as a land does, the camera where it is.
+    scene: (s) => {
+      if (s.mode === 'board') return toBoard(s, false);
+      const id = s.part;
+      if (!page.data.parts[id]) return;
+      const { ms, ease } = timing(s);
+      // The frame first, while the part is drawn on its board (a layer not drawn measures nothing).
+      framed = { target: id, zoom: s.zoom ?? 1 };
+      director.frame(id, { ms, ease, zoom: s.zoom ?? 1 });
+      pedestal = id;
+      landed.delete(id);
+      page.state.node = null;
+      focusOn([id]);
+      sceneRule.textContent = 'main[data-scene] > svg > .lights > :not([data-glow="' + quote(id) + '"]) { display: none !important; }';
+      const from = page.lifted?.get(id) ?? 0;
+      const enter = () => {
+        page.main.dataset.scene = 'part';
+        sceneFade(1);
+      };
+      director.tween((e) => {
+        liftPart(page, id, from + (SCENE.mm - from) * e);
+        if (e < 1) return sceneFade(1 - e);
+        enter();
+      }, { ms, ease });
+    },
+    // M18: the board rises under the part (a travel by default).
+    land: (s) => toBoard(s, true),
     'wait-until': (s) => {
       const test = () => {
         const v = readingOf(s.part, s.field);
@@ -424,6 +507,8 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     playing = false;
     director.stop();
     lower();
+    leaveScene();
+    landed.clear();
     aloft.clear();
     lights(true);
     dots(1);
@@ -436,6 +521,8 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
   }
   function play() {
     stop();
+    leaveScene();
+    landed.clear();
     playing = true;
     page.direct(true);
     document.body.classList.add('touring');
@@ -487,6 +574,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         director.stop();
         if (!recording) {
           lower();
+          leaveScene();
           box.hidden = true;
           document.body.classList.remove('touring');
         }

@@ -211,6 +211,11 @@ test('attack: a timeline stays inside the circuit\'s folder, has caps and is nev
   assert.deepEqual(given({ steps: [{ at: 0, do: 'set', part: 'R1', field: 'resistance', value: 'alert(1)' }] }), ['TOUR_FIELD']);
   assert.deepEqual(given({ steps: [{ at: 0, do: 'value', part: 'D1', field: 'constructor' }] }), ['TOUR_FIELD']);
   assert.deepEqual(given([step]), ['TOUR_SHAPE']);
+  // A pedestal (scene, land) takes a part of the circuit by its id, nothing else.
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'scene', mode: 'part', part: '"] {} * { display: none } [x="' }] }), ['TOUR_UNKNOWN_PART']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'scene', mode: 'eval', part: 'D1' }] }), ['TOUR_FIELD']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'scene', mode: 'part', part: { toString: 'D1' } }] }), ['TOUR_FIELD']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'land', part: '__proto__' }] }), ['TOUR_UNKNOWN_PART']);
   // Texts: data in the page, written with textContent; never a tag.
   const evil = '</script><script>alert(1)</script><img src=x onerror="alert(1)">';
   const { html } = renderPage({ ...circuit(), page: { tour: { steps: [{ ...step, text: evil }, { at: 0, do: 'value', part: 'D1', field: 'current', label: evil }] } } });

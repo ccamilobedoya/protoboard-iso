@@ -425,3 +425,80 @@ test('controls: a pulse through some parts only, back, in its own colour; a labe
   assert.match(r.doc.querySelector('.scope-inset .scope-label').textContent, /^Through D1/);
   assert.equal(r.doc.querySelector('.scope-inset .scope-model').textContent, '');
 });
+
+// A video about one part (F1; docs/en/component-focus.md): M17 the pedestal, M18 the board rises.
+const pedestal = [
+  { at: 0, do: 'scene', mode: 'part', part: 'Q1' },
+  { at: 0, do: 'label', part: 'Q1', text: '' },
+  { at: 1000, do: 'land', part: 'Q1' },
+  { at: 1000, do: 'assemble', gap: 300 },
+];
+
+test('moves: the timeline of a video about one part has no warning, and a pedestal takes a part only', () => {
+  const focus = JSON.parse(readFileSync(`${examples}tours/focus-npn.json`, 'utf8'));
+  assert.deepEqual(loadTour(Object.defineProperty(npn(focus), CIRCUIT_FOLDER, { value: examples })).issues, []);
+  const codes = (steps) => loadTour(npn({ steps })).issues.map((i) => i.code);
+  assert.deepEqual(codes(pedestal), []);
+  assert.deepEqual(codes([{ at: 0, do: 'scene', mode: 'board' }]), [], 'back to the board names no part');
+  assert.deepEqual(codes([{ at: 0, do: 'scene', mode: 'part' }]), ['TOUR_FIELD'], 'mode part needs its part');
+  assert.deepEqual(codes([{ at: 0, do: 'scene', mode: 'part', part: 'W1' }]), ['TOUR_SCENE_PART'], 'a wire');
+  assert.deepEqual(codes([{ at: 0, do: 'scene', mode: 'part', part: 'V1' }]), ['TOUR_SCENE_PART'], 'a supply');
+  assert.deepEqual(codes([{ at: 0, do: 'scene', mode: 'part', part: 'X9' }]), ['TOUR_UNKNOWN_PART']);
+  assert.deepEqual(codes([{ at: 0, do: 'scene', mode: 'part', part: 'Q1', zoom: 9 }]), ['TOUR_FIELD'], 'zoom 0.5…3');
+  assert.deepEqual(codes([{ at: 0, do: 'land' }]), ['TOUR_FIELD'], 'land names its part');
+  assert.deepEqual(codes([{ at: 0, do: 'land', part: 'Q1', ms: 200 }]), ['TOUR_MOVE_MS'], 'a travel by default');
+});
+
+test('moves: M17 a scene puts the part alone on a pedestal, raised, its copies seen after a later focus', async (t) => {
+  const r = await recording(pedestal);
+  if (!r) return t.skip('jsdom not installed');
+  r.to(100);
+  assert.equal(r.doc.querySelector('main').dataset.scene, 'part');
+  const lift = JSON.parse(r.doc.getElementById('page-data').textContent).lift;
+  const copy = r.svg().querySelector(':scope > .spotlight > .lift[data-part="Q1"]');
+  assert.ok(copy, 'the part, raised');
+  assert.ok(Math.abs(Number(copy.getAttribute('transform').match(/translate\(0 (-?[\d.]+)\)/)[1]) + 3 * lift) < 0.01, '3 mm up');
+  // The label step after the scene focused the part again: its new copies must be seen.
+  for (const el of r.svg().querySelectorAll(':scope > .spotlight [data-part="Q1"]')) assert.notEqual(el.style.opacity, '0');
+  assert.equal(r.svg().querySelectorAll(':scope > .spotlight > :not([data-part="Q1"])').length, 0, 'only that part');
+  assert.match([...r.doc.querySelectorAll('head style')].map((s) => s.textContent).join(''), /\.lights > :not\(\[data-glow="Q1"\]\)/, 'the other lights unseen');
+});
+
+test('moves: M18 a land keeps the part still on screen while the board rises, then an assemble brings the rest', async (t) => {
+  const r = await recording(pedestal);
+  if (!r) return t.skip('jsdom not installed');
+  const main = r.doc.querySelector('main');
+  // Where the part is on screen, in drawing units from the frame's top (the frame's size stays).
+  const place = () => {
+    const copy = r.svg().querySelector(':scope > .spotlight > .lift[data-part="Q1"]');
+    const up = copy ? -Number(copy.getAttribute('transform').match(/translate\(0 (-?[\d.]+)\)/)[1]) : 0;
+    const [, y, , h] = r.svg().getAttribute('viewBox').split(' ').map(Number);
+    return { y: -up - y, h };
+  };
+  r.to(1000 - FRAME);
+  const before = place();
+  const px = before.h / 640; // a pixel of the 640-tall screen, in drawing units
+  for (let ms = 1000; ms <= 1000 + MOVES.travel.ms; ms += 100) {
+    r.to(ms);
+    assert.equal(main.dataset.scene, ms < 1000 + MOVES.travel.ms ? 'land' : undefined, `${ms} ms`);
+    assert.ok(Math.abs(place().y - before.y) <= px, `${ms} ms: the part moved ${((place().y - before.y) / px).toFixed(2)} px`);
+  }
+  r.to(1000 + MOVES.travel.ms + FRAME);
+  assert.equal(main.dataset.scene, undefined, 'on the board');
+  assert.ok(!r.doc.body.classList.contains('focusing'), 'the focus has gone with the pedestal');
+  assert.equal(r.svg().querySelector(':scope > .parts > [data-part="Q1"]').style.opacity, '', 'the part in its holes, seen');
+  // The assemble brings every other part; the one landed stays in place.
+  const s1 = r.svg().querySelector(':scope > .parts > [data-part="S1"]');
+  assert.equal(s1.style.opacity, '', 'S1 came in first');
+  r.to(1000 + 9 * 300 + ASSEMBLE.ms + FRAME);
+  for (const el of r.svg().querySelectorAll(':scope > .parts > [data-part]')) assert.equal(el.style.opacity, '', el.getAttribute('data-part'));
+});
+
+test('moves: a part raised and then focused again stays seen (its copies keep their opacity)', async (t) => {
+  const r = await recording([{ at: 0, do: 'raise', part: 'D1', move: 'cut' }, { at: 100, do: 'focus', parts: ['D1', 'R2'] }]);
+  if (!r) return t.skip('jsdom not installed');
+  r.to(300);
+  const copies = [...r.svg().querySelectorAll(':scope > .spotlight [data-part="D1"]')];
+  assert.ok(copies.length > 0);
+  for (const el of copies) assert.notEqual(el.style.opacity, '0');
+});
