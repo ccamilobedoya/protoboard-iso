@@ -593,7 +593,9 @@ when two runs differ.
   reduced motion it waits for `protoboardLive.tour.play()`, plays as cuts and does not loop. It is
   calmer than a video (`LANDING` in `tour.js`): its clock runs at 0.75, camera moves ease in and out,
   and at the end the camera glides back to the tour's first frame (the caption fading out, the
-  current layer off again), so the next play starts without a jump and with the parts solid.
+  current layer off again, the controls it moved back to their values), so the next play starts
+  without a jump and as the first did. A landing frames a part without its label, so the part
+  itself is centred.
 - `window.protoboardLive` keeps `tick`, `set`, `currents`, `recording`; the director adds to it.
 - The static SVG keeps its own colours; the stage theme is the page's.
 

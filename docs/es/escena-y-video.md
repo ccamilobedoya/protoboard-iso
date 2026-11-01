@@ -640,7 +640,8 @@ el tiempo) o cuando dos corridas difieren.
   se repite. Es más calmado que un video (`LANDING` en `tour.js`): su reloj va a 0,75, los
   movimientos de cámara aceleran y frenan suave, y al final la cámara vuelve sin corte al primer
   encuadre del recorrido (el subtítulo se desvanece y la capa de corriente se apaga), así la siguiente
-  vuelta empieza sin salto y con las piezas sólidas.
+  vuelta empieza sin salto y con las piezas sólidas; los controles que movió vuelven a su valor. Un
+  `landing` encuadra la pieza sin su rótulo, así la pieza queda centrada.
 - `window.protoboardLive` conserva `tick`, `set`, `currents`, `recording`; el director agrega.
 - El SVG estático conserva sus colores; el tema de escena es de la página.
 

@@ -54,7 +54,9 @@ export function createDirector(page, sim) {
     if (here) box = page.box?.slice() ?? numbers(svg.getAttribute('viewBox'));
     else if (target === 'board') box = numbers(svg.dataset.board);
     else if (target === 'parts') box = inset ? partsBounds(page) ?? numbers(svg.dataset.parts) : fitFrame(page, numbers(svg.dataset.parts));
-    else box = partBox(page, target, { label: page.told !== undefined });
+    // A recording frames a part with its label (both must be in the video); a landing frames the part
+    // alone, so it sits in the middle (the label is the lesser thing there).
+    else box = partBox(page, target, { label: page.told !== undefined && !page.landing });
     if (!box) return null;
     if (zoom !== 1) {
       const [x, y, w, h] = box;
@@ -88,6 +90,10 @@ export function createDirector(page, sim) {
     // Something still to come or still moving.
     get busy() {
       return cues.length > 0 || hold != null || camera != null || moving.size > 0 || tweens.size > 0;
+    },
+    // The controls' values now (sim.controls()): what a landing puts back at the end of a loop.
+    controls() {
+      return sim.controls().map((c) => ({ id: c.id, field: c.field, value: c.value }));
     },
     // Cues wait until test() is true (checked on each tick, on the last reading), at most `max` ms.
     hold(test, max) {

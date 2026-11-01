@@ -505,6 +505,7 @@ export function setupLive(page) {
   // A landing (director.js, wantsLanding) dresses like a recording and keeps the page's own time.
   if (landing) {
     document.body.classList.add('director', 'landing');
+    page.landing = true;
     if (!new URLSearchParams(location.search).has('theme')) document.documentElement.dataset.theme = data.tour.theme ?? 'stage';
     page.inset = () => landingInset(page);
     page.told = null;

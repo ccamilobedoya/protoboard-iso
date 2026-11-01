@@ -189,6 +189,23 @@ test('stage: a landing dresses like a recording, plays by itself and again after
   assert.ok(!plain.document.body.classList.contains('landing'));
 });
 
+test('stage: a landing puts back the controls its tour moved, on the glide to the first frame', async (t) => {
+  const circuit = npn();
+  circuit.page = { tour: { steps: [
+    { at: 0, do: 'frame', target: 'board', move: 'cut' },
+    { at: 0, do: 'set', part: 'R1', field: 'resistance', value: 4700, move: 'travel' },
+  ] } };
+  const got = await landingPage(renderPage(circuit).html);
+  if (!got) return t.skip('jsdom not installed');
+  const { win } = got;
+  const r1 = () => win.protoboardLive.engine.controls().find((c) => c.id === 'R1' && c.field === 'resistance').value;
+  const before = 1000;
+  for (let k = 0; k < 30; k++) win.protoboardLive.tick(FRAME);
+  assert.ok(r1() > before, `the tour moved R1 (${r1()})`);
+  finish(win);
+  assert.ok(Math.abs(r1() - before) < 1, `R1 is back at ${before} (${r1()})`);
+});
+
 test('stage: a landing under reduced motion waits to be asked, plays once and does not loop', async (t) => {
   const got = await landingPage(renderPage(npn()).html, { reduced: true });
   if (!got) return t.skip('jsdom not installed');
