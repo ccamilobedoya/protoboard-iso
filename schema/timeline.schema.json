@@ -1388,6 +1388,142 @@
             "required": [
               "at",
               "do",
+              "on"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
+              },
+              "do": {
+                "const": "symbol"
+              },
+              "part": {
+                "type": "string",
+                "description": "The part whose schematic symbol stands beside it; required with on: true"
+              },
+              "on": {
+                "type": "boolean",
+                "description": "true: the symbol beside the part, the symbol's name for each pin said on the part (at its row's start, else under its tip); false: it goes"
+              }
+            },
+            "additionalProperties": false,
+            "description": "A video about one part (M22), an arrival by default; one figure at a time beside the part (a symbol or an inside view)",
+            "anyOf": [
+              {
+                "properties": {
+                  "on": {
+                    "const": false
+                  }
+                }
+              },
+              {
+                "required": [
+                  "part"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "on"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
+              },
+              "do": {
+                "const": "inside"
+              },
+              "part": {
+                "type": "string",
+                "description": "The part whose inside view stands beside it (a bipolar transistor, a MOSFET, an LED, a 555); required with on: true"
+              },
+              "on": {
+                "type": "boolean",
+                "description": "true: a teaching view of what goes on inside, drawn from the simulation; false: it goes"
+              }
+            },
+            "additionalProperties": false,
+            "description": "A video about one part (M23), an arrival by default; one figure at a time beside the part",
+            "anyOf": [
+              {
+                "properties": {
+                  "on": {
+                    "const": false
+                  }
+                }
+              },
+              {
+                "required": [
+                  "part"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
               "part",
               "field"
             ],

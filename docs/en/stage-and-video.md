@@ -415,6 +415,8 @@ Each move has a named purpose (without one it is not built), a cost, and runs un
 | M19 | Pin lights | `pin`: a dot at the pin's tip grows in the first quarter of an arrival (the part's short label goes while pins are lit) | low |
 | M20 | Callout arrives | with it, the pin's leader and row rise in under the part, inside the free area, no two leaders crossing; `pin` with `mark` writes what the package's mark tells on a quiet line (the mark itself shows in the drawing) | low |
 | M21 | The bench connects | `bench`: each pin's stub is traced down to a pad in the voltage's colour, then the pad's readings come (an arrival); with the current layer on, the stubs carry its dots | low |
+| M22 | The symbol arrives | `symbol`: the schematic symbol arrives beside the part; each pin gets the symbol's name for it, at its row's start or under its tip (no lines between them) | low |
+| M23 | See inside | `inside`: a teaching view of the part's inside beside it, drawn from the simulation on every tick (currents as arrows, a channel opening, a chip glowing, a latch flipping) | medium |
 
 Left out on purpose: animation libraries, real 3D, camera orbits (the isometric view is fixed),
 particles and blurs, scene transitions between different circuits (ffmpeg does those).

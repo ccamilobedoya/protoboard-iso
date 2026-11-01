@@ -57,6 +57,9 @@ function partOf(points, share) {
   return out;
 }
 
+// How far the bench reaches under the part's lowest tip, px: what must fit above the free area's bottom.
+export const benchDepth = (u) => (BENCH.gap + BENCH.drop + BENCH.pad / 2 + 0.6 * BENCH.small + 1.15 * (BENCH.name + BENCH.volts + 2 * BENCH.small)) * u;
+
 // `reading()`: the engine's last reading; `look()`: { vmax, peak, speed, scale } of the current layer;
 // `f(value, unit)`: a figure in the page's language; `now()`: the director's time (ms).
 export function setupBench(page, { reading, look, f, now }) {
@@ -103,7 +106,7 @@ export function setupBench(page, { reading, look, f, now }) {
       // Under the pad: the pin, its voltage, the current into it, what it is joined to; each line fitted
       // to nine tenths of the pads' pitch, so neighbours never touch.
       const lines = [
-        ['name', many ? `${i + 1} ${pin.name}` : pin.name, BENCH.name],
+        ['name', many ? `${i + 1} ${pin.name}` : pin.word ?? pin.name, BENCH.name],
         ['volts', v == null ? '—' : f(v, 'V'), many ? BENCH.voltsMany : BENCH.volts],
         ...(Math.abs(current) >= 1e-6 ? [['amps', f(Math.abs(current), 'A'), BENCH.small]] : []),
         ...(pin.to ? [['to', pin.to, BENCH.small]] : []),
@@ -132,6 +135,14 @@ export function setupBench(page, { reading, look, f, now }) {
       on = null;
       phase.clear();
       draw();
+    },
+    // How many px the part must go up for its bench to fit above the free area's bottom (0: it fits).
+    overflow(id) {
+      const pinout = page.data.pinouts?.[page.state.view]?.[id];
+      const screen = pinout && screenOf(page);
+      if (!screen) return 0;
+      const lowest = Math.max(...tipsOf(page, id, pinout.pins, screen).map((p) => p.y));
+      return Math.max(0, lowest + benchDepth(screen.u) - screen.free.y1);
     },
     get part() {
       return on?.id ?? null;

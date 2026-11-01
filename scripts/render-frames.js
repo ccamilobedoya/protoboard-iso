@@ -51,6 +51,7 @@ import { buildCircuit } from '../src/circuit/build.js';
 import { compile } from '../src/sim/compile.js';
 import { createEngine } from '../src/sim/engine.js';
 import { pinList } from '../src/pinout.js';
+import { symbolOf, insideOf } from '../src/parts/symbols.js';
 import { CHROMIUM_ARGS, frameProblems, measure, RULES } from './stage-shots.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -107,7 +108,7 @@ export function timelineParts(circuit, lang = 'en') {
   // a mark that tells them apart (a pin step's `mark`).
   const pinsOf = (id) => {
     const b = built.parts.find((x) => x.id === id);
-    return b && b.type !== 'wire' ? { pins: pinList(b, lang), mark: Boolean(b.built?.mark) } : { pins: [], mark: false };
+    return b && b.type !== 'wire' ? { pins: pinList(b, lang), mark: Boolean(b.built?.mark), symbol: Boolean(symbolOf(b)), inside: Boolean(insideOf(b)) } : { pins: [], mark: false, symbol: false, inside: false };
   };
   const parts = (circuit.parts ?? []).map((p) => entry(p.id, p.type, { ...(p.value != null && { value: p.value }), ...(p.part && { part: p.part }), ...(p.color && { color: p.color }), pedestal: onPedestal(p), ...pinsOf(p.id) }));
   const supplies = (circuit.supplies ?? []).map((s) => entry(s.id, s.kind ?? 'supply', {}));
@@ -120,7 +121,7 @@ function printParts(name, { simulated, parts, supplies, nodes }) {
   console.log(`${name}: ${simulated ? 'simulated (a timeline can play)' : 'NOT simulated: no source, no tour'}`);
   const show = (p) => {
     const what = [p.type, p.part, p.value, p.color].filter(Boolean).join(' ');
-    console.log(`  ${p.id.padEnd(4)} ${what}${p.pedestal ? ' · pedestal (scene, land)' : ''}`);
+    console.log(`  ${p.id.padEnd(4)} ${what}${p.pedestal ? ' · pedestal (scene, land, bench)' : ''}${p.symbol ? ' · symbol' : ''}${p.inside ? ' · inside' : ''}`);
     if (p.readings.length) console.log(`       readings (value, wait-until): ${p.readings.join(', ')}`);
     for (const c of p.controls) console.log(`       set ${c.field} = ${c.value}${c.unit ? ` ${c.unit}` : ''}${range(c)}${c.scale === 'log' ? ' (log)' : ''}`);
     if (p.pedestal && p.pins?.length) console.log(`       pins (pin): ${p.pins.map((x) => `${x.ref} ${x.text === x.name ? '' : `(${x.text})`}`.trim()).join(' · ')}${p.mark ? ` · mark (pin "mark": "${p.id}")` : ''}`);

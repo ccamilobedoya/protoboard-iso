@@ -446,6 +446,8 @@ Cada movimiento tiene un propósito nombrado (sin él no se construye), un costo
 | M19 | La pata se enciende | `pin`: un punto en la punta de la pata crece en el primer cuarto de un `arrival` (el rótulo corto de la pieza se va mientras haya patas encendidas) | bajo |
 | M20 | Llega el rótulo | con él, la línea guía y la fila de la pata suben bajo la pieza, dentro del área libre, sin que dos líneas se crucen; `pin` con `mark` escribe lo que dice la marca del paquete en una línea discreta (la marca ya se ve en el dibujo) | bajo |
 | M21 | El banco se conecta | `bench`: el tramo de cada pata se traza hasta una pastilla del color de su voltaje y después llegan sus lecturas (un `arrival`); con la capa de corriente encendida, los tramos llevan sus puntos | bajo |
+| M22 | Llega el símbolo | `symbol`: el símbolo de esquema llega al lado de la pieza; cada pata recibe el nombre que le da el símbolo, al comienzo de su fila o bajo su punta (sin líneas entre ellos) | bajo |
+| M23 | Ver por dentro | `inside`: una vista didáctica del interior de la pieza a su lado, dibujada con la simulación en cada tick (corrientes como flechas, un canal que se abre, un chip que brilla, un *latch* que cambia) | medio |
 
 Fuera a propósito: librerías de animación, 3D real, giros de cámara (la vista isométrica es fija),
 partículas y desenfoques, transiciones entre circuitos distintos (eso lo hace ffmpeg).

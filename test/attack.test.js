@@ -223,6 +223,9 @@ test('attack: a timeline stays inside the circuit\'s folder, has caps and is nev
   assert.deepEqual(given({ steps: [{ at: 0, do: 'pin', pin: `D1.${'9'.repeat(400)}` }] }), ['TOUR_UNKNOWN_PIN']);
   assert.deepEqual(given({ steps: [{ at: 0, do: 'pin', mark: '__proto__' }] }), ['TOUR_UNKNOWN_PART']);
   assert.deepEqual(given({ steps: [{ at: 0, do: 'pin', pin: ['D1', 'anode'] }] }), ['TOUR_FIELD']);
+  // A symbol and an inside view (F4): the same.
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'symbol', part: '__proto__', on: true }] }), ['TOUR_UNKNOWN_PART']);
+  assert.deepEqual(given({ steps: [{ at: 0, do: 'inside', part: 'D1', on: 1 }] }), ['TOUR_FIELD']);
   // A bench (F3): a part of the circuit, on or off, nothing else.
   assert.deepEqual(given({ steps: [{ at: 0, do: 'bench', part: '"] {} * { display: none } [x="', on: true }] }), ['TOUR_UNKNOWN_PART']);
   assert.deepEqual(given({ steps: [{ at: 0, do: 'bench', part: 'D1', on: 'yes' }] }), ['TOUR_FIELD']);

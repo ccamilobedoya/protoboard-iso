@@ -44,6 +44,8 @@ export const STYLE = `
      ease-in-out, the sheet the drawer curve; UI under 300 ms; presses 120 ms. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --t-press: 120ms;
+  /* The two kinds of semiconductor in a part's inside view (page/client/figure.js), in every theme. */
+  --inside-n: #4a78bd; --inside-p: #b8644a;
   --sans: system-ui, -apple-system, "Segoe UI", Lato, Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
   color-scheme: light;
@@ -409,6 +411,29 @@ main[data-scene="land"] > svg > :is(.veil, .strips, .coords, .flow, .marks, .res
 .bench .volts { fill: var(--cap-value); font-weight: 600; }
 .bench .amps { fill: var(--ink-2); }
 body.layer-flow main[data-scene] > svg > .spotlight { opacity: 1; }
+/* The figure beside a part (M22, M23; page/client/figure.js): its schematic symbol, or a teaching view
+   of its inside with n and p material, the oxide and gate, a comparator or latch that is acting, the
+   current as arrows in the dots' colour. */
+.figure { pointer-events: none; }
+.figure .stroke, .figure .lens, .figure .lead { fill: none; stroke: var(--ink-2); stroke-linecap: round; stroke-linejoin: round; }
+.figure .fill { fill: var(--ink-2); }
+.figure text { font-family: var(--mono); }
+.figure .pin-name { fill: var(--accent); }
+.figure .current { fill: var(--cap-value); }
+.figure .pin-id { fill: var(--accent); font-family: var(--mono); font-weight: 600; }
+.figure .quiet, .figure .note { fill: var(--ink-3); }
+.figure .state, .figure .layer-name { fill: var(--ink); }
+.figure .state { font-family: var(--sans); }
+.figure .layer.n, .figure .channel.n { fill: var(--inside-n); }
+.figure .layer.p, .figure .channel.p { fill: var(--inside-p); }
+.figure .channel { stroke: var(--accent); stroke-width: 1; }
+.figure .oxide { fill: var(--ink-3); }
+.figure .metal { fill: var(--ink-2); }
+.figure .lens, .figure .lead, .figure .comparator, .figure .latch { stroke-width: 1.4; }
+.figure .comparator, .figure .latch { fill: none; stroke: var(--ink-2); }
+.figure .comparator.active, .figure .latch.active { fill: var(--accent-soft); stroke: var(--accent); }
+.figure .out { fill: var(--ink-3); }
+.figure .out.active { fill: var(--cap-value); }
 body.director nav, body.director .zoom, body.director .inspector, body.director .gesture-hint, body.director .first-hint, body.director .tooltip { display: none !important; }
 body.director main { cursor: default; }
 body.director .labels, body.director .results, body.director .probes { display: none !important; }

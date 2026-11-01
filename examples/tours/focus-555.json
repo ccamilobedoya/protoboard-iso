@@ -17,12 +17,17 @@
     { "at": 5100, "do": "caption", "text": { "en": "Where pin 1 is", "es": "Dónde está la pata 1" } },
     { "at": 5100, "do": "pin", "mark": "U1" },
 
+    { "at": 6400, "do": "symbol", "part": "U1", "on": true },
+
     { "at": 8000, "do": "pin", "off": true },
+    { "at": 8000, "do": "symbol", "on": false },
     { "at": 8000, "do": "bench", "part": "U1", "on": true },
+    { "at": 8000, "do": "inside", "part": "U1", "on": true },
     { "at": 8000, "do": "caption", "text": { "en": "On the bench", "es": "En el banco" }, "line": { "en": "The output swings high and low", "es": "La salida sube y baja sola" } },
     { "at": 8600, "do": "flow", "on": true, "ramp": 600 },
 
     { "at": 14000, "do": "bench", "on": false },
+    { "at": 14000, "do": "inside", "on": false },
     { "at": 14000, "do": "caption", "text": { "en": "On the breadboard", "es": "En la protoboard" }, "line": { "en": "The circuit builds itself around it", "es": "El circuito se arma a su alrededor" } },
     { "at": 14000, "do": "land", "part": "U1" },
     { "at": 15800, "do": "frame", "target": "parts", "move": "travel" },

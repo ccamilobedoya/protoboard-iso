@@ -266,7 +266,7 @@ millivolt, 0 V), the current into it, and what it is joined to in the circuit (t
 supply's terminal, or the first other part: "→ R1 1 kΩ"). The circuit keeps running hidden: a `set`
 on a part not shown (the base resistor) changes the pads. With `flow` on, dots run along the stubs
 at the current layer's speed. The stubs never cross, and the pads and their readings stay in the free
-area. A bench takes the room under the part: it turns its pins' callouts off, and a `pin` after it
+area (a tall part goes up, along the step's move, to leave them room). A bench takes the room under the part: it turns its pins' callouts off, and a `pin` after it
 turns the bench off.
 
 | Field | Values | Default | |
@@ -280,6 +280,33 @@ turns the bench off.
 { "at": 7200, "do": "flow", "on": true, "ramp": 600 },
 { "at": 9500, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 },
 { "at": 14000, "do": "bench", "on": false }
+```
+
+### `symbol` and `inside`: a figure beside the part (M22, M23)
+
+Beside the part on its pedestal (on its right; on its left only when the right is too narrow), one
+figure at a time, only when a step asks for it:
+
+- `symbol`: the part's schematic symbol (a bipolar transistor, a MOSFET, an LED, a diode, a zener, a
+  resistor, a capacitor, a chip as a block with its pins' names and numbers). The part says which leg is
+  which with the symbol's names, not lines: at the start of a pin's row when the pinout shows it
+  ("E · emitter · …"), else under its tip (M22).
+- `inside`: what goes on inside, drawn from the simulation on every tick (M23): a bipolar transistor's
+  three layers with its base and collector currents as arrows beside them, as wide as the current,
+  their figures and its region under it; a MOSFET's channel opening with its gate voltage, its current
+  as an arrow under it; an LED's chip glowing with its brightness; a 555's
+  comparators, latch and output. Didactic, not to scale.
+
+| Field | Values | Default | |
+|---|---|---|---|
+| `on` | `true`, `false`, *required* | | `false`: the figure goes |
+| `part` | an id, *required* with `on: true` | | a part whose kind has one (`TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`; `render-frames.js --parts` says which) |
+| `move`, `ms`, `curve` | | `arrival` | |
+
+```json
+{ "at": 4800, "do": "symbol", "part": "Q1", "on": true },
+{ "at": 6000, "do": "inside", "part": "Q1", "on": true },
+{ "at": 14000, "do": "inside", "on": false }
 ```
 
 ### `flip`: the other side
@@ -327,7 +354,7 @@ can replace. Captions are always the timeline's.
 `node bin/protoboard-iso.js check <circuit>` reads the circuit's timeline. A shape, size or file
 problem leaves the page without a tour (`TOUR_SHAPE`, `TOUR_FIELD`, `TOUR_ACTION`, `TOUR_MOVE`,
 `TOUR_JSON`, `TOUR_TOO_LARGE`…); an unknown part or control, an `ms` outside its move's range, a
-broken rhythm, a value the next caption takes away within a second (`TOUR_VALUE_HIDDEN`), a pin a part does not have (`TOUR_UNKNOWN_PIN`), a mark it does not have (`TOUR_NO_MARK`), a bench in a circuit not simulated (`TOUR_BENCH_NOT_SIMULATED`) or a
+broken rhythm, a value the next caption takes away within a second (`TOUR_VALUE_HIDDEN`), a pin a part does not have (`TOUR_UNKNOWN_PIN`), a mark it does not have (`TOUR_NO_MARK`), a bench in a circuit not simulated (`TOUR_BENCH_NOT_SIMULATED`), a symbol or an inside view a part's kind does not have (`TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`) or a
 timeline over ten minutes is a warning and it still plays. Caps: 100 kB, 200
 steps, 280 characters a text, ten minutes.
 

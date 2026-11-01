@@ -706,6 +706,65 @@ test('moves: a chip\'s bench keeps its eight stubs apart, none crossing', async 
   for (const [i, a] of pads.entries()) for (const b of pads.slice(i + 1)) assert.ok(!stubsCross(a, b), `${a.pin} and ${b.pin}`);
 });
 
+// The figure beside the part (F4): M22 its schematic symbol, the symbol's name for each pin said on the
+// part (no lines between them); M23 what goes on inside it, from the simulation.
+const figured = [
+  { at: 0, do: 'scene', mode: 'part', part: 'Q1' },
+  { at: 100, do: 'symbol', part: 'Q1', on: true },
+  { at: 1500, do: 'pin', pin: 'Q1.B' },
+  { at: 2800, do: 'pin', off: true },
+  { at: 3000, do: 'inside', part: 'Q1', on: true },
+  { at: 4000, do: 'set', part: 'S1', field: 'pressed', value: true, move: 'cut' },
+  { at: 5000, do: 'inside', on: false },
+];
+
+test('moves: a symbol or an inside view names a part whose kind has one', () => {
+  const codes = (steps) => loadTour(npn({ steps })).issues.map((i) => i.code);
+  assert.deepEqual(codes(figured), []);
+  assert.deepEqual(codes([{ at: 0, do: 'symbol', on: true }]), ['TOUR_FIELD'], 'on names its part');
+  assert.deepEqual(codes([{ at: 0, do: 'symbol', part: 'S1', on: true }]), ['TOUR_NO_SYMBOL']);
+  assert.deepEqual(codes([{ at: 0, do: 'inside', part: 'R1', on: true }]), ['TOUR_NO_INSIDE']);
+  assert.deepEqual(codes([{ at: 0, do: 'inside', part: 'X9', on: true }]), ['TOUR_UNKNOWN_PART']);
+});
+
+test('moves: M22 the symbol stands beside the part, its pins named on the part; M23 the inside follows the circuit', async (t) => {
+  const r = await recording(figured);
+  if (!r) return t.skip('jsdom not installed');
+  const figure = () => r.svg().querySelector(':scope > .figure');
+  const ids = () => [...figure().querySelectorAll('.pin-id')].map((j) => [j.getAttribute('data-id'), j.textContent]);
+  r.to(100 + 400);
+  assert.equal(figure().querySelectorAll('.symbol .stroke').length, 5, 'the NPN symbol');
+  assert.deepEqual(ids(), [['Q1.E', 'E'], ['Q1.B', 'B'], ['Q1.C', 'C']], 'the symbol\'s names under the tips, left to right');
+  assert.equal(figure().querySelectorAll('.join').length, 0, 'no line between the symbol and the part');
+  // Inside the free area of a portrait recording, beside the part: its box in drawing units, on screen.
+  const [bx, by, bw, bh] = r.svg().getAttribute('viewBox').split(' ').map(Number);
+  const k = Math.max(bw / 360, bh / 640);
+  const [, tx, ty, sc] = figure().querySelector('.symbol').getAttribute('transform').match(/translate\((-?[\d.]+) (-?[\d.]+)\) scale\(([\d.]+)\)/).map(Number);
+  const left = 180 + (tx - bx - bw / 2) / k;
+  const right = left + (100 * sc) / k;
+  assert.ok(left >= 0.0667 * 360 && right <= (1 - 0.0667) * 360 + 0.5, `${left.toFixed(1)}…${right.toFixed(1)} px`);
+  assert.ok(320 + (ty - by - bh / 2) / k >= 0.4 * 640 - 0.5, 'under the caption band');
+  // A pin with its row in the pinout has the name at the row's start instead.
+  r.to(1500 + MOVES.arrival.ms);
+  assert.deepEqual(ids().map(([id]) => id), ['Q1.E', 'Q1.C'], 'B has its row');
+  assert.match([...r.svg().querySelectorAll(':scope > .pinout g[data-pin="Q1.B"] text')].map((x) => x.textContent).join(''), /^B · base/);
+  // One figure at a time: the inside view takes the symbol's place. Off, the transistor is in cut-off.
+  r.to(3000 + MOVES.arrival.ms);
+  assert.equal(figure().querySelectorAll('.symbol').length, 0);
+  const inside = () => figure().querySelector('[data-inside="bjt"]');
+  assert.ok(inside());
+  assert.equal(inside().querySelectorAll('.flowing').length, 0, 'no current, no arrows');
+  assert.equal(inside().querySelector('.state').textContent, 'off');
+  // S1 pressed: the base and collector currents as arrows, the collector's the wider.
+  r.to(4500);
+  const widths = [...inside().querySelectorAll('.flowing')].map((p) => Number(p.getAttribute('stroke-width')));
+  assert.equal(widths.length, 2);
+  assert.ok(widths[0] > widths[1], `collector ${widths[0]} over base ${widths[1]}`);
+  assert.match(inside().querySelector('.state').textContent, /^saturated/);
+  r.to(5000 + FRAME);
+  assert.equal(figure().children.length, 0, 'off');
+});
+
 test('moves: a part raised and then focused again stays seen (its copies keep their opacity)', async (t) => {
   const r = await recording([{ at: 0, do: 'raise', part: 'D1', move: 'cut' }, { at: 100, do: 'focus', parts: ['D1', 'R2'] }]);
   if (!r) return t.skip('jsdom not installed');

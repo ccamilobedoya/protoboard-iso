@@ -51,6 +51,8 @@ test('render-frames --parts: what a timeline can name, from the simulation', () 
   assert.equal(of('Q1').pins[2].text, 'collector · the load');
   assert.equal(of('Q1').mark, true);
   assert.equal(of('R1').mark, false, 'a resistor has none');
+  // F4: which parts have a symbol and an inside view.
+  assert.deepEqual([of('Q1').symbol, of('Q1').inside, of('R1').symbol, of('R1').inside, of('S1').symbol], [true, true, true, false, false]);
   assert.deepEqual(of('S1').controls.map((c) => c.field), ['pressed']);
   assert.equal(of('R1').controls[0].scale, 'log');
   assert.ok(supplies.some((s) => s.controls.some((c) => c.field === 'voltage')), 'the bench supply is set, not drawn');

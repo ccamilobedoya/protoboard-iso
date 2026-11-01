@@ -15,13 +15,16 @@
 // wires drawn end to end (M4, M5); a pulse runs a flash along the current's path (M7); a scene puts
 // one part alone on a pedestal (M17) and a land brings the board up under it (M18); a pin lights a
 // pin of it with its row of text (M19, M20; pinout.js); a bench connects its pins to pads that read the
-// circuit (M21; bench.js). Only transform and opacity move.
+// circuit (M21; bench.js); a symbol (M22) or an inside view (M23) stands beside it (figure.js). Only
+// transform and opacity move.
 
 import { moveTiming, bezier, CAPTION, INSERT, RAISE, SCENE, ASSEMBLE, PULSE, PULSE_COLORS } from './moves.js';
 import { applyFocus, liftPart, showPart, isWire, traceWire, quote } from './focus.js';
 import { select, selectNode } from './card.js';
 import { setupPinout } from './pinout.js';
 import { setupBench } from './bench.js';
+import { setupFigure } from './figure.js';
+import { partsRect } from './view.js';
 
 const COUNT_MS = 500; // a value counts up to its reading (M9), unless a step says otherwise
 const WAIT_MS = 10_000; // a wait-until that never comes true gives up after this
@@ -304,6 +307,14 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
   };
   // M21: the part's pins joined to pads that read the circuit (bench.js).
   const bench = setupBench(page, { reading, look, f, now: () => director.time });
+  // M22, M23: the symbol or the inside view beside the part (figure.js).
+  const figure = setupFigure(page, { reading, t, f, now: () => director.time });
+  const showFigure = (s, what) => {
+    if (!s.on) return figure.clear(what);
+    if (!page.data.pinouts?.[page.state.view]?.[s.part]?.[what]) return;
+    const { ms, ease } = timing(s);
+    director.tween(figure.show(s.part, what, ms), { ms, ease });
+  };
 
   let framed = null; // the last frame step, for a probe to frame again
   const act = {
@@ -509,8 +520,23 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       if (!s.on) return bench.clear();
       if (!page.data.pinouts?.[page.state.view]?.[s.part]) return;
       unpin();
+      // A tall part leaves its bench no room under it: the camera takes it up by what is missing,
+      // along the same move (never past the free area's top: the part stays whole).
+      const up = bench.overflow(s.part);
+      const r = page.current().getBoundingClientRect();
+      const part = up > 0 && partsRect(page, [s.part]);
+      const room = part ? part.top - r.top - (page.inset?.()?.top ?? 0) * r.height : 0;
+      const shift = Math.min(up, Math.max(0, room));
+      if (shift > 0 && page.box) {
+        const k = Math.max(page.box[2] / r.width, page.box[3] / r.height);
+        director.frame([page.box[0], page.box[1] + shift * k, page.box[2], page.box[3]], timing(s));
+      }
       director.tween(bench.show(s.part), timing(s));
     },
+    // M22: the part's schematic symbol beside it, its terminals joined to the pins for a moment.
+    symbol: (s) => showFigure(s, 'symbol'),
+    // M23: what goes on inside the part, drawn from the simulation on every tick.
+    inside: (s) => showFigure(s, 'inside'),
     // M19, M20: a pin lit (`pin`, resolved by src/tour.js to its part and index), the package's mark
     // (`mark`: the part), or all of them off (`off`); each comes in along its move (an arrival).
     pin: (s) => {
@@ -545,6 +571,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     leaveScene();
     unpin();
     bench.clear();
+    figure.clear();
     landed.clear();
     aloft.clear();
     lights(true);
@@ -561,6 +588,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     leaveScene();
     unpin();
     bench.clear();
+    figure.clear();
     landed.clear();
     playing = true;
     page.direct(true);
@@ -578,6 +606,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     );
     director.after(pins.draw);
     director.after(bench.draw);
+    director.after(figure.draw);
     let back = false; // a landing's camera on its way back to the first frame
     const startLayer = page.state.layer; // a landing leaves the layer as it found it
     const startControls = landing ? director.controls() : []; // and the controls too

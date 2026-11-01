@@ -7,7 +7,8 @@
 //   pinIndex(part, name)            → index of the pin a step names ("B", "base", "2"), or -1
 //   pinRole(part, i, lang)          → the pin's row of text ("collector · the load", "3 OUT · output")
 //   pinList(part, lang)             → [{ ref, name, text }] what --parts lists
-//   pinoutOf(part, camera, lang)    → { kind, pins: [{ name, text, node, x, y }], mark } for the page
+//   pinoutOf(part, camera, lang)    → { kind, pins: [{ name, word, text, node, x, y }], mark } for the page
+//                                    (word: the pin's name in the page's language, "ánodo")
 //
 // `part` is a built part (circuit/build.js); x, y are drawing units of that view, the point where the
 // pin goes into the board (a raised part's tip is `lift` × mm above it, page/client/pinout.js).
@@ -82,7 +83,7 @@ function markText(part, mark, camera, points, lang) {
 
 export function pinoutOf(part, camera, lang = 'en') {
   const points = part.holes.map((h) => camera.project(h.pos));
-  const pins = points.map((p, i) => ({ name: part.pinNames[i], text: pinRole(part, i, lang), node: part.holes[i].node, x: round(p.x), y: round(p.y) }));
+  const pins = points.map((p, i) => ({ name: part.pinNames[i], word: word(part.pinNames[i], lang), text: pinRole(part, i, lang), node: part.holes[i].node, x: round(p.x), y: round(p.y) }));
   const kind = [t(lang, `type.${part.def?.typeKey ?? part.type}`), packageName(part)].filter(Boolean).join(' · ');
   const mark = part.built?.mark;
   if (!mark) return { kind, pins, mark: null };

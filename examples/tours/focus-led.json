@@ -1,0 +1,31 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "led-resistor",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "scene", "mode": "part", "part": "D1" },
+    { "at": 0, "do": "caption", "text": { "en": "LED", "es": "LED" }, "line": { "en": "A diode that gives light", "es": "Un diodo que da luz" } },
+
+    { "at": 1600, "do": "pin", "pin": "D1.anode" },
+    { "at": 2000, "do": "pin", "pin": "D1.cathode" },
+    { "at": 2800, "do": "caption", "text": { "en": "Which leg is which", "es": "Cuál pata es cuál" } },
+    { "at": 2800, "do": "pin", "mark": "D1" },
+    { "at": 4400, "do": "symbol", "part": "D1", "on": true },
+
+    { "at": 5600, "do": "pin", "off": true },
+    { "at": 5600, "do": "symbol", "on": false },
+    { "at": 5600, "do": "bench", "part": "D1", "on": true },
+    { "at": 5600, "do": "inside", "part": "D1", "on": true },
+    { "at": 5600, "do": "caption", "text": { "en": "On the bench", "es": "En el banco" }, "line": { "en": "The resistor sets its current", "es": "La resistencia fija su corriente" } },
+    { "at": 6200, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 8500, "do": "caption", "text": { "en": "A bigger resistor", "es": "Una resistencia mayor" }, "line": { "en": "less current, less light", "es": "menos corriente, menos luz" } },
+    { "at": 9000, "do": "set", "part": "R1", "field": "resistance", "value": 3300, "move": "travel", "ms": 1800 },
+
+    { "at": 12500, "do": "bench", "on": false },
+    { "at": 12500, "do": "inside", "on": false },
+    { "at": 12500, "do": "caption", "text": { "en": "On the breadboard", "es": "En la protoboard" }, "line": { "en": "The circuit builds itself around it", "es": "El circuito se arma a su alrededor" } },
+    { "at": 12500, "do": "land", "part": "D1" },
+    { "at": 14300, "do": "frame", "target": "parts", "move": "travel" },
+    { "at": 14300, "do": "assemble", "gap": 600 }
+  ]
+}

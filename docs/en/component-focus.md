@@ -22,7 +22,7 @@ pinout with the showcase's schematic symbol beside the part (see *The direction 
 | F1 | The pedestal: `scene` and `land` | ✅ 2026-11-01 |
 | F2 | Anatomy: `pin` and orientation | ✅ built 2026-11-01; a frame of each waits for approval |
 | F3 | The bench: `bench` | ✅ built 2026-11-01; a frame waits for approval |
-| F4 | `symbol` and `inside` | ⬜ |
+| F4 | `symbol` and `inside` | ✅ built 2026-11-01; frames wait for approval, then the D7 trial |
 | F5 | The part in the page (interactive), only if D7 says so | ⬜ open |
 | F6 | Bench of timelines and guide | ⬜ |
 
@@ -276,6 +276,25 @@ the engine's brightness; 555 comparators, latch and discharge following `timer.j
 *symbol joins* and M23 *see inside*. `--validate`: `TOUR_NO_INSIDE`. Done when the four parts have
 both, each in a timeline of the bench with its golden frame, and the maintainer approves a frame of
 each. Then the D7 trial: a minimal prototype behind `?focusView=1`.
+
+**As built (2026-11-01).** The symbols are data by kind (`src/parts/symbols.js`, not in each type's
+module): strokes and a terminal per pin in a box of 100, so the page only draws them. Symbol and inside
+share one slot beside the part, on its right as chosen in F0 (on its left only when the right is too
+narrow), one at a time. M22 first joined each terminal to its pin with a line that faded; the
+maintainer found the lines noisy, so the symbol's names for the pins (B, C, E; a chip's numbers, now
+also printed on the block's leads) are said on the part instead: at the start of a pin's row when the
+pinout shows it, else under its tip, apart. The same review (with the UX skill) moved the inside
+views' arrows off what they explain: a BJT's beside its layers, a MOSFET's under its channel, each
+named (Ib, Ic, Id) with its figure on a line under the view; an LED's glow stays inside its lens. When the pinout's rows are on, the figure stands above them
+with a gap (a 555's block touched its first row; the rows could not go lower, the quiet lines are
+under them).
+The inside views are built every tick from the reading: a BJT's region and its base and collector
+currents (arrows 1.5 units wide at a microampere, 5 at a tenth of an ampere, log), a MOSFET's
+channel and Vgs, an LED's chip at its brightness in its light's colour, a 555's comparators (THR over
+the control level, TRIG under half of it), latch and output. A finding of the MOSFET's timeline: a
+TO-220 is tall, its bench did not fit under it; a bench now takes the part up by what is missing, along
+its move, never past the free area's top. `focus-mosfet.json` and `focus-led.json` are F4's (F6 polishes
+the four).
 
 ### F5 · The part in the page (only if D7 says so)
 

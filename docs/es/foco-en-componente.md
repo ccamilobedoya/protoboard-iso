@@ -22,7 +22,7 @@ patas técnico con el símbolo de esquema de la vitrina al lado de la pieza (ver
 | F1 | El pedestal: `scene` y `land` | ✅ 2026-11-01 |
 | F2 | Anatomía: `pin` y orientación | ✅ construida el 2026-11-01; falta aprobar un fotograma de cada una |
 | F3 | El banco: `bench` | ✅ construida el 2026-11-01; falta aprobar un fotograma |
-| F4 | `symbol` e `inside` | ⬜ |
+| F4 | `symbol` e `inside` | ✅ construida el 2026-11-01; faltan aprobar fotogramas, luego el ensayo de D7 |
 | F5 | La pieza en la página (interactiva), solo si D7 lo dice | ⬜ abierta |
 | F6 | Banco de líneas de tiempo y guía | ⬜ |
 
@@ -292,6 +292,27 @@ descarga del 555 siguiendo `timer.js`). Movimientos M22 *el símbolo se une* y M
 `--validate`: `TOUR_NO_INSIDE`. Terminada cuando las cuatro piezas tienen ambos, cada uno en una línea
 de tiempo del banco con su fotograma *golden*, y el mantenedor aprueba un fotograma de cada uno.
 Después, el ensayo de D7: un prototipo mínimo detrás de `?focusView=1`.
+
+**Cómo quedó (2026-11-01).** Los símbolos son datos por tipo (`src/parts/symbols.js`, no en el módulo de
+cada tipo): trazos y una terminal por pata en una caja de 100, así que la página solo los dibuja. El
+símbolo y la vista por dentro comparten un lugar al lado de la pieza, a su derecha como se eligió en F0
+(a su izquierda solo cuando la derecha es demasiado angosta), uno a la vez. M22 primero unía cada
+terminal con su pata con una línea que se desvanecía; al mantenedor le parecieron ruido, así que ahora
+la pieza dice los nombres que el símbolo da a sus patas (B, C, E; los números de un chip, ahora también
+impresos en las patas del bloque): al comienzo de la fila de la pata cuando el diagrama de patas la
+muestra, si no, bajo su punta, separados. La misma revisión (con el skill de UX) sacó las flechas de
+las vistas por dentro de encima de lo que explican: las de un BJT al lado de sus capas, la de un MOSFET
+bajo su canal, cada una con su nombre (Ib, Ic, Id) y su cifra en una línea bajo la vista; el brillo de
+un LED queda dentro de su lente. Con las filas del diagrama de patas encendidas, la figura queda encima
+de ellas con un espacio (el bloque de un 555 tocaba su primera fila; las filas no podían bajar más,
+debajo están las líneas discretas). Las vistas por dentro
+se arman en cada tick con la lectura: la región de un BJT y sus corrientes de base y de colector
+(flechas de 1,5 unidades de ancho a un microamperio y 5 a una décima de amperio, en escala log), el
+canal y el Vgs de un MOSFET, el chip de un LED con su brillo en el color de su luz, los comparadores de
+un 555 (THR por encima del nivel de control, TRIG por debajo de su mitad), su *latch* y su salida. Un
+hallazgo de la línea de tiempo del MOSFET: un TO-220 es alto y su banco no cabía debajo; ahora un banco
+sube la pieza lo que falta, con su movimiento, sin pasar del borde de arriba del área libre.
+`focus-mosfet.json` y `focus-led.json` son de F4 (F6 pule las cuatro).
 
 ### F5 · La pieza en la página (solo si D7 lo dice)
 

@@ -103,7 +103,7 @@ export function screenOf(page) {
   const u = r.width / (r.width > r.height ? 1920 : 1080);
   const inset = page.inset?.() ?? FREE;
   const free = { x0: inset.left * r.width, x1: (1 - inset.right) * r.width, y1: (1 - inset.bottom) * r.height };
-  return { svg, key: [page.state.view, box, r.width, r.height], k, toScreen, at, u, free };
+  return { svg, rect: r, key: [page.state.view, box, r.width, r.height], k, toScreen, at, u, free: { ...free, y0: inset.top * r.height } };
 }
 // A layer of the current view, just under the spotlight (a pin behind a body shows its line coming
 // out from under it), made once per view.
@@ -135,10 +135,13 @@ export function setupPinout(page) {
     const data = page.data.pinouts?.[page.state.view] ?? {};
     const screen = screenOf(page);
     const ids = [...new Set([...lit.keys(), ...marks.keys()])].filter((id) => data[id]);
-    const key = JSON.stringify([screen?.key, ids.map((id) => [id, page.lifted?.get(id) ?? 0, [...(lit.get(id) ?? [])].map(([i, p]) => [i, p.k, p.text]), marks.get(id) ?? null])]);
+    // The pins with a row, for the symbol's identifiers (figure.js): those go at the row's start.
+    page.litPins = new Set([...lit].flatMap(([id, pins]) => [...pins.keys()].map((i) => `${id}.${data[id]?.pins[i]?.name}`)));
+    const key = JSON.stringify([screen?.key, page.symbolIds, ids.map((id) => [id, page.lifted?.get(id) ?? 0, [...(lit.get(id) ?? [])].map(([i, p]) => [i, p.k, p.text]), marks.get(id) ?? null])]);
     if (key === drawn) return;
     drawn = key;
     for (const s of page.svgs) layers.get(s)?.replaceChildren();
+    page.rowsTop = null;
     if (!ids.length || !screen) return;
     const under = layerOf(page, 'pinout', layers);
     const { k, at, u, free } = screen;
@@ -147,8 +150,13 @@ export function setupPinout(page) {
       const tips = tipsOf(page, id, pinout.pins, screen);
       // A step's own text takes the pin's row (and its room).
       const own = lit.get(id) ?? new Map();
-      const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: own.get(i)?.text ?? p.text })), tips, free, u);
+      // With the symbol beside the part, each row starts with the symbol's name for its pin (a chip's
+      // rows already start with its number).
+      const named = pinout.pins.length <= 4 ? page.symbolIds?.[id] : null;
+      const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: [named?.[p.name], own.get(i)?.text ?? p.text].filter(Boolean).join(' · ') })), tips, free, u);
       const stroke = PINOUT.line * Math.max(u, 0.5) * k;
+      // Where the rows begin on screen: the figure beside the part stays above them (figure.js).
+      if (lit.get(id)?.size) page.rowsTop = Math.min(page.rowsTop ?? Infinity, Math.round(Math.min(...rows.filter(Boolean).map((r) => r.y)) - size));
       for (const [i, p] of lit.get(id) ?? []) {
         const row = rows[i];
         if (!row) continue;

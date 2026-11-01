@@ -38,6 +38,7 @@ import { describePart, describeKeys } from './parts/describe.js';
 import { MODULES } from './parts/modules.js';
 import { loadTour } from './tour.js';
 import { pinoutOf } from './pinout.js';
+import { symbolOf, insideOf } from './parts/symbols.js';
 import { THEMES } from './page/client/themes.js';
 
 // The page's script, bundled once per process: without the simulation, or with it (the engine
@@ -293,13 +294,17 @@ function liveData(circuit, lang, flow, templates) {
 // pin's name, its row of text and where it goes into the board, and the package's mark. Only the
 // parts the steps name: a page without them carries nothing more.
 function pinoutData(circuit, tour, built, rendered, lang) {
-  const ids = new Set(tour.steps.filter((s) => s.do === 'pin' || s.do === 'bench').map((s) => s.part ?? s.mark).filter((id) => id != null));
+  const ids = new Set(tour.steps.filter((s) => ['pin', 'bench', 'symbol', 'inside'].includes(s.do)).map((s) => s.part ?? s.mark).filter((id) => id != null));
   const parts = built.parts.filter((p) => ids.has(p.id));
   if (!parts.length) return null;
-  const benched = new Set(tour.steps.filter((s) => s.do === 'bench' && s.part).map((s) => s.part));
+  const asked = (action) => new Set(tour.steps.filter((s) => s.do === action && s.part).map((s) => s.part));
+  const benched = asked('bench');
   const pinout = (p, camera) => {
     const out = pinoutOf(p, camera, lang);
     if (benched.has(p.id)) out.pins.forEach((pin, i) => (pin.to = benchLabel(circuit, built, p, i, lang)));
+    // The symbol and the inside view, only for the parts the steps show them for.
+    if (asked('symbol').has(p.id)) out.symbol = symbolOf(p);
+    if (asked('inside').has(p.id)) out.inside = insideOf(p);
     return out;
   };
   return { pinouts: Object.fromEntries(rendered.map((r) => [r.view, Object.fromEntries(parts.map((p) => [p.id, pinout(p, r.scene.camera)]))])) };

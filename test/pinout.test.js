@@ -91,3 +91,27 @@ test('pinout: a chip\'s notch is on the side of its pin 1', () => {
     assert.equal(pinoutOf(timer, camera, 'en').kind, 'Integrated circuit · DIP-8');
   }
 });
+
+// F4: the schematic symbol of each kind and its inside view (src/parts/symbols.js).
+test('symbols: each symbol has a terminal for every pin of its part, inside its box', async () => {
+  const { symbolOf, insideOf } = await import('../src/parts/symbols.js');
+  const b = built('parts-showcase');
+  const { spec } = expandRecipe('555-astable');
+  const timer = part(buildCircuit(autoLayout(spec).circuit), 'U1');
+  let seen = 0;
+  for (const p of [...b.parts, timer]) {
+    const s = symbolOf(p);
+    if (!s) continue;
+    seen++;
+    assert.deepEqual(Object.keys(s.pins).sort(), [...p.pinNames].sort(), `${p.id} ${p.type}`);
+    assert.deepEqual(Object.keys(s.ids).sort(), [...p.pinNames].sort(), `${p.id}: a name on the part for every pin`);
+    for (const [x, y] of Object.values(s.pins)) assert.ok(x >= 0 && x <= s.w && y >= 0 && y <= s.h, `${p.id}: a terminal out of its box`);
+    assert.ok(s.strokes.length > 0 && s.strokes.every((d) => /^M[\d.\s]/.test(d)), p.id);
+  }
+  assert.ok(seen >= 8, `${seen} symbols`);
+  assert.equal(symbolOf(part(built('npn-switch'), 'S1')), null, 'a button has none yet');
+  assert.deepEqual(insideOf(part(built('npn-switch'), 'Q1')), { kind: 'bjt', pnp: false });
+  assert.equal(insideOf(timer).kind, 'timer');
+  assert.equal(insideOf(part(built('npn-switch'), 'D1')).kind, 'led');
+  assert.equal(insideOf(part(built('npn-switch'), 'R1')), null);
+});

@@ -272,7 +272,8 @@ voltaje (por debajo de un milivoltio, 0 V), la corriente que entra por ella y co
 circuito (el nombre de la red, el borne de una fuente o la primera otra pieza: «→ R1 1 kΩ»). El
 circuito sigue funcionando oculto: un `set` sobre una pieza que no se ve (la resistencia de base)
 cambia las pastillas. Con `flow` encendido, los puntos corren por los tramos a la velocidad de la capa
-de corriente. Los tramos nunca se cruzan, y las pastillas y sus lecturas quedan en el área libre. El
+de corriente. Los tramos nunca se cruzan, y las pastillas y sus lecturas quedan en el área libre (una
+pieza alta sube, con el movimiento del paso, para dejarles espacio). El
 banco ocupa el espacio bajo la pieza: apaga los rótulos de sus patas, y un `pin` después de él apaga
 el banco.
 
@@ -287,6 +288,34 @@ el banco.
 { "at": 7200, "do": "flow", "on": true, "ramp": 600 },
 { "at": 9500, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 },
 { "at": 14000, "do": "bench", "on": false }
+```
+
+### `symbol` e `inside`: una figura al lado de la pieza (M22, M23)
+
+Al lado de la pieza en su pedestal (a su derecha; a su izquierda solo cuando la derecha es demasiado
+angosta), una figura a la vez, solo cuando un paso la pide:
+
+- `symbol`: el símbolo de esquema de la pieza (un transistor bipolar, un MOSFET, un LED, un diodo, un
+  zener, una resistencia, un condensador, un chip como bloque con los nombres y números de sus patas).
+  La pieza dice cuál pata es cuál con los nombres del símbolo, no con líneas: al comienzo de la fila de
+  la pata cuando el diagrama de patas la muestra («E · emisor · …»), si no, bajo su punta (M22).
+- `inside`: lo que pasa por dentro, dibujado con la simulación en cada tick (M23): las tres capas de un
+  transistor bipolar con sus corrientes de base y de colector como flechas a su lado, tan anchas como
+  la corriente, con sus cifras y su región debajo; el canal de un MOSFET que se abre con el voltaje de
+  su compuerta, con su corriente como una flecha debajo; el chip de
+  un LED que brilla con su brillo; los comparadores, el *latch* y la salida de un 555. Didáctico, no a
+  escala.
+
+| Campo | Valores | Por defecto | |
+|---|---|---|---|
+| `on` | `true`, `false`, *obligatorio* | | `false`: se va la figura |
+| `part` | un id, *obligatorio* con `on: true` | | una pieza cuyo tipo la tiene (`TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`; `render-frames.js --parts` dice cuáles) |
+| `move`, `ms`, `curve` | | `arrival` | |
+
+```json
+{ "at": 4800, "do": "symbol", "part": "Q1", "on": true },
+{ "at": 6000, "do": "inside", "part": "Q1", "on": true },
+{ "at": 14000, "do": "inside", "on": false }
 ```
 
 ### `flip`: el otro lado
@@ -337,7 +366,7 @@ tiempo.
 forma, tamaño o archivo deja la página sin recorrido (`TOUR_SHAPE`, `TOUR_FIELD`, `TOUR_ACTION`,
 `TOUR_MOVE`, `TOUR_JSON`, `TOUR_TOO_LARGE`…); una pieza o un control desconocido, un `ms` fuera del
 rango de su movimiento, un ritmo roto, un valor que el subtítulo siguiente quita antes de un segundo
-(`TOUR_VALUE_HIDDEN`), una pata que la pieza no tiene (`TOUR_UNKNOWN_PIN`), una marca que no tiene (`TOUR_NO_MARK`), un banco en un circuito que no se simula (`TOUR_BENCH_NOT_SIMULATED`) o una línea de tiempo de más de diez minutos es un aviso y
+(`TOUR_VALUE_HIDDEN`), una pata que la pieza no tiene (`TOUR_UNKNOWN_PIN`), una marca que no tiene (`TOUR_NO_MARK`), un banco en un circuito que no se simula (`TOUR_BENCH_NOT_SIMULATED`), un símbolo o una vista por dentro que el tipo de la pieza no tiene (`TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`) o una línea de tiempo de más de diez minutos es un aviso y
 igual se reproduce. Topes: 100 kB, 200 pasos, 280 caracteres por texto, diez minutos.
 
 ## Grabar
