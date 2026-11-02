@@ -9,6 +9,21 @@ detail.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-02
+
+### Added
+
+- **A video of a circuit can open on its main part alone**: `scene` on the pedestal and a `land` with
+  the other parts already in their holes (no `assemble`) bring the board, lights, labels and current
+  back as they were; the timeline guide says how to write it.
+- **The oscilloscope shows a change**: a `probe` in a recording takes `window` (a fixed time axis,
+  from t = 0 then scrolling) and `marks` (a dashed line with the control's new value at each `set`),
+  so a set that slows a 555 reads as a longer tooth after the line. `render-frames.js --parts` prints
+  the oscilloscope's default window and how fast simulated time runs.
+- **A solid focus**: `focus` with `solid` draws the parts in focus whole over the current layer until
+  the next focus, to point at the part a `set` changes.
+- `examples/tours/555-what-if.json` uses the three; golden frames M24 and M25.
+
 ## [0.4.0] - 2026-11-01
 
 ### Added
@@ -104,7 +119,8 @@ detail.
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.2.0...v0.3.0
