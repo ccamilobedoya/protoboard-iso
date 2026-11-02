@@ -23,7 +23,7 @@ pinout with the showcase's schematic symbol beside the part (see *The direction 
 | F2 | Anatomy: `pin` and orientation | ✅ built 2026-11-01; a frame of each waits for approval |
 | F3 | The bench: `bench` | ✅ built 2026-11-01; a frame waits for approval |
 | F4 | `symbol` and `inside` | ✅ built 2026-11-01; frames wait for approval, then the D7 trial |
-| F5 | The part in the page (interactive), only if D7 says so | ⬜ open |
+| F5 | The part in the page (interactive): the trial's prototype polished, a session of its own | ⬜ next (D7 said yes, 2026-11-01) |
 | F6 | Bench of timelines and guide | ⬜ |
 
 **Everything is asked for** (the maintainer, 2026-11-01): the pedestal shows only what its timeline's
@@ -79,7 +79,7 @@ supply, clips), but the first drawing without a board and two circuits to keep i
 | D4 | First wave of parts | BJT `2N2222A`, the MOSFET of `mosfet-switch`, LED, `NE555`, each with its final recipe (`npn-switch`, `mosfet-switch`, `led-resistor`, `555-astable`) | BJT and LED only |
 | D5 | Bench | the current layer as a plan, limited to the part, stubs lengthened to a pad per pin carrying the pin's voltage and current | a drawn supply and clips |
 | D6 | Transition | **B, the board rises**: the part does not move on screen, the board appears under it (unveiled, with a camera move that compensates), then `assemble` | A, the part comes down with `insert` |
-| D7 | Page | **open**: decided with a live trial. After F4, a quick prototype in the page behind `?focusView=1`, tried on a phone and a tablet; then F5 as written, changed, or dropped (the video does not need it) | build it from the start; never build it |
+| D7 | Page | **decided 2026-11-01 after the live trial: yes.** The prototype behind `?focusView=1` (`page/client/focus-view.js`) was tried and liked; F5 polishes it in a session of its own, with the maintainer's list below | build it from the start; never build it |
 
 ## Measurements (F0)
 
@@ -296,12 +296,39 @@ TO-220 is tall, its bench did not fit under it; a bench now takes the part up by
 its move, never past the free area's top. `focus-mosfet.json` and `focus-led.json` are F4's (F6 polishes
 the four).
 
-### F5 · The part in the page (only if D7 says so)
+### F5 · The part in the page
 
-The ⓘ of a part's kind in the card opens *See the part*: the page enters `scene part` with the code of
-F1 to F4 driven by a finger (Pins, Symbol, Inside, Bench; the card's sliders stay live); ✕ or a tap on
-the board lands it. Phone (bottom sheet) and desktop (right panel), keyboard focus, `aria-label` on
-callouts, reduced motion; `page.focusView: false` turns it off.
+**The trial (2026-11-01).** A prototype behind `?focusView=1`, in a page made with
+`renderPage(…, { focusView: true })` (`page/client/focus-view.js`): *See the part* in a part's card puts
+it on its pedestal with a bar of toggles (Pins, Bench, Symbol, Inside, Back), each running the same
+steps a video runs (`tour.run`, `tour.hold`). The maintainer tried it and liked the idea: F5 goes ahead,
+as a session of its own, because there is much to polish.
+
+**What the trial showed (the maintainer's list), each to fix in F5:**
+
+1. **A tap outside makes the part disappear.** A tap on the drawing while the part is on its pedestal
+   must not take the focus away: outside taps do nothing, or land the part as Back does (decide and
+   measure on a phone).
+2. **The *See the part* button looks out of place** in the card. Redesign it from the taste and UX skills
+   and the page's tokens, as an entry that belongs to the card.
+3. **The bar.** Review it for a better experience and a better look: grouping (what is shown vs. leaving),
+   the pressed state, icons or not, its place against the safe areas, one row where it fits.
+4. **The inside view has no legend.** In a video the captions explain it; in the page nothing does, so a
+   learner sees shapes without knowing what they are. Each inside view needs its key in the page: what
+   the colours (n, p), the arrows (conventional current, width by current), the channel or the latch mean,
+   from the kit's texts (`t()`).
+5. **The phone.** Review the whole experience on a phone: sizes (a chip's eight pads, rows cut with "…",
+   the figure beside the part), the bar over the drawing, touch targets, safe areas, landscape.
+6. **Back must not jump.** Landing, the camera now goes out to the whole circuit, which the learner did
+   not expect. It stays centred where the part was (the land keeps the part still on screen; then no
+   further frame), so the board simply appears around it.
+
+And from the plan: desktop and tablet (the bar or a panel beside the drawing), keyboard focus and
+Escape, `aria-label` on the callouts and pads, reduced motion (every move a cut), `page.focusView` in
+the circuit to turn it off (or on in the pages that should have it), the demo site with it, `ux-shots.js`
+at its five sizes, `validate_contrast` and an a11y review of the bar and the legends. Done when the
+maintainer tries it on a phone and a tablet and approves it, and the pages without it are byte for byte
+as before.
 
 ### F6 · Bench of timelines and guide
 

@@ -475,6 +475,13 @@ export default {
   'page.tour.play': 'Ver cómo funciona',
   'page.tour.stop': 'Toca en cualquier lugar para detenerlo',
   // La vista por dentro de una pieza (un video sobre una pieza, page/client/figure.js): qué hace un 555.
+  // El ensayo de la vista de una pieza en la página (D7, page/client/focus-view.js).
+  'page.tour.view.open': 'Ver la pieza',
+  'page.tour.view.pins': 'Patas',
+  'page.tour.view.bench': 'Banco',
+  'page.tour.view.symbol': 'Símbolo',
+  'page.tour.view.inside': 'Por dentro',
+  'page.tour.view.back': 'Volver a la protoboard',
   'page.tour.inside.high': 'salida alta',
   'page.tour.inside.low': 'salida baja',
   'page.tour.inside.charging': 'C se carga',

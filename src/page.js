@@ -290,6 +290,10 @@ function liveData(circuit, lang, flow, templates) {
   };
 }
 
+// What the trial of a part's view (D7) can show: every part but wires and boards, with its pins, bench,
+// symbol and inside view.
+const viewSteps = (built) => built.parts.filter((p) => p.type !== 'wire' && p.type !== 'module').flatMap((p) => ['pin', 'bench', 'symbol', 'inside'].map((what) => ({ do: what, part: p.id })));
+
 // The pinouts a tour's `pin` steps show (a video about one part, F2; src/pinout.js), per view: each
 // pin's name, its row of text and where it goes into the board, and the package's mark. Only the
 // parts the steps name: a page without them carries nothing more.
@@ -358,7 +362,10 @@ export function renderPage(circuit, options = {}) {
   const compiled = results || flow ? compile(circuit) : null;
   const live = compiled?.program ? liveData(circuit, lang, flow, templates) : null;
   // The tour plays in a live page only: its steps move controls and read the simulation.
-  const tour = live ? loadTour(circuit, lang).tour : null;
+  // The trial of a part's view (D7, `focusView`): a page made for it carries the pinouts of every
+  // part and an empty timeline, so the player is there to run the view's steps (focus-view.js).
+  const focusView = Boolean(options.focusView && live);
+  const tour = live ? loadTour(circuit, lang).tour ?? (focusView ? { format: 'vertical', theme: 'stage', steps: [] } : null) : null;
   const data = {
     parts,
     nodes,
@@ -374,7 +381,8 @@ export function renderPage(circuit, options = {}) {
     lift: Math.round(-rendered[0].scene.camera.projectDir(Z).y * 1000) / 1000,
     ...(live && { live }),
     ...(tour && { tour }),
-    ...(tour && pinoutData(circuit, tour, built, rendered, lang)),
+    ...(tour && pinoutData(circuit, focusView ? { steps: [...tour.steps, ...viewSteps(built)] } : tour, built, rendered, lang)),
+    ...(focusView && { focusView: true }),
     text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit'), tabPart: t(lang, 'page.tab.part'), tabStrip: t(lang, 'page.tab.strip'), model: t(lang, 'sim.badge'), modelShort: t(lang, 'page.model') },
   };
   const title = titleOf(circuit, lang) ?? t(lang, 'page.untitled');

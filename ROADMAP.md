@@ -285,8 +285,8 @@ Asked by the maintainer (2026-11-01): a video format about one concrete part (a 
 - ✅ F2 · Anatomy: `pin` (a pin, the package's mark, or off; M19, M20) with rows that never cross and stay in the free area; orientation as data in six packages, its sentence from the camera; pin texts by kind of part and by part number (`pin.role.*`); `TOUR_UNKNOWN_PIN`, `TOUR_NO_MARK`; `--parts` lists the pins; `examples/tours/focus-555.json`, the pins in `focus-npn.json`, jsdom cases and two golden frames (a frame of each waits for the maintainer)
 - ✅ F3 · The bench: `bench` (M21): pads in the voltage's colour with the pin's voltage, current and what it is joined to, the current's dots along the stubs, a hidden part's `set` seen on them; `TOUR_BENCH_NOT_SIMULATED`; the bench in `focus-npn.json` (R1 raised a hundredfold) and `focus-555.json`; jsdom cases and a golden frame (a frame waits for the maintainer)
 - ✅ F4 · `symbol` and `inside` (M22, M23): the schematic symbol beside the part, its pins named on the part (no lines), and a view of its inside drawn from the simulation, for the BJT, the MOSFET, the LED and the 555; `TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`; a tall part goes up for its bench; `focus-mosfet.json` and `focus-led.json` join the other two; jsdom cases and two golden frames (a frame of each waits for the maintainer)
-- ⬜ The trial of the page view (D7): a minimal prototype behind `?focusView=1`
-- ⬜ F5 · The part in the page, only if the trial says so
+- ✅ The trial of the page view (D7): a prototype behind `?focusView=1` in a page made with `focusView` (`page/client/focus-view.js`): *See the part* in a part's card, a bar of Pins, Bench, Symbol, Inside and Back; tried and liked (2026-11-01): it goes ahead as F5
+- 🔜 F5 · The part in the page, a session of its own: outside taps keep the part, the button and the bar redesigned (taste and UX skills), a legend for each inside view, the phone reviewed, Back without a jump; desktop, keyboard, accessibility, `page.focusView`, the demo site
 - ⬜ F6 · Four timelines and the guide's section; a medium model writes a fifth from the guide alone
 
 ## Stage 4 — On a phone or tablet ⬜

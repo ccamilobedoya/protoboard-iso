@@ -100,7 +100,8 @@ export function screenOf(page) {
   const k = Math.max(box[2] / r.width, box[3] / r.height);
   const toScreen = (x, y) => ({ x: r.width / 2 + (x - box[0] - box[2] / 2) / k, y: r.height / 2 + (y - box[1] - box[3] / 2) / k });
   const at = (x, y) => [box[0] + box[2] / 2 + (x - r.width / 2) * k, box[1] + box[3] / 2 + (y - r.height / 2) * k].map(fixed);
-  const u = r.width / (r.width > r.height ? 1920 : 1080);
+  // In the page (the trial of the part's view) a phone is far narrower than a video: sizes keep a floor.
+  const u = Math.max(r.width / (r.width > r.height ? 1920 : 1080), document.body.classList.contains('focus-view') ? 0.6 : 0);
   const inset = page.inset?.() ?? FREE;
   const free = { x0: inset.left * r.width, x1: (1 - inset.right) * r.width, y1: (1 - inset.bottom) * r.height };
   return { svg, rect: r, key: [page.state.view, box, r.width, r.height], k, toScreen, at, u, free: { ...free, y0: inset.top * r.height } };

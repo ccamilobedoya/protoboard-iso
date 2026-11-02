@@ -26,6 +26,8 @@ import { setupBench } from './bench.js';
 import { setupFigure } from './figure.js';
 import { partsRect } from './view.js';
 
+// A step run on its own (`run`) takes the move a timeline's step takes by default (src/tour.js).
+const DEFAULT_MOVES = { frame: 'arrival', scene: 'arrival', land: 'travel', pin: 'arrival', bench: 'arrival', symbol: 'arrival', inside: 'arrival' };
 const COUNT_MS = 500; // a value counts up to its reading (M9), unless a step says otherwise
 const WAIT_MS = 10_000; // a wait-until that never comes true gives up after this
 export const LANDING_PAUSE = 1800; // ms a landing rests on its first frame before it plays again
@@ -663,7 +665,8 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
   item.className = 'tour-play';
   item.textContent = t('page.tour.play');
   item.addEventListener('click', () => play());
-  page.menuAdd?.(item);
+  // A page whose timeline has no steps (only the trial of the part's view, focus-view.js) offers no tour.
+  if (steps.length) page.menuAdd?.(item);
   if (!recording && !landing) {
     document.addEventListener('pointerdown', stop, true);
     document.addEventListener('keydown', (e) => {
@@ -681,5 +684,23 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     get log() {
       return log;
     },
+    // One step at once, outside a timeline (the trial of the part's view in the page, D7;
+    // focus-view.js): the director has the time while `on`, and draws the pinout, bench and figure.
+    hold(on) {
+      if (on) {
+        page.direct(true);
+        director.after(pins.draw);
+        director.after(bench.draw);
+        director.after(figure.draw);
+        return;
+      }
+      unpin();
+      bench.clear();
+      figure.clear();
+      leaveScene();
+      director.stop();
+      page.direct(false);
+    },
+    run: (s) => act[s.do]?.({ move: DEFAULT_MOVES[s.do] ?? 'cut', ...s }),
   };
 }

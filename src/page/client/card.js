@@ -119,6 +119,7 @@ function openInfo(page, id, open) {
   if (p.sim.length) fillSim(page, item(info, 'div', null, 'sim'), p.sim, open);
   page.buildScope?.(info, id);
   page.buildControls?.(info, id);
+  page.buildFocusView?.(info, id);
   // Each pin's line opens the card of its strip, which the part often covers on screen. Folded:
   // where the pins go is reference, read less often than what the part does.
   const fold = item(info, 'details', null, 'pins');

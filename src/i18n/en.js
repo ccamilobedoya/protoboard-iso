@@ -476,6 +476,13 @@ export default {
   'page.tour.play': 'See how it works',
   'page.tour.stop': 'Tap anywhere to stop',
   // A part's inside view (a video about one part, page/client/figure.js): what a 555 is doing.
+  // The trial of a part's view in the page (D7, page/client/focus-view.js).
+  'page.tour.view.open': 'See the part',
+  'page.tour.view.pins': 'Pins',
+  'page.tour.view.bench': 'Bench',
+  'page.tour.view.symbol': 'Symbol',
+  'page.tour.view.inside': 'Inside',
+  'page.tour.view.back': 'Back to the board',
   'page.tour.inside.high': 'output high',
   'page.tour.inside.low': 'output low',
   'page.tour.inside.charging': 'C charging',

@@ -411,6 +411,15 @@ main[data-scene="land"] > svg > :is(.veil, .strips, .coords, .flow, .marks, .res
 .bench .volts { fill: var(--cap-value); font-weight: 600; }
 .bench .amps { fill: var(--ink-2); }
 body.layer-flow main[data-scene] > svg > .spotlight { opacity: 1; }
+/* The trial of a part's view in the page (D7; page/client/focus-view.js): the card's button, and a bar of
+   toggles at the bottom while the part is on its pedestal (the drawing takes no taps then). */
+.focus-open { margin: 8px 0 4px; min-height: 44px; padding: 0 14px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent-soft); color: var(--ink); font: inherit; cursor: pointer; }
+.focus-bar { position: absolute; left: 12px; right: 12px; bottom: max(16px, env(safe-area-inset-bottom)); z-index: 4; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0 auto; max-width: 560px; padding: 6px; border-radius: 12px; background: var(--tooltip); }
+.focus-bar[hidden] { display: none; }
+.focus-bar button { min-height: 44px; min-width: 44px; padding: 0 12px; border: 1px solid transparent; border-radius: 8px; background: none; color: var(--on-tooltip); font: inherit; cursor: pointer; }
+.focus-bar button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.focus-bar button[hidden] { display: none; }
+body.focus-view main > svg { pointer-events: none; }
 /* The figure beside a part (M22, M23; page/client/figure.js): its schematic symbol, or a teaching view
    of its inside with n and p material, the oxide and gate, a comparator or latch that is acting, the
    current as arrows in the dots' colour. */

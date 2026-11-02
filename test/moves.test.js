@@ -765,6 +765,27 @@ test('moves: M22 the symbol stands beside the part, its pins named on the part; 
   assert.equal(figure().children.length, 0, 'off');
 });
 
+// The trial of a part's view in the page (D7; page/client/focus-view.js): only a page made for it and
+// opened with ?focusView=1 offers it; the card's button puts the part on its pedestal with its bar.
+test('moves: the trial of the part\'s view is in a page made for it, behind ?focusView=1', async (t) => {
+  const plain = renderPage(npn({ steps: [] }), { lang: 'en' }).html;
+  const html = renderPage({ ...npn({ steps: [] }), page: {} }, { lang: 'en', focusView: true }).html;
+  assert.doesNotMatch(plain, /"focusView":true/);
+  const data = JSON.parse(html.match(/id="page-data">([\s\S]*?)<\/script>/)[1]);
+  assert.equal(data.focusView, true);
+  assert.ok(data.pinouts.front.Q1.symbol && data.pinouts.front.Q1.inside && data.pinouts.front.R1.symbol);
+  assert.equal(data.pinouts.front.W1, undefined, 'no wire');
+  const window = await loadPage(html, { url: 'https://page.test/npn.html?focusView=1' });
+  if (!window) return t.skip('jsdom not installed');
+  const doc = window.document;
+  assert.equal(doc.querySelector('.tour-play')?.isConnected ?? false, false, 'no tour offered in the menu');
+  const bar = doc.querySelector('.focus-bar');
+  assert.ok(bar?.hidden, 'the bar waits');
+  assert.deepEqual([...bar.querySelectorAll('button')].map((b) => b.textContent), ['Pins', 'Bench', 'Symbol', 'Inside', 'Back to the board']);
+  const without = await loadPage(html, { url: 'https://page.test/npn.html' });
+  assert.equal(without.document.querySelector('.focus-bar'), null, 'without ?focusView=1 the page is as it was');
+});
+
 test('moves: a part raised and then focused again stays seen (its copies keep their opacity)', async (t) => {
   const r = await recording([{ at: 0, do: 'raise', part: 'D1', move: 'cut' }, { at: 100, do: 'focus', parts: ['D1', 'R2'] }]);
   if (!r) return t.skip('jsdom not installed');

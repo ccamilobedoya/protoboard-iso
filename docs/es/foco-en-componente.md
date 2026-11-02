@@ -23,7 +23,7 @@ patas técnico con el símbolo de esquema de la vitrina al lado de la pieza (ver
 | F2 | Anatomía: `pin` y orientación | ✅ construida el 2026-11-01; falta aprobar un fotograma de cada una |
 | F3 | El banco: `bench` | ✅ construida el 2026-11-01; falta aprobar un fotograma |
 | F4 | `symbol` e `inside` | ✅ construida el 2026-11-01; faltan aprobar fotogramas, luego el ensayo de D7 |
-| F5 | La pieza en la página (interactiva), solo si D7 lo dice | ⬜ abierta |
+| F5 | La pieza en la página (interactiva): el prototipo del ensayo, pulido, en una sesión propia | ⬜ siguiente (D7 dijo que sí, 2026-11-01) |
 | F6 | Banco de líneas de tiempo y guía | ⬜ |
 
 **Todo se pide** (el mantenedor, 2026-11-01): el pedestal muestra solo lo que piden los pasos de su
@@ -82,7 +82,7 @@ par.
 | D4 | Primera tanda de piezas | BJT `2N2222A`, el MOSFET de `mosfet-switch`, LED, `NE555`, cada uno con su receta final (`npn-switch`, `mosfet-switch`, `led-resistor`, `555-astable`) | solo BJT y LED |
 | D5 | Banco | la capa de corriente en planta, solo de la pieza, con los tramos alargados hasta una pastilla por pata que lleva el voltaje (tensión) y la corriente de la pata | fuente y pinzas dibujadas |
 | D6 | Transición | **B, la protoboard sube**: la pieza no se mueve en pantalla, la protoboard aparece debajo (se quita el velo, con un viaje de cámara que compensa), luego `assemble` | A, la pieza baja con `insert` |
-| D7 | Página | **abierta**: se decide con un ensayo en vivo. Después de F4, un prototipo rápido en la página detrás de `?focusView=1`, probado en un celular y una tableta; entonces F5 como está escrita, cambiada o descartada (el video no la necesita) | hacerla desde el inicio; no hacerla nunca |
+| D7 | Página | **decidida el 2026-11-01 después del ensayo en vivo: sí.** El prototipo detrás de `?focusView=1` (`page/client/focus-view.js`) se probó y gustó; F5 lo pule en una sesión propia, con la lista del mantenedor de abajo | hacerla desde el inicio; no hacerla nunca |
 
 ## Medidas (F0)
 
@@ -314,12 +314,41 @@ hallazgo de la línea de tiempo del MOSFET: un TO-220 es alto y su banco no cab�
 sube la pieza lo que falta, con su movimiento, sin pasar del borde de arriba del área libre.
 `focus-mosfet.json` y `focus-led.json` son de F4 (F6 pule las cuatro).
 
-### F5 · La pieza en la página (solo si D7 lo dice)
+### F5 · La pieza en la página
 
-El ⓘ del tipo de pieza en la ficha abre *Ver la pieza*: la página entra en `scene part` con el código
-de F1 a F4 dirigido por el dedo (Patas, Símbolo, Por dentro, Banco; los deslizadores de la ficha siguen
-vivos); ✕ o un toque en la protoboard la devuelve. Celular (hoja inferior) y escritorio (panel derecho),
-foco de teclado, `aria-label` en los rótulos, movimiento reducido; `page.focusView: false` la apaga.
+**El ensayo (2026-11-01).** Un prototipo detrás de `?focusView=1`, en una página hecha con
+`renderPage(…, { focusView: true })` (`page/client/focus-view.js`): *Ver la pieza* en la ficha de una
+pieza la pone en su pedestal con una barra de botones (Patas, Banco, Símbolo, Por dentro, Volver), cada
+uno con los mismos pasos que corre un video (`tour.run`, `tour.hold`). El mantenedor lo probó y le gustó
+la idea: F5 sigue, como una sesión propia, porque hay bastante que pulir.
+
+**Lo que mostró el ensayo (la lista del mantenedor), cada punto para arreglar en F5:**
+
+1. **Un toque por fuera hace desaparecer la pieza.** Un toque en el dibujo mientras la pieza está en el
+   pedestal no debe quitarle el foco: los toques de fuera no hacen nada, o bajan la pieza como Volver
+   (decidirlo y medirlo en un celular).
+2. **El botón *Ver la pieza* se ve fuera de lugar** en la ficha. Rediseñarlo con los skills de taste y
+   UX y los tokens de la página, como una entrada que pertenece a la ficha.
+3. **La barra.** Revisarla para que sea una mejor experiencia y más bonita: agrupación (lo que se muestra
+   frente a salir), el estado presionado, iconos o no, su lugar frente a las zonas seguras, una sola fila
+   donde quepa.
+4. **El «por dentro» no tiene leyenda.** En un video lo explican los subtítulos; en la página nada lo
+   hace, así que quien aprende ve formas sin saber qué son. Cada vista por dentro necesita su leyenda en
+   la página: qué significan los colores (n, p), las flechas (corriente convencional, ancho según la
+   corriente), el canal o el *latch*, con los textos del kit (`t()`).
+5. **El celular.** Revisar toda la experiencia en un celular: tamaños (las ocho pastillas de un chip,
+   filas recortadas con «…», la figura al lado de la pieza), la barra sobre el dibujo, áreas táctiles,
+   zonas seguras, horizontal.
+6. **Volver no debe saltar.** Al bajar, la cámara ahora se aleja a todo el circuito, cosa que quien
+   aprende no espera. Debe quedar centrada donde estaba la pieza (el `land` deja la pieza quieta en
+   pantalla; después, ningún encuadre más), así la protoboard simplemente aparece a su alrededor.
+
+Y del plan: escritorio y tableta (la barra o un panel al lado del dibujo), foco de teclado y Escape,
+`aria-label` en los rótulos y las pastillas, movimiento reducido (cada movimiento un corte),
+`page.focusView` en el circuito para apagarla (o encenderla en las páginas que deban tenerla), el sitio
+de demostración con ella, `ux-shots.js` en sus cinco tamaños, `validate_contrast` y una revisión de
+accesibilidad de la barra y las leyendas. Terminada cuando el mantenedor la prueba en un celular y una
+tableta y la aprueba, y las páginas sin ella quedan idénticas byte a byte.
 
 ### F6 · Banco de líneas de tiempo y guía
 

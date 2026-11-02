@@ -40,6 +40,7 @@ import { createRecorder, samplesOf } from '../../sim/recorder.js';
 import { scopeOf } from '../../sim/scope.js';
 import { iconSvg } from './icons.js';
 import { createDirector, wantsDirector, wantsLanding } from './director.js';
+import { setupFocusView, wantsFocusView } from './focus-view.js';
 import { setupTour, LANDING } from './tour.js';
 import { stageInset, landingInset } from './view.js';
 import { bezier, LIGHT } from './moves.js';
@@ -539,6 +540,8 @@ export function setupLive(page) {
         },
       })
     : null;
+  // The trial of a part's view in the page (D7): only a page made for it, with ?focusView=1.
+  if (tour && data.focusView && !recording && !landing && wantsFocusView(location.search)) setupFocusView(page, { tour, t });
   window.protoboardLive = {
     tick(ms, steps = 1) {
       for (let k = 0; k < steps; k++) {
