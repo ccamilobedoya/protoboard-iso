@@ -123,7 +123,10 @@ The rules that keep it right:
   band above it, smaller: frame one or two parts, not the board, while the box is on, and take it
   away (`"off": true`) before the close. Its time axis follows the simulation's time and
   rescales by itself: after a `set` that changes a frequency, say what changes in the trace (more
-  cycles in the box, a steeper edge), not that it "goes slower".
+  cycles in the box, a steeper edge), not that it "goes slower". To show the change itself, give
+  the probe a fixed `window` (about twice the window `--parts` prints) and `"marks": true`: the
+  `set` leaves a line with its new value, and the cycles after it are longer or shorter than those
+  before (`examples/tours/555-what-if.json`).
 - **Rhythm.** Never two `push` in a row; never two `hit` without 400 ms between them. The check
   below names both.
 - **Length.** `--validate` prints when the last step runs: keep it between 10 and 23 s, so with
@@ -344,6 +347,7 @@ What `--validate` adds for this kind:
 | `rc-square.json` | recipe `rc-square` | a capacitor charging and discharging, on the oscilloscope |
 | `zener-regulator.json` | recipe `zener-regulator` | a Zener holds the voltage under a heavier load |
 | `555-astable.json` | recipe `555-astable` | a 555 blinking, and a resistor that changes its rhythm |
+| `555-what-if.json` | recipe `555-astable` | a video of a circuit that opens on its chip on the pedestal, and an oscilloscope with a fixed window and a mark that shows R1 slowing the blink |
 | `focus-npn.json` | `examples/npn-switch.json` | a video about one part: the 2N2222A |
 | `focus-mosfet.json` | recipe `mosfet-switch` | a video about one part: the IRLZ44N |
 | `focus-led.json` | recipe `led-resistor` | a video about one part: the LED |

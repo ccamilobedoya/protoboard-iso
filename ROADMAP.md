@@ -295,7 +295,7 @@ Asked by the maintainer (2026-11-02), for the short videos of a whole circuit: o
 alone, make the oscilloscope show what a control changed, and point at the part that changes.
 
 - ✅ A video of a circuit opens on its main part on the pedestal and lands it on the board with the other parts already there (no `assemble`): checked on `555-astable` with `U1` in a real render and in jsdom; the way to write it in `docs/en/timeline.md`
-- ⬜ The oscilloscope shows a change: a fixed time window and a mark at each `set` on a `probe` in a recording
+- ✅ The oscilloscope shows a change: on a `probe` in a recording, `window` (a fixed time axis, from t = 0 then scrolling) and `marks` (a dashed line with the new value at each `set`); `render-frames.js --parts` prints the oscilloscope's pace (`sim/pace.js`, shared with the page); `examples/tours/555-what-if.json`, jsdom cases and golden frame M24
 - ⬜ A solid focus: the parts in focus drawn whole over the current layer
 
 ## Stage 4 — On a phone or tablet ⬜

@@ -157,7 +157,10 @@ up to date.
   oscilloscope in a box of its own (one trace, `field`: `voltage` by default or `current`, from t = 0)
   in the band from 56 % to 75 % in portrait (the camera leaves that band free and frames again what it
   framed last) or under the caption in landscape; `"off": true` takes it away (in the page, it closes
-  the card). Steps repeated on every tick find a part's pieces once (`page.pieces`): the assembly went
+  the card). Showing a change (2026-11-02): `window` fixes the box's time axis (from t = 0, then
+  scrolling) and `marks` draws a dashed line with the control's new value at each `set`, so a set
+  that slows a 555 shows as a longer tooth after the line (`examples/tours/555-what-if.json`, golden
+  frame M24); the recorder keeps two of that window. Steps repeated on every tick find a part's pieces once (`page.pieces`): the assembly went
   from 400 ms to 2 ms a tick in jsdom. The pulse on load (V3) is not done: it is motion nobody asked
   for, and the maintainer wants motion for videos (to decide before building it).
   Controls (2026-10-31, the maintainer's request: "control over the whole animation"): every choice

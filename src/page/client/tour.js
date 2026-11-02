@@ -355,7 +355,11 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       page.state.view = s.view;
       page.show();
     },
-    set: (s) => director.set(s.part, s.field, s.value, timing(s)),
+    // A probe's box with marks draws a line where the set starts, with the new value (M11).
+    set: (s) => {
+      page.scopeMark?.(s.part, s.field, s.value);
+      return director.set(s.part, s.field, s.value, timing(s));
+    },
     flow: (s) => {
       page.state.layer = s.on ? 'flow' : 'parts';
       page.show();
@@ -391,13 +395,14 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       showValue();
     },
     // In the page, the card with its oscilloscope; in a recording, the oscilloscope in a box of its
-    // own (M11), the camera bringing the last thing it framed back into the room it leaves.
+    // own (M11), the camera bringing the last thing it framed back into the room it leaves; `window`
+    // keeps its time axis fixed and `marks` draws a line at each set (live.js).
     probe: (s) => {
       if (!recording) {
         if (s.off) return select(page, null);
         return s.node != null ? selectNode(page, s.node) : select(page, s.part);
       }
-      page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note });
+      page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note, window: s.window, marks: s.marks });
       if (framed) director.frame(framed.target, { ...moveTiming('arrival'), zoom: framed.zoom ?? 1, pan: framed.pan ?? null, alone: framed.alone ?? false });
     },
     // M15: in focus, then into its holes (`enter`: drop from `height` mm, the default 12; fade;

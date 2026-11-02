@@ -124,7 +124,10 @@ Las reglas que la dejan bien:
   arriba, más pequeño: mientras esté el recuadro, encuadrar una o dos piezas, no la protoboard, y
   quitarlo (`"off": true`) antes del cierre. Su eje de tiempo sigue el tiempo de la simulación y
   se reescala solo: después de un `set` que cambia una frecuencia, decir qué cambia en la traza
-  (más ciclos en el recuadro, un flanco más empinado), no que «va más lento».
+  (más ciclos en el recuadro, un flanco más empinado), no que «va más lento». Para mostrar el
+  cambio mismo, dale al `probe` una `window` fija (más o menos el doble de la ventana que imprime
+  `--parts`) y `"marks": true`: el `set` deja una línea con su valor nuevo, y los ciclos de después
+  son más largos o más cortos que los de antes (`examples/tours/555-what-if.json`).
 - **Ritmo.** Nunca dos `push` seguidos; nunca dos `hit` a menos de 400 ms. La revisión de abajo
   nombra los dos.
 - **Duración.** `--validate` dice cuándo corre el último paso: entre 10 y 23 s, para que con el
@@ -348,6 +351,7 @@ Lo que `--validate` agrega para este tipo:
 | `rc-square.json` | receta `rc-square` | un condensador que se carga y descarga, en el osciloscopio |
 | `zener-regulator.json` | receta `zener-regulator` | un Zener sostiene el voltaje con más carga |
 | `555-astable.json` | receta `555-astable` | un 555 que parpadea, y una resistencia que cambia su ritmo |
+| `555-what-if.json` | receta `555-astable` | un video de un circuito que abre con su chip en el pedestal, y un osciloscopio con ventana fija y una marca que muestra cómo R1 vuelve más lento el parpadeo |
 | `focus-npn.json` | `examples/npn-switch.json` | un video sobre una pieza: el 2N2222A |
 | `focus-mosfet.json` | receta `mosfet-switch` | un video sobre una pieza: el IRLZ44N |
 | `focus-led.json` | receta `led-resistor` | un video sobre una pieza: el LED |

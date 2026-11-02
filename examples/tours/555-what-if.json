@@ -1,0 +1,30 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "555-astable",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "scene", "mode": "part", "part": "U1", "zoom": 1.4 },
+    { "at": 0, "do": "caption", "text": { "en": "The 555, a timer chip", "es": "El 555, un chip temporizador" } },
+
+    { "at": 2500, "do": "land", "part": "U1" },
+    { "at": 2500, "do": "caption", "text": { "en": "Here it blinks an LED", "es": "Aquí hace parpadear un LED" } },
+    { "at": 4000, "do": "frame", "target": "parts", "move": "travel" },
+    { "at": 4000, "do": "flow", "on": true, "ramp": 600 },
+
+    { "at": 6000, "do": "probe", "part": "C1", "field": "voltage", "window": 1.1, "marks": true, "label": { "en": "C1", "es": "C1" } },
+    { "at": 6000, "do": "caption", "text": { "en": "C1 charges and discharges", "es": "C1 se carga y se descarga" }, "line": { "en": "Each tooth is a blink", "es": "Cada diente es un parpadeo" } },
+
+    { "at": 10000, "do": "caption", "text": { "en": "What if R1 were a hundred times bigger?", "es": "¿Y si R1 fuera cien veces mayor?" } },
+    { "at": 10000, "do": "frame", "target": "R1", "zoom": 1.2, "move": "arrival" },
+    { "at": 10000, "do": "focus", "parts": ["R1"] },
+    { "at": 11500, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 },
+
+    { "at": 16000, "do": "frame", "target": "parts", "move": "travel" },
+    { "at": 16000, "do": "focus", "parts": [] },
+    { "at": 16000, "do": "caption", "text": { "en": "After the mark, a slower tooth", "es": "Después de la marca, un diente más lento" } },
+
+    { "at": 24000, "do": "probe", "off": true },
+    { "at": 24000, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 24000, "do": "caption", "text": { "en": "Try it in the page: tap R1", "es": "Pruébalo en la página: toca R1" } }
+  ]
+}

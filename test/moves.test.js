@@ -317,6 +317,64 @@ test('moves: M7 a flash runs the current path from + to −, M11 the oscilloscop
   assert.ok(!r.doc.body.classList.contains('with-scope'));
 });
 
+// M11 showing a change (2026-11-02): a probe's fixed `window` keeps the time axis still, so a set
+// that slows the 555 shows as a longer tooth, and `marks` draws a line where the set came.
+async function astable(steps) {
+  const circuit = timelineCircuit('555-astable.json', {}, '555-astable');
+  const window = await loadPage(renderPage({ ...circuit, page: { ...circuit.page, tour: { steps } } }, { lang: 'en' }).html);
+  if (!window) return null;
+  window.protoboardLive.tour.play();
+  window.protoboardLive.tick(0);
+  let now = 0;
+  const to = (ms) => {
+    for (; now < ms; now += 100) window.protoboardLive.tick(100);
+  };
+  const axis = () => [...window.document.querySelectorAll('.scope-inset .scope-time')].map((el) => el.textContent);
+  return { doc: window.document, to, axis };
+}
+
+test('moves: M11 a probe with a fixed window and marks shows the set that slowed the 555', async (t) => {
+  const r = await astable([
+    { at: 0, do: 'probe', part: 'C1', window: 0.2, marks: true },
+    { at: 1000, do: 'set', part: 'R1', field: 'resistance', value: 100000, move: 'cut' },
+    { at: 1000, do: 'set', part: 'R2', field: 'resistance', value: 12000, move: 'cut' },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  r.to(500);
+  assert.equal(r.axis()[0], '0 s');
+  assert.equal(r.axis().at(-1), '200 ms', 'the window asked, not the kit\'s');
+  assert.equal(r.doc.querySelector('.scope-inset .scope-mark'), null, 'no set yet');
+  r.to(1100);
+  const marks = [...r.doc.querySelectorAll('.scope-inset .scope-mark-text')].map((el) => el.textContent);
+  assert.deepEqual(marks, ['R1 → 100 kΩ', 'R2 → 12 kΩ'], 'a line at each set, with its new value');
+  // The 555's time runs at 0.055 s a second (render-frames.js --parts): past the window at 3.6 s.
+  r.to(4500);
+  const [from, , end] = r.axis();
+  assert.notEqual(from, '0 s', `scrolling once the time is past the window: ${from} … ${end}`);
+  assert.ok(r.doc.querySelector('.scope-inset .scope-mark'), 'the mark scrolls with the trace');
+  r.to(8000);
+  assert.equal(r.doc.querySelector('.scope-inset .scope-mark'), null, 'and leaves the window');
+});
+
+test('moves: M11 without a window the box keeps the kit\'s own (it stretches), and no marks', async (t) => {
+  const r = await astable([
+    { at: 0, do: 'probe', part: 'C1' },
+    { at: 300, do: 'set', part: 'R1', field: 'resistance', value: 100000, move: 'cut' },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  r.to(600);
+  assert.equal(r.doc.querySelector('.scope-inset .scope-mark'), null);
+  assert.notEqual(r.axis().at(-1), '200 ms');
+});
+
+test('moves: M11 check knows a probe\'s window and marks', () => {
+  const field = (step) => loadTour(npn({ steps: [{ at: 0, ...step }] })).issues.filter((i) => i.code === 'TOUR_FIELD').map((i) => i.params.field);
+  assert.deepEqual(field({ do: 'probe', part: 'D1', window: 2, marks: true }), []);
+  assert.deepEqual(field({ do: 'probe', part: 'D1', window: 0 }), ['window']);
+  assert.deepEqual(field({ do: 'probe', part: 'D1', window: 7200 }), ['window']);
+  assert.deepEqual(field({ do: 'probe', part: 'D1', marks: 'yes' }), ['marks']);
+});
+
 // The controls (2026-10-31): every move's way can be said in the timeline; left out, the default.
 test('controls: check knows each field and its range', () => {
   const codes = (steps) => loadTour(npn({ steps })).issues.map((i) => i.code);

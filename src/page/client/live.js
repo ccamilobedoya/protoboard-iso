@@ -28,6 +28,7 @@
 // (page.direct), and keeps reduced motion.
 
 import { createEngine } from '../../sim/engine.js';
+import { paceOf } from '../../sim/pace.js';
 import { linesFor, nodeLines } from '../../sim/lines.js';
 import { deviceOfReading } from '../../sim/devices/index.js';
 import { formatValue } from '../../core/units.js';
@@ -52,7 +53,6 @@ const REFRESH = 250; // ms between repaints of colours, tags and card
 const TAG_SIZE = 8; // px, as in src/sim/overlay.js
 const MIN_MOVE = 0.05; // px of dot movement worth a redraw
 const SCOPE_SAMPLES = 2048; // per part
-const WALL_WINDOW = 10; // s of the oscilloscope when nothing changes by itself (no C or L)
 // Oscilloscope colours: the line on the dark screen, and its name on the white card.
 // The scope's colours are tokens in page/style.js (.scope-trace.v / .i), so they follow the theme.
 const SCOPE_V = { kind: 'v' };
@@ -66,26 +66,9 @@ export function setupLive(page) {
   const f = (value, unit) => formatValue(value, unit, { decimal: live.decimal });
   const volts = (v) => f(Math.abs(v) < 1e-3 ? 0 : v, 'V');
 
-  // Time: how fast simulated time runs, the step and the oscilloscope's window. With a signal
-  // generator, its period sets the pace: one period of the slowest per second, at least 100
-  // steps per period, a window of 4 periods. Otherwise the time constants: the longest every
-  // 2 s, a window of 5 of them.
+  // Time: how fast simulated time runs, the step and the oscilloscope's window (sim/pace.js).
   const engine = createEngine(program);
-  const stepFor = (list) => Math.max(Math.min(...list) / 50, Math.max(...list) / 5000);
-  function timing(taus, periods) {
-    // A board's program runs in real time, its delay() in seconds as on the bench: steps of
-    // 1 ms, or shorter for a fast RC beside it (never under 0.1 ms, so the page keeps up).
-    if (engine.hasProgram?.()) {
-      const h = Math.max(1e-4, Math.min(1e-3, taus.length ? stepFor(taus) : 1e-3, periods.length ? Math.min(...periods) / 100 : 1e-3));
-      return { h, perSecond: 1, window: Math.max(4, ...periods.map((p) => 4 * p)), periodic: periods.length > 0 };
-    }
-    if (periods.length) {
-      const h = Math.min(taus.length ? stepFor(taus) : Infinity, Math.min(...periods) / 100);
-      return { h, perSecond: Math.max(...periods), window: 4 * Math.max(...periods), periodic: true };
-    }
-    if (taus.length) return { h: stepFor(taus), perSecond: Math.max(...taus) / 2, window: 5 * Math.max(...taus) };
-    return { h: 0, perSecond: 0, window: WALL_WINDOW };
-  }
+  const timing = (taus, periods) => paceOf(taus, periods, Boolean(engine.hasProgram?.()));
   const pace = timing(engine.timeConstants(), engine.periods());
   const dynamic = pace.h > 0;
   let h = pace.h;
@@ -107,10 +90,13 @@ export function setupLive(page) {
   let lastRecord = -Infinity;
   let openScope = null;
   const scopeTime = () => (dynamic ? engine.time : wallTime);
+  // The recorder keeps two windows of samples: a recording's fixed window (a probe's `window`) when
+  // there is one, else the scope's own.
+  const recWindow = () => inset?.window ?? scopeWindow;
   function record(r, force = false) {
     if (!recorder || !r) return;
     const time = scopeTime();
-    if (!force && time - lastRecord < (2 * scopeWindow) / (dynamic ? 1500 : 500)) return;
+    if (!force && time - lastRecord < (2 * recWindow()) / (dynamic ? 1500 : 500)) return;
     lastRecord = time;
     for (const id of Object.keys(data.parts)) {
       const s = scopeOf(r.parts[id]);
@@ -126,17 +112,19 @@ export function setupLive(page) {
     if (!key.startsWith('node:')) return scopeOf(reading?.parts[key]);
     return reading?.nodes[key.slice(5)] != null ? { v: { label: t('page.scope.node'), value: reading.nodes[key.slice(5)] }, i: null } : null;
   }
-  // `only`: 'v' or 'i' for one trace (the inset of a recording), else both.
-  function drawOne({ id, scope, only, label }) {
+  // `only`: 'v' or 'i' for one trace (the inset of a recording), else both. `window` (a recording's
+  // probe): the screen always shows that much time, from t = 0 and then scrolling, so a change of
+  // pace is seen as more or fewer cycles instead of a new scale; `marks`: the sets it saw.
+  function drawOne({ id, scope, only, label, window, marks }) {
     const s = scopeFor(id);
     if (!s) return;
-    const end = Math.max(scopeTime(), scopeWindow);
-    const from = Math.max(0, end - 2 * scopeWindow);
+    const end = Math.max(scopeTime(), window ?? scopeWindow);
+    const from = Math.max(0, end - (window ?? 2 * scopeWindow));
     const rec = recorder.get(id);
     const traces = [];
     if (s.v && only !== 'i') traces.push({ label: label ?? s.v.label ?? t('page.scope.voltage'), unit: 'V', ...SCOPE_V, points: samplesOf(rec, 'a', from, end) });
     if (s.i && only !== 'v') traces.push({ label: label ?? s.i.label ?? t('page.scope.current'), unit: 'A', ...SCOPE_I, points: samplesOf(rec, 'b', from, end) });
-    scope.draw({ traces, from, to: end });
+    scope.draw({ traces, from, to: end, marks });
   }
   function drawScope() {
     if (inset) drawOne(inset);
@@ -145,9 +133,10 @@ export function setupLive(page) {
   }
   // M11: the oscilloscope of a part or a strip in a box of its own over the drawing (a recording's
   // probe), one trace, from t = 0; null takes it away. The camera leaves it room (view.js). The
-  // timeline may say its title, the trace's name and the note under it otherwise ("" for none).
+  // timeline may say its title, the trace's name and the note under it otherwise ("" for none), a
+  // fixed `window` of time in s, and `marks`: a line at each set from then on, with the new value.
   let inset = null;
-  page.insetScope = (id, only = 'v', { title, label, note } = {}) => {
+  page.insetScope = (id, only = 'v', { title, label, note, window, marks = false } = {}) => {
     inset?.box.remove();
     inset = null;
     document.body.classList.remove('with-scope');
@@ -156,10 +145,17 @@ export function setupLive(page) {
     box.className = 'scope-inset';
     page.main.appendChild(box);
     const own = { 'page.scope.title': title, 'page.scope.model': note };
-    inset = { id, box, only, label, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f }) };
+    inset = { id, box, only, label, window: window > 0 ? window : undefined, marks: marks ? [] : undefined, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f }) };
     document.body.classList.add('with-scope');
     drawOne(inset);
     return true;
+  };
+  // A set while the inset keeps marks (tour.js): a line at this time with the control's new value.
+  page.scopeMark = (part, field, value) => {
+    if (!inset?.marks) return;
+    const c = engine.controls().find((x) => x.id === part && x.field === field);
+    inset.marks.push({ t: scopeTime(), text: typeof value === 'number' ? `${part} → ${f(value, c?.unit ?? '')}` : part });
+    drawOne(inset);
   };
   // The card asks for it when it opens (card.js); closing the card takes it away. `id`: a part's,
   // or "node:<group>" for a strip.
@@ -448,7 +444,7 @@ export function setupLive(page) {
           break;
         }
         owed -= h;
-        if (recorder && engine.time - lastRecord >= (2 * scopeWindow) / 1500) record(engine.read());
+        if (recorder && engine.time - lastRecord >= (2 * recWindow()) / 1500) record(engine.read());
       }
       if (owed > 4 * h) owed = 0; // too slow to keep up: slow motion instead of a spiral
       reading = engine.read();

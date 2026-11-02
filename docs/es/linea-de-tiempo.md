@@ -356,6 +356,22 @@ bajo el subtítulo.
 | `title` | un texto (`""` para ninguno) | el del kit (*Osciloscopio*) | el título del recuadro |
 | `label` | un texto | el del kit (*Voltaje*, *Corriente*) | el nombre de la traza, antes de su valor |
 | `note` | un texto (`""` para ninguna) | la del kit (*modelo, desde el encendido*) | bajo la traza |
+| `window` | 0,000001…3600 s | la del kit | en una grabación, el tiempo que el recuadro muestra siempre: desde t = 0 y después corriéndose, así que un `set` que cambia el ritmo se ve como más o menos ciclos en vez de una escala nueva; en s del tiempo del osciloscopio (el simulado, o el del reloj en un circuito que no cambia solo) |
+| `marks` | `true`, `false` | `false` | en una grabación, una línea punteada en el recuadro en cada `set` desde ese momento, con el valor nuevo del control (*R1 → 100 kΩ*), para que se lean el antes y el después |
+
+Sin `window` el recuadro empieza con la ventana del kit, se estira con el tiempo hasta el doble y
+después se corre, y un `set` que cambia una constante de tiempo le da una ventana nueva: la traza se
+reescala sola y esconde un cambio de ritmo. Para mostrarlo, dale al recuadro una `window` fija y
+`marks`. Cuánto tiempo pedir: `render-frames.js --parts` imprime la ventana del kit y cuántos segundos
+de tiempo simulado muestra un segundo de video (`555-astable`: 0,55 s, a 0,055 s por segundo); el
+tiempo conserva esa velocidad después de un `set`, así que un parpadeo cien veces más lento también
+tarda cien veces más en pantalla. Una ventana de más o menos el doble de la del kit deja varios ciclos
+antes del `set` y uno largo después.
+
+```json
+{ "at": 6000, "do": "probe", "part": "C1", "window": 1.1, "marks": true },
+{ "at": 11500, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 }
+```
 
 ### `label`: el nombre de una pieza en una grabación
 

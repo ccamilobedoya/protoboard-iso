@@ -63,7 +63,7 @@ const FIELDS = {
   flow: { on: (v) => typeof v === 'boolean', ramp: within(0, 10_000) },
   caption: { text: isText, line: isText, off: (v) => v === true, enter: SHOW, in: within(0, 3000), stagger: within(0, 1000), out: within(0, 2000) },
   value: { part: id, field: (v) => Object.hasOwn(READINGS, v), label: isText, count: within(0, 5000), enter: SHOW, in: within(0, 3000) },
-  probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText },
+  probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean' },
   insert: { part: id, enter: ENTER, height: within(0, 40), dark: (v) => typeof v === 'boolean' },
   raise: { part: id, mm: within(0, RAISE.max) },
   assemble: { parts: (v) => Array.isArray(v) && v.length > 0 && v.every(assembled), gap: within(ASSEMBLE.min, ASSEMBLE.max), enter: ENTER, wire: WIRE, from: oneOf('start', 'end'), height: within(0, 40), dark: (v) => typeof v === 'boolean' },

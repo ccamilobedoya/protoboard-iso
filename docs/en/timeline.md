@@ -346,6 +346,21 @@ height (the camera frames again what it framed last, above the box), in landscap
 | `title` | a text (`""` for none) | the kit's (*Oscilloscope*) | the box's title |
 | `label` | a text | the kit's (*Voltage*, *Current*) | the trace's name, before its value |
 | `note` | a text (`""` for none) | the kit's (*model, since switching on*) | under the trace |
+| `window` | 0.000001…3600 s | the kit's | in a recording, the time the box always shows: from t = 0, then scrolling, so a `set` that changes the pace shows as more or fewer cycles instead of a new scale; in s of the oscilloscope's time (simulated, or the wall clock in a circuit that does not change by itself) |
+| `marks` | `true`, `false` | `false` | in a recording, a dashed line in the box at each `set` from then on, with the control's new value (*R1 → 100 kΩ*), so before and after both read |
+
+Without a `window` the box starts at the kit's window, stretches with the time up to twice that and
+then scrolls, and a `set` that changes a time constant gives it a new window: the trace rescales by
+itself and hides a change of pace. To show one, give the box a fixed `window` and `marks`. How much
+time to ask for: `render-frames.js --parts` prints the kit's window and how many seconds of simulated
+time a second of video shows (`555-astable`: 0.55 s, at 0.055 s a second); the time keeps that speed
+after a `set`, so a blink a hundred times slower takes a hundred times longer on screen too. A window
+of about twice the kit's keeps several cycles before the `set` and one long one after it.
+
+```json
+{ "at": 6000, "do": "probe", "part": "C1", "window": 1.1, "marks": true },
+{ "at": 11500, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 }
+```
 
 ### `label`: a part's name in a recording
 

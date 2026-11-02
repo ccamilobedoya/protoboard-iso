@@ -57,6 +57,9 @@ test('render-frames --parts: what a timeline can name, from the simulation', () 
   assert.equal(of('R1').controls[0].scale, 'log');
   assert.ok(supplies.some((s) => s.controls.some((c) => c.field === 'voltage')), 'the bench supply is set, not drawn');
   assert.ok(nodes.some((n) => n.node === 'T+'), 'strips by the names a probe takes');
+  // A probe's window: the oscilloscope's own and how fast time runs (the wall clock here: no C or L).
+  assert.deepEqual(timelineParts(timelineCircuit(file, read(file))).scope, { window: 10, speed: 0 });
+  assert.deepEqual(timelineParts(timelineCircuit('x.json', {}, '555-astable')).scope, { window: 0.55, speed: 0.055 });
 });
 
 test('render-frames: every example timeline plays its circuit without a warning', () => {

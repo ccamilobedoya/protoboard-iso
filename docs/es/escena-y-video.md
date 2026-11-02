@@ -173,7 +173,11 @@ página y la hoja de ruta al día.
   corriente. M11: en una grabación, `probe` muestra el osciloscopio en un recuadro propio (una traza,
   `field`: `voltage` por defecto o `current`, desde t = 0) en la franja del 56 % al 75 % en vertical
   (la cámara deja libre esa franja y vuelve a encuadrar lo último encuadrado) o bajo el subtítulo en
-  horizontal; `"off": true` lo quita (en la página, cierra la ficha). Los pasos que se repiten en cada
+  horizontal; `"off": true` lo quita (en la página, cierra la ficha). Mostrar un cambio (2026-11-02):
+  `window` fija el eje de tiempo del recuadro (desde t = 0 y después corriéndose) y `marks` dibuja una
+  línea punteada con el valor nuevo del control en cada `set`, así que un `set` que vuelve más lento un
+  555 se ve como un diente más largo después de la línea (`examples/tours/555-what-if.json`,
+  fotograma *golden* M24); la grabación guarda dos de esa ventana. Los pasos que se repiten en cada
   tick encuentran las piezas una vez (`page.pieces`): el armado pasó de 400 ms a 2 ms por tick en
   jsdom. El pulso al cargar (V3) queda sin hacer: es movimiento sin pedirlo, y el mantenedor prefirió
   que el movimiento sea para los videos (decidir antes de hacerlo).

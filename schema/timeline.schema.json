@@ -669,6 +669,16 @@
                   }
                 ],
                 "description": "The note under the trace instead of the kit's (\"\" for none)"
+              },
+              "window": {
+                "type": "number",
+                "minimum": 0.000001,
+                "maximum": 3600,
+                "description": "In a recording, the time the box always shows, in s of the oscilloscope's time (simulated, or the wall clock in a circuit that does not change by itself): from t = 0, then scrolling, so a set that changes the pace shows as more or fewer cycles instead of a new scale (default: the kit's window, which stretches and rescales; render-frames.js --parts gives it and how fast time runs)"
+              },
+              "marks": {
+                "type": "boolean",
+                "description": "In a recording, a dashed line in the box at each set from then on, with the control's new value, so before and after both read (default false)"
               }
             },
             "additionalProperties": false,

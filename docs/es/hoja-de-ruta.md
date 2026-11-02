@@ -300,7 +300,7 @@ Pedido del mantenedor (2026-11-02), para los videos cortos de un circuito entero
 principal sola, que el osciloscopio muestre lo que cambió un control, y señalar la pieza que cambia.
 
 - ✅ Un video de un circuito abre con su pieza principal en el pedestal y la baja a la protoboard con las demás piezas ya puestas (sin `assemble`): comprobado en `555-astable` con `U1` en un render real y en jsdom; cómo escribirlo en `docs/es/linea-de-tiempo.md`
-- ⬜ El osciloscopio muestra un cambio: una ventana de tiempo fija y una marca en cada `set` en un `probe` de una grabación
+- ✅ El osciloscopio muestra un cambio: en un `probe` de una grabación, `window` (un eje de tiempo fijo, desde t = 0 y después corriéndose) y `marks` (una línea punteada con el valor nuevo en cada `set`); `render-frames.js --parts` imprime el ritmo del osciloscopio (`sim/pace.js`, compartido con la página); `examples/tours/555-what-if.json`, casos en jsdom y fotograma *golden* M24
 - ⬜ Un foco sólido: las piezas en foco dibujadas enteras sobre la capa de corriente
 
 ## Etapa 4 — En el celular o la tableta ⬜

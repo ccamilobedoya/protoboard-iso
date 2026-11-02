@@ -50,6 +50,7 @@ import { loadTour, onPedestal } from '../src/tour.js';
 import { buildCircuit } from '../src/circuit/build.js';
 import { compile } from '../src/sim/compile.js';
 import { createEngine } from '../src/sim/engine.js';
+import { paceOf } from '../src/sim/pace.js';
 import { pinList } from '../src/pinout.js';
 import { symbolOf, insideOf } from '../src/parts/symbols.js';
 import { CHROMIUM_ARGS, frameProblems, measure, RULES } from './stage-shots.js';
@@ -113,10 +114,15 @@ export function timelineParts(circuit, lang = 'en') {
   const parts = (circuit.parts ?? []).map((p) => entry(p.id, p.type, { ...(p.value != null && { value: p.value }), ...(p.part && { part: p.part }), ...(p.color && { color: p.color }), pedestal: onPedestal(p), ...pinsOf(p.id) }));
   const supplies = (circuit.supplies ?? []).map((s) => entry(s.id, s.kind ?? 'supply', {}));
   const nodes = Object.entries(built.netlist.nodes).map(([node, members]) => ({ node, pins: members.map((m) => `${m.part}.${m.pin}`) }));
-  return { simulated: !compiled.fatal, parts, supplies, nodes };
+  // The oscilloscope's pace (a probe's `window`): the window it shows by default, and how many
+  // seconds of simulated time a second of video shows (0: the circuit does not change by itself, the
+  // box runs on the wall clock).
+  const pace = engine ? paceOf(engine.timeConstants(), engine.periods(), Boolean(engine.hasProgram?.())) : null;
+  const scope = pace ? { window: Number(pace.window.toPrecision(3)), speed: Number(pace.perSecond.toPrecision(3)) } : null;
+  return { simulated: !compiled.fatal, parts, supplies, nodes, scope };
 }
 
-function printParts(name, { simulated, parts, supplies, nodes }) {
+function printParts(name, { simulated, parts, supplies, nodes, scope }) {
   const range = (c) => (c.min != null ? ` ${c.min}…${c.max}` : '');
   console.log(`${name}: ${simulated ? 'simulated (a timeline can play)' : 'NOT simulated: no source, no tour'}`);
   const show = (p) => {
@@ -130,6 +136,7 @@ function printParts(name, { simulated, parts, supplies, nodes }) {
   parts.forEach(show);
   if (supplies.length) console.log('supplies (not drawn on the board: only set):');
   supplies.forEach(show);
+  if (scope) console.log(`oscilloscope (probe "window"): ${scope.window} s on screen by default; ${scope.speed ? `${scope.speed} s of simulated time per second of video` : 'the wall clock (nothing changes by itself)'}`);
   console.log('strips (probe "node"):');
   for (const n of nodes) console.log(`  ${n.node.padEnd(8)} ${n.pins.join(' ')}`);
 }

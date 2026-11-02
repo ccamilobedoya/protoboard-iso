@@ -311,6 +311,10 @@ nav .falstad .flag[hidden] { display: none; }
 .scope-time { fill: var(--ink-3); font-size: 9px; }
 .scope-end { text-anchor: end; }
 .scope-model { text-anchor: middle; font-style: italic; }
+/* A set seen by a recording's probe (M11): a dashed line where it happened, the new value beside it. */
+.scope-mark { stroke: var(--scope-scale); stroke-width: 1; stroke-dasharray: 3 2; }
+.scope-mark-text { fill: var(--scope-scale); font-size: 9px; font-weight: 600; }
+.scope-mark-text.scope-end { text-anchor: end; }
 .side .clear, .control .hold { font: inherit; color: var(--ink); background: var(--bench); border: 1px solid var(--hair-strong); border-radius: 4px; padding: 3px 9px; cursor: pointer; margin-top: 4px; }
 .side .clear:active, .control .hold:active { background: var(--press); }
 .control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 8px; margin: 4px 0; }

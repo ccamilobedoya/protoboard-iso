@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRecorder, samplesOf } from '../src/sim/recorder.js';
 import { scopeOf } from '../src/sim/scope.js';
+import { paceOf, WALL_WINDOW } from '../src/sim/pace.js';
 import { scaleOf, pathOf } from '../src/page/client/scope.js';
 import { simulate } from '../src/sim/index.js';
 import { renderPage } from '../src/page.js';
@@ -153,4 +154,14 @@ test('page: no oscilloscope where the card shows no results', async (t) => {
   assert.equal(window.protoboardLive.recording('C1'), null, 'nothing recorded');
   tap(window, 'C1');
   assert.equal(window.document.querySelector('.info .scope'), null);
+});
+
+test('pace: a generator sets it, else the longest time constant, else the wall clock; a program runs in real time', () => {
+  assert.deepEqual(paceOf([], [0.01]), { h: 0.0001, perSecond: 0.01, window: 0.04, periodic: true });
+  const rc = paceOf([0.1, 0.001], []);
+  assert.deepEqual([rc.perSecond, rc.window], [0.05, 0.5]);
+  assert.ok(Math.abs(rc.h - 2e-5) < 1e-12, 'the shortest constant over 50, unless the longest over 5000 is longer');
+  assert.deepEqual(paceOf([], []), { h: 0, perSecond: 0, window: WALL_WINDOW });
+  assert.deepEqual(paceOf([], [], true), { h: 0.001, perSecond: 1, window: 4, periodic: false });
+  assert.deepEqual(paceOf([1e-3], [2], true), { h: 1e-4, perSecond: 1, window: 8, periodic: true });
 });

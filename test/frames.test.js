@@ -10,13 +10,14 @@ import { RECIPES } from '../src/recipes/index.js';
 
 const HASH = /^[0-9a-f]{64}$/;
 
-test('frames: three recipes and a frame per move, each with a size, ticks and a stored hash', () => {
+test('frames: four recipes and a frame per move, each with a size, ticks and a stored hash', () => {
   const cases = loadCases();
-  assert.deepEqual([...new Set(cases.map((c) => c.recipe))].sort(), ['led-resistor', 'npn-switch', 'rc-square']);
+  assert.deepEqual([...new Set(cases.map((c) => c.recipe))].sort(), ['555-astable', 'led-resistor', 'npn-switch', 'rc-square']);
   // V6: one golden frame for each move built (the plan's M numbers), from a timeline or a tap; M17
-  // to M23 from a video about one part (docs/en/component-focus.md).
+  // to M23 from a video about one part (docs/en/component-focus.md); M24 an oscilloscope that shows
+  // a change (a fixed window and a set's mark, on the 555).
   const moves = cases.filter((c) => c.name.startsWith('move-')).map((c) => c.name.slice(5, 8));
-  assert.deepEqual(moves, ['m01', 'm02', 'm03', 'm04', 'm05', 'm07', 'm08', 'm09', 'm10', 'm11', 'm12', 'm13', 'm14', 'm15', 'm16', 'm17', 'm18', 'm19', 'm20', 'm21', 'm22', 'm23']);
+  assert.deepEqual(moves, ['m01', 'm02', 'm03', 'm04', 'm05', 'm07', 'm08', 'm09', 'm10', 'm11', 'm12', 'm13', 'm14', 'm15', 'm16', 'm17', 'm18', 'm19', 'm20', 'm21', 'm22', 'm23', 'm24']);
   for (const c of cases.filter((x) => x.tour)) assert.ok(existsSync(fileURLToPath(new URL(`../${c.tour}`, import.meta.url))), c.name);
   for (const c of cases) {
     assert.ok(RECIPES[c.recipe], c.name);
