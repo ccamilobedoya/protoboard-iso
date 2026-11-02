@@ -109,7 +109,9 @@ The rules that keep it right:
   raised. Frame the part you talk about; `focus` may hold a few.
 - **The current.** `flow` with `"on": true` and a `ramp` once, early: the dots, glow and colours
   come with it.
-- **A control.** A slider moves by itself with `set` and `"move": "travel"` (`ms` 1200 to 1800). A
+- **A control.** A slider moves by itself with `set` and `"move": "travel"` (`ms` 1200 to 1800).
+  With the current layer on, point at the part it changes with a `focus` and `"solid": true` (the
+  part drawn whole, not seen through). A
   button (`pressed`) changes at once with `hit`; leave a `breath` (400 ms) between two hits.
 - **A reading.** `value` after the caption it belongs to, at the same `at` and written after it, or
   later (the next caption takes the value away; `--validate` warns when that is within a
@@ -347,7 +349,7 @@ What `--validate` adds for this kind:
 | `rc-square.json` | recipe `rc-square` | a capacitor charging and discharging, on the oscilloscope |
 | `zener-regulator.json` | recipe `zener-regulator` | a Zener holds the voltage under a heavier load |
 | `555-astable.json` | recipe `555-astable` | a 555 blinking, and a resistor that changes its rhythm |
-| `555-what-if.json` | recipe `555-astable` | a video of a circuit that opens on its chip on the pedestal, and an oscilloscope with a fixed window and a mark that shows R1 slowing the blink |
+| `555-what-if.json` | recipe `555-astable` | a video of a circuit that opens on its chip on the pedestal, an oscilloscope with a fixed window and a mark that shows R1 slowing the blink, and R1 in a solid focus |
 | `focus-npn.json` | `examples/npn-switch.json` | a video about one part: the 2N2222A |
 | `focus-mosfet.json` | recipe `mosfet-switch` | a video about one part: the IRLZ44N |
 | `focus-led.json` | recipe `led-resistor` | a video about one part: the LED |

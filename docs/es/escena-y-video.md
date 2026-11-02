@@ -177,7 +177,8 @@ página y la hoja de ruta al día.
   `window` fija el eje de tiempo del recuadro (desde t = 0 y después corriéndose) y `marks` dibuja una
   línea punteada con el valor nuevo del control en cada `set`, así que un `set` que vuelve más lento un
   555 se ve como un diente más largo después de la línea (`examples/tours/555-what-if.json`,
-  fotograma *golden* M24); la grabación guarda dos de esa ventana. Los pasos que se repiten en cada
+  fotograma *golden* M24); la grabación guarda dos de esa ventana. Un `focus` con `"solid": true`
+  dibuja sus piezas enteras sobre la capa de corriente hasta el siguiente foco (fotograma *golden* M25). Los pasos que se repiten en cada
   tick encuentran las piezas una vez (`page.pieces`): el armado pasó de 400 ms a 2 ms por tick en
   jsdom. El pulso al cargar (V3) queda sin hacer: es movimiento sin pedirlo, y el mantenedor prefirió
   que el movimiento sea para los videos (decidir antes de hacerlo).

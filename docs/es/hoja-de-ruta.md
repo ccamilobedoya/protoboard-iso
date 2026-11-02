@@ -294,14 +294,14 @@ Pedido del mantenedor (2026-11-01): un formato de video sobre una pieza concreta
 - ✅ F5 · La pieza en la página (`page.focusView`): la primera fila de la ficha, una barra con Volver y dos controles segmentados, una leyenda para cada vista por dentro, los toques de fuera no quitan la pieza, Volver sin salto, el celular (la figura encima de la pieza, un banco compacto), teclado y lectores de pantalla, el sitio de demostración; falta que el mantenedor la pruebe en el celular y la tableta
 - ✅ F6 · Cuatro líneas de tiempo pulidas en seis tiempos (abre de cerca sobre la pieza, un tiempo funcionando, un subtítulo de cierre), la sección de la guía *Un video sobre una pieza* con sus reglas y códigos; un modelo mediano escribió `focus-zener.json` solo con la guía al primer intento (videos aprobados por el mantenedor)
 
-## Videos de un circuito que muestran el cambio (transversal) 🔜
+## Videos de un circuito que muestran el cambio (transversal) ✅
 
 Pedido del mantenedor (2026-11-02), para los videos cortos de un circuito entero: abrir con la pieza
 principal sola, que el osciloscopio muestre lo que cambió un control, y señalar la pieza que cambia.
 
 - ✅ Un video de un circuito abre con su pieza principal en el pedestal y la baja a la protoboard con las demás piezas ya puestas (sin `assemble`): comprobado en `555-astable` con `U1` en un render real y en jsdom; cómo escribirlo en `docs/es/linea-de-tiempo.md`
 - ✅ El osciloscopio muestra un cambio: en un `probe` de una grabación, `window` (un eje de tiempo fijo, desde t = 0 y después corriéndose) y `marks` (una línea punteada con el valor nuevo en cada `set`); `render-frames.js --parts` imprime el ritmo del osciloscopio (`sim/pace.js`, compartido con la página); `examples/tours/555-what-if.json`, casos en jsdom y fotograma *golden* M24
-- ⬜ Un foco sólido: las piezas en foco dibujadas enteras sobre la capa de corriente
+- ✅ Un foco sólido: `focus` con `solid` dibuja sus piezas enteras y opacas sobre la capa de corriente hasta el siguiente foco (lo transparente del plano sigue por defecto); R1 en `555-what-if.json`, un caso en jsdom y el fotograma *golden* M25
 
 ## Etapa 4 — En el celular o la tableta ⬜
 

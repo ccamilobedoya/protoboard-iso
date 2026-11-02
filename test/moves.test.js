@@ -375,6 +375,36 @@ test('moves: M11 check knows a probe\'s window and marks', () => {
   assert.deepEqual(field({ do: 'probe', part: 'D1', marks: 'yes' }), ['marks']);
 });
 
+// A solid focus (2026-11-02): the part pointed at drawn whole over the current layer, until the
+// next focus; by default the plan sees through it.
+test('moves: a solid focus draws its parts whole over the current layer, until the next focus', async (t) => {
+  const r = await recording([
+    { at: 0, do: 'set', part: 'S1', field: 'pressed', value: true, move: 'cut' },
+    { at: 0, do: 'flow', on: true },
+    { at: 100, do: 'focus', parts: ['R1'] },
+    { at: 300, do: 'focus', parts: ['R1'], solid: true },
+    { at: 500, do: 'focus', parts: ['D1'], move: 'arrival' },
+    { at: 1500, do: 'focus', parts: ['D1'], solid: true, move: 'arrival' },
+    { at: 2500, do: 'focus', parts: [], solid: true },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  const solid = () => r.doc.body.classList.contains('focus-solid');
+  r.to(200);
+  assert.equal(solid(), false, 'seen through by default');
+  r.to(400);
+  assert.equal(solid(), true);
+  assert.ok(r.svg().querySelector(':scope > .spotlight > [data-part="R1"]'), 'R1 in focus');
+  r.to(600);
+  assert.equal(solid(), false, 'the next focus without it');
+  r.to(1600);
+  assert.equal(solid(), true, 'with a move too');
+  r.to(2600);
+  assert.equal(solid(), false, 'nothing in focus, nothing solid');
+  assert.match(r.doc.querySelector('style').textContent, /body\.layer-flow\.focus-solid\[data-flow="plan"\] \.spotlight \{ opacity: 1; \}/);
+  const field = (step) => loadTour(npn({ steps: [{ at: 0, ...step }] })).issues.filter((i) => i.code === 'TOUR_FIELD').map((i) => i.params.field);
+  assert.deepEqual(field({ do: 'focus', parts: ['R1'], solid: 'yes' }), ['solid']);
+});
+
 // The controls (2026-10-31): every move's way can be said in the timeline; left out, the default.
 test('controls: check knows each field and its range', () => {
   const codes = (steps) => loadTour(npn({ steps })).issues.map((i) => i.code);

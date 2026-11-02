@@ -263,7 +263,7 @@ function timelineSchema(localized) {
         items: {
           oneOf: [
             action('frame', { target: { oneOf: [{ type: 'string' }, { type: 'array', items: id, minItems: 1 }], description: 'board, parts, here (the frame as it is), a part id or a list of part ids' }, zoom: { type: 'number', minimum: 0.05, maximum: 20, description: 'Closer in (above 1) or farther out (below 1), about the centre' }, pan: { type: 'array', items: { type: 'number', minimum: -3, maximum: 3 }, minItems: 2, maxItems: 2, description: 'Then moved by [x, y] shares of the frame: [0.2, 0] a fifth to the right, [0, -0.1] a tenth up' } }, ['target']),
-            action('focus', { parts: { type: 'array', items: id, description: 'The parts brought forward; [] clears. With a move, the veil, strips and coordinates come in (or leave) along it' } }, ['parts']),
+            action('focus', { parts: { type: 'array', items: id, description: 'The parts brought forward; [] clears. With a move, the veil, strips and coordinates come in (or leave) along it' }, solid: { type: 'boolean', description: 'The parts in focus drawn whole and opaque even with the current layer on (by default the plan sees through them); until the next focus' } }, ['parts']),
             action('flip', { view: { type: 'string', description: 'A view of the page (front, back…)' } }, ['view']),
             action('set', { part: id, field: { type: 'string', description: 'A control of the part (resistance, pressed, voltage…)' }, value: { type: ['number', 'boolean'] } }, ['part', 'field', 'value']),
             action('flow', { on: { type: 'boolean' }, ramp: { type: 'number', minimum: 0, maximum: 10000, description: 'ms for the dots to reach their speed' } }, ['on']),

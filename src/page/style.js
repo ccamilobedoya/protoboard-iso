@@ -218,6 +218,8 @@ body.layer-flow .lights { display: none; } /* the current layer draws its own gl
 /* The plan (stage and video, V3): the parts in focus are drawn over the current layer, seen through,
    so its lines read under their bodies; a pad's edge is the colour behind it. */
 body.layer-flow[data-flow="plan"] .spotlight { opacity: 0.5; }
+/* A timeline's solid focus (focus with solid): the part pointed at is drawn whole over the current. */
+body.layer-flow.focus-solid[data-flow="plan"] .spotlight { opacity: 1; }
 .flow .pad-edge { stroke: var(--veil); }
 .coords > text { fill: var(--accent); }
 .coords > * { display: none; }

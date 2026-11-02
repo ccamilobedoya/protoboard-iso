@@ -110,6 +110,8 @@ Las reglas que la dejan bien:
 - **La corriente.** `flow` con `"on": true` y una `ramp`, una vez, al comienzo: con ella llegan los
   puntos, el brillo y los colores.
 - **Un control.** Un deslizador se mueve solo con `set` y `"move": "travel"` (`ms` de 1200 a 1800).
+  Con la capa de corriente encendida, señalar la pieza que cambia con un `focus` y `"solid": true`
+  (la pieza dibujada entera, no vista a través).
   Un pulsador (`pressed`) cambia de una vez con `hit`; dejar un `breath` (400 ms) entre dos golpes.
 - **Una lectura.** `value` después del subtítulo al que pertenece: con el mismo `at` y escrito
   después de él, o más tarde (el subtítulo siguiente quita el valor; `--validate` avisa cuando eso
@@ -351,7 +353,7 @@ Lo que `--validate` agrega para este tipo:
 | `rc-square.json` | receta `rc-square` | un condensador que se carga y descarga, en el osciloscopio |
 | `zener-regulator.json` | receta `zener-regulator` | un Zener sostiene el voltaje con más carga |
 | `555-astable.json` | receta `555-astable` | un 555 que parpadea, y una resistencia que cambia su ritmo |
-| `555-what-if.json` | receta `555-astable` | un video de un circuito que abre con su chip en el pedestal, y un osciloscopio con ventana fija y una marca que muestra cómo R1 vuelve más lento el parpadeo |
+| `555-what-if.json` | receta `555-astable` | un video de un circuito que abre con su chip en el pedestal, y un osciloscopio con ventana fija y una marca que muestra cómo R1 vuelve más lento el parpadeo, y R1 en un foco sólido |
 | `focus-npn.json` | `examples/npn-switch.json` | un video sobre una pieza: el 2N2222A |
 | `focus-mosfet.json` | receta `mosfet-switch` | un video sobre una pieza: el IRLZ44N |
 | `focus-led.json` | receta `led-resistor` | un video sobre una pieza: el LED |

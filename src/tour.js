@@ -57,7 +57,7 @@ const color = (v) => Object.hasOwn(PULSE_COLORS, v) || (typeof v === 'string' &&
 const assembled = (v) => id(v) || (v && typeof v === 'object' && !Array.isArray(v) && id(v.part) && Object.keys(v).every((k) => ['part', 'enter', 'wire', 'from'].includes(k)) && (v.enter == null || ENTER(v.enter)) && (v.wire == null || WIRE(v.wire)) && (v.from == null || oneOf('start', 'end')(v.from)));
 const FIELDS = {
   frame: { target: (v) => id(v) || ids(v), zoom: within(0.05, 20), pan: (v) => Array.isArray(v) && v.length === 2 && v.every(within(-3, 3)) },
-  focus: { parts: (v) => Array.isArray(v) && v.every(id) },
+  focus: { parts: (v) => Array.isArray(v) && v.every(id), solid: (v) => typeof v === 'boolean' },
   flip: { view: id },
   set: { part: id, field: id, value: (v) => num(v) || typeof v === 'boolean' },
   flow: { on: (v) => typeof v === 'boolean', ramp: within(0, 10_000) },

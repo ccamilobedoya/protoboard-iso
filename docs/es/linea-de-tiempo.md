@@ -101,6 +101,7 @@ En una grabación, el encuadre de una pieza incluye su rótulo corto. Para segui
 | Campo | Valores | Por defecto | |
 |---|---|---|---|
 | `parts` | una lista de ids, *obligatorio*; `[]` lo quita | | las piezas que pasan al frente: lo demás se oscurece bajo un velo, se ven las tiras bajo sus patas y se encienden las coordenadas impresas de sus agujeros |
+| `solid` | `true`, `false` | `false` | las piezas en foco dibujadas enteras y opacas aunque esté la capa de corriente (por defecto sus líneas se ven a través de ellas), hasta el siguiente `focus`: para señalar la pieza que cambia un `set` |
 | `move`, `ms`, `curve` | | `cut` | con un movimiento, el velo, las tiras y las coordenadas llegan con él, o se van (`[]`) |
 
 En una grabación solo la pieza contada conserva un rótulo: la última encuadrada, en foco, insertada

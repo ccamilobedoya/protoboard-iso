@@ -114,7 +114,9 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       }
     }
   };
-  const focusOn = (parts) => {
+  // `solid`: the parts in focus drawn whole over the current layer (page/style.js), until the next focus.
+  const focusOn = (parts, solid = false) => {
+    document.body.classList.toggle('focus-solid', solid && parts.length > 0);
     page.state.node = null;
     page.state.focus = new Set(parts);
     if (page.told !== undefined) page.told = parts.at(-1) ?? null;
@@ -337,9 +339,9 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       const { ms, ease } = timing(s);
       const was = document.body.classList.contains('focusing');
       const on = s.parts.some((id) => page.data.parts[id]);
-      if (!(ms > 0) || on === was) return focusOn(s.parts);
+      if (!(ms > 0) || on === was) return focusOn(s.parts, s.solid === true);
       if (on) {
-        focusOn(s.parts);
+        focusOn(s.parts, s.solid === true);
         fade(0);
         return director.tween(fade, { ms, ease });
       }
@@ -591,7 +593,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     for (const old of page.main.querySelectorAll('.tour-caption.leaving, svg > .pulse')) old.remove();
     box.hidden = true;
     shown = null;
-    document.body.classList.remove('touring');
+    document.body.classList.remove('touring', 'focus-solid');
     page.direct(false);
   }
   function play() {
@@ -657,7 +659,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
           lower();
           leaveScene();
           box.hidden = true;
-          document.body.classList.remove('touring');
+          document.body.classList.remove('touring', 'focus-solid');
         }
         page.direct(false);
         // A landing loops (not under reduced motion: there it played because it was asked to).

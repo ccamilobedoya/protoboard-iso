@@ -163,6 +163,10 @@
                   "description": "id of a part (or a supply)"
                 },
                 "description": "The parts brought forward; [] clears. With a move, the veil, strips and coordinates come in (or leave) along it"
+              },
+              "solid": {
+                "type": "boolean",
+                "description": "The parts in focus drawn whole and opaque even with the current layer on (by default the plan sees through them); until the next focus"
               }
             },
             "additionalProperties": false

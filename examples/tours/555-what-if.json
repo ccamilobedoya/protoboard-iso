@@ -16,7 +16,7 @@
 
     { "at": 10000, "do": "caption", "text": { "en": "What if R1 were a hundred times bigger?", "es": "¿Y si R1 fuera cien veces mayor?" } },
     { "at": 10000, "do": "frame", "target": "R1", "zoom": 1.2, "move": "arrival" },
-    { "at": 10000, "do": "focus", "parts": ["R1"] },
+    { "at": 10000, "do": "focus", "parts": ["R1"], "solid": true },
     { "at": 11500, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 },
 
     { "at": 16000, "do": "frame", "target": "parts", "move": "travel" },

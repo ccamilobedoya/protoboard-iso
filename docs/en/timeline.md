@@ -99,6 +99,7 @@ A part's frame includes its short label in a recording. To follow something by h
 | Field | Values | Default | |
 |---|---|---|---|
 | `parts` | a list of ids, *required*; `[]` clears | | the parts brought forward: the rest dims under a veil, the strips under their leads show, the board's coordinates of their holes light up |
+| `solid` | `true`, `false` | `false` | the parts in focus drawn whole and opaque even with the current layer on (by default the current layer's lines show through them), until the next `focus`: to point at the part a `set` changes |
 | `move`, `ms`, `curve` | | `cut` | with a move, the veil, strips and coordinates come in along it, or leave (`[]`) |
 
 In a recording only the told part keeps a label: the last one framed, focused, inserted or raised.

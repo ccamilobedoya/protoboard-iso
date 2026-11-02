@@ -289,14 +289,14 @@ Asked by the maintainer (2026-11-01): a video format about one concrete part (a 
 - ✅ F5 · The part in the page (`page.focusView`): the card's first row, a bar of Back and two segmented controls, a legend for each inside view, outside taps kept, Back without a jump, the phone (the figure above the part, a compact bench), keyboard and screen readers, the demo site; waits for the maintainer on a phone and a tablet
 - ✅ F6 · Four timelines polished in six beats (an opening close on the part, a working beat, a closing caption), the guide's section *A video about one part* with its rules and codes; a medium model wrote `focus-zener.json` from the guide alone at the first try (the videos approved by the maintainer)
 
-## Videos of a circuit that show the change (cross-cutting) 🔜
+## Videos of a circuit that show the change (cross-cutting) ✅
 
 Asked by the maintainer (2026-11-02), for the short videos of a whole circuit: open on the main part
 alone, make the oscilloscope show what a control changed, and point at the part that changes.
 
 - ✅ A video of a circuit opens on its main part on the pedestal and lands it on the board with the other parts already there (no `assemble`): checked on `555-astable` with `U1` in a real render and in jsdom; the way to write it in `docs/en/timeline.md`
 - ✅ The oscilloscope shows a change: on a `probe` in a recording, `window` (a fixed time axis, from t = 0 then scrolling) and `marks` (a dashed line with the new value at each `set`); `render-frames.js --parts` prints the oscilloscope's pace (`sim/pace.js`, shared with the page); `examples/tours/555-what-if.json`, jsdom cases and golden frame M24
-- ⬜ A solid focus: the parts in focus drawn whole over the current layer
+- ✅ A solid focus: `focus` with `solid` draws its parts whole and opaque over the current layer until the next focus (the plan's see-through stays the default); R1 in `555-what-if.json`, a jsdom case and golden frame M25
 
 ## Stage 4 — On a phone or tablet ⬜
 
