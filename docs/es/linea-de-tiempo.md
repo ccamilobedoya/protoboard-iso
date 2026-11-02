@@ -241,6 +241,20 @@ protoboard, con las demás piezas, sube debajo; después se va el foco. Un `asse
 { "at": 4800, "do": "assemble", "gap": 600 }
 ```
 
+Un video de un circuito entero puede abrir igual: su pieza principal sola en el pedestal mientras el
+subtítulo la nombra (el gancho), después un `land` con las demás piezas ya en sus agujeros (sin
+`assemble`), y el video sigue en la protoboard. La protoboard y las demás piezas suben bajo la pieza,
+sus luces, rótulos y corriente vuelven como estaban, y el foco se va; encuadra la protoboard o las
+piezas cuando el `land` termina (la cámara se queda tan cerca como en el pedestal hasta que un `frame`
+la mueve, y una protoboard vista tan de cerca ocupa la pantalla detrás del subtítulo):
+
+```json
+{ "at": 0, "do": "scene", "mode": "part", "part": "U1", "zoom": 1.6 },
+{ "at": 2500, "do": "land", "part": "U1" },
+{ "at": 4000, "do": "frame", "target": "parts", "move": "travel" },
+{ "at": 4000, "do": "flow", "on": true, "ramp": 600 }
+```
+
 ### `pin`: las patas de una pieza, una por una (M19, M20)
 
 En el pedestal (o en la protoboard), una pata se enciende en su punta y su fila de texto entra bajo la

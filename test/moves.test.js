@@ -495,6 +495,36 @@ test('moves: M18 a land keeps the part still on screen while the board rises, th
   for (const el of r.svg().querySelectorAll(':scope > .parts > [data-part]')) assert.equal(el.style.opacity, '', el.getAttribute('data-part'));
 });
 
+// A video of a circuit may open on its lead part alone (the hook), then land it on the board with
+// the other parts already there (no assemble): everything must come back as a video that opened on
+// the board would have it, the current layer included.
+test('moves: a circuit video opens on the pedestal and lands without an assemble: the board comes back whole', async (t) => {
+  const r = await recording([
+    { at: 0, do: 'set', part: 'S1', field: 'pressed', value: true, move: 'cut' },
+    { at: 0, do: 'scene', mode: 'part', part: 'Q1', zoom: 1.6 },
+    { at: 1000, do: 'land', part: 'Q1' },
+    { at: 1000 + MOVES.travel.ms, do: 'frame', target: 'parts', move: 'travel' },
+    { at: 1000 + MOVES.travel.ms, do: 'flow', on: true },
+    { at: 1000 + MOVES.travel.ms + 200, do: 'focus', parts: ['R1'] },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  r.to(500);
+  assert.equal(r.doc.querySelector('main').dataset.scene, 'part');
+  assert.match([...r.doc.querySelectorAll('head style')].map((s) => s.textContent).join(''), /data-glow="Q1"/, 'the other lights unseen on the pedestal');
+  r.to(1000 + MOVES.travel.ms + 400);
+  assert.equal(r.doc.querySelector('main').dataset.scene, undefined, 'on the board');
+  assert.equal([...r.doc.querySelectorAll('head style')].map((s) => s.textContent).join('').includes('data-glow'), false, 'no light kept unseen');
+  for (const name of ['under', 'board', 'parts', 'labels', 'shortlabels', 'lights', 'flow', 'marks']) {
+    const g = r.layer(name);
+    if (g) assert.equal(g.style.opacity, '', `${name} whole`);
+  }
+  for (const el of r.svg().querySelectorAll(':scope > :is(.parts, .under) > [data-part]')) assert.equal(el.style.opacity, '', el.getAttribute('data-part'));
+  assert.equal(r.svg().querySelector('.lift'), null, 'nothing in the air');
+  assert.ok(r.doc.body.classList.contains('layer-flow'), 'the current layer on');
+  assert.ok(r.glow() > 0, 'the LED lit again');
+  assert.deepEqual([...r.svg().querySelectorAll(':scope > .spotlight > [data-part]')].map((el) => el.getAttribute('data-part')).filter((v, i, a) => a.indexOf(v) === i), ['R1'], 'the focus after it');
+});
+
 // The anatomy of a part on its pedestal (F2; docs/en/component-focus.md): M19 a pin lights, M20 its
 // row comes in; `mark` lights the package's mark and writes what it tells.
 const anatomy = [

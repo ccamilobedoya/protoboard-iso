@@ -236,6 +236,20 @@ brings the other parts one by one (they wait unseen) and leaves the landed part 
 { "at": 4800, "do": "assemble", "gap": 600 }
 ```
 
+A video of a whole circuit may open the same way: its main part alone on the pedestal while the
+caption names it (the hook), then a `land` with the other parts already in their holes (no
+`assemble`), and the video goes on on the board. The board and the other parts rise under the part,
+their lights, labels and current come back as they were, and the focus goes; frame the board or the
+parts when the land ends (the camera stays as close as the pedestal until a `frame` moves it, and a
+board seen that close takes the screen behind the caption):
+
+```json
+{ "at": 0, "do": "scene", "mode": "part", "part": "U1", "zoom": 1.6 },
+{ "at": 2500, "do": "land", "part": "U1" },
+{ "at": 4000, "do": "frame", "target": "parts", "move": "travel" },
+{ "at": 4000, "do": "flow", "on": true, "ramp": 600 }
+```
+
 ### `pin`: a part's pins, one by one (M19, M20)
 
 On the pedestal (or on the board), a pin lights at its tip and its row of text comes in under the
