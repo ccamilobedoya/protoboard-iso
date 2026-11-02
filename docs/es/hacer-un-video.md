@@ -218,6 +218,121 @@ esté lista, con sus textos en los dos idiomas, y agregarla a la tabla de abajo.
 - `npm test` pasa;
 - el video se reproduce (`assemble.js`) y un fotograma de cada tiempo se ve bien.
 
+## Un video sobre una pieza
+
+Un segundo tipo de video cuenta una pieza en lugar de un circuito: qué es, cuál pata es cuál, qué
+hace en un banco, y después el circuito se arma a su alrededor. El diseño está en
+[foco-en-componente.md](foco-en-componente.md); los pasos que agrega (`scene`, `pin`, `bench`,
+`symbol`, `inside`, `land`), en [linea-de-tiempo.md](linea-de-tiempo.md#scene-una-pieza-sola-en-un-pedestal-m17).
+El archivo se llama `focus-<pieza>.json`.
+
+**Elegir la pieza.** `--parts` marca lo que cada pieza puede hacer de cerca:
+
+```text
+  D1   led red · pedestal (scene, land, bench) · symbol · inside
+       pins (pin): D1.anode (anode · the + side, in) · D1.cathode (cathode · the − side, out) · mark (pin "mark": "D1")
+```
+
+`pedestal`: puede estar sola; `symbol` e `inside`: tiene esas figuras (una pieza sin ellas da
+`TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`); `pins` son los nombres que acepta un paso `pin`, y `mark`
+aparece cuando su encapsulado tiene una marca de orientación (si no, `TOUR_NO_MARK`). Solo esos.
+
+**Seis tiempos**, de 25 a 33 s en total (`--validate` da el último paso entre 24 y 31 s, más o menos):
+
+| Tiempo | Desde | Pasos |
+|---|---|---|
+| 1 Gancho | 0 | `scene` (`mode` `part`, `zoom` 1,6; 1,4 para un chip), un subtítulo: el número de parte y una idea; a los 1400 un `frame` sobre la pieza (la cámara se aleja para dejar sitio) |
+| 2 Anatomía | 2000 | un `pin` por pata, cada 400 ms, en el orden en que las da `--parts`; 800 ms después de la última, el subtítulo «Cuál pata es cuál» (un chip: «Dónde está la pata 1») con `pin` `mark`; 1800 ms después el subtítulo «Su símbolo» con `symbol` encendido |
+| 3 Cómo funciona | 2400 ms después del símbolo | en un mismo `at`: `pin` `off`, `symbol` apagado, `bench` encendido, `inside` encendido (si la pieza lo tiene) y un subtítulo; después `flow` encendido con `ramp` (o primero un `set` de un pulsador y `flow` con él); uno o dos subtítulos, cada uno con un `set` 400 ms después |
+| 4 A la protoboard | ≈ 15 a 18 s | en un mismo `at`: `bench` apagado, `inside` apagado, el subtítulo «En la protoboard», `land`; 1800 ms después `frame` `parts` (`travel`) y `assemble` (`gap` 600) |
+| 5 Funcionando | cuando terminó el armado | un subtítulo con `focus` en la pieza y su carga (`arrival`), un `set` 500 ms después; luego un subtítulo y un `value` 400 ms después |
+| 6 Cierre | 2500 ms después | `focus` `[]` (`arrival`) y un subtítulo de cierre que repite la idea |
+
+Los tiempos 1 y 2 son iguales en todos los videos de la serie: se copian y se cambian la pieza, sus
+patas y sus dos líneas. El armado tarda unos 600 ms por pieza del circuito (cables incluidos) más
+700 ms: el tiempo 5 empieza después, o los puntos de la corriente vuelven en medio de un subtítulo
+(se cuentan todos los ids de la lista de `--parts` menos las fuentes).
+
+**Mirar las cifras antes que las palabras.** Un subtítulo que dice lo que pasa («el voltaje se queda
+quieto») tiene que coincidir con las pastillas del banco y el `value` del borrador: abrir un fotograma
+de cada tiempo (paso 5) y leerlas. Un `set` que lleva la pieza más allá de lo que puede (una carga
+demasiado pesada para un Zener) también enseña, pero su subtítulo tiene que decirlo.
+
+Las reglas de este tipo, además de las de arriba:
+
+- **400 ms entre dos `pin`** (entran una por una; con menos llegan como una sola).
+- **Las patas de un chip se van antes de su símbolo**: en una pieza de más de cuatro patas, `pin`
+  `off` en el mismo `at` que `symbol` encendido (el símbolo lleva los números y nombres; las filas y
+  el símbolo se taparían). Una pieza de dos o tres patas las deja con el símbolo.
+- **`bench` antes de `flow`**: los puntos del banco son los de la capa de corriente.
+- **Todo lo de cerca apagado antes de `land`**: `bench`, `inside` y `symbol`, en el `at` del `land` o
+  antes.
+- **Los subtítulos nunca inventan cifras.** El banco escribe cada voltaje y corriente bajo sus
+  pastillas, `value` escribe una lectura; un subtítulo dice lo que pasa («menos corriente, menos
+  luz»), nunca un número. El número de parte del primer subtítulo es el del circuito, de `--parts`.
+- **Un `set` en el banco** mueve una pieza que no está dibujada (en el pedestal solo está la pieza
+  contada): se nombra en su subtítulo («Una resistencia mayor») y su efecto se lee en las pastillas
+  y en la vista por dentro.
+
+La línea de tiempo `focus-led.json`, tiempo por tiempo, es la plantilla:
+
+```json
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "led-resistor",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "scene", "mode": "part", "part": "D1", "zoom": 1.6 },
+    { "at": 0, "do": "caption", "text": { "en": "LED", "es": "LED" }, "line": { "en": "A diode that gives light", "es": "Un diodo que da luz" } },
+    { "at": 1400, "do": "frame", "target": "D1" },
+
+    { "at": 2000, "do": "pin", "pin": "D1.anode" },
+    { "at": 2400, "do": "pin", "pin": "D1.cathode" },
+    { "at": 3200, "do": "caption", "text": { "en": "Which leg is which", "es": "Cuál pata es cuál" } },
+    { "at": 3200, "do": "pin", "mark": "D1" },
+    { "at": 5000, "do": "caption", "text": { "en": "Its symbol", "es": "Su símbolo" }, "line": { "en": "A diode with two arrows of light", "es": "Un diodo con dos flechas de luz" } },
+    { "at": 5000, "do": "symbol", "part": "D1", "on": true },
+
+    { "at": 7400, "do": "pin", "off": true },
+    { "at": 7400, "do": "symbol", "on": false },
+    { "at": 7400, "do": "bench", "part": "D1", "on": true },
+    { "at": 7400, "do": "inside", "part": "D1", "on": true },
+    { "at": 7400, "do": "caption", "text": { "en": "On the bench", "es": "En el banco" }, "line": { "en": "The resistor sets its current", "es": "La resistencia fija su corriente" } },
+    { "at": 7800, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 10000, "do": "caption", "text": { "en": "A bigger resistor", "es": "Una resistencia mayor" }, "line": { "en": "less current, less light", "es": "menos corriente, menos luz" } },
+    { "at": 10400, "do": "set", "part": "R1", "field": "resistance", "value": 3300, "move": "travel", "ms": 1800 },
+    { "at": 13200, "do": "set", "part": "R1", "field": "resistance", "value": 330, "move": "travel", "ms": 1200 },
+
+    { "at": 15000, "do": "bench", "on": false },
+    { "at": 15000, "do": "inside", "on": false },
+    { "at": 15000, "do": "caption", "text": { "en": "On the breadboard", "es": "En la protoboard" }, "line": { "en": "The circuit builds itself around it", "es": "El circuito se arma a su alrededor" } },
+    { "at": 15000, "do": "land", "part": "D1" },
+    { "at": 16800, "do": "frame", "target": "parts", "move": "travel" },
+    { "at": 16800, "do": "assemble", "gap": 600 },
+
+    { "at": 20500, "do": "caption", "text": { "en": "What goes through the LED", "es": "Lo que pasa por el LED" }, "line": { "en": "the current the resistor lets through", "es": "la corriente que deja pasar la resistencia" } },
+    { "at": 20500, "do": "focus", "parts": ["R1", "D1"], "move": "arrival" },
+    { "at": 20900, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
+
+    { "at": 24000, "do": "focus", "parts": [], "move": "arrival" },
+    { "at": 24000, "do": "caption", "text": { "en": "An LED", "es": "Un LED" }, "line": { "en": "always with its resistor", "es": "siempre con su resistencia" } }
+  ]
+}
+```
+
+(Aquí el tiempo 5 no tiene `set`: al circuito del LED no le queda nada que cambiar. `focus-npn.json`
+suelta el pulsador y lo vuelve a apretar.)
+
+Lo que `--validate` agrega para este tipo:
+
+| Código | Quiere decir | Arreglo |
+|---|---|---|
+| `TOUR_SCENE_PART` | un cable o una fuente en el pedestal | una pieza que `--parts` marca `pedestal` |
+| `TOUR_UNKNOWN_PIN` | una pata que la pieza no tiene (el mensaje da sus patas) | un nombre de `--parts` |
+| `TOUR_NO_MARK` | un `mark` en una pieza cuyo encapsulado no tiene | quitar ese paso |
+| `TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE` | una figura que el tipo de la pieza no tiene | quitar ese paso, o contarlo con subtítulos |
+| `TOUR_BENCH_NOT_SIMULATED` | un banco en un circuito sin fuente | un circuito simulado |
+
 ## El banco
 
 | Línea de tiempo | Circuito | Cuenta |
@@ -233,3 +348,8 @@ esté lista, con sus textos en los dos idiomas, y agregarla a la tabla de abajo.
 | `rc-square.json` | receta `rc-square` | un condensador que se carga y descarga, en el osciloscopio |
 | `zener-regulator.json` | receta `zener-regulator` | un Zener sostiene el voltaje con más carga |
 | `555-astable.json` | receta `555-astable` | un 555 que parpadea, y una resistencia que cambia su ritmo |
+| `focus-npn.json` | `examples/npn-switch.json` | un video sobre una pieza: el 2N2222A |
+| `focus-mosfet.json` | receta `mosfet-switch` | un video sobre una pieza: el IRLZ44N |
+| `focus-led.json` | receta `led-resistor` | un video sobre una pieza: el LED |
+| `focus-555.json` | receta `555-astable` | un video sobre una pieza: el NE555 |
+| `focus-zener.json` | receta `zener-regulator` | un video sobre una pieza: el 1N4733A (escrito por un modelo mediano solo con esta guía) |

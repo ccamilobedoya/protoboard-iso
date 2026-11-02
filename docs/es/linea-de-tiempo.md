@@ -219,6 +219,10 @@ y `probe` funcionan igual.
 | `zoom` | 0.5…3 | 1 | más cerca o más lejos que el encuadre de la pieza |
 | `move`, `ms`, `curve` | | `cut` | con un movimiento, la protoboard se desvanece a lo largo de él y la cámara llega |
 
+Un `frame` sobre la pieza del pedestal la encuadra igual (sola, sin sitio para su rótulo), así que un
+video puede abrir de cerca (`zoom` 1,6) y alejarse cuando entran sus patas: `{ "at": 1400, "do":
+"frame", "target": "Q1" }`.
+
 ### `land`: la protoboard sube bajo la pieza (M18)
 
 | Campo | Valores | Por defecto | |

@@ -382,7 +382,7 @@ export default {
   'pin.role.led.cathode': 'cathode · the − side, out',
   'pin.role.diode.A': 'anode · current goes in',
   'pin.role.diode.K': 'cathode · current comes out',
-  'pin.role.zener.A': 'anode · the − side here',
+  'pin.role.zener.A': 'anode · to the − side',
   'pin.role.zener.K': 'cathode · held at Vz',
   'pin.role.capacitor.+': '+ · the longer lead',
   'pin.role.capacitor.-': '− · by the stripe',

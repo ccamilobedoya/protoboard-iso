@@ -43,6 +43,11 @@ export function setupControls(page, { engine, t, decimal, changed }) {
     if (!before || !after || before.scale === 'toggle' || before.percent) return;
     const [was, now] = [show(before, before.value), show(after, after.value)];
     if (was === now) return;
+    // A bench's pad names the part its pin is joined to with its value ("→ R1 330 Ω"): the new one.
+    const to = `→ ${id} ${was}`;
+    for (const parts of Object.values(page.data.pinouts ?? {})) {
+      for (const p of Object.values(parts)) for (const pin of p.pins ?? []) if (pin.to === to) pin.to = `→ ${id} ${now}`;
+    }
     let found = false;
     for (const svg of page.svgs) {
       for (const label of svg.querySelectorAll(':scope > .shortlabels > [data-part="' + id.replace(/["\\]/g, '\\$&') + '"]')) {

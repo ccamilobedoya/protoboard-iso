@@ -9,6 +9,26 @@ detail.
 
 ## [Unreleased]
 
+### Added
+
+- **A video about one part**: a timeline can put one part alone on a pedestal (`scene`), light its
+  pins one by one with what each does and the package's orientation mark (`pin`), set it on a bench
+  whose pads read the circuit (`bench`), draw its schematic symbol or a view of its inside beside it
+  (`symbol`, `inside`), and bring the breadboard up under it (`land`) for the circuit to build itself
+  around it. Four timelines (`focus-npn`, `focus-mosfet`, `focus-led`, `focus-555`) and a section of
+  the video guide with the six beats and their rules; `--validate` names a pin, mark, symbol or inside
+  view a part does not have.
+- **The part up close in the page** (`page.focusView`): *See the part up close* in a part's card, with
+  the same pins, bench, symbol and inside view behind two segmented controls, a legend for the inside
+  view, and drag and zoom with the texts kept on the drawing.
+- Every new part type comes with its view up close, or is listed as pending with a reason
+  (`test/pinout.test.js`, `docs/en/adding-parts.md` §6).
+
+### Fixed
+
+- An LED on a bench keeps its light with the current layer on, and dims when its resistor grows.
+- A bench's pad names the new value of the part its pin is joined to after a `set`.
+
 ## [0.3.1] - 2026-11-01
 
 ### Changed

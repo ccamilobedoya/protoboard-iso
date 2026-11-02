@@ -24,7 +24,7 @@ pinout with the showcase's schematic symbol beside the part (see *The direction 
 | F3 | The bench: `bench` | ✅ built 2026-11-01; a frame waits for approval |
 | F4 | `symbol` and `inside` | ✅ built 2026-11-01; frames wait for approval, then the D7 trial |
 | F5 | The part in the page (interactive): the trial's prototype polished, a session of its own | ✅ built 2026-11-01; waits for the maintainer on a phone and a tablet |
-| F6 | Bench of timelines and guide | ⬜ |
+| F6 | Bench of timelines and guide | ✅ 2026-11-01; the videos wait for the maintainer |
 
 **Everything is asked for** (the maintainer, 2026-11-01): the pedestal shows only what its timeline's
 steps ask for. The pinout, the bench, the symbol and the inside view are each a step's, on and off;
@@ -47,6 +47,9 @@ code.
 | 4 To the breadboard | 16–20 | `symbol off`, `inside off`, `bench off`, `land Q1` (the board rises), `assemble` |
 | 5 Working | 20–28 | as today's videos: `focus`, `set`, `value` |
 | 6 Close | 28–30 | `frame board travel`, `caption`, `focus []` |
+
+This was the plan's first draft; the beats as F6 fixed them (times, an opening zoom, the symbol's own
+caption) are in [making-a-video.md](making-a-video.md#a-video-about-one-part).
 
 Beats 1 and 2 keep the same choreography in every video of the series: recognisable, and cheap for a
 small model to write from the guide.
@@ -384,6 +387,21 @@ choreography of beats 1 and 2, the rules (400 ms between two `pin`; `bench` befo
 codes; `timeline.md`, the code map, the roadmap, the agents if a command changed, `CHANGELOG.md`. The
 small-model test: a medium model writes `focus-zener.json` from the guide alone and passes
 `--validate` and `--check` at the first or second try.
+
+**Done (2026-11-01).** The two notes after F1, judged on the four timelines: an opening zoom, yes (the
+part alone and small on an empty frame was a weak hook): `scene` with `zoom` 1.6 (1.4 for a chip), and
+at 1400 ms a `frame` on the part pulls back as the pins come in (a `frame` on the part on the pedestal
+now frames it alone, as `scene` does). Captions: a title and one line, the first with the part number
+and one idea, a caption for the symbol, the bench's caption saying what the reading shows before a
+control moves, a working beat (let go of the button and press it again, a `value`) and a closing
+caption that says the idea again; each stays 2 s or more. All four follow the six beats, 26 to 33 s.
+Found on the way and fixed: a symbol beside a chip's eight rows overlapped them (the rule: a chip's
+pins off when its symbol comes), the chip's pin numbers under the tips ran together ("48"), two of the
+NE555's Spanish rows were cut, an LED on the bench lost its light with the current layer on, and a
+bench's pad kept a resistor's old value after a `set`. The small-model test: a medium model wrote
+`focus-zener.json` from the guide alone and passed `--validate` and the render at the first try; one
+caption said "the voltage stays put" while the bench showed it falling (a load too heavy for the
+Zener), which became the guide's rule "look at the figures before the words".
 
 Order: F0 → F1 → F2 → F3 → F4 → F5 → F6. F2 and F3 are independent of each other; F4 needs both; F6
 can start its timelines from F3. If time runs short: F4 for BJT and LED only, F5 later.

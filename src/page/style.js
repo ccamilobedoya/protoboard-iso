@@ -411,6 +411,9 @@ main[data-scene="land"] > svg > :is(.veil, .strips, .coords, .flow, .marks, .res
 .bench .volts { fill: var(--cap-value); font-weight: 600; }
 .bench .amps { fill: var(--ink-2); }
 body.layer-flow main[data-scene] > svg > .spotlight { opacity: 1; }
+/* The current layer, whose own glow stands in for the lights on the board, is not drawn there: an LED
+   on the bench keeps its light, and a bigger resistor dims it. */
+body.layer-flow main[data-scene] > svg > .lights { display: inline; }
 /* A part's view up close (F5; page/client/focus-view.js). The card's entry is its first row: a step of
    tone, the pedestal's icon, the words, a chevron. On the pedestal a dock at the bottom: the legend of the
    inside view when it is on, and the bar (Back and the part's name; two segmented controls, one per room

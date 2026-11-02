@@ -214,6 +214,121 @@ is done, with its texts in both languages, and list it in the table below.
 - `npm test` passes;
 - the video plays (`assemble.js`), and one frame of each beat looks right.
 
+## A video about one part
+
+A second kind of video tells one part instead of one circuit: what it is, which leg is which, what
+it does on a bench, then the circuit builds itself around it. The design is
+[component-focus.md](component-focus.md); the steps it adds (`scene`, `pin`, `bench`, `symbol`,
+`inside`, `land`) are in [timeline.md](timeline.md#scene-a-part-alone-on-a-pedestal-m17). Name the
+file `focus-<part>.json`.
+
+**Choose the part.** `--parts` marks what each part can do up close:
+
+```text
+  D1   led red · pedestal (scene, land, bench) · symbol · inside
+       pins (pin): D1.anode (anode · the + side, in) · D1.cathode (cathode · the − side, out) · mark (pin "mark": "D1")
+```
+
+`pedestal` it can stand alone; `symbol` and `inside` it has those figures (a part without them gets
+`TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`); `pins` are the names a `pin` step takes, and `mark` is there
+when its package has an orientation mark (`TOUR_NO_MARK` otherwise). Only those.
+
+**Six beats**, 25 to 33 s in all (`--validate` prints the last step at about 24 to 31 s):
+
+| Beat | From | Steps |
+|---|---|---|
+| 1 Hook | 0 | `scene` (`mode` `part`, `zoom` 1.6; 1.4 for a chip), a caption: the part number and one idea; at 1400 a `frame` on the part (the camera pulls back to make room) |
+| 2 Anatomy | 2000 | a `pin` per pin, 400 ms apart, in the order `--parts` lists them; 800 ms after the last, the caption "Which leg is which" (a chip: "Where pin 1 is") with `pin` `mark`; 1800 ms later the caption "Its symbol" with `symbol` on |
+| 3 How it works | 2400 ms after the symbol | at one `at`: `pin` `off`, `symbol` off, `bench` on, `inside` on (if the part has it) and a caption; then `flow` on with a `ramp` (or a button `set` first and `flow` with it); one or two captions, each with a `set` 400 ms after it |
+| 4 To the breadboard | ≈ 15 to 18 s | at one `at`: `bench` off, `inside` off, the caption "On the breadboard", `land`; 1800 ms later `frame` `parts` (`travel`) and `assemble` (`gap` 600) |
+| 5 Working | when the assembly has ended | a caption with `focus` on the part and its load (`arrival`), a `set` 500 ms later; then a caption and a `value` 400 ms after it |
+| 6 Close | 2500 ms later | `focus` `[]` (`arrival`) and a closing caption that says the idea again |
+
+Beats 1 and 2 are the same in every video of the series: copy them, change the part, its pins and
+its two lines. The assembly takes about 600 ms per part of the circuit (wires included) plus 700 ms:
+start beat 5 after it, or the dots of the current come back in the middle of a caption (count every
+id of the `--parts` list but the supplies).
+
+**Look at the figures before the words.** A caption that says what happens ("the voltage stays put")
+must agree with the bench's pads and the `value` in the draft: open a frame of each beat (step 5) and
+read them. A `set` pushed past what the part can do (a load too heavy for a Zener) is a lesson too, but
+its caption must say so.
+
+The rules of this kind, besides the ones above:
+
+- **400 ms between two `pin`** (they come in one by one; less and they arrive as one).
+- **A chip's pins go before its symbol**: on a part with more than four pins, `pin` `off` at the same
+  `at` as `symbol` on (the symbol carries the numbers and names; the rows and the symbol would
+  overlap). A part of two or three pins keeps them on with the symbol.
+- **`bench` before `flow`**: the bench's dots are the current layer's.
+- **Everything up close off before `land`**: `bench`, `inside` and `symbol`, at the `land`'s `at` or
+  before.
+- **Captions never invent figures.** The bench writes every voltage and current under its pads,
+  `value` writes a reading; a caption says what happens ("less current, less light"), never a number.
+  The part number in the first caption is the circuit's, from `--parts`.
+- **A `set` on the bench** moves a part that is not drawn (only the told part is on the pedestal):
+  name it in its caption ("A bigger resistor"), its effect is read on the pads and in the inside
+  view.
+
+The `focus-led.json` timeline, beat by beat, is the template:
+
+```json
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "led-resistor",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "scene", "mode": "part", "part": "D1", "zoom": 1.6 },
+    { "at": 0, "do": "caption", "text": { "en": "LED", "es": "LED" }, "line": { "en": "A diode that gives light", "es": "Un diodo que da luz" } },
+    { "at": 1400, "do": "frame", "target": "D1" },
+
+    { "at": 2000, "do": "pin", "pin": "D1.anode" },
+    { "at": 2400, "do": "pin", "pin": "D1.cathode" },
+    { "at": 3200, "do": "caption", "text": { "en": "Which leg is which", "es": "Cuál pata es cuál" } },
+    { "at": 3200, "do": "pin", "mark": "D1" },
+    { "at": 5000, "do": "caption", "text": { "en": "Its symbol", "es": "Su símbolo" }, "line": { "en": "A diode with two arrows of light", "es": "Un diodo con dos flechas de luz" } },
+    { "at": 5000, "do": "symbol", "part": "D1", "on": true },
+
+    { "at": 7400, "do": "pin", "off": true },
+    { "at": 7400, "do": "symbol", "on": false },
+    { "at": 7400, "do": "bench", "part": "D1", "on": true },
+    { "at": 7400, "do": "inside", "part": "D1", "on": true },
+    { "at": 7400, "do": "caption", "text": { "en": "On the bench", "es": "En el banco" }, "line": { "en": "The resistor sets its current", "es": "La resistencia fija su corriente" } },
+    { "at": 7800, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 10000, "do": "caption", "text": { "en": "A bigger resistor", "es": "Una resistencia mayor" }, "line": { "en": "less current, less light", "es": "menos corriente, menos luz" } },
+    { "at": 10400, "do": "set", "part": "R1", "field": "resistance", "value": 3300, "move": "travel", "ms": 1800 },
+    { "at": 13200, "do": "set", "part": "R1", "field": "resistance", "value": 330, "move": "travel", "ms": 1200 },
+
+    { "at": 15000, "do": "bench", "on": false },
+    { "at": 15000, "do": "inside", "on": false },
+    { "at": 15000, "do": "caption", "text": { "en": "On the breadboard", "es": "En la protoboard" }, "line": { "en": "The circuit builds itself around it", "es": "El circuito se arma a su alrededor" } },
+    { "at": 15000, "do": "land", "part": "D1" },
+    { "at": 16800, "do": "frame", "target": "parts", "move": "travel" },
+    { "at": 16800, "do": "assemble", "gap": 600 },
+
+    { "at": 20500, "do": "caption", "text": { "en": "What goes through the LED", "es": "Lo que pasa por el LED" }, "line": { "en": "the current the resistor lets through", "es": "la corriente que deja pasar la resistencia" } },
+    { "at": 20500, "do": "focus", "parts": ["R1", "D1"], "move": "arrival" },
+    { "at": 20900, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
+
+    { "at": 24000, "do": "focus", "parts": [], "move": "arrival" },
+    { "at": 24000, "do": "caption", "text": { "en": "An LED", "es": "Un LED" }, "line": { "en": "always with its resistor", "es": "siempre con su resistencia" } }
+  ]
+}
+```
+
+(Here beat 5 has no `set`: the LED's circuit has nothing left to change. `focus-npn.json` lets go of
+the button and presses it again.)
+
+What `--validate` adds for this kind:
+
+| Code | Means | Fix |
+|---|---|---|
+| `TOUR_SCENE_PART` | a wire or a supply on the pedestal | a part `--parts` marks `pedestal` |
+| `TOUR_UNKNOWN_PIN` | a pin the part does not have (the message lists its pins) | a name from `--parts` |
+| `TOUR_NO_MARK` | a `mark` on a part whose package has none | leave that step out |
+| `TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE` | a figure the part's kind does not have | leave that step out, or tell it with captions |
+| `TOUR_BENCH_NOT_SIMULATED` | a bench in a circuit without a source | a simulated circuit |
+
 ## The bench
 
 | Timeline | Circuit | Tells |
@@ -229,3 +344,8 @@ is done, with its texts in both languages, and list it in the table below.
 | `rc-square.json` | recipe `rc-square` | a capacitor charging and discharging, on the oscilloscope |
 | `zener-regulator.json` | recipe `zener-regulator` | a Zener holds the voltage under a heavier load |
 | `555-astable.json` | recipe `555-astable` | a 555 blinking, and a resistor that changes its rhythm |
+| `focus-npn.json` | `examples/npn-switch.json` | a video about one part: the 2N2222A |
+| `focus-mosfet.json` | recipe `mosfet-switch` | a video about one part: the IRLZ44N |
+| `focus-led.json` | recipe `led-resistor` | a video about one part: the LED |
+| `focus-555.json` | recipe `555-astable` | a video about one part: the NE555 |
+| `focus-zener.json` | recipe `zener-regulator` | a video about one part: the 1N4733A (written by a medium model from this guide alone) |

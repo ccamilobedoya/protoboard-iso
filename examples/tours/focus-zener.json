@@ -1,0 +1,41 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "zener-regulator",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "scene", "mode": "part", "part": "D1", "zoom": 1.6 },
+    { "at": 0, "do": "caption", "text": { "en": "1N4733A", "es": "1N4733A" }, "line": { "en": "A diode that holds a voltage", "es": "Un diodo que sostiene un voltaje" } },
+    { "at": 1400, "do": "frame", "target": "D1" },
+
+    { "at": 2000, "do": "pin", "pin": "D1.A" },
+    { "at": 2400, "do": "pin", "pin": "D1.K" },
+    { "at": 3200, "do": "caption", "text": { "en": "Which leg is which", "es": "Cuál pata es cuál" } },
+    { "at": 3200, "do": "pin", "mark": "D1" },
+    { "at": 5000, "do": "caption", "text": { "en": "Its symbol", "es": "Su símbolo" }, "line": { "en": "A diode with a bent bar", "es": "Un diodo con la barra doblada" } },
+    { "at": 5000, "do": "symbol", "part": "D1", "on": true },
+
+    { "at": 7400, "do": "pin", "off": true },
+    { "at": 7400, "do": "symbol", "on": false },
+    { "at": 7400, "do": "bench", "part": "D1", "on": true },
+    { "at": 7400, "do": "caption", "text": { "en": "On the bench", "es": "En el banco" }, "line": { "en": "It holds its voltage in reverse", "es": "Mantiene su voltaje en inversa" } },
+    { "at": 7800, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 10000, "do": "caption", "text": { "en": "Too heavy a load", "es": "Una carga demasiado pesada" }, "line": { "en": "the Zener lets go and the voltage falls", "es": "el Zener ya no alcanza y el voltaje cae" } },
+    { "at": 10400, "do": "set", "part": "R2", "field": "resistance", "value": 330, "move": "travel", "ms": 1800 },
+    { "at": 13200, "do": "set", "part": "R2", "field": "resistance", "value": 1000, "move": "travel", "ms": 1200 },
+
+    { "at": 15000, "do": "bench", "on": false },
+    { "at": 15000, "do": "caption", "text": { "en": "On the breadboard", "es": "En la protoboard" }, "line": { "en": "The circuit builds itself around it", "es": "El circuito se arma a su alrededor" } },
+    { "at": 15000, "do": "land", "part": "D1" },
+    { "at": 16800, "do": "frame", "target": "parts", "move": "travel" },
+    { "at": 16800, "do": "assemble", "gap": 600 },
+
+    { "at": 20500, "do": "caption", "text": { "en": "A heavier load", "es": "Una carga más pesada" }, "line": { "en": "the Zener keeps its voltage", "es": "el Zener mantiene su voltaje" } },
+    { "at": 20500, "do": "focus", "parts": ["D1", "R2"], "move": "arrival" },
+    { "at": 21000, "do": "set", "part": "R2", "field": "resistance", "value": 470, "move": "travel", "ms": 1500 },
+    { "at": 23200, "do": "caption", "text": { "en": "The voltage across it", "es": "El voltaje en sus patas" } },
+    { "at": 23600, "do": "value", "part": "D1", "field": "voltage", "label": { "en": "across the Zener", "es": "en el Zener" } },
+
+    { "at": 26400, "do": "focus", "parts": [], "move": "arrival" },
+    { "at": 26400, "do": "caption", "text": { "en": "A Zener", "es": "Un Zener" }, "line": { "en": "holds the voltage steady", "es": "mantiene firme el voltaje" } }
+  ]
+}

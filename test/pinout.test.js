@@ -45,7 +45,7 @@ test('pinout: each pin\'s row says what it does, in the page\'s language; a chip
   const { spec } = expandRecipe('555-astable');
   const timer = part(buildCircuit(autoLayout(spec).circuit), 'U1');
   assert.deepEqual(pinList(timer, 'en').map((p) => p.text).slice(0, 3), ['1 GND · ground', '2 TRIG · starts a cycle', '3 OUT · output']);
-  assert.equal(pinRole(timer, 4, 'es'), '5 CTRL · nivel del umbral');
+  assert.equal(pinRole(timer, 4, 'es'), '5 CTRL · fija el umbral');
 });
 
 // The side a pin is on screen against another, as the mark's sentence says it.

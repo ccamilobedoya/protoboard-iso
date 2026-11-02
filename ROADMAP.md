@@ -276,7 +276,7 @@ and a frame exporter. Decisions taken with the maintainer on 2026-10-30: C dark 
 - ✅ V6 · The chosen moves (M1 to M16 in the plan), each with a jsdom test (`test/moves.test.js`) and a golden frame (`test/frames/move-*.json`), from `examples/tours/npn-switch-moves.json` and `npn-switch-build.json`; new steps `raise` (M16), `assemble` (M4, M5), `pulse` (M7), `probe` in a recording as an oscilloscope box (M11). Every choice of a move is an optional field of the timeline, documented in `docs/en/timeline.md` (2026-10-31). Left for a decision: the pulse on load
 - ✅ V7 · Bench and guide: the guide `docs/en/making-a-video.md` (es: `hacer-un-video.md`), `render-frames.js --parts` and `--validate`, `TOUR_VALUE_HIDDEN`, short labels that follow a control; nine recipe timelines in `examples/tours/`, six of them written by a medium model with the guide alone; the golden in `npm run verify` (since V0)
 
-## A video about one part (cross-cutting) 🔜
+## A video about one part (cross-cutting) ✅
 
 Asked by the maintainer (2026-11-01): a video format about one concrete part (a transistor, a MOSFET, an LED, a 555) that explains how it works on a pedestal before taking it to the breadboard, where the recipe's circuit builds itself around it, directed by the same timeline. Design, measurements and the plan by sessions in [docs/en/component-focus.md](docs/en/component-focus.md). Approved: the pedestal is the same circuit with the board hidden, the fixed camera, 2D callouts, data by type and by part number, the first wave (BJT, MOSFET, LED, 555), the bench as the current layer, the board rising under the part. Open: the same view in the page (a live trial after F4).
 
@@ -287,7 +287,7 @@ Asked by the maintainer (2026-11-01): a video format about one concrete part (a 
 - ✅ F4 · `symbol` and `inside` (M22, M23): the schematic symbol beside the part, its pins named on the part (no lines), and a view of its inside drawn from the simulation, for the BJT, the MOSFET, the LED and the 555; `TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`; a tall part goes up for its bench; `focus-mosfet.json` and `focus-led.json` join the other two; jsdom cases and two golden frames (a frame of each waits for the maintainer)
 - ✅ The trial of the page view (D7): a prototype behind `?focusView=1` in a page made with `focusView` (`page/client/focus-view.js`): *See the part* in a part's card, a bar of Pins, Bench, Symbol, Inside and Back; tried and liked (2026-11-01): it goes ahead as F5
 - ✅ F5 · The part in the page (`page.focusView`): the card's first row, a bar of Back and two segmented controls, a legend for each inside view, outside taps kept, Back without a jump, the phone (the figure above the part, a compact bench), keyboard and screen readers, the demo site; waits for the maintainer on a phone and a tablet
-- ⬜ F6 · Four timelines and the guide's section; a medium model writes a fifth from the guide alone
+- ✅ F6 · Four timelines polished in six beats (an opening close on the part, a working beat, a closing caption), the guide's section *A video about one part* with its rules and codes; a medium model wrote `focus-zener.json` from the guide alone at the first try (the videos wait for the maintainer)
 
 ## Stage 4 — On a phone or tablet ⬜
 

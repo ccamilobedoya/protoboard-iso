@@ -24,7 +24,7 @@ patas técnico con el símbolo de esquema de la vitrina al lado de la pieza (ver
 | F3 | El banco: `bench` | ✅ construida el 2026-11-01; falta aprobar un fotograma |
 | F4 | `symbol` e `inside` | ✅ construida el 2026-11-01; faltan aprobar fotogramas, luego el ensayo de D7 |
 | F5 | La pieza en la página (interactiva): el prototipo del ensayo, pulido, en una sesión propia | ✅ construida el 2026-11-01; falta que el mantenedor la pruebe en el celular y la tableta |
-| F6 | Banco de líneas de tiempo y guía | ⬜ |
+| F6 | Banco de líneas de tiempo y guía | ✅ 2026-11-01; los videos esperan al mantenedor |
 
 **Todo se pide** (el mantenedor, 2026-11-01): el pedestal muestra solo lo que piden los pasos de su
 línea de tiempo. El diagrama de patas, el banco, el símbolo y el «por dentro» son cada uno de un paso,
@@ -49,6 +49,9 @@ fijan contra el código.
 | 4 A la protoboard | 16–20 | `symbol off`, `inside off`, `bench off`, `land Q1` (la protoboard sube), `assemble` |
 | 5 Funcionando | 20–28 | como los videos de hoy: `focus`, `set`, `value` |
 | 6 Cierre | 28–30 | `frame board travel`, `caption`, `focus []` |
+
+Esta fue la primera versión del plan; los tiempos como los fijó F6 (tiempos, el zoom inicial, el
+subtítulo propio del símbolo) están en [hacer-un-video.md](hacer-un-video.md#un-video-sobre-una-pieza).
 
 Los tiempos 1 y 2 tienen la misma coreografía en todos los videos de la serie: se reconoce, y a un
 modelo pequeño le resulta barato escribirla con la guía.
@@ -407,6 +410,22 @@ tiempos, la coreografía fija de los tiempos 1 y 2, las reglas (400 ms entre dos
 códigos nuevos de `--validate`; `linea-de-tiempo.md`, el mapa del código, la hoja de ruta, los agentes si
 cambió un comando, `CHANGELOG.md`. La prueba del modelo pequeño: un modelo mediano escribe
 `focus-zener.json` solo con la guía y pasa `--validate` y `--check` al primer o segundo intento.
+
+**Hecho (2026-11-01).** Las dos notas tras F1, juzgadas con las cuatro líneas de tiempo: zoom inicial, sí
+(la pieza sola y pequeña en un cuadro vacío era un gancho débil): `scene` con `zoom` 1,6 (1,4 para un
+chip) y a los 1400 ms un `frame` sobre la pieza que se aleja cuando entran las patas (un `frame` sobre
+la pieza del pedestal ahora la encuadra sola, como `scene`). Subtítulos: un título y una línea, el
+primero con el número de parte y una idea, uno para el símbolo, el del banco diciendo lo que muestra la
+lectura antes de mover un control, un tiempo funcionando (soltar el pulsador y volver a apretarlo, un
+`value`) y uno de cierre que repite la idea; cada uno dura 2 s o más. Las cuatro siguen los seis
+tiempos, de 26 a 33 s. Encontrado y arreglado de paso: un símbolo al lado de las ocho filas de un chip
+las tapaba (la regla: las patas de un chip se apagan cuando llega su símbolo), los números de las patas
+del chip bajo las puntas se juntaban («48»), dos filas del NE555 en español salían cortadas, un LED en
+el banco perdía su luz con la capa de corriente, y la pastilla del banco conservaba el valor viejo de
+una resistencia tras un `set`. La prueba del modelo pequeño: un modelo mediano escribió
+`focus-zener.json` solo con la guía y pasó `--validate` y el render al primer intento; un subtítulo
+decía «el voltaje se queda quieto» mientras el banco lo mostraba cayendo (una carga demasiado pesada
+para el Zener), y eso se volvió la regla de la guía «mirar las cifras antes que las palabras».
 
 Orden: F0 → F1 → F2 → F3 → F4 → F5 → F6. F2 y F3 son independientes entre sí; F4 necesita las dos; F6
 puede empezar sus líneas de tiempo desde F3. Si falta tiempo: F4 solo para BJT y LED, y F5 después.

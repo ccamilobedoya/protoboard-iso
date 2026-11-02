@@ -325,11 +325,13 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     // The camera (M1, M2, M14): to a target (board, parts, here, a part or a list of parts), with
     // `zoom` and `pan` (shares of the frame), along the step's move. Automatic otherwise: nothing
     // moves it but these steps (and a probe making room for its box).
+    // The part on the pedestal is framed as `scene` frames it (alone, without its label's room), so a
+    // video can open close on it and pull back when its pins come in.
     frame: (s) => {
-      framed = s;
+      framed = { ...s, alone: s.alone === true || (pedestal != null && s.target === pedestal) };
       const last = [s.target].flat().at(-1);
       if (page.data.parts[last]) tell(last);
-      return director.frame(s.target, { ...timing(s), zoom: s.zoom ?? 1, pan: s.pan ?? null, alone: s.alone === true });
+      return director.frame(s.target, { ...timing(s), zoom: s.zoom ?? 1, pan: s.pan ?? null, alone: framed.alone });
     },
     focus: (s) => {
       const { ms, ease } = timing(s);

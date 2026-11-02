@@ -214,6 +214,10 @@ framed alone in the middle of the free area, without its short label (the captio
 | `zoom` | 0.5…3 | 1 | closer in or farther out than the part's frame |
 | `move`, `ms`, `curve` | | `cut` | with a move, the board fades along it and the camera arrives |
 
+A `frame` on the part on the pedestal frames it the same way (alone, without room for its label), so a
+video can open close on it (`zoom` 1.6) and pull back when its pins come in: `{ "at": 1400, "do":
+"frame", "target": "Q1" }`.
+
 ### `land`: the board rises under the part (M18)
 
 | Field | Values | Default | |

@@ -679,6 +679,7 @@ test('moves: M21 a bench joins each pin to a pad that reads the circuit; a hidde
   const after = benchOnScreen(r);
   const amps = (text) => Number.parseFloat(text) * { mA: 1e-3, µA: 1e-6, A: 1 }[text.split(' ')[1]];
   assert.ok(amps(after[1].text.amps) < amps(before[1].text.amps) / 20, `${before[1].text.amps} → ${after[1].text.amps}`);
+  assert.equal(after[1].text.to, '→ R1 100 kΩ', 'the pad names the resistor\'s new value');
   // Under the part's copy; off at the end.
   const layers = [...r.svg().children].map((el) => el.getAttribute('class'));
   assert.ok(layers.indexOf('bench') < layers.indexOf('spotlight'), layers.join(' '));

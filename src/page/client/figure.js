@@ -212,7 +212,9 @@ export function setupFigure(page, { reading, t, f, now }) {
     const below = Math.max(...tips.map((p) => p.y)) + size * 1.1;
     let last = -Infinity;
     for (const p of loose) {
-      const x = Math.max(p.x, last + size * 0.9 * Math.max(1, p.id.length));
+      // Apart by a letter's width and a space: two tips close on screen (a chip's pin 4 and the pin 8
+      // behind it) would read as one number.
+      const x = Math.max(p.x, last + size * (0.6 * p.id.length + 0.8));
       last = x;
       const [tx, ty] = at(x, below);
       const text = make(g, 'text', { class: 'pin-id', 'data-id': `${on.id}.${data.pins[p.i].name}`, x: tx, y: ty, 'font-size': fixed(size * k), 'text-anchor': 'middle', opacity: fixed(Math.min(1, on.k * 1.4)) });

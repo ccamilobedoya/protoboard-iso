@@ -281,7 +281,7 @@ recorrido desde V2.
 - ✅ V6 · Los movimientos elegidos (M1 a M16 en el plan), cada uno con prueba en jsdom (`test/moves.test.js`) y fotograma *golden* (`test/frames/move-*.json`), de `examples/tours/npn-switch-moves.json` y `npn-switch-build.json`; pasos nuevos `raise` (M16), `assemble` (M4, M5), `pulse` (M7), `probe` en una grabación como recuadro de osciloscopio (M11). Cada decisión de un movimiento es un campo opcional de la línea de tiempo, documentado en `docs/es/linea-de-tiempo.md` (2026-10-31). Queda para decidir: el pulso al cargar
 - ✅ V7 · Banco y guía: la guía `docs/es/hacer-un-video.md` (en: `making-a-video.md`), `render-frames.js --parts` y `--validate`, `TOUR_VALUE_HIDDEN`, rótulos cortos que siguen a un control; nueve líneas de tiempo de recetas en `examples/tours/`, seis escritas por un modelo mediano solo con la guía; el *golden* en `npm run verify` (desde V0)
 
-## Un video sobre una pieza (transversal) 🔜
+## Un video sobre una pieza (transversal) ✅
 
 Pedido del mantenedor (2026-11-01): un formato de video sobre una pieza concreta (un transistor, un MOSFET, un LED, un 555) que explica cómo funciona en un pedestal antes de llevarla a la protoboard, donde el circuito de la receta se arma a su alrededor, dirigido por la misma línea de tiempo. Diseño, medidas y plan por sesiones en [docs/es/foco-en-componente.md](foco-en-componente.md). Aprobado: el pedestal es el mismo circuito con la protoboard oculta, la cámara fija, rótulos 2D, datos por tipo y por número de parte, la primera tanda (BJT, MOSFET, LED, 555), el banco como capa de corriente, la protoboard que sube bajo la pieza. Abierto: la misma vista en la página (un ensayo en vivo después de F4).
 
@@ -292,7 +292,7 @@ Pedido del mantenedor (2026-11-01): un formato de video sobre una pieza concreta
 - ✅ F4 · `symbol` e `inside` (M22, M23): el símbolo de esquema al lado de la pieza, con los nombres de sus patas sobre la pieza (sin líneas), y una vista de su interior dibujada con la simulación, para el BJT, el MOSFET, el LED y el 555; `TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`; una pieza alta sube para su banco; `focus-mosfet.json` y `focus-led.json` se suman a las otras dos; casos en jsdom y dos fotogramas *golden* (falta que el mantenedor apruebe un fotograma de cada una)
 - ✅ El ensayo de la vista en la página (D7): un prototipo detrás de `?focusView=1` en una página hecha con `focusView` (`page/client/focus-view.js`): *Ver la pieza* en la ficha de una pieza, una barra con Patas, Banco, Símbolo, Por dentro y Volver; probado y aprobado como idea (2026-11-01): sigue como F5
 - ✅ F5 · La pieza en la página (`page.focusView`): la primera fila de la ficha, una barra con Volver y dos controles segmentados, una leyenda para cada vista por dentro, los toques de fuera no quitan la pieza, Volver sin salto, el celular (la figura encima de la pieza, un banco compacto), teclado y lectores de pantalla, el sitio de demostración; falta que el mantenedor la pruebe en el celular y la tableta
-- ⬜ F6 · Cuatro líneas de tiempo y la sección de la guía; un modelo mediano escribe una quinta solo con la guía
+- ✅ F6 · Cuatro líneas de tiempo pulidas en seis tiempos (abre de cerca sobre la pieza, un tiempo funcionando, un subtítulo de cierre), la sección de la guía *Un video sobre una pieza* con sus reglas y códigos; un modelo mediano escribió `focus-zener.json` solo con la guía al primer intento (los videos esperan al mantenedor)
 
 ## Etapa 4 — En el celular o la tableta ⬜
 
