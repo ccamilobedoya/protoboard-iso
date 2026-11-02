@@ -290,7 +290,7 @@ function liveData(circuit, lang, flow, templates) {
   };
 }
 
-// What the trial of a part's view (D7) can show: every part but wires and boards, with its pins, bench,
+// What a part's view up close (F5) can show: every part but wires and boards, with its pins, bench,
 // symbol and inside view.
 const viewSteps = (built) => built.parts.filter((p) => p.type !== 'wire' && p.type !== 'module').flatMap((p) => ['pin', 'bench', 'symbol', 'inside'].map((what) => ({ do: what, part: p.id })));
 
@@ -362,9 +362,10 @@ export function renderPage(circuit, options = {}) {
   const compiled = results || flow ? compile(circuit) : null;
   const live = compiled?.program ? liveData(circuit, lang, flow, templates) : null;
   // The tour plays in a live page only: its steps move controls and read the simulation.
-  // The trial of a part's view (D7, `focusView`): a page made for it carries the pinouts of every
-  // part and an empty timeline, so the player is there to run the view's steps (focus-view.js).
-  const focusView = Boolean(options.focusView && live);
+  // A part's view up close (F5; page.focusView, or the option): the page carries the pinouts of every
+  // part and, without a timeline, an empty one, so the player is there to run the view's steps
+  // (focus-view.js).
+  const focusView = Boolean((options.focusView ?? circuit.page?.focusView === true) && live);
   const tour = live ? loadTour(circuit, lang).tour ?? (focusView ? { format: 'vertical', theme: 'stage', steps: [] } : null) : null;
   const data = {
     parts,

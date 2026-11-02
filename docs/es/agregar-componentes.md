@@ -165,6 +165,27 @@ texto, las etiquetas de resultados, las sondas y la página lo encuentran ahí.
   modelo para que un ejemplo se vea bien.
 - Dale `paths` al encapsulado (sección 3) para que la vista de conductores siga sus patas.
 
+## 6. Una pieza de cerca (un requisito para cada tipo nuevo)
+
+Una pieza va a su propio pedestal en dos lugares: un video sobre una pieza (`scene`, `pin`, `bench`,
+`symbol`, `inside` en una línea de tiempo, [linea-de-tiempo.md](linea-de-tiempo.md)) y la vista de cerca
+de la página (`page.focusView`, [embeber.md](embeber.md)). Los dos muestran las mismas cinco cosas, así
+que un tipo nuevo viene con todas, y los tipos del kit se van completando hasta tenerlas:
+
+| Qué | Dónde | Para qué |
+|---|---|---|
+| Qué hace cada pata | `pin.role.<tipo>.<pata>` (o `pin.role.<número de parte>.<pata>` cuando un número de parte es distinto) en **cada** archivo de `src/i18n/` | las filas del diagrama de patas y `render-frames.js --parts` |
+| Cómo distinguir sus patas | la `mark` del encapsulado (`{ kind, at, normal }`: una cara plana, una lengüeta, una muesca, el borde plano de una pestaña, una franja) y su frase en `pinout.*` | la línea discreta bajo el diagrama de patas, escrita desde la cámara, nunca a mano |
+| Su símbolo de esquema | `symbolOf` en `src/parts/symbols.js`: trazos en una caja de 100, una terminal (`pins`) y una **letra** (`ids`) para cada pata | el símbolo al lado de la pieza; sus letras van al comienzo de las filas de las patas o bajo sus puntas |
+| Qué pasa por dentro | `insideOf` en `src/parts/symbols.js` (su tipo), el dibujo en `INSIDE` (`src/page/client/figure.js`, con la lectura del motor: lo que da el `reading` del dispositivo), su leyenda en `LEGENDS` (`src/page/client/focus-view.js`) y `page.tour.legend.<tipo>.*` en cada idioma | la vista por dentro y, en la página, la leyenda que en un video dan los subtítulos |
+| Las mismas letras en todo | la vista por dentro nombra sus patas con los `ids` del símbolo (C, B, E; S, G, D; A, K; los nombres de un chip, con sus filas numeradas) | las filas de las patas conservan esas letras con cualquiera de las dos figuras al lado de la pieza |
+
+`test/pinout.test.js` («a part up close») sostiene la regla: cada tipo de `PART_TYPES` está en `COMPLETE`
+(revisado en todo lo anterior) o en `PENDING` con su motivo. Un tipo nuevo que no esté en ninguna de las
+dos hace fallar la prueba, así la decisión se toma y no se olvida; pasar un tipo de `PENDING` a `COMPLETE`
+es como el kit se pone al día. Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
+y la página de cerca en un celular.
+
 ## Pruebas
 
 `npm test`. Agrega una prueba para todo lo que tenga una respuesta correcta: código de

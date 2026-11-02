@@ -88,6 +88,29 @@ node bin/protoboard-iso.js page <objetivo> [--lang es] [--fit parts|board] [-o p
 El script corre dentro del iframe, aislado en el origen del servidor de archivos: nunca toca
 la página que lo contiene.
 
+## Una pieza de cerca
+
+Con `"page": { "focusView": true }` en el circuito (o `renderPage(…, { focusView: true })`), la página en
+vivo deja ver cualquier pieza de cerca (no un cable ni una placa de desarrollo): la ficha de la pieza
+ofrece *Ver la pieza de cerca* como su primera fila. La pieza sube sola a un pedestal y una barra abajo
+tiene:
+
+- **‹ Volver** y el nombre de la pieza: Volver (o Escape) baja la pieza a sus agujeros, con la cámara
+  dejándola donde está en pantalla mientras la protoboard aparece a su alrededor.
+- **Patas | Banco**, debajo de la pieza: el diagrama de patas (la letra, el nombre y la función de cada
+  pata, y cómo distinguirlas), o el banco de pruebas (el voltaje, la corriente y con qué se une cada
+  pata, leídos de la simulación mientras corre).
+- **Símbolo | Por dentro**, al lado: el símbolo de esquema, o lo que pasa por dentro, dibujado con la
+  simulación, con una leyenda (*Qué estás viendo*) sobre la barra.
+
+Uno de cada par a la vez; uno presionado que se toca otra vez se apaga. Las filas de las patas conservan
+las letras que usan el símbolo y la vista por dentro. De cerca, los toques en el dibujo no hacen nada, y
+el dibujo se puede arrastrar y acercar como en la protoboard: los textos quedan sobre él y nunca se
+cortan, así una fila larga se lee arrastrando. El circuito sigue funcionando, y los controles de la
+ficha quedan como estaban. Una página sin la opción queda exactamente igual; una grabación o la portada
+de un sitio nunca la tienen. Lo que muestra cada pieza está en [agregar-componentes.md](agregar-componentes.md),
+sección 6.
+
 ## En vivo o congelado
 
 Embeber la página es **en vivo**: sigue cada cambio del circuito. Para un registro que no debe

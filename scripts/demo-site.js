@@ -97,7 +97,8 @@ for (const lang of ['en', 'es']) {
   const dir = lang === 'en' ? out : join(out, lang);
   mkdirSync(dir, { recursive: true });
   for (const { name, circuit } of circuits) {
-    const { html } = renderPage(circuit, { lang });
+    // Every page of the demo offers a part's view up close (F5: the card's first row).
+    const { html } = renderPage(circuit, { lang, focusView: true });
     if (!html) throw new Error(`${name}: no page`);
     writeFileSync(join(dir, `${name}.html`), html);
   }

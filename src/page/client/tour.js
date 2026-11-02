@@ -253,7 +253,9 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
   const sceneRule = el(document.head, 'style');
   let pedestal = null; // the part on the pedestal
   const landed = new Set(); // parts brought down by a land: an assemble after it leaves them in place
-  const BOARD_LAYERS = ['under', 'board', 'parts', 'labels', 'lights', 'veil', 'strips', 'coords', 'flow', 'marks'];
+  // Everything of the board that goes away on a pedestal, the parts' labels (boxes or short ones) included:
+  // they fade with the rest instead of vanishing at the end.
+  const BOARD_LAYERS = ['under', 'board', 'parts', 'labels', 'shortlabels', 'lights', 'veil', 'strips', 'coords', 'flow', 'marks'];
   const sceneFade = (k) => {
     for (const svg of page.svgs) {
       for (const name of BOARD_LAYERS) {
@@ -327,7 +329,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       framed = s;
       const last = [s.target].flat().at(-1);
       if (page.data.parts[last]) tell(last);
-      return director.frame(s.target, { ...timing(s), zoom: s.zoom ?? 1, pan: s.pan ?? null });
+      return director.frame(s.target, { ...timing(s), zoom: s.zoom ?? 1, pan: s.pan ?? null, alone: s.alone === true });
     },
     focus: (s) => {
       const { ms, ease } = timing(s);

@@ -115,3 +115,59 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
   assert.equal(insideOf(part(built('npn-switch'), 'D1')).kind, 'led');
   assert.equal(insideOf(part(built('npn-switch'), 'R1')), null);
 });
+
+// The view of a part up close is a requirement for every new part type (docs/en/adding-parts.md, "6. A
+// part up close"): the text of each pin, a schematic symbol with a letter for every pin, the package's
+// orientation mark when it can go in the wrong way round, and a view of its inside with its legend. Each
+// type of the kit is either complete or listed as pending with its reason: a new type must be one or
+// the other, so the choice is made, never forgotten.
+const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1' };
+const PENDING = {
+  resistor: 'no polarity, no inside view yet (a symbol only)',
+  capacitor: 'no inside view yet; the pins of a ceramic one have no text',
+  potentiometer: 'no symbol or inside view yet',
+  diode: 'no inside view yet',
+  zener: 'no inside view yet',
+  bridge: 'no symbol or inside view yet',
+  regulator: 'no symbol or inside view yet',
+  button: 'no symbol or inside view yet',
+  wire: 'not a part on a pedestal',
+  battery: 'off the board; no symbol or inside view yet',
+  module: 'a development board: its own pin notes, no pedestal view',
+  switch: 'off the board; no symbol or inside view yet',
+  inductor: 'no symbol or inside view yet',
+  thermistor: 'no symbol or inside view yet',
+  ldr: 'no symbol or inside view yet',
+  buzzer: 'no symbol or inside view yet',
+  header: 'pins only: nothing to show inside',
+};
+
+test('a part up close: every part type is complete or pending with a reason, and the complete ones have it all', async () => {
+  const { PART_TYPES } = await import('../src/parts/types/index.js');
+  const { symbolOf, insideOf } = await import('../src/parts/symbols.js');
+  const { t } = await import('../src/i18n/index.js');
+  const { readFileSync } = await import('node:fs');
+  for (const type of Object.keys(PART_TYPES)) assert.ok(COMPLETE[type] || PENDING[type], `${type}: a new part type comes with its view up close (docs/en/adding-parts.md §6), or is listed in PENDING with its reason`);
+  for (const type of Object.keys(COMPLETE)) assert.ok(!PENDING[type], type);
+  const both = (key) => ['en', 'es'].every((lang) => t(lang, key) !== key);
+  // The page's drawers and legends, read from their modules (the page's code is not imported here).
+  const figure = readFileSync(new URL('../src/page/client/figure.js', import.meta.url), 'utf8');
+  const legends = readFileSync(new URL('../src/page/client/focus-view.js', import.meta.url), 'utf8');
+  for (const [type, where] of Object.entries(COMPLETE)) {
+    const [name, id] = where.split(' ');
+    const circuit = name === '555-astable' || name === 'mosfet-switch' ? autoLayout(expandRecipe(name).spec).circuit : loadCircuit(resolveTarget(`${examples}${name}.json`));
+    const p = part(buildCircuit(circuit), id);
+    assert.equal(p.type, type, where);
+    for (const n of p.pinNames) assert.ok(both(`pin.role.${p.raw?.part}.${n}`) || both(`pin.role.${type}.${n}`), `${type}: the text of pin ${n} (pin.role.*) in every language`);
+    const symbol = symbolOf(p);
+    assert.ok(symbol, `${type}: a symbol`);
+    for (const n of p.pinNames) assert.ok(symbol.ids?.[n] && symbol.pins[n], `${type}: the symbol's terminal and letter for pin ${n}`);
+    assert.ok(p.built?.mark, `${type}: the package's orientation mark`);
+    const inside = insideOf(p);
+    assert.ok(inside, `${type}: an inside view`);
+    assert.match(figure, new RegExp(`\\n  ${inside.kind}\\(g, r, data`), `${type}: its drawer in figure.js INSIDE`);
+    const legend = legends.match(new RegExp(`\\n  ${inside.kind}: \\[(.*)\\],`))?.[1];
+    assert.ok(legend, `${type}: its legend in focus-view.js LEGENDS`);
+    for (const [, key] of legend.matchAll(/\['[a-z]*', '([a-z]+)'\]/g)) assert.ok(both(`page.tour.legend.${inside.kind}.${key}`), `${type}: legend line ${key} in every language`);
+  }
+});

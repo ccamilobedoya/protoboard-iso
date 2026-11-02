@@ -23,7 +23,7 @@ pinout with the showcase's schematic symbol beside the part (see *The direction 
 | F2 | Anatomy: `pin` and orientation | ✅ built 2026-11-01; a frame of each waits for approval |
 | F3 | The bench: `bench` | ✅ built 2026-11-01; a frame waits for approval |
 | F4 | `symbol` and `inside` | ✅ built 2026-11-01; frames wait for approval, then the D7 trial |
-| F5 | The part in the page (interactive): the trial's prototype polished, a session of its own | ⬜ next (D7 said yes, 2026-11-01) |
+| F5 | The part in the page (interactive): the trial's prototype polished, a session of its own | ✅ built 2026-11-01; waits for the maintainer on a phone and a tablet |
 | F6 | Bench of timelines and guide | ⬜ |
 
 **Everything is asked for** (the maintainer, 2026-11-01): the pedestal shows only what its timeline's
@@ -329,6 +329,51 @@ the circuit to turn it off (or on in the pages that should have it), the demo si
 at its five sizes, `validate_contrast` and an a11y review of the bar and the legends. Done when the
 maintainer tries it on a phone and a tablet and approves it, and the pages without it are byte for byte
 as before.
+
+**As built (2026-11-01).** On in a page whose circuit says `"page": { "focusView": true }` (or made with
+`renderPage(…, { focusView: true })`; the demo site has it on every simulated page); no `?focusView=1`
+any more. The six points, as solved, with the taste and UX skills (an app screen: the page's own tokens,
+flat surfaces, the hairline edge its other floating panel has, 44 px targets, no ornament):
+
+1. **Outside taps** do nothing while the part is up (`page.focusing`, read by the page's tap handler);
+   Back or Escape lands it.
+2. **The entry** is the card's first row, under its head: a step of tone (`--well`), the pedestal's icon
+   in the accent, *See the part up close*, a chevron.
+3. **The bar** names the part beside *‹ Back*, and holds two segmented controls, one per room around the
+   part, so what excludes what is seen: *Pins | Bench* (under it) and *Symbol | Inside* (beside it); the
+   pressed segment on `--accent-soft`; a pressed one pressed again empties its room. One row where it
+   fits, two on a phone (Back and the name, then the two controls sharing the width).
+4. **A legend** (*What you are seeing*) stands over the bar while an inside view is on: a swatch and a
+   line for each thing the view draws (n and p material, the oxide, the channel, the current's arrows, the
+   chip, the comparators and the latch), from `page.tour.legend.*`. When it comes or goes the part is
+   framed again in the room left, so it never covers the bench.
+5. **The phone**: the free area is measured above the dock; the figure goes where it is larger, beside
+   the part or above it; a bench whose pads are narrower than 64 px keeps each pin's name and voltage
+   only; sizes have a floor.
+6. **Back** lands the part with the camera following it and frames nothing after: the part stays where
+   it was on screen and the board comes up around it.
+
+**After the maintainer's first try on a phone (2026-11-01).** Rows cut with "…" were not readable; of
+the options (a list in the dock, rows on two lines, a tap for the whole text, or dragging), the
+maintainer chose dragging and zooming as on the board. So, up close: the drawing takes drags and pinches
+again (taps still do nothing), the texts are laid out once the view has framed the part and then stay
+on the drawing (`page.layoutBox`), moving and scaling with it, and rows are set whole, each hugging its
+leader and running past the screen's edge when long. The same try showed why the right edge was cut:
+with the drawing taking no touches, a drag zoomed the whole page, and the page's bar, grown with the
+time's buttons, made it wider than the phone; up close the bar now steps aside (the dock has Back), and
+on Safari the dock stands above its floating toolbar. A second try showed two more: a pinch begun on
+the dock still zoomed the whole page (so up close nothing but the drawing takes a pinch, and the page's
+scale is held at 1 while the view is open), and the figure beside the part moved when zooming (its place
+is now worked out once per layout, like the texts). A third try: the figure could still land behind the
+part when it was asked for after a drag; it is now placed once, when it comes, in the drawing's own
+units beside the part (measured through the camera as it is then), drawn over the part's layer, and
+never moved again: it goes wherever the part goes. And the other parts' short labels now fade with the
+board instead of vanishing at the end.
+
+Keyboard: every control is a button in reading order, the first segment takes the focus on entering,
+Escape leaves; the groups and Back have names for a screen reader. Reduced motion makes every move a cut
+(the tour player's rule). Tried in Chromium at 390 × 844, 1024 × 1366 and 1440 × 900, in the stage,
+light and notebook themes, with no error.
 
 ### F6 · Bench of timelines and guide
 

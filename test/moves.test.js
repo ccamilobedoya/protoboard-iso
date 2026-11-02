@@ -765,25 +765,67 @@ test('moves: M22 the symbol stands beside the part, its pins named on the part; 
   assert.equal(figure().children.length, 0, 'off');
 });
 
-// The trial of a part's view in the page (D7; page/client/focus-view.js): only a page made for it and
-// opened with ?focusView=1 offers it; the card's button puts the part on its pedestal with its bar.
-test('moves: the trial of the part\'s view is in a page made for it, behind ?focusView=1', async (t) => {
+// A part's view up close in the page (F5; page/client/focus-view.js): only in a page made with it; the
+// card's first row puts the part on its pedestal with its bar; taps on the drawing keep it there; Back
+// lands it without the camera going anywhere else.
+test('moves: a part up close in the page: the card\'s entry, the bar, outside taps kept, Back without a jump', async (t) => {
   const plain = renderPage(npn({ steps: [] }), { lang: 'en' }).html;
-  const html = renderPage({ ...npn({ steps: [] }), page: {} }, { lang: 'en', focusView: true }).html;
   assert.doesNotMatch(plain, /"focusView":true/);
+  const circuit = { ...npn({ steps: [] }), page: { focusView: true } };
+  const html = renderPage(circuit, { lang: 'en' }).html;
   const data = JSON.parse(html.match(/id="page-data">([\s\S]*?)<\/script>/)[1]);
-  assert.equal(data.focusView, true);
+  assert.equal(data.focusView, true, 'page.focusView in the circuit');
   assert.ok(data.pinouts.front.Q1.symbol && data.pinouts.front.Q1.inside && data.pinouts.front.R1.symbol);
   assert.equal(data.pinouts.front.W1, undefined, 'no wire');
-  const window = await loadPage(html, { url: 'https://page.test/npn.html?focusView=1' });
+  const window = await loadPage(html, { url: 'https://page.test/npn.html' });
   if (!window) return t.skip('jsdom not installed');
   const doc = window.document;
+  const live = window.protoboardLive;
   assert.equal(doc.querySelector('.tour-play')?.isConnected ?? false, false, 'no tour offered in the menu');
-  const bar = doc.querySelector('.focus-bar');
-  assert.ok(bar?.hidden, 'the bar waits');
-  assert.deepEqual([...bar.querySelectorAll('button')].map((b) => b.textContent), ['Pins', 'Bench', 'Symbol', 'Inside', 'Back to the board']);
-  const without = await loadPage(html, { url: 'https://page.test/npn.html' });
-  assert.equal(without.document.querySelector('.focus-bar'), null, 'without ?focusView=1 the page is as it was');
+  const dock = doc.querySelector('.focus-dock');
+  assert.ok(dock?.hidden, 'the dock waits');
+  assert.deepEqual([...dock.querySelectorAll('.segmented button')].map((b) => b.textContent), ['Pins', 'Bench', 'Symbol', 'Inside']);
+  assert.deepEqual([...dock.querySelectorAll('.segmented')].map((g) => g.getAttribute('aria-label')), ['Under the part', 'Beside the part']);
+  // The card of Q1: its first row is the entry.
+  const part = doc.querySelector('main > svg:not([hidden]) .parts [data-part="Q1"]');
+  part.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  const entry = doc.querySelector('.info .focus-open');
+  assert.equal(entry?.previousElementSibling?.className, 'head', 'right under the card\'s head');
+  assert.equal(entry.textContent, 'See the part up close');
+  entry.click();
+  for (let k = 0; k < 30; k++) live.tick(FRAME);
+  assert.equal(doc.querySelector('main').dataset.scene, 'part');
+  assert.equal(dock.hidden, false);
+  assert.equal(doc.querySelector('.focus-title').textContent, data.parts.Q1.title);
+  // A tap on the drawing keeps the part on its pedestal.
+  doc.querySelector('main > svg:not([hidden])').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.equal(doc.querySelector('main').dataset.scene, 'part');
+  assert.ok(doc.querySelector('main > svg:not([hidden]) > .spotlight [data-part="Q1"]'), 'still in focus');
+  // One room at a time: the bench takes the pins' place; the inside view brings its legend.
+  const button = (label) => [...dock.querySelectorAll('button')].find((b) => b.textContent === label);
+  button('Bench').click();
+  button('Inside').click();
+  for (let k = 0; k < 30; k++) live.tick(FRAME);
+  assert.deepEqual(['Pins', 'Bench', 'Symbol', 'Inside'].map((l) => button(l).getAttribute('aria-pressed')), ['false', 'true', 'false', 'true']);
+  const legend = doc.querySelector('.focus-legend');
+  assert.equal(legend.hidden, false);
+  assert.equal(legend.querySelector('h3').textContent, 'What you are seeing');
+  assert.equal(legend.querySelectorAll('li').length, 4);
+  // With the inside view, the pins' rows keep the letters it uses (B, C, E), as with the symbol.
+  button('Pins').click();
+  for (let k = 0; k < 30; k++) live.tick(FRAME);
+  const rows = [...doc.querySelectorAll('main > svg:not([hidden]) > .pinout g[data-pin] text')].map((x) => x.textContent);
+  assert.deepEqual(rows.map((x) => x.split(' · ')[0]), ['E', 'B', 'C'], rows.join(' | '));
+  button('Inside').click();
+  assert.equal(legend.hidden, true, 'the inside view off, its legend goes');
+  // Back: the part lands, the camera keeps its size (no frame of the whole circuit after it).
+  const width = () => Number(doc.querySelector('main > svg:not([hidden])').getAttribute('viewBox').split(' ')[2]);
+  const before = width();
+  doc.querySelector('.focus-back').click();
+  for (let k = 0; k < 60; k++) live.tick(FRAME);
+  assert.equal(doc.querySelector('main').dataset.scene, undefined, 'on the board');
+  assert.ok(Math.abs(width() - before) < 0.01, `${before} → ${width()}`);
+  assert.equal(dock.hidden, true);
 });
 
 test('moves: a part raised and then focused again stays seen (its copies keep their opacity)', async (t) => {

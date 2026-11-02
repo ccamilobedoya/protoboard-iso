@@ -23,7 +23,7 @@ patas técnico con el símbolo de esquema de la vitrina al lado de la pieza (ver
 | F2 | Anatomía: `pin` y orientación | ✅ construida el 2026-11-01; falta aprobar un fotograma de cada una |
 | F3 | El banco: `bench` | ✅ construida el 2026-11-01; falta aprobar un fotograma |
 | F4 | `symbol` e `inside` | ✅ construida el 2026-11-01; faltan aprobar fotogramas, luego el ensayo de D7 |
-| F5 | La pieza en la página (interactiva): el prototipo del ensayo, pulido, en una sesión propia | ⬜ siguiente (D7 dijo que sí, 2026-11-01) |
+| F5 | La pieza en la página (interactiva): el prototipo del ensayo, pulido, en una sesión propia | ✅ construida el 2026-11-01; falta que el mantenedor la pruebe en el celular y la tableta |
 | F6 | Banco de líneas de tiempo y guía | ⬜ |
 
 **Todo se pide** (el mantenedor, 2026-11-01): el pedestal muestra solo lo que piden los pasos de su
@@ -349,6 +349,54 @@ Y del plan: escritorio y tableta (la barra o un panel al lado del dibujo), foco 
 de demostración con ella, `ux-shots.js` en sus cinco tamaños, `validate_contrast` y una revisión de
 accesibilidad de la barra y las leyendas. Terminada cuando el mantenedor la prueba en un celular y una
 tableta y la aprueba, y las páginas sin ella quedan idénticas byte a byte.
+
+**Cómo quedó (2026-11-01).** Se enciende en una página cuyo circuito dice `"page": { "focusView": true }`
+(o hecha con `renderPage(…, { focusView: true })`; el sitio de demostración la tiene en cada página que
+se simula); ya no hace falta `?focusView=1`. Los seis puntos, resueltos con los skills de taste y UX (una
+pantalla de aplicación: los tokens de la propia página, superficies planas, el borde fino que tiene su
+otro panel flotante, áreas táctiles de 44 px, nada de adornos):
+
+1. **Los toques por fuera** no hacen nada mientras la pieza está arriba (`page.focusing`, que lee el
+   manejador de toques de la página); Volver o Escape la bajan.
+2. **La entrada** es la primera fila de la ficha, bajo su encabezado: un escalón de tono (`--well`), el
+   icono del pedestal en el color de acento, *Ver la pieza de cerca*, un chevrón.
+3. **La barra** nombra la pieza al lado de *‹ Volver* y tiene dos controles segmentados, uno por espacio
+   alrededor de la pieza, así se ve qué excluye a qué: *Patas | Banco* (debajo) y *Símbolo | Por dentro*
+   (al lado); el segmento presionado sobre `--accent-soft`; uno presionado que se toca otra vez vacía su
+   espacio. Una fila donde cabe, dos en un celular (Volver y el nombre, después los dos controles
+   compartiendo el ancho).
+4. **Una leyenda** (*Qué estás viendo*) aparece sobre la barra mientras hay una vista por dentro: una
+   muestra y una línea por cada cosa que dibuja la vista (material n y p, el óxido, el canal, las flechas
+   de la corriente, el chip, los comparadores y el *latch*), con `page.tour.legend.*`. Cuando aparece o se
+   va, la pieza se encuadra otra vez en el espacio que queda, así nunca tapa el banco.
+5. **El celular**: el área libre se mide encima de la barra; la figura va donde queda más grande, al lado
+   de la pieza o encima; un banco con pastillas de menos de 64 px deja solo el nombre y el voltaje de cada
+   pata; los tamaños tienen un mínimo.
+6. **Volver** baja la pieza con la cámara siguiéndola y después no encuadra nada: la pieza queda donde
+   estaba en pantalla y la protoboard aparece a su alrededor.
+
+**Después de la primera prueba del mantenedor en el celular (2026-11-01).** Las filas cortadas con «…» no
+se podían leer; entre las opciones (una lista en la barra, filas en dos líneas, tocar para ver el texto
+completo, o arrastrar), el mantenedor eligió arrastrar y acercar como en la protoboard. Así que, de
+cerca: el dibujo vuelve a tomar los arrastres y los pellizcos (los toques siguen sin hacer nada), los
+textos se reparten una vez que la vista encuadró la pieza y después quedan sobre el dibujo
+(`page.layoutBox`), moviéndose y escalando con él, y las filas salen enteras, cada una pegada a su línea
+guía y pasando el borde de la pantalla si es larga. La misma prueba mostró por qué se cortaba el borde
+derecho: como el dibujo no tomaba los toques, un arrastre agrandaba toda la página, y la barra de la
+página, crecida con los botones del tiempo, la hacía más ancha que el celular; de cerca esa barra ahora
+se aparta (la base de abajo tiene Volver), y en Safari la base queda encima de su barra flotante. Una segunda prueba mostró dos más: un pellizco que
+empezaba en la base todavía agrandaba toda la página (así que de cerca solo el dibujo toma un pellizco,
+y la escala de la página se mantiene en 1 mientras la vista está abierta), y la figura al lado de la
+pieza se movía al acercar (su lugar ahora se calcula una vez por reparto, como los textos). Una tercera prueba: la figura todavía
+podía quedar detrás de la pieza si se pedía después de un arrastre; ahora se coloca una sola vez, al
+llegar, en las unidades del propio dibujo al lado de la pieza (medida con la cámara de ese momento), se
+dibuja encima de la capa de la pieza y no se mueve más: va a donde vaya la pieza. Y los rótulos cortos de
+las demás piezas ahora se desvanecen con la protoboard en vez de desaparecer al final.
+
+Teclado: cada control es un botón en orden de lectura, el primer segmento recibe el foco al entrar,
+Escape sale; los grupos y Volver tienen nombre para un lector de pantalla. El movimiento reducido hace
+cada movimiento un corte (la regla del reproductor). Probada en Chromium a 390 × 844, 1024 × 1366 y
+1440 × 900, en los temas escenario, claro y cuaderno, sin errores.
 
 ### F6 · Banco de líneas de tiempo y guía
 

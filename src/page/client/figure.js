@@ -17,18 +17,28 @@
 // beside the layers, under the channel. Didactic, not to scale.
 
 import { DOT_COLOR } from '../../sim/look.js';
-import { fixed, make, screenOf, layerOf, tipsOf } from './pinout.js';
+import { PINOUT, fixed, make, screenOf, layerOf, tipsOf } from './pinout.js';
 import { partsRect } from './view.js';
 
 // Sizes in px at the format's width; times in ms.
 export const FIGURE = { size: 300, margin: 44, min: 130, line: 2.4, text: 11, small: 8, id: 26 };
 
 // Where the figure goes on screen, px: a slot beside the part, `w`×`h` units scaled; on its right (the
-// direction chosen for the pedestal), on its left only when the right is too narrow for it.
+// direction chosen for the pedestal), on its left only when the right is too narrow for it; above it
+// when it is clearly larger there (a phone).
 export function figureSlot(part, free, u, w, h) {
   const margin = FIGURE.margin * u;
   const right = free.x1 - part.right - margin;
   const left = part.left - free.x0 - margin;
+  // Above the part, centred on it, when the figure is larger there than on either side (a phone).
+  const above = part.top - free.y0 - margin;
+  const side = Math.min(FIGURE.size * u, Math.max(right, left)) / Math.max(w, h);
+  const top = Math.min(FIGURE.size * u, above, free.x1 - free.x0) / Math.max(w, h);
+  if (top > side * 1.15) {
+    const scale = Math.min(FIGURE.size * u, above, free.x1 - free.x0) / Math.max(w, h);
+    const x = Math.min(Math.max((part.left + part.right) / 2 - (w * scale) / 2, free.x0), free.x1 - w * scale);
+    return { x, y: part.top - margin - h * scale, scale };
+  }
   const onRight = right >= FIGURE.min * u || right >= left;
   const room = onRight ? right : left;
   const scale = Math.min(FIGURE.size * u, Math.max(FIGURE.min * u, room)) / Math.max(w, h);
@@ -143,7 +153,36 @@ const INSIDE = {
 // `reading()`, `t`, `f` as the tour has them; `now()`: the director's time (ms).
 export function setupFigure(page, { reading, t, f, now }) {
   let on = null; // { id, what: 'symbol' | 'inside', k, t0, ms }
+  let placed = null; // { for, x, y, s, line }: where the figure is, in drawing units, since it came
   const layers = new WeakMap(); // under the part's copy, so a pin behind a body keeps its identifier hidden
+
+  // Where the figure goes, in drawing units. The part is measured on screen through the camera as it is
+  // now, then laid out in the layout's screen (the frame the texts were set in, pinout.js), so a figure
+  // asked for after a drag or a zoom lands where it would have; never against the pinout's rows (above
+  // where they begin, lit or not), never past the free area's top.
+  function place(wanted, data, screen, tips, w, h) {
+    const { at, u, free, toScreen } = screen;
+    const svg = page.current();
+    const r = svg.getBoundingClientRect();
+    const box = page.box;
+    const drawn = partsRect(page, [on.id]);
+    let part;
+    if (drawn && box && r.width > 0) {
+      const kNow = Math.max(box[2] / r.width, box[3] / r.height);
+      const inDrawing = (x, y) => [box[0] + box[2] / 2 + (x - r.left - r.width / 2) * kNow, box[1] + box[3] / 2 + (y - r.top - r.height / 2) * kNow];
+      const a = toScreen(...inDrawing(drawn.left, drawn.top));
+      const b = toScreen(...inDrawing(drawn.right, drawn.bottom));
+      part = { left: a.x, top: a.y, right: b.x, bottom: b.y };
+    } else {
+      const xs = tips.map((p) => p.x);
+      part = { left: Math.min(...xs) - 30 * u, right: Math.max(...xs) + 30 * u, top: Math.min(...tips.map((p) => p.y)) - 200 * u, bottom: Math.max(...tips.map((p) => p.y)) };
+    }
+    const slot = figureSlot(part, free, u, w, h);
+    const rows = Math.max(...tips.map((p) => p.y)) + PINOUT.gap * u;
+    slot.y = Math.max(free.y0, Math.min(slot.y, rows - FIGURE.margin * u * 0.6 - h * slot.scale));
+    const [x, y] = at(slot.x, slot.y);
+    return { for: wanted, x, y, s: slot.scale * screen.k, line: (FIGURE.line * Math.max(u, 0.5)) / slot.scale };
+  }
 
   function draw() {
     for (const s of page.svgs) layers.get(s)?.replaceChildren();
@@ -152,39 +191,37 @@ export function setupFigure(page, { reading, t, f, now }) {
     const shape = data && (on.what === 'symbol' ? data.symbol : data.inside);
     const screen = shape && screenOf(page);
     if (!screen) return;
-    const g = layerOf(page, 'figure', layers);
-    const { k, at, u, free, rect } = screen;
+    const g = layerOf(page, 'figure', layers, true);
+    const { k, at, u, free } = screen;
     const tips = tipsOf(page, on.id, data.pins, screen);
-    const drawn = partsRect(page, [on.id]);
-    const xs = tips.map((p) => p.x);
-    const part = drawn
-      ? { left: drawn.left - rect.left, right: drawn.right - rect.left, top: drawn.top - rect.top, bottom: drawn.bottom - rect.top }
-      : { left: Math.min(...xs) - 30 * u, right: Math.max(...xs) + 30 * u, top: Math.min(...tips.map((p) => p.y)) - 200 * u, bottom: Math.max(...tips.map((p) => p.y)) };
     const [w, h] = on.what === 'symbol' ? [shape.w, shape.h] : [104, 118];
-    const slot = figureSlot(part, free, u, w, h);
-    // Above the pinout's rows (pinout.js, page.rowsTop) with a gap, never past the free area's top.
-    if (page.rowsTop != null) slot.y = Math.max(free.y0, Math.min(slot.y, page.rowsTop - FIGURE.margin * u * 0.6 - h * slot.scale));
-    const [ox, oy] = at(slot.x, slot.y);
-    const box = make(g, 'g', { class: on.what, transform: `translate(${ox} ${oy}) scale(${fixed(slot.scale * k * 1000) / 1000})`, opacity: fixed(Math.min(1, on.k * 1.4)), 'data-figure': on.id });
-    const line = (FIGURE.line * Math.max(u, 0.5)) / slot.scale;
+    // Placed once, when it comes, and kept in the drawing's own units: beside the part as part of the
+    // drawing, it moves and scales with the part whatever the camera does after (a drag, a zoom, a frame).
+    const wanted = `${page.state.view}|${on.id}|${on.what}`;
+    if (placed?.for !== wanted) placed = place(wanted, data, screen, tips, w, h);
+    const box = make(g, 'g', { class: on.what, transform: `translate(${placed.x} ${placed.y}) scale(${fixed(placed.s * 1000) / 1000})`, opacity: fixed(Math.min(1, on.k * 1.4)), 'data-figure': on.id });
+    const line = placed.line;
+    // M22, M23: with either figure the part carries its pins' letters, the ones the symbol and the
+    // inside view use (B, C, E; A, K; a chip's numbers): at the start of a pin's row when the pinout shows
+    // it (pinout.js reads page.symbolIds), else under its tip, apart (not over a bench's stubs: its pads
+    // name the pins).
+    const ids = Object.fromEntries(data.pins.filter((p) => p.id).map((p) => [p.name, p.id]));
+    page.symbolIds = { [on.id]: ids };
+    const size = FIGURE.id * Math.max(u, 0.5);
+    const loose = data.pins.map((pin, i) => ({ i, id: ids[pin.name], x: tips[i].x })).filter((p) => p.id && page.benchPart !== on.id && !page.litPins?.has(`${on.id}.${data.pins[p.i].name}`)).sort((a, b) => a.x - b.x);
+    const below = Math.max(...tips.map((p) => p.y)) + size * 1.1;
+    let last = -Infinity;
+    for (const p of loose) {
+      const x = Math.max(p.x, last + size * 0.9 * Math.max(1, p.id.length));
+      last = x;
+      const [tx, ty] = at(x, below);
+      const text = make(g, 'text', { class: 'pin-id', 'data-id': `${on.id}.${data.pins[p.i].name}`, x: tx, y: ty, 'font-size': fixed(size * k), 'text-anchor': 'middle', opacity: fixed(Math.min(1, on.k * 1.4)) });
+      text.textContent = p.id;
+    }
     if (on.what === 'symbol') {
       for (const d of shape.strokes) make(box, 'path', { class: 'stroke', d, 'stroke-width': fixed(line) });
       for (const d of shape.fills) make(box, 'path', { class: 'fill', d });
       for (const x of shape.texts) label(box, x.x, x.y, x.text, x.quiet || x.number ? 'quiet' : 'pin-name', x.anchor, x.small ? FIGURE.small : FIGURE.text);
-      // M22: the symbol's name for each pin said on the part. A pin with its row in the pinout has it at
-      // the row's start (pinout.js reads page.symbolIds); the others under their tips, apart.
-      page.symbolIds = { [on.id]: shape.ids ?? {} };
-      const size = FIGURE.id * Math.max(u, 0.5);
-      const free = data.pins.map((pin, i) => ({ i, id: shape.ids?.[pin.name], x: tips[i].x })).filter((p) => p.id && !page.litPins?.has(`${on.id}.${data.pins[p.i].name}`)).sort((a, b) => a.x - b.x);
-      const y = Math.max(...tips.map((p) => p.y)) + size * 1.1;
-      let last = -Infinity;
-      for (const p of free) {
-        const x = Math.max(p.x, last + size * 0.9 * Math.max(1, p.id.length));
-        last = x;
-        const [tx, ty] = at(x, y);
-        const text = make(g, 'text', { class: 'pin-id', 'data-id': `${on.id}.${data.pins[p.i].name}`, x: tx, y: ty, 'font-size': fixed(size * k), 'text-anchor': 'middle', opacity: fixed(Math.min(1, on.k * 1.4)) });
-        text.textContent = p.id;
-      }
       return;
     }
     box.setAttribute('data-inside', shape.kind);
@@ -196,13 +233,17 @@ export function setupFigure(page, { reading, t, f, now }) {
     // of the share of the move, for a tween.
     show(id, what, ms) {
       on = { id, what, k: 0, t0: now(), ms };
+      placed = null; // placed again where it comes now
       return (k) => {
         if (on?.id === id && on.what === what) on.k = k;
         draw();
       };
     },
     clear(what) {
-      if (!what || on?.what === what) on = null;
+      if (!what || on?.what === what) {
+        on = null;
+        placed = null;
+      }
       draw();
     },
     draw,

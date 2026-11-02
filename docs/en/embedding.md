@@ -81,6 +81,28 @@ node bin/protoboard-iso.js page <target> [--lang es] [--fit parts|board] [-o pag
 The script runs inside the iframe, isolated in the file server's origin: it never touches
 the host page.
 
+## A part up close
+
+With `"page": { "focusView": true }` in the circuit (or `renderPage(…, { focusView: true })`), the live
+page lets a learner take any part (not a wire or a development board) up close: the part's card offers
+*See the part up close* as its first row. The part goes alone onto a pedestal and a bar at the bottom
+holds:
+
+- **‹ Back** and the part's name: Back (or Escape) lands the part in its holes, the camera keeping it
+  where it is on screen while the board comes up around it.
+- **Pins | Bench**, under the part: the pinout (each pin's letter, name and what it does, and how to
+  tell the pins apart), or the test bench (each pin's voltage, current and what it is joined to, read
+  from the simulation as it runs).
+- **Symbol | Inside**, beside it: the schematic symbol, or what goes on inside, drawn from the
+  simulation, with a legend (*What you are seeing*) over the bar.
+
+One of each pair at a time; a pressed one pressed again turns it off. The pins' rows keep the letters
+the symbol and the inside view use. Up close, taps on the drawing do nothing, and the drawing can be
+dragged and zoomed as on the board: the texts stay on it and are never cut, so a long row is read by
+dragging. The circuit keeps running, and the card's controls stay as they were. A page without the
+option is exactly as before; a recording or the landing of a site never has it. What each part shows is
+in [adding-parts.md](adding-parts.md), section 6.
+
 ## Live or frozen
 
 An embed of the page is **live**: it follows every change to the circuit. For a record that

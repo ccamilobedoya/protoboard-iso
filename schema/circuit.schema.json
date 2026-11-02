@@ -400,6 +400,10 @@
             }
           ]
         },
+        "focusView": {
+          "type": "boolean",
+          "description": "A part's view up close (the live page): the card of a part offers it, and the part goes alone on its pedestal with its pins, bench, symbol and inside view a tap away (default false)"
+        },
         "start": {
           "enum": [
             "dc",

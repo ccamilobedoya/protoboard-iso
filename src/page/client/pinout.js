@@ -36,15 +36,17 @@ const cut = (text, chars) => (text.length <= chars ? text : `${text.slice(0, Mat
 // Two columns, each taking the pins on its side of the part's middle; when a row would still be cut
 // there, all the rows in one column on the side with more room (the pins nearest it at the top: no
 // leader crosses either), if that keeps every row whole.
-export function layoutRows(pins, tips, free, u) {
-  const two = arrange(pins, tips, free, u, 'two');
-  if (!two.cut) return two;
+// `whole`: rows never shrink or cut; each hugs its leader and runs past the screen's edge if it must (a
+// part up close in the page, where the drawing can be dragged).
+export function layoutRows(pins, tips, free, u, whole = false) {
+  const two = arrange(pins, tips, free, u, 'two', whole);
+  if (whole || !two.cut) return two;
   const mid = tips.reduce((s, p) => s + p.x, 0) / tips.length;
   const one = arrange(pins, tips, free, u, free.x1 - mid > mid - free.x0 ? 'right' : 'left');
   return one.cut < two.cut ? one : two;
 }
 
-function arrange(pins, tips, free, u, split) {
+function arrange(pins, tips, free, u, split, whole = false) {
   const many = pins.length > 4;
   const lowest = Math.max(...tips.map((p) => p.y));
   const mid = tips.reduce((s, p) => s + p.x, 0) / tips.length;
@@ -76,6 +78,16 @@ function arrange(pins, tips, free, u, split) {
   const pad = PINOUT.pad * u;
   const room = (r) => (r.side === 'left' ? r.x - pad - free.x0 : free.x1 - pad - r.x);
   const base = (many ? PINOUT.rowMany : PINOUT.row) * u;
+  if (whole) {
+    const size = Math.max(PINOUT.min, base);
+    for (const [i, r] of rows.entries()) {
+      r.text = pins[i].text;
+      const width = r.text.length * size * CHAR;
+      r.end = r.side === 'left' ? r.x - pad - width : r.x + pad + width;
+      r.anchor = r.side === 'left' ? r.x - pad : r.x + pad;
+    }
+    return { rows, size, cut: 0 };
+  }
   let size = base;
   for (const [i, r] of rows.entries()) size = Math.min(size, Math.max(base * PINOUT.shrink, room(r) / (pins[i].text.length * CHAR)));
   size = Math.max(PINOUT.min, size);
@@ -92,10 +104,12 @@ function arrange(pins, tips, free, u, split) {
 // `k` drawing units per px, `toScreen`/`at` between the two (px from the SVG's corner), `u` the
 // format's px (1 at 1080 portrait or 1920 landscape), `free` the area a recording leaves free. Null
 // when there is nothing to measure yet.
+// A part up close in the page (focus-view.js) pins the layout to the frame the view chose
+// (`page.layoutBox`): the learner then drags and zooms the drawing, and the texts go with it.
 export function screenOf(page) {
   const svg = page.current();
   const r = svg.getBoundingClientRect();
-  const box = page.box;
+  const box = page.layoutBox ?? page.box;
   if (!box || !(r.width > 0 && r.height > 0)) return null;
   const k = Math.max(box[2] / r.width, box[3] / r.height);
   const toScreen = (x, y) => ({ x: r.width / 2 + (x - box[0] - box[2] / 2) / k, y: r.height / 2 + (y - box[1] - box[3] / 2) / k });
@@ -104,17 +118,20 @@ export function screenOf(page) {
   const u = Math.max(r.width / (r.width > r.height ? 1920 : 1080), document.body.classList.contains('focus-view') ? 0.6 : 0);
   const inset = page.inset?.() ?? FREE;
   const free = { x0: inset.left * r.width, x1: (1 - inset.right) * r.width, y1: (1 - inset.bottom) * r.height };
-  return { svg, rect: r, key: [page.state.view, box, r.width, r.height], k, toScreen, at, u, free: { ...free, y0: inset.top * r.height } };
+  // The key changes when the drawing moves or the free area does (a legend coming in under the part).
+  return { svg, rect: r, key: [page.state.view, box, r.width, r.height, Math.round(free.y1)], k, toScreen, at, u, free: { ...free, y0: inset.top * r.height } };
 }
 // A layer of the current view, just under the spotlight (a pin behind a body shows its line coming
-// out from under it), made once per view.
-export function layerOf(page, name, layers) {
+// out from under it), or just over it (`above`: a figure beside the part, never hidden by it), made once
+// per view.
+export function layerOf(page, name, layers, above = false) {
   const svg = page.current();
   if (!layers.has(svg)) {
     const g = svg.ownerDocument.createElementNS(NS, 'g');
     g.setAttribute('class', name);
     const spot = svg.querySelector(':scope > .spotlight');
-    if (spot) spot.before(g);
+    if (spot && above) spot.after(g);
+    else if (spot) spot.before(g);
     else svg.append(g);
     layers.set(svg, g);
   }
@@ -154,7 +171,7 @@ export function setupPinout(page) {
       // With the symbol beside the part, each row starts with the symbol's name for its pin (a chip's
       // rows already start with its number).
       const named = pinout.pins.length <= 4 ? page.symbolIds?.[id] : null;
-      const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: [named?.[p.name], own.get(i)?.text ?? p.text].filter(Boolean).join(' · ') })), tips, free, u);
+      const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: [named?.[p.name], own.get(i)?.text ?? p.text].filter(Boolean).join(' · ') })), tips, free, u, Boolean(page.focusing));
       const stroke = PINOUT.line * Math.max(u, 0.5) * k;
       // Where the rows begin on screen: the figure beside the part stays above them (figure.js).
       if (lit.get(id)?.size) page.rowsTop = Math.min(page.rowsTop ?? Infinity, Math.round(Math.min(...rows.filter(Boolean).map((r) => r.y)) - size));
@@ -165,11 +182,14 @@ export function setupPinout(page) {
         const g = make(under, 'g', { 'data-pin': `${id}.${pinout.pins[i].name}`, opacity: Math.min(1, p.k * 1.6) });
         const [tx, ty] = at(row.tip.x, row.tip.y);
         const [lx, ly] = at(row.x, row.y);
-        const [ex] = at(row.side === 'left' ? row.end + PINOUT.pad * u : row.end - PINOUT.pad * u, row.y);
+        const [ex] = row.anchor != null ? at(row.anchor, row.y) : at(row.side === 'left' ? row.end + PINOUT.pad * u : row.end - PINOUT.pad * u, row.y);
         make(g, 'path', { class: 'lead', d: `M${tx} ${ty}H${lx}V${ly}H${ex}`, 'stroke-width': stroke });
         make(g, 'circle', { class: 'tip', cx: tx, cy: ty, r: PINOUT.dot * Math.max(u, 0.5) * k * Math.min(1, p.k * 4) });
-        const [x, y] = at(row.side === 'left' ? free.x0 : free.x1, row.y + size * 0.35 + (1 - p.k) * size * 0.4);
-        const text = make(g, 'text', { class: 'row', x, y, 'font-size': size * k, 'text-anchor': row.side === 'left' ? 'start' : 'end' });
+        // Rows set whole hug their leader (anchored at its end, running outwards); the others sit at the
+        // free area's edges.
+        const hug = row.anchor != null;
+        const [x, y] = at(hug ? row.anchor + (row.side === 'left' ? -0.3 : 0.3) * size : row.side === 'left' ? free.x0 : free.x1, row.y + size * 0.35 + (1 - p.k) * size * 0.4);
+        const text = make(g, 'text', { class: 'row', x, y, 'font-size': size * k, 'text-anchor': (row.side === 'left') === hug ? 'end' : 'start' });
         text.textContent = row.text;
       }
       if (marks.has(id) && pinout.mark) {

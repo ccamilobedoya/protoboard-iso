@@ -149,7 +149,8 @@ export function startPage(extensions = []) {
   let lastTap = null;
   main.addEventListener('click', (e) => {
     // A button in the card that rebuilt it (a pin opening its strip) is no longer in the page.
-    if (page.dragged || !e.target.isConnected || page.inChrome(e.target)) return;
+    // A part up close (focus-view.js) keeps its pedestal: taps on the drawing do nothing then.
+    if (page.focusing || page.dragged || !e.target.isConnected || page.inChrome(e.target)) return;
     if (tapTag(page, e.target)) return;
     const hit = e.target.closest && e.target.closest('[data-part]');
     // Later than a double tap (that one frames the part, view.js). Not "the same spot on screen":

@@ -7,7 +7,7 @@
 //   pinIndex(part, name)            → index of the pin a step names ("B", "base", "2"), or -1
 //   pinRole(part, i, lang)          → the pin's row of text ("collector · the load", "3 OUT · output")
 //   pinList(part, lang)             → [{ ref, name, text }] what --parts lists
-//   pinoutOf(part, camera, lang)    → { kind, pins: [{ name, word, text, node, x, y }], mark } for the page
+//   pinoutOf(part, camera, lang)    → { kind, pins: [{ name, word, text, id, node, x, y }], mark } for the page
 //                                    (word: the pin's name in the page's language, "ánodo")
 //
 // `part` is a built part (circuit/build.js); x, y are drawing units of that view, the point where the
@@ -16,6 +16,7 @@
 import { t } from './i18n/index.js';
 import { findPin } from './parts/pin-names.js';
 import { dot } from './core/vec.js';
+import { symbolOf } from './parts/symbols.js';
 
 const round = (v) => Math.round(v * 10) / 10;
 const has = (lang, key) => t(lang, key) !== key;
@@ -83,7 +84,10 @@ function markText(part, mark, camera, points, lang) {
 
 export function pinoutOf(part, camera, lang = 'en') {
   const points = part.holes.map((h) => camera.project(h.pos));
-  const pins = points.map((p, i) => ({ name: part.pinNames[i], word: word(part.pinNames[i], lang), text: pinRole(part, i, lang), node: part.holes[i].node, x: round(p.x), y: round(p.y) }));
+  // `id`: what the symbol and the inside view call the pin (B, C, E; A, K; a chip's number), the letter
+  // the part carries beside either figure.
+  const ids = symbolOf(part)?.ids ?? {};
+  const pins = points.map((p, i) => ({ name: part.pinNames[i], word: word(part.pinNames[i], lang), text: pinRole(part, i, lang), ...(ids[part.pinNames[i]] && { id: ids[part.pinNames[i]] }), node: part.holes[i].node, x: round(p.x), y: round(p.y) }));
   const kind = [t(lang, `type.${part.def?.typeKey ?? part.type}`), packageName(part)].filter(Boolean).join(' · ');
   const mark = part.built?.mark;
   if (!mark) return { kind, pins, mark: null };

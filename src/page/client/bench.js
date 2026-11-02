@@ -15,7 +15,7 @@ import { voltageColor, dotSpeed, DOT_COLOR } from '../../sim/look.js';
 import { CHAR, fixed, make, screenOf, layerOf, tipsOf } from './pinout.js';
 
 // Sizes in px at the format's width (1080 portrait, 1920 landscape); `many`: a part of more than 4 pins.
-export const BENCH = { gap: 40, drop: 80, pad: 34, pitch: 230, margin: 40, apart: 10, line: 4, dot: 7, period: 20, name: 26, volts: 38, voltsMany: 28, small: 22, min: 9, floor: 1e-3 };
+export const BENCH = { gap: 40, drop: 80, pad: 34, pitch: 230, margin: 40, apart: 10, line: 4, dot: 7, period: 20, name: 26, volts: 38, voltsMany: 28, small: 22, min: 9, floor: 1e-3, compact: 64 };
 
 // Where each pad goes and how its stub runs, in px: `tips` [{ x, y }] of the part's pins.
 export function layoutPads(tips, free, u) {
@@ -108,8 +108,9 @@ export function setupBench(page, { reading, look, f, now }) {
       const lines = [
         ['name', many ? `${i + 1} ${pin.name}` : pin.word ?? pin.name, BENCH.name],
         ['volts', v == null ? '—' : f(v, 'V'), many ? BENCH.voltsMany : BENCH.volts],
-        ...(Math.abs(current) >= 1e-6 ? [['amps', f(Math.abs(current), 'A'), BENCH.small]] : []),
-        ...(pin.to ? [['to', pin.to, BENCH.small]] : []),
+        // Pads too narrow for four lines (a chip's eight on a phone) keep the pin and its voltage.
+        ...(pad.pitch >= BENCH.compact && Math.abs(current) >= 1e-6 ? [['amps', f(Math.abs(current), 'A'), BENCH.small]] : []),
+        ...(pad.pitch >= BENCH.compact && pin.to ? [['to', pin.to, BENCH.small]] : []),
       ];
       let y = pad.y + half + BENCH.small * s * 0.6;
       for (const [cls, words, px] of lines) {
@@ -126,6 +127,7 @@ export function setupBench(page, { reading, look, f, now }) {
     // The bench of a part, on (`k` of its stubs drawn, M21) or off.
     show(id) {
       on = { id, k: 0 };
+      page.benchPart = id;
       return (k) => {
         if (on?.id === id) on.k = k;
         draw();
@@ -133,6 +135,7 @@ export function setupBench(page, { reading, look, f, now }) {
     },
     clear() {
       on = null;
+      page.benchPart = null;
       phase.clear();
       draw();
     },

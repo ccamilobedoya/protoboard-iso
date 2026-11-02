@@ -19,6 +19,8 @@ export const ICONS = {
   chevron: 'M4 6l4 4 4-4',
   eye: 'M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8zM8 9.8a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z',
   close: 'M4 4l8 8M12 4l-8 8',
+  back: 'M10 3 5 8l5 5',
+  pedestal: 'M5.5 2.5h5v5.5h-5zM6.5 8v3.5M9.5 8v3.5M2.5 13.5h11',
 };
 
 export const iconSvg = (name) => `<svg class="icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="${ICONS[name]}"/></svg>`;

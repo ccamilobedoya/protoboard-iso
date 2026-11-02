@@ -160,6 +160,27 @@ output, the result tags, the probes and the page find it there.
   in `test/sim.test.js` or `test/sources.test.js`. Never tune a model to make an example look right.
 - Give the package `paths` (section 3) so the conductor view follows its leads.
 
+## 6. A part up close (a requirement for every new part type)
+
+A part goes on its own pedestal in two places: a video about one part (`scene`, `pin`, `bench`,
+`symbol`, `inside` in a timeline, [timeline.md](timeline.md)) and the page's view up close
+(`page.focusView`, [embedding.md](embedding.md)). Both show the same five things, so a new part type
+comes with all of them, and the kit's types are built up to it:
+
+| What | Where | Why |
+|---|---|---|
+| What each pin does | `pin.role.<type>.<pin>` (or `pin.role.<part number>.<pin>` when one part number differs) in **every** file of `src/i18n/` | the pinout's rows and `render-frames.js --parts` |
+| How to tell its pins apart | the package's `mark` (`{ kind, at, normal }`: a flat face, a tab, a notch, a flange's flat, a stripe) and its sentence in `pinout.*` | the quiet line under the pinout, written from the camera, never by hand |
+| Its schematic symbol | `symbolOf` in `src/parts/symbols.js`: strokes in a box of 100, a terminal (`pins`) and a **letter** (`ids`) for every pin | the symbol beside the part; its letters go at the start of the pins' rows or under their tips |
+| What goes on inside | `insideOf` in `src/parts/symbols.js` (its kind), the drawer in `INSIDE` (`src/page/client/figure.js`, from the engine's reading: what the device's `reading` gives), its legend in `LEGENDS` (`src/page/client/focus-view.js`) and `page.tour.legend.<kind>.*` in every language | the inside view, and in the page the legend a video gives in its captions |
+| The same letters everywhere | the inside view labels its pins with the symbol's `ids` (C, B, E; S, G, D; A, K; a chip's names, its rows numbered) | the pins' rows keep those letters with either figure beside the part |
+
+`test/pinout.test.js` ("a part up close") holds the rule: every type in `PART_TYPES` is either in
+`COMPLETE` (checked for all of the above) or in `PENDING` with its reason. A new type in neither fails
+the test, so the choice is made, never forgotten; moving a type from `PENDING` to `COMPLETE` is how
+the kit catches up. Look at the result once: a video's frame (`render-frames.js`) and the page up close
+on a phone.
+
 ## Tests
 
 `npm test`. Add a test for anything that has a right answer: colour codes, sizes, pin
