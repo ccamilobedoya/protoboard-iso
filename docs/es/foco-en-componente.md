@@ -24,7 +24,7 @@ patas técnico con el símbolo de esquema de la vitrina al lado de la pieza (ver
 | F3 | El banco: `bench` | ✅ construida el 2026-11-01; falta aprobar un fotograma |
 | F4 | `symbol` e `inside` | ✅ construida el 2026-11-01; faltan aprobar fotogramas, luego el ensayo de D7 |
 | F5 | La pieza en la página (interactiva): el prototipo del ensayo, pulido, en una sesión propia | ✅ construida el 2026-11-01; falta que el mantenedor la pruebe en el celular y la tableta |
-| F6 | Banco de líneas de tiempo y guía | ✅ 2026-11-01; los videos esperan al mantenedor |
+| F6 | Banco de líneas de tiempo y guía | ✅ 2026-11-01; videos aprobados por el mantenedor |
 
 **Todo se pide** (el mantenedor, 2026-11-01): el pedestal muestra solo lo que piden los pasos de su
 línea de tiempo. El diagrama de patas, el banco, el símbolo y el «por dentro» son cada uno de un paso,

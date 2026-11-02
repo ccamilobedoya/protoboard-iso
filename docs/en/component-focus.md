@@ -24,7 +24,7 @@ pinout with the showcase's schematic symbol beside the part (see *The direction 
 | F3 | The bench: `bench` | ✅ built 2026-11-01; a frame waits for approval |
 | F4 | `symbol` and `inside` | ✅ built 2026-11-01; frames wait for approval, then the D7 trial |
 | F5 | The part in the page (interactive): the trial's prototype polished, a session of its own | ✅ built 2026-11-01; waits for the maintainer on a phone and a tablet |
-| F6 | Bench of timelines and guide | ✅ 2026-11-01; the videos wait for the maintainer |
+| F6 | Bench of timelines and guide | ✅ 2026-11-01; the videos approved by the maintainer |
 
 **Everything is asked for** (the maintainer, 2026-11-01): the pedestal shows only what its timeline's
 steps ask for. The pinout, the bench, the symbol and the inside view are each a step's, on and off;

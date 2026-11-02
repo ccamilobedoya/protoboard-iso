@@ -287,7 +287,7 @@ Asked by the maintainer (2026-11-01): a video format about one concrete part (a 
 - ✅ F4 · `symbol` and `inside` (M22, M23): the schematic symbol beside the part, its pins named on the part (no lines), and a view of its inside drawn from the simulation, for the BJT, the MOSFET, the LED and the 555; `TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`; a tall part goes up for its bench; `focus-mosfet.json` and `focus-led.json` join the other two; jsdom cases and two golden frames (a frame of each waits for the maintainer)
 - ✅ The trial of the page view (D7): a prototype behind `?focusView=1` in a page made with `focusView` (`page/client/focus-view.js`): *See the part* in a part's card, a bar of Pins, Bench, Symbol, Inside and Back; tried and liked (2026-11-01): it goes ahead as F5
 - ✅ F5 · The part in the page (`page.focusView`): the card's first row, a bar of Back and two segmented controls, a legend for each inside view, outside taps kept, Back without a jump, the phone (the figure above the part, a compact bench), keyboard and screen readers, the demo site; waits for the maintainer on a phone and a tablet
-- ✅ F6 · Four timelines polished in six beats (an opening close on the part, a working beat, a closing caption), the guide's section *A video about one part* with its rules and codes; a medium model wrote `focus-zener.json` from the guide alone at the first try (the videos wait for the maintainer)
+- ✅ F6 · Four timelines polished in six beats (an opening close on the part, a working beat, a closing caption), the guide's section *A video about one part* with its rules and codes; a medium model wrote `focus-zener.json` from the guide alone at the first try (the videos approved by the maintainer)
 
 ## Stage 4 — On a phone or tablet ⬜
 
