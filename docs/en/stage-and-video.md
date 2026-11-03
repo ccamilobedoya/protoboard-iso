@@ -262,6 +262,22 @@ up to date.
     weighed and left: they are drawn over the veil (that is what makes them stand out), so under it
     they would need a new layer order or a see-through fade, against the opaque land. jsdom case and
     golden frame M37 (`555-land-focus.json`, the land half way: the same image as M30's).
+  - **A video that opens on its result, and four things to tell it** (0.8.0-c.2, for a second
+    version of a recorded short): a caption's **emphasis** (`em`: its words in the accent, 15 %
+    larger; lines measured as laid out by the bands of their boxes, the emphasis's contrast read in
+    its own colour), the **current in two colours** by the way it runs through a part (`flow`'s
+    `sense`: a capacitor's charge through R1 and R2 in amber, its discharge through R2 in blue, on the
+    log scale so the small charging current is seen), a **card** (`card`: a sentence alone over the
+    screen for a moment, "×5 on · off the same"), and an **event for each blink** of an LED in
+    `timeline.json` (`led`; and `card`), so a tick can follow the rhythm. A comparing box now says the
+    change **as a proportion** ("on ×5 · off the same", `change` `ratio`, the default): the
+    oscilloscope's seconds are simulated ones, so at a recording's own `pace` "0.08 → 0.40 s" was not
+    what the eye saw (0.5 → 2.6 s), while the proportion is the same at any pace; declaring "slow
+    motion" was weighed and left (one more text, and it still asks the viewer to convert). A caption's
+    lines rise **fading in** (from 60 % of their height, no longer 130 %), so no frame shows half a
+    line cut by its mask. A scene after steps on the board (the result first, then the chip alone)
+    and a land after it were tried and work as they do at the start (jsdom case;
+    `555-result-first.json`, golden frames M38 to M40).
 - The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for

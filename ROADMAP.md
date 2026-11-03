@@ -333,6 +333,7 @@ period in ms under the trace, a caption of 32 letters took three lines.
 - ✅ Each caption's `lines` as laid out (`timeline.json`) and a frame rule of two at most; `data` as large as the text; told labels at least 48 px; no contrast reading while a caption fades over another
 - ✅ A pedestal's `light`
 - ✅ A focus during a land waits for the board: its strips and coordinates fade in once it is lit (`LAND.reveal`), never over the empty stage (0.8.0-c.1); jsdom case and golden frame M37
+- ✅ A video that opens on its result (0.8.0-c.2): a caption's emphasis (`em`), the current in two colours by its sense (`flow` `sense`), a card (`card`), an event per blink (`led`, `card`), a comparing box as a proportion (`change`, `ratio` by default), captions that rise fading in, a scene and a land after steps on the board; jsdom cases, `555-result-first.json`, golden frames M38 to M40
 
 ## Stage 4 — On a phone or tablet ⬜
 

@@ -9,6 +9,31 @@ detail.
 
 ## [Unreleased]
 
+## [0.8.0-c.2] - 2026-11-03
+
+A prerelease on a video branch: a video that opens on its result. Not on `main` until the maintainer chooses it.
+
+### Added
+
+- **A caption's emphasis** (`em`): words of its text or second line drawn in the accent and 15 %
+  larger. The lines are counted by the bands of their boxes (a taller word no longer counts as a
+  line of its own) and the emphasis's contrast is read in its own colour; `TOUR_EM_MISSING` when the
+  words are not there. Golden frame M38.
+- **The current in two colours** (`flow`'s `sense`): the dots coloured by the way the current runs
+  through a part (a capacitor's charge, forward; its discharge, back), each side with the parts whose
+  nets carry it meanwhile; thicker and on the log scale. Golden frame M39.
+- **A card** (`card`): a sentence alone over the screen for a moment, within the safe width and the
+  platforms' bands (a frame rule). Golden frame M40.
+- **An event per blink** (`led`, `part` and `on`) and per card (`card`) in `timeline.json`.
+- Example `555-result-first.json`: the result first on the board, then the chip on the pedestal, the land.
+
+### Changed
+
+- **A comparing box says the change as a proportion** ("on ×5 · off the same"; probe `change`,
+  `ratio` by default, `times` for the seconds): golden frames M24, M32 and M35.
+- **A caption's lines rise fading in**, from 60 % of their height: no frame shows half a line cut by
+  its mask. Golden frames M9, M12, M15, M23 and M34.
+
 ## [0.8.0-c.1] - 2026-11-03
 
 A prerelease on a video branch: a fix of the land. Not on `main` until the maintainer chooses it.
@@ -217,7 +242,8 @@ A prerelease on a video branch: a payoff the eye reads. Not on `main` until the 
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-c.1...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-c.2...HEAD
+[0.8.0-c.2]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-c.1...v0.8.0-c.2
 [0.8.0-c.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-b.1...v0.8.0-c.1
 [0.8.0-b.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.7.0...v0.8.0-b.1
 [0.7.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.6.0...v0.7.0

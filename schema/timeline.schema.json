@@ -351,6 +351,58 @@
                   "real"
                 ],
                 "description": "The current layer's drawing in this timeline: plan (pads and straight lines) or real (along the strips, leads and jumpers); the first flow step that names one sets it for the whole recording (default: the page's, page.flow.style)"
+              },
+              "sense": {
+                "type": "object",
+                "required": [
+                  "part"
+                ],
+                "properties": {
+                  "part": {
+                    "type": "string",
+                    "description": "The part whose current says the way (a capacitor: forward while it charges, back while it discharges)"
+                  },
+                  "forward": {
+                    "type": "object",
+                    "properties": {
+                      "color": {
+                        "type": "string",
+                        "description": "The dots' colour while the current runs this way: pulse, accent, value, voltage, current or #rrggbb (default: the dots' own)"
+                      },
+                      "parts": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1,
+                        "description": "While it runs this way, the current only on the nets of these parts (instead of the focus)"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "description": "While its current is forward (zero or more)"
+                  },
+                  "back": {
+                    "type": "object",
+                    "properties": {
+                      "color": {
+                        "type": "string",
+                        "description": "The dots' colour while the current runs this way: pulse, accent, value, voltage, current or #rrggbb (default: the dots' own)"
+                      },
+                      "parts": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1,
+                        "description": "While it runs this way, the current only on the nets of these parts (instead of the focus)"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "description": "While its current is back"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "The dots coloured by the way the current runs through a part, and on the log scale so a small current is seen: charge in one colour, discharge in another"
               }
             },
             "additionalProperties": false
@@ -433,6 +485,25 @@
                   }
                 ],
                 "description": "A second line, drawn as the first (one idea in at most two lines)"
+              },
+              "em": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "The emphasis: words of the text (else of the second line), drawn in the accent and 15 % larger; the lines are still measured as laid out"
               },
               "data": {
                 "allOf": [
@@ -740,6 +811,13 @@
               "compare": {
                 "type": "boolean",
                 "description": "In a recording, at each set: the cycles before it kept as a faint ghost trace laid over what comes after, and the change of period from the simulation, once the control has arrived (\"period 0.12 s → 0.86 s (×7)\"; with an LED in the circuit, in words: \"on 0.08 → 0.40 s · off the same\"), laid out in bands so no text crosses the trace; implies marks (default false)"
+              },
+              "change": {
+                "enum": [
+                  "ratio",
+                  "times"
+                ],
+                "description": "How a comparing box says the change: ratio, a proportion true at any pace (\"on ×5 · off the same\", default); times, in the oscilloscope's seconds (\"on 0.08 → 0.40 s · off the same\")"
               },
               "reading": {
                 "type": "boolean",
@@ -1676,6 +1754,135 @@
                 ]
               }
             ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "text"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
+              },
+              "do": {
+                "const": "card"
+              },
+              "text": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "At most 280 characters"
+              },
+              "line": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "A second line, smaller"
+              },
+              "em": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "The emphasis, as a caption's"
+              },
+              "hold": {
+                "type": "number",
+                "minimum": 300,
+                "maximum": 5000,
+                "description": "ms the card stays whole (default 1500)"
+              },
+              "enter": {
+                "enum": [
+                  "rise",
+                  "fade",
+                  "cut"
+                ],
+                "description": "How the lines come in: rise (from their baseline, default), fade, cut"
+              },
+              "in": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000,
+                "description": "ms it takes to come in (default 250)"
+              },
+              "out": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000,
+                "description": "ms it takes to leave (default 250)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "A sentence alone over the whole screen for a moment (a figure to keep, \"×5 on · off the same\"): large, in the caption's face, between the platforms' bands; it covers what is under it and leaves it as it was"
           },
           {
             "type": "object",

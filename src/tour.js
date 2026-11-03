@@ -14,7 +14,7 @@
 
 import { LIMITS } from './limits.js';
 import { readBeside } from './beside.js';
-import { MOVES, moveTiming, INSERT, RAISE, NUDGE, ASSEMBLE, PULSE_COLORS } from './page/client/moves.js';
+import { MOVES, moveTiming, INSERT, RAISE, NUDGE, ASSEMBLE, CARD, PULSE_COLORS } from './page/client/moves.js';
 import { THEMES } from './page/client/themes.js';
 import { compile } from './sim/index.js';
 import { createEngine } from './sim/engine.js';
@@ -23,7 +23,7 @@ import { pinIndex } from './pinout.js';
 import { symbolOf, insideOf } from './parts/symbols.js';
 import { FLOW_STYLES } from './sim/paths.js';
 
-export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'raise', 'nudge', 'assemble', 'pulse', 'label', 'scene', 'land', 'pin', 'bench', 'symbol', 'inside', 'wait-until'];
+export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'raise', 'nudge', 'assemble', 'pulse', 'label', 'scene', 'land', 'pin', 'bench', 'symbol', 'inside', 'card', 'wait-until'];
 // The parts a pedestal can show (`scene` in mode part, a video about one part): a part of the
 // circuit, not a wire or a supply.
 export const onPedestal = (part) => part?.type !== 'wire';
@@ -59,16 +59,19 @@ const WIRE = oneOf('draw', 'fade', 'cut'); // how a wire comes in
 const SHOW = oneOf('rise', 'fade', 'cut'); // how a caption's lines come in
 const color = (v) => Object.hasOwn(PULSE_COLORS, v) || (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v));
 // An assemble's part: its id, or { part, enter, wire, from } for that one part.
+// A flow's `sense`: { part, forward, back }, each side { color, parts }.
+const sideOf = (v) => v == null || (v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).every((k) => ['color', 'parts'].includes(k)) && (v.color == null || color(v.color)) && (v.parts == null || ids(v.parts)));
+const sense = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v) && id(v.part) && Object.keys(v).every((k) => ['part', 'forward', 'back'].includes(k)) && sideOf(v.forward) && sideOf(v.back) && (v.forward != null || v.back != null);
 const assembled = (v) => id(v) || (v && typeof v === 'object' && !Array.isArray(v) && id(v.part) && Object.keys(v).every((k) => ['part', 'enter', 'wire', 'from'].includes(k)) && (v.enter == null || ENTER(v.enter)) && (v.wire == null || WIRE(v.wire)) && (v.from == null || oneOf('start', 'end')(v.from)));
 const FIELDS = {
   frame: { target: (v) => id(v) || ids(v), zoom: within(0.05, 20), pan: (v) => Array.isArray(v) && v.length === 2 && v.every(within(-3, 3)) },
   focus: { parts: (v) => Array.isArray(v) && v.every(id), solid: (v) => typeof v === 'boolean' },
   flip: { view: id },
   set: { part: id, field: id, value: (v) => num(v) || typeof v === 'boolean' },
-  flow: { on: (v) => typeof v === 'boolean', ramp: within(0, 10_000), scope: oneOf('all', 'focus'), style: oneOf(...FLOW_STYLES) },
-  caption: { text: isText, line: isText, data: isText, off: (v) => v === true, enter: SHOW, in: within(0, 3000), stagger: within(0, 1000), out: within(0, 2000) },
+  flow: { on: (v) => typeof v === 'boolean', ramp: within(0, 10_000), scope: oneOf('all', 'focus'), style: oneOf(...FLOW_STYLES), sense },
+  caption: { text: isText, line: isText, data: isText, em: isText, off: (v) => v === true, enter: SHOW, in: within(0, 3000), stagger: within(0, 1000), out: within(0, 2000) },
   value: { part: id, field: (v) => Object.hasOwn(READINGS, v), label: isText, count: within(0, 5000), enter: SHOW, in: within(0, 3000) },
-  probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean', place: oneOf('bottom', 'top'), size: oneOf('full', 'compact'), compare: (v) => typeof v === 'boolean', reading: (v) => typeof v === 'boolean', clock: (v) => typeof v === 'boolean' },
+  probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean', place: oneOf('bottom', 'top'), size: oneOf('full', 'compact'), compare: (v) => typeof v === 'boolean', change: oneOf('ratio', 'times'), reading: (v) => typeof v === 'boolean', clock: (v) => typeof v === 'boolean' },
   insert: { part: id, enter: ENTER, height: within(0, 40), dark: (v) => typeof v === 'boolean' },
   raise: { part: id, mm: within(0, RAISE.max) },
   nudge: { part: id, mm: within(NUDGE.min, NUDGE.max) },
@@ -81,11 +84,12 @@ const FIELDS = {
   bench: { part: id, on: (v) => typeof v === 'boolean' },
   symbol: { part: id, on: (v) => typeof v === 'boolean' },
   inside: { part: id, on: (v) => typeof v === 'boolean' },
+  card: { text: isText, line: isText, em: isText, hold: within(CARD.min, CARD.max), enter: SHOW, in: within(0, 1000), out: within(0, 1000) },
   'wait-until': { part: id, field: (v) => Object.hasOwn(READINGS, v), above: num, below: num, max: within(0, 60_000) },
 };
-const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], value: ['part', 'field'], insert: ['part'], raise: ['part'], nudge: ['part'], label: ['part', 'text'], scene: ['mode'], land: ['part'], bench: ['on'], symbol: ['on'], inside: ['on'], 'wait-until': ['part', 'field'] };
+const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], value: ['part', 'field'], insert: ['part'], raise: ['part'], nudge: ['part'], label: ['part', 'text'], scene: ['mode'], land: ['part'], bench: ['on'], symbol: ['on'], inside: ['on'], card: ['text'], 'wait-until': ['part', 'field'] };
 // Texts a step may carry, plain or one per language.
-const TEXTS = ['text', 'line', 'data', 'label', 'title', 'note'];
+const TEXTS = ['text', 'line', 'data', 'label', 'title', 'note', 'em'];
 // A cubic-bezier of CSS: the time coordinates between 0 and 1.
 const isCurve = (v) => Array.isArray(v) && v.length === 4 && v.every(num) && v[0] >= 0 && v[0] <= 1 && v[2] >= 0 && v[2] <= 1 && v.every(within(-3, 4));
 
@@ -182,7 +186,7 @@ function meaningIssues(circuit, steps) {
     const step = i + 1;
     // A pin is named "part.pin" ("Q1.B", "U1.TRIG", "U1.2"); the part is checked with the others.
     const pinned = s.do === 'pin' && typeof s.pin === 'string' ? { part: s.pin.slice(0, s.pin.lastIndexOf('.')), pin: s.pin.slice(s.pin.lastIndexOf('.') + 1) } : null;
-    const named = [s.part, pinned?.part, s.do === 'pin' ? s.mark : null, ...(s.do === 'focus' ? s.parts : []), ...(s.do === 'assemble' ? (s.parts ?? []).map((p) => (typeof p === 'string' ? p : p.part)) : []), ...(s.do === 'frame' ? [s.target].flat().filter((x) => !FRAMES.includes(x)) : [])].filter((x) => x != null);
+    const named = [s.part, pinned?.part, s.do === 'pin' ? s.mark : null, ...(s.do === 'focus' ? s.parts : []), ...(s.do === 'assemble' ? (s.parts ?? []).map((p) => (typeof p === 'string' ? p : p.part)) : []), ...(s.do === 'frame' ? [s.target].flat().filter((x) => !FRAMES.includes(x)) : []), ...(s.do === 'flow' && s.sense ? [s.sense.part, ...(s.sense.forward?.parts ?? []), ...(s.sense.back?.parts ?? [])] : [])].filter((x) => x != null);
     for (const id of named) if (!ids.has(id)) out.push(warn('TOUR_UNKNOWN_PART', { step, part: id }));
     // A pedestal shows a part: a wire or a supply cannot stand there alone.
     if ((s.do === 'scene' || s.do === 'land') && s.part != null && ids.has(s.part) && !onPedestal((circuit?.parts ?? []).find((p) => p?.id === s.part) ?? { type: 'wire' })) {
@@ -200,6 +204,15 @@ function meaningIssues(circuit, steps) {
     if (s.do === 'inside' && s.on === true && ids.has(s.part) && partOf(s.part) && !insideOf(partOf(s.part))) out.push(warn('TOUR_NO_INSIDE', { step, part: s.part }));
     if (s.do === 'set' && ids.has(s.part) && !controlsOf().some((c) => c.id === s.part && c.field === s.field)) {
       out.push(warn('TOUR_UNKNOWN_CONTROL', { step, part: s.part, field: s.field, options: controlsOf().filter((c) => c.id === s.part).map((c) => c.field).join(', ') || '—' }));
+    }
+    // An emphasis is words of the caption's (or card's) text or second line, in each language.
+    if ((s.do === 'caption' || s.do === 'card') && s.em != null && isText(s.em)) {
+      const langs = typeof s.em === 'string' ? [null] : Object.keys(s.em);
+      for (const lang of langs) {
+        const em = lang == null ? s.em : s.em[lang];
+        const said = [s.text, s.line].map((x) => (lang == null ? (typeof x === 'string' ? x : Object.values(x ?? {}).join('\u0000')) : localized(x, lang)) ?? '');
+        if (!said.some((x) => x.includes(em))) out.push(warn('TOUR_EM_MISSING', { step, em: em.slice(0, 40), lang: lang ?? '—' }));
+      }
     }
     const m = MOVES[moveOf(s)];
     if (s.ms != null && m && s.do !== 'assemble' && s.do !== 'nudge' && (s.ms < m.min || s.ms > m.max)) out.push(warn('TOUR_MOVE_MS', { step, move: moveOf(s), ms: s.ms, min: m.min, max: m.max }));

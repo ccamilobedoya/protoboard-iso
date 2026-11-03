@@ -24,7 +24,7 @@
 // frame's rules measured on the DOM (scripts/stage-shots.js) at every caption and every second
 // (the told part only on a frame where the camera stands still; the caption's contrast read on the
 // frame itself; frame 0 against the timeline's first moment), the moments a sound may go with
-// (`events`: land, count, probe, mark) and the payoff of each set (`payoff`: the cycles before and
+// (`events`: land, count, probe, mark, led, card) and the payoff of each set (`payoff`: the cycles before and
 // after it, in simulated s and s of video, against the time the timeline holds after it), each
 // LED's box on the frames measured at rest (`leds`) and each caption's lines as laid out (`lines`).
 //
@@ -243,14 +243,23 @@ function captionNow() {
     const el = box.querySelector(sel);
     return el && !el.hidden && !el.closest('[hidden]') ? el.textContent : '';
   };
-  // The lines the sentence takes on screen (its text and second line, as laid out).
-  const tops = new Set();
+  // The lines the sentence takes on screen (its text and second line, as laid out): a box belongs to
+  // the line whose band holds its middle (an emphasis is taller than the words beside it).
+  const rects = [];
   for (const span of box.querySelectorAll(':scope > p.text:not([hidden]) > .in, :scope > p.line:not([hidden]) > .in')) {
     const range = document.createRange();
     range.selectNodeContents(span);
-    for (const r of range.getClientRects()) if (r.width > 0 && r.height > 0) tops.add(Math.round((r.top + r.bottom) / 2 / 4));
+    for (const r of range.getClientRects()) if (r.width > 0 && r.height > 0) rects.push(r);
   }
-  return [{ text: text('.text'), line: text('.line'), label: text('.value .label'), number: text('.value .number'), lines: tops.size }, view];
+  const bands = [];
+  for (const r of rects.sort((a, b) => a.top - b.top)) {
+    const mid = (r.top + r.bottom) / 2;
+    const band = bands.find((b) => mid >= b.top && mid <= b.bottom);
+    if (band) band.bottom = Math.max(band.bottom, r.bottom);
+    else bands.push({ top: r.top, bottom: r.bottom });
+  }
+  const em = box.querySelector(':scope > p:not([hidden]) .em');
+  return [{ text: text('.text'), line: text('.line'), ...(em && { em: em.textContent }), label: text('.value .label'), number: text('.value .number'), lines: bands.length }, view];
 }
 
 // Intervals of what was shown: a change of `key(x)` closes one and opens the next.
@@ -345,7 +354,11 @@ async function record(browser, file, { format, fps, tail, theme, captions: shown
           const m = await page.evaluate(measure);
           // The caption's contrast on what is under it, measured on the frame itself.
           // Not while a caption comes in or the one before fades out over it: the text is part ink then.
-          if (shown && m.ink?.length && !m.captionRising && !m.captionFading) m.contrast = captionContrast(png, m.ink, m.inkColor);
+          if (shown && m.ink?.length && !m.captionRising && !m.captionFading) {
+            // The emphasis in its own colour: the caption's contrast is the lower of the two.
+            const both = [captionContrast(png, m.ink, m.inkColor), m.emInk?.length && m.emColor ? captionContrast(png, m.emInk, m.emColor) : null].filter((x) => x != null);
+            m.contrast = both.length ? Math.min(...both) : null;
+          }
           pending = { t: Math.round(t), frame: k, m, before: lastBox, box };
         }
         lastBox = box;
@@ -450,7 +463,7 @@ async function main() {
       const run = await record(browser, file, options, dir);
       const names = run.hashes.map((_, k) => `frames/${String(k).padStart(6, '0')}.png`);
       writeFileSync(join(dir, 'frames.sha256'), run.hashes.map((h, k) => `${h}  ${names[k]}\n`).join(''));
-      const captions = intervals(run.captions, (c) => `${c.text}\u0000${c.line}`, (c, last) => ({ text: c.text, ...(c.line && { line: c.line }), lines: Math.max(c.lines ?? 0, last.lines ?? 0) }));
+      const captions = intervals(run.captions, (c) => `${c.text}\u0000${c.line}`, (c, last) => ({ text: c.text, ...(c.line && { line: c.line }), ...(c.em && { em: c.em }), lines: Math.max(c.lines ?? 0, last.lines ?? 0) }));
       const values = intervals(run.captions, (c) => (c.number ? c.label : null), (_, last) => ({ label: last.label, shown: last.number }));
       writeFileSync(join(dir, 'captions.srt'), toSrt(captions));
       const problems = run.checks.filter((c) => c.problems.length);

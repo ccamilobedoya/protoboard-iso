@@ -59,9 +59,18 @@ export function moveTiming(name, ms, curve) {
 // M8: a halo rises to its brightness in a hit instead of appearing (and goes out at once: an LED is
 // fast, what the eye follows is the light coming).
 export const LIGHT = { ms: 180, curve: MOVES.hit.curve };
-// M12: each line of a caption rises from its baseline behind a mask, 90 ms after the one above; the
-// caption before leaves first, in 200 ms.
-export const CAPTION = { in: 400, stagger: 90, out: 200, curve: MOVES.arrival.curve };
+// M12: each line of a caption rises from its baseline behind a mask (from `rise` % of its height under
+// it), fading in as it comes, so no frame shows half a line cut by the mask; 90 ms after the one
+// above; the caption before leaves first, in 200 ms.
+export const CAPTION = { in: 400, stagger: 90, out: 200, curve: MOVES.arrival.curve, rise: 60 };
+// A caption's emphasis (`em`): those words of its text or line in the accent, this much larger.
+export const EMPHASIS = { scale: 1.15 };
+// A card (a timeline's `card`): a sentence alone over the whole screen, `in` ms to come in, `hold` ms
+// whole (min…max), `out` ms to leave.
+export const CARD = { in: 250, hold: 1500, out: 250, min: 300, max: 5000 };
+// A recording's `led` events: an LED turns on above this share of its rated current and off under
+// `off` (two levels, so a reading at the edge never flickers into many events).
+export const LED_EVENT = { on: 0.1, off: 0.03 };
 // M15: a part starts 12 mm above the board and comes down to its holes (an arrival of 700 ms);
 // when it lands the current starts (M6, a ramp of 600 ms) and the lights come on (M8).
 export const INSERT = { mm: 12, ms: 700, ramp: 600 };

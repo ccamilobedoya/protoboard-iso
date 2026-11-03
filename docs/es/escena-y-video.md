@@ -289,6 +289,23 @@ página y la hoja de ruta al día.
     dibujan encima del velo (eso las resalta), así que debajo pedirían otro orden de capas o un
     fundido transparente, en contra del aterrizaje opaco. Caso de jsdom y fotograma *golden* M37
     (`555-land-focus.json`, el aterrizaje a la mitad: la misma imagen que M30).
+  - **Un video que abre con su resultado, y cuatro cosas para contarlo** (0.8.0-c.2, para una segunda
+    versión de un short grabado): el **énfasis** de un subtítulo (`em`: sus palabras en el acento, 15 %
+    más grandes; las líneas se cuentan tal como quedan, por las franjas de sus cajas, y el contraste
+    del énfasis se mide en su propio color), la **corriente en dos colores** según el sentido en que
+    pasa por una pieza (`sense` de `flow`: la carga de un condensador por R1 y R2 en ámbar, su descarga
+    por R2 en azul, en escala logarítmica para que la corriente pequeña de la carga se vea), una
+    **tarjeta** (`card`: una frase sola sobre la pantalla por un momento, «×5 prendido · apagado
+    igual») y un **evento por cada parpadeo** de un LED en `timeline.json` (`led`; y `card`), para que
+    un tic siga el ritmo. Un recuadro que compara ahora dice el cambio **en proporción** («prendido ×5
+    · apagado igual», `change` `ratio`, por defecto): los segundos del osciloscopio son simulados, así
+    que al `pace` propio de una grabación «0,08 → 0,40 s» no era lo que veía el ojo (0,5 → 2,6 s),
+    mientras que la proporción es la misma a cualquier ritmo; declarar «cámara lenta» se pensó y se
+    dejó (un texto más, y aun así pide al espectador convertir). Las líneas de un subtítulo suben
+    **apareciendo** (desde el 60 % de su altura, ya no el 130 %), así ningún fotograma muestra media
+    línea cortada por su máscara. Una escena después de pasos en la protoboard (primero el resultado,
+    luego el chip solo) y un aterrizaje después se probaron y funcionan como al principio (caso de
+    jsdom; `555-result-first.json`, fotogramas *golden* M38 a M40).
 - Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué

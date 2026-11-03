@@ -67,6 +67,8 @@ export function setupLive(page) {
   const volts = (v) => f(Math.abs(v) < 1e-3 ? 0 : v, 'V');
   // Seconds as a person says them: two decimals (0.08, 0.40), three under a hundredth.
   const secs = (v) => v.toFixed(v < 0.01 ? 3 : 2).replace('.', live.decimal ?? '.');
+  // A proportion as the eye reads it: whole from ×3 up ("×5", not "×5.2"), else one decimal ("×1.4").
+  const times_ = (k) => (k >= 3 ? String(Math.round(k)) : k.toFixed(1).replace('.', live.decimal ?? '.'));
 
   // Time: how fast simulated time runs, the step and the oscilloscope's window (sim/pace.js).
   const engine = createEngine(program);
@@ -119,7 +121,7 @@ export function setupLive(page) {
   // `only`: 'v' or 'i' for one trace (the inset of a recording), else both. `window` (a recording's
   // probe): the screen always shows that much time, from t = 0 and then scrolling, so a change of
   // pace is seen as more or fewer cycles instead of a new scale; `marks`: the sets it saw.
-  function drawOne({ id, scope, only, label, window, marks }) {
+  function drawOne({ id, scope, only, label, window, marks, change }) {
     const s = scopeFor(id);
     if (!s) return;
     const end = Math.max(scopeTime(), window ?? scopeWindow);
@@ -128,12 +130,15 @@ export function setupLive(page) {
     const traces = [];
     if (s.v && only !== 'i') traces.push({ label: label ?? s.v.label ?? t('page.scope.voltage'), unit: 'V', ...SCOPE_V, points: samplesOf(rec, 'a', from, end) });
     if (s.i && only !== 'v') traces.push({ label: label ?? s.i.label ?? t('page.scope.current'), unit: 'A', ...SCOPE_I, points: samplesOf(rec, 'b', from, end) });
-    scope.draw({ traces, from, to: end, marks: marks?.map((m) => (m.before ? compared(m, id, only, end) : m)) });
+    scope.draw({ traces, from, to: end, marks: marks?.map((m) => (m.before ? compared(m, id, only, end, change) : m)) });
   }
   // A mark of a comparing box: its ghost (the cycles before it, shifted by whole periods so they run
   // on after it, as far as the screen goes) and the change of period, once a whole cycle after it
   // is on the trace (risings through the level of the cycles before).
-  function compared(m, id, only, end) {
+  // `change`: "ratio" (the default) says it as a proportion ("on ×5 · off the same"), true at any
+  // pace; "times" in the oscilloscope's seconds ("on 0.08 → 0.40 s · off the same"), which a
+  // recording at its own `pace` does not show at that speed.
+  function compared(m, id, only, end, change = 'ratio') {
     const T = m.cycle?.before ?? m.period;
     let ghost = null;
     if (T > 0 && m.before.length > 1) {
@@ -145,12 +150,14 @@ export function setupLive(page) {
     const after = m.settled == null ? null : (m.cycle?.after ?? periodOf(samplesOf(recorder.get(id), only === 'i' ? 'b' : 'a', m.settled, end), m.level));
     const k = T > 0 && after > 0 ? after / T : null;
     const times = k == null ? '' : k >= 10 ? String(Math.round(k)) : k.toFixed(1).replace('.', live.decimal ?? '.');
-    let delta = T > 0 ? t(after > 0 ? 'page.scope.delta' : 'page.scope.deltaWait', { from: f(T, 's'), to: after > 0 ? f(after, 's') : '', k: times }) : null;
+    const ratio = change !== 'times';
+    let delta = T > 0 ? t(after > 0 ? (ratio ? 'page.scope.deltaRatio' : 'page.scope.delta') : 'page.scope.deltaWait', { from: f(T, 's'), to: after > 0 ? f(after, 's') : '', k: times }) : null;
     // With an LED, in words: how long it stays on before and after, and whether off changed.
     const led = m.cycle?.led;
     if (led && m.settled != null) {
       const same = Math.abs(led.after.off - led.before.off) <= 0.15 * led.before.off;
-      delta = t(same ? 'page.scope.lit' : 'page.scope.litBoth', { from: secs(led.before.on), to: secs(led.after.on), off0: secs(led.before.off), off1: secs(led.after.off) });
+      const key = ratio ? (same ? 'page.scope.litRatio' : 'page.scope.litRatioBoth') : same ? 'page.scope.lit' : 'page.scope.litBoth';
+      delta = t(key, { from: secs(led.before.on), to: secs(led.after.on), off0: secs(led.before.off), off1: secs(led.after.off), k: times_(led.after.on / led.before.on), k2: times_(led.after.off / led.before.off) });
     } else if (led) delta = null;
     return { t: m.t, text: m.text, ghost, delta };
   }
@@ -166,7 +173,7 @@ export function setupLive(page) {
   let inset = null;
   // `place`: "top" puts the box between the caption and the circuit (body.scope-top; moves.js,
   // SCOPE_BOX); `size`: "compact" draws it without title or note (scope.js).
-  page.insetScope = (id, only = 'v', { title, label, note, window, marks = false, compare = false, place, size, reading = true, clock = true } = {}) => {
+  page.insetScope = (id, only = 'v', { title, label, note, window, marks = false, compare = false, change = 'ratio', place, size, reading = true, clock = true } = {}) => {
     inset?.box.remove();
     inset = null;
     document.body.classList.remove('with-scope', 'scope-top');
@@ -175,7 +182,7 @@ export function setupLive(page) {
     box.className = `scope-inset${place === 'top' ? ' top' : ''}${size === 'compact' ? ' compact' : ''}`;
     page.main.appendChild(box);
     const own = { 'page.scope.title': title, 'page.scope.model': note };
-    inset = { id, box, only, label, window: window > 0 ? window : undefined, marks: marks || compare ? [] : undefined, compare, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f, compact: size === 'compact', title: title || null, compare, reading, clock }) };
+    inset = { id, box, only, label, window: window > 0 ? window : undefined, marks: marks || compare ? [] : undefined, compare, change, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f, compact: size === 'compact', title: title || null, compare, reading, clock }) };
     document.body.classList.add('with-scope');
     document.body.classList.toggle('scope-top', place === 'top');
     drawOne(inset);
@@ -268,8 +275,11 @@ export function setupLive(page) {
     peak = Math.max(target, peak);
     if (reduced) return;
     const visible = dots[svgs.indexOf(page.current())] ?? [];
+    // A flow step's `sense` (tour.js) shows which way a small current runs: on the log scale it is
+    // seen moving next to a large one (a capacitor charging through a big resistor).
+    const scale = page.flowSense ? 'log' : state.speed;
     I.forEach((i, k) => {
-      phase[k] = (phase[k] + Math.sign(i) * dotSpeed(i, peak, state.speed) * dotScale * wall) % DOT_PERIOD;
+      phase[k] = (phase[k] + Math.sign(i) * dotSpeed(i, peak, scale) * dotScale * wall) % DOT_PERIOD;
       const el = visible[k];
       // Each write makes the browser redraw the SVG: skip moves too small to see.
       if (el && Math.abs(phase[k] - written[k]) >= MIN_MOVE) {

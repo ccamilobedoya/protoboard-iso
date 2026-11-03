@@ -11,7 +11,7 @@ import { loadTour } from '../src/tour.js';
 import { CIRCUIT_FOLDER } from '../src/beside.js';
 import { DOT_PERIOD } from '../src/sim/look.js';
 import { timelineCircuit } from '../scripts/render-frames.js';
-import { CAPTION, INSERT, LIGHT, RAISE, NUDGE, MOVES, ASSEMBLE, LAND } from '../src/page/client/moves.js';
+import { CAPTION, CARD, INSERT, LIGHT, RAISE, NUDGE, MOVES, ASSEMBLE, LAND } from '../src/page/client/moves.js';
 
 const FRAME = 1000 / 30;
 const examples = fileURLToPath(new URL('../examples/', import.meta.url));
@@ -139,7 +139,8 @@ test('moves: M12 a caption leaves, then its lines rise into their masks one afte
   const fading = Number(old.style.opacity);
   assert.ok(fading > 0 && fading < 1, `fading: ${fading}`);
   assert.match(box().querySelector('.text').textContent, /Press S1/, 'the new text is in the page at once');
-  assert.equal(rise('.text'), 'translateY(130.00%)', 'below its mask until the old one has left');
+  assert.equal(rise('.text'), `translateY(${CAPTION.rise.toFixed(2)}%)`, 'below its mask until the old one has left');
+  assert.equal(Number(box().querySelector('.text > .in').style.opacity), 0, 'and unseen: a line half under its mask is never seen cut');
   r.to(caption + CAPTION.out + 150);
   assert.equal(r.doc.querySelector('.tour-caption.leaving'), null, 'the old one is gone');
   const first = Number(rise('.text').match(/[\d.]+/)[0]);
@@ -368,7 +369,7 @@ async function astable(steps) {
     for (; now < ms; now += 100) window.protoboardLive.tick(100);
   };
   const axis = () => [...window.document.querySelectorAll('.scope-inset .scope-time')].map((el) => el.textContent);
-  return { doc: window.document, to, axis };
+  return { doc: window.document, to, axis, live: window.protoboardLive };
 }
 
 test('moves: M11 a probe with a fixed window and marks shows the set that slowed the 555', async (t) => {
@@ -1155,4 +1156,124 @@ test('moves: the first frame is the first moment: steps after 0 run at once, the
   assert.ok(kinds.filter((k) => k === 'count').length > 3, 'each figure of the set');
   const land = r.live.tour.events.find((e) => e.kind === 'land');
   assert.ok(Math.abs(land.t - (2500 + MOVES.travel.ms)) <= FRAME, `touch-down at ${land.t}`);
+});
+
+// A caption's emphasis (em): those words in a span of their own (in the accent and larger, page/style.js),
+// the rest as text around it; in the second line when the text does not hold them; plain otherwise.
+test('moves: a caption\'s emphasis is a span of its words, in the text or else the line', async (t) => {
+  const codes = (steps) => loadTour(npn({ steps })).issues.map((i) => i.code);
+  assert.deepEqual(codes([{ at: 0, do: 'caption', text: { en: 'It stays on longer', es: 'Dura más prendido' }, em: { en: 'on longer', es: 'más prendido' } }]), []);
+  assert.deepEqual(codes([{ at: 0, do: 'caption', text: { en: 'It stays on longer', es: 'Dura más prendido' }, em: { en: 'on longer', es: 'más lento' } }]), ['TOUR_EM_MISSING'], 'the Spanish emphasis is not in its text');
+  assert.deepEqual(codes([{ at: 0, do: 'caption', text: 'A', em: 7 }]), ['TOUR_FIELD']);
+  const r = await recording([
+    { at: 0, do: 'caption', text: 'It stays on longer', line: 'but off the same', em: 'on longer' },
+    { at: 1000, do: 'caption', text: 'It stays on longer', line: 'but off the same', em: 'the same' },
+    { at: 2000, do: 'caption', text: 'Plain', em: 'nowhere' },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  const text = () => r.doc.querySelector('.tour-caption:not(.leaving) .text > .in');
+  const line = () => r.doc.querySelector('.tour-caption:not(.leaving) .line > .in');
+  r.to(100);
+  assert.equal(text().textContent, 'It stays on longer', 'the words as written');
+  assert.equal(text().querySelector('.em').textContent, 'on longer');
+  assert.equal(line().querySelector('.em'), null);
+  r.to(1100);
+  assert.equal(text().querySelector('.em'), null);
+  assert.equal(line().querySelector('.em').textContent, 'the same', 'in the second line');
+  r.to(2100);
+  assert.equal(text().textContent, 'Plain');
+  assert.equal(text().querySelector('.em'), null, 'not found: plain');
+  assert.match(r.doc.querySelector('style').textContent, /\.tour-caption \.em, \.tour-card \.em \{ color: var\(--cap-em, var\(--cap-value\)\); font-size: 1\.15em;/);
+});
+
+// A card: the sentence alone over the screen, in along its fade, whole for its hold, then gone; the
+// events say when it comes and goes.
+test('moves: a card comes in over the screen, holds and leaves, and says so in the events', async (t) => {
+  const codes = (steps) => loadTour(npn({ steps })).issues.map((i) => i.code);
+  assert.deepEqual(codes([{ at: 0, do: 'card', text: '×5 on', line: 'off the same', em: '×5', hold: 1500 }]), []);
+  assert.deepEqual(codes([{ at: 0, do: 'card' }]), ['TOUR_FIELD'], 'a card needs its text');
+  assert.deepEqual(codes([{ at: 0, do: 'card', text: 'A', hold: 100 }]), ['TOUR_FIELD'], 'a hold within its range');
+  const r = await recording([
+    { at: 0, do: 'caption', text: 'Under it' },
+    { at: 500, do: 'card', text: '×5 on', line: 'off the same', em: '×5' },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  const card = () => r.doc.querySelector('.tour-card');
+  r.to(400);
+  assert.equal(card().hidden, true, 'not before its time');
+  r.to(500 + CARD.in / 2);
+  assert.equal(card().hidden, false);
+  const k = Number(card().style.opacity);
+  assert.ok(k > 0 && k < 1, `fading in: ${k}`);
+  assert.equal(card().querySelector('.text .em').textContent, '×5');
+  assert.equal(card().querySelector('.line').textContent, 'off the same');
+  r.to(500 + CARD.in + CARD.hold / 2);
+  assert.equal(card().style.opacity, '', 'whole');
+  assert.equal(r.doc.querySelector('.tour-caption').hidden, false, 'the caption stays under it');
+  r.to(500 + CARD.in + CARD.hold + CARD.out + 2 * FRAME);
+  assert.equal(card().hidden, true, 'gone');
+  const cards = r.live.tour.events.filter((e) => e.kind === 'card');
+  assert.equal(JSON.stringify(cards.map((e) => e.on)), '[true,false]');
+  assert.ok(Math.abs(cards[0].t - 500) <= FRAME, `in at ${cards[0].t}`);
+});
+
+// A flow's sense: the dots take the colour of the way the current runs through C1 (charging,
+// forward; discharging, back) and run on the nets of that side's parts only. And every blink of the
+// LED is an event (a sound may go with each).
+test('moves: a flow\'s sense colours the current by the way it runs, and each blink is an event', async (t) => {
+  const circuit = timelineCircuit('555-astable.json', {}, '555-astable');
+  const codes = (steps) => loadTour({ ...circuit, page: { tour: { steps } } }).issues.map((i) => i.code);
+  const sense = { part: 'C1', forward: { color: '#ffb020', parts: ['R1', 'R2', 'C1'] }, back: { color: 'accent', parts: ['R2', 'C1'] } };
+  assert.deepEqual(codes([{ at: 0, do: 'flow', on: true, scope: 'focus', sense }]), []);
+  assert.deepEqual(codes([{ at: 0, do: 'flow', on: true, sense: { part: 'C1' } }]), ['TOUR_FIELD'], 'a side at least');
+  assert.deepEqual(codes([{ at: 0, do: 'flow', on: true, sense: { part: 'C1', back: { color: 'nope' } } }]), ['TOUR_FIELD']);
+  assert.deepEqual(codes([{ at: 0, do: 'flow', on: true, sense: { part: 'X9', back: { parts: ['R2'] } } }]), ['TOUR_UNKNOWN_PART']);
+  const r = await astable([
+    { at: 0, do: 'focus', parts: ['R1', 'R2', 'C1'] },
+    { at: 0, do: 'flow', on: true, scope: 'focus', sense },
+    { at: 9000, do: 'flow', on: false },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  const main = r.doc.querySelector('main');
+  const drawn = () => [...r.doc.querySelectorAll('main > svg:not([hidden]) > .flow > [data-flow]')].filter((el) => !el.hasAttribute('data-out')).map((el) => el.dataset.flow);
+  const seen = { forward: null, back: null };
+  for (let ms = 100; ms <= 8000; ms += 100) {
+    r.to(ms);
+    const now = main.dataset.sense;
+    if (now && !seen[now]) seen[now] = { color: main.style.getPropertyValue('--flow-sense'), parts: new Set(drawn().filter((p) => !/^W/.test(p))) };
+  }
+  assert.ok(seen.forward && seen.back, 'both ways within 8 s');
+  assert.equal(seen.forward.color, '#ffb020');
+  assert.equal(seen.back.color, 'var(--accent)', 'a theme colour by name');
+  assert.ok(seen.forward.parts.has('R1'), 'charging: through R1 too');
+  assert.ok(!seen.back.parts.has('R1') && seen.back.parts.has('R2'), 'discharging: R2 only');
+  r.to(9100);
+  assert.equal(main.dataset.sense, undefined, 'the current off: no sense');
+  const leds = r.live.tour.events.filter((e) => e.kind === 'led' && e.part === 'D1');
+  assert.ok(leds.length >= 4, `blinks: ${leds.length}`);
+  for (let k = 1; k < leds.length; k++) assert.notEqual(leds[k].on, leds[k - 1].on, 'on and off in turn');
+});
+
+// A video may open on the board with the circuit working (its result first) and only then go to the
+// pedestal and land: a scene after steps on the board, and a land after it, work as at the start.
+test('moves: a scene after steps on the board, then a land: the pedestal and the board come back', async (t) => {
+  const r = await astable([
+    { at: 0, do: 'frame', target: 'D1', move: 'cut' },
+    { at: 0, do: 'focus', parts: ['D1'] },
+    { at: 600, do: 'set', part: 'R1', field: 'resistance', value: 47000, move: 'cut' },
+    { at: 2000, do: 'scene', mode: 'part', part: 'U1', zoom: 1.4, move: 'travel', push: 1.6, light: '#ff3b2f' },
+    { at: 2100, do: 'set', part: 'R1', field: 'resistance', value: 1000, move: 'cut' },
+    { at: 5000, do: 'land', part: 'U1' },
+    { at: 6500, do: 'frame', target: ['U1', 'D1'], move: 'travel' },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  const main = r.doc.querySelector('main');
+  r.to(1000);
+  assert.equal(main.dataset.scene, undefined, 'on the board first');
+  r.to(2000 + MOVES.travel.ms + 200);
+  assert.equal(main.dataset.scene, 'part', 'then the pedestal');
+  r.to(9500);
+  assert.equal(main.dataset.scene, undefined, 'and the board again');
+  const sets = r.live.tour.log.filter((x) => x.step.do === 'set').map((x) => x.step.value);
+  assert.equal(JSON.stringify(sets), '[47000,1000]', 'the hook\'s change, put back while on the pedestal');
 });

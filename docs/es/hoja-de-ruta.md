@@ -339,6 +339,7 @@ el cambio era un periodo en ms bajo la traza y un subtítulo de 32 letras ocupab
 - ✅ Las `lines` de cada subtítulo tal como quedan (`timeline.json`) y una regla del fotograma de dos como mucho; `data` del tamaño del texto; rótulos contados de al menos 48 px; sin medir contraste mientras un subtítulo se desvanece sobre otro
 - ✅ La `light` del pedestal
 - ✅ Un foco durante un aterrizaje espera a la protoboard: sus tiras y coordenadas aparecen con un fundido cuando ya aclaró (`LAND.reveal`), nunca sobre el fondo vacío (0.8.0-c.1); caso de jsdom y fotograma *golden* M37
+- ✅ Un video que abre con su resultado (0.8.0-c.2): el énfasis de un subtítulo (`em`), la corriente en dos colores según su sentido (`sense` de `flow`), una tarjeta (`card`), un evento por parpadeo (`led`, `card`), un recuadro que compara en proporción (`change`, `ratio` por defecto), subtítulos que suben apareciendo, una escena y un aterrizaje después de pasos en la protoboard; casos de jsdom, `555-result-first.json`, fotogramas *golden* M38 a M40
 
 ## Etapa 4 — En el celular o la tableta ⬜
 

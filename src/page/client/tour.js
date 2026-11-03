@@ -18,7 +18,7 @@
 // circuit (M21; bench.js); a symbol (M22) or an inside view (M23) stands beside it (figure.js). Only
 // transform and opacity move.
 
-import { moveTiming, bezier, CAPTION, INSERT, RAISE, NUDGE, SCENE, SCENE_ENTER, LAND, LABEL_MIN_PX, MOVES, ASSEMBLE, PULSE, PULSE_COLORS } from './moves.js';
+import { moveTiming, bezier, CAPTION, CARD, LED_EVENT, INSERT, RAISE, NUDGE, SCENE, SCENE_ENTER, LAND, LABEL_MIN_PX, MOVES, ASSEMBLE, PULSE, PULSE_COLORS } from './moves.js';
 import { applyFocus, liftPart, showPart, isWire, traceWire, quote, scopeFlow } from './focus.js';
 import { select, selectNode } from './card.js';
 import { setupPinout } from './pinout.js';
@@ -48,6 +48,7 @@ function el(parent, tag, cls) {
 
 // How long a step moves things, from its `at`: its move, a ramp, a caption coming in, a landing.
 const captionMs = (s) => (s.out ?? CAPTION.out) + 2 * (s.stagger ?? CAPTION.stagger) + (s.in ?? CAPTION.in) + (s.count ?? COUNT_MS);
+export const cardMs = (s) => (s.in ?? CARD.in) + (s.hold ?? CARD.hold) + (s.out ?? CARD.out);
 const assembleMs = (s, count) => Math.max(0, (s.parts?.length ?? count) - 1) * (s.gap ?? ASSEMBLE.gap) + (s.ms ?? ASSEMBLE.ms);
 function stepMs(s, timing, count) {
   if (s.do === 'flow') return s.ramp ?? 0;
@@ -55,6 +56,7 @@ function stepMs(s, timing, count) {
   if (s.do === 'caption' || s.do === 'value') return captionMs(s);
   if (s.do === 'insert') return timing(s).ms + INSERT.ramp;
   if (s.do === 'nudge') return s.ms ?? NUDGE.ms;
+  if (s.do === 'card') return cardMs(s);
   return timing(s).ms;
 }
 
@@ -89,6 +91,31 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
   const hint = el(box, 'small', 'stop');
   hint.textContent = t('page.tour.stop');
   hint.hidden = recording || landing;
+  // A card (`card`): a sentence alone over the whole screen, for a moment (page/style.js).
+  const card = el(page.main, 'div', 'tour-card');
+  card.hidden = true;
+  card.setAttribute('aria-live', 'polite');
+  const cardText = el(card, 'p', 'text');
+  const cardLine = el(card, 'p', 'line');
+  let cardTween = 0; // the card on screen: a later card replaces it, its own fades stop
+
+  // A text with its emphasis (`em`, the words of it drawn in the accent and larger): text nodes
+  // around a span, never markup. `em` that the text does not hold leaves it plain.
+  function emphasize(target, words, em) {
+    target.textContent = '';
+    const at = em ? words.indexOf(em) : -1;
+    if (at < 0) {
+      target.textContent = words;
+      return false;
+    }
+    if (at > 0) target.append(words.slice(0, at));
+    const span = document.createElement('span');
+    span.className = 'em';
+    span.textContent = em;
+    target.append(span);
+    if (at + em.length < words.length) target.append(words.slice(at + em.length));
+    return true;
+  }
 
   let shown = null; // { part, field, k } the value on screen, k: share of its count
   const readingOf = (part, field) => reading()?.parts[part]?.[field];
@@ -161,8 +188,9 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       const ms = e * total;
       rows.forEach((row, k) => {
         const local = each > 0 ? Math.min(1, Math.max(0, (ms - wait - k * stagger) / each)) : ms >= wait + k * stagger ? 1 : 0;
-        if (enter === 'fade') row.style.opacity = local >= 1 ? '' : rising(local).toFixed(3);
-        else row.style.transform = local >= 1 ? '' : 'translateY(' + (130 * (1 - rising(local))).toFixed(2) + '%)';
+        // A rise fades in as it comes: a line half under its mask is never seen cut.
+        row.style.opacity = local >= 1 ? '' : rising(local).toFixed(3);
+        if (enter !== 'fade') row.style.transform = local >= 1 ? '' : 'translateY(' + (CAPTION.rise * (1 - rising(local))).toFixed(2) + '%)';
       });
     };
     place(0);
@@ -484,6 +512,43 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     if (n && n !== shownNumber) event('count', { part: shown.part, field: shown.field, shown: n });
     shownNumber = n;
   }
+  // Each LED turning on or off, as the simulation has it (LED_EVENT's two levels): a sound may go
+  // with each blink. Every part with a brightness is an LED here.
+  const ledsOn = new Map();
+  function leds() {
+    if (!recording) return;
+    const parts = reading()?.parts ?? {};
+    for (const [id, r] of Object.entries(parts)) {
+      if (typeof r?.brightness !== 'number') continue;
+      const was = ledsOn.get(id) ?? false;
+      const on = was ? r.brightness > LED_EVENT.off : r.brightness > LED_EVENT.on;
+      if (on !== was || !ledsOn.has(id)) {
+        if (on !== was) event('led', { part: id, on });
+        ledsOn.set(id, on);
+      }
+    }
+  }
+  // A flow step's `sense`: which way the current runs through its part now; on a change, the dots'
+  // colour (main[data-sense], --flow-sense; page/style.js) and the nets they run on (page.flowParts).
+  function senseTick() {
+    const fs = page.flowSense;
+    if (!fs) return;
+    const i = readingOf(fs.part, 'current');
+    if (typeof i !== 'number') return;
+    const now = i >= 0 ? 'forward' : 'back';
+    if (now === fs.now) return;
+    fs.now = now;
+    const side = fs[now] ?? {};
+    if (side.color) {
+      page.main.dataset.sense = now;
+      page.main.style.setProperty('--flow-sense', PULSE_COLORS[side.color] ?? side.color);
+    } else {
+      delete page.main.dataset.sense;
+      page.main.style.removeProperty('--flow-sense');
+    }
+    page.flowParts = side.parts ?? null;
+    scopeFlow(page);
+  }
   let framed = null; // the last frame step, for a probe to frame again
   const act = {
     // The camera (M1, M2, M14): to a target (board, parts, here, a part or a list of parts), with
@@ -538,9 +603,17 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     },
     // `scope` "focus": only the nets of the parts in focus carry the current, until the next flow
     // step (focus.js, scopeFlow). `style` was read when the page was made (sim/paths.js, flowStyle).
+    // `sense`: the dots take the colour of the way the current runs through a part (a capacitor
+    // charging, forward; discharging, back) and, when that side names `parts`, run only on their
+    // nets (senseTick); on the log scale, so a small current is still seen moving (live.js).
     flow: (s) => {
       page.state.layer = s.on ? 'flow' : 'parts';
       page.flowScope = s.on ? (s.scope ?? 'all') : 'all';
+      page.flowSense = s.on && s.sense ? { ...s.sense, now: null } : null;
+      page.flowParts = null;
+      delete page.main.dataset.sense;
+      page.main.style.removeProperty('--flow-sense');
+      senseTick();
       scopeFlow(page);
       page.show();
       if (!s.on || !(s.ramp > 0) || reduced) return dots(1);
@@ -556,8 +629,9 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         return;
       }
       box.hidden = false;
-      text.textContent = s.text;
-      line.textContent = s.line ?? '';
+      // `em`: in the text, else in the second line.
+      const inText = emphasize(text, s.text, s.em);
+      emphasize(line, s.line ?? '', inText ? null : s.em);
       lineRow.hidden = !s.line;
       datum.textContent = s.data ?? '';
       dataRow.hidden = !s.data;
@@ -586,7 +660,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         return s.node != null ? selectNode(page, s.node) : select(page, s.part);
       }
       const had = document.body.classList.contains('with-scope');
-      const on = page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note, window: s.window, marks: s.marks || s.compare, compare: s.compare, place: s.place, size: s.size, reading: s.reading ?? true, clock: s.clock ?? true });
+      const on = page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note, window: s.window, marks: s.marks || s.compare, compare: s.compare, change: s.change, place: s.place, size: s.size, reading: s.reading ?? true, clock: s.clock ?? true });
       if (on || had) event('probe', { on: Boolean(on), ...(on && { part: s.part ?? null, node: s.node ?? null }) });
       if (framed) director.frame(framed.target, { ...moveTiming('arrival'), zoom: framed.zoom ?? 1, pan: framed.pan ?? null, alone: framed.alone ?? false });
     },
@@ -661,6 +735,43 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       }, { ms: total, ease: (k) => k });
     },
     pulse: (s) => pulse(s, timing(s).ms),
+    // A card: the sentence (and its second line) alone over the whole screen, in the caption's face,
+    // large; in along `enter` (a fade by default), whole for `hold` ms, then out. It covers what is
+    // under it and leaves it as it was.
+    card: (s) => {
+      const id = ++cardTween;
+      const inMs = reduced || s.enter === 'cut' ? 0 : (s.in ?? CARD.in);
+      const outMs = reduced ? 0 : (s.out ?? CARD.out);
+      const hold = s.hold ?? CARD.hold;
+      const inText = emphasize(cardText, s.text, s.em);
+      emphasize(cardLine, s.line ?? '', inText ? null : s.em);
+      cardLine.hidden = !s.line;
+      card.hidden = false;
+      event('card', { on: true });
+      const rise = s.enter === 'rise';
+      const show = (k) => {
+        card.style.opacity = k >= 1 ? '' : k.toFixed(3);
+        for (const p of [cardText, cardLine]) p.style.transform = rise && k < 1 ? 'translateY(' + (CAPTION.rise * (1 - k)).toFixed(2) + '%)' : '';
+      };
+      show(inMs > 0 ? 0 : 1);
+      const ease = moveTiming('arrival').ease;
+      const total = inMs + hold + outMs;
+      director.tween((e) => {
+        if (id !== cardTween) return;
+        const ms = e * total;
+        if (ms < inMs) return show(ease(ms / inMs));
+        if (ms < inMs + hold || !(outMs > 0)) {
+          show(1);
+          if (e < 1) return;
+        } else if (e < 1) {
+          card.style.opacity = (1 - (ms - inMs - hold) / outMs).toFixed(3);
+          return;
+        }
+        card.hidden = true;
+        card.style.opacity = '';
+        event('card', { on: false });
+      }, { ms: total, ease: (k) => k });
+    },
     // A part's short label, the one a recording keeps, in other words ("": none).
     label: (s) => {
       if (page.data.parts[s.part]) relabel(s.part, s.text);
@@ -845,9 +956,14 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     fade(1);
     for (const old of page.main.querySelectorAll('.tour-caption.leaving, svg > .pulse')) old.remove();
     box.hidden = true;
+    card.hidden = true;
+    cardTween++;
     shown = null;
     document.body.classList.remove('touring', 'focus-solid');
     page.flowScope = 'all';
+    page.flowSense = null;
+    page.flowParts = null;
+    delete page.main.dataset.sense;
     page.nudged?.clear();
     scopeFlow(page);
     page.direct(false);
@@ -868,6 +984,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     select(page, null);
     log.length = 0;
     events.length = 0;
+    ledsOn.clear();
     counting.clear();
     shownNumber = null;
     director.start(
@@ -883,6 +1000,8 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       }),
     );
     if (recording) director.after(counts);
+    if (recording) director.after(leds);
+    director.after(senseTick);
     if (recording) director.after(sizeLabel);
     director.after(pins.draw);
     director.after(bench.draw);

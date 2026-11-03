@@ -112,8 +112,9 @@ In a recording only the told part keeps a label: the last one framed, focused, i
 | `text` | a text, *required* unless `off` | | the caption |
 | `line` | a text | none | a second line, drawn as the first (same size, colour and face): one idea in at most two lines |
 | `data` | a text | none | a data row under it, only for a value or a before → after that is not already on screen (`"1 kΩ → 100 kΩ"`, `"period ×7"`): sans with tabular figures, in the accent, as large as the text (56 px at 1080 wide, 52 at 1920); never the sentence's verb |
+| `em` | a text | none | the emphasis: words of the text (else of the second line) drawn in the accent and 15 % larger (`"on longer"`); the lines are still measured as laid out, and the emphasis's contrast is read apart. Not in the text nor the line: `TOUR_EM_MISSING`, and it is drawn plain |
 | `off` | `true` | | takes the caption away |
-| `enter` | `rise`, `fade`, `cut` | `rise` | how its lines come in: rising from their baseline behind a mask, fading in, or at once |
+| `enter` | `rise`, `fade`, `cut` | `rise` | how its lines come in: rising from their baseline behind a mask while they fade in (no frame shows half a line cut by the mask), fading in, or at once |
 | `in` | 0…3000 ms | 400 | how long each line takes |
 | `stagger` | 0…1000 ms | 90 | between one line and the next |
 | `out` | 0…2000 ms | 200 | how long the caption before takes to leave (the new one comes in after) |
@@ -156,6 +157,7 @@ A slider moving by itself between two values (M10): two `set` steps with `travel
 | `ramp` | 0…10000 ms | 0 | the dots come up from rest to their speed (M6) |
 | `scope` | `all`, `focus` | `all` | `focus`: the current only on the nets that touch the legs of the parts in focus (their strips, the jumpers between them and the focused parts' own leads); the rest is plain board under the veil. It follows every later `focus` until the next `flow` step |
 | `style` | `plan`, `real` | the page's (`page.flow.style`) | how the layer is drawn in this timeline: `plan`, pads and straight lines; `real`, along the strips, the legs and the jumpers. The first `flow` step that names one sets it for the whole recording; a later one that names the other is reported (`TOUR_FLOW_STYLE`) and not followed |
+| `sense` | `{ "part", "forward", "back" }` | none | the current in two colours by the way it runs through `part` (a capacitor: `forward` while it charges, `back` while it discharges). Each side is `{ "color", "parts" }`: `color` (`pulse`'s names or `#rrggbb`) for the dots while it runs that way, and `parts`, the parts whose nets carry it meanwhile (instead of the focus). The dots are thicker and on the log scale, so a small current is seen moving next to a large one |
 
 On a crowded board the whole layer reads as dots and lines without a subject: in a video, switch it
 on over a close frame with one or two parts in focus and `"scope": "focus"`, and `"style": "real"`
@@ -164,6 +166,14 @@ so the current follows the parts the viewer sees.
 ```json
 { "at": 9000, "do": "focus", "parts": ["C1"] },
 { "at": 9400, "do": "flow", "on": true, "ramp": 600, "scope": "focus", "style": "real" }
+```
+
+A 555's charge and discharge in two colours (M39): amber while C1 fills through R1 and R2, blue while
+it empties through R2 alone (amber and blue also read apart with colour blindness):
+
+```json
+{ "at": 8100, "do": "flow", "on": true, "scope": "focus", "style": "real",
+  "sense": { "part": "C1", "forward": { "color": "#ffb020", "parts": ["R1", "R2", "C1"] }, "back": { "color": "#4da3ff", "parts": ["R2", "C1"] } } }
 ```
 
 ### `pulse`: a flash along the current's path (M7)
@@ -263,6 +273,11 @@ framed alone in the middle of the free area, without its short label (the captio
 
 The chip's marking reads left to right from the camera, whichever way the chip sits on the board
 (it is turned half a turn when it would read upside down; its notch still tells pin 1).
+
+A scene may come after steps on the board (a video that opens on its result, the LED blinking on the
+board, and only then shows the chip alone): the board fades along its move as at the start, a `set`
+while the part is on the pedestal changes the circuit unseen (the hook's change put back before the
+story starts), and a `land` brings the board back (`555-result-first.json`).
 
 A `frame` on the part on the pedestal frames it the same way (alone, without room for its label), so a
 video can open close on it (`zoom` 1.6) and pull back when its pins come in: `{ "at": 1400, "do":
@@ -408,7 +423,8 @@ it framed last above the box), in landscape under the caption.
 | `marks` | `true`, `false` | `false` | in a recording, a dashed line in the box at each `set` from then on, with the control's new value (*R1 → 100 kΩ*), so before and after both read |
 | `place` | `bottom`, `top` | `bottom` | in a portrait recording: `bottom`, from 56 % to 75 % of the height, the circuit framed above it from 40 % to 56 %; `top`, from 28 % to 40 %, between the caption and the circuit, which keeps its whole band from 40 % to 75 % |
 | `size` | `full`, `compact` | `full` | `compact`: no note, the trace's name and value inside the plot (after a `title` the step gives: "C1 · Voltage: 5.3 V"), a thicker trace, two axis labels (the top of the scale and the end of the window); for the box on top, 12 % of the height |
-| `compare` | `true`, `false` | `false` | in a recording, at each `set` (it implies `marks`): the cycles before the mark stay as a faint ghost trace laid over what comes after it (shifted by whole periods), and the change is written in the box, from the simulation, once the control has arrived. With an LED in the circuit it says what the eye sees, in words: "on 0.08 → 0.40 s · off the same" (off is "the same" within 15 %; otherwise "off 0.07 → 0.20 s"); without one, the probed part's period: "period 148 ms → 832 ms (×5.6)" |
+| `compare` | `true`, `false` | `false` | in a recording, at each `set` (it implies `marks`): the cycles before the mark stay as a faint ghost trace laid over what comes after it (shifted by whole periods), and the change is written in the box, from the simulation, once the control has arrived. With an LED in the circuit it says what the eye sees, in words and as a proportion: "on ×5 · off the same" (off is "the same" within 15 %; otherwise "off ×2"), true at any `pace`; with `change` `times`, in the oscilloscope's seconds: "on 0.08 → 0.40 s · off the same"; without one, the probed part's period: "period 148 ms → 832 ms (×5.6)" |
+| `change` | `ratio`, `times` | `ratio` | how a comparing box says the change: as a proportion ("on ×5", whole from ×3 up and with one decimal under it) or in the oscilloscope's seconds, which a recording at its own `pace` does not show at that speed |
 | `reading` | `true`, `false` | `true` | `false`: the trace's name without its value now ("C1 · charge", not "C1 · Voltage: 4.52 V") |
 | `clock` | `true`, `false` | `true` | `compact`, `false`: no time at the end of the window |
 
@@ -436,6 +452,26 @@ the window and the time after the `set` hold one whole cycle: `render-frames.js 
 ```json
 { "at": 6000, "do": "probe", "part": "C1", "window": 1.1, "marks": true },
 { "at": 11500, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 }
+```
+
+### `card`: a card
+
+A sentence alone over the whole screen for a moment (M40): a figure to keep ("×5 on · off the same").
+Large (112 and 80 px at 1080 wide), in the caption's face and colours, within the safe width and
+between the platforms' bands (15 % to 65 % of the height, checked by the recording). It covers what
+is under it and leaves it as it was.
+
+| Field | Values | Default | |
+|---|---|---|---|
+| `text` | a text, *required* | | the sentence |
+| `line` | a text | none | a second line, smaller |
+| `em` | a text | none | the emphasis, as a caption's |
+| `hold` | 300…5000 ms | 1500 | how long it stays whole |
+| `enter` | `rise`, `fade`, `cut` | `fade` | how it comes in |
+| `in`, `out` | 0…1000 ms | 250 | how long it takes to come and to go |
+
+```json
+{ "at": 24000, "do": "card", "text": { "en": "×5 on", "es": "×5 prendido" }, "line": { "en": "off the same", "es": "apagado igual" }, "em": "×5" }
 ```
 
 ### `label`: a part's name in a recording
@@ -487,7 +523,9 @@ are logged with `"primed": true`.
 `timeline.json` also lists, for whoever adds sound, the moments a sound may go with (`events`, in
 ms of the recording): `land` (the part touches down: the land's end), `count` (each new figure a
 `set` moving a number or a `value` counting up shows; `shown` is the figure), `probe` (`on` true or
-false: the oscilloscope's box comes or goes) and `mark` (a mark drawn in it, at the `set`). And the
+false: the oscilloscope's box comes or goes), `mark` (a mark drawn in it, at the `set`), `led` (each
+time an LED turns on or off in the simulation, with `part` and `on`: a tick for each blink) and `card`
+(`on` true or false: a card comes or goes). And the
 `payoff` of each `set` that changes a number: the cycles before and after (period, an LED's time lit
 and dark, in simulated s and in s of video), the time the timeline holds after it (`holdMs`) and the
 time one whole cycle takes (`needMs`).
