@@ -231,6 +231,27 @@ up to date.
   - `timeline.json` lists the moments a sound may go with (`events`: land, count, probe, mark).
   - Golden frames M30 (the land, half way), M31 (the pedestal's drop and push), M32 (the comparing
     oscilloscope) and M33 (the caption over the board, with its data row).
+- 🔜 A payoff the eye reads (2026-11-03, 0.8.0-b.1, a prerelease on a video branch), from the second
+  review of the same short: the LED looked lit when off (only the halo changed; the body's red moved
+  4 %), the set and its hold were filmed away from the LED, the change was written as a period in ms
+  under the trace, and 32 letters made three lines.
+  - **An LED that is off is dark.** A shade over its dome and flange (`look.js`, `SHADE`; `paths.js`,
+    `shadeOps`), in the parts layer right after the LED, so a focus copies it and a move carries it;
+    the live page fades it with the light (`fill-opacity`; `opacity` stays the moves'). Lit, the LED
+    is drawn as before. Measured in a close shot of the 555: the LED's box alternates 85 ↔ 40 (53 %).
+    Not in the current layer, which draws its own glow.
+  - **A recording's own speed of time**, the timeline's `pace` (s simulated per s of video): the
+    page, the oscilloscope, `compare`, the payoff, `--parts --pace` and `timeline.json` (`pace`)
+    follow it.
+  - **The comparing box says it in words** ("on 0.08 → 0.40 s · off the same", from the
+    simulation's cycles of the circuit's LED, `compareCycles`), in bands: name and marks on plates
+    on top, the trace in the middle, the change at the bottom at 46 px in the accent. `reading` and
+    `clock` leave the value now and the window's end out.
+  - **Lines as laid out:** each caption's `lines` in `timeline.json`, and a frame rule of two at
+    most; the `data` row as large as the text (56 px); told labels at least 48 px; the caption's
+    contrast is not measured while one caption fades over another (a false 2.8:1).
+  - **A pedestal's `light`:** a soft glow of a colour under the part on the pedestal (the hook as a
+    thumbnail).
 - The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
@@ -295,8 +316,9 @@ Rules for a video frame, measurable with `inspect` and the screenshots (V3 adds 
   75 % under the circuit, or from 28 % to 40 % under the caption (`place` `top`), never over it.
 - **Horizontal (1920 × 1080):** the caption at the left, the circuit shifted to the right. The camera
   needs a *reserved margin* (frame the parts in the free part of the screen), which does not exist.
-- **Sizes at 1080 px wide:** caption 56 px (both lines, v0.7.0), value and data row 44 px with
-  tabular figures; at 1920 wide, caption 52 px; a told part's label at least 40 px. Everything above 40 px, which reads on a phone with the
+- **Sizes at 1080 px wide:** caption 56 px (both lines, v0.7.0), value 44 px and data row 56 px
+  (0.8.0-b.1) with tabular figures; at 1920 wide, caption and data 52 px; a told part's label at
+  least 48 px (0.8.0-b.1; 40 before). Everything above 40 px, which reads on a phone with the
   video full screen.
 - **Only the told part keeps its label.** The others hide in director mode: the dimmed labels of the
   four other parts covered half of the first mock-up.

@@ -300,6 +300,8 @@ export default {
   'page.scope.node': 'Voltage to ground',
   'page.scope.delta': 'period {from} → {to} (×{k})',
   'page.scope.deltaWait': 'period {from} → …',
+  'page.scope.lit': 'on {from} → {to} s · off the same',
+  'page.scope.litBoth': 'on {from} → {to} s · off {off0} → {off1} s',
   'page.node.open': 'Open the card of this strip',
   'page.node.leads': 'Connected here',
   'page.node.lead': '{part} ({pin})',

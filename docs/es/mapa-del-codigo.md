@@ -184,7 +184,9 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
   `sim/index.js`: resultados siempre activos y el botón Corriente por defecto con fuente;
   `page.results: false`, `page.flow: false`, o `page.simulation: false` para las dos), y solo para
   el componente tocado. Los LED encendidos son la capa `lights` (`lightOps` en `sim/paths.js`), que
-  se dibuja con los resultados.
+  se dibuja con los resultados; un LED apagado se oscurece con su sombra (`shadeOps`, clase
+  `led-shade`), un polígono en la capa de piezas con el id del LED, cuyo `fill-opacity` pone la
+  página según la luz (`opacity` sigue siendo de los movimientos).
 - **Controles** (`controls`, `set` de un dispositivo) corren en la página: `set` es una fórmula
   pura y solo puede importar módulos que se agrupan (`ALLOWED` en `node/bundle.js`). Un
   dispositivo que agregue sus elementos en otro orden tras un cambio pierde su estado en

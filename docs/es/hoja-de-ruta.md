@@ -328,6 +328,17 @@ clímax no mostraba su cambio.
 - ✅ Rótulos contados de al menos 40 px a 1080 (`LABEL_MIN_PX`, una regla del fotograma)
 - ✅ El desenlace medido: `sim/cycle.js`, `render-frames.js --parts --what-if`, `payoff` en `timeline.json`, `TOUR_PAYOFF_SHORT`, `TOUR_SCOPE_WINDOW`
 - ✅ `events` en `timeline.json` para el sonido (land, count, probe, mark)
+## Videos de un circuito: un desenlace que el ojo lee (transversal) ✅ (0.8.0-b.1, versión previa)
+
+De una segunda revisión del mismo video corto (2026-11-03): el LED parecía prendido estando apagado,
+el cambio era un periodo en ms bajo la traza y un subtítulo de 32 letras ocupaba tres líneas.
+
+- ✅ Un LED apagado se dibuja oscuro (`SHADE`, `shadeOps`), en las piezas y sus copias; prendido, como antes
+- ✅ El `pace` de una grabación (s simulados por s de video): página, osciloscopio, `compare`, desenlace, `--parts --pace`, `timeline.json`
+- ✅ El recuadro que compara en palabras («prendido 0,08 → 0,40 s · apagado igual») y en franjas, los textos sobre placas fuera de la traza; `reading` y `clock`
+- ✅ Las `lines` de cada subtítulo tal como quedan (`timeline.json`) y una regla del fotograma de dos como mucho; `data` del tamaño del texto; rótulos contados de al menos 48 px; sin medir contraste mientras un subtítulo se desvanece sobre otro
+- ✅ La `light` del pedestal
+
 ## Etapa 4 — En el celular o la tableta ⬜
 
 Objetivo: abrir un enlace y explorar.

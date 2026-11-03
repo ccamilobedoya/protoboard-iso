@@ -270,8 +270,51 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       }
     }
   };
+  // A pedestal's light: an ellipse of the colour fading out, on the ground under the part, in the
+  // drawing (it moves with the camera; a drop lifts the part, not its light). Under the part's copy.
+  const sceneLight = (id, glow) => {
+    for (const svg of page.svgs) {
+      svg.querySelector(':scope > .scene-light')?.remove();
+      if (!glow) continue;
+      let box = null;
+      // Its polygons (a text's box is in its own transformed units).
+      for (const el of svg.querySelectorAll(':scope > .parts > polygon[data-part="' + quote(id) + '"]')) {
+        let b;
+        try {
+          b = el.getBBox();
+        } catch {
+          b = null; // not laid out (jsdom): no light
+        }
+        if (!b || !(b.width > 0)) continue;
+        box = box ? { x0: Math.min(box.x0, b.x), y0: Math.min(box.y0, b.y), x1: Math.max(box.x1, b.x + b.width), y1: Math.max(box.y1, b.y + b.height) } : { x0: b.x, y0: b.y, x1: b.x + b.width, y1: b.y + b.height };
+      }
+      if (!box) continue;
+      const NS = 'http://www.w3.org/2000/svg';
+      const g = document.createElementNS(NS, 'g');
+      g.setAttribute('class', 'scene-light');
+      const grad = document.createElementNS(NS, 'radialGradient');
+      grad.id = 'scene-light-' + page.svgs.indexOf(svg);
+      for (const [offset, opacity] of [[0, 0.55], [0.45, 0.28], [1, 0]]) {
+        const stop = document.createElementNS(NS, 'stop');
+        stop.setAttribute('offset', String(offset));
+        stop.setAttribute('style', 'stop-color:' + glow + ';stop-opacity:' + opacity);
+        grad.appendChild(stop);
+      }
+      const w = box.x1 - box.x0;
+      const h = box.y1 - box.y0;
+      const ellipse = document.createElementNS(NS, 'ellipse');
+      ellipse.setAttribute('cx', ((box.x0 + box.x1) / 2).toFixed(2));
+      ellipse.setAttribute('cy', (box.y1 - h * 0.2).toFixed(2));
+      ellipse.setAttribute('rx', (w * 0.95).toFixed(2));
+      ellipse.setAttribute('ry', (w * 0.42).toFixed(2));
+      ellipse.setAttribute('fill', 'url(#' + grad.id + ')');
+      g.append(grad, ellipse);
+      svg.insertBefore(g, svg.querySelector(':scope > .spotlight'));
+    }
+  };
   const leaveScene = () => {
     delete page.main.dataset.scene;
+    sceneLight(null, null);
     slide(0);
     sceneRule.textContent = '';
     sceneFade(1);
@@ -515,7 +558,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         return s.node != null ? selectNode(page, s.node) : select(page, s.part);
       }
       const had = document.body.classList.contains('with-scope');
-      const on = page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note, window: s.window, marks: s.marks || s.compare, compare: s.compare, place: s.place, size: s.size });
+      const on = page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note, window: s.window, marks: s.marks || s.compare, compare: s.compare, place: s.place, size: s.size, reading: s.reading ?? true, clock: s.clock ?? true });
       if (on || had) event('probe', { on: Boolean(on), ...(on && { part: s.part ?? null, node: s.node ?? null }) });
       if (framed) director.frame(framed.target, { ...moveTiming('arrival'), zoom: framed.zoom ?? 1, pan: framed.pan ?? null, alone: framed.alone ?? false });
     },
@@ -653,8 +696,12 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       }
       pedestal = id;
       landed.delete(id);
+      // `light`: a soft light of that colour on the pedestal under the part (a hook that reads as a
+      // thumbnail: the chip of a blinking circuit in a red glow). It goes with the pedestal.
       page.state.node = null;
       focusOn([id]);
+      // After the focus: its copy exists, and the light goes under it.
+      sceneLight(id, s.light == null ? null : (PULSE_COLORS[s.light] ?? s.light));
       sceneRule.textContent = 'main[data-scene] > svg > .lights > :not([data-glow="' + quote(id) + '"]), main[data-scene] > svg > :is(.spotlabels, .shortlabels) > [data-part="' + quote(id) + '"] { display: none !important; }';
       const from = page.lifted?.get(id) ?? 0;
       const enter = () => {

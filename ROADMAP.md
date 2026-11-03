@@ -322,6 +322,17 @@ the board flashed in, the caption could not be read over it, the climax did not 
 - ✅ The payoff measured: `sim/cycle.js`, `render-frames.js --parts --what-if`, `payoff` in `timeline.json`, `TOUR_PAYOFF_SHORT`, `TOUR_SCOPE_WINDOW`
 - ✅ `events` in `timeline.json` for sound (land, count, probe, mark)
 
+## Videos of a circuit: a payoff the eye reads (cross-cutting) ✅ (0.8.0-b.1, prerelease)
+
+From a second review of the same short (2026-11-03): the LED looked lit when off, the change was a
+period in ms under the trace, a caption of 32 letters took three lines.
+
+- ✅ An LED that is off is drawn dark (`SHADE`, `shadeOps`), in the parts and their copies; lit as before
+- ✅ A recording's `pace` (s simulated per s of video): page, oscilloscope, `compare`, payoff, `--parts --pace`, `timeline.json`
+- ✅ The comparing box in words ("on 0.08 → 0.40 s · off the same") and in bands, texts on plates off the trace; `reading` and `clock`
+- ✅ Each caption's `lines` as laid out (`timeline.json`) and a frame rule of two at most; `data` as large as the text; told labels at least 48 px; no contrast reading while a caption fades over another
+- ✅ A pedestal's `light`
+
 ## Stage 4 — On a phone or tablet ⬜
 
 Goal: open a link and explore.

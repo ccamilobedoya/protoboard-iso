@@ -299,6 +299,8 @@ export default {
   'page.scope.node': 'Voltaje respecto a tierra',
   'page.scope.delta': 'periodo {from} → {to} (×{k})',
   'page.scope.deltaWait': 'periodo {from} → …',
+  'page.scope.lit': 'prendido {from} → {to} s · apagado igual',
+  'page.scope.litBoth': 'prendido {from} → {to} s · apagado {off0} → {off1} s',
   'page.node.open': 'Abrir la ficha de esta tira',
   'page.node.leads': 'Conectado aquí',
   'page.node.lead': '{part} ({pin})',

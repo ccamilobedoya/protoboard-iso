@@ -32,6 +32,7 @@ complete and check the fields with it). Example timelines: `examples/tours/`.
 | `circuit` | a circuit file's name (beside the timeline or one folder up) or a recipe's | none | the circuit it tells (for `scripts/render-frames.js`) |
 | `format` | `vertical` (1080 × 1920), `horizontal` (1920 × 1080) | `vertical` | the video's size |
 | `theme` | `stage`, `notebook`, `light`, `dark` | `stage` | the page's look in a recording |
+| `pace` | 0.000001…1000 | the page's own | seconds of simulated time per second of video in a recording: a circuit whose cycles are too slow (or too fast) for the shot runs faster (or slower) on screen. The oscilloscope's trace, the `compare` figures, the payoff (`render-frames.js`, `timeline.json`) and `--parts --pace` follow it; the page out of a recording keeps its own |
 | `steps` | a list of steps, *required* | | what happens |
 
 A circuit plays its timeline in its page when `page.tour` names the file (read beside the circuit,
@@ -110,7 +111,7 @@ In a recording only the told part keeps a label: the last one framed, focused, i
 |---|---|---|---|
 | `text` | a text, *required* unless `off` | | the caption |
 | `line` | a text | none | a second line, drawn as the first (same size, colour and face): one idea in at most two lines |
-| `data` | a text | none | a data row under it, only for a value or a before → after that is not already on screen (`"1 kΩ → 100 kΩ"`, `"period ×7"`): sans with tabular figures, in the accent, 44 px at 1080 wide; never the sentence's verb |
+| `data` | a text | none | a data row under it, only for a value or a before → after that is not already on screen (`"1 kΩ → 100 kΩ"`, `"period ×7"`): sans with tabular figures, in the accent, as large as the text (56 px at 1080 wide, 52 at 1920); never the sentence's verb |
 | `off` | `true` | | takes the caption away |
 | `enter` | `rise`, `fade`, `cut` | `rise` | how its lines come in: rising from their baseline behind a mask, fading in, or at once |
 | `in` | 0…3000 ms | 400 | how long each line takes |
@@ -257,6 +258,7 @@ framed alone in the middle of the free area, without its short label (the captio
 | `zoom` | 0.5…3 | 1 | closer in or farther out than the part's frame |
 | `enter` | `cut`, `drop` | `cut` | `drop`: the part falls onto its pedestal from 8 mm with a small bounce (700 ms) |
 | `push` | 0.5…3 | none | a slow push: the camera keeps closing in to this zoom until the next step that moves it (a `frame`, `land` or `scene`), at most 8 s, so the hook is never still |
+| `light` | `pulse`, `accent`, `value`, `voltage`, `current` or `#rrggbb` | none | a soft light of that colour on the pedestal under the part, until the board comes back: a hook that works as a thumbnail (the chip of a blinking circuit in a red glow, `"#ff3b2f"`) |
 | `move`, `ms`, `curve` | | `cut` | with a move, the board fades along it and the camera arrives |
 
 The chip's marking reads left to right from the camera, whichever way the chip sits on the board
@@ -403,10 +405,15 @@ it framed last above the box), in landscape under the caption.
 | `marks` | `true`, `false` | `false` | in a recording, a dashed line in the box at each `set` from then on, with the control's new value (*R1 → 100 kΩ*), so before and after both read |
 | `place` | `bottom`, `top` | `bottom` | in a portrait recording: `bottom`, from 56 % to 75 % of the height, the circuit framed above it from 40 % to 56 %; `top`, from 28 % to 40 %, between the caption and the circuit, which keeps its whole band from 40 % to 75 % |
 | `size` | `full`, `compact` | `full` | `compact`: no note, the trace's name and value inside the plot (after a `title` the step gives: "C1 · Voltage: 5.3 V"), a thicker trace, two axis labels (the top of the scale and the end of the window); for the box on top, 12 % of the height |
-| `compare` | `true`, `false` | `false` | in a recording, at each `set` (it implies `marks`): the cycles before the mark stay as a faint ghost trace laid over what comes after it (shifted by whole periods), and the change of period of the probed part is written over the plot, from the simulation, once the control has arrived: "period 148 ms → 832 ms (×5.6)" ("period 148 ms → …" while it moves) |
+| `compare` | `true`, `false` | `false` | in a recording, at each `set` (it implies `marks`): the cycles before the mark stay as a faint ghost trace laid over what comes after it (shifted by whole periods), and the change is written in the box, from the simulation, once the control has arrived. With an LED in the circuit it says what the eye sees, in words: "on 0.08 → 0.40 s · off the same" (off is "the same" within 15 %; otherwise "off 0.07 → 0.20 s"); without one, the probed part's period: "period 148 ms → 832 ms (×5.6)" |
+| `reading` | `true`, `false` | `true` | `false`: the trace's name without its value now ("C1 · charge", not "C1 · Voltage: 4.52 V") |
+| `clock` | `true`, `false` | `true` | `compact`, `false`: no time at the end of the window |
 
-A mark's text and the period's change are drawn over the trace on a halo of the screen's colour,
-so the trace never crosses them.
+A comparing box is laid out in three bands, so no text ever lies on the trace: on top the trace's
+name and each mark's text (*R1 → 47 kΩ*), each on a plate of the screen's colour and never over the
+other; the trace and its ghost in the middle, scaled to their own swing; at the bottom the change,
+46 px on screen, in the accent, on its plate. Without `compare` a mark's text and the period's change
+are drawn over the trace on a halo of the screen's colour.
 
 On top the box needs a caption of at most two lines and no `value` line under it (the value is in
 the box): a longer caption would reach into it, and the recording's check says so. `top` goes with
@@ -416,8 +423,8 @@ Without a `window` the box starts at the kit's window, stretches with the time u
 then scrolls, and a `set` that changes a time constant gives it a new window: the trace rescales by
 itself and hides a change of pace. To show one, give the box a fixed `window` and `marks`. How much
 time to ask for: `render-frames.js --parts` prints the kit's window and how many seconds of simulated
-time a second of video shows (`555-astable`: 0.55 s, at 0.055 s a second); the time keeps that speed
-after a `set`, so a blink a hundred times slower takes a hundred times longer on screen too. A window
+time a second of video shows (`555-astable`: 0.55 s, at 0.055 s a second; the timeline's `pace`
+changes that speed); the time keeps that speed after a `set`, so a blink a hundred times slower takes a hundred times longer on screen too. A window
 of about twice the kit's keeps several cycles before the `set` and one long one after it. Whether
 the window and the time after the `set` hold one whole cycle: `render-frames.js --parts <circuit>
 --what-if R1.resistance=100000` (below) and the recording's own check (`TOUR_SCOPE_WINDOW`,

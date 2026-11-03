@@ -9,6 +9,36 @@ detail.
 
 ## [Unreleased]
 
+## [0.8.0-b.1] - 2026-11-03
+
+A prerelease on a video branch: a payoff the eye reads. Not on `main` until the maintainer chooses it.
+
+### Added
+
+- **A recording's speed of time**: the timeline's `pace` (s of simulated time per s of video); the
+  page, the oscilloscope, `compare`, the payoff, `timeline.json` (`pace`) and `render-frames.js
+  --parts --pace` follow it.
+- **The comparing box in words**: with an LED in the circuit, "on 0.08 → 0.40 s · off the same"
+  (`compareCycles` measures its time on and off); laid out in bands, the name and the marks on
+  plates on top, the trace in the middle, the change at the bottom at 46 px in the accent. `probe`
+  `reading` and `clock` leave out the value now and the window's end.
+- **Lines as laid out**: each caption's `lines` in `timeline.json`; a frame rule of two at most.
+- `timeline.json` gives each LED's box on the frames measured at rest (`leds`), so a check of the
+  video can read whether it blinks.
+- **A pedestal's `light`**: `scene` with `light`, a soft glow of a colour under the part.
+
+### Changed
+
+- An LED that is off is drawn dark: a shade over its dome and flange (`SHADE`, `shadeOps`), in the
+  parts and in their copies, faded with its light in a page. Lit, it is drawn as before.
+- The `data` row as large as the caption's text (56 px at 1080 wide, 52 at 1920); told labels at
+  least 48 px (`LABEL_MIN_PX`).
+
+### Fixed
+
+- The caption's contrast is not read while a caption comes in or the one before fades out over it
+  (a false 2.8:1).
+
 ## [0.7.0] - 2026-11-03
 
 ### Added
@@ -174,7 +204,8 @@ detail.
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-b.1...HEAD
+[0.8.0-b.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.7.0...v0.8.0-b.1
 [0.7.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.4.0...v0.5.0

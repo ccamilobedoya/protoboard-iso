@@ -328,6 +328,8 @@ nav .falstad .flag[hidden] { display: none; }
 .scope-mark-text, .scope-delta { stroke: var(--scope); stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; }
 .scope-delta { fill: var(--cap-value, var(--trace-v)); font-size: 9px; font-weight: 700; text-anchor: middle; font-variant-numeric: tabular-nums; }
 .scope-trace.ghost { opacity: 0.32; stroke-dasharray: 2 2; }
+/* A comparing box's texts sit on plates of the screen's colour, in their own bands (scope.js). */
+.scope-plate { fill: var(--scope); }
 .scope-mark-text.scope-end { text-anchor: end; }
 .side .clear, .control .hold { font: inherit; color: var(--ink); background: var(--bench); border: 1px solid var(--hair-strong); border-radius: 4px; padding: 3px 9px; cursor: pointer; margin-top: 4px; }
 .side .clear:active, .control .hold:active { background: var(--press); }
@@ -394,18 +396,19 @@ body.touring .first-hint { display: none; }
    caption has no box: the text on the ground, its sizes a share of the frame's width (56 and 44 px
    at 1080 wide; 52 at 1920 wide). One idea in at most two lines of one rank: the second line (line)
    is drawn as the first by default (--cap-line-*), a data row (data: a value, "1 kΩ → 100 kΩ") in
-   the sans with tabular figures and the accent, 44 px. 90 px a side (a safe width of 900 px: 32
-   characters of the serif at 56 px). A scrim of the canvas's colour behind the block keeps it
+   the sans with tabular figures and the accent, as large as the text (56 px; 52 at 1920 wide: its
+   figures read as large as the words). 90 px a side (a safe width of 900 px: about 32 characters of
+   the serif at 56 px; render-frames.js counts the lines as laid out, at most two). A scrim of the canvas's colour behind the block keeps it
    readable over a light board (4.5:1 at least, measured by render-frames.js). Portrait (vertical
    video): from 16 % of the height, the circuit below it (the director's inset, live.js);
    landscape: the left half, the circuit right. The top 15 % and bottom 25 % of a vertical frame
    are the platforms' (their buttons). */
 body.director {
-  --cap-text: 5.1852vw; --cap-number: 4.0741vw; --cap-data: 4.0741vw; --cap-label: 2.4074vw;
+  --cap-text: 5.1852vw; --cap-number: 4.0741vw; --cap-data: 5.1852vw; --cap-label: 2.4074vw;
   --cap-pad: 8.3333vw; --cap-top: 16%; --cap-gap: 1.2963vw;
 }
 @media (orientation: landscape) { body.director {
-  --cap-text: 2.7083vw; --cap-number: 2.1354vw; --cap-data: 2.2917vw; --cap-label: 1.25vw;
+  --cap-text: 2.7083vw; --cap-number: 2.1354vw; --cap-data: 2.7083vw; --cap-label: 1.25vw;
   --cap-pad: 4.6875vw; --cap-top: 9%; --cap-gap: 0.7292vw;
 } }
 :is([data-theme="stage"], [data-theme="notebook"]) body.director { --cap-weight: 500; }
@@ -415,6 +418,9 @@ body.director {
    (data-scene="land") the board and the parts slide in opaque under the veil while the focus's layers
    stay away; touched down (data-scene="lit") the board lightens as the veil goes (tour.js). The
    lights of the other parts are hidden by a rule tour.js writes with the part's id. */
+/* A pedestal's light (tour.js, sceneLight): on the pedestal only, never once the board is back. */
+.scene-light { pointer-events: none; }
+main:not([data-scene="part"]) > svg > .scene-light { display: none; }
 main[data-scene="part"] > svg > :is(.under, .board, .parts, .labels, .shortlabels, .veil, .strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
 main[data-scene="land"] > svg > :is(.strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
 main[data-scene="lit"] > svg > :is(.strips, .coords, .marks, .results, .probes) { display: none !important; }

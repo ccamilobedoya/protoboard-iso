@@ -139,10 +139,18 @@ Las reglas que la dejan bien:
   555-astable --what-if R1.resistance=100000` imprime el ciclo de cada LED y condensador antes y
   después, en s simulados y en s de video (para el 555: 0,15 s → 0,83 s, es decir 2,7 s → 15,1 s de
   video, el LED prendido 14 s y apagado 1,3 s). La simulación conserva su velocidad tras un `set`, así
-  que un circuito más lento tarda más en pantalla; elegir un cambio menor o sostener más. `--validate`
-  avisa (`TOUR_PAYOFF_SHORT`, `TOUR_SCOPE_WINDOW`). Con `"compare": true` en el `probe` los ciclos de
-  antes del `set` quedan como fantasma tenue después y el recuadro escribe el cambio de periodo
-  («periodo 148 ms → 832 ms (×5,6)»). `--json` da lo mismo como datos.
+  que un circuito más lento tarda más en pantalla; elegir un cambio menor, sostener más o darle a la
+  línea de tiempo un `pace` más rápido (segundos de tiempo simulado por segundo de video;
+  `--parts --pace 0.15 --what-if …` imprime los ciclos a esa velocidad). Un cambio que el ojo lee pide
+  el tiempo prendido del LED unas 2,5 veces más largo, y el LED en el mismo plano antes y después del
+  `set` (un ciclo antes, dos después): un LED apagado se dibuja oscuro, así que alterna en el cuadro.
+  `--validate` avisa (`TOUR_PAYOFF_SHORT`, `TOUR_SCOPE_WINDOW`). Con `"compare": true` en el `probe`
+  los ciclos de antes del `set` quedan como fantasma tenue después y el recuadro dice el cambio en
+  palabras («prendido 0,08 → 0,40 s · apagado igual»). `--json` da lo mismo como datos.
+- **Dos líneas como mucho, tal como quedan.** Un subtítulo de 32 letras por línea todavía puede
+  ocupar tres líneas en la serif: `timeline.json` da las `lines` de cada subtítulo tal como las armó
+  el navegador, y la revisión del fotograma falla un subtítulo de más de dos. `leds` da la caja de
+  cada LED en los fotogramas medidos con la cámara quieta, para leer en el video si parpadea.
 - **La corriente en una protoboard llena.** Encender la capa sobre un plano cercano de una o dos
   piezas en foco, con `"scope": "focus"` (solo sus redes la llevan) y `"style": "real"` (por las
   patas), nunca sobre un plano amplio; apagarla cuando la frase habla de otra cosa.

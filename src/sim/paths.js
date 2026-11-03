@@ -29,7 +29,7 @@ import { decalTextOp } from '../render/scene.js';
 import { textDecal } from '../geometry/primitives.js';
 import { v3, X, Y, scale } from '../core/vec.js';
 import { LED_LIGHT } from '../parts/colors.js';
-import { MIN_CURRENT, DOT_PERIOD, DOT_COLOR, voltageColor, dotSpeed, bodyShare, bodyVoltage, centreVoltage, glowOpacity } from './look.js';
+import { MIN_CURRENT, DOT_PERIOD, DOT_COLOR, voltageColor, dotSpeed, bodyShare, bodyVoltage, centreVoltage, glowOpacity, shadeOpacity, SHADE } from './look.js';
 
 export { MIN_CURRENT, VOLTAGE_COLORS, voltageColor, dotSpeed, bodyShare } from './look.js';
 
@@ -282,6 +282,61 @@ function litLed(scene, l, style) {
     r = Math.max(...rim.map((p) => Math.hypot(p.x - c.x, p.y - c.y)), Math.abs(c.y - top.y));
   }
   return [0.12, 0.22, 0.38].map((alpha, k) => ({ kind: 'circle', cx: c.x, cy: c.y, r: r * (2.6 - k * 0.55), fill: l.color, fillOpacity: alpha, ...tag }));
+}
+
+// The outline of an LED's dome and flange on screen (the convex hull of points on them): where the
+// shade of an LED that is off goes.
+function domeOutline(scene, light) {
+  const { base, radius, height, skirt } = light;
+  const rings = [
+    [base.z - (skirt?.depth ?? 0), skirt?.radius ?? radius],
+    [base.z, skirt?.radius ?? radius],
+    [base.z, radius],
+    [base.z + height - radius, radius],
+  ];
+  for (let k = 1; k <= 4; k++) {
+    const a = (k / 4) * (Math.PI / 2);
+    rings.push([base.z + height - radius + radius * Math.sin(a), radius * Math.cos(a)]);
+  }
+  const pts = [];
+  for (const [z, r] of rings) {
+    for (let j = 0; j < 24; j++) {
+      const t = (j / 24) * 2 * Math.PI;
+      pts.push(scene.camera.project({ x: base.x + r * Math.cos(t), y: base.y + r * Math.sin(t), z }));
+    }
+  }
+  return hull(pts);
+}
+// Andrew's monotone chain: the convex hull of 2D points, counter-clockwise.
+function hull(points) {
+  const p = points.map((q) => ({ x: q.x, y: q.y })).sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const half = (list) => {
+    const out = [];
+    for (const q of list) {
+      while (out.length >= 2 && cross(out.at(-2), out.at(-1), q) <= 0) out.pop();
+      out.push(q);
+    }
+    out.pop();
+    return out;
+  };
+  return [...half(p), ...half(p.slice().reverse())];
+}
+
+// The shade of each LED (look.js, SHADE): a polygon over its dome and flange, of the part (so a
+// focus copies it with the part and a move carries it), dark at its opacity while the LED is off.
+// `class="led-shade"` and data-shade: the live page fades it with the LED's light.
+export function shadeOps(scene, built, sim) {
+  if (!sim?.ok) return [];
+  const out = [];
+  for (const part of built.parts) {
+    const reading = sim.parts[part.id];
+    if (reading?.kind !== 'LED' || !part.built?.light) continue;
+    const pts = domeOutline(scene, part.built.light);
+    // Its darkness in fill-opacity: `opacity` stays the moves' (an assemble or an insert hides the part).
+    out.push({ kind: 'polygon', pts, fill: SHADE.color, cls: 'led-shade', style: `fill-opacity:${(SHADE.opacity * shadeOpacity(reading.brightness)).toFixed(2)}`, part: part.id, data: { shade: part.id } });
+  }
+  return out;
 }
 
 const pathData = (pts) => pts.map((p, i) => `${i ? 'L' : 'M'}${Math.round(p.x * 100) / 100} ${Math.round(p.y * 100) / 100}`).join(' ');

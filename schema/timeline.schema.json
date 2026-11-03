@@ -31,6 +31,12 @@
       ],
       "description": "The page's theme in a recording: stage (default, the notebook at night), notebook (by day), light or dark (the bench). A link's ?theme= wins over this"
     },
+    "pace": {
+      "type": "number",
+      "minimum": 0.000001,
+      "maximum": 1000,
+      "description": "Seconds of simulated time per second of video in this recording (default: the page's own, which render-frames.js --parts prints): a slower circuit shown faster so its cycles fit the shot; the oscilloscope, the compare figures and the payoff follow it"
+    },
     "steps": {
       "type": "array",
       "maxItems": 200,
@@ -733,7 +739,15 @@
               },
               "compare": {
                 "type": "boolean",
-                "description": "In a recording, at each set: the cycles before it kept as a faint ghost trace laid over what comes after, and the change of period from the simulation, once the control has arrived (\"period 0.12 s → 0.86 s (×7)\"); implies marks (default false)"
+                "description": "In a recording, at each set: the cycles before it kept as a faint ghost trace laid over what comes after, and the change of period from the simulation, once the control has arrived (\"period 0.12 s → 0.86 s (×7)\"; with an LED in the circuit, in words: \"on 0.08 → 0.40 s · off the same\"), laid out in bands so no text crosses the trace; implies marks (default false)"
+              },
+              "reading": {
+                "type": "boolean",
+                "description": "false: the trace's name without its value now (default true)"
+              },
+              "clock": {
+                "type": "boolean",
+                "description": "compact, false: without the time at the end of the window (default true)"
               }
             },
             "additionalProperties": false,
@@ -1292,6 +1306,10 @@
                 "minimum": 0.5,
                 "maximum": 3,
                 "description": "A slow push: the camera keeps closing in to this zoom until the next step that moves it (a frame, a land, a scene), at most 8 s"
+              },
+              "light": {
+                "type": "string",
+                "description": "Mode part: a soft light of this colour on the pedestal under the part, until the board comes back (pulse, accent, value, voltage, current or #rrggbb; default none)"
               }
             },
             "additionalProperties": false,

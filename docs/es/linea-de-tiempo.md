@@ -33,6 +33,7 @@ completan y revisan los campos con él). Líneas de tiempo de ejemplo: `examples
 | `circuit` | el nombre de un archivo de circuito (junto a la línea de tiempo o una carpeta arriba) o de una receta | ninguno | el circuito que cuenta (para `scripts/render-frames.js`) |
 | `format` | `vertical` (1080 × 1920), `horizontal` (1920 × 1080) | `vertical` | el tamaño del video |
 | `theme` | `stage`, `notebook`, `light`, `dark` | `stage` | el aspecto de la página en una grabación |
+| `pace` | 0.000001…1000 | el de la página | segundos de tiempo simulado por segundo de video en una grabación: un circuito con ciclos demasiado lentos (o rápidos) para el plano corre más rápido (o más lento) en pantalla. La traza del osciloscopio, las cifras de `compare`, el desenlace (`render-frames.js`, `timeline.json`) y `--parts --pace` lo siguen; la página fuera de una grabación conserva el suyo |
 | `steps` | una lista de pasos, *obligatorio* | | lo que pasa |
 
 Un circuito reproduce su línea de tiempo en su página cuando `page.tour` nombra el archivo (leído
@@ -113,7 +114,7 @@ o levantada.
 |---|---|---|---|
 | `text` | un texto, *obligatorio* salvo con `off` | | el subtítulo |
 | `line` | un texto | ninguna | una segunda línea, dibujada como la primera (mismo tamaño, color y fuente): una idea en dos líneas como mucho |
-| `data` | un texto | ninguna | una fila de datos debajo, solo para un valor o un antes → después que no esté ya en pantalla (`"1 kΩ → 100 kΩ"`, `"periodo ×7"`): sans con cifras tabulares, en el color de acento, 44 px a 1080 de ancho; nunca lleva el verbo de la frase |
+| `data` | un texto | ninguna | una fila de datos debajo, solo para un valor o un antes → después que no esté ya en pantalla (`"1 kΩ → 100 kΩ"`, `"periodo ×7"`): sans con cifras tabulares, en el color de acento, del tamaño del texto (56 px a 1080 de ancho, 52 a 1920); nunca lleva el verbo de la frase |
 | `off` | `true` | | quita el subtítulo |
 | `enter` | `rise`, `fade`, `cut` | `rise` | cómo llegan sus líneas: subiendo desde su base detrás de una máscara, apareciendo con un fundido o de una vez |
 | `in` | 0…3000 ms | 400 | cuánto tarda cada línea |
@@ -263,6 +264,7 @@ y `probe` funcionan igual.
 | `zoom` | 0.5…3 | 1 | más cerca o más lejos que el encuadre de la pieza |
 | `enter` | `cut`, `drop` | `cut` | `drop`: la pieza cae sobre su pedestal desde 8 mm con un rebote leve (700 ms) |
 | `push` | 0.5…3 | ninguno | un acercamiento lento: la cámara sigue acercándose hasta este zoom hasta el siguiente paso que la mueva (un `frame`, `land` o `scene`), como mucho 8 s, para que el gancho nunca esté quieto |
+| `light` | `pulse`, `accent`, `value`, `voltage`, `current` o `#rrggbb` | ninguna | una luz suave de ese color en el pedestal, bajo la pieza, hasta que vuelve la protoboard: un gancho que sirve de miniatura (el chip de un circuito que parpadea en un resplandor rojo, `"#ff3b2f"`) |
 | `move`, `ms`, `curve` | | `cut` | con un movimiento, la protoboard se desvanece a lo largo de él y la cámara llega |
 
 El rotulado del chip se lee de izquierda a derecha desde la cámara, esté como esté el chip en la
@@ -413,10 +415,16 @@ nuevo lo último encuadrado encima del recuadro), en horizontal bajo el subtítu
 | `marks` | `true`, `false` | `false` | en una grabación, una línea punteada en el recuadro en cada `set` desde ese momento, con el valor nuevo del control (*R1 → 100 kΩ*), para que se lean el antes y el después |
 | `place` | `bottom`, `top` | `bottom` | en una grabación vertical: `bottom`, del 56 % al 75 % de la altura, con el circuito encuadrado encima, del 40 % al 56 %; `top`, del 28 % al 40 %, entre el subtítulo y el circuito, que conserva toda su franja del 40 % al 75 % |
 | `size` | `full`, `compact` | `full` | `compact`: sin nota, el nombre y el valor de la traza dentro de la gráfica (tras un `title` que dé el paso: «C1 · Voltaje: 5,3 V»), una traza más gruesa, dos rótulos de eje (el tope de la escala y el final de la ventana); para el recuadro arriba, el 12 % de la altura |
-| `compare` | `true`, `false` | `false` | en una grabación, en cada `set` (implica `marks`): los ciclos de antes de la marca quedan como una traza fantasma tenue encima de lo que viene después (corrida en periodos enteros), y el cambio de periodo de la pieza medida se escribe sobre la gráfica, de la simulación, cuando el control ya llegó: «periodo 148 ms → 832 ms (×5,6)» («periodo 148 ms → …» mientras se mueve) |
+| `compare` | `true`, `false` | `false` | en una grabación, en cada `set` (implica `marks`): los ciclos de antes de la marca quedan como una traza fantasma tenue encima de lo que viene después (corrida en periodos enteros), y el cambio se escribe en el recuadro, de la simulación, cuando el control ya llegó. Con un LED en el circuito dice lo que ve el ojo, en palabras: «prendido 0,08 → 0,40 s · apagado igual» («igual» con menos de 15 % de diferencia; si no, «apagado 0,07 → 0,20 s»); sin LED, el periodo de la pieza medida: «periodo 148 ms → 832 ms (×5,6)» |
+| `reading` | `true`, `false` | `true` | `false`: el nombre de la traza sin su valor del momento («C1 · carga», no «C1 · Voltaje: 4,52 V») |
+| `clock` | `true`, `false` | `true` | con `compact`, `false`: sin el tiempo al final de la ventana |
 
-El texto de una marca y el cambio de periodo se dibujan sobre la traza con un halo del color de la
-pantalla, así que la traza nunca los cruza.
+Un recuadro que compara se arma en tres franjas, para que ningún texto quede sobre la traza: arriba
+el nombre de la traza y el texto de cada marca (*R1 → 47 kΩ*), cada uno sobre una placa del color de
+la pantalla y nunca uno encima del otro; en el medio la traza y su fantasma, escaladas a su propia
+oscilación; abajo el cambio, a 46 px en pantalla, en el acento, sobre su placa. Sin `compare`, el
+texto de una marca y el cambio de periodo se dibujan sobre la traza con un halo del color de la
+pantalla.
 
 Arriba, el recuadro pide un subtítulo de dos líneas como mucho y sin la línea del `value` (el valor
 está en el recuadro): un subtítulo más largo llegaría hasta él, y la revisión de la grabación lo
@@ -426,8 +434,8 @@ Sin `window` el recuadro empieza con la ventana del kit, se estira con el tiempo
 después se corre, y un `set` que cambia una constante de tiempo le da una ventana nueva: la traza se
 reescala sola y esconde un cambio de ritmo. Para mostrarlo, dale al recuadro una `window` fija y
 `marks`. Cuánto tiempo pedir: `render-frames.js --parts` imprime la ventana del kit y cuántos segundos
-de tiempo simulado muestra un segundo de video (`555-astable`: 0,55 s, a 0,055 s por segundo); el
-tiempo conserva esa velocidad después de un `set`, así que un parpadeo cien veces más lento también
+de tiempo simulado muestra un segundo de video (`555-astable`: 0,55 s, a 0,055 s por segundo; el
+`pace` de la línea de tiempo cambia esa velocidad); el tiempo conserva esa velocidad después de un `set`, así que un parpadeo cien veces más lento también
 tarda cien veces más en pantalla. Una ventana de más o menos el doble de la del kit deja varios ciclos
 antes del `set` y uno largo después. Si la ventana y el tiempo después del `set` caben un ciclo
 completo: `render-frames.js --parts <circuito> --what-if R1.resistance=100000` (abajo) y la revisión de

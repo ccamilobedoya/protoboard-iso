@@ -36,8 +36,8 @@ const FRAME = 1000 / 30;
 // may still reach 75 %), and an oscilloscope's box on top (a probe's place "top") lies between the
 // caption and 40 % (`scope`, moves.js SCOPE_BOX).
 export const RULES = {
-  vertical: { width: 1080, height: 1920, caption: { top: [0.15, 0.17], bottom: [0, 0.4] }, ink: { left: 90 / 1080, right: 1 - 90 / 1080 }, free: { top: 0.4, bottom: 0.75, left: 0.0667, right: 0.9333 }, told: { bottom: 0.65 }, scope: { ...SCOPE_BOX.top }, sizes: { text: 56, number: 44, data: 44 }, label: 40 },
-  horizontal: { width: 1920, height: 1080, caption: { top: [0, 1], bottom: [0, 1], right: [0, 0.5] }, ink: { left: 90 / 1920, right: 0.5 }, free: { top: 0.09, bottom: 0.91, left: 0.5, right: 0.9625 }, sizes: { text: 52, data: 44 }, label: 40 },
+  vertical: { width: 1080, height: 1920, caption: { top: [0.15, 0.17], bottom: [0, 0.4] }, ink: { left: 90 / 1080, right: 1 - 90 / 1080 }, free: { top: 0.4, bottom: 0.75, left: 0.0667, right: 0.9333 }, told: { bottom: 0.65 }, scope: { ...SCOPE_BOX.top }, sizes: { text: 56, number: 44, data: 56 }, label: 48, lines: 2 },
+  horizontal: { width: 1920, height: 1080, caption: { top: [0, 1], bottom: [0, 1], right: [0, 0.5] }, ink: { left: 90 / 1920, right: 0.5 }, free: { top: 0.09, bottom: 0.91, left: 0.5, right: 0.9625 }, sizes: { text: 52, data: 52 }, label: 48, lines: 2 },
 };
 // The caption's least contrast on what is under it (WCAG's ratio), and the first frame's checks.
 export const CONTRAST = 4.5;
@@ -84,6 +84,7 @@ export function frameProblems(format, m, { moving = false } = {}) {
   // The caption's ink within the safe width (90 px a side), its second line as large as the first by
   // default (a smaller one is the timeline's own choice of --cap-line-size, not checked), its contrast.
   if (m.inkBox && r.ink && (m.inkBox.left < r.ink.left - TOLERANCE / 4 || m.inkBox.right > r.ink.right + TOLERANCE / 4)) out.push(`the caption's text at ${pct(m.inkBox.left)}…${pct(m.inkBox.right)}, out of the safe width ${pct(r.ink.left)}…${pct(r.ink.right)}`);
+  if (m.captionLines != null && r.lines && m.captionLines > r.lines) out.push(`the caption takes ${m.captionLines} lines, at most ${r.lines}`);
   if (m.contrast != null && m.contrast < CONTRAST) out.push(`the caption's contrast ${m.contrast.toFixed(1)}:1 on what is under it, under ${CONTRAST}:1`);
   // The told part's label, never smaller than r.label px at 1080 (scaled by tour.js).
   if (r.label && m.labelPx != null && !moving && m.labelPx < (r.label * Math.min(r.width, r.height)) / 1080 - PX) out.push(`the label of ${m.told?.id} ${Math.round(m.labelPx)} px, under ${r.label} px`);
@@ -227,12 +228,30 @@ export function measure() {
       if (!inkColor && span.parentNode.classList.contains('text')) inkColor = (getComputedStyle(span).color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
     }
   }
+  // How many lines the caption's sentence takes as laid out (its text and its second line, not the
+  // data row): the font's own widths, not a count of letters. At most two (RULES).
+  const tops = new Set();
+  if (capRect) {
+    for (const span of cap.querySelectorAll(':scope > p.text:not([hidden]) > .in, :scope > p.line:not([hidden]) > .in')) {
+      if (!span.textContent) continue;
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      for (const r of range.getClientRects()) if (r.width > 0 && r.height > 0) tops.add(Math.round((r.top + r.bottom) / 2 / 4));
+    }
+  }
   const inkBox = ink.length ? frac({ top: Math.min(...ink.map((r) => r.y)), bottom: Math.max(...ink.map((r) => r.y + r.height)), left: Math.min(...ink.map((r) => r.x)), right: Math.max(...ink.map((r) => r.x + r.width)) }) : null;
   // The told label's letter size on screen: its font size through its own scale and the camera.
   const labelEl = tag ? svg.querySelector(`.spotlabels > text[data-part="${id}"], .spotlabels > [data-part="${id}"] text`) : null;
   const ctm = labelEl?.getScreenCTM?.();
   const labelPx = labelEl && ctm ? Number(labelEl.getAttribute('font-size')) * Math.hypot(ctm.a, ctm.b) : null;
   const scope = boxRect ? { ...frac(boxRect), place: box.classList.contains('top') ? 'top' : 'bottom' } : null;
+  // Where each LED is on screen (px): its shade's box, the copy over the veil when there is one. A
+  // video's later check reads the LED's light there (does it blink in the frame?).
+  const leds = {};
+  for (const el of svg.querySelectorAll(':scope > .parts > .led-shade, :scope > .spotlight > .led-shade')) {
+    const r = shown(el);
+    if (r) leds[el.getAttribute('data-shade')] = { x: Math.round(r.left), y: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) };
+  }
   return {
     theme: document.documentElement.dataset.theme ?? null,
     viewBox: svg.getAttribute('viewBox'),
@@ -242,6 +261,9 @@ export function measure() {
     inkColor,
     inkBox,
     captionRising: rising,
+    // The caption before is still fading out over this one (tour.js, a copy with .leaving).
+    captionFading: Boolean(document.querySelector('.tour-caption.leaving')),
+    captionLines: capRect ? tops.size : null,
     labelPx,
     scene: document.querySelector('main')?.dataset.scene ?? null,
     focusing: document.body.classList.contains('focusing'),
@@ -251,6 +273,7 @@ export function measure() {
     told,
     pinout,
     scope,
+    leds,
     labels: labels.length,
     tags: visible('main > svg:not([hidden]) .results > [data-q], main > svg:not([hidden]) .labels > *, main > svg:not([hidden]) .shortlabels > *').length,
     chrome: ['nav', '.zoom', '.inspector', '.first-hint'].filter((sel) => visible(sel).length),

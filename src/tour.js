@@ -33,6 +33,10 @@ export const FORMATS = ['vertical', 'horizontal'];
 // The page's themes a recording can take; a video is on the stage by default (V4).
 export { THEMES } from './page/client/themes.js';
 const FRAMES = ['board', 'parts', 'here'];
+// A recording's `pace`: seconds of simulated time per second of video (sim/pace.js gives the
+// circuit's own when it is left out).
+export const PACE_RANGE = { min: 1e-6, max: 1000 };
+const PACE = (v) => typeof v === 'number' && Number.isFinite(v) && v >= PACE_RANGE.min && v <= PACE_RANGE.max;
 // The move a step makes when it names none.
 const DEFAULT_MOVE = { frame: 'arrival', set: 'hit', insert: 'arrival', raise: 'arrival', assemble: 'arrival', pulse: 'travel', scene: 'cut', land: 'travel', pin: 'arrival', bench: 'arrival', symbol: 'arrival', inside: 'arrival' };
 const BREATH = MOVES.breath.min; // ms of rest that count as a breath between two hits
@@ -64,14 +68,14 @@ const FIELDS = {
   flow: { on: (v) => typeof v === 'boolean', ramp: within(0, 10_000), scope: oneOf('all', 'focus'), style: oneOf(...FLOW_STYLES) },
   caption: { text: isText, line: isText, data: isText, off: (v) => v === true, enter: SHOW, in: within(0, 3000), stagger: within(0, 1000), out: within(0, 2000) },
   value: { part: id, field: (v) => Object.hasOwn(READINGS, v), label: isText, count: within(0, 5000), enter: SHOW, in: within(0, 3000) },
-  probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean', place: oneOf('bottom', 'top'), size: oneOf('full', 'compact'), compare: (v) => typeof v === 'boolean' },
+  probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean', place: oneOf('bottom', 'top'), size: oneOf('full', 'compact'), compare: (v) => typeof v === 'boolean', reading: (v) => typeof v === 'boolean', clock: (v) => typeof v === 'boolean' },
   insert: { part: id, enter: ENTER, height: within(0, 40), dark: (v) => typeof v === 'boolean' },
   raise: { part: id, mm: within(0, RAISE.max) },
   nudge: { part: id, mm: within(NUDGE.min, NUDGE.max) },
   assemble: { parts: (v) => Array.isArray(v) && v.length > 0 && v.every(assembled), gap: within(ASSEMBLE.min, ASSEMBLE.max), enter: ENTER, wire: WIRE, from: oneOf('start', 'end'), height: within(0, 40), dark: (v) => typeof v === 'boolean' },
   pulse: { through: ids, direction: oneOf('forward', 'back'), color, width: within(0.05, 1), size: within(1, 12) },
   label: { part: id, text: isText },
-  scene: { mode: oneOf('part', 'board'), part: id, zoom: within(0.5, 3), enter: oneOf('cut', 'drop'), push: within(0.5, 3) },
+  scene: { mode: oneOf('part', 'board'), part: id, zoom: within(0.5, 3), enter: oneOf('cut', 'drop'), push: within(0.5, 3), light: color },
   land: { part: id },
   pin: { pin: (v) => id(v) && v.includes('.'), mark: id, off: (v) => v === true, text: isText },
   bench: { part: id, on: (v) => typeof v === 'boolean' },
@@ -109,7 +113,8 @@ function readTour(circuit) {
 function shapeIssues(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) || !Array.isArray(raw.steps)) return [warn('TOUR_SHAPE', { where: 'steps' })];
   const out = [];
-  for (const key of Object.keys(raw)) if (!['circuit', 'format', 'theme', 'steps', '$schema'].includes(key)) out.push(warn('TOUR_FIELD', { step: 0, field: key }));
+  for (const key of Object.keys(raw)) if (!['circuit', 'format', 'theme', 'pace', 'steps', '$schema'].includes(key)) out.push(warn('TOUR_FIELD', { step: 0, field: key }));
+  if (raw.pace != null && !PACE(raw.pace)) out.push(warn('TOUR_FIELD', { step: 0, field: 'pace' }));
   if (raw.format != null && !FORMATS.includes(raw.format)) out.push(warn('TOUR_FIELD', { step: 0, field: 'format' }));
   if (raw.theme != null && !THEMES.includes(raw.theme)) out.push(warn('TOUR_FIELD', { step: 0, field: 'theme' }));
   if (raw.steps.length > LIMITS.tourSteps) return [...out, warn('TOUR_TOO_MANY_STEPS', { size: raw.steps.length, limit: LIMITS.tourSteps })];
@@ -252,5 +257,5 @@ export function loadTour(circuit, lang = 'en') {
       if (s.do === 'pin' && s.pin != null) Object.assign(out, pinOf(s.pin) ?? { part: null, index: -1 });
       return out;
     });
-  return { tour: { format: raw.format ?? 'vertical', theme: raw.theme ?? 'stage', steps }, issues: [...issues, ...meaning] };
+  return { tour: { format: raw.format ?? 'vertical', theme: raw.theme ?? 'stage', ...(raw.pace != null && { pace: raw.pace }), steps }, issues: [...issues, ...meaning] };
 }

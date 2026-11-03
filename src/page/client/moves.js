@@ -97,8 +97,9 @@ export const SCENE_ENTER = { drop: 8, ms: 700, curve: [0.34, 1.4, 0.64, 1], push
 // camera has opened: at the end of the first frame step after the land, else at the land's end.
 export const LAND = { dim: 0.9, ramp: 700 };
 // A recording names the told part with at least this many px of letter at 1080 px (the frame's short
-// side), however far the camera is: the label scales about its anchor.
-export const LABEL_MIN_PX = 40;
+// side), however far the camera is: the label scales about its anchor (48: its capitals about as tall
+// as a 44 px text's).
+export const LABEL_MIN_PX = 48;
 export const ASSEMBLE = { gap: 1100, ms: 700, min: 300, max: 3000 };
 // M7: a flash runs the current's path from + to − (a timeline's pulse), each piece lit for this share
 // of the run.

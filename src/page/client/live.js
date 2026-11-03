@@ -32,7 +32,7 @@ import { paceOf } from '../../sim/pace.js';
 import { linesFor, nodeLines } from '../../sim/lines.js';
 import { deviceOfReading } from '../../sim/devices/index.js';
 import { formatValue } from '../../core/units.js';
-import { voltageColor, dotSpeed, DOT_PERIOD, centreVoltage, bodyVoltage, glowOpacity, heatOpacity } from '../../sim/look.js';
+import { voltageColor, dotSpeed, DOT_PERIOD, centreVoltage, bodyVoltage, glowOpacity, heatOpacity, SHADE } from '../../sim/look.js';
 import { setupControls } from './controls.js';
 import { setupLimits } from './limits.js';
 import { setupFalstad } from './falstad.js';
@@ -65,12 +65,16 @@ export function setupLive(page) {
   const t = (key, params = {}) => (live.texts[key] ?? key).replace(/\{(\w+)\}/g, (_, n) => (params[n] !== undefined ? String(params[n]) : `{${n}}`));
   const f = (value, unit) => formatValue(value, unit, { decimal: live.decimal });
   const volts = (v) => f(Math.abs(v) < 1e-3 ? 0 : v, 'V');
+  // Seconds as a person says them: two decimals (0.08, 0.40), three under a hundredth.
+  const secs = (v) => v.toFixed(v < 0.01 ? 3 : 2).replace('.', live.decimal ?? '.');
 
   // Time: how fast simulated time runs, the step and the oscilloscope's window (sim/pace.js).
   const engine = createEngine(program);
   const timing = (taus, periods) => paceOf(taus, periods, Boolean(engine.hasProgram?.()));
   const pace = timing(engine.timeConstants(), engine.periods());
   const dynamic = pace.h > 0;
+  // A recording may set its own speed of time (a timeline's `pace`, s simulated per s of video).
+  const perSecond = () => (recording && data.tour?.pace > 0 ? data.tour.pace : pace.perSecond);
   let h = pace.h;
   let running = dynamic;
   let stalled = false;
@@ -141,7 +145,13 @@ export function setupLive(page) {
     const after = m.settled == null ? null : (m.cycle?.after ?? periodOf(samplesOf(recorder.get(id), only === 'i' ? 'b' : 'a', m.settled, end), m.level));
     const k = T > 0 && after > 0 ? after / T : null;
     const times = k == null ? '' : k >= 10 ? String(Math.round(k)) : k.toFixed(1).replace('.', live.decimal ?? '.');
-    const delta = T > 0 ? t(after > 0 ? 'page.scope.delta' : 'page.scope.deltaWait', { from: f(T, 's'), to: after > 0 ? f(after, 's') : '', k: times }) : null;
+    let delta = T > 0 ? t(after > 0 ? 'page.scope.delta' : 'page.scope.deltaWait', { from: f(T, 's'), to: after > 0 ? f(after, 's') : '', k: times }) : null;
+    // With an LED, in words: how long it stays on before and after, and whether off changed.
+    const led = m.cycle?.led;
+    if (led && m.settled != null) {
+      const same = Math.abs(led.after.off - led.before.off) <= 0.15 * led.before.off;
+      delta = t(same ? 'page.scope.lit' : 'page.scope.litBoth', { from: secs(led.before.on), to: secs(led.after.on), off0: secs(led.before.off), off1: secs(led.after.off) });
+    } else if (led) delta = null;
     return { t: m.t, text: m.text, ghost, delta };
   }
   function drawScope() {
@@ -156,7 +166,7 @@ export function setupLive(page) {
   let inset = null;
   // `place`: "top" puts the box between the caption and the circuit (body.scope-top; moves.js,
   // SCOPE_BOX); `size`: "compact" draws it without title or note (scope.js).
-  page.insetScope = (id, only = 'v', { title, label, note, window, marks = false, compare = false, place, size } = {}) => {
+  page.insetScope = (id, only = 'v', { title, label, note, window, marks = false, compare = false, place, size, reading = true, clock = true } = {}) => {
     inset?.box.remove();
     inset = null;
     document.body.classList.remove('with-scope', 'scope-top');
@@ -165,7 +175,7 @@ export function setupLive(page) {
     box.className = `scope-inset${place === 'top' ? ' top' : ''}${size === 'compact' ? ' compact' : ''}`;
     page.main.appendChild(box);
     const own = { 'page.scope.title': title, 'page.scope.model': note };
-    inset = { id, box, only, label, window: window > 0 ? window : undefined, marks: marks || compare ? [] : undefined, compare, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f, compact: size === 'compact', title: title || null }) };
+    inset = { id, box, only, label, window: window > 0 ? window : undefined, marks: marks || compare ? [] : undefined, compare, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f, compact: size === 'compact', title: title || null, compare, reading, clock }) };
     document.body.classList.add('with-scope');
     document.body.classList.toggle('scope-top', place === 'top');
     drawOne(inset);
@@ -302,10 +312,22 @@ export function setupLive(page) {
       if (k >= 1) l.rise = null;
     }
   }
+  // The shade of an LED that is off (look.js, SHADE), in the parts and in their copies over the veil:
+  // live collections, so the copies a focus makes are found without a selector on every tick.
+  const shades = svgs.map((svg) => svg.getElementsByClassName('led-shade'));
   function writeLights() {
     for (const el of glows) {
       const text = lights.get(el.dataset.glow)?.shown.toFixed(2) ?? '0.00';
       if (el.style.opacity !== text) el.style.opacity = text;
+    }
+    for (const list of shades) {
+      for (const el of list) {
+        const l = lights.get(el.dataset.shade);
+        if (!l) continue;
+        // fill-opacity: `opacity` is the moves' (a part hidden while it comes in).
+        const text = (SHADE.opacity * Math.max(0, 1 - l.shown / SHADE.full)).toFixed(2);
+        if (el.style.fillOpacity !== text) el.style.fillOpacity = text;
+      }
     }
   }
 
@@ -478,7 +500,7 @@ export function setupLive(page) {
       // the page falls back to slow motion by itself).
       const hint = engine.stepHint?.();
       if (hint && hint < h) h = Math.max(5e-6, hint);
-      owed += wall * pace.perSecond;
+      owed += wall * perSecond();
       const t0 = directing ? 0 : performance.now();
       let n = 0;
       while (owed >= h && (directing ? n++ < DIRECTOR_STEPS : performance.now() - t0 < BUDGET)) {
