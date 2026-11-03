@@ -164,6 +164,15 @@ test('render-frames: what a set does to the cycles, and whether the timeline hol
   assert.deepEqual(payoffOf(circuit, short).problems.map((p) => p.code), ['TOUR_PAYOFF_SHORT']);
   // A comparing probe's set carries the probed part's period before and after into the page.
   const { html } = renderPage({ ...circuit, page: { ...circuit.page, tour: read(file) } }, { lang: 'en' });
-  const cycle = JSON.parse(html.match(/"cycle":(\{[^}]*\})/)[1]);
+  const cycle = JSON.parse(`${html.match(/"cycle":(\{"before":[^,]+,"after":[^,}]+)/)[1]}}`);
   assert.ok(Math.abs(cycle.before - before.period) < 0.01 && Math.abs(cycle.after - after.period) < 0.02, JSON.stringify(cycle));
+  // And the LED's time on and off, said in words by the box ("on 0.08 → 0.40 s · off the same").
+  const led = JSON.parse(html.match(/"led":(\{"id":"D1","before":\{[^}]*\},"after":\{[^}]*\}\})/)[1]);
+  assert.ok(Math.abs(led.before.on - before.on) < 0.01 && Math.abs(led.after.on - after.on) < 0.02 && Math.abs(led.after.off - led.before.off) < 0.15 * led.before.off, JSON.stringify(led));
+  // A timeline's pace stands for the page's: the same cycles, other seconds of video.
+  const fast = whatIf(circuit, [{ id: 'R1', field: 'resistance', value: 100000 }], ['D1'], 0.15);
+  assert.equal(fast.speed, 0.15);
+  assert.ok(Math.abs(fast.after.D1.video.period - fast.after.D1.period / 0.15) < 0.05);
+  const paced = payoffOf(circuit, { pace: 0.15, steps: tour.steps });
+  assert.ok(paced.sets[0].needMs < ok.sets[0].needMs * 0.5, 'a faster pace needs a shorter hold');
 });

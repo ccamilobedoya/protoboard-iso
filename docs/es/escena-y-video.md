@@ -255,6 +255,64 @@ página y la hoja de ruta al día.
   - `timeline.json` lista los momentos que pueden llevar un sonido (`events`: land, count, probe, mark).
   - Fotogramas *golden* M30 (el aterrizaje a la mitad), M31 (la caída y el acercamiento del pedestal),
     M32 (el osciloscopio que compara) y M33 (el subtítulo sobre la protoboard, con su fila de datos).
+- 🔜 Un desenlace que el ojo lee (2026-11-03, 0.8.0-b.1, versión previa en una rama de video), de la
+  segunda revisión del mismo short: el LED parecía prendido estando apagado (solo cambiaba el halo; el
+  rojo del cuerpo se movía 4 %), el `set` y su espera se filmaron lejos del LED, el cambio se escribía
+  como un periodo en ms bajo la traza y 32 letras daban tres líneas.
+  - **Un LED apagado es oscuro.** Una sombra sobre su domo y su pestaña (`look.js`, `SHADE`;
+    `paths.js`, `shadeOps`), en la capa de piezas justo después del LED, así que un foco la copia y
+    un movimiento la lleva; la página en vivo la desvanece con la luz (`fill-opacity`; `opacity`
+    sigue siendo de los movimientos). Prendido, el LED se dibuja como antes. Medido en un plano
+    cercano del 555: la caja del LED alterna 85 ↔ 40 (53 %). No en la capa de corriente, que dibuja
+    su propio brillo.
+  - **La velocidad del tiempo de una grabación**, el `pace` de la línea de tiempo (s simulados por s
+    de video): la página, el osciloscopio, `compare`, el desenlace, `--parts --pace` y
+    `timeline.json` (`pace`) lo siguen.
+  - **El recuadro que compara lo dice en palabras** («prendido 0,08 → 0,40 s · apagado igual», de
+    los ciclos simulados del LED del circuito, `compareCycles`), en franjas: nombre y marcas sobre
+    placas arriba, la traza en el medio, el cambio abajo a 46 px en el acento. `reading` y `clock`
+    quitan el valor del momento y el final de la ventana.
+  - **Líneas tal como quedan:** las `lines` de cada subtítulo en `timeline.json` y una regla del
+    fotograma de dos como mucho; la fila `data` del tamaño del texto (56 px); rótulos contados de al
+    menos 48 px; el contraste del subtítulo no se mide mientras un subtítulo se desvanece sobre otro
+    (un 2,8:1 falso).
+  - **La `light` del pedestal:** un resplandor suave de un color bajo la pieza en el pedestal (el
+    gancho como miniatura).
+  - **Un foco durante un aterrizaje espera a la protoboard** (0.8.0-c.1). Un `focus` a la misma hora
+    del `land` terminaba el aterrizaje de una vez: la escena se iba, así que las tiras y coordenadas
+    del foco (y el rótulo de la pieza) se veían sobre el fondo vacío, antes que la protoboard y pegadas
+    a la pieza, mientras la protoboard subía debajo; la rampa no corría y la protoboard se quedaba en
+    `lit`, que escondía las tiras de todo foco posterior (los fotogramas *golden* M34 y M35 ahora
+    muestran las de D1). Ahora el aterrizaje conserva su escena, el foco se mantiene, y sus tiras y coordenadas
+    aparecen con un fundido de 300 ms (`LAND.reveal`) cuando la protoboard ya aclaró, con el velo en
+    el del foco. Se pensó que subieran con la protoboard bajo el velo del aterrizaje y se dejó: se
+    dibujan encima del velo (eso las resalta), así que debajo pedirían otro orden de capas o un
+    fundido transparente, en contra del aterrizaje opaco. Caso de jsdom y fotograma *golden* M37
+    (`555-land-focus.json`, el aterrizaje a la mitad: la misma imagen que M30).
+  - **Un video que abre con su resultado, y cuatro cosas para contarlo** (0.8.0-c.2, para una segunda
+    versión de un short grabado): el **énfasis** de un subtítulo (`em`: sus palabras en el acento, 15 %
+    más grandes; las líneas se cuentan tal como quedan, por las franjas de sus cajas, y el contraste
+    del énfasis se mide en su propio color), la **corriente en dos colores** según el sentido en que
+    pasa por una pieza (`sense` de `flow`: la carga de un condensador por R1 y R2 en ámbar, su descarga
+    por R2 en azul, en escala logarítmica para que la corriente pequeña de la carga se vea), una
+    **tarjeta** (`card`: una frase sola sobre la pantalla por un momento, «×5 prendido · apagado
+    igual») y un **evento por cada parpadeo** de un LED en `timeline.json` (`led`; y `card`), para que
+    un tic siga el ritmo. Un recuadro que compara ahora dice el cambio **en proporción** («prendido ×5
+    · apagado igual», `change` `ratio`, por defecto): los segundos del osciloscopio son simulados, así
+    que al `pace` propio de una grabación «0,08 → 0,40 s» no era lo que veía el ojo (0,5 → 2,6 s),
+    mientras que la proporción es la misma a cualquier ritmo; declarar «cámara lenta» se pensó y se
+    dejó (un texto más, y aun así pide al espectador convertir). Las líneas de un subtítulo suben
+    **apareciendo** (desde el 60 % de su altura, ya no el 130 %), así ningún fotograma muestra media
+    línea cortada por su máscara. Una escena después de pasos en la protoboard (primero el resultado,
+    luego el chip solo) y un aterrizaje después se probaron y funcionan como al principio (caso de
+    jsdom; `555-result-first.json`, fotogramas *golden* M38 a M40).
+  - **Las palabras del guion en el recuadro que compara, y un énfasis sin un tercer color** (0.8.0-d.1,
+    para una cuarta versión de un short grabado): `say` de `probe` pone la frase de la línea de
+    tiempo en un recuadro que compara, con `{k}` y `{k2}` de la simulación (fotograma *golden* M41,
+    `555-compare-say.json`), así las palabras se revisan con los demás textos del guion y la cifra no
+    se puede inventar; el énfasis de un subtítulo conserva el color del subtítulo, más grueso y más
+    grande, y el acento queda para los datos y la traza (otra vez M38 a M40). La tarjeta y la
+    corriente en dos colores siguen en el kit; esa versión no usa ninguna.
 - Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
@@ -324,9 +382,9 @@ Reglas para un fotograma de video, medibles con `inspect` y las capturas (V3 agr
 - **Horizontal (1920 × 1080):** el subtítulo a la izquierda, el circuito corrido a la derecha. La
   cámara necesita un *margen reservado* (encuadrar las piezas en la parte libre de la pantalla), que
   no existe.
-- **Tamaños a 1080 px de ancho:** subtítulo 56 px (las dos líneas, v0.7.0), valor y fila de datos
-  44 px con cifras tabulares; a 1920 de ancho, subtítulo 52 px; el rótulo de una pieza contada, al
-  menos 40 px. Todo por encima de 40 px, que se lee en un
+- **Tamaños a 1080 px de ancho:** subtítulo 56 px (las dos líneas, v0.7.0), valor 44 px y fila de
+  datos 56 px (0.8.0-b.1) con cifras tabulares; a 1920 de ancho, subtítulo y datos 52 px; el rótulo
+  de una pieza contada, al menos 48 px (0.8.0-b.1; antes 40). Todo por encima de 40 px, que se lee en un
   celular con el video a pantalla completa.
 - **Solo la pieza contada conserva su rótulo.** Los demás se ocultan en modo director: los rótulos
   atenuados de las otras cuatro piezas tapaban media pantalla en la primera maqueta.

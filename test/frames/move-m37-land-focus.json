@@ -1,0 +1,10 @@
+{
+  "recipe": "555-astable",
+  "tour": "examples/tours/555-land-focus.json",
+  "lang": "en",
+  "viewport": {"width":360,"height":640},
+  "ticks": [[0,1],[33.333333333333336,104]],
+  "renderer": "chromium 156.0.8078.4 linux-x64",
+  "html": "d60c8a49ca109e90eec6f95a65bee2d6a992354c47e1417f7496d6223ec5c0e9",
+  "png": "637e958c601627fca7b1f2dd32d65275356b4ab351433208ba62cf5fe4e65809"
+}

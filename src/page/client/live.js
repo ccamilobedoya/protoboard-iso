@@ -32,7 +32,7 @@ import { paceOf } from '../../sim/pace.js';
 import { linesFor, nodeLines } from '../../sim/lines.js';
 import { deviceOfReading } from '../../sim/devices/index.js';
 import { formatValue } from '../../core/units.js';
-import { voltageColor, dotSpeed, DOT_PERIOD, centreVoltage, bodyVoltage, glowOpacity, heatOpacity } from '../../sim/look.js';
+import { voltageColor, dotSpeed, DOT_PERIOD, centreVoltage, bodyVoltage, glowOpacity, heatOpacity, SHADE } from '../../sim/look.js';
 import { setupControls } from './controls.js';
 import { setupLimits } from './limits.js';
 import { setupFalstad } from './falstad.js';
@@ -65,12 +65,19 @@ export function setupLive(page) {
   const t = (key, params = {}) => (live.texts[key] ?? key).replace(/\{(\w+)\}/g, (_, n) => (params[n] !== undefined ? String(params[n]) : `{${n}}`));
   const f = (value, unit) => formatValue(value, unit, { decimal: live.decimal });
   const volts = (v) => f(Math.abs(v) < 1e-3 ? 0 : v, 'V');
+  // Seconds as a person says them: two decimals (0.08, 0.40), three under a hundredth.
+  const secs = (v) => v.toFixed(v < 0.01 ? 3 : 2).replace('.', live.decimal ?? '.');
+  // A proportion as the eye reads it: whole from ×3 up ("×5", not "×5.2"), else one decimal ("×1.4").
+  const fill = (text, params) => text.replace(/\{(k2?)\}/g, (_, key) => params[key] ?? '');
+  const times_ = (k) => (k >= 3 ? String(Math.round(k)) : k.toFixed(1).replace('.', live.decimal ?? '.'));
 
   // Time: how fast simulated time runs, the step and the oscilloscope's window (sim/pace.js).
   const engine = createEngine(program);
   const timing = (taus, periods) => paceOf(taus, periods, Boolean(engine.hasProgram?.()));
   const pace = timing(engine.timeConstants(), engine.periods());
   const dynamic = pace.h > 0;
+  // A recording may set its own speed of time (a timeline's `pace`, s simulated per s of video).
+  const perSecond = () => (recording && data.tour?.pace > 0 ? data.tour.pace : pace.perSecond);
   let h = pace.h;
   let running = dynamic;
   let stalled = false;
@@ -115,7 +122,7 @@ export function setupLive(page) {
   // `only`: 'v' or 'i' for one trace (the inset of a recording), else both. `window` (a recording's
   // probe): the screen always shows that much time, from t = 0 and then scrolling, so a change of
   // pace is seen as more or fewer cycles instead of a new scale; `marks`: the sets it saw.
-  function drawOne({ id, scope, only, label, window, marks }) {
+  function drawOne({ id, scope, only, label, window, marks, change, say }) {
     const s = scopeFor(id);
     if (!s) return;
     const end = Math.max(scopeTime(), window ?? scopeWindow);
@@ -124,12 +131,18 @@ export function setupLive(page) {
     const traces = [];
     if (s.v && only !== 'i') traces.push({ label: label ?? s.v.label ?? t('page.scope.voltage'), unit: 'V', ...SCOPE_V, points: samplesOf(rec, 'a', from, end) });
     if (s.i && only !== 'v') traces.push({ label: label ?? s.i.label ?? t('page.scope.current'), unit: 'A', ...SCOPE_I, points: samplesOf(rec, 'b', from, end) });
-    scope.draw({ traces, from, to: end, marks: marks?.map((m) => (m.before ? compared(m, id, only, end) : m)) });
+    scope.draw({ traces, from, to: end, marks: marks?.map((m) => (m.before ? compared(m, id, only, end, change, say) : m)) });
   }
   // A mark of a comparing box: its ghost (the cycles before it, shifted by whole periods so they run
   // on after it, as far as the screen goes) and the change of period, once a whole cycle after it
   // is on the trace (risings through the level of the cycles before).
-  function compared(m, id, only, end) {
+  // `change`: "ratio" (the default) says it as a proportion ("on ×5 · off the same"), true at any
+  // pace; "times" in the oscilloscope's seconds ("on 0.08 → 0.40 s · off the same"), which a
+  // recording at its own `pace` does not show at that speed.
+  // `say`: the timeline's own words for it, with {k} for how many times longer the LED stays on and
+  // {k2} for off (or the period without an LED): the figure is still the simulation's, the sentence
+  // the script's, so whoever checks the script's texts reads it too.
+  function compared(m, id, only, end, change = 'ratio', say = null) {
     const T = m.cycle?.before ?? m.period;
     let ghost = null;
     if (T > 0 && m.before.length > 1) {
@@ -141,7 +154,17 @@ export function setupLive(page) {
     const after = m.settled == null ? null : (m.cycle?.after ?? periodOf(samplesOf(recorder.get(id), only === 'i' ? 'b' : 'a', m.settled, end), m.level));
     const k = T > 0 && after > 0 ? after / T : null;
     const times = k == null ? '' : k >= 10 ? String(Math.round(k)) : k.toFixed(1).replace('.', live.decimal ?? '.');
-    const delta = T > 0 ? t(after > 0 ? 'page.scope.delta' : 'page.scope.deltaWait', { from: f(T, 's'), to: after > 0 ? f(after, 's') : '', k: times }) : null;
+    const ratio = change !== 'times';
+    let delta = T > 0 ? t(after > 0 ? (ratio ? 'page.scope.deltaRatio' : 'page.scope.delta') : 'page.scope.deltaWait', { from: f(T, 's'), to: after > 0 ? f(after, 's') : '', k: times }) : null;
+    // With an LED, in words: how long it stays on before and after, and whether off changed.
+    const led = m.cycle?.led;
+    if (led && m.settled != null) {
+      const same = Math.abs(led.after.off - led.before.off) <= 0.15 * led.before.off;
+      const key = ratio ? (same ? 'page.scope.litRatio' : 'page.scope.litRatioBoth') : same ? 'page.scope.lit' : 'page.scope.litBoth';
+      const params = { from: secs(led.before.on), to: secs(led.after.on), off0: secs(led.before.off), off1: secs(led.after.off), k: times_(led.after.on / led.before.on), k2: times_(led.after.off / led.before.off) };
+      delta = say ? fill(say, params) : t(key, params);
+    } else if (led) delta = null;
+    else if (say && delta && after > 0) delta = fill(say, { k: times, k2: times });
     return { t: m.t, text: m.text, ghost, delta };
   }
   function drawScope() {
@@ -156,7 +179,7 @@ export function setupLive(page) {
   let inset = null;
   // `place`: "top" puts the box between the caption and the circuit (body.scope-top; moves.js,
   // SCOPE_BOX); `size`: "compact" draws it without title or note (scope.js).
-  page.insetScope = (id, only = 'v', { title, label, note, window, marks = false, compare = false, place, size } = {}) => {
+  page.insetScope = (id, only = 'v', { title, label, note, window, marks = false, compare = false, change = 'ratio', say = null, place, size, reading = true, clock = true } = {}) => {
     inset?.box.remove();
     inset = null;
     document.body.classList.remove('with-scope', 'scope-top');
@@ -165,7 +188,7 @@ export function setupLive(page) {
     box.className = `scope-inset${place === 'top' ? ' top' : ''}${size === 'compact' ? ' compact' : ''}`;
     page.main.appendChild(box);
     const own = { 'page.scope.title': title, 'page.scope.model': note };
-    inset = { id, box, only, label, window: window > 0 ? window : undefined, marks: marks || compare ? [] : undefined, compare, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f, compact: size === 'compact', title: title || null }) };
+    inset = { id, box, only, label, window: window > 0 ? window : undefined, marks: marks || compare ? [] : undefined, compare, change, say: say || null, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f, compact: size === 'compact', title: title || null, compare, reading, clock }) };
     document.body.classList.add('with-scope');
     document.body.classList.toggle('scope-top', place === 'top');
     drawOne(inset);
@@ -258,8 +281,11 @@ export function setupLive(page) {
     peak = Math.max(target, peak);
     if (reduced) return;
     const visible = dots[svgs.indexOf(page.current())] ?? [];
+    // A flow step's `sense` (tour.js) shows which way a small current runs: on the log scale it is
+    // seen moving next to a large one (a capacitor charging through a big resistor).
+    const scale = page.flowSense ? 'log' : state.speed;
     I.forEach((i, k) => {
-      phase[k] = (phase[k] + Math.sign(i) * dotSpeed(i, peak, state.speed) * dotScale * wall) % DOT_PERIOD;
+      phase[k] = (phase[k] + Math.sign(i) * dotSpeed(i, peak, scale) * dotScale * wall) % DOT_PERIOD;
       const el = visible[k];
       // Each write makes the browser redraw the SVG: skip moves too small to see.
       if (el && Math.abs(phase[k] - written[k]) >= MIN_MOVE) {
@@ -302,10 +328,22 @@ export function setupLive(page) {
       if (k >= 1) l.rise = null;
     }
   }
+  // The shade of an LED that is off (look.js, SHADE), in the parts and in their copies over the veil:
+  // live collections, so the copies a focus makes are found without a selector on every tick.
+  const shades = svgs.map((svg) => svg.getElementsByClassName('led-shade'));
   function writeLights() {
     for (const el of glows) {
       const text = lights.get(el.dataset.glow)?.shown.toFixed(2) ?? '0.00';
       if (el.style.opacity !== text) el.style.opacity = text;
+    }
+    for (const list of shades) {
+      for (const el of list) {
+        const l = lights.get(el.dataset.shade);
+        if (!l) continue;
+        // fill-opacity: `opacity` is the moves' (a part hidden while it comes in).
+        const text = (SHADE.opacity * Math.max(0, 1 - l.shown / SHADE.full)).toFixed(2);
+        if (el.style.fillOpacity !== text) el.style.fillOpacity = text;
+      }
     }
   }
 
@@ -478,7 +516,7 @@ export function setupLive(page) {
       // the page falls back to slow motion by itself).
       const hint = engine.stepHint?.();
       if (hint && hint < h) h = Math.max(5e-6, hint);
-      owed += wall * pace.perSecond;
+      owed += wall * perSecond();
       const t0 = directing ? 0 : performance.now();
       let n = 0;
       while (owed >= h && (directing ? n++ < DIRECTOR_STEPS : performance.now() - t0 < BUDGET)) {

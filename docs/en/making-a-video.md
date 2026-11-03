@@ -137,10 +137,18 @@ The rules that keep it right:
   R1.resistance=100000` prints each LED's and capacitor's cycle before and after, in simulated s
   and in s of video (for the 555: 0.15 s → 0.83 s, that is 2.7 s → 15.1 s of video, the LED lit 14 s
   and dark 1.3 s). The simulation keeps its speed across a `set`, so a slower circuit takes longer on
-  screen; choose a smaller change or hold longer. `--validate` warns (`TOUR_PAYOFF_SHORT`,
+  screen; choose a smaller change, hold longer, or give the timeline a faster `pace` (seconds of
+  simulated time per second of video; `--parts --pace 0.15 --what-if …` prints the cycles at that
+  speed). A change the eye reads needs the LED's time on at least about 2.5 times longer, and the
+  LED in the same shot before and after the `set` (one cycle before, two after): an LED that is off
+  is drawn dark, so it alternates in the frame. `--validate` warns (`TOUR_PAYOFF_SHORT`,
   `TOUR_SCOPE_WINDOW`). With `"compare": true` on the probe the cycles before the `set` stay as a
-  faint ghost after it and the box writes the change of period ("period 148 ms → 832 ms (×5.6)").
+  faint ghost after it and the box says the change in words ("on 0.08 → 0.40 s · off the same").
   `--json` gives the same as data.
+- **Two lines at most, as laid out.** A caption of 32 letters a line can still take three lines
+  in the serif: `timeline.json` gives each caption's `lines` as the browser laid them out, and the
+  frame's check fails a caption of more than two. `leds` gives each LED's box on the frames
+  measured at rest, to read in the video whether it blinks.
 - **The current on a crowded board.** Switch the layer on over a close frame of one or two parts in
   focus, with `"scope": "focus"` (only their nets carry it) and `"style": "real"` (along the legs),
   never over a wide shot; switch it off when the sentence is about something else.

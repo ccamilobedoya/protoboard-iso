@@ -231,6 +231,60 @@ up to date.
   - `timeline.json` lists the moments a sound may go with (`events`: land, count, probe, mark).
   - Golden frames M30 (the land, half way), M31 (the pedestal's drop and push), M32 (the comparing
     oscilloscope) and M33 (the caption over the board, with its data row).
+- 🔜 A payoff the eye reads (2026-11-03, 0.8.0-b.1, a prerelease on a video branch), from the second
+  review of the same short: the LED looked lit when off (only the halo changed; the body's red moved
+  4 %), the set and its hold were filmed away from the LED, the change was written as a period in ms
+  under the trace, and 32 letters made three lines.
+  - **An LED that is off is dark.** A shade over its dome and flange (`look.js`, `SHADE`; `paths.js`,
+    `shadeOps`), in the parts layer right after the LED, so a focus copies it and a move carries it;
+    the live page fades it with the light (`fill-opacity`; `opacity` stays the moves'). Lit, the LED
+    is drawn as before. Measured in a close shot of the 555: the LED's box alternates 85 ↔ 40 (53 %).
+    Not in the current layer, which draws its own glow.
+  - **A recording's own speed of time**, the timeline's `pace` (s simulated per s of video): the
+    page, the oscilloscope, `compare`, the payoff, `--parts --pace` and `timeline.json` (`pace`)
+    follow it.
+  - **The comparing box says it in words** ("on 0.08 → 0.40 s · off the same", from the
+    simulation's cycles of the circuit's LED, `compareCycles`), in bands: name and marks on plates
+    on top, the trace in the middle, the change at the bottom at 46 px in the accent. `reading` and
+    `clock` leave the value now and the window's end out.
+  - **Lines as laid out:** each caption's `lines` in `timeline.json`, and a frame rule of two at
+    most; the `data` row as large as the text (56 px); told labels at least 48 px; the caption's
+    contrast is not measured while one caption fades over another (a false 2.8:1).
+  - **A pedestal's `light`:** a soft glow of a colour under the part on the pedestal (the hook as a
+    thumbnail).
+  - **A focus during a land waits for the board** (0.8.0-c.1). A `focus` at the land's own time ended
+    the land at once: the scene went, so the focus's strips and coordinates (and the part's label)
+    showed over the empty stage, ahead of the board and still with the part, while the board slid
+    in under them; the ramp never ran and the board stayed in `lit`, which hid the strips of every
+    later focus (golden frames M34 and M35 now show D1's). Now the land keeps its scene, the
+    focus is kept, and its strips and coordinates fade in over 300 ms (`LAND.reveal`) once the board
+    is lit, the veil resting at the focus's own. Riding with the board under the land's veil was
+    weighed and left: they are drawn over the veil (that is what makes them stand out), so under it
+    they would need a new layer order or a see-through fade, against the opaque land. jsdom case and
+    golden frame M37 (`555-land-focus.json`, the land half way: the same image as M30's).
+  - **A video that opens on its result, and four things to tell it** (0.8.0-c.2, for a second
+    version of a recorded short): a caption's **emphasis** (`em`: its words in the accent, 15 %
+    larger; lines measured as laid out by the bands of their boxes, the emphasis's contrast read in
+    its own colour), the **current in two colours** by the way it runs through a part (`flow`'s
+    `sense`: a capacitor's charge through R1 and R2 in amber, its discharge through R2 in blue, on the
+    log scale so the small charging current is seen), a **card** (`card`: a sentence alone over the
+    screen for a moment, "×5 on · off the same"), and an **event for each blink** of an LED in
+    `timeline.json` (`led`; and `card`), so a tick can follow the rhythm. A comparing box now says the
+    change **as a proportion** ("on ×5 · off the same", `change` `ratio`, the default): the
+    oscilloscope's seconds are simulated ones, so at a recording's own `pace` "0.08 → 0.40 s" was not
+    what the eye saw (0.5 → 2.6 s), while the proportion is the same at any pace; declaring "slow
+    motion" was weighed and left (one more text, and it still asks the viewer to convert). A caption's
+    lines rise **fading in** (from 60 % of their height, no longer 130 %), so no frame shows half a
+    line cut by its mask. A scene after steps on the board (the result first, then the chip alone)
+    and a land after it were tried and work as they do at the start (jsdom case;
+    `555-result-first.json`, golden frames M38 to M40).
+  - **The script's words in the comparing box, and an emphasis without a third colour** (0.8.0-d.1,
+    for a fourth version of a recorded short): `probe`'s `say` puts the timeline's own sentence in a
+    comparing box, `{k}` and `{k2}` filled from the simulation (golden frame M41,
+    `555-compare-say.json`), so the words are checked with the script's other texts while the figure
+    cannot be invented; a caption's emphasis keeps the caption's colour, bolder and larger, and the
+    accent stays for the data and the trace (M38 to M40 again). The card and the two-colour current
+    stay in the kit; that version uses neither.
 - The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
@@ -295,8 +349,9 @@ Rules for a video frame, measurable with `inspect` and the screenshots (V3 adds 
   75 % under the circuit, or from 28 % to 40 % under the caption (`place` `top`), never over it.
 - **Horizontal (1920 × 1080):** the caption at the left, the circuit shifted to the right. The camera
   needs a *reserved margin* (frame the parts in the free part of the screen), which does not exist.
-- **Sizes at 1080 px wide:** caption 56 px (both lines, v0.7.0), value and data row 44 px with
-  tabular figures; at 1920 wide, caption 52 px; a told part's label at least 40 px. Everything above 40 px, which reads on a phone with the
+- **Sizes at 1080 px wide:** caption 56 px (both lines, v0.7.0), value 44 px and data row 56 px
+  (0.8.0-b.1) with tabular figures; at 1920 wide, caption and data 52 px; a told part's label at
+  least 48 px (0.8.0-b.1; 40 before). Everything above 40 px, which reads on a phone with the
   video full screen.
 - **Only the told part keeps its label.** The others hide in director mode: the dimmed labels of the
   four other parts covered half of the first mock-up.

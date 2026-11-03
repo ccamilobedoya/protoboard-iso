@@ -174,7 +174,9 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
   in a page whenever the circuit can be simulated (`pageSimulation` in `sim/index.js`: results
   always on and the Current button by default with a source; `page.results: false`,
   `page.flow: false`, or `page.simulation: false` for both), and only for the tapped part. Lit LEDs
-  are the `lights` layer (`lightOps` in `sim/paths.js`), drawn with the results.
+  are the `lights` layer (`lightOps` in `sim/paths.js`), drawn with the results; an LED that is off
+  is darkened by its shade (`shadeOps`, class `led-shade`), a polygon in the parts layer with the
+  LED's id, whose `fill-opacity` the page sets from the light (`opacity` stays the moves').
 - **Controls** (`controls`, `set` in a device) run in the page: `set` is a pure formula and may
   only import bundleable modules (`ALLOWED` in `node/bundle.js`). A device that adds elements in a
   different order after a change loses their state on `engine.set` (it is matched by order).

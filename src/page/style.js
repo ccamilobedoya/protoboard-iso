@@ -29,7 +29,7 @@
 // by CSS over their presentation attributes: the static SVG keeps its own colours.
 // Touch: hover only with a fine pointer, feedback on :active, 40 px targets on a coarse pointer.
 
-import { MOVES, SCOPE_BOX } from './client/moves.js';
+import { MOVES, SCOPE_BOX, EMPHASIS } from './client/moves.js';
 
 // The oscilloscope's box of a portrait recording (moves.js, SCOPE_BOX), in % of the height.
 const boxCss = ({ top, bottom }) => `top: ${Math.round(top * 1000) / 10}%; height: ${Math.round((bottom - top) * 1000) / 10}%;`;
@@ -223,6 +223,8 @@ body.layer-flow .lights { display: none; } /* the current layer draws its own gl
 body.layer-flow[data-flow="plan"] .spotlight { opacity: 0.5; }
 /* A timeline's flow with scope "focus": the pieces off the focused nets are not drawn (focus.js, scopeFlow). */
 main > svg > .flow > [data-out] { display: none; }
+/* A flow step's sense (tour.js): the dots in the colour of the way the current runs now, a little thicker. */
+main[data-sense] > svg > .flow > .dots { stroke: var(--flow-sense); stroke-width: 3.4; }
 /* A timeline's solid focus (focus with solid): the part pointed at is drawn whole over the current. */
 body.layer-flow.focus-solid[data-flow="plan"] .spotlight { opacity: 1; }
 .flow .pad-edge { stroke: var(--veil); }
@@ -328,6 +330,8 @@ nav .falstad .flag[hidden] { display: none; }
 .scope-mark-text, .scope-delta { stroke: var(--scope); stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; }
 .scope-delta { fill: var(--cap-value, var(--trace-v)); font-size: 9px; font-weight: 700; text-anchor: middle; font-variant-numeric: tabular-nums; }
 .scope-trace.ghost { opacity: 0.32; stroke-dasharray: 2 2; }
+/* A comparing box's texts sit on plates of the screen's colour, in their own bands (scope.js). */
+.scope-plate { fill: var(--scope); }
 .scope-mark-text.scope-end { text-anchor: end; }
 .side .clear, .control .hold { font: inherit; color: var(--ink); background: var(--bench); border: 1px solid var(--hair-strong); border-radius: 4px; padding: 3px 9px; cursor: pointer; margin-top: 4px; }
 .side .clear:active, .control .hold:active { background: var(--press); }
@@ -388,26 +392,43 @@ body.touched .zoom, .zoom:focus-within { opacity: 1; pointer-events: auto; }
 .tour-caption .value .number { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 24px; font-weight: 600; }
 .tour-caption .stop { display: block; margin-top: 6px; font-size: 12px; opacity: 0.7; }
 .tour-caption[hidden], .tour-caption [hidden] { display: none; }
+/* A caption's emphasis (em): those words bolder and larger, in the caption's own colour (moves.js,
+   EMPHASIS); the accent stays for the data and the trace. */
+.tour-caption .em, .tour-card .em { color: var(--cap-em, inherit); font-size: ${EMPHASIS.scale}em; font-weight: ${EMPHASIS.weight}; }
+/* A card (card): a sentence alone over the whole screen, centred in the band the platforms leave free. */
+.tour-card { position: absolute; inset: 0; z-index: 4; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.4em; padding: 15% 24px 35%; text-align: center; color: var(--ink); background: var(--canvas); pointer-events: none; }
+.tour-card[hidden], .tour-card [hidden] { display: none; }
+.tour-card p { margin: 0; text-wrap: balance; }
+.tour-card .text { font-size: 28px; font-weight: 600; line-height: 1.1; }
+.tour-card .line { font-size: 20px; line-height: 1.15; }
 body.touring .first-hint { display: none; }
 /* A recording (?director=1; stage and video, V4): the frame of a video. No chrome, one label (the
    told part's, tour.js), no result tags (the value that matters is in the caption, large). The
    caption has no box: the text on the ground, its sizes a share of the frame's width (56 and 44 px
    at 1080 wide; 52 at 1920 wide). One idea in at most two lines of one rank: the second line (line)
    is drawn as the first by default (--cap-line-*), a data row (data: a value, "1 kΩ → 100 kΩ") in
-   the sans with tabular figures and the accent, 44 px. 90 px a side (a safe width of 900 px: 32
-   characters of the serif at 56 px). A scrim of the canvas's colour behind the block keeps it
+   the sans with tabular figures and the accent, as large as the text (56 px; 52 at 1920 wide: its
+   figures read as large as the words). 90 px a side (a safe width of 900 px: about 32 characters of
+   the serif at 56 px; render-frames.js counts the lines as laid out, at most two). A scrim of the canvas's colour behind the block keeps it
    readable over a light board (4.5:1 at least, measured by render-frames.js). Portrait (vertical
    video): from 16 % of the height, the circuit below it (the director's inset, live.js);
    landscape: the left half, the circuit right. The top 15 % and bottom 25 % of a vertical frame
    are the platforms' (their buttons). */
 body.director {
-  --cap-text: 5.1852vw; --cap-number: 4.0741vw; --cap-data: 4.0741vw; --cap-label: 2.4074vw;
+  --cap-text: 5.1852vw; --cap-number: 4.0741vw; --cap-data: 5.1852vw; --cap-label: 2.4074vw;
   --cap-pad: 8.3333vw; --cap-top: 16%; --cap-gap: 1.2963vw;
+  --card-text: 10.3704vw; --card-line: 7.4074vw;
 }
 @media (orientation: landscape) { body.director {
-  --cap-text: 2.7083vw; --cap-number: 2.1354vw; --cap-data: 2.2917vw; --cap-label: 1.25vw;
+  --cap-text: 2.7083vw; --cap-number: 2.1354vw; --cap-data: 2.7083vw; --cap-label: 1.25vw;
   --cap-pad: 4.6875vw; --cap-top: 9%; --cap-gap: 0.7292vw;
+  --card-text: 5.8333vw; --card-line: 4.1667vw;
 } }
+/* A card in a recording: 112 and 80 px at 1080 wide (60 and 45 at 1920), in the caption's face and
+   colours, within the caption's safe width, between the platforms' bands (15 % to 65 % of the height). */
+body.director .tour-card { padding: 15% var(--cap-pad) 35%; color: var(--cap-ink); }
+body.director .tour-card .text { font: var(--cap-weight, 600) var(--card-text)/1.08 var(--cap-face); }
+body.director .tour-card .line { font: var(--cap-weight, 600) var(--card-line)/1.12 var(--cap-face); color: var(--cap-ink); }
 :is([data-theme="stage"], [data-theme="notebook"]) body.director { --cap-weight: 500; }
 /* A video about one part (M17, M18; docs/en/component-focus.md). On the pedestal (data-scene="part")
    only the told part's copy stays, over the hole grid: the board, the other parts, their labels and
@@ -415,6 +436,9 @@ body.director {
    (data-scene="land") the board and the parts slide in opaque under the veil while the focus's layers
    stay away; touched down (data-scene="lit") the board lightens as the veil goes (tour.js). The
    lights of the other parts are hidden by a rule tour.js writes with the part's id. */
+/* A pedestal's light (tour.js, sceneLight): on the pedestal only, never once the board is back. */
+.scene-light { pointer-events: none; }
+main:not([data-scene="part"]) > svg > .scene-light { display: none; }
 main[data-scene="part"] > svg > :is(.under, .board, .parts, .labels, .shortlabels, .veil, .strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
 main[data-scene="land"] > svg > :is(.strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
 main[data-scene="lit"] > svg > :is(.strips, .coords, .marks, .results, .probes) { display: none !important; }

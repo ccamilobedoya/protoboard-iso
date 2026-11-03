@@ -1,0 +1,10 @@
+{
+  "recipe": "555-astable",
+  "tour": "examples/tours/555-payoff.json",
+  "lang": "es",
+  "viewport": {"width":360,"height":640},
+  "ticks": [[0,1],[33.333333333333336,424]],
+  "renderer": "chromium 156.0.8078.4 linux-x64",
+  "html": "7eac9cc2b52595e70cf72d753aee2387ce9a3a87cc73131af342211c240bbcfb",
+  "png": "69ca06849cb24fc2b704ec564a9a63c760520eae6aea8978f9971750638d4485"
+}

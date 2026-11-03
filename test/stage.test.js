@@ -54,7 +54,7 @@ test('stage: the notebook by day and at night, two more themes', () => {
   const [portrait, landscape] = STYLE.match(/body\.director \{\s*--cap-text[^}]*\}/g);
   assert.equal(Math.round((vw('text', portrait) * 1080) / 100), 56);
   assert.equal(Math.round((vw('number', portrait) * 1080) / 100), 44);
-  assert.equal(Math.round((vw('data', portrait) * 1080) / 100), 44);
+  assert.equal(Math.round((vw('data', portrait) * 1080) / 100), 56);
   // 90 px a side: a safe width of 900 px; the second line as large as the first unless --cap-line-size says.
   assert.equal(Math.round((vw('pad', portrait) * 1080) / 100), 90);
   assert.equal(Math.round((vw('pad', landscape) * 1920) / 100), 90);
@@ -283,8 +283,11 @@ test('stage: the rules of a frame, as stage-shots.js checks them', () => {
   assert.deepEqual(bad({ inkBox: { top: 0.16, bottom: 0.25, left: 0.09, right: 0.9 } }), []);
   assert.match(bad({ contrast: 1.2 }).join(), /contrast 1.2:1/);
   assert.deepEqual(bad({ contrast: 9 }), []);
-  assert.match(bad({ labelPx: 23 }).join(), /23 px, under 40 px/);
-  assert.deepEqual(bad({ labelPx: 41 }), []);
+  assert.match(bad({ labelPx: 23 }).join(), /23 px, under 48 px/);
+  assert.deepEqual(bad({ labelPx: 49 }), []);
+  // The caption's sentence in at most two lines as laid out (32 letters may still make three).
+  assert.match(bad({ captionLines: 3 }).join(), /takes 3 lines, at most 2/);
+  assert.deepEqual(bad({ captionLines: 2 }), []);
   const wide = { ...good, caption: { top: 0.09, bottom: 0.3, left: 0.04, right: 0.4 }, sizes: { text: 52 }, told: { id: 'D1', top: 0.2, bottom: 0.8, left: 0.55, right: 0.9 }, label: { top: 0.5, bottom: 0.52, left: 0.6, right: 0.7 } };
   assert.deepEqual(frameProblems('horizontal', wide), []);
   assert.equal(frameProblems('horizontal', { ...wide, told: { ...wide.told, left: 0.3 } }).length, 1, 'under the caption');

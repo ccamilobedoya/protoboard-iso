@@ -7,7 +7,7 @@
 //   node scripts/render-frames.js <timeline.json> [-o dir] [--format vertical|horizontal|both]
 //        [--fps 30] [--lang en|es] [--theme t] [--tail ms] [--circuit target] [--no-captions] [--check]
 //   node scripts/render-frames.js <timeline.json> --validate     the checks only, no browser
-//   node scripts/render-frames.js --parts <recipe|circuit> [--what-if R1.resistance=100000 …] [--json]
+//   node scripts/render-frames.js --parts <recipe|circuit> [--what-if R1.resistance=100000 …] [--pace s] [--json]
 //                                                                 what a timeline can name, and what a set does to the cycles
 //
 // The circuit is the timeline's `circuit`: a circuit file of that name beside the timeline or in
@@ -24,8 +24,9 @@
 // frame's rules measured on the DOM (scripts/stage-shots.js) at every caption and every second
 // (the told part only on a frame where the camera stands still; the caption's contrast read on the
 // frame itself; frame 0 against the timeline's first moment), the moments a sound may go with
-// (`events`: land, count, probe, mark) and the payoff of each set (`payoff`: the cycles before and
-// after it, in simulated s and s of video, against the time the timeline holds after it).
+// (`events`: land, count, probe, mark, led, card) and the payoff of each set (`payoff`: the cycles before and
+// after it, in simulated s and s of video, against the time the timeline holds after it), each
+// LED's box on the frames measured at rest (`leds`) and each caption's lines as laid out (`lines`).
 //
 // --no-captions leaves the caption layer out of the frames (their times still go to timeline.json
 // and captions.srt): for a video whose subtitles are added later (scripts/assemble.js --burn).
@@ -35,7 +36,8 @@
 // name: the parts (for frame, focus, insert, assemble, raise, label), the readings of each (value,
 // wait-until), the controls with their ranges (set), the strips (probe's node) and the frame's bands
 // (where the circuit, the told part and the oscilloscope's box go); with --what-if, each LED's and
-// capacitor's cycle before and after those sets (src/sim/cycle.js); --json as data. Both are for
+// capacitor's cycle before and after those sets (src/sim/cycle.js); --pace s, in seconds of video at
+// that speed of time (a timeline's `pace`) instead of the page's; --json as data. Both are for
 // whoever writes a timeline (docs/en/making-a-video.md): nothing is worked out by hand.
 //
 // --check renders it again in a fresh browser and compares every frame's hash: the same timeline
@@ -103,7 +105,7 @@ function recipeCircuit(name) {
 const READINGS = ['current', 'voltage', 'power', 'brightness'];
 
 // What a timeline of this circuit can name, as data (--parts).
-export function timelineParts(circuit, lang = 'en') {
+export function timelineParts(circuit, lang = 'en', perSecond = null) {
   const built = buildCircuit(circuit);
   const compiled = compile(circuit);
   const engine = compiled.fatal ? null : createEngine(compiled.program);
@@ -126,7 +128,9 @@ export function timelineParts(circuit, lang = 'en') {
   // seconds of simulated time a second of video shows (0: the circuit does not change by itself, the
   // box runs on the wall clock).
   const pace = engine ? paceOf(engine.timeConstants(), engine.periods(), Boolean(engine.hasProgram?.())) : null;
-  const scope = pace ? { window: Number(pace.window.toPrecision(3)), speed: Number(pace.perSecond.toPrecision(3)) } : null;
+  // A timeline's `pace` (--pace) stands for the page's own: `speed` is then that one, `natural` the page's.
+  const speed = pace && perSecond > 0 && pace.perSecond > 0 ? perSecond : pace?.perSecond;
+  const scope = pace ? { window: Number(pace.window.toPrecision(3)), speed: Number(speed.toPrecision(3)), ...(perSecond > 0 && { natural: Number(pace.perSecond.toPrecision(3)) }) } : null;
   return { simulated: !compiled.fatal, parts, supplies, nodes, scope, frame: FRAME_BANDS };
 }
 
@@ -144,19 +148,20 @@ const pctOf = (v) => `${Math.round(v * 100)} %`;
 // payoff of each set in a timeline): the period before and after in simulated s and in s of video
 // (the page keeps the speed of time across a set), and an LED's time lit and dark.
 const measured = new WeakMap(); // circuit → (sets and parts → whatIf): a payoff asks again for the same
-export function whatIf(circuit, sets, parts = null) {
-  const key = JSON.stringify([sets, parts]);
+// `pace`: a recording's speed of time (a timeline's `pace`), else the page's.
+export function whatIf(circuit, sets, parts = null, pace = null) {
+  const key = JSON.stringify([sets, parts, pace]);
   const known = measured.get(circuit)?.get(key);
   if (known) return known;
-  const r = measureWhatIf(circuit, sets, parts);
+  const r = measureWhatIf(circuit, sets, parts, pace);
   if (!measured.has(circuit)) measured.set(circuit, new Map());
   measured.get(circuit).set(key, r);
   return r;
 }
-function measureWhatIf(circuit, sets, parts) {
+function measureWhatIf(circuit, sets, parts, pace) {
   const compiled = compile(circuit);
   if (compiled.fatal) return null;
-  const r = cycles(compiled.program, { sets, start: circuit.page?.start === 'zero' ? 'zero' : 'dc', parts });
+  const r = cycles(compiled.program, { sets, start: circuit.page?.start === 'zero' ? 'zero' : 'dc', parts, perSecond: pace });
   const video = (c) => (c && r.perSecond > 0 ? { ...c, video: Object.fromEntries(Object.entries(c).map(([k, v]) => [k, Number((v / r.perSecond).toFixed(2))])) } : c);
   const side = (x) => Object.fromEntries(Object.entries(x).map(([id, c]) => [id, video(c)]));
   return { speed: Number(r.perSecond.toPrecision(3)), before: side(r.before), after: side(r.after) };
@@ -178,7 +183,7 @@ export function payoffOf(circuit, tour) {
     const next = tour.steps.slice(i + 1).find((x) => x.do === 'set');
     const hold = (next ? next.at : end) - s.at;
     const leds = (circuit.parts ?? []).filter((p) => p.type === 'led').map((p) => p.id);
-    const r = whatIf(circuit, sets.slice(), [...new Set([...leds, ...(probe?.part ? [probe.part] : [])])]);
+    const r = whatIf(circuit, sets.slice(), [...new Set([...leds, ...(probe?.part ? [probe.part] : [])])], tour.pace ?? null);
     if (!r) return;
     const watched = Object.entries(r.after).filter(([id, c]) => c && (c.on != null || id === probe?.part));
     const need = Math.max(0, ...watched.map(([, c]) => c.video?.period ?? 0)) * 1000;
@@ -238,7 +243,23 @@ function captionNow() {
     const el = box.querySelector(sel);
     return el && !el.hidden && !el.closest('[hidden]') ? el.textContent : '';
   };
-  return [{ text: text('.text'), line: text('.line'), label: text('.value .label'), number: text('.value .number') }, view];
+  // The lines the sentence takes on screen (its text and second line, as laid out): a box belongs to
+  // the line whose band holds its middle (an emphasis is taller than the words beside it).
+  const rects = [];
+  for (const span of box.querySelectorAll(':scope > p.text:not([hidden]) > .in, :scope > p.line:not([hidden]) > .in')) {
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    for (const r of range.getClientRects()) if (r.width > 0 && r.height > 0) rects.push(r);
+  }
+  const bands = [];
+  for (const r of rects.sort((a, b) => a.top - b.top)) {
+    const mid = (r.top + r.bottom) / 2;
+    const band = bands.find((b) => mid >= b.top && mid <= b.bottom);
+    if (band) band.bottom = Math.max(band.bottom, r.bottom);
+    else bands.push({ top: r.top, bottom: r.bottom });
+  }
+  const em = box.querySelector(':scope > p:not([hidden]) .em');
+  return [{ text: text('.text'), line: text('.line'), ...(em && { em: em.textContent }), label: text('.value .label'), number: text('.value .number'), lines: bands.length }, view];
 }
 
 // Intervals of what was shown: a change of `key(x)` closes one and opens the next.
@@ -307,7 +328,7 @@ async function record(browser, file, { format, fps, tail, theme, captions: shown
       const { m, before, box, ...at } = pending;
       const moving = (before != null && before !== box) || (next != null && next !== box);
       const problems = [...frameProblems(format, m, { moving }), ...(at.frame === 0 ? firstFrameProblems(first, m) : [])];
-      checks.push({ ...at, told: m.told?.id ?? null, moving, ...(m.contrast != null && { contrast: Number(m.contrast.toFixed(2)) }), problems });
+      checks.push({ ...at, told: m.told?.id ?? null, moving, leds: m.leds ?? {}, ...(m.contrast != null && { contrast: Number(m.contrast.toFixed(2)) }), problems });
       pending = null;
     };
     let left = null; // ms still to record once the tour has ended
@@ -332,7 +353,12 @@ async function record(browser, file, { format, fps, tail, theme, captions: shown
           lastCheck = t;
           const m = await page.evaluate(measure);
           // The caption's contrast on what is under it, measured on the frame itself.
-          if (shown && m.ink?.length) m.contrast = captionContrast(png, m.ink, m.inkColor);
+          // Not while a caption comes in or the one before fades out over it: the text is part ink then.
+          if (shown && m.ink?.length && !m.captionRising && !m.captionFading) {
+            // The emphasis in its own colour: the caption's contrast is the lower of the two.
+            const both = [captionContrast(png, m.ink, m.inkColor), m.emInk?.length && m.emColor ? captionContrast(png, m.emInk, m.emColor) : null].filter((x) => x != null);
+            m.contrast = both.length ? Math.min(...both) : null;
+          }
           pending = { t: Math.round(t), frame: k, m, before: lastBox, box };
         }
         lastBox = box;
@@ -353,7 +379,7 @@ async function record(browser, file, { format, fps, tail, theme, captions: shown
 }
 
 function parse(argv) {
-  const args = { parts: null, whatIf: [], json: false, validate: false, timeline: null, out: null, formats: null, fps: 30, lang: 'en', theme: null, tail: 1000, circuit: null, captions: true, check: false };
+  const args = { parts: null, whatIf: [], pace: null, json: false, validate: false, timeline: null, out: null, formats: null, fps: 30, lang: 'en', theme: null, tail: 1000, circuit: null, captions: true, check: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '-o') args.out = resolve(argv[++i]);
@@ -367,11 +393,13 @@ function parse(argv) {
     else if (a === '--validate') args.validate = true;
     else if (a === '--parts') args.parts = argv[++i];
     else if (a === '--what-if') args.whatIf.push(argv[++i]);
+    else if (a === '--pace') args.pace = Number(argv[++i]);
     else if (a === '--json') args.json = true;
     else if (a === '--no-captions') args.captions = false;
     else if (a.startsWith('-')) throw new Error(`unknown option ${a}`);
     else args.timeline = resolve(a);
   }
+  if (args.pace != null && !(args.pace > 0 && args.pace <= 1000)) throw new Error('--pace: seconds of simulated time per second of video, above 0 and at most 1000');
   if (args.parts) return args;
   if (!args.timeline) throw new Error('usage: node scripts/render-frames.js <timeline.json> [-o dir] [--format vertical|horizontal|both] [--fps 30] [--lang en|es] [--theme t] [--tail ms] [--circuit target] [--no-captions] [--check] [--validate] | --parts <recipe|circuit>');
   if (!(args.fps > 0 && args.fps <= 120)) throw new Error('--fps: between 1 and 120');
@@ -383,13 +411,13 @@ async function main() {
   const args = parse(process.argv.slice(2));
   if (args.parts) {
     const circuit = existsSync(args.parts) ? loadCircuit(resolveTarget(args.parts)) : recipeCircuit(args.parts);
-    const parts = timelineParts(circuit, args.lang);
+    const parts = timelineParts(circuit, args.lang, args.pace);
     const sets = args.whatIf.map((w) => {
       const m = /^([^.=]+)\.([^=]+)=(.+)$/.exec(w ?? '');
       if (!m) throw new Error(`--what-if: part.field=value (R1.resistance=100000), not ${w}`);
       return { id: m[1], field: m[2], value: m[3] === 'true' ? true : m[3] === 'false' ? false : Number(m[3]) };
     });
-    const cyc = sets.length ? whatIf(circuit, sets) : null;
+    const cyc = sets.length ? whatIf(circuit, sets, null, args.pace) : null;
     if (args.json) console.log(JSON.stringify({ ...parts, ...(cyc && { whatIf: { sets, ...cyc } }) }, null, 2));
     else {
       printParts(args.parts, parts);
@@ -435,7 +463,7 @@ async function main() {
       const run = await record(browser, file, options, dir);
       const names = run.hashes.map((_, k) => `frames/${String(k).padStart(6, '0')}.png`);
       writeFileSync(join(dir, 'frames.sha256'), run.hashes.map((h, k) => `${h}  ${names[k]}\n`).join(''));
-      const captions = intervals(run.captions, (c) => `${c.text}\u0000${c.line}`, (c) => ({ text: c.text, ...(c.line && { line: c.line }) }));
+      const captions = intervals(run.captions, (c) => `${c.text}\u0000${c.line}`, (c, last) => ({ text: c.text, ...(c.line && { line: c.line }), ...(c.em && { em: c.em }), lines: Math.max(c.lines ?? 0, last.lines ?? 0) }));
       const values = intervals(run.captions, (c) => (c.number ? c.label : null), (_, last) => ({ label: last.label, shown: last.number }));
       writeFileSync(join(dir, 'captions.srt'), toSrt(captions));
       const problems = run.checks.filter((c) => c.problems.length);
@@ -448,13 +476,18 @@ async function main() {
         frames: run.hashes.length,
         duration: Math.round(run.duration),
         lang: args.lang,
+        // s of simulated time per s of video: the timeline's `pace`, else the page's own (null: no clock).
+        pace: tour.pace ?? payoff.sets[0]?.speed ?? null,
         renderer,
         captions: captions.map((c) => ({ ...c, from: Math.round(c.from), to: Math.round(c.to) })),
         values: values.map((v) => ({ ...v, from: Math.round(v.from), to: Math.round(v.to) })),
         steps: run.log.map((s) => ({ ...s, t: Math.round(s.t) })),
         events: run.events.map((e) => ({ ...e, t: Math.round(e.t) })),
         payoff,
-        checks: { measured: run.checks.length, problems },
+        // Each LED's box on screen (px) on the measured frames where the camera stood still: where
+        // a check of the video reads whether it blinks.
+        leds: run.checks.filter((c) => !c.moving).flatMap((c) => Object.entries(c.leds).map(([id, box]) => ({ t: c.t, id, box }))),
+        checks: { measured: run.checks.length, problems: problems.map(({ leds, ...c }) => c) },
       };
       writeFileSync(join(dir, 'timeline.json'), `${JSON.stringify(report, null, 2)}\n`);
       console.log(`${problems.length ? '✖' : '✔'} ${name} ${format}: ${run.hashes.length} frames, ${(run.duration / 1000).toFixed(2)} s at ${args.fps} fps → ${dir}`);

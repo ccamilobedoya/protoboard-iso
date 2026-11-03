@@ -84,6 +84,8 @@ export function applyFocus(page) {
 // jumpers that join them, and the focused parts' own leads and bodies) stay; every other piece is
 // marked data-out and not drawn (page/style.js), so the rest is plain board under the veil. The
 // LEDs' glow and the heat stay: a light is not a line. Without the scope every piece is drawn.
+// A flow step's `sense` may name the parts of the way the current runs now (page.flowParts, tour.js):
+// those stand for the focus while it runs that way.
 export function focusNets(page, ids) {
   const { data } = page;
   const parts = new Set(ids.filter((id) => data.parts[id]));
@@ -101,7 +103,7 @@ export function focusNets(page, ids) {
   return { parts, nets };
 }
 export function scopeFlow(page) {
-  const keep = page.flowScope === 'focus' ? focusNets(page, [...page.state.focus]) : null;
+  const keep = page.flowParts ? focusNets(page, page.flowParts) : page.flowScope === 'focus' ? focusNets(page, [...page.state.focus]) : null;
   for (const svg of page.svgs) {
     for (const el of svg.querySelectorAll(':scope > .flow > *')) {
       const d = el.dataset ?? {};

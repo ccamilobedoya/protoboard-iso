@@ -57,5 +57,14 @@ export function glowOpacity(brightness) {
   const b = Math.min(1, Math.max(0, brightness ?? 0));
   return b < 0.002 ? 0 : Math.min(1, 0.2 + 0.8 * Math.sqrt(b));
 }
+// An LED that is off is dark, not as red as a lit one (stage and video: the eye reads "off" in the
+// body, not only in the halo). A shade of SHADE.color over its dome and flange, at SHADE.opacity when
+// no current flows, gone once the glow reaches SHADE.full: a lit LED looks as it always did. At
+// 0.74 the body keeps about a third of its luminance.
+export const SHADE = { color: '#1b1815', opacity: 0.74, full: 0.4 };
+export function shadeOpacity(brightness) {
+  const g = glowOpacity(brightness);
+  return Math.max(0, 1 - g / SHADE.full);
+}
 // Heat tint: nothing below a fifth of the rated power, full at the rating.
 export const heatOpacity = (ratio) => Math.min(0.7, Math.max(0, ((ratio ?? 0) - 0.2) / 0.8) * 0.7);

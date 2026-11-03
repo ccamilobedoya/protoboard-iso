@@ -69,11 +69,14 @@ function run(engine, h, watch, from) {
 }
 
 // `parts`: the ids to measure (default: every LED by its brightness and every capacitor by its voltage).
-export function cycles(program, { sets = [], start = 'dc', parts = null } = {}) {
+// `perSecond`: a recording's own speed of time (a timeline's `pace`); the page's otherwise. It only
+// turns simulated seconds into seconds of video: the cycles are the circuit's.
+export function cycles(program, { sets = [], start = 'dc', parts = null, perSecond = null } = {}) {
   const engine = createEngine(program);
   const program_ = Boolean(engine.hasProgram?.());
   const pace = paceOf(engine.timeConstants(), engine.periods(), program_);
   if (!(pace.h > 0)) return { perSecond: 0, before: {}, after: {} };
+  const speed = perSecond > 0 ? perSecond : pace.perSecond;
   let h = pace.h;
   engine.start(start, h);
   const kinds = Object.fromEntries((program.devices ?? []).map((d) => [d.id, d.type]));
@@ -90,31 +93,38 @@ export function cycles(program, { sets = [], start = 'dc', parts = null } = {}) 
   const now = paceOf(engine.timeConstants(), engine.periods(), program_);
   if (now.h > 0) h = now.periodic ? now.h : Math.min(h, now.h);
   const after = run(engine, h, watch, engine.time);
-  return { perSecond: pace.perSecond, before, after };
+  return { perSecond: speed, before, after };
 }
 
 const known = new Map(); // a program and its sets → cycles: pages of one circuit are made again and again
 
 // The cycles a comparing oscilloscope announces (a timeline's probe with `compare`): for each set
 // that changes a number while such a probe is on, the probed part's period before the first set and
-// after each, in simulated s, as { [step index]: { before, after } }. Node only in practice (it runs
-// the circuit for a few seconds of simulated time); the page shows the figure once the set's control
-// has arrived (page/client/live.js).
+// after each, in simulated s, and the circuit's first LED's time lit and dark before and after (what
+// the box says in words: "lit 0.08 → 0.40 s · dark the same"), as
+// { [step index]: { before, after, led?: { id, before: { on, off }, after: { on, off } } } }. Node
+// only in practice (it runs the circuit for a few seconds of simulated time); the page shows the
+// figure once the set's control has arrived (page/client/live.js).
 export function compareCycles(program, steps, start = 'dc') {
   const out = {};
   const sets = [];
   let probe = null;
+  const led = (program.devices ?? []).find((d) => d.type === 'led')?.id ?? null;
   steps.forEach((s, k) => {
     if (s.do === 'probe') probe = s.off ? null : s.compare && s.part ? s : null;
     if (s.do !== 'set' || typeof s.value !== 'number') return;
     sets.push({ id: s.part, field: s.field, value: s.value });
     if (!probe) return;
-    const key = JSON.stringify([program, sets, probe.part, start]);
-    if (!known.has(key)) known.set(key, cycles(program, { sets: sets.slice(), start, parts: [probe.part] }));
+    const parts = [...new Set([probe.part, ...(led ? [led] : [])])];
+    const key = JSON.stringify([program, sets, parts, start]);
+    if (!known.has(key)) known.set(key, cycles(program, { sets: sets.slice(), start, parts }));
     const r = known.get(key);
     const before = r.before[probe.part]?.period;
     const after = r.after[probe.part]?.period;
-    if (before > 0 && after > 0) out[k] = { before, after };
+    if (!(before > 0 && after > 0)) return;
+    out[k] = { before, after };
+    const [b, a] = [r.before[led], r.after[led]];
+    if (b?.on > 0 && a?.on > 0) out[k].led = { id: led, before: { on: b.on, off: b.off }, after: { on: a.on, off: a.off } };
   });
   return out;
 }

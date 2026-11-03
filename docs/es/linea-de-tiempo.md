@@ -33,6 +33,7 @@ completan y revisan los campos con él). Líneas de tiempo de ejemplo: `examples
 | `circuit` | el nombre de un archivo de circuito (junto a la línea de tiempo o una carpeta arriba) o de una receta | ninguno | el circuito que cuenta (para `scripts/render-frames.js`) |
 | `format` | `vertical` (1080 × 1920), `horizontal` (1920 × 1080) | `vertical` | el tamaño del video |
 | `theme` | `stage`, `notebook`, `light`, `dark` | `stage` | el aspecto de la página en una grabación |
+| `pace` | 0.000001…1000 | el de la página | segundos de tiempo simulado por segundo de video en una grabación: un circuito con ciclos demasiado lentos (o rápidos) para el plano corre más rápido (o más lento) en pantalla. La traza del osciloscopio, las cifras de `compare`, el desenlace (`render-frames.js`, `timeline.json`) y `--parts --pace` lo siguen; la página fuera de una grabación conserva el suyo |
 | `steps` | una lista de pasos, *obligatorio* | | lo que pasa |
 
 Un circuito reproduce su línea de tiempo en su página cuando `page.tour` nombra el archivo (leído
@@ -113,9 +114,10 @@ o levantada.
 |---|---|---|---|
 | `text` | un texto, *obligatorio* salvo con `off` | | el subtítulo |
 | `line` | un texto | ninguna | una segunda línea, dibujada como la primera (mismo tamaño, color y fuente): una idea en dos líneas como mucho |
-| `data` | un texto | ninguna | una fila de datos debajo, solo para un valor o un antes → después que no esté ya en pantalla (`"1 kΩ → 100 kΩ"`, `"periodo ×7"`): sans con cifras tabulares, en el color de acento, 44 px a 1080 de ancho; nunca lleva el verbo de la frase |
+| `data` | un texto | ninguna | una fila de datos debajo, solo para un valor o un antes → después que no esté ya en pantalla (`"1 kΩ → 100 kΩ"`, `"periodo ×7"`): sans con cifras tabulares, en el color de acento, del tamaño del texto (56 px a 1080 de ancho, 52 a 1920); nunca lleva el verbo de la frase |
+| `em` | un texto | ninguno | el énfasis: palabras del texto (si no, de la segunda línea) que se dibujan más gruesas y 15 % más grandes, en el color del propio subtítulo (el acento queda para los datos y la traza) (`"más tiempo"`); las líneas se siguen midiendo tal como quedan, y el contraste del énfasis se mide aparte. Si no está en el texto ni en la línea, aviso `TOUR_EM_MISSING` y se dibuja sin énfasis |
 | `off` | `true` | | quita el subtítulo |
-| `enter` | `rise`, `fade`, `cut` | `rise` | cómo llegan sus líneas: subiendo desde su base detrás de una máscara, apareciendo con un fundido o de una vez |
+| `enter` | `rise`, `fade`, `cut` | `rise` | cómo llegan sus líneas: subiendo desde su base detrás de una máscara mientras aparecen (ningún fotograma muestra media línea cortada por la máscara), apareciendo con un fundido o de una vez |
 | `in` | 0…3000 ms | 400 | cuánto tarda cada línea |
 | `stagger` | 0…1000 ms | 90 | entre una línea y la siguiente |
 | `out` | 0…2000 ms | 200 | cuánto tarda en irse el subtítulo anterior (el nuevo llega después) |
@@ -159,6 +161,7 @@ Un deslizador que se mueve solo entre dos valores (M10): dos pasos `set` con `tr
 | `ramp` | 0…10000 ms | 0 | los puntos arrancan desde quietos hasta su velocidad (M6) |
 | `scope` | `all`, `focus` | `all` | `focus`: la corriente solo en las redes que tocan las patas de las piezas en foco (sus tiras, los cables entre ellas y las patas de esas piezas); el resto queda como protoboard bajo el velo. Sigue a cada `focus` posterior hasta el siguiente paso `flow` |
 | `style` | `plan`, `real` | el de la página (`page.flow.style`) | cómo se dibuja la capa en esta línea de tiempo: `plan`, almohadillas y líneas rectas; `real`, por las tiras, las patas y los cables. El primer paso `flow` que nombra uno lo fija para toda la grabación; uno posterior que nombra el otro se reporta (`TOUR_FLOW_STYLE`) y no se sigue |
+| `sense` | `{ "part", "forward", "back" }` | ninguno | la corriente en dos colores según el sentido en que pasa por `part` (un condensador: `forward` mientras se carga, `back` mientras se descarga). Cada lado es `{ "color", "parts" }`: `color` (los nombres de `pulse` o `#rrggbb`) para los puntos mientras corre así, y `parts`, las piezas cuyas redes la llevan mientras tanto (en lugar del foco). Los puntos van más gruesos y en escala logarítmica, para que una corriente pequeña se vea moverse junto a una grande |
 
 En una protoboard llena, la capa entera se lee como puntos y líneas sin sujeto: en un video, enciéndela
 sobre un plano cercano con una o dos piezas en foco y `"scope": "focus"`, y `"style": "real"` para que
@@ -167,6 +170,14 @@ la corriente siga a las piezas que se ven.
 ```json
 { "at": 9000, "do": "focus", "parts": ["C1"] },
 { "at": 9400, "do": "flow", "on": true, "ramp": 600, "scope": "focus", "style": "real" }
+```
+
+La carga y la descarga de un 555, en dos colores (M39): ámbar mientras C1 se llena por R1 y R2, azul
+mientras se vacía solo por R2 (ámbar y azul se distinguen también con daltonismo):
+
+```json
+{ "at": 8100, "do": "flow", "on": true, "scope": "focus", "style": "real",
+  "sense": { "part": "C1", "forward": { "color": "#ffb020", "parts": ["R1", "R2", "C1"] }, "back": { "color": "#4da3ff", "parts": ["R2", "C1"] } } }
 ```
 
 ### `pulse`: un destello por el camino de la corriente (M7)
@@ -263,6 +274,7 @@ y `probe` funcionan igual.
 | `zoom` | 0.5…3 | 1 | más cerca o más lejos que el encuadre de la pieza |
 | `enter` | `cut`, `drop` | `cut` | `drop`: la pieza cae sobre su pedestal desde 8 mm con un rebote leve (700 ms) |
 | `push` | 0.5…3 | ninguno | un acercamiento lento: la cámara sigue acercándose hasta este zoom hasta el siguiente paso que la mueva (un `frame`, `land` o `scene`), como mucho 8 s, para que el gancho nunca esté quieto |
+| `light` | `pulse`, `accent`, `value`, `voltage`, `current` o `#rrggbb` | ninguna | una luz suave de ese color en el pedestal, bajo la pieza, hasta que vuelve la protoboard: un gancho que sirve de miniatura (el chip de un circuito que parpadea en un resplandor rojo, `"#ff3b2f"`) |
 | `move`, `ms`, `curve` | | `cut` | con un movimiento, la protoboard se desvanece a lo largo de él y la cámara llega |
 
 El rotulado del chip se lee de izquierda a derecha desde la cámara, esté como esté el chip en la
@@ -271,6 +283,12 @@ protoboard (gira media vuelta cuando se leería de cabeza; la muesca sigue dicie
 Un `frame` sobre la pieza del pedestal la encuadra igual (sola, sin sitio para su rótulo), así que un
 video puede abrir de cerca (`zoom` 1,6) y alejarse cuando entran sus patas: `{ "at": 1400, "do":
 "frame", "target": "Q1" }`.
+
+Una escena puede venir después de pasos en la protoboard (un video que abre con su resultado, el LED
+parpadeando en la protoboard, y solo después muestra el chip solo): la protoboard se desvanece con su
+movimiento como al principio, un `set` mientras la pieza está en el pedestal cambia el circuito sin que
+se vea (el cambio del gancho se deshace antes de que empiece la historia) y un `land` trae la
+protoboard de vuelta (`555-result-first.json`).
 
 ### `land`: la protoboard sube bajo la pieza (M18)
 
@@ -285,7 +303,10 @@ la pieza: sube deslizándose desde abajo del cuadro bajo un velo del color de la
 encima del velo. Cuando toca, aclara en una rampa de 700 ms, una vez que la cámara se abrió (al final
 del primer `frame` después del `land`, o al final del propio `land`); después se va el foco. Durante un
 `land` ningún par de fotogramas seguidos a 30 fps difiere en más de 40 de brillo medio (de 255). Un `assemble` después de un
-`land` trae las demás piezas una por una (esperan sin verse) y deja en su sitio la pieza que bajó.
+`land` trae las demás piezas una por una (esperan sin verse) y deja en su sitio la pieza que bajó. Un
+`focus` durante un `land` (a su misma hora o mientras la protoboard aclara) se mantiene, pero sus tiras
+y coordenadas son de la protoboard: no se ven mientras entra y aparecen con un fundido de 300 ms cuando
+ya aclaró, nunca sobre el fondo vacío junto a la pieza.
 
 ```json
 { "at": 0, "do": "scene", "mode": "part", "part": "Q1" },
@@ -413,10 +434,18 @@ nuevo lo último encuadrado encima del recuadro), en horizontal bajo el subtítu
 | `marks` | `true`, `false` | `false` | en una grabación, una línea punteada en el recuadro en cada `set` desde ese momento, con el valor nuevo del control (*R1 → 100 kΩ*), para que se lean el antes y el después |
 | `place` | `bottom`, `top` | `bottom` | en una grabación vertical: `bottom`, del 56 % al 75 % de la altura, con el circuito encuadrado encima, del 40 % al 56 %; `top`, del 28 % al 40 %, entre el subtítulo y el circuito, que conserva toda su franja del 40 % al 75 % |
 | `size` | `full`, `compact` | `full` | `compact`: sin nota, el nombre y el valor de la traza dentro de la gráfica (tras un `title` que dé el paso: «C1 · Voltaje: 5,3 V»), una traza más gruesa, dos rótulos de eje (el tope de la escala y el final de la ventana); para el recuadro arriba, el 12 % de la altura |
-| `compare` | `true`, `false` | `false` | en una grabación, en cada `set` (implica `marks`): los ciclos de antes de la marca quedan como una traza fantasma tenue encima de lo que viene después (corrida en periodos enteros), y el cambio de periodo de la pieza medida se escribe sobre la gráfica, de la simulación, cuando el control ya llegó: «periodo 148 ms → 832 ms (×5,6)» («periodo 148 ms → …» mientras se mueve) |
+| `compare` | `true`, `false` | `false` | en una grabación, en cada `set` (implica `marks`): los ciclos de antes de la marca quedan como una traza fantasma tenue encima de lo que viene después (corrida en periodos enteros), y el cambio se escribe en el recuadro, de la simulación, cuando el control ya llegó. Con un LED en el circuito dice lo que ve el ojo, en palabras y en proporción: «prendido ×5 · apagado igual» («igual» con menos de 15 % de diferencia; si no, «apagado ×2»), cierto a cualquier `pace`; con `change` `times`, en segundos del osciloscopio: «prendido 0,08 → 0,40 s · apagado igual»; sin LED, el periodo de la pieza medida: «periodo 148 ms → 832 ms (×5,6)» |
+| `change` | `ratio`, `times` | `ratio` | cómo dice el cambio un recuadro que compara: en proporción («prendido ×5», entera desde ×3 y con un decimal por debajo) o en segundos del osciloscopio, que en una grabación con su propio `pace` no son los que ve el ojo |
+| `say` | un texto | ninguno | las palabras propias del recuadro que compara para el cambio en vez de las del kit, con `{k}` para cuántas veces más dura prendido el LED (la proporción del periodo sin LED) y `{k2}` para su tiempo apagado, las dos de la simulación: `"{k} veces más tiempo encendido · apagado igual"`. La cifra sigue siendo de la simulación y la frase es de la línea de tiempo, así quien revisa los textos de un guion la lee también (M41) |
+| `reading` | `true`, `false` | `true` | `false`: el nombre de la traza sin su valor del momento («C1 · carga», no «C1 · Voltaje: 4,52 V») |
+| `clock` | `true`, `false` | `true` | con `compact`, `false`: sin el tiempo al final de la ventana |
 
-El texto de una marca y el cambio de periodo se dibujan sobre la traza con un halo del color de la
-pantalla, así que la traza nunca los cruza.
+Un recuadro que compara se arma en tres franjas, para que ningún texto quede sobre la traza: arriba
+el nombre de la traza y el texto de cada marca (*R1 → 47 kΩ*), cada uno sobre una placa del color de
+la pantalla y nunca uno encima del otro; en el medio la traza y su fantasma, escaladas a su propia
+oscilación; abajo el cambio, a 46 px en pantalla, en el acento, sobre su placa. Sin `compare`, el
+texto de una marca y el cambio de periodo se dibujan sobre la traza con un halo del color de la
+pantalla.
 
 Arriba, el recuadro pide un subtítulo de dos líneas como mucho y sin la línea del `value` (el valor
 está en el recuadro): un subtítulo más largo llegaría hasta él, y la revisión de la grabación lo
@@ -426,8 +455,8 @@ Sin `window` el recuadro empieza con la ventana del kit, se estira con el tiempo
 después se corre, y un `set` que cambia una constante de tiempo le da una ventana nueva: la traza se
 reescala sola y esconde un cambio de ritmo. Para mostrarlo, dale al recuadro una `window` fija y
 `marks`. Cuánto tiempo pedir: `render-frames.js --parts` imprime la ventana del kit y cuántos segundos
-de tiempo simulado muestra un segundo de video (`555-astable`: 0,55 s, a 0,055 s por segundo); el
-tiempo conserva esa velocidad después de un `set`, así que un parpadeo cien veces más lento también
+de tiempo simulado muestra un segundo de video (`555-astable`: 0,55 s, a 0,055 s por segundo; el
+`pace` de la línea de tiempo cambia esa velocidad); el tiempo conserva esa velocidad después de un `set`, así que un parpadeo cien veces más lento también
 tarda cien veces más en pantalla. Una ventana de más o menos el doble de la del kit deja varios ciclos
 antes del `set` y uno largo después. Si la ventana y el tiempo después del `set` caben un ciclo
 completo: `render-frames.js --parts <circuito> --what-if R1.resistance=100000` (abajo) y la revisión de
@@ -436,6 +465,26 @@ la propia grabación (`TOUR_SCOPE_WINDOW`, `TOUR_PAYOFF_SHORT`).
 ```json
 { "at": 6000, "do": "probe", "part": "C1", "window": 1.1, "marks": true },
 { "at": 11500, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 }
+```
+
+### `card`: una tarjeta
+
+Una frase sola sobre toda la pantalla por un momento (M40): una cifra para quedarse con ella
+(«×5 prendido · apagado igual»). Grande (112 y 80 px a 1080 de ancho), en la fuente y los colores del
+subtítulo, dentro del ancho seguro y entre las franjas de las plataformas (del 15 % al 65 % de la
+altura, lo revisa la grabación). Tapa lo que hay debajo y lo deja como estaba.
+
+| Campo | Valores | Por defecto | |
+|---|---|---|---|
+| `text` | un texto, *obligatorio* | | la frase |
+| `line` | un texto | ninguna | una segunda línea, más pequeña |
+| `em` | un texto | ninguno | el énfasis, como el de un subtítulo |
+| `hold` | 300…5000 ms | 1500 | cuánto se queda completa |
+| `enter` | `rise`, `fade`, `cut` | `fade` | cómo llega |
+| `in`, `out` | 0…1000 ms | 250 | cuánto tarda en llegar y en irse |
+
+```json
+{ "at": 24000, "do": "card", "text": { "es": "×5 prendido", "en": "×5 on" }, "line": { "es": "apagado igual", "en": "off the same" }, "em": "×5" }
 ```
 
 ### `label`: el nombre de una pieza en una grabación
@@ -488,7 +537,9 @@ la miniatura). Esos pasos quedan en el registro con `"primed": true`.
 `timeline.json` también lista, para quien agrega sonido, los momentos que pueden llevar uno (`events`,
 en ms de la grabación): `land` (la pieza toca: el final del `land`), `count` (cada cifra nueva que
 muestra un `set` que mueve un número o un `value` que cuenta; `shown` es la cifra), `probe` (`on` true
-o false: llega o se va el recuadro del osciloscopio) y `mark` (una marca dibujada en él, en el `set`).
+o false: llega o se va el recuadro del osciloscopio), `mark` (una marca dibujada en él, en el `set`),
+`led` (cada vez que un LED se prende o se apaga en la simulación, `part` y `on`: un tic por parpadeo) y
+`card` (`on` true o false: llega o se va una tarjeta).
 Y el `payoff` de cada `set` que cambia un número: los ciclos antes y después (periodo, el tiempo
 prendido y apagado de un LED, en s simulados y en s de video), lo que la línea de tiempo sostiene
 después (`holdMs`) y lo que tarda un ciclo completo (`needMs`).

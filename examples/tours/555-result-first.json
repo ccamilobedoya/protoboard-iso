@@ -1,0 +1,32 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "555-astable",
+  "format": "vertical",
+  "pace": 0.15,
+  "steps": [
+    { "at": 0, "do": "frame", "target": ["U1", "D1"], "zoom": 1.2, "move": "cut" },
+    { "at": 0, "do": "focus", "parts": ["U1", "D1"] },
+    { "at": 0, "do": "caption", "text": { "en": "I changed one part.", "es": "Cambié una pieza." }, "line": { "en": "Which one?", "es": "¿Cuál?" }, "em": { "en": "one part", "es": "una pieza" } },
+    { "at": 1400, "do": "set", "part": "R1", "field": "resistance", "value": 47000, "move": "cut" },
+
+    { "at": 4400, "do": "scene", "mode": "part", "part": "U1", "zoom": 1.4, "move": "travel", "push": 1.6, "light": "#ff3b2f" },
+    { "at": 4400, "do": "caption", "text": { "en": "A 555 chip", "es": "Un chip 555" }, "line": { "en": "makes the LED blink", "es": "hace parpadear el LED" }, "em": { "en": "blink", "es": "parpadear" } },
+    { "at": 4500, "do": "set", "part": "R1", "field": "resistance", "value": 1000, "move": "cut" },
+
+    { "at": 6600, "do": "land", "part": "U1" },
+    { "at": 8100, "do": "frame", "target": ["R1", "R2", "C1"], "move": "travel" },
+    { "at": 8100, "do": "focus", "parts": ["R1", "R2", "C1"] },
+    { "at": 8100, "do": "caption", "text": { "en": "It fills through both", "es": "Se llena por las dos" }, "line": { "en": "and empties through R2", "es": "y se vacía por R2" }, "em": { "en": "R2", "es": "R2" } },
+    { "at": 8100, "do": "flow", "on": true, "ramp": 600, "scope": "focus", "style": "real", "sense": { "part": "C1", "forward": { "color": "#ffb020", "parts": ["R1", "R2", "C1"] }, "back": { "color": "#4da3ff", "parts": ["R2", "C1"] } } },
+    { "at": 12500, "do": "flow", "on": false },
+
+    { "at": 12500, "do": "frame", "target": "D1", "zoom": 0.9, "move": "travel" },
+    { "at": 12500, "do": "focus", "parts": ["D1"], "solid": true },
+    { "at": 12500, "do": "probe", "part": "C1", "field": "voltage", "window": 1.5, "compare": true, "place": "top", "size": "compact", "title": "C1", "label": { "en": "charge", "es": "carga" }, "reading": false, "clock": false },
+    { "at": 12500, "do": "caption", "text": { "en": "It stays on longer", "es": "Dura más prendido" }, "line": { "en": "but off the same", "es": "pero apagado igual" }, "em": { "en": "on longer", "es": "más prendido" } },
+    { "at": 15000, "do": "set", "part": "R1", "field": "resistance", "value": 47000, "move": "travel", "ms": 1200 },
+
+    { "at": 24000, "do": "card", "text": { "en": "×5 on", "es": "×5 prendido" }, "line": { "en": "off the same", "es": "apagado igual" }, "em": "×5" },
+    { "at": 24000, "do": "probe", "off": true }
+  ]
+}

@@ -115,13 +115,54 @@ export function risings(points, level) {
   }
   return out;
 }
+// A comparing box's vertical range: the trace's own extremes with a little room, so its swing fills
+// the band between the texts (0 need not show: the shape is what is compared).
+export function rangeOf(points) {
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const [, v] of points) {
+    if (v < lo) lo = v;
+    if (v > hi) hi = v;
+  }
+  if (!(hi > lo)) return scaleOf(points);
+  const pad = (hi - lo) * 0.08;
+  return [lo - pad, hi + pad];
+}
 // A trace's period: the last whole cycle between two risings (null with fewer than two).
 export function periodOf(points, level) {
   const r = risings(points, level);
   return r.length >= 2 ? r[r.length - 1] - r[r.length - 2] : null;
 }
 
-export function createScope(parent, { t, f, compact = false, title = null }) {
+// A comparing box (`compare`, a recording's probe with compare) is laid out in three bands so no text
+// ever lies on the trace: on top its name and the set's mark, each on a plate of the screen's colour;
+// the trace (and its ghost) in the middle; at the bottom the change, in words, large and in the accent
+// ("on 0.08 → 0.40 s · off the same"). Its texts are sized in px on screen (BAND_PX, at the box's
+// real size), not in units of the plot. `reading` false leaves the value now out of the name and
+// `clock` false the window's end out (compact): what the video does not need to say.
+export const BAND_PX = { label: 40, mark: 40, delta: 46 };
+// The width of a text before it is laid out (jsdom, or to place one beside another): px per letter.
+const ADVANCE = 0.56;
+function textWidth(node, size) {
+  try {
+    const w = node.getBBox?.().width;
+    if (w > 0) return w;
+  } catch {
+    // not laid out (jsdom): estimated below
+  }
+  return node.textContent.length * size * ADVANCE;
+}
+// A plate of the screen's colour behind a text (x, y: its anchor and baseline; `anchor` start, middle or end).
+function plate(g, node, { x, y, size, anchor = 'start' }) {
+  const w = textWidth(node, size);
+  const pad = size * 0.25;
+  const left = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x;
+  const r = el(null, 'rect', { x: left - pad, y: y - size * 0.82, width: w + 2 * pad, height: size * 1.06, rx: pad, class: 'scope-plate' });
+  g.insertBefore(r, node);
+  return { left: left - pad, right: left + w + pad };
+}
+
+export function createScope(parent, { t, f, compact = false, title = null, compare = false, reading = true, clock = true }) {
   const box = document.createElement('div');
   box.className = 'scope';
   parent.appendChild(box);
@@ -142,45 +183,89 @@ export function createScope(parent, { t, f, compact = false, title = null }) {
       const height = traces.length * (gap + H) + axis;
       svg.setAttribute('viewBox', `0 0 ${W} ${height}`);
       svg.textContent = '';
+      // Comparing: the bands, in units of the plot for BAND_PX on screen (the box's own scale when it
+      // is laid out; jsdom has none: a portrait recording's).
+      // BAND_PX are px at 1080 px of the frame's short side, as the caption's sizes.
+      const short = Math.min(globalThis.innerWidth || 1080, globalThis.innerHeight || 1920);
+      const unit = (r?.height > 0 ? height / r.height : 1 / 3.75) * (short / 1080);
+      const band = compare ? { label: BAND_PX.label * unit, mark: BAND_PX.mark * unit, delta: BAND_PX.delta * unit } : null;
+      const topBand = band ? Math.max(band.label, band.mark) * 1.2 : 0;
+      const bottomBand = band ? band.delta * 1.25 : 0;
       traces.forEach((trace, k) => {
         const top = k * (gap + H) + gap;
-        const [lo, hi] = scaleOf(trace.points);
+        const [lo, hi] = band ? rangeOf(trace.points) : scaleOf(trace.points);
         const now = trace.points.length ? trace.points[trace.points.length - 1][1] : null;
-        const name = `${compact && title ? `${title} · ` : ''}${trace.label}${now != null ? `: ${f(now, trace.unit)}` : ''}`;
+        const name = `${compact && title ? `${title} · ` : ''}${trace.label}${now != null && reading ? `: ${f(now, trace.unit)}` : ''}`;
         const ink = trace.kind ? {} : { fill: trace.ink ?? trace.color };
         if (!compact) el(svg, 'text', { x: LEFT, y: top - 4, class: trace.kind ? `scope-label ${trace.kind}` : 'scope-label', ...ink }, name);
         const g = el(svg, 'g', { transform: `translate(0 ${top})` });
         el(g, 'rect', { x: 0, y: 0, width: W, height: H, class: 'scope-screen' });
         for (let i = 1; i < 10; i++) el(g, 'line', { x1: (W / 10) * i, y1: 0, x2: (W / 10) * i, y2: H, class: 'scope-grid' });
         for (let j = 1; j < 4; j++) el(g, 'line', { x1: 0, y1: (H / 4) * j, x2: W, y2: (H / 4) * j, class: 'scope-grid' });
-        // The zero line, brighter: where the trace crosses from + to −.
-        const zero = H - ((0 - lo) / (hi - lo)) * H;
-        el(g, 'line', { x1: 0, y1: zero, x2: W, y2: zero, class: 'scope-zero' });
-        el(g, 'text', { x: W - 3, y: 10, class: 'scope-scale' }, f(hi, trace.unit));
-        if (!compact) el(g, 'text', { x: W - 3, y: H - 3, class: 'scope-scale' }, f(lo, trace.unit));
         const shownMarks = marks.filter((m) => m.t >= from && m.t <= to);
-        for (const m of shownMarks) {
-          const x = LEFT + ((m.t - from) / (to - from || 1)) * (W - LEFT);
-          el(g, 'line', { x1: x, y1: 0, x2: x, y2: H, class: 'scope-mark' });
+        const xOf = (time) => LEFT + ((time - from) / (to - from || 1)) * (W - LEFT);
+        for (const m of shownMarks) el(g, 'line', { x1: xOf(m.t), y1: 0, x2: xOf(m.t), y2: H, class: 'scope-mark' });
+        // The trace's own band: the whole plot, or between a comparing box's text bands.
+        const lane = el(g, 'g', band ? { transform: `translate(0 ${topBand.toFixed(2)})` } : {});
+        const laneH = H - topBand - bottomBand;
+        if (!band) {
+          // The zero line, brighter: where the trace crosses from + to −.
+          const zero = H - ((0 - lo) / (hi - lo)) * H;
+          el(lane, 'line', { x1: 0, y1: zero, x2: W, y2: zero, class: 'scope-zero' });
+          el(g, 'text', { x: W - 3, y: 10, class: 'scope-scale' }, f(hi, trace.unit));
+          if (!compact) el(g, 'text', { x: W - 3, y: H - 3, class: 'scope-scale' }, f(lo, trace.unit));
         }
         // The cycles before a mark, run on after it (compare), under the trace.
         for (const m of marks) {
           const ghost = m.ghost?.filter(([gt]) => gt >= from && gt <= to);
-          if (k === 0 && ghost?.length > 1) el(g, 'polyline', { points: pathOf(ghost, from, to, lo, hi, W, H), class: trace.kind ? `scope-trace ghost ${trace.kind}` : 'scope-trace ghost', ...(trace.kind ? {} : { stroke: trace.color }) });
+          if (k === 0 && ghost?.length > 1) el(lane, 'polyline', { points: pathOf(ghost, from, to, lo, hi, W, laneH), class: trace.kind ? `scope-trace ghost ${trace.kind}` : 'scope-trace ghost', ...(trace.kind ? {} : { stroke: trace.color }) });
         }
-        if (trace.points.length) el(g, 'polyline', { points: pathOf(trace.points, from, to, lo, hi, W, H), class: trace.kind ? `scope-trace ${trace.kind}` : 'scope-trace', ...(trace.kind ? {} : { stroke: trace.color }) });
+        if (trace.points.length) el(lane, 'polyline', { points: pathOf(trace.points, from, to, lo, hi, W, laneH), class: trace.kind ? `scope-trace ${trace.kind}` : 'scope-trace', ...(trace.kind ? {} : { stroke: trace.color }) });
+        const delta = k === 0 ? marks.findLast((m) => m.delta && m.t <= to)?.delta : null;
+        if (band) {
+          // Top band: the name on the left, each mark's text beside its line, never over the name.
+          const y = topBand * 0.8;
+          let taken = -Infinity;
+          if (compact) {
+            const label = el(g, 'text', { x: LEFT + 3, y, class: trace.kind ? `scope-label inside ${trace.kind}` : 'scope-label inside', style: `font-size:${band.label.toFixed(2)}px`, ...ink }, name);
+            taken = plate(g, label, { x: LEFT + 3, y, size: band.label }).right;
+          }
+          for (const m of shownMarks) {
+            const text = el(g, 'text', { y, class: 'scope-mark-text', style: `font-size:${band.mark.toFixed(2)}px` }, m.text);
+            const w = textWidth(text, band.mark);
+            const x = xOf(m.t);
+            const gapX = band.mark * 0.4;
+            // Right of its line when it fits there, else left of it; past the name either way.
+            let at = x + gapX + w <= W ? x + gapX : x - gapX - w;
+            if (at < taken + gapX) at = taken + gapX;
+            text.setAttribute('x', at.toFixed(2));
+            taken = plate(g, text, { x: at, y, size: band.mark }).right;
+          }
+          if (delta) {
+            const text = el(g, 'text', { x: W / 2, y: H - bottomBand * 0.28, class: 'scope-delta', style: `font-size:${band.delta.toFixed(2)}px` }, delta);
+            // Never wider than the box: smaller, then, rather than cut.
+            let size = band.delta;
+            const wide = textWidth(text, size);
+            if (wide > W * 0.94) {
+              size *= (W * 0.94) / wide;
+              text.setAttribute('style', `font-size:${size.toFixed(2)}px`);
+            }
+            plate(g, text, { x: W / 2, y: H - bottomBand * 0.28, size, anchor: 'middle' });
+          }
+          if (compact && clock && k === traces.length - 1) el(g, 'text', { x: W - 3, y: H - 3, class: 'scope-scale scope-time-end' }, f(to, 's'));
+          return;
+        }
         // The marks' texts over the trace, on a halo of the screen (never crossed by it).
         for (const m of shownMarks) {
-          const x = LEFT + ((m.t - from) / (to - from || 1)) * (W - LEFT);
+          const x = xOf(m.t);
           const right = x < W / 2;
           el(g, 'text', { x: right ? x + 3 : x - 3, y: 21, class: right ? 'scope-mark-text' : 'scope-mark-text scope-end' }, m.text);
         }
-        const delta = k === 0 ? marks.findLast((m) => m.delta && m.t <= to)?.delta : null;
         if (delta) el(g, 'text', { x: W / 2, y: H - 6, class: 'scope-delta' }, delta);
         // Compact: the name and the value inside the plot, over the trace; the window's end at the bottom.
         if (compact) {
           el(g, 'text', { x: LEFT + 3, y: 12, class: trace.kind ? `scope-label inside ${trace.kind}` : 'scope-label inside', ...ink }, name);
-          if (k === traces.length - 1) el(g, 'text', { x: W - 3, y: H - 3, class: 'scope-scale scope-time-end' }, f(to, 's'));
+          if (clock && k === traces.length - 1) el(g, 'text', { x: W - 3, y: H - 3, class: 'scope-scale scope-time-end' }, f(to, 's'));
         }
       });
       if (compact) return;

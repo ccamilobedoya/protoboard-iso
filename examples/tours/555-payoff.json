@@ -1,0 +1,27 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "555-astable",
+  "format": "vertical",
+  "pace": 0.15,
+  "steps": [
+    { "at": 0, "do": "scene", "mode": "part", "part": "U1", "zoom": 1.5, "enter": "drop", "push": 1.7, "light": "#ff3b2f" },
+    { "at": 0, "do": "caption", "text": { "en": "A 555 chip makes lights blink", "es": "Un chip 555 hace parpadear luces" } },
+
+    { "at": 2600, "do": "land", "part": "U1" },
+    { "at": 4100, "do": "frame", "target": ["D1", "C1"], "zoom": 1.3, "move": "travel" },
+    { "at": 4100, "do": "focus", "parts": ["D1"] },
+    { "at": 4100, "do": "caption", "text": { "en": "The chip (U1) switches", "es": "El chip (U1) prende y apaga" }, "line": { "en": "the LED (D1) on and off", "es": "el LED (D1)" } },
+
+    { "at": 8000, "do": "probe", "part": "C1", "field": "voltage", "window": 1.5, "compare": true, "place": "top", "size": "compact", "title": "C1", "label": { "en": "charge", "es": "carga" }, "reading": false, "clock": false },
+    { "at": 8000, "do": "frame", "target": ["D1", "C1"], "zoom": 1.3, "move": "travel" },
+    { "at": 8000, "do": "focus", "parts": ["D1"] },
+    { "at": 8000, "do": "caption", "text": { "en": "What if the resistor (R1)", "es": "¿Y si la resistencia (R1)" }, "line": { "en": "were about 50 times bigger?", "es": "fuera casi 50 veces mayor?" }, "data": "1 kΩ → 47 kΩ" },
+    { "at": 11000, "do": "set", "part": "R1", "field": "resistance", "value": 47000, "move": "hit" },
+    { "at": 12000, "do": "caption", "text": { "en": "The LED (D1) stays on longer", "es": "El LED (D1) dura más prendido" }, "line": { "en": "but goes off just as fast", "es": "pero se apaga igual de rápido" } },
+
+    { "at": 19500, "do": "probe", "off": true },
+    { "at": 19500, "do": "focus", "parts": [] },
+    { "at": 19500, "do": "frame", "target": "D1", "zoom": 1.2, "move": "travel" },
+    { "at": 19500, "do": "caption", "text": { "en": "More resistance, slower blink", "es": "Más resistencia, ritmo más lento" }, "line": { "en": "Try it at the page: tap R1", "es": "Pruébalo en la página: toca R1" } }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "recipe": "555-astable",
+  "tour": "examples/tours/555-result-first.json",
+  "lang": "es",
+  "viewport": {"width":360,"height":640},
+  "ticks": [[0,1],[33.333333333333336,282]],
+  "renderer": "chromium 156.0.8078.4 linux-x64",
+  "html": "74416f1f616f8aad9225b2a1c21f0739cd5fd6c2b9f2bf62d926aba7ddf1799d",
+  "png": "66269439b1c095dfba4bfbfa1b7d77dd100b289987bbc8dd36d46c34300c5ee8"
+}

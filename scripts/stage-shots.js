@@ -36,8 +36,8 @@ const FRAME = 1000 / 30;
 // may still reach 75 %), and an oscilloscope's box on top (a probe's place "top") lies between the
 // caption and 40 % (`scope`, moves.js SCOPE_BOX).
 export const RULES = {
-  vertical: { width: 1080, height: 1920, caption: { top: [0.15, 0.17], bottom: [0, 0.4] }, ink: { left: 90 / 1080, right: 1 - 90 / 1080 }, free: { top: 0.4, bottom: 0.75, left: 0.0667, right: 0.9333 }, told: { bottom: 0.65 }, scope: { ...SCOPE_BOX.top }, sizes: { text: 56, number: 44, data: 44 }, label: 40 },
-  horizontal: { width: 1920, height: 1080, caption: { top: [0, 1], bottom: [0, 1], right: [0, 0.5] }, ink: { left: 90 / 1920, right: 0.5 }, free: { top: 0.09, bottom: 0.91, left: 0.5, right: 0.9625 }, sizes: { text: 52, data: 44 }, label: 40 },
+  vertical: { width: 1080, height: 1920, caption: { top: [0.15, 0.17], bottom: [0, 0.4] }, ink: { left: 90 / 1080, right: 1 - 90 / 1080 }, free: { top: 0.4, bottom: 0.75, left: 0.0667, right: 0.9333 }, told: { bottom: 0.65 }, scope: { ...SCOPE_BOX.top }, sizes: { text: 56, number: 44, data: 56 }, label: 48, lines: 2, card: { top: 0.15, bottom: 0.65 } },
+  horizontal: { width: 1920, height: 1080, caption: { top: [0, 1], bottom: [0, 1], right: [0, 0.5] }, ink: { left: 90 / 1920, right: 0.5 }, free: { top: 0.09, bottom: 0.91, left: 0.5, right: 0.9625 }, sizes: { text: 52, data: 52 }, label: 48, lines: 2 },
 };
 // The caption's least contrast on what is under it (WCAG's ratio), and the first frame's checks.
 export const CONTRAST = 4.5;
@@ -84,6 +84,10 @@ export function frameProblems(format, m, { moving = false } = {}) {
   // The caption's ink within the safe width (90 px a side), its second line as large as the first by
   // default (a smaller one is the timeline's own choice of --cap-line-size, not checked), its contrast.
   if (m.inkBox && r.ink && (m.inkBox.left < r.ink.left - TOLERANCE / 4 || m.inkBox.right > r.ink.right + TOLERANCE / 4)) out.push(`the caption's text at ${pct(m.inkBox.left)}…${pct(m.inkBox.right)}, out of the safe width ${pct(r.ink.left)}…${pct(r.ink.right)}`);
+  if (m.captionLines != null && r.lines && m.captionLines > r.lines) out.push(`the caption takes ${m.captionLines} lines, at most ${r.lines}`);
+  // A card's text inside the safe width and between the platforms' bands (15 % to 65 % of a vertical frame).
+  if (m.card && r.ink && (m.card.left < r.ink.left - TOLERANCE / 4 || m.card.right > r.ink.right + TOLERANCE / 4)) out.push(`the card's text at ${pct(m.card.left)}…${pct(m.card.right)}, out of the safe width ${pct(r.ink.left)}…${pct(r.ink.right)}`);
+  if (m.card && r.card && (m.card.top < r.card.top - TOLERANCE / 4 || m.card.bottom > r.card.bottom + TOLERANCE / 4)) out.push(`the card's text at ${pct(m.card.top)}…${pct(m.card.bottom)} of the height, out of ${pct(r.card.top)}…${pct(r.card.bottom)}`);
   if (m.contrast != null && m.contrast < CONTRAST) out.push(`the caption's contrast ${m.contrast.toFixed(1)}:1 on what is under it, under ${CONTRAST}:1`);
   // The told part's label, never smaller than r.label px at 1080 (scaled by tour.js).
   if (r.label && m.labelPx != null && !moving && m.labelPx < (r.label * Math.min(r.width, r.height)) / 1080 - PX) out.push(`the label of ${m.told?.id} ${Math.round(m.labelPx)} px, under ${r.label} px`);
@@ -214,25 +218,68 @@ export function measure() {
   const box = document.querySelector('.scope-inset');
   const boxRect = box ? shown(box) : null;
   // The caption's ink: each of its lines' text as laid out (px), its colour, whether it is still rising.
+  // An emphasis (.em, in the accent and larger) is read apart: its own colour against what is under it.
   const ink = [];
+  const emInk = [];
   let inkColor = null;
+  let emColor = null;
   let rising = false;
+  const colorOf = (el) => (getComputedStyle(el).color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+  // The boxes of an element's text as laid out, each text node apart (an emphasis is a node of its own).
+  const textRects = (root, into, emInto) => {
+    const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      if (!n.textContent.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(n);
+      const to = n.parentNode.classList?.contains('em') ? emInto : into;
+      for (const r of range.getClientRects()) if (r.width > 0 && r.height > 0) to.push({ x: r.left, y: r.top, width: r.width, height: r.height });
+    }
+  };
   if (capRect) {
     for (const span of cap.querySelectorAll(':scope > p:not([hidden]) > .in')) {
       if (!span.textContent || span.closest('[hidden]')) continue;
-      const range = document.createRange();
-      range.selectNodeContents(span);
-      for (const r of range.getClientRects()) if (r.width > 0 && r.height > 0) ink.push({ x: r.left, y: r.top, width: r.width, height: r.height });
+      textRects(span, ink, emInk);
       if (span.style.transform || (span.style.opacity && span.style.opacity !== '1')) rising = true;
-      if (!inkColor && span.parentNode.classList.contains('text')) inkColor = (getComputedStyle(span).color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+      if (!inkColor && span.parentNode.classList.contains('text')) inkColor = colorOf(span);
+      const em = span.querySelector('.em');
+      if (em && !emColor) emColor = colorOf(em);
     }
   }
-  const inkBox = ink.length ? frac({ top: Math.min(...ink.map((r) => r.y)), bottom: Math.max(...ink.map((r) => r.y + r.height)), left: Math.min(...ink.map((r) => r.x)), right: Math.max(...ink.map((r) => r.x + r.width)) }) : null;
+  // How many lines the caption's sentence takes as laid out (its text and its second line, not the
+  // data row): the font's own widths, not a count of letters. At most two (RULES). A box belongs to
+  // the line whose band holds its middle (an emphasis is taller than the words beside it).
+  const bands = [];
+  if (capRect) {
+    const rects = [];
+    for (const span of cap.querySelectorAll(':scope > p.text:not([hidden]) > .in, :scope > p.line:not([hidden]) > .in')) if (span.textContent) textRects(span, rects, rects);
+    for (const r of rects.sort((a, b) => a.y - b.y)) {
+      const mid = r.y + r.height / 2;
+      const band = bands.find((b) => mid >= b.top && mid <= b.bottom);
+      if (band) band.bottom = Math.max(band.bottom, r.y + r.height);
+      else bands.push({ top: r.y, bottom: r.y + r.height });
+    }
+  }
+  // A card (a timeline's card) over the screen: where its text lies.
+  const cardEl = document.querySelector('.tour-card');
+  const cardRect = cardEl && !cardEl.hidden ? shown(cardEl) : null;
+  const cardInk = [];
+  if (cardRect) for (const p of cardEl.querySelectorAll(':scope > p:not([hidden])')) textRects(p, cardInk, cardInk);
+  const all = [...ink, ...emInk];
+  const inkBox = all.length ? frac({ top: Math.min(...all.map((r) => r.y)), bottom: Math.max(...all.map((r) => r.y + r.height)), left: Math.min(...all.map((r) => r.x)), right: Math.max(...all.map((r) => r.x + r.width)) }) : null;
   // The told label's letter size on screen: its font size through its own scale and the camera.
   const labelEl = tag ? svg.querySelector(`.spotlabels > text[data-part="${id}"], .spotlabels > [data-part="${id}"] text`) : null;
   const ctm = labelEl?.getScreenCTM?.();
   const labelPx = labelEl && ctm ? Number(labelEl.getAttribute('font-size')) * Math.hypot(ctm.a, ctm.b) : null;
   const scope = boxRect ? { ...frac(boxRect), place: box.classList.contains('top') ? 'top' : 'bottom' } : null;
+  // Where each LED is on screen (px): its shade's box, the copy over the veil when there is one. A
+  // video's later check reads the LED's light there (does it blink in the frame?).
+  // Not under a card: it covers them.
+  const leds = {};
+  if (!cardRect) for (const el of svg.querySelectorAll(':scope > .parts > .led-shade, :scope > .spotlight > .led-shade')) {
+    const r = shown(el);
+    if (r) leds[el.getAttribute('data-shade')] = { x: Math.round(r.left), y: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) };
+  }
   return {
     theme: document.documentElement.dataset.theme ?? null,
     viewBox: svg.getAttribute('viewBox'),
@@ -242,6 +289,12 @@ export function measure() {
     inkColor,
     inkBox,
     captionRising: rising,
+    // The caption before is still fading out over this one (tour.js, a copy with .leaving).
+    captionFading: Boolean(document.querySelector('.tour-caption.leaving')),
+    captionLines: capRect ? bands.length : null,
+    emInk,
+    emColor,
+    card: cardRect ? frac({ top: Math.min(...cardInk.map((r) => r.y)), bottom: Math.max(...cardInk.map((r) => r.y + r.height)), left: Math.min(...cardInk.map((r) => r.x)), right: Math.max(...cardInk.map((r) => r.x + r.width)) }) : null,
     labelPx,
     scene: document.querySelector('main')?.dataset.scene ?? null,
     focusing: document.body.classList.contains('focusing'),
@@ -251,6 +304,7 @@ export function measure() {
     told,
     pinout,
     scope,
+    leds,
     labels: labels.length,
     tags: visible('main > svg:not([hidden]) .results > [data-q], main > svg:not([hidden]) .labels > *, main > svg:not([hidden]) .shortlabels > *').length,
     chrome: ['nav', '.zoom', '.inspector', '.first-hint'].filter((sel) => visible(sel).length),
