@@ -9,6 +9,8 @@ detail.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-02
+
 ### Added
 
 - **The current on the focus**: `flow` with `"scope": "focus"` draws the current only on the nets of
@@ -26,8 +28,8 @@ detail.
 
 ### Changed
 
-- Three videos about one part (`focus-led`, `focus-mosfet`, `focus-zener`) frame their working
-  parts, so the told part stays above 65 %.
+- Five example tours (`focus-led`, `focus-mosfet`, `focus-zener`, `mosfet-switch`,
+  `zener-regulator`) frame their parts in focus, so the told part stays above 65 %.
 
 ## [0.5.0] - 2026-11-02
 
@@ -139,7 +141,8 @@ detail.
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.3.0...v0.3.1
