@@ -18,8 +18,8 @@
 // circuit (M21; bench.js); a symbol (M22) or an inside view (M23) stands beside it (figure.js). Only
 // transform and opacity move.
 
-import { moveTiming, bezier, CAPTION, INSERT, RAISE, SCENE, ASSEMBLE, PULSE, PULSE_COLORS } from './moves.js';
-import { applyFocus, liftPart, showPart, isWire, traceWire, quote } from './focus.js';
+import { moveTiming, bezier, CAPTION, INSERT, RAISE, NUDGE, SCENE, ASSEMBLE, PULSE, PULSE_COLORS } from './moves.js';
+import { applyFocus, liftPart, showPart, isWire, traceWire, quote, scopeFlow } from './focus.js';
 import { select, selectNode } from './card.js';
 import { setupPinout } from './pinout.js';
 import { setupBench } from './bench.js';
@@ -54,6 +54,7 @@ function stepMs(s, timing, count) {
   if (s.do === 'assemble') return assembleMs(s, count) + INSERT.ramp;
   if (s.do === 'caption' || s.do === 'value') return captionMs(s);
   if (s.do === 'insert') return timing(s).ms + INSERT.ramp;
+  if (s.do === 'nudge') return s.ms ?? NUDGE.ms;
   return timing(s).ms;
 }
 
@@ -362,8 +363,12 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       page.scopeMark?.(s.part, s.field, s.value);
       return director.set(s.part, s.field, s.value, timing(s));
     },
+    // `scope` "focus": only the nets of the parts in focus carry the current, until the next flow
+    // step (focus.js, scopeFlow). `style` was read when the page was made (sim/paths.js, flowStyle).
     flow: (s) => {
       page.state.layer = s.on ? 'flow' : 'parts';
+      page.flowScope = s.on ? (s.scope ?? 'all') : 'all';
+      scopeFlow(page);
       page.show();
       if (!s.on || !(s.ramp > 0) || reduced) return dots(1);
       dots(0);
@@ -398,13 +403,14 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     },
     // In the page, the card with its oscilloscope; in a recording, the oscilloscope in a box of its
     // own (M11), the camera bringing the last thing it framed back into the room it leaves; `window`
-    // keeps its time axis fixed and `marks` draws a line at each set (live.js).
+    // keeps its time axis fixed and `marks` draws a line at each set; `place` top puts it under the
+    // caption and `size` compact draws it small (live.js).
     probe: (s) => {
       if (!recording) {
         if (s.off) return select(page, null);
         return s.node != null ? selectNode(page, s.node) : select(page, s.part);
       }
-      page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note, window: s.window, marks: s.marks });
+      page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note, window: s.window, marks: s.marks, place: s.place, size: s.size });
       if (framed) director.frame(framed.target, { ...moveTiming('arrival'), zoom: framed.zoom ?? 1, pan: framed.pan ?? null, alone: framed.alone ?? false });
     },
     // M15: in focus, then into its holes (`enter`: drop from `height` mm, the default 12; fade;
@@ -496,6 +502,26 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       const from = page.lifted?.get(s.part) ?? 0;
       const { ms, ease } = timing(s);
       director.tween((e) => liftPart(page, s.part, from + (to - from) * e), { ms, ease });
+    },
+    // A nudge: up a few mm in the first part of its time, a rest, and back along the opposite curve,
+    // from wherever it was (a raised part comes back up there). The focus and the told label stay
+    // as they are; under the veil the part is drawn over it only while it moves (focus.js).
+    nudge: (s) => {
+      const id = s.part;
+      if (!page.data.parts[id] || reduced) return;
+      const mm = s.mm ?? NUDGE.mm;
+      const up = bezier(s.curve ?? NUDGE.curve);
+      const base = page.lifted?.get(id) ?? 0;
+      page.nudged ??= new Set();
+      page.nudged.add(id);
+      applyFocus(page);
+      director.tween((e) => {
+        const k = e < NUDGE.rise ? up(e / NUDGE.rise) : e > 1 - NUDGE.rise ? up((1 - e) / NUDGE.rise) : 1;
+        liftPart(page, id, base + mm * (e >= 1 ? 0 : k));
+        if (e < 1) return;
+        page.nudged.delete(id);
+        applyFocus(page);
+      }, { ms: s.ms ?? NUDGE.ms, ease: (k) => k });
     },
     // M17: the part alone on a pedestal (mode part), framed in the middle without its label (`zoom`),
     // raised SCENE.mm; the board and the other parts fade along the move and are then not drawn.
@@ -594,6 +620,9 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     box.hidden = true;
     shown = null;
     document.body.classList.remove('touring', 'focus-solid');
+    page.flowScope = 'all';
+    page.nudged?.clear();
+    scopeFlow(page);
     page.direct(false);
   }
   function play() {

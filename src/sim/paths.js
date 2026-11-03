@@ -292,8 +292,13 @@ export function liveFlow(built, sim, circuit, style = 'plan') {
   return { wires: wires.map((w) => w.ref), dots: dots.map((d) => d.ref), strips, lights: lights.map((l) => l.part), hot: hot.map((h) => h.part), vmax };
 }
 
-// The style a circuit asks for: page.flow.style, else the plan.
-export const flowStyle = (circuit) => (FLOW_STYLES.includes(circuit?.page?.flow?.style) ? circuit.page.flow.style : 'plan');
+// The style a circuit asks for: the first flow step of its timeline that names one (a recording
+// may draw the current along the leads, src/tour.js), else page.flow.style, else the plan.
+export function flowStyle(circuit) {
+  const steps = circuit?.page?.tour?.steps;
+  const asked = Array.isArray(steps) ? steps.find((s) => s?.do === 'flow' && FLOW_STYLES.includes(s.style))?.style : null;
+  return asked ?? (FLOW_STYLES.includes(circuit?.page?.flow?.style) ? circuit.page.flow.style : 'plan');
+}
 
 // A rail's net name (netLabels) printed flat beside its pad, as the board prints it at its end.
 function railName(scene, board, circuit, hole) {
@@ -431,7 +436,7 @@ export function flowOps(scene, built, sim, circuit, { live = false, style = 'pla
     const width = w.pad ? PAD_WIDTH : w.ref.node ? STRIP_WIDTH : CONDUCTOR_WIDTH;
     const data = { ...tag(w.ref).data, ...(w.bridge && { bridge: w.bridge }), ...(live && { wire: i }) };
     const op = { kind: 'path', d, stroke: voltageColor(w.voltage, vmax), strokeWidth: width, cls: w.pad ? 'conductor pad' : w.link ? 'conductor link' : 'conductor', ...tag(w.ref), data };
-    if (w.pad) pads.push({ kind: 'path', d, stroke: PAD_EDGE_COLOR, strokeWidth: PAD_WIDTH + 2 * PAD_EDGE, cls: 'pad-edge' }, op);
+    if (w.pad) pads.push({ kind: 'path', d, stroke: PAD_EDGE_COLOR, strokeWidth: PAD_WIDTH + 2 * PAD_EDGE, cls: 'pad-edge', data: tag(w.ref).data }, op);
     else if (w.link) links.push(op);
     else if (w.ref.node) strip.conductors.push(op);
     else {

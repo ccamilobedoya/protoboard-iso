@@ -67,7 +67,19 @@ export const CAPTION = { in: 400, stagger: 90, out: 200, curve: MOVES.arrival.cu
 export const INSERT = { mm: 12, ms: 700, ramp: 600 };
 // M16: a part raised to set it apart in a video (a timeline's `raise`): 3 mm by default, along its
 // move (an arrival); it stays up until a `raise` to 0 mm. Raised, it is still in the circuit.
+// The oscilloscope's box of a portrait recording (M11, body.with-scope; page/style.js), as shares of
+// the height. Under the circuit by default, from 56 % to 75 %: the frame then also leaves that band
+// free, and the circuit lies between 40 and 56 %. On top (a probe's place "top", body.scope-top),
+// from 28 % (2 % under a caption of two lines, which ends at about 26 %) to 40 %, in the empty band
+// between the caption and the circuit: the circuit keeps the whole band from 40 to 75 %. In
+// landscape the box lies under the caption, in the left half, either way.
+export const SCOPE_BOX = { bottom: { top: 0.56, bottom: 0.75 }, top: { top: 0.28, bottom: 0.4 } };
 export const RAISE = { mm: 3, max: 12 };
+// A nudge: a part the voice names as a cause, while the subject is another, rises a little and comes
+// back, to be noticed without taking the focus or the label (a timeline's `nudge`; the video's
+// version of a pulse on load). `mm` 1…4 (3), `ms` 600…1200 (900): up in the first `rise` of it along
+// a quint out, a rest, and down in the last `rise` along the opposite curve.
+export const NUDGE = { mm: 3, min: 1, max: 4, ms: 900, msMin: 600, msMax: 1200, rise: 0.3, curve: [0.22, 1, 0.36, 1] };
 // M4, M5: the circuit builds itself (a timeline's assemble): one part after the other, `gap` ms
 // apart, each coming down like an insert or, a wire, drawn from one end to the other, in `ms`; the
 // current starts when the last one is in.

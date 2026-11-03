@@ -25,13 +25,17 @@ import { basename, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolveTarget, loadCircuit } from '../src/node/workspace.js';
 import { renderPage } from '../src/page.js';
+import { SCOPE_BOX } from '../src/page/client/moves.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const FRAME = 1000 / 30;
 
-// The rules of a frame (fractions of the screen; px at the format's width).
+// The rules of a frame (fractions of the screen; px at the format's width). Vertical: the told part
+// ends above 65 % of the height (the platforms' buttons and text cover the bottom 35 %; the context
+// may still reach 75 %), and an oscilloscope's box on top (a probe's place "top") lies between the
+// caption and 40 % (`scope`, moves.js SCOPE_BOX).
 export const RULES = {
-  vertical: { width: 1080, height: 1920, caption: { top: [0.15, 0.17], bottom: [0, 0.4] }, free: { top: 0.4, bottom: 0.75, left: 0.0667, right: 0.9333 }, sizes: { text: 56, number: 44, line: 30 } },
+  vertical: { width: 1080, height: 1920, caption: { top: [0.15, 0.17], bottom: [0, 0.4] }, free: { top: 0.4, bottom: 0.75, left: 0.0667, right: 0.9333 }, told: { bottom: 0.65 }, scope: { ...SCOPE_BOX.top }, sizes: { text: 56, number: 44, line: 30 } },
   horizontal: { width: 1920, height: 1080, caption: { top: [0, 1], bottom: [0, 1], right: [0, 0.5] }, free: { top: 0.09, bottom: 0.91, left: 0.5, right: 0.9625 }, sizes: { text: 52 } },
 };
 // Chromium's flags for frames that do not depend on timing: every compositor stage done before a
@@ -56,6 +60,12 @@ export function frameProblems(format, m, { moving = false } = {}) {
   if (m.told && !moving) {
     const f = r.free;
     if (m.told.top < f.top - TOLERANCE || m.told.bottom > f.bottom + TOLERANCE || m.told.left < f.left - TOLERANCE || m.told.right > f.right + TOLERANCE) out.push(`${m.told.id} at ${pct(m.told.left)}…${pct(m.told.right)} × ${pct(m.told.top)}…${pct(m.told.bottom)}, out of the free area ${pct(f.left)}…${pct(f.right)} × ${pct(f.top)}…${pct(f.bottom)}`);
+    else if (r.told && m.told.bottom > r.told.bottom + TOLERANCE) out.push(`${m.told.id} ends at ${pct(m.told.bottom)}, below ${pct(r.told.bottom)} (the told part stays above the platforms' bottom band)`);
+  }
+  // The oscilloscope's box: never over the caption; on top, ending at the circuit's band.
+  if (m.scope && r.scope) {
+    if (m.caption && m.caption.bottom > m.scope.top + TOLERANCE / 2) out.push(`the oscilloscope's box at ${pct(m.scope.top)} overlaps the caption (to ${pct(m.caption.bottom)})`);
+    if (m.scope.place === 'top' && m.scope.bottom > r.scope.bottom + TOLERANCE / 2) out.push(`the oscilloscope's box ends at ${pct(m.scope.bottom)}, below ${pct(r.scope.bottom)}`);
   }
   if (m.labels > 1) out.push(`${m.labels} labels, not 1`);
   else if (m.label && !moving) {
@@ -99,6 +109,9 @@ export function measure() {
   const visible = (sel) => [...document.querySelectorAll(sel)].filter(shown);
   const pinned = [...svg.querySelectorAll(':scope > .pinout > *, :scope > .bench > *')].map(shown).filter(Boolean);
   const pinout = pinned.length ? frac({ top: Math.min(...pinned.map((r) => r.top)), bottom: Math.max(...pinned.map((r) => r.bottom)), left: Math.min(...pinned.map((r) => r.left)), right: Math.max(...pinned.map((r) => r.right)) }) : null;
+  const box = document.querySelector('.scope-inset');
+  const boxRect = box ? shown(box) : null;
+  const scope = boxRect ? { ...frac(boxRect), place: box.classList.contains('top') ? 'top' : 'bottom' } : null;
   return {
     theme: document.documentElement.dataset.theme ?? null,
     viewBox: svg.getAttribute('viewBox'),
@@ -108,6 +121,7 @@ export function measure() {
     label: tag ? frac(tag) : null,
     told,
     pinout,
+    scope,
     labels: labels.length,
     tags: visible('main > svg:not([hidden]) .results > [data-q], main > svg:not([hidden]) .labels > *, main > svg:not([hidden]) .shortlabels > *').length,
     chrome: ['nav', '.zoom', '.inspector', '.first-hint'].filter((sel) => visible(sel).length),

@@ -29,7 +29,10 @@
 // by CSS over their presentation attributes: the static SVG keeps its own colours.
 // Touch: hover only with a fine pointer, feedback on :active, 40 px targets on a coarse pointer.
 
-import { MOVES } from './client/moves.js';
+import { MOVES, SCOPE_BOX } from './client/moves.js';
+
+// The oscilloscope's box of a portrait recording (moves.js, SCOPE_BOX), in % of the height.
+const boxCss = ({ top, bottom }) => `top: ${Math.round(top * 1000) / 10}%; height: ${Math.round((bottom - top) * 1000) / 10}%;`;
 
 // The moves of a timeline as tokens (page/client/moves.js): --move-<name>-ms and, with a curve,
 // --move-<name>-ease.
@@ -218,6 +221,8 @@ body.layer-flow .lights { display: none; } /* the current layer draws its own gl
 /* The plan (stage and video, V3): the parts in focus are drawn over the current layer, seen through,
    so its lines read under their bodies; a pad's edge is the colour behind it. */
 body.layer-flow[data-flow="plan"] .spotlight { opacity: 0.5; }
+/* A timeline's flow with scope "focus": the pieces off the focused nets are not drawn (focus.js, scopeFlow). */
+main > svg > .flow > [data-out] { display: none; }
 /* A timeline's solid focus (focus with solid): the part pointed at is drawn whole over the current. */
 body.layer-flow.focus-solid[data-flow="plan"] .spotlight { opacity: 1; }
 .flow .pad-edge { stroke: var(--veil); }
@@ -309,6 +314,8 @@ nav .falstad .flag[hidden] { display: none; }
 .scope-label { font-size: 10px; font-weight: 600; }
 .scope-label.v { fill: var(--trace-v-ink); }
 .scope-label.i { fill: var(--trace-i-ink); }
+.scope-label.inside.v { fill: var(--trace-v); }
+.scope-label.inside.i { fill: var(--trace-i); }
 .scope-scale { fill: var(--scope-scale); font-family: var(--mono); font-size: 8px; text-anchor: end; }
 .scope-time { fill: var(--ink-3); font-size: 9px; }
 .scope-end { text-anchor: end; }
@@ -509,9 +516,14 @@ body.director .tour-caption .value .in { flex-direction: row-reverse; justify-co
 body.director .tour-caption .value .number { font-size: var(--cap-number); font-weight: 500; line-height: 1; color: var(--cap-value); }
 body.director .tour-caption .value .label { font-size: var(--cap-label); color: var(--cap-ink-2); opacity: 1; }
 /* M11: the oscilloscope in a box of its own (a recording's probe): portrait, the band from 56 % to 75 %
-   (view.js keeps the circuit above it); landscape, under the caption in the left half. */
+   (view.js keeps the circuit above it), or on top (place "top"), from 28 % to 40 %, between the
+   caption and the circuit; landscape, under the caption in the left half. Compact (size "compact",
+   scope.js): no title, no note, the value inside the trace, two axis labels. */
 .scope-inset { display: none; }
-body.director .scope-inset { display: block; position: absolute; z-index: 2; left: var(--cap-pad); right: var(--cap-pad); top: 56%; height: 19%; box-sizing: border-box; padding: var(--cap-gap); background: var(--veil); border-radius: var(--cap-gap); }
+body.director .scope-inset { display: block; position: absolute; z-index: 2; left: var(--cap-pad); right: var(--cap-pad); ${boxCss(SCOPE_BOX.bottom)} box-sizing: border-box; padding: var(--cap-gap); background: var(--veil); border-radius: var(--cap-gap); }
+@media (orientation: portrait) { body.director .scope-inset.top { ${boxCss(SCOPE_BOX.top)} } }
+body.director .scope-inset.compact { padding: calc(var(--cap-gap) / 2); }
+body.director .scope-inset.compact h3 { display: none; }
 @media (orientation: landscape) { body.director .scope-inset { right: calc(50% + var(--cap-pad) / 2); top: 50%; height: 40%; } }
 body.director .scope-inset .scope { height: 100%; display: flex; flex-direction: column; }
 body.director .scope-inset h3 { margin: 0 0 var(--cap-gap); font: 500 var(--cap-label)/1.2 var(--sans); color: var(--cap-ink-2); }

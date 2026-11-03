@@ -11,7 +11,7 @@ import { loadTour } from '../src/tour.js';
 import { CIRCUIT_FOLDER } from '../src/beside.js';
 import { DOT_PERIOD } from '../src/sim/look.js';
 import { timelineCircuit } from '../scripts/render-frames.js';
-import { CAPTION, INSERT, LIGHT, RAISE, MOVES, ASSEMBLE } from '../src/page/client/moves.js';
+import { CAPTION, INSERT, LIGHT, RAISE, NUDGE, MOVES, ASSEMBLE } from '../src/page/client/moves.js';
 
 const FRAME = 1000 / 30;
 const examples = fileURLToPath(new URL('../examples/', import.meta.url));
@@ -230,6 +230,44 @@ test('moves: M16 a raise sets a part apart, slowly, and keeps it up, in the circ
   assert.equal(r.svg().querySelector(':scope > .parts > [data-part="D1"]').style.opacity, '');
 });
 
+// A nudge (2026-11-02): a part the voice names as a cause rises a little and comes back, the focus
+// and the told label left as they were; under the veil it is drawn over it only while it moves.
+test('moves: a nudge lifts a part out of focus a little and back, keeping the focus and the told label', async (t) => {
+  const r = await recording([
+    { at: 0, do: 'frame', target: 'D1', move: 'cut' },
+    { at: 0, do: 'focus', parts: ['D1'] },
+    { at: 500, do: 'nudge', part: 'R1' },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  const lift = JSON.parse(r.doc.getElementById('page-data').textContent).lift;
+  const copy = () => r.svg().querySelector(':scope > .spotlight > .lift[data-part="R1"]');
+  const height = () => 0 - Number(copy()?.getAttribute('transform')?.match(/translate\(0 (-?[\d.]+)\)/)?.[1] ?? 0) || 0;
+  r.to(400);
+  assert.equal(r.svg().querySelector(':scope > .spotlight > [data-part="R1"]'), null, 'R1 under the veil before');
+  r.to(500 + NUDGE.ms * NUDGE.rise * 0.4);
+  const rising = height();
+  r.to(500 + NUDGE.ms * 0.5);
+  const top = height();
+  assert.ok(rising > 0 && rising < top, `rising: ${rising} < ${top}`);
+  assert.ok(Math.abs(top - NUDGE.mm * lift) < 0.01, `${NUDGE.mm} mm up: ${top}`);
+  assert.ok(r.svg().querySelector(':scope > .spotlight > [data-part="D1"]'), 'the focus stays');
+  const labels = [...r.svg().querySelectorAll(':scope > .spotlabels > [data-part]')].map((el) => el.getAttribute('data-part'));
+  assert.deepEqual([...new Set(labels)], ['D1'], 'and so does the told label');
+  assert.equal(r.doc.body.classList.contains('focusing'), true);
+  r.to(500 + NUDGE.ms * 0.85);
+  assert.ok(height() > 0 && height() < top, 'coming back');
+  r.to(500 + NUDGE.ms + 2 * FRAME);
+  assert.equal(r.svg().querySelector(':scope > .spotlight > [data-part="R1"]'), null, 'under the veil again');
+  assert.equal(r.svg().querySelector(':scope > .parts > [data-part="R1"]').style.opacity, '', 'in its holes');
+  const field = (step) => loadTour(npn({ steps: [{ at: 0, ...step }] })).issues.map((i) => `${i.code}:${i.params.field ?? i.params.part}`);
+  assert.deepEqual(field({ do: 'nudge', part: 'R1', mm: 2, ms: 700, curve: [0.34, 1.56, 0.64, 1] }), []);
+  assert.deepEqual(field({ do: 'nudge', part: 'R1', mm: 6 }), ['TOUR_FIELD:mm']);
+  assert.deepEqual(field({ do: 'nudge', part: 'R1', ms: 2000 }), ['TOUR_FIELD:ms']);
+  assert.deepEqual(field({ do: 'nudge', part: 'R1', move: 'travel' }), ['TOUR_FIELD:move']);
+  assert.deepEqual(field({ do: 'nudge', part: 'X9' }), ['TOUR_UNKNOWN_PART:X9']);
+  assert.deepEqual(field({ do: 'nudge' }), ['TOUR_FIELD:part']);
+});
+
 test('moves: a tap in the page lifts nothing', async (t) => {
   const window = await loadPage(renderPage({ ...npn(), page: {} }, { lang: 'en' }).html, { url: 'https://page.test/npn.html' });
   if (!window) return t.skip('jsdom not installed');
@@ -367,6 +405,36 @@ test('moves: M11 without a window the box keeps the kit\'s own (it stretches), a
   assert.notEqual(r.axis().at(-1), '200 ms');
 });
 
+// The compact box under the caption (2026-11-02): a probe placed on top leaves the circuit its whole
+// band (the camera frames as without a box), drawn small: no title, no note, the value inside.
+test('moves: M11 a compact box on top, under the caption, leaves the circuit its whole band', async (t) => {
+  const top = { r: await recording([
+    { at: 0, do: 'set', part: 'S1', field: 'pressed', value: true, move: 'cut' },
+    { at: 100, do: 'probe', part: 'D1', field: 'current', place: 'top', size: 'compact' },
+  ]) };
+  if (!top.r) return t.skip('jsdom not installed');
+  top.r.to(300);
+  const under = { r: await recording([
+    { at: 0, do: 'set', part: 'S1', field: 'pressed', value: true, move: 'cut' },
+    { at: 100, do: 'probe', part: 'D1', field: 'current' },
+  ]) };
+  under.r.to(300);
+  const doc = top.r.doc;
+  assert.ok(doc.body.classList.contains('with-scope') && doc.body.classList.contains('scope-top'));
+  const inset = doc.querySelector('.scope-inset');
+  assert.ok(inset.classList.contains('top') && inset.classList.contains('compact'));
+  assert.equal(inset.querySelector('h3'), null, 'no title');
+  assert.equal(inset.querySelectorAll('.scope-time').length, 0, 'no note and no start of the window');
+  assert.equal(inset.querySelectorAll('.scope-label.inside').length, 1, 'the value inside the trace');
+  assert.equal(inset.querySelectorAll('.scope-scale').length, 2, 'two axis labels: the top of the scale and the end of the window');
+  assert.ok(!under.r.doc.body.classList.contains('scope-top'));
+  assert.ok(under.r.doc.querySelector('.scope-inset h3'), 'full size keeps its title');
+  assert.match(doc.querySelector('style').textContent, /body\.director \.scope-inset\.top \{ top: 28%; height: 12%; \}/);
+  const field = (step) => loadTour(npn({ steps: [{ at: 0, ...step }] })).issues.filter((i) => i.code === 'TOUR_FIELD').map((i) => i.params.field);
+  assert.deepEqual(field({ do: 'probe', part: 'D1', place: 'top', size: 'compact' }), []);
+  assert.deepEqual(field({ do: 'probe', part: 'D1', place: 'left', size: 'tiny' }), ['place', 'size']);
+});
+
 test('moves: M11 check knows a probe\'s window and marks', () => {
   const field = (step) => loadTour(npn({ steps: [{ at: 0, ...step }] })).issues.filter((i) => i.code === 'TOUR_FIELD').map((i) => i.params.field);
   assert.deepEqual(field({ do: 'probe', part: 'D1', window: 2, marks: true }), []);
@@ -403,6 +471,51 @@ test('moves: a solid focus draws its parts whole over the current layer, until t
   assert.match(r.doc.querySelector('style').textContent, /body\.layer-flow\.focus-solid\[data-flow="plan"\] \.spotlight \{ opacity: 1; \}/);
   const field = (step) => loadTour(npn({ steps: [{ at: 0, ...step }] })).issues.filter((i) => i.code === 'TOUR_FIELD').map((i) => i.params.field);
   assert.deepEqual(field({ do: 'focus', parts: ['R1'], solid: 'yes' }), ['solid']);
+});
+
+// The current on the focus (2026-11-02): with scope "focus" only the nets that touch the legs of
+// the parts in focus keep their pieces of the current layer; the rest is plain board under the veil.
+test('moves: a flow with scope focus draws the current only on the focused nets, following the focus', async (t) => {
+  const r = await recording([
+    { at: 0, do: 'set', part: 'S1', field: 'pressed', value: true, move: 'cut' },
+    { at: 0, do: 'focus', parts: ['R1'] },
+    { at: 100, do: 'flow', on: true, scope: 'focus' },
+    { at: 300, do: 'focus', parts: ['D1'] },
+    { at: 500, do: 'flow', on: true },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  const pieces = () => [...r.layer('flow').querySelectorAll(':scope > *')];
+  const drawn = () => pieces().filter((el) => !el.hasAttribute('data-out'));
+  const conductors = (els) => els.filter((el) => el.classList.contains('conductor'));
+  r.to(50);
+  assert.equal(pieces().filter((el) => el.hasAttribute('data-out')).length, 0, 'every piece before the scope');
+  r.to(200);
+  const all = conductors(pieces()).length;
+  const kept = conductors(drawn());
+  assert.ok(kept.length > 0 && kept.length < all / 2, `${kept.length} of ${all} conductors drawn`);
+  const parts = new Set(kept.map((el) => el.dataset.flow).filter(Boolean));
+  const nets = new Set(kept.map((el) => el.dataset.node).filter(Boolean));
+  assert.deepEqual([...parts].filter((p) => !/^W/.test(p)), ['R1'], 'the focused part\'s own leads, and jumpers');
+  assert.ok(nets.size >= 2, 'its two nets');
+  assert.ok(drawn().some((el) => el.dataset.glow === 'D1'), 'the LED still glows');
+  assert.ok(pieces().some((el) => el.dataset.flow === 'Q1' && el.hasAttribute('data-out')), 'another part\'s current is not drawn');
+  r.to(400);
+  assert.deepEqual([...new Set(conductors(drawn()).map((el) => el.dataset.flow).filter((p) => p && !/^W/.test(p)))], ['D1'], 'it follows the focus');
+  r.to(600);
+  assert.equal(pieces().filter((el) => el.hasAttribute('data-out')).length, 0, 'a flow without scope draws it all again');
+  assert.match(r.doc.querySelector('style').textContent, /main > svg > \.flow > \[data-out\] \{ display: none; \}/);
+});
+
+test('moves: a timeline may draw the current along the leads; one style per recording', () => {
+  const real = renderPage(npn({ steps: [{ at: 0, do: 'flow', on: true, style: 'real' }] }), { lang: 'en' }).html;
+  assert.match(real, /<body[^>]* data-flow="real"/);
+  const plain = renderPage(npn({ steps: [{ at: 0, do: 'flow', on: true }] }), { lang: 'en' }).html;
+  assert.match(plain, /<body[^>]* data-flow="plan"/);
+  const codes = (steps) => loadTour(npn({ steps })).issues.map((i) => i.code);
+  assert.deepEqual(codes([{ at: 0, do: 'flow', on: true, style: 'real', scope: 'focus' }]), []);
+  assert.deepEqual(codes([{ at: 0, do: 'flow', on: true, style: 'real' }, { at: 10, do: 'flow', on: false, style: 'plan' }]), ['TOUR_FLOW_STYLE']);
+  assert.deepEqual(codes([{ at: 0, do: 'flow', on: true, style: 'neon' }]), ['TOUR_FIELD']);
+  assert.deepEqual(codes([{ at: 0, do: 'flow', on: true, scope: 'net' }]), ['TOUR_FIELD']);
 });
 
 // The controls (2026-10-31): every move's way can be said in the timeline; left out, the default.

@@ -33,6 +33,11 @@ export function applyFocus(page) {
   const ids = [...state.focus].filter((id) => data.parts[id]);
   const nodes = new Set(ids.flatMap((id) => data.parts[id].nodes));
   const of = (layer) => ids.map((id) => ':scope > .' + layer + ' > [data-part="' + quote(id) + '"]').join(', ');
+  // A nudged part (a timeline's nudge, tour.js) is drawn over the veil while it moves, out of the focus.
+  const veiled = ids.length > 0 || state.layer === 'flow';
+  const nudged = veiled ? [...(page.nudged ?? [])].filter((id) => data.parts[id] && !ids.includes(id)) : [];
+  const lit = [...ids, ...nudged];
+  const ofLit = (layer) => lit.map((id) => ':scope > .' + layer + ' > [data-part="' + quote(id) + '"]').join(', ');
   for (const svg of svgs) {
     // In the plan the copies go over the current layer, seen through (page/style.js), so its
     // lines read under their bodies; otherwise under it.
@@ -40,8 +45,8 @@ export function applyFocus(page) {
     const labels = groupOf(svg, 'spotlabels', ['results', 'probes']);
     parts.textContent = '';
     labels.textContent = '';
-    if (!ids.length) continue;
-    for (const el of [...svg.querySelectorAll(of('under')), ...svg.querySelectorAll(of('parts'))]) {
+    if (!lit.length) continue;
+    for (const el of [...svg.querySelectorAll(ofLit('under')), ...svg.querySelectorAll(ofLit('parts'))]) {
       const copy = el.cloneNode(true);
       // A part in the air has its own pieces unseen (liftPart): its new copies must not be.
       if (page.lifted?.has(el.getAttribute('data-part'))) copy.style.removeProperty('opacity');
@@ -71,6 +76,40 @@ export function applyFocus(page) {
   for (const [id, mm] of page.lifted ?? []) liftPart(page, id, mm);
   page.dynamic.textContent = (shown.length ? shown.join(', ') + ' { display: inline; }' : '') + ghosts.join('');
   document.body.classList.toggle('focusing', ids.length > 0 || strip != null);
+  scopeFlow(page);
+}
+
+// The current on the focus only (a timeline's flow with scope "focus", page.flowScope): the pieces
+// of the current layer on the nets that touch the legs of the parts in focus (their strips, the
+// jumpers that join them, and the focused parts' own leads and bodies) stay; every other piece is
+// marked data-out and not drawn (page/style.js), so the rest is plain board under the veil. The
+// LEDs' glow and the heat stay: a light is not a line. Without the scope every piece is drawn.
+export function focusNets(page, ids) {
+  const { data } = page;
+  const parts = new Set(ids.filter((id) => data.parts[id]));
+  const nets = new Set([...parts].flatMap((id) => data.parts[id].nodes ?? []));
+  const wires = Object.keys(data.parts).filter((id) => !parts.has(id) && isWire(page, id));
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const w of wires) {
+      if (parts.has(w) || !(data.parts[w].nodes ?? []).some((n) => nets.has(n))) continue;
+      parts.add(w);
+      for (const n of data.parts[w].nodes ?? []) nets.add(n);
+      grew = true;
+    }
+  }
+  return { parts, nets };
+}
+export function scopeFlow(page) {
+  const keep = page.flowScope === 'focus' ? focusNets(page, [...page.state.focus]) : null;
+  for (const svg of page.svgs) {
+    for (const el of svg.querySelectorAll(':scope > .flow > *')) {
+      const d = el.dataset ?? {};
+      const out = keep != null && d.glow == null && d.heat == null && !(d.flow != null && keep.parts.has(d.flow)) && !(d.node != null && keep.nets.has(d.node));
+      if (out) el.setAttribute('data-out', '');
+      else el.removeAttribute('data-out');
+    }
+  }
 }
 
 // A part `mm` above its holes: its copies over the veil (and its label's) moved up the screen, the

@@ -29,7 +29,8 @@
 // --validate stops before the browser: the timeline's problems (shape, unknown parts and controls,
 // moves, rhythm), exit 0 with none and 1 with any. --parts lists what a timeline of that circuit can
 // name: the parts (for frame, focus, insert, assemble, raise, label), the readings of each (value,
-// wait-until), the controls with their ranges (set) and the strips (probe's node). Both are for
+// wait-until), the controls with their ranges (set), the strips (probe's node) and the frame's bands
+// (where the circuit, the told part and the oscilloscope's box go). Both are for
 // whoever writes a timeline (docs/en/making-a-video.md): nothing is worked out by hand.
 //
 // --check renders it again in a fresh browser and compares every frame's hash: the same timeline
@@ -54,6 +55,7 @@ import { paceOf } from '../src/sim/pace.js';
 import { pinList } from '../src/pinout.js';
 import { symbolOf, insideOf } from '../src/parts/symbols.js';
 import { CHROMIUM_ARGS, frameProblems, measure, RULES } from './stage-shots.js';
+import { SCOPE_BOX } from '../src/page/client/moves.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const sha256 = (data) => createHash('sha256').update(data).digest('hex');
@@ -119,10 +121,20 @@ export function timelineParts(circuit, lang = 'en') {
   // box runs on the wall clock).
   const pace = engine ? paceOf(engine.timeConstants(), engine.periods(), Boolean(engine.hasProgram?.())) : null;
   const scope = pace ? { window: Number(pace.window.toPrecision(3)), speed: Number(pace.perSecond.toPrecision(3)) } : null;
-  return { simulated: !compiled.fatal, parts, supplies, nodes, scope };
+  return { simulated: !compiled.fatal, parts, supplies, nodes, scope, frame: FRAME_BANDS };
 }
 
-function printParts(name, { simulated, parts, supplies, nodes, scope }) {
+// The bands of a vertical recording, as shares of the height, for whoever estimates sizes before
+// rendering: the circuit's band, where the told part must end, and the oscilloscope's box in each
+// place (with the box under it, the circuit lies above the box).
+export const FRAME_BANDS = {
+  free: { top: RULES.vertical.free.top, bottom: RULES.vertical.free.bottom },
+  told: { bottom: RULES.vertical.told.bottom },
+  scope: { bottom: { ...SCOPE_BOX.bottom }, top: { ...SCOPE_BOX.top } },
+};
+const pctOf = (v) => `${Math.round(v * 100)} %`;
+
+function printParts(name, { simulated, parts, supplies, nodes, scope, frame }) {
   const range = (c) => (c.min != null ? ` ${c.min}…${c.max}` : '');
   console.log(`${name}: ${simulated ? 'simulated (a timeline can play)' : 'NOT simulated: no source, no tour'}`);
   const show = (p) => {
@@ -132,10 +144,11 @@ function printParts(name, { simulated, parts, supplies, nodes, scope }) {
     for (const c of p.controls) console.log(`       set ${c.field} = ${c.value}${c.unit ? ` ${c.unit}` : ''}${range(c)}${c.scale === 'log' ? ' (log)' : ''}`);
     if (p.pedestal && p.pins?.length) console.log(`       pins (pin): ${p.pins.map((x) => `${x.ref} ${x.text === x.name ? '' : `(${x.text})`}`.trim()).join(' · ')}${p.mark ? ` · mark (pin "mark": "${p.id}")` : ''}`);
   };
-  console.log('parts (frame, focus, insert, assemble, raise, label):');
+  console.log('parts (frame, focus, insert, assemble, raise, nudge, label):');
   parts.forEach(show);
   if (supplies.length) console.log('supplies (not drawn on the board: only set):');
   supplies.forEach(show);
+  console.log(`frame (vertical): the circuit from ${pctOf(frame.free.top)} to ${pctOf(frame.free.bottom)} of the height, the told part ending above ${pctOf(frame.told.bottom)}; the oscilloscope's box (probe "place") bottom ${pctOf(frame.scope.bottom.top)}…${pctOf(frame.scope.bottom.bottom)} (the circuit above it), or top ${pctOf(frame.scope.top.top)}…${pctOf(frame.scope.top.bottom)} (size "compact", the circuit keeps its band)`);
   if (scope) console.log(`oscilloscope (probe "window"): ${scope.window} s on screen by default; ${scope.speed ? `${scope.speed} s of simulated time per second of video` : 'the wall clock (nothing changes by itself)'}`);
   console.log('strips (probe "node"):');
   for (const n of nodes) console.log(`  ${n.node.padEnd(8)} ${n.pins.join(' ')}`);

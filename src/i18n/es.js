@@ -461,6 +461,7 @@ export default {
   'check.TOUR_ACTION': 'page.tour, paso {step}: no hay acción «{action}» (acciones: {actions}); el recorrido no se usa.',
   'check.TOUR_MOVE': 'page.tour, paso {step}: no hay movimiento «{move}» (movimientos: {moves}); el recorrido no se usa.',
   'check.TOUR_MOVE_MS': 'page.tour, paso {step}: {move} dura {min}…{max} ms, no {ms}.',
+  'check.TOUR_FLOW_STYLE': 'page.tour, paso {step}: la capa de corriente se dibuja en un solo estilo, {first} (el del primer paso flow que nombra uno); {style} no se sigue.',
   'check.TOUR_SCENE_PART': 'page.tour, paso {step}: {part} es un cable o una fuente; un pedestal muestra sola una pieza del circuito. El paso no hace nada.',
   'check.TOUR_UNKNOWN_PIN': 'page.tour, paso {step}: {part} no tiene la pata «{pin}» (sus patas: {pins}). El paso no hace nada.',
   'check.TOUR_NO_MARK': 'page.tour, paso {step}: {part} no tiene una marca que distinga sus patas (solo la tienen TO-92, TO-220, DIP, LED, diodos y condensadores electrolíticos). El paso no hace nada.',

@@ -331,6 +331,20 @@
                 "minimum": 0,
                 "maximum": 10000,
                 "description": "ms for the dots to reach their speed"
+              },
+              "scope": {
+                "enum": [
+                  "all",
+                  "focus"
+                ],
+                "description": "focus: the current only on the nets that touch the legs of the parts in focus (their strips, the jumpers between them, the focused parts), the rest plain board under the veil, following each focus until the next flow step (default all)"
+              },
+              "style": {
+                "enum": [
+                  "plan",
+                  "real"
+                ],
+                "description": "The current layer's drawing in this timeline: plan (pads and straight lines) or real (along the strips, leads and jumpers); the first flow step that names one sets it for the whole recording (default: the page's, page.flow.style)"
               }
             },
             "additionalProperties": false
@@ -683,6 +697,20 @@
               "marks": {
                 "type": "boolean",
                 "description": "In a recording, a dashed line in the box at each set from then on, with the control's new value, so before and after both read (default false)"
+              },
+              "place": {
+                "enum": [
+                  "bottom",
+                  "top"
+                ],
+                "description": "In a portrait recording, where the box lies: bottom, from 56 % to 75 % of the height, the circuit framed above it from 40 % to 56 % (default); top, from 28 % to 40 %, between a caption of at most two lines (and no value) and the circuit, which keeps the band from 40 % to 75 %"
+              },
+              "size": {
+                "enum": [
+                  "full",
+                  "compact"
+                ],
+                "description": "compact: no title and no note, the value inside the trace, two axis labels (the top of the scale and the end of the window), for a box of 12 % of the height (default full)"
               }
             },
             "additionalProperties": false,
@@ -772,6 +800,68 @@
             },
             "additionalProperties": false,
             "description": "The part comes into its holes along its move (an arrival of 700 ms by default); by default it drops 12 mm and the circuit has no current until it lands"
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "part"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 600,
+                "maximum": 1200,
+                "description": "The whole nudge, up, a rest and down (default 900)"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
+              },
+              "do": {
+                "const": "nudge"
+              },
+              "part": {
+                "type": "string",
+                "description": "id of a part (or a supply)"
+              },
+              "mm": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 4,
+                "description": "How high, in mm (default 3)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "A part the voice names as a cause, while the subject is another, rises a little in the first 30 % of ms (a quint out, or its curve), rests and comes back along the opposite curve; it keeps the focus and the told label as they are, and a part under the veil is drawn over it only while it moves. No move: it has its own",
+            "not": {
+              "required": [
+                "move"
+              ]
+            }
           },
           {
             "type": "object",

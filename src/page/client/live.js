@@ -136,17 +136,20 @@ export function setupLive(page) {
   // timeline may say its title, the trace's name and the note under it otherwise ("" for none), a
   // fixed `window` of time in s, and `marks`: a line at each set from then on, with the new value.
   let inset = null;
-  page.insetScope = (id, only = 'v', { title, label, note, window, marks = false } = {}) => {
+  // `place`: "top" puts the box between the caption and the circuit (body.scope-top; moves.js,
+  // SCOPE_BOX); `size`: "compact" draws it without title or note (scope.js).
+  page.insetScope = (id, only = 'v', { title, label, note, window, marks = false, place, size } = {}) => {
     inset?.box.remove();
     inset = null;
-    document.body.classList.remove('with-scope');
+    document.body.classList.remove('with-scope', 'scope-top');
     if (!id || !recorder || !scopeFor(id)) return false;
     const box = document.createElement('div');
-    box.className = 'scope-inset';
+    box.className = `scope-inset${place === 'top' ? ' top' : ''}${size === 'compact' ? ' compact' : ''}`;
     page.main.appendChild(box);
     const own = { 'page.scope.title': title, 'page.scope.model': note };
-    inset = { id, box, only, label, window: window > 0 ? window : undefined, marks: marks ? [] : undefined, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f }) };
+    inset = { id, box, only, label, window: window > 0 ? window : undefined, marks: marks ? [] : undefined, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f, compact: size === 'compact' }) };
     document.body.classList.add('with-scope');
+    document.body.classList.toggle('scope-top', place === 'top');
     drawOne(inset);
     return true;
   };

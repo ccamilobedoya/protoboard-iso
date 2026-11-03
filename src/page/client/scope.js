@@ -11,15 +11,20 @@
 // `marks` (a recording's probe, M11): [{ t, text }], a dashed line across each plot at time t with
 // its text near the top (under the scale's), beside the line on the side with more room (a set: "R1 → 100 kΩ").
 //
+// `compact` (a recording's probe with size "compact", a box of 12 % of the height): no title and no
+// note, each trace's name and value inside its plot, and two axis labels, the top of the scale and
+// the end of the window; the plots as wide as the box, so the box is filled, not letterboxed.
+//
 // Reusable for more channels and for probes on nodes (phase 9): it only draws what it is given.
 // Each plot keeps the minimum and the maximum of every pixel column, so no peak is lost.
 
 const NS = 'http://www.w3.org/2000/svg';
-const W = 300; // plot width, px of the viewBox
-const H = 84; // plot height
+const PLOT_W = 300; // plot width, px of the viewBox
+const PLOT_H = 84; // plot height
 const GAP = 16; // above each plot, for its label
 const AXIS = 16; // under the last plot, for the time
 const LEFT = 4;
+const COMPACT_H = 56; // a compact plot's height: the box is short, the plot as wide as it
 
 function el(parent, tag, attrs = {}, text) {
   const e = document.createElementNS(NS, tag);
@@ -57,7 +62,7 @@ export function scaleOf(points) {
 
 // One polyline from the points: per pixel column, where the line enters, its minimum and maximum,
 // and where it leaves (a step stays a step; a fast oscillation shows as a filled band).
-export function pathOf(points, from, to, lo, hi, width = W, height = H) {
+export function pathOf(points, from, to, lo, hi, width = PLOT_W, height = PLOT_H) {
   const x = (t) => LEFT + ((t - from) / (to - from || 1)) * (width - LEFT);
   const y = (v) => height - ((v - lo) / (hi - lo || 1)) * height;
   const out = [];
@@ -86,26 +91,34 @@ export function pathOf(points, from, to, lo, hi, width = W, height = H) {
   return out.join(' ');
 }
 
-export function createScope(parent, { t, f }) {
+export function createScope(parent, { t, f, compact = false }) {
   const box = document.createElement('div');
   box.className = 'scope';
   parent.appendChild(box);
   const head = document.createElement('h3');
   head.textContent = t('page.scope.title');
-  box.appendChild(head);
+  if (!compact) box.appendChild(head);
   const svg = el(box, 'svg', { role: 'img', 'aria-label': t('page.scope.title') });
+  const gap = compact ? 0 : GAP;
+  const axis = compact ? 0 : AXIS;
 
   return {
     box,
     draw({ traces, from, to, marks = [] }) {
-      const height = traces.length * (GAP + H) + AXIS;
+      // Compact, the plot takes the box's proportions (laid out: jsdom has none, the usual width).
+      const H = compact ? COMPACT_H : PLOT_H;
+      const r = compact ? svg.getBoundingClientRect() : null;
+      const W = r?.width > 0 && r?.height > 0 ? Math.round((r.width / r.height) * (traces.length * H)) : PLOT_W;
+      const height = traces.length * (gap + H) + axis;
       svg.setAttribute('viewBox', `0 0 ${W} ${height}`);
       svg.textContent = '';
       traces.forEach((trace, k) => {
-        const top = k * (GAP + H) + GAP;
+        const top = k * (gap + H) + gap;
         const [lo, hi] = scaleOf(trace.points);
         const now = trace.points.length ? trace.points[trace.points.length - 1][1] : null;
-        el(svg, 'text', { x: LEFT, y: top - 4, class: trace.kind ? `scope-label ${trace.kind}` : 'scope-label', ...(trace.kind ? {} : { fill: trace.ink ?? trace.color }) }, `${trace.label}${now != null ? `: ${f(now, trace.unit)}` : ''}`);
+        const name = `${trace.label}${now != null ? `: ${f(now, trace.unit)}` : ''}`;
+        const ink = trace.kind ? {} : { fill: trace.ink ?? trace.color };
+        if (!compact) el(svg, 'text', { x: LEFT, y: top - 4, class: trace.kind ? `scope-label ${trace.kind}` : 'scope-label', ...ink }, name);
         const g = el(svg, 'g', { transform: `translate(0 ${top})` });
         el(g, 'rect', { x: 0, y: 0, width: W, height: H, class: 'scope-screen' });
         for (let i = 1; i < 10; i++) el(g, 'line', { x1: (W / 10) * i, y1: 0, x2: (W / 10) * i, y2: H, class: 'scope-grid' });
@@ -114,7 +127,7 @@ export function createScope(parent, { t, f }) {
         const zero = H - ((0 - lo) / (hi - lo)) * H;
         el(g, 'line', { x1: 0, y1: zero, x2: W, y2: zero, class: 'scope-zero' });
         el(g, 'text', { x: W - 3, y: 10, class: 'scope-scale' }, f(hi, trace.unit));
-        el(g, 'text', { x: W - 3, y: H - 3, class: 'scope-scale' }, f(lo, trace.unit));
+        if (!compact) el(g, 'text', { x: W - 3, y: H - 3, class: 'scope-scale' }, f(lo, trace.unit));
         for (const m of marks) {
           if (m.t < from || m.t > to) continue;
           const x = LEFT + ((m.t - from) / (to - from || 1)) * (W - LEFT);
@@ -122,9 +135,15 @@ export function createScope(parent, { t, f }) {
           const right = x < W / 2;
           el(g, 'text', { x: right ? x + 3 : x - 3, y: 21, class: right ? 'scope-mark-text' : 'scope-mark-text scope-end' }, m.text);
         }
-        if (trace.points.length) el(g, 'polyline', { points: pathOf(trace.points, from, to, lo, hi), class: trace.kind ? `scope-trace ${trace.kind}` : 'scope-trace', ...(trace.kind ? {} : { stroke: trace.color }) });
+        if (trace.points.length) el(g, 'polyline', { points: pathOf(trace.points, from, to, lo, hi, W, H), class: trace.kind ? `scope-trace ${trace.kind}` : 'scope-trace', ...(trace.kind ? {} : { stroke: trace.color }) });
+        // Compact: the name and the value inside the plot, over the trace; the window's end at the bottom.
+        if (compact) {
+          el(g, 'text', { x: LEFT + 3, y: 12, class: trace.kind ? `scope-label inside ${trace.kind}` : 'scope-label inside', ...ink }, name);
+          if (k === traces.length - 1) el(g, 'text', { x: W - 3, y: H - 3, class: 'scope-scale scope-time-end' }, f(to, 's'));
+        }
       });
-      const base = traces.length * (GAP + H) + 12;
+      if (compact) return;
+      const base = traces.length * (gap + H) + 12;
       el(svg, 'text', { x: LEFT, y: base, class: 'scope-time' }, f(from, 's'));
       el(svg, 'text', { x: W / 2, y: base, class: 'scope-time scope-model' }, t('page.scope.model'));
       el(svg, 'text', { x: W, y: base, class: 'scope-time scope-end' }, f(to, 's'));

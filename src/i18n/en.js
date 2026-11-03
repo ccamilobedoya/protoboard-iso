@@ -462,6 +462,7 @@ export default {
   'check.TOUR_ACTION': 'page.tour, step {step}: no action "{action}" (actions: {actions}); the tour is not used.',
   'check.TOUR_MOVE': 'page.tour, step {step}: no move "{move}" (moves: {moves}); the tour is not used.',
   'check.TOUR_MOVE_MS': 'page.tour, step {step}: {move} lasts {min}…{max} ms, not {ms}.',
+  'check.TOUR_FLOW_STYLE': 'page.tour, step {step}: the current layer is drawn in one style, {first} (the first flow step that names one); {style} is not followed.',
   'check.TOUR_SCENE_PART': 'page.tour, step {step}: {part} is a wire or a supply; a pedestal shows a part of the circuit alone. The step does nothing.',
   'check.TOUR_UNKNOWN_PIN': 'page.tour, step {step}: {part} has no pin "{pin}" (its pins: {pins}). The step does nothing.',
   'check.TOUR_NO_MARK': 'page.tour, step {step}: {part} has no mark that tells its pins apart (only TO-92, TO-220, DIP, LEDs, diodes and electrolytic capacitors have one). The step does nothing.',

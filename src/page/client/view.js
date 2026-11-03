@@ -8,6 +8,8 @@
 // drawing, and Ctrl/⌘ + wheel or a trackpad pinch (a wheel event with ctrlKey) zoom; a short
 // hint says so when someone tries the other way. A mouse drag moves the drawing in both cases.
 
+import { SCOPE_BOX } from './moves.js';
+
 export const numbers = (text) => text.split(' ').map(Number);
 
 // A frame kept on the board: zoom between a twelfth and three times the board (a landscape
@@ -133,9 +135,8 @@ export function partsBounds(page) {
 // (page/style.js, --cap-pad: 72 px at 1080 wide and at 1920 wide), so text and circuit line up;
 // landscape keeps the caption's top (9 %) at the top and the bottom too.
 export const STAGE_INSET = { vertical: { top: 0.4, right: 0.0667, bottom: 0.25, left: 0.0667 }, horizontal: { top: 0.09, right: 0.0375, bottom: 0.09, left: 0.5 } };
-// With the oscilloscope's box (M11, body.with-scope; page/style.js) a portrait frame also leaves
-// free the band it takes, from 56 % to 75 %; in landscape it lies under the caption, in the left half.
-const SCOPE_BOTTOM = 0.44;
+// With the oscilloscope's box under the circuit (moves.js, SCOPE_BOX) the frame leaves its band free.
+const SCOPE_BOTTOM = 1 - SCOPE_BOX.bottom.top;
 // A landing (?director=landing) frames the circuit closer: narrow sides, and in portrait the band
 // at the bottom left for the site's headline and buttons; in landscape the caption's left half.
 export const LANDING_INSET = { vertical: { top: 0.34, right: 0.06, bottom: 0.3, left: 0.06 }, horizontal: { top: 0.1, right: 0.08, bottom: 0.24, left: 0.45 } };
@@ -146,7 +147,8 @@ export function landingInset(page) {
 export function stageInset(page) {
   const m = page.main.getBoundingClientRect();
   if (m.width > m.height) return STAGE_INSET.horizontal;
-  return document.body.classList.contains('with-scope') ? { ...STAGE_INSET.vertical, bottom: SCOPE_BOTTOM } : STAGE_INSET.vertical;
+  const under = document.body.classList.contains('with-scope') && !document.body.classList.contains('scope-top');
+  return under ? { ...STAGE_INSET.vertical, bottom: SCOPE_BOTTOM } : STAGE_INSET.vertical;
 }
 // The frame that shows `box` (drawing units), whole, in the part of the screen an inset leaves
 // free, centred there. The frame has the screen's proportions, so the drawing is not letterboxed.

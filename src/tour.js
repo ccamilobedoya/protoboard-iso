@@ -14,15 +14,16 @@
 
 import { LIMITS } from './limits.js';
 import { readBeside } from './beside.js';
-import { MOVES, moveTiming, INSERT, RAISE, ASSEMBLE, PULSE_COLORS } from './page/client/moves.js';
+import { MOVES, moveTiming, INSERT, RAISE, NUDGE, ASSEMBLE, PULSE_COLORS } from './page/client/moves.js';
 import { THEMES } from './page/client/themes.js';
 import { compile } from './sim/index.js';
 import { createEngine } from './sim/engine.js';
 import { buildCircuit } from './circuit/build.js';
 import { pinIndex } from './pinout.js';
 import { symbolOf, insideOf } from './parts/symbols.js';
+import { FLOW_STYLES } from './sim/paths.js';
 
-export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'raise', 'assemble', 'pulse', 'label', 'scene', 'land', 'pin', 'bench', 'symbol', 'inside', 'wait-until'];
+export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'raise', 'nudge', 'assemble', 'pulse', 'label', 'scene', 'land', 'pin', 'bench', 'symbol', 'inside', 'wait-until'];
 // The parts a pedestal can show (`scene` in mode part, a video about one part): a part of the
 // circuit, not a wire or a supply.
 export const onPedestal = (part) => part?.type !== 'wire';
@@ -60,12 +61,13 @@ const FIELDS = {
   focus: { parts: (v) => Array.isArray(v) && v.every(id), solid: (v) => typeof v === 'boolean' },
   flip: { view: id },
   set: { part: id, field: id, value: (v) => num(v) || typeof v === 'boolean' },
-  flow: { on: (v) => typeof v === 'boolean', ramp: within(0, 10_000) },
+  flow: { on: (v) => typeof v === 'boolean', ramp: within(0, 10_000), scope: oneOf('all', 'focus'), style: oneOf(...FLOW_STYLES) },
   caption: { text: isText, line: isText, off: (v) => v === true, enter: SHOW, in: within(0, 3000), stagger: within(0, 1000), out: within(0, 2000) },
   value: { part: id, field: (v) => Object.hasOwn(READINGS, v), label: isText, count: within(0, 5000), enter: SHOW, in: within(0, 3000) },
-  probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean' },
+  probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean', place: oneOf('bottom', 'top'), size: oneOf('full', 'compact') },
   insert: { part: id, enter: ENTER, height: within(0, 40), dark: (v) => typeof v === 'boolean' },
   raise: { part: id, mm: within(0, RAISE.max) },
+  nudge: { part: id, mm: within(NUDGE.min, NUDGE.max) },
   assemble: { parts: (v) => Array.isArray(v) && v.length > 0 && v.every(assembled), gap: within(ASSEMBLE.min, ASSEMBLE.max), enter: ENTER, wire: WIRE, from: oneOf('start', 'end'), height: within(0, 40), dark: (v) => typeof v === 'boolean' },
   pulse: { through: ids, direction: oneOf('forward', 'back'), color, width: within(0.05, 1), size: within(1, 12) },
   label: { part: id, text: isText },
@@ -77,7 +79,7 @@ const FIELDS = {
   inside: { part: id, on: (v) => typeof v === 'boolean' },
   'wait-until': { part: id, field: (v) => Object.hasOwn(READINGS, v), above: num, below: num, max: within(0, 60_000) },
 };
-const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], value: ['part', 'field'], insert: ['part'], raise: ['part'], label: ['part', 'text'], scene: ['mode'], land: ['part'], bench: ['on'], symbol: ['on'], inside: ['on'], 'wait-until': ['part', 'field'] };
+const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], value: ['part', 'field'], insert: ['part'], raise: ['part'], nudge: ['part'], label: ['part', 'text'], scene: ['mode'], land: ['part'], bench: ['on'], symbol: ['on'], inside: ['on'], 'wait-until': ['part', 'field'] };
 // Texts a step may carry, plain or one per language.
 const TEXTS = ['text', 'line', 'label', 'title', 'note'];
 // A cubic-bezier of CSS: the time coordinates between 0 and 1.
@@ -135,6 +137,8 @@ function shapeIssues(raw) {
     if (s.do === 'pin' && [s.pin, s.mark, s.off].filter((x) => x != null).length !== 1) out.push(warn('TOUR_FIELD', { step, field: 'pin' }));
     if (['bench', 'symbol', 'inside'].includes(s.do) && s.on === true && s.part == null) out.push(warn('TOUR_FIELD', { step, field: 'part' }));
     if (s.do === 'assemble' && s.ms != null && !(s.ms >= 0 && s.ms <= 5000)) out.push(warn('TOUR_FIELD', { step, field: 'ms' }));
+    if (s.do === 'nudge' && s.ms != null && !(s.ms >= NUDGE.msMin && s.ms <= NUDGE.msMax)) out.push(warn('TOUR_FIELD', { step, field: 'ms' }));
+    if (s.do === 'nudge' && s.move != null) out.push(warn('TOUR_FIELD', { step, field: 'move' }));
     for (const key of TEXTS) {
       const long = texts(s[key]).find((x) => x.length > LIMITS.tourText);
       if (long) out.push(warn('TOUR_TEXT_TOO_LONG', { step, size: long.length, limit: LIMITS.tourText }));
@@ -145,7 +149,7 @@ function shapeIssues(raw) {
 
 // When each step's move ends, in ms from the start.
 // An assemble lasts as long as its parts take, one `gap` after the other (all of the circuit's by default).
-const ends = (s, count = 0) => s.at + (s.do === 'assemble' ? Math.max(0, (s.parts?.length ?? count) - 1) * (s.gap ?? ASSEMBLE.gap) + (s.ms ?? ASSEMBLE.ms) : timing(s).ms);
+const ends = (s, count = 0) => s.at + (s.do === 'assemble' ? Math.max(0, (s.parts?.length ?? count) - 1) * (s.gap ?? ASSEMBLE.gap) + (s.ms ?? ASSEMBLE.ms) : s.do === 'nudge' ? (s.ms ?? NUDGE.ms) : timing(s).ms);
 const moveOf = (s) => s.move ?? DEFAULT_MOVE[s.do] ?? 'cut';
 const timing = (s) => (['frame', 'set', 'insert', 'raise', 'pulse', 'land'].includes(s.do) || s.move ? moveTiming(moveOf(s), s.ms ?? (s.do === 'insert' ? INSERT.ms : undefined)) : { ms: 0 });
 
@@ -193,10 +197,14 @@ function meaningIssues(circuit, steps) {
       out.push(warn('TOUR_UNKNOWN_CONTROL', { step, part: s.part, field: s.field, options: controlsOf().filter((c) => c.id === s.part).map((c) => c.field).join(', ') || '—' }));
     }
     const m = MOVES[moveOf(s)];
-    if (s.ms != null && m && s.do !== 'assemble' && (s.ms < m.min || s.ms > m.max)) out.push(warn('TOUR_MOVE_MS', { step, move: moveOf(s), ms: s.ms, min: m.min, max: m.max }));
+    if (s.ms != null && m && s.do !== 'assemble' && s.do !== 'nudge' && (s.ms < m.min || s.ms > m.max)) out.push(warn('TOUR_MOVE_MS', { step, move: moveOf(s), ms: s.ms, min: m.min, max: m.max }));
     const last = ends(s, (circuit?.parts ?? []).length);
     if (last > LIMITS.tourMs) out.push(warn('TOUR_TOO_LONG', { step, size: Math.round(last), limit: LIMITS.tourMs }));
   });
+  // The current layer is drawn once, in one style: the first flow step that names one sets it
+  // (sim/paths.js, flowStyle); a later one that names the other is not followed.
+  const styled = steps.map((s, i) => ({ s, step: i + 1 })).filter((x) => x.s.do === 'flow' && FLOW_STYLES.includes(x.s.style));
+  for (const x of styled) if (x.s.style !== styled[0].s.style) out.push(warn('TOUR_FLOW_STYLE', { step: x.step, style: x.s.style, first: styled[0].s.style }));
   // The rhythm: never two slow moves in a row, never two hits without a breath between them.
   const moving = steps.map((s, i) => ({ s, step: i + 1, move: moveOf(s) })).filter((x) => timing(x.s).ms > 0 || x.move === 'hit').sort((a, b) => a.s.at - b.s.at || a.step - b.step);
   for (let k = 1; k < moving.length; k++) {

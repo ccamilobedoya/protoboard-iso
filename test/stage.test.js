@@ -252,7 +252,7 @@ test('stage: the rules of a frame, as stage-shots.js checks them', () => {
   const good = {
     caption: { top: 0.16, bottom: 0.3, left: 0.07, right: 0.6 },
     sizes: { text: 56, number: 44, line: null },
-    told: { id: 'D1', top: 0.45, bottom: 0.7, left: 0.3, right: 0.6 },
+    told: { id: 'D1', top: 0.45, bottom: 0.62, left: 0.3, right: 0.6 },
     label: { top: 0.6, bottom: 0.62, left: 0.4, right: 0.5 },
     labels: 1,
     tags: 0,
@@ -263,6 +263,14 @@ test('stage: the rules of a frame, as stage-shots.js checks them', () => {
   assert.equal(bad({ caption: { ...good.caption, top: 0.05 } }).length, 1, 'in the platforms\' top band');
   assert.equal(bad({ caption: { ...good.caption, bottom: 0.45 } }).length, 1, 'over the circuit');
   assert.equal(bad({ told: { ...good.told, bottom: 0.85 } }).length, 1, 'in the platforms\' bottom band');
+  assert.match(bad({ told: { ...good.told, bottom: 0.7 } }).join(), /D1 ends at 70 %, below 65 %/, 'the told part above 65 %; the context may reach 75 %');
+  assert.equal(RULES.vertical.told.bottom, 0.65);
+  // The oscilloscope's box: on top between the caption and 40 %, never over the caption.
+  assert.deepEqual(RULES.vertical.scope, { top: 0.28, bottom: 0.4 });
+  assert.deepEqual(bad({ scope: { top: 0.32, bottom: 0.4, place: 'top' } }), []);
+  assert.match(bad({ scope: { top: 0.28, bottom: 0.4, place: 'top' } }).join(), /overlaps the caption/);
+  assert.match(bad({ scope: { top: 0.32, bottom: 0.45, place: 'top' } }).join(), /ends at 45 %, below 40 %/);
+  assert.deepEqual(bad({ scope: { top: 0.56, bottom: 0.75, place: 'bottom' } }), [], 'under the circuit');
   assert.equal(bad({ sizes: { text: 40 } }).length, 1, 'too small to read');
   assert.equal(bad({ labels: 3 }).length, 1);
   assert.equal(bad({ tags: 2, chrome: ['nav'] }).length, 2);

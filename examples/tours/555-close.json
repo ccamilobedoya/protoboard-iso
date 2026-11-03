@@ -1,0 +1,37 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "555-astable",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "scene", "mode": "part", "part": "U1", "zoom": 1.4 },
+    { "at": 0, "do": "caption", "text": { "en": "The 555, a timer chip", "es": "El 555, un chip temporizador" } },
+
+    { "at": 2500, "do": "land", "part": "U1" },
+    { "at": 2500, "do": "caption", "text": { "en": "Here it blinks an LED", "es": "Aquí hace parpadear un LED" } },
+    { "at": 4000, "do": "frame", "target": "parts", "move": "travel" },
+
+    { "at": 6000, "do": "caption", "text": { "en": "The capacitor (C1)", "es": "El condensador (C1)" }, "line": { "en": "charges and discharges", "es": "se carga y se descarga" } },
+    { "at": 6000, "do": "frame", "target": "C1", "zoom": 1.2, "move": "arrival" },
+    { "at": 6000, "do": "focus", "parts": ["C1"], "move": "arrival" },
+    { "at": 6800, "do": "flow", "on": true, "ramp": 600, "scope": "focus", "style": "real" },
+    { "at": 7400, "do": "probe", "part": "C1", "field": "voltage", "window": 1.1, "marks": true, "place": "top", "size": "compact", "label": { "en": "C1", "es": "C1" } },
+    { "at": 9600, "do": "caption", "text": { "en": "The resistor (R1)", "es": "La resistencia (R1)" }, "line": { "en": "only charges it", "es": "solo lo carga" } },
+    { "at": 9600, "do": "frame", "target": "C1", "zoom": 0.8, "move": "arrival" },
+    { "at": 10800, "do": "nudge", "part": "R1" },
+
+    { "at": 12500, "do": "caption", "text": { "en": "A resistor (R1) a hundred times bigger", "es": "Una resistencia (R1) cien veces mayor" } },
+    { "at": 12500, "do": "frame", "target": "R1", "zoom": 1.2, "move": "arrival" },
+    { "at": 12500, "do": "focus", "parts": ["R1"], "solid": true },
+    { "at": 14000, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 },
+
+    { "at": 18500, "do": "frame", "target": "C1", "zoom": 1.2, "move": "arrival" },
+    { "at": 18500, "do": "focus", "parts": ["C1"] },
+    { "at": 18500, "do": "caption", "text": { "en": "After the mark, a slower tooth", "es": "Después de la marca, un diente más lento" } },
+
+    { "at": 24000, "do": "probe", "off": true },
+    { "at": 24000, "do": "flow", "on": false },
+    { "at": 24000, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 24000, "do": "focus", "parts": [] },
+    { "at": 24000, "do": "caption", "text": { "en": "Try it in the page: tap R1", "es": "Pruébalo en la página: toca R1" } }
+  ]
+}
