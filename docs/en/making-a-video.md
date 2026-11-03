@@ -128,7 +128,17 @@ The rules that keep it right:
   cycles in the box, a steeper edge), not that it "goes slower". To show the change itself, give
   the probe a fixed `window` (about twice the window `--parts` prints) and `"marks": true`: the
   `set` leaves a line with its new value, and the cycles after it are longer or shorter than those
-  before (`examples/tours/555-what-if.json`).
+  before (`examples/tours/555-what-if.json`). With `"place": "top", "size": "compact"` the box goes
+  under the caption instead (28 % to 40 %) and the circuit keeps its whole band; the caption then has
+  at most two lines and no `value` (the value is in the box). `examples/tours/555-close.json`.
+- **The current on a crowded board.** Switch the layer on over a close frame of one or two parts in
+  focus, with `"scope": "focus"` (only their nets carry it) and `"style": "real"` (along the legs),
+  never over a wide shot; switch it off when the sentence is about something else.
+- **A secondary part.** When the voice names a part as the cause while the subject is another,
+  `nudge` it on that word: it rises a little and comes back, without taking the focus or the label
+  (`raise` would take both).
+- **The told part ends above 65 % of the height** (the platforms' buttons cover the bottom 35 %):
+  with `parts` framed, the part in focus may fall lower; frame the parts in focus instead.
 - **Rhythm.** Never two `push` in a row; never two `hit` without 400 ms between them. The check
   below names both.
 - **Length.** `--validate` prints when the last step runs: keep it between 10 and 23 s, so with

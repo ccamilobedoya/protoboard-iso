@@ -298,6 +298,16 @@ alone, make the oscilloscope show what a control changed, and point at the part 
 - ✅ The oscilloscope shows a change: on a `probe` in a recording, `window` (a fixed time axis, from t = 0 then scrolling) and `marks` (a dashed line with the new value at each `set`); `render-frames.js --parts` prints the oscilloscope's pace (`sim/pace.js`, shared with the page); `examples/tours/555-what-if.json`, jsdom cases and golden frame M24
 - ✅ A solid focus: `focus` with `solid` draws its parts whole and opaque over the current layer until the next focus (the plan's see-through stays the default); R1 in `555-what-if.json`, a jsdom case and golden frame M25
 
+## Videos of a circuit: scope, current and density (cross-cutting) ✅
+
+Asked for the short videos of a whole circuit (2026-11-02): the oscilloscope squeezed the circuit,
+the current on a wide shot read as dots and lines, and a secondary part could not be pointed at.
+
+- ✅ The current on the focus: `flow` with `scope` `focus` (only the focused nets) and `style` per timeline (`TOUR_FLOW_STYLE` for a second one); jsdom counts and golden frames M26, M27
+- ✅ A compact oscilloscope under the caption: `probe` with `place` `top` (28 % to 40 %) and `size` `compact`; the frame rules gain `scope`; `render-frames.js --parts` prints the frame's bands; golden frame M28
+- ✅ The told part ends above 65 % (`RULES.vertical.told`); five example tours frame their parts in focus
+- ✅ `nudge`: a part noticed without taking the focus or the label; jsdom case and golden frame M29; `examples/tours/555-close.json` uses the four
+
 ## Stage 4 — On a phone or tablet ⬜
 
 Goal: open a link and explore.

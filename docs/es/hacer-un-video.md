@@ -129,7 +129,19 @@ Las reglas que la dejan bien:
   (más ciclos en el recuadro, un flanco más empinado), no que «va más lento». Para mostrar el
   cambio mismo, dale al `probe` una `window` fija (más o menos el doble de la ventana que imprime
   `--parts`) y `"marks": true`: el `set` deja una línea con su valor nuevo, y los ciclos de después
-  son más largos o más cortos que los de antes (`examples/tours/555-what-if.json`).
+  son más largos o más cortos que los de antes (`examples/tours/555-what-if.json`). Con
+  `"place": "top", "size": "compact"` el recuadro va bajo el subtítulo (del 28 % al 40 %) y el
+  circuito conserva toda su franja; el subtítulo tiene entonces dos líneas como mucho y ningún
+  `value` (el valor está en el recuadro). `examples/tours/555-close.json`.
+- **La corriente en una protoboard llena.** Encender la capa sobre un plano cercano de una o dos
+  piezas en foco, con `"scope": "focus"` (solo sus redes la llevan) y `"style": "real"` (por las
+  patas), nunca sobre un plano amplio; apagarla cuando la frase habla de otra cosa.
+- **Una pieza secundaria.** Cuando la voz nombra una pieza como causa mientras el sujeto es otra,
+  darle un `nudge` en esa palabra: sube un poco y vuelve, sin quitar el foco ni el rótulo (`raise`
+  quitaría los dos).
+- **La pieza contada termina por encima del 65 % de la altura** (los botones de las plataformas
+  cubren el 35 % de abajo): con `parts` encuadrado, la pieza en foco puede quedar más abajo;
+  encuadrar entonces las piezas en foco.
 - **Ritmo.** Nunca dos `push` seguidos; nunca dos `hit` a menos de 400 ms. La revisión de abajo
   nombra los dos.
 - **Duración.** `--validate` dice cuándo corre el último paso: entre 10 y 23 s, para que con el

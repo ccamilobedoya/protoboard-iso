@@ -186,6 +186,15 @@ up to date.
   alone, in two parallel sessions, every one through `--check` on its first full render; what they
   found unclear went into the guide or the kit. The frame golden was already in `npm run verify`
   (V0); `npm test` plays every timeline of the bench against its circuit.
+- ✅ Scope, current and density (2026-11-02, v0.6.0): `flow` with `"scope": "focus"` keeps the
+  current to the nets of the parts in focus (`page/client/focus.js`, `scopeFlow`: the other pieces
+  get `data-out` and are not drawn; golden frame M26), and `style` draws a recording's layer `real`
+  (the first step that names one; M27). `probe` with `"place": "top"` puts the box between the
+  caption and the circuit, 28 % to 40 % (`moves.js`, `SCOPE_BOX`; the circuit keeps its band) and
+  `"size": "compact"` draws it small (M28). The frame rules gain the told part above 65 % and the
+  box clear of the caption. `nudge` lifts a part the voice names as a cause a few mm and back,
+  without taking the focus or the told label (M29): it is the video's version of the pulse on load
+  (V3), which stays undone in the page. `examples/tours/555-close.json` uses the four.
 - The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
@@ -245,7 +254,9 @@ Rules for a video frame, measurable with `inspect` and the screenshots (V3 adds 
 
 - **Vertical (1080 × 1920):** the caption sits between 16 % and 40 % of the height; the circuit
   below. The top 15 % and the bottom 25 % stay free: the platforms draw their controls there (the
-  exact bands are checked per platform in V4).
+  exact bands are checked per platform in V4). The told part ends above 65 % (the published safe
+  zones cover the bottom 35 %; the context may reach 75 %). The oscilloscope's box lies from 56 % to
+  75 % under the circuit, or from 28 % to 40 % under the caption (`place` `top`), never over it.
 - **Horizontal (1920 × 1080):** the caption at the left, the circuit shifted to the right. The camera
   needs a *reserved margin* (frame the parts in the free part of the screen), which does not exist.
 - **Sizes at 1080 px wide:** caption 56 px, value 44 px in the monospaced face with tabular figures,

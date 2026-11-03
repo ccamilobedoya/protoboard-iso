@@ -9,6 +9,26 @@ detail.
 
 ## [Unreleased]
 
+### Added
+
+- **The current on the focus**: `flow` with `"scope": "focus"` draws the current only on the nets of
+  the parts in focus (their strips, jumpers and leads), the rest plain board under the veil; `style`
+  (`plan` or `real`) in a timeline sets how a recording draws the layer.
+- **A compact oscilloscope under the caption**: `probe` with `"place": "top"` puts the box between
+  the caption and the circuit (28 % to 40 %), the circuit keeping its whole band, and
+  `"size": "compact"` draws it without title or note, the value inside the trace.
+- **`nudge`**: a part the voice names as a cause rises a little and comes back without taking the
+  focus or the told label.
+- The frame rules: the told part ends above 65 % of a vertical frame, and the oscilloscope's box never
+  reaches into the caption (`RULES.vertical.told`, `RULES.vertical.scope`); `render-frames.js --parts`
+  prints the frame's bands.
+- `examples/tours/555-close.json` uses the four; golden frames M26 to M29.
+
+### Changed
+
+- Three videos about one part (`focus-led`, `focus-mosfet`, `focus-zener`) frame their working
+  parts, so the told part stays above 65 %.
+
 ## [0.5.0] - 2026-11-02
 
 ### Added

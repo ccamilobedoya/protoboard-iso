@@ -205,6 +205,16 @@ página y la hoja de ruta al día.
   `--check` bien en su primer render completo; lo que les pareció poco claro pasó a la guía o al
   kit. El *golden* de fotogramas ya estaba en `npm run verify` (V0); `npm test` reproduce cada
   línea de tiempo del banco contra su circuito.
+- ✅ Osciloscopio, corriente y densidad (2026-11-02, v0.6.0): `flow` con `"scope": "focus"` deja la
+  corriente en las redes de las piezas en foco (`page/client/focus.js`, `scopeFlow`: las demás
+  piezas llevan `data-out` y no se dibujan; fotograma *golden* M26), y `style` dibuja la capa de una
+  grabación `real` (el primer paso que nombra uno; M27). `probe` con `"place": "top"` pone el
+  recuadro entre el subtítulo y el circuito, del 28 % al 40 % (`moves.js`, `SCOPE_BOX`; el circuito
+  conserva su franja) y `"size": "compact"` lo dibuja pequeño (M28). Las reglas del fotograma suman
+  la pieza contada por encima del 65 % y el recuadro lejos del subtítulo. `nudge` sube unos mm una
+  pieza que la voz nombra como causa y la baja, sin quitar el foco ni el rótulo contado (M29): es la
+  versión de video del pulso al cargar (V3), que sigue sin hacerse en la página.
+  `examples/tours/555-close.json` usa las cuatro.
 - Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
@@ -267,7 +277,10 @@ Reglas para un fotograma de video, medibles con `inspect` y las capturas (V3 agr
 
 - **Vertical (1080 × 1920):** el subtítulo va entre el 16 % y el 40 % de la altura; el circuito
   debajo. El 15 % de arriba y el 25 % de abajo quedan libres: ahí dibujan sus controles las
-  plataformas (las franjas exactas se comprueban por plataforma en V4).
+  plataformas (las franjas exactas se comprueban por plataforma en V4). La pieza contada termina
+  por encima del 65 % (las zonas seguras publicadas cubren el 35 % de abajo; el contexto puede
+  llegar al 75 %). El recuadro del osciloscopio va del 56 % al 75 % bajo el circuito, o del 28 % al
+  40 % bajo el subtítulo (`place` `top`), nunca encima de él.
 - **Horizontal (1920 × 1080):** el subtítulo a la izquierda, el circuito corrido a la derecha. La
   cámara necesita un *margen reservado* (encuadrar las piezas en la parte libre de la pantalla), que
   no existe.

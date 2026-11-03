@@ -144,6 +144,17 @@ A slider moving by itself between two values (M10): two `set` steps with `travel
 |---|---|---|---|
 | `on` | `true`, `false`, *required* | | |
 | `ramp` | 0…10000 ms | 0 | the dots come up from rest to their speed (M6) |
+| `scope` | `all`, `focus` | `all` | `focus`: the current only on the nets that touch the legs of the parts in focus (their strips, the jumpers between them and the focused parts' own leads); the rest is plain board under the veil. It follows every later `focus` until the next `flow` step |
+| `style` | `plan`, `real` | the page's (`page.flow.style`) | how the layer is drawn in this timeline: `plan`, pads and straight lines; `real`, along the strips, the legs and the jumpers. The first `flow` step that names one sets it for the whole recording; a later one that names the other is reported (`TOUR_FLOW_STYLE`) and not followed |
+
+On a crowded board the whole layer reads as dots and lines without a subject: in a video, switch it
+on over a close frame with one or two parts in focus and `"scope": "focus"`, and `"style": "real"`
+so the current follows the parts the viewer sees.
+
+```json
+{ "at": 9000, "do": "focus", "parts": ["C1"] },
+{ "at": 9400, "do": "flow", "on": true, "ramp": 600, "scope": "focus", "style": "real" }
+```
 
 ### `pulse`: a flash along the current's path (M7)
 
@@ -200,7 +211,29 @@ other. Best before the current layer is on.
 | `mm` | 0…12 | 3 | how high; it stays up until a `raise` with `"mm": 0` |
 | `move`, `ms`, `curve` | | `arrival` | |
 
-A raised part is still in the circuit: the simulation does not change.
+A raised part is still in the circuit: the simulation does not change. A raise brings the part into
+focus and, in a recording, gives it the told label (a recording keeps one): to point at a secondary
+part without taking the subject's place, use `nudge`.
+
+### `nudge`: a secondary part noticed
+
+A part the voice names as a cause, while the subject is another, rises a little and comes back: up
+in the first 30 % of `ms` along a quint out, a rest, and down along the opposite curve. It does not
+change the focus nor the told label; a part under the veil is drawn over it only while it moves. It
+is the video's version of the page's "pulse on load".
+
+| Field | Values | Default | |
+|---|---|---|---|
+| `part` | an id, *required* | | |
+| `mm` | 1…4 | 3 | how high |
+| `ms` | 600…1200 | 900 | the whole nudge: up, a rest and down |
+| `curve` | a cubic-bezier | the quint out | the way up (the way down is its mirror); `[0.34, 1.56, 0.64, 1]` for a slight bounce |
+
+It has no `move`. At most one per beat, on the word that names the part.
+
+```json
+{ "at": 12300, "do": "nudge", "part": "R1", "mm": 3, "ms": 900 }
+```
 
 ### `scene`: a part alone on a pedestal (M17)
 
@@ -349,6 +382,12 @@ height (the camera frames again what it framed last, above the box), in landscap
 | `note` | a text (`""` for none) | the kit's (*model, since switching on*) | under the trace |
 | `window` | 0.000001…3600 s | the kit's | in a recording, the time the box always shows: from t = 0, then scrolling, so a `set` that changes the pace shows as more or fewer cycles instead of a new scale; in s of the oscilloscope's time (simulated, or the wall clock in a circuit that does not change by itself) |
 | `marks` | `true`, `false` | `false` | in a recording, a dashed line in the box at each `set` from then on, with the control's new value (*R1 → 100 kΩ*), so before and after both read |
+| `place` | `bottom`, `top` | `bottom` | in a portrait recording: `bottom`, from 56 % to 75 % of the height, the circuit framed above it from 40 % to 56 %; `top`, from 28 % to 40 %, between the caption and the circuit, which keeps its whole band from 40 % to 75 % |
+| `size` | `full`, `compact` | `full` | `compact`: no title and no note, the trace's name and value inside the plot, two axis labels (the top of the scale and the end of the window); for the box on top, 12 % of the height |
+
+On top the box needs a caption of at most two lines and no `value` line under it (the value is in
+the box): a longer caption would reach into it, and the recording's check says so. `top` goes with
+`compact`.
 
 Without a `window` the box starts at the kit's window, stretches with the time up to twice that and
 then scrolls, and a `set` that changes a time constant gives it a new window: the trace rescales by

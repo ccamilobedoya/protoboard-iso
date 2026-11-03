@@ -303,6 +303,17 @@ principal sola, que el osciloscopio muestre lo que cambió un control, y señala
 - ✅ El osciloscopio muestra un cambio: en un `probe` de una grabación, `window` (un eje de tiempo fijo, desde t = 0 y después corriéndose) y `marks` (una línea punteada con el valor nuevo en cada `set`); `render-frames.js --parts` imprime el ritmo del osciloscopio (`sim/pace.js`, compartido con la página); `examples/tours/555-what-if.json`, casos en jsdom y fotograma *golden* M24
 - ✅ Un foco sólido: `focus` con `solid` dibuja sus piezas enteras y opacas sobre la capa de corriente hasta el siguiente foco (lo transparente del plano sigue por defecto); R1 en `555-what-if.json`, un caso en jsdom y el fotograma *golden* M25
 
+## Videos de un circuito: osciloscopio, corriente y densidad (transversal) ✅
+
+Pedido para los videos cortos de un circuito entero (2026-11-02): el osciloscopio apretaba el
+circuito, la corriente en un plano amplio se leía como puntos y líneas, y no había cómo señalar una
+pieza secundaria.
+
+- ✅ La corriente en el foco: `flow` con `scope` `focus` (solo las redes en foco) y `style` por línea de tiempo (`TOUR_FLOW_STYLE` si hay un segundo); conteos en jsdom y fotogramas *golden* M26 y M27
+- ✅ Un osciloscopio compacto bajo el subtítulo: `probe` con `place` `top` (del 28 % al 40 %) y `size` `compact`; las reglas del fotograma suman `scope`; `render-frames.js --parts` imprime las franjas del fotograma; fotograma *golden* M28
+- ✅ La pieza contada termina por encima del 65 % (`RULES.vertical.told`); cinco líneas de tiempo de ejemplo encuadran sus piezas en foco
+- ✅ `nudge`: que se note una pieza sin quitarle el foco ni el rótulo; caso en jsdom y fotograma *golden* M29; `examples/tours/555-close.json` usa las cuatro
+
 ## Etapa 4 — En el celular o la tableta ⬜
 
 Objetivo: abrir un enlace y explorar.

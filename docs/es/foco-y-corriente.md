@@ -130,6 +130,13 @@ agujero hasta el centro de sus agujeros, a ras de la protoboard.
 Las imágenes estáticas también pueden mostrar la capa (`render --flow`, MCP `flow: true`): los
 puntos se dibujan pero no se mueven.
 
+En una línea de tiempo (un recorrido o un video), un paso `flow` puede dejar la corriente en el foco
+(`"scope": "focus"`): solo se dibujan las piezas de las redes que tocan las patas de las piezas en
+foco (sus tiras, los cables que las unen y las patas de esas piezas), siguiendo cada foco
+posterior; el resto queda como protoboard bajo el velo, y los LED conservan su brillo. También
+puede dibujar la capa `real` en esa línea de tiempo (`"style"`): el primer paso que nombra un
+estilo lo fija. [linea-de-tiempo.md](linea-de-tiempo.md) tiene los campos.
+
 La etapa 3 convierte esto en una simulación en vivo en la página (tiempo, deslizadores, límites a
 la vista): [simulacion-en-vivo.md](simulacion-en-vivo.md).
 

@@ -147,6 +147,17 @@ Un deslizador que se mueve solo entre dos valores (M10): dos pasos `set` con `tr
 |---|---|---|---|
 | `on` | `true`, `false`, *obligatorio* | | |
 | `ramp` | 0…10000 ms | 0 | los puntos arrancan desde quietos hasta su velocidad (M6) |
+| `scope` | `all`, `focus` | `all` | `focus`: la corriente solo en las redes que tocan las patas de las piezas en foco (sus tiras, los cables entre ellas y las patas de esas piezas); el resto queda como protoboard bajo el velo. Sigue a cada `focus` posterior hasta el siguiente paso `flow` |
+| `style` | `plan`, `real` | el de la página (`page.flow.style`) | cómo se dibuja la capa en esta línea de tiempo: `plan`, almohadillas y líneas rectas; `real`, por las tiras, las patas y los cables. El primer paso `flow` que nombra uno lo fija para toda la grabación; uno posterior que nombra el otro se reporta (`TOUR_FLOW_STYLE`) y no se sigue |
+
+En una protoboard llena, la capa entera se lee como puntos y líneas sin sujeto: en un video, enciéndela
+sobre un plano cercano con una o dos piezas en foco y `"scope": "focus"`, y `"style": "real"` para que
+la corriente siga a las piezas que se ven.
+
+```json
+{ "at": 9000, "do": "focus", "parts": ["C1"] },
+{ "at": 9400, "do": "flow", "on": true, "ramp": 600, "scope": "focus", "style": "real" }
+```
 
 ### `pulse`: un destello por el camino de la corriente (M7)
 
@@ -204,7 +215,29 @@ otro. Mejor antes de encender la capa de corriente.
 | `mm` | 0…12 | 3 | cuánto sube; se queda arriba hasta un `raise` con `"mm": 0` |
 | `move`, `ms`, `curve` | | `arrival` | |
 
-Una pieza levantada sigue en el circuito: la simulación no cambia.
+Una pieza levantada sigue en el circuito: la simulación no cambia. Un `raise` pone la pieza en foco
+y, en una grabación, le da el rótulo (una grabación deja uno solo): para señalar una pieza secundaria
+sin quitarle el lugar al sujeto, usa `nudge`.
+
+### `nudge`: que se note una pieza secundaria
+
+Una pieza que la voz nombra como causa, mientras el sujeto es otra, sube un poco y vuelve: sube en el
+primer 30 % de `ms` con una curva quint de salida, reposa y baja con la curva opuesta. No cambia el
+foco ni el rótulo; una pieza bajo el velo se dibuja encima de él solo mientras se mueve. Es la versión
+de video del «pulso al cargar» de la página.
+
+| Campo | Valores | Por defecto | |
+|---|---|---|---|
+| `part` | un id, *obligatorio* | | |
+| `mm` | 1…4 | 3 | cuánto sube |
+| `ms` | 600…1200 | 900 | todo el empujón: subida, reposo y bajada |
+| `curve` | una cubic-bezier | la quint de salida | la subida (la bajada es su espejo); `[0.34, 1.56, 0.64, 1]` para un rebote leve |
+
+No tiene `move`. Como mucho uno por tiempo, en la palabra que nombra la pieza.
+
+```json
+{ "at": 12300, "do": "nudge", "part": "R1", "mm": 3, "ms": 900 }
+```
 
 ### `scene`: una pieza sola en un pedestal (M17)
 
@@ -359,6 +392,12 @@ bajo el subtítulo.
 | `note` | un texto (`""` para ninguna) | la del kit (*modelo, desde el encendido*) | bajo la traza |
 | `window` | 0,000001…3600 s | la del kit | en una grabación, el tiempo que el recuadro muestra siempre: desde t = 0 y después corriéndose, así que un `set` que cambia el ritmo se ve como más o menos ciclos en vez de una escala nueva; en s del tiempo del osciloscopio (el simulado, o el del reloj en un circuito que no cambia solo) |
 | `marks` | `true`, `false` | `false` | en una grabación, una línea punteada en el recuadro en cada `set` desde ese momento, con el valor nuevo del control (*R1 → 100 kΩ*), para que se lean el antes y el después |
+| `place` | `bottom`, `top` | `bottom` | en una grabación vertical: `bottom`, del 56 % al 75 % de la altura, con el circuito encuadrado encima, del 40 % al 56 %; `top`, del 28 % al 40 %, entre el subtítulo y el circuito, que conserva toda su franja del 40 % al 75 % |
+| `size` | `full`, `compact` | `full` | `compact`: sin título ni nota, el nombre y el valor de la traza dentro de la gráfica, dos rótulos de eje (el tope de la escala y el final de la ventana); para el recuadro arriba, el 12 % de la altura |
+
+Arriba, el recuadro pide un subtítulo de dos líneas como mucho y sin la línea del `value` (el valor
+está en el recuadro): un subtítulo más largo llegaría hasta él, y la revisión de la grabación lo
+dice. `top` va con `compact`.
 
 Sin `window` el recuadro empieza con la ventana del kit, se estira con el tiempo hasta el doble y
 después se corre, y un `set` que cambia una constante de tiempo le da una ventana nueva: la traza se

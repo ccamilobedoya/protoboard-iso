@@ -123,6 +123,13 @@ a package without them gets straight lines from each hole to the middle of its h
 Static images can show the layer too (`render --flow`, MCP `flow: true`): the dots are drawn but
 do not move.
 
+In a timeline (a tour or a video), a `flow` step may keep the current to the focus
+(`"scope": "focus"`): only the pieces on the nets that touch the legs of the parts in focus are
+drawn (their strips, the jumpers that join them and the focused parts' own leads), following each
+later focus; the rest is plain board under the veil, and the LEDs keep their glow. It may also draw
+the layer `real` for that timeline (`"style"`): the first step that names a style sets it.
+[timeline.md](timeline.md) has the fields.
+
 Stage 3 turns this into a live simulation in the page (time, sliders, limits made visible):
 [live-simulation.md](live-simulation.md).
 
