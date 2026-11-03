@@ -710,6 +710,39 @@ test('moves: M18 a land keeps the part still on screen while the board rises, th
   for (const el of r.svg().querySelectorAll(':scope > .parts > [data-part]')) assert.equal(el.style.opacity, '', el.getAttribute('data-part'));
 });
 
+// A focus set while a part lands (a video focusing the landed part at the land's own time): the
+// strips and coordinates of a focus belong to the board, which is still sliding in under the veil.
+// They stay away for the whole land (the scene holds: main[data-scene] hides them, page/style.js)
+// and fade in once the board is lit, never over the empty stage ahead of it with the part.
+test('moves: a focus during a land waits for the board: its strips fade in once the board is lit', async (t) => {
+  const r = await recording([
+    { at: 0, do: 'scene', mode: 'part', part: 'Q1', light: '#ff3b2f' },
+    { at: 1000, do: 'land', part: 'Q1' },
+    { at: 1000, do: 'focus', parts: ['Q1'], move: 'travel' },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  const main = r.doc.querySelector('main');
+  const strips = () => r.layer('strips');
+  const shown = () => r.doc.getElementById('dynamic').textContent;
+  const lit = 1000 + MOVES.travel.ms + LAND.ramp;
+  for (let ms = 1000; ms < lit; ms += 100) {
+    r.to(ms);
+    // While the board comes in (and lightens) the scene holds, so no strip, coordinate or label floats.
+    assert.ok(['land', 'lit'].includes(main.dataset.scene), `${ms} ms: the scene is ${main.dataset.scene}`);
+  }
+  r.to(lit + FRAME);
+  assert.equal(main.dataset.scene, undefined, 'on the board');
+  assert.ok(r.doc.body.classList.contains('focusing'), 'the focus the timeline set is kept');
+  assert.match(shown(), /\.strips > \[data-node=/, 'its strips are asked for');
+  const k = Number(strips().style.opacity);
+  assert.ok(strips().style.opacity !== '' && k < 0.5, `the strips come in from unseen (${strips().style.opacity})`);
+  r.to(lit + LAND.reveal + 2 * FRAME);
+  assert.equal(strips().style.opacity, '', 'the strips whole');
+  assert.equal(r.layer('coords').style.opacity, '', 'the coordinates whole');
+  // The veil lightened to the focus's own, not to nothing and back.
+  for (const el of r.layer('veil').children) assert.equal(el.style.fillOpacity, '');
+});
+
 // A video of a circuit may open on its lead part alone (the hook), then land it on the board with
 // the other parts already there (no assemble): everything must come back as a video that opened on
 // the board would have it, the current layer included.
@@ -726,8 +759,13 @@ test('moves: a circuit video opens on the pedestal and lands without an assemble
   r.to(500);
   assert.equal(r.doc.querySelector('main').dataset.scene, 'part');
   assert.match([...r.doc.querySelectorAll('head style')].map((s) => s.textContent).join(''), /data-glow="Q1"/, 'the other lights unseen on the pedestal');
+  // The focus comes while the board lightens: the land holds until its ramp is over (the end of the
+  // frame after it, then LAND.ramp), and the focus's strips fade in after that.
   r.to(1000 + MOVES.travel.ms + 400);
+  assert.equal(r.doc.querySelector('main').dataset.scene, 'lit', 'still lightening');
+  r.to(1000 + 2 * MOVES.travel.ms + LAND.ramp + LAND.reveal + 2 * FRAME);
   assert.equal(r.doc.querySelector('main').dataset.scene, undefined, 'on the board');
+  assert.equal(r.layer('strips').style.opacity, '', "the focus's strips whole");
   assert.equal([...r.doc.querySelectorAll('head style')].map((s) => s.textContent).join('').includes('data-glow'), false, 'no light kept unseen');
   for (const name of ['under', 'board', 'parts', 'labels', 'shortlabels', 'lights', 'flow', 'marks']) {
     const g = r.layer(name);

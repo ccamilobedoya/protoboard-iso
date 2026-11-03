@@ -9,6 +9,19 @@ detail.
 
 ## [Unreleased]
 
+## [0.8.0-c.1] - 2026-11-03
+
+A prerelease on a video branch: a fix of the land. Not on `main` until the maintainer chooses it.
+
+### Fixed
+
+- **A focus during a land waits for the board.** A `focus` at a `land`'s time ended the land: the
+  focus's strips, their numbers and the part's label floated over the empty stage with the part,
+  ahead of the board, the board's ramp never ran, and the scene stuck in `lit` hid the strips of
+  every later focus (golden frames M34 and M35 now show D1's). The land now keeps its scene and the focus;
+  its strips and coordinates fade in over 300 ms (`LAND.reveal`) once the board is lit. Example
+  `555-land-focus.json`; golden frame M37.
+
 ## [0.8.0-b.1] - 2026-11-03
 
 A prerelease on a video branch: a payoff the eye reads. Not on `main` until the maintainer chooses it.
@@ -204,7 +217,8 @@ A prerelease on a video branch: a payoff the eye reads. Not on `main` until the 
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-b.1...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-c.1...HEAD
+[0.8.0-c.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-b.1...v0.8.0-c.1
 [0.8.0-b.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.7.0...v0.8.0-b.1
 [0.7.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.5.0...v0.6.0

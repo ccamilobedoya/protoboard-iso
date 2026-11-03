@@ -94,8 +94,9 @@ export const SCENE = { mm: 3 };
 export const SCENE_ENTER = { drop: 8, ms: 700, curve: [0.34, 1.4, 0.64, 1], pushMax: 8000 };
 // A land (M18) brings the board in opaque: it slides up from below the frame under a veil of the
 // stage's colour (`dim`, the veil's opacity), and lightens in `ramp` ms (a ramp, never a jump) once the
-// camera has opened: at the end of the first frame step after the land, else at the land's end.
-export const LAND = { dim: 0.9, ramp: 700 };
+// camera has opened: at the end of the first frame step after the land, else at the land's end. A focus
+// set during the land shows its strips and coordinates only then, fading in over `reveal` ms.
+export const LAND = { dim: 0.9, ramp: 700, reveal: 300 };
 // A recording names the told part with at least this many px of letter at 1080 px (the frame's short
 // side), however far the camera is: the label scales about its anchor (48: its capitals about as tall
 // as a 44 px text's).

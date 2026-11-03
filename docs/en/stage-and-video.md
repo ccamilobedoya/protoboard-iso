@@ -252,6 +252,16 @@ up to date.
     contrast is not measured while one caption fades over another (a false 2.8:1).
   - **A pedestal's `light`:** a soft glow of a colour under the part on the pedestal (the hook as a
     thumbnail).
+  - **A focus during a land waits for the board** (0.8.0-c.1). A `focus` at the land's own time ended
+    the land at once: the scene went, so the focus's strips and coordinates (and the part's label)
+    showed over the empty stage, ahead of the board and still with the part, while the board slid
+    in under them; the ramp never ran and the board stayed in `lit`, which hid the strips of every
+    later focus (golden frames M34 and M35 now show D1's). Now the land keeps its scene, the
+    focus is kept, and its strips and coordinates fade in over 300 ms (`LAND.reveal`) once the board
+    is lit, the veil resting at the focus's own. Riding with the board under the land's veil was
+    weighed and left: they are drawn over the veil (that is what makes them stand out), so under it
+    they would need a new layer order or a see-through fade, against the opaque land. jsdom case and
+    golden frame M37 (`555-land-focus.json`, the land half way: the same image as M30's).
 - The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for

@@ -287,7 +287,10 @@ la pieza: sube deslizándose desde abajo del cuadro bajo un velo del color de la
 encima del velo. Cuando toca, aclara en una rampa de 700 ms, una vez que la cámara se abrió (al final
 del primer `frame` después del `land`, o al final del propio `land`); después se va el foco. Durante un
 `land` ningún par de fotogramas seguidos a 30 fps difiere en más de 40 de brillo medio (de 255). Un `assemble` después de un
-`land` trae las demás piezas una por una (esperan sin verse) y deja en su sitio la pieza que bajó.
+`land` trae las demás piezas una por una (esperan sin verse) y deja en su sitio la pieza que bajó. Un
+`focus` durante un `land` (a su misma hora o mientras la protoboard aclara) se mantiene, pero sus tiras
+y coordenadas son de la protoboard: no se ven mientras entra y aparecen con un fundido de 300 ms cuando
+ya aclaró, nunca sobre el fondo vacío junto a la pieza.
 
 ```json
 { "at": 0, "do": "scene", "mode": "part", "part": "Q1" },

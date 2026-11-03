@@ -339,10 +339,13 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       }
     }
   };
+  // A focus step that ran while the board was landing (its strips and coordinates belong to the board,
+  // which is still coming in under the veil): kept at the end, its layers faded in then.
+  let held = false;
   // The veil over the board while it lands, `k` of the way from where it will rest to LAND.dim: with
   // the current layer on (which keeps the veil) at its own opacity, else gone. 0: its own styles back.
   const dim = (k) => {
-    const rest = page.state.layer === 'flow';
+    const rest = page.state.layer === 'flow' || held;
     for (const svg of page.svgs) {
       const g = svg.querySelector(':scope > .veil');
       if (!g) continue;
@@ -354,14 +357,32 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     }
   };
   let lit = null; // the land's part while the board lightens (main[data-scene="lit"])
+  // The focus's layers that sit over the veil (the strips under the parts in focus and their
+  // coordinates), from unseen to seen in LAND.reveal ms once the board is lit.
+  const reveal = () => {
+    const layers = (k) => {
+      for (const svg of page.svgs) {
+        for (const name of ['strips', 'coords']) {
+          const g = svg.querySelector(':scope > .' + name);
+          if (g) g.style.opacity = k < 1 ? k.toFixed(3) : '';
+        }
+      }
+    };
+    if (reduced) return layers(1);
+    layers(0);
+    director.tween(layers, { ms: LAND.reveal, ease: moveTiming('arrival').ease });
+  };
   // The board lit: the veil gone, the part back among the others, the focus cleared unless a step
-  // has set one since (`keep`).
+  // has set one since (`keep`) or during the land (`held`: its layers come in now, never before).
   const litDone = (keep) => {
     if (lit == null) return;
     lit = null;
+    const during = held;
+    held = false;
     dim(0);
     leaveScene();
-    if (!keep) focusOn([]);
+    if (during) reveal();
+    else if (!keep) focusOn([]);
   };
   function lighten(s, from) {
     const next = steps.find((x) => x !== s && x.at >= s.at && x.do === 'frame');
@@ -477,6 +498,13 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       return director.frame(s.target, { ...timing(s), zoom: s.zoom ?? 1, pan: s.pan ?? null, alone: framed.alone });
     },
     focus: (s) => {
+      // A land under way keeps its scene: the strips and coordinates of a focus are the board's, and
+      // the board is still sliding in under the veil, so they wait for it to be lit (litDone). Ending
+      // the land here showed them over the empty stage, ahead of the board and still with the part.
+      if (lit != null) {
+        held = true;
+        return focusOn(s.parts, s.solid === true);
+      }
       litDone(true);
       const { ms, ease } = timing(s);
       const was = document.body.classList.contains('focusing');
@@ -804,6 +832,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     director.stop();
     lower();
     lit = null;
+    held = false;
     dim(0);
     leaveScene();
     unpin();
@@ -831,6 +860,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     figure.clear();
     landed.clear();
     lit = null;
+    held = false;
     dim(0);
     playing = true;
     page.direct(true);

@@ -1,0 +1,17 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "555-astable",
+  "format": "vertical",
+  "steps": [
+    { "at": 200, "do": "scene", "mode": "part", "part": "U1", "zoom": 1.4, "enter": "drop", "push": 1.7, "light": "#ff3b2f" },
+    { "at": 200, "do": "caption", "text": { "en": "A 555 chip", "es": "Un chip 555" }, "line": { "en": "makes lights blink", "es": "hace parpadear luces" } },
+
+    { "at": 2700, "do": "land", "part": "U1" },
+    { "at": 2700, "do": "focus", "parts": ["U1"], "move": "travel" },
+    { "at": 2700, "do": "caption", "text": { "en": "The chip (U1) switches", "es": "El chip (U1) prende y apaga" }, "line": { "en": "the LED (D1) on and off", "es": "el LED (D1)" } },
+    { "at": 4200, "do": "frame", "target": ["U1", "D1"], "move": "travel" },
+
+    { "at": 7500, "do": "focus", "parts": [], "move": "arrival" },
+    { "at": 7500, "do": "frame", "target": "board", "move": "travel" }
+  ]
+}

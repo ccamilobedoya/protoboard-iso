@@ -20,9 +20,10 @@ test('frames: four recipes and a frame per move, each with a size, ticks and a s
   // M29 a nudge (examples/tours/555-close.json); M30 an opaque land, M31 the pedestal's drop and push, M32
   // an oscilloscope that compares, M33 the caption on its scrim with a data row (555-what-if.json);
   // M34 an LED that is off, drawn dark, M35 a comparing box in words, M36 a pedestal's light
-  // (555-payoff.json, at the timeline's own pace).
+  // (555-payoff.json, at the timeline's own pace), M37 a focus during a land, its strips held back
+  // until the board is lit (555-land-focus.json: half way the same image as M30).
   const moves = cases.filter((c) => c.name.startsWith('move-')).map((c) => c.name.slice(5, 8));
-  assert.deepEqual(moves, ['m01', 'm02', 'm03', 'm04', 'm05', 'm07', 'm08', 'm09', 'm10', 'm11', 'm12', 'm13', 'm14', 'm15', 'm16', 'm17', 'm18', 'm19', 'm20', 'm21', 'm22', 'm23', 'm24', 'm25', 'm26', 'm27', 'm28', 'm29', 'm30', 'm31', 'm32', 'm33', 'm34', 'm35', 'm36']);
+  assert.deepEqual(moves, ['m01', 'm02', 'm03', 'm04', 'm05', 'm07', 'm08', 'm09', 'm10', 'm11', 'm12', 'm13', 'm14', 'm15', 'm16', 'm17', 'm18', 'm19', 'm20', 'm21', 'm22', 'm23', 'm24', 'm25', 'm26', 'm27', 'm28', 'm29', 'm30', 'm31', 'm32', 'm33', 'm34', 'm35', 'm36', 'm37']);
   for (const c of cases.filter((x) => x.tour)) assert.ok(existsSync(fileURLToPath(new URL(`../${c.tour}`, import.meta.url))), c.name);
   for (const c of cases) {
     assert.ok(RECIPES[c.recipe], c.name);

@@ -278,6 +278,17 @@ página y la hoja de ruta al día.
     (un 2,8:1 falso).
   - **La `light` del pedestal:** un resplandor suave de un color bajo la pieza en el pedestal (el
     gancho como miniatura).
+  - **Un foco durante un aterrizaje espera a la protoboard** (0.8.0-c.1). Un `focus` a la misma hora
+    del `land` terminaba el aterrizaje de una vez: la escena se iba, así que las tiras y coordenadas
+    del foco (y el rótulo de la pieza) se veían sobre el fondo vacío, antes que la protoboard y pegadas
+    a la pieza, mientras la protoboard subía debajo; la rampa no corría y la protoboard se quedaba en
+    `lit`, que escondía las tiras de todo foco posterior (los fotogramas *golden* M34 y M35 ahora
+    muestran las de D1). Ahora el aterrizaje conserva su escena, el foco se mantiene, y sus tiras y coordenadas
+    aparecen con un fundido de 300 ms (`LAND.reveal`) cuando la protoboard ya aclaró, con el velo en
+    el del foco. Se pensó que subieran con la protoboard bajo el velo del aterrizaje y se dejó: se
+    dibujan encima del velo (eso las resalta), así que debajo pedirían otro orden de capas o un
+    fundido transparente, en contra del aterrizaje opaco. Caso de jsdom y fotograma *golden* M37
+    (`555-land-focus.json`, el aterrizaje a la mitad: la misma imagen que M30).
 - Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué

@@ -332,6 +332,7 @@ period in ms under the trace, a caption of 32 letters took three lines.
 - ✅ The comparing box in words ("on 0.08 → 0.40 s · off the same") and in bands, texts on plates off the trace; `reading` and `clock`
 - ✅ Each caption's `lines` as laid out (`timeline.json`) and a frame rule of two at most; `data` as large as the text; told labels at least 48 px; no contrast reading while a caption fades over another
 - ✅ A pedestal's `light`
+- ✅ A focus during a land waits for the board: its strips and coordinates fade in once it is lit (`LAND.reveal`), never over the empty stage (0.8.0-c.1); jsdom case and golden frame M37
 
 ## Stage 4 — On a phone or tablet ⬜
 

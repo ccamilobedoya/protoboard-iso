@@ -338,6 +338,7 @@ el cambio era un periodo en ms bajo la traza y un subtítulo de 32 letras ocupab
 - ✅ El recuadro que compara en palabras («prendido 0,08 → 0,40 s · apagado igual») y en franjas, los textos sobre placas fuera de la traza; `reading` y `clock`
 - ✅ Las `lines` de cada subtítulo tal como quedan (`timeline.json`) y una regla del fotograma de dos como mucho; `data` del tamaño del texto; rótulos contados de al menos 48 px; sin medir contraste mientras un subtítulo se desvanece sobre otro
 - ✅ La `light` del pedestal
+- ✅ Un foco durante un aterrizaje espera a la protoboard: sus tiras y coordenadas aparecen con un fundido cuando ya aclaró (`LAND.reveal`), nunca sobre el fondo vacío (0.8.0-c.1); caso de jsdom y fotograma *golden* M37
 
 ## Etapa 4 — En el celular o la tableta ⬜
 

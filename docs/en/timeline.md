@@ -281,7 +281,10 @@ part: it slides up from below the frame under a veil of the stage's colour, the 
 When it has touched down it lightens in a ramp of 700 ms, once the camera has opened (at the end of
 the first `frame` after the land, else at the land's own end); then the focus goes. No two
 consecutive frames at 30 fps differ by more than 40 in mean brightness (of 255) during a land. An `assemble` after a `land`
-brings the other parts one by one (they wait unseen) and leaves the landed part in place.
+brings the other parts one by one (they wait unseen) and leaves the landed part in place. A `focus`
+during a land (at its time or while the board lightens) is kept, but its strips and coordinates are
+the board's: they stay away while it comes in and fade in over 300 ms once it is lit, never over the
+empty stage with the part.
 
 ```json
 { "at": 0, "do": "scene", "mode": "part", "part": "Q1" },
