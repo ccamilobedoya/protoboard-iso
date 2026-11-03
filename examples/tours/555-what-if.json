@@ -3,28 +3,30 @@
   "circuit": "555-astable",
   "format": "vertical",
   "steps": [
-    { "at": 0, "do": "scene", "mode": "part", "part": "U1", "zoom": 1.4 },
-    { "at": 0, "do": "caption", "text": { "en": "The 555, a timer chip", "es": "El 555, un chip temporizador" } },
+    { "at": 200, "do": "scene", "mode": "part", "part": "U1", "zoom": 1.4, "enter": "drop", "push": 1.7 },
+    { "at": 200, "do": "caption", "text": { "en": "A 555 chip makes lights blink", "es": "Un chip 555 hace parpadear luces" } },
 
-    { "at": 2500, "do": "land", "part": "U1" },
-    { "at": 2500, "do": "caption", "text": { "en": "Here it blinks an LED", "es": "Aquí hace parpadear un LED" } },
-    { "at": 4000, "do": "frame", "target": "parts", "move": "travel" },
-    { "at": 4000, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 2700, "do": "land", "part": "U1" },
+    { "at": 2700, "do": "caption", "text": { "en": "The chip (U1) switches", "es": "El chip (U1) prende y apaga" }, "line": { "en": "the LED (D1) on and off", "es": "el LED (D1)" } },
+    { "at": 4200, "do": "frame", "target": "parts", "move": "travel" },
+    { "at": 4200, "do": "flow", "on": true, "ramp": 600 },
 
-    { "at": 6000, "do": "probe", "part": "C1", "field": "voltage", "window": 1.1, "marks": true, "label": { "en": "C1", "es": "C1" } },
-    { "at": 6000, "do": "caption", "text": { "en": "C1 charges and discharges", "es": "C1 se carga y se descarga" }, "line": { "en": "Each tooth is a blink", "es": "Cada diente es un parpadeo" } },
+    { "at": 6200, "do": "probe", "part": "C1", "field": "voltage", "window": 1.1, "compare": true, "place": "top", "size": "compact", "title": { "en": "C1", "es": "C1" } },
+    { "at": 6200, "do": "caption", "text": { "en": "The capacitor (C1)", "es": "El condensador (C1)" }, "line": { "en": "charges and discharges", "es": "se carga y se descarga" } },
 
-    { "at": 10000, "do": "caption", "text": { "en": "What if R1 were a hundred times bigger?", "es": "¿Y si R1 fuera cien veces mayor?" } },
-    { "at": 10000, "do": "frame", "target": "R1", "zoom": 1.2, "move": "arrival" },
-    { "at": 10000, "do": "focus", "parts": ["R1"], "solid": true },
-    { "at": 11500, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 },
+    { "at": 10200, "do": "caption", "text": { "en": "What if the resistor (R1)", "es": "¿Y si la resistencia (R1)" }, "line": { "en": "were 100 times bigger?", "es": "fuera 100 veces mayor?" }, "data": "1 kΩ → 100 kΩ" },
+    { "at": 10200, "do": "frame", "target": "R1", "zoom": 1.2, "move": "arrival" },
+    { "at": 10200, "do": "focus", "parts": ["R1"], "solid": true },
+    { "at": 11700, "do": "set", "part": "R1", "field": "resistance", "value": 100000, "move": "travel", "ms": 1800 },
 
-    { "at": 16000, "do": "frame", "target": "parts", "move": "travel" },
-    { "at": 16000, "do": "focus", "parts": [] },
-    { "at": 16000, "do": "caption", "text": { "en": "After the mark, a slower tooth", "es": "Después de la marca, un diente más lento" } },
+    { "at": 16200, "do": "frame", "target": ["C1", "D1"], "move": "travel" },
+    { "at": 16200, "do": "focus", "parts": ["D1"] },
+    { "at": 16200, "do": "caption", "text": { "en": "The LED blinks slower", "es": "El LED parpadea más lento" }, "line": { "en": "but switches off just as fast", "es": "pero se apaga igual de rápido" } },
 
-    { "at": 24000, "do": "probe", "off": true },
-    { "at": 24000, "do": "frame", "target": "board", "move": "travel" },
-    { "at": 24000, "do": "caption", "text": { "en": "Try it in the page: tap R1", "es": "Pruébalo en la página: toca R1" } }
+    { "at": 32000, "do": "probe", "off": true },
+    { "at": 32000, "do": "flow", "on": false },
+    { "at": 32000, "do": "focus", "parts": [] },
+    { "at": 32000, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 32000, "do": "caption", "text": { "en": "More resistance, slower blink", "es": "Más resistencia, ritmo más lento" }, "line": { "en": "Try it in the page: tap R1", "es": "Pruébalo en la página: toca R1" } }
   ]
 }
