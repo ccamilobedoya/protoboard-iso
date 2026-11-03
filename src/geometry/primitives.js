@@ -187,8 +187,10 @@ export function rectDecal({ center, u, v, width, height, color, opacity }) {
 // Text printed on a plane. `right` is the reading direction and `down` points from the
 // top of the letters to their bottom, both unit vectors on the plane. The text is
 // visible from the side the face looks at: normal = down × right.
-export function textDecal({ text, at, right, down, size, color, anchor = 'middle', weight = 400 }) {
-  return { kind: 'text', text, at, right, down, size, color, anchor, weight, normal: normalize(cross(down, right)) };
+// `upright`: a part's printing (a chip's marking) is drawn to read left to right from the camera,
+// turned half a turn when it would read upside down; the board's own print is not.
+export function textDecal({ text, at, right, down, size, color, anchor = 'middle', weight = 400, upright = false }) {
+  return { kind: 'text', text, at, right, down, size, color, anchor, weight, normal: normalize(cross(down, right)), ...(upright && { upright: true }) };
 }
 
 export const midpoint = (a, b) => scale(add(a, b), 0.5);

@@ -61,8 +61,13 @@ function textBox(text, size, anchor, m) {
 // the copies of it that other layers light up (coordinates, a rail's net name in the current layer).
 export function decalTextOp(camera, decal) {
   const o = camera.project(decal.at);
-  const r = camera.projectDir(decal.right);
-  const d = camera.projectDir(decal.down);
+  let r = camera.projectDir(decal.right);
+  let d = camera.projectDir(decal.down);
+  // A part's printing that would read right to left (upside down) from this camera turns half a turn.
+  if (decal.upright && r.x < 0) {
+    r = { x: -r.x, y: -r.y };
+    d = { x: -d.x, y: -d.y };
+  }
   const matrix = [r.x, r.y, d.x, d.y, o.x, o.y];
   return {
     kind: 'text',

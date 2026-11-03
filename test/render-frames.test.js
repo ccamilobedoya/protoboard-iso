@@ -9,7 +9,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { timelineCircuit, timelineParts, toSrt } from '../scripts/render-frames.js';
+import { timelineCircuit, timelineParts, toSrt, whatIf, payoffOf } from '../scripts/render-frames.js';
 import { frameProblems } from '../scripts/stage-shots.js';
 import { tourIssues } from '../src/tour.js';
 import { renderPage } from '../src/page.js';
@@ -142,4 +142,28 @@ test('assemble: clips that fit, their captions on one clock, ffmpeg\'s arguments
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// v0.7.0 (K7): a set's payoff, from the simulation: one whole cycle after it, in s of video.
+test('render-frames: what a set does to the cycles, and whether the timeline holds one after it', () => {
+  const circuit = timelineCircuit('x.json', {}, '555-astable');
+  const r = whatIf(circuit, [{ id: 'R1', field: 'resistance', value: 100000 }], ['D1', 'C1']);
+  assert.equal(r.speed, 0.055);
+  const { before, after } = { before: r.before.D1, after: r.after.D1 };
+  assert.ok(before.period > 0.12 && before.period < 0.18, `before ${before.period}`);
+  assert.ok(after.period > 0.7 && after.period < 0.95, `after ${after.period}`);
+  assert.ok(after.on > 8 * after.off, 'lit far longer than dark: the discharge does not go through R1');
+  assert.ok(Math.abs(after.video.period - after.period / 0.055) < 0.05);
+  const file = join(tours, '555-what-if.json');
+  const tour = { steps: read(file).steps };
+  const ok = payoffOf(circuit, tour);
+  assert.deepEqual(ok.problems, []);
+  assert.ok(ok.sets[0].holdMs >= ok.sets[0].needMs);
+  // The same set held 8 s, as the first recording did: one cycle does not fit.
+  const short = { steps: [...tour.steps.filter((s) => s.at <= 11700), { at: 19700, do: 'caption', off: true }] };
+  assert.deepEqual(payoffOf(circuit, short).problems.map((p) => p.code), ['TOUR_PAYOFF_SHORT']);
+  // A comparing probe's set carries the probed part's period before and after into the page.
+  const { html } = renderPage({ ...circuit, page: { ...circuit.page, tour: read(file) } }, { lang: 'en' });
+  const cycle = JSON.parse(html.match(/"cycle":(\{[^}]*\})/)[1]);
+  assert.ok(Math.abs(cycle.before - before.period) < 0.01 && Math.abs(cycle.after - after.period) < 0.02, JSON.stringify(cycle));
 });

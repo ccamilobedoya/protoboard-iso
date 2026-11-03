@@ -36,7 +36,7 @@ import { voltageColor, dotSpeed, DOT_PERIOD, centreVoltage, bodyVoltage, glowOpa
 import { setupControls } from './controls.js';
 import { setupLimits } from './limits.js';
 import { setupFalstad } from './falstad.js';
-import { createScope } from './scope.js';
+import { createScope, periodOf } from './scope.js';
 import { createRecorder, samplesOf } from '../../sim/recorder.js';
 import { scopeOf } from '../../sim/scope.js';
 import { iconSvg } from './icons.js';
@@ -124,7 +124,25 @@ export function setupLive(page) {
     const traces = [];
     if (s.v && only !== 'i') traces.push({ label: label ?? s.v.label ?? t('page.scope.voltage'), unit: 'V', ...SCOPE_V, points: samplesOf(rec, 'a', from, end) });
     if (s.i && only !== 'v') traces.push({ label: label ?? s.i.label ?? t('page.scope.current'), unit: 'A', ...SCOPE_I, points: samplesOf(rec, 'b', from, end) });
-    scope.draw({ traces, from, to: end, marks });
+    scope.draw({ traces, from, to: end, marks: marks?.map((m) => (m.before ? compared(m, id, only, end) : m)) });
+  }
+  // A mark of a comparing box: its ghost (the cycles before it, shifted by whole periods so they run
+  // on after it, as far as the screen goes) and the change of period, once a whole cycle after it
+  // is on the trace (risings through the level of the cycles before).
+  function compared(m, id, only, end) {
+    const T = m.cycle?.before ?? m.period;
+    let ghost = null;
+    if (T > 0 && m.before.length > 1) {
+      const span = m.before.at(-1)[0] - m.before[0][0];
+      const shift = Math.max(1, Math.floor(span / T)) * T;
+      ghost = m.before.filter(([t]) => t >= m.t - shift).map(([t, v]) => [t + shift, v]).filter(([t]) => t <= end);
+    }
+    // The new period: the simulation's once the control has arrived, else measured on the trace.
+    const after = m.settled == null ? null : (m.cycle?.after ?? periodOf(samplesOf(recorder.get(id), only === 'i' ? 'b' : 'a', m.settled, end), m.level));
+    const k = T > 0 && after > 0 ? after / T : null;
+    const times = k == null ? '' : k >= 10 ? String(Math.round(k)) : k.toFixed(1).replace('.', live.decimal ?? '.');
+    const delta = T > 0 ? t(after > 0 ? 'page.scope.delta' : 'page.scope.deltaWait', { from: f(T, 's'), to: after > 0 ? f(after, 's') : '', k: times }) : null;
+    return { t: m.t, text: m.text, ghost, delta };
   }
   function drawScope() {
     if (inset) drawOne(inset);
@@ -138,7 +156,7 @@ export function setupLive(page) {
   let inset = null;
   // `place`: "top" puts the box between the caption and the circuit (body.scope-top; moves.js,
   // SCOPE_BOX); `size`: "compact" draws it without title or note (scope.js).
-  page.insetScope = (id, only = 'v', { title, label, note, window, marks = false, place, size } = {}) => {
+  page.insetScope = (id, only = 'v', { title, label, note, window, marks = false, compare = false, place, size } = {}) => {
     inset?.box.remove();
     inset = null;
     document.body.classList.remove('with-scope', 'scope-top');
@@ -147,18 +165,43 @@ export function setupLive(page) {
     box.className = `scope-inset${place === 'top' ? ' top' : ''}${size === 'compact' ? ' compact' : ''}`;
     page.main.appendChild(box);
     const own = { 'page.scope.title': title, 'page.scope.model': note };
-    inset = { id, box, only, label, window: window > 0 ? window : undefined, marks: marks ? [] : undefined, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f, compact: size === 'compact' }) };
+    inset = { id, box, only, label, window: window > 0 ? window : undefined, marks: marks || compare ? [] : undefined, compare, scope: createScope(box, { t: (key, params) => own[key] ?? t(key, params), f, compact: size === 'compact', title: title || null }) };
     document.body.classList.add('with-scope');
     document.body.classList.toggle('scope-top', place === 'top');
     drawOne(inset);
     return true;
   };
   // A set while the inset keeps marks (tour.js): a line at this time with the control's new value.
-  page.scopeMark = (part, field, value) => {
-    if (!inset?.marks) return;
+  // Comparing, the cycles before it are kept (the window before the mark) with their period.
+  // `cycle` (src/page.js, withCycles): the period before and after, from the simulation.
+  page.scopeMark = (part, field, value, cycle) => {
+    if (!inset?.marks) return false;
     const c = engine.controls().find((x) => x.id === part && x.field === field);
-    inset.marks.push({ t: scopeTime(), text: typeof value === 'number' ? `${part} → ${f(value, c?.unit ?? '')}` : part });
+    const now = scopeTime();
+    const mark = { t: now, control: `${part}|${field}`, cycle, text: typeof value === 'number' ? `${part} → ${f(value, c?.unit ?? '')}` : part };
+    if (inset.compare) {
+      const span = inset.window ?? 2 * scopeWindow;
+      mark.before = samplesOf(recorder.get(inset.id), inset.only === 'i' ? 'b' : 'a', Math.max(0, now - span), now);
+      // The level halfway between the extremes of the latest half of it: the first charge from 0
+      // would put it under the cycles.
+      const late = mark.before.slice(Math.floor(mark.before.length / 2));
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (const [, v] of late) {
+        lo = Math.min(lo, v);
+        hi = Math.max(hi, v);
+      }
+      mark.level = (lo + hi) / 2;
+      mark.period = periodOf(mark.before, mark.level);
+    }
+    inset.marks.push(mark);
     drawOne(inset);
+    return true;
+  };
+  // The set of the latest mark of that control has arrived: the period after it is measured from now.
+  page.scopeSettled = (part, field) => {
+    const mark = inset?.marks?.findLast((m) => m.control === `${part}|${field}`);
+    if (mark && mark.settled == null) mark.settled = scopeTime();
   };
   // The card asks for it when it opens (card.js); closing the card takes it away. `id`: a part's,
   // or "node:<group>" for a strip.

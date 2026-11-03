@@ -297,6 +297,8 @@ export default {
   'page.scope.current': 'Corriente',
   'page.scope.model': 'modelo, desde el encendido',
   'page.scope.node': 'Voltaje respecto a tierra',
+  'page.scope.delta': 'periodo {from} → {to} (×{k})',
+  'page.scope.deltaWait': 'periodo {from} → …',
   'page.node.open': 'Abrir la ficha de esta tira',
   'page.node.leads': 'Conectado aquí',
   'page.node.lead': '{part} ({pin})',

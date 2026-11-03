@@ -88,6 +88,17 @@ export const NUDGE = { mm: 3, min: 1, max: 4, ms: 900, msMin: 600, msMax: 1200, 
 // (`land`, a travel): the part comes down while the camera follows it, so it stays still on screen
 // and the board rises under it.
 export const SCENE = { mm: 3 };
+// A scene's `enter` "drop": the part falls onto its pedestal from `drop` mm in `ms`, along a curve that
+// overshoots a little (a small bounce); a scene's `push` closes in until the next camera step, at most
+// `pushMax` ms (a push's longest), along the push's curve.
+export const SCENE_ENTER = { drop: 8, ms: 700, curve: [0.34, 1.4, 0.64, 1], pushMax: 8000 };
+// A land (M18) brings the board in opaque: it slides up from below the frame under a veil of the
+// stage's colour (`dim`, the veil's opacity), and lightens in `ramp` ms (a ramp, never a jump) once the
+// camera has opened: at the end of the first frame step after the land, else at the land's end.
+export const LAND = { dim: 0.9, ramp: 700 };
+// A recording names the told part with at least this many px of letter at 1080 px (the frame's short
+// side), however far the camera is: the label scales about its anchor.
+export const LABEL_MIN_PX = 40;
 export const ASSEMBLE = { gap: 1100, ms: 700, min: 300, max: 3000 };
 // M7: a flash runs the current's path from + to − (a timeline's pulse), each piece lit for this share
 // of the run.

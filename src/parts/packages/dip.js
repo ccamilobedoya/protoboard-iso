@@ -91,7 +91,7 @@ export default {
     const dot1 = add(add(top, scale(alongDir, -L / 2 + 1.5)), scale(acrossDir, -WIDTH / 2 + 1.1));
     body.decals.push(circleDecal({ center: dot1, u: alongDir, v: cross(Z, alongDir), radius: 0.4, color: MATERIALS.chipMark }));
     if (params.marking) {
-      body.decals.push(textDecal({ text: params.marking, at: top, right: alongDir, down: scale(acrossDir, -1), size: Math.min(1.5, (L - 2) / (params.marking.length * 0.6)), color: MATERIALS.print, weight: 700 }));
+      body.decals.push(textDecal({ text: params.marking, at: top, right: alongDir, down: scale(acrossDir, -1), size: Math.min(1.5, (L - 2) / (params.marking.length * 0.6)), color: MATERIALS.print, weight: 700, upright: true }));
     }
 
     const leads = pins.flatMap((p) => {

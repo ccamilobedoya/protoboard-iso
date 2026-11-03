@@ -426,7 +426,26 @@
                     ]
                   }
                 ],
-                "description": "At most 280 characters"
+                "description": "A second line, drawn as the first (one idea in at most two lines)"
+              },
+              "data": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "A data row under the caption, only for a value or a before → after not already on screen (\"1 kΩ → 100 kΩ\"): sans with tabular figures, in the accent, 44 px at 1080 wide"
               },
               "off": {
                 "const": true,
@@ -711,6 +730,10 @@
                   "compact"
                 ],
                 "description": "compact: no title and no note, the value inside the trace, two axis labels (the top of the scale and the end of the window), for a box of 12 % of the height (default full)"
+              },
+              "compare": {
+                "type": "boolean",
+                "description": "In a recording, at each set: the cycles before it kept as a faint ghost trace laid over what comes after, and the change of period from the simulation, once the control has arrived (\"period 0.12 s → 0.86 s (×7)\"); implies marks (default false)"
               }
             },
             "additionalProperties": false,
@@ -1256,6 +1279,19 @@
                 "minimum": 0.5,
                 "maximum": 3,
                 "description": "Closer in or farther out than the part's frame (default 1)"
+              },
+              "enter": {
+                "enum": [
+                  "cut",
+                  "drop"
+                ],
+                "description": "How the part comes onto the pedestal: at once (default), or dropping from 8 mm with a small bounce (700 ms)"
+              },
+              "push": {
+                "type": "number",
+                "minimum": 0.5,
+                "maximum": 3,
+                "description": "A slow push: the camera keeps closing in to this zoom until the next step that moves it (a frame, a land, a scene), at most 8 s"
               }
             },
             "additionalProperties": false,

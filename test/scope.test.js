@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { createRecorder, samplesOf } from '../src/sim/recorder.js';
 import { scopeOf } from '../src/sim/scope.js';
 import { paceOf, WALL_WINDOW } from '../src/sim/pace.js';
-import { scaleOf, pathOf } from '../src/page/client/scope.js';
+import { scaleOf, pathOf, risings, periodOf } from '../src/page/client/scope.js';
 import { simulate } from '../src/sim/index.js';
 import { renderPage } from '../src/page.js';
 
@@ -164,4 +164,19 @@ test('pace: a generator sets it, else the longest time constant, else the wall c
   assert.deepEqual(paceOf([], []), { h: 0, perSecond: 0, window: WALL_WINDOW });
   assert.deepEqual(paceOf([], [], true), { h: 0.001, perSecond: 1, window: 4, periodic: false });
   assert.deepEqual(paceOf([1e-3], [2], true), { h: 1e-4, perSecond: 1, window: 8, periodic: true });
+});
+
+// v0.7.0: a comparing box measures the period on the trace.
+test('scope: risings through a level, and the period of the last whole cycle', () => {
+  const saw = (T, from, to) => {
+    const out = [];
+    for (let t = from; t <= to + 1e-9; t += T / 20) out.push([t, (t % T) / T]);
+    return out;
+  };
+  const r = risings(saw(0.1, 0, 0.5), 0.5);
+  assert.equal(r.length, 5);
+  assert.ok(Math.abs(r[1] - r[0] - 0.1) < 1e-9);
+  assert.ok(Math.abs(periodOf(saw(0.25, 0, 1)) - 0.25) < 1e-9, 'halfway between the extremes by default');
+  assert.equal(periodOf([[0, 1], [1, 1]]), null, 'flat: none');
+  assert.equal(periodOf(saw(1, 0, 1.2)), null, 'one rising only');
 });

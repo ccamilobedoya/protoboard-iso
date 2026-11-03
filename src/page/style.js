@@ -114,7 +114,7 @@ export const STYLE = `
   --tag-v: #9cc6ff; --tag-i: #ffcc5c;
   --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
   --grid-dot: transparent; --grid-dot-major: transparent; --grid-line: rgba(156, 198, 255, 0.1); --grid-line-major: rgba(156, 198, 255, 0.22);
-  --cap-face: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --cap-face: "Literata Caption", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --cap-ink: #efe9da; --cap-ink-2: #9aa3ad; --cap-value: #ffcc5c;
 }
 :root[data-theme="notebook"] {
@@ -129,7 +129,7 @@ export const STYLE = `
   --pulse: #e09400; --veil: #f4efe2; --label-edge: #6b665c; --leader: #8f897d; --label-ink: #1c1a16;
   --tag-v: #184f8f; --tag-i: #a3461f;
   --grid-dot: transparent; --grid-dot-major: transparent; --grid-line: rgba(24, 79, 143, 0.1); --grid-line-major: rgba(24, 79, 143, 0.22);
-  --cap-face: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --cap-face: "Literata Caption", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --cap-ink: #1c1a16; --cap-ink-2: #6b665c; --cap-value: #184f8f;
 }
 /* The two notebooks (stage and notebook): square corners, chalk or ink on the pressed buttons, the
@@ -323,6 +323,11 @@ nav .falstad .flag[hidden] { display: none; }
 /* A set seen by a recording's probe (M11): a dashed line where it happened, the new value beside it. */
 .scope-mark { stroke: var(--scope-scale); stroke-width: 1; stroke-dasharray: 3 2; }
 .scope-mark-text { fill: var(--scope-scale); font-size: 9px; font-weight: 600; }
+/* The marks' texts and the delta over the trace: a halo of the screen's colour, so the trace never
+   crosses them; the cycles before a mark, faint (a probe's compare). */
+.scope-mark-text, .scope-delta { stroke: var(--scope); stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; }
+.scope-delta { fill: var(--cap-value, var(--trace-v)); font-size: 9px; font-weight: 700; text-anchor: middle; font-variant-numeric: tabular-nums; }
+.scope-trace.ghost { opacity: 0.32; stroke-dasharray: 2 2; }
 .scope-mark-text.scope-end { text-anchor: end; }
 .side .clear, .control .hold { font: inherit; color: var(--ink); background: var(--bench); border: 1px solid var(--hair-strong); border-radius: 4px; padding: 3px 9px; cursor: pointer; margin-top: 4px; }
 .side .clear:active, .control .hold:active { background: var(--press); }
@@ -376,6 +381,7 @@ body.touched .zoom, .zoom:focus-within { opacity: 1; pointer-events: auto; }
 .tour-caption .in { display: block; }
 .tour-caption .text { font-size: 17px; line-height: 1.35; font-weight: 600; }
 .tour-caption .line { margin-top: 2px; font-size: 14px; line-height: 1.35; opacity: 0.85; }
+.tour-caption .data { margin-top: 4px; font-family: var(--mono); font-size: 14px; font-variant-numeric: tabular-nums; }
 .tour-caption .value { margin-top: 6px; }
 .tour-caption .value .in { display: flex; align-items: baseline; gap: 8px; }
 .tour-caption .value .label { font-size: 13px; opacity: 0.85; }
@@ -385,26 +391,34 @@ body.touched .zoom, .zoom:focus-within { opacity: 1; pointer-events: auto; }
 body.touring .first-hint { display: none; }
 /* A recording (?director=1; stage and video, V4): the frame of a video. No chrome, one label (the
    told part's, tour.js), no result tags (the value that matters is in the caption, large). The
-   caption has no box: the text on the ground, its sizes a share of the frame's width (56, 44 and
-   30 px at 1080 wide; 52 at 1920 wide). Portrait (vertical video): from 16 % of the height, the
-   circuit below it (the director's inset, live.js); landscape: the left half, the circuit right.
-   The top 15 % and bottom 25 % of a vertical frame are the platforms' (their buttons). */
+   caption has no box: the text on the ground, its sizes a share of the frame's width (56 and 44 px
+   at 1080 wide; 52 at 1920 wide). One idea in at most two lines of one rank: the second line (line)
+   is drawn as the first by default (--cap-line-*), a data row (data: a value, "1 kΩ → 100 kΩ") in
+   the sans with tabular figures and the accent, 44 px. 90 px a side (a safe width of 900 px: 32
+   characters of the serif at 56 px). A scrim of the canvas's colour behind the block keeps it
+   readable over a light board (4.5:1 at least, measured by render-frames.js). Portrait (vertical
+   video): from 16 % of the height, the circuit below it (the director's inset, live.js);
+   landscape: the left half, the circuit right. The top 15 % and bottom 25 % of a vertical frame
+   are the platforms' (their buttons). */
 body.director {
-  --cap-text: 5.1852vw; --cap-number: 4.0741vw; --cap-line: 2.7778vw; --cap-label: 2.4074vw;
-  --cap-pad: 6.6667vw; --cap-top: 16%; --cap-gap: 1.2963vw;
+  --cap-text: 5.1852vw; --cap-number: 4.0741vw; --cap-data: 4.0741vw; --cap-label: 2.4074vw;
+  --cap-pad: 8.3333vw; --cap-top: 16%; --cap-gap: 1.2963vw;
 }
 @media (orientation: landscape) { body.director {
-  --cap-text: 2.7083vw; --cap-number: 2.1354vw; --cap-line: 1.4583vw; --cap-label: 1.25vw;
-  --cap-pad: 3.75vw; --cap-top: 9%; --cap-gap: 0.7292vw;
+  --cap-text: 2.7083vw; --cap-number: 2.1354vw; --cap-data: 2.2917vw; --cap-label: 1.25vw;
+  --cap-pad: 4.6875vw; --cap-top: 9%; --cap-gap: 0.7292vw;
 } }
 :is([data-theme="stage"], [data-theme="notebook"]) body.director { --cap-weight: 500; }
 /* A video about one part (M17, M18; docs/en/component-focus.md). On the pedestal (data-scene="part")
    only the told part's copy stays, over the hole grid: the board, the other parts, their labels and
    the focus's own layers unseen (display, not opacity: nothing left to paint). Landing
-   (data-scene="land") the board and the parts come back while the focus's layers stay away. The
+   (data-scene="land") the board and the parts slide in opaque under the veil while the focus's layers
+   stay away; touched down (data-scene="lit") the board lightens as the veil goes (tour.js). The
    lights of the other parts are hidden by a rule tour.js writes with the part's id. */
 main[data-scene="part"] > svg > :is(.under, .board, .parts, .labels, .shortlabels, .veil, .strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
-main[data-scene="land"] > svg > :is(.veil, .strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
+main[data-scene="land"] > svg > :is(.strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
+main[data-scene="lit"] > svg > :is(.strips, .coords, .marks, .results, .probes) { display: none !important; }
+main:is([data-scene="land"], [data-scene="lit"]) > svg > .veil { display: inline !important; }
 /* A part's pinout (M19, M20; page/client/pinout.js): the leaders, dots and rows under the part's copy;
    sizes are set by the script, in drawing units, for px on screen. */
 .pinout { pointer-events: none; }
@@ -509,8 +523,12 @@ body.director .labels, body.director .results, body.director .probes { display: 
 body.director .shortlabels { visibility: hidden; } /* still measured: a part is framed with its label */
 body.director .tour-caption { left: 0; right: 0; top: var(--cap-top); transform: none; width: auto; max-width: none; padding: 0 var(--cap-pad); background: none; border-radius: 0; color: var(--cap-ink); }
 @media (orientation: landscape) { body.director .tour-caption { right: 50%; } }
-body.director .tour-caption .text { max-width: 22ch; font: var(--cap-weight, 600) var(--cap-text)/1.15 var(--cap-face); text-wrap: balance; }
-body.director .tour-caption .line { margin-top: var(--cap-gap); font: 500 var(--cap-line)/1.2 var(--sans); color: var(--cap-ink-2); opacity: 1; }
+body.director .tour-caption .text { font: var(--cap-weight, 600) var(--cap-text)/1.15 var(--cap-face); text-wrap: balance; }
+body.director .tour-caption .line { margin-top: 0; font: var(--cap-line-weight, var(--cap-weight, 600)) var(--cap-line-size, var(--cap-text))/1.15 var(--cap-line-face, var(--cap-face)); color: var(--cap-line-ink, var(--cap-ink)); opacity: 1; text-wrap: balance; }
+body.director .tour-caption .data { margin-top: var(--cap-gap); font: 500 var(--cap-data)/1.15 var(--sans); font-variant-numeric: tabular-nums; color: var(--cap-value); }
+/* The scrim: the canvas's colour behind the caption's block, fading out above and below it. */
+body.director .tour-caption::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: calc(-2 * var(--cap-gap)); bottom: calc(-2.5 * var(--cap-gap)); background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--canvas) 88%, transparent) calc(2 * var(--cap-gap)), color-mix(in srgb, var(--canvas) 88%, transparent) calc(100% - 2.5 * var(--cap-gap)), transparent); pointer-events: none; }
+body.director .tour-caption.leaving::before { display: none; }
 body.director .tour-caption .value { margin-top: var(--cap-gap); }
 body.director .tour-caption .value .in { flex-direction: row-reverse; justify-content: flex-end; gap: var(--cap-gap); }
 body.director .tour-caption .value .number { font-size: var(--cap-number); font-weight: 500; line-height: 1; color: var(--cap-value); }
@@ -524,6 +542,7 @@ body.director .scope-inset { display: block; position: absolute; z-index: 2; lef
 @media (orientation: portrait) { body.director .scope-inset.top { ${boxCss(SCOPE_BOX.top)} } }
 body.director .scope-inset.compact { padding: calc(var(--cap-gap) / 2); }
 body.director .scope-inset.compact h3 { display: none; }
+body.director .scope-inset.compact .scope-trace { stroke-width: 2.4; }
 @media (orientation: landscape) { body.director .scope-inset { right: calc(50% + var(--cap-pad) / 2); top: 50%; height: 40%; } }
 body.director .scope-inset .scope { height: 100%; display: flex; flex-direction: column; }
 body.director .scope-inset h3 { margin: 0 0 var(--cap-gap); font: 500 var(--cap-label)/1.2 var(--sans); color: var(--cap-ink-2); }

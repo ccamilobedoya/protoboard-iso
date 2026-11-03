@@ -62,16 +62,16 @@ const FIELDS = {
   flip: { view: id },
   set: { part: id, field: id, value: (v) => num(v) || typeof v === 'boolean' },
   flow: { on: (v) => typeof v === 'boolean', ramp: within(0, 10_000), scope: oneOf('all', 'focus'), style: oneOf(...FLOW_STYLES) },
-  caption: { text: isText, line: isText, off: (v) => v === true, enter: SHOW, in: within(0, 3000), stagger: within(0, 1000), out: within(0, 2000) },
+  caption: { text: isText, line: isText, data: isText, off: (v) => v === true, enter: SHOW, in: within(0, 3000), stagger: within(0, 1000), out: within(0, 2000) },
   value: { part: id, field: (v) => Object.hasOwn(READINGS, v), label: isText, count: within(0, 5000), enter: SHOW, in: within(0, 3000) },
-  probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean', place: oneOf('bottom', 'top'), size: oneOf('full', 'compact') },
+  probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean', place: oneOf('bottom', 'top'), size: oneOf('full', 'compact'), compare: (v) => typeof v === 'boolean' },
   insert: { part: id, enter: ENTER, height: within(0, 40), dark: (v) => typeof v === 'boolean' },
   raise: { part: id, mm: within(0, RAISE.max) },
   nudge: { part: id, mm: within(NUDGE.min, NUDGE.max) },
   assemble: { parts: (v) => Array.isArray(v) && v.length > 0 && v.every(assembled), gap: within(ASSEMBLE.min, ASSEMBLE.max), enter: ENTER, wire: WIRE, from: oneOf('start', 'end'), height: within(0, 40), dark: (v) => typeof v === 'boolean' },
   pulse: { through: ids, direction: oneOf('forward', 'back'), color, width: within(0.05, 1), size: within(1, 12) },
   label: { part: id, text: isText },
-  scene: { mode: oneOf('part', 'board'), part: id, zoom: within(0.5, 3) },
+  scene: { mode: oneOf('part', 'board'), part: id, zoom: within(0.5, 3), enter: oneOf('cut', 'drop'), push: within(0.5, 3) },
   land: { part: id },
   pin: { pin: (v) => id(v) && v.includes('.'), mark: id, off: (v) => v === true, text: isText },
   bench: { part: id, on: (v) => typeof v === 'boolean' },
@@ -81,7 +81,7 @@ const FIELDS = {
 };
 const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], value: ['part', 'field'], insert: ['part'], raise: ['part'], nudge: ['part'], label: ['part', 'text'], scene: ['mode'], land: ['part'], bench: ['on'], symbol: ['on'], inside: ['on'], 'wait-until': ['part', 'field'] };
 // Texts a step may carry, plain or one per language.
-const TEXTS = ['text', 'line', 'label', 'title', 'note'];
+const TEXTS = ['text', 'line', 'data', 'label', 'title', 'note'];
 // A cubic-bezier of CSS: the time coordinates between 0 and 1.
 const isCurve = (v) => Array.isArray(v) && v.length === 4 && v.every(num) && v[0] >= 0 && v[0] <= 1 && v[2] >= 0 && v[2] <= 1 && v.every(within(-3, 4));
 

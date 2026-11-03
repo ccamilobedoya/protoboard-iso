@@ -20,6 +20,7 @@
 // browser): never a pass then. Time is Playwright's fake clock, paused: only tick() moves the page.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { inflateSync } from 'node:zlib';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -35,9 +36,12 @@ const FRAME = 1000 / 30;
 // may still reach 75 %), and an oscilloscope's box on top (a probe's place "top") lies between the
 // caption and 40 % (`scope`, moves.js SCOPE_BOX).
 export const RULES = {
-  vertical: { width: 1080, height: 1920, caption: { top: [0.15, 0.17], bottom: [0, 0.4] }, free: { top: 0.4, bottom: 0.75, left: 0.0667, right: 0.9333 }, told: { bottom: 0.65 }, scope: { ...SCOPE_BOX.top }, sizes: { text: 56, number: 44, line: 30 } },
-  horizontal: { width: 1920, height: 1080, caption: { top: [0, 1], bottom: [0, 1], right: [0, 0.5] }, free: { top: 0.09, bottom: 0.91, left: 0.5, right: 0.9625 }, sizes: { text: 52 } },
+  vertical: { width: 1080, height: 1920, caption: { top: [0.15, 0.17], bottom: [0, 0.4] }, ink: { left: 90 / 1080, right: 1 - 90 / 1080 }, free: { top: 0.4, bottom: 0.75, left: 0.0667, right: 0.9333 }, told: { bottom: 0.65 }, scope: { ...SCOPE_BOX.top }, sizes: { text: 56, number: 44, data: 44 }, label: 40 },
+  horizontal: { width: 1920, height: 1080, caption: { top: [0, 1], bottom: [0, 1], right: [0, 0.5] }, ink: { left: 90 / 1920, right: 0.5 }, free: { top: 0.09, bottom: 0.91, left: 0.5, right: 0.9625 }, sizes: { text: 52, data: 44 }, label: 40 },
 };
+// The caption's least contrast on what is under it (WCAG's ratio), and the first frame's checks.
+export const CONTRAST = 4.5;
+
 // Chromium's flags for frames that do not depend on timing: every compositor stage done before a
 // frame is drawn, and a changed area repainted with its whole tile. Without them, about one run in
 // five of a recording drew a frame or two a few colour units apart (a partial repaint of the parts
@@ -77,11 +81,109 @@ export function frameProblems(format, m, { moving = false } = {}) {
     const f = r.free;
     if (m.pinout.top < f.top - TOLERANCE || m.pinout.bottom > f.bottom + TOLERANCE || m.pinout.left < f.left - TOLERANCE || m.pinout.right > f.right + TOLERANCE) out.push(`the pinout at ${pct(m.pinout.left)}…${pct(m.pinout.right)} × ${pct(m.pinout.top)}…${pct(m.pinout.bottom)}, out of the free area`);
   }
+  // The caption's ink within the safe width (90 px a side), its second line as large as the first by
+  // default (a smaller one is the timeline's own choice of --cap-line-size, not checked), its contrast.
+  if (m.inkBox && r.ink && (m.inkBox.left < r.ink.left - TOLERANCE / 4 || m.inkBox.right > r.ink.right + TOLERANCE / 4)) out.push(`the caption's text at ${pct(m.inkBox.left)}…${pct(m.inkBox.right)}, out of the safe width ${pct(r.ink.left)}…${pct(r.ink.right)}`);
+  if (m.contrast != null && m.contrast < CONTRAST) out.push(`the caption's contrast ${m.contrast.toFixed(1)}:1 on what is under it, under ${CONTRAST}:1`);
+  // The told part's label, never smaller than r.label px at 1080 (scaled by tour.js).
+  if (r.label && m.labelPx != null && !moving && m.labelPx < (r.label * Math.min(r.width, r.height)) / 1080 - PX) out.push(`the label of ${m.told?.id} ${Math.round(m.labelPx)} px, under ${r.label} px`);
   if (m.tags) out.push(`${m.tags} result tags shown`);
   if (m.chrome.length) out.push(`chrome shown: ${m.chrome.join(', ')}`);
   return out;
 }
 const pct = (v) => `${Math.round(v * 1000) / 10} %`;
+
+// The first frame of a recording shows its first moment (K1): with a scene on the pedestal first, the
+// part alone; a caption, whole (not rising); a focus, the veil; the current, its layer. `first`: the
+// steps of the timeline's first moment; `m`: frame 0 measured.
+export function firstFrameProblems(first, m) {
+  const out = [];
+  const has = (pred) => first.some(pred);
+  if (has((s) => s.do === 'scene' && s.mode === 'part') && m.scene !== 'part') out.push('first frame: the board as the page opens, not the scene of the first step (the part on its pedestal)');
+  if (has((s) => s.do === 'caption' && !s.off) && (!m.caption || m.captionRising)) out.push('first frame: the first caption is not whole');
+  if (has((s) => s.do === 'focus' && s.parts?.length) && !m.focusing) out.push('first frame: the focus of the first step is not on');
+  if (has((s) => s.do === 'flow' && s.on) && !m.flow) out.push('first frame: the current layer of the first step is not on');
+  return out;
+}
+
+// A PNG's pixels (8 bits, RGB or RGBA, not interlaced: what Chromium writes), as { width, height,
+// channels, data } with the filters undone.
+export function decodePng(buf) {
+  const width = buf.readUInt32BE(16);
+  const height = buf.readUInt32BE(20);
+  const depth = buf[24];
+  const type = buf[25];
+  if (depth !== 8 || (type !== 2 && type !== 6) || buf[28] !== 0) throw new Error('decodePng: 8-bit RGB or RGBA, not interlaced');
+  const channels = type === 6 ? 4 : 3;
+  const parts = [];
+  for (let at = 8; at < buf.length; ) {
+    const size = buf.readUInt32BE(at);
+    const kind = buf.toString('ascii', at + 4, at + 8);
+    if (kind === 'IDAT') parts.push(buf.subarray(at + 8, at + 8 + size));
+    if (kind === 'IEND') break;
+    at += 12 + size;
+  }
+  const raw = inflateSync(Buffer.concat(parts));
+  const stride = width * channels;
+  const data = Buffer.alloc(stride * height);
+  for (let y = 0; y < height; y++) {
+    const filter = raw[y * (stride + 1)];
+    const row = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
+    for (let x = 0; x < stride; x++) {
+      const a = x >= channels ? data[y * stride + x - channels] : 0;
+      const b = y > 0 ? data[(y - 1) * stride + x] : 0;
+      const c = x >= channels && y > 0 ? data[(y - 1) * stride + x - channels] : 0;
+      let v = row[x];
+      if (filter === 1) v += a;
+      else if (filter === 2) v += b;
+      else if (filter === 3) v += (a + b) >> 1;
+      else if (filter === 4) {
+        const p = a + b - c;
+        const pa = Math.abs(p - a);
+        const pb = Math.abs(p - b);
+        const pc = Math.abs(p - c);
+        v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+      }
+      data[y * stride + x] = v & 255;
+    }
+  }
+  return { width, height, channels, data };
+}
+
+// WCAG's relative luminance of an sRGB colour (0…255 each).
+export function luminance([r, g, b]) {
+  const lin = (c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+// The caption's contrast on a frame: in the boxes of its lines (`rects`, px), the pixels far from the
+// text's colour are what is under it; the lightest tenth of them (for light text; the darkest for dark
+// text) against the text's colour. null when the boxes hold too little ground to say.
+export function captionContrast(png, rects, color) {
+  const img = decodePng(png);
+  const text = luminance(color);
+  const ground = [];
+  for (const r of rects) {
+    const x0 = Math.max(0, Math.floor(r.x));
+    const y0 = Math.max(0, Math.floor(r.y));
+    const x1 = Math.min(img.width, Math.ceil(r.x + r.width));
+    const y1 = Math.min(img.height, Math.ceil(r.y + r.height));
+    for (let y = y0; y < y1; y += 2) {
+      for (let x = x0; x < x1; x += 2) {
+        const i = (y * img.width + x) * img.channels;
+        const px = [img.data[i], img.data[i + 1], img.data[i + 2]];
+        if (Math.hypot(px[0] - color[0], px[1] - color[1], px[2] - color[2]) > 120) ground.push(luminance(px));
+      }
+    }
+  }
+  if (ground.length < 50) return null;
+  ground.sort((a, b) => a - b);
+  const worst = text > 0.18 ? ground[Math.floor(ground.length * 0.9)] : ground[Math.floor(ground.length * 0.1)];
+  return (Math.max(text, worst) + 0.05) / (Math.min(text, worst) + 0.05);
+}
 
 // Runs in the page: where the caption, the told part and the rest are, as shares of the screen.
 export function measure() {
@@ -111,12 +213,39 @@ export function measure() {
   const pinout = pinned.length ? frac({ top: Math.min(...pinned.map((r) => r.top)), bottom: Math.max(...pinned.map((r) => r.bottom)), left: Math.min(...pinned.map((r) => r.left)), right: Math.max(...pinned.map((r) => r.right)) }) : null;
   const box = document.querySelector('.scope-inset');
   const boxRect = box ? shown(box) : null;
+  // The caption's ink: each of its lines' text as laid out (px), its colour, whether it is still rising.
+  const ink = [];
+  let inkColor = null;
+  let rising = false;
+  if (capRect) {
+    for (const span of cap.querySelectorAll(':scope > p:not([hidden]) > .in')) {
+      if (!span.textContent || span.closest('[hidden]')) continue;
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      for (const r of range.getClientRects()) if (r.width > 0 && r.height > 0) ink.push({ x: r.left, y: r.top, width: r.width, height: r.height });
+      if (span.style.transform || (span.style.opacity && span.style.opacity !== '1')) rising = true;
+      if (!inkColor && span.parentNode.classList.contains('text')) inkColor = (getComputedStyle(span).color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+    }
+  }
+  const inkBox = ink.length ? frac({ top: Math.min(...ink.map((r) => r.y)), bottom: Math.max(...ink.map((r) => r.y + r.height)), left: Math.min(...ink.map((r) => r.x)), right: Math.max(...ink.map((r) => r.x + r.width)) }) : null;
+  // The told label's letter size on screen: its font size through its own scale and the camera.
+  const labelEl = tag ? svg.querySelector(`.spotlabels > text[data-part="${id}"], .spotlabels > [data-part="${id}"] text`) : null;
+  const ctm = labelEl?.getScreenCTM?.();
+  const labelPx = labelEl && ctm ? Number(labelEl.getAttribute('font-size')) * Math.hypot(ctm.a, ctm.b) : null;
   const scope = boxRect ? { ...frac(boxRect), place: box.classList.contains('top') ? 'top' : 'bottom' } : null;
   return {
     theme: document.documentElement.dataset.theme ?? null,
     viewBox: svg.getAttribute('viewBox'),
     caption: capRect ? frac(capRect) : null,
-    sizes: { text: size('.text'), number: size('.value .number'), line: size('.line') },
+    sizes: { text: size('.text'), number: size('.value .number'), line: size('.line'), data: size('.data') },
+    ink,
+    inkColor,
+    inkBox,
+    captionRising: rising,
+    labelPx,
+    scene: document.querySelector('main')?.dataset.scene ?? null,
+    focusing: document.body.classList.contains('focusing'),
+    flow: document.body.classList.contains('layer-flow'),
     labelled: labels,
     label: tag ? frac(tag) : null,
     told,
@@ -149,7 +278,9 @@ async function open(browser, file, { width, height }, query) {
   await page.clock.pauseAt(1000);
   await page.goto(`${pathToFileURL(file).href}${query}`);
   await page.evaluate(async () => {
-    await document.fonts.ready;
+    // The caption's face loads when first used: load it now, so frame 0 never waits for it.
+      if (document.getElementById('caption-face')) await document.fonts.load('500 56px "Literata Caption"');
+      await document.fonts.ready;
   });
   return { context, page };
 }

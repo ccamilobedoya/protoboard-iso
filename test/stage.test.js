@@ -45,7 +45,7 @@ const labelled = (window) => [...window.document.querySelectorAll('main > svg:no
 
 test('stage: the notebook by day and at night, two more themes', () => {
   assert.match(STYLE, /:root\[data-theme="notebook"\] \{[^}]*color-scheme: light;[^}]*--canvas: #f4efe2;[^}]*--grid-line: rgba\(24, 79, 143/);
-  assert.match(STYLE, /:root\[data-theme="stage"\] \{[^}]*--canvas: #151a21;[^}]*--cap-face: "Iowan Old Style"/);
+  assert.match(STYLE, /:root\[data-theme="stage"\] \{[^}]*--canvas: #151a21;[^}]*--cap-face: "Literata Caption", "Iowan Old Style"/);
   // The grid's marks per theme: dots on the bench (light and dark), lines on the stage.
   assert.match(STYLE, /:root\[data-theme="stage"\] \{[^}]*--grid-dot: transparent;[^}]*--grid-line: rgba/);
   assert.match(STYLE, /--grid-dot: rgba\(26, 26, 26/);
@@ -54,7 +54,11 @@ test('stage: the notebook by day and at night, two more themes', () => {
   const [portrait, landscape] = STYLE.match(/body\.director \{\s*--cap-text[^}]*\}/g);
   assert.equal(Math.round((vw('text', portrait) * 1080) / 100), 56);
   assert.equal(Math.round((vw('number', portrait) * 1080) / 100), 44);
-  assert.equal(Math.round((vw('line', portrait) * 1080) / 100), 30);
+  assert.equal(Math.round((vw('data', portrait) * 1080) / 100), 44);
+  // 90 px a side: a safe width of 900 px; the second line as large as the first unless --cap-line-size says.
+  assert.equal(Math.round((vw('pad', portrait) * 1080) / 100), 90);
+  assert.equal(Math.round((vw('pad', landscape) * 1920) / 100), 90);
+  assert.match(STYLE, /\.tour-caption \.line \{[^}]*var\(--cap-line-size, var\(--cap-text\)\)/);
   assert.equal(Math.round((vw('text', landscape) * 1920) / 100), 52);
   // No CSS filter anywhere in the page (decision of 2026-10-15).
   assert.doesNotMatch(STYLE, /filter:/);
@@ -274,6 +278,13 @@ test('stage: the rules of a frame, as stage-shots.js checks them', () => {
   assert.equal(bad({ sizes: { text: 40 } }).length, 1, 'too small to read');
   assert.equal(bad({ labels: 3 }).length, 1);
   assert.equal(bad({ tags: 2, chrome: ['nav'] }).length, 2);
+  // v0.7.0: the caption's text within 90 px a side, its contrast, the told label's size.
+  assert.match(bad({ inkBox: { top: 0.16, bottom: 0.25, left: 0.05, right: 0.6 } }).join(), /out of the safe width/);
+  assert.deepEqual(bad({ inkBox: { top: 0.16, bottom: 0.25, left: 0.09, right: 0.9 } }), []);
+  assert.match(bad({ contrast: 1.2 }).join(), /contrast 1.2:1/);
+  assert.deepEqual(bad({ contrast: 9 }), []);
+  assert.match(bad({ labelPx: 23 }).join(), /23 px, under 40 px/);
+  assert.deepEqual(bad({ labelPx: 41 }), []);
   const wide = { ...good, caption: { top: 0.09, bottom: 0.3, left: 0.04, right: 0.4 }, sizes: { text: 52 }, told: { id: 'D1', top: 0.2, bottom: 0.8, left: 0.55, right: 0.9 }, label: { top: 0.5, bottom: 0.52, left: 0.6, right: 0.7 } };
   assert.deepEqual(frameProblems('horizontal', wide), []);
   assert.equal(frameProblems('horizontal', { ...wide, told: { ...wide.told, left: 0.3 } }).length, 1, 'under the caption');
@@ -297,4 +308,50 @@ test('stage: the reader chooses the theme in the menu, kept for the next pages; 
   assert.equal((await loadPage(html, '?theme=dark', { width: 800, height: 500 }, kept)).document.documentElement.dataset.theme, 'dark');
   // A recording keeps the timeline's.
   assert.equal((await loadPage(html, '?director=1', { width: 1080, height: 1920 }, kept)).document.documentElement.dataset.theme, 'stage');
+});
+
+// v0.7.0: the first frame of a recording is its first moment's, and the caption's contrast is read on
+// the frame itself (a PNG as Chromium writes it).
+test('stage: the first frame shows the first steps; the caption\'s contrast measured on a frame', async () => {
+  const { firstFrameProblems, captionContrast, decodePng, luminance } = await import('../scripts/stage-shots.js');
+  const first = [{ do: 'scene', mode: 'part', part: 'U1' }, { do: 'caption', text: 'A 555' }, { do: 'flow', on: true }, { do: 'focus', parts: ['R1'] }];
+  assert.deepEqual(firstFrameProblems(first, { scene: 'part', caption: {}, captionRising: false, flow: true, focusing: true }), []);
+  const out = firstFrameProblems(first, { scene: null, caption: {}, captionRising: true, flow: false, focusing: false });
+  assert.equal(out.length, 4, out.join('; '));
+  assert.match(out[0], /board as the page opens/);
+  // A PNG of 40 × 20: light text (#efe9da) on a white board, then on the stage's slate.
+  const { deflateSync } = await import('node:zlib');
+  const png = (ground) => {
+    const w = 40;
+    const h = 20;
+    const raw = Buffer.alloc((w * 3 + 1) * h);
+    for (let y = 0; y < h; y++) {
+      raw[y * (w * 3 + 1)] = y % 2 ? 1 : 0; // filters 0 and 1 (sub), as encoders mix them
+      let prev = [0, 0, 0];
+      for (let x = 0; x < w; x++) {
+        const c = x % 4 === 0 ? [0xef, 0xe9, 0xda] : ground;
+        for (let k = 0; k < 3; k++) raw[y * (w * 3 + 1) + 1 + x * 3 + k] = y % 2 ? (c[k] - prev[k] + 256) % 256 : c[k];
+        prev = c;
+      }
+    }
+    const chunk = (kind, data) => {
+      const len = Buffer.alloc(4);
+      len.writeUInt32BE(data.length);
+      return Buffer.concat([len, Buffer.from(kind, 'ascii'), data, Buffer.alloc(4)]);
+    };
+    const head = Buffer.alloc(13);
+    head.writeUInt32BE(w, 0);
+    head.writeUInt32BE(h, 4);
+    head[8] = 8;
+    head[9] = 2;
+    return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', head), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+  };
+  const img = decodePng(png([0x15, 0x1a, 0x21]));
+  assert.deepEqual([img.width, img.height, img.channels], [40, 20, 3]);
+  assert.deepEqual([...img.data.subarray(3 * 41, 3 * 41 + 3)], [0x15, 0x1a, 0x21], 'the sub filter undone');
+  const rect = [{ x: 0, y: 0, width: 40, height: 20 }];
+  const text = [0xef, 0xe9, 0xda];
+  assert.ok(captionContrast(png([0xf3, 0xf1, 0xea]), rect, text) < 1.2, 'cream on the white board: about 1:1');
+  assert.ok(captionContrast(png([0x15, 0x1a, 0x21]), rect, text) > 12, 'on the slate');
+  assert.ok(Math.abs(luminance([255, 255, 255]) - 1) < 1e-9);
 });

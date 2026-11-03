@@ -298,6 +298,8 @@ export default {
   'page.scope.current': 'Current',
   'page.scope.model': 'model, since switching on',
   'page.scope.node': 'Voltage to ground',
+  'page.scope.delta': 'period {from} → {to} (×{k})',
+  'page.scope.deltaWait': 'period {from} → …',
   'page.node.open': 'Open the card of this strip',
   'page.node.leads': 'Connected here',
   'page.node.lead': '{part} ({pin})',

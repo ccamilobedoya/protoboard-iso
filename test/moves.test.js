@@ -11,7 +11,7 @@ import { loadTour } from '../src/tour.js';
 import { CIRCUIT_FOLDER } from '../src/beside.js';
 import { DOT_PERIOD } from '../src/sim/look.js';
 import { timelineCircuit } from '../scripts/render-frames.js';
-import { CAPTION, INSERT, LIGHT, RAISE, NUDGE, MOVES, ASSEMBLE } from '../src/page/client/moves.js';
+import { CAPTION, INSERT, LIGHT, RAISE, NUDGE, MOVES, ASSEMBLE, LAND } from '../src/page/client/moves.js';
 
 const FRAME = 1000 / 30;
 const examples = fileURLToPath(new URL('../examples/', import.meta.url));
@@ -680,13 +680,27 @@ test('moves: M18 a land keeps the part still on screen while the board rises, th
   r.to(1000 - FRAME);
   const before = place();
   const px = before.h / 640; // a pixel of the 640-tall screen, in drawing units
+  const veil = () => r.layer('veil').firstElementChild;
+  const slid = (name) => Number(r.layer(name)?.getAttribute('transform')?.match(/translate\(0 (-?[\d.]+)\)/)?.[1] ?? 0);
+  let last = Infinity;
   for (let ms = 1000; ms <= 1000 + MOVES.travel.ms; ms += 100) {
     r.to(ms);
-    assert.equal(main.dataset.scene, ms < 1000 + MOVES.travel.ms ? 'land' : undefined, `${ms} ms`);
+    assert.equal(main.dataset.scene, ms < 1000 + MOVES.travel.ms ? 'land' : 'lit', `${ms} ms`);
     assert.ok(Math.abs(place().y - before.y) <= px, `${ms} ms: the part moved ${((place().y - before.y) / px).toFixed(2)} px`);
+    // The board comes in opaque, sliding up from below, under the veil of the stage's colour.
+    assert.equal(r.layer('board').style.opacity, '', `${ms} ms: the board is opaque`);
+    assert.ok(slid('board') <= last, `${ms} ms: the board slides up`);
+    last = slid('board');
+    if (ms < 1000 + MOVES.travel.ms) assert.equal(Number(veil().style.fillOpacity), LAND.dim, `${ms} ms: the veil over the board`);
   }
-  r.to(1000 + MOVES.travel.ms + FRAME);
+  assert.equal(slid('board'), 0, 'in place');
+  // Touched down, the board lightens in a ramp (no frame step after it: from the land's end).
+  r.to(1000 + MOVES.travel.ms + LAND.ramp / 2);
+  const k = Number(veil().style.fillOpacity);
+  assert.ok(k > 0.05 && k < LAND.dim - 0.05, `half way the veil at ${k}`);
+  r.to(1000 + MOVES.travel.ms + LAND.ramp + FRAME);
   assert.equal(main.dataset.scene, undefined, 'on the board');
+  assert.equal(veil().style.fillOpacity, '', 'the veil gone');
   assert.ok(!r.doc.body.classList.contains('focusing'), 'the focus has gone with the pedestal');
   assert.equal(r.svg().querySelector(':scope > .parts > [data-part="Q1"]').style.opacity, '', 'the part in its holes, seen');
   // The assemble brings every other part; the one landed stays in place.
@@ -1067,4 +1081,40 @@ test('moves: a part raised and then focused again stays seen (its copies keep th
   const copies = [...r.svg().querySelectorAll(':scope > .spotlight [data-part="D1"]')];
   assert.ok(copies.length > 0);
   for (const el of copies) assert.notEqual(el.style.opacity, '0');
+});
+
+// v0.7.0: a recording opens on its first moment (never the circuit as the page opens), a scene may
+// drop its part onto the pedestal, a caption may carry a data row, and the moments a sound may go
+// with are listed.
+test('moves: the first frame is the first moment: steps after 0 run at once, the caption whole', async (t) => {
+  const r = await recording([
+    { at: 200, do: 'scene', mode: 'part', part: 'Q1', enter: 'drop', push: 1.6 },
+    { at: 200, do: 'caption', text: 'A transistor', data: '1 kΩ → 100 kΩ' },
+    { at: 2500, do: 'land', part: 'Q1' },
+    { at: 2500, do: 'set', part: 'R1', field: 'resistance', value: 2000, move: 'travel' },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  // Frame 0 (after the tick of no time): the pedestal and the caption, whole.
+  assert.equal(r.doc.querySelector('main').dataset.scene, 'part', 'on the pedestal from frame 0');
+  const caption = r.doc.querySelector('.tour-caption');
+  assert.equal(caption.hidden, false);
+  assert.equal(caption.querySelector('.text .in').style.transform, '', 'not rising');
+  assert.equal(caption.querySelector('.data .in').textContent, '1 kΩ → 100 kΩ');
+  assert.equal(caption.querySelector('.data').hidden, false);
+  assert.equal(JSON.stringify(r.live.tour.log.filter((x) => x.step.primed).map((x) => [x.t, x.step.do])), '[[0,"scene"],[0,"caption"]]');
+  // The drop: the part starts above its pedestal and comes down to it.
+  const lift = () => {
+    const g = r.svg().querySelector(':scope > .spotlight > .lift[data-part="Q1"]');
+    return g ? -Number(g.getAttribute('transform').match(/translate\(0 (-?[\d.]+)\)/)[1]) : 0;
+  };
+  const high = lift();
+  r.to(1000);
+  assert.ok(high > lift() * 2, `dropped from ${high.toFixed(1)} to ${lift().toFixed(1)}`);
+  // The events: the land touching down, and the count of the set.
+  r.to(2500 + MOVES.travel.ms + 2 * FRAME);
+  const kinds = r.live.tour.events.map((e) => e.kind);
+  assert.ok(kinds.includes('land'), kinds.join(' '));
+  assert.ok(kinds.filter((k) => k === 'count').length > 3, 'each figure of the set');
+  const land = r.live.tour.events.find((e) => e.kind === 'land');
+  assert.ok(Math.abs(land.t - (2500 + MOVES.travel.ms)) <= FRAME, `touch-down at ${land.t}`);
 });

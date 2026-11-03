@@ -18,7 +18,7 @@
 // circuit (M21; bench.js); a symbol (M22) or an inside view (M23) stands beside it (figure.js). Only
 // transform and opacity move.
 
-import { moveTiming, bezier, CAPTION, INSERT, RAISE, NUDGE, SCENE, ASSEMBLE, PULSE, PULSE_COLORS } from './moves.js';
+import { moveTiming, bezier, CAPTION, INSERT, RAISE, NUDGE, SCENE, SCENE_ENTER, LAND, LABEL_MIN_PX, MOVES, ASSEMBLE, PULSE, PULSE_COLORS } from './moves.js';
 import { applyFocus, liftPart, showPart, isWire, traceWire, quote, scopeFlow } from './focus.js';
 import { select, selectNode } from './card.js';
 import { setupPinout } from './pinout.js';
@@ -76,12 +76,15 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
   // Each line is a mask (page/style.js) around what rises in it (M12).
   const text = el(el(box, 'p', 'text'), 'span', 'in');
   const line = el(el(box, 'p', 'line'), 'span', 'in');
+  const datum = el(el(box, 'p', 'data'), 'span', 'in');
   const value = el(box, 'p', 'value');
   const rise = el(value, 'span', 'in');
   const label = el(rise, 'span', 'label');
   const number = el(rise, 'span', 'number');
   const lineRow = line.parentNode;
   lineRow.hidden = true;
+  const dataRow = datum.parentNode;
+  dataRow.hidden = true;
   value.hidden = true;
   const hint = el(box, 'small', 'stop');
   hint.textContent = t('page.tour.stop');
@@ -269,6 +272,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
   };
   const leaveScene = () => {
     delete page.main.dataset.scene;
+    slide(0);
     sceneRule.textContent = '';
     sceneFade(1);
     pedestal = null;
@@ -276,9 +280,60 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
   // The parts an assemble will bring (its list, or every part but those already landed).
   const assembling = (s) => (s.parts ?? Object.keys(page.data.parts).filter((id) => !landed.has(id))).map((p) => (typeof p === 'string' ? p : p.part)).filter((id) => page.data.parts[id]);
   // Back to the board from the pedestal: the part comes down, the board and the other parts come
-  // back along the move (those a later assemble brings stay away for it). `follow` (a land, M18):
+  // in along the move (those a later assemble brings stay away for it). `follow` (a land, M18):
   // the camera goes down as the part does, so the part stays still on screen and the board rises
-  // under it.
+  // under it. The board comes in opaque, never seen through over the part: it slides up from below
+  // the frame under a veil of the stage's colour (LAND.dim), the part over the veil, and lightens
+  // in a ramp of LAND.ramp ms once the camera has opened (`lighten`).
+  const SLIDING = ['under', 'board', 'parts', 'labels', 'shortlabels', 'lights', 'marks'];
+  const slide = (dy) => {
+    for (const svg of page.svgs) {
+      for (const name of SLIDING) {
+        const g = svg.querySelector(':scope > .' + name);
+        if (!g) continue;
+        if (dy) g.setAttribute('transform', 'translate(0 ' + dy.toFixed(2) + ')');
+        else g.removeAttribute('transform');
+      }
+    }
+  };
+  // The veil over the board while it lands, `k` of the way from where it will rest to LAND.dim: with
+  // the current layer on (which keeps the veil) at its own opacity, else gone. 0: its own styles back.
+  const dim = (k) => {
+    const rest = page.state.layer === 'flow';
+    for (const svg of page.svgs) {
+      const g = svg.querySelector(':scope > .veil');
+      if (!g) continue;
+      for (const r of g.children) {
+        const own = Number(r.getAttribute('fill-opacity') ?? 1);
+        const to = rest ? own : 0;
+        r.style.fillOpacity = k > 0 ? (to + (LAND.dim - to) * k).toFixed(3) : '';
+      }
+    }
+  };
+  let lit = null; // the land's part while the board lightens (main[data-scene="lit"])
+  // The board lit: the veil gone, the part back among the others, the focus cleared unless a step
+  // has set one since (`keep`).
+  const litDone = (keep) => {
+    if (lit == null) return;
+    lit = null;
+    dim(0);
+    leaveScene();
+    if (!keep) focusOn([]);
+  };
+  function lighten(s, from) {
+    const next = steps.find((x) => x !== s && x.at >= s.at && x.do === 'frame');
+    const open = next ? next.at + timing(next).ms : 0;
+    const wait = Math.max(0, open - from);
+    const ramp = reduced ? 0 : LAND.ramp;
+    const ease = moveTiming('travel').ease;
+    if (!(wait + ramp > 0)) return litDone(false);
+    director.tween((e) => {
+      if (lit == null) return;
+      const t = e * (wait + ramp);
+      dim(t <= wait ? 1 : 1 - ease((t - wait) / ramp));
+      if (e >= 1) litDone(false);
+    }, { ms: wait + ramp, ease: (k) => k });
+  }
   function toBoard(s, follow) {
     const id = pedestal ?? s.part;
     if (!id || !page.data.parts[id]) return;
@@ -292,15 +347,28 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       showPart(page, p, 0);
     }
     page.main.dataset.scene = 'land';
-    sceneFade(0);
+    sceneFade(1);
+    dim(1);
+    lit = id;
+    const below = page.box ? page.box[3] : 0;
+    slide(below);
     const dy = height * (page.data.lift ?? 0);
     if (follow && page.box && dy) director.frame([page.box[0], page.box[1] + dy, page.box[2], page.box[3]], { ms, ease });
+    const at = s.at;
     director.tween((e) => {
       liftPart(page, id, height * (1 - e));
-      sceneFade(e);
+      slide(below * (1 - e));
       if (e < 1) return;
-      leaveScene();
-      focusOn([]);
+      // Touched down: the board in place, still under the veil; the part over it without its label.
+      page.main.dataset.scene = 'lit';
+      sceneRule.textContent = '';
+      pedestal = null;
+      if (page.told !== undefined) {
+        page.told = null;
+        applyFocus(page);
+      }
+      event('land', { part: id });
+      lighten(s, at + ms);
     }, { ms, ease });
   }
 
@@ -323,6 +391,35 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     director.tween(figure.show(s.part, what, ms), { ms, ease });
   };
 
+  // In a recording, the moments a sound may go with (scripts/render-frames.js writes them to
+  // timeline.json): a land touching down, each step a count shows, an oscilloscope coming or going,
+  // a mark drawn in it. { t (ms of the recording), kind, ... }.
+  const events = [];
+  function event(kind, extra = {}) {
+    if (recording) events.push({ t: director.time, kind, ...extra });
+  }
+  // The counts on screen: a set moving a number (its control's value) and a value counting up
+  // (its number): each new figure shown is an event.
+  const counting = new Map();
+  let shownNumber = null;
+  function counts() {
+    if (!recording) return;
+    if (counting.size) {
+      const now = new Map(director.controls().map((c) => [`${c.id}|${c.field}`, c.value]));
+      for (const [key, c] of counting) {
+        const v = now.get(key);
+        const figure = typeof v === 'number' ? f(v, '') : String(v);
+        if (figure !== c.last) {
+          if (c.last != null) event('count', { part: c.part, field: c.field, shown: figure });
+          c.last = figure;
+        }
+        if (director.time >= c.until) counting.delete(key);
+      }
+    }
+    const n = shown && !value.hidden ? number.textContent : null;
+    if (n && n !== shownNumber) event('count', { part: shown.part, field: shown.field, shown: n });
+    shownNumber = n;
+  }
   let framed = null; // the last frame step, for a probe to frame again
   const act = {
     // The camera (M1, M2, M14): to a target (board, parts, here, a part or a list of parts), with
@@ -337,6 +434,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       return director.frame(s.target, { ...timing(s), zoom: s.zoom ?? 1, pan: s.pan ?? null, alone: framed.alone });
     },
     focus: (s) => {
+      litDone(true);
       const { ms, ease } = timing(s);
       const was = document.body.classList.contains('focusing');
       const on = s.parts.some((id) => page.data.parts[id]);
@@ -360,7 +458,11 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     },
     // A probe's box with marks draws a line where the set starts, with the new value (M11).
     set: (s) => {
-      page.scopeMark?.(s.part, s.field, s.value);
+      if (page.scopeMark?.(s.part, s.field, s.value, s.cycle)) event('mark', { part: s.part, field: s.field, value: s.value });
+      const { ms } = timing(s);
+      // The mark's new pace is measured from when the control has arrived (live.js, compare).
+      if (page.scopeSettled) director.tween((e) => e >= 1 && page.scopeSettled(s.part, s.field), { ms, ease: (k) => k });
+      if (ms > 0) counting.set(`${s.part}|${s.field}`, { part: s.part, field: s.field, until: director.time + ms, last: null });
       return director.set(s.part, s.field, s.value, timing(s));
     },
     // `scope` "focus": only the nets of the parts in focus carry the current, until the next flow
@@ -386,8 +488,10 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       text.textContent = s.text;
       line.textContent = s.line ?? '';
       lineRow.hidden = !s.line;
+      datum.textContent = s.data ?? '';
+      dataRow.hidden = !s.data;
       value.hidden = true;
-      comeIn(s.line ? [text, line] : [text], old, s);
+      comeIn([text, ...(s.line ? [line] : []), ...(s.data ? [datum] : [])], old, s);
     },
     // M9: a reading, large; it counts up to its value in `count` ms (0: shown as it is).
     value: (s) => {
@@ -410,7 +514,9 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         if (s.off) return select(page, null);
         return s.node != null ? selectNode(page, s.node) : select(page, s.part);
       }
-      page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note, window: s.window, marks: s.marks, place: s.place, size: s.size });
+      const had = document.body.classList.contains('with-scope');
+      const on = page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note, window: s.window, marks: s.marks || s.compare, compare: s.compare, place: s.place, size: s.size });
+      if (on || had) event('probe', { on: Boolean(on), ...(on && { part: s.part ?? null, node: s.node ?? null }) });
       if (framed) director.frame(framed.target, { ...moveTiming('arrival'), zoom: framed.zoom ?? 1, pan: framed.pan ?? null, alone: framed.alone ?? false });
     },
     // M15: in focus, then into its holes (`enter`: drop from `height` mm, the default 12; fade;
@@ -527,6 +633,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     // raised SCENE.mm; the board and the other parts fade along the move and are then not drawn.
     // Mode board: back to the board as a land does, the camera where it is.
     scene: (s) => {
+      litDone(true);
       if (s.mode === 'board') return toBoard(s, false);
       const id = s.part;
       if (!page.data.parts[id]) return;
@@ -536,6 +643,14 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       // short label stays away on the pedestal) and the pinout fits around it.
       framed = { target: id, zoom: s.zoom ?? 1, alone: true };
       director.frame(id, { ms, ease, zoom: s.zoom ?? 1, alone: true });
+      // `push`: the camera keeps closing in until the next step that moves it, so the hook is never still
+      // (measured now, while the part is on its board and in its holes, as the frame above).
+      if (s.push != null && !reduced) {
+        const next = steps.find((x) => x !== s && x.at > s.at && ['frame', 'land', 'scene'].includes(x.do));
+        const left = next ? next.at - director.time : MOVES.push.ms;
+        const pushMs = Math.min(SCENE_ENTER.pushMax, Math.max(0, left));
+        if (pushMs > 0) director.frame(id, { ms: pushMs, ease: moveTiming('push').ease, zoom: s.push, alone: true });
+      }
       pedestal = id;
       landed.delete(id);
       page.state.node = null;
@@ -546,11 +661,18 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         page.main.dataset.scene = 'part';
         sceneFade(1);
       };
+      // `enter` drop: the part falls onto the pedestal with a small bounce (after the board has gone).
+      const drop = s.enter === 'drop' && !reduced;
       director.tween((e) => {
-        liftPart(page, id, from + (SCENE.mm - from) * e);
+        if (!drop) liftPart(page, id, from + (SCENE.mm - from) * e);
         if (e < 1) return sceneFade(1 - e);
         enter();
       }, { ms, ease });
+      if (drop) {
+        liftPart(page, id, SCENE.mm + SCENE_ENTER.drop);
+        const fall = bezier(SCENE_ENTER.curve);
+        director.tween((e) => liftPart(page, id, SCENE.mm + SCENE_ENTER.drop * (1 - fall(e))), { ms: Math.max(ms, SCENE_ENTER.ms), ease: (k) => k });
+      }
     },
     // M18: the board rises under the part (a travel by default).
     land: (s) => toBoard(s, true),
@@ -597,6 +719,33 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     },
   };
 
+  // A recording's first frame is its first moment's (never the circuit as the page opens, which
+  // gives the result away and may become the thumbnail): when the timeline starts after 0, the
+  // steps of its first moment that set what is seen (PRIMED) run at 0, as cuts; at 0, a scene and
+  // a caption of that moment are cuts too (the board does not fade out, the caption is whole on
+  // the first frame). Their other moves (a scene's enter and push) still play.
+  const PRIMED = new Set(['scene', 'frame', 'focus', 'flow', 'flip', 'label', 'caption', 'probe']);
+  const firstAt = steps.length ? Math.min(...steps.map((s) => s.at)) : 0;
+  const primed = (s) => s.at === firstAt && PRIMED.has(s.do) && (firstAt > 0 || s.do === 'scene' || s.do === 'caption');
+  const asCut = (s) => ({ ...s, move: s.move === 'push' && s.do === 'frame' ? s.move : 'cut', ...(s.do === 'flow' && { ramp: 0 }), ...(s.do === 'caption' && { enter: 'cut' }) });
+  // The told part's label in a recording, never smaller on screen than LABEL_MIN_PX at 1080 px of the
+  // frame's short side: scaled about its anchor (its copy over the veil; the one framed is not).
+  function sizeLabel() {
+    const svg = page.current();
+    const el = svg?.querySelector(':scope > .spotlabels > .short');
+    if (!el || !page.box) return;
+    const r = svg.getBoundingClientRect();
+    const unit = r.width > 0 ? Math.min(r.width / page.box[2], r.height / page.box[3]) : 0;
+    const size = Number(el.getAttribute('font-size')) || 0;
+    if (!(unit > 0 && size > 0)) return;
+    const want = (LABEL_MIN_PX * Math.min(innerWidth, innerHeight)) / 1080;
+    const k = Math.max(1, want / (size * unit));
+    const x = Number(el.getAttribute('x')) || 0;
+    const y = Number(el.getAttribute('y')) || 0;
+    if (k > 1.001) el.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${k.toFixed(3)}) translate(${(-x).toFixed(2)} ${(-y).toFixed(2)})`);
+    else el.removeAttribute('transform');
+  }
+
   let playing = false;
   let again = null; // a landing's next play, after its pause
   const log = []; // in a recording: each step as it ran, at the director's time (a wait moves the later ones)
@@ -607,6 +756,8 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     playing = false;
     director.stop();
     lower();
+    lit = null;
+    dim(0);
     leaveScene();
     unpin();
     bench.clear();
@@ -632,20 +783,30 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     bench.clear();
     figure.clear();
     landed.clear();
+    lit = null;
+    dim(0);
     playing = true;
     page.direct(true);
     document.body.classList.add('touring');
     select(page, null);
     log.length = 0;
+    events.length = 0;
+    counting.clear();
+    shownNumber = null;
     director.start(
-      steps.map((s) => ({
-        at: s.at,
-        run: () => {
-          if (recording) log.push({ t: director.time, step: s });
-          act[s.do]?.(s);
-        },
-      })),
+      steps.map((s) => {
+        const first = recording && primed(s);
+        return {
+          at: first ? 0 : s.at,
+          run: () => {
+            if (recording) log.push({ t: director.time, step: first ? { ...s, primed: true } : s });
+            act[s.do]?.(first ? asCut(s) : s);
+          },
+        };
+      }),
     );
+    if (recording) director.after(counts);
+    if (recording) director.after(sizeLabel);
     director.after(pins.draw);
     director.after(bench.draw);
     director.after(figure.draw);
@@ -723,6 +884,10 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     // What ran and when, for the recorder's timeline.json (scripts/render-frames.js).
     get log() {
       return log;
+    },
+    // The moments a sound may go with (event()).
+    get events() {
+      return events;
     },
     // One step at once, outside a timeline (the trial of the part's view in the page, D7;
     // focus-view.js): the director has the time while `on`, and draws the pinout, bench and figure.

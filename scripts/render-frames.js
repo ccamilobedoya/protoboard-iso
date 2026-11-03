@@ -7,7 +7,8 @@
 //   node scripts/render-frames.js <timeline.json> [-o dir] [--format vertical|horizontal|both]
 //        [--fps 30] [--lang en|es] [--theme t] [--tail ms] [--circuit target] [--no-captions] [--check]
 //   node scripts/render-frames.js <timeline.json> --validate     the checks only, no browser
-//   node scripts/render-frames.js --parts <recipe|circuit>        what a timeline can name
+//   node scripts/render-frames.js --parts <recipe|circuit> [--what-if R1.resistance=100000 …] [--json]
+//                                                                 what a timeline can name, and what a set does to the cycles
 //
 // The circuit is the timeline's `circuit`: a circuit file of that name beside the timeline or in
 // its parent folder (examples/tours/x.json → examples/x.json), else the recipe of that name laid
@@ -21,7 +22,10 @@
 // and timeline.json: the size, fps and length, each caption and value with the times it was on
 // screen, each step with the time it ran (a wait moves the later ones) and its move, and the
 // frame's rules measured on the DOM (scripts/stage-shots.js) at every caption and every second
-// (the told part only on a frame where the camera stands still).
+// (the told part only on a frame where the camera stands still; the caption's contrast read on the
+// frame itself; frame 0 against the timeline's first moment), the moments a sound may go with
+// (`events`: land, count, probe, mark) and the payoff of each set (`payoff`: the cycles before and
+// after it, in simulated s and s of video, against the time the timeline holds after it).
 //
 // --no-captions leaves the caption layer out of the frames (their times still go to timeline.json
 // and captions.srt): for a video whose subtitles are added later (scripts/assemble.js --burn).
@@ -30,7 +34,8 @@
 // moves, rhythm), exit 0 with none and 1 with any. --parts lists what a timeline of that circuit can
 // name: the parts (for frame, focus, insert, assemble, raise, label), the readings of each (value,
 // wait-until), the controls with their ranges (set), the strips (probe's node) and the frame's bands
-// (where the circuit, the told part and the oscilloscope's box go). Both are for
+// (where the circuit, the told part and the oscilloscope's box go); with --what-if, each LED's and
+// capacitor's cycle before and after those sets (src/sim/cycle.js); --json as data. Both are for
 // whoever writes a timeline (docs/en/making-a-video.md): nothing is worked out by hand.
 //
 // --check renders it again in a fresh browser and compares every frame's hash: the same timeline
@@ -52,9 +57,10 @@ import { buildCircuit } from '../src/circuit/build.js';
 import { compile } from '../src/sim/compile.js';
 import { createEngine } from '../src/sim/engine.js';
 import { paceOf } from '../src/sim/pace.js';
+import { cycles } from '../src/sim/cycle.js';
 import { pinList } from '../src/pinout.js';
 import { symbolOf, insideOf } from '../src/parts/symbols.js';
-import { CHROMIUM_ARGS, frameProblems, measure, RULES } from './stage-shots.js';
+import { CHROMIUM_ARGS, frameProblems, firstFrameProblems, captionContrast, measure, RULES } from './stage-shots.js';
 import { SCOPE_BOX } from '../src/page/client/moves.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -134,6 +140,58 @@ export const FRAME_BANDS = {
 };
 const pctOf = (v) => `${Math.round(v * 100)} %`;
 
+// What a change does to the circuit's cycles, as a video shows them (--parts --what-if, and the
+// payoff of each set in a timeline): the period before and after in simulated s and in s of video
+// (the page keeps the speed of time across a set), and an LED's time lit and dark.
+const measured = new WeakMap(); // circuit → (sets and parts → whatIf): a payoff asks again for the same
+export function whatIf(circuit, sets, parts = null) {
+  const key = JSON.stringify([sets, parts]);
+  const known = measured.get(circuit)?.get(key);
+  if (known) return known;
+  const r = measureWhatIf(circuit, sets, parts);
+  if (!measured.has(circuit)) measured.set(circuit, new Map());
+  measured.get(circuit).set(key, r);
+  return r;
+}
+function measureWhatIf(circuit, sets, parts) {
+  const compiled = compile(circuit);
+  if (compiled.fatal) return null;
+  const r = cycles(compiled.program, { sets, start: circuit.page?.start === 'zero' ? 'zero' : 'dc', parts });
+  const video = (c) => (c && r.perSecond > 0 ? { ...c, video: Object.fromEntries(Object.entries(c).map(([k, v]) => [k, Number((v / r.perSecond).toFixed(2))])) } : c);
+  const side = (x) => Object.fromEntries(Object.entries(x).map(([id, c]) => [id, video(c)]));
+  return { speed: Number(r.perSecond.toPrecision(3)), before: side(r.before), after: side(r.after) };
+}
+
+// The payoff of each set that changes a number in a timeline: one whole cycle of every LED (and of
+// the probed part) must fit between the set and the next set or the end, in ms of video; an
+// oscilloscope's fixed window must hold one whole cycle after it. Problems as { code, step, text }.
+export function payoffOf(circuit, tour) {
+  const out = [];
+  const problems = [];
+  const sets = [];
+  const end = Math.max(0, ...tour.steps.map((s) => s.at));
+  let probe = null;
+  tour.steps.forEach((s, i) => {
+    if (s.do === 'probe') probe = s.off ? null : s;
+    if (s.do !== 'set' || typeof s.value !== 'number') return;
+    sets.push({ id: s.part, field: s.field, value: s.value });
+    const next = tour.steps.slice(i + 1).find((x) => x.do === 'set');
+    const hold = (next ? next.at : end) - s.at;
+    const leds = (circuit.parts ?? []).filter((p) => p.type === 'led').map((p) => p.id);
+    const r = whatIf(circuit, sets.slice(), [...new Set([...leds, ...(probe?.part ? [probe.part] : [])])]);
+    if (!r) return;
+    const watched = Object.entries(r.after).filter(([id, c]) => c && (c.on != null || id === probe?.part));
+    const need = Math.max(0, ...watched.map(([, c]) => c.video?.period ?? 0)) * 1000;
+    out.push({ step: i + 1, at: s.at, set: `${s.part}.${s.field} = ${s.value}`, holdMs: hold, needMs: Math.round(need), ...r });
+    const step = i + 1;
+    if (need > hold) problems.push({ code: 'TOUR_PAYOFF_SHORT', step, text: `step ${step} (${s.part} → ${s.value}): one whole cycle after it takes ${(need / 1000).toFixed(1)} s of video, the timeline holds ${(hold / 1000).toFixed(1)} s` });
+    const p = probe?.part && r.after[probe.part];
+    if (probe?.window && p && p.period > probe.window) problems.push({ code: 'TOUR_SCOPE_WINDOW', step, text: `step ${step}: the oscilloscope's window (${probe.window} s) is shorter than one cycle after the set (${p.period.toFixed(2)} s)` });
+    for (const [id, c] of Object.entries(r.after)) if (r.before[id] && !c) problems.push({ code: 'TOUR_PAYOFF_NO_CYCLE', step, text: `step ${step}: ${id} shows no whole cycle after the set` });
+  });
+  return { sets: out, problems };
+}
+
 function printParts(name, { simulated, parts, supplies, nodes, scope, frame }) {
   const range = (c) => (c.min != null ? ` ${c.min}…${c.max}` : '');
   console.log(`${name}: ${simulated ? 'simulated (a timeline can play)' : 'NOT simulated: no source, no tour'}`);
@@ -152,6 +210,13 @@ function printParts(name, { simulated, parts, supplies, nodes, scope, frame }) {
   if (scope) console.log(`oscilloscope (probe "window"): ${scope.window} s on screen by default; ${scope.speed ? `${scope.speed} s of simulated time per second of video` : 'the wall clock (nothing changes by itself)'}`);
   console.log('strips (probe "node"):');
   for (const n of nodes) console.log(`  ${n.node.padEnd(8)} ${n.pins.join(' ')}`);
+}
+
+function printWhatIf(sets, { speed, before, after }) {
+  console.log(`what if ${sets.map((x) => `${x.id}.${x.field} = ${x.value}`).join(', ')} (${speed} s of simulated time per second of video, before and after):`);
+  const s = (v) => `${Number(v.toPrecision(3))} s`;
+  const one = (c) => (c ? `period ${s(c.period)} (${c.video.period} s of video)${c.on != null ? `, lit ${s(c.on)} (${c.video.on} s), dark ${s(c.off)} (${c.video.off} s)` : ''}` : 'no whole cycle');
+  for (const id of Object.keys({ ...before, ...after })) console.log(`  ${id.padEnd(4)} before: ${one(before[id])}\n       after:  ${one(after[id])}`);
 }
 
 // SubRip time: 00:00:01,234.
@@ -210,7 +275,7 @@ async function openBrowser() {
 }
 
 // One run: every frame, its hash, and (when `dir` is given) the PNG, the samples and the rules.
-async function record(browser, file, { format, fps, tail, theme, captions: shown = true }, dir) {
+async function record(browser, file, { format, fps, tail, theme, captions: shown = true, first = [] }, dir) {
   const { width, height } = RULES[format];
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1, colorScheme: 'dark' });
   const frame = 1000 / fps;
@@ -222,6 +287,8 @@ async function record(browser, file, { format, fps, tail, theme, captions: shown
     // The layer stays in the page (its text is read below), only not drawn.
     if (!shown) await page.addStyleTag({ content: '.tour-caption { visibility: hidden !important; }' });
     await page.evaluate(async () => {
+      // The caption's face loads when first used: load it now, so frame 0 never waits for it.
+      if (document.getElementById('caption-face')) await document.fonts.load('500 56px "Literata Caption"');
       await document.fonts.ready;
       if (!window.protoboardLive?.tour) throw new Error('the page has no tour: is the circuit simulated (a source)?');
       window.protoboardLive.tour.play();
@@ -239,7 +306,8 @@ async function record(browser, file, { format, fps, tail, theme, captions: shown
       if (!pending) return;
       const { m, before, box, ...at } = pending;
       const moving = (before != null && before !== box) || (next != null && next !== box);
-      checks.push({ ...at, told: m.told?.id ?? null, moving, problems: frameProblems(format, m, { moving }) });
+      const problems = [...frameProblems(format, m, { moving }), ...(at.frame === 0 ? firstFrameProblems(first, m) : [])];
+      checks.push({ ...at, told: m.told?.id ?? null, moving, ...(m.contrast != null && { contrast: Number(m.contrast.toFixed(2)) }), problems });
       pending = null;
     };
     let left = null; // ms still to record once the tour has ended
@@ -262,7 +330,10 @@ async function record(browser, file, { format, fps, tail, theme, captions: shown
         lastCaption = JSON.stringify(now);
         if (changed || t - lastCheck >= 1000) {
           lastCheck = t;
-          pending = { t: Math.round(t), frame: k, m: await page.evaluate(measure), before: lastBox, box };
+          const m = await page.evaluate(measure);
+          // The caption's contrast on what is under it, measured on the frame itself.
+          if (shown && m.ink?.length) m.contrast = captionContrast(png, m.ink, m.inkColor);
+          pending = { t: Math.round(t), frame: k, m, before: lastBox, box };
         }
         lastBox = box;
       }
@@ -274,14 +345,15 @@ async function record(browser, file, { format, fps, tail, theme, captions: shown
     }
     settle(null);
     const log = dir ? await page.evaluate(() => window.protoboardLive.tour.log.map(({ t, step }) => ({ t, ...step }))) : [];
-    return { hashes, captions, checks, log, duration: (hashes.length - 1) * frame };
+    const events = dir ? await page.evaluate(() => window.protoboardLive.tour.events.slice()) : [];
+    return { hashes, captions, checks, log, events, duration: (hashes.length - 1) * frame };
   } finally {
     await context.close();
   }
 }
 
 function parse(argv) {
-  const args = { parts: null, validate: false, timeline: null, out: null, formats: null, fps: 30, lang: 'en', theme: null, tail: 1000, circuit: null, captions: true, check: false };
+  const args = { parts: null, whatIf: [], json: false, validate: false, timeline: null, out: null, formats: null, fps: 30, lang: 'en', theme: null, tail: 1000, circuit: null, captions: true, check: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '-o') args.out = resolve(argv[++i]);
@@ -294,6 +366,8 @@ function parse(argv) {
     else if (a === '--check') args.check = true;
     else if (a === '--validate') args.validate = true;
     else if (a === '--parts') args.parts = argv[++i];
+    else if (a === '--what-if') args.whatIf.push(argv[++i]);
+    else if (a === '--json') args.json = true;
     else if (a === '--no-captions') args.captions = false;
     else if (a.startsWith('-')) throw new Error(`unknown option ${a}`);
     else args.timeline = resolve(a);
@@ -309,7 +383,18 @@ async function main() {
   const args = parse(process.argv.slice(2));
   if (args.parts) {
     const circuit = existsSync(args.parts) ? loadCircuit(resolveTarget(args.parts)) : recipeCircuit(args.parts);
-    printParts(args.parts, timelineParts(circuit, args.lang));
+    const parts = timelineParts(circuit, args.lang);
+    const sets = args.whatIf.map((w) => {
+      const m = /^([^.=]+)\.([^=]+)=(.+)$/.exec(w ?? '');
+      if (!m) throw new Error(`--what-if: part.field=value (R1.resistance=100000), not ${w}`);
+      return { id: m[1], field: m[2], value: m[3] === 'true' ? true : m[3] === 'false' ? false : Number(m[3]) };
+    });
+    const cyc = sets.length ? whatIf(circuit, sets) : null;
+    if (args.json) console.log(JSON.stringify({ ...parts, ...(cyc && { whatIf: { sets, ...cyc } }) }, null, 2));
+    else {
+      printParts(args.parts, parts);
+      if (cyc) printWhatIf(sets, cyc);
+    }
     return 0;
   }
   const timeline = JSON.parse(readFileSync(args.timeline, 'utf8'));
@@ -319,10 +404,13 @@ async function main() {
   const { tour, issues } = loadTour(circuit, args.lang);
   for (const i of issues) console.log(`  ${i.severity} ${i.code} ${JSON.stringify(i.params)}`);
   if (!tour) throw new Error('the timeline cannot be played (see above)');
+  const payoff = payoffOf(circuit, tour);
+  for (const p of payoff.problems) console.log(`  warning ${p.code} ${p.text}`);
   if (args.validate) {
     const last = Math.max(0, ...tour.steps.map((s) => s.at)) / 1000;
-    console.log(issues.length ? `✖ ${issues.length} problem(s) above` : `✔ ${basename(args.timeline)}: ${tour.steps.length} steps, the last at ${last.toFixed(1)} s, no problems`);
-    return issues.length ? 1 : 0;
+    const count = issues.length + payoff.problems.length;
+    console.log(count ? `✖ ${count} problem(s) above` : `✔ ${basename(args.timeline)}: ${tour.steps.length} steps, the last at ${last.toFixed(1)} s, no problems`);
+    return count ? 1 : 0;
   }
   const { html } = renderPage(circuit, { lang: args.lang });
   if (!html) throw new Error('the circuit has no page');
@@ -342,7 +430,8 @@ async function main() {
       const dir = args.out ? (formats.length > 1 ? join(args.out, format) : args.out) : join(root, 'examples/out/video', name, format);
       rmSync(join(dir, 'frames'), { recursive: true, force: true });
       mkdirSync(join(dir, 'frames'), { recursive: true });
-      const options = { format, fps: args.fps, tail: args.tail, theme: args.theme, captions: args.captions };
+      const firstAt = Math.min(...tour.steps.map((x) => x.at));
+      const options = { format, fps: args.fps, tail: args.tail, theme: args.theme, captions: args.captions, first: tour.steps.filter((x) => x.at === firstAt) };
       const run = await record(browser, file, options, dir);
       const names = run.hashes.map((_, k) => `frames/${String(k).padStart(6, '0')}.png`);
       writeFileSync(join(dir, 'frames.sha256'), run.hashes.map((h, k) => `${h}  ${names[k]}\n`).join(''));
@@ -363,6 +452,8 @@ async function main() {
         captions: captions.map((c) => ({ ...c, from: Math.round(c.from), to: Math.round(c.to) })),
         values: values.map((v) => ({ ...v, from: Math.round(v.from), to: Math.round(v.to) })),
         steps: run.log.map((s) => ({ ...s, t: Math.round(s.t) })),
+        events: run.events.map((e) => ({ ...e, t: Math.round(e.t) })),
+        payoff,
         checks: { measured: run.checks.length, problems },
       };
       writeFileSync(join(dir, 'timeline.json'), `${JSON.stringify(report, null, 2)}\n`);

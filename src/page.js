@@ -20,6 +20,8 @@ import { renderCircuit, t, labelText, valueText, formatValue } from './index.js'
 import { decimalSeparator } from './i18n/index.js';
 import { escapeXml } from './render/svg.js';
 import { STYLE } from './page/style.js';
+import { captionFaceCss } from './page/caption-face.js';
+import { compareCycles } from './sim/cycle.js';
 import { iconSvg } from './page/client/icons.js';
 import { bundleScript } from './node/bundle.js';
 import { buildCircuit } from './circuit/build.js';
@@ -294,6 +296,15 @@ function liveData(circuit, lang, flow, templates) {
 // symbol and inside view.
 const viewSteps = (built) => built.parts.filter((p) => p.type !== 'wire' && p.type !== 'module').flatMap((p) => ['pin', 'bench', 'symbol', 'inside'].map((what) => ({ do: what, part: p.id })));
 
+// A comparing oscilloscope's figures (a probe with `compare`): each set it marks carries the probed
+// part's period before and after, from the simulation (sim/cycle.js), so the box names the new pace
+// as soon as the control has arrived instead of a whole slow cycle later.
+function withCycles(tour, program, circuit) {
+  if (!tour?.steps.some((s) => s.do === 'probe' && s.compare)) return tour;
+  const found = compareCycles(program, tour.steps, circuit.page?.start === 'zero' ? 'zero' : 'dc');
+  return { ...tour, steps: tour.steps.map((s, k) => (found[k] ? { ...s, cycle: found[k] } : s)) };
+}
+
 // The pinouts a tour's `pin` steps show (a video about one part, F2; src/pinout.js), per view: each
 // pin's name, its row of text and where it goes into the board, and the package's mark. Only the
 // parts the steps name: a page without them carries nothing more.
@@ -366,7 +377,7 @@ export function renderPage(circuit, options = {}) {
   // part and, without a timeline, an empty one, so the player is there to run the view's steps
   // (focus-view.js).
   const focusView = Boolean((options.focusView ?? circuit.page?.focusView === true) && live);
-  const tour = live ? loadTour(circuit, lang).tour ?? (focusView ? { format: 'vertical', theme: 'stage', steps: [] } : null) : null;
+  const tour = live ? withCycles(loadTour(circuit, lang).tour, compiled.program, circuit) ?? (focusView ? { format: 'vertical', theme: 'stage', steps: [] } : null) : null;
   const data = {
     parts,
     nodes,
@@ -436,7 +447,7 @@ export function renderPage(circuit, options = {}) {
 <meta name="revision" content="${circuit.revision ?? 0}">
 <title>${escapeXml(title)}</title>
 <style>${STYLE}
-</style>
+</style>${data.tour ? `\n<style id="caption-face">${captionFaceCss()}</style>` : ''}
 <style id="dynamic"></style>
 <style id="probe"></style>
 </head>

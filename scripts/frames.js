@@ -97,6 +97,8 @@ async function shoot(browser, c, file) {
     await page.clock.pauseAt(1000);
     await page.goto(pathToFileURL(file).href + (c.tour ? '?director=1' : ''));
     await page.evaluate(async () => {
+      // The caption's face loads when first used: load it now, so frame 0 never waits for it.
+      if (document.getElementById('caption-face')) await document.fonts.load('500 56px "Literata Caption"');
       await document.fonts.ready;
     });
     await page.evaluate(({ ticks, tour }) => {

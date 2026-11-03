@@ -15,6 +15,11 @@
 // note, each trace's name and value inside its plot, and two axis labels, the top of the scale and
 // the end of the window; the plots as wide as the box, so the box is filled, not letterboxed.
 //
+// `compare` (a recording's probe with compare): a mark may carry `ghost`, the cycles before it
+// shifted by whole periods so they run on after it, faint, and `delta`, a text over the plot ("period
+// 0.12 s → 0.86 s (×7)"). The marks' texts and the delta are drawn last, with a halo of the
+// screen's colour, so the trace never crosses them. `title` in compact: before the trace's name.
+//
 // Reusable for more channels and for probes on nodes (phase 9): it only draws what it is given.
 // Each plot keeps the minimum and the maximum of every pixel column, so no peak is lost.
 
@@ -91,7 +96,32 @@ export function pathOf(points, from, to, lo, hi, width = PLOT_W, height = PLOT_H
   return out.join(' ');
 }
 
-export function createScope(parent, { t, f, compact = false }) {
+// The times a trace rises through `level` (by default halfway between its lowest and highest).
+export function risings(points, level) {
+  if (points.length < 2) return [];
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const [, v] of points) {
+    if (v < lo) lo = v;
+    if (v > hi) hi = v;
+  }
+  const at = level ?? (lo + hi) / 2;
+  if (!(hi - lo > 1e-9)) return [];
+  const out = [];
+  for (let k = 1; k < points.length; k++) {
+    const [t0, v0] = points[k - 1];
+    const [t1, v1] = points[k];
+    if (v0 < at && v1 >= at) out.push(t0 + ((at - v0) / (v1 - v0 || 1)) * (t1 - t0));
+  }
+  return out;
+}
+// A trace's period: the last whole cycle between two risings (null with fewer than two).
+export function periodOf(points, level) {
+  const r = risings(points, level);
+  return r.length >= 2 ? r[r.length - 1] - r[r.length - 2] : null;
+}
+
+export function createScope(parent, { t, f, compact = false, title = null }) {
   const box = document.createElement('div');
   box.className = 'scope';
   parent.appendChild(box);
@@ -116,7 +146,7 @@ export function createScope(parent, { t, f, compact = false }) {
         const top = k * (gap + H) + gap;
         const [lo, hi] = scaleOf(trace.points);
         const now = trace.points.length ? trace.points[trace.points.length - 1][1] : null;
-        const name = `${trace.label}${now != null ? `: ${f(now, trace.unit)}` : ''}`;
+        const name = `${compact && title ? `${title} · ` : ''}${trace.label}${now != null ? `: ${f(now, trace.unit)}` : ''}`;
         const ink = trace.kind ? {} : { fill: trace.ink ?? trace.color };
         if (!compact) el(svg, 'text', { x: LEFT, y: top - 4, class: trace.kind ? `scope-label ${trace.kind}` : 'scope-label', ...ink }, name);
         const g = el(svg, 'g', { transform: `translate(0 ${top})` });
@@ -128,14 +158,25 @@ export function createScope(parent, { t, f, compact = false }) {
         el(g, 'line', { x1: 0, y1: zero, x2: W, y2: zero, class: 'scope-zero' });
         el(g, 'text', { x: W - 3, y: 10, class: 'scope-scale' }, f(hi, trace.unit));
         if (!compact) el(g, 'text', { x: W - 3, y: H - 3, class: 'scope-scale' }, f(lo, trace.unit));
-        for (const m of marks) {
-          if (m.t < from || m.t > to) continue;
+        const shownMarks = marks.filter((m) => m.t >= from && m.t <= to);
+        for (const m of shownMarks) {
           const x = LEFT + ((m.t - from) / (to - from || 1)) * (W - LEFT);
           el(g, 'line', { x1: x, y1: 0, x2: x, y2: H, class: 'scope-mark' });
+        }
+        // The cycles before a mark, run on after it (compare), under the trace.
+        for (const m of marks) {
+          const ghost = m.ghost?.filter(([gt]) => gt >= from && gt <= to);
+          if (k === 0 && ghost?.length > 1) el(g, 'polyline', { points: pathOf(ghost, from, to, lo, hi, W, H), class: trace.kind ? `scope-trace ghost ${trace.kind}` : 'scope-trace ghost', ...(trace.kind ? {} : { stroke: trace.color }) });
+        }
+        if (trace.points.length) el(g, 'polyline', { points: pathOf(trace.points, from, to, lo, hi, W, H), class: trace.kind ? `scope-trace ${trace.kind}` : 'scope-trace', ...(trace.kind ? {} : { stroke: trace.color }) });
+        // The marks' texts over the trace, on a halo of the screen (never crossed by it).
+        for (const m of shownMarks) {
+          const x = LEFT + ((m.t - from) / (to - from || 1)) * (W - LEFT);
           const right = x < W / 2;
           el(g, 'text', { x: right ? x + 3 : x - 3, y: 21, class: right ? 'scope-mark-text' : 'scope-mark-text scope-end' }, m.text);
         }
-        if (trace.points.length) el(g, 'polyline', { points: pathOf(trace.points, from, to, lo, hi, W, H), class: trace.kind ? `scope-trace ${trace.kind}` : 'scope-trace', ...(trace.kind ? {} : { stroke: trace.color }) });
+        const delta = k === 0 ? marks.findLast((m) => m.delta && m.t <= to)?.delta : null;
+        if (delta) el(g, 'text', { x: W / 2, y: H - 6, class: 'scope-delta' }, delta);
         // Compact: the name and the value inside the plot, over the trace; the window's end at the bottom.
         if (compact) {
           el(g, 'text', { x: LEFT + 3, y: 12, class: trace.kind ? `scope-label inside ${trace.kind}` : 'scope-label inside', ...ink }, name);
