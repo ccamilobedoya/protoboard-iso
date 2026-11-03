@@ -33,6 +33,7 @@
     { "at": 17800, "do": "assemble", "gap": 600 },
 
     { "at": 25000, "do": "caption", "text": { "en": "Let go of S1", "es": "Al soltar S1" }, "line": { "en": "the gate falls and the LED goes out", "es": "la compuerta baja y el LED se apaga" } },
+    { "at": 25000, "do": "frame", "target": ["Q1", "D1"], "move": "arrival" },
     { "at": 25000, "do": "focus", "parts": ["Q1", "D1"], "move": "arrival" },
     { "at": 25500, "do": "set", "part": "S1", "field": "pressed", "value": false },
     { "at": 27500, "do": "set", "part": "S1", "field": "pressed", "value": true },

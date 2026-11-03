@@ -30,6 +30,7 @@
     { "at": 16800, "do": "assemble", "gap": 600 },
 
     { "at": 20500, "do": "caption", "text": { "en": "A heavier load", "es": "Una carga más pesada" }, "line": { "en": "the Zener keeps its voltage", "es": "el Zener mantiene su voltaje" } },
+    { "at": 20500, "do": "frame", "target": ["D1", "R2"], "move": "arrival" },
     { "at": 20500, "do": "focus", "parts": ["D1", "R2"], "move": "arrival" },
     { "at": 21000, "do": "set", "part": "R2", "field": "resistance", "value": 470, "move": "travel", "ms": 1500 },
     { "at": 23200, "do": "caption", "text": { "en": "The voltage across it", "es": "El voltaje en sus patas" } },

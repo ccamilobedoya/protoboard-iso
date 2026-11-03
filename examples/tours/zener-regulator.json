@@ -11,6 +11,7 @@
     { "at": 1500, "do": "flow", "on": true, "ramp": 600 },
 
     { "at": 3000, "do": "caption", "text": { "en": "The Zener clamps the load voltage", "es": "El Zener fija el voltaje de la carga" } },
+    { "at": 3000, "do": "frame", "target": ["D1", "R2"], "move": "arrival" },
     { "at": 3000, "do": "focus", "parts": ["D1", "R2"] },
     { "at": 3000, "do": "value", "part": "R2", "field": "voltage", "label": { "en": "across the load", "es": "en la carga" } },
 

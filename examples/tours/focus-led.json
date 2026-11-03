@@ -32,6 +32,7 @@
     { "at": 16800, "do": "assemble", "gap": 600 },
 
     { "at": 20500, "do": "caption", "text": { "en": "What goes through the LED", "es": "Lo que pasa por el LED" }, "line": { "en": "the current the resistor lets through", "es": "la corriente que deja pasar la resistencia" } },
+    { "at": 20500, "do": "frame", "target": ["R1", "D1"], "move": "arrival" },
     { "at": 20500, "do": "focus", "parts": ["R1", "D1"], "move": "arrival" },
     { "at": 20900, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
 
