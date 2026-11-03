@@ -392,8 +392,9 @@ body.touched .zoom, .zoom:focus-within { opacity: 1; pointer-events: auto; }
 .tour-caption .value .number { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 24px; font-weight: 600; }
 .tour-caption .stop { display: block; margin-top: 6px; font-size: 12px; opacity: 0.7; }
 .tour-caption[hidden], .tour-caption [hidden] { display: none; }
-/* A caption's emphasis (em): those words in the accent, larger (moves.js, EMPHASIS). */
-.tour-caption .em, .tour-card .em { color: var(--cap-em, var(--cap-value)); font-size: ${EMPHASIS.scale}em; font-weight: 600; }
+/* A caption's emphasis (em): those words bolder and larger, in the caption's own colour (moves.js,
+   EMPHASIS); the accent stays for the data and the trace. */
+.tour-caption .em, .tour-card .em { color: var(--cap-em, inherit); font-size: ${EMPHASIS.scale}em; font-weight: ${EMPHASIS.weight}; }
 /* A card (card): a sentence alone over the whole screen, centred in the band the platforms leave free. */
 .tour-card { position: absolute; inset: 0; z-index: 4; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.4em; padding: 15% 24px 35%; text-align: center; color: var(--ink); background: var(--canvas); pointer-events: none; }
 .tour-card[hidden], .tour-card [hidden] { display: none; }

@@ -306,6 +306,13 @@ página y la hoja de ruta al día.
     línea cortada por su máscara. Una escena después de pasos en la protoboard (primero el resultado,
     luego el chip solo) y un aterrizaje después se probaron y funcionan como al principio (caso de
     jsdom; `555-result-first.json`, fotogramas *golden* M38 a M40).
+  - **Las palabras del guion en el recuadro que compara, y un énfasis sin un tercer color** (0.8.0-d.1,
+    para una cuarta versión de un short grabado): `say` de `probe` pone la frase de la línea de
+    tiempo en un recuadro que compara, con `{k}` y `{k2}` de la simulación (fotograma *golden* M41,
+    `555-compare-say.json`), así las palabras se revisan con los demás textos del guion y la cifra no
+    se puede inventar; el énfasis de un subtítulo conserva el color del subtítulo, más grueso y más
+    grande, y el acento queda para los datos y la traza (otra vez M38 a M40). La tarjeta y la
+    corriente en dos colores siguen en el kit; esa versión no usa ninguna.
 - Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué

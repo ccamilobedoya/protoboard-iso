@@ -660,7 +660,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         return s.node != null ? selectNode(page, s.node) : select(page, s.part);
       }
       const had = document.body.classList.contains('with-scope');
-      const on = page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note, window: s.window, marks: s.marks || s.compare, compare: s.compare, change: s.change, place: s.place, size: s.size, reading: s.reading ?? true, clock: s.clock ?? true });
+      const on = page.insetScope?.(s.off ? null : s.node != null ? 'node:' + s.node : s.part, s.field === 'current' ? 'i' : 'v', { title: s.title, label: s.label, note: s.note, window: s.window, marks: s.marks || s.compare, compare: s.compare, change: s.change, say: s.say, place: s.place, size: s.size, reading: s.reading ?? true, clock: s.clock ?? true });
       if (on || had) event('probe', { on: Boolean(on), ...(on && { part: s.part ?? null, node: s.node ?? null }) });
       if (framed) director.frame(framed.target, { ...moveTiming('arrival'), zoom: framed.zoom ?? 1, pan: framed.pan ?? null, alone: framed.alone ?? false });
     },

@@ -9,6 +9,21 @@ detail.
 
 ## [Unreleased]
 
+## [0.8.0-d.1] - 2026-11-03
+
+A prerelease on a video branch: the fourth version of a recorded short. Not on `main` until the maintainer chooses it.
+
+### Added
+
+- **A comparing box in the timeline's own words** (`probe` `say`): `{k}` and `{k2}` filled from the
+  simulation (how many times longer on, and off), so a script's sentence, checked with its other
+  texts, replaces the kit's ("on ×5 · off the same"). Example `555-compare-say.json`, golden frame M41.
+
+### Changed
+
+- **A caption's emphasis keeps the caption's colour**: bolder (700) and 15 % larger; the accent stays
+  for data rows and traces. Golden frames M38 to M40.
+
 ## [0.8.0-c.2] - 2026-11-03
 
 A prerelease on a video branch: a video that opens on its result. Not on `main` until the maintainer chooses it.
@@ -242,7 +257,8 @@ A prerelease on a video branch: a payoff the eye reads. Not on `main` until the 
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-c.2...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-d.1...HEAD
+[0.8.0-d.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-c.2...v0.8.0-d.1
 [0.8.0-c.2]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-c.1...v0.8.0-c.2
 [0.8.0-c.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-b.1...v0.8.0-c.1
 [0.8.0-b.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.7.0...v0.8.0-b.1

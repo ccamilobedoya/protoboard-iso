@@ -64,7 +64,7 @@ export const LIGHT = { ms: 180, curve: MOVES.hit.curve };
 // above; the caption before leaves first, in 200 ms.
 export const CAPTION = { in: 400, stagger: 90, out: 200, curve: MOVES.arrival.curve, rise: 60 };
 // A caption's emphasis (`em`): those words of its text or line in the accent, this much larger.
-export const EMPHASIS = { scale: 1.15 };
+export const EMPHASIS = { scale: 1.15, weight: 700 };
 // A card (a timeline's `card`): a sentence alone over the whole screen, `in` ms to come in, `hold` ms
 // whole (min…max), `out` ms to leave.
 export const CARD = { in: 250, hold: 1500, out: 250, min: 300, max: 5000 };

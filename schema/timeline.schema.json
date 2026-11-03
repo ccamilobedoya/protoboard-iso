@@ -819,6 +819,25 @@
                 ],
                 "description": "How a comparing box says the change: ratio, a proportion true at any pace (\"on ×5 · off the same\", default); times, in the oscilloscope's seconds (\"on 0.08 → 0.40 s · off the same\")"
               },
+              "say": {
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "One string per language code, e.g. { \"en\": \"…\", \"es\": \"…\" }"
+                      }
+                    ]
+                  }
+                ],
+                "description": "A comparing box's own words for the change instead of the kit's, with {k} for how many times longer the LED stays on (the period without an LED) and {k2} for off, both from the simulation (\"on {k}× longer · off the same\")"
+              },
               "reading": {
                 "type": "boolean",
                 "description": "false: the trace's name without its value now (default true)"

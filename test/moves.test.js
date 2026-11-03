@@ -1183,7 +1183,19 @@ test('moves: a caption\'s emphasis is a span of its words, in the text or else t
   r.to(2100);
   assert.equal(text().textContent, 'Plain');
   assert.equal(text().querySelector('.em'), null, 'not found: plain');
-  assert.match(r.doc.querySelector('style').textContent, /\.tour-caption \.em, \.tour-card \.em \{ color: var\(--cap-em, var\(--cap-value\)\); font-size: 1\.15em;/);
+  // In the caption's own colour, bolder: the accent is the data's and the trace's.
+  assert.match(r.doc.querySelector('style').textContent, /\.tour-caption \.em, \.tour-card \.em \{ color: var\(--cap-em, inherit\); font-size: 1\.15em; font-weight: 700; \}/);
+});
+
+// A comparing box in the timeline's own words: a text per language, checked as the other texts.
+test('moves: a comparing probe takes its own words for the change (say), a text like the others', () => {
+  const codes = (steps) => loadTour(npn({ steps })).issues.map((i) => i.code);
+  const probe = { at: 0, do: 'probe', part: 'R1', compare: true };
+  assert.deepEqual(codes([{ ...probe, say: { en: 'on {k}× longer · off the same', es: '{k} veces más tiempo encendido · apagado igual' } }]), []);
+  assert.deepEqual(codes([{ ...probe, say: 5 }]), ['TOUR_FIELD'], 'a text');
+  assert.deepEqual(codes([{ ...probe, say: 'x'.repeat(400) }]), ['TOUR_TEXT_TOO_LONG']);
+  const { tour } = loadTour(npn({ steps: [{ ...probe, say: { en: 'on {k}×', es: '{k} veces' } }] }), 'es');
+  assert.equal(tour.steps[0].say, '{k} veces', 'localized as the other texts');
 });
 
 // A card: the sentence alone over the screen, in along its fade, whole for its hold, then gone; the

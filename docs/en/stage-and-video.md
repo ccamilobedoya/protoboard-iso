@@ -278,6 +278,13 @@ up to date.
     line cut by its mask. A scene after steps on the board (the result first, then the chip alone)
     and a land after it were tried and work as they do at the start (jsdom case;
     `555-result-first.json`, golden frames M38 to M40).
+  - **The script's words in the comparing box, and an emphasis without a third colour** (0.8.0-d.1,
+    for a fourth version of a recorded short): `probe`'s `say` puts the timeline's own sentence in a
+    comparing box, `{k}` and `{k2}` filled from the simulation (golden frame M41,
+    `555-compare-say.json`), so the words are checked with the script's other texts while the figure
+    cannot be invented; a caption's emphasis keeps the caption's colour, bolder and larger, and the
+    accent stays for the data and the trace (M38 to M40 again). The card and the two-colour current
+    stay in the kit; that version uses neither.
 - The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for

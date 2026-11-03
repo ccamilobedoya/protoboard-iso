@@ -71,7 +71,7 @@ const FIELDS = {
   flow: { on: (v) => typeof v === 'boolean', ramp: within(0, 10_000), scope: oneOf('all', 'focus'), style: oneOf(...FLOW_STYLES), sense },
   caption: { text: isText, line: isText, data: isText, em: isText, off: (v) => v === true, enter: SHOW, in: within(0, 3000), stagger: within(0, 1000), out: within(0, 2000) },
   value: { part: id, field: (v) => Object.hasOwn(READINGS, v), label: isText, count: within(0, 5000), enter: SHOW, in: within(0, 3000) },
-  probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean', place: oneOf('bottom', 'top'), size: oneOf('full', 'compact'), compare: (v) => typeof v === 'boolean', change: oneOf('ratio', 'times'), reading: (v) => typeof v === 'boolean', clock: (v) => typeof v === 'boolean' },
+  probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean', place: oneOf('bottom', 'top'), size: oneOf('full', 'compact'), compare: (v) => typeof v === 'boolean', change: oneOf('ratio', 'times'), say: isText, reading: (v) => typeof v === 'boolean', clock: (v) => typeof v === 'boolean' },
   insert: { part: id, enter: ENTER, height: within(0, 40), dark: (v) => typeof v === 'boolean' },
   raise: { part: id, mm: within(0, RAISE.max) },
   nudge: { part: id, mm: within(NUDGE.min, NUDGE.max) },
@@ -89,7 +89,7 @@ const FIELDS = {
 };
 const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], value: ['part', 'field'], insert: ['part'], raise: ['part'], nudge: ['part'], label: ['part', 'text'], scene: ['mode'], land: ['part'], bench: ['on'], symbol: ['on'], inside: ['on'], card: ['text'], 'wait-until': ['part', 'field'] };
 // Texts a step may carry, plain or one per language.
-const TEXTS = ['text', 'line', 'data', 'label', 'title', 'note', 'em'];
+const TEXTS = ['text', 'line', 'data', 'label', 'title', 'note', 'em', 'say'];
 // A cubic-bezier of CSS: the time coordinates between 0 and 1.
 const isCurve = (v) => Array.isArray(v) && v.length === 4 && v.every(num) && v[0] >= 0 && v[0] <= 1 && v[2] >= 0 && v[2] <= 1 && v.every(within(-3, 4));
 
