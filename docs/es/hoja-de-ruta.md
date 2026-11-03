@@ -314,6 +314,20 @@ pieza secundaria.
 - ✅ La pieza contada termina por encima del 65 % (`RULES.vertical.told`); cinco líneas de tiempo de ejemplo encuadran sus piezas en foco
 - ✅ `nudge`: que se note una pieza sin quitarle el foco ni el rótulo; caso en jsdom y fotograma *golden* M29; `examples/tours/555-close.json` usa las cuatro
 
+## Videos de un circuito: más claros (transversal) ✅
+
+De una revisión fotograma a fotograma de un video corto grabado (2026-11-03): el primer fotograma
+regalaba el resultado, la protoboard entraba con un destello, el subtítulo no se leía sobre ella y el
+clímax no mostraba su cambio.
+
+- ✅ El primer fotograma es el del primer momento (pasos `primed` en 0; `firstFrameProblems`)
+- ✅ Un aterrizaje opaco: la protoboard entra bajo un velo y aclara en una rampa de 700 ms (`LAND`); fotograma *golden* M30
+- ✅ El subtítulo: una sola jerarquía (`line` como `text`, `--cap-line-*`), una fila `data`, 90 px de cada lado, un velo detrás, Literata (OFL) incluida; contraste medido en cada fotograma revisado (`captionContrast`); fotograma *golden* M33
+- ✅ Un osciloscopio que compara: `probe` `compare` (fantasma y cambio de periodo), marcas sobre un halo, `title` en compacto, traza más gruesa; fotograma *golden* M32
+- ✅ Un pedestal que se mueve: `scene` `enter` `drop` y `push`; el rotulado de un chip se lee derecho; fotograma *golden* M31
+- ✅ Rótulos contados de al menos 40 px a 1080 (`LABEL_MIN_PX`, una regla del fotograma)
+- ✅ El desenlace medido: `sim/cycle.js`, `render-frames.js --parts --what-if`, `payoff` en `timeline.json`, `TOUR_PAYOFF_SHORT`, `TOUR_SCOPE_WINDOW`
+- ✅ `events` en `timeline.json` para el sonido (land, count, probe, mark)
 ## Etapa 4 — En el celular o la tableta ⬜
 
 Objetivo: abrir un enlace y explorar.

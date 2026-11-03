@@ -122,8 +122,8 @@ Las reglas que la dejan bien:
   un número. `probe` con un `node` (una tira de `--parts`: la de la señal, la del condensador, la
   salida de un chip) para un voltaje, o con una `part` y `"field": "current"` para una corriente;
   ponerlo en `"at": 0`, porque su traza empieza cuando corre el paso. En una grabación el recuadro
-  ocupa la franja del 56 % al 75 % del alto y la cámara encuadra el circuito en la franja de
-  arriba, más pequeño: mientras esté el recuadro, encuadrar una o dos piezas, no la protoboard, y
+  ocupa por defecto (`"place": "bottom"`) la franja del 56 % al 75 % del alto y la cámara encuadra el
+  circuito en la franja de arriba, más pequeño (o, con `"place": "top"`, debajo): mientras esté el recuadro, encuadrar una o dos piezas, no la protoboard, y
   quitarlo (`"off": true`) antes del cierre. Su eje de tiempo sigue el tiempo de la simulación y
   se reescala solo: después de un `set` que cambia una frecuencia, decir qué cambia en la traza
   (más ciclos en el recuadro, un flanco más empinado), no que «va más lento». Para mostrar el
@@ -133,6 +133,16 @@ Las reglas que la dejan bien:
   `"place": "top", "size": "compact"` el recuadro va bajo el subtítulo (del 28 % al 40 %) y el
   circuito conserva toda su franja; el subtítulo tiene entonces dos líneas como mucho y ningún
   `value` (el valor está en el recuadro). `examples/tours/555-close.json`.
+- **El desenlace tiene que verse.** Un video de «¿y si…?» promete un cambio: sostener el plano
+  después del `set` al menos un ciclo completo del ritmo nuevo, o se ve el LED prendido, no
+  parpadeando más lento. Preguntar antes de escribir: `node scripts/render-frames.js --parts
+  555-astable --what-if R1.resistance=100000` imprime el ciclo de cada LED y condensador antes y
+  después, en s simulados y en s de video (para el 555: 0,15 s → 0,83 s, es decir 2,7 s → 15,1 s de
+  video, el LED prendido 14 s y apagado 1,3 s). La simulación conserva su velocidad tras un `set`, así
+  que un circuito más lento tarda más en pantalla; elegir un cambio menor o sostener más. `--validate`
+  avisa (`TOUR_PAYOFF_SHORT`, `TOUR_SCOPE_WINDOW`). Con `"compare": true` en el `probe` los ciclos de
+  antes del `set` quedan como fantasma tenue después y el recuadro escribe el cambio de periodo
+  («periodo 148 ms → 832 ms (×5,6)»). `--json` da lo mismo como datos.
 - **La corriente en una protoboard llena.** Encender la capa sobre un plano cercano de una o dos
   piezas en foco, con `"scope": "focus"` (solo sus redes la llevan) y `"style": "real"` (por las
   patas), nunca sobre un plano amplio; apagarla cuando la frase habla de otra cosa.

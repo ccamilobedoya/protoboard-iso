@@ -92,8 +92,9 @@ up to date.
   chrome, the labels, the short labels and the result tags, and keeps one label: the told part's
   short label (`page.told`, set by the tour's `frame` on a part, `focus` and `insert`; `focus.js`).
   The caption is the video's layer there (`body.director .tour-caption`): no box, its sizes as
-  shares of the width (`--cap-text` 56 px, `--cap-number` 44, `--cap-line` 30 at 1080 wide; 52 at
-  1920 wide), from 16 % of the height in portrait, the left half in landscape. The reserved margin:
+  shares of the width (`--cap-text` 56 px, `--cap-number` 44 and `--cap-data` 44 at 1080 wide; 52 at
+  1920 wide; the second line as the first unless `--cap-line-size` and its siblings say otherwise,
+  v0.7.0), 90 px from each side (`--cap-pad`), from 16 % of the height in portrait, the left half in landscape. The reserved margin:
   `insetFrame` and `stageInset` in `view.js` (portrait: the top 40 % and the bottom 25 % free;
   landscape: the left half), used by `fitFrame` and by the director for `board`, `parts` and a
   part. `scripts/stage-shots.js` draws the mock-ups' shots from the real page (stage and dark
@@ -156,7 +157,7 @@ up to date.
   voltage to the lowest; with the current layer only. M11: in a recording, `probe` shows the
   oscilloscope in a box of its own (one trace, `field`: `voltage` by default or `current`, from t = 0)
   in the band from 56 % to 75 % in portrait (the camera leaves that band free and frames again what it
-  framed last) or under the caption in landscape; `"off": true` takes it away (in the page, it closes
+  framed last; from v0.6.0 also from 28 % to 40 %, under the caption, with `"place": "top"`) or under the caption in landscape; `"off": true` takes it away (in the page, it closes
   the card). Showing a change (2026-11-02): `window` fixes the box's time axis (from t = 0, then
   scrolling) and `marks` draws a dashed line with the control's new value at each `set`, so a set
   that slows a 555 shows as a longer tooth after the line (`examples/tours/555-what-if.json`, golden
@@ -195,6 +196,41 @@ up to date.
   box clear of the caption. `nudge` lifts a part the voice names as a cause a few mm and back,
   without taking the focus or the told label (M29): it is the video's version of the pulse on load
   (V3), which stays undone in the page. `examples/tours/555-close.json` uses the four.
+- ✅ Clearer videos (2026-11-03, v0.7.0), from a review of a recorded short frame by frame:
+  - **The first frame is the first moment's.** A recording that starts after 0 ran its first steps
+    late, so its frames up to then showed the whole circuit with the LED lit (the result given away,
+    and the likely thumbnail). The steps of the first moment that set what is seen now run at 0 as
+    cuts, and the first caption is whole on frame 0 (`tour.js`, `primed`); the rule
+    `firstFrameProblems` (`stage-shots.js`) checks frame 0 against the first steps.
+  - **An opaque land.** The board came in as a grey see-through layer over the part, then jumped
+    from dark to white (mean brightness 28 → 85 → 157 in 1.2 s). It now slides up opaque under a
+    veil of the stage's colour and lightens in a ramp of 700 ms once the camera has opened
+    (`moves.js`, `LAND`; `data-scene="lit"`). Measured on `555-what-if` at 30 fps: the largest
+    jump between two frames during the land and its ramp is 6.3 (of 255; the bar was 40; 31 in the whole video, when the current layer goes off at the close).
+  - **The caption.** One idea in at most two lines of one rank (the second line as the first; a
+    `data` row only for a value not on screen), the serif embedded (Literata, OFL,
+    `src/page/fonts/`: the declared serif did not exist where videos are rendered and fell back to
+    Times), 90 px a side, and a scrim of the stage's colour behind it: the caption over the white
+    board measured about 1:1, now at least 4.5:1, checked on every measured frame
+    (`captionContrast`).
+  - **An oscilloscope that compares.** `probe` with `compare` keeps the cycles before a `set` as a
+    faint ghost over what comes after and writes the change of period from the simulation (`sim/cycle.js`, `withCycles` in `page.js`) once the control has arrived; a
+    mark's text and the period sit on a halo over the trace; a `title` shows in a compact box, whose
+    trace is thicker.
+  - **A hook that moves.** `scene` with `enter: "drop"` and `push`; a chip's marking reads left to
+    right whichever way it sits (`textDecal` `upright`).
+  - **Labels in close shots** never under 40 px at 1080 (`LABEL_MIN_PX`; "D1 · red" was 23 px).
+  - **The payoff shows.** After R1 → 100 kΩ the 555's LED stayed lit for the rest of the video: one
+    cycle then takes 0.83 s of simulated time, and at the page's pace (0.055 s a second of video,
+    kept across a set) that is 15 s of video, the LED lit for 14 s and dark for 1.3 s. The physics
+    is right; the video held 8 s. `src/sim/cycle.js` measures the cycles before and after a set,
+    `render-frames.js --parts <circuit> --what-if R1.resistance=100000` prints them,
+    `timeline.json` carries them (`payoff`), and the recording warns when the timeline holds less
+    than one whole cycle after a set (`TOUR_PAYOFF_SHORT`) or the oscilloscope's window is shorter
+    than one (`TOUR_SCOPE_WINDOW`).
+  - `timeline.json` lists the moments a sound may go with (`events`: land, count, probe, mark).
+  - Golden frames M30 (the land, half way), M31 (the pedestal's drop and push), M32 (the comparing
+    oscilloscope) and M33 (the caption over the board, with its data row).
 - The decisions below were taken by the maintainer on 2026-10-30 (second round); what is still open says so.
 
 ## Who and what for
@@ -259,8 +295,8 @@ Rules for a video frame, measurable with `inspect` and the screenshots (V3 adds 
   75 % under the circuit, or from 28 % to 40 % under the caption (`place` `top`), never over it.
 - **Horizontal (1920 × 1080):** the caption at the left, the circuit shifted to the right. The camera
   needs a *reserved margin* (frame the parts in the free part of the screen), which does not exist.
-- **Sizes at 1080 px wide:** caption 56 px, value 44 px in the monospaced face with tabular figures,
-  step 30 px; at 1920 wide, caption 52 px. Everything above 40 px, which reads on a phone with the
+- **Sizes at 1080 px wide:** caption 56 px (both lines, v0.7.0), value and data row 44 px with
+  tabular figures; at 1920 wide, caption 52 px; a told part's label at least 40 px. Everything above 40 px, which reads on a phone with the
   video full screen.
 - **Only the told part keeps its label.** The others hide in director mode: the dimmed labels of the
   four other parts covered half of the first mock-up.

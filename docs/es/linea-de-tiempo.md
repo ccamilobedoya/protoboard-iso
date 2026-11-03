@@ -112,12 +112,22 @@ o levantada.
 | Campo | Valores | Por defecto | |
 |---|---|---|---|
 | `text` | un texto, *obligatorio* salvo con `off` | | el subtítulo |
-| `line` | un texto | ninguna | una segunda línea, más pequeña |
+| `line` | un texto | ninguna | una segunda línea, dibujada como la primera (mismo tamaño, color y fuente): una idea en dos líneas como mucho |
+| `data` | un texto | ninguna | una fila de datos debajo, solo para un valor o un antes → después que no esté ya en pantalla (`"1 kΩ → 100 kΩ"`, `"periodo ×7"`): sans con cifras tabulares, en el color de acento, 44 px a 1080 de ancho; nunca lleva el verbo de la frase |
 | `off` | `true` | | quita el subtítulo |
 | `enter` | `rise`, `fade`, `cut` | `rise` | cómo llegan sus líneas: subiendo desde su base detrás de una máscara, apareciendo con un fundido o de una vez |
 | `in` | 0…3000 ms | 400 | cuánto tarda cada línea |
 | `stagger` | 0…1000 ms | 90 | entre una línea y la siguiente |
 | `out` | 0…2000 ms | 200 | cuánto tarda en irse el subtítulo anterior (el nuevo llega después) |
+
+En una grabación el subtítulo es un bloque de una sola jerarquía: la serifa (Literata, con licencia
+SIL Open Font License, incluida en la página) a 56 px, las dos líneas iguales, a 90 px de cada lado
+(un ancho seguro de 900 px), sobre un velo del color de la escena que lo deja leer sobre una
+protoboard clara (al menos 4,5:1, medido en cada fotograma revisado). Como mucho 32 caracteres por
+línea (32 caracteres de la serifa a 56 px ocupan de 820 a 895 px: al límite, una línea de letras anchas se parte) y dos líneas. El aspecto de la segunda
+línea es un juego de variables de CSS, todas con el valor de la primera por defecto:
+`--cap-line-size`, `--cap-line-ink`, `--cap-line-face`, `--cap-line-weight`. El primer subtítulo de una
+grabación está completo en su primer fotograma (no sube).
 
 ### `value`: una lectura, grande
 
@@ -251,7 +261,12 @@ y `probe` funcionan igual.
 | `mode` | `part`, `board`, *obligatorio* | | `board`: vuelve a la protoboard como un `land`, con la cámara donde está |
 | `part` | un id, *obligatorio* con `part` | | una pieza del circuito, no un cable ni una fuente (`TOUR_SCENE_PART`); `render-frames.js --parts` marca las que pueden ir |
 | `zoom` | 0.5…3 | 1 | más cerca o más lejos que el encuadre de la pieza |
+| `enter` | `cut`, `drop` | `cut` | `drop`: la pieza cae sobre su pedestal desde 8 mm con un rebote leve (700 ms) |
+| `push` | 0.5…3 | ninguno | un acercamiento lento: la cámara sigue acercándose hasta este zoom hasta el siguiente paso que la mueva (un `frame`, `land` o `scene`), como mucho 8 s, para que el gancho nunca esté quieto |
 | `move`, `ms`, `curve` | | `cut` | con un movimiento, la protoboard se desvanece a lo largo de él y la cámara llega |
+
+El rotulado del chip se lee de izquierda a derecha desde la cámara, esté como esté el chip en la
+protoboard (gira media vuelta cuando se leería de cabeza; la muesca sigue diciendo cuál es la pata 1).
 
 Un `frame` sobre la pieza del pedestal la encuadra igual (sola, sin sitio para su rótulo), así que un
 video puede abrir de cerca (`zoom` 1,6) y alejarse cuando entran sus patas: `{ "at": 1400, "do":
@@ -265,7 +280,11 @@ video puede abrir de cerca (`zoom` 1,6) y alejarse cuando entran sus patas: `{ "
 | `move`, `ms`, `curve` | | `travel` | |
 
 La pieza baja a sus agujeros mientras la cámara la sigue, así que queda quieta en pantalla y la
-protoboard, con las demás piezas, sube debajo; después se va el foco. Un `assemble` después de un
+protoboard, con las demás piezas, sube debajo. La protoboard entra opaca, nunca vista a través sobre
+la pieza: sube deslizándose desde abajo del cuadro bajo un velo del color de la escena, con la pieza
+encima del velo. Cuando toca, aclara en una rampa de 700 ms, una vez que la cámara se abrió (al final
+del primer `frame` después del `land`, o al final del propio `land`); después se va el foco. Durante un
+`land` ningún par de fotogramas seguidos a 30 fps difiere en más de 40 de brillo medio (de 255). Un `assemble` después de un
 `land` trae las demás piezas una por una (esperan sin verse) y deja en su sitio la pieza que bajó.
 
 ```json
@@ -379,9 +398,9 @@ angosta), una figura a la vez, solo cuando un paso la pide:
 ### `probe`: el osciloscopio
 
 En la página abre la ficha de la pieza (o de la tira) con su osciloscopio. En una grabación muestra
-el osciloscopio en un recuadro propio, desde t = 0 (M11): en vertical en la franja del 56 % al 75 %
-de la altura (la cámara vuelve a encuadrar lo último encuadrado, encima del recuadro), en horizontal
-bajo el subtítulo.
+el osciloscopio en un recuadro propio, desde t = 0 (M11): en vertical bajo el subtítulo (`place`
+`top`, del 28 % al 40 %) o bajo el circuito (`bottom`, del 56 % al 75 %, con la cámara encuadrando de
+nuevo lo último encuadrado encima del recuadro), en horizontal bajo el subtítulo.
 
 | Campo | Valores | Por defecto | |
 |---|---|---|---|
@@ -393,7 +412,11 @@ bajo el subtítulo.
 | `window` | 0,000001…3600 s | la del kit | en una grabación, el tiempo que el recuadro muestra siempre: desde t = 0 y después corriéndose, así que un `set` que cambia el ritmo se ve como más o menos ciclos en vez de una escala nueva; en s del tiempo del osciloscopio (el simulado, o el del reloj en un circuito que no cambia solo) |
 | `marks` | `true`, `false` | `false` | en una grabación, una línea punteada en el recuadro en cada `set` desde ese momento, con el valor nuevo del control (*R1 → 100 kΩ*), para que se lean el antes y el después |
 | `place` | `bottom`, `top` | `bottom` | en una grabación vertical: `bottom`, del 56 % al 75 % de la altura, con el circuito encuadrado encima, del 40 % al 56 %; `top`, del 28 % al 40 %, entre el subtítulo y el circuito, que conserva toda su franja del 40 % al 75 % |
-| `size` | `full`, `compact` | `full` | `compact`: sin título ni nota, el nombre y el valor de la traza dentro de la gráfica, dos rótulos de eje (el tope de la escala y el final de la ventana); para el recuadro arriba, el 12 % de la altura |
+| `size` | `full`, `compact` | `full` | `compact`: sin nota, el nombre y el valor de la traza dentro de la gráfica (tras un `title` que dé el paso: «C1 · Voltaje: 5,3 V»), una traza más gruesa, dos rótulos de eje (el tope de la escala y el final de la ventana); para el recuadro arriba, el 12 % de la altura |
+| `compare` | `true`, `false` | `false` | en una grabación, en cada `set` (implica `marks`): los ciclos de antes de la marca quedan como una traza fantasma tenue encima de lo que viene después (corrida en periodos enteros), y el cambio de periodo de la pieza medida se escribe sobre la gráfica, de la simulación, cuando el control ya llegó: «periodo 148 ms → 832 ms (×5,6)» («periodo 148 ms → …» mientras se mueve) |
+
+El texto de una marca y el cambio de periodo se dibujan sobre la traza con un halo del color de la
+pantalla, así que la traza nunca los cruza.
 
 Arriba, el recuadro pide un subtítulo de dos líneas como mucho y sin la línea del `value` (el valor
 está en el recuadro): un subtítulo más largo llegaría hasta él, y la revisión de la grabación lo
@@ -406,7 +429,9 @@ reescala sola y esconde un cambio de ritmo. Para mostrarlo, dale al recuadro una
 de tiempo simulado muestra un segundo de video (`555-astable`: 0,55 s, a 0,055 s por segundo); el
 tiempo conserva esa velocidad después de un `set`, así que un parpadeo cien veces más lento también
 tarda cien veces más en pantalla. Una ventana de más o menos el doble de la del kit deja varios ciclos
-antes del `set` y uno largo después.
+antes del `set` y uno largo después. Si la ventana y el tiempo después del `set` caben un ciclo
+completo: `render-frames.js --parts <circuito> --what-if R1.resistance=100000` (abajo) y la revisión de
+la propia grabación (`TOUR_SCOPE_WINDOW`, `TOUR_PAYOFF_SHORT`).
 
 ```json
 { "at": 6000, "do": "probe", "part": "C1", "window": 1.1, "marks": true },
@@ -453,3 +478,17 @@ node scripts/assemble.js examples/out/video/npn-switch-build/vertical -o video.m
 Los fotogramas, sus sumas, los subtítulos y `timeline.json` (cuándo corrió de verdad cada paso y qué
 había en pantalla) se escriben en `examples/out/video/<línea>/<formato>/`; ver
 [escena-y-video.md](escena-y-video.md#grabar-un-video).
+
+El primer fotograma es el del primer momento: cuando una línea de tiempo empieza después de 0, los
+pasos de su primer momento que fijan lo que se ve (`scene`, `frame`, `focus`, `flow`, `flip`, `label`,
+`caption`, `probe`) corren en 0, como cortes; en 0, un `scene` y un `caption` de ese momento también son
+cortes. Un video nunca abre con el circuito como lo muestra la página (el resultado regalado, y quizá
+la miniatura). Esos pasos quedan en el registro con `"primed": true`.
+
+`timeline.json` también lista, para quien agrega sonido, los momentos que pueden llevar uno (`events`,
+en ms de la grabación): `land` (la pieza toca: el final del `land`), `count` (cada cifra nueva que
+muestra un `set` que mueve un número o un `value` que cuenta; `shown` es la cifra), `probe` (`on` true
+o false: llega o se va el recuadro del osciloscopio) y `mark` (una marca dibujada en él, en el `set`).
+Y el `payoff` de cada `set` que cambia un número: los ciclos antes y después (periodo, el tiempo
+prendido y apagado de un LED, en s simulados y en s de video), lo que la línea de tiempo sostiene
+después (`holdMs`) y lo que tarda un ciclo completo (`needMs`).

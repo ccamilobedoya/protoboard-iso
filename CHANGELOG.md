@@ -9,6 +9,37 @@ detail.
 
 ## [Unreleased]
 
+### Added
+
+- **A comparing oscilloscope**: `probe` with `"compare": true` keeps the cycles before a `set` as a
+  faint ghost over what comes after and writes the change of period, from the simulation, once the set's control has arrived
+  ("period 148 ms → 832 ms (×5.6)"); a mark's text sits on a halo over the trace; a `title` shows in a
+  compact box, whose trace is thicker.
+- **A pedestal that moves**: `scene` with `"enter": "drop"` (the part falls onto it) and `"push"` (a
+  slow close-in until the next camera step).
+- **A data row**: `caption` with `data`, for a value not already on screen ("1 kΩ → 100 kΩ"): sans,
+  tabular figures, the accent, 44 px.
+- **The payoff, measured**: `src/sim/cycle.js`; `render-frames.js --parts <circuit> --what-if
+  R1.resistance=100000 [--json]` prints the cycles before and after a set in simulated s and s of
+  video; `timeline.json` carries them (`payoff`); `TOUR_PAYOFF_SHORT` and `TOUR_SCOPE_WINDOW` warn when
+  a timeline holds less than one whole cycle after a set.
+- `timeline.json` lists the moments a sound may go with (`events`: land, count, probe, mark).
+- Frame rules: the first frame shows the first moment, the caption's text within 90 px a side, its
+  contrast at least 4.5:1 measured on the frame, the told label at least 40 px. Golden frames M30 to M33.
+- Literata (SIL Open Font License, `src/page/fonts/`) embedded in pages with a tour, as the caption's serif.
+
+### Changed
+
+- A recording's first frame is its first moment's: steps of the first moment that set what is seen
+  run at 0 as cuts, and the first caption is whole on frame 0.
+- `land` brings the board in opaque, sliding up under a veil of the stage's colour, and lightens in
+  a ramp of 700 ms once the camera has opened (no see-through layer, no flash).
+- The caption is one block of one rank: `line` is drawn as `text` (its look as `--cap-line-*`
+  variables), 90 px from each side, on a scrim of the stage's colour.
+- A chip's marking reads left to right from the camera; a recording's told label is never under
+  40 px at 1080.
+- `examples/tours/555-what-if.json` uses the new options and holds one whole cycle after the set.
+
 ## [0.6.0] - 2026-11-02
 
 ### Added

@@ -308,6 +308,20 @@ the current on a wide shot read as dots and lines, and a secondary part could no
 - ✅ The told part ends above 65 % (`RULES.vertical.told`); five example tours frame their parts in focus
 - ✅ `nudge`: a part noticed without taking the focus or the label; jsdom case and golden frame M29; `examples/tours/555-close.json` uses the four
 
+## Videos of a circuit: clearer (cross-cutting) ✅
+
+From a frame-by-frame review of a recorded short (2026-11-03): the first frame gave the result away,
+the board flashed in, the caption could not be read over it, the climax did not show its change.
+
+- ✅ The first frame is the first moment's (`primed` steps at 0; `firstFrameProblems`)
+- ✅ An opaque land: the board slides in under a veil and lightens in a ramp of 700 ms (`LAND`); golden frame M30
+- ✅ The caption: one rank (`line` as `text`, `--cap-line-*`), a `data` row, 90 px a side, a scrim, Literata (OFL) embedded; contrast measured on each checked frame (`captionContrast`); golden frame M33
+- ✅ A comparing oscilloscope: `probe` `compare` (ghost and change of period), marks on a halo, `title` in compact, a thicker trace; golden frame M32
+- ✅ A pedestal that moves: `scene` `enter` `drop` and `push`; a chip's marking reads upright; golden frame M31
+- ✅ Told labels at least 40 px at 1080 (`LABEL_MIN_PX`, a frame rule)
+- ✅ The payoff measured: `sim/cycle.js`, `render-frames.js --parts --what-if`, `payoff` in `timeline.json`, `TOUR_PAYOFF_SHORT`, `TOUR_SCOPE_WINDOW`
+- ✅ `events` in `timeline.json` for sound (land, count, probe, mark)
+
 ## Stage 4 — On a phone or tablet ⬜
 
 Goal: open a link and explore.

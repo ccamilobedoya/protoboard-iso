@@ -103,8 +103,9 @@ página y la hoja de ruta al día.
   las etiquetas de resultado, y conserva un rótulo: el rótulo corto de la pieza contada
   (`page.told`, que fijan en el recorrido `frame` sobre una pieza, `focus` e `insert`; `focus.js`).
   Ahí el subtítulo es la capa del video (`body.director .tour-caption`): sin caja, sus tamaños como
-  fracción del ancho (`--cap-text` 56 px, `--cap-number` 44, `--cap-line` 30 a 1080 de ancho; 52 a
-  1920), desde el 16 % del alto en vertical, la mitad izquierda en horizontal. El margen
+  fracción del ancho (`--cap-text` 56 px, `--cap-number` 44 y `--cap-data` 44 a 1080 de ancho; 52 a
+  1920; la segunda línea como la primera salvo que `--cap-line-size` y sus hermanas digan otra cosa,
+  v0.7.0), a 90 px de cada lado (`--cap-pad`), desde el 16 % del alto en vertical, la mitad izquierda en horizontal. El margen
   reservado: `insetFrame` y `stageInset` en `view.js` (vertical: libres el 40 % de arriba y el 25 %
   de abajo; horizontal: la mitad izquierda), que usan `fitFrame` y el director para `board`,
   `parts` y una pieza. `scripts/stage-shots.js` saca las capturas de las maquetas de la página real
@@ -172,7 +173,8 @@ página y la hoja de ruta al día.
   `--pulse`, se enciende por turno desde el voltaje más alto al más bajo; solo con la capa de
   corriente. M11: en una grabación, `probe` muestra el osciloscopio en un recuadro propio (una traza,
   `field`: `voltage` por defecto o `current`, desde t = 0) en la franja del 56 % al 75 % en vertical
-  (la cámara deja libre esa franja y vuelve a encuadrar lo último encuadrado) o bajo el subtítulo en
+  (la cámara deja libre esa franja y vuelve a encuadrar lo último encuadrado; desde v0.6.0 también
+  del 28 % al 40 %, bajo el subtítulo, con `"place": "top"`) o bajo el subtítulo en
   horizontal; `"off": true` lo quita (en la página, cierra la ficha). Mostrar un cambio (2026-11-02):
   `window` fija el eje de tiempo del recuadro (desde t = 0 y después corriéndose) y `marks` dibuja una
   línea punteada con el valor nuevo del control en cada `set`, así que un `set` que vuelve más lento un
@@ -215,6 +217,44 @@ página y la hoja de ruta al día.
   pieza que la voz nombra como causa y la baja, sin quitar el foco ni el rótulo contado (M29): es la
   versión de video del pulso al cargar (V3), que sigue sin hacerse en la página.
   `examples/tours/555-close.json` usa las cuatro.
+- ✅ Videos más claros (2026-11-03, v0.7.0), a partir de la revisión fotograma a fotograma de un
+  video corto grabado:
+  - **El primer fotograma es el del primer momento.** Una grabación que empezaba después de 0
+    corría tarde sus primeros pasos, así que sus fotogramas hasta entonces mostraban el circuito
+    completo con el LED prendido (el resultado regalado, y la miniatura probable). Los pasos del
+    primer momento que fijan lo que se ve ahora corren en 0 como cortes, y el primer subtítulo está
+    completo en el fotograma 0 (`tour.js`, `primed`); la regla `firstFrameProblems`
+    (`stage-shots.js`) compara el fotograma 0 con los primeros pasos.
+  - **Un aterrizaje opaco.** La protoboard entraba como una capa gris transparente sobre la pieza y
+    después saltaba de oscuro a blanco (brillo medio 28 → 85 → 157 en 1,2 s). Ahora sube deslizándose,
+    opaca, bajo un velo del color de la escena, y aclara en una rampa de 700 ms cuando la cámara ya se
+    abrió (`moves.js`, `LAND`; `data-scene="lit"`). Medido en `555-what-if` a 30 fps: el mayor salto
+    entre dos fotogramas durante el aterrizaje y su rampa es de 6,3 (de 255; el tope era 40; 31 en todo el video, cuando se apaga la capa de corriente en el cierre).
+  - **El subtítulo.** Una idea en dos líneas como mucho, de una sola jerarquía (la segunda línea como
+    la primera; una fila `data` solo para un valor que no esté en pantalla), la serifa incluida
+    (Literata, OFL, `src/page/fonts/`: la serifa declarada no existía donde se graban los videos y
+    salía Times), 90 px de cada lado, y un velo del color de la escena detrás: el subtítulo sobre la
+    protoboard blanca medía cerca de 1:1, ahora al menos 4,5:1, revisado en cada fotograma medido
+    (`captionContrast`).
+  - **Un osciloscopio que compara.** `probe` con `compare` conserva los ciclos de antes de un `set`
+    como una traza fantasma tenue encima de lo que viene después y escribe el cambio de periodo de la simulación
+    (`sim/cycle.js`, `withCycles` en `page.js`) cuando el control ya llegó; el texto de una marca y el periodo van sobre un halo encima de la traza; un
+    `title` se ve en un recuadro compacto, cuya traza es más gruesa.
+  - **Un gancho que se mueve.** `scene` con `enter: "drop"` y `push`; el rotulado de un chip se lee de
+    izquierda a derecha esté como esté (`textDecal` `upright`).
+  - **Rótulos en planos de detalle** nunca por debajo de 40 px a 1080 (`LABEL_MIN_PX`; «D1 · rojo»
+    medía 23 px).
+  - **El desenlace se ve.** Después de R1 → 100 kΩ el LED del 555 quedaba prendido el resto del
+    video: un ciclo tarda entonces 0,83 s de tiempo simulado, y al ritmo de la página (0,055 s por
+    segundo de video, que se conserva tras un `set`) eso son 15 s de video, el LED prendido 14 s y
+    apagado 1,3 s. La física está bien; el video sostenía 8 s. `src/sim/cycle.js` mide los ciclos
+    antes y después de un `set`, `render-frames.js --parts <circuito> --what-if
+    R1.resistance=100000` los imprime, `timeline.json` los lleva (`payoff`), y la grabación avisa
+    cuando la línea de tiempo sostiene menos de un ciclo completo después de un `set`
+    (`TOUR_PAYOFF_SHORT`) o la ventana del osciloscopio es más corta que uno (`TOUR_SCOPE_WINDOW`).
+  - `timeline.json` lista los momentos que pueden llevar un sonido (`events`: land, count, probe, mark).
+  - Fotogramas *golden* M30 (el aterrizaje a la mitad), M31 (la caída y el acercamiento del pedestal),
+    M32 (el osciloscopio que compara) y M33 (el subtítulo sobre la protoboard, con su fila de datos).
 - Las decisiones de abajo las tomó el mantenedor el 2026-10-30 (segunda vuelta); lo que sigue abierto lo dice.
 
 ## Para quién y para qué
@@ -284,8 +324,9 @@ Reglas para un fotograma de video, medibles con `inspect` y las capturas (V3 agr
 - **Horizontal (1920 × 1080):** el subtítulo a la izquierda, el circuito corrido a la derecha. La
   cámara necesita un *margen reservado* (encuadrar las piezas en la parte libre de la pantalla), que
   no existe.
-- **Tamaños a 1080 px de ancho:** subtítulo 56 px, valor 44 px en la monoespaciada con cifras
-  tabulares, paso 30 px; a 1920 de ancho, subtítulo 52 px. Todo por encima de 40 px, que se lee en un
+- **Tamaños a 1080 px de ancho:** subtítulo 56 px (las dos líneas, v0.7.0), valor y fila de datos
+  44 px con cifras tabulares; a 1920 de ancho, subtítulo 52 px; el rótulo de una pieza contada, al
+  menos 40 px. Todo por encima de 40 px, que se lee en un
   celular con el video a pantalla completa.
 - **Solo la pieza contada conserva su rótulo.** Los demás se ocultan en modo director: los rótulos
   atenuados de las otras cuatro piezas tapaban media pantalla en la primera maqueta.

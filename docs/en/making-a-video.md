@@ -121,8 +121,8 @@ The rules that keep it right:
   than a number. `probe` with a `node` (a strip from `--parts`: the one the signal is on, a
   capacitor's strip, a chip's output) for a voltage, or with a `part` and `"field": "current"`
   for a current; put it at `"at": 0`, since its trace starts when the step runs. In a recording
-  the box takes the band from 56 % to 75 % of the height and the camera frames the circuit in the
-  band above it, smaller: frame one or two parts, not the board, while the box is on, and take it
+  the box takes, by default (`"place": "bottom"`), the band from 56 % to 75 % of the height and the
+  camera frames the circuit in the band above it, smaller (or, with `"place": "top"`, below): frame one or two parts, not the board, while the box is on, and take it
   away (`"off": true`) before the close. Its time axis follows the simulation's time and
   rescales by itself: after a `set` that changes a frequency, say what changes in the trace (more
   cycles in the box, a steeper edge), not that it "goes slower". To show the change itself, give
@@ -131,6 +131,16 @@ The rules that keep it right:
   before (`examples/tours/555-what-if.json`). With `"place": "top", "size": "compact"` the box goes
   under the caption instead (28 % to 40 %) and the circuit keeps its whole band; the caption then has
   at most two lines and no `value` (the value is in the box). `examples/tours/555-close.json`.
+- **The payoff must show.** A "what if" video promises a change: hold the shot after the `set` for
+  at least one whole cycle of the new pace, or the viewer sees the LED lit, not blinking slower.
+  Ask before writing: `node scripts/render-frames.js --parts 555-astable --what-if
+  R1.resistance=100000` prints each LED's and capacitor's cycle before and after, in simulated s
+  and in s of video (for the 555: 0.15 s → 0.83 s, that is 2.7 s → 15.1 s of video, the LED lit 14 s
+  and dark 1.3 s). The simulation keeps its speed across a `set`, so a slower circuit takes longer on
+  screen; choose a smaller change or hold longer. `--validate` warns (`TOUR_PAYOFF_SHORT`,
+  `TOUR_SCOPE_WINDOW`). With `"compare": true` on the probe the cycles before the `set` stay as a
+  faint ghost after it and the box writes the change of period ("period 148 ms → 832 ms (×5.6)").
+  `--json` gives the same as data.
 - **The current on a crowded board.** Switch the layer on over a close frame of one or two parts in
   focus, with `"scope": "focus"` (only their nets carry it) and `"style": "real"` (along the legs),
   never over a wide shot; switch it off when the sentence is about something else.

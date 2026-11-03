@@ -109,12 +109,21 @@ In a recording only the told part keeps a label: the last one framed, focused, i
 | Field | Values | Default | |
 |---|---|---|---|
 | `text` | a text, *required* unless `off` | | the caption |
-| `line` | a text | none | a second, smaller line |
+| `line` | a text | none | a second line, drawn as the first (same size, colour and face): one idea in at most two lines |
+| `data` | a text | none | a data row under it, only for a value or a before → after that is not already on screen (`"1 kΩ → 100 kΩ"`, `"period ×7"`): sans with tabular figures, in the accent, 44 px at 1080 wide; never the sentence's verb |
 | `off` | `true` | | takes the caption away |
 | `enter` | `rise`, `fade`, `cut` | `rise` | how its lines come in: rising from their baseline behind a mask, fading in, or at once |
 | `in` | 0…3000 ms | 400 | how long each line takes |
 | `stagger` | 0…1000 ms | 90 | between one line and the next |
 | `out` | 0…2000 ms | 200 | how long the caption before takes to leave (the new one comes in after) |
+
+In a recording the caption is one block of one rank: the serif (Literata, under the SIL Open Font
+License, embedded in the page) at 56 px, both lines alike, 90 px from each side (a safe width of
+900 px), on a scrim of the stage's colour that keeps it readable over a light board (at least 4.5:1,
+measured on every checked frame). At most 32 characters a line (32 characters of the serif at 56 px
+take 820 to 895 px: at the limit, a line of wide letters wraps) and two lines. The second line's look is a set of CSS variables, all defaulting
+to the first line's: `--cap-line-size`, `--cap-line-ink`, `--cap-line-face`, `--cap-line-weight`.
+The first caption of a recording is whole on its first frame (it does not rise in).
 
 ### `value`: a reading, large
 
@@ -246,7 +255,12 @@ framed alone in the middle of the free area, without its short label (the captio
 | `mode` | `part`, `board`, *required* | | `board`: back to the board as a `land` does, the camera where it is |
 | `part` | an id, *required* with `part` | | a part of the circuit, not a wire or a supply (`TOUR_SCENE_PART`); `render-frames.js --parts` marks those that can stand there |
 | `zoom` | 0.5…3 | 1 | closer in or farther out than the part's frame |
+| `enter` | `cut`, `drop` | `cut` | `drop`: the part falls onto its pedestal from 8 mm with a small bounce (700 ms) |
+| `push` | 0.5…3 | none | a slow push: the camera keeps closing in to this zoom until the next step that moves it (a `frame`, `land` or `scene`), at most 8 s, so the hook is never still |
 | `move`, `ms`, `curve` | | `cut` | with a move, the board fades along it and the camera arrives |
+
+The chip's marking reads left to right from the camera, whichever way the chip sits on the board
+(it is turned half a turn when it would read upside down; its notch still tells pin 1).
 
 A `frame` on the part on the pedestal frames it the same way (alone, without room for its label), so a
 video can open close on it (`zoom` 1.6) and pull back when its pins come in: `{ "at": 1400, "do":
@@ -260,7 +274,11 @@ video can open close on it (`zoom` 1.6) and pull back when its pins come in: `{ 
 | `move`, `ms`, `curve` | | `travel` | |
 
 The part comes down to its holes while the camera follows it, so it stays still on screen and the
-board, with the other parts, rises under it; then the focus goes. An `assemble` after a `land`
+board, with the other parts, rises under it. The board comes in opaque, never seen through over the
+part: it slides up from below the frame under a veil of the stage's colour, the part over the veil.
+When it has touched down it lightens in a ramp of 700 ms, once the camera has opened (at the end of
+the first `frame` after the land, else at the land's own end); then the focus goes. No two
+consecutive frames at 30 fps differ by more than 40 in mean brightness (of 255) during a land. An `assemble` after a `land`
 brings the other parts one by one (they wait unseen) and leaves the landed part in place.
 
 ```json
@@ -370,8 +388,9 @@ figure at a time, only when a step asks for it:
 ### `probe`: the oscilloscope
 
 In the page it opens the part's (or strip's) card with its oscilloscope. In a recording it shows the
-oscilloscope in a box of its own, from t = 0 (M11): in portrait in the band from 56 % to 75 % of the
-height (the camera frames again what it framed last, above the box), in landscape under the caption.
+oscilloscope in a box of its own, from t = 0 (M11): in portrait under the caption (`place` `top`,
+from 28 % to 40 %) or under the circuit (`bottom`, from 56 % to 75 %, the camera framing again what
+it framed last above the box), in landscape under the caption.
 
 | Field | Values | Default | |
 |---|---|---|---|
@@ -383,7 +402,11 @@ height (the camera frames again what it framed last, above the box), in landscap
 | `window` | 0.000001…3600 s | the kit's | in a recording, the time the box always shows: from t = 0, then scrolling, so a `set` that changes the pace shows as more or fewer cycles instead of a new scale; in s of the oscilloscope's time (simulated, or the wall clock in a circuit that does not change by itself) |
 | `marks` | `true`, `false` | `false` | in a recording, a dashed line in the box at each `set` from then on, with the control's new value (*R1 → 100 kΩ*), so before and after both read |
 | `place` | `bottom`, `top` | `bottom` | in a portrait recording: `bottom`, from 56 % to 75 % of the height, the circuit framed above it from 40 % to 56 %; `top`, from 28 % to 40 %, between the caption and the circuit, which keeps its whole band from 40 % to 75 % |
-| `size` | `full`, `compact` | `full` | `compact`: no title and no note, the trace's name and value inside the plot, two axis labels (the top of the scale and the end of the window); for the box on top, 12 % of the height |
+| `size` | `full`, `compact` | `full` | `compact`: no note, the trace's name and value inside the plot (after a `title` the step gives: "C1 · Voltage: 5.3 V"), a thicker trace, two axis labels (the top of the scale and the end of the window); for the box on top, 12 % of the height |
+| `compare` | `true`, `false` | `false` | in a recording, at each `set` (it implies `marks`): the cycles before the mark stay as a faint ghost trace laid over what comes after it (shifted by whole periods), and the change of period of the probed part is written over the plot, from the simulation, once the control has arrived: "period 148 ms → 832 ms (×5.6)" ("period 148 ms → …" while it moves) |
+
+A mark's text and the period's change are drawn over the trace on a halo of the screen's colour,
+so the trace never crosses them.
 
 On top the box needs a caption of at most two lines and no `value` line under it (the value is in
 the box): a longer caption would reach into it, and the recording's check says so. `top` goes with
@@ -395,7 +418,10 @@ itself and hides a change of pace. To show one, give the box a fixed `window` an
 time to ask for: `render-frames.js --parts` prints the kit's window and how many seconds of simulated
 time a second of video shows (`555-astable`: 0.55 s, at 0.055 s a second); the time keeps that speed
 after a `set`, so a blink a hundred times slower takes a hundred times longer on screen too. A window
-of about twice the kit's keeps several cycles before the `set` and one long one after it.
+of about twice the kit's keeps several cycles before the `set` and one long one after it. Whether
+the window and the time after the `set` hold one whole cycle: `render-frames.js --parts <circuit>
+--what-if R1.resistance=100000` (below) and the recording's own check (`TOUR_SCOPE_WINDOW`,
+`TOUR_PAYOFF_SHORT`).
 
 ```json
 { "at": 6000, "do": "probe", "part": "C1", "window": 1.1, "marks": true },
@@ -441,3 +467,17 @@ node scripts/assemble.js examples/out/video/npn-switch-build/vertical -o video.m
 The frames, their checksums, the subtitles and `timeline.json` (when each step really ran and what
 was on screen) are written to `examples/out/video/<timeline>/<format>/`; see
 [stage-and-video.md](stage-and-video.md#recording-a-video).
+
+The first frame is the first moment's: when a timeline starts after 0, the steps of its first
+moment that set what is seen (`scene`, `frame`, `focus`, `flow`, `flip`, `label`, `caption`, `probe`)
+run at 0, as cuts; at 0, a `scene` and a `caption` of that moment are cuts too. A video never opens
+on the circuit as the page shows it (the result given away, and maybe the thumbnail). Those steps
+are logged with `"primed": true`.
+
+`timeline.json` also lists, for whoever adds sound, the moments a sound may go with (`events`, in
+ms of the recording): `land` (the part touches down: the land's end), `count` (each new figure a
+`set` moving a number or a `value` counting up shows; `shown` is the figure), `probe` (`on` true or
+false: the oscilloscope's box comes or goes) and `mark` (a mark drawn in it, at the `set`). And the
+`payoff` of each `set` that changes a number: the cycles before and after (period, an LED's time lit
+and dark, in simulated s and in s of video), the time the timeline holds after it (`holdMs`) and the
+time one whole cycle takes (`needMs`).

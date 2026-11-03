@@ -147,7 +147,7 @@ node scripts/frames.js [--runs 2] [--write] [--determinism]  # live page frames 
 node scripts/ux-shots.js <targets…> -o <dir> [--browser-dir d] [--tap ID]  # page screenshots at five sizes, alone and in a note (docs/en/ux-pass.md)
 node scripts/stage-shots.js [target] [-o dir]  # the stage theme and a recording in both video formats, the frame's rules measured (Chromium)
 node scripts/render-frames.js <timeline.json> [--format both] [--lang es] [--check] [--validate]  # a video's frames, subtitles and timeline.json
-node scripts/render-frames.js --parts <recipe>  # what a timeline can name (docs/en/making-a-video.md)
+node scripts/render-frames.js --parts <recipe> [--what-if R1.resistance=1e5] [--json]  # what a timeline can name; a set's cycles (docs/en/making-a-video.md)
 node scripts/assemble.js <dir…> -o video.mp4 [--burn]  # frame folders → one video with ffmpeg (exit 2 without it)
 node scripts/mockups.js [--lang es]  # conductor view mock-ups → examples/out/mockups/
 node scripts/readme-images.js [filter]  # docs/img/*.png for the READMEs (needs npm install)
