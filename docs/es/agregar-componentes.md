@@ -175,7 +175,7 @@ que un tipo nuevo viene con todas, y los tipos del kit se van completando hasta 
 | Qué | Dónde | Para qué |
 |---|---|---|
 | Qué hace cada pata | `pin.role.<tipo>.<pata>` (o `pin.role.<número de parte>.<pata>` cuando un número de parte es distinto) en **cada** archivo de `src/i18n/` | las filas del diagrama de patas y `render-frames.js --parts` |
-| Cómo distinguir sus patas | la `mark` del encapsulado (`{ kind, at, normal }`: una cara plana, una lengüeta, una muesca, el borde plano de una pestaña, una franja; para una pieza sin polaridad, `bands`, la primera franja de color desde donde se lee un código, o `either`) y su frase en `pinout.*` | la línea discreta bajo el diagrama de patas, escrita desde la cámara, nunca a mano; una pieza que entra en cualquier sentido lo dice, nunca recibe una polaridad que no tiene |
+| Cómo distinguir sus patas | la `mark` del encapsulado (`{ kind, at, normal }`: una cara plana, una lengüeta, una muesca, el borde plano de una pestaña, una franja, una esquina biselada; para una pieza sin polaridad, `bands`, la primera franja de color desde donde se lee un código, o `either`) y su frase en `pinout.*` | la línea discreta bajo el diagrama de patas, escrita desde la cámara, nunca a mano; una pieza que entra en cualquier sentido lo dice, nunca recibe una polaridad que no tiene |
 | Su símbolo de esquema | `symbolOf` en `src/parts/symbols.js`: trazos en una caja de 100, una terminal (`pins`) y una **letra** (`ids`) para cada pata | el símbolo al lado de la pieza; sus letras van al comienzo de las filas de las patas o bajo sus puntas |
 | Qué pasa por dentro | `insideOf` en `src/parts/symbols.js` (su tipo), el dibujo en `INSIDE` (`src/page/client/figure.js`, con la lectura del motor: lo que da el `reading` del dispositivo), su leyenda en `LEGENDS` (`src/page/client/focus-view.js`) y `page.tour.legend.<tipo>.*` en cada idioma | la vista por dentro y, en la página, la leyenda que en un video dan los subtítulos |
 | Las mismas letras en todo | la vista por dentro nombra sus patas con los `ids` del símbolo (C, B, E; S, G, D; A, K; los nombres de un chip, con sus filas numeradas) | las filas de las patas conservan esas letras con cualquiera de las dos figuras al lado de la pieza |
@@ -183,7 +183,7 @@ que un tipo nuevo viene con todas, y los tipos del kit se van completando hasta 
 `test/pinout.test.js` («a part up close») sostiene la regla: cada tipo de `PART_TYPES` está en `COMPLETE`
 (revisado en todo lo anterior) o en `PENDING` con su motivo. Un tipo nuevo que no esté en ninguna de las
 dos hace fallar la prueba, así la decisión se toma y no se olvida; pasar un tipo de `PENDING` a `COMPLETE`
-es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
+es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
 y la página de cerca en un celular.
 
 ## Pruebas

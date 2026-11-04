@@ -506,6 +506,8 @@ body.layer-flow main[data-scene] > svg > .lights { display: inline; }
 .focus-legend .swatch.pos, .focus-legend .swatch.neg { border-radius: 50%; }
 .focus-legend .swatch.coil { box-sizing: border-box; border: 2px solid var(--ink-2); border-radius: 50%; }
 .focus-legend .swatch.field { box-sizing: border-box; border: 1px dashed var(--accent); border-radius: 50%; }
+.focus-legend .swatch.depletion { box-sizing: border-box; background: var(--well); border: 1px dashed var(--ink-3); }
+.focus-legend .swatch.conducting { background: var(--accent-soft); outline: 1px solid var(--accent); }
 .focus-legend .swatch[hidden] { display: block; visibility: hidden; }
 /* On a phone the bar takes two rows: Back and the name, then the two controls sharing the width. */
 @media (max-width: 560px) {
@@ -525,8 +527,8 @@ body.focus-view, body.focus-view main, body.focus-view .focus-dock { touch-actio
 @supports (-webkit-touch-callout: none) { .focus-dock { bottom: max(76px, env(safe-area-inset-bottom)); } }
 /* The figure beside a part (M22, M23; page/client/figure.js): its schematic symbol, or a teaching view
    of its inside with n and p material, the oxide and gate, a comparator or latch that is acting, a
-   resistor's film on its core, a capacitor's plates, an inductor's coil and its field, the current as
-   arrows in the dots' colour. */
+   resistor's film on its core, a capacitor's plates, an inductor's coil and its field, a diode's
+   depletion zone, a bridge's conducting diodes, the current as arrows in the dots' colour. */
 .figure { pointer-events: none; }
 .figure .stroke, .figure .lens, .figure .lead { fill: none; stroke: var(--ink-2); stroke-linecap: round; stroke-linejoin: round; }
 .figure .fill { fill: var(--ink-2); }
@@ -556,6 +558,9 @@ body.focus-view, body.focus-view main, body.focus-view .focus-dock { touch-actio
 .figure .charge { font-weight: 700; }
 .figure .coil { fill: none; stroke: var(--ink-2); stroke-width: 2.4; stroke-linecap: round; }
 .figure .field { fill: none; stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; }
+.figure .depletion { fill: var(--well); stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+.figure .junction { fill: none; stroke: var(--ink-2); stroke-width: 1.4; stroke-linejoin: round; }
+.figure .junction.on { fill: var(--accent-soft); stroke: var(--accent); }
 body.director nav, body.director .zoom, body.director .inspector, body.director .gesture-hint, body.director .first-hint, body.director .tooltip { display: none !important; }
 body.director main { cursor: default; }
 body.director .labels, body.director .results, body.director .probes { display: none !important; }

@@ -333,6 +333,19 @@ o una bobina (el extremo desde donde se lee su código, junto a la pata 1, «Pri
 izquierda: se lee desde ella; sin polaridad»), y en un condensador cerámico «Sin polaridad: entra en
 cualquier sentido».
 
+La vista por dentro de un diodo y de un Zener es su unión PN dibujada de lado: el lado p junto al
+ánodo, el lado n junto al cátodo, y entre ellos la zona de agotamiento, delgada mientras conduce y más
+ancha en inversa (frente a Vz en un Zener, así que es más ancha cuando rompe), el voltaje encima (Vf en
+directa, Vr en inversa, Vz en ruptura), la corriente debajo, un calor frente a su nominal (en un Zener
+también su potencia), y *conduce*, *bloquea* o *en ruptura, mantiene Vz*. La de un puente rectificador
+son sus cuatro diodos en un rombo, + arriba, − abajo, ~1 y ~2 a los lados: los dos que conducen en ese
+instante encendidos, con la corriente a su lado por fuera del rombo, y una línea que nombra el par
+(«conducen ~1→+ · −→~2»). La corriente de cada diodo sale de la de las patas de CA (las `pinCurrents`
+de la lectura: el que alimenta una pata de CA sube a +, el que la recibe sube desde −), así que el
+simulador no da nada nuevo. La marca de un puente es su esquina de arriba biselada, sobre la pata +
+(«Esquina biselada a la izquierda: la pata +»); sus patas de CA se llaman ~1 y ~2, como las dicen el
+símbolo y las filas del diagrama de patas.
+
 ### F5 · La pieza en la página
 
 **El ensayo (2026-11-01).** Un prototipo detrás de `?focusView=1`, en una página hecha con

@@ -101,6 +101,31 @@ function block(names, title) {
   return { w: 100, h, strokes, fills: [], texts, pins, ids };
 }
 
+// A bridge rectifier: four diodes on the sides of a diamond, all pointing up to +; the AC pins at the
+// sides, + at the top, − at the bottom. `ids` tell the two AC pins apart (~1, ~2), as the pinout does.
+function bridge() {
+  const at = { '+': [50, 14], AC2: [86, 50], '-': [50, 86], AC1: [14, 50] };
+  const strokes = ['M50 4V14', 'M50 86V96', 'M4 50H14', 'M86 50H96'];
+  const r = (v) => Math.round(v * 10) / 10;
+  for (const [a, k] of [['AC1', '+'], ['AC2', '+'], ['-', 'AC1'], ['-', 'AC2']]) {
+    // Each diode in the middle of its side: the line to its triangle, the triangle, its bar, the line on.
+    const [[ax, ay], [kx, ky]] = [at[a], at[k]];
+    const len = Math.hypot(kx - ax, ky - ay);
+    const [ux, uy] = [(kx - ax) / len, (ky - ay) / len];
+    const [mx, my] = [(ax + kx) / 2, (ay + ky) / 2];
+    const p = (along, across) => `${r(mx + ux * along - uy * across)} ${r(my + uy * along + ux * across)}`;
+    strokes.push(`M${ax} ${ay}L${p(-6, 0)}`, `M${p(-6, 7)}L${p(-6, -7)}L${p(6, 0)}Z`, `M${p(6, 7)}L${p(6, -7)}`, `M${p(6, 0)}L${kx} ${ky}`);
+  }
+  return {
+    w: 100, h: 100,
+    strokes,
+    fills: [],
+    texts: [{ x: 58, y: 10, text: '+', anchor: 'start' }, { x: 58, y: 96, text: '−', anchor: 'start' }, { x: 6, y: 42, text: '~1', anchor: 'start', small: true }, { x: 94, y: 42, text: '~2', anchor: 'end', small: true }],
+    pins: { '+': [50, 4], AC1: [4, 50], AC2: [96, 50], '-': [50, 96] },
+    ids: { '+': '+', AC1: '~1', AC2: '~2', '-': '−' },
+  };
+}
+
 export function symbolOf(part) {
   const e = part.def?.electrical ?? {};
   const names = part.pinNames ?? [];
@@ -109,6 +134,7 @@ export function symbolOf(part) {
   if (part.type === 'led') return diode(names, { light: true });
   if (part.type === 'diode') return diode(names);
   if (part.type === 'zener') return diode(names, { zener: true });
+  if (part.type === 'bridge') return bridge();
   if (part.type === 'resistor') return resistor(names);
   if (part.type === 'capacitor') return capacitor(names, e.polarised === true);
   if (part.type === 'inductor') return inductor(names);
@@ -123,12 +149,18 @@ export function symbolOf(part) {
 export function insideOf(part) {
   const e = part.def?.electrical ?? {};
   const ids = () => (part.pinNames ?? []).map((n) => symbolOf(part)?.ids[n] ?? n);
-  const limits = () => deviceFor(part)?.params(part) ?? {};
+  // A device's params may note what it assumed (a diode's default model): nothing to note here.
+  const limits = () => deviceFor(part)?.params(part, { issues: [] }) ?? {};
   if (part.type === 'resistor') return { kind: 'resistor', ids: ids(), maxPower: limits().maxPower };
   if (part.type === 'capacitor') return { kind: 'capacitor', ids: ids(), maxVoltage: limits().maxVoltage };
   if (part.type === 'inductor') return { kind: 'inductor', ids: ids(), maxCurrent: limits().maxCurrent, dcr: limits().dcr };
   if (part.type === 'bjt') return { kind: 'bjt', pnp: e.polarity === 'pnp' };
   if (part.type === 'mosfet') return { kind: 'mosfet', p: e.channel === 'p' };
+  // A diode's and a Zener's junction, a bridge's four diodes: each with the current it is rated for (a
+  // Zener also its power and its Vz, the voltage its depletion zone is drawn against).
+  if (part.type === 'diode') return { kind: 'diode', ids: ids(), maxCurrent: limits().model?.maxCurrent };
+  if (part.type === 'zener') return { kind: 'zener', ids: ids(), vz: limits().model?.vz, maxCurrent: limits().model?.maxCurrent, maxPower: limits().model?.maxPower };
+  if (part.type === 'bridge') return { kind: 'bridge', ids: ids(), maxCurrent: limits().model?.maxCurrent };
   if (part.type === 'led') return { kind: 'led', color: LED_LIGHT[e.color] ?? LED_LIGHT.red };
   if (part.type === 'ic' && e.kind === 'TMR') return { kind: 'timer' };
   return null;

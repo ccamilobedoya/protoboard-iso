@@ -313,6 +313,18 @@ but the electrolytic, so their mark says so: a resistor's or an inductor's first
 its code is read from, by pin 1, "First colour band on the left: read from it; no polarity"), a ceramic
 capacitor's "No polarity: it goes in either way round".
 
+A diode's and a Zener's inside view is their PN junction drawn across: the p side by the anode, the n
+side by the cathode, and between them the depletion zone, thin while it conducts and wider in reverse
+(against Vz for a Zener, so it is widest when it breaks down), the voltage over it (Vf forward, Vr in
+reverse, Vz in breakdown), the current under it, a warmth against its rating (a Zener's power too), and
+*conducting*, *blocking* or *in breakdown, holding Vz*. A bridge rectifier's is its four diodes on a
+diamond, + at the top, − at the bottom, ~1 and ~2 at the sides: the two that conduct at that instant
+lit, with the current beside them outside the diamond, and a line that names the pair ("conducting
+~1→+ · −→~2"). Each diode's current comes from the AC pins' (the reading's `pinCurrents`: the one an
+AC pin feeds goes up to +, the one it takes from comes up from −), so the simulator gives nothing new.
+A bridge's mark is its bevelled top corner, over the + lead ("Bevelled corner on the left: the + lead");
+its pins are called ~1 and ~2 apart, as the symbol and the pinout's rows say them.
+
 ### F5 · The part in the page
 
 **The trial (2026-11-01).** A prototype behind `?focusView=1`, in a page made with

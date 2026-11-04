@@ -26,6 +26,9 @@ const LEGENDS = {
   resistor: [['film', 'film'], ['heat', 'heat'], ['arrow', 'arrow'], ['', 'figures']],
   capacitor: [['plate', 'plates'], ['pos', 'pos'], ['neg', 'neg'], ['arrow', 'arrow'], ['', 'state']],
   inductor: [['coil', 'coil'], ['field', 'field'], ['arrow', 'arrow'], ['', 'state']],
+  diode: [['p', 'p'], ['n', 'n'], ['depletion', 'depletion'], ['arrow', 'arrow'], ['heat', 'heat'], ['', 'state']],
+  zener: [['p', 'p'], ['n', 'n'], ['depletion', 'depletion'], ['arrow', 'arrow'], ['heat', 'heat'], ['', 'state']],
+  bridge: [['conducting', 'conducting'], ['arrow', 'arrow'], ['heat', 'heat'], ['', 'state']],
 };
 // Swatches in the figure's own colours that live in the script (sim/look.js), not in the style.
 const INLINE = { arrow: DOT_COLOR, heat: HEAT_COLOR, pos: VOLTAGE_COLORS.positive, neg: VOLTAGE_COLORS.negative };

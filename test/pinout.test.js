@@ -10,7 +10,7 @@ import { loadCircuit, resolveTarget } from '../src/node/workspace.js';
 import { buildCircuit } from '../src/circuit/build.js';
 import { createCamera } from '../src/core/camera.js';
 import { pinIndex, pinRole, pinList, pinoutOf } from '../src/pinout.js';
-import { expandRecipe } from '../src/recipes/index.js';
+import { expandRecipe, RECIPES } from '../src/recipes/index.js';
 import { autoLayout } from '../src/layout.js';
 
 const examples = fileURLToPath(new URL('../examples/', import.meta.url));
@@ -85,6 +85,17 @@ test('pinout: the mark\'s sentence agrees with the drawing in both views', () =>
   assert.equal(pinoutOf(part(built('npn-switch'), 'S1'), createCamera({ view: 'front' }), 'en').mark, null, 'a button has none');
 });
 
+test('pinout: a bridge\'s bevelled corner is on the side of its + lead', () => {
+  const br = part(built('rectifier'), 'BR1');
+  for (const view of VIEWS) {
+    const camera = createCamera({ view });
+    const plus = camera.project(br.holes[br.pinNames.indexOf('+')].pos).x;
+    const mid = br.holes.reduce((s, h) => s + camera.project(h.pos).x, 0) / br.holes.length;
+    assert.equal(pinoutOf(br, camera, 'en').mark.text, `Bevelled corner on the ${plus < mid ? 'left' : 'right'}: the + lead`, view);
+  }
+  assert.deepEqual(pinList(br, 'en').map((p) => p.text), ['+ · DC out, to the load', '~1 · AC in', '~2 · AC in, the other end', '− · DC back from the load']);
+});
+
 test('pinout: a chip\'s notch is on the side of its pin 1', () => {
   const { spec } = expandRecipe('555-astable');
   const timer = part(buildCircuit(autoLayout(spec).circuit), 'U1');
@@ -121,6 +132,13 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
   assert.equal(insideOf(part(built('npn-switch'), 'D1')).kind, 'led');
   assert.deepEqual(insideOf(part(built('npn-switch'), 'R1')), { kind: 'resistor', ids: ['1', '2'], maxPower: 0.25 });
   assert.equal(insideOf(part(built('npn-switch'), 'S1')), null);
+  assert.deepEqual(insideOf(part(built('half-wave-rectifier'), 'D1')), { kind: 'diode', ids: ['A', 'K'], maxCurrent: 1 });
+  assert.equal(insideOf(part(built('parts-showcase'), 'D2')).maxCurrent, 0.3, 'a 1N4148 by its own rating');
+  const z = insideOf(part(built('more-parts'), 'D1'));
+  assert.deepEqual([z.kind, z.ids, z.vz], ['zener', ['A', 'K'], 5.1]);
+  const br = part(built('rectifier'), 'BR1');
+  assert.deepEqual(insideOf(br), { kind: 'bridge', ids: ['+', '~1', '~2', '−'], maxCurrent: 3 });
+  assert.deepEqual(Object.keys(symbolOf(br).pins).sort(), [...br.pinNames].sort(), 'a terminal for each of the bridge\'s pins');
 });
 
 // The view of a part up close is a requirement for every new part type (docs/en/adding-parts.md, "6. A
@@ -128,12 +146,9 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
 // orientation mark when it can go in the wrong way round, and a view of its inside with its legend. Each
 // type of the kit is either complete or listed as pending with its reason: a new type must be one or
 // the other, so the choice is made, never forgotten.
-const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1' };
+const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1' };
 const PENDING = {
   potentiometer: 'no symbol or inside view yet',
-  diode: 'no inside view yet',
-  zener: 'no inside view yet',
-  bridge: 'no symbol or inside view yet',
   regulator: 'no symbol or inside view yet',
   button: 'no symbol or inside view yet',
   wire: 'not a part on a pedestal',
@@ -159,7 +174,8 @@ test('a part up close: every part type is complete or pending with a reason, and
   const legends = readFileSync(new URL('../src/page/client/focus-view.js', import.meta.url), 'utf8');
   for (const [type, where] of Object.entries(COMPLETE)) {
     const [name, id] = where.split(' ');
-    const circuit = name === '555-astable' || name === 'mosfet-switch' ? autoLayout(expandRecipe(name).spec).circuit : loadCircuit(resolveTarget(`${examples}${name}.json`));
+    // A recipe by its name (laid out as the kit does), else an example.
+    const circuit = RECIPES[name] ? autoLayout(expandRecipe(name).spec).circuit : loadCircuit(resolveTarget(`${examples}${name}.json`));
     const p = part(buildCircuit(circuit), id);
     assert.equal(p.type, type, where);
     for (const n of p.pinNames) assert.ok(both(`pin.role.${p.raw?.part}.${n}`) || both(`pin.role.${type}.${n}`), `${type}: the text of pin ${n} (pin.role.*) in every language`);

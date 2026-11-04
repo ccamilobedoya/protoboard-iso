@@ -16,7 +16,10 @@
 // 555's two comparators, its latch and its output; a resistor's film on its ceramic core warming with
 // its share of its power rating, the voltage it takes over it and its current under it; a
 // capacitor's plates with charges that follow its voltage and its current beside them; an inductor's
-// coil with field lines that follow its current and the current under it. Arrows never cross what they
+// coil with field lines that follow its current and the current under it; a diode's or a Zener's P and
+// N layers with a depletion zone thin when it conducts and wider in reverse, Vf over it, its current
+// under it and its state (conducting, blocking, in breakdown); a bridge's four diodes with the pair that
+// conducts lit and its current beside them. Arrows never cross what they
 // explain: they run beside the layers, under the channel, the film, the coil. Didactic, not to scale.
 
 import { DOT_COLOR, HEAT_COLOR, VOLTAGE_COLORS, heatOpacity } from '../../sim/look.js';
@@ -74,6 +77,54 @@ const label = (g, x, y, text, cls = 'note', anchor = 'middle', size = FIGURE.sma
 // Under a microampere nothing flows (as the dots, sim/look.js MIN_CURRENT).
 const flowing = (i) => Math.abs(i ?? 0) >= 1e-6;
 
+// The voltage a horizontal two-lead part takes, on a dimension line over it (from x 24 to 76), with
+// its + and − ends.
+function across(g, v, f) {
+  if (v == null) return;
+  make(g, 'path', { class: 'dim', d: 'M24 28H76M24 24V32M76 24V32' });
+  label(g, 50, 22, f(Math.abs(v), 'V'), 'note');
+  if (Math.abs(v) < 1e-3) return;
+  label(g, 20, 31, v > 0 ? '+' : '−', 'note', 'end', FIGURE.text);
+  label(g, 80, 31, v > 0 ? '−' : '+', 'note', 'start', FIGURE.text);
+}
+
+// A bridge's diamond: + at the top, − at the bottom, the AC pins at the sides; its four diodes, each
+// pointing up to + (the anode's pin first).
+const CORNERS = { '+': [50, 16], AC2: [84, 50], '-': [50, 84], AC1: [16, 50] };
+const LEGS = [['AC1', '+'], ['AC2', '+'], ['-', 'AC1'], ['-', 'AC2']];
+
+// A diode's or a Zener's PN junction, its anode's p side on the left: the depletion zone between the
+// layers thin when forward biased (Vf over it) and wider in reverse, against Vz for a Zener (else 20 V),
+// warmer as the current (a Zener: the current or the power) nears its rating; the current under it.
+function junction(g, r, data, { t, f }) {
+  const [a, k] = data.ids;
+  const v = r?.voltage ?? 0;
+  const i = r?.current ?? 0;
+  make(g, 'path', { class: 'lead', d: 'M4 50H16M84 50H96' });
+  make(g, 'rect', { class: 'layer p', x: 20, y: 36, width: 30, height: 28 });
+  make(g, 'rect', { class: 'layer n', x: 50, y: 36, width: 30, height: 28 });
+  const width = v > 0 ? 12 * Math.max(0.15, 1 - v / 0.75) : 12 + 16 * Math.min(1, Math.sqrt(-v / (data.vz || 20)));
+  make(g, 'rect', { class: 'depletion', x: fixed(50 - width / 2), y: 36, width: fixed(width), height: 28 });
+  const ratio = Math.max(data.maxCurrent > 0 ? Math.abs(i) / data.maxCurrent : 0, data.maxPower > 0 ? Math.abs(r?.power ?? 0) / data.maxPower : 0);
+  make(g, 'rect', { x: 20, y: 36, width: 60, height: 28, fill: HEAT_COLOR, opacity: fixed(heatOpacity(ratio)) });
+  make(g, 'rect', { class: 'metal', x: 16, y: 35, width: 4, height: 30 });
+  make(g, 'rect', { class: 'metal', x: 80, y: 35, width: 4, height: 30 });
+  label(g, 29, 54, 'P', 'layer-name', 'middle', FIGURE.text);
+  label(g, 71, 54, 'N', 'layer-name', 'middle', FIGURE.text);
+  label(g, 9, 45, a, 'pin-name', 'middle', FIGURE.text);
+  label(g, 91, 45, k, 'pin-name', 'middle', FIGURE.text);
+  if (r) across(g, v, f);
+  // Conventional current from A to K when it is positive; a Zener in breakdown, from K to A.
+  if (flowing(i)) {
+    shaft(g, i > 0 ? 24 : 76, 74, i > 0 ? 76 : 24, 74, widthOf(i));
+    label(g, i > 0 ? 82 : 18, 77, 'I', 'current', i > 0 ? 'start' : 'end', FIGURE.small);
+  }
+  const state = i > 0 && flowing(i) ? 'conducting' : data.vz && flowing(i) ? 'breakdown' : 'blocking';
+  const volts = { conducting: 'Vf', blocking: 'Vr', breakdown: 'Vz' }[state];
+  label(g, 50, 103, r ? [`${volts} ${f(Math.abs(v), 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+  label(g, 50, 114, r ? t(`page.tour.inside.diode.${state}`) : '', 'state');
+}
+
 // The inside views, each in a box of 100 × 112 units, from the part's reading (`r`) and the data
 // (src/parts/symbols.js insideOf; a two-lead part's `ids` are the symbol's letters for its pins).
 const INSIDE = {
@@ -124,6 +175,47 @@ const INSIDE = {
     label(g, 50, 103, [vgs, flowing && `Id ${f(Math.abs(id), 'A')}`].filter(Boolean).join(' · '), 'note');
     label(g, 50, 114, r?.region ? t(`sim.region.mosfet.${r.region}`) : '', 'state');
   },
+  diode(g, r, data, ctx) {
+    junction(g, r, data, ctx);
+  },
+  zener(g, r, data, ctx) {
+    junction(g, r, data, ctx);
+  },
+  bridge(g, r, data, { t, f }) {
+    // Each diode's current from the AC pins' (the reading's pinCurrents, into the part): the one an AC
+    // pin feeds goes up to +, the one it takes from comes up from −; a blocking diode's leakage left
+    // out. The pair conducting lit, their current beside their sides, outside the diamond.
+    const [plus, ac1, ac2, minus] = data.ids;
+    const i1 = r?.pinCurrents?.AC1 ?? 0;
+    const i2 = r?.pinCurrents?.AC2 ?? 0;
+    const legs = [Math.max(0, i1), Math.max(0, i2), Math.max(0, -i1), Math.max(0, -i2)];
+    const ratio = data.maxCurrent > 0 ? Math.abs(r?.current ?? 0) / data.maxCurrent : 0;
+    const diamond = `M${CORNERS['+'].join(' ')}L${CORNERS.AC2.join(' ')}L${CORNERS['-'].join(' ')}L${CORNERS.AC1.join(' ')}Z`;
+    make(g, 'path', { d: diamond, fill: HEAT_COLOR, opacity: fixed(heatOpacity(ratio)) });
+    make(g, 'path', { class: 'lead', d: `${diamond}M50 4V16M50 84V96M4 50H16M84 50H96` });
+    LEGS.forEach(([from, to], n) => {
+      const [[ax, ay], [kx, ky]] = [CORNERS[from], CORNERS[to]];
+      const len = Math.hypot(kx - ax, ky - ay);
+      const [ux, uy] = [(kx - ax) / len, (ky - ay) / len];
+      // Outward from the diamond's middle, the side the arrow runs on.
+      const [mx, my] = [(ax + kx) / 2, (ay + ky) / 2];
+      const out = Math.sign((mx - 50) * -uy + (my - 50) * ux) || 1;
+      const p = (along, side) => [mx + ux * along - uy * side * out, my + uy * along + ux * side * out];
+      const pt = (q) => `${fixed(q[0])} ${fixed(q[1])}`;
+      const on = flowing(legs[n]);
+      make(g, 'path', { class: `junction${on ? ' on' : ''}`, d: `M${pt(p(-6, 7))}L${pt(p(-6, -7))}L${pt(p(6, 0))}Z` });
+      make(g, 'path', { class: 'lead', d: `M${pt(p(6, 7))}L${pt(p(6, -7))}` });
+      if (on) shaft(g, ...p(-9, 13), ...p(9, 13), widthOf(legs[n]));
+    });
+    label(g, 58, 10, plus, 'pin-name', 'start', FIGURE.text);
+    label(g, 58, 96, minus, 'pin-name', 'start', FIGURE.text);
+    label(g, 3, 44, ac1, 'pin-name', 'start', FIGURE.text);
+    label(g, 97, 44, ac2, 'pin-name', 'end', FIGURE.text);
+    const i = r?.current ?? 0;
+    label(g, 50, 105, r ? [`Vdc ${f(r.vdc ?? 0, 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    const pair = !flowing(i1) ? null : i1 > 0 ? [ac1, ac2] : [ac2, ac1];
+    label(g, 50, 115, r ? (pair ? t('page.tour.inside.bridge.pair', { from: pair[0], to: pair[1] }) : t('page.tour.inside.bridge.none')) : '', 'state');
+  },
   led(g, r, data, { f }) {
     // The light stays inside the lens: the chip and the whole lens glow with the brightness.
     const k = Math.max(0, Math.min(1, r?.brightness ?? 0));
@@ -171,15 +263,7 @@ const INSIDE = {
     make(g, 'rect', { class: 'metal', x: 76, y: 40, width: 6, height: 20 });
     label(g, 9, 45, a, 'pin-name', 'middle', FIGURE.text);
     label(g, 91, 45, b, 'pin-name', 'middle', FIGURE.text);
-    const v = r?.voltage;
-    if (v != null) {
-      make(g, 'path', { class: 'dim', d: 'M24 28H76M24 24V32M76 24V32' });
-      label(g, 50, 22, f(Math.abs(v), 'V'), 'note');
-      if (Math.abs(v) >= 1e-3) {
-        label(g, 20, 31, v > 0 ? '+' : '−', 'note', 'end', FIGURE.text);
-        label(g, 80, 31, v > 0 ? '−' : '+', 'note', 'start', FIGURE.text);
-      }
-    }
+    across(g, r?.voltage, f);
     // Conventional current from pin 1 to pin 2 when it is positive.
     const i = r?.current ?? 0;
     if (flowing(i)) {

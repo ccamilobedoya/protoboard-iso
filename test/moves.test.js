@@ -1052,8 +1052,9 @@ test('moves: M22 the symbol stands beside the part, its pins named on the part; 
 });
 
 // M23 for the parts with two leads: a resistor's film warming with its share of its power rating, a
-// capacitor's charges following its voltage, an inductor's field following its current; each with
-// its current as an arrow and the symbol's names for its pins.
+// capacitor's charges following its voltage, an inductor's field following its current, a diode's
+// depletion zone; each with its current as an arrow and the symbol's names for its pins; and a
+// bridge's four diodes, the pair that conducts lit.
 const rc = () => JSON.parse(readFileSync(`${examples}rc-square-wave.json`, 'utf8'));
 const rl = () => ({
   ...rc(),
@@ -1064,7 +1065,7 @@ const rl = () => ({
     { id: 'W1', type: 'wire', color: 'black', pins: ['j30', 'T-30'] },
   ],
 });
-test('moves: M23 a resistor, a capacitor and an inductor inside, from the circuit', async (t) => {
+test('moves: M23 a resistor, a capacitor, an inductor, a diode, a Zener and a bridge inside, from the circuit', async (t) => {
   const inside = async (circuit, id) => {
     const steps = [{ at: 0, do: 'scene', mode: 'part', part: id }, { at: 0, do: 'inside', part: id, on: true }];
     const window = await loadPage(renderPage({ ...circuit, page: { ...circuit.page, tour: { format: 'vertical', steps } } }, { lang: 'en' }).html);
@@ -1094,6 +1095,24 @@ test('moves: M23 a resistor, a capacitor and an inductor inside, from the circui
   assert.equal(l.count('.flowing'), 1);
   assert.ok(l.count('.field') >= 1, 'a field while current flows');
   assert.match(l.state, /^current (growing|falling)|^steady current$/);
+  // A diode's and a Zener's junction, a bridge's four diodes with the pair that conducts.
+  const example = (name) => JSON.parse(readFileSync(`${examples}${name}.json`, 'utf8'));
+  const d = await inside(example('half-wave-rectifier'), 'D1');
+  assert.equal(d.kind, 'diode');
+  assert.deepEqual(d.names, ['A', 'K']);
+  assert.equal(d.count('.depletion'), 1);
+  assert.equal(d.count('.layer'), 2, 'its p and n sides');
+  assert.match(d.state, /^(conducting|blocking)$/);
+  const z = await inside(example('more-parts'), 'D1');
+  assert.equal(z.kind, 'zener');
+  assert.match(z.state, /^(conducting|blocking|in breakdown, holding Vz)$/);
+  const br = await inside(example('rectifier'), 'BR1');
+  assert.equal(br.kind, 'bridge');
+  assert.deepEqual(br.names, ['+', '−', '~1', '~2']);
+  assert.equal(br.count('.junction'), 4);
+  assert.match(br.state, /^conducting (~1→\+ · −→~2|~2→\+ · −→~1)$|^all four blocking$/);
+  assert.equal(br.count('.junction.on'), br.state.startsWith('all') ? 0 : 2, 'the pair that conducts lit');
+  assert.equal(br.count('.flowing'), br.count('.junction.on'), 'and its current beside each');
 });
 
 // A part's view up close in the page (F5; page/client/focus-view.js): only in a page made with it; the

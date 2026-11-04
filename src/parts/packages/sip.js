@@ -1,6 +1,7 @@
 // KBP bridge rectifier: a flat plastic body standing on four leads in a row (+ ~ ~ −). Its
 // leads are 3.8 mm apart, not 2.54, so on a breadboard they bend a little into holes one or
 // two apart (1-2-1 or 2-1-2). The bevelled top corner and the printed "+" mark pin 1.
+// mark (src/pinout.js): `bevel`, that corner, over the + lead.
 //
 // params: marking (part number)
 
@@ -70,6 +71,7 @@ export default {
       const foot = add(centre, scale(dir, (i - 1.5) * PITCH));
       return lead([withZ(p, 0), withZ(p, 0.8), withZ(foot, STANDOFF)], { radius: 0.4, color: MATERIALS.tinned });
     });
-    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, STANDOFF + HEIGHT) };
+    const mark = { kind: 'bevel', at: add(withZ(centre, STANDOFF + HEIGHT - 1.1), scale(dir, -w + 1.1)) };
+    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, STANDOFF + HEIGHT), mark };
   },
 };
