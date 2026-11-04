@@ -9,7 +9,8 @@
 // a pressed segment pressed again turns its room off. With the inside view on, a legend above the bar
 // says what its colours, arrows and blocks mean (a video says it in its captions; the page has none).
 // Taps on the drawing do nothing while the part is up, but it can be dragged and zoomed as on the board,
-// its texts going with it (set whole, never cut: a long row runs past the edge and a drag brings it in).
+// its texts going with it (each row by its leader, shrunk with the others and cut with "…" at the
+// screen's edge only when it still does not fit, as in a video).
 // Back, or Escape, lands the part, the camera keeping it where it is on screen while the board comes
 // up around it.
 
@@ -34,6 +35,9 @@ const LEGENDS = {
   ldr: [['cds', 'track'], ['light', 'light'], ['arrow', 'arrow'], ['', 'figures']],
   button: [['metal', 'pieces'], ['dome', 'dome'], ['arrow', 'arrow'], ['', 'figures']],
   switch: [['blade', 'blade'], ['metal', 'contacts'], ['arrow', 'arrow'], ['', 'figures']],
+  regulator: [['pass', 'pass'], ['heat', 'heat'], ['comparator', 'amp'], ['headroom', 'headroom'], ['arrow', 'arrow'], ['', 'state']],
+  battery: [['cell', 'cells'], ['soc', 'charge'], ['film', 'resistance'], ['arrow', 'arrow'], ['', 'figures']],
+  buzzer: [['coil', 'coil'], ['disc', 'disc'], ['sound', 'sound'], ['arrow', 'arrow'], ['', 'state']],
 };
 // Swatches in the figure's own colours that live in the script (sim/look.js), not in the style.
 const INLINE = { arrow: DOT_COLOR, heat: HEAT_COLOR, pos: VOLTAGE_COLORS.positive, neg: VOLTAGE_COLORS.negative };

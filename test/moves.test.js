@@ -1169,6 +1169,60 @@ test('moves: M23 a resistor, a capacitor, an inductor, a diode, a Zener, a bridg
   assert.equal(latch.count('.flowing'), 1, 'the current of the contact that closes');
 });
 
+test('moves: M23 a regulator, a battery and a buzzer inside, from the circuit', async (t) => {
+  const inside = async (circuit, id, more = []) => {
+    const steps = [{ at: 0, do: 'scene', mode: 'part', part: id }, { at: 0, do: 'inside', part: id, on: true }, ...more];
+    const window = await loadPage(renderPage({ ...circuit, page: { ...circuit.page, tour: { format: 'vertical', steps } } }, { lang: 'en' }).html);
+    if (!window) return null;
+    window.protoboardLive.tour.play();
+    for (let ms = 0; ms <= 1500; ms += 100) window.protoboardLive.tick(100);
+    const box = window.document.querySelector('main > svg:not([hidden]) > .figure [data-inside]');
+    const text = (sel) => box.querySelector(sel)?.textContent ?? null;
+    return { kind: box.getAttribute('data-inside'), state: text('.state'), warning: text('.warning'), names: [...box.querySelectorAll('.pin-name')].map((x) => x.textContent), count: (sel) => box.querySelectorAll(sel).length };
+  };
+  const example = (name) => JSON.parse(readFileSync(`${examples}${name}.json`, 'utf8'));
+  const reg = await inside(example('battery-regulator'), 'U1');
+  if (!reg) return t.skip('jsdom not installed');
+  // A 7805 on a 9 V block: regulating, its divider inside, current in and out, its headroom over the mark.
+  assert.equal(reg.kind, 'regulator');
+  assert.deepEqual(reg.names, ['IN', 'OUT', 'GND']);
+  assert.equal(reg.state, 'regulating: OUT steady');
+  assert.equal(reg.count('.film'), 2, 'its own divider');
+  assert.equal(reg.count('.flowing'), 2, 'the current in and the current out');
+  assert.equal(reg.count('.headroom.low'), 0);
+  // On 6 V a 7805 has less than its dropout to spare.
+  const low = autoLayout(expandRecipe('regulator-7805').spec).circuit;
+  const dropout = await inside({ ...low, supplies: low.supplies.map((s) => ({ ...s, voltage: 6 })) }, 'U1');
+  assert.equal(dropout.state, 'in dropout: OUT follows IN');
+  assert.equal(dropout.count('.headroom.low'), 1);
+  const lm317 = await inside(example('more-parts'), 'U2');
+  assert.deepEqual(lm317.names, ['IN', 'OUT', 'ADJ']);
+  assert.equal(lm317.count('.film'), 0, 'an LM317\'s divider is outside it');
+  // A 9 V block: six alkaline cells, EMF − I·R over them, giving energy.
+  const bt = await inside(example('battery-regulator'), 'BT1');
+  assert.equal(bt.kind, 'battery');
+  assert.deepEqual(bt.names, ['−', '+']);
+  assert.equal(bt.count('.cell'), 6);
+  assert.equal(bt.state, 'giving energy');
+  assert.equal(bt.count('.flowing'), 1);
+  assert.equal(bt.warning, null);
+  // Two AA cells shorted by a wire: the warning the simulator gives.
+  const short = { version: 1, board: 'bb830', parts: [{ id: 'BT1', type: 'battery', format: 'AA', cells: 2, side: 'left', pins: { '+': 'B+3', '-': 'B-3' } }, { id: 'W1', type: 'wire', color: 'red', pins: ['B+10', 'B-10'] }] };
+  assert.equal((await inside(short, 'BT1')).warning, 'short circuit!');
+  // A buzzer on steady DC is silent: no sound, only its current.
+  const dc = { version: 1, board: 'bb830', supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }], parts: [{ id: 'BZ1', type: 'buzzer', pins: ['T+3', 'j5'] }, { id: 'R1', type: 'resistor', value: '100', pins: ['h5', 'T-7'] }] };
+  const quiet = await inside(dc, 'BZ1');
+  assert.equal(quiet.kind, 'buzzer');
+  assert.deepEqual(quiet.names, ['+', '−']);
+  assert.equal(quiet.state, 'silent: steady DC only heats it');
+  assert.equal(quiet.count('.sound'), 0);
+  assert.equal(quiet.count('.flowing'), 1);
+  // Its supply changed: the current changes, and it sounds.
+  const sounding = await inside(dc, 'BZ1', [{ at: 1400, do: 'set', part: 'V1', field: 'voltage', value: 9, move: 'cut' }]);
+  assert.equal(sounding.state, 'sounding: the disc vibrates');
+  assert.ok(sounding.count('.sound') >= 1 && sounding.count('.disc.on') === 1);
+});
+
 // A part's view up close in the page (F5; page/client/focus-view.js): only in a page made with it; the
 // card's first row puts the part on its pedestal with its bar; taps on the drawing keep it there; Back
 // lands it without the camera going anywhere else.

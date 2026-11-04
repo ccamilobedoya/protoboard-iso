@@ -191,6 +191,65 @@ function latching(names) {
   return listed({ w: 100, h: 100, strokes, fills: [], texts, pins }, names);
 }
 
+// A linear regulator (IEC 60617 draws a box with its terminals): IN on the left, OUT on the right and
+// the common (GND, or an LM317's ADJ) under it; the part number above. A module's printed names are
+// its letters (VIN for IN).
+function regulator(names, title, printed) {
+  const ref = names.includes('ADJ') ? 'ADJ' : 'GND';
+  const id = (n) => (printed && n === 'IN' ? 'VIN' : n);
+  return {
+    w: 100, h: 100,
+    strokes: ['M24 30H76V70H24Z', 'M4 50H24', 'M76 50H96', 'M50 70V96'],
+    fills: [],
+    texts: [{ x: 50, y: 22, text: title, anchor: 'middle', quiet: true }, { x: 28, y: 53, text: id('IN'), anchor: 'start', small: true }, { x: 72, y: 53, text: 'OUT', anchor: 'end', small: true }, { x: 50, y: 66, text: ref, anchor: 'middle', small: true }],
+    pins: { IN: [4, 50], OUT: [96, 50], [ref]: [50, 96] },
+    ids: { IN: id('IN'), OUT: 'OUT', [ref]: ref },
+  };
+}
+
+// A battery: its cells in series, + at the top; each cell a long plate (+) over a short thick one (−),
+// as a schematic draws it, one pair per cell up to four (more: the first two and the last, a dashed
+// line between).
+function battery(series) {
+  const n = Math.max(1, series);
+  const drawn = n > 4 ? 3 : n;
+  const pitch = 14;
+  const top = Math.round(50 - (drawn * pitch + (n > 4 ? 8 : 0)) / 2);
+  const strokes = [`M50 4V${top + 3}`];
+  const fills = [];
+  let y = top;
+  for (let k = 0; k < drawn; k++) {
+    strokes.push(`M30 ${y + 3}H70`);
+    fills.push(`M40 ${y + 8}H60V${y + 11}H40Z`);
+    // Between two cells, the lead from one's − to the next one's +; dashed where cells are left out.
+    if (k < drawn - 1 && n > 4 && k === 1) {
+      strokes.push(`M50 ${y + 11}V${y + 13}`, `M50 ${y + 16}V${y + 18}`, `M50 ${y + 21}V${y + pitch + 11}`);
+      y += 8;
+    } else if (k < drawn - 1) strokes.push(`M50 ${y + 11}V${y + pitch + 3}`);
+    y += pitch;
+  }
+  strokes.push(`M50 ${y - pitch + 11}V96`);
+  return {
+    w: 100, h: 100,
+    strokes,
+    fills,
+    texts: [{ x: 74, y: top + 6, text: '+', anchor: 'start' }, { x: 64, y: y - pitch + 14, text: '−', anchor: 'start' }, ...(n > 4 ? [{ x: 26, y: 54, text: `${n}×`, anchor: 'end', small: true, quiet: true }] : [])],
+    pins: { '+': [50, 4], '-': [50, 96] },
+    ids: { '+': '+', '-': '−' },
+  };
+}
+
+// A buzzer (IEC 60617: a dome on a flat base), its two leads down from the base; + by pin 1, the side
+// its top is marked.
+const buzzer = () => ({
+  w: 100, h: 100,
+  strokes: ['M22 58A28 28 0 0 1 78 58Z', 'M36 58V96', 'M64 58V96'],
+  fills: [],
+  texts: [{ x: 30, y: 82, text: '+', anchor: 'end' }],
+  pins: { 1: [36, 96], 2: [64, 96] },
+  ids: { 1: '+', 2: '−' },
+});
+
 export function symbolOf(part) {
   const e = part.def?.electrical ?? {};
   const names = part.pinNames ?? [];
@@ -208,6 +267,9 @@ export function symbolOf(part) {
   if (part.type === 'potentiometer') return potentiometer();
   if (part.type === 'button') return button();
   if (part.type === 'switch') return e.style === 'latching' ? latching(names) : rocker(names);
+  if (part.type === 'regulator') return regulator(names, e.part ?? part.raw?.part ?? '', Boolean(e.family));
+  if (part.type === 'battery') return battery(e.series ?? e.cells ?? 1);
+  if (part.type === 'buzzer') return buzzer();
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
   return null;
 }
@@ -243,6 +305,20 @@ export function insideOf(part) {
   if (part.type === 'switch') {
     const { style, on, onContacts, offContacts } = limits();
     return { kind: 'switch', style, ids: ids(), on, onContacts, offContacts };
+  }
+  // A regulator's pass transistor and error amplifier, against its dropout and its limits (its device's
+  // model); an LM317's reference sits between OUT and ADJ, so its divider is outside it.
+  if (part.type === 'regulator') {
+    const { model = {}, ref } = limits();
+    return { kind: 'regulator', ids: ['IN', 'OUT', ref].map((n) => symbolOf(part).ids[n]), adjustable: ref === 'ADJ', vref: model.vref, dropout: model.dropout, maxCurrent: model.maxCurrent, maxPower: model.maxPower };
+  }
+  // A battery's cells and chemistry, its internal resistance and the current it is meant for (the
+  // simulator's own figures: its supply has no device params).
+  if (part.type === 'battery') return { kind: 'battery', ids: ids(), chemistry: e.chemistry, series: e.series ?? e.cells, resistance: e.resistance, maxCurrent: e.maxCurrent, rechargeable: e.rechargeable === true, charge: e.charge ?? null };
+  // A buzzer's coil (a resistor to the simulator) and the current its rating allows (P = I²R).
+  if (part.type === 'buzzer') {
+    const { resistance, maxPower } = limits();
+    return { kind: 'buzzer', ids: ids(), resistance, maxCurrent: resistance > 0 ? Math.sqrt(maxPower / resistance) : null };
   }
   if (part.type === 'led') return { kind: 'led', color: LED_LIGHT[e.color] ?? LED_LIGHT.red };
   if (part.type === 'ic' && e.kind === 'TMR') return { kind: 'timer' };

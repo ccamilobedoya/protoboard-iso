@@ -4,11 +4,11 @@
 //   bead     params: color (default black epoxy)
 //   ldr      params: none (orange cadmium-sulphide track on a white ceramic disc)
 // A bead and a photoresistor have no polarity: their mark (src/pinout.js) is `either`.
-//   buzzer   params: none (12 mm round body, sound hole on top)
+//   buzzer   params: none (12 mm round body, sound hole on top, a + printed over pin 1)
 //   header   params: count; placed by "pin1" (the other pins follow along the row)
 
 import { add, sub, scale, cross, normalize, Z } from '../../core/vec.js';
-import { box, lathe, rectDecal, circleDecal, midpoint } from '../../geometry/primitives.js';
+import { box, lathe, rectDecal, circleDecal, textDecal, midpoint } from '../../geometry/primitives.js';
 import { MATERIALS } from '../colors.js';
 import { lead, directionBetween, withZ } from './common.js';
 
@@ -65,9 +65,14 @@ export const buzzer = {
     const body = lathe({ profile: [[0, 0], [R - 0.4, 0], [R, 0.4], [R, H - 0.6], [R - 0.6, H], [0, H]], origin: base, axis: Z, ref: dir, segments: 28, color: MATERIALS.buzzer });
     const top = withZ(base, 0.5 + H + 0.01);
     body.decals.push(circleDecal({ center: top, u: dir, v: cross(Z, dir), radius: 1.1, color: '#0d0d0f' }));
-    body.decals.push(circleDecal({ center: add(top, scale(dir, -3.4)), u: dir, v: cross(Z, dir), radius: 0.9, color: '#3a3a3f' }));
+    // The + its top carries over pin 1, as the makers print it (its longer lead on a loose part); set
+    // square to the screen's axes (the isometric views' right is the board's x = y), so it reads as a +
+    // whichever way the part is turned, not as an ×.
+    const plus = add(top, scale(dir, -3.4));
+    const right = normalize({ x: 1, y: 1, z: 0 });
+    body.decals.push(textDecal({ text: '+', at: plus, right, down: cross(right, Z), size: 2.6, color: MATERIALS.print, weight: 700 }));
     const leads = [a, b].flatMap((p) => lead([withZ(p, 0), withZ(p, 0.5)], { radius: 0.3, color: MATERIALS.tinned }));
-    return { primitives: [body, ...leads], body: [body], anchor: withZ(base, 0.5 + H) };
+    return { primitives: [body, ...leads], body: [body], anchor: withZ(base, 0.5 + H), mark: { kind: 'plus', at: plus } };
   },
 };
 

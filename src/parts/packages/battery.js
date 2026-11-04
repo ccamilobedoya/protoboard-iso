@@ -227,6 +227,8 @@ export default {
     // Inside, current goes through the cells: both leads meet in the middle of the battery.
     const inside = withZ(centre, centre.z + dims[2] / 2);
     const paths = [red.path, black.path].map((path) => ({ points: [...path, inside], body: path.length - 1 }));
-    return { primitives: [...prims, ...red.primitives, ...black.primitives], body: prims, anchor: withZ(centre, centre.z + dims[2]), paths };
+    // How to tell its pins apart (src/pinout.js): the red lead, on the side of the + hole.
+    const mark = { kind: 'lead', at: withZ(plus, 0) };
+    return { primitives: [...prims, ...red.primitives, ...black.primitives], body: prims, anchor: withZ(centre, centre.z + dims[2]), paths, mark };
   },
 };

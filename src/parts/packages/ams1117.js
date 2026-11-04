@@ -79,6 +79,8 @@ export default {
     const paths = pins.map((p) => ({ points: [withZ(p, 0), withZ(p, BEND), add(withZ(p, BEND), scale(out, FACE)), inside], body: 2 }));
 
     const parts = [chip, tab, ...caps, led, res];
-    return { primitives: [pcbBox, spacer, ...parts, ...leads], body: [pcbBox, spacer, chip], anchor: at(FACE + T / 2, BOTTOM + HEIGHT), paths };
+    // How to tell its pins apart (src/pinout.js): the printed side, the way it faces.
+    const mark = { kind: 'face', at: at(FACE + T, BEND + 2.3), normal: out };
+    return { primitives: [pcbBox, spacer, ...parts, ...leads], body: [pcbBox, spacer, chip], anchor: at(FACE + T / 2, BOTTOM + HEIGHT), paths, mark };
   },
 };

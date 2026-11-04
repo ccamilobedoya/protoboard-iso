@@ -105,8 +105,8 @@ tiene:
 
 Uno de cada par a la vez; uno presionado que se toca otra vez se apaga. Las filas de las patas conservan
 las letras que usan el símbolo y la vista por dentro. De cerca, los toques en el dibujo no hacen nada, y
-el dibujo se puede arrastrar y acercar como en la protoboard: los textos quedan sobre él y nunca se
-cortan, así una fila larga se lee arrastrando. El circuito sigue funcionando, y los controles de la
+el dibujo se puede arrastrar y acercar como en la protoboard: los textos quedan sobre él y caben en la
+pantalla (una fila larga se encoge con las demás, y una que aún es larga termina en «…» en el borde). El circuito sigue funcionando, y los controles de la
 ficha quedan como estaban. Una página sin la opción queda exactamente igual; una grabación o la portada
 de un sitio nunca la tienen. Lo que muestra cada pieza está en [agregar-componentes.md](agregar-componentes.md),
 sección 6.

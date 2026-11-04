@@ -98,8 +98,8 @@ holds:
 
 One of each pair at a time; a pressed one pressed again turns it off. The pins' rows keep the letters
 the symbol and the inside view use. Up close, taps on the drawing do nothing, and the drawing can be
-dragged and zoomed as on the board: the texts stay on it and are never cut, so a long row is read by
-dragging. The circuit keeps running, and the card's controls stay as they were. A page without the
+dragged and zoomed as on the board: the texts stay on it and fit the screen (a long row shrinks with the
+others, and one still too long ends in "…" at the edge). The circuit keeps running, and the card's controls stay as they were. A page without the
 option is exactly as before; a recording or the landing of a site never has it. What each part shows is
 in [adding-parts.md](adding-parts.md), section 6.
 

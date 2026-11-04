@@ -356,6 +356,32 @@ for the pins its circuit lists; its inside view, a changeover per row in use wit
 position from the reading (`pressed`, `on`, `contacts`), else from their control. The rows of a part
 lying beside the board go under its body.
 
+A regulator's rows by its part number where they differ (a 78xx's IN GND OUT, an LM317's ADJ OUT IN, an
+AMS1117 module's VIN OUT GND, its printed names); a TO-220's mark is its metal tab, a module's its printed
+side. Its symbol is a box with IN, OUT and GND (or ADJ) under it. Its inside view: the pass transistor
+between IN and OUT, warmer as its power, (Vin − Vout) · I, nears its limit, and its power over it; the
+error amplifier under it comparing a reference with the output through the regulator's own divider (an
+LM317's reference sits between OUT and ADJ, its divider outside); a bar of the headroom, Vin − Vout,
+with the dropout marked (under it, in the warning colour); the currents in and out over the leads; and
+"regulating", "in dropout" or "off" from the reading (`vin`, `vout`, `headroom`, `current`, `currents`,
+`power`, `state`), its limits from the device's model. A battery's rows name its leads' colours and its
+mark is the red lead, on the side of its + pin; its symbol is its cells in series, a long and a short
+plate each (up to four; more, the first two, a dashed line and the last); its inside view, the cells
+(up to six, a 9 V block's six inside it) filled with the charge left, its internal resistance before
+the + lead, EMF and I·R over them so V = EMF − I·R reads at a glance, the current inside from − to +
+while it gives energy, and a warning line from the reading as the simulator gives it (a short, more
+than it is meant for, an alkaline being charged). A buzzer's + is printed on its top over pin 1 (the
+mark, `plus`); its symbol is IEC's dome on a flat base with + by pin 1; its inside view is the kit's
+passive magnetic buzzer cut through, its coil round a pole piece in a ring magnet and the steel disc
+over them pulled with the current, with one to three arcs of sound while the current changes from one
+reading to the next and "silent: steady DC only heats it" on DC.
+
+Up close on a phone the pinout's rows hug their leaders as before, and now fit the screen too: they
+shrink together to 65 % and a row still too long ends in "…" at the edge, as in a video; when two
+columns would cut a row, one column on either side, whichever cuts less. Measured at 390 px wide: before,
+the LED's rows ran from −43 to 470 px and the push button's and the latching button's past both edges;
+after, every row is inside the screen (the longest cut by a few letters).
+
 ### F5 · The part in the page
 
 **The trial (2026-11-01).** A prototype behind `?focusView=1`, in a page made with

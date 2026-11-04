@@ -35,9 +35,11 @@ export function pinIndex(part, name) {
 // The pin's own word in the page's language, when there is one ("anode" → "ánodo").
 const word = (name, lang) => (has(lang, `pin.${name}`) ? t(lang, `pin.${name}`) : name);
 
-// What the pin does, by part number first, then by kind of part (src/i18n: pin.role.*), or null.
+// What the pin does, by part number first, then by its family (an AMS1117 module of either voltage),
+// then by kind of part (src/i18n: pin.role.*), or null.
 function role(part, name, lang) {
-  for (const key of [`pin.role.${part.raw?.part}.${name}`, `pin.role.${part.type}.${name}`]) if (has(lang, key)) return t(lang, key);
+  const family = part.def?.electrical?.family;
+  for (const key of [`pin.role.${part.raw?.part}.${name}`, family && `pin.role.${family}.${name}`, `pin.role.${part.type}.${name}`]) if (key && has(lang, key)) return t(lang, key);
   return null;
 }
 
@@ -72,7 +74,9 @@ function sideOf(at, holes, camera) {
 
 // The mark's sentence: what it is, which way it faces or where it is, and what it tells.
 function markText(part, mark, camera, points, lang) {
-  const fromLeft = points.map((p, i) => ({ x: p.x, name: part.pinNames[i] })).sort((a, b) => a.x - b.x).map((p) => p.name).join(' ');
+  // Each pin by what the part prints for it, when the symbol says (a module's VIN), else its name.
+  const ids = symbolOf(part)?.ids ?? {};
+  const fromLeft = points.map((p, i) => ({ x: p.x, name: ids[part.pinNames[i]] ?? part.pinNames[i] })).sort((a, b) => a.x - b.x).map((p) => p.name).join(' ');
   const side = t(lang, `pinout.side.${sideOf(mark.at, part.holes, camera)}`);
   // A face that points one way (a flat face, a tab, a potentiometer's knob, a trimmer's printed face):
   // toward the viewer or away, and the pins as they are then from the left.

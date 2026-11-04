@@ -32,28 +32,45 @@ export function make(parent, tag, attrs) {
 }
 // A row's text cut to `chars` letters, with "…" when it was longer.
 const cut = (text, chars) => (text.length <= chars ? text : `${text.slice(0, Math.max(1, chars - 1))}…`);
+// A line broken at its spaces into lines of at most `chars` letters (a word longer than that stays whole).
+function wrap(text, chars) {
+  const out = [];
+  for (const word of text.split(' ')) {
+    if (out.length && out.at(-1).length + 1 + word.length <= chars) out[out.length - 1] += ` ${word}`;
+    else out.push(word);
+  }
+  return out;
+}
 
 // The rows of one part: for each pin, its tip on screen, the x of its leader and its row (column,
 // y, text), and the font size they share. `tips`: [{ x, y }] px; `free`: { x0, x1, y1 } px.
 // Two columns, each taking the pins on its side of the part's middle; when a row would still be cut
 // there, all the rows in one column on the side with more room (the pins nearest it at the top: no
 // leader crosses either), if that keeps every row whole.
-// `whole`: rows never shrink or cut; each hugs its leader and runs past the screen's edge if it must (a
-// part up close in the page, where the drawing can be dragged).
+// `whole`: each row hugs its leader (a part up close in the page, where the drawing can be dragged and
+// the rows go with it), and still fits the screen: the rows shrink together to `shrink` of their size,
+// and a row still too long ends in "…" at the free area's edge.
 // `floor`: the bottom of the part's body on screen, px, when it is known. A part lying on the table
 // beside the board (a switch, a battery) has its body well under the holes its pins go into: its rows go
 // under the body, not across it. A part on the board ends at its pins, and its rows stay where they were.
-export function layoutRows(pins, tips, free, u, whole = false, floor = null) {
+// `char`: a letter's width in em (CHAR, unless the page measured its font's).
+export function layoutRows(pins, tips, free, u, whole = false, floor = null, char = CHAR) {
   const tipsLowest = Math.max(...tips.map((p) => p.y));
   const lowest = floor != null && floor > tipsLowest + PINOUT.gap * u ? floor : tipsLowest;
-  const two = arrange(pins, tips, free, u, 'two', whole, lowest);
-  if (whole || !two.cut) return two;
+  const two = arrange(pins, tips, free, u, 'two', whole, lowest, char);
+  if (!two.cut) return two;
   const mid = tips.reduce((s, p) => s + p.x, 0) / tips.length;
-  const one = arrange(pins, tips, free, u, free.x1 - mid > mid - free.x0 ? 'right' : 'left', false, lowest);
+  const roomier = free.x1 - mid > mid - free.x0 ? 'right' : 'left';
+  let one = arrange(pins, tips, free, u, roomier, whole, lowest, char);
+  // Up close on a phone the two sides are often about as roomy: the other one may cut less.
+  if (whole && one.cut) {
+    const other = arrange(pins, tips, free, u, roomier === 'right' ? 'left' : 'right', whole, lowest, char);
+    if (other.cut < one.cut) one = other;
+  }
   return one.cut < two.cut ? one : two;
 }
 
-function arrange(pins, tips, free, u, split, whole, lowest) {
+function arrange(pins, tips, free, u, split, whole, lowest, char) {
   const many = pins.length > 4;
   const mid = tips.reduce((s, p) => s + p.x, 0) / tips.length;
   const order = tips.map((p, i) => ({ i, x: p.x, y: p.y }));
@@ -84,24 +101,20 @@ function arrange(pins, tips, free, u, split, whole, lowest) {
   const pad = PINOUT.pad * u;
   const room = (r) => (r.side === 'left' ? r.x - pad - free.x0 : free.x1 - pad - r.x);
   const base = (many ? PINOUT.rowMany : PINOUT.row) * u;
-  if (whole) {
-    const size = Math.max(PINOUT.min, base);
-    for (const [i, r] of rows.entries()) {
-      r.text = pins[i].text;
-      const width = r.text.length * size * CHAR;
-      r.end = r.side === 'left' ? r.x - pad - width : r.x + pad + width;
-      r.anchor = r.side === 'left' ? r.x - pad : r.x + pad;
-    }
-    return { rows, size, cut: 0 };
-  }
-  let size = base;
-  for (const [i, r] of rows.entries()) size = Math.min(size, Math.max(base * PINOUT.shrink, room(r) / (pins[i].text.length * CHAR)));
+  // A row set at the free area's edge runs from there to its leader; one that hugs its leader (`whole`)
+  // runs from it to the edge: the same room either way. Up close a phone's sizes keep their floor.
+  let size = whole ? Math.max(PINOUT.min, base) : base;
+  for (const [i, r] of rows.entries()) size = Math.min(size, Math.max(base * PINOUT.shrink, room(r) / (pins[i].text.length * char)));
   size = Math.max(PINOUT.min, size);
   let cutBy = 0;
   for (const [i, r] of rows.entries()) {
-    r.text = cut(pins[i].text, Math.floor(room(r) / (size * CHAR)));
+    r.text = cut(pins[i].text, Math.floor(room(r) / (size * char)));
     cutBy += pins[i].text.length - r.text.length + (r.text.length < pins[i].text.length ? 1 : 0);
-    r.end = r.side === 'left' ? free.x0 + r.text.length * size * CHAR : free.x1 - r.text.length * size * CHAR;
+    const width = r.text.length * size * char;
+    if (whole) {
+      r.end = r.side === 'left' ? r.x - pad - width : r.x + pad + width;
+      r.anchor = r.side === 'left' ? r.x - pad : r.x + pad;
+    } else r.end = r.side === 'left' ? free.x0 + width : free.x1 - width;
   }
   return { rows, size, cut: cutBy };
 }
@@ -160,6 +173,17 @@ export function tipsOf(page, id, pins, screen) {
   return pins.map((p) => screen.toScreen(p.x, p.y - up));
 }
 
+// A row's letter width in em, measured in the page's own font (up close, so a row is cut only where it
+// would really reach the edge: CHAR is a little wider than most monospaced fonts); CHAR when the
+// browser cannot measure. A video keeps CHAR, so its frames do not depend on the machine's fonts.
+function charOf(layer) {
+  const probe = make(layer, 'text', { class: 'row', 'font-size': 100 });
+  probe.textContent = 'M'.repeat(20);
+  const width = typeof probe.getComputedTextLength === 'function' ? probe.getComputedTextLength() : 0;
+  probe.remove();
+  return width > 0 ? Math.min(CHAR, width / 2000 + 0.02) : CHAR;
+}
+
 export function setupPinout(page) {
   const lit = new Map(); // part → Map(index → { text, k })
   const marks = new Map(); // part → k
@@ -180,6 +204,7 @@ export function setupPinout(page) {
     if (!ids.length || !screen) return;
     const under = layerOf(page, 'pinout', layers);
     const { k, at, u, free } = screen;
+    const char = page.focusing ? charOf(under) : CHAR;
     for (const id of ids) {
       const pinout = data[id];
       const tips = tipsOf(page, id, pinout.pins, screen);
@@ -189,7 +214,7 @@ export function setupPinout(page) {
       // already does (a chip's number, a resistor's 1, a capacitor's +).
       const named = pinout.pins.length <= 4 ? page.symbolIds?.[id] : null;
       const withId = (p, text) => (named?.[p.name] && !text.startsWith(`${named[p.name]} · `) ? `${named[p.name]} · ${text}` : text);
-      const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: withId(p, own.get(i)?.text ?? p.text) })), tips, free, u, Boolean(page.focusing), bodyBottom(page, id, screen));
+      const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: withId(p, own.get(i)?.text ?? p.text) })), tips, free, u, Boolean(page.focusing), bodyBottom(page, id, screen), char);
       const stroke = PINOUT.line * Math.max(u, 0.5) * k;
       // Where the rows begin on screen: the figure beside the part stays above them (figure.js).
       if (lit.get(id)?.size) page.rowsTop = Math.min(page.rowsTop ?? Infinity, Math.round(Math.min(...rows.filter(Boolean).map((r) => r.y)) - size));
@@ -212,13 +237,17 @@ export function setupPinout(page) {
       }
       if (marks.has(id) && pinout.mark) {
         const e = marks.get(id);
-        // The quiet lines: the kind of part, then what the mark tells (each fitted to the width).
-        const lines = [pinout.kind, pinout.mark.text];
+        // The quiet lines: the kind of part, then what the mark tells (each fitted to the width; at the
+        // smallest size a sentence still too long goes on as many lines as it needs, broken at its spaces:
+        // a phone's, where cutting it would lose what it tells).
         const width = free.x1 - free.x0;
-        const qs = Math.max(PINOUT.min, Math.min(PINOUT.quiet * u, width / (Math.max(...lines.map((l) => l.length)) * CHAR)));
-        lines.forEach((words, n) => {
+        const told = [pinout.kind, pinout.mark.text];
+        const qs = Math.max(PINOUT.min, Math.min(PINOUT.quiet * u, width / (Math.max(...told.map((l) => l.length)) * char)));
+        const fits = Math.floor(width / (qs * char));
+        const lines = told.flatMap((line, n) => (fits >= 12 ? wrap(line, fits) : [line]).map((words) => ({ words, mark: n > 0 })));
+        lines.forEach(({ words, mark }, n) => {
           const [x, y] = at(free.x0, free.y1 - (lines.length - 1 - n) * qs * 1.4 - qs * 0.3);
-          const t = make(under, 'text', { class: n ? 'quiet mark' : 'quiet', x, y, 'font-size': qs * k, opacity: e });
+          const t = make(under, 'text', { class: mark ? 'quiet mark' : 'quiet', x, y, 'font-size': qs * k, opacity: e });
           t.textContent = words;
         });
       }

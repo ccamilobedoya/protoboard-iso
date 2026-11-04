@@ -25,8 +25,12 @@
 // of light per decade of lux, each with its resistance now; a push button's two pieces of metal and
 // the dome that pressed joins them, a switch's blade on the contact its position closes (a rocker's
 // under its rocker, a latching button's changeovers on their link), the voltage an open contact holds
-// and the current through a closed one. Arrows never cross what they
-// explain: they run beside the layers, under the channel, the film, the coil. Didactic, not to scale.
+// and the current through a closed one; a regulator's pass transistor warming with its power, the error
+// amplifier and its reference, the headroom against the dropout and the currents in and out; a
+// battery's cells filled with their charge, EMF − I·R over them, its current and its warnings; a
+// buzzer's coil and steel disc, pulled with the current, with arcs of sound while it changes. Arrows
+// never cross what they explain: they run beside the layers, under the channel, the film, the coil.
+// Didactic, not to scale.
 
 import { DOT_COLOR, HEAT_COLOR, VOLTAGE_COLORS, heatOpacity } from '../../sim/look.js';
 import { PINOUT, fixed, make, screenOf, layerOf, tipsOf } from './pinout.js';
@@ -584,6 +588,156 @@ const INSIDE = {
     const state = !flowing(i) ? 'none' : Math.abs(coil) < Math.max(1e-3, 0.01 * Math.abs(v)) ? 'steady' : coil * i > 0 ? 'growing' : 'falling';
     label(g, 50, 114, r ? t(`page.tour.inside.inductor.${state}`) : '', 'state');
   },
+  regulator(g, r, data, { t, f }) {
+    // The pass transistor between IN and OUT drops what IN has over OUT, warmer as its power, (Vin −
+    // Vout) · I, nears its limit; under it the error amplifier compares a reference with the output (a
+    // fixed regulator's own divider; an LM317's reference sits between OUT and ADJ, its divider outside)
+    // and drives the transistor. Beside it a bar of the headroom, Vin − Vout, with the dropout marked;
+    // the currents in and out over the leads.
+    const [inp, out, ref] = data.ids;
+    const vin = r?.vin ?? 0;
+    const state = !r ? null : vin < 0.5 ? 'off' : r.state;
+    make(g, 'path', { class: 'lead', d: 'M4 24H32M56 24H96' });
+    make(g, 'rect', { class: 'pass', x: 32, y: 14, width: 24, height: 20, rx: 2 });
+    const ratio = data.maxPower > 0 ? Math.abs(r?.power ?? 0) / data.maxPower : 0;
+    make(g, 'rect', { x: 32, y: 14, width: 24, height: 20, rx: 2, fill: HEAT_COLOR, opacity: fixed(heatOpacity(ratio)) });
+    // The amplifier, pointing up at the transistor it drives; its + input on the reference, its − on
+    // the output (through the divider, or straight from OUT for an LM317).
+    make(g, 'path', { class: 'lead', d: 'M44 42V34M38 64V70M38 76V84' });
+    make(g, 'path', { class: `comparator${state === 'regulating' ? ' active' : ''}`, d: 'M32 64H56L44 42Z' });
+    label(g, 38, 62, '+', 'quiet', 'middle', FIGURE.small);
+    label(g, 50, 62, '−', 'quiet', 'middle', FIGURE.small);
+    make(g, 'path', { class: 'lead', d: 'M32 70H44' });
+    make(g, 'rect', { class: 'metal', x: 35, y: 73, width: 6, height: 2.6 });
+    label(g, 30, 76, 'Vref', 'note', 'end', FIGURE.small);
+    if (data.adjustable) {
+      make(g, 'path', { class: 'lead', d: 'M50 64V68H62V24M38 84H50' });
+      make(g, 'circle', { class: 'metal', cx: 62, cy: 24, r: 1.8 });
+    } else {
+      make(g, 'path', { class: 'lead', d: 'M50 64V68H60V50H68M68 24V32M68 46V54M68 68V84M38 84H68' });
+      make(g, 'rect', { class: 'film', x: 65, y: 32, width: 6, height: 14 });
+      make(g, 'rect', { class: 'film', x: 65, y: 54, width: 6, height: 14 });
+      make(g, 'circle', { class: 'metal', cx: 68, cy: 24, r: 1.8 });
+      make(g, 'circle', { class: 'metal', cx: 68, cy: 50, r: 1.6 });
+    }
+    make(g, 'path', { class: 'lead', d: 'M50 84V96' });
+    make(g, 'circle', { class: 'metal', cx: 50, cy: 84, r: 1.8 });
+    label(g, 4, 37, inp, 'pin-name', 'start', FIGURE.text);
+    label(g, 96, 37, out, 'pin-name', 'end', FIGURE.text);
+    label(g, 55, 96, ref, 'pin-name', 'start', FIGURE.text);
+    // The headroom against three dropouts, the dropout marked: under the mark it is out of regulation.
+    const top = 46;
+    const height = 34;
+    const full = 3 * (data.dropout || 1);
+    const k = Math.max(0, Math.min(1, (r?.headroom ?? 0) / full));
+    make(g, 'rect', { class: 'gauge', x: 86, y: top, width: 6, height });
+    make(g, 'rect', { class: `headroom${state === 'dropout' ? ' low' : ''}`, x: 86, y: fixed(top + height * (1 - k)), width: 6, height: fixed(height * k) });
+    make(g, 'path', { class: 'dim', d: `M83 ${fixed(top + (height * 2) / 3)}H95` });
+    label(g, 89, 89, 'ΔV', 'note', 'middle', FIGURE.small);
+    // Conventional current into IN and out of OUT, over the leads.
+    const iin = r?.currents?.IN ?? 0;
+    const iout = r?.current ?? 0;
+    if (flowing(iin)) {
+      shaft(g, iin > 0 ? 4 : 28, 16, iin > 0 ? 28 : 4, 16, widthOf(iin));
+      label(g, 4, 9, 'Iin', 'current', 'start', FIGURE.small);
+    }
+    if (flowing(iout)) {
+      shaft(g, iout > 0 ? 60 : 94, 16, iout > 0 ? 94 : 60, 16, widthOf(iout));
+      label(g, 96, 9, 'Iout', 'current', 'end', FIGURE.small);
+    }
+    if (r) label(g, 44, 9, `P ${f(Math.abs(r.power ?? 0), 'W')}`, 'note', 'middle', FIGURE.small);
+    label(g, 50, 103, r ? `${f(vin, 'V')} → ${f(r.vout ?? 0, 'V')} · ${f(Math.abs(iout), 'A')}` : '', 'note');
+    label(g, 50, 114, state ? t(`page.tour.inside.regulator.${state}`) : '', 'state');
+  },
+  battery(g, r, data, { t, f }) {
+    // Its cells in series (up to six drawn), each filled with the charge left from its − end; behind
+    // them the internal resistance, before the + lead. Over the cells their EMF, over the resistance the
+    // voltage it takes (I·R), so V at the leads is EMF − I·R; the current under them, inside from − to +
+    // while it gives energy; a warning line from the reading (a short, too much current, an alkaline
+    // being charged).
+    const [plus, minus] = data.ids;
+    const n = Math.max(1, data.series ?? 1);
+    const drawn = Math.min(n, 6);
+    const pitch = 62 / drawn;
+    const charge = r?.charge ?? data.charge;
+    const k = Math.max(0, Math.min(1, charge ?? 1));
+    make(g, 'path', { class: 'lead', d: 'M4 40H10M72 40H76M86 40H96' });
+    for (let j = 0; j < drawn; j++) {
+      const x = 10 + j * pitch;
+      const w = pitch - 3;
+      make(g, 'rect', { class: 'cell', x: fixed(x), y: 30, width: fixed(w), height: 20, rx: 2 });
+      make(g, 'rect', { class: 'soc', x: fixed(x + 1.5), y: 31.5, width: fixed(Math.max(0, (w - 3) * k)), height: 17, rx: 1 });
+      make(g, 'rect', { class: 'metal', x: fixed(x + w), y: 36, width: 2, height: 8 });
+      if (j < drawn - 1) make(g, 'path', { class: 'lead', d: `M${fixed(x + w + 2)} 40H${fixed(x + pitch)}` });
+    }
+    make(g, 'rect', { class: 'film', x: 76, y: 36, width: 10, height: 8 });
+    label(g, 81, 56, 'R', 'quiet', 'middle', FIGURE.small);
+    label(g, 6, 34, minus, 'pin-name', 'middle', FIGURE.text);
+    label(g, 94, 34, plus, 'pin-name', 'middle', FIGURE.text);
+    const chem = data.chemistry ? t(`page.tour.inside.battery.chem.${data.chemistry}`) : '';
+    label(g, 50, 7, [n > 1 ? `${n} × ${chem}` : chem, charge != null && `${Math.round(k * 100)} %`].filter(Boolean).join(' · '), 'note');
+    const on = r?.on !== false;
+    if (r && on && r.emf != null) {
+      make(g, 'path', { class: 'dim', d: 'M10 24H72M10 20V28M72 20V28M76 24H86M76 20V28M86 20V28' });
+      label(g, 41, 18, `EMF ${f(r.emf, 'V')}`, 'note');
+      label(g, 84, 18, f(Math.abs(r.drop ?? 0), 'V'), 'note');
+    }
+    // Conventional current inside the battery: from − to + while it gives energy (out of +), the other
+    // way while something charges it.
+    const i = r?.current ?? 0;
+    if (on && flowing(i)) {
+      shaft(g, i > 0 ? 12 : 84, 62, i > 0 ? 84 : 12, 62, widthOf(i));
+      label(g, i > 0 ? 88 : 8, 65, 'I', 'current', i > 0 ? 'start' : 'end', FIGURE.small);
+    }
+    // Its warnings, as the simulator's: a short (under half an ohm outside it), more than it is meant
+    // for, an alkaline cell charged.
+    const short = i > 0.1 && Math.abs(r?.voltage ?? 0) / i < 0.5;
+    const warning = !r || !on ? null : short ? t('page.tour.inside.battery.short') : data.maxCurrent > 0 && Math.abs(i) > data.maxCurrent ? t('page.tour.inside.battery.over', { max: f(data.maxCurrent, 'A') }) : i < -1e-3 && !data.rechargeable ? t('page.tour.inside.battery.reverse') : null;
+    if (warning) label(g, 50, 84, warning, 'warning', 'middle', FIGURE.small);
+    label(g, 50, 103, r && on ? [`V ${f(r.voltage ?? 0, 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    const state = !on ? 'off' : !flowing(i) ? 'idle' : i > 0 ? 'discharging' : 'charging';
+    label(g, 50, 114, r ? t(`page.tour.inside.battery.${state}`) : '', 'state');
+  },
+  buzzer(g, r, data, { t, f, memo }) {
+    // A passive magnetic buzzer cut through: its coil round a pole piece inside a ring magnet, the thin
+    // steel disc over them pulled down as the current grows. It sounds only while the current changes:
+    // the change from one reading to the next (kept in `memo`, fading) is its drive, an arc of sound
+    // over the disc per third of its rated current; on steady DC the disc stays pulled and it is silent.
+    const [a, b] = data.ids;
+    const i = r?.current ?? 0;
+    const imax = data.maxCurrent || 0.1;
+    if (r && memo && memo.r !== r) {
+      memo.swing = Math.max(Math.abs(i - (memo.last ?? i)), (memo.swing ?? 0) * 0.8);
+      memo.last = i;
+      memo.r = r;
+    }
+    const swing = memo?.swing ?? 0;
+    const sounding = swing > 1e-4;
+    const pull = Math.max(-1, Math.min(1, i / imax));
+    make(g, 'rect', { class: 'core', x: 14, y: 34, width: 72, height: 50, rx: 4 });
+    make(g, 'rect', { class: 'magnet', x: 18, y: 60, width: 14, height: 18 });
+    make(g, 'rect', { class: 'magnet', x: 68, y: 60, width: 14, height: 18 });
+    make(g, 'rect', { class: 'metal', x: 46, y: 50, width: 8, height: 30 });
+    make(g, 'path', { class: 'winding', d: 'M36 58H44M56 58H64M36 63H44M56 63H64M36 68H44M56 68H64M36 73H44M56 73H64' });
+    make(g, 'rect', { class: 'metal', x: 18, y: 78, width: 64, height: 3 });
+    make(g, 'path', { class: `disc${sounding ? ' on' : ''}`, d: `M17 42Q50 ${fixed(42 + 10 * pull)} 83 42` });
+    make(g, 'path', { class: 'lead', d: 'M30 84V96M70 84V96' });
+    label(g, 22, 95, a, 'pin-name', 'middle', FIGURE.text);
+    label(g, 78, 95, b, 'pin-name', 'middle', FIGURE.text);
+    // The sound over the disc, one to three arcs with the drive.
+    const arcs = sounding ? Math.max(1, Math.min(3, Math.ceil(3 * Math.sqrt(swing / imax)))) : 0;
+    for (let j = 0; j < arcs; j++) {
+      const rr = 8 + 7 * j;
+      const dx = fixed(rr * Math.sin(0.9));
+      const dy = fixed(34 - rr * Math.cos(0.9));
+      make(g, 'path', { class: 'sound', d: `M${fixed(50 - dx)} ${dy}A${rr} ${rr} 0 0 1 ${fixed(50 + Number(dx))} ${dy}` });
+    }
+    // Conventional current from + to − through the coil, under the case between the leads.
+    if (flowing(i)) shaft(g, i > 0 ? 34 : 66, 90, i > 0 ? 66 : 34, 90, widthOf(i));
+    label(g, 50, 103, r ? [`V ${f(Math.abs(r.voltage ?? 0), 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    const state = sounding ? 'sounding' : flowing(i) ? 'dc' : 'silent';
+    label(g, 50, 114, r ? t(`page.tour.inside.buzzer.${state}`) : '', 'state');
+  },
 };
 
 // `reading()`, `t`, `f` as the tour has them; `look()`: the current layer's scale (bench.js); `now()`:
@@ -592,6 +746,7 @@ export function setupFigure(page, { reading, t, f, now, look, controls }) {
   let on = null; // { id, what: 'symbol' | 'inside', k, t0, ms }
   let placed = null; // { for, x, y, s, line }: where the figure is, in drawing units, since it came
   const layers = new WeakMap(); // under the part's copy, so a pin behind a body keeps its identifier hidden
+  const memos = new Map(); // part → what its drawer keeps between readings
 
   // Where the figure goes, in drawing units. The part is measured on screen through the camera as it is
   // now, then laid out in the layout's screen (the frame the texts were set in, pinout.js), so a figure
@@ -668,7 +823,9 @@ export function setupFigure(page, { reading, t, f, now, look, controls }) {
     // does not carry).
     const id = on.id;
     const control = (field) => controls?.().find((c) => c.id === id && c.field === field)?.value;
-    INSIDE[shape.kind]?.(box, reading()?.parts?.[on.id], shape, { t, f, look, control });
+    // `memo`: what a drawer keeps of the part from one reading to the next (a buzzer's last current).
+    if (!memos.has(id)) memos.set(id, {});
+    INSIDE[shape.kind]?.(box, reading()?.parts?.[on.id], shape, { t, f, look, control, memo: memos.get(id) });
   }
 
   return {

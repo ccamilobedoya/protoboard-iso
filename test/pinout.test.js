@@ -74,7 +74,8 @@ test('pinout: the mark\'s sentence agrees with the drawing in both views', () =>
       else if (p.built.mark.kind === 'bands') assert.match(mark.text, new RegExp(`^First colour band on the ${sideOf(camera, at('1'), at('2'))}: read from it; no polarity$`), `${p.id} ${view}`);
       else {
         // A flat face or a tab: which way it faces, and the pins as they are from the left.
-        const order = [...pins].sort((x, y) => x.x - y.x).map((x) => x.name).join(' ');
+        // Each pin as the part prints it (a module's VIN), else by its name.
+        const order = [...pins].sort((x, y) => x.x - y.x).map((x) => x.id ?? x.name).join(' ');
         assert.ok(mark.text.endsWith(`: ${order} from the left`), `${p.id} ${view}: ${mark.text}`);
       }
       seen++;
@@ -127,6 +128,35 @@ test('pinout: a potentiometer\'s knob or a trimmer\'s printed face, and the pins
   }
   assert.deepEqual(pinList(knob, 'en').map((p) => p.text), ['1 · one end of the track', 'W · wiper, slides on it', '3 · the other end']);
   for (const id of ['RT1', 'LDR1']) assert.equal(pinoutOf(part(built('more-parts'), id), createCamera({ view: 'front' }), 'es').mark.text, 'Sin polaridad: entra en cualquier sentido', id);
+});
+
+test('pinout: a regulator\'s tab or a module\'s printed side; a battery\'s red lead and a buzzer\'s + on the side of their + pin', () => {
+  const b = built('battery-regulator');
+  const reg = part(b, 'U1');
+  assert.deepEqual(pinList(reg, 'en').map((p) => p.text), ['IN · supply, higher V', 'GND · common, 0 V', 'OUT · steady voltage']);
+  assert.equal(pinoutOf(reg, createCamera({ view: 'front' }), 'en').mark.text, 'Metal tab at the back: IN GND OUT from the left');
+  const more = built('more-parts');
+  assert.deepEqual(pinList(part(more, 'U2'), 'en').map((p) => p.text), ['ADJ · OUT is 1.25 V over it', 'OUT · steady voltage', 'IN · supply, higher V'], 'an LM317 by its own pins');
+  // An AMS1117 module: its printed side, its pins as printed (VIN), the same row text for both voltages.
+  const module = part(built('parts-showcase'), 'U1');
+  assert.equal(pinList(module, 'es')[0].text, 'VIN · entrada, más voltaje');
+  for (const view of VIEWS) assert.match(pinoutOf(module, createCamera({ view }), 'en').mark.text, view === 'front' ? /^Printed face toward you: VIN OUT GND from the left$/ : /^Printed face away from you: GND OUT VIN from the left$/, view);
+  for (const [p, sentence, plus] of [[part(b, 'BT1'), 'Red lead (.*): the \\+; the black one, the −', '+'], [part(more, 'BZ1'), '\\+ printed on top (.*): pin 1, the \\+ lead', '1']]) {
+    for (const view of VIEWS) {
+      const camera = createCamera({ view });
+      const text = pinoutOf(p, camera, 'en').mark.text;
+      const side = new RegExp(`^${sentence}$`).exec(text)?.[1];
+      const other = p.pinNames.find((n) => n !== plus);
+      const at = (n) => p.holes[p.pinNames.indexOf(n)];
+      const [x, y] = [at(plus), at(other)].map((h) => camera.project(h.pos).x);
+      // The mark is by the + pin: across the screen, the side of that pin (a rail's two rows are seen
+      // one behind the other at the back or in front, which the sentence then says).
+      if (side === 'on the left' || side === 'on the right') assert.equal(side, x < y ? 'on the left' : 'on the right', `${p.id} ${view}`);
+      else assert.ok(side, `${p.id} ${view}: ${text}`);
+    }
+  }
+  assert.deepEqual(pinList(part(b, 'BT1'), 'es').map((p) => p.text), ['+ · cable rojo, a la carga', '− · cable negro, retorno']);
+  assert.deepEqual(pinList(part(more, 'BZ1'), 'en').map((p) => p.text), ['+ · under the + on top', '− · the other lead']);
 });
 
 test('pinout: a chip\'s notch is on the side of its pin 1', () => {
@@ -184,6 +214,22 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
   assert.deepEqual(insideOf(part(built('more-parts'), 'RT1')), { kind: 'thermistor', ids: ['1', '2'], r25: 10000, beta: 3950, temperature: 25 });
   assert.deepEqual(insideOf(part(built('more-parts'), 'LDR1')), { kind: 'ldr', ids: ['1', '2'], light: 100 });
   assert.deepEqual(symbolOf(part(built('more-parts'), 'RV1')).ids, { 1: '1', W: 'W', 3: '3' }, 'a trimmer is a potentiometer to its symbol');
+  // A regulator's box with its common (GND, an LM317's ADJ) under it; its limits from its model.
+  const reg = part(built('battery-regulator'), 'U1');
+  assert.deepEqual(symbolOf(reg).ids, { IN: 'IN', OUT: 'OUT', GND: 'GND' });
+  assert.deepEqual(insideOf(reg), { kind: 'regulator', ids: ['IN', 'OUT', 'GND'], adjustable: false, vref: 5, dropout: 2, maxCurrent: 1.5, maxPower: 2 });
+  assert.deepEqual(insideOf(part(built('more-parts'), 'U2')).ids, ['IN', 'OUT', 'ADJ']);
+  assert.equal(insideOf(part(built('more-parts'), 'U2')).adjustable, true);
+  assert.deepEqual(insideOf(part(built('parts-showcase'), 'U1')).ids, ['VIN', 'OUT', 'GND'], 'a module\'s printed names');
+  // A battery's cells, one pair of plates each (a 9 V block's six inside it); a buzzer's + and −.
+  const bt = part(built('battery-regulator'), 'BT1');
+  assert.deepEqual(symbolOf(bt).ids, { '+': '+', '-': '−' });
+  assert.deepEqual(insideOf(bt), { kind: 'battery', ids: ['+', '−'], chemistry: 'alkaline', series: 6, resistance: 1.7, maxCurrent: 0.3, rechargeable: false, charge: null });
+  assert.equal(symbolOf(part(built('more-parts'), 'BT1')).fills.length, 2, 'two cells, two short plates');
+  const bz = part(built('more-parts'), 'BZ1');
+  assert.deepEqual(symbolOf(bz).ids, { 1: '+', 2: '−' });
+  const buzz = insideOf(bz);
+  assert.deepEqual([buzz.kind, buzz.ids, buzz.resistance, Math.round(buzz.maxCurrent * 1000)], ['buzzer', ['+', '−'], 16, 177]);
 });
 
 // The view of a part up close is a requirement for every new part type (docs/en/adding-parts.md, "6. A
@@ -191,13 +237,10 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
 // orientation mark when it can go in the wrong way round, and a view of its inside with its legend. Each
 // type of the kit is either complete or listed as pending with its reason: a new type must be one or
 // the other, so the choice is made, never forgotten.
-const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1', potentiometer: 'potentiometer-led RV1', thermistor: 'more-parts RT1', ldr: 'more-parts LDR1', button: 'button-pullup S1', switch: 'switches S1' };
+const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1', potentiometer: 'potentiometer-led RV1', thermistor: 'more-parts RT1', ldr: 'more-parts LDR1', button: 'button-pullup S1', switch: 'switches S1', regulator: 'regulator-7805 U1', battery: 'battery-regulator BT1', buzzer: 'more-parts BZ1' };
 const PENDING = {
-  regulator: 'no symbol or inside view yet',
   wire: 'not a part on a pedestal',
-  battery: 'off the board; no symbol or inside view yet',
   module: 'a development board: its own pin notes, no pedestal view',
-  buzzer: 'no symbol or inside view yet',
   header: 'pins only: nothing to show inside',
 };
 

@@ -380,6 +380,35 @@ su circuito; su vista por dentro, un conmutador por cada fila en uso con su lám
 lectura (`pressed`, `on`, `contacts`), si no, de su control. Las filas de una pieza que queda al lado de
 la protoboard van bajo su cuerpo.
 
+Las filas de un regulador van por su número de parte donde cambian (IN GND OUT de un 78xx, ADJ OUT IN de
+un LM317, VIN OUT GND de un módulo AMS1117, sus nombres impresos); la marca de un TO-220 es su lengüeta
+metálica, la de un módulo su cara impresa. Su símbolo es una caja con IN, OUT y GND (o ADJ) debajo. Su
+vista por dentro: el transistor de paso entre IN y OUT, más caliente a medida que su potencia, (Vin −
+Vout) · I, se acerca a su límite, y su potencia encima; el amplificador de error debajo, que compara una
+referencia con la salida por el divisor propio del regulador (la referencia de un LM317 está entre OUT y
+ADJ, su divisor por fuera); una barra del margen, Vin − Vout, con la caída (dropout) marcada (por debajo,
+en el color de aviso); las corrientes de entrada y de salida sobre las patas; y «regulando», «en caída» o
+«apagado» desde la lectura (`vin`, `vout`, `headroom`, `current`, `currents`, `power`, `state`), sus
+límites del modelo del dispositivo. Las filas de una batería nombran el color de sus cables y su marca es
+el cable rojo, del lado de su pata +; su símbolo son sus celdas en serie, una placa larga y una corta cada
+una (hasta cuatro; más, las dos primeras, una línea punteada y la última); su vista por dentro, las celdas
+(hasta seis, las seis que trae una batería de 9 V) rellenas con la carga que les queda, su resistencia
+interna antes del cable +, FEM e I·R encima para que V = FEM − I·R se lea de un vistazo, la corriente por
+dentro de − a + mientras entrega energía, y una línea de aviso desde la lectura tal como la da el
+simulador (un corto, más de lo que aguanta, una alcalina que se carga). El + de un zumbador va impreso
+arriba sobre la pata 1 (la marca, `plus`); su símbolo es el domo sobre una base plana de la IEC con el +
+junto a la pata 1; su vista por dentro es el zumbador magnético pasivo del kit en corte, su bobina sobre
+un núcleo dentro de un imán de anillo y el disco de acero encima atraído con la corriente, con uno a tres
+arcos de sonido mientras la corriente cambia de una lectura a la siguiente y «en silencio: la DC fija
+solo lo calienta» con DC.
+
+De cerca en un celular las filas del diagrama de patas siguen pegadas a sus líneas guía, y ahora además
+caben en la pantalla: se encogen juntas hasta el 65 % y una fila que aún es larga termina en «…» en el
+borde, como en un video; cuando dos columnas cortarían una fila, una sola columna a cualquiera de los dos
+lados, la que corte menos. Medido a 390 px de ancho: antes, las filas del LED iban de −43 a 470 px y las
+del pulsador y del pulsador de enclavamiento pasaban los dos bordes; después, todas las filas quedan dentro
+de la pantalla (la más larga cortada por unas pocas letras).
+
 ### F5 · La pieza en la página
 
 **El ensayo (2026-11-01).** Un prototipo detrás de `?focusView=1`, en una página hecha con
