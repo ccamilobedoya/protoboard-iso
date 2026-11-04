@@ -2,6 +2,7 @@
 // ("104") printed on both faces.
 //
 // params: diameter, thickness, color, code, standoff
+// mark (src/pinout.js): `either`, a ceramic disc has no polarity.
 
 import { add, scale, cross, Z } from '../../core/vec.js';
 import { lathe, textDecal, midpoint } from '../../geometry/primitives.js';
@@ -49,6 +50,6 @@ export default {
       ...lead([withZ(a, 0), withZ(add(centre, scale(dir, -offset)), footZ)]),
       ...lead([withZ(b, 0), withZ(add(centre, scale(dir, offset)), footZ)]),
     ];
-    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, standoff + D) };
+    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, standoff + D), mark: { kind: 'either', at: withZ(centre, standoff + D) } };
   },
 };

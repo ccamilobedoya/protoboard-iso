@@ -14,6 +14,7 @@
 // (TOUR_NO_SYMBOL).
 
 import { LED_LIGHT } from './colors.js';
+import { deviceFor } from '../sim/devices/index.js';
 
 const arrow = (x1, y1, x2, y2, size = 9) => {
   // A filled head at (x2, y2) pointing from (x1, y1).
@@ -62,14 +63,19 @@ function diode(names, { light = false, zener = false } = {}) {
   };
 }
 
-function resistor(names) {
-  return { w: 100, h: 100, strokes: ['M50 4V24L62 29L38 39L62 49L38 59L62 69L50 74V96'], fills: [], texts: [], pins: { [names[0]]: [50, 4], [names[1]]: [50, 96] }, ids: { [names[0]]: names[0], [names[1]]: names[1] } };
-}
+// A two-lead symbol standing up: the first pin at the top, the second at the bottom; `ids` what the
+// symbol calls them (their own names unless it says otherwise).
+const upright = (names, strokes, { texts = [], ids = names } = {}) => ({ w: 100, h: 100, strokes, fills: [], texts, pins: { [names[0]]: [50, 4], [names[1]]: [50, 96] }, ids: { [names[0]]: ids[0], [names[1]]: ids[1] } });
+
+const resistor = (names) => upright(names, ['M50 4V24L62 29L38 39L62 49L38 59L62 69L50 74V96']);
+
+// A coil of four humps between its leads.
+const inductor = (names) => upright(names, ['M50 4V22A7 7 0 0 1 50 36A7 7 0 0 1 50 50A7 7 0 0 1 50 64A7 7 0 0 1 50 78V96']);
 
 function capacitor(names, polarised) {
   const lower = polarised ? 'M30 62Q50 52 70 62' : 'M30 56H70';
   const plus = polarised ? [{ x: 74, y: 36, text: '+', anchor: 'start' }] : [];
-  return { w: 100, h: 100, strokes: ['M50 4V44', 'M30 44H70', lower, `M50 ${polarised ? 57 : 56}V96`], fills: [], texts: plus, pins: { [names[0]]: [50, 4], [names[1]]: [50, 96] }, ids: polarised ? { [names[0]]: '+', [names[1]]: '−' } : { [names[0]]: names[0], [names[1]]: names[1] } };
+  return upright(names, ['M50 4V44', 'M30 44H70', lower, `M50 ${polarised ? 57 : 56}V96`], { texts: plus, ids: polarised ? ['+', '−'] : names });
 }
 
 // A chip as a block: pins 1… down the left side and the rest up the right one, as the package counts
@@ -105,14 +111,22 @@ export function symbolOf(part) {
   if (part.type === 'zener') return diode(names, { zener: true });
   if (part.type === 'resistor') return resistor(names);
   if (part.type === 'capacitor') return capacitor(names, e.polarised === true);
+  if (part.type === 'inductor') return inductor(names);
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
   return null;
 }
 
-// The teaching diagram a part's kind has (`inside`, page/client/inside.js draws it from the reading),
-// or null (TOUR_NO_INSIDE).
+// The teaching diagram a part's kind has (`inside`, page/client/figure.js draws it from the reading),
+// or null (TOUR_NO_INSIDE). A two-lead part's carries the symbol's letters for its pins (`ids`, in the
+// part's order) and the limit the simulator holds it to (its device's params), so the drawing can show
+// how near it is.
 export function insideOf(part) {
   const e = part.def?.electrical ?? {};
+  const ids = () => (part.pinNames ?? []).map((n) => symbolOf(part)?.ids[n] ?? n);
+  const limits = () => deviceFor(part)?.params(part) ?? {};
+  if (part.type === 'resistor') return { kind: 'resistor', ids: ids(), maxPower: limits().maxPower };
+  if (part.type === 'capacitor') return { kind: 'capacitor', ids: ids(), maxVoltage: limits().maxVoltage };
+  if (part.type === 'inductor') return { kind: 'inductor', ids: ids(), maxCurrent: limits().maxCurrent, dcr: limits().dcr };
   if (part.type === 'bjt') return { kind: 'bjt', pnp: e.polarity === 'pnp' };
   if (part.type === 'mosfet') return { kind: 'mosfet', p: e.channel === 'p' };
   if (part.type === 'led') return { kind: 'led', color: LED_LIGHT[e.color] ?? LED_LIGHT.red };

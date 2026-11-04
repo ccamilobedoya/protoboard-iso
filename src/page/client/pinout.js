@@ -168,10 +168,11 @@ export function setupPinout(page) {
       const tips = tipsOf(page, id, pinout.pins, screen);
       // A step's own text takes the pin's row (and its room).
       const own = lit.get(id) ?? new Map();
-      // With the symbol beside the part, each row starts with the symbol's name for its pin (a chip's
-      // rows already start with its number).
+      // With the symbol beside the part, each row starts with the symbol's name for its pin, unless it
+      // already does (a chip's number, a resistor's 1, a capacitor's +).
       const named = pinout.pins.length <= 4 ? page.symbolIds?.[id] : null;
-      const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: [named?.[p.name], own.get(i)?.text ?? p.text].filter(Boolean).join(' · ') })), tips, free, u, Boolean(page.focusing));
+      const withId = (p, text) => (named?.[p.name] && !text.startsWith(`${named[p.name]} · `) ? `${named[p.name]} · ${text}` : text);
+      const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: withId(p, own.get(i)?.text ?? p.text) })), tips, free, u, Boolean(page.focusing));
       const stroke = PINOUT.line * Math.max(u, 0.5) * k;
       // Where the rows begin on screen: the figure beside the part stays above them (figure.js).
       if (lit.get(id)?.size) page.rowsTop = Math.min(page.rowsTop ?? Infinity, Math.round(Math.min(...rows.filter(Boolean).map((r) => r.y)) - size));

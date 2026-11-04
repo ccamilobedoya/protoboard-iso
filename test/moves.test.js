@@ -836,7 +836,8 @@ test('moves: a pin step names a pin of a part, or its mark, or none', () => {
   assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'Q1.X' }]), ['TOUR_UNKNOWN_PIN']);
   assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'Q1.2' }]), ['TOUR_UNKNOWN_PIN'], 'a number names a chip\'s pin only');
   assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'X9.B' }]), ['TOUR_UNKNOWN_PART']);
-  assert.deepEqual(codes([{ at: 0, do: 'pin', mark: 'R1' }]), ['TOUR_NO_MARK'], 'a resistor has no mark');
+  assert.deepEqual(codes([{ at: 0, do: 'pin', mark: 'S1' }]), ['TOUR_NO_MARK'], 'a button has no mark');
+  assert.deepEqual(codes([{ at: 0, do: 'pin', mark: 'R1' }]), [], 'a resistor\'s says it has no polarity');
   assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'Q1.E', off: true }]), ['TOUR_FIELD'], 'one of pin, mark or off');
   assert.deepEqual(codes([{ at: 0, do: 'pin' }]), ['TOUR_FIELD']);
   assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'Q1' }]), ['TOUR_FIELD'], 'part.pin');
@@ -1008,7 +1009,7 @@ test('moves: a symbol or an inside view names a part whose kind has one', () => 
   assert.deepEqual(codes(figured), []);
   assert.deepEqual(codes([{ at: 0, do: 'symbol', on: true }]), ['TOUR_FIELD'], 'on names its part');
   assert.deepEqual(codes([{ at: 0, do: 'symbol', part: 'S1', on: true }]), ['TOUR_NO_SYMBOL']);
-  assert.deepEqual(codes([{ at: 0, do: 'inside', part: 'R1', on: true }]), ['TOUR_NO_INSIDE']);
+  assert.deepEqual(codes([{ at: 0, do: 'inside', part: 'S1', on: true }]), ['TOUR_NO_INSIDE']);
   assert.deepEqual(codes([{ at: 0, do: 'inside', part: 'X9', on: true }]), ['TOUR_UNKNOWN_PART']);
 });
 
@@ -1048,6 +1049,51 @@ test('moves: M22 the symbol stands beside the part, its pins named on the part; 
   assert.match(inside().querySelector('.state').textContent, /^saturated/);
   r.to(5000 + FRAME);
   assert.equal(figure().children.length, 0, 'off');
+});
+
+// M23 for the parts with two leads: a resistor's film warming with its share of its power rating, a
+// capacitor's charges following its voltage, an inductor's field following its current; each with
+// its current as an arrow and the symbol's names for its pins.
+const rc = () => JSON.parse(readFileSync(`${examples}rc-square-wave.json`, 'utf8'));
+const rl = () => ({
+  ...rc(),
+  supplies: [{ ...rc().supplies[0], frequency: 1000 }],
+  parts: [
+    { id: 'R1', type: 'resistor', value: '100', pins: ['T+24', 'h24'] },
+    { id: 'L1', type: 'inductor', value: '47m', pins: ['f24', 'f30'] },
+    { id: 'W1', type: 'wire', color: 'black', pins: ['j30', 'T-30'] },
+  ],
+});
+test('moves: M23 a resistor, a capacitor and an inductor inside, from the circuit', async (t) => {
+  const inside = async (circuit, id) => {
+    const steps = [{ at: 0, do: 'scene', mode: 'part', part: id }, { at: 0, do: 'inside', part: id, on: true }];
+    const window = await loadPage(renderPage({ ...circuit, page: { ...circuit.page, tour: { format: 'vertical', steps } } }, { lang: 'en' }).html);
+    if (!window) return null;
+    window.protoboardLive.tour.play();
+    for (let ms = 0; ms <= 1500; ms += 100) window.protoboardLive.tick(100);
+    const box = window.document.querySelector('main > svg:not([hidden]) > .figure [data-inside]');
+    return { box, kind: box.getAttribute('data-inside'), state: box.querySelector('.state').textContent, names: [...box.querySelectorAll('.pin-name')].map((x) => x.textContent), count: (sel) => box.querySelectorAll(sel).length };
+  };
+  const r = await inside(rc(), 'R1');
+  if (!r) return t.skip('jsdom not installed');
+  assert.equal(r.kind, 'resistor');
+  assert.deepEqual(r.names, ['1', '2']);
+  assert.ok(r.count('.groove') > 0 && r.count('.film') === 1, 'the film cut in a spiral');
+  assert.match(r.state, /^(<1|\d+) % of its power rating$/);
+  assert.equal(r.count('.flowing'), 1, 'its current under it');
+  const c = await inside(rc(), 'C1');
+  assert.equal(c.kind, 'capacitor');
+  assert.deepEqual(c.names, ['+', '−'], 'an electrolytic\'s pins as its symbol names them');
+  assert.equal(c.count('.plate'), 2);
+  assert.ok(c.count('.charge') >= 2 && c.count('.charge') % 2 === 0, 'as many − as + charges');
+  assert.match(c.state, /^(charging|discharging|holding its charge)$/);
+  const l = await inside(rl(), 'L1');
+  assert.equal(l.kind, 'inductor');
+  assert.deepEqual(l.names, ['1', '2']);
+  assert.equal(l.count('.coil'), 1);
+  assert.equal(l.count('.flowing'), 1);
+  assert.ok(l.count('.field') >= 1, 'a field while current flows');
+  assert.match(l.state, /^current (growing|falling)|^steady current$/);
 });
 
 // A part's view up close in the page (F5; page/client/focus-view.js): only in a page made with it; the

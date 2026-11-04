@@ -501,6 +501,11 @@ body.layer-flow main[data-scene] > svg > .lights { display: inline; }
 .focus-legend .swatch.channel { background: var(--inside-n); outline: 1px solid var(--accent); }
 .focus-legend .swatch.comparator, .focus-legend .swatch.latch { background: var(--accent-soft); outline: 1px solid var(--accent); }
 .focus-legend .swatch.arrow { height: 6px; margin-top: 6px; border-radius: 3px; }
+.focus-legend .swatch.film { background: var(--ink-4); }
+.focus-legend .swatch.plate { background: var(--ink-2); }
+.focus-legend .swatch.pos, .focus-legend .swatch.neg { border-radius: 50%; }
+.focus-legend .swatch.coil { box-sizing: border-box; border: 2px solid var(--ink-2); border-radius: 50%; }
+.focus-legend .swatch.field { box-sizing: border-box; border: 1px dashed var(--accent); border-radius: 50%; }
 .focus-legend .swatch[hidden] { display: block; visibility: hidden; }
 /* On a phone the bar takes two rows: Back and the name, then the two controls sharing the width. */
 @media (max-width: 560px) {
@@ -519,8 +524,9 @@ body.focus-view, body.focus-view main, body.focus-view .focus-dock { touch-actio
 /* Safari on a phone lays its floating toolbar over the page's bottom: the dock stands above it. */
 @supports (-webkit-touch-callout: none) { .focus-dock { bottom: max(76px, env(safe-area-inset-bottom)); } }
 /* The figure beside a part (M22, M23; page/client/figure.js): its schematic symbol, or a teaching view
-   of its inside with n and p material, the oxide and gate, a comparator or latch that is acting, the
-   current as arrows in the dots' colour. */
+   of its inside with n and p material, the oxide and gate, a comparator or latch that is acting, a
+   resistor's film on its core, a capacitor's plates, an inductor's coil and its field, the current as
+   arrows in the dots' colour. */
 .figure { pointer-events: none; }
 .figure .stroke, .figure .lens, .figure .lead { fill: none; stroke: var(--ink-2); stroke-linecap: round; stroke-linejoin: round; }
 .figure .fill { fill: var(--ink-2); }
@@ -541,6 +547,15 @@ body.focus-view, body.focus-view main, body.focus-view .focus-dock { touch-actio
 .figure .comparator.active, .figure .latch.active { fill: var(--accent-soft); stroke: var(--accent); }
 .figure .out { fill: var(--ink-3); }
 .figure .out.active { fill: var(--cap-value); }
+.figure .core { fill: var(--well); stroke: var(--ink-3); stroke-width: 1; }
+.figure .film { fill: var(--ink-4); }
+.figure .groove { stroke: var(--well); stroke-width: 1.6; }
+.figure .dim { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.figure .plate { fill: var(--ink-2); }
+.figure .dielectric { fill: var(--accent-soft); }
+.figure .charge { font-weight: 700; }
+.figure .coil { fill: none; stroke: var(--ink-2); stroke-width: 2.4; stroke-linecap: round; }
+.figure .field { fill: none; stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; }
 body.director nav, body.director .zoom, body.director .inspector, body.director .gesture-hint, body.director .first-hint, body.director .tooltip { display: none !important; }
 body.director main { cursor: default; }
 body.director .labels, body.director .results, body.director .probes { display: none !important; }

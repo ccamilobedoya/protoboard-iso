@@ -9,6 +9,10 @@
 //   color        body colour
 //   bands        [{ from, to, color, mark }] colour rings, mm measured from the pin-1 end (mark: the
 //                one that tells the leads apart, a diode's cathode)
+//
+// mark (src/pinout.js): a marked band is a `stripe`; colour bands with none marked are a colour code
+// (a resistor, an inductor), read from the first band, nearest pin 1: `bands`, a part that goes in
+// either way round; a body with no bands (a cement resistor) is `either`.
 //   opacity      for glass bodies
 //   standoff     gap between body and board, mm (default 0.8)
 
@@ -68,7 +72,7 @@ function cement(a, b, { bodyLength: L, bodyDiameter: W, bodyHeight: H = W, color
   const end = add(centre, scale(dir, L / 2));
   const leads = [...lead([withZ(a, 0), withZ(a, zc), start], { radius: 0.4 }), ...lead([withZ(b, 0), withZ(b, zc), end], { radius: 0.4 })];
   // The label's leader lands near one end of the top, not on the print.
-  return { primitives: [body, ...leads], body: [body], anchor: add(withZ(centre, standoff + H), scale(dir, L * 0.42)), span: distance(a, b), paths: axialPaths(a, b, zc, start, end, centre) };
+  return { primitives: [body, ...leads], body: [body], anchor: add(withZ(centre, standoff + H), scale(dir, L * 0.42)), span: distance(a, b), paths: axialPaths(a, b, zc, start, end, centre), mark: { kind: 'either', at: withZ(centre, standoff + H) } };
 }
 
 export default {
@@ -99,9 +103,11 @@ export default {
     });
 
     const leads = [...lead([withZ(a, 0), withZ(a, zc), start]), ...lead([withZ(b, 0), withZ(b, zc), end])];
-    // A band that tells the leads apart (a diode's cathode, `mark: true`): where it is, on top (src/pinout.js).
+    // A band that tells the leads apart (a diode's cathode, `mark: true`), else the first colour band:
+    // where it is, on top (src/pinout.js).
     const marked = bands.find((band) => band.mark);
-    const mark = marked ? { kind: 'stripe', at: add(withZ(start, zc + R), scale(dir, (marked.from + marked.to) / 2)) } : undefined;
-    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, zc + R), span: distance(a, b), paths: axialPaths(a, b, zc, start, end, centre), ...(mark && { mark }) };
+    const band = marked ?? bands[0];
+    const mark = band ? { kind: marked ? 'stripe' : 'bands', at: add(withZ(start, zc + R), scale(dir, (band.from + band.to) / 2)) } : { kind: 'either', at: withZ(centre, zc + R) };
+    return { primitives: [body, ...leads], body: [body], anchor: withZ(centre, zc + R), span: distance(a, b), paths: axialPaths(a, b, zc, start, end, centre), mark };
   },
 };

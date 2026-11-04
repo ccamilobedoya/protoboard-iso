@@ -475,7 +475,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
   // M21: the part's pins joined to pads that read the circuit (bench.js).
   const bench = setupBench(page, { reading, look, f, now: () => director.time });
   // M22, M23: the symbol or the inside view beside the part (figure.js).
-  const figure = setupFigure(page, { reading, t, f, now: () => director.time });
+  const figure = setupFigure(page, { reading, t, f, look, now: () => director.time });
   const showFigure = (s, what) => {
     if (!s.on) return figure.clear(what);
     if (!page.data.pinouts?.[page.state.view]?.[s.part]?.[what]) return;

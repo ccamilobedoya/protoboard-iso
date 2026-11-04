@@ -15,7 +15,7 @@
 
 import { select } from './card.js';
 import { iconSvg } from './icons.js';
-import { DOT_COLOR } from '../../sim/look.js';
+import { DOT_COLOR, HEAT_COLOR, VOLTAGE_COLORS } from '../../sim/look.js';
 
 // The legend of each inside view: [swatch, text key] (the swatch: a class of the figure's own colours).
 const LEGENDS = {
@@ -23,7 +23,12 @@ const LEGENDS = {
   mosfet: [['n', 'n'], ['p', 'p'], ['oxide', 'oxide'], ['channel', 'channel'], ['arrow', 'arrow']],
   led: [['chip', 'chip'], ['', 'lens']],
   timer: [['comparator', 'comparators'], ['latch', 'latch']],
+  resistor: [['film', 'film'], ['heat', 'heat'], ['arrow', 'arrow'], ['', 'figures']],
+  capacitor: [['plate', 'plates'], ['pos', 'pos'], ['neg', 'neg'], ['arrow', 'arrow'], ['', 'state']],
+  inductor: [['coil', 'coil'], ['field', 'field'], ['arrow', 'arrow'], ['', 'state']],
 };
+// Swatches in the figure's own colours that live in the script (sim/look.js), not in the style.
+const INLINE = { arrow: DOT_COLOR, heat: HEAT_COLOR, pos: VOLTAGE_COLORS.positive, neg: VOLTAGE_COLORS.negative };
 const MARGIN = 12; // px between the bar (and legend) and the free area
 
 export function setupFocusView(page, { tour, t }) {
@@ -116,7 +121,7 @@ export function setupFocusView(page, { tour, t }) {
     for (const [swatch, key] of LEGENDS[kind]) {
       const li = make('li', null, list);
       const s = make('span', `swatch ${swatch}`, li);
-      if (swatch === 'arrow') s.style.background = DOT_COLOR;
+      if (INLINE[swatch]) s.style.background = INLINE[swatch];
       if (swatch === 'chip') s.style.background = data().inside.color;
       if (!swatch) s.hidden = true;
       make('span', null, li).textContent = t(`page.tour.legend.${kind}.${key}`);

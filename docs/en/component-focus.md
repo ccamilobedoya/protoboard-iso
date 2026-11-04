@@ -299,6 +299,20 @@ TO-220 is tall, its bench did not fit under it; a bench now takes the part up by
 its move, never past the free area's top. `focus-mosfet.json` and `focus-led.json` are F4's (F6 polishes
 the four).
 
+The parts with two leads came after the first wave, with the same five things (`docs/en/adding-parts.md`
+§6). A resistor's inside view is its film on a ceramic core between metal caps, cut in a spiral, with
+a warmth over it that grows with its share of its power rating (the board's heat colour, the
+simulator's limit), the voltage it takes on a line over it and its current under it, and a state line
+with that share; a capacitor's, two plates with + and − charges on their inner faces, as many as the
+voltage against the current layer's scale (else its rating), its current beside them, and *charging*,
+*discharging* or *holding its charge*; an inductor's, its coil round a core with field lines that grow
+with its current against its rated current, its current under it, and the current *growing*, *falling*
+or *steady*, read from the coil's own voltage with the winding resistance taken out. Each names its pins
+with the symbol's letters (1, 2; an electrolytic's + and −). None of them has a polarity to get wrong
+but the electrolytic, so their mark says so: a resistor's or an inductor's first colour band (the end
+its code is read from, by pin 1, "First colour band on the left: read from it; no polarity"), a ceramic
+capacitor's "No polarity: it goes in either way round".
+
 ### F5 · The part in the page
 
 **The trial (2026-11-01).** A prototype behind `?focusView=1`, in a page made with

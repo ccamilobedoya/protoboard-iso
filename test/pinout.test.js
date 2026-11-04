@@ -40,8 +40,10 @@ test('pinout: each pin\'s row says what it does, in the page\'s language; a chip
   assert.deepEqual(pinList(part(b, 'Q1'), 'en').map((p) => [p.ref, p.text]), [['Q1.E', 'emitter · common to both'], ['Q1.B', 'base · the small current'], ['Q1.C', 'collector · the load']]);
   assert.equal(pinRole(part(b, 'Q1'), 2, 'es'), 'colector · la carga');
   assert.equal(pinRole(part(b, 'D1'), 0, 'es'), 'ánodo · el lado +, entra');
-  // Without a text of its own, a pin says its name (a resistor's 1 and 2).
-  assert.deepEqual(pinList(part(b, 'R1'), 'en').map((p) => p.text), ['1', '2']);
+  // A resistor's pins: 1 by the first colour band, where its code is read from.
+  assert.deepEqual(pinList(part(b, 'R1'), 'en').map((p) => p.text), ['1 · by the first band', '2 · the other end']);
+  // Without a text of its own, a pin says its name (a button's).
+  assert.deepEqual(pinList(part(b, 'S1'), 'en').map((p) => p.text), part(b, 'S1').pinNames);
   const { spec } = expandRecipe('555-astable');
   const timer = part(buildCircuit(autoLayout(spec).circuit), 'U1');
   assert.deepEqual(pinList(timer, 'en').map((p) => p.text).slice(0, 3), ['1 GND · ground', '2 TRIG · starts a cycle', '3 OUT · output']);
@@ -62,7 +64,10 @@ test('pinout: the mark\'s sentence agrees with the drawing in both views', () =>
       const at = (name) => p.holes[p.pinNames.indexOf(name)];
       if (p.type === 'diode') assert.match(mark.text, new RegExp(`^Stripe on the ${sideOf(camera, at('K'), at('A'))}: the cathode$`), `${p.id} ${view}`);
       else if (p.type === 'led') assert.match(mark.text, new RegExp(`^Flat edge on the ${sideOf(camera, at('cathode'), at('anode'))}: the cathode$`), `${p.id} ${view}`);
-      else if (p.type === 'capacitor') assert.match(mark.text, new RegExp(`^Stripe on the ${sideOf(camera, at('-'), at('+'))}: the − lead$`), `${p.id} ${view}`);
+      else if (p.type === 'capacitor' && p.def.electrical.polarised) assert.match(mark.text, new RegExp(`^Stripe on the ${sideOf(camera, at('-'), at('+'))}: the − lead$`), `${p.id} ${view}`);
+      // A part with no polarity says so; with a colour code, the first band is by pin 1.
+      else if (p.built.mark.kind === 'either') assert.equal(mark.text, 'No polarity: it goes in either way round', `${p.id} ${view}`);
+      else if (p.built.mark.kind === 'bands') assert.match(mark.text, new RegExp(`^First colour band on the ${sideOf(camera, at('1'), at('2'))}: read from it; no polarity$`), `${p.id} ${view}`);
       else {
         // A flat face or a tab: which way it faces, and the pins as they are from the left.
         const order = [...pins].sort((x, y) => x.x - y.x).map((x) => x.name).join(' ');
@@ -76,7 +81,8 @@ test('pinout: the mark\'s sentence agrees with the drawing in both views', () =>
   const q = part(built('npn-switch'), 'Q1');
   assert.equal(pinoutOf(q, createCamera({ view: 'front' }), 'en').mark.text, 'Flat face toward you: E B C from the left');
   assert.equal(pinoutOf(q, createCamera({ view: 'back' }), 'es').mark.text, 'Cara plana hacia atrás: C B E desde la izquierda');
-  assert.equal(pinoutOf(part(built('npn-switch'), 'R1'), createCamera({ view: 'front' }), 'en').mark, null, 'a resistor has none');
+  assert.match(pinoutOf(part(built('npn-switch'), 'R1'), createCamera({ view: 'front' }), 'en').mark.text, /^First colour band on the (left|right): read from it; no polarity$/, 'a resistor\'s first band');
+  assert.equal(pinoutOf(part(built('npn-switch'), 'S1'), createCamera({ view: 'front' }), 'en').mark, null, 'a button has none');
 });
 
 test('pinout: a chip\'s notch is on the side of its pin 1', () => {
@@ -113,7 +119,8 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
   assert.deepEqual(insideOf(part(built('npn-switch'), 'Q1')), { kind: 'bjt', pnp: false });
   assert.equal(insideOf(timer).kind, 'timer');
   assert.equal(insideOf(part(built('npn-switch'), 'D1')).kind, 'led');
-  assert.equal(insideOf(part(built('npn-switch'), 'R1')), null);
+  assert.deepEqual(insideOf(part(built('npn-switch'), 'R1')), { kind: 'resistor', ids: ['1', '2'], maxPower: 0.25 });
+  assert.equal(insideOf(part(built('npn-switch'), 'S1')), null);
 });
 
 // The view of a part up close is a requirement for every new part type (docs/en/adding-parts.md, "6. A
@@ -121,10 +128,8 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
 // orientation mark when it can go in the wrong way round, and a view of its inside with its legend. Each
 // type of the kit is either complete or listed as pending with its reason: a new type must be one or
 // the other, so the choice is made, never forgotten.
-const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1' };
+const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1' };
 const PENDING = {
-  resistor: 'no polarity, no inside view yet (a symbol only)',
-  capacitor: 'no inside view yet; the pins of a ceramic one have no text',
   potentiometer: 'no symbol or inside view yet',
   diode: 'no inside view yet',
   zener: 'no inside view yet',
@@ -135,7 +140,6 @@ const PENDING = {
   battery: 'off the board; no symbol or inside view yet',
   module: 'a development board: its own pin notes, no pedestal view',
   switch: 'off the board; no symbol or inside view yet',
-  inductor: 'no symbol or inside view yet',
   thermistor: 'no symbol or inside view yet',
   ldr: 'no symbol or inside view yet',
   buzzer: 'no symbol or inside view yet',

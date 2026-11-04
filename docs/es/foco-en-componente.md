@@ -317,6 +317,22 @@ hallazgo de la línea de tiempo del MOSFET: un TO-220 es alto y su banco no cab�
 sube la pieza lo que falta, con su movimiento, sin pasar del borde de arriba del área libre.
 `focus-mosfet.json` y `focus-led.json` son de F4 (F6 pule las cuatro).
 
+Las piezas de dos patas llegaron después de la primera tanda, con las mismas cinco cosas
+(`docs/es/agregar-componentes.md` §6). La vista por dentro de una resistencia es su película sobre un
+núcleo cerámico entre tapas de metal, cortada en espiral, con un calor encima que crece con la parte
+de su potencia nominal que usa (el color de calor de la protoboard, el límite del simulador), el voltaje
+que cae en ella sobre una línea encima y su corriente debajo, y una línea de estado con esa parte; la de
+un condensador, dos placas con cargas + y − en sus caras de adentro, tantas como el voltaje frente a la
+escala de la capa de corriente (si no, su voltaje nominal), su corriente al lado, y *se carga*, *se
+descarga* o *guarda su carga*; la de una bobina, su bobinado sobre un núcleo con líneas de campo que
+crecen con su corriente frente a la nominal, su corriente debajo, y la corriente que *sube*, *baja* o
+*se mantiene*, leída del voltaje propio de la bobina sin la resistencia del alambre. Cada una nombra sus
+patas con las letras del símbolo (1, 2; el + y el − de un electrolítico). Ninguna tiene una polaridad que
+equivocar salvo el electrolítico, así que su marca lo dice: la primera franja de color de una resistencia
+o una bobina (el extremo desde donde se lee su código, junto a la pata 1, «Primera franja de color a la
+izquierda: se lee desde ella; sin polaridad»), y en un condensador cerámico «Sin polaridad: entra en
+cualquier sentido».
+
 ### F5 · La pieza en la página
 
 **El ensayo (2026-11-01).** Un prototipo detrás de `?focusView=1`, en una página hecha con

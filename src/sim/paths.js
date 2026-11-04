@@ -29,14 +29,13 @@ import { decalTextOp } from '../render/scene.js';
 import { textDecal } from '../geometry/primitives.js';
 import { v3, X, Y, scale } from '../core/vec.js';
 import { LED_LIGHT } from '../parts/colors.js';
-import { MIN_CURRENT, DOT_PERIOD, DOT_COLOR, voltageColor, dotSpeed, bodyShare, bodyVoltage, centreVoltage, glowOpacity, shadeOpacity, SHADE } from './look.js';
+import { MIN_CURRENT, DOT_PERIOD, DOT_COLOR, voltageColor, dotSpeed, bodyShare, bodyVoltage, centreVoltage, glowOpacity, shadeOpacity, SHADE, HEAT_COLOR } from './look.js';
 
 export { MIN_CURRENT, VOLTAGE_COLORS, voltageColor, dotSpeed, bodyShare } from './look.js';
 
 export const CONDUCTOR_WIDTH = 3.2; // leads, bodies, wires (px)
 export const STRIP_WIDTH = 4.2; // metal strips inside the board: wider, they carry more
 export const DOT_WIDTH = 2.4; // narrower than the conductor, so its colour shows around the dots
-export const HEAT_COLOR = '#ff6a00';
 const BODY_PIECES = 6; // per pin, from the lead to the middle of the body
 export const PAD_WIDTH = 6; // a landing in the plan: the hole's dot grown (px, a round cap)
 const PAD_EDGE = 1.6; // px of the background around a pad

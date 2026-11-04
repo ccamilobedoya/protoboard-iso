@@ -4,6 +4,7 @@
 export const MIN_CURRENT = 1e-6; // below a microampere nothing moves
 export const DOT_PERIOD = 9; // one dot every 9 px
 export const DOT_COLOR = '#ffd21f'; // the current's dots (the conductor view and a part's bench)
+export const HEAT_COLOR = '#ff6a00'; // a part that heats (the conductor view and a resistor's inside view)
 export const MAX_SPEED = 60; // px/s of the largest current in the circuit (proportional scale)
 export const FLOATING_COLOR = '#d9d7d2';
 

@@ -36,8 +36,8 @@ part may only need a line in `src/parts/db.js`.
    once against an independent reference (datasheet point or formula solved apart) in
    `test/sim.test.js` or `test/sources.test.js`.
 3c. **The part up close** (a requirement for a new type, `docs/en/adding-parts.md` §6): the text of
-   each pin (`pin.role.<type>.<pin>` in every `src/i18n/` file), the package's orientation `mark` when it
-   can go in the wrong way round, its symbol with a letter for every pin (`symbolOf`), and its inside
+   each pin (`pin.role.<type>.<pin>` in every `src/i18n/` file), the package's orientation `mark` (a part
+   with no polarity says so: `bands` or `either`, never an invented polarity), its symbol with a letter for every pin (`symbolOf`), and its inside
    view (`insideOf`, the drawer in `src/page/client/figure.js`, the legend in `focus-view.js` and
    `page.tour.legend.*`) using the same letters. If the type cannot have it yet, list it in `PENDING`
    in `test/pinout.test.js` with the reason, and say so in the report.

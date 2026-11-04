@@ -13,10 +13,13 @@
 // three layers with its base and collector currents as arrows outside them, as wide as the current,
 // and their figures and its region on lines under it; a MOSFET's channel opening with its gate
 // voltage, its current as an arrow under it; an LED's chip and lens glowing with its brightness; a
-// 555's two comparators, its latch and its output. Arrows never cross what they explain: they run
-// beside the layers, under the channel. Didactic, not to scale.
+// 555's two comparators, its latch and its output; a resistor's film on its ceramic core warming with
+// its share of its power rating, the voltage it takes over it and its current under it; a
+// capacitor's plates with charges that follow its voltage and its current beside them; an inductor's
+// coil with field lines that follow its current and the current under it. Arrows never cross what they
+// explain: they run beside the layers, under the channel, the film, the coil. Didactic, not to scale.
 
-import { DOT_COLOR } from '../../sim/look.js';
+import { DOT_COLOR, HEAT_COLOR, VOLTAGE_COLORS, heatOpacity } from '../../sim/look.js';
 import { PINOUT, fixed, make, screenOf, layerOf, tipsOf } from './pinout.js';
 import { partsRect } from './view.js';
 
@@ -65,9 +68,14 @@ const widthOf = (i) => 1.5 + 3.5 * Math.min(1, Math.max(0, Math.log10(Math.abs(i
 const label = (g, x, y, text, cls = 'note', anchor = 'middle', size = FIGURE.small) => {
   const t = make(g, 'text', { class: cls, x: fixed(x), y: fixed(y), 'font-size': fixed(size), 'text-anchor': anchor });
   t.textContent = text;
+  return t;
 };
 
-// The inside views, each in a box of 100 × 112 units, from the part's reading (`r`) and the data.
+// Under a microampere nothing flows (as the dots, sim/look.js MIN_CURRENT).
+const flowing = (i) => Math.abs(i ?? 0) >= 1e-6;
+
+// The inside views, each in a box of 100 × 112 units, from the part's reading (`r`) and the data
+// (src/parts/symbols.js insideOf; a two-lead part's `ids` are the symbol's letters for its pins).
 const INSIDE = {
   bjt(g, r, data, { t, f }) {
     // The three layers in the middle; the collector's current down their right side, the base's in from
@@ -82,7 +90,6 @@ const INSIDE = {
     label(g, 8, 58, 'B', 'pin-name', 'middle', FIGURE.small);
     const ic = r?.pinCurrents?.C ?? 0;
     const ib = r?.pinCurrents?.B ?? 0;
-    const flowing = (i) => Math.abs(i) >= 1e-6;
     // Conventional current: into the collector and the base, out of the emitter (an NPN; a PNP the other way).
     if (flowing(ic)) {
       shaft(g, 84, ic > 0 ? 12 : 82, 84, ic > 0 ? 82 : 12, widthOf(ic));
@@ -148,10 +155,105 @@ const INSIDE = {
     label(g, 50, 98, t(high ? 'page.tour.inside.high' : 'page.tour.inside.low'), 'state');
     label(g, 50, 110, t(high ? 'page.tour.inside.charging' : 'page.tour.inside.discharging'), 'note');
   },
+  resistor(g, r, data, { t, f }) {
+    // The film on the ceramic core between its metal caps, cut in a spiral (the grooves) to make its
+    // path longer; warmer as the power nears its rating. The voltage it takes on a line over it, the
+    // current under it: neither over the film.
+    const [a, b] = data.ids;
+    make(g, 'path', { class: 'lead', d: 'M4 50H18M82 50H96' });
+    make(g, 'rect', { class: 'core', x: 18, y: 41, width: 64, height: 18, rx: 3 });
+    make(g, 'rect', { class: 'film', x: 24, y: 41, width: 52, height: 18 });
+    const power = Math.abs(r?.power ?? 0);
+    const ratio = data.maxPower > 0 ? power / data.maxPower : 0;
+    make(g, 'rect', { x: 24, y: 41, width: 52, height: 18, fill: HEAT_COLOR, opacity: fixed(heatOpacity(ratio)) });
+    for (let x = 27; x < 72; x += 7) make(g, 'path', { class: 'groove', d: `M${x} 41L${x + 5} 59` });
+    make(g, 'rect', { class: 'metal', x: 18, y: 40, width: 6, height: 20 });
+    make(g, 'rect', { class: 'metal', x: 76, y: 40, width: 6, height: 20 });
+    label(g, 9, 45, a, 'pin-name', 'middle', FIGURE.text);
+    label(g, 91, 45, b, 'pin-name', 'middle', FIGURE.text);
+    const v = r?.voltage;
+    if (v != null) {
+      make(g, 'path', { class: 'dim', d: 'M24 28H76M24 24V32M76 24V32' });
+      label(g, 50, 22, f(Math.abs(v), 'V'), 'note');
+      if (Math.abs(v) >= 1e-3) {
+        label(g, 20, 31, v > 0 ? '+' : '−', 'note', 'end', FIGURE.text);
+        label(g, 80, 31, v > 0 ? '−' : '+', 'note', 'start', FIGURE.text);
+      }
+    }
+    // Conventional current from pin 1 to pin 2 when it is positive.
+    const i = r?.current ?? 0;
+    if (flowing(i)) {
+      shaft(g, i > 0 ? 24 : 76, 72, i > 0 ? 76 : 24, 72, widthOf(i));
+      label(g, 82, 75, 'I', 'current', 'start', FIGURE.small);
+    }
+    label(g, 50, 103, [flowing(i) && `I ${f(Math.abs(i), 'A')}`, r && `P ${f(power, 'W')}`].filter(Boolean).join(' · '), 'note');
+    // A share under 1 % says so rather than 0: a resistor far from its rating still takes some power.
+    const percent = ratio > 0 && ratio < 0.01 ? '<1' : Math.round(ratio * 100);
+    label(g, 50, 114, r && data.maxPower > 0 ? t('page.tour.inside.resistor.rating', { percent }) : '', 'state');
+  },
+  capacitor(g, r, data, { t, f, look }) {
+    // Two plates and the insulator between; on their inner faces as many + and − as the voltage against
+    // the circuit's scale (the current layer's, else its rating), the plate at the higher voltage the +
+    // one. The current beside the plates, in or out.
+    const [a, b] = data.ids;
+    make(g, 'path', { class: 'lead', d: 'M50 6V30M50 68V92' });
+    make(g, 'rect', { class: 'dielectric', x: 22, y: 35, width: 56, height: 28 });
+    make(g, 'rect', { class: 'plate', x: 22, y: 30, width: 56, height: 5 });
+    make(g, 'rect', { class: 'plate', x: 22, y: 63, width: 56, height: 5 });
+    label(g, 58, 14, a, 'pin-name', 'start', FIGURE.text);
+    label(g, 58, 92, b, 'pin-name', 'start', FIGURE.text);
+    const v = r?.voltage ?? 0;
+    const scale = look?.().vmax || data.maxVoltage || 1;
+    const n = Math.abs(v) < 1e-3 ? 0 : Math.max(1, Math.round(7 * Math.min(1, Math.abs(v) / scale)));
+    for (let k = 0; k < n; k++) {
+      const x = 50 + (k - (n - 1) / 2) * 7;
+      label(g, x, 45, v > 0 ? '+' : '−', 'charge', 'middle', FIGURE.text).setAttribute('fill', v > 0 ? VOLTAGE_COLORS.positive : VOLTAGE_COLORS.negative);
+      label(g, x, 60, v > 0 ? '−' : '+', 'charge', 'middle', FIGURE.text).setAttribute('fill', v > 0 ? VOLTAGE_COLORS.negative : VOLTAGE_COLORS.positive);
+    }
+    // Conventional current into pin 1 when it is positive: down beside the plates.
+    const i = r?.current ?? 0;
+    if (flowing(i)) {
+      shaft(g, 88, i > 0 ? 14 : 84, 88, i > 0 ? 84 : 14, widthOf(i));
+      label(g, 94, 52, 'I', 'current', 'start', FIGURE.small);
+    }
+    label(g, 50, 103, r ? [`V ${f(Math.abs(v), 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    // Charging while the current goes the way of the voltage (or from none), discharging the other way.
+    const state = !flowing(i) ? 'holding' : Math.abs(v) < 1e-3 || i * v > 0 ? 'charging' : 'discharging';
+    label(g, 50, 114, r ? t(`page.tour.inside.capacitor.${state}`) : '', 'state');
+  },
+  inductor(g, r, data, { t, f }) {
+    // The coil round its core, the leads down to its pins; field lines round it, more of them and
+    // stronger with the current against its rating; the current under the coil.
+    const [a, b] = data.ids;
+    const i = r?.current ?? 0;
+    const k = data.maxCurrent > 0 ? Math.min(1, Math.sqrt(Math.abs(i) / data.maxCurrent)) : 0;
+    [[42, 16], [45, 22], [48, 28]].forEach(([rx, ry], j) => {
+      const o = Math.max(0, Math.min(1, k * 3 - j));
+      if (flowing(i) && o > 0) make(g, 'ellipse', { class: 'field', cx: 50, cy: 46, rx, ry, opacity: fixed(o) });
+    });
+    make(g, 'rect', { class: 'core', x: 12, y: 44, width: 76, height: 9, rx: 2 });
+    make(g, 'path', { class: 'coil', d: 'M16 48A6.8 7 0 0 1 29.6 48A6.8 7 0 0 1 43.2 48A6.8 7 0 0 1 56.8 48A6.8 7 0 0 1 70.4 48A6.8 7 0 0 1 84 48' });
+    make(g, 'path', { class: 'lead', d: 'M16 48V88M84 48V88' });
+    label(g, 7, 90, a, 'pin-name', 'middle', FIGURE.text);
+    label(g, 93, 90, b, 'pin-name', 'middle', FIGURE.text);
+    // Conventional current from pin 1 to pin 2 when it is positive.
+    if (flowing(i)) {
+      shaft(g, i > 0 ? 28 : 72, 84, i > 0 ? 72 : 28, 84, widthOf(i));
+      label(g, 76, 87, 'I', 'current', 'start', FIGURE.small);
+    }
+    const v = r?.voltage ?? 0;
+    label(g, 50, 103, r ? [flowing(i) && `I ${f(Math.abs(i), 'A')}`, `V ${f(Math.abs(v), 'V')}`].filter(Boolean).join(' · ') : '', 'note');
+    // The coil's own voltage (the winding's resistance taken out): with the current, it grows; against
+    // it, it falls; none, steady.
+    const coil = v - i * (data.dcr ?? 0);
+    const state = !flowing(i) ? 'none' : Math.abs(coil) < Math.max(1e-3, 0.01 * Math.abs(v)) ? 'steady' : coil * i > 0 ? 'growing' : 'falling';
+    label(g, 50, 114, r ? t(`page.tour.inside.inductor.${state}`) : '', 'state');
+  },
 };
 
-// `reading()`, `t`, `f` as the tour has them; `now()`: the director's time (ms).
-export function setupFigure(page, { reading, t, f, now }) {
+// `reading()`, `t`, `f` as the tour has them; `look()`: the current layer's scale (bench.js); `now()`:
+// the director's time (ms).
+export function setupFigure(page, { reading, t, f, now, look }) {
   let on = null; // { id, what: 'symbol' | 'inside', k, t0, ms }
   let placed = null; // { for, x, y, s, line }: where the figure is, in drawing units, since it came
   const layers = new WeakMap(); // under the part's copy, so a pin behind a body keeps its identifier hidden
@@ -227,7 +329,7 @@ export function setupFigure(page, { reading, t, f, now }) {
       return;
     }
     box.setAttribute('data-inside', shape.kind);
-    INSIDE[shape.kind]?.(box, reading()?.parts?.[on.id], shape, { t, f });
+    INSIDE[shape.kind]?.(box, reading()?.parts?.[on.id], shape, { t, f, look });
   }
 
   return {
