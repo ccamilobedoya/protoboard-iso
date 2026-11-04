@@ -9,6 +9,44 @@ detail.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-04
+
+Every part type up close, seven parts a starter kit has, and a bridge rectifier that keeps running.
+
+### Added
+
+- **A part up close for every type** (`test/pinout.test.js` `COMPLETE`; only the wire, the
+  development boards and pin headers stay pending, with their reasons): the text of each pin, the
+  package's mark, a symbol and an inside view drawn from the simulation, with its legend, for the
+  resistor, capacitor, inductor, diode, Zener, bridge rectifier, potentiometer, NTC thermistor,
+  photoresistor, push button, switches, regulator, battery and buzzer. New mark kinds: `bands`,
+  `either`, `knob`, `face`, `bevel`, `pairs`, `common`, `lead`, `plus`.
+- **An RGB LED** (`rgb-led`, common cathode or anode) and **a one-digit 7-segment display**
+  (`seven-segment`, 5161AS and 5161BS), one LED per chip or segment (device `LEDS`), each with its
+  own stress (`D1.R`, `DS1.a`); recipes `uno-rgb-led` and `uno-seven-segment`.
+- **A slide switch** (`slide-switch`, SS12D00G3), **a tilt switch** (`tilt-switch`, SW-520D) and
+  **the LM35 temperature sensor** (`temperature-sensor`, 10 mV/°C, a temperature slider); recipes
+  `slide-switch-leds`, `tilt-alarm` and `lm35-uno`.
+- **A 5 V relay** (`relay`, SRD-05VDC-SL-C, beside the board): a coil with inductance, an armature
+  with hysteresis and travel time, and the coil's kick when it is cut off without a diode
+  (`SIM_RELAY_KICK`); recipe `relay-npn`.
+- **A small DC motor** (`motor`, RE-140RA): back-EMF, inertia, friction and a load slider, its shaft
+  a gyrator to a node whose voltage is its speed; start-up spike and stall (`SIM_MOTOR_STALL`);
+  recipe `motor-npn`.
+
+### Changed
+
+- On a phone the page's pinout rows shrink together to 65 %, then a row still too long ends in "…",
+  so none runs off the screen.
+
+### Fixed
+
+- **The live bridge rectifier no longer freezes** at its first zero crossing (9.85 ms): Newton
+  accepts a solution whose every row balances once its updates stop shrinking, and
+  `engine.advance(h)` splits a failed step instead of halving the step for good.
+- The tests' throwaway repositories no longer inherit a git hook's variables (a commit from a linked
+  worktree wrote into the real repository).
+
 ## [0.8.0] - 2026-11-03
 
 A payoff the eye reads, and a video that opens on its result. Folds in the prereleases made on video
@@ -232,7 +270,8 @@ what it uses.
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.5.0...v0.6.0
