@@ -65,7 +65,7 @@ microcontroladores: [microcontroladores.md](../docs/es/microcontroladores.md).
 
 | | |
 |---|---|
-| <img src="../docs/img/examples/parts-showcase.png" width="280" alt="Todos los componentes del kit"> | **[parts-showcase.json](parts-showcase.json)**: resistencias (5 % y 1 %), diodos, LED, condensadores, transistores, un módulo AMS1117 y cables, uno al lado del otro. Sus notas sobre patas sin conectar son esperadas. |
+| <img src="../docs/img/examples/parts-showcase.png" width="280" alt="Todos los componentes del kit"> | **[parts-showcase.json](parts-showcase.json)**: resistencias (5 % y 1 %), diodos, LED (uno RGB), condensadores, transistores, un módulo AMS1117, un display de 7 segmentos, interruptores deslizante y de inclinación, un LM35 y, al lado de la protoboard, un relé y un motor DC, con cables. Sus notas sobre patas sin conectar son esperadas. |
 | <img src="../docs/img/examples/more-parts.png" width="280" alt="Más componentes"> | **[more-parts.json](more-parts.json)**: trimmer, Zener, inductor, termistor, LDR, zumbador, pines de cabecera, LM324, LM317, PC817 y celdas de litio. |
 
 ## Mal a propósito

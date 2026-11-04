@@ -9,6 +9,11 @@ detail.
 
 ## [Unreleased]
 
+### Changed
+
+- The READMEs' images drawn again with 0.9.1 (the shade of an LED that is off), the count of recipes
+  (32) and the parts showcase's description with the new parts.
+
 ## [0.9.1] - 2026-11-04
 
 Fixes found trying 0.9.0 on a phone and a tablet.

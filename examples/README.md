@@ -64,7 +64,7 @@ Programs (Arduino sketches that run in the simulation) are in the microcontrolle
 
 | | |
 |---|---|
-| <img src="../docs/img/examples/parts-showcase.png" width="280" alt="Every part in the kit"> | **[parts-showcase.json](parts-showcase.json)**: resistors (5 % and 1 %), diodes, LEDs, capacitors, transistors, an AMS1117 module and jumpers side by side. Its notes about unconnected pins are expected. |
+| <img src="../docs/img/examples/parts-showcase.png" width="280" alt="Every part in the kit"> | **[parts-showcase.json](parts-showcase.json)**: resistors (5 % and 1 %), diodes, LEDs (one RGB), capacitors, transistors, an AMS1117 module, a 7-segment display, slide and tilt switches, an LM35, and beside the board a relay and a DC motor, with jumpers. Its notes about unconnected pins are expected. |
 | <img src="../docs/img/examples/more-parts.png" width="280" alt="More parts"> | **[more-parts.json](more-parts.json)**: trimmer, Zener, inductor, thermistor, LDR, buzzer, header, LM324, LM317, PC817 and lithium cells. |
 
 ## Wrong on purpose
