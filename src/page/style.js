@@ -508,6 +508,11 @@ body.layer-flow main[data-scene] > svg > .lights { display: inline; }
 .focus-legend .swatch.field { box-sizing: border-box; border: 1px dashed var(--accent); border-radius: 50%; }
 .focus-legend .swatch.depletion { box-sizing: border-box; background: var(--well); border: 1px dashed var(--ink-3); }
 .focus-legend .swatch.conducting { background: var(--accent-soft); outline: 1px solid var(--accent); }
+.focus-legend .swatch.track { height: 6px; margin-top: 6px; border-radius: 3px; background: var(--ink-4); }
+.focus-legend .swatch.wiper { box-sizing: border-box; border-left: 3px solid var(--accent); border-radius: 0; }
+.focus-legend .swatch.bead { background: var(--well); border-radius: 50%; outline: 1px solid var(--ink-3); }
+.focus-legend .swatch.cds { height: 6px; margin-top: 6px; border-radius: 3px; background: var(--inside-p); }
+.focus-legend .swatch.light { background: var(--warn); clip-path: polygon(0 0, 100% 0, 50% 100%); }
 .focus-legend .swatch[hidden] { display: block; visibility: hidden; }
 /* On a phone the bar takes two rows: Back and the name, then the two controls sharing the width. */
 @media (max-width: 560px) {
@@ -528,7 +533,9 @@ body.focus-view, body.focus-view main, body.focus-view .focus-dock { touch-actio
 /* The figure beside a part (M22, M23; page/client/figure.js): its schematic symbol, or a teaching view
    of its inside with n and p material, the oxide and gate, a comparator or latch that is acting, a
    resistor's film on its core, a capacitor's plates, an inductor's coil and its field, a diode's
-   depletion zone, a bridge's conducting diodes, the current as arrows in the dots' colour. */
+   depletion zone, a bridge's conducting diodes, a potentiometer's track and wiper, a thermistor's
+   bead and its shaking atoms, a photoresistor's track and the light on it, the current as arrows in
+   the dots' colour. */
 .figure { pointer-events: none; }
 .figure .stroke, .figure .lens, .figure .lead { fill: none; stroke: var(--ink-2); stroke-linecap: round; stroke-linejoin: round; }
 .figure .fill { fill: var(--ink-2); }
@@ -561,6 +568,15 @@ body.focus-view, body.focus-view main, body.focus-view .focus-dock { touch-actio
 .figure .depletion { fill: var(--well); stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
 .figure .junction { fill: none; stroke: var(--ink-2); stroke-width: 1.4; stroke-linejoin: round; }
 .figure .junction.on { fill: var(--accent-soft); stroke: var(--accent); }
+.figure .track { fill: none; stroke: var(--ink-4); stroke-width: 7; }
+.figure .wiper { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+.figure .wiper-tip { fill: var(--accent); }
+.figure .atom { fill: var(--ink-2); }
+.figure .shake { fill: none; stroke: var(--ink-2); stroke-width: 0.8; stroke-dasharray: 1.5 1.5; }
+.figure .cds { fill: none; stroke: var(--inside-p); stroke-width: 3; stroke-linejoin: round; }
+.figure .cds.lit { stroke: var(--warn); }
+.figure .light { stroke: var(--warn); stroke-width: 1.6; stroke-linecap: round; }
+.figure .light-head { fill: var(--warn); }
 body.director nav, body.director .zoom, body.director .inspector, body.director .gesture-hint, body.director .first-hint, body.director .tooltip { display: none !important; }
 body.director main { cursor: default; }
 body.director .labels, body.director .results, body.director .probes { display: none !important; }

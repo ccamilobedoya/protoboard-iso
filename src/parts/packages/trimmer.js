@@ -2,6 +2,7 @@
 // three leads in a row, 2.54 mm apart, with a brass adjusting screw on top. The value is
 // printed as a code ("103" = 10 × 10³ Ω = 10 kΩ). Pin 1 on the left seen from the printed
 // face, like TO-220.
+// mark (src/pinout.js): `face`, the printed face and the way it faces.
 //
 // params: code (value code), color (body)
 
@@ -35,6 +36,7 @@ export default {
     const screw = lathe({ profile: [[0, 0], [1.2, 0], [1.2, 0.7], [0, 0.7]], origin: screwAt, axis: Z, ref: dir, segments: 16, color: MATERIALS.brass });
     screw.decals.push(rectDecal({ center: withZ(screwAt, screwAt.z + 0.71), u: dir, v: cross(Z, dir), width: 2.0, height: 0.35, color: MATERIALS.screwSlot }));
     const leads = pins.flatMap((p) => lead([withZ(p, 0), withZ(p, STANDOFF)], { radius: 0.3, color: MATERIALS.tinned }));
-    return { primitives: [body, screw, ...leads], body: [body, screw], anchor: withZ(centre, STANDOFF + HEIGHT + 0.7) };
+    const mark = { kind: 'face', at: faceAt(0, HEIGHT / 2), normal: front };
+    return { primitives: [body, screw, ...leads], body: [body, screw], anchor: withZ(centre, STANDOFF + HEIGHT + 0.7), mark };
   },
 };

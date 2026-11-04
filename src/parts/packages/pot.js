@@ -1,6 +1,8 @@
 // Potentiometer standing on three leads in a row (the common breadboard type), with its
 // knob towards the front. Same convention as TO-220: pin 1 on the left seen from the knob.
 // The white mark on the knob shows the wiper position.
+// mark (src/pinout.js): `knob`, the shaft's face and the way it faces: seen from it, 1 W 3 from the
+// left (turned the other way round, the knob turns the wiper the other way).
 //
 // params: position (0…1, default 0.5: middle), color (body), knob (knob colour)
 
@@ -54,6 +56,7 @@ export default {
     shaft.decals.push(rectDecal({ center: add(face, scale(pointer, KNOB_R * 0.5)), u: pointer, v: cross(front, pointer), width: KNOB_R * 0.9, height: 0.6, color: MATERIALS.knobMark }));
 
     const leads = pins.flatMap((p) => lead([withZ(p, 0), withZ(p, STANDOFF)], { radius: 0.35, color: MATERIALS.tinned }));
-    return { primitives: [body, shaft, ...leads], body: [body, shaft], anchor: withZ(centre, STANDOFF + HEIGHT) };
+    const mark = { kind: 'knob', at: face, normal: front };
+    return { primitives: [body, shaft, ...leads], body: [body, shaft], anchor: withZ(centre, STANDOFF + HEIGHT), mark };
   },
 };

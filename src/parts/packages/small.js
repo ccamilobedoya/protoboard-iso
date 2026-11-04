@@ -3,6 +3,7 @@
 //
 //   bead     params: color (default black epoxy)
 //   ldr      params: none (orange cadmium-sulphide track on a white ceramic disc)
+// A bead and a photoresistor have no polarity: their mark (src/pinout.js) is `either`.
 //   buzzer   params: none (12 mm round body, sound hole on top)
 //   header   params: count; placed by "pin1" (the other pins follow along the row)
 
@@ -26,7 +27,7 @@ export const bead = {
     const profile = [[0, 0], [0.9, 0], [1.6, 0.8], [1.75, 1.6], [1.5, 2.6], [0.9, 3.2], [0, 3.4]];
     const body = lathe({ profile, origin: base, axis: Z, ref: dir, segments: 16, color });
     const leads = [...lead([withZ(a, 0), withZ(a, 2.5), add(base, scale(dir, -0.45))], { radius: 0.22 }), ...lead([withZ(b, 0), withZ(b, 2.5), add(base, scale(dir, 0.45))], { radius: 0.22 })];
-    return { primitives: [body, ...leads], body: [body], anchor: withZ(base, 5 + 3.4) };
+    return { primitives: [body, ...leads], body: [body], anchor: withZ(base, 5 + 3.4), mark: { kind: 'either', at: withZ(base, 5 + 3.4) } };
   },
 };
 
@@ -47,7 +48,7 @@ export const ldr = {
     for (let i = -2; i <= 2; i++) body.decals.push(rectDecal({ center: add(top, scale(across, i * 0.75)), u: dir, v: across, width: 3.2, height: 0.32, color: MATERIALS.ldrTrack }));
     for (const k of [-1, 1]) body.decals.push(rectDecal({ center: add(top, scale(dir, k * 1.75)), u: dir, v: across, width: 0.35, height: 3.4, color: MATERIALS.ldrTrack }));
     const leads = [...lead([withZ(a, 0), withZ(a, 1.5), add(base, scale(dir, -1.7))], { radius: 0.22 }), ...lead([withZ(b, 0), withZ(b, 1.5), add(base, scale(dir, 1.7))], { radius: 0.22 })];
-    return { primitives: [body, ...leads], body: [body], anchor: withZ(base, 4 + H) };
+    return { primitives: [body, ...leads], body: [body], anchor: withZ(base, 4 + H), mark: { kind: 'either', at: withZ(base, 4 + H) } };
   },
 };
 

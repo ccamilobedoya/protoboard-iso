@@ -12,6 +12,7 @@ import { createCamera } from '../src/core/camera.js';
 import { pinIndex, pinRole, pinList, pinoutOf } from '../src/pinout.js';
 import { expandRecipe, RECIPES } from '../src/recipes/index.js';
 import { autoLayout } from '../src/layout.js';
+import { dot } from '../src/core/vec.js';
 
 const examples = fileURLToPath(new URL('../examples/', import.meta.url));
 const built = (name) => buildCircuit(loadCircuit(resolveTarget(`${examples}${name}.json`)));
@@ -96,6 +97,24 @@ test('pinout: a bridge\'s bevelled corner is on the side of its + lead', () => {
   assert.deepEqual(pinList(br, 'en').map((p) => p.text), ['+ · DC out, to the load', '~1 · AC in', '~2 · AC in, the other end', '− · DC back from the load']);
 });
 
+test('pinout: a potentiometer\'s knob or a trimmer\'s printed face, and the pins from the left; a sensor has no polarity', () => {
+  const knob = part(built('controls-and-ics'), 'RV1');
+  const trimmer = part(built('more-parts'), 'RV1');
+  for (const view of VIEWS) {
+    const camera = createCamera({ view });
+    for (const [p, what] of [[knob, 'Knob'], [trimmer, 'Printed face']]) {
+      const { pins, mark } = pinoutOf(p, camera, 'en');
+      const order = [...pins].sort((x, y) => x.x - y.x).map((x) => x.name).join(' ');
+      const toward = dot(p.built.mark.normal, camera.toViewer) > 0 ? 'toward you' : 'away from you';
+      assert.equal(mark.text, `${what} ${toward}: ${order} from the left`, `${p.id} ${view}`);
+      // Seen from the knob (or the print), pin 1 is on the left, as the packages say.
+      if (toward === 'toward you') assert.equal(order, '1 W 3', `${p.id} ${view}`);
+    }
+  }
+  assert.deepEqual(pinList(knob, 'en').map((p) => p.text), ['1 · one end of the track', 'W · wiper, slides on it', '3 · the other end']);
+  for (const id of ['RT1', 'LDR1']) assert.equal(pinoutOf(part(built('more-parts'), id), createCamera({ view: 'front' }), 'es').mark.text, 'Sin polaridad: entra en cualquier sentido', id);
+});
+
 test('pinout: a chip\'s notch is on the side of its pin 1', () => {
   const { spec } = expandRecipe('555-astable');
   const timer = part(buildCircuit(autoLayout(spec).circuit), 'U1');
@@ -139,6 +158,11 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
   const br = part(built('rectifier'), 'BR1');
   assert.deepEqual(insideOf(br), { kind: 'bridge', ids: ['+', '~1', '~2', '−'], maxCurrent: 3 });
   assert.deepEqual(Object.keys(symbolOf(br).pins).sort(), [...br.pinNames].sort(), 'a terminal for each of the bridge\'s pins');
+  // A potentiometer's track and wiper, a thermistor's and a photoresistor's sensing, from the circuit.
+  assert.deepEqual(insideOf(part(built('controls-and-ics'), 'RV1')), { kind: 'potentiometer', ids: ['1', 'W', '3'], resistance: 10000, position: 0.3 });
+  assert.deepEqual(insideOf(part(built('more-parts'), 'RT1')), { kind: 'thermistor', ids: ['1', '2'], r25: 10000, beta: 3950, temperature: 25 });
+  assert.deepEqual(insideOf(part(built('more-parts'), 'LDR1')), { kind: 'ldr', ids: ['1', '2'], light: 100 });
+  assert.deepEqual(symbolOf(part(built('more-parts'), 'RV1')).ids, { 1: '1', W: 'W', 3: '3' }, 'a trimmer is a potentiometer to its symbol');
 });
 
 // The view of a part up close is a requirement for every new part type (docs/en/adding-parts.md, "6. A
@@ -146,17 +170,14 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
 // orientation mark when it can go in the wrong way round, and a view of its inside with its legend. Each
 // type of the kit is either complete or listed as pending with its reason: a new type must be one or
 // the other, so the choice is made, never forgotten.
-const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1' };
+const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1', potentiometer: 'potentiometer-led RV1', thermistor: 'more-parts RT1', ldr: 'more-parts LDR1' };
 const PENDING = {
-  potentiometer: 'no symbol or inside view yet',
   regulator: 'no symbol or inside view yet',
   button: 'no symbol or inside view yet',
   wire: 'not a part on a pedestal',
   battery: 'off the board; no symbol or inside view yet',
   module: 'a development board: its own pin notes, no pedestal view',
   switch: 'off the board; no symbol or inside view yet',
-  thermistor: 'no symbol or inside view yet',
-  ldr: 'no symbol or inside view yet',
   buzzer: 'no symbol or inside view yet',
   header: 'pins only: nothing to show inside',
 };

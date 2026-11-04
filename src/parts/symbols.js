@@ -67,7 +67,31 @@ function diode(names, { light = false, zener = false } = {}) {
 // symbol calls them (their own names unless it says otherwise).
 const upright = (names, strokes, { texts = [], ids = names } = {}) => ({ w: 100, h: 100, strokes, fills: [], texts, pins: { [names[0]]: [50, 4], [names[1]]: [50, 96] }, ids: { [names[0]]: ids[0], [names[1]]: ids[1] } });
 
-const resistor = (names) => upright(names, ['M50 4V24L62 29L38 39L62 49L38 59L62 69L50 74V96']);
+const ZIGZAG = 'M50 4V24L62 29L38 39L62 49L38 59L62 69L50 74V96';
+const resistor = (names) => upright(names, [ZIGZAG]);
+
+// A sensor that is a resistor: the zigzag with what it senses. An NTC thermistor's (IEC 60617) is the
+// diagonal line through it with a short foot, "−t°" beside it (its resistance falls as it warms); a
+// photoresistor's, two arrows of light coming in.
+const thermistor = (names) => upright(names, [ZIGZAG, 'M26 80H34L74 22'], { texts: [{ x: 76, y: 34, text: '−t°', anchor: 'start', small: true }] });
+function ldr(names) {
+  const s = upright(names, [ZIGZAG, 'M92 22L72 34', 'M94 42L74 54']);
+  s.fills = [arrow(92, 22, 70, 35, 7), arrow(94, 42, 72, 55, 7)];
+  return s;
+}
+
+// A potentiometer: the zigzag between pins 1 (top) and 3 (bottom), the wiper's arrow coming in from
+// the right onto its middle.
+function potentiometer() {
+  return {
+    w: 100, h: 100,
+    strokes: [ZIGZAG, 'M96 50H70'],
+    fills: [arrow(96, 50, 64, 50)],
+    texts: [{ x: 58, y: 14, text: '1', anchor: 'start' }, { x: 58, y: 92, text: '3', anchor: 'start' }, { x: 88, y: 44, text: 'W', anchor: 'middle' }],
+    pins: { 1: [50, 4], W: [96, 50], 3: [50, 96] },
+    ids: { 1: '1', W: 'W', 3: '3' },
+  };
+}
 
 // A coil of four humps between its leads.
 const inductor = (names) => upright(names, ['M50 4V22A7 7 0 0 1 50 36A7 7 0 0 1 50 50A7 7 0 0 1 50 64A7 7 0 0 1 50 78V96']);
@@ -138,6 +162,9 @@ export function symbolOf(part) {
   if (part.type === 'resistor') return resistor(names);
   if (part.type === 'capacitor') return capacitor(names, e.polarised === true);
   if (part.type === 'inductor') return inductor(names);
+  if (part.type === 'thermistor') return thermistor(names);
+  if (part.type === 'ldr') return ldr(names);
+  if (part.type === 'potentiometer') return potentiometer();
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
   return null;
 }
@@ -161,6 +188,11 @@ export function insideOf(part) {
   if (part.type === 'diode') return { kind: 'diode', ids: ids(), maxCurrent: limits().model?.maxCurrent };
   if (part.type === 'zener') return { kind: 'zener', ids: ids(), vz: limits().model?.vz, maxCurrent: limits().model?.maxCurrent, maxPower: limits().model?.maxPower };
   if (part.type === 'bridge') return { kind: 'bridge', ids: ids(), maxCurrent: limits().model?.maxCurrent };
+  // A sensor's inside view reads what it senses from the reading (`sensor`); a potentiometer's wiper
+  // from its position control, this the position in the circuit file until one moves it.
+  if (part.type === 'thermistor') return { kind: 'thermistor', ids: ids(), r25: e.sensor?.r25, beta: e.sensor?.beta, temperature: e.sensor?.temperature };
+  if (part.type === 'ldr') return { kind: 'ldr', ids: ids(), light: e.sensor?.light };
+  if (part.type === 'potentiometer') return { kind: 'potentiometer', ids: ids(), resistance: e.resistance, position: e.position };
   if (part.type === 'led') return { kind: 'led', color: LED_LIGHT[e.color] ?? LED_LIGHT.red };
   if (part.type === 'ic' && e.kind === 'TMR') return { kind: 'timer' };
   return null;

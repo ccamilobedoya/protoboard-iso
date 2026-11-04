@@ -325,6 +325,21 @@ AC pin feeds goes up to +, the one it takes from comes up from −), so the simu
 A bridge's mark is its bevelled top corner, over the + lead ("Bevelled corner on the left: the + lead");
 its pins are called ~1 and ~2 apart, as the symbol and the pinout's rows say them.
 
+A potentiometer's mark is its knob ("Knob toward you: 1 W 3 from the left"), a trimmer's its printed
+face ("Printed face toward you: …"): seen from either, pin 1 is on the left. Its symbol is the zigzag
+with the wiper's arrow (1, W, 3); its inside view, the track in an arc from 1 to 3 with the wiper where
+its position control has it (the circuit file's position until a `set` or the slider moves it: the
+reading does not carry it, so the figure reads the control), each part's resistance over it, the current
+along each part beside the arc, the wiper's beside its lead, the voltage at W and "wiper at 50 % from 1 to
+3". An NTC thermistor and a photoresistor have no polarity ("No polarity: it goes in either way round");
+their symbols are the zigzag with the IEC marks (the thermistor's diagonal line and −t°, the
+photoresistor's two arrows of light coming in). A thermistor's inside view is its ceramic bead between
+the leads, blue when cold and orange when hot, its atoms shaking more as it warms (the slider's −20 to
+100 °C), with V over it, its current under it and "10 kΩ at 25 °C"; a photoresistor's, its cadmium
+sulphide track in a zigzag between two metal combs, lighter as more light falls, an arrow of light per
+decade of lux (1 lx one, 10 000 lx five), V and I and "2.98 kΩ with 100 lx". Both read the temperature,
+the light and the resistance from the reading's `sensor`, which the slider updates.
+
 ### F5 · The part in the page
 
 **The trial (2026-11-01).** A prototype behind `?focusView=1`, in a page made with

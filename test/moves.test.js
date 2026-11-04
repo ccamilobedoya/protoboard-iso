@@ -11,6 +11,8 @@ import { loadTour } from '../src/tour.js';
 import { CIRCUIT_FOLDER } from '../src/beside.js';
 import { DOT_PERIOD } from '../src/sim/look.js';
 import { timelineCircuit } from '../scripts/render-frames.js';
+import { expandRecipe } from '../src/recipes/index.js';
+import { autoLayout } from '../src/layout.js';
 import { CAPTION, CARD, INSERT, LIGHT, RAISE, NUDGE, MOVES, ASSEMBLE, LAND } from '../src/page/client/moves.js';
 
 const FRAME = 1000 / 30;
@@ -1065,9 +1067,9 @@ const rl = () => ({
     { id: 'W1', type: 'wire', color: 'black', pins: ['j30', 'T-30'] },
   ],
 });
-test('moves: M23 a resistor, a capacitor, an inductor, a diode, a Zener and a bridge inside, from the circuit', async (t) => {
-  const inside = async (circuit, id) => {
-    const steps = [{ at: 0, do: 'scene', mode: 'part', part: id }, { at: 0, do: 'inside', part: id, on: true }];
+test('moves: M23 a resistor, a capacitor, an inductor, a diode, a Zener, a bridge, a potentiometer, a thermistor and a photoresistor inside, from the circuit', async (t) => {
+  const inside = async (circuit, id, more = []) => {
+    const steps = [{ at: 0, do: 'scene', mode: 'part', part: id }, { at: 0, do: 'inside', part: id, on: true }, ...more];
     const window = await loadPage(renderPage({ ...circuit, page: { ...circuit.page, tour: { format: 'vertical', steps } } }, { lang: 'en' }).html);
     if (!window) return null;
     window.protoboardLive.tour.play();
@@ -1113,6 +1115,31 @@ test('moves: M23 a resistor, a capacitor, an inductor, a diode, a Zener and a br
   assert.match(br.state, /^conducting (~1→\+ · −→~2|~2→\+ · −→~1)$|^all four blocking$/);
   assert.equal(br.count('.junction.on'), br.state.startsWith('all') ? 0 : 2, 'the pair that conducts lit');
   assert.equal(br.count('.flowing'), br.count('.junction.on'), 'and its current beside each');
+  // A potentiometer's wiper where its control has it; a thermistor's and a photoresistor's resistance
+  // with what they sense.
+  const { spec } = expandRecipe('potentiometer-led');
+  const pot = autoLayout(spec).circuit;
+  const rv = await inside(pot, 'RV1');
+  assert.equal(rv.kind, 'potentiometer');
+  assert.deepEqual(rv.names, ['1', '3', 'W']);
+  assert.equal(rv.count('.track'), 2, 'the wiper splits the track in two');
+  assert.equal(rv.state, 'wiper at 50 % from 1 to 3');
+  assert.match(rv.box.querySelector('.note').textContent, /^1–W 5 kΩ$/);
+  const moved = await inside(pot, 'RV1', [{ at: 200, do: 'set', part: 'RV1', field: 'position', value: 0.8, move: 'cut' }]);
+  assert.equal(moved.state, 'wiper at 80 % from 1 to 3', 'the wiper follows its control');
+  const more = example('more-parts');
+  const rt = await inside(more, 'RT1');
+  assert.equal(rt.kind, 'thermistor');
+  assert.equal(rt.count('.atom'), 6);
+  assert.match(rt.state, /^10 kΩ at 25 °C$/);
+  const hot = await inside(more, 'RT1', [{ at: 200, do: 'set', part: 'RT1', field: 'temperature', value: 60, move: 'cut' }]);
+  assert.match(hot.state, /^2\.\d+ kΩ at 60 °C$/, 'warmer, lower');
+  const ldr = await inside(more, 'LDR1');
+  assert.equal(ldr.kind, 'ldr');
+  assert.equal(ldr.count('.light'), 3, 'an arrow per decade of lux: 100 lx');
+  assert.match(ldr.state, /^\d.* kΩ with 100 lx$/);
+  const dark = await inside(more, 'LDR1', [{ at: 200, do: 'set', part: 'LDR1', field: 'light', value: 1, move: 'cut' }]);
+  assert.equal(dark.count('.light'), 1);
 });
 
 // A part's view up close in the page (F5; page/client/focus-view.js): only in a page made with it; the

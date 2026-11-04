@@ -74,7 +74,9 @@ function sideOf(at, holes, camera) {
 function markText(part, mark, camera, points, lang) {
   const fromLeft = points.map((p, i) => ({ x: p.x, name: part.pinNames[i] })).sort((a, b) => a.x - b.x).map((p) => p.name).join(' ');
   const side = t(lang, `pinout.side.${sideOf(mark.at, part.holes, camera)}`);
-  if (mark.kind === 'flat' || mark.kind === 'tab') {
+  // A face that points one way (a flat face, a tab, a potentiometer's knob, a trimmer's printed face):
+  // toward the viewer or away, and the pins as they are then from the left.
+  if (['flat', 'tab', 'knob', 'face'].includes(mark.kind)) {
     const toward = dot(mark.normal, camera.toViewer) > 0 ? 'front' : 'back';
     return t(lang, `pinout.${mark.kind}.${toward}`, { pins: fromLeft });
   }

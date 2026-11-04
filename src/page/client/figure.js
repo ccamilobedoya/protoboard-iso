@@ -19,7 +19,10 @@
 // coil with field lines that follow its current and the current under it; a diode's or a Zener's P and
 // N layers with a depletion zone thin when it conducts and wider in reverse, Vf over it, its current
 // under it and its state (conducting, blocking, in breakdown); a bridge's four diodes with the pair that
-// conducts lit and its current beside them. Arrows never cross what they
+// conducts lit and its current beside them; a potentiometer's track in an arc with its wiper where its
+// control has it, each part's resistance and current and the voltage at the wiper; an NTC thermistor's
+// ceramic bead coloured and shaking with its temperature; a photoresistor's zigzag track under an arrow
+// of light per decade of lux, each with its resistance now. Arrows never cross what they
 // explain: they run beside the layers, under the channel, the film, the coil. Didactic, not to scale.
 
 import { DOT_COLOR, HEAT_COLOR, VOLTAGE_COLORS, heatOpacity } from '../../sim/look.js';
@@ -124,6 +127,35 @@ function junction(g, r, data, { t, f }) {
   label(g, 50, 103, r ? [`${volts} ${f(Math.abs(v), 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
   label(g, 50, 114, r ? t(`page.tour.inside.diode.${state}`) : '', 'state');
 }
+
+// A potentiometer's track: an arc of 270° round (50, 50), its pin 1 end at the lower left (−135° from
+// up, clockwise), its pin 3 end at the lower right; a point on it at angle `deg` and radius `r`.
+const POT = { cx: 50, cy: 50, r: 26, travel: 270 };
+const onArc = (deg, r = POT.r) => [POT.cx + r * Math.sin((deg * Math.PI) / 180), POT.cy - r * Math.cos((deg * Math.PI) / 180)];
+const arcPath = (from, to, r = POT.r) => {
+  const [[x0, y0], [x1, y1]] = [onArc(from, r), onArc(to, r)];
+  return `M${fixed(x0)} ${fixed(y0)}A${r} ${r} 0 ${Math.abs(to - from) > 180 ? 1 : 0} ${to > from ? 1 : 0} ${fixed(x1)} ${fixed(y1)}`;
+};
+// A current along an arc from `from` to `to` (degrees), outside the track: its shaft and its head.
+function arcShaft(g, from, to, w) {
+  const r = POT.r + 9;
+  const head = Math.max(5, w * 2);
+  const back = to - (Math.sign(to - from) * head * 180) / (Math.PI * r);
+  make(g, 'path', { class: 'flowing', d: arcPath(from, back, r), fill: 'none', 'stroke-width': fixed(w), stroke: DOT_COLOR });
+  const [tx, ty] = onArc(to, r);
+  const [bx, by] = onArc(back, r);
+  const a = Math.atan2(ty - by, tx - bx);
+  const p = (da) => `${fixed(tx - head * Math.cos(a + da))} ${fixed(ty - head * Math.sin(a + da))}`;
+  make(g, 'path', { d: `M${fixed(tx)} ${fixed(ty)}L${p(0.5)}L${p(-0.5)}Z`, fill: DOT_COLOR });
+}
+
+// A sensor's figure in the page's numbers: a temperature to a tenth of a degree, light in lux (under 1,
+// to a tenth: formatValue would say "100 mlx").
+const decimalOf = (f) => (f(1.5, '').includes(',') ? ',' : '.');
+const celsius = (v, f) => `${String(Math.round(v * 10) / 10).replace('.', decimalOf(f))} °C`;
+// The way a photoresistor's arrows of light come in: 9 units left for 22 down.
+const LIGHT = Math.atan2(22, -9);
+const lux = (v, f) => (v >= 1 ? f(v, 'lx') : `${String(Math.round(v * 10) / 10).replace('.', decimalOf(f))} lx`);
 
 // The inside views, each in a box of 100 × 112 units, from the part's reading (`r`) and the data
 // (src/parts/symbols.js insideOf; a two-lead part's `ids` are the symbol's letters for its pins).
@@ -305,6 +337,107 @@ const INSIDE = {
     const state = !flowing(i) ? 'holding' : Math.abs(v) < 1e-3 || i * v > 0 ? 'charging' : 'discharging';
     label(g, 50, 114, r ? t(`page.tour.inside.capacitor.${state}`) : '', 'state');
   },
+  potentiometer(g, r, data, { t, f, control }) {
+    // The track in an arc from pin 1 to pin 3 and the wiper on it where its control has it (the circuit
+    // file's position until one moves it): the two parts it splits the track in, each one's resistance
+    // over it, its current beside it outside the arc; the wiper's own current beside its lead.
+    const [a, w, b] = data.ids;
+    const position = Math.max(0, Math.min(1, control?.('position') ?? data.position ?? 0.5));
+    const start = -POT.travel / 2;
+    const end = POT.travel / 2;
+    const at = start + POT.travel * position;
+    for (const [from, to] of [[start, at], [at, end]]) if (to - from > 0.5) make(g, 'path', { class: 'track', d: arcPath(from, to) });
+    const [[x1, y1], [x3, y3]] = [onArc(start), onArc(end)];
+    make(g, 'path', { class: 'lead', d: `M${fixed(x1)} ${fixed(y1)}L20 78V88M${fixed(x3)} ${fixed(y3)}L80 78V88M50 50V88` });
+    // The wiper: an arm from the shaft to the track, its tip on it.
+    const [tx, ty] = onArc(at, POT.r - 1);
+    const [ax, ay] = onArc(at, POT.r - 9);
+    make(g, 'path', { class: 'wiper', d: `M50 50L${fixed(ax)} ${fixed(ay)}` });
+    const side = (da) => onArc(at + da, POT.r - 9).map(fixed).join(' ');
+    make(g, 'path', { class: 'wiper-tip', d: `M${fixed(tx)} ${fixed(ty)}L${side(9)}L${side(-9)}Z` });
+    make(g, 'circle', { class: 'metal', cx: 50, cy: 50, r: 3.5 });
+    label(g, 12, 91, a, 'pin-name', 'middle', FIGURE.text);
+    label(g, 88, 91, b, 'pin-name', 'middle', FIGURE.text);
+    label(g, 44, 91, w, 'pin-name', 'end', FIGURE.text);
+    // Each part's resistance, the one from 1 on the left, the other on the right, over the arc.
+    const total = data.resistance ?? 0;
+    label(g, 2, 9, `${a}–${w} ${f(total * position, 'Ω')}`, 'note', 'start');
+    label(g, 98, 9, `${w}–${b} ${f(total * (1 - position), 'Ω')}`, 'note', 'end');
+    // Conventional current: into pin 1 runs along the first part to the wiper; out of pin 3, along the
+    // second from it. An arc too short for an arrow gets none.
+    const i1 = r?.currents?.['1'] ?? 0;
+    const i2 = -(r?.currents?.['3'] ?? 0);
+    const gap = 10;
+    if (flowing(i1) && at - start > 3 * gap) arcShaft(g, i1 > 0 ? start + gap : at - gap, i1 > 0 ? at - gap : start + gap, widthOf(i1));
+    if (flowing(i2) && end - at > 3 * gap) arcShaft(g, i2 > 0 ? at + gap : end - gap, i2 > 0 ? end - gap : at + gap, widthOf(i2));
+    const iw = r?.currents?.W ?? 0;
+    if (flowing(iw)) shaft(g, 57, iw > 0 ? 86 : 68, 57, iw > 0 ? 68 : 86, widthOf(iw));
+    const vw = r?.pins?.W;
+    label(g, 50, 103, r ? [vw != null && `V(${w}) ${f(vw, 'V')}`, flowing(iw) && `I(${w}) ${f(Math.abs(iw), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    label(g, 50, 114, t('page.tour.inside.potentiometer.wiper', { percent: Math.round(position * 100) }), 'state');
+  },
+  thermistor(g, r, data, { t, f }) {
+    // The bead of metal-oxide ceramic between the leads: its colour from cold (blue) to hot (orange)
+    // with the temperature, its atoms shaking more as it warms (the slider's −20 to 100 °C); the voltage
+    // over it, the current under it, its resistance at that temperature in the state line.
+    const [a, b] = data.ids;
+    const temperature = r?.sensor?.temperature ?? data.temperature ?? 25;
+    const k = Math.max(0, Math.min(1, (temperature + 20) / 120));
+    make(g, 'path', { class: 'lead', d: 'M4 50H34M66 50H96' });
+    make(g, 'ellipse', { class: 'core', cx: 50, cy: 50, rx: 24, ry: 19 });
+    make(g, 'ellipse', { cx: 50, cy: 50, rx: 24, ry: 19, fill: VOLTAGE_COLORS.negative, opacity: fixed(0.4 * (1 - k) ** 2) });
+    make(g, 'ellipse', { cx: 50, cy: 50, rx: 24, ry: 19, fill: HEAT_COLOR, opacity: fixed(0.65 * k ** 1.5) });
+    make(g, 'rect', { class: 'metal', x: 30, y: 44, width: 4, height: 12 });
+    make(g, 'rect', { class: 'metal', x: 66, y: 44, width: 4, height: 12 });
+    for (const [x, y] of [[42, 41], [50, 41], [58, 41], [42, 59], [50, 59], [58, 59]]) {
+      make(g, 'circle', { class: 'shake', cx: x, cy: y, r: fixed(2.4 + 2.6 * k), opacity: fixed(0.25 + 0.75 * k) });
+      make(g, 'circle', { class: 'atom', cx: x, cy: y, r: 1.6 });
+    }
+    label(g, 9, 45, a, 'pin-name', 'middle', FIGURE.text);
+    label(g, 91, 45, b, 'pin-name', 'middle', FIGURE.text);
+    across(g, r?.voltage, f);
+    const i = r?.current ?? 0;
+    if (flowing(i)) {
+      shaft(g, i > 0 ? 24 : 76, 80, i > 0 ? 76 : 24, 80, widthOf(i));
+      label(g, 82, 83, 'I', 'current', 'start', FIGURE.small);
+    }
+    label(g, 50, 103, r ? [flowing(i) && `I ${f(Math.abs(i), 'A')}`, `P ${f(Math.abs(r.power ?? 0), 'W')}`].filter(Boolean).join(' · ') : '', 'note');
+    const resistance = r?.sensor?.resistance;
+    label(g, 50, 114, resistance != null ? t('page.tour.inside.thermistor.at', { resistance: f(resistance, 'Ω'), temperature: celsius(temperature, f) }) : '', 'state');
+  },
+  ldr(g, r, data, { t, f }) {
+    // The ceramic disc with its cadmium-sulphide track in a zigzag between two metal combs, lighter as
+    // more light falls on it; an arrow of light for each decade of lux over 0.1 (1 lx one, 10 000 lx
+    // five) coming in from above; the current under it, V and I and its resistance with that light.
+    const [a, b] = data.ids;
+    const light = r?.sensor?.light ?? data.light ?? 100;
+    const n = Math.max(0, Math.min(5, Math.round(Math.log10(Math.max(light, 1e-3)) + 1)));
+    make(g, 'path', { class: 'lead', d: 'M4 56H30M70 56H96' });
+    make(g, 'circle', { class: 'core', cx: 50, cy: 56, r: 26 });
+    const track = 'M34 44H64V50H36V56H64V62H36V68H66';
+    make(g, 'path', { class: 'cds', d: track });
+    make(g, 'path', { class: 'cds lit', d: track, opacity: fixed(n / 5) });
+    make(g, 'rect', { class: 'metal', x: 30, y: 40, width: 4, height: 32 });
+    make(g, 'rect', { class: 'metal', x: 66, y: 40, width: 4, height: 32 });
+    // The arrows in the middle slots of five, from the upper right down onto the disc.
+    const first = Math.floor((5 - n) / 2);
+    for (let j = first; j < first + n; j++) {
+      const x = 30 + j * 10;
+      make(g, 'path', { class: 'light', d: `M${x + 9} 4L${x + 1.6} 22.4` });
+      const head = (da) => `${fixed(x - 6 * Math.cos(LIGHT + da))} ${fixed(26 - 6 * Math.sin(LIGHT + da))}`;
+      make(g, 'path', { class: 'light-head', d: `M${x} 26L${head(0.5)}L${head(-0.5)}Z` });
+    }
+    label(g, 9, 51, a, 'pin-name', 'middle', FIGURE.text);
+    label(g, 91, 51, b, 'pin-name', 'middle', FIGURE.text);
+    const i = r?.current ?? 0;
+    if (flowing(i)) {
+      shaft(g, i > 0 ? 24 : 76, 90, i > 0 ? 76 : 24, 90, widthOf(i));
+      label(g, 82, 93, 'I', 'current', 'start', FIGURE.small);
+    }
+    label(g, 50, 103, r ? [`V ${f(Math.abs(r.voltage ?? 0), 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    const resistance = r?.sensor?.resistance;
+    label(g, 50, 114, resistance != null ? t('page.tour.inside.ldr.at', { resistance: f(resistance, 'Ω'), light: lux(light, f) }) : '', 'state');
+  },
   inductor(g, r, data, { t, f }) {
     // The coil round its core, the leads down to its pins; field lines round it, more of them and
     // stronger with the current against its rating; the current under the coil.
@@ -336,8 +469,8 @@ const INSIDE = {
 };
 
 // `reading()`, `t`, `f` as the tour has them; `look()`: the current layer's scale (bench.js); `now()`:
-// the director's time (ms).
-export function setupFigure(page, { reading, t, f, now, look }) {
+// the director's time (ms); `controls()`: the circuit's controls with their values now.
+export function setupFigure(page, { reading, t, f, now, look, controls }) {
   let on = null; // { id, what: 'symbol' | 'inside', k, t0, ms }
   let placed = null; // { for, x, y, s, line }: where the figure is, in drawing units, since it came
   const layers = new WeakMap(); // under the part's copy, so a pin behind a body keeps its identifier hidden
@@ -413,7 +546,11 @@ export function setupFigure(page, { reading, t, f, now, look }) {
       return;
     }
     box.setAttribute('data-inside', shape.kind);
-    INSIDE[shape.kind]?.(box, reading()?.parts?.[on.id], shape, { t, f, look });
+    // `control(field)`: the part's control as it is now (a potentiometer's position, which its reading
+    // does not carry).
+    const id = on.id;
+    const control = (field) => controls?.().find((c) => c.id === id && c.field === field)?.value;
+    INSIDE[shape.kind]?.(box, reading()?.parts?.[on.id], shape, { t, f, look, control });
   }
 
   return {

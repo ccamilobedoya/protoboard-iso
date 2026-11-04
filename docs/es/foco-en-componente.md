@@ -346,6 +346,22 @@ simulador no da nada nuevo. La marca de un puente es su esquina de arriba bisela
 («Esquina biselada a la izquierda: la pata +»); sus patas de CA se llaman ~1 y ~2, como las dicen el
 símbolo y las filas del diagrama de patas.
 
+La marca de un potenciómetro es su perilla («Perilla hacia ti: 1 W 3 desde la izquierda»), la de un
+trimmer su cara impresa («Cara impresa hacia ti: …»): vista desde cualquiera, la pata 1 queda a la
+izquierda. Su símbolo es el zigzag con la flecha del cursor (1, W, 3); su vista por dentro, la pista en
+un arco de 1 a 3 con el cursor donde lo tiene su control de posición (la posición del archivo del
+circuito hasta que un `set` o el deslizador lo mueve: la lectura no la trae, así que la figura lee el
+control), la resistencia de cada tramo encima, la corriente de cada tramo al lado del arco, la del cursor
+al lado de su pata, el voltaje en W y «cursor al 50 % de 1 a 3». Un termistor NTC y una fotorresistencia
+no tienen polaridad («Sin polaridad: entra en cualquier sentido»); sus símbolos son el zigzag con las
+marcas IEC (la línea diagonal y −t° del termistor, las dos flechas de luz que llegan a la
+fotorresistencia). La vista por dentro de un termistor es su perla de cerámica entre las patas, azul en
+frío y naranja en caliente, con sus átomos agitándose más cuando se calienta (de −20 a 100 °C del
+deslizador), V encima, su corriente debajo y «10 kΩ a 25 °C»; la de una fotorresistencia, su pista de
+sulfuro de cadmio en zigzag entre dos peines de metal, más clara con más luz, una flecha de luz por cada
+década de lux (1 lx una, 10 000 lx cinco), V e I y «2,98 kΩ con 100 lx». Las dos leen la temperatura, la
+luz y la resistencia del `sensor` de la lectura, que el deslizador actualiza.
+
 ### F5 · La pieza en la página
 
 **El ensayo (2026-11-01).** Un prototipo detrás de `?focusView=1`, en una página hecha con
