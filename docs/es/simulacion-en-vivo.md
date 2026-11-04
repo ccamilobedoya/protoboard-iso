@@ -25,7 +25,7 @@ Esta página es la referencia del trabajo, que toma varias sesiones. Cada sesió
   Una escalera RC/diodo de 40 secciones corre ≈ 12 000 pasos/s en Node (`test/engine.test.js`).
 - Fase 4 hecha: `page/client/live.js` corre el programa embebido (entrada `live-page.js`; las
   páginas sin resultados ni corriente usan `static-page.js` y no llevan motor). Interfaz del
-  motor paso a paso: `start`, `step`, `read`, `stresses`, `timeConstants`. Lo visual compartido en
+  motor paso a paso: `start`, `step`, `advance`, `read`, `stresses`, `timeConstants`. Lo visual compartido en
   `sim/look.js` y las líneas de la ficha en `sim/lines.js` (los dos se pueden agrupar). Pruebas en
   `test/live.test.js` (jsdom, cuadros movidos con `window.protoboardLive.tick`).
 - Fase 5 hecha: controles y límites. Cada dispositivo puede tener `controls(p)` y un `set(p, field,
@@ -160,7 +160,8 @@ Las fórmulas que necesitan los deslizadores viven en módulos sin imports y `pa
   - Lo usan `simulate()`, la CLI y el MCP. Su salida no cambia.
 - **`mna.js`** conserva su API; el `Stamper` reutiliza sus búferes.
   - Sin reutilizar la LU ni estampar por partes, porque son de 10 a 40 incógnitas. Una prueba de rendimiento decide si eso cambia.
-- **Si un paso falla**, se divide `h` hasta cuatro veces. Si sigue fallando, la página se pausa con un mensaje.
+- **Si Newton no puede dar un paso**, `engine.advance(h)` cubre ese `h` en pedazos más cortos: dos mitades, cada una dividida otra vez, hasta `h/16`. El paso siguiente vuelve a ser `h` (un paso fallido no cambia nada, ni la limitación de las uniones). Solo si falla el pedazo más corto se pausa la página con un mensaje.
+  - Newton también acepta una respuesta en la que cada fila de las ecuaciones de Kirchhoff cuadra cuando sus correcciones dejan de achicarse: un nodo que solo sostienen GMIN y las fugas (el lado DC de un puente mientras sus cuatro diodos bloquean) no puede cumplir la tolerancia de voltaje, el redondeo solo ya lo mueve.
 
 ### Un agrupador pequeño (`src/node/bundle.js`)
 

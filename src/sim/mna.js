@@ -647,27 +647,64 @@ export function bjt(c, b, e, model) {
 // ── Newton's method ─────────────────────────────────────────────────────────────────
 
 const MAX_ITERATIONS = 200;
+// Kirchhoff's residual that counts as balanced (amperes in a node's row, volts in a source's):
+// absolute, plus a part of the row's largest terms, far above the round-off of adding them up.
+const RESIDUAL_ABS = 1e-12;
+const RESIDUAL_REL = 1e-9;
+
+// Whether x solves the system it was just linearised at (st.A·x = st.b), each row against its
+// own terms. Read before the solve overwrites st.
+function balanced(st, x, size) {
+  for (let i = 0; i < size; i++) {
+    const row = st.A[i];
+    let r = -st.b[i];
+    let scale = Math.abs(st.b[i]);
+    for (let j = 0; j < size; j++) {
+      const term = row[j] * x[j];
+      r += term;
+      scale += Math.abs(term);
+    }
+    if (!(Math.abs(r) <= RESIDUAL_ABS + RESIDUAL_REL * scale)) return false;
+  }
+  return true;
+}
 
 // system: { size, nodeCount, elements }. ctx: { scale (source stepping), h (time step) }.
+//
+// Converged when an iteration moves no unknown by more than its tolerance (1 µV + 1 ppm). A node
+// the circuit barely holds can never pass that: a filter capacitor's side of a bridge while its
+// four diodes block has only GMIN and nanoampere leakages to fix its level against ground, and
+// there the matrix is so badly conditioned that round-off alone moves it by a fraction of a
+// millivolt every iteration, for ever. So when an iteration that limited nothing moves the
+// unknowns no less than the one before (Newton is no longer closing in), an x at which every row
+// of Kirchhoff's equations already balances is the answer (`by: 'residual'`). A Newton that
+// converges shrinks its steps every iteration and never takes this way.
 export function newton(system, x0, ctx = {}) {
   const { size, nodeCount, elements } = system;
   let x = x0.slice();
   // One stamper per system, cleared each iteration: no new matrices while stepping in time.
   const st = (system.stamper ??= new Stamper(size));
+  let lastMove = Infinity;
   for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     st.reset();
     for (let i = 0; i < nodeCount; i++) st.add(i, i, GMIN);
     let limited = false;
     for (const el of elements) if (el.stamp(st, x, ctx)) limited = true;
+    const settled = !limited && iteration > 1 && balanced(st, x, size);
     const next = solveInPlace(st.A, st.b);
     if (!next) return { ok: false, reason: 'singular', x, iterations: iteration };
-    let done = !limited;
-    for (let i = 0; i < size && done; i++) {
+    // The largest move, in tolerances: at most 1 means converged.
+    let move = 0;
+    for (let i = 0; i < size; i++) {
       const tol = (i < nodeCount ? 1e-6 : 1e-9) + 1e-6 * Math.max(Math.abs(next[i]), Math.abs(x[i]));
-      if (!(Math.abs(next[i] - x[i]) <= tol)) done = false;
+      const m = Math.abs(next[i] - x[i]) / tol;
+      if (!(m <= move)) move = m;
+      if (Number.isNaN(move)) break; // a NaN stays: never converged, never settled
     }
+    if (!limited && move <= 1) return { ok: true, x: next, iterations: iteration };
+    if (settled && move >= lastMove) return { ok: true, x, iterations: iteration, by: 'residual' };
+    lastMove = limited ? Infinity : move;
     x = next;
-    if (done) return { ok: true, x, iterations: iteration };
   }
   return { ok: false, reason: 'iterations', x, iterations: MAX_ITERATIONS };
 }

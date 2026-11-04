@@ -520,9 +520,8 @@ export function setupLive(page) {
       const t0 = directing ? 0 : performance.now();
       let n = 0;
       while (owed >= h && (directing ? n++ < DIRECTOR_STEPS : performance.now() - t0 < BUDGET)) {
-        let ok = engine.step(h);
-        for (let k = 0; !ok && k < 4; k++) ok = engine.step((h /= 2));
-        if (!ok) {
+        // advance() splits a step Newton cannot take (a diode switching) and keeps h for the next.
+        if (!engine.advance(h)) {
           stalled = true;
           if (clock) clock.textContent = t('page.live.stalled', { t: f(engine.time, 's') });
           break;

@@ -55,9 +55,7 @@ function run(engine, h, watch, from) {
   const samples = Object.fromEntries(watch.map((w) => [w.key, []]));
   const seen = () => watch.every((w) => edges(samples[w.key]).up.length >= CYCLES);
   for (let n = 0; n < MAX_STEPS; n++) {
-    let ok = engine.step(h);
-    for (let k = 0; !ok && k < 4; k++) ok = engine.step(h / 2 ** (k + 1));
-    if (!ok) break;
+    if (!engine.advance(h)) break;
     const r = engine.read();
     for (const w of watch) {
       const v = r.parts[w.id]?.[w.field];

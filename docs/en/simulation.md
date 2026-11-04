@@ -106,7 +106,10 @@ Set them with an operation like any circuit field:
 
 - **DC (operating point).** Capacitors are open; everything else at its steady state.
   Newton's method on modified nodal analysis (MNA); if it does not converge, the sources are
-  ramped up from 10 % (source stepping).
+  ramped up from 10 % (source stepping). Newton has converged when an iteration moves no voltage
+  by more than 1 µV + 1 ppm or, once its updates stop shrinking, when Kirchhoff's equations
+  already balance at every node (1 pA + 1 ppb of the row's terms): a node held only by
+  leakage, like a bridge's DC side while its diodes block, is fixed only that well.
 - **Transient.** `stop` and `step` in seconds; capacitors start discharged and inductors with
   no current (`start: "zero"`, the supply switched on at t = 0), or at their DC values
   (`start: "dc"`). Backward Euler with a

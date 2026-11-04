@@ -111,7 +111,11 @@ Se fijan con una operación, como cualquier campo del circuito:
 
 - **DC (punto de operación).** Los capacitores quedan abiertos; todo lo demás, en su estado
   estable. Método de Newton sobre análisis nodal modificado (MNA); si no converge, las fuentes
-  se suben poco a poco desde el 10 %.
+  se suben poco a poco desde el 10 %. Newton converge cuando una iteración no mueve ningún voltaje
+  más de 1 µV + 1 ppm o, cuando sus correcciones dejan de achicarse, cuando las ecuaciones de
+  Kirchhoff ya cuadran en cada nodo (1 pA más una milmillonésima de los términos de la fila): un nodo que solo
+  sostienen las fugas, como el lado DC de un puente mientras sus diodos bloquean, no queda mejor
+  fijado que eso.
 - **Transitorio.** `stop` y `step` en segundos; los capacitores empiezan descargados y los
   inductores sin corriente (`start: "zero"`, la fuente se enciende en t = 0), o en sus valores de
   DC (`start: "dc"`).

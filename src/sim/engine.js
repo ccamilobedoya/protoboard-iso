@@ -9,7 +9,8 @@
 // And step by step, for the live page:
 //   engine.start('dc' | 'zero', h) → ok    the state at t = 0 (DC values, or switched on with
 //                                          capacitors discharged)
-//   engine.step(h) → ok                    one time step of h seconds
+//   engine.step(h) → ok                    one time step of h seconds (a failed one changes nothing)
+//   engine.advance(h) → ok                 h seconds: one step, or shorter ones where Newton fails
 //   engine.read() → { nodes, parts, supplies }   the values now;  engine.time  seconds since start
 //   engine.stresses(reading) → { part: [stress…] }   each part against its limits (devices/)
 //   engine.timeConstants() → [seconds…]    τ = C·R and L/R of each capacitor and inductor, with R
@@ -32,6 +33,9 @@ import { supplyControls, setSupply, stressLevel } from './controls.js';
 import { waveAt, peakOf } from './generator.js';
 
 const SHORT_CURRENT = 3; // amperes from an unlimited source that mean "short circuit"
+const ADVANCE_SPLITS = 4; // advance(h): halvings of a step that failed, at most (h/16)
+// What an element changes while Newton iterates (junction limiting, an op-amp's rail edge).
+const LIMITING = ['vd', 'vgs', 'vds', 'vbe', 'vbc', 'edge'];
 
 // Elements, node indices and islands, from the program. Ground is index −1.
 function prepare(program) {
@@ -298,8 +302,18 @@ export function createEngine(source) {
       const next = { h };
       lastH = h;
       setTime(prep, time + h);
+      // A failed step leaves everything as the last accepted one did: the sources at its time, and
+      // the junctions' limiting voltages too, so a retry starts from that step and not from the
+      // failed iterations.
+      const before = prep.system.elements.map((el) => LIMITING.filter((key) => key in el).map((key) => [key, el[key]]));
       const r = newton(prep.system, x, next);
-      if (!r.ok) return false;
+      if (!r.ok) {
+        setTime(prep, time);
+        prep.system.elements.forEach((el, k) => {
+          for (const [key, value] of before[k]) el[key] = value;
+        });
+        return false;
+      }
       x = r.x;
       ctx = next;
       pending = next;
@@ -310,6 +324,13 @@ export function createEngine(source) {
       }
       glowTime += h;
       return true;
+    },
+    // One step of h, as step(); when Newton fails, the same h in two halves (each split again, down
+    // to a sixteenth). The step that follows is h again: a hard instant (diodes switching) costs a
+    // few more steps there and slows nothing after it. false when even the shortest piece fails.
+    advance(h, depth = ADVANCE_SPLITS) {
+      if (this.step(h)) return true;
+      return depth > 0 && this.advance(h / 2, depth - 1) && this.advance(h / 2, depth - 1);
     },
     read: () => (x ? readAll(prep, x, ctx) : null),
     get time() {

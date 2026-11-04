@@ -22,7 +22,7 @@ the tests green, this page and the roadmap up to date.
   ladder runs ≈ 12 000 steps/s in Node (`test/engine.test.js`).
 - Phase 4 done: `page/client/live.js` runs the embedded program (entry `live-page.js`; pages
   without results or flow use `static-page.js` and carry no engine). Engine step API:
-  `start`, `step`, `read`, `stresses`, `timeConstants`. Shared looks in `sim/look.js`, card lines
+  `start`, `step`, `advance`, `read`, `stresses`, `timeConstants`. Shared looks in `sim/look.js`, card lines
   in `sim/lines.js` (both bundleable). Tests in `test/live.test.js` (jsdom, frames driven by
   `window.protoboardLive.tick`).
 - Phase 5 done: controls and limits. Each device may have `controls(p)` and a pure
@@ -149,7 +149,12 @@ and NTC; `src/parts/batteries.js` already is), and `parts/types/more.js` imports
   and the MCP server use it; their output does not change.
 - `mna.js` keeps its API; the `Stamper` reuses its buffers. No LU reuse or incremental stamping
   (10–40 unknowns): a benchmark test decides if that changes.
-- A failing step halves `h` up to four times, then the page pauses with a message.
+- A step Newton cannot take is covered in shorter pieces by `engine.advance(h)`: two halves, each
+  split again, down to `h/16`; the step after it is `h` again (a failed step changes nothing, its
+  junction limiting included). Only when the shortest piece fails does the page pause with a
+  message. Newton also accepts an answer whose every row of Kirchhoff's equations balances when
+  its updates stop shrinking: a node held only by GMIN and leakage (a bridge's DC side while its
+  four diodes block) cannot meet the voltage tolerance, round-off alone moves it.
 
 ### A small bundler (`src/node/bundle.js`)
 
