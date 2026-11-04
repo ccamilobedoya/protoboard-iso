@@ -231,7 +231,7 @@ up to date.
   - `timeline.json` lists the moments a sound may go with (`events`: land, count, probe, mark).
   - Golden frames M30 (the land, half way), M31 (the pedestal's drop and push), M32 (the comparing
     oscilloscope) and M33 (the caption over the board, with its data row).
-- 🔜 A payoff the eye reads (2026-11-03, 0.8.0-b.1, a prerelease on a video branch), from the second
+- ✅ A payoff the eye reads (2026-11-03, released in 0.8.0; built in prereleases b.1 to d.1 on video branches), from the second
   review of the same short: the LED looked lit when off (only the halo changed; the body's red moved
   4 %), the set and its hold were filmed away from the LED, the change was written as a period in ms
   under the trace, and 32 letters made three lines.

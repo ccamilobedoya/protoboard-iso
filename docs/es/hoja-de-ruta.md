@@ -328,7 +328,7 @@ clímax no mostraba su cambio.
 - ✅ Rótulos contados de al menos 40 px a 1080 (`LABEL_MIN_PX`, una regla del fotograma)
 - ✅ El desenlace medido: `sim/cycle.js`, `render-frames.js --parts --what-if`, `payoff` en `timeline.json`, `TOUR_PAYOFF_SHORT`, `TOUR_SCOPE_WINDOW`
 - ✅ `events` en `timeline.json` para el sonido (land, count, probe, mark)
-## Videos de un circuito: un desenlace que el ojo lee (transversal) ✅ (0.8.0-b.1, versión previa)
+## Videos de un circuito: un desenlace que el ojo lee (transversal) ✅ (0.8.0)
 
 De una segunda revisión del mismo video corto (2026-11-03): el LED parecía prendido estando apagado,
 el cambio era un periodo en ms bajo la traza y un subtítulo de 32 letras ocupaba tres líneas.

@@ -9,76 +9,43 @@ detail.
 
 ## [Unreleased]
 
-## [0.8.0-d.1] - 2026-11-03
+## [0.8.0] - 2026-11-03
 
-A prerelease on a video branch: the fourth version of a recorded short. Not on `main` until the maintainer chooses it.
-
-### Added
-
-- **A comparing box in the timeline's own words** (`probe` `say`): `{k}` and `{k2}` filled from the
-  simulation (how many times longer on, and off), so a script's sentence, checked with its other
-  texts, replaces the kit's ("on ×5 · off the same"). Example `555-compare-say.json`, golden frame M41.
-
-### Changed
-
-- **A caption's emphasis keeps the caption's colour**: bolder (700) and 15 % larger; the accent stays
-  for data rows and traces. Golden frames M38 to M40.
-
-## [0.8.0-c.2] - 2026-11-03
-
-A prerelease on a video branch: a video that opens on its result. Not on `main` until the maintainer chooses it.
-
-### Added
-
-- **A caption's emphasis** (`em`): words of its text or second line drawn in the accent and 15 %
-  larger. The lines are counted by the bands of their boxes (a taller word no longer counts as a
-  line of its own) and the emphasis's contrast is read in its own colour; `TOUR_EM_MISSING` when the
-  words are not there. Golden frame M38.
-- **The current in two colours** (`flow`'s `sense`): the dots coloured by the way the current runs
-  through a part (a capacitor's charge, forward; its discharge, back), each side with the parts whose
-  nets carry it meanwhile; thicker and on the log scale. Golden frame M39.
-- **A card** (`card`): a sentence alone over the screen for a moment, within the safe width and the
-  platforms' bands (a frame rule). Golden frame M40.
-- **An event per blink** (`led`, `part` and `on`) and per card (`card`) in `timeline.json`.
-- Example `555-result-first.json`: the result first on the board, then the chip on the pedestal, the land.
-
-### Changed
-
-- **A comparing box says the change as a proportion** ("on ×5 · off the same"; probe `change`,
-  `ratio` by default, `times` for the seconds): golden frames M24, M32 and M35.
-- **A caption's lines rise fading in**, from 60 % of their height: no frame shows half a line cut by
-  its mask. Golden frames M9, M12, M15, M23 and M34.
-
-## [0.8.0-c.1] - 2026-11-03
-
-A prerelease on a video branch: a fix of the land. Not on `main` until the maintainer chooses it.
-
-### Fixed
-
-- **A focus during a land waits for the board.** A `focus` at a `land`'s time ended the land: the
-  focus's strips, their numbers and the part's label floated over the empty stage with the part,
-  ahead of the board, the board's ramp never ran, and the scene stuck in `lit` hid the strips of
-  every later focus (golden frames M34 and M35 now show D1's). The land now keeps its scene and the focus;
-  its strips and coordinates fade in over 300 ms (`LAND.reveal`) once the board is lit. Example
-  `555-land-focus.json`; golden frame M37.
-
-## [0.8.0-b.1] - 2026-11-03
-
-A prerelease on a video branch: a payoff the eye reads. Not on `main` until the maintainer chooses it.
+A payoff the eye reads, and a video that opens on its result. Folds in the prereleases made on video
+branches (0.8.0-b.1, c.1, c.2 and d.1); the fifth version of the same short was chosen, and this is
+what it uses.
 
 ### Added
 
 - **A recording's speed of time**: the timeline's `pace` (s of simulated time per s of video); the
   page, the oscilloscope, `compare`, the payoff, `timeline.json` (`pace`) and `render-frames.js
   --parts --pace` follow it.
-- **The comparing box in words**: with an LED in the circuit, "on 0.08 → 0.40 s · off the same"
-  (`compareCycles` measures its time on and off); laid out in bands, the name and the marks on
-  plates on top, the trace in the middle, the change at the bottom at 46 px in the accent. `probe`
-  `reading` and `clock` leave out the value now and the window's end.
-- **Lines as laid out**: each caption's `lines` in `timeline.json`; a frame rule of two at most.
-- `timeline.json` gives each LED's box on the frames measured at rest (`leds`), so a check of the
-  video can read whether it blinks.
+- **The comparing box in words**: with an LED in the circuit it says the change as a proportion
+  ("on ×5 · off the same"; `probe` `change`, `ratio` by default, `times` for the seconds), measured by
+  `compareCycles`; laid out in bands, the name and the marks on plates on top, the trace in the
+  middle, the change at the bottom in the accent. `probe` `reading` and `clock` leave out the value
+  now and the window's end.
+- **A comparing box in the timeline's own words** (`probe` `say`): `{k}` and `{k2}` filled from the
+  simulation (how many times longer on, and off), so a script's sentence, checked with its other
+  texts, replaces the kit's. Example `555-compare-say.json`.
+- **A caption's emphasis** (`em`): words of its text or second line drawn bolder (700) and 15 %
+  larger, in the caption's colour (the accent stays for data rows and traces); its contrast read in
+  its own colour; `TOUR_EM_MISSING` when the words are not there.
+- **Lines as laid out**: each caption's `lines` in `timeline.json` (counted by the bands of their
+  boxes); a frame rule of two at most.
+- `timeline.json` gives each LED's box on the frames measured at rest (`leds`), and an event per
+  blink (`led`, with `part` and `on`) and per card (`card`), so a check of the video can read whether
+  it blinks and a sound can go with each blink.
 - **A pedestal's `light`**: `scene` with `light`, a soft glow of a colour under the part.
+- **The current in two colours** (`flow`'s `sense`): the dots coloured by the way the current runs
+  through a part (a capacitor's charge, forward; its discharge, back), each side with the parts whose
+  nets carry it meanwhile; thicker and on the log scale. Tested (jsdom, golden frame M39) and
+  documented; no published video uses it yet.
+- **A card** (`card`): a sentence alone over the screen for a moment, within the safe width and the
+  platforms' bands (a frame rule). Tested (golden frame M40) and documented; no published video uses
+  it yet.
+- Examples `555-result-first.json` (the result first on the board, then the chip on the pedestal)
+  and `555-land-focus.json`. Golden frames M34 to M41.
 
 ### Changed
 
@@ -86,9 +53,17 @@ A prerelease on a video branch: a payoff the eye reads. Not on `main` until the 
   parts and in their copies, faded with its light in a page. Lit, it is drawn as before.
 - The `data` row as large as the caption's text (56 px at 1080 wide, 52 at 1920); told labels at
   least 48 px (`LABEL_MIN_PX`).
+- **A caption's lines rise fading in**, from 60 % of their height: no frame shows half a line cut by
+  its mask. Golden frames M9, M12, M15, M23 and M34.
+- A scene and a land may come after steps on the board.
 
 ### Fixed
 
+- **A focus during a land waits for the board.** A `focus` at a `land`'s time ended the land: the
+  focus's strips, their numbers and the part's label floated over the empty stage, the board's ramp
+  never ran, and the scene stuck in `lit` hid the strips of every later focus. The land now keeps
+  its scene and the focus; its strips and coordinates fade in over 300 ms (`LAND.reveal`) once the
+  board is lit. Golden frame M37.
 - The caption's contrast is not read while a caption comes in or the one before fades out over it
   (a false 2.8:1).
 
@@ -257,11 +232,8 @@ A prerelease on a video branch: a payoff the eye reads. Not on `main` until the 
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-d.1...HEAD
-[0.8.0-d.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-c.2...v0.8.0-d.1
-[0.8.0-c.2]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-c.1...v0.8.0-c.2
-[0.8.0-c.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0-b.1...v0.8.0-c.1
-[0.8.0-b.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.7.0...v0.8.0-b.1
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.4.0...v0.5.0

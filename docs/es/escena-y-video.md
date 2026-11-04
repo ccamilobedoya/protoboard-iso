@@ -255,7 +255,7 @@ página y la hoja de ruta al día.
   - `timeline.json` lista los momentos que pueden llevar un sonido (`events`: land, count, probe, mark).
   - Fotogramas *golden* M30 (el aterrizaje a la mitad), M31 (la caída y el acercamiento del pedestal),
     M32 (el osciloscopio que compara) y M33 (el subtítulo sobre la protoboard, con su fila de datos).
-- 🔜 Un desenlace que el ojo lee (2026-11-03, 0.8.0-b.1, versión previa en una rama de video), de la
+- ✅ Un desenlace que el ojo lee (2026-11-03, publicado en 0.8.0; hecho en las versiones previas b.1 a d.1 en ramas de video), de la
   segunda revisión del mismo short: el LED parecía prendido estando apagado (solo cambiaba el halo; el
   rojo del cuerpo se movía 4 %), el `set` y su espera se filmaron lejos del LED, el cambio se escribía
   como un periodo en ms bajo la traza y 32 letras daban tres líneas.

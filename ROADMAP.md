@@ -322,7 +322,7 @@ the board flashed in, the caption could not be read over it, the climax did not 
 - ✅ The payoff measured: `sim/cycle.js`, `render-frames.js --parts --what-if`, `payoff` in `timeline.json`, `TOUR_PAYOFF_SHORT`, `TOUR_SCOPE_WINDOW`
 - ✅ `events` in `timeline.json` for sound (land, count, probe, mark)
 
-## Videos of a circuit: a payoff the eye reads (cross-cutting) ✅ (0.8.0-b.1, prerelease)
+## Videos of a circuit: a payoff the eye reads (cross-cutting) ✅ (0.8.0)
 
 From a second review of the same short (2026-11-03): the LED looked lit when off, the change was a
 period in ms under the trace, a caption of 32 letters took three lines.
