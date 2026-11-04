@@ -12,10 +12,13 @@ import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from '
 import { randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { gitEnv } from './git-env.js';
 import { scanRepo, scanText, GENERIC, NEVER_COMMIT, localPatterns } from './privacy/scan.js';
 
 const root = new URL('../', import.meta.url).pathname;
-const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8' });
+// The repository itself keeps the hook's variables; a throwaway one must not see them (git-env.js).
+const envFor = (cwd) => (cwd === root ? process.env : gitEnv());
+const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', env: envFor(cwd) });
 const at = '@';
 
 test('no personal data, private paths, hostnames or secrets in the repository', (t) => {
@@ -33,7 +36,7 @@ test('no personal data, private paths, hostnames or secrets in the repository', 
 // second to start, so the runs of a repository go side by side.
 function gitleaks(args, cwd, input) {
   return new Promise((done, fail) => {
-    const child = execFile('gitleaks', [...args, '--no-banner', '--redact', '--exit-code', '1'], { cwd, encoding: 'utf8' }, (e, stdout, stderr) => {
+    const child = execFile('gitleaks', [...args, '--no-banner', '--redact', '--exit-code', '1'], { cwd, encoding: 'utf8', env: envFor(cwd) }, (e, stdout, stderr) => {
       if (!e) return done('');
       if (e.code !== 1) return fail(e);
       done(`${stdout}${stderr}` || 'found');
@@ -162,7 +165,7 @@ test('privacy cases: in a repository, accents in names, forced adds and unreadab
     writeFileSync(join(dir, 'locked.md'), 'x\n');
     chmodSync(join(dir, 'locked.md'), 0o000);
   }
-  const { findings } = scanRepo({ root: dir });
+  const { findings } = scanRepo({ root: dir, env: gitEnv() });
   const has = (re) => findings.some((f) => re.test(f));
   assert.ok(has(/^notas-año\.md:1: email address/), 'a name with an accent is read, not skipped');
   assert.ok(has(/^nfd\.md:1: a word in privacy\.local\.txt/), 'text in NFD');

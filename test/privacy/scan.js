@@ -1,7 +1,7 @@
 // The privacy scan (CLAUDE.md, "Privacy"), as a function so test/privacy.test.js can run it on the
 // repository and on a throwaway repository built to prove it works.
 //
-//   scanRepo({ root, localFile }) → { findings: ['file:line: what: match'], local: n }
+//   scanRepo({ root, localFile, env }) → { findings: ['file:line: what: match'], local: n }
 //
 // What it checks, in tracked and new (not ignored) files:
 // - names that must never be committed (NEVER_COMMIT), whatever .gitignore says: `git add -f`
@@ -57,9 +57,9 @@ export function localPatterns(localFile) {
 }
 
 // Tracked and new files, or null outside a git checkout (a package: nothing to check).
-export function listFiles(root) {
+export function listFiles(root, env = process.env) {
   try {
-    return execFileSync('git', ['ls-files', '-z', '-co', '--exclude-standard'], { cwd: root, encoding: 'utf8' })
+    return execFileSync('git', ['ls-files', '-z', '-co', '--exclude-standard'], { cwd: root, encoding: 'utf8', env })
       .split('\0')
       .filter(Boolean);
   } catch {
@@ -81,8 +81,8 @@ export function scanText(text, patterns, where) {
   return found;
 }
 
-export function scanRepo({ root, localFile = join(root, 'privacy.local.txt') }) {
-  const list = listFiles(root);
+export function scanRepo({ root, localFile = join(root, 'privacy.local.txt'), env }) {
+  const list = listFiles(root, env);
   if (!list) return null;
   const local = localPatterns(localFile);
   const patterns = [...GENERIC, ...local.patterns];
