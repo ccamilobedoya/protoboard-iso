@@ -298,45 +298,41 @@ function litLed(scene, l, style) {
   return [0.12, 0.22, 0.38].map((alpha, k) => ({ kind: 'circle', cx: c.x, cy: c.y, r: r * (2.6 - k * 0.55), fill: l.color, fillOpacity: alpha, ...tag }));
 }
 
-// The outline of an LED's dome and flange on screen (the convex hull of points on them): where the
-// shade of an LED that is off goes.
-function domeOutline(scene, light) {
-  const { base, radius, height, skirt } = light;
-  const rings = [
-    [base.z - (skirt?.depth ?? 0), skirt?.radius ?? radius],
-    [base.z, skirt?.radius ?? radius],
-    [base.z, radius],
-    [base.z + height - radius, radius],
-  ];
-  for (let k = 1; k <= 4; k++) {
-    const a = (k / 4) * (Math.PI / 2);
-    rings.push([base.z + height - radius + radius * Math.sin(a), radius * Math.cos(a)]);
-  }
-  const pts = [];
-  for (const [z, r] of rings) {
-    for (let j = 0; j < 24; j++) {
-      const t = (j / 24) * 2 * Math.PI;
-      pts.push(scene.camera.project({ x: base.x + r * Math.cos(t), y: base.y + r * Math.sin(t), z }));
-    }
-  }
-  return hull(pts);
-}
-// Andrew's monotone chain: the convex hull of 2D points, counter-clockwise.
-function hull(points) {
-  const p = points.map((q) => ({ x: q.x, y: q.y })).sort((a, b) => a.x - b.x || a.y - b.y);
-  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-  const half = (list) => {
-    const out = [];
-    for (const q of list) {
-      while (out.length >= 2 && cross(out.at(-2), out.at(-1), q) <= 0) out.pop();
-      out.push(q);
-    }
-    out.pop();
-    return out;
+// The outline of an LED's dome and flange on screen: the faces of its body (`built.body`) this camera
+// sees, as one path (each face a closed piece; seen from the front they all wind the same way, so
+// the fill is their union). Exactly the LED as drawn, whatever its size, flat or tilt: a hull of
+// circles round its axis overhung the dome beside its flange and missed its facets.
+const FACE_EDGE = 0.3; // px
+// A convex polygon on screen with each edge moved out by d (its corners mitred, at most 3·d out).
+function grow(pts, d) {
+  const n = pts.length;
+  let area = 0;
+  for (let i = 0; i < n; i++) area += pts[i].x * pts[(i + 1) % n].y - pts[(i + 1) % n].x * pts[i].y;
+  const side = area < 0 ? -1 : 1;
+  const normal = (a, b) => {
+    const l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    return { x: (side * (b.y - a.y)) / l, y: (side * -(b.x - a.x)) / l };
   };
-  return [...half(p), ...half(p.slice().reverse())];
+  return pts.map((p, i) => {
+    const a = normal(pts[(i + n - 1) % n], p);
+    const b = normal(p, pts[(i + 1) % n]);
+    const m = { x: a.x + b.x, y: a.y + b.y };
+    const k = Math.min(3, 2 / Math.max(1e-6, m.x * m.x + m.y * m.y)) * d;
+    return { x: p.x + m.x * k, y: p.y + m.y * k };
+  });
 }
-
+function domeOutline(scene, part) {
+  const pieces = [];
+  for (const p of part.built.body ?? []) {
+    for (const f of p.faces) {
+      if (!scene.camera.faces(f.normal)) continue;
+      // Each face grown by half the stroke the faces are drawn with (render/scene.js: 0.35 in their
+      // own colour, so the LED reaches that far past them): one fill, so the overlaps do not darken.
+      pieces.push(`${pathData(grow(f.pts.map((q) => scene.camera.project(q)), FACE_EDGE))} Z`);
+    }
+  }
+  return pieces.join(' ');
+}
 // A display's segments lit (src/sim/devices/leds.js): each segment itself in its colour, and a soft
 // halo of it grown round its middle, of the part like the shade (a focus copies them with it, a move
 // carries them), at fill-opacity `k` × the glow of its segment. class="led-segment", data-glow
@@ -358,7 +354,7 @@ export function segmentOps(scene, built, sim) {
   return out;
 }
 
-// The shade of each LED (look.js, SHADE): a polygon over its dome and flange, of the part (so a
+// The shade of each LED (look.js, SHADE): a path over its dome and flange, of the part (so a
 // focus copies it with the part and a move carries it), dark at its opacity while the LED is off.
 // `class="led-shade"` and data-shade: the live page fades it with the LED's light.
 export function shadeOps(scene, built, sim) {
@@ -367,9 +363,10 @@ export function shadeOps(scene, built, sim) {
   for (const part of built.parts) {
     const reading = sim.parts[part.id];
     if (!['LED', 'LEDS'].includes(reading?.kind) || !part.built?.light) continue;
-    const pts = domeOutline(scene, part.built.light);
+    const d = domeOutline(scene, part);
+    if (!d) continue;
     // Its darkness in fill-opacity: `opacity` stays the moves' (an assemble or an insert hides the part).
-    out.push({ kind: 'polygon', pts, fill: SHADE.color, cls: 'led-shade', style: `fill-opacity:${(SHADE.opacity * shadeOpacity(reading.brightness)).toFixed(2)}`, part: part.id, data: { shade: part.id } });
+    out.push({ kind: 'path', d, fill: SHADE.color, cls: 'led-shade', style: `fill-opacity:${(SHADE.opacity * shadeOpacity(reading.brightness)).toFixed(2)}`, part: part.id, data: { shade: part.id } });
   }
   return out;
 }

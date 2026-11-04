@@ -11,11 +11,16 @@
 // Taps on the drawing do nothing while the part is up, but it can be dragged and zoomed as on the board,
 // its texts going with it (each row by its leader, shrunk with the others and cut with "…" at the
 // screen's edge only when it still does not fit, as in a video).
-// Back, or Escape, lands the part, the camera keeping it where it is on screen while the board comes
-// up around it.
+// Back, or Escape, lands the part in a short move (PAGE_VIEW, moves.js: a person tapped, nothing to
+// watch): the part comes down its few mm with the camera following it, so it stays where it is on
+// screen, while the board, in place under the veil, lightens around it; no frame after that. The page's bar goes away up close and comes back on Back: the
+// drawing's area changes size, so the frame is set again in the same instant to keep every point where
+// it was on screen (keepStill), and the moves are measured in the area the view has.
 
 import { select } from './card.js';
 import { iconSvg } from './icons.js';
+import { setBox } from './view.js';
+import { PAGE_VIEW } from './moves.js';
 import { DOT_COLOR, HEAT_COLOR, VOLTAGE_COLORS } from '../../sim/look.js';
 
 // The legend of each inside view: [swatch, text key] (the swatch: a class of the figure's own colours).
@@ -178,7 +183,24 @@ export function setupFocusView(page, { tour, t }) {
   const own = viewport?.getAttribute('content');
   const scale = (fixed) => viewport?.setAttribute('content', fixed ? 'width=device-width, initial-scale=1, maximum-scale=1' : own);
 
+  // The drawing's area changes (the page's bar going or coming back): the frame set again at once, at
+  // the same scale, its centre moved by what the area's centre moved, so nothing jumps on screen.
+  function keepStill(change) {
+    const svg = page.current();
+    const before = svg.getBoundingClientRect();
+    const box = page.box;
+    change();
+    const after = svg.getBoundingClientRect();
+    if (!box || !(before.width > 0 && before.height > 0 && after.width > 0 && after.height > 0)) return;
+    const k = Math.max(box[2] / before.width, box[3] / before.height);
+    const cx = box[0] + box[2] / 2 + (after.left + after.width / 2 - before.left - before.width / 2) * k;
+    const cy = box[1] + box[3] / 2 + (after.top + after.height / 2 - before.top - before.height / 2) * k;
+    setBox(page, [cx - (after.width * k) / 2, cy - (after.height * k) / 2, after.width * k, after.height * k]);
+  }
+
+  let leaving = null;
   function enter(id) {
+    clearTimeout(leaving);
     select(page, null);
     on = id;
     for (const k of Object.keys(shown)) shown[k] = false;
@@ -186,18 +208,18 @@ export function setupFocusView(page, { tour, t }) {
     buttons.symbol.hidden = !data()?.symbol;
     buttons.inside.hidden = !data()?.inside;
     dock.hidden = false;
-    document.body.classList.add('focus-view');
+    keepStill(() => document.body.classList.add('focus-view'));
     scale(true);
     page.inset = inset;
     page.focusing = true;
     tour.hold(true);
     // A little farther than a video's pedestal: the pins and the bench need their room on a phone.
-    tour.run({ do: 'scene', mode: 'part', part: id, zoom: 0.7 });
+    tour.run({ do: 'scene', mode: 'part', part: id, zoom: 0.7, ms: PAGE_VIEW.enter });
     settle();
     sync();
     buttons.pins.focus({ preventScroll: true });
     // What the part is comes first: its pins, once it is up.
-    setTimeout(() => on === id && !shown.pins && !shown.bench && toggle('pins'), 450);
+    setTimeout(() => on === id && !shown.pins && !shown.bench && toggle('pins'), PAGE_VIEW.enter);
   }
   function leave() {
     if (!on) return;
@@ -205,18 +227,18 @@ export function setupFocusView(page, { tour, t }) {
     on = null;
     for (const key of Object.keys(shown)) if (shown[key]) tour.run(off[key]);
     dock.hidden = true;
-    // Down to its holes with the camera following it: the part stays where it is on screen and the
-    // board comes up around it; no frame after that, so nothing jumps.
-    tour.run({ do: 'land', part: id });
     clearTimeout(settling);
     page.layoutBox = null;
-    setTimeout(() => {
+    // The bar back first, the frame kept still in the smaller area; then down to its holes with the
+    // camera following it (the part stays where it is on screen), the board lightening around it.
+    keepStill(() => document.body.classList.remove('focus-view'));
+    tour.run({ do: 'land', part: id, move: 'arrival', ms: PAGE_VIEW.back, slide: false });
+    leaving = setTimeout(() => {
       tour.hold(false);
       delete page.inset;
       page.focusing = false;
-      document.body.classList.remove('focus-view');
       scale(false);
-    }, 1600);
+    }, PAGE_VIEW.back + 100);
   }
 
   // *See the part up close*, first in the card of a part the view can show.

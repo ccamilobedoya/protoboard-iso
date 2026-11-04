@@ -121,6 +121,8 @@ function paintPrimitive(primitive, camera, bounds, out) {
         opacity: decal.opacity,
         part,
         role: decal.role,
+        // A decal drawn at each of its positions (a motor's notch), as a piece's pose above.
+        ...(decal.pose && { cls: 'pose', data: { pose: decal.pose, ...(decal.turns && { turns: decal.turns }) }, ...(decal.hidden && { style: 'display:none' }) }),
       });
     } else if (decal.kind === 'text') {
       const op = decalTextOp(camera, decal);
@@ -222,7 +224,8 @@ function layoutLabels(labels, top, obstacles = []) {
 // A primitive that rests on another one (`on`: a chip on a PCB, a metal can on a module; or a
 // list, a PCB on its two header strips) is painted after it, whatever their centres say: a large flat PCB sorted by its centre would
 // otherwise cover the parts on its far half. Each one moves to just after its support (what
-// sorted between them is farther than the support, so also behind the part on it).
+// sorted between them is farther than the support, so also behind the part on it), after the parts
+// that moved there before it and are farther away, so parts on the same support keep their order.
 //
 // A primitive on one face of a board that stands up also names that face (`side`, its normal):
 // seen from that face it is painted after the board as above; seen from the other one, before it,
@@ -246,7 +249,12 @@ export function supportsFirst(sorted, camera = null) {
       const j = Math.max(...bases.map((base) => list.findIndex((e) => e.p === base)));
       if (j > i) {
         const [item] = list.splice(i, 1);
-        list.splice(j, 0, item);
+        // After its support and after what already moved there that is farther than it: inserted
+        // right after the support, two parts on the same PCB would swap (the far one painted last,
+        // over the near one: an UNO's reset button over its USB socket).
+        let k = j;
+        while (k < list.length && list[k].depth > item.depth) k++;
+        list.splice(k, 0, item);
         moved = true;
         i--;
       }

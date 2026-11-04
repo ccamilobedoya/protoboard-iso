@@ -106,6 +106,12 @@ export const SCENE_ENTER = { drop: 8, ms: 700, curve: [0.34, 1.4, 0.64, 1], push
 // camera has opened: at the end of the first frame step after the land, else at the land's end. A focus
 // set during the land shows its strips and coordinates only then, fading in over `reveal` ms.
 export const LAND = { dim: 0.9, ramp: 700, reveal: 300 };
+// The part's view in the page (focus-view.js) moves for a person who tapped, not for a viewer: its
+// scene in `enter` ms (an arrival), and Back in `back` ms along an arrival's curve: the part comes down
+// its 3 mm with the camera following it, and the board, in place at once under the veil (not sliding
+// up from below the frame, which made the part seem to fall from high up), lightens around it. A
+// video's scene and land keep their own times.
+export const PAGE_VIEW = { enter: 450, back: 350 };
 // A recording names the told part with at least this many px of letter at 1080 px (the frame's short
 // side), however far the camera is: the label scales about its anchor (48: its capitals about as tall
 // as a 44 px text's).

@@ -198,7 +198,10 @@ El script de la página pasa de una cadena larga (`page/script.js`) a módulos r
 - **Puntos.** Son trazos SVG; el script escribe `stroke-dashoffset` a partir de una fase acumulada, como el `curcount` de Falstad.
   - La velocidad cambia sin saltos y el zoom sale del `viewBox`.
   - Velocidad ∝ I / pico, donde el pico es la corriente mayor desde el arranque (no baja solo, así una corriente que se apaga se ve frenando). Solo se anima la vista visible.
-- **Colores, brillo, calor, etiquetas y ficha** se refrescan a 4 Hz, para que se puedan leer.
+- **Colores, calor, etiquetas y ficha** se refrescan a 4 Hz, para que se puedan leer. La luz de los LEDs se
+  pinta en cada cuadro, de una vez (el dígito de un display de 7 segmentos cambia en un cuadro, un parpadeo
+  nunca llega tarde): promediada sobre los cuadros de los últimos 20 ms de tiempo simulado, a lo sumo 34 ms
+  de reloj, así que un PWM muestra su promedio.
 - **Reproducir, pausar, reiniciar y velocidad** solo aparecen si el circuito tiene un condensador o una bobina.
   - Reiniciar es «encender en t = 0», con los condensadores descargados.
   - El arranque es `page.start` (por defecto `'dc'`, con los valores de hoy).

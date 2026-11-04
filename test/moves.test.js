@@ -13,7 +13,7 @@ import { DOT_PERIOD } from '../src/sim/look.js';
 import { timelineCircuit } from '../scripts/render-frames.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { autoLayout } from '../src/layout.js';
-import { CAPTION, CARD, INSERT, LIGHT, RAISE, NUDGE, MOVES, ASSEMBLE, LAND } from '../src/page/client/moves.js';
+import { CAPTION, CARD, INSERT, LIGHT, RAISE, NUDGE, MOVES, ASSEMBLE, LAND, PAGE_VIEW } from '../src/page/client/moves.js';
 
 const FRAME = 1000 / 30;
 const examples = fileURLToPath(new URL('../examples/', import.meta.url));
@@ -1279,8 +1279,11 @@ test('moves: a part up close in the page: the card\'s entry, the bar, outside ta
   // Back: the part lands, the camera keeps its size (no frame of the whole circuit after it).
   const width = () => Number(doc.querySelector('main > svg:not([hidden])').getAttribute('viewBox').split(' ')[2]);
   const before = width();
+  // Short (a person tapped): on the board in PAGE_VIEW.back, the page's bar back at once (its area kept
+  // still on screen, focus-view.js keepStill), never the video's land of a travel and a ramp.
   doc.querySelector('.focus-back').click();
-  for (let k = 0; k < 60; k++) live.tick(FRAME);
+  assert.equal(doc.body.classList.contains('focus-view'), false, 'the bar back with the tap');
+  for (let k = 0; k < (PAGE_VIEW.back + 2 * FRAME) / FRAME; k++) live.tick(FRAME);
   assert.equal(doc.querySelector('main').dataset.scene, undefined, 'on the board');
   assert.ok(Math.abs(width() - before) < 0.01, `${before} → ${width()}`);
   assert.equal(dock.hidden, true);

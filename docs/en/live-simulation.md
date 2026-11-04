@@ -191,7 +191,9 @@ page keeps **one attribute-less `<script>`**, last; JSON scripts go before it.
   `curcount`): speed changes without jumps, zoom comes from the `viewBox`. Speed ∝ I / peak, the
   peak being the largest current since the start (it never shrinks on its own, so a dying
   current is seen slowing down). Only the visible view is animated.
-- Colours, glow, heat, tags and card refresh at 4 Hz, to stay readable.
+- Colours, heat, tags and card refresh at 4 Hz, to stay readable. The LEDs' light is painted on every
+  frame, at once (a 7-segment's digit changes in one frame, a blink is never late): averaged over the
+  frames of the last 20 ms of simulated time, at most 34 ms of the wall, so a PWM shows its average.
 - Play / pause / reset / speed only when the circuit has a capacitor or an inductor. Reset means
   "switched on at t = 0" (capacitors discharged); start is `page.start` (default `'dc'`, today's
   values).

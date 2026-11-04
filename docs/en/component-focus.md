@@ -418,7 +418,7 @@ armature's three poles turned to the shaft's angle (`angle`, so they turn at the
 round them as long as the speed against its free speed at the top of its range, the commutator and its
 two brushes down to + and −, the supply's voltage against the back-EMF as two bars at the top, and the
 speed, the current and the EMF under it (`omega`, `rpm`, `emf`, `voltage`, `current`, `state`). On the
-board its pulley's notch turns with the shaft (drawn at eight angles, `pose`).
+board its pulley's notch turns with the shaft (drawn at sixteen angles as decals of the pulley, `pose`).
 
 Up close on a phone the pinout's rows hug their leaders as before, and now fit the screen too: they
 shrink together to 65 % and a row still too long ends in "…" at the edge, as in a video; when two
@@ -499,6 +499,18 @@ part when it was asked for after a drag; it is now placed once, when it comes, i
 units beside the part (measured through the camera as it is then), drawn over the part's layer, and
 never moved again: it goes wherever the part goes. And the other parts' short labels now fade with the
 board instead of vanishing at the end.
+
+**A try on a phone and an iPad (2026-11-04).** Back took 2.2 s and the part seemed to fall from high up:
+the video's land slid the board up a whole screen from below. The page now has its own moves
+(`PAGE_VIEW`, `moves.js`): the scene comes in 450 ms, and Back is 350 ms along an arrival's curve, the
+board in place at once under the veil, lightening as the part comes down its 3 mm with the camera
+following it (still on screen, nothing framed after). The page's bar, which steps aside up close, made
+the drawing jump when it went (23.5 px in the first frame) and when it came back (25 to 28 px, 1.6 s
+after the tap): it now goes and comes back with the tap, and in that same instant the frame is set again
+at the same scale so every point stays where it was (`keepStill`); the scene and the pinout are then
+measured in the area the view has. Measured in Chromium at 390 × 844 and 820 × 1180 for the LED, the
+555 and the 7-segment display: the drawing moves 0.00 to 0.03 px at each tap, and Back leaves the part
+within 0.1 px. A video's scene and land are unchanged.
 
 Keyboard: every control is a button in reading order, the first segment takes the focus on entering,
 Escape leaves; the groups and Back have names for a screen reader. Reduced motion makes every move a cut

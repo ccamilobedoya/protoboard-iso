@@ -11,8 +11,8 @@
 //               at the back, 15.5 mm apart, (+) and (−) printed beside them. It lies on the table
 //               beside one edge of the board like a battery (battery.js), its terminals toward the
 //               board, a red lead from (+) and a black one from (−) into two holes. A white pulley on
-//               its shaft carries a dark notch, drawn at each of eight angles (`pose`: 'a0' … 'a7'),
-//               only the first shown: the live page shows the one its reading's angle has, so the
+//               its shaft carries a dark notch, drawn at each of sixteen angles (`pose`: 'a0' …
+//               'a15', decals of the pulley), only the first shown: the live page shows the one its reading's angle has, so the
 //               shaft turns at its speed (page/client/live.js).
 //
 // mark (src/pinout.js): the relay's coil is the two pins beside COM (`coil`, no polarity: no diode
@@ -20,8 +20,8 @@
 //
 // params: relay as a switch beside the board (names, colors, side, offset); motor: side, offset.
 
-import { v3, add, scale, cross, normalize, Z } from '../../core/vec.js';
-import { box, lathe, textDecal } from '../../geometry/primitives.js';
+import { v3, add, sub, scale, cross, normalize, dot, X, Z } from '../../core/vec.js';
+import { box, lathe, rectDecal, textDecal, midpoint } from '../../geometry/primitives.js';
 import { MATERIALS, WIRE_COLORS } from '../colors.js';
 import { withZ } from './common.js';
 import { placement as besideBoard, slab, leads } from './switch.js';
@@ -33,6 +33,36 @@ const CASE = [19.1, 15.5, 15.3];
 const PIN = 5;
 const SRD_PINS = { COM: [-8.15, 0], A1: [-6.15, 6], A2: [-6.15, -6], NC: [8.05, 6], NO: [8.05, -6] };
 
+// The print on an SRD's top, centred on its face: `on(x, z)` is the face's point x mm along the
+// board and z mm up from its middle, `right` the reading direction, `normal` the way it faces.
+function srdFace(on, right, normal) {
+  const color = MATERIALS.relayPrint;
+  const down = scale(Z, -1);
+  const text = (t, z, size, weight = 400) => textDecal({ text: t, at: on(0, z), right, down, size, color, weight, upright: true });
+  // A printed stroke from (x0, z0) to (x1, z1), 0.3 mm wide.
+  const stroke = (x0, z0, x1, z1) => {
+    const a = on(x0, z0);
+    const b = on(x1, z1);
+    const u = normalize(sub(b, a));
+    return rectDecal({ center: midpoint(a, b), u, v: cross(normal, u), width: Math.hypot(x1 - x0, z1 - z0) + 0.3, height: 0.3, color });
+  };
+  // `right` runs along +x or −x of `on`, whichever reads left to right.
+  const s = dot(right, sub(on(1, 0), on(0, 0))) > 0 ? 1 : -1;
+  const x = (d) => s * d;
+  return [
+    text('SRD-05VDC-SL-C', 5.2, 1.75, 700),
+    text('10A 250VAC 10A 125VAC', 2.6, 1.2),
+    text('10A 30VDC 10A 28VDC', 0.6, 1.2),
+    // The coil (a box with its two leads) and the changeover: COM's blade resting on NC, NO below.
+    stroke(x(-7), -4.8, x(-3.5), -4.8), stroke(x(-3.5), -4.8, x(-3.5), -2.6), stroke(x(-3.5), -2.6, x(-7), -2.6), stroke(x(-7), -2.6, x(-7), -4.8),
+    stroke(x(-6.3), -4.8, x(-6.3), -6.4), stroke(x(-4.2), -4.8, x(-4.2), -6.4),
+    stroke(x(1), -6.4, x(1), -4.8), stroke(x(1), -4.8, x(5.6), -2.8),
+    stroke(x(4.8), -2.4, x(7.4), -2.4), stroke(x(7.4), -2.4, x(7.4), -6.4),
+    stroke(x(4.8), -5, x(6.2), -5), stroke(x(6.2), -5, x(6.2), -6.4),
+    textDecal({ text: '5VDC', at: on(x(-5.25), -1.6), right, down, size: 0.9, color, upright: true }),
+  ];
+}
+
 export const relay = {
   id: 'relay-srd',
   pinCount: null, // the pins the circuit lists
@@ -41,20 +71,21 @@ export const relay = {
     const { at, away, toward, table } = besideBoard(pins, params, board);
     const zc = table + CASE[1] / 2;
     const FACE = 20 + PIN; // the pin face, mm from the board's edge
-    const body = slab(at, away, FACE, FACE + CASE[2], 0, zc - CASE[1] / 2, CASE[0], CASE[1], MATERIALS.relayCase);
-    // Its part number on the top, reading from the side it is seen from.
+    const body = slab(at, away, FACE, FACE + CASE[2], 0, zc, CASE[0], CASE[1], MATERIALS.relayCase);
+    // Its part number on the upper side, reading from the side it is seen from.
     const top = at(FACE + CASE[2] / 2, 0, table + CASE[1] + 0.01);
-    const right = normalize(cross(away, Z));
-    const flip = right.x + right.y < 0 ? -1 : 1;
-    body.decals.push(textDecal({ text: 'SRD-05VDC-SL-C', at: top, right: scale(right, flip), down: scale(away, flip), size: 1.7, color: MATERIALS.relayPrint, weight: 700 }));
-    body.decals.push(textDecal({ text: '10A 30VDC', at: add(top, scale(away, flip * 3)), right: scale(right, flip), down: scale(away, flip), size: 1.4, color: MATERIALS.relayPrint }));
+    // Facing up (down × right = Z), turned to read left to right from the camera.
+    body.decals.push(textDecal({ text: 'SRD-05VDC-SL-C', at: top, right: X, down: cross(X, Z), size: 1.7, color: MATERIALS.relayPrint, weight: 700, upright: true }));
+    // The real relay's top (the face away from its pins, here facing away from the board): its part
+    // number, its contact ratings and the coil-and-changeover diagram, as an SRD prints them.
+    body.decals.push(...srdFace((x, z) => at(FACE + CASE[2] + 0.01, x, zc + z), normalize(cross(Z, away)), away));
     const pinBoxes = Object.entries(SRD_PINS).map(([name, [x, z]]) => slab(at, away, FACE - PIN, FACE, x, zc + z, name.startsWith('A') ? 0.6 : 1, name.startsWith('A') ? 0.6 : 0.4, MATERIALS.tinned, false));
     const contactOf = (name) => {
       const p = SRD_PINS[name];
       return p ? { x: p[0], z: zc + p[1], tip: at(FACE - PIN + 0.5, p[0], zc + p[1]) } : null;
     };
     // A heat-shrink sleeve over the pin's tip and the lead soldered to it, in the wire's colour.
-    const sleeve = (c, color) => ({ primitives: [slab(at, away, FACE - PIN - 3.5, FACE - PIN + 1.5, c.x, c.z - 0.9, 1.8, 1.8, color ?? MATERIALS.clipBoot)], start: at(FACE - PIN - 3.5, c.x, c.z) });
+    const sleeve = (c, color) => ({ primitives: [slab(at, away, FACE - PIN - 3.5, FACE - PIN + 1.5, c.x, c.z, 1.8, 1.8, color ?? MATERIALS.clipBoot)], start: at(FACE - PIN - 3.5, c.x, c.z) });
     const inside = at(FACE + CASE[2] / 2, 0, zc);
     const wired = leads(pins, params, contactOf, sleeve, toward, inside);
     const anchor = at(FACE + CASE[2] / 2, 0, table + CASE[1]);
@@ -69,7 +100,7 @@ const BOSS = { radius: 3.075, length: 1.7 };
 const SHAFT = { radius: 1, length: 10 };
 const TERMINALS = { apart: 15.5, out: 2 };
 const PULLEY = { radius: 4, length: 3, from: 5 };
-export const MOTOR_POSES = 8;
+export const MOTOR_POSES = 16;
 
 export const motor = {
   id: 'motor-140',
@@ -97,17 +128,24 @@ export const motor = {
     out.push(lathe({ profile: [[0, 0], [BOSS.radius, 0], [BOSS.radius, BOSS.length], [0, BOSS.length]], origin: front, axis: away, ref: Z, segments: 14, color: MATERIALS.motorCan }));
     out.push(lathe({ profile: [[0, 0], [SHAFT.radius, 0], [SHAFT.radius, SHAFT.length], [0, SHAFT.length]], origin: front, axis: away, ref: Z, segments: 10, color: MATERIALS.nickel }));
     const pulleyAt = add(front, scale(away, PULLEY.from));
-    out.push(lathe({ profile: [[0, 0], [PULLEY.radius, 0], [PULLEY.radius, PULLEY.length], [0, PULLEY.length]], origin: pulleyAt, axis: away, ref: Z, segments: 18, color: MATERIALS.motorPulley }));
-    // The notch on the pulley's face, at each of its angles; the live page shows the one it has.
-    const face = add(pulleyAt, scale(away, PULLEY.length));
-    const notches = Array.from({ length: MOTOR_POSES }, (_, k) => {
+    const pulley = lathe({ profile: [[0, 0], [PULLEY.radius, 0], [PULLEY.radius, PULLEY.length], [0, PULLEY.length]], origin: pulleyAt, axis: away, ref: Z, segments: 18, color: MATERIALS.motorPulley });
+    out.push(pulley);
+    // The notch at each of its angles, as decals of the pulley itself, so they are painted with it
+    // (as pieces of their own the painter put the lower ones under the pulley): a dash on its face
+    // and its end across the rim, which shows where the pulley peeks out from behind the can in
+    // the other view. The live page shows the one it has.
+    const face = add(pulleyAt, scale(away, PULLEY.length + 0.01));
+    for (let k = 0; k < MOTOR_POSES; k++) {
       const a = (k / MOTOR_POSES) * 2 * Math.PI;
       const radial = add(scale(Z, Math.cos(a)), scale(v, Math.sin(a)));
-      const n = box({ center: add(face, scale(radial, PULLEY.radius * 0.55)), u: radial, w: away, size: [2.6, 1.1, 0.4], color: MATERIALS.motorNotch, outline: false });
-      n.pose = `a${k}`;
-      n.hidden = k !== 0;
-      return n;
-    });
+      const side = cross(away, radial);
+      const rim = add(pulleyAt, scale(radial, PULLEY.radius * 1.02));
+      const pose = { pose: `a${k}`, turns: MOTOR_POSES, hidden: k !== 0 };
+      pulley.decals.push(
+        { ...rectDecal({ center: add(face, scale(radial, PULLEY.radius * 0.6)), u: radial, v: side, width: 2.8, height: 1.1, color: MATERIALS.motorNotch }), ...pose },
+        { ...rectDecal({ center: add(rim, scale(away, PULLEY.length / 2)), u: away, v: scale(side, -1), width: PULLEY.length, height: 1.1, color: MATERIALS.motorNotch }), ...pose },
+      );
+    }
     // The terminals, the (+) and (−) printed by them on the cap, and the leads to the holes.
     const terminal = (k) => add(back, scale(v, (k * TERMINALS.apart) / 2));
     const tabs = [1, -1].map((k) => box({ center: terminal(k), u: v, w: u, size: [2.9, 0.4, TERMINALS.out], color: MATERIALS.tinned, outline: false }));
@@ -120,6 +158,6 @@ export const motor = {
     const inside = add(back, scale(away, CAN.length / 2));
     const paths = [red.path, black.path].map((path) => ({ points: [...path, inside], body: path.length - 1 }));
     const anchor = v3(inside.x, inside.y, centre.z + 2 * R);
-    return { primitives: [...out, ...notches, ...tabs, ...red.primitives, ...black.primitives], body: out, anchor, paths, mark: { kind: 'lead', at: withZ(plus, 0) } };
+    return { primitives: [...out, ...tabs, ...red.primitives, ...black.primitives], body: out, anchor, paths, mark: { kind: 'lead', at: withZ(plus, 0) } };
   },
 };

@@ -129,3 +129,33 @@ test('live: "Open in Falstad" carries the circuit as it is now, and its notes', 
   link.dispatchEvent(new window.Event('click'));
   assert.notEqual(decodeURIComponent(link.href), before);
 });
+
+// The lights follow the simulation in the page (2026-11-04): painted on every frame, not with the
+// colours and tags four times a second, and without a video's rise, so a 7-segment digit changes in
+// one frame instead of in slow motion (a segment half lit over several paints, a quarter second late).
+test('live: a display\'s segment switches in the frame the simulation switches it', async (t) => {
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  const { autoLayout } = await import('../src/layout.js');
+  const { circuit } = autoLayout(expandRecipe('uno-seven-segment').spec);
+  const window = await loadPage(renderPage(circuit, { lang: 'en' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const live = window.protoboardLive;
+  const segment = window.document.querySelector('main > svg .led-segment[data-glow="DS1.e"]');
+  assert.ok(segment, 'segment e drawn');
+  const FRAME = 1000 / 60;
+  let late = 0;
+  let longest = 0;
+  let switched = 0;
+  let was = null;
+  for (let k = 0; k < 1300 / FRAME; k++) {
+    live.tick(FRAME);
+    const truth = (live.reading.parts.DS1.channels.e.brightness ?? 0) > 0.05;
+    const shown = Number(segment.style.fillOpacity) > 0;
+    if (was != null && truth !== was) switched++;
+    was = truth;
+    late = truth === shown ? 0 : late + 1;
+    longest = Math.max(longest, late);
+  }
+  assert.ok(switched >= 1, 'the digit changed (0 → 1 turns e off)');
+  assert.ok(longest <= 1, `shown a frame late at most, not ${longest}`);
+});

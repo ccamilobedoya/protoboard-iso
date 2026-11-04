@@ -50,6 +50,9 @@ const BUDGET = 8; // ms of simulation per frame
 const DIRECTOR_STEPS = 20000; // steps per frame at most under the director (its frames take what they need)
 const LONGEST = 100; // ms: a longer frame is slow motion (a tab that was hidden), or split by the director
 const REFRESH = 250; // ms between repaints of colours, tags and card
+// What an LED's light is averaged over in the page: 20 ms of simulated time (a PWM's periods), at most
+// the frames of the last 34 ms on the wall (two frames).
+const GLOW_WINDOW = { sim: 0.02, wall: 34 };
 const TAG_SIZE = 8; // px, as in src/sim/overlay.js
 const MIN_MOVE = 0.05; // px of dot movement worth a redraw
 const SCOPE_SAMPLES = 2048; // per part
@@ -303,18 +306,21 @@ export function setupLive(page) {
   let tags = null;
   let bridges = null;
 
-  // The halo of each LED (M8): it rises to its brightness along a hit instead of appearing, and goes
-  // out at once. At rest when the page loads, at once under reduced motion; dark while a part is
-  // in the air (M15: the circuit is not closed yet). id → { shown, written, rise: { from, ms } }.
+  // The halo of each LED (M8): in a video (a recording or a landing) it rises to its brightness along
+  // a hit instead of appearing, and goes out at once. In the page a person reads the circuit, so a
+  // light follows the simulation at once (a 7-segment's digit changes in one frame, a blink is never
+  // late). At rest when the page loads, at once under reduced motion; dark while a part is in the air
+  // (M15: the circuit is not closed yet). id → { shown, written, rise: { from, ms } }.
   const lights = new Map();
   let dark = false;
   const lightEase = bezier(LIGHT.curve);
+  const rises = recording || landing;
   function aim(id, target) {
     const to = dark ? 0 : target;
     const l = lights.get(id);
     if (!l) return lights.set(id, { shown: to, to, written: null, rise: null });
     l.to = to;
-    if (reduced || to <= l.shown) {
+    if (reduced || !rises || to <= l.shown) {
       l.shown = to;
       l.rise = null;
     } else if (!l.rise) l.rise = { from: l.shown, ms: 0 };
@@ -359,6 +365,52 @@ export function setupLive(page) {
     }
   }
 
+  // LEDs lit with their current: on the board (.lights, with the results) and in the current layer,
+  // painted on every frame (not with the colours and tags, four times a second: a light that waited
+  // for them lagged up to 250 ms and showed a half-lit paint between two states, a digit changing in
+  // slow motion). A PWM is faster than any paint and the eye sees its average: the page averages the
+  // frames of the last GLOW_WINDOW.sim of simulated time (a PWM's periods), never older than
+  // GLOW_WINDOW.wall ms (a circuit in slow motion still switches when it does). A recording averages
+  // each of its ticks, as it always has (its frames do not change).
+  const glowChunks = []; // { glow, dt, at } of the last frames, newest last
+  let glowAt = null;
+  function glowNow() {
+    const glow = engine.glow?.() ?? null;
+    if (recording) return glow ?? {};
+    const now = engine.time;
+    const wall = performance.now();
+    if (glowAt == null || now < glowAt) glowChunks.length = 0;
+    const dt = glowAt == null ? 0 : now - glowAt;
+    glowAt = now;
+    if (glow && dt > 0) glowChunks.push({ glow, dt, at: wall });
+    let total = glowChunks.reduce((a, c) => a + c.dt, 0);
+    while (glowChunks.length > 1 && (total - glowChunks[0].dt >= GLOW_WINDOW.sim || wall - glowChunks[0].at > GLOW_WINDOW.wall)) total -= glowChunks.shift().dt;
+    const sum = {};
+    for (const c of glowChunks) for (const [key, v] of Object.entries(c.glow)) sum[key] = (sum[key] ?? 0) + v * c.dt;
+    for (const key of Object.keys(sum)) sum[key] /= total;
+    return sum;
+  }
+  function paintLights() {
+    if (!reading || !glows) return;
+    const glow = glowNow();
+    // A chip of a part of several LEDs is "<part>.<pin>" (a display's segment, an RGB LED's R).
+    const bright = (key) => {
+      if (glow[key] != null) return glow[key];
+      const dot = key.lastIndexOf('.');
+      return dot < 0 ? reading.parts[key]?.brightness : reading.parts[key.slice(0, dot)]?.channels?.[key.slice(dot + 1)]?.brightness;
+    };
+    for (const list of segments) for (const el of list) aim(el.dataset.glow, glowOpacity(bright(el.dataset.glow)));
+    for (const el of glows) {
+      aim(el.dataset.glow, glowOpacity(bright(el.dataset.glow)));
+      // An RGB LED's halo: its chips' colours mixed again by what each one gives now.
+      if (el.dataset.mix) {
+        const fill = mixLight(el.dataset.mix.split(' ').map((c) => [c.slice(c.indexOf(':') + 1), bright(`${el.dataset.glow}.${c.slice(0, c.indexOf(':'))}`)]));
+        if (el.getAttribute('fill') !== fill) el.setAttribute('fill', fill);
+      }
+    }
+    writeLights();
+  }
+
   // Colours, glow, heat, tags, captions, card.
   function repaint() {
     heats ??= each('.flow > [data-heat]');
@@ -369,14 +421,15 @@ export function setupLive(page) {
     for (const el of bridges) el.style.display = reading.parts[el.dataset.bridge]?.pressed ? '' : 'none';
     if (!reading) return;
     // A slide switch's knob where its control has it now: the other one hidden. A motor's notch at
-    // the shaft's angle now ('a0' … 'a7', the nearest of its angles), so the shaft turns at its speed.
+    // the shaft's angle now ('a0' … 'a15', the nearest of its angles), so the shaft turns at its speed.
     for (const list of poses) {
       for (const el of list) {
         const r = reading.parts[el.dataset.part];
         const turn = /^a(\d+)$/.exec(el.dataset.pose);
         let shown;
         if (turn && typeof r?.angle === 'number') {
-          const n = (turns[el.dataset.part] ??= new Set([...list].filter((x) => x.dataset.part === el.dataset.part && /^a\d+$/.test(x.dataset.pose)).map((x) => x.dataset.pose)).size);
+          // Its count from the piece (data-turns): a view may draw no face of some angles at all.
+          const n = Number(el.dataset.turns) || (turns[el.dataset.part] ??= new Set([...list].filter((x) => x.dataset.part === el.dataset.part && /^a\d+$/.test(x.dataset.pose)).map((x) => x.dataset.pose)).size);
           const k = ((Math.round((r.angle / (2 * Math.PI)) * n) % n) + n) % n;
           shown = Number(turn[1]) === k;
         } else if (typeof r?.on === 'boolean') shown = (r.on ? 'on' : 'off') === el.dataset.pose;
@@ -403,25 +456,7 @@ export function setupLive(page) {
         el.style.opacity = heatOpacity(power?.ratio).toFixed(2);
       }
     }
-    // LEDs lit with their current: on the board (.lights, with the results) and in the current layer.
-    // Averaged over the steps since the last paint (a PWM is faster than the page): what the eye sees.
-    const glow = engine.glow?.() ?? {};
-    // A chip of a part of several LEDs is "<part>.<pin>" (a display's segment, an RGB LED's R).
-    const bright = (key) => {
-      if (glow[key] != null) return glow[key];
-      const dot = key.lastIndexOf('.');
-      return dot < 0 ? reading.parts[key]?.brightness : reading.parts[key.slice(0, dot)]?.channels?.[key.slice(dot + 1)]?.brightness;
-    };
-    for (const list of segments) for (const el of list) aim(el.dataset.glow, glowOpacity(bright(el.dataset.glow)));
-    for (const el of glows) {
-      aim(el.dataset.glow, glowOpacity(bright(el.dataset.glow)));
-      // An RGB LED's halo: its chips' colours mixed again by what each one gives now.
-      if (el.dataset.mix) {
-        const fill = mixLight(el.dataset.mix.split(' ').map((c) => [c.slice(c.indexOf(':') + 1), bright(`${el.dataset.glow}.${c.slice(0, c.indexOf(':'))}`)]));
-        if (el.getAttribute('fill') !== fill) el.setAttribute('fill', fill);
-      }
-    }
-    writeLights();
+    paintLights();
     // Result tags: the same place, the new value, the box resized around its centre.
     for (const text of tags) {
       let value = null;
@@ -587,6 +622,7 @@ export function setupLive(page) {
       lastPaint = now;
       repaint();
     } else if (rising) writeLights();
+    else paintLights();
   }
   director = recording || data.tour
     ? createDirector(page, {

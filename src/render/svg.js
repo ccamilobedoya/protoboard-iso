@@ -53,6 +53,9 @@ function opToSvg(op, tagParts = false) {
       return `<circle cx="${fmt(op.cx)}" cy="${fmt(op.cy)}" r="${fmt(op.r)}" fill="${op.fill}"${opacity}${stroke}${more}/>`;
     }
     case 'path': {
+      // A filled outline of several pieces (an LED's shade: the faces it shows, one fill so their
+      // shared edges leave no seam); else a stroke.
+      if (op.fill) return `<path d="${op.d}" fill="${op.fill}"${more}/>`;
       const dash = op.dash ? ` stroke-dasharray="${op.dash}"` : '';
       return `<path d="${op.d}" fill="none" stroke="${op.stroke}" stroke-width="${op.strokeWidth}" stroke-linecap="round" stroke-linejoin="round"${dash}${more}/>`;
     }

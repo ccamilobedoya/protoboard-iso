@@ -442,7 +442,10 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     sceneFade(1);
     dim(1);
     lit = id;
-    const below = page.box ? page.box[3] : 0;
+    // The page's Back (focus-view.js, `slide: false`): the board in place at once under the veil, which
+    // lightens along the move itself; touched down, the scene ends.
+    const quick = s.slide === false;
+    const below = page.box && !quick ? page.box[3] : 0;
     slide(below);
     const dy = height * (page.data.lift ?? 0);
     if (follow && page.box && dy) director.frame([page.box[0], page.box[1] + dy, page.box[2], page.box[3]], { ms, ease });
@@ -450,6 +453,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     director.tween((e) => {
       liftPart(page, id, height * (1 - e));
       slide(below * (1 - e));
+      if (quick && lit === id) dim(1 - e);
       if (e < 1) return;
       // Touched down: the board in place, still under the veil; the part over it without its label.
       page.main.dataset.scene = 'lit';
@@ -460,7 +464,8 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         applyFocus(page);
       }
       event('land', { part: id });
-      lighten(s, at + ms);
+      if (quick) litDone(false);
+      else lighten(s, at + ms);
     }, { ms, ease });
   }
 

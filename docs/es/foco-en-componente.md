@@ -448,7 +448,7 @@ ritmo de la página), una flecha alrededor tan larga como la velocidad frente a 
 tope de su rango, el conmutador y sus dos escobillas hacia + y −, el voltaje de la fuente frente a la
 fuerza contraelectromotriz como dos barras arriba, y la velocidad, la corriente y la FCEM debajo
 (`omega`, `rpm`, `emf`, `voltage`, `current`, `state`). En la protoboard la muesca de su polea gira con
-el eje (dibujada en ocho ángulos, `pose`).
+el eje (dibujada en dieciséis ángulos como calcomanías de la polea, `pose`).
 
 De cerca en un celular las filas del diagrama de patas siguen pegadas a sus líneas guía, y ahora además
 caben en la pantalla: se encogen juntas hasta el 65 % y una fila que aún es larga termina en «…» en el
@@ -535,6 +535,19 @@ podía quedar detrás de la pieza si se pedía después de un arrastre; ahora se
 llegar, en las unidades del propio dibujo al lado de la pieza (medida con la cámara de ese momento), se
 dibuja encima de la capa de la pieza y no se mueve más: va a donde vaya la pieza. Y los rótulos cortos de
 las demás piezas ahora se desvanecen con la protoboard en vez de desaparecer al final.
+
+**Una prueba en un celular y un iPad (2026-11-04).** Volver tardaba 2,2 s y la pieza parecía caer desde
+muy alto: el aterrizaje del video subía la protoboard una pantalla entera desde abajo. La página tiene
+ahora sus propios movimientos (`PAGE_VIEW`, `moves.js`): la escena entra en 450 ms, y Volver dura 350 ms
+por la curva de una llegada, con la protoboard en su lugar de una vez bajo el velo, que se aclara
+mientras la pieza baja sus 3 mm con la cámara siguiéndola (quieta en pantalla, sin encuadre después). La
+barra de la página, que se aparta al acercarse, hacía saltar el dibujo al irse (23,5 px en el primer
+fotograma) y al volver (de 25 a 28 px, 1,6 s después del toque): ahora se va y vuelve con el toque, y en
+ese mismo instante el encuadre se ajusta a la misma escala para que cada punto quede donde estaba
+(`keepStill`); la escena y las patas se miden después en el área que tiene la vista. Medido en Chromium
+a 390 × 844 y 820 × 1180 con el LED, el 555 y el display de 7 segmentos: el dibujo se mueve de 0,00 a
+0,03 px en cada toque, y Volver deja la pieza a menos de 0,1 px. La escena y el aterrizaje de un video no
+cambian.
 
 Teclado: cada control es un botón en orden de lectura, el primer segmento recibe el foco al entrar,
 Escape sale; los grupos y Volver tienen nombre para un lector de pantalla. El movimiento reducido hace

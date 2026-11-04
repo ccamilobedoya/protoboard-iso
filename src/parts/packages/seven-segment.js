@@ -5,9 +5,12 @@
 // digit reads upright from the side of pin 1, pins 1–5 along its bottom edge from the left and
 // 6–10 back along the top.
 //
-// The face: the eight segments in their milky diffuser, a figure 8 leaning 10° with the decimal
-// point at its bottom right, as the datasheet draws it (segment width and gaps from that drawing's
-// proportions). Each segment is also given as a face (`segments`) for the light of the simulation.
+// The face: the eight segments in their milky diffuser, a figure 8 with the decimal point at its
+// bottom right (segment width and gaps from the datasheet drawing's proportions). Drawn upright: the
+// real digit leans 10° to the right, but on the case's top in this camera the lean adds to the
+// isometric skew (the face's axes 60° apart on screen, its strokes 50°) and the digit read crooked
+// against the case's edges. Each segment is also given as a face (`segments`) for the light of the
+// simulation.
 //
 // params: count (10), rowSpacing (6 holes), marking
 
@@ -21,8 +24,9 @@ const P = 2.54;
 const SIZE = [12.6, 19.0, 8.0]; // along the rows, across them, height (mm)
 const STANDOFF = 0.4;
 // The digit on the face, mm from the face's middle: height, width, stroke, gap between segments,
-// lean; its middle a little left of the face's, leaving the decimal point room on the right.
-const DIGIT = { h: 14.22, w: 7.4, t: 1.5, gap: 0.3, lean: Math.tan((10 * Math.PI) / 180), dx: -0.8 };
+// lean (none: see above); its middle a little left of the face's, leaving the decimal point room on
+// the right.
+const DIGIT = { h: 14.22, w: 7.4, t: 1.5, gap: 0.3, lean: 0, dx: -0.8 };
 
 // A segment as a hexagon from (x1, y1) to (x2, y2) (horizontal or vertical), `t` thick.
 function bar(x1, y1, x2, y2) {
