@@ -3,6 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { gitEnv } from './git-env.js';
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,7 +12,7 @@ import { secretPath, SECRET_NAMES } from '../.claude/hooks/secret-paths.js';
 import { usageOf, latest } from '../.claude/hooks/usage.js';
 
 const root = new URL('../', import.meta.url).pathname;
-const hook = (file, input, env = {}) => execFileSync(process.execPath, [join(root, '.claude/hooks', file)], { input: JSON.stringify(input), encoding: 'utf8', env: { ...process.env, ...env } });
+const hook = (file, input, env = {}) => execFileSync(process.execPath, [join(root, '.claude/hooks', file)], { input: JSON.stringify(input), encoding: 'utf8', env: gitEnv(env) });
 // Names built from pieces, so this file is not itself a list a scanner reads as secrets.
 const dot = '.';
 const env = `local${dot}env`;
@@ -65,7 +66,7 @@ test('guard: as a hook it answers with a deny decision, and with nothing otherwi
 
 test('stop: a reminder of uncommitted work, and silence when there is none', () => {
   const dir = mkdtempSync(join(tmpdir(), 'pbi-stop-'));
-  const git = (...args) => execFileSync('git', args, { cwd: dir });
+  const git = (...args) => execFileSync('git', args, { cwd: dir, env: gitEnv() });
   git('init', '-q');
   assert.equal(hook('stop-uncommitted.js', {}, { CLAUDE_PROJECT_DIR: dir }), '', 'an empty repository');
   writeFileSync(join(dir, 'a.md'), 'x\n');
