@@ -69,3 +69,13 @@ export function shadeOpacity(brightness) {
 }
 // Heat tint: nothing below a fifth of the rated power, full at the rating.
 export const heatOpacity = (ratio) => Math.min(0.7, Math.max(0, ((ratio ?? 0) - 0.2) / 0.8) * 0.7);
+
+// The colour several LEDs under one lens give together (an RGB LED): their light added, each by
+// its brightness, then raised so the brightest channel is full: the hue the eye sees, its strength
+// left to the glow's opacity. `lights`: [[hex, brightness]]; none lit: the first colour.
+export function mixLight(lights) {
+  const sum = [0, 0, 0];
+  for (const [color, b] of lights) rgb(color).forEach((c, i) => (sum[i] += c * Math.min(1, Math.max(0, b ?? 0))));
+  const top = Math.max(...sum);
+  return top > 0 ? hex(sum.map((c) => (255 * c) / top)) : lights[0]?.[0] ?? '#ffffff';
+}

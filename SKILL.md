@@ -49,6 +49,7 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 | `zener-regulator` | Zener and its series resistor holding a load |
 | `esp32-led`, `esp32-button` | ESP32 DevKit blinking an LED (D13) / reading a button (D27), with their program |
 | `uno-blink`, `uno-button`, `uno-pot-pwm` | Arduino UNO: blink, a button lights an LED, a potentiometer dims an LED (ADC, PWM) |
+| `uno-rgb-led`, `uno-seven-segment` | Arduino UNO: an RGB LED mixing colours with PWM; a 7-segment display counting 0–9 |
 | `c3-blink`, `c3-pot-pwm` | ESP32-C3 SuperMini: blink, a potentiometer dims an LED (ADC, PWM) |
 | `opamp-comparator`, `lm393-comparator` | potentiometer against a reference, an LED on the output (LM358; LM393 open collector) |
 | `opamp-follower` | LM358 copying a potentiometer and driving an LED |
@@ -164,7 +165,7 @@ review                     until APPROVED · undo when needed
 
 Holes `a1`…`j63` (row letter + column); rails `T-`, `T+` (next to row j) and `B+`, `B-` (next to
 row a) plus a column (`T+9`). Rows a–e of one column are connected, f–j too; each rail is one
-connection. Buttons and DIP chips straddle the centre channel. Board `double`: two boards side by
+connection. Buttons, DIP chips and a 7-segment display straddle the centre channel. Board `double`: two boards side by
 side (rows k–o, p–t on the back one, rails `U-`, `U+` behind; no T rails) for a DevKit across the
 joint; `layout` picks it when the DevKit would cover a pin's strip. `layout` and `suggest` know all this;
 `catalog` lists every part type with its pins, part numbers, modules and boards (`name` for one

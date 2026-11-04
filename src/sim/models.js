@@ -86,6 +86,24 @@ export function ledModel(color, override = {}) {
   return { ...base, is };
 }
 
+// Several LEDs in one package sharing a common pin (an RGB LED, a 7-segment display): each chip is
+// an LED as above, set to its own datasheet. `limits` are per chip.
+//   rgb5: 5 mm RGB LED, four leads (YSL-R596CR3G4B5C-C10, China Young Sun LED, the usual generic
+//         datasheet): Vf at 20 mA typical red 2.0 V, green 3.2 V, blue 3.2 V (max 2.2 / 3.4 / 3.4);
+//         IF 20 mA per chip ("set the input current below 20 mA"), VR 5 V. Green and blue are
+//         InGaN chips like a blue LED (n = 3).
+//   5161: 0.56" single-digit display, super red (5161AS / 5161BS spec sheet): Vf 2.1 V typical,
+//         2.5 V max at 20 mA; IF 20 mA, Pd 40 mW, VR 5 V per segment.
+export const LED_FAMILIES = {
+  rgb5: { colors: { red: { vf: 2.0, n: 2 }, green: { vf: 3.2, n: 3 }, blue: { vf: 3.2, n: 3 } }, limits: { maxCurrent: 0.02, maxReverse: 5, ratedCurrent: 0.02 } },
+  5161: { colors: { red: { vf: 2.1, n: 2 } }, limits: { maxCurrent: 0.02, maxPower: 0.04, maxReverse: 5, ratedCurrent: 0.02 } },
+};
+
+export function familyLedModel(family, color, override = {}) {
+  const f = LED_FAMILIES[family] ?? LED_FAMILIES.rgb5;
+  return ledModel(color, { ...(f.colors[color] ?? {}), ...f.limits, ...override });
+}
+
 // MOSFETs: square law with a smooth turn-on (no hard corner at Vth, which Newton dislikes).
 //   saturation  Id = k/2 · Vov² · (1 + λ·Vds)      linear  Id = k · (Vov·Vds − Vds²/2) · (1 + λ·Vds)
 // k is set from the datasheet on-resistance: Rds(on) ≈ 1 / (k · (Vgs − Vth)).

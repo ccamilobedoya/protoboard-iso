@@ -77,6 +77,11 @@ export const PART_NUMBERS = {
   // (KBP206 = 600 V, KBP210 and KBP307 = 1000 V).
   ...Object.fromEntries(['KBP2', 'KBP3'].flatMap((family) => ['005', '01', '02', '04', '06', '07', '08', '10'].map((v) => [`${family}${v}`, { type: 'bridge', package: 'kbp', pins: ['+', 'AC1', 'AC2', '-'], model: { family } }]))),
 
+  // 7-segment displays, 0.56" single digit (5161AS / 5161BS spec sheet): pins 1–5 along the bottom
+  // edge from the left, 6–10 back along the top, as a DIP counts them, the rows 15.24 mm apart.
+  // Pins 3 and 8 are both the common.
+  '5161AS': { type: 'seven-segment', package: '7seg-056', pins: ['e', 'd', 'COM1', 'c', 'DP', 'b', 'a', 'COM2', 'f', 'g'], model: { common: 'cathode' } },
+  '5161BS': { type: 'seven-segment', package: '7seg-056', pins: ['e', 'd', 'COM1', 'c', 'DP', 'b', 'a', 'COM2', 'f', 'g'], model: { common: 'anode' } },
   // Zener diodes, 1 W, DO-41 glass (1N4728A = 3.3 V … 1N4751A = 30 V). The `zener` type also
   // takes just a voltage ("5V1"); see src/sim/models.js for the breakdown model.
   ...Object.fromEntries([3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1, 10, 11, 12, 13, 15, 16, 18, 20, 22, 24, 27, 30].map((vz, i) => [`1N${4728 + i}A`, { type: 'zener', package: 'axial', pins: ['A', 'K'], model: { vz } }])),

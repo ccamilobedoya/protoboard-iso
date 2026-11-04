@@ -181,6 +181,7 @@ reference (a textbook formula solved separately, or the datasheet figure).
 | thermistor, photoresistor | resistors whose value comes from the temperature (B equation) or the light (GL55 curve) | B equation at 50 °C; GL5528 at 10 lx |
 | buzzer | its coil, 16 Ω | — |
 | LED | Shockley + 10 Ω, Vf at 20 mA by colour; `"model": { "vf": 2.95 }` overrides | loop equation solved apart |
+| RGB LED, 7-segment display | one LED per chip between its pin and the common (cathode or anode), each with its own datasheet: RGB (YSL-R596CR3G4B5C-C10) red 2.0 V, green and blue 3.2 V at 20 mA, 20 mA each; 5161AS / 5161BS segments 2.1 V at 20 mA, 20 mA and 40 mW each; a display's two common pins joined by 0.05 Ω; stresses per chip, named by its pin (`D1.R`); `"model": { "R": { "vf": 1.9 } }` overrides one chip | each chip's Vf at 20 mA from its datasheet; the common by either pin |
 | MOSFET | square law, smooth turn-on, k from Rds(on) | square law solved apart, Rds(on) |
 | BJT | Ebers–Moll, constant β; TIP120 as a Darlington with its two resistors | Ebers–Moll solved apart; hFE ≥ 1000 |
 | bench supply, battery | ideal source, optional limit; battery: emf from format, chemistry, cells and charge, behind its internal resistance | short circuit, Ohm's law with internal resistance |

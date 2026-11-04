@@ -39,6 +39,8 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `uno-blink` | Arduino UNO que hace parpadear un LED en D13 | R1 = 220, D1 = red, U1 = su programa (`program`) |
 | `uno-button` | Arduino UNO: un pulsador en D2 (pull-up interno) enciende un LED en D13 | R1 = 220, D1 = green, U1 = su programa |
 | `uno-pot-pwm` | Arduino UNO: un potenciómetro en A0 regula un LED en D9 (ADC y PWM a 490 Hz) | RV1 = 10k, R1 = 220, D1 = red, U1 = su programa |
+| `uno-rgb-led` | Arduino UNO que mezcla los colores de un LED RGB (cátodo común) con PWM en D9, D10 y D11, una resistencia por chip | R1, R2, R3 = 220 (rojo, verde, azul), U1 = su programa |
+| `uno-seven-segment` | Arduino UNO que cuenta de 0 a 9 en un display de 7 segmentos (5161AS, cátodo común), los segmentos a–g en D2–D8 con una resistencia cada uno | R1 … R7 = 220 (segmentos a … g), U1 = su programa |
 | `c3-blink` | ESP32-C3 SuperMini que hace parpadear un LED en GPIO3 | R1 = 220, D1 = red, U1 = su programa |
 | `c3-pot-pwm` | ESP32-C3: un potenciómetro en GPIO4 regula un LED en GPIO3 (ADC y PWM a 1 kHz) | RV1 = 10k, R1 = 220, D1 = red, U1 = su programa |
 | `opamp-comparator` | LM358 que compara un potenciómetro con la mitad de la fuente; un LED en su salida | RV1 = 10k (cursor en 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 5 V (5–30) |

@@ -187,6 +187,7 @@ referencia independiente (una fórmula de libro resuelta aparte, o el dato de la
 | termistor, fotorresistencia | resistencias cuyo valor sale de la temperatura (ecuación B) o de la luz (curva GL55) | ecuación B a 50 °C; GL5528 a 10 lx |
 | zumbador | su bobina, 16 Ω | — |
 | LED | Shockley + 10 Ω, Vf a 20 mA según el color; `"model": { "vf": 2.95 }` lo cambia | ecuación de la malla resuelta aparte |
+| LED RGB, display de 7 segmentos | un LED por chip entre su pata y la común (cátodo o ánodo), cada uno con su hoja de datos: RGB (YSL-R596CR3G4B5C-C10) rojo 2,0 V, verde y azul 3,2 V a 20 mA, 20 mA cada uno; segmentos del 5161AS / 5161BS 2,1 V a 20 mA, 20 mA y 40 mW cada uno; las dos patas comunes del display unidas por 0,05 Ω; esfuerzos por chip, con el nombre de su pata (`D1.R`); `"model": { "R": { "vf": 1.9 } }` cambia un chip | el Vf de cada chip a 20 mA según su hoja de datos; la común por cualquiera de sus patas |
 | MOSFET | ley cuadrática con encendido suave, k a partir de Rds(on) | ley cuadrática resuelta aparte, Rds(on) |
 | BJT | Ebers–Moll, β constante; TIP120 como Darlington con sus dos resistencias | Ebers–Moll resuelto aparte; hFE ≥ 1000 |
 | fuente de banco, batería | fuente ideal, límite opcional; batería: fem según formato, química, celdas y carga, detrás de su resistencia interna | cortocircuito, ley de Ohm con la resistencia interna |

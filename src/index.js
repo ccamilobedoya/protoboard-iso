@@ -31,7 +31,7 @@ import { resistorBands } from './parts/types/resistor.js';
 import { simulate, pageControlIssues } from './sim/index.js';
 import { tourIssues } from './tour.js';
 import { resultsOverlay } from './sim/overlay.js';
-import { flowOps, lightOps, shadeOps, flowStyle } from './sim/paths.js';
+import { flowOps, lightOps, shadeOps, segmentOps, flowStyle } from './sim/paths.js';
 import { probeOps } from './sim/probes.js';
 import { focusLayers, veilOps, stripOps, coordOps, nodesOf } from './render/focus.js';
 import { shortLabelOps } from './render/short-labels.js';
@@ -167,7 +167,8 @@ function addLayers(scene, built, circuit, options, lang) {
     if (options.interactive || !options.flow) extra.lights = lightOps(scene, built, sim, circuit);
     // An LED that is off is drawn dark (look.js, SHADE): its shade goes into the parts, right after
     // the LED's last piece, so what is drawn in front of it stays in front.
-    for (const op of shadeOps(scene, built, sim)) {
+    // A display's lit segments too: on its face, of the part.
+    for (const op of [...shadeOps(scene, built, sim), ...segmentOps(scene, built, sim)]) {
       const at = scene.layers.parts.findLastIndex((x) => x.part === op.part);
       scene.layers.parts.splice(at < 0 ? scene.layers.parts.length : at + 1, 0, op);
     }

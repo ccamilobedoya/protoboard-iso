@@ -38,6 +38,8 @@ const LEGENDS = {
   regulator: [['pass', 'pass'], ['heat', 'heat'], ['comparator', 'amp'], ['headroom', 'headroom'], ['arrow', 'arrow'], ['', 'state']],
   battery: [['cell', 'cells'], ['soc', 'charge'], ['film', 'resistance'], ['arrow', 'arrow'], ['', 'figures']],
   buzzer: [['coil', 'coil'], ['disc', 'disc'], ['sound', 'sound'], ['arrow', 'arrow'], ['', 'state']],
+  rgb: [['chip', 'chips'], ['', 'mix'], ['', 'figures']],
+  segments: [['chip', 'lit'], ['', 'letters'], ['', 'state']],
 };
 // Swatches in the figure's own colours that live in the script (sim/look.js), not in the style.
 const INLINE = { arrow: DOT_COLOR, heat: HEAT_COLOR, pos: VOLTAGE_COLORS.positive, neg: VOLTAGE_COLORS.negative };
@@ -134,7 +136,12 @@ export function setupFocusView(page, { tour, t }) {
       const li = make('li', null, list);
       const s = make('span', `swatch ${swatch}`, li);
       if (INLINE[swatch]) s.style.background = INLINE[swatch];
-      if (swatch === 'chip') s.style.background = data().inside.color;
+      // An LED's chip in its colour; a part of several LEDs, its chips' colours side by side.
+      if (swatch === 'chip') {
+        const inside = data().inside;
+        const colors = inside.chips ? [...new Set(inside.chips.map((c) => c.color))] : [inside.color];
+        s.style.background = colors.length > 1 ? `linear-gradient(90deg, ${colors.join(', ')})` : colors[0];
+      }
       if (!swatch) s.hidden = true;
       make('span', null, li).textContent = t(`page.tour.legend.${kind}.${key}`);
     }

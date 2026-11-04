@@ -536,7 +536,9 @@
                       "uno-button",
                       "uno-pot-pwm",
                       "c3-blink",
-                      "c3-pot-pwm"
+                      "c3-pot-pwm",
+                      "uno-rgb-led",
+                      "uno-seven-segment"
                     ]
                   },
                   "values": {

@@ -23,6 +23,8 @@ export const TYPE_FIELDS = {
   ldr: ['part', 'light'],
   buzzer: ['resistance'],
   header: ['count', 'pin1', 'color'],
+  'rgb-led': ['common'],
+  'seven-segment': ['part', 'pin1'],
 };
 
 // Fields a part has that its type does not take (a typo, or another type's field): saved, they

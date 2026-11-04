@@ -7,16 +7,17 @@ export const volt = (x, i) => (i >= 0 ? x[i] : 0);
 
 // A stress: a value against the limit it must stay under (current, power, voltage, reverse
 // voltage). ratio > 1 means exceeded: a warning `code` with { part, <param>: value, max }.
-// The page will show the ratio as levels (fine, near the limit, exceeded).
-export function stress(code, quantity, value, max, unit, { param = quantity, reportMax = true } = {}) {
-  return { code, quantity, value, max, unit, ratio: max > 0 ? value / max : 0, param, reportMax };
+// The page will show the ratio as levels (fine, near the limit, exceeded). `pin`: the one chip of
+// several in a package it is about (an RGB LED's R, a display's segment a), named as "D1.R".
+export function stress(code, quantity, value, max, unit, { param = quantity, reportMax = true, pin } = {}) {
+  return { code, quantity, value, max, unit, ratio: max > 0 ? value / max : 0, param, reportMax, ...(pin && { pin }) };
 }
 // Something to say that is not a limit (a buzzer on DC, a regulator out of regulation).
 export const note = (severity, code, params) => ({ note: issue(severity, code, params) });
 
 // The warning a stress becomes when it is exceeded.
 export function stressIssue(id, s) {
-  return issue('warning', s.code, { part: id, [s.param]: q(s.value, s.unit), ...(s.reportMax && { max: q(s.max, s.unit) }) });
+  return issue('warning', s.code, { part: s.pin ? `${id}.${s.pin}` : id, [s.param]: q(s.value, s.unit), ...(s.reportMax && { max: q(s.max, s.unit) }) });
 }
 
 // Voltage between the first two pins, the element's current from the first to the second.

@@ -28,11 +28,13 @@
 // and the current through a closed one; a regulator's pass transistor warming with its power, the error
 // amplifier and its reference, the headroom against the dropout and the currents in and out; a
 // battery's cells filled with their charge, EMF − I·R over them, its current and its warnings; a
-// buzzer's coil and steel disc, pulled with the current, with arcs of sound while it changes. Arrows
+// buzzer's coil and steel disc, pulled with the current, with arcs of sound while it changes; an RGB
+// LED's three chips in one lens, each with its brightness, the lens in their mixed colour; a 7-segment
+// display's figure 8 with each segment lit from its reading and the digit it draws. Arrows
 // never cross what they explain: they run beside the layers, under the channel, the film, the coil.
 // Didactic, not to scale.
 
-import { DOT_COLOR, HEAT_COLOR, VOLTAGE_COLORS, heatOpacity } from '../../sim/look.js';
+import { DOT_COLOR, HEAT_COLOR, VOLTAGE_COLORS, heatOpacity, mixLight } from '../../sim/look.js';
 import { PINOUT, fixed, make, screenOf, layerOf, tipsOf } from './pinout.js';
 import { partsRect } from './view.js';
 
@@ -243,6 +245,9 @@ const lux = (v, f) => (v >= 1 ? f(v, 'lx') : `${String(Math.round(v * 10) / 10).
 
 // The inside views, each in a box of 100 × 112 units, from the part's reading (`r`) and the data
 // (src/parts/symbols.js insideOf; a two-lead part's `ids` are the symbol's letters for its pins).
+// The digit a set of lit segments draws (their letters in order), as a display's datasheet shows them.
+const DIGITS = { abcdef: 0, bc: 1, abdeg: 2, abcdg: 3, bcfg: 4, acdfg: 5, acdefg: 6, abc: 7, abcdefg: 8, abcdfg: 9 };
+
 const INSIDE = {
   bjt(g, r, data, { t, f }) {
     // The three layers in the middle; the collector's current down their right side, the base's in from
@@ -342,6 +347,66 @@ const INSIDE = {
     label(g, 30, 95, 'A', 'pin-name', 'middle', FIGURE.text);
     label(g, 70, 95, 'K', 'pin-name', 'middle', FIGURE.text);
     label(g, 50, 110, r?.current != null ? f(Math.abs(r.current), 'A') : '', 'state');
+  },
+  rgb(g, r, data, { t, f }) {
+    // Three chips under one lens, each glowing in its colour with its own brightness; the lens tinted
+    // with their light mixed (the colour the eye sees), as strong as the brightest. The four leads in
+    // the package's order, R, the common (the longest, drawn longer), G, B.
+    const chips = data.chips.map((c) => ({ ...c, k: Math.max(0, Math.min(1, r?.channels?.[c.pin]?.brightness ?? 0)) }));
+    const top = Math.max(0, ...chips.map((c) => c.k));
+    const lens = 'M22 74V34A28 28 0 0 1 78 34V74Z';
+    make(g, 'path', { d: lens, fill: mixLight(chips.map((c) => [c.color, c.k])), opacity: fixed(0.06 + 0.45 * Math.sqrt(top)) });
+    make(g, 'path', { class: 'lens', d: lens });
+    chips.forEach((c, n) => {
+      const x = 30 + 14 * n;
+      make(g, 'rect', { class: 'chip', x, y: 58, width: 12, height: 8, fill: c.color, opacity: fixed(0.3 + 0.7 * c.k) });
+      label(g, x + 6, 53, c.id, 'pin-name', 'middle', FIGURE.small);
+    });
+    // The leads in the package's order, R, the common (longer), G, B, each letter under its lead.
+    const leads = [[29, 'R', 84], [43, 'COM', 88], [57, 'G', 84], [71, 'B', 84]];
+    make(g, 'path', { class: 'lead', d: leads.map(([x, , y]) => `M${x} 74V${y}`).join('') });
+    for (const [x, pin, y] of leads) label(g, x, y + 8, pin === 'COM' ? data.commonId : pin, 'pin-name', 'middle', FIGURE.small);
+    const i = r?.current ?? 0;
+    label(g, 50, 106, r && flowing(i) ? `${data.commonId} ${f(Math.abs(i), 'A')}` : '', 'note');
+    label(g, 50, 116, r ? (top > 0.002 ? chips.map((c) => `${c.id} ${Math.round(c.k * 100)} %`).join(' · ') : t('page.tour.inside.rgb.off')) : '', 'state');
+  },
+  segments(g, r, data, { t, f }) {
+    // The figure 8 as the display's face shows it, leaning, each segment lit in its colour with its
+    // own brightness and its pin's letter beside it outside the digit; the common at the bottom, with
+    // the current all the lit segments pass through it, and the digit they draw.
+    make(g, 'rect', { class: 'core', x: 14, y: 2, width: 72, height: 88, rx: 3 });
+    const lean = 0.18;
+    const at = (x, y) => [48 + x + (44 - y) * lean, y];
+    const bar = (x1, y1, x2, y2) => {
+      const h = 3.2;
+      const gap = 1.6;
+      const pts = y1 === y2
+        ? [[x1 + gap, y1], [x1 + gap + h, y1 - h], [x2 - gap - h, y1 - h], [x2 - gap, y1], [x2 - gap - h, y1 + h], [x1 + gap + h, y1 + h]]
+        : [[x1, y1 + gap], [x1 + h, y1 + gap + h], [x1 + h, y2 - gap - h], [x1, y2 - gap], [x1 - h, y2 - gap - h], [x1 - h, y1 + gap + h]];
+      return `M${pts.map((p) => at(...p).map(fixed).join(' ')).join('L')}Z`;
+    };
+    const [L, R, T, M, B] = [-16, 16, 12, 44, 76];
+    const shapes = { a: bar(L, T, R, T), b: bar(R, T, R, M), c: bar(R, M, R, B), d: bar(L, B, R, B), e: bar(L, M, L, B), f: bar(L, T, L, M), g: bar(L, M, R, M) };
+    const [px, py] = at(R + 7, B);
+    shapes.DP = `M${fixed(px - 3)} ${fixed(py - 3)}H${fixed(px + 3)}V${fixed(py + 3)}H${fixed(px - 3)}Z`;
+    // Each letter outside its segment: a, d and g above or below it, the sides beside them.
+    const spots = { a: [0, T - 6], b: [R + 8, (T + M) / 2], c: [R + 8, (M + B) / 2], d: [0, B + 10], e: [L - 8, (M + B) / 2], f: [L - 8, (T + M) / 2], g: [0, M - 5.5], DP: [R + 7, B - 8] };
+    const lit = [];
+    for (const c of data.chips) {
+      const k = Math.max(0, Math.min(1, r?.channels?.[c.pin]?.brightness ?? 0));
+      if (k > 0.002) lit.push(c.id);
+      make(g, 'path', { d: shapes[c.pin], fill: c.color, opacity: fixed(0.12 + 0.88 * Math.sqrt(k)) });
+      make(g, 'path', { class: 'lens', d: shapes[c.pin] });
+      const [x, y] = at(...spots[c.pin]);
+      label(g, x, y + 3, c.id, 'pin-name', 'middle', FIGURE.small);
+    }
+    make(g, 'path', { class: 'lead', d: 'M80 90V98' });
+    label(g, 76, 97, data.commonId, 'pin-name', 'end', FIGURE.small);
+    const i = r?.current ?? 0;
+    label(g, 50, 106, r && flowing(i) ? `${data.commonId} ${f(Math.abs(i), 'A')}` : '', 'note');
+    const digit = DIGITS[lit.filter((x) => x !== 'DP').sort().join('')];
+    const state = !lit.length ? t('page.tour.inside.segments.off') : digit != null ? t('page.tour.inside.segments.digit', { digit: `${digit}${lit.includes('DP') ? '.' : ''}` }) : t('page.tour.inside.segments.lit', { list: lit.join(' ') });
+    label(g, 50, 116, r ? state : '', 'state');
   },
   timer(g, r, data, { t }) {
     // The upper comparator ends a cycle (THR over the control level), the lower one starts it (TRIG
@@ -770,7 +835,9 @@ export function setupFigure(page, { reading, t, f, now, look, controls }) {
       part = { left: Math.min(...xs) - 30 * u, right: Math.max(...xs) + 30 * u, top: Math.min(...tips.map((p) => p.y)) - 200 * u, bottom: Math.max(...tips.map((p) => p.y)) };
     }
     const slot = figureSlot(part, free, u, w, h);
-    const rows = Math.max(...tips.map((p) => p.y)) + PINOUT.gap * u;
+    // Above the pinout's rows: under the tips, or higher where they begin higher (rows down both sides
+    // of a part of many pins, pinout.js page.rowsTop).
+    const rows = Math.min(Math.max(...tips.map((p) => p.y)) + PINOUT.gap * u, page.rowsTop ?? Infinity);
     slot.y = Math.max(free.y0, Math.min(slot.y, rows - FIGURE.margin * u * 0.6 - h * slot.scale));
     const [x, y] = at(slot.x, slot.y);
     return { for: wanted, x, y, s: slot.scale * screen.k, line: (FIGURE.line * Math.max(u, 0.5)) / slot.scale };

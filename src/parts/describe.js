@@ -43,6 +43,8 @@ export function describeKeys(part) {
     case 'ldr':
     case 'buzzer':
     case 'header':
+    case 'rgb-led':
+    case 'seven-segment':
       return [part.type, ...(e.adjustable ? ['regulator.adjustable'] : [])];
     case 'regulator':
       return ['regulator', ...(e.adjustable ? ['regulator.adjustable'] : []), ...(e.family === 'AMS1117' ? ['regulator.ldo'] : [])];

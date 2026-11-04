@@ -71,6 +71,9 @@ test('pinout: the mark\'s sentence agrees with the drawing in both views', () =>
       else if (p.type === 'capacitor' && p.def.electrical.polarised) assert.match(mark.text, new RegExp(`^Stripe on the ${sideOf(camera, at('-'), at('+'))}: the − lead$`), `${p.id} ${view}`);
       // A part with no polarity says so; with a colour code, the first band is by pin 1.
       else if (p.built.mark.kind === 'either') assert.equal(mark.text, 'No polarity: it goes in either way round', `${p.id} ${view}`);
+      // An RGB LED's longest lead, the common, beside R; a display's decimal point's edge, pins 1–5.
+      else if (p.type === 'rgb-led') assert.match(mark.text, new RegExp(`^Longest lead on the ${sideOf(camera, at('COM'), at('G'))}: the common; R alone beside it$`), `${p.id} ${view}`);
+      else if (p.type === 'seven-segment') assert.match(mark.text, /^Decimal point's edge (in front|at the back|on the left|on the right): pins 1–5, pin 1 under e$/, `${p.id} ${view}`);
       else if (p.built.mark.kind === 'bands') assert.match(mark.text, new RegExp(`^First colour band on the ${sideOf(camera, at('1'), at('2'))}: read from it; no polarity$`), `${p.id} ${view}`);
       else {
         // A flat face or a tab: which way it faces, and the pins as they are from the left.
@@ -230,6 +233,15 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
   assert.deepEqual(symbolOf(bz).ids, { 1: '+', 2: '−' });
   const buzz = insideOf(bz);
   assert.deepEqual([buzz.kind, buzz.ids, buzz.resistance, Math.round(buzz.maxCurrent * 1000)], ['buzzer', ['+', '−'], 16, 177]);
+  // Parts of several LEDs: their chips to a common, its letter by what it is (K, A; a display's COM).
+  const rgb = part(built('parts-showcase'), 'D6');
+  assert.deepEqual(symbolOf(rgb).ids, { R: 'R', G: 'G', B: 'B', COM: 'K' });
+  const inside = insideOf(rgb);
+  assert.deepEqual([inside.kind, inside.commonId, inside.chips.map((c) => c.id), inside.maxCurrent], ['rgb', 'K', ['R', 'G', 'B'], 0.02]);
+  const ds = part(built('parts-showcase'), 'DS1');
+  assert.equal(symbolOf(ds).ids.COM2, 'COM');
+  assert.deepEqual(insideOf(ds).chips.map((c) => c.pin), ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'DP']);
+  assert.deepEqual(pinList(ds, 'en').slice(0, 3).map((p) => p.text), ['segment e · bottom left', 'segment d · bottom', 'common · pin 3']);
 });
 
 // The view of a part up close is a requirement for every new part type (docs/en/adding-parts.md, "6. A
@@ -237,7 +249,7 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
 // orientation mark when it can go in the wrong way round, and a view of its inside with its legend. Each
 // type of the kit is either complete or listed as pending with its reason: a new type must be one or
 // the other, so the choice is made, never forgotten.
-const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1', potentiometer: 'potentiometer-led RV1', thermistor: 'more-parts RT1', ldr: 'more-parts LDR1', button: 'button-pullup S1', switch: 'switches S1', regulator: 'regulator-7805 U1', battery: 'battery-regulator BT1', buzzer: 'more-parts BZ1' };
+const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1', potentiometer: 'potentiometer-led RV1', thermistor: 'more-parts RT1', ldr: 'more-parts LDR1', button: 'button-pullup S1', switch: 'switches S1', regulator: 'regulator-7805 U1', battery: 'battery-regulator BT1', buzzer: 'more-parts BZ1', 'rgb-led': 'uno-rgb-led D1', 'seven-segment': 'uno-seven-segment DS1' };
 const PENDING = {
   wire: 'not a part on a pedestal',
   module: 'a development board: its own pin notes, no pedestal view',

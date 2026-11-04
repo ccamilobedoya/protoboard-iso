@@ -338,6 +338,31 @@ Zumbador pasivo magnético de 12 mm. Patas `1`, `2`, a dos o tres agujeros. Para
 su bobina (`resistance`, por defecto 16 Ω); avisa cuando le pasa corriente continua, porque un
 zumbador pasivo solo suena con una señal que cambie.
 
+### rgb-led (LED RGB)
+
+Un LED RGB de 5 mm: tres chips, rojo, verde y azul, bajo una cúpula lechosa, con cuatro patas en
+fila en cuatro agujeros vecinos: `R`, `COM`, `G`, `B` (el orden de las hojas de datos de siempre;
+`COM` es la pata más larga). `common`: `"cathode"` (por defecto) o `"anode"`, lo que comparten los
+tres chips en `COM`. Cada chip es un LED aparte (Vf a 20 mA: rojo 2,0 V, verde y azul 3,2 V) y
+necesita su propia resistencia; el simulador mezcla su luz en la cúpula.
+
+```json
+{ "id": "D1", "type": "rgb-led", "pins": ["h10", "h11", "h12", "h13"] }
+```
+
+### seven-segment (display de 7 segmentos)
+
+Un display de 7 segmentos de un dígito de 0,56": `part` `"5161AS"` (cátodo común, por defecto) o
+`"5161BS"` (ánodo común). Diez patas en dos filas de cinco, las filas a 0,6" (seis agujeros) a lado y
+lado del canal: se pone con `pin1` en las filas b–e, la otra fila seis agujeros atrás (f–i; c y g dejan agujeros libres a ambos lados), o en f–i para voltearlo. Patas en el orden de la
+hoja de datos: `e`, `d`, `COM1`, `c`, `DP` por el borde de abajo, `b`, `a`, `COM2`, `f`, `g` de vuelta
+por el de arriba; `COM1` y `COM2` (patas 3 y 8) son una sola por dentro, se cablea cualquiera. Cada
+segmento es un LED rojo (2,1 V a 20 mA, máximo 20 mA y 40 mW) y necesita su propia resistencia.
+
+```json
+{ "id": "DS1", "type": "seven-segment", "part": "5161AS", "pin1": "b30" }
+```
+
 ### header (pines de cabecera)
 
 Una fila de pines macho, para mostrar dónde se enchufa un módulo o un cable Dupont. Se coloca

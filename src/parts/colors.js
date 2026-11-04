@@ -107,6 +107,10 @@ Object.assign(MATERIALS, {
   ldrTrack: '#d9772b',
   buzzer: '#1f1f22',
   inductor: '#3f8f5a',
+  rgbLens: '#eceae4', // an RGB LED's milky diffusing epoxy
+  displayBody: '#2a2a2d', // a 7-segment display's black case and face
+  displayFace: '#19191b',
+  segmentOff: '#d9d4c8', // a segment's milky diffuser, unlit
 });
 export const CELL_WRAPS = {
   alkaline: { body: '#2a2c31', accent: '#c9a43b' },

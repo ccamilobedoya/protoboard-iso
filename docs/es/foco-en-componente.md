@@ -402,6 +402,21 @@ un núcleo dentro de un imán de anillo y el disco de acero encima atraído con 
 arcos de sonido mientras la corriente cambia de una lectura a la siguiente y «en silencio: la DC fija
 solo lo calienta» con DC.
 
+Las filas de un LED RGB nombran sus chips y la común (R, COM, G, B en el orden del encapsulado) y su
+marca es la pata más larga, la común, con R sola a su lado (`longest`; el plano de su borde está junto a R
+en las piezas de unos fabricantes y junto a B en otras, así que el kit no lo usa). Su símbolo son tres
+LEDs hasta una barra común, K para cátodo común o A para ánodo común; su vista por dentro, tres chips en
+la lente, cada uno brillando en su color con su propio brillo, la lente teñida con su luz mezclada, las
+cuatro patas con la común más larga, y debajo el brillo de cada chip y la corriente de la común
+(`channels`, `current`). Las filas de un display de 7 segmentos nombran cada segmento por su lugar
+(segmento a · arriba) y la común en las patas 3 y 8; su marca es el borde del punto decimal, que tiene las
+patas 1–5 con la 1 bajo la e (`dp`). Su símbolo es el circuito interno de la hoja de datos, ocho LEDs a–g
+y DP hasta la barra de la común con sus dos patas comunes en ella; su vista por dentro, el 8 inclinado
+como en la cara, cada segmento encendido en su color con su brillo y su letra por fuera, la corriente de
+la común y el dígito que dibujan los segmentos encendidos («se lee 3»), o los encendidos cuando no
+dibujan ninguno. En la protoboard y en el pedestal el halo de la cúpula RGB mezcla la luz de sus chips y
+cada segmento se enciende en la cara del display.
+
 De cerca en un celular las filas del diagrama de patas siguen pegadas a sus líneas guía, y ahora además
 caben en la pantalla: se encogen juntas hasta el 65 % y una fila que aún es larga termina en «…» en el
 borde, como en un video; cuando dos columnas cortarían una fila, una sola columna a cualquiera de los dos

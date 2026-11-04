@@ -47,7 +47,9 @@ export function setupLimits(page, { engine, t, f, now = () => (typeof performanc
   const nav = document.querySelector('nav');
   nav?.insertBefore(flag, nav.querySelector('.more'));
 
-  const latched = new Map(); // part|code → the stress at its peak, with the part id and `now`
+  const latched = new Map(); // part|code(|pin) → the stress at its peak, with the part id and `now`
+  // One chip of several in a package (an RGB LED's R, a display's segment) has its own row.
+  const keyOf = (id, s) => `${id}|${s.code}${s.pin ? `|${s.pin}` : ''}`;
   const rows = new Map(); // part|code → its button in the panel
   let near = new Set();
   let outlined = '';
@@ -57,7 +59,7 @@ export function setupLimits(page, { engine, t, f, now = () => (typeof performanc
   // and the value now, so a learner sees both that it went past and where it is after a change.
   // (A reverse voltage that is now forward reads 0.)
   function message(s) {
-    const peak = { part: s.id, quantity: t(`page.warnings.q.${s.quantity}`), peak: f(s.value, s.unit), max: f(s.max, s.unit) };
+    const peak = { part: s.pin ? `${s.id}.${s.pin}` : s.id, quantity: t(`page.warnings.q.${s.quantity}`), peak: f(s.value, s.unit), max: f(s.max, s.unit) };
     const head = t(s.reportMax ? 'page.warnings.peak' : 'page.warnings.peakNoMax', peak);
     if (!s.now) return head;
     const value = s.quantity === 'reverse' ? Math.max(0, s.now.value) : s.now.value;
@@ -75,13 +77,13 @@ export function setupLimits(page, { engine, t, f, now = () => (typeof performanc
         const level = stressLevel(s.ratio);
         if (level === 'near') now.add(id);
         if (level !== 'exceeded') continue;
-        const key = `${id}|${s.code}`;
+        const key = keyOf(id, s);
         const was = latched.get(key);
         if (!was || s.ratio > was.ratio) latched.set(key, { ...s, id });
       }
     }
     for (const [key, s] of latched) {
-      const item = (stresses[s.id] ?? []).find((x) => `${s.id}|${x.code}` === key);
+      const item = (stresses[s.id] ?? []).find((x) => keyOf(s.id, x) === key);
       s.now = item ? { value: item.value, ratio: item.ratio } : null;
     }
     near = now;

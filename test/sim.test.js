@@ -109,6 +109,46 @@ test('LED forward voltage at 20 mA is the typical value of its colour, or the on
   assert.ok(codes(over.issues).includes('SIM_OVER_CURRENT'));
 });
 
+// Parts of several LEDs (src/sim/devices/leds.js): each chip at its datasheet's test current.
+test('RGB LED and 7-segment display: each chip at 20 mA reads the typical Vf of its datasheet', () => {
+  // A chip's pin fed from B+ at a constant 20 mA, the common to B−.
+  const chip = (part, at, common, current = 0.02) => run({
+    supplies: [{ id: 'V1', voltage: 5, currentLimit: current, positive: 'B+', negative: 'B-' }],
+    parts: [part, { id: 'W1', type: 'wire', pins: [`B+${at}`, `a${at}`] }, { id: 'W2', type: 'wire', color: 'black', pins: [common, 'B-31'] }],
+  });
+  const rgb = { id: 'D1', type: 'rgb-led', pins: ['c10', 'c11', 'c12', 'c13'] };
+  // YSL-R596CR3G4B5C-C10: red 2.0 V, green 3.2 V, blue 3.2 V typical at 20 mA.
+  for (const [pin, at, vf] of [['R', 10, 2.0], ['G', 12, 3.2], ['B', 13, 3.2]]) {
+    const r = chip(rgb, at, 'a11');
+    assert.equal(r.supplies.V1.mode, 'CC', pin);
+    near(r.parts.D1.channels[pin].current, 0.02, 1e-6, `${pin} current`);
+    near(r.parts.D1.channels[pin].voltage, vf, 1e-3, `${pin} Vf`);
+    near(r.parts.D1.brightness, 1, 1e-3, `${pin} at its rated current`);
+    near(Object.values(r.parts.D1.pinCurrents).reduce((x, y) => x + y, 0), 0, 1e-9, 'Kirchhoff at the part');
+  }
+  // A common anode: the common to B+, a chip's pin back to B−.
+  const anode = run({
+    supplies: [{ id: 'V1', voltage: 5, currentLimit: 0.02, positive: 'B+', negative: 'B-' }],
+    parts: [{ ...rgb, common: 'anode' }, { id: 'W1', type: 'wire', pins: ['B+11', 'a11'] }, { id: 'W2', type: 'wire', color: 'black', pins: ['a12', 'B-12'] }],
+  });
+  near(anode.parts.D1.channels.G.voltage, 3.2, 1e-3, 'common anode: green Vf');
+  // 5161AS: Vf 2.1 V typical at 20 mA per segment; its two common pins are one (pin 8 used here).
+  const display = { id: 'DS1', type: 'seven-segment', part: '5161AS', pin1: 'b30' };
+  const e = chip(display, 30, 'a32');
+  near(e.parts.DS1.channels.e.voltage, 2.1, 1e-3, 'segment e Vf');
+  const viaPin8 = run({
+    supplies: [{ id: 'V1', voltage: 5, currentLimit: 0.02, positive: 'B+', negative: 'B-' }],
+    parts: [display, { id: 'W1', type: 'wire', pins: ['B+30', 'a30'] }, { id: 'W2', type: 'wire', color: 'black', pins: ['j32', 'T-33'] }, { id: 'W3', type: 'wire', color: 'black', pins: ['T-3', 'B-3'] }],
+  });
+  near(viaPin8.parts.DS1.channels.e.current, 0.02, 1e-6, 'the common by pin 8');
+  near(viaPin8.parts.DS1.pinCurrents.COM2, -0.02, 1e-6, 'pin 8 takes it back');
+  // Over its rating a chip is named by its pin.
+  const over = chip(rgb, 10, 'a11', 0.03);
+  assert.ok(over.issues.some((i) => i.code === 'SIM_OVER_CURRENT' && i.params.part === 'D1.R'), JSON.stringify(over.issues));
+  const hot = chip(display, 30, 'a32', 0.02);
+  assert.ok(hot.issues.some((i) => i.code === 'SIM_OVER_POWER' && i.params.part === 'DS1.e'), '2.1 V × 20 mA is over the 40 mW of a segment');
+});
+
 test('short circuit: a current-limited supply drops its voltage; an unlimited one is flagged', () => {
   const short = (extra) => ({ supplies: supply(5, extra), parts: [{ id: 'W1', type: 'wire', pins: ['T+5', 'T-5'] }] });
   const limited = run(short({ currentLimit: 0.5 }));

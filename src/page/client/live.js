@@ -32,7 +32,7 @@ import { paceOf } from '../../sim/pace.js';
 import { linesFor, nodeLines } from '../../sim/lines.js';
 import { deviceOfReading } from '../../sim/devices/index.js';
 import { formatValue } from '../../core/units.js';
-import { voltageColor, dotSpeed, DOT_PERIOD, centreVoltage, bodyVoltage, glowOpacity, heatOpacity, SHADE } from '../../sim/look.js';
+import { voltageColor, dotSpeed, DOT_PERIOD, centreVoltage, bodyVoltage, glowOpacity, heatOpacity, SHADE, mixLight } from '../../sim/look.js';
 import { setupControls } from './controls.js';
 import { setupLimits } from './limits.js';
 import { setupFalstad } from './falstad.js';
@@ -331,10 +331,18 @@ export function setupLive(page) {
   // The shade of an LED that is off (look.js, SHADE), in the parts and in their copies over the veil:
   // live collections, so the copies a focus makes are found without a selector on every tick.
   const shades = svgs.map((svg) => svg.getElementsByClassName('led-shade'));
+  // A display's lit segments (sim/paths.js segmentOps), the same way: fill-opacity data-k × its light.
+  const segments = svgs.map((svg) => svg.getElementsByClassName('led-segment'));
   function writeLights() {
     for (const el of glows) {
       const text = lights.get(el.dataset.glow)?.shown.toFixed(2) ?? '0.00';
       if (el.style.opacity !== text) el.style.opacity = text;
+    }
+    for (const list of segments) {
+      for (const el of list) {
+        const text = (Number(el.dataset.k) * (lights.get(el.dataset.glow)?.shown ?? 0)).toFixed(2);
+        if (el.style.fillOpacity !== text) el.style.fillOpacity = text;
+      }
     }
     for (const list of shades) {
       for (const el of list) {
@@ -377,7 +385,21 @@ export function setupLive(page) {
     // LEDs lit with their current: on the board (.lights, with the results) and in the current layer.
     // Averaged over the steps since the last paint (a PWM is faster than the page): what the eye sees.
     const glow = engine.glow?.() ?? {};
-    for (const el of glows) aim(el.dataset.glow, glowOpacity(glow[el.dataset.glow] ?? reading.parts[el.dataset.glow]?.brightness));
+    // A chip of a part of several LEDs is "<part>.<pin>" (a display's segment, an RGB LED's R).
+    const bright = (key) => {
+      if (glow[key] != null) return glow[key];
+      const dot = key.lastIndexOf('.');
+      return dot < 0 ? reading.parts[key]?.brightness : reading.parts[key.slice(0, dot)]?.channels?.[key.slice(dot + 1)]?.brightness;
+    };
+    for (const list of segments) for (const el of list) aim(el.dataset.glow, glowOpacity(bright(el.dataset.glow)));
+    for (const el of glows) {
+      aim(el.dataset.glow, glowOpacity(bright(el.dataset.glow)));
+      // An RGB LED's halo: its chips' colours mixed again by what each one gives now.
+      if (el.dataset.mix) {
+        const fill = mixLight(el.dataset.mix.split(' ').map((c) => [c.slice(c.indexOf(':') + 1), bright(`${el.dataset.glow}.${c.slice(0, c.indexOf(':'))}`)]));
+        if (el.getAttribute('fill') !== fill) el.setAttribute('fill', fill);
+      }
+    }
     writeLights();
     // Result tags: the same place, the new value, the box resized around its centre.
     for (const text of tags) {

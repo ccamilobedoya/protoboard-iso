@@ -250,6 +250,66 @@ const buzzer = () => ({
   ids: { 1: '+', 2: '−' },
 });
 
+// A small LED pointing down from (x, top) to (x, top + 20): its triangle, its bar, two rays out to
+// the right; for the parts of several LEDs.
+function smallLed(x, top, rays = true) {
+  const strokes = [`M${x - 5} ${top}H${x + 5}L${x} ${top + 9}Z`, `M${x - 5} ${top + 9}H${x + 5}`];
+  const fills = [];
+  if (rays) {
+    strokes.push(`M${x + 6} ${top + 2}L${x + 11} ${top - 2}`);
+    fills.push(arrow(x + 6, top + 2, x + 12, top - 2.5, 4));
+  }
+  return { strokes, fills };
+}
+
+// Several LEDs to one common pin, as a datasheet's internal circuit draws them: each chip's pin at the
+// top, its LED pointing down to the common's bar under them (a common cathode), or down from the
+// common's bar over them to the pins under it (a common anode). `names`: the chips' pins in order;
+// `commons`: the common's pins along the bar; `ids` what the symbol calls each one.
+function ledArray(names, commons, anode, ids, labels) {
+  const n = names.length;
+  // Few chips spread over the middle (their rays to the right stay inside); many over the whole box.
+  const [x0, span] = n > 4 ? [8, 84] : [26, 48];
+  const xs = names.map((_, i) => (n === 1 ? 50 : x0 + (i * span) / (n - 1)));
+  const strokes = [];
+  const fills = [];
+  const texts = [];
+  const pins = {};
+  // Cathode: the pins at the top, LEDs from 34 down, the bar at 70, the common below it (y 96).
+  // Anode: the common at the top, the bar at 30, the LEDs from 42 down, the pins at the bottom. Many
+  // pins: their letters beyond their ends (above or below), the terminals moved in to make room.
+  const inset = n > 4 ? 10 : 0;
+  const [pinY, ledTop, barY, comY] = anode ? [96 - inset, 42, 30, 4] : [4 + inset, 34, 70, 96];
+  xs.forEach((x, i) => {
+    const led = smallLed(x, ledTop, n <= 4);
+    strokes.push(...led.strokes, anode ? `M${x} ${barY}V${ledTop}M${x} ${ledTop + 9}V${pinY}` : `M${x} ${pinY}V${ledTop}M${x} ${ledTop + 9}V${barY}`);
+    fills.push(...led.fills);
+    texts.push(n > 4 ? { x, y: anode ? pinY + 9 : pinY - 4, text: labels[i], anchor: 'middle', small: true } : { x: x + 3, y: anode ? pinY - 8 : pinY + 18, text: labels[i], anchor: 'start', small: true });
+    pins[names[i]] = [x, pinY];
+  });
+  strokes.push(`M${xs[0]} ${barY}H${xs.at(-1)}`);
+  const cx = commons.length === 1 ? [50] : commons.map((_, k) => 30 + (40 * k) / (commons.length - 1));
+  commons.forEach((name, k) => {
+    strokes.push(`M${cx[k]} ${barY}V${comY}`);
+    pins[name] = [cx[k], comY];
+  });
+  texts.push({ x: cx.at(-1) + 6, y: anode ? comY + 10 : comY - 4, text: ids[commons[0]], anchor: 'start', small: true });
+  return { w: 100, h: 100, strokes, fills: [...fills, ...cx.map((x) => ring(x, barY, 1.8))], texts, pins, ids };
+}
+
+// An RGB LED: three LEDs, R, G and B, to their common (K for a common cathode, A for a common anode).
+function rgbLed(anode) {
+  const ids = { R: 'R', G: 'G', B: 'B', COM: anode ? 'A' : 'K' };
+  return ledArray(['R', 'G', 'B'], ['COM'], anode, ids, ['R', 'G', 'B']);
+}
+
+// A 7-segment display: its eight LEDs, a–g and DP, to the common, both of its common pins on the bar.
+function sevenSegment(anode) {
+  const segs = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'DP'];
+  const ids = { ...Object.fromEntries(segs.map((n) => [n, n])), COM1: 'COM', COM2: 'COM' };
+  return ledArray(segs, ['COM1', 'COM2'], anode, ids, segs);
+}
+
 export function symbolOf(part) {
   const e = part.def?.electrical ?? {};
   const names = part.pinNames ?? [];
@@ -270,6 +330,8 @@ export function symbolOf(part) {
   if (part.type === 'regulator') return regulator(names, e.part ?? part.raw?.part ?? '', Boolean(e.family));
   if (part.type === 'battery') return battery(e.series ?? e.cells ?? 1);
   if (part.type === 'buzzer') return buzzer();
+  if (part.type === 'rgb-led') return rgbLed(e.common === 'anode');
+  if (part.type === 'seven-segment') return sevenSegment(e.common === 'anode');
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
   return null;
 }
@@ -321,6 +383,20 @@ export function insideOf(part) {
     return { kind: 'buzzer', ids: ids(), resistance, maxCurrent: resistance > 0 ? Math.sqrt(maxPower / resistance) : null };
   }
   if (part.type === 'led') return { kind: 'led', color: LED_LIGHT[e.color] ?? LED_LIGHT.red };
+  // A part of several LEDs: each chip with its pin's letter and the colour of its light, the common's
+  // letter, and the current a chip is rated for (its device's model).
+  if (part.type === 'rgb-led' || part.type === 'seven-segment') {
+    const { channels = [] } = limits();
+    const symbol = symbolOf(part);
+    return {
+      kind: part.type === 'rgb-led' ? 'rgb' : 'segments',
+      ids: ids(),
+      common: e.common,
+      commonId: symbol.ids[e.commons[0]],
+      chips: channels.map((c) => ({ pin: c.pin, id: symbol.ids[c.pin], color: LED_LIGHT[c.color] ?? LED_LIGHT.red })),
+      maxCurrent: channels[0]?.model.maxCurrent,
+    };
+  }
   if (part.type === 'ic' && e.kind === 'TMR') return { kind: 'timer' };
   return null;
 }

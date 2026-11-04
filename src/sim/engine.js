@@ -319,8 +319,11 @@ export function createEngine(source) {
       pending = next;
       time += h;
       for (const p of prep.parts) {
-        if (p.kind !== 'LED' || p.unsupported) continue;
-        glowSum.set(p.id, (glowSum.get(p.id) ?? 0) + (partReading(p, x, ctx, prep.floating).brightness ?? 0) * h);
+        if ((p.kind !== 'LED' && p.kind !== 'LEDS') || p.unsupported) continue;
+        const r = partReading(p, x, ctx, prep.floating);
+        glowSum.set(p.id, (glowSum.get(p.id) ?? 0) + (r.brightness ?? 0) * h);
+        // A part of several LEDs: each chip's too, as "<part>.<pin>" (the page mixes and lights them).
+        for (const [pin, c] of Object.entries(r.channels ?? {})) glowSum.set(`${p.id}.${pin}`, (glowSum.get(`${p.id}.${pin}`) ?? 0) + c.brightness * h);
       }
       glowTime += h;
       return true;
@@ -354,8 +357,8 @@ export function createEngine(source) {
       const periods = prep.system.elements.map((el) => el.runner?.fastest?.()).filter((p) => p > 0);
       return periods.length ? Math.min(...periods) / 20 : null;
     },
-    // Each LED's brightness averaged over the steps since the last call ({ id: brightness }), or
-    // null when no step ran.
+    // Each LED's brightness averaged over the steps since the last call ({ id: brightness }; a chip
+    // of a part of several, { "D1.R": brightness }), or null when no step ran.
     glow() {
       if (!glowTime) return null;
       const out = Object.fromEntries([...glowSum].map(([id, sum]) => [id, sum / glowTime]));
@@ -495,7 +498,7 @@ function dc(prep) {
     const part = reading.parts[p.id];
     if (part.floating) continue;
     const list = partStresses(p, part).filter((s) => !s.note);
-    if (list.length) part.stress = list.map(({ quantity, value, max, unit, ratio }) => ({ quantity, value, max, unit, ratio, level: stressLevel(ratio) }));
+    if (list.length) part.stress = list.map(({ quantity, value, max, unit, ratio, pin }) => ({ quantity, value, max, unit, ratio, level: stressLevel(ratio), ...(pin && { pin }) }));
   }
   return { analysis: 'dc', model: true, ok: true, iterations: r.iterations, ground: prep.ground, ...reading, issues: [...prep.issues, ...limitIssues(prep, reading)] };
 }

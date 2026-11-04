@@ -376,6 +376,20 @@ passive magnetic buzzer cut through, its coil round a pole piece in a ring magne
 over them pulled with the current, with one to three arcs of sound while the current changes from one
 reading to the next and "silent: steady DC only heats it" on DC.
 
+An RGB LED's rows name its chips and the common (R, COM, G, B in the package's order) and its mark is
+the longest lead, the common, with R alone beside it (`longest`; the flat of its rim is by R on some
+makers' parts and by B on others, so the kit does not use it). Its symbol is three LEDs to a common bar,
+K for a common cathode or A for a common anode; its inside view, three chips in the lens, each glowing
+in its colour with its own brightness, the lens tinted with their light mixed, the four leads with the
+common longer, and each chip's brightness and the common's current under it (`channels`, `current`). A
+7-segment display's rows name each segment by its place (segment a · top) and the common at pins 3 and 8;
+its mark is the decimal point's edge, which has pins 1–5 with pin 1 under e (`dp`). Its symbol is the
+datasheet's internal circuit, eight LEDs a–g and DP to the common's bar with both common pins on it; its
+inside view, the figure 8 leaning as on the face, each segment lit in its colour with its brightness and
+its letter outside it, the common's current, and the digit the lit segments draw ("it reads 3"), or the
+lit ones when they draw none. On the board and on a pedestal the RGB dome's halo mixes its chips' light
+and each segment lights on the display's face.
+
 Up close on a phone the pinout's rows hug their leaders as before, and now fit the screen too: they
 shrink together to 65 % and a row still too long ends in "…" at the edge, as in a video; when two
 columns would cut a row, one column on either side, whichever cuts less. Measured at 390 px wide: before,

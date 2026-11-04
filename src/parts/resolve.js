@@ -43,6 +43,12 @@ export const PART_ALIASES = {
   TRIMMER: { type: 'potentiometer', style: 'trimmer' },
   '3296W': { type: 'potentiometer', style: 'trimmer' },
   PINES: { type: 'header' },
+  RGB: { type: 'rgb-led' },
+  LEDRGB: { type: 'rgb-led' },
+  DISPLAY: { type: 'seven-segment' },
+  '7SEGMENT': { type: 'seven-segment' },
+  '7SEGMENTOS': { type: 'seven-segment' },
+  SIETESEGMENTOS: { type: 'seven-segment' },
 };
 
 const norm = (s) => String(s ?? '').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');

@@ -321,6 +321,31 @@ Passive magnetic buzzer, 12 mm. Pins `1`, `2`, two or three holes apart. To the 
 is its coil (`resistance`, default 16 Ω); it warns when steady DC flows through it, since a
 passive buzzer only sounds with a changing signal.
 
+### rgb-led
+
+A 5 mm RGB LED: three chips, red, green and blue, under one milky dome, with four leads in a row
+in four neighbouring holes: `R`, `COM`, `G`, `B` (the usual datasheet order; `COM` is the longest
+lead). `common`: `"cathode"` (default) or `"anode"`, what the three chips share at `COM`. Each chip
+is an LED of its own (Vf at 20 mA: red 2.0 V, green and blue 3.2 V) and needs its own resistor;
+the simulator mixes their light in the dome.
+
+```json
+{ "id": "D1", "type": "rgb-led", "pins": ["h10", "h11", "h12", "h13"] }
+```
+
+### seven-segment
+
+A 0.56" single-digit 7-segment display: `part` `"5161AS"` (common cathode, default) or `"5161BS"`
+(common anode). Ten pins in two rows of five, the rows 0.6" (six holes) apart across the channel:
+place it with `pin1` in rows b–e, the other row six holes behind (f–i; c and g leave free holes on both sides), or in f–i to turn it round. Pins in datasheet order: `e`, `d`,
+`COM1`, `c`, `DP` along the bottom edge, `b`, `a`, `COM2`, `f`, `g` back along the top; `COM1`
+and `COM2` (pins 3 and 8) are one inside, wire either. Each segment is a red LED (2.1 V at 20 mA,
+at most 20 mA and 40 mW) and needs its own resistor.
+
+```json
+{ "id": "DS1", "type": "seven-segment", "part": "5161AS", "pin1": "b30" }
+```
+
 ### header
 
 A row of male header pins, to show where a module or a Dupont wire plugs in. Place it with

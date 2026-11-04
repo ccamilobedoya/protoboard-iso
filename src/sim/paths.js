@@ -29,7 +29,7 @@ import { decalTextOp } from '../render/scene.js';
 import { textDecal } from '../geometry/primitives.js';
 import { v3, X, Y, scale } from '../core/vec.js';
 import { LED_LIGHT } from '../parts/colors.js';
-import { MIN_CURRENT, DOT_PERIOD, DOT_COLOR, voltageColor, dotSpeed, bodyShare, bodyVoltage, centreVoltage, glowOpacity, shadeOpacity, SHADE, HEAT_COLOR } from './look.js';
+import { MIN_CURRENT, DOT_PERIOD, DOT_COLOR, voltageColor, dotSpeed, bodyShare, bodyVoltage, centreVoltage, glowOpacity, shadeOpacity, SHADE, HEAT_COLOR, mixLight } from './look.js';
 
 export { MIN_CURRENT, VOLTAGE_COLORS, voltageColor, dotSpeed, bodyShare } from './look.js';
 
@@ -231,6 +231,7 @@ export function conductorPieces(built, sim, circuit, { all = false, style = 'pla
     });
     const middle = real[0].points.at(-1);
     if (reading.kind === 'LED') lights.push({ part: part.id, at: middle, light: part.built.light, color: LED_LIGHT[part.def.electrical.color] ?? LED_LIGHT.red, brightness: reading.brightness });
+    if (reading.kind === 'LEDS') lights.push(...channelLights(part, reading, middle));
     if (typeof reading.power === 'number' && ['R', 'REG', 'Q', 'M', 'D', 'BR'].includes(reading.kind)) hot.push({ part: part.id, at: middle });
   }
   const nodes = new Set(Object.keys(built.netlist.nodes));
@@ -265,10 +266,24 @@ export function conductorPieces(built, sim, circuit, { all = false, style = 'pla
   return { wires, dots, strips, lights, hot, rails, vmax: Math.max(0, ...volts.map(Math.abs)) };
 }
 
+// The lights of a part of several LEDs (src/sim/devices/leds.js): under one dome (an RGB LED), one
+// halo of their colours mixed by their brightness, as bright as the brightest; data-mix carries each
+// chip's pin and colour so the live page mixes it again on every paint. On a display's face, each
+// segment lit on its own (data-glow "<part>.<pin>").
+function channelLights(part, reading, middle) {
+  const chips = part.def.electrical.channels.map((c) => ({ pin: c.pin, color: LED_LIGHT[c.color] ?? LED_LIGHT.red, brightness: reading.channels?.[c.pin]?.brightness ?? 0 }));
+  if (part.built.light) {
+    const color = mixLight(chips.map((c) => [c.color, c.brightness]));
+    return [{ part: part.id, at: middle, light: part.built.light, color, brightness: reading.brightness, mix: chips.map((c) => `${c.pin}:${c.color}`).join(' ') }];
+  }
+  const byPin = new Map(chips.map((c) => [c.pin, c]));
+  return (part.built.segments ?? []).map((s) => ({ part: part.id, glow: `${part.id}.${s.pin}`, face: s.face, color: byPin.get(s.pin)?.color ?? LED_LIGHT.red, brightness: byPin.get(s.pin)?.brightness ?? 0 }));
+}
+
 // A lit LED: a halo of the colour of its light around its dome, drawn over the veil. Its rings
 // share data-glow, so the live page fades them together with the LED's current.
 function litLed(scene, l, style) {
-  const tag = { cls: 'glow', style, part: l.part, data: { glow: l.part } };
+  const tag = { cls: 'glow', style, part: l.part, data: { glow: l.glow ?? l.part, ...(l.mix && { mix: l.mix }) } };
   const project = (p) => scene.camera.project(p);
   let c = project(l.at);
   let r = 6;
@@ -322,6 +337,27 @@ function hull(points) {
   return [...half(p), ...half(p.slice().reverse())];
 }
 
+// A display's segments lit (src/sim/devices/leds.js): each segment itself in its colour, and a soft
+// halo of it grown round its middle, of the part like the shade (a focus copies them with it, a move
+// carries them), at fill-opacity `k` × the glow of its segment. class="led-segment", data-glow
+// "<part>.<pin>" and data-k: the live page fades them with the segment's light.
+export function segmentOps(scene, built, sim) {
+  if (!sim?.ok) return [];
+  const out = [];
+  for (const part of built.parts) {
+    const reading = sim.parts[part.id];
+    if (reading?.kind !== 'LEDS' || !part.built?.segments) continue;
+    for (const l of channelLights(part, reading, null)) {
+      const pts = l.face.map((p) => scene.camera.project(p));
+      const c = { x: pts.reduce((a, p) => a + p.x, 0) / pts.length, y: pts.reduce((a, p) => a + p.y, 0) / pts.length };
+      const grown = pts.map((p) => ({ x: c.x + (p.x - c.x) * 1.25, y: c.y + (p.y - c.y) * 1.25 }));
+      const g = glowOpacity(l.brightness);
+      for (const [shape, k] of [[grown, 0.25], [pts, 0.95]]) out.push({ kind: 'polygon', pts: shape, fill: l.color, cls: 'led-segment', style: `fill-opacity:${(k * g).toFixed(2)}`, part: part.id, data: { glow: l.glow, k } });
+    }
+  }
+  return out;
+}
+
 // The shade of each LED (look.js, SHADE): a polygon over its dome and flange, of the part (so a
 // focus copies it with the part and a move carries it), dark at its opacity while the LED is off.
 // `class="led-shade"` and data-shade: the live page fades it with the LED's light.
@@ -330,7 +366,7 @@ export function shadeOps(scene, built, sim) {
   const out = [];
   for (const part of built.parts) {
     const reading = sim.parts[part.id];
-    if (reading?.kind !== 'LED' || !part.built?.light) continue;
+    if (!['LED', 'LEDS'].includes(reading?.kind) || !part.built?.light) continue;
     const pts = domeOutline(scene, part.built.light);
     // Its darkness in fill-opacity: `opacity` stays the moves' (an assemble or an insert hides the part).
     out.push({ kind: 'polygon', pts, fill: SHADE.color, cls: 'led-shade', style: `fill-opacity:${(SHADE.opacity * shadeOpacity(reading.brightness)).toFixed(2)}`, part: part.id, data: { shade: part.id } });
@@ -343,7 +379,7 @@ const pathData = (pts) => pts.map((p, i) => `${i ? 'L' : 'M'}${Math.round(p.x * 
 // What the live page needs to drive the pieces flowOps draws with `live`, in the same order.
 export function liveFlow(built, sim, circuit, style = 'plan') {
   const { wires, dots, strips, lights, hot, vmax } = conductorPieces(built, sim, circuit, { all: true, style });
-  return { wires: wires.map((w) => w.ref), dots: dots.map((d) => d.ref), strips, lights: lights.map((l) => l.part), hot: hot.map((h) => h.part), vmax };
+  return { wires: wires.map((w) => w.ref), dots: dots.map((d) => d.ref), strips, lights: lights.filter((l) => !l.face).map((l) => l.part), hot: hot.map((h) => h.part), vmax };
 }
 
 // The style a circuit asks for: the first flow step of its timeline that names one (a recording
@@ -450,7 +486,7 @@ export function paintOrder(camera, lines, reach) {
 // The lit LEDs alone, for the `lights` layer: drawn over the parts whenever there are simulation
 // results (not only in the current layer), so an LED that conducts is seen glowing.
 export function lightOps(scene, built, sim, circuit) {
-  return conductorPieces(built, sim, circuit).lights.flatMap((l) => litLed(scene, l, `opacity:${glowOpacity(l.brightness).toFixed(2)}`));
+  return conductorPieces(built, sim, circuit).lights.filter((l) => !l.face).flatMap((l) => litLed(scene, l, `opacity:${glowOpacity(l.brightness).toFixed(2)}`));
 }
 
 // The pieces as drawing operations for the `flow` layer, in painting order for this view:
@@ -474,7 +510,7 @@ export function flowOps(scene, built, sim, circuit, { live = false, style = 'pla
       under.push({ kind: 'circle', cx: at.x, cy: at.y, r: 11, fill: HEAT_COLOR, cls: 'heat', style: 'opacity:0', part: h.part, data: { heat: h.part } });
     }
   }
-  for (const l of lights) under.push(...litLed(scene, l, `opacity:${glowOpacity(l.brightness).toFixed(2)}`));
+  for (const l of lights.filter((x) => !x.face)) under.push(...litLed(scene, l, `opacity:${glowOpacity(l.brightness).toFixed(2)}`));
 
   const strip = { conductors: [], dots: [] };
   const links = [];

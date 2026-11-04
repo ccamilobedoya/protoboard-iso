@@ -141,7 +141,9 @@
                 "uno-button",
                 "uno-pot-pwm",
                 "c3-blink",
-                "c3-pot-pwm"
+                "c3-pot-pwm",
+                "uno-rgb-led",
+                "uno-seven-segment"
               ]
             },
             "values": {
@@ -467,7 +469,9 @@
             "thermistor",
             "ldr",
             "buzzer",
-            "header"
+            "header",
+            "rgb-led",
+            "seven-segment"
           ]
         },
         "pins": {
@@ -548,7 +552,7 @@
         },
         "part": {
           "type": "string",
-          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
+          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
         },
         "package": {
           "type": "string"
@@ -575,7 +579,7 @@
         },
         "pin1": {
           "type": "string",
-          "description": "DIP chips: hole of pin 1 (row e or f); the other pins follow. Header: first pin, the others towards higher columns. Module straddling the channel (ESP32): hole of pin 1, the other row rowSpacing holes away"
+          "description": "DIP chips: hole of pin 1 (row e or f); the other pins follow. Header: first pin, the others towards higher columns. Module straddling the channel (ESP32): hole of pin 1, the other row rowSpacing holes away. Seven-segment display: hole of pin 1 (rows b–e, or f–i turned round), the other row 6 holes away (0.6\") across the channel"
         },
         "rowSpacing": {
           "type": "integer",
@@ -621,6 +625,13 @@
         "usb": {
           "type": "boolean",
           "description": "module, microcontroller boards: powered by USB (default true): the board is a 5 V source and its regulator makes the 3.3 V rail"
+        },
+        "common": {
+          "enum": [
+            "cathode",
+            "anode"
+          ],
+          "description": "rgb-led: the common pin (COM, the longest lead) is the chips' cathode (default) or their anode"
         },
         "led": {
           "type": "string",

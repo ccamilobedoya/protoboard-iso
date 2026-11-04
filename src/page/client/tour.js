@@ -841,7 +841,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       focusOn([id]);
       // After the focus: its copy exists, and the light goes under it.
       sceneLight(id, s.light == null ? null : (PULSE_COLORS[s.light] ?? s.light));
-      sceneRule.textContent = 'main[data-scene] > svg > .lights > :not([data-glow="' + quote(id) + '"]), main[data-scene] > svg > :is(.spotlabels, .shortlabels) > [data-part="' + quote(id) + '"] { display: none !important; }';
+      sceneRule.textContent = 'main[data-scene] > svg > .lights > :not([data-glow="' + quote(id) + '"]):not([data-glow^="' + quote(id) + '."]), main[data-scene] > svg > :is(.spotlabels, .shortlabels) > [data-part="' + quote(id) + '"] { display: none !important; }';
       const from = page.lifted?.get(id) ?? 0;
       const enter = () => {
         page.main.dataset.scene = 'part';

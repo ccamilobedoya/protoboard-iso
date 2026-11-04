@@ -251,7 +251,7 @@ function kindLine(part, lang, kinds) {
 // The part's value as a line that can be explained: "Capacitance: 100 µF 25 V".
 const VALUE_KEYS = {
   resistor: 'resistor', capacitor: 'capacitor', potentiometer: 'potentiometer', led: 'led', diode: 'part', bjt: 'part', mosfet: 'part', ic: 'part', battery: 'battery',
-  zener: 'zener', bridge: 'part', module: 'part', regulator: 'part', inductor: 'inductor', thermistor: 'thermistor', ldr: 'part',
+  zener: 'zener', bridge: 'part', module: 'part', regulator: 'part', inductor: 'inductor', thermistor: 'thermistor', ldr: 'part', 'seven-segment': 'part',
 };
 function valueLine(part, lang) {
   const value = valueText(part, lang);
@@ -266,6 +266,7 @@ function explanations(lang) {
     ...['emf', 'voltage', 'drop', 'current', 'power', 'runtime', 'charge', 'off'].map((k) => `battery.${k}`),
     ...['regulating', 'dropout', 'vin', 'vout', 'headroom', 'iout', 'quiescent', 'led'].map((k) => `reg.${k}`),
     'switch.state', 'switch.contact',
+    'leds.channel', 'leds.common',
     ...['vac', 'vdc', 'current'].map((k) => `bridge.${k}`),
     ...['temperature', 'light', 'resistance'].map((k) => `sensor.${k}`),
     ...['off', 'active', 'saturation'].map((r) => `region.bjt.${r}`), ...['off', 'linear', 'saturation'].map((r) => `region.mosfet.${r}`),
