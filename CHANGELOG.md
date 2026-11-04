@@ -9,6 +9,29 @@ detail.
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-04
+
+Fixes found trying 0.9.0 on a phone and a tablet.
+
+### Fixed
+
+- **The part's view up close in the page**: Back is a short land of 350 ms (the part comes down its
+  3 mm with the camera, the board already in place under a lightening veil) instead of the video's
+  1.5 s, and entering takes 450 ms; the page's bar going or coming back no longer makes the drawing
+  jump (`keepStill`: the view box keeps every point still on screen when the area changes), so the
+  pinout's leaders are laid out on the final frame. A video's `land` is unchanged.
+- **Lights follow the simulation at once**: LEDs and a 7-segment display's segments are painted on
+  every frame (they lagged up to a quarter of a second, and a digit seemed to change in slow motion);
+  PWM is still averaged, over the last 20 ms of simulated time.
+- **An LED that is off**: its shade is the LED's own visible faces, so it sits exactly on the dome
+  and flange (it overhung beside the flange).
+- **The relay** sits on the table with its pins at its leads' ends, and its faces carry the print and
+  the coil and contact diagram; **the motor's** pulley mark shows at all 16 angles.
+- **Parts on one support keep their depth order** (the UNO's reset button was painted over its USB
+  socket).
+- **The 7-segment digit is drawn upright** on the case: the real 10° lean, added to the isometric
+  skew, read as crooked (the inside view, face on, still leans).
+
 ## [0.9.0] - 2026-11-04
 
 Every part type up close, seven parts a starter kit has, and a bridge rectifier that keeps running.
@@ -270,7 +293,8 @@ what it uses.
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.6.0...v0.7.0
