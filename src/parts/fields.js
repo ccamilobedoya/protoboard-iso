@@ -25,6 +25,9 @@ export const TYPE_FIELDS = {
   header: ['count', 'pin1', 'color'],
   'rgb-led': ['common'],
   'seven-segment': ['part', 'pin1'],
+  'slide-switch': ['part', 'slid'],
+  'tilt-switch': ['part', 'tilted'],
+  'temperature-sensor': ['part', 'temperature'],
 };
 
 // Fields a part has that its type does not take (a typo, or another type's field): saved, they

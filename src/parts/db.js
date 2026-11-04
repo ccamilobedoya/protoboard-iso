@@ -82,6 +82,13 @@ export const PART_NUMBERS = {
   // Pins 3 and 8 are both the common.
   '5161AS': { type: 'seven-segment', package: '7seg-056', pins: ['e', 'd', 'COM1', 'c', 'DP', 'b', 'a', 'COM2', 'f', 'g'], model: { common: 'cathode' } },
   '5161BS': { type: 'seven-segment', package: '7seg-056', pins: ['e', 'd', 'COM1', 'c', 'DP', 'b', 'a', 'COM2', 'f', 'g'], model: { common: 'anode' } },
+  // LM35 temperature sensors in TO-92 (TI SNIS159H): +VS, VOUT, GND, pins 1–3 from the left with
+  // the flat face toward you (the datasheet's bottom view). D grade 0–100 °C, C grade −40–110 °C.
+  ...Object.fromEntries(['LM35DZ', 'LM35CZ'].map((n) => [n, { type: 'temperature-sensor', package: 'TO-92', pins: ['+VS', 'VOUT', 'GND'], model: { grade: n } }])),
+  // Switches that stand in the breadboard: the SS-12D00 slide switch (SPDT; Vimex drawing) and the
+  // SW-520D ball tilt switch (Bailin Electronics sheet).
+  SS12D00G3: { type: 'slide-switch', package: 'slide-ss12', pins: ['1', 'COM', '2'], model: {} },
+  SW520D: { type: 'tilt-switch', package: 'tilt-sw520', pins: ['1', '2'], model: {} },
   // Zener diodes, 1 W, DO-41 glass (1N4728A = 3.3 V … 1N4751A = 30 V). The `zener` type also
   // takes just a voltage ("5V1"); see src/sim/models.js for the breakdown model.
   ...Object.fromEntries([3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1, 10, 11, 12, 13, 15, 16, 18, 20, 22, 24, 27, 30].map((vz, i) => [`1N${4728 + i}A`, { type: 'zener', package: 'axial', pins: ['A', 'K'], model: { vz } }])),
@@ -99,6 +106,6 @@ export function lookupPartNumber(number) {
     const number = ams[1].startsWith('3') ? 'AMS1117-3.3' : 'AMS1117-5.0';
     return { number, entry: PART_NUMBERS[number] };
   }
-  const named = { '2SC1815': 'C1815', '2SA1015': 'A1015', '2N2907': '2N2907A', '2N2222': '2N2222A', LM741: 'UA741' }[n];
+  const named = { '2SC1815': 'C1815', '2SA1015': 'A1015', '2N2907': '2N2907A', '2N2222': '2N2222A', LM741: 'UA741', LM35: 'LM35DZ', LM35D: 'LM35DZ', LM35C: 'LM35CZ', 'SS-12D00G3': 'SS12D00G3', SS12D00: 'SS12D00G3', 'SS-12D00': 'SS12D00G3', 'SW-520D': 'SW520D', SW520: 'SW520D', 'SW-520': 'SW520D' }[n];
   return named ? { number: named, entry: PART_NUMBERS[named] } : null;
 }

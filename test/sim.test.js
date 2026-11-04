@@ -5,7 +5,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { checkCircuit } from '../src/index.js';
-import { simulate } from '../src/sim/index.js';
+import { simulate, compile } from '../src/sim/index.js';
+import { createEngine } from '../src/sim/engine.js';
 import { VT, WIRE_RESISTANCE, DIODES, ledModel, MOSFETS, BJTS } from '../src/sim/models.js';
 
 const example = (name) => JSON.parse(readFileSync(new URL(`../examples/${name}`, import.meta.url), 'utf8'));
@@ -147,6 +148,78 @@ test('RGB LED and 7-segment display: each chip at 20 mA reads the typical Vf of 
   assert.ok(over.issues.some((i) => i.code === 'SIM_OVER_CURRENT' && i.params.part === 'D1.R'), JSON.stringify(over.issues));
   const hot = chip(display, 30, 'a32', 0.02);
   assert.ok(hot.issues.some((i) => i.code === 'SIM_OVER_POWER' && i.params.part === 'DS1.e'), '2.1 V × 20 mA is over the 40 mW of a segment');
+});
+
+// An LM35 (TI SNIS159H): +VS on T+, GND on T−, VOUT into a load to T−; the datasheet's own points.
+const lm35 = ({ volts = 5, temperature = 25, load = '1M', part = 'LM35DZ' } = {}) => ({
+  supplies: supply(volts),
+  parts: [
+    { id: 'U1', type: 'temperature-sensor', part, temperature, pins: ['e10', 'e11', 'e12'] },
+    { id: 'W1', type: 'wire', color: 'red', pins: ['T+10', 'a10'] },
+    { id: 'W2', type: 'wire', color: 'black', pins: ['a12', 'T-12'] },
+    { id: 'R1', type: 'resistor', value: load, pins: ['c11', 'c15'] },
+    { id: 'W3', type: 'wire', color: 'black', pins: ['a15', 'T-15'] },
+  ],
+});
+
+test('LM35: 250 mV at 25 °C within its accuracy, 10 mV per °C, 56 µA of its own; out of range it warns', () => {
+  // "VOUT = 250 mV at 25 °C"; LM35DZ ±1.5 °C at 25 °C (tested limit): ±15 mV.
+  const r = run(lm35());
+  near(r.parts.U1.vout, 0.25, 0.015, 'Vout at 25 °C');
+  // Quiescent current 56 µA at 5 V and 25 °C (typical).
+  near(r.parts.U1.quiescent, 56e-6, 1e-6, 'own current');
+  near(Object.values(r.parts.U1.pinCurrents).reduce((x, y) => x + y, 0), 0, 1e-9, 'Kirchhoff at the part');
+  // 10 mV/°C over its range, unchanged by the supply (line regulation ±0.01 mV/V); 0 °C is 0 mV.
+  for (const [t, v] of [[0, 0], [60, 0.6], [100, 1.0]]) near(run(lm35({ temperature: t, volts: 12 })).parts.U1.vout, v, 1e-3, `Vout at ${t} °C`);
+  // Load regulation 0.4 mV/mA: 1 mA out (a 1 kΩ load at 1 V) takes 0.4 mV.
+  const loaded = run(lm35({ temperature: 100, load: '1k' }));
+  near(loaded.parts.U1.current, 1e-3, 1e-5, 'output current into 1 kΩ');
+  near(loaded.parts.U1.vout, 1.0 - 0.4e-3, 5e-5, 'load regulation');
+  // A slider moves it: the engine's control, the same element.
+  const engine = createEngine(compile(lm35()).program);
+  assert.ok(engine.set('U1', 'temperature', 37));
+  near(engine.dc().parts.U1.vout, 0.37, 1e-3, 'Vout follows the slider');
+  // Out of its range: the supply over 30 V, the output shorted (10 mA absolute), under 4 V a note.
+  assert.ok(codes(run(lm35({ volts: 32 })).issues).includes('SIM_IC_SUPPLY'));
+  assert.ok(codes(run(lm35({ temperature: 100, load: '47' })).issues).includes('SIM_OVER_CURRENT'));
+  assert.ok(codes(run(lm35({ volts: 3 })).issues).includes('SIM_LM35_LOW_SUPPLY'));
+  assert.ok(codes(run(lm35({ temperature: 120 })).issues).includes('SIM_LM35_RANGE'), 'an LM35DZ reads 0–100 °C');
+  assert.ok(!codes(run(lm35({ temperature: 105, part: 'LM35CZ' })).issues).includes('SIM_LM35_RANGE'), 'an LM35CZ up to 110 °C');
+});
+
+// The kit's switches in the board (src/sim/devices/switch.js) against their sheets: SS-12D00 30 mΩ
+// and 30 V 0.3 A; SW-520D under 10 Ω (the kit's 10 Ω) and 12 V.
+test('slide and tilt switches: their contact resistance, the pair their position closes, their ratings', () => {
+  const slide = (slid, volts = 5) => run({
+    supplies: supply(volts),
+    parts: [
+      { id: 'S1', type: 'slide-switch', slid, pins: ['e10', 'e11', 'e12'] },
+      { id: 'W1', type: 'wire', color: 'red', pins: ['T+11', 'a11'] },
+      { id: 'R1', type: 'resistor', value: '100', pins: ['a10', 'T-9'] },
+      { id: 'R2', type: 'resistor', value: '1k', pins: ['a12', 'T-13'] },
+    ],
+  });
+  // Knob at 1: COM to 1, the current 5 V / (100 Ω + 30 mΩ + wires), the drop the contact's.
+  const at1 = slide(false);
+  const i1 = at1.parts.R1.current;
+  near(at1.parts.S1.contacts[0].current, i1, 1e-9, 'COM–1 carries R1\'s current');
+  near(at1.parts.S1.pins.COM - at1.parts.S1.pins['1'], i1 * 0.03, 1e-6, '30 mΩ');
+  near(at1.parts.R2.current, 0, 1e-9, 'pin 2 open');
+  const at2 = slide(true);
+  near(at2.parts.R2.current, 5 / 1000, 5e-5, 'slid: COM to 2');
+  near(at2.parts.R1.current, 0, 1e-9, 'pin 1 open');
+  assert.ok(codes(slide(false, 36).issues).includes('SIM_SWITCH_VOLTAGE'), '36 V on the open pair: over its 30 V');
+  const slideInto = (value) => run({ supplies: supply(5), parts: [{ id: 'S1', type: 'slide-switch', pins: ['e10', 'e11', 'e12'] }, { id: 'W1', type: 'wire', pins: ['T+11', 'a11'] }, { id: 'R1', type: 'resistor', value, pins: ['a10', 'T-9'] }, { id: 'R2', type: 'resistor', value: '1k', pins: ['a12', 'T-13'] }] });
+  assert.ok(codes(slideInto('10').issues).includes('SIM_OVER_CURRENT'), '0.5 A through it: over its 0.3 A');
+  const tilt = (tilted, volts = 5, value = '1k') => run({
+    supplies: supply(volts),
+    parts: [{ id: 'S1', type: 'tilt-switch', tilted, pins: ['e10', 'e11'] }, { id: 'W1', type: 'wire', pins: ['T+10', 'a10'] }, { id: 'R1', type: 'resistor', value, pins: ['a11', 'T-12'] }],
+  });
+  const up = tilt(false);
+  near(up.parts.R1.current, 5 / (1000 + 10 + 2 * WIRE_RESISTANCE), 2e-6, 'upright: closed, 10 Ω');
+  near(tilt(true).parts.R1.current, 0, 1e-9, 'tilted: open');
+  assert.ok(codes(tilt(true, 15).issues).includes('SIM_SWITCH_VOLTAGE'), '15 V across it open: over its 12 V');
+  assert.ok(codes(tilt(false, 5, '100').issues).includes('SIM_OVER_CURRENT'), '50 mA through the balls: over 25 mA');
 });
 
 test('short circuit: a current-limited supply drops its voltage; an unlimited one is flagged', () => {

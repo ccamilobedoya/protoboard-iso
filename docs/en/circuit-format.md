@@ -346,6 +346,38 @@ at most 20 mA and 40 mW) and needs its own resistor.
 { "id": "DS1", "type": "seven-segment", "part": "5161AS", "pin1": "b30" }
 ```
 
+### slide-switch
+
+A slide switch (SS-12D00, SPDT) standing in three neighbouring holes of a row: pins `1`, `COM`
+(the middle) and `2`. `slid`: `false` (default) leaves the knob on pin 1's side, `COM` joined to `1`;
+`true` slides it over, `COM` joined to `2`. The page slides it with a tap on the drawing or the
+card's button. Its contact is 30 mΩ, rated 30 V and 0.3 A DC (Vimex SS-12D00 drawing).
+
+```json
+{ "id": "S1", "type": "slide-switch", "pins": ["h10", "h11", "h12"] }
+```
+
+### tilt-switch
+
+A ball tilt switch (SW-520D) standing on its two leads in two neighbouring holes: pins `1` and `2`,
+no polarity. `tilted`: `false` (default) is upright, the balls closing the contact (the kit takes the
+sheet's bound, 10 Ω); `true` is tipped past its angle, open. Rated 12 V; the kit warns over 25 mA.
+
+```json
+{ "id": "S2", "type": "tilt-switch", "pins": ["h20", "h21"] }
+```
+
+### temperature-sensor
+
+An LM35 temperature sensor in TO-92: `part` `"LM35DZ"` (default, 0–100 °C) or `"LM35CZ"`
+(−40–110 °C), pins `+VS`, `VOUT`, `GND` from the left with the flat face toward you. `temperature`:
+the °C it is at (default 25; the page's slider moves it). `VOUT` is 10 mV per °C (250 mV at 25 °C)
+from a supply of 4 to 30 V.
+
+```json
+{ "id": "U2", "type": "temperature-sensor", "temperature": 25, "pins": ["h30", "h31", "h32"] }
+```
+
 ### header
 
 A row of male header pins, to show where a module or a Dupont wire plugs in. Place it with

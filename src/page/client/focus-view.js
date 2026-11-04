@@ -40,6 +40,9 @@ const LEGENDS = {
   buzzer: [['coil', 'coil'], ['disc', 'disc'], ['sound', 'sound'], ['arrow', 'arrow'], ['', 'state']],
   rgb: [['chip', 'chips'], ['', 'mix'], ['', 'figures']],
   segments: [['chip', 'lit'], ['', 'letters'], ['', 'state']],
+  slide: [['plunger', 'knob'], ['blade', 'slider'], ['metal', 'contacts'], ['arrow', 'arrow'], ['', 'figures']],
+  tilt: [['ball', 'balls'], ['metal', 'contacts'], ['arrow', 'arrow'], ['', 'figures']],
+  lm35: [['heat', 'thermometer'], ['', 'gain'], ['arrow', 'arrow'], ['', 'figures']],
 };
 // Swatches in the figure's own colours that live in the script (sim/look.js), not in the style.
 const INLINE = { arrow: DOT_COLOR, heat: HEAT_COLOR, pos: VOLTAGE_COLORS.positive, neg: VOLTAGE_COLORS.negative };

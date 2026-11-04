@@ -143,7 +143,10 @@
                 "c3-blink",
                 "c3-pot-pwm",
                 "uno-rgb-led",
-                "uno-seven-segment"
+                "uno-seven-segment",
+                "slide-switch-leds",
+                "tilt-alarm",
+                "lm35-uno"
               ]
             },
             "values": {
@@ -471,7 +474,10 @@
             "buzzer",
             "header",
             "rgb-led",
-            "seven-segment"
+            "seven-segment",
+            "slide-switch",
+            "tilt-switch",
+            "temperature-sensor"
           ]
         },
         "pins": {
@@ -552,7 +558,7 @@
         },
         "part": {
           "type": "string",
-          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
+          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
         },
         "package": {
           "type": "string"
@@ -651,6 +657,14 @@
           "type": "boolean",
           "description": "switch: on (rocker on I, latching button down); default off"
         },
+        "slid": {
+          "type": "boolean",
+          "description": "slide-switch: the knob slid over to pin 2's side (COM joined to 2); default false (COM joined to 1)"
+        },
+        "tilted": {
+          "type": "boolean",
+          "description": "tilt-switch: tipped over past its angle (open); default false (upright, closed)"
+        },
         "format": {
           "enum": [
             "18650",
@@ -731,7 +745,7 @@
         },
         "temperature": {
           "type": "number",
-          "description": "thermistor: °C for the simulation (default 25)"
+          "description": "thermistor, temperature-sensor (LM35): °C for the simulation (default 25)"
         },
         "light": {
           "type": "number",

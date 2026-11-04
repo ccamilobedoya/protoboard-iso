@@ -31,7 +31,7 @@ const SYNONYMS = [
   ['TRIG', 'TRIGGER', 'DISPARO'],
   ['CTRL', 'CV', 'CONT', 'CONTROL'],
   ['RESET', 'RST', 'RES'],
-  ['VCC', 'VDD', 'V+', 'VS', 'VPLUS'],
+  ['VCC', 'VDD', 'V+', 'VS', '+VS', 'VPLUS'],
   ['GND', 'VSS', '0V', 'TIERRA', 'MASA'],
   ['3V3', '3.3V', '3.3', '3V', '+3V3', '+3.3V'],
   ['5V', '+5V'],

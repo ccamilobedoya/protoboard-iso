@@ -333,6 +333,8 @@ export function setupLive(page) {
   const shades = svgs.map((svg) => svg.getElementsByClassName('led-shade'));
   // A display's lit segments (sim/paths.js segmentOps), the same way: fill-opacity data-k × its light.
   const segments = svgs.map((svg) => svg.getElementsByClassName('led-segment'));
+  // A piece drawn at each of its places (a slide switch's knob, render/scene.js `pose`), the same way.
+  const poses = svgs.map((svg) => svg.getElementsByClassName('pose'));
   function writeLights() {
     for (const el of glows) {
       const text = lights.get(el.dataset.glow)?.shown.toFixed(2) ?? '0.00';
@@ -364,6 +366,15 @@ export function setupLive(page) {
     // A push button's bridge in the plan, drawn while it is pressed.
     for (const el of bridges) el.style.display = reading.parts[el.dataset.bridge]?.pressed ? '' : 'none';
     if (!reading) return;
+    // A slide switch's knob where its control has it now: the other one hidden.
+    for (const list of poses) {
+      for (const el of list) {
+        const on = reading.parts[el.dataset.part]?.on;
+        if (typeof on !== 'boolean') continue;
+        const display = (on ? 'on' : 'off') === el.dataset.pose ? '' : 'none';
+        if (el.style.display !== display) el.style.display = display;
+      }
+    }
     if (flow) {
       const centres = {};
       const voltage = (ref) => {

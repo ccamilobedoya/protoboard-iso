@@ -538,7 +538,10 @@
                       "c3-blink",
                       "c3-pot-pwm",
                       "uno-rgb-led",
-                      "uno-seven-segment"
+                      "uno-seven-segment",
+                      "slide-switch-leds",
+                      "tilt-alarm",
+                      "lm35-uno"
                     ]
                   },
                   "values": {

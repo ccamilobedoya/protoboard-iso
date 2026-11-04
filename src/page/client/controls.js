@@ -6,7 +6,8 @@
 // - In a panel, the ones the circuit puts in front (`page.controls`: part or supply, field, and
 //   optionally its own range, scale and label).
 // - A push button conducts while it is held (on the drawing itself or with *Hold to press*), or
-//   stays pressed with *Keep pressed* until that is tapped again.
+//   stays pressed with *Keep pressed* until that is tapped again. A switch in the board (a slide
+//   switch, a tilt switch) moves with a tap on the drawing too, and stays.
 // Every row of the same control is kept in step; a change re-solves (engine.set, sliders
 // debounced) and `changed` repaints. A part's short label that states the control's value
 // ("R2 · 10 kΩ") states the new one.
@@ -87,9 +88,10 @@ export function setupControls(page, { engine, t, decimal, changed }) {
         set(c.id, c.field, on, r);
         r.update({ value: on });
       });
+      // A switch in the board says where the button sends it (`moves`: "Slide to 2", "Tilt it").
       r.update = (cur) => {
         on = Boolean(cur?.value);
-        b.textContent = t(on ? 'page.controls.turnOff' : 'page.controls.turnOn');
+        b.textContent = t(c.moves ? c.moves[on ? 1 : 0] : on ? 'page.controls.turnOff' : 'page.controls.turnOn');
         b.setAttribute('aria-pressed', String(on));
       };
     } else if (c.scale === 'momentary') {
@@ -203,7 +205,11 @@ export function setupControls(page, { engine, t, decimal, changed }) {
   page.main.addEventListener('pointerdown', (e) => {
     const hit = e.target.closest && e.target.closest('[data-part]');
     if (!hit || page.side.contains(e.target) || page.info.contains(e.target)) return;
-    const c = engine.controls().find((x) => x.id === hit.getAttribute('data-part') && x.scale === 'momentary');
+    const own = engine.controls().filter((x) => x.id === hit.getAttribute('data-part'));
+    // A switch in the board (a slide switch, a tilt switch) moves with a tap, and stays.
+    const flip = own.find((x) => x.scale === 'toggle' && x.tap);
+    if (flip) return set(flip.id, flip.field, !flip.value);
+    const c = own.find((x) => x.scale === 'momentary');
     if (!c || kept.has(`${c.id}|${c.field}`)) return;
     holding = c;
     set(c.id, c.field, true);

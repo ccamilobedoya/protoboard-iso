@@ -216,6 +216,30 @@ export const MCUS = {
   uno: { vdd: 5, outputResistance: 40, pull: 35e3, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5, own: 0.045, maxPin: 0.04, usbResistance: 0.3, regulator: { dropout: 0.28, quiescent: 1e-3, maxCurrent: 0.15, maxPower: 0.3 } },
 };
 
+// LM35 precision centigrade temperature sensors (Texas Instruments LM35 datasheet, SNIS159H,
+// sections 6.1 and 6.7). Its output is 10 mV per °C over 0 V (0 mV at 0 °C: 250 mV at 25 °C).
+//   gain               sensor gain 10 mV/°C (9.8–10.2 tested limits)
+//   quiescent          56 µA from +VS at 5 V and 25 °C (80 µA max; 56.2 µA at 30 V: it hardly changes)
+//   outputResistance   load regulation ±0.4 mV/mA typical at 25 °C for 0–1 mA (±2 max): 0.4 Ω
+//   supply             operates from 4 V to 30 V (Features; line regulation is given over 4–30 V);
+//                      absolute maximum −0.2 V to 35 V
+//   maxCurrent         absolute maximum output current 10 mA (it sources; the tested load is 0–1 mA)
+//   minTemperature     in the basic circuit (one positive supply, no resistor to a negative one) it
+//                      reads from 2 °C ("minimum temperature for rate accuracy", 2 °C limit); under
+//                      that its output cannot go lower: the kit holds it at 10 mV · max(T, 0)
+//   dropout            the kit's own figure, not the datasheet's: how far under +VS the output can
+//                      still follow, so a starved sensor's output falls smoothly instead of jumping
+//   grades             accuracy at 25 °C (typical, tested limit) and rated range, by the TO-92 part:
+//                      LM35DZ ±0.6 / ±1.5 °C, 0–100 °C; LM35CZ ±0.4 / ±1 °C, −40–110 °C
+// Self-heating (0.08 °C in still air) and the error over temperature are left out.
+export const LM35 = {
+  gain: 0.01, quiescent: 56e-6, outputResistance: 0.4, minSupply: 4, maxSupply: 30, maxReverse: 0.2, maxCurrent: 0.01, minTemperature: 2, dropout: 1.5,
+  grades: {
+    LM35DZ: { typical: 0.6, limit: 1.5, range: [0, 100] },
+    LM35CZ: { typical: 0.4, limit: 1, range: [-40, 110] },
+  },
+};
+
 export const REGULATORS = {
   fixed: { dropout: 2.0, quiescent: 5e-3, maxCurrent: 1.5, maxPower: 2 },
   LM317: { dropout: 2.0, quiescent: 50e-6, maxCurrent: 1.5, maxPower: 2 },

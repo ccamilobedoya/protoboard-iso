@@ -49,6 +49,14 @@ export const PART_ALIASES = {
   '7SEGMENT': { type: 'seven-segment' },
   '7SEGMENTOS': { type: 'seven-segment' },
   SIETESEGMENTOS: { type: 'seven-segment' },
+  SLIDE: { type: 'slide-switch' },
+  SLIDESWITCH: { type: 'slide-switch' },
+  DESLIZANTE: { type: 'slide-switch' },
+  TILT: { type: 'tilt-switch' },
+  TILTSWITCH: { type: 'tilt-switch' },
+  INCLINACION: { type: 'tilt-switch' },
+  TEMPERATURA: { type: 'temperature-sensor' },
+  TEMPERATURE: { type: 'temperature-sensor' },
 };
 
 const norm = (s) => String(s ?? '').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');

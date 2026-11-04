@@ -105,6 +105,9 @@ function paintPrimitive(primitive, camera, bounds, out) {
       opacity: face.opacity !== undefined && face.opacity < 1 ? face.opacity : undefined,
       part,
       ...(primitive.along != null && { along: primitive.along }),
+      // A piece drawn at each of its positions (a slide switch's knob): the live page shows the one
+      // its control has now; the others hidden.
+      ...(primitive.pose && { cls: 'pose', data: { pose: primitive.pose }, ...(primitive.hidden && { style: 'display:none' }) }),
     });
   }
 

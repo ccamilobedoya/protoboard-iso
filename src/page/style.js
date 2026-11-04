@@ -522,6 +522,9 @@ body.layer-flow main[data-scene] > svg > .lights { display: inline; }
 .focus-legend .swatch.soc { background: var(--accent-soft); outline: 1px solid var(--accent); }
 .focus-legend .swatch.disc { box-sizing: border-box; border-bottom: 3px solid var(--accent); border-radius: 0 0 50% 50%; }
 .focus-legend .swatch.sound { box-sizing: border-box; border-top: 2px solid var(--accent); border-radius: 50% 50% 0 0; }
+.focus-legend .swatch.ball { background: var(--ink-4); border-radius: 50%; outline: 1px solid var(--ink-2); }
+.focus-legend .swatch.gauge { background: var(--well); outline: 1px solid var(--ink-3); }
+.focus-legend .swatch.plunger { background: var(--ink-4); outline: 1px solid var(--ink-3); }
 .focus-legend .swatch[hidden] { display: block; visibility: hidden; }
 /* On a phone the bar takes two rows: Back and the name, then the two controls sharing the width. */
 @media (max-width: 560px) {
@@ -604,6 +607,8 @@ body.focus-view, body.focus-view main, body.focus-view .focus-dock { touch-actio
 .figure .winding { fill: none; stroke: var(--accent-deep); stroke-width: 2.4; stroke-linecap: round; }
 .figure .disc { fill: none; stroke: var(--ink-2); stroke-width: 2.4; stroke-linecap: round; }
 .figure .disc.on, .figure .sound { stroke: var(--accent); }
+.figure .ball { fill: var(--ink-4); stroke: var(--ink-2); stroke-width: 1.2; }
+.figure .ball.on { stroke: var(--accent); }
 .figure .sound { fill: none; stroke-width: 1.6; stroke-linecap: round; }
 body.director nav, body.director .zoom, body.director .inspector, body.director .gesture-hint, body.director .first-hint, body.director .tooltip { display: none !important; }
 body.director main { cursor: default; }

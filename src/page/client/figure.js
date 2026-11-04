@@ -30,7 +30,10 @@
 // battery's cells filled with their charge, EMF − I·R over them, its current and its warnings; a
 // buzzer's coil and steel disc, pulled with the current, with arcs of sound while it changes; an RGB
 // LED's three chips in one lens, each with its brightness, the lens in their mixed colour; a 7-segment
-// display's figure 8 with each segment lit from its reading and the digit it draws. Arrows
+// display's figure 8 with each segment lit from its reading and the digit it draws; a slide switch's
+// three contacts and the slider its knob puts on COM and one of them; a tilt switch's can with the
+// two balls on its leads' ends or rolled away from them; an LM35's thermometer and its 10 mV per °C
+// out to VOUT, with its supply's current. Arrows
 // never cross what they explain: they run beside the layers, under the channel, the film, the coil.
 // Didactic, not to scale.
 
@@ -802,6 +805,94 @@ const INSIDE = {
     label(g, 50, 103, r ? [`V ${f(Math.abs(r.voltage ?? 0), 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
     const state = sounding ? 'sounding' : flowing(i) ? 'dc' : 'silent';
     label(g, 50, 114, r ? t(`page.tour.inside.buzzer.${state}`) : '', 'state');
+  },
+  slide(g, r, data, { t, f, control }) {
+    // Cut from the side, as its datasheet draws it: the frame with its three fixed contacts, 1, COM and
+    // 2, each down to its pin; the knob on top carries the slider under it, which bridges COM to the
+    // contact on the knob's side. The current through that pair runs under the frame between their
+    // leads; the open pair's gap holds a voltage there.
+    const [p1, com, p2] = data.ids;
+    const slid = Boolean(r?.on ?? control?.('slid') ?? data.on);
+    const xs = { 1: 26, COM: 50, 2: 74 };
+    make(g, 'rect', { class: 'core', x: 12, y: 30, width: 76, height: 32, rx: 2 });
+    make(g, 'rect', { class: 'plunger', x: slid ? 56 : 32, y: 10, width: 12, height: 26 });
+    make(g, 'path', { class: 'lead', d: 'M26 58V84M50 58V84M74 58V84' });
+    for (const x of Object.values(xs)) make(g, 'rect', { class: 'metal', x: x - 6, y: 54, width: 12, height: 4 });
+    make(g, 'path', { class: 'blade on', d: slid ? 'M48 50H76' : 'M24 50H52' });
+    label(g, 26, 95, p1, 'pin-name', 'middle', FIGURE.text);
+    label(g, 50, 95, com, 'pin-name', 'middle', FIGURE.small);
+    label(g, 74, 95, p2, 'pin-name', 'middle', FIGURE.text);
+    // The closed pair's current, from COM to its throw when positive (the contact's own sense).
+    const i = r?.contacts?.[0]?.current ?? 0;
+    const to = slid ? xs['2'] : xs['1'];
+    if (flowing(i)) {
+      const [x0, x1] = i > 0 ? [50 + Math.sign(to - 50) * 3, to - Math.sign(to - 50) * 3] : [to - Math.sign(to - 50) * 3, 50 + Math.sign(to - 50) * 3];
+      shaft(g, x0, 72, x1, 72, widthOf(i));
+      label(g, (50 + to) / 2, 82, 'I', 'current', 'middle', FIGURE.small);
+    }
+    // The open pair's gap as a dimension line; its voltage is under the figure (no room between leads).
+    const open = r?.open?.[0];
+    if (open) {
+      const [x0, x1] = slid ? [29, 47] : [53, 71];
+      make(g, 'path', { class: 'dim', d: `M${x0} 72H${x1}M${x0} 68V76M${x1} 68V76` });
+    }
+    label(g, 50, 103, r ? [flowing(i) && `I ${f(Math.abs(i), 'A')}`, open && `${open.a}–${open.b} ${f(Math.abs(open.voltage), 'V')}`].filter(Boolean).join(' · ') : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.slide.${slid ? 'at2' : 'at1'}`) : '', 'state');
+  },
+  tilt(g, r, data, { t, f, control }) {
+    // The can with its two balls and the two leads' ends inside it, standing on its leads. Upright the
+    // lower ball rests on both ends and joins them; leaning past its angle (45°: drawn at 50°, the can
+    // leaning on its leads) the balls roll against the low side, onto one end at most, and the leads
+    // are apart. The current, or the open gap, under the leads.
+    const [a, b] = data.ids;
+    const tilted = Boolean(r?.on ?? control?.('tilted') ?? data.on);
+    const turn = ((tilted ? 50 : 0) * Math.PI) / 180;
+    // Where a point at the can's lead end (y 72) is once the can leans about its middle there.
+    const leaned = (x) => `${fixed(50 + (x - 50) * Math.cos(turn))} ${fixed(72 + (x - 50) * Math.sin(turn))}`;
+    make(g, 'path', { class: 'lead', d: `M44 86L${leaned(44)}M56 86L${leaned(56)}` });
+    const can = make(g, 'g', { transform: `rotate(${tilted ? 50 : 0} 50 72)` });
+    make(can, 'rect', { class: 'core', x: 36, y: 28, width: 28, height: 44, rx: 7 });
+    make(can, 'rect', { class: 'metal', x: 42.5, y: 58, width: 3, height: 14 });
+    make(can, 'rect', { class: 'metal', x: 54.5, y: 58, width: 3, height: 14 });
+    for (const [x, y] of tilted ? [[57, 51], [57, 37]] : [[50, 54.4], [50, 40.4]]) make(can, 'circle', { class: `ball${tilted ? '' : ' on'}`, cx: x, cy: y, r: 7 });
+    label(g, 40, 92, a, 'pin-name', 'end', FIGURE.text);
+    label(g, 60, 92, b, 'pin-name', 'start', FIGURE.text);
+    const i = r?.contacts?.[0]?.current ?? 0;
+    const v = r?.pins?.['1'] != null && r?.pins?.['2'] != null ? r.pins['1'] - r.pins['2'] : null;
+    if (!tilted && flowing(i)) shaft(g, i > 0 ? 42 : 58, 92, i > 0 ? 58 : 42, 92, widthOf(i));
+    else if (tilted && v != null) gap(g, 44, 56, 90, v, f);
+    label(g, 50, 103, r && !tilted ? [v != null && `V ${f(Math.abs(v), 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.tilt.${tilted ? 'tilted' : 'upright'}`) : '', 'state');
+  },
+  lm35(g, r, data, { t, f, control }) {
+    // The chip: a thermometer of its temperature (its rated range, full at its top), the arrow of what
+    // it makes of it, 10 mV per °C, out to VOUT with the voltage there; the supply's current beside +VS.
+    const [vs, out, gnd] = data.ids;
+    const temperature = r?.temperature ?? control?.('temperature') ?? data.temperature ?? 25;
+    const top = data.range?.[1] ?? 100;
+    const k = Math.max(0, Math.min(1, temperature / top));
+    make(g, 'path', { class: 'lead', d: 'M40 4V30M66 54H96M40 78V92' });
+    make(g, 'rect', { class: 'core', x: 14, y: 30, width: 52, height: 48, rx: 3 });
+    make(g, 'rect', { class: 'gauge', x: 20, y: 36, width: 6, height: 28 });
+    make(g, 'rect', { x: 20, y: fixed(36 + 28 * (1 - k)), width: 6, height: fixed(28 * k), fill: HEAT_COLOR, opacity: fixed(0.35 + 0.6 * k) });
+    make(g, 'circle', { cx: 23, cy: 68, r: 5, fill: HEAT_COLOR, opacity: fixed(0.35 + 0.6 * k) });
+    make(g, 'circle', { class: 'dim', cx: 23, cy: 68, r: 5 });
+    make(g, 'path', { class: 'lead', d: 'M32 54H57' });
+    make(g, 'path', { class: 'fill', d: 'M62 54L55 50.5V57.5Z' });
+    label(g, 46, 47, t('page.tour.inside.lm35.gain'), 'note', 'middle', FIGURE.small);
+    label(g, 32, 72, celsius(temperature, f), 'note', 'start', FIGURE.small);
+    label(g, 46, 12, vs, 'pin-name', 'start', FIGURE.text);
+    label(g, 96, 47, out, 'pin-name', 'end', FIGURE.text);
+    label(g, 46, 92, gnd, 'pin-name', 'start', FIGURE.text);
+    if (r) label(g, 98, 65, f(r.vout, 'V'), 'note', 'end', FIGURE.small);
+    // Conventional current into +VS, down beside its lead: its own (quiescent) and what VOUT gives.
+    const is = r?.currents?.['+VS'] ?? 0;
+    if (flowing(is)) {
+      shaft(g, 30, is > 0 ? 6 : 26, 30, is > 0 ? 26 : 6, widthOf(is));
+      label(g, 24, 18, 'Is', 'current', 'end', FIGURE.small);
+    }
+    label(g, 50, 103, r ? [`Vs ${f(r.vs, 'V')}`, `Is ${f(Math.abs(is), 'A')}`, flowing(r.current) && `Iout ${f(r.current, 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.lm35.${r.state}`, { min: f(4, 'V') }) : '', 'state');
   },
 };
 

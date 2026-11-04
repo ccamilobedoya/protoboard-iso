@@ -417,6 +417,22 @@ la común y el dígito que dibujan los segmentos encendidos («se lee 3»), o lo
 dibujan ninguno. En la protoboard y en el pedestal el halo de la cúpula RGB mezcla la luz de sus chips y
 cada segmento se enciende en la cara del display.
 
+Las filas de un interruptor deslizante dicen qué extremo es cada pata y que COM es la del medio; su
+marca es la perilla, que une COM con el extremo de su lado (`slide`: «COM es la pata del medio; la
+perilla la une a la del extremo de su lado»; no nombra un lado, porque un toque mueve la perilla). Su símbolo es un conmutador, la lámina de COM en la
+posición que tiene; su vista por dentro, en corte de lado como lo dibuja su hoja de datos, los tres
+contactos fijos bajando a sus patas, la perilla arriba y la lámina debajo uniendo COM con uno de ellos,
+la corriente por ese par bajo el marco y el voltaje que sostiene el par abierto (`contacts`, `open`). En
+la protoboard la perilla está dibujada en los dos lugares y la página muestra la que tiene su control
+(un toque en el dibujo la corre). Un interruptor de inclinación entra en cualquier sentido (`either`);
+su símbolo, un interruptor cerrado tal como está, con la bola que lo mueve; su vista por dentro, la
+cápsula con sus dos bolas sobre las puntas de las dos patas (derecho, cerrado, la corriente bajo las
+patas) o rodadas contra el lado bajo cuando se inclina más allá de su ángulo (abierto, el voltaje en
+él). Las filas de un LM35 dicen +VS 4–30 V, VOUT 10 mV por °C y GND; su marca es la cara plana del TO-92;
+su símbolo, un bloque con +VS, VOUT y GND; su vista por dentro, un termómetro de su temperatura, la
+flecha de 10 mV por °C hacia VOUT con el voltaje allí, la corriente de su alimentación junto a +VS, y
+debajo Vs, Is y lo que da VOUT (`temperature`, `vout`, `vs`, `currents`, `state`).
+
 De cerca en un celular las filas del diagrama de patas siguen pegadas a sus líneas guía, y ahora además
 caben en la pantalla: se encogen juntas hasta el 65 % y una fila que aún es larga termina en «…» en el
 borde, como en un video; cuando dos columnas cortarían una fila, una sola columna a cualquiera de los dos

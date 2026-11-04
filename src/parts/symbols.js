@@ -310,6 +310,41 @@ function sevenSegment(anode) {
   return ledArray(segs, ['COM1', 'COM2'], anode, ids, segs);
 }
 
+// A slide switch (SPDT, IEC 60617 changeover): the common on the left, its blade from the pivot to the
+// throw its knob has (1 above, 2 below), the other one's contact open.
+function slideSwitch(slid) {
+  return {
+    w: 100, h: 100,
+    strokes: ['M4 50H28', ring(30.5, 50, 2.2), 'M70 30H96', 'M70 70H96', ring(67.8, 30, 2.2), ring(67.8, 70, 2.2), slid ? 'M32 51L65 68' : 'M32 49L65 32'],
+    fills: [],
+    texts: [{ x: 6, y: 44, text: 'COM', anchor: 'start', small: true }, { x: 94, y: 24, text: '1', anchor: 'end' }, { x: 94, y: 88, text: '2', anchor: 'end' }],
+    pins: { 1: [96, 30], COM: [4, 50], 2: [96, 70] },
+    ids: { 1: '1', COM: 'COM', 2: '2' },
+  };
+}
+
+// A tilt switch: a switch (1 at the top, 2 at the bottom) closed as it stands upright, the ball that
+// moves it drawn beside its blade.
+const tiltSwitch = () => ({
+  w: 100, h: 100,
+  strokes: ['M50 4V34', ring(50, 36.5), 'M50 96V66', 'M50 66L46.5 39.5', ring(34, 56, 6)],
+  fills: [ring(50, 66, 2.6)],
+  texts: [{ x: 58, y: 14, text: '1', anchor: 'start' }, { x: 58, y: 92, text: '2', anchor: 'start' }],
+  pins: { 1: [50, 4], 2: [50, 96] },
+  ids: { 1: '1', 2: '2' },
+});
+
+// An LM35 as a block, the way its datasheet draws it: +VS on top, VOUT out of the right side, GND
+// under it; the part number over it.
+const lm35 = (title) => ({
+  w: 100, h: 100,
+  strokes: ['M24 30H76V70H24Z', 'M50 4V30', 'M76 50H96', 'M50 70V96'],
+  fills: [],
+  texts: [{ x: 46, y: 22, text: title, anchor: 'end', quiet: true }, { x: 50, y: 41, text: '+VS', anchor: 'middle', small: true }, { x: 72, y: 53, text: 'VOUT', anchor: 'end', small: true }, { x: 50, y: 66, text: 'GND', anchor: 'middle', small: true }],
+  pins: { '+VS': [50, 4], VOUT: [96, 50], GND: [50, 96] },
+  ids: { '+VS': '+VS', VOUT: 'VOUT', GND: 'GND' },
+});
+
 export function symbolOf(part) {
   const e = part.def?.electrical ?? {};
   const names = part.pinNames ?? [];
@@ -332,6 +367,9 @@ export function symbolOf(part) {
   if (part.type === 'buzzer') return buzzer();
   if (part.type === 'rgb-led') return rgbLed(e.common === 'anode');
   if (part.type === 'seven-segment') return sevenSegment(e.common === 'anode');
+  if (part.type === 'slide-switch') return slideSwitch(e.on === true);
+  if (part.type === 'tilt-switch') return tiltSwitch();
+  if (part.type === 'temperature-sensor') return lm35(e.part ?? 'LM35');
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
   return null;
 }
@@ -396,6 +434,18 @@ export function insideOf(part) {
       chips: channels.map((c) => ({ pin: c.pin, id: symbol.ids[c.pin], color: LED_LIGHT[c.color] ?? LED_LIGHT.red })),
       maxCurrent: channels[0]?.model.maxCurrent,
     };
+  }
+  // A switch in the board: where its control has it (the circuit file until it moves), its contacts
+  // and the current a closed one is rated for (its device's).
+  if (part.type === 'slide-switch' || part.type === 'tilt-switch') {
+    const { on, onContacts, offContacts, maxCurrent, maxVoltage } = limits();
+    return { kind: part.type === 'slide-switch' ? 'slide' : 'tilt', ids: ids(), on, onContacts, offContacts, maxCurrent, maxVoltage };
+  }
+  // An LM35: its temperature from the circuit file (the reading's once it runs), the range its grade
+  // reads, and its gain.
+  if (part.type === 'temperature-sensor') {
+    const { temperature, range, model = {} } = limits();
+    return { kind: 'lm35', ids: ids(), temperature, range, gain: model.gain, maxCurrent: model.maxCurrent };
   }
   if (part.type === 'ic' && e.kind === 'TMR') return { kind: 'timer' };
   return null;

@@ -148,3 +148,14 @@ Object.assign(MATERIALS, {
   clipJaw: '#c9ccd1',
   clipBoot: '#d23b3b',
 });
+
+// Switches on the board: the SS-12D00 slide switch's plated frame, its phenolic base and its knob;
+// the SW-520D tilt switch's heat-shrink tube and the resin end its leads leave.
+Object.assign(MATERIALS, {
+  slideFrame: '#b9bdc2',
+  slideBase: '#d8c9a3',
+  slideSlot: '#2a2b2e',
+  slideKnob: '#222225',
+  tiltTube: '#1d1e21',
+  tiltResin: '#3a3b3f',
+});

@@ -44,7 +44,7 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
     else if (p.kind === 'M') text = `${t(lang, 'sim.region.mosfet.' + p.region)} · Vgs ${f(p.vgs, 'V')} · Vds ${f(p.vds, 'V')} · Id ${f(p.currents.D, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'Q') text = `${t(lang, 'sim.region.bjt.' + p.region)} · Vbe ${f(p.vbe, 'V')} · Vce ${f(p.vce, 'V')} · Ib ${f(p.currents.B, 'A')} · Ic ${f(p.currents.C, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'POT') text = `I(1) ${f(p.currents['1'], 'A')} · I(W) ${f(p.currents.W, 'A')} · I(3) ${f(p.currents['3'], 'A')} · ${f(p.power, 'W')}`;
-    else if (p.kind === 'SWT') text = [t(lang, p.on ? 'state.on' : 'state.off'), ...p.contacts.map((c) => t(lang, 'sim.switch.contact', { a: c.a, b: c.b, current: f(c.current, 'A') }))].join(' · ');
+    else if (p.kind === 'SWT') text = [t(lang, p.state ?? (p.on ? 'state.on' : 'state.off')), ...p.contacts.map((c) => t(lang, 'sim.switch.contact', { a: c.a, b: c.b, current: f(c.current, 'A') }))].join(' · ');
     else if (p.kind === 'SW') text = `${t(lang, p.pressed ? 'state.pressed' : 'state.released')} · ${f(p.current, 'A')}`;
     else if (p.kind === 'BR') text = `${t(lang, 'sim.q.bridge.vac')} ${f(p.vac, 'V')} · ${t(lang, 'sim.q.bridge.vdc')} ${f(p.vdc, 'V')} · ${t(lang, 'sim.q.bridge.current')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'REG') text = `${t(lang, 'sim.reg.' + p.state)} · ${t(lang, 'sim.q.reg.vin')} ${f(p.vin, 'V')} · ${t(lang, 'sim.q.reg.vout')} ${f(p.vout, 'V')} · ${t(lang, 'sim.q.reg.iout')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
@@ -52,6 +52,7 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
     else if (p.kind === 'OPA') text = [...p.amps.map((a) => `${a.name ? `${t(lang, 'sim.opamp.amp', { n: a.name })}: ` : ''}${t(lang, 'sim.opamp.' + a.state)} · V+ ${f(a.vplus, 'V')} · V− ${f(a.vminus, 'V')} · ${t(lang, 'sim.q.opamp.vout')} ${f(a.vout, 'V')} · ${f(a.current, 'A')}`), f(p.power, 'W')].join(' · ');
     else if (p.kind === 'TMR') text = `${t(lang, 'sim.timer.' + p.state)} · ${t(lang, 'sim.q.timer.vout')} ${f(p.vout, 'V')} · ${t(lang, 'sim.q.timer.vthr')} ${f(p.vthr, 'V')} · ${t(lang, 'sim.q.timer.iout')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'LEDS') text = [...Object.entries(p.channels).map(([pin, c]) => `${pin} ${f(c.voltage, 'V')} ${f(c.current, 'A')} ${Math.round(c.brightness * 100)} %`), `${t(lang, 'sim.q.leds.common')} ${f(Math.abs(p.current), 'A')}`, f(p.power, 'W')].join(' · ');
+    else if (p.kind === 'TMP') text = [p.state !== 'ok' && t(lang, `sim.lm35.${p.state}`), `${f(p.temperature, '°C')}`, `${t(lang, 'sim.q.lm35.vout')} ${f(p.vout, 'V')}`, `${t(lang, 'sim.q.lm35.vs')} ${f(p.vs, 'V')}`, `${t(lang, 'sim.q.lm35.own')} ${f(p.quiescent, 'A')}`].filter(Boolean).join(' · ');
     else if (p.kind === 'BAT' && !p.on) text = t(lang, 'sim.battery.off');
     else if (p.kind === 'BAT') {
       text = `${pad(f(p.voltage, 'V'), 10)} ${pad(f(p.current, 'A'), 10)} ${f(p.power, 'W')} · ${t(lang, 'sim.q.battery.emf')} ${f(p.emf, 'V')}`;

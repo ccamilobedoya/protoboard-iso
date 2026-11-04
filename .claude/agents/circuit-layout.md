@@ -24,8 +24,8 @@ brief** and return a short **layout report**. You do not talk to the end user.
    "V1": 9}`), plus `title`, `clearance`, `lang` or `page` if the brief gives them; never `parts` or
    `nets` with it. Recipes: `led-resistor`, `divider`, `npn-switch`, `potentiometer-led`,
    `mosfet-switch`, `button-pullup`, `button-pulldown`, `rc-square`, `555-astable`, `uno-blink`,
-   `uno-button`, `uno-pot-pwm`, `uno-rgb-led`, `uno-seven-segment`, `c3-blink`, `c3-pot-pwm`,
-   `regulator-7805`, `regulator-ams1117`, `bridge-rectifier`, `zener-regulator`, `esp32-led`,
+   `uno-button`, `uno-pot-pwm`, `uno-rgb-led`, `uno-seven-segment`, `lm35-uno`, `c3-blink`, `c3-pot-pwm`,
+   `slide-switch-leds`, `tilt-alarm`, `regulator-7805`, `regulator-ams1117`, `bridge-rectifier`, `zener-regulator`, `esp32-led`,
    `esp32-button`, `opamp-comparator`, `lm393-comparator`, `opamp-follower`, `opamp-noninverting`,
    `opamp-inverting`. `catalog` with the recipe's name gives its ids and limits when the brief's values
    need them. A changed value on a recipe circuit: `layout` again with the recipe, the new values and

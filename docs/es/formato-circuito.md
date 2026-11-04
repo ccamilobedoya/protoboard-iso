@@ -363,6 +363,39 @@ segmento es un LED rojo (2,1 V a 20 mA, máximo 20 mA y 40 mW) y necesita su pro
 { "id": "DS1", "type": "seven-segment", "part": "5161AS", "pin1": "b30" }
 ```
 
+### slide-switch (interruptor deslizante)
+
+Un interruptor deslizante (SS-12D00, SPDT) de pie en tres agujeros vecinos de una fila: patas `1`,
+`COM` (la del medio) y `2`. `slid`: `false` (por defecto) deja la perilla del lado de la pata 1, `COM`
+unida a `1`; `true` la corre, `COM` unida a `2`. La página la corre con un toque en el dibujo o con el
+botón de la ficha. Su contacto es de 30 mΩ, para 30 V y 0,3 A DC (plano SS-12D00 de Vimex).
+
+```json
+{ "id": "S1", "type": "slide-switch", "pins": ["h10", "h11", "h12"] }
+```
+
+### tilt-switch (interruptor de inclinación)
+
+Un interruptor de inclinación de bolas (SW-520D) de pie sobre sus dos patas en dos agujeros vecinos:
+patas `1` y `2`, sin polaridad. `tilted`: `false` (por defecto) es derecho, las bolas cierran el
+contacto (el kit toma el límite de la hoja, 10 Ω); `true` es inclinado más allá de su ángulo,
+abierto. Para 12 V; el kit avisa por encima de 25 mA.
+
+```json
+{ "id": "S2", "type": "tilt-switch", "pins": ["h20", "h21"] }
+```
+
+### temperature-sensor (sensor de temperatura)
+
+Un sensor de temperatura LM35 en TO-92: `part` `"LM35DZ"` (por defecto, 0–100 °C) o `"LM35CZ"`
+(−40–110 °C), patas `+VS`, `VOUT`, `GND` desde la izquierda con la cara plana hacia uno.
+`temperature`: los °C a los que está (por defecto 25; el deslizador de la página la cambia). `VOUT` da
+10 mV por °C (250 mV a 25 °C) con una alimentación de 4 a 30 V.
+
+```json
+{ "id": "U2", "type": "temperature-sensor", "temperature": 25, "pins": ["h30", "h31", "h32"] }
+```
+
 ### header (pines de cabecera)
 
 Una fila de pines macho, para mostrar dónde se enchufa un módulo o un cable Dupont. Se coloca

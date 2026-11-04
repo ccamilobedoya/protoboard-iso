@@ -40,6 +40,9 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `uno-pot-pwm` | Arduino UNO: a potentiometer on A0 dims an LED on D9 (ADC and PWM at 490 Hz) | RV1 = 10k, R1 = 220, D1 = red, U1 = its sketch |
 | `uno-rgb-led` | Arduino UNO mixing the colours of an RGB LED (common cathode) with PWM on D9, D10 and D11, a resistor per chip | R1, R2, R3 = 220 (red, green, blue), U1 = its sketch |
 | `uno-seven-segment` | Arduino UNO counting 0 to 9 on a 7-segment display (5161AS, common cathode), segments a–g on D2–D8 through a resistor each | R1 … R7 = 220 (segments a … g), U1 = its sketch |
+| `slide-switch-leds` | A slide switch (SPDT) choosing which of two LEDs lights: the supply on its common, a red LED on pin 1, a green one on pin 2 | R1, R2 = 330 (red, green LED) |
+| `tilt-alarm` | A tilt switch (SW-520D) that shorts an LED while upright; tipped over it opens and the LED lights | R1 = 330 |
+| `lm35-uno` | Arduino UNO reading an LM35 on A0 and printing the temperature on the serial monitor (10 mV per °C) | U2 = 25 (°C), U1 = its sketch |
 | `c3-blink` | ESP32-C3 SuperMini blinking an LED on GPIO3 | R1 = 220, D1 = red, U1 = its sketch |
 | `c3-pot-pwm` | ESP32-C3: a potentiometer on GPIO4 dims an LED on GPIO3 (ADC and PWM at 1 kHz) | RV1 = 10k, R1 = 220, D1 = red, U1 = its sketch |
 | `opamp-comparator` | LM358 comparing a potentiometer with half the supply; an LED on its output | RV1 = 10k (wiper at 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 5 V (5–30) |

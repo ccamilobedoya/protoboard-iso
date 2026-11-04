@@ -390,6 +390,21 @@ its letter outside it, the common's current, and the digit the lit segments draw
 lit ones when they draw none. On the board and on a pedestal the RGB dome's halo mixes its chips' light
 and each segment lights on the display's face.
 
+A slide switch's rows say which end each pin is and that COM is the middle one; its mark is the knob,
+which joins COM to the end on its side (`slide`: "COM is the middle pin; the knob joins it to the end
+pin on its side"; it names no side, since a tap moves the knob). Its symbol is a changeover, COM's blade on the throw it has; its inside view, cut
+from the side as its datasheet draws it, the three fixed contacts down to their pins, the knob on top
+and the slider under it bridging COM to one of them, the current through that pair under the frame and
+the voltage the open pair holds (`contacts`, `open`). On the board the knob is drawn at both places and
+the page shows the one its control has (a tap on the drawing slides it). A tilt switch goes in either
+way round (`either`); its symbol, a switch closed as it stands with the ball that moves it; its inside
+view, the can with its two balls resting on both leads' ends (upright, closed, the current under the
+leads) or rolled against the low side when it leans past its angle (open, the voltage across it). An
+LM35's rows say +VS 4–30 V, VOUT 10 mV per °C and GND; its mark is the TO-92's flat face; its symbol a
+block with +VS, VOUT and GND; its inside view, a thermometer of its temperature, the arrow of 10 mV per
+°C out to VOUT with the voltage there, its supply's current beside +VS, and under it Vs, Is and what
+VOUT gives (`temperature`, `vout`, `vs`, `currents`, `state`).
+
 Up close on a phone the pinout's rows hug their leaders as before, and now fit the screen too: they
 shrink together to 65 % and a row still too long ends in "…" at the edge, as in a video; when two
 columns would cut a row, one column on either side, whichever cuts less. Measured at 390 px wide: before,
