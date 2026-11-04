@@ -24,5 +24,6 @@ import { bead, ldr, buzzer, header } from './small.js';
 import ledRgb from './led-rgb.js';
 import sevenSegment from './seven-segment.js';
 import { slide, tilt } from './board-switch.js';
+import { relay, motor } from './actuators.js';
 
-export const PACKAGES = Object.fromEntries([axial, led, radialCan, disc, to220, to92, pot, tactile, dip, wire, battery, trimmer, kbp, devboard, uno, despi, ams1117, rocker, latching, bead, ldr, buzzer, header, ledRgb, sevenSegment, slide, tilt].map((p) => [p.id, p]));
+export const PACKAGES = Object.fromEntries([axial, led, radialCan, disc, to220, to92, pot, tactile, dip, wire, battery, trimmer, kbp, devboard, uno, despi, ams1117, rocker, latching, bead, ldr, buzzer, header, ledRgb, sevenSegment, slide, tilt, relay, motor].map((p) => [p.id, p]));

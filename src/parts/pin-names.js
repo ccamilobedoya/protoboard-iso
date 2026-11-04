@@ -35,6 +35,9 @@ const SYNONYMS = [
   ['GND', 'VSS', '0V', 'TIERRA', 'MASA'],
   ['3V3', '3.3V', '3.3', '3V', '+3V3', '+3.3V'],
   ['5V', '+5V'],
+  // A relay's coil.
+  ['A1', 'COIL1', 'BOBINA1'],
+  ['A2', 'COIL2', 'BOBINA2'],
   // An RGB LED's chips and common, a display's decimal point.
   ['R', 'RED', 'ROJO'],
   ['G', 'GREEN', 'VERDE'],

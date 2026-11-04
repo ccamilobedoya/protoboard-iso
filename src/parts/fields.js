@@ -28,6 +28,8 @@ export const TYPE_FIELDS = {
   'slide-switch': ['part', 'slid'],
   'tilt-switch': ['part', 'tilted'],
   'temperature-sensor': ['part', 'temperature'],
+  relay: ['part', 'wires', 'side', 'offset'],
+  motor: ['part', 'load', 'side', 'offset'],
 };
 
 // Fields a part has that its type does not take (a typo, or another type's field): saved, they

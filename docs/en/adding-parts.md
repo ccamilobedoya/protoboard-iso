@@ -95,7 +95,8 @@ the board go to the `under` layer by themselves (see `behindBoard` in `src/index
 And a type may declare `internal: [['1', '2'], ['3', '4']]`: pins joined inside the part.
 The checker then lets those pins share a strip, warns when pins of different groups do
 (`SWITCH_BYPASSED` for buttons), and does not call a pin floating when its partner is
-connected.
+connected. `isolated: [['A1', 'A2'], ['COM', 'NO', 'NC']]` says the opposite: circuits inside the part
+that are not joined (a relay's coil and its contact), so one pin of each may share a strip.
 
 ## 4. A new board
 
@@ -159,6 +160,11 @@ output, the result tags, the probes and the page find it there.
 - **One test against an independent reference** (a datasheet point or a formula solved apart)
   in `test/sim.test.js` or `test/sources.test.js`. Never tune a model to make an example look right.
 - Give the package `paths` (section 3) so the conductor view follows its leads.
+- **A part with a state of its own** (a relay's armature, a 555's latch) is an element that changes it
+  in `accept(x, ctx)`, between steps, and stamps a linear stage for each state; `rest(x)` puts it where
+  an operating point leaves it (true if it moved: the engine solves again), and `times` gives the page
+  times of its own for its pace (a relay's coil L/R and its armature's travel). A mechanical side may
+  be a node of its own (a motor's shaft: `motorCore`, a gyrator, its speed as the node's voltage).
 
 ## 6. A part up close (a requirement for every new part type)
 
@@ -170,7 +176,7 @@ comes with all of them, and the kit's types are built up to it:
 | What | Where | Why |
 |---|---|---|
 | What each pin does | `pin.role.<type>.<pin>` (or `pin.role.<part number>.<pin>` when one part number differs) in **every** file of `src/i18n/` | the pinout's rows and `render-frames.js --parts` |
-| How to tell its pins apart | the package's `mark` (`{ kind, at, normal }`: a flat face, a tab, a notch, a flange's flat, a stripe, a bevelled corner, a potentiometer's knob or a trimmer's printed face, a push button's joined pairs by its faces (`pairs`), a latching button's common in the middle of each row (`common`), a battery's red lead (`lead`), a buzzer's printed + (`plus`), an RGB LED's longest lead (`longest`), a display's decimal point's edge (`dp`), a slide switch's knob (`slide`); for a part with no polarity, `bands`, the first colour band a code is read from, or `either`) and its sentence in `pinout.*` | the quiet line under the pinout, written from the camera, never by hand; a part that goes in either way round says so, it never gets a polarity it does not have |
+| How to tell its pins apart | the package's `mark` (`{ kind, at, normal }`: a flat face, a tab, a notch, a flange's flat, a stripe, a bevelled corner, a potentiometer's knob or a trimmer's printed face, a push button's joined pairs by its faces (`pairs`), a latching button's common in the middle of each row (`common`), a battery's red lead (`lead`), a buzzer's printed + (`plus`), an RGB LED's longest lead (`longest`), a display's decimal point's edge (`dp`), a slide switch's knob (`slide`), a relay's coil by its common (`coil`, no polarity); for a part with no polarity, `bands`, the first colour band a code is read from, or `either`) and its sentence in `pinout.*` | the quiet line under the pinout, written from the camera, never by hand; a part that goes in either way round says so, it never gets a polarity it does not have |
 | Its schematic symbol | `symbolOf` in `src/parts/symbols.js`: strokes in a box of 100, a terminal (`pins`) and a **letter** (`ids`) for every pin | the symbol beside the part; its letters go at the start of the pins' rows or under their tips |
 | What goes on inside | `insideOf` in `src/parts/symbols.js` (its kind), the drawer in `INSIDE` (`src/page/client/figure.js`, from the engine's reading: what the device's `reading` gives), its legend in `LEGENDS` (`src/page/client/focus-view.js`) and `page.tour.legend.<kind>.*` in every language | the inside view, and in the page the legend a video gives in its captions |
 | The same letters everywhere | the inside view labels its pins with the symbol's `ids` (C, B, E; S, G, D; A, K; a chip's names, its rows numbered) | the pins' rows keep those letters with either figure beside the part |
@@ -178,7 +184,7 @@ comes with all of them, and the kit's types are built up to it:
 `test/pinout.test.js` ("a part up close") holds the rule: every type in `PART_TYPES` is either in
 `COMPLETE` (checked for all of the above) or in `PENDING` with its reason. A new type in neither fails
 the test, so the choice is made, never forgotten; moving a type from `PENDING` to `COMPLETE` is how
-the kit catches up (complete today: BJT, MOSFET, LED, a 555, resistor, capacitor, inductor, diode, Zener, bridge rectifier, potentiometer, NTC thermistor, photoresistor, push button, switch, regulator, battery, buzzer, RGB LED, 7-segment display, slide switch, tilt switch, LM35). Look at the result once: a video's frame (`render-frames.js`) and the page up close
+the kit catches up (complete today: BJT, MOSFET, LED, a 555, resistor, capacitor, inductor, diode, Zener, bridge rectifier, potentiometer, NTC thermistor, photoresistor, push button, switch, regulator, battery, buzzer, RGB LED, 7-segment display, slide switch, tilt switch, LM35, relay, DC motor). Look at the result once: a video's frame (`render-frames.js`) and the page up close
 on a phone.
 
 ## Tests

@@ -33,7 +33,10 @@
 // display's figure 8 with each segment lit from its reading and the digit it draws; a slide switch's
 // three contacts and the slider its knob puts on COM and one of them; a tilt switch's can with the
 // two balls on its leads' ends or rolled away from them; an LM35's thermometer and its 10 mV per °C
-// out to VOUT, with its supply's current. Arrows
+// out to VOUT, with its supply's current; a relay's coil and field, its armature pulled onto NO or
+// resting on NC, with the kick when its coil is cut off bare; a DC motor's magnets, its armature turned
+// to the shaft's angle with an arrow as long as its speed, its brushes, and its supply against its
+// back-EMF. Arrows
 // never cross what they explain: they run beside the layers, under the channel, the film, the coil.
 // Didactic, not to scale.
 
@@ -336,7 +339,7 @@ const INSIDE = {
     label(g, 3, 44, ac1, 'pin-name', 'start', FIGURE.text);
     label(g, 97, 44, ac2, 'pin-name', 'end', FIGURE.text);
     const i = r?.current ?? 0;
-    label(g, 50, 105, r ? [`Vdc ${f(r.vdc ?? 0, 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    label(g, 50, 103, r ? [`Vdc ${f(r.vdc ?? 0, 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
     const pair = !flowing(i1) ? null : i1 > 0 ? [ac1, ac2] : [ac2, ac1];
     label(g, 50, 115, r ? (pair ? t('page.tour.inside.bridge.pair', { from: pair[0], to: pair[1] }) : t('page.tour.inside.bridge.none')) : '', 'state');
   },
@@ -766,6 +769,110 @@ const INSIDE = {
     const state = !on ? 'off' : !flowing(i) ? 'idle' : i > 0 ? 'discharging' : 'charging';
     label(g, 50, 114, r ? t(`page.tour.inside.battery.${state}`) : '', 'state');
   },
+  relay(g, r, data, { t, f }) {
+    // A relay cut open: its coil round an iron core, the field lines round it as many and as strong as
+    // its current against the pull-in current; the armature, a lever on its hinge at COM that the core
+    // pulls to it, its blade resting on NC and pulled up onto NO; each fixed contact down to its pin.
+    // The coil's current beside A1's lead, the contact's beside COM's; under it the coil's voltage and
+    // current (with its kick when it is cut off with nothing across it).
+    const name = Object.fromEntries((data.names ?? []).map((n, i) => [n, data.ids[i]]));
+    const wired = (n) => Boolean(name[n]);
+    const i = r?.current ?? 0;
+    const closed = Boolean(r?.closed);
+    const k = data.pullIn > 0 ? Math.min(1, Math.sqrt(Math.abs(i) / data.pullIn)) : 0;
+    [[14, 24], [18, 28], [22, 32]].forEach(([rx, ry], j) => {
+      const o = Math.max(0, Math.min(1, k * 3 - j));
+      if (flowing(i) && o > 0) make(g, 'ellipse', { class: 'field', cx: 24, cy: 55, rx, ry, opacity: fixed(o) });
+    });
+    make(g, 'rect', { class: 'core', x: 14, y: 36, width: 20, height: 38, rx: 2 });
+    make(g, 'path', { class: 'winding', d: 'M12 40H36M12 45H36M12 50H36M12 55H36M12 60H36M12 65H36M12 70H36' });
+    make(g, 'rect', { class: 'metal', x: 14, y: 76, width: 30, height: 4 });
+    make(g, 'path', { class: 'lead', d: 'M24 36V31H8V83M30 74V83M48 76V83' });
+    // The lever about its hinge (48, 74): pulled, its upright leans to the core and its blade's tip
+    // rises onto NO; released, the other way, onto NC.
+    const turn = closed ? -5 : 5;
+    const tip = (deg) => {
+      const a = (deg * Math.PI) / 180;
+      return [48 + 36 * Math.cos(a) + 36 * Math.sin(a), 74 + 36 * Math.sin(a) - 36 * Math.cos(a)];
+    };
+    const [no, nc] = [tip(-5), tip(5)];
+    make(g, 'rect', { class: 'metal', x: fixed(no[0] - 4), y: fixed(no[1] - 4.5), width: 8, height: 3 });
+    make(g, 'rect', { class: 'metal', x: fixed(nc[0] - 4), y: fixed(nc[1] + 1.5), width: 8, height: 3 });
+    make(g, 'path', { class: 'lead', d: `M${fixed(no[0] + 4)} ${fixed(no[1] - 3)}H94V83M${fixed(nc[0])} ${fixed(nc[1] + 4.5)}V54H72V83` });
+    const lever = make(g, 'g', { transform: `rotate(${turn} 48 74)` });
+    make(lever, 'path', { class: `blade${closed ? ' on' : ''}`, d: 'M48 74V38H84' });
+    make(g, 'circle', { class: 'metal', cx: 48, cy: 74, r: 2.6 });
+    for (const [n, x] of [['A1', 8], ['A2', 30], ['COM', 48], ['NC', 72], ['NO', 94]]) pinName(g, x, 93, name[n] ?? n, wired(n), 'middle', n === 'COM' ? FIGURE.small : FIGURE.text);
+    // Conventional current into A1 runs up its lead; into COM, up COM's.
+    if (flowing(i)) shaft(g, 3, i > 0 ? 82 : 58, 3, i > 0 ? 58 : 82, widthOf(i));
+    const ic = r?.currents?.COM ?? 0;
+    if (flowing(ic)) shaft(g, 54, ic > 0 ? 84 : 74, 54, ic > 0 ? 74 : 84, widthOf(ic));
+    const kick = (r?.kick ?? 0) > (data.nominal ?? 5);
+    label(g, 50, 103, r ? [`V ${f(Math.abs(r.voltage) < 1e-3 ? 0 : r.voltage, 'V')}`, `I ${f(flowing(i) ? Math.abs(i) : 0, 'A')}`].join(' · ') : '', kick ? 'warning' : 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.relay.${kick ? 'kick' : r.state}`) : '', 'state');
+  },
+  motor(g, r, data, { t, f }) {
+    // A DC motor cut across: the two magnets, N and S; the armature's three poles, turned to the shaft's
+    // angle now, the arrow round it as long as its speed against its no-load speed at the top of its
+    // range; the commutator under it with its two brushes, down to + and −. At the top, the supply's
+    // voltage against the back-EMF k·ω the turning makes: their difference is what drives the current.
+    const [plus, minus] = data.ids;
+    const angle = r?.angle ?? 0;
+    const omega = r?.omega ?? 0;
+    const top = data.maxVoltage || 6;
+    make(g, 'rect', { class: 'magnet', x: 8, y: 22, width: 13, height: 52 });
+    make(g, 'rect', { class: 'magnet', x: 79, y: 22, width: 13, height: 52 });
+    label(g, 14.5, 52, 'N', 'layer-name', 'middle', FIGURE.text);
+    label(g, 85.5, 52, 'S', 'layer-name', 'middle', FIGURE.text);
+    make(g, 'circle', { class: 'core', cx: 50, cy: 48, r: 20 });
+    const at = (a, rad, cx = 50, cy = 48) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
+    for (let j = 0; j < 3; j++) {
+      const a = angle + (j * 2 * Math.PI) / 3;
+      const [x, y] = at(a, 13);
+      make(g, 'path', { class: 'blade', d: `M50 48L${fixed(x)} ${fixed(y)}` });
+      make(g, 'circle', { class: 'winding', cx: fixed(x), cy: fixed(y), r: 3.6 });
+    }
+    // The rotation arrow, round the armature: its length by the speed, its way by the sign.
+    const share = data.fullSpeed > 0 ? Math.min(1, Math.abs(omega) / data.fullSpeed) : 0;
+    if (share > 0.01) {
+      const span = Math.max(0.3, share * 1.6 * Math.PI);
+      const sign = omega > 0 ? 1 : -1;
+      const a0 = -Math.PI / 2 - (sign * span) / 2;
+      const a1 = a0 + sign * span;
+      const [x0, y0] = at(a0, 25);
+      const [x1, y1] = at(a1, 25);
+      make(g, 'path', { class: 'wiper', fill: 'none', d: `M${fixed(x0)} ${fixed(y0)}A25 25 0 ${span > Math.PI ? 1 : 0} ${sign > 0 ? 1 : 0} ${fixed(x1)} ${fixed(y1)}` });
+      const back = at(a1 - sign * 0.28, 25);
+      const [ox, oy] = [(back[0] - 50) / 25, (back[1] - 48) / 25];
+      make(g, 'path', { class: 'wiper-tip', d: `M${fixed(x1)} ${fixed(y1)}L${fixed(back[0] + 3.5 * ox)} ${fixed(back[1] + 3.5 * oy)}L${fixed(back[0] - 3.5 * ox)} ${fixed(back[1] - 3.5 * oy)}Z` });
+    }
+    // The commutator, its three segments turning with the armature, between its two brushes.
+    make(g, 'circle', { class: 'core', cx: 50, cy: 81, r: 5 });
+    for (let j = 0; j < 3; j++) {
+      const [x, y] = at(angle + (j * 2 * Math.PI) / 3, 5, 50, 81);
+      make(g, 'path', { class: 'dim', d: `M50 81L${fixed(x)} ${fixed(y)}` });
+    }
+    make(g, 'rect', { class: 'metal', x: 41, y: 78, width: 3.5, height: 6 });
+    make(g, 'rect', { class: 'metal', x: 55.5, y: 78, width: 3.5, height: 6 });
+    make(g, 'path', { class: 'lead', d: 'M41 81H30V84M59 81H70V84' });
+    label(g, 30, 93, plus, 'pin-name', 'middle', FIGURE.text);
+    label(g, 70, 93, minus, 'pin-name', 'middle', FIGURE.text);
+    // Conventional current into + runs up its lead, beside it.
+    const i = r?.current ?? 0;
+    if (flowing(i)) shaft(g, 22, i > 0 ? 93 : 82, 22, i > 0 ? 82 : 93, widthOf(i));
+    // The supply against the back-EMF, bars of the voltage at the top of its range.
+    if (r) {
+      const bar = (y, v, cls) => make(g, 'rect', { class: cls, x: 22, y, width: fixed(Math.max(0.5, Math.min(1, Math.abs(v) / top) * 60)), height: 3.5 });
+      make(g, 'rect', { class: 'gauge', x: 22, y: 4, width: 60, height: 3.5 });
+      make(g, 'rect', { class: 'gauge', x: 22, y: 11, width: 60, height: 3.5 });
+      bar(4, r.voltage, 'headroom');
+      bar(11, r.emf, 'soc');
+      label(g, 19, 8, 'V', 'note', 'end', FIGURE.small);
+      label(g, 19, 15, 'E', 'note', 'end', FIGURE.small);
+    }
+    label(g, 50, 103, r ? [`${Math.round(r.rpm)} r/min`, `I ${f(Math.abs(i), 'A')}`, `E ${f(r.emf, 'V')}`].join(' · ') : '', r?.state === 'stalled' ? 'warning' : 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.motor.${r.state}`) : '', 'state');
+  },
   buzzer(g, r, data, { t, f, memo }) {
     // A passive magnetic buzzer cut through: its coil round a pole piece inside a ring magnet, the thin
     // steel disc over them pulled down as the current grows. It sounds only while the current changes:
@@ -908,7 +1015,9 @@ export function setupFigure(page, { reading, t, f, now, look, controls }) {
   // now, then laid out in the layout's screen (the frame the texts were set in, pinout.js), so a figure
   // asked for after a drag or a zoom lands where it would have; never against the pinout's rows (above
   // where they begin, lit or not), never past the free area's top.
-  function place(wanted, data, screen, tips, w, h) {
+  // `ids`: where the pins' letters under their tips reach on screen ([left, right]), part of what the
+  // figure keeps clear of (letters spread apart can run past the part's own box).
+  function place(wanted, data, screen, tips, w, h, ids) {
     const { at, u, free, toScreen } = screen;
     const svg = page.current();
     const r = svg.getBoundingClientRect();
@@ -925,6 +1034,7 @@ export function setupFigure(page, { reading, t, f, now, look, controls }) {
       const xs = tips.map((p) => p.x);
       part = { left: Math.min(...xs) - 30 * u, right: Math.max(...xs) + 30 * u, top: Math.min(...tips.map((p) => p.y)) - 200 * u, bottom: Math.max(...tips.map((p) => p.y)) };
     }
+    if (ids) part = { ...part, left: Math.min(part.left, ids[0]), right: Math.max(part.right, ids[1]) };
     const slot = figureSlot(part, free, u, w, h);
     // Above the pinout's rows: under the tips, or higher where they begin higher (rows down both sides
     // of a part of many pins, pinout.js page.rowsTop).
@@ -947,10 +1057,6 @@ export function setupFigure(page, { reading, t, f, now, look, controls }) {
     const [w, h] = on.what === 'symbol' ? [shape.w, shape.h] : [104, 118];
     // Placed once, when it comes, and kept in the drawing's own units: beside the part as part of the
     // drawing, it moves and scales with the part whatever the camera does after (a drag, a zoom, a frame).
-    const wanted = `${page.state.view}|${on.id}|${on.what}`;
-    if (placed?.for !== wanted) placed = place(wanted, data, screen, tips, w, h);
-    const box = make(g, 'g', { class: on.what, transform: `translate(${placed.x} ${placed.y}) scale(${fixed(placed.s * 1000) / 1000})`, opacity: fixed(Math.min(1, on.k * 1.4)), 'data-figure': on.id });
-    const line = placed.line;
     // M22, M23: with either figure the part carries its pins' letters, the ones the symbol and the
     // inside view use (B, C, E; A, K; a chip's numbers): at the start of a pin's row when the pinout shows
     // it (pinout.js reads page.symbolIds), else under its tip, apart (not over a bench's stubs: its pads
@@ -964,9 +1070,18 @@ export function setupFigure(page, { reading, t, f, now, look, controls }) {
     for (const p of loose) {
       // Apart by a letter's width and a space: two tips close on screen (a chip's pin 4 and the pin 8
       // behind it) would read as one number.
-      const x = Math.max(p.x, last + size * (0.6 * p.id.length + 0.8));
-      last = x;
-      const [tx, ty] = at(x, below);
+      p.at = Math.max(p.x, last + size * (0.6 * p.id.length + 0.8));
+      last = p.at;
+    }
+    const reach = loose.length ? [Math.min(...loose.map((p) => p.at - size * 0.3 * p.id.length)), Math.max(...loose.map((p) => p.at + size * 0.3 * p.id.length))] : null;
+    // Placed once, when it comes, and kept in the drawing's own units: beside the part as part of the
+    // drawing, it moves and scales with the part whatever the camera does after (a drag, a zoom, a frame).
+    const wanted = `${page.state.view}|${on.id}|${on.what}`;
+    if (placed?.for !== wanted) placed = place(wanted, data, screen, tips, w, h, reach);
+    const box = make(g, 'g', { class: on.what, transform: `translate(${placed.x} ${placed.y}) scale(${fixed(placed.s * 1000) / 1000})`, opacity: fixed(Math.min(1, on.k * 1.4)), 'data-figure': on.id });
+    const line = placed.line;
+    for (const p of loose) {
+      const [tx, ty] = at(p.at, below);
       const text = make(g, 'text', { class: 'pin-id', 'data-id': `${on.id}.${data.pins[p.i].name}`, x: tx, y: ty, 'font-size': fixed(size * k), 'text-anchor': 'middle', opacity: fixed(Math.min(1, on.k * 1.4)) });
       text.textContent = p.id;
     }

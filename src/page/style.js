@@ -525,6 +525,7 @@ body.layer-flow main[data-scene] > svg > .lights { display: inline; }
 .focus-legend .swatch.ball { background: var(--ink-4); border-radius: 50%; outline: 1px solid var(--ink-2); }
 .focus-legend .swatch.gauge { background: var(--well); outline: 1px solid var(--ink-3); }
 .focus-legend .swatch.plunger { background: var(--ink-4); outline: 1px solid var(--ink-3); }
+.focus-legend .swatch.magnet { background: var(--ink-4); outline: 1px solid var(--ink-3); }
 .focus-legend .swatch[hidden] { display: block; visibility: hidden; }
 /* On a phone the bar takes two rows: Back and the name, then the two controls sharing the width. */
 @media (max-width: 560px) {

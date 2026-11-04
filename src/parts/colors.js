@@ -159,3 +159,15 @@ Object.assign(MATERIALS, {
   tiltTube: '#1d1e21',
   tiltResin: '#3a3b3f',
 });
+
+// Parts that move, on the table beside the board: the SRD relay's blue case and its print; the
+// RE-140RA motor's steel can, its end cap, a white pulley on its shaft and the dark notch on it that
+// shows the shaft turning.
+Object.assign(MATERIALS, {
+  relayCase: '#2f5aa8',
+  relayPrint: '#e6edf7',
+  motorCan: '#c3c6cb',
+  motorCap: '#a9adb3',
+  motorPulley: '#ece8df',
+  motorNotch: '#2a2b2e',
+});

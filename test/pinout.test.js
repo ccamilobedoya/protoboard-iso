@@ -77,6 +77,9 @@ test('pinout: the mark\'s sentence agrees with the drawing in both views', () =>
       else if (p.type === 'seven-segment') assert.match(mark.text, /^Decimal point's edge (in front|at the back|on the left|on the right): pins 1–5, pin 1 under e$/, `${p.id} ${view}`);
       // A slide switch's knob moves (a tap slides it): the sentence says what it does, not where it is.
       else if (p.type === 'slide-switch') assert.equal(mark.text, 'COM is the middle pin; the knob joins it to the end pin on its side', `${p.id} ${view}`);
+      // A relay's coil goes either way round, by COM; a motor's red lead is its +.
+      else if (p.type === 'relay') assert.equal(mark.text, 'The coil, A1 and A2 by COM, goes either way round; NO and NC at the far end', `${p.id} ${view}`);
+      else if (p.type === 'motor') assert.match(mark.text, /^Red lead (in front|at the back|on the left|on the right): the \+; the black one, the −$/, `${p.id} ${view}`);
       else if (p.built.mark.kind === 'bands') assert.match(mark.text, new RegExp(`^First colour band on the ${sideOf(camera, at('1'), at('2'))}: read from it; no polarity$`), `${p.id} ${view}`);
       else {
         // A flat face or a tab: which way it faces, and the pins as they are from the left.
@@ -250,6 +253,13 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
   assert.deepEqual(insideOfPart(showcase('S3')), { kind: 'slide', ids: ['1', 'COM', '2'], on: false, onContacts: [['COM', '2']], offContacts: [['COM', '1']], maxCurrent: 0.3, maxVoltage: 30 });
   assert.deepEqual(insideOfPart(showcase('S4')), { kind: 'tilt', ids: ['1', '2'], on: false, onContacts: [], offContacts: [['1', '2']], maxCurrent: 0.025, maxVoltage: 12 });
   assert.deepEqual(insideOfPart(showcase('U4')), { kind: 'lm35', ids: ['+VS', 'VOUT', 'GND'], temperature: 25, range: [0, 100], gain: 0.01, maxCurrent: 0.01 });
+  // A relay's thresholds (SRD: 75 % and 10 % of 5 V over its 70 Ω), a motor's speed at 6 V with no load.
+  const k1 = insideOfPart(showcase('K1'));
+  assert.deepEqual([k1.kind, k1.ids, k1.nominal], ['relay', ['A1', 'A2', 'COM', 'NO', 'NC'], 5]);
+  assert.ok(Math.abs(k1.pullIn - 3.75 / 70) < 1e-12 && Math.abs(k1.dropOut - 0.5 / 70) < 1e-12);
+  const m1 = insideOfPart(showcase('M1'));
+  assert.deepEqual([m1.kind, m1.ids, m1.maxVoltage], ['motor', ['+', '−'], 6]);
+  assert.ok(Math.abs((m1.fullSpeed * 60) / (2 * Math.PI) - 9600) < 1, 'free speed at 6 V: twice 4800 r/min');
 });
 
 // A starter kit's switches in the board and its LM35: their pins, marks, symbols and inside views.
@@ -267,12 +277,26 @@ test('pinout: a slide switch\'s knob, a tilt switch with no polarity, an LM35\'s
   assert.match(pinoutOf(lm35, createCamera({ view: 'front' }), 'en').mark.text, /^Flat face (toward you: \+VS VOUT GND|away from you: GND VOUT \+VS) from the left$/);
 });
 
+// A starter kit's relay and DC motor: their pins, marks and symbols.
+test('pinout: a relay\'s coil by COM with no polarity, a motor\'s red lead', () => {
+  const recipe = (name) => buildCircuit(autoLayout(expandRecipe(name).spec).circuit);
+  const relay = part(recipe('relay-npn'), 'K1');
+  assert.deepEqual(pinList(relay, 'es').map((p) => p.text), ['A1 · bobina (sin polaridad)', 'COM · común, se mueve', 'A2 · bobina, otro extremo', 'NO · unido al activar']);
+  assert.equal(pinoutOf(relay, createCamera({ view: 'front' }), 'es').mark.text, 'La bobina, A1 y A2 junto a COM, va en cualquier sentido; NO y NC en el otro extremo');
+  // Only the pins its circuit wires have a terminal: NC is left in the air here.
+  assert.deepEqual(Object.keys(symbolOfPart(relay).pins).sort(), ['A1', 'A2', 'COM', 'NO']);
+  const motor = part(recipe('motor-npn'), 'M1');
+  assert.deepEqual(pinList(motor, 'en').map((p) => p.text), ['+ · red lead, by (+)', '− · black lead']);
+  assert.equal(pinoutOf(motor, createCamera({ view: 'front' }), 'en').kind, 'DC motor');
+  assert.deepEqual(symbolOfPart(motor).ids, { '+': '+', '-': '−' });
+});
+
 // The view of a part up close is a requirement for every new part type (docs/en/adding-parts.md, "6. A
 // part up close"): the text of each pin, a schematic symbol with a letter for every pin, the package's
 // orientation mark when it can go in the wrong way round, and a view of its inside with its legend. Each
 // type of the kit is either complete or listed as pending with its reason: a new type must be one or
 // the other, so the choice is made, never forgotten.
-const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1', potentiometer: 'potentiometer-led RV1', thermistor: 'more-parts RT1', ldr: 'more-parts LDR1', button: 'button-pullup S1', switch: 'switches S1', regulator: 'regulator-7805 U1', battery: 'battery-regulator BT1', buzzer: 'more-parts BZ1', 'rgb-led': 'uno-rgb-led D1', 'seven-segment': 'uno-seven-segment DS1', 'slide-switch': 'slide-switch-leds S1', 'tilt-switch': 'tilt-alarm S1', 'temperature-sensor': 'lm35-uno U2' };
+const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1', potentiometer: 'potentiometer-led RV1', thermistor: 'more-parts RT1', ldr: 'more-parts LDR1', button: 'button-pullup S1', switch: 'switches S1', regulator: 'regulator-7805 U1', battery: 'battery-regulator BT1', buzzer: 'more-parts BZ1', 'rgb-led': 'uno-rgb-led D1', 'seven-segment': 'uno-seven-segment DS1', 'slide-switch': 'slide-switch-leds S1', 'tilt-switch': 'tilt-alarm S1', 'temperature-sensor': 'lm35-uno U2', relay: 'relay-npn K1', motor: 'motor-npn M1' };
 const PENDING = {
   wire: 'not a part on a pedestal',
   module: 'a development board: its own pin notes, no pedestal view',

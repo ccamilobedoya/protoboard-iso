@@ -42,6 +42,8 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `uno-seven-segment` | Arduino UNO counting 0 to 9 on a 7-segment display (5161AS, common cathode), segments a–g on D2–D8 through a resistor each | R1 … R7 = 220 (segments a … g), U1 = its sketch |
 | `slide-switch-leds` | A slide switch (SPDT) choosing which of two LEDs lights: the supply on its common, a red LED on pin 1, a green one on pin 2 | R1, R2 = 330 (red, green LED) |
 | `tilt-alarm` | A tilt switch (SW-520D) that shorts an LED while upright; tipped over it opens and the LED lights | R1 = 330 |
+| `relay-npn` | A push button drives an NPN that drives a relay's coil, a 1N4007 across the coil; the relay's contact lights an LED | R1 = 1k (base), R2 = 330 (LED, on the contact), Q1 = 2N2222A (2N2222A, BC337, S8050) |
+| `motor-npn` | A potentiometer sets a DC motor's speed through a TIP120 emitter follower, a 1N4007 across the motor | RV1 = 0.8 (the wiper's position, 0–1), M1 = 0 (load, mN·m, 0–3) |
 | `lm35-uno` | Arduino UNO reading an LM35 on A0 and printing the temperature on the serial monitor (10 mV per °C) | U2 = 25 (°C), U1 = its sketch |
 | `c3-blink` | ESP32-C3 SuperMini blinking an LED on GPIO3 | R1 = 220, D1 = red, U1 = its sketch |
 | `c3-pot-pwm` | ESP32-C3: a potentiometer on GPIO4 dims an LED on GPIO3 (ADC and PWM at 1 kHz) | RV1 = 10k, R1 = 220, D1 = red, U1 = its sketch |

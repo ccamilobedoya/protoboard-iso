@@ -41,7 +41,7 @@ function dimensions(params) {
 }
 
 // Where it lies: centre (on the table), u (towards the board) and v (across).
-function placement(board, pins, params, [len, wid]) {
+export function placement(board, pins, params, [len, wid]) {
   const { length: L, width: W, height: H } = board.spec.size;
   const mean = midpoint(pins[0], pins[1]);
   const side = params.side ?? (mean.x < L / 2 ? 'left' : 'right');
@@ -78,7 +78,7 @@ function bezier(p0, p1, p2, p3, steps) {
 
 // A lead from the battery to a hole: out of the battery, up over the board edge (already
 // above the board top when it crosses it), then an arc down into the hole.
-function cable(exit, hole, u, color, gap) {
+export function cable(exit, hole, u, color, gap) {
   const start = add(exit, scale(u, 1.5));
   const edge = withZ(add(exit, scale(u, gap + 1)), 3);
   const d = distance(start, edge);

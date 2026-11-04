@@ -26,7 +26,7 @@ const samples = [
   ...['AA', 'AAA', '18650', '9V', 'pouch'].map((format, i) => ({ id: `BT${i}`, type: 'battery', format, cells: 2, pins: { '+': 'T+3', '-': 'T-3' } })),
   { id: 'BT9', type: 'battery', format: 'AA', chemistry: 'nimh', pins: { '+': 'T+3', '-': 'T-3' } },
   { id: 'BT8', type: 'battery', format: '18650', chemistry: 'lifepo4', pins: { '+': 'T+3', '-': 'T-3' } },
-  ...Object.entries(PART_NUMBERS).map(([number, e], i) => ({ id: `P${i}`, type: e.type, part: number, ...(e.type === 'ic' ? { pin1: 'e10' } : { pins: e.pins.map((_, k) => `a${10 + k}`) }) })),
+  ...Object.entries(PART_NUMBERS).map(([number, e], i) => ({ id: `P${i}`, type: e.type, part: number, ...(e.type === 'ic' ? { pin1: 'e10' } : e.type === 'relay' ? { pins: Object.fromEntries(e.pins.map((n, k) => [n, `a${10 + 2 * k}`])) } : { pins: e.pins.map((_, k) => `a${10 + k}`) }) })),
 ];
 
 test('every kind of part has its own description in every language', () => {

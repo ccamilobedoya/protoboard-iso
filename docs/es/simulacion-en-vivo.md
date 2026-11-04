@@ -233,6 +233,7 @@ Como quedó (fase 5):
 | `pressed` | pulsador | momentáneo | se mantiene en el dibujo o con *Mantén presionado*; *Dejar presionado* lo deja así hasta volver a tocarlo |
 | `on` | interruptor (KCD1, enclavamiento 7 × 7) | alternar (`toggle`) | *Encender* / *Apagar*; se queda como se deja |
 | `slid`, `tilted` | interruptor deslizante, de inclinación | alternar (`toggle`) | *Correr a 2* / *Correr a 1*, *Inclinarlo* / *Enderezarlo*; también con un toque en la pieza en el dibujo; se queda como se deja |
+| `load` | motor DC | de 0 a 1,5 × su par de bloqueo a su voltaje nominal (3 mN·m el RE-140RA-12240), pasos de 0,05 mN·m | un freno en su eje; pasado su par de bloqueo lo deja quieto |
 | `temperature` | LM35 | de 0 °C al tope de su grado (100 °C el LM35DZ), pasos de 1 °C | su salida, 10 mV/°C |
 | `voltage` | fuente de banco | 0…30 V, de a 0,1 V | |
 | `charge` | batería (componente o fuente) | 0…100 % | fem y resistencia interna con `batteryModel`; no hay si su voltaje se midió |

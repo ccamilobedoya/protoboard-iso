@@ -43,6 +43,8 @@ const LEGENDS = {
   slide: [['plunger', 'knob'], ['blade', 'slider'], ['metal', 'contacts'], ['arrow', 'arrow'], ['', 'figures']],
   tilt: [['ball', 'balls'], ['metal', 'contacts'], ['arrow', 'arrow'], ['', 'figures']],
   lm35: [['heat', 'thermometer'], ['', 'gain'], ['arrow', 'arrow'], ['', 'figures']],
+  relay: [['coil', 'coil'], ['field', 'field'], ['blade', 'armature'], ['metal', 'contacts'], ['arrow', 'arrow'], ['', 'figures']],
+  motor: [['magnet', 'magnets'], ['coil', 'armature'], ['wiper', 'rotation'], ['headroom', 'supply'], ['soc', 'emf'], ['arrow', 'arrow']],
 };
 // Swatches in the figure's own colours that live in the script (sim/look.js), not in the style.
 const INLINE = { arrow: DOT_COLOR, heat: HEAT_COLOR, pos: VOLTAGE_COLORS.positive, neg: VOLTAGE_COLORS.negative };

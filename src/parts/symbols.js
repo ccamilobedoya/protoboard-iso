@@ -345,6 +345,31 @@ const lm35 = (title) => ({
   ids: { '+VS': '+VS', VOUT: 'VOUT', GND: 'GND' },
 });
 
+// A relay (IEC 60617): its coil as a box, A1 above and A2 under it; its changeover on the right, COM
+// up from the bottom to the blade, resting on NC (de-energised, as a schematic draws it), NO beside
+// it; a dashed link from the coil to the blade. Only the pins its circuit lists are its part's.
+const relaySymbol = (names) =>
+  listed(
+    {
+      w: 100, h: 100,
+      strokes: ['M10 34H36V66H10Z', 'M23 4V34', 'M23 66V96', 'M72 96V68', ring(72, 65.5, 2.2), 'M72 65L57 35', ring(56, 32.5, 2.2), ring(88, 32.5, 2.2), 'M56 30V4', 'M88 30V4', 'M36 50H40', 'M44 50H48', 'M52 50H56', 'M60 50H63'],
+      fills: [],
+      texts: [{ x: 28, y: 14, text: 'A1', anchor: 'start', small: true }, { x: 28, y: 92, text: 'A2', anchor: 'start', small: true }, { x: 76, y: 92, text: 'COM', anchor: 'start', small: true }, { x: 52, y: 14, text: 'NC', anchor: 'end', small: true }, { x: 84, y: 14, text: 'NO', anchor: 'end', small: true }],
+      pins: { A1: [23, 4], A2: [23, 96], COM: [72, 96], NC: [56, 4], NO: [88, 4] },
+    },
+    names,
+  );
+
+// A DC motor: a circle with M, + at the top and − at the bottom.
+const motorSymbol = () => ({
+  w: 100, h: 100,
+  strokes: ['M50 4V28', 'M72 50A22 22 0 1 1 28 50A22 22 0 1 1 72 50Z', 'M50 72V96'],
+  fills: [],
+  texts: [{ x: 50, y: 56, text: 'M', anchor: 'middle' }, { x: 58, y: 14, text: '+', anchor: 'start' }, { x: 58, y: 92, text: '−', anchor: 'start' }],
+  pins: { '+': [50, 4], '-': [50, 96] },
+  ids: { '+': '+', '-': '−' },
+});
+
 export function symbolOf(part) {
   const e = part.def?.electrical ?? {};
   const names = part.pinNames ?? [];
@@ -370,6 +395,8 @@ export function symbolOf(part) {
   if (part.type === 'slide-switch') return slideSwitch(e.on === true);
   if (part.type === 'tilt-switch') return tiltSwitch();
   if (part.type === 'temperature-sensor') return lm35(e.part ?? 'LM35');
+  if (part.type === 'relay') return relaySymbol(names);
+  if (part.type === 'motor') return motorSymbol();
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
   return null;
 }
@@ -446,6 +473,18 @@ export function insideOf(part) {
   if (part.type === 'temperature-sensor') {
     const { temperature, range, model = {} } = limits();
     return { kind: 'lm35', ids: ids(), temperature, range, gain: model.gain, maxCurrent: model.maxCurrent };
+  }
+  // A relay: its coil's thresholds and its nominal voltage (its device's model), the pins in use.
+  if (part.type === 'relay') {
+    const { model = {} } = limits();
+    return { kind: 'relay', ids: ids(), names: part.pinNames, pullIn: model.pullIn, dropOut: model.dropOut, nominal: model.nominal };
+  }
+  // A DC motor: the top of its voltage range and its no-load speed there (the rotation arrow's full
+  // length), from its device's model.
+  if (part.type === 'motor') {
+    const { model = {}, k, R, b } = limits();
+    const top = model.range?.[1];
+    return { kind: 'motor', ids: ids(), maxVoltage: top, fullSpeed: k > 0 ? (k * top) / (k * k + R * b) : null };
   }
   if (part.type === 'ic' && e.kind === 'TMR') return { kind: 'timer' };
   return null;

@@ -252,7 +252,7 @@ function kindLine(part, lang, kinds) {
 const VALUE_KEYS = {
   resistor: 'resistor', capacitor: 'capacitor', potentiometer: 'potentiometer', led: 'led', diode: 'part', bjt: 'part', mosfet: 'part', ic: 'part', battery: 'battery',
   zener: 'zener', bridge: 'part', module: 'part', regulator: 'part', inductor: 'inductor', thermistor: 'thermistor', ldr: 'part', 'seven-segment': 'part',
-  'slide-switch': 'part', 'tilt-switch': 'part', 'temperature-sensor': 'part',
+  'slide-switch': 'part', 'tilt-switch': 'part', 'temperature-sensor': 'part', relay: 'part', motor: 'part',
 };
 function valueLine(part, lang) {
   const value = valueText(part, lang);
@@ -269,6 +269,8 @@ function explanations(lang) {
     'switch.state', 'switch.contact',
     'leds.channel', 'leds.common',
     ...['temperature', 'vout', 'vs', 'iout', 'own', 'low', 'off'].map((k) => `lm35.${k}`),
+    ...['operated', 'released', 'pulling', 'letting', 'coil', 'current', 'pull', 'contact'].map((k) => `relay.${k}`),
+    ...['off', 'stalled', 'changing', 'running', 'speed', 'emf', 'torque', 'load'].map((k) => `motor.${k}`),
     ...['vac', 'vdc', 'current'].map((k) => `bridge.${k}`),
     ...['temperature', 'light', 'resistance'].map((k) => `sensor.${k}`),
     ...['off', 'active', 'saturation'].map((r) => `region.bjt.${r}`), ...['off', 'linear', 'saturation'].map((r) => `region.mosfet.${r}`),

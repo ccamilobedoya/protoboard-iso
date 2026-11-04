@@ -378,6 +378,32 @@ from a supply of 4 to 30 V.
 { "id": "U2", "type": "temperature-sensor", "temperature": 25, "pins": ["h30", "h31", "h32"] }
 ```
 
+### relay
+
+A 5 V relay (SRD-05VDC-SL-C): its coil `A1` `A2` (no polarity), its common `COM`, the contact closed
+while the coil pulls (`NO`) and the one closed at rest (`NC`). Its pins are not on the 2.54 mm grid (COM
+2 mm from the coil's pins, 12 mm apart), so it lies on the table beside the board, in front (`side`:
+`"front"`, default) or behind (`"back"`), a lead soldered to each pin in use: list only those in `pins`,
+by name, each with its hole (`wires` for their colours, `offset` to slide it along the edge). The coil
+and the contact are two circuits: `A1` and `COM` may share a strip. Coil 70 Ω (71 mA at 5 V), pulled in
+at 75 %, let go under 10 %; contact 10 A. A transistor that drives the coil needs a diode across it.
+
+```json
+{ "id": "K1", "type": "relay", "pins": { "A1": "T+12", "A2": "j20", "COM": "T+25", "NO": "j30" } }
+```
+
+### motor
+
+A small DC motor (Mabuchi RE-140RA): `part` `"RE-140RA-12240"` (default, 3–6 V) or `"RE-140RA-2270"`
+(1.5–3 V), pins `+` and `-`. It lies on the table beside a board edge like a battery (`side`, `offset`),
+a red lead from its + terminal and a black one into two holes. `load`: a load on its shaft in mN·m
+(default 0; the page's slider moves it), against its turning; over its stall torque it holds the shaft
+still.
+
+```json
+{ "id": "M1", "type": "motor", "pins": ["a40", "a42"] }
+```
+
 ### header
 
 A row of male header pins, to show where a module or a Dupont wire plugs in. Place it with

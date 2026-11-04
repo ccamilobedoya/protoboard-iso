@@ -98,7 +98,9 @@ batería; sus piezas que quedan más allá del lado lejano de la protoboard pasa
 Y un tipo puede declarar `internal: [['1', '2'], ['3', '4']]`: patas unidas por dentro del
 componente. Entonces el verificador deja que esas patas compartan tira, avisa cuando lo hacen
 patas de grupos distintos (`SWITCH_BYPASSED` en los pulsadores) y no da por suelta una pata
-cuya compañera está conectada.
+cuya compañera está conectada. `isolated: [['A1', 'A2'], ['COM', 'NO', 'NC']]` dice lo contrario:
+circuitos dentro de la pieza que no están unidos (la bobina y el contacto de un relé), así que una pata
+de cada uno puede compartir tira.
 
 ## 4. Una protoboard nueva
 
@@ -164,6 +166,12 @@ texto, las etiquetas de resultados, las sondas y la página lo encuentran ahí.
   fórmula resuelta aparte) en `test/sim.test.js` o `test/sources.test.js`. Nunca se ajusta un
   modelo para que un ejemplo se vea bien.
 - Dale `paths` al encapsulado (sección 3) para que la vista de conductores siga sus patas.
+- **Una pieza con un estado propio** (la armadura de un relé, el biestable de un 555) es un elemento que
+  lo cambia en `accept(x, ctx)`, entre pasos, y estampa una etapa lineal por estado; `rest(x)` lo pone
+  donde lo deja un punto de operación (true si se movió: el motor resuelve otra vez), y `times` le da a
+  la página tiempos propios para su ritmo (la L/R de la bobina de un relé y el recorrido de su
+  armadura). Un lado mecánico puede ser un nodo propio (el eje de un motor: `motorCore`, un girador, su
+  velocidad como el voltaje del nodo).
 
 ## 6. Una pieza de cerca (un requisito para cada tipo nuevo)
 
@@ -175,7 +183,7 @@ que un tipo nuevo viene con todas, y los tipos del kit se van completando hasta 
 | Qué | Dónde | Para qué |
 |---|---|---|
 | Qué hace cada pata | `pin.role.<tipo>.<pata>` (o `pin.role.<número de parte>.<pata>` cuando un número de parte es distinto) en **cada** archivo de `src/i18n/` | las filas del diagrama de patas y `render-frames.js --parts` |
-| Cómo distinguir sus patas | la `mark` del encapsulado (`{ kind, at, normal }`: una cara plana, una lengüeta, una muesca, el borde plano de una pestaña, una franja, una esquina biselada, la perilla de un potenciómetro o la cara impresa de un trimmer, los pares unidos de un pulsador por sus caras (`pairs`), el común en el medio de cada fila de un pulsador de enclavamiento (`common`), el cable rojo de una batería (`lead`), el + impreso de un zumbador (`plus`), la pata más larga de un LED RGB (`longest`), el borde del punto decimal de un display (`dp`), la perilla de un interruptor deslizante (`slide`); para una pieza sin polaridad, `bands`, la primera franja de color desde donde se lee un código, o `either`) y su frase en `pinout.*` | la línea discreta bajo el diagrama de patas, escrita desde la cámara, nunca a mano; una pieza que entra en cualquier sentido lo dice, nunca recibe una polaridad que no tiene |
+| Cómo distinguir sus patas | la `mark` del encapsulado (`{ kind, at, normal }`: una cara plana, una lengüeta, una muesca, el borde plano de una pestaña, una franja, una esquina biselada, la perilla de un potenciómetro o la cara impresa de un trimmer, los pares unidos de un pulsador por sus caras (`pairs`), el común en el medio de cada fila de un pulsador de enclavamiento (`common`), el cable rojo de una batería (`lead`), el + impreso de un zumbador (`plus`), la pata más larga de un LED RGB (`longest`), el borde del punto decimal de un display (`dp`), la perilla de un interruptor deslizante (`slide`), la bobina de un relé junto a su común (`coil`, sin polaridad); para una pieza sin polaridad, `bands`, la primera franja de color desde donde se lee un código, o `either`) y su frase en `pinout.*` | la línea discreta bajo el diagrama de patas, escrita desde la cámara, nunca a mano; una pieza que entra en cualquier sentido lo dice, nunca recibe una polaridad que no tiene |
 | Su símbolo de esquema | `symbolOf` en `src/parts/symbols.js`: trazos en una caja de 100, una terminal (`pins`) y una **letra** (`ids`) para cada pata | el símbolo al lado de la pieza; sus letras van al comienzo de las filas de las patas o bajo sus puntas |
 | Qué pasa por dentro | `insideOf` en `src/parts/symbols.js` (su tipo), el dibujo en `INSIDE` (`src/page/client/figure.js`, con la lectura del motor: lo que da el `reading` del dispositivo), su leyenda en `LEGENDS` (`src/page/client/focus-view.js`) y `page.tour.legend.<tipo>.*` en cada idioma | la vista por dentro y, en la página, la leyenda que en un video dan los subtítulos |
 | Las mismas letras en todo | la vista por dentro nombra sus patas con los `ids` del símbolo (C, B, E; S, G, D; A, K; los nombres de un chip, con sus filas numeradas) | las filas de las patas conservan esas letras con cualquiera de las dos figuras al lado de la pieza |
@@ -183,7 +191,7 @@ que un tipo nuevo viene con todas, y los tipos del kit se van completando hasta 
 `test/pinout.test.js` («a part up close») sostiene la regla: cada tipo de `PART_TYPES` está en `COMPLETE`
 (revisado en todo lo anterior) o en `PENDING` con su motivo. Un tipo nuevo que no esté en ninguna de las
 dos hace fallar la prueba, así la decisión se toma y no se olvida; pasar un tipo de `PENDING` a `COMPLETE`
-es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
+es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
 y la página de cerca en un celular.
 
 ## Pruebas

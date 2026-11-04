@@ -146,7 +146,9 @@
                 "uno-seven-segment",
                 "slide-switch-leds",
                 "tilt-alarm",
-                "lm35-uno"
+                "lm35-uno",
+                "relay-npn",
+                "motor-npn"
               ]
             },
             "values": {
@@ -477,7 +479,9 @@
             "seven-segment",
             "slide-switch",
             "tilt-switch",
-            "temperature-sensor"
+            "temperature-sensor",
+            "relay",
+            "motor"
           ]
         },
         "pins": {
@@ -558,7 +562,7 @@
         },
         "part": {
           "type": "string",
-          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
+          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
         },
         "package": {
           "type": "string"
@@ -598,7 +602,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "module UNO, switch: colour of the lead of each pin, e.g. { \"D13\": \"yellow\" }"
+          "description": "module UNO, switch, relay: colour of the lead of each pin, e.g. { \"D13\": \"yellow\" }"
         },
         "rese": {
           "enum": [
@@ -665,6 +669,12 @@
           "type": "boolean",
           "description": "tilt-switch: tipped over past its angle (open); default false (upright, closed)"
         },
+        "load": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "motor: a load on its shaft in mN·m, against its turning (default 0); over its stall torque it holds the shaft still"
+        },
         "format": {
           "enum": [
             "18650",
@@ -727,11 +737,11 @@
             "back",
             "front"
           ],
-          "description": "battery: board edge it lies beside (default: the nearer side edge); module UNO: back (default) or front; switch: front (default) or back"
+          "description": "battery: board edge it lies beside (default: the nearer side edge); module UNO: back (default) or front; switch, relay: front (default) or back; motor: as a battery"
         },
         "offset": {
           "type": "number",
-          "description": "battery, module UNO, switch: shift along that edge, mm"
+          "description": "battery, module UNO, switch, relay, motor: shift along that edge, mm"
         },
         "count": {
           "type": "integer",

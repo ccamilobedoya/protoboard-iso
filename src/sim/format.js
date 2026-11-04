@@ -53,6 +53,8 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
     else if (p.kind === 'TMR') text = `${t(lang, 'sim.timer.' + p.state)} · ${t(lang, 'sim.q.timer.vout')} ${f(p.vout, 'V')} · ${t(lang, 'sim.q.timer.vthr')} ${f(p.vthr, 'V')} · ${t(lang, 'sim.q.timer.iout')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'LEDS') text = [...Object.entries(p.channels).map(([pin, c]) => `${pin} ${f(c.voltage, 'V')} ${f(c.current, 'A')} ${Math.round(c.brightness * 100)} %`), `${t(lang, 'sim.q.leds.common')} ${f(Math.abs(p.current), 'A')}`, f(p.power, 'W')].join(' · ');
     else if (p.kind === 'TMP') text = [p.state !== 'ok' && t(lang, `sim.lm35.${p.state}`), `${f(p.temperature, '°C')}`, `${t(lang, 'sim.q.lm35.vout')} ${f(p.vout, 'V')}`, `${t(lang, 'sim.q.lm35.vs')} ${f(p.vs, 'V')}`, `${t(lang, 'sim.q.lm35.own')} ${f(p.quiescent, 'A')}`].filter(Boolean).join(' · ');
+    else if (p.kind === 'RLY') text = [t(lang, `sim.relay.${p.state}`), `${t(lang, 'sim.q.relay.coil')} ${f(p.voltage, 'V')} ${f(p.current, 'A')}`, t(lang, 'sim.switch.contact', { a: 'COM', b: p.closed ? 'NO' : 'NC', current: f(p.contacts[p.closed ? 'NO' : 'NC'], 'A') })].join(' · ');
+    else if (p.kind === 'MOT') text = [t(lang, `sim.motor.${p.state}`), `${Math.round(p.rpm)} r/min`, `${pad(f(p.voltage, 'V'), 10)} ${f(p.current, 'A')}`, `${t(lang, 'sim.q.motor.emf')} ${f(p.emf, 'V')}`, f(p.power, 'W')].join(' · ');
     else if (p.kind === 'BAT' && !p.on) text = t(lang, 'sim.battery.off');
     else if (p.kind === 'BAT') {
       text = `${pad(f(p.voltage, 'V'), 10)} ${pad(f(p.current, 'A'), 10)} ${f(p.power, 'W')} · ${t(lang, 'sim.q.battery.emf')} ${f(p.emf, 'V')}`;

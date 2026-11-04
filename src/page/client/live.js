@@ -333,8 +333,10 @@ export function setupLive(page) {
   const shades = svgs.map((svg) => svg.getElementsByClassName('led-shade'));
   // A display's lit segments (sim/paths.js segmentOps), the same way: fill-opacity data-k × its light.
   const segments = svgs.map((svg) => svg.getElementsByClassName('led-segment'));
-  // A piece drawn at each of its places (a slide switch's knob, render/scene.js `pose`), the same way.
+  // A piece drawn at each of its places (a slide switch's knob, a motor's notch; render/scene.js
+  // `pose`), the same way.
   const poses = svgs.map((svg) => svg.getElementsByClassName('pose'));
+  const turns = {}; // a motor's number of notch angles, by part
   function writeLights() {
     for (const el of glows) {
       const text = lights.get(el.dataset.glow)?.shown.toFixed(2) ?? '0.00';
@@ -366,12 +368,20 @@ export function setupLive(page) {
     // A push button's bridge in the plan, drawn while it is pressed.
     for (const el of bridges) el.style.display = reading.parts[el.dataset.bridge]?.pressed ? '' : 'none';
     if (!reading) return;
-    // A slide switch's knob where its control has it now: the other one hidden.
+    // A slide switch's knob where its control has it now: the other one hidden. A motor's notch at
+    // the shaft's angle now ('a0' … 'a7', the nearest of its angles), so the shaft turns at its speed.
     for (const list of poses) {
       for (const el of list) {
-        const on = reading.parts[el.dataset.part]?.on;
-        if (typeof on !== 'boolean') continue;
-        const display = (on ? 'on' : 'off') === el.dataset.pose ? '' : 'none';
+        const r = reading.parts[el.dataset.part];
+        const turn = /^a(\d+)$/.exec(el.dataset.pose);
+        let shown;
+        if (turn && typeof r?.angle === 'number') {
+          const n = (turns[el.dataset.part] ??= new Set([...list].filter((x) => x.dataset.part === el.dataset.part && /^a\d+$/.test(x.dataset.pose)).map((x) => x.dataset.pose)).size);
+          const k = ((Math.round((r.angle / (2 * Math.PI)) * n) % n) + n) % n;
+          shown = Number(turn[1]) === k;
+        } else if (typeof r?.on === 'boolean') shown = (r.on ? 'on' : 'off') === el.dataset.pose;
+        else continue;
+        const display = shown ? '' : 'none';
         if (el.style.display !== display) el.style.display = display;
       }
     }

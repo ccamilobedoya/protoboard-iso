@@ -221,6 +221,7 @@ As built (phase 5):
 | `pressed` | push button | momentary | held on the drawing or with *Hold to press*; *Keep pressed* latches it until tapped again |
 | `on` | switch (KCD1, 7 × 7 latching) | toggle | *Turn on* / *Turn off*; it stays where it is left |
 | `slid`, `tilted` | slide switch, tilt switch | toggle | *Slide to 2* / *Slide to 1*, *Tilt it* / *Stand it up*; also a tap on the part in the drawing; it stays where it is left |
+| `load` | DC motor | 0 to 1.5 × its stall torque at its nominal voltage (3 mN·m for the RE-140RA-12240), 0.05 mN·m steps | a brake on its shaft; past its stall torque it holds it still |
 | `temperature` | LM35 | 0 °C to its grade's top (100 °C for the LM35DZ), 1 °C steps | its output, 10 mV/°C |
 | `voltage` | bench supply | 0…30 V, 0.1 V steps | |
 | `charge` | battery (part or supply) | 0…100 % | emf and internal resistance from `batteryModel`; none if its voltage was measured |

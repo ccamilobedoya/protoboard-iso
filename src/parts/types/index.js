@@ -13,6 +13,7 @@ import toggle from './switch.js';
 import { inductor, thermistor, ldr, buzzer, header } from './more.js';
 import { rgbLed, sevenSegment } from './display.js';
 import { slideSwitch, tiltSwitch, temperatureSensor } from './kit-sensors.js';
+import { relay, motor } from './kit-actuators.js';
 import { WIRE_COLORS } from '../colors.js';
 
 const wire = {
@@ -31,4 +32,4 @@ const wire = {
   },
 };
 
-export const PART_TYPES = Object.fromEntries([resistor, capacitor, potentiometer, diode, zener, bridge, led, mosfet, bjt, ic, regulator, button, wire, battery, module, toggle, inductor, thermistor, ldr, buzzer, header, rgbLed, sevenSegment, slideSwitch, tiltSwitch, temperatureSensor].map((t) => [t.type, t]));
+export const PART_TYPES = Object.fromEntries([resistor, capacitor, potentiometer, diode, zener, bridge, led, mosfet, bjt, ic, regulator, button, wire, battery, module, toggle, inductor, thermistor, ldr, buzzer, header, rgbLed, sevenSegment, slideSwitch, tiltSwitch, temperatureSensor, relay, motor].map((t) => [t.type, t]));

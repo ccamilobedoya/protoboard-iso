@@ -43,6 +43,8 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `uno-seven-segment` | Arduino UNO que cuenta de 0 a 9 en un display de 7 segmentos (5161AS, cátodo común), los segmentos a–g en D2–D8 con una resistencia cada uno | R1 … R7 = 220 (segmentos a … g), U1 = su programa |
 | `slide-switch-leds` | Un interruptor deslizante (SPDT) elige cuál de dos LEDs se enciende: la fuente en su común, un LED rojo en la pata 1 y uno verde en la 2 | R1, R2 = 330 (LED rojo, verde) |
 | `tilt-alarm` | Un interruptor de inclinación (SW-520D) pone en corto un LED mientras está derecho; al voltearlo se abre y el LED se enciende | R1 = 330 |
+| `relay-npn` | Un pulsador maneja un NPN que maneja la bobina de un relé, con un 1N4007 en paralelo con la bobina; el contacto del relé enciende un LED | R1 = 1k (base), R2 = 330 (LED, en el contacto), Q1 = 2N2222A (2N2222A, BC337, S8050) |
+| `motor-npn` | Un potenciómetro fija la velocidad de un motor DC a través de un TIP120 como seguidor de emisor, con un 1N4007 en paralelo con el motor | RV1 = 0,8 (la posición del cursor, 0–1), M1 = 0 (carga, mN·m, 0–3) |
 | `lm35-uno` | Arduino UNO que lee un LM35 en A0 y escribe la temperatura en el monitor serie (10 mV por °C) | U2 = 25 (°C), U1 = su programa |
 | `c3-blink` | ESP32-C3 SuperMini que hace parpadear un LED en GPIO3 | R1 = 220, D1 = red, U1 = su programa |
 | `c3-pot-pwm` | ESP32-C3: un potenciómetro en GPIO4 regula un LED en GPIO3 (ADC y PWM a 1 kHz) | RV1 = 10k, R1 = 220, D1 = red, U1 = su programa |

@@ -48,6 +48,8 @@ export function describeKeys(part) {
     case 'slide-switch':
     case 'tilt-switch':
     case 'temperature-sensor':
+    case 'relay':
+    case 'motor':
       return [part.type, ...(e.adjustable ? ['regulator.adjustable'] : [])];
     case 'regulator':
       return ['regulator', ...(e.adjustable ? ['regulator.adjustable'] : []), ...(e.family === 'AMS1117' ? ['regulator.ldo'] : [])];

@@ -541,7 +541,9 @@
                       "uno-seven-segment",
                       "slide-switch-leds",
                       "tilt-alarm",
-                      "lm35-uno"
+                      "lm35-uno",
+                      "relay-npn",
+                      "motor-npn"
                     ]
                   },
                   "values": {

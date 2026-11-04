@@ -24,7 +24,7 @@ import { wireToHole } from './offboard.js';
 
 // Where the switch lies: `at(d, x, z)` is d mm away from the board edge, x mm along it from the
 // switch's centre, at height z (the board's top is 0, the table −H).
-function placement(pins, params, board) {
+export function placement(pins, params, board) {
   const { length: L, width: W, height: H } = board.spec.size;
   const mean = pins.length ? pins.reduce((s, p) => s + p.x, 0) / pins.length : L / 2;
   const cx = Math.min(L - 15, Math.max(15, mean)) + Number(params.offset ?? 0);
@@ -37,12 +37,12 @@ function placement(pins, params, board) {
 
 // A box from d0 to d1 away from the board, centred on (x, z), sized sx along the board and sz
 // high.
-function slab(at, away, d0, d1, x, z, sx, sz, color, outline = true) {
+export function slab(at, away, d0, d1, x, z, sx, sz, color, outline = true) {
   return box({ center: at(d0, x, z), u: X, w: away, size: [sx, sz, d1 - d0], color, outline });
 }
 
 // Each listed pin's lead: what holds it on the contact (`holder`), then the wire to its hole.
-function leads(pins, params, contactOf, holder, toward, inside) {
+export function leads(pins, params, contactOf, holder, toward, inside) {
   const out = [];
   const paths = [];
   pins.forEach((hole, i) => {

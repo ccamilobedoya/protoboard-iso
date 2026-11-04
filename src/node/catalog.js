@@ -149,11 +149,31 @@ export function fullCatalog(lang = 'en') {
 // One recipe in a line: its name, title and the values that can change, with their defaults.
 export const recipeLine = (name, r) => `  ${name} (${r.title})${Object.keys(r.values).length ? ` · ${Object.entries(r.values).map(([id, v]) => `${id}=${String(v).includes('\n') ? '(sketch)' : v}`).join(' ')}` : ''}`;
 
+// Part numbers in runs: three or more in a row that count up by one with the same prefix and suffix
+// (1N4728A … 1N4751A, the 1 W Zeners) as "first…last", so a long family takes one entry.
+function runs(numbers) {
+  const parse = (n) => /^(.*\D)?(\d+)(\D*)$/.exec(n);
+  const out = [];
+  for (let i = 0; i < numbers.length; ) {
+    const a = parse(numbers[i]);
+    let j = i;
+    while (a && j + 1 < numbers.length) {
+      const b = parse(numbers[j + 1]);
+      if (!b || b[1] !== a[1] || b[3] !== a[3] || b[2].length !== a[2].length || Number(b[2]) !== Number(a[2]) + (j + 1 - i)) break;
+      j++;
+    }
+    out.push(j - i >= 2 ? `${numbers[i]}…${numbers[j]}` : numbers[i]);
+    if (j - i < 2) j = i;
+    i = j + 1;
+  }
+  return out;
+}
+
 export function formatCompactCatalog(c, lang = 'en') {
   const lines = [t(lang, 'catalog.types')];
   for (const [k, v] of Object.entries(c.types)) {
     const pins = v.pins ? v.pins.join(' ') : t(lang, 'catalog.pinsFromPart');
-    lines.push(`  ${k} (${v.name}) · ${pins}${v.parts ? ` · ${v.parts.join(', ')}` : ''}`);
+    lines.push(`  ${k} (${v.name}) · ${pins}${v.parts ? ` · ${runs(v.parts).join(', ')}` : ''}`);
   }
   lines.push(`${t(lang, 'catalog.modules')} ${Object.entries(c.modules).map(([k, m]) => `${k} (${m.mount})`).join(', ')}`);
   lines.push(`${t(lang, 'catalog.batteries')} ${c.batteries.join(', ')} · ${t(lang, 'catalog.photoresistors')} ${c.photoresistors.join(', ')}`);

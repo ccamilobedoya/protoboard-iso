@@ -85,6 +85,10 @@ export function checkConnections(parts, netlist, { netLabels = {} } = {}) {
       if (pins.length < 2) continue;
       const groups = new Set(pins.map((pin) => (groupOf(pin) >= 0 ? `g${groupOf(pin)}` : pin)));
       if (groups.size < 2) continue;
+      // Circuits inside the part that are not joined (a relay's coil and its contact) may share a group,
+      // one pin of each: only pins of the same circuit short something.
+      const apart = part.def.isolated;
+      if (apart && apart.every((set) => pins.filter((pin) => set.includes(pin)).length <= 1) && pins.every((pin) => apart.some((set) => set.includes(pin)))) continue;
       const code = part.type === 'button' ? 'SWITCH_BYPASSED' : 'PINS_SAME_NODE';
       out.push(issue('warning', code, { part: part.id, pins: pins.join(', '), node }));
     }

@@ -355,6 +355,122 @@ export function timerCore({ gnd, trig, out, reset, ctrl, thr, dis, vcc }, m) {
   };
 }
 
+// A relay's armature and its changeover contact (models.js, RELAYS), between COM, NO and NC. Like the
+// 555's latch it is a memory: it changes only when a step is accepted, from the coil's current then
+// (`coil`, the coil's resistor element), so every step solves a linear stage. Its hysteresis: it pulls
+// in once the current reaches `pullIn` and lets go once it falls to `dropOut`; between the two it stays.
+// The armature takes `operate` (or `release`) seconds after the current crossed its threshold: `wait`
+// counts that time, and a current that turns back before it is over starts it again. A closed contact
+// is its contact resistance, an open one its insulation resistance (so a contact alone on a strip is
+// never a node with nothing on it). `rest(x)`: the armature where the current puts it at once (an
+// operating point, t = 0), true if that moved it.
+export function relayCore({ com, no, nc }, coil, m) {
+  const gc = 1 / m.contactResistance;
+  const go = 1 / m.insulation;
+  const toNo = (closed) => (closed ? gc : go);
+  const toNc = (closed) => (closed ? go : gc);
+  return {
+    nodes: [com, no, nc],
+    links: [
+      [com, no],
+      [com, nc],
+    ],
+    closed: false,
+    wait: 0,
+    stamp(st) {
+      st.conductance(com, no, toNo(this.closed));
+      st.conductance(com, nc, toNc(this.closed));
+      return false;
+    },
+    // Into the element at each node, in `nodes` order.
+    currents(x) {
+      const ino = (volt(x, com) - volt(x, no)) * toNo(this.closed);
+      const inc = (volt(x, com) - volt(x, nc)) * toNc(this.closed);
+      return [ino + inc, -ino, -inc];
+    },
+    // Where the coil's current wants the armature: pulled in, let go, or as it is (hysteresis).
+    wants(x) {
+      const i = Math.abs(coil.currents(x)[0]);
+      return i >= m.pullIn ? true : i <= m.dropOut ? false : this.closed;
+    },
+    accept(x, ctx = {}) {
+      const want = this.wants(x);
+      if (want === this.closed) {
+        this.wait = 0;
+        return;
+      }
+      this.wait += ctx.h ?? 0;
+      if (this.wait >= (want ? m.operate : m.release) * (1 - 1e-9)) {
+        this.closed = want;
+        this.wait = 0;
+      }
+    },
+    rest(x) {
+      const want = this.wants(x);
+      const moved = want !== this.closed;
+      this.closed = want;
+      this.wait = 0;
+      return moved;
+    },
+  };
+}
+
+// A DC motor's coupling (an ideal gyrator) between its electrical side, p to n, and its shaft, the
+// node w whose voltage is the speed ω in rad/s (a mechanical analogue: torque as current, J as a
+// capacitor to ground, friction b as a conductance, both added by the device). Its row is the
+// armature current i, from p to n: V(p) − V(n) = k·ω (the back-EMF), and it drives k·i of torque
+// into w. Linear, so it costs Newton nothing. It also keeps the shaft's angle, integrated over the
+// accepted steps (the page turns the shaft's mark by it).
+export function motorCore(p, n, w, k) {
+  return {
+    nodes: [p, n, w],
+    links: [[p, n]],
+    branch: null,
+    needsRow: true,
+    angle: 0,
+    stamp(st) {
+      const b = this.branch;
+      st.add(p, b, 1);
+      st.add(n, b, -1);
+      st.add(b, p, 1);
+      st.add(b, n, -1);
+      st.add(b, w, -k);
+      st.add(w, b, -k);
+      return false;
+    },
+    // Into the element at each node, in `nodes` order (at w: the torque it gives the shaft, out).
+    currents(x) {
+      const i = x[this.branch];
+      return [i, -i, -k * i];
+    },
+    accept(x, ctx = {}) {
+      this.angle = (this.angle + volt(x, w) * (ctx.h ?? 0)) % (2 * Math.PI);
+    },
+  };
+}
+
+// A brake on a shaft (the node w, its voltage the speed): `torque` N·m against the turning whichever
+// way it turns, `torque`·tanh(ω / slip), so it holds a shaft still that cannot overcome it (it then
+// turns at a fraction of `slip` rad/s) and is smooth for Newton.
+export function brake(w, torque, slip) {
+  return {
+    nodes: [w],
+    links: [],
+    stamp(st, x) {
+      if (!(torque > 0)) return false;
+      const v = volt(x, w);
+      const th = Math.tanh(v / slip);
+      const g = (torque * (1 - th * th)) / slip;
+      st.add(w, w, g);
+      st.rhs(w, -(torque * th - g * v));
+      return false;
+    },
+    currents(x) {
+      return [torque > 0 ? torque * Math.tanh(volt(x, w) / slip) : 0];
+    },
+  };
+}
+
 // One op-amp's output (models.js, OPAMPS) between its inputs p (+) and n (−), the supply pins
 // vcc and vee, and an inner node o behind the output resistance. Its row: V(o) − V(vee) = f(u),
 // u = gain·vd + S/2 with vd = V(p) − V(n) and S = V(vcc) − V(vee), f a clamp of u between swingLow

@@ -14,7 +14,8 @@
 //   engine.read() → { nodes, parts, supplies }   the values now;  engine.time  seconds since start
 //   engine.stresses(reading) → { part: [stress…] }   each part against its limits (devices/)
 //   engine.timeConstants() → [seconds…]    τ = C·R and L/R of each capacitor and inductor, with R
-//                                          the resistance it sees at the DC operating point
+//                                          the resistance it sees at the DC operating point, and
+//                                          an element's own times (a relay's `times`)
 //   engine.periods() → [seconds…]          the period of each signal generator (generator.js);
 //                                          their sources follow the wave at every time step
 // Controls (sliders, the push button):
@@ -438,7 +439,7 @@ function changeProgram(program, id, field, value) {
 // What an element remembers between steps or Newton iterations: capacitor voltage, inductor
 // current, junction and transistor voltages. Matched by part and by the order the part added
 // its elements (a pressed button adds its contact last, after the poles).
-const STATE = ['vprev', 'iprev', 'vd', 'vgs', 'vds', 'vbe', 'vbc', 'q', 'mode', 'level', 'pull', 'runner'];
+const STATE = ['vprev', 'iprev', 'vd', 'vgs', 'vds', 'vbe', 'vbc', 'q', 'closed', 'wait', 'angle', 'mode', 'level', 'pull', 'runner'];
 function carryState(old, prep) {
   for (const [id, list] of prep.owned) {
     const before = old.owned.get(id) ?? [];
@@ -471,16 +472,20 @@ function timeConstants(prep) {
     if (!(resistance > 0) || !Number.isFinite(resistance) || resistance > 1e9) continue;
     out.push(own.memory.kind === 'C' ? own.memory.value * resistance : own.memory.value / resistance);
   }
+  // An element's own time (a relay's coil L/R and its armature's travel): it changes by itself even
+  // while the circuit around it, at rest, leaves its coil open.
+  for (const el of prep.system.elements) if (el.times) out.push(...el.times);
   return out;
 }
 
 // Programs (a board's sketch, devices/mcu.js) start at t = 0 from the voltages there: run them
-// (setup, then loop until it waits) and solve again while they change a pin.
+// (setup, then loop until it waits) and solve again while they change a pin. A relay's armature
+// (`rest`) takes the place its coil's current gives it there, the same way.
 function settle(prep, r, ctx) {
-  const programs = prep.system.elements.filter((el) => el.settle);
+  const programs = prep.system.elements.filter((el) => el.settle || el.rest);
   for (let round = 0; round < 5 && r.ok && programs.length; round++) {
     let changed = false;
-    for (const el of programs) if (el.settle(r.x)) changed = true;
+    for (const el of programs) if (el.settle ? el.settle(r.x) : el.rest(r.x)) changed = true;
     if (!changed) break;
     r = solveWithLimits(prep, r.x, ctx);
   }

@@ -57,6 +57,10 @@ export const PART_ALIASES = {
   INCLINACION: { type: 'tilt-switch' },
   TEMPERATURA: { type: 'temperature-sensor' },
   TEMPERATURE: { type: 'temperature-sensor' },
+  RELE: { type: 'relay' },
+  MOTOR: { type: 'motor' },
+  DCMOTOR: { type: 'motor' },
+  MOTORDC: { type: 'motor' },
 };
 
 const norm = (s) => String(s ?? '').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');

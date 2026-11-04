@@ -396,6 +396,34 @@ Un sensor de temperatura LM35 en TO-92: `part` `"LM35DZ"` (por defecto, 0–100 
 { "id": "U2", "type": "temperature-sensor", "temperature": 25, "pins": ["h30", "h31", "h32"] }
 ```
 
+### relay (relé)
+
+Un relé de 5 V (SRD-05VDC-SL-C): su bobina `A1` `A2` (sin polaridad), su común `COM`, el contacto que
+se cierra mientras la bobina atrae (`NO`) y el que está cerrado en reposo (`NC`). Sus patas no caen en
+la cuadrícula de 2,54 mm (COM a 2 mm de las patas de la bobina, que están a 12 mm entre sí), así que
+queda sobre la mesa junto a la protoboard, delante (`side`: `"front"`, por defecto) o detrás
+(`"back"`), con un cable soldado a cada pata usada: en `pins` solo esas, por nombre, cada una con su
+agujero (`wires` para sus colores, `offset` para correrlo a lo largo del borde). La bobina y el contacto
+son dos circuitos: `A1` y `COM` pueden compartir una tira. Bobina de 70 Ω (71 mA a 5 V), se activa al
+75 % y se suelta bajo el 10 %; contacto de 10 A. Un transistor que maneje la bobina necesita un diodo en
+paralelo con ella.
+
+```json
+{ "id": "K1", "type": "relay", "pins": { "A1": "T+12", "A2": "j20", "COM": "T+25", "NO": "j30" } }
+```
+
+### motor (motor DC)
+
+Un motor DC pequeño (Mabuchi RE-140RA): `part` `"RE-140RA-12240"` (por defecto, 3–6 V) o
+`"RE-140RA-2270"` (1,5–3 V), patas `+` y `-`. Queda sobre la mesa junto a un borde de la protoboard como
+una batería (`side`, `offset`), con un cable rojo desde su terminal + y uno negro a dos agujeros. `load`:
+una carga en su eje en mN·m (por defecto 0; el deslizador de la página la cambia), contra su giro; si
+pasa su par de bloqueo, deja el eje quieto.
+
+```json
+{ "id": "M1", "type": "motor", "pins": ["a40", "a42"] }
+```
+
 ### header (pines de cabecera)
 
 Una fila de pines macho, para mostrar dónde se enchufa un módulo o un cable Dupont. Se coloca

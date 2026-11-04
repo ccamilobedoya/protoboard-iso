@@ -7,6 +7,8 @@ import { readFileSync } from 'node:fs';
 import { checkCircuit } from '../src/index.js';
 import { simulate, compile } from '../src/sim/index.js';
 import { createEngine } from '../src/sim/engine.js';
+import { autoLayout } from '../src/layout.js';
+import { expandRecipe } from '../src/recipes/index.js';
 import { VT, WIRE_RESISTANCE, DIODES, ledModel, MOSFETS, BJTS } from '../src/sim/models.js';
 
 const example = (name) => JSON.parse(readFileSync(new URL(`../examples/${name}`, import.meta.url), 'utf8'));
@@ -551,4 +553,145 @@ test('op-amps: gain from the resistors, follower, saturation, open collector; un
   assert.ok(Math.abs(sink.vout - -sink.current * 60) < 1e-3 && sink.led > 5e-3, `sink ${sink.vout} at ${sink.current}`);
   const open = amp('lm393-comparator', 0.7);
   assert.ok(open.state === 'open' && open.led < 1e-6);
+});
+
+// A relay (SRD-05VDC-SL-C, Songle SRD datasheet; the kit's 0.1 H and armature travel, models.js).
+// Its coil straight across the supply, the contact's COM on the supply too, NO and NC each to ground
+// through a resistor.
+const relayCircuit = ({ volts = 5, load = '1k' } = {}) => ({
+  supplies: supply(volts),
+  parts: [
+    { id: 'K1', type: 'relay', pins: { A1: 'T+10', A2: 'T-9', COM: 'T+21', NO: 'a30', NC: 'a40' } },
+    { id: 'R1', type: 'resistor', value: load, pins: ['c30', 'T-31'] },
+    { id: 'R2', type: 'resistor', value: '1k', pins: ['c40', 'T-41'] },
+  ],
+});
+
+test('relay: 71 mA in its 70 Ω coil, pulled in past 75 % and let go under 10 %, with hysteresis and its times', () => {
+  const r = run(relayCircuit());
+  // Coil data chart: 5 V, 71.4 mA, 70 Ω.
+  near(r.parts.K1.current, 5 / 70, 1e-6, 'coil current');
+  assert.equal(r.parts.K1.closed, true, 'at 5 V it is pulled in');
+  near(r.parts.R1.current, 5 / 1000, 2e-5, 'COM–NO closed: NO\'s load lit');
+  near(r.parts.R2.current, 5e-8, 1e-8, 'COM–NC open: 100 MΩ of insulation');
+  assert.ok(Math.abs(r.parts.K1.contacts.NO - r.parts.R1.current) < 1e-9, 'the contact carries the load\'s current');
+  // The engine: the supply's voltage moved, the armature stays until a threshold is crossed.
+  const engine = createEngine(compile(relayCircuit()).program);
+  const settle = (ms) => {
+    for (let k = 0; k < ms * 10; k++) assert.ok(engine.advance(1e-4));
+    return engine.read().parts.K1;
+  };
+  engine.start('dc', 1e-4);
+  engine.set('V1', 'voltage', 2.8); // 40 mA: between drop-out (7.1 mA) and pull-in (53.6 mA)
+  assert.equal(settle(20).closed, true, 'pulled in, it holds at 40 mA');
+  engine.set('V1', 'voltage', 0.4); // 5.7 mA: under 10 % (0.5 V)
+  assert.equal(settle(20).closed, false, 'it lets go under its drop-out');
+  engine.set('V1', 'voltage', 2.8);
+  assert.equal(settle(20).closed, false, 'released, 40 mA does not pull it in');
+  engine.set('V1', 'voltage', 3.9); // over 75 % (3.75 V)
+  assert.equal(settle(30).closed, true, 'over its pull-in voltage it pulls in');
+  // Operate time at 5 V from rest: the coil's current reaches pull-in after τ·ln(I∞ / (I∞ − Ipull)),
+  // τ = L / R (solved here), then the armature travels 5 ms; within the datasheet's 10 ms.
+  const timed = createEngine(compile(relayCircuit({ volts: 0 })).program);
+  timed.start('dc', 1e-5);
+  timed.set('V1', 'voltage', 5);
+  let closedAt = null;
+  for (let k = 0; k < 2000 && closedAt == null; k++) {
+    assert.ok(timed.advance(1e-5));
+    if (timed.read().parts.K1.closed) closedAt = timed.time;
+  }
+  const R = 70;
+  const expected = (0.1 / R) * Math.log((5 / R) / (5 / R - 3.75 / 70)) + 5e-3;
+  near(closedAt, expected, 3e-5, 'operate time');
+  assert.ok(closedAt <= 10e-3, 'within the datasheet\'s 10 ms');
+  // Ratings: over 120 % (6 V) on the coil; 12.5 A through COM–NO, over its 10 A.
+  assert.ok(codes(run(relayCircuit({ volts: 7 })).issues).includes('SIM_RELAY_COIL'));
+  assert.ok(codes(run(relayCircuit({ load: '0.4' })).issues).includes('SIM_OVER_CURRENT'));
+});
+
+test('relay: cut off with nothing across it, the coil kicks far past the supply; a 1N4007 holds it to a volt and lets go later', () => {
+  // The recipe: a button, an NPN and the coil, with its diode and without it.
+  const circuit = autoLayout(expandRecipe('relay-npn').spec).circuit;
+  const release = (diode) => {
+    const c = diode ? circuit : { ...circuit, parts: circuit.parts.filter((p) => p.id !== 'D1') };
+    const engine = createEngine(compile(c).program);
+    engine.start('dc', 1e-5);
+    engine.set('S1', 'pressed', true);
+    for (let k = 0; k < 1500; k++) assert.ok(engine.advance(1e-5));
+    assert.equal(engine.read().parts.K1.closed, true, 'pressed, it pulls in');
+    near(engine.read().parts.K1.current, 0.0714, 0.002, 'the coil\'s 71 mA through the transistor');
+    engine.set('S1', 'pressed', false);
+    const from = engine.time;
+    let kick = 0;
+    let openAt = null;
+    let warned = false;
+    for (let k = 0; k < 1500; k++) {
+      assert.ok(engine.advance(1e-5));
+      const r = engine.read();
+      kick = Math.max(kick, r.parts.K1.kick);
+      if (engine.stresses(r).K1?.some((s) => s.code === 'SIM_RELAY_KICK' && s.ratio > 1)) warned = true;
+      if (openAt == null && !r.parts.K1.closed) openAt = engine.time - from;
+    }
+    return { kick, openAt, warned };
+  };
+  const bare = release(false);
+  const kept = release(true);
+  assert.ok(bare.kick > 50 && bare.warned, `the spike: ${bare.kick} V, warned`);
+  assert.ok(kept.kick < 1.1 && !kept.warned, `held by the diode: ${kept.kick} V`);
+  // Release: the datasheet's 5 ms max is without a diode; the kit's travel is 2 ms after drop-out.
+  assert.ok(bare.openAt <= 5e-3 && bare.openAt >= 2e-3, `released in ${bare.openAt} s`);
+  assert.ok(kept.openAt > bare.openAt + 1e-3, 'the diode keeps the current flowing: it lets go later');
+});
+
+// A DC motor (Mabuchi RE-140RA-12240 at its nominal 3 V: no load 4800 r/min 0.050 A, stall 0.39 A)
+// straight on the supply through two jumpers.
+const motorCircuit = ({ volts = 3, load = 0 } = {}) => ({
+  supplies: supply(volts),
+  parts: [
+    { id: 'M1', type: 'motor', load, pins: ['a10', 'a15'] },
+    { id: 'W1', type: 'wire', color: 'red', pins: ['T+10', 'b10'] },
+    { id: 'W2', type: 'wire', color: 'black', pins: ['b15', 'T-15'] },
+  ],
+});
+
+test('DC motor: the datasheet\'s no-load speed and current and its stall current; started, the speed\'s time constant', () => {
+  const free = run(motorCircuit());
+  const v = free.parts.M1.voltage; // 3 V less the jumpers' drop
+  near(free.parts.M1.rpm, (4800 * v) / 3, 1, 'no-load speed, r/min (linear in the voltage)');
+  near(free.parts.M1.current, 0.05, 2e-4, 'no-load current');
+  near(free.parts.M1.emf, v - free.parts.M1.current * (3 / 0.39), 1e-6, 'V = R·I + k·ω');
+  // Held by a load far over its stall torque: the shaft stops, the current is V / R, and it warns.
+  const held = run(motorCircuit({ load: 20 }));
+  near(held.parts.M1.current, (0.39 * held.parts.M1.voltage) / 3, 2e-3, 'stall current');
+  assert.ok(Math.abs(held.parts.M1.rpm) < 10, `held still: ${held.parts.M1.rpm} r/min`);
+  assert.ok(codes(held.issues).includes('SIM_MOTOR_STALL'));
+  assert.ok(!codes(free.issues).includes('SIM_MOTOR_STALL'));
+  assert.ok(codes(run(motorCircuit({ volts: 7 })).issues).includes('SIM_MOTOR_VOLTAGE'), 'over its 3–6 V');
+  // Started from rest: the linear system [I, ω]' = A·[I, ω] + [V/L, 0], solved here by its two
+  // eigenvalues; its speed against the kit's stepping. The current starts near V / R (the start-up
+  // spike) and falls to the no-load current; the speed rises with τ ≈ J·R / (k² + R·b), 25 ms.
+  const R = 3 / 0.39 + 2 * WIRE_RESISTANCE;
+  const w0 = (4800 * 2 * Math.PI) / 60;
+  const k = (3 - (3 / 0.39) * 0.05) / w0;
+  const b = (k * 0.05) / w0;
+  const [J, L] = [1e-7, 1e-3];
+  const tr = -(R / L + b / J);
+  const det = (R * b + k * k) / (L * J);
+  const [s1, s2] = [(tr + Math.sqrt(tr * tr - 4 * det)) / 2, (tr - Math.sqrt(tr * tr - 4 * det)) / 2];
+  const wEnd = (k * 3) / (k * k + R * b);
+  const speed = (t) => wEnd * (1 - (s2 * Math.exp(s1 * t) - s1 * Math.exp(s2 * t)) / (s2 - s1));
+  const engine = createEngine(compile(motorCircuit()).program);
+  engine.start('zero', 1e-5);
+  let peak = 0;
+  const at = {};
+  for (let n = 1; n <= 10000; n++) {
+    assert.ok(engine.advance(1e-5));
+    const p = engine.read().parts.M1;
+    peak = Math.max(peak, p.current);
+    if (n % 1000 === 0) at[n] = p.omega;
+  }
+  for (const [n, omega] of Object.entries(at)) near(omega, speed(Number(n) * 1e-5), 0.01 * wEnd, `ω at ${Number(n) * 1e-5} s`);
+  const tau = (J * R) / (k * k + R * b);
+  near(-1 / s1, tau, 0.01 * tau, 'the slow eigenvalue is the mechanical time constant');
+  assert.ok(peak > 0.9 * (3 / R), `start-up spike ${peak} A, near V / R`);
 });

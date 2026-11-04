@@ -240,6 +240,44 @@ export const LM35 = {
   },
 };
 
+// Relays: a coil (its resistance and an inductance) that pulls an armature, a changeover contact.
+// SRD-05VDC-SL-C (Songle SRD datasheet: coil data chart, performance, rating):
+//   coil            70 Ω ±10 % at 5 V, 71.4 mA, 0.36 W ("L" sensitivity)
+//   pullIn          pull-in voltage 75 % max (3.75 V): the kit pulls in at 3.75 V / 70 Ω = 53.6 mA
+//   dropOut         drop-out voltage 10 % min (0.5 V): it lets go at 0.5 V / 70 Ω = 7.1 mA
+//   maxVoltage      max allowable coil voltage 120 % (6 V)
+//   contactResistance 100 mΩ max; insulation 100 MΩ min (the open contact)
+//   maxContactCurrent 10 A (10 A 125 VAC / 28 VDC rating)
+//   operate, release  the datasheet gives the whole time from the coil's switching, 10 ms and 5 ms
+//                   max, not the inductance nor the armature's travel. The kit's own figures: 0.1 H
+//                   (τ = L/R = 1.4 ms: at 5 V the current reaches pull-in in 2.0 ms) and a travel of
+//                   5 ms once it has (7 ms in all, within 10 ms) and 2 ms to let go (with nothing
+//                   across the coil its current stops at once: 2 ms, within 5 ms; a diode across it
+//                   keeps it flowing, ~3 ms more: the release a flyback diode slows)
+//   parallel        what a coil loses besides its winding (its core's eddy currents, its leakage) as a
+//                   resistance across it; the kit takes 10 kΩ (its own figure): switched off with
+//                   nothing across it, that is where its current goes, so its spike is about I·R, 0.7 kV
+//                   whatever the time step (a real transistor breaks down first: 75 V for a 2N2222A)
+export const RELAYS = {
+  'SRD-05VDC-SL-C': { nominal: 5, coil: 70, inductance: 0.1, parallel: 1e4, pullIn: 3.75 / 70, dropOut: 0.5 / 70, maxVoltage: 6, contactResistance: 0.1, insulation: 1e8, maxContactCurrent: 10, operate: 5e-3, release: 2e-3 },
+};
+
+// Small DC motors (Mabuchi RE-140RA datasheet, its table of characteristics at the nominal voltage):
+// the datasheet's points, from which the device (devices/motor.js, motorConstants) derives the model
+//   R = V / I_stall, k = (V − R·I_noload) / ω_noload, b = k·I_noload / ω_noload,
+// so the no-load point and the stall current are the datasheet's; its stall torque is then k·I_stall
+// (2.03 mN·m for the -12240 against the 1.67 it lists: its friction is mostly that of the brushes,
+// constant, which a viscous b cannot be at stall). Not in the datasheet, the kit's figures: the rotor's
+// inertia J (1 g·cm², an armature of about 5 g, 12 mm across) and the winding's inductance L (1 mH).
+//   RE-140RA-12240  3–6 V, 3 V nominal: no load 4800 r/min 0.050 A; at maximum efficiency 3530 r/min
+//                   0.14 A 0.44 mN·m; stall 1.67 mN·m 0.39 A
+//   RE-140RA-2270   1.5–3.0 V, 1.5 V nominal: no load 8100 r/min 0.21 A; at maximum efficiency
+//                   6150 r/min 0.66 A 0.66 mN·m; stall 2.74 mN·m 2.10 A
+export const MOTORS = {
+  'RE-140RA-12240': { nominal: 3, range: [3, 6], noLoad: { rpm: 4800, current: 0.05 }, efficient: { rpm: 3530, current: 0.14, torque: 0.44e-3 }, stall: { torque: 1.67e-3, current: 0.39 }, inertia: 1e-7, inductance: 1e-3 },
+  'RE-140RA-2270': { nominal: 1.5, range: [1.5, 3], noLoad: { rpm: 8100, current: 0.21 }, efficient: { rpm: 6150, current: 0.66, torque: 0.66e-3 }, stall: { torque: 2.74e-3, current: 2.1 }, inertia: 1e-7, inductance: 1e-3 },
+};
+
 export const REGULATORS = {
   fixed: { dropout: 2.0, quiescent: 5e-3, maxCurrent: 1.5, maxPower: 2 },
   LM317: { dropout: 2.0, quiescent: 50e-6, maxCurrent: 1.5, maxPower: 2 },

@@ -433,6 +433,23 @@ su símbolo, un bloque con +VS, VOUT y GND; su vista por dentro, un termómetro 
 flecha de 10 mV por °C hacia VOUT con el voltaje allí, la corriente de su alimentación junto a +VS, y
 debajo Vs, Is y lo que da VOUT (`temperature`, `vout`, `vs`, `currents`, `state`).
 
+Un relé queda junto a la protoboard, conectado por sus patas usadas; sus filas dicen cuál es la bobina
+(A1, A2, en cualquier sentido), COM, el contacto que se cierra al activarse (NO) y el cerrado en reposo
+(NC); su marca son las dos patas de la bobina junto a COM (`coil`: sin polaridad, sin diodo adentro). Su
+símbolo es la caja de bobina de la IEC con un conmutador en reposo sobre NC y un enlace punteado; su vista
+por dentro, la bobina sobre su núcleo de hierro con líneas de campo tantas y tan fuertes como su
+corriente frente a la de activación, la armadura en su bisagra atraída al núcleo (su lámina arriba, en
+NO) o en reposo (en NC), la corriente de la bobina junto al cable de A1 y la del contacto junto al de COM,
+y debajo el voltaje de la bobina, en rojo y con su propia línea de estado cuando la bobina da el pico
+(`current`, `voltage`, `closed`, `state`, `kick`, `currents`). Un motor DC queda junto a un borde de la
+protoboard como una batería, su cable rojo es el + (`lead`); su símbolo, un círculo con M; su vista por
+dentro, los dos imanes, los tres polos de la armadura girados al ángulo del eje (`angle`, así giran al
+ritmo de la página), una flecha alrededor tan larga como la velocidad frente a su velocidad libre en el
+tope de su rango, el conmutador y sus dos escobillas hacia + y −, el voltaje de la fuente frente a la
+fuerza contraelectromotriz como dos barras arriba, y la velocidad, la corriente y la FCEM debajo
+(`omega`, `rpm`, `emf`, `voltage`, `current`, `state`). En la protoboard la muesca de su polea gira con
+el eje (dibujada en ocho ángulos, `pose`).
+
 De cerca en un celular las filas del diagrama de patas siguen pegadas a sus líneas guía, y ahora además
 caben en la pantalla: se encogen juntas hasta el 65 % y una fila que aún es larga termina en «…» en el
 borde, como en un video; cuando dos columnas cortarían una fila, una sola columna a cualquiera de los dos

@@ -30,6 +30,8 @@
     { "id": "U1", "type": "regulator", "part": "AMS1117-3.3", "pins": { "IN": "a60", "OUT": "a61", "GND": "a62" } },
     { "id": "S3", "type": "slide-switch", "pins": ["j47", "j48", "j49"] },
     { "id": "S4", "type": "tilt-switch", "pins": ["j42", "j43"] },
-    { "id": "U4", "type": "temperature-sensor", "part": "LM35DZ", "pins": ["i60", "i61", "i62"] }
+    { "id": "U4", "type": "temperature-sensor", "part": "LM35DZ", "pins": ["i60", "i61", "i62"] },
+    { "id": "K1", "type": "relay", "pins": { "A1": "a30", "A2": "a31", "COM": "a33", "NO": "a34", "NC": "a35" } },
+    { "id": "M1", "type": "motor", "pins": ["e57", "e59"] }
   ]
 }

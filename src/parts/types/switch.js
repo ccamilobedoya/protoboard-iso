@@ -19,6 +19,29 @@ export const SWITCH_STYLES = {
 
 const COLORS = ['red', 'yellow', 'green', 'blue', 'white', 'violet'];
 
+// A part beside the board wired pin by pin (a switch, a relay): only the pins the circuit lists in
+// `pins` ({ "1": "T+5", "2": "j10" }), by its own names (any case), each with its wire's colour
+// (`wires`, else one of COLORS in turn). { names, colors } or { error }.
+export function pinsByName(part, all, example) {
+  const given = part.pins && typeof part.pins === 'object' && !Array.isArray(part.pins) ? Object.keys(part.pins) : [];
+  if (!given.length) return { error: { code: 'MODULE_PINS', params: { example, names: all.join(', ') } } };
+  const names = [];
+  for (const key of given) {
+    const name = all.find((n) => n.toLowerCase() === key.toLowerCase());
+    if (!name) return { error: { code: 'UNKNOWN_PIN', params: { pin: key, names: all.join(', ') } } };
+    names.push(name);
+  }
+  const colors = {};
+  for (const [i, name] of names.entries()) {
+    const asked = part.wires?.[name] ?? part.wires?.[given[i]] ?? COLORS[i % COLORS.length];
+    const color = WIRE_COLORS[asked];
+    if (!color) return { error: { code: 'UNKNOWN_COLOR', params: { color: String(asked), options: Object.keys(WIRE_COLORS).join(', ') } } };
+    colors[name] = color;
+  }
+  if (part.side !== undefined && !['front', 'back'].includes(part.side)) return { error: { code: 'UNKNOWN_KIND', params: { kind: String(part.side), options: 'front, back' } } };
+  return { names, colors };
+}
+
 export default {
   type: 'switch',
   pins: null,
@@ -26,25 +49,12 @@ export default {
     const styleName = part.style ?? 'rocker';
     const style = SWITCH_STYLES[styleName];
     if (!style) return { error: { code: 'UNKNOWN_KIND', params: { kind: `style ${styleName}`, options: Object.keys(SWITCH_STYLES).join(', ') } } };
-    const given = part.pins && typeof part.pins === 'object' && !Array.isArray(part.pins) ? Object.keys(part.pins) : [];
-    if (!given.length) return { error: { code: 'MODULE_PINS', params: { example: styleName === 'rocker' ? '{ "1": "T+5", "2": "j10" }' : '{ "C1": "j10", "NO1": "j14" }', names: style.pins.join(', ') } } };
-    const names = [];
-    for (const key of given) {
-      const name = style.pins.find((n) => n.toLowerCase() === key.toLowerCase());
-      if (!name) return { error: { code: 'UNKNOWN_PIN', params: { pin: key, names: style.pins.join(', ') } } };
-      names.push(name);
-    }
-    const colors = {};
-    for (const [i, name] of names.entries()) {
-      const asked = part.wires?.[name] ?? part.wires?.[given[i]] ?? COLORS[i % COLORS.length];
-      const color = WIRE_COLORS[asked];
-      if (!color) return { error: { code: 'UNKNOWN_COLOR', params: { color: String(asked), options: Object.keys(WIRE_COLORS).join(', ') } } };
-      colors[name] = color;
-    }
-    if (part.side !== undefined && !['front', 'back'].includes(part.side)) return { error: { code: 'UNKNOWN_KIND', params: { kind: String(part.side), options: 'front, back' } } };
+    const wired = pinsByName(part, style.pins, styleName === 'rocker' ? '{ "1": "T+5", "2": "j10" }' : '{ "C1": "j10", "NO1": "j14" }');
+    if (wired.error) return wired;
+    const { names, colors } = wired;
     const on = Boolean(part.on);
     // Only the contacts whose two pins are wired matter to the circuit.
-    const wired = (pairs) => pairs.filter(([a, b]) => names.includes(a) && names.includes(b));
+    const listed = (pairs) => pairs.filter(([a, b]) => names.includes(a) && names.includes(b));
     return {
       package: style.package,
       pinNames: names,
@@ -52,7 +62,7 @@ export default {
       // Its name, not its position: the page can change that while the label stays.
       label: { text: style.label },
       typeKey: `switch.${styleName}`,
-      electrical: { kind: 'SWT', style: styleName, on, onContacts: wired(style.on), offContacts: wired(style.off), contact: style.contact, maxCurrent: style.maxCurrent },
+      electrical: { kind: 'SWT', style: styleName, on, onContacts: listed(style.on), offContacts: listed(style.off), contact: style.contact, maxCurrent: style.maxCurrent },
     };
   },
 };

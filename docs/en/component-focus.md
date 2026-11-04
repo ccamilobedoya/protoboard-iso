@@ -405,6 +405,21 @@ block with +VS, VOUT and GND; its inside view, a thermometer of its temperature,
 °C out to VOUT with the voltage there, its supply's current beside +VS, and under it Vs, Is and what
 VOUT gives (`temperature`, `vout`, `vs`, `currents`, `state`).
 
+A relay lies beside the board, wired by its pins in use; its rows say which is the coil (A1, A2, either
+way round), COM, the contact closed while it pulls (NO) and the one closed at rest (NC); its mark is the
+coil's two pins by COM (`coil`: no polarity, no diode inside). Its symbol is IEC's coil box with a
+changeover resting on NC and a dashed link; its inside view, the coil round its iron core with field lines
+as many and as strong as its current against the pull-in current, the armature on its hinge pulled to the
+core (its blade up on NO) or resting (on NC), the coil's current beside A1's lead and the contact's beside
+COM's, and under it the coil's voltage, in red with a state line of its own when the coil kicks
+(`current`, `voltage`, `closed`, `state`, `kick`, `currents`). A DC motor lies beside a board edge like a
+battery, its red lead the + (`lead`); its symbol, a circle with M; its inside view, the two magnets, the
+armature's three poles turned to the shaft's angle (`angle`, so they turn at the page's pace), an arrow
+round them as long as the speed against its free speed at the top of its range, the commutator and its
+two brushes down to + and −, the supply's voltage against the back-EMF as two bars at the top, and the
+speed, the current and the EMF under it (`omega`, `rpm`, `emf`, `voltage`, `current`, `state`). On the
+board its pulley's notch turns with the shaft (drawn at eight angles, `pose`).
+
 Up close on a phone the pinout's rows hug their leaders as before, and now fit the screen too: they
 shrink together to 65 % and a row still too long ends in "…" at the edge, as in a video; when two
 columns would cut a row, one column on either side, whichever cuts less. Measured at 390 px wide: before,
