@@ -838,7 +838,8 @@ test('moves: a pin step names a pin of a part, or its mark, or none', () => {
   assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'Q1.X' }]), ['TOUR_UNKNOWN_PIN']);
   assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'Q1.2' }]), ['TOUR_UNKNOWN_PIN'], 'a number names a chip\'s pin only');
   assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'X9.B' }]), ['TOUR_UNKNOWN_PART']);
-  assert.deepEqual(codes([{ at: 0, do: 'pin', mark: 'S1' }]), ['TOUR_NO_MARK'], 'a button has no mark');
+  assert.deepEqual(codes([{ at: 0, do: 'pin', mark: 'W1' }]), ['TOUR_NO_MARK'], 'a wire has no mark');
+  assert.deepEqual(codes([{ at: 0, do: 'pin', mark: 'S1' }]), [], 'a button\'s tells its joined pairs');
   assert.deepEqual(codes([{ at: 0, do: 'pin', mark: 'R1' }]), [], 'a resistor\'s says it has no polarity');
   assert.deepEqual(codes([{ at: 0, do: 'pin', pin: 'Q1.E', off: true }]), ['TOUR_FIELD'], 'one of pin, mark or off');
   assert.deepEqual(codes([{ at: 0, do: 'pin' }]), ['TOUR_FIELD']);
@@ -1010,8 +1011,9 @@ test('moves: a symbol or an inside view names a part whose kind has one', () => 
   const codes = (steps) => loadTour(npn({ steps })).issues.map((i) => i.code);
   assert.deepEqual(codes(figured), []);
   assert.deepEqual(codes([{ at: 0, do: 'symbol', on: true }]), ['TOUR_FIELD'], 'on names its part');
-  assert.deepEqual(codes([{ at: 0, do: 'symbol', part: 'S1', on: true }]), ['TOUR_NO_SYMBOL']);
-  assert.deepEqual(codes([{ at: 0, do: 'inside', part: 'S1', on: true }]), ['TOUR_NO_INSIDE']);
+  assert.deepEqual(codes([{ at: 0, do: 'symbol', part: 'W1', on: true }]), ['TOUR_NO_SYMBOL']);
+  assert.deepEqual(codes([{ at: 0, do: 'inside', part: 'W1', on: true }]), ['TOUR_NO_INSIDE']);
+  assert.deepEqual(codes([{ at: 0, do: 'symbol', part: 'S1', on: true }, { at: 2000, do: 'inside', part: 'S1', on: true }]), [], 'a button has both');
   assert.deepEqual(codes([{ at: 0, do: 'inside', part: 'X9', on: true }]), ['TOUR_UNKNOWN_PART']);
 });
 
@@ -1067,7 +1069,7 @@ const rl = () => ({
     { id: 'W1', type: 'wire', color: 'black', pins: ['j30', 'T-30'] },
   ],
 });
-test('moves: M23 a resistor, a capacitor, an inductor, a diode, a Zener, a bridge, a potentiometer, a thermistor and a photoresistor inside, from the circuit', async (t) => {
+test('moves: M23 a resistor, a capacitor, an inductor, a diode, a Zener, a bridge, a potentiometer, a thermistor, a photoresistor, a push button and a switch inside, from the circuit', async (t) => {
   const inside = async (circuit, id, more = []) => {
     const steps = [{ at: 0, do: 'scene', mode: 'part', part: id }, { at: 0, do: 'inside', part: id, on: true }, ...more];
     const window = await loadPage(renderPage({ ...circuit, page: { ...circuit.page, tour: { format: 'vertical', steps } } }, { lang: 'en' }).html);
@@ -1140,6 +1142,31 @@ test('moves: M23 a resistor, a capacitor, an inductor, a diode, a Zener, a bridg
   assert.match(ldr.state, /^\d.* kΩ with 100 lx$/);
   const dark = await inside(more, 'LDR1', [{ at: 200, do: 'set', part: 'LDR1', field: 'light', value: 1, move: 'cut' }]);
   assert.equal(dark.count('.light'), 1);
+  // A push button's dome, released or held down; a switch's blade on the contact its position closes.
+  const pullup = autoLayout(expandRecipe('button-pullup').spec).circuit;
+  const s1 = await inside(pullup, 'S1');
+  assert.equal(s1.kind, 'button');
+  assert.deepEqual(s1.names, ['1', '2', '3', '4']);
+  assert.equal(s1.state, 'released: 1–2 and 3–4 apart');
+  assert.equal(s1.count('.dome.on') + s1.count('.flowing'), 0, 'nothing crosses an open contact');
+  assert.equal(s1.count('.dim'), 1, 'the voltage its gap holds');
+  const held = await inside(pullup, 'S1', [{ at: 200, do: 'set', part: 'S1', field: 'pressed', value: true, move: 'cut' }]);
+  assert.equal(held.state, 'pressed: 1–2 joined to 3–4');
+  assert.equal(held.count('.dome.on'), 1);
+  assert.equal(held.count('.flowing'), 1, 'its current across the contact');
+  const sw = example('switches');
+  const rocker = await inside(sw, 'S1');
+  assert.equal(rocker.kind, 'switch');
+  assert.equal(rocker.state, 'on (I): 1 joined to 2');
+  assert.equal(rocker.count('.blade.on'), 1);
+  assert.equal(rocker.count('.flowing'), 1);
+  const off = await inside(sw, 'S1', [{ at: 200, do: 'set', part: 'S1', field: 'on', value: false, move: 'cut' }]);
+  assert.equal(off.state, 'off (O): 1 and 2 apart', 'the blade follows its control');
+  assert.equal(off.count('.flowing'), 0);
+  const latch = await inside(sw, 'S2');
+  assert.equal(latch.state, 'released: each C on its NC');
+  assert.deepEqual(latch.names, ['C1', 'NC1', 'NO1'], 'the pins its circuit wires');
+  assert.equal(latch.count('.flowing'), 1, 'the current of the contact that closes');
 });
 
 // A part's view up close in the page (F5; page/client/focus-view.js): only in a page made with it; the

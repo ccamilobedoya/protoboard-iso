@@ -43,8 +43,11 @@ test('pinout: each pin\'s row says what it does, in the page\'s language; a chip
   assert.equal(pinRole(part(b, 'D1'), 0, 'es'), 'ánodo · el lado +, entra');
   // A resistor's pins: 1 by the first colour band, where its code is read from.
   assert.deepEqual(pinList(part(b, 'R1'), 'en').map((p) => p.text), ['1 · by the first band', '2 · the other end']);
-  // Without a text of its own, a pin says its name (a button's).
-  assert.deepEqual(pinList(part(b, 'S1'), 'en').map((p) => p.text), part(b, 'S1').pinNames);
+  // A push button's pins say which one each is joined to inside; without a text of its own, a pin says
+  // its name (a header's).
+  assert.deepEqual(pinList(part(b, 'S1'), 'en').map((p) => p.text), ['1 · joined to 2 inside', '2 · joined to 1 inside', '3 · joined to 4 inside', '4 · joined to 3 inside']);
+  const header = part(built('more-parts'), 'J1');
+  assert.deepEqual(pinList(header, 'en').map((p) => p.text), header.pinNames);
   const { spec } = expandRecipe('555-astable');
   const timer = part(buildCircuit(autoLayout(spec).circuit), 'U1');
   assert.deepEqual(pinList(timer, 'en').map((p) => p.text).slice(0, 3), ['1 GND · ground', '2 TRIG · starts a cycle', '3 OUT · output']);
@@ -83,7 +86,18 @@ test('pinout: the mark\'s sentence agrees with the drawing in both views', () =>
   assert.equal(pinoutOf(q, createCamera({ view: 'front' }), 'en').mark.text, 'Flat face toward you: E B C from the left');
   assert.equal(pinoutOf(q, createCamera({ view: 'back' }), 'es').mark.text, 'Cara plana hacia atrás: C B E desde la izquierda');
   assert.match(pinoutOf(part(built('npn-switch'), 'R1'), createCamera({ view: 'front' }), 'en').mark.text, /^First colour band on the (left|right): read from it; no polarity$/, 'a resistor\'s first band');
-  assert.equal(pinoutOf(part(built('npn-switch'), 'S1'), createCamera({ view: 'front' }), 'en').mark, null, 'a button has none');
+});
+
+test('pinout: a push button\'s joined pairs by its faces; a switch\'s tabs have no polarity, a latching button\'s rows their common in the middle', () => {
+  // Seen from above at an angle a button's pairs cross on screen: the sentence says how to tell them on
+  // the part (the legs of a pair on opposite faces), the same in every view.
+  const s = part(built('npn-switch'), 'S1');
+  for (const view of VIEWS) assert.equal(pinoutOf(s, createCamera({ view }), 'en').mark.text, 'Legs on opposite faces are joined: 1–2 and 3–4; pressed, all four', view);
+  const b = built('switches');
+  assert.equal(pinoutOf(part(b, 'S1'), createCamera({ view: 'front' }), 'en').mark.text, 'No polarity: it goes in either way round', 'a rocker\'s two tabs are alike');
+  assert.equal(pinoutOf(part(b, 'S2'), createCamera({ view: 'back' }), 'es').mark.text, 'La pata del medio de cada fila es su común; NC y NO en los extremos');
+  assert.deepEqual(pinList(part(b, 'S1'), 'en').map((p) => p.text), ['1 · a tab', '2 · the other tab']);
+  assert.deepEqual(pinList(part(b, 'S2'), 'en').map((p) => p.text), ['C1 · common of row 1', 'NC1 · to C1, released', 'NO1 · to C1, latched']);
 });
 
 test('pinout: a bridge\'s bevelled corner is on the side of its + lead', () => {
@@ -145,12 +159,19 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
     assert.ok(s.strokes.length > 0 && s.strokes.every((d) => /^M[\d.\s]/.test(d)), p.id);
   }
   assert.ok(seen >= 8, `${seen} symbols`);
-  assert.equal(symbolOf(part(built('npn-switch'), 'S1')), null, 'a button has none yet');
+  // A push button's four pins, a switch's only the ones its circuit lists (the others stay unwired).
+  const button = symbolOf(part(built('npn-switch'), 'S1'));
+  assert.deepEqual(button.ids, { 1: '1', 2: '2', 3: '3', 4: '4' });
+  assert.equal(button.pins['1'][0], button.pins['2'][0], 'a joined pair on one line');
+  assert.deepEqual(Object.keys(symbolOf(part(built('switches'), 'S1')).pins), ['1', '2']);
+  assert.deepEqual(symbolOf(part(built('switches'), 'S2')).ids, { C1: 'C1', NC1: 'NC1', NO1: 'NO1' });
   assert.deepEqual(insideOf(part(built('npn-switch'), 'Q1')), { kind: 'bjt', pnp: false });
   assert.equal(insideOf(timer).kind, 'timer');
   assert.equal(insideOf(part(built('npn-switch'), 'D1')).kind, 'led');
   assert.deepEqual(insideOf(part(built('npn-switch'), 'R1')), { kind: 'resistor', ids: ['1', '2'], maxPower: 0.25 });
-  assert.equal(insideOf(part(built('npn-switch'), 'S1')), null);
+  assert.deepEqual(insideOf(part(built('npn-switch'), 'S1')), { kind: 'button', ids: ['1', '2', '3', '4'], contact: ['1', '3'], pressed: false });
+  assert.deepEqual(insideOf(part(built('switches'), 'S1')), { kind: 'switch', style: 'rocker', ids: ['1', '2'], on: true, onContacts: [['1', '2']], offContacts: [] });
+  assert.deepEqual(insideOf(part(built('switches'), 'S2')), { kind: 'switch', style: 'latching', ids: ['C1', 'NC1', 'NO1'], on: false, onContacts: [['C1', 'NO1']], offContacts: [['C1', 'NC1']] });
   assert.deepEqual(insideOf(part(built('half-wave-rectifier'), 'D1')), { kind: 'diode', ids: ['A', 'K'], maxCurrent: 1 });
   assert.equal(insideOf(part(built('parts-showcase'), 'D2')).maxCurrent, 0.3, 'a 1N4148 by its own rating');
   const z = insideOf(part(built('more-parts'), 'D1'));
@@ -170,14 +191,12 @@ test('symbols: each symbol has a terminal for every pin of its part, inside its 
 // orientation mark when it can go in the wrong way round, and a view of its inside with its legend. Each
 // type of the kit is either complete or listed as pending with its reason: a new type must be one or
 // the other, so the choice is made, never forgotten.
-const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1', potentiometer: 'potentiometer-led RV1', thermistor: 'more-parts RT1', ldr: 'more-parts LDR1' };
+const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1', potentiometer: 'potentiometer-led RV1', thermistor: 'more-parts RT1', ldr: 'more-parts LDR1', button: 'button-pullup S1', switch: 'switches S1' };
 const PENDING = {
   regulator: 'no symbol or inside view yet',
-  button: 'no symbol or inside view yet',
   wire: 'not a part on a pedestal',
   battery: 'off the board; no symbol or inside view yet',
   module: 'a development board: its own pin notes, no pedestal view',
-  switch: 'off the board; no symbol or inside view yet',
   buzzer: 'no symbol or inside view yet',
   header: 'pins only: nothing to show inside',
 };

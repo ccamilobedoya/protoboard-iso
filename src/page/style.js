@@ -513,6 +513,9 @@ body.layer-flow main[data-scene] > svg > .lights { display: inline; }
 .focus-legend .swatch.bead { background: var(--well); border-radius: 50%; outline: 1px solid var(--ink-3); }
 .focus-legend .swatch.cds { height: 6px; margin-top: 6px; border-radius: 3px; background: var(--inside-p); }
 .focus-legend .swatch.light { background: var(--warn); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+.focus-legend .swatch.metal { background: var(--ink-2); }
+.focus-legend .swatch.dome { box-sizing: border-box; border-top: 3px solid var(--accent); border-radius: 50% 50% 0 0; }
+.focus-legend .swatch.blade { height: 4px; margin-top: 7px; border-radius: 2px; background: var(--accent); }
 .focus-legend .swatch[hidden] { display: block; visibility: hidden; }
 /* On a phone the bar takes two rows: Back and the name, then the two controls sharing the width. */
 @media (max-width: 560px) {
@@ -534,8 +537,8 @@ body.focus-view, body.focus-view main, body.focus-view .focus-dock { touch-actio
    of its inside with n and p material, the oxide and gate, a comparator or latch that is acting, a
    resistor's film on its core, a capacitor's plates, an inductor's coil and its field, a diode's
    depletion zone, a bridge's conducting diodes, a potentiometer's track and wiper, a thermistor's
-   bead and its shaking atoms, a photoresistor's track and the light on it, the current as arrows in
-   the dots' colour. */
+   bead and its shaking atoms, a photoresistor's track and the light on it, a push button's dome and a
+   switch's blade, the current as arrows in the dots' colour. */
 .figure { pointer-events: none; }
 .figure .stroke, .figure .lens, .figure .lead { fill: none; stroke: var(--ink-2); stroke-linecap: round; stroke-linejoin: round; }
 .figure .fill { fill: var(--ink-2); }
@@ -577,6 +580,12 @@ body.focus-view, body.focus-view main, body.focus-view .focus-dock { touch-actio
 .figure .cds.lit { stroke: var(--warn); }
 .figure .light { stroke: var(--warn); stroke-width: 1.6; stroke-linecap: round; }
 .figure .light-head { fill: var(--warn); }
+.figure .dome { fill: none; stroke: var(--ink-2); stroke-width: 2.4; stroke-linecap: round; }
+.figure .dome.on, .figure .blade.on { stroke: var(--accent); }
+.figure .blade { fill: none; stroke: var(--ink-2); stroke-width: 3; stroke-linecap: round; }
+.figure .plunger { fill: var(--ink-4); stroke: var(--ink-3); stroke-width: 1; }
+.figure .rocker { fill: var(--ink-4); stroke: var(--ink-2); stroke-width: 1.4; stroke-linejoin: round; }
+.figure .link { fill: none; stroke: var(--ink-3); stroke-width: 1.4; stroke-dasharray: 3 3; }
 body.director nav, body.director .zoom, body.director .inspector, body.director .gesture-hint, body.director .first-hint, body.director .tooltip { display: none !important; }
 body.director main { cursor: default; }
 body.director .labels, body.director .results, body.director .probes { display: none !important; }

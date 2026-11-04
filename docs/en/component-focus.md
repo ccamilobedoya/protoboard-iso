@@ -340,6 +340,22 @@ sulphide track in a zigzag between two metal combs, lighter as more light falls,
 decade of lux (1 lx one, 10 000 lx five), V and I and "2.98 kΩ with 100 lx". Both read the temperature,
 the light and the resistance from the reading's `sensor`, which the slider updates.
 
+A push button's rows say which pin each is joined to inside ("1 · joined to 2 inside"); its mark,
+how to tell the pairs on the part ("Legs on opposite faces are joined: 1–2 and 3–4; pressed, all
+four"), with no side: seen from above at an angle the pairs cross on screen. Its symbol is a normally
+open push button, 1–2 down one side and 3–4 down the other, the bar on its plunger over both contacts.
+Its inside view is cut from the side: the two pieces of metal, the dome over their arms and the plunger
+on it; released, the dome arches clear and the gap's voltage is on a dimension line; pressed (a `set`, or
+held in the page), it lies flat on both, lit, and the current crosses under them ("pressed: 1–2 joined
+to 3–4"). A rocker's two tabs have no polarity; its symbol is an SPST switch drawn open; its inside view,
+the rocker on its pivot (I pressed down on the right when on) and the blade under it, down on tab 2's
+contact or lifted off it, with the current or the gap's voltage. A latching button's mark says its
+common is the middle pin of each row; its symbol, a DPDT changeover on a dashed link, with terminals
+for the pins its circuit lists; its inside view, a changeover per row in use with its blade on NC
+(released) or NO (latched) and the current of each closed contact beside its common. Both read their
+position from the reading (`pressed`, `on`, `contacts`), else from their control. The rows of a part
+lying beside the board go under its body.
+
 ### F5 · The part in the page
 
 **The trial (2026-11-01).** A prototype behind `?focusView=1`, in a page made with

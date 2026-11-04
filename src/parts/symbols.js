@@ -150,6 +150,47 @@ function bridge() {
   };
 }
 
+// A small circle (a contact) as a path, for the strokes.
+const ring = (x, y, r = 2.5) => `M${x + r} ${y}A${r} ${r} 0 1 1 ${x - r} ${y}A${r} ${r} 0 1 1 ${x + r} ${y}Z`;
+
+// A tactile push button (IEC 60617, normally open): 1–2 down the left and 3–4 down the right, each pair
+// one piece of metal with a dot where its contact leaves it; the bar held over both contacts by its
+// plunger, which pressed joins the two pieces.
+function button() {
+  return {
+    w: 100, h: 100,
+    strokes: ['M14 4V96', 'M86 4V96', 'M14 62H34', 'M86 62H66', ring(36.5, 62), ring(63.5, 62), 'M28 48H72', 'M50 48V20', 'M40 20H60'],
+    fills: [ring(14, 62, 2.6), ring(86, 62, 2.6)],
+    texts: [{ x: 20, y: 14, text: '1', anchor: 'start' }, { x: 20, y: 92, text: '2', anchor: 'start' }, { x: 80, y: 14, text: '3', anchor: 'end' }, { x: 80, y: 92, text: '4', anchor: 'end' }],
+    pins: { 1: [14, 4], 2: [14, 96], 3: [86, 4], 4: [86, 96] },
+    ids: { 1: '1', 2: '2', 3: '3', 4: '4' },
+  };
+}
+
+// Only the pins a switch's circuit lists are its part's (the others are left unwired on the table): the
+// symbol draws the whole switch, its terminals and letters for those.
+const listed = (s, names) => ({ ...s, pins: Object.fromEntries(names.map((n) => [n, s.pins[n]])), ids: Object.fromEntries(names.map((n) => [n, n])) });
+
+// A rocker (SPST): tab 1 at the top, tab 2 at the bottom, the blade from 2 lifted off 1's contact, as a
+// schematic draws it (open); its letters are the tabs' numbers.
+const rocker = (names) => listed({ w: 100, h: 100, strokes: ['M50 4V34', ring(50, 36.5), 'M50 96V66', 'M50 66L30 40'], fills: [ring(50, 66, 2.6)], texts: [{ x: 58, y: 14, text: '1', anchor: 'start' }, { x: 58, y: 92, text: '2', anchor: 'start' }], pins: { 1: [50, 4], 2: [50, 96] } }, names);
+
+// A latching button (DPDT): a changeover per row, its common on the left and its blade on NC (released,
+// as a schematic draws it), NO under it; both blades on one dashed link to the push at the top.
+function latching(names) {
+  // The push at the top and the link, dashed, from it down through both blades.
+  const strokes = ['M40 6H60', 'M50 6V9'];
+  for (let d = 12; d < 72; d += 6) strokes.push(`M50 ${d}V${d + 3}`);
+  const texts = [];
+  const pins = {};
+  for (const [row, y] of [[1, 34], [2, 78]]) {
+    strokes.push(`M6 ${y}H30`, ring(30, y, 2.2), `M30 ${y}L66 ${y - 11}`, `M70 ${y - 12}H94`, `M70 ${y + 12}H94`, ring(68, y - 12, 2.2), ring(68, y + 12, 2.2));
+    texts.push({ x: 6, y: y - 5, text: `C${row}`, anchor: 'start', small: true }, { x: 94, y: y - 15, text: `NC${row}`, anchor: 'end', small: true }, { x: 94, y: y + 9, text: `NO${row}`, anchor: 'end', small: true });
+    Object.assign(pins, { [`C${row}`]: [6, y], [`NC${row}`]: [94, y - 12], [`NO${row}`]: [94, y + 12] });
+  }
+  return listed({ w: 100, h: 100, strokes, fills: [], texts, pins }, names);
+}
+
 export function symbolOf(part) {
   const e = part.def?.electrical ?? {};
   const names = part.pinNames ?? [];
@@ -165,6 +206,8 @@ export function symbolOf(part) {
   if (part.type === 'thermistor') return thermistor(names);
   if (part.type === 'ldr') return ldr(names);
   if (part.type === 'potentiometer') return potentiometer();
+  if (part.type === 'button') return button();
+  if (part.type === 'switch') return e.style === 'latching' ? latching(names) : rocker(names);
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
   return null;
 }
@@ -193,6 +236,14 @@ export function insideOf(part) {
   if (part.type === 'thermistor') return { kind: 'thermistor', ids: ids(), r25: e.sensor?.r25, beta: e.sensor?.beta, temperature: e.sensor?.temperature };
   if (part.type === 'ldr') return { kind: 'ldr', ids: ids(), light: e.sensor?.light };
   if (part.type === 'potentiometer') return { kind: 'potentiometer', ids: ids(), resistance: e.resistance, position: e.position };
+  // A push button's two pieces and the contact pressing joins (its device's, 1 and 3); a switch's
+  // contacts, the ones its position closes, with the pins its circuit lists. Pressed or on from the
+  // circuit file until its control moves it.
+  if (part.type === 'button') return { kind: 'button', ids: ids(), contact: limits().contact, pressed: e.pressed === true };
+  if (part.type === 'switch') {
+    const { style, on, onContacts, offContacts } = limits();
+    return { kind: 'switch', style, ids: ids(), on, onContacts, offContacts };
+  }
   if (part.type === 'led') return { kind: 'led', color: LED_LIGHT[e.color] ?? LED_LIGHT.red };
   if (part.type === 'ic' && e.kind === 'TMR') return { kind: 'timer' };
   return null;

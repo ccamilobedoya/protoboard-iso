@@ -8,6 +8,9 @@
 //                  apart, rows about 5 mm apart), a wire soldered to each pin in use under a
 //                  heat-shrink sleeve; the plunger stays down while it is on
 //
+// mark (src/pinout.js): the rocker's two tabs are alike, `either`; the latching button's rows say
+// nothing on the body, only that the middle pin of each is its common (`common`).
+//
 // params: names (the listed pins, in order), colors (pin → wire colour), on, side ('front' |
 //         'back'), offset (mm along the board)
 //
@@ -98,7 +101,7 @@ export const rocker = {
     const inside = at((BODY[0] + BODY[1]) / 2, 0, zc);
     const wired = leads(pins, params, contactOf, clip, toward, inside);
     const parts = [body, flange, rockerCap];
-    return { primitives: [...parts, ...tabBoxes, ...wired.primitives], body: parts, anchor: at(BODY[1], 0, table + 15), paths: wired.paths };
+    return { primitives: [...parts, ...tabBoxes, ...wired.primitives], body: parts, anchor: at(BODY[1], 0, table + 15), paths: wired.paths, mark: { kind: 'either', at: at(BODY[1], 0, table + 15) } };
   },
 };
 
@@ -133,6 +136,7 @@ export const latching = {
     const inside = at((BODY[0] + BODY[1]) / 2, 0, zc);
     const wired = leads(pins, params, contactOf, sleeve, toward, inside);
     const parts = [housing, plunger];
-    return { primitives: [...parts, ...pinBoxes, ...wired.primitives], body: parts, anchor: at(BODY[1], 0, table + 7), paths: wired.paths };
+    const mark = { kind: 'common', at: at(BODY[1], 0, table + 7) };
+    return { primitives: [...parts, ...pinBoxes, ...wired.primitives], body: parts, anchor: at(BODY[1], 0, table + 7), paths: wired.paths, mark };
   },
 };

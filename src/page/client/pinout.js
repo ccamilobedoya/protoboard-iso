@@ -15,6 +15,8 @@
 // rows shrink together, and a row still too long ends in "…"). The rows are placed for every pin of
 // the part, lit or not, so they do not move as more pins light.
 
+import { partsRect } from './view.js';
+
 const NS = 'http://www.w3.org/2000/svg';
 // Sizes in px at the format's width (1080 portrait, 1920 landscape), never under `min` on a small screen.
 export const PINOUT = { row: 28, rowMany: 24, rowH: 52, rowHMany: 46, gap: 60, quiet: 24, dot: 9, line: 2, apart: 10, pad: 14, shrink: 0.65, min: 11 };
@@ -38,17 +40,21 @@ const cut = (text, chars) => (text.length <= chars ? text : `${text.slice(0, Mat
 // leader crosses either), if that keeps every row whole.
 // `whole`: rows never shrink or cut; each hugs its leader and runs past the screen's edge if it must (a
 // part up close in the page, where the drawing can be dragged).
-export function layoutRows(pins, tips, free, u, whole = false) {
-  const two = arrange(pins, tips, free, u, 'two', whole);
+// `floor`: the bottom of the part's body on screen, px, when it is known. A part lying on the table
+// beside the board (a switch, a battery) has its body well under the holes its pins go into: its rows go
+// under the body, not across it. A part on the board ends at its pins, and its rows stay where they were.
+export function layoutRows(pins, tips, free, u, whole = false, floor = null) {
+  const tipsLowest = Math.max(...tips.map((p) => p.y));
+  const lowest = floor != null && floor > tipsLowest + PINOUT.gap * u ? floor : tipsLowest;
+  const two = arrange(pins, tips, free, u, 'two', whole, lowest);
   if (whole || !two.cut) return two;
   const mid = tips.reduce((s, p) => s + p.x, 0) / tips.length;
-  const one = arrange(pins, tips, free, u, free.x1 - mid > mid - free.x0 ? 'right' : 'left');
+  const one = arrange(pins, tips, free, u, free.x1 - mid > mid - free.x0 ? 'right' : 'left', false, lowest);
   return one.cut < two.cut ? one : two;
 }
 
-function arrange(pins, tips, free, u, split, whole = false) {
+function arrange(pins, tips, free, u, split, whole, lowest) {
   const many = pins.length > 4;
-  const lowest = Math.max(...tips.map((p) => p.y));
   const mid = tips.reduce((s, p) => s + p.x, 0) / tips.length;
   const order = tips.map((p, i) => ({ i, x: p.x, y: p.y }));
   const onLeft = (p) => (split === 'two' ? p.x <= mid : split === 'left');
@@ -137,6 +143,17 @@ export function layerOf(page, name, layers, above = false) {
   }
   return layers.get(svg);
 }
+// The bottom of what is drawn for a part, px in the layout's screen (the drawing measured as it is now,
+// then laid in the frame the texts were set in), or null.
+function bodyBottom(page, id, screen) {
+  const drawn = partsRect(page, [id]);
+  const box = page.box;
+  const r = screen.rect;
+  if (!drawn || !box) return null;
+  const kNow = Math.max(box[2] / r.width, box[3] / r.height);
+  return screen.toScreen(0, box[1] + box[3] / 2 + (drawn.bottom - r.top - r.height / 2) * kNow).y;
+}
+
 // A pin's tips on screen, the part raised as it is now.
 export function tipsOf(page, id, pins, screen) {
   const up = (page.lifted?.get(id) ?? 0) * (page.data.lift ?? 0);
@@ -172,7 +189,7 @@ export function setupPinout(page) {
       // already does (a chip's number, a resistor's 1, a capacitor's +).
       const named = pinout.pins.length <= 4 ? page.symbolIds?.[id] : null;
       const withId = (p, text) => (named?.[p.name] && !text.startsWith(`${named[p.name]} · `) ? `${named[p.name]} · ${text}` : text);
-      const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: withId(p, own.get(i)?.text ?? p.text) })), tips, free, u, Boolean(page.focusing));
+      const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: withId(p, own.get(i)?.text ?? p.text) })), tips, free, u, Boolean(page.focusing), bodyBottom(page, id, screen));
       const stroke = PINOUT.line * Math.max(u, 0.5) * k;
       // Where the rows begin on screen: the figure beside the part stays above them (figure.js).
       if (lit.get(id)?.size) page.rowsTop = Math.min(page.rowsTop ?? Infinity, Math.round(Math.min(...rows.filter(Boolean).map((r) => r.y)) - size));

@@ -22,7 +22,10 @@
 // conducts lit and its current beside them; a potentiometer's track in an arc with its wiper where its
 // control has it, each part's resistance and current and the voltage at the wiper; an NTC thermistor's
 // ceramic bead coloured and shaking with its temperature; a photoresistor's zigzag track under an arrow
-// of light per decade of lux, each with its resistance now. Arrows never cross what they
+// of light per decade of lux, each with its resistance now; a push button's two pieces of metal and
+// the dome that pressed joins them, a switch's blade on the contact its position closes (a rocker's
+// under its rocker, a latching button's changeovers on their link), the voltage an open contact holds
+// and the current through a closed one. Arrows never cross what they
 // explain: they run beside the layers, under the channel, the film, the coil. Didactic, not to scale.
 
 import { DOT_COLOR, HEAT_COLOR, VOLTAGE_COLORS, heatOpacity } from '../../sim/look.js';
@@ -126,6 +129,83 @@ function junction(g, r, data, { t, f }) {
   const volts = { conducting: 'Vf', blocking: 'Vr', breakdown: 'Vz' }[state];
   label(g, 50, 103, r ? [`${volts} ${f(Math.abs(v), 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
   label(g, 50, 114, r ? t(`page.tour.inside.diode.${state}`) : '', 'state');
+}
+
+// An open contact's gap from x0 to x1 at height y, on a dimension line with the voltage it holds under
+// it (a closed one carries its current there instead).
+function gap(g, x0, x1, y, v, f) {
+  make(g, 'path', { class: 'dim', d: `M${x0} ${y}H${x1}M${x0} ${y - 4}V${y + 4}M${x1} ${y - 4}V${y + 4}` });
+  label(g, (x0 + x1) / 2, y + 12, f(Math.abs(v), 'V'), 'note');
+}
+
+// A pin's name in a switch's figure: the circuit's pins as the symbol's letters, a pin it leaves
+// unwired quieter.
+const pinName = (g, x, y, name, wired, anchor, size = FIGURE.small) => label(g, x, y, name, wired ? 'pin-name' : 'quiet', anchor, size);
+
+// A rocker (SPST), cut from the side: the rocker on its pivot, I pressed down on the right when on;
+// under it the blade from tab 1's contact, down on tab 2's while on, lifted off it while off; the tabs
+// down to their pins.
+function rockerInside(g, r, data, { t, f }, on) {
+  const wired = (n) => data.ids.includes(n);
+  const [yl, yr] = on ? [17, 29] : [29, 17];
+  make(g, 'rect', { class: 'core', x: 14, y: 36, width: 72, height: 46, rx: 3 });
+  make(g, 'path', { class: 'rocker', d: `M16 ${yl}L84 ${yr}L84 ${yr + 7}L16 ${yl + 7}Z` });
+  label(g, 20, yl - 3, 'O', 'quiet', 'middle', FIGURE.small);
+  label(g, 80, yr - 3, 'I', 'quiet', 'middle', FIGURE.small);
+  make(g, 'circle', { class: 'metal', cx: 50, cy: 36, r: 3 });
+  const tip = on ? 65 : 48;
+  const atBlade = 65 + ((tip - 65) * (60 - 28)) / (76 - 28);
+  const capUnder = yl + 7 + ((yr - yl) * (60 - 16)) / 68;
+  make(g, 'rect', { class: 'plunger', x: 58, y: fixed(capUnder), width: 4, height: fixed(Math.max(0, atBlade - 2 - capUnder)) });
+  make(g, 'path', { class: 'lead', d: 'M26 70V90M74 70V90' });
+  make(g, 'rect', { class: 'metal', x: 20, y: 66, width: 12, height: 4 });
+  make(g, 'rect', { class: 'metal', x: 68, y: 66, width: 12, height: 4 });
+  make(g, 'path', { class: `blade${on ? ' on' : ''}`, d: `M28 65L76 ${tip}` });
+  pinName(g, 16, 91, '1', wired('1'), 'middle', FIGURE.text);
+  pinName(g, 84, 91, '2', wired('2'), 'middle', FIGURE.text);
+  // Closed, the current from tab 1 to tab 2 (the contact's own sense) under the contacts; open, the
+  // voltage the gap holds there.
+  const contact = r?.contacts?.[0];
+  const i = contact?.current ?? 0;
+  const v = r?.pins?.['1'] != null && r?.pins?.['2'] != null ? r.pins['1'] - r.pins['2'] : null;
+  if (on && flowing(i)) {
+    shaft(g, i > 0 ? 32 : 68, 80, i > 0 ? 68 : 32, 80, widthOf(i));
+    label(g, 50, 92, 'I', 'current', 'middle', FIGURE.small);
+  } else if (!on && v != null) gap(g, 32, 68, 80, v, f);
+  label(g, 50, 103, r && on ? [v != null && `V ${f(Math.abs(v), 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+  label(g, 50, 114, r ? t(`page.tour.inside.switch.${on ? 'on' : 'off'}`) : '', 'state');
+}
+
+// A latching button (DPDT), a changeover per row the circuit uses: the common's pivot on the left, its
+// blade on NC while released and on NO while latched, both blades on the link from the plunger; the
+// current of each closed contact beside its common's lead.
+function latchingInside(g, r, data, { t, f }, on) {
+  const rows = [...new Set(data.ids.map((n) => n.slice(-1)))].sort();
+  const ys = rows.length > 1 ? [30, 72] : [50];
+  const down = on ? 4 : 0;
+  make(g, 'rect', { class: 'plunger', x: 44, y: down, width: 12, height: 8 });
+  make(g, 'path', { class: 'link', d: `M48 ${8 + down}V${ys.at(-1) + (on ? 4.5 : -4.5)}` });
+  rows.forEach((row, n) => {
+    const y = ys[n];
+    const [c, nc, no] = [`C${row}`, `NC${row}`, `NO${row}`];
+    make(g, 'path', { class: 'lead', d: `M6 ${y}H27M72 ${y - 11}H96M72 ${y + 11}H96` });
+    make(g, 'rect', { class: 'metal', x: 66, y: y - 13, width: 6, height: 4 });
+    make(g, 'rect', { class: 'metal', x: 66, y: y + 9, width: 6, height: 4 });
+    make(g, 'path', { class: 'blade on', d: `M30 ${y}L66 ${y + (on ? 9 : -9)}` });
+    make(g, 'circle', { class: 'metal', cx: 30, cy: y, r: 3 });
+    const wired = (name) => data.ids.includes(name);
+    pinName(g, 6, y - 5, c, wired(c), 'start');
+    pinName(g, 96, y - 14, nc, wired(nc), 'end');
+    pinName(g, 96, y + 8, no, wired(no), 'end');
+    const i = r?.contacts?.find((k) => k.a === c)?.current ?? 0;
+    if (flowing(i)) {
+      shaft(g, i > 0 ? 6 : 26, y + 7, i > 0 ? 26 : 6, y + 7, widthOf(i));
+      label(g, 6, y + 17, 'I', 'current', 'start', FIGURE.small);
+    }
+  });
+  const figures = (r?.contacts ?? []).map((k) => `${k.a}–${k.b} ${f(Math.abs(k.current), 'A')}`);
+  label(g, 50, 103, r ? figures.join(' · ') || `I ${f(0, 'A')}` : '', 'note');
+  label(g, 50, 114, r ? t(`page.tour.inside.switch.${on ? 'latched' : 'released'}`) : '', 'state');
 }
 
 // A potentiometer's track: an arc of 270° round (50, 50), its pin 1 end at the lower left (−135° from
@@ -437,6 +517,44 @@ const INSIDE = {
     label(g, 50, 103, r ? [`V ${f(Math.abs(r.voltage ?? 0), 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
     const resistance = r?.sensor?.resistance;
     label(g, 50, 114, resistance != null ? t('page.tour.inside.ldr.at', { resistance: f(resistance, 'Ω'), light: lux(light, f) }) : '', 'state');
+  },
+  button(g, r, data, { t, f, control }) {
+    // Cut from the side: the 1–2 piece on the left and the 3–4 piece on the right, each one metal from
+    // pin to pin, their inner arms the contacts; the metal dome over both with the plunger on it.
+    // Released, the dome arches clear and the gap holds a voltage; pressed (held, in the page), it snaps
+    // flat onto both arms and the current crosses from one piece to the other under them.
+    const [a, b, c, d] = data.ids;
+    const pressed = Boolean(r?.pressed ?? control?.('pressed') ?? data.pressed);
+    make(g, 'rect', { class: 'core', x: 24, y: 40, width: 52, height: 40, rx: 2 });
+    make(g, 'path', { class: 'lead', d: 'M15 4V24M15 82V92M85 4V24M85 82V92' });
+    make(g, 'rect', { class: 'metal', x: 12, y: 24, width: 6, height: 58 });
+    make(g, 'rect', { class: 'metal', x: 82, y: 24, width: 6, height: 58 });
+    make(g, 'rect', { class: 'metal', x: 18, y: 64, width: 22, height: 5 });
+    make(g, 'rect', { class: 'metal', x: 60, y: 64, width: 22, height: 5 });
+    const apex = pressed ? 61 : 47;
+    make(g, 'path', { class: `dome${pressed ? ' on' : ''}`, d: pressed ? 'M30 64Q50 58 70 64' : 'M30 60Q50 34 70 60' });
+    make(g, 'rect', { class: 'plunger', x: 44, y: apex - 35, width: 12, height: 34 });
+    label(g, 7, 12, a, 'pin-name', 'middle', FIGURE.text);
+    label(g, 7, 96, b, 'pin-name', 'middle', FIGURE.text);
+    label(g, 93, 12, c, 'pin-name', 'middle', FIGURE.text);
+    label(g, 93, 96, d, 'pin-name', 'middle', FIGURE.text);
+    // Conventional current from the 1–2 piece to the 3–4 one when it is positive (its device's sense).
+    const i = r?.current ?? 0;
+    const [from, to] = data.contact ?? ['1', '3'];
+    const v = r?.pins?.[from] != null && r?.pins?.[to] != null ? r.pins[from] - r.pins[to] : null;
+    if (pressed && flowing(i)) {
+      shaft(g, i > 0 ? 26 : 74, 76, i > 0 ? 74 : 26, 76, widthOf(i));
+      label(g, 50, 89, 'I', 'current', 'middle', FIGURE.small);
+    } else if (!pressed && v != null) gap(g, 40, 60, 76, v, f);
+    // Open, its voltage is on the gap; closed, the little the contact takes, with the current.
+    label(g, 50, 103, r && pressed ? [v != null && `V ${f(Math.abs(v), 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.button.${pressed ? 'pressed' : 'released'}`, { a, b, c, d }) : '', 'state');
+  },
+  switch(g, r, data, ctx) {
+    // Where its control has it (the reading, else the control, else the circuit file).
+    const on = Boolean(r?.on ?? ctx.control?.('on') ?? data.on);
+    if (data.style === 'latching') latchingInside(g, r, data, ctx, on);
+    else rockerInside(g, r, data, ctx, on);
   },
   inductor(g, r, data, { t, f }) {
     // The coil round its core, the leads down to its pins; field lines round it, more of them and

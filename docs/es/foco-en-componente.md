@@ -362,6 +362,24 @@ sulfuro de cadmio en zigzag entre dos peines de metal, más clara con más luz, 
 década de lux (1 lx una, 10 000 lx cinco), V e I y «2,98 kΩ con 100 lx». Las dos leen la temperatura, la
 luz y la resistencia del `sensor` de la lectura, que el deslizador actualiza.
 
+Las filas de un pulsador dicen con qué pata está unida cada una por dentro («1 · unida a la 2 por
+dentro»); su marca, cómo distinguir los pares en la pieza («Las patas de caras opuestas están unidas:
+1–2 y 3–4; al presionar, las cuatro»), sin un lado: visto desde arriba en ángulo, los pares se cruzan en
+pantalla. Su símbolo es un pulsador normalmente abierto, 1–2 por un lado y 3–4 por el otro, con la
+barra sobre su émbolo encima de los dos contactos. Su vista por dentro es un corte de lado: las dos
+piezas de metal, el domo sobre sus brazos y el émbolo encima; suelto, el domo se arquea sin tocarlos y el
+voltaje de la separación va en una línea de cota; presionado (un `set`, o sostenido en la página), queda
+plano sobre los dos, iluminado, y la corriente cruza por debajo («presionado: 1–2 unida a 3–4»). Las dos
+pestañas de un basculante no tienen polaridad; su símbolo es un interruptor SPST dibujado abierto; su
+vista por dentro, el balancín sobre su pivote (I hundido a la derecha cuando está encendido) y la lámina
+debajo, apoyada en el contacto de la pestaña 2 o levantada, con la corriente o el voltaje de la
+separación. La marca de un pulsador de enclavamiento dice que su común es la pata del medio de cada
+fila; su símbolo, un conmutador DPDT con una varilla punteada, con terminales para las patas que lista
+su circuito; su vista por dentro, un conmutador por cada fila en uso con su lámina en NC (suelto) o NO
+(hundido) y la corriente de cada contacto cerrado al lado de su común. Los dos leen su posición de la
+lectura (`pressed`, `on`, `contacts`), si no, de su control. Las filas de una pieza que queda al lado de
+la protoboard van bajo su cuerpo.
+
 ### F5 · La pieza en la página
 
 **El ensayo (2026-11-01).** Un prototipo detrás de `?focusView=1`, en una página hecha con

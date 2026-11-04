@@ -1,6 +1,10 @@
 // 6 × 6 mm tactile push button with four legs, sitting across the centre channel.
 // Pin order: 1, 2, 3, 4. Pins 1–2 are always connected inside, and so are 3–4 (each pair
 // spans the channel); pressing the button joins 1–2 with 3–4.
+// mark (src/pinout.js): `pairs`. The legs of a joined pair come out of opposite faces of the body
+// (6.5 mm apart, the long side); the two legs on one face (4.5 mm apart) are the two pieces, joined
+// only while it is pressed. Seen from above at an angle the pairs cross on screen, so the sentence
+// says how to tell them on the part, not a side.
 //
 // params: color (cap colour), height (cap top above the board, mm; default 5)
 
@@ -63,7 +67,8 @@ export default {
     // Current goes up each leg and meets inside the base, where the contacts are (src/sim/paths.js).
     const inside = withZ(centre, 0.3 + BASE / 2);
     const paths = legs.map((leg) => ({ points: [...leg, inside], body: leg.length - 1 }));
-    return { primitives: [base, plate, cap, ...leads], body: [base, plate, cap], anchor: withZ(centre, height), paths };
+    const mark = { kind: 'pairs', at: withZ(scale(add(pins[0], pins[1]), 0.5), height) };
+    return { primitives: [base, plate, cap, ...leads], body: [base, plate, cap], anchor: withZ(centre, height), paths, mark };
   },
 };
 
