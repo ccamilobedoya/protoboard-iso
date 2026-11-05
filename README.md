@@ -21,6 +21,9 @@ circuit, draws it in isometric SVG and simulates it in a page you can embed in a
 **Live demo:** [every recipe as a live page](https://ccamilobedoya.github.io/protoboard-iso/)
 (tap a part, press *Current*, turn the board around).
 
+**In use:** [ohmio.dev](https://ohmio.dev/) teaches electronics with circuits drawn and simulated
+by this kit.
+
 ## Try it in a minute
 
 <!-- smoke -->

@@ -23,6 +23,9 @@ embeber en una lección.
 **Demostración en vivo:** [todas las recetas como páginas en vivo](https://ccamilobedoya.github.io/protoboard-iso/es/)
 (toca un componente, pulsa *Corriente*, dale la vuelta a la protoboard).
 
+**En uso:** [ohmio.dev](https://ohmio.dev/es/) enseña electrónica con circuitos dibujados y
+simulados por este kit.
+
 ## Pruébalo en un minuto
 
 <!-- smoke -->
