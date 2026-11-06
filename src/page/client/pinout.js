@@ -18,6 +18,7 @@
 const NS = 'http://www.w3.org/2000/svg';
 // Sizes in px at the format's width (1080 portrait, 1920 landscape), never under `min` on a small screen.
 export const PINOUT = { row: 28, rowMany: 24, rowH: 52, rowHMany: 46, gap: 60, quiet: 24, dot: 9, line: 2, apart: 10, pad: 14, shrink: 0.65, min: 11 };
+const HOLD_ROOM = 1.25; // how much farther apart the tips may end up while rows are held (a hook's push is about 1.2 times)
 export const CHAR = 0.62; // a monospaced letter's width, in em (0.6 and a little room)
 const FREE = { top: 0.1, right: 0.06, bottom: 0.1, left: 0.06 }; // in the page, outside a recording
 
@@ -38,7 +39,36 @@ const cut = (text, chars) => (text.length <= chars ? text : `${text.slice(0, Mat
 // leader crosses either), if that keeps every row whole.
 // `whole`: rows never shrink or cut; each hugs its leader and runs past the screen's edge if it must (a
 // part up close in the page, where the drawing can be dragged).
-export function layoutRows(pins, tips, free, u, whole = false) {
+// `held`: the arrangement an earlier frame chose (the answer's `held`). While the camera moves the tips
+// change a little on every frame, and choosing again would make the rows jump between arrangements and
+// their letters change size: with `held`, each pin keeps its side, its text and the size, and only the
+// leaders and the rows' height follow the tips. A move too large for it (a row over its leader, two
+// leaders crossing) chooses again.
+export function layoutRows(pins, tips, free, u, whole = false, held = null) {
+  if (held && !whole) {
+    const kept = arrange(pins, tips, free, u, 'two', false, held);
+    if (stillClean(kept.rows, PINOUT.pad * u)) return { ...kept, held };
+  }
+  if (whole) return choose(pins, tips, free, u, true);
+  // Chosen with room for the camera to push in (its leaders move outwards), so that it holds.
+  const mid = tips.reduce((s, p) => s + p.x, 0) / tips.length;
+  const chosen = choose(pins, tips.map((p) => ({ ...p, x: mid + (p.x - mid) * HOLD_ROOM })), free, u, false);
+  const next = { left: new Set(chosen.rows.flatMap((r, i) => (r?.side === 'left' ? [i] : []))), size: chosen.size, texts: chosen.rows.map((r) => r?.text) };
+  return { ...arrange(pins, tips, free, u, 'two', false, next), held: next };
+}
+
+// Whether rows held from an earlier frame still read: each text short of its own leader, and no leader
+// over another's way: its tip's level to its corner, down to its row, along its row.
+function stillClean(rows, pad) {
+  const list = rows.filter(Boolean);
+  const reach = (r) => (r.side === 'left' ? r.end + pad : r.end - pad);
+  if (list.some((r) => (r.side === 'left' ? reach(r) > r.x : reach(r) < r.x))) return false;
+  const segs = (r) => [[r.tip.x, r.tip.y, r.x, r.tip.y], [r.x, r.tip.y, r.x, r.y], [r.x, r.y, reach(r), r.y]];
+  const meet = ([a, b, c, d], [e, f, g, h]) => Math.min(a, c) <= Math.max(e, g) && Math.min(e, g) <= Math.max(a, c) && Math.min(b, d) <= Math.max(f, h) && Math.min(f, h) <= Math.max(b, d);
+  return !list.some((r, i) => list.slice(i + 1).some((o) => segs(r).some((s) => segs(o).some((q) => meet(s, q)))));
+}
+
+function choose(pins, tips, free, u, whole) {
   const two = arrange(pins, tips, free, u, 'two', whole);
   if (whole || !two.cut) return two;
   const mid = tips.reduce((s, p) => s + p.x, 0) / tips.length;
@@ -46,12 +76,12 @@ export function layoutRows(pins, tips, free, u, whole = false) {
   return one.cut < two.cut ? one : two;
 }
 
-function arrange(pins, tips, free, u, split, whole = false) {
+function arrange(pins, tips, free, u, split, whole = false, held = null) {
   const many = pins.length > 4;
   const lowest = Math.max(...tips.map((p) => p.y));
   const mid = tips.reduce((s, p) => s + p.x, 0) / tips.length;
   const order = tips.map((p, i) => ({ i, x: p.x, y: p.y }));
-  const onLeft = (p) => (split === 'two' ? p.x <= mid : split === 'left');
+  const onLeft = (p) => (held ? held.left.has(p.i) : split === 'two' ? p.x <= mid : split === 'left');
   const left = order.filter(onLeft).sort((a, b) => a.x - b.x || a.y - b.y);
   const right = order.filter((p) => !onLeft(p)).sort((a, b) => b.x - a.x || a.y - b.y);
   const rowH = (many ? PINOUT.rowHMany : PINOUT.rowH) * u;
@@ -87,6 +117,13 @@ function arrange(pins, tips, free, u, split, whole = false) {
       r.anchor = r.side === 'left' ? r.x - pad : r.x + pad;
     }
     return { rows, size, cut: 0 };
+  }
+  if (held) {
+    for (const [i, r] of rows.entries()) {
+      r.text = held.texts[i];
+      r.end = r.side === 'left' ? free.x0 + r.text.length * held.size * CHAR : free.x1 - r.text.length * held.size * CHAR;
+    }
+    return { rows, size: held.size, cut: 0 };
   }
   let size = base;
   for (const [i, r] of rows.entries()) size = Math.min(size, Math.max(base * PINOUT.shrink, room(r) / (pins[i].text.length * CHAR)));
@@ -147,6 +184,7 @@ export function setupPinout(page) {
   const lit = new Map(); // part → Map(index → { text, k })
   const marks = new Map(); // part → k
   const layers = new WeakMap(); // svg → its layer
+  const heldRows = new Map(); // part → the arrangement of its rows while its pins stay lit
   let drawn = '';
 
   function draw() {
@@ -160,6 +198,7 @@ export function setupPinout(page) {
     drawn = key;
     for (const s of page.svgs) layers.get(s)?.replaceChildren();
     page.rowsTop = null;
+    for (const id of heldRows.keys()) if (!lit.get(id)?.size) heldRows.delete(id);
     if (!ids.length || !screen) return;
     const under = layerOf(page, 'pinout', layers);
     const { k, at, u, free } = screen;
@@ -171,7 +210,12 @@ export function setupPinout(page) {
       // With the symbol beside the part, each row starts with the symbol's name for its pin (a chip's
       // rows already start with its number).
       const named = pinout.pins.length <= 4 ? page.symbolIds?.[id] : null;
-      const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: [named?.[p.name], own.get(i)?.text ?? p.text].filter(Boolean).join(' · ') })), tips, free, u, Boolean(page.focusing));
+      const rowPins = pinout.pins.map((p, i) => ({ ...p, text: [named?.[p.name], own.get(i)?.text ?? p.text].filter(Boolean).join(' · ') }));
+      const holdKey = JSON.stringify([page.state.view, screen.rect.width, screen.rect.height, rowPins.map((p) => p.text)]);
+      const before = heldRows.get(id)?.key === holdKey ? heldRows.get(id).held : null;
+      const laid = layoutRows(rowPins, tips, free, u, Boolean(page.focusing), before);
+      if (laid.held && laid.held !== before) heldRows.set(id, { key: holdKey, held: laid.held });
+      const { rows, size } = laid;
       const stroke = PINOUT.line * Math.max(u, 0.5) * k;
       // Where the rows begin on screen: the figure beside the part stays above them (figure.js).
       if (lit.get(id)?.size) page.rowsTop = Math.min(page.rowsTop ?? Infinity, Math.round(Math.min(...rows.filter(Boolean).map((r) => r.y)) - size));
