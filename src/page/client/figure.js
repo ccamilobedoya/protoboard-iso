@@ -17,7 +17,8 @@
 // beside the layers, under the channel. Didactic, not to scale.
 
 import { DOT_COLOR } from '../../sim/look.js';
-import { PINOUT, fixed, make, screenOf, layerOf, tipsOf } from './pinout.js';
+import { fixed, make, screenOf, layerOf, tipsOf } from './pinout.js';
+import { PINOUT } from './pinout-rows.js';
 import { partsRect } from './view.js';
 
 // Sizes in px at the format's width; times in ms.

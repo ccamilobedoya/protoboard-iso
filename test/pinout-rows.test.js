@@ -1,7 +1,7 @@
 // The rows of a part's pins while the camera moves: one arrangement, so they do not jump.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { layoutRows } from '../src/page/client/pinout.js';
+import { layoutRows } from '../src/page/client/pinout-rows.js';
 
 const FREE = { x0: 60, x1: 1020, y1: 1700 };
 const PINS = [{ text: 'E · emisor · común a las dos' }, { text: 'B · base · la corriente pequeña' }, { text: 'C · colector · la carga' }];

@@ -12,7 +12,8 @@
 // F0's findings: a reading under a millivolt is 0 V; a chip's back row sends its stubs from under the body.
 
 import { voltageColor, dotSpeed, DOT_COLOR } from '../../sim/look.js';
-import { CHAR, fixed, make, screenOf, layerOf, tipsOf } from './pinout.js';
+import { fixed, make, screenOf, layerOf, tipsOf } from './pinout.js';
+import { CHAR } from './pinout-rows.js';
 
 // Sizes in px at the format's width (1080 portrait, 1920 landscape); `many`: a part of more than 4 pins.
 export const BENCH = { gap: 40, drop: 80, pad: 34, pitch: 230, margin: 40, apart: 10, line: 4, dot: 7, period: 20, name: 26, volts: 38, voltsMany: 28, small: 22, min: 9, floor: 1e-3, compact: 64 };
