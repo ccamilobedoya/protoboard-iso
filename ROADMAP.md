@@ -126,6 +126,7 @@ Usual bench parts the kit does not draw yet (2026-10-16):
 - ⬜ More development boards: Raspberry Pi Pico (RP2040) and ESP32-CAM with its MB programmer
 - ⬜ Display and input modules: OLED 0.96" (GME12864: VCC GND SCL SDA) and 0.91" SSD1306 over I2C, EC11 rotary encoder module, TTC MX key switches (keyboard block)
 - ⬜ Sensor modules: the 22-module kit (DHT11, BMP280, MH-RD rain, soil moisture, KY-018…), BME280, capacitive soil sensor (TLC555), HC-SR04 ultrasonic
+- ⬜ **Real sensors in the comparator and follower recipes.** `lm393-comparator`, `opamp-comparator` and `opamp-follower` use a potentiometer where the circuit would have a sensor, so a video about them has to say that one part stands for another. A soil moisture sensor for the LM393 detector (it needs the module above); a recipe with the photoresistor for the light comparator (`ldr` already exists, only the recipe is missing); a sensor read through the follower (`thermistor`, `ldr` and `temperature-sensor` already exist). Then the videos of those circuits can be made
 - ⬜ Actuators: SG90 and MG90S servos (3-pin lead), TB6612FNG motor driver, DC gear motors, mini submersible pump
 - ⬜ Energy: 6 V 2 W solar panel; single 18650 holder, LiPo 103450 on a JST PH lead
 - ⬜ On the board: TO-220 heatsink, XH connectors, DIP sockets

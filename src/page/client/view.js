@@ -8,7 +8,7 @@
 // drawing, and Ctrl/⌘ + wheel or a trackpad pinch (a wheel event with ctrlKey) zoom; a short
 // hint says so when someone tries the other way. A mouse drag moves the drawing in both cases.
 
-import { SCOPE_BOX } from './moves.js';
+import { CAPTION_LAYOUTS, SCOPE_BOX } from './moves.js';
 
 export const numbers = (text) => text.split(' ').map(Number);
 
@@ -148,7 +148,9 @@ export function stageInset(page) {
   const m = page.main.getBoundingClientRect();
   if (m.width > m.height) return STAGE_INSET.horizontal;
   const under = document.body.classList.contains('with-scope') && !document.body.classList.contains('scope-top');
-  return under ? { ...STAGE_INSET.vertical, bottom: SCOPE_BOTTOM } : STAGE_INSET.vertical;
+  const layout = CAPTION_LAYOUTS[page.data?.tour?.captionLines];
+  const base = layout ? { ...STAGE_INSET.vertical, top: layout.freeTop } : STAGE_INSET.vertical;
+  return under ? { ...base, bottom: SCOPE_BOTTOM } : base;
 }
 // The frame that shows `box` (drawing units), whole, in the part of the screen an inset leaves
 // free, centred there. The frame has the screen's proportions, so the drawing is not letterboxed.

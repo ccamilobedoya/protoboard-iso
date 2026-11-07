@@ -33,6 +33,7 @@ complete and check the fields with it). Example timelines: `examples/tours/`.
 | `format` | `vertical` (1080 × 1920), `horizontal` (1920 × 1080) | `vertical` | the video's size |
 | `theme` | `stage`, `notebook`, `light`, `dark` | `stage` | the page's look in a recording |
 | `pace` | 0.000001…1000 | the page's own | seconds of simulated time per second of video in a recording: a circuit whose cycles are too slow (or too fast) for the shot runs faster (or slower) on screen. The oscilloscope's trace, the `compare` figures, the payoff (`render-frames.js`, `timeline.json`) and `--parts --pace` follow it; the page out of a recording keeps its own |
+| `captionLines` | `2`, `3` | `2` | the lines a caption may take. With 3, a portrait recording lowers the oscilloscope's box and the circuit to keep air around them, and the told part may end at 70 % of the height, closer to what the platforms draw over the video (`CAPTION_LAYOUTS` in `moves.js`: another row there is another allowed value) |
 | `steps` | a list of steps, *required* | | what happens |
 
 A circuit plays its timeline in its page when `page.tour` names the file (read beside the circuit,

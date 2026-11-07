@@ -29,7 +29,7 @@
 // by CSS over their presentation attributes: the static SVG keeps its own colours.
 // Touch: hover only with a fine pointer, feedback on :active, 40 px targets on a coarse pointer.
 
-import { MOVES, SCOPE_BOX, EMPHASIS } from './client/moves.js';
+import { CAPTION_LAYOUTS, MOVES, SCOPE_BOX, EMPHASIS } from './client/moves.js';
 
 // The oscilloscope's box of a portrait recording (moves.js, SCOPE_BOX), in % of the height.
 const boxCss = ({ top, bottom }) => `top: ${Math.round(top * 1000) / 10}%; height: ${Math.round((bottom - top) * 1000) / 10}%;`;
@@ -633,7 +633,7 @@ body.director .tour-caption .value .label { font-size: var(--cap-label); color: 
    scope.js): no title, no note, the value inside the trace, two axis labels. */
 .scope-inset { display: none; }
 body.director .scope-inset { display: block; position: absolute; z-index: 2; left: var(--cap-pad); right: var(--cap-pad); ${boxCss(SCOPE_BOX.bottom)} box-sizing: border-box; padding: var(--cap-gap); background: var(--veil); border-radius: var(--cap-gap); }
-@media (orientation: portrait) { body.director .scope-inset.top { ${boxCss(SCOPE_BOX.top)} } }
+@media (orientation: portrait) { body.director .scope-inset.top { ${boxCss(SCOPE_BOX.top)} } ${Object.entries(CAPTION_LAYOUTS).map(([n, l]) => `body.director[data-caption-lines="${n}"] .scope-inset.top { ${boxCss(l.scope)} }`).join(' ')} }
 body.director .scope-inset.compact { padding: calc(var(--cap-gap) / 2); }
 body.director .scope-inset.compact h3 { display: none; }
 body.director .scope-inset.compact .scope-trace { stroke-width: 2.4; }

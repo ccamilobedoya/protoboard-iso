@@ -11,6 +11,7 @@ export default {
     { id: 'D1', type: 'led', color: 'red' },
   ],
   nets: [['T+', 'S1.1', 'R2.1'], ['S1.3', 'R1.1'], ['R1.2', 'Q1.B'], ['R2.2', 'D1.anode'], ['D1.cathode', 'Q1.C'], ['Q1.E', 'T-']],
+  clearance: 3, // room between the parts, so the wires do not run into each other on screen
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
   values: {
     R1: { field: 'value', role: { en: 'base resistor', es: 'resistencia de base' } },

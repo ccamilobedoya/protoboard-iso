@@ -9,8 +9,16 @@ detail.
 
 ## [Unreleased]
 
+### Added
+
+- A timeline's `captionLines`: captions of 3 lines, with the oscilloscope and the circuit lower.
+
 ### Changed
 
+- A part's pin rows no longer jump while the camera moves: an arrangement holds while its pins stay
+  lit, chosen with room for the push. The rows are in their own module, `page/client/pinout-rows.js`.
+- The `mosfet-switch` and `npn-switch` recipes lay out with a clearance of 3, so their wires do not
+  run into each other on screen.
 - The READMEs' images drawn again with 0.9.1 (the shade of an LED that is off), the count of recipes
   (32) and the parts showcase's description with the new parts.
 

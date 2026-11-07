@@ -41,7 +41,8 @@
 // Didactic, not to scale.
 
 import { DOT_COLOR, HEAT_COLOR, VOLTAGE_COLORS, heatOpacity, mixLight } from '../../sim/look.js';
-import { PINOUT, fixed, make, screenOf, layerOf, tipsOf } from './pinout.js';
+import { fixed, make, screenOf, layerOf, tipsOf } from './pinout.js';
+import { PINOUT } from './pinout-rows.js';
 import { partsRect } from './view.js';
 
 // Sizes in px at the format's width; times in ms.

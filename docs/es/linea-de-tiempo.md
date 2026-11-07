@@ -34,6 +34,7 @@ completan y revisan los campos con él). Líneas de tiempo de ejemplo: `examples
 | `format` | `vertical` (1080 × 1920), `horizontal` (1920 × 1080) | `vertical` | el tamaño del video |
 | `theme` | `stage`, `notebook`, `light`, `dark` | `stage` | el aspecto de la página en una grabación |
 | `pace` | 0.000001…1000 | el de la página | segundos de tiempo simulado por segundo de video en una grabación: un circuito con ciclos demasiado lentos (o rápidos) para el plano corre más rápido (o más lento) en pantalla. La traza del osciloscopio, las cifras de `compare`, el desenlace (`render-frames.js`, `timeline.json`) y `--parts --pace` lo siguen; la página fuera de una grabación conserva el suyo |
+| `captionLines` | `2`, `3` | `2` | las líneas que puede ocupar un subtítulo. Con 3, una grabación vertical baja el recuadro del osciloscopio y el circuito para que respiren, y la pieza contada puede terminar en el 70 % de la altura, más cerca de lo que las plataformas dibujan sobre el video (`CAPTION_LAYOUTS` en `moves.js`: otra fila allí es otro valor permitido) |
 | `steps` | una lista de pasos, *obligatorio* | | lo que pasa |
 
 Un circuito reproduce su línea de tiempo en su página cuando `page.tour` nombra el archivo (leído

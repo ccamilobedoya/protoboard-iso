@@ -12,6 +12,7 @@ export default {
     { id: 'D1', type: 'led', color: 'red' },
   ],
   nets: [['T+', 'S1.1', 'R3.1'], ['S1.3', 'R1.1'], ['R1.2', 'Q1.G', 'R2.1'], ['R2.2', 'T-'], ['R3.2', 'D1.anode'], ['D1.cathode', 'Q1.D'], ['Q1.S', 'T-']],
+  clearance: 3, // room between the parts, so the wires do not run into each other on screen
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
   values: {
     R1: { field: 'value', role: { en: 'gate resistor', es: 'resistencia de compuerta' } },

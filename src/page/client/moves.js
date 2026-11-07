@@ -83,6 +83,11 @@ export const INSERT = { mm: 12, ms: 700, ramp: 600 };
 // between the caption and the circuit: the circuit keeps the whole band from 40 to 75 %. In
 // landscape the box lies under the caption, in the left half, either way.
 export const SCOPE_BOX = { bottom: { top: 0.56, bottom: 0.75 }, top: { top: 0.28, bottom: 0.4 } };
+// A timeline's `captionLines`: what a portrait recording changes so that a caption of more lines keeps
+// air around it. The oscilloscope's box on top (`scope`), where the circuit's band starts (`freeTop`,
+// a share of the height) and where the told part may end (`toldBottom`: lower than the usual 65 %, so
+// closer to what the platforms draw over the video). Another row here is another allowed value.
+export const CAPTION_LAYOUTS = { 3: { scope: { top: 0.32, bottom: 0.44 }, freeTop: 0.47, toldBottom: 0.7 } };
 export const RAISE = { mm: 3, max: 12 };
 // A nudge: a part the voice names as a cause, while the subject is another, rises a little and comes
 // back, to be noticed without taking the focus or the label (a timeline's `nudge`; the video's

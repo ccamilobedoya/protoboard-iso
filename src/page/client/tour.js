@@ -986,6 +986,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     playing = true;
     page.direct(true);
     document.body.classList.add('touring');
+    if (page.data?.tour?.captionLines) document.body.dataset.captionLines = page.data.tour.captionLines;
     select(page, null);
     log.length = 0;
     events.length = 0;

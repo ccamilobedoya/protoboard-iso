@@ -16,11 +16,9 @@
 // the part, lit or not, so they do not move as more pins light.
 
 import { partsRect } from './view.js';
+import { CHAR, PINOUT, layoutRows } from './pinout-rows.js';
 
 const NS = 'http://www.w3.org/2000/svg';
-// Sizes in px at the format's width (1080 portrait, 1920 landscape), never under `min` on a small screen.
-export const PINOUT = { row: 28, rowMany: 24, rowH: 52, rowHMany: 46, gap: 60, quiet: 24, dot: 9, line: 2, apart: 10, pad: 14, shrink: 0.65, min: 11 };
-export const CHAR = 0.62; // a monospaced letter's width, in em (0.6 and a little room)
 const FREE = { top: 0.1, right: 0.06, bottom: 0.1, left: 0.06 }; // in the page, outside a recording
 
 export const fixed = (v) => String(Math.round(v * 100) / 100);
@@ -30,8 +28,6 @@ export function make(parent, tag, attrs) {
   parent.appendChild(e);
   return e;
 }
-// A row's text cut to `chars` letters, with "…" when it was longer.
-const cut = (text, chars) => (text.length <= chars ? text : `${text.slice(0, Math.max(1, chars - 1))}…`);
 // A line broken at its spaces into lines of at most `chars` letters (a word longer than that stays whole).
 function wrap(text, chars) {
   const out = [];
@@ -40,83 +36,6 @@ function wrap(text, chars) {
     else out.push(word);
   }
   return out;
-}
-
-// The rows of one part: for each pin, its tip on screen, the x of its leader and its row (column,
-// y, text), and the font size they share. `tips`: [{ x, y }] px; `free`: { x0, x1, y1 } px.
-// Two columns, each taking the pins on its side of the part's middle; when a row would still be cut
-// there, all the rows in one column on the side with more room (the pins nearest it at the top: no
-// leader crosses either), if that keeps every row whole.
-// `whole`: each row hugs its leader (a part up close in the page, where the drawing can be dragged and
-// the rows go with it), and still fits the screen: the rows shrink together to `shrink` of their size,
-// and a row still too long ends in "…" at the free area's edge.
-// `floor`: the bottom of the part's body on screen, px, when it is known. A part lying on the table
-// beside the board (a switch, a battery) has its body well under the holes its pins go into: its rows go
-// under the body, not across it. A part on the board ends at its pins, and its rows stay where they were.
-// `char`: a letter's width in em (CHAR, unless the page measured its font's).
-export function layoutRows(pins, tips, free, u, whole = false, floor = null, char = CHAR) {
-  const tipsLowest = Math.max(...tips.map((p) => p.y));
-  const lowest = floor != null && floor > tipsLowest + PINOUT.gap * u ? floor : tipsLowest;
-  const two = arrange(pins, tips, free, u, 'two', whole, lowest, char);
-  if (!two.cut) return two;
-  const mid = tips.reduce((s, p) => s + p.x, 0) / tips.length;
-  const roomier = free.x1 - mid > mid - free.x0 ? 'right' : 'left';
-  let one = arrange(pins, tips, free, u, roomier, whole, lowest, char);
-  // Up close on a phone the two sides are often about as roomy: the other one may cut less.
-  if (whole && one.cut) {
-    const other = arrange(pins, tips, free, u, roomier === 'right' ? 'left' : 'right', whole, lowest, char);
-    if (other.cut < one.cut) one = other;
-  }
-  return one.cut < two.cut ? one : two;
-}
-
-function arrange(pins, tips, free, u, split, whole, lowest, char) {
-  const many = pins.length > 4;
-  const mid = tips.reduce((s, p) => s + p.x, 0) / tips.length;
-  const order = tips.map((p, i) => ({ i, x: p.x, y: p.y }));
-  const onLeft = (p) => (split === 'two' ? p.x <= mid : split === 'left');
-  const left = order.filter(onLeft).sort((a, b) => a.x - b.x || a.y - b.y);
-  const right = order.filter((p) => !onLeft(p)).sort((a, b) => b.x - a.x || a.y - b.y);
-  const rowH = (many ? PINOUT.rowHMany : PINOUT.rowH) * u;
-  const n = Math.max(left.length, right.length);
-  // Under the part, above the quiet lines kept at the bottom of the free area.
-  const reserve = 2 * PINOUT.quiet * 1.4 * u + PINOUT.pad * u;
-  const top = Math.min(lowest + PINOUT.gap * u, free.y1 - reserve - rowH * (n - 1));
-  const apart = PINOUT.apart * u;
-  const rows = [];
-  for (const [side, list] of [['left', left], ['right', right]]) {
-    // Leaders a few px apart, farther from the column a row lower. Walked from the lowest row up, so
-    // of two pins at one x the one with the higher tip moves (a chip's pin behind the body): the
-    // other's leader then starts clear of it, where moving that one would start it on the first's.
-    let below = null;
-    for (let k = list.length - 1; k >= 0; k--) {
-      const p = list[k];
-      let x = p.x;
-      if (below != null) x = side === 'left' ? Math.min(x, below - apart) : Math.max(x, below + apart);
-      below = x;
-      rows[p.i] = { side, tip: tips[p.i], x, y: top + rowH * k };
-    }
-  }
-  // The font: the format's size, smaller (down to `shrink` of it) when a row would reach its own leader.
-  const pad = PINOUT.pad * u;
-  const room = (r) => (r.side === 'left' ? r.x - pad - free.x0 : free.x1 - pad - r.x);
-  const base = (many ? PINOUT.rowMany : PINOUT.row) * u;
-  // A row set at the free area's edge runs from there to its leader; one that hugs its leader (`whole`)
-  // runs from it to the edge: the same room either way. Up close a phone's sizes keep their floor.
-  let size = whole ? Math.max(PINOUT.min, base) : base;
-  for (const [i, r] of rows.entries()) size = Math.min(size, Math.max(base * PINOUT.shrink, room(r) / (pins[i].text.length * char)));
-  size = Math.max(PINOUT.min, size);
-  let cutBy = 0;
-  for (const [i, r] of rows.entries()) {
-    r.text = cut(pins[i].text, Math.floor(room(r) / (size * char)));
-    cutBy += pins[i].text.length - r.text.length + (r.text.length < pins[i].text.length ? 1 : 0);
-    const width = r.text.length * size * char;
-    if (whole) {
-      r.end = r.side === 'left' ? r.x - pad - width : r.x + pad + width;
-      r.anchor = r.side === 'left' ? r.x - pad : r.x + pad;
-    } else r.end = r.side === 'left' ? free.x0 + width : free.x1 - width;
-  }
-  return { rows, size, cut: cutBy };
 }
 
 // The screen of the current view for a layer drawn in the drawing in px (this pinout, the bench):
@@ -188,6 +107,7 @@ export function setupPinout(page) {
   const lit = new Map(); // part → Map(index → { text, k })
   const marks = new Map(); // part → k
   const layers = new WeakMap(); // svg → its layer
+  const heldRows = new Map(); // part → the arrangement of its rows while its pins stay lit
   let drawn = '';
 
   function draw() {
@@ -201,6 +121,7 @@ export function setupPinout(page) {
     drawn = key;
     for (const s of page.svgs) layers.get(s)?.replaceChildren();
     page.rowsTop = null;
+    for (const id of heldRows.keys()) if (!lit.get(id)?.size) heldRows.delete(id);
     if (!ids.length || !screen) return;
     const under = layerOf(page, 'pinout', layers);
     const { k, at, u, free } = screen;
@@ -214,7 +135,12 @@ export function setupPinout(page) {
       // already does (a chip's number, a resistor's 1, a capacitor's +).
       const named = pinout.pins.length <= 4 ? page.symbolIds?.[id] : null;
       const withId = (p, text) => (named?.[p.name] && !text.startsWith(`${named[p.name]} · `) ? `${named[p.name]} · ${text}` : text);
-      const { rows, size } = layoutRows(pinout.pins.map((p, i) => ({ ...p, text: withId(p, own.get(i)?.text ?? p.text) })), tips, free, u, Boolean(page.focusing), bodyBottom(page, id, screen), char);
+      const rowPins = pinout.pins.map((p, i) => ({ ...p, text: withId(p, own.get(i)?.text ?? p.text) }));
+      const holdKey = JSON.stringify([page.state.view, screen.rect.width, screen.rect.height, rowPins.map((p) => p.text)]);
+      const before = heldRows.get(id)?.key === holdKey ? heldRows.get(id).held : null;
+      const laid = layoutRows(rowPins, tips, free, u, Boolean(page.focusing), bodyBottom(page, id, screen), char, before);
+      if (laid.held && laid.held !== before) heldRows.set(id, { key: holdKey, held: laid.held });
+      const { rows, size } = laid;
       const stroke = PINOUT.line * Math.max(u, 0.5) * k;
       // Where the rows begin on screen: the figure beside the part stays above them (figure.js).
       if (lit.get(id)?.size) page.rowsTop = Math.min(page.rowsTop ?? Infinity, Math.round(Math.min(...rows.filter(Boolean).map((r) => r.y)) - size));

@@ -126,6 +126,7 @@ Lo habitual en un banco que el kit todavía no dibuja (2026-10-16):
 - ⬜ Más placas de desarrollo: Raspberry Pi Pico (RP2040) y ESP32-CAM con su programador MB
 - ⬜ Módulos de pantalla y de entrada: OLED de 0,96" (GME12864: VCC GND SCL SDA) y de 0,91" SSD1306 por I2C, módulo encoder rotatorio EC11, switches de teclado TTC MX (bloque de teclado)
 - ⬜ Módulos de sensores: el kit de 22 módulos (DHT11, BMP280, lluvia MH-RD, humedad de suelo, KY-018…), BME280, sensor de suelo capacitivo (TLC555), ultrasónico HC-SR04
+- ⬜ **Sensores reales en las recetas de comparador y seguidor.** `lm393-comparator`, `opamp-comparator` y `opamp-follower` usan un potenciómetro donde el circuito llevaría un sensor, así que un video sobre ellas tiene que decir que una pieza hace de otra. Un sensor de humedad de suelo para el detector con LM393 (necesita el módulo de arriba); una receta con la fotorresistencia para el comparador de luz (`ldr` ya existe, solo falta la receta); un sensor leído a través del seguidor (`thermistor`, `ldr` y `temperature-sensor` ya existen). Después se pueden hacer los videos de esos circuitos
 - ⬜ Actuadores: servos SG90 y MG90S (cable de 3 pines), driver de motores TB6612FNG, motorreductores DC, mini bomba sumergible
 - ⬜ Energía: panel solar de 6 V 2 W; portapilas de una 18650, LiPo 103450 con conector JST PH
 - ⬜ En la protoboard: disipador TO-220, conectores XH, zócalos DIP

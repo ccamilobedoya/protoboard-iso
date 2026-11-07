@@ -296,7 +296,7 @@ async function openBrowser() {
 }
 
 // One run: every frame, its hash, and (when `dir` is given) the PNG, the samples and the rules.
-async function record(browser, file, { format, fps, tail, theme, captions: shown = true, first = [] }, dir) {
+async function record(browser, file, { format, fps, tail, theme, captions: shown = true, first = [], captionLines = 2 }, dir) {
   const { width, height } = RULES[format];
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1, colorScheme: 'dark' });
   const frame = 1000 / fps;
@@ -327,7 +327,7 @@ async function record(browser, file, { format, fps, tail, theme, captions: shown
       if (!pending) return;
       const { m, before, box, ...at } = pending;
       const moving = (before != null && before !== box) || (next != null && next !== box);
-      const problems = [...frameProblems(format, m, { moving }), ...(at.frame === 0 ? firstFrameProblems(first, m) : [])];
+      const problems = [...frameProblems(format, m, { moving, captionLines }), ...(at.frame === 0 ? firstFrameProblems(first, m) : [])];
       checks.push({ ...at, told: m.told?.id ?? null, moving, leds: m.leds ?? {}, ...(m.contrast != null && { contrast: Number(m.contrast.toFixed(2)) }), problems });
       pending = null;
     };
@@ -460,7 +460,7 @@ async function main() {
       mkdirSync(join(dir, 'frames'), { recursive: true });
       const firstAt = Math.min(...tour.steps.map((x) => x.at));
       const options = { format, fps: args.fps, tail: args.tail, theme: args.theme, captions: args.captions, first: tour.steps.filter((x) => x.at === firstAt) };
-      const run = await record(browser, file, options, dir);
+      const run = await record(browser, file, { ...options, captionLines: tour.captionLines ?? 2 }, dir);
       const names = run.hashes.map((_, k) => `frames/${String(k).padStart(6, '0')}.png`);
       writeFileSync(join(dir, 'frames.sha256'), run.hashes.map((h, k) => `${h}  ${names[k]}\n`).join(''));
       const captions = intervals(run.captions, (c) => `${c.text}\u0000${c.line}`, (c, last) => ({ text: c.text, ...(c.line && { line: c.line }), ...(c.em && { em: c.em }), lines: Math.max(c.lines ?? 0, last.lines ?? 0) }));
