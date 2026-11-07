@@ -56,7 +56,7 @@ const PX = 1; // a font size, rounded by the browser
 export function frameProblems(format, m, { moving = false, captionLines = 2 } = {}) {
   const base = RULES[format];
   // Three lines: a lower oscilloscope and circuit (moves.js, THREE_LINES), in a portrait recording.
-  const r = captionLines === 3 && format === 'vertical' ? { ...base, lines: 3, scope: { ...SCOPE_BOX.topThree }, free: { ...base.free, top: THREE_LINES.freeTop } } : base;
+  const r = captionLines === 3 && format === 'vertical' ? { ...base, lines: 3, scope: { ...SCOPE_BOX.topThree }, free: { ...base.free, top: THREE_LINES.freeTop }, told: { bottom: THREE_LINES.toldBottom } } : base;
   const out = [];
   const within = (v, [lo, hi]) => v >= lo - 1e-6 && v <= hi + 1e-6;
   if (m.caption) for (const [side, range] of Object.entries(r.caption)) if (!within(m.caption[side], range)) out.push(`caption ${side} at ${pct(m.caption[side])}, not within ${pct(range[0])}…${pct(range[1])}`);

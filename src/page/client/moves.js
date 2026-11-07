@@ -85,7 +85,9 @@ export const INSERT = { mm: 12, ms: 700, ramp: 600 };
 export const SCOPE_BOX = { bottom: { top: 0.56, bottom: 0.75 }, top: { top: 0.28, bottom: 0.4 }, topThree: { top: 0.32, bottom: 0.44 } };
 // A timeline's `captionLines` of 3 lowers the oscilloscope's box and the circuit, so a caption of three
 // lines and a data row keeps air around it.
-export const THREE_LINES = { freeTop: 0.47 };
+// The told part may end lower than the usual 65 %: the owner chose the air above it, and accepts
+// that a platform's text may come closer.
+export const THREE_LINES = { freeTop: 0.47, toldBottom: 0.7 };
 export const RAISE = { mm: 3, max: 12 };
 // A nudge: a part the voice names as a cause, while the subject is another, rises a little and comes
 // back, to be noticed without taking the focus or the label (a timeline's `nudge`; the video's
