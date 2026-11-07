@@ -82,7 +82,10 @@ export const INSERT = { mm: 12, ms: 700, ramp: 600 };
 // from 28 % (2 % under a caption of two lines, which ends at about 26 %) to 40 %, in the empty band
 // between the caption and the circuit: the circuit keeps the whole band from 40 to 75 %. In
 // landscape the box lies under the caption, in the left half, either way.
-export const SCOPE_BOX = { bottom: { top: 0.56, bottom: 0.75 }, top: { top: 0.28, bottom: 0.4 } };
+export const SCOPE_BOX = { bottom: { top: 0.56, bottom: 0.75 }, top: { top: 0.28, bottom: 0.4 }, topThree: { top: 0.32, bottom: 0.44 } };
+// A timeline's `captionLines` of 3 lowers the oscilloscope's box and the circuit, so a caption of three
+// lines and a data row keeps air around it.
+export const THREE_LINES = { freeTop: 0.47 };
 export const RAISE = { mm: 3, max: 12 };
 // A nudge: a part the voice names as a cause, while the subject is another, rises a little and comes
 // back, to be noticed without taking the focus or the label (a timeline's `nudge`; the video's

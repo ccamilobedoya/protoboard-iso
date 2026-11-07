@@ -563,7 +563,7 @@ body.director .tour-caption .value .label { font-size: var(--cap-label); color: 
    scope.js): no title, no note, the value inside the trace, two axis labels. */
 .scope-inset { display: none; }
 body.director .scope-inset { display: block; position: absolute; z-index: 2; left: var(--cap-pad); right: var(--cap-pad); ${boxCss(SCOPE_BOX.bottom)} box-sizing: border-box; padding: var(--cap-gap); background: var(--veil); border-radius: var(--cap-gap); }
-@media (orientation: portrait) { body.director .scope-inset.top { ${boxCss(SCOPE_BOX.top)} } }
+@media (orientation: portrait) { body.director .scope-inset.top { ${boxCss(SCOPE_BOX.top)} } body.director.caption-three .scope-inset.top { ${boxCss(SCOPE_BOX.topThree)} } }
 body.director .scope-inset.compact { padding: calc(var(--cap-gap) / 2); }
 body.director .scope-inset.compact h3 { display: none; }
 body.director .scope-inset.compact .scope-trace { stroke-width: 2.4; }

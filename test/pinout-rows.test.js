@@ -47,3 +47,10 @@ test('a move too large for the held rows chooses again: nothing runs over a lead
   const r = layoutRows(PINS, moved, FREE, 1, false, first.held);
   assert.notEqual(r.held, first.held);
 });
+
+test('a timeline may ask for three caption lines: a lower circuit and oscilloscope, and the frame rule follows', async () => {
+  const { frameProblems } = await import('../scripts/stage-shots.js');
+  const m = { captionLines: 3, chrome: [], sizes: {} };
+  assert.deepEqual(frameProblems('vertical', m, { captionLines: 3 }), []);
+  assert.match(frameProblems('vertical', m).join(' '), /takes 3 lines/);
+});

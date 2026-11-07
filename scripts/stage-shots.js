@@ -26,7 +26,7 @@ import { basename, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolveTarget, loadCircuit } from '../src/node/workspace.js';
 import { renderPage } from '../src/page.js';
-import { SCOPE_BOX } from '../src/page/client/moves.js';
+import { SCOPE_BOX, THREE_LINES } from '../src/page/client/moves.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const FRAME = 1000 / 30;
@@ -53,8 +53,10 @@ const PX = 1; // a font size, rounded by the browser
 // What is wrong with a frame's measurements, as sentences (none: the frame keeps every rule).
 // `moving`: the camera is between two frames; the told part and its label may cross the bands
 // then (the rules are for a frame at rest), the caption and the labels may not.
-export function frameProblems(format, m, { moving = false } = {}) {
-  const r = RULES[format];
+export function frameProblems(format, m, { moving = false, captionLines = 2 } = {}) {
+  const base = RULES[format];
+  // Three lines: a lower oscilloscope and circuit (moves.js, THREE_LINES), in a portrait recording.
+  const r = captionLines === 3 && format === 'vertical' ? { ...base, lines: 3, scope: { ...SCOPE_BOX.topThree }, free: { ...base.free, top: THREE_LINES.freeTop } } : base;
   const out = [];
   const within = (v, [lo, hi]) => v >= lo - 1e-6 && v <= hi + 1e-6;
   if (m.caption) for (const [side, range] of Object.entries(r.caption)) if (!within(m.caption[side], range)) out.push(`caption ${side} at ${pct(m.caption[side])}, not within ${pct(range[0])}…${pct(range[1])}`);

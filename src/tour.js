@@ -117,8 +117,9 @@ function readTour(circuit) {
 function shapeIssues(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) || !Array.isArray(raw.steps)) return [warn('TOUR_SHAPE', { where: 'steps' })];
   const out = [];
-  for (const key of Object.keys(raw)) if (!['circuit', 'format', 'theme', 'pace', 'steps', '$schema'].includes(key)) out.push(warn('TOUR_FIELD', { step: 0, field: key }));
+  for (const key of Object.keys(raw)) if (!['circuit', 'format', 'theme', 'pace', 'captionLines', 'steps', '$schema'].includes(key)) out.push(warn('TOUR_FIELD', { step: 0, field: key }));
   if (raw.pace != null && !PACE(raw.pace)) out.push(warn('TOUR_FIELD', { step: 0, field: 'pace' }));
+  if (raw.captionLines != null && ![2, 3].includes(raw.captionLines)) out.push(warn('TOUR_FIELD', { step: 0, field: 'captionLines' }));
   if (raw.format != null && !FORMATS.includes(raw.format)) out.push(warn('TOUR_FIELD', { step: 0, field: 'format' }));
   if (raw.theme != null && !THEMES.includes(raw.theme)) out.push(warn('TOUR_FIELD', { step: 0, field: 'theme' }));
   if (raw.steps.length > LIMITS.tourSteps) return [...out, warn('TOUR_TOO_MANY_STEPS', { size: raw.steps.length, limit: LIMITS.tourSteps })];
@@ -270,5 +271,5 @@ export function loadTour(circuit, lang = 'en') {
       if (s.do === 'pin' && s.pin != null) Object.assign(out, pinOf(s.pin) ?? { part: null, index: -1 });
       return out;
     });
-  return { tour: { format: raw.format ?? 'vertical', theme: raw.theme ?? 'stage', ...(raw.pace != null && { pace: raw.pace }), steps }, issues: [...issues, ...meaning] };
+  return { tour: { format: raw.format ?? 'vertical', theme: raw.theme ?? 'stage', ...(raw.pace != null && { pace: raw.pace }), ...(raw.captionLines != null && { captionLines: raw.captionLines }), steps }, issues: [...issues, ...meaning] };
 }

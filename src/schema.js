@@ -259,6 +259,7 @@ function timelineSchema(localized) {
       circuit: { type: 'string', description: 'The circuit (or recipe) it tells' },
       format: { enum: FORMATS, description: 'The video: vertical 1080 × 1920 (default) or horizontal 1920 × 1080' },
       theme: { enum: THEMES, description: "The page's theme in a recording: stage (default, the notebook at night), notebook (by day), light or dark (the bench). A link's ?theme= wins over this" },
+      captionLines: { enum: [2, 3], description: 'The lines a caption may take (default 2). With 3, a portrait recording lowers the oscilloscope and the circuit to keep air around it' },
       pace: { type: 'number', minimum: 1e-6, maximum: 1000, description: "Seconds of simulated time per second of video in this recording (default: the page's own, which render-frames.js --parts prints): a slower circuit shown faster so its cycles fit the shot; the oscilloscope, the compare figures and the payoff follow it" },
       steps: {
         type: 'array',
