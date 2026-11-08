@@ -563,7 +563,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     // corner; on: false takes it away. In the page as in a recording.
     gauge: (s) => {
       temporary = null;
-      const on = s.on ? page.insetGauge?.(s.environment, { corner: s.corner ?? 'tr' }) : page.insetGauge?.(null);
+      const on = s.on ? page.insetGauge?.(s.environment, { corner: s.corner ?? 'tr', min: s.min, max: s.max }) : page.insetGauge?.(null);
       event('gauge', { on: Boolean(s.on && on), environment: s.environment ?? null });
     },
     // The camera (M1, M2, M14): to a target (board, parts, here, a part or a list of parts), with

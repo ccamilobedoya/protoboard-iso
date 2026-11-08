@@ -70,7 +70,7 @@ milliampere from `SIG`).
   registered at all. A toggle flips when the touch is registered, not when it is released.
 - `SIG` over 10 mA is `SIM_OVER_CURRENT`; between the 4 mA sourced or 8 mA sunk its levels are
   guaranteed at and 10 mA, `SIM_TOUCH_OUTPUT_SPEC` (a note). Over 5.5 V is `SIM_IC_SUPPLY`, under 2 V
-  `SIM_MODULE_LOW_SUPPLY` (the code the PIR uses too). *To confirm:* the 10 mA of the stress and the
+  `SIM_MODULE_LOW_SUPPLY` (the code the PIR uses too). *Confirmed 2026-11-09:* the 10 mA of the stress and the
   4 mA / 8 mA of the note are the kit's choice from the datasheet's test points, not limits the sheet
   gives.
 

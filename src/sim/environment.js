@@ -7,11 +7,13 @@
 //   programValue(program, t)       a program's value at t seconds (pure)
 //   createEnvironment(spec, extra) → { at(t), value(f), set(f, v), resume(f), fields(), … }
 //   environmentControls(env)       its controls, shaped like ../controls.js's (id 'environment')
+//   rangeProblem(field, range)      why a slider / indicator range is not usable (null when it is)
 //   environmentIssues(circuit)     what `check` says about the circuit's `environment`
 //   envText(field, value, decimal) a value as the page writes it ("300 lx", "25 °C"); null for a switch
 //
-// A field of the circuit (`environment` at the top level) is a number, or { value?, program? }: a
-// program changes it with time (toggle, cycle, ramp, keyframes), evaluated each time step as a
+// A field of the circuit (`environment` at the top level) is a number, or { value?, program?, range? }:
+// `range` [min, max] is the span the slider and the indicator show (inside the field's limit; the
+// registry's slider range when it is left out). A program changes it with time (toggle, cycle, ramp, keyframes), evaluated each time step as a
 // signal generator's wave is (engine.js). A learner's set pauses it at that value; resume starts it
 // again from its own beginning at that moment.
 
@@ -42,6 +44,17 @@ export const CYCLE_SHAPES = ['sine', 'square', 'triangle'];
 export const MAX_POINTS = 1000; // keyframes in one program (src/limits.js, envPoints)
 
 const num = (v) => typeof v === 'number' && Number.isFinite(v);
+// Why a range [min, max] cannot be the span of a field's slider and indicator, or null: not two
+// numbers going up, a switch (nothing to span), outside the field's limit, or at 0 or below on a log
+// scale.
+export function rangeProblem(field, range) {
+  const f = FIELDS[field];
+  if (!f || f.kind === 'switch') return 'switch';
+  if (!Array.isArray(range) || range.length !== 2 || !range.every(num) || !(range[0] < range[1])) return 'order';
+  if (range[0] < f.limit[0] || range[1] > f.limit[1]) return 'limit';
+  if (f.scale === 'log' && !(range[0] > 0)) return 'log';
+  return null;
+}
 const clamp = (field, v) => {
   const [lo, hi] = FIELDS[field].limit;
   return Math.min(hi, Math.max(lo, v));
@@ -128,7 +141,7 @@ function programProblems(field, p) {
 }
 
 // The circuit's `environment`, checked: unknown fields, values out of their limit, programs that
-// cannot run. Each issue is an error for `check`; the simulation leaves such a field out (or clamps
+// cannot run, ranges the slider cannot span. Each issue is an error for `check`; the simulation leaves such a field out (or clamps
 // its value) and runs.
 export function environmentIssues(circuit) {
   const spec = circuit?.environment;
@@ -144,7 +157,7 @@ export function environmentIssues(circuit) {
     const [lo, hi] = FIELDS[field].limit;
     const scalar = num(entry) || typeof entry === 'boolean';
     const object = Boolean(entry) && typeof entry === 'object' && !Array.isArray(entry);
-    if (!scalar && !(object && Object.keys(entry).every((k) => k === 'value' || k === 'program') && (entry.value == null || num(entry.value) || typeof entry.value === 'boolean'))) {
+    if (!scalar && !(object && Object.keys(entry).every((k) => ['value', 'program', 'range'].includes(k)) && (entry.value == null || num(entry.value) || typeof entry.value === 'boolean'))) {
       out.push(error('ENV_SHAPE', { field }));
       continue;
     }
@@ -152,13 +165,14 @@ export function environmentIssues(circuit) {
     const v = asNumber(given);
     if (given != null && (v < lo || v > hi)) out.push(error('ENV_OUT_OF_RANGE', { field, value: String(given), lo: String(lo), hi: String(hi) }));
     if (object && entry.program != null) for (const [code, params] of programProblems(field, entry.program)) out.push(error(code, params));
+    if (object && entry.range != null && rangeProblem(field, entry.range)) out.push(error('ENV_BAD_RANGE', { field, range: JSON.stringify(entry.range).slice(0, 40), lo: String(lo), hi: String(hi) }));
   }
   return out;
 }
 
 // The spec as the simulation takes it (compile.js): known fields only, each { value } or
-// { value, program } with a program that can run (then `value` is the program's at t = 0), values
-// inside their limits.
+// { value, program?, range? } with a program that can run (then `value` is the program's at t = 0),
+// values inside their limits, a range the slider can span.
 export function cleanEnvironment(spec) {
   const out = {};
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) return out;
@@ -170,7 +184,8 @@ export function cleanEnvironment(spec) {
     // With a program, its value at t = 0 (a `value` beside it is not used); else the value given.
     const start = program ? programValue(program, 0) : given != null ? asNumber(given) : NaN;
     const value = Number.isFinite(start) ? clamp(field, start) : FIELDS[field].default;
-    out[field] = program ? { value, program } : { value };
+    const range = object && entry.range != null && !rangeProblem(field, entry.range) ? [...entry.range] : null;
+    out[field] = { value, ...(program && { program }), ...(range && { range }) };
   }
   return out;
 }
@@ -180,11 +195,11 @@ export function cleanEnvironment(spec) {
 // naming them). Programs run on the time given to at(t).
 export function createEnvironment(spec = {}, extra = []) {
   const clean = cleanEnvironment(spec);
-  const state = new Map(); // field → { value, program, paused, origin }
+  const state = new Map(); // field → { value, program, range, paused, origin }
   const add = (field) => {
     if (state.has(field) || !Object.hasOwn(FIELDS, field)) return;
     const c = clean[field];
-    state.set(field, { value: c?.value ?? FIELDS[field].default, program: c?.program ?? null, paused: false, origin: 0 });
+    state.set(field, { value: c?.value ?? FIELDS[field].default, program: c?.program ?? null, range: c?.range ?? null, paused: false, origin: 0 });
   };
   for (const field of Object.keys(clean)) add(field);
   for (const field of extra) add(field);
@@ -233,6 +248,8 @@ export function createEnvironment(spec = {}, extra = []) {
     },
     fields: () => [...state.keys()],
     programmed: (field) => Boolean(state.get(field)?.program),
+    // The span the slider and the indicator show: the circuit's range for the field, else the registry's.
+    range: (field) => state.get(field)?.range ?? (FIELDS[field] ? [FIELDS[field].min, FIELDS[field].max] : null),
     paused: (field) => Boolean(state.get(field)?.paused),
     // The time each running program takes (s), for the page's pace (sim/pace.js).
     spans: () => [...state.values()].filter(running).map((s) => programSpan(s.program)).filter((x) => x > 0),
@@ -241,14 +258,16 @@ export function createEnvironment(spec = {}, extra = []) {
 }
 
 // The environment's controls, as a device's (../controls.js): id 'environment', `field` the field's
-// name; a switch is a toggle. `programmed` and `paused` let the page offer Pause and Resume.
+// name; `min` and `max` the circuit's range for it (else the registry's), `limit` always the
+// registry's; a switch is a toggle. `programmed` and `paused` let the page offer Pause and Resume.
 export function environmentControls(env) {
   if (!env) return [];
   return env.fields().map((field) => {
     const f = FIELDS[field];
     const value = env.value(field);
     const own = f.kind === 'switch' ? { scale: 'toggle', value: Boolean(value) } : { scale: f.scale, value, ...(f.step && { step: f.step }) };
-    return { id: 'environment', field, min: f.min, max: f.max, limit: f.limit, unit: f.unit, kind: f.kind, ...own, ...(env.programmed(field) && { programmed: true, paused: env.paused(field) }) };
+    const [min, max] = env.range(field);
+    return { id: 'environment', field, min, max, limit: f.limit, unit: f.unit, kind: f.kind, ...own, ...(env.programmed(field) && { programmed: true, paused: env.paused(field) }) };
   });
 }
 

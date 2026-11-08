@@ -1120,7 +1120,7 @@ export default {
   'page.tour.inside.motor.running': 'estable: E apenas bajo V',
   'check.ENV_UNKNOWN_FIELD': 'environment: «{field}» no es un campo del ambiente (campos: {fields}).',
   'check.ENV_OUT_OF_RANGE': 'environment: {field} {value} queda fuera de lo posible, {lo}…{hi}.',
-  'check.ENV_SHAPE': 'environment {field}: un número, o { value, program }.',
+  'check.ENV_SHAPE': 'environment {field}: un número, o { value, program, range }.',
   'check.ENV_BAD_PROGRAM': 'environment {field}: el programa no puede correr; necesita {what}.',
   'check.ENV_TOO_LARGE': 'environment {field}: {size} puntos, como máximo {limit}.',
   'check.TOUR_UNKNOWN_ENVIRONMENT': 'page.tour, paso {step}: el ambiente no tiene el campo «{field}» (campos: {options}); el paso no hace nada.',
@@ -1360,4 +1360,6 @@ export default {
   'describe.sensor-module.KY-024': 'KY-024 (campo magnético, con un interruptor Hall A3144): un polo sur cerca de su cara enciende el chip hacia 160 G y sigue encendido hasta que el campo baja de unos 105 G (histéresis). Su salida es AO, que salta entre unos 0,09 V y VCC; DO baja con el imán. El chip está especificado desde 4,5 V. Pines marcados DO, +, G, AO.',
   'describe.sensor-module.SW-420-M': 'SW-420 (vibración): un resorte en una cápsula pequeña toca una varilla en reposo, así que DO está en bajo; al sacudirlo, el contacto se abre y se cierra muchas veces por segundo y DO llega en ráfagas de pulsos, y luego vuelve a bajo. Un programa cuenta los pulsos o espera a que se calmen. Pines DO, GND, VCC.',
   'describe.sensor-module.FC-51': 'FC-51 (obstáculo): un LED infrarrojo transparente y un receptor oscuro lado a lado; un objeto al frente devuelve parte del haz, más cuanto más cerca, y OUT baja con su LED encendido. El trimmer fija la distancia, de unos 4 a 28 cm para el blanco. Pines OUT, GND, VCC.',
+  'check.ENV_BAD_RANGE': 'environment {field}: el rango {range} debe ir de menor a mayor y quedar dentro de {lo}…{hi} (mayor que 0 en escala logarítmica); un interruptor no tiene.',
+  'check.TOUR_GAUGE_RANGE': 'page.tour, paso {step}: el rango {min}…{max} del indicador de {field} debe ir de menor a mayor y quedar dentro de {lo}…{hi} (mayor que 0 en escala logarítmica); un interruptor no tiene.',
 };

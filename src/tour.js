@@ -22,6 +22,7 @@ import { buildCircuit } from './circuit/build.js';
 import { pinIndex } from './pinout.js';
 import { symbolOf, insideOf } from './parts/symbols.js';
 import { FLOW_STYLES } from './sim/paths.js';
+import { FIELDS as ENV_FIELDS, rangeProblem } from './sim/environment.js';
 
 export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'gauge', 'insert', 'raise', 'nudge', 'assemble', 'pulse', 'label', 'scene', 'land', 'pin', 'bench', 'symbol', 'inside', 'card', 'wait-until'];
 // The parts a pedestal can show (`scene` in mode part, a video about one part): a part of the
@@ -75,7 +76,7 @@ const FIELDS = {
   caption: { text: isText, line: isText, data: isText, em: isText, off: (v) => v === true, enter: SHOW, in: within(0, 3000), stagger: within(0, 1000), out: within(0, 2000) },
   value: { part: id, field: (v) => Object.hasOwn(READINGS, v), label: isText, count: within(0, 5000), enter: SHOW, in: within(0, 3000) },
   probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean', place: oneOf('bottom', 'top'), size: oneOf('full', 'compact'), compare: (v) => typeof v === 'boolean', change: oneOf('ratio', 'times'), say: isText, reading: (v) => typeof v === 'boolean', clock: (v) => typeof v === 'boolean' },
-  gauge: { environment: id, on: (v) => typeof v === 'boolean', corner: oneOf(...GAUGE_CORNERS) },
+  gauge: { environment: id, on: (v) => typeof v === 'boolean', corner: oneOf(...GAUGE_CORNERS), min: num, max: num },
   insert: { part: id, enter: ENTER, height: within(0, 40), dark: (v) => typeof v === 'boolean' },
   raise: { part: id, mm: within(0, RAISE.max) },
   nudge: { part: id, mm: within(NUDGE.min, NUDGE.max) },
@@ -213,6 +214,15 @@ function meaningIssues(circuit, steps) {
     // part of it follows.
     if ((s.do === 'set' || s.do === 'gauge') && s.environment != null && !controlsOf().some((c) => c.id === 'environment' && c.field === s.environment)) {
       out.push(warn('TOUR_UNKNOWN_ENVIRONMENT', { step, field: String(s.environment).slice(0, 40), options: controlsOf().filter((c) => c.id === 'environment').map((c) => c.field).join(', ') || '—' }));
+    }
+    // A gauge's range (min, max): the dial's span, inside the field's limit and going up (a switch has none).
+    if (s.do === 'gauge' && (s.min != null || s.max != null) && Object.hasOwn(ENV_FIELDS, s.environment) && (s.min == null || num(s.min)) && (s.max == null || num(s.max))) {
+      const have = (() => {
+        const c = controlsOf().find((x) => x.id === 'environment' && x.field === s.environment);
+        return c ? [c.min, c.max] : [ENV_FIELDS[s.environment].min, ENV_FIELDS[s.environment].max];
+      })();
+      const range = [s.min ?? have[0], s.max ?? have[1]];
+      if (rangeProblem(s.environment, range)) out.push(warn('TOUR_GAUGE_RANGE', { step, field: s.environment, min: String(range[0]), max: String(range[1]), lo: String(ENV_FIELDS[s.environment].limit[0]), hi: String(ENV_FIELDS[s.environment].limit[1]) }));
     }
     if (s.do === 'set' && ids.has(s.part) && !controlsOf().some((c) => c.id === s.part && c.field === s.field)) {
       out.push(warn('TOUR_UNKNOWN_CONTROL', { step, part: s.part, field: s.field, options: controlsOf().filter((c) => c.id === s.part).map((c) => c.field).join(', ') || '—' }));

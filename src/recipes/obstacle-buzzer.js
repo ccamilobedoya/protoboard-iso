@@ -12,7 +12,7 @@ export default {
   ],
   nets: [['T+', 'U1.VCC', 'R1.1'], ['R1.2', 'BZ1.1'], ['BZ1.2', 'U1.OUT'], ['U1.GND', 'T-']],
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
-  environment: { distance: 30, reflectance: 90 },
+  environment: { distance: { value: 30, range: [2, 40] }, reflectance: 90 },
   page: { controls: [{ environment: 'distance', min: 2, max: 40 }, { part: 'U1', field: 'threshold' }] },
   values: {
     U1: { field: 'threshold', min: 0.05, max: 0.95, role: { en: 'the trimmer (Vref as a share of VCC)', es: 'el trimmer (Vref como parte de VCC)' } },

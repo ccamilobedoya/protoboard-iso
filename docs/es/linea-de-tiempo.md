@@ -167,10 +167,14 @@ como está.
 | `environment` | un campo que tiene el ambiente del circuito, *obligatorio* | | si no, `TOUR_UNKNOWN_ENVIRONMENT` (`render-frames.js --parts` los lista) |
 | `on` | `true`, `false`, *obligatorio* | | `true` lo pone (en lugar de otro), `false` lo quita |
 | `corner` | `tl`, `tr`, `bl`, `br` | `tr` | la esquina del espacio que deja el subtítulo: en vertical desde el 29 % hacia abajo (arriba) o desde el 26 % hacia arriba (abajo); en horizontal, la mitad derecha |
+| `min`, `max` | números, `min` < `max` | el rango del circuito para el campo; si no, el del deslizador | los extremos del dial desde este paso (un campo logarítmico necesita `min` mayor que 0); `TOUR_GAUGE_RANGE` si el rango no vale, queda fuera del límite del campo o se da a un interruptor |
 
 El indicador en un recuadro propio, como `probe` muestra el osciloscopio: un sol para la luz, un
 termómetro, una lámpara para un interruptor y un medidor de aguja para lo demás, con el nombre del
-campo encima y el valor debajo. No se dibuja nada en la protoboard: la luz está «encendida a un
+campo encima y el valor debajo. Elige `min` y `max` para que el cambio del video se vea: de 30 a
+5 cm en un dial de 2 a 400 cm la aguja casi no se mueve, en uno de 2 a 40 cm cruza el dial. Un `set`
+a un valor fuera del rango sigue permitido (el rango es solo cómo se muestra): la aguja queda en el
+extremo. No se dibuja nada en la protoboard: la luz está «encendida a un
 nivel» y todos los sensores de ese campo la reciben. En la página se ve sobre el dibujo mientras
 corre el recorrido.
 

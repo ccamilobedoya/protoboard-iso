@@ -258,6 +258,11 @@ A sensor's circuit is told by changing the world it reads, not the part: the cir
 - `{ "do": "gauge", "environment": "temperature", "on": true }` keeps the indicator in a corner for a
   whole passage (a sun, a thermometer, a gauge), as `probe` keeps the oscilloscope; `on: false` takes
   it away. Nothing is drawn on the board.
+- Choose the indicator's range so the change is seen: `{ "do": "gauge", "environment": "distance",
+  "on": true, "min": 2, "max": 40 }` makes a hand moving from 30 to 5 cm cross the dial, which on the
+  field's default 2 to 400 cm would hardly move the needle (a light field on a log scale, 1 to 1000 lx;
+  a temperature, 20 to 70 °C). A circuit can declare the same range for its slider too
+  ([environment.md](environment.md)).
 - `render-frames.js --parts <circuit>` lists the fields with the parts that follow each, and
   `value` reads an output voltage with `field: "vout"` (an LM35's 10 mV per °C).
 - A program (`toggle`, `cycle`, `ramp`, `keyframes`) moves a field by itself with simulated time; a

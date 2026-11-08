@@ -71,8 +71,8 @@ cerca de un miliamperio de `SIG`).
   registra. Una alterna se invierte cuando el toque se registra, no cuando se suelta.
 - `SIG` por encima de 10 mA es `SIM_OVER_CURRENT`; entre los 4 mA entregados o 8 mA recibidos con que
   se garantizan sus niveles y los 10 mA, `SIM_TOUCH_OUTPUT_SPEC` (una nota). Más de 5,5 V es
-  `SIM_IC_SUPPLY`, menos de 2 V `SIM_MODULE_LOW_SUPPLY` (el código que usa también el PIR). *Por
-  confirmar:* los 10 mA del esfuerzo y los 4 mA / 8 mA de la nota son una decisión del kit a partir de
+  `SIM_IC_SUPPLY`, menos de 2 V `SIM_MODULE_LOW_SUPPLY` (el código que usa también el PIR). *Confirmado
+  2026-11-09:* los 10 mA del esfuerzo y los 4 mA / 8 mA de la nota son una decisión del kit a partir de
   los puntos de prueba de la hoja, no límites que la hoja dé.
 
 Sus controles: `touch` (un interruptor) y `toggleMode`.

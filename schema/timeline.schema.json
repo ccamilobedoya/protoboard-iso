@@ -416,6 +416,14 @@
                   "br"
                 ],
                 "description": "tl, tr (default), bl or br: the corner of the room the caption leaves (portrait: under the caption, or over the bottom band; landscape: the right half)"
+              },
+              "min": {
+                "type": "number",
+                "description": "The dial's lower end, in the field's unit (default: the circuit's range for the field, else the slider's): choose it so the change is seen. Inside the field's limit, below max, above 0 on a log scale"
+              },
+              "max": {
+                "type": "number",
+                "description": "The dial's upper end (see min)"
               }
             },
             "additionalProperties": false,

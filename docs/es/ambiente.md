@@ -62,8 +62,25 @@ superficie bajo un seguidor de línea o frente a un sensor de obstáculos) y `be
 }
 ```
 
-Cada campo es un número (un interruptor admite también `true` o `false`) o `{ value, program }`.
+Cada campo es un número (un interruptor admite también `true` o `false`) o `{ value, program, range }`.
 Con un programa, el valor en t = 0 es el del programa y un `value` a su lado no se usa.
+
+### El rango de un campo
+
+`range` es `[min, max]`, el tramo que muestran el deslizador y el indicador de ese campo en este
+circuito, para que la aguja cruce el dial con los valores que importan:
+
+```json
+{ "environment": { "distance": { "value": 30, "range": [2, 40] } } }
+```
+
+También sirve con un `program`. El rango debe ir de menor a mayor (`min` < `max`) y quedar dentro
+del límite del campo (un campo logarítmico como `light` necesita `min` mayor que 0); un interruptor
+no tiene. Sin él vale el rango del deslizador de la tabla de arriba. El límite no cambia:
+`engine.controls()` da el `min` y el `max` del campo desde el rango y el mismo `limit`, y un valor
+fuera del rango se admite (el deslizador y el dial se detienen en el extremo; el texto sigue diciendo
+el valor). `page.controls` y el `gauge` de una línea de tiempo pueden elegir otro rango para una
+fila del panel o para una grabación ([más abajo](#la-página)).
 
 Un circuito **sin** `environment` no tiene ambiente: cada sensor conserva el valor de su propia pieza
 (el valor por defecto de la pieza si no da ninguno), exactamente como antes de que existiera el
@@ -72,9 +89,11 @@ siente (el valor por defecto del campo si el circuito no lo nombra).
 
 `check` informa, como errores: `ENV_UNKNOWN_FIELD` (un campo que no está en la lista de arriba),
 `ENV_OUT_OF_RANGE` (un valor, o un valor de un programa, fuera del límite del campo), `ENV_SHAPE` (ni
-un número ni `{ value, program }`), `ENV_BAD_PROGRAM` (un programa que no puede correr, y qué
-necesita) y `ENV_TOO_LARGE` (más de 1000 puntos). La simulación deja ese campo por fuera, o recorta su
-valor, y corre.
+un número ni `{ value, program, range }`), `ENV_BAD_PROGRAM` (un programa que no puede correr, y qué
+necesita), `ENV_BAD_RANGE` (un rango que no va de menor a mayor, queda fuera del límite, tiene un
+`min` de 0 o negativo en escala logarítmica, o se da a un interruptor) y `ENV_TOO_LARGE` (más de 1000
+puntos). La simulación deja ese campo por fuera, recorta su valor, o toma el rango del deslizador, y
+corre.
 
 ### Programas
 
@@ -117,8 +136,8 @@ volver a él. Al recargar vuelve lo que dice el circuito.
 
 `engine.controls()` lista los campos del ambiente como controles con el id `'environment'` y
 `field` el nombre del campo, con la forma de los de un dispositivo (`min`, `max`, `limit`, `scale`,
-`unit`, `step`, `value`; un interruptor tiene la escala `toggle`; un campo con programa,
-`programmed` y `paused`). Además:
+`unit`, `step`, `value`; `min` y `max` son el rango del circuito para el campo si da uno; un
+interruptor tiene la escala `toggle`; un campo con programa, `programmed` y `paused`). Además:
 
 - `engine.set('environment', field, value)` lo cambia a mano (si tiene un programa, se **pausa** en
   ese valor) y resuelve de nuevo, como el control de una pieza;
@@ -139,6 +158,11 @@ quedan.
 { "page": { "controls": [{ "environment": "light" }, { "environment": "temperature", "min": 0, "max": 80, "label": { "en": "Room", "es": "Cuarto" } }] } }
 ```
 
+`min` y `max` aquí reemplazan el rango del circuito para esa fila (la misma validación que para una
+pieza: `PAGE_CONTROL_RANGE` si no va de menor a mayor o sale del límite; un `min` o un `max` solo se
+empareja con el otro extremo del circuito). El indicador de la fila lo sigue. Las filas llevan
+`data-min` y `data-max`.
+
 Van en una sección propia, *Ambiente*, encima de los demás controles, cada fila con su indicador
 junto al deslizador (o el botón de encender y apagar de un interruptor), y *Pausar* / *Reanudar*
 para un campo que mueve un programa. `page.environment: true` pone ahí todos los campos del ambiente
@@ -158,6 +182,13 @@ de la página, así que se lee en los temas claro, oscuro, cuaderno y escena:
 - `temperature`: un termómetro cuya columna sube de mínimo a máximo;
 - un interruptor (`rain`, `motion`, `touch`, `vibration`, `tilt`, `beam`): una lámpara que se enciende.
 
+Todos abarcan del `min` al `max` del control (el rango del campo en este circuito, el de
+`page.controls` en una fila del panel, o el de un paso `gauge` en una grabación); un valor fuera
+deja la aguja, el relleno o la columna en el extremo, y el texto de abajo sigue diciendo el valor.
+La raíz `<svg class="gauge">` lleva `data-pos` (la posición, de 0 a 1, en la escala del campo: un
+campo logarítmico por proporciones), `data-min` y `data-max`, al día con cada cambio; una prueba o un
+script lee el dial ahí.
+
 ## En una línea de tiempo
 
 Dos pasos ([linea-de-tiempo.md](linea-de-tiempo.md)):
@@ -169,7 +200,11 @@ Dos pasos ([linea-de-tiempo.md](linea-de-tiempo.md)):
   segundo) y luego se va.
 - `gauge`: `{ "do": "gauge", "environment": "light", "on": true, "corner": "tr" }` pone el indicador
   en un recuadro propio en una esquina del cuadro (`tl`, `tr`, `bl`, `br`), como `probe` pone el
-  osciloscopio; `on: false` lo quita.
+  osciloscopio; `on: false` lo quita. `min` y `max` fijan los extremos del dial desde ese paso
+  (`{ "do": "gauge", "environment": "distance", "on": true, "min": 2, "max": 40 }`): elígelos para
+  que el cambio del video se vea. `TOUR_GAUGE_RANGE` avisa si el rango no va de menor a mayor, sale
+  del límite del campo o se da a un interruptor. Un `set` sin indicador puesto usa el rango del campo
+  (el del circuito; si no, el del deslizador), y `engine.set` fuera del rango sigue permitido.
 
 `check` avisa con `TOUR_UNKNOWN_ENVIRONMENT` si el ambiente del circuito no tiene ese campo (uno que
 nombra o uno que sigue una pieza); `render-frames.js --parts` lista los campos con las piezas que

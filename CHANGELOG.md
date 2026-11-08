@@ -11,6 +11,15 @@ detail.
 
 ### Added
 
+- Ranges for the environment's slider and indicator (sensors S0b; `docs/en/environment.md`): a
+  field of the circuit may declare `range: [min, max]` (`{ "distance": { "value": 30, "range": [2, 40] } }`),
+  `page.controls` overrides it for one panel row, and a timeline's `gauge` takes `min` and `max`, so
+  the needle crosses the dial for the values that matter (a hand from 30 to 5 cm hardly moved it on
+  the default 2 to 400 cm). The indicator draws its dial between them and carries `data-pos` (0…1),
+  `data-min` and `data-max` on its root; a panel row carries `data-min` and `data-max`. `check`
+  reports `ENV_BAD_RANGE` and `TOUR_GAUGE_RANGE`; the tours of `obstacle-buzzer`, `ldr-comparator`,
+  `lm35-comparator` and `environment` choose their ranges, and the `obstacle-buzzer` recipe declares
+  its own.
 - Recipes with real sensors (sensors S1; `docs/en/recipes.md`): `ldr-night-light` and
   `ldr-comparator` (a photoresistor switching an LED in the dark, with a transistor or an LM393),
   `lm35-comparator` (a temperature alarm), `ntc-follower` (an NTC divider through an LM358

@@ -62,7 +62,7 @@ export function pageControlIssues(circuit) {
     const id = env != null ? 'environment' : (c?.part ?? c?.supply);
     if (!id || [c.part, c.supply, env].filter((x) => x != null).length !== 1 || (env != null && c.field != null)) return out.push(warn('PAGE_CONTROL_TARGET', { index: i + 1 }));
     if (env != null && !Object.hasOwn(FIELDS, env)) return out.push({ severity: 'error', code: 'ENV_UNKNOWN_FIELD', params: { field: String(env).slice(0, 40), fields: Object.keys(FIELDS).join(', ') } });
-    const own = env != null ? environmentControls(createEnvironment({}, [env])) : controls.filter((x) => x.id === id);
+    const own = env != null ? environmentControls(createEnvironment(circuit.environment, [env])) : controls.filter((x) => x.id === id);
     const field = env ?? c.field;
     const found = own.find((x) => x.field === field);
     if (!found) return out.push(warn('PAGE_CONTROL_UNKNOWN', { target: id, field: String(c.field), options: own.map((x) => x.field).join(', ') || '—' }));

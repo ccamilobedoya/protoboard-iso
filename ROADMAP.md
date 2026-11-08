@@ -355,6 +355,7 @@ the circuit's shared environment, changed in a panel and shown by an indicator, 
 board ([docs/en/environment.md](docs/en/environment.md); decision of 2026-11-08 in PLANNING.md).
 
 - ✅ S0 · The environment (2026-11-08): `src/sim/environment.js` (16 fields, programs, pause and resume, `ENV_*`), `senses` and `c.env` for devices (NTC, LDR, LM35, tilt switch follow it; their own control detaches them), engine (`'environment'` controls, `resume`, `attach`, programs on simulated time), page (*Environment* section, `page.environment`, a sensor's card), the indicator (`gauge.js`), timeline `set` with `environment` and `gauge`, `value` of `vout`; `examples/environment*.json`, `examples/tours/environment.json`
+- ✅ S0b · Indicator and slider ranges (2026-11-09): a field may declare `range` in the circuit (`ENV_BAD_RANGE`), `page.controls` and a timeline's `gauge` (`min`, `max`; `TOUR_GAUGE_RANGE`) choose another, the indicator draws its dial between them and states `data-pos`; the sensor tours show the change across the dial; docs, schemas and `test/ranges.test.js`
 - ✅ S1 · Recipes with real sensors (2026-11-08): `ldr-night-light`, `ldr-comparator`, `lm35-comparator`, `ntc-follower`, `thermistor-uno`; recipes carry `environment` and `page`
 - ✅ S2 · LM393 sensor modules, family F3 (2026-11-08): one type `sensor-module`, one package, one device for eight part numbers (rain `MH-RD`, soil `YL-69`, light `LDR-LM393`, optical slot `SLOT-IR`, line follower `TCRT5000-M`, Hall `KY-024` with an A3144 latch, vibration `SW-420-M` with a seeded chatter, obstacle `FC-51`); the environment's `reflectance` and `beam`; up close (symbol, inside view, legend); recipes `rain-alarm`, `soil-led`, `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`; timelines `soil-led.json`, `obstacle-buzzer.json`; [docs/en/sensor-modules.md](docs/en/sensor-modules.md). It covers the LDR module of S1, the IR obstacle module of S3, the Hall switch of S4, the soil and rain boards of S5 and the SW-420 of S6
 - ✅ S3 · Timed digital sensors, family F4 (2026-11-08): the HC-SR501 PIR (`pir-sensor`: warm-up, delay Tx, H/L jumper, 2.5 s rest, `motion`) and the TTP223 touch module (`touch-sensor`: momentary or toggle, 220/60 ms response, 0.5 s settling, `touch`) as state machines in elements with a clock of their own; `engine.js` carries a device's `state` keys across `set` and reads `maxStep()`/`span()`; both up close; recipes `pir-lamp`, `pir-uno`, `touch-toggle-led`, `touch-uno`; examples and tours `pir-lamp`, `touch-toggle-led`; `docs/en/timed-sensors.md`. The HC-SR04 echo pulse stays for the distance family
@@ -363,6 +364,8 @@ board ([docs/en/environment.md](docs/en/environment.md); decision of 2026-11-08 
 - ⬜ S6 · Library-level protocol sensors: DHT11 (`temperature`, `humidity`) and BME280 read by a board's program through their library calls
 - ⬜ S7 · Rotary encoder EC11 (`angle` → quadrature) and emitters (`emits`: a laser or an IR LED writes a field)
 - ⬜ DHT11/BME280 bit-level protocol on the wire — optional, very low priority, kept so it is not forgotten
+- ⬜ Active buzzer (a tone generator inside: sounds on DC) for the alarm recipes
+- ⬜ Bench questions to settle on the real boards: whether the SW-420's LED is lit at rest, and the MH-RD's pin order
 
 ## Stage 4 — On a phone or tablet ⬜
 

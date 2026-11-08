@@ -325,6 +325,15 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                "range": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "description": "[min, max]: the span the slider and the indicator show (inside 0…1000000, min < max, min above 0); default 0.1…10000"
                 }
               },
               "additionalProperties": false
@@ -474,6 +483,15 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                "range": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "description": "[min, max]: the span the slider and the indicator show (inside -55…150, min < max); default -20…100"
                 }
               },
               "additionalProperties": false
@@ -623,6 +641,15 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                "range": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "description": "[min, max]: the span the slider and the indicator show (inside 0…100, min < max); default 0…100"
                 }
               },
               "additionalProperties": false
@@ -772,6 +799,15 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                "range": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "description": "[min, max]: the span the slider and the indicator show (inside 0…100, min < max); default 0…100"
                 }
               },
               "additionalProperties": false
@@ -921,6 +957,15 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                "range": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "description": "[min, max]: the span the slider and the indicator show (inside 0…1000, min < max); default 0…40"
                 }
               },
               "additionalProperties": false
@@ -1222,6 +1267,15 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                "range": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "description": "[min, max]: the span the slider and the indicator show (inside 0…1000, min < max); default 2…400"
                 }
               },
               "additionalProperties": false
@@ -1371,6 +1425,15 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                "range": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "description": "[min, max]: the span the slider and the indicator show (inside -10000…10000, min < max); default -500…500"
                 }
               },
               "additionalProperties": false
@@ -1976,6 +2039,15 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                "range": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "description": "[min, max]: the span the slider and the indicator show (inside 0…140, min < max); default 30…110"
                 }
               },
               "additionalProperties": false
@@ -2277,6 +2349,15 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                "range": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "description": "[min, max]: the span the slider and the indicator show (inside 0…360, min < max); default 0…360"
                 }
               },
               "additionalProperties": false
@@ -2426,6 +2507,15 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                "range": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "description": "[min, max]: the span the slider and the indicator show (inside 0…100, min < max); default 0…100"
                 }
               },
               "additionalProperties": false

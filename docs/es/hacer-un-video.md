@@ -264,6 +264,11 @@ El circuito de un sensor se cuenta cambiando el mundo que lee, no la pieza: el c
 - `{ "do": "gauge", "environment": "temperature", "on": true }` deja el indicador en una esquina
   durante todo un tramo (un sol, un termómetro, un medidor de aguja), como `probe` deja el
   osciloscopio; `on: false` lo quita. No se dibuja nada en la protoboard.
+- Elige el rango del indicador para que el cambio se vea: `{ "do": "gauge", "environment":
+  "distance", "on": true, "min": 2, "max": 40 }` hace que una mano que pasa de 30 a 5 cm cruce el
+  dial, que en los 2 a 400 cm por defecto del campo apenas movería la aguja (una luz en escala
+  logarítmica, de 1 a 1000 lx; una temperatura, de 20 a 70 °C). Un circuito puede declarar el mismo
+  rango también para su deslizador ([ambiente.md](ambiente.md)).
 - `render-frames.js --parts <circuito>` lista los campos con las piezas que siguen cada uno, y
   `value` lee un voltaje de salida con `field: "vout"` (los 10 mV por °C de un LM35).
 - Un programa (`toggle`, `cycle`, `ramp`, `keyframes`) mueve un campo solo, con el tiempo simulado; un
