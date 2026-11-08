@@ -12,7 +12,7 @@
 //   1), slots and duty (an encoder disc on the environment's angle); SW-420-M also seed (its chatter's
 //   pattern, default from its id).
 
-import { lookupPartNumber, PART_NUMBERS } from '../db.js';
+import { lookupPartNumber } from '../db.js';
 import { SENSOR_MODULES } from '../sensors.js';
 
 // What a part follows when neither it nor the environment says: the environment's own defaults.
@@ -57,6 +57,3 @@ export const sensorModule = {
     };
   },
 };
-
-// The part numbers, for the schema's description and the docs.
-export const SENSOR_MODULE_PARTS = Object.keys(PART_NUMBERS).filter((n) => PART_NUMBERS[n].type === 'sensor-module');

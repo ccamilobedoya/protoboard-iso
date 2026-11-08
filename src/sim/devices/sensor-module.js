@@ -252,7 +252,9 @@ export const sensorModule = {
       if (!CONTROL[field]) continue;
       const [name, shape] = CONTROL[field];
       const value = p.stim[field];
-      out[name] = shape.scale === 'toggle' ? { ...shape, value: Boolean(value) } : { ...shape, ...(field === 'distance' && DISTANCE[p.element]), ...(field === 'light' && { value: Math.max(0.1, value) }), value: field === 'light' ? Math.max(0.1, value) : value };
+      // A toggle is true or false; the light's log slider starts at 0.1 lx; distance's range by sensor.
+      if (shape.scale === 'toggle') out[name] = { ...shape, value: Boolean(value) };
+      else out[name] = { ...shape, ...(field === 'distance' && DISTANCE[p.element]), value: field === 'light' ? Math.max(0.1, value) : value };
     }
     return out;
   },
