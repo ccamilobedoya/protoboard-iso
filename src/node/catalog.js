@@ -60,13 +60,13 @@ const pinsOfModule = (m) => m.pins ?? m.headers.flatMap((h) => h.pins.map(([n]) 
 export function compactCatalog(lang = 'en') {
   const numbers = {};
   for (const [n, e] of Object.entries(PART_NUMBERS)) (numbers[e.type] ??= []).push(n);
+  numbers.ldr = Object.keys(LDR_PARTS); // photoresistors are not in the part-number table
   return {
     types: Object.fromEntries(
       Object.entries(PART_TYPES).map(([k, v]) => [k, { name: t(lang, `type.${k}`), family: v.family, pins: v.pins ?? null, ...(numbers[k] && { parts: numbers[k] }) }]),
     ),
     modules: Object.fromEntries(Object.entries(MODULES).map(([k, m]) => [k, { name: m.label, mount: m.mount }])),
     batteries: Object.keys(BATTERY_FORMATS),
-    photoresistors: Object.keys(LDR_PARTS),
     boards: Object.keys(BOARDS),
     views: Object.keys(VIEWS),
     operations: OP_NAMES,
@@ -146,9 +146,8 @@ export function fullCatalog(lang = 'en') {
   };
 }
 
-// One recipe in a line: its name, title (the compact catalog leaves it out: `catalog` with the name
-// gives it) and the values that can change, with their defaults.
-export const recipeLine = (name, r, { title = true } = {}) => `  ${name}${title ? ` (${r.title})` : ''}${Object.keys(r.values).length ? ` · ${Object.entries(r.values).map(([id, v]) => `${id}=${String(v).includes('\n') ? '(sketch)' : v}`).join(' ')}` : ''}`;
+// One recipe in a line: its name, title and the values that can change, with their defaults.
+export const recipeLine = (name, r) => `  ${name} (${r.title})${Object.keys(r.values).length ? ` · ${Object.entries(r.values).map(([id, v]) => `${id}=${String(v).includes('\n') ? '(sketch)' : v}`).join(' ')}` : ''}`;
 
 // Part numbers in runs: three or more in a row that count up by one with the same prefix and suffix
 // (1N4728A … 1N4751A, the 1 W Zeners) as "first…last", so a long family takes one entry.
@@ -170,6 +169,18 @@ function runs(numbers) {
   return out;
 }
 
+// A long list of part numbers is cut to its first few and a count; `catalog` with the type's name has them all.
+const SHOWN_PARTS = 4;
+const MAX_PARTS = 6;
+function shortParts(numbers, lang) {
+  const list = runs(numbers);
+  if (list.length <= MAX_PARTS) return list.join(', ');
+  const shown = list.slice(0, SHOWN_PARTS);
+  let covered = 0; // part numbers behind the entries shown (a range stands for several)
+  for (const entry of shown) covered = entry.includes('…') ? numbers.indexOf(entry.split('…')[1], covered) + 1 : covered + 1;
+  return `${shown.join(', ')} ${t(lang, 'catalog.partsMore', { n: numbers.length - covered })}`;
+}
+
 // One block per family (the order of FAMILIES): its name, then a line for each of its types with the
 // pins in order and the part numbers, so a type is found by its family and nothing repeats.
 export function formatCompactCatalog(c, lang = 'en') {
@@ -180,15 +191,15 @@ export function formatCompactCatalog(c, lang = 'en') {
     lines.push(family);
     for (const [k, v] of types) {
       const pins = v.pins ? v.pins.join(' ') : t(lang, 'catalog.pinsPerPart');
-      lines.push(`  ${k}: ${pins}${v.parts ? ` · ${t(lang, 'catalog.partsShort')} ${runs(v.parts).join(', ')}` : ''}`);
+      lines.push(`  ${k}: ${pins}${v.parts ? ` · ${shortParts(v.parts, lang)}` : ''}`);
     }
   }
   lines.push(`${t(lang, 'catalog.modules')} ${Object.entries(c.modules).map(([k, m]) => `${k} (${m.mount})`).join(', ')}`);
-  lines.push(`${t(lang, 'catalog.batteries')} ${c.batteries.join(', ')} · ${t(lang, 'catalog.photoresistors')} ${c.photoresistors.join(', ')}`);
+  lines.push(`${t(lang, 'catalog.batteries')} ${c.batteries.join(', ')}`);
   lines.push(`${t(lang, 'catalog.boards')} ${c.boards.join(', ')} · ${t(lang, 'catalog.views')} ${c.views.join(', ')} · ${t(lang, 'catalog.operations')} ${c.operations.join(', ')}`);
   if (c.recipes) {
     lines.push(t(lang, 'catalog.recipes'));
-    for (const [k, r] of Object.entries(c.recipes)) lines.push(recipeLine(k, r, { title: false }));
+    for (const [k, r] of Object.entries(c.recipes)) lines.push(recipeLine(k, r));
   }
   lines.push(t(lang, 'catalog.more'));
   return lines.join('\n');

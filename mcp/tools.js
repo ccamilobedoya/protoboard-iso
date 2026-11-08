@@ -526,7 +526,7 @@ server.registerTool(
   {
     title: 'Catalog',
     description:
-      'What the kit knows. Without name: a compact list (part types grouped by family, one line each with its pins in order and its part numbers; modules, batteries, boards, views, operations, and the recipes for layout with the values each one can change). With name (a type like "regulator", a part number like "7805", a module like "UNO" or a recipe like "npn-switch"): its pins, package, the fields it takes and a real part from the examples to copy; for a recipe, its parts, nets and values with their choices or range. format "json" without name: every registry in full.',
+      'What the kit knows. Without name: a compact list (part types grouped by family, one line each with its pins in order and its first part numbers (the rest as a count: name shows them all); modules, batteries, boards, views, operations, and the recipes for layout with the values each one can change). With name (a type like "regulator", a part number like "7805", a module like "UNO" or a recipe like "npn-switch"): its pins, package, the fields it takes and a real part from the examples to copy; for a recipe, its parts, nets and values with their choices or range. format "json" without name: every registry in full.',
     inputSchema: { name: z.string().optional().describe('A part type, part number, module or recipe'), ...common },
     annotations: READ,
   },

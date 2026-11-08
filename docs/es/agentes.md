@@ -41,8 +41,8 @@ Código de salida 0 si se aprueba y 2 si hay que cambiar algo. También existe c
 Medido el 2026-10-16: un agente de montaje que rehízo una fuente de dos rieles necesitó 68
 llamadas y unos 185 000 tokens. Lo que lo reduce:
 
-- `catalog` sin `name` es una lista compacta (unos 3,6 KB en vez de 20): los tipos de componente
-  agrupados por familia, una línea cada uno con sus patas y números de parte, luego módulos,
+- `catalog` sin `name` es una lista compacta (unos 4 KB en vez de 20): los tipos de componente
+  agrupados por familia, una línea cada uno con sus patas y sus primeros números de parte (`name` da todos), luego módulos,
   protoboards y las recetas con sus valores; `name` da los campos y un ejemplo real de un tipo
   solo cuando hace falta.
 - `suggest` con `parts` coloca una cadena de componentes en una llamada, cada uno según los

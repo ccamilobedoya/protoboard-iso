@@ -268,7 +268,7 @@ test('layout check_only reads parts by name and reports every problem without cr
 
 test('layout with a recipe: ready in one call, the catalog lists it, bad values change nothing', async () => {
   const listed = await call('catalog', {});
-  assert.match(listed.content[0].text, /npn-switch · R1=1k/);
+  assert.match(listed.content[0].text, /npn-switch \(.*\) · R1=1k/);
   assert.match((await call('catalog', { name: 'npn-switch' })).content[0].text, /Q1: part = 2N2222A \[2N2222A, 2N3904/);
   const made = await call('layout', { target: 'recipe-switch', recipe: 'npn-switch', values: { R1: '470', V1: 9 } });
   assert.ok(!made.isError, made.content[0].text);
