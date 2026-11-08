@@ -126,7 +126,7 @@ Lo habitual en un banco que el kit todavía no dibuja (2026-10-16):
 - ⬜ Más placas de desarrollo: Raspberry Pi Pico (RP2040) y ESP32-CAM con su programador MB
 - ⬜ Módulos de pantalla y de entrada: OLED de 0,96" (GME12864: VCC GND SCL SDA) y de 0,91" SSD1306 por I2C, módulo encoder rotatorio EC11, switches de teclado TTC MX (bloque de teclado)
 - ⬜ Módulos de sensores: el kit de 22 módulos (DHT11, BMP280, lluvia MH-RD, humedad de suelo, KY-018…), BME280, sensor de suelo capacitivo (TLC555), ultrasónico HC-SR04
-- ⬜ **Sensores reales en las recetas de comparador y seguidor.** `lm393-comparator`, `opamp-comparator` y `opamp-follower` usan un potenciómetro donde el circuito llevaría un sensor, así que un video sobre ellas tiene que decir que una pieza hace de otra. Un sensor de humedad de suelo para el detector con LM393 (necesita el módulo de arriba); una receta con la fotorresistencia para el comparador de luz (`ldr` ya existe, solo falta la receta); un sensor leído a través del seguidor (`thermistor`, `ldr` y `temperature-sensor` ya existen). Después se pueden hacer los videos de esos circuitos
+- ✅ **Sensores reales en las recetas de comparador y seguidor** (2026-11-08, sensores S1: `ldr-night-light`, `ldr-comparator`, `lm35-comparator`, `ntc-follower`, `thermistor-uno`; las recetas con potenciómetro siguen como estaban). Antes: `lm393-comparator`, `opamp-comparator` y `opamp-follower` usan un potenciómetro donde el circuito llevaría un sensor, así que un video sobre ellas tiene que decir que una pieza hace de otra. Un sensor de humedad de suelo para el detector con LM393 (necesita el módulo de arriba); una receta con la fotorresistencia para el comparador de luz (`ldr` ya existe, solo falta la receta); un sensor leído a través del seguidor (`thermistor`, `ldr` y `temperature-sensor` ya existen). Después se pueden hacer los videos de esos circuitos
 - ⬜ Actuadores: servos SG90 y MG90S (cable de 3 pines), driver de motores TB6612FNG, motorreductores DC, mini bomba sumergible
 - ⬜ Energía: panel solar de 6 V 2 W; portapilas de una 18650, LiPo 103450 con conector JST PH
 - ⬜ En la protoboard: disipador TO-220, conectores XH, zócalos DIP
@@ -361,13 +361,13 @@ ambiente compartido del circuito, se cambian en un panel y se muestran con un in
 dibujadas en la protoboard ([ambiente.md](ambiente.md); decisión del 2026-11-08 en la planeación).
 
 - ✅ S0 · El ambiente (2026-11-08): `src/sim/environment.js` (14 campos, programas, pausa y reanudación, `ENV_*`), `senses` y `c.env` para los dispositivos (NTC, LDR, LM35 e interruptor de inclinación lo siguen; su propio control los desprende), motor (controles `'environment'`, `resume`, `attach`, programas con el tiempo simulado), página (sección *Ambiente*, `page.environment`, la ficha de un sensor), el indicador (`gauge.js`), `set` con `environment` y `gauge` en la línea de tiempo, `value` de `vout`; `examples/environment*.json`, `examples/tours/environment.json`
-- ⬜ S1 · Luz: fotodiodo, fototransistor, el módulo LDR con su comparador (salidas digital y analógica) sobre `light`
-- ⬜ S2 · Temperatura y humedad a nivel de biblioteca: DHT11/DHT22, BME280 y DS18B20 leídos por el programa de una placa con las llamadas de su biblioteca, desde `temperature` y `humidity`
-- ⬜ S3 · Distancia y movimiento: HC-SR04 (el pulso de eco desde `distance`), PIR HC-SR501 (`motion`), módulo de obstáculos IR
-- ⬜ S4 · Campo magnético y ángulo: sensor Hall y reed (`field`), encoder rotativo (`angle`)
-- ⬜ S5 · Agua y suelo: sonda de humedad del suelo (`moisture`), placa de lluvia (`rain`), sensor de nivel de agua (`water`)
-- ⬜ S6 · Sonido, toque y vibración: módulo de micrófono (`sound`), pad táctil TTP223 (`touch`), interruptor de vibración SW-420 (`vibration`)
-- ⬜ S7 · Emisores (`emits`: una lámpara o un LED que alumbra un sensor de al lado) y una galería de videos de sensores
+- ✅ S1 · Recetas con sensores reales (2026-11-08): `ldr-night-light`, `ldr-comparator`, `lm35-comparator`, `ntc-follower`, `thermistor-uno`; las recetas llevan `environment` y `page`
+- ⬜ S2 · Módulos de sensor con LM393 (un tipo `sensor-module`, un empaque, un dispositivo): lluvia, humedad de suelo, luz, ranura, seguidor de línea, Hall digital, vibración, obstáculo; campos `reflectance` y `beam`
+- ⬜ S3 · Sensores digitales con tiempos: PIR HC-SR501 (`motion`, retardo, H/L, bloqueo, calentamiento) y pad táctil TTP223 (`touch`, momentáneo/biestable); el motor conserva el estado de un dispositivo al cambiar un control
+- ⬜ S4 · Ultrasonido HC-SR04 (`distance` → pulso de eco) y `pulseIn` en el traductor de programas
+- ⬜ S5 · Módulos analógicos: Hall lineal 49E (`field`), sensor de voltaje 0–25 V, micrófono KY-037 (`sound`)
+- ⬜ S6 · Sensores de protocolo a nivel de biblioteca: DHT11 (`temperature`, `humidity`) y BME280 leídos por el programa de una placa con las llamadas de su biblioteca
+- ⬜ S7 · Encoder rotativo EC11 (`angle` → cuadratura) y emisores (`emits`: un láser o un LED IR escribe un campo)
 - ⬜ Protocolo de bits del DHT11/BME280 en el cable — opcional, prioridad muy baja, anotado para no olvidarlo
 
 ## Etapa 4 — En el celular o la tableta ⬜

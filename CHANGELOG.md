@@ -11,6 +11,14 @@ detail.
 
 ### Added
 
+- Recipes with real sensors (sensors S1; `docs/en/recipes.md`): `ldr-night-light` and
+  `ldr-comparator` (a photoresistor switching an LED in the dark, with a transistor or an LM393),
+  `lm35-comparator` (a temperature alarm), `ntc-follower` (an NTC divider through an LM358
+  follower) and `thermistor-uno` (an Arduino UNO that prints °C from an NTC with the B equation).
+  A recipe may now carry `environment` and `page`, copied into its circuit (also given beside a
+  recipe, and in the MCP `layout` tool); these five declare the field they sense and its page
+  control. Two tours, `ldr-comparator.json` and `lm35-comparator.json`. A board's program can call
+  `log`.
 - A timeline's `captionLines`: captions of 3 lines, with the oscilloscope and the circuit lower.
 - The environment (sensors, S0; `docs/en/environment.md`): a circuit's `environment` (light,
   temperature, humidity, distance… 14 fields, each a value or a program: toggle, cycle, ramp,

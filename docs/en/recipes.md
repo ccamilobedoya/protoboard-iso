@@ -52,6 +52,11 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `opamp-follower` | LM358 voltage follower: the output copies a potentiometer and drives an LED | RV1 = 100k, R1 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30) |
 | `opamp-noninverting` | LM358 non-inverting amplifier, gain 1 + R2/R1, a sine from the generator on V+ | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0.5 V peak (0.01–5) |
 | `opamp-inverting` | LM358 inverting amplifier, gain −R2/R1 around half the supply (a divider on V+) | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0.5 V peak (0.01–3) |
+| `ldr-night-light` | A photoresistor and a resistor in a divider drive an NPN's base; the LED lights in the dark (senses `light`) | R1 = 10k (divider), R2 = 10k (base), R3 = 330, D1 = red, V1 = 5 V (3–12) |
+| `ldr-comparator` | LM393 comparing a photoresistor divider with a potentiometer's reference; the LED lights in the dark (senses `light`) | RV1 = 0.5 (the reference's position, 0–1), R1 = 10k, R2 = 10k (pull-up), R3 = 330, D1 = red, V1 = 5 V (3–30) |
+| `lm35-comparator` | LM393 comparing an LM35 with a reference of about 0.42 V from a divider; the LED lights above about 42 °C (senses `temperature`) | R1 = 10k, R2 = 910, R3 = 330, D1 = red |
+| `ntc-follower` | NTC thermistor divider copied by an LM358 follower into a 10k load (senses `temperature`) | TH1 = 10k, R1 = 10k, R2 = 10k (load), V1 = 9 V (5–30) |
+| `thermistor-uno` | Arduino UNO reading an NTC divider on A0 and printing `T=<°C>` every second with the B equation (senses `temperature`) | TH1 = 10k, R1 = 10k, U1 = its sketch (`program`) |
 
 `catalog` (MCP) or `parts` (CLI) lists them with their titles (the compact list `catalog` leaves the values out); `catalog` with a recipe's name (`parts
 <name>` in the CLI) shows what it teaches, its parts, nets, supply, and each value's role and limits.
@@ -69,8 +74,27 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
   `RECIPE_VALUE_CHOICE`, `RECIPE_VALUE_RANGE`, `RECIPE_VALUE_FIELD`; an unknown recipe,
   `RECIPE_UNKNOWN`, comes with the closest names). Ids and nets never change: they are what makes a
   recipe come out ready.
-- Beside a recipe, `title`, `board`, `clearance`, `netLabels`, `page` and `lang` may be given and
-  replace the recipe's. `parts` and `nets` never (`RECIPE_AND_PARTS`).
+- Beside a recipe, `title`, `board`, `clearance`, `netLabels`, `environment`, `page` and `lang` may be
+  given and replace the recipe's. `parts` and `nets` never (`RECIPE_AND_PARTS`).
+
+## Recipes with a real sensor
+
+A recipe may carry an `environment` and a `page` ([environment.md](environment.md)), copied into the
+circuit it produces like its title and its supplies. The five sensor recipes (`ldr-night-light`,
+`ldr-comparator`, `lm35-comparator`, `ntc-follower`, `thermistor-uno`) each declare the field they
+sense at its default (`light` 300 lx or `temperature` 25 °C) and a `page.controls` entry
+`{ "environment": "light" }` (or `temperature`): the page offers that slider with its indicator, a
+timeline can `set` it, and no part carries a value of its own, so the circuit follows the
+environment. Nothing in them stands for a sensor: the photoresistor is a GL5528, the thermometer an
+LM35 or a 10k NTC (B 3950).
+
+| Recipe | What it does at the defaults |
+|---|---|
+| `ldr-night-light` | The photoresistor is on the ground side of the divider, so the base voltage rises as the light falls. The LED has about 9 mA up to 100 lx, dims between 100 and 300 lx (about 2 mA at 200 lx, where the photoresistor falls to about 2 kΩ) and is out (about 0.1 mA) at 300 lx |
+| `ldr-comparator` | The photoresistor is over the 10k, so the divider falls with the light; with the reference at half the supply the output sinks below about 18 lx (the photoresistor equal to 10k) and the LED lights (about 8 mA at 10 lx, none at 300 lx) |
+| `lm35-comparator` | The LM35 gives 10 mV per °C into IN+; the reference is 0.417 V (about 42 °C). Above it the output is released and R3, the output's pull-up, feeds the LED to ground (about 10 mA); below it the output sinks and the LED sees under 1 V (off). The LED is not "as in the potentiometer recipes" (fed from the supply, on when the output is low) because here the alarm must light when the input is *higher* |
+| `ntc-follower` | The NTC is on the supply side, so the voltage rises as it warms; the follower copies it into 10k. The supply is 9 V: an LM358's output stops about 1.5 V under it, and from 5 V it would cut the voltage the divider gives at 60 °C |
+| `thermistor-uno` | The same NTC over 10k on the UNO's 5 V, read on A0; the sketch gets the resistance from the ADC count and the temperature from `1/T = 1/T0 + ln(R/R0)/B`, and prints `T=<value>` every second (within 1.5 °C of the environment at 25 and at 60 °C) |
 
 ## After it is laid out
 
@@ -93,7 +117,7 @@ blinks, in slow motion (the page's time follows the slowest time constant).
    a recipe works around a limit only when the circuit is still the usual one.
 2. `src/recipes/<name>.js`: one module of data, with a header comment saying what the circuit is.
    `name`, `title` and `teaches` (`{ en, es }`), `parts`, `nets`, `supplies`, optionally
-   `netLabels`, `page`, `clearance`, and `values`: for each id that may change, `field` (what the
+   `netLabels`, `environment`, `page`, `clearance`, and `values`: for each id that may change, `field` (what the
    short form sets), and optionally `role` (`{ en, es }`), `choices`, `min`/`max`, `extra` (the
    allowed fields, when the defaults by kind do not fit).
 3. Register it in `src/recipes/index.js` and `npm run schemas` (the schema lists the names).

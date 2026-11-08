@@ -31,7 +31,7 @@ const TYPES = new Set(['void', 'int', 'long', 'short', 'byte', 'bool', 'boolean'
 const QUALIFIERS = new Set(['const', 'static', 'volatile', 'unsigned', 'signed']);
 const INTEGER = new Set(['int', 'long', 'short', 'byte', 'char', 'unsigned', 'signed', 'size_t', 'word', 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t']);
 // What the runtime gives (program.js); anything else called and not defined is noted.
-export const SKETCH_API = ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'analogWrite', 'millis', 'micros', 'abs', 'min', 'max', 'map', 'constrain', 'random', 'randomSeed', 'sqrt', 'pow', 'sin', 'cos', 'round', 'floor', 'ceil', 'bitRead', 'bitWrite', 'bitSet', 'bitClear', 'ledcAttach', 'ledcAttachPin', 'ledcSetup', 'ledcWrite', 'tone', 'noTone'];
+export const SKETCH_API = ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'analogWrite', 'millis', 'micros', 'abs', 'min', 'max', 'map', 'constrain', 'random', 'randomSeed', 'sqrt', 'log', 'pow', 'sin', 'cos', 'round', 'floor', 'ceil', 'bitRead', 'bitWrite', 'bitSet', 'bitClear', 'ledcAttach', 'ledcAttachPin', 'ledcSetup', 'ledcWrite', 'tone', 'noTone'];
 const SKETCH_CONSTANTS = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial'];
 const ASSIGN = new Set(['=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=']);
 // Runtime functions that return an integer (an int divided by them stays an int).

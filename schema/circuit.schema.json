@@ -148,7 +148,12 @@
                 "tilt-alarm",
                 "lm35-uno",
                 "relay-npn",
-                "motor-npn"
+                "motor-npn",
+                "ldr-night-light",
+                "ldr-comparator",
+                "lm35-comparator",
+                "ntc-follower",
+                "thermistor-uno"
               ]
             },
             "values": {

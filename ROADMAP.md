@@ -126,7 +126,7 @@ Usual bench parts the kit does not draw yet (2026-10-16):
 - ⬜ More development boards: Raspberry Pi Pico (RP2040) and ESP32-CAM with its MB programmer
 - ⬜ Display and input modules: OLED 0.96" (GME12864: VCC GND SCL SDA) and 0.91" SSD1306 over I2C, EC11 rotary encoder module, TTC MX key switches (keyboard block)
 - ⬜ Sensor modules: the 22-module kit (DHT11, BMP280, MH-RD rain, soil moisture, KY-018…), BME280, capacitive soil sensor (TLC555), HC-SR04 ultrasonic
-- ⬜ **Real sensors in the comparator and follower recipes.** `lm393-comparator`, `opamp-comparator` and `opamp-follower` use a potentiometer where the circuit would have a sensor, so a video about them has to say that one part stands for another. A soil moisture sensor for the LM393 detector (it needs the module above); a recipe with the photoresistor for the light comparator (`ldr` already exists, only the recipe is missing); a sensor read through the follower (`thermistor`, `ldr` and `temperature-sensor` already exist). Then the videos of those circuits can be made
+- ✅ **Real sensors in the comparator and follower recipes** (2026-11-08, sensors S1: `ldr-night-light`, `ldr-comparator`, `lm35-comparator`, `ntc-follower`, `thermistor-uno`; the potentiometer recipes stay as they are). Was: `lm393-comparator`, `opamp-comparator` and `opamp-follower` use a potentiometer where the circuit would have a sensor, so a video about them has to say that one part stands for another. A soil moisture sensor for the LM393 detector (it needs the module above); a recipe with the photoresistor for the light comparator (`ldr` already exists, only the recipe is missing); a sensor read through the follower (`thermistor`, `ldr` and `temperature-sensor` already exist). Then the videos of those circuits can be made
 - ⬜ Actuators: SG90 and MG90S servos (3-pin lead), TB6612FNG motor driver, DC gear motors, mini submersible pump
 - ⬜ Energy: 6 V 2 W solar panel; single 18650 holder, LiPo 103450 on a JST PH lead
 - ⬜ On the board: TO-220 heatsink, XH connectors, DIP sockets
@@ -355,13 +355,13 @@ the circuit's shared environment, changed in a panel and shown by an indicator, 
 board ([docs/en/environment.md](docs/en/environment.md); decision of 2026-11-08 in PLANNING.md).
 
 - ✅ S0 · The environment (2026-11-08): `src/sim/environment.js` (14 fields, programs, pause and resume, `ENV_*`), `senses` and `c.env` for devices (NTC, LDR, LM35, tilt switch follow it; their own control detaches them), engine (`'environment'` controls, `resume`, `attach`, programs on simulated time), page (*Environment* section, `page.environment`, a sensor's card), the indicator (`gauge.js`), timeline `set` with `environment` and `gauge`, `value` of `vout`; `examples/environment*.json`, `examples/tours/environment.json`
-- ⬜ S1 · Light: photodiode, phototransistor, the LDR module with its comparator (digital and analog outputs) on `light`
-- ⬜ S2 · Temperature and humidity at library level: DHT11/DHT22, BME280 and DS18B20 read by a board's program through their library calls, from `temperature` and `humidity`
-- ⬜ S3 · Distance and motion: HC-SR04 (the echo pulse from `distance`), HC-SR501 PIR (`motion`), IR obstacle module
-- ⬜ S4 · Magnetic field and angle: Hall sensor and reed switch (`field`), rotary encoder (`angle`)
-- ⬜ S5 · Water and soil: soil moisture probe (`moisture`), rain board (`rain`), water level sensor (`water`)
-- ⬜ S6 · Sound, touch and vibration: microphone module (`sound`), TTP223 touch pad (`touch`), SW-420 vibration switch (`vibration`)
-- ⬜ S7 · Emitters (`emits`: a lamp or an LED that lights a sensor beside it) and a gallery of sensor videos
+- ✅ S1 · Recipes with real sensors (2026-11-08): `ldr-night-light`, `ldr-comparator`, `lm35-comparator`, `ntc-follower`, `thermistor-uno`; recipes carry `environment` and `page`
+- ⬜ S2 · LM393 sensor modules (one type `sensor-module`, one package, one device): rain, soil moisture, light, slot, line follower, Hall digital, vibration, obstacle; fields `reflectance` and `beam`
+- ⬜ S3 · Timed digital sensors: PIR HC-SR501 (`motion`, delay, H/L, blocking, warm-up) and TTP223 touch pad (`touch`, momentary/toggle); the engine keeps a device's state across a control change
+- ⬜ S4 · HC-SR04 ultrasonic (`distance` → echo pulse) and `pulseIn` in the program translator
+- ⬜ S5 · Analog modules: linear Hall 49E (`field`), voltage sensor 0–25 V, microphone KY-037 (`sound`)
+- ⬜ S6 · Library-level protocol sensors: DHT11 (`temperature`, `humidity`) and BME280 read by a board's program through their library calls
+- ⬜ S7 · Rotary encoder EC11 (`angle` → quadrature) and emitters (`emits`: a laser or an IR LED writes a field)
 - ⬜ DHT11/BME280 bit-level protocol on the wire — optional, very low priority, kept so it is not forgotten
 
 ## Stage 4 — On a phone or tablet ⬜
