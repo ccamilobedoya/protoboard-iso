@@ -1,0 +1,27 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "obstacle-buzzer",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "An obstacle sensor: infrared that bounces back", "es": "Un sensor de obstáculos: infrarrojo que rebota" } },
+    { "at": 0, "do": "gauge", "environment": "distance", "on": true },
+    { "at": 1800, "do": "focus", "parts": ["U1"] },
+    { "at": 1800, "do": "frame", "target": "U1", "move": "arrival" },
+    { "at": 1800, "do": "caption", "text": { "en": "Nothing near: OUT stays high and the buzzer is off", "es": "Nada cerca: OUT queda en alto y el zumbador apagado" } },
+    { "at": 2600, "do": "value", "part": "U1", "field": "vout", "label": { "en": "OUT", "es": "OUT" } },
+    { "at": 5200, "do": "caption", "text": { "en": "A hand comes closer: from 30 to 5 cm", "es": "Una mano se acerca: de 30 a 5 cm" } },
+    { "at": 5200, "do": "set", "environment": "distance", "value": 5, "move": "travel", "ms": 1800 },
+    { "at": 8800, "do": "focus", "parts": ["U1", "BZ1"] },
+    { "at": 8800, "do": "frame", "target": ["U1", "BZ1"], "move": "travel" },
+    { "at": 8800, "do": "caption", "text": { "en": "Under about 9 cm OUT goes low and takes the buzzer's current", "es": "Por debajo de unos 9 cm OUT baja y recibe la corriente del zumbador" } },
+    { "at": 9600, "do": "value", "part": "BZ1", "field": "current", "label": { "en": "through the buzzer", "es": "por el zumbador" } },
+    { "at": 13200, "do": "caption", "text": { "en": "The hand moves away", "es": "La mano se aleja" } },
+    { "at": 13200, "do": "set", "environment": "distance", "value": 30, "move": "travel", "ms": 1800 },
+    { "at": 16200, "do": "caption", "text": { "en": "OUT high again: silence", "es": "OUT en alto otra vez: silencio" } },
+    { "at": 16200, "do": "value", "part": "U1", "field": "vout", "label": { "en": "OUT", "es": "OUT" } },
+    { "at": 19200, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 19200, "do": "caption", "text": { "en": "The trimmer sets the distance, from about 4 to 28 cm", "es": "El trimmer fija la distancia, de unos 4 a 28 cm" } },
+    { "at": 22000, "do": "focus", "parts": [] }
+  ]
+}

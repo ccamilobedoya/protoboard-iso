@@ -363,6 +363,7 @@ board ([docs/en/environment.md](docs/en/environment.md); decision of 2026-11-08 
 - ⬜ S6 · Sound, touch and vibration: microphone module (`sound`), TTP223 touch pad (`touch`), SW-420 vibration switch (`vibration`)
 - ⬜ S7 · Emitters (`emits`: a lamp or an LED that lights a sensor beside it) and a gallery of sensor videos
 - ⬜ DHT11/BME280 bit-level protocol on the wire — optional, very low priority, kept so it is not forgotten
+- ✅ S2 (sensors night) · LM393 sensor modules, family F3 (2026-11-08): one type `sensor-module`, one package, one device for eight part numbers (rain `MH-RD`, soil `YL-69`, light `LDR-LM393`, optical slot `SLOT-IR`, line follower `TCRT5000-M`, Hall `KY-024` with an A3144 latch, vibration `SW-420-M` with a seeded chatter, obstacle `FC-51`); the environment's `reflectance` and `beam`; up close (symbol, inside view, legend); recipes `rain-alarm`, `soil-led`, `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`; timelines `soil-led.json`, `obstacle-buzzer.json`; [docs/en/sensor-modules.md](docs/en/sensor-modules.md). It covers the LDR module of S1, the IR obstacle module of S3, the Hall switch of S4, the soil and rain boards of S5 and the SW-420 of S6
 
 ## Stage 4 — On a phone or tablet ⬜
 

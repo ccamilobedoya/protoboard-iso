@@ -35,11 +35,17 @@ by hand) and `examples/environment-cycle.json` (the light in a slow cycle); the 
 | `sound` | dB | 30…110 | 0…140 | linear | 40 | level |
 | `tilt` | | off / on | 0…1 | | 0 | switch |
 | `angle` | ° | 0…360 | 0…360 | linear | 0 | level |
+| `reflectance` | % (of white paper's) | 0…100 | 0…100 | linear | 80 | level |
+| `beam` | (1 = blocked) | off / on | 0…1 | | 0 | switch |
 
 The slider's range is what the page offers; the limit is what a value may be at all (a circuit, a
 `set` or a program outside it is clamped, and `check` says so). Today the thermistor and the
-photoresistor (`temperature`, `light`), the LM35 (`temperature`) and the tilt switch (`tilt`) read
-it; the other fields are ready for the sensors that come next.
+photoresistor (`temperature`, `light`), the LM35 (`temperature`), the tilt switch (`tilt`) and the
+LM393 sensor modules ([sensor-modules.md](sensor-modules.md): `rain`, `moisture`, `light`, `beam`,
+`distance` and `reflectance`, `field`, `vibration`, and `angle` for an encoder disc) read it; the
+other fields are ready for the sensors that come next. `reflectance` (the surface under a line
+follower or in front of an obstacle sensor) and `beam` (something in an optical slot) came with
+those modules.
 
 ## In the circuit
 
@@ -146,7 +152,7 @@ light, dark, notebook and stage themes:
 - `light`: a sun whose halo and rays grow with the log of the light, dark at 0.1 lx and full at
   10 klx;
 - `temperature`: a thermometer whose column rises from min to max;
-- a switch (`rain`, `motion`, `touch`, `vibration`, `tilt`): a lamp that lights.
+- a switch (`rain`, `motion`, `touch`, `vibration`, `tilt`, `beam`): a lamp that lights.
 
 ## In a timeline
 

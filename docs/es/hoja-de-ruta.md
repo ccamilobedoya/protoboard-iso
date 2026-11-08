@@ -369,6 +369,7 @@ dibujadas en la protoboard ([ambiente.md](ambiente.md); decisión del 2026-11-08
 - ⬜ S6 · Sonido, toque y vibración: módulo de micrófono (`sound`), pad táctil TTP223 (`touch`), interruptor de vibración SW-420 (`vibration`)
 - ⬜ S7 · Emisores (`emits`: una lámpara o un LED que alumbra un sensor de al lado) y una galería de videos de sensores
 - ⬜ Protocolo de bits del DHT11/BME280 en el cable — opcional, prioridad muy baja, anotado para no olvidarlo
+- ✅ S2 (noche de sensores) · Módulos de sensor con LM393, familia F3 (2026-11-08): un tipo `sensor-module`, un paquete, un dispositivo para ocho números de parte (lluvia `MH-RD`, suelo `YL-69`, luz `LDR-LM393`, ranura óptica `SLOT-IR`, seguidor de línea `TCRT5000-M`, Hall `KY-024` con un enclavamiento A3144, vibración `SW-420-M` con un rebote de semilla fija, obstáculo `FC-51`); `reflectance` y `beam` en el ambiente; de cerca (símbolo, vista por dentro, leyenda); recetas `rain-alarm`, `soil-led`, `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`; líneas de tiempo `soil-led.json`, `obstacle-buzzer.json`; [docs/es/modulos-sensores.md](modulos-sensores.md). Cubre el módulo LDR de S1, el módulo de obstáculos IR de S3, el interruptor Hall de S4, las placas de suelo y lluvia de S5 y el SW-420 de S6
 
 ## Etapa 4 — En el celular o la tableta ⬜
 

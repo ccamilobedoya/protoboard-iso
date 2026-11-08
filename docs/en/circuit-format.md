@@ -383,6 +383,20 @@ from a supply of 4 to 30 V.
 { "id": "U2", "type": "temperature-sensor", "temperature": 25, "pins": ["h30", "h31", "h32"] }
 ```
 
+### sensor-module
+
+An LM393 sensor module standing on its pins in one row ([sensor-modules.md](sensor-modules.md)):
+`part` one of `MH-RD` (rain), `YL-69` (soil), `LDR-LM393` (light, 3 pins), `SLOT-IR` (optical slot),
+`TCRT5000-M` (line follower), `KY-024` (Hall), `SW-420-M` (vibration, 3 pins), `FC-51` (obstacle, 3
+pins), its pins in the order the board prints them. `threshold` (0…1, default 0.5): the trimmer,
+Vref = threshold · VCC. Its own value of what it senses wins over the environment: `wetness`,
+`moisture`, `light`, `beam`, `reflectance`, `distance`, `field`, `vibration`; `SLOT-IR` also
+`transmittance`, `slots`, `duty`; `SW-420-M` `seed`.
+
+```json
+{ "id": "U1", "type": "sensor-module", "part": "YL-69", "threshold": 0.5, "pins": ["h30", "h31", "h32", "h33"] }
+```
+
 ### relay
 
 A 5 V relay (SRD-05VDC-SL-C): its coil `A1` `A2` (no polarity), its common `COM`, the contact closed

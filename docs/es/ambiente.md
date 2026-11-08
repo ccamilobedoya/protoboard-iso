@@ -35,11 +35,17 @@ tiempo `examples/tours/environment.json` hace un video del primero.
 | `sound` | dB | 30…110 | 0…140 | lineal | 40 | nivel |
 | `tilt` | | no / sí | 0…1 | | 0 | interruptor |
 | `angle` | ° | 0…360 | 0…360 | lineal | 0 | nivel |
+| `reflectance` | % (del papel blanco) | 0…100 | 0…100 | lineal | 80 | nivel |
+| `beam` | (1 = cortado) | no / sí | 0…1 | | 0 | interruptor |
 
 El rango del deslizador es lo que ofrece la página; el límite, lo que un valor puede ser (un
 circuito, un `set` o un programa por fuera se recortan, y `check` lo dice). Hoy lo leen el
-termistor y la fotorresistencia (`temperature`, `light`), el LM35 (`temperature`) y el interruptor
-de inclinación (`tilt`); los demás campos quedan listos para los sensores que vienen.
+termistor y la fotorresistencia (`temperature`, `light`), el LM35 (`temperature`), el interruptor
+de inclinación (`tilt`) y los módulos de sensor con LM393 ([modulos-sensores.md](modulos-sensores.md):
+`rain`, `moisture`, `light`, `beam`, `distance` y `reflectance`, `field`, `vibration`, y `angle` para un
+disco de encoder); los demás campos quedan listos para los sensores que vienen. `reflectance` (la
+superficie bajo un seguidor de línea o frente a un sensor de obstáculos) y `beam` (algo en una ranura
+óptica) llegaron con esos módulos.
 
 ## En el circuito
 
@@ -150,7 +156,7 @@ de la página, así que se lee en los temas claro, oscuro, cuaderno y escena:
 - `light`: un sol cuyo halo y rayos crecen con el logaritmo de la luz, oscuro en 0,1 lx y pleno en
   10 klx;
 - `temperature`: un termómetro cuya columna sube de mínimo a máximo;
-- un interruptor (`rain`, `motion`, `touch`, `vibration`, `tilt`): una lámpara que se enciende.
+- un interruptor (`rain`, `motion`, `touch`, `vibration`, `tilt`, `beam`): una lámpara que se enciende.
 
 ## En una línea de tiempo
 

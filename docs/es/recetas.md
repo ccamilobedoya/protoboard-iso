@@ -53,6 +53,12 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `opamp-follower` | Seguidor de voltaje con LM358: la salida copia un potenciómetro y alimenta un LED | RV1 = 100k, R1 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30) |
 | `opamp-noninverting` | Amplificador no inversor con LM358, ganancia 1 + R2/R1, una senoidal del generador en V+ | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0,5 V de pico (0,01–5) |
 | `opamp-inverting` | Amplificador inversor con LM358, ganancia −R2/R1 alrededor de la mitad de la fuente (un divisor en V+) | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0,5 V de pico (0,01–3) |
+| `rain-alarm` | Un módulo de lluvia MH-RD cuyo DO, en bajo cuando está mojado, enciende un PNP (S8550) que activa un zumbador | U1 = 0,5 (umbral, 0,05–0,95), R1 = 1k (base) |
+| `soil-led` | Un módulo de suelo YL-69 que enciende un LED hacia su DO con el suelo húmedo | U1 = 0,5 (umbral), R1 = 470, D1 = verde |
+| `light-switch-module` | El módulo LDR-LM393 de 3 pines que enciende un LED hacia su DO con luz | U1 = 0,5 (umbral), R1 = 470, D1 = amarillo |
+| `line-follower-uno` | Arduino UNO que lee un seguidor de línea TCRT5000 (DO en D2, AO en A0) y escribe LINE / NO LINE | U2 = 0,5 (umbral), U1 = su programa |
+| `obstacle-buzzer` | Un módulo de obstáculos FC-51 que absorbe por su OUT la corriente de un zumbador | U1 = 0,5 (umbral), R1 = 470 |
+| `hall-counter-uno` | Arduino UNO que cuenta las pasadas de un imán con un KY-024 (DO en D2, flancos de bajada) | U2 = 0,5 (umbral), U1 = su programa |
 
 `catalog` (MCP) o `parts` (consola) las listan con su título (la lista compacta de `catalog` deja fuera los valores); `catalog` con el nombre de una receta
 (`parts <nombre>` en la consola) muestra lo que enseña, sus componentes, redes, fuente, y el papel y
@@ -72,7 +78,7 @@ los límites de cada valor.
   `RECIPE_VALUE_CHOICE`, `RECIPE_VALUE_RANGE`, `RECIPE_VALUE_FIELD`; una receta desconocida,
   `RECIPE_UNKNOWN`, viene con los nombres más parecidos). Los identificadores y las redes no
   cambian nunca: son lo que hace que la receta salga lista.
-- Junto con la receta se pueden dar `title`, `board`, `clearance`, `netLabels`, `page` y `lang`, que
+- Junto con la receta se pueden dar `title`, `board`, `clearance`, `netLabels`, `environment`, `page` y `lang`, que
   reemplazan los de la receta. `parts` y `nets`, nunca (`RECIPE_AND_PARTS`).
 
 ## Después del montaje
@@ -99,7 +105,7 @@ página parpadea, en cámara lenta (el tiempo de la página sigue a la constante
    solo si el circuito sigue siendo el habitual.
 2. `src/recipes/<nombre>.js`: un módulo de datos, con un comentario al comienzo que diga qué circuito
    es. `name`, `title` y `teaches` (`{ en, es }`), `parts`, `nets`, `supplies`, y si hace falta
-   `netLabels`, `page`, `clearance`, y `values`: para cada identificador que puede cambiar, `field`
+   `netLabels`, `environment` (el del circuito, para un sensor), `page`, `clearance`, y `values`: para cada identificador que puede cambiar, `field`
    (lo que fija la forma corta) y, si hace falta, `role` (`{ en, es }`), `choices`, `min`/`max`,
    `extra` (los campos permitidos, cuando no sirven los de cada tipo).
 3. Regístrala en `src/recipes/index.js` y corre `npm run schemas` (el esquema lista los nombres).

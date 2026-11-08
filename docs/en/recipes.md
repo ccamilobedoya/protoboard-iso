@@ -52,6 +52,12 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `opamp-follower` | LM358 voltage follower: the output copies a potentiometer and drives an LED | RV1 = 100k, R1 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30) |
 | `opamp-noninverting` | LM358 non-inverting amplifier, gain 1 + R2/R1, a sine from the generator on V+ | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0.5 V peak (0.01–5) |
 | `opamp-inverting` | LM358 inverting amplifier, gain −R2/R1 around half the supply (a divider on V+) | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0.5 V peak (0.01–3) |
+| `rain-alarm` | An MH-RD rain module whose DO, low when wet, turns on a PNP (S8550) that switches a buzzer | U1 = 0.5 (threshold, 0.05–0.95), R1 = 1k (base) |
+| `soil-led` | A YL-69 soil module lighting an LED into its DO in damp soil | U1 = 0.5 (threshold), R1 = 470, D1 = green |
+| `light-switch-module` | The 3-pin LDR-LM393 module lighting an LED into its DO in the light | U1 = 0.5 (threshold), R1 = 470, D1 = yellow |
+| `line-follower-uno` | Arduino UNO reading a TCRT5000 line follower (DO on D2, AO on A0), printing LINE / NO LINE | U2 = 0.5 (threshold), U1 = its sketch |
+| `obstacle-buzzer` | An FC-51 obstacle module sinking a buzzer's current into its OUT | U1 = 0.5 (threshold), R1 = 470 |
+| `hall-counter-uno` | Arduino UNO counting a magnet's passes with a KY-024 (DO on D2, falling edges) | U2 = 0.5 (threshold), U1 = its sketch |
 
 `catalog` (MCP) or `parts` (CLI) lists them with their titles (the compact list `catalog` leaves the values out); `catalog` with a recipe's name (`parts
 <name>` in the CLI) shows what it teaches, its parts, nets, supply, and each value's role and limits.
@@ -69,7 +75,7 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
   `RECIPE_VALUE_CHOICE`, `RECIPE_VALUE_RANGE`, `RECIPE_VALUE_FIELD`; an unknown recipe,
   `RECIPE_UNKNOWN`, comes with the closest names). Ids and nets never change: they are what makes a
   recipe come out ready.
-- Beside a recipe, `title`, `board`, `clearance`, `netLabels`, `page` and `lang` may be given and
+- Beside a recipe, `title`, `board`, `clearance`, `netLabels`, `environment`, `page` and `lang` may be given and
   replace the recipe's. `parts` and `nets` never (`RECIPE_AND_PARTS`).
 
 ## After it is laid out
@@ -93,7 +99,7 @@ blinks, in slow motion (the page's time follows the slowest time constant).
    a recipe works around a limit only when the circuit is still the usual one.
 2. `src/recipes/<name>.js`: one module of data, with a header comment saying what the circuit is.
    `name`, `title` and `teaches` (`{ en, es }`), `parts`, `nets`, `supplies`, optionally
-   `netLabels`, `page`, `clearance`, and `values`: for each id that may change, `field` (what the
+   `netLabels`, `environment` (the circuit's, for a sensor), `page`, `clearance`, and `values`: for each id that may change, `field` (what the
    short form sets), and optionally `role` (`{ en, es }`), `choices`, `min`/`max`, `extra` (the
    allowed fields, when the defaults by kind do not fit).
 3. Register it in `src/recipes/index.js` and `npm run schemas` (the schema lists the names).

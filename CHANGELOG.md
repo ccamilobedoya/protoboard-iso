@@ -27,6 +27,16 @@ detail.
   indicator in a corner of the video), `value` of `vout`; `render-frames.js --parts` lists the
   environment. Examples `environment.json`, `environment-cycle.json` and the tour
   `tours/environment.json`.
+- LM393 sensor modules (`docs/en/sensor-modules.md`): one type, `sensor-module`, for eight part
+  numbers on the usual comparator board (rain `MH-RD`, soil `YL-69`, light `LDR-LM393`, optical
+  slot `SLOT-IR`, line follower `TCRT5000-M`, Hall `KY-024`, vibration `SW-420-M`, obstacle
+  `FC-51`), standing on its pins with its element on top; simulated as its divider, trimmer
+  (`threshold`), open-collector LM393, pull-up and LEDs, each element following the environment
+  (the Hall switch with its hysteresis, the SW-420 in bursts). Up close with its symbol and inside
+  view. The environment's `reflectance` and `beam`; `A0`/`D0` read as `AO`/`DO`; a recipe's
+  `environment`. Recipes `rain-alarm`, `soil-led`, `light-switch-module`, `line-follower-uno`,
+  `obstacle-buzzer`, `hall-counter-uno`; timelines `tours/soil-led.json` and
+  `tours/obstacle-buzzer.json`.
 
 ### Changed
 

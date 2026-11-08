@@ -57,6 +57,8 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 | `opamp-comparator`, `lm393-comparator` | potentiometer against a reference, an LED on the output (LM358; LM393 open collector) |
 | `opamp-follower` | LM358 copying a potentiometer and driving an LED |
 | `opamp-noninverting`, `opamp-inverting` | LM358 amplifiers, gain from R1 and R2, a sine from the generator |
+| `rain-alarm`, `soil-led`, `light-switch-module`, `obstacle-buzzer` | LM393 sensor modules (rain, soil, light, obstacle) whose DO drives a buzzer or an LED |
+| `line-follower-uno`, `hall-counter-uno` | Arduino UNO reading a TCRT5000 line follower; counting a magnet's passes with a KY-024 |
 
 - **values**: the main field by id (`"R1": "470"`, `"D1": "green"`, `"Q1": "BC547"`, `"V1": 9`) or
   some fields (`"R1": {"value": "470", "tolerance": "1%"}`). Only the ids a recipe lists can change,
