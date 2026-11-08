@@ -160,8 +160,14 @@ quedan.
 
 `min` y `max` aquí reemplazan el rango del circuito para esa fila (la misma validación que para una
 pieza: `PAGE_CONTROL_RANGE` si no va de menor a mayor o sale del límite; un `min` o un `max` solo se
-empareja con el otro extremo del circuito). El indicador de la fila lo sigue. Las filas llevan
+empareja con el otro extremo del circuito). El indicador de la fila lo sigue, y también su `scale` si la entrada la da (`"scale": "log"` necesita
+`min` mayor que 0). Un rango que no puede serlo no se dibuja: el indicador vuelve al rango del
+circuito y, si no, al del deslizador, así que su posición queda entre 0 y 1. Las filas llevan
 `data-min` y `data-max`.
+
+El `min` y el `max` de una entrada de `page.controls` valen solo para esa entrada del panel: la ficha
+de un sensor sigue el rango del circuito (o del registro). Para que la ficha y el panel coincidan,
+pon el rango en el circuito (`environment.<campo>.range`).
 
 Van en una sección propia, *Ambiente*, encima de los demás controles, cada fila con su indicador
 junto al deslizador (o el botón de encender y apagar de un interruptor), y *Pausar* / *Reanudar*

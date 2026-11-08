@@ -155,7 +155,14 @@ The page's *Restart* starts the programs again from t = 0; values set by hand st
 
 `min` and `max` here override the circuit's range for that row (the same validation as for a part:
 `PAGE_CONTROL_RANGE` when it does not go up or leaves the limit; a lone `min` or `max` pairs with
-the circuit's other end). The row's indicator follows it. The rows carry `data-min` and `data-max`.
+the circuit's other end). The row's indicator follows it, and so does its `scale` when the entry gives one (`"scale": "log"` needs
+`min` above 0). A range that cannot be one is not drawn: the indicator falls back to the circuit's
+range, then to the slider's, so its position stays between 0 and 1. The rows carry `data-min` and
+`data-max`.
+
+The `min` and `max` of a `page.controls` entry hold for that panel entry only: a sensor's card keeps
+following the circuit's range (or the registry's). To make the card and the panel agree, put the
+range in the circuit (`environment.<field>.range`).
 
 These go in a section of their own, *Environment*, above the other controls, each row with its
 indicator beside the slider (or the on/off button of a switch), and *Pause* / *Resume* for a field

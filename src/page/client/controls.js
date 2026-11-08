@@ -21,7 +21,7 @@
 import { fromSlider, toSlider, SLIDER } from '../../sim/controls.js';
 import { formatValue } from '../../core/units.js';
 import { applyFocus } from './focus.js';
-import { FIELDS, envText } from '../../sim/environment.js';
+import { FIELDS, envText, rangeProblem } from '../../sim/environment.js';
 import { createGauge } from './gauge.js';
 
 const DEBOUNCE = 120; // ms of rest before a slider's value is solved
@@ -53,10 +53,17 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
   const nameOf = (c) => (c.id === 'environment' ? fieldName(c.field) : t(`page.control.${c.field}`));
   // Every indicator on the page, by field: kept in step with the environment's values.
   const gauges = new Set();
-  // `range` {min, max}: the dial's span; without one, the circuit's range for the field (or the slider's).
+  // `range` {min, max, scale?}: the dial's span and scale, as a panel row or a timeline's gauge step asks
+  // for them. One that cannot be a range (it does not go up, leaves the field's limit, a log scale from
+  // 0) is not drawn: the dial falls back to the circuit's range for the field, then to the slider's.
+  const usable = (field, r) => r != null && Number.isFinite(r.min) && Number.isFinite(r.max) && !rangeProblem(field, [r.min, r.max]) && !(r.scale === 'log' && !(r.min > 0));
   const gauge = (field, range) => {
     const own = find(engine.controls(), 'environment', field);
-    const span = { min: range?.min ?? own?.min ?? FIELDS[field].min, max: range?.max ?? own?.max ?? FIELDS[field].max };
+    const f = FIELDS[field];
+    const asked = { min: range?.min ?? own?.min ?? f.min, max: range?.max ?? own?.max ?? f.max, scale: ['log', 'linear'].includes(range?.scale) ? range.scale : (own?.scale ?? f.scale) };
+    const circuit = { min: own?.min ?? f.min, max: own?.max ?? f.max, scale: own?.scale ?? f.scale };
+    const registry = { min: f.min, max: f.max, scale: f.scale };
+    const span = f.kind === 'switch' ? registry : [asked, circuit, registry].find((r) => usable(field, r));
     const g = createGauge(field, { ...FIELDS[field], ...span }, { text: (v) => envText(field, v, decimal) ?? t(v ? 'sim.env.on' : 'sim.env.off'), label: fieldName(field) });
     g.field = field;
     g.update(engine.environment?.()[field] ?? FIELDS[field].default);
