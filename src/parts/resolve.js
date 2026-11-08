@@ -61,6 +61,13 @@ export const PART_ALIASES = {
   MOTOR: { type: 'motor' },
   DCMOTOR: { type: 'motor' },
   MOTORDC: { type: 'motor' },
+  PIR: { type: 'pir-sensor' },
+  HCSR501: { type: 'pir-sensor' },
+  'HC-SR501': { type: 'pir-sensor' },
+  MOVIMIENTO: { type: 'pir-sensor' },
+  TTP223: { type: 'touch-sensor' },
+  TOUCH: { type: 'touch-sensor' },
+  TACTIL: { type: 'touch-sensor' },
 };
 
 const norm = (s) => String(s ?? '').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');

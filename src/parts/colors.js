@@ -171,3 +171,13 @@ Object.assign(MATERIALS, {
   motorPulley: '#ece8df',
   motorNotch: '#2a2b2e',
 });
+
+// Timed sensor modules: the PIR's green board, its white Fresnel dome (two whites, for the facets)
+// and the jumper cap on its H/L pins; the touch module's sensing pad ring.
+Object.assign(MATERIALS, {
+  pcbGreen: '#1f7a46',
+  domeWhite: '#f4f2ea',
+  domeFacet: '#e2dfd2',
+  jumperCap: '#2a2a2d',
+  padRing: '#cfd8e6',
+});

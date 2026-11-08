@@ -2683,7 +2683,11 @@
                       "tilt-alarm",
                       "lm35-uno",
                       "relay-npn",
-                      "motor-npn"
+                      "motor-npn",
+                      "pir-lamp",
+                      "pir-uno",
+                      "touch-toggle-led",
+                      "touch-uno"
                     ]
                   },
                   "values": {
