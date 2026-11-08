@@ -409,6 +409,33 @@ still.
 { "id": "M1", "type": "motor", "pins": ["a40", "a42"] }
 ```
 
+### pir-sensor
+
+An HC-SR501 PIR motion module standing on three pins `VCC`, `OUT`, `GND` (read from the left with its
+back toward you), its Fresnel dome toward the front. It runs from 4.5 to 20 V and `OUT` is 3.3 V
+behind 500 Ω while active. Fields: `delay` (seconds `OUT` stays high, 0.3 to 600, default 5),
+`mode` (`"H"` motion during the delay starts it again, default; `"L"` ignores it), `warmup` (seconds
+with `OUT` low after power on, default 30, 0 skips it), `sensitivity` (0 to 1, informative) and
+`motion` (its own value of the environment's field `motion`). The two times, the jumper and the
+warm-up are in [timed-sensors.md](timed-sensors.md).
+
+```json
+{ "id": "U1", "type": "pir-sensor", "delay": 5, "warmup": 0, "pins": ["h2", "h3", "h4"] }
+```
+
+### touch-sensor
+
+A TTP223 capacitive touch module standing on three pins `SIG` (printed I/O), `VCC`, `GND`, its pad
+toward the front. It runs from 2 to 5.5 V and `SIG` is as high as its supply. Fields: `mode`
+(`"momentary"`, default: `SIG` follows the touch; `"toggle"`: each touch flips it), `activeLow`
+(false), `fast` (the 60 ms response instead of 220 ms, false) and `touch` (its own value of the
+environment's field `touch`). Its first 0.5 s after power on ignore the pad
+([timed-sensors.md](timed-sensors.md)).
+
+```json
+{ "id": "U1", "type": "touch-sensor", "mode": "toggle", "pins": ["h2", "h3", "h4"] }
+```
+
 ### header
 
 A row of male header pins, to show where a module or a Dupont wire plugs in. Place it with

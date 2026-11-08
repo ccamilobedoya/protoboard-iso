@@ -192,7 +192,7 @@ que un tipo nuevo viene con todas, y los tipos del kit se van completando hasta 
 `test/pinout.test.js` («a part up close») sostiene la regla: cada tipo de `PART_TYPES` está en `COMPLETE`
 (revisado en todo lo anterior) o en `PENDING` con su motivo. Un tipo nuevo que no esté en ninguna de las
 dos hace fallar la prueba, así la decisión se toma y no se olvida; pasar un tipo de `PENDING` a `COMPLETE`
-es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
+es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC, módulo PIR, módulo táctil). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
 y la página de cerca en un celular.
 
 ## 7. Un sensor: unirse al ambiente
@@ -216,6 +216,10 @@ Nada más cambia en `src/sim`: el motor mueve cada pieza que sigue un campo cuan
 deslizador, un `set` de una línea de tiempo, un programa), su ficha dice si sigue el ambiente y la
 página muestra el indicador del campo. Pruébalo contra la fórmula propia del sensor en dos valores
 del campo, y que un valor en la pieza gana (`test/environment.test.js`).
+
+Un sensor que responde en el tiempo (el retardo de un PIR, la respuesta de un módulo táctil) tiene
+memoria propia: lista las claves de sus elementos en `state: [...]` para que `engine.set` las lleve,
+y puede dar `maxStep()` y `span()`; mira [sensores-temporizados.md](sensores-temporizados.md).
 
 ## Pruebas
 

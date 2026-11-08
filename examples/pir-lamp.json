@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "title": {
+    "en": "PIR motion sensor lights a lamp",
+    "es": "Sensor PIR de movimiento enciende una lámpara"
+  },
+  "board": "auto",
+  "clearance": 1,
+  "description": {
+    "en": "The pir-lamp recipe as laid out, with a tour: a PIR module holds OUT high for its delay after motion and a transistor lights a lamp from it. Move the motion switch in the page (or see how it works in the menu). The module's warm-up is skipped so it reacts at once.",
+    "es": "La receta pir-lamp tal como la monta layout, con un recorrido: un módulo PIR mantiene OUT alto durante su retardo tras el movimiento y un transistor enciende una lámpara con él. Mueve el interruptor de movimiento en la página (o mira cómo funciona en el menú). Se omite el calentamiento del módulo para que reaccione de inmediato."
+  },
+  "environment": {
+    "motion": false
+  },
+  "page": {
+    "controls": [
+      {
+        "environment": "motion"
+      },
+      {
+        "part": "U1",
+        "field": "delay"
+      }
+    ],
+    "tour": "tours/pir-lamp.json"
+  },
+  "parts": [
+    {
+      "id": "U1",
+      "type": "pir-sensor",
+      "delay": 5,
+      "warmup": 0,
+      "pins": [
+        "h2",
+        "h3",
+        "h4"
+      ]
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "4.7k",
+      "pins": [
+        "j3",
+        "j8"
+      ]
+    },
+    {
+      "id": "Q1",
+      "part": "2N2222A",
+      "type": "bjt",
+      "pins": [
+        "h10",
+        "h11",
+        "h12"
+      ]
+    },
+    {
+      "id": "R2",
+      "type": "resistor",
+      "value": "330",
+      "pins": [
+        "i14",
+        "i18"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "yellow",
+      "pins": [
+        "g18",
+        "g15"
+      ]
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "j2",
+        "T+3"
+      ]
+    },
+    {
+      "id": "W2",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "j14",
+        "T+15"
+      ]
+    },
+    {
+      "id": "W3",
+      "type": "wire",
+      "color": "orange",
+      "pins": [
+        "i8",
+        "i11"
+      ]
+    },
+    {
+      "id": "W4",
+      "type": "wire",
+      "color": "green",
+      "pins": [
+        "j12",
+        "j15"
+      ]
+    },
+    {
+      "id": "W5",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "j10",
+        "T-10"
+      ]
+    },
+    {
+      "id": "W6",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "i4",
+        "T-4"
+      ]
+    }
+  ],
+  "supplies": [
+    {
+      "id": "V1",
+      "kind": "bench",
+      "voltage": 5,
+      "positive": "T+",
+      "negative": "T-"
+    }
+  ],
+  "spec": {
+    "recipe": {
+      "name": "pir-lamp"
+    },
+    "nets": [
+      [
+        "T+",
+        "U1.VCC",
+        "R2.1"
+      ],
+      [
+        "U1.OUT",
+        "R1.1"
+      ],
+      [
+        "R1.2",
+        "Q1.B"
+      ],
+      [
+        "R2.2",
+        "D1.anode"
+      ],
+      [
+        "D1.cathode",
+        "Q1.C"
+      ],
+      [
+        "Q1.E",
+        "U1.GND",
+        "T-"
+      ]
+    ],
+    "wires": [
+      "W1",
+      "W2",
+      "W3",
+      "W4",
+      "W5",
+      "W6"
+    ]
+  }
+}

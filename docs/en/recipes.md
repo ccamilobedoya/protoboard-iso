@@ -45,6 +45,10 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `relay-npn` | A push button drives an NPN that drives a relay's coil, a 1N4007 across the coil; the relay's contact lights an LED | R1 = 1k (base), R2 = 330 (LED, on the contact), Q1 = 2N2222A (2N2222A, BC337, S8050) |
 | `motor-npn` | A potentiometer sets a DC motor's speed through a TIP120 emitter follower, a 1N4007 across the motor | RV1 = 0.8 (the wiper's position, 0–1), M1 = 0 (load, mN·m, 0–3) |
 | `lm35-uno` | Arduino UNO reading an LM35 on A0 and printing the temperature on the serial monitor (10 mV per °C) | U2 = 25 (°C), U1 = its sketch |
+| `pir-lamp` | A PIR motion module holds OUT high for its delay; OUT drives an NPN that lights an LED, 5 V; the environment's motion switch and the delay in the page | U1 = 5 (delay, s; mode and warmup too), R1 = 4.7k (base), R2 = 330, D1 = yellow |
+| `pir-uno` | Arduino UNO: a PIR module's OUT on D2; the sketch prints MOTION and the time of each new motion with `millis()` | U2 = 5 (delay, s), U1 = its sketch |
+| `touch-toggle-led` | A TTP223 touch module in toggle mode lights an LED straight from its I/O pin, from 3.3 V; the resistor keeps the current under the 4 mA its high level is guaranteed at | U1 = toggle (toggle, momentary), R1 = 470, D1 = red |
+| `touch-uno` | Arduino UNO: a TTP223 touch module on D2, powered from the UNO's 3.3 V pin (its output is then 3.3 V, over the 3 V a HIGH needs); the sketch prints TOUCH and RELEASE | U2 = momentary (momentary, toggle), U1 = its sketch |
 | `c3-blink` | ESP32-C3 SuperMini blinking an LED on GPIO3 | R1 = 220, D1 = red, U1 = its sketch |
 | `c3-pot-pwm` | ESP32-C3: a potentiometer on GPIO4 dims an LED on GPIO3 (ADC and PWM at 1 kHz) | RV1 = 10k, R1 = 220, D1 = red, U1 = its sketch |
 | `opamp-comparator` | LM358 comparing a potentiometer with half the supply; an LED on its output | RV1 = 10k (wiper at 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 5 V (5–30) |

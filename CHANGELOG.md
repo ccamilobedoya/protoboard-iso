@@ -20,6 +20,14 @@ detail.
   control. Two tours, `ldr-comparator.json` and `lm35-comparator.json`. A board's program can call
   `log`.
 - A timeline's `captionLines`: captions of 3 lines, with the oscilloscope and the circuit lower.
+- Timed sensors (S3; `docs/en/timed-sensors.md`): the HC-SR501 PIR motion module (`pir-sensor`: 30 s
+  warm-up, a delay, the H/L jumper, 2.5 s of rest) and the TTP223 touch module (`touch-sensor`:
+  momentary or toggle, 220 or 60 ms response, 0.5 s of calibration) read the environment's `motion`
+  and `touch`; their card says the phase and the time left, and up close a bar drains with it. A
+  device lists the keys of its elements in `state` and `engine.set` carries them (a slider no
+  longer restarts a timer); an element may give `maxStep()` and `span()` for the page's step and
+  real-time pace. Recipes `pir-lamp`, `pir-uno`, `touch-toggle-led`, `touch-uno`; examples and tours
+  `pir-lamp`, `touch-toggle-led`.
 - The environment (sensors, S0; `docs/en/environment.md`): a circuit's `environment` (light,
   temperature, humidity, distance… 14 fields, each a value or a program: toggle, cycle, ramp,
   keyframes) that every sensor reads unless the part gives its own value. The thermistor, the

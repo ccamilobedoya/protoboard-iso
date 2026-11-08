@@ -370,6 +370,28 @@ const motorSymbol = () => ({
   ids: { '+': '+', '-': '−' },
 });
 
+// A PIR module as a block: the pyroelectric element, two opposed halves, into a comparator that drives
+// OUT; VCC on top, GND under it.
+const pirSymbol = () => ({
+  w: 100, h: 100,
+  strokes: ['M24 22H76V78H24Z', 'M50 4V22', 'M50 78V96', 'M76 50H96', 'M30 42H38V58H30Z', 'M40 42H48V58H40Z', 'M48 50H54', 'M54 40V60L70 50Z'],
+  fills: [],
+  texts: [{ x: 31, y: 36, text: '+', anchor: 'middle', small: true }, { x: 44, y: 36, text: '−', anchor: 'middle', small: true }, { x: 58, y: 18, text: 'PIR', anchor: 'start', quiet: true }, { x: 72, y: 64, text: 'OUT', anchor: 'end', small: true }],
+  pins: { VCC: [50, 4], OUT: [96, 50], GND: [50, 96] },
+  ids: { VCC: 'VCC', OUT: 'OUT', GND: 'GND' },
+});
+
+// A touch module as a block: a pad (one plate of a capacitor, the finger the other) into the chip that
+// drives I/O; VCC on top, GND under it.
+const touchSymbol = () => ({
+  w: 100, h: 100,
+  strokes: ['M24 22H76V78H24Z', 'M50 4V22', 'M50 78V96', 'M76 50H96', 'M30 44H46', 'M30 54H46', 'M38 54V66', 'M56 38H70V62H56Z', 'M46 44H50V50H56', 'M46 54H50V50'],
+  fills: [],
+  texts: [{ x: 38, y: 38, text: 'pad', anchor: 'middle', small: true }, { x: 63, y: 53, text: 'IC', anchor: 'middle', small: true }, { x: 72, y: 71, text: 'I/O', anchor: 'end', small: true }],
+  pins: { SIG: [96, 50], VCC: [50, 4], GND: [50, 96] },
+  ids: { SIG: 'I/O', VCC: 'VCC', GND: 'GND' },
+});
+
 export function symbolOf(part) {
   const e = part.def?.electrical ?? {};
   const names = part.pinNames ?? [];
@@ -397,6 +419,8 @@ export function symbolOf(part) {
   if (part.type === 'temperature-sensor') return lm35(e.part ?? 'LM35');
   if (part.type === 'relay') return relaySymbol(names);
   if (part.type === 'motor') return motorSymbol();
+  if (part.type === 'pir-sensor') return pirSymbol();
+  if (part.type === 'touch-sensor') return touchSymbol();
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
   return null;
 }
@@ -485,6 +509,16 @@ export function insideOf(part) {
     const { model = {}, k, R, b } = limits();
     const top = model.range?.[1];
     return { kind: 'motor', ids: ids(), maxVoltage: top, fullSpeed: k > 0 ? (k * top) / (k * k + R * b) : null };
+  }
+  // A PIR module: its delay, the jumper and the warm-up it was asked for. A touch module: its mode,
+  // polarity and response, from their device.
+  if (part.type === 'pir-sensor') {
+    const { delay, mode, warmup } = limits();
+    return { kind: 'pir', ids: ids(), delay, mode, warmup };
+  }
+  if (part.type === 'touch-sensor') {
+    const { toggle, activeLow, fast } = limits();
+    return { kind: 'touch', ids: ids(), toggle, activeLow, fast };
   }
   if (part.type === 'ic' && e.kind === 'TMR') return { kind: 'timer' };
   return null;

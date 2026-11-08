@@ -429,6 +429,33 @@ pasa su par de bloqueo, deja el eje quieto.
 { "id": "M1", "type": "motor", "pins": ["a40", "a42"] }
 ```
 
+### pir-sensor (sensor PIR de movimiento)
+
+Un módulo de movimiento PIR HC-SR501 parado sobre tres patas `VCC`, `OUT`, `GND` (leídas de izquierda
+a derecha con su espalda hacia ti), con su cúpula de Fresnel hacia el frente. Funciona de 4,5 a 20 V y
+`OUT` es de 3,3 V detrás de 500 Ω mientras está activo. Campos: `delay` (segundos que `OUT` queda alto,
+de 0,3 a 600, por defecto 5), `mode` (`"H"` el movimiento durante el retardo lo reinicia, por defecto;
+`"L"` lo ignora), `warmup` (segundos con `OUT` bajo tras encenderlo, por defecto 30, 0 lo omite),
+`sensitivity` (de 0 a 1, informativo) y `motion` (su valor propio del campo `motion` del ambiente). Los
+dos tiempos, el puente y el calentamiento están en [sensores-temporizados.md](sensores-temporizados.md).
+
+```json
+{ "id": "U1", "type": "pir-sensor", "delay": 5, "warmup": 0, "pins": ["h2", "h3", "h4"] }
+```
+
+### touch-sensor (sensor táctil)
+
+Un módulo táctil capacitivo TTP223 parado sobre tres patas `SIG` (impresa I/O), `VCC`, `GND`, con su
+pad hacia el frente. Funciona de 2 a 5,5 V y `SIG` llega a la tensión de su alimentación. Campos:
+`mode` (`"momentary"`, por defecto: `SIG` sigue al toque; `"toggle"`: cada toque la invierte),
+`activeLow` (false), `fast` (la respuesta de 60 ms en vez de 220 ms, false) y `touch` (su valor propio
+del campo `touch` del ambiente). Los primeros 0,5 s tras encenderlo ignoran el pad
+([sensores-temporizados.md](sensores-temporizados.md)).
+
+```json
+{ "id": "U1", "type": "touch-sensor", "mode": "toggle", "pins": ["h2", "h3", "h4"] }
+```
+
 ### header (pines de cabecera)
 
 Una fila de pines macho, para mostrar dónde se enchufa un módulo o un cable Dupont. Se coloca

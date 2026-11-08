@@ -1,0 +1,31 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "pir-lamp",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A PIR sensor lights a lamp", "es": "Un sensor PIR enciende una lámpara" } },
+    { "at": 0, "do": "gauge", "environment": "motion", "on": true },
+    { "at": 1800, "do": "caption", "text": { "en": "Someone moves in front of the sensor", "es": "Alguien se mueve frente al sensor" } },
+    { "at": 1800, "do": "focus", "parts": ["U1"] },
+    { "at": 1800, "do": "frame", "target": "U1", "move": "arrival" },
+    { "at": 3500, "do": "set", "environment": "motion", "value": 1, "move": "hit" },
+    { "at": 3500, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 3500, "do": "caption", "text": { "en": "OUT rises to 3.3 V and the transistor lights the lamp", "es": "OUT sube a 3,3 V y el transistor enciende la lámpara" } },
+    { "at": 3700, "do": "wait-until", "part": "D1", "field": "brightness", "above": 0.05, "max": 3000 },
+    { "at": 3900, "do": "focus", "parts": ["U1", "Q1", "D1"] },
+    { "at": 3900, "do": "frame", "target": ["U1", "D1"], "move": "travel" },
+    { "at": 3900, "do": "value", "part": "U1", "field": "vout", "label": { "en": "OUT", "es": "salida OUT" } },
+    { "at": 6000, "do": "set", "environment": "motion", "value": 0, "move": "hit" },
+    { "at": 6000, "do": "caption", "text": { "en": "They stand still, but OUT holds for the 5 s delay", "es": "Se quedan quietos, pero OUT aguanta los 5 s del retardo" } },
+    { "at": 7500, "do": "wait-until", "part": "D1", "field": "brightness", "below": 0.02, "max": 8000 },
+    { "at": 7700, "do": "caption", "text": { "en": "The delay ran out: OUT falls and the lamp goes out", "es": "Se acabó el retardo: OUT baja y la lámpara se apaga" } },
+    { "at": 9500, "do": "set", "environment": "motion", "value": 1, "move": "hit" },
+    { "at": 9500, "do": "caption", "text": { "en": "Motion right away: for 2.5 s the sensor rests and ignores it", "es": "Movimiento de inmediato: 2,5 s el sensor descansa y lo ignora" } },
+    { "at": 9700, "do": "wait-until", "part": "D1", "field": "brightness", "above": 0.05, "max": 6000 },
+    { "at": 9900, "do": "caption", "text": { "en": "Then it fires again", "es": "Y luego vuelve a disparar" } },
+    { "at": 12000, "do": "set", "environment": "motion", "value": 0, "move": "hit" },
+    { "at": 12000, "do": "frame", "target": "parts", "move": "travel" },
+    { "at": 13500, "do": "focus", "parts": [] }
+  ]
+}

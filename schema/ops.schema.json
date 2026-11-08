@@ -2688,7 +2688,11 @@
                       "ldr-comparator",
                       "lm35-comparator",
                       "ntc-follower",
-                      "thermistor-uno"
+                      "thermistor-uno",
+                      "pir-lamp",
+                      "pir-uno",
+                      "touch-toggle-led",
+                      "touch-uno"
                     ]
                   },
                   "values": {

@@ -30,6 +30,8 @@ export const TYPE_FIELDS = {
   'temperature-sensor': ['part', 'temperature'],
   relay: ['part', 'wires', 'side', 'offset'],
   motor: ['part', 'load', 'side', 'offset'],
+  'pir-sensor': ['delay', 'sensitivity', 'mode', 'warmup', 'motion'],
+  'touch-sensor': ['mode', 'activeLow', 'fast', 'touch'],
 };
 
 // Fields a part has that its type does not take (a typo, or another type's field): saved, they

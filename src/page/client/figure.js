@@ -36,7 +36,8 @@
 // out to VOUT, with its supply's current; a relay's coil and field, its armature pulled onto NO or
 // resting on NC, with the kick when its coil is cut off bare; a DC motor's magnets, its armature turned
 // to the shaft's angle with an arrow as long as its speed, its brushes, and its supply against its
-// back-EMF. Arrows
+// back-EMF; a PIR's dome and pyroelectric halves into a comparator, with a bar that drains with the
+// time left; a touch module's pad and finger as two plates of a capacitor, into its chip. Arrows
 // never cross what they explain: they run beside the layers, under the channel, the film, the coil.
 // Didactic, not to scale.
 
@@ -1001,6 +1002,56 @@ const INSIDE = {
     }
     label(g, 50, 103, r ? [`Vs ${f(r.vs, 'V')}`, `Is ${f(Math.abs(is), 'A')}`, flowing(r.current) && `Iout ${f(r.current, 'A')}`].filter(Boolean).join(' · ') : '', 'note');
     label(g, 50, 114, r ? t(`page.tour.inside.lm35.${r.state}`, { min: f(4, 'V') }) : '', 'state');
+  },
+  pir(g, r, data, { t, f }) {
+    // The dome (a Fresnel lens: facets cut the view into zones) over the pyroelectric element, two
+    // opposed halves that feel only a change; a comparator that wakes while OUT is high; under them a
+    // bar that drains with the time left in the phase (the warm-up, the delay, the 2.5 s of rest); OUT
+    // lit while it is high. The supply and what OUT gives under the figure.
+    const [vcc, out, gnd] = data.ids;
+    const high = r?.state === 'high';
+    make(g, 'path', { class: 'dome', d: 'M6 46A21 21 0 0 1 48 46' });
+    for (const x of [14, 20, 27, 34, 41]) make(g, 'path', { class: 'dim', d: `M${x} ${fixed(46 - Math.sqrt(Math.max(0, 21 * 21 - (x - 27) * (x - 27))))}V46` });
+    make(g, 'rect', { class: `comparator${r?.motion ? ' active' : ''}`, x: 15, y: 46, width: 9, height: 12 });
+    make(g, 'rect', { class: `comparator${r?.motion ? ' active' : ''}`, x: 29, y: 46, width: 9, height: 12 });
+    label(g, 19.5, 68, '+', 'note', 'middle', FIGURE.small);
+    label(g, 33.5, 68, '−', 'note', 'middle', FIGURE.small);
+    make(g, 'path', { class: 'lead', d: 'M24 52H29M38 52H52' });
+    make(g, 'path', { class: `comparator${high ? ' active' : ''}`, d: 'M52 38V66L74 52Z' });
+    make(g, 'path', { class: 'lead', d: 'M74 52H92' });
+    make(g, 'circle', { class: `out${high ? ' active' : ''}`, cx: 94, cy: 52, r: 4 });
+    label(g, 92, 44, out, 'pin-name', 'end', FIGURE.small);
+    label(g, 6, 12, vcc, 'pin-name', 'start', FIGURE.small);
+    label(g, 94, 72, gnd, 'pin-name', 'end', FIGURE.small);
+    // The bar: how much of the phase is left.
+    const k = r?.left != null && r.length > 0 ? Math.max(0, Math.min(1, r.left / r.length)) : 0;
+    make(g, 'rect', { class: 'film', x: 8, y: 78, width: 66, height: 7, rx: 2 });
+    if (k > 0) make(g, 'rect', { class: 'soc', x: 8, y: 78, width: fixed(66 * k), height: 7, rx: 2 });
+    if (r?.left != null) label(g, 41, 95, f(r.left, 's'), 'note', 'middle', FIGURE.small);
+    label(g, 50, 103, r ? [`${vcc} ${f(r.vcc, 'V')}`, `${out} ${f(r.vout, 'V')}`, Math.abs(r.current) >= 1e-6 && `Iout ${f(Math.abs(r.current), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.pir.${r.state}`) : '', 'state');
+  },
+  touch(g, r, data, { t, f, control }) {
+    // The pad is one plate of a capacitor to ground; the finger is the other, away or laid on it with
+    // a thin layer between. The chip times how long the pad takes to charge: a finger makes it longer.
+    // Its output lit while active; a toggle also shows the latch it keeps.
+    const [sig] = data.ids;
+    const touching = Boolean(r?.touch ?? control?.('touch'));
+    const active = r?.state === 'active';
+    const lift = touching ? 0 : 14;
+    make(g, 'rect', { class: 'plate', x: 10, y: 66, width: 40, height: 6, rx: 1 });
+    make(g, 'rect', { class: 'dielectric', x: 10, y: 59, width: 40, height: 7 });
+    make(g, 'rect', { class: 'core', x: fixed(20), y: fixed(22 + lift), width: 20, height: 36, rx: 9 });
+    make(g, 'path', { class: 'dim', d: `M30 ${fixed(22 + lift)}V${fixed(40 + lift)}` });
+    label(g, 30, fixed(17 + lift), touching ? t('page.tour.inside.touch.finger') : '', 'note', 'middle', FIGURE.small);
+    make(g, 'path', { class: 'lead', d: 'M30 72V80H64V58' });
+    make(g, 'rect', { class: `latch${active ? ' active' : ''}`, x: 56, y: 34, width: 28, height: 24 });
+    label(g, 70, 49, r?.toggle ? 'T' : 'IC', 'pin-name', 'middle', FIGURE.text);
+    make(g, 'path', { class: 'lead', d: 'M84 46H92' });
+    make(g, 'circle', { class: `out${active ? ' active' : ''}`, cx: 94, cy: 46, r: 4 });
+    label(g, 92, 30, sig, 'pin-name', 'end', FIGURE.small);
+    label(g, 50, 103, r ? [`${data.ids[1]} ${f(r.vcc, 'V')}`, `${sig} ${f(r.vout, 'V')}`, Math.abs(r.current) >= 1e-6 && `I ${f(Math.abs(r.current), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.touch.${r.state}`) : '', 'state');
   },
 };
 

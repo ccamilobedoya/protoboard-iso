@@ -1,0 +1,29 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "touch-toggle-led",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A touch sensor flips an LED", "es": "Un sensor táctil invierte un LED" } },
+    { "at": 0, "do": "gauge", "environment": "touch", "on": true },
+    { "at": 1800, "do": "caption", "text": { "en": "In toggle mode each touch flips the output", "es": "En modo alterna cada toque invierte la salida" } },
+    { "at": 1800, "do": "focus", "parts": ["U1"] },
+    { "at": 1800, "do": "frame", "target": "U1", "move": "arrival" },
+    { "at": 3200, "do": "set", "environment": "touch", "value": 1, "move": "hit" },
+    { "at": 3200, "do": "flow", "on": true, "ramp": 600 },
+    { "at": 3200, "do": "caption", "text": { "en": "A finger on the pad: the chip waits 220 ms before it believes it", "es": "Un dedo en el pad: el chip espera 220 ms antes de creerlo" } },
+    { "at": 3400, "do": "wait-until", "part": "D1", "field": "brightness", "above": 0.05, "max": 3000 },
+    { "at": 3600, "do": "focus", "parts": ["U1", "D1"] },
+    { "at": 3600, "do": "frame", "target": ["U1", "D1"], "move": "travel" },
+    { "at": 3600, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
+    { "at": 5500, "do": "set", "environment": "touch", "value": 0, "move": "hit" },
+    { "at": 5500, "do": "caption", "text": { "en": "Letting go does nothing: the LED stays on", "es": "Soltar no hace nada: el LED sigue encendido" } },
+    { "at": 8500, "do": "set", "environment": "touch", "value": 1, "move": "hit" },
+    { "at": 8500, "do": "caption", "text": { "en": "A second touch flips it back", "es": "Un segundo toque lo invierte de nuevo" } },
+    { "at": 8700, "do": "wait-until", "part": "D1", "field": "brightness", "below": 0.02, "max": 3000 },
+    { "at": 9200, "do": "caption", "text": { "en": "The LED is off again: two touches, back to the start", "es": "El LED se apagó otra vez: dos toques, de vuelta al inicio" } },
+    { "at": 10400, "do": "set", "environment": "touch", "value": 0, "move": "hit" },
+    { "at": 12000, "do": "frame", "target": "parts", "move": "travel" },
+    { "at": 13500, "do": "focus", "parts": [] }
+  ]
+}

@@ -44,6 +44,8 @@ const SYNONYMS = [
   ['B', 'BLUE', 'AZUL'],
   ['COM', 'COMMON', 'COMUN', 'COMÚN'],
   ['DP', 'DOT', 'PUNTO'],
+  // A touch module's signal pin, printed I/O.
+  ['SIG', 'SIGNAL', 'I/O', 'IO', 'SENAL'],
 ];
 
 const norm = (s) => String(s ?? '').trim().toUpperCase().replace(/−/g, '-').replace(/\s+/g, '');

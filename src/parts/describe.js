@@ -50,6 +50,8 @@ export function describeKeys(part) {
     case 'temperature-sensor':
     case 'relay':
     case 'motor':
+    case 'pir-sensor':
+    case 'touch-sensor':
       return [part.type, ...(e.adjustable ? ['regulator.adjustable'] : [])];
     case 'regulator':
       return ['regulator', ...(e.adjustable ? ['regulator.adjustable'] : []), ...(e.family === 'AMS1117' ? ['regulator.ldo'] : [])];
