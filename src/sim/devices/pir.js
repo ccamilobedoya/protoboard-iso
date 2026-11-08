@@ -30,6 +30,7 @@ export const HIGH = 3;
 export const BLOCK = 4;
 export const PHASES = ['off', 'warmup', 'idle', 'high', 'block'];
 const EPS = 1e-9;
+const MAX_TURNS = 10000;
 
 // The phase and clock after `h` seconds, from { phase, clock }. `p`: { warmup, delay, mode, motion }.
 // A phase ends when its clock reaches its length; the time left over goes to the next one.
@@ -40,9 +41,10 @@ export function pirAdvance({ phase, clock }, h, powered, p) {
     clock = 0;
   }
   let left = h;
-  // A phase ends and the next begins with what is left of the step; a few turns at most (single
-  // mode with motion held goes round once a Tx + 2.5 s, far over a step).
-  for (let turn = 0; turn < 8; turn++) {
+  // A phase ends and the next begins with what is left of the step, however many it spans (single mode
+  // with motion held goes round once every Tx + 2.5 s). The turns are bounded only so that a step of
+  // years cannot hold the page; past the bound the time that is left is counted in the phase it is in.
+  for (let turn = 0; turn < MAX_TURNS; turn++) {
     if (phase === IDLE) {
       if (!p.motion) return { phase, clock: 0 };
       phase = HIGH;
@@ -56,7 +58,7 @@ export function pirAdvance({ phase, clock }, h, powered, p) {
     clock = 0;
     phase = phase === WARMUP ? IDLE : phase === HIGH ? BLOCK : IDLE;
   }
-  return { phase, clock };
+  return { phase, clock: clock + left };
 }
 
 // The seconds left in the phase it is in, or null when it is waiting for motion (or off).
@@ -75,27 +77,27 @@ function pirCore({ vcc, out, gnd }, p) {
     links: [[out, gnd]],
     phase: p.warmup > 0 ? WARMUP : IDLE,
     clock: 0,
-    // Whether VCC reached 4.5 V at the last accepted step; unknown until the first one (an operating
-    // point is solved before any step), when the voltages of the iteration say.
-    powered: null,
+    // Powered or not is read from the voltages being solved, never remembered: a supply changed by a
+    // control rebuilds the element, and what it remembered would outlive the supply.
     ahead(x, ctx) {
-      const powered = this.powered ?? volt(x, vcc) - volt(x, gnd) >= PIR.minSupply;
-      return pirAdvance(this, ctx.h ?? 0, powered, p);
+      return pirAdvance(this, ctx.h ?? 0, volt(x, vcc) - volt(x, gnd) >= PIR.minSupply, p);
     },
     stamp(st, x, ctx) {
+      // Unpowered (off) the output is high impedance: it drives nothing, and a pull-up outside wins.
+      const now = this.ahead(x, ctx).phase;
+      if (now === OFF) return false;
       st.conductance(out, gnd, g);
-      if (this.ahead(x, ctx).phase === HIGH) st.current(gnd, out, g * PIR.logic);
+      if (now === HIGH) st.current(gnd, out, g * PIR.logic);
       return false;
     },
     // Into the element at each node, in `nodes` order.
     currents(x, ctx = {}) {
-      const high = this.ahead(x, ctx).phase === HIGH;
-      const i = g * (volt(x, out) - volt(x, gnd) - (high ? PIR.logic : 0));
+      const now = this.ahead(x, ctx).phase;
+      const i = now === OFF ? 0 : g * (volt(x, out) - volt(x, gnd) - (now === HIGH ? PIR.logic : 0));
       return [0, i, -i];
     },
     accept(x, ctx = {}) {
-      const powered = volt(x, vcc) - volt(x, gnd) >= PIR.minSupply;
-      Object.assign(this, pirAdvance(this, ctx.h ?? 0, powered, p), { powered });
+      Object.assign(this, this.ahead(x, ctx));
     },
     // A phase with a timer is stepped finely (10 ms); waiting for motion needs no more than the page's.
     maxStep() {
@@ -110,7 +112,7 @@ export const pir = {
   types: ['pir-sensor'],
   kind: 'PIR',
   // The phase and the clock survive a slider (engine.js carries `state`).
-  state: ['phase', 'clock', 'powered'],
+  state: ['phase', 'clock'],
   senses: ['motion'],
   params(part, c) {
     const e = part.def.electrical;
@@ -153,12 +155,17 @@ export const pir = {
       vout: at('OUT') - at('GND'),
       current: -iout,
       quiescent: iq,
-      power: vcc * iq + at('OUT') * iout,
+      // Each pin's voltage over GND times the current into it (they add to zero, so the level of GND does not matter).
+      power: vcc * iq + (at('OUT') - at('GND')) * iout,
       currents,
     };
   },
   limits(entry, r) {
-    const out = [stress('SIM_IC_SUPPLY', 'voltage', r.vcc, PIR.maxSupply, 'V'), stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), PIR.maxCurrent, 'A')];
+    const out = [
+      stress('SIM_IC_SUPPLY', 'voltage', r.vcc, PIR.maxSupply, 'V'),
+      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, PIR.maxReverse, 'V', { param: 'voltage' }),
+      stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), PIR.maxCurrent, 'A'),
+    ];
     if (r.vcc > 0.5 && r.vcc < PIR.minSupply) out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(PIR.minSupply, 'V') }));
     if (r.state === 'warmup') out.push(note('info', 'SIM_PIR_WARMUP', { part: entry.id, time: q(r.left, 's') }));
     return out;

@@ -216,12 +216,14 @@ function withClock(declare, body) {
   resistorDevice.elements = (p, h) => {
     const out = elements(p, h);
     out.main.ticks = 0;
+    out.main.loose = 0; // a key the device does not list in `state`: never carried
     out.main.accept = function accept(_x, ctx = {}) {
       this.ticks += ctx.h ?? 0;
+      this.loose += ctx.h ?? 0;
     };
     return out;
   };
-  resistorDevice.read = (entry, h) => ({ ...read(entry, h), ticks: entry.main.ticks });
+  resistorDevice.read = (entry, h) => ({ ...read(entry, h), ticks: entry.main.ticks, loose: entry.main.loose });
   if (declare) resistorDevice.state = ['ticks'];
   try {
     return body();
@@ -248,7 +250,9 @@ test('engine: a device lists `state` and its elements keep those keys across eng
       // An unrelated control (R2's resistance) rebuilds the whole system.
       assert.ok(engine.set('R2', 'resistance', 2200));
       for (let k = 0; k < 10; k++) assert.ok(engine.step(0.1));
-      return engine.read().parts.R1.ticks;
+      const { ticks, loose } = engine.read().parts.R1;
+      assert.ok(Math.abs(loose - 0.9) < 1e-9, `a key not in state starts again after the control: ${loose}`);
+      return ticks;
     });
   assert.ok(Math.abs(run(true) - 1.9) < 1e-9, 'carried: the 1 s before the control (its last step accepted by the rebuild) and 0.9 s after');
   assert.ok(Math.abs(run(false) - 0.9) < 1e-9, 'not declared: the new element starts from zero');

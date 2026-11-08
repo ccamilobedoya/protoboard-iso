@@ -70,9 +70,16 @@ milliampere from `SIG`).
   registered at all. A toggle flips when the touch is registered, not when it is released.
 - `SIG` over 10 mA is `SIM_OVER_CURRENT`; between the 4 mA sourced or 8 mA sunk its levels are
   guaranteed at and 10 mA, `SIM_TOUCH_OUTPUT_SPEC` (a note). Over 5.5 V is `SIM_IC_SUPPLY`, under 2 V
-  `SIM_TOUCH_LOW_SUPPLY`.
+  `SIM_MODULE_LOW_SUPPLY` (the code the PIR uses too). *To confirm:* the 10 mA of the stress and the
+  4 mA / 8 mA of the note are the kit's choice from the datasheet's test points, not limits the sheet
+  gives.
 
 Its controls: `touch` (a switch) and `toggleMode`.
+
+Both modules are off under their minimum supply: the output is then high impedance (a pull-up
+outside raises it to the rail, and the module is not fed through its own pin), and a supply the wrong
+way round (over 0.3 V reversed, the kit's own figure: neither has a protection diode) is
+`SIM_REVERSE_VOLTAGE`.
 
 ## How the engine carries a device's state
 

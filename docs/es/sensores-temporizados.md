@@ -71,9 +71,16 @@ cerca de un miliamperio de `SIG`).
   registra. Una alterna se invierte cuando el toque se registra, no cuando se suelta.
 - `SIG` por encima de 10 mA es `SIM_OVER_CURRENT`; entre los 4 mA entregados o 8 mA recibidos con que
   se garantizan sus niveles y los 10 mA, `SIM_TOUCH_OUTPUT_SPEC` (una nota). Más de 5,5 V es
-  `SIM_IC_SUPPLY`, menos de 2 V `SIM_TOUCH_LOW_SUPPLY`.
+  `SIM_IC_SUPPLY`, menos de 2 V `SIM_MODULE_LOW_SUPPLY` (el código que usa también el PIR). *Por
+  confirmar:* los 10 mA del esfuerzo y los 4 mA / 8 mA de la nota son una decisión del kit a partir de
+  los puntos de prueba de la hoja, no límites que la hoja dé.
 
 Sus controles: `touch` (un interruptor) y `toggleMode`.
+
+Los dos módulos se apagan bajo su alimentación mínima: la salida queda entonces en alta impedancia
+(un pull-up externo la sube al riel, y el módulo no se alimenta por su propio pin), y una
+alimentación al revés (más de 0,3 V invertidos, una cifra del kit: ninguno tiene diodo de
+protección) es `SIM_REVERSE_VOLTAGE`.
 
 ## Cómo el motor lleva el estado de un dispositivo
 
