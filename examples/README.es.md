@@ -19,7 +19,7 @@ npm run examples -- --lang es                                             # todo
 |---|---|---|
 | **A mano**: cada componente con sus agujeros (`pins`) | Quieres cada agujero justo donde está en tu protoboard | [`led-resistor.json`](led-resistor.json) |
 | **Montaje automático**: componentes sin agujeros y las redes que los unen; `layout` los ubica y cablea | Cualquier otro circuito nuevo | [`layout/regulator-led.json`](layout/regulator-led.json): `node bin/protoboard-iso.js layout mi-regulador examples/layout/regulator-led.json` |
-| **Receta**: un circuito de lección habitual por su nombre, solo con los valores que cambian | El circuito es una de las [25 recetas](../docs/es/recetas.md) | `node bin/protoboard-iso.js layout mi-divisor --recipe divider --values '{"R2":"4k7"}'` |
+| **Receta**: un circuito de lección habitual por su nombre, solo con los valores que cambian | El circuito es una de las [37 recetas](../docs/es/recetas.md) | `node bin/protoboard-iso.js layout mi-divisor --recipe divider --values '{"R2":"4k7"}'` |
 
 El formato de cada campo: [formato-circuito.md](../docs/es/formato-circuito.md).
 
@@ -48,6 +48,15 @@ El formato de cada campo: [formato-circuito.md](../docs/es/formato-circuito.md).
 | | |
 |---|---|
 | <img src="../docs/img/examples/rc-square-wave.png" width="280" alt="RC con onda cuadrada"> | **[rc-square-wave.json](rc-square-wave.json)**: una resistencia y un condensador cargados por una onda cuadrada; compara en el osciloscopio la constante de tiempo con el período. |
+
+## Sensores y el ambiente
+
+| | |
+|---|---|
+| <img src="../docs/img/examples/environment.png" width="280" alt="Sensores de luz y temperatura que leen el ambiente"> | **[environment.json](environment.json)**: una fotorresistencia hacia un comparador LM393 que enciende un LED en la oscuridad, un divisor con NTC y un LM35, todos leyendo el ambiente compartido del circuito (luz y temperatura en el panel *Ambiente* de la página, cada una con su indicador); un recorrido ([tours/environment.json](tours/environment.json)) baja la luz y calienta el cuarto. Ver [ambiente.md](../docs/es/ambiente.md). |
+| <img src="../docs/img/examples/environment-cycle.png" width="280" alt="El mismo circuito con la luz en ciclo"> | **[environment-cycle.json](environment-cycle.json)**: el mismo circuito con la luz en un ciclo lento (una senoide de 5 a 2000 lx cada 8 s): el LED se enciende mientras está oscuro; *Pausar* y *Reanudar* en el panel. |
+| <img src="../docs/img/examples/pir-lamp.png" width="280" alt="Un módulo PIR de movimiento que enciende una lámpara con un transistor"> | **[pir-lamp.json](pir-lamp.json)**: la receta `pir-lamp` tal como la monta layout, con un recorrido ([tours/pir-lamp.json](tours/pir-lamp.json)): mueve el interruptor de movimiento y la lámpara se enciende, sigue encendida los 5 s de retardo del PIR y se apaga; un movimiento justo después se ignora 2,5 s. Mira [sensores-temporizados.md](../docs/es/sensores-temporizados.md). |
+| <img src="../docs/img/examples/touch-toggle-led.png" width="280" alt="Un módulo táctil que invierte un LED"> | **[touch-toggle-led.json](touch-toggle-led.json)**: la receta `touch-toggle-led` tal como la monta layout, con un recorrido ([tours/touch-toggle-led.json](tours/touch-toggle-led.json)): cada toque invierte el LED, 220 ms después del dedo; soltar no hace nada. |
 
 ## Microcontroladores
 

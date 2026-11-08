@@ -7,7 +7,9 @@
 //   kind          the reading's kind ('R', 'LED', 'Q'…); devices that share a kind share their
 //                 reading hooks (lines, tag, probe, currentPins), looked up by kind
 //   params(part, c)  compile time (Node): what the part needs, as plain JSON; c: { issues,
-//                    members (node → ids of the parts on it) }
+//                    members (node → ids of the parts on it), env(field) }; a sensor reads
+//                    c.env(field): the environment's value at t = 0, or undefined (the part has
+//                    its own value, or the circuit declares no environment)
 //   elements(p, h)   run time: adds its MNA elements, returns them by name; the "entry" a
 //                    reading gets is { id, kind, pins, ...params, ...elements }
 //                    h: { id, pin(name), at(i), inner(), node(name), add(element), supplies }
@@ -25,12 +27,20 @@
 //   set(p, field, value)    the params with that field changed (a pure formula), or null
 //   scope(reading)          optional: what the oscilloscope plots, { v, i } each { label, value }
 //                           or null (../scope.js); default: voltage and current of two leads
+//   senses                  optional: the environment's fields a sensor may follow (['light'];
+//                           ../environment.js); the engine changes a part that follows one with
+//   sense(p, field, value)  the params at that field's new value (a pure formula; default: set)
+//   ownField                optional: { field: the part's own name for it } when it is not the
+//                           field's ({ tilt: 'tilted' }): a part that gives it does not follow, and
+//                           its own control, moved, makes it stop following
+//   emits                   reserved for emitters (a part that changes the environment), later
 //   falstad(d, f)           optional: writes the part for Falstad's CircuitJS with the builder f
 //                           (../falstad.js); an equivalent adds its note with f.note. Without
 //                           it the export leaves the part out, with a note
 //
 // Adding a kind of part: its type in src/parts/types/, one file here, one line below, one test
-// against an independent reference in test/sim.test.js. Nothing else in src/sim changes.
+// against an independent reference in test/sim.test.js. Nothing else in src/sim changes. A sensor
+// adds `senses` and reads c.env(field) in params (docs/en/adding-parts.md, §7).
 
 import { wire } from './wire.js';
 import { resistor, thermistor, ldr, buzzer } from './resistor.js';
@@ -53,8 +63,11 @@ import { leds } from './leds.js';
 import { lm35 } from './lm35.js';
 import { relay } from './relay.js';
 import { motor } from './motor.js';
+import { pir } from './pir.js';
+import { touch } from './touch.js';
+import { sensorModule } from './sensor-module.js';
 
-export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, leds, bridge, mosfet, bjt, regulator, timer, opamp, mcu, lm35, relay, motor, battery];
+export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, leds, bridge, mosfet, bjt, regulator, timer, opamp, mcu, lm35, relay, motor, battery, pir, touch, sensorModule];
 
 // Several devices may share a type (the ICs: timer, op-amp); each one accepts its own parts.
 const BY_TYPE = {};

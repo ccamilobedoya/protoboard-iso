@@ -40,8 +40,8 @@ needed. Also an MCP tool (`review`).
 Measured on 2026-10-16: a layout agent rebuilding a two-rail supply took 68 calls and about
 185 000 tokens. What cuts that down:
 
-- `catalog` without `name` is a compact list (about 2 KB instead of 20); `name` gives one type's
-  fields and a real example only when needed.
+- `catalog` without `name` is a compact list (about 3.3 KB instead of 20): part types grouped by
+  family, one line each with its pins and its first part numbers (`name` gives all), then modules, boards and the recipes (name and title, no values: `catalog` with the recipe's name gives them); `name` gives one type's fields and a real example only when needed.
 - `suggest` with `parts` places a chain of parts in one call, each given the ones before it,
   naming earlier pins as groups (`"R1.2"`); with `profile: "lesson"` it leaves out what review
   would block, so fewer review rounds. It also measures more candidates when the first ones all

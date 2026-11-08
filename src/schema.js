@@ -13,7 +13,8 @@ import { BATTERY_FORMATS, BATTERY_CHEMISTRIES } from './parts/batteries.js';
 import { LDR_PARTS } from './parts/types/more.js';
 import { RECIPES } from './recipes/index.js';
 import { CAPTION_LAYOUTS, MOVES, RAISE, NUDGE, ASSEMBLE, CARD, PULSE_COLORS } from './page/client/moves.js';
-import { READINGS, FORMATS, THEMES } from './tour.js';
+import { READINGS, FORMATS, THEMES, GAUGE_CORNERS } from './tour.js';
+import { FIELDS as ENV_FIELDS, PROGRAM_KINDS, CYCLE_SHAPES, MAX_POINTS } from './sim/environment.js';
 import { LIMITS } from './limits.js';
 
 export function buildSchemas() {
@@ -41,7 +42,7 @@ export function buildSchemas() {
       height: { type: 'number' },
       color: { type: 'string' },
       size: { enum: [3, 5] },
-      part: { type: 'string', description: 'Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)' },
+      part: { type: 'string', description: 'Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270), sensor-module (MH-RD, YL-69, LDR-LM393, SLOT-IR, TCRT5000-M, KY-024, SW-420-M, FC-51) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)' },
       package: { type: 'string' },
       pinNames: { type: 'array', items: text },
       marking: { type: 'string' },
@@ -78,11 +79,31 @@ export function buildSchemas() {
       count: { type: 'integer', minimum: 1, maximum: 40, description: 'header: number of pins (place with pin1)' },
       beta: { type: 'number', description: 'thermistor: B constant in kelvin (default 3950)' },
       temperature: { type: 'number', description: 'thermistor, temperature-sensor (LM35): °C for the simulation (default 25)' },
-      light: { type: 'number', minimum: 0, description: `ldr: illuminance in lux for the simulation (default 100). Parts: ${Object.keys(LDR_PARTS).join(', ')}` },
+      light: { type: 'number', minimum: 0, description: `ldr: illuminance in lux for the simulation (default 100). Parts: ${Object.keys(LDR_PARTS).join(', ')}. sensor-module LDR-LM393: its own light, which wins over the environment's` },
       dcr: { type: 'number', minimum: 0, description: 'inductor: winding resistance, ohms' },
       current: { type: 'number', exclusiveMinimum: 0, description: 'inductor: rated current, amperes' },
       resistance: { oneOf: [text, { type: 'number' }], description: 'buzzer: coil resistance (default 16 Ω)' },
+      delay: { type: 'number', minimum: 0.3, maximum: 600, description: 'pir-sensor: seconds OUT stays high after motion (the trimmer Tx; default 5)' },
+      sensitivity: { type: 'number', minimum: 0, maximum: 1, description: 'pir-sensor: the sensitivity trimmer, 0…1 (default 0.5; the model has no range, so it only shows)' },
+      mode: { type: 'string', description: 'pir-sensor: "H" (default) motion during OUT high starts the delay again, "L" ignores it; touch-sensor: "momentary" (default) SIG follows the touch, "toggle" each touch flips it' },
+      warmup: { type: 'number', minimum: 0, maximum: 120, description: 'pir-sensor: seconds after power on with OUT low and motion ignored (default 30; 0 skips it)' },
+      motion: { type: 'boolean', description: 'pir-sensor: its own value of the environment field motion (a part that gives it does not follow the environment)' },
+      activeLow: { type: 'boolean', description: 'touch-sensor: SIG low while touched (or while a toggle is on); default false' },
+      fast: { type: 'boolean', description: 'touch-sensor: the 60 ms response instead of the 220 ms low-power one; default false' },
+      touch: { type: 'boolean', description: 'touch-sensor: its own value of the environment field touch' },
       description: { ...localized, description: 'How the part is used in this circuit, shown in its card in the page. A plain string is shown as it is in every language; { "en": …, "es": … } is shown in the page language. Leave it out when the learner should find it out.' },
+      threshold: { type: 'number', minimum: 0, maximum: 1, description: 'sensor-module: its trimmer, Vref = threshold · VCC (default 0.5); DO goes low while AO is under Vref' },
+      wetness: { type: 'number', minimum: 0, maximum: 1, description: "sensor-module MH-RD: its own share of the comb wet (0 dry … 1 all wet), instead of the environment's rain" },
+      moisture: { type: 'number', minimum: 0, maximum: 100, description: "sensor-module YL-69: its own soil moisture, %, instead of the environment's" },
+      beam: { type: ['boolean', 'number'], description: "sensor-module SLOT-IR: its own beam, true (1) = something opaque in the slot, instead of the environment's" },
+      reflectance: { type: 'number', minimum: 0, maximum: 100, description: "sensor-module TCRT5000-M, FC-51: its own surface, % of white paper's reflectance (black ink 10), instead of the environment's" },
+      distance: { type: 'number', minimum: 0, description: "sensor-module TCRT5000-M, FC-51: its own distance to the surface or the object, cm, instead of the environment's" },
+      field: { type: 'number', description: "sensor-module KY-024: its own magnetic field, G (+ a south pole at its face), instead of the environment's" },
+      vibration: { type: ['boolean', 'number'], description: "sensor-module SW-420-M: its own vibration, true (1) = shaken, instead of the environment's" },
+      transmittance: { type: 'number', minimum: 0, maximum: 1, description: 'sensor-module SLOT-IR: what reaches the receiver through the slot with the beam clear (default 1; paper about 0.3)' },
+      slots: { type: 'integer', minimum: 1, maximum: 360, description: "sensor-module SLOT-IR: an encoder disc with this many slots, turned by the environment's angle" },
+      duty: { type: 'number', minimum: 0, maximum: 1, description: 'sensor-module SLOT-IR with slots: the open share of each slot (default 0.5)' },
+      seed: { type: 'integer', minimum: 0, description: 'sensor-module SW-420-M: the pattern of its chatter (default: from its id)' },
       model: { type: 'object', description: 'Simulation: overrides the typical model, e.g. an LED measured at 20 mA { "vf": 2.95 } (see src/sim/models.js)' },
     },
     additionalProperties: true,
@@ -119,6 +140,7 @@ export function buildSchemas() {
         },
         additionalProperties: false,
       },
+      environment: environmentSchema(),
       supplies: {
         type: 'array',
         description: 'Simulation: where the power comes from, besides battery parts. The first supply\'s negative is ground (0 V); with none, the first battery part\'s.',
@@ -160,22 +182,24 @@ export function buildSchemas() {
           focus: { type: 'array', items: text, description: 'Parts in focus when the page opens (the ones being explained)' },
           controls: {
             type: 'array',
-            description: 'Live page: a panel with the controls a lesson puts in front (every adjustable part also has its own in its card). Each names a part or a supply and one of its controls: resistance (resistor), temperature (thermistor), light (photoresistor), position (potentiometer), pressed (push button, momentary), voltage (bench supply), charge (battery), frequency and amplitude (signal generator)',
+            description: 'Live page: a panel with the controls a lesson puts in front (every adjustable part also has its own in its card). Each names a part or a supply and one of its controls: resistance (resistor), temperature (thermistor), light (photoresistor), position (potentiometer), pressed (push button, momentary), voltage (bench supply), charge (battery), frequency and amplitude (signal generator), threshold and its own stimulus (sensor-module)',
             items: {
               type: 'object',
               properties: {
                 part: { type: 'string', description: 'id of the part' },
                 supply: { type: 'string', description: 'id of a supply (a drawn battery: use part)' },
-                field: { enum: ['resistance', 'temperature', 'light', 'position', 'pressed', 'voltage', 'charge', 'frequency', 'amplitude'] },
+                environment: { enum: Object.keys(ENV_FIELDS), description: "a field of the circuit's environment (instead of part or supply and field), shown with its indicator in the panel's Environment section" },
+                field: { enum: ['resistance', 'temperature', 'light', 'position', 'pressed', 'voltage', 'charge', 'frequency', 'amplitude', 'threshold', 'wetness', 'moisture', 'beam', 'reflectance', 'distance', 'field', 'vibration'] },
                 min: { type: 'number', description: 'slider start, in the unit of the field (ohms, °C, lux, 0…1, volts)' },
                 max: { type: 'number', description: 'slider end' },
                 scale: { enum: ['linear', 'log'] },
                 label: text,
               },
-              required: ['field'],
+              oneOf: [{ required: ['field'] }, { required: ['environment'] }],
               additionalProperties: false,
             },
           },
+          environment: { type: 'boolean', description: "The whole environment (every field it has) in the side panel, each with its indicator and, for a field a program moves, Pause and Resume (default: true when a part follows a field of it)" },
           theme: { enum: ['auto', ...THEMES], description: "Colours of the page: 'auto' follows the system (default); 'light' or 'dark' (the bench), 'notebook' (cream paper, a blue grid) or 'stage' (the notebook at night, the videos') fix them. The reader's choice in the page's menu and a link's ?theme= win over this" },
           tour: {
             description: 'The timeline the page plays as *See how it works* (and a video is made from): the name of a JSON file beside the circuit (timeline.schema.json), read only from its folder, or the timeline itself',
@@ -233,7 +257,7 @@ export function buildSchemas() {
 function timelineSchema(localized) {
   const text = { allOf: [localized], description: `At most ${LIMITS.tourText} characters` };
   const id = { type: 'string', description: 'id of a part (or a supply)' };
-  const reading = { enum: Object.keys(READINGS), description: 'What is read from the part: current (A), voltage (V), power (W), brightness (0…1)' };
+  const reading = { enum: Object.keys(READINGS), description: 'What is read from the part: current (A), voltage (V), power (W), brightness (0…1), vout (V: the output of an LM35, a regulator, a 555)' };
   const common = {
     at: { type: 'number', minimum: 0, description: 'ms from the start; steps with the same at start together' },
     move: { enum: Object.keys(MOVES), description: Object.entries(MOVES).map(([n, m]) => `${n} ${m.min === m.max ? `${m.ms} ms` : `${m.min}…${m.max} ms`}`).join(', ') },
@@ -273,7 +297,8 @@ function timelineSchema(localized) {
             action('frame', { target: { oneOf: [{ type: 'string' }, { type: 'array', items: id, minItems: 1 }], description: 'board, parts, here (the frame as it is), a part id or a list of part ids' }, zoom: { type: 'number', minimum: 0.05, maximum: 20, description: 'Closer in (above 1) or farther out (below 1), about the centre' }, pan: { type: 'array', items: { type: 'number', minimum: -3, maximum: 3 }, minItems: 2, maxItems: 2, description: 'Then moved by [x, y] shares of the frame: [0.2, 0] a fifth to the right, [0, -0.1] a tenth up' } }, ['target']),
             action('focus', { parts: { type: 'array', items: id, description: 'The parts brought forward; [] clears. With a move, the veil, strips and coordinates come in (or leave) along it' }, solid: { type: 'boolean', description: 'The parts in focus drawn whole and opaque even with the current layer on (by default the plan sees through them); until the next focus' } }, ['parts']),
             action('flip', { view: { type: 'string', description: 'A view of the page (front, back…)' } }, ['view']),
-            action('set', { part: id, field: { type: 'string', description: 'A control of the part (resistance, pressed, voltage…)' }, value: { type: ['number', 'boolean'] } }, ['part', 'field', 'value']),
+            action('set', { part: id, field: { type: 'string', description: 'A control of the part (resistance, pressed, voltage…)' }, environment: { enum: Object.keys(ENV_FIELDS), description: "A field of the circuit's environment instead of a part's control (docs/en/environment.md): every sensor that follows it changes; a program there pauses. Without a gauge step up, its indicator shows while the move lasts" }, value: { type: ['number', 'boolean'] } }, ['value'], { oneOf: [{ required: ['part', 'field'] }, { required: ['environment'], not: { anyOf: [{ required: ['part'] }, { required: ['field'] }] } }] }),
+            action('gauge', { environment: { enum: Object.keys(ENV_FIELDS), description: 'The field whose indicator shows' }, on: { type: 'boolean', description: 'true puts it up (replacing another), false takes it away' }, corner: { enum: GAUGE_CORNERS, description: 'tl, tr (default), bl or br: the corner of the room the caption leaves (portrait: under the caption, or over the bottom band; landscape: the right half)' }, min: { type: 'number', description: "The dial's lower end, in the field's unit (default: the circuit's range for the field, else the slider's): choose it so the change is seen. Inside the field's limit, below max, above 0 on a log scale" }, max: { type: 'number', description: "The dial's upper end (see min)" } }, ['environment', 'on'], { description: 'The indicator of a field of the environment in a box of its own (a sun for light, a thermometer, a gauge, a lamp for a switch), as probe shows the oscilloscope' }),
             action('flow', { on: { type: 'boolean' }, ramp: { type: 'number', minimum: 0, maximum: 10000, description: 'ms for the dots to reach their speed' }, scope: { enum: ['all', 'focus'], description: 'focus: the current only on the nets that touch the legs of the parts in focus (their strips, the jumpers between them, the focused parts), the rest plain board under the veil, following each focus until the next flow step (default all)' }, style: { enum: ['plan', 'real'], description: "The current layer's drawing in this timeline: plan (pads and straight lines) or real (along the strips, leads and jumpers); the first flow step that names one sets it for the whole recording (default: the page's, page.flow.style)" } , sense: { type: 'object', required: ['part'], properties: { part: { ...id, description: 'The part whose current says the way (a capacitor: forward while it charges, back while it discharges)' }, forward: { ...SIDE, description: 'While its current is forward (zero or more)' }, back: { ...SIDE, description: 'While its current is back' } }, additionalProperties: false, description: 'The dots coloured by the way the current runs through a part, and on the log scale so a small current is seen: charge in one colour, discharge in another' }}, ['on']),
             action('caption', { text, line: { ...text, description: 'A second line, drawn as the first (one idea in at most two lines)' }, em: { ...text, description: 'The emphasis: words of the text (else of the second line), drawn in the accent and 15 % larger; the lines are still measured as laid out' }, data: { ...text, description: 'A data row under the caption, only for a value or a before → after not already on screen ("1 kΩ → 100 kΩ"): sans with tabular figures, in the accent, 44 px at 1080 wide' }, off: { const: true, description: 'Takes the caption away' }, enter: show, in: ms(3000, 'ms each line takes to come in (default 400)'), stagger: ms(1000, 'ms between two lines (default 90)'), out: ms(2000, 'ms the caption before takes to leave (default 200)') }, [], { oneOf: [{ required: ['text'] }, { required: ['off'] }] }),
             action('value', { part: id, field: reading, label: text, count: ms(5000, 'ms it counts up to its reading (default 500; 0 shows it as it is)'), enter: show, in: ms(3000, 'ms it takes to come in (default 400)') }, ['part', 'field']),
@@ -296,6 +321,29 @@ function timelineSchema(localized) {
         },
       },
     },
+    additionalProperties: false,
+  };
+}
+
+// The circuit's environment (sensors, S0; src/sim/environment.js): a value or a program per field.
+function environmentSchema() {
+  const n = { type: 'number' };
+  const program = {
+    type: 'object',
+    required: ['kind'],
+    description: `Changes the field with simulated time: ${PROGRAM_KINDS.join(', ')}`,
+    oneOf: [
+      { properties: { kind: { const: 'toggle' }, high: n, low: n, on: { type: 'number', minimum: 0, description: 's at high' }, off: { type: 'number', minimum: 0, description: 's at low' } }, required: ['kind', 'high', 'low', 'on', 'off'], additionalProperties: false, description: 'high for `on` s, then low for `off` s, starting high at t = 0' },
+      { properties: { kind: { const: 'cycle' }, shape: { enum: CYCLE_SHAPES, description: "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)" }, period: { type: 'number', exclusiveMinimum: 0, description: 's' }, min: n, max: n }, required: ['kind', 'period', 'min', 'max'], additionalProperties: false },
+      { properties: { kind: { const: 'ramp' }, from: n, to: n, seconds: { type: 'number', minimum: 0 } }, required: ['kind', 'from', 'to', 'seconds'], additionalProperties: false, description: 'from → to in `seconds`, then holds `to`' },
+      { properties: { kind: { const: 'keyframes' }, points: { type: 'array', minItems: 1, maxItems: MAX_POINTS, items: { type: 'array', items: n, minItems: 2, maxItems: 2 }, description: '[[t, value], …], t in s going up: straight lines between them, the last one held' }, loop: { type: 'boolean', description: 'start again after the last point' } }, required: ['kind', 'points'], additionalProperties: false },
+    ],
+  };
+  const field = (f) => ({ description: `${f.unit ? `${f.unit}, ` : ''}${f.kind === 'switch' ? 'a switch: 0 or 1 (false or true)' : `${f.min}…${f.max} on the slider, ${f.limit[0]}…${f.limit[1]} at most`}, default ${f.default}`, oneOf: [{ type: f.kind === 'switch' ? ['number', 'boolean'] : 'number' }, { type: 'object', properties: { value: { type: ['number', 'boolean'] }, program, ...(f.kind === 'switch' ? {} : { range: { type: 'array', items: n, minItems: 2, maxItems: 2, description: `[min, max]: the span the slider and the indicator show (inside ${f.limit[0]}…${f.limit[1]}, min < max${f.scale === 'log' ? ', min above 0' : ''}); default ${f.min}…${f.max}` } }) }, additionalProperties: false }] });
+  return {
+    type: 'object',
+    description: "The world the sensors read (docs/en/environment.md), shared by every part that senses a field: a number, or { value, program }. A part's own value (\"light\": 50 on the part) wins over it",
+    properties: Object.fromEntries(Object.entries(ENV_FIELDS).map(([name, f]) => [name, field(f)])),
     additionalProperties: false,
   };
 }

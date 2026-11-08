@@ -18,7 +18,7 @@ npm run examples                                                   # every examp
 |---|---|---|
 | **By hand**: every part with its holes (`pins`) | You want each hole exactly where it is on your board | [`led-resistor.json`](led-resistor.json) |
 | **Layout**: parts without holes and the nets that join them; `layout` places and wires them | Another new circuit | [`layout/regulator-led.json`](layout/regulator-led.json): `node bin/protoboard-iso.js layout my-regulator examples/layout/regulator-led.json` |
-| **Recipe**: a usual lesson circuit by name, only the values that change | The circuit is one of the [25 recipes](../docs/en/recipes.md) | `node bin/protoboard-iso.js layout my-divider --recipe divider --values '{"R2":"4k7"}'` |
+| **Recipe**: a usual lesson circuit by name, only the values that change | The circuit is one of the [37 recipes](../docs/en/recipes.md) | `node bin/protoboard-iso.js layout my-divider --recipe divider --values '{"R2":"4k7"}'` |
 
 The format of each field: [circuit-format.md](../docs/en/circuit-format.md).
 
@@ -47,6 +47,15 @@ The format of each field: [circuit-format.md](../docs/en/circuit-format.md).
 | | |
 |---|---|
 | <img src="../docs/img/examples/rc-square-wave.png" width="280" alt="RC with a square wave"> | **[rc-square-wave.json](rc-square-wave.json)**: a resistor and a capacitor charged by a square wave; compare the time constant with the period on the oscilloscope. |
+
+## Sensors and the environment
+
+| | |
+|---|---|
+| <img src="../docs/img/examples/environment.png" width="280" alt="Light and temperature sensors reading the environment"> | **[environment.json](environment.json)**: a photoresistor into an LM393 comparator that lights an LED in the dark, an NTC divider and an LM35, all reading the circuit's shared environment (light and temperature in the page's *Environment* panel, each with its indicator); a tour ([tours/environment.json](tours/environment.json)) dims the light and warms the room. See [environment.md](../docs/en/environment.md). |
+| <img src="../docs/img/examples/environment-cycle.png" width="280" alt="The same circuit with the light in a cycle"> | **[environment-cycle.json](environment-cycle.json)**: the same circuit with the light in a slow cycle (a sine from 5 to 2000 lx every 8 s): the LED lights while it is dark; *Pause* and *Resume* in the panel. |
+| <img src="../docs/img/examples/pir-lamp.png" width="280" alt="A PIR motion module lighting a lamp through a transistor"> | **[pir-lamp.json](pir-lamp.json)**: the `pir-lamp` recipe as laid out, with a tour ([tours/pir-lamp.json](tours/pir-lamp.json)): move the motion switch and the lamp lights, stays on for the PIR's 5 s delay and goes out; motion right after is ignored for 2.5 s. See [timed-sensors.md](../docs/en/timed-sensors.md). |
+| <img src="../docs/img/examples/touch-toggle-led.png" width="280" alt="A touch module flipping an LED"> | **[touch-toggle-led.json](touch-toggle-led.json)**: the `touch-toggle-led` recipe as laid out, with a tour ([tours/touch-toggle-led.json](tours/touch-toggle-led.json)): each touch flips the LED, 220 ms after the finger; letting go does nothing. |
 
 ## Microcontrollers
 

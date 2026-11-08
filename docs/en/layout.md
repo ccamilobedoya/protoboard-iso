@@ -12,7 +12,7 @@ Entry points, all calling `autoLayout(spec, { profile, checkOnly })`:
 
 | From | Call |
 |---|---|
-| MCP | tool `layout` (`target`, `recipe` and `values`, or `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `page`, `clearance`, `check_only`) |
+| MCP | tool `layout` (`target`, `recipe` and `values`, or `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`) |
 | CLI | `node bin/protoboard-iso.js layout <new target> <spec.json \| -> [--check] [--json]`, or `--recipe <name> [--values '<json>']` (exit 0 done, 2 changes) |
 | Code | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'`; a recipe is turned into a spec first by `resolveRecipe` (`src/recipes/index.js`) |
 | Bench | `npm run layout-bench [-- spec.json …]` (runs `examples/layout/*.json` and every recipe) |
@@ -49,7 +49,7 @@ by name with only the values that change; it becomes an ordinary spec before any
   free hole of that pin's strip once placed.
 - `board` (`auto` by default: the elastic board that grows in length, or two side by side when a
   development board needs it, see [Two boards](#two-boards-a-devkit-on-both-headers-since-2026-10-31)),
-  `clearance` (1 mm by default), `title`, `lang`, `netLabels`, `page`: copied into the circuit.
+  `clearance` (1 mm by default), `title`, `lang`, `netLabels`, `environment`, `page`: copied into the circuit.
 
 ## The pipeline
 

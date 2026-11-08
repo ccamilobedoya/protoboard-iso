@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { createEngine } from '../src/sim/engine.js';
 import { compile } from '../src/sim/index.js';
 import { paceOf } from '../src/sim/pace.js';
+import { resistor as resistorDevice } from '../src/sim/devices/resistor.js';
 import { DIODES, VT, WIRE_RESISTANCE } from '../src/sim/models.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { autoLayout } from '../src/layout.js';
@@ -205,4 +206,77 @@ test('engine: advance(h) splits a step Newton cannot take and keeps h for the ne
   assert.equal(engine.advance(1e-5), false);
   assert.deepEqual(tried, [1e-5, 5e-6, 2.5e-6, 1.25e-6, 6.25e-7]);
   assert.equal(engine.time, before);
+});
+
+// A device with memory of its own: the resistor's device, lent a clock (`ticks`, the seconds its
+// element has been accepted for) and, when `declare`, the `state` that carries it over a rebuild. A
+// control on another part rebuilds the system; the clock of this one must survive only when declared.
+function withClock(declare, body) {
+  const { elements, read, state } = resistorDevice;
+  resistorDevice.elements = (p, h) => {
+    const out = elements(p, h);
+    out.main.ticks = 0;
+    out.main.loose = 0; // a key the device does not list in `state`: never carried
+    out.main.accept = function accept(_x, ctx = {}) {
+      this.ticks += ctx.h ?? 0;
+      this.loose += ctx.h ?? 0;
+    };
+    return out;
+  };
+  resistorDevice.read = (entry, h) => ({ ...read(entry, h), ticks: entry.main.ticks, loose: entry.main.loose });
+  if (declare) resistorDevice.state = ['ticks'];
+  try {
+    return body();
+  } finally {
+    Object.assign(resistorDevice, { elements, read });
+    if (state === undefined) delete resistorDevice.state;
+    else resistorDevice.state = state;
+  }
+}
+const clocked = () => {
+  const program = ladder(0);
+  program.nodes = ['n0', 'n1'];
+  program.devices = ['R1', 'R2'].map((id, i) => ({ id, type: 'resistor', kind: 'R', pins: [{ name: '1', node: i ? 'n1' : 'n0' }, { name: '2', node: i ? 'g' : 'n1' }], params: { resistance: 1000, nominal: 1000, maxPower: 0.25 } }));
+  return program;
+};
+
+test('engine: a device lists `state` and its elements keep those keys across engine.set', () => {
+  const run = (declare) =>
+    withClock(declare, () => {
+      const engine = createEngine(clocked());
+      assert.ok(engine.start('dc', 0.1));
+      for (let k = 0; k < 10; k++) assert.ok(engine.step(0.1));
+      assert.ok(Math.abs(engine.read().parts.R1.ticks - 0.9) < 1e-9, 'the last step is accepted at the start of the next');
+      // An unrelated control (R2's resistance) rebuilds the whole system.
+      assert.ok(engine.set('R2', 'resistance', 2200));
+      for (let k = 0; k < 10; k++) assert.ok(engine.step(0.1));
+      const { ticks, loose } = engine.read().parts.R1;
+      assert.ok(Math.abs(loose - 0.9) < 1e-9, `a key not in state starts again after the control: ${loose}`);
+      return ticks;
+    });
+  assert.ok(Math.abs(run(true) - 1.9) < 1e-9, 'carried: the 1 s before the control (its last step accepted by the rebuild) and 0.9 s after');
+  assert.ok(Math.abs(run(false) - 0.9) < 1e-9, 'not declared: the new element starts from zero');
+});
+
+test('engine: an element asks for a shorter step (maxStep) and for real time (span)', () => {
+  const engine = createEngine(clocked());
+  assert.ok(engine.start('dc', 0.1));
+  assert.equal(engine.stepHint(), null);
+  assert.deepEqual(engine.stimuli(), []);
+  const { elements } = resistorDevice;
+  resistorDevice.elements = (p, h) => {
+    const out = elements(p, h);
+    out.main.maxStep = () => 0.01;
+    out.main.span = () => 2.5;
+    return out;
+  };
+  try {
+    const timed = createEngine(clocked());
+    assert.ok(timed.start('dc', 0.1));
+    assert.equal(timed.stepHint(), 0.01);
+    assert.deepEqual(timed.stimuli(), [2.5, 2.5]);
+    assert.equal(paceOf([], [], false, timed.stimuli()).h, 0.0125, 'real time, a two-hundredth of the span');
+  } finally {
+    resistorDevice.elements = elements;
+  }
 });

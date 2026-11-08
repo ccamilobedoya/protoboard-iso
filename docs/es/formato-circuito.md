@@ -26,7 +26,8 @@ Las claves van en inglés para que el formato sea el mismo en todos los idiomas.
 | `netLabels` | no | Texto junto a un riel, por id del riel. Un riel con etiqueta cuenta como conectado a una fuente. |
 | `lang` | no | Idioma de todo lo que se genera a partir del circuito: etiquetas del dibujo, la página, mensajes (`en`, `es`). Un idioma pedido en la llamada (`--lang`, `lang` del MCP) gana. |
 | `supplies` | no | Simulación: de dónde sale la energía, por ejemplo `[{ "id": "V1", "voltage": 5 }]` (entre T+ y T-). Una [batería](#battery-batería) también es una fuente. Ver [simulacion.md](simulacion.md). |
-| `page` | no | La página para embeber. Con fuente, la simulación corre por defecto; `simulation: false` la apaga toda (un valor por predecir), `results: false` solo los valores del componente tocado (y los LED encendidos), `flow: false` solo el botón Corriente; `focus` (componentes en foco al abrirla), `start` (`dc` o `zero`: cómo arranca la simulación en vivo), `theme` (`auto`, por defecto, sigue al sistema; `light` o `dark` lo fija; `?theme=` en el enlace gana), `controls` (un panel de deslizadores y botones: componente o fuente, campo, rango y etiqueta opcionales), `tour` (una línea de tiempo: el nombre de un archivo JSON junto al circuito, leído solo desde su carpeta, o la línea de tiempo misma; *Ver cómo funciona* en el menú ⋯ la reproduce, ver [escena-y-video.md](escena-y-video.md)). Ver [foco-y-corriente.md](foco-y-corriente.md). |
+| `environment` | no | Lo que leen los sensores, compartido por todas las piezas que lo sienten: `{ "light": 300, "temperature": 25 }`, cada campo un número o `{ value, program }` (un programa lo cambia con el tiempo). Un sensor sin valor propio lo sigue. Ver [ambiente.md](ambiente.md). |
+| `page` | no | La página para embeber. Con fuente, la simulación corre por defecto; `simulation: false` la apaga toda (un valor por predecir), `results: false` solo los valores del componente tocado (y los LED encendidos), `flow: false` solo el botón Corriente; `focus` (componentes en foco al abrirla), `start` (`dc` o `zero`: cómo arranca la simulación en vivo), `theme` (`auto`, por defecto, sigue al sistema; `light` o `dark` lo fija; `?theme=` en el enlace gana), `controls` (un panel de deslizadores y botones: componente o fuente, campo, rango y etiqueta opcionales; o `{ "environment": "light" }`, un campo del ambiente con su indicador), `environment` (`true` o `false`: todos los campos del ambiente en el panel; por defecto cuando una pieza sigue uno), `tour` (una línea de tiempo: el nombre de un archivo JSON junto al circuito, leído solo desde su carpeta, o la línea de tiempo misma; *Ver cómo funciona* en el menú ⋯ la reproduce, ver [escena-y-video.md](escena-y-video.md)). Ver [foco-y-corriente.md](foco-y-corriente.md). |
 | `parts` | sí | Lista de componentes. |
 
 ## Agujeros
@@ -324,13 +325,15 @@ su tamaño. Patas `1`, `2`.
 
 Termistor NTC (gota de epoxi MF52). `value`: resistencia a 25 °C (por defecto `"10k"`); `beta`:
 constante B en kelvin (por defecto 3950); `temperature`: los °C que usa la simulación (por
-defecto 25). Patas `1`, `2`, a uno o dos agujeros.
+defecto 25; si se da, gana sobre el ambiente del circuito, que sigue en otro caso). Patas `1`, `2`,
+a uno o dos agujeros.
 
 ### ldr (fotorresistencia)
 
 Resistencia que depende de la luz. `part`: `GL5528` (por defecto), `GL5516`, `GL5537`,
 `GL5539`, `GL5549`; `light`: iluminación en lux para la simulación (por defecto 100, una
-habitación iluminada). Patas `1`, `2`, a entre uno y tres agujeros.
+habitación iluminada; si se da, gana sobre el ambiente del circuito, que sigue en otro caso). Patas
+`1`, `2`, a entre uno y tres agujeros.
 
 ### buzzer (zumbador)
 
@@ -379,7 +382,8 @@ botón de la ficha. Su contacto es de 30 mΩ, para 30 V y 0,3 A DC (plano SS-12D
 Un interruptor de inclinación de bolas (SW-520D) de pie sobre sus dos patas en dos agujeros vecinos:
 patas `1` y `2`, sin polaridad. `tilted`: `false` (por defecto) es derecho, las bolas cierran el
 contacto (el kit toma el límite de la hoja, 10 Ω); `true` es inclinado más allá de su ángulo,
-abierto. Para 12 V; el kit avisa por encima de 25 mA.
+abierto. Sin `tilted`, en un circuito con ambiente sigue el campo `tilt`. Para 12 V; el kit avisa por
+encima de 25 mA.
 
 ```json
 { "id": "S2", "type": "tilt-switch", "pins": ["h20", "h21"] }
@@ -389,11 +393,26 @@ abierto. Para 12 V; el kit avisa por encima de 25 mA.
 
 Un sensor de temperatura LM35 en TO-92: `part` `"LM35DZ"` (por defecto, 0–100 °C) o `"LM35CZ"`
 (−40–110 °C), patas `+VS`, `VOUT`, `GND` desde la izquierda con la cara plana hacia uno.
-`temperature`: los °C a los que está (por defecto 25; el deslizador de la página la cambia). `VOUT` da
+`temperature`: los °C a los que está (por defecto 25; el deslizador de la página la cambia; sin ella,
+en un circuito con ambiente sigue el campo `temperature`). `VOUT` da
 10 mV por °C (250 mV a 25 °C) con una alimentación de 4 a 30 V.
 
 ```json
 { "id": "U2", "type": "temperature-sensor", "temperature": 25, "pins": ["h30", "h31", "h32"] }
+```
+
+### sensor-module (módulo de sensor)
+
+Un módulo de sensor con LM393 de pie sobre sus pines en una fila ([modulos-sensores.md](modulos-sensores.md)):
+`part` uno de `MH-RD` (lluvia), `YL-69` (suelo), `LDR-LM393` (luz, 3 pines), `SLOT-IR` (ranura óptica),
+`TCRT5000-M` (seguidor de línea), `KY-024` (Hall), `SW-420-M` (vibración, 3 pines), `FC-51` (obstáculo, 3
+pines), sus pines en el orden en que los imprime la placa. `threshold` (0…1, por defecto 0,5): el
+trimmer, Vref = threshold · VCC. Su propio valor de lo que siente gana sobre el ambiente: `wetness`,
+`moisture`, `light`, `beam`, `reflectance`, `distance`, `field`, `vibration`; `SLOT-IR` también
+`transmittance`, `slots`, `duty`; `SW-420-M` `seed`.
+
+```json
+{ "id": "U1", "type": "sensor-module", "part": "YL-69", "threshold": 0.5, "pins": ["h30", "h31", "h32", "h33"] }
 ```
 
 ### relay (relé)
@@ -422,6 +441,33 @@ pasa su par de bloqueo, deja el eje quieto.
 
 ```json
 { "id": "M1", "type": "motor", "pins": ["a40", "a42"] }
+```
+
+### pir-sensor (sensor PIR de movimiento)
+
+Un módulo de movimiento PIR HC-SR501 parado sobre tres patas `VCC`, `OUT`, `GND` (leídas de izquierda
+a derecha con su espalda hacia ti), con su cúpula de Fresnel hacia el frente. Funciona de 4,5 a 20 V y
+`OUT` es de 3,3 V detrás de 500 Ω mientras está activo. Campos: `delay` (segundos que `OUT` queda alto,
+de 0,3 a 600, por defecto 5), `mode` (`"H"` el movimiento durante el retardo lo reinicia, por defecto;
+`"L"` lo ignora), `warmup` (segundos con `OUT` bajo tras encenderlo, por defecto 30, 0 lo omite),
+`sensitivity` (de 0 a 1, informativo) y `motion` (su valor propio del campo `motion` del ambiente). Los
+dos tiempos, el puente y el calentamiento están en [sensores-temporizados.md](sensores-temporizados.md).
+
+```json
+{ "id": "U1", "type": "pir-sensor", "delay": 5, "warmup": 0, "pins": ["h2", "h3", "h4"] }
+```
+
+### touch-sensor (sensor táctil)
+
+Un módulo táctil capacitivo TTP223 parado sobre tres patas `SIG` (impresa I/O), `VCC`, `GND`, con su
+pad hacia el frente. Funciona de 2 a 5,5 V y `SIG` llega a la tensión de su alimentación. Campos:
+`mode` (`"momentary"`, por defecto: `SIG` sigue al toque; `"toggle"`: cada toque la invierte),
+`activeLow` (false), `fast` (la respuesta de 60 ms en vez de 220 ms, false) y `touch` (su valor propio
+del campo `touch` del ambiente). Los primeros 0,5 s tras encenderlo ignoran el pad
+([sensores-temporizados.md](sensores-temporizados.md)).
+
+```json
+{ "id": "U1", "type": "touch-sensor", "mode": "toggle", "pins": ["h2", "h3", "h4"] }
 ```
 
 ### header (pines de cabecera)

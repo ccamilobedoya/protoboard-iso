@@ -22,14 +22,18 @@ import { buildCircuit } from './circuit/build.js';
 import { pinIndex } from './pinout.js';
 import { symbolOf, insideOf } from './parts/symbols.js';
 import { FLOW_STYLES } from './sim/paths.js';
+import { FIELDS as ENV_FIELDS, rangeProblem } from './sim/environment.js';
 
-export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'insert', 'raise', 'nudge', 'assemble', 'pulse', 'label', 'scene', 'land', 'pin', 'bench', 'symbol', 'inside', 'card', 'wait-until'];
+export const ACTIONS = ['frame', 'focus', 'flip', 'set', 'flow', 'caption', 'value', 'probe', 'gauge', 'insert', 'raise', 'nudge', 'assemble', 'pulse', 'label', 'scene', 'land', 'pin', 'bench', 'symbol', 'inside', 'card', 'wait-until'];
 // The parts a pedestal can show (`scene` in mode part, a video about one part): a part of the
 // circuit, not a wire or a supply.
 export const onPedestal = (part) => part?.type !== 'wire';
-// What a `value` or `wait-until` step reads from a part's reading, and its unit.
-export const READINGS = { current: 'A', voltage: 'V', power: 'W', brightness: '%' };
+// What a `value` or `wait-until` step reads from a part's reading, and its unit (`vout`: the output
+// voltage of a part that gives one: an LM35, a regulator, a 555).
+export const READINGS = { current: 'A', voltage: 'V', power: 'W', brightness: '%', vout: 'V' };
 export const FORMATS = ['vertical', 'horizontal'];
+// Where a gauge's box goes in the frame: top left, top right, bottom left, bottom right.
+export const GAUGE_CORNERS = ['tl', 'tr', 'bl', 'br'];
 // The page's themes a recording can take; a video is on the stage by default (V4).
 export { THEMES } from './page/client/themes.js';
 const FRAMES = ['board', 'parts', 'here'];
@@ -67,11 +71,12 @@ const FIELDS = {
   frame: { target: (v) => id(v) || ids(v), zoom: within(0.05, 20), pan: (v) => Array.isArray(v) && v.length === 2 && v.every(within(-3, 3)) },
   focus: { parts: (v) => Array.isArray(v) && v.every(id), solid: (v) => typeof v === 'boolean' },
   flip: { view: id },
-  set: { part: id, field: id, value: (v) => num(v) || typeof v === 'boolean' },
+  set: { part: id, field: id, environment: id, value: (v) => num(v) || typeof v === 'boolean' },
   flow: { on: (v) => typeof v === 'boolean', ramp: within(0, 10_000), scope: oneOf('all', 'focus'), style: oneOf(...FLOW_STYLES), sense },
   caption: { text: isText, line: isText, data: isText, em: isText, off: (v) => v === true, enter: SHOW, in: within(0, 3000), stagger: within(0, 1000), out: within(0, 2000) },
   value: { part: id, field: (v) => Object.hasOwn(READINGS, v), label: isText, count: within(0, 5000), enter: SHOW, in: within(0, 3000) },
   probe: { part: id, node: id, field: oneOf('voltage', 'current'), off: (v) => v === true, title: isText, label: isText, note: isText, window: within(1e-6, 3600), marks: (v) => typeof v === 'boolean', place: oneOf('bottom', 'top'), size: oneOf('full', 'compact'), compare: (v) => typeof v === 'boolean', change: oneOf('ratio', 'times'), say: isText, reading: (v) => typeof v === 'boolean', clock: (v) => typeof v === 'boolean' },
+  gauge: { environment: id, on: (v) => typeof v === 'boolean', corner: oneOf(...GAUGE_CORNERS), min: num, max: num },
   insert: { part: id, enter: ENTER, height: within(0, 40), dark: (v) => typeof v === 'boolean' },
   raise: { part: id, mm: within(0, RAISE.max) },
   nudge: { part: id, mm: within(NUDGE.min, NUDGE.max) },
@@ -87,7 +92,7 @@ const FIELDS = {
   card: { text: isText, line: isText, em: isText, hold: within(CARD.min, CARD.max), enter: SHOW, in: within(0, 1000), out: within(0, 1000) },
   'wait-until': { part: id, field: (v) => Object.hasOwn(READINGS, v), above: num, below: num, max: within(0, 60_000) },
 };
-const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['part', 'field', 'value'], flow: ['on'], value: ['part', 'field'], insert: ['part'], raise: ['part'], nudge: ['part'], label: ['part', 'text'], scene: ['mode'], land: ['part'], bench: ['on'], symbol: ['on'], inside: ['on'], card: ['text'], 'wait-until': ['part', 'field'] };
+const REQUIRED = { frame: ['target'], focus: ['parts'], flip: ['view'], set: ['value'], gauge: ['environment', 'on'], flow: ['on'], value: ['part', 'field'], insert: ['part'], raise: ['part'], nudge: ['part'], label: ['part', 'text'], scene: ['mode'], land: ['part'], bench: ['on'], symbol: ['on'], inside: ['on'], card: ['text'], 'wait-until': ['part', 'field'] };
 // Texts a step may carry, plain or one per language.
 const TEXTS = ['text', 'line', 'data', 'label', 'title', 'note', 'em', 'say'];
 // A cubic-bezier of CSS: the time coordinates between 0 and 1.
@@ -141,6 +146,8 @@ function shapeIssues(raw) {
     }
     for (const key of REQUIRED[s.do] ?? []) if (s[key] == null) out.push(warn('TOUR_FIELD', { step, field: key }));
     if (s.do === 'probe' && [s.part, s.node, s.off].filter((x) => x != null).length !== 1) out.push(warn('TOUR_FIELD', { step, field: 'part' }));
+    // A set names a part and its field, or a field of the environment, never both.
+    if (s.do === 'set' && (s.environment != null ? s.part != null || s.field != null : s.part == null || s.field == null)) out.push(warn('TOUR_FIELD', { step, field: s.environment != null ? 'environment' : s.part == null ? 'part' : 'field' }));
     if (s.do === 'wait-until' && (s.above == null) === (s.below == null)) out.push(warn('TOUR_FIELD', { step, field: 'above' }));
     if (s.do === 'caption' && (s.text == null) === (s.off == null)) out.push(warn('TOUR_FIELD', { step, field: 'text' }));
     if (s.do === 'scene' && s.mode === 'part' && s.part == null) out.push(warn('TOUR_FIELD', { step, field: 'part' }));
@@ -203,6 +210,20 @@ function meaningIssues(circuit, steps) {
     // A symbol or an inside view the part's kind has (render-frames.js --parts says which).
     if (s.do === 'symbol' && s.on === true && ids.has(s.part) && partOf(s.part) && !symbolOf(partOf(s.part))) out.push(warn('TOUR_NO_SYMBOL', { step, part: s.part }));
     if (s.do === 'inside' && s.on === true && ids.has(s.part) && partOf(s.part) && !insideOf(partOf(s.part))) out.push(warn('TOUR_NO_INSIDE', { step, part: s.part }));
+    // A field of the environment the circuit has (docs/en/environment.md): one it declares, or one a
+    // part of it follows.
+    if ((s.do === 'set' || s.do === 'gauge') && s.environment != null && !controlsOf().some((c) => c.id === 'environment' && c.field === s.environment)) {
+      out.push(warn('TOUR_UNKNOWN_ENVIRONMENT', { step, field: String(s.environment).slice(0, 40), options: controlsOf().filter((c) => c.id === 'environment').map((c) => c.field).join(', ') || '—' }));
+    }
+    // A gauge's range (min, max): the dial's span, inside the field's limit and going up (a switch has none).
+    if (s.do === 'gauge' && (s.min != null || s.max != null) && Object.hasOwn(ENV_FIELDS, s.environment) && (s.min == null || num(s.min)) && (s.max == null || num(s.max))) {
+      const have = (() => {
+        const c = controlsOf().find((x) => x.id === 'environment' && x.field === s.environment);
+        return c ? [c.min, c.max] : [ENV_FIELDS[s.environment].min, ENV_FIELDS[s.environment].max];
+      })();
+      const range = [s.min ?? have[0], s.max ?? have[1]];
+      if (rangeProblem(s.environment, range)) out.push(warn('TOUR_GAUGE_RANGE', { step, field: s.environment, min: String(range[0]), max: String(range[1]), lo: String(ENV_FIELDS[s.environment].limit[0]), hi: String(ENV_FIELDS[s.environment].limit[1]) }));
+    }
     if (s.do === 'set' && ids.has(s.part) && !controlsOf().some((c) => c.id === s.part && c.field === s.field)) {
       out.push(warn('TOUR_UNKNOWN_CONTROL', { step, part: s.part, field: s.field, options: controlsOf().filter((c) => c.id === s.part).map((c) => c.field).join(', ') || '—' }));
     }
@@ -269,6 +290,8 @@ export function loadTour(circuit, lang = 'en') {
       const out = { ...s, move: moveOf(s) };
       for (const key of TEXTS) if (s[key] != null) out[key] = localized(s[key], lang);
       if (s.do === 'pin' && s.pin != null) Object.assign(out, pinOf(s.pin) ?? { part: null, index: -1 });
+      // The environment's controls answer to the id 'environment' (sim/engine.js).
+      if (s.do === 'set' && s.environment != null) Object.assign(out, { part: 'environment', field: s.environment });
       return out;
     });
   return { tour: { format: raw.format ?? 'vertical', theme: raw.theme ?? 'stage', ...(raw.pace != null && { pace: raw.pace }), ...(raw.captionLines != null && { captionLines: raw.captionLines }), steps }, issues: [...issues, ...meaning] };

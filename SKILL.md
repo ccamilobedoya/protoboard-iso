@@ -52,16 +52,22 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 | `uno-rgb-led`, `uno-seven-segment` | Arduino UNO: an RGB LED mixing colours with PWM; a 7-segment display counting 0–9 |
 | `slide-switch-leds`, `tilt-alarm` | a slide switch choosing one of two LEDs; a tilt switch lighting an LED when tipped over |
 | `lm35-uno` | Arduino UNO reading an LM35 temperature sensor, °C on the serial monitor |
+| `pir-lamp`, `pir-uno` | a PIR motion module lighting an LED through an NPN after its delay; a UNO printing the time of each motion |
+| `touch-toggle-led`, `touch-uno` | a TTP223 touch module in toggle mode flipping an LED from its I/O pin; a UNO printing TOUCH and RELEASE |
 | `relay-npn`, `motor-npn` | a button → NPN → relay coil with its flyback diode, the contact lighting an LED; a potentiometer setting a DC motor's speed through a TIP120 |
 | `c3-blink`, `c3-pot-pwm` | ESP32-C3 SuperMini: blink, a potentiometer dims an LED (ADC, PWM) |
 | `opamp-comparator`, `lm393-comparator` | potentiometer against a reference, an LED on the output (LM358; LM393 open collector) |
 | `opamp-follower` | LM358 copying a potentiometer and driving an LED |
+| `ldr-night-light`, `ldr-comparator` | a photoresistor (reads the environment's `light`) switching an LED in the dark: with a transistor / with an LM393 and a reference |
+| `lm35-comparator`, `ntc-follower`, `thermistor-uno` | temperature from the environment: an LM35 against a reference with an alarm LED; an NTC divider through an LM358 follower; an NTC read by an Arduino UNO that prints °C |
 | `opamp-noninverting`, `opamp-inverting` | LM358 amplifiers, gain from R1 and R2, a sine from the generator |
+| `rain-alarm`, `soil-led`, `light-switch-module`, `obstacle-buzzer` | LM393 sensor modules (rain, soil, light, obstacle) whose DO drives a buzzer or an LED |
+| `line-follower-uno`, `hall-counter-uno` | Arduino UNO reading a TCRT5000 line follower; counting a magnet's passes with a KY-024 |
 
 - **values**: the main field by id (`"R1": "470"`, `"D1": "green"`, `"Q1": "BC547"`, `"V1": 9`) or
   some fields (`"R1": {"value": "470", "tolerance": "1%"}`). Only the ids a recipe lists can change,
-  some within choices or a range: `catalog` lists every recipe with its values and defaults,
-  `catalog` with the recipe's name shows its parts, nets and limits. A wrong value is a `FIX_SPEC`
+  some within choices or a range: `catalog` lists every recipe with its title,
+  `catalog` with the recipe's name shows its values with defaults, parts, nets and limits. A wrong value is a `FIX_SPEC`
   that says what is allowed.
 - `title`, `board`, `clearance`, `netLabels`, `page` and `lang` may be given beside the recipe. Never
   `parts` or `nets`: to add to a recipe circuit, call `layout` on it again with the full parts and
@@ -141,7 +147,7 @@ review                     until APPROVED · undo when needed
   act on the reason, never repeat the call.
 - Operations: `add`, `remove`, `move`, `set`, `rename`, `circuit` (`schema/ops.schema.json`).
   `set` changes a field (`{"op": "set", "part": "R1", "value": "4k7"}`); `circuit` the top-level
-  ones (`supplies`, `page`, `clearance`, `lang`…).
+  ones (`supplies`, `environment`, `page`, `clearance`, `lang`…).
 - A diff that introduces an error or a warning is not applied: find another placement.
 
 ## 3. Check it
@@ -160,6 +166,10 @@ review                     until APPROVED · undo when needed
   zoom, labels, tap a part for its card. With a source it runs the simulation by itself (values of
   the tapped part, oscilloscope, lit LEDs, a Current button). While a learner must predict a value:
   `"page": {"simulation": false}`. Embedding: `docs/en/embedding.md`.
+- **Sensors** read the circuit's `environment` (`{"light": 300, "temperature": 25}`, set with a
+  `circuit` operation): the page shows each field with an indicator in an *Environment* panel
+  (`"page": {"controls": [{"environment": "light"}]}`); a value on the part wins. See
+  `docs/en/environment.md`.
 - **`inspect`** answers placement, visibility and label questions in numbers; look at a picture
   (`render` with `png_width`, small) only to judge style. `render` options: `view: "back"`,
   `fit: "parts"` (close-up), `annotate: "all"` (holes, groups), `focus: [ids]`, `sim: true`.
@@ -171,7 +181,7 @@ row a) plus a column (`T+9`). Rows a–e of one column are connected, f–j too;
 connection. Buttons, DIP chips and a 7-segment display straddle the centre channel. Board `double`: two boards side by
 side (rows k–o, p–t on the back one, rails `U-`, `U+` behind; no T rails) for a DevKit across the
 joint; `layout` picks it when the DevKit would cover a pin's strip. `layout` and `suggest` know all this;
-`catalog` lists every part type with its pins, part numbers, modules and boards (`name` for one
+`catalog` lists every part type grouped by family with its pins and part numbers, plus modules and boards (`name` for one
 entry's fields and an example).
 
 To write a circuit file by hand (exact positions, for a lesson about where things go): start from

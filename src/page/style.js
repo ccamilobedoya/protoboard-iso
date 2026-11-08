@@ -343,6 +343,34 @@ nav .falstad .flag[hidden] { display: none; }
 .control .hold { margin: 0; touch-action: none; }
 .control .hold[aria-pressed="true"] { color: var(--on-accent); background: var(--accent); border-color: var(--accent-deep); }
 .info .adjust { margin-top: 4px; }
+/* The environment (sensors, S0; page/client/gauge.js): each field's indicator, 44 px, beside its row
+   in the panel and in a sensor's card; tokens only, so it follows every theme. */
+.gauge { width: 44px; height: 44px; flex: none; overflow: visible; }
+.gauge text { font: 600 8px var(--sans); fill: var(--ink-2); text-anchor: middle; }
+.gauge .track { fill: none; stroke: var(--hair-strong); stroke-width: 3; stroke-linecap: round; }
+.gauge .fill { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+.gauge .needle { stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
+.gauge .hub { fill: var(--ink); }
+.gauge .sun-halo { fill: var(--pulse); }
+.gauge .sun-rays { stroke: var(--pulse); stroke-width: 2; stroke-linecap: round; }
+.gauge .sun-core { fill: var(--pulse); stroke: var(--ink-3); stroke-width: 1; }
+.gauge .glass { fill: var(--card); stroke: var(--ink-3); stroke-width: 1.2; }
+.gauge .mercury { fill: var(--danger); }
+.gauge .lamp { fill: var(--pulse); stroke: var(--ink-3); stroke-width: 1; }
+.gauge .lamp-ring { fill: none; stroke: var(--pulse); stroke-width: 2; }
+.env-row { display: grid; grid-template-columns: 44px 1fr; gap: 0 8px; align-items: center; }
+.env-row .control { margin: 2px 0; }
+.control .env-pause { grid-column: 1 / -1; justify-self: start; margin-top: 2px; }
+.info .env-sense { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.info .env-sense .name { color: var(--ink-2); flex: 1 1 auto; }
+/* A timeline's gauge: the indicator in a box of its own, in a corner (data-corner tl, tr, bl, br). In
+   the page, top right; in a recording, the corners of the room the caption and the platforms' buttons
+   leave (portrait: from 29 % down, or up from 26 %; landscape: the right half). */
+.gauge-inset { position: absolute; z-index: 2; top: 56px; right: 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; background: var(--card); border: 1px solid var(--hair); border-radius: 8px; color: var(--ink-2); font: 600 11px var(--sans); pointer-events: none; }
+body.director .gauge-inset { top: auto; right: auto; padding: var(--cap-gap); gap: calc(var(--cap-gap) / 2); background: var(--veil); border: none; border-radius: var(--cap-gap); font: 500 var(--cap-label)/1.2 var(--sans); color: var(--cap-ink-2); }
+body.director .gauge-inset .gauge { width: 20vmin; height: 20vmin; }
+@media (orientation: portrait) { body.director .gauge-inset[data-corner^="t"] { top: 29%; } body.director .gauge-inset[data-corner^="b"] { bottom: 26%; } body.director .gauge-inset[data-corner$="l"] { left: var(--cap-pad); } body.director .gauge-inset[data-corner$="r"] { right: var(--cap-pad); } }
+@media (orientation: landscape) { body.director .gauge-inset[data-corner^="t"] { top: 9%; } body.director .gauge-inset[data-corner^="b"] { bottom: 9%; } body.director .gauge-inset[data-corner$="l"] { left: calc(50% + var(--cap-pad) / 2); } body.director .gauge-inset[data-corner$="r"] { right: var(--cap-pad); } }
 .info .stress { color: var(--danger-ink); font-weight: bold; }
 /* Limits: a box around the part (layer marks), opacity in a few steps: cheap to redraw. */
 .marks { pointer-events: none; }
@@ -526,6 +554,7 @@ body.layer-flow main[data-scene] > svg > .lights { display: inline; }
 .focus-legend .swatch.gauge { background: var(--well); outline: 1px solid var(--ink-3); }
 .focus-legend .swatch.plunger { background: var(--ink-4); outline: 1px solid var(--ink-3); }
 .focus-legend .swatch.magnet { background: var(--ink-4); outline: 1px solid var(--ink-3); }
+.focus-legend .swatch.dielectric { background: var(--accent-soft); outline: 1px solid var(--ink-3); }
 .focus-legend .swatch[hidden] { display: block; visibility: hidden; }
 /* On a phone the bar takes two rows: Back and the name, then the two controls sharing the width. */
 @media (max-width: 560px) {

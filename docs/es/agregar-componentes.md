@@ -23,6 +23,7 @@ Un tipo explica qué significa lo que dice el archivo de circuito. Crea
 ```js
 export default {
   type: 'potentiometer',
+  family: 'control',            // una de FAMILIES: el catálogo compacto agrupa los tipos por ella
   pins: ['1', 'W', '3'],
   resolve(part) {
     // Leer y validar los campos del archivo de circuito.
@@ -37,7 +38,7 @@ export default {
 };
 ```
 
-Regístralo en `src/parts/types/index.js`, agrega `type.<nombre>` en cada archivo de
+Regístralo en `src/parts/types/index.js` (su `family` debe ser una de `FAMILIES` allí; si no, una prueba falla), agrega `type.<nombre>` en cada archivo de
 `src/i18n/` y una fila en `docs/*/` (formato del circuito).
 
 ## 3. Un encapsulado nuevo
@@ -191,8 +192,38 @@ que un tipo nuevo viene con todas, y los tipos del kit se van completando hasta 
 `test/pinout.test.js` («a part up close») sostiene la regla: cada tipo de `PART_TYPES` está en `COMPLETE`
 (revisado en todo lo anterior) o en `PENDING` con su motivo. Un tipo nuevo que no esté en ninguna de las
 dos hace fallar la prueba, así la decisión se toma y no se olvida; pasar un tipo de `PENDING` a `COMPLETE`
-es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
+es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC, módulo PIR, módulo táctil). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
+es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC, módulo de sensor con LM393). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
 y la página de cerca en un celular.
+
+## 7. Un sensor: unirse al ambiente
+
+Un sensor lee una magnitud del mundo en el ambiente compartido del circuito
+([ambiente.md](ambiente.md)), nunca un valor propio que quien aprende tenga que buscar en su ficha.
+Para que un dispositivo sea un sensor:
+
+1. Declara lo que siente: `senses: ['light']` (uno o más campos de `FIELDS` en
+   `src/sim/environment.js`; una magnitud nueva es primero una línea ahí).
+2. Léelo en `params(part, c)`: `c.env('light')` es el valor del ambiente en t = 0, o `undefined` si la
+   pieza da su propio valor (`"light": 50` en la pieza gana) o el circuito no declara ambiente; en ese
+   caso se queda lo que dio el tipo de la pieza. La fotorresistencia:
+   `const v = c?.env?.('light'); return v === undefined ? p : ldr.set(p, 'light', v);`.
+3. Cambiar con él es el `set` del dispositivo (una fórmula pura) cuando el control y el campo se
+   llaman igual; si no, da `sense(p, field, value)`, y `ownField: { field: 'su propio nombre' }` cuando
+   la pieza lo llama de otra forma (el interruptor de inclinación: `{ tilt: 'tilted' }`), para que una
+   pieza que lo da no lo siga y su propio control, al moverse, la saque del campo.
+
+Nada más cambia en `src/sim`: el motor mueve cada pieza que sigue un campo cuando este cambia (un
+deslizador, un `set` de una línea de tiempo, un programa), su ficha dice si sigue el ambiente y la
+página muestra el indicador del campo. Pruébalo contra la fórmula propia del sensor en dos valores
+del campo, y que un valor en la pieza gana (`test/environment.test.js`).
+
+Un sensor que responde en el tiempo (el retardo de un PIR, la respuesta de un módulo táctil) tiene
+memoria propia: lista las claves de sus elementos en `state: [...]` para que `engine.set` las lleve,
+y puede dar `maxStep()` y `span()`; mira [sensores-temporizados.md](sensores-temporizados.md).
+Un sensor en la placa de comparador de siempre (lluvia, suelo, luz, una ranura o un par infrarrojo,
+un interruptor Hall, un contacto de vibración) no es un tipo nuevo: es una fila de la tabla de
+`sensor-module`, su elemento y un glifo ([modulos-sensores.md](modulos-sensores.md#agregar-una-novena-pieza)).
 
 ## Pruebas
 

@@ -15,6 +15,7 @@
 import { compile } from './compile.js';
 import { createEngine } from './engine.js';
 import { lookupModule } from '../parts/modules.js';
+import { FIELDS, createEnvironment, environmentControls } from './environment.js';
 
 
 export { compile, createEngine };
@@ -28,7 +29,8 @@ export function simulate(circuit, options = {}) {
 }
 
 // What `check` says about the controls panel (page.controls): each entry must name a part or a
-// supply and one of its controls (engine.controls()), with a range inside what makes sense.
+// supply and one of its controls (engine.controls()), or a field of the environment, with a range
+// inside what makes sense.
 // What the page runs of the simulation. By default, whenever it can (a circuit with a source:
 // supplies, a battery part or a microcontroller board on USB), everything: the results always on (the tapped part's values, its
 // oscilloscope, limits, lit LEDs) and the current layer offered in the bar, not pressed. Each can
@@ -55,17 +57,21 @@ export function pageControlIssues(circuit) {
   if (compiled.fatal) return [...out, warn('PAGE_CONTROLS_NO_SIM')];
   const controls = createEngine(compiled.program).controls();
   list.forEach((c, i) => {
-    const id = c?.part ?? c?.supply;
-    if (!id || (c.part != null && c.supply != null)) return out.push(warn('PAGE_CONTROL_TARGET', { index: i + 1 }));
-    const own = controls.filter((x) => x.id === id);
-    const found = own.find((x) => x.field === c.field);
+    // An entry of the environment ({ environment: 'light' }) names a field of it (environment.js).
+    const env = c?.environment;
+    const id = env != null ? 'environment' : (c?.part ?? c?.supply);
+    if (!id || [c.part, c.supply, env].filter((x) => x != null).length !== 1 || (env != null && c.field != null)) return out.push(warn('PAGE_CONTROL_TARGET', { index: i + 1 }));
+    if (env != null && !Object.hasOwn(FIELDS, env)) return out.push({ severity: 'error', code: 'ENV_UNKNOWN_FIELD', params: { field: String(env).slice(0, 40), fields: Object.keys(FIELDS).join(', ') } });
+    const own = env != null ? environmentControls(createEnvironment(circuit.environment, [env])) : controls.filter((x) => x.id === id);
+    const field = env ?? c.field;
+    const found = own.find((x) => x.field === field);
     if (!found) return out.push(warn('PAGE_CONTROL_UNKNOWN', { target: id, field: String(c.field), options: own.map((x) => x.field).join(', ') || '—' }));
     if (found.scale === 'momentary' || found.scale === 'toggle') return;
     const [lo, hi] = found.limit ?? [found.min, found.max];
     const min = c.min ?? found.min;
     const max = c.max ?? found.max;
     const scale = c.scale ?? found.scale;
-    if (!(min < max) || min < lo || max > hi || (scale === 'log' && !(min > 0))) out.push(warn('PAGE_CONTROL_RANGE', { target: id, field: c.field, min: String(min), max: String(max), lo: String(lo), hi: String(hi) }));
+    if (!(min < max) || min < lo || max > hi || (scale === 'log' && !(min > 0))) out.push(warn('PAGE_CONTROL_RANGE', { target: id, field, min: String(min), max: String(max), lo: String(lo), hi: String(hi) }));
   });
   return out;
 }

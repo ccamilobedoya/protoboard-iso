@@ -1,0 +1,27 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "soil-led",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A soil moisture sensor: a fork in the earth", "es": "Un sensor de humedad: una horquilla en la tierra" } },
+    { "at": 0, "do": "gauge", "environment": "moisture", "on": true },
+    { "at": 1800, "do": "focus", "parts": ["U1"] },
+    { "at": 1800, "do": "frame", "target": "U1", "move": "arrival" },
+    { "at": 1800, "do": "caption", "text": { "en": "Dry soil barely conducts: DO stays high", "es": "El suelo seco casi no conduce: DO queda en alto" } },
+    { "at": 2600, "do": "value", "part": "U1", "field": "vout", "label": { "en": "DO", "es": "DO" } },
+    { "at": 5200, "do": "caption", "text": { "en": "We water it: moisture from 20 to 80 %", "es": "La regamos: humedad de 20 a 80 %" } },
+    { "at": 5200, "do": "set", "environment": "moisture", "value": 80, "move": "travel", "ms": 1800 },
+    { "at": 8200, "do": "caption", "text": { "en": "Past about 61 %, AO falls under Vref and DO goes low", "es": "Pasando el 61 %, AO cae por debajo de Vref y DO baja" } },
+    { "at": 8200, "do": "value", "part": "U1", "field": "vout", "label": { "en": "DO", "es": "DO" } },
+    { "at": 11500, "do": "focus", "parts": ["U1", "D1"] },
+    { "at": 11500, "do": "frame", "target": ["U1", "D1"], "move": "travel" },
+    { "at": 11500, "do": "caption", "text": { "en": "DO takes the LED's current, and it lights", "es": "DO recibe la corriente del LED, y se enciende" } },
+    { "at": 12300, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
+    { "at": 15500, "do": "caption", "text": { "en": "The soil dries again: back to 30 %", "es": "La tierra se seca otra vez: vuelve a 30 %" } },
+    { "at": 15500, "do": "set", "environment": "moisture", "value": 30, "move": "travel", "ms": 1800 },
+    { "at": 18500, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 18500, "do": "caption", "text": { "en": "The blue trimmer moves the point where it switches", "es": "El trimmer azul mueve el punto donde conmuta" } },
+    { "at": 21500, "do": "focus", "parts": [] }
+  ]
+}

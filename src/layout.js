@@ -149,7 +149,7 @@ export function validateSpec(spec) {
     inNet.add(part.id);
     const names = pinsOf(part);
     if (!names.length) return ref;
-    const name = findPin(names, m[2]);
+    const name = findPin(names, m[2], part.type);
     if (name === undefined) problems.push({ severity: 'error', code: 'NET_UNKNOWN_PIN', params: { where, ref: String(ref), part: part.id, pin: m[2], names: names.join(', ') } });
     return name === undefined ? ref : `${part.id}.${name}`;
   };
@@ -385,6 +385,7 @@ export function specFromCircuit(circuit, given = {}) {
       title: pick('title'),
       lang: pick('lang'),
       netLabels: pick('netLabels'),
+      environment: pick('environment'),
       page: pick('page'),
     }).filter(([, v]) => v !== undefined),
   );
@@ -445,7 +446,7 @@ function layoutOnce(spec, { profile, forbid, previous, memo = new Map(), boxes =
   const started = Date.now();
   const problems = [];
   let circuit = Object.fromEntries(
-    Object.entries({ version: 1, lang: spec.lang, title: spec.title, board: spec.board ?? 'auto', clearance: spec.clearance ?? 1, netLabels: spec.netLabels, page: spec.page, parts: [] }).filter(([, v]) => v !== undefined),
+    Object.entries({ version: 1, lang: spec.lang, title: spec.title, board: spec.board ?? 'auto', clearance: spec.clearance ?? 1, netLabels: spec.netLabels, environment: spec.environment, page: spec.page, parts: [] }).filter(([, v]) => v !== undefined),
   );
   const nets = (spec.nets ?? []).map((n, index) => {
     const raw = Array.isArray(n) ? { pins: n } : n;

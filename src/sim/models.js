@@ -287,3 +287,33 @@ export const REGULATORS = {
   // Monolithic Systems AMS1117 datasheet; the module's seller sheet (4.75-12 V in, 800 mA).
   AMS1117: { dropout: 1.1, quiescent: 5e-3, maxCurrent: 0.8, maxPower: 1, maxInput: 15 },
 };
+
+// Timed digital sensors (docs/en/timed-sensors.md; the sheets are resellers' and the chips' own,
+// the numbers marked [A] are the kit's).
+// PIR HC-SR501 (BISS0001 and an on-board 3.3 V regulator). maxReverse 0.3 V [A], both modules: neither
+// has a protection diode on its supply, so a reversed supply is a warning from a few tenths of a volt.
+//   supply [4.5, 20] V   the module's range (reseller sheets; "5 to 20 V" on some); under 4.5 V the
+//                        regulator is out of regulation and the module does not start, over 20 V it
+//                        is beyond what it takes
+//   logic 3.3 V          OUT is 3.3 V when active whatever the supply
+//   outputResistance 500 Ω [A]   a weak CMOS output through a series resistor: it should drive a
+//                        logic input or a transistor, so 2 mA is its limit [A]
+//   quiescent 65 µA at 5 V       a resistor VCC / 65 µA
+//   blocking 2.5 s       after OUT falls the module ignores motion (the lock-out time Ti)
+//   warmup 30 s [A]      sheets say 10 to 60 s; 0 skips it in an example
+//   delay [0.3, 600] s   the trimmer Tx = 24576 · R · C reads about 3 s to 5 min; the kit takes 5 s
+//                        by default and lets a circuit ask for less for a video
+export const PIR = { maxReverse: 0.3, minSupply: 4.5, maxSupply: 20, logic: 3.3, outputResistance: 500, maxCurrent: 2e-3, quiescent: 65e-6, quiescentAt: 5, blocking: 2.5, warmup: 30, delay: 5, delayRange: [0.3, 600], sliderRange: [3, 300] };
+
+// Capacitive touch TTP223 (Tontek TTP223-BA6 and TTP223B datasheets, at VDD = 3 V):
+//   supply [2, 5.5] V    operating voltage
+//   response             220 ms in low-power mode, 60 ms in fast mode (rising and falling edges)
+//   settle 0.5 s         the output is stable and the pad calibrated this long after power on: a
+//                        finger already on the pad then is the baseline, ignored until it is lifted
+//   highResistance 150 Ω   sources 4 mA at VOH 2.4 V (VDD 3 V): (3 − 2.4) / 4 mA
+//   lowResistance 75 Ω     sinks 8 mA at VOL 0.6 V: 0.6 / 8 mA
+//   sourceSpec 4 mA, sinkSpec 8 mA   the currents those levels are guaranteed at (test points, not
+//                        limits); maxCurrent 10 mA [A] is where the kit warns
+//   quiescent            3 µA in low-power mode and 7 µA in fast mode (maximum values), as a
+//                        resistor at 3.3 V
+export const TOUCH = { maxReverse: 0.3, minSupply: 2, maxSupply: 5.5, response: 0.22, fastResponse: 0.06, settle: 0.5, highResistance: 150, lowResistance: 75, sourceSpec: 4e-3, sinkSpec: 8e-3, maxCurrent: 10e-3, quiescent: 3e-6, fastQuiescent: 7e-6, quiescentAt: 3.3 };

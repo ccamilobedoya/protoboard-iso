@@ -92,7 +92,7 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - **Lo que puede llamar** (`src/sim/program.js`): `pinMode` (`INPUT`, `OUTPUT`, `INPUT_PULLUP`,
   `INPUT_PULLDOWN`), `digitalWrite`, `digitalRead`, `delay`, `delayMicroseconds`, `millis`,
   `micros`, `Serial.begin/print/println` (sus últimas líneas salen en la ficha de la placa),
-  `analogRead` (el valor del ADC), `map`, `constrain`, `min`, `max`, `abs`, `random` (una secuencia
+  `analogRead` (el valor del ADC), `map`, `constrain`, `min`, `max`, `abs`, `log` (logaritmo natural, para la ecuación B de un termistor), `random` (una secuencia
   fija), las funciones de bits, `LED_BUILTIN` (2 en el DevKit, 8 en el C3, 13 en el UNO) y
   `A0`…`A5`. En un UNO, `digitalWrite(pin, HIGH)` sobre una entrada activa su pull-up, como en el
   chip real.

@@ -21,6 +21,7 @@ A type explains what the circuit file means. Create `src/parts/types/<type>.js`:
 ```js
 export default {
   type: 'potentiometer',
+  family: 'control',            // one of FAMILIES: the compact catalog groups the types by it
   pins: ['1', 'W', '3'],
   resolve(part) {
     // Read and validate the fields of the circuit file.
@@ -35,7 +36,7 @@ export default {
 };
 ```
 
-Register it in `src/parts/types/index.js`, add `type.<name>` to every file in `src/i18n/`
+Register it in `src/parts/types/index.js` (its `family` must be one of `FAMILIES` there; a test fails otherwise), add `type.<name>` to every file in `src/i18n/`
 and a row to `docs/*/circuit-format.md`.
 
 ## 3. A new package
@@ -184,8 +185,38 @@ comes with all of them, and the kit's types are built up to it:
 `test/pinout.test.js` ("a part up close") holds the rule: every type in `PART_TYPES` is either in
 `COMPLETE` (checked for all of the above) or in `PENDING` with its reason. A new type in neither fails
 the test, so the choice is made, never forgotten; moving a type from `PENDING` to `COMPLETE` is how
-the kit catches up (complete today: BJT, MOSFET, LED, a 555, resistor, capacitor, inductor, diode, Zener, bridge rectifier, potentiometer, NTC thermistor, photoresistor, push button, switch, regulator, battery, buzzer, RGB LED, 7-segment display, slide switch, tilt switch, LM35, relay, DC motor). Look at the result once: a video's frame (`render-frames.js`) and the page up close
+the kit catches up (complete today: BJT, MOSFET, LED, a 555, resistor, capacitor, inductor, diode, Zener, bridge rectifier, potentiometer, NTC thermistor, photoresistor, push button, switch, regulator, battery, buzzer, RGB LED, 7-segment display, slide switch, tilt switch, LM35, relay, DC motor, PIR module, touch module). Look at the result once: a video's frame (`render-frames.js`) and the page up close
+the kit catches up (complete today: BJT, MOSFET, LED, a 555, resistor, capacitor, inductor, diode, Zener, bridge rectifier, potentiometer, NTC thermistor, photoresistor, push button, switch, regulator, battery, buzzer, RGB LED, 7-segment display, slide switch, tilt switch, LM35, relay, DC motor, LM393 sensor module). Look at the result once: a video's frame (`render-frames.js`) and the page up close
 on a phone.
+
+## 7. A sensor: joining the environment
+
+A sensor reads a magnitude of the world from the circuit's shared environment
+([environment.md](environment.md)), never a value of its own that a learner has to find in its card.
+To make a device a sensor:
+
+1. Declare what it senses: `senses: ['light']` (one or more fields of `FIELDS` in
+   `src/sim/environment.js`; a new magnitude is one line there first).
+2. Read it in `params(part, c)`: `c.env('light')` is the environment's value at t = 0, or `undefined`
+   when the part gives its own value (`"light": 50` on the part wins) or the circuit declares no
+   environment; then keep what the part's type gave. The photoresistor:
+   `const v = c?.env?.('light'); return v === undefined ? p : ldr.set(p, 'light', v);`.
+3. Changing with it is the device's `set` (a pure formula) when the control and the field share a
+   name; otherwise give `sense(p, field, value)`, and `ownField: { field: 'its own name' }` when the
+   part calls it otherwise (the tilt switch: `{ tilt: 'tilted' }`), so a part that gives it does not
+   follow and its own control, moved, makes it leave the field.
+
+Nothing else in `src/sim` changes: the engine moves every part that follows a field when it changes
+(a slider, a timeline's set, a program), its card says whether it follows the environment, and the
+page shows the field's indicator. Test it against the sensor's own formula at two values of the
+field, and that a value on the part wins (`test/environment.test.js`).
+
+A sensor that answers in time (a PIR's delay, a touch module's response) has memory of its own:
+it lists the keys of its elements in `state: [...]` so `engine.set` carries them, and may give
+`maxStep()` and `span()`; see [timed-sensors.md](timed-sensors.md).
+A sensor on the usual comparator board (rain, soil, light, an infrared slot or pair, a Hall switch,
+a vibration contact) is not a new type: it is one row of the `sensor-module` table, its element and
+a glyph ([sensor-modules.md](sensor-modules.md#adding-a-ninth-part)).
 
 ## Tests
 

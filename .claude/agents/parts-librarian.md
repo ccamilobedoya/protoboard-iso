@@ -21,7 +21,7 @@ part may only need a line in `src/parts/db.js`.
    (`span` or `inline`), orientation from the holes, convex primitives, colours from
    `src/parts/colors.js`. Register it.
 3. **New type** → `src/parts/types/`, with its `electrical` description for the simulator.
-   Register it; add `type.<name>` and its `describe.<name>` (what it is, from the physics) to
+   Register it (give it a `family` from `FAMILIES` in `src/parts/types/index.js`); add `type.<name>` and its `describe.<name>` (what it is, from the physics) to
    every file in `src/i18n/`, its key in `src/parts/describe.js`, and an id prefix in
    `src/query.js`. A part that lies off the board gets the board in `build({ pins, params,
    board })` (see the battery).
@@ -29,7 +29,11 @@ part may only need a line in `src/parts/db.js`.
    stresses, card lines with an `explain.*` text each, current tag) listed in
    `src/sim/devices/index.js`, following `docs/en/adding-parts.md` §5; typical datasheet values in
    `src/sim/models.js` (with the source in a comment), a new element in `src/sim/mna.js` only if
-   no existing one fits. Current paths (`paths`) in the package for the conductor view.
+   no existing one fits. Current paths (`paths`) in the package for the conductor view. A sensor
+   reads the circuit's environment (§7): `senses: ['light']` and `c.env('light')` in `params`, never
+   a slider of its own as the only way to change what it senses. A sensor on the usual LM393
+   comparator board is a row of `SENSOR_MODULES` (`src/parts/sensors.js`), not a new type
+   (`docs/en/sensor-modules.md`, "Adding a ninth part").
    A microcontroller board needs no device file: its pins' data (`power`, `gpio`, `adc`,
    `inputOnly`) in `src/parts/modules.js` and its family's numbers in `MCUS`
    (`docs/en/microcontrollers.md`). Check it

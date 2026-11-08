@@ -11,9 +11,16 @@
 //   nodes:    every other group, in index order (board groups, then supply groups)
 //   members:  group → ids of the parts with a lead in it (for the floating warning)
 //   supplies: [{ id, kind, part?, voltage, internalResistance, p, n, currentLimit, battery?, generator?, off? }]
-//   devices:  [{ id, type, kind, pins: [{ name, node }], params } | { id, kind, pins, unsupported: true }]
+//   devices:  [{ id, type, kind, pins: [{ name, node }], params, senses?, follows?, env? } | { id, kind, pins, unsupported: true }]
 //   issues:   what compiling found (default models, parts not simulated, a battery switched off)
+//   environment?: { spec, fields }   only when the circuit declares one (environment.js): its fields
+//                 as cleanEnvironment gives them, and every field the program has (those named and
+//                 those a part follows)
 // }
+// A sensor (a device with `senses`) reads the environment in params() with c.env(field): the value
+// at t = 0, or undefined when the part has its own value (`"light": 50` on the part wins) or the
+// circuit declares no environment. Its record then says which fields it asked about (`senses`),
+// which it follows (`follows`) and their values (`env`), for the engine to change it as they move.
 
 import { supplyRails } from '../board/board.js';
 import { buildCircuit } from '../circuit/build.js';
@@ -25,6 +32,7 @@ import { issue } from './devices/shared.js';
 import { translateSketch } from './sketch.js';
 import { LIMITS } from '../limits.js';
 import { readBeside } from '../beside.js';
+import { cleanEnvironment, createEnvironment } from './environment.js';
 
 // A board's program (docs/en/microcontrollers.md, M2): the sketch's text in "program", or the name
 // of a .ino file beside the circuit (read by beside.js, inside the circuit's folder only);
@@ -142,6 +150,11 @@ export function compile(circuit) {
   }
   const members = Object.fromEntries(Object.entries(built.netlist.nodes).map(([node, list]) => [node, list.map((m) => m.part)]));
 
+  // The environment at t = 0, when the circuit declares one (environment.js).
+  const declared = circuit.environment != null && typeof circuit.environment === 'object' && !Array.isArray(circuit.environment);
+  const spec = declared ? cleanEnvironment(circuit.environment) : null;
+  const world = declared ? createEnvironment(spec) : null;
+  const followed = new Set();
   const devices = built.parts.map((part) => {
     const kind = part.def.electrical?.kind;
     const pins = part.pinNames.map((name, i) => ({ name, node: part.holes[i].node }));
@@ -151,7 +164,21 @@ export function compile(circuit) {
       return { id: part.id, kind, pins, unsupported: true };
     }
     const sketch = kind === 'MCU' ? sketchOf(circuit, part, issues) : null;
-    return { id: part.id, type: part.type, kind, pins, params: device.params(part, { issues, members, sketch }) };
+    const asked = [];
+    const follows = [];
+    const env = (field) => {
+      if (!world || !device.senses?.includes(field)) return undefined;
+      if (!asked.includes(field)) asked.push(field);
+      if (part.raw[device.ownField?.[field] ?? field] !== undefined) return undefined;
+      if (!follows.includes(field)) follows.push(field);
+      followed.add(field);
+      return world.value(field);
+    };
+    const record = { id: part.id, type: part.type, kind, pins, params: device.params(part, { issues, members, sketch, env }) };
+    if (asked.length) record.senses = asked;
+    if (follows.length) Object.assign(record, { follows, env: Object.fromEntries(follows.map((f) => [f, world.value(f)])) });
+    return record;
   });
-  return { program: { v: 1, ground, nodes, members, supplies, devices, issues } };
+  const environment = declared ? { environment: { spec, fields: [...new Set([...Object.keys(spec), ...followed])] } } : {};
+  return { program: { v: 1, ground, nodes, members, supplies, devices, issues, ...environment } };
 }

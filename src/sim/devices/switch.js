@@ -3,6 +3,8 @@
 // resistance; open ones are not there. Control: a toggle, `on` (a slide switch's `slid`, a tilt
 // switch's `tilted`: the circuit's own field). The switches in the board also hold their rated
 // voltage across an open contact (a stress) and name their two positions (`states`).
+// A tilt switch senses the environment's `tilt` (../environment.js) unless the part says `tilted`
+// itself: tilted (1) it opens, as its own control does.
 
 import { resistor as resistorEl } from '../mna.js';
 import { stress } from './shared.js';
@@ -12,11 +14,15 @@ const closedNow = (p) => (p.on ? p.onContacts : p.offContacts);
 export const toggle = {
   types: ['switch', 'slide-switch', 'tilt-switch'],
   kind: 'SWT',
-  params(part) {
+  senses: ['tilt'],
+  ownField: { tilt: 'tilted' },
+  params(part, c) {
     const e = part.def.electrical;
     const own = e.field ? { field: e.field, states: e.states, moves: e.moves, maxVoltage: e.maxVoltage } : {};
-    return { style: e.style, on: e.on, onContacts: e.onContacts, offContacts: e.offContacts, contact: e.contact, maxCurrent: e.maxCurrent, ...own };
+    const tilt = e.field === 'tilted' ? c?.env?.('tilt') : undefined;
+    return { style: e.style, on: tilt === undefined ? e.on : Boolean(tilt), onContacts: e.onContacts, offContacts: e.offContacts, contact: e.contact, maxCurrent: e.maxCurrent, ...own };
   },
+  sense: (p, field, value) => (field === 'tilt' ? { ...p, on: Boolean(value) } : null),
   // A switch in the board moves with a tap on the drawing too (`tap`), and its button says where it
   // goes (`moves`: the button's words while the control is false, and while it is true).
   controls: (p) => ({ [p.field ?? 'on']: { scale: 'toggle', value: Boolean(p.on), ...(p.moves && { moves: p.moves, tap: true }) } }),

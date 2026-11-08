@@ -36,7 +36,7 @@ function mapPins(part, names) {
   } else if (given && typeof given === 'object') {
         const byName = {};
     for (const [key, hole] of Object.entries(given)) {
-      const name = findPin(names, key);
+      const name = findPin(names, key, part.type);
       if (!name) issues.push(err('UNKNOWN_PIN', { part: part.id, pin: key, names: names.join(', ') }));
       else byName[name] = hole;
     }

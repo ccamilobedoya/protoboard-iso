@@ -238,8 +238,6 @@
             "required": [
               "at",
               "do",
-              "part",
-              "field",
               "value"
             ],
             "properties": {
@@ -285,6 +283,27 @@
                 "type": "string",
                 "description": "A control of the part (resistance, pressed, voltage…)"
               },
+              "environment": {
+                "enum": [
+                  "light",
+                  "temperature",
+                  "humidity",
+                  "moisture",
+                  "water",
+                  "rain",
+                  "distance",
+                  "field",
+                  "motion",
+                  "touch",
+                  "vibration",
+                  "sound",
+                  "tilt",
+                  "angle",
+                  "reflectance",
+                  "beam"
+                ],
+                "description": "A field of the circuit's environment instead of a part's control (docs/en/environment.md): every sensor that follows it changes; a program there pauses. Without a gauge step up, its indicator shows while the move lasts"
+              },
               "value": {
                 "type": [
                   "number",
@@ -292,7 +311,123 @@
                 ]
               }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "oneOf": [
+              {
+                "required": [
+                  "part",
+                  "field"
+                ]
+              },
+              {
+                "required": [
+                  "environment"
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "part"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "field"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "at",
+              "do",
+              "environment",
+              "on"
+            ],
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "ms from the start; steps with the same at start together"
+              },
+              "move": {
+                "enum": [
+                  "cut",
+                  "arrival",
+                  "travel",
+                  "push",
+                  "hit",
+                  "breath",
+                  "anticipation"
+                ],
+                "description": "cut 0 ms, arrival 600…900 ms, travel 1200…1800 ms, push 3000…8000 ms, hit 120…180 ms, breath 400…1200 ms, anticipation 600…900 ms"
+              },
+              "ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The move's duration, within its range (push needs it most); in an assemble, each part's"
+              },
+              "curve": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "The move's own cubic-bezier [x1, y1, x2, y2] (x between 0 and 1), instead of the move's curve"
+              },
+              "do": {
+                "const": "gauge"
+              },
+              "environment": {
+                "enum": [
+                  "light",
+                  "temperature",
+                  "humidity",
+                  "moisture",
+                  "water",
+                  "rain",
+                  "distance",
+                  "field",
+                  "motion",
+                  "touch",
+                  "vibration",
+                  "sound",
+                  "tilt",
+                  "angle",
+                  "reflectance",
+                  "beam"
+                ],
+                "description": "The field whose indicator shows"
+              },
+              "on": {
+                "type": "boolean",
+                "description": "true puts it up (replacing another), false takes it away"
+              },
+              "corner": {
+                "enum": [
+                  "tl",
+                  "tr",
+                  "bl",
+                  "br"
+                ],
+                "description": "tl, tr (default), bl or br: the corner of the room the caption leaves (portrait: under the caption, or over the bottom band; landscape: the right half)"
+              },
+              "min": {
+                "type": "number",
+                "description": "The dial's lower end, in the field's unit (default: the circuit's range for the field, else the slider's): choose it so the change is seen. Inside the field's limit, below max, above 0 on a log scale"
+              },
+              "max": {
+                "type": "number",
+                "description": "The dial's upper end (see min)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "The indicator of a field of the environment in a box of its own (a sun for light, a thermometer, a gauge, a lamp for a switch), as probe shows the oscilloscope"
           },
           {
             "type": "object",
@@ -628,9 +763,10 @@
                   "current",
                   "voltage",
                   "power",
-                  "brightness"
+                  "brightness",
+                  "vout"
                 ],
-                "description": "What is read from the part: current (A), voltage (V), power (W), brightness (0…1)"
+                "description": "What is read from the part: current (A), voltage (V), power (W), brightness (0…1), vout (V: the output of an LM35, a regulator, a 555)"
               },
               "label": {
                 "allOf": [
@@ -1962,9 +2098,10 @@
                   "current",
                   "voltage",
                   "power",
-                  "brightness"
+                  "brightness",
+                  "vout"
                 ],
-                "description": "What is read from the part: current (A), voltage (V), power (W), brightness (0…1)"
+                "description": "What is read from the part: current (A), voltage (V), power (W), brightness (0…1), vout (V: the output of an LM35, a regulator, a 555)"
               },
               "above": {
                 "type": "number"

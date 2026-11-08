@@ -40,9 +40,24 @@ import tiltAlarm from './tilt-alarm.js';
 import lm35Uno from './lm35-uno.js';
 import relayNpn from './relay-npn.js';
 import motorNpn from './motor-npn.js';
+import ldrNightLight from './ldr-night-light.js';
+import ldrComparator from './ldr-comparator.js';
+import lm35Comparator from './lm35-comparator.js';
+import ntcFollower from './ntc-follower.js';
+import thermistorUno from './thermistor-uno.js';
+import pirLamp from './pir-lamp.js';
+import pirUno from './pir-uno.js';
+import touchToggleLed from './touch-toggle-led.js';
+import touchUno from './touch-uno.js';
+import rainAlarm from './rain-alarm.js';
+import soilLed from './soil-led.js';
+import lightSwitchModule from './light-switch-module.js';
+import lineFollowerUno from './line-follower-uno.js';
+import obstacleBuzzer from './obstacle-buzzer.js';
+import hallCounterUno from './hall-counter-uno.js';
 
 export const RECIPES = Object.fromEntries(
-  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn].map((r) => [r.name, r]),
+  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn, ldrNightLight, ldrComparator, lm35Comparator, ntcFollower, thermistorUno, pirLamp, pirUno, touchToggleLed, touchUno, rainAlarm, soilLed, lightSwitchModule, lineFollowerUno, obstacleBuzzer, hallCounterUno].map((r) => [r.name, r]),
 );
 
 // Fields a value may set besides its main one, by the kind of item (a part's type or "supply").
@@ -53,6 +68,7 @@ const EXTRA = {
   button: ['color'],
   potentiometer: ['style', 'position'],
   supply: ['voltage', 'currentLimit', 'frequency', 'amplitude', 'offset', 'waveform'],
+  'sensor-module': ['threshold'],
 };
 
 const items = (recipe) => new Map([...recipe.parts.map((p) => [p.id, p]), ...(recipe.supplies ?? []).map((s) => [s.id, { ...s, supply: true }])]);
@@ -104,13 +120,14 @@ export function expandRecipe(name, values = {}) {
     nets: structuredClone(recipe.nets),
     ...(recipe.supplies && { supplies: recipe.supplies.map(apply) }),
     ...(recipe.netLabels && { netLabels: recipe.netLabels }),
-    ...(recipe.page && { page: recipe.page }),
+    ...(recipe.environment && { environment: structuredClone(recipe.environment) }),
+    ...(recipe.page && { page: structuredClone(recipe.page) }),
   };
   return { spec, problems: [] };
 }
 
 // A layout request as given (CLI spec file or MCP arguments) → the layout spec. With `recipe`, the
-// recipe expanded; title, board, page, netLabels, clearance and lang given replace the recipe's.
+// recipe expanded; title, board, page, environment, netLabels, clearance and lang given replace the recipe's.
 // A recipe never comes with parts or nets: to add to a recipe circuit, lay it out again with them.
 export function resolveRecipe(given) {
   if (!given?.recipe) return { spec: given, problems: [] };

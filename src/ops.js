@@ -16,7 +16,7 @@
 import { COMMON_FIELDS, TYPE_FIELDS } from './parts/fields.js';
 import { opsTooMany, circuitTooLarge } from './limits.js';
 export const OP_NAMES = ['add', 'remove', 'move', 'set', 'rename', 'circuit'];
-export const CIRCUIT_FIELDS = ['title', 'lang', 'board', 'view', 'clearance', 'netLabels', 'supplies', 'page', 'spec'];
+export const CIRCUIT_FIELDS = ['title', 'lang', 'board', 'view', 'clearance', 'netLabels', 'supplies', 'environment', 'page', 'spec'];
 const FIXED_PART_FIELDS = ['id', 'pins', 'pin1']; // changed with `rename` and `move`
 
 const clone = (x) => (x === undefined ? undefined : structuredClone(x));

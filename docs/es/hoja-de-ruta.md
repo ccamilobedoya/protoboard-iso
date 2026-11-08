@@ -126,7 +126,7 @@ Lo habitual en un banco que el kit todavía no dibuja (2026-10-16):
 - ⬜ Más placas de desarrollo: Raspberry Pi Pico (RP2040) y ESP32-CAM con su programador MB
 - ⬜ Módulos de pantalla y de entrada: OLED de 0,96" (GME12864: VCC GND SCL SDA) y de 0,91" SSD1306 por I2C, módulo encoder rotatorio EC11, switches de teclado TTC MX (bloque de teclado)
 - ⬜ Módulos de sensores: el kit de 22 módulos (DHT11, BMP280, lluvia MH-RD, humedad de suelo, KY-018…), BME280, sensor de suelo capacitivo (TLC555), ultrasónico HC-SR04
-- ⬜ **Sensores reales en las recetas de comparador y seguidor.** `lm393-comparator`, `opamp-comparator` y `opamp-follower` usan un potenciómetro donde el circuito llevaría un sensor, así que un video sobre ellas tiene que decir que una pieza hace de otra. Un sensor de humedad de suelo para el detector con LM393 (necesita el módulo de arriba); una receta con la fotorresistencia para el comparador de luz (`ldr` ya existe, solo falta la receta); un sensor leído a través del seguidor (`thermistor`, `ldr` y `temperature-sensor` ya existen). Después se pueden hacer los videos de esos circuitos
+- ✅ **Sensores reales en las recetas de comparador y seguidor** (2026-11-08, sensores S1: `ldr-night-light`, `ldr-comparator`, `lm35-comparator`, `ntc-follower`, `thermistor-uno`; las recetas con potenciómetro siguen como estaban). Antes: `lm393-comparator`, `opamp-comparator` y `opamp-follower` usan un potenciómetro donde el circuito llevaría un sensor, así que un video sobre ellas tiene que decir que una pieza hace de otra. Un sensor de humedad de suelo para el detector con LM393 (necesita el módulo de arriba); una receta con la fotorresistencia para el comparador de luz (`ldr` ya existe, solo falta la receta); un sensor leído a través del seguidor (`thermistor`, `ldr` y `temperature-sensor` ya existen). Después se pueden hacer los videos de esos circuitos
 - ⬜ Actuadores: servos SG90 y MG90S (cable de 3 pines), driver de motores TB6612FNG, motorreductores DC, mini bomba sumergible
 - ⬜ Energía: panel solar de 6 V 2 W; portapilas de una 18650, LiPo 103450 con conector JST PH
 - ⬜ En la protoboard: disipador TO-220, conectores XH, zócalos DIP
@@ -150,7 +150,7 @@ de abajo y comparar.
 - ✅ `suggest` da en cada colocación el cuerpo más cercano y su holgura (`nearest`), acepta un `profile` de revisión (deja fuera lo que bloquearía, en las dos vistas) y mide más candidatos (hasta 48) mientras pasen menos que `limit`
 - ✅ Colocar varias piezas a la vez: `suggest` con `parts` (CLI `--parts`), cada una según las anteriores, con un solo lote de add en la respuesta; los grupos se pueden nombrar por una pata ya colocada (`R1.2`, `U1.OUT`) en todas partes
 - ✅ `review`: cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `--explain` (`explain: true`) agrega las reglas del perfil
-- ✅ `catalog`: una lista compacta por defecto (2 KB en vez de 20); `name` (un tipo, número de parte o módulo) da patas, encapsulado, campos y un ejemplo real de `examples/`; el registro completo con `format: "json"` (`src/node/catalog.js`)
+- ✅ `catalog`: una lista compacta por defecto (3,3 KB en vez de 20, tipos agrupados por familia); `name` (un tipo, número de parte o módulo) da patas, encapsulado, campos y un ejemplo real de `examples/`; el registro completo con `format: "json"` (`src/node/catalog.js`)
 - ✅ Herramienta MCP `netlist` (CLI `nets`): redes como grupos unidos por cables, con sus patas, etiquetas y las patas solas en su red (`src/nets.js`)
 - ⬜ Un marcador «representa a» para una pieza que el kit todavía no tiene: dibujado plano, sin choques, con nombre en la ficha (solo mientras la pieza está pendiente)
 - ⬜ Fotos: una tabla para una protoboard de pie (riel izquierdo = B+/B−, derecho = T−/T+; las filas de la foto son las columnas del kit) y un dibujo con la cuadrícula anotada para comparar con una foto
@@ -353,6 +353,25 @@ el cambio era un periodo en ms bajo la traza y un subtítulo de 32 letras ocupab
 - ✅ Un foco durante un aterrizaje espera a la protoboard: sus tiras y coordenadas aparecen con un fundido cuando ya aclaró (`LAND.reveal`), nunca sobre el fondo vacío (0.8.0-c.1); caso de jsdom y fotograma *golden* M37
 - ✅ Un video que abre con su resultado (0.8.0-c.2): el énfasis de un subtítulo (`em`), la corriente en dos colores según su sentido (`sense` de `flow`), una tarjeta (`card`), un evento por parpadeo (`led`, `card`), un recuadro que compara en proporción (`change`, `ratio` por defecto), subtítulos que suben apareciendo, una escena y un aterrizaje después de pasos en la protoboard; casos de jsdom, `555-result-first.json`, fotogramas *golden* M38 a M40
 - ✅ Una cuarta versión de un video grabado (0.8.0-d.1): un recuadro que compara con las palabras de la línea de tiempo (`say` de `probe`, `{k}` de la simulación), el énfasis de un subtítulo en su propio color, más grueso; `555-compare-say.json`, fotograma *golden* M41
+
+## Sensores y ambiente (transversal) 🔜
+
+Un sensor es una función de una magnitud del mundo a algo eléctrico; las magnitudes viven en el
+ambiente compartido del circuito, se cambian en un panel y se muestran con un indicador, nunca
+dibujadas en la protoboard ([ambiente.md](ambiente.md); decisión del 2026-11-08 en la planeación).
+
+- ✅ S0 · El ambiente (2026-11-08): `src/sim/environment.js` (16 campos, programas, pausa y reanudación, `ENV_*`), `senses` y `c.env` para los dispositivos (NTC, LDR, LM35 e interruptor de inclinación lo siguen; su propio control los desprende), motor (controles `'environment'`, `resume`, `attach`, programas con el tiempo simulado), página (sección *Ambiente*, `page.environment`, la ficha de un sensor), el indicador (`gauge.js`), `set` con `environment` y `gauge` en la línea de tiempo, `value` de `vout`; `examples/environment*.json`, `examples/tours/environment.json`
+- ✅ S0b · Rangos del indicador y del deslizador (2026-11-09): un campo puede declarar `range` en el circuito (`ENV_BAD_RANGE`), `page.controls` y el `gauge` de una línea de tiempo (`min`, `max`; `TOUR_GAUGE_RANGE`) eligen otro, el indicador dibuja su dial entre ellos y da `data-pos`; los recorridos de sensores muestran el cambio a lo largo del dial; documentos, esquemas y `test/ranges.test.js`
+- ✅ S1 · Recetas con sensores reales (2026-11-08): `ldr-night-light`, `ldr-comparator`, `lm35-comparator`, `ntc-follower`, `thermistor-uno`; las recetas llevan `environment` y `page`
+- ✅ S2 · Módulos de sensor con LM393, familia F3 (2026-11-08): un tipo `sensor-module`, un paquete, un dispositivo para ocho números de parte (lluvia `MH-RD`, suelo `YL-69`, luz `LDR-LM393`, ranura óptica `SLOT-IR`, seguidor de línea `TCRT5000-M`, Hall `KY-024` con un enclavamiento A3144, vibración `SW-420-M` con un rebote de semilla fija, obstáculo `FC-51`); `reflectance` y `beam` en el ambiente; de cerca (símbolo, vista por dentro, leyenda); recetas `rain-alarm`, `soil-led`, `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`; líneas de tiempo `soil-led.json`, `obstacle-buzzer.json`; [docs/es/modulos-sensores.md](modulos-sensores.md). Cubre el módulo LDR de S1, el módulo de obstáculos IR de S3, el interruptor Hall de S4, las placas de suelo y lluvia de S5 y el SW-420 de S6
+- ✅ S3 · Sensores digitales con tiempo, familia F4 (2026-11-08): el PIR HC-SR501 (`pir-sensor`: calentamiento, retardo Tx, puente H/L, descanso de 2,5 s, `motion`) y el módulo táctil TTP223 (`touch-sensor`: momentáneo o alterna, respuesta de 220/60 ms, 0,5 s de calibración, `touch`) como máquinas de estados en elementos con reloj propio; `engine.js` lleva las claves `state` de un dispositivo en `set` y lee `maxStep()`/`span()`; los dos de cerca; recetas `pir-lamp`, `pir-uno`, `touch-toggle-led`, `touch-uno`; ejemplos y recorridos `pir-lamp`, `touch-toggle-led`; `docs/es/sensores-temporizados.md`. El pulso de eco del HC-SR04 queda para la familia de distancia
+- ⬜ S4 · Ultrasonido HC-SR04 (`distance` → pulso de eco) y `pulseIn` en el traductor de programas
+- ⬜ S5 · Módulos analógicos: Hall lineal 49E (`field`), sensor de voltaje 0–25 V, micrófono KY-037 (`sound`)
+- ⬜ S6 · Sensores de protocolo a nivel de biblioteca: DHT11 (`temperature`, `humidity`) y BME280 leídos por el programa de una placa con las llamadas de su biblioteca
+- ⬜ S7 · Encoder rotativo EC11 (`angle` → cuadratura) y emisores (`emits`: un láser o un LED IR escribe un campo)
+- ⬜ Protocolo de bits del DHT11/BME280 en el cable — opcional, prioridad muy baja, anotado para no olvidarlo
+- ⬜ Zumbador activo (con un generador de tono adentro: suena con CC) para las recetas de alarma
+- ⬜ Preguntas de banco por resolver en las placas reales: si el LED del SW-420 está encendido en reposo, y el orden de los pines del MH-RD
 
 ## Etapa 4 — En el celular o la tableta ⬜
 

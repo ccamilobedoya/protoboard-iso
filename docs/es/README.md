@@ -9,6 +9,7 @@ está en la raíz.
 <!-- generated: the documents of this folder (npm run docs-index -- --write) -->
 - [Agentes](agentes.md): Tres subagentes de Claude Code, definidos en `.claude/agents/`, reparten el trabajo para que la conversación principal se mantenga liviana.
 - [Agregar un componente, un encapsulado o una protoboard](agregar-componentes.md): Empieza por el cambio más pequeño que funcione.
+- [El ambiente: lo que leen los sensores](ambiente.md): Un sensor es una función de una magnitud del mundo (luz, temperatura, distancia…) a algo eléctrico: una resistencia, un voltaje (tensión), un contacto que se abre.
 - [Arquitectura](arquitectura.md): La separación entre **tipo** y **encapsulado** es lo que permite reutilizar: un diodo 1N4007 y una resistencia comparten el encapsulado axial; un MOSFET IRLZ44N y un transistor TIP120 comparten el TO-220.
 - [Embeber un circuito en la documentación](embeber.md): Cada circuito tiene una página pensada para embeberse: `out/<nombre>.html`, junto a sus otras salidas.
 - [Escena y video: diseño y plan](escena-y-video.md): La página viva aprende a **contar** un circuito paso a paso: una línea de tiempo declarativa que la página reproduce como un recorrido, y que un script convierte en los fotogramas de un video corto, bajo un solo reloj externo, para que el mismo archivo dé las mismas imágenes cada vez.
@@ -25,9 +26,11 @@ está en la raíz.
 - [Mapa del código](mapa-del-codigo.md): Dónde vive cada cosa y cómo se hablan las piezas.
 - [Servidor MCP](mcp.md): `mcp/server.js` expone el kit como herramientas del [Model Context Protocol](https://modelcontextprotocol.io), para que cualquier asistente compatible (Claude Code, Claude Desktop, otros agentes) retome, inspeccione y cambie circuitos con entradas tipadas y respuestas cortas y estructuradas.
 - [Microcontroladores en la simulación](microcontroladores.md): Cómo simula el kit las placas de desarrollo (ESP32 DevKit, ESP32-C3 SuperMini, Arduino UNO): no el procesador, sino lo que se ve en los pines.
+- [Módulos de sensor con LM393](modulos-sensores.md): La mayoría de los sensores de un kit de inicio vienen en la misma placa pequeña: el elemento que siente, una resistencia de 10 kΩ sobre él, un trimmer azul y un comparador LM393 con dos LED.
 - [Montaje automático: el algoritmo que ubica un circuito entero](montaje-automatico.md): `layout` convierte una lista de componentes (sin agujeros) y las redes que los unen en un circuito ubicado, cableado y revisado, en alrededor de un segundo, sin que quien lo llama tenga que probar y corregir.
 - [Planeación: arquitectura, decisiones y buenas prácticas](planeacion.md): Ayudar a aprender electrónica **viendo** los circuitos tal como se montan en una protoboard: tamaños reales, bandas de colores reales, orientación real.
 - [Recetas: circuitos de clase por su nombre](recetas.md): Una receta es una especificación de `layout` que el kit guarda para un circuito de clase habitual: sus componentes con valores por defecto, en orden de señal, sus redes y su fuente.
+- [Sensores con tiempo: un PIR y un módulo táctil](sensores-temporizados.md): La mayoría de los sensores responden de una vez: cambia la luz y cambia la resistencia.
 - [Simulación en vivo (etapa 3): diseño y plan](simulacion-en-vivo.md): La página para embeber (`out/<nombre>.html`) tendrá una simulación real que corre en el navegador, al estilo de CircuitJS de Falstad:
 - [Simulación](simulacion.md): El kit calcula el voltaje (tensión) de cada grupo conectado y la corriente de cada componente, a partir del mismo archivo de circuito que dibuja la protoboard.
 - [Traducir](traducir.md): Hay dos cosas que traducir, y son independientes.

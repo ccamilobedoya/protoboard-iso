@@ -14,6 +14,7 @@ planning live at the root: [ROADMAP.md](../../ROADMAP.md), [PLANNING.md](../../P
 - [Code map](code-map.md): Where everything lives and how the pieces talk to each other.
 - [A video about one part: design and plan](component-focus.md): A video format for **one concrete part** (a transistor, a MOSFET, an LED, a 555): the part alone and large on the same dark stage, its pins lighting up with their names, its symbol and what is inside it, the simulation running on it as on a test bench, and a continuous move to the breadboard where the recipe's circuit builds itself around it and works.
 - [Embedding a circuit in documentation](embedding.md): Every circuit has one page meant to be embedded: `out/<name>.html`, next to its other outputs.
+- [The environment: what the sensors read](environment.md): A sensor is a function from a magnitude of the world (light, temperature, distance…) to something electrical: a resistance, a voltage, a contact that opens.
 - [Falstad: open the circuit there, and compare both simulators](falstad.md): [Falstad's CircuitJS](https://www.falstad.com/circuit/) is the most used in-browser circuit simulator for learning.
 - [Focus and the current layer](focus-and-flow.md): Two ways to point at what matters in a drawing, built from the same pieces (`src/render/focus.js`, `src/sim/flow.js`) for static images and for the interactive page.
 - [Inspecting and annotating a drawing](inspect-and-annotate.md): Two tools to know exactly what a drawing contains, without having to look at it.
@@ -23,8 +24,10 @@ planning live at the root: [ROADMAP.md](../../ROADMAP.md), [PLANNING.md](../../P
 - [MCP server](mcp.md): `mcp/server.js` exposes the kit as [Model Context Protocol](https://modelcontextprotocol.io) tools, so any compatible assistant (Claude Code, Claude Desktop, other agents) can resume, inspect and change circuits with typed inputs and short structured answers.
 - [Microcontrollers in the simulation](microcontrollers.md): How the kit simulates development boards (ESP32 DevKit, ESP32-C3 SuperMini, Arduino UNO): not the processor, but what a learner sees at the pins.
 - [Recipes: lesson circuits by name](recipes.md): A recipe is a `layout` spec the kit keeps for a usual lesson circuit: its parts with default values, in signal order, its nets and its supply.
+- [LM393 sensor modules](sensor-modules.md): Most sensors of a starter kit come on the same little board: the sensing element, a 10 kΩ resistor over it, a blue trimmer and an LM393 comparator with two LEDs.
 - [Simulation](simulation.md): The kit computes the voltage of every connected group and the current through every part, from the same circuit file that draws the board.
 - [Stage and video: design and plan](stage-and-video.md): The live page learns to **tell** a circuit step by step: a declarative timeline that the page plays as a tour, and that a script turns into the frames of a short video, under one external clock, so the same file gives the same pictures every time.
+- [Timed sensors: a PIR and a touch module](timed-sensors.md): Most sensors answer at once: change the light and the resistance changes.
 - [Timelines: every step and option](timeline.md): A timeline is the script of a video and of a page's tour (*See how it works*): a JSON file of steps, each at a time, each doing one thing.
 - [Translating](translating.md): There are two things to translate, and they are independent.
 - [User experience pass: design and plan](ux-pass.md): Stage 3 left the page with many useful features: views, framing, labels, the current layer, time controls, Falstad, cards for parts and strips with their values, sliders and oscilloscope, a controls panel and warnings.

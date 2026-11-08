@@ -14,10 +14,13 @@ import { inductor, thermistor, ldr, buzzer, header } from './more.js';
 import { rgbLed, sevenSegment } from './display.js';
 import { slideSwitch, tiltSwitch, temperatureSensor } from './kit-sensors.js';
 import { relay, motor } from './kit-actuators.js';
+import { pirSensor, touchSensor } from './timed-sensors.js';
+import { sensorModule } from './sensor-modules.js';
 import { WIRE_COLORS } from '../colors.js';
 
 const wire = {
   type: 'wire',
+  family: 'connection',
   pins: ['1', '2'],
   resolve(part) {
     const colorName = part.color ?? 'blue';
@@ -32,4 +35,8 @@ const wire = {
   },
 };
 
-export const PART_TYPES = Object.fromEntries([resistor, capacitor, potentiometer, diode, zener, bridge, led, mosfet, bjt, ic, regulator, button, wire, battery, module, toggle, inductor, thermistor, ldr, buzzer, header, rgbLed, sevenSegment, slideSwitch, tiltSwitch, temperatureSensor, relay, motor].map((t) => [t.type, t]));
+// The families a type can belong to, in the order the compact catalog lists them. Every type
+// names one in its definition (`family`); a test fails for a type without one or outside this list.
+export const FAMILIES = ['passive', 'semiconductor', 'led', 'control', 'sensor', 'ic', 'power', 'output', 'module', 'connection'];
+
+export const PART_TYPES = Object.fromEntries([resistor, capacitor, potentiometer, diode, zener, bridge, led, mosfet, bjt, ic, regulator, button, wire, battery, module, toggle, inductor, thermistor, ldr, buzzer, header, rgbLed, sevenSegment, slideSwitch, tiltSwitch, temperatureSensor, relay, motor, pirSensor, touchSensor, sensorModule].map((t) => [t.type, t]));

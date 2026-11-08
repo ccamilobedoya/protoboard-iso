@@ -137,7 +137,7 @@ grabación está completo en su primer fotograma (no sube).
 | Campo | Valores | Por defecto | |
 |---|---|---|---|
 | `part` | un id, *obligatorio* | | |
-| `field` | `current`, `voltage`, `power`, `brightness`, *obligatorio* | | lo que se lee, en A, V, W o % |
+| `field` | `current`, `voltage`, `power`, `brightness`, `vout`, *obligatorio* | | lo que se lee, en A, V, W o %; `vout` la salida de una pieza que la da (un LM35, un regulador, un 555) |
 | `label` | un texto | ninguna | junto al número |
 | `count` | 0…5000 ms | 500 | cuenta hasta la lectura; 0 la muestra tal cual |
 | `enter`, `in` | como los de un subtítulo | `rise`, 400 | cómo llega |
@@ -150,9 +150,33 @@ nuevo se lleva el valor.
 | Campo | Valores | Por defecto | |
 |---|---|---|---|
 | `part`, `field`, `value` | un control de la pieza (`pressed`, `resistance`, `voltage`…) y su valor nuevo, *obligatorio* | | `check` nombra los controles que tiene una pieza |
+| `environment` | un campo del ambiente del circuito (`light`, `temperature`…), en lugar de `part` y `field` | | cambian todos los sensores que lo siguen; si tiene un programa, se pausa ([ambiente.md](ambiente.md)) |
 | `move`, `ms`, `curve` | | `hit` | un número se mueve por la curva (en escala log donde el deslizador lo es), un botón cambia de una vez |
 
-Un deslizador que se mueve solo entre dos valores (M10): dos pasos `set` con `travel`.
+Un deslizador que se mueve solo entre dos valores (M10): dos pasos `set` con `travel`. Lo mismo con
+un campo del ambiente: `{ "do": "set", "environment": "light", "value": 5, "move": "travel" }` baja
+la luz desde donde esté hasta 5 lx en escala logarítmica. Si ningún paso `gauge` tiene un indicador
+puesto, un `set` del ambiente muestra el indicador de ese campo en la esquina de arriba a la derecha
+mientras dura su movimiento (al menos un segundo) y luego lo quita; con un `gauge` puesto, lo deja
+como está.
+
+### `gauge`: el indicador de un campo del ambiente
+
+| Campo | Valores | Por defecto | |
+|---|---|---|---|
+| `environment` | un campo que tiene el ambiente del circuito, *obligatorio* | | si no, `TOUR_UNKNOWN_ENVIRONMENT` (`render-frames.js --parts` los lista) |
+| `on` | `true`, `false`, *obligatorio* | | `true` lo pone (en lugar de otro), `false` lo quita |
+| `corner` | `tl`, `tr`, `bl`, `br` | `tr` | la esquina del espacio que deja el subtítulo: en vertical desde el 29 % hacia abajo (arriba) o desde el 26 % hacia arriba (abajo); en horizontal, la mitad derecha |
+| `min`, `max` | números, `min` < `max` | el rango del circuito para el campo; si no, el del deslizador | los extremos del dial desde este paso (un campo logarítmico necesita `min` mayor que 0); `TOUR_GAUGE_RANGE` si el rango no vale, queda fuera del límite del campo o se da a un interruptor |
+
+El indicador en un recuadro propio, como `probe` muestra el osciloscopio: un sol para la luz, un
+termómetro, una lámpara para un interruptor y un medidor de aguja para lo demás, con el nombre del
+campo encima y el valor debajo. Elige `min` y `max` para que el cambio del video se vea: de 30 a
+5 cm en un dial de 2 a 400 cm la aguja casi no se mueve, en uno de 2 a 40 cm cruza el dial. Un `set`
+a un valor fuera del rango sigue permitido (el rango es solo cómo se muestra): la aguja queda en el
+extremo. No se dibuja nada en la protoboard: la luz está «encendida a un
+nivel» y todos los sensores de ese campo la reciben. En la página se ve sobre el dibujo mientras
+corre el recorrido.
 
 ### `flow`: la capa de corriente
 
@@ -515,7 +539,7 @@ tiempo.
 forma, tamaño o archivo deja la página sin recorrido (`TOUR_SHAPE`, `TOUR_FIELD`, `TOUR_ACTION`,
 `TOUR_MOVE`, `TOUR_JSON`, `TOUR_TOO_LARGE`…); una pieza o un control desconocido, un `ms` fuera del
 rango de su movimiento, un ritmo roto, un valor que el subtítulo siguiente quita antes de un segundo
-(`TOUR_VALUE_HIDDEN`), una pata que la pieza no tiene (`TOUR_UNKNOWN_PIN`), una marca que no tiene (`TOUR_NO_MARK`), un banco en un circuito que no se simula (`TOUR_BENCH_NOT_SIMULATED`), un símbolo o una vista por dentro que el tipo de la pieza no tiene (`TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`) o una línea de tiempo de más de diez minutos es un aviso y
+(`TOUR_VALUE_HIDDEN`), una pata que la pieza no tiene (`TOUR_UNKNOWN_PIN`), una marca que no tiene (`TOUR_NO_MARK`), un banco en un circuito que no se simula (`TOUR_BENCH_NOT_SIMULATED`), un símbolo o una vista por dentro que el tipo de la pieza no tiene (`TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`), un campo que el ambiente del circuito no tiene (`TOUR_UNKNOWN_ENVIRONMENT`) o una línea de tiempo de más de diez minutos es un aviso y
 igual se reproduce. Topes: 100 kB, 200 pasos, 280 caracteres por texto, diez minutos.
 
 ## Grabar

@@ -126,7 +126,7 @@ Usual bench parts the kit does not draw yet (2026-10-16):
 - ⬜ More development boards: Raspberry Pi Pico (RP2040) and ESP32-CAM with its MB programmer
 - ⬜ Display and input modules: OLED 0.96" (GME12864: VCC GND SCL SDA) and 0.91" SSD1306 over I2C, EC11 rotary encoder module, TTC MX key switches (keyboard block)
 - ⬜ Sensor modules: the 22-module kit (DHT11, BMP280, MH-RD rain, soil moisture, KY-018…), BME280, capacitive soil sensor (TLC555), HC-SR04 ultrasonic
-- ⬜ **Real sensors in the comparator and follower recipes.** `lm393-comparator`, `opamp-comparator` and `opamp-follower` use a potentiometer where the circuit would have a sensor, so a video about them has to say that one part stands for another. A soil moisture sensor for the LM393 detector (it needs the module above); a recipe with the photoresistor for the light comparator (`ldr` already exists, only the recipe is missing); a sensor read through the follower (`thermistor`, `ldr` and `temperature-sensor` already exist). Then the videos of those circuits can be made
+- ✅ **Real sensors in the comparator and follower recipes** (2026-11-08, sensors S1: `ldr-night-light`, `ldr-comparator`, `lm35-comparator`, `ntc-follower`, `thermistor-uno`; the potentiometer recipes stay as they are). Was: `lm393-comparator`, `opamp-comparator` and `opamp-follower` use a potentiometer where the circuit would have a sensor, so a video about them has to say that one part stands for another. A soil moisture sensor for the LM393 detector (it needs the module above); a recipe with the photoresistor for the light comparator (`ldr` already exists, only the recipe is missing); a sensor read through the follower (`thermistor`, `ldr` and `temperature-sensor` already exist). Then the videos of those circuits can be made
 - ⬜ Actuators: SG90 and MG90S servos (3-pin lead), TB6612FNG motor driver, DC gear motors, mini submersible pump
 - ⬜ Energy: 6 V 2 W solar panel; single 18650 holder, LiPo 103450 on a JST PH lead
 - ⬜ On the board: TO-220 heatsink, XH connectors, DIP sockets
@@ -149,7 +149,7 @@ with the improvements below and compare.
 - ✅ `suggest` gives each placement its nearest body and gap (`nearest`), takes a review `profile` (leaves out what it would block, both views) and measures more candidates (up to 48) while fewer than `limit` pass
 - ✅ Place several parts at once: `suggest` with `parts` (CLI `--parts`), each placed given the ones before it, answered as one batch of adds; groups can be named by a placed pin (`R1.2`, `U1.OUT`) everywhere
 - ✅ `review`: each blocking item names its `parts` and `views`; `--explain` (`explain: true`) adds the profile's rules
-- ✅ `catalog`: a compact list by default (2 KB instead of 20); `name` (a type, part number or module) for its pins, package, fields and a real example from `examples/`; the full registry with `format: "json"` (`src/node/catalog.js`)
+- ✅ `catalog`: a compact list by default (3.3 KB instead of 20, types grouped by family); `name` (a type, part number or module) for its pins, package, fields and a real example from `examples/`; the full registry with `format: "json"` (`src/node/catalog.js`)
 - ✅ MCP tool `netlist` (CLI `nets`): nets as groups joined by wires, with their pins, labels and the pins alone on a net (`src/nets.js`)
 - ⬜ A "stands for" marker for a part the kit still lacks: drawn flat, no collisions, named in the card (only while the part is pending)
 - ⬜ Photos: a table for a board standing up (left rail = B+/B−, right = T−/T+; the photo's rows are the kit's columns) and an annotated grid render to compare with a photo
@@ -347,6 +347,25 @@ period in ms under the trace, a caption of 32 letters took three lines.
 - ✅ A focus during a land waits for the board: its strips and coordinates fade in once it is lit (`LAND.reveal`), never over the empty stage (0.8.0-c.1); jsdom case and golden frame M37
 - ✅ A video that opens on its result (0.8.0-c.2): a caption's emphasis (`em`), the current in two colours by its sense (`flow` `sense`), a card (`card`), an event per blink (`led`, `card`), a comparing box as a proportion (`change`, `ratio` by default), captions that rise fading in, a scene and a land after steps on the board; jsdom cases, `555-result-first.json`, golden frames M38 to M40
 - ✅ A fourth version of a recorded short (0.8.0-d.1): a comparing box in the timeline's own words (`probe` `say`, `{k}` from the simulation), a caption's emphasis in its own colour, bolder; `555-compare-say.json`, golden frame M41
+
+## Sensors and environment (cross-cutting) 🔜
+
+A sensor is a function from a magnitude of the world to something electrical; the magnitudes live in
+the circuit's shared environment, changed in a panel and shown by an indicator, never drawn on the
+board ([docs/en/environment.md](docs/en/environment.md); decision of 2026-11-08 in PLANNING.md).
+
+- ✅ S0 · The environment (2026-11-08): `src/sim/environment.js` (16 fields, programs, pause and resume, `ENV_*`), `senses` and `c.env` for devices (NTC, LDR, LM35, tilt switch follow it; their own control detaches them), engine (`'environment'` controls, `resume`, `attach`, programs on simulated time), page (*Environment* section, `page.environment`, a sensor's card), the indicator (`gauge.js`), timeline `set` with `environment` and `gauge`, `value` of `vout`; `examples/environment*.json`, `examples/tours/environment.json`
+- ✅ S0b · Indicator and slider ranges (2026-11-09): a field may declare `range` in the circuit (`ENV_BAD_RANGE`), `page.controls` and a timeline's `gauge` (`min`, `max`; `TOUR_GAUGE_RANGE`) choose another, the indicator draws its dial between them and states `data-pos`; the sensor tours show the change across the dial; docs, schemas and `test/ranges.test.js`
+- ✅ S1 · Recipes with real sensors (2026-11-08): `ldr-night-light`, `ldr-comparator`, `lm35-comparator`, `ntc-follower`, `thermistor-uno`; recipes carry `environment` and `page`
+- ✅ S2 · LM393 sensor modules, family F3 (2026-11-08): one type `sensor-module`, one package, one device for eight part numbers (rain `MH-RD`, soil `YL-69`, light `LDR-LM393`, optical slot `SLOT-IR`, line follower `TCRT5000-M`, Hall `KY-024` with an A3144 latch, vibration `SW-420-M` with a seeded chatter, obstacle `FC-51`); the environment's `reflectance` and `beam`; up close (symbol, inside view, legend); recipes `rain-alarm`, `soil-led`, `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`; timelines `soil-led.json`, `obstacle-buzzer.json`; [docs/en/sensor-modules.md](docs/en/sensor-modules.md). It covers the LDR module of S1, the IR obstacle module of S3, the Hall switch of S4, the soil and rain boards of S5 and the SW-420 of S6
+- ✅ S3 · Timed digital sensors, family F4 (2026-11-08): the HC-SR501 PIR (`pir-sensor`: warm-up, delay Tx, H/L jumper, 2.5 s rest, `motion`) and the TTP223 touch module (`touch-sensor`: momentary or toggle, 220/60 ms response, 0.5 s settling, `touch`) as state machines in elements with a clock of their own; `engine.js` carries a device's `state` keys across `set` and reads `maxStep()`/`span()`; both up close; recipes `pir-lamp`, `pir-uno`, `touch-toggle-led`, `touch-uno`; examples and tours `pir-lamp`, `touch-toggle-led`; `docs/en/timed-sensors.md`. The HC-SR04 echo pulse stays for the distance family
+- ⬜ S4 · HC-SR04 ultrasonic (`distance` → echo pulse) and `pulseIn` in the program translator
+- ⬜ S5 · Analog modules: linear Hall 49E (`field`), voltage sensor 0–25 V, microphone KY-037 (`sound`)
+- ⬜ S6 · Library-level protocol sensors: DHT11 (`temperature`, `humidity`) and BME280 read by a board's program through their library calls
+- ⬜ S7 · Rotary encoder EC11 (`angle` → quadrature) and emitters (`emits`: a laser or an IR LED writes a field)
+- ⬜ DHT11/BME280 bit-level protocol on the wire — optional, very low priority, kept so it is not forgotten
+- ⬜ Active buzzer (a tone generator inside: sounds on DC) for the alarm recipes
+- ⬜ Bench questions to settle on the real boards: whether the SW-420's LED is lit at rest, and the MH-RD's pin order
 
 ## Stage 4 — On a phone or tablet ⬜
 

@@ -44,6 +44,7 @@ export function pinsByName(part, all, example) {
 
 export default {
   type: 'switch',
+  family: 'control',
   pins: null,
   resolve(part) {
     const styleName = part.style ?? 'rocker';

@@ -15,8 +15,9 @@
 // wires drawn end to end (M4, M5); a pulse runs a flash along the current's path (M7); a scene puts
 // one part alone on a pedestal (M17) and a land brings the board up under it (M18); a pin lights a
 // pin of it with its row of text (M19, M20; pinout.js); a bench connects its pins to pads that read the
-// circuit (M21; bench.js); a symbol (M22) or an inside view (M23) stands beside it (figure.js). Only
-// transform and opacity move.
+// circuit (M21; bench.js); a symbol (M22) or an inside view (M23) stands beside it (figure.js). A
+// gauge puts the indicator of a field of the environment in a corner (gauge.js). Only transform and
+// opacity move.
 
 import { moveTiming, bezier, CAPTION, CARD, LED_EVENT, INSERT, RAISE, NUDGE, SCENE, SCENE_ENTER, LAND, LABEL_MIN_PX, MOVES, ASSEMBLE, PULSE, PULSE_COLORS } from './moves.js';
 import { applyFocus, liftPart, showPart, isWire, traceWire, quote, scopeFlow } from './focus.js';
@@ -30,6 +31,7 @@ import { partsRect } from './view.js';
 const DEFAULT_MOVES = { frame: 'arrival', scene: 'arrival', land: 'travel', pin: 'arrival', bench: 'arrival', symbol: 'arrival', inside: 'arrival' };
 const COUNT_MS = 500; // a value counts up to its reading (M9), unless a step says otherwise
 const WAIT_MS = 10_000; // a wait-until that never comes true gives up after this
+const GAUGE_SHOW = 1000; // ms at least that a set of the environment shows its indicator (act.set)
 export const LANDING_PAUSE = 1800; // ms a landing rests on its first frame before it plays again
 // A landing is calmer than a video (which must catch the eye): its clock runs at `rate` (every step,
 // move and caption takes 1 / rate as long), its camera moves ease in and out instead of arriving
@@ -37,7 +39,7 @@ export const LANDING_PAUSE = 1800; // ms a landing rests on its first frame befo
 // begins without a jump.
 export const LANDING = { rate: 0.75, curve: [0.45, 0, 0.55, 1], back: 1800 };
 const CAMERA_MOVES = new Set(['arrival', 'travel', 'push', 'anticipation']);
-const UNITS = { current: 'A', voltage: 'V', power: 'W', brightness: '%' };
+const UNITS = { current: 'A', voltage: 'V', power: 'W', brightness: '%', vout: 'V' };
 
 function el(parent, tag, cls) {
   const e = document.createElement(tag);
@@ -555,7 +557,15 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     scopeFlow(page);
   }
   let framed = null; // the last frame step, for a probe to frame again
+  let temporary = null; // the field whose indicator a set put up for its move (act.set)
   const act = {
+    // The indicator of a field of the environment in a box of its own (controls.js, insetGauge), in a
+    // corner; on: false takes it away. In the page as in a recording.
+    gauge: (s) => {
+      temporary = null;
+      const on = s.on ? page.insetGauge?.(s.environment, { corner: s.corner ?? 'tr', min: s.min, max: s.max }) : page.insetGauge?.(null);
+      event('gauge', { on: Boolean(s.on && on), environment: s.environment ?? null });
+    },
     // The camera (M1, M2, M14): to a target (board, parts, here, a part or a list of parts), with
     // `zoom` and `pan` (shares of the frame), along the step's move. Automatic otherwise: nothing
     // moves it but these steps (and a probe making room for its box).
@@ -598,7 +608,21 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
       page.show();
     },
     // A probe's box with marks draws a line where the set starts, with the new value (M11).
+    // A set of the environment (`environment` instead of `part`; src/tour.js gives it the part
+    // 'environment' and the field) shows that field's indicator while its move lasts, when no gauge
+    // step has one up (GAUGE_SHOW at least, so it can be read).
     set: (s) => {
+      if (s.environment && page.insetGauge && page.gaugeShown?.() == null) {
+        const shown = page.insetGauge(s.environment, { corner: 'tr' });
+        if (shown) {
+          temporary = s.environment;
+          director.tween((e) => {
+            if (e < 1 || temporary !== s.environment || page.gaugeShown?.() !== s.environment) return;
+            temporary = null;
+            page.insetGauge(null);
+          }, { ms: Math.max(timing(s).ms, GAUGE_SHOW), ease: (k) => k });
+        }
+      }
       if (page.scopeMark?.(s.part, s.field, s.value, s.cycle)) event('mark', { part: s.part, field: s.field, value: s.value });
       const { ms } = timing(s);
       // The mark's new pace is measured from when the control has arrived (live.js, compare).
@@ -971,6 +995,8 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
     delete page.main.dataset.sense;
     page.nudged?.clear();
     scopeFlow(page);
+    if (!recording) page.insetGauge?.(null);
+    temporary = null;
     page.direct(false);
   }
   function play() {
@@ -1050,6 +1076,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         if (!recording) {
           lower();
           leaveScene();
+          page.insetGauge?.(null);
           box.hidden = true;
           document.body.classList.remove('touring', 'focus-solid');
         }

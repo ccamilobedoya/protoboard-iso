@@ -24,7 +24,7 @@ import { distance, sub } from './core/vec.js';
 import { nearestHoles, boardLayout } from './board/board.js';
 import { findPin } from './parts/pin-names.js';
 
-const ID_PREFIX = { resistor: 'R', capacitor: 'C', potentiometer: 'RV', diode: 'D', led: 'D', mosfet: 'Q', bjt: 'Q', ic: 'U', button: 'S', switch: 'S', wire: 'W', battery: 'BT', zener: 'D', bridge: 'BR', module: 'U', regulator: 'U', inductor: 'L', thermistor: 'RT', ldr: 'LDR', buzzer: 'BZ', header: 'J', 'rgb-led': 'D', 'seven-segment': 'DS', 'slide-switch': 'S', 'tilt-switch': 'S', 'temperature-sensor': 'U', relay: 'K', motor: 'M' };
+const ID_PREFIX = { resistor: 'R', capacitor: 'C', potentiometer: 'RV', diode: 'D', led: 'D', mosfet: 'Q', bjt: 'Q', ic: 'U', button: 'S', switch: 'S', wire: 'W', battery: 'BT', zener: 'D', bridge: 'BR', module: 'U', regulator: 'U', inductor: 'L', thermistor: 'RT', ldr: 'LDR', buzzer: 'BZ', header: 'J', 'rgb-led': 'D', 'seven-segment': 'DS', 'slide-switch': 'S', 'tilt-switch': 'S', 'temperature-sensor': 'U', relay: 'K', motor: 'M', 'pir-sensor': 'U', 'touch-sensor': 'U', 'sensor-module': 'U' };
 const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 
 // An elastic board is measured with room to grow: placements may go past its last column.
@@ -54,7 +54,7 @@ export function resolveNode(state, ref) {
   const pin = /^([^.\s]+)\.(\S+)$/.exec(name);
   const part = pin && state.parts.find((p) => p.id === pin[1]);
   if (part) {
-    const i = part.pinNames.indexOf(findPin(part.pinNames, pin[2]));
+    const i = part.pinNames.indexOf(findPin(part.pinNames, pin[2], part.type));
     if (i >= 0) return part.holes[i].node;
   }
   return null;
@@ -373,7 +373,7 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
   // A null in between leaves that pin to a free strip ("from U1.OUT to anywhere free").
   const asked = connect ?? (between ? Object.fromEntries(between.map((n, i) => [pinNames[i], n]).filter(([, n]) => n != null)) : {});
   for (const [pin, ref] of Object.entries(asked)) {
-    const name = findPin(pinNames, pin);
+    const name = findPin(pinNames, pin, part.type);
     const node = resolveNode(state, ref);
     if (!name) return { error: { severity: 'error', code: 'UNKNOWN_PIN', params: { part: part.id ?? part.type, pin, names: pinNames.join(', ') } } };
     if (!node) {

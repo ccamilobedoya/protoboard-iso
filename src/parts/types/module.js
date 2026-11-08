@@ -27,6 +27,7 @@ function wireColor(name, i) {
 
 export default {
   type: 'module',
+  family: 'module',
   pins: null,
   resolve(part) {
     const found = lookupModule(part.part);

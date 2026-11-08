@@ -157,7 +157,7 @@ test('language: a circuit with "lang" answers and writes in it; an explicit lang
 
 test('catalog: a compact list by default, one entry in detail by name', async () => {
   const compact = textOf(await call('catalog', {}));
-  assert.match(compact, /regulator \(.*\) · .*7805/);
+  assert.match(compact, /\npower\n(  .*\n)*  regulator: .*7805/);
   // Parts and boards plus the recipes (what a small model should look at first).
   assert.ok(compact.length < 5000, `compact catalog is ${compact.length} characters`);
   const one = jsonOf(await call('catalog', { name: 'L7805CV', format: 'json' }));
@@ -268,7 +268,8 @@ test('layout check_only reads parts by name and reports every problem without cr
 
 test('layout with a recipe: ready in one call, the catalog lists it, bad values change nothing', async () => {
   const listed = await call('catalog', {});
-  assert.match(listed.content[0].text, /npn-switch \(.*\) · R1=1k/);
+  assert.match(listed.content[0].text, /npn-switch \(NPN transistor switch\)\n/);
+  assert.ok(!/R1=1k/.test(listed.content[0].text), 'the compact list leaves the values to the entry');
   assert.match((await call('catalog', { name: 'npn-switch' })).content[0].text, /Q1: part = 2N2222A \[2N2222A, 2N3904/);
   const made = await call('layout', { target: 'recipe-switch', recipe: 'npn-switch', values: { R1: '470', V1: 9 } });
   assert.ok(!made.isError, made.content[0].text);

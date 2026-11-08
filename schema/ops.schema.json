@@ -333,6 +333,2505 @@
               "additionalProperties": false
             }
           },
+          "environment": {
+            "type": "object",
+            "description": "The world the sensors read (docs/en/environment.md), shared by every part that senses a field: a number, or { value, program }. A part's own value (\"light\": 50 on the part) wins over it",
+            "properties": {
+              "light": {
+                "description": "lx, 0.1…10000 on the slider, 0…1000000 at most, default 300",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "range": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[min, max]: the span the slider and the indicator show (inside 0…1000000, min < max, min above 0); default 0.1…10000"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "temperature": {
+                "description": "°C, -20…100 on the slider, -55…150 at most, default 25",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "range": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[min, max]: the span the slider and the indicator show (inside -55…150, min < max); default -20…100"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "humidity": {
+                "description": "%RH, 0…100 on the slider, 0…100 at most, default 50",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "range": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[min, max]: the span the slider and the indicator show (inside 0…100, min < max); default 0…100"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "moisture": {
+                "description": "%, 0…100 on the slider, 0…100 at most, default 30",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "range": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[min, max]: the span the slider and the indicator show (inside 0…100, min < max); default 0…100"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "water": {
+                "description": "mm, 0…40 on the slider, 0…1000 at most, default 0",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "range": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[min, max]: the span the slider and the indicator show (inside 0…1000, min < max); default 0…40"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "rain": {
+                "description": "a switch: 0 or 1 (false or true), default 0",
+                "oneOf": [
+                  {
+                    "type": [
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "distance": {
+                "description": "cm, 2…400 on the slider, 0…1000 at most, default 50",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "range": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[min, max]: the span the slider and the indicator show (inside 0…1000, min < max); default 2…400"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "field": {
+                "description": "G, -500…500 on the slider, -10000…10000 at most, default 0",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "range": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[min, max]: the span the slider and the indicator show (inside -10000…10000, min < max); default -500…500"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "motion": {
+                "description": "a switch: 0 or 1 (false or true), default 0",
+                "oneOf": [
+                  {
+                    "type": [
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "touch": {
+                "description": "a switch: 0 or 1 (false or true), default 0",
+                "oneOf": [
+                  {
+                    "type": [
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "vibration": {
+                "description": "a switch: 0 or 1 (false or true), default 0",
+                "oneOf": [
+                  {
+                    "type": [
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "sound": {
+                "description": "dB, 30…110 on the slider, 0…140 at most, default 40",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "range": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[min, max]: the span the slider and the indicator show (inside 0…140, min < max); default 30…110"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "tilt": {
+                "description": "a switch: 0 or 1 (false or true), default 0",
+                "oneOf": [
+                  {
+                    "type": [
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "angle": {
+                "description": "°, 0…360 on the slider, 0…360 at most, default 0",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "range": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[min, max]: the span the slider and the indicator show (inside 0…360, min < max); default 0…360"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "reflectance": {
+                "description": "%, 0…100 on the slider, 0…100 at most, default 80",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "range": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[min, max]: the span the slider and the indicator show (inside 0…100, min < max); default 0…100"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "beam": {
+                "description": "a switch: 0 or 1 (false or true), default 0",
+                "oneOf": [
+                  {
+                    "type": [
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "number",
+                          "boolean"
+                        ]
+                      },
+                      "program": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "toggle"
+                              },
+                              "high": {
+                                "type": "number"
+                              },
+                              "low": {
+                                "type": "number"
+                              },
+                              "on": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at high"
+                              },
+                              "off": {
+                                "type": "number",
+                                "minimum": 0,
+                                "description": "s at low"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "high",
+                              "low",
+                              "on",
+                              "off"
+                            ],
+                            "additionalProperties": false,
+                            "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "cycle"
+                              },
+                              "shape": {
+                                "enum": [
+                                  "sine",
+                                  "square",
+                                  "triangle"
+                                ],
+                                "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                              },
+                              "period": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "description": "s"
+                              },
+                              "min": {
+                                "type": "number"
+                              },
+                              "max": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "period",
+                              "min",
+                              "max"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "ramp"
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "seconds": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "from",
+                              "to",
+                              "seconds"
+                            ],
+                            "additionalProperties": false,
+                            "description": "from → to in `seconds`, then holds `to`"
+                          },
+                          {
+                            "properties": {
+                              "kind": {
+                                "const": "keyframes"
+                              },
+                              "points": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 1000,
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                              },
+                              "loop": {
+                                "type": "boolean",
+                                "description": "start again after the last point"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "points"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
           "page": {
             "type": "object",
             "description": "The embeddable page out/<name>.html",
@@ -374,7 +2873,7 @@
               },
               "controls": {
                 "type": "array",
-                "description": "Live page: a panel with the controls a lesson puts in front (every adjustable part also has its own in its card). Each names a part or a supply and one of its controls: resistance (resistor), temperature (thermistor), light (photoresistor), position (potentiometer), pressed (push button, momentary), voltage (bench supply), charge (battery), frequency and amplitude (signal generator)",
+                "description": "Live page: a panel with the controls a lesson puts in front (every adjustable part also has its own in its card). Each names a part or a supply and one of its controls: resistance (resistor), temperature (thermistor), light (photoresistor), position (potentiometer), pressed (push button, momentary), voltage (bench supply), charge (battery), frequency and amplitude (signal generator), threshold and its own stimulus (sensor-module)",
                 "items": {
                   "type": "object",
                   "properties": {
@@ -386,6 +2885,27 @@
                       "type": "string",
                       "description": "id of a supply (a drawn battery: use part)"
                     },
+                    "environment": {
+                      "enum": [
+                        "light",
+                        "temperature",
+                        "humidity",
+                        "moisture",
+                        "water",
+                        "rain",
+                        "distance",
+                        "field",
+                        "motion",
+                        "touch",
+                        "vibration",
+                        "sound",
+                        "tilt",
+                        "angle",
+                        "reflectance",
+                        "beam"
+                      ],
+                      "description": "a field of the circuit's environment (instead of part or supply and field), shown with its indicator in the panel's Environment section"
+                    },
                     "field": {
                       "enum": [
                         "resistance",
@@ -396,7 +2916,15 @@
                         "voltage",
                         "charge",
                         "frequency",
-                        "amplitude"
+                        "amplitude",
+                        "threshold",
+                        "wetness",
+                        "moisture",
+                        "beam",
+                        "reflectance",
+                        "distance",
+                        "field",
+                        "vibration"
                       ]
                     },
                     "min": {
@@ -417,11 +2945,24 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "field"
+                  "oneOf": [
+                    {
+                      "required": [
+                        "field"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "environment"
+                      ]
+                    }
                   ],
                   "additionalProperties": false
                 }
+              },
+              "environment": {
+                "type": "boolean",
+                "description": "The whole environment (every field it has) in the side panel, each with its indicator and, for a field a program moves, Pause and Resume (default: true when a part follows a field of it)"
               },
               "theme": {
                 "enum": [
@@ -543,7 +3084,22 @@
                       "tilt-alarm",
                       "lm35-uno",
                       "relay-npn",
-                      "motor-npn"
+                      "motor-npn",
+                      "ldr-night-light",
+                      "ldr-comparator",
+                      "lm35-comparator",
+                      "ntc-follower",
+                      "thermistor-uno",
+                      "pir-lamp",
+                      "pir-uno",
+                      "touch-toggle-led",
+                      "touch-uno",
+                      "rain-alarm",
+                      "soil-led",
+                      "light-switch-module",
+                      "line-follower-uno",
+                      "obstacle-buzzer",
+                      "hall-counter-uno"
                     ]
                   },
                   "values": {

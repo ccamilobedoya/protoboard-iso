@@ -11,10 +11,61 @@ detail.
 
 ### Added
 
+- Ranges for the environment's slider and indicator (sensors S0b; `docs/en/environment.md`): a
+  field of the circuit may declare `range: [min, max]` (`{ "distance": { "value": 30, "range": [2, 40] } }`),
+  `page.controls` overrides it for one panel row, and a timeline's `gauge` takes `min` and `max`, so
+  the needle crosses the dial for the values that matter (a hand from 30 to 5 cm hardly moved it on
+  the default 2 to 400 cm). The indicator draws its dial between them and carries `data-pos` (0…1),
+  `data-min` and `data-max` on its root; a panel row carries `data-min` and `data-max`. `check`
+  reports `ENV_BAD_RANGE` and `TOUR_GAUGE_RANGE`; the tours of `obstacle-buzzer`, `ldr-comparator`,
+  `lm35-comparator` and `environment` choose their ranges, and the `obstacle-buzzer` recipe declares
+  its own.
+- Recipes with real sensors (sensors S1; `docs/en/recipes.md`): `ldr-night-light` and
+  `ldr-comparator` (a photoresistor switching an LED in the dark, with a transistor or an LM393),
+  `lm35-comparator` (a temperature alarm), `ntc-follower` (an NTC divider through an LM358
+  follower) and `thermistor-uno` (an Arduino UNO that prints °C from an NTC with the B equation).
+  A recipe may now carry `environment` and `page`, copied into its circuit (also given beside a
+  recipe, and in the MCP `layout` tool); these five declare the field they sense and its page
+  control. Two tours, `ldr-comparator.json` and `lm35-comparator.json`. A board's program can call
+  `log`.
 - A timeline's `captionLines`: captions of 3 lines, with the oscilloscope and the circuit lower.
+- Timed sensors (S3; `docs/en/timed-sensors.md`): the HC-SR501 PIR motion module (`pir-sensor`: 30 s
+  warm-up, a delay, the H/L jumper, 2.5 s of rest) and the TTP223 touch module (`touch-sensor`:
+  momentary or toggle, 220 or 60 ms response, 0.5 s of calibration) read the environment's `motion`
+  and `touch`; their card says the phase and the time left, and up close a bar drains with it. A
+  device lists the keys of its elements in `state` and `engine.set` carries them (a slider no
+  longer restarts a timer); an element may give `maxStep()` and `span()` for the page's step and
+  real-time pace. Recipes `pir-lamp`, `pir-uno`, `touch-toggle-led`, `touch-uno`; examples and tours
+  `pir-lamp`, `touch-toggle-led`.
+- The environment (sensors, S0; `docs/en/environment.md`): a circuit's `environment` (light,
+  temperature, humidity, distance… 14 fields, each a value or a program: toggle, cycle, ramp,
+  keyframes) that every sensor reads unless the part gives its own value. The thermistor, the
+  photoresistor, the LM35 and the tilt switch follow it; their own control detaches them, and their
+  card says which. `check` reports `ENV_*`. The engine's controls with the id `environment`,
+  `engine.resume`, `engine.attach`, `engine.environment`; programs run on simulated time (in real
+  time when nothing else in the circuit changes with time).
+- The page's *Environment* section (`page.controls` entries `{ "environment": "light" }`, or all of
+  it with `page.environment`), each field with its indicator (a gauge, a sun, a thermometer, a lamp;
+  `page/client/gauge.js`) and *Pause* / *Resume* for a program; a sensor's card shows the indicator
+  and *Follow the environment*.
+- Timelines: `set` with `environment` (the indicator shows while it moves), the `gauge` step (the
+  indicator in a corner of the video), `value` of `vout`; `render-frames.js --parts` lists the
+  environment. Examples `environment.json`, `environment-cycle.json` and the tour
+  `tours/environment.json`.
+- LM393 sensor modules (`docs/en/sensor-modules.md`): one type, `sensor-module`, for eight part
+  numbers on the usual comparator board (rain `MH-RD`, soil `YL-69`, light `LDR-LM393`, optical
+  slot `SLOT-IR`, line follower `TCRT5000-M`, Hall `KY-024`, vibration `SW-420-M`, obstacle
+  `FC-51`), standing on its pins with its element on top; simulated as its divider, trimmer
+  (`threshold`), open-collector LM393, pull-up and LEDs, each element following the environment
+  (the Hall switch with its hysteresis, the SW-420 in bursts). Up close with its symbol and inside
+  view. The environment's `reflectance` and `beam`; a module's `A0`/`D0` read as its `AO`/`DO`; a recipe's
+  `environment`. Recipes `rain-alarm`, `soil-led`, `light-switch-module`, `line-follower-uno`,
+  `obstacle-buzzer`, `hall-counter-uno`; timelines `tours/soil-led.json` and
+  `tours/obstacle-buzzer.json`.
 
 ### Changed
 
+- The compact `catalog` groups part types by family (`family` in each type definition, `FAMILIES` in `parts/types/index.js`) and cuts a long list of part numbers to the first few with a count (`catalog name` has them all): and lists each recipe by name and title, without its values (`catalog` with the recipe's name gives them): about 3.3 KB instead of 5 KB, room for more types (budget 4600).
 - A part's pin rows no longer jump while the camera moves: an arrangement holds while its pins stay
   lit, chosen with room for the push. The rows are in their own module, `page/client/pinout-rows.js`.
 - The `mosfet-switch` and `npn-switch` recipes lay out with a clearance of 3, so their wires do not

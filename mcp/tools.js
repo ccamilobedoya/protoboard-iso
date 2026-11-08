@@ -123,7 +123,7 @@ const partShape = z.object({ id: z.string(), type: z.string(), pins: z.union([z.
 const opShape = z
   .object({ op: z.enum(OP_NAMES) })
   .passthrough()
-  .describe('add {part} · remove {part: id} · move {part, pins} · set {part, field: value|null} · rename {part, to} · circuit {title|lang|board|view|clearance|netLabels|supplies|page}');
+  .describe('add {part} · remove {part: id} · move {part, pins} · set {part, field: value|null} · rename {part, to} · circuit {title|lang|board|view|clearance|netLabels|supplies|environment|page}');
 const READ = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
 
@@ -306,7 +306,7 @@ server.registerTool(
   {
     title: 'Lay out a whole circuit',
     description:
-      'Place a whole circuit in one call. A usual lesson circuit first: recipe with only the values that change ({"recipe":"npn-switch","values":{"R1":"470"}}; catalog lists the recipes and their values). Otherwise from its parts (no holes, in signal order; a part number, module or alias is enough) and its nets (pins and rails; usual pin names work: D1.K, U1.VIN, U1.DISCH, U1.GPIO4): parts left to right by distance from the source, jumpers for what is left apart, ground nets to a − rail, then the nets check and the lesson review, laid out again a few times and repaired jumper by jumper. On an existing target it lays the circuit out again as one revision (undo restores it): give only what changes; each part keeps its holes when it still fits. The nets are kept in the circuit (spec) and review checks them. The answer ends in STATUS: DONE (ready), CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review), FIX_SPEC (nothing created: fix every ✖ in the spec and call again) or SPEC_OK (check_only).',
+      'Place a whole circuit in one call. A usual lesson circuit first: recipe with only the values that change ({"recipe":"npn-switch","values":{"R1":"470"}}; catalog lists the recipes; catalog with the name gives their values). Otherwise from its parts (no holes, in signal order; a part number, module or alias is enough) and its nets (pins and rails; usual pin names work: D1.K, U1.VIN, U1.DISCH, U1.GPIO4): parts left to right by distance from the source, jumpers for what is left apart, ground nets to a − rail, then the nets check and the lesson review, laid out again a few times and repaired jumper by jumper. On an existing target it lays the circuit out again as one revision (undo restores it): give only what changes; each part keeps its holes when it still fits. The nets are kept in the circuit (spec) and review checks them. The answer ends in STATUS: DONE (ready), CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review), FIX_SPEC (nothing created: fix every ✖ in the spec and call again) or SPEC_OK (check_only).',
 
     inputSchema: {
       target: z.string().describe('Folder relative to the root (e.g. led-switch): new, or an existing circuit to lay out again'),
@@ -324,6 +324,7 @@ server.registerTool(
       board: z.string().optional().describe('auto (default, grows in length; becomes double when a development board needs it), double (two elastic boards side by side), bb400, bb830 or bb830x2'),
       title: z.union([z.string(), z.record(z.string(), z.string())]).optional(),
       netLabels: z.record(z.string(), z.string()).optional(),
+      environment: z.object({}).passthrough().optional().describe('As in the circuit (the world the sensors read: {"light": 300, "temperature": 25}); a recipe with a sensor already brings its own'),
       page: z.object({}).passthrough().optional().describe('As in the circuit. With a source the page runs the simulation by default (values, oscilloscope, lit LEDs, a Current button not pressed): nothing to add. {"simulation": false} turns it off while a learner must predict a value'),
       clearance: z.number().optional().describe('Gap between bodies in mm (default 1; 3 for a roomier lesson)'),
       expect_revision: z.number().int().min(0).optional().describe('Existing circuit: refuse if it changed since this revision'),
@@ -334,11 +335,11 @@ server.registerTool(
     },
     annotations: WRITE,
   },
-  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, page, clearance, expect_revision: expectRevision, check_only: checkOnly, author = 'layout', note = 'layout', lang, outputLang }) => {
+  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, expect_revision: expectRevision, check_only: checkOnly, author = 'layout', note = 'layout', lang, outputLang }) => {
     const full = inside(target);
     const paths = resolveTarget(full);
     const previous = existsSync(paths.circuitFile) ? loadCircuit(paths) : null;
-    const fromRecipe = resolveRecipe(Object.fromEntries(Object.entries({ recipe, values, parts, nets, supplies, board, title, netLabels, page, clearance, lang }).filter(([, v]) => v !== undefined)));
+    const fromRecipe = resolveRecipe(Object.fromEntries(Object.entries({ recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, lang }).filter(([, v]) => v !== undefined)));
     if (fromRecipe.problems.length) return { isError: true, content: [{ type: 'text', text: formatLayout(specProblems(fromRecipe.problems), lang ?? 'en', { t, formatIssue }) }] };
     ({ parts, nets } = fromRecipe.spec);
     const given = fromRecipe.spec;
@@ -526,7 +527,7 @@ server.registerTool(
   {
     title: 'Catalog',
     description:
-      'What the kit knows. Without name: a compact list (every part type with its pins in order, the part numbers of each type, modules, batteries, boards, views, operations, and the recipes for layout with the values each one can change). With name (a type like "regulator", a part number like "7805", a module like "UNO" or a recipe like "npn-switch"): its pins, package, the fields it takes and a real part from the examples to copy; for a recipe, its parts, nets and values with their choices or range. format "json" without name: every registry in full.',
+      'What the kit knows. Without name: a compact list (part types grouped by family, one line each with its pins in order and its first part numbers (the rest as a count: name shows them all); modules, batteries, boards, views, operations, and the recipes for layout by name and title, without their values; those come with the name of the recipe). With name (a type like "regulator", a part number like "7805", a module like "UNO" or a recipe like "npn-switch"): its pins, package, the fields it takes and a real part from the examples to copy; for a recipe, its parts, nets and values with their choices or range. format "json" without name: every registry in full.',
     inputSchema: { name: z.string().optional().describe('A part type, part number, module or recipe'), ...common },
     annotations: READ,
   },

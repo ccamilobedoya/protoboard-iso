@@ -10,12 +10,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { translateSketch, SKETCH_API } from '../src/sim/sketch.js';
 import { createRunner } from '../src/sim/program.js';
-import { simulate } from '../src/sim/index.js';
+import { simulate, compile, createEngine } from '../src/sim/index.js';
 import { autoLayout } from '../src/layout.js';
 import { RECIPES, expandRecipe } from '../src/recipes/index.js';
 import { resolveTarget, loadCircuit, createTarget } from '../src/node/workspace.js';
 import { applyOps } from '../src/ops.js';
-import { renderCircuit } from '../src/index.js';
+import { renderCircuit, checkCircuit } from '../src/index.js';
 import { renderPage } from '../src/page.js';
 import { LIMITS } from '../src/limits.js';
 import { tourIssues } from '../src/tour.js';
@@ -176,6 +176,26 @@ test('attack: circuits and operations have size caps', () => {
   assert.deepEqual(codes(createTarget(join(root, 'big'), { parts: [], title: 'x'.repeat(LIMITS.circuitBytes) }, { outputs: false }).errors), ['CIRCUIT_TOO_LARGE']);
   writeFileSync(join(root, 'huge.json'), JSON.stringify({ parts: [], title: 'x'.repeat(LIMITS.circuitBytes) }));
   assert.throws(() => loadCircuit(resolveTarget(join(root, 'huge.json'))), (e) => e.issue?.code === 'CIRCUIT_TOO_LARGE');
+});
+
+// The environment (sensors, S0): a field the registry does not have, a program too long or that is
+// not a program are errors for check; the simulation drops them and runs, never slower for them.
+test('attack: the environment has a cap, and what it cannot use is left out', { timeout: 5000 }, () => {
+  const points = Array.from({ length: LIMITS.envPoints + 1 }, (_, k) => [k, 10]);
+  const circuit = {
+    supplies: [{ id: 'V1', voltage: 5 }],
+    environment: { light: { program: { kind: 'keyframes', points } }, ['<b>x</b>'.repeat(30)]: 1, temperature: { program: { kind: 'cycle', period: 1e-300, min: 0, max: 1 } }, constructor: 1, __proto__: { light: 1 } },
+    parts: [{ id: 'L1', type: 'ldr', pins: ['T+3', 'T-3'] }, { id: 'T1', type: 'thermistor', value: '10k', pins: ['T+5', 'T-5'] }],
+  };
+  const found = codes(checkCircuit(circuit).issues).filter((c) => c.startsWith('ENV_'));
+  assert.deepEqual(found, ['ENV_TOO_LARGE', 'ENV_UNKNOWN_FIELD', 'ENV_UNKNOWN_FIELD']);
+  assert.equal(checkCircuit(circuit).issues.find((i) => i.code === 'ENV_UNKNOWN_FIELD').params.field.length, 40);
+  const program = compile(circuit).program;
+  assert.equal(program.environment.spec.light.program, undefined, 'the keyframes are dropped');
+  const engine = createEngine(program);
+  assert.ok(engine.start('dc'));
+  for (let k = 0; k < 50; k++) engine.advance(0.02);
+  assert.ok(Number.isFinite(engine.read().parts.T1.current), 'a period too short for the clock keeps a number');
 });
 
 // A page's timeline (page.tour, stage and video V2): read only beside the circuit, capped, checked
