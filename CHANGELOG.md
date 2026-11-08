@@ -15,6 +15,7 @@ detail.
 
 ### Changed
 
+- The compact `catalog` groups part types by family (`family` in each type definition, `FAMILIES` in `parts/types/index.js`) and leaves out the recipes' titles: about 3.6 KB instead of 5 KB, room for more types.
 - A part's pin rows no longer jump while the camera moves: an arrangement holds while its pins stay
   lit, chosen with room for the push. The rows are in their own module, `page/client/pinout-rows.js`.
 - The `mosfet-switch` and `npn-switch` recipes lay out with a clearance of 3, so their wires do not

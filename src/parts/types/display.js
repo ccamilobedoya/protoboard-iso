@@ -8,6 +8,7 @@ import { lookupPartNumber } from '../db.js';
 // Leads in the order of the usual datasheets: R, the common (the longest), G, B.
 export const rgbLed = {
   type: 'rgb-led',
+  family: 'led',
   pins: ['R', 'COM', 'G', 'B'],
   resolve(part) {
     const common = part.common ?? 'cathode';
@@ -33,6 +34,7 @@ export const SEGMENTS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'DP'];
 // pin 1 in rows b–e, the other row 6 holes behind, 15.24 mm, across the channel).
 export const sevenSegment = {
   type: 'seven-segment',
+  family: 'led',
   pins: null, // from the part number
   // Pins 3 and 8 are both the common: one piece of metal inside.
   internal: [['COM1', 'COM2']],

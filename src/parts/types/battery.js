@@ -17,6 +17,7 @@ const SIDES = ['left', 'right', 'back', 'front'];
 
 export default {
   type: 'battery',
+  family: 'power',
   pins: ['+', '-'],
   resolve(part) {
     const model = batteryModel(part);

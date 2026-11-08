@@ -171,7 +171,7 @@ row a) plus a column (`T+9`). Rows a–e of one column are connected, f–j too;
 connection. Buttons, DIP chips and a 7-segment display straddle the centre channel. Board `double`: two boards side by
 side (rows k–o, p–t on the back one, rails `U-`, `U+` behind; no T rails) for a DevKit across the
 joint; `layout` picks it when the DevKit would cover a pin's strip. `layout` and `suggest` know all this;
-`catalog` lists every part type with its pins, part numbers, modules and boards (`name` for one
+`catalog` lists every part type grouped by family with its pins and part numbers, plus modules and boards (`name` for one
 entry's fields and an example).
 
 To write a circuit file by hand (exact positions, for a lesson about where things go): start from

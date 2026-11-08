@@ -5,6 +5,7 @@ import { parseValue } from '../../core/units.js';
 // fields: color (cap colour), pressed (for the simulator, default false)
 export const button = {
   type: 'button',
+  family: 'control',
   pins: ['1', '2', '3', '4'],
   // Pins always connected inside the part: the checker treats each group as one.
   internal: [['1', '2'], ['3', '4']],
@@ -30,6 +31,7 @@ export function valueCode(ohms) {
 //         style ('knob': panel type with a knob, default | 'trimmer': multi-turn 3296W)
 export const potentiometer = {
   type: 'potentiometer',
+  family: 'control',
   pins: ['1', 'W', '3'],
   resolve(part) {
     const ohms = parseValue(part.value ?? '10k');

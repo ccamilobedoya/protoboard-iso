@@ -21,6 +21,7 @@ A type explains what the circuit file means. Create `src/parts/types/<type>.js`:
 ```js
 export default {
   type: 'potentiometer',
+  family: 'control',            // one of FAMILIES: the compact catalog groups the types by it
   pins: ['1', 'W', '3'],
   resolve(part) {
     // Read and validate the fields of the circuit file.
@@ -35,7 +36,7 @@ export default {
 };
 ```
 
-Register it in `src/parts/types/index.js`, add `type.<name>` to every file in `src/i18n/`
+Register it in `src/parts/types/index.js` (its `family` must be one of `FAMILIES` there; a test fails otherwise), add `type.<name>` to every file in `src/i18n/`
 and a row to `docs/*/circuit-format.md`.
 
 ## 3. A new package

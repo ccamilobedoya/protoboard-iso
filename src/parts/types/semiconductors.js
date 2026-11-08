@@ -16,6 +16,7 @@ function fromPartNumber(part, expectedType, fallback) {
 
 export const diode = {
   type: 'diode',
+  family: 'semiconductor',
   pins: ['A', 'K'],
   resolve(part) {
     const found = fromPartNumber(part, 'diode', '1N4007');
@@ -44,6 +45,7 @@ export const diode = {
 // fields: part ("KBP307", default)
 export const bridge = {
   type: 'bridge',
+  family: 'semiconductor',
   pins: ['+', 'AC1', 'AC2', '-'],
   resolve(part) {
     const found = fromPartNumber(part, 'bridge', 'KBP307');
@@ -70,6 +72,7 @@ function zenerVoltage(value) {
 
 export const zener = {
   type: 'zener',
+  family: 'semiconductor',
   pins: ['A', 'K'],
   resolve(part) {
     let vz;
@@ -105,6 +108,7 @@ export const zener = {
 //         some boards of the same panel, or "none")
 export const regulator = {
   type: 'regulator',
+  family: 'power',
   pins: null, // from the part number
   resolve(part) {
     const found = fromPartNumber(part, 'regulator', '7805');
@@ -132,6 +136,7 @@ export const regulator = {
 
 export const led = {
   type: 'led',
+  family: 'led',
   pins: ['anode', 'cathode'],
   resolve(part) {
     const colorName = part.color ?? 'red';
@@ -150,6 +155,7 @@ export const led = {
 function transistor(type, fallback) {
   return {
     type,
+    family: 'semiconductor',
     pins: null, // taken from the part number
     resolve(part) {
       const found = fromPartNumber(part, type, fallback);
@@ -172,6 +178,7 @@ const ICS = { timer: 'TMR', 'op-amp': 'OPA', 'dual op-amp': 'OPA', 'quad op-amp'
 
 export const ic = {
   type: 'ic',
+  family: 'ic',
   pins: null, // from the part number
   resolve(part) {
     const found = fromPartNumber(part, 'ic', 'NE555');

@@ -65,6 +65,7 @@ export function resistorBands(ohms, tolerance = 5, count = 4) {
 
 export default {
   type: 'resistor',
+  family: 'passive',
   pins: ['1', '2'],
 
   resolve(part) {
