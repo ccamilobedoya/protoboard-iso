@@ -44,6 +44,9 @@ const SYNONYMS = [
   ['B', 'BLUE', 'AZUL'],
   ['COM', 'COMMON', 'COMUN', 'COMÚN'],
   ['DP', 'DOT', 'PUNTO'],
+  // A sensor module's outputs, printed A0 and D0 on some boards.
+  ['AO', 'A0', 'AOUT', 'ANALOG'],
+  ['DO', 'D0', 'DOUT', 'DIGITAL'],
 ];
 
 const norm = (s) => String(s ?? '').trim().toUpperCase().replace(/−/g, '-').replace(/\s+/g, '');

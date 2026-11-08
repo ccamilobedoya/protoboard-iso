@@ -45,7 +45,7 @@ const sensors = (environment, own = {}) => ({
 });
 
 test('environment: the registry has every field, each on one line, with its range, scale and default', () => {
-  const expected = { light: 300, temperature: 25, humidity: 50, moisture: 30, water: 0, rain: 0, distance: 50, field: 0, motion: 0, touch: 0, vibration: 0, sound: 40, tilt: 0, angle: 0 };
+  const expected = { light: 300, temperature: 25, humidity: 50, moisture: 30, water: 0, rain: 0, distance: 50, field: 0, motion: 0, touch: 0, vibration: 0, sound: 40, tilt: 0, angle: 0, reflectance: 80, beam: 0 };
   assert.deepEqual(Object.fromEntries(Object.entries(FIELDS).map(([k, f]) => [k, f.default])), expected);
   for (const [name, f] of Object.entries(FIELDS)) {
     for (const key of ['unit', 'min', 'max', 'limit', 'scale', 'default', 'kind']) assert.ok(key in f, `${name}.${key}`);
@@ -56,7 +56,7 @@ test('environment: the registry has every field, each on one line, with its rang
   }
   assert.deepEqual([FIELDS.light.min, FIELDS.light.max, FIELDS.light.scale, FIELDS.light.unit], [0.1, 10000, 'log', 'lx']);
   assert.deepEqual([FIELDS.temperature.min, FIELDS.temperature.max, FIELDS.temperature.limit, FIELDS.temperature.step], [-20, 100, [-55, 150], 1]);
-  assert.deepEqual(['rain', 'motion', 'touch', 'vibration', 'tilt'].filter((k) => FIELDS[k].kind === 'switch'), ['rain', 'motion', 'touch', 'vibration', 'tilt']);
+  assert.deepEqual(['rain', 'motion', 'touch', 'vibration', 'tilt', 'beam'].filter((k) => FIELDS[k].kind === 'switch'), ['rain', 'motion', 'touch', 'vibration', 'tilt', 'beam']);
   // One line each in the module, so a new magnitude is one line.
   const source = readFileSync(new URL('../src/sim/environment.js', import.meta.url), 'utf8');
   for (const name of Object.keys(FIELDS)) assert.match(source, new RegExp(`^  ${name}: \\{.*\\},$`, 'm'), name);

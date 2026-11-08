@@ -33,6 +33,8 @@ export const FIELDS = {
   sound: { unit: 'dB', min: 30, max: 110, limit: [0, 140], scale: 'linear', step: 1, default: 40, kind: 'level' },
   tilt: { ...SWITCH },
   angle: { unit: '°', min: 0, max: 360, limit: [0, 360], scale: 'linear', step: 1, default: 0, kind: 'level' },
+  reflectance: { unit: '%', min: 0, max: 100, limit: [0, 100], scale: 'linear', step: 1, default: 80, kind: 'level' },
+  beam: { ...SWITCH },
 };
 
 export const PROGRAM_KINDS = ['toggle', 'cycle', 'ramp', 'keyframes'];

@@ -25,5 +25,6 @@ import ledRgb from './led-rgb.js';
 import sevenSegment from './seven-segment.js';
 import { slide, tilt } from './board-switch.js';
 import { relay, motor } from './actuators.js';
+import sensorModule from './sensor-module.js';
 
-export const PACKAGES = Object.fromEntries([axial, led, radialCan, disc, to220, to92, pot, tactile, dip, wire, battery, trimmer, kbp, devboard, uno, despi, ams1117, rocker, latching, bead, ldr, buzzer, header, ledRgb, sevenSegment, slide, tilt, relay, motor].map((p) => [p.id, p]));
+export const PACKAGES = Object.fromEntries([axial, led, radialCan, disc, to220, to92, pot, tactile, dip, wire, battery, trimmer, kbp, devboard, uno, despi, ams1117, rocker, latching, bead, ldr, buzzer, header, ledRgb, sevenSegment, slide, tilt, relay, motor, sensorModule].map((p) => [p.id, p]));

@@ -76,9 +76,12 @@ const NTC = { r25: 10e3, beta: 3950 };
 
 // ---------------------------------------------------------------- 1. the registry
 
-test('environment: FIELDS lists exactly the fourteen fields', async () => {
+// The fourteen fields of the environment's contract, and the two the LM393 sensor modules added at
+// the end (reflectance for the line follower, beam for the optical slot).
+test('environment: FIELDS lists exactly the sixteen fields', async () => {
   const { FIELDS } = await loadEnv();
-  assert.deepEqual(Object.keys(FIELDS).sort(), ['angle', 'distance', 'field', 'humidity', 'light', 'moisture', 'motion', 'rain', 'sound', 'temperature', 'tilt', 'touch', 'vibration', 'water']);
+  assert.deepEqual(Object.keys(FIELDS).sort(), ['angle', 'beam', 'distance', 'field', 'humidity', 'light', 'moisture', 'motion', 'rain', 'reflectance', 'sound', 'temperature', 'tilt', 'touch', 'vibration', 'water']);
+  assert.deepEqual(Object.keys(FIELDS).slice(-2), ['reflectance', 'beam']);
 });
 
 test('environment: FIELDS gives each field its unit, range, limit, scale and default', async () => {
