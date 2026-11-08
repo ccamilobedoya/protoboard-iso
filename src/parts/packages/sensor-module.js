@@ -1,7 +1,7 @@
 // LM393 sensor module (src/parts/types/sensor-modules.js): a small blue board standing upright on its
 // pins in one row of the breadboard, the pins in a black header strip along its lower edge. The board
-// is 15 mm wide with three pins, 18 mm with four, and about 30 mm tall (resellers' drawings of the
-// 3-pin LDR and SW-420 boards and the 4-pin rain and soil comparators, 1.6 mm FR-4). Its front face, the
+// is 15 mm wide with three pins, 18 mm with four, and about 30 mm tall, 1.6 mm thick (typical module
+// boards of a starter kit; sizes rounded). Its front face, the
 // one that faces the front view with the holes in increasing columns, carries the printed pin names at
 // its lower edge, the two LEDs (power and DO), the LM393 (SOIC-8) and the blue trimmer (3362, 6.6 mm;
 // the KY-024's 3296W is 9.5 × 4.8 mm and 10 mm tall). The sensing element stands on its upper edge,
