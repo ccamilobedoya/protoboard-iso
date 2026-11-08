@@ -60,8 +60,8 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 
 - **values**: the main field by id (`"R1": "470"`, `"D1": "green"`, `"Q1": "BC547"`, `"V1": 9`) or
   some fields (`"R1": {"value": "470", "tolerance": "1%"}`). Only the ids a recipe lists can change,
-  some within choices or a range: `catalog` lists every recipe with its values and defaults,
-  `catalog` with the recipe's name shows its parts, nets and limits. A wrong value is a `FIX_SPEC`
+  some within choices or a range: `catalog` lists every recipe with its title,
+  `catalog` with the recipe's name shows its values with defaults, parts, nets and limits. A wrong value is a `FIX_SPEC`
   that says what is allowed.
 - `title`, `board`, `clearance`, `netLabels`, `page` and `lang` may be given beside the recipe. Never
   `parts` or `nets`: to add to a recipe circuit, call `layout` on it again with the full parts and
@@ -175,7 +175,7 @@ row a) plus a column (`T+9`). Rows a–e of one column are connected, f–j too;
 connection. Buttons, DIP chips and a 7-segment display straddle the centre channel. Board `double`: two boards side by
 side (rows k–o, p–t on the back one, rails `U-`, `U+` behind; no T rails) for a DevKit across the
 joint; `layout` picks it when the DevKit would cover a pin's strip. `layout` and `suggest` know all this;
-`catalog` lists every part type with its pins, part numbers, modules and boards (`name` for one
+`catalog` lists every part type grouped by family with its pins and part numbers, plus modules and boards (`name` for one
 entry's fields and an example).
 
 To write a circuit file by hand (exact positions, for a lesson about where things go): start from

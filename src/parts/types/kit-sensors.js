@@ -26,6 +26,7 @@ function boardSwitch(type) {
   const s = BOARD_SWITCHES[type];
   return {
     type,
+    family: 'control',
     pins: lookupPartNumber(s.part).entry.pins,
     resolve(part) {
       const found = lookupPartNumber(part.part ?? s.part);
@@ -52,6 +53,7 @@ export const tiltSwitch = boardSwitch('tilt-switch');
 // Pins +VS, VOUT, GND from the left with the flat face toward you (the datasheet's bottom view).
 export const temperatureSensor = {
   type: 'temperature-sensor',
+  family: 'sensor',
   pins: ['+VS', 'VOUT', 'GND'],
   resolve(part) {
     const found = lookupPartNumber(part.part ?? 'LM35DZ');

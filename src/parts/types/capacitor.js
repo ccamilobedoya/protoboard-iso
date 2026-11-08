@@ -44,6 +44,7 @@ export function capacitorCode(farads) {
 
 export default {
   type: 'capacitor',
+  family: 'passive',
   pins: ['1', '2'],
 
   resolve(part) {

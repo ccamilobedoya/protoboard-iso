@@ -23,6 +23,7 @@ Un tipo explica qué significa lo que dice el archivo de circuito. Crea
 ```js
 export default {
   type: 'potentiometer',
+  family: 'control',            // una de FAMILIES: el catálogo compacto agrupa los tipos por ella
   pins: ['1', 'W', '3'],
   resolve(part) {
     // Leer y validar los campos del archivo de circuito.
@@ -37,7 +38,7 @@ export default {
 };
 ```
 
-Regístralo en `src/parts/types/index.js`, agrega `type.<nombre>` en cada archivo de
+Regístralo en `src/parts/types/index.js` (su `family` debe ser una de `FAMILIES` allí; si no, una prueba falla), agrega `type.<nombre>` en cada archivo de
 `src/i18n/` y una fila en `docs/*/` (formato del circuito).
 
 ## 3. Un encapsulado nuevo

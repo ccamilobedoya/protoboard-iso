@@ -24,6 +24,7 @@ const found = (number, type) => {
 //         use), wires ({ "A1": "red" }), side ('front' | 'back'), offset (mm along the board)
 export const relay = {
   type: 'relay',
+  family: 'output',
   pins: null,
   resolve(part) {
     const f = found(part.part ?? 'SRD-05VDC-SL-C', 'relay');
@@ -48,6 +49,7 @@ export const relay = {
 //         offset (mm along that edge)
 export const motor = {
   type: 'motor',
+  family: 'output',
   pins: ['+', '-'],
   resolve(part) {
     const f = found(part.part ?? 'RE-140RA-12240', 'motor');

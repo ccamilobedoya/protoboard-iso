@@ -41,8 +41,10 @@ Código de salida 0 si se aprueba y 2 si hay que cambiar algo. También existe c
 Medido el 2026-10-16: un agente de montaje que rehízo una fuente de dos rieles necesitó 68
 llamadas y unos 185 000 tokens. Lo que lo reduce:
 
-- `catalog` sin `name` es una lista compacta (unos 2 KB en vez de 20); `name` da los campos y un
-  ejemplo real de un tipo solo cuando hace falta.
+- `catalog` sin `name` es una lista compacta (unos 3,3 KB en vez de 20): los tipos de componente
+  agrupados por familia, una línea cada uno con sus patas y sus primeros números de parte (`name` da todos), luego módulos,
+  protoboards y las recetas (nombre y título, sin valores: `catalog` con el nombre de la receta los da); `name` da los campos y un ejemplo real de un tipo
+  solo cuando hace falta.
 - `suggest` con `parts` coloca una cadena de componentes en una llamada, cada uno según los
   anteriores, nombrando patas ya colocadas como grupos (`"R1.2"`); con `profile: "lesson"` deja
   fuera lo que la revisión bloquearía, así hay menos rondas de revisión. Además mide más

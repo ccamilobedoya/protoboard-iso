@@ -16,6 +16,7 @@ export { LDR_PARTS, ldrResistance };
 const INDUCTOR_LENGTH = 9;
 export const inductor = {
   type: 'inductor',
+  family: 'passive',
   pins: ['1', '2'],
   resolve(part) {
     const henries = parseValue(part.value);
@@ -45,6 +46,7 @@ export const inductor = {
 //         default 25: the temperature the simulation uses)
 export const thermistor = {
   type: 'thermistor',
+  family: 'sensor',
   pins: ['1', '2'],
   resolve(part) {
     const r25 = parseValue(part.value ?? '10k');
@@ -67,6 +69,7 @@ export const thermistor = {
 // fields: part ("GL5528", default), light (illuminance in lux, default 100: a lit room)
 export const ldr = {
   type: 'ldr',
+  family: 'sensor',
   pins: ['1', '2'],
   resolve(part) {
     const number = String(part.part ?? 'GL5528').toUpperCase();
@@ -88,6 +91,7 @@ export const ldr = {
 // its coil (about 16 Ω) just takes current.
 export const buzzer = {
   type: 'buzzer',
+  family: 'output',
   pins: ['1', '2'],
   resolve(part) {
     const resistance = parseValue(part.resistance ?? 16);
@@ -104,6 +108,7 @@ export const buzzer = {
 // "pin1" and "count", or list every hole. Electrically each pin is only its own hole.
 export const header = {
   type: 'header',
+  family: 'connection',
   pins: null,
   resolve(part) {
     const count = Number(part.count ?? (Array.isArray(part.pins) ? part.pins.length : part.pins ? Object.keys(part.pins).length : NaN));

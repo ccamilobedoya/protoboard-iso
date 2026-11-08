@@ -21,7 +21,7 @@ part may only need a line in `src/parts/db.js`.
    (`span` or `inline`), orientation from the holes, convex primitives, colours from
    `src/parts/colors.js`. Register it.
 3. **New type** → `src/parts/types/`, with its `electrical` description for the simulator.
-   Register it; add `type.<name>` and its `describe.<name>` (what it is, from the physics) to
+   Register it (give it a `family` from `FAMILIES` in `src/parts/types/index.js`); add `type.<name>` and its `describe.<name>` (what it is, from the physics) to
    every file in `src/i18n/`, its key in `src/parts/describe.js`, and an id prefix in
    `src/query.js`. A part that lies off the board gets the board in `build({ pins, params,
    board })` (see the battery).
