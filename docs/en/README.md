@@ -14,6 +14,7 @@ planning live at the root: [ROADMAP.md](../../ROADMAP.md), [PLANNING.md](../../P
 - [Code map](code-map.md): Where everything lives and how the pieces talk to each other.
 - [A video about one part: design and plan](component-focus.md): A video format for **one concrete part** (a transistor, a MOSFET, an LED, a 555): the part alone and large on the same dark stage, its pins lighting up with their names, its symbol and what is inside it, the simulation running on it as on a test bench, and a continuous move to the breadboard where the recipe's circuit builds itself around it and works.
 - [Embedding a circuit in documentation](embedding.md): Every circuit has one page meant to be embedded: `out/<name>.html`, next to its other outputs.
+- [The environment: what the sensors read](environment.md): A sensor is a function from a magnitude of the world (light, temperature, distance…) to something electrical: a resistance, a voltage, a contact that opens.
 - [Falstad: open the circuit there, and compare both simulators](falstad.md): [Falstad's CircuitJS](https://www.falstad.com/circuit/) is the most used in-browser circuit simulator for learning.
 - [Focus and the current layer](focus-and-flow.md): Two ways to point at what matters in a drawing, built from the same pieces (`src/render/focus.js`, `src/sim/flow.js`) for static images and for the interactive page.
 - [Inspecting and annotating a drawing](inspect-and-annotate.md): Two tools to know exactly what a drawing contains, without having to look at it.

@@ -26,7 +26,8 @@ Keys are in English, so the format is the same in every language.
 | `netLabels` | no | Text printed next to a rail, by rail id. A labelled rail counts as connected to a supply. |
 | `lang` | no | Language of everything made from this circuit: drawing labels, the page, messages (`en`, `es`). A language asked for in the call (`--lang`, MCP `lang`) wins. |
 | `supplies` | no | Simulation: where the power comes from, e.g. `[{ "id": "V1", "voltage": 5 }]` (between T+ and T-). A [battery](#battery) part is a source too. See [simulation.md](simulation.md). |
-| `page` | no | The embeddable page. With a source the simulation runs by default; `simulation: false` turns it all off (a value to predict), `results: false` only the values of the tapped part (and the lit LEDs), `flow: false` only the Current button; `focus` (parts in focus when it opens), `start` (`dc` or `zero`: how the live simulation starts), `theme` (`auto`, the default, follows the system; `light` or `dark` fixes it; `?theme=` in the link wins), `controls` (a panel of sliders and buttons: part or supply, field, optional range and label), `tour` (a timeline: the name of a JSON file beside the circuit, read only from its folder, or the timeline itself; *See how it works* in the ⋯ menu plays it, see [stage-and-video.md](stage-and-video.md)). See [focus-and-flow.md](focus-and-flow.md). |
+| `environment` | no | What the sensors read, shared by every part that senses it: `{ "light": 300, "temperature": 25 }`, each field a number or `{ value, program }` (a program changes it with time). A sensor without a value of its own follows it. See [environment.md](environment.md). |
+| `page` | no | The embeddable page. With a source the simulation runs by default; `simulation: false` turns it all off (a value to predict), `results: false` only the values of the tapped part (and the lit LEDs), `flow: false` only the Current button; `focus` (parts in focus when it opens), `start` (`dc` or `zero`: how the live simulation starts), `theme` (`auto`, the default, follows the system; `light` or `dark` fixes it; `?theme=` in the link wins), `controls` (a panel of sliders and buttons: part or supply, field, optional range and label; or `{ "environment": "light" }`, a field of the environment with its indicator), `environment` (`true` or `false`: every field of the environment in the panel; by default when a part follows one), `tour` (a timeline: the name of a JSON file beside the circuit, read only from its folder, or the timeline itself; *See how it works* in the ⋯ menu plays it, see [stage-and-video.md](stage-and-video.md)). See [focus-and-flow.md](focus-and-flow.md). |
 | `parts` | yes | List of parts. |
 
 ## Holes
@@ -306,14 +307,16 @@ Axial inductor with colour rings, like a fat green resistor; the rings give the 
 ### thermistor
 
 NTC thermistor (MF52 epoxy bead). `value`: resistance at 25 °C (default `"10k"`); `beta`: B
-constant in kelvin (default 3950); `temperature`: °C the simulation uses (default 25). Pins
-`1`, `2`, one or two holes apart.
+constant in kelvin (default 3950); `temperature`: °C the simulation uses (default 25; given, it
+wins over the circuit's environment, which it follows otherwise). Pins `1`, `2`, one or two holes
+apart.
 
 ### ldr
 
 Photoresistor (light-dependent resistor). `part`: `GL5528` (default), `GL5516`, `GL5537`,
-`GL5539`, `GL5549`; `light`: illuminance in lux for the simulation (default 100, a lit room).
-Pins `1`, `2`, one to three holes apart.
+`GL5539`, `GL5549`; `light`: illuminance in lux for the simulation (default 100, a lit room;
+given, it wins over the circuit's environment, which it follows otherwise). Pins `1`, `2`, one to
+three holes apart.
 
 ### buzzer
 
@@ -361,7 +364,8 @@ card's button. Its contact is 30 mΩ, rated 30 V and 0.3 A DC (Vimex SS-12D00 dr
 
 A ball tilt switch (SW-520D) standing on its two leads in two neighbouring holes: pins `1` and `2`,
 no polarity. `tilted`: `false` (default) is upright, the balls closing the contact (the kit takes the
-sheet's bound, 10 Ω); `true` is tipped past its angle, open. Rated 12 V; the kit warns over 25 mA.
+sheet's bound, 10 Ω); `true` is tipped past its angle, open. Without `tilted`, in a circuit with an
+environment it follows the field `tilt`. Rated 12 V; the kit warns over 25 mA.
 
 ```json
 { "id": "S2", "type": "tilt-switch", "pins": ["h20", "h21"] }
@@ -371,7 +375,8 @@ sheet's bound, 10 Ω); `true` is tipped past its angle, open. Rated 12 V; the ki
 
 An LM35 temperature sensor in TO-92: `part` `"LM35DZ"` (default, 0–100 °C) or `"LM35CZ"`
 (−40–110 °C), pins `+VS`, `VOUT`, `GND` from the left with the flat face toward you. `temperature`:
-the °C it is at (default 25; the page's slider moves it). `VOUT` is 10 mV per °C (250 mV at 25 °C)
+the °C it is at (default 25; the page's slider moves it; without it, in a circuit with an
+environment it follows the field `temperature`). `VOUT` is 10 mV per °C (250 mV at 25 °C)
 from a supply of 4 to 30 V.
 
 ```json

@@ -133,7 +133,7 @@ The first caption of a recording is whole on its first frame (it does not rise i
 | Field | Values | Default | |
 |---|---|---|---|
 | `part` | an id, *required* | | |
-| `field` | `current`, `voltage`, `power`, `brightness`, *required* | | what is read, in A, V, W or % |
+| `field` | `current`, `voltage`, `power`, `brightness`, `vout`, *required* | | what is read, in A, V, W or %; `vout` the output of a part that gives one (an LM35, a regulator, a 555) |
 | `label` | a text | none | beside the number |
 | `count` | 0…5000 ms | 500 | it counts up to the reading; 0 shows it as it is |
 | `enter`, `in` | as a caption's | `rise`, 400 | how it comes in |
@@ -146,9 +146,27 @@ takes the value away.
 | Field | Values | Default | |
 |---|---|---|---|
 | `part`, `field`, `value` | a control of the part (`pressed`, `resistance`, `voltage`…) and its new value, *required* | | `check` names the controls a part has |
+| `environment` | a field of the circuit's environment (`light`, `temperature`…), instead of `part` and `field` | | every sensor that follows it changes; a program on it pauses ([environment.md](environment.md)) |
 | `move`, `ms`, `curve` | | `hit` | a number moves along the curve (on a log scale where the slider is), a button changes at once |
 
-A slider moving by itself between two values (M10): two `set` steps with `travel`.
+A slider moving by itself between two values (M10): two `set` steps with `travel`. The same with a
+field of the environment: `{ "do": "set", "environment": "light", "value": 5, "move": "travel" }`
+dims the light from where it is to 5 lx along a log scale. When no `gauge` step has an indicator
+up, a set of the environment shows that field's indicator in the top right corner while its move
+lasts (one second at least) and takes it away after; with a `gauge` up, the set leaves it as it is.
+
+### `gauge`: the indicator of a field of the environment
+
+| Field | Values | Default | |
+|---|---|---|---|
+| `environment` | a field the circuit's environment has, *required* | | `TOUR_UNKNOWN_ENVIRONMENT` otherwise (`render-frames.js --parts` lists them) |
+| `on` | `true`, `false`, *required* | | `true` puts it up (in place of another), `false` takes it away |
+| `corner` | `tl`, `tr`, `bl`, `br` | `tr` | the corner of the room the caption leaves: in portrait from 29 % down (top) or up from 26 % (bottom); in landscape the right half |
+
+The indicator in a box of its own, as `probe` shows the oscilloscope: a sun for light, a
+thermometer, a lamp for a switch, a gauge for the rest, with the field's name over it and its
+value under it. Nothing is drawn on the board: the light is "on at a level" and every sensor of
+that field receives it. In the page it shows over the drawing while the tour plays.
 
 ### `flow`: the current layer
 
@@ -501,7 +519,7 @@ can replace. Captions are always the timeline's.
 `node bin/protoboard-iso.js check <circuit>` reads the circuit's timeline. A shape, size or file
 problem leaves the page without a tour (`TOUR_SHAPE`, `TOUR_FIELD`, `TOUR_ACTION`, `TOUR_MOVE`,
 `TOUR_JSON`, `TOUR_TOO_LARGE`…); an unknown part or control, an `ms` outside its move's range, a
-broken rhythm, a value the next caption takes away within a second (`TOUR_VALUE_HIDDEN`), a pin a part does not have (`TOUR_UNKNOWN_PIN`), a mark it does not have (`TOUR_NO_MARK`), a bench in a circuit not simulated (`TOUR_BENCH_NOT_SIMULATED`), a symbol or an inside view a part's kind does not have (`TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`) or a
+broken rhythm, a value the next caption takes away within a second (`TOUR_VALUE_HIDDEN`), a pin a part does not have (`TOUR_UNKNOWN_PIN`), a mark it does not have (`TOUR_NO_MARK`), a bench in a circuit not simulated (`TOUR_BENCH_NOT_SIMULATED`), a symbol or an inside view a part's kind does not have (`TOUR_NO_SYMBOL`, `TOUR_NO_INSIDE`), a field the circuit's environment does not have (`TOUR_UNKNOWN_ENVIRONMENT`) or a
 timeline over ten minutes is a warning and it still plays. Caps: 100 kB, 200
 steps, 280 characters a text, ten minutes.
 

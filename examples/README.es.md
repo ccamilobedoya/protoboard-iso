@@ -49,6 +49,13 @@ El formato de cada campo: [formato-circuito.md](../docs/es/formato-circuito.md).
 |---|---|
 | <img src="../docs/img/examples/rc-square-wave.png" width="280" alt="RC con onda cuadrada"> | **[rc-square-wave.json](rc-square-wave.json)**: una resistencia y un condensador cargados por una onda cuadrada; compara en el osciloscopio la constante de tiempo con el período. |
 
+## Sensores y el ambiente
+
+| | |
+|---|---|
+| <img src="../docs/img/examples/environment.png" width="280" alt="Sensores de luz y temperatura que leen el ambiente"> | **[environment.json](environment.json)**: una fotorresistencia hacia un comparador LM393 que enciende un LED en la oscuridad, un divisor con NTC y un LM35, todos leyendo el ambiente compartido del circuito (luz y temperatura en el panel *Ambiente* de la página, cada una con su indicador); un recorrido ([tours/environment.json](tours/environment.json)) baja la luz y calienta el cuarto. Ver [ambiente.md](../docs/es/ambiente.md). |
+| <img src="../docs/img/examples/environment-cycle.png" width="280" alt="El mismo circuito con la luz en ciclo"> | **[environment-cycle.json](environment-cycle.json)**: el mismo circuito con la luz en un ciclo lento (una senoide de 5 a 2000 lx cada 8 s): el LED se enciende mientras está oscuro; *Pausar* y *Reanudar* en el panel. |
+
 ## Microcontroladores
 
 | | |

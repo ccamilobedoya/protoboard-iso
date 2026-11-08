@@ -12,6 +12,21 @@ detail.
 ### Added
 
 - A timeline's `captionLines`: captions of 3 lines, with the oscilloscope and the circuit lower.
+- The environment (sensors, S0; `docs/en/environment.md`): a circuit's `environment` (light,
+  temperature, humidity, distance… 14 fields, each a value or a program: toggle, cycle, ramp,
+  keyframes) that every sensor reads unless the part gives its own value. The thermistor, the
+  photoresistor, the LM35 and the tilt switch follow it; their own control detaches them, and their
+  card says which. `check` reports `ENV_*`. The engine's controls with the id `environment`,
+  `engine.resume`, `engine.attach`, `engine.environment`; programs run on simulated time (in real
+  time when nothing else in the circuit changes with time).
+- The page's *Environment* section (`page.controls` entries `{ "environment": "light" }`, or all of
+  it with `page.environment`), each field with its indicator (a gauge, a sun, a thermometer, a lamp;
+  `page/client/gauge.js`) and *Pause* / *Resume* for a program; a sensor's card shows the indicator
+  and *Follow the environment*.
+- Timelines: `set` with `environment` (the indicator shows while it moves), the `gauge` step (the
+  indicator in a corner of the video), `value` of `vout`; `render-frames.js --parts` lists the
+  environment. Examples `environment.json`, `environment-cycle.json` and the tour
+  `tours/environment.json`.
 
 ### Changed
 

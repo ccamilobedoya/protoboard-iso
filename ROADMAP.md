@@ -348,6 +348,22 @@ period in ms under the trace, a caption of 32 letters took three lines.
 - ✅ A video that opens on its result (0.8.0-c.2): a caption's emphasis (`em`), the current in two colours by its sense (`flow` `sense`), a card (`card`), an event per blink (`led`, `card`), a comparing box as a proportion (`change`, `ratio` by default), captions that rise fading in, a scene and a land after steps on the board; jsdom cases, `555-result-first.json`, golden frames M38 to M40
 - ✅ A fourth version of a recorded short (0.8.0-d.1): a comparing box in the timeline's own words (`probe` `say`, `{k}` from the simulation), a caption's emphasis in its own colour, bolder; `555-compare-say.json`, golden frame M41
 
+## Sensors and environment (cross-cutting) 🔜
+
+A sensor is a function from a magnitude of the world to something electrical; the magnitudes live in
+the circuit's shared environment, changed in a panel and shown by an indicator, never drawn on the
+board ([docs/en/environment.md](docs/en/environment.md); decision of 2026-11-08 in PLANNING.md).
+
+- ✅ S0 · The environment (2026-11-08): `src/sim/environment.js` (14 fields, programs, pause and resume, `ENV_*`), `senses` and `c.env` for devices (NTC, LDR, LM35, tilt switch follow it; their own control detaches them), engine (`'environment'` controls, `resume`, `attach`, programs on simulated time), page (*Environment* section, `page.environment`, a sensor's card), the indicator (`gauge.js`), timeline `set` with `environment` and `gauge`, `value` of `vout`; `examples/environment*.json`, `examples/tours/environment.json`
+- ⬜ S1 · Light: photodiode, phototransistor, the LDR module with its comparator (digital and analog outputs) on `light`
+- ⬜ S2 · Temperature and humidity at library level: DHT11/DHT22, BME280 and DS18B20 read by a board's program through their library calls, from `temperature` and `humidity`
+- ⬜ S3 · Distance and motion: HC-SR04 (the echo pulse from `distance`), HC-SR501 PIR (`motion`), IR obstacle module
+- ⬜ S4 · Magnetic field and angle: Hall sensor and reed switch (`field`), rotary encoder (`angle`)
+- ⬜ S5 · Water and soil: soil moisture probe (`moisture`), rain board (`rain`), water level sensor (`water`)
+- ⬜ S6 · Sound, touch and vibration: microphone module (`sound`), TTP223 touch pad (`touch`), SW-420 vibration switch (`vibration`)
+- ⬜ S7 · Emitters (`emits`: a lamp or an LED that lights a sensor beside it) and a gallery of sensor videos
+- ⬜ DHT11/BME280 bit-level protocol on the wire — optional, very low priority, kept so it is not forgotten
+
 ## Stage 4 — On a phone or tablet ⬜
 
 Goal: open a link and explore.

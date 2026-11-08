@@ -26,7 +26,8 @@ Las claves van en inglés para que el formato sea el mismo en todos los idiomas.
 | `netLabels` | no | Texto junto a un riel, por id del riel. Un riel con etiqueta cuenta como conectado a una fuente. |
 | `lang` | no | Idioma de todo lo que se genera a partir del circuito: etiquetas del dibujo, la página, mensajes (`en`, `es`). Un idioma pedido en la llamada (`--lang`, `lang` del MCP) gana. |
 | `supplies` | no | Simulación: de dónde sale la energía, por ejemplo `[{ "id": "V1", "voltage": 5 }]` (entre T+ y T-). Una [batería](#battery-batería) también es una fuente. Ver [simulacion.md](simulacion.md). |
-| `page` | no | La página para embeber. Con fuente, la simulación corre por defecto; `simulation: false` la apaga toda (un valor por predecir), `results: false` solo los valores del componente tocado (y los LED encendidos), `flow: false` solo el botón Corriente; `focus` (componentes en foco al abrirla), `start` (`dc` o `zero`: cómo arranca la simulación en vivo), `theme` (`auto`, por defecto, sigue al sistema; `light` o `dark` lo fija; `?theme=` en el enlace gana), `controls` (un panel de deslizadores y botones: componente o fuente, campo, rango y etiqueta opcionales), `tour` (una línea de tiempo: el nombre de un archivo JSON junto al circuito, leído solo desde su carpeta, o la línea de tiempo misma; *Ver cómo funciona* en el menú ⋯ la reproduce, ver [escena-y-video.md](escena-y-video.md)). Ver [foco-y-corriente.md](foco-y-corriente.md). |
+| `environment` | no | Lo que leen los sensores, compartido por todas las piezas que lo sienten: `{ "light": 300, "temperature": 25 }`, cada campo un número o `{ value, program }` (un programa lo cambia con el tiempo). Un sensor sin valor propio lo sigue. Ver [ambiente.md](ambiente.md). |
+| `page` | no | La página para embeber. Con fuente, la simulación corre por defecto; `simulation: false` la apaga toda (un valor por predecir), `results: false` solo los valores del componente tocado (y los LED encendidos), `flow: false` solo el botón Corriente; `focus` (componentes en foco al abrirla), `start` (`dc` o `zero`: cómo arranca la simulación en vivo), `theme` (`auto`, por defecto, sigue al sistema; `light` o `dark` lo fija; `?theme=` en el enlace gana), `controls` (un panel de deslizadores y botones: componente o fuente, campo, rango y etiqueta opcionales; o `{ "environment": "light" }`, un campo del ambiente con su indicador), `environment` (`true` o `false`: todos los campos del ambiente en el panel; por defecto cuando una pieza sigue uno), `tour` (una línea de tiempo: el nombre de un archivo JSON junto al circuito, leído solo desde su carpeta, o la línea de tiempo misma; *Ver cómo funciona* en el menú ⋯ la reproduce, ver [escena-y-video.md](escena-y-video.md)). Ver [foco-y-corriente.md](foco-y-corriente.md). |
 | `parts` | sí | Lista de componentes. |
 
 ## Agujeros
@@ -324,13 +325,15 @@ su tamaño. Patas `1`, `2`.
 
 Termistor NTC (gota de epoxi MF52). `value`: resistencia a 25 °C (por defecto `"10k"`); `beta`:
 constante B en kelvin (por defecto 3950); `temperature`: los °C que usa la simulación (por
-defecto 25). Patas `1`, `2`, a uno o dos agujeros.
+defecto 25; si se da, gana sobre el ambiente del circuito, que sigue en otro caso). Patas `1`, `2`,
+a uno o dos agujeros.
 
 ### ldr (fotorresistencia)
 
 Resistencia que depende de la luz. `part`: `GL5528` (por defecto), `GL5516`, `GL5537`,
 `GL5539`, `GL5549`; `light`: iluminación en lux para la simulación (por defecto 100, una
-habitación iluminada). Patas `1`, `2`, a entre uno y tres agujeros.
+habitación iluminada; si se da, gana sobre el ambiente del circuito, que sigue en otro caso). Patas
+`1`, `2`, a entre uno y tres agujeros.
 
 ### buzzer (zumbador)
 
@@ -379,7 +382,8 @@ botón de la ficha. Su contacto es de 30 mΩ, para 30 V y 0,3 A DC (plano SS-12D
 Un interruptor de inclinación de bolas (SW-520D) de pie sobre sus dos patas en dos agujeros vecinos:
 patas `1` y `2`, sin polaridad. `tilted`: `false` (por defecto) es derecho, las bolas cierran el
 contacto (el kit toma el límite de la hoja, 10 Ω); `true` es inclinado más allá de su ángulo,
-abierto. Para 12 V; el kit avisa por encima de 25 mA.
+abierto. Sin `tilted`, en un circuito con ambiente sigue el campo `tilt`. Para 12 V; el kit avisa por
+encima de 25 mA.
 
 ```json
 { "id": "S2", "type": "tilt-switch", "pins": ["h20", "h21"] }
@@ -389,7 +393,8 @@ abierto. Para 12 V; el kit avisa por encima de 25 mA.
 
 Un sensor de temperatura LM35 en TO-92: `part` `"LM35DZ"` (por defecto, 0–100 °C) o `"LM35CZ"`
 (−40–110 °C), patas `+VS`, `VOUT`, `GND` desde la izquierda con la cara plana hacia uno.
-`temperature`: los °C a los que está (por defecto 25; el deslizador de la página la cambia). `VOUT` da
+`temperature`: los °C a los que está (por defecto 25; el deslizador de la página la cambia; sin ella,
+en un circuito con ambiente sigue el campo `temperature`). `VOUT` da
 10 mV por °C (250 mV a 25 °C) con una alimentación de 4 a 30 V.
 
 ```json

@@ -247,6 +247,25 @@ is done, with its texts in both languages, and list it in the table below.
 - `npm test` passes;
 - the video plays (`assemble.js`), and one frame of each beat looks right.
 
+## Stimuli in a video
+
+A sensor's circuit is told by changing the world it reads, not the part: the circuit declares an
+`environment` ([environment.md](environment.md)) and the timeline moves a field of it.
+
+- `{ "do": "set", "environment": "light", "value": 5, "move": "travel" }` dims the light along its
+  log scale; every sensor that follows it changes at once. Without a gauge up, the field's indicator
+  shows in the top right corner while the move lasts.
+- `{ "do": "gauge", "environment": "temperature", "on": true }` keeps the indicator in a corner for a
+  whole passage (a sun, a thermometer, a gauge), as `probe` keeps the oscilloscope; `on: false` takes
+  it away. Nothing is drawn on the board.
+- `render-frames.js --parts <circuit>` lists the fields with the parts that follow each, and
+  `value` reads an output voltage with `field: "vout"` (an LM35's 10 mV per °C).
+- A program (`toggle`, `cycle`, `ramp`, `keyframes`) moves a field by itself with simulated time; a
+  `set` pauses it. In a video, `set` steps are easier to time than a program.
+
+`examples/tours/environment.json` is a whole one: the light from 300 to 5 lx (the LED lights), then
+the temperature from 25 to 60 °C with the LM35's output.
+
 ## A video about one part
 
 A second kind of video tells one part instead of one circuit: what it is, which leg is which, what
@@ -383,3 +402,4 @@ What `--validate` adds for this kind:
 | `focus-led.json` | recipe `led-resistor` | a video about one part: the LED |
 | `focus-555.json` | recipe `555-astable` | a video about one part: the NE555 |
 | `focus-zener.json` | recipe `zener-regulator` | a video about one part: the 1N4733A (written by a medium model from this guide alone) |
+| `environment.json` | `examples/environment.json` | sensors read the environment: the light dims (the LED lights), the temperature rises (the LM35's output) |

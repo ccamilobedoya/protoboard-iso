@@ -50,6 +50,9 @@ brief** and return a short **layout report**. You do not talk to the end user.
      "format": "AA", "cells": 4}`, its `+` and `-` in the nets.
    - `clearance` from the brief (3 for lessons); `netLabels`, `title`, `lang` if the brief gives them.
    - `page`: nothing, unless the brief's `Page:` line says `no simulation` → `{"simulation": false}`.
+   - Sensors (LDR, NTC, LM35, tilt switch): give them no `light`/`temperature`/`tilted` unless the
+     brief does; when it names the room's light or temperature, set the circuit's `environment` after
+     layout with a `circuit` operation (`{"op": "circuit", "environment": {"light": 300}}`).
    - **On an existing circuit** (it has a `spec`): give only what changes, the whole list of it
      (`nets` from its `spec.nets`, edited; `parts` only if parts change) and `expect_revision`. The
      rest stays, every part keeps its holes when it still fits, and `undo` brings the old one back.

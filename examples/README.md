@@ -48,6 +48,13 @@ The format of each field: [circuit-format.md](../docs/en/circuit-format.md).
 |---|---|
 | <img src="../docs/img/examples/rc-square-wave.png" width="280" alt="RC with a square wave"> | **[rc-square-wave.json](rc-square-wave.json)**: a resistor and a capacitor charged by a square wave; compare the time constant with the period on the oscilloscope. |
 
+## Sensors and the environment
+
+| | |
+|---|---|
+| <img src="../docs/img/examples/environment.png" width="280" alt="Light and temperature sensors reading the environment"> | **[environment.json](environment.json)**: a photoresistor into an LM393 comparator that lights an LED in the dark, an NTC divider and an LM35, all reading the circuit's shared environment (light and temperature in the page's *Environment* panel, each with its indicator); a tour ([tours/environment.json](tours/environment.json)) dims the light and warms the room. See [environment.md](../docs/en/environment.md). |
+| <img src="../docs/img/examples/environment-cycle.png" width="280" alt="The same circuit with the light in a cycle"> | **[environment-cycle.json](environment-cycle.json)**: the same circuit with the light in a slow cycle (a sine from 5 to 2000 lx every 8 s): the LED lights while it is dark; *Pause* and *Resume* in the panel. |
+
 ## Microcontrollers
 
 | | |

@@ -87,6 +87,7 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `scripts/focus-mockups.js` | maquetas de un video sobre una pieza (sesión F0, `docs/es/foco-en-componente.md`): la página real en una grabación, la pieza en un pedestal (la protoboard y las demás piezas ocultas con CSS; rótulos, símbolo y pastillas del banco dibujados por el script sobre la página), tres direcciones en los dos formatos, y `measurements.json` (cuánto del área libre ocupa la pieza en cada zoom, el tamaño de su marcado); nada del kit cambia |
 | `page/client/controls.js`, `page/client/limits.js` | página en vivo: deslizadores (ficha y panel `page.controls`) y el pulsador momentáneo (el valor nuevo de un control se repite en el rótulo corto de la pieza y en la pastilla del banco que la nombra); contornos de esfuerzo (reglas en `#stress`), marcas que se quedan y el panel de avisos (en `.side`) |
 | `sim/controls.js` | se puede agrupar: controles de las fuentes, cuentas de los deslizadores (log, E24), niveles de esfuerzo; los controles de cada dispositivo están en su módulo (`controls`, `set`) |
+| `sim/environment.js`, `page/client/gauge.js` | el ambiente (sensores, S0; `docs/es/ambiente.md`; se puede agrupar): el registro de magnitudes (`FIELDS`, una línea cada una), los programas (`programValue`), `createEnvironment` (los valores, la pausa y la reanudación de quien aprende), sus controles (id `'environment'`) y los `ENV_*` de `check`; la compilación le da a cada sensor `c.env(field)` y anota qué campos sigue (`senses`, `follows`), y el motor mueve esas piezas cuando cambia un campo. `gauge.js`: el indicador de cada campo (un medidor de aguja, un sol, un termómetro, una lámpara), actualizado en su sitio; la sección *Ambiente* del panel, la ficha de un sensor y el recuadro `gauge` de una línea de tiempo están en `controls.js` |
 | `sim/paths.js` | vista de conductores: caminos de la corriente por componente (`paths` del paquete o una recta de respaldo), corriente de las tiras (Kirchhoff), colores de voltaje, puntos de corriente convencional |
 | `sim/probes.js` | «de dónde sale un valor»: puntas para voltajes, flechas para corrientes |
 | `page.js`, `page/client/`, `page/style.js` | la página para embeber; `page/client/main.js` es la entrada de su script (módulos view, focus, card, tooltip); `view.js`: encuadre, gestos según el contexto, botones de zoom; `bar.js`: el menú ⋯ (`page.menuAdd`) y la ayuda de primera vez; `icons.js`: los íconos de línea, compartidos con `page.js`; `inspector.js`: la caja de la ficha (`.info`) y de los paneles del circuito (`.side`), pestañas, panel u hoja inferior, mantener a la vista los componentes elegidos |
@@ -192,6 +193,11 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
   pura y solo puede importar módulos que se agrupan (`ALLOWED` en `node/bundle.js`). Un
   dispositivo que agregue sus elementos en otro orden tras un cambio pierde su estado en
   `engine.set` (se empareja por orden).
+- **Los sensores leen el ambiente** (`senses`, `c.env(field)` en un dispositivo;
+  `sim/environment.js`): un sensor nunca tiene un valor propio que la página deba ofrecer aparte; lee
+  su campo en `params`, y el motor lo cambia con `sense` (o `set`) cuando el campo se mueve. Un valor
+  en la pieza gana, y su propio control lo desprende. Un circuito sin `environment` no tiene
+  ambiente: nada cambia en su programa, los datos de su página ni el archivo *golden*.
 - **Orden de pintado de la vista de conductores** (`flowOps`, `paintOrder` en `sim/paths.js`):
   primero las tiras (están dentro de la protoboard), luego una línea por pata, ordenadas donde dos
   se cruzan en pantalla según cuál está más cerca ahí (orden topológico, por vista); la profundidad

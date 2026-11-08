@@ -253,6 +253,25 @@ esté lista, con sus textos en los dos idiomas, y agregarla a la tabla de abajo.
 - `npm test` pasa;
 - el video se reproduce (`assemble.js`) y un fotograma de cada tiempo se ve bien.
 
+## Estímulos en un video
+
+El circuito de un sensor se cuenta cambiando el mundo que lee, no la pieza: el circuito declara un
+`environment` ([ambiente.md](ambiente.md)) y la línea de tiempo mueve un campo de él.
+
+- `{ "do": "set", "environment": "light", "value": 5, "move": "travel" }` baja la luz por su escala
+  logarítmica; todos los sensores que la siguen cambian de una vez. Sin un indicador puesto, el del
+  campo aparece en la esquina de arriba a la derecha mientras dura el movimiento.
+- `{ "do": "gauge", "environment": "temperature", "on": true }` deja el indicador en una esquina
+  durante todo un tramo (un sol, un termómetro, un medidor de aguja), como `probe` deja el
+  osciloscopio; `on: false` lo quita. No se dibuja nada en la protoboard.
+- `render-frames.js --parts <circuito>` lista los campos con las piezas que siguen cada uno, y
+  `value` lee un voltaje de salida con `field: "vout"` (los 10 mV por °C de un LM35).
+- Un programa (`toggle`, `cycle`, `ramp`, `keyframes`) mueve un campo solo, con el tiempo simulado; un
+  `set` lo pausa. En un video, los pasos `set` son más fáciles de cronometrar que un programa.
+
+`examples/tours/environment.json` es uno completo: la luz de 300 a 5 lx (el LED se enciende) y
+luego la temperatura de 25 a 60 °C con la salida del LM35.
+
 ## Un video sobre una pieza
 
 Un segundo tipo de video cuenta una pieza en lugar de un circuito: qué es, cuál pata es cuál, qué
@@ -389,3 +408,4 @@ Lo que `--validate` agrega para este tipo:
 | `focus-led.json` | receta `led-resistor` | un video sobre una pieza: el LED |
 | `focus-555.json` | receta `555-astable` | un video sobre una pieza: el NE555 |
 | `focus-zener.json` | receta `zener-regulator` | un video sobre una pieza: el 1N4733A (escrito por un modelo mediano solo con esta guía) |
+| `environment.json` | `examples/environment.json` | los sensores leen el ambiente: baja la luz (se enciende el LED), sube la temperatura (la salida del LM35) |

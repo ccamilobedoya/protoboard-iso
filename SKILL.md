@@ -141,7 +141,7 @@ review                     until APPROVED · undo when needed
   act on the reason, never repeat the call.
 - Operations: `add`, `remove`, `move`, `set`, `rename`, `circuit` (`schema/ops.schema.json`).
   `set` changes a field (`{"op": "set", "part": "R1", "value": "4k7"}`); `circuit` the top-level
-  ones (`supplies`, `page`, `clearance`, `lang`…).
+  ones (`supplies`, `environment`, `page`, `clearance`, `lang`…).
 - A diff that introduces an error or a warning is not applied: find another placement.
 
 ## 3. Check it
@@ -160,6 +160,10 @@ review                     until APPROVED · undo when needed
   zoom, labels, tap a part for its card. With a source it runs the simulation by itself (values of
   the tapped part, oscilloscope, lit LEDs, a Current button). While a learner must predict a value:
   `"page": {"simulation": false}`. Embedding: `docs/en/embedding.md`.
+- **Sensors** read the circuit's `environment` (`{"light": 300, "temperature": 25}`, set with a
+  `circuit` operation): the page shows each field with an indicator in an *Environment* panel
+  (`"page": {"controls": [{"environment": "light"}]}`); a value on the part wins. See
+  `docs/en/environment.md`.
 - **`inspect`** answers placement, visibility and label questions in numbers; look at a picture
   (`render` with `png_width`, small) only to judge style. `render` options: `view: "back"`,
   `fit: "parts"` (close-up), `annotate: "all"` (holes, groups), `focus: [ids]`, `sim: true`.

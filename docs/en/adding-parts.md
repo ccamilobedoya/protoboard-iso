@@ -187,6 +187,28 @@ the test, so the choice is made, never forgotten; moving a type from `PENDING` t
 the kit catches up (complete today: BJT, MOSFET, LED, a 555, resistor, capacitor, inductor, diode, Zener, bridge rectifier, potentiometer, NTC thermistor, photoresistor, push button, switch, regulator, battery, buzzer, RGB LED, 7-segment display, slide switch, tilt switch, LM35, relay, DC motor). Look at the result once: a video's frame (`render-frames.js`) and the page up close
 on a phone.
 
+## 7. A sensor: joining the environment
+
+A sensor reads a magnitude of the world from the circuit's shared environment
+([environment.md](environment.md)), never a value of its own that a learner has to find in its card.
+To make a device a sensor:
+
+1. Declare what it senses: `senses: ['light']` (one or more fields of `FIELDS` in
+   `src/sim/environment.js`; a new magnitude is one line there first).
+2. Read it in `params(part, c)`: `c.env('light')` is the environment's value at t = 0, or `undefined`
+   when the part gives its own value (`"light": 50` on the part wins) or the circuit declares no
+   environment; then keep what the part's type gave. The photoresistor:
+   `const v = c?.env?.('light'); return v === undefined ? p : ldr.set(p, 'light', v);`.
+3. Changing with it is the device's `set` (a pure formula) when the control and the field share a
+   name; otherwise give `sense(p, field, value)`, and `ownField: { field: 'its own name' }` when the
+   part calls it otherwise (the tilt switch: `{ tilt: 'tilted' }`), so a part that gives it does not
+   follow and its own control, moved, makes it leave the field.
+
+Nothing else in `src/sim` changes: the engine moves every part that follows a field when it changes
+(a slider, a timeline's set, a program), its card says whether it follows the environment, and the
+page shows the field's indicator. Test it against the sensor's own formula at two values of the
+field, and that a value on the part wins (`test/environment.test.js`).
+
 ## Tests
 
 `npm test`. Add a test for anything that has a right answer: colour codes, sizes, pin

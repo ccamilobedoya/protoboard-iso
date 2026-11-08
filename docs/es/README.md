@@ -9,6 +9,7 @@ está en la raíz.
 <!-- generated: the documents of this folder (npm run docs-index -- --write) -->
 - [Agentes](agentes.md): Tres subagentes de Claude Code, definidos en `.claude/agents/`, reparten el trabajo para que la conversación principal se mantenga liviana.
 - [Agregar un componente, un encapsulado o una protoboard](agregar-componentes.md): Empieza por el cambio más pequeño que funcione.
+- [El ambiente: lo que leen los sensores](ambiente.md): Un sensor es una función de una magnitud del mundo (luz, temperatura, distancia…) a algo eléctrico: una resistencia, un voltaje (tensión), un contacto que se abre.
 - [Arquitectura](arquitectura.md): La separación entre **tipo** y **encapsulado** es lo que permite reutilizar: un diodo 1N4007 y una resistencia comparten el encapsulado axial; un MOSFET IRLZ44N y un transistor TIP120 comparten el TO-220.
 - [Embeber un circuito en la documentación](embeber.md): Cada circuito tiene una página pensada para embeberse: `out/<nombre>.html`, junto a sus otras salidas.
 - [Escena y video: diseño y plan](escena-y-video.md): La página viva aprende a **contar** un circuito paso a paso: una línea de tiempo declarativa que la página reproduce como un recorrido, y que un script convierte en los fotogramas de un video corto, bajo un solo reloj externo, para que el mismo archivo dé las mismas imágenes cada vez.

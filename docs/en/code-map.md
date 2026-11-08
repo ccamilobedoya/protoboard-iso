@@ -87,6 +87,7 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `scripts/focus-mockups.js` | mock-ups of a video about one part (session F0, `docs/en/component-focus.md`): the real page in a recording, the part on a pedestal (the board and the other parts hidden by CSS, callouts, symbol and the bench's pads drawn over the page by the script), three directions in both formats, and `measurements.json` (how much of the free area the part takes at each zoom, its marking's size); nothing of the kit changes |
 | `page/client/controls.js`, `page/client/limits.js` | live page: sliders (card and `page.controls` panel) and the momentary button (a control's new value restated in the part's short label and in a bench pad that names it); stress outlines (`#stress` rules), latched marks and the warnings panel (in `.side`) |
 | `sim/controls.js` | bundleable: supplies' controls, slider maths (log, E24), stress levels; each device's own controls are in its module (`controls`, `set`) |
+| `sim/environment.js`, `page/client/gauge.js` | the environment (sensors, S0; `docs/en/environment.md`; bundleable): the registry of magnitudes (`FIELDS`, one line each), programs (`programValue`), `createEnvironment` (values, a learner's pause and resume), its controls (id `'environment'`) and `check`'s `ENV_*`; compile gives each sensor `c.env(field)` and records which fields it follows (`senses`, `follows`), the engine moves those parts as a field changes. `gauge.js`: each field's indicator (a gauge, a sun, a thermometer, a lamp), updated in place; the panel's *Environment* section, a sensor's card and a timeline's `gauge` box are in `controls.js` |
 | `sim/paths.js` | conductor view: current paths per part (package `paths` or a straight fallback), strip currents (Kirchhoff), voltage colours, dots of conventional current |
 | `sim/probes.js` | "where a value comes from": probes for voltages, arrows for currents |
 | `page.js`, `page/client/`, `page/style.js` | the embeddable page; `page/client/main.js` is the entry of its script (view, focus, card, tooltip modules); `view.js`: frame, gestures by context, zoom buttons; `bar.js`: the ⋯ menu (`page.menuAdd`) and the first-time hint; `icons.js`: the line icons, shared with `page.js`; `inspector.js`: the box of the card (`.info`) and the circuit's panels (`.side`), tabs, panel or bottom sheet, keeping the selected parts in view |
@@ -181,6 +182,11 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 - **Controls** (`controls`, `set` in a device) run in the page: `set` is a pure formula and may
   only import bundleable modules (`ALLOWED` in `node/bundle.js`). A device that adds elements in a
   different order after a change loses their state on `engine.set` (it is matched by order).
+- **Sensors read the environment** (`senses`, `c.env(field)` in a device; `sim/environment.js`): a
+  sensor never has a value of its own the page must offer apart; it reads its field in `params`, and
+  the engine changes it with `sense` (or `set`) when the field moves. A value on the part wins, and
+  its own control detaches it. A circuit without `environment` has none: nothing in its program, its
+  page data or the golden file changes.
 - **Painting order of the conductor view** (`flowOps`, `paintOrder` in `sim/paths.js`): strips
   first (they lie inside the board), then one line per pin, ordered where two lines meet on screen
   by which is nearer there (a topological sort, per view); the middle depth only for what that

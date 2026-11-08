@@ -354,6 +354,22 @@ el cambio era un periodo en ms bajo la traza y un subtítulo de 32 letras ocupab
 - ✅ Un video que abre con su resultado (0.8.0-c.2): el énfasis de un subtítulo (`em`), la corriente en dos colores según su sentido (`sense` de `flow`), una tarjeta (`card`), un evento por parpadeo (`led`, `card`), un recuadro que compara en proporción (`change`, `ratio` por defecto), subtítulos que suben apareciendo, una escena y un aterrizaje después de pasos en la protoboard; casos de jsdom, `555-result-first.json`, fotogramas *golden* M38 a M40
 - ✅ Una cuarta versión de un video grabado (0.8.0-d.1): un recuadro que compara con las palabras de la línea de tiempo (`say` de `probe`, `{k}` de la simulación), el énfasis de un subtítulo en su propio color, más grueso; `555-compare-say.json`, fotograma *golden* M41
 
+## Sensores y ambiente (transversal) 🔜
+
+Un sensor es una función de una magnitud del mundo a algo eléctrico; las magnitudes viven en el
+ambiente compartido del circuito, se cambian en un panel y se muestran con un indicador, nunca
+dibujadas en la protoboard ([ambiente.md](ambiente.md); decisión del 2026-11-08 en la planeación).
+
+- ✅ S0 · El ambiente (2026-11-08): `src/sim/environment.js` (14 campos, programas, pausa y reanudación, `ENV_*`), `senses` y `c.env` para los dispositivos (NTC, LDR, LM35 e interruptor de inclinación lo siguen; su propio control los desprende), motor (controles `'environment'`, `resume`, `attach`, programas con el tiempo simulado), página (sección *Ambiente*, `page.environment`, la ficha de un sensor), el indicador (`gauge.js`), `set` con `environment` y `gauge` en la línea de tiempo, `value` de `vout`; `examples/environment*.json`, `examples/tours/environment.json`
+- ⬜ S1 · Luz: fotodiodo, fototransistor, el módulo LDR con su comparador (salidas digital y analógica) sobre `light`
+- ⬜ S2 · Temperatura y humedad a nivel de biblioteca: DHT11/DHT22, BME280 y DS18B20 leídos por el programa de una placa con las llamadas de su biblioteca, desde `temperature` y `humidity`
+- ⬜ S3 · Distancia y movimiento: HC-SR04 (el pulso de eco desde `distance`), PIR HC-SR501 (`motion`), módulo de obstáculos IR
+- ⬜ S4 · Campo magnético y ángulo: sensor Hall y reed (`field`), encoder rotativo (`angle`)
+- ⬜ S5 · Agua y suelo: sonda de humedad del suelo (`moisture`), placa de lluvia (`rain`), sensor de nivel de agua (`water`)
+- ⬜ S6 · Sonido, toque y vibración: módulo de micrófono (`sound`), pad táctil TTP223 (`touch`), interruptor de vibración SW-420 (`vibration`)
+- ⬜ S7 · Emisores (`emits`: una lámpara o un LED que alumbra un sensor de al lado) y una galería de videos de sensores
+- ⬜ Protocolo de bits del DHT11/BME280 en el cable — opcional, prioridad muy baja, anotado para no olvidarlo
+
 ## Etapa 4 — En el celular o la tableta ⬜
 
 Objetivo: abrir un enlace y explorar.
