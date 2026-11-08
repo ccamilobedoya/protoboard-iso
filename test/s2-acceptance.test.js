@@ -10,7 +10,7 @@
 // `threshold` control at (AO ± tolerance) / VCC, DO is HIGH when AO is above the bracket's low end and
 // LOW when it is under the high end, which is the comparator's own rule (DO LOW exactly when AO < Vref).
 //
-// Everything is imported inside the tests that need it, so a missing piece fails that test alone.
+// The imports are at the top: a missing export fails the whole file, which is what we want for a missing module.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
