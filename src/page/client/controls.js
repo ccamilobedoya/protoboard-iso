@@ -53,8 +53,11 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
   const nameOf = (c) => (c.id === 'environment' ? fieldName(c.field) : t(`page.control.${c.field}`));
   // Every indicator on the page, by field: kept in step with the environment's values.
   const gauges = new Set();
-  const gauge = (field) => {
-    const g = createGauge(field, FIELDS[field], { text: (v) => envText(field, v, decimal) ?? t(v ? 'sim.env.on' : 'sim.env.off'), label: fieldName(field) });
+  // `range` {min, max}: the dial's span; without one, the circuit's range for the field (or the slider's).
+  const gauge = (field, range) => {
+    const own = find(engine.controls(), 'environment', field);
+    const span = { min: range?.min ?? own?.min ?? FIELDS[field].min, max: range?.max ?? own?.max ?? FIELDS[field].max };
+    const g = createGauge(field, { ...FIELDS[field], ...span }, { text: (v) => envText(field, v, decimal) ?? t(v ? 'sim.env.on' : 'sim.env.off'), label: fieldName(field) });
     g.field = field;
     g.update(engine.environment?.()[field] ?? FIELDS[field].default);
     gauges.add(g);
@@ -121,6 +124,11 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
     r.dataset.id = c.id;
     r.dataset.field = c.field;
     el(r, 'span', label, 'name');
+    // The slider spans min…max (its own 0…SLIDER maps onto them); stated for readers and tests.
+    if (c.scale !== 'toggle' && c.scale !== 'momentary') {
+      r.dataset.min = String(c.min);
+      r.dataset.max = String(c.max);
+    }
     if (c.scale === 'toggle') {
       // A switch that stays put: one button that turns it on or off.
       const b = el(r, 'button', null, 'hold toggle');
@@ -224,7 +232,7 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
   // moves it.
   function envRow(parent, c, label) {
     const box = el(parent, 'div', null, 'env-row');
-    const g = gauge(c.field);
+    const g = gauge(c.field, c);
     box.appendChild(g.el);
     g.placed = true;
     const r = row(box, c, label);
@@ -313,14 +321,14 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
   // a set of the environment while it moves): in a corner of the frame, the field's name over it;
   // null takes it away. page.gaugeShown() names the field up, or null.
   let inset = null;
-  page.insetGauge = (field, { corner = 'tr' } = {}) => {
+  page.insetGauge = (field, { corner = 'tr', min, max } = {}) => {
     inset?.box.remove();
     inset = null;
     if (!field || !FIELDS[field] || !engine.controls().some((c) => c.id === 'environment' && c.field === field)) return false;
     const box = el(page.main, 'div', null, 'gauge-inset');
     box.dataset.corner = ['tl', 'tr', 'bl', 'br'].includes(corner) ? corner : 'tr';
     el(box, 'span', fieldName(field), 'name');
-    const g = gauge(field);
+    const g = gauge(field, { min, max });
     box.appendChild(g.el);
     g.placed = true;
     inset = { box, field };

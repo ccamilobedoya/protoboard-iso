@@ -1121,7 +1121,7 @@ export default {
   'page.tour.inside.motor.running': 'steady: E just under V',
   'check.ENV_UNKNOWN_FIELD': 'environment: "{field}" is not a field of the environment (fields: {fields}).',
   'check.ENV_OUT_OF_RANGE': 'environment: {field} {value} is outside what it may be, {lo}…{hi}.',
-  'check.ENV_SHAPE': 'environment {field}: give a number, or { value, program }.',
+  'check.ENV_SHAPE': 'environment {field}: give a number, or { value, program, range }.',
   'check.ENV_BAD_PROGRAM': 'environment {field}: the program cannot run; it needs {what}.',
   'check.ENV_TOO_LARGE': 'environment {field}: {size} keyframes, at most {limit}.',
   'check.TOUR_UNKNOWN_ENVIRONMENT': 'page.tour, step {step}: the environment has no field "{field}" (fields: {options}); the step does nothing.',
@@ -1361,4 +1361,6 @@ export default {
   'describe.sensor-module.KY-024': 'KY-024 (magnetic field, with an A3144 Hall switch): a south pole near its face turns the chip on at about 160 G and it stays on until the field falls under about 105 G (hysteresis). Its output is AO, which jumps between about 0.09 V and VCC; DO goes low with the magnet. The chip is specified from 4.5 V. Pins printed DO, +, G, AO.',
   'describe.sensor-module.SW-420-M': 'SW-420 (vibration): a spring in a small can touches a rod at rest, so DO is low; shaken, the contact opens and closes many times a second and DO comes in bursts of pulses, then settles low. A program counts the pulses or waits for them to calm down. Pins DO, GND, VCC.',
   'describe.sensor-module.FC-51': 'FC-51 (obstacle): a clear infrared LED and a dark receiver side by side; an object in front reflects part of the beam back, the nearer the more, and OUT goes low with its LED lit. The trimmer sets the distance, from about 4 to 28 cm for white. Pins OUT, GND, VCC.',
+  'check.ENV_BAD_RANGE': 'environment {field}: the range {range} must go up and stay within {lo}…{hi} (above 0 on a log scale); a switch has none.',
+  'check.TOUR_GAUGE_RANGE': 'page.tour, step {step}: the range {min}…{max} of the {field} indicator must go up and stay within {lo}…{hi} (above 0 on a log scale); a switch has none.',
 };
