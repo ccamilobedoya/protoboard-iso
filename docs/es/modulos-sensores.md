@@ -16,6 +16,8 @@ de los elementos), `src/parts/types/sensor-modules.js` (el tipo), `src/parts/pac
 (el dibujo), `src/sim/devices/sensor-module.js` (la simulación). Recetas: `rain-alarm`, `soil-led`,
 `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`
 ([recetas.md](recetas.md)); líneas de tiempo `examples/tours/soil-led.json` y `obstacle-buzzer.json`.
+`rain-alarm` activa su zumbador con un PNP, no con un NPN: DO baja cuando el módulo detecta, y un NPN
+manejado por él sonaría con el peine seco.
 
 ## La placa común
 
@@ -73,7 +75,8 @@ Cada elemento, en corto:
   dispara; `slots` y `duty` la vuelven un disco de encoder sobre el `angle` del ambiente); el TCRT5000
   `reflectance` · 2 mA · g(distancia), g leída de la curva de su hoja de datos (máximo a 2,5 mm, nada
   más allá de 3 cm); el FC-51 `reflectance` · 0,5 mA / (1 + (d / 10 cm)²). Saturado, AO queda cerca de
-  0,2 V.
+  0,2 V. Ninguno de los dos modela la luz ambiente (el infrarrojo que la luz del día suma al receptor):
+  solo sienten `distance` y `reflectance`, una decisión de esta primera versión.
 - **Hall**: el A3144 es un enclavamiento: enciende a 160 G, apaga a 105 G y entre los dos se queda como
   está (vive en el `closed` del elemento, que el motor conserva cuando se mueve un deslizador). AO salta
   entre unos 0,09 V y VCC. El chip está especificado desde 4,5 V: con 3,3 V funciona pero dice
@@ -81,7 +84,9 @@ Cada elemento, en corto:
 - **Vibración**: al sacudirlo, el contacto rebota en celdas de 10 ms ± 50 %, abierto el primer 40 % de
   cada una, con el patrón fijo por una semilla (`seed` en la pieza, si no su id), así que DO llega en
   ráfagas de unos 100 pulsos por segundo; cuando para, queda cerrado en una celda más. La página da
-  pasos de 0,1 ms mientras rebota.
+  pasos de 0,1 ms mientras rebota. Su LED de DO va conectado como en las otras placas, así que queda
+  encendido en reposo y se apaga en las ráfagas; si la placa real lo enciende al detectar es una
+  pregunta abierta para el banco.
 
 ## Límites y avisos
 
@@ -89,7 +94,7 @@ Cada elemento, en corto:
 |---|---|
 | `SIM_IC_SUPPLY` | VCC por encima de 5,5 V (lo que aguanta la placa; un aviso, así 5 V no se lee como cerca) |
 | `SIM_REVERSE_VOLTAGE` | VCC invertido más de 0,3 V |
-| `SIM_OVER_CURRENT` | DO absorbiendo más de 20 mA (`U1.DO`), un LED IR por encima de 60 mA (`U1.IR`), la salida Hall por encima de 25 mA |
+| `SIM_OVER_CURRENT` | DO absorbiendo más de 20 mA (`U1.DO`, o `U1.OUT` en el FC-51, que imprime OUT), un LED IR por encima de 60 mA (`U1.IR`), la salida Hall por encima de 25 mA |
 | `SIM_MODULE_LOW_SUPPLY` | VCC por debajo de los 2 V del LM393, o de los 4,5 V del chip Hall |
 | `SIM_MODULE_CORROSION` | corriente continua por un peine mojado o por el suelo (información) |
 

@@ -25,7 +25,7 @@ const isChip = (part) => part.def?.package === 'dip';
 
 export function pinIndex(part, name) {
   const names = part.pinNames ?? [];
-  const found = findPin(names, name);
+  const found = findPin(names, name, part.type);
   if (found !== undefined) return names.indexOf(found);
   // A chip's pin by its number.
   const n = /^\d{1,3}$/.test(String(name)) ? Number(name) : 0;

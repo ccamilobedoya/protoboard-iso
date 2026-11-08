@@ -33,7 +33,7 @@ detail.
   `FC-51`), standing on its pins with its element on top; simulated as its divider, trimmer
   (`threshold`), open-collector LM393, pull-up and LEDs, each element following the environment
   (the Hall switch with its hysteresis, the SW-420 in bursts). Up close with its symbol and inside
-  view. The environment's `reflectance` and `beam`; `A0`/`D0` read as `AO`/`DO`; a recipe's
+  view. The environment's `reflectance` and `beam`; a module's `A0`/`D0` read as its `AO`/`DO`; a recipe's
   `environment`. Recipes `rain-alarm`, `soil-led`, `light-switch-module`, `line-follower-uno`,
   `obstacle-buzzer`, `hall-counter-uno`; timelines `tours/soil-led.json` and
   `tours/obstacle-buzzer.json`.

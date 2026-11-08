@@ -45,9 +45,17 @@ test('sensor modules: the eight part numbers, their pins as printed, one type of
     assert.equal(lookupPartNumber(n).entry.pins.join(' '), list, n);
   }
   assert.equal(lookupPartNumber('ky024').number, 'KY-024');
-  // A0 and D0, as some boards print them, are the AO and DO pins.
-  assert.equal(findPin(['AO', 'DO', 'GND', 'VCC'], 'A0'), 'AO');
-  assert.equal(findPin(['DO', 'GND', 'VCC'], 'D0'), 'DO');
+  // A0 and D0, as some boards print them, are the AO and DO pins of a sensor module, and only of one:
+  // on another part (an UNO has a real A0 and D0) a mistyped AO resolves to nothing.
+  assert.equal(findPin(['AO', 'DO', 'GND', 'VCC'], 'A0', 'sensor-module'), 'AO');
+  assert.equal(findPin(['DO', 'GND', 'VCC'], 'D0', 'sensor-module'), 'DO');
+  assert.equal(findPin(['A0', 'DO', 'GND', 'VCC'], 'AO', 'sensor-module'), 'A0');
+  assert.equal(findPin(['A0', 'GND', 'VCC'], 'AO'), undefined);
+  assert.equal(findPin(['A0', 'GND', 'VCC'], 'AO', 'module'), undefined);
+  assert.equal(findPin(['AO', 'DO', 'GND', 'VCC'], 'A0'), undefined);
+  // Through the circuit: a module's pins by their printed name.
+  const named = buildCircuit({ version: 1, board: 'bb830', parts: [{ id: 'U1', type: 'sensor-module', part: 'SLOT-IR', pins: { A0: 'c10', D0: 'c11', GND: 'c12', VCC: 'c13' } }] });
+  assert.deepEqual(named.parts[0].holes.map((h) => h.id), ['c10', 'c11', 'c12', 'c13']);
   assert.equal(t.resolve({ part: 'nope' }).error.code, 'UNKNOWN_PART_NUMBER');
   assert.equal(t.resolve({ part: 'MH-RD', threshold: 2 }).error.code, 'BAD_VALUE');
 });

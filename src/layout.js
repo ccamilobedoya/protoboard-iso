@@ -149,7 +149,7 @@ export function validateSpec(spec) {
     inNet.add(part.id);
     const names = pinsOf(part);
     if (!names.length) return ref;
-    const name = findPin(names, m[2]);
+    const name = findPin(names, m[2], part.type);
     if (name === undefined) problems.push({ severity: 'error', code: 'NET_UNKNOWN_PIN', params: { where, ref: String(ref), part: part.id, pin: m[2], names: names.join(', ') } });
     return name === undefined ? ref : `${part.id}.${name}`;
   };

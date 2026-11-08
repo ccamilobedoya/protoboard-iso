@@ -15,6 +15,8 @@ formulas), `src/parts/types/sensor-modules.js` (the type), `src/parts/packages/s
 (the drawing), `src/sim/devices/sensor-module.js` (the simulation). Recipes: `rain-alarm`,
 `soil-led`, `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`
 ([recipes.md](recipes.md)); timelines `examples/tours/soil-led.json` and `obstacle-buzzer.json`.
+`rain-alarm` switches its buzzer with a PNP, not an NPN: DO goes low when the module detects, and an
+NPN driven by it would sound while the comb is dry.
 
 ## The common board
 
@@ -71,14 +73,17 @@ Each element in short:
   not trigger it; `slots` and `duty` make it an encoder disc on the environment's `angle`); the
   TCRT5000 `reflectance` · 2 mA · g(distance), g read from its datasheet's curve (peak at 2.5 mm,
   nothing past 3 cm); the FC-51 `reflectance` · 0.5 mA / (1 + (d / 10 cm)²). Saturated, AO settles
-  near 0.2 V.
+  near 0.2 V. Neither models ambient light (the infrared that daylight adds to the receiver): they
+  sense only `distance` and `reflectance`, a choice made for this first version.
 - **Hall**: the A3144 is a latch: on at 160 G, off at 105 G, kept between (it lives in the element's
   `closed`, which the engine carries when a slider moves). AO jumps between about 0.09 V and VCC. The
   chip is specified from 4.5 V: on 3.3 V it works but says `SIM_MODULE_LOW_SUPPLY`.
 - **Vibration**: shaken, the contact chatters in cells of 10 ms ± 50 %, open for the first 40 % of
   each, the pattern fixed by a seed (`seed` on the part, else its id), so DO comes in bursts of about
   100 pulses a second; once it stops, it settles closed within one more cell. The page steps in
-  0.1 ms while it chatters.
+  0.1 ms while it chatters. Its DO LED is wired as on the other boards, so it is lit at rest and goes
+  out in the bursts; whether the real board lights it on detection instead is an open question for
+  the bench.
 
 ## Limits and warnings
 
@@ -86,7 +91,7 @@ Each element in short:
 |---|---|
 | `SIM_IC_SUPPLY` | VCC over 5.5 V (the board's rating; a warning, so 5 V does not read as near it) |
 | `SIM_REVERSE_VOLTAGE` | VCC reversed by more than 0.3 V |
-| `SIM_OVER_CURRENT` | DO sinking over 20 mA (`U1.DO`), an IR LED over 60 mA (`U1.IR`), the Hall output over 25 mA |
+| `SIM_OVER_CURRENT` | DO sinking over 20 mA (`U1.DO`, or `U1.OUT` on the FC-51, which prints OUT), an IR LED over 60 mA (`U1.IR`), the Hall output over 25 mA |
 | `SIM_MODULE_LOW_SUPPLY` | VCC under the LM393's 2 V, or the Hall chip's 4.5 V |
 | `SIM_MODULE_CORROSION` | DC through a wet comb or the soil (info) |
 
