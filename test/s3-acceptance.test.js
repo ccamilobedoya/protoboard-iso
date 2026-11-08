@@ -411,10 +411,14 @@ const layoutOf = (name) => {
   return autoLayout(spec);
 };
 
-test('C9: the four recipes exist, in order at the end of the list, with a title and a lesson in both languages', () => {
+test('C9: the four recipes exist, together and in order after the earlier recipes, with a title and a lesson in both languages', () => {
+  // Arbitration (orchestrator): later sessions append their own recipes after these, so "at the end"
+  // became "contiguous, in this order, after the recipes that existed before S3".
   const names = Object.keys(RECIPES);
   for (const name of RECIPE_NAMES) assert.ok(names.includes(name), `recipe ${name}`);
-  assert.deepEqual(names.slice(-4), RECIPE_NAMES, 'appended at the end, in this order');
+  const first = names.indexOf(RECIPE_NAMES[0]);
+  assert.ok(first > names.indexOf('motor-npn'), 'after the recipes that existed before');
+  assert.deepEqual(names.slice(first, first + 4), RECIPE_NAMES, 'contiguous, in this order');
   for (const name of RECIPE_NAMES) for (const lang of ['en', 'es']) {
     assert.ok(RECIPES[name].title?.[lang], `${name}: title ${lang}`);
     assert.ok(RECIPES[name].teaches?.[lang], `${name}: teaches ${lang}`);

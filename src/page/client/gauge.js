@@ -7,7 +7,8 @@
 //   along its log scale, as its slider does).
 // - light: a sun whose halo and rays grow with the log of the light (0.1 lx dark … 10 klx full).
 // - temperature: a thermometer whose column rises from min to max.
-// - a switch (rain, motion, touch, vibration, tilt): a lamp that lights.
+// - a switch (rain, motion, touch, vibration, tilt, beam): a lamp that lights. The rest (reflectance
+//   among them) take the default arc.
 //
 // createGauge(field, def, { text }) → { el, update(value) }: `def` is the field's registry entry
 // (sim/environment.js FIELDS), text(value) the words under it. update() only writes attributes and

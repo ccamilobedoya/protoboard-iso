@@ -37,7 +37,8 @@
 // resting on NC, with the kick when its coil is cut off bare; a DC motor's magnets, its armature turned
 // to the shaft's angle with an arrow as long as its speed, its brushes, and its supply against its
 // back-EMF; a PIR's dome and pyroelectric halves into a comparator, with a bar that drains with the
-// time left; a touch module's pad and finger as two plates of a capacitor, into its chip. Arrows
+// time left; a touch module's pad and finger as two plates of a capacitor, into its chip; an LM393 sensor module's divider and trimmer, AO and Vref as two bars against its supply,
+// the comparator and DO's LED lit while DO is low. Arrows
 // never cross what they explain: they run beside the layers, under the channel, the film, the coil.
 // Didactic, not to scale.
 
@@ -1052,6 +1053,46 @@ const INSIDE = {
     label(g, 92, 30, sig, 'pin-name', 'end', FIGURE.small);
     label(g, 50, 103, r ? [`${data.ids[1]} ${f(r.vcc, 'V')}`, `${sig} ${f(r.vout, 'V')}`, Math.abs(r.current) >= 1e-6 && `I ${f(Math.abs(r.current), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
     label(g, 50, 114, r ? t(`page.tour.inside.touch.${r.state}`) : '', 'state');
+  },
+  module(g, r, data, { t, f, control }) {
+    // An LM393 sensor module as its board: the divider (the fixed 10 kΩ over the element, AO between
+    // them), the trimmer's Vref, AO and Vref as two bars against VCC (the one that is lower decides),
+    // the comparator, and DO with its LED, lit while the open collector pulls DO low.
+    const vcc = r?.vcc > 0.1 ? r.vcc : 5;
+    const share = (v) => Math.max(0, Math.min(1, (v ?? 0) / vcc));
+    const id = (name) => data.ids[data.names.indexOf(name)] ?? name;
+    const low = Boolean(r?.low);
+    const threshold = control?.('threshold') ?? data.threshold ?? 0.5;
+    const ao = r ? r.ao : null;
+    const vref = r ? r.vref : threshold * vcc;
+    make(g, 'path', { class: 'lead', d: 'M4 6H76M18 6V12M18 34V46M18 74V90M4 90H76M18 40H32M48 6V12M48 70V90' });
+    make(g, 'rect', { class: 'film', x: 12, y: 12, width: 12, height: 22 });
+    make(g, 'rect', { class: 'core', x: 10, y: 46, width: 16, height: 28, rx: 2 });
+    label(g, 18, 63, t(`page.tour.inside.module.${data.element ?? 'comb'}`), 'note', 'middle', FIGURE.small);
+    label(g, 18, 26, '10k', 'quiet', 'middle', FIGURE.small);
+    // The trimmer: a track from VCC to GND, its wiper at the threshold.
+    make(g, 'rect', { class: 'film', x: 45, y: 12, width: 6, height: 58 });
+    const wy = 70 - 58 * threshold;
+    make(g, 'path', { class: 'wiper', d: `M54 ${fixed(wy)}H58` });
+    // The two bars: AO and Vref, each as a share of VCC.
+    for (const [x, v, cls, name] of [[30, ao, 'headroom', 'AO'], [60, vref, 'soc', 'Vref']]) {
+      make(g, 'rect', { class: 'gauge', x, y: 26, width: 6, height: 60 });
+      if (v != null) make(g, 'rect', { class: cls, x, y: fixed(86 - 60 * share(v)), width: 6, height: fixed(60 * share(v)) });
+      label(g, x + 3, 22, name, 'pin-name', 'middle', FIGURE.small);
+    }
+    // The comparator: AO on +, Vref on −; its output pulls DO low while AO is under Vref.
+    make(g, 'path', { class: `comparator${low ? ' active' : ''}`, d: 'M70 36V64L92 50Z' });
+    make(g, 'path', { class: 'lead', d: 'M36 42H70M66 58H70M92 50H98' });
+    label(g, 73, 45, '+', 'note', 'start', FIGURE.small);
+    label(g, 73, 61, '−', 'note', 'start', FIGURE.small);
+    make(g, 'circle', { class: `out${low ? ' active' : ''}`, cx: 84, cy: 20, r: 4 });
+    make(g, 'path', { class: 'lead', d: 'M76 6H84V16M84 24V30H96V50' });
+    label(g, 4, 4, id('VCC'), 'pin-name', 'start', FIGURE.small);
+    label(g, 4, 98, id('GND'), 'pin-name', 'start', FIGURE.small);
+    label(g, 98, 46, id(data.doPin ?? 'DO'), 'pin-name', 'end', FIGURE.small);
+    label(g, 50, 103, r ? `AO ${f(ao, 'V')} · Vref ${f(vref, 'V')} · ${id(data.doPin ?? 'DO')} ${f(r.vdo, 'V')}` : '', 'note');
+    const field = data.field ?? 'rain';
+    label(g, 50, 114, r ? t(`page.tour.inside.module.${low ? 'low' : 'high'}`, { what: t(`sim.sensor-module.${field}.${r.detected ? 'detected' : 'idle'}`) }) : '', 'state');
   },
 };
 

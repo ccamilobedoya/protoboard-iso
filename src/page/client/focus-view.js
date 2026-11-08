@@ -52,6 +52,7 @@ const LEGENDS = {
   motor: [['magnet', 'magnets'], ['coil', 'armature'], ['wiper', 'rotation'], ['headroom', 'supply'], ['soc', 'emf'], ['arrow', 'arrow']],
   pir: [['dome', 'dome'], ['comparator', 'element'], ['soc', 'timer'], ['pos', 'out'], ['', 'figures']],
   touch: [['plate', 'pad'], ['dielectric', 'finger'], ['latch', 'chip'], ['pos', 'out'], ['', 'figures']],
+  module: [['film', 'divider'], ['headroom', 'ao'], ['soc', 'vref'], ['comparator', 'comparator'], ['', 'led']],
 };
 // Swatches in the figure's own colours that live in the script (sim/look.js), not in the style.
 const INLINE = { arrow: DOT_COLOR, heat: HEAT_COLOR, pos: VOLTAGE_COLORS.positive, neg: VOLTAGE_COLORS.negative };

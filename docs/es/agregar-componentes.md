@@ -193,6 +193,7 @@ que un tipo nuevo viene con todas, y los tipos del kit se van completando hasta 
 (revisado en todo lo anterior) o en `PENDING` con su motivo. Un tipo nuevo que no esté en ninguna de las
 dos hace fallar la prueba, así la decisión se toma y no se olvida; pasar un tipo de `PENDING` a `COMPLETE`
 es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC, módulo PIR, módulo táctil). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
+es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC, módulo de sensor con LM393). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
 y la página de cerca en un celular.
 
 ## 7. Un sensor: unirse al ambiente
@@ -220,6 +221,9 @@ del campo, y que un valor en la pieza gana (`test/environment.test.js`).
 Un sensor que responde en el tiempo (el retardo de un PIR, la respuesta de un módulo táctil) tiene
 memoria propia: lista las claves de sus elementos en `state: [...]` para que `engine.set` las lleve,
 y puede dar `maxStep()` y `span()`; mira [sensores-temporizados.md](sensores-temporizados.md).
+Un sensor en la placa de comparador de siempre (lluvia, suelo, luz, una ranura o un par infrarrojo,
+un interruptor Hall, un contacto de vibración) no es un tipo nuevo: es una fila de la tabla de
+`sensor-module`, su elemento y un glifo ([modulos-sensores.md](modulos-sensores.md#agregar-una-novena-pieza)).
 
 ## Pruebas
 

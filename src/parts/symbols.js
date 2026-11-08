@@ -391,6 +391,21 @@ const touchSymbol = () => ({
   pins: { SIG: [96, 50], VCC: [50, 4], GND: [50, 96] },
   ids: { SIG: 'I/O', VCC: 'VCC', GND: 'GND' },
 });
+// An LM393 sensor module as its schematic: the element (a box, its kind's letter) under the divider's
+// resistor, AO between them into the comparator's +, the trimmer's Vref into its −, DO out of the right;
+// VCC on top, GND at the bottom. Each pin's letter is what the board prints (A0, D0, +, G).
+const sensorModuleSymbol = (names, print, title) => {
+  const at = { VCC: [50, 4], GND: [50, 96], AO: [4, 62], DO: [96, 50], OUT: [96, 50] };
+  const ids = Object.fromEntries(names.map((n, i) => [n, print?.[i] ?? n]));
+  return {
+    w: 100, h: 100,
+    strokes: ['M50 4V12', 'M50 88V96', 'M12 12H88V88H12Z', 'M26 12V24', 'M21 24H31V40H21Z', 'M26 40V48', 'M21 48H31V68H21Z', 'M26 68V88', 'M26 44H52', 'M4 62H12', 'M40 62H52', 'M40 54V70', 'M52 34V66L78 50Z', 'M78 50H96'],
+    fills: [],
+    texts: [{ x: 56, y: 47, text: '+', anchor: 'start', small: true }, { x: 56, y: 63, text: '−', anchor: 'start', small: true }, { x: 26, y: 61, text: 'E', anchor: 'middle', small: true }, { x: 34, y: 78, text: 'Vref', anchor: 'start', small: true }, { x: 50, y: 100, text: title, anchor: 'middle', quiet: true }],
+    pins: Object.fromEntries(names.map((n) => [n, at[n]])),
+    ids,
+  };
+};
 
 export function symbolOf(part) {
   const e = part.def?.electrical ?? {};
@@ -422,6 +437,7 @@ export function symbolOf(part) {
   if (part.type === 'pir-sensor') return pirSymbol();
   if (part.type === 'touch-sensor') return touchSymbol();
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
+  if (part.type === 'sensor-module') return sensorModuleSymbol(names, part.def?.params?.print, e.part ?? '');
   return null;
 }
 
@@ -521,5 +537,11 @@ export function insideOf(part) {
     return { kind: 'touch', ids: ids(), toggle, activeLow, fast };
   }
   if (part.type === 'ic' && e.kind === 'TMR') return { kind: 'timer' };
+  // An LM393 sensor module: its element and what it senses, the trimmer and which DO level detects
+  // (its device's params), its pins by name.
+  if (part.type === 'sensor-module') {
+    const { element, stim = {}, threshold, active, doPin } = limits();
+    return { kind: 'module', ids: ids(), names: part.pinNames, element, field: Object.keys(stim)[0], threshold, active, doPin };
+  }
   return null;
 }

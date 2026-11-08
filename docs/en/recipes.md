@@ -61,6 +61,12 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `lm35-comparator` | LM393 comparing an LM35 with a reference of about 0.42 V from a divider; the LED lights above about 42 °C (senses `temperature`) | R1 = 10k, R2 = 910, R3 = 330, D1 = red |
 | `ntc-follower` | NTC thermistor divider copied by an LM358 follower into a 10k load (senses `temperature`) | TH1 = 10k, R1 = 10k, R2 = 10k (load), V1 = 9 V (5–30) |
 | `thermistor-uno` | Arduino UNO reading an NTC divider on A0 and printing `T=<°C>` every second with the B equation (senses `temperature`) | TH1 = 10k, R1 = 10k, U1 = its sketch (`program`) |
+| `rain-alarm` | An MH-RD rain module whose DO, low when wet, turns on a PNP (S8550) that switches a buzzer | U1 = 0.5 (threshold, 0.05–0.95), R1 = 1k (base) |
+| `soil-led` | A YL-69 soil module lighting an LED into its DO in damp soil | U1 = 0.5 (threshold), R1 = 470, D1 = green |
+| `light-switch-module` | The 3-pin LDR-LM393 module lighting an LED into its DO in the light | U1 = 0.5 (threshold), R1 = 470, D1 = yellow |
+| `line-follower-uno` | Arduino UNO reading a TCRT5000 line follower (DO on D2, AO on A0), printing LINE / NO LINE | U2 = 0.5 (threshold), U1 = its sketch |
+| `obstacle-buzzer` | An FC-51 obstacle module sinking a buzzer's current into its OUT | U1 = 0.5 (threshold), R1 = 470 |
+| `hall-counter-uno` | Arduino UNO counting a magnet's passes with a KY-024 (DO on D2, falling edges) | U2 = 0.5 (threshold), U1 = its sketch |
 
 `catalog` (MCP) or `parts` (CLI) lists them with their titles (the compact list `catalog` leaves the values out); `catalog` with a recipe's name (`parts
 <name>` in the CLI) shows what it teaches, its parts, nets, supply, and each value's role and limits.
@@ -99,6 +105,8 @@ LM35 or a 10k NTC (B 3950).
 | `lm35-comparator` | The LM35 gives 10 mV per °C into IN+; the reference is 0.417 V (about 42 °C). Above it the output is released and R3, the output's pull-up, feeds the LED to ground (about 10 mA); below it the output sinks and the LED sees under 1 V (off). The LED is not "as in the potentiometer recipes" (fed from the supply, on when the output is low) because here the alarm must light when the input is *higher* |
 | `ntc-follower` | The NTC is on the supply side, so the voltage rises as it warms; the follower copies it into 10k. The supply is 9 V: an LM358's output stops about 1.5 V under it, and from 5 V it would cut the voltage the divider gives at 60 °C |
 | `thermistor-uno` | The same NTC over 10k on the UNO's 5 V, read on A0; the sketch gets the resistance from the ADC count and the temperature from `1/T = 1/T0 + ln(R/R0)/B`, and prints `T=<value>` every second (within 1.5 °C of the environment at 25 and at 60 °C) |
+- Beside a recipe, `title`, `board`, `clearance`, `netLabels`, `environment`, `page` and `lang` may be given and
+  replace the recipe's. `parts` and `nets` never (`RECIPE_AND_PARTS`).
 
 ## After it is laid out
 
@@ -122,6 +130,7 @@ blinks, in slow motion (the page's time follows the slowest time constant).
 2. `src/recipes/<name>.js`: one module of data, with a header comment saying what the circuit is.
    `name`, `title` and `teaches` (`{ en, es }`), `parts`, `nets`, `supplies`, optionally
    `netLabels`, `environment`, `page`, `clearance`, and `values`: for each id that may change, `field` (what the
+   `netLabels`, `environment` (the circuit's, for a sensor), `page`, `clearance`, and `values`: for each id that may change, `field` (what the
    short form sets), and optionally `role` (`{ en, es }`), `choices`, `min`/`max`, `extra` (the
    allowed fields, when the defaults by kind do not fit).
 3. Register it in `src/recipes/index.js` and `npm run schemas` (the schema lists the names).

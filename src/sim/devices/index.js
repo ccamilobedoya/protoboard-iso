@@ -65,8 +65,9 @@ import { relay } from './relay.js';
 import { motor } from './motor.js';
 import { pir } from './pir.js';
 import { touch } from './touch.js';
+import { sensorModule } from './sensor-module.js';
 
-export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, leds, bridge, mosfet, bjt, regulator, timer, opamp, mcu, lm35, relay, motor, battery, pir, touch];
+export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, leds, bridge, mosfet, bjt, regulator, timer, opamp, mcu, lm35, relay, motor, battery, pir, touch, sensorModule];
 
 // Several devices may share a type (the ICs: timer, op-amp); each one accepts its own parts.
 const BY_TYPE = {};

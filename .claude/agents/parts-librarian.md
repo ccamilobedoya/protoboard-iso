@@ -31,7 +31,9 @@ part may only need a line in `src/parts/db.js`.
    `src/sim/models.js` (with the source in a comment), a new element in `src/sim/mna.js` only if
    no existing one fits. Current paths (`paths`) in the package for the conductor view. A sensor
    reads the circuit's environment (§7): `senses: ['light']` and `c.env('light')` in `params`, never
-   a slider of its own as the only way to change what it senses.
+   a slider of its own as the only way to change what it senses. A sensor on the usual LM393
+   comparator board is a row of `SENSOR_MODULES` (`src/parts/sensors.js`), not a new type
+   (`docs/en/sensor-modules.md`, "Adding a ninth part").
    A microcontroller board needs no device file: its pins' data (`power`, `gpio`, `adc`,
    `inputOnly`) in `src/parts/modules.js` and its family's numbers in `MCUS`
    (`docs/en/microcontrollers.md`). Check it

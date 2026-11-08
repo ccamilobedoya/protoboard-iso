@@ -401,6 +401,20 @@ en un circuito con ambiente sigue el campo `temperature`). `VOUT` da
 { "id": "U2", "type": "temperature-sensor", "temperature": 25, "pins": ["h30", "h31", "h32"] }
 ```
 
+### sensor-module (módulo de sensor)
+
+Un módulo de sensor con LM393 de pie sobre sus pines en una fila ([modulos-sensores.md](modulos-sensores.md)):
+`part` uno de `MH-RD` (lluvia), `YL-69` (suelo), `LDR-LM393` (luz, 3 pines), `SLOT-IR` (ranura óptica),
+`TCRT5000-M` (seguidor de línea), `KY-024` (Hall), `SW-420-M` (vibración, 3 pines), `FC-51` (obstáculo, 3
+pines), sus pines en el orden en que los imprime la placa. `threshold` (0…1, por defecto 0,5): el
+trimmer, Vref = threshold · VCC. Su propio valor de lo que siente gana sobre el ambiente: `wetness`,
+`moisture`, `light`, `beam`, `reflectance`, `distance`, `field`, `vibration`; `SLOT-IR` también
+`transmittance`, `slots`, `duty`; `SW-420-M` `seed`.
+
+```json
+{ "id": "U1", "type": "sensor-module", "part": "YL-69", "threshold": 0.5, "pins": ["h30", "h31", "h32", "h33"] }
+```
+
 ### relay (relé)
 
 Un relé de 5 V (SRD-05VDC-SL-C): su bobina `A1` `A2` (sin polaridad), su común `COM`, el contacto que

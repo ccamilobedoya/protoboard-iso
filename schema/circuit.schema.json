@@ -157,7 +157,13 @@
                 "pir-lamp",
                 "pir-uno",
                 "touch-toggle-led",
-                "touch-uno"
+                "touch-uno",
+                "rain-alarm",
+                "soil-led",
+                "light-switch-module",
+                "line-follower-uno",
+                "obstacle-buzzer",
+                "hall-counter-uno"
               ]
             },
             "values": {
@@ -2276,6 +2282,307 @@
               "additionalProperties": false
             }
           ]
+        },
+        "reflectance": {
+          "description": "%, 0…100 on the slider, 0…100 at most, default 80",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "program": {
+                  "type": "object",
+                  "required": [
+                    "kind"
+                  ],
+                  "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                  "oneOf": [
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "toggle"
+                        },
+                        "high": {
+                          "type": "number"
+                        },
+                        "low": {
+                          "type": "number"
+                        },
+                        "on": {
+                          "type": "number",
+                          "minimum": 0,
+                          "description": "s at high"
+                        },
+                        "off": {
+                          "type": "number",
+                          "minimum": 0,
+                          "description": "s at low"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "high",
+                        "low",
+                        "on",
+                        "off"
+                      ],
+                      "additionalProperties": false,
+                      "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                    },
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "cycle"
+                        },
+                        "shape": {
+                          "enum": [
+                            "sine",
+                            "square",
+                            "triangle"
+                          ],
+                          "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                        },
+                        "period": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "description": "s"
+                        },
+                        "min": {
+                          "type": "number"
+                        },
+                        "max": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "period",
+                        "min",
+                        "max"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "ramp"
+                        },
+                        "from": {
+                          "type": "number"
+                        },
+                        "to": {
+                          "type": "number"
+                        },
+                        "seconds": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "from",
+                        "to",
+                        "seconds"
+                      ],
+                      "additionalProperties": false,
+                      "description": "from → to in `seconds`, then holds `to`"
+                    },
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "keyframes"
+                        },
+                        "points": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 1000,
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                        },
+                        "loop": {
+                          "type": "boolean",
+                          "description": "start again after the last point"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "points"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "beam": {
+          "description": "a switch: 0 or 1 (false or true), default 0",
+          "oneOf": [
+            {
+              "type": [
+                "number",
+                "boolean"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "program": {
+                  "type": "object",
+                  "required": [
+                    "kind"
+                  ],
+                  "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                  "oneOf": [
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "toggle"
+                        },
+                        "high": {
+                          "type": "number"
+                        },
+                        "low": {
+                          "type": "number"
+                        },
+                        "on": {
+                          "type": "number",
+                          "minimum": 0,
+                          "description": "s at high"
+                        },
+                        "off": {
+                          "type": "number",
+                          "minimum": 0,
+                          "description": "s at low"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "high",
+                        "low",
+                        "on",
+                        "off"
+                      ],
+                      "additionalProperties": false,
+                      "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                    },
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "cycle"
+                        },
+                        "shape": {
+                          "enum": [
+                            "sine",
+                            "square",
+                            "triangle"
+                          ],
+                          "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                        },
+                        "period": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "description": "s"
+                        },
+                        "min": {
+                          "type": "number"
+                        },
+                        "max": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "period",
+                        "min",
+                        "max"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "ramp"
+                        },
+                        "from": {
+                          "type": "number"
+                        },
+                        "to": {
+                          "type": "number"
+                        },
+                        "seconds": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "from",
+                        "to",
+                        "seconds"
+                      ],
+                      "additionalProperties": false,
+                      "description": "from → to in `seconds`, then holds `to`"
+                    },
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "keyframes"
+                        },
+                        "points": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 1000,
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                        },
+                        "loop": {
+                          "type": "boolean",
+                          "description": "start again after the last point"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "points"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
         }
       },
       "additionalProperties": false
@@ -2453,7 +2760,7 @@
         },
         "controls": {
           "type": "array",
-          "description": "Live page: a panel with the controls a lesson puts in front (every adjustable part also has its own in its card). Each names a part or a supply and one of its controls: resistance (resistor), temperature (thermistor), light (photoresistor), position (potentiometer), pressed (push button, momentary), voltage (bench supply), charge (battery), frequency and amplitude (signal generator)",
+          "description": "Live page: a panel with the controls a lesson puts in front (every adjustable part also has its own in its card). Each names a part or a supply and one of its controls: resistance (resistor), temperature (thermistor), light (photoresistor), position (potentiometer), pressed (push button, momentary), voltage (bench supply), charge (battery), frequency and amplitude (signal generator), threshold and its own stimulus (sensor-module)",
           "items": {
             "type": "object",
             "properties": {
@@ -2480,7 +2787,9 @@
                   "vibration",
                   "sound",
                   "tilt",
-                  "angle"
+                  "angle",
+                  "reflectance",
+                  "beam"
                 ],
                 "description": "a field of the circuit's environment (instead of part or supply and field), shown with its indicator in the panel's Environment section"
               },
@@ -2494,7 +2803,15 @@
                   "voltage",
                   "charge",
                   "frequency",
-                  "amplitude"
+                  "amplitude",
+                  "threshold",
+                  "wetness",
+                  "moisture",
+                  "beam",
+                  "reflectance",
+                  "distance",
+                  "field",
+                  "vibration"
                 ]
               },
               "min": {
@@ -2632,7 +2949,8 @@
             "relay",
             "motor",
             "pir-sensor",
-            "touch-sensor"
+            "touch-sensor",
+            "sensor-module"
           ]
         },
         "pins": {
@@ -2713,7 +3031,7 @@
         },
         "part": {
           "type": "string",
-          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
+          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270), sensor-module (MH-RD, YL-69, LDR-LM393, SLOT-IR, TCRT5000-M, KY-024, SW-420-M, FC-51) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
         },
         "package": {
           "type": "string"
@@ -2911,7 +3229,7 @@
         "light": {
           "type": "number",
           "minimum": 0,
-          "description": "ldr: illuminance in lux for the simulation (default 100). Parts: GL5516, GL5528, GL5537, GL5539, GL5549"
+          "description": "ldr: illuminance in lux for the simulation (default 100). Parts: GL5516, GL5528, GL5537, GL5539, GL5549. sensor-module LDR-LM393: its own light, which wins over the environment's"
         },
         "dcr": {
           "type": "number",
@@ -2986,6 +3304,76 @@
             }
           ],
           "description": "How the part is used in this circuit, shown in its card in the page. A plain string is shown as it is in every language; { \"en\": …, \"es\": … } is shown in the page language. Leave it out when the learner should find it out."
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "sensor-module: its trimmer, Vref = threshold · VCC (default 0.5); DO goes low while AO is under Vref"
+        },
+        "wetness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "sensor-module MH-RD: its own share of the comb wet (0 dry … 1 all wet), instead of the environment's rain"
+        },
+        "moisture": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "sensor-module YL-69: its own soil moisture, %, instead of the environment's"
+        },
+        "beam": {
+          "type": [
+            "boolean",
+            "number"
+          ],
+          "description": "sensor-module SLOT-IR: its own beam, true (1) = something opaque in the slot, instead of the environment's"
+        },
+        "reflectance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "sensor-module TCRT5000-M, FC-51: its own surface, % of white paper's reflectance (black ink 10), instead of the environment's"
+        },
+        "distance": {
+          "type": "number",
+          "minimum": 0,
+          "description": "sensor-module TCRT5000-M, FC-51: its own distance to the surface or the object, cm, instead of the environment's"
+        },
+        "field": {
+          "type": "number",
+          "description": "sensor-module KY-024: its own magnetic field, G (+ a south pole at its face), instead of the environment's"
+        },
+        "vibration": {
+          "type": [
+            "boolean",
+            "number"
+          ],
+          "description": "sensor-module SW-420-M: its own vibration, true (1) = shaken, instead of the environment's"
+        },
+        "transmittance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "sensor-module SLOT-IR: what reaches the receiver through the slot with the beam clear (default 1; paper about 0.3)"
+        },
+        "slots": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360,
+          "description": "sensor-module SLOT-IR: an encoder disc with this many slots, turned by the environment's angle"
+        },
+        "duty": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "sensor-module SLOT-IR with slots: the open share of each slot (default 0.5)"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "sensor-module SW-420-M: the pattern of its chatter (default: from its id)"
         },
         "model": {
           "type": "object",

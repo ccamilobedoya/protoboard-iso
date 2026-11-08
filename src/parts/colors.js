@@ -181,3 +181,12 @@ Object.assign(MATERIALS, {
   jumperCap: '#2a2a2d',
   padRing: '#cfd8e6',
 });
+
+// LM393 sensor modules: the gold of a rain comb and a soil fork, an IR LED's clear (slightly blue)
+// lens and its receiver's dark one, the yellow-green of a CdS track's disc, a Hall chip's black case.
+Object.assign(MATERIALS, {
+  combGold: '#d6ae4f',
+  irClear: '#cfe0ec',
+  irDark: '#1f1f24',
+  trimmerKnob: '#f0ede4',
+});

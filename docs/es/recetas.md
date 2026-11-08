@@ -62,6 +62,12 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `lm35-comparator` | LM393 que compara un LM35 con una referencia de unos 0,42 V de un divisor; el LED se enciende por encima de unos 42 °C (siente `temperature`) | R1 = 10k, R2 = 910, R3 = 330, D1 = red |
 | `ntc-follower` | Divisor con termistor NTC copiado por un seguidor LM358 hacia una carga de 10k (siente `temperature`) | TH1 = 10k, R1 = 10k, R2 = 10k (carga), V1 = 9 V (5–30) |
 | `thermistor-uno` | Arduino UNO que lee un divisor con NTC en A0 y escribe `T=<°C>` cada segundo con la ecuación B (siente `temperature`) | TH1 = 10k, R1 = 10k, U1 = su programa (`program`) |
+| `rain-alarm` | Un módulo de lluvia MH-RD cuyo DO, en bajo cuando está mojado, enciende un PNP (S8550) que activa un zumbador | U1 = 0,5 (umbral, 0,05–0,95), R1 = 1k (base) |
+| `soil-led` | Un módulo de suelo YL-69 que enciende un LED hacia su DO con el suelo húmedo | U1 = 0,5 (umbral), R1 = 470, D1 = verde |
+| `light-switch-module` | El módulo LDR-LM393 de 3 pines que enciende un LED hacia su DO con luz | U1 = 0,5 (umbral), R1 = 470, D1 = amarillo |
+| `line-follower-uno` | Arduino UNO que lee un seguidor de línea TCRT5000 (DO en D2, AO en A0) y escribe LINE / NO LINE | U2 = 0,5 (umbral), U1 = su programa |
+| `obstacle-buzzer` | Un módulo de obstáculos FC-51 que absorbe por su OUT la corriente de un zumbador | U1 = 0,5 (umbral), R1 = 470 |
+| `hall-counter-uno` | Arduino UNO que cuenta las pasadas de un imán con un KY-024 (DO en D2, flancos de bajada) | U2 = 0,5 (umbral), U1 = su programa |
 
 `catalog` (MCP) o `parts` (consola) las listan con su título (la lista compacta de `catalog` deja fuera los valores); `catalog` con el nombre de una receta
 (`parts <nombre>` en la consola) muestra lo que enseña, sus componentes, redes, fuente, y el papel y
@@ -102,6 +108,8 @@ una GL5528, el termómetro un LM35 o un NTC de 10k (B 3950).
 | `lm35-comparator` | El LM35 da 10 mV por °C a IN+; la referencia es 0,417 V (unos 42 °C). Por encima, la salida se suelta y R3, el pull-up de la salida, alimenta el LED hacia tierra (unos 10 mA); por debajo, la salida tira hacia abajo y el LED ve menos de 1 V (apagado). El LED no va "como en las recetas con potenciómetro" (desde la fuente, encendido con la salida baja) porque aquí la alarma debe encenderse cuando la entrada es *mayor* |
 | `ntc-follower` | El NTC está del lado de la fuente, así que el voltaje sube al calentarse; el seguidor lo copia a 10k. La fuente es de 9 V: la salida de un LM358 se queda a unos 1,5 V de la fuente, y desde 5 V recortaría el voltaje que da el divisor a 60 °C |
 | `thermistor-uno` | El mismo NTC sobre 10k en los 5 V del UNO, leído en A0; el programa saca la resistencia del conteo del ADC y la temperatura de `1/T = 1/T0 + ln(R/R0)/B`, y escribe `T=<valor>` cada segundo (a menos de 1,5 °C del ambiente a 25 y a 60 °C) |
+- Junto con la receta se pueden dar `title`, `board`, `clearance`, `netLabels`, `environment`, `page` y `lang`, que
+  reemplazan los de la receta. `parts` y `nets`, nunca (`RECIPE_AND_PARTS`).
 
 ## Después del montaje
 
@@ -128,6 +136,7 @@ página parpadea, en cámara lenta (el tiempo de la página sigue a la constante
 2. `src/recipes/<nombre>.js`: un módulo de datos, con un comentario al comienzo que diga qué circuito
    es. `name`, `title` y `teaches` (`{ en, es }`), `parts`, `nets`, `supplies`, y si hace falta
    `netLabels`, `environment`, `page`, `clearance`, y `values`: para cada identificador que puede cambiar, `field`
+   `netLabels`, `environment` (el del circuito, para un sensor), `page`, `clearance`, y `values`: para cada identificador que puede cambiar, `field`
    (lo que fija la forma corta) y, si hace falta, `role` (`{ en, es }`), `choices`, `min`/`max`,
    `extra` (los campos permitidos, cuando no sirven los de cada tipo).
 3. Regístrala en `src/recipes/index.js` y corre `npm run schemas` (el esquema lista los nombres).
