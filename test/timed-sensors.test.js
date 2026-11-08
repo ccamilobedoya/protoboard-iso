@@ -168,12 +168,17 @@ test('pir: its own controls (motion, jumper, delay) change the part, not the clo
   assert.ok(e.start('dc', H));
   const controls = e.controls().filter((c) => c.id === 'U1').map((c) => c.field);
   assert.deepEqual(controls, ['motion', 'retrigger', 'delay']);
-  // The jumper to L while motion is held: the next fall is not delayed by the motion.
+  // A motion of 1 s in H mode, then still: OUT falls Tx = 5 s after it ended (t = 6). The jumper moves
+  // to L at t = 4, while OUT is high with 3 s of the delay gone: the clock must go on, not start again.
   assert.ok(e.set('environment', 'motion', true));
   for (let k = 0; k < 100; k++) e.advance(H);
+  assert.ok(e.set('environment', 'motion', false));
+  for (let k = 0; k < 300; k++) e.advance(H);
   assert.ok(e.set('U1', 'retrigger', false));
-  for (let k = 0; k < 520; k++) e.advance(H);
-  near(e.read().parts.U1.vout, 0, 0.05, 'L: low 6.2 s after the motion began (Tx counted from the jumper moving), though it is still on');
+  for (let k = 0; k < 100; k++) e.advance(H);
+  near(e.read().parts.U1.vout, 3.14, 0.1, 'still high at 5 s: a jumper moved, the delay did not restart or end');
+  for (let k = 0; k < 120; k++) e.advance(H);
+  near(e.read().parts.U1.vout, 0, 0.05, 'low at 6.2 s: Tx counted from the end of the motion, across the rebuild');
   assert.equal(e.read().parts.U1.env.find((x) => x.field === 'motion').follows, true, 'the jumper is not the field: it still follows the environment');
   // Its own motion switch detaches it from the environment.
   assert.ok(e.set('U1', 'motion', false));
@@ -376,4 +381,106 @@ test('touch-toggle-led: each touch flips the LED, and its current stays under th
   assert.ok(e.set('environment', 'touch', true));
   for (let k = 0; k < 50; k++) e.advance(H);
   assert.ok(e.read().parts.D1.current < 1e-4, 'flipped back off');
+});
+
+// ── second round: what a reviewer found ────────────────────────────────────────────────────
+
+test('pir: a supply cut to 0 V while OUT is high leaves it off, not carried at 3.3 V', () => {
+  const e = pirEngine({ warmup: 0 });
+  assert.ok(e.start('dc', H));
+  assert.ok(e.set('environment', 'motion', true));
+  for (let k = 0; k < 200; k++) e.advance(H);
+  near(e.read().parts.U1.vout, 3.14, 0.1, 'high with the supply');
+  assert.ok(e.set('V1', 'voltage', 0));
+  const p = e.read().parts.U1;
+  assert.equal(p.state, 'off');
+  near(p.vout, 0, 0.05, 'OUT with no supply');
+  for (let k = 0; k < 50; k++) e.advance(H);
+  near(e.read().parts.U1.vout, 0, 0.05, 'and it stays so');
+});
+
+test('touch: a toggle latched on does not come back after the mode is changed away and back', () => {
+  const e = touchEngine({ mode: 'toggle' });
+  assert.ok(e.start('dc', H));
+  for (let k = 0; k < 100; k++) e.advance(H);
+  assert.ok(e.set('environment', 'touch', true));
+  for (let k = 0; k < 100; k++) e.advance(H);
+  assert.ok(e.set('environment', 'touch', false));
+  for (let k = 0; k < 50; k++) e.advance(H);
+  near(e.read().parts.U1.vout, 3.3, 0.05, 'latched on');
+  assert.ok(e.set('U1', 'toggleMode', false));
+  assert.ok(e.set('U1', 'toggleMode', true));
+  for (let k = 0; k < 100; k++) e.advance(H);
+  near(e.read().parts.U1.vout, 0, 0.05, 'a mode that was left starts from off');
+});
+
+test('pir machine: a step that spans many phases spends all its time', () => {
+  const s = pirAdvance({ phase: HIGH, clock: 0 }, 10, true, { warmup: 0, delay: 0.3, mode: 'L', motion: true });
+  assert.equal(s.phase, BLOCK);
+  near(s.clock, 1.3, 1e-6, 'three rounds of 2.8 s and the 0.3 s of the fourth high leave 1.3 s of rest');
+  const huge = pirAdvance({ phase: HIGH, clock: 0 }, 1e6, true, { warmup: 0, delay: 0.3, mode: 'L', motion: true });
+  assert.ok(Number.isFinite(huge.clock), 'a huge step ends, with its remaining time counted');
+});
+
+test('touch and pir: a supply under the minimum is SIM_MODULE_LOW_SUPPLY, in both languages', () => {
+  const circuit = (type, volts) => autoLayout({ parts: [{ id: 'U1', type }], nets: [['T+', 'U1.VCC'], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: volts, positive: 'T+', negative: 'T-' }] }).circuit;
+  for (const [type, volts] of [['touch-sensor', 1.5], ['pir-sensor', 3.3]]) {
+    const issue = simulate(circuit(type, volts)).issues.find((i) => i.code === 'SIM_MODULE_LOW_SUPPLY');
+    assert.ok(issue, type);
+    for (const lang of ['en', 'es']) assert.ok(!formatIssue(issue, lang).includes('check.'), `${type} ${lang}`);
+  }
+  assert.ok(!simulate(circuit('touch-sensor', 3.3)).issues.some((i) => i.code === 'SIM_MODULE_LOW_SUPPLY'), 'no warning inside its range');
+});
+
+// The module's power is the sum of each pin's voltage times the current into it, whatever the ground's level.
+test('pir and touch: power is the sum of V·I over the pins, with GND lifted above the bench ground', () => {
+  // The module's three pins in holes of one strip each, a 10 kΩ from its output to its GND, and a 1 kΩ
+  // from GND to the bench's ground: GND sits where the module's own current puts it.
+  const lifted = (part, volts) => {
+    const circuit = {
+      supplies: [{ id: 'V1', voltage: volts }],
+      parts: [
+        { id: 'U1', type: part, ...(part === 'pir-sensor' ? { warmup: 0, motion: true } : { touch: false }), pins: ['h2', 'h3', 'h4'] },
+        { id: 'W1', type: 'wire', pins: [part === 'pir-sensor' ? 'j2' : 'j3', part === 'pir-sensor' ? 'T+3' : 'T+4'] },
+        { id: 'R1', type: 'resistor', value: '10k', pins: [part === 'pir-sensor' ? 'i3' : 'i2', 'i7'] },
+        { id: 'W3', type: 'wire', pins: ['j7', 'j4'] },
+        { id: 'R3', type: 'resistor', value: '1k', pins: ['g4', 'g9'] },
+        { id: 'W2', type: 'wire', pins: ['j9', 'T-9'] },
+      ],
+    };
+    const e = createEngine(compile(circuit).program);
+    assert.ok(e.start('dc', H));
+    for (let k = 0; k < 100; k++) e.advance(H);
+    return e.read().parts.U1;
+  };
+  for (const [part, volts] of [['pir-sensor', 5], ['touch-sensor', 3.3]]) {
+    const p = lifted(part, volts);
+    assert.ok(p.pins.GND > 1e-3, `${part}: GND is lifted (${p.pins.GND})`);
+    const sum = Object.entries(p.pinCurrents).reduce((total, [pin, i]) => total + (p.pins[pin] - p.pins.GND) * i, 0);
+    near(p.power, sum, Math.max(1e-9, Math.abs(sum) * 1e-6), `${part}: power against the sum over its pins`);
+  }
+});
+
+test('pir and touch: a supply the wrong way round is SIM_REVERSE_VOLTAGE', () => {
+  for (const type of ['pir-sensor', 'touch-sensor']) {
+    const r = autoLayout({ parts: [{ id: 'U1', type }], nets: [['T+', 'U1.VCC'], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T-', negative: 'T+' }] });
+    assert.equal(r.status, 'done', type);
+    const issue = simulate(r.circuit).issues.find((i) => i.code === 'SIM_REVERSE_VOLTAGE');
+    assert.ok(issue, `${type}: a warning for the reversed supply`);
+    for (const lang of ['en', 'es']) assert.ok(!formatIssue(issue, lang).includes('check.'), `${type} ${lang}`);
+  }
+});
+
+test('pir and touch: a module with no supply has a high-impedance output, so a pull-up raises it to the rail', () => {
+  for (const [type, pin, extra] of [['pir-sensor', 'OUT', { warmup: 0, motion: true }], ['touch-sensor', 'SIG', {}], ['touch-sensor', 'SIG', { activeLow: true }]]) {
+    const r = autoLayout({ parts: [{ id: 'U1', type, ...extra }, { id: 'R1', type: 'resistor', value: '10k' }], nets: [['T+', 'R1.1'], ['R1.2', `U1.${pin}`], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }] });
+    assert.equal(r.status, 'done', `${type} ${JSON.stringify(extra)}`);
+    const e = createEngine(compile(r.circuit).program);
+    assert.ok(e.start('dc', H));
+    for (let k = 0; k < 100; k++) e.advance(H);
+    const p = e.read().parts.U1;
+    assert.equal(p.state, 'off');
+    near(p.pins[pin], 5, 0.05, `${type} ${JSON.stringify(extra)}: the pull-up wins`);
+    assert.ok(Math.abs(p.pins.VCC ?? 0) < 0.5, `${type}: its own pin does not feed the module (VCC ${p.pins.VCC})`);
+  }
 });

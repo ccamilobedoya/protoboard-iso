@@ -290,7 +290,8 @@ export const REGULATORS = {
 
 // Timed digital sensors (docs/en/timed-sensors.md; the sheets are resellers' and the chips' own,
 // the numbers marked [A] are the kit's).
-// PIR HC-SR501 (BISS0001 and an on-board 3.3 V regulator):
+// PIR HC-SR501 (BISS0001 and an on-board 3.3 V regulator). maxReverse 0.3 V [A], both modules: neither
+// has a protection diode on its supply, so a reversed supply is a warning from a few tenths of a volt.
 //   supply [4.5, 20] V   the module's range (reseller sheets; "5 to 20 V" on some); under 4.5 V the
 //                        regulator is out of regulation and the module does not start, over 20 V it
 //                        is beyond what it takes
@@ -302,7 +303,7 @@ export const REGULATORS = {
 //   warmup 30 s [A]      sheets say 10 to 60 s; 0 skips it in an example
 //   delay [0.3, 600] s   the trimmer Tx = 24576 · R · C reads about 3 s to 5 min; the kit takes 5 s
 //                        by default and lets a circuit ask for less for a video
-export const PIR = { minSupply: 4.5, maxSupply: 20, logic: 3.3, outputResistance: 500, maxCurrent: 2e-3, quiescent: 65e-6, quiescentAt: 5, blocking: 2.5, warmup: 30, delay: 5, delayRange: [0.3, 600], sliderRange: [3, 300] };
+export const PIR = { maxReverse: 0.3, minSupply: 4.5, maxSupply: 20, logic: 3.3, outputResistance: 500, maxCurrent: 2e-3, quiescent: 65e-6, quiescentAt: 5, blocking: 2.5, warmup: 30, delay: 5, delayRange: [0.3, 600], sliderRange: [3, 300] };
 
 // Capacitive touch TTP223 (Tontek TTP223-BA6 and TTP223B datasheets, at VDD = 3 V):
 //   supply [2, 5.5] V    operating voltage
@@ -315,4 +316,4 @@ export const PIR = { minSupply: 4.5, maxSupply: 20, logic: 3.3, outputResistance
 //                        limits); maxCurrent 10 mA [A] is where the kit warns
 //   quiescent            3 µA in low-power mode and 7 µA in fast mode (maximum values), as a
 //                        resistor at 3.3 V
-export const TOUCH = { minSupply: 2, maxSupply: 5.5, response: 0.22, fastResponse: 0.06, settle: 0.5, highResistance: 150, lowResistance: 75, sourceSpec: 4e-3, sinkSpec: 8e-3, maxCurrent: 10e-3, quiescent: 3e-6, fastQuiescent: 7e-6, quiescentAt: 3.3 };
+export const TOUCH = { maxReverse: 0.3, minSupply: 2, maxSupply: 5.5, response: 0.22, fastResponse: 0.06, settle: 0.5, highResistance: 150, lowResistance: 75, sourceSpec: 4e-3, sinkSpec: 8e-3, maxCurrent: 10e-3, quiescent: 3e-6, fastQuiescent: 7e-6, quiescentAt: 3.3 };

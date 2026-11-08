@@ -32,7 +32,13 @@ export const responseOf = (p) => (p.fast ? TOUCH.fastResponse : TOUCH.response);
 
 // The memory after `h` seconds: { phase, clock, sensed, level }. `sensed`: the touch as registered
 // (the input once it has lasted the response time); `level`: a toggle's latch. `p`: { touch, toggle, fast }.
-export function touchAdvance({ phase, clock, sensed, level }, h, powered, p) {
+export function touchAdvance(state, h, powered, p) {
+  // The latch belongs to the mode it was set in: a control that changed the mode (a new `epoch`) clears it.
+  const epoch = p.epoch ?? 0;
+  return { ...run(state.epoch === epoch ? state : { ...state, level: 0 }, h, powered, p), epoch };
+}
+
+function run({ phase, clock, sensed, level }, h, powered, p) {
   if (!powered) return { phase: OFF, clock: 0, sensed: 0, level: 0 };
   if (phase === OFF) [phase, clock, sensed, level] = [SETTLING, 0, 0, 0];
   const touch = p.touch ? 1 : 0;
@@ -77,26 +83,31 @@ function touchCore({ sig, vcc, gnd }, p) {
     clock: 0,
     sensed: 0,
     level: 0,
-    powered: null,
+    // The mode its latch belongs to: a latch left by another mode is not this one's (see touchAdvance).
+    epoch: p.epoch ?? 0,
     ahead(x, ctx) {
-      const powered = this.powered ?? volt(x, vcc) - volt(x, gnd) >= TOUCH.minSupply;
-      return touchAdvance(this, ctx.h ?? 0, powered, p);
+      return touchAdvance(this, ctx.h ?? 0, volt(x, vcc) - volt(x, gnd) >= TOUCH.minSupply, p);
     },
     stamp(st, x, ctx) {
-      if (highOf(this.ahead(x, ctx), p)) st.conductance(sig, vcc, gh);
+      const now = this.ahead(x, ctx);
+      // Unpowered (off) the output is high impedance, whatever the polarity: it drives nothing and does
+      // not feed the module through its own pin.
+      if (now.phase === OFF) return false;
+      if (highOf(now, p)) st.conductance(sig, vcc, gh);
       else st.conductance(sig, gnd, gl);
       return false;
     },
     // Into the element at each node, in `nodes` order.
     currents(x, ctx = {}) {
-      const high = highOf(this.ahead(x, ctx), p);
-      const toVcc = high ? gh * (volt(x, sig) - volt(x, vcc)) : 0;
-      const toGnd = high ? 0 : gl * (volt(x, sig) - volt(x, gnd));
+      const now = this.ahead(x, ctx);
+      const high = highOf(now, p);
+      const on = now.phase !== OFF;
+      const toVcc = on && high ? gh * (volt(x, sig) - volt(x, vcc)) : 0;
+      const toGnd = on && !high ? gl * (volt(x, sig) - volt(x, gnd)) : 0;
       return [toVcc + toGnd, -toVcc, -toGnd];
     },
     accept(x, ctx = {}) {
-      const powered = volt(x, vcc) - volt(x, gnd) >= TOUCH.minSupply;
-      Object.assign(this, touchAdvance(this, ctx.h ?? 0, powered, p), { powered });
+      Object.assign(this, this.ahead(x, ctx));
     },
     // Settling or counting a response: a twentieth of the response time.
     maxStep() {
@@ -109,7 +120,7 @@ function touchCore({ sig, vcc, gnd }, p) {
 export const touch = {
   types: ['touch-sensor'],
   kind: 'TCH',
-  state: ['phase', 'clock', 'sensed', 'level', 'powered'],
+  state: ['phase', 'clock', 'sensed', 'level', 'epoch'],
   senses: ['touch'],
   params(part, c) {
     const e = part.def.electrical;
@@ -122,7 +133,8 @@ export const touch = {
   }),
   set(p, field, value) {
     if (field === 'touch') return { ...p, touch: Boolean(value) };
-    if (field === 'toggleMode') return { ...p, toggle: Boolean(value) };
+    // A new epoch: the latch of the mode that was left is cleared at the next step, however the control moves.
+    if (field === 'toggleMode') return { ...p, toggle: Boolean(value), epoch: (p.epoch ?? 0) + 1 };
     return null;
   },
   elements(p, h) {
@@ -155,13 +167,17 @@ export const touch = {
       vout: sig,
       current: -into,
       quiescent: iq,
-      power: at('VCC') * currents.VCC + at('SIG') * currents.SIG,
+      power: vcc * currents.VCC + sig * currents.SIG,
       currents,
     };
   },
   limits(entry, r) {
-    const out = [stress('SIM_IC_SUPPLY', 'voltage', r.vcc, TOUCH.maxSupply, 'V'), stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), TOUCH.maxCurrent, 'A')];
-    if (r.vcc > 0.5 && r.vcc < TOUCH.minSupply) out.push(note('warning', 'SIM_TOUCH_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(TOUCH.minSupply, 'V') }));
+    const out = [
+      stress('SIM_IC_SUPPLY', 'voltage', r.vcc, TOUCH.maxSupply, 'V'),
+      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, TOUCH.maxReverse, 'V', { param: 'voltage' }),
+      stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), TOUCH.maxCurrent, 'A'),
+    ];
+    if (r.vcc > 0.5 && r.vcc < TOUCH.minSupply) out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(TOUCH.minSupply, 'V') }));
     // Between the currents its levels are guaranteed at and where the kit warns: only a note.
     if (r.current > TOUCH.sourceSpec || -r.current > TOUCH.sinkSpec) out.push(note('info', 'SIM_TOUCH_OUTPUT_SPEC', { part: entry.id, current: q(Math.abs(r.current), 'A'), max: q(r.current > 0 ? TOUCH.sourceSpec : TOUCH.sinkSpec, 'A') }));
     return out;
