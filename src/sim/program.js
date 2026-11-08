@@ -141,6 +141,7 @@ export function createRunner(js, board) {
     min: Math.min,
     max: Math.max,
     sqrt: Math.sqrt,
+    log: Math.log,
     pow: Math.pow,
     sin: Math.sin,
     cos: Math.cos,

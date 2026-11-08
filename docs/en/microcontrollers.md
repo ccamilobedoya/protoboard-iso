@@ -91,7 +91,7 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - **What it can call** (`src/sim/program.js`): `pinMode` (`INPUT`, `OUTPUT`, `INPUT_PULLUP`,
   `INPUT_PULLDOWN`), `digitalWrite`, `digitalRead`, `delay`, `delayMicroseconds`, `millis`,
   `micros`, `Serial.begin/print/println` (its last lines show in the board's card), `analogRead`
-  (the ADC count), `map`, `constrain`, `min`, `max`, `abs`, `random` (a fixed sequence), the bit
+  (the ADC count), `map`, `constrain`, `min`, `max`, `abs`, `log` (natural logarithm, for a thermistor's B equation), `random` (a fixed sequence), the bit
   functions, `LED_BUILTIN` (2 on the DevKit, 8 on the C3, 13 on the UNO) and `A0`…`A5`. On an UNO,
   `digitalWrite(pin, HIGH)` on an input turns its pull-up on, as on the real chip.
 - **How it runs:** every function becomes a generator, so `delay()` waits in simulated time. The

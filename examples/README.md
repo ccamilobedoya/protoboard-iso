@@ -18,7 +18,7 @@ npm run examples                                                   # every examp
 |---|---|---|
 | **By hand**: every part with its holes (`pins`) | You want each hole exactly where it is on your board | [`led-resistor.json`](led-resistor.json) |
 | **Layout**: parts without holes and the nets that join them; `layout` places and wires them | Another new circuit | [`layout/regulator-led.json`](layout/regulator-led.json): `node bin/protoboard-iso.js layout my-regulator examples/layout/regulator-led.json` |
-| **Recipe**: a usual lesson circuit by name, only the values that change | The circuit is one of the [25 recipes](../docs/en/recipes.md) | `node bin/protoboard-iso.js layout my-divider --recipe divider --values '{"R2":"4k7"}'` |
+| **Recipe**: a usual lesson circuit by name, only the values that change | The circuit is one of the [37 recipes](../docs/en/recipes.md) | `node bin/protoboard-iso.js layout my-divider --recipe divider --values '{"R2":"4k7"}'` |
 
 The format of each field: [circuit-format.md](../docs/en/circuit-format.md).
 

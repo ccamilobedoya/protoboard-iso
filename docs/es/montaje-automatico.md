@@ -13,7 +13,7 @@ Puntos de entrada; todos llaman a `autoLayout(spec, { profile, checkOnly })`:
 
 | Desde | Llamada |
 |---|---|
-| MCP | herramienta `layout` (`target`, `recipe` y `values`, o `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `page`, `clearance`, `check_only`) |
+| MCP | herramienta `layout` (`target`, `recipe` y `values`, o `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`) |
 | Consola | `node bin/protoboard-iso.js layout <objetivo nuevo> <spec.json \| -> [--check] [--json]`, o `--recipe <nombre> [--values '<json>']` (sale con 0 si queda listo, 2 si hay cambios) |
 | Código | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'`; una receta pasa antes a especificación con `resolveRecipe` (`src/recipes/index.js`) |
 | Banco de pruebas | `npm run layout-bench [-- spec.json …]` (corre `examples/layout/*.json` y todas las recetas) |
@@ -53,7 +53,7 @@ especificación común antes de que corra todo lo de abajo.
 - `board` (por defecto `auto`: la protoboard elástica, que crece a lo largo, o dos lado a lado cuando
   una placa de desarrollo lo pide, ver
   [Dos protoboards](#dos-protoboards-un-devkit-en-las-dos-filas-de-pines-desde-el-2026-10-31)),
-  `clearance` (1 mm por defecto), `title`, `lang`, `netLabels`, `page`: pasan tal cual al circuito.
+  `clearance` (1 mm por defecto), `title`, `lang`, `netLabels`, `environment`, `page`: pasan tal cual al circuito.
 
 ## El flujo
 

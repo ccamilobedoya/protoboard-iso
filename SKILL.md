@@ -56,6 +56,8 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 | `c3-blink`, `c3-pot-pwm` | ESP32-C3 SuperMini: blink, a potentiometer dims an LED (ADC, PWM) |
 | `opamp-comparator`, `lm393-comparator` | potentiometer against a reference, an LED on the output (LM358; LM393 open collector) |
 | `opamp-follower` | LM358 copying a potentiometer and driving an LED |
+| `ldr-night-light`, `ldr-comparator` | a photoresistor (reads the environment's `light`) switching an LED in the dark: with a transistor / with an LM393 and a reference |
+| `lm35-comparator`, `ntc-follower`, `thermistor-uno` | temperature from the environment: an LM35 against a reference with an alarm LED; an NTC divider through an LM358 follower; an NTC read by an Arduino UNO that prints °C |
 | `opamp-noninverting`, `opamp-inverting` | LM358 amplifiers, gain from R1 and R2, a sine from the generator |
 
 - **values**: the main field by id (`"R1": "470"`, `"D1": "green"`, `"Q1": "BC547"`, `"V1": 9`) or

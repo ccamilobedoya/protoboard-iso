@@ -324,6 +324,7 @@ server.registerTool(
       board: z.string().optional().describe('auto (default, grows in length; becomes double when a development board needs it), double (two elastic boards side by side), bb400, bb830 or bb830x2'),
       title: z.union([z.string(), z.record(z.string(), z.string())]).optional(),
       netLabels: z.record(z.string(), z.string()).optional(),
+      environment: z.object({}).passthrough().optional().describe('As in the circuit (the world the sensors read: {"light": 300, "temperature": 25}); a recipe with a sensor already brings its own'),
       page: z.object({}).passthrough().optional().describe('As in the circuit. With a source the page runs the simulation by default (values, oscilloscope, lit LEDs, a Current button not pressed): nothing to add. {"simulation": false} turns it off while a learner must predict a value'),
       clearance: z.number().optional().describe('Gap between bodies in mm (default 1; 3 for a roomier lesson)'),
       expect_revision: z.number().int().min(0).optional().describe('Existing circuit: refuse if it changed since this revision'),
@@ -334,11 +335,11 @@ server.registerTool(
     },
     annotations: WRITE,
   },
-  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, page, clearance, expect_revision: expectRevision, check_only: checkOnly, author = 'layout', note = 'layout', lang, outputLang }) => {
+  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, expect_revision: expectRevision, check_only: checkOnly, author = 'layout', note = 'layout', lang, outputLang }) => {
     const full = inside(target);
     const paths = resolveTarget(full);
     const previous = existsSync(paths.circuitFile) ? loadCircuit(paths) : null;
-    const fromRecipe = resolveRecipe(Object.fromEntries(Object.entries({ recipe, values, parts, nets, supplies, board, title, netLabels, page, clearance, lang }).filter(([, v]) => v !== undefined)));
+    const fromRecipe = resolveRecipe(Object.fromEntries(Object.entries({ recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, lang }).filter(([, v]) => v !== undefined)));
     if (fromRecipe.problems.length) return { isError: true, content: [{ type: 'text', text: formatLayout(specProblems(fromRecipe.problems), lang ?? 'en', { t, formatIssue }) }] };
     ({ parts, nets } = fromRecipe.spec);
     const given = fromRecipe.spec;

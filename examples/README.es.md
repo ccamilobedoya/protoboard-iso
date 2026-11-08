@@ -19,7 +19,7 @@ npm run examples -- --lang es                                             # todo
 |---|---|---|
 | **A mano**: cada componente con sus agujeros (`pins`) | Quieres cada agujero justo donde está en tu protoboard | [`led-resistor.json`](led-resistor.json) |
 | **Montaje automático**: componentes sin agujeros y las redes que los unen; `layout` los ubica y cablea | Cualquier otro circuito nuevo | [`layout/regulator-led.json`](layout/regulator-led.json): `node bin/protoboard-iso.js layout mi-regulador examples/layout/regulator-led.json` |
-| **Receta**: un circuito de lección habitual por su nombre, solo con los valores que cambian | El circuito es una de las [25 recetas](../docs/es/recetas.md) | `node bin/protoboard-iso.js layout mi-divisor --recipe divider --values '{"R2":"4k7"}'` |
+| **Receta**: un circuito de lección habitual por su nombre, solo con los valores que cambian | El circuito es una de las [37 recetas](../docs/es/recetas.md) | `node bin/protoboard-iso.js layout mi-divisor --recipe divider --values '{"R2":"4k7"}'` |
 
 El formato de cada campo: [formato-circuito.md](../docs/es/formato-circuito.md).
 
