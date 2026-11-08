@@ -162,10 +162,13 @@ lasts (one second at least) and takes it away after; with a `gauge` up, the set 
 | `environment` | a field the circuit's environment has, *required* | | `TOUR_UNKNOWN_ENVIRONMENT` otherwise (`render-frames.js --parts` lists them) |
 | `on` | `true`, `false`, *required* | | `true` puts it up (in place of another), `false` takes it away |
 | `corner` | `tl`, `tr`, `bl`, `br` | `tr` | the corner of the room the caption leaves: in portrait from 29 % down (top) or up from 26 % (bottom); in landscape the right half |
+| `min`, `max` | numbers, `min` < `max` | the circuit's range for the field, else the slider's | the dial's ends from this step on (a log field needs `min` above 0); `TOUR_GAUGE_RANGE` when the range is invalid, outside the field's limit or given to a switch |
 
 The indicator in a box of its own, as `probe` shows the oscilloscope: a sun for light, a
 thermometer, a lamp for a switch, a gauge for the rest, with the field's name over it and its
-value under it. Nothing is drawn on the board: the light is "on at a level" and every sensor of
+value under it. Choose `min` and `max` so the change in the video is seen: from 30 to 5 cm on a
+dial of 2 to 400 cm hardly moves the needle, on 2 to 40 cm it crosses the dial. A `set` on a value
+outside the range is still allowed (the range is only how it is shown): the needle stays at the end. Nothing is drawn on the board: the light is "on at a level" and every sensor of
 that field receives it. In the page it shows over the drawing while the tour plays.
 
 ### `flow`: the current layer

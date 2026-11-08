@@ -62,8 +62,24 @@ those modules.
 }
 ```
 
-Each field is a number (a switch takes `true` or `false` too), or `{ value, program }`. With a
-program, the value at t = 0 is the program's and a `value` beside it is not used.
+Each field is a number (a switch takes `true` or `false` too), or `{ value, program, range }`. With
+a program, the value at t = 0 is the program's and a `value` beside it is not used.
+
+### The range of a field
+
+`range` is `[min, max]`, the span the slider and the indicator show for that field in this circuit,
+so the needle crosses the dial for the values that matter:
+
+```json
+{ "environment": { "distance": { "value": 30, "range": [2, 40] } } }
+```
+
+It works with a `program` too. The range must go up (`min` < `max`) and lie inside the field's limit
+(a log field such as `light` needs `min` above 0); a switch has none. Without it, the slider's range
+of the table above applies. The limit is not touched: `engine.controls()` gives the field's `min` and
+`max` from the range and the same `limit`, and a value outside the range is allowed (the slider and
+the dial stop at the end; the text still says the value). `page.controls` and a timeline's `gauge`
+can choose another range for one panel row or one recording ([below](#the-page)).
 
 A circuit **without** `environment` has none: every sensor keeps the value of its own part (the
 part's default when it gives none), exactly as before the environment existed. A circuit **with**
@@ -72,9 +88,10 @@ default when the circuit does not name it).
 
 `check` reports, as errors: `ENV_UNKNOWN_FIELD` (a field the list above does not have),
 `ENV_OUT_OF_RANGE` (a value, or a program's value, outside the field's limit), `ENV_SHAPE` (neither a
-number nor `{ value, program }`), `ENV_BAD_PROGRAM` (a program that cannot run, and what it needs)
-and `ENV_TOO_LARGE` (more than 1000 keyframes). The simulation leaves such a field out, or clamps
-its value, and runs.
+number nor `{ value, program, range }`), `ENV_BAD_PROGRAM` (a program that cannot run, and what it
+needs), `ENV_BAD_RANGE` (a range that does not go up, falls outside the limit, has a 0 or negative
+`min` on a log scale, or is given to a switch) and `ENV_TOO_LARGE` (more than 1000 keyframes). The
+simulation leaves such a field out, clamps its value, or takes the slider's range, and runs.
 
 ### Programs
 
@@ -115,7 +132,8 @@ with *Follow the environment* to join it again. A reload brings back what the ci
 
 `engine.controls()` lists the environment's fields as controls with the id `'environment'` and
 `field` the field's name, shaped like a device's (`min`, `max`, `limit`, `scale`, `unit`, `step`,
-`value`; a switch has the scale `toggle`; a programmed field `programmed` and `paused`). Then:
+`value`; `min` and `max` are the circuit's range for the field when it gives one; a switch has the
+scale `toggle`; a programmed field `programmed` and `paused`). Then:
 
 - `engine.set('environment', field, value)` sets it by hand (a program there **pauses** at that
   value) and solves again, as a part's control does;
@@ -134,6 +152,10 @@ The page's *Restart* starts the programs again from t = 0; values set by hand st
 ```json
 { "page": { "controls": [{ "environment": "light" }, { "environment": "temperature", "min": 0, "max": 80, "label": { "en": "Room", "es": "Cuarto" } }] } }
 ```
+
+`min` and `max` here override the circuit's range for that row (the same validation as for a part:
+`PAGE_CONTROL_RANGE` when it does not go up or leaves the limit; a lone `min` or `max` pairs with
+the circuit's other end). The row's indicator follows it. The rows carry `data-min` and `data-max`.
 
 These go in a section of their own, *Environment*, above the other controls, each row with its
 indicator beside the slider (or the on/off button of a switch), and *Pause* / *Resume* for a field
@@ -154,6 +176,12 @@ light, dark, notebook and stage themes:
 - `temperature`: a thermometer whose column rises from min to max;
 - a switch (`rain`, `motion`, `touch`, `vibration`, `tilt`, `beam`): a lamp that lights.
 
+All of them span the control's `min` to `max` (the field's range in this circuit, `page.controls`'
+for a panel row, or a `gauge` step's in a recording); a value outside pins the needle, the fill or
+the column at the end, and the text under it still says the value. The root `<svg class="gauge">`
+carries `data-pos` (the position, 0…1, on the field's scale: a log field by ratios), `data-min` and
+`data-max`, kept in step with each change; a test or a script reads the dial there.
+
 ## In a timeline
 
 Two steps ([timeline.md](timeline.md)):
@@ -164,7 +192,11 @@ Two steps ([timeline.md](timeline.md)):
   in the top right corner for as long as the move lasts (a second at least), then goes.
 - `gauge`: `{ "do": "gauge", "environment": "light", "on": true, "corner": "tr" }` puts the
   indicator in a box of its own in a corner of the frame (`tl`, `tr`, `bl`, `br`), as `probe` puts
-  the oscilloscope; `on: false` takes it away.
+  the oscilloscope; `on: false` takes it away. `min` and `max` set the dial's ends from that step on
+  (`{ "do": "gauge", "environment": "distance", "on": true, "min": 2, "max": 40 }`): choose them so
+  the change in the video is seen. `TOUR_GAUGE_RANGE` warns when the range does not go up, leaves
+  the field's limit or is given to a switch. A `set` with no gauge up uses the field's range (the
+  circuit's, else the slider's), and `engine.set` outside the range is still allowed.
 
 `check` warns with `TOUR_UNKNOWN_ENVIRONMENT` for a field the circuit's environment does not have
 (one it names or one a part follows); `render-frames.js --parts` lists the fields with the parts
