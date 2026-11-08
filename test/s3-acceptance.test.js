@@ -245,9 +245,9 @@ test('C5: PIR with the default warm-up (30 s) gives no output for a motion at 10
 
 test('C5 (spec §9 row 33): ... and with the motion still 1, OUT rises at 30 s, ± 0.1 s', () => {
   const sets = [[10, 'environment', 'motion', 1]];
-  const { at } = play(bench('pir-sensor', { delay: 5 }, { environment: { motion: 0 } }), { sets, at: [29.9, 30.2] });
+  const { at } = play(bench('pir-sensor', { delay: 5 }, { environment: { motion: 0 } }), { sets, at: [29.9, 30.1] });
   near(at[29.9], 0, 0.05, 'still low at 29.9 s');
-  near(at[30.2], 3.3, 0.2, 'high at 30.2 s');
+  near(at[30.1], 3.3, 0.2, 'high at 30.1 s (± 0.1 s around the 30 s warm-up)');
 });
 
 test('C5: warmup 0 skips the wait (the motion at 1 s is seen)', () => {
@@ -279,7 +279,8 @@ test('C6: the warm-up clock survives a slider too (default warm-up, motion held,
 test('C6: the engine step hint of a PIR never asks for steps finer than 10 ms', () => {
   const { engine } = play(pir({ delay: 5 }), { sets: [[1, 'environment', 'motion', 1]], at: [2] });
   const hint = engine.stepHint();
-  assert.ok(hint === null || hint >= 0.01 - 1e-12, `stepHint ${hint}`);
+  // While the PIR is counting, it asks for 10 ms steps exactly (null would be a false green).
+  assert.ok(hint != null && Math.abs(hint - 0.01) < 1e-12, `stepHint ${hint}`);
 });
 
 // ---------------------------------------------------------------- C7 · the touch module
