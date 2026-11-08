@@ -776,7 +776,7 @@ export default {
   'catalog.views': 'views:',
   'catalog.operations': 'operations:',
   'catalog.more': 'Details of one type, part number, module, board or recipe (fields, pins, a real example; a board\'s columns and rails; a recipe\'s parts, nets and values): catalog with name.',
-  'catalog.recipes': 'Recipes (layout with recipe and values; defaults shown):',
+  'catalog.recipes': 'Recipes (layout with recipe and values; values and defaults: catalog with the name):',
   'catalog.teaches': 'teaches:',
   'catalog.recipeValues': 'values (layout { recipe, values: { id: value } }):',
   'catalog.nets': 'nets:',

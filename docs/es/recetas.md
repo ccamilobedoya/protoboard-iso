@@ -54,7 +54,7 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `opamp-noninverting` | Amplificador no inversor con LM358, ganancia 1 + R2/R1, una senoidal del generador en V+ | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0,5 V de pico (0,01–5) |
 | `opamp-inverting` | Amplificador inversor con LM358, ganancia −R2/R1 alrededor de la mitad de la fuente (un divisor en V+) | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0,5 V de pico (0,01–3) |
 
-`catalog` (MCP) o `parts` (consola) las listan con sus valores; `catalog` con el nombre de una receta
+`catalog` (MCP) o `parts` (consola) las listan con su título (la lista compacta de `catalog` deja fuera los valores); `catalog` con el nombre de una receta
 (`parts <nombre>` en la consola) muestra lo que enseña, sus componentes, redes, fuente, y el papel y
 los límites de cada valor.
 

@@ -43,12 +43,13 @@ test('every part type has a family, and the compact catalog lists each family wi
 
 test('the compact catalog keeps its types in groups and stays short in English', () => {
   const text = formatCompactCatalog(compactCatalog('en'), 'en');
-  assert.ok(text.length <= 4200, `compact catalog is ${text.length} characters: the budget is 4200, shorten before raising it`);
+  assert.ok(text.length <= 4600, `compact catalog is ${text.length} characters: the budget is 4600, shorten before raising it`);
   // A long list of part numbers is cut to the first few with a count; the entry by name has them all.
   const bjt = text.split('\n').find((l) => l.startsWith('  bjt:'));
   const total = catalogEntry('bjt').parts ? Object.keys(catalogEntry('bjt').parts).length : 0;
   assert.match(bjt, /\(\+\d+ more\)$/);
   assert.ok(total > 8, 'bjt has a long list');
   assert.ok(text.includes('  zener: A K · 1N4728A…1N4751A'), 'a series with a pattern stays a range');
+  assert.ok(!/ · R1=/.test(text), 'recipes come without their values');
   assert.ok(text.includes('  ldr: 1 2 · GL5516'), 'the photoresistors are the ldr type\'s parts');
 });

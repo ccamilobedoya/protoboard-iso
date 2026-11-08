@@ -775,7 +775,7 @@ export default {
   'catalog.views': 'vistas:',
   'catalog.operations': 'operaciones:',
   'catalog.more': 'Detalle de un tipo, número de parte, módulo, protoboard o receta (campos, patas, un ejemplo real; de una protoboard, columnas y rieles; de una receta, componentes, redes y valores): catalog con name.',
-  'catalog.recipes': 'Recetas (layout con recipe y values; con su valor por defecto):',
+  'catalog.recipes': 'Recetas (layout con recipe y values; valores y su valor por defecto: catalog con el nombre):',
   'catalog.teaches': 'enseña:',
   'catalog.recipeValues': 'valores (layout { recipe, values: { id: valor } }):',
   'catalog.nets': 'redes:',

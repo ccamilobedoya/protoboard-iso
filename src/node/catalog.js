@@ -146,8 +146,9 @@ export function fullCatalog(lang = 'en') {
   };
 }
 
-// One recipe in a line: its name, title and the values that can change, with their defaults.
-export const recipeLine = (name, r) => `  ${name} (${r.title})${Object.keys(r.values).length ? ` · ${Object.entries(r.values).map(([id, v]) => `${id}=${String(v).includes('\n') ? '(sketch)' : v}`).join(' ')}` : ''}`;
+// One recipe in a line: its name, title and (unless `values` is false, as in the compact catalog,
+// where `catalog` with the name gives them) the values that can change, with their defaults.
+export const recipeLine = (name, r, { values = true } = {}) => `  ${name} (${r.title})${values && Object.keys(r.values).length ? ` · ${Object.entries(r.values).map(([id, v]) => `${id}=${String(v).includes('\n') ? '(sketch)' : v}`).join(' ')}` : ''}`;
 
 // Part numbers in runs: three or more in a row that count up by one with the same prefix and suffix
 // (1N4728A … 1N4751A, the 1 W Zeners) as "first…last", so a long family takes one entry.
@@ -170,8 +171,8 @@ function runs(numbers) {
 }
 
 // A long list of part numbers is cut to its first few and a count; `catalog` with the type's name has them all.
-const SHOWN_PARTS = 4;
-const MAX_PARTS = 6;
+const SHOWN_PARTS = 6;
+const MAX_PARTS = 8;
 function shortParts(numbers, lang) {
   const list = runs(numbers);
   if (list.length <= MAX_PARTS) return list.join(', ');
@@ -199,7 +200,7 @@ export function formatCompactCatalog(c, lang = 'en') {
   lines.push(`${t(lang, 'catalog.boards')} ${c.boards.join(', ')} · ${t(lang, 'catalog.views')} ${c.views.join(', ')} · ${t(lang, 'catalog.operations')} ${c.operations.join(', ')}`);
   if (c.recipes) {
     lines.push(t(lang, 'catalog.recipes'));
-    for (const [k, r] of Object.entries(c.recipes)) lines.push(recipeLine(k, r));
+    for (const [k, r] of Object.entries(c.recipes)) lines.push(recipeLine(k, r, { values: false }));
   }
   lines.push(t(lang, 'catalog.more'));
   return lines.join('\n');
