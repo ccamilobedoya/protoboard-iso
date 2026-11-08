@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "title": {
+    "en": "Touch module toggles an LED",
+    "es": "Módulo táctil alterna un LED"
+  },
+  "board": "auto",
+  "clearance": 1,
+  "description": {
+    "en": "The touch-toggle-led recipe as laid out, with a tour: a touch module in toggle mode flips an LED at each touch, straight from its I/O pin at 3.3 V. Touch it in the page (or see how it works in the menu).",
+    "es": "La receta touch-toggle-led tal como la monta layout, con un recorrido: un módulo táctil en modo alterna invierte un LED en cada toque, directo desde su pin I/O a 3,3 V. Tócalo en la página (o mira cómo funciona en el menú)."
+  },
+  "environment": {
+    "touch": false
+  },
+  "page": {
+    "controls": [
+      {
+        "environment": "touch"
+      }
+    ],
+    "tour": "tours/touch-toggle-led.json"
+  },
+  "parts": [
+    {
+      "id": "U1",
+      "type": "touch-sensor",
+      "mode": "toggle",
+      "pins": [
+        "h2",
+        "h3",
+        "h4"
+      ]
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "470",
+      "pins": [
+        "f2",
+        "f8"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "red",
+      "pins": [
+        "j8",
+        "T-8"
+      ]
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "j3",
+        "T+2"
+      ]
+    },
+    {
+      "id": "W2",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "j4",
+        "T-4"
+      ]
+    }
+  ],
+  "supplies": [
+    {
+      "id": "V1",
+      "kind": "bench",
+      "voltage": 3.3,
+      "positive": "T+",
+      "negative": "T-"
+    }
+  ],
+  "spec": {
+    "recipe": {
+      "name": "touch-toggle-led"
+    },
+    "nets": [
+      [
+        "T+",
+        "U1.VCC"
+      ],
+      [
+        "U1.SIG",
+        "R1.1"
+      ],
+      [
+        "R1.2",
+        "D1.anode"
+      ],
+      [
+        "D1.cathode",
+        "U1.GND",
+        "T-"
+      ]
+    ],
+    "wires": [
+      "W1",
+      "W2"
+    ]
+  }
+}

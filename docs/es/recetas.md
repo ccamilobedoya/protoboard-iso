@@ -46,6 +46,10 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `relay-npn` | Un pulsador maneja un NPN que maneja la bobina de un relé, con un 1N4007 en paralelo con la bobina; el contacto del relé enciende un LED | R1 = 1k (base), R2 = 330 (LED, en el contacto), Q1 = 2N2222A (2N2222A, BC337, S8050) |
 | `motor-npn` | Un potenciómetro fija la velocidad de un motor DC a través de un TIP120 como seguidor de emisor, con un 1N4007 en paralelo con el motor | RV1 = 0,8 (la posición del cursor, 0–1), M1 = 0 (carga, mN·m, 0–3) |
 | `lm35-uno` | Arduino UNO que lee un LM35 en A0 y escribe la temperatura en el monitor serie (10 mV por °C) | U2 = 25 (°C), U1 = su programa |
+| `pir-lamp` | Un módulo de movimiento PIR mantiene OUT alto durante su retardo; OUT maneja un NPN que enciende un LED, a 5 V; el interruptor de movimiento del ambiente y el retardo en la página | U1 = 5 (retardo, s; también mode y warmup), R1 = 4.7k (base), R2 = 330, D1 = yellow |
+| `pir-uno` | Arduino UNO: la salida OUT de un módulo PIR en D2; el programa escribe MOTION y el instante de cada movimiento nuevo con `millis()` | U2 = 5 (retardo, s), U1 = su programa |
+| `touch-toggle-led` | Un módulo táctil TTP223 en modo alterna enciende un LED directo desde su pin I/O, a 3,3 V; la resistencia mantiene la corriente bajo los 4 mA con que se garantiza su nivel alto | U1 = toggle (toggle, momentary), R1 = 470, D1 = red |
+| `touch-uno` | Arduino UNO: un módulo táctil TTP223 en D2, alimentado con el pin de 3,3 V del UNO (su salida es entonces de 3,3 V, sobre los 3 V que pide un HIGH); el programa escribe TOUCH y RELEASE | U2 = momentary (momentary, toggle), U1 = su programa |
 | `c3-blink` | ESP32-C3 SuperMini que hace parpadear un LED en GPIO3 | R1 = 220, D1 = red, U1 = su programa |
 | `c3-pot-pwm` | ESP32-C3: un potenciómetro en GPIO4 regula un LED en GPIO3 (ADC y PWM a 1 kHz) | RV1 = 10k, R1 = 220, D1 = red, U1 = su programa |
 | `opamp-comparator` | LM358 que compara un potenciómetro con la mitad de la fuente; un LED en su salida | RV1 = 10k (cursor en 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 5 V (5–30) |

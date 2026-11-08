@@ -52,6 +52,8 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 | `uno-rgb-led`, `uno-seven-segment` | Arduino UNO: an RGB LED mixing colours with PWM; a 7-segment display counting 0–9 |
 | `slide-switch-leds`, `tilt-alarm` | a slide switch choosing one of two LEDs; a tilt switch lighting an LED when tipped over |
 | `lm35-uno` | Arduino UNO reading an LM35 temperature sensor, °C on the serial monitor |
+| `pir-lamp`, `pir-uno` | a PIR motion module lighting an LED through an NPN after its delay; a UNO printing the time of each motion |
+| `touch-toggle-led`, `touch-uno` | a TTP223 touch module in toggle mode flipping an LED from its I/O pin; a UNO printing TOUCH and RELEASE |
 | `relay-npn`, `motor-npn` | a button → NPN → relay coil with its flyback diode, the contact lighting an LED; a potentiometer setting a DC motor's speed through a TIP120 |
 | `c3-blink`, `c3-pot-pwm` | ESP32-C3 SuperMini: blink, a potentiometer dims an LED (ADC, PWM) |
 | `opamp-comparator`, `lm393-comparator` | potentiometer against a reference, an LED on the output (LM358; LM393 open collector) |

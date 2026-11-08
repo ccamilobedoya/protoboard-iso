@@ -9174,6 +9174,691 @@
    }
   }
  },
+ "pir-lamp.json": {
+  "result": {
+   "analysis": "dc",
+   "model": true,
+   "ok": true,
+   "iterations": 20,
+   "ground": "T-",
+   "nodes": {
+    "T-": 0,
+    "2:f-j": 4.999996750003975,
+    "3:f-j": 0.000003252096534023469,
+    "4:f-j": 0.0000032499959850599263,
+    "8:f-j": 0.0000032718417095656255,
+    "10:f-j": 7.172547954615093e-16,
+    "11:f-j": 0.0000032718419196208483,
+    "12:f-j": 4.198724270184785,
+    "14:f-j": 4.99999999999862,
+    "18:f-j": 4.999999992537773,
+    "15:f-j": 4.198724270185205,
+    "T+": 5
+   },
+   "parts": {
+    "U1": {
+     "kind": "PIR",
+     "pins": {
+      "VCC": 4.999996750003975,
+      "OUT": 0.000003252096534023469,
+      "GND": 0.0000032499959850599263
+     },
+     "state": "idle",
+     "left": null,
+     "length": 2.5,
+     "motion": false,
+     "mode": "H",
+     "delay": 5,
+     "vcc": 4.99999350000799,
+     "vout": 2.100548963542569e-9,
+     "current": -4.201097927085138e-12,
+     "quiescent": 0.00006499991550010385,
+     "power": 0.0003249991550016015,
+     "currents": {
+      "VCC": 0.00006499991550010385,
+      "OUT": 4.201097927085138e-12,
+      "GND": -0.00006499991970120177
+     },
+     "env": [
+      {
+       "field": "motion",
+       "follows": true,
+       "value": 0
+      }
+     ],
+     "pinCurrents": {
+      "VCC": 0.00006499991550010385,
+      "OUT": 4.201097927085138e-12,
+      "GND": -0.00006499991970120177
+     },
+     "stress": [
+      {
+       "quantity": "voltage",
+       "value": 4.99999350000799,
+       "max": 20,
+       "unit": "V",
+       "ratio": 0.2499996750003995,
+       "level": "fine"
+      },
+      {
+       "quantity": "current",
+       "value": 4.201097927085138e-12,
+       "max": 0.002,
+       "unit": "A",
+       "ratio": 2.100548963542569e-9,
+       "level": "fine"
+      }
+     ]
+    },
+    "R1": {
+     "kind": "R",
+     "pins": {
+      "1": 0.000003252096534023469,
+      "2": 0.0000032718417095656255
+     },
+     "voltage": -1.9745175542156642e-8,
+     "current": -4.201101179182264e-12,
+     "power": 8.295148025331506e-20,
+     "pinCurrents": {
+      "1": -4.201101179182264e-12,
+      "2": 4.201101179182264e-12
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 8.295148025331506e-20,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 3.3180592101326023e-19,
+       "level": "fine"
+      }
+     ]
+    },
+    "Q1": {
+     "kind": "Q",
+     "pins": {
+      "E": 7.172547954615093e-16,
+      "B": 0.0000032718419196208483,
+      "C": 4.198724270184785
+     },
+     "currents": {
+      "C": 1.6731814992350242e-14,
+      "B": -2.3899909250382486e-15,
+      "E": -1.4341824067311994e-14
+     },
+     "vbe": 0.0000032718419189035935,
+     "vce": 4.198724270184784,
+     "power": 7.025226987295011e-14,
+     "region": "off",
+     "beta": -7.000785993395549,
+     "pinCurrents": {
+      "C": 1.6731814992350242e-14,
+      "B": -2.3899909250382486e-15,
+      "E": -1.4341824067311994e-14
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 7.025226987295011e-14,
+       "max": 0.5,
+       "unit": "W",
+       "ratio": 1.4050453974590023e-13,
+       "level": "fine"
+      }
+     ]
+    },
+    "R2": {
+     "kind": "R",
+     "pins": {
+      "1": 4.99999999999862,
+      "2": 4.999999992537773
+     },
+     "voltage": 7.460847051277142e-9,
+     "current": 2.260862742811255e-11,
+     "power": 1.6867951128045702e-19,
+     "pinCurrents": {
+      "1": 2.260862742811255e-11,
+      "2": -2.260862742811255e-11
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 1.6867951128045702e-19,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 6.747180451218281e-19,
+       "level": "fine"
+      }
+     ]
+    },
+    "D1": {
+     "kind": "LED",
+     "pins": {
+      "anode": 4.999999992537773,
+      "cathode": 4.198724270185205
+     },
+     "voltage": 0.8012757223525675,
+     "current": 1.2608620528361497e-11,
+     "power": 1.010298152173227e-11,
+     "brightness": 6.304310264180749e-10,
+     "pinCurrents": {
+      "anode": 1.2608620528361497e-11,
+      "cathode": -1.2608620528361497e-11
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 1.2608620528361497e-11,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 4.2028735094538326e-10,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -0.8012757223525675,
+       "max": 5,
+       "unit": "V",
+       "ratio": -0.1602551444705135,
+       "level": "fine"
+      }
+     ]
+    },
+    "W1": {
+     "kind": "W",
+     "pins": {
+      "1": 4.999996750003975,
+      "2": 5
+     },
+     "voltage": -0.0000032499960251897164,
+     "current": -0.00006499992050379433,
+     "power": 2.1124948327497912e-10,
+     "pinCurrents": {
+      "1": -0.00006499992050379433,
+      "2": 0.00006499992050379433
+     }
+    },
+    "W2": {
+     "kind": "W",
+     "pins": {
+      "1": 4.99999999999862,
+      "2": 5
+     },
+     "voltage": -1.3802292642139946e-12,
+     "current": -2.7604585284279892e-11,
+     "power": 3.81006564358541e-23,
+     "pinCurrents": {
+      "1": -2.7604585284279892e-11,
+      "2": 2.7604585284279892e-11
+     }
+    },
+    "W3": {
+     "kind": "W",
+     "pins": {
+      "1": 0.0000032718417095656255,
+      "2": 0.0000032718419196208483
+     },
+     "voltage": -2.100552228630117e-13,
+     "current": -4.201104457260234e-12,
+     "power": 8.824639330405901e-25,
+     "pinCurrents": {
+      "1": -4.201104457260234e-12,
+      "2": 4.201104457260234e-12
+     }
+    },
+    "W4": {
+     "kind": "W",
+     "pins": {
+      "1": 4.198724270184785,
+      "2": 4.198724270185205
+     },
+     "voltage": -4.2010839251815923e-13,
+     "current": -8.402167850363185e-12,
+     "power": 3.529821229283835e-24,
+     "pinCurrents": {
+      "1": -8.402167850363185e-12,
+      "2": 8.402167850363185e-12
+     }
+    },
+    "W5": {
+     "kind": "W",
+     "pins": {
+      "1": 7.172547954615093e-16,
+      "2": 0
+     },
+     "voltage": 7.172547954615093e-16,
+     "current": 1.4345095909230186e-14,
+     "power": 1.0289088832250631e-29,
+     "pinCurrents": {
+      "1": 1.4345095909230186e-14,
+      "2": -1.4345095909230186e-14
+     }
+    },
+    "W6": {
+     "kind": "W",
+     "pins": {
+      "1": 0.0000032499959850599263,
+      "2": 0
+     },
+     "voltage": 0.0000032499959850599263,
+     "current": 0.00006499991970119852,
+     "power": 2.112494780581128e-10,
+     "pinCurrents": {
+      "1": 0.00006499991970119852,
+      "2": -0.00006499991970119852
+     }
+    }
+   },
+   "supplies": {
+    "V1": {
+     "kind": "bench",
+     "voltage": 5,
+     "current": 0.00006499995310678408,
+     "power": 0.0003249997655339204,
+     "mode": "CV"
+    }
+   },
+   "issues": []
+  },
+  "text": {
+   "en": "DC operating point — a model, not a measurement (20 Newton iterations).\nSupplies:\n  V1     5 V        65 µA      325 µW     constant voltage\nNodes (voltage from rail T-):\n  rail T-                        0 V\n  column 2 (rows f–j)            5 V\n  column 3 (rows f–j)            3.25 µV\n  column 4 (rows f–j)            3.25 µV\n  column 8 (rows f–j)            3.27 µV\n  column 10 (rows f–j)           0 V\n  column 11 (rows f–j)           3.27 µV\n  column 12 (rows f–j)           4.2 V\n  column 14 (rows f–j)           5 V\n  column 18 (rows f–j)           5 V\n  column 15 (rows f–j)           4.2 V\n  rail T+                        5 V\nParts:\n  U1     waiting for motion · OUT 2.1 nV · Output current 0 A · Supply (VCC) 5 V · Own current 65 µA\n  R1     -19.7 nV   -4.2 pA    0 W\n  Q1     off · Vbe 3.27 µV · Vce 4.2 V · Ib -0.00239 pA · Ic 0.0167 pA · 0.0703 pW\n  R2     7.46 nV    22.6 pA    0 W\n  D1     801 mV     12.6 pA    10.1 pW · brightness 0 % of 20 mA\n  W1     -3.25 µV   -65 µA     211 pW\n  W2     -1.38 pV   -27.6 pA   0 W\n  W3     -0.21 pV   -4.2 pA    0 W\n  W4     -0.42 pV   -8.4 pA    0 W\n  W5     0 V        0.0143 pA  0 W\n  W6     3.25 µV    65 µA      211 pW",
+   "es": "Punto de operación en DC — un modelo, no una medición (20 iteraciones de Newton).\nFuentes:\n  V1     5 V        65 µA      325 µW     voltaje constante\nGrupos (voltaje medido desde riel T-):\n  riel T-                        0 V\n  columna 2 (filas f–j)          5 V\n  columna 3 (filas f–j)          3,25 µV\n  columna 4 (filas f–j)          3,25 µV\n  columna 8 (filas f–j)          3,27 µV\n  columna 10 (filas f–j)         0 V\n  columna 11 (filas f–j)         3,27 µV\n  columna 12 (filas f–j)         4,2 V\n  columna 14 (filas f–j)         5 V\n  columna 18 (filas f–j)         5 V\n  columna 15 (filas f–j)         4,2 V\n  riel T+                        5 V\nComponentes:\n  U1     esperando movimiento · OUT 2,1 nV · Corriente de salida 0 A · Alimentación (VCC) 5 V · Corriente propia 65 µA\n  R1     -19,7 nV   -4,2 pA    0 W\n  Q1     apagado (corte) · Vbe 3,27 µV · Vce 4,2 V · Ib -0,00239 pA · Ic 0,0167 pA · 0,0703 pW\n  R2     7,46 nV    22,6 pA    0 W\n  D1     801 mV     12,6 pA    10,1 pW · brillo 0 % del de 20 mA\n  W1     -3,25 µV   -65 µA     211 pW\n  W2     -1,38 pV   -27,6 pA   0 W\n  W3     -0,21 pV   -4,2 pA    0 W\n  W4     -0,42 pV   -8,4 pA    0 W\n  W5     0 V        0,0143 pA  0 W\n  W6     3,25 µV    65 µA      211 pW"
+  },
+  "lines": {
+   "en": {
+    "U1": [
+     {
+      "key": "pir.idle",
+      "text": "waiting for motion"
+     },
+     {
+      "key": "pir.motion",
+      "text": "Motion: off"
+     },
+     {
+      "key": "pir.jumper",
+      "text": "Jumper: H · motion starts the delay again"
+     },
+     {
+      "key": "pir.delay",
+      "text": "Delay (Tx): 5 s"
+     },
+     {
+      "key": "pir.vout",
+      "text": "OUT: 2.1 nV"
+     },
+     {
+      "key": "pir.iout",
+      "text": "Output current: 0 A"
+     },
+     {
+      "key": "pir.vcc",
+      "text": "Supply (VCC): 5 V"
+     },
+     {
+      "key": "pir.own",
+      "text": "Own current: 65 µA"
+     },
+     {
+      "key": "env",
+      "text": "Follows the environment · motion off"
+     }
+    ],
+    "R1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -19.7 nV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -4.2 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "Q1": [
+     {
+      "key": "region.bjt.off",
+      "text": "off"
+     },
+     {
+      "key": "vbe",
+      "text": "Vbe: 3.27 µV"
+     },
+     {
+      "key": "vce",
+      "text": "Vce: 4.2 V"
+     },
+     {
+      "key": "ib",
+      "text": "Ib: -0.00239 pA"
+     },
+     {
+      "key": "ic",
+      "text": "Ic: 0.0167 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0.0703 pW"
+     }
+    ],
+    "R2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 7.46 nV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 22.6 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 801 mV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 12.6 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 10.1 pW"
+     },
+     {
+      "key": "brightness",
+      "text": "Brightness: brightness 0 % of 20 mA"
+     }
+    ],
+    "W1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -3.25 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -65 µA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 211 pW"
+     }
+    ],
+    "W2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -1.38 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -27.6 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W3": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -0.21 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -4.2 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W4": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -0.42 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -8.4 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W5": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0.0143 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W6": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 3.25 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 65 µA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 211 pW"
+     }
+    ]
+   },
+   "es": {
+    "U1": [
+     {
+      "key": "pir.idle",
+      "text": "esperando movimiento"
+     },
+     {
+      "key": "pir.motion",
+      "text": "Movimiento: no"
+     },
+     {
+      "key": "pir.jumper",
+      "text": "Puente: H · el movimiento reinicia el tiempo"
+     },
+     {
+      "key": "pir.delay",
+      "text": "Retardo (Tx): 5 s"
+     },
+     {
+      "key": "pir.vout",
+      "text": "OUT: 2,1 nV"
+     },
+     {
+      "key": "pir.iout",
+      "text": "Corriente de salida: 0 A"
+     },
+     {
+      "key": "pir.vcc",
+      "text": "Alimentación (VCC): 5 V"
+     },
+     {
+      "key": "pir.own",
+      "text": "Corriente propia: 65 µA"
+     },
+     {
+      "key": "env",
+      "text": "Sigue el ambiente · movimiento no"
+     }
+    ],
+    "R1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -19,7 nV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -4,2 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "Q1": [
+     {
+      "key": "region.bjt.off",
+      "text": "apagado (corte)"
+     },
+     {
+      "key": "vbe",
+      "text": "Vbe: 3,27 µV"
+     },
+     {
+      "key": "vce",
+      "text": "Vce: 4,2 V"
+     },
+     {
+      "key": "ib",
+      "text": "Ib: -0,00239 pA"
+     },
+     {
+      "key": "ic",
+      "text": "Ic: 0,0167 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0,0703 pW"
+     }
+    ],
+    "R2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 7,46 nV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 22,6 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 801 mV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 12,6 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 10,1 pW"
+     },
+     {
+      "key": "brightness",
+      "text": "Brillo: brillo 0 % del de 20 mA"
+     }
+    ],
+    "W1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -3,25 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -65 µA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 211 pW"
+     }
+    ],
+    "W2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -1,38 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -27,6 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W3": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -0,21 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -4,2 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W4": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -0,42 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -8,4 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W5": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0,0143 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W6": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 3,25 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 65 µA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 211 pW"
+     }
+    ]
+   }
+  }
+ },
  "rc-square-wave.json": {
   "result": {
    "analysis": "dc",
@@ -10725,6 +11410,372 @@
      {
       "key": "power",
       "text": "Potencia: 0 W"
+     }
+    ]
+   }
+  }
+ },
+ "touch-toggle-led.json": {
+  "result": {
+   "analysis": "dc",
+   "model": true,
+   "ok": true,
+   "iterations": 2,
+   "ground": "T-",
+   "nodes": {
+    "T-": 0,
+    "2:f-j": 1.4999998631856975e-7,
+    "3:f-j": 3.299999849999849,
+    "4:f-j": 1.499999863635926e-7,
+    "8:f-j": 1.4999998610692658e-7,
+    "T+": 3.3
+   },
+   "parts": {
+    "U1": {
+     "kind": "TCH",
+     "pins": {
+      "SIG": 1.4999998631856975e-7,
+      "VCC": 3.299999849999849,
+      "GND": 1.499999863635926e-7
+     },
+     "state": "settling",
+     "left": 0.5,
+     "touch": false,
+     "toggle": true,
+     "activeLow": false,
+     "fast": false,
+     "vcc": 3.2999996999998626,
+     "vout": -4.502284517122026e-17,
+     "current": -6.003046022829368e-19,
+     "quiescent": 0.0000029999997272726023,
+     "power": 0.000009899998649999175,
+     "currents": {
+      "SIG": 6.003046022829368e-19,
+      "VCC": 0.0000029999997272726023,
+      "GND": -0.0000029999997272732025
+     },
+     "env": [
+      {
+       "field": "touch",
+       "follows": true,
+       "value": 0
+      }
+     ],
+     "pinCurrents": {
+      "SIG": 6.003046022829368e-19,
+      "VCC": 0.0000029999997272726023,
+      "GND": -0.0000029999997272732025
+     },
+     "stress": [
+      {
+       "quantity": "voltage",
+       "value": 3.2999996999998626,
+       "max": 5.5,
+       "unit": "V",
+       "ratio": 0.5999999454545205,
+       "level": "fine"
+      },
+      {
+       "quantity": "current",
+       "value": 6.003046022829368e-19,
+       "max": 0.01,
+       "unit": "A",
+       "ratio": 6.003046022829369e-17,
+       "level": "fine"
+      }
+     ]
+    },
+    "R1": {
+     "kind": "R",
+     "pins": {
+      "1": 1.4999998631856975e-7,
+      "2": 1.4999998610692658e-7
+     },
+     "voltage": 2.116431726816465e-16,
+     "current": 4.503046227269075e-19,
+     "power": 9.530389902713457e-35,
+     "pinCurrents": {
+      "1": 4.503046227269075e-19,
+      "2": -4.503046227269075e-19
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 9.530389902713457e-35,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 3.8121559610853828e-34,
+       "level": "fine"
+      }
+     ]
+    },
+    "D1": {
+     "kind": "LED",
+     "pins": {
+      "anode": 1.4999998610692658e-7,
+      "cathode": 0
+     },
+     "voltage": 1.4999998610692658e-7,
+     "current": 1.5030493445852028e-19,
+     "power": 2.2545738080580552e-26,
+     "brightness": 7.515246722926013e-18,
+     "pinCurrents": {
+      "anode": 1.5030493445852028e-19,
+      "cathode": -1.5030493445852028e-19
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 1.5030493445852028e-19,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 5.010164481950676e-18,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -1.4999998610692658e-7,
+       "max": 5,
+       "unit": "V",
+       "ratio": -2.9999997221385315e-8,
+       "level": "fine"
+      }
+     ]
+    },
+    "W1": {
+     "kind": "W",
+     "pins": {
+      "1": 3.299999849999849,
+      "2": 3.3
+     },
+     "voltage": -1.5000015096688912e-7,
+     "current": -0.0000030000030193377825,
+     "power": 4.5000090580179056e-13,
+     "pinCurrents": {
+      "1": -0.0000030000030193377825,
+      "2": 0.0000030000030193377825
+     }
+    },
+    "W2": {
+     "kind": "W",
+     "pins": {
+      "1": 1.499999863635926e-7,
+      "2": 0
+     },
+     "voltage": 1.499999863635926e-7,
+     "current": 0.000002999999727271852,
+     "power": 4.499999181815593e-13,
+     "pinCurrents": {
+      "1": 0.000002999999727271852,
+      "2": -0.000002999999727271852
+     }
+    }
+   },
+   "supplies": {
+    "V1": {
+     "kind": "bench",
+     "voltage": 3.3,
+     "current": 0.0000030000063180930206,
+     "power": 0.000009900020849706967,
+     "mode": "CV"
+    }
+   },
+   "issues": []
+  },
+  "text": {
+   "en": "DC operating point — a model, not a measurement (2 Newton iterations).\nSupplies:\n  V1     3.3 V      3 µA       9.9 µW     constant voltage\nNodes (voltage from rail T-):\n  rail T-                        0 V\n  column 2 (rows f–j)            150 nV\n  column 3 (rows f–j)            3.3 V\n  column 4 (rows f–j)            150 nV\n  column 8 (rows f–j)            150 nV\n  rail T+                        3.3 V\nParts:\n  U1     calibrating · ignores touch, 500 ms left · SIG 0 V · Output current 0 A · Supply (VCC) 3.3 V\n  R1     0 V        0 A        0 W\n  D1     150 nV     0 A        0 W · brightness 0 % of 20 mA\n  W1     -150 nV    -3 µA      0.45 pW\n  W2     150 nV     3 µA       0.45 pW",
+   "es": "Punto de operación en DC — un modelo, no una medición (2 iteraciones de Newton).\nFuentes:\n  V1     3,3 V      3 µA       9,9 µW     voltaje constante\nGrupos (voltaje medido desde riel T-):\n  riel T-                        0 V\n  columna 2 (filas f–j)          150 nV\n  columna 3 (filas f–j)          3,3 V\n  columna 4 (filas f–j)          150 nV\n  columna 8 (filas f–j)          150 nV\n  riel T+                        3,3 V\nComponentes:\n  U1     calibrando · ignora el toque, faltan 500 ms · SIG 0 V · Corriente de salida 0 A · Alimentación (VCC) 3,3 V\n  R1     0 V        0 A        0 W\n  D1     150 nV     0 A        0 W · brillo 0 % del de 20 mA\n  W1     -150 nV    -3 µA      0,45 pW\n  W2     150 nV     3 µA       0,45 pW"
+  },
+  "lines": {
+   "en": {
+    "U1": [
+     {
+      "key": "touch.settling",
+      "text": "calibrating · ignores touch, 500 ms left"
+     },
+     {
+      "key": "touch.input",
+      "text": "Touch: off"
+     },
+     {
+      "key": "touch.mode",
+      "text": "Mode: toggle · active high"
+     },
+     {
+      "key": "touch.vout",
+      "text": "SIG: 0 V"
+     },
+     {
+      "key": "touch.isig",
+      "text": "Output current: 0 A"
+     },
+     {
+      "key": "touch.vcc",
+      "text": "Supply (VCC): 3.3 V"
+     },
+     {
+      "key": "touch.own",
+      "text": "Own current: 3 µA"
+     },
+     {
+      "key": "env",
+      "text": "Follows the environment · touch off"
+     }
+    ],
+    "R1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 150 nV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "brightness",
+      "text": "Brightness: brightness 0 % of 20 mA"
+     }
+    ],
+    "W1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -150 nV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -3 µA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0.45 pW"
+     }
+    ],
+    "W2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 150 nV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 3 µA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0.45 pW"
+     }
+    ]
+   },
+   "es": {
+    "U1": [
+     {
+      "key": "touch.settling",
+      "text": "calibrando · ignora el toque, faltan 500 ms"
+     },
+     {
+      "key": "touch.input",
+      "text": "Toque: no"
+     },
+     {
+      "key": "touch.mode",
+      "text": "Modo: alterna · activo en alto"
+     },
+     {
+      "key": "touch.vout",
+      "text": "SIG: 0 V"
+     },
+     {
+      "key": "touch.isig",
+      "text": "Corriente de salida: 0 A"
+     },
+     {
+      "key": "touch.vcc",
+      "text": "Alimentación (VCC): 3,3 V"
+     },
+     {
+      "key": "touch.own",
+      "text": "Corriente propia: 3 µA"
+     },
+     {
+      "key": "env",
+      "text": "Sigue el ambiente · toque no"
+     }
+    ],
+    "R1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 150 nV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "brightness",
+      "text": "Brillo: brillo 0 % del de 20 mA"
+     }
+    ],
+    "W1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -150 nV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -3 µA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0,45 pW"
+     }
+    ],
+    "W2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 150 nV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 3 µA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0,45 pW"
      }
     ]
    }

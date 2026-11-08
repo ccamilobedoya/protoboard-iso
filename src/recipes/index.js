@@ -40,9 +40,13 @@ import tiltAlarm from './tilt-alarm.js';
 import lm35Uno from './lm35-uno.js';
 import relayNpn from './relay-npn.js';
 import motorNpn from './motor-npn.js';
+import pirLamp from './pir-lamp.js';
+import pirUno from './pir-uno.js';
+import touchToggleLed from './touch-toggle-led.js';
+import touchUno from './touch-uno.js';
 
 export const RECIPES = Object.fromEntries(
-  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn].map((r) => [r.name, r]),
+  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn, pirLamp, pirUno, touchToggleLed, touchUno].map((r) => [r.name, r]),
 );
 
 // Fields a value may set besides its main one, by the kind of item (a part's type or "supply").
@@ -105,6 +109,7 @@ export function expandRecipe(name, values = {}) {
     ...(recipe.supplies && { supplies: recipe.supplies.map(apply) }),
     ...(recipe.netLabels && { netLabels: recipe.netLabels }),
     ...(recipe.page && { page: recipe.page }),
+    ...(recipe.environment && { environment: recipe.environment }),
   };
   return { spec, problems: [] };
 }

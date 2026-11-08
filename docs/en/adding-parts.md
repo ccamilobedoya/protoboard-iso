@@ -185,7 +185,7 @@ comes with all of them, and the kit's types are built up to it:
 `test/pinout.test.js` ("a part up close") holds the rule: every type in `PART_TYPES` is either in
 `COMPLETE` (checked for all of the above) or in `PENDING` with its reason. A new type in neither fails
 the test, so the choice is made, never forgotten; moving a type from `PENDING` to `COMPLETE` is how
-the kit catches up (complete today: BJT, MOSFET, LED, a 555, resistor, capacitor, inductor, diode, Zener, bridge rectifier, potentiometer, NTC thermistor, photoresistor, push button, switch, regulator, battery, buzzer, RGB LED, 7-segment display, slide switch, tilt switch, LM35, relay, DC motor). Look at the result once: a video's frame (`render-frames.js`) and the page up close
+the kit catches up (complete today: BJT, MOSFET, LED, a 555, resistor, capacitor, inductor, diode, Zener, bridge rectifier, potentiometer, NTC thermistor, photoresistor, push button, switch, regulator, battery, buzzer, RGB LED, 7-segment display, slide switch, tilt switch, LM35, relay, DC motor, PIR module, touch module). Look at the result once: a video's frame (`render-frames.js`) and the page up close
 on a phone.
 
 ## 7. A sensor: joining the environment
@@ -209,6 +209,10 @@ Nothing else in `src/sim` changes: the engine moves every part that follows a fi
 (a slider, a timeline's set, a program), its card says whether it follows the environment, and the
 page shows the field's indicator. Test it against the sensor's own formula at two values of the
 field, and that a value on the part wins (`test/environment.test.js`).
+
+A sensor that answers in time (a PIR's delay, a touch module's response) has memory of its own:
+it lists the keys of its elements in `state: [...]` so `engine.set` carries them, and may give
+`maxStep()` and `span()`; see [timed-sensors.md](timed-sensors.md).
 
 ## Tests
 

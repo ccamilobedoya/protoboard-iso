@@ -29,6 +29,7 @@ está en la raíz.
 - [Montaje automático: el algoritmo que ubica un circuito entero](montaje-automatico.md): `layout` convierte una lista de componentes (sin agujeros) y las redes que los unen en un circuito ubicado, cableado y revisado, en alrededor de un segundo, sin que quien lo llama tenga que probar y corregir.
 - [Planeación: arquitectura, decisiones y buenas prácticas](planeacion.md): Ayudar a aprender electrónica **viendo** los circuitos tal como se montan en una protoboard: tamaños reales, bandas de colores reales, orientación real.
 - [Recetas: circuitos de clase por su nombre](recetas.md): Una receta es una especificación de `layout` que el kit guarda para un circuito de clase habitual: sus componentes con valores por defecto, en orden de señal, sus redes y su fuente.
+- [Sensores con tiempo: un PIR y un módulo táctil](sensores-temporizados.md): La mayoría de los sensores responden de una vez: cambia la luz y cambia la resistencia.
 - [Simulación en vivo (etapa 3): diseño y plan](simulacion-en-vivo.md): La página para embeber (`out/<nombre>.html`) tendrá una simulación real que corre en el navegador, al estilo de CircuitJS de Falstad:
 - [Simulación](simulacion.md): El kit calcula el voltaje (tensión) de cada grupo conectado y la corriente de cada componente, a partir del mismo archivo de circuito que dibuja la protoboard.
 - [Traducir](traducir.md): Hay dos cosas que traducir, y son independientes.
