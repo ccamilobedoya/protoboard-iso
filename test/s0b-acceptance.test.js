@@ -139,10 +139,11 @@ const slide = (window, input, k) => {
 // The gauge root carries data-pos 0...1. Arbitration (orchestrator): a page shows the same field's
 // indicator more than once on purpose (the Environment panel and the sensor's card, per S0), so the
 // check takes every gauge of the page and requires all of them to agree on the position.
-const gaugeRoots = (doc) => [...doc.querySelectorAll('[data-gauge], [class*="gauge"]')].filter((g) => g.hasAttribute('data-pos'));
-const posOf = (doc) => {
-  const roots = gaugeRoots(doc);
-  assert.ok(roots.length >= 1, 'at least one gauge root carrying data-pos');
+// A gauge root is `svg.gauge.gauge-<field>`; the bench has other sensors (an LDR), so filter by field.
+const gaugeRoots = (doc, field) => [...doc.querySelectorAll(`[data-gauge][data-field="${field}"], .gauge-${field}`)].filter((g) => g.hasAttribute('data-pos'));
+const posOf = (doc, field = 'distance') => {
+  const roots = gaugeRoots(doc, field);
+  assert.ok(roots.length >= 1, `at least one ${field} gauge root carrying data-pos`);
   const positions = roots.map((r) => Number(r.getAttribute('data-pos')));
   for (const pos of positions) assert.ok(Math.abs(pos - positions[0]) < 1e-9, `every gauge of the field agrees: ${positions}`);
   return positions[0];
@@ -249,20 +250,20 @@ test('D5: a value below the range pins the gauge at 0', async (t) => {
   const window = await pageOf({ temperature: { value: 25, range: [20, 70] } }, [{ environment: 'temperature' }]);
   if (!window) return t.skip('jsdom not installed');
   const doc = window.document;
-  near(posOf(doc), 5 / 50, 0.01, '25 °C on 20…70');
+  near(posOf(doc, 'temperature'), 5 / 50, 0.01, '25 °C on 20…70');
   window.protoboardLive.set('environment', 'temperature', 0);
-  near(posOf(doc), 0, 1e-9, '0 °C is below the range');
+  near(posOf(doc, 'temperature'), 0, 1e-9, '0 °C is below the range');
 });
 
 test('D5: light with range 1…1000 maps logarithmically: 100 lx is at ~0.667', async (t) => {
   const window = await pageOf({ light: { value: 100, range: [1, 1000] } }, [{ environment: 'light' }]);
   if (!window) return t.skip('jsdom not installed');
   const doc = window.document;
-  near(posOf(doc), 2 / 3, 0.01, '100 lx on 1…1000 (log)');
+  near(posOf(doc, 'light'), 2 / 3, 0.01, '100 lx on 1…1000 (log)');
   window.protoboardLive.set('environment', 'light', 1);
-  near(posOf(doc), 0, 1e-9, '1 lx');
+  near(posOf(doc, 'light'), 0, 1e-9, '1 lx');
   window.protoboardLive.set('environment', 'light', 1000);
-  near(posOf(doc), 1, 1e-9, '1000 lx');
+  near(posOf(doc, 'light'), 1, 1e-9, '1000 lx');
 });
 
 // ---------------------------------------------------------------- D6, engine.set outside the range
