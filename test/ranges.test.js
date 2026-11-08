@@ -218,3 +218,69 @@ test('ranges: a gauge step\'s range shapes the box\'s dial; a set without a gaug
   assert.deepEqual([box().getAttribute('data-min'), box().getAttribute('data-max')], ['0', '100'], 'the step\'s range');
   assert.ok(near(Number(box().getAttribute('data-pos')), 0.05), `5 cm in 0…100: ${box().getAttribute('data-pos')}`);
 });
+
+// ------------------------------------------------------------------ a range that cannot be one, a scale of the panel
+
+test('ranges: a panel range that cannot be one falls back to the circuit\'s, and the dial stays finite', async (t) => {
+  const controls = [{ environment: 'light', min: 0, max: 100 }, { environment: 'distance', min: 40, max: 2 }];
+  const window = await loadPage(renderPage(circuit(RANGED, { results: true, controls }), { lang: 'en' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const doc = window.document;
+  const g = (field) => gaugeOf(doc, field);
+  assert.deepEqual([g('light').getAttribute('data-min'), g('light').getAttribute('data-max')], ['1', '1000'], 'log with min 0: the circuit\'s range');
+  assert.ok(near(pos(doc, 'light'), 2 / 3), `100 lx in 1…1000: ${pos(doc, 'light')}`);
+  assert.deepEqual([g('distance').getAttribute('data-min'), g('distance').getAttribute('data-max')], ['2', '40'], 'inverted: the circuit\'s range');
+  assert.ok(near(pos(doc, 'distance'), 28 / 38));
+  for (const e of doc.querySelectorAll('svg.gauge *')) for (const a of e.attributes) assert.ok(!/NaN|Infinity/.test(a.value), `${e.tagName} ${a.name}="${a.value}"`);
+});
+
+test('ranges: without a range in the circuit a bad panel range falls back to the registry\'s', async (t) => {
+  const window = await loadPage(renderPage(circuit({ light: 100, distance: 30 }, { results: true, controls: [{ environment: 'light', min: 0, max: 100 }] }), { lang: 'en' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const g = gaugeOf(window.document, 'light');
+  assert.deepEqual([g.getAttribute('data-min'), g.getAttribute('data-max')], ['0.1', '10000']);
+  assert.ok(Number.isFinite(pos(window.document, 'light')));
+});
+
+test('ranges: a gauge step with a range that cannot be one takes the circuit\'s; the position grows with the value', async (t) => {
+  const steps = [
+    { at: 0, do: 'gauge', environment: 'distance', on: true, min: 40, max: 2 },
+    { at: 0, do: 'set', environment: 'distance', value: 5, move: 'travel' },
+    { at: 2500, do: 'gauge', environment: 'light', on: true, min: 0, max: 100 },
+  ];
+  const window = await loadPage(renderPage(circuit(RANGED, { results: true, tour: { steps } }), { lang: 'en' }).html, '?director=1', { width: 1080, height: 1920 });
+  if (!window) return t.skip('jsdom not installed');
+  const doc = window.document;
+  const live = window.protoboardLive;
+  live.tour.play();
+  const box = () => doc.querySelector('.gauge-inset svg.gauge');
+  const samples = [];
+  while (live.director.time < 2200) {
+    live.tick(1000 / 30);
+    samples.push([live.engine.environment().distance, Number(box().getAttribute('data-pos'))]);
+  }
+  assert.deepEqual([box().getAttribute('data-min'), box().getAttribute('data-max')], ['2', '40']);
+  assert.ok(samples.every(([, p]) => Number.isFinite(p) && p >= 0 && p <= 1));
+  assert.ok(new Set(samples.map(([v]) => v)).size > 5, 'the value moved');
+  for (let i = 1; i < samples.length; i++) {
+    const [[v0, p0], [v1, p1]] = [samples[i - 1], samples[i]];
+    if (v1 !== v0) assert.equal(Math.sign(p1 - p0), Math.sign(v1 - v0), 'position grows with the value');
+  }
+  while (live.director.time < 2700) live.tick(1000 / 30);
+  assert.deepEqual([box().getAttribute('data-min'), box().getAttribute('data-max')], ['1', '1000'], 'light with min 0: the circuit\'s range');
+  assert.ok(Number.isFinite(Number(box().getAttribute('data-pos'))));
+});
+
+test('ranges: the panel\'s scale is the dial\'s: log halfway on the slider is halfway on the dial', async (t) => {
+  const controls = [{ environment: 'distance', min: 2, max: 40, scale: 'log' }];
+  const window = await loadPage(renderPage(circuit(RANGED, { results: true, controls }), { lang: 'en' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const doc = window.document;
+  slide(window, rowOf(doc, 'distance').querySelector('input'), 500);
+  assert.ok(near(pos(doc, 'distance'), 0.5, 0.01), `halfway: ${pos(doc, 'distance')}`);
+  // A log scale needs min above 0: this one is not valid, the dial keeps the field's own (linear).
+  const bad = await loadPage(renderPage(circuit(RANGED, { results: true, controls: [{ environment: 'distance', min: 0, max: 40, scale: 'log' }] }), { lang: 'en' }).html);
+  const g = gaugeOf(bad.document, 'distance');
+  assert.deepEqual([g.getAttribute('data-min'), g.getAttribute('data-max')], ['2', '40']);
+  assert.ok(Number.isFinite(pos(bad.document, 'distance')));
+});
