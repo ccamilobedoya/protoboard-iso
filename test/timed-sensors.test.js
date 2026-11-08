@@ -193,7 +193,7 @@ test('pir: the supply under 4.5 V does not start it; over 20 V and OUT overloade
   const sim = simulate(autoLayout({ parts: [{ id: 'U1', type: 'pir-sensor' }], nets: [['T+', 'U1.VCC'], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }] }).circuit);
   assert.ok(sim.issues.some((i) => i.code === 'SIM_PIR_WARMUP'), 'a note while it warms up');
   const brownout = simulate(autoLayout({ parts: [{ id: 'U1', type: 'pir-sensor' }], nets: [['T+', 'U1.VCC'], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 3.3, positive: 'T+', negative: 'T-' }] }).circuit);
-  assert.ok(brownout.issues.some((i) => i.code === 'SIM_PIR_LOW_SUPPLY'));
+  assert.ok(brownout.issues.some((i) => i.code === 'SIM_MODULE_LOW_SUPPLY'));
 });
 
 // ── the touch module (the sheet's checks 40 to 44) ─────────────────────────────────────────

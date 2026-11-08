@@ -43,7 +43,7 @@ warm-up ──(Tw)──▶ idle ──motion──▶ high ──(Tx)──▶ 
 - After the fall the module rests 2.5 s and ignores motion; if motion is still on when the rest
   ends, it goes high again at once.
 - The warm-up counts from the moment `VCC` first reaches 4.5 V; a supply switched off and on
-  begins it again. Under 4.5 V the module does not start (`SIM_PIR_LOW_SUPPLY`).
+  begins it again. Under 4.5 V the module does not start (`SIM_MODULE_LOW_SUPPLY`).
 - Over 20 V is `SIM_IC_SUPPLY`; `OUT` asked for more than 2 mA is `SIM_OVER_CURRENT` (it is a weak
   output: a logic input or a transistor's base, never a lamp). The warm-up is a note,
   `SIM_PIR_WARMUP`.

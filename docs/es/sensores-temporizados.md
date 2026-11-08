@@ -44,7 +44,7 @@ calentamiento ──(Tw)──▶ espera ──movimiento──▶ alto ──(T
 - Tras la bajada el módulo descansa 2,5 s e ignora el movimiento; si al terminar sigue habiendo
   movimiento, vuelve a subir de una vez.
 - El calentamiento cuenta desde que `VCC` llega a 4,5 V por primera vez; una fuente apagada y
-  encendida lo empieza de nuevo. Con menos de 4,5 V el módulo no arranca (`SIM_PIR_LOW_SUPPLY`).
+  encendida lo empieza de nuevo. Con menos de 4,5 V el módulo no arranca (`SIM_MODULE_LOW_SUPPLY`).
 - Más de 20 V es `SIM_IC_SUPPLY`; pedirle a `OUT` más de 2 mA es `SIM_OVER_CURRENT` (es una salida
   débil: una entrada lógica o la base de un transistor, nunca una lámpara). El calentamiento es una
   nota, `SIM_PIR_WARMUP`.
