@@ -11,10 +11,18 @@
 // Every row of the same control is kept in step; a change re-solves (engine.set, sliders
 // debounced) and `changed` repaints. A part's short label that states the control's value
 // ("R2 · 10 kΩ") states the new one.
+// - The environment (sim/environment.js; docs/en/environment.md): its fields asked for in
+//   `page.controls` ({ environment: 'light' }), or all of them with `page.environment`, in a section
+//   of their own, each with its indicator (gauge.js) and, for a field a program moves, Pause and
+//   Resume. A sensor's card shows the indicator of each field it senses, and offers to follow the
+//   environment again once its own control has moved. refresh() follows the programs (live.js
+//   calls it with each repaint); a recording's box of one indicator is insetGauge(field).
 
 import { fromSlider, toSlider, SLIDER } from '../../sim/controls.js';
 import { formatValue } from '../../core/units.js';
 import { applyFocus } from './focus.js';
+import { FIELDS, envText } from '../../sim/environment.js';
+import { createGauge } from './gauge.js';
 
 const DEBOUNCE = 120; // ms of rest before a slider's value is solved
 const MAX_WAIT = 300; // ms: during a long drag, still solved this often
@@ -27,17 +35,31 @@ function el(parent, tag, text, cls) {
   return e;
 }
 
-export function setupControls(page, { engine, t, decimal, changed }) {
+export function setupControls(page, { engine, t, decimal, changed, reading = () => null }) {
   const live = page.data.live;
   const rows = new Set();
   const kept = new Set(); // push buttons left pressed ("Keep pressed"): id|field
   const find = (list, id, field) => list.find((c) => c.id === id && c.field === field);
   const show = (c, v) => {
+    if (c.id === 'environment') return envText(c.field, v, decimal) ?? t(v ? 'sim.env.on' : 'sim.env.off');
     if (c.percent) return `${Math.round(v * 100)} %`;
     if (c.unit === '°C') return `${String(Math.round(v * 10) / 10).replace('.', decimal)} °C`;
     return formatValue(v, c.unit, { decimal });
   };
-  const nameOf = (c) => t(`page.control.${c.field}`);
+  const fieldName = (field) => {
+    const name = t(`sim.env.field.${field}`);
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  };
+  const nameOf = (c) => (c.id === 'environment' ? fieldName(c.field) : t(`page.control.${c.field}`));
+  // Every indicator on the page, by field: kept in step with the environment's values.
+  const gauges = new Set();
+  const gauge = (field) => {
+    const g = createGauge(field, FIELDS[field], { text: (v) => envText(field, v, decimal) ?? t(v ? 'sim.env.on' : 'sim.env.off'), label: fieldName(field) });
+    g.field = field;
+    g.update(engine.environment?.()[field] ?? FIELDS[field].default);
+    gauges.add(g);
+    return g;
+  };
 
   // The label is the kit's own text, so the value in it is written as show() writes it.
   function restate(id, before, after) {
@@ -69,6 +91,27 @@ export function setupControls(page, { engine, t, decimal, changed }) {
     for (const r of rows) {
       if (!r.isConnected) rows.delete(r);
       else if (r !== from) r.update(find(list, r.dataset.id, r.dataset.field));
+    }
+    refresh(list);
+  }
+
+  // The environment's values now in every indicator, and in the rows a running program moves (a row
+  // the learner is dragging is not: dragging pauses the program).
+  function refresh(list = engine.controls()) {
+    const values = engine.environment?.() ?? {};
+    for (const g of gauges) {
+      if (!g.el.isConnected && g.placed) gauges.delete(g);
+      else if (values[g.field] !== undefined && values[g.field] !== g.value) g.update(values[g.field]);
+    }
+    for (const r of rows) {
+      if (r.dataset.id !== 'environment' || !r.isConnected) continue;
+      const c = find(list, 'environment', r.dataset.field);
+      if (c?.programmed && !r.dragging) r.update(c);
+      r.pause?.(c);
+    }
+    for (const s of senseBoxes) {
+      if (!s.box.isConnected) senseBoxes.delete(s);
+      else fillSenses(s);
     }
   }
 
@@ -155,13 +198,17 @@ export function setupControls(page, { engine, t, decimal, changed }) {
         set(c.id, c.field, v, r);
       };
       input.addEventListener('input', () => {
+        r.dragging = true;
         pending = fromSlider(c, Number(input.value));
         out.textContent = show(c, pending);
         clearTimeout(timer);
         if (Date.now() - lastSolve >= MAX_WAIT) flush();
         else timer = setTimeout(flush, DEBOUNCE);
       });
-      input.addEventListener('change', flush);
+      input.addEventListener('change', () => {
+        r.dragging = false;
+        flush();
+      });
       r.update = (cur) => {
         if (!cur) return;
         input.value = String(toSlider(c, cur.value));
@@ -173,23 +220,83 @@ export function setupControls(page, { engine, t, decimal, changed }) {
     return r;
   }
 
-  // The card: page.buildControls(info, id) adds the part's controls, if it has any.
+  // A field of the environment: its indicator beside its row, and Pause / Resume when a program
+  // moves it.
+  function envRow(parent, c, label) {
+    const box = el(parent, 'div', null, 'env-row');
+    const g = gauge(c.field);
+    box.appendChild(g.el);
+    g.placed = true;
+    const r = row(box, c, label);
+    if (!c.programmed) return r;
+    const b = el(r, 'button', null, 'hold env-pause');
+    b.type = 'button';
+    r.pause = (cur) => {
+      const paused = Boolean(cur?.paused);
+      b.textContent = t(paused ? 'page.env.resume' : 'page.env.pause');
+      b.setAttribute('aria-pressed', String(paused));
+    };
+    b.addEventListener('click', () => {
+      const cur = find(engine.controls(), 'environment', c.field);
+      if (cur?.paused) {
+        if (engine.resume?.('environment', c.field)) changed();
+        refresh();
+      } else set('environment', c.field, cur?.value ?? c.value);
+    });
+    r.pause(c);
+    return r;
+  }
+
+  // The card: page.buildControls(info, id) adds the part's controls, if it has any, and for a
+  // sensor the indicator of each field it senses (with Follow the environment once it left it).
+  const senseBoxes = new Set(); // { box, id, said }: written again when what the part follows changes
+  function fillSenses(s) {
+    const senses = reading()?.parts?.[s.id]?.env ?? [];
+    const said = senses.map((e) => `${e.field}:${e.follows}`).join(' ');
+    if (said === s.said) return;
+    s.said = said;
+    s.box.textContent = '';
+    for (const e of senses) {
+      const line = el(s.box, 'div', null, 'env-sense');
+      const g = gauge(e.field);
+      line.appendChild(g.el);
+      g.placed = true;
+      el(line, 'span', fieldName(e.field), 'name');
+      if (e.follows) continue;
+      const b = el(line, 'button', t('page.env.follow'), 'hold');
+      b.type = 'button';
+      b.addEventListener('click', () => {
+        if (!engine.attach?.(s.id, e.field)) return;
+        changed();
+        refresh();
+      });
+    }
+  }
   page.buildControls = (parent, id) => {
     const list = engine.controls().filter((c) => c.id === id);
-    if (!list.length) return;
+    const senses = reading()?.parts?.[id]?.env ?? [];
+    if (!list.length && !senses.length) return;
     const box = el(parent, 'div', null, 'adjust');
     el(box, 'h3', t('page.controls.adjust'));
     for (const c of list) row(box, c, nameOf(c));
+    if (!senses.length) return;
+    const s = { box: el(box, 'div', null, 'env-senses'), id, said: null };
+    senseBoxes.add(s);
+    fillSenses(s);
   };
 
-  // The panel the circuit asks for.
+  // The panels the circuit asks for: the environment's fields (page.controls entries that name one,
+  // then the rest of them with page.environment), and the controls.
   const wanted = (live.panel ?? []).map((p) => {
     const c = find(engine.controls(), p.id, p.field);
-    return c && { c: { ...c, ...Object.fromEntries(['min', 'max', 'scale'].filter((k) => p[k] != null).map((k) => [k, p[k]])) }, label: p.label ?? `${p.id} · ${nameOf(c)}` };
+    return c && { c: { ...c, ...Object.fromEntries(['min', 'max', 'scale'].filter((k) => p[k] != null).map((k) => [k, p[k]])) }, label: p.label ?? (c.id === 'environment' ? nameOf(c) : `${p.id} · ${nameOf(c)}`) };
   }).filter(Boolean);
-  if (wanted.length) {
-    const panel = el(page.side, 'section', null, 'panel controls');
-    const head = el(panel, 'button', t('page.controls.title'), 'head');
+  const world = wanted.filter((w) => w.c.id === 'environment');
+  if (live.environment) for (const c of engine.controls()) if (c.id === 'environment' && !world.some((w) => w.c.field === c.field)) world.push({ c, label: nameOf(c) });
+  const section = (title, cls, list, make) => {
+    if (!list.length) return;
+    const panel = el(page.side, 'section', null, `panel ${cls}`);
+    const head = el(panel, 'button', title, 'head');
     head.type = 'button';
     head.setAttribute('aria-expanded', 'true');
     const body = el(panel, 'div', null, 'body');
@@ -197,8 +304,29 @@ export function setupControls(page, { engine, t, decimal, changed }) {
       body.hidden = !body.hidden;
       head.setAttribute('aria-expanded', String(!body.hidden));
     });
-    for (const w of wanted) row(body, w.c, w.label);
-  }
+    for (const w of list) make(body, w.c, w.label);
+  };
+  section(t('page.env.title'), 'environment', world, envRow);
+  section(t('page.controls.title'), 'controls', wanted.filter((w) => w.c.id !== 'environment'), row);
+
+  // The box of one indicator (a timeline's gauge, docs/en/timeline.md; tour.js also puts one up for
+  // a set of the environment while it moves): in a corner of the frame, the field's name over it;
+  // null takes it away. page.gaugeShown() names the field up, or null.
+  let inset = null;
+  page.insetGauge = (field, { corner = 'tr' } = {}) => {
+    inset?.box.remove();
+    inset = null;
+    if (!field || !FIELDS[field] || !engine.controls().some((c) => c.id === 'environment' && c.field === field)) return false;
+    const box = el(page.main, 'div', null, 'gauge-inset');
+    box.dataset.corner = ['tl', 'tr', 'bl', 'br'].includes(corner) ? corner : 'tr';
+    el(box, 'span', fieldName(field), 'name');
+    const g = gauge(field);
+    box.appendChild(g.el);
+    g.placed = true;
+    inset = { box, field };
+    return true;
+  };
+  page.gaugeShown = () => inset?.field ?? null;
 
   // Holding a push button on the drawing.
   let holding = null;
@@ -223,5 +351,5 @@ export function setupControls(page, { engine, t, decimal, changed }) {
   window.addEventListener('pointerup', letGo);
   window.addEventListener('pointercancel', letGo);
 
-  return { set };
+  return { set, refresh };
 }

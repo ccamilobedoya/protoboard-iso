@@ -1,0 +1,298 @@
+{
+  "version": 1,
+  "title": {
+    "en": "The environment in a cycle: day and night",
+    "es": "El ambiente en ciclo: día y noche"
+  },
+  "board": "auto",
+  "clearance": 1,
+  "description": {
+    "en": "The environment example with the light in a slow cycle (a sine from 5 to 2000 lx every 8 s): the LED lights while it is dark. Pause and Resume in the panel.",
+    "es": "El ejemplo del ambiente con la luz en un ciclo lento (una senoide de 5 a 2000 lx cada 8 s): el LED se enciende mientras está oscuro. Pausar y Reanudar en el panel."
+  },
+  "environment": {
+    "light": {
+      "program": {
+        "kind": "cycle",
+        "shape": "sine",
+        "period": 8,
+        "min": 5,
+        "max": 2000
+      }
+    },
+    "temperature": 25
+  },
+  "page": {
+    "controls": [
+      {
+        "environment": "light"
+      },
+      {
+        "environment": "temperature"
+      }
+    ]
+  },
+  "parts": [
+    {
+      "id": "R4",
+      "type": "resistor",
+      "value": "2.2k",
+      "pins": [
+        "b2",
+        "b6"
+      ]
+    },
+    {
+      "id": "LDR1",
+      "type": "ldr",
+      "pins": [
+        "a6",
+        "B-6"
+      ]
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "10k",
+      "pins": [
+        "d2",
+        "d7"
+      ]
+    },
+    {
+      "id": "U1",
+      "part": "LM393",
+      "type": "ic",
+      "pins": [
+        "e5",
+        "e6",
+        "e7",
+        "e8",
+        "f8",
+        "f7",
+        "f6",
+        "f5"
+      ]
+    },
+    {
+      "id": "R3",
+      "type": "resistor",
+      "value": "330",
+      "pins": [
+        "c4",
+        "c11"
+      ]
+    },
+    {
+      "id": "R5",
+      "type": "resistor",
+      "value": "10k",
+      "pins": [
+        "i5",
+        "i11"
+      ]
+    },
+    {
+      "id": "U2",
+      "type": "temperature-sensor",
+      "pins": [
+        "h13",
+        "h14",
+        "h15"
+      ]
+    },
+    {
+      "id": "R2",
+      "type": "resistor",
+      "value": "10k",
+      "pins": [
+        "b7",
+        "b14"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "red",
+      "pins": [
+        "e11",
+        "e9"
+      ]
+    },
+    {
+      "id": "TH1",
+      "type": "thermistor",
+      "value": "10k",
+      "pins": [
+        "f11",
+        "f9"
+      ]
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "e2",
+        "e4"
+      ]
+    },
+    {
+      "id": "W2",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "j5",
+        "T+4"
+      ]
+    },
+    {
+      "id": "W3",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "j13",
+        "T+14"
+      ]
+    },
+    {
+      "id": "W4",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "a2",
+        "B+2"
+      ]
+    },
+    {
+      "id": "W5",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "c2",
+        "g5"
+      ]
+    },
+    {
+      "id": "W6",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "B-9",
+        "a8"
+      ]
+    },
+    {
+      "id": "W7",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "j9",
+        "T-9"
+      ]
+    },
+    {
+      "id": "W8",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "j15",
+        "T-15"
+      ]
+    },
+    {
+      "id": "W9",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "B-12",
+        "a14"
+      ]
+    },
+    {
+      "id": "W10",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "e14",
+        "f15"
+      ]
+    },
+    {
+      "id": "W11",
+      "type": "wire",
+      "color": "orange",
+      "pins": [
+        "a5",
+        "a9"
+      ]
+    }
+  ],
+  "supplies": [
+    {
+      "id": "V1",
+      "kind": "bench",
+      "voltage": 5,
+      "positive": "T+",
+      "negative": "T-"
+    }
+  ],
+  "spec": {
+    "nets": [
+      [
+        "B+",
+        "T+",
+        "R4.1",
+        "R1.1",
+        "U1.VCC",
+        "R3.1",
+        "R5.1",
+        "U2.+VS"
+      ],
+      [
+        "B-",
+        "T-",
+        "LDR1.2",
+        "R2.2",
+        "U1.GND",
+        "TH1.2",
+        "U2.GND"
+      ],
+      [
+        "R4.2",
+        "LDR1.1",
+        "U1.IN1-"
+      ],
+      [
+        "R1.2",
+        "R2.1",
+        "U1.IN1+"
+      ],
+      [
+        "R3.2",
+        "D1.anode"
+      ],
+      [
+        "D1.cathode",
+        "U1.OUT1"
+      ],
+      [
+        "R5.2",
+        "TH1.1"
+      ]
+    ],
+    "wires": [
+      "W1",
+      "W2",
+      "W3",
+      "W4",
+      "W5",
+      "W6",
+      "W7",
+      "W8",
+      "W9",
+      "W10",
+      "W11"
+    ]
+  }
+}

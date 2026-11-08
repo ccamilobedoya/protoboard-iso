@@ -30,6 +30,7 @@ import { PART_NUMBERS } from './parts/db.js';
 import { resistorBands } from './parts/types/resistor.js';
 import { simulate, pageControlIssues } from './sim/index.js';
 import { tourIssues } from './tour.js';
+import { environmentIssues } from './sim/environment.js';
 import { resultsOverlay } from './sim/overlay.js';
 import { flowOps, lightOps, shadeOps, segmentOps, flowStyle } from './sim/paths.js';
 import { probeOps } from './sim/probes.js';
@@ -73,7 +74,7 @@ export function labelText(part, lang = 'en') {
 
 export function checkCircuit(circuit) {
   const { issues, netlist } = buildCircuit(circuit);
-  return { issues: [...issues, ...pageControlIssues(circuit), ...tourIssues(circuit)], netlist };
+  return { issues: [...issues, ...environmentIssues(circuit), ...pageControlIssues(circuit), ...tourIssues(circuit)], netlist };
 }
 
 // A piece lying entirely beyond one side face of the board (a battery on the table, the low

@@ -19,10 +19,12 @@ const target = (temperature) => LM35.gain * Math.max(0, temperature);
 export const lm35 = {
   types: ['temperature-sensor'],
   kind: 'TMP',
-  params(part) {
+  // It senses the environment's temperature (../environment.js) unless the part gives its own.
+  senses: ['temperature'],
+  params(part, c) {
     const e = part.def.electrical;
     const grade = LM35.grades[e.grade] ?? LM35.grades.LM35DZ;
-    return { part: e.part, temperature: e.temperature, range: grade.range, accuracy: grade.limit, model: { ...LM35, ...part.raw.model } };
+    return { part: e.part, temperature: c?.env?.('temperature') ?? e.temperature, range: grade.range, accuracy: grade.limit, model: { ...LM35, ...part.raw.model } };
   },
   // Its rated range, at most −55 to 150 °C typed; the slider over what the basic circuit reads (0 °C up).
   controls: (p) => ({ temperature: { min: 0, max: p.range[1], limit: [-55, 150], scale: 'linear', unit: '°C', step: 1, value: p.temperature } }),

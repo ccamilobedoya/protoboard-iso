@@ -123,7 +123,7 @@ const partShape = z.object({ id: z.string(), type: z.string(), pins: z.union([z.
 const opShape = z
   .object({ op: z.enum(OP_NAMES) })
   .passthrough()
-  .describe('add {part} · remove {part: id} · move {part, pins} · set {part, field: value|null} · rename {part, to} · circuit {title|lang|board|view|clearance|netLabels|supplies|page}');
+  .describe('add {part} · remove {part: id} · move {part, pins} · set {part, field: value|null} · rename {part, to} · circuit {title|lang|board|view|clearance|netLabels|supplies|environment|page}');
 const READ = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
 

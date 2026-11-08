@@ -10,6 +10,7 @@ Modified nodal analysis (MNA) over the netlist the drawing already builds. Guide
 | `index.js` | `simulate(circuit, options)`: compile, then run the engine |
 | `compile.js` | Node only: circuit → *program* (plain JSON): groups, supplies, each part's device and parameters |
 | `engine.js` | runs a program: elements, floating groups, DC and transient analyses, readings and warnings. No dependencies outside `src/sim`: the page bundles it (`src/node/bundle.js`) |
+| `environment.js` | the environment sensors read: the registry of magnitudes, programs, its controls (id `'environment'`) and `check`'s `ENV_*` ([docs/en/environment.md](../../docs/en/environment.md)); bundleable |
 | `devices/` | one file per kind of part: elements, reading, limits (stresses), card lines, tag; the interface is at the top of `devices/index.js` |
 | `paths.js` | the conductor view: current paths, strip currents, voltage colours, dots |
 | `format.js` | results as text, in any language of `src/i18n` |
@@ -25,7 +26,8 @@ Rules:
 - **A new part kind** = one device file in `devices/` listed in `devices/index.js`, typical
   values in `models.js`, and **one test against an independent reference** in
   `test/sim.test.js` (a formula solved apart, or the datasheet). Never tune a model to make one
-  example look right. Guide: docs/en/adding-parts.md §5.
+  example look right. Guide: docs/en/adding-parts.md §5. **A sensor** adds `senses` and reads its
+  field with `c.env(field)` in `params` (§7); nothing else in `src/sim` changes.
 - **The golden file** (`test/fixtures/sim-golden.json`) holds today's output; refactors must
   leave it identical (`node scripts/golden.js`), intended changes rewrite it (`--write`).
 - **Results are a model.** Every output says so; pages show them only when the circuit asks.

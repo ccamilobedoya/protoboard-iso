@@ -72,7 +72,7 @@ function run(engine, h, watch, from) {
 export function cycles(program, { sets = [], start = 'dc', parts = null, perSecond = null } = {}) {
   const engine = createEngine(program);
   const program_ = Boolean(engine.hasProgram?.());
-  const pace = paceOf(engine.timeConstants(), engine.periods(), program_);
+  const pace = paceOf(engine.timeConstants(), engine.periods(), program_, engine.stimuli());
   if (!(pace.h > 0)) return { perSecond: 0, before: {}, after: {} };
   const speed = perSecond > 0 ? perSecond : pace.perSecond;
   let h = pace.h;
@@ -88,7 +88,7 @@ export function cycles(program, { sets = [], start = 'dc', parts = null, perSeco
   const before = run(engine, h, watch, engine.time);
   for (const s of sets) engine.set(s.id, s.field, s.value);
   // As the page does after a set: the same speed of time, a step never too long for the new constants.
-  const now = paceOf(engine.timeConstants(), engine.periods(), program_);
+  const now = paceOf(engine.timeConstants(), engine.periods(), program_, engine.stimuli());
   if (now.h > 0) h = now.periodic ? now.h : Math.min(h, now.h);
   const after = run(engine, h, watch, engine.time);
   return { perSecond: speed, before, after };

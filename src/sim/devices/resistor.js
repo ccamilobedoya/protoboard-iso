@@ -3,6 +3,9 @@
 // their readings carry `sensor` (what it senses).
 // Controls (page sliders): a resistor's value (log, standard E24 values, two decades either
 // side); a thermistor's temperature; a photoresistor's light (log).
+// Environment (../environment.js): a thermistor senses `temperature`, a photoresistor `light`.
+// Without a value of its own in the circuit it follows the shared field; its own slider, moved,
+// leaves the field (the engine stops following it for that part).
 
 import { resistor as resistorEl } from '../mna.js';
 import { RESISTOR_POWER } from '../models.js';
@@ -46,9 +49,17 @@ export const resistor = {
   controls: (p) => ({ resistance: { min: Math.max(1, (p.nominal ?? p.resistance) / 100), max: Math.min(10e6, (p.nominal ?? p.resistance) * 100), limit: [1e-3, 1e12], scale: 'log', unit: 'Ω', snap: 'E24', value: p.resistance } }),
   set: (p, field, value) => (field === 'resistance' ? { ...p, nominal: p.nominal ?? p.resistance, resistance: value } : null),
 };
+// A sensor's params at the environment's value when it follows it (compile.js, c.env).
+const sensing = (device, field) => (part, c) => {
+  const p = resistive.params(part);
+  const v = c?.env?.(field);
+  return v === undefined ? p : device.set(p, field, v);
+};
 export const thermistor = {
   types: ['thermistor'],
   ...resistive,
+  senses: ['temperature'],
+  params: (part, c) => sensing(thermistor, 'temperature')(part, c),
   controls: (p) => ({ temperature: { min: -20, max: 100, limit: [-55, 150], scale: 'linear', unit: '°C', step: 1, value: p.sensor.temperature } }),
   set(p, field, value) {
     if (field !== 'temperature') return null;
@@ -59,6 +70,8 @@ export const thermistor = {
 export const ldr = {
   types: ['ldr'],
   ...resistive,
+  senses: ['light'],
+  params: (part, c) => sensing(ldr, 'light')(part, c),
   // 0.1 lx (night) to 10 000 lx (daylight in the shade).
   controls: (p) => ({ light: { min: 0.1, max: 10000, limit: [0, 1e6], scale: 'log', unit: 'lx', value: Math.max(0.1, p.sensor.light) } }),
   set(p, field, value) {

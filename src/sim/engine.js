@@ -23,6 +23,16 @@
 //   engine.set(id, field, value) → ok      change it: the system is rebuilt, its state carried
 //                                          over (node voltages by name, capacitor and inductor
 //                                          memory, junction voltages) and solved again at once
+// The environment (environment.js; only when the circuit declares one): its fields are controls with
+// the id 'environment'; every part that follows a field changes with it (its device's `sense`).
+//   engine.set('environment', field, value) → ok   a value by hand (a program there pauses)
+//   engine.resume('environment', field) → ok       a paused program runs again, from its beginning
+//   engine.attach(id, field) → ok                  a part that left a field (its own control moved)
+//                                                  follows it again
+//   engine.environment() → { field: value }        the values now;  engine.stimuli() → [seconds…]
+//                                                  the span of each running program (the page's pace)
+// Programs move with simulated time, before each step (as a generator's wave); dc() and the start
+// take them at t = 0. transient() keeps the environment as it is (programs run in the page).
 //
 // Every result is a **model**: ideal strips, typical part values (models.js).
 
@@ -32,6 +42,7 @@ import { deviceOfProgram } from './devices/index.js';
 import { issue, q, volt, stressIssue } from './devices/shared.js';
 import { supplyControls, setSupply, stressLevel } from './controls.js';
 import { waveAt, peakOf } from './generator.js';
+import { createEnvironment, environmentControls } from './environment.js';
 
 const SHORT_CURRENT = 3; // amperes from an unlimited source that mean "short circuit"
 const ADVANCE_SPLITS = 4; // advance(h): halvings of a step that failed, at most (h/16)
@@ -64,6 +75,8 @@ function prepare(program) {
     const entry = { id: d.id, kind: d.kind, pins: d.pins.map((p) => ({ name: p.name, node: p.node, index: nodeIndex(p.node) })) };
     if (d.unsupported) entry.unsupported = true;
     else {
+      // A sensor: the fields it could follow, the ones it follows and their values (compile.js).
+      if (d.senses) entry.world = { senses: d.senses, follows: d.follows ?? [], env: d.env ?? {} };
       const device = deviceOfProgram(d);
       const h = {
         id: d.id,
@@ -176,6 +189,8 @@ function partReading(entry, x, ctx, floating) {
   if (entry.device) Object.assign(out, entry.device.read(entry, h));
   else out.unsupported = true;
   if (entry.pins.some((p) => floating.has(p.node))) out.floating = true;
+  // Which field of the environment it follows now, at which value, or its own value (lines.js).
+  if (entry.world) out.env = entry.world.senses.map((field) => (entry.world.follows.includes(field) ? { field, follows: true, value: entry.world.env[field] } : { field, follows: false }));
   out.pinCurrents = pinCurrents(entry, out, h);
   return out;
 }
@@ -273,11 +288,42 @@ export function createEngine(source) {
   let glowSum = new Map();
   let glowTime = 0;
   const memories = () => prep.system.elements.filter((el) => 'accept' in el);
+  const env = program.environment ? createEnvironment(program.environment.spec, program.environment.fields) : null;
+  // The program changed (a control, the environment): prepared again with the state carried over
+  // and, unless `solve` is false (a step solves it next), solved at once (a very short step, as at
+  // t = 0): a paused circuit shows the change too.
+  function rebuild(solve = true) {
+    const old = prep;
+    prep = prepare(program);
+    setTime(prep, time);
+    if (!x) return true;
+    // The memories hold the state at this instant; the new elements take it over.
+    if (pending) for (const el of old.system.elements) if ('accept' in el) el.accept(x, pending);
+    carryState(old, prep);
+    const start = new Array(prep.system.size).fill(0);
+    for (const [name, i] of prep.index) {
+      const j = old.index.get(name);
+      if (i >= 0 && j != null && j >= 0) start[i] = x[j];
+    }
+    if (!solve) {
+      x = start;
+      pending = null;
+      return true;
+    }
+    const now = { h: lastH * 1e-6 };
+    const r = solveWithLimits(prep, start, now);
+    if (!r.ok) return false;
+    x = r.x;
+    ctx = now;
+    pending = null;
+    return true;
+  }
   return {
     dc: () => dc(prep),
     transient: (options) => transient(prep, options),
     start(mode = 'dc', h = 1e-3) {
       lastH = h;
+      if (env) feel(program, env.rewind());
       prep = prepare(program);
       setTime(prep, 0);
       x = new Array(prep.system.size).fill(0);
@@ -303,6 +349,11 @@ export function createEngine(source) {
       const next = { h };
       lastH = h;
       setTime(prep, time + h);
+      // The environment's programs at the end of the step: the parts that follow them change first.
+      if (env && feel(program, env.at(time + h))) {
+        rebuild(false);
+        setTime(prep, time + h);
+      }
       // A failed step leaves everything as the last accepted one did: the sources at its time, and
       // the junctions' limiting voltages too, so a retry starts from that step and not from the
       // failed iterations.
@@ -368,33 +419,54 @@ export function createEngine(source) {
       return out;
     },
     periods: () => program.supplies.filter((s) => s.generator && !s.off).map((s) => 1 / s.generator.frequency),
-    controls: () => controlsOf(program),
+    controls: () => [...controlsOf(program), ...environmentControls(env)],
     // The program as the controls left it (a copy): what the page exports to Falstad.
     program: () => JSON.parse(JSON.stringify(program)),
     set(id, field, value) {
-      if (!changeProgram(program, id, field, value)) return false;
-      const old = prep;
-      prep = prepare(program);
-      setTime(prep, time);
-      if (!x) return true;
-      // The memories hold the state at this instant; the new elements take it over.
-      if (pending) for (const el of old.system.elements) if ('accept' in el) el.accept(x, pending);
-      carryState(old, prep);
-      const start = new Array(prep.system.size).fill(0);
-      for (const [name, i] of prep.index) {
-        const j = old.index.get(name);
-        if (i >= 0 && j != null && j >= 0) start[i] = x[j];
+      if (id === 'environment') {
+        if (!env?.set(field, value)) return false;
+        return feel(program, env.values()) ? rebuild() : true;
       }
-      // Solved at once (a very short step, as at t = 0): a paused circuit shows the change too.
-      const now = { h: lastH * 1e-6 };
-      const r = solveWithLimits(prep, start, now);
-      if (!r.ok) return false;
-      x = r.x;
-      ctx = now;
-      pending = null;
-      return true;
+      if (!changeProgram(program, id, field, value)) return false;
+      return rebuild();
     },
+    resume(id, field) {
+      if (id !== 'environment' || !env?.resume(field)) return false;
+      return feel(program, env.values()) ? rebuild() : true;
+    },
+    attach(id, field) {
+      const d = program.devices.find((dev) => dev.id === id && !dev.unsupported);
+      if (!env || !d?.senses?.includes(field)) return false;
+      if (d.follows?.includes(field)) return true;
+      d.follows = [...(d.follows ?? []), field];
+      d.env = { ...d.env, [field]: undefined };
+      if (!env.fields().includes(field)) env.set(field, env.value(field));
+      feel(program, env.values());
+      return rebuild();
+    },
+    environment: () => (env ? env.values() : {}),
+    stimuli: () => (env ? env.spans() : []),
   };
+}
+
+// The parts that follow a field take its new value (their device's `sense`, else its `set`): true
+// when one of them changed.
+function feel(program, values) {
+  let changed = false;
+  for (const d of program.devices) {
+    if (!d.follows?.length) continue;
+    const device = deviceOfProgram(d);
+    for (const field of d.follows) {
+      const v = values[field];
+      if (v === undefined || d.env[field] === v) continue;
+      const params = (device.sense ?? device.set)(d.params, field, v);
+      if (!params) continue;
+      d.params = params;
+      d.env[field] = v;
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 // What may change, from each device's and supply's controls (devices/*, controls.js). A drawn
@@ -430,6 +502,12 @@ function changeProgram(program, id, field, value) {
     const params = device.set(d.params, field, value);
     if (!params) return false;
     d.params = params;
+    // Its own control moved: the part leaves the field of the environment it was following.
+    if (d.follows) {
+      const left = d.follows.filter((f) => (device.ownField?.[f] ?? f) === field);
+      d.follows = d.follows.filter((f) => !left.includes(f));
+      for (const f of left) delete d.env[f];
+    }
     return true;
   }
   const s = program.supplies.find((sup) => (sup.part ?? sup.id) === id);

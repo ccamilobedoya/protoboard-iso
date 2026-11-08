@@ -16,7 +16,8 @@
 //   ground, drawn in its card.
 // - Controls (controls.js): sliders in the card and the circuit's panel, the momentary push
 //   button; a change re-solves at once. Limits (limits.js): checked every frame, shown as
-//   outlines and warnings.
+//   outlines and warnings. The environment's fields (sim/environment.js) are controls too; its
+//   programs move with simulated time (the engine), and their indicators follow with each repaint.
 //
 // Without requestAnimationFrame (jsdom) nothing is scheduled; tests drive it with
 // window.protoboardLive.tick(ms).
@@ -76,7 +77,7 @@ export function setupLive(page) {
 
   // Time: how fast simulated time runs, the step and the oscilloscope's window (sim/pace.js).
   const engine = createEngine(program);
-  const timing = (taus, periods) => paceOf(taus, periods, Boolean(engine.hasProgram?.()));
+  const timing = (taus, periods) => paceOf(taus, periods, Boolean(engine.hasProgram?.()), engine.stimuli?.() ?? []);
   const pace = timing(engine.timeConstants(), engine.periods());
   const dynamic = pace.h > 0;
   // A recording may set its own speed of time (a timeline's `pace`, s simulated per s of video).
@@ -499,7 +500,9 @@ export function setupLive(page) {
     }
     if (clock) clock.textContent = t('page.time.at', { t: f(engine.time, 's') });
     drawScope();
+    envRefresh?.();
   }
+  let envRefresh = null; // the environment's indicators and rows (controls.js), once they exist
 
   // Time controls, when the circuit has something that changes with time.
   let clock = null;
@@ -560,6 +563,7 @@ export function setupLive(page) {
     engine,
     t,
     decimal: live.decimal,
+    reading: () => reading,
     changed() {
       if (dynamic) {
         // A slider may change a time constant or a generator's frequency. Time keeps its speed
@@ -580,6 +584,7 @@ export function setupLive(page) {
       if (!quiet) repaint();
     },
   });
+  envRefresh = () => controls.refresh();
   // After the controls, so the link sits beside them in the bar.
   falstad = setupFalstad(page, { engine, t, f, reading: () => reading });
 

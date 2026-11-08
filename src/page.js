@@ -281,10 +281,10 @@ function explanations(lang) {
 // What the live page needs besides the program: the conductor view's pieces (with the current
 // layer), the texts its card lines, tags, clock, controls and warnings use, the probe captions
 // to fill in, the controls panel.
-function liveData(circuit, lang, flow, templates) {
+function liveData(circuit, lang, flow, templates, program) {
   const texts = {};
   const dict = { ...LANGUAGES.en, ...(LANGUAGES[lang] ?? {}) };
-  for (const key of Object.keys(dict)) if (/^(sim|state|probe)\.|^page\.(time|live|control|controls|warnings|falstad|scope|node|model|tour)\.|^check\.SIM_|^falstad\./.test(key)) texts[key] = t(lang, key);
+  for (const key of Object.keys(dict)) if (/^(sim|state|probe)\.|^page\.(time|live|control|controls|warnings|falstad|scope|node|model|tour|env)\.|^check\.SIM_|^falstad\./.test(key)) texts[key] = t(lang, key);
   const dc = flow ? simulate(circuit, { analysis: 'dc' }) : null;
   return {
     flow: dc?.ok ? liveFlow(buildCircuit(circuit), dc, circuit, flowStyle(circuit)) : null,
@@ -292,8 +292,11 @@ function liveData(circuit, lang, flow, templates) {
     decimal: decimalSeparator(lang),
     probes: templates,
     start: circuit.page?.start === 'zero' ? 'zero' : 'dc',
-    // The controls panel (page.controls): which control, its range and label in this language.
-    panel: (Array.isArray(circuit.page?.controls) ? circuit.page.controls : []).map((c) => ({ id: c.part ?? c.supply, field: c.field, min: c.min, max: c.max, scale: c.scale, label: localized(c.label, lang) ?? undefined })),
+    // The controls panel (page.controls): which control, its range and label in this language; an
+    // entry of the environment ({ environment: 'light' }) is the control 'environment' of that field.
+    panel: (Array.isArray(circuit.page?.controls) ? circuit.page.controls : []).map((c) => ({ id: c.environment != null ? 'environment' : (c.part ?? c.supply), field: c.environment ?? c.field, min: c.min, max: c.max, scale: c.scale, label: localized(c.label, lang) ?? undefined })),
+    // The whole environment in the side panel (page.environment): by default when a part follows it.
+    ...(program?.environment && (circuit.page?.environment ?? program.devices.some((d) => d.follows?.length)) === true && { environment: true }),
   };
 }
 
@@ -376,7 +379,7 @@ export function renderPage(circuit, options = {}) {
 
   // The simulation runs in the page with the results or the current layer.
   const compiled = results || flow ? compile(circuit) : null;
-  const live = compiled?.program ? liveData(circuit, lang, flow, templates) : null;
+  const live = compiled?.program ? liveData(circuit, lang, flow, templates, compiled.program) : null;
   // The tour plays in a live page only: its steps move controls and read the simulation.
   // A part's view up close (F5; page.focusView, or the option): the page carries the pinouts of every
   // part and, without a timeline, an empty one, so the player is there to run the view's steps
@@ -390,7 +393,7 @@ export function renderPage(circuit, options = {}) {
     strips: order,
     hits: Object.fromEntries(rendered.map((r) => [r.view, stripHits(r.scene, built, order)])),
     probes,
-    explain: { ...explanations(lang), ...kinds },
+    explain: { ...explanations(lang), ...kinds, ...(compiled?.program?.environment && { env: t(lang, 'explain.env') }) },
     focus: Array.isArray(circuit.page?.focus) ? circuit.page.focus : [],
     flowStyle: flow ? flowStyle(circuit) : null,
     // Screen units a millimetre up the drawing's z (the same in every view): how high a part lifted

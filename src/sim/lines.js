@@ -8,6 +8,7 @@
 
 import { formatValue } from '../core/units.js';
 import { deviceOfReading } from './devices/index.js';
+import { envText } from './environment.js';
 
 export function runtimeWords(hours, { t, decimal }) {
   const n = (x) => String(x).replace('.', decimal);
@@ -22,10 +23,21 @@ export function linesFor(p, { t, decimal }) {
   const raw = (key, text) => ({ key, text });
   if (p.unsupported) return [raw('unsupported', t('sim.unsupported'))];
   const h = { f, decimal, raw, q: (key, value) => ({ key, text: `${t(`sim.q.${key}`)}: ${value}` }), t, runtime: (hours) => runtimeWords(hours, { t, decimal }) };
-  const lines = deviceOfReading(p)?.lines(p, h);
-  if (lines === null) return [];
-  if (p.floating) (lines ?? []).push(raw('floating', t('sim.floating')));
-  return lines ?? [];
+  const own = deviceOfReading(p)?.lines(p, h);
+  if (own === null) return [];
+  const lines = own ?? [];
+  if (p.floating) lines.push(raw('floating', t('sim.floating')));
+  // A sensor in a circuit with an environment: the field it follows and its value, or its own value.
+  for (const e of p.env ?? []) lines.push(raw('env', envLine(e, { t, decimal })));
+  return lines;
+}
+
+// "Follows the environment · light 300 lx", or "Own value · light".
+export function envLine(e, { t, decimal }) {
+  const field = t(`sim.env.field.${e.field}`);
+  if (!e.follows) return t('sim.env.own', { field });
+  const value = envText(e.field, e.value, decimal) ?? t(e.value ? 'sim.env.on' : 'sim.env.off');
+  return t('sim.env.follows', { field, value });
 }
 
 // A node's card (stage 3, phase 9: a strip tapped): its voltage to ground, then the current of

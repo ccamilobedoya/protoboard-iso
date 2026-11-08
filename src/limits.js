@@ -4,6 +4,8 @@
 // 2 KB), so they only stop input that would take the memory or the time of the machine.
 // The rule they serve: CLAUDE.md, "External input".
 
+import { MAX_POINTS } from './sim/environment.js';
+
 export const LIMITS = {
   circuitBytes: 1_000_000, // a circuit file, or a circuit given whole (create_circuit, layout)
   parts: 1000, // parts in one circuit
@@ -14,6 +16,7 @@ export const LIMITS = {
   tourText: 280, // characters in one caption, second line or value label
   tourMs: 600_000, // ms: the last move of a timeline ends within ten minutes
   boardColumns: 600, // columns an elastic board grows to at most (a hole past them is not on the board)
+  envPoints: MAX_POINTS, // keyframes in one program of the environment (sim/environment.js, ENV_TOO_LARGE)
 };
 
 const tooLarge = (code, size, limit) => ({ severity: 'error', code, params: { size, limit } });
