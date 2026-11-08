@@ -22,7 +22,11 @@
 //   engine.controls() → [{ id, field, min, max, scale, unit, value… }]   what may change (controls.js)
 //   engine.set(id, field, value) → ok      change it: the system is rebuilt, its state carried
 //                                          over (node voltages by name, capacitor and inductor
-//                                          memory, junction voltages) and solved again at once
+//                                          memory, junction voltages, and the keys a device lists
+//                                          in `state`: a timed sensor's phase and clock) and
+//                                          solved again at once
+//   engine.stepHint() → seconds | null     the step a running PWM or tone needs, or an element's
+//                                          own `maxStep()` while it is timing
 // The environment (environment.js; only when the circuit declares one): its fields are controls with
 // the id 'environment'; every part that follows a field changes with it (its device's `sense`).
 //   engine.set('environment', field, value) → ok   a value by hand (a program there pauses)
@@ -30,7 +34,8 @@
 //   engine.attach(id, field) → ok                  a part that left a field (its own control moved)
 //                                                  follows it again
 //   engine.environment() → { field: value }        the values now;  engine.stimuli() → [seconds…]
-//                                                  the span of each running program (the page's pace)
+//                                                  the span of each running program and of each
+//                                                  element with a clock of its own (the page's pace)
 // Programs move with simulated time, before each step (as a generator's wave); dc() and the start
 // take them at t = 0. transient() keeps the environment as it is (programs run in the page).
 //
@@ -70,6 +75,7 @@ function prepare(program) {
   const elements = [];
   const parts = [];
   const owned = new Map(); // part id → its elements, in the order it added them (state carry-over)
+  const carried = new Map(); // part id → the keys of its elements to carry over: STATE and the device's own `state`
   // Each part: its device adds the elements and keeps what its reading needs (devices/).
   for (const d of program.devices) {
     const entry = { id: d.id, kind: d.kind, pins: d.pins.map((p) => ({ name: p.name, node: p.node, index: nodeIndex(p.node) })) };
@@ -93,6 +99,7 @@ function prepare(program) {
         supplies,
       };
       Object.assign(entry, d.params, { device }, device.elements(d.params, h));
+      if (device.state) carried.set(d.id, [...STATE, ...device.state]);
     }
     parts.push(entry);
   }
@@ -143,7 +150,7 @@ function prepare(program) {
   for (const s of supplies) if (!s.off) s.source = voltageSource(s.top, s.nIndex, row++, s.voltage);
   const references = tied.map((n) => voltageSource(n, -1, row++, 0));
   const all = [...elements, ...supplies.filter((s) => !s.off).flatMap((s) => [s.source, s.series].filter(Boolean)), ...references, ...anchors.values()];
-  return { issues, members: program.members, supplies, parts, owned, names, index, ground: program.ground, floating, system: { size: row, nodeCount, elements: all } };
+  return { issues, members: program.members, supplies, parts, owned, carried, names, index, ground: program.ground, floating, system: { size: row, nodeCount, elements: all } };
 }
 
 // Signal generators: their sources at time t (DC and the start are t = 0).
@@ -405,9 +412,13 @@ export function createEngine(source) {
     // A board runs a program: the page steps in real time even with no C, L or generator.
     hasProgram: () => prep.system.elements.some((el) => el.settle),
     // The step a running PWM or tone needs (a twentieth of its period), or null.
+    // An element with timers asks for a step of its own with `maxStep()` (seconds, or null when
+    // nothing is timing): a timed sensor's phase ends within it.
     stepHint() {
       const periods = prep.system.elements.map((el) => el.runner?.fastest?.()).filter((p) => p > 0);
-      return periods.length ? Math.min(...periods) / 20 : null;
+      const steps = prep.system.elements.map((el) => el.maxStep?.()).filter((s) => s > 0);
+      const hints = [...periods.map((p) => p / 20), ...steps];
+      return hints.length ? Math.min(...hints) : null;
     },
     // Each LED's brightness averaged over the steps since the last call ({ id: brightness }; a chip
     // of a part of several, { "D1.R": brightness }), or null when no step ran.
@@ -445,7 +456,9 @@ export function createEngine(source) {
       return rebuild();
     },
     environment: () => (env ? env.values() : {}),
-    stimuli: () => (env ? env.spans() : []),
+    // The page's real-time pace: the span of each environment program and the shortest time of each
+    // element that keeps its own clock (`span()`, seconds: a timed sensor's), as one list.
+    stimuli: () => [...(env ? env.spans() : []), ...prep.system.elements.map((el) => el.span?.()).filter((s) => s > 0)],
   };
 }
 
@@ -516,14 +529,16 @@ function changeProgram(program, id, field, value) {
 
 // What an element remembers between steps or Newton iterations: capacitor voltage, inductor
 // current, junction and transistor voltages. Matched by part and by the order the part added
-// its elements (a pressed button adds its contact last, after the poles).
+// its elements (a pressed button adds its contact last, after the poles). A device with memory of
+// its own (a timed sensor's phase and clock) lists the keys of its elements in `state` and they
+// are carried too; a key an element does not define from the start is not carried.
 const STATE = ['vprev', 'iprev', 'vd', 'vgs', 'vds', 'vbe', 'vbc', 'q', 'closed', 'wait', 'angle', 'mode', 'level', 'pull', 'runner'];
 function carryState(old, prep) {
   for (const [id, list] of prep.owned) {
     const before = old.owned.get(id) ?? [];
     list.forEach((el, k) => {
       const was = before[k];
-      if (was) for (const key of STATE) if (key in was && key in el) el[key] = was[key];
+      if (was) for (const key of prep.carried.get(id) ?? STATE) if (key in was && key in el) el[key] = was[key];
     });
   }
 }
