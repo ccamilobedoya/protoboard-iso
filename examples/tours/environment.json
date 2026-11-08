@@ -5,7 +5,7 @@
   "steps": [
     { "at": 0, "do": "frame", "target": "board", "move": "cut" },
     { "at": 0, "do": "caption", "text": { "en": "Sensors read the environment", "es": "Los sensores leen el ambiente" } },
-    { "at": 0, "do": "gauge", "environment": "light", "on": true },
+    { "at": 0, "do": "gauge", "environment": "light", "on": true, "min": 1, "max": 1000 },
     { "at": 1800, "do": "caption", "text": { "en": "With little light, the comparator lights the LED", "es": "Con poca luz, el comparador enciende el LED" } },
     { "at": 1800, "do": "focus", "parts": ["LDR1", "U1", "D1"] },
     { "at": 1800, "do": "frame", "target": ["LDR1", "D1"], "move": "arrival" },
@@ -13,7 +13,7 @@
     { "at": 4000, "do": "set", "environment": "light", "value": 5, "move": "travel", "ms": 1800 },
     { "at": 6800, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
     { "at": 9000, "do": "caption", "text": { "en": "Now it warms up: from 25 to 60 °C", "es": "Ahora se calienta: de 25 a 60 °C" } },
-    { "at": 9000, "do": "gauge", "environment": "temperature", "on": true },
+    { "at": 9000, "do": "gauge", "environment": "temperature", "on": true, "min": 20, "max": 70 },
     { "at": 9000, "do": "focus", "parts": ["TH1", "U2"] },
     { "at": 9000, "do": "frame", "target": ["TH1", "U2"], "move": "travel" },
     { "at": 11000, "do": "set", "environment": "temperature", "value": 60, "move": "travel", "ms": 1800 },

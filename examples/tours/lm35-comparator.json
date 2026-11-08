@@ -5,7 +5,7 @@
   "steps": [
     { "at": 0, "do": "frame", "target": "board", "move": "cut" },
     { "at": 0, "do": "caption", "text": { "en": "The LM35 gives 10 mV per degree", "es": "El LM35 da 10 mV por cada grado" } },
-    { "at": 0, "do": "gauge", "environment": "temperature", "on": true },
+    { "at": 0, "do": "gauge", "environment": "temperature", "on": true, "min": 20, "max": 70 },
     { "at": 2200, "do": "frame", "target": "U2", "move": "arrival" },
     { "at": 2200, "do": "focus", "parts": ["U2"] },
     { "at": 2200, "do": "flow", "on": true, "ramp": 600 },

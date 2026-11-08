@@ -5,7 +5,7 @@
   "steps": [
     { "at": 0, "do": "frame", "target": "board", "move": "cut" },
     { "at": 0, "do": "caption", "text": { "en": "An obstacle sensor: infrared that bounces back", "es": "Un sensor de obstáculos: infrarrojo que rebota" } },
-    { "at": 0, "do": "gauge", "environment": "distance", "on": true },
+    { "at": 0, "do": "gauge", "environment": "distance", "on": true, "min": 2, "max": 40 },
     { "at": 1800, "do": "focus", "parts": ["U1"] },
     { "at": 1800, "do": "frame", "target": "U1", "move": "arrival" },
     { "at": 1800, "do": "caption", "text": { "en": "Nothing near: OUT stays high and the buzzer is off", "es": "Nada cerca: OUT queda en alto y el zumbador apagado" } },
