@@ -1,5 +1,7 @@
 // A soil moisture indicator: the YL-69 fork's DO goes low in damp soil, and an LED from the supply
 // through 470 Ω into DO lights (DO sinks it: about 6 mA, with the board's own 3 mA, under its 20 mA).
+// The resistor goes between the LED and DO: the part that shares DO's strip stands right behind the
+// standing module, and a resistor there hides nothing that matters, while the LED sits in view.
 export default {
   name: 'soil-led',
   title: { en: 'Soil moisture LED with a YL-69 module', es: 'LED de humedad del suelo con un módulo YL-69' },
@@ -9,7 +11,7 @@ export default {
     { id: 'D1', type: 'led', color: 'green' },
     { id: 'R1', type: 'resistor', value: '470' },
   ],
-  nets: [['T+', 'U1.VCC', 'R1.1'], ['R1.2', 'D1.anode'], ['D1.cathode', 'U1.DO'], ['U1.GND', 'T-']],
+  nets: [['T+', 'U1.VCC', 'D1.anode'], ['D1.cathode', 'R1.1'], ['R1.2', 'U1.DO'], ['U1.GND', 'T-']],
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
   environment: { moisture: 20 },
   page: { controls: [{ environment: 'moisture' }, { part: 'U1', field: 'threshold' }] },
