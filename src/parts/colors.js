@@ -203,3 +203,13 @@ Object.assign(MATERIALS, {
 Object.assign(MATERIALS, {
   sonarMesh: '#3a3d42',
 });
+
+// The second night's analog modules: the KY-037's electret capsule and the voltage sensor's screw terminal.
+Object.assign(MATERIALS, {
+  micCan: '#b9bcc2',
+  micHole: '#1c1d21',
+  terminalBlue: '#2f66b8',
+});
+
+// The active buzzer's resin band.
+Object.assign(MATERIALS, { buzzerResin: '#5b4a2e' });

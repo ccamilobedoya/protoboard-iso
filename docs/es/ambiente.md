@@ -42,8 +42,12 @@ El rango del deslizador es lo que ofrece la página; el límite, lo que un valor
 circuito, un `set` o un programa por fuera se recortan, y `check` lo dice). Hoy lo leen el
 termistor y la fotorresistencia (`temperature`, `light`), el LM35 (`temperature`), el interruptor
 de inclinación (`tilt`) y los módulos de sensor con LM393 ([modulos-sensores.md](modulos-sensores.md):
-`rain`, `moisture`, `light`, `beam`, `distance` y `reflectance`, `field`, `vibration`, y `angle` para un
-disco de encoder) y el encoder rotativo KY-040 ([encoder-rotativo.md](encoder-rotativo.md): `angle` es el objetivo al que gira su eje) lo leen; los demás campos quedan listos para los sensores que vienen. `reflectance` (la
+`rain`, `moisture`, `light`, `beam`, `distance` y `reflectance`, `field`, `vibration`, `sound`, y `angle`
+para un disco de encoder), y también el sensor Hall lineal ([sensores-analogicos.md](sensores-analogicos.md):
+`field`) y el encoder rotativo KY-040 ([encoder-rotativo.md](encoder-rotativo.md): `angle` es el objetivo
+al que gira su eje); los demás campos quedan listos para los sensores que vienen. `field` lo leen el interruptor
+KY-024 y el 49E / KY-035 (un polo sur frente a la cara marcada es positivo); `sound`, en dB SPL, el módulo
+de micrófono KY-037. `reflectance` (la
 superficie bajo un seguidor de línea o frente a un sensor de obstáculos) y `beam` (algo en una ranura
 óptica) llegaron con esos módulos.
 El módulo ultrasónico HC-SR04 ([sensor-ultrasonico.md](sensor-ultrasonico.md)) lee `distance` y

@@ -157,7 +157,7 @@ entran por la pata. El transitorio trae `times` y las mismas magnitudes como lis
 | `SIM_SHORT_CIRCUIT` | una fuente sin límite que entrega más de 3 A; una batería cuya carga es de menos de medio ohmio |
 | `SIM_BATTERY_OFF`, `SIM_BATTERY_CHARGING`, `SIM_BATTERY_REVERSE` | una batería apagada; corriente que entra en ella (aviso fuerte si es alcalina, que no se recarga) |
 | `SIM_REG_DROPOUT`, `SIM_REG_HOT` | un regulador sin voltaje de entrada suficiente para regular; disipando más de lo que aguanta un TO-220 sin disipador (2 W) |
-| `SIM_BUZZER_DC` | corriente continua por un zumbador pasivo |
+| `SIM_BUZZER_DC` | corriente continua por un zumbador pasivo (el activo suena con continua: no le aplica) |
 | `SIM_RELAY_COIL`, `SIM_RELAY_KICK` | la bobina de un relé con más de su 120 % (6 V); su bobina cortada sin nada en paralelo, con el voltaje invertido muy por encima de la fuente (un diodo en paralelo con la bobina lo limita a cerca de 1 V) |
 | `SIM_MOTOR_VOLTAGE`, `SIM_MOTOR_STALL` | un motor DC sobre el tope de su rango de voltaje; frenado por su carga, tomando su corriente de bloqueo |
 | `SIM_FLOATING` | grupos sin camino de corriente continua hasta la fuente (por ejemplo, la compuerta de un MOSFET sin conectar) |
@@ -188,6 +188,9 @@ referencia independiente (una fórmula de libro resuelta aparte, o el dato de la
 | inductor | resistencia del alambre en serie; un corto en DC, Euler implícito en el transitorio | RL: I·(1 − e^(−t/τ)) |
 | termistor, fotorresistencia | resistencias cuyo valor sale de la temperatura (ecuación B) o de la luz (curva GL55) | ecuación B a 50 °C; GL5528 a 10 lx |
 | zumbador | su bobina, 16 Ω | — |
+| zumbador activo (TMB12A05) | una carga que no toma nada por debajo de 1,5 V y, desde 2,5 V, 5 V / 30 mA = 167 Ω (suavizado entre las dos); suena a 2,3 kHz desde 3,5 V entre sus pines, de + a −; al revés no toma nada y avisa por encima de 0,5 V | 30 mA a 5 V; en silencio y bajo 1 mA a 1 V |
+| sensor Hall lineal 49E | una fuente de Vs/2 + 1,4 mV/G · (Vs/5) · campo mantenida en [0,95 V, Vs − 0,95 V] tras 50 Ω, 6 mA de la alimentación; esfuerzos: alimentación sobre 8 V o invertida; avisos: bajo 2,7 V, más de 1,5 mA de salida | 2,500 / 2,640 / 2,360 V a 0 / +100 / −100 G y 5 V; 1,742 V a +100 G y 3,3 V; 4,05 V en el tope |
+| módulo sensor de voltaje | 30 kΩ de VIN a S y 7,5 kΩ de S a GND, un miliohmio que une − y GND; esfuerzo: la de 30 kΩ sobre 100 mW | S = 2,40 V y 0,32 mA con 12 V de entrada |
 | LED | Shockley + 10 Ω, Vf a 20 mA según el color; `"model": { "vf": 2.95 }` lo cambia | ecuación de la malla resuelta aparte |
 | LED RGB, display de 7 segmentos | un LED por chip entre su pata y la común (cátodo o ánodo), cada uno con su hoja de datos: RGB (YSL-R596CR3G4B5C-C10) rojo 2,0 V, verde y azul 3,2 V a 20 mA, 20 mA cada uno; segmentos del 5161AS / 5161BS 2,1 V a 20 mA, 20 mA y 40 mW cada uno; las dos patas comunes del display unidas por 0,05 Ω; esfuerzos por chip, con el nombre de su pata (`D1.R`); `"model": { "R": { "vf": 1.9 } }` cambia un chip | el Vf de cada chip a 20 mA según su hoja de datos; la común por cualquiera de sus patas |
 | interruptor deslizante, de inclinación | como un interruptor: el contacto que cierra su posición es su resistencia (SS-12D00 30 mΩ; SW-520D 10 Ω, el límite de la hoja), el abierto no está; esfuerzos: corriente (0,3 A; 25 mA) y el voltaje que sostiene un contacto abierto (30 V; 12 V) | caída del contacto I·R; la posición abierta no lleva nada |

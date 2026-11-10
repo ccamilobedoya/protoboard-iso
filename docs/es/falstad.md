@@ -33,7 +33,7 @@ Las dos usan el mismo exportador: `toFalstad(program, opciones)` en `src/sim/fal
 | Generador de señales | La fuente de Falstad con la misma onda, más su resistencia de salida | — |
 | Batería | Fuente con su resistencia interna en serie | Sí: la carga no baja con el uso |
 | NTC, fotorresistencia | Resistencia fija con su valor de ahora | Sí: los sensores de Falstad siguen otra curva |
-| Zumbador | Su bobina, como resistencia | Sí |
+| Zumbador | Su bobina, como resistencia (el activo, una resistencia de lo que toma ahora) | Sí |
 | Puente rectificador | Cuatro diodos con el mismo modelo | Sí |
 | Darlington (TIP120, BC517) | Sus dos transistores y sus dos resistencias | Sí |
 | Zener | El Zener de Falstad, calibrado para dejar pasar 5 mA al mismo voltaje | Sí: la rodilla es distinta |

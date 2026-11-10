@@ -220,7 +220,10 @@ times to the microsecond (the HC-SR04's echo) names its next edge with `until()`
 a step there; see [ultrasonic-sensor.md](ultrasonic-sensor.md).
 A sensor on the usual comparator board (rain, soil, light, an infrared slot or pair, a Hall switch,
 a vibration contact) is not a new type: it is one row of the `sensor-module` table, its element and
-a glyph ([sensor-modules.md](sensor-modules.md#adding-a-ninth-part)).
+a glyph ([sensor-modules.md](sensor-modules.md#adding-a-tenth-part)). A sensor whose output is a
+voltage that follows the field (the linear Hall sensor, the voltage sensor module) is a type of its own
+with a behavioural device ([analog-sensors.md](analog-sensors.md)); two devices may share a type
+(the active and the passive buzzer) when each one says which part numbers it `accepts`.
 
 An **emitter** is the other way round: a part whose electrical state writes a field (a laser adds
 light, [environment.md](environment.md#emitters)). Its device declares `emits: ['light']` and a pure

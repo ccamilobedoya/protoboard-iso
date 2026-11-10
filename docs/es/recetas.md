@@ -62,11 +62,11 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `lm35-comparator` | LM393 que compara un LM35 con una referencia de unos 0,42 V de un divisor; el LED se enciende por encima de unos 42 °C (siente `temperature`) | R1 = 10k, R2 = 910, R3 = 330, D1 = red |
 | `ntc-follower` | Divisor con termistor NTC copiado por un seguidor LM358 hacia una carga de 10k (siente `temperature`) | TH1 = 10k, R1 = 10k, R2 = 10k (carga), V1 = 9 V (5–30) |
 | `thermistor-uno` | Arduino UNO que lee un divisor con NTC en A0 y escribe `T=<°C>` cada segundo con la ecuación B (siente `temperature`) | TH1 = 10k, R1 = 10k, U1 = su programa (`program`) |
-| `rain-alarm` | Un módulo de lluvia MH-RD cuyo DO, en bajo cuando está mojado, enciende un PNP (S8550) que activa un zumbador | U1 = 0,5 (umbral, 0,05–0,95), R1 = 1k (base) |
+| `rain-alarm` | Un módulo de lluvia MH-RD cuyo DO, en bajo cuando está mojado, enciende un PNP (S8550) que activa un zumbador activo (TMB12A05, suena con continua) | U1 = 0,5 (umbral, 0,05–0,95), R1 = 1k (base) |
 | `soil-led` | Un módulo de suelo YL-69 que enciende un LED hacia su DO con el suelo húmedo | U1 = 0,5 (umbral), R1 = 470, D1 = verde |
 | `light-switch-module` | El módulo LDR-LM393 de 3 pines que enciende un LED hacia su DO con luz | U1 = 0,5 (umbral), R1 = 470, D1 = amarillo |
 | `line-follower-uno` | Arduino UNO que lee un seguidor de línea TCRT5000 (DO en D2, AO en A0) y escribe LINE / NO LINE | U2 = 0,5 (umbral), U1 = su programa |
-| `obstacle-buzzer` | Un módulo de obstáculos FC-51 que absorbe por su OUT la corriente de un zumbador | U1 = 0,5 (umbral), R1 = 470 |
+| `obstacle-buzzer` | Un módulo de obstáculos FC-51 cuyo OUT, en bajo ante un obstáculo, enciende un PNP que activa un zumbador activo | U1 = 0,5 (umbral), R1 = 1k (base) |
 | `hall-counter-uno` | Arduino UNO que cuenta las pasadas de un imán con un KY-024 (DO en D2, flancos de bajada) | U2 = 0,5 (umbral), U1 = su programa |
 | `encoder-uno` | Arduino UNO: un encoder rotativo KY-040 en D2 (CLK), D3 (DT) y D4 (SW), alimentado con el pin de 5 V; el programa cuenta clics (CLK cae, DT dice hacia dónde), escribe la cuenta cuando cambia y la pone en cero con el pulsador | U2 = 0 (bounce, ms), U1 = su programa |
 | `encoder-dimmer-uno` | lo mismo, con un LED en D9 (por R1) cuyo brillo PWM sigue a la cuenta, 13 cuentas por clic, la cuenta retenida entre 0 y 20 | R1 = 220, D1 = green, U1 = su programa |
@@ -75,6 +75,10 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `uno-distance` | Arduino UNO que mide distancia con un HC-SR04 (TRIG D9, ECHO D10, `pulseIn`, `us / 58`); ambiente `distance` 30 cm (rango 2–100) y 20 °C | U1 = su programa |
 | `esp32-distance` | ESP32 DevKit con un HC-SR04 en VIN (5 V): ECHO por un divisor de 1 kΩ / 2 kΩ para que el pin de 3,3 V vea 3,33 V | R1 = 1k, R2 = 2k, U1 = su programa |
 | `distance-alarm-uno` | `uno-distance` con un LED en D13 que se enciende a menos de 15 cm | R1 = 220, D1 = rojo, U1 = su programa |
+| `hall-linear-uno` | Arduino UNO que lee un sensor Hall lineal KY-035 en A0 e imprime el campo en gauss | U1 = su programa |
+| `clap-switch` | Arduino UNO que invierte un LED con cada palmada, desde el DO de un módulo de sonido KY-037 en D2 (flanco de bajada) | U2 = 0,497 (umbral), D1, R1, U1 = su programa |
+| `sound-level-led` | Un módulo de sonido KY-037 cuyo DO absorbe la corriente de un LED mientras el sonido es fuerte | U1 = 0,497 (umbral), R1 = 470 |
+| `voltage-sensor-uno` | Arduino UNO que mide una batería de 9 V con un módulo sensor de voltaje (divisor 5:1) en A0 e imprime los voltios | BT1 = su voltaje (1 a 25 V), U1 = su programa |
 
 `parts` (consola) las lista con su título; el `catalog` compacto (MCP) solo da sus nombres, por grupo (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), para ser corto; `catalog` con el nombre de una receta
 (`parts <nombre>` en la consola) muestra su título y su grupo, lo que enseña, sus componentes, redes, fuente, y el papel y

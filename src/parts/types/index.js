@@ -19,6 +19,7 @@ import { sensorModule } from './sensor-modules.js';
 import { rotaryEncoder } from './rotary-encoder.js';
 import { laser } from './laser.js';
 import { ultrasonicSensor } from './ultrasonic.js';
+import { hallSensor, voltageSensor } from './analog-sensors.js';
 import { WIRE_COLORS } from '../colors.js';
 
 const wire = {
@@ -42,4 +43,4 @@ const wire = {
 // names one in its definition (`family`); a test fails for a type without one or outside this list.
 export const FAMILIES = ['passive', 'semiconductor', 'led', 'control', 'sensor', 'ic', 'power', 'output', 'module', 'connection'];
 
-export const PART_TYPES = Object.fromEntries([resistor, capacitor, potentiometer, diode, zener, bridge, led, mosfet, bjt, ic, regulator, button, wire, battery, module, toggle, inductor, thermistor, ldr, buzzer, header, rgbLed, sevenSegment, slideSwitch, tiltSwitch, temperatureSensor, relay, motor, pirSensor, touchSensor, sensorModule, rotaryEncoder, laser, ultrasonicSensor].map((t) => [t.type, t]));
+export const PART_TYPES = Object.fromEntries([resistor, capacitor, potentiometer, diode, zener, bridge, led, mosfet, bjt, ic, regulator, button, wire, battery, module, toggle, inductor, thermistor, ldr, buzzer, header, rgbLed, sevenSegment, slideSwitch, tiltSwitch, temperatureSensor, relay, motor, pirSensor, touchSensor, sensorModule, rotaryEncoder, laser, ultrasonicSensor, hallSensor, voltageSensor].map((t) => [t.type, t]));

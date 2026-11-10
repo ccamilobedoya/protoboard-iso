@@ -2925,7 +2925,8 @@
                         "distance",
                         "field",
                         "vibration",
-                        "angle"
+                        "angle",
+                        "sound"
                       ]
                     },
                     "min": {
@@ -3107,7 +3108,11 @@
                       "laser-uno",
                       "uno-distance",
                       "esp32-distance",
-                      "distance-alarm-uno"
+                      "distance-alarm-uno",
+                      "hall-linear-uno",
+                      "voltage-sensor-uno",
+                      "clap-switch",
+                      "sound-level-led"
                     ]
                   },
                   "values": {

@@ -9,6 +9,7 @@ planning live at the root: [ROADMAP.md](../../ROADMAP.md), [PLANNING.md](../../P
 - [Adding a part, a package or a board](adding-parts.md): Start with the smallest change that works.
 - [Agent interface: resume, inspect, change](agent-interface.md): How an assistant, an agent or a script picks up an existing circuit and changes it safely.
 - [Agents](agents.md): Three Claude Code subagents, defined in `.claude/agents/`, split the work so the main conversation stays light.
+- [Analog sensors: a linear Hall sensor and a voltage sensor module](analog-sensors.md): Some sensors answer with a **voltage that follows what they sense**, not with a yes or no: the `hall-sensor` (a 49E, bare or on its KY-035 module) and the `voltage-sensor` module.
 - [Architecture](architecture.md): The split between **type** and **package** is what makes parts reusable: a 1N4007 diode and a resistor share the axial package; an IRLZ44N MOSFET and a TIP120 transistor share TO-220.
 - [Circuit file format (version 1)](circuit-format.md): Keys are in English, so the format is the same in every language.
 - [Code map](code-map.md): Where everything lives and how the pieces talk to each other.

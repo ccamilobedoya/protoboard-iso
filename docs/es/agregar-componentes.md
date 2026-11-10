@@ -227,7 +227,10 @@ cuya salida un programa mide al microsegundo (el eco del HC-SR04) nombra su pró
 `until()`, y el motor termina un paso ahí; mira [sensor-ultrasonico.md](sensor-ultrasonico.md).
 Un sensor en la placa de comparador de siempre (lluvia, suelo, luz, una ranura o un par infrarrojo,
 un interruptor Hall, un contacto de vibración) no es un tipo nuevo: es una fila de la tabla de
-`sensor-module`, su elemento y un glifo ([modulos-sensores.md](modulos-sensores.md#agregar-una-novena-pieza)).
+`sensor-module`, su elemento y un glifo ([modulos-sensores.md](modulos-sensores.md#agregar-una-décima-pieza)). Un sensor cuya salida es un voltaje que sigue al campo (el sensor Hall
+lineal, el módulo sensor de voltaje) es un tipo propio con un dispositivo de comportamiento
+([sensores-analogicos.md](sensores-analogicos.md)); dos dispositivos pueden compartir un tipo (el zumbador
+activo y el pasivo) cuando cada uno dice qué números de parte `accepts`.
 
 Un **emisor** es al revés: una pieza cuyo estado eléctrico escribe un campo (un láser agrega luz,
 [ambiente.md](ambiente.md#emisores)). Su dispositivo declara `emits: ['light']` y una función pura

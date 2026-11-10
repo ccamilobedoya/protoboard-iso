@@ -30,7 +30,7 @@ Both use one exporter: `toFalstad(program, options)` in `src/sim/falstad.js`.
 | Signal generator | Falstad's source with the same wave, plus its output resistance | — |
 | Battery | Source with its internal resistance in series | Yes: its charge does not run down |
 | NTC, photoresistor | Fixed resistor at its value now | Yes: Falstad's sensors follow other curves |
-| Buzzer | Its coil, as a resistor | Yes |
+| Buzzer | Its coil, as a resistor (the active one, a resistor of what it takes now) | Yes |
 | Bridge rectifier | Four diodes with the same model | Yes |
 | Darlington (TIP120, BC517) | Its two transistors and two resistors | Yes |
 | Zener | Falstad's Zener, set to pass 5 mA at the same voltage | Yes: another knee |

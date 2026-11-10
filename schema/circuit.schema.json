@@ -170,7 +170,11 @@
                 "laser-uno",
                 "uno-distance",
                 "esp32-distance",
-                "distance-alarm-uno"
+                "distance-alarm-uno",
+                "hall-linear-uno",
+                "voltage-sensor-uno",
+                "clap-switch",
+                "sound-level-led"
               ]
             },
             "values": {
@@ -2909,7 +2913,8 @@
                   "distance",
                   "field",
                   "vibration",
-                  "angle"
+                  "angle",
+                  "sound"
                 ]
               },
               "min": {
@@ -3051,7 +3056,9 @@
             "sensor-module",
             "rotary-encoder",
             "laser",
-            "ultrasonic-sensor"
+            "ultrasonic-sensor",
+            "hall-sensor",
+            "voltage-sensor"
           ]
         },
         "pins": {
@@ -3132,7 +3139,7 @@
         },
         "part": {
           "type": "string",
-          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270), sensor-module (MH-RD, YL-69, LDR-LM393, SLOT-IR, TCRT5000-M, KY-024, SW-420-M, FC-51), rotary-encoder (KY-040), laser (KY-008, the default), ultrasonic-sensor (HC-SR04, the default) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
+          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270), sensor-module (MH-RD, YL-69, LDR-LM393, SLOT-IR, TCRT5000-M, KY-024, SW-420-M, FC-51), rotary-encoder (KY-040), laser (KY-008, the default), ultrasonic-sensor (HC-SR04, the default, KY-037), hall-sensor (KY-035 default, 49E), voltage-sensor (VOLT-25V), buzzer (TMB12A05: the active one; without it, the passive) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
         },
         "package": {
           "type": "string"
@@ -3444,7 +3451,13 @@
         },
         "field": {
           "type": "number",
-          "description": "sensor-module KY-024: its own magnetic field, G (+ a south pole at its face), instead of the environment's"
+          "description": "sensor-module KY-024, hall-sensor: its own magnetic field, G (+ a south pole at its face), instead of the environment's"
+        },
+        "sound": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 140,
+          "description": "sensor-module KY-037: its own sound level, dB SPL, instead of the environment's"
         },
         "vibration": {
           "type": [

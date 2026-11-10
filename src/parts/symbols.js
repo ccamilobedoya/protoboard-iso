@@ -242,9 +242,10 @@ function battery(series) {
 
 // A buzzer (IEC 60617: a dome on a flat base), its two leads down from the base; + by pin 1, the side
 // its top is marked.
-const buzzer = () => ({
+// The active one has its oscillator drawn inside the dome (a small square wave).
+const buzzer = (active = false) => ({
   w: 100, h: 100,
-  strokes: ['M22 58A28 28 0 0 1 78 58Z', 'M36 58V96', 'M64 58V96'],
+  strokes: ['M22 58A28 28 0 0 1 78 58Z', 'M36 58V96', 'M64 58V96', ...(active ? ['M38 52H44V44H50V52H56V44H62'] : [])],
   fills: [],
   texts: [{ x: 30, y: 82, text: '+', anchor: 'end' }],
   pins: { 1: [36, 96], 2: [64, 96] },
@@ -445,6 +446,28 @@ const ultrasonicSymbol = () => ({
   ids: { VCC: 'VCC', TRIG: 'TRIG', ECHO: 'ECHO', GND: 'GND' },
 });
 
+// A linear Hall sensor as a block with the Hall plate's symbol (a square with a cross): supply on top,
+// the output out of the right side, ground under it; each pin's letter as the part prints it.
+const hallSymbol = (names, roles, title) => ({
+  w: 100, h: 100,
+  strokes: ['M24 30H76V70H24Z', 'M50 4V30', 'M76 50H96', 'M50 70V96', 'M38 40H52V58H38Z', 'M45 44V54M41 49H49'],
+  fills: [],
+  texts: [{ x: 46, y: 22, text: title, anchor: 'end', quiet: true }, { x: 72, y: 53, text: 'OUT', anchor: 'end', small: true }],
+  pins: { [roles.vcc]: [50, 4], [roles.out]: [96, 50], [roles.gnd]: [50, 96] },
+  ids: Object.fromEntries(names.map((n) => [n, n === '-' ? '-' : n])),
+});
+
+// The voltage sensor module: a 30 kΩ from VIN down to S and a 7.5 kΩ from S to ground; the board's "+"
+// goes nowhere. The terminal's contacts are VIN (top) and GND (bottom); S comes out of the middle.
+const voltageSensorSymbol = (title) => ({
+  w: 100, h: 100,
+  strokes: ['M40 4V14', 'M34 14H46V38H34Z', 'M40 38V50', 'M40 50V58', 'M34 58H46V82H34Z', 'M40 82V96', 'M40 50H96', 'M4 28H14', 'M4 4H40', 'M4 96H40'],
+  fills: [],
+  texts: [{ x: 52, y: 29, text: '30k', anchor: 'start', small: true }, { x: 52, y: 73, text: '7.5k', anchor: 'start', small: true }, { x: 92, y: 45, text: 'S', anchor: 'end', small: true }, { x: 18, y: 31, text: 'N/C', anchor: 'start', quiet: true }, { x: 80, y: 90, text: title, anchor: 'end', quiet: true }],
+  pins: { VIN: [4, 4], S: [96, 50], GND: [4, 96], '-': [40, 96], '+': [4, 28] },
+  ids: { VIN: 'VIN', S: 'S', GND: 'GND', '-': '-', '+': '+' },
+});
+
 export function symbolOf(part) {
   const e = part.def?.electrical ?? {};
   const names = part.pinNames ?? [];
@@ -464,7 +487,7 @@ export function symbolOf(part) {
   if (part.type === 'switch') return e.style === 'latching' ? latching(names) : rocker(names);
   if (part.type === 'regulator') return regulator(names, e.part ?? part.raw?.part ?? '', Boolean(e.family));
   if (part.type === 'battery') return battery(e.series ?? e.cells ?? 1);
-  if (part.type === 'buzzer') return buzzer();
+  if (part.type === 'buzzer') return buzzer(e.kind === 'BZA');
   if (part.type === 'rgb-led') return rgbLed(e.common === 'anode');
   if (part.type === 'seven-segment') return sevenSegment(e.common === 'anode');
   if (part.type === 'slide-switch') return slideSwitch(e.on === true);
@@ -479,6 +502,8 @@ export function symbolOf(part) {
   if (part.type === 'ultrasonic-sensor') return ultrasonicSymbol();
   if (part.type === 'sensor-module') return sensorModuleSymbol(names, part.def?.params?.print, e.part ?? '');
   if (part.type === 'laser') return laserSymbol();
+  if (part.type === 'hall-sensor') return hallSymbol(names, e.roles, e.part ?? '');
+  if (part.type === 'voltage-sensor') return voltageSensorSymbol(e.part ?? '');
   return null;
 }
 
@@ -526,6 +551,8 @@ export function insideOf(part) {
   // A buzzer's coil (a resistor to the simulator) and the current its rating allows (P = I²R).
   if (part.type === 'buzzer') {
     const { resistance, maxPower } = limits();
+    // The active one: its oscillator is inside, and what it takes is its device's rating.
+    if (e.kind === 'BZA') return { kind: 'buzzer-active', ids: ids(), minVoltage: limits().model?.minVoltage, frequency: limits().model?.frequency, maxCurrent: limits().model?.current };
     return { kind: 'buzzer', ids: ids(), resistance, maxCurrent: resistance > 0 ? Math.sqrt(maxPower / resistance) : null };
   }
   if (part.type === 'led') return { kind: 'led', color: LED_LIGHT[e.color] ?? LED_LIGHT.red };
@@ -555,6 +582,10 @@ export function insideOf(part) {
     const { temperature, range, model = {} } = limits();
     return { kind: 'lm35', ids: ids(), temperature, range, gain: model.gain, maxCurrent: model.maxCurrent };
   }
+  // A linear Hall sensor: its field from the circuit file (the reading's once it runs), which pin is which.
+  if (part.type === 'hall-sensor') return { kind: 'hall', ids: ids(), names: part.pinNames, roles: e.roles, field: limits().field };
+  // A voltage sensor module: the divider's two resistors.
+  if (part.type === 'voltage-sensor') return { kind: 'divider5', ids: ids(), names: part.pinNames, upper: limits().model?.upper, lower: limits().model?.lower };
   // A relay: its coil's thresholds and its nominal voltage (its device's model), the pins in use.
   if (part.type === 'relay') {
     const { model = {} } = limits();

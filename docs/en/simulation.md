@@ -151,7 +151,7 @@ answer has `times` and the same quantities as arrays.
 | `SIM_SHORT_CIRCUIT` | an unlimited supply delivering more than 3 A; a battery whose load is under half an ohm |
 | `SIM_BATTERY_OFF`, `SIM_BATTERY_CHARGING`, `SIM_BATTERY_REVERSE` | a battery switched off; current pushed into it (a warning for alkaline cells, which cannot be recharged) |
 | `SIM_REG_DROPOUT`, `SIM_REG_HOT` | a regulator without enough input voltage to regulate; dissipating more than a TO-220 handles without a heatsink (2 W) |
-| `SIM_BUZZER_DC` | steady DC through a passive buzzer |
+| `SIM_BUZZER_DC` | steady DC through a passive buzzer (the active one sounds on DC: it does not apply) |
 | `SIM_RELAY_COIL`, `SIM_RELAY_KICK` | a relay's coil driven over its 120 % (6 V); its coil cut off with nothing across it, its voltage reversed far past the supply (a diode across the coil holds it to about 1 V) |
 | `SIM_MOTOR_VOLTAGE`, `SIM_MOTOR_STALL` | a DC motor over the top of its voltage range; held still by its load, drawing its stall current |
 | `SIM_FLOATING` | groups with no DC path to the supply (an unconnected MOSFET gate, for example) |
@@ -182,6 +182,9 @@ reference (a textbook formula solved separately, or the datasheet figure).
 | inductor | winding resistance in series; a short in DC, backward Euler in transient | RL: I·(1 − e^(−t/τ)) |
 | thermistor, photoresistor | resistors whose value comes from the temperature (B equation) or the light (GL55 curve) | B equation at 50 °C; GL5528 at 10 lx |
 | buzzer | its coil, 16 Ω | — |
+| active buzzer (TMB12A05) | a load that takes nothing under 1.5 V and, from 2.5 V up, 5 V / 30 mA = 167 Ω (rounded between); sounds at 2.3 kHz from 3.5 V across it, + to −; reversed it takes nothing and warns over 0.5 V | 30 mA at 5 V; silent and under 1 mA at 1 V |
+| linear Hall sensor 49E | a source of Vs/2 + 1.4 mV/G · (Vs/5) · field held in [0.95 V, Vs − 0.95 V] behind 50 Ω, 6 mA from the supply; stresses: supply over 8 V or reversed; notes: under 2.7 V, over 1.5 mA out | 2.500 / 2.640 / 2.360 V at 0 / +100 / −100 G and 5 V; 1.742 V at +100 G and 3.3 V; 4.05 V clamped |
+| voltage sensor module | 30 kΩ from VIN to S and 7.5 kΩ from S to GND, a milliohm joining − and GND; stress: the 30 kΩ over 100 mW | S = 2.40 V and 0.32 mA at 12 V in |
 | LED | Shockley + 10 Ω, Vf at 20 mA by colour; `"model": { "vf": 2.95 }` overrides | loop equation solved apart |
 | RGB LED, 7-segment display | one LED per chip between its pin and the common (cathode or anode), each with its own datasheet: RGB (YSL-R596CR3G4B5C-C10) red 2.0 V, green and blue 3.2 V at 20 mA, 20 mA each; 5161AS / 5161BS segments 2.1 V at 20 mA, 20 mA and 40 mW each; a display's two common pins joined by 0.05 Ω; stresses per chip, named by its pin (`D1.R`); `"model": { "R": { "vf": 1.9 } }` overrides one chip | each chip's Vf at 20 mA from its datasheet; the common by either pin |
 | slide switch, tilt switch | as a switch: the contact its position closes is its resistance (SS-12D00 30 mΩ; SW-520D 10 Ω, the sheet's bound), the open one is not there; stresses: current (0.3 A; 25 mA) and the voltage an open contact holds (30 V; 12 V) | contact drop I·R; the open throw carries nothing |

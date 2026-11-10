@@ -14,10 +14,13 @@ dice qué elemento lleva.
 El código: `src/parts/sensors.js` (`SENSOR_MODULES`: la tabla de los números de parte y las fórmulas
 de los elementos), `src/parts/types/sensor-modules.js` (el tipo), `src/parts/packages/sensor-module.js`
 (el dibujo), `src/sim/devices/sensor-module.js` (la simulación). Recetas: `rain-alarm`, `soil-led`,
-`light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`
-([recetas.md](recetas.md)); líneas de tiempo `examples/tours/soil-led.json` y `obstacle-buzzer.json`.
-`rain-alarm` activa su zumbador con un PNP, no con un NPN: DO baja cuando el módulo detecta, y un NPN
-manejado por él sonaría con el peine seco.
+`light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`, `clap-switch`,
+`sound-level-led` ([recetas.md](recetas.md)); líneas de tiempo `examples/tours/soil-led.json`,
+`obstacle-buzzer.json` y `clap-switch.json`. `rain-alarm` y `obstacle-buzzer` activan un zumbador activo
+con un PNP, no con un NPN: DO baja cuando el módulo detecta, y un NPN manejado por él sonaría con el
+peine seco (el zumbador necesita 3,5 V entre sus pines y unos 30 mA, más de lo que aguanta la salida de
+20 mA del LM393). Los sensores analógicos que no van en esta placa (el Hall lineal 49E, el módulo sensor
+de voltaje) están en [sensores-analogicos.md](sensores-analogicos.md).
 
 ## La placa común
 
@@ -45,7 +48,7 @@ VCC ─┬─ 1 kΩ ─ LED de encendido ─ GND
 - Corrientes a 5 V: unos 3,9 mA con DO en alto, 7,5 mA con DO en bajo; los infrarrojos suman los
   25 mA de su LED (unos 29 mA en total).
 
-## Las ocho piezas
+## Las nueve piezas
 
 | Pieza | Pines de la placa | Campo que siente (valor propio) | Elemento | DO en bajo quiere decir |
 |---|---|---|---|---|
@@ -57,6 +60,7 @@ VCC ─┬─ 1 kΩ ─ LED de encendido ─ GND
 | `KY-024` | DO + G AO | `field` (`field`, G) | interruptor Hall A3144, enciende a 160 G, apaga a 105 G | un polo sur cerca |
 | `SW-420-M` | DO GND VCC | `vibration` (`vibration`) | contacto de resorte, 10 Ω cerrado | en reposo (alto mientras vibra) |
 | `FC-51` | OUT GND VCC | `distance`, `reflectance` (los dos) | LED IR y receptor lado a lado | un obstáculo (9 cm para el blanco) |
+| `KY-037` | DO + G AO | `sound` (`sound`, dB SPL) | cápsula de electreto, su polarización en VCC/2 | un sonido fuerte (más de unos 98 dB) |
 
 Un valor en la pieza gana sobre el ambiente del circuito, campo por campo
 ([ambiente.md](ambiente.md)); mover el control propio de la pieza en su ficha la separa de ese campo.
@@ -81,6 +85,18 @@ Cada elemento, en corto:
   está (vive en el `closed` del elemento, que el motor conserva cuando se mueve un deslizador). AO salta
   entre unos 0,09 V y VCC. El chip está especificado desde 4,5 V: con 3,3 V funciona pero dice
   `SIM_MODULE_LOW_SUPPLY`.
+- **Sonido (KY-037)**: una cápsula de electreto con un JFET y una polarización de 10 kΩ, así que AO queda
+  en **VCC/2** (2,5 V a 5 V) y el audio va montado encima: 6,3 mV rms por pascal,
+  `Vrms = 6,3 mV · 10^((dB − 94) / 20)`, cuyo pico es 8,9 mV a 94 dB, 17,8 mV a 100 dB y 56 mV a 110 dB.
+  El kit lo hace como una **envolvente**: AO sigue siendo la polarización continua y la tarjeta muestra al
+  lado el pico de la señal, y DO baja mientras ese pico sea mayor que la distancia entre AO y Vref,
+  `Vpk > Vbias − Vref` (lo hace una fuente del pico entre el trimmer y el comparador; no hay forma de
+  onda ni tiempo de retención). El trimmer parte con Vref 15 mV por debajo de la polarización (`threshold`
+  0,497 a 5 V), así que DO baja por encima de unos 98,5 dB; el deslizador de `threshold` lo mueve de a
+  0,05 %. **La placa real necesita su trimmer ajustado a milivoltios de la polarización** (un trimmer de
+  25 vueltas, girado hasta que el LED de DO apenas se apaga en una sala silenciosa): unos milivoltios de
+  más y nunca dispara o queda siempre en bajo, que es la experiencia que este modelo conserva. De cerca,
+  el elemento es la cápsula: un diafragma cargado frente a una placa. Siente el `sound` del ambiente.
 - **Vibración**: al sacudirlo, el contacto rebota en celdas de 10 ms ± 50 %, abierto el primer 40 % de
   cada una, con el patrón fijo por una semilla (`seed` en la pieza, si no su id), así que DO llega en
   ráfagas de unos 100 pulsos por segundo; cuando para, queda cerrado en una celda más. La página da
@@ -95,14 +111,14 @@ Cada elemento, en corto:
 | `SIM_IC_SUPPLY` | VCC por encima de 5,5 V (lo que aguanta la placa; un aviso, así 5 V no se lee como cerca) |
 | `SIM_REVERSE_VOLTAGE` | VCC invertido más de 0,3 V |
 | `SIM_OVER_CURRENT` | DO absorbiendo más de 20 mA (`U1.DO`, o `U1.OUT` en el FC-51, que imprime OUT), un LED IR por encima de 60 mA (`U1.IR`), la salida Hall por encima de 25 mA |
-| `SIM_MODULE_LOW_SUPPLY` | VCC por debajo de los 2 V del LM393, o de los 4,5 V del chip Hall |
+| `SIM_MODULE_LOW_SUPPLY` | VCC por debajo de los 2 V del LM393, o de los 4,5 V del chip Hall (el sensor Hall lineal, de 2,7 V, también la usa) |
 | `SIM_MODULE_CORROSION` | corriente continua por un peine mojado o por el suelo (información) |
 
-## Agregar una novena pieza
+## Agregar una décima pieza
 
 Una fila en `SENSOR_MODULES` (`src/parts/sensors.js`): sus pines en el orden en que los imprime la
 placa (y `print` cuando lo impreso es distinto), los campos que siente (`own` cuando la pieza llama
-distinto a uno), su elemento (uno de los ocho tipos, o uno nuevo con su fórmula en el mismo archivo y
+distinto a uno), su elemento (uno de los nueve tipos: el `electret` del KY-037 es el último, o uno nuevo con su fórmula en el mismo archivo y
 su elemento en el dispositivo), el total del trimmer y sus parámetros con sus marcas de origen. Un
 glifo en `glyph()` del paquete cuando su elemento se ve distinto. Luego su texto de descripción
 (`describe.sensor-module.<pieza>`), una comprobación contra la fórmula propia del elemento en

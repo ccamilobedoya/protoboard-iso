@@ -100,7 +100,8 @@ test('B1: the catalog lists the eight part numbers, each with its pins in the sp
   assert.equal(entry.kind, 'type');
   const listed = Array.isArray(entry.parts) ? entry.parts : Object.keys(entry.parts);
   for (const part of PARTS) assert.ok(listed.includes(part), `${part} is listed: ${listed}`);
-  assert.equal(listed.length, 8, `exactly the eight: ${listed}`);
+  // Nine since the second night added the KY-037 (S5): the only change to this test.
+  assert.equal(listed.length, 9, `the eight and the KY-037: ${listed}`);
   assert.ok(!Array.isArray(entry.parts), 'parts is keyed by part number so that each one tells its pins');
   for (const part of PARTS) {
     const pins = entry.parts[part].pins.map(canonical);

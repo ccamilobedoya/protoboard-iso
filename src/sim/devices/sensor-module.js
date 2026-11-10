@@ -24,6 +24,11 @@
 // LED wired as on the other boards (so the SW-420's is lit at rest; `active: 'high'` says DO high is
 // its detection), the Hall chip a switch (not the linear 49E).
 //
+// The KY-037's electret capsule (the ENVELOPE form of docs/en/sensor-modules.md): AO is the DC bias,
+// VCC/2 through the element's 10 kΩ, and the sound's AC peak (6.3 mV rms at 94 dB) is not on AO but in
+// the comparator: DO is low while the peak takes AO under Vref, i.e. while Vpk > Vbias − Vref. A source
+// of the peak between the trimmer's Vref and the comparator's input does it; the card shows the peak.
+//
 // Readings: the stimulus, the element (Ω, or its current), AO, Vref, DO (also as `vout`, what a
 // timeline's value step reads) and its state, the sink current
 // into DO, the supply current, the IR LED's current. Stresses: VCC reversed,
@@ -32,9 +37,9 @@
 // module on 5 V wired to a 3.3 V board's pin drives it with VCC through DO (or AO): the board's own
 // check (SIM_PIN_OVERVOLTAGE, ./mcu.js) says so.
 
-import { resistor, comparatorStage } from '../mna.js';
+import { resistor, comparatorStage, partSource } from '../mna.js';
 import { OPAMPS, GMIN } from '../models.js';
-import { SENSOR_MODULES, MODULE_BOARD, moduleResistance, moduleLight } from '../../parts/sensors.js';
+import { SENSOR_MODULES, MODULE_BOARD, moduleResistance, moduleLight, electretPeak } from '../../parts/sensors.js';
 import { stress, note, q } from './shared.js';
 
 const volt = (x, i) => (i >= 0 ? x[i] : 0);
@@ -210,7 +215,7 @@ function seedOf(id) {
 // Numbers only from the circuit's `model` (it travels to the page as JSON).
 const numbers = (o) => Object.fromEntries(Object.entries(o ?? {}).filter(([, v]) => typeof v === 'number' || typeof v === 'string'));
 const OPTICAL = ['slot', 'reflective', 'obstacle'];
-const RESISTIVE = ['comb', 'probe', 'ldr'];
+const RESISTIVE = ['comb', 'probe', 'ldr', 'electret'];
 // The control of each stimulus on the part: its own name, and its slider.
 const CONTROL = {
   rain: ['wetness', { min: 0, max: 1, limit: [0, 1], scale: 'linear', unit: '', percent: true, step: 0.01 }],
@@ -221,6 +226,7 @@ const CONTROL = {
   distance: ['distance', { min: 0, max: 40, limit: [0, 1000], scale: 'linear', unit: 'cm', step: 0.05 }],
   field: ['field', { min: -500, max: 500, limit: [-10000, 10000], scale: 'linear', unit: 'G', step: 1 }],
   vibration: ['vibration', { scale: 'toggle' }],
+  sound: ['sound', { min: 30, max: 110, limit: [0, 140], scale: 'linear', unit: 'dB', step: 1 }],
 };
 // A TCRT5000 sees 0 to 3 cm; an FC-51 up to about 40 cm.
 const DISTANCE = { reflective: { max: 3 }, obstacle: { min: 1, max: 40, step: 0.5 } };
@@ -230,7 +236,7 @@ export const sensorModule = {
   types: ['sensor-module'],
   kind: 'SNS',
   // Each part number senses some of these (its record lists the ones it asked about).
-  senses: ['rain', 'moisture', 'light', 'beam', 'reflectance', 'distance', 'field', 'vibration', 'angle'],
+  senses: ['rain', 'moisture', 'light', 'beam', 'reflectance', 'distance', 'field', 'vibration', 'angle', 'sound'],
   ownField: { rain: 'wetness' },
   params(part, c) {
     const e = part.def.electrical;
@@ -247,7 +253,8 @@ export const sensorModule = {
     return { part: e.part, element: v.element, names, doPin: v.do ?? 'DO', active: v.active ?? 'low', threshold: e.threshold, stim, seed: e.seed ?? seedOf(part.id), model };
   },
   controls(p) {
-    const out = { threshold: { min: 0, max: 1, limit: [0, 1], scale: 'linear', unit: '', percent: true, step: 0.005, value: p.threshold } };
+    // The KY-037's trimmer is set within millivolts of the bias: a finer slider.
+    const out = { threshold: { min: 0, max: 1, limit: [0, 1], scale: 'linear', unit: '', percent: true, step: p.element === 'electret' ? 0.0005 : 0.005, value: p.threshold } };
     for (const field of Object.keys(p.stim)) {
       if (!CONTROL[field]) continue;
       const [name, shape] = CONTROL[field];
@@ -276,6 +283,10 @@ export const sensorModule = {
     const out = h.pin(p.doPin);
     const ao = has('AO') ? h.pin('AO') : h.inner();
     const vref = h.inner();
+    // The electret's envelope: DO low while its AC peak takes AO under Vref, so the comparator's reference
+    // is the trimmer's Vref raised by the peak (a source between the two; the input draws nothing).
+    const electret = p.element === 'electret';
+    const refIn = electret ? h.inner() : vref;
     const lm = { ...OPAMPS.LM393 };
     const els = {
       power: h.add(ledElement(vcc, gnd, m.rLed, m.ledVf)),
@@ -284,8 +295,9 @@ export const sensorModule = {
       upper: h.add(resistor(vcc, vref, Math.max(m.rTrim * (1 - p.threshold), 1e-3))),
       lower: h.add(resistor(vref, gnd, Math.max(m.rTrim * p.threshold, 1e-3))),
       own: h.add(resistor(vcc, gnd, lm.quiescentAt / lm.quiescent)),
-      comparator: h.add(comparatorStage({ p: ao, n: vref, out, vee: gnd }, lm)),
+      comparator: h.add(comparatorStage({ p: ao, n: refIn, out, vee: gnd }, lm)),
     };
+    if (electret) els.shift = h.add(partSource(refIn, vref, electretPeak(m, p.stim.sound)));
     const high = m.side === 'high' && (RESISTIVE.includes(p.element) || p.element === 'vibration');
     els.fixed = h.add(high ? resistor(ao, gnd, m.rFixed) : resistor(vcc, ao, m.rFixed));
     const [top, bottom] = high ? [vcc, ao] : [ao, gnd];
@@ -319,12 +331,13 @@ export const sensorModule = {
     if (entry.names.includes('AO')) currents.AO = topSide ? fixed - through : through - fixed;
     currents.GND = -Object.values(currents).reduce((s, c) => s + c, 0);
     let value;
-    if (RESISTIVE.includes(entry.element)) value = { resistance: moduleResistance(entry.element, m, entry.stim) };
+    if (entry.element === 'electret') value = { resistance: moduleResistance(entry.element, m, entry.stim), peak: electretPeak(m, entry.stim.sound) };
+    else if (RESISTIVE.includes(entry.element)) value = { resistance: moduleResistance(entry.element, m, entry.stim) };
     else if (OPTICAL.includes(entry.element)) value = { current: through, light: entry.sensor.available(x) };
     else if (entry.element === 'hall') value = { on: Boolean(entry.sensor.closed), current: through };
     else value = { open: entry.sensor.open() };
     const detected = entry.active === 'high' ? !low : low;
-    return { part: entry.part, element: entry.element, stim: { ...entry.stim }, threshold: entry.threshold, value, vcc, ao, vref, vdo, vout: vdo, low, detected, active: entry.active, sink, supply, ir, currents, current: supply };
+    return { part: entry.part, element: entry.element, ...(value.peak !== undefined && { peak: value.peak }), stim: { ...entry.stim }, threshold: entry.threshold, value, vcc, ao, vref, vdo, vout: vdo, low, detected, active: entry.active, sink, supply, ir, currents, current: supply };
   },
   limits(entry, r) {
     const m = entry.model;
@@ -347,7 +360,8 @@ export const sensorModule = {
     const field = Object.keys(p.stim).find((f) => f !== 'angle');
     for (const f of Object.keys(p.stim)) lines.push(h.q(`sensor-module.${f}`, stimText(f, p.stim[f], h)));
     const e = p.value;
-    if (e.resistance !== undefined) lines.push(h.q('sensor-module.resistance', h.f(e.resistance, 'Ω')));
+    if (e.peak !== undefined) lines.push(h.q('sensor-module.peak', h.f(e.peak, 'V')));
+    else if (e.resistance !== undefined) lines.push(h.q('sensor-module.resistance', h.f(e.resistance, 'Ω')));
     else if (e.light !== undefined) lines.push(h.q('sensor-module.photo', h.f(Math.abs(e.current) < 1e-9 ? 0 : e.current, 'A')));
     else if (e.on !== undefined) lines.push(h.q('sensor-module.hall', h.t(e.on ? 'sim.sensor-module.hall.on' : 'sim.sensor-module.hall.off')));
     else lines.push(h.q('sensor-module.contact', h.t(e.open ? 'sim.sensor-module.contact.open' : 'sim.sensor-module.contact.closed')));
@@ -391,7 +405,7 @@ function stimText(field, value, h) {
   if (field === 'rain') return `${Math.round(value * 100)} %`;
   if (field === 'beam') return h.t(value ? 'sim.sensor-module.beam.blocked' : 'sim.sensor-module.beam.clear');
   if (field === 'vibration') return h.t(value ? 'sim.sensor-module.vibration.on' : 'sim.sensor-module.vibration.off');
-  const unit = { moisture: '%', light: 'lx', reflectance: '%', distance: 'cm', field: 'G', angle: '°' }[field];
+  const unit = { moisture: '%', light: 'lx', reflectance: '%', distance: 'cm', field: 'G', angle: '°', sound: 'dB' }[field];
   const n = field === 'light' ? Number(value.toPrecision(value < 1 ? 1 : value < 100 ? 2 : 3)) : Math.round(value * 100) / 100;
   return `${String(n).replace('.', h.decimal)} ${unit}`;
 }

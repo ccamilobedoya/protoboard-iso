@@ -41,7 +41,6 @@ export function describeKeys(part) {
     case 'inductor':
     case 'thermistor':
     case 'ldr':
-    case 'buzzer':
     case 'header':
     case 'rgb-led':
     case 'seven-segment':
@@ -76,6 +75,12 @@ export function describeKeys(part) {
       return [e.role ? `module.${e.role}` : 'module', `module.${e.family}`];
     case 'sensor-module':
       return ['sensor-module', `sensor-module.${e.part}`];
+    case 'hall-sensor':
+      return ['hall-sensor', `hall-sensor.${e.part}`];
+    case 'voltage-sensor':
+      return ['voltage-sensor'];
+    case 'buzzer':
+      return ['buzzer', ...(e.kind === 'BZA' ? ['buzzer.active'] : [])];
     case 'battery':
       return ['battery', `battery.${e.chemistry}`, ...(e.cells > 1 ? ['battery.series'] : [])];
     default:
