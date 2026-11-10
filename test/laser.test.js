@@ -175,6 +175,19 @@ test('laser-tripwire tour: validates, 20–30 s, Spanish captions, a gauge of li
   assert.ok(raw.steps.filter((s) => s.do === 'caption').every((s) => s.text?.es));
 });
 
+test('laser-uno: a transient (the MCP simulate tool) couples the laser to the photoresistor a step later', () => {
+  const r = simulate(circuitOf('laser-uno').circuit, { analysis: 'transient', stop: 1.2, step: 5e-3 });
+  assert.ok(r.ok);
+  const laser = r.parts.LS1.current;
+  const { current, voltage } = r.parts.LDR1;
+  const half = (lit, pick) => pick.filter((_, k) => k > 0 && (laser[k - 1] > 0.02) === lit).map(Math.abs);
+  assert.ok(half(true, laser.map((_, k) => k)).length > 50 && half(false, laser.map((_, k) => k)).length > 50, 'both halves sampled');
+  // Its voltage falls more than 5 times while the laser shines (about 1.6 V to 0.06 V); its current, in
+  // series with 10 kΩ, rises by about half (0.34 to 0.49 mA): the fixed resistor sets most of it.
+  assert.ok(Math.min(...half(false, voltage)) > 5 * Math.max(...half(true, voltage)));
+  assert.ok(Math.min(...half(true, current)) > 1.3 * Math.max(...half(false, current)));
+});
+
 // ---------------------------------------------------------------- the page (jsdom)
 
 async function loadPage(html) {
