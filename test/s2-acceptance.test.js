@@ -123,7 +123,9 @@ test('environment: reflectance (%, linear, limit 0…100, default 80, a level) a
   const b = FIELDS.beam;
   assert.ok(b, 'beam');
   assert.deepEqual([b.kind, b.default, b.limit], ['switch', 0, [0, 1]]);
-  assert.deepEqual(Object.keys(FIELDS).slice(-2), ['reflectance', 'beam'], 'appended at the end of FIELDS, one line each');
+  // Appended after the first fourteen (later sensors append after them: pressure).
+  const keys = Object.keys(FIELDS);
+  assert.deepEqual(keys.slice(14, 16), ['reflectance', 'beam'], 'appended at the end of FIELDS, one line each');
 });
 
 test('environment: a circuit may declare reflectance and beam, and check accepts their limits', () => {
