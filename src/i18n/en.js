@@ -1551,4 +1551,5 @@ export default {
   'check.SIM_PROGRAM_NOT_IN_KIT': '{part}: {name} (line {line}) is not in the kit yet; its reads give NaN.',
   'sim.env.field.pressure': 'pressure',
   'sim.env.altitude': '{altitude} m in the standard atmosphere',
+  'page.tour.legend.climate.membrane': 'Lid: a membrane over a sealed cavity, it bends with the air pressure (BME280, BMP280)',
 };

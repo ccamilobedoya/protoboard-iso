@@ -296,12 +296,11 @@ test('pinout: a relay\'s coil by COM with no polarity, a motor\'s red lead', () 
 // orientation mark when it can go in the wrong way round, and a view of its inside with its legend. Each
 // type of the kit is either complete or listed as pending with its reason: a new type must be one or
 // the other, so the choice is made, never forgotten.
-const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1', potentiometer: 'potentiometer-led RV1', thermistor: 'more-parts RT1', ldr: 'more-parts LDR1', button: 'button-pullup S1', switch: 'switches S1', regulator: 'regulator-7805 U1', battery: 'battery-regulator BT1', buzzer: 'more-parts BZ1', 'rgb-led': 'uno-rgb-led D1', 'seven-segment': 'uno-seven-segment DS1', 'slide-switch': 'slide-switch-leds S1', 'tilt-switch': 'tilt-alarm S1', 'temperature-sensor': 'lm35-uno U2', relay: 'relay-npn K1', motor: 'motor-npn M1', 'pir-sensor': 'pir-lamp U1', 'touch-sensor': 'touch-toggle-led U1', 'sensor-module': 'soil-led U1', 'rotary-encoder': 'encoder-uno U2', laser: 'laser-tripwire LS1', 'ultrasonic-sensor': 'uno-distance U2' };
+const COMPLETE = { bjt: 'npn-switch Q1', mosfet: 'mosfet-switch Q1', led: 'npn-switch D1', ic: '555-astable U1', resistor: 'npn-switch R1', capacitor: 'rc-square-wave C1', inductor: 'more-parts L1', diode: 'half-wave-rectifier D1', zener: 'zener-regulator D1', bridge: 'bridge-rectifier BR1', potentiometer: 'potentiometer-led RV1', thermistor: 'more-parts RT1', ldr: 'more-parts LDR1', button: 'button-pullup S1', switch: 'switches S1', regulator: 'regulator-7805 U1', battery: 'battery-regulator BT1', buzzer: 'more-parts BZ1', 'rgb-led': 'uno-rgb-led D1', 'seven-segment': 'uno-seven-segment DS1', 'slide-switch': 'slide-switch-leds S1', 'tilt-switch': 'tilt-alarm S1', 'temperature-sensor': 'lm35-uno U2', relay: 'relay-npn K1', motor: 'motor-npn M1', 'pir-sensor': 'pir-lamp U1', 'touch-sensor': 'touch-toggle-led U1', 'sensor-module': 'soil-led U1', 'rotary-encoder': 'encoder-uno U2', laser: 'laser-tripwire LS1', 'ultrasonic-sensor': 'uno-distance U2', 'climate-sensor': 'uno-dht11 U2' };
 const PENDING = {
   wire: 'not a part on a pedestal',
   module: 'a development board: its own pin notes, no pedestal view',
   header: 'pins only: nothing to show inside',
-  'climate-sensor': 'its view up close comes in the next change',
 };
 
 test('a part up close: every part type is complete or pending with a reason, and the complete ones have it all', async () => {

@@ -1211,6 +1211,43 @@ const INSIDE = {
     label(g, 50, 103, r ? [`${vcc} ${v(r.vcc)}`, `${trig} ${v(r.vtrig)}`, `${echo} ${v(r.vecho)}`].join(' · ') : '', 'note');
     label(g, 50, 114, r ? t(`page.tour.inside.sonar.${state}`) : '', 'state');
   },
+  climate(g, r, data, { t, f }) {
+    // What a climate sensor senses: a film between two electrodes that takes up water vapour (its dots
+    // grow with the humidity), a thermistor's column (the temperature), on a BME280 / BMP280 a membrane
+    // over a sealed cavity that bends with the pressure; under them the chip that turns them into the
+    // numbers it sends when the board asks, and what it would answer now.
+    const s = r?.sensor ?? {};
+    const temperature = s.temperature ?? data.temperature ?? 25;
+    const humidity = s.humidity ?? 50;
+    const pressure = s.pressure ?? 1013.25;
+    if (data.humidity) {
+      make(g, 'rect', { class: 'plate', x: 8, y: 16, width: 30, height: 3 });
+      make(g, 'rect', { class: 'film', x: 8, y: 20, width: 30, height: 12 });
+      make(g, 'rect', { class: 'plate', x: 8, y: 33, width: 30, height: 3 });
+      const dots = Math.round(Math.max(0, Math.min(100, humidity)) / 10);
+      for (let k = 0; k < dots; k++) make(g, 'circle', { class: 'soc', cx: fixed(11 + (k % 5) * 6), cy: k < 5 ? 23.5 : 28.5, r: 1.4 });
+      label(g, 23, 46, `${Math.round(humidity)} %RH`, 'note', 'middle', FIGURE.small);
+    }
+    const k = Math.max(0, Math.min(1, (temperature + 20) / 120));
+    make(g, 'rect', { class: 'gauge', x: 46, y: 12, width: 6, height: 26 });
+    make(g, 'rect', { x: 46, y: fixed(12 + 26 * (1 - k)), width: 6, height: fixed(26 * k), fill: HEAT_COLOR, opacity: fixed(0.35 + 0.6 * k) });
+    label(g, 49, 46, celsius(temperature, f), 'note', 'middle', FIGURE.small);
+    if (data.pressure) {
+      // The cavity's lid bows in with more pressure, out with less (1013 hPa: flat).
+      const bow = Math.max(-6, Math.min(6, (pressure - 1013.25) / 50));
+      make(g, 'path', { class: 'lead', d: 'M62 38V22M94 38V22M62 38H94' });
+      make(g, 'path', { class: 'metal', d: `M62 22Q78 ${fixed(22 + 2 * bow)} 94 22V20Q78 ${fixed(20 + 2 * bow)} 62 20Z` });
+      label(g, 78, 46, `${Math.round(pressure)} hPa`, 'note', 'middle', FIGURE.small);
+    }
+    make(g, 'rect', { class: 'core', x: 18, y: 56, width: 64, height: 22, rx: 2 });
+    label(g, 50, 70, data.part ?? '', 'pin-name', 'middle', FIGURE.small);
+    make(g, 'path', { class: 'lead', d: 'M23 38V56M49 38V56M78 38V56' });
+    const a = r?.answer;
+    const answer = a ? [Number.isFinite(a.temperature) && celsius(a.temperature, f), Number.isFinite(a.humidity) && `${String(Math.round(a.humidity * 100) / 100).replace('.', decimalOf(f))} %RH`, Number.isFinite(a.pressure) && `${Math.round(a.pressure / 100)} hPa`].filter(Boolean).join(' · ') : '';
+    label(g, 50, 92, data.ids.join(' · '), 'pin-name', 'middle', FIGURE.small);
+    label(g, 50, 103, answer, 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.climate.${r.state}`) : '', 'state');
+  },
 };
 
 // `reading()`, `t`, `f` as the tour has them; `look()`: the current layer's scale (bench.js); `now()`:

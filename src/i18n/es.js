@@ -1549,4 +1549,5 @@ export default {
   'check.SIM_PROGRAM_NOT_IN_KIT': '{part}: {name} (línea {line}) todavía no está en el kit; sus lecturas dan NaN.',
   'sim.env.field.pressure': 'presión',
   'sim.env.altitude': '{altitude} m en la atmósfera estándar',
+  'page.tour.legend.climate.membrane': 'Tapa: una membrana sobre una cavidad sellada, se dobla con la presión del aire (BME280, BMP280)',
 };

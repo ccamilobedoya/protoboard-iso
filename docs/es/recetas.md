@@ -75,6 +75,9 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `uno-distance` | Arduino UNO que mide distancia con un HC-SR04 (TRIG D9, ECHO D10, `pulseIn`, `us / 58`); ambiente `distance` 30 cm (rango 2–100) y 20 °C | U1 = su programa |
 | `esp32-distance` | ESP32 DevKit con un HC-SR04 en VIN (5 V): ECHO por un divisor de 1 kΩ / 2 kΩ para que el pin de 3,3 V vea 3,33 V | R1 = 1k, R2 = 2k, U1 = su programa |
 | `distance-alarm-uno` | `uno-distance` con un LED en D13 que se enciende a menos de 15 cm | R1 = 220, D1 = rojo, U1 = su programa |
+| `uno-dht11` | Arduino UNO con un módulo DHT11 en D2 leído con la biblioteca DHT cada 2 s (`isnan` imprime `fail`); ambiente 24 °C (rango 0–50) y 41 %HR (rango 20–90) ([sensores-de-biblioteca.md](sensores-de-biblioteca.md)) | U1 = su programa |
+| `esp32-bme280` | ESP32 DevKit con una placa BME280 en 3V3 y GPIO22/21: `begin(0x76)`, luego temperatura, presión en hPa, humedad y altitud cada segundo; ambiente con la presión (rango 900–1050 hPa) | U1 = su programa |
+| `uno-bmp280-altitude` | Arduino UNO con una placa BMP280 en su pin de 3,3 V (la placa no tiene regulador) y A4/A5, que imprime la altitud; ambiente con la presión (rango 700–1050 hPa) | U1 = su programa |
 
 `parts` (consola) las lista con su título; el `catalog` compacto (MCP) solo da sus nombres, por grupo (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), para ser corto; `catalog` con el nombre de una receta
 (`parts <nombre>` en la consola) muestra su título y su grupo, lo que enseña, sus componentes, redes, fuente, y el papel y

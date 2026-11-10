@@ -254,3 +254,103 @@ test('a part\'s own value wins over the environment, and its card says what it w
   assert.equal(r.parts.U2.answer.humidity, 50, 'the environment\'s humidity');
   assert.ok(engine.controls().some((c) => c.id === 'U2' && c.field === 'temperature'));
 });
+
+// ---------------------------------------------------------------- the three recipes, the tour, up close
+
+import { readFileSync } from 'node:fs';
+import { expandRecipe } from '../src/recipes/index.js';
+import { checkCircuit, inspectCircuit, buildCircuit } from '../src/index.js';
+import { tourIssues, loadTour } from '../src/tour.js';
+import { symbolOf, insideOf } from '../src/parts/symbols.js';
+import { pinList } from '../src/pinout.js';
+
+const recipe = (name) => {
+  const { spec, problems } = expandRecipe(name);
+  assert.deepEqual(problems, []);
+  return autoLayout(spec);
+};
+for (const name of ['uno-dht11', 'esp32-bme280', 'uno-bmp280-altitude']) {
+  test(`${name}: DONE, check clean, every part at least half seen in one of the two views`, () => {
+    const r = recipe(name);
+    assert.equal(r.status, 'done', JSON.stringify(r.review.blocking));
+    const bad = checkCircuit(r.circuit).issues.filter((i) => i.severity === 'error' || i.severity === 'warning');
+    assert.deepEqual(codes(bad), []);
+    const seen = new Map();
+    for (const view of ['front', 'back']) {
+      const report = inspectCircuit(r.circuit, { view });
+      assert.deepEqual(report.problems.filter((p) => (p.severity === 'error' || p.severity === 'warning') && p.code !== 'PART_HIDDEN'), [], view);
+      for (const p of report.parts) seen.set(p.id, Math.max(seen.get(p.id) ?? 0, p.visible));
+    }
+    for (const [id, visible] of seen) assert.ok(visible >= 0.5, `${id}: ${Math.round(visible * 100)} % at best`);
+    assert.deepEqual(codes(simulate(r.circuit).issues.filter((i) => i.severity !== 'info')), []);
+  });
+}
+
+const runRecipe = (name) => {
+  const engine = createEngine(compile(recipe(name).circuit).program);
+  assert.ok(engine.start('dc', 1e-3));
+  return engine;
+};
+const lineWith = (reading, ...values) => serial(reading).find((l) => values.every((v) => new RegExp(`\\b${v}(\\.|\\b)`).test(l)));
+
+test('uno-dht11: a line with 24 and 41 within 2.5 s; after 31 °C a line with 31 within 2.1 s more', () => {
+  const engine = runRecipe('uno-dht11');
+  const first = runTo(engine, 2.5);
+  assert.equal(lineWith(first, 24, 41), 'T: 24.00 C  H: 41.00 %');
+  assert.ok(engine.set('environment', 'temperature', 31));
+  const later = runTo(engine, 4.6);
+  assert.ok(lineWith(later, 31), serial(later).join(' | '));
+});
+
+test('esp32-bme280 prints 1013 hPa within 2 s; uno-bmp280-altitude about 0 m, then 988.7 m at 900 hPa', () => {
+  const bme = runTo(runRecipe('esp32-bme280'), 2);
+  assert.match(serial(bme)[0], /^T: 22\.00 C {2}P: 1013\.25 hPa {2}H: 45\.00 % {2}alt: 0\.00 m$/);
+  const engine = runRecipe('uno-bmp280-altitude');
+  assert.equal(serial(runTo(engine, 0.5))[0], 'alt: 0.00 m');
+  assert.ok(engine.set('environment', 'pressure', 900));
+  assert.match(serial(runTo(engine, 1.6)).at(-1), /^alt: 988\.[67]\d m$/);
+});
+
+test('uno-dht11 tour: validates, 25–35 s, Spanish captions, gauges of temperature and humidity, both moved with travel', () => {
+  const raw = JSON.parse(readFileSync(new URL('../examples/tours/uno-dht11.json', import.meta.url), 'utf8'));
+  const circuit = recipe('uno-dht11').circuit;
+  circuit.page = { ...circuit.page, tour: raw };
+  assert.deepEqual(tourIssues(circuit), []);
+  assert.ok(loadTour(circuit, 'es').tour);
+  const last = Math.max(...raw.steps.map((s) => s.at + (s.ms ?? 0)));
+  assert.ok(last >= 25000 && last <= 35000, `${last} ms`);
+  assert.ok(raw.steps.filter((s) => s.do === 'caption').every((s) => s.text.es));
+  assert.deepEqual(raw.steps.filter((s) => s.do === 'gauge').map((s) => s.environment).sort(), ['humidity', 'temperature']);
+  assert.deepEqual(raw.steps.filter((s) => s.do === 'set').map((s) => [s.environment, s.value, s.move]), [['temperature', 31, 'travel'], ['humidity', 70, 'travel']]);
+});
+
+test('a BME280 up close: its pins, symbol letters, mark and inside view', () => {
+  const part = buildCircuit(recipe('esp32-bme280').circuit).parts.find((p) => p.id === 'U2');
+  assert.deepEqual(pinList(part, 'en').map((p) => p.text), ['VCC · supply, 3.3 V', 'GND · ground, 0 V', 'SCL · I2C clock, pulled up', 'SDA · I2C data, pulled up']);
+  const symbol = symbolOf(part);
+  for (const n of part.pinNames) assert.ok(symbol.ids[n] && symbol.pins[n], n);
+  assert.ok(part.built.mark);
+  assert.deepEqual(insideOf(part), { kind: 'climate', ids: ['VCC', 'GND', 'SCL', 'SDA'], part: 'BME280', humidity: true, pressure: true, temperature: 25 });
+});
+
+test('page: the pressure row says the altitude, its indicator is a barometer', async (t) => {
+  let JSDOM;
+  try {
+    ({ JSDOM } = await import('jsdom'));
+  } catch {
+    return t.skip('jsdom not installed');
+  }
+  const { renderPage } = await import('../src/page.js');
+  const { html } = renderPage(recipe('esp32-bme280').circuit, { lang: 'es' });
+  const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://page.test/bme.html?static' });
+  const { window } = dom;
+  const rect = () => ({ left: 0, top: 0, right: 800, bottom: 500, width: 800, height: 500 });
+  window.document.querySelector('main').getBoundingClientRect = rect;
+  for (const svg of window.document.querySelectorAll('svg')) svg.getBoundingClientRect = rect;
+  window.eval(html.match(/<script>([\s\S]*)<\/script>/)[1]);
+  const rows = [...window.document.querySelectorAll('.side .environment .env-row')];
+  const pressure = rows.find((r) => r.querySelector('svg.gauge-pressure'));
+  assert.ok(pressure, 'a row with the barometer');
+  assert.ok(pressure.querySelector('svg.gauge-pressure .face'));
+  assert.match(pressure.querySelector('output').textContent, /^1013,25 hPa · 0 m en la atmósfera estándar$/);
+});

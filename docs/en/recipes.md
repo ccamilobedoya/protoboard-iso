@@ -74,6 +74,9 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `uno-distance` | Arduino UNO measuring distance with an HC-SR04 (TRIG D9, ECHO D10, `pulseIn`, `us / 58`); environment `distance` 30 cm (range 2–100) and 20 °C | U1 = its sketch |
 | `esp32-distance` | ESP32 DevKit with an HC-SR04 on VIN (5 V): ECHO through a 1 kΩ / 2 kΩ divider so the 3.3 V pin sees 3.33 V | R1 = 1k, R2 = 2k, U1 = its sketch |
 | `distance-alarm-uno` | `uno-distance` with an LED on D13 lit under 15 cm | R1 = 220, D1 = red, U1 = its sketch |
+| `uno-dht11` | Arduino UNO with a DHT11 module on D2 read through the DHT library every 2 s (`isnan` prints `fail`); environment 24 °C (range 0–50) and 41 %RH (range 20–90) ([library-sensors.md](library-sensors.md)) | U1 = its sketch |
+| `esp32-bme280` | ESP32 DevKit with a BME280 board on 3V3 and GPIO22/21: `begin(0x76)`, then temperature, pressure in hPa, humidity and altitude every second; environment with the pressure (range 900–1050 hPa) | U1 = its sketch |
+| `uno-bmp280-altitude` | Arduino UNO with a BMP280 board on its 3.3 V pin (the board has no regulator) and A4/A5, printing the altitude; environment pressure (range 700–1050 hPa) | U1 = its sketch |
 
 `parts` (CLI) lists them with their titles; the compact `catalog` (MCP) lists only their names, by group (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), to stay short; `catalog` with a recipe's name (`parts
 <name>` in the CLI) shows its title and group, what it teaches, its parts, nets, supply, and each value's role and limits.
