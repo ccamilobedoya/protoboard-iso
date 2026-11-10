@@ -337,7 +337,10 @@ export const sensorModule = {
     else if (entry.element === 'hall') value = { on: Boolean(entry.sensor.closed), current: through };
     else value = { open: entry.sensor.open() };
     const detected = entry.active === 'high' ? !low : low;
-    return { part: entry.part, element: entry.element, ...(value.peak !== undefined && { peak: value.peak }), stim: { ...entry.stim }, threshold: entry.threshold, value, vcc, ao, vref, vdo, vout: vdo, low, detected, active: entry.active, sink, supply, ir, currents, current: supply };
+    // The words follow DO's voltage against a logic input's usual thresholds (under 30 % of VCC low, over
+    // 70 % high), not the comparator's state: between them DO is on its way.
+    const level = vdo < 0.3 * vcc ? 'low' : vdo > 0.7 * vcc ? 'high' : 'switching';
+    return { part: entry.part, element: entry.element, ...(value.peak !== undefined && { peak: value.peak }), stim: { ...entry.stim }, threshold: entry.threshold, value, vcc, ao, vref, vdo, vout: vdo, low, level, detected, active: entry.active, sink, supply, ir, currents, current: supply };
   },
   limits(entry, r) {
     const m = entry.model;
@@ -368,8 +371,8 @@ export const sensorModule = {
     lines.push(
       h.q('sensor-module.ao', h.f(p.ao, 'V')),
       h.q('sensor-module.vref', h.f(p.vref, 'V')),
-      h.q('sensor-module.do', `${h.t(p.low ? 'sim.sensor-module.low' : 'sim.sensor-module.high')} · ${h.f(p.vdo, 'V')}`),
-      h.raw(p.detected ? 'sensor-module.detected' : 'sensor-module.idle', h.t(`sim.sensor-module.${field}.${p.detected ? 'detected' : 'idle'}`)),
+      h.q('sensor-module.do', `${h.t(`sim.sensor-module.${p.level ?? (p.low ? 'low' : 'high')}`)} · ${h.f(p.vdo, 'V')}`),
+      h.raw(p.level === 'switching' ? 'sensor-module.idle' : p.detected ? 'sensor-module.detected' : 'sensor-module.idle', p.level === 'switching' ? h.t('sim.sensor-module.switching') : h.t(`sim.sensor-module.${field}.${p.detected ? 'detected' : 'idle'}`)),
       h.q('sensor-module.sink', h.f(Math.abs(p.sink) < 1e-9 ? 0 : p.sink, 'A')),
       h.q('sensor-module.supply', h.f(p.supply, 'A')),
     );

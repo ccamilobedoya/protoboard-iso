@@ -276,7 +276,7 @@ function explanations(lang) {
     ...['still', 'cw', 'ccw', 'shaft', 'clk', 'dt', 'sw', 'plus'].map((k) => `encoder.${k}`),
     ...['off', 'idle', 'burst', 'echo', 'distance', 'width', 'speed', 'vecho', 'vtrig', 'vcc', 'own'].map((k) => `sonar.${k}`),
     ...['field', 'vout', 'vs', 'iout', 'own', 'low', 'off'].map((k) => `hall.${k}`),
-    ...['sounding', 'silent'].map((k) => `buzzer.${k}`),
+    ...['sounding', 'silent', 'level'].map((k) => `buzzer.${k}`),
     ...['vin', 'vs', 'ratio', 'current'].map((k) => `divider.${k}`),
     ...['vac', 'vdc', 'current'].map((k) => `bridge.${k}`),
     ...['temperature', 'light', 'resistance'].map((k) => `sensor.${k}`),

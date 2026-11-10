@@ -80,7 +80,7 @@ detail.
   supply, the signal's peak in the card and in the comparator, DO low above about 98 dB with the default
   trimmer; it senses `sound`). Recipes `clap-switch` and `sound-level-led`; the tour `clap-switch.json`.
 - The **active buzzer** `TMB12A05`, a second part number of `buzzer` with its own device: silent under
-  1.5 V, sounding at 2.3 kHz from 3.5 V across it and taking 30 mA at 5 V, with a polarity. `rain-alarm`
+  1.5 V, sounding at 2.3 kHz from 2.0 V across it (weakly on a 3.3 V pin, 19.8 mA) and taking 30 mA at 5 V, with a polarity. `rain-alarm`
   and `obstacle-buzzer` now use it through a PNP (they had a passive buzzer that only clicked).
 
 ### Changed

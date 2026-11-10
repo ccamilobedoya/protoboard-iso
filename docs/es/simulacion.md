@@ -188,7 +188,7 @@ referencia independiente (una fórmula de libro resuelta aparte, o el dato de la
 | inductor | resistencia del alambre en serie; un corto en DC, Euler implícito en el transitorio | RL: I·(1 − e^(−t/τ)) |
 | termistor, fotorresistencia | resistencias cuyo valor sale de la temperatura (ecuación B) o de la luz (curva GL55) | ecuación B a 50 °C; GL5528 a 10 lx |
 | zumbador | su bobina, 16 Ω | — |
-| zumbador activo (TMB12A05) | una carga que no toma nada por debajo de 1,5 V y, desde 2,5 V, 5 V / 30 mA = 167 Ω (suavizado entre las dos); suena a 2,3 kHz desde 3,5 V entre sus pines, de + a −; al revés no toma nada y avisa por encima de 0,5 V | 30 mA a 5 V; en silencio y bajo 1 mA a 1 V |
+| zumbador activo (TMB12A05) | una carga que casi no toma nada bajo 1,5 V, sube suave hasta 5 V / 30 mA = 167 Ω a los 2,0 V y se queda ahí; suena (2,3 kHz, unos 85 − 40·log10(5/V) dB a 10 cm) desde 2,0 V entre sus pines, de + a −, sin histéresis; al revés son 100 kΩ, en silencio, y avisa por encima de 1 V; sobre 7 V `SIM_IC_SUPPLY`, sobre 35 mA `SIM_OVER_CURRENT` | 30 mA a 5 V, 19,8 mA y sonando con 3,3 V; en silencio y bajo 1 mA a 1 V |
 | sensor Hall lineal 49E | una fuente de Vs/2 + 1,4 mV/G · (Vs/5) · campo mantenida en [0,95 V, Vs − 0,95 V] tras 50 Ω, 6 mA de la alimentación; esfuerzos: alimentación sobre 8 V o invertida; avisos: bajo 2,7 V, más de 1,5 mA de salida | 2,500 / 2,640 / 2,360 V a 0 / +100 / −100 G y 5 V; 1,742 V a +100 G y 3,3 V; 4,05 V en el tope |
 | módulo sensor de voltaje | 30 kΩ de VIN a S y 7,5 kΩ de S a GND, un miliohmio que une − y GND; esfuerzo: la de 30 kΩ sobre 100 mW | S = 2,40 V y 0,32 mA con 12 V de entrada |
 | LED | Shockley + 10 Ω, Vf a 20 mA según el color; `"model": { "vf": 2.95 }` lo cambia | ecuación de la malla resuelta aparte |

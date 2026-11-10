@@ -377,7 +377,7 @@ over them pulled with the current, with one to three arcs of sound while the cur
 reading to the next and "silent: steady DC only heats it" on DC. The active buzzer (`TMB12A05`) has
 the mark `plus-active`, which adds how to tell it from the passive one (a sealed bottom, it beeps as
 soon as it is powered); its symbol has a square wave in the dome and its inside view (`buzzer-active`)
-shows the oscillator chip driving the piezo disc, with arcs of sound from 3.5 V across it and silence
+shows the oscillator chip driving the piezo disc, with arcs of sound from 2.0 V across it and silence
 under it or reversed. The linear Hall sensor shows its Hall plate with the field through it and the output
 as a bar between ground and the supply (`hall`); the voltage sensor module its two resistors and the
 voltage at S as a fifth of the input (`divider5`); the KY-037 uses the sensor-module view with its

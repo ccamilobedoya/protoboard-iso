@@ -17,7 +17,7 @@ formulas), `src/parts/types/sensor-modules.js` (the type), `src/parts/packages/s
 `clap-switch`, `sound-level-led` ([recipes.md](recipes.md)); timelines `examples/tours/soil-led.json`,
 `obstacle-buzzer.json` and `clap-switch.json`. `rain-alarm` and `obstacle-buzzer` switch an active buzzer
 with a PNP, not an NPN: DO goes low when the module detects, and an NPN driven by it would sound while
-the comb is dry (the buzzer needs 3.5 V across it and about 30 mA, more than the LM393's 20 mA output
+the comb is dry (the buzzer takes about 30 mA at 5 V, more than the LM393's 20 mA output
 could carry). The analog sensors that are not on this board (the linear Hall 49E, the voltage sensor
 module) are in [analog-sensors.md](analog-sensors.md).
 
@@ -88,7 +88,7 @@ Each element in short:
   the DC bias and the card shows the AC peak beside it, and DO goes low while that peak is larger than the
   gap between AO and Vref, `Vpk > Vbias − Vref` (a source of the peak between the trimmer and the
   comparator does it; there is no waveform, no hold time). The trimmer's default puts Vref 15 mV under the
-  bias (`threshold` 0.497 at 5 V), so DO falls above about 98.5 dB; the `threshold` slider moves it in
+  bias (`threshold` 0.497 at 5 V), so DO falls above about 98.5 dB (on 3.3 V the same share of VCC leaves the gap at about 10 mV, so it falls from about 95 dB: the trimmer's setting is a share of the supply, the bias too, but the signal is not); the `threshold` slider moves it in
   steps of 0.05 %. **The real board needs its trimmer set within millivolts of the bias** (a 25-turn
   trimmer, turned until the DO LED just goes out in a quiet room): a few millivolts too far and it never
   triggers or is always low, which is the experience this model keeps. Up close, the element is the

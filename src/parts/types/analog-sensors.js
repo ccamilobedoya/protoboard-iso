@@ -1,4 +1,4 @@
-// Analog sensors of the second night (docs/en/analog-sensors.md): the linear Hall sensor 49E, bare or
+// Analog sensors (docs/en/analog-sensors.md): the linear Hall sensor 49E, bare or
 // on its KY-035 module, and the voltage sensor module (a 5:1 divider).
 
 import { lookupPartNumber } from '../db.js';

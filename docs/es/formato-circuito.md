@@ -342,10 +342,14 @@ su bobina (`resistance`, por defecto 16 Ω); avisa cuando le pasa corriente cont
 zumbador pasivo solo suena con una señal que cambie.
 
 `part: "TMB12A05"` es el **activo**: la misma carcasa con un oscilador por dentro, así que una tensión
-continua de 3,5 a 5,5 V basta para que suene (unos 2,3 kHz, 85 dB a 10 cm) y toma hasta 30 mA a 5 V.
-Tiene polaridad: la pata `1` es la larga y el `+` de su carcasa; al revés queda en silencio y, por encima
-de 0,5 V, lo dice (`SIM_REVERSE_VOLTAGE`). No toma nada por debajo de 1,5 V, y `SIM_BUZZER_DC` no le
-aplica. Su tarjeta dice *sonando · 2,3 kHz* o *en silencio*. Se distingue del pasivo por el fondo sellado
+continua basta para que suene desde unos 2,0 V (unos 2,3 kHz, 85 dB a 10 cm con sus 5 V nominales,
+85 − 40·log10(5/V) dB por debajo: unos 78 dB con 3,3 V) y toma 30 mA a 5 V (una carga de 167 Ω desde
+2,0 V, o sea 19,8 mA con 3,3 V). No toma casi nada bajo 1,5 V y la corriente sube suave hasta esa ley a
+los 2,0 V; no hay histéresis.
+Tiene polaridad: la pata `1` es la larga y el `+` de su carcasa; al revés es un circuito abierto de 100 kΩ,
+en silencio, y por encima de 1 V lo dice (`SIM_REVERSE_VOLTAGE`). Por encima de 7 V avisa con
+`SIM_IC_SUPPLY` (el código «más de su máximo» del kit) y por encima de 35 mA con `SIM_OVER_CURRENT`;
+`SIM_BUZZER_DC` no le aplica. Su tarjeta dice *sonando · 2,3 kHz* y el nivel como «unos» N dB, o *en silencio*. Se distingue del pasivo por el fondo sellado
 de la carcasa (una banda de resina en su base en el dibujo) y porque pita apenas se alimenta; las recetas
 `rain-alarm` y `obstacle-buzzer` lo usan, a través de un PNP.
 

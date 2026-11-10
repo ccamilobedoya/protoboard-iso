@@ -46,7 +46,7 @@ Vout = Vs / 2 + 1,4 mV/G · (Vs / 5 V) · campo          mantenida dentro de [0,
 - Siente el `field` del ambiente ([ambiente.md](ambiente.md)); un `field` en la parte gana.
 
 Límites y avisos: `SIM_IC_SUPPLY` por encima de 8 V (las hojas no dan máximo absoluto: la cifra del kit),
-`SIM_REVERSE_VOLTAGE` al revés, `SIM_MODULE_LOW_SUPPLY` por debajo de los 2,7 V desde los que se
+`SIM_REVERSE_VOLTAGE` al revés (el chip queda apagado: su salida se queda en tierra), `SIM_MODULE_LOW_SUPPLY` por debajo de los 2,7 V desde los que se
 especifica (el aviso que usan todos los sensores) y `SIM_HALL_LOAD` (un aviso) cuando se toman más de
 1,5 mA de la salida. La tarjeta muestra el campo, la salida, la alimentación, la corriente que da VOUT y
 la propia del chip.

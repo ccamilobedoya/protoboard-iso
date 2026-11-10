@@ -2,7 +2,7 @@
 // 1 kΩ to DO, its emitter on the supply) that switches a buzzer. A PNP, not an NPN: DO is active low,
 // and an NPN driven by it would sound while the comb is dry. The buzzer is the active one (TMB12A05, its
 // own oscillator): it sounds on plain DC and takes about 30 mA, which the transistor carries straight
-// from the supply, no series resistor (it needs 3.5 V across it). A passive buzzer would only click.
+// from the supply, no series resistor (a resistor would only leave it less than its rated 5 V). A passive buzzer would only click.
 export default {
   name: 'rain-alarm',
   group: 'sensor-modules',

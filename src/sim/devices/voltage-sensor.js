@@ -9,12 +9,12 @@
 
 import { resistor } from '../mna.js';
 import { VOLTAGE_SENSOR } from '../models.js';
-import { stress, q } from './shared.js';
+import { stress, q, positiveNumbers } from './shared.js';
 
 export const voltageSensor = {
   types: ['voltage-sensor'],
   kind: 'VSN',
-  params: (part) => ({ part: part.def.electrical.part, model: { ...VOLTAGE_SENSOR, ...part.raw.model } }),
+  params: (part) => ({ part: part.def.electrical.part, model: { ...VOLTAGE_SENSOR, ...positiveNumbers(part.raw.model) } }),
   elements(p, h) {
     const m = p.model;
     return {

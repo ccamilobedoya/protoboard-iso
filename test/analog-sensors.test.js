@@ -1,6 +1,6 @@
-// The second night's analog sensors (docs/en/analog-sensors.md): the linear Hall sensor 49E, the voltage
+// Analog sensors (docs/en/analog-sensors.md): the linear Hall sensor 49E, the voltage
 // sensor module, the KY-037 sound module, the active buzzer, and the four recipes that use them. Each
-// number below is worked out apart from the device (a formula, a divider, the spec's table).
+// number below is worked out apart from the device (a formula, a divider, a datasheet figure).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -60,7 +60,7 @@ test('the types and part numbers: hall-sensor, voltage-sensor, KY-037, TMB12A05;
   assert.ok(length <= 4600, `compact catalog ${length}`);
 });
 
-test('49E: Vs/2 + 1.4 mV/G · Vs/5 · field, clamped (spec checks 45–47)', () => {
+test('49E: Vs/2 + 1.4 mV/G · Vs/5 · field, clamped', () => {
   for (const [field, volts] of [[0, 2.5], [100, 2.64], [-100, 2.36], [700, 3.48]]) near(hall({ field }).vout, volts, 0.03, `${field} G`);
   near(hall({ field: 100 }, { v: 3.3 }).vout, 1.742, 0.03, '3.3 V');
   near(hall({ field: 1500 }).vout, 4.05, 0.1, 'clamped high');
@@ -106,7 +106,7 @@ const voltage = (v, extra = {}) => {
   return s;
 };
 
-test('voltage sensor: a fifth of the input, 0.32 mA at 12 V (spec check 48)', () => {
+test('voltage sensor: a fifth of the input, 0.32 mA at 12 V', () => {
   const s = voltage(12);
   near(s.parts.U1.vs, 2.4, 0.012, 'S');
   near(s.parts.U1.current, 0.32e-3, 0.02e-3, 'input current');
@@ -115,7 +115,7 @@ test('voltage sensor: a fifth of the input, 0.32 mA at 12 V (spec check 48)', ()
   assert.deepEqual(codes(voltage(12)), []);
 });
 
-test('voltage sensor: 25 V with S on a 3.3 V board\'s pin is the board\'s over-voltage issue (spec check 49)', () => {
+test('voltage sensor: 25 V with S on a 3.3 V board\'s pin is the board\'s over-voltage issue', () => {
   const r = autoLayout({
     board: 'auto',
     parts: [{ id: 'U1', type: 'voltage-sensor' }, { id: 'U2', part: 'ESP32-DEVKIT', program: 'void setup() {} void loop() {}' }],
@@ -134,7 +134,7 @@ test('voltage sensor: 25 V with S on a 3.3 V board\'s pin is the board\'s over-v
 
 const mic = (db, options = {}) => run({ type: 'sensor-module', part: 'KY-037', pins: ['DO', 'VCC', 'GND', 'AO'], ...options.own }, { plus: ['VCC'], minus: ['GND'], env: { sound: db }, v: options.v });
 
-test('KY-037: AO is the bias, the card has the AC peak; DO falls above about 98.5 dB (spec checks 50–51)', () => {
+test('KY-037: AO is the bias, the card has the AC peak; DO falls above about 98.5 dB', () => {
   const quiet = mic(94);
   near(quiet.ao, 2.5, 0.1, 'bias');
   near(quiet.value.peak, 8.9e-3, 0.89e-3, 'peak at 94 dB');
@@ -170,8 +170,36 @@ test('active buzzer: 30 mA and sounding on 5 V, silent on 1 V, silent reversed; 
   assert.equal(back.sounding, false);
   assert.ok(codes({ issues: back.issues }).includes('SIM_REVERSE_VOLTAGE'));
   assert.ok(codes({ issues: buzzer(5, { part: null }).issues }).includes('SIM_BUZZER_DC'));
-  assert.equal(buzzer(3.4).sounding, false);
-  assert.equal(buzzer(3.6).sounding, true);
+  assert.equal(buzzer(1.4).sounding, false);
+  assert.equal(buzzer(2.5).sounding, true);
+});
+
+test('active buzzer: from 2.0 V it is a 167 ohm load and sounds, quieter below 5 V (2.5, 3.3, 6, 8 and 12 V)', () => {
+  for (const [v, mA] of [[2.5, 15], [3.3, 19.8], [5, 30], [6, 36], [8, 48], [12, 72]]) {
+    const r = buzzer(v);
+    near(r.current, mA / 1000, 0.0007 * Math.max(1, v / 5), `${v} V`);
+    assert.equal(r.sounding, true, `${v} V sounds`);
+  }
+  near(buzzer(3.3).level, 77.7, 0.3, 'level at 3.3 V (85 - 40 log10(5/V))');
+  near(buzzer(5).level, 85, 0.3, 'level at 5 V');
+  assert.equal(buzzer(1.7).sounding, false);
+  assert.ok(buzzer(1.7).current > 0.001 && buzzer(1.7).current < 0.01, 'the ramp is between nothing and the law');
+  // Over 35 mA a current note, over 7 V the maximum-supply warning, and neither at 5 V.
+  assert.ok(codes({ issues: buzzer(6).issues }).includes('SIM_OVER_CURRENT'));
+  assert.ok(!codes({ issues: buzzer(6).issues }).includes('SIM_IC_SUPPLY'));
+  assert.ok(codes({ issues: buzzer(8).issues }).includes('SIM_IC_SUPPLY'));
+  assert.deepEqual(codes({ issues: buzzer(5).issues }), []);
+  // Reversed: 100 kohm, silent; the note only from 1 V.
+  near(buzzer(5, { reversed: true }).current, -5e-5, 1e-5, 'reverse leak');
+  assert.ok(!codes({ issues: buzzer(0.8, { reversed: true }).issues }).includes('SIM_REVERSE_VOLTAGE'));
+  assert.ok(codes({ issues: buzzer(1.5, { reversed: true }).issues }).includes('SIM_REVERSE_VOLTAGE'));
+  // The monotonic law: the current never falls as the voltage rises.
+  let last = -1;
+  for (let v = 0; v <= 8; v += 0.25) {
+    const i = buzzer(v).current;
+    assert.ok(i >= last - 1e-9, `monotonic at ${v} V`);
+    last = i;
+  }
 });
 
 const layoutOf = (name, values) => {
@@ -214,9 +242,9 @@ test('hall-linear-uno prints the field within 15 G (0, +200, -200 G)', () => {
   }
 });
 
-test('voltage-sensor-uno prints the battery\'s volts', () => {
+test('voltage-sensor-uno prints the measured supply\'s volts', () => {
   for (const V of [9, 12]) {
-    const e = engineOf(layoutOf('voltage-sensor-uno', { BT1: V }).circuit);
+    const e = engineOf(layoutOf('voltage-sensor-uno', { V1: V }).circuit);
     advance(e, 1200);
     near(Number(e.read().parts.U1.program.serial.at(-1)), V, 0.1, `${V} V`);
   }
@@ -315,7 +343,7 @@ test('up close: the Hall plate, the divider, the electret and the active buzzer 
   const alarm = layoutOf('rain-alarm').circuit;
   const quiet = await inside(alarm, 'BZ1');
   assert.equal(quiet.kind, 'buzzer-active');
-  assert.equal(quiet.state, 'silent: under 3.5 V');
+  assert.equal(quiet.state, 'silent: under 2 V');
   assert.equal(quiet.count('.sound'), 0);
   const wet = await inside(alarm, 'BZ1', [{ at: 200, do: 'set', environment: 'rain', value: 1, move: 'cut' }]);
   assert.match(wet.state, /^sounding at 2\.3 kHz/);
@@ -331,4 +359,60 @@ test('up close: the active buzzer\'s pinout says how to tell it from the passive
     assert.match(text, lang === 'en' ? /sealed bottom and beeps as soon as it is powered/ : /fondo sellado y pita apenas se alimenta/);
     assert.doesNotMatch(pinoutOf(passive, createCamera({ view: 'front' }), lang).mark.text, /sealed|sellado/);
   }
+});
+
+test('printed pin names: + and G find VCC and GND on the sensor modules, and nothing else changes', () => {
+  assert.equal(findPin(['DO', 'VCC', 'GND', 'AO'], '+', 'sensor-module'), 'VCC');
+  assert.equal(findPin(['DO', 'VCC', 'GND', 'AO'], 'G', 'sensor-module'), 'GND');
+  assert.equal(findPin(['S', '+', '-'], 'G', 'hall-sensor'), '-');
+  assert.equal(findPin(['VCC', 'GND', 'OUT'], '+', 'hall-sensor'), 'VCC');
+  // A part with a real + pin keeps it; other types do not get the synonym.
+  assert.equal(findPin(['S', '+', '-', 'VIN', 'GND'], '+', 'voltage-sensor'), '+');
+  assert.equal(findPin(['+', '-'], '+', 'battery'), '+');
+  assert.equal(findPin(['DO', 'VCC', 'GND', 'AO'], 'G', 'module'), undefined);
+  const named = buildCircuit({ version: 1, board: 'bb830', parts: [{ id: 'U1', type: 'sensor-module', part: 'KY-037', pins: { DO: 'c10', '+': 'c11', G: 'c12', AO: 'c13' } }] });
+  assert.deepEqual(named.parts[0].holes.map((h) => h.id), ['c10', 'c11', 'c12', 'c13']);
+});
+
+test('KY-037: the words follow DO\'s voltage: switching between the thresholds, not high while it is at 1 V', () => {
+  const [lo, hi] = [98.3, 98.7];
+  let seen = false;
+  for (let db = lo; db <= hi; db += 0.02) {
+    const r = mic(db);
+    const word = r.level;
+    assert.equal(word, r.vdo < 1.5 ? 'low' : r.vdo > 3.5 ? 'high' : 'switching', `${db} dB: ${r.vdo} V`);
+    if (word === 'switching') seen = true;
+  }
+  assert.ok(seen, 'a stretch of switching');
+  assert.equal(mic(70).level, 'high');
+  assert.equal(mic(105).level, 'low');
+  near(mic(94.9, { v: 3.3 }).vdo, 3.3, 3.3, 'any');
+});
+
+test('KY-037 on 3.3 V trips about 95 dB with the default trimmer', () => {
+  assert.ok(mic(93.5, { v: 3.3 }).vdo > 3, 'quiet at 93.5 dB');
+  assert.ok(mic(96, { v: 3.3 }).vdo < 0.4, 'low at 96 dB');
+});
+
+test('a hostile `model` on the new devices is dropped, not solved', () => {
+  for (const model of [{ rated: 0 }, { reference: 0 }, { outputResistance: 0 }, { upper: 0 }, 'x', null, [1], { start: 'x', current: -1 }]) {
+    for (const [type, extra, plus, minus, pins] of [
+      ['hall-sensor', { part: 'KY-035' }, ['+'], ['-'], ['S', '+', '-']],
+      ['buzzer', { part: 'TMB12A05' }, [], [], ['1', '2']],
+    ]) {
+      const c = type === 'buzzer'
+        ? { version: 1, board: 'bb830', supplies: [{ id: 'V1', voltage: 5 }], parts: [{ id: 'U1', type, ...extra, model, pins: ['c10', 'c12'] }, { id: 'W1', type: 'wire', color: 'red', pins: ['a10', 'T+10'] }, { id: 'W2', type: 'wire', color: 'black', pins: ['a12', 'T-12'] }] }
+        : { ...bench({ type, ...extra, model, pins }, { plus, minus }), names: undefined };
+      delete c.names;
+      const s = simulate(c);
+      assert.ok(s.ok, `${type} ${JSON.stringify(model)}: ${JSON.stringify(s.issues)}`);
+      assert.ok(!codes(s).includes('SIM_NO_CONVERGENCE'), `${type} ${JSON.stringify(model)}`);
+    }
+  }
+});
+
+test('49E with its supply reversed: the output sits at ground, the reverse note stays', () => {
+  const r = run({ type: 'hall-sensor', part: 'KY-035', pins: ['S', '+', '-'] }, { plus: ['-'], minus: ['+'] });
+  near(r.vout, 0, 0.01, 'output');
+  assert.ok(codes({ issues: r.issues }).includes('SIM_REVERSE_VOLTAGE'));
 });
