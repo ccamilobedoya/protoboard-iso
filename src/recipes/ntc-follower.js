@@ -4,6 +4,7 @@
 // within about 1.5 V of its supply. The temperature is the environment's.
 export default {
   name: 'ntc-follower',
+  group: 'sensors',
   title: { en: 'NTC thermistor divider with a follower', es: 'Divisor con termistor NTC y seguidor' },
   teaches: { en: 'A thermistor divider turns temperature into a voltage; the follower copies it to a load without loading the divider', es: 'Un divisor con termistor convierte la temperatura en un voltaje; el seguidor lo copia a una carga sin cargar el divisor' },
   environment: { temperature: 25 },

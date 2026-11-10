@@ -2,6 +2,7 @@
 // output lights an LED when the wiper is the higher.
 export default {
   name: 'opamp-comparator',
+  group: 'op-amps',
   title: { en: 'Op-amp comparator', es: 'Comparador con amplificador operacional' },
   teaches: { en: 'Without feedback the output saturates: high when V+ > V−, low when V+ < V−', es: 'Sin realimentación la salida se satura: alta cuando V+ > V−, baja cuando V+ < V−' },
   parts: [

@@ -17,6 +17,7 @@ void loop() {
 
 export default {
   name: 'uno-blink',
+  group: 'boards',
   title: { en: 'Arduino UNO blinking an LED', es: 'Arduino UNO que hace parpadear un LED' },
   teaches: { en: 'A pin as an output at 5 V: digitalWrite(13, HIGH) lights D1, delay() sets the rhythm', es: 'Un pin como salida a 5 V: digitalWrite(13, HIGH) enciende D1 y delay() marca el ritmo' },
   parts: [

@@ -3,6 +3,7 @@
 // across the motor takes the winding's current when the voltage falls.
 export default {
   name: 'motor-npn',
+  group: 'transistors',
   title: { en: 'DC motor speed with a transistor', es: 'Velocidad de un motor DC con un transistor' },
   teaches: { en: 'Started, the motor draws nearly its stall current and speeds up with a time constant of its inertia; turning, its back-EMF rises with the speed until it nearly balances the supply, and the current falls', es: 'Al arrancar, el motor toma casi su corriente de bloqueo y acelera con una constante de tiempo de su inercia; girando, su fuerza contraelectromotriz sube con la velocidad hasta casi igualar la fuente, y la corriente baja' },
   parts: [

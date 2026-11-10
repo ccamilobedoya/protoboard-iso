@@ -19,6 +19,7 @@ void loop() {
 
 export default {
   name: 'uno-button',
+  group: 'boards',
   title: { en: 'Arduino UNO: a button lights an LED', es: 'Arduino UNO: un pulsador enciende un LED' },
   teaches: { en: 'A pin as an input with the internal pull-up: it reads LOW while S1 is pressed, and the program decides the LED', es: 'Un pin como entrada con el pull-up interno: lee LOW mientras S1 está presionado, y el programa decide el LED' },
   parts: [

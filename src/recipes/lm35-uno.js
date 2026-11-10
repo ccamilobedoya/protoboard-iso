@@ -20,6 +20,7 @@ void loop() {
 
 export default {
   name: 'lm35-uno',
+  group: 'sensors',
   title: { en: 'Arduino UNO: LM35 thermometer', es: 'Arduino UNO: termómetro LM35' },
   teaches: { en: 'The LM35 turns temperature into 10 mV per °C; the ADC turns that voltage into a number, and the program back into degrees', es: 'El LM35 convierte la temperatura en 10 mV por °C; el ADC convierte ese voltaje en un número, y el programa otra vez en grados' },
   parts: [

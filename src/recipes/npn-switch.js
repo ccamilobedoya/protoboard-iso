@@ -1,6 +1,7 @@
 // A button feeds the base of an NPN transistor through a resistor; the collector switches an LED.
 export default {
   name: 'npn-switch',
+  group: 'transistors',
   title: { en: 'NPN transistor switch', es: 'Interruptor con transistor NPN' },
   teaches: { en: 'A small base current switches a larger collector current (press S1)', es: 'Una corriente de base pequeña controla una corriente de colector mayor (presiona S1)' },
   parts: [

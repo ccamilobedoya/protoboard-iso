@@ -24,6 +24,7 @@ void loop() {
 
 export default {
   name: 'hall-counter-uno',
+  group: 'sensor-modules',
   title: { en: 'Arduino UNO: KY-024 magnet counter', es: 'Arduino UNO: contador de imanes con KY-024' },
   teaches: { en: 'The Hall switch turns on at 160 G and off under 105 G (hysteresis), so a magnet that wobbles near the threshold counts once; the program counts each fall of DO', es: 'El interruptor Hall se enciende a 160 G y se apaga por debajo de 105 G (histéresis), así que un imán que tiembla cerca del umbral cuenta una sola vez; el programa cuenta cada bajada de DO' },
   parts: [

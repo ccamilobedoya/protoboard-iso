@@ -5,6 +5,7 @@
 // the 10 kΩ under it: about 18 lx for a GL5528. The light is the environment's.
 export default {
   name: 'ldr-comparator',
+  group: 'sensors',
   title: { en: 'Light comparator with a photoresistor', es: 'Comparador de luz con fotorresistencia' },
   teaches: { en: 'The photoresistor\'s divider is compared with a reference you set: below it (dark) the output pulls down and the LED lights; above it (light) the output is released', es: 'El divisor de la fotorresistencia se compara con una referencia que tú fijas: por debajo (oscuro) la salida tira hacia abajo y el LED se enciende; por encima (con luz) la salida se suelta' },
   environment: { light: 300 },

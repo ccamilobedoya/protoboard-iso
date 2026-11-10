@@ -72,8 +72,8 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `laser-tripwire` | A KY-008 laser always on and an LDR-LM393 module: cut the beam (the environment's `beam`) and DO lights the LED through an NPN | U1 = 0.1 (threshold), R1 = 1k (base), R2 = 330, D1 = red |
 | `laser-uno` | Arduino UNO blinking a KY-008 at 1 Hz through an NPN (D7) and printing a photoresistor on A0 | R1 = 10k (divider), R2 = 1k (base), U1 = its sketch |
 
-`catalog` (MCP) or `parts` (CLI) lists them with their titles (the compact list `catalog` leaves the values out); `catalog` with a recipe's name (`parts
-<name>` in the CLI) shows what it teaches, its parts, nets, supply, and each value's role and limits.
+`parts` (CLI) lists them with their titles; the compact `catalog` (MCP) lists only their names, by group (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), to stay short; `catalog` with a recipe's name (`parts
+<name>` in the CLI) shows its title and group, what it teaches, its parts, nets, supply, and each value's role and limits.
 
 ## Values
 
@@ -138,7 +138,7 @@ blinks, in slow motion (the page's time follows the slowest time constant).
    `netLabels`, `environment` (the circuit's, for a sensor), `page`, `clearance`, and `values`: for each id that may change, `field` (what the
    short form sets), and optionally `role` (`{ en, es }`), `choices`, `min`/`max`, `extra` (the
    allowed fields, when the defaults by kind do not fit).
-3. Register it in `src/recipes/index.js` and `npm run schemas` (the schema lists the names).
+3. Give it a `group` (one word of `RECIPE_GROUPS` in `src/recipes/index.js`, set in the module itself; the compact catalog lists recipes by group, names only, and a test fails for a recipe without one; a new group needs its `recipe.group.<name>` texts in `src/i18n/en.js` and `es.js`). Register it in `src/recipes/index.js` and `npm run schemas` (the schema lists the names).
 4. Add it to the tables in this page, [recetas.md](../es/recetas.md) and `SKILL.md`, and to the list
    in the `circuit-layout` agent. `npm test` checks that it comes out `DONE` with its defaults and
    with every choice, that it simulates without stressing a part, that its name is no part's name,

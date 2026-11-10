@@ -1,6 +1,7 @@
 // A potentiometer as a divider: its wiper feeds an LED through a resistor, so turning it dims the LED.
 export default {
   name: 'potentiometer-led',
+  group: 'basics',
   title: { en: 'Potentiometer dimming an LED', es: 'Potenciómetro que regula un LED' },
   teaches: { en: 'The wiper is an adjustable divider: its voltage goes from 0 to the supply', es: 'El cursor es un divisor ajustable: su voltaje va de 0 al de la fuente' },
   parts: [

@@ -73,8 +73,8 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `laser-tripwire` | Un láser KY-008 siempre encendido y un módulo LDR-LM393: corta el haz (el `beam` del ambiente) y DO enciende el LED con un NPN | U1 = 0,1 (umbral), R1 = 1k (base), R2 = 330, D1 = rojo |
 | `laser-uno` | Arduino UNO que hace parpadear un KY-008 a 1 Hz con un NPN (D7) e imprime una fotorresistencia en A0 | R1 = 10k (divisor), R2 = 1k (base), U1 = su programa |
 
-`catalog` (MCP) o `parts` (consola) las listan con su título (la lista compacta de `catalog` deja fuera los valores); `catalog` con el nombre de una receta
-(`parts <nombre>` en la consola) muestra lo que enseña, sus componentes, redes, fuente, y el papel y
+`parts` (consola) las lista con su título; el `catalog` compacto (MCP) solo da sus nombres, por grupo (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), para ser corto; `catalog` con el nombre de una receta
+(`parts <nombre>` en la consola) muestra su título y su grupo, lo que enseña, sus componentes, redes, fuente, y el papel y
 los límites de cada valor.
 
 ## Valores
@@ -144,7 +144,7 @@ página parpadea, en cámara lenta (el tiempo de la página sigue a la constante
    `netLabels`, `environment` (el del circuito, para un sensor), `page`, `clearance`, y `values`: para cada identificador que puede cambiar, `field`
    (lo que fija la forma corta) y, si hace falta, `role` (`{ en, es }`), `choices`, `min`/`max`,
    `extra` (los campos permitidos, cuando no sirven los de cada tipo).
-3. Regístrala en `src/recipes/index.js` y corre `npm run schemas` (el esquema lista los nombres).
+3. Dale un `group` (una palabra de `RECIPE_GROUPS` en `src/recipes/index.js`, puesta en el propio módulo; el catálogo compacto lista las recetas por grupo, solo nombres, y una prueba falla si una receta no lo tiene; un grupo nuevo necesita sus textos `recipe.group.<nombre>` en `src/i18n/en.js` y `es.js`). Regístrala en `src/recipes/index.js` y corre `npm run schemas` (el esquema lista los nombres).
 4. Agrégala a las tablas de esta página, de [recipes.md](../en/recipes.md) y de `SKILL.md`, y a la
    lista del agente `circuit-layout`. `npm test` comprueba que sale `DONE` con sus valores por
    defecto y con cada opción, que se simula sin forzar ningún componente, que su nombre no es el de

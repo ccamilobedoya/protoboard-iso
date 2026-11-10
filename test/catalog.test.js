@@ -53,3 +53,30 @@ test('the compact catalog keeps its types in groups and stays short in English',
   assert.ok(!/ · R1=/.test(text), 'recipes come without their values');
   assert.ok(text.includes('  ldr: 1 2 · GL5516'), 'the photoresistors are the ldr type\'s parts');
 });
+
+test('every recipe is in one of the recipe groups, and the compact catalog lists the recipes by group, names only', async () => {
+  const { RECIPES, RECIPE_GROUPS } = await import('../src/recipes/index.js');
+  const { t } = await import('../src/i18n/index.js');
+  for (const r of Object.values(RECIPES)) {
+    assert.ok(RECIPE_GROUPS.includes(r.group), `recipe "${r.name}": set its "group" to one of ${RECIPE_GROUPS.join(', ')} (src/recipes/index.js)`);
+  }
+  for (const g of RECIPE_GROUPS) assert.ok(Object.values(RECIPES).some((r) => r.group === g), `group "${g}" has no recipe: remove it from RECIPE_GROUPS`);
+  for (const lang of ['en', 'es']) {
+    const text = formatCompactCatalog(compactCatalog(lang), lang);
+    const lines = text.split('\n');
+    const start = lines.indexOf(t(lang, 'catalog.recipes'));
+    assert.ok(start >= 0, `${lang}: recipes header`);
+    const listed = [];
+    for (const g of RECIPE_GROUPS) {
+      const line = lines.slice(start + 1).find((l) => l.startsWith(`  ${t(lang, `recipe.group.${g}`)} = `));
+      assert.ok(line, `${lang}: a line for group "${g}"`);
+      const names = line.split(' = ')[1].split(', ');
+      assert.deepEqual(names, Object.values(RECIPES).filter((r) => r.group === g).map((r) => r.name), `${lang}: "${g}" lists its recipes in the order of recipes/index.js`);
+      listed.push(...names);
+    }
+    assert.equal(listed.length, Object.keys(RECIPES).length, `${lang}: no recipe missing or repeated`);
+    for (const r of Object.values(RECIPES)) assert.ok(!text.includes(`(${r.title[lang]})`), `${lang}: no title in the compact list`);
+  }
+  assert.equal(catalogEntry('divider', 'es').title, 'Divisor de voltaje');
+  assert.equal(catalogEntry('divider', 'en').group, 'basics');
+});

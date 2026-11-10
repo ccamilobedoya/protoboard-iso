@@ -23,6 +23,7 @@ void loop() {
 
 export default {
   name: 'thermistor-uno',
+  group: 'sensors',
   title: { en: 'Arduino UNO: NTC thermistor thermometer', es: 'Arduino UNO: termómetro con termistor NTC' },
   teaches: { en: 'The thermistor and a resistor make a divider; the ADC turns its voltage into a number, and the B equation turns the resistance into degrees', es: 'El termistor y una resistencia forman un divisor; el ADC convierte su voltaje en un número, y la ecuación B convierte la resistencia en grados' },
   environment: { temperature: 25 },

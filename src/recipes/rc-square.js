@@ -2,6 +2,7 @@
 // on the oscilloscope of C1.
 export default {
   name: 'rc-square',
+  group: 'timing',
   title: { en: 'RC circuit with a square wave', es: 'Circuito RC con onda cuadrada' },
   teaches: { en: 'C1 charges and discharges with τ = R·C; compare it with the period of G1', es: 'C1 se carga y se descarga con τ = R·C; compárala con el período de G1' },
   parts: [

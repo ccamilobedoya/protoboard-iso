@@ -9,6 +9,13 @@ detail.
 
 ## [Unreleased]
 
+### Changed
+
+- The compact catalog lists the recipes by group, names only (`basics`, `transistors`, `power`,
+  `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`; a `group` in each recipe module, a test
+  for a missing one): 4529 to 2825 characters in English. `catalog` with a recipe's name gives its
+  title and group; the CLI `parts` still prints every title.
+
 ### Added
 
 - Rotary encoder (sensors S7a; `docs/en/rotary-encoder.md`): the EC11 on its KY-040 module

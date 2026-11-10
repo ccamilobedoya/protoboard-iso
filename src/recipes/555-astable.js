@@ -1,6 +1,7 @@
 // The NE555 as an astable: R1, R2 and C1 set the frequency, the output blinks an LED.
 export default {
   name: '555-astable',
+  group: 'timing',
   title: { en: '555 astable blinking an LED', es: '555 astable que hace parpadear un LED' },
   teaches: { en: 'C1 charges through R1 + R2 and discharges through R2: f ≈ 1.44 / ((R1 + 2·R2) · C1)', es: 'C1 se carga por R1 + R2 y se descarga por R2: f ≈ 1,44 / ((R1 + 2·R2) · C1)' },
   parts: [

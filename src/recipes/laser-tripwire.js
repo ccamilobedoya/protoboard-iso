@@ -6,6 +6,7 @@
 // An NPN and not the LED on DO: DO high is the module's 10 kΩ pull-up, a fraction of a milliampere.
 export default {
   name: 'laser-tripwire',
+  group: 'sensor-modules',
   title: { en: 'Laser tripwire with a KY-008 and an LDR-LM393 module', es: 'Barrera láser con un KY-008 y un módulo LDR-LM393' },
   teaches: { en: 'The laser\'s light adds to the room\'s for the light sensor; cut the beam and only the room is left: DO goes high, the transistor conducts and the LED lights', es: 'La luz del láser se suma a la del cuarto para el sensor de luz; corta el haz y queda solo la del cuarto: DO sube, el transistor conduce y el LED se enciende' },
   parts: [

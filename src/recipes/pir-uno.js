@@ -25,6 +25,7 @@ void loop() {
 
 export default {
   name: 'pir-uno',
+  group: 'sensors',
   title: { en: 'Arduino UNO: PIR motion detector', es: 'Arduino UNO: detector de movimiento PIR' },
   teaches: { en: 'A PIR\'s OUT is a plain digital level: the program watches for its rising edge and prints the time of each new motion with millis()', es: 'La salida OUT de un PIR es un nivel digital simple: el programa espera su flanco de subida e imprime el momento de cada movimiento nuevo con millis()' },
   parts: [

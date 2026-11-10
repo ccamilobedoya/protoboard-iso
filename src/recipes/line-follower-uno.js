@@ -22,6 +22,7 @@ void loop() {
 
 export default {
   name: 'line-follower-uno',
+  group: 'sensor-modules',
   title: { en: 'Arduino UNO: TCRT5000 line follower', es: 'Arduino UNO: seguidor de línea TCRT5000' },
   teaches: { en: 'White paper sends the infrared back and the phototransistor pulls AO low, so DO reads LOW; black ink absorbs it, AO rises and DO reads HIGH: the program prints LINE', es: 'El papel blanco devuelve el infrarrojo y el fototransistor baja AO, así que DO lee LOW; la tinta negra lo absorbe, AO sube y DO lee HIGH: el programa escribe LINE' },
   parts: [

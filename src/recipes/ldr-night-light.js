@@ -6,6 +6,7 @@
 // environment's, not a part's value.
 export default {
   name: 'ldr-night-light',
+  group: 'sensors',
   title: { en: 'Night light with a photoresistor', es: 'Luz nocturna con fotorresistencia' },
   teaches: { en: 'In the dark the photoresistor\'s resistance is high, the divider\'s voltage rises and the transistor switches the LED on; with light it falls and the LED goes out', es: 'A oscuras la resistencia de la fotorresistencia es alta, el voltaje del divisor sube y el transistor enciende el LED; con luz baja y el LED se apaga' },
   environment: { light: 300 },

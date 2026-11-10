@@ -18,7 +18,7 @@ import { OP_NAMES } from '../ops.js';
 import { ANNOTATION_LAYERS } from '../annotate.js';
 import { LANGUAGES, t } from '../i18n/index.js';
 import { buildSchemas } from '../schema.js';
-import { recipeSummary, recipeEntry } from '../recipes/index.js';
+import { recipeSummary, recipeEntry, RECIPE_GROUPS } from '../recipes/index.js';
 
 export { COMMON_FIELDS, TYPE_FIELDS } from '../parts/fields.js';
 import { TYPE_FIELDS } from '../parts/fields.js';
@@ -200,7 +200,10 @@ export function formatCompactCatalog(c, lang = 'en') {
   lines.push(`${t(lang, 'catalog.boards')} ${c.boards.join(', ')} · ${t(lang, 'catalog.views')} ${c.views.join(', ')} · ${t(lang, 'catalog.operations')} ${c.operations.join(', ')}`);
   if (c.recipes) {
     lines.push(t(lang, 'catalog.recipes'));
-    for (const [k, r] of Object.entries(c.recipes)) lines.push(recipeLine(k, r, { values: false }));
+    for (const g of RECIPE_GROUPS) {
+      const names = Object.entries(c.recipes).filter(([, r]) => r.group === g).map(([k]) => k);
+      if (names.length) lines.push(`  ${t(lang, `recipe.group.${g}`)} = ${names.join(', ')}`);
+    }
   }
   lines.push(t(lang, 'catalog.more'));
   return lines.join('\n');

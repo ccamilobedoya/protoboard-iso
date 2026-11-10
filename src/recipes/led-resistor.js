@@ -1,6 +1,7 @@
 // An LED and its series resistor across a supply: the first circuit of every course.
 export default {
   name: 'led-resistor',
+  group: 'basics',
   title: { en: 'LED with a series resistor', es: 'LED con resistencia en serie' },
   teaches: { en: 'The resistor sets the LED current: I = (V − Vf) / R', es: 'La resistencia fija la corriente del LED: I = (V − Vf) / R' },
   parts: [
