@@ -486,12 +486,15 @@ test('L13 · BME280 (3.3 V board) on 5 V: SIM_IC_SUPPLY and begin false; on 3.3 
   assert.deepEqual(serialOf(play(at(1.5), 0.5)), ['false']);
 });
 
-test('L13 · BME280-5V on 5 V: SDA idles at 3.3 ± 0.05 V, begin true, no SIM_IC_SUPPLY', () => {
+// The regulated board pulls its bus up to its own 3.3 V rail through 10 kΩ and has no level shifter; on an
+// AVR board Wire turns on the 35 kΩ internal pull-ups to 5 V as well, so the lines idle at
+// (5/35k + 3.3/10k) / (1/35k + 1/10k) = 3.68 V, not at 3.3 V.
+test('L13 · BME280-5V on 5 V of a UNO: SDA and SCL idle at 3.68 ± 0.05 V (the board\'s 10 kΩ to 3.3 V against Wire\'s pull-ups), begin true, no SIM_IC_SUPPLY', () => {
   const circuit = bench({ part: 'BME280-5V', board: 'UNO', volts: 5, power: 'rail', link: i2cLink.UNO, environment: {}, program: beginWith('0x76') });
   const engine = play(circuit, 0.5);
   assert.deepEqual(serialOf(engine), ['true']);
-  near(pinVolts(engine, 'A4'), 3.3, 0.05, 'SDA idle');
-  near(pinVolts(engine, 'A5'), 3.3, 0.05, 'SCL idle');
+  near(pinVolts(engine, 'A4'), 3.675, 0.05, 'SDA idle');
+  near(pinVolts(engine, 'A5'), 3.675, 0.05, 'SCL idle');
   assert.ok(!codes(simulate(circuit).issues).includes('SIM_IC_SUPPLY'));
 });
 
