@@ -124,7 +124,7 @@ export const mcu = {
         if (!best) for (const [el, miss] of misses) el.note?.(miss);
         return best;
       };
-      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, i2c, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull });
+      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, i2c, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull, adcRef: m.adcRef });
       entry.ctrl = h.add({
         nodes: [],
         links: [],
@@ -265,7 +265,8 @@ export const mcu = {
         const current = -(s.stage.currents(h.x)[0] + s.up.currents(h.x)[0] + s.down.currents(h.x)[1]);
         const vdd = v(entry.vdd);
         const read = voltage < m.vil * vdd ? 0 : voltage > m.vih * vdd ? 1 : null;
-        const adc = info.adc ? Math.round(Math.min(1, Math.max(0, voltage / m.adcFull)) * (2 ** m.adcBits - 1)) : null;
+        const full = m.adcRef === 'vdd' && vdd > 0 ? vdd : m.adcFull;
+        const adc = info.adc ? Math.round(Math.min(1, Math.max(0, voltage / full)) * (2 ** m.adcBits - 1)) : null;
         return { name: info.name, gpio: info.gpio, mode: s.stage.mode, level: s.stage.level, pull: s.stage.pull, ...(s.stage.pwm && { pwm: s.stage.pwm }), voltage, current, read, adc };
       });
     const power = entry.pins.reduce((sum, x) => sum + h.volt(x.index) * (currents[x.name] ?? 0), 0) + (entry.usb ? 5 * usb : 0);

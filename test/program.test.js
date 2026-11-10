@@ -290,3 +290,17 @@ test('sketch: a global whose value waits (pulseIn, delay, one\'s own function) i
   }
   assert.ok(translateSketch('int yield = 3;\nint y = 2 * 3;\nvoid setup() {}\nvoid loop() {}').js, 'a name like yield, or a plain value, is fine');
 });
+
+test('a UNO\'s ADC reads against its own 5 V rail (AVcc), so a ratiometric divider reads the same count on any supply', () => {
+  const sketch = 'void setup() { Serial.begin(9600); }\nvoid loop() { Serial.println(analogRead(A0)); delay(100); }';
+  const spec = () => ({ parts: [{ id: 'U1', part: 'UNO', program: sketch }, { id: 'R1', type: 'resistor', value: '10k' }, { id: 'R2', type: 'resistor', value: '10k' }], nets: [['U1.5V', 'R1.1'], ['R1.2', 'R2.1', 'U1.A0'], ['R2.2', 'U1.GND']] });
+  const engine = createEngine(compile(autoLayout(spec()).circuit).program);
+  assert.ok(engine.start('dc', 1e-3));
+  while (engine.time < 0.15) engine.advance(1e-3);
+  const r = engine.read().parts.U1;
+  assert.ok(r.vdd < 4.995, `the USB rail sits under 5 V: ${r.vdd}`);
+  // Half the rail is half the scale, whatever the rail: 511.5 rounds to 512 (to 511 with 5.0 as the scale).
+  assert.equal(Number(r.program.serial[0]), Math.round(((r.pins.find((p) => p.name === 'A0').voltage) / r.vdd) * 1023));
+  assert.ok(Math.abs(Number(r.program.serial[0]) - 511.5) <= 0.5, r.program.serial[0]);
+  assert.equal(r.pins.find((p) => p.name === 'A0').adc, Number(r.program.serial[0]), 'the card says the same count');
+});

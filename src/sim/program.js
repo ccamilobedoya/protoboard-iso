@@ -6,7 +6,7 @@
 //
 //   const runner = createRunner(js, board)
 //     board: { family, gpio: [numbers wired], read(gpio) → { volts, vdd } | null, vil, vih,
-//              adcBits, adcFull, states: { gpio: { mode, level, pull } } (from io),
+//              adcBits, adcFull, adcRef ('vdd': the full scale is the rail read() gives), states: { gpio: { mode, level, pull } } (from io),
 //              ask(request) → the answer of the library sensor wired for it, or null (devices/mcu.js),
 //              i2c: { sda, scl } its family's default I2C GPIOs }
 //   runner.advance(seconds) → true when a pin changed
@@ -163,7 +163,9 @@ export function createRunner(js, board) {
     analogRead(n) {
       const r = volts(n);
       if (!r) return 0;
-      return Math.round(Math.min(1, Math.max(0, r.volts / board.adcFull)) * (2 ** board.adcBits - 1));
+      // Full scale: the board's own rail (an AVR's AVcc) or its fixed reference.
+      const full = board.adcRef === 'vdd' && r.vdd > 0 ? r.vdd : board.adcFull;
+      return Math.round(Math.min(1, Math.max(0, r.volts / full)) * (2 ** board.adcBits - 1));
     },
     // PWM, 8 bits: 0 is LOW, 255 HIGH, in between a square wave. On an UNO only its PWM pins;
     // any other reads it as digitalWrite (128 and up is HIGH), as the core does.
