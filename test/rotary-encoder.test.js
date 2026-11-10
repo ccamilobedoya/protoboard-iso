@@ -1,11 +1,12 @@
 // Rotary encoder (docs/en/rotary-encoder.md): the shaft follower and the quadrature table against the
-// worked numbers of the sheet, 20 pulses and 20 detents at 360 °/s: a cycle is 50 ms, an edge every
+// worked numbers of the timing table in docs/en/rotary-encoder.md, 20 pulses and 20 detents at 360 °/s: a cycle is 50 ms, an edge every
 // 12.5 ms, the first (CLK falling) at 6.25 ms.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { autoLayout } from '../src/layout.js';
 import { compile, createEngine, simulate } from '../src/sim/index.js';
+import { expandRecipe } from '../src/recipes/index.js';
 import { resolvePart } from '../src/parts/resolve.js';
 import { snapTarget, shortestArc, advance, contacts, closedAt, neededStep, QUIET } from '../src/sim/devices/encoder.js';
 
@@ -60,7 +61,7 @@ test('encoder: the quadrature table (clockwise: CLK first, DT a quarter cycle la
   assert.deepEqual(at(18 + 3), { a: true, b: false }, 'the next cycle repeats');
 });
 
-test('encoder: 0 to 90 at 360 deg/s gives the sheet\'s edges, clockwise', () => {
+test('encoder: 0 to 90 at 360 deg/s gives the table\'s edges, clockwise', () => {
   const { out, s } = edges(0, 90);
   const clk = falls(out, 'a');
   assert.equal(clk.length, 5);
@@ -177,7 +178,7 @@ test('encoder in the engine: at rest every line is the supply; pressed, SW is gr
   assert.ok(p.read().parts.U1.vsw <= 0.02);
 });
 
-test('encoder in the engine: 0 to 90 gives five clockwise cycles within a millisecond of the sheet', () => {
+test('encoder in the engine: 0 to 90 gives five clockwise cycles within a millisecond of the table', () => {
   const { out, end } = run(bench(), (e) => e.set('environment', 'angle', 90));
   const clk = fall(out, 'clk');
   assert.equal(clk.length, 5);
@@ -189,17 +190,20 @@ test('encoder in the engine: 0 to 90 gives five clockwise cycles within a millis
   assert.equal(end.direction, 0);
 });
 
-test('encoder in the engine: back to 0, 0 to 180, 0 to 270, 0 to 355', () => {
-  const back = bench({ angle: 90 });
-  const r = run(back, (e) => e.set('environment', 'angle', 0));
-  // The part's own angle wins over the environment: it does not move.
-  assert.equal(r.out.length, 0, 'a part with its own angle does not follow the environment');
-  const e = bench();
-  assert.ok(e.start('dc', 5e-4));
-  e.set('environment', 'angle', 90);
-  for (let k = 0; k < 800; k++) assert.ok(e.advance(5e-4));
-  const edgesBack = run(e, () => {}, { seconds: 0.001 }); // restart is not what we test here
-  assert.ok(edgesBack);
+test('encoder in the engine: 90 to 0, 0 to 180, 0 to 270, 0 to 355', () => {
+  // Back from 90: the environment starts at 90 and goes to 0.
+  const spec = (angle) => ({ parts: [{ id: 'U1', type: 'rotary-encoder' }], nets: [['T+', 'U1.+'], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }], environment: { angle } });
+  const r90 = autoLayout(spec(90));
+  assert.equal(r90.status, 'done');
+  const back = run(createEngine(compile(r90.circuit).program), (e) => e.set('environment', 'angle', 0));
+  const dtBack = fall(back.out, 'dt');
+  const clkBack = fall(back.out, 'clk');
+  assert.equal(clkBack.length, 5);
+  assert.equal(dtBack.length, 5);
+  dtBack.forEach(([t], k) => near(t, 6.25 + 50 * k, 1, `DT fall ${k}`));
+  clkBack.forEach(([t], k) => assert.ok(dtBack[k][0] < t, 'DT is already low at each CLK fall'));
+  // A part with its own angle does not follow the environment: nothing moves.
+  assert.equal(run(bench({ angle: 90 }), (e) => e.set('environment', 'angle', 0)).out.length, 0);
   const turn = (to, from = 0, seconds = 1) => {
     const b = bench();
     return run(b, (x) => {
@@ -270,5 +274,28 @@ test('encoder: the part resolves with KY-040 and refuses another pulses/detents 
   assert.equal(resolvePart({ id: 'U1', type: 'rotary-encoder' }).part.type, 'rotary-encoder');
   assert.equal(resolvePart({ id: 'U1', part: 'KY-040' }).part.type, 'rotary-encoder');
   const r = autoLayout({ parts: [{ id: 'U1', type: 'rotary-encoder', pulses: 30, detents: 30 }], nets: [] });
-  assert.ok(r.problems.length > 0 || r.status !== 'done');
+  assert.ok(JSON.stringify(r).includes('BAD_VALUE'), JSON.stringify(r.problems));
+});
+
+test('encoder: the card never writes 360 for a shaft a hair under it', () => {
+  const e = bench({ angle: 359.97 });
+  assert.ok(e.start('dc', 1e-3));
+  assert.equal(e.read().parts.U1.shaftShown, 0);
+});
+
+test('encoder-dimmer-uno: the count stops at 0, so 5 clicks back and one forward light the LED', () => {
+  const circuit = autoLayout(expandRecipe('encoder-dimmer-uno').spec).circuit;
+  const e = createEngine(compile(circuit).program);
+  assert.ok(e.start('dc', 1e-3));
+  const go = (secs) => { const t0 = e.time; while (e.time - t0 < secs - 1e-9) assert.ok(e.advance(Math.min(1e-3, e.stepHint() ?? 1e-3))); };
+  e.set('environment', 'angle', 270); // 270 is 5 clicks counter-clockwise from 0
+  go(0.5);
+  assert.equal(e.read().parts.U1.program.serial.at(-1) ?? '0', '0');
+  e.set('environment', 'angle', 288);
+  go(0.5);
+  const clicks = e.read().parts.U1.program.serial.at(-1);
+  assert.equal(clicks, '1');
+  let lit = 0;
+  for (let k = 0; k < 400; k++) { e.advance(1e-3); lit = Math.max(lit, e.read().parts.D1.brightness ?? 0); }
+  assert.ok(lit > 0.01, `the LED lights: ${lit}`);
 });

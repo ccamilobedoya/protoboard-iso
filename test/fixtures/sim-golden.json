@@ -1187,6 +1187,7 @@
       "GND": null
      },
      "shaft": 0,
+     "shaftShown": 0,
      "target": 0,
      "click": 0,
      "detents": 20,
