@@ -115,6 +115,11 @@ export const mcu = {
           if (ctx.h) this.runner.advance?.(ctx.h);
           sync();
         },
+        // When the program wants to run again (a delay ending, pulseIn's timeout): the engine ends a
+        // step there, so a delayMicroseconds(10) is a pulse of 10 µs (engine.advance).
+        until() {
+          return this.runner.until?.() ?? null;
+        },
       });
     }
     entry.stages = p.gpios.map((pin) => {

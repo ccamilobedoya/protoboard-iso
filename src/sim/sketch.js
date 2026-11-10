@@ -8,7 +8,7 @@
 // with { … }), if / else, while, do … while, for, switch, break, continue, return, every C
 // operator JavaScript shares, casts like (int) x, char literals, number suffixes (1000UL, 1.5f).
 // What it changes: every function becomes a generator, so delay() can wait in simulated time:
-// delay(ms) → yield seconds; a call to one's own function → yield* f(…); loops yield 0 at each turn
+// delay(ms) → yield seconds; a call to one's own function or to pulseIn → yield* f(…); loops yield 0 at each turn
 // so a loop that never waits cannot freeze the page (program.js gives each step a budget).
 // Integer variables keep integer division (7 / 2 → 3) where an int is assigned.
 // Not read: classes, pointers, templates, function-like macros, libraries other than Arduino's
@@ -31,11 +31,13 @@ const TYPES = new Set(['void', 'int', 'long', 'short', 'byte', 'bool', 'boolean'
 const QUALIFIERS = new Set(['const', 'static', 'volatile', 'unsigned', 'signed']);
 const INTEGER = new Set(['int', 'long', 'short', 'byte', 'char', 'unsigned', 'signed', 'size_t', 'word', 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t']);
 // What the runtime gives (program.js); anything else called and not defined is noted.
-export const SKETCH_API = ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'analogWrite', 'millis', 'micros', 'abs', 'min', 'max', 'map', 'constrain', 'random', 'randomSeed', 'sqrt', 'log', 'pow', 'sin', 'cos', 'round', 'floor', 'ceil', 'bitRead', 'bitWrite', 'bitSet', 'bitClear', 'ledcAttach', 'ledcAttachPin', 'ledcSetup', 'ledcWrite', 'tone', 'noTone'];
+export const SKETCH_API = ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'analogWrite', 'millis', 'micros', 'abs', 'min', 'max', 'map', 'constrain', 'random', 'randomSeed', 'sqrt', 'log', 'pow', 'sin', 'cos', 'round', 'floor', 'ceil', 'bitRead', 'bitWrite', 'bitSet', 'bitClear', 'ledcAttach', 'ledcAttachPin', 'ledcSetup', 'ledcWrite', 'tone', 'noTone', 'pulseIn', 'pulseInLong'];
+// Runtime functions that wait in simulated time (generators, as one's own functions): yield*.
+const WAITING_API = new Set(['pulseIn', 'pulseInLong']);
 const SKETCH_CONSTANTS = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial'];
 const ASSIGN = new Set(['=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=']);
 // Runtime functions that return an integer (an int divided by them stays an int).
-const INT_API = new Set(['digitalRead', 'analogRead', 'millis', 'micros', 'map', 'random', 'constrain', 'abs', 'min', 'max', 'bitRead']);
+const INT_API = new Set(['digitalRead', 'analogRead', 'millis', 'micros', 'map', 'random', 'constrain', 'abs', 'min', 'max', 'bitRead', 'pulseIn', 'pulseInLong']);
 // Serial's methods in the runtime; another one is noted and returns 0.
 const SERIAL_METHODS = new Set(['begin', 'print', 'println', 'available', 'read']);
 // Names written as they are; every other name the sketch writes is its own: "$" + name.
@@ -257,6 +259,7 @@ export function translateSketch(source, { strings = [] } = {}) {
       if (name === 'delay') return `(yield ((${args}) / 1e3))`;
       if (name === 'delayMicroseconds') return `(yield ((${args}) / 1e6))`;
       if (functions.has(name)) return `(yield* ${own(name)}(${args}))`;
+      if (WAITING_API.has(name)) return `(yield* ${name}(${args}))`;
       if (SKETCH_API.includes(name)) return `${name}(${args})`;
       if (TYPES.has(name)) return INTEGER.has(name) ? `__int(${args})` : `(${args})`; // int(x), float(x)
       if (!missing.has(name)) {
