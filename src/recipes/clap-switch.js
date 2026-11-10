@@ -28,6 +28,7 @@ void loop() {
 
 export default {
   name: 'clap-switch',
+  group: 'sensor-modules',
   title: { en: 'Arduino UNO: clap switch with a KY-037 sound module', es: 'Arduino UNO: interruptor de palmada con un módulo de sonido KY-037' },
   teaches: { en: 'The microphone\'s signal is tiny: DO falls only when its peak beats the gap between the bias and the trimmer\'s Vref, about 98 dB with the trimmer set 15 mV under the bias. The program toggles the LED at each fall of DO', es: 'La señal del micrófono es diminuta: DO baja solo cuando su pico supera la distancia entre la polarización y el Vref del trimmer, unos 98 dB con el trimmer 15 mV por debajo de la polarización. El programa invierte el LED en cada bajada de DO' },
   parts: [

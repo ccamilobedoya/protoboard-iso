@@ -4,6 +4,7 @@
 // and DO, as in `soil-led`: the part that shares DO's strip stands right behind the standing module.
 export default {
   name: 'sound-level-led',
+  group: 'sensor-modules',
   title: { en: 'Sound level LED with a KY-037 module', es: 'LED de nivel de sonido con un módulo KY-037' },
   teaches: { en: 'The microphone\'s signal rides on a steady bias; when its peak is larger than the gap between the bias and the trimmer\'s Vref DO goes low and sinks the LED\'s current. A louder sound is a bigger peak, so the trimmer picks the level', es: 'La señal del micrófono va sobre una polarización fija; cuando su pico supera la distancia entre la polarización y el Vref del trimmer, DO baja y absorbe la corriente del LED. Un sonido más fuerte es un pico mayor, así que el trimmer escoge el nivel' },
   parts: [

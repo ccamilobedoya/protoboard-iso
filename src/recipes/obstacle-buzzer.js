@@ -4,6 +4,7 @@
 // 20 mA output could carry itself). A PNP, not an NPN: OUT is active low.
 export default {
   name: 'obstacle-buzzer',
+  group: 'sensor-modules',
   title: { en: 'Obstacle alarm with an FC-51 module', es: 'Alarma de obstáculo con un módulo FC-51' },
   teaches: { en: 'The nearer the object, the more infrared comes back and the lower AO; past Vref OUT goes low and the PNP lets the active buzzer\'s current through. The trimmer sets the distance, from about 4 to 28 cm', es: 'Cuanto más cerca el objeto, más infrarrojo vuelve y más baja AO; al pasar Vref OUT baja y el PNP deja pasar la corriente del zumbador activo. El trimmer fija la distancia, de unos 4 a 28 cm' },
   parts: [

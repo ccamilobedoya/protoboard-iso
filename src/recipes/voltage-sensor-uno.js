@@ -20,6 +20,7 @@ void loop() {
 
 export default {
   name: 'voltage-sensor-uno',
+  group: 'sensors',
   title: { en: 'Arduino UNO: voltmeter with a voltage sensor module', es: 'Arduino UNO: voltímetro con un módulo sensor de voltaje' },
   teaches: { en: 'The module is a 30 kΩ and 7.5 kΩ divider: S carries a fifth of the voltage at its terminal, so a 25 V input still fits the 5 V ADC, and the program multiplies the reading by five', es: 'El módulo es un divisor de 30 kΩ y 7,5 kΩ: S lleva la quinta parte del voltaje de su borne, así que una entrada de 25 V todavía cabe en el ADC de 5 V, y el programa multiplica la lectura por cinco' },
   parts: [

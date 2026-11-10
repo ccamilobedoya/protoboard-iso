@@ -5,6 +5,7 @@
 // from the supply, no series resistor (it needs 3.5 V across it). A passive buzzer would only click.
 export default {
   name: 'rain-alarm',
+  group: 'sensor-modules',
   title: { en: 'Rain alarm with an MH-RD module', es: 'Alarma de lluvia con un módulo MH-RD' },
   teaches: { en: 'Water bridges the comb, AO falls under Vref and DO goes low: the LED on the board lights and DO pulls the PNP\'s base down, which switches the buzzer on', es: 'El agua une el peine, AO cae por debajo de Vref y DO baja: el LED de la placa se enciende y DO baja la base del PNP, que hace sonar el zumbador activo' },
   parts: [
