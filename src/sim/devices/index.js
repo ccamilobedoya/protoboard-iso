@@ -76,8 +76,9 @@ import { ultrasonic } from './ultrasonic.js';
 import { hallSensor } from './hall-sensor.js';
 import { voltageSensor } from './voltage-sensor.js';
 import { activeBuzzer } from './active-buzzer.js';
+import { climate } from './climate.js';
 
-export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, leds, bridge, mosfet, bjt, regulator, timer, opamp, mcu, lm35, relay, motor, battery, pir, touch, sensorModule, encoder, laser, ultrasonic, hallSensor, voltageSensor, activeBuzzer];
+export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, leds, bridge, mosfet, bjt, regulator, timer, opamp, mcu, lm35, relay, motor, battery, pir, touch, sensorModule, encoder, laser, ultrasonic, hallSensor, voltageSensor, activeBuzzer, climate];
 
 // Several devices may share a type (the ICs: timer, op-amp); each one accepts its own parts.
 const BY_TYPE = {};

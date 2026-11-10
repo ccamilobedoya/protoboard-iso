@@ -36,7 +36,7 @@ function run(source) {
 const sketch = (body) => `void setup() { ${body} }\nvoid loop() { delay(1000); }`;
 
 // What the JavaScript may name: its own words, the runtime's, and the sketch's ($-prefixed).
-const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'true', 'false', '__int', '__missing', '__idx', '__array', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
+const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'DHT11', 'DHT22', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
 function strayNames(js) {
   // The body, without the prelude (two lines) and the last line, and without the quoted names of
   // __missing("name", …), which JSON.stringify writes.
@@ -94,6 +94,66 @@ test('attack: the JavaScript of every recipe and of hostile sketches names nothi
     assert.ok(js, p);
     assert.deepEqual(strayNames(js), [], p);
   }
+});
+
+// Library objects (docs/en/library-sensors.md): a declared object is never named in the code, its
+// methods are numbers from the translator's own table, and nothing else about it is read.
+const dhtSketch = (body, head = '') => `#include <DHT.h>\n${head}DHT dht(2, DHT11);\nvoid setup() { dht.begin(); ${body} }\nvoid loop() { delay(1000); }`;
+// The code of a sketch after its prelude: no member but Serial.<method>(, no "[" before a quote.
+const noKeys = (js) => {
+  const body = js.split('\n').slice(2).join('\n');
+  assert.ok(!/\.constructor|__proto__|prototype/.test(body), body);
+  assert.ok(!/\[\s*["'`]/.test(js), 'no [ followed by a string anywhere in the code');
+};
+test('attack: a library object reaches nothing but its own methods', () => {
+  for (const body of ['dht.constructor;', 'dht["x"]();', 'Serial.println(dht.constructor);', 'Serial.constructor;', 'dht.__proto__.x = 1;', 'dht;', 'int x = dht + 1;']) {
+    const r = run(dhtSketch(body));
+    assert.equal(r.r.js, null, body);
+    assert.deepEqual(codes(r.r.issues), ['SIM_PROGRAM_ERROR'], body);
+  }
+  // A method not in the class's list is noted and returns 0; its name never lands in the code.
+  const unknown = run(dhtSketch('Serial.println(dht.constructor("globalThis.__pwned = 1")); Serial.println(dht.read());'));
+  assert.equal(unknown.pwned, undefined);
+  assert.deepEqual(unknown.log, ['0', '0']);
+  assert.deepEqual(unknown.r.issues.map((i) => i.name), ['dht.constructor', 'dht.read']);
+  noKeys(unknown.r.js);
+  assert.ok(!/constructor|\bread\b/.test(unknown.r.js.split('\n').slice(2).join('\n')));
+  // An object named like the runtime's own names: Serial and the class names are refused; any other
+  // name is the translator's to keep (the code has only the object's number).
+  for (const head of ['DHT Serial(2, DHT11);\n', 'DHT Wire(2, DHT11);\n', 'DHT DHT(2, DHT11);\n', 'DHT millis(2, DHT11);\n', 'int x = 1;\nDHT x(2, DHT11);\n', 'DHT a(2, DHT11);\nDHT a(3, DHT11);\n', 'DHT f(2, DHT11, 6, 7);\n', 'Adafruit_BME280 bme(10);\n']) {
+    const r = run(`${head}void setup() { }\nvoid loop() { }`);
+    assert.equal(r.r.js, null, head);
+  }
+  const fn = run('DHT Function(2, DHT11);\nDHT globalThis(3, DHT11);\nvoid setup() { Function.begin(); Serial.println(Function.readTemperature()); globalThis.begin(); }\nvoid loop() { }');
+  assert.ok(fn.r.js);
+  const runner = createRunner(fn.r.js, board);
+  runner.advance(0);
+  runner.advance(0.05); // a read with no sensor still waits its 25 ms
+  assert.equal(runner.error, null);
+  assert.deepEqual(runner.log, ['nan'], 'no sensor answers: NaN, printed as the AVR core does');
+  assert.equal(globalThis.Function.begin, undefined);
+  assert.ok(!/Function|globalThis/.test(fn.r.js), 'the object names are not in the code');
+  noKeys(fn.r.js);
+  // Declared inside a function, used outside one, or a variable named like an object: refused.
+  for (const source of ['void setup() { DHT d(2, DHT11); }\nvoid loop() { }', 'void setup() { }\nvoid loop() { static DHT d(2, DHT11); }', 'void f(DHT d) { }\nvoid setup() { }\nvoid loop() { }', 'DHT dht(2, DHT11);\nfloat t = dht.readTemperature();\nvoid setup() { }\nvoid loop() { }', dhtSketch('int dht = 1;'), dhtSketch('', '#define T dht.readTemperature()\n')]) {
+    assert.equal(run(source).r.js, null, source);
+  }
+});
+
+test('attack: library objects have a cap, and the runtime checks the numbers it is given', () => {
+  const many = (n) => `${Array.from({ length: n }, (_, i) => `DHT d${i}(2, DHT11);`).join('\n')}\nvoid setup() { }\nvoid loop() { }`;
+  assert.ok(translateSketch(many(LIMITS.libraryObjects)).js, 'up to the cap');
+  const over = translateSketch(many(LIMITS.libraryObjects + 1));
+  assert.equal(over.js, null);
+  assert.deepEqual(codes(over.issues), ['SIM_PROGRAM_ERROR']);
+  const huge = translateSketch(many(10_000));
+  assert.equal(huge.js, null, '10 000 objects: refused');
+  // Hand-written JavaScript calling the helpers with numbers the translator never writes: nothing.
+  const js = 'const { __new, __lib, Serial } = api; return { setup: function* () { __new(-1, 0); __new(0, 99); __new("constructor", 0); __new(1.5, 0); __new(0, 0, 2, 11); Serial.println(yield* __lib(0, 99)); Serial.println(yield* __lib("constructor", 1)); Serial.println(yield* __lib(0, "constructor")); Serial.println(yield* __lib(0, -1)); Serial.println(yield* __lib(5, 1)); }, loop: function* () {} };';
+  const runner = createRunner(js, board);
+  runner.advance(0);
+  assert.equal(runner.error, null);
+  assert.deepEqual(runner.log, ['0', '0', '0', '0', '0']);
 });
 
 test('attack: a sketch cannot take the memory or the time of the machine', { timeout: 5000 }, () => {

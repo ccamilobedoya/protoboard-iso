@@ -215,6 +215,11 @@ export const MCUS = {
   esp32c3: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 2.5, own: 0.02, maxPin: 0.04, usbResistance: 0.2, regulator: { dropout: 0.1, quiescent: 40e-6, maxCurrent: 0.5, maxPower: 0.5 } },
   uno: { vdd: 5, outputResistance: 40, pull: 35e3, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5, own: 0.045, maxPin: 0.04, usbResistance: 0.3, regulator: { dropout: 0.28, quiescent: 1e-3, maxCurrent: 0.15, maxPower: 0.3 } },
 };
+// The default I2C pins of each family's Arduino core (Wire with no pins), as GPIO numbers: the UNO's
+// A4 = SDA and A5 = SCL [D]; the ESP32 DevKit's GPIO21 / GPIO22 [D]; the ESP32-C3's GPIO8 / GPIO9 [T]
+// (the common DevKitM-1 and SuperMini default). A library sensor on I2C answers only on these
+// (docs/en/library-sensors.md).
+export const I2C_PINS = { uno: { sda: 18, scl: 19 }, esp32: { sda: 21, scl: 22 }, esp32c3: { sda: 8, scl: 9 } };
 
 // LM35 precision centigrade temperature sensors (Texas Instruments LM35 datasheet, SNIS159H,
 // sections 6.1 and 6.7). Its output is 10 mV per °C over 0 V (0 mV at 0 °C: 250 mV at 25 °C).
@@ -395,3 +400,35 @@ export const VOLTAGE_SENSOR = { upper: 30e3, lower: 7.5e3, maxPower: 0.1, rated:
 //     the listings' range ends at 7 V, and a 6 V pack of four cells (36 mA) is inside it, so from
 //     maxCurrent 35 mA [A] up to there the card only notes that it takes more than its 30 mA (SIM_BUZZER_CURRENT)
 export const ACTIVE_BUZZER = { rated: 5, current: 0.03, frequency: 2300, rampFrom: 1.5, start: 2.0, leak: 1e-6, reverseLeak: 1e-5, maxReverse: 1, maxVoltage: 7.5, maxCurrent: 0.035, level: 85 };
+
+// Climate sensors read at library level (docs/en/library-sensors.md). [D] datasheet (Aosong DHT11; Bosch
+// BST-BME280-DS002, BST-BMP280-DS001) or the Adafruit library's source, [T] the usual module, [A] the
+// kit's own choice.
+//   dht.minSupply 3.0 V [A]  under it a read fails (the sheet gives 3 to 5.5 V); maxSupply 5.5 V [D]:
+//                 over it SIM_IC_SUPPLY
+//   dht.standby 120 µA at 5 V [D: 100 to 150 µA], as a resistor VCC–GND (the 1 mA of the 25 ms of a
+//                 real read is left out: 1 % of the time)
+//   dht.pullup 10 kΩ [T]  the module's, S to +
+//   dht.interval 2000 ms [D library]  MIN_INTERVAL: a read sooner gives the last one (a failure too)
+//   dht.warmup 1 s [D]  power-up before a good read (the part's `warmup`)
+//   dht.temperature [0, 50] °C, dht.humidity [20, 90] %RH [D]  rated ranges: the reading saturates
+//                 there [A]; rounded to whole numbers, nearest [A]
+//   dht.high 0.7 [A]  S must idle at 0.7 · VCC or more (pulled up) for an answer
+//   bosch.minSupply 1.71, maxSupply 3.6, dead 4.25 V [D]  the chip's VDD and absolute maximum: over
+//                 dead the 3.3 V-only board does not answer
+//   bosch.rail 3.3 V, dropout 0.2 V [A], quiescent 1 µA [A], minVin 3.4 V [A], maxVin 6.5 V [A]  the
+//                 regulated board's LDO
+//   bosch.pullup 10 kΩ [T] on SDA and SCL to the chip's rail; bosch.high 0.7 [A] as for the DHT
+//   bosch.temperature [-40, 85] °C, pressure [300, 1100] hPa, humidity [0, 100] %RH [D]
+//   boards.*.current  after begin() in the library's normal mode: BME280 0.47 mA [A, from the sheet's
+//                 peaks], BMP280 0.4 mA [A]; chip id 0x60 (BME280), 0x58 (BMP280) [D]
+export const CLIMATE = {
+  dht: { minSupply: 3, maxSupply: 5.5, maxReverse: 0.3, standby: 120e-6, currentAt: 5, pullup: 10e3, interval: 2000, warmup: 1, temperature: [0, 50], humidity: [20, 90], high: 0.7 },
+  bosch: { minSupply: 1.71, maxSupply: 3.6, dead: 4.25, maxReverse: 0.3, rail: 3.3, dropout: 0.2, quiescent: 1e-6, minVin: 3.4, maxVin: 6.5, pullup: 10e3, high: 0.7, temperature: [-40, 85], pressure: [300, 1100], humidity: [0, 100] },
+  boards: {
+    DHT11: { dht: true, humidity: true, pressure: false },
+    BME280: { chip: 0x60, humidity: true, pressure: true, regulated: false, current: 0.47e-3 },
+    'BME280-5V': { chip: 0x60, humidity: true, pressure: true, regulated: true, current: 0.47e-3 },
+    BMP280: { chip: 0x58, humidity: false, pressure: true, regulated: false, current: 0.4e-3 },
+  },
+};

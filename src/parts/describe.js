@@ -81,6 +81,8 @@ export function describeKeys(part) {
       return ['voltage-sensor'];
     case 'buzzer':
       return ['buzzer', ...(e.kind === 'BZA' ? ['buzzer.active'] : [])];
+    case 'climate-sensor':
+      return ['climate-sensor', `climate-sensor.${e.part}`];
     case 'battery':
       return ['battery', `battery.${e.chemistry}`, ...(e.cells > 1 ? ['battery.series'] : [])];
     default:

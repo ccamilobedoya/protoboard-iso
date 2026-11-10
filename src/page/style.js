@@ -358,6 +358,8 @@ nav .falstad .flag[hidden] { display: none; }
 .gauge .mercury { fill: var(--danger); }
 .gauge .lamp { fill: var(--pulse); stroke: var(--ink-3); stroke-width: 1; }
 .gauge .lamp-ring { fill: none; stroke: var(--pulse); stroke-width: 2; }
+.gauge .face { fill: var(--card); stroke: var(--ink-3); stroke-width: 1.2; }
+.gauge .tick { stroke: var(--ink-3); stroke-width: 1; stroke-linecap: round; }
 .env-row { display: grid; grid-template-columns: 44px 1fr; gap: 0 8px; align-items: center; }
 .env-row .control { margin: 2px 0; }
 .control .env-pause { grid-column: 1 / -1; justify-self: start; margin-top: 2px; }

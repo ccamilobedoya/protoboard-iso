@@ -300,7 +300,8 @@
                   "tilt",
                   "angle",
                   "reflectance",
-                  "beam"
+                  "beam",
+                  "pressure"
                 ],
                 "description": "A field of the circuit's environment instead of a part's control (docs/en/environment.md): every sensor that follows it changes; a program there pauses. Without a gauge step up, its indicator shows while the move lasts"
               },
@@ -400,7 +401,8 @@
                   "tilt",
                   "angle",
                   "reflectance",
-                  "beam"
+                  "beam",
+                  "pressure"
                 ],
                 "description": "The field whose indicator shows"
               },

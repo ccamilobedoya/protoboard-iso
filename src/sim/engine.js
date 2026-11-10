@@ -129,6 +129,9 @@ function prepare(program) {
     }
     parts.push(entry);
   }
+  // An element that talks to others (a board's program asking its library sensors, devices/mcu.js)
+  // gets every element of the circuit once they are all built.
+  for (const el of elements) el.connect?.(elements);
 
   for (const s of supplies) {
     s.pIndex = index.get(s.p);

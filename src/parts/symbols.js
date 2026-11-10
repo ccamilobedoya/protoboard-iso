@@ -468,6 +468,32 @@ const voltageSensorSymbol = (title) => ({
   ids: { VIN: 'VIN', S: 'S', GND: 'GND', '-': '-', '+': '+' },
 });
 
+// A climate sensor as a block with what it measures inside (°C, %RH, hPa): a DHT11's S on the left
+// (its one data line, pulled up to + inside), + on top, − under it; a BME280 / BMP280's two I2C lines
+// on the right, VCC on top, GND under it.
+const climateSymbol = (part) => {
+  const dht = part === 'DHT11';
+  const what = dht ? '°C %RH' : part === 'BMP280' ? '°C hPa' : '°C %RH hPa';
+  if (dht) {
+    return {
+      w: 100, h: 100,
+      strokes: ['M22 22H78V78H22Z', 'M50 4V22', 'M50 78V96', 'M4 50H22', 'M36 30V48', 'M32 30H40'],
+      fills: [],
+      texts: [{ x: 50, y: 62, text: what, anchor: 'middle', small: true }, { x: 50, y: 72, text: part, anchor: 'middle', small: true, quiet: true }, { x: 25, y: 46, text: 'S', anchor: 'start', small: true }],
+      pins: { S: [4, 50], '+': [50, 4], '−': [50, 96] },
+      ids: { S: 'S', '+': '+', '−': '−' },
+    };
+  }
+  return {
+    w: 100, h: 100,
+    strokes: ['M22 22H78V78H22Z', 'M50 4V22', 'M50 78V96', 'M78 40H96', 'M78 60H96'],
+    fills: [],
+    texts: [{ x: 48, y: 52, text: what, anchor: 'middle', small: true }, { x: 48, y: 64, text: part, anchor: 'middle', small: true, quiet: true }, { x: 75, y: 37, text: 'SCL', anchor: 'end', small: true }, { x: 75, y: 72, text: 'SDA', anchor: 'end', small: true }, { x: 30, y: 33, text: 'I2C', anchor: 'start', small: true, quiet: true }],
+    pins: { VCC: [50, 4], GND: [50, 96], SCL: [96, 40], SDA: [96, 60] },
+    ids: { VCC: 'VCC', GND: 'GND', SCL: 'SCL', SDA: 'SDA' },
+  };
+};
+
 export function symbolOf(part) {
   const e = part.def?.electrical ?? {};
   const names = part.pinNames ?? [];
@@ -500,6 +526,7 @@ export function symbolOf(part) {
   if (part.type === 'rotary-encoder') return encoderSymbol();
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
   if (part.type === 'ultrasonic-sensor') return ultrasonicSymbol();
+  if (part.type === 'climate-sensor') return climateSymbol(e.part ?? 'DHT11');
   if (part.type === 'sensor-module') return sensorModuleSymbol(names, part.def?.params?.print, e.part ?? '');
   if (part.type === 'laser') return laserSymbol();
   if (part.type === 'hall-sensor') return hallSymbol(names, e.roles, e.part ?? '');
@@ -624,5 +651,7 @@ export function insideOf(part) {
   if (part.type === 'laser') return { kind: 'laser', ids: ids(), color: LED_LIGHT.red, threshold: LASER.threshold, maxCurrent: LASER.maxCurrent };
   // An ultrasonic module: the range it sees, from its device's model.
   if (part.type === 'ultrasonic-sensor') return { kind: 'sonar', ids: ids(), range: [2, 400] };
+  // A climate sensor: which magnitudes it has (a DHT11 no pressure, a BMP280 no humidity).
+  if (part.type === 'climate-sensor') return { kind: 'climate', ids: ids(), part: e.part, humidity: e.part !== 'BMP280', pressure: e.part !== 'DHT11', temperature: e.temperature ?? 25 };
   return null;
 }

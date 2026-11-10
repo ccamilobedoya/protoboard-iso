@@ -9,6 +9,28 @@ detail.
 
 ## [Unreleased]
 
+### Added
+
+- Library-level climate sensors (sensors S6; `docs/en/library-sensors.md`): a board's program may
+  declare `DHT dht(2, DHT11);`, `Adafruit_BME280 bme;` and `Adafruit_BMP280 bmp;` at the top level and
+  call their usual methods (`readTemperature`, `readHumidity`, `computeHeatIndex`, `begin(addr)`,
+  `readPressure` in Pa, `readAltitude`), plus `Wire.begin`, `isnan`, `NAN` and `F("…")`. The translator
+  writes an object and its methods as numbers of its own table (`src/sim/libraries.js`), never as a
+  member or a key; objects are capped (`LIMITS.libraryObjects`); `DHT22` is noted
+  (`SIM_PROGRAM_NOT_IN_KIT`). A real DHT read waits 25 ms, a BME/BMP `begin()` 100 ms. A float prints
+  with two decimals and `NaN` as `nan`.
+- The `climate-sensor` type: `DHT11` (the usual 3-pin module, 10 kΩ pull-up), `BME280` (3.3 V only),
+  `BME280-5V` (regulated) and `BMP280`. The board asks the sensor wired where the library looks (the
+  sketch's pin, or its family's default I2C pins, through jumper wires: `I2C_PINS`), and the sensor's
+  device answers from its carried state: the DHT11's 2 s cache and 1 s power-up, nearest whole numbers
+  held to 0…50 °C and 20…90 %RH; the Bosch chips' 0.01 °C, 1 Pa and 0.01 %RH, address 0x76 or 0x77 and
+  chip id (0x60, 0x58). Its card says what it would answer and why it did not (no power, warming up,
+  another pin, swapped lines, another address or chip id). Up close with a symbol, an inside view and
+  a legend. The engine hands every element to those that talk to others (`connect`).
+- The environment's `pressure` (hPa, 300…1100 on the slider, default 1013.25), a barometer
+  indicator and the altitude it means in its panel row.
+- Recipes `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude`; the tour `uno-dht11`.
+
 ### Changed
 
 - The compact catalog lists the recipes by group, names only (`basics`, `transistors`, `power`,

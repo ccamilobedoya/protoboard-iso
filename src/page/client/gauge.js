@@ -7,6 +7,7 @@
 //   along its log scale, as its slider does).
 // - light: a sun whose halo and rays grow with the log of the light (0.1 lx dark … 10 klx full).
 // - temperature: a thermometer whose column rises from min to max.
+// - pressure: a barometer, a round face with its ticks and a needle from min to max.
 // - a switch (rain, motion, touch, vibration, tilt, beam): a lamp that lights. The rest (reflectance
 //   among them) take the default arc.
 //
@@ -87,6 +88,19 @@ export function createGauge(field, def, { text = (v) => String(v), label = '' } 
       write('y', column, 'y', y.toFixed(2));
       write('h', column, 'height', (bottom - y).toFixed(2));
     };
+  } else if (field === 'pressure') {
+    // A barometer: the round face, nine ticks over the same 270° as the arc, the needle.
+    const [a0] = [0.75 * Math.PI];
+    node(el, 'circle', { class: 'face', cx: C.x, cy: C.y, r: R + 2 });
+    for (let k = 0; k <= 8; k++) {
+      const a = a0 + (k / 8) * SWEEP;
+      const [x0, y0] = at(a, R - (k % 2 ? 1.5 : 3));
+      const [x1, y1] = at(a, R);
+      node(el, 'line', { class: 'tick', x1: round(x0), y1: round(y0), x2: round(x1), y2: round(y1) });
+    }
+    const needle = node(el, 'line', { class: 'needle', x1: C.x, y1: C.y, x2: C.x + R - 4, y2: C.y });
+    node(el, 'circle', { class: 'hub', cx: C.x, cy: C.y, r: 2 });
+    paint = (v, u) => write('needle', needle, 'transform', `rotate(${round(((a0 + u * SWEEP) * 180) / Math.PI)} ${C.x} ${C.y})`);
   } else {
     const [a0, a1] = [0.75 * Math.PI, 2.25 * Math.PI];
     const [x0, y0] = at(a0, R);

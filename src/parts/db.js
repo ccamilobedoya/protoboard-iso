@@ -118,6 +118,13 @@ export const PART_NUMBERS = {
   // The HC-SR04 ultrasonic module (its datasheet): VCC, TRIG, ECHO, GND as printed, left to right
   // with the capsules toward you.
   'HC-SR04': { type: 'ultrasonic-sensor', package: 'ultrasonic-module', pins: ['VCC', 'TRIG', 'ECHO', 'GND'], model: {} },
+  // Climate sensors read at library level (types/climate-sensor.js): the usual DHT11 module prints
+  // S, +, − (other boards print +, OUT, − or DATA, VCC, GND: one more row with their order); the
+  // BME280 / BMP280 boards VCC, GND, SCL, SDA.
+  DHT11: { type: 'climate-sensor', package: 'dht-module', pins: ['S', '+', '−'], model: {} },
+  BME280: { type: 'climate-sensor', package: 'bme-board', pins: ['VCC', 'GND', 'SCL', 'SDA'], model: {} },
+  'BME280-5V': { type: 'climate-sensor', package: 'bme-board', pins: ['VCC', 'GND', 'SCL', 'SDA'], model: {} },
+  BMP280: { type: 'climate-sensor', package: 'bme-board', pins: ['VCC', 'GND', 'SCL', 'SDA'], model: {} },
 };
 
 // Other names for the same part: "LM7805", "L7805CV" and "MC7805" are a 7805; "LM317T" an LM317;
@@ -132,6 +139,6 @@ export function lookupPartNumber(number) {
     const number = ams[1].startsWith('3') ? 'AMS1117-3.3' : 'AMS1117-5.0';
     return { number, entry: PART_NUMBERS[number] };
   }
-  const named = { '2SC1815': 'C1815', '2SA1015': 'A1015', '2N2907': '2N2907A', '2N2222': '2N2222A', LM741: 'UA741', LM35: 'LM35DZ', LM35D: 'LM35DZ', LM35C: 'LM35CZ', 'SS-12D00G3': 'SS12D00G3', SS12D00: 'SS12D00G3', 'SS-12D00': 'SS12D00G3', 'SW-520D': 'SW520D', SW520: 'SW520D', 'SW-520': 'SW520D', SRD05VDCSLC: 'SRD-05VDC-SL-C', 'SRD-05VDC': 'SRD-05VDC-SL-C', SRD05VDC: 'SRD-05VDC-SL-C', 'RE-140RA': 'RE-140RA-12240', RE140RA: 'RE-140RA-12240', 'RE-140': 'RE-140RA-12240', RE140RA12240: 'RE-140RA-12240', RE140RA2270: 'RE-140RA-2270', MHRD: 'MH-RD', 'MH-RD-RAIN': 'MH-RD', YL69: 'YL-69', 'LM393-LDR': 'LDR-LM393', LDRLM393: 'LDR-LM393', SLOTIR: 'SLOT-IR', TCRT5000M: 'TCRT5000-M', TCRT5000: 'TCRT5000-M', KY024: 'KY-024', 'SW-420': 'SW-420-M', SW420: 'SW-420-M', SW420M: 'SW-420-M', FC51: 'FC-51', KY040: 'KY-040', 'KY-40': 'KY-040', KY008: 'KY-008', HCSR04: 'HC-SR04', SR04: 'HC-SR04', KY035: 'KY-035', SS49E: '49E', VOLT25V: 'VOLT-25V', 'VOLTAGE-SENSOR': 'VOLT-25V', KY037: 'KY-037' }[n];
+  const named = { '2SC1815': 'C1815', '2SA1015': 'A1015', '2N2907': '2N2907A', '2N2222': '2N2222A', LM741: 'UA741', LM35: 'LM35DZ', LM35D: 'LM35DZ', LM35C: 'LM35CZ', 'SS-12D00G3': 'SS12D00G3', SS12D00: 'SS12D00G3', 'SS-12D00': 'SS12D00G3', 'SW-520D': 'SW520D', SW520: 'SW520D', 'SW-520': 'SW520D', SRD05VDCSLC: 'SRD-05VDC-SL-C', 'SRD-05VDC': 'SRD-05VDC-SL-C', SRD05VDC: 'SRD-05VDC-SL-C', 'RE-140RA': 'RE-140RA-12240', RE140RA: 'RE-140RA-12240', 'RE-140': 'RE-140RA-12240', RE140RA12240: 'RE-140RA-12240', RE140RA2270: 'RE-140RA-2270', MHRD: 'MH-RD', 'MH-RD-RAIN': 'MH-RD', YL69: 'YL-69', 'LM393-LDR': 'LDR-LM393', LDRLM393: 'LDR-LM393', SLOTIR: 'SLOT-IR', TCRT5000M: 'TCRT5000-M', TCRT5000: 'TCRT5000-M', KY024: 'KY-024', 'SW-420': 'SW-420-M', SW420: 'SW-420-M', SW420M: 'SW-420-M', FC51: 'FC-51', KY040: 'KY-040', 'KY-40': 'KY-040', KY008: 'KY-008', HCSR04: 'HC-SR04', SR04: 'HC-SR04', KY035: 'KY-035', SS49E: '49E', VOLT25V: 'VOLT-25V', 'VOLTAGE-SENSOR': 'VOLT-25V', KY037: 'KY-037', 'KY-015': 'DHT11', KY015: 'DHT11', 'GY-BME280': 'BME280', GYBME280: 'BME280', 'GY-BMP280': 'BMP280', GYBMP280: 'BMP280', BME2805V: 'BME280-5V' }[n];
   return named ? { number: named, entry: PART_NUMBERS[named] } : null;
 }

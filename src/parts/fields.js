@@ -38,6 +38,7 @@ export const TYPE_FIELDS = {
   'ultrasonic-sensor': ['part', 'distance', 'temperature'],
   'hall-sensor': ['part', 'field'],
   'voltage-sensor': ['part'],
+  'climate-sensor': ['part', 'temperature', 'humidity', 'pressure', 'warmup', 'address'],
 };
 
 // Fields a part has that its type does not take (a typo, or another type's field): saved, they

@@ -60,7 +60,12 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
     else if (p.kind === 'TCH') text = [t(lang, `sim.touch.${p.state}`, { time: p.left == null ? '' : f(p.left, 's') }), `${t(lang, 'sim.q.touch.vout')} ${f(p.vout, 'V')}`, `${t(lang, 'sim.q.touch.isig')} ${f(Math.abs(p.current) < 1e-9 ? 0 : p.current, 'A')}`, `${t(lang, 'sim.q.touch.vcc')} ${f(p.vcc, 'V')}`].join(' · ');
     else if (p.kind === 'ENC') text = [t(lang, `sim.encoder.${p.direction > 0 ? 'cw' : p.direction < 0 ? 'ccw' : 'still'}`), t(lang, 'sim.encoder.shaft', { angle: String(p.shaftShown), click: p.click, detents: p.detents }), `CLK ${f(p.vclk, 'V')}`, `DT ${f(p.vdt, 'V')}`, `SW ${f(p.vsw, 'V')}`].join(' · ');
     else if (p.kind === 'SONAR') text = [t(lang, `sim.sonar.${p.state}`, { time: p.left == null ? '' : f(p.left, 's') }), `${t(lang, 'sim.q.sonar.distance')} ${f(p.distance / 100, 'm')}`, `${t(lang, 'sim.q.sonar.width')} ${f(p.width, 's')}`, `${t(lang, 'sim.q.sonar.vecho')} ${f(p.vecho, 'V')}`, `${t(lang, 'sim.q.sonar.vcc')} ${f(p.vcc, 'V')}`, `${t(lang, 'sim.q.sonar.own')} ${f(p.current, 'A')}`].join(' · ');
-    else if (p.kind === 'MOT') text = [t(lang, `sim.motor.${p.state}`), `${Math.round(p.rpm)} r/min`, `${pad(f(p.voltage, 'V'), 10)} ${f(p.current, 'A')}`, `${t(lang, 'sim.q.motor.emf')} ${f(p.emf, 'V')}`, f(p.power, 'W')].join(' · ');
+    else if (p.kind === 'CLIM') {
+      const a = p.answer;
+      const n = (v, d) => (Number.isFinite(v) ? v.toFixed(d).replace('.', decimal) : '—');
+      const said = [`${n(a.temperature, p.part === 'DHT11' ? 0 : 2)} °C`, Number.isFinite(a.humidity) && `${n(a.humidity, p.part === 'DHT11' ? 0 : 2)} %RH`, Number.isFinite(a.pressure) && `${n(a.pressure / 100, 2)} hPa`].filter(Boolean).join(' ');
+      text = [p.state === 'ready' ? said : t(lang, p.state === 'warmup' ? 'sim.climate.warmup' : `sim.climate.${p.state}`, { voltage: f(p.vcc, 'V'), time: f(p.left ?? 0, 's'), values: said }), `${t(lang, 'sim.q.climate.vcc')} ${f(p.vcc, 'V')}`, `${t(lang, 'sim.q.climate.own')} ${f(p.current, 'A')}`].join(' · ');
+    } else if (p.kind === 'MOT') text = [t(lang, `sim.motor.${p.state}`), `${Math.round(p.rpm)} r/min`, `${pad(f(p.voltage, 'V'), 10)} ${f(p.current, 'A')}`, `${t(lang, 'sim.q.motor.emf')} ${f(p.emf, 'V')}`, f(p.power, 'W')].join(' · ');
     else if (p.kind === 'BAT' && !p.on) text = t(lang, 'sim.battery.off');
     else if (p.kind === 'BAT') {
       text = `${pad(f(p.voltage, 'V'), 10)} ${pad(f(p.current, 'A'), 10)} ${f(p.power, 'W')} · ${t(lang, 'sim.q.battery.emf')} ${f(p.emf, 'V')}`;

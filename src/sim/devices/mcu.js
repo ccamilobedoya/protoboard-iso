@@ -11,7 +11,7 @@
 // adapter) stay unsupported: `accepts` takes only boards whose family has a model.
 
 import { resistor, junction, regulatorElement, partSource, gpioStage } from '../mna.js';
-import { MCUS } from '../models.js';
+import { MCUS, I2C_PINS } from '../models.js';
 import { createRunner, levelAt } from '../program.js';
 import { issue, stress, note, q } from './shared.js';
 
@@ -88,7 +88,37 @@ export const mcu = {
         const stage = byGpio.get(gpio);
         return stage ? { volts: volt(stage.nodes[0]) - volt(gnd), vdd: volt(entry.vdd) - volt(gnd) } : null;
       };
-      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull });
+      // Library sensors (docs/en/library-sensors.md): the elements of the circuit that declare
+      // `library: { classes, bus }` and answer(request), handed over by the engine (connect). A
+      // request names the sketch's pin (a GPIO number) or an I2C address; the board turns the pin, and
+      // its family's default I2C pins, into their nodes, and asks every sensor of that class: each
+      // judges whether it answers (powered, on that node, pulled up, its address and chip id) and
+      // records why not for its card. The first one that answers wins.
+      const i2c = I2C_PINS[p.family] ?? {};
+      let sensors = [];
+      // Nets: nodes joined by jumper wires (an element with `joins`) are one place for a sensor.
+      const root = new Map();
+      const net = (node) => {
+        let n = node;
+        while (root.has(n) && root.get(n) !== n) n = root.get(n);
+        return n;
+      };
+      const nodeOfGpio = (gpio) => byGpio.get(Math.trunc(Number(gpio)))?.nodes[0] ?? null;
+      const netOfGpio = (gpio) => {
+        const node = nodeOfGpio(gpio);
+        return node == null ? null : net(node);
+      };
+      const ask = (request) => {
+        const full = { ...request, gpio: request.pin ?? null, pin: request.pin == null ? null : netOfGpio(request.pin), sda: netOfGpio(i2c.sda), scl: netOfGpio(i2c.scl), net, volt };
+        let best = null;
+        for (const el of sensors) {
+          if (!el.library.classes.includes(request.cls)) continue;
+          const answer = el.answer(full);
+          if (answer && (!best || (answer.ok && !best.ok))) best = answer;
+        }
+        return best;
+      };
+      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull });
       entry.ctrl = h.add({
         nodes: [],
         links: [],
@@ -112,6 +142,7 @@ export const mcu = {
         accept(x, ctx = {}) {
           this.x = x;
           this.runner.read = read;
+          this.runner.ask = ask;
           if (ctx.h) this.runner.advance?.(ctx.h);
           sync();
         },
@@ -119,6 +150,16 @@ export const mcu = {
         // step there, so a delayMicroseconds(10) is a pulse of 10 µs (engine.advance).
         until() {
           return this.runner.until?.() ?? null;
+        },
+        // The engine hands every element of the circuit over once they are all built (engine.js).
+        connect(elements) {
+          sensors = elements.filter((el) => el.library && typeof el.answer === 'function');
+          root.clear();
+          for (const el of elements) {
+            if (!el.joins) continue;
+            const [a, b] = el.nodes.map(net);
+            if (a !== b) root.set(a, b);
+          }
         },
       });
     }
