@@ -1102,7 +1102,7 @@ const INSIDE = {
     });
     make(g, 'path', { class: 'dim', d: 'M50 68V97' });
     const dir = r?.direction > 0 ? 'cw' : r?.direction < 0 ? 'ccw' : 'still';
-    label(g, 50, 106, r ? `${clk} ${f(r.vclk, 'V')} · ${dt} ${f(r.vdt, 'V')} · ${t('sim.encoder.shaft', { angle: fixed(Math.round(r.shaft * 10) / 10), click: r.click, detents: r.detents })}` : '', 'note');
+    label(g, 50, 106, r ? `${clk} ${f(r.vclk, 'V')} · ${dt} ${f(r.vdt, 'V')} · ${t('sim.encoder.shaft', { angle: r.shaftShown, click: r.click, detents: r.detents })}` : '', 'note');
     label(g, 50, 114, r ? t(`page.tour.inside.encoder.${dir}`) : '', 'state');
   },
   module(g, r, data, { t, f, control }) {

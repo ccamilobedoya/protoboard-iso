@@ -9,7 +9,7 @@
 //   CLK (A) closed             no            yes             yes             no              no
 //   DT  (B) closed             no            no              yes             yes             no
 //
-// The machine is the pure functions below, tested on the worked numbers of the sheet (every edge at
+// The machine is the pure functions below, tested on the worked numbers of the timing table in docs/en/rotary-encoder.md (every edge at
 // 2.25° + 4.5° · k, so 6.25 ms + 12.5 ms · k at 360°/s). The element keeps `shaft` and the two `age`s
 // (seconds since each contact last changed, for the optional bounce) and, as the timed sensors do,
 // stamps the state it will have at the END of the step being solved (`ahead`), so an edge is read in
@@ -202,6 +202,8 @@ export const encoder = {
     const plus = at('+') - gnd;
     return {
       shaft: now.shaft,
+      // What the card writes: tenths of a degree, wrapped so 359.97 reads 0 and not 360.
+      shaftShown: Math.round(now.shaft * 10) / 10 >= 360 ? 0 : Math.round(now.shaft * 10) / 10,
       target: entry.motion.target,
       click: clickOf(now.shaft, entry.detents),
       detents: entry.detents,
@@ -233,7 +235,7 @@ export const encoder = {
     const word = (open, v) => `${h.t(open ? 'sim.encoder.open' : 'sim.encoder.closed')} · ${h.f(v, 'V')}`;
     return [
       h.raw(`encoder.${p.direction > 0 ? 'cw' : p.direction < 0 ? 'ccw' : 'still'}`, h.t(`sim.encoder.${p.direction > 0 ? 'cw' : p.direction < 0 ? 'ccw' : 'still'}`)),
-      h.q('encoder.shaft', h.t('sim.encoder.shaft', { angle: String(Math.round(p.shaft * 10) / 10).replace('.', h.decimal), click: p.click, detents: p.detents })),
+      h.q('encoder.shaft', h.t('sim.encoder.shaft', { angle: String(p.shaftShown).replace('.', h.decimal), click: p.click, detents: p.detents })),
       h.q('encoder.clk', word(!p.closed.CLK, p.vclk)),
       h.q('encoder.dt', word(!p.closed.DT, p.vdt)),
       h.q('encoder.sw', `${h.t(p.pressed ? 'sim.encoder.pressed' : 'sim.encoder.released')} · ${h.f(p.vsw, 'V')}`),

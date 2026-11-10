@@ -11,7 +11,7 @@
 
 import { lookupPartNumber } from '../db.js';
 
-// The usual module's: 20 pulses and 20 detents a turn, a brisk human turn of 360 °/s (src/sim/models.js ENCODER).
+// The usual module's: 20 pulses and 20 detents a turn, a brisk human turn of 360 °/s. The only copy: the device reads them from the part (it cannot be imported from src/sim here).
 const USUAL = { pulses: 20, detents: 20, speed: 360, bounce: 0 };
 
 const flag = (v) => v === true || v === 1 || v === '1' || v === 'true';
