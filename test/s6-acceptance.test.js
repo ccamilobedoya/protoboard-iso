@@ -299,7 +299,7 @@ test('L4 · the module on D3 while the sketch says D2: "fail"', () => {
   assert.deepEqual(serialOf(play(dhtBench({ program: failOrOk, link: { data: 'D3' } }), 3.3)), ['fail']);
 });
 
-test('L4 · supply 2.5 V: "fail"; and SIM_MODULE_LOW_SUPPLY is raised (the module's supply limits)', () => {
+test('L4 · supply 2.5 V: "fail"; and SIM_MODULE_LOW_SUPPLY is raised (the module\'s supply limits)', () => {
   assert.deepEqual(serialOf(play(dhtBench({ program: failOrOk, volts: 2.5 }), 3.3)), ['fail']);
   assert.ok(codes(simulate(dhtBench({ program: failOrOk, volts: 2.5 })).issues).includes('SIM_MODULE_LOW_SUPPLY'));
   assert.ok(!codes(simulate(dhtBench({ program: failOrOk, volts: 5 })).issues).includes('SIM_MODULE_LOW_SUPPLY'));
