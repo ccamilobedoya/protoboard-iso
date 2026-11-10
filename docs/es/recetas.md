@@ -78,7 +78,7 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `hall-linear-uno` | Arduino UNO que lee un sensor Hall lineal KY-035 en A0 e imprime el campo en gauss | U1 = su programa |
 | `clap-switch` | Arduino UNO que invierte un LED con cada palmada, desde el DO de un módulo de sonido KY-037 en D2 (flanco de bajada) | U2 = 0,497 (umbral), D1, R1, U1 = su programa |
 | `sound-level-led` | Un módulo de sonido KY-037 cuyo DO absorbe la corriente de un LED mientras el sonido es fuerte | U1 = 0,497 (umbral), R1 = 470 |
-| `voltage-sensor-uno` | Arduino UNO que mide una batería de 9 V con un módulo sensor de voltaje (divisor 5:1) en A0 e imprime los voltios | BT1 = su voltaje (1 a 25 V), U1 = su programa |
+| `voltage-sensor-uno` | Arduino UNO que mide una fuente de 9 V con un módulo sensor de voltaje (divisor 5:1) en A0 e imprime los voltios | V1 = su voltaje (1 a 25 V), U1 = su programa |
 
 `parts` (consola) las lista con su título; el `catalog` compacto (MCP) solo da sus nombres, por grupo (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), para ser corto; `catalog` con el nombre de una receta
 (`parts <nombre>` en la consola) muestra su título y su grupo, lo que enseña, sus componentes, redes, fuente, y el papel y

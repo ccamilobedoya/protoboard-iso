@@ -77,7 +77,7 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `hall-linear-uno` | Arduino UNO reading a KY-035 linear Hall sensor on A0 and printing the field in gauss | U1 = its sketch |
 | `clap-switch` | Arduino UNO toggling an LED at each clap, from a KY-037 sound module's DO on D2 (falling edge) | U2 = 0.497 (threshold), D1, R1, U1 = its sketch |
 | `sound-level-led` | A KY-037 sound module whose DO sinks an LED's current while the sound is loud | U1 = 0.497 (threshold), R1 = 470 |
-| `voltage-sensor-uno` | Arduino UNO measuring a 9 V battery through a voltage sensor module (a 5:1 divider) on A0 and printing the volts | BT1 = its voltage (1 to 25 V), U1 = its sketch |
+| `voltage-sensor-uno` | Arduino UNO measuring a 9 V supply through a voltage sensor module (a 5:1 divider) on A0 and printing the volts | V1 = its voltage (1 to 25 V), U1 = its sketch |
 
 `parts` (CLI) lists them with their titles; the compact `catalog` (MCP) lists only their names, by group (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), to stay short; `catalog` with a recipe's name (`parts
 <name>` in the CLI) shows its title and group, what it teaches, its parts, nets, supply, and each value's role and limits.

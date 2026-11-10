@@ -1,8 +1,8 @@
-// An Arduino UNO measuring a 9 V battery through a voltage sensor module: its 30 kΩ and 7.5 kΩ divide the
+// An Arduino UNO measuring a 9 V supply through a voltage sensor module: its 30 kΩ and 7.5 kΩ divide the
 // input by five, so 9 V reaches A0 as 1.8 V (an input of up to 25 V stays under the UNO's 5 V). The
-// program reads A0, turns the code into volts, and multiplies by five to get the battery's. The
+// program reads A0, turns the code into volts, and multiplies by five to get the supply's. The
 // module's "+" pin goes nowhere inside, so it stays free.
-const VOLTMETER = `// The module divides the input by 5: multiply the reading by 5 to get the battery's volts.
+const VOLTMETER = `// The module divides the input by 5: multiply the reading by 5 to get the supply's volts.
 const int SENSOR = A0;
 
 void setup() {
@@ -26,11 +26,12 @@ export default {
   parts: [
     { id: 'U1', part: 'UNO', program: VOLTMETER },
     { id: 'U2', type: 'voltage-sensor' },
-    { id: 'BT1', type: 'battery', format: '9V', voltage: 9 },
   ],
-  nets: [['BT1.+', 'U2.VIN'], ['BT1.-', 'U2.GND', 'U2.-', 'U1.GND'], ['U2.S', 'U1.A0']],
+  nets: [['T+', 'U2.VIN'], ['T-', 'U2.GND', 'U2.-', 'U1.GND'], ['U2.S', 'U1.A0']],
+  supplies: [{ id: 'V1', kind: 'bench', voltage: 9, positive: 'T+', negative: 'T-' }],
+  page: { controls: [{ supply: 'V1', field: 'voltage', min: 1, max: 25 }] },
   values: {
-    BT1: { field: 'voltage', min: 1, max: 25, role: { en: 'the voltage being measured (V; the module takes up to 25 V)', es: 'el voltaje que se mide (V; el módulo admite hasta 25 V)' } },
+    V1: { field: 'voltage', min: 1, max: 25, role: { en: 'the voltage being measured (V; the module takes up to 25 V)', es: 'el voltaje que se mide (V; el módulo admite hasta 25 V)' } },
     U1: { field: 'program', role: { en: 'the sketch (text, or a .ino file beside the circuit)', es: 'el programa (texto, o un archivo .ino junto al circuito)' } },
   },
 };
