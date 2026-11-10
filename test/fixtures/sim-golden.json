@@ -1107,7 +1107,6 @@
     "14:f-j": null,
     "15:f-j": null,
     "16:f-j": null,
-    "B-": null,
     "T+": 5
    },
    "parts": {
@@ -1120,8 +1119,8 @@
        "mode": "input",
        "level": 0,
        "pull": null,
-       "voltage": 4.986536301874691,
-       "current": -4.9965362325804975e-12,
+       "voltage": 4.98653630187618,
+       "current": -4.996536232581987e-12,
        "read": 1,
        "adc": null
       },
@@ -1131,8 +1130,8 @@
        "mode": "input",
        "level": 0,
        "pull": null,
-       "voltage": 4.986536301874691,
-       "current": -4.9965362325804975e-12,
+       "voltage": 4.98653630187618,
+       "current": -4.996536232581987e-12,
        "read": 1,
        "adc": null
       },
@@ -1142,25 +1141,25 @@
        "mode": "input",
        "level": 0,
        "pull": null,
-       "voltage": 4.986536301874691,
-       "current": -4.9965362325804975e-12,
+       "voltage": 4.98653630187618,
+       "current": -4.996536232581987e-12,
        "read": 1,
        "adc": null
       }
      ],
      "usb": {
-      "voltage": 4.9865363518410515,
-      "current": 0.04487882719651179
+      "voltage": 4.98653635184254,
+      "current": 0.044878827191544485
      },
-     "vdd": 4.9865363518410515,
+     "vdd": 4.98653635184254,
      "rail": null,
-     "power": 0.22439413590799667,
+     "power": 0.2243941359079966,
      "currents": {
-      "5V": -2.99288786118135e-11,
-      "D2": 4.9965362325804975e-12,
-      "D3": 4.9965362325804975e-12,
-      "D4": 4.9965362325804975e-12,
-      "GND": 1.495271749045778e-11
+      "5V": -2.4948161384270605e-11,
+      "D2": 4.996536232581987e-12,
+      "D3": 4.996536232581987e-12,
+      "D4": 4.996536232581987e-12,
+      "GND": 9.972021079592125e-12
      },
      "program": {
       "error": null,
@@ -1171,11 +1170,11 @@
      },
      "floating": true,
      "pinCurrents": {
-      "5V": -2.99288786118135e-11,
-      "D2": 4.9965362325804975e-12,
-      "D3": 4.9965362325804975e-12,
-      "D4": 4.9965362325804975e-12,
-      "GND": 1.495271749045778e-11
+      "5V": -2.4948161384270605e-11,
+      "D2": 4.996536232581987e-12,
+      "D3": 4.996536232581987e-12,
+      "D4": 4.996536232581987e-12,
+      "GND": 9.972021079592125e-12
      }
     },
     "U2": {
@@ -1197,10 +1196,10 @@
       "DT": false,
       "SW": false
      },
-     "vclk": 4.986536301874692,
-     "vdt": 4.986536301874692,
-     "vsw": 4.986536301874692,
-     "vplus": 4.986536351840053,
+     "vclk": 4.986536301876181,
+     "vdt": 4.986536301876181,
+     "vsw": 4.986536301876181,
+     "vplus": 4.986536351841542,
      "contacts": {
       "CLK": 0,
       "DT": 0,
@@ -1211,13 +1210,13 @@
      "angle": 0,
      "unfed": false,
      "currents": {
-      "CLK": -4.996536132650342e-12,
-      "DT": -4.996536132650342e-12,
-      "SW": -4.996536132650342e-12,
-      "+": 1.4989608397951027e-11,
+      "CLK": -4.996536132641866e-12,
+      "DT": -4.996536132641866e-12,
+      "SW": -4.996536132641866e-12,
+      "+": 1.4989608397925597e-11,
       "GND": 0
      },
-     "power": 7.474622717622973e-11,
+     "power": 7.474622717612525e-11,
      "floating": true,
      "env": [
       {
@@ -1227,10 +1226,10 @@
       }
      ],
      "pinCurrents": {
-      "CLK": -4.996536132650342e-12,
-      "DT": -4.996536132650342e-12,
-      "SW": -4.996536132650342e-12,
-      "+": 1.4989608397951027e-11,
+      "CLK": -4.996536132641866e-12,
+      "DT": -4.996536132641866e-12,
+      "SW": -4.996536132641866e-12,
+      "+": 1.4989608397925597e-11,
       "GND": 0
      }
     },
@@ -1240,13 +1239,13 @@
       "1": null,
       "2": null
      },
-     "voltage": 7.494806358719358e-13,
-     "current": 1.4989612717438716e-11,
-     "power": 1.1234424470940025e-23,
+     "voltage": 7.494808288506621e-13,
+     "current": 1.4989616577013242e-11,
+     "power": 1.1234430256293509e-23,
      "floating": true,
      "pinCurrents": {
-      "1": 1.4989612717438716e-11,
-      "2": -1.4989612717438716e-11
+      "1": 1.4989616577013242e-11,
+      "2": -1.4989616577013242e-11
      }
     },
     "W2": {
@@ -1308,21 +1307,6 @@
       "1": -4.973799150320701e-12,
       "2": 4.973799150320701e-12
      }
-    },
-    "W6": {
-     "kind": "W",
-     "pins": {
-      "1": null,
-      "2": null
-     },
-     "voltage": -2.4868995751603507e-13,
-     "current": -4.973799150320701e-12,
-     "power": 1.2369338993865465e-24,
-     "floating": true,
-     "pinCurrents": {
-      "1": -4.973799150320701e-12,
-      "2": 4.973799150320701e-12
-     }
     }
    },
    "supplies": {
@@ -1339,15 +1323,15 @@
      "severity": "warning",
      "code": "SIM_FLOATING",
      "params": {
-      "nodes": "2:f-j, 4:f-j, 6:f-j, 8:f-j, 10:f-j, 12:f-j, 13:f-j, 14:f-j, 15:f-j, 16:f-j, B-",
-      "parts": "U1, W1, W2, W3, W4, W5, W6, U2"
+      "nodes": "2:f-j, 4:f-j, 6:f-j, 8:f-j, 10:f-j, 12:f-j, 13:f-j, 14:f-j, 15:f-j, 16:f-j",
+      "parts": "U1, W1, W2, W3, W4, W5, U2"
      }
     }
    ]
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (1 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T-):\n  rail T-                        0 V\n  column 2 (rows f–j)            floating\n  column 4 (rows f–j)            floating\n  column 6 (rows f–j)            floating\n  column 8 (rows f–j)            floating\n  column 10 (rows f–j)           floating\n  column 12 (rows f–j)           floating\n  column 13 (rows f–j)           floating\n  column 14 (rows f–j)           floating\n  column 15 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  rail B-                        floating\n  rail T+                        5 V\nParts:\n  U1     USB 4.99 V 44.9 mA · Logic rail 4.99 V · D2 input 4.99 V -5 pA · D3 input 4.99 V -5 pA · D4 input 4.99 V -5 pA · 224 mW · floating\n  U2     still · resting on a click · shaft 0° · click 0 of 20 · CLK 4.99 V · DT 4.99 V · SW 4.99 V · floating\n  W1     0.749 pV   15 pA      0 W · floating\n  W2     -0.25 pV   -5 pA      0 W · floating\n  W3     -0.25 pV   -5 pA      0 W · floating\n  W4     -0.25 pV   -5 pA      0 W · floating\n  W5     -0.249 pV  -4.97 pA   0 W · floating\n  W6     -0.249 pV  -4.97 pA   0 W · floating\nNotes:\n  warning: U1, W1, W2, W3, W4, W5, W6, U2: no DC path to the supply (nodes 2:f-j, 4:f-j, 6:f-j, 8:f-j, 10:f-j, 12:f-j, 13:f-j, 14:f-j, 15:f-j, 16:f-j, B-), so the voltage there is not defined.",
-   "es": "Punto de operación en DC — un modelo, no una medición (1 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T-):\n  riel T-                        0 V\n  columna 2 (filas f–j)          flotante\n  columna 4 (filas f–j)          flotante\n  columna 6 (filas f–j)          flotante\n  columna 8 (filas f–j)          flotante\n  columna 10 (filas f–j)         flotante\n  columna 12 (filas f–j)         flotante\n  columna 13 (filas f–j)         flotante\n  columna 14 (filas f–j)         flotante\n  columna 15 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  riel B-                        flotante\n  riel T+                        5 V\nComponentes:\n  U1     USB 4,99 V 44,9 mA · Riel lógico 4,99 V · D2 entrada 4,99 V -5 pA · D3 entrada 4,99 V -5 pA · D4 entrada 4,99 V -5 pA · 224 mW · flotante\n  U2     quieto · reposa en un clic · eje 0° · clic 0 de 20 · CLK 4,99 V · DT 4,99 V · SW 4,99 V · flotante\n  W1     0,749 pV   15 pA      0 W · flotante\n  W2     -0,25 pV   -5 pA      0 W · flotante\n  W3     -0,25 pV   -5 pA      0 W · flotante\n  W4     -0,25 pV   -5 pA      0 W · flotante\n  W5     -0,249 pV  -4,97 pA   0 W · flotante\n  W6     -0,249 pV  -4,97 pA   0 W · flotante\nObservaciones:\n  aviso: U1, W1, W2, W3, W4, W5, W6, U2: no hay camino de corriente continua hasta la fuente (grupos 2:f-j, 4:f-j, 6:f-j, 8:f-j, 10:f-j, 12:f-j, 13:f-j, 14:f-j, 15:f-j, 16:f-j, B-), así que ahí el voltaje no está definido."
+   "en": "DC operating point — a model, not a measurement (1 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T-):\n  rail T-                        0 V\n  column 2 (rows f–j)            floating\n  column 4 (rows f–j)            floating\n  column 6 (rows f–j)            floating\n  column 8 (rows f–j)            floating\n  column 10 (rows f–j)           floating\n  column 12 (rows f–j)           floating\n  column 13 (rows f–j)           floating\n  column 14 (rows f–j)           floating\n  column 15 (rows f–j)           floating\n  column 16 (rows f–j)           floating\n  rail T+                        5 V\nParts:\n  U1     USB 4.99 V 44.9 mA · Logic rail 4.99 V · D2 input 4.99 V -5 pA · D3 input 4.99 V -5 pA · D4 input 4.99 V -5 pA · 224 mW · floating\n  U2     still · resting on a click · shaft 0° · click 0 of 20 · CLK 4.99 V · DT 4.99 V · SW 4.99 V · floating\n  W1     0.749 pV   15 pA      0 W · floating\n  W2     -0.25 pV   -5 pA      0 W · floating\n  W3     -0.25 pV   -5 pA      0 W · floating\n  W4     -0.25 pV   -5 pA      0 W · floating\n  W5     -0.249 pV  -4.97 pA   0 W · floating\nNotes:\n  warning: U1, W1, W2, W3, W4, W5, U2: no DC path to the supply (nodes 2:f-j, 4:f-j, 6:f-j, 8:f-j, 10:f-j, 12:f-j, 13:f-j, 14:f-j, 15:f-j, 16:f-j), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (1 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T-):\n  riel T-                        0 V\n  columna 2 (filas f–j)          flotante\n  columna 4 (filas f–j)          flotante\n  columna 6 (filas f–j)          flotante\n  columna 8 (filas f–j)          flotante\n  columna 10 (filas f–j)         flotante\n  columna 12 (filas f–j)         flotante\n  columna 13 (filas f–j)         flotante\n  columna 14 (filas f–j)         flotante\n  columna 15 (filas f–j)         flotante\n  columna 16 (filas f–j)         flotante\n  riel T+                        5 V\nComponentes:\n  U1     USB 4,99 V 44,9 mA · Riel lógico 4,99 V · D2 entrada 4,99 V -5 pA · D3 entrada 4,99 V -5 pA · D4 entrada 4,99 V -5 pA · 224 mW · flotante\n  U2     quieto · reposa en un clic · eje 0° · clic 0 de 20 · CLK 4,99 V · DT 4,99 V · SW 4,99 V · flotante\n  W1     0,749 pV   15 pA      0 W · flotante\n  W2     -0,25 pV   -5 pA      0 W · flotante\n  W3     -0,25 pV   -5 pA      0 W · flotante\n  W4     -0,25 pV   -5 pA      0 W · flotante\n  W5     -0,249 pV  -4,97 pA   0 W · flotante\nObservaciones:\n  aviso: U1, W1, W2, W3, W4, W5, U2: no hay camino de corriente continua hasta la fuente (grupos 2:f-j, 4:f-j, 6:f-j, 8:f-j, 10:f-j, 12:f-j, 13:f-j, 14:f-j, 15:f-j, 16:f-j), así que ahí el voltaje no está definido."
   },
   "lines": {
    "en": {
@@ -1508,24 +1492,6 @@
       "key": "floating",
       "text": "floating"
      }
-    ],
-    "W6": [
-     {
-      "key": "voltage",
-      "text": "Voltage: -0.249 pV"
-     },
-     {
-      "key": "current",
-      "text": "Current: -4.97 pA"
-     },
-     {
-      "key": "power",
-      "text": "Power: 0 W"
-     },
-     {
-      "key": "floating",
-      "text": "floating"
-     }
     ]
    },
    "es": {
@@ -1670,24 +1636,6 @@
      }
     ],
     "W5": [
-     {
-      "key": "voltage",
-      "text": "Voltaje (tensión): -0,249 pV"
-     },
-     {
-      "key": "current",
-      "text": "Corriente: -4,97 pA"
-     },
-     {
-      "key": "power",
-      "text": "Potencia: 0 W"
-     },
-     {
-      "key": "floating",
-      "text": "flotante"
-     }
-    ],
-    "W6": [
      {
       "key": "voltage",
       "text": "Voltaje (tensión): -0,249 pV"
