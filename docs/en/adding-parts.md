@@ -217,7 +217,10 @@ field through a moving part (the rotary encoder's shaft, which chases the enviro
 at a bounded speed) keeps that part in the same carried state and writes its motion as a pure
 function first: [rotary-encoder.md](rotary-encoder.md). One whose output a program
 times to the microsecond (the HC-SR04's echo) names its next edge with `until()`, and the engine ends
-a step there; see [ultrasonic-sensor.md](ultrasonic-sensor.md).
+a step there; see [ultrasonic-sensor.md](ultrasonic-sensor.md). One a board reads through its
+library (a DHT11, a BME280) answers the board's requests instead of driving a pin: its element declares
+`library: { classes, bus }` and `answer(request)`, and the class and its methods go in
+`src/sim/libraries.js`; see [library-sensors.md](library-sensors.md#adding-another-library-sensor).
 A sensor on the usual comparator board (rain, soil, light, an infrared slot or pair, a Hall switch,
 a vibration contact) is not a new type: it is one row of the `sensor-module` table, its element and
 a glyph ([sensor-modules.md](sensor-modules.md#adding-a-ninth-part)).

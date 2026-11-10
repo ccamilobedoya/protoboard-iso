@@ -37,6 +37,7 @@ by hand) and `examples/environment-cycle.json` (the light in a slow cycle); the 
 | `angle` | ° | 0…360 | 0…360 | linear | 0 | level |
 | `reflectance` | % (of white paper's) | 0…100 | 0…100 | linear | 80 | level |
 | `beam` | (1 = blocked) | off / on | 0…1 | | 0 | switch |
+| `pressure` | hPa | 300…1100 (step 0.05) | 0…1500 | linear | 1013.25 | level |
 
 The slider's range is what the page offers; the limit is what a value may be at all (a circuit, a
 `set` or a program outside it is clamped, and `check` says so). Today the thermistor and the
@@ -49,6 +50,13 @@ follower or in front of an obstacle sensor) and `beam` (something in an optical 
 those modules.
 The HC-SR04 ultrasonic module ([ultrasonic-sensor.md](ultrasonic-sensor.md)) reads `distance` and
 `temperature`, which sets the speed of sound.
+The climate sensors read through a board's library ([library-sensors.md](library-sensors.md)) are
+the ones that read `humidity` (the DHT11 and the BME280) and `pressure` (the BME280 and the
+BMP280), besides `temperature`. `pressure` is the air's, in hPa; 1013.25 is the standard atmosphere at
+sea level. Its indicator is a barometer, and its panel row also says the altitude that pressure means
+in the standard atmosphere, `h = 44330 · (1 − (p / 1013.25)^0.1903)` m (the libraries' formula; its
+inverse `p = 1013.25 · (1 − h / 44330)^5.255`: 1000 m is 898.8 hPa, and near sea level 1 hPa is
+about 8.3 m). A weather lesson moves it between about 980 and 1040 hPa.
 
 ## In the circuit
 

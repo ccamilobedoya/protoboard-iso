@@ -476,6 +476,20 @@ fields ([ultrasonic-sensor.md](ultrasonic-sensor.md)).
 { "id": "U2", "type": "ultrasonic-sensor", "pins": ["h20", "h21", "h22", "h23"] }
 ```
 
+### climate-sensor
+
+A climate sensor a board reads through its library ([library-sensors.md](library-sensors.md)). Part
+numbers: `DHT11` (the default; the usual module standing on three pins `S`, `+`, `−`), `BME280` (the
+3.3 V-only board lying on its header, pins `VCC`, `GND`, `SCL`, `SDA`), `BME280-5V` (the regulated
+board, the same pins) and `BMP280` (no humidity). Fields: `temperature` (°C), `humidity` (%RH) and
+`pressure` (hPa), its own values of the environment's fields; `warmup` (DHT11: seconds after power
+before a good read, default 1); `address` (the BME280 and BMP280 boards: `0x76`, the default, or
+`0x77`, as a number or a string).
+
+```json
+{ "id": "U2", "type": "climate-sensor", "part": "BME280", "address": "0x76", "pins": ["h20", "h21", "h22", "h23"] }
+```
+
 ### header
 
 A row of male header pins, to show where a module or a Dupont wire plugs in. Place it with

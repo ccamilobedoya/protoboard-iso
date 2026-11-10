@@ -103,7 +103,7 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - **In the page:** a circuit with a program runs in real time (`delay(500)` is half a second),
   with steps of 1 ms (shorter, down to 0.1 ms, for a fast RC beside it). The board's card shows the
   program (running, or in `delay()` until when), its Serial lines and each pin.
-- **Not run:** classes, pointers, templates, function-like macros, libraries (an `#include` other
+- **Not run:** classes (but three libraries' objects, [below](#library-objects-dht-bme280-bmp280)), pointers, templates, function-like macros, other libraries (an `#include` other
   than Arduino's is noted: `SIM_PROGRAM_LIBRARY`); a call to a function nobody defines returns 0
   (`SIM_PROGRAM_UNSUPPORTED`); a line it cannot read stops it (`SIM_PROGRAM_ERROR`, with the line);
   a missing file (`SIM_PROGRAM_FILE`).
@@ -172,6 +172,46 @@ the sound.
 - Not run: `transient()` (the CLI's `simulate --transient`) steps at its fixed step, so there a
   pulse is read to a step.
 
+## Library objects (DHT, BME280, BMP280)
+
+A program may use three libraries' classes, as the sensors' own examples do
+([library-sensors.md](library-sensors.md)):
+
+```cpp
+#include <DHT.h>
+DHT dht(2, DHT11);          // a GLOBAL declaration: pin and type
+Adafruit_BME280 bme;        // #include <Wire.h>, <Adafruit_Sensor.h>, <Adafruit_BME280.h>
+Adafruit_BMP280 bmp;        // #include <Adafruit_BMP280.h>
+```
+
+| Class | Methods |
+|---|---|
+| `DHT` | `begin()`, `readTemperature()`, `readTemperature(true)` (°F), `readHumidity()`, `computeHeatIndex(t, h, false)` (°C; `true` or nothing, °F) |
+| `Adafruit_BME280` | `begin()` (address 0x77), `begin(address)` (true or false), `readTemperature()`, `readPressure()` (Pa), `readHumidity()`, `readAltitude(seaLevelHpa)` |
+| `Adafruit_BMP280` | the same without `readHumidity`, and `begin(address, chipid)` |
+
+Also `Wire.begin()` (with or without pins: accepted, it does nothing; the libraries start the bus,
+and a sensor answers on the family's default I2C pins only), `isnan(x)`, `NAN`, `F("text")` (the
+text itself), and the constants `DHT11` and `DHT22`. `DHT22` is noted (`SIM_PROGRAM_NOT_IN_KIT`): it
+is not in the kit yet and its reads give `NaN`. Those five includes give no note. `Serial.print` of a
+float writes two decimals (`24.00`, as Arduino does), of `NaN` `nan` and of an infinity `inf`.
+
+- **Timing:** a real DHT read holds the sketch 25 ms, a read the library answers from its 2 s cache
+  takes none; `begin()` of a BME280 / BMP280 takes 100 ms. They wait as `delay` does (a generator of
+  the runtime, called with `yield*`), so `millis()` around them shows it.
+- **How it stays safe.** The translator accepts a declaration only at the top level and only as
+  `DHT name(pin, type);`, `Adafruit_BME280 name;` or `Adafruit_BMP280 name;`, with a name that is
+  not the runtime's (`Serial`, `Wire`, a class's, a function's, a constant's) nor already taken. The
+  object's name is never written into the JavaScript: the declaration becomes
+  `__new(<object>, <class>, args)` and `dht.readHumidity()` becomes `(yield* __lib(0, 2))`, numbers
+  from the translator's own table (`src/sim/libraries.js`). An object's name must be followed by
+  `.method(`; anything else (`dht.constructor`, `dht["x"]`, `dht` alone, a declaration inside a
+  function, a call outside one) is refused (`SIM_PROGRAM_ERROR`); a method not in its class's list is
+  noted and returns 0, with its name kept out of the code. At most `LIMITS.libraryObjects` (16)
+  objects. The runtime checks the numbers too (an integer in range of its own arrays). Tests in
+  `test/attack.test.js`.
+- How the board finds the sensor for a call: [library-sensors.md](library-sensors.md#how-a-board-finds-a-sensor).
+
 ## The plan
 
 | Phase | What | State |
@@ -181,6 +221,7 @@ the sound.
 | **M3** | PWM as a real square wave in time (`analogWrite`, `ledcWrite`), `tone`, the step it needs in the page and the LED's averaged glow, the serial monitor in the board's card | ✅ 2026-10-26 |
 | **M4** | Recipes with their program: `esp32-led`, `esp32-button`, `uno-blink`, `uno-button`, `uno-pot-pwm`, `c3-blink`, `c3-pot-pwm`; tested potentiometer → ADC → PWM against each board's numbers | ✅ 2026-10-26 |
 | **M5** | `pulseIn` (2026-11-10): a wait in simulated time that measures between the steps ending on the edges; `engine.advance` lands on each element's events; recipes `uno-distance`, `esp32-distance`, `distance-alarm-uno` with the HC-SR04 | ✅ 2026-11-10 |
+| **M6** | Library objects (2026-11-10): `DHT`, `Adafruit_BME280`, `Adafruit_BMP280` as numbers of the translator's table; the board asks the sensor wired where the library looks; recipes `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude` | ✅ 2026-11-10 |
 | later | A serial console panel of its own in the page, `analogRead` against the ESP32 ADC's real curve, interrupts (`attachInterrupt`), simplified stand-ins for common libraries, real UNO firmware with avr8js as an optional mode, both ESP32 headers in one circuit (the layout limit) | — |
 
 The program drives the memory the pins keep (`gpioStage`: `mode`, `level`, `pull`) through one

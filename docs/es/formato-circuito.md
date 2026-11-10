@@ -496,6 +496,20 @@ propios de los campos del ambiente ([sensor-ultrasonico.md](sensor-ultrasonico.m
 { "id": "U2", "type": "ultrasonic-sensor", "pins": ["h20", "h21", "h22", "h23"] }
 ```
 
+### climate-sensor (sensor de clima)
+
+Un sensor de clima que la placa lee con su biblioteca ([sensores-de-biblioteca.md](sensores-de-biblioteca.md)).
+Números de parte: `DHT11` (por defecto; el módulo de siempre parado sobre tres patas `S`, `+`, `−`),
+`BME280` (la placa de solo 3,3 V acostada sobre su peineta, patas `VCC`, `GND`, `SCL`, `SDA`),
+`BME280-5V` (la placa con regulador, las mismas patas) y `BMP280` (sin humedad). Campos: `temperature`
+(°C), `humidity` (%HR) y `pressure` (hPa), sus valores propios de los campos del ambiente; `warmup`
+(DHT11: segundos después de alimentarlo antes de una buena lectura, 1 por defecto); `address` (las
+placas BME280 y BMP280: `0x76`, por defecto, o `0x77`, como número o como texto).
+
+```json
+{ "id": "U2", "type": "climate-sensor", "part": "BME280", "address": "0x76", "pins": ["h20", "h21", "h22", "h23"] }
+```
+
 ### header (pines de cabecera)
 
 Una fila de pines macho, para mostrar dónde se enchufa un módulo o un cable Dupont. Se coloca

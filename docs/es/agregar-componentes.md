@@ -224,7 +224,10 @@ campo a través de una pieza que se mueve (el eje del encoder rotativo, que pers
 ambiente a una velocidad acotada) guarda esa pieza en el mismo estado heredado y escribe su
 movimiento primero como función pura: [encoder-rotativo.md](encoder-rotativo.md). Uno
 cuya salida un programa mide al microsegundo (el eco del HC-SR04) nombra su próximo flanco con
-`until()`, y el motor termina un paso ahí; mira [sensor-ultrasonico.md](sensor-ultrasonico.md).
+`until()`, y el motor termina un paso ahí; mira [sensor-ultrasonico.md](sensor-ultrasonico.md). Uno que
+la placa lee con su biblioteca (un DHT11, un BME280) responde las preguntas de la placa en vez de
+manejar un pin: su elemento declara `library: { classes, bus }` y `answer(request)`, y la clase y sus
+métodos van en `src/sim/libraries.js`; mira [sensores-de-biblioteca.md](sensores-de-biblioteca.md#agregar-otro-sensor-de-biblioteca).
 Un sensor en la placa de comparador de siempre (lluvia, suelo, luz, una ranura o un par infrarrojo,
 un interruptor Hall, un contacto de vibración) no es un tipo nuevo: es una fila de la tabla de
 `sensor-module`, su elemento y un glifo ([modulos-sensores.md](modulos-sensores.md#agregar-una-novena-pieza)).

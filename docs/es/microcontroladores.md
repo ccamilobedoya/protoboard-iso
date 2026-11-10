@@ -105,7 +105,7 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - **En la página:** un circuito con programa corre en tiempo real (`delay(500)` es medio segundo),
   con pasos de 1 ms (más cortos, hasta 0,1 ms, si al lado hay un RC rápido). La ficha de la placa
   muestra el programa (corriendo, o en `delay()` hasta cuándo), sus líneas de Serial y cada pin.
-- **Lo que no corre:** clases, punteros, plantillas, macros con parámetros, librerías (un
+- **Lo que no corre:** clases (salvo los objetos de tres bibliotecas, [más abajo](#objetos-de-biblioteca-dht-bme280-bmp280)), punteros, plantillas, macros con parámetros, otras librerías (un
   `#include` distinto del de Arduino se avisa: `SIM_PROGRAM_LIBRARY`); llamar a una función que nadie
   define devuelve 0 (`SIM_PROGRAM_UNSUPPORTED`); una línea que no entiende lo detiene
   (`SIM_PROGRAM_ERROR`, con la línea); un archivo que falta (`SIM_PROGRAM_FILE`).
@@ -178,6 +178,46 @@ del sonido.
 - No corre así: `transient()` (el `simulate --transient` de la CLI) avanza con su paso fijo, así que
   allí un pulso se lee a un paso.
 
+## Objetos de biblioteca (DHT, BME280, BMP280)
+
+Un programa puede usar las clases de tres bibliotecas, como lo hacen los ejemplos de los propios
+sensores ([sensores-de-biblioteca.md](sensores-de-biblioteca.md)):
+
+```cpp
+#include <DHT.h>
+DHT dht(2, DHT11);          // una declaración GLOBAL: pin y tipo
+Adafruit_BME280 bme;        // #include <Wire.h>, <Adafruit_Sensor.h>, <Adafruit_BME280.h>
+Adafruit_BMP280 bmp;        // #include <Adafruit_BMP280.h>
+```
+
+| Clase | Métodos |
+|---|---|
+| `DHT` | `begin()`, `readTemperature()`, `readTemperature(true)` (°F), `readHumidity()`, `computeHeatIndex(t, h, false)` (°C; con `true` o sin nada, °F) |
+| `Adafruit_BME280` | `begin()` (dirección 0x77), `begin(dirección)` (verdadero o falso), `readTemperature()`, `readPressure()` (Pa), `readHumidity()`, `readAltitude(presionMarHpa)` |
+| `Adafruit_BMP280` | lo mismo sin `readHumidity`, y `begin(dirección, chipid)` |
+
+También `Wire.begin()` (con o sin pines: se acepta y no hace nada; las bibliotecas arrancan el bus, y
+un sensor responde solo en los pines I2C por defecto de la familia), `isnan(x)`, `NAN`, `F("texto")`
+(el texto mismo) y las constantes `DHT11` y `DHT22`. `DHT22` se avisa (`SIM_PROGRAM_NOT_IN_KIT`):
+todavía no está en el kit y sus lecturas dan `NaN`. Esos cinco includes no dan aviso. `Serial.print`
+de un float escribe dos decimales (`24.00`, como Arduino), de `NaN` `nan` y de un infinito `inf`.
+
+- **Tiempos:** una lectura real del DHT detiene el programa 25 ms; una que la biblioteca responde
+  desde su caché de 2 s no toma nada; el `begin()` de un BME280 / BMP280 toma 100 ms. Esperan como
+  `delay` (un generador del runtime, llamado con `yield*`), así que `millis()` alrededor lo muestra.
+- **Cómo sigue siendo seguro.** El traductor acepta una declaración solo en el nivel superior y solo
+  como `DHT nombre(pin, tipo);`, `Adafruit_BME280 nombre;` o `Adafruit_BMP280 nombre;`, con un nombre
+  que no sea del runtime (`Serial`, `Wire`, el de una clase, una función o una constante) ni esté ya
+  usado. El nombre del objeto nunca se escribe en el JavaScript: la declaración se vuelve
+  `__new(<objeto>, <clase>, args)` y `dht.readHumidity()` se vuelve `(yield* __lib(0, 2))`, números
+  de la propia tabla del traductor (`src/sim/libraries.js`). Al nombre de un objeto debe seguirle
+  `.método(`; cualquier otra cosa (`dht.constructor`, `dht["x"]`, `dht` solo, una declaración dentro
+  de una función, una llamada fuera de una) se rechaza (`SIM_PROGRAM_ERROR`); un método que no está en
+  la lista de su clase se avisa y devuelve 0, sin que su nombre llegue al código. Como mucho
+  `LIMITS.libraryObjects` (16) objetos. El runtime también revisa los números (un entero dentro de sus
+  propios arreglos). Pruebas en `test/attack.test.js`.
+- Cómo encuentra la placa el sensor de una llamada: [sensores-de-biblioteca.md](sensores-de-biblioteca.md#cómo-encuentra-la-placa-un-sensor).
+
 ## El plan
 
 | Fase | Qué | Estado |
@@ -187,6 +227,7 @@ del sonido.
 | **M3** | PWM como una onda cuadrada real en el tiempo (`analogWrite`, `ledcWrite`), `tone`, el paso que necesita en la página y el brillo promediado del LED, el monitor serie en la ficha de la placa | ✅ 2026-10-26 |
 | **M4** | Recetas con su programa: `esp32-led`, `esp32-button`, `uno-blink`, `uno-button`, `uno-pot-pwm`, `c3-blink`, `c3-pot-pwm`; probado potenciómetro → ADC → PWM con los números de cada placa | ✅ 2026-10-26 |
 | **M5** | `pulseIn` (2026-11-10): una espera en tiempo simulado que mide entre los pasos que terminan en los flancos; `engine.advance` aterriza en los eventos de cada elemento; recetas `uno-distance`, `esp32-distance`, `distance-alarm-uno` con el HC-SR04 | ✅ 2026-11-10 |
+| **M6** | Objetos de biblioteca (2026-11-10): `DHT`, `Adafruit_BME280`, `Adafruit_BMP280` como números de la tabla del traductor; la placa le pregunta al sensor conectado donde lo busca la biblioteca; recetas `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude` | ✅ 2026-11-10 |
 | después | Un panel propio de consola serie en la página, `analogRead` con la curva real del ADC del ESP32, interrupciones (`attachInterrupt`), versiones simplificadas de librerías comunes, firmware real del UNO con avr8js como modo opcional, las dos filas de pines del ESP32 en un circuito (el límite del montaje) | — |
 
 El programa maneja la memoria que guardan los pines (`gpioStage`: `mode`, `level`, `pull`) a

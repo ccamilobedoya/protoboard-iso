@@ -37,6 +37,7 @@ tiempo `examples/tours/environment.json` hace un video del primero.
 | `angle` | ° | 0…360 | 0…360 | lineal | 0 | nivel |
 | `reflectance` | % (del papel blanco) | 0…100 | 0…100 | lineal | 80 | nivel |
 | `beam` | (1 = cortado) | no / sí | 0…1 | | 0 | interruptor |
+| `pressure` | hPa | 300…1100 (paso 0,05) | 0…1500 | lineal | 1013,25 | nivel |
 
 El rango del deslizador es lo que ofrece la página; el límite, lo que un valor puede ser (un
 circuito, un `set` o un programa por fuera se recortan, y `check` lo dice). Hoy lo leen el
@@ -46,6 +47,13 @@ de inclinación (`tilt`) y los módulos de sensor con LM393 ([modulos-sensores.m
 disco de encoder) y el encoder rotativo KY-040 ([encoder-rotativo.md](encoder-rotativo.md): `angle` es el objetivo al que gira su eje) lo leen; los demás campos quedan listos para los sensores que vienen. `reflectance` (la
 superficie bajo un seguidor de línea o frente a un sensor de obstáculos) y `beam` (algo en una ranura
 óptica) llegaron con esos módulos.
+Los sensores de clima que se leen con la biblioteca de una placa ([sensores-de-biblioteca.md](sensores-de-biblioteca.md))
+son los que leen `humidity` (el DHT11 y el BME280) y `pressure` (el BME280 y el BMP280), además de
+`temperature`. `pressure` es la del aire, en hPa; 1013,25 es la atmósfera estándar al nivel del mar.
+Su indicador es un barómetro, y su fila del panel dice también la altitud que esa presión significa en
+la atmósfera estándar, `h = 44330 · (1 − (p / 1013,25)^0,1903)` m (la fórmula de las bibliotecas; su
+inversa `p = 1013,25 · (1 − h / 44330)^5,255`: 1000 m son 898,8 hPa, y cerca del nivel del mar 1 hPa
+son unos 8,3 m). Una lección del clima la mueve entre unos 980 y 1040 hPa.
 El módulo ultrasónico HC-SR04 ([sensor-ultrasonico.md](sensor-ultrasonico.md)) lee `distance` y
 `temperature`, que fija la velocidad del sonido.
 
