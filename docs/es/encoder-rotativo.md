@@ -16,7 +16,7 @@ Pines `CLK`, `DT`, `SW`, `+`, `GND`, como los imprime la placa, a 2,54 mm, de pi
 pines en una fila de la protoboard (la placa mide 19 × 26 mm; el encoder, 12 × 12 mm con un eje de
 6 mm que sale 20 mm hacia el frente). El módulo trae una resistencia pull-up de 10 kΩ de `+` a `CLK`,
 a `DT` y a `SW`. Cuelgan del pin `+`: con `+` sin conectar las salidas flotan, el error clásico del
-módulo (`SIM_ENCODER_FLOATING`). CLK es el canal A y DT el canal B.
+módulo (`SIM_ENCODER_FLOATING`; un pin en `INPUT_PULLUP` las lee limpias con su propio pull-up, y la nota dice ambos casos). CLK es el canal A y DT el canal B.
 
 | Campo | Por defecto | |
 |---|---|---|
@@ -89,7 +89,7 @@ interrupción (`attachInterrupt`) todavía no se simula.
 ## Límites y rebote
 
 Un contacto que lleve más de 10 mA es `SIM_OVER_CURRENT` (un LED conectado directo por un contacto
-cerrado con 220 Ω desde 5 V toma unos 14 mA; con 470 Ω, 7 mA, sin aviso); un contacto abierto que
+cerrado con 220 Ω desde 5 V toma unos 15 mA por el contacto, 14,4 mA de ellos en el LED; con 470 Ω, 7,5 mA, sin aviso); un contacto abierto que
 sostenga más de 12 V es `SIM_SWITCH_VOLTAGE`. El pin de un programa que baja una línea contra `+`
 toma 0,5 mA y no estresa nada. Los 10 mA y 12 V son los valores nominales del EC11 a 5 V en continua con
 carga resistiva; los 12 V son la elección del kit para avisar.

@@ -1,5 +1,5 @@
 // The same encoder counter on an Arduino UNO, with a LED on D9 whose brightness follows the count:
-// 13 PWM counts a click, so 20 clicks reach full brightness. The count is held between 0 and 20 clicks:
+// 12 PWM counts a click, so 20 clicks reach 240 of 255 (analogWrite takes 0 to 255: a larger value would wrap). The count is held between 0 and 20 clicks:
 // turned further, it stays at the end, so one click back from there dims the LED at once.
 const DIMMER = `// Each click changes the count; the LED's brightness follows it.
 const int CLK_PIN = 2;
@@ -33,7 +33,7 @@ void loop() {
     count = 0;
     Serial.println(count);
   }
-  analogWrite(LED_PIN, count * 13);
+  analogWrite(LED_PIN, count * 12);
   delay(1);
 }
 `;
@@ -42,7 +42,7 @@ export default {
   name: 'encoder-dimmer-uno',
   group: 'sensors',
   title: { en: 'Arduino UNO: dimmer with a KY-040 rotary encoder', es: 'Arduino UNO: atenuador con encoder rotativo KY-040' },
-  teaches: { en: 'The encoder counts clicks in either direction and the sketch turns the count into a PWM duty, held between 0 and 20 clicks with constrain(): clockwise brightens the LED, counter-clockwise dims it, the button turns it off', es: 'El encoder cuenta clics en los dos sentidos y el programa convierte la cuenta en un ciclo útil PWM, retenido entre 0 y 20 clics con constrain(): a la derecha sube el brillo del LED, a la izquierda lo baja, el botón lo apaga' },
+  teaches: { en: 'The encoder counts clicks in either direction and the sketch turns the count into a PWM duty (12 per click, 240 at most: analogWrite takes up to 255), held between 0 and 20 clicks with constrain(): clockwise brightens the LED, counter-clockwise dims it, the button turns it off', es: 'El encoder cuenta clics en los dos sentidos y el programa convierte la cuenta en un ciclo útil PWM (12 por clic, 240 como máximo: analogWrite admite hasta 255), retenido entre 0 y 20 clics con constrain(): a la derecha sube el brillo del LED, a la izquierda lo baja, el botón lo apaga' },
   parts: [
     { id: 'U1', part: 'UNO', program: DIMMER },
     { id: 'U2', type: 'rotary-encoder' },
