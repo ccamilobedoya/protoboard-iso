@@ -317,3 +317,14 @@ export const PIR = { maxReverse: 0.3, minSupply: 4.5, maxSupply: 20, logic: 3.3,
 //   quiescent            3 µA in low-power mode and 7 µA in fast mode (maximum values), as a
 //                        resistor at 3.3 V
 export const TOUCH = { maxReverse: 0.3, minSupply: 2, maxSupply: 5.5, response: 0.22, fastResponse: 0.06, settle: 0.5, highResistance: 150, lowResistance: 75, sourceSpec: 4e-3, sinkSpec: 8e-3, maxCurrent: 10e-3, quiescent: 3e-6, fastQuiescent: 7e-6, quiescentAt: 3.3 };
+
+// Rotary encoder EC11 on the KY-040 module (docs/en/rotary-encoder.md; ALPS EC11 sheets, the module
+// manuals):
+//   contact 0.1 Ω        a closed contact, the sheet's 100 mΩ maximum
+//   maxCurrent 10 mA     the contacts' rating at 5 V DC; maxVoltage 12 V [A] where the kit warns
+//   pullup 10 kΩ         from `+` to CLK, DT and SW on the module (some clones omit SW's)
+//   speed 360 °/s [A]    a brisk human turn is one to two revolutions a second
+//   pulses, detents 20   the usual KY-040 (the sheet lists 18, 12, 24 and 15/30 parts too)
+//   stepsPerQuarter 25 [A]  the element asks for steps of a twenty-fifth of the time between two edges
+//                        (0.5 ms at 360 °/s) so that every edge lands within a step of its time
+export const ENCODER = { contact: 0.1, maxCurrent: 10e-3, maxVoltage: 12, pullup: 10e3, speed: 360, pulses: 20, detents: 20, stepsPerQuarter: 25, bounce: 0 };
