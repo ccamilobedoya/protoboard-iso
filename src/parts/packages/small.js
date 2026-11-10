@@ -4,7 +4,9 @@
 //   bead     params: color (default black epoxy)
 //   ldr      params: none (orange cadmium-sulphide track on a white ceramic disc)
 // A bead and a photoresistor have no polarity: their mark (src/pinout.js) is `either`.
-//   buzzer   params: none (12 mm round body, sound hole on top, a + printed over pin 1)
+//   buzzer   params: active (the TMB12A05: the same can 1 mm taller, with a resin band at its foot that
+//            the passive one's open bottom has not, and a larger +), else none (12 mm round body,
+//            sound hole on top, a + printed over pin 1)
 //   header   params: count; placed by "pin1" (the other pins follow along the row)
 
 import { add, sub, scale, cross, normalize, Z } from '../../core/vec.js';
@@ -57,12 +59,15 @@ export const buzzer = {
   pinCount: 2,
   span: () => ({ min: 2 * P * 0.99, max: 3 * P * 1.01 }),
 
-  build({ pins: [a, b] }) {
+  build({ pins: [a, b], params }) {
     const dir = directionBetween(a, b);
     const base = withZ(midpoint(a, b), 0.5);
+    const active = Boolean(params?.active);
     const R = 6;
-    const H = 8.5;
+    const H = active ? 9.5 : 8.5;
     const body = lathe({ profile: [[0, 0], [R - 0.4, 0], [R, 0.4], [R, H - 0.6], [R - 0.6, H], [0, H]], origin: base, axis: Z, ref: dir, segments: 28, color: MATERIALS.buzzer });
+    // The active one is sealed under the can: a band of resin round its foot.
+    const seal = active ? [lathe({ profile: [[0, 0], [R + 0.25, 0], [R + 0.25, 1.6], [0, 1.6]], origin: base, axis: Z, ref: dir, segments: 28, color: MATERIALS.buzzerResin })] : [];
     const top = withZ(base, 0.5 + H + 0.01);
     body.decals.push(circleDecal({ center: top, u: dir, v: cross(Z, dir), radius: 1.1, color: '#0d0d0f' }));
     // The + its top carries over pin 1, as the makers print it (its longer lead on a loose part); set
@@ -70,9 +75,9 @@ export const buzzer = {
     // whichever way the part is turned, not as an ×.
     const plus = add(top, scale(dir, -3.4));
     const right = normalize({ x: 1, y: 1, z: 0 });
-    body.decals.push(textDecal({ text: '+', at: plus, right, down: cross(right, Z), size: 2.6, color: MATERIALS.print, weight: 700 }));
+    body.decals.push(textDecal({ text: '+', at: plus, right, down: cross(right, Z), size: active ? 3.4 : 2.6, color: MATERIALS.print, weight: 700 }));
     const leads = [a, b].flatMap((p) => lead([withZ(p, 0), withZ(p, 0.5)], { radius: 0.3, color: MATERIALS.tinned }));
-    return { primitives: [body, ...leads], body: [body], anchor: withZ(base, 0.5 + H), mark: { kind: 'plus', at: plus } };
+    return { primitives: [body, ...seal, ...leads], body: [body, ...seal], anchor: withZ(base, 0.5 + H), mark: { kind: 'plus', at: plus } };
   },
 };
 

@@ -341,6 +341,14 @@ Zumbador pasivo magnético de 12 mm. Patas `1`, `2`, a dos o tres agujeros. Para
 su bobina (`resistance`, por defecto 16 Ω); avisa cuando le pasa corriente continua, porque un
 zumbador pasivo solo suena con una señal que cambie.
 
+`part: "TMB12A05"` es el **activo**: la misma carcasa con un oscilador por dentro, así que una tensión
+continua de 3,5 a 5,5 V basta para que suene (unos 2,3 kHz, 85 dB a 10 cm) y toma hasta 30 mA a 5 V.
+Tiene polaridad: la pata `1` es la larga y el `+` de su carcasa; al revés queda en silencio y, por encima
+de 0,5 V, lo dice (`SIM_REVERSE_VOLTAGE`). No toma nada por debajo de 1,5 V, y `SIM_BUZZER_DC` no le
+aplica. Su tarjeta dice *sonando · 2,3 kHz* o *en silencio*. Se distingue del pasivo por el fondo sellado
+de la carcasa (una banda de resina en su base en el dibujo) y porque pita apenas se alimenta; las recetas
+`rain-alarm` y `obstacle-buzzer` lo usan, a través de un PNP.
+
 ### rgb-led (LED RGB)
 
 Un LED RGB de 5 mm: tres chips, rojo, verde y azul, bajo una cúpula lechosa, con cuatro patas en

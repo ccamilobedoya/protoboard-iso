@@ -61,12 +61,16 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `lm35-comparator` | LM393 comparing an LM35 with a reference of about 0.42 V from a divider; the LED lights above about 42 °C (senses `temperature`) | R1 = 10k, R2 = 910, R3 = 330, D1 = red |
 | `ntc-follower` | NTC thermistor divider copied by an LM358 follower into a 10k load (senses `temperature`) | TH1 = 10k, R1 = 10k, R2 = 10k (load), V1 = 9 V (5–30) |
 | `thermistor-uno` | Arduino UNO reading an NTC divider on A0 and printing `T=<°C>` every second with the B equation (senses `temperature`) | TH1 = 10k, R1 = 10k, U1 = its sketch (`program`) |
-| `rain-alarm` | An MH-RD rain module whose DO, low when wet, turns on a PNP (S8550) that switches a buzzer | U1 = 0.5 (threshold, 0.05–0.95), R1 = 1k (base) |
+| `rain-alarm` | An MH-RD rain module whose DO, low when wet, turns on a PNP (S8550) that switches an active buzzer (TMB12A05, it sounds on DC) | U1 = 0.5 (threshold, 0.05–0.95), R1 = 1k (base) |
 | `soil-led` | A YL-69 soil module lighting an LED into its DO in damp soil | U1 = 0.5 (threshold), R1 = 470, D1 = green |
 | `light-switch-module` | The 3-pin LDR-LM393 module lighting an LED into its DO in the light | U1 = 0.5 (threshold), R1 = 470, D1 = yellow |
 | `line-follower-uno` | Arduino UNO reading a TCRT5000 line follower (DO on D2, AO on A0), printing LINE / NO LINE | U2 = 0.5 (threshold), U1 = its sketch |
-| `obstacle-buzzer` | An FC-51 obstacle module sinking a buzzer's current into its OUT | U1 = 0.5 (threshold), R1 = 470 |
+| `obstacle-buzzer` | An FC-51 obstacle module whose OUT, low at an obstacle, turns on a PNP that switches an active buzzer | U1 = 0.5 (threshold), R1 = 1k (base) |
 | `hall-counter-uno` | Arduino UNO counting a magnet's passes with a KY-024 (DO on D2, falling edges) | U2 = 0.5 (threshold), U1 = its sketch |
+| `hall-linear-uno` | Arduino UNO reading a KY-035 linear Hall sensor on A0 and printing the field in gauss | U1 = its sketch |
+| `clap-switch` | Arduino UNO toggling an LED at each clap, from a KY-037 sound module's DO on D2 (falling edge) | U2 = 0.497 (threshold), D1, R1, U1 = its sketch |
+| `sound-level-led` | A KY-037 sound module whose DO sinks an LED's current while the sound is loud | U1 = 0.497 (threshold), R1 = 470 |
+| `voltage-sensor-uno` | Arduino UNO measuring a 9 V battery through a voltage sensor module (a 5:1 divider) on A0 and printing the volts | BT1 = its voltage (1 to 25 V), U1 = its sketch |
 
 `catalog` (MCP) or `parts` (CLI) lists them with their titles (the compact list `catalog` leaves the values out); `catalog` with a recipe's name (`parts
 <name>` in the CLI) shows what it teaches, its parts, nets, supply, and each value's role and limits.

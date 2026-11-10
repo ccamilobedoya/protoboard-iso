@@ -80,4 +80,5 @@ export const ldr = {
     return { ...p, resistance, sensor: { ...p.sensor, light: value, resistance } };
   },
 };
-export const buzzer = { types: ['buzzer'], ...resistive };
+// The passive one (the part numbers of the active kind have their own device: ./active-buzzer.js).
+export const buzzer = { types: ['buzzer'], accepts: (part) => part.def.electrical?.kind === 'R', ...resistive };

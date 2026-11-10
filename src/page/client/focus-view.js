@@ -43,6 +43,7 @@ const LEGENDS = {
   regulator: [['pass', 'pass'], ['heat', 'heat'], ['comparator', 'amp'], ['headroom', 'headroom'], ['arrow', 'arrow'], ['', 'state']],
   battery: [['cell', 'cells'], ['soc', 'charge'], ['film', 'resistance'], ['arrow', 'arrow'], ['', 'figures']],
   buzzer: [['coil', 'coil'], ['disc', 'disc'], ['sound', 'sound'], ['arrow', 'arrow'], ['', 'state']],
+  'buzzer-active': [['chip', 'osc'], ['disc', 'disc'], ['sound', 'sound'], ['arrow', 'arrow'], ['', 'state']],
   rgb: [['chip', 'chips'], ['', 'mix'], ['', 'figures']],
   segments: [['chip', 'lit'], ['', 'letters'], ['', 'state']],
   slide: [['plunger', 'knob'], ['blade', 'slider'], ['metal', 'contacts'], ['arrow', 'arrow'], ['', 'figures']],
@@ -52,6 +53,8 @@ const LEGENDS = {
   motor: [['magnet', 'magnets'], ['coil', 'armature'], ['wiper', 'rotation'], ['headroom', 'supply'], ['soc', 'emf'], ['arrow', 'arrow']],
   pir: [['dome', 'dome'], ['comparator', 'element'], ['soc', 'timer'], ['pos', 'out'], ['', 'figures']],
   touch: [['plate', 'pad'], ['dielectric', 'finger'], ['latch', 'chip'], ['pos', 'out'], ['', 'figures']],
+  hall: [['film', 'plate'], ['arrow', 'field'], ['headroom', 'out'], ['', 'figures']],
+  divider5: [['film', 'resistors'], ['soc', 'vin'], ['headroom', 's'], ['', 'figures']],
   module: [['film', 'divider'], ['headroom', 'ao'], ['soc', 'vref'], ['comparator', 'comparator'], ['', 'led']],
 };
 // Swatches in the figure's own colours that live in the script (sim/look.js), not in the style.

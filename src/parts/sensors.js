@@ -61,6 +61,12 @@ export const SENSOR_MODULES = {
   // FC-51 obstacle: IR LED and receiver side by side; Ic = surface · Ipk / (1 + (d / d0)²) · IF / 25 mA,
   // Ipk 0.5 mA, d0 10 cm [A, so the trimmer spans the 2–30 cm resellers quote]. OUT is its DO.
   'FC-51': { pins: ['OUT', 'GND', 'VCC'], senses: ['distance', 'reflectance'], element: 'obstacle', glyph: 'ir-pair', trim: 10e3, do: 'OUT', model: { ipk: 0.5e-3, d0: 10 } },
+  // KY-037 sound module: an electret capsule with a 10 kΩ bias [A: VCC/2 at AO with the board's 10 kΩ, the
+  // usual module's idle reading], 6.3 mV rms per pascal (−44 dB re 1 V/Pa [T]; 94 dB SPL = 1 Pa), no gain
+  // on AO [A]. The ENVELOPE form: AO is the DC bias, `moduleElectret` the AC peak at a level, and DO
+  // follows Vbias − Vpk against Vref. The trimmer defaults to Vref = Vbias − 15 mV at 5 V (0.497 of VCC):
+  // the real board needs it within millivolts of the bias.
+  'KY-037': { pins: ['DO', 'VCC', 'GND', 'AO'], print: ['DO', '+', 'G', 'AO'], senses: ['sound'], element: 'electret', glyph: 'mic', trim: 100e3, threshold: 0.497, model: { rBias: 10e3, sensitivity: 6.3e-3, reference: 94 } },
 };
 // Every module (the board's own parts): the divider's 10 kΩ, the 10 kΩ pull-up on DO [T]; both LEDs
 // behind 1 kΩ, Vf 2.0 V [A]; the LM393's open collector (60 Ω, 20 mA: models.js); the board rated
@@ -81,12 +87,16 @@ function curveAt(points, x, log = false) {
   return points.at(-1)[1];
 }
 
-// The resistance of a resistive element (comb, probe, LDR) at its stimulus.
+// The AC peak of an electret capsule's signal at a sound level (dB SPL): √2 · 6.3 mV · 10^((dB − 94) / 20).
+export const electretPeak = (model, dB) => Math.SQRT2 * model.sensitivity * 10 ** ((dB - model.reference) / 20);
+
+// The resistance of a resistive element (comb, probe, LDR) at its stimulus; the electret's is its bias.
 export function moduleResistance(element, model, stim) {
   if (element === 'comb') {
     const w = Math.min(1, Math.max(0, Number(stim.rain) || 0));
     return model.rDry ** (1 - w) * model.rWet ** w;
   }
+  if (element === 'electret') return model.rBias;
   if (element === 'probe') return curveAt(model.curve, Math.min(100, Math.max(0, stim.moisture)), true);
   return ldrResistance(LDR_PARTS[model.ldr] ?? LDR_PARTS.GL5528, stim.light);
 }

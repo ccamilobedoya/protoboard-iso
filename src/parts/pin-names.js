@@ -56,6 +56,14 @@ const BY_TYPE = {
     ['AO', 'A0', 'AOUT', 'ANALOG'],
     ['DO', 'D0', 'DOUT', 'DIGITAL'],
   ],
+  // The 49E module prints S + −, the bare chip VCC GND OUT: either way of writing each pin finds it.
+  'hall-sensor': [
+    ['S', 'OUT', 'VOUT', 'SIG', 'SIGNAL'],
+    ['+', 'VCC', 'VDD', 'V+'],
+    ['-', 'GND', 'VSS'],
+  ],
+  // The voltage sensor: the divider's tap S, the terminal's VIN.
+  'voltage-sensor': [['S', 'OUT', 'VOUT', 'SIG', 'SIGNAL']],
 };
 
 const norm = (s) => String(s ?? '').trim().toUpperCase().replace(/−/g, '-').replace(/\s+/g, '');

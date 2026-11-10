@@ -1,0 +1,272 @@
+// The second night's analog sensors (docs/en/analog-sensors.md): the linear Hall sensor 49E, the voltage
+// sensor module, the KY-037 sound module, the active buzzer, and the four recipes that use them. Each
+// number below is worked out apart from the device (a formula, a divider, the spec's table).
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { simulate, compile, createEngine } from '../src/sim/index.js';
+import { PART_TYPES } from '../src/parts/types/index.js';
+import { lookupPartNumber } from '../src/parts/db.js';
+import { findPin } from '../src/parts/pin-names.js';
+import { RECIPES, expandRecipe, resolveRecipe } from '../src/recipes/index.js';
+import { autoLayout } from '../src/layout.js';
+import { loadTour, tourIssues } from '../src/tour.js';
+import { compactCatalog, formatCompactCatalog } from '../src/node/catalog.js';
+import { electretPeak, SENSOR_MODULES } from '../src/parts/sensors.js';
+
+const near = (actual, expected, tol, what) => assert.ok(Math.abs(actual - expected) <= tol, `${what}: ${actual} against ${expected} ± ${tol}`);
+const codes = (s) => s.issues.map((i) => i.code);
+
+// One part on the top rails: the first pin of `rails` names go to + and the others to −.
+function bench(part, { v = 5, env, plus = [], minus = [] } = {}) {
+  const pins = part.pins.map((_, i) => `c${10 + i}`);
+  const wires = [];
+  part.pins.forEach((name, i) => {
+    const rail = plus.includes(name) ? `T+${10 + i}` : minus.includes(name) ? `T-${10 + i}` : null;
+    if (rail) wires.push({ id: `W${i}`, type: 'wire', color: plus.includes(name) ? 'red' : 'black', pins: [`a${10 + i}`, rail] });
+  });
+  const { pins: names, ...rest } = part;
+  return { version: 1, board: 'bb830', supplies: [{ id: 'V1', voltage: v }], ...(env && { environment: env }), parts: [{ ...rest, id: 'U1', pins, ...(names ? {} : {}) }, ...wires], names };
+}
+const run = (part, options) => {
+  const { names, ...circuit } = bench(part, options);
+  const s = simulate(circuit);
+  assert.ok(s.ok, JSON.stringify(s.issues));
+  return { ...s.parts.U1, issues: s.issues };
+};
+
+const hall = (extra = {}, options = {}) => run({ type: 'hall-sensor', part: 'KY-035', pins: ['S', '+', '-'], ...extra }, { plus: ['+'], minus: ['-'], ...options });
+
+test('the types and part numbers: hall-sensor, voltage-sensor, KY-037, TMB12A05; the catalog stays small', () => {
+  for (const t of ['hall-sensor', 'voltage-sensor']) assert.equal(PART_TYPES[t].family, 'sensor', t);
+  assert.equal(lookupPartNumber('KY-037').entry.type, 'sensor-module');
+  assert.equal(lookupPartNumber('ky037').number, 'KY-037');
+  assert.equal(lookupPartNumber('TMB12A05').entry.type, 'buzzer');
+  assert.deepEqual(lookupPartNumber('KY-035').entry.pins, ['S', '+', '-']);
+  assert.deepEqual(lookupPartNumber('49E').entry.pins, ['VCC', 'GND', 'OUT']);
+  assert.deepEqual(lookupPartNumber('KY-037').entry.pins, ['DO', 'VCC', 'GND', 'AO']);
+  assert.equal(lookupPartNumber('VOLT-25V').entry.pins.join(' '), 'S + - VIN GND');
+  // Pin synonyms of the Hall sensor, only on that type.
+  assert.equal(findPin(['S', '+', '-'], 'OUT', 'hall-sensor'), 'S');
+  assert.equal(findPin(['S', '+', '-'], 'VCC', 'hall-sensor'), '+');
+  assert.equal(findPin(['VCC', 'GND', 'OUT'], 'S', 'hall-sensor'), 'OUT');
+  assert.equal(findPin(['VCC', 'GND', 'OUT'], '-', 'hall-sensor'), 'GND');
+  assert.equal(PART_TYPES['hall-sensor'].resolve({ part: 'nope' }).error.code, 'UNKNOWN_PART_NUMBER');
+  const length = formatCompactCatalog(compactCatalog('en'), 'en').length;
+  assert.ok(length <= 4600, `compact catalog ${length}`);
+});
+
+test('49E: Vs/2 + 1.4 mV/G · Vs/5 · field, clamped (spec checks 45–47)', () => {
+  for (const [field, volts] of [[0, 2.5], [100, 2.64], [-100, 2.36], [700, 3.48]]) near(hall({ field }).vout, volts, 0.03, `${field} G`);
+  near(hall({ field: 100 }, { v: 3.3 }).vout, 1.742, 0.03, '3.3 V');
+  near(hall({ field: 1500 }).vout, 4.05, 0.1, 'clamped high');
+  near(hall({ field: -1500 }).vout, 0.95, 0.1, 'clamped low');
+  // The bare chip, its pins in its own order.
+  const bare = run({ type: 'hall-sensor', part: '49E', field: 100, pins: ['VCC', 'GND', 'OUT'] }, { plus: ['VCC'], minus: ['GND'] });
+  near(bare.vout, 2.64, 0.03, '49E bare');
+  near(hall({ field: 0 }).supply, 6e-3, 0.5e-3, 'own current');
+});
+
+test('49E: the environment moves it, the part\'s own field wins, the slider detaches it', () => {
+  near(hall({}, { env: { field: 200 } }).vout, 2.5 + 0.28, 0.03, 'environment');
+  near(hall({ field: -100 }, { env: { field: 200 } }).vout, 2.36, 0.03, 'own wins');
+  const { names, ...circuit } = bench({ type: 'hall-sensor', part: 'KY-035', pins: ['S', '+', '-'] }, { plus: ['+'], minus: ['-'], env: { field: 0 } });
+  const e = createEngine(compile(circuit).program);
+  assert.ok(e.start('dc'));
+  e.set('environment', 'field', 300);
+  near(e.read().parts.U1.vout, 2.5 + 0.42, 0.03, 'moved');
+  e.set('U1', 'field', -300);
+  e.set('environment', 'field', 0);
+  near(e.read().parts.U1.vout, 2.5 - 0.42, 0.03, 'own control detached it');
+});
+
+test('49E: supply over 8 V, under 2.7 V, reversed, and a load over 1.5 mA', () => {
+  assert.ok(codes({ issues: hall({}, { v: 9 }).issues }).includes('SIM_IC_SUPPLY'));
+  assert.ok(codes({ issues: hall({}, { v: 2 }).issues }).includes('SIM_MODULE_LOW_SUPPLY'));
+  assert.ok(!codes({ issues: hall({}, { v: 5 }).issues }).includes('SIM_MODULE_LOW_SUPPLY'));
+  const reversed = run({ type: 'hall-sensor', part: 'KY-035', pins: ['S', '+', '-'] }, { plus: ['-'], minus: ['+'] });
+  assert.ok(codes({ issues: reversed.issues }).includes('SIM_REVERSE_VOLTAGE'));
+  // 2 mA out of the output into 1 kΩ to ground: 1 kΩ + 50 Ω.
+  const loaded = simulate({ version: 1, board: 'bb830', supplies: [{ id: 'V1', voltage: 5 }], parts: [
+    { id: 'U1', type: 'hall-sensor', part: 'KY-035', field: 0, pins: ['c10', 'c11', 'c12'] }, { id: 'R1', type: 'resistor', value: '1.2k', pins: ['e10', 'e21'] },
+    { id: 'W1', type: 'wire', color: 'red', pins: ['a11', 'T+11'] }, { id: 'W2', type: 'wire', color: 'black', pins: ['a12', 'T-12'] }, { id: 'W3', type: 'wire', color: 'black', pins: ['a21', 'T-21'] }] });
+  assert.ok(loaded.ok && codes(loaded).includes('SIM_HALL_LOAD'), JSON.stringify(loaded.issues));
+});
+
+const voltage = (v, extra = {}) => {
+  const circuit = { version: 1, board: 'bb830', supplies: [{ id: 'V1', voltage: v }], parts: [
+    { id: 'U1', type: 'voltage-sensor', pins: ['c10', 'c11', 'c12', 'c13', 'c14'] }, ...(extra.parts ?? []),
+    { id: 'W1', type: 'wire', color: 'red', pins: ['a13', 'T+13'] }, { id: 'W2', type: 'wire', color: 'black', pins: ['a14', 'T-15'] }, { id: 'W3', type: 'wire', color: 'black', pins: ['a12', 'T-16'] }] };
+  const s = simulate(circuit);
+  assert.ok(s.ok, JSON.stringify(s.issues));
+  return s;
+};
+
+test('voltage sensor: a fifth of the input, 0.32 mA at 12 V (spec check 48)', () => {
+  const s = voltage(12);
+  near(s.parts.U1.vs, 2.4, 0.012, 'S');
+  near(s.parts.U1.current, 0.32e-3, 0.02e-3, 'input current');
+  near(s.parts.U1.ratio, 0.2, 0.001, 'ratio');
+  near(voltage(25).parts.U1.vs, 5, 0.025, '25 V');
+  assert.deepEqual(codes(voltage(12)), []);
+});
+
+test('voltage sensor: 25 V with S on a 3.3 V board\'s pin is the board\'s over-voltage issue (spec check 49)', () => {
+  const r = autoLayout({
+    board: 'auto',
+    parts: [{ id: 'U1', type: 'voltage-sensor' }, { id: 'U2', part: 'ESP32-DEVKIT', program: 'void setup() {} void loop() {}' }],
+    nets: [['T+', 'U1.VIN'], ['U1.GND', 'U1.-', 'U2.GND', 'T-'], ['U1.S', 'U2.D34']],
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 25, positive: 'T+', negative: 'T-' }],
+  });
+  assert.equal(r.status, 'done', JSON.stringify(r.problems));
+  const s = simulate(r.circuit);
+  assert.ok(s.ok, JSON.stringify(s.issues));
+  assert.ok(s.parts.U1.vs > 3.6, `S is held up to the board's clamp: ${s.parts.U1.vs}`);
+  assert.ok(codes(s).includes('SIM_PIN_OVERVOLTAGE'), JSON.stringify(s.issues));
+  // 9 V in is 1.8 V at S: nothing to say.
+  r.circuit.supplies[0].voltage = 9;
+  assert.ok(!codes(simulate(r.circuit)).includes('SIM_PIN_OVERVOLTAGE'));
+});
+
+const mic = (db, options = {}) => run({ type: 'sensor-module', part: 'KY-037', pins: ['DO', 'VCC', 'GND', 'AO'], ...options.own }, { plus: ['VCC'], minus: ['GND'], env: { sound: db }, v: options.v });
+
+test('KY-037: AO is the bias, the card has the AC peak; DO falls above about 98.5 dB (spec checks 50–51)', () => {
+  const quiet = mic(94);
+  near(quiet.ao, 2.5, 0.1, 'bias');
+  near(quiet.value.peak, 8.9e-3, 0.89e-3, 'peak at 94 dB');
+  near(electretPeak(SENSOR_MODULES['KY-037'].model, 100), 17.8e-3, 0.2e-3, 'peak formula at 100 dB');
+  assert.ok(mic(70).vdo >= 4.5, 'DO high at 70 dB');
+  assert.ok(mic(105).vdo <= 0.4, 'DO low at 105 dB');
+  assert.ok(mic(98).vdo > 4, 'still high just under the threshold');
+  assert.ok(mic(99).vdo < 0.4, 'low just over it');
+  // The trimmer moves Vref: with Vref a volt-percent lower DO needs a louder sound.
+  assert.ok(mic(105, { own: { threshold: 0.49 } }).vdo > 4.5);
+  assert.ok(mic(40, { own: { sound: 105 } }).vdo <= 0.4, 'the part\'s own sound wins');
+  near(mic(94, { v: 3.3 }).ao, 1.65, 0.1, 'ratiometric bias');
+});
+
+const buzzer = (v, { part = 'TMB12A05', reversed = false } = {}) => {
+  const circuit = { version: 1, board: 'bb830', supplies: [{ id: 'V1', voltage: v }], parts: [
+    { id: 'BZ1', type: 'buzzer', ...(part && { part }), pins: ['c10', 'c12'] },
+    { id: 'W1', type: 'wire', color: 'red', pins: ['a10', reversed ? 'T-10' : 'T+10'] }, { id: 'W2', type: 'wire', color: 'black', pins: ['a12', reversed ? 'T+12' : 'T-12'] }] };
+  const s = simulate(circuit);
+  assert.ok(s.ok, JSON.stringify(s.issues));
+  return { ...s.parts.BZ1, issues: s.issues };
+};
+
+test('active buzzer: 30 mA and sounding on 5 V, silent on 1 V, silent reversed; the passive one still warns on DC', () => {
+  const on = buzzer(5);
+  near(on.current, 0.03, 0.005, 'current at 5 V');
+  assert.equal(on.sounding, true);
+  assert.equal(on.state, 'sounding');
+  assert.ok(!codes({ issues: on.issues }).includes('SIM_BUZZER_DC'));
+  const low = buzzer(1);
+  assert.ok(Math.abs(low.current) < 1e-3 && low.sounding === false);
+  const back = buzzer(5, { reversed: true });
+  assert.equal(back.sounding, false);
+  assert.ok(codes({ issues: back.issues }).includes('SIM_REVERSE_VOLTAGE'));
+  assert.ok(codes({ issues: buzzer(5, { part: null }).issues }).includes('SIM_BUZZER_DC'));
+  assert.equal(buzzer(3.4).sounding, false);
+  assert.equal(buzzer(3.6).sounding, true);
+});
+
+const layoutOf = (name, values) => {
+  const { spec, problems } = expandRecipe(name, values);
+  assert.deepEqual(problems, [], name);
+  return autoLayout(spec);
+};
+
+test('the four recipes and the two alarm recipes are DONE, clean, with their environment and page controls', () => {
+  for (const name of ['hall-linear-uno', 'voltage-sensor-uno', 'clap-switch', 'sound-level-led', 'rain-alarm', 'obstacle-buzzer']) {
+    const r = layoutOf(name);
+    assert.equal(r.status, 'done', name);
+    assert.deepEqual(r.review.blocking, [], name);
+    assert.equal(r.check.ok, true, name);
+  }
+  for (const [name, field, range] of [['hall-linear-uno', 'field', [-500, 500]], ['clap-switch', 'sound', [30, 110]], ['sound-level-led', 'sound', [30, 110]]]) {
+    const c = layoutOf(name).circuit;
+    assert.deepEqual(c.environment[field].range, range, name);
+    assert.ok(c.page.controls.some((x) => x.environment === field), name);
+  }
+  for (const name of ['rain-alarm', 'obstacle-buzzer']) assert.ok(layoutOf(name).circuit.parts.some((p) => p.type === 'buzzer' && p.part === 'TMB12A05'), `${name}: the active buzzer`);
+});
+
+const engineOf = (circuit) => {
+  const e = createEngine(compile(circuit).program);
+  assert.ok(e.start('dc'));
+  return e;
+};
+const advance = (e, ms) => {
+  for (let i = 0; i < ms; i++) assert.ok(e.advance(0.001));
+};
+
+test('hall-linear-uno prints the field within 15 G (0, +200, -200 G)', () => {
+  for (const G of [0, 200, -200]) {
+    const e = engineOf(layoutOf('hall-linear-uno').circuit);
+    e.set('environment', 'field', G);
+    advance(e, 1200);
+    const last = Number(e.read().parts.U1.program.serial.at(-1));
+    near(last, G, 15, `${G} G`);
+  }
+});
+
+test('voltage-sensor-uno prints the battery\'s volts', () => {
+  for (const V of [9, 12]) {
+    const e = engineOf(layoutOf('voltage-sensor-uno', { BT1: V }).circuit);
+    advance(e, 1200);
+    near(Number(e.read().parts.U1.program.serial.at(-1)), V, 0.1, `${V} V`);
+  }
+});
+
+test('clap-switch: a clap toggles the LED once, a second clap toggles it back; sound-level-led lights while loud', () => {
+  const e = engineOf(layoutOf('clap-switch').circuit);
+  const led = () => e.read().parts.D1.current;
+  advance(e, 300);
+  assert.ok(led() < 1e-4, 'off in a quiet room');
+  for (const [claps, on] of [[1, true], [2, false], [3, true]]) {
+    e.set('environment', 'sound', 105);
+    advance(e, 60);
+    e.set('environment', 'sound', 40);
+    advance(e, 400);
+    assert.equal(led() > 3e-3, on, `after clap ${claps}`);
+  }
+  const s = engineOf(layoutOf('sound-level-led').circuit);
+  advance(s, 50);
+  assert.ok(s.read().parts.D1.current < 1e-4);
+  s.set('environment', 'sound', 105);
+  advance(s, 50);
+  assert.ok(s.read().parts.D1.current > 3e-3);
+});
+
+test('the clap-switch tour validates and runs 20 to 30 s with Spanish captions and a sound gauge', () => {
+  const raw = JSON.parse(readFileSync(new URL('../examples/tours/clap-switch.json', import.meta.url), 'utf8'));
+  const circuit = { ...layoutOf('clap-switch').circuit };
+  circuit.page = { ...circuit.page, tour: raw };
+  assert.deepEqual(tourIssues(circuit), []);
+  assert.ok(loadTour(circuit, 'es').tour);
+  const end = Math.max(...raw.steps.map((s) => s.at + (s.ms ?? 0)));
+  assert.ok(end >= 20000 && end <= 30000, `ends at ${end}`);
+  assert.ok(raw.steps.some((s) => s.do === 'gauge' && s.environment === 'sound' && s.on === true));
+  const sets = raw.steps.filter((s) => s.do === 'set' && s.environment === 'sound').map((s) => s.value);
+  assert.deepEqual(sets, [105, 40, 105, 40]);
+  assert.ok(raw.steps.filter((s) => s.do === 'caption').every((s) => s.text.es));
+});
+
+test('resolveRecipe: a deep copy; changing one spec leaves the recipe and the next spec alone', () => {
+  const a = resolveRecipe('soil-led').spec;
+  const b = resolveRecipe({ recipe: 'soil-led' }).spec;
+  a.environment.moisture = 99;
+  a.page.controls.push({ environment: 'light' });
+  a.parts[0].threshold = 0.9;
+  a.title.en = 'changed';
+  a.nets[0].push('X');
+  assert.equal(b.environment.moisture, 20);
+  assert.equal(b.page.controls.length, 2);
+  assert.equal(b.parts[0].threshold, 0.5);
+  assert.notEqual(b.title.en, 'changed');
+  assert.equal(RECIPES['soil-led'].environment.moisture, 20);
+  assert.equal(RECIPES['soil-led'].title.en, 'Soil moisture LED with a YL-69 module');
+  assert.notEqual(resolveRecipe('soil-led').spec.environment, resolveRecipe('soil-led').spec.environment);
+  assert.notEqual(resolveRecipe('soil-led').spec.page, resolveRecipe('soil-led').spec.page);
+});

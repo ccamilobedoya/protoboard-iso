@@ -916,6 +916,34 @@ const INSIDE = {
     const state = sounding ? 'sounding' : flowing(i) ? 'dc' : 'silent';
     label(g, 50, 114, r ? t(`page.tour.inside.buzzer.${state}`) : '', 'state');
   },
+  'buzzer-active'(g, r, data, { t, f }) {
+    // An active buzzer cut through: the oscillator chip that turns plain DC into a square wave of about
+    // 2.3 kHz, and the thin piezo disc it drives over a ring; while the voltage across it is at least
+    // its 3.5 V the disc is shaken and arcs of sound leave it. Reversed it does nothing.
+    const [a, b] = data.ids;
+    const i = r?.current ?? 0;
+    const sounding = Boolean(r?.sounding);
+    make(g, 'rect', { class: 'core', x: 14, y: 34, width: 72, height: 50, rx: 4 });
+    make(g, 'rect', { class: 'chip', x: 22, y: 56, width: 22, height: 18, rx: 2 });
+    make(g, 'path', { class: 'lead', d: 'M26 66H29V61H34V66H37V61H40' });
+    label(g, 33, 80, t('page.tour.inside.buzzer-active.osc'), 'note', 'middle', FIGURE.small);
+    make(g, 'rect', { class: 'metal', x: 52, y: 70, width: 30, height: 3 });
+    make(g, 'path', { class: `disc${sounding ? ' on' : ''}`, d: `M52 64Q67 ${sounding ? 58 : 62} 82 64` });
+    make(g, 'path', { class: 'lead', d: 'M30 84V96M70 84V96M44 66H52' });
+    label(g, 30, 95, a, 'pin-name', 'middle', FIGURE.text);
+    label(g, 70, 95, b, 'pin-name', 'middle', FIGURE.text);
+    const arcs = sounding ? 3 : 0;
+    for (let j = 0; j < arcs; j++) {
+      const rr = 7 + 7 * j;
+      const dx = fixed(rr * Math.sin(0.9));
+      const dy = fixed(50 - rr * Math.cos(0.9));
+      make(g, 'path', { class: 'sound', d: `M${fixed(67 - dx)} ${dy}A${rr} ${rr} 0 0 1 ${fixed(67 + Number(dx))} ${dy}` });
+    }
+    if (flowing(i)) shaft(g, i > 0 ? 34 : 66, 90, i > 0 ? 66 : 34, 90, widthOf(i));
+    label(g, 50, 103, r ? [`V ${f(r.voltage ?? 0, 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    const state = sounding ? 'sounding' : (r?.voltage ?? 0) < -0.5 ? 'reversed' : 'silent';
+    label(g, 50, 114, r ? t(`page.tour.inside.buzzer-active.${state}`, { min: f(data.minVoltage ?? 3.5, 'V'), frequency: f(data.frequency ?? 2300, 'Hz') }) : '', 'state');
+  },
   slide(g, r, data, { t, f, control }) {
     // Cut from the side, as its datasheet draws it: the frame with its three fixed contacts, 1, COM and
     // 2, each down to its pin; the knob on top carries the slider under it, which bridges COM to the
@@ -1054,6 +1082,61 @@ const INSIDE = {
     label(g, 50, 103, r ? [`${data.ids[1]} ${f(r.vcc, 'V')}`, `${sig} ${f(r.vout, 'V')}`, Math.abs(r.current) >= 1e-6 && `I ${f(Math.abs(r.current), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
     label(g, 50, 114, r ? t(`page.tour.inside.touch.${r.state}`) : '', 'state');
   },
+  hall(g, r, data, { t, f, control }) {
+    // The chip: the Hall plate (a thin sheet the supply pushes a current through), a magnet's field
+    // through it (an arrow as long as the field, pointing in for a south pole and out for a north one),
+    // and the output as a bar between ground and the supply, half way with no field and clamped near
+    // each rail, its marker where the output is now.
+    const id = (role) => data.ids[data.names.indexOf(data.roles[role])] ?? role;
+    const field = r?.field ?? control?.('field') ?? data.field ?? 0;
+    const vs = r?.vs > 0.1 ? r.vs : 5;
+    const vout = r ? r.vout : vs / 2;
+    const share = (v) => Math.max(0, Math.min(1, v / vs));
+    make(g, 'path', { class: 'lead', d: 'M36 4V30M60 54H70M36 78V94' });
+    make(g, 'rect', { class: 'core', x: 12, y: 30, width: 48, height: 48, rx: 3 });
+    make(g, 'rect', { class: 'film', x: 18, y: 50, width: 36, height: 10 });
+    label(g, 36, 46, t('page.tour.inside.hall.plate'), 'note', 'middle', FIGURE.small);
+    // The field through the plate: pointing down into it (south pole facing the face) when positive.
+    const k = Math.max(-1, Math.min(1, field / 500));
+    if (Math.abs(k) > 0.02) {
+      const len = 4 + 8 * Math.abs(k);
+      const [y1, y2] = k > 0 ? [64, 64 + len] : [64 + len, 64];
+      shaft(g, 36, y2, 36, y1, 1.5 + 2 * Math.abs(k));
+    }
+    label(g, 36, 76, `${String(Math.round(field)).replace('-', '−')} G`, 'note', 'middle', FIGURE.small);
+    // The output bar.
+    make(g, 'rect', { class: 'gauge', x: 74, y: 22, width: 8, height: 62 });
+    make(g, 'rect', { class: 'headroom', x: 74, y: fixed(84 - 62 * share(vout)), width: 8, height: fixed(62 * share(vout)) });
+    make(g, 'path', { class: 'lead', d: 'M71 53H85' });
+    label(g, 78, 18, id('out'), 'pin-name', 'middle', FIGURE.small);
+    label(g, 85, 56, '½', 'note', 'start', FIGURE.small);
+    label(g, 36, 12, id('vcc'), 'pin-name', 'start', FIGURE.text);
+    label(g, 36, 92, id('gnd'), 'pin-name', 'start', FIGURE.text);
+    label(g, 50, 103, r ? `Vs ${f(r.vs, 'V')} · Vout ${f(r.vout, 'V')}` : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.hall.${r.state}`, { min: f(2.7, 'V') }) : '', 'state');
+  },
+  divider5(g, r, data, { t, f }) {
+    // The module's two resistors in series between the terminal's VIN and GND, the S pin on their
+    // middle: a bar for each voltage against the input, S one fifth of it.
+    const id = (name) => data.ids[data.names.indexOf(name)] ?? name;
+    const vin = r ? Math.max(r.vin, 0) : 0;
+    const share = r && vin > 0.05 ? Math.max(0, Math.min(1, r.vs / vin)) : 0.2;
+    make(g, 'path', { class: 'lead', d: 'M30 6V16M30 40V52M30 52V60M30 84V94M30 52H60' });
+    make(g, 'rect', { class: 'film', x: 22, y: 16, width: 16, height: 24 });
+    make(g, 'rect', { class: 'film', x: 22, y: 60, width: 16, height: 24 });
+    label(g, 44, 31, '30 kΩ', 'note', 'start', FIGURE.small);
+    label(g, 44, 75, `7${decimalOf(f)}5 kΩ`, 'note', 'start', FIGURE.small);
+    label(g, 30, 4, id('VIN'), 'pin-name', 'middle', FIGURE.small);
+    label(g, 30, 102, id('GND'), 'pin-name', 'middle', FIGURE.small);
+    // Two bars: the input against itself, and S as its share.
+    for (const [x, v, cls, name] of [[72, 1, 'soc', 'VIN'], [86, share, 'headroom', 'S']]) {
+      make(g, 'rect', { class: 'gauge', x, y: 22, width: 8, height: 62 });
+      make(g, 'rect', { class: cls, x, y: fixed(84 - 62 * v), width: 8, height: fixed(62 * v) });
+      label(g, x + 4, 18, name, 'pin-name', 'middle', FIGURE.small);
+    }
+    label(g, 50, 103, r ? `${id('VIN')} ${f(r.vin, 'V')} · S ${f(r.vs, 'V')}` : '', 'note');
+    label(g, 50, 114, r ? t('page.tour.inside.divider5.state', { current: f(Math.abs(r.current), 'A') }) : '', 'state');
+  },
   module(g, r, data, { t, f, control }) {
     // An LM393 sensor module as its board: the divider (the fixed 10 kΩ over the element, AO between
     // them), the trimmer's Vref, AO and Vref as two bars against VCC (the one that is lower decides),
@@ -1069,6 +1152,11 @@ const INSIDE = {
     make(g, 'rect', { class: 'film', x: 12, y: 12, width: 12, height: 22 });
     make(g, 'rect', { class: 'core', x: 10, y: 46, width: 16, height: 28, rx: 2 });
     label(g, 18, 63, t(`page.tour.inside.module.${data.element ?? 'comb'}`), 'note', 'middle', FIGURE.small);
+    // An electret capsule: the thin charged diaphragm in front of a metal plate (sound moves it).
+    if (data.element === 'electret') {
+      make(g, 'path', { class: 'disc', d: 'M12 52Q18 48 24 52' });
+      make(g, 'rect', { class: 'metal', x: 12, y: 68, width: 12, height: 2 });
+    }
     label(g, 18, 26, '10k', 'quiet', 'middle', FIGURE.small);
     // The trimmer: a track from VCC to GND, its wiper at the threshold.
     make(g, 'rect', { class: 'film', x: 45, y: 12, width: 6, height: 58 });

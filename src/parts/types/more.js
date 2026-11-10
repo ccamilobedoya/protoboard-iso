@@ -4,6 +4,7 @@
 import { parseValue } from '../../core/units.js';
 import { BAND_COLORS, MATERIALS } from '../colors.js';
 import { resistorBands, parseTolerance } from './resistor.js';
+import { lookupPartNumber } from '../db.js';
 import { ntcResistance, ldrResistance, LDR_PARTS } from '../sensors.js';
 
 export { LDR_PARTS, ldrResistance };
@@ -89,11 +90,24 @@ export const ldr = {
 // Passive magnetic buzzer (12 mm, "12085"): a coil that pulls a thin steel disc. It sounds
 // only with a changing voltage (a square wave of a few kHz); with steady DC it clicks once and
 // its coil (about 16 Ω) just takes current.
+// Active buzzer (TMB12A05, a part number of this type): the same can with an oscillator inside, so it
+// sounds on plain DC of 3.5 to 5.5 V, and only with its + lead on the positive side.
+// fields: part ("TMB12A05" for the active one; the passive is the default), resistance (passive only)
 export const buzzer = {
   type: 'buzzer',
   family: 'output',
   pins: ['1', '2'],
   resolve(part) {
+    const found = part.part === undefined ? null : lookupPartNumber(part.part);
+    if (part.part !== undefined && (!found || found.entry.type !== 'buzzer')) return { error: { code: 'UNKNOWN_PART_NUMBER', params: { number: String(part.part), type: 'buzzer' } } };
+    if (found) {
+      return {
+        package: 'buzzer',
+        params: { active: true },
+        label: { text: found.number },
+        electrical: { kind: 'BZA', part: found.number },
+      };
+    }
     const resistance = parseValue(part.resistance ?? 16);
     return {
       package: 'buzzer',

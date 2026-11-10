@@ -1,0 +1,30 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "clap-switch",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A clap switch: a microphone that hears a bang", "es": "Un interruptor de palmada: un micrófono que oye un golpe" } },
+    { "at": 0, "do": "gauge", "environment": "sound", "on": true, "min": 30, "max": 110 },
+    { "at": 1800, "do": "focus", "parts": ["U2"] },
+    { "at": 1800, "do": "frame", "target": "U2", "move": "arrival" },
+    { "at": 1800, "do": "caption", "text": { "en": "A quiet room, 40 dB: DO stays high", "es": "Un cuarto en silencio, 40 dB: DO queda en alto" } },
+    { "at": 2600, "do": "value", "part": "U2", "field": "vout", "label": { "en": "DO", "es": "DO" } },
+    { "at": 5000, "do": "set", "environment": "sound", "value": 105, "move": "hit" },
+    { "at": 5000, "do": "caption", "text": { "en": "A clap: 105 dB. The signal's peak beats the gap to Vref and DO falls", "es": "Una palmada: 105 dB. El pico de la señal supera la distancia a Vref y DO baja" } },
+    { "at": 5200, "do": "wait-until", "part": "D1", "field": "brightness", "above": 0.05, "max": 3000 },
+    { "at": 5600, "do": "focus", "parts": ["U2", "D1"] },
+    { "at": 5600, "do": "frame", "target": ["U2", "D1"], "move": "travel" },
+    { "at": 5600, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
+    { "at": 7800, "do": "set", "environment": "sound", "value": 40, "move": "hit" },
+    { "at": 7800, "do": "caption", "text": { "en": "Silence again: the LED stays on, the program flipped it", "es": "Silencio otra vez: el LED sigue encendido, el programa lo invirtió" } },
+    { "at": 10800, "do": "set", "environment": "sound", "value": 105, "move": "hit" },
+    { "at": 10800, "do": "caption", "text": { "en": "A second clap flips it back", "es": "Una segunda palmada lo invierte de nuevo" } },
+    { "at": 11000, "do": "wait-until", "part": "D1", "field": "brightness", "below": 0.02, "max": 3000 },
+    { "at": 12000, "do": "set", "environment": "sound", "value": 40, "move": "hit" },
+    { "at": 12400, "do": "caption", "text": { "en": "The LED is off: each clap flips it once", "es": "El LED se apagó: cada palmada lo invierte una vez" } },
+    { "at": 15000, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 15000, "do": "caption", "text": { "en": "The trimmer sets the level: on the real board it has to be within millivolts of the bias", "es": "El trimmer fija el nivel: en la placa real debe quedar a milivoltios de la polarización" } },
+    { "at": 20500, "do": "focus", "parts": [] }
+  ]
+}

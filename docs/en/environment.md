@@ -42,8 +42,10 @@ The slider's range is what the page offers; the limit is what a value may be at 
 `set` or a program outside it is clamped, and `check` says so). Today the thermistor and the
 photoresistor (`temperature`, `light`), the LM35 (`temperature`), the tilt switch (`tilt`) and the
 LM393 sensor modules ([sensor-modules.md](sensor-modules.md): `rain`, `moisture`, `light`, `beam`,
-`distance` and `reflectance`, `field`, `vibration`, and `angle` for an encoder disc) read it; the
-other fields are ready for the sensors that come next. `reflectance` (the surface under a line
+`distance` and `reflectance`, `field`, `vibration`, `sound`, and `angle` for an encoder disc) read it, and so
+do the linear Hall sensor ([analog-sensors.md](analog-sensors.md): `field`); the other fields are ready for
+the sensors that come next. `field` is read by the KY-024 switch and the 49E / KY-035 (a south pole
+facing the marked face is positive); `sound`, in dB SPL, by the KY-037 microphone module. `reflectance` (the surface under a line
 follower or in front of an obstacle sensor) and `beam` (something in an optical slot) came with
 those modules.
 

@@ -2924,7 +2924,8 @@
                         "reflectance",
                         "distance",
                         "field",
-                        "vibration"
+                        "vibration",
+                        "sound"
                       ]
                     },
                     "min": {
@@ -3099,7 +3100,11 @@
                       "light-switch-module",
                       "line-follower-uno",
                       "obstacle-buzzer",
-                      "hall-counter-uno"
+                      "hall-counter-uno",
+                      "hall-linear-uno",
+                      "voltage-sensor-uno",
+                      "clap-switch",
+                      "sound-level-led"
                     ]
                   },
                   "values": {

@@ -14,7 +14,7 @@
     { "at": 5200, "do": "set", "environment": "distance", "value": 5, "move": "travel", "ms": 1800 },
     { "at": 8800, "do": "focus", "parts": ["U1", "BZ1"] },
     { "at": 8800, "do": "frame", "target": ["U1", "BZ1"], "move": "travel" },
-    { "at": 8800, "do": "caption", "text": { "en": "Under 9 cm OUT goes low: current flows through the buzzer", "es": "A menos de 9 cm OUT baja: pasa corriente por el zumbador" } },
+    { "at": 8800, "do": "caption", "text": { "en": "Under 9 cm OUT goes low: the transistor lets the buzzer sound", "es": "A menos de 9 cm OUT baja: el transistor deja sonar el zumbador" } },
     { "at": 9600, "do": "value", "part": "BZ1", "field": "current", "label": { "en": "through the buzzer", "es": "por el zumbador" } },
     { "at": 13200, "do": "caption", "text": { "en": "The hand moves away", "es": "La mano se aleja" } },
     { "at": 13200, "do": "set", "environment": "distance", "value": 30, "move": "travel", "ms": 1800 },

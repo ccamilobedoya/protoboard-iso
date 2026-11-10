@@ -21,7 +21,7 @@ export const TYPE_FIELDS = {
   inductor: ['value', 'dcr', 'current'],
   thermistor: ['value', 'beta', 'temperature'],
   ldr: ['part', 'light'],
-  buzzer: ['resistance'],
+  buzzer: ['part', 'resistance'],
   header: ['count', 'pin1', 'color'],
   'rgb-led': ['common'],
   'seven-segment': ['part', 'pin1'],
@@ -32,7 +32,9 @@ export const TYPE_FIELDS = {
   motor: ['part', 'load', 'side', 'offset'],
   'pir-sensor': ['delay', 'sensitivity', 'mode', 'warmup', 'motion'],
   'touch-sensor': ['mode', 'activeLow', 'fast', 'touch'],
-  'sensor-module': ['part', 'threshold', 'wetness', 'moisture', 'light', 'beam', 'reflectance', 'distance', 'field', 'vibration', 'transmittance', 'slots', 'duty', 'seed'],
+  'sensor-module': ['part', 'threshold', 'wetness', 'moisture', 'light', 'beam', 'reflectance', 'distance', 'field', 'vibration', 'transmittance', 'slots', 'duty', 'seed', 'sound'],
+  'hall-sensor': ['part', 'field'],
+  'voltage-sensor': ['part'],
 };
 
 // Fields a part has that its type does not take (a typo, or another type's field): saved, they

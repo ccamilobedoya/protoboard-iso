@@ -9,6 +9,27 @@ detail.
 
 ## [Unreleased]
 
+### Added
+
+- Analog sensors (sensors S5; `docs/en/analog-sensors.md`): the **linear Hall sensor** 49E
+  (`hall-sensor`: the `KY-035` module with pins `S + −` or the bare `49E` in a TO-92; ratiometric, half
+  the supply plus 1.4 mV per gauss, clamped near the rails; it senses the environment's `field`) and the
+  **voltage sensor module** (`voltage-sensor`, `VOLT-25V`: a 30 kΩ and 7.5 kΩ divider, 5:1; the screw
+  terminal is two more pins, `VIN` and `GND`). Recipes `hall-linear-uno` and `voltage-sensor-uno`.
+- The **KY-037** sound module, a ninth part number of `sensor-module` (an electret capsule: AO at half the
+  supply, the signal's peak in the card and in the comparator, DO low above about 98 dB with the default
+  trimmer; it senses `sound`). Recipes `clap-switch` and `sound-level-led`; the tour `clap-switch.json`.
+- The **active buzzer** `TMB12A05`, a second part number of `buzzer` with its own device: silent under
+  1.5 V, sounding at 2.3 kHz from 3.5 V across it and taking 30 mA at 5 V, with a polarity. `rain-alarm`
+  and `obstacle-buzzer` now use it through a PNP (they had a passive buzzer that only clicked).
+
+### Changed
+
+- `resolveRecipe` hands out a deep copy of the recipe's pieces (and takes a recipe name as a string): a
+  caller that changes the circuit it got cannot change the recipe.
+- `obstacle-buzzer` switches its buzzer with a PNP and a 1 kΩ base resistor (the LM393's output cannot
+  carry an active buzzer's 30 mA); `rain-alarm` lost its series resistor.
+
 ## [0.10.0] - 2026-11-09
 
 Sensors: a shared environment that every sensor reads, its panel and indicator, real sensor recipes, the LM393 modules, the PIR and touch modules.

@@ -317,3 +317,27 @@ export const PIR = { maxReverse: 0.3, minSupply: 4.5, maxSupply: 20, logic: 3.3,
 //   quiescent            3 µA in low-power mode and 7 µA in fast mode (maximum values), as a
 //                        resistor at 3.3 V
 export const TOUCH = { maxReverse: 0.3, minSupply: 2, maxSupply: 5.5, response: 0.22, fastResponse: 0.06, settle: 0.5, highResistance: 150, lowResistance: 75, sourceSpec: 4e-3, sinkSpec: 8e-3, maxCurrent: 10e-3, quiescent: 3e-6, fastQuiescent: 7e-6, quiescentAt: 3.3 };
+
+// Linear Hall sensor 49E / SS49E (Honeywell SS39ET/SS49E/SS59ET datasheet, read in secondary copies;
+// docs/en/analog-sensors.md). The output is ratiometric: Vout = Vs/2 + S · B with S = 1.4 mV/G at 5 V
+// [D: 1.0 to 1.75 typical 1.4], scaling with the supply (S · Vs / 5 V).
+//   sensitivity       1.4 mV/G at the reference supply (5 V)
+//   margin            the output clamps at [0.95 V, Vs − 0.95 V] [D/T, the transfer plot]
+//   quiescent         6 mA from the supply [T: the sheets show 6 to 10 mA]
+//   outputResistance  50 Ω [A: an output good for about ±1 mA]
+//   minSupply         2.7 V [D]; maxSupply 8 V [A: the sheets copied give no absolute maximum]
+//   maxReverse        0.3 V [A]; loadNote 1.5 mA [A]: over it the output no longer holds its value
+export const HALL_LINEAR = { sensitivity: 1.4e-3, reference: 5, margin: 0.95, quiescent: 6e-3, outputResistance: 50, minSupply: 2.7, maxSupply: 8, maxReverse: 0.3, loadNote: 1.5e-3 };
+
+// Voltage sensor module (30 kΩ / 7.5 kΩ divider, 5:1; docs/en/analog-sensors.md).
+//   upper 30 kΩ (marked 3002), lower 7.5 kΩ (7501) [T]; maxPower 0.1 W for the 30 kΩ [A: 1/10 W parts]
+//   join 1 mΩ [A]: the board's "−" pin and the terminal's GND are one copper trace
+//   leak 1 GΩ [A]: the unconnected "+" pin, so it never reads as a floating group
+export const VOLTAGE_SENSOR = { upper: 30e3, lower: 7.5e3, maxPower: 0.1, join: 1e-3, leak: 1e9 };
+
+// Active buzzer TMB12A05 (12 mm, 5 V; common datasheets of the 12 mm active buzzers) [T] unless marked.
+//   rated 5 V, works from 3.5 to 5.5 V, at most 30 mA at 5 V, 2300 ± 300 Hz, at least 85 dB at 10 cm
+//   silent under 1.5 V and almost no current [A]; above it the load is 5 V / 30 mA = 167 Ω [A], the
+//   change rounded over a volt (smoothstep from 1.5 to 2.5 V) so the solver has a slope everywhere
+//   maxReverse 0.5 V [A]: its polarity is marked + on the case; reversed it does not sound
+export const ACTIVE_BUZZER = { rated: 5, minVoltage: 3.5, maxVoltage: 5.5, current: 0.03, frequency: 2300, silentBelow: 1.5, fullAt: 2.5, maxReverse: 0.5, maxPower: 0.5 };
