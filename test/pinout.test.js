@@ -301,6 +301,7 @@ const PENDING = {
   wire: 'not a part on a pedestal',
   module: 'a development board: its own pin notes, no pedestal view',
   header: 'pins only: nothing to show inside',
+  'ultrasonic-sensor': 'its view up close comes with its recipes',
 };
 
 test('a part up close: every part type is complete or pending with a reason, and the complete ones have it all', async () => {

@@ -190,3 +190,8 @@ Object.assign(MATERIALS, {
   irDark: '#1f1f24',
   trimmerKnob: '#f0ede4',
 });
+
+// The ultrasonic module (HC-SR04): the dark mesh over each capsule's face.
+Object.assign(MATERIALS, {
+  sonarMesh: '#3a3d42',
+});

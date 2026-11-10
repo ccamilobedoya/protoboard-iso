@@ -317,3 +317,25 @@ export const PIR = { maxReverse: 0.3, minSupply: 4.5, maxSupply: 20, logic: 3.3,
 //   quiescent            3 µA in low-power mode and 7 µA in fast mode (maximum values), as a
 //                        resistor at 3.3 V
 export const TOUCH = { maxReverse: 0.3, minSupply: 2, maxSupply: 5.5, response: 0.22, fastResponse: 0.06, settle: 0.5, highResistance: 150, lowResistance: 75, sourceSpec: 4e-3, sinkSpec: 8e-3, maxCurrent: 10e-3, quiescent: 3e-6, fastQuiescent: 7e-6, quiescentAt: 3.3 };
+
+// Ultrasonic distance module HC-SR04 (docs/en/ultrasonic-sensor.md). [D] the module's datasheet
+// (reseller copies of the same sheet), [T] widely quoted for the usual module, [A] the kit's own.
+//   speed            331.3 + 0.606 · T m/s, T in °C (dry air)
+//   supply           5 V [D]; it works from 4.5 to 5.5 V [A]: under minSupply it answers "no echo"
+//                    (SIM_MODULE_LOW_SUPPLY), under minRun [A] it is off (ECHO high impedance), over
+//                    maxSupply SIM_IC_SUPPLY
+//   trigThreshold    TRIG reads high from 2.0 V [A] (a TTL input; a 3.3 V board's pin is enough)
+//   trigMin 10 µs    the trigger pulse [D]; a shorter one is not taken
+//   burst 250 µs     from TRIG falling to ECHO rising: eight 40 kHz cycles (200 µs [D]) and about
+//                    50 µs of the module's own [A]
+//   range [2, 400]   cm [D]; outside it, or with no echo, ECHO stays high noEcho = 38 ms [T]
+//   outputResistance 20 Ω [A]   ECHO push-pull at VCC (a 5 V chip's TTL output). A first guess of
+//                    100 Ω put a 1 kΩ / 2 kΩ divider's middle at 3.23 V, under the 3.33 V a bench reads
+//   idleCurrent 2 mA, workCurrent 15 mA at 5 V [D]  as a load VCC–GND, measuring from TRIG to ECHO's fall
+//   maxCurrent 20 mA [A]   what ECHO may give before the kit warns
+//   cycle 60 ms      the measuring cycle the sheet recommends [D] (the page's pace without a program)
+export const ULTRASONIC = {
+  speed: [331.3, 0.606], minRun: 2.5, minSupply: 4.5, maxSupply: 5.5, maxReverse: 0.3, trigThreshold: 2.0, trigMin: 10e-6, burst: 250e-6,
+  range: [2, 400], noEcho: 0.038, outputResistance: 20, idleCurrent: 2e-3, workCurrent: 15e-3, currentAt: 5, maxCurrent: 20e-3, cycle: 0.06,
+  temperature: 20, distance: 50,
+};
