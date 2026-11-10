@@ -68,7 +68,7 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `obstacle-buzzer` | An FC-51 obstacle module sinking a buzzer's current into its OUT | U1 = 0.5 (threshold), R1 = 470 |
 | `hall-counter-uno` | Arduino UNO counting a magnet's passes with a KY-024 (DO on D2, falling edges) | U2 = 0.5 (threshold), U1 = its sketch |
 | `encoder-uno` | Arduino UNO: a KY-040 rotary encoder on D2 (CLK), D3 (DT) and D4 (SW), powered from the 5 V pin; the sketch counts clicks (CLK falls, DT says which way), prints the count when it changes and zeroes it with the push switch | U2 = 0 (bounce, ms), U1 = its sketch |
-| `encoder-dimmer-uno` | the same, with a LED on D9 (through R1) whose PWM brightness follows the count, 13 counts a click | R1 = 220, D1 = green, U1 = its sketch |
+| `encoder-dimmer-uno` | the same, with a LED on D9 (through R1) whose PWM brightness follows the count, 13 counts a click, the count held between 0 and 20 | R1 = 220, D1 = green, U1 = its sketch |
 
 `catalog` (MCP) or `parts` (CLI) lists them with their titles (the compact list `catalog` leaves the values out); `catalog` with a recipe's name (`parts
 <name>` in the CLI) shows what it teaches, its parts, nets, supply, and each value's role and limits.
