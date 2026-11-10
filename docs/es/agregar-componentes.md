@@ -220,7 +220,10 @@ del campo, y que un valor en la pieza gana (`test/environment.test.js`).
 
 Un sensor que responde en el tiempo (el retardo de un PIR, la respuesta de un módulo táctil) tiene
 memoria propia: lista las claves de sus elementos en `state: [...]` para que `engine.set` las lleve,
-y puede dar `maxStep()` y `span()`; mira [sensores-temporizados.md](sensores-temporizados.md).
+y puede dar `maxStep()` y `span()`; mira [sensores-temporizados.md](sensores-temporizados.md). Un sensor que sigue un
+campo a través de una pieza que se mueve (el eje del encoder rotativo, que persigue el `angle` del
+ambiente a una velocidad acotada) guarda esa pieza en el mismo estado heredado y escribe su
+movimiento primero como función pura: [encoder-rotativo.md](encoder-rotativo.md).
 Un sensor en la placa de comparador de siempre (lluvia, suelo, luz, una ranura o un par infrarrojo,
 un interruptor Hall, un contacto de vibración) no es un tipo nuevo: es una fila de la tabla de
 `sensor-module`, su elemento y un glifo ([modulos-sensores.md](modulos-sensores.md#agregar-una-novena-pieza)).

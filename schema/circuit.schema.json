@@ -163,7 +163,9 @@
                 "light-switch-module",
                 "line-follower-uno",
                 "obstacle-buzzer",
-                "hall-counter-uno"
+                "hall-counter-uno",
+                "encoder-uno",
+                "encoder-dimmer-uno"
               ]
             },
             "values": {
@@ -2901,7 +2903,8 @@
                   "reflectance",
                   "distance",
                   "field",
-                  "vibration"
+                  "vibration",
+                  "angle"
                 ]
               },
               "min": {
@@ -3040,7 +3043,8 @@
             "motor",
             "pir-sensor",
             "touch-sensor",
-            "sensor-module"
+            "sensor-module",
+            "rotary-encoder"
           ]
         },
         "pins": {
@@ -3121,7 +3125,7 @@
         },
         "part": {
           "type": "string",
-          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270), sensor-module (MH-RD, YL-69, LDR-LM393, SLOT-IR, TCRT5000-M, KY-024, SW-420-M, FC-51) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
+          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270), sensor-module (MH-RD, YL-69, LDR-LM393, SLOT-IR, TCRT5000-M, KY-024, SW-420-M, FC-51), rotary-encoder (KY-040) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
         },
         "package": {
           "type": "string"
@@ -3214,7 +3218,7 @@
         },
         "pressed": {
           "type": "boolean",
-          "description": "button state"
+          "description": "button state; rotary-encoder: its push switch is held down"
         },
         "on": {
           "type": "boolean",
@@ -3447,6 +3451,36 @@
           "minimum": 0,
           "maximum": 1,
           "description": "sensor-module SLOT-IR: what reaches the receiver through the slot with the beam clear (default 1; paper about 0.3)"
+        },
+        "pulses": {
+          "type": "integer",
+          "description": "rotary-encoder: pulses a turn; only 20 (the usual KY-040) is modelled"
+        },
+        "detents": {
+          "type": "integer",
+          "description": "rotary-encoder: clicks a turn; only 20 (the usual KY-040) is modelled"
+        },
+        "speed": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "description": "rotary-encoder: degrees a second the shaft follows its target (default 360)"
+        },
+        "bounce": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20,
+          "description": "rotary-encoder: milliseconds of chatter at each change of CLK and DT, deterministic (default 0)"
+        },
+        "swPullup": {
+          "type": "boolean",
+          "description": "rotary-encoder: the 10 kΩ from + to SW is on the module (default true; some clones omit it)"
+        },
+        "angle": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360,
+          "description": "rotary-encoder: its own target angle, degrees (snapped to the nearest click), instead of the environment's"
         },
         "slots": {
           "type": "integer",

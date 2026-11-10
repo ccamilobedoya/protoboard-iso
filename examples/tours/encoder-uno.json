@@ -1,0 +1,28 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "encoder-uno",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A rotary encoder counts clicks", "es": "Un encoder cuenta los clics" } },
+    { "at": 0, "do": "gauge", "environment": "angle", "on": true, "min": 0, "max": 360 },
+    { "at": 2500, "do": "focus", "parts": ["U2"] },
+    { "at": 2500, "do": "frame", "target": "U2", "move": "arrival" },
+    { "at": 2500, "do": "caption", "text": { "en": "Each click of the shaft is 18 degrees", "es": "Cada clic del eje son 18 grados" } },
+    { "at": 6000, "do": "caption", "text": { "en": "Turning it, CLK and DT close one after the other", "es": "Al girar, CLK y DT se cierran uno tras otro" } },
+    { "at": 9500, "do": "focus", "parts": ["U1", "U2"] },
+    { "at": 9500, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 9800, "do": "caption", "text": { "en": "We turn it 90 degrees clockwise", "es": "Lo giramos 90 grados a la derecha" } },
+    { "at": 9800, "do": "set", "environment": "angle", "value": 90, "move": "travel", "ms": 1800 },
+    { "at": 12000, "do": "caption", "text": { "en": "The UNO prints 5: five clicks", "es": "El UNO imprime 5: cinco clics" } },
+    { "at": 14500, "do": "caption", "text": { "en": "Back to 36 degrees: DT now closes first", "es": "De vuelta a 36 grados: ahora DT cierra primero" } },
+    { "at": 14500, "do": "set", "environment": "angle", "value": 36, "move": "travel", "ms": 1800 },
+    { "at": 16800, "do": "caption", "text": { "en": "It prints 2: three clicks fewer", "es": "Imprime 2: tres clics menos" } },
+    { "at": 19500, "do": "caption", "text": { "en": "The shaft's button sets the count to zero", "es": "El botón del eje pone la cuenta en cero" } },
+    { "at": 19800, "do": "set", "part": "U2", "field": "pressed", "value": 1, "move": "hit" },
+    { "at": 20800, "do": "set", "part": "U2", "field": "pressed", "value": 0, "move": "hit" },
+    { "at": 21200, "do": "caption", "text": { "en": "It prints 0: back to zero", "es": "Imprime 0: de nuevo en cero" } },
+    { "at": 23500, "do": "focus", "parts": [] },
+    { "at": 23500, "do": "frame", "target": "parts", "move": "travel" }
+  ]
+}

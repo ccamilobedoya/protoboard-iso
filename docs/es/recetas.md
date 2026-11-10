@@ -68,6 +68,8 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `line-follower-uno` | Arduino UNO que lee un seguidor de línea TCRT5000 (DO en D2, AO en A0) y escribe LINE / NO LINE | U2 = 0,5 (umbral), U1 = su programa |
 | `obstacle-buzzer` | Un módulo de obstáculos FC-51 que absorbe por su OUT la corriente de un zumbador | U1 = 0,5 (umbral), R1 = 470 |
 | `hall-counter-uno` | Arduino UNO que cuenta las pasadas de un imán con un KY-024 (DO en D2, flancos de bajada) | U2 = 0,5 (umbral), U1 = su programa |
+| `encoder-uno` | Arduino UNO: un encoder rotativo KY-040 en D2 (CLK), D3 (DT) y D4 (SW), alimentado con el pin de 5 V; el programa cuenta clics (CLK cae, DT dice hacia dónde), escribe la cuenta cuando cambia y la pone en cero con el pulsador | U2 = 0 (bounce, ms), U1 = su programa |
+| `encoder-dimmer-uno` | lo mismo, con un LED en D9 (por R1) cuyo brillo PWM sigue a la cuenta, 13 cuentas por clic | R1 = 220, D1 = green, U1 = su programa |
 
 `catalog` (MCP) o `parts` (consola) las listan con su título (la lista compacta de `catalog` deja fuera los valores); `catalog` con el nombre de una receta
 (`parts <nombre>` en la consola) muestra lo que enseña, sus componentes, redes, fuente, y el papel y

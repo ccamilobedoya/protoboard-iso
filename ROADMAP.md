@@ -362,7 +362,9 @@ board ([docs/en/environment.md](docs/en/environment.md); decision of 2026-11-08 
 - ⬜ S4 · HC-SR04 ultrasonic (`distance` → echo pulse) and `pulseIn` in the program translator
 - ⬜ S5 · Analog modules: linear Hall 49E (`field`), voltage sensor 0–25 V, microphone KY-037 (`sound`)
 - ⬜ S6 · Library-level protocol sensors: DHT11 (`temperature`, `humidity`) and BME280 read by a board's program through their library calls
-- ⬜ S7 · Rotary encoder EC11 (`angle` → quadrature) and emitters (`emits`: a laser or an IR LED writes a field)
+- ✅ S7a · Rotary encoder EC11 on the KY-040 module, family F7 (2026-11-10): `rotary-encoder` (CLK, DT, SW, +, GND; 10 kΩ pull-ups from `+`), driven by the environment's `angle` as a target snapped to the nearest click, which a shaft kept in the device's carried state follows at `speed` by the shortest arc, CLK and DT as 0.1 Ω contacts to ground in quadrature (clockwise: CLK first, DT 4.5° later), each edge within a step of its time across `engine.set` calls (`maxStep()`/`span()`, no change in the engine), optional deterministic `bounce`, `SIM_OVER_CURRENT` over 10 mA, `SIM_ENCODER_FLOATING`; up close (symbol, wheel and fingers with a timing strip); recipes `encoder-uno` and `encoder-dimmer-uno`, the tour `encoder-uno`; `docs/en/rotary-encoder.md`
+- ⬜ S7b · Emitters (`emits`: a laser or an IR LED writes a field)
+- ⬜ Rotary encoder, still to do: two momentary controls "+1 click" and "−1 click" that shift the target by one click (a part that follows the environment would need to leave the field), `attachInterrupt` in a board's program, the bare EC11 on its own pins (no pull-ups) and the 15/30 variant (two clicks a cycle)
 - ⬜ DHT11/BME280 bit-level protocol on the wire — optional, very low priority, kept so it is not forgotten
 - ⬜ Active buzzer (a tone generator inside: sounds on DC) for the alarm recipes
 - ⬜ Bench questions to settle on the real boards: whether the SW-420's LED is lit at rest, and the MH-RD's pin order

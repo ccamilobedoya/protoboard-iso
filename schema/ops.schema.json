@@ -2924,7 +2924,8 @@
                         "reflectance",
                         "distance",
                         "field",
-                        "vibration"
+                        "vibration",
+                        "angle"
                       ]
                     },
                     "min": {
@@ -3099,7 +3100,9 @@
                       "light-switch-module",
                       "line-follower-uno",
                       "obstacle-buzzer",
-                      "hall-counter-uno"
+                      "hall-counter-uno",
+                      "encoder-uno",
+                      "encoder-dimmer-uno"
                     ]
                   },
                   "values": {

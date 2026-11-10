@@ -42,7 +42,8 @@ The slider's range is what the page offers; the limit is what a value may be at 
 `set` or a program outside it is clamped, and `check` says so). Today the thermistor and the
 photoresistor (`temperature`, `light`), the LM35 (`temperature`), the tilt switch (`tilt`) and the
 LM393 sensor modules ([sensor-modules.md](sensor-modules.md): `rain`, `moisture`, `light`, `beam`,
-`distance` and `reflectance`, `field`, `vibration`, and `angle` for an encoder disc) read it; the
+`distance` and `reflectance`, `field`, `vibration`, and `angle` for an encoder disc) and the KY-040
+rotary encoder ([rotary-encoder.md](rotary-encoder.md): `angle` is the target its shaft turns to) read it; the
 other fields are ready for the sensors that come next. `reflectance` (the surface under a line
 follower or in front of an obstacle sensor) and `beam` (something in an optical slot) came with
 those modules.

@@ -470,6 +470,20 @@ del campo `touch` del ambiente). Los primeros 0,5 s tras encenderlo ignoran el p
 { "id": "U1", "type": "touch-sensor", "mode": "toggle", "pins": ["h2", "h3", "h4"] }
 ```
 
+### rotary-encoder (encoder rotativo)
+
+Un módulo encoder rotativo KY-040 parado sobre cinco patas `CLK`, `DT`, `SW`, `+`, `GND` (leídas
+desde la izquierda con su cara hacia ti), con el eje de la perilla hacia el frente. `+` alimenta los
+tres pull-up de 10 kΩ del módulo. Campos: `part` (`"KY-040"`), `pulses` y `detents` (20 y 20; otro par
+es `BAD_VALUE`), `speed` (grados por segundo con que el eje sigue a su objetivo, por defecto 360),
+`bounce` (milisegundos de rebote en cada cambio, por defecto 0), `pressed` (el pulsador está
+oprimido), `swPullup` (el pull-up de `SW`, por defecto true) y `angle` (su ángulo objetivo propio, en
+vez del del ambiente). La tabla, el eje y el rebote están en [encoder-rotativo.md](encoder-rotativo.md).
+
+```json
+{ "id": "U2", "type": "rotary-encoder", "pins": ["h2", "h3", "h4", "h5", "h6"] }
+```
+
 ### header (pines de cabecera)
 
 Una fila de pines macho, para mostrar dónde se enchufa un módulo o un cable Dupont. Se coloca
