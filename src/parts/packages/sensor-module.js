@@ -9,7 +9,7 @@
 // (soil), a photoresistor's disc (light), a U-shaped slot (optical slot), the two lenses of a TCRT5000 in
 // their black case (line follower), a clear and a dark IR can (obstacle), a Hall chip on its legs
 // (KY-024) and the SW-420's can lying along the edge. Not to scale beyond the board itself.
-// A `bare` board (the second night's analog modules: the KY-035 with its linear Hall chip, the voltage
+// A `bare` board (the analog modules: the KY-035 with its linear Hall chip, the voltage
 // sensor with its screw terminal) has neither comparator, LEDs nor trimmer: just the pins, the printed
 // names, the part number and its element, on a shorter board.
 //

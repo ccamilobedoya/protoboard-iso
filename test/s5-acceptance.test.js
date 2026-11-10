@@ -1,8 +1,8 @@
-// Acceptance tests for session S5 (analog modules: the 49E linear Hall sensor, the voltage sensor
-// module, the KY-037 sound module, the active buzzer), written from the brief (B1-B10) and from the
-// physics spec rows 45-51 alone, before looking at any implementation. Every tolerance is the brief's.
+// Acceptance tests for the analog modules (the 49E linear Hall sensor, the voltage sensor module, the
+// KY-037 sound module, the active buzzer), written from their contract (groups B1-B10) and from the
+// physics reference checks alone, before looking at any implementation. Every tolerance is the contract's.
 //
-// Names the brief does not fix are resolved the way the family does, never by guessing one spelling:
+// Names the contract does not fix are resolved the way the family does, never by guessing one spelling:
 //   * pin names and their order come from the catalog (catalogEntry(type).parts[part].pins, or .pins);
 //     a pin is classified by role (output / plus / minus / ...) from its printed name or synonym;
 //   * a part's pins are read from its reading (`parts[id].pins[name]`, absolute node volts).
@@ -118,7 +118,7 @@ test('B1 · the compact catalog lists both new types under sensor in both langua
   }
 });
 
-// ---------------------------------------------------------------- B2 · the KY-035 transfer curve (spec rows 45-47)
+// ---------------------------------------------------------------- B2 · the KY-035 transfer curve (reference checks 45-47)
 
 for (const part of ['KY-035', '49E']) {
   for (const [field, volts, expected, tol] of [
@@ -167,7 +167,7 @@ test('B3 · supply 2 V on a KY-035: a low-supply note; 5 V has none', () => {
   assert.ok(!codes(fine.r.issues).some((c) => /LOW_SUPPLY/.test(c)), JSON.stringify(fine.r.issues));
 });
 
-// ---------------------------------------------------------------- B4 · the voltage sensor module (spec rows 48, 49)
+// ---------------------------------------------------------------- B4 · the voltage sensor module (reference checks 48, 49)
 
 // The module is laid out from nets, so that the wires can go to its input terminal wherever the part
 // keeps it (two more breadboard pins, or a terminal off the board). The terminal is VIN and GND, the
@@ -216,7 +216,7 @@ test('B4 · voltage sensor, 25 V in: 30 kΩ dissipates far less than 100 mW, so 
   assert.ok(!codes(r.issues).includes('SIM_OVER_POWER'), JSON.stringify(r.issues));
 });
 
-// ---------------------------------------------------------------- B5 · KY-037 (spec rows 50, 51)
+// ---------------------------------------------------------------- B5 · KY-037 (reference checks 50, 51)
 
 // The module with a 10 kΩ pull-up from DO to the + rail, as the family's benches do (the board has its own).
 function sound(db, { volts = 5, own = {}, via = 'environment' } = {}) {
