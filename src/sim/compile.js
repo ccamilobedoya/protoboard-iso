@@ -39,7 +39,7 @@ import { FIELDS, cleanEnvironment, createEnvironment } from './environment.js';
 // A board's program (docs/en/microcontrollers.md, M2): the sketch's text in "program", or the name
 // of a .ino file beside the circuit (read by beside.js, inside the circuit's folder only);
 // translated once here, run by the page and by simulate.
-const SKETCH_SEVERITY = { SIM_PROGRAM_ERROR: 'warning', SIM_PROGRAM_NO_LOOP: 'warning', SIM_PROGRAM_UNSUPPORTED: 'warning', SIM_PROGRAM_LIBRARY: 'info', SIM_PROGRAM_TOO_LARGE: 'warning' };
+const SKETCH_SEVERITY = { SIM_PROGRAM_ERROR: 'warning', SIM_PROGRAM_NO_LOOP: 'warning', SIM_PROGRAM_UNSUPPORTED: 'warning', SIM_PROGRAM_LIBRARY: 'info', SIM_PROGRAM_TOO_LARGE: 'warning', SIM_PROGRAM_NOT_IN_KIT: 'warning' };
 function sketchOf(circuit, part, issues) {
   const given = part.raw.program;
   if (given == null || given === '') return null;

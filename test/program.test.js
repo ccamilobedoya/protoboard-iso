@@ -249,11 +249,11 @@ test('SKETCH_API and the runtime give the same names (constants apart)', () => {
   createRunner(js, { family: 'uno', states: {}, read: () => null, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 });
   const names = globalThis.__names;
   delete globalThis.__names;
-  const constants = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial'];
+  const constants = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'DHT11', 'DHT22', 'NAN'];
   const helpers = names.filter((n) => n.startsWith('__'));
   const functions = names.filter((n) => !constants.includes(n) && !helpers.includes(n));
   assert.deepEqual([...functions].sort(), [...SKETCH_API].sort());
-  assert.deepEqual(helpers.sort(), ['__array', '__idx', '__int', '__missing']);
+  assert.deepEqual(helpers.sort(), ['__array', '__idx', '__int', '__lib', '__missing', '__new']);
 });
 
 test('delayMicroseconds: the engine ends a step on the program waking, so a 10 µs pulse lasts 10 µs', () => {

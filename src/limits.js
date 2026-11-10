@@ -19,6 +19,7 @@ export const LIMITS = {
   boardColumns: 600, // columns an elastic board grows to at most (a hole past them is not on the board)
   envPoints: MAX_POINTS, // keyframes in one program of the environment (sim/environment.js, ENV_TOO_LARGE)
   pulseInMicros: PULSE_IN_MAX, // µs a sketch's pulseIn waits at most, whatever timeout it gives (sim/program.js clamps it)
+  libraryObjects: 16, // library objects one program declares (DHT dht(2, DHT11); …): a lesson has one or two
 };
 
 const tooLarge = (code, size, limit) => ({ severity: 'error', code, params: { size, limit } });

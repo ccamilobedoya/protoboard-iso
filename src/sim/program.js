@@ -2,11 +2,12 @@
 // JavaScript sketch.js made from the sketch, with the Arduino functions it calls. It runs between
 // time steps, as the 555's latch: each accepted step moves its clock, and it goes on until it
 // waits (delay) again; what it writes are pin states, what it reads are the voltages of the step
-// before. No imports: the page carries it.
+// before. It imports only the import-free table of libraries: the page carries it.
 //
 //   const runner = createRunner(js, board)
 //     board: { family, gpio: [numbers wired], read(gpio) → { volts, vdd } | null, vil, vih,
-//              adcBits, adcFull, states: { gpio: { mode, level, pull } } (from io) }
+//              adcBits, adcFull, states: { gpio: { mode, level, pull } } (from io),
+//              ask(request) → the answer of the library sensor wired for it, or null (devices/mcu.js) }
 //   runner.advance(seconds) → true when a pin changed
 //   runner.pins: gpio → { mode, level, pull, pwm: { freq, duty } | null }: a pin with pwm switches
 //     in time (the board sets its level at each step from runner.time: levelAt)
@@ -21,6 +22,14 @@
 // the next step"), and measures the pulse between the steps that saw it start and end. Exact when
 // what drives the pin says when its edges come (a timed sensor's `until()`), to a step otherwise.
 // The wait is bounded by the timeout, clamped to PULSE_IN_MAX (src/limits.js, pulseInMicros).
+//
+// Library objects (libraries.js, docs/en/library-sensors.md): __new(k, c, …args) makes object k of
+// class c; __lib(k, m, …args) runs method m of object k (a generator, called with yield*: a real DHT
+// read waits 25 ms, a BME/BMP begin() 100 ms). k, c and m are numbers the translator wrote; each is
+// checked against the runtime's own arrays. A method asks board.ask({ cls, method, pin | address, … })
+// and the sensor's device answers (it holds the truth: its power, its cache, the environment).
+
+import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, heatIndex, altitudeOf } from './libraries.js';
 
 const BUDGET = 2000; // loop turns or loop() calls per advance before it lets the step go on
 const LOG = 40; // Serial lines kept
@@ -43,6 +52,10 @@ const PULSE_IN_DEFAULT = 1_000_000;
 // What pulseIn yields to look at its pin again at the end of the next step. An object of the
 // runtime's own: a sketch's delay() can only yield numbers.
 const LOOK = Object.freeze({ look: true });
+const DHT_READ = 0.025; // s a real DHT read holds the sketch (the library's 20 ms start and the 40 bits)
+const DHT_INTERVAL = 2000; // ms: the library's MIN_INTERVAL (a read sooner returns the last one)
+const I2C_BEGIN = 0.1; // s an Adafruit BME280/BMP280 begin() takes (its delay(100))
+const OBJECTS_MAX = 64; // library objects at most (the translator caps them lower: LIMITS.libraryObjects)
 
 // A PWM pin's level at time t: high for the first `duty` of each period.
 export const levelAt = (pwm, t) => (pwm.duty >= 1 ? 1 : pwm.duty <= 0 ? 0 : (t * pwm.freq) % 1 < pwm.duty ? 1 : 0);
@@ -51,7 +64,7 @@ export function createRunner(js, board) {
   const pins = {};
   for (const [gpio, s] of Object.entries(board.states ?? {})) pins[gpio] = { ...s };
   const pin = (n) => (pins[n] ??= { mode: 'input', level: 0, pull: null, pwm: null });
-  const runner = { read: board.read, pins, time: 0, wait: 0, log: [], line: '', error: null, notes: [], changed: false, waitingUntil: 0, looking: null };
+  const runner = { read: board.read, ask: board.ask ?? null, pins, time: 0, wait: 0, log: [], line: '', error: null, notes: [], changed: false, waitingUntil: 0, looking: null };
   const set = (n, values) => {
     const p = pin(n);
     for (const [k, v] of Object.entries(values)) {
@@ -110,7 +123,15 @@ export function createRunner(js, board) {
     if (!(yield* until(1 - level))) return 0;
     return Math.round((runner.time - start) * 1e6);
   }
-  const show = (v, digits) => (typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(digits ?? 2)) : String(v));
+  // A value as Serial.print writes it: a float with two decimals (or `digits`), NaN as "nan" and an
+  // infinity as "inf" (the AVR core's words), a bool as 1 or 0.
+  const show = (v, digits, float) => {
+    if (typeof v === 'boolean') return v ? '1' : '0';
+    if (typeof v !== 'number') return String(v);
+    if (Number.isNaN(v)) return 'nan';
+    if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf';
+    return Number.isInteger(v) && !float ? String(v) : v.toFixed(digits ?? 2);
+  };
   const analog = ANALOG[board.family] ?? [];
   const api = {
     HIGH: 1,
@@ -210,8 +231,8 @@ export function createRunner(js, board) {
     bitWrite: (x, b, v) => (v ? x | (1 << b) : x & ~(1 << b)),
     Serial: {
       begin() {},
-      print: (v, d) => write(show(v, d)),
-      println: (v = '', d) => write(`${show(v, d)}\n`),
+      print: (v, d, float) => write(show(v, d, float)),
+      println: (v = '', d, float) => write(`${show(v, d, float)}\n`),
       available: () => 0,
       read: () => -1,
     },
@@ -221,7 +242,103 @@ export function createRunner(js, board) {
     __idx: (i) => (Number.isFinite(Number(i)) ? Math.trunc(Number(i)) : 0),
     // int a[n]: n capped, so a sketch cannot take the machine's memory.
     __array: (n) => new Array(Math.min(ARRAY_MAX, Math.max(0, Math.trunc(Number(n)) || 0))).fill(0),
+    ...LIBRARY_CONSTANTS,
+    isnan: (x) => Number.isNaN(Number(x)),
+    // A library object: k and c are numbers the translator chose, checked here all the same.
+    __new(k, c, ...args) {
+      if (!Number.isInteger(k) || k < 0 || k >= OBJECTS_MAX || !Number.isInteger(c) || !LIBRARY_CLASSES[c]) return;
+      objects[k] = { cls: c, args: args.map(Number), begun: null, last: null };
+    },
+    // One of its methods: a generator (some of them wait), m its number in the class's list.
+    *__lib(k, m, ...args) {
+      const o = Number.isInteger(k) && k >= 0 && k < OBJECTS_MAX ? objects[k] : undefined;
+      const run = o && Number.isInteger(m) && m >= 0 ? METHODS[o.cls][m] : undefined;
+      if (typeof run !== 'function') return 0;
+      return yield* run(o, ...args);
+    },
   };
+  // ── Library objects ──
+  const objects = [];
+  const millisNow = () => Math.floor(runner.time * 1e3 + 1e-9);
+  const ask = (request) => (typeof runner.ask === 'function' ? runner.ask({ ...request, now: millisNow() }) : null);
+  // A DHT read: the sensor on the object's pin answers and keeps the library's 2 s cache itself; with
+  // nothing there the library still times out every 2 s (its own cache, here on the object).
+  function* dhtRead(o, force) {
+    const [pin, type] = o.args;
+    if (type !== LIBRARY_CONSTANTS.DHT11) return null; // DHT22 is not in the kit yet: NaN
+    const answer = ask({ cls: 'DHT', method: 'read', pin, force: Boolean(force) });
+    let real = answer?.real;
+    if (!answer) {
+      const now = millisNow();
+      real = Boolean(force) || o.last == null || now - o.last >= DHT_INTERVAL;
+      if (real) o.last = now;
+    }
+    if (real) {
+      api.pinMode(pin, MODE.INPUT_PULLUP); // the library leaves its pin so after each read
+      yield DHT_READ;
+    }
+    return answer?.ok ? answer : null;
+  }
+  // A BME280 / BMP280 read: only after a begin() that found the chip, and while it still answers.
+  const i2cRead = (o) => (o.begun ? ask({ cls: LIBRARY_CLASSES[o.cls].name, method: 'read', address: o.begun.address, chip: o.begun.chip }) : null);
+  const ok = (a) => (a?.ok ? a : null);
+  function* i2cBegin(o, address = I2C_DEFAULT_ADDRESS, chip) {
+    const want = { address: Math.trunc(Number(address)), chip: chip == null ? LIBRARY_CLASSES[o.cls].chip : Math.trunc(Number(chip)) };
+    const answer = ask({ cls: LIBRARY_CLASSES[o.cls].name, method: 'begin', ...want });
+    o.begun = answer?.ok ? want : null;
+    yield I2C_BEGIN;
+    return Boolean(answer?.ok);
+  }
+  const i2cMethods = (humidity) => [
+    // begin(address = 0x77[, chip id]): the BME280's second argument is a bus (&Wire), the BMP280's a chip id.
+    function* (o, address, second) {
+      return yield* i2cBegin(o, address, humidity ? undefined : second);
+    },
+    function* (o) {
+      return ok(i2cRead(o))?.temperature ?? Number.NaN;
+    },
+    function* (o) {
+      return ok(i2cRead(o))?.pressure ?? Number.NaN;
+    },
+    ...(humidity
+      ? [
+          function* (o) {
+            return ok(i2cRead(o))?.humidity ?? Number.NaN;
+          },
+        ]
+      : []),
+    function* (o, sea = 1013.25) {
+      const a = ok(i2cRead(o));
+      return a ? altitudeOf(a.pressure / 100, Number(sea)) : Number.NaN;
+    },
+  ];
+  // Each class's methods in the order of LIBRARY_CLASSES[c].methods (the numbers the translator wrote).
+  const METHODS = [
+    [
+      // begin(): the library sets its pin as an input with pull-up and lets the next read be a real one.
+      function* (o) {
+        api.pinMode(o.args[0], MODE.INPUT_PULLUP);
+        ask({ cls: 'DHT', method: 'begin', pin: o.args[0] });
+        o.last = null;
+      },
+      // readTemperature(fahrenheit = false, force = false)
+      function* (o, fahrenheit = false, force = false) {
+        const a = yield* dhtRead(o, force);
+        if (!a) return Number.NaN;
+        return fahrenheit ? a.temperature * 1.8 + 32 : a.temperature;
+      },
+      // readHumidity(force = false)
+      function* (o, force = false) {
+        return (yield* dhtRead(o, force))?.humidity ?? Number.NaN;
+      },
+      // computeHeatIndex(temperature, humidity, isFahrenheit = true)
+      function* (o, temperature, humidity, isFahrenheit = true) {
+        return heatIndex(Number(temperature), Number(humidity), Boolean(isFahrenheit));
+      },
+    ],
+    i2cMethods(true),
+    i2cMethods(false),
+  ];
   let program;
   try {
     // eslint-disable-next-line no-new-func
