@@ -42,7 +42,7 @@ de cada placa en `src/parts/modules.js` (`power`, `gpio`, `adc`, `inputOnly`).
 | Salida | el riel o tierra tras 17 Ω (VOH = 0,8·VDD a 40 mA) | tras 40 Ω (VOH 4,2 V a 20 mA) |
 | Entrada | sin corriente; pull-up o pull-down de 45 kΩ | sin corriente; pull-up de 35 kΩ (20–50 kΩ) |
 | Lee 0 / 1 | por debajo del 25 % / por encima del 75 % de VDD | por debajo del 30 % / por encima del 60 % de VCC |
-| ADC (en la ficha) | 12 bits sobre 0–3,1 V (C3: 0–2,5 V), lineal aquí | 10 bits sobre 0–5 V |
+| ADC (en la ficha) | 12 bits sobre 0–3,1 V (C3: 0–2,5 V), lineal aquí | 10 bits sobre 0 a su propio riel de 5 V (AVcc, la referencia: por USB un poco menos de 5 V), así que un sensor ratiométrico lee la misma cuenta con cualquier alimentación |
 | Consumo propio | 40 mA (C3: 20 mA), sin radio | 45 mA (chip, puente USB, LED de encendido) |
 | Límites | 40 mA por pin (máximo absoluto); un pin por encima de VDD + 0,3 V o por debajo de −0,3 V (diodos de protección conduciendo: `SIM_PIN_OVERVOLTAGE`) | lo mismo, a 5 V |
 
@@ -207,14 +207,17 @@ Adafruit_BMP280 bmp;        // #include <Adafruit_BMP280.h>
 
 | Clase | Métodos |
 |---|---|
-| `DHT` | `begin()`, `readTemperature()`, `readTemperature(true)` (°F), `readHumidity()`, `computeHeatIndex(t, h, false)` (°C; con `true` o sin nada, °F) |
-| `Adafruit_BME280` | `begin()` (dirección 0x77), `begin(dirección)` (verdadero o falso), `readTemperature()`, `readPressure()` (Pa), `readHumidity()`, `readAltitude(presionMarHpa)` |
+| `DHT` | `begin()`, `readTemperature()`, `readTemperature(true)` (°F), `readHumidity()`, `computeHeatIndex(t, h, false)` (°C; con `true` o sin nada, °F), `convertCtoF(c)`, `convertFtoC(f)` |
+| `Adafruit_BME280` | `begin()` (dirección 0x77), `begin(dirección)` (verdadero o falso), `readTemperature()`, `readPressure()` (Pa), `readHumidity()`, `readAltitude(presionMarHpa)`, `seaLevelForAltitude(m, hPa)`, `sensorID()`, `takeForcedMeasurement()`, `setSampling(…)` (se acepta y se avisa `SIM_PROGRAM_IGNORED`: las lecturas no dependen de eso; `Adafruit_BME280::MODE_FORCED` y las demás constantes valen 0) |
 | `Adafruit_BMP280` | lo mismo sin `readHumidity`, y `begin(dirección, chipid)` |
 
-También `Wire.begin()` (con o sin pines: se acepta y no hace nada; las bibliotecas arrancan el bus, y
-un sensor responde solo en los pines I2C por defecto de la familia), `isnan(x)`, `NAN`, `F("texto")`
-(el texto mismo) y las constantes `DHT11` y `DHT22`. `DHT22` se avisa (`SIM_PROGRAM_NOT_IN_KIT`):
-todavía no está en el kit y sus lecturas dan `NaN`. Esos cinco includes no dan aviso. `Serial.print`
+También `Wire.begin()` (el `begin()` de una biblioteca también lo arranca): en un UNO enciende los
+pull-ups de A4 y A5 (los propios del AVR, como `INPUT_PULLUP`), en un ESP32 `Wire.begin(sda, scl)`
+mueve el bus a esos GPIO (si no, los pines I2C por defecto de la familia); `isnan(x)`, `NAN`,
+`F("texto")` (el texto mismo) y las constantes `DHT11`, `DHT12`, `DHT21`, `AM2301` y `DHT22`. Un DHT de
+un tipo que el kit todavía no tiene (como sea que se nombre: `DHT22`, `22`, una constante) lee `NaN` y
+la ficha de la placa lo dice; los nombres escritos tal cual también se avisan al traducir
+(`SIM_PROGRAM_NOT_IN_KIT`). Esos cinco includes no dan aviso. `Serial.print`
 de un float escribe dos decimales (`24.00`, como Arduino), de `NaN` `nan` y de un infinito `inf`.
 
 - **Tiempos:** una lectura real del DHT detiene el programa 25 ms; una que la biblioteca responde
@@ -230,7 +233,9 @@ de un float escribe dos decimales (`24.00`, como Arduino), de `NaN` `nan` y de u
   de una función, una llamada fuera de una) se rechaza (`SIM_PROGRAM_ERROR`); un método que no está en
   la lista de su clase se avisa y devuelve 0, sin que su nombre llegue al código. Como mucho
   `LIMITS.libraryObjects` (16) objetos. El runtime también revisa los números (un entero dentro de sus
-  propios arreglos). Pruebas en `test/attack.test.js`.
+  propios arreglos). El código es estricto, así que asignar a un nombre que nadie declaró detiene el
+  programa en vez de crear una global; lo que no puede leer (dos valores seguidos, `F()`, un objeto en
+  un `#define`) es `SIM_PROGRAM_ERROR` con su línea. Pruebas en `test/attack.test.js`.
 - Cómo encuentra la placa el sensor de una llamada: [sensores-de-biblioteca.md](sensores-de-biblioteca.md#cómo-encuentra-la-placa-un-sensor).
 
 ## El plan

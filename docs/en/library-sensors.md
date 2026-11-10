@@ -51,11 +51,15 @@ from S to +.
 A read **answers** when S is on the net of the pin the sketch gave (`DHT dht(2, DHT11)`, joined by
 jumper wires), the supply is between + and − in range, the power-up second has passed and S idles
 high (at 0.7 · VCC or more, pulled up). Otherwise `readTemperature()` and `readHumidity()` give `NaN`
-and `isnan()` is true. Rounding to the nearest is the kit's choice; real chips often truncate, and
-they sit within ±2 °C anyway.
+and `isnan()` is true. A pin the sketch left as an output is the library's during a read (it drives
+it itself), so the line idles high again. Rounding to the nearest is the kit's choice; real chips
+often truncate, and they sit within ±2 °C anyway. The power-up second is the part's `warmup`, and the
+start of a simulation does not use up a read: the first one costs its 25 ms, with or without
+`begin()`.
 
 `readTemperature(true)` is °F from the rounded °C (24 → 75.2); `computeHeatIndex(t, h, false)` is the
-library's formula (30 °C and 60 % → 32.83 °C; 25 °C and 50 % → 24.86 °C).
+library's formula (30 °C and 60 % → 32.83 °C; 25 °C and 50 % → 24.86 °C); `convertCtoF` and
+`convertFtoC` are its two conversions.
 
 ## The BME280 and BMP280 boards
 
@@ -83,7 +87,19 @@ is the one the library expects: `Adafruit_BME280` only 0x60; `Adafruit_BMP280::b
 0x58 by default (0x60 only if the sketch asks for it). `begin()` with no address asks for **0x77**,
 as both libraries do. A read after a `begin()` that failed, or with the chip no longer answering,
 gives `NaN` (a real board may print a fixed nonsense number instead; the kit gives the value the
-library's checks give).
+library's checks give). A chip whose rail dropped under 1.71 V restarts asleep: its reads give `NaN`
+until the sketch calls `begin()` again. `setSampling(…)` is accepted and changes nothing (noted
+`SIM_PROGRAM_IGNORED`); `sensorID()`, `takeForcedMeasurement()` and `seaLevelForAltitude(m, hPa)`
+work.
+
+**The bus on a UNO.** The library starts `Wire`, and on an AVR that turns on the pull-ups of SDA and
+SCL (about 35 kΩ to 5 V). Against a 3.3 V board's own 10 kΩ to 3.3 V the lines idle at
+(5/35k + 3.3/10k)/(1/35k + 1/10k) ≈ 3.68 V, over the chip's VDDIO + 0.3 V = 3.6 V: the note
+`SIM_PIN_OVER_VDDIO`. The bus still works, as on the bench (the UNO reads 3.68 V as high); a level
+shifter keeps the lines inside. The regulated board has no level shifter either: on a UNO its lines
+idle at the same 3.68 V. On an ESP32 the bus idles at 3.3 V. `Wire.begin(sda, scl)` on an ESP32
+moves the bus to those two GPIOs. Under 3.4 V the regulated board's regulator is in dropout and the
+chip runs on what is left (3.3 V on VIN gives about 3.1 V): an info note, `SIM_MODULE_LOW_SUPPLY`.
 
 ## The classic failures the kit reproduces
 
@@ -97,6 +113,8 @@ library's checks give).
 | The 3.3 V-only board on 5 V | `begin` false, `SIM_IC_SUPPLY` | "over its 4.25 V maximum" |
 | SDA and SCL swapped | `begin` false | "SDA and SCL are swapped" |
 | `readPressure()` printed as hPa | 101325 instead of 1013 | the reading in hPa beside it |
+| A 3.3 V board on a UNO's I2C | it works | `SIM_PIN_OVER_VDDIO`: the bus at 3.68 V |
+| The supply dropped and came back | `NaN` until `begin()` again | "its supply dropped and the chip restarted asleep" |
 
 ## How a board finds a sensor
 
@@ -110,8 +128,13 @@ The sensor's device holds the truth; the board only asks.
    circuit that declares the class: `library: { classes: ['DHT'], bus: 'pin' }` and
    `answer(request)`. The engine hands the board those elements once they are all built
    (`connect(elements)`).
-3. Each sensor judges whether it answers (power, power-up, net, pull-up, address, chip id), records
-   its verdict for its card, and returns its values; the first that answers wins.
+3. Each sensor says whether the request is for it (the DHT on that pin's net; the chip on the board's
+   bus at that address) and, if it is, whether it answers (power, power-up, pull-up, chip id): it
+   notes that verdict for its card and returns its values. A request for another pin or address
+   notes nothing, so with two sensors each card tells only about the requests that were for it; when
+   no sensor was asked, the board hands each one that missed its own reason (another pin, another
+   address). Two sensors at one place (two DHT data lines joined, two chips at one address on one
+   bus) are `SIM_LIBRARY_SHARED`: the board reads the first in the circuit's order.
 4. What it keeps (the DHT's cache and since when it is powered) is in the element's `memo`, carried
    across a rebuild (`state: ['memo']`), so a slider elsewhere neither restarts the power-up nor makes
    a cached read real. Its values are its params, which the environment changes (`sense`).

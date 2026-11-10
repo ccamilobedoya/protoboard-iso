@@ -52,11 +52,15 @@ S a +.
 Una lectura **responde** cuando S está en la red del pin que dio el programa (`DHT dht(2, DHT11)`,
 unido por cables), la alimentación entre + y − está en su rango, pasó el segundo de encendido y S queda
 en alto (a 0,7 · VCC o más, con su pull-up). Si no, `readTemperature()` y `readHumidity()` dan `NaN`
-e `isnan()` es verdadero. Redondear al más cercano es decisión del kit; los chips reales suelen
-truncar, y de todos modos están dentro de ±2 °C.
+e `isnan()` es verdadero. Un pin que el programa dejó como salida es de la biblioteca durante una
+lectura (ella lo maneja), así que la línea vuelve a quedar en alto. Redondear al más cercano es decisión
+del kit; los chips reales suelen truncar, y de todos modos están dentro de ±2 °C. El segundo de
+encendido es el `warmup` de la pieza, y el arranque de la simulación no gasta una lectura: la primera
+cuesta sus 25 ms, con o sin `begin()`.
 
 `readTemperature(true)` da °F a partir de los °C redondeados (24 → 75,2); `computeHeatIndex(t, h,
-false)` es la fórmula de la biblioteca (30 °C y 60 % → 32,83 °C; 25 °C y 50 % → 24,86 °C).
+false)` es la fórmula de la biblioteca (30 °C y 60 % → 32,83 °C; 25 °C y 50 % → 24,86 °C); `convertCtoF` y
+`convertFtoC` son sus dos conversiones.
 
 ## Las placas BME280 y BMP280
 
@@ -84,7 +88,20 @@ es la de la placa y el id de chip es el que espera la biblioteca: `Adafruit_BME2
 `Adafruit_BMP280::begin(dir, chipid)` 0x58 por defecto (0x60 solo si el programa lo pide). `begin()`
 sin dirección pregunta por **0x77**, como hacen las dos bibliotecas. Leer después de un `begin()` que
 falló, o con el chip que ya no responde, da `NaN` (una placa real puede imprimir en cambio un número
-fijo sin sentido; el kit da lo que dan las comprobaciones de la biblioteca).
+fijo sin sentido; el kit da lo que dan las comprobaciones de la biblioteca). Un chip cuyo riel bajó de
+1,71 V vuelve a arrancar dormido: sus lecturas dan `NaN` hasta que el programa llama `begin()` otra vez.
+`setSampling(…)` se acepta y no cambia nada (se avisa `SIM_PROGRAM_IGNORED`); `sensorID()`,
+`takeForcedMeasurement()` y `seaLevelForAltitude(m, hPa)` funcionan.
+
+**El bus en un UNO.** La biblioteca arranca `Wire`, y en un AVR eso enciende los pull-ups de SDA y SCL
+(unos 35 kΩ a 5 V). Contra los 10 kΩ a 3,3 V de una placa de 3,3 V las líneas quedan en
+(5/35k + 3,3/10k)/(1/35k + 1/10k) ≈ 3,68 V, por encima de VDDIO + 0,3 V = 3,6 V del chip: la nota
+`SIM_PIN_OVER_VDDIO`. El bus funciona igual, como en el banco (el UNO lee 3,68 V como alto); un
+convertidor de nivel deja las líneas dentro. La placa con regulador tampoco trae convertidor: en un UNO
+sus líneas quedan en los mismos 3,68 V. En un ESP32 el bus queda en 3,3 V. `Wire.begin(sda, scl)` en un
+ESP32 mueve el bus a esos dos GPIO. Bajo 3,4 V el regulador de la placa con regulador entra en caída y
+el chip funciona con lo que queda (3,3 V en VIN dan unos 3,1 V): una nota informativa,
+`SIM_MODULE_LOW_SUPPLY`.
 
 ## Los errores de siempre que el kit reproduce
 
@@ -98,6 +115,8 @@ fijo sin sentido; el kit da lo que dan las comprobaciones de la biblioteca).
 | La placa de solo 3,3 V a 5 V | `begin` falso, `SIM_IC_SUPPLY` | «por encima de su máximo de 4,25 V» |
 | SDA y SCL cruzados | `begin` falso | «SDA y SCL están cruzados» |
 | `readPressure()` impreso como si fueran hPa | 101325 en vez de 1013 | la lectura en hPa al lado |
+| Una placa de 3,3 V en el I2C de un UNO | funciona | `SIM_PIN_OVER_VDDIO`: el bus a 3,68 V |
+| La alimentación cayó y volvió | `NaN` hasta un nuevo `begin()` | «su alimentación cayó y el chip volvió a arrancar dormido» |
 
 ## Cómo encuentra la placa un sensor
 
@@ -111,8 +130,14 @@ El dispositivo del sensor tiene la verdad; la placa solo pregunta.
    elemento del circuito que declara la clase: `library: { classes: ['DHT'], bus: 'pin' }` y
    `answer(request)`. El motor le pasa a la placa esos elementos cuando ya están todos armados
    (`connect(elements)`).
-3. Cada sensor decide si responde (alimentación, encendido, red, pull-up, dirección, id de chip),
-   anota su veredicto para su ficha y devuelve sus valores; gana el primero que responde.
+3. Cada sensor dice si la pregunta es para él (el DHT en la red de ese pin; el chip en el bus de la
+   placa con esa dirección) y, si lo es, si responde (alimentación, encendido, pull-up, id de chip):
+   anota ese veredicto para su ficha y devuelve sus valores. Una pregunta para otro pin u otra
+   dirección no anota nada, así que con dos sensores cada ficha cuenta solo las preguntas que eran
+   para él; cuando no le preguntaron a ningún sensor, la placa le pasa a cada uno que no estaba su
+   propia razón (otro pin, otra dirección). Dos sensores en un mismo lugar (dos líneas de datos de DHT
+   unidas, dos chips con la misma dirección en un bus) son `SIM_LIBRARY_SHARED`: la placa lee el
+   primero en el orden del circuito.
 4. Lo que recuerda (la caché del DHT y desde cuándo tiene alimentación) está en el `memo` del elemento,
    que se conserva al rearmar (`state: ['memo']`), así que un deslizador en otra parte ni reinicia el
    encendido ni vuelve real una lectura de la caché. Sus valores son sus parámetros, que cambia el

@@ -42,7 +42,7 @@ board's pins in `src/parts/modules.js` (`power`, `gpio`, `adc`, `inputOnly`).
 | Output | the rail or ground behind 17 Ω (VOH = 0.8·VDD at 40 mA) | behind 40 Ω (VOH 4.2 V at 20 mA) |
 | Input | no current; pull-up or pull-down 45 kΩ | no current; pull-up 35 kΩ (20–50 kΩ) |
 | Reads 0 / 1 | below 25 % / above 75 % of VDD | below 30 % / above 60 % of VCC |
-| ADC (shown in the card) | 12 bits over 0–3.1 V (C3: 0–2.5 V), linear here | 10 bits over 0–5 V |
+| ADC (shown in the card) | 12 bits over 0–3.1 V (C3: 0–2.5 V), linear here | 10 bits over 0 to its own 5 V rail (AVcc, the reference: on USB a little under 5 V), so a ratiometric sensor reads the same count on any supply |
 | Own current | 40 mA (C3: 20 mA), no radio | 45 mA (chip, USB bridge, power LED) |
 | Limits | 40 mA per pin (absolute maximum); a pin beyond VDD + 0.3 V or below −0.3 V (protection diodes conducting: `SIM_PIN_OVERVOLTAGE`) | the same, at 5 V |
 
@@ -198,14 +198,16 @@ Adafruit_BMP280 bmp;        // #include <Adafruit_BMP280.h>
 
 | Class | Methods |
 |---|---|
-| `DHT` | `begin()`, `readTemperature()`, `readTemperature(true)` (°F), `readHumidity()`, `computeHeatIndex(t, h, false)` (°C; `true` or nothing, °F) |
-| `Adafruit_BME280` | `begin()` (address 0x77), `begin(address)` (true or false), `readTemperature()`, `readPressure()` (Pa), `readHumidity()`, `readAltitude(seaLevelHpa)` |
+| `DHT` | `begin()`, `readTemperature()`, `readTemperature(true)` (°F), `readHumidity()`, `computeHeatIndex(t, h, false)` (°C; `true` or nothing, °F), `convertCtoF(c)`, `convertFtoC(f)` |
+| `Adafruit_BME280` | `begin()` (address 0x77), `begin(address)` (true or false), `readTemperature()`, `readPressure()` (Pa), `readHumidity()`, `readAltitude(seaLevelHpa)`, `seaLevelForAltitude(m, hPa)`, `sensorID()`, `takeForcedMeasurement()`, `setSampling(…)` (accepted, noted `SIM_PROGRAM_IGNORED`: the readings do not depend on it; `Adafruit_BME280::MODE_FORCED` and the other constants read as 0) |
 | `Adafruit_BMP280` | the same without `readHumidity`, and `begin(address, chipid)` |
 
-Also `Wire.begin()` (with or without pins: accepted, it does nothing; the libraries start the bus,
-and a sensor answers on the family's default I2C pins only), `isnan(x)`, `NAN`, `F("text")` (the
-text itself), and the constants `DHT11` and `DHT22`. `DHT22` is noted (`SIM_PROGRAM_NOT_IN_KIT`): it
-is not in the kit yet and its reads give `NaN`. Those five includes give no note. `Serial.print` of a
+Also `Wire.begin()` (a library's `begin()` starts it too): on a UNO it turns on the pull-ups of A4
+and A5 (the AVR's own, as `INPUT_PULLUP`), on an ESP32 `Wire.begin(sda, scl)` moves the bus to those
+GPIOs (else the family's default I2C pins); `isnan(x)`, `NAN`, `F("text")` (the text itself), and
+the constants `DHT11`, `DHT12`, `DHT21`, `AM2301` and `DHT22`. A DHT of a type the kit does not
+have yet (whatever names it: `DHT22`, `22`, a constant) reads `NaN` and the board's card says so; the
+literal names are also noted when translated (`SIM_PROGRAM_NOT_IN_KIT`). Those five includes give no note. `Serial.print` of a
 float writes two decimals (`24.00`, as Arduino does), of `NaN` `nan` and of an infinity `inf`.
 
 - **Timing:** a real DHT read holds the sketch 25 ms, a read the library answers from its 2 s cache
@@ -220,8 +222,10 @@ float writes two decimals (`24.00`, as Arduino does), of `NaN` `nan` and of an i
   `.method(`; anything else (`dht.constructor`, `dht["x"]`, `dht` alone, a declaration inside a
   function, a call outside one) is refused (`SIM_PROGRAM_ERROR`); a method not in its class's list is
   noted and returns 0, with its name kept out of the code. At most `LIMITS.libraryObjects` (16)
-  objects. The runtime checks the numbers too (an integer in range of its own arrays). Tests in
-  `test/attack.test.js`.
+  objects. The runtime checks the numbers too (an integer in range of its own arrays). The code is
+  strict, so an assignment to a name nobody declared stops the program instead of making a global;
+  input it cannot read (two values in a row, `F()`, an object in a `#define`) is `SIM_PROGRAM_ERROR`
+  with its line. Tests in `test/attack.test.js`.
 - How the board finds the sensor for a call: [library-sensors.md](library-sensors.md#how-a-board-finds-a-sensor).
 
 ## The plan
