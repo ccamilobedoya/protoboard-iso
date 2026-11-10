@@ -1,6 +1,6 @@
-// Acceptance tests for session S7a (the rotary encoder as the KY-040 module), written from the brief
-// (R1 … R12) and the physics notes (§14, rows 82–86, 88, 89) alone, before looking at any implementation.
-// Each test carries the brief's item id.
+// Acceptance tests of the rotary encoder (the KY-040 module), written from its requirements (R1 … R12)
+// and the checks of its physics notes alone, before looking at any implementation.
+// Each test carries the requirement's id.
 //
 // How time is driven: an engine started at the DC point, stepped with advance(h) where h is what the
 // engine asks for (engine.stepHint(), re-read before every step) capped at STEP_CAP = 0.25 ms (0.25 ms
@@ -425,7 +425,7 @@ for (const name of RECIPE_NAMES) {
   });
 
   test(`R11: recipe ${name} renders in both views, no error, and no part hidden in both views`, () => {
-    // Same arbitration as the first night: each part at least half visible in one of the two views
+    // The rule the timed sensors use: each part at least half visible in one of the two views
     // (`visible` is a fraction), no error or warning from inspect other than PART_HIDDEN.
     const c = layoutOf(name).circuit;
     const seen = new Map();
