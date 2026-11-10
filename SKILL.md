@@ -63,11 +63,17 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 | `opamp-noninverting`, `opamp-inverting` | LM358 amplifiers, gain from R1 and R2, a sine from the generator |
 | `rain-alarm`, `soil-led`, `light-switch-module`, `obstacle-buzzer` | LM393 sensor modules (rain, soil, light, obstacle) whose DO drives a buzzer or an LED |
 | `line-follower-uno`, `hall-counter-uno` | Arduino UNO reading a TCRT5000 line follower; counting a magnet's passes with a KY-024 |
+| `encoder-uno`, `encoder-dimmer-uno` | a KY-040 rotary encoder on a UNO counting clicks (CLK falls, DT gives the direction); the same dimming a LED with the count |
+| `laser-tripwire`, `laser-uno` | a KY-008 laser whose light reaches every light sensor (an emitter): a tripwire with an LDR-LM393 module; a UNO blinking it and reading a photoresistor |
+| `uno-distance`, `esp32-distance`, `distance-alarm-uno` | an HC-SR04 ultrasonic module read with `pulseIn` (the environment's `distance`): on an UNO; on an ESP32 with a divider on ECHO; with an LED under 15 cm |
+| `hall-linear-uno`, `voltage-sensor-uno` | Arduino UNO reading analog sensors on A0: a KY-035 linear Hall sensor (gauss), a voltage sensor module measuring a 9 V supply |
+| `clap-switch`, `sound-level-led` | A KY-037 sound module: an Arduino UNO toggling an LED at each clap; DO sinking an LED's current while the sound is loud |
+| `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude` | climate sensors read through their library (the environment's `temperature`, `humidity`, `pressure`): a DHT11 on an UNO; a BME280 on an ESP32's I2C; a BMP280 on an UNO's 3.3 V printing the altitude |
 
 - **values**: the main field by id (`"R1": "470"`, `"D1": "green"`, `"Q1": "BC547"`, `"V1": 9`) or
   some fields (`"R1": {"value": "470", "tolerance": "1%"}`). Only the ids a recipe lists can change,
-  some within choices or a range: `catalog` lists every recipe with its title,
-  `catalog` with the recipe's name shows its values with defaults, parts, nets and limits. A wrong value is a `FIX_SPEC`
+  some within choices or a range: `catalog` lists every recipe name by group,
+  `catalog` with the recipe's name shows its title, values with defaults, parts, nets and limits. A wrong value is a `FIX_SPEC`
   that says what is allowed.
 - `title`, `board`, `clearance`, `netLabels`, `page` and `lang` may be given beside the recipe. Never
   `parts` or `nets`: to add to a recipe circuit, call `layout` on it again with the full parts and

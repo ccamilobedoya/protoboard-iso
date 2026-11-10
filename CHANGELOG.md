@@ -9,6 +9,125 @@ detail.
 
 ## [Unreleased]
 
+### Fixed
+
+- A UNO's ADC reads against its own solved 5 V rail (AVcc), not a fixed 5.0 V: a ratiometric sensor
+  on USB reads the same count whatever the supply (`hall-linear-uno` at rest: −5.24 → −1.75 G, one
+  count of its sketch's conversion). The ESP32 families keep their fixed reference.
+- Library sensors, second round: each card tells only about the requests that were for it (two
+  sensors), `SIM_LIBRARY_SHARED` for two at one place; Wire's AVR pull-ups (a 3.3 V I2C board on a
+  UNO idles at about 3.68 V, `SIM_PIN_OVER_VDDIO`, a note) and `Wire.begin(sda, scl)` on an ESP32; a
+  Bosch chip that lost its supply reads NaN until `begin()`; the start's rounds no longer use up the
+  first DHT read; a DHT type not in the kit is told at run time; the regulated board in dropout is an
+  info note; the cards give the sensors' response times; `setSampling` accepted (`SIM_PROGRAM_IGNORED`),
+  `sensorID`, `takeForcedMeasurement`, `seaLevelForAltitude`, `convertCtoF`, `convertFtoC`.
+- Programs: a comparison or a ternary of ints prints as an int; malformed input (`F()`, two values in
+  a row, an object in a `#define`, an unclosed `{` in a `#define`) is `SIM_PROGRAM_ERROR` with its
+  line; the generated code is strict (an undeclared name is an error, never a global; C's octal).
+
+### Added
+
+- Library-level climate sensors (sensors S6; `docs/en/library-sensors.md`): a board's program may
+  declare `DHT dht(2, DHT11);`, `Adafruit_BME280 bme;` and `Adafruit_BMP280 bmp;` at the top level and
+  call their usual methods (`readTemperature`, `readHumidity`, `computeHeatIndex`, `begin(addr)`,
+  `readPressure` in Pa, `readAltitude`), plus `Wire.begin`, `isnan`, `NAN` and `F("…")`. The translator
+  writes an object and its methods as numbers of its own table (`src/sim/libraries.js`), never as a
+  member or a key; objects are capped (`LIMITS.libraryObjects`); `DHT22` is noted
+  (`SIM_PROGRAM_NOT_IN_KIT`). A real DHT read waits 25 ms, a BME/BMP `begin()` 100 ms. A float prints
+  with two decimals and `NaN` as `nan`.
+- The `climate-sensor` type: `DHT11` (the usual 3-pin module, 10 kΩ pull-up), `BME280` (3.3 V only),
+  `BME280-5V` (regulated) and `BMP280`. The board asks the sensor wired where the library looks (the
+  sketch's pin, or its family's default I2C pins, through jumper wires: `I2C_PINS`), and the sensor's
+  device answers from its carried state: the DHT11's 2 s cache and 1 s power-up, nearest whole numbers
+  held to 0…50 °C and 20…90 %RH; the Bosch chips' 0.01 °C, 1 Pa and 0.01 %RH, address 0x76 or 0x77 and
+  chip id (0x60, 0x58). Its card says what it would answer and why it did not (no power, warming up,
+  another pin, swapped lines, another address or chip id). Up close with a symbol, an inside view and
+  a legend. The engine hands every element to those that talk to others (`connect`).
+- The environment's `pressure` (hPa, 300…1100 on the slider, default 1013.25), a barometer
+  indicator and the altitude it means in its panel row.
+- Recipes `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude`; the tour `uno-dht11`.
+
+### Changed
+
+- The compact catalog lists the recipes by group, names only (`basics`, `transistors`, `power`,
+  `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`; a `group` in each recipe module, a test
+  for a missing one): 4529 to 2825 characters in English. `catalog` with a recipe's name gives its
+  title and group; the CLI `parts` still prints every title.
+
+### Added
+
+- Rotary encoder (sensors S7a; `docs/en/rotary-encoder.md`): the EC11 on its KY-040 module
+  (`rotary-encoder`: pins `CLK`, `DT`, `SW`, `+`, `GND`, 10 kΩ pull-ups from `+`, a push switch) driven by
+  the environment's `angle`. The target is snapped to the nearest click (18°) and the shaft, kept in the
+  device's carried state, follows it at `speed` by the shortest arc; CLK and DT are contacts to ground
+  in quadrature (clockwise: CLK first, DT a quarter of a cycle later), every edge within a step of
+  its time while the shaft turns and across `engine.set` calls, with an optional deterministic
+  `bounce`. `SIM_OVER_CURRENT` over 10 mA, `SIM_ENCODER_FLOATING` when `+` is not connected. Seen up
+  close with a wheel, two fingers and a timing strip. Recipes `encoder-uno` and `encoder-dimmer-uno`,
+  the example and tour `encoder-uno`.
+
+### Added
+
+- Emitters (sensors S7b; `docs/en/environment.md#emitters`): a part whose electrical state writes a
+  field of the environment. A device declares `emits` and `emit(entry, reading)`; every sensor of that
+  field sees the ambient value plus what the emitters add (a switch: either), and while the
+  environment's `beam` is on the emitted light does not reach them (`blockedBy` in the registry). What
+  a time step emits reaches the sensors in the next one; at the start, after a `set` and in DC the
+  engine iterates until the emissions settle, and says `SIM_ENV_FEEDBACK` when a loop does not
+  (8 rounds). An emitter in a circuit without `environment` is told (`ENV_EMITTER_ALONE`).
+  `engine.ambient()` and `engine.emissions()`; an environment control's `emitted`; the panel's row says
+  the share ("50 lx + 9.8 klx from LS1"), the indicator and a sensor's card show what the sensors see;
+  `render-frames.js --parts` lists the emitters of each field.
+- The KY-008 laser module (`laser`): a 650 nm laser diode behind 100 Ω between `S` and `−` (about
+  28 mA and 3 mW at 5 V), lasing above 22 mA and adding 3.33·10⁶ lx/W of its optical power to
+  `light` (a teaching simplification); `SIM_OVER_CURRENT` over 40 mA, `SIM_REVERSE_VOLTAGE` over 2 V in
+  reverse, `SIM_LASER_DIM` under its threshold; its view up close (symbol, inside view with its
+  mirrors, lens and beam, legend). Recipes `laser-tripwire` (an LDR-LM393 module and an NPN light an
+  LED when the beam is cut) and `laser-uno` (a UNO blinks it at 1 Hz and prints a photoresistor on
+  A0); the tour `examples/tours/laser-tripwire.json`. A pin may be written `−` for `-`.
+
+### Added
+
+- The HC-SR04 ultrasonic distance sensor and `pulseIn` (sensors S4; `docs/en/ultrasonic-sensor.md`,
+  `docs/en/microcontrollers.md`): the type `ultrasonic-sensor` (part `HC-SR04`, pins VCC TRIG ECHO
+  GND), standing on its four pins with its two capsules; its device is a state machine (TRIG high
+  10 µs or more, a 250 µs burst, ECHO high for the round trip 2·d / v with v = 331.3 + 0.606·T,
+  38 ms without an echo, 2 mA waiting and 15 mA measuring, no echo under 4.5 V) that reads the
+  environment's `distance` and `temperature`. A board's program calls `pulseIn` and `pulseInLong`,
+  which wait in simulated time and return whole microseconds (the timeout clamped to
+  `LIMITS.pulseInMicros`, 3 s). Up close: symbol, inside view (the burst out, the echo back, the
+  round trip) and legend. Recipes `uno-distance`, `esp32-distance` (a 1 kΩ / 2 kΩ divider brings
+  ECHO's 5 V to 3.33 V for the 3.3 V pin) and `distance-alarm-uno`; the timeline
+  `examples/tours/uno-distance.json`.
+
+### Changed
+
+- `engine.advance(h)` ends a step on each event an element names inside h (`until()`: a program
+  waking from a delay, `pulseIn`'s timeout, a timed sensor's edge), at most 32 a call, so
+  `delayMicroseconds(10)` is a 10 µs pulse on the pin and a program sees a sensor's edges at their
+  time, without a finer step for the page (`uno-blink` stays at 1 000 steps a simulated second).
+
+### Added
+
+- Analog sensors (sensors S5; `docs/en/analog-sensors.md`): the **linear Hall sensor** 49E
+  (`hall-sensor`: the `KY-035` module with pins `S + −` or the bare `49E` in a TO-92; ratiometric, half
+  the supply plus 1.4 mV per gauss, clamped near the rails; it senses the environment's `field`) and the
+  **voltage sensor module** (`voltage-sensor`, `VOLT-25V`: a 30 kΩ and 7.5 kΩ divider, 5:1; the screw
+  terminal is two more pins, `VIN` and `GND`). Recipes `hall-linear-uno` and `voltage-sensor-uno`.
+- The **KY-037** sound module, a ninth part number of `sensor-module` (an electret capsule: AO at half the
+  supply, the signal's peak in the card and in the comparator, DO low above about 98 dB with the default
+  trimmer; it senses `sound`). Recipes `clap-switch` and `sound-level-led`; the tour `clap-switch.json`.
+- The **active buzzer** `TMB12A05`, a second part number of `buzzer` with its own device: silent under
+  1.5 V, sounding at 2.3 kHz from 2.0 V across it (weakly on a 3.3 V pin, 19.8 mA) and taking 30 mA at 5 V, with a polarity. `rain-alarm`
+  and `obstacle-buzzer` now use it through a PNP (they had a passive buzzer that only clicked).
+
+### Changed
+
+- `resolveRecipe` hands out a deep copy of the recipe's pieces (and takes a recipe name as a string): a
+  caller that changes the circuit it got cannot change the recipe.
+- `obstacle-buzzer` switches its buzzer with a PNP and a 1 kΩ base resistor (the LM393's output cannot
+  carry an active buzzer's 30 mA); `rain-alarm` lost its series resistor.
+
 ## [0.10.0] - 2026-11-09
 
 Sensors: a shared environment that every sensor reads, its panel and indicator, real sensor recipes, the LM393 modules, the PIR and touch modules.

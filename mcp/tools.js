@@ -184,7 +184,7 @@ server.registerTool(
 
 server.registerTool(
   'get_circuit',
-  { title: 'Get circuit', description: 'The circuit file as JSON (the only source of truth), with its revision and placement issues. A circuit made by layout carries spec: spec.nets are the connections it was asked for (edit them and pass them to layout to change what is connected).', inputSchema: { target: targetArg, lang: common.lang }, annotations: READ },
+  { title: 'Get circuit', description: 'The circuit file as JSON (the only source of truth), with its revision and what check says (placement; environment and emitters, e.g. ENV_EMITTER_ALONE; page; tour). A circuit made by layout carries spec: spec.nets are the connections it was asked for (edit them and pass them to layout to change what is connected).', inputSchema: { target: targetArg, lang: common.lang }, annotations: READ },
   safely(async ({ target, lang }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
@@ -427,7 +427,7 @@ server.registerTool(
   {
     title: 'Simulate circuit',
     description:
-      'Node voltages and part currents from the circuit (a model, not a measurement). Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit"; kind "generator" for a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, short circuits and floating nodes. falstad: true adds the link that opens the same circuit in Falstad CircuitJS (DC state, parts Falstad lacks as equivalents, listed). Never show results a learner is asked to predict, and Falstad shows every value.',
+      'Node voltages and part currents from the circuit (a model, not a measurement). Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit"; kind "generator" for a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, short circuits and floating nodes. An emitter (a laser) adds its light to the environment for every light sensor, solved together. falstad: true adds the link that opens the same circuit in Falstad CircuitJS (DC state, parts Falstad lacks as equivalents, listed). Never show results a learner is asked to predict, and Falstad shows every value.',
     inputSchema: {
       target: targetArg,
       analysis: z.enum(['dc', 'transient']).optional(),
@@ -527,7 +527,7 @@ server.registerTool(
   {
     title: 'Catalog',
     description:
-      'What the kit knows. Without name: a compact list (part types grouped by family, one line each with its pins in order and its first part numbers (the rest as a count: name shows them all); modules, batteries, boards, views, operations, and the recipes for layout by name and title, without their values; those come with the name of the recipe). With name (a type like "regulator", a part number like "7805", a module like "UNO" or a recipe like "npn-switch"): its pins, package, the fields it takes and a real part from the examples to copy; for a recipe, its parts, nets and values with their choices or range. format "json" without name: every registry in full.',
+      'What the kit knows. Without name: a compact list (part types grouped by family, one line each with its pins in order and its first part numbers (the rest as a count: name shows them all); modules, batteries, boards, views, operations, and the recipes for layout, names by group; the title and values come with the name of the recipe). With name (a type like "regulator", a part number like "7805", a module like "UNO" or a recipe like "npn-switch"): its pins, package, the fields it takes and a real part from the examples to copy; for a recipe, its parts, nets and values with their choices or range. format "json" without name: every registry in full.',
     inputSchema: { name: z.string().optional().describe('A part type, part number, module or recipe'), ...common },
     annotations: READ,
   },

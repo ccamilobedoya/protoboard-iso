@@ -45,7 +45,7 @@ const sensors = (environment, own = {}) => ({
 });
 
 test('environment: the registry has every field, each on one line, with its range, scale and default', () => {
-  const expected = { light: 300, temperature: 25, humidity: 50, moisture: 30, water: 0, rain: 0, distance: 50, field: 0, motion: 0, touch: 0, vibration: 0, sound: 40, tilt: 0, angle: 0, reflectance: 80, beam: 0 };
+  const expected = { light: 300, temperature: 25, humidity: 50, moisture: 30, water: 0, rain: 0, distance: 50, field: 0, motion: 0, touch: 0, vibration: 0, sound: 40, tilt: 0, angle: 0, reflectance: 80, beam: 0, pressure: 1013.25 };
   assert.deepEqual(Object.fromEntries(Object.entries(FIELDS).map(([k, f]) => [k, f.default])), expected);
   for (const [name, f] of Object.entries(FIELDS)) {
     for (const key of ['unit', 'min', 'max', 'limit', 'scale', 'default', 'kind']) assert.ok(key in f, `${name}.${key}`);

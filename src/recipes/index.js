@@ -55,10 +55,28 @@ import lightSwitchModule from './light-switch-module.js';
 import lineFollowerUno from './line-follower-uno.js';
 import obstacleBuzzer from './obstacle-buzzer.js';
 import hallCounterUno from './hall-counter-uno.js';
+import encoderUno from './encoder-uno.js';
+import encoderDimmerUno from './encoder-dimmer-uno.js';
+import laserTripwire from './laser-tripwire.js';
+import laserUno from './laser-uno.js';
+import unoDistance from './uno-distance.js';
+import esp32Distance from './esp32-distance.js';
+import distanceAlarmUno from './distance-alarm-uno.js';
+import hallLinearUno from './hall-linear-uno.js';
+import voltageSensorUno from './voltage-sensor-uno.js';
+import clapSwitch from './clap-switch.js';
+import soundLevelLed from './sound-level-led.js';
+import unoDht11 from './uno-dht11.js';
+import esp32Bme280 from './esp32-bme280.js';
+import unoBmp280Altitude from './uno-bmp280-altitude.js';
 
 export const RECIPES = Object.fromEntries(
-  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn, ldrNightLight, ldrComparator, lm35Comparator, ntcFollower, thermistorUno, pirLamp, pirUno, touchToggleLed, touchUno, rainAlarm, soilLed, lightSwitchModule, lineFollowerUno, obstacleBuzzer, hallCounterUno].map((r) => [r.name, r]),
+  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn, ldrNightLight, ldrComparator, lm35Comparator, ntcFollower, thermistorUno, pirLamp, pirUno, touchToggleLed, touchUno, rainAlarm, soilLed, lightSwitchModule, lineFollowerUno, obstacleBuzzer, hallCounterUno, encoderUno, encoderDimmerUno, laserTripwire, laserUno, unoDistance, esp32Distance, distanceAlarmUno, hallLinearUno, voltageSensorUno, clapSwitch, soundLevelLed, unoDht11, esp32Bme280, unoBmp280Altitude].map((r) => [r.name, r]),
 );
+
+// The groups of recipes (one `group` word on each recipe module), in the order the compact catalog
+// lists them; their display names are the i18n keys `recipe.group.<group>`.
+export const RECIPE_GROUPS = ['basics', 'transistors', 'power', 'timing', 'op-amps', 'boards', 'sensors', 'sensor-modules'];
 
 // Fields a value may set besides its main one, by the kind of item (a part's type or "supply").
 const EXTRA = {
@@ -111,36 +129,41 @@ export function expandRecipe(name, values = {}) {
   }
   if (problems.length) return { problems };
   const apply = (item) => ({ ...item, ...changes.get(item.id) });
-  const spec = {
+  // Every piece is copied (parts, supplies, title, net labels, environment, page): what a caller does to
+  // the spec it gets never reaches the recipe, nor the next spec.
+  const spec = structuredClone({
     recipe: { name: recipe.name, ...(Object.keys(values ?? {}).length && { values }) },
     title: recipe.title,
     board: 'auto',
     ...(recipe.clearance && { clearance: recipe.clearance }),
     parts: recipe.parts.map(apply),
-    nets: structuredClone(recipe.nets),
+    nets: recipe.nets,
     ...(recipe.supplies && { supplies: recipe.supplies.map(apply) }),
     ...(recipe.netLabels && { netLabels: recipe.netLabels }),
-    ...(recipe.environment && { environment: structuredClone(recipe.environment) }),
-    ...(recipe.page && { page: structuredClone(recipe.page) }),
-  };
+    ...(recipe.environment && { environment: recipe.environment }),
+    ...(recipe.page && { page: recipe.page }),
+  });
   return { spec, problems: [] };
 }
 
 // A layout request as given (CLI spec file or MCP arguments) → the layout spec. With `recipe`, the
 // recipe expanded; title, board, page, environment, netLabels, clearance and lang given replace the recipe's.
 // A recipe never comes with parts or nets: to add to a recipe circuit, lay it out again with them.
+// A recipe's name alone (a string) is the request `{ recipe: name }`. The spec is a deep copy: nothing in
+// it is shared with the recipe, with the values or with the request.
 export function resolveRecipe(given) {
-  if (!given?.recipe) return { spec: given, problems: [] };
-  if (given.parts || given.nets) return { problems: [{ severity: 'error', code: 'RECIPE_AND_PARTS', params: { recipe: String(given.recipe) } }] };
-  const { recipe, values, ...rest } = given;
+  const request = typeof given === 'string' ? { recipe: given } : given;
+  if (!request?.recipe) return { spec: request, problems: [] };
+  if (request.parts || request.nets) return { problems: [{ severity: 'error', code: 'RECIPE_AND_PARTS', params: { recipe: String(request.recipe) } }] };
+  const { recipe, values, ...rest } = request;
   const r = expandRecipe(recipe, values);
   if (r.problems.length) return r;
-  return { spec: { ...r.spec, ...rest }, problems: [] };
+  return { spec: structuredClone({ ...r.spec, ...rest }), problems: [] };
 }
 
-// Short entries for the catalog: name, title, what it teaches, the changeable values with defaults.
+// Short entries for the catalog: name, title, group, what it teaches, the changeable values with defaults.
 export function recipeSummary(lang = 'en') {
-  return Object.fromEntries(Object.values(RECIPES).map((r) => [r.name, { title: text(r.title, lang), values: recipeDefaults(r) }]));
+  return Object.fromEntries(Object.values(RECIPES).map((r) => [r.name, { title: text(r.title, lang), group: r.group, values: recipeDefaults(r) }]));
 }
 
 // One recipe in full for the catalog: what it teaches, its parts, nets and supplies, and the
@@ -152,6 +175,7 @@ export function recipeEntry(name, lang = 'en') {
   return {
     kind: 'recipe',
     recipe: r.name,
+    group: r.group,
     title: text(r.title, lang),
     teaches: text(r.teaches, lang),
     parts: r.parts,

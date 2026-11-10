@@ -2,6 +2,7 @@
 // R3) while the potentiometer's wiper on IN− is above the reference on IN+.
 export default {
   name: 'lm393-comparator',
+  group: 'op-amps',
   title: { en: 'LM393 comparator (open collector)', es: 'Comparador LM393 (colector abierto)' },
   teaches: { en: 'The output only pulls down: the LED, fed from the supply, lights while V− > V+', es: 'La salida solo tira hacia abajo: el LED, alimentado desde la fuente, se enciende mientras V− > V+' },
   parts: [

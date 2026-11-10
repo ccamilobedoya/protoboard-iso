@@ -11,7 +11,7 @@
 // adapter) stay unsupported: `accepts` takes only boards whose family has a model.
 
 import { resistor, junction, regulatorElement, partSource, gpioStage } from '../mna.js';
-import { MCUS } from '../models.js';
+import { MCUS, I2C_PINS } from '../models.js';
 import { createRunner, levelAt } from '../program.js';
 import { issue, stress, note, q } from './shared.js';
 
@@ -88,7 +88,43 @@ export const mcu = {
         const stage = byGpio.get(gpio);
         return stage ? { volts: volt(stage.nodes[0]) - volt(gnd), vdd: volt(entry.vdd) - volt(gnd) } : null;
       };
-      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull });
+      // Library sensors (docs/en/library-sensors.md): the elements of the circuit that declare
+      // `library: { classes, bus }` and answer(request), handed over by the engine (connect). A
+      // request names the sketch's pin (a GPIO number) or an I2C address; the board turns the pin, and
+      // its family's default I2C pins, into their nodes, and asks every sensor of that class: each
+      // judges whether it answers (powered, on that node, pulled up, its address and chip id) and
+      // records why not for its card. The first one that answers wins.
+      const i2c = I2C_PINS[p.family] ?? {};
+      let sensors = [];
+      // Nets: nodes joined by jumper wires (an element with `joins`) are one place for a sensor.
+      const root = new Map();
+      const net = (node) => {
+        let n = node;
+        while (root.has(n) && root.get(n) !== n) n = root.get(n);
+        return n;
+      };
+      const nodeOfGpio = (gpio) => byGpio.get(Math.trunc(Number(gpio)))?.nodes[0] ?? null;
+      const netOfGpio = (gpio) => {
+        const node = nodeOfGpio(gpio);
+        return node == null ? null : net(node);
+      };
+      const ask = (request) => {
+        const where = request.bus ?? i2c;
+        const full = { ...request, gpio: request.pin ?? null, pin: request.pin == null ? null : netOfGpio(request.pin), sda: netOfGpio(where.sda), scl: netOfGpio(where.scl), net, volt };
+        let best = null;
+        const misses = [];
+        for (const el of sensors) {
+          if (!el.library.classes.includes(request.cls)) continue;
+          const answer = el.answer(full);
+          if (!answer) continue;
+          if (!answer.mine) misses.push([el, answer.miss]);
+          else if (!best || (answer.ok && !best.ok)) best = answer;
+        }
+        // Nobody it was for: each sensor of the class that missed notes why (another pin, address…).
+        if (!best) for (const [el, miss] of misses) el.note?.(miss);
+        return best;
+      };
+      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, i2c, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull, adcRef: m.adcRef });
       entry.ctrl = h.add({
         nodes: [],
         links: [],
@@ -104,6 +140,10 @@ export const mcu = {
         settle(x) {
           this.x = x;
           const before = JSON.stringify(this.runner.pins);
+          // Each round runs the program from its start again: the library sensors' memory (a DHT's last
+          // read) goes back to what it was before the first round, so a round does not use up a read.
+          if (!this.memos) this.memos = sensors.map((el) => JSON.stringify(el.memo ?? null));
+          else sensors.forEach((el, k) => (el.memo = JSON.parse(this.memos[k])));
           this.runner = fresh();
           this.runner.advance?.(0);
           sync();
@@ -112,8 +152,32 @@ export const mcu = {
         accept(x, ctx = {}) {
           this.x = x;
           this.runner.read = read;
+          this.runner.ask = ask;
           if (ctx.h) this.runner.advance?.(ctx.h);
           sync();
+        },
+        // When the program wants to run again (a delay ending, pulseIn's timeout): the engine ends a
+        // step there, so a delayMicroseconds(10) is a pulse of 10 µs (engine.advance).
+        until() {
+          return this.runner.until?.() ?? null;
+        },
+        // The engine hands every element of the circuit over once they are all built (engine.js).
+        connect(elements) {
+          sensors = elements.filter((el) => el.library && typeof el.answer === 'function');
+          root.clear();
+          for (const el of elements) {
+            if (!el.joins) continue;
+            const [a, b] = el.nodes.map(net);
+            if (a !== b) root.set(a, b);
+          }
+          // Two sensors at one place (two DHT data lines joined, two chips at one address on one bus):
+          // the board reads the first in the circuit's order; limits() says so.
+          const places = new Map();
+          for (const el of sensors) {
+            const key = `${el.library.bus}:${(el.library.at ?? []).map(net).join(',')}:${el.library.address ?? ''}`;
+            places.set(key, [...(places.get(key) ?? []), el.library.id]);
+          }
+          this.shared = [...places.values()].filter((ids) => ids.length > 1);
         },
       });
     }
@@ -205,7 +269,8 @@ export const mcu = {
         const current = -(s.stage.currents(h.x)[0] + s.up.currents(h.x)[0] + s.down.currents(h.x)[1]);
         const vdd = v(entry.vdd);
         const read = voltage < m.vil * vdd ? 0 : voltage > m.vih * vdd ? 1 : null;
-        const adc = info.adc ? Math.round(Math.min(1, Math.max(0, voltage / m.adcFull)) * (2 ** m.adcBits - 1)) : null;
+        const full = m.adcRef === 'vdd' && vdd > 0 ? vdd : m.adcFull;
+        const adc = info.adc ? Math.round(Math.min(1, Math.max(0, voltage / full)) * (2 ** m.adcBits - 1)) : null;
         return { name: info.name, gpio: info.gpio, mode: s.stage.mode, level: s.stage.level, pull: s.stage.pull, ...(s.stage.pwm && { pwm: s.stage.pwm }), voltage, current, read, adc };
       });
     const power = entry.pins.reduce((sum, x) => sum + h.volt(x.index) * (currents[x.name] ?? 0), 0) + (entry.usb ? 5 * usb : 0);
@@ -216,6 +281,7 @@ export const mcu = {
   limits(entry, r) {
     const m = entry.model;
     const out = r.pins.map((x) => stress('SIM_OVER_CURRENT', 'current', Math.abs(x.current), m.maxPin, 'A'));
+    for (const ids of entry.ctrl?.shared ?? []) out.push(note('warning', 'SIM_LIBRARY_SHARED', { part: entry.id, parts: ids.join(', '), first: ids[0] }));
     if (r.rail != null) out.push(stress('SIM_OVER_CURRENT', 'current', r.rail, m.regulator.maxCurrent, 'A'));
     for (const x of r.pins) {
       if (x.voltage > r.vdd + 0.3 || x.voltage < -0.3) out.push(note('warning', 'SIM_PIN_OVERVOLTAGE', { part: entry.id, pin: x.name, voltage: q(x.voltage, 'V'), max: q(r.vdd, 'V') }));

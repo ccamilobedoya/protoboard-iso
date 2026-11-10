@@ -18,6 +18,7 @@ void loop() {
 
 export default {
   name: 'uno-seven-segment',
+  group: 'boards',
   title: { en: 'Arduino UNO: a 7-segment display counts 0 to 9', es: 'Arduino UNO: un display de 7 segmentos cuenta de 0 a 9' },
   teaches: { en: 'Seven LEDs to one common pin, each with its own resistor: a digit is the set of segments the program lights', es: 'Siete LEDs a una pata común, cada uno con su resistencia: un dígito es el grupo de segmentos que enciende el programa' },
   parts: [

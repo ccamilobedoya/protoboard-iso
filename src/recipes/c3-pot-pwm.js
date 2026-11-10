@@ -19,6 +19,7 @@ void loop() {
 
 export default {
   name: 'c3-pot-pwm',
+  group: 'boards',
   title: { en: 'ESP32-C3: a potentiometer dims an LED (ADC and PWM)', es: 'ESP32-C3: un potenciómetro regula un LED (ADC y PWM)' },
   teaches: { en: 'analogRead turns a voltage into 0…4095 (12 bits, up to about 2.5 V); analogWrite sets the share of time the pin is high', es: 'analogRead convierte un voltaje en 0…4095 (12 bits, hasta unos 2,5 V); analogWrite fija la fracción del tiempo que el pin está en alto' },
   parts: [

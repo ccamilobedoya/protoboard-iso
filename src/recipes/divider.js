@@ -1,6 +1,7 @@
 // Two resistors in series: the output is taken where they meet (strip of R1.2 and R2.1).
 export default {
   name: 'divider',
+  group: 'basics',
   title: { en: 'Voltage divider', es: 'Divisor de voltaje' },
   teaches: { en: 'Vout = Vin · R2 / (R1 + R2), measured where the two resistors meet', es: 'Vsal = Vent · R2 / (R1 + R2), medido donde se unen las dos resistencias' },
   parts: [

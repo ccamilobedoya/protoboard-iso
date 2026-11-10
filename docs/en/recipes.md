@@ -22,7 +22,7 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 |---|---|---|
 | `led-resistor` | LED with a series resistor | R1 = 330, D1 = red, V1 = 5 V (1.5–15) |
 | `divider` | Voltage divider (output where R1 and R2 meet) | R1 = 10k, R2 = 10k, V1 = 9 V (1–30) |
-| `npn-switch` | Button → base resistor → NPN transistor switching an LED | R1 = 1k (base), R2 = 330, D1 = red, Q1 = 2N2222A (2N2222A, 2N3904, BC547, BC337, S8050), V1 = 5 V (3–12) |
+| `npn-switch` | Button → base resistor → NPN transistor switching an LED | R1 = 22k (base), R2 = 470, D1 = red, Q1 = 2N2222A (2N2222A, 2N3904, BC547, BC337, S8050), V1 = 5 V (3–12) |
 | `potentiometer-led` | Potentiometer's wiper dimming an LED | RV1 = 10k, R1 = 330, D1 = red, V1 = 5 V (3–12) |
 | `mosfet-switch` | Button → logic-level MOSFET switching an LED, gate pull-down | R1 = 220 (gate), R2 = 10k (pull-down), R3 = 330, D1 = red, Q1 = IRLZ44N (IRLZ44N, 2N7000), V1 = 5 V (3–12) |
 | `button-pullup` | Button to ground with a pull-up; an LED shows the output | R1 = 1k (pull-up), R2 = 330, D1 = green, V1 = 5 V (3–12) |
@@ -61,15 +61,29 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `lm35-comparator` | LM393 comparing an LM35 with a reference of about 0.42 V from a divider; the LED lights above about 42 °C (senses `temperature`) | R1 = 10k, R2 = 910, R3 = 330, D1 = red |
 | `ntc-follower` | NTC thermistor divider copied by an LM358 follower into a 10k load (senses `temperature`) | TH1 = 10k, R1 = 10k, R2 = 10k (load), V1 = 9 V (5–30) |
 | `thermistor-uno` | Arduino UNO reading an NTC divider on A0 and printing `T=<°C>` every second with the B equation (senses `temperature`) | TH1 = 10k, R1 = 10k, U1 = its sketch (`program`) |
-| `rain-alarm` | An MH-RD rain module whose DO, low when wet, turns on a PNP (S8550) that switches a buzzer | U1 = 0.5 (threshold, 0.05–0.95), R1 = 1k (base) |
+| `rain-alarm` | An MH-RD rain module whose DO, low when wet, turns on a PNP (S8550) that switches an active buzzer (TMB12A05, it sounds on DC) | U1 = 0.5 (threshold, 0.05–0.95), R1 = 1k (base) |
 | `soil-led` | A YL-69 soil module lighting an LED into its DO in damp soil | U1 = 0.5 (threshold), R1 = 470, D1 = green |
 | `light-switch-module` | The 3-pin LDR-LM393 module lighting an LED into its DO in the light | U1 = 0.5 (threshold), R1 = 470, D1 = yellow |
 | `line-follower-uno` | Arduino UNO reading a TCRT5000 line follower (DO on D2, AO on A0), printing LINE / NO LINE | U2 = 0.5 (threshold), U1 = its sketch |
-| `obstacle-buzzer` | An FC-51 obstacle module sinking a buzzer's current into its OUT | U1 = 0.5 (threshold), R1 = 470 |
+| `obstacle-buzzer` | An FC-51 obstacle module whose OUT, low at an obstacle, turns on a PNP that switches an active buzzer | U1 = 0.5 (threshold), R1 = 1k (base) |
 | `hall-counter-uno` | Arduino UNO counting a magnet's passes with a KY-024 (DO on D2, falling edges) | U2 = 0.5 (threshold), U1 = its sketch |
+| `encoder-uno` | Arduino UNO: a KY-040 rotary encoder on D2 (CLK), D3 (DT) and D4 (SW), powered from the 5 V pin; the sketch counts clicks (CLK falls, DT says which way), prints the count when it changes and zeroes it with the push switch | U2 = 0 (bounce, ms), U1 = its sketch |
+| `encoder-dimmer-uno` | the same, with a LED on D9 (through R1) whose PWM brightness follows the count, 12 counts a click, the count held between 0 and 20 | R1 = 220, D1 = green, U1 = its sketch |
+| `laser-tripwire` | A KY-008 laser always on and an LDR-LM393 module: cut the beam (the environment's `beam`) and DO lights the LED through an NPN | U1 = 0.1 (threshold), R1 = 1k (base), R2 = 330, D1 = red |
+| `laser-uno` | Arduino UNO blinking a KY-008 at 1 Hz through an NPN (D7) and printing a photoresistor on A0 | R1 = 10k (divider), R2 = 1k (base), U1 = its sketch |
+| `uno-distance` | Arduino UNO measuring distance with an HC-SR04 (TRIG D9, ECHO D10, `pulseIn`, `us / 58`); environment `distance` 30 cm (range 2–100) and 20 °C | U1 = its sketch |
+| `esp32-distance` | ESP32 DevKit with an HC-SR04 on VIN (5 V): ECHO through a 1 kΩ / 2 kΩ divider so the 3.3 V pin sees 3.33 V | R1 = 1k, R2 = 2k, U1 = its sketch |
+| `distance-alarm-uno` | `uno-distance` with an LED on D13 lit under 15 cm | R1 = 220, D1 = red, U1 = its sketch |
+| `hall-linear-uno` | Arduino UNO reading a KY-035 linear Hall sensor on A0 and printing the field in gauss | U1 = its sketch |
+| `clap-switch` | Arduino UNO toggling an LED at each clap, from a KY-037 sound module's DO on D2 (falling edge) | U2 = 0.497 (threshold), D1, R1, U1 = its sketch |
+| `sound-level-led` | A KY-037 sound module whose DO sinks an LED's current while the sound is loud | U1 = 0.497 (threshold), R1 = 470 |
+| `voltage-sensor-uno` | Arduino UNO measuring a 9 V supply through a voltage sensor module (a 5:1 divider) on A0 and printing the volts | V1 = its voltage (1 to 25 V), U1 = its sketch |
+| `uno-dht11` | Arduino UNO with a DHT11 module on D2 read through the DHT library every 2 s (`isnan` prints `fail`); environment 24 °C (range 0–50) and 41 %RH (range 20–90) ([library-sensors.md](library-sensors.md)) | U1 = its sketch |
+| `esp32-bme280` | ESP32 DevKit with a BME280 board on 3V3 and GPIO22/21: `begin(0x76)`, then temperature, pressure in hPa, humidity and altitude every second; environment with the pressure (range 900–1050 hPa) | U1 = its sketch |
+| `uno-bmp280-altitude` | Arduino UNO with a BMP280 board on its 3.3 V pin (the board has no regulator) and A4/A5, printing the altitude; Wire's pull-ups to 5 V lift the bus to about 3.68 V (`SIM_PIN_OVER_VDDIO`, a note); environment pressure (range 700–1050 hPa) | U1 = its sketch |
 
-`catalog` (MCP) or `parts` (CLI) lists them with their titles (the compact list `catalog` leaves the values out); `catalog` with a recipe's name (`parts
-<name>` in the CLI) shows what it teaches, its parts, nets, supply, and each value's role and limits.
+`parts` (CLI) lists them with their titles; the compact `catalog` (MCP) lists only their names, by group (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), to stay short; `catalog` with a recipe's name (`parts
+<name>` in the CLI) shows its title and group, what it teaches, its parts, nets, supply, and each value's role and limits.
 
 ## Values
 
@@ -105,6 +119,7 @@ LM35 or a 10k NTC (B 3950).
 | `lm35-comparator` | The LM35 gives 10 mV per °C into IN+; the reference is 0.417 V (about 42 °C). Above it the output is released and R3, the output's pull-up, feeds the LED to ground (about 10 mA); below it the output sinks and the LED sees under 1 V (off). The LED is not "as in the potentiometer recipes" (fed from the supply, on when the output is low) because here the alarm must light when the input is *higher* |
 | `ntc-follower` | The NTC is on the supply side, so the voltage rises as it warms; the follower copies it into 10k. The supply is 9 V: an LM358's output stops about 1.5 V under it, and from 5 V it would cut the voltage the divider gives at 60 °C |
 | `thermistor-uno` | The same NTC over 10k on the UNO's 5 V, read on A0; the sketch gets the resistance from the ADC count and the temperature from `1/T = 1/T0 + ln(R/R0)/B`, and prints `T=<value>` every second (within 1.5 °C of the environment at 25 and at 60 °C) |
+| `laser-tripwire`, `laser-uno` | The laser (about 28 mA, 3 mW) adds about 9.8 klx to the room's 50 lx for every light sensor. In the tripwire the module's trimmer is at 0.1 (Vref 0.5 V, the switch near 300 lx): with the beam DO is at 0.2 V and the LED off; with `beam` on the photoresistor sees 50 lx, DO rises to about 3.7 V (a clean high: the 22 kΩ base resistor leaves the pull-up almost unloaded) and the LED has about 6.7 mA. In `laser-uno` D7 drives the laser through an NPN (straight from the pin its 40 Ω output leaves the laser at about 20 mA, under its threshold: no beam); the Serial monitor shows `on  A0=1005` and `off A0=688` each second |
 - Beside a recipe, `title`, `board`, `clearance`, `netLabels`, `environment`, `page` and `lang` may be given and
   replace the recipe's. `parts` and `nets` never (`RECIPE_AND_PARTS`).
 
@@ -133,7 +148,7 @@ blinks, in slow motion (the page's time follows the slowest time constant).
    `netLabels`, `environment` (the circuit's, for a sensor), `page`, `clearance`, and `values`: for each id that may change, `field` (what the
    short form sets), and optionally `role` (`{ en, es }`), `choices`, `min`/`max`, `extra` (the
    allowed fields, when the defaults by kind do not fit).
-3. Register it in `src/recipes/index.js` and `npm run schemas` (the schema lists the names).
+3. Give it a `group` (one word of `RECIPE_GROUPS` in `src/recipes/index.js`, set in the module itself; the compact catalog lists recipes by group, names only, and a test fails for a recipe without one; a new group needs its `recipe.group.<name>` texts in `src/i18n/en.js` and `es.js`). Register it in `src/recipes/index.js` and `npm run schemas` (the schema lists the names).
 4. Add it to the tables in this page, [recetas.md](../es/recetas.md) and `SKILL.md`, and to the list
    in the `circuit-layout` agent. `npm test` checks that it comes out `DONE` with its defaults and
    with every choice, that it simulates without stressing a part, that its name is no part's name,

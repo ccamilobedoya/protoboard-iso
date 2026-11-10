@@ -1,6 +1,7 @@
 // An AMS1117 regulator module (capacitors on its board) feeding an LED.
 export default {
   name: 'regulator-ams1117',
+  group: 'power',
   title: { en: 'AMS1117 module with an LED', es: 'Módulo AMS1117 con un LED' },
   teaches: { en: 'A low-dropout regulator: 3.3 V out from 5 V in', es: 'Un regulador de baja caída: 3,3 V de salida con 5 V de entrada' },
   parts: [

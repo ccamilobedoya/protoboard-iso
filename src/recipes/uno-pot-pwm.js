@@ -19,6 +19,7 @@ void loop() {
 
 export default {
   name: 'uno-pot-pwm',
+  group: 'boards',
   title: { en: 'Arduino UNO: a potentiometer dims an LED (ADC and PWM)', es: 'Arduino UNO: un potenciómetro regula un LED (ADC y PWM)' },
   teaches: { en: 'analogRead turns a voltage into 0…1023; analogWrite turns 0…255 into the share of time the pin is high', es: 'analogRead convierte un voltaje en 0…1023; analogWrite convierte 0…255 en la fracción del tiempo que el pin está en alto' },
   parts: [

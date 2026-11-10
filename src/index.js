@@ -31,6 +31,7 @@ import { resistorBands } from './parts/types/resistor.js';
 import { simulate, pageControlIssues } from './sim/index.js';
 import { tourIssues } from './tour.js';
 import { environmentIssues } from './sim/environment.js';
+import { emitterIssues } from './sim/compile.js';
 import { resultsOverlay } from './sim/overlay.js';
 import { flowOps, lightOps, shadeOps, segmentOps, flowStyle } from './sim/paths.js';
 import { probeOps } from './sim/probes.js';
@@ -53,7 +54,10 @@ export function formatIssue(issue, lang = 'en') {
     params.node = t(lang, n.key, n.params);
   }
   const nearest = params.nearest ? ` ${t(lang, 'check.nearest', params)}` : '';
-  return `${t(lang, `severity.${issue.severity}`)}: ${t(lang, `check.${issue.code}`, params)}${nearest}`;
+  // A part may say the same code its own way: params.variant names check.<code>.<variant>.
+  const special = params.variant ? `check.${issue.code}.${params.variant}` : null;
+  const key = special && t(lang, special) !== special ? special : `check.${issue.code}`;
+  return `${t(lang, `severity.${issue.severity}`)}: ${t(lang, key, params)}${nearest}`;
 }
 
 // Value as shown to people: "4,7 kΩ", "rojo", "IRLZ44N" (null for wires).
@@ -73,8 +77,8 @@ export function labelText(part, lang = 'en') {
 }
 
 export function checkCircuit(circuit) {
-  const { issues, netlist } = buildCircuit(circuit);
-  return { issues: [...issues, ...environmentIssues(circuit), ...pageControlIssues(circuit), ...tourIssues(circuit)], netlist };
+  const { issues, netlist, parts } = buildCircuit(circuit);
+  return { issues: [...issues, ...environmentIssues(circuit), ...emitterIssues(circuit, parts), ...pageControlIssues(circuit), ...tourIssues(circuit)], netlist };
 }
 
 // A piece lying entirely beyond one side face of the board (a battery on the table, the low

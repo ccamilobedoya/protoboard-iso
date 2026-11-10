@@ -7,7 +7,7 @@ procesador, sino lo que se ve en los pines. Cada GPIO se comporta eléctricament
 programa corto con las funciones de Arduino decide, en el tiempo, qué hace cada pin. El mismo código
 sirve para todas las placas; lo que cambia son los números de cada familia.
 
-Planeado con el mantenedor el 2026-10-26. Las fases M1 a M4 están hechas.
+Planeado con el mantenedor el 2026-10-26. Las fases M1 a M5 están hechas.
 
 ## Por qué no emular el procesador
 
@@ -42,7 +42,7 @@ de cada placa en `src/parts/modules.js` (`power`, `gpio`, `adc`, `inputOnly`).
 | Salida | el riel o tierra tras 17 Ω (VOH = 0,8·VDD a 40 mA) | tras 40 Ω (VOH 4,2 V a 20 mA) |
 | Entrada | sin corriente; pull-up o pull-down de 45 kΩ | sin corriente; pull-up de 35 kΩ (20–50 kΩ) |
 | Lee 0 / 1 | por debajo del 25 % / por encima del 75 % de VDD | por debajo del 30 % / por encima del 60 % de VCC |
-| ADC (en la ficha) | 12 bits sobre 0–3,1 V (C3: 0–2,5 V), lineal aquí | 10 bits sobre 0–5 V |
+| ADC (en la ficha) | 12 bits sobre 0–3,1 V (C3: 0–2,5 V), lineal aquí | 10 bits sobre 0 a su propio riel de 5 V (AVcc, la referencia: por USB un poco menos de 5 V), así que un sensor ratiométrico lee la misma cuenta con cualquier alimentación |
 | Consumo propio | 40 mA (C3: 20 mA), sin radio | 45 mA (chip, puente USB, LED de encendido) |
 | Límites | 40 mA por pin (máximo absoluto); un pin por encima de VDD + 0,3 V o por debajo de −0,3 V (diodos de protección conduciendo: `SIM_PIN_OVERVOLTAGE`) | lo mismo, a 5 V |
 
@@ -91,7 +91,7 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   respeta que `*`, `/` y `%` se agrupan de izquierda a derecha.
 - **Lo que puede llamar** (`src/sim/program.js`): `pinMode` (`INPUT`, `OUTPUT`, `INPUT_PULLUP`,
   `INPUT_PULLDOWN`), `digitalWrite`, `digitalRead`, `delay`, `delayMicroseconds`, `millis`,
-  `micros`, `Serial.begin/print/println` (sus últimas líneas salen en la ficha de la placa),
+  `micros`, `pulseIn` y `pulseInLong` ([más abajo](#pulsein)), `Serial.begin/print/println` (sus últimas líneas salen en la ficha de la placa),
   `analogRead` (el valor del ADC), `map`, `constrain`, `min`, `max`, `abs`, `log` (logaritmo natural, para la ecuación B de un termistor), `random` (una secuencia
   fija), las funciones de bits, `LED_BUILTIN` (2 en el DevKit, 8 en el C3, 13 en el UNO) y
   `A0`…`A5`. En un UNO, `digitalWrite(pin, HIGH)` sobre una entrada activa su pull-up, como en el
@@ -105,10 +105,13 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - **En la página:** un circuito con programa corre en tiempo real (`delay(500)` es medio segundo),
   con pasos de 1 ms (más cortos, hasta 0,1 ms, si al lado hay un RC rápido). La ficha de la placa
   muestra el programa (corriendo, o en `delay()` hasta cuándo), sus líneas de Serial y cada pin.
-- **Lo que no corre:** clases, punteros, plantillas, macros con parámetros, librerías (un
+- **Lo que no corre:** clases (salvo los objetos de tres bibliotecas, [más abajo](#objetos-de-biblioteca-dht-bme280-bmp280)), punteros, plantillas, macros con parámetros, otras librerías (un
   `#include` distinto del de Arduino se avisa: `SIM_PROGRAM_LIBRARY`); llamar a una función que nadie
   define devuelve 0 (`SIM_PROGRAM_UNSUPPORTED`); una línea que no entiende lo detiene
-  (`SIM_PROGRAM_ERROR`, con la línea); un archivo que falta (`SIM_PROGRAM_FILE`).
+  (`SIM_PROGRAM_ERROR`, con la línea); un archivo que falta (`SIM_PROGRAM_FILE`). Una variable
+  global cuyo valor llama a `delay`, a `pulseIn` o a una función propia del programa
+  (`long g = pulseIn(7, HIGH);`, `int x = mitad(4);`) es `SIM_PROGRAM_ERROR`: aquí esas llamadas
+  esperan en tiempo simulado, y el valor de una global no tiene tiempo en que esperar.
 - **Un programa es entrada externa** (CLAUDE.md, «External input»): su JavaScript solo nombra lo
   que da el entorno de ejecución (los nombres propios del programa llevan `$`, `Serial.<método>` es
   el único miembro, los índices son números, las cadenas quedan fuera del código), los arreglos
@@ -141,6 +144,100 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - Pruebas en `test/program.test.js`: ciclo y frecuencia de `analogWrite`, las dos formas de LEDC,
   `tone` con duración, el pin sin PWM del UNO, el paso sugerido y el brillo promediado.
 
+## pulseIn
+
+`pulseIn(pin, valor)` y `pulseIn(pin, valor, timeout)` (y `pulseInLong`, lo mismo aquí) devuelven el
+ancho del próximo pulso en `valor` en el pin, en microsegundos enteros, o 0 si `timeout`
+(microsegundos, 1 000 000 por defecto) pasa antes. El timeout es un solo plazo contado desde la
+llamada, para las tres esperas juntas (dejar pasar un pulso que ya va, el comienzo, el final), como
+en el `pulseIn` de Arduino (el núcleo AVR cuenta un solo presupuesto de vueltas en las tres;
+`pulseInLong` y el núcleo del ESP32 comparan `micros()` con el momento de la llamada en las tres): un
+pulso de 29,9 ms que empieza 1 ms después de la llamada da 0 con un timeout de 30 000 µs. El HC-SR04 es para lo que sirve
+([sensor-ultrasonico.md](sensor-ultrasonico.md)): `pulseIn(ECHO, HIGH, 30000)` es la ida y vuelta
+del sonido.
+
+- **Cómo espera.** Es un generador del entorno de ejecución que el traductor llama con `yield*`, como
+  las funciones propias. Lee el pin con los umbrales de la placa (los de `digitalRead`) al final de
+  cada paso, y entre dos miradas devuelve el paso (entrega un valor propio del entorno, nunca un
+  número, así que el `delay` de un programa no puede hacerse pasar por él). El ancho es el tiempo
+  entre el paso que vio empezar el pulso y el que lo vio terminar.
+- **Su precisión: los pasos terminan en los flancos.** Mirar al paso de la página (1 ms) leería un
+  eco de 5,8 ms al milisegundo, y un paso tan fino como para leerlo al microsegundo haría que la
+  página se arrastrara. Así que el motor termina un paso en cada evento que nombra un elemento
+  (`until()`, segundos desde ahora): `engine.advance(h)` toma h en trozos que terminan en cada evento
+  que cae dentro (como mucho 32 por llamada, ninguno a menos de medio microsegundo; pasados los 32 el
+  resto de h es un solo paso, así que un PWM por programa más rápido que eso, un bucle de
+  `delayMicroseconds(1)`, se lee un paso tarde, sin aviso). Un programa
+  nombra cuándo despierta (el fin de un `delay` o un `delayMicroseconds`, el timeout de `pulseIn`),
+  así que `delayMicroseconds(10)` es un pulso de 10 µs en el pin; un sensor temporizado nombra su
+  próximo flanco (el HC-SR04: el fin de su ráfaga, el fin de su eco), así que el programa ve subir y
+  bajar `ECHO` a su tiempo y `pulseIn` lee 5 824 µs para 100 cm a 20 °C sea cual sea el paso de la
+  página. Un pulso de algo que no nombra flancos (un pulsador, un RC) se lee a un paso.
+- **Cuesta unos pocos pasos, no un paso fino.** El paso de la página sigue como estaba (`stepHint()`
+  y el ritmo no cambian): `uno-blink` toma 1 000 pasos por segundo simulado antes y después;
+  `uno-distance` (una medición cada 100 ms) toma unos 1 050, los cinco aterrizajes más o menos de
+  cada medición. Un programa que despierta cada microsegundo cuesta 32 soluciones por llamada en
+  vez de una (unos 2 ms de una máquina cargada por cada 1 ms simulado; eran 1 000 soluciones antes
+  de bajar el tope).
+- **Un paso, con emisores.** La luz de un emisor llega a los sensores un paso del motor después
+  ([ambiente.md](ambiente.md)); un trozo aterrizado es un paso como cualquier otro, así que cerca de
+  una medición «un paso» puede ser de unos microsegundos. Los trozos corren en orden y ninguno se
+  salta.
+- **Es seguro.** `pulseIn` es un nombre más de `SKETCH_API`, sin ningún acceso a miembros nuevo. Un
+  timeout que no es un número, negativo (sin signo, un número enorme en C) o mayor que 3 000 000 µs
+  se recorta a `LIMITS.pulseInMicros` (3 s); un timeout de 0 devuelve 0 enseguida. Un
+  `while (1) pulseIn(…)` sobre un pin que nada maneja espera como mucho un timeout por paso y
+  devuelve el paso. Los mapas por pin del entorno no tienen prototipo, así que un pin llamado
+  `"__proto__"` o `"constructor"` es solo una clave. `test/attack.test.js` tiene estos casos.
+- **En la ficha:** mientras mira su pin, el programa de la placa espera hasta su timeout.
+- No corre así: `transient()` (el `simulate --transient` de la CLI) avanza con su paso fijo, así que
+  allí un pulso se lee a un paso.
+
+## Objetos de biblioteca (DHT, BME280, BMP280)
+
+Un programa puede usar las clases de tres bibliotecas, como lo hacen los ejemplos de los propios
+sensores ([sensores-de-biblioteca.md](sensores-de-biblioteca.md)):
+
+```cpp
+#include <DHT.h>
+DHT dht(2, DHT11);          // una declaración GLOBAL: pin y tipo
+Adafruit_BME280 bme;        // #include <Wire.h>, <Adafruit_Sensor.h>, <Adafruit_BME280.h>
+Adafruit_BMP280 bmp;        // #include <Adafruit_BMP280.h>
+```
+
+| Clase | Métodos |
+|---|---|
+| `DHT` | `begin()`, `readTemperature()`, `readTemperature(true)` (°F), `readHumidity()`, `computeHeatIndex(t, h, false)` (°C; con `true` o sin nada, °F), `convertCtoF(c)`, `convertFtoC(f)` |
+| `Adafruit_BME280` | `begin()` (dirección 0x77), `begin(dirección)` (verdadero o falso), `readTemperature()`, `readPressure()` (Pa), `readHumidity()`, `readAltitude(presionMarHpa)`, `seaLevelForAltitude(m, hPa)`, `sensorID()`, `takeForcedMeasurement()`, `setSampling(…)` (se acepta y se avisa `SIM_PROGRAM_IGNORED`: las lecturas no dependen de eso; `Adafruit_BME280::MODE_FORCED` y las demás constantes valen 0) |
+| `Adafruit_BMP280` | lo mismo sin `readHumidity`, y `begin(dirección, chipid)` |
+
+También `Wire.begin()` (el `begin()` de una biblioteca también lo arranca): en un UNO enciende los
+pull-ups de A4 y A5 (los propios del AVR, como `INPUT_PULLUP`), en un ESP32 `Wire.begin(sda, scl)`
+mueve el bus a esos GPIO (si no, los pines I2C por defecto de la familia); `isnan(x)`, `NAN`,
+`F("texto")` (el texto mismo) y las constantes `DHT11`, `DHT12`, `DHT21`, `AM2301` y `DHT22`. Un DHT de
+un tipo que el kit todavía no tiene (como sea que se nombre: `DHT22`, `22`, una constante) lee `NaN` y
+la ficha de la placa lo dice; los nombres escritos tal cual también se avisan al traducir
+(`SIM_PROGRAM_NOT_IN_KIT`). Esos cinco includes no dan aviso. `Serial.print`
+de un float escribe dos decimales (`24.00`, como Arduino), de `NaN` `nan` y de un infinito `inf`.
+
+- **Tiempos:** una lectura real del DHT detiene el programa 25 ms; una que la biblioteca responde
+  desde su caché de 2 s no toma nada; el `begin()` de un BME280 / BMP280 toma 100 ms. Esperan como
+  `delay` (un generador del runtime, llamado con `yield*`), así que `millis()` alrededor lo muestra.
+- **Cómo sigue siendo seguro.** El traductor acepta una declaración solo en el nivel superior y solo
+  como `DHT nombre(pin, tipo);`, `Adafruit_BME280 nombre;` o `Adafruit_BMP280 nombre;`, con un nombre
+  que no sea del runtime (`Serial`, `Wire`, el de una clase, una función o una constante) ni esté ya
+  usado. El nombre del objeto nunca se escribe en el JavaScript: la declaración se vuelve
+  `__new(<objeto>, <clase>, args)` y `dht.readHumidity()` se vuelve `(yield* __lib(0, 2))`, números
+  de la propia tabla del traductor (`src/sim/libraries.js`). Al nombre de un objeto debe seguirle
+  `.método(`; cualquier otra cosa (`dht.constructor`, `dht["x"]`, `dht` solo, una declaración dentro
+  de una función, una llamada fuera de una) se rechaza (`SIM_PROGRAM_ERROR`); un método que no está en
+  la lista de su clase se avisa y devuelve 0, sin que su nombre llegue al código. Como mucho
+  `LIMITS.libraryObjects` (16) objetos. El runtime también revisa los números (un entero dentro de sus
+  propios arreglos). El código es estricto, así que asignar a un nombre que nadie declaró detiene el
+  programa en vez de crear una global; lo que no puede leer (dos valores seguidos, `F()`, un objeto en
+  un `#define`) es `SIM_PROGRAM_ERROR` con su línea. Pruebas en `test/attack.test.js`.
+- Cómo encuentra la placa el sensor de una llamada: [sensores-de-biblioteca.md](sensores-de-biblioteca.md#cómo-encuentra-la-placa-un-sensor).
+
 ## El plan
 
 | Fase | Qué | Estado |
@@ -149,6 +246,8 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 | **M2** | El programa: el `.ino` junto al circuito (o su texto), traducido a JavaScript; `pinMode`, `digitalWrite`, `digitalRead`, `delay`, `millis`, `Serial`; corre entre pasos de tiempo, `delay` espera en tiempo simulado; la página lo corre en tiempo real | ✅ 2026-10-26 |
 | **M3** | PWM como una onda cuadrada real en el tiempo (`analogWrite`, `ledcWrite`), `tone`, el paso que necesita en la página y el brillo promediado del LED, el monitor serie en la ficha de la placa | ✅ 2026-10-26 |
 | **M4** | Recetas con su programa: `esp32-led`, `esp32-button`, `uno-blink`, `uno-button`, `uno-pot-pwm`, `c3-blink`, `c3-pot-pwm`; probado potenciómetro → ADC → PWM con los números de cada placa | ✅ 2026-10-26 |
+| **M5** | `pulseIn` (2026-11-10): una espera en tiempo simulado que mide entre los pasos que terminan en los flancos; `engine.advance` aterriza en los eventos de cada elemento; recetas `uno-distance`, `esp32-distance`, `distance-alarm-uno` con el HC-SR04 | ✅ 2026-11-10 |
+| **M6** | Objetos de biblioteca (2026-11-10): `DHT`, `Adafruit_BME280`, `Adafruit_BMP280` como números de la tabla del traductor; la placa le pregunta al sensor conectado donde lo busca la biblioteca; recetas `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude` | ✅ 2026-11-10 |
 | después | Un panel propio de consola serie en la página, `analogRead` con la curva real del ADC del ESP32, interrupciones (`attachInterrupt`), versiones simplificadas de librerías comunes, firmware real del UNO con avr8js como modo opcional, las dos filas de pines del ESP32 en un circuito (el límite del montaje) | — |
 
 El programa maneja la memoria que guardan los pines (`gpioStage`: `mode`, `level`, `pull`) a

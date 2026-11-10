@@ -22,6 +22,7 @@ void loop() {
 
 export default {
   name: 'esp32-button',
+  group: 'boards',
   title: { en: 'ESP32 reading a button', es: 'ESP32 que lee un pulsador' },
   teaches: { en: 'A GPIO pin as an input with the internal pull-up: digitalRead(27) reads LOW while S1 is pressed', es: 'Un pin GPIO como entrada con el pull-up interno: digitalRead(27) lee LOW mientras S1 está presionado' },
   parts: [

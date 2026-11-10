@@ -182,3 +182,125 @@ test('potentiometer → analogRead → analogWrite: the UNO (10 bits, 5 V) and t
     assert.ok(Math.abs(pwm.duty - Math.trunc(Number(board.program.serial[0]) / divide) / 255) < 1e-9, `${name} duty ${pwm.duty}`);
   }
 });
+
+// pulseIn (docs/en/microcontrollers.md): a wait in simulated time that looks at its pin at the end of
+// every step and measures between the steps that saw the edges.
+import { createRunner } from '../src/sim/program.js';
+import { SKETCH_API } from '../src/sim/sketch.js';
+import { LIMITS } from '../src/limits.js';
+
+// A runner whose pin 10 is high between `rise` and `fall` (s), stepped to `stop` in steps that end on
+// each time of `marks` and on the runner's own wake-ups, as engine.advance does.
+function pulseBench(source, { rise, fall, stop, marks = [], h = 1e-3 }) {
+  const { js, issues } = translateSketch(source);
+  assert.ok(js, JSON.stringify(issues));
+  let now = 0;
+  const read = (gpio) => (gpio === 10 ? { volts: now >= rise - 1e-12 && now < fall - 1e-12 ? 5 : 0, vdd: 5 } : null);
+  const runner = createRunner(js, { family: 'uno', states: {}, read, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 });
+  runner.advance(0);
+  while (now < stop - 1e-12) {
+    const ends = [now + h, ...marks.filter((m) => m > now + 1e-12), ...(runner.until() > 0 ? [now + runner.until()] : [])];
+    const next = Math.min(...ends, stop);
+    const dt = next - now;
+    now = next;
+    runner.advance(dt);
+  }
+  return runner;
+}
+const MEASURE = 'void setup() { Serial.begin(9600); }\nvoid loop() { unsigned long us = pulseIn(10, HIGH, 30000); Serial.println(us); delay(100); }';
+
+test('pulseIn: the width between the steps that see its edges, in whole µs; 0 once the timeout passes', () => {
+  // Edges where steps end: exact.
+  const exact = pulseBench(MEASURE, { rise: 0.004, fall: 0.004 + 5824e-6, stop: 0.05, marks: [0.004, 0.004 + 5824e-6] });
+  assert.equal(exact.log[0], '5824');
+  // Edges between steps of 1 ms: the width to a step.
+  const coarse = pulseBench(MEASURE, { rise: 0.0042, fall: 0.0042 + 5824e-6, stop: 0.05 });
+  assert.ok(Math.abs(Number(coarse.log[0]) - 5824) <= 1000, coarse.log[0]);
+  // No pulse: 0 at the timeout, which the runner names as the time it wants a step to end.
+  const none = pulseBench(MEASURE, { rise: 1, fall: 2, stop: 0.2 });
+  assert.equal(none.log[0], '0');
+  const waiting = pulseBench(MEASURE, { rise: 1, fall: 2, stop: 0.01 });
+  assert.ok(Math.abs(waiting.until() - 0.02) < 1e-9, `${waiting.until()} s left of the 30 ms`);
+  // A pulse already high when it is called is let go: the next one is measured.
+  const under = pulseBench('void setup() {}\nvoid loop() { Serial.println(pulseIn(10, HIGH)); delay(1000); }', { rise: 0, fall: 0.003, stop: 0.01, marks: [0.003] });
+  assert.deepEqual(under.log, [], 'still waiting for a pulse that starts after the call');
+  // LOW pulses, and pulseInLong is the same function.
+  const low = pulseBench('void setup() {}\nvoid loop() { Serial.println(pulseInLong(10, LOW, 100000)); delay(1000); }', { rise: 0, fall: 0.002, stop: 0.05, marks: [0.002, 0.0025] });
+  assert.equal(low.log[0], undefined, 'a LOW pulse needs a rise to end it');
+});
+
+test('pulseIn: the timeout is clamped (not a number, negative, huge) to LIMITS.pulseInMicros', () => {
+  for (const timeout of ['4000000000', '-1', '1.0 / 0.0']) {
+    const r = pulseBench(`void setup() {}\nvoid loop() { Serial.println(pulseIn(10, HIGH, ${timeout})); }`, { rise: 100, fall: 200, stop: 1e-3 });
+    assert.ok(r.until() <= LIMITS.pulseInMicros / 1e6 + 1e-9, `${timeout}: waits ${r.until()} s`);
+    assert.ok(r.until() > 1, `${timeout}: still waiting`);
+  }
+  assert.equal(LIMITS.pulseInMicros, 3_000_000);
+});
+
+test('sketch: pulseIn waits (yield*), returns an integer, and is a name of the runtime', () => {
+  const r = translateSketch('void setup() {}\nvoid loop() { long cm = pulseIn(10, HIGH) / 58; }');
+  assert.deepEqual(r.issues, []);
+  assert.match(r.js, /__int\(__int\(\(\(yield\* pulseIn\(10 , HIGH\)\)\) \/ 58\)\)/);
+});
+
+test('SKETCH_API and the runtime give the same names (constants apart)', () => {
+  const js = 'globalThis.__names = Object.keys(api); return { setup: function* () {}, loop: function* () {} };';
+  createRunner(js, { family: 'uno', states: {}, read: () => null, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 });
+  const names = globalThis.__names;
+  delete globalThis.__names;
+  const constants = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN'];
+  const helpers = names.filter((n) => n.startsWith('__'));
+  const functions = names.filter((n) => !constants.includes(n) && !helpers.includes(n));
+  assert.deepEqual([...functions].sort(), [...SKETCH_API].sort());
+  assert.deepEqual(helpers.sort(), ['__array', '__idx', '__int', '__lib', '__missing', '__new', '__wire']);
+});
+
+test('delayMicroseconds: the engine ends a step on the program waking, so a 10 µs pulse lasts 10 µs', () => {
+  const circuit = laid(expandRecipe('uno-blink', { U1: 'void setup() { pinMode(13, OUTPUT); }\nvoid loop() { digitalWrite(13, HIGH); delayMicroseconds(10); digitalWrite(13, LOW); delay(5); }' }).spec);
+  const engine = createEngine(compile(circuit).program);
+  assert.ok(engine.start('dc', 1e-3));
+  const steps = [];
+  const step = engine.step.bind(engine);
+  engine.step = (h) => {
+    const ok = step(h);
+    steps.push({ h, high: engine.read().parts.U1.pins[0].voltage > 4 });
+    return ok;
+  };
+  for (let k = 0; k < 20; k++) assert.ok(engine.advance(1e-3));
+  const high = steps.filter((s) => s.high);
+  assert.ok(high.length >= 3, `${high.length} pulses`);
+  for (const s of high) assert.ok(Math.abs(s.h - 1e-5) < 1e-12, `a high step of ${s.h} s`);
+  assert.ok(steps.length < 20 + 3 * 5, `${steps.length} steps for 20 ms`);
+});
+
+test('pulseIn: one deadline from the call for the three waits, as Arduino\'s', () => {
+  // A 29.9 ms pulse that starts 1 ms after the call ends 30.9 ms after it.
+  const sketch = (timeout) => `void setup() {}\nvoid loop() { Serial.println(pulseIn(10, HIGH, ${timeout})); delay(1000); }`;
+  const marks = [0.001, 0.0309];
+  assert.equal(pulseBench(sketch(30000), { rise: 0.001, fall: 0.0309, stop: 0.05, marks }).log[0], '0');
+  assert.equal(pulseBench(sketch(31000), { rise: 0.001, fall: 0.0309, stop: 0.05, marks }).log[0], '29900');
+});
+
+test('sketch: a global whose value waits (pulseIn, delay, one\'s own function) is an error with its line', () => {
+  for (const [source, line] of [['long g = pulseIn(7, HIGH, 10);\nvoid setup() {}\nvoid loop() {}', 1], ['int half(int n) { return n / 2; }\nint x = half(4);\nvoid setup() {}\nvoid loop() {}', 2]]) {
+    const r = translateSketch(source);
+    assert.equal(r.js, null);
+    assert.deepEqual(r.issues.map((i) => [i.code, i.line]), [['SIM_PROGRAM_ERROR', line]]);
+  }
+  assert.ok(translateSketch('int yield = 3;\nint y = 2 * 3;\nvoid setup() {}\nvoid loop() {}').js, 'a name like yield, or a plain value, is fine');
+});
+
+test('a UNO\'s ADC reads against its own 5 V rail (AVcc), so a ratiometric divider reads the same count on any supply', () => {
+  const sketch = 'void setup() { Serial.begin(9600); }\nvoid loop() { Serial.println(analogRead(A0)); delay(100); }';
+  const spec = () => ({ parts: [{ id: 'U1', part: 'UNO', program: sketch }, { id: 'R1', type: 'resistor', value: '10k' }, { id: 'R2', type: 'resistor', value: '10k' }], nets: [['U1.5V', 'R1.1'], ['R1.2', 'R2.1', 'U1.A0'], ['R2.2', 'U1.GND']] });
+  const engine = createEngine(compile(autoLayout(spec()).circuit).program);
+  assert.ok(engine.start('dc', 1e-3));
+  while (engine.time < 0.15) engine.advance(1e-3);
+  const r = engine.read().parts.U1;
+  assert.ok(r.vdd < 4.995, `the USB rail sits under 5 V: ${r.vdd}`);
+  // Half the rail is half the scale, whatever the rail: 511.5 rounds to 512 (to 511 with 5.0 as the scale).
+  assert.equal(Number(r.program.serial[0]), Math.round(((r.pins.find((p) => p.name === 'A0').voltage) / r.vdd) * 1023));
+  assert.ok(Math.abs(Number(r.program.serial[0]) - 511.5) <= 0.5, r.program.serial[0]);
+  assert.equal(r.pins.find((p) => p.name === 'A0').adc, Number(r.program.serial[0]), 'the card says the same count');
+});

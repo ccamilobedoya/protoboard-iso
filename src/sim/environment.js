@@ -10,6 +10,9 @@
 //   rangeProblem(field, range)      why a slider / indicator range is not usable (null when it is)
 //   environmentIssues(circuit)     what `check` says about the circuit's `environment`
 //   envText(field, value, decimal) a value as the page writes it ("300 lx", "25 °C"); null for a switch
+//   seenValues(ambient, emitted)   what the sensors see: the ambient values plus what the emitters add
+//   emittedShare(field, e, ambient) the share of an emission that reaches the sensors (0 while blocked,
+//                                  clamped to what the field's limit leaves above the ambient)
 //
 // A field of the circuit (`environment` at the top level) is a number, or { value?, program?, range? }:
 // `range` [min, max] is the span the slider and the indicator show (inside the field's limit; the
@@ -18,10 +21,11 @@
 // again from its own beginning at that moment.
 
 // kind 'level': a slider (min…max the slider's range, `limit` what the value may be at all);
-// 'switch': off or on (0 or 1), a button.
+// 'switch': off or on (0 or 1), a button. `blockedBy`: the switch field that, on, keeps what the
+// emitters add to this one from the sensors (light: `beam`, something in the way; docs/en/environment.md#emitters).
 const SWITCH = { unit: '', min: 0, max: 1, limit: [0, 1], scale: 'linear', default: 0, kind: 'switch' };
 export const FIELDS = {
-  light: { unit: 'lx', min: 0.1, max: 10000, limit: [0, 1e6], scale: 'log', default: 300, kind: 'level' },
+  light: { unit: 'lx', min: 0.1, max: 10000, limit: [0, 1e6], scale: 'log', default: 300, kind: 'level', blockedBy: 'beam' },
   temperature: { unit: '°C', min: -20, max: 100, limit: [-55, 150], scale: 'linear', step: 1, default: 25, kind: 'level' },
   humidity: { unit: '%RH', min: 0, max: 100, limit: [0, 100], scale: 'linear', step: 1, default: 50, kind: 'level' },
   moisture: { unit: '%', min: 0, max: 100, limit: [0, 100], scale: 'linear', step: 1, default: 30, kind: 'level' },
@@ -37,7 +41,15 @@ export const FIELDS = {
   angle: { unit: '°', min: 0, max: 360, limit: [0, 360], scale: 'linear', step: 1, default: 0, kind: 'level' },
   reflectance: { unit: '%', min: 0, max: 100, limit: [0, 100], scale: 'linear', step: 1, default: 80, kind: 'level' },
   beam: { ...SWITCH },
+  // Air pressure (hPa): the slider spans a BME280's 300…1100 hPa; 1013.25 is the standard atmosphere at
+  // sea level (docs/en/library-sensors.md; the altitude it means: altitudeOfPressure).
+  pressure: { unit: 'hPa', min: 300, max: 1100, limit: [0, 1500], scale: 'linear', step: 0.05, default: 1013.25, kind: 'level' },
 };
+
+// The altitude (m) a pressure (hPa) means in the international standard atmosphere, the exponent the
+// Adafruit libraries use: 44330 · (1 − (p / 1013.25)^0.1903); and its inverse.
+export const altitudeOfPressure = (hPa) => 44330 * (1 - (Math.max(0, hPa) / 1013.25) ** 0.1903);
+export const pressureAtAltitude = (m) => 1013.25 * (1 - m / 44330) ** 5.255;
 
 export const PROGRAM_KINDS = ['toggle', 'cycle', 'ramp', 'keyframes'];
 export const CYCLE_SHAPES = ['sine', 'square', 'triangle'];
@@ -286,4 +298,36 @@ export function envText(field, value, decimal = '.') {
   } else n = Math.round(value / (f.step ?? 1)) * (f.step ?? 1);
   const text = String(Object.is(n, -0) ? 0 : n).replace('.', decimal);
   return unit === '°' ? `${text}°` : `${text} ${unit}`;
+}
+
+// Emitters (docs/en/environment.md#emitters): a part whose electrical state writes a field (a laser's
+// light). `emitted` is { field: { total, parts: { id: value } } } (engine.js measures it from the
+// emitters' readings). What reaches the sensors: the total, or nothing while the field's `blockedBy`
+// switch is on in the ambient values (light while `beam` is 1).
+export const isBlocked = (field, ambient) => {
+  const by = FIELDS[field]?.blockedBy;
+  return Boolean(by && Number(ambient?.[by] ?? FIELDS[by].default));
+};
+// The share that arrives: nothing while blocked, and for a level no more than the field's limit leaves
+// above the ambient (what the sensors see minus the ambient; never negative).
+export function emittedShare(field, e, ambient) {
+  if (!e || isBlocked(field, ambient)) return 0;
+  const f = FIELDS[field];
+  if (f.kind === 'switch') return e.total;
+  const base = ambient?.[field] ?? f.default;
+  return Math.max(0, Math.min(e.total, f.limit[1] - base));
+}
+
+// What the sensors see: a level is the ambient value plus the share that reaches them, clamped to the
+// field's limit; a switch is on when the ambient or any emitter says so. Only fields in the registry.
+export function seenValues(ambient, emitted) {
+  const out = { ...ambient };
+  for (const [field, e] of Object.entries(emitted ?? {})) {
+    const f = FIELDS[field];
+    if (!f) continue;
+    const share = emittedShare(field, e, ambient);
+    const base = ambient[field] ?? f.default;
+    out[field] = f.kind === 'switch' ? (base || share > 0 ? 1 : 0) : clamp(field, base + share);
+  }
+  return out;
 }

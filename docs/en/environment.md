@@ -37,15 +37,28 @@ by hand) and `examples/environment-cycle.json` (the light in a slow cycle); the 
 | `angle` | ° | 0…360 | 0…360 | linear | 0 | level |
 | `reflectance` | % (of white paper's) | 0…100 | 0…100 | linear | 80 | level |
 | `beam` | (1 = blocked) | off / on | 0…1 | | 0 | switch |
+| `pressure` | hPa | 300…1100 (step 0.05) | 0…1500 | linear | 1013.25 | level |
 
 The slider's range is what the page offers; the limit is what a value may be at all (a circuit, a
 `set` or a program outside it is clamped, and `check` says so). Today the thermistor and the
 photoresistor (`temperature`, `light`), the LM35 (`temperature`), the tilt switch (`tilt`) and the
 LM393 sensor modules ([sensor-modules.md](sensor-modules.md): `rain`, `moisture`, `light`, `beam`,
-`distance` and `reflectance`, `field`, `vibration`, and `angle` for an encoder disc) read it; the
-other fields are ready for the sensors that come next. `reflectance` (the surface under a line
+`distance` and `reflectance`, `field`, `vibration`, `sound`, and `angle` for an encoder disc) read it, and so
+do the linear Hall sensor ([analog-sensors.md](analog-sensors.md): `field`) and the KY-040 rotary encoder
+([rotary-encoder.md](rotary-encoder.md): `angle` is the target its shaft turns to); the other fields are ready for
+the sensors that come next. `field` is read by the KY-024 switch and the 49E / KY-035 (a south pole
+facing the marked face is positive); `sound`, in dB SPL, by the KY-037 microphone module. `reflectance` (the surface under a line
 follower or in front of an obstacle sensor) and `beam` (something in an optical slot) came with
 those modules.
+The HC-SR04 ultrasonic module ([ultrasonic-sensor.md](ultrasonic-sensor.md)) reads `distance` and
+`temperature`, which sets the speed of sound.
+The climate sensors read through a board's library ([library-sensors.md](library-sensors.md)) are
+the ones that read `humidity` (the DHT11 and the BME280) and `pressure` (the BME280 and the
+BMP280), besides `temperature`. `pressure` is the air's, in hPa; 1013.25 is the standard atmosphere at
+sea level. Its indicator is a barometer, and its panel row also says the altitude that pressure means
+in the standard atmosphere, `h = 44330 · (1 − (p / 1013.25)^0.1903)` m (the libraries' formula; its
+inverse `p = 1013.25 · (1 − h / 44330)^5.255`: 1000 m is 898.8 hPa, and near sea level 1 hPa is
+about 8.3 m). A weather lesson moves it between about 980 and 1040 hPa.
 
 ## In the circuit
 
@@ -218,5 +231,95 @@ a step if it has one, its default and its kind. Then its name in both languages
 special glyph is a branch in `gauge.js`, only where it teaches more). A sensor joins it as
 [adding-parts.md](adding-parts.md#7-a-sensor-joining-the-environment) says.
 
-Emitters (a part that changes the environment: a lamp lighting the photoresistor next to it) are
-not part of this: the device interface keeps the name `emits` for them, for later.
+## Emitters
+
+Some parts change the environment instead of reading it: a laser module (`laser`, the KY-008) is
+"on, at some power", and every sensor of light receives what it adds. Nothing is aimed or drawn, as
+nothing is for a sensor: the indicator of `light` shows the sum, and the learner reads in the panel how
+much of it each emitter gives.
+
+- A device declares the fields it writes (`emits: ['light']`) and a pure
+  `emit(entry, reading) → { light: lux }`: what it adds now, from its solved reading (0 when it is
+  off). Only fields of the registry can be emitted. Only parts declared as emitters write: a lit LED
+  does not add light (a status LED lights its own lens, not a room; if it did, a light module's own DO
+  LED would flip it).
+- What a sensor sees of a **level** field is the ambient value (what the circuit, the slider or a
+  program says) plus the sum of what the emitters add, clamped to the field's limit; of a **switch**
+  field, the ambient OR any emitter.
+- **`beam` blocks the emitted light.** While the environment's `beam` is on (1: something in the way),
+  the emitted share of `light` does not reach the sensors; the ambient light still does. That is how a
+  tripwire is cut without drawing anything (recipe `laser-tripwire`). The rule is general: a field of
+  the registry may name the switch that blocks its emitted share (`blockedBy: 'beam'` for `light`). A
+  circuit with an emitter of light gets `beam` in its environment, so the panel offers the toggle.
+- Emitters act only in a circuit that declares `environment` (as sensors follow it only then). An
+  emitter in a circuit without one is told by `check` and the simulation: `ENV_EMITTER_ALONE` (info),
+  the circuit needs `"environment": {}` for its light to reach the sensors.
+
+### When the light arrives
+
+- **Time steps:** what an emitter adds in step n (from the voltages solved there) is what the sensors
+  see in step n + 1: one step of delay, as a board's program reads the pins of the step before. A
+  laser that a pin switches off is gone from the sensors one step later. With a PWM pin the emission is
+  the step's, so the light flickers with the pin, as an LED's current does (the indicator shows it
+  moving; the eye of a real sensor would average it).
+- **At t = 0, after a `set` and in DC `simulate()`** there is no step to wait for: the engine
+  iterates (solve → emissions → the sensors feel them → solve) until every emission changes by less
+  than 1e-3 of itself, or 8 rounds. A circuit with no emitter never runs it, and its time steps cost
+  what they did.
+- **A loop that does not settle** (a lamp whose own light turns it off: a laser powered through a
+  transistor that a light sensor cuts when it is bright) keeps the last round and says
+  `SIM_ENV_FEEDBACK` (a warning: which emitter, which field, which sensors). The real circuit would
+  flicker or sit halfway; the page, stepping, shows it flickering. The note comes with the DC results:
+  `simulate()` (the CLI, the MCP tool, the page's warnings) and `engine.dc()`, before or after a
+  start, for as long as the last fixed point (the start's or a `set`'s) did not settle; one that
+  settles clears it. `check` does not solve the circuit, so it never says it, and stepping adds
+  nothing to it.
+- **A transient** (`simulate --transient`, the MCP `simulate` tool) with emitters steps the same
+  engine as the page, with the same step of delay (the environment's programs held, as in any
+  transient); without emitters it runs as before.
+- **`engine.dc()` on a started engine** solves the circuit as it stands, the sensors at what they last
+  felt (while stepping, the light of the step before); it runs no fixed point of its own and changes
+  nothing in the running engine. Before any start it is the fixed point.
+
+### In the engine and the page
+
+- `engine.environment()` is what the sensors see (ambient plus the share that reaches them);
+  `engine.ambient()` the ambient alone; `engine.emissions()` what each emitter adds now:
+  `{ light: { total, parts: { LS1: 9800 }, blocked } }` (`{}` without emitters; `blocked` for a field
+  that names a blocker).
+- `engine.controls()`' entry of a field keeps `value` = the ambient (the slider moves the ambient) and
+  gains `emitted`, the share that reaches the sensors now (0 while it is blocked), when an emitter
+  writes it. `engine.set('environment', 'light', v)` sets the ambient. `emitted` is what arrives,
+  clamped by the field's limit (999 999 lx and a laser: 1 lx), while `emissions()`' `total` is all
+  the emitters add.
+- The page: the panel's row and the indicator of a field show what the sensors see, and the row says
+  the share in words ("50 lx + 9.8 klx from LS1", or "50 lx · LS1 blocked (beam)"); the slider stays
+  on the ambient. A sensor's card line ("Follows the environment · light 9.8 klx") says the seen
+  value, a video's `gauge` too. The emitter's own card says what it adds ("adds 9.8 klx to the light",
+  "below its threshold: no beam", "blocked (beam)").
+- `render-frames.js --parts` lists, beside each field, the parts that write it.
+
+### The KY-008 laser
+
+Pins `S`, `+`, `−` as the board prints them; the middle one is not connected. Between `S` and `−` a
+650 nm laser diode (Vf 2.2 V at 25 mA) behind a 100 Ω resistor: about 28 mA and 3 mW at 5 V, 37.5 mA at
+6 V. Optical power P = 0.5 W/A · max(0, I − 22 mA); it adds K · P to `light`, with K = 3.33·10⁶ lx/W
+(3 mW → 10 000 lx). That K is a teaching simplification: the spot of a small beam is far brighter than
+a room and saturates a photoresistor, which is what a tripwire needs; the real number depends on the
+spot's size. Below its 22 mA threshold it glows like a dim LED and adds nothing (`SIM_LASER_DIM`, a
+note). Wired straight to an Arduino UNO pin it gets about 20 mA (4.2 V behind the pin's 40 Ω output
+resistance, then the module's 100 Ω): under the threshold, so it only glows. That is the usual tutorial wiring and it
+does not light the spot here; a pin behind its output resistance cannot give the current, so drive it with a
+transistor, as `laser-uno` does. The threshold is assumed, not measured. Over 40 mA is `SIM_OVER_CURRENT`; reversed by more than 2 V, `SIM_REVERSE_VOLTAGE`. The numbers
+are assumed (the usual module's parts are not marked) and named in `src/sim/devices/laser.js`. It has
+no field of its own: its power is what the circuit gives it.
+
+Recipes: `laser-tripwire` (the laser always on, an `LDR-LM393` module whose DO lights an LED through
+an NPN when the beam is cut) and `laser-uno` (a UNO pin blinks the laser at 1 Hz; a photoresistor on A0
+prints the light it sees); the tour `examples/tours/laser-tripwire.json`.
+
+### Adding an emitter
+
+`emits` and `emit` on its device ([adding-parts.md](adding-parts.md#7-a-sensor-joining-the-environment));
+nothing else in `src/sim` changes. A field that something may block names its blocker in the
+registry (`blockedBy`).

@@ -30,7 +30,7 @@ brief** and return a short **layout report**. You do not talk to the end user.
    `opamp-inverting`, `ldr-night-light`, `ldr-comparator`, `lm35-comparator`, `ntc-follower`,
    `thermistor-uno` (these carry the `environment` and its page control). `catalog` with the recipe's name gives its ids and limits when the brief's values
    `opamp-inverting`, `rain-alarm`, `soil-led`, `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`,
-   `hall-counter-uno`. `catalog` with the recipe's name gives its ids and limits when the brief's values
+   `hall-counter-uno`, `encoder-uno`, `encoder-dimmer-uno`, `laser-tripwire`, `laser-uno`, `uno-distance`, `esp32-distance`, `distance-alarm-uno`, `hall-linear-uno`, `voltage-sensor-uno`, `clap-switch`, `sound-level-led`, `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude`. `catalog` with the recipe's name gives its ids and limits when the brief's values
    need them. A changed value on a recipe circuit: `layout` again with the recipe, the new values and
    `expect_revision`. Then step 2.
 1. Call `layout` once. **No `catalog` before it**: it checks every name and pin itself.

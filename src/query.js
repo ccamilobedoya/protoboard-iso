@@ -24,7 +24,7 @@ import { distance, sub } from './core/vec.js';
 import { nearestHoles, boardLayout } from './board/board.js';
 import { findPin } from './parts/pin-names.js';
 
-const ID_PREFIX = { resistor: 'R', capacitor: 'C', potentiometer: 'RV', diode: 'D', led: 'D', mosfet: 'Q', bjt: 'Q', ic: 'U', button: 'S', switch: 'S', wire: 'W', battery: 'BT', zener: 'D', bridge: 'BR', module: 'U', regulator: 'U', inductor: 'L', thermistor: 'RT', ldr: 'LDR', buzzer: 'BZ', header: 'J', 'rgb-led': 'D', 'seven-segment': 'DS', 'slide-switch': 'S', 'tilt-switch': 'S', 'temperature-sensor': 'U', relay: 'K', motor: 'M', 'pir-sensor': 'U', 'touch-sensor': 'U', 'sensor-module': 'U' };
+const ID_PREFIX = { resistor: 'R', capacitor: 'C', potentiometer: 'RV', diode: 'D', led: 'D', mosfet: 'Q', bjt: 'Q', ic: 'U', button: 'S', switch: 'S', wire: 'W', battery: 'BT', zener: 'D', bridge: 'BR', module: 'U', regulator: 'U', inductor: 'L', thermistor: 'RT', ldr: 'LDR', buzzer: 'BZ', header: 'J', 'rgb-led': 'D', 'seven-segment': 'DS', 'slide-switch': 'S', 'tilt-switch': 'S', 'temperature-sensor': 'U', relay: 'K', motor: 'M', 'pir-sensor': 'U', 'touch-sensor': 'U', 'sensor-module': 'U', 'ultrasonic-sensor': 'U', 'hall-sensor': 'U', 'voltage-sensor': 'U', 'climate-sensor': 'U' };
 const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 
 // An elastic board is measured with room to grow: placements may go past its last column.

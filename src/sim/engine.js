@@ -6,11 +6,14 @@
 //   engine.dc()                                         → operating point (each part with its
 //                                                         `stress`: value against each limit)
 //   engine.transient({ stop, step, start, points })     → time series
+//                                                       (with emitters it steps this engine:
+//                                                       one step of delay, programs held)
 // And step by step, for the live page:
 //   engine.start('dc' | 'zero', h) → ok    the state at t = 0 (DC values, or switched on with
 //                                          capacitors discharged)
 //   engine.step(h) → ok                    one time step of h seconds (a failed one changes nothing)
-//   engine.advance(h) → ok                 h seconds: one step, or shorter ones where Newton fails
+//   engine.advance(h) → ok                 h seconds: one step, or shorter ones where Newton fails;
+//                                          a step ends on each element's event inside h (`until()`)
 //   engine.read() → { nodes, parts, supplies }   the values now;  engine.time  seconds since start
 //   engine.stresses(reading) → { part: [stress…] }   each part against its limits (devices/)
 //   engine.timeConstants() → [seconds…]    τ = C·R and L/R of each capacitor and inductor, with R
@@ -33,11 +36,21 @@
 //   engine.resume('environment', field) → ok       a paused program runs again, from its beginning
 //   engine.attach(id, field) → ok                  a part that left a field (its own control moved)
 //                                                  follows it again
-//   engine.environment() → { field: value }        the values now;  engine.stimuli() → [seconds…]
+//   engine.environment() → { field: value }        what the sensors see now (the ambient plus what
+//                                                  the emitters add);  engine.stimuli() → [seconds…]
 //                                                  the span of each running program and of each
 //                                                  element with a clock of its own (the page's pace)
+//   engine.ambient() → { field: value }            the ambient alone (the circuit, a slider, a program)
+//   engine.emissions() → { field: { total, parts: { id: value }, blocked? } }   what each emitter adds
+//                                                  now ({} without emitters)
 // Programs move with simulated time, before each step (as a generator's wave); dc() and the start
 // take them at t = 0. transient() keeps the environment as it is (programs run in the page).
+// dc() on a started engine solves the circuit as the sensors last felt it (no fixed point of its own).
+// Emitters (a device with `emits` and `emit(entry, reading)`: a laser writes `light`): what one adds
+// in a time step reaches the sensors in the next (one step of delay). At the start, after a set and in
+// dc() the engine iterates (solve → emissions → the sensors feel them → solve) until the emissions
+// settle (EMIT_SETTLED) or EMIT_ROUNDS rounds; a loop that does not settle (a lamp that turns itself
+// off) keeps the last round and says SIM_ENV_FEEDBACK. Without emitters none of this runs.
 //
 // Every result is a **model**: ideal strips, typical part values (models.js).
 
@@ -47,12 +60,20 @@ import { deviceOfProgram } from './devices/index.js';
 import { issue, q, volt, stressIssue } from './devices/shared.js';
 import { supplyControls, setSupply, stressLevel } from './controls.js';
 import { waveAt, peakOf } from './generator.js';
-import { createEnvironment, environmentControls } from './environment.js';
+import { FIELDS, createEnvironment, environmentControls, seenValues, emittedShare, isBlocked } from './environment.js';
 
 const SHORT_CURRENT = 3; // amperes from an unlimited source that mean "short circuit"
 const ADVANCE_SPLITS = 4; // advance(h): halvings of a step that failed, at most (h/16)
+// advance(h) ends a step on each event inside h (an element's `until()`: a program waking, a timed
+// sensor's edge), at most LANDINGS of them; an event closer than LAND_MIN is now. A measurement of
+// an HC-SR04 takes about five; a sketch that wakes every microsecond gets h back in LANDINGS + 1
+// steps, and past the cap the rest of h is one step (a faster software PWM is read a step late).
+const LANDINGS = 32;
+const LAND_MIN = 0.5e-6;
 // What an element changes while Newton iterates (junction limiting, an op-amp's rail edge).
 const LIMITING = ['vd', 'vgs', 'vds', 'vbe', 'vbc', 'edge'];
+const EMIT_ROUNDS = 8; // solve → emissions → sensors rounds before a loop is called feedback
+const EMIT_SETTLED = 1e-3; // relative change of every emission under which they have settled
 
 // Elements, node indices and islands, from the program. Ground is index −1.
 function prepare(program) {
@@ -74,6 +95,7 @@ function prepare(program) {
 
   const elements = [];
   const parts = [];
+  const emitters = []; // the parts that write the environment (only in a circuit that declares one)
   const owned = new Map(); // part id → its elements, in the order it added them (state carry-over)
   const carried = new Map(); // part id → the keys of its elements to carry over: STATE and the device's own `state`
   // Each part: its device adds the elements and keeps what its reading needs (devices/).
@@ -100,9 +122,16 @@ function prepare(program) {
       };
       Object.assign(entry, d.params, { device }, device.elements(d.params, h));
       if (device.state) carried.set(d.id, [...STATE, ...device.state]);
+      if (d.emits && program.environment && device.emit) {
+        entry.emits = d.emits;
+        emitters.push(entry);
+      }
     }
     parts.push(entry);
   }
+  // An element that talks to others (a board's program asking its library sensors, devices/mcu.js)
+  // gets every element of the circuit once they are all built.
+  for (const el of elements) el.connect?.(elements);
 
   for (const s of supplies) {
     s.pIndex = index.get(s.p);
@@ -150,7 +179,7 @@ function prepare(program) {
   for (const s of supplies) if (!s.off) s.source = voltageSource(s.top, s.nIndex, row++, s.voltage);
   const references = tied.map((n) => voltageSource(n, -1, row++, 0));
   const all = [...elements, ...supplies.filter((s) => !s.off).flatMap((s) => [s.source, s.series].filter(Boolean)), ...references, ...anchors.values()];
-  return { issues, members: program.members, supplies, parts, owned, carried, names, index, ground: program.ground, floating, system: { size: row, nodeCount, elements: all } };
+  return { issues, members: program.members, supplies, parts, emitters, owned, carried, names, index, ground: program.ground, floating, system: { size: row, nodeCount, elements: all } };
 }
 
 // Signal generators: their sources at time t (DC and the start are t = 0).
@@ -277,6 +306,45 @@ function solveWithLimits(prep, x0, ctx) {
   return result;
 }
 
+// ── Emitters ────────────────────────────────────────────────────────────────────────
+
+// What the emitters add now, from each one's reading ({ field: { total, parts } }): a level sums
+// them, a switch is on when any is.
+function measure(prep, readingOf) {
+  const out = {};
+  for (const p of prep.emitters) {
+    const r = readingOf(p);
+    const given = r && !r.floating ? (p.device.emit(p, r) ?? {}) : {};
+    for (const field of p.emits) {
+      const v = Number.isFinite(given[field]) ? given[field] : 0;
+      const e = (out[field] ??= { total: 0, parts: {} });
+      e.parts[p.id] = v;
+      e.total = FIELDS[field].kind === 'switch' ? Math.max(e.total, v ? 1 : 0) : e.total + v;
+    }
+  }
+  return out;
+}
+
+// The fields whose emissions changed from `a` to `b` by more than EMIT_SETTLED (relative), part by part.
+function unsettled(a, b) {
+  const fields = new Set([...Object.keys(a), ...Object.keys(b)]);
+  return [...fields].filter((field) => {
+    const ids = new Set([...Object.keys(a[field]?.parts ?? {}), ...Object.keys(b[field]?.parts ?? {})]);
+    return [...ids].some((id) => {
+      const [u, v] = [a[field]?.parts[id] ?? 0, b[field]?.parts[id] ?? 0];
+      return Math.abs(u - v) > Math.max(1e-9, EMIT_SETTLED * Math.max(Math.abs(u), Math.abs(v)));
+    });
+  });
+}
+
+// The note of a loop that did not settle: which emitters, which field, which sensors follow it.
+function feedbackIssue(program, prep, fields) {
+  const field = fields[0];
+  const emitters = prep.emitters.filter((p) => p.emits.includes(field)).map((p) => p.id);
+  const sensors = program.devices.filter((d) => d.follows?.includes(field)).map((d) => d.id);
+  return issue('warning', 'SIM_ENV_FEEDBACK', { field, emitters: emitters.join(', '), sensors: sensors.join(', ') || '—', rounds: EMIT_ROUNDS });
+}
+
 // ── The engine ──────────────────────────────────────────────────────────────────────
 
 export function createEngine(source) {
@@ -295,7 +363,88 @@ export function createEngine(source) {
   let glowSum = new Map();
   let glowTime = 0;
   const memories = () => prep.system.elements.filter((el) => 'accept' in el);
+  // The soonest event of an element (`until()`, seconds from now), or null. The step before is
+  // accepted first, as step() does: an element's clock must be the one of now.
+  function nextEvent() {
+    if (!x) return null;
+    if (pending) for (const el of memories()) el.accept(x, pending);
+    pending = null;
+    let soon = null;
+    for (const el of prep.system.elements) {
+      const u = el.until?.();
+      if (u > 0 && (soon === null || u < soon)) soon = u;
+    }
+    return soon;
+  }
   const env = program.environment ? createEnvironment(program.environment.spec, program.environment.fields) : null;
+  // Emitters: what they add now (`emitted`, measured after each solve) and what the sensors last felt
+  // (`used`: the emission of the step before, or of the last round of a fixed point). `feedback`: the
+  // note of a fixed point that did not settle.
+  let emitted = {};
+  let used = {};
+  let feedback = null;
+  const emitting = () => Boolean(env) && prep.emitters.length > 0;
+  const seen = (ambient) => (emitting() ? seenValues(ambient, used) : ambient);
+  const withFeedback = (r) => (feedback && r.issues ? { ...r, issues: [...r.issues, feedback] } : r);
+  // Each emitter's reading says what it adds and whether that is blocked (its card's line).
+  const mark = (reading) => {
+    if (!emitting() || !reading) return reading;
+    const ambient = env.values();
+    for (const p of prep.emitters) {
+      const r = reading.parts[p.id];
+      if (!r) continue;
+      r.emission = Object.fromEntries(p.emits.map((field) => [field, { value: emitted[field]?.parts[p.id] ?? 0, blocked: isBlocked(field, ambient), ...(FIELDS[field].blockedBy && { blockedBy: FIELDS[field].blockedBy }) }]));
+    }
+    return reading;
+  };
+  // The fixed point in DC, before any start (no live state to keep): solve, measure, let the sensors
+  // feel it, solve again (a new prepare only when one of them changed), until it settles.
+  function settleDC() {
+    feedback = null;
+    let result = null;
+    for (let round = 0; round < EMIT_ROUNDS; round++) {
+      if (feel(program, seenValues(env.values(), used))) prep = prepare(program);
+      result = dc(prep);
+      if (!result.ok) return result;
+      const m = measure(prep, (p) => result.parts[p.id]);
+      const moved = unsettled(used, m);
+      emitted = m;
+      if (!moved.length) {
+        mark(result);
+        return result;
+      }
+      if (round === EMIT_ROUNDS - 1) {
+        feedback = feedbackIssue(program, prep, moved);
+        break;
+      }
+      used = m;
+    }
+    mark(result);
+    return withFeedback(result);
+  }
+  // After a rebuild of a running engine: the same rounds, each one a rebuild with the state carried.
+  function settleLive() {
+    if (!emitting()) return true;
+    if (!x) {
+      settleDC();
+      return true;
+    }
+    feedback = null;
+    for (let round = 0; round < EMIT_ROUNDS; round++) {
+      const m = measure(prep, (p) => partReading(p, x, ctx, prep.floating));
+      const moved = unsettled(used, m);
+      emitted = m;
+      if (!moved.length) return true;
+      if (round === EMIT_ROUNDS - 1) {
+        feedback = feedbackIssue(program, prep, moved);
+        return true;
+      }
+      used = m;
+      if (feel(program, seenValues(env.values(), used)) && !rebuild()) return false;
+    }
+    return true;
+  }
+  const rebuildSettled = () => rebuild() && settleLive();
   // The program changed (a control, the environment): prepared again with the state carried over
   // and, unless `solve` is false (a step solves it next), solved at once (a very short step, as at
   // t = 0): a paused circuit shows the change too.
@@ -325,39 +474,67 @@ export function createEngine(source) {
     pending = null;
     return true;
   }
-  return {
-    dc: () => dc(prep),
-    transient: (options) => transient(prep, options),
+  // A circuit with emitters starts at its fixed point: dc(), environment() and a set before any start
+  // already see the emitters' light.
+  if (emitting()) settleDC();
+  // A transient with emitters steps this engine (its start, its step with the programs held), so the
+  // emitters reach the sensors one step later as in the page; without emitters, the fixed prep's loop.
+  const drive = {
+    prep: () => prep,
+    begin: (start, h) => (api.start(start, h) ? null : 'SIM_NO_CONVERGENCE'),
+    step: (t, h) => api.step(h, true),
+    read: (c) => readAll(prep, x, c),
+  };
+  const api = {
+    dc: () => (!emitting() ? dc(prep) : x ? mark(withFeedback(dc(prep))) : settleDC()),
+    transient: (options) => (emitting() ? transient(prep, options, drive) : transient(prep, options)),
     start(mode = 'dc', h = 1e-3) {
       lastH = h;
-      if (env) feel(program, env.rewind());
-      prep = prepare(program);
-      setTime(prep, 0);
-      x = new Array(prep.system.size).fill(0);
-      if (mode === 'dc') {
-        const r = solveWithLimits(prep, x, {});
-        if (!r.ok) return false;
-        x = r.x;
-        for (const el of memories()) el.accept(x, {});
+      const ambient = env ? env.rewind() : null;
+      // With emitters, the start is solved again until what they add settles (one round without them).
+      for (let round = 0; ; round++) {
+        if (env) feel(program, seen(ambient));
+        prep = prepare(program);
+        setTime(prep, 0);
+        x = new Array(prep.system.size).fill(0);
+        if (mode === 'dc') {
+          const r = solveWithLimits(prep, x, {});
+          if (!r.ok) return false;
+          x = r.x;
+          for (const el of memories()) el.accept(x, {});
+        }
+        // t = 0: memories hold their starting values (a very short step pins them there).
+        ctx = { h: h * 1e-6 };
+        const first = settle(prep, solveWithLimits(prep, x, ctx), ctx);
+        if (!first.ok) return false;
+        x = first.x;
+        pending = null;
+        time = 0;
+        if (!emitting()) return true;
+        const m = measure(prep, (p) => partReading(p, x, ctx, prep.floating));
+        const moved = unsettled(used, m);
+        emitted = m;
+        feedback = null;
+        if (!moved.length) return true;
+        if (round === EMIT_ROUNDS - 1) {
+          feedback = feedbackIssue(program, prep, moved);
+          return true;
+        }
+        used = m;
       }
-      // t = 0: memories hold their starting values (a very short step pins them there).
-      ctx = { h: h * 1e-6 };
-      const first = settle(prep, solveWithLimits(prep, x, ctx), ctx);
-      if (!first.ok) return false;
-      x = first.x;
-      pending = null;
-      time = 0;
-      return true;
     },
-    step(h) {
+    // `hold`: the environment's programs stay where they are (a transient, as before emitters).
+    step(h, hold = false) {
       if (!x) return false;
       if (pending) for (const el of memories()) el.accept(x, pending);
       pending = null;
       const next = { h };
       lastH = h;
       setTime(prep, time + h);
-      // The environment's programs at the end of the step: the parts that follow them change first.
-      if (env && feel(program, env.at(time + h))) {
+      // The environment's programs at the end of the step: the parts that follow them change first,
+      // with what the emitters added in the step before (one step of delay).
+      if (emitting()) used = emitted;
+      if (env && feel(program, seen(hold ? env.values() : env.at(time + h)))) {
         rebuild(false);
         setTime(prep, time + h);
       }
@@ -377,6 +554,7 @@ export function createEngine(source) {
       ctx = next;
       pending = next;
       time += h;
+      if (emitting()) emitted = measure(prep, (p) => partReading(p, x, ctx, prep.floating));
       for (const p of prep.parts) {
         if ((p.kind !== 'LED' && p.kind !== 'LEDS') || p.unsupported) continue;
         const r = partReading(p, x, ctx, prep.floating);
@@ -390,11 +568,20 @@ export function createEngine(source) {
     // One step of h, as step(); when Newton fails, the same h in two halves (each split again, down
     // to a sixteenth). The step that follows is h again: a hard instant (diodes switching) costs a
     // few more steps there and slows nothing after it. false when even the shortest piece fails.
-    advance(h, depth = ADVANCE_SPLITS) {
-      if (this.step(h)) return true;
-      return depth > 0 && this.advance(h / 2, depth - 1) && this.advance(h / 2, depth - 1);
+    // Events inside h (a program waking from delayMicroseconds, a sensor's edge) end steps of their
+    // own, so what reads them sees them at their time (pulseIn, docs/en/microcontrollers.md). A
+    // failure in the middle returns false with the pieces before it taken: the time stands at the
+    // last piece that solved, as after a failed step.
+    advance(h) {
+      for (let k = 0; k < LANDINGS; k++) {
+        const soon = nextEvent();
+        if (!(soon > LAND_MIN && soon < h - LAND_MIN)) break;
+        if (!halving(this, soon, ADVANCE_SPLITS)) return false;
+        h -= soon;
+      }
+      return halving(this, h, ADVANCE_SPLITS);
     },
-    read: () => (x ? readAll(prep, x, ctx) : null),
+    read: () => (x ? mark(readAll(prep, x, ctx)) : null),
     get time() {
       return time;
     },
@@ -430,20 +617,25 @@ export function createEngine(source) {
       return out;
     },
     periods: () => program.supplies.filter((s) => s.generator && !s.off).map((s) => 1 / s.generator.frequency),
-    controls: () => [...controlsOf(program), ...environmentControls(env)],
+    // An environment's field an emitter writes carries `emitted`: what of it reaches the sensors now.
+    controls() {
+      const written = new Set(emitting() ? prep.emitters.flatMap((p) => p.emits) : []);
+      const ambient = env?.values();
+      return [...controlsOf(program), ...environmentControls(env).map((c) => (written.has(c.field) ? { ...c, emitted: emittedShare(c.field, used[c.field], ambient) } : c))];
+    },
     // The program as the controls left it (a copy): what the page exports to Falstad.
     program: () => JSON.parse(JSON.stringify(program)),
     set(id, field, value) {
       if (id === 'environment') {
         if (!env?.set(field, value)) return false;
-        return feel(program, env.values()) ? rebuild() : true;
+        return feel(program, seen(env.values())) ? rebuildSettled() : true;
       }
       if (!changeProgram(program, id, field, value)) return false;
-      return rebuild();
+      return rebuildSettled();
     },
     resume(id, field) {
       if (id !== 'environment' || !env?.resume(field)) return false;
-      return feel(program, env.values()) ? rebuild() : true;
+      return feel(program, seen(env.values())) ? rebuildSettled() : true;
     },
     attach(id, field) {
       const d = program.devices.find((dev) => dev.id === id && !dev.unsupported);
@@ -452,14 +644,21 @@ export function createEngine(source) {
       d.follows = [...(d.follows ?? []), field];
       d.env = { ...d.env, [field]: undefined };
       if (!env.fields().includes(field)) env.set(field, env.value(field));
-      feel(program, env.values());
-      return rebuild();
+      feel(program, seen(env.values()));
+      return rebuildSettled();
     },
-    environment: () => (env ? env.values() : {}),
+    environment: () => (env ? seen(env.values()) : {}),
+    ambient: () => (env ? env.values() : {}),
+    emissions() {
+      if (!emitting()) return {};
+      const ambient = env.values();
+      return Object.fromEntries(Object.entries(emitted).map(([field, e]) => [field, { total: e.total, parts: { ...e.parts }, ...(FIELDS[field].blockedBy && { blocked: isBlocked(field, ambient) }) }]));
+    },
     // The page's real-time pace: the span of each environment program and the shortest time of each
     // element that keeps its own clock (`span()`, seconds: a timed sensor's), as one list.
     stimuli: () => [...(env ? env.spans() : []), ...prep.system.elements.map((el) => el.span?.()).filter((s) => s > 0)],
   };
+  return api;
 }
 
 // The parts that follow a field take its new value (their device's `sense`, else its `set`): true
@@ -526,6 +725,9 @@ function changeProgram(program, id, field, value) {
   const s = program.supplies.find((sup) => (sup.part ?? sup.id) === id);
   return Boolean(s) && setSupply(s, field, value);
 }
+
+// One step of h, or two halves of it where Newton fails (each split again, `depth` times).
+const halving = (engine, h, depth) => engine.step(h) || (depth > 0 && halving(engine, h / 2, depth - 1) && halving(engine, h / 2, depth - 1));
 
 // What an element remembers between steps or Newton iterations: capacitor voltage, inductor
 // current, junction and transistor voltages. Matched by part and by the order the part added
@@ -603,9 +805,47 @@ function dc(prep) {
 
 // Transient: capacitors start discharged (start: 'zero', the supply switched on at t = 0)
 // or at their DC values (start: 'dc'). Fixed step; at most `points` samples are kept.
-function transient(prep, { stop, step, start = 'zero', points = 400 } = {}) {
-  // Elements with a memory (capacitors, inductors): they take each accepted step.
+// The stepping of a transient over a fixed `prep` (no emitters: nothing in it is rebuilt). An engine with
+// emitters drives the same loop with its own start and step (createEngine), so what the emitters add in a
+// step reaches the sensors in the next one, as in the page.
+//   begin(start, h) → error code or null;  step(t, h) → ok;  read(ctx) → readAll;  prep() → the prep now
+function fixedDrive(prep) {
+  // Elements with a memory (capacitors, inductors): they take each accepted step, at the start of the next.
   const caps = prep.system.elements.filter((el) => 'accept' in el);
+  let x = null;
+  let accepted = null;
+  return {
+    prep: () => prep,
+    begin(start, h) {
+      x = new Array(prep.system.size).fill(0);
+      setTime(prep, 0);
+      if (start === 'dc') {
+        const r = solveWithLimits(prep, x, {});
+        if (!r.ok) return 'SIM_NO_CONVERGENCE';
+        x = r.x;
+        for (const c of caps) c.accept(x, {});
+      }
+      // t = 0: the capacitors hold their starting voltage (a very short step pins them there).
+      const first = settle(prep, solveWithLimits(prep, x, { h: h * 1e-6 }), { h: h * 1e-6 });
+      if (!first.ok) return 'SIM_NO_CONVERGENCE';
+      x = first.x;
+      return null;
+    },
+    step(t, h) {
+      const ctx = { h };
+      if (accepted) for (const c of caps) c.accept(x, accepted);
+      setTime(prep, t);
+      const r = newton(prep.system, x, ctx);
+      if (!r.ok) return false;
+      x = r.x;
+      accepted = ctx;
+      return true;
+    },
+    read: (ctx) => readAll(prep, x, ctx),
+  };
+}
+
+function transient(prep, { stop, step, start = 'zero', points = 400 } = {}, drive = fixedDrive(prep)) {
   stop = Number(stop);
   step = Number(step);
   if (!(stop > 0)) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_BAD_TIME', {})] };
@@ -613,40 +853,27 @@ function transient(prep, { stop, step, start = 'zero', points = 400 } = {}) {
   const steps = Math.ceil(stop / step - 1e-9);
   if (steps > 2e5) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_BAD_TIME', {})] };
 
-  let x = new Array(prep.system.size).fill(0);
-  setTime(prep, 0);
-  if (start === 'dc') {
-    const r = solveWithLimits(prep, x, {});
-    if (!r.ok) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
-    x = r.x;
-    for (const c of caps) c.accept(x, {});
-  }
-  // t = 0: the capacitors hold their starting voltage (a very short step pins them there).
-  const first = settle(prep, solveWithLimits(prep, x, { h: step * 1e-6 }), { h: step * 1e-6 });
-  if (!first.ok) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
-  x = first.x;
+  const failed = drive.begin(start, step);
+  if (failed) return { analysis: 'transient', model: true, ok: false, issues: [...drive.prep().issues, issue('error', failed, {})] };
 
   const every = Math.max(1, Math.ceil(steps / points));
   const times = [];
   const samples = [];
   const record = (t, ctx) => {
     times.push(t);
-    samples.push(readAll(prep, x, ctx));
+    samples.push(drive.read(ctx));
   };
   record(0, { h: step * 1e-6 });
   const ctx = { h: step };
   const warnings = new Map();
   for (let k = 1; k <= steps; k++) {
-    setTime(prep, k * step);
-    const r = newton(prep.system, x, ctx);
-    if (!r.ok) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE_AT', { time: q(k * step, 's') })] };
-    x = r.x;
+    if (!drive.step(k * step, step)) return { analysis: 'transient', model: true, ok: false, issues: [...drive.prep().issues, issue('error', 'SIM_NO_CONVERGENCE_AT', { time: q(k * step, 's') })] };
     if (k % every === 0 || k === steps) {
       record(k * step, ctx);
-      for (const w of limitIssues(prep, samples.at(-1))) warnings.set(`${w.code}:${w.params.part ?? w.params.supply ?? ''}`, w);
+      for (const w of limitIssues(drive.prep(), samples.at(-1))) warnings.set(`${w.code}:${w.params.part ?? w.params.supply ?? ''}`, w);
     }
-    for (const c of caps) c.accept(x, ctx);
   }
+  prep = drive.prep();
 
   // Series: one array per node, per supply and per part quantity.
   const series = (pick) => samples.map(pick);

@@ -37,15 +37,29 @@ tiempo `examples/tours/environment.json` hace un video del primero.
 | `angle` | ° | 0…360 | 0…360 | lineal | 0 | nivel |
 | `reflectance` | % (del papel blanco) | 0…100 | 0…100 | lineal | 80 | nivel |
 | `beam` | (1 = cortado) | no / sí | 0…1 | | 0 | interruptor |
+| `pressure` | hPa | 300…1100 (paso 0,05) | 0…1500 | lineal | 1013,25 | nivel |
 
 El rango del deslizador es lo que ofrece la página; el límite, lo que un valor puede ser (un
 circuito, un `set` o un programa por fuera se recortan, y `check` lo dice). Hoy lo leen el
 termistor y la fotorresistencia (`temperature`, `light`), el LM35 (`temperature`), el interruptor
 de inclinación (`tilt`) y los módulos de sensor con LM393 ([modulos-sensores.md](modulos-sensores.md):
-`rain`, `moisture`, `light`, `beam`, `distance` y `reflectance`, `field`, `vibration`, y `angle` para un
-disco de encoder); los demás campos quedan listos para los sensores que vienen. `reflectance` (la
+`rain`, `moisture`, `light`, `beam`, `distance` y `reflectance`, `field`, `vibration`, `sound`, y `angle`
+para un disco de encoder), y también el sensor Hall lineal ([sensores-analogicos.md](sensores-analogicos.md):
+`field`) y el encoder rotativo KY-040 ([encoder-rotativo.md](encoder-rotativo.md): `angle` es el objetivo
+al que gira su eje); los demás campos quedan listos para los sensores que vienen. `field` lo leen el interruptor
+KY-024 y el 49E / KY-035 (un polo sur frente a la cara marcada es positivo); `sound`, en dB SPL, el módulo
+de micrófono KY-037. `reflectance` (la
 superficie bajo un seguidor de línea o frente a un sensor de obstáculos) y `beam` (algo en una ranura
 óptica) llegaron con esos módulos.
+Los sensores de clima que se leen con la biblioteca de una placa ([sensores-de-biblioteca.md](sensores-de-biblioteca.md))
+son los que leen `humidity` (el DHT11 y el BME280) y `pressure` (el BME280 y el BMP280), además de
+`temperature`. `pressure` es la del aire, en hPa; 1013,25 es la atmósfera estándar al nivel del mar.
+Su indicador es un barómetro, y su fila del panel dice también la altitud que esa presión significa en
+la atmósfera estándar, `h = 44330 · (1 − (p / 1013,25)^0,1903)` m (la fórmula de las bibliotecas; su
+inversa `p = 1013,25 · (1 − h / 44330)^5,255`: 1000 m son 898,8 hPa, y cerca del nivel del mar 1 hPa
+son unos 8,3 m). Una lección del clima la mueve entre unos 980 y 1040 hPa.
+El módulo ultrasónico HC-SR04 ([sensor-ultrasonico.md](sensor-ultrasonico.md)) lee `distance` y
+`temperature`, que fija la velocidad del sonido.
 
 ## En el circuito
 
@@ -225,6 +239,98 @@ escala, un paso si lo tiene, su valor por defecto y su tipo. Luego su nombre en 
 defecto (un glifo especial es una rama en `gauge.js`, solo donde enseña más). Un sensor se une como
 dice [agregar-componentes.md](agregar-componentes.md#7-un-sensor-unirse-al-ambiente).
 
-Los emisores (una pieza que cambia el ambiente: una lámpara que alumbra la fotorresistencia de al
-lado) no son parte de esto: la interfaz de dispositivos guarda el nombre `emits` para ellos, para más
-adelante.
+## Emisores
+
+Algunas piezas cambian el ambiente en lugar de leerlo: un módulo láser (`laser`, el KY-008) está
+«encendido, con cierta potencia», y todo sensor de luz recibe lo que agrega. Nada se apunta ni se
+dibuja, como no se dibuja nada para un sensor: el indicador de `light` muestra la suma, y quien aprende
+lee en el panel cuánto de ella da cada emisor.
+
+- Un dispositivo declara los campos que escribe (`emits: ['light']`) y una función pura
+  `emit(entry, reading) → { light: lux }`: lo que agrega ahora, desde su lectura resuelta (0 cuando
+  está apagado). Solo se pueden emitir campos del registro. Solo escriben las piezas declaradas como
+  emisores: un LED encendido no agrega luz (un LED indicador alumbra su propia lente, no un cuarto; si
+  lo hiciera, el LED de DO de un módulo de luz lo haría cambiar solo).
+- Lo que un sensor ve de un campo de **nivel** es el valor del ambiente (lo que dicen el circuito, el
+  deslizador o un programa) más la suma de lo que agregan los emisores, recortado al límite del campo;
+  de un campo **interruptor**, el ambiente O cualquier emisor.
+- **`beam` bloquea la luz emitida.** Mientras el `beam` del ambiente está encendido (1: algo se
+  interpone), la parte emitida de `light` no llega a los sensores; la luz del ambiente sí. Así se
+  corta una barrera sin dibujar nada (receta `laser-tripwire`). La regla es general: un campo del
+  registro puede nombrar el interruptor que bloquea su parte emitida (`blockedBy: 'beam'` para
+  `light`). Un circuito con un emisor de luz recibe `beam` en su ambiente, así que el panel ofrece el
+  botón.
+- Los emisores actúan solo en un circuito que declara `environment` (como los sensores lo siguen solo
+  entonces). De un emisor en un circuito sin ambiente avisan `check` y la simulación:
+  `ENV_EMITTER_ALONE` (info), el circuito necesita `"environment": {}` para que su luz llegue a los
+  sensores.
+
+### Cuándo llega la luz
+
+- **Pasos de tiempo:** lo que un emisor agrega en el paso n (desde los voltajes resueltos allí) es lo
+  que los sensores ven en el paso n + 1: un paso de retraso, como el programa de una placa lee los
+  pines del paso anterior. Un láser que un pin apaga desaparece de los sensores un paso después. Con un
+  pin PWM la emisión es la del paso, así que la luz parpadea con el pin, como la corriente de un LED
+  (el indicador la muestra moviéndose; el ojo de un sensor real la promediaría).
+- **En t = 0, después de un `set` y en `simulate()` en DC** no hay paso que esperar: el motor itera
+  (resuelve → emisiones → los sensores las sienten → resuelve) hasta que cada emisión cambia menos de
+  1e-3 de sí misma, o 8 rondas. Un circuito sin emisores nunca lo hace, y sus pasos de tiempo cuestan lo
+  mismo que antes.
+- **Un lazo que no se estabiliza** (una lámpara cuya propia luz la apaga: un láser alimentado por un
+  transistor que un sensor de luz corta cuando hay mucha luz) se queda con la última ronda y dice
+  `SIM_ENV_FEEDBACK` (una advertencia: qué emisor, qué campo, qué sensores). El circuito real
+  parpadearía o quedaría a medias; la página, paso a paso, lo muestra parpadeando. La nota llega con
+  los resultados en DC: `simulate()` (la CLI, la herramienta MCP, los avisos de la página) y
+  `engine.dc()`, antes o después de arrancar, mientras el último punto fijo (el del arranque o el de un
+  `set`) no se haya estabilizado; uno que se estabiliza la borra. `check` no resuelve el circuito, así
+  que nunca la dice, y avanzar en el tiempo no le agrega nada.
+- **Un transitorio** (`simulate --transient`, la herramienta MCP `simulate`) con emisores avanza el
+  mismo motor que la página, con el mismo paso de retraso (los programas del ambiente quietos, como en
+  todo transitorio); sin emisores corre como antes.
+- **`engine.dc()` en un motor ya arrancado** resuelve el circuito como está, con los sensores en lo
+  último que sintieron (al avanzar, la luz del paso anterior); no corre un punto fijo propio y no cambia
+  nada del motor en marcha. Antes de arrancar es el punto fijo.
+
+### En el motor y en la página
+
+- `engine.environment()` es lo que ven los sensores (el ambiente más la parte que les llega);
+  `engine.ambient()` el ambiente solo; `engine.emissions()` lo que agrega cada emisor ahora:
+  `{ light: { total, parts: { LS1: 9800 }, blocked } }` (`{}` sin emisores; `blocked` para un campo
+  que nombra quién lo bloquea).
+- La entrada de un campo en `engine.controls()` conserva `value` = el ambiente (el deslizador mueve el
+  ambiente) y gana `emitted`, la parte que llega a los sensores ahora (0 mientras está bloqueada),
+  cuando un emisor lo escribe. `engine.set('environment', 'light', v)` fija el ambiente. `emitted` es lo
+  que llega, recortado por el límite del campo (999 999 lx y un láser: 1 lx), mientras que el `total` de
+  `emissions()` es todo lo que agregan los emisores.
+- La página: la fila del panel y el indicador de un campo muestran lo que ven los sensores, y la fila
+  dice la parte en palabras («50 lx + 9,8 klx de LS1», o «50 lx · LS1 bloqueado (haz)»); el
+  deslizador se queda en el ambiente. La línea de la ficha de un sensor («Sigue el ambiente · luz
+  9,8 klx») dice el valor visto, y el `gauge` de un video también. La ficha del emisor dice lo que
+  agrega («agrega 9,8 klx a la luz», «por debajo de su umbral: sin haz», «bloqueado (haz)»).
+- `render-frames.js --parts` lista, junto a cada campo, las piezas que lo escriben.
+
+### El láser KY-008
+
+Pines `S`, `+`, `−` como los imprime la placa; el del medio no está conectado. Entre `S` y `−`, un
+diodo láser de 650 nm (Vf 2,2 V a 25 mA) tras una resistencia de 100 Ω: unos 28 mA y 3 mW a 5 V, 37,5 mA
+a 6 V. Potencia óptica P = 0,5 W/A · max(0, I − 22 mA); agrega K · P a `light`, con
+K = 3,33·10⁶ lx/W (3 mW → 10 000 lx). Esa K es una simplificación para enseñar: el punto de un haz
+pequeño es mucho más brillante que un cuarto y satura una fotorresistencia, que es lo que una barrera
+necesita; el número real depende del tamaño del punto. Por debajo de su umbral de 22 mA brilla como un
+LED tenue y no agrega nada (`SIM_LASER_DIM`, una nota). Conectado directo a un pin de un Arduino UNO recibe unos 20 mA (4,2 V tras los 40 Ω de resistencia
+de salida del pin, y luego los 100 Ω del módulo): bajo el umbral, así que solo brilla. Es la conexión habitual de los
+tutoriales y aquí no enciende el punto; un pin, tras su resistencia de salida, no puede dar la corriente, así que
+enciéndelo con un transistor, como hace `laser-uno`. El umbral es supuesto, no medido. Más de 40 mA es `SIM_OVER_CURRENT`; al revés
+con más de 2 V, `SIM_REVERSE_VOLTAGE`. Los números son supuestos (las piezas del módulo usual no están
+marcadas) y tienen nombre en `src/sim/devices/laser.js`. No tiene un campo propio: su potencia es la
+que le da el circuito.
+
+Recetas: `laser-tripwire` (el láser siempre encendido, un módulo `LDR-LM393` cuyo DO enciende un LED
+con un NPN cuando se corta el haz) y `laser-uno` (un pin del UNO hace parpadear el láser a 1 Hz; una
+fotorresistencia en A0 imprime la luz que ve); el recorrido `examples/tours/laser-tripwire.json`.
+
+### Agregar un emisor
+
+`emits` y `emit` en su dispositivo ([agregar-componentes.md](agregar-componentes.md#7-un-sensor-unirse-al-ambiente));
+nada más cambia en `src/sim`. Un campo que algo puede bloquear nombra a quien lo bloquea en el
+registro (`blockedBy`).

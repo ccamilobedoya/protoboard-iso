@@ -38,7 +38,9 @@
 // to the shaft's angle with an arrow as long as its speed, its brushes, and its supply against its
 // back-EMF; a PIR's dome and pyroelectric halves into a comparator, with a bar that drains with the
 // time left; a touch module's pad and finger as two plates of a capacitor, into its chip; an LM393 sensor module's divider and trimmer, AO and Vref as two bars against its supply,
-// the comparator and DO's LED lit while DO is low. Arrows
+// the comparator and DO's LED lit while DO is low; a laser module's chip between its two mirror faces,
+// glowing under its threshold and past it sending a beam out of the lens, its current against the
+// threshold under it. Arrows
 // never cross what they explain: they run beside the layers, under the channel, the film, the coil.
 // Didactic, not to scale.
 
@@ -916,6 +918,34 @@ const INSIDE = {
     const state = sounding ? 'sounding' : flowing(i) ? 'dc' : 'silent';
     label(g, 50, 114, r ? t(`page.tour.inside.buzzer.${state}`) : '', 'state');
   },
+  'buzzer-active'(g, r, data, { t, f }) {
+    // An active buzzer cut through: the oscillator chip that turns plain DC into a square wave of about
+    // 2.3 kHz, and the thin piezo disc it drives over a ring; while the voltage across it is at least
+    // its 3.5 V the disc is shaken and arcs of sound leave it. Reversed it does nothing.
+    const [a, b] = data.ids;
+    const i = r?.current ?? 0;
+    const sounding = Boolean(r?.sounding);
+    make(g, 'rect', { class: 'core', x: 14, y: 34, width: 72, height: 50, rx: 4 });
+    make(g, 'rect', { class: 'chip', x: 22, y: 56, width: 22, height: 18, rx: 2 });
+    make(g, 'path', { class: 'lead', d: 'M26 66H29V61H34V66H37V61H40' });
+    label(g, 33, 80, t('page.tour.inside.buzzer-active.osc'), 'note', 'middle', FIGURE.small);
+    make(g, 'rect', { class: 'metal', x: 52, y: 70, width: 30, height: 3 });
+    make(g, 'path', { class: `disc${sounding ? ' on' : ''}`, d: `M52 64Q67 ${sounding ? 58 : 62} 82 64` });
+    make(g, 'path', { class: 'lead', d: 'M30 84V96M70 84V96M44 66H52' });
+    label(g, 30, 95, a, 'pin-name', 'middle', FIGURE.text);
+    label(g, 70, 95, b, 'pin-name', 'middle', FIGURE.text);
+    const arcs = sounding ? 3 : 0;
+    for (let j = 0; j < arcs; j++) {
+      const rr = 7 + 7 * j;
+      const dx = fixed(rr * Math.sin(0.9));
+      const dy = fixed(50 - rr * Math.cos(0.9));
+      make(g, 'path', { class: 'sound', d: `M${fixed(67 - dx)} ${dy}A${rr} ${rr} 0 0 1 ${fixed(67 + Number(dx))} ${dy}` });
+    }
+    if (flowing(i)) shaft(g, i > 0 ? 34 : 66, 90, i > 0 ? 66 : 34, 90, widthOf(i));
+    label(g, 50, 103, r ? [`V ${f(r.voltage ?? 0, 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
+    const state = sounding ? 'sounding' : (r?.voltage ?? 0) < -0.5 ? 'reversed' : 'silent';
+    label(g, 50, 114, r ? t(`page.tour.inside.buzzer-active.${state}`, { min: f(data.minVoltage ?? 2, 'V'), frequency: f(data.frequency ?? 2300, 'Hz') }) : '', 'state');
+  },
   slide(g, r, data, { t, f, control }) {
     // Cut from the side, as its datasheet draws it: the frame with its three fixed contacts, 1, COM and
     // 2, each down to its pin; the knob on top carries the slider under it, which bridges COM to the
@@ -1054,6 +1084,112 @@ const INSIDE = {
     label(g, 50, 103, r ? [`${data.ids[1]} ${f(r.vcc, 'V')}`, `${sig} ${f(r.vout, 'V')}`, Math.abs(r.current) >= 1e-6 && `I ${f(Math.abs(r.current), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
     label(g, 50, 114, r ? t(`page.tour.inside.touch.${r.state}`) : '', 'state');
   },
+  encoder(g, r, data, { t, f, control }) {
+    // A toothed metal wheel on the shaft, turned by its angle, and two springy fingers on its rim a
+    // quarter of a cycle (4.5°) apart: A at the top, B just clockwise of it. A finger lit touches a tooth,
+    // which grounds its line. Under the wheel a strip of the two lines around the present position
+    // (twice the width of a cycle, left is behind), a mark on it where the shaft is.
+    const [clk, dt] = data.ids;
+    const pitch = 360 / (data.detents || 20);
+    const shaft = r?.shaft ?? control?.('angle') ?? data.angle ?? 0;
+    const closed = { a: Boolean(r?.closed?.CLK), b: Boolean(r?.closed?.DT) };
+    const [cx, cy, inner, outer] = [50, 42, 17, 22];
+    const at = (radius, deg) => `${fixed(cx + radius * Math.sin((deg * Math.PI) / 180))} ${fixed(cy - radius * Math.cos((deg * Math.PI) / 180))}`;
+    make(g, 'circle', { class: 'core', cx, cy, r: inner });
+    // A tooth spans 9° of each cycle; it touches finger A while the shaft is between 2.25° and 11.25°.
+    for (let k = 0; k < 360 / pitch; k++) {
+      const from = shaft + k * pitch - 11.25;
+      const to = from + pitch / 2;
+      make(g, 'path', { class: 'plate', d: `M${at(inner, from)}L${at(outer, from)}A${outer} ${outer} 0 0 1 ${at(outer, to)}L${at(inner, to)}A${inner} ${inner} 0 0 0 ${at(inner, from)}Z` });
+    }
+    make(g, 'path', { class: 'dim', d: `M${cx} ${cy}L${at(inner - 2, shaft)}` });
+    make(g, 'circle', { class: 'out', cx, cy, r: 2 });
+    // The fingers, drawn apart so they can be told: the contact points are 4.5° of the rim apart.
+    for (const [name, deg, on, x] of [[clk, 0, closed.a, 30], [dt, pitch / 4, closed.b, 70]]) {
+      make(g, 'path', { class: `blade${on ? ' on' : ''}`, d: `M${at(outer + 1, deg)}L${fixed(x)} 8` });
+      label(g, x, 6, name, 'pin-name', 'middle', FIGURE.small);
+    }
+    // The strip: each line high while its contact is open, low while closed, over -18°…+18° of the shaft.
+    const span = pitch * 2;
+    const start = shaft - span / 2;
+    const level = (deg, channel) => {
+      const u = ((deg / pitch) % 1 + 1) % 1;
+      return channel === 'a' ? u >= 0.125 && u < 0.625 : u >= 0.375 && u < 0.875;
+    };
+    [['a', 72, closed.a], ['b', 87, closed.b]].forEach(([channel, top, on]) => {
+      let d = '';
+      let was = null;
+      for (let i = 0; i <= 72; i++) {
+        const deg = start + (i * span) / 72;
+        const low = level(deg, channel);
+        const x = 8 + (84 * i) / 72;
+        const y = top + (low ? 8 : 0);
+        d += was === null ? `M${fixed(x)} ${y}` : was === low ? `H${fixed(x)}` : `V${y}H${fixed(x)}`;
+        was = low;
+      }
+      make(g, 'path', { class: `junction${on ? ' on' : ''}`, d });
+      label(g, 4, top + 6, channel.toUpperCase(), 'note', 'end', FIGURE.small);
+    });
+    make(g, 'path', { class: 'dim', d: 'M50 68V97' });
+    const dir = r?.direction > 0 ? 'cw' : r?.direction < 0 ? 'ccw' : 'still';
+    label(g, 50, 106, r ? `${clk} ${f(r.vclk, 'V')} · ${dt} ${f(r.vdt, 'V')} · ${t('sim.encoder.shaft', { angle: r.shaftShown, click: r.click, detents: r.detents })}` : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.encoder.${dir}`) : '', 'state');
+  },
+  hall(g, r, data, { t, f, control }) {
+    // The chip: the Hall plate (a thin sheet the supply pushes a current through), a magnet's field
+    // through it (an arrow as long as the field, pointing in for a south pole and out for a north one),
+    // and the output as a bar between ground and the supply, half way with no field and clamped near
+    // each rail, its marker where the output is now.
+    const id = (role) => data.ids[data.names.indexOf(data.roles[role])] ?? role;
+    const field = r?.field ?? control?.('field') ?? data.field ?? 0;
+    const vs = r?.vs > 0.1 ? r.vs : 5;
+    const vout = r ? r.vout : vs / 2;
+    const share = (v) => Math.max(0, Math.min(1, v / vs));
+    make(g, 'path', { class: 'lead', d: 'M36 4V30M60 54H70M36 78V94' });
+    make(g, 'rect', { class: 'core', x: 12, y: 30, width: 48, height: 48, rx: 3 });
+    make(g, 'rect', { class: 'film', x: 18, y: 50, width: 36, height: 10 });
+    label(g, 36, 46, t('page.tour.inside.hall.plate'), 'note', 'middle', FIGURE.small);
+    // The field through the plate: pointing down into it (south pole facing the face) when positive.
+    const k = Math.max(-1, Math.min(1, field / 500));
+    if (Math.abs(k) > 0.02) {
+      const len = 4 + 8 * Math.abs(k);
+      const [y1, y2] = k > 0 ? [64, 64 + len] : [64 + len, 64];
+      shaft(g, 36, y2, 36, y1, 1.5 + 2 * Math.abs(k));
+    }
+    label(g, 36, 76, `${String(Math.round(field)).replace('-', '−')} G`, 'note', 'middle', FIGURE.small);
+    // The output bar.
+    make(g, 'rect', { class: 'gauge', x: 74, y: 22, width: 8, height: 62 });
+    make(g, 'rect', { class: 'headroom', x: 74, y: fixed(84 - 62 * share(vout)), width: 8, height: fixed(62 * share(vout)) });
+    make(g, 'path', { class: 'lead', d: 'M71 53H85' });
+    label(g, 78, 18, id('out'), 'pin-name', 'middle', FIGURE.small);
+    label(g, 85, 56, '½', 'note', 'start', FIGURE.small);
+    label(g, 36, 12, id('vcc'), 'pin-name', 'start', FIGURE.text);
+    label(g, 36, 92, id('gnd'), 'pin-name', 'start', FIGURE.text);
+    label(g, 50, 103, r ? `Vs ${f(r.vs, 'V')} · Vout ${f(r.vout, 'V')}` : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.hall.${r.state}`, { min: f(2.7, 'V') }) : '', 'state');
+  },
+  divider5(g, r, data, { t, f }) {
+    // The module's two resistors in series between the terminal's VIN and GND, the S pin on their
+    // middle: a bar for each voltage against the input, S one fifth of it.
+    const id = (name) => data.ids[data.names.indexOf(name)] ?? name;
+    const vin = r ? Math.max(r.vin, 0) : 0;
+    const share = r && vin > 0.05 ? Math.max(0, Math.min(1, r.vs / vin)) : 0.2;
+    make(g, 'path', { class: 'lead', d: 'M30 6V16M30 40V52M30 52V60M30 84V94M30 52H60' });
+    make(g, 'rect', { class: 'film', x: 22, y: 16, width: 16, height: 24 });
+    make(g, 'rect', { class: 'film', x: 22, y: 60, width: 16, height: 24 });
+    label(g, 44, 31, '30 kΩ', 'note', 'start', FIGURE.small);
+    label(g, 44, 75, `7${decimalOf(f)}5 kΩ`, 'note', 'start', FIGURE.small);
+    label(g, 30, 4, id('VIN'), 'pin-name', 'middle', FIGURE.small);
+    label(g, 30, 102, id('GND'), 'pin-name', 'middle', FIGURE.small);
+    // Two bars: the input against itself, and S as its share.
+    for (const [x, v, cls, name] of [[72, 1, 'soc', 'VIN'], [86, share, 'headroom', 'S']]) {
+      make(g, 'rect', { class: 'gauge', x, y: 22, width: 8, height: 62 });
+      make(g, 'rect', { class: cls, x, y: fixed(84 - 62 * v), width: 8, height: fixed(62 * v) });
+      label(g, x + 4, 18, name, 'pin-name', 'middle', FIGURE.small);
+    }
+    label(g, 50, 103, r ? `${id('VIN')} ${f(r.vin, 'V')} · S ${f(r.vs, 'V')}` : '', 'note');
+    label(g, 50, 114, r ? t('page.tour.inside.divider5.state', { current: f(Math.abs(r.current), 'A') }) : '', 'state');
+  },
   module(g, r, data, { t, f, control }) {
     // An LM393 sensor module as its board: the divider (the fixed 10 kΩ over the element, AO between
     // them), the trimmer's Vref, AO and Vref as two bars against VCC (the one that is lower decides),
@@ -1069,6 +1205,11 @@ const INSIDE = {
     make(g, 'rect', { class: 'film', x: 12, y: 12, width: 12, height: 22 });
     make(g, 'rect', { class: 'core', x: 10, y: 46, width: 16, height: 28, rx: 2 });
     label(g, 18, 63, t(`page.tour.inside.module.${data.element ?? 'comb'}`), 'note', 'middle', FIGURE.small);
+    // An electret capsule: the thin charged diaphragm in front of a metal plate (sound moves it).
+    if (data.element === 'electret') {
+      make(g, 'path', { class: 'disc', d: 'M12 52Q18 48 24 52' });
+      make(g, 'rect', { class: 'metal', x: 12, y: 68, width: 12, height: 2 });
+    }
     label(g, 18, 26, '10k', 'quiet', 'middle', FIGURE.small);
     // The trimmer: a track from VCC to GND, its wiper at the threshold.
     make(g, 'rect', { class: 'film', x: 45, y: 12, width: 6, height: 58 });
@@ -1092,7 +1233,108 @@ const INSIDE = {
     label(g, 98, 46, id(data.doPin ?? 'DO'), 'pin-name', 'end', FIGURE.small);
     label(g, 50, 103, r ? `AO ${f(ao, 'V')} · Vref ${f(vref, 'V')} · ${id(data.doPin ?? 'DO')} ${f(r.vdo, 'V')}` : '', 'note');
     const field = data.field ?? 'rain';
-    label(g, 50, 114, r ? t(`page.tour.inside.module.${low ? 'low' : 'high'}`, { what: t(`sim.sensor-module.${field}.${r.detected ? 'detected' : 'idle'}`) }) : '', 'state');
+    label(g, 50, 114, r ? (r.level === 'switching' ? t('sim.sensor-module.switching') : t(`page.tour.inside.module.${low ? 'low' : 'high'}`, { what: t(`sim.sensor-module.${field}.${r.detected ? 'detected' : 'idle'}`) })) : '', 'state');
+  },
+  laser(g, r, data, { t, f }) {
+    // The laser diode's chip between its two cleaved faces (the mirrors), the light inside it growing
+    // with the current: a glow under the threshold, past it a band that fills the chip and leaves
+    // through the lens as a straight beam, as long as the optical power. Under it the current against
+    // the threshold (a bar), and the optical power.
+    const [s, , minus] = data.ids;
+    const i = Math.max(0, r?.current ?? 0);
+    const lasing = r?.state === 'lasing';
+    const glow = Math.min(1, i / (data.threshold || 0.022));
+    make(g, 'path', { class: 'lead', d: 'M4 30H22V40M4 70H22V60' });
+    make(g, 'rect', { class: 'core', x: 22, y: 40, width: 44, height: 20, rx: 2 });
+    make(g, 'rect', { class: 'chip', x: 26, y: 46, width: 36, height: 8, fill: data.color, opacity: fixed(0.15 + (lasing ? 0.85 : 0.35 * glow)) });
+    make(g, 'rect', { class: 'metal', x: 22, y: 42, width: 3, height: 16 });
+    make(g, 'rect', { class: 'metal', x: 63, y: 42, width: 3, height: 16 });
+    make(g, 'path', { class: 'lens', d: 'M74 38A6 12 0 0 1 74 62A6 12 0 0 1 74 38Z' });
+    if (lasing) {
+      const len = Math.min(22, 6 + 4 * ((r.opticalPower ?? 0) * 1e3));
+      make(g, 'path', { class: 'light', d: `M66 50H${fixed(74 + len)}` });
+      make(g, 'path', { class: 'light-head', d: `M${fixed(78 + len)} 50L${fixed(72 + len)} 46.5L${fixed(72 + len)} 53.5Z` });
+    }
+    label(g, 4, 26, s, 'pin-name', 'start', FIGURE.text);
+    label(g, 4, 82, minus, 'pin-name', 'start', FIGURE.text);
+    // The current against the threshold: the bar's mark at Ith, full at the current it is rated for.
+    const top = data.maxCurrent || 0.04;
+    make(g, 'rect', { class: 'film', x: 22, y: 76, width: 56, height: 6, rx: 2 });
+    if (i > 0) make(g, 'rect', { class: lasing ? 'soc' : 'headroom', x: 22, y: 76, width: fixed(56 * Math.min(1, i / top)), height: 6, rx: 2 });
+    make(g, 'path', { class: 'lead', d: `M${fixed(22 + (56 * (data.threshold || 0.022)) / top)} 73V85` });
+    label(g, 50, 92, `Ith ${f(data.threshold || 0.022, 'A')}`, 'quiet', 'middle', FIGURE.small);
+    label(g, 50, 103, r ? [`I ${f(i, 'A')}`, lasing && `P ${f(r.opticalPower ?? 0, 'W')}`].filter(Boolean).join(' · ') : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.laser.${r.state}`) : '', 'state');
+  },
+  sonar(g, r, data, { t, f }) {
+    // An ultrasonic module from the side: T and R (two piezo discs in their cans) look at a wall; the
+    // burst leaves T as arcs, reaches the wall half way through the echo and comes back to R; the bar
+    // under them fills with the round trip while ECHO is high, its lamp lit, and the width it reads
+    // with the distance that width means (÷ 58 µs per cm).
+    const [vcc, trig, echo] = data.ids;
+    const state = r?.state ?? 'idle';
+    const k = state === 'echo' && r.length > 0 ? Math.max(0, Math.min(1, 1 - r.left / r.length)) : 0;
+    const back = state === 'echo' && !r.noEcho && k >= 0.5;
+    make(g, 'path', { class: `disc${state === 'burst' || (state === 'echo' && k < 0.08) ? ' on' : ''}`, d: 'M12 20V40' });
+    make(g, 'path', { class: `disc${back && k > 0.92 ? ' on' : ''}`, d: 'M12 52V72' });
+    label(g, 6, 33, 'T', 'pin-name', 'middle', FIGURE.small);
+    label(g, 6, 65, 'R', 'pin-name', 'middle', FIGURE.small);
+    make(g, 'rect', { class: 'plate', x: 86, y: 14, width: 4, height: 64 });
+    label(g, 88, 10, r ? `${Math.round(r.distance)} cm` : '', 'note', 'middle', FIGURE.small);
+    // The sound: arcs near T in the burst; out to the wall and back to R in the echo.
+    const arcs = (x, y, out) => {
+      for (const dx of [0, 4]) make(g, 'path', { class: 'sound', d: `M${fixed(x + (out ? dx : -dx))} ${y - 8}A10 10 0 0 ${out ? 1 : 0} ${fixed(x + (out ? dx : -dx))} ${y + 8}` });
+    };
+    if (state === 'burst') arcs(16, 30, true);
+    else if (state === 'echo' && !back) arcs(16 + (84 - 20) * Math.min(1, 2 * k), r.noEcho ? 30 : 30 + 16 * Math.min(1, 2 * k), true);
+    else if (back) arcs(84 - (84 - 20) * (2 * k - 1), 46 + 16 * (2 * k - 1), false);
+    // The round trip: a bar that fills while ECHO is high, and ECHO's lamp.
+    make(g, 'rect', { class: 'film', x: 8, y: 82, width: 72, height: 7, rx: 2 });
+    if (k > 0) make(g, 'rect', { class: 'soc', x: 8, y: 82, width: fixed(72 * k), height: 7, rx: 2 });
+    make(g, 'circle', { class: `out${state === 'echo' ? ' active' : ''}`, cx: 91, cy: 85.5, r: 4 });
+    label(g, 91, 96, echo, 'pin-name', 'middle', FIGURE.small);
+    label(g, 44, 96, r && r.width != null ? (r.noEcho ? t('page.tour.inside.sonar.none', { time: f(r.width, 's') }) : `${f(r.width, 's')} → ${Math.round(r.means)} cm`) : '', 'note', 'middle', FIGURE.small);
+    // Under a millivolt it is the solver's leakage, not a level.
+    const v = (x) => f(Math.abs(x) < 1e-3 ? 0 : x, 'V');
+    label(g, 50, 103, r ? [`${vcc} ${v(r.vcc)}`, `${trig} ${v(r.vtrig)}`, `${echo} ${v(r.vecho)}`].join(' · ') : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.sonar.${state}`) : '', 'state');
+  },
+  climate(g, r, data, { t, f }) {
+    // What a climate sensor senses: a film between two electrodes that takes up water vapour (its dots
+    // grow with the humidity), a thermistor's column (the temperature), on a BME280 / BMP280 a membrane
+    // over a sealed cavity that bends with the pressure; under them the chip that turns them into the
+    // numbers it sends when the board asks, and what it would answer now.
+    const s = r?.sensor ?? {};
+    const temperature = s.temperature ?? data.temperature ?? 25;
+    const humidity = s.humidity ?? 50;
+    const pressure = s.pressure ?? 1013.25;
+    if (data.humidity) {
+      make(g, 'rect', { class: 'plate', x: 8, y: 16, width: 30, height: 3 });
+      make(g, 'rect', { class: 'film', x: 8, y: 20, width: 30, height: 12 });
+      make(g, 'rect', { class: 'plate', x: 8, y: 33, width: 30, height: 3 });
+      const dots = Math.round(Math.max(0, Math.min(100, humidity)) / 10);
+      for (let k = 0; k < dots; k++) make(g, 'circle', { class: 'soc', cx: fixed(11 + (k % 5) * 6), cy: k < 5 ? 23.5 : 28.5, r: 1.4 });
+      label(g, 23, 46, `${Math.round(humidity)} %RH`, 'note', 'middle', FIGURE.small);
+    }
+    const k = Math.max(0, Math.min(1, (temperature + 20) / 120));
+    make(g, 'rect', { class: 'gauge', x: 46, y: 12, width: 6, height: 26 });
+    make(g, 'rect', { x: 46, y: fixed(12 + 26 * (1 - k)), width: 6, height: fixed(26 * k), fill: HEAT_COLOR, opacity: fixed(0.35 + 0.6 * k) });
+    label(g, 49, 46, celsius(temperature, f), 'note', 'middle', FIGURE.small);
+    if (data.pressure) {
+      // The cavity's lid bows in with more pressure, out with less (1013 hPa: flat).
+      const bow = Math.max(-6, Math.min(6, (pressure - 1013.25) / 50));
+      make(g, 'path', { class: 'lead', d: 'M62 38V22M94 38V22M62 38H94' });
+      make(g, 'path', { class: 'metal', d: `M62 22Q78 ${fixed(22 + 2 * bow)} 94 22V20Q78 ${fixed(20 + 2 * bow)} 62 20Z` });
+      label(g, 78, 46, `${Math.round(pressure)} hPa`, 'note', 'middle', FIGURE.small);
+    }
+    make(g, 'rect', { class: 'core', x: 18, y: 56, width: 64, height: 22, rx: 2 });
+    label(g, 50, 70, data.part ?? '', 'pin-name', 'middle', FIGURE.small);
+    make(g, 'path', { class: 'lead', d: 'M23 38V56M49 38V56M78 38V56' });
+    const a = r?.answer;
+    const answer = a ? [Number.isFinite(a.temperature) && celsius(a.temperature, f), Number.isFinite(a.humidity) && `${String(Math.round(a.humidity * 100) / 100).replace('.', decimalOf(f))} %RH`, Number.isFinite(a.pressure) && `${Math.round(a.pressure / 100)} hPa`].filter(Boolean).join(' · ') : '';
+    label(g, 50, 92, data.ids.join(' · '), 'pin-name', 'middle', FIGURE.small);
+    label(g, 50, 103, answer, 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.climate.${r.state}`) : '', 'state');
   },
 };
 

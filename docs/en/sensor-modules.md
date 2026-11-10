@@ -13,10 +13,13 @@ over it, a blue trimmer and an LM393 comparator with two LEDs. The kit has them 
 The code: `src/parts/sensors.js` (`SENSOR_MODULES`: the table of the part numbers, and the element
 formulas), `src/parts/types/sensor-modules.js` (the type), `src/parts/packages/sensor-module.js`
 (the drawing), `src/sim/devices/sensor-module.js` (the simulation). Recipes: `rain-alarm`,
-`soil-led`, `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`
-([recipes.md](recipes.md)); timelines `examples/tours/soil-led.json` and `obstacle-buzzer.json`.
-`rain-alarm` switches its buzzer with a PNP, not an NPN: DO goes low when the module detects, and an
-NPN driven by it would sound while the comb is dry.
+`soil-led`, `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`,
+`clap-switch`, `sound-level-led` ([recipes.md](recipes.md)); timelines `examples/tours/soil-led.json`,
+`obstacle-buzzer.json` and `clap-switch.json`. `rain-alarm` and `obstacle-buzzer` switch an active buzzer
+with a PNP, not an NPN: DO goes low when the module detects, and an NPN driven by it would sound while
+the comb is dry (the buzzer takes about 30 mA at 5 V, more than the LM393's 20 mA output
+could carry). The analog sensors that are not on this board (the linear Hall 49E, the voltage sensor
+module) are in [analog-sensors.md](analog-sensors.md).
 
 ## The common board
 
@@ -43,7 +46,7 @@ VCC ─┬─ 1 kΩ ─ power LED ─ GND
 - Currents at 5 V: about 3.9 mA with DO high, 7.5 mA with DO low; the infrared ones add their LED's
   25 mA (about 29 mA in all).
 
-## The eight parts
+## The nine parts
 
 | Part | Board pins | Field it senses (own value) | Element | DO low means |
 |---|---|---|---|---|
@@ -55,6 +58,7 @@ VCC ─┬─ 1 kΩ ─ power LED ─ GND
 | `KY-024` | DO + G AO | `field` (`field`, G) | A3144 Hall switch, on at 160 G, off at 105 G | a south pole near it |
 | `SW-420-M` | DO GND VCC | `vibration` (`vibration`) | spring contact, 10 Ω closed | at rest (high while shaken) |
 | `FC-51` | OUT GND VCC | `distance`, `reflectance` (both) | IR LED and receiver side by side | an obstacle (9 cm for white) |
+| `KY-037` | DO + G AO | `sound` (`sound`, dB SPL) | electret capsule, its bias at VCC/2 | a loud sound (above about 98 dB) |
 
 A value on the part wins over the circuit's environment, field by field
 ([environment.md](environment.md)); moving the part's own control in its card detaches it from that
@@ -78,6 +82,17 @@ Each element in short:
 - **Hall**: the A3144 is a latch: on at 160 G, off at 105 G, kept between (it lives in the element's
   `closed`, which the engine carries when a slider moves). AO jumps between about 0.09 V and VCC. The
   chip is specified from 4.5 V: on 3.3 V it works but says `SIM_MODULE_LOW_SUPPLY`.
+- **Sound (KY-037)**: an electret capsule with a JFET and a 10 kΩ bias, so AO sits at **VCC/2** (2.5 V at
+  5 V) and the audio rides on it: 6.3 mV rms per pascal, `Vrms = 6.3 mV · 10^((dB − 94) / 20)`, whose peak is
+  8.9 mV at 94 dB, 17.8 mV at 100 dB and 56 mV at 110 dB. The kit does it as an **envelope**: AO stays
+  the DC bias and the card shows the AC peak beside it, and DO goes low while that peak is larger than the
+  gap between AO and Vref, `Vpk > Vbias − Vref` (a source of the peak between the trimmer and the
+  comparator does it; there is no waveform, no hold time). The trimmer's default puts Vref 15 mV under the
+  bias (`threshold` 0.497 at 5 V), so DO falls above about 98.5 dB (on 3.3 V the same share of VCC leaves the gap at about 10 mV, so it falls from about 95 dB: the trimmer's setting is a share of the supply, the bias too, but the signal is not); the `threshold` slider moves it in
+  steps of 0.05 %. **The real board needs its trimmer set within millivolts of the bias** (a 25-turn
+  trimmer, turned until the DO LED just goes out in a quiet room): a few millivolts too far and it never
+  triggers or is always low, which is the experience this model keeps. Up close, the element is the
+  capsule: a charged diaphragm in front of a plate. It senses the environment's `sound`.
 - **Vibration**: shaken, the contact chatters in cells of 10 ms ± 50 %, open for the first 40 % of
   each, the pattern fixed by a seed (`seed` on the part, else its id), so DO comes in bursts of about
   100 pulses a second; once it stops, it settles closed within one more cell. The page steps in
@@ -92,14 +107,14 @@ Each element in short:
 | `SIM_IC_SUPPLY` | VCC over 5.5 V (the board's rating; a warning, so 5 V does not read as near it) |
 | `SIM_REVERSE_VOLTAGE` | VCC reversed by more than 0.3 V |
 | `SIM_OVER_CURRENT` | DO sinking over 20 mA (`U1.DO`, or `U1.OUT` on the FC-51, which prints OUT), an IR LED over 60 mA (`U1.IR`), the Hall output over 25 mA |
-| `SIM_MODULE_LOW_SUPPLY` | VCC under the LM393's 2 V, or the Hall chip's 4.5 V |
+| `SIM_MODULE_LOW_SUPPLY` | VCC under the LM393's 2 V, or the Hall chip's 4.5 V (the linear Hall sensor's 2.7 V uses it too) |
 | `SIM_MODULE_CORROSION` | DC through a wet comb or the soil (info) |
 
-## Adding a ninth part
+## Adding a tenth part
 
 One row in `SENSOR_MODULES` (`src/parts/sensors.js`): its pins in the order the board prints them
 (and `print` when the print differs), the fields it senses (`own` when the part calls one otherwise),
-its element (one of the eight kinds, or a new one with its formula in the same file and its element
+its element (one of the nine kinds: the KY-037's `electret` is the latest, or a new one with its formula in the same file and its element
 in the device), the trimmer's total and its parameters with their source tags. One glyph in
 `glyph()` of the package when its element looks new. Then its describe text
 (`describe.sensor-module.<part>`), a check against the element's own formula in

@@ -27,5 +27,9 @@ import { slide, tilt } from './board-switch.js';
 import { relay, motor } from './actuators.js';
 import { pirModule, touchModule } from './timed-sensors.js';
 import sensorModule from './sensor-module.js';
+import encoderModule from './encoder-module.js';
+import { laserModule } from './laser.js';
+import { ultrasonicModule } from './ultrasonic.js';
+import { dhtModule, bmeBoard } from './climate.js';
 
-export const PACKAGES = Object.fromEntries([axial, led, radialCan, disc, to220, to92, pot, tactile, dip, wire, battery, trimmer, kbp, devboard, uno, despi, ams1117, rocker, latching, bead, ldr, buzzer, header, ledRgb, sevenSegment, slide, tilt, relay, motor, pirModule, touchModule, sensorModule].map((p) => [p.id, p]));
+export const PACKAGES = Object.fromEntries([axial, led, radialCan, disc, to220, to92, pot, tactile, dip, wire, battery, trimmer, kbp, devboard, uno, despi, ams1117, rocker, latching, bead, ldr, buzzer, header, ledRgb, sevenSegment, slide, tilt, relay, motor, pirModule, touchModule, sensorModule, encoderModule, laserModule, ultrasonicModule, dhtModule, bmeBoard].map((p) => [p.id, p]));

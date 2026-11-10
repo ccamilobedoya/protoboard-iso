@@ -192,8 +192,7 @@ que un tipo nuevo viene con todas, y los tipos del kit se van completando hasta 
 `test/pinout.test.js` («a part up close») sostiene la regla: cada tipo de `PART_TYPES` está en `COMPLETE`
 (revisado en todo lo anterior) o en `PENDING` con su motivo. Un tipo nuevo que no esté en ninguna de las
 dos hace fallar la prueba, así la decisión se toma y no se olvida; pasar un tipo de `PENDING` a `COMPLETE`
-es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC, módulo PIR, módulo táctil). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
-es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC, módulo de sensor con LM393). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
+es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC, módulo PIR, módulo táctil, módulo de sensor con LM393, módulo láser). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
 y la página de cerca en un celular.
 
 ## 7. Un sensor: unirse al ambiente
@@ -220,10 +219,31 @@ del campo, y que un valor en la pieza gana (`test/environment.test.js`).
 
 Un sensor que responde en el tiempo (el retardo de un PIR, la respuesta de un módulo táctil) tiene
 memoria propia: lista las claves de sus elementos en `state: [...]` para que `engine.set` las lleve,
-y puede dar `maxStep()` y `span()`; mira [sensores-temporizados.md](sensores-temporizados.md).
+y puede dar `maxStep()` y `span()`; mira [sensores-temporizados.md](sensores-temporizados.md). Un sensor que sigue un
+campo a través de una pieza que se mueve (el eje del encoder rotativo, que persigue el `angle` del
+ambiente a una velocidad acotada) guarda esa pieza en el mismo estado heredado y escribe su
+movimiento primero como función pura: [encoder-rotativo.md](encoder-rotativo.md). Uno
+cuya salida un programa mide al microsegundo (el eco del HC-SR04) nombra su próximo flanco con
+`until()`, y el motor termina un paso ahí; mira [sensor-ultrasonico.md](sensor-ultrasonico.md). Uno que
+la placa lee con su biblioteca (un DHT11, un BME280) responde las preguntas de la placa en vez de
+manejar un pin: su elemento declara `library: { classes, bus }` y `answer(request)`, y la clase y sus
+métodos van en `src/sim/libraries.js`; mira [sensores-de-biblioteca.md](sensores-de-biblioteca.md#agregar-otro-sensor-de-biblioteca).
 Un sensor en la placa de comparador de siempre (lluvia, suelo, luz, una ranura o un par infrarrojo,
 un interruptor Hall, un contacto de vibración) no es un tipo nuevo: es una fila de la tabla de
-`sensor-module`, su elemento y un glifo ([modulos-sensores.md](modulos-sensores.md#agregar-una-novena-pieza)).
+`sensor-module`, su elemento y un glifo ([modulos-sensores.md](modulos-sensores.md#agregar-una-décima-pieza)). Un sensor cuya salida es un voltaje que sigue al campo (el sensor Hall
+lineal, el módulo sensor de voltaje) es un tipo propio con un dispositivo de comportamiento
+([sensores-analogicos.md](sensores-analogicos.md)); dos dispositivos pueden compartir un tipo (el zumbador
+activo y el pasivo) cuando cada uno dice qué números de parte `accepts`.
+
+Un **emisor** es al revés: una pieza cuyo estado eléctrico escribe un campo (un láser agrega luz,
+[ambiente.md](ambiente.md#emisores)). Su dispositivo declara `emits: ['light']` y una función pura
+`emit(entry, reading)` que devuelve lo que agrega ahora desde su propia lectura (`{ light: lux }`, 0
+cuando está apagado); el motor lo suma al ambiente para todo sensor del campo, un paso de tiempo
+después, y resuelve el punto fijo donde no hay paso (el arranque, un `set`, DC). Nada más cambia: ni
+un enlace a un sensor ni geometría. Dale a la lectura lo que su ficha dice de él (el motor pone
+`emission` en la lectura: el valor que agrega y si está bloqueado), prueba lo que agrega en dos puntos
+de operación, y que un circuito sin `environment` recibe `ENV_EMITTER_ALONE` (`test/emitters.test.js`).
+Un campo que algo puede bloquear nombra a quien lo bloquea en `FIELDS` (`blockedBy`).
 
 ## Pruebas
 

@@ -2,6 +2,7 @@
 // LED shows the output (lit = high).
 export default {
   name: 'button-pullup',
+  group: 'basics',
   title: { en: 'Button with a pull-up resistor', es: 'Pulsador con resistencia de pull-up' },
   teaches: { en: 'Released, R1 pulls the output up (LED on); pressed, S1 takes it to ground (LED off)', es: 'Suelto, R1 lleva la salida arriba (LED encendido); presionado, S1 la lleva a tierra (LED apagado)' },
   parts: [

@@ -22,6 +22,7 @@ void loop() {
 
 export default {
   name: 'touch-uno',
+  group: 'sensors',
   title: { en: 'Arduino UNO: touch sensor', es: 'Arduino UNO: sensor táctil' },
   teaches: { en: 'The TTP223 gives a clean digital level that follows the finger, 60 to 220 ms late; the program prints each change; on the UNO\'s 3.3 V its output is 3.3 V, enough for a HIGH', es: 'El TTP223 da un nivel digital limpio que sigue al dedo, con 60 a 220 ms de retraso; el programa imprime cada cambio; con los 3,3 V del UNO su salida es de 3,3 V, suficiente para un HIGH' },
   parts: [

@@ -2,6 +2,7 @@
 // "virtual ground"), a sine around that level through R1, gain −R2/R1 (−2 by default).
 export default {
   name: 'opamp-inverting',
+  group: 'op-amps',
   title: { en: 'Inverting amplifier', es: 'Amplificador inversor' },
   teaches: { en: 'Gain = −R2/R1 around the reference on V+: the output is twice the input, upside down', es: 'Ganancia = −R2/R1 alrededor de la referencia en V+: la salida es el doble de la entrada, invertida' },
   parts: [

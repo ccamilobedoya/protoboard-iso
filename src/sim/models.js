@@ -210,11 +210,19 @@ export const OPAMPS = {
 // pull-ups 45 kΩ, ADC 12 bits up to about 3.1 V at 11 dB); ESP32-C3 datasheet v2.4 (ADC up to
 // 2.5 V at 11 dB); Microchip ATmega328P datasheet (VOH 4.2 V at 20 mA, VIL 0.3·VCC, VIH 0.6·VCC,
 // pull-ups 20–50 kΩ, 40 mA absolute per pin, ADC 10 bits on AVCC); Arduino UNO R3 schematic.
+// adcRef 'vdd': the ADC's full scale is the board's own solved logic rail (the UNO's AVcc, the USB's 5 V
+// a little under 5 V behind its cable), not the nominal adcFull: a ratiometric sensor then reads the same
+// count whatever the supply. The ESP32 families keep their fixed reference (adcFull).
 export const MCUS = {
   esp32: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 3.1, own: 0.04, maxPin: 0.04, usbResistance: 0.2, regulator: { dropout: 1.1, quiescent: 5e-3, maxCurrent: 0.8, maxPower: 1 } },
   esp32c3: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 2.5, own: 0.02, maxPin: 0.04, usbResistance: 0.2, regulator: { dropout: 0.1, quiescent: 40e-6, maxCurrent: 0.5, maxPower: 0.5 } },
-  uno: { vdd: 5, outputResistance: 40, pull: 35e3, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5, own: 0.045, maxPin: 0.04, usbResistance: 0.3, regulator: { dropout: 0.28, quiescent: 1e-3, maxCurrent: 0.15, maxPower: 0.3 } },
+  uno: { vdd: 5, outputResistance: 40, pull: 35e3, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5, adcRef: 'vdd', own: 0.045, maxPin: 0.04, usbResistance: 0.3, regulator: { dropout: 0.28, quiescent: 1e-3, maxCurrent: 0.15, maxPower: 0.3 } },
 };
+// The default I2C pins of each family's Arduino core (Wire with no pins), as GPIO numbers: the UNO's
+// A4 = SDA and A5 = SCL [D]; the ESP32 DevKit's GPIO21 / GPIO22 [D]; the ESP32-C3's GPIO8 / GPIO9 [T]
+// (the common DevKitM-1 and SuperMini default). A library sensor on I2C answers only on these
+// (docs/en/library-sensors.md).
+export const I2C_PINS = { uno: { sda: 18, scl: 19 }, esp32: { sda: 21, scl: 22 }, esp32c3: { sda: 8, scl: 9 } };
 
 // LM35 precision centigrade temperature sensors (Texas Instruments LM35 datasheet, SNIS159H,
 // sections 6.1 and 6.7). Its output is 10 mV per °C over 0 V (0 mV at 0 °C: 250 mV at 25 °C).
@@ -317,3 +325,114 @@ export const PIR = { maxReverse: 0.3, minSupply: 4.5, maxSupply: 20, logic: 3.3,
 //   quiescent            3 µA in low-power mode and 7 µA in fast mode (maximum values), as a
 //                        resistor at 3.3 V
 export const TOUCH = { maxReverse: 0.3, minSupply: 2, maxSupply: 5.5, response: 0.22, fastResponse: 0.06, settle: 0.5, highResistance: 150, lowResistance: 75, sourceSpec: 4e-3, sinkSpec: 8e-3, maxCurrent: 10e-3, quiescent: 3e-6, fastQuiescent: 7e-6, quiescentAt: 3.3 };
+
+// Rotary encoder EC11 on the KY-040 module (docs/en/rotary-encoder.md; ALPS EC11 datasheets, the module
+// manuals):
+//   contact 0.1 Ω        a closed contact, the datasheet's 100 mΩ maximum
+//   maxCurrent 10 mA     the contacts' rating at 5 V DC; maxVoltage 12 V [A] where the kit warns
+//   pullup 10 kΩ         from `+` to CLK, DT and SW on the module (some clones omit SW's)
+//   (speed 360 °/s, 20 pulses and 20 detents are the type's own defaults, src/parts/types/rotary-encoder.js,
+//   which a type may not import from here)
+//   stepsPerQuarter 25 [A]  the element asks for steps of a twenty-fifth of the time between two edges
+//                        (0.5 ms at 360 °/s), deliberately finer than the twentieth the datasheet-derived
+//                        notes suggest: a step's end is where an edge is seen, so this keeps every edge
+//                        within 0.5 ms of its time
+export const ENCODER = { contact: 0.1, maxCurrent: 10e-3, maxVoltage: 12, pullup: 10e3, stepsPerQuarter: 25 };
+
+// Ultrasonic distance module HC-SR04 (docs/en/ultrasonic-sensor.md). [D] the module's datasheet
+// (resellers publish copies of the same one), [T] widely quoted for the usual module, [A] the kit's own.
+//   speed            331.3 + 0.606 · T m/s, T in °C (dry air)
+//   supply           5 V [D]; it works from 4.5 to 5.5 V [A]: under minSupply it answers "no echo"
+//                    (SIM_MODULE_LOW_SUPPLY), under minRun [A] it is off (ECHO high impedance), over
+//                    maxSupply SIM_IC_SUPPLY
+//   trigThreshold    TRIG reads high from 2.0 V [A] (a TTL input; a 3.3 V board's pin is enough)
+//   trigMin 10 µs    the trigger pulse [D]; a shorter one is not taken
+//   burst 250 µs     from TRIG falling to ECHO rising: eight 40 kHz cycles (200 µs [D]) and about
+//                    50 µs of the module's own [A]
+//   range [2, 400]   cm [D]; outside it, or with no echo, ECHO stays high noEcho = 38 ms [T]
+//   outputResistance 20 Ω [A]   ECHO push-pull at VCC (a 5 V chip's TTL output), assumed: no datasheet
+//                    gives it. With 100 Ω a 1 kΩ / 2 kΩ divider's middle would sit at 3.23 V instead of
+//                    the 3.33 V of an ideal 5 V source; with 20 Ω it is 3.30 V
+//   idleCurrent 2 mA, workCurrent 15 mA at 5 V [D]  as a load VCC–GND, measuring from TRIG to ECHO's fall
+//   maxCurrent 50 mA [A]    what ECHO may give before the kit warns: a short to ground (about 250 mA)
+//                    warns, ECHO straight into a 3.3 V board's clamp diode (about 46 mA) does not, since
+//                    the hazard there is the board's pin, which says so itself (SIM_PIN_OVERVOLTAGE).
+//                    A real chip's pin gives 20 to 25 mA; 50 mA keeps the clamp case (0.93 of it) quiet
+//   cycle 60 ms      the measuring cycle the datasheet recommends [D] (the page's pace without a program)
+export const ULTRASONIC = {
+  speed: [331.3, 0.606], minRun: 2.5, minSupply: 4.5, maxSupply: 5.5, maxReverse: 0.3, trigThreshold: 2.0, trigMin: 10e-6, burst: 250e-6,
+  range: [2, 400], noEcho: 0.038, outputResistance: 20, idleCurrent: 2e-3, workCurrent: 15e-3, currentAt: 5, maxCurrent: 0.05, cycle: 0.06,
+  temperature: 20, distance: 50,
+};
+
+// Evidence tags in the figures below: [D] read in a published datasheet, [T] typical (listings and
+// community figures, consistent but not guaranteed), [A] assumed by the kit: no source, a free parameter.
+// Linear Hall sensor 49E / SS49E (Honeywell SS39ET/SS49E/SS59ET datasheet, read in secondary copies;
+// docs/en/analog-sensors.md). The output is ratiometric: Vout = Vs/2 + S · B with S = 1.4 mV/G at 5 V
+// [D: 1.0 to 1.75 typical 1.4], scaling with the supply (S · Vs / 5 V).
+//   sensitivity       1.4 mV/G at the reference supply (5 V)
+//   margin            the output clamps at [0.95 V, Vs − 0.95 V] [D/T, the transfer plot]
+//   quiescent         6 mA from the supply [T: the sheets show 6 to 10 mA]
+//   outputResistance  50 Ω [A: an output good for about ±1 mA]
+//   minSupply         2.7 V [D]; maxOperating 6.5 V [D: the operating range's end]; maxSupply 8 V [A: the
+//                     sheets copied give no absolute maximum]: between the two only a note (SIM_HALL_HIGH_SUPPLY)
+//   maxReverse        0.3 V [A]; loadNote 1.5 mA [A]: over it the output no longer holds its value
+//   outputLimit       5 mA [A]: the output stage's current limit, about three times the ±1.5 mA the class
+//                     is good for; the modelled output is current-limited (a short draws about this, not
+//                     the 50 mA of a plain 50 Ω, and the supply current stays positive: the chip's own
+//                     6 mA is more than the limit). SIM_OVER_CURRENT when the output is asked for more
+export const HALL_LINEAR = { sensitivity: 1.4e-3, reference: 5, margin: 0.95, quiescent: 6e-3, outputResistance: 50, minSupply: 2.7, maxSupply: 8, maxOperating: 6.5, maxReverse: 0.3, loadNote: 1.5e-3, outputLimit: 5e-3 };
+
+// Voltage sensor module (30 kΩ / 7.5 kΩ divider, 5:1; docs/en/analog-sensors.md).
+//   upper 30 kΩ (marked 3002), lower 7.5 kΩ (7501) [T]; maxPower 0.1 W for the 30 kΩ [A: 1/10 W parts]
+//   rated 25 V [T]: the input range on the module's label; over it a note (SIM_VOLTAGE_SENSOR_RANGE), the
+//     warning being the 30 kΩ's power (about 68 V)
+//   join 1 mΩ [A]: the board's "−" pin and the terminal's GND are one copper trace
+//   leak 1 GΩ [A]: the unconnected "+" pin, so it never reads as a floating group
+export const VOLTAGE_SENSOR = { upper: 30e3, lower: 7.5e3, maxPower: 0.1, rated: 25, join: 1e-3, leak: 1e9 };
+
+// Active buzzer TMB12A05 (12 mm, 5 V, with an oscillator inside). The listings of this family disagree [T]:
+// rated 5 V, 30 mA at 5 V, 2300 Hz, 85 dB at 10 cm.
+//   start 2.0 V [A]: the self-oscillator starts there; from 1.5 V [A] the current rises to its full law
+//     over half a volt (a smoothstep, monotonic, so the solver has a slope everywhere); there is no
+//     hysteresis (the card has no memory of its own: it is a function of the voltage across it)
+//   from 2.0 V up it is a resistor, rated / current = 167 Ω [A: roughly linear in V], and it sounds:
+//     weakly at 3.3 V (19.8 mA), fully at 5 V; the level is about 85 − 40·log10(5/V) dB below 5 V [A]
+//   leak 1 µA per volt silent [A]; reversed it is an open circuit of 100 kΩ, silent, with a note from 1 V
+//   maxVoltage 7.5 V [A]: over it SIM_IC_SUPPLY, the kit's existing "more than its maximum supply" warning;
+//     the listings' range ends at 7 V, and a 6 V pack of four cells (36 mA) is inside it, so from
+//     maxCurrent 35 mA [A] up to there the card only notes that it takes more than its 30 mA (SIM_BUZZER_CURRENT)
+export const ACTIVE_BUZZER = { rated: 5, current: 0.03, frequency: 2300, rampFrom: 1.5, start: 2.0, leak: 1e-6, reverseLeak: 1e-5, maxReverse: 1, maxVoltage: 7.5, maxCurrent: 0.035, level: 85 };
+
+// Climate sensors read at library level (docs/en/library-sensors.md). [D] datasheet (Aosong DHT11; Bosch
+// BST-BME280-DS002, BST-BMP280-DS001) or the Adafruit library's source, [T] the usual module, [A] the
+// kit's own choice.
+//   dht.minSupply 3.0 V [A]  under it a read fails (the sheet gives 3 to 5.5 V); maxSupply 5.5 V [D]:
+//                 over it SIM_IC_SUPPLY
+//   dht.standby 120 µA at 5 V [D: 100 to 150 µA], as a resistor VCC–GND (the 1 mA of the 25 ms of a
+//                 real read is left out: 1 % of the time)
+//   dht.pullup 10 kΩ [T]  the module's, S to +
+//   dht.interval 2000 ms [D library]  MIN_INTERVAL: a read sooner gives the last one (a failure too)
+//   dht.warmup 1 s [D]  power-up before a good read (the part's `warmup`)
+//   dht.temperature [0, 50] °C, dht.humidity [20, 90] %RH [D]  rated ranges: the reading saturates
+//                 there [A]; rounded to whole numbers, nearest [A]
+//   dht.high 0.7 [A]  S must idle at 0.7 · VCC or more (pulled up) for an answer
+//   bosch.minSupply 1.71, maxSupply 3.6, dead 4.25 V [D]  the chip's VDD and absolute maximum: over
+//                 dead the 3.3 V-only board does not answer
+//   bosch.rail 3.3 V, dropout 0.2 V [A], quiescent 1 µA [A], minVin 3.4 V [A], maxVin 6.5 V [A]  the
+//                 regulated board's LDO
+//   bosch.pullup 10 kΩ [T] on SDA and SCL to the chip's rail; bosch.high 0.7 [A] as for the DHT
+//   bosch.overIo 0.3 V [D]  a pin's absolute maximum over VDDIO: a bus line above it is SIM_PIN_OVER_VDDIO
+//   bosch.temperature [-40, 85] °C, pressure [300, 1100] hPa, humidity [0, 100] %RH [D]
+//   boards.*.current  after begin() in the library's normal mode: BME280 0.47 mA [A, from the sheet's
+//                 peaks], BMP280 0.4 mA [A]; chip id 0x60 (BME280), 0x58 (BMP280) [D]
+export const CLIMATE = {
+  dht: { minSupply: 3, maxSupply: 5.5, maxReverse: 0.3, standby: 120e-6, currentAt: 5, pullup: 10e3, interval: 2000, warmup: 1, temperature: [0, 50], humidity: [20, 90], high: 0.7 },
+  bosch: { overIo: 0.3, minSupply: 1.71, maxSupply: 3.6, dead: 4.25, maxReverse: 0.3, rail: 3.3, dropout: 0.2, quiescent: 1e-6, minVin: 3.4, maxVin: 6.5, pullup: 10e3, high: 0.7, temperature: [-40, 85], pressure: [300, 1100], humidity: [0, 100] },
+  boards: {
+    DHT11: { dht: true, humidity: true, pressure: false },
+    BME280: { chip: 0x60, humidity: true, pressure: true, regulated: false, current: 0.47e-3 },
+    'BME280-5V': { chip: 0x60, humidity: true, pressure: true, regulated: true, current: 0.47e-3 },
+    BMP280: { chip: 0x58, humidity: false, pressure: true, regulated: false, current: 0.4e-3 },
+  },
+};

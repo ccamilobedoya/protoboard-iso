@@ -43,7 +43,7 @@ llamadas y unos 185 000 tokens. Lo que lo reduce:
 
 - `catalog` sin `name` es una lista compacta (unos 3,3 KB en vez de 20): los tipos de componente
   agrupados por familia, una línea cada uno con sus patas y sus primeros números de parte (`name` da todos), luego módulos,
-  protoboards y las recetas (nombre y título, sin valores: `catalog` con el nombre de la receta los da); `name` da los campos y un ejemplo real de un tipo
+  protoboards y las recetas (nombres por grupo, sin título ni valores: `catalog` con el nombre de la receta los da); `name` da los campos y un ejemplo real de un tipo
   solo cuando hace falta.
 - `suggest` con `parts` coloca una cadena de componentes en una llamada, cada uno según los
   anteriores, nombrando patas ya colocadas como grupos (`"R1.2"`); con `profile: "lesson"` deja

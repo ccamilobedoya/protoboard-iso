@@ -324,6 +324,19 @@ Passive magnetic buzzer, 12 mm. Pins `1`, `2`, two or three holes apart. To the 
 is its coil (`resistance`, default 16 Ω); it warns when steady DC flows through it, since a
 passive buzzer only sounds with a changing signal.
 
+`part: "TMB12A05"` is the **active** one: the same can with an oscillator inside, so plain DC makes it
+sound from about 2.0 V (about 2.3 kHz, 85 dB at 10 cm at its rated 5 V, 85 − 40·log10(5/V) dB below that:
+about 78 dB on a 3.3 V pin) and it takes 30 mA at 5 V (a 167 Ω load from 2.0 V up, so 19.8 mA at 3.3 V).
+It takes next to nothing under 1.5 V and the current rises smoothly to the 167 Ω law at 2.0 V; there is
+no hysteresis. It has a polarity: pin `1` is the long lead and the `+` on its case; reversed it is an
+open circuit of 100 kΩ, silent, and over 1 V says so (`SIM_REVERSE_VOLTAGE`). Over 7.5 V it warns with
+`SIM_IC_SUPPLY` (the kit's "more than its maximum" code); over 35 mA (from about 5.8 V, inside the 3 to 7 V of its
+listings) it only notes `SIM_BUZZER_CURRENT`. Between 1.5 and 2.0 V it takes current without sounding yet, and its card says so.
+`SIM_BUZZER_DC` does not apply to it. Its card says *sounding · 2.3 kHz* and the level as "about" N dB,
+or *silent*. Tell it from the passive one by the sealed bottom of the
+can (a resin band at its foot in the drawing) and by the fact that it beeps the moment it is powered;
+the `rain-alarm` and `obstacle-buzzer` recipes use it, through a PNP.
+
 ### rgb-led
 
 A 5 mm RGB LED: three chips, red, green and blue, under one milky dome, with four leads in a row
@@ -448,6 +461,46 @@ environment's field `touch`). Its first 0.5 s after power on ignore the pad
 
 ```json
 { "id": "U1", "type": "touch-sensor", "mode": "toggle", "pins": ["h2", "h3", "h4"] }
+```
+
+### rotary-encoder
+
+A KY-040 rotary encoder module standing on five pins `CLK`, `DT`, `SW`, `+`, `GND` (read from the
+left with its face toward you), the knob's shaft toward the front. `+` feeds the three 10 kΩ pull-ups
+on the module. Fields: `part` (`"KY-040"`), `pulses` and `detents` (20 and 20; another pair is
+`BAD_VALUE`), `speed` (degrees a second the shaft follows its target, default 360), `bounce`
+(milliseconds of chatter at each change, default 0), `pressed` (the push switch is held), `swPullup`
+(the pull-up on `SW`, default true) and `angle` (its own target angle, instead of the environment's).
+The table, the shaft and the bounce are in [rotary-encoder.md](rotary-encoder.md).
+
+```json
+{ "id": "U2", "type": "rotary-encoder", "pins": ["h2", "h3", "h4", "h5", "h6"] }
+```
+
+### ultrasonic-sensor
+
+An HC-SR04 ultrasonic distance module standing on four pins `VCC`, `TRIG`, `ECHO`, `GND` (read from
+the left with its capsules toward you). It runs from 5 V; a 10 µs pulse on `TRIG` starts a
+measurement and `ECHO` stays high (5 V) for the round trip of the sound. Fields: `part` (`"HC-SR04"`,
+the default), `distance` (cm) and `temperature` (°C, default 20), its own values of the environment's
+fields ([ultrasonic-sensor.md](ultrasonic-sensor.md)).
+
+```json
+{ "id": "U2", "type": "ultrasonic-sensor", "pins": ["h20", "h21", "h22", "h23"] }
+```
+
+### climate-sensor
+
+A climate sensor a board reads through its library ([library-sensors.md](library-sensors.md)). Part
+numbers: `DHT11` (the default; the usual module standing on three pins `S`, `+`, `−`), `BME280` (the
+3.3 V-only board lying on its header, pins `VCC`, `GND`, `SCL`, `SDA`), `BME280-5V` (the regulated
+board, the same pins) and `BMP280` (no humidity). Fields: `temperature` (°C), `humidity` (%RH) and
+`pressure` (hPa), its own values of the environment's fields; `warmup` (DHT11: seconds after power
+before a good read, default 1); `address` (the BME280 and BMP280 boards: `0x76`, the default, or
+`0x77`, as a number or a string).
+
+```json
+{ "id": "U2", "type": "climate-sensor", "part": "BME280", "address": "0x76", "pins": ["h20", "h21", "h22", "h23"] }
 ```
 
 ### header

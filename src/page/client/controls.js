@@ -21,7 +21,7 @@
 import { fromSlider, toSlider, SLIDER } from '../../sim/controls.js';
 import { formatValue } from '../../core/units.js';
 import { applyFocus } from './focus.js';
-import { FIELDS, envText, rangeProblem } from '../../sim/environment.js';
+import { FIELDS, envText, rangeProblem, altitudeOfPressure } from '../../sim/environment.js';
 import { createGauge } from './gauge.js';
 
 const DEBOUNCE = 120; // ms of rest before a slider's value is solved
@@ -41,6 +41,8 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
   const kept = new Set(); // push buttons left pressed ("Keep pressed"): id|field
   const find = (list, id, field) => list.find((c) => c.id === id && c.field === field);
   const show = (c, v) => {
+    // Pressure: also the altitude it means in the standard atmosphere (docs/en/environment.md).
+    if (c.id === 'environment' && c.field === 'pressure') return `${envText(c.field, v, decimal)} · ${t('sim.env.altitude', { altitude: String(Math.round(altitudeOfPressure(v))) })}`;
     if (c.id === 'environment') return envText(c.field, v, decimal) ?? t(v ? 'sim.env.on' : 'sim.env.off');
     if (c.percent) return `${Math.round(v * 100)} %`;
     if (c.unit === '°C') return `${String(Math.round(v * 10) / 10).replace('.', decimal)} °C`;
@@ -51,6 +53,19 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
     return name.charAt(0).toUpperCase() + name.slice(1);
   };
   const nameOf = (c) => (c.id === 'environment' ? fieldName(c.field) : t(`page.control.${c.field}`));
+  // A field an emitter writes (`emitted` in its control): the ambient the slider holds, and the share
+  // that reaches the sensors with the parts it comes from, or that they are blocked.
+  const envShow = (c) => {
+    const ambient = show(c, c.value);
+    if (c.emitted === undefined) return ambient;
+    const e = engine.emissions?.()[c.field];
+    const from = Object.entries(e?.parts ?? {}).filter(([, v]) => v > 0).map(([id]) => id);
+    if (!from.length) return ambient;
+    if (e.blocked) return t('page.env.blocked', { ambient, parts: from.join(', '), field: t(`sim.env.field.${FIELDS[c.field].blockedBy}`) });
+    // What arrives: the field's limit may leave less than the emitters add, or nothing.
+    if (!(c.emitted > 0)) return ambient;
+    return t('page.env.emitted', { ambient, share: show(c, c.emitted), parts: from.join(', ') });
+  };
   // Every indicator on the page, by field: kept in step with the environment's values.
   const gauges = new Set();
   // `range` {min, max, scale?}: the dial's span and scale, as a panel row or a timeline's gauge step asks
@@ -116,7 +131,8 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
     for (const r of rows) {
       if (r.dataset.id !== 'environment' || !r.isConnected) continue;
       const c = find(list, 'environment', r.dataset.field);
-      if (c?.programmed && !r.dragging) r.update(c);
+      // A program moves it, or an emitter adds to it (its share in the row's words).
+      if ((c?.programmed || c?.emitted !== undefined) && !r.dragging) r.update(c);
       r.pause?.(c);
     }
     for (const s of senseBoxes) {
@@ -227,7 +243,8 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
       r.update = (cur) => {
         if (!cur) return;
         input.value = String(toSlider(c, cur.value));
-        out.textContent = show(c, cur.value);
+        const text = c.id === 'environment' ? envShow(cur) : show(c, cur.value);
+        if (out.textContent !== text) out.textContent = text;
       };
     }
     r.update(c);

@@ -2,6 +2,7 @@
 // AO (inside the board) drops under Vref and DO goes low, lighting an LED from the supply into DO.
 export default {
   name: 'light-switch-module',
+  group: 'sensor-modules',
   title: { en: 'Light switch with an LDR-LM393 module', es: 'Interruptor de luz con un módulo LDR-LM393' },
   teaches: { en: 'The module turns light into yes or no: DO goes low past about 18 lx with the trimmer in the middle, and the LED lights; the trimmer moves that point', es: 'El módulo convierte la luz en sí o no: DO baja a partir de unos 18 lx con el trimmer en el medio, y el LED se enciende; el trimmer mueve ese punto' },
   parts: [

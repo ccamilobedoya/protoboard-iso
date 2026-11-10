@@ -1,6 +1,7 @@
 // A logic-level N-channel MOSFET switching an LED; a pull-down keeps the gate off when S1 is released.
 export default {
   name: 'mosfet-switch',
+  group: 'transistors',
   title: { en: 'MOSFET switch', es: 'Interruptor con MOSFET' },
   teaches: { en: 'The gate takes voltage, not current; the pull-down R2 discharges it when S1 is released', es: 'La compuerta pide voltaje, no corriente; R2 la descarga al soltar S1' },
   parts: [

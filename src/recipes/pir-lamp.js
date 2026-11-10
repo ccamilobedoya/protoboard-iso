@@ -5,6 +5,7 @@
 // motion. Move the motion switch in the page: the lamp lights, stays on for the delay, and goes out.
 export default {
   name: 'pir-lamp',
+  group: 'sensors',
   title: { en: 'PIR motion sensor lights a lamp', es: 'Sensor PIR de movimiento enciende una lámpara' },
   teaches: { en: 'A PIR module holds OUT high for its delay after motion and then rests; OUT is too weak for a lamp, so it drives a transistor that carries the LED\'s current', es: 'Un módulo PIR mantiene OUT alto durante su retardo tras el movimiento y luego descansa; OUT es muy débil para una lámpara, así que maneja un transistor que lleva la corriente del LED' },
   parts: [

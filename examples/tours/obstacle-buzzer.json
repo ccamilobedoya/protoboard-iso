@@ -14,14 +14,14 @@
     { "at": 5200, "do": "set", "environment": "distance", "value": 5, "move": "travel", "ms": 1800 },
     { "at": 8800, "do": "focus", "parts": ["U1", "BZ1"] },
     { "at": 8800, "do": "frame", "target": ["U1", "BZ1"], "move": "travel" },
-    { "at": 8800, "do": "caption", "text": { "en": "Under 9 cm OUT goes low: current flows through the buzzer", "es": "A menos de 9 cm OUT baja: pasa corriente por el zumbador" } },
+    { "at": 8800, "do": "caption", "text": { "en": "Under 9 cm OUT goes low: the transistor lets the buzzer sound", "es": "A menos de 9 cm OUT baja: el transistor deja sonar el zumbador" } },
     { "at": 9600, "do": "value", "part": "BZ1", "field": "current", "label": { "en": "through the buzzer", "es": "por el zumbador" } },
     { "at": 13200, "do": "caption", "text": { "en": "The hand moves away", "es": "La mano se aleja" } },
     { "at": 13200, "do": "set", "environment": "distance", "value": 30, "move": "travel", "ms": 1800 },
     { "at": 16200, "do": "caption", "text": { "en": "OUT high again: silence", "es": "OUT en alto otra vez: silencio" } },
     { "at": 16200, "do": "value", "part": "U1", "field": "vout", "label": { "en": "OUT", "es": "OUT" } },
     { "at": 19200, "do": "frame", "target": "board", "move": "travel" },
-    { "at": 19200, "do": "caption", "text": { "en": "The trimmer sets the distance, from about 4 to 28 cm", "es": "El trimmer fija la distancia, de unos 4 a 28 cm" } },
+    { "at": 19200, "do": "caption", "text": { "en": "The trimmer sets the distance: 4.5 cm at 25 %, 28 cm at 90 %", "es": "El trimmer fija la distancia: 4,5 cm al 25 %, 28 cm al 90 %" } },
     { "at": 22000, "do": "focus", "parts": [] }
   ]
 }

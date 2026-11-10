@@ -36,7 +36,7 @@ function run(source) {
 const sketch = (body) => `void setup() { ${body} }\nvoid loop() { delay(1000); }`;
 
 // What the JavaScript may name: its own words, the runtime's, and the sketch's ($-prefixed).
-const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'true', 'false', '__int', '__missing', '__idx', '__array', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
+const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
 function strayNames(js) {
   // The body, without the prelude (two lines) and the last line, and without the quoted names of
   // __missing("name", …), which JSON.stringify writes.
@@ -88,12 +88,96 @@ test('attack: a string never lands in the code, and a "/" where a value goes is 
 test('attack: the JavaScript of every recipe and of hostile sketches names nothing else', () => {
   const programs = Object.keys(RECIPES).flatMap((name) => expandRecipe(name).spec.parts.map((p) => p.program).filter(Boolean));
   assert.ok(programs.length >= 5);
-  const hostile = [sketch('int a[3] = {1, 2, 3}; a[a[0]] = window + document + require + import_meta;'), sketch('Serial.write(1); Serial.flush();')];
+  const hostile = [sketch('int a[3] = {1, 2, 3}; a[a[0]] = window + document + require + import_meta;'), sketch('Serial.write(1); Serial.flush();'), sketch('long t = pulseIn(constructor, HIGH, pulseInLong(7, LOW)); Serial.println(t);')];
   for (const p of [...programs, ...hostile]) {
     const { js } = translateSketch(p);
     assert.ok(js, p);
     assert.deepEqual(strayNames(js), [], p);
   }
+});
+
+// Library objects (docs/en/library-sensors.md): a declared object is never named in the code, its
+// methods are numbers from the translator's own table, and nothing else about it is read.
+const dhtSketch = (body, head = '') => `#include <DHT.h>\n${head}DHT dht(2, DHT11);\nvoid setup() { dht.begin(); ${body} }\nvoid loop() { delay(1000); }`;
+// The code of a sketch after its prelude: no member but Serial.<method>(, no "[" before a quote.
+const noKeys = (js) => {
+  const body = js.split('\n').slice(2).join('\n');
+  assert.ok(!/\.constructor|__proto__|prototype/.test(body), body);
+  assert.ok(!/\[\s*["'`]/.test(js), 'no [ followed by a string anywhere in the code');
+};
+test('attack: a library object reaches nothing but its own methods', () => {
+  for (const body of ['dht.constructor;', 'dht["x"]();', 'Serial.println(dht.constructor);', 'Serial.constructor;', 'dht.__proto__.x = 1;', 'dht;', 'int x = dht + 1;']) {
+    const r = run(dhtSketch(body));
+    assert.equal(r.r.js, null, body);
+    assert.deepEqual(codes(r.r.issues), ['SIM_PROGRAM_ERROR'], body);
+  }
+  // A method not in the class's list is noted and returns 0; its name never lands in the code.
+  const unknown = run(dhtSketch('Serial.println(dht.constructor("globalThis.__pwned = 1")); Serial.println(dht.read());'));
+  assert.equal(unknown.pwned, undefined);
+  assert.deepEqual(unknown.log, ['0', '0']);
+  assert.deepEqual(unknown.r.issues.map((i) => i.name), ['dht.constructor', 'dht.read']);
+  noKeys(unknown.r.js);
+  assert.ok(!/constructor|\bread\b/.test(unknown.r.js.split('\n').slice(2).join('\n')));
+  // An object named like the runtime's own names: Serial and the class names are refused; any other
+  // name is the translator's to keep (the code has only the object's number).
+  for (const head of ['DHT Serial(2, DHT11);\n', 'DHT Wire(2, DHT11);\n', 'DHT DHT(2, DHT11);\n', 'DHT millis(2, DHT11);\n', 'int x = 1;\nDHT x(2, DHT11);\n', 'DHT a(2, DHT11);\nDHT a(3, DHT11);\n', 'DHT f(2, DHT11, 6, 7);\n', 'Adafruit_BME280 bme(10);\n']) {
+    const r = run(`${head}void setup() { }\nvoid loop() { }`);
+    assert.equal(r.r.js, null, head);
+  }
+  const fn = run('DHT Function(2, DHT11);\nDHT globalThis(3, DHT11);\nvoid setup() { Function.begin(); Serial.println(Function.readTemperature()); globalThis.begin(); }\nvoid loop() { }');
+  assert.ok(fn.r.js);
+  const runner = createRunner(fn.r.js, board);
+  runner.advance(0);
+  runner.advance(0.05); // a read with no sensor still waits its 25 ms
+  assert.equal(runner.error, null);
+  assert.deepEqual(runner.log, ['nan'], 'no sensor answers: NaN, printed as the AVR core does');
+  assert.equal(globalThis.Function.begin, undefined);
+  assert.ok(!/Function|globalThis/.test(fn.r.js), 'the object names are not in the code');
+  noKeys(fn.r.js);
+  // Declared inside a function, used outside one, or a variable named like an object: refused.
+  for (const source of ['void setup() { DHT d(2, DHT11); }\nvoid loop() { }', 'void setup() { }\nvoid loop() { static DHT d(2, DHT11); }', 'void f(DHT d) { }\nvoid setup() { }\nvoid loop() { }', 'DHT dht(2, DHT11);\nfloat t = dht.readTemperature();\nvoid setup() { }\nvoid loop() { }', dhtSketch('int dht = 1;'), dhtSketch('', '#define T dht.readTemperature()\n')]) {
+    assert.equal(run(source).r.js, null, source);
+  }
+});
+
+test('attack: malformed input is an issue with its line, never code that does not parse or a global', () => {
+  for (const [source, line] of [
+    [dhtSketch('Serial.println(F());'), 3],
+    ['DHT d(2 3, DHT11);\nvoid setup() { }\nvoid loop() { }', 1],
+    ['#define T dht\nDHT dht(2, DHT11);\nvoid setup() { }\nvoid loop() { }', 1],
+    ['#define Q {\nvoid setup() { }\nvoid loop() { }', 1],
+    [sketch('Serial.println(1 2);'), 1],
+    [sketch('int x = 09;'), 1],
+  ]) {
+    const r = translateSketch(source);
+    assert.equal(r.js, null, source);
+    assert.deepEqual(r.issues.map((i) => [i.code, i.line]), [['SIM_PROGRAM_ERROR', line]], source);
+  }
+  // DHT21 is a type the library knows: noted, it reads NaN.
+  const dht21 = translateSketch('#include <DHT.h>\nDHT d(2, DHT21);\nvoid setup() { }\nvoid loop() { }');
+  assert.ok(dht21.js);
+  assert.deepEqual(dht21.issues.map((i) => [i.code, i.line]), [['SIM_PROGRAM_NOT_IN_KIT', 2]]);
+  // The code is strict: an assignment to a name nobody declared stops the program, it makes no global.
+  const undeclared = run(sketch('zzz = 1;'));
+  assert.match(undeclared.error, /\$zzz is not defined/);
+  assert.equal(globalThis.$zzz, undefined);
+  assert.deepEqual(run(sketch('int x = 010; Serial.println(x);')).log, ['8'], 'C\'s octal');
+});
+
+test('attack: library objects have a cap, and the runtime checks the numbers it is given', () => {
+  const many = (n) => `${Array.from({ length: n }, (_, i) => `DHT d${i}(2, DHT11);`).join('\n')}\nvoid setup() { }\nvoid loop() { }`;
+  assert.ok(translateSketch(many(LIMITS.libraryObjects)).js, 'up to the cap');
+  const over = translateSketch(many(LIMITS.libraryObjects + 1));
+  assert.equal(over.js, null);
+  assert.deepEqual(codes(over.issues), ['SIM_PROGRAM_ERROR']);
+  const huge = translateSketch(many(10_000));
+  assert.equal(huge.js, null, '10 000 objects: refused');
+  // Hand-written JavaScript calling the helpers with numbers the translator never writes: nothing.
+  const js = 'const { __new, __lib, Serial } = api; return { setup: function* () { __new(-1, 0); __new(0, 99); __new("constructor", 0); __new(1.5, 0); __new(0, 0, 2, 11); Serial.println(yield* __lib(0, 99)); Serial.println(yield* __lib("constructor", 1)); Serial.println(yield* __lib(0, "constructor")); Serial.println(yield* __lib(0, -1)); Serial.println(yield* __lib(5, 1)); }, loop: function* () {} };';
+  const runner = createRunner(js, board);
+  runner.advance(0);
+  assert.equal(runner.error, null);
+  assert.deepEqual(runner.log, ['0', '0', '0', '0', '0']);
 });
 
 test('attack: a sketch cannot take the memory or the time of the machine', { timeout: 5000 }, () => {
@@ -105,6 +189,53 @@ test('attack: a sketch cannot take the memory or the time of the machine', { tim
   const busy = run('void setup() { while (true) { } }\nvoid loop() { }');
   assert.equal(busy.error, null, 'a loop that never waits gives the step back');
   assert.equal(run('void f(int "x") { }\n' + sketch('')).r.js, null, 'a parameter must be a name');
+});
+
+test('attack: a pin a sketch names "__proto__", "constructor" or a huge number is only a key', () => {
+  for (const pin of ['"__proto__"', '"constructor"', '"toString"', '1e999', '-1']) {
+    const r = run(sketch(`pinMode(${pin}, OUTPUT); digitalWrite(${pin}, HIGH); analogWrite(${pin}, 100); tone(${pin}, 440); noTone(${pin}); ledcAttach(${pin}, 1000, 8); ledcWrite(${pin}, 3); ledcSetup(${pin}, 1000, 8); ledcAttachPin(${pin}, ${pin}); digitalRead(${pin}); Serial.println(1);`));
+    assert.equal(r.error, null, pin);
+    assert.deepEqual(r.log, ['1'], pin);
+    assert.equal(({}).mode, undefined, `${pin}: Object.prototype untouched`);
+    assert.equal(({}).level, undefined, pin);
+    assert.equal(Object.hasOwn(Object.prototype, 'pull'), false, pin);
+  }
+});
+
+test('attack: a sketch that wakes every microsecond costs a bounded number of steps', { timeout: 20000 }, () => {
+  const circuit = autoLayout({ board: 'auto', ...expandRecipe('uno-blink', { U1: 'void setup() { pinMode(13, OUTPUT); }\nvoid loop() { delayMicroseconds(1); }' }).spec }).circuit;
+  const engine = createEngine(compile(circuit).program);
+  assert.ok(engine.start('dc', 1e-3));
+  let steps = 0;
+  const step = engine.step.bind(engine);
+  engine.step = (h, hold) => {
+    steps++;
+    return step(h, hold);
+  };
+  const t0 = performance.now(); // real clock: the wall time is what a hostile sketch must not take
+  for (let k = 0; k < 20; k++) assert.ok(engine.advance(1e-3));
+  const wall = performance.now() - t0; // real clock: the same measurement
+  assert.ok(steps <= 20 * 33, `${steps} steps for 20 advances`);
+  assert.ok(wall < 1000, `${Math.round(wall)} ms of wall time for 20 ms of a microsecond loop`);
+  assert.ok(Math.abs(engine.time - 0.02) < 1e-9);
+});
+
+test('attack: pulseIn on a pin nothing drives gives the engine back, whatever its timeout', { timeout: 10000 }, () => {
+  for (const loop of ['pulseIn(7, HIGH);', 'while (1) pulseIn(7, HIGH);', 'pulseIn(7, HIGH, 4000000000);', 'while (true) { pulseIn(7, HIGH, 0); }', 'pulseIn(7, HIGH, -5); delayMicroseconds(1);']) {
+    const circuit = autoLayout({ board: 'auto', ...expandRecipe('uno-blink', { U1: `void setup() { pinMode(7, INPUT); }\nvoid loop() { ${loop} }` }).spec }).circuit;
+    const engine = createEngine(compile(circuit).program);
+    assert.ok(engine.start('dc', 1e-3));
+    const t0 = performance.now(); // real clock: the wall time is what a hostile sketch must not take
+    assert.ok(engine.advance(1), loop);
+    const wall = performance.now() - t0; // real clock: the same measurement
+    assert.ok(wall < 2000, `${loop}: ${Math.round(wall)} ms of wall time for one advance of 1 s`);
+    for (let k = 0; k < 100; k++) assert.ok(engine.advance(1e-3), loop);
+    assert.ok(Math.abs(engine.time - 1.1) < 1e-9, loop);
+    const u1 = engine.read().parts.U1.program;
+    assert.equal(u1.error, null, loop);
+    // Whatever timeout it gives, it waits at most the cap.
+    assert.ok(u1.until - u1.time <= LIMITS.pulseInMicros / 1e6 + 1e-9, loop);
+  }
 });
 
 // A board with a program file, in a folder of its own.

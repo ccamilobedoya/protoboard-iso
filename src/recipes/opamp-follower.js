@@ -2,6 +2,7 @@
 // that the potentiometer alone could not.
 export default {
   name: 'opamp-follower',
+  group: 'op-amps',
   title: { en: 'Op-amp voltage follower (buffer)', es: 'Seguidor de voltaje con amplificador operacional' },
   teaches: { en: 'With the output on V−, the output copies V+: the potentiometer gives a voltage, the op-amp gives the current', es: 'Con la salida en V−, la salida copia a V+: el potenciómetro da el voltaje y el amplificador da la corriente' },
   parts: [

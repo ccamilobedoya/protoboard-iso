@@ -68,6 +68,11 @@ export const PART_ALIASES = {
   TTP223: { type: 'touch-sensor' },
   TOUCH: { type: 'touch-sensor' },
   TACTIL: { type: 'touch-sensor' },
+  ULTRASONIC: { type: 'ultrasonic-sensor' },
+  ULTRASONICO: { type: 'ultrasonic-sensor' },
+  DHT: { type: 'climate-sensor' },
+  BME: { type: 'climate-sensor', part: 'BME280' },
+  BMP: { type: 'climate-sensor', part: 'BMP280' },
 };
 
 const norm = (s) => String(s ?? '').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');

@@ -190,3 +190,33 @@ Object.assign(MATERIALS, {
   irDark: '#1f1f24',
   trimmerKnob: '#f0ede4',
 });
+
+// Rotary encoder (EC11) on its KY-040 module: the encoder's steel body and bushing, its shaft, the
+// module's dark green board.
+Object.assign(MATERIALS, {
+  encoderBody: '#aeb3ba',
+  encoderShaft: '#cfd3d8',
+  encoderBoard: '#17503a',
+});
+
+// The ultrasonic module (HC-SR04): the dark mesh over each capsule's face.
+Object.assign(MATERIALS, {
+  sonarMesh: '#3a3d42',
+});
+
+// The analog modules: the KY-037's electret capsule and the voltage sensor's screw terminal.
+Object.assign(MATERIALS, {
+  micCan: '#b9bcc2',
+  micHole: '#1c1d21',
+  terminalBlue: '#2f66b8',
+});
+
+// The active buzzer's resin band.
+Object.assign(MATERIALS, { buzzerResin: '#5b4a2e' });
+
+// Climate sensors: the DHT11's blue box and its slots, the purple BME280 / BMP280 board.
+Object.assign(MATERIALS, {
+  dhtBlue: '#3f86cf',
+  dhtSlot: '#1f4f86',
+  pcbPurple: '#5b2a86',
+});

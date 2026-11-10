@@ -100,7 +100,8 @@ test('B1: the catalog lists the eight part numbers, each with its pins in the sp
   assert.equal(entry.kind, 'type');
   const listed = Array.isArray(entry.parts) ? entry.parts : Object.keys(entry.parts);
   for (const part of PARTS) assert.ok(listed.includes(part), `${part} is listed: ${listed}`);
-  assert.equal(listed.length, 8, `exactly the eight: ${listed}`);
+  // Nine since the KY-037 joined the family: the only change to this test.
+  assert.equal(listed.length, 9, `the eight and the KY-037: ${listed}`);
   assert.ok(!Array.isArray(entry.parts), 'parts is keyed by part number so that each one tells its pins');
   for (const part of PARTS) {
     const pins = entry.parts[part].pins.map(canonical);
@@ -123,7 +124,9 @@ test('environment: reflectance (%, linear, limit 0…100, default 80, a level) a
   const b = FIELDS.beam;
   assert.ok(b, 'beam');
   assert.deepEqual([b.kind, b.default, b.limit], ['switch', 0, [0, 1]]);
-  assert.deepEqual(Object.keys(FIELDS).slice(-2), ['reflectance', 'beam'], 'appended at the end of FIELDS, one line each');
+  // Appended after the first fourteen (later sensors append after them: pressure).
+  const keys = Object.keys(FIELDS);
+  assert.deepEqual(keys.slice(14, 16), ['reflectance', 'beam'], 'appended at the end of FIELDS, one line each');
 });
 
 test('environment: a circuit may declare reflectance and beam, and check accepts their limits', () => {

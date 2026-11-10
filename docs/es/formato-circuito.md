@@ -341,6 +341,19 @@ Zumbador pasivo magnético de 12 mm. Patas `1`, `2`, a dos o tres agujeros. Para
 su bobina (`resistance`, por defecto 16 Ω); avisa cuando le pasa corriente continua, porque un
 zumbador pasivo solo suena con una señal que cambie.
 
+`part: "TMB12A05"` es el **activo**: la misma carcasa con un oscilador por dentro, así que una tensión
+continua basta para que suene desde unos 2,0 V (unos 2,3 kHz, 85 dB a 10 cm con sus 5 V nominales,
+85 − 40·log10(5/V) dB por debajo: unos 78 dB con 3,3 V) y toma 30 mA a 5 V (una carga de 167 Ω desde
+2,0 V, o sea 19,8 mA con 3,3 V). No toma casi nada bajo 1,5 V y la corriente sube suave hasta esa ley a
+los 2,0 V; no hay histéresis.
+Tiene polaridad: la pata `1` es la larga y el `+` de su carcasa; al revés es un circuito abierto de 100 kΩ,
+en silencio, y por encima de 1 V lo dice (`SIM_REVERSE_VOLTAGE`). Por encima de 7,5 V avisa con
+`SIM_IC_SUPPLY` (el código «más de su máximo» del kit); por encima de 35 mA (desde unos 5,8 V, dentro de los 3 a 7 V de sus
+listados) solo anota `SIM_BUZZER_CURRENT`. Entre 1,5 y 2,0 V toma corriente sin sonar todavía, y su tarjeta lo dice;
+`SIM_BUZZER_DC` no le aplica. Su tarjeta dice *sonando · 2,3 kHz* y el nivel como «unos» N dB, o *en silencio*. Se distingue del pasivo por el fondo sellado
+de la carcasa (una banda de resina en su base en el dibujo) y porque pita apenas se alimenta; las recetas
+`rain-alarm` y `obstacle-buzzer` lo usan, a través de un PNP.
+
 ### rgb-led (LED RGB)
 
 Un LED RGB de 5 mm: tres chips, rojo, verde y azul, bajo una cúpula lechosa, con cuatro patas en
@@ -468,6 +481,46 @@ del campo `touch` del ambiente). Los primeros 0,5 s tras encenderlo ignoran el p
 
 ```json
 { "id": "U1", "type": "touch-sensor", "mode": "toggle", "pins": ["h2", "h3", "h4"] }
+```
+
+### rotary-encoder (encoder rotativo)
+
+Un módulo encoder rotativo KY-040 parado sobre cinco patas `CLK`, `DT`, `SW`, `+`, `GND` (leídas
+desde la izquierda con su cara hacia ti), con el eje de la perilla hacia el frente. `+` alimenta los
+tres pull-up de 10 kΩ del módulo. Campos: `part` (`"KY-040"`), `pulses` y `detents` (20 y 20; otro par
+es `BAD_VALUE`), `speed` (grados por segundo con que el eje sigue a su objetivo, por defecto 360),
+`bounce` (milisegundos de rebote en cada cambio, por defecto 0), `pressed` (el pulsador está
+oprimido), `swPullup` (el pull-up de `SW`, por defecto true) y `angle` (su ángulo objetivo propio, en
+vez del del ambiente). La tabla, el eje y el rebote están en [encoder-rotativo.md](encoder-rotativo.md).
+
+```json
+{ "id": "U2", "type": "rotary-encoder", "pins": ["h2", "h3", "h4", "h5", "h6"] }
+```
+
+### ultrasonic-sensor (sensor ultrasónico)
+
+Un módulo ultrasónico de distancia HC-SR04 parado sobre cuatro patas `VCC`, `TRIG`, `ECHO`, `GND`
+(leídas de izquierda a derecha con sus cápsulas hacia ti). Funciona con 5 V; un pulso de 10 µs en
+`TRIG` arranca una medición y `ECHO` queda en alto (5 V) durante la ida y vuelta del sonido. Campos:
+`part` (`"HC-SR04"`, por defecto), `distance` (cm) y `temperature` (°C, por defecto 20), sus valores
+propios de los campos del ambiente ([sensor-ultrasonico.md](sensor-ultrasonico.md)).
+
+```json
+{ "id": "U2", "type": "ultrasonic-sensor", "pins": ["h20", "h21", "h22", "h23"] }
+```
+
+### climate-sensor (sensor de clima)
+
+Un sensor de clima que la placa lee con su biblioteca ([sensores-de-biblioteca.md](sensores-de-biblioteca.md)).
+Números de parte: `DHT11` (por defecto; el módulo de siempre parado sobre tres patas `S`, `+`, `−`),
+`BME280` (la placa de solo 3,3 V acostada sobre su peineta, patas `VCC`, `GND`, `SCL`, `SDA`),
+`BME280-5V` (la placa con regulador, las mismas patas) y `BMP280` (sin humedad). Campos: `temperature`
+(°C), `humidity` (%HR) y `pressure` (hPa), sus valores propios de los campos del ambiente; `warmup`
+(DHT11: segundos después de alimentarlo antes de una buena lectura, 1 por defecto); `address` (las
+placas BME280 y BMP280: `0x76`, por defecto, o `0x77`, como número o como texto).
+
+```json
+{ "id": "U2", "type": "climate-sensor", "part": "BME280", "address": "0x76", "pins": ["h20", "h21", "h22", "h23"] }
 ```
 
 ### header (pines de cabecera)

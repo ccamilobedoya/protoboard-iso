@@ -3,6 +3,7 @@
 // button closes COM–NO a few milliseconds after the coil's current passes the pull-in current.
 export default {
   name: 'relay-npn',
+  group: 'transistors',
   title: { en: 'Relay with an NPN and a flyback diode', es: 'Relé con un NPN y su diodo de protección' },
   teaches: { en: 'A small base current lets the coil\'s 71 mA flow; the coil pulls the contact over and the LED lights. Released, the diode takes the coil\'s current (without it, its voltage would jump far past the supply)', es: 'Una corriente de base pequeña deja pasar los 71 mA de la bobina; la bobina mueve el contacto y el LED se enciende. Al soltar, el diodo recibe la corriente de la bobina (sin él, su voltaje saltaría muy por encima de la fuente)' },
   parts: [

@@ -3,6 +3,7 @@
 // common moves from one to the other: a changeover (SPDT).
 export default {
   name: 'slide-switch-leds',
+  group: 'basics',
   title: { en: 'Slide switch picks an LED', es: 'Interruptor deslizante: uno de dos LEDs' },
   teaches: { en: 'A changeover (SPDT): its middle pin is joined to one end or the other, so one switch sends the current down one of two paths', es: 'Un conmutador (SPDT): su pata del medio se une a un extremo o al otro, así un solo interruptor manda la corriente por uno de dos caminos' },
   parts: [
