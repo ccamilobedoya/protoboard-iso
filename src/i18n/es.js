@@ -1548,4 +1548,5 @@ export default {
   'page.tour.inside.climate.membrane': 'membrana: se dobla con la presión del aire',
   'check.SIM_PROGRAM_NOT_IN_KIT': '{part}: {name} (línea {line}) todavía no está en el kit; sus lecturas dan NaN.',
   'sim.env.field.pressure': 'presión',
+  'sim.env.altitude': '{altitude} m en la atmósfera estándar',
 };

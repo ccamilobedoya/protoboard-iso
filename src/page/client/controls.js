@@ -21,7 +21,7 @@
 import { fromSlider, toSlider, SLIDER } from '../../sim/controls.js';
 import { formatValue } from '../../core/units.js';
 import { applyFocus } from './focus.js';
-import { FIELDS, envText, rangeProblem } from '../../sim/environment.js';
+import { FIELDS, envText, rangeProblem, altitudeOfPressure } from '../../sim/environment.js';
 import { createGauge } from './gauge.js';
 
 const DEBOUNCE = 120; // ms of rest before a slider's value is solved
@@ -41,6 +41,8 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
   const kept = new Set(); // push buttons left pressed ("Keep pressed"): id|field
   const find = (list, id, field) => list.find((c) => c.id === id && c.field === field);
   const show = (c, v) => {
+    // Pressure: also the altitude it means in the standard atmosphere (docs/en/environment.md).
+    if (c.id === 'environment' && c.field === 'pressure') return `${envText(c.field, v, decimal)} · ${t('sim.env.altitude', { altitude: String(Math.round(altitudeOfPressure(v))) })}`;
     if (c.id === 'environment') return envText(c.field, v, decimal) ?? t(v ? 'sim.env.on' : 'sim.env.off');
     if (c.percent) return `${Math.round(v * 100)} %`;
     if (c.unit === '°C') return `${String(Math.round(v * 10) / 10).replace('.', decimal)} °C`;

@@ -1550,4 +1550,5 @@ export default {
   'page.tour.inside.climate.membrane': 'membrane: bends with the air pressure',
   'check.SIM_PROGRAM_NOT_IN_KIT': '{part}: {name} (line {line}) is not in the kit yet; its reads give NaN.',
   'sim.env.field.pressure': 'pressure',
+  'sim.env.altitude': '{altitude} m in the standard atmosphere',
 };
