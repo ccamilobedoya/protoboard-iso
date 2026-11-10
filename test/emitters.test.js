@@ -28,6 +28,23 @@ const circuit = ({ env, supply = { id: 'V1', kind: 'bench', voltage: 5 }, revers
   parts: parts(reversed).filter((p) => !without.includes(p.id)),
   supplies: [{ positive: 'T+', negative: 'T-', ...supply }],
 });
+// The laser through an NPN whose base an LDR pulls down when it is bright: its own light turns it off.
+const feedbackCircuit = {
+  version: 1,
+  board: 'bb830',
+  environment: { light: 50 },
+  parts: [
+    { id: 'LS1', type: 'laser', pins: ['e10', 'e11', 'e12'] },
+    { id: 'W1', type: 'wire', pins: ['a10', 'T+10'] },
+    { id: 'Q1', type: 'bjt', part: '2N3904', pins: ['e16', 'e15', 'e14'] },
+    { id: 'W4', type: 'wire', pins: ['b12', 'b14'] },
+    { id: 'W2', type: 'wire', pins: ['a16', 'T-16'] },
+    { id: 'R1', type: 'resistor', value: '10k', pins: ['a15', 'T+18'] },
+    { id: 'LDR1', type: 'ldr', pins: ['c15', 'c19'] },
+    { id: 'W3', type: 'wire', pins: ['a19', 'T-21'] },
+  ],
+  supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
+};
 const engineOf = (c) => createEngine(compile(c).program);
 const ldrAt = (light) => ldrResistance(LDR_PARTS.GL5528, light);
 
@@ -128,22 +145,8 @@ test('emitters: what a step emits reaches the sensors one step later', () => {
 
 test('emitters: a loop through the environment ends with SIM_ENV_FEEDBACK after 8 rounds', () => {
   // The laser through an NPN whose base an LDR pulls down when it is bright: its own light turns it off.
-  const c = {
-    version: 1,
-    board: 'bb830',
-    environment: { light: 50 },
-    parts: [
-      { id: 'LS1', type: 'laser', pins: ['e10', 'e11', 'e12'] },
-      { id: 'W1', type: 'wire', pins: ['a10', 'T+10'] },
-      { id: 'Q1', type: 'bjt', part: '2N3904', pins: ['e16', 'e15', 'e14'] },
-      { id: 'W4', type: 'wire', pins: ['b12', 'b14'] },
-      { id: 'W2', type: 'wire', pins: ['a16', 'T-16'] },
-      { id: 'R1', type: 'resistor', value: '10k', pins: ['a15', 'T+18'] },
-      { id: 'LDR1', type: 'ldr', pins: ['c15', 'c19'] },
-      { id: 'W3', type: 'wire', pins: ['a19', 'T-21'] },
-    ],
-    supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
-  };
+  const c = feedbackCircuit;
+
   const r = simulate(c);
   assert.ok(r.ok);
   const note = r.issues.find((i) => i.code === 'SIM_ENV_FEEDBACK');
@@ -180,4 +183,43 @@ test('emitters: a circuit with no emitter has no emissions and no emitted share 
   const program = compile(circuit({ env: { light: 50 }, without: ['LS1', 'W1', 'W2'] })).program;
   assert.ok(program.devices.every((d) => !d.emits));
   assert.deepEqual(program.environment.fields, ['light']);
+});
+
+test('emitters: the share a control says is what arrives, clamped by the field\'s limit; emissions keep the whole', () => {
+  const e = engineOf(circuit({ env: { light: 999999 } }));
+  assert.ok(e.start('dc'));
+  const light = e.controls().find((c) => c.id === 'environment' && c.field === 'light');
+  assert.equal(light.value, 999999);
+  assert.ok(Math.abs(light.emitted - 1) < 1e-6, `${light.emitted}`);
+  assert.equal(e.environment().light, 1e6);
+  assert.ok(e.emissions().light.total > 5000);
+  assert.ok(e.set('environment', 'light', 1e6));
+  assert.equal(e.controls().find((c) => c.id === 'environment' && c.field === 'light').emitted, 0);
+  assert.equal(emittedShare('light', { total: 10, parts: {} }, { light: 1e6 + 5 }), 0, 'never negative');
+});
+
+test('emitters: SIM_ENV_FEEDBACK comes with DC before and after a start, and goes once the loop settles', () => {
+  const has = (r) => codes(r.issues).includes('SIM_ENV_FEEDBACK');
+  const e = engineOf(feedbackCircuit);
+  assert.ok(has(e.dc()), 'before a start');
+  assert.ok(e.start('dc'));
+  assert.ok(has(e.dc()), 'after the start');
+  for (let k = 0; k < 4; k++) e.step(1e-3);
+  assert.ok(has(e.dc()), 'still a loop while stepping');
+  // Cut the supply: nothing lights, the loop settles and the note goes.
+  assert.ok(e.set('V1', 'voltage', 0));
+  assert.ok(!has(e.dc()));
+});
+
+test('emitters: dc() on a started engine is the circuit as the sensors last felt it (no new fixed point)', () => {
+  const e = engineOf(circuit({ env: { light: 50 }, supply: { id: 'G1', kind: 'generator', waveform: 'square', frequency: 10, amplitude: 2.5, offset: 2.5, resistance: 0 } }));
+  assert.ok(e.start('dc', 1e-3));
+  // Step to the first step where the laser is dark: the sensors still feel the light of the step before.
+  let k = 0;
+  while (e.read().parts.LS1.light > 0 && k++ < 200) e.step(1e-3);
+  assert.ok(e.environment().light > 1000);
+  const dc = e.dc();
+  assert.ok(dc.ok);
+  assert.equal(dc.parts.LDR1.sensor.light, e.environment().light);
+  assert.equal(e.read().parts.LDR1.sensor.light, e.environment().light, 'dc() changed nothing in the running engine');
 });
