@@ -77,7 +77,7 @@ so (`SIM_PIN_OVERVOLTAGE`). A divider of 1 kΩ from `ECHO` over 2 kΩ to ground 
 | `SIM_IC_SUPPLY` | `VCC` over 5.5 V |
 | `SIM_REVERSE_VOLTAGE` | `VCC` reversed by more than 0.3 V |
 | `SIM_MODULE_LOW_SUPPLY` | `VCC` from 0.5 to 4.5 V. From 2.5 V it runs and answers "no echo" (38 ms high); under 2.5 V it is off: `ECHO` high impedance, no measurement, no width in its card |
-| `SIM_OVER_CURRENT` | `ECHO` giving more than 100 mA (a short to ground). `ECHO` straight into a 3.3 V board's pin (about 46 mA through its clamp diode) is not the module's problem: the board's pin says `SIM_PIN_OVERVOLTAGE` |
+| `SIM_OVER_CURRENT` | `ECHO` giving more than 50 mA (a short to ground). `ECHO` straight into a 3.3 V board's pin (about 46 mA through its clamp diode) is not the module's problem: the board's pin says `SIM_PIN_OVERVOLTAGE` |
 
 The 250 µs from `TRIG` to `ECHO` and the 20 Ω of `ECHO` are assumed: no datasheet gives them, and a
 scope on a real module would settle both. With an ideal 5 V source the divider's middle is 3.33 V;

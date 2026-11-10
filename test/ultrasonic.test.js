@@ -359,3 +359,31 @@ test('off (under 2.5 V) it measures nothing; from 2.5 to 4.5 V it hears no echo'
   assert.equal(low.state, 'idle');
   assert.equal(low.noEcho, true);
 });
+
+// ECHO may give 50 mA before the module warns: the clamp case of a 3.3 V board (about 46 mA) stays under it (the
+// board's pin is the one that warns), a short to ground (about 250 mA) goes over it.
+test('ultrasonic-sensor: ECHO into a 3.3 V pin is the board\'s warning; ECHO shorted to ground is the module\'s', () => {
+  const sketch = `void setup() { pinMode(5, OUTPUT); pinMode(18, INPUT); } void loop() { digitalWrite(5, LOW); delayMicroseconds(2); digitalWrite(5, HIGH); delayMicroseconds(10); digitalWrite(5, LOW); pulseIn(18, HIGH, 30000); delay(50); }`;
+  const worst = (echoNet) => {
+    const r = autoLayout({ board: 'auto', parts: [{ id: 'U1', part: 'ESP32-DEVKIT', program: sketch }, { id: 'S1', type: 'ultrasonic-sensor' }],
+      nets: [['U1.VIN', 'S1.VCC'], echoNet === 'GND' ? ['U1.GND', 'S1.GND', 'S1.ECHO'] : ['U1.GND', 'S1.GND'], ['U1.D5', 'S1.TRIG'], ...(echoNet === 'GND' ? [] : [['S1.ECHO', 'U1.D18']])], environment: { distance: 30, temperature: 20 } });
+    assert.ok(r.circuit, JSON.stringify(r.problems)); // a short is laid out, with the layout's review asking for changes
+    const engine = createEngine(compile(r.circuit).program);
+    assert.ok(engine.start('dc', 1e-3));
+    let ratio = 0;
+    let amps = 0;
+    while (engine.time < 0.3) {
+      assert.ok(engine.advance(Math.min(1e-4, engine.stepHint?.() ?? 1e-4)));
+      const read = engine.read();
+      for (const s of engine.stresses(read).S1 ?? []) if (s.code === 'SIM_OVER_CURRENT') ratio = Math.max(ratio, s.ratio);
+      amps = Math.max(amps, Math.abs(read.parts.S1.echoCurrent ?? 0));
+    }
+    return { ratio, amps };
+  };
+  const clamp = worst('D18');
+  near(clamp.amps, 0.0464, 0.003, 'the clamp current');
+  assert.ok(clamp.ratio <= 1, `the module does not warn: ratio ${clamp.ratio}`);
+  const short = worst('GND');
+  assert.ok(short.amps > 0.2, `short ${short.amps}`);
+  assert.ok(short.ratio > 1, `the module warns: ratio ${short.ratio}`);
+});

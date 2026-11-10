@@ -346,13 +346,14 @@ export const ENCODER = { contact: 0.1, maxCurrent: 10e-3, maxVoltage: 12, pullup
 //                    gives it. With 100 Ω a 1 kΩ / 2 kΩ divider's middle would sit at 3.23 V instead of
 //                    the 3.33 V of an ideal 5 V source; with 20 Ω it is 3.30 V
 //   idleCurrent 2 mA, workCurrent 15 mA at 5 V [D]  as a load VCC–GND, measuring from TRIG to ECHO's fall
-//   maxCurrent 100 mA [A]   what ECHO may give before the kit warns: a short to ground (about 250 mA)
+//   maxCurrent 50 mA [A]    what ECHO may give before the kit warns: a short to ground (about 250 mA)
 //                    warns, ECHO straight into a 3.3 V board's clamp diode (about 46 mA) does not, since
-//                    the hazard there is the board's pin, which says so itself (SIM_PIN_OVERVOLTAGE)
+//                    the hazard there is the board's pin, which says so itself (SIM_PIN_OVERVOLTAGE).
+//                    A real chip's pin gives 20 to 25 mA; 50 mA keeps the clamp case (0.93 of it) quiet
 //   cycle 60 ms      the measuring cycle the datasheet recommends [D] (the page's pace without a program)
 export const ULTRASONIC = {
   speed: [331.3, 0.606], minRun: 2.5, minSupply: 4.5, maxSupply: 5.5, maxReverse: 0.3, trigThreshold: 2.0, trigMin: 10e-6, burst: 250e-6,
-  range: [2, 400], noEcho: 0.038, outputResistance: 20, idleCurrent: 2e-3, workCurrent: 15e-3, currentAt: 5, maxCurrent: 0.1, cycle: 0.06,
+  range: [2, 400], noEcho: 0.038, outputResistance: 20, idleCurrent: 2e-3, workCurrent: 15e-3, currentAt: 5, maxCurrent: 0.05, cycle: 0.06,
   temperature: 20, distance: 50,
 };
 
@@ -365,15 +366,22 @@ export const ULTRASONIC = {
 //   margin            the output clamps at [0.95 V, Vs − 0.95 V] [D/T, the transfer plot]
 //   quiescent         6 mA from the supply [T: the sheets show 6 to 10 mA]
 //   outputResistance  50 Ω [A: an output good for about ±1 mA]
-//   minSupply         2.7 V [D]; maxSupply 8 V [A: the sheets copied give no absolute maximum]
+//   minSupply         2.7 V [D]; maxOperating 6.5 V [D: the operating range's end]; maxSupply 8 V [A: the
+//                     sheets copied give no absolute maximum]: between the two only a note (SIM_HALL_HIGH_SUPPLY)
 //   maxReverse        0.3 V [A]; loadNote 1.5 mA [A]: over it the output no longer holds its value
-export const HALL_LINEAR = { sensitivity: 1.4e-3, reference: 5, margin: 0.95, quiescent: 6e-3, outputResistance: 50, minSupply: 2.7, maxSupply: 8, maxReverse: 0.3, loadNote: 1.5e-3 };
+//   outputLimit       5 mA [A]: the output stage's current limit, about three times the ±1.5 mA the class
+//                     is good for; the modelled output is current-limited (a short draws about this, not
+//                     the 50 mA of a plain 50 Ω, and the supply current stays positive: the chip's own
+//                     6 mA is more than the limit). SIM_OVER_CURRENT when the output is asked for more
+export const HALL_LINEAR = { sensitivity: 1.4e-3, reference: 5, margin: 0.95, quiescent: 6e-3, outputResistance: 50, minSupply: 2.7, maxSupply: 8, maxOperating: 6.5, maxReverse: 0.3, loadNote: 1.5e-3, outputLimit: 5e-3 };
 
 // Voltage sensor module (30 kΩ / 7.5 kΩ divider, 5:1; docs/en/analog-sensors.md).
 //   upper 30 kΩ (marked 3002), lower 7.5 kΩ (7501) [T]; maxPower 0.1 W for the 30 kΩ [A: 1/10 W parts]
+//   rated 25 V [T]: the input range on the module's label; over it a note (SIM_VOLTAGE_SENSOR_RANGE), the
+//     warning being the 30 kΩ's power (about 68 V)
 //   join 1 mΩ [A]: the board's "−" pin and the terminal's GND are one copper trace
 //   leak 1 GΩ [A]: the unconnected "+" pin, so it never reads as a floating group
-export const VOLTAGE_SENSOR = { upper: 30e3, lower: 7.5e3, maxPower: 0.1, join: 1e-3, leak: 1e9 };
+export const VOLTAGE_SENSOR = { upper: 30e3, lower: 7.5e3, maxPower: 0.1, rated: 25, join: 1e-3, leak: 1e9 };
 
 // Active buzzer TMB12A05 (12 mm, 5 V, with an oscillator inside). The listings of this family disagree [T]:
 // rated 5 V, 30 mA at 5 V, 2300 Hz, 85 dB at 10 cm.
@@ -383,6 +391,7 @@ export const VOLTAGE_SENSOR = { upper: 30e3, lower: 7.5e3, maxPower: 0.1, join: 
 //   from 2.0 V up it is a resistor, rated / current = 167 Ω [A: roughly linear in V], and it sounds:
 //     weakly at 3.3 V (19.8 mA), fully at 5 V; the level is about 85 − 40·log10(5/V) dB below 5 V [A]
 //   leak 1 µA per volt silent [A]; reversed it is an open circuit of 100 kΩ, silent, with a note from 1 V
-//   maxVoltage 7 V [A: the widest common intersection of the listings]: over it SIM_IC_SUPPLY, the kit's
-//     existing "more than its maximum supply" warning; maxCurrent 35 mA [A]: over it SIM_OVER_CURRENT
-export const ACTIVE_BUZZER = { rated: 5, current: 0.03, frequency: 2300, rampFrom: 1.5, start: 2.0, leak: 1e-6, reverseLeak: 1e-5, maxReverse: 1, maxVoltage: 7, maxCurrent: 0.035, level: 85 };
+//   maxVoltage 7.5 V [A]: over it SIM_IC_SUPPLY, the kit's existing "more than its maximum supply" warning;
+//     the listings' range ends at 7 V, and a 6 V pack of four cells (36 mA) is inside it, so from
+//     maxCurrent 35 mA [A] up to there the card only notes that it takes more than its 30 mA (SIM_BUZZER_CURRENT)
+export const ACTIVE_BUZZER = { rated: 5, current: 0.03, frequency: 2300, rampFrom: 1.5, start: 2.0, leak: 1e-6, reverseLeak: 1e-5, maxReverse: 1, maxVoltage: 7.5, maxCurrent: 0.035, level: 85 };

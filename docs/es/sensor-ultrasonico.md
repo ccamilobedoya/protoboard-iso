@@ -78,7 +78,7 @@ tierra deja 5 V · 2 / 3 = 3,33 V en el pin, todavía un HIGH claro; `TRIG` no n
 | `SIM_IC_SUPPLY` | `VCC` por encima de 5,5 V |
 | `SIM_REVERSE_VOLTAGE` | `VCC` invertido más de 0,3 V |
 | `SIM_MODULE_LOW_SUPPLY` | `VCC` de 0,5 a 4,5 V. Desde 2,5 V funciona y responde «sin eco» (38 ms en alto); por debajo de 2,5 V está apagado: `ECHO` en alta impedancia, sin medición y sin ancho en su ficha |
-| `SIM_OVER_CURRENT` | `ECHO` entregando más de 100 mA (un corto a tierra). `ECHO` directo al pin de una placa de 3,3 V (unos 46 mA por su diodo de protección) no es problema del módulo: el pin de la placa dice `SIM_PIN_OVERVOLTAGE` |
+| `SIM_OVER_CURRENT` | `ECHO` entregando más de 50 mA (un corto a tierra). `ECHO` directo al pin de una placa de 3,3 V (unos 46 mA por su diodo de protección) no es problema del módulo: el pin de la placa dice `SIM_PIN_OVERVOLTAGE` |
 
 Los 250 µs de `TRIG` a `ECHO` y los 20 Ω de `ECHO` son supuestos: ninguna hoja de datos los da, y un
 osciloscopio sobre un módulo real resolvería ambos. Con una fuente ideal de 5 V el centro del divisor
