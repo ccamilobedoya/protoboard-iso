@@ -369,7 +369,8 @@ board ([docs/en/environment.md](docs/en/environment.md); decision of 2026-11-08 
 - ⬜ An infrared LED as an emitter and a bare phototransistor or IR receiver that reads it
 - ⬜ DHT11/BME280 bit-level protocol on the wire — optional, very low priority, kept so it is not forgotten
 - ✅ Active buzzer (2026-11-10): `TMB12A05`, a second part number of `buzzer` with its own device (silent under 1.5 V, starting at 2.0 V and then 167 Ω: 30 mA and 2.3 kHz at 5 V, 19.8 mA on 3.3 V; polarity); `rain-alarm` and `obstacle-buzzer` use it through a PNP
-- ⬜ Bench questions to settle on the real boards: whether the SW-420's LED is lit at rest, and the MH-RD's pin order
+- ⬜ Bench questions to settle on the real boards: whether the SW-420's LED is lit at rest, and the MH-RD's pin order; whether the KY-037's DO goes low or high with sound and how much bias its comparator needs; the real threshold current of the KY-008 laser (the model assumes 22 mA, which a UNO pin's 20 mA does not reach) and its series resistance; the 49E module's output stage (its real current limit and what a short does)
+- ⬜ A "more than recommended" level for a board pin's current (20 mA on an ATmega328P, against the 40 mA absolute maximum the kit checks today), so an active buzzer or a laser straight on a UNO pin (24 mA and 20 mA) is told to use a transistor
 
 ## Stage 4 — On a phone or tablet ⬜
 

@@ -375,7 +375,8 @@ dibujadas en la protoboard ([ambiente.md](ambiente.md); decisión del 2026-11-08
 - ⬜ Un LED infrarrojo como emisor y un fototransistor suelto o un receptor IR que lo lea
 - ⬜ Protocolo de bits del DHT11/BME280 en el cable — opcional, prioridad muy baja, anotado para no olvidarlo
 - ✅ Zumbador activo (2026-11-10): `TMB12A05`, un segundo número de parte de `buzzer` con su propio dispositivo (en silencio bajo 1,5 V, arranca a 2,0 V y desde ahí 167 Ω: 30 mA y 2,3 kHz a 5 V, 19,8 mA con 3,3 V, con polaridad); `rain-alarm` y `obstacle-buzzer` lo usan a través de un PNP
-- ⬜ Preguntas de banco por resolver en las placas reales: si el LED del SW-420 está encendido en reposo, y el orden de los pines del MH-RD
+- ⬜ Preguntas de banco por resolver en las placas reales: si el LED del SW-420 está encendido en reposo, y el orden de los pines del MH-RD; si el DO del KY-037 baja o sube con el sonido y cuánto sesgo necesita su comparador; la corriente de umbral real del láser KY-008 (el modelo supone 22 mA, que los 20 mA de un pin del UNO no alcanzan) y su resistencia en serie; la etapa de salida del módulo con el 49E (su límite real de corriente y qué hace un corto)
+- ⬜ Un nivel de «más de lo recomendado» para la corriente de un pin de placa (20 mA en un ATmega328P, frente a los 40 mA de máximo absoluto que el kit comprueba hoy), para que un zumbador activo o un láser directo en un pin del UNO (24 mA y 20 mA) avise que conviene un transistor
 
 ## Etapa 4 — En el celular o la tableta ⬜
 

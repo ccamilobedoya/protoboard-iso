@@ -304,12 +304,15 @@ lee en el panel cuánto de ella da cada emisor.
 ### El láser KY-008
 
 Pines `S`, `+`, `−` como los imprime la placa; el del medio no está conectado. Entre `S` y `−`, un
-diodo láser de 650 nm (Vf 2,2 V a 25 mA) tras una resistencia de 100 Ω: unos 28 mA y 3 mW a 5 V, 38 mA
+diodo láser de 650 nm (Vf 2,2 V a 25 mA) tras una resistencia de 100 Ω: unos 28 mA y 3 mW a 5 V, 37,5 mA
 a 6 V. Potencia óptica P = 0,5 W/A · max(0, I − 22 mA); agrega K · P a `light`, con
 K = 3,33·10⁶ lx/W (3 mW → 10 000 lx). Esa K es una simplificación para enseñar: el punto de un haz
 pequeño es mucho más brillante que un cuarto y satura una fotorresistencia, que es lo que una barrera
 necesita; el número real depende del tamaño del punto. Por debajo de su umbral de 22 mA brilla como un
-LED tenue y no agrega nada (`SIM_LASER_DIM`, una nota). Más de 40 mA es `SIM_OVER_CURRENT`; al revés
+LED tenue y no agrega nada (`SIM_LASER_DIM`, una nota). Conectado directo a un pin de un Arduino UNO recibe unos 20 mA (4,2 V tras los 40 Ω de resistencia
+de salida del pin, y luego los 100 Ω del módulo): bajo el umbral, así que solo brilla. Es la conexión habitual de los
+tutoriales y aquí no enciende el punto; un pin, tras su resistencia de salida, no puede dar la corriente, así que
+enciéndelo con un transistor, como hace `laser-uno`. El umbral es supuesto, no medido. Más de 40 mA es `SIM_OVER_CURRENT`; al revés
 con más de 2 V, `SIM_REVERSE_VOLTAGE`. Los números son supuestos (las piezas del módulo usual no están
 marcadas) y tienen nombre en `src/sim/devices/laser.js`. No tiene un campo propio: su potencia es la
 que le da el circuito.

@@ -294,12 +294,15 @@ much of it each emitter gives.
 ### The KY-008 laser
 
 Pins `S`, `+`, `−` as the board prints them; the middle one is not connected. Between `S` and `−` a
-650 nm laser diode (Vf 2.2 V at 25 mA) behind a 100 Ω resistor: about 28 mA and 3 mW at 5 V, 38 mA at
+650 nm laser diode (Vf 2.2 V at 25 mA) behind a 100 Ω resistor: about 28 mA and 3 mW at 5 V, 37.5 mA at
 6 V. Optical power P = 0.5 W/A · max(0, I − 22 mA); it adds K · P to `light`, with K = 3.33·10⁶ lx/W
 (3 mW → 10 000 lx). That K is a teaching simplification: the spot of a small beam is far brighter than
 a room and saturates a photoresistor, which is what a tripwire needs; the real number depends on the
 spot's size. Below its 22 mA threshold it glows like a dim LED and adds nothing (`SIM_LASER_DIM`, a
-note). Over 40 mA is `SIM_OVER_CURRENT`; reversed by more than 2 V, `SIM_REVERSE_VOLTAGE`. The numbers
+note). Wired straight to an Arduino UNO pin it gets about 20 mA (4.2 V behind the pin's 40 Ω output
+resistance, then the module's 100 Ω): under the threshold, so it only glows. That is the usual tutorial wiring and it
+does not light the spot here; a pin behind its output resistance cannot give the current, so drive it with a
+transistor, as `laser-uno` does. The threshold is assumed, not measured. Over 40 mA is `SIM_OVER_CURRENT`; reversed by more than 2 V, `SIM_REVERSE_VOLTAGE`. The numbers
 are assumed (the usual module's parts are not marked) and named in `src/sim/devices/laser.js`. It has
 no field of its own: its power is what the circuit gives it.
 

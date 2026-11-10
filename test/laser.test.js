@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { simulate, compile, createEngine } from '../src/sim/index.js';
 import { checkCircuit, inspectCircuit } from '../src/index.js';
-import { expandRecipe } from '../src/recipes/index.js';
+import { expandRecipe, RECIPES } from '../src/recipes/index.js';
 import { autoLayout } from '../src/layout.js';
 import { tourIssues, loadTour } from '../src/tour.js';
 import { renderPage } from '../src/page.js';
@@ -97,7 +97,7 @@ test('laser: its card says what it adds, that it is blocked, or that no environm
   assert.equal(lines(blocked)[0], 'blocked (beam): its light reaches no sensor');
   const alone = simulate(circuit(5, { env: null })).parts.LS1;
   assert.match(lines(alone)[0], /no environment/);
-  assert.equal(lines(simulate(circuit(3.5)).parts.LS1)[0], 'below its threshold: no beam (a dim glow)');
+  assert.equal(lines(simulate(circuit(3.5)).parts.LS1)[0], 'below its threshold: no beam (a dim glow); a board pin cannot give the current, use a transistor');
 });
 
 // ---------------------------------------------------------------- the two recipes and the tour
@@ -225,4 +225,13 @@ test('page: the light row says the laser\'s share, the slider stays on the ambie
   assert.equal(light.querySelector('output').textContent, '50 lx · LS1 bloqueado (haz)');
   assert.equal(light.querySelector('svg.gauge > text').textContent, '50 lx');
   assert.ok(live.reading.parts.D1.current > 5e-3);
+});
+
+test('laser: the dim note and the recipe say why a board pin does not light it, in both languages', async () => {
+  const { formatIssue } = await import('../src/index.js');
+  for (const [lang, word] of [['en', /transistor/], ['es', /transistor/]]) {
+    const text = formatIssue({ severity: 'info', code: 'SIM_LASER_DIM', params: { part: 'LS1', current: { value: 0.02, unit: 'A' }, threshold: { value: 0.022, unit: 'A' } } }, lang);
+    assert.match(text, word, `${lang}: ${text}`);
+    assert.match(RECIPES['laser-uno'].teaches[lang], /22 mA/, `${lang}: the recipe says the threshold`);
+  }
 });
