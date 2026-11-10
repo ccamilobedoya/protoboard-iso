@@ -43,7 +43,9 @@ ECHO en bajo                                    ECHO en bajo         ECHO en alt
 ```
 
 - `TRIG` lee alto desde 2,0 V, así que un pin de 3,3 V lo maneja. Debe quedar en alto 10 µs o más;
-  un pulso de 5 µs no se toma. La medición empieza cuando `TRIG` baja.
+  un pulso de 5 µs no se toma. La medición empieza cuando `TRIG` baja. Armado, el módulo le pide al
+  motor un aterrizaje 250 µs más adelante (el fin de la ráfaga, si `TRIG` baja ahora); en alto más
+  tiempo (un pulsador en `TRIG`) no pide más, y la bajada que llegue después se ve a un paso.
 - La ráfaga (ocho ciclos de 40 kHz, 200 µs, y unos 50 µs propios del módulo) dura 250 µs; luego
   sube `ECHO`.
 - `ECHO` queda en alto durante la ida y vuelta, `2·d / v` con `v = 331,3 + 0,606·T` m/s: 5 824 µs a
@@ -75,10 +77,10 @@ tierra deja 5 V · 2 / 3 = 3,33 V en el pin, todavía un HIGH claro; `TRIG` no n
 |---|---|
 | `SIM_IC_SUPPLY` | `VCC` por encima de 5,5 V |
 | `SIM_REVERSE_VOLTAGE` | `VCC` invertido más de 0,3 V |
-| `SIM_MODULE_LOW_SUPPLY` | `VCC` por debajo de 4,5 V: responde «sin eco» (por debajo de 2,5 V está apagado, `ECHO` en alta impedancia) |
-| `SIM_OVER_CURRENT` | `ECHO` entregando más de 20 mA |
+| `SIM_MODULE_LOW_SUPPLY` | `VCC` de 0,5 a 4,5 V. Desde 2,5 V funciona y responde «sin eco» (38 ms en alto); por debajo de 2,5 V está apagado: `ECHO` en alta impedancia, sin medición y sin ancho en su ficha |
+| `SIM_OVER_CURRENT` | `ECHO` entregando más de 100 mA (un corto a tierra). `ECHO` directo al pin de una placa de 3,3 V (unos 46 mA por su diodo de protección) no es problema del módulo: el pin de la placa dice `SIM_PIN_OVERVOLTAGE` |
 
-Los 250 µs de `TRIG` a `ECHO` y los 20 Ω de `ECHO` son cifras propias del kit, no de la hoja de
-datos; un osciloscopio en el banco resolvería ambas. La primera suposición para la salida, 100 Ω,
-dejaba el centro del divisor en 3,23 V, por debajo de los 3,33 V que se leen en el banco, así que el
-kit toma 20 Ω (la salida de un chip de 5 V con poca carga).
+Los 250 µs de `TRIG` a `ECHO` y los 20 Ω de `ECHO` son supuestos: ninguna hoja de datos los da, y un
+osciloscopio sobre un módulo real resolvería ambos. Con una fuente ideal de 5 V el centro del divisor
+queda en 3,33 V; detrás de 20 Ω (la salida de un chip de 5 V con poca carga) queda en 3,30 V, detrás
+de 100 Ω quedaría en 3,23 V.

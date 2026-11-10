@@ -1,13 +1,13 @@
-// Acceptance tests for session S4 (the HC-SR04 ultrasonic sensor, `ultrasonic-sensor`, and `pulseIn` in a
-// board's program), written from the brief and the physics notes alone (section 6 "Acceptance" A1 … A10,
-// spec rows 52–57 and the numbers of spec section 5), before looking at any implementation.
+// Acceptance tests for the HC-SR04 ultrasonic sensor (`ultrasonic-sensor`) and `pulseIn` in a board's
+// program (A1 … A10), written from their contract and the module's physics (the speed of sound,
+// 331.3 + 0.606·T m/s; the echo 2·d / v), before looking at any implementation.
 //
 // How time is read, the way a learner would: through what the sketch prints (the board's Serial lines,
 // `engine.read().parts.<board>.program.serial`) and through voltages / currents over engine steps. The
 // engine is stepped as the page steps it: `advance(h)` with h = the engine's own `stepHint()` when it
 // asks for a finer step than 1 ms, else 1 ms.
 //
-// Names used that the brief does not fix are listed in the verifier's report (assumptions).
+// Where the contract names nothing, the names used here are assumptions about the kit's own.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -169,21 +169,21 @@ test('A2 · at 450 cm with a 60 000 µs timeout pulseIn reads 38 000 ± 2000 µs
   for (const w of lines) near(w, 38000, 2000, 'echo width at 450 cm');
 });
 
-test('A2 (spec §5) · 400 cm at 20 °C reads 23.3 ms (23 300 µs, ± 1 % as in row 52)', () => {
+test('A2 · 400 cm at 20 °C reads 23.3 ms (23 300 µs, ± 1 %, as at 100 cm)', () => {
   for (const w of measured({ environment: { distance: 400, temperature: 20 }, program: sketch({ timeout: 60000 }) }, 1.0)) near(w, 23300, 233, 'echo width at 400 cm');
 });
 
-test('A2 (spec §5) · 50 cm at 0 °C reads 3018 µs (± 1 %: the speed of sound follows the temperature field)', () => {
+test('A2 · 50 cm at 0 °C reads 3018 µs (± 1 %: the speed of sound follows the temperature field)', () => {
   for (const w of measured({ environment: { distance: 50, temperature: 0 } })) near(w, 3018, 30.18, 'echo width at 50 cm, 0 °C');
 });
 
-test('A2 (§1) · the two-argument pulseIn and pulseInLong give the same width', () => {
+test('A2 · the two-argument pulseIn and pulseInLong give the same width', () => {
   for (const options of [{ program: sketch({ timeout: null }) }, { program: sketch({ fn: 'pulseInLong' }) }]) {
     for (const w of measured(options)) inRange(w, 5766, 5882, `echo width with ${options.program.match(/= (pulseIn\w*\(10, HIGH[^)]*\))/)[1]}`);
   }
 });
 
-test('A2 (§1) · pulseIn called while the pin is already at the value waits for it to fall and then for a new pulse: here none, so 0', () => {
+test('A2 · pulseIn called while the pin is already at the value waits for it to fall and then for a new pulse: here none, so 0', () => {
   // TRIG at 0 µs, ECHO rises ~250 µs later and stays high for ~5.8 ms; at 2000 µs the pin is high.
   const program = `void setup() { Serial.begin(9600); pinMode(9, OUTPUT); pinMode(10, INPUT); }
 void loop() {
@@ -238,7 +238,7 @@ test('A5 · the supply current idle is 2 mA ± 1 mA', () => {
   near(Math.abs(engine.read().supplies.V1.current), 2e-3, 1e-3, 'idle supply current');
 });
 
-test('A5 (spec row 57) · the supply current while measuring is 15 mA ± 1 mA, and 2 mA ± 1 mA again between measurements', () => {
+test('A5 · the supply current while measuring is 15 mA ± 1 mA, and 2 mA ± 1 mA again between measurements', () => {
   const engine = engineOf(bench());
   let peak = 0;
   let floor = Infinity;
@@ -337,7 +337,7 @@ test('A6 · the same circuit WITHOUT the divider raises SIM_PIN_OVERVOLTAGE', ()
   assert.ok(overvoltage(bare).length > 0, 'over-voltage on the ESP32 pin');
 });
 
-test('A6 (§4) · the recipe says why the divider is there, in both languages', () => {
+test('A6 · the recipe says why the divider is there, in both languages', () => {
   const r = RECIPES['esp32-distance'];
   assert.ok(r, 'recipe esp32-distance');
   for (const lang of ['en', 'es']) assert.match(`${r.teaches?.[lang]} ${r.title?.[lang]}`, /divid|divisor|3[.,]3/i, lang);
@@ -381,7 +381,7 @@ for (const name of RECIPE_NAMES) {
     for (const [id, visible] of seen) assert.ok(visible >= 0.5, `${id} is hidden in both views (${Math.round(visible * 100)} % at best)`);
   });
 
-  test(`A7 (§4) · ${name} carries an environment with distance and a controls panel for it`, () => {
+  test(`A7 · ${name} carries an environment with distance and a controls panel for it`, () => {
     const { circuit } = layoutOf(name);
     assert.ok(circuit.environment && 'distance' in circuit.environment, 'environment names distance');
     const controls = circuit.page?.controls;
@@ -389,7 +389,7 @@ for (const name of RECIPE_NAMES) {
   });
 }
 
-test('A7 (§4) · uno-distance: the environment distance is 30 cm with range [2, 100]; TRIG D9, ECHO D10, the classic sketch', () => {
+test('A7 · uno-distance: the environment distance is 30 cm with range [2, 100]; TRIG D9, ECHO D10, the classic sketch', () => {
   const { circuit } = layoutOf('uno-distance');
   const field = circuit.environment.distance;
   const value = typeof field === 'object' ? field.value : field;
@@ -404,14 +404,14 @@ test('A7 (§4) · uno-distance: the environment distance is 30 cm with range [2,
   assert.match(code, /delay\s*\(\s*100\s*\)/);
 });
 
-test('A7 (§4) · esp32-distance is on an ESP32 DevKit with a 1 kΩ / 2 kΩ divider', () => {
+test('A7 · esp32-distance is on an ESP32 DevKit with a 1 kΩ / 2 kΩ divider', () => {
   const { circuit } = layoutOf('esp32-distance');
   assert.ok(circuit.parts.some((p) => p.part === 'ESP32-DEVKIT'), 'an ESP32 DevKit');
   assert.equal(resistors(circuit, 1000).length, 1);
   assert.equal(resistors(circuit, 2000).length, 1);
 });
 
-test('A7 (§4) · distance-alarm-uno: the LED is off at 30 cm and lit at 10 cm (alarm under 15 cm), with a resistor in series', () => {
+test('A7 · distance-alarm-uno: the LED is off at 30 cm and lit at 10 cm (alarm under 15 cm), with a resistor in series', () => {
   const { circuit } = layoutOf('distance-alarm-uno');
   const led = circuit.parts.find((p) => p.type === 'led');
   assert.ok(led, 'an LED');
@@ -455,7 +455,7 @@ test('A8 · the tour examples/tours/uno-distance.json validates with render-fram
   assert.equal(r.status, 0, `${r.stdout}\n${r.stderr}`);
 });
 
-test('A8 (§4) · the tour plays its recipe, has Spanish captions, ends within 30 s, a gauge of distance 2…100, and sets 60 then 10 with a travel', () => {
+test('A8 · the tour plays its recipe, has Spanish captions, ends within 30 s, a gauge of distance 2…100, and sets 60 then 10 with a travel', () => {
   assert.ok(existsSync(tourFile), 'examples/tours/uno-distance.json');
   const timeline = JSON.parse(readFileSync(tourFile, 'utf8'));
   const circuit = timelineCircuit(tourFile, timeline);

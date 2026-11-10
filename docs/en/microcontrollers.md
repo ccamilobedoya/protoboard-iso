@@ -106,7 +106,9 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - **Not run:** classes, pointers, templates, function-like macros, libraries (an `#include` other
   than Arduino's is noted: `SIM_PROGRAM_LIBRARY`); a call to a function nobody defines returns 0
   (`SIM_PROGRAM_UNSUPPORTED`); a line it cannot read stops it (`SIM_PROGRAM_ERROR`, with the line);
-  a missing file (`SIM_PROGRAM_FILE`).
+  a missing file (`SIM_PROGRAM_FILE`). A global whose value calls `delay`, `pulseIn` or one of the
+  sketch's own functions (`long g = pulseIn(7, HIGH);`, `int x = half(4);`) is `SIM_PROGRAM_ERROR`:
+  here those calls wait in simulated time, and a global's value has none to wait in.
 - **A program is external input** (CLAUDE.md, "External input"): its JavaScript names only what
   the runtime gives (the sketch's own names get a `$`, `Serial.<method>` is the only member,
   indexes are numbers, strings stay out of the code), arrays are capped at 100 000 elements, a
@@ -140,8 +142,11 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 
 `pulseIn(pin, value)` and `pulseIn(pin, value, timeout)` (and `pulseInLong`, the same here) return
 the width of the next pulse at `value` on the pin, in whole microseconds, or 0 when `timeout`
-(microseconds, 1 000 000 by default) passes first, counted from the call, as Arduino's: a pulse
-already under way when it is called is let go first. The HC-SR04 is what it is for
+(microseconds, 1 000 000 by default) passes first. The timeout is one deadline counted from the
+call, for the three waits together (a pulse already under way let go, the start, the end), as in
+Arduino's own `pulseIn` (the AVR core counts one budget of loops across the three; `pulseInLong`
+and the ESP32 core compare `micros()` with the time of the call in all three): a 29.9 ms pulse that
+starts 1 ms after the call is 0 with a timeout of 30 000 µs. The HC-SR04 is what it is for
 ([ultrasonic-sensor.md](ultrasonic-sensor.md)): `pulseIn(ECHO, HIGH, 30000)` is the round trip of
 the sound.
 
@@ -153,8 +158,9 @@ the sound.
 - **Its accuracy: the steps end on the edges.** Polling at the page's step (1 ms) would read a 5.8 ms
   echo to a millisecond, and a step fine enough to read it to a microsecond would make the page crawl.
   So the engine ends a step on every event an element names (`until()`, seconds from now):
-  `engine.advance(h)` takes h in pieces that end on each event inside it (at most 1 000 a call,
-  none closer than a nanosecond). A program names when it wakes (the end of a `delay` or a
+  `engine.advance(h)` takes h in pieces that end on each event inside it (at most 32 a call, none
+  closer than half a microsecond; past 32 the rest of h is one step, so a software PWM faster than
+  that, a `delayMicroseconds(1)` loop, is read a step late, without a warning). A program names when it wakes (the end of a `delay` or a
   `delayMicroseconds`, `pulseIn`'s timeout), so `delayMicroseconds(10)` is a pulse of 10 µs on the
   pin; a timed sensor names its next edge (the HC-SR04: the end of its burst, the end of its echo),
   so the program sees `ECHO` rise and fall at their times and `pulseIn` reads 5 824 µs for 100 cm at
@@ -162,12 +168,18 @@ the sound.
   read to a step.
 - **It costs a few steps, not a fine step.** The page's step stays what it was (`stepHint()` and the
   pace do not change): `uno-blink` takes 1 000 steps a simulated second before and after; `uno-distance`
-  (a measurement every 100 ms) takes about 1 050, the five or so landings of each measurement.
+  (a measurement every 100 ms) takes about 1 050, the five or so landings of each measurement. A
+  sketch that wakes every microsecond costs 32 solves per call instead of one (about 2 ms of a
+  loaded machine per 1 ms of simulated time; it was 1 000 solves before the cap was lowered).
+- **One step, with emitters.** An emitter's light reaches the sensors one engine step later
+  ([environment.md](environment.md)); a landed piece is a step like any other, so near a measurement
+  "one step" can be a few microseconds. The pieces run in order and none is skipped.
 - **It is safe.** `pulseIn` is one more name of `SKETCH_API`, with no new member access. A timeout
   that is not a number, negative (unsigned, a huge number in C) or over 3 000 000 µs is clamped to
   `LIMITS.pulseInMicros` (3 s); a timeout of 0 returns 0 at once. A `while (1) pulseIn(…)` on a pin
-  nothing drives waits one timeout per step at most and gives the step back; `test/attack.test.js`
-  has these cases.
+  nothing drives waits one timeout per step at most and gives the step back. Every map the runtime
+  keeps by pin has no prototype, so a pin named `"__proto__"` or `"constructor"` is only a key.
+  `test/attack.test.js` has these cases.
 - **In the card:** while it looks at its pin, the board's program waits until its timeout.
 - Not run: `transient()` (the CLI's `simulate --transient`) steps at its fixed step, so there a
   pulse is read to a step.
