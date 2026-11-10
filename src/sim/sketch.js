@@ -13,8 +13,8 @@
 // Integer variables keep integer division (7 / 2 → 3) where an int is assigned.
 // Library objects (libraries.js, docs/en/library-sensors.md): a GLOBAL `DHT dht(2, DHT11);`,
 // `Adafruit_BME280 bme;` or `Adafruit_BMP280 bmp;` declares an object of that class, and
-// `dht.readTemperature()` calls one of the class's fixed methods; `Wire.begin(…)` is accepted and does
-// nothing; `isnan`, `NAN`, `F("text")`.
+// `dht.readTemperature()` calls one of the class's fixed methods; `Wire.begin(…)` starts the bus
+// (__wire); `isnan`, `NAN`, `F("text")`.
 // Not read: other classes, pointers, templates, function-like macros, libraries other than those
 // (an #include is noted; a call to a function nobody defines returns 0 and is noted).
 //
@@ -308,15 +308,19 @@ export function translateSketch(source, { strings = [] } = {}) {
       termFloat = cls.floats.includes(method.v);
       return `(yield* __lib(${object.k}, ${m}${args ? `, ${args}` : ''}))`;
     }
-    // Wire.begin(…): the bus starts inside the libraries' begin(); accepted, it does nothing.
+    // Wire.begin(…): starts the bus (an AVR turns on its pins' pull-ups; an ESP32's two pins say where
+    // the bus is): __wire(args). Its other methods are noted.
     if (t.t === 'id' && t.v === 'Wire') {
       const method = peek(2);
       if (!is('.', 1) || method?.t !== 'id' || !is('(', 3)) throw new SketchError(t.line, t.v);
       pos += 4;
       const args = expression([')']);
       expect(')');
-      if (method.v !== 'begin') noteMissing(`Wire.${method.v}`, t.line);
-      return `(0${args ? `, ${args}` : ''}, 0)`;
+      if (method.v !== 'begin') {
+        noteMissing(`Wire.${method.v}`, t.line);
+        return `__missing(0${args ? `, ${args}` : ''})`;
+      }
+      return `__wire(${args})`;
     }
     // Serial.println(…): the one object with methods. Any other "." is refused.
     if (t.t === 'id' && t.v === 'Serial' && is('.', 1)) {
@@ -672,7 +676,7 @@ export function translateSketch(source, { strings = [] } = {}) {
     return { js: null, issues };
   }
   if (!functions.has('setup') || !functions.has('loop')) issues.push({ code: 'SIM_PROGRAM_NO_LOOP', line: 1 });
-  const prelude = `const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__missing', '__idx', '__array', '__new', '__lib'].join(', ')} } = api;\nconst __str = [].concat(${strings.map((s) => JSON.stringify(s)).join(', ')});`;
+  const prelude = `const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire'].join(', ')} } = api;\nconst __str = [].concat(${strings.map((s) => JSON.stringify(s)).join(', ')});`;
   const js = `${prelude}\n${out.join('\n')}\nreturn { setup: typeof $setup === 'function' ? $setup : function* () {}, loop: typeof $loop === 'function' ? $loop : function* () {} };`;
   return { js: issues.some((i) => i.code === 'SIM_PROGRAM_ERROR') ? null : js, issues };
 }

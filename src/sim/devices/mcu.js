@@ -109,16 +109,22 @@ export const mcu = {
         return node == null ? null : net(node);
       };
       const ask = (request) => {
-        const full = { ...request, gpio: request.pin ?? null, pin: request.pin == null ? null : netOfGpio(request.pin), sda: netOfGpio(i2c.sda), scl: netOfGpio(i2c.scl), net, volt };
+        const where = request.bus ?? i2c;
+        const full = { ...request, gpio: request.pin ?? null, pin: request.pin == null ? null : netOfGpio(request.pin), sda: netOfGpio(where.sda), scl: netOfGpio(where.scl), net, volt };
         let best = null;
+        const misses = [];
         for (const el of sensors) {
           if (!el.library.classes.includes(request.cls)) continue;
           const answer = el.answer(full);
-          if (answer && (!best || (answer.ok && !best.ok))) best = answer;
+          if (!answer) continue;
+          if (!answer.mine) misses.push([el, answer.miss]);
+          else if (!best || (answer.ok && !best.ok)) best = answer;
         }
+        // Nobody it was for: each sensor of the class that missed notes why (another pin, address…).
+        if (!best) for (const [el, miss] of misses) el.note?.(miss);
         return best;
       };
-      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull });
+      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, i2c, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull });
       entry.ctrl = h.add({
         nodes: [],
         links: [],
@@ -160,6 +166,14 @@ export const mcu = {
             const [a, b] = el.nodes.map(net);
             if (a !== b) root.set(a, b);
           }
+          // Two sensors at one place (two DHT data lines joined, two chips at one address on one bus):
+          // the board reads the first in the circuit's order; limits() says so.
+          const places = new Map();
+          for (const el of sensors) {
+            const key = `${el.library.bus}:${(el.library.at ?? []).map(net).join(',')}:${el.library.address ?? ''}`;
+            places.set(key, [...(places.get(key) ?? []), el.library.id]);
+          }
+          this.shared = [...places.values()].filter((ids) => ids.length > 1);
         },
       });
     }
@@ -262,6 +276,7 @@ export const mcu = {
   limits(entry, r) {
     const m = entry.model;
     const out = r.pins.map((x) => stress('SIM_OVER_CURRENT', 'current', Math.abs(x.current), m.maxPin, 'A'));
+    for (const ids of entry.ctrl?.shared ?? []) out.push(note('warning', 'SIM_LIBRARY_SHARED', { part: entry.id, parts: ids.join(', '), first: ids[0] }));
     if (r.rail != null) out.push(stress('SIM_OVER_CURRENT', 'current', r.rail, m.regulator.maxCurrent, 'A'));
     for (const x of r.pins) {
       if (x.voltage > r.vdd + 0.3 || x.voltage < -0.3) out.push(note('warning', 'SIM_PIN_OVERVOLTAGE', { part: entry.id, pin: x.name, voltage: q(x.voltage, 'V'), max: q(r.vdd, 'V') }));

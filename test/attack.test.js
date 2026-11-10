@@ -36,7 +36,7 @@ function run(source) {
 const sketch = (body) => `void setup() { ${body} }\nvoid loop() { delay(1000); }`;
 
 // What the JavaScript may name: its own words, the runtime's, and the sketch's ($-prefixed).
-const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'DHT11', 'DHT22', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
+const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'DHT11', 'DHT22', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
 function strayNames(js) {
   // The body, without the prelude (two lines) and the last line, and without the quoted names of
   // __missing("name", …), which JSON.stringify writes.

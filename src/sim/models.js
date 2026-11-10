@@ -419,12 +419,13 @@ export const ACTIVE_BUZZER = { rated: 5, current: 0.03, frequency: 2300, rampFro
 //   bosch.rail 3.3 V, dropout 0.2 V [A], quiescent 1 µA [A], minVin 3.4 V [A], maxVin 6.5 V [A]  the
 //                 regulated board's LDO
 //   bosch.pullup 10 kΩ [T] on SDA and SCL to the chip's rail; bosch.high 0.7 [A] as for the DHT
+//   bosch.overIo 0.3 V [D]  a pin's absolute maximum over VDDIO: a bus line above it is SIM_PIN_OVER_VDDIO
 //   bosch.temperature [-40, 85] °C, pressure [300, 1100] hPa, humidity [0, 100] %RH [D]
 //   boards.*.current  after begin() in the library's normal mode: BME280 0.47 mA [A, from the sheet's
 //                 peaks], BMP280 0.4 mA [A]; chip id 0x60 (BME280), 0x58 (BMP280) [D]
 export const CLIMATE = {
   dht: { minSupply: 3, maxSupply: 5.5, maxReverse: 0.3, standby: 120e-6, currentAt: 5, pullup: 10e3, interval: 2000, warmup: 1, temperature: [0, 50], humidity: [20, 90], high: 0.7 },
-  bosch: { minSupply: 1.71, maxSupply: 3.6, dead: 4.25, maxReverse: 0.3, rail: 3.3, dropout: 0.2, quiescent: 1e-6, minVin: 3.4, maxVin: 6.5, pullup: 10e3, high: 0.7, temperature: [-40, 85], pressure: [300, 1100], humidity: [0, 100] },
+  bosch: { overIo: 0.3, minSupply: 1.71, maxSupply: 3.6, dead: 4.25, maxReverse: 0.3, rail: 3.3, dropout: 0.2, quiescent: 1e-6, minVin: 3.4, maxVin: 6.5, pullup: 10e3, high: 0.7, temperature: [-40, 85], pressure: [300, 1100], humidity: [0, 100] },
   boards: {
     DHT11: { dht: true, humidity: true, pressure: false },
     BME280: { chip: 0x60, humidity: true, pressure: true, regulated: false, current: 0.47e-3 },

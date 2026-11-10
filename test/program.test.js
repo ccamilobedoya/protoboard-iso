@@ -253,7 +253,7 @@ test('SKETCH_API and the runtime give the same names (constants apart)', () => {
   const helpers = names.filter((n) => n.startsWith('__'));
   const functions = names.filter((n) => !constants.includes(n) && !helpers.includes(n));
   assert.deepEqual([...functions].sort(), [...SKETCH_API].sort());
-  assert.deepEqual(helpers.sort(), ['__array', '__idx', '__int', '__lib', '__missing', '__new']);
+  assert.deepEqual(helpers.sort(), ['__array', '__idx', '__int', '__lib', '__missing', '__new', '__wire']);
 });
 
 test('delayMicroseconds: the engine ends a step on the program waking, so a 10 µs pulse lasts 10 µs', () => {

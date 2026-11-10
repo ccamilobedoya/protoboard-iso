@@ -7,7 +7,8 @@
 //   const runner = createRunner(js, board)
 //     board: { family, gpio: [numbers wired], read(gpio) → { volts, vdd } | null, vil, vih,
 //              adcBits, adcFull, states: { gpio: { mode, level, pull } } (from io),
-//              ask(request) → the answer of the library sensor wired for it, or null (devices/mcu.js) }
+//              ask(request) → the answer of the library sensor wired for it, or null (devices/mcu.js),
+//              i2c: { sda, scl } its family's default I2C GPIOs }
 //   runner.advance(seconds) → true when a pin changed
 //   runner.pins: gpio → { mode, level, pull, pwm: { freq, duty } | null }: a pin with pwm switches
 //     in time (the board sets its level at each step from runner.time: levelAt)
@@ -245,6 +246,7 @@ export function createRunner(js, board) {
     __array: (n) => new Array(Math.min(ARRAY_MAX, Math.max(0, Math.trunc(Number(n)) || 0))).fill(0),
     ...LIBRARY_CONSTANTS,
     isnan: (x) => Number.isNaN(Number(x)),
+    __wire: (sda, scl) => startWire(sda, scl),
     // A library object: k and c are numbers the translator chose, checked here all the same.
     __new(k, c, ...args) {
       if (!Number.isInteger(k) || k < 0 || k >= OBJECTS_MAX || !Number.isInteger(c) || !LIBRARY_CLASSES[c]) return;
@@ -262,7 +264,16 @@ export function createRunner(js, board) {
   // ── Library objects ──
   const objects = [];
   const millisNow = () => Math.floor(runner.time * 1e3 + 1e-9);
-  const ask = (request) => (typeof runner.ask === 'function' ? runner.ask({ ...request, now: millisNow() }) : null);
+  // The I2C bus: the family's default pins, or the two an ESP32's Wire.begin(sda, scl) named.
+  let bus = board.i2c ?? null;
+  const ask = (request) => (typeof runner.ask === 'function' ? runner.ask({ ...request, bus, now: millisNow() }) : null);
+  // Wire starting (Wire.begin(), or a library's begin()): on an AVR, twi_init writes SDA and SCL high,
+  // which turns on their pins' pull-ups (as INPUT_PULLUP); on an ESP32, Wire.begin(sda, scl) moves the bus.
+  const startWire = (sda, scl) => {
+    if (board.family === 'uno') {
+      for (const n of [bus?.sda, bus?.scl]) if (n != null && pin(n).mode === 'input') set(n, { pull: 'up' });
+    } else if (Number.isInteger(Number(sda)) && Number.isInteger(Number(scl)) && Number(sda) >= 0 && Number(scl) >= 0) bus = { sda: Number(sda), scl: Number(scl) };
+  };
   // A DHT read: the sensor on the object's pin answers and keeps the library's 2 s cache itself; with
   // nothing there the library still times out every 2 s (its own cache, here on the object).
   function* dhtRead(o, force) {
@@ -286,6 +297,7 @@ export function createRunner(js, board) {
   const ok = (a) => (a?.ok ? a : null);
   function* i2cBegin(o, address = I2C_DEFAULT_ADDRESS, chip) {
     const want = { address: Math.trunc(Number(address)), chip: chip == null ? LIBRARY_CLASSES[o.cls].chip : Math.trunc(Number(chip)) };
+    startWire();
     const answer = ask({ cls: LIBRARY_CLASSES[o.cls].name, method: 'begin', ...want });
     o.begun = answer?.ok ? want : null;
     yield I2C_BEGIN;

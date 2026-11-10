@@ -1644,4 +1644,6 @@ export default {
   'sim.env.field.pressure': 'presión',
   'sim.env.altitude': '{altitude} m en la atmósfera estándar',
   'page.tour.legend.climate.membrane': 'Tapa: una membrana sobre una cavidad sellada, se dobla con la presión del aire (BME280, BMP280)',
+  'check.SIM_LIBRARY_SHARED': '{part}: {parts} están en el mismo lugar para su biblioteca (un mismo pin de datos, o una misma dirección I2C en un bus): la placa no los distingue y lee {first}.',
+  'check.SIM_PIN_OVER_VDDIO': '{part}: {pin} queda en {voltage}, por encima de los {max} que aguantan los pines de su chip (VDDIO + 0,3 V): los pull-ups propios de una placa AVR a 5 V se juntan con los 10 kΩ de la placa a 3,3 V. Funciona, pero pasa el máximo del chip; un convertidor de nivel lo deja dentro.',
 };

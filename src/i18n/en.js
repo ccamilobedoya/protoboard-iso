@@ -1646,4 +1646,6 @@ export default {
   'sim.env.field.pressure': 'pressure',
   'sim.env.altitude': '{altitude} m in the standard atmosphere',
   'page.tour.legend.climate.membrane': 'Lid: a membrane over a sealed cavity, it bends with the air pressure (BME280, BMP280)',
+  'check.SIM_LIBRARY_SHARED': '{part}: {parts} are at the same place for its library (one data pin, or one I2C address on one bus): the board cannot tell them apart and reads {first}.',
+  'check.SIM_PIN_OVER_VDDIO': '{part}: {pin} idles at {voltage}, over the {max} its chip\'s pins take (VDDIO + 0.3 V): an AVR board\'s own pull-ups to 5 V meet the board\'s 10 kΩ to 3.3 V. It works, but it is over the chip\'s maximum; a level shifter keeps it inside.',
 };
