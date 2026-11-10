@@ -332,7 +332,7 @@ export const TOUCH = { maxReverse: 0.3, minSupply: 2, maxSupply: 5.5, response: 
 export const ENCODER = { contact: 0.1, maxCurrent: 10e-3, maxVoltage: 12, pullup: 10e3, stepsPerQuarter: 25 };
 
 // Ultrasonic distance module HC-SR04 (docs/en/ultrasonic-sensor.md). [D] the module's datasheet
-// (reseller copies of the same sheet), [T] widely quoted for the usual module, [A] the kit's own.
+// (resellers publish copies of the same one), [T] widely quoted for the usual module, [A] the kit's own.
 //   speed            331.3 + 0.606 · T m/s, T in °C (dry air)
 //   supply           5 V [D]; it works from 4.5 to 5.5 V [A]: under minSupply it answers "no echo"
 //                    (SIM_MODULE_LOW_SUPPLY), under minRun [A] it is off (ECHO high impedance), over
@@ -342,13 +342,16 @@ export const ENCODER = { contact: 0.1, maxCurrent: 10e-3, maxVoltage: 12, pullup
 //   burst 250 µs     from TRIG falling to ECHO rising: eight 40 kHz cycles (200 µs [D]) and about
 //                    50 µs of the module's own [A]
 //   range [2, 400]   cm [D]; outside it, or with no echo, ECHO stays high noEcho = 38 ms [T]
-//   outputResistance 20 Ω [A]   ECHO push-pull at VCC (a 5 V chip's TTL output). A first guess of
-//                    100 Ω put a 1 kΩ / 2 kΩ divider's middle at 3.23 V, under the 3.33 V a bench reads
+//   outputResistance 20 Ω [A]   ECHO push-pull at VCC (a 5 V chip's TTL output), assumed: no datasheet
+//                    gives it. With 100 Ω a 1 kΩ / 2 kΩ divider's middle would sit at 3.23 V instead of
+//                    the 3.33 V of an ideal 5 V source; with 20 Ω it is 3.30 V
 //   idleCurrent 2 mA, workCurrent 15 mA at 5 V [D]  as a load VCC–GND, measuring from TRIG to ECHO's fall
-//   maxCurrent 20 mA [A]   what ECHO may give before the kit warns
-//   cycle 60 ms      the measuring cycle the sheet recommends [D] (the page's pace without a program)
+//   maxCurrent 100 mA [A]   what ECHO may give before the kit warns: a short to ground (about 250 mA)
+//                    warns, ECHO straight into a 3.3 V board's clamp diode (about 46 mA) does not, since
+//                    the hazard there is the board's pin, which says so itself (SIM_PIN_OVERVOLTAGE)
+//   cycle 60 ms      the measuring cycle the datasheet recommends [D] (the page's pace without a program)
 export const ULTRASONIC = {
   speed: [331.3, 0.606], minRun: 2.5, minSupply: 4.5, maxSupply: 5.5, maxReverse: 0.3, trigThreshold: 2.0, trigMin: 10e-6, burst: 250e-6,
-  range: [2, 400], noEcho: 0.038, outputResistance: 20, idleCurrent: 2e-3, workCurrent: 15e-3, currentAt: 5, maxCurrent: 20e-3, cycle: 0.06,
+  range: [2, 400], noEcho: 0.038, outputResistance: 20, idleCurrent: 2e-3, workCurrent: 15e-3, currentAt: 5, maxCurrent: 0.1, cycle: 0.06,
   temperature: 20, distance: 50,
 };

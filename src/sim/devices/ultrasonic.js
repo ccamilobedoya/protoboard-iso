@@ -70,8 +70,10 @@ export function sonarAdvance({ phase, clock, width }, h, trig, vcc, p) {
 
 // Seconds to the next edge of the machine (the end of the burst or of the echo), or null. Armed (TRIG
 // high for 10 µs), the burst's end counts from now: TRIG falls when the program next writes it.
+// Announced once per arming: TRIG held high past the burst's length (a button on it) asks for no
+// more landings, and its fall is then seen to a step.
 export function sonarUntil({ phase, clock, width }) {
-  if (phase === IDLE) return clock >= U.trigMin - EPS ? U.burst : null;
+  if (phase === IDLE) return clock >= U.trigMin - EPS && clock < U.trigMin + U.burst ? U.burst : null;
   if (phase === BURST) return Math.max(0, U.burst - clock);
   if (phase === ECHO) return Math.max(0, width - clock);
   return null;
@@ -119,7 +121,7 @@ function sonarCore({ echo, vcc, gnd, trig }, p) {
     until() {
       return sonarUntil(this);
     },
-    // The page's pace when nothing else keeps time (TRIG from a button): the sheet's measuring cycle.
+    // The page's pace when nothing else keeps time (TRIG from a button): the datasheet's measuring cycle.
     span: () => U.cycle,
   };
 }
@@ -148,7 +150,8 @@ export const ultrasonic = {
     const vcc = at('VCC') - at('GND');
     const echo = at('ECHO') - at('GND');
     // The echo of the measurement under way, else the one it would give now.
-    const width = now.phase === ECHO ? now.width : echoWidth(entry, vcc);
+    // Off (under 2.5 V) it measures nothing: no width at all.
+    const width = now.phase === OFF ? null : now.phase === ECHO ? now.width : echoWidth(entry, vcc);
     const left = now.phase === BURST ? U.burst - now.clock : now.phase === ECHO ? now.width - now.clock : null;
     return {
       state: PHASES[now.phase],
@@ -159,8 +162,8 @@ export const ultrasonic = {
       speed: soundSpeed(entry.temperature),
       inRange: entry.distance >= U.range[0] && entry.distance <= U.range[1],
       width,
-      noEcho: width >= U.noEcho - EPS,
-      means: width / 58e-6,
+      noEcho: width != null && width >= U.noEcho - EPS,
+      means: width == null ? null : width / 58e-6,
       vcc,
       vecho: echo,
       vtrig: at('TRIG') - at('GND'),
@@ -185,7 +188,8 @@ export const ultrasonic = {
     return [
       h.raw(`sonar.${p.state}`, h.t(`sim.sonar.${p.state}`, { time: p.left == null ? '' : h.f(p.left, 's') })),
       h.q('sonar.distance', p.inRange ? cm(p.distance) : h.t('sim.sonar.outOfRange', { distance: cm(p.distance) })),
-      h.q('sonar.width', p.noEcho ? h.t('sim.sonar.noEcho', { time: h.f(p.width, 's') }) : `${h.f(p.width, 's')} → ${cm(p.means)}`),
+      // Off it measures nothing; under 4.5 V it hears no echo.
+      ...(p.width == null ? [] : [h.q('sonar.width', p.noEcho ? h.t('sim.sonar.noEcho', { time: h.f(p.width, 's') }) : `${h.f(p.width, 's')} → ${cm(p.means)}`)]),
       h.q('sonar.speed', `${String(Math.round(p.speed * 10) / 10).replace('.', h.decimal)} m/s · ${String(Math.round(p.temperature * 10) / 10).replace('.', h.decimal)} °C`),
       h.q('sonar.vecho', h.f(p.vecho, 'V')),
       h.q('sonar.vtrig', h.f(p.vtrig, 'V')),

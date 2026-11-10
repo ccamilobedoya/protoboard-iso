@@ -1,7 +1,7 @@
-// The HC-SR04 ultrasonic module (docs/en/ultrasonic-sensor.md): its state machine against the sheet's
-// times, a board's pulseIn reading it through the engine (docs/en/microcontrollers.md), its supply and
-// output, the 3.3 V divider and its state across a slider. The numbers are the physics spec's checks
-// (ECHO width 2·d / v, v = 331.3 + 0.606·T).
+// The HC-SR04 ultrasonic module (docs/en/ultrasonic-sensor.md): its state machine against the
+// datasheet's times, a board's pulseIn reading it through the engine (docs/en/microcontrollers.md), its
+// supply and output, the 3.3 V divider and its state across a slider. The numbers follow from the
+// speed of sound: ECHO's width is 2·d / v, v = 331.3 + 0.606·T m/s.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -26,7 +26,7 @@ test('ultrasonic-sensor: a sensor of four pins, VCC TRIG ECHO GND, part HC-SR04'
   assert.ok(t.resolve({ distance: -1 }).error);
 });
 
-test('the echo is the round trip at the speed of sound: the spec\'s numbers', () => {
+test('the echo is the round trip at the speed of sound: 2·d / v at four distances and temperatures', () => {
   near(echoWidth({ distance: 100, temperature: 20 }) * 1e6, 5824, 5, '100 cm, 20 °C');
   near(echoWidth({ distance: 10, temperature: 25 }) * 1e6, 577, 2, '10 cm, 25 °C');
   near(echoWidth({ distance: 400, temperature: 20 }) * 1e3, 23.3, 0.05, '400 cm');
@@ -184,7 +184,12 @@ test('a 3.3 V board: the divider keeps its pin at 3.33 V; without it the pin is 
       near(high, 3.33, 0.05, 'the divider\'s middle while ECHO is high');
       assert.equal(over, false);
       for (const d of cm) near(d, 30, 1, 'and it still reads 30 cm');
-    } else assert.equal(over, true, 'ECHO at 5 V straight into the pin');
+    } else {
+      assert.equal(over, true, 'ECHO at 5 V straight into the pin');
+      // The hazard is the board's pin, which says so; the module's ECHO stage is not over its limit.
+      const stresses = engine.stresses(engine.read()).S1 ?? [];
+      assert.ok(!stresses.some((s) => s.ratio > 1), JSON.stringify(stresses));
+    }
   }
 });
 
@@ -279,4 +284,78 @@ test('distance-alarm-uno: the LED lights under 15 cm', () => {
   assert.ok(until(engine, (cm) => Math.abs(cm - 10) <= 1, 0.5) != null);
   engine.advance(0.01);
   assert.ok(engine.read().parts.D1.current > 5e-3, 'on at 10 cm');
+});
+
+// With an emitter in the circuit (the KY-008 laser, docs/en/environment.md): its light reaches the
+// sensors one engine step later, and a landed piece is a step like the others: never skipped, never
+// out of order.
+test('a laser and an HC-SR04 on one UNO: the echo to the microsecond, the light one step late', () => {
+  const spec = expandRecipe('laser-uno').spec;
+  spec.parts[0].program = `void setup() { pinMode(7, OUTPUT); pinMode(9, OUTPUT); pinMode(10, INPUT); Serial.begin(9600); }
+long measure() { digitalWrite(9, LOW); delayMicroseconds(2); digitalWrite(9, HIGH); delayMicroseconds(10); digitalWrite(9, LOW); return pulseIn(10, HIGH, 30000); }
+void loop() {
+  digitalWrite(7, HIGH); delay(20); long a = measure(); Serial.print(a); Serial.print(" "); Serial.println(analogRead(A0)); delay(30);
+  digitalWrite(7, LOW); delay(20); long b = measure(); Serial.print(b); Serial.print(" "); Serial.println(analogRead(A0)); delay(30);
+}`;
+  // Second in the parts, so the wide module finds its room (docs: the roadmap's wide modules).
+  spec.parts.splice(1, 0, { id: 'U2', type: 'ultrasonic-sensor' });
+  spec.nets.push(['U1.5V', 'U2.VCC'], ['U2.GND', 'U1.GND'], ['U1.D9', 'U2.TRIG'], ['U2.ECHO', 'U1.D10']);
+  spec.environment = { ...spec.environment, distance: 30, temperature: 20 };
+  const r = autoLayout({ board: 'auto', ...spec, clearance: 1 });
+  assert.deepEqual(r.problems, []);
+  const engine = createEngine(compile(r.circuit).program);
+  assert.ok(engine.start('dc', 1e-3));
+  const ambient = spec.environment.light; // the room's, without the laser
+  let steps = 0;
+  let landed = 0;
+  let late = 0;
+  let last = -1;
+  let backwards = 0;
+  const step = engine.step.bind(engine);
+  engine.step = (h, hold) => {
+    const before = engine.emissions().light?.total ?? 0;
+    const ok = step(h, hold);
+    const now = engine.read();
+    steps++;
+    if (h < 1e-3 - 1e-9) landed++;
+    if (Math.abs(now.parts.LDR1.sensor.light - (ambient + before)) > 1e-6) late++;
+    if (now.parts.U1.program.time < last) backwards++;
+    last = now.parts.U1.program.time;
+    return ok;
+  };
+  while (engine.time < 0.5 - 1e-9) assert.ok(engine.advance(1e-3));
+  assert.ok(landed > 10, `${landed} landed steps of ${steps}`);
+  assert.equal(late, 0, 'every step sees what the emitters gave the step before');
+  assert.equal(backwards, 0, 'the program\'s time never goes back');
+  const lines = engine.read().parts.U1.program.serial.map((l) => l.split(' ').map(Number));
+  assert.ok(lines.length >= 6);
+  for (const [us] of lines) near(us, 1747, 2, 'the echo of 30 cm at 20 °C');
+  const on = lines.filter((_, i) => i % 2 === 0).map(([, a0]) => a0);
+  const off = lines.filter((_, i) => i % 2 === 1).map(([, a0]) => a0);
+  assert.ok(Math.min(...on) > Math.max(...off) + 200, `A0 with the laser on ${on}, off ${off}`);
+});
+
+test('TRIG held high (a button on it) asks for one landing, not one every 250 µs', () => {
+  let s = { phase: IDLE, clock: 0, width: 0 };
+  const p = { distance: 100, temperature: 20 };
+  const asked = [];
+  for (let k = 0; k < 20; k++) {
+    asked.push(sonarUntil(s));
+    s = sonarAdvance(s, sonarUntil(s) ?? 1e-3, true, 5, p);
+  }
+  assert.ok(asked.filter((u) => u != null).length <= 2, JSON.stringify(asked));
+  assert.equal(s.phase, IDLE, 'still waiting for TRIG to fall');
+});
+
+test('off (under 2.5 V) it measures nothing; from 2.5 to 4.5 V it hears no echo', () => {
+  const at = (volts) => {
+    const r = autoLayout({ parts: [{ id: 'S1', type: 'ultrasonic-sensor' }], nets: [['T+', 'S1.VCC'], ['S1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: volts, positive: 'T+', negative: 'T-' }] });
+    return simulate(r.circuit).parts.S1;
+  };
+  const off = at(1);
+  assert.equal(off.state, 'off');
+  assert.equal(off.width, null);
+  const low = at(3.5);
+  assert.equal(low.state, 'idle');
+  assert.equal(low.noEcho, true);
 });
