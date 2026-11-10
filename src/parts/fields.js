@@ -34,6 +34,7 @@ export const TYPE_FIELDS = {
   'touch-sensor': ['mode', 'activeLow', 'fast', 'touch'],
   'rotary-encoder': ['part', 'pulses', 'detents', 'speed', 'bounce', 'pressed', 'swPullup', 'angle'],
   'sensor-module': ['part', 'threshold', 'wetness', 'moisture', 'light', 'beam', 'reflectance', 'distance', 'field', 'vibration', 'transmittance', 'slots', 'duty', 'seed'],
+  laser: ['part'],
 };
 
 // Fields a part has that its type does not take (a typo, or another type's field): saved, they

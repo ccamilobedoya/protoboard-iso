@@ -3102,7 +3102,9 @@
                       "obstacle-buzzer",
                       "hall-counter-uno",
                       "encoder-uno",
-                      "encoder-dimmer-uno"
+                      "encoder-dimmer-uno",
+                      "laser-tripwire",
+                      "laser-uno"
                     ]
                   },
                   "values": {

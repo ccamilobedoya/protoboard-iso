@@ -70,6 +70,8 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `hall-counter-uno` | Arduino UNO que cuenta las pasadas de un imán con un KY-024 (DO en D2, flancos de bajada) | U2 = 0,5 (umbral), U1 = su programa |
 | `encoder-uno` | Arduino UNO: un encoder rotativo KY-040 en D2 (CLK), D3 (DT) y D4 (SW), alimentado con el pin de 5 V; el programa cuenta clics (CLK cae, DT dice hacia dónde), escribe la cuenta cuando cambia y la pone en cero con el pulsador | U2 = 0 (bounce, ms), U1 = su programa |
 | `encoder-dimmer-uno` | lo mismo, con un LED en D9 (por R1) cuyo brillo PWM sigue a la cuenta, 13 cuentas por clic, la cuenta retenida entre 0 y 20 | R1 = 220, D1 = green, U1 = su programa |
+| `laser-tripwire` | Un láser KY-008 siempre encendido y un módulo LDR-LM393: corta el haz (el `beam` del ambiente) y DO enciende el LED con un NPN | U1 = 0,1 (umbral), R1 = 1k (base), R2 = 330, D1 = rojo |
+| `laser-uno` | Arduino UNO que hace parpadear un KY-008 a 1 Hz con un NPN (D7) e imprime una fotorresistencia en A0 | R1 = 10k (divisor), R2 = 1k (base), U1 = su programa |
 
 `catalog` (MCP) o `parts` (consola) las listan con su título (la lista compacta de `catalog` deja fuera los valores); `catalog` con el nombre de una receta
 (`parts <nombre>` en la consola) muestra lo que enseña, sus componentes, redes, fuente, y el papel y
@@ -110,6 +112,7 @@ una GL5528, el termómetro un LM35 o un NTC de 10k (B 3950).
 | `lm35-comparator` | El LM35 da 10 mV por °C a IN+; la referencia es 0,417 V (unos 42 °C). Por encima, la salida se suelta y R3, el pull-up de la salida, alimenta el LED hacia tierra (unos 10 mA); por debajo, la salida tira hacia abajo y el LED ve menos de 1 V (apagado). El LED no va "como en las recetas con potenciómetro" (desde la fuente, encendido con la salida baja) porque aquí la alarma debe encenderse cuando la entrada es *mayor* |
 | `ntc-follower` | El NTC está del lado de la fuente, así que el voltaje sube al calentarse; el seguidor lo copia a 10k. La fuente es de 9 V: la salida de un LM358 se queda a unos 1,5 V de la fuente, y desde 5 V recortaría el voltaje que da el divisor a 60 °C |
 | `thermistor-uno` | El mismo NTC sobre 10k en los 5 V del UNO, leído en A0; el programa saca la resistencia del conteo del ADC y la temperatura de `1/T = 1/T0 + ln(R/R0)/B`, y escribe `T=<valor>` cada segundo (a menos de 1,5 °C del ambiente a 25 y a 60 °C) |
+| `laser-tripwire`, `laser-uno` | El láser (unos 28 mA, 3 mW) agrega unos 9,8 klx a los 50 lx del cuarto para todo sensor de luz. En la barrera el trimmer del módulo está en 0,1 (Vref 0,5 V, el cambio cerca de 300 lx): con el haz DO está en 0,2 V y el LED apagado; con `beam` encendido la fotorresistencia ve 50 lx, DO sube a unos 2 V y el LED tiene unos 9,6 mA. En `laser-uno` D7 maneja el láser con un NPN (directo desde el pin, su salida de 40 Ω deja el láser en unos 20 mA, por debajo de su umbral: sin haz); el monitor serie muestra `on  A0=1005` y `off A0=688` cada segundo |
 - Junto con la receta se pueden dar `title`, `board`, `clearance`, `netLabels`, `environment`, `page` y `lang`, que
   reemplazan los de la receta. `parts` y `nets`, nunca (`RECIPE_AND_PARTS`).
 

@@ -11,16 +11,18 @@
 //   nodes:    every other group, in index order (board groups, then supply groups)
 //   members:  group → ids of the parts with a lead in it (for the floating warning)
 //   supplies: [{ id, kind, part?, voltage, internalResistance, p, n, currentLimit, battery?, generator?, off? }]
-//   devices:  [{ id, type, kind, pins: [{ name, node }], params, senses?, follows?, env? } | { id, kind, pins, unsupported: true }]
+//   devices:  [{ id, type, kind, pins: [{ name, node }], params, senses?, follows?, env?, emits? } | { id, kind, pins, unsupported: true }]
 //   issues:   what compiling found (default models, parts not simulated, a battery switched off)
 //   environment?: { spec, fields }   only when the circuit declares one (environment.js): its fields
-//                 as cleanEnvironment gives them, and every field the program has (those named and
-//                 those a part follows)
+//                 as cleanEnvironment gives them, and every field the program has (those named, those
+//                 a part follows, those an emitter writes and the switch that blocks each)
 // }
 // A sensor (a device with `senses`) reads the environment in params() with c.env(field): the value
 // at t = 0, or undefined when the part has its own value (`"light": 50` on the part wins) or the
 // circuit declares no environment. Its record then says which fields it asked about (`senses`),
 // which it follows (`follows`) and their values (`env`), for the engine to change it as they move.
+// An emitter (a device with `emits`: a laser writes `light`) carries the fields it writes (`emits`)
+// only in a circuit that declares an environment; in one without, it is told (ENV_EMITTER_ALONE).
 
 import { supplyRails } from '../board/board.js';
 import { buildCircuit } from '../circuit/build.js';
@@ -32,7 +34,7 @@ import { issue } from './devices/shared.js';
 import { translateSketch } from './sketch.js';
 import { LIMITS } from '../limits.js';
 import { readBeside } from '../beside.js';
-import { cleanEnvironment, createEnvironment } from './environment.js';
+import { FIELDS, cleanEnvironment, createEnvironment } from './environment.js';
 
 // A board's program (docs/en/microcontrollers.md, M2): the sketch's text in "program", or the name
 // of a .ino file beside the circuit (read by beside.js, inside the circuit's folder only);
@@ -155,6 +157,7 @@ export function compile(circuit) {
   const spec = declared ? cleanEnvironment(circuit.environment) : null;
   const world = declared ? createEnvironment(spec) : null;
   const followed = new Set();
+  const written = new Set(); // fields an emitter writes, and the switches that block them
   const devices = built.parts.map((part) => {
     const kind = part.def.electrical?.kind;
     const pins = part.pinNames.map((name, i) => ({ name, node: part.holes[i].node }));
@@ -177,8 +180,27 @@ export function compile(circuit) {
     const record = { id: part.id, type: part.type, kind, pins, params: device.params(part, { issues, members, sketch, env }) };
     if (asked.length) record.senses = asked;
     if (follows.length) Object.assign(record, { follows, env: Object.fromEntries(follows.map((f) => [f, world.value(f)])) });
+    const emits = emitsOf(device);
+    if (emits.length && declared) {
+      record.emits = emits;
+      for (const f of emits) for (const g of [f, FIELDS[f].blockedBy].filter(Boolean)) written.add(g);
+    } else if (emits.length) issues.push(issue('info', 'ENV_EMITTER_ALONE', { part: part.id, field: emits.join(', ') }));
     return record;
   });
-  const environment = declared ? { environment: { spec, fields: [...new Set([...Object.keys(spec), ...followed])] } } : {};
+  const environment = declared ? { environment: { spec, fields: [...new Set([...Object.keys(spec), ...followed, ...written])] } } : {};
   return { program: { v: 1, ground, nodes, members, supplies, devices, issues, ...environment } };
+}
+
+// The fields a device writes, those of the registry only (environment.js).
+const emitsOf = (device) => (device?.emits ?? []).filter((f) => Object.hasOwn(FIELDS, f));
+
+// What `check` says about the emitters of a built circuit (src/index.js): one in a circuit without an
+// environment writes nowhere (ENV_EMITTER_ALONE, as compile says it to the simulation).
+export function emitterIssues(circuit, parts = []) {
+  const declared = circuit?.environment != null && typeof circuit.environment === 'object' && !Array.isArray(circuit.environment);
+  if (declared) return [];
+  return parts.flatMap((part) => {
+    const emits = emitsOf(deviceFor(part));
+    return emits.length ? [issue('info', 'ENV_EMITTER_ALONE', { part: part.id, field: emits.join(', ') })] : [];
+  });
 }

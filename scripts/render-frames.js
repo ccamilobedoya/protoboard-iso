@@ -132,8 +132,13 @@ export function timelineParts(circuit, lang = 'en', perSecond = null) {
   // A timeline's `pace` (--pace) stands for the page's own: `speed` is then that one, `natural` the page's.
   const speed = pace && perSecond > 0 && pace.perSecond > 0 ? perSecond : pace?.perSecond;
   const scope = pace ? { window: Number(pace.window.toPrecision(3)), speed: Number(speed.toPrecision(3)), ...(perSecond > 0 && { natural: Number(pace.perSecond.toPrecision(3)) }) } : null;
-  // The environment's fields (a set's or a gauge's `environment`), with the parts that follow each.
-  const environment = controls.filter((c) => c.id === 'environment').map((c) => ({ ...control(c), ...(c.programmed && { programmed: true }), followers: (compiled.program?.devices ?? []).filter((d) => d.follows?.includes(c.field)).map((d) => d.id) }));
+  // The environment's fields (a set's or a gauge's `environment`), with the parts that follow each and
+  // the parts that write it (emitters, docs/en/environment.md#emitters) with the share that reaches the sensors.
+  const devices = compiled.program?.devices ?? [];
+  const environment = controls.filter((c) => c.id === 'environment').map((c) => {
+    const emitters = devices.filter((d) => d.emits?.includes(c.field)).map((d) => d.id);
+    return { ...control(c), ...(c.programmed && { programmed: true }), followers: devices.filter((d) => d.follows?.includes(c.field)).map((d) => d.id), ...(emitters.length && { emitters, emitted: c.emitted }) };
+  });
   return { simulated: !compiled.fatal, parts, supplies, environment, nodes, scope, frame: FRAME_BANDS };
 }
 
@@ -215,7 +220,7 @@ function printParts(name, { simulated, parts, supplies, environment = [], nodes,
   if (supplies.length) console.log('supplies (not drawn on the board: only set):');
   supplies.forEach(show);
   if (environment.length) console.log('environment (set "environment", gauge):');
-  for (const c of environment) console.log(`  ${c.field} = ${c.value}${c.unit ? ` ${c.unit}` : ''}${range(c)}${c.scale === 'log' ? ' (log)' : ''}${c.programmed ? ' · a program moves it' : ''} · followed by ${c.followers.join(', ') || 'no part'}`);
+  for (const c of environment) console.log(`  ${c.field} = ${c.value}${c.unit ? ` ${c.unit}` : ''}${range(c)}${c.scale === 'log' ? ' (log)' : ''}${c.programmed ? ' · a program moves it' : ''} · followed by ${c.followers.join(', ') || 'no part'}${c.emitters ? ` · written by ${c.emitters.join(', ')} (+${Number(c.emitted.toPrecision(3))}${c.unit ? ` ${c.unit}` : ''} now)` : ''}`);
   console.log(`frame (vertical): the circuit from ${pctOf(frame.free.top)} to ${pctOf(frame.free.bottom)} of the height, the told part ending above ${pctOf(frame.told.bottom)}; the oscilloscope's box (probe "place") bottom ${pctOf(frame.scope.bottom.top)}…${pctOf(frame.scope.bottom.bottom)} (the circuit above it), or top ${pctOf(frame.scope.top.top)}…${pctOf(frame.scope.top.bottom)} (size "compact", the circuit keeps its band)`);
   if (scope) console.log(`oscilloscope (probe "window"): ${scope.window} s on screen by default; ${scope.speed ? `${scope.speed} s of simulated time per second of video` : 'the wall clock (nothing changes by itself)'}`);
   console.log('strips (probe "node"):');

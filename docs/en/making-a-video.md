@@ -263,8 +263,12 @@ A sensor's circuit is told by changing the world it reads, not the part: the cir
   field's default 2 to 400 cm would hardly move the needle (a light field on a log scale, 1 to 1000 lx;
   a temperature, 20 to 70 °C). A circuit can declare the same range for its slider too
   ([environment.md](environment.md)).
-- `render-frames.js --parts <circuit>` lists the fields with the parts that follow each, and
+- `render-frames.js --parts <circuit>` lists the fields with the parts that follow each (and the
+  parts that write one, an emitter such as a laser, with what they add now), and
   `value` reads an output voltage with `field: "vout"` (an LM35's 10 mV per °C).
+- An emitter's light is part of what the gauge shows (the sensors' value: the room's plus the
+  laser's); to cut a laser's beam, `set` the environment's `beam` to `true`
+  (`examples/tours/laser-tripwire.json`, [environment.md](environment.md#emitters)).
 - A program (`toggle`, `cycle`, `ramp`, `keyframes`) moves a field by itself with simulated time; a
   `set` pauses it. In a video, `set` steps are easier to time than a program.
 

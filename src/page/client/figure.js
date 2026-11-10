@@ -38,7 +38,9 @@
 // to the shaft's angle with an arrow as long as its speed, its brushes, and its supply against its
 // back-EMF; a PIR's dome and pyroelectric halves into a comparator, with a bar that drains with the
 // time left; a touch module's pad and finger as two plates of a capacitor, into its chip; an LM393 sensor module's divider and trimmer, AO and Vref as two bars against its supply,
-// the comparator and DO's LED lit while DO is low. Arrows
+// the comparator and DO's LED lit while DO is low; a laser module's chip between its two mirror faces,
+// glowing under its threshold and past it sending a beam out of the lens, its current against the
+// threshold under it. Arrows
 // never cross what they explain: they run beside the layers, under the channel, the film, the coil.
 // Didactic, not to scale.
 
@@ -1144,6 +1146,37 @@ const INSIDE = {
     label(g, 50, 103, r ? `AO ${f(ao, 'V')} · Vref ${f(vref, 'V')} · ${id(data.doPin ?? 'DO')} ${f(r.vdo, 'V')}` : '', 'note');
     const field = data.field ?? 'rain';
     label(g, 50, 114, r ? t(`page.tour.inside.module.${low ? 'low' : 'high'}`, { what: t(`sim.sensor-module.${field}.${r.detected ? 'detected' : 'idle'}`) }) : '', 'state');
+  },
+  laser(g, r, data, { t, f }) {
+    // The laser diode's chip between its two cleaved faces (the mirrors), the light inside it growing
+    // with the current: a glow under the threshold, past it a band that fills the chip and leaves
+    // through the lens as a straight beam, as long as the optical power. Under it the current against
+    // the threshold (a bar), and the optical power.
+    const [s, , minus] = data.ids;
+    const i = Math.max(0, r?.current ?? 0);
+    const lasing = r?.state === 'lasing';
+    const glow = Math.min(1, i / (data.threshold || 0.022));
+    make(g, 'path', { class: 'lead', d: 'M4 30H22V40M4 70H22V60' });
+    make(g, 'rect', { class: 'core', x: 22, y: 40, width: 44, height: 20, rx: 2 });
+    make(g, 'rect', { class: 'chip', x: 26, y: 46, width: 36, height: 8, fill: data.color, opacity: fixed(0.15 + (lasing ? 0.85 : 0.35 * glow)) });
+    make(g, 'rect', { class: 'metal', x: 22, y: 42, width: 3, height: 16 });
+    make(g, 'rect', { class: 'metal', x: 63, y: 42, width: 3, height: 16 });
+    make(g, 'path', { class: 'lens', d: 'M74 38A6 12 0 0 1 74 62A6 12 0 0 1 74 38Z' });
+    if (lasing) {
+      const len = Math.min(22, 6 + 4 * ((r.opticalPower ?? 0) * 1e3));
+      make(g, 'path', { class: 'light', d: `M66 50H${fixed(74 + len)}` });
+      make(g, 'path', { class: 'light-head', d: `M${fixed(78 + len)} 50L${fixed(72 + len)} 46.5L${fixed(72 + len)} 53.5Z` });
+    }
+    label(g, 4, 26, s, 'pin-name', 'start', FIGURE.text);
+    label(g, 4, 82, minus, 'pin-name', 'start', FIGURE.text);
+    // The current against the threshold: the bar's mark at Ith, full at the current it is rated for.
+    const top = data.maxCurrent || 0.04;
+    make(g, 'rect', { class: 'film', x: 22, y: 76, width: 56, height: 6, rx: 2 });
+    if (i > 0) make(g, 'rect', { class: lasing ? 'soc' : 'headroom', x: 22, y: 76, width: fixed(56 * Math.min(1, i / top)), height: 6, rx: 2 });
+    make(g, 'path', { class: 'lead', d: `M${fixed(22 + (56 * (data.threshold || 0.022)) / top)} 73V85` });
+    label(g, 50, 92, `Ith ${f(data.threshold || 0.022, 'A')}`, 'quiet', 'middle', FIGURE.small);
+    label(g, 50, 103, r ? [`I ${f(i, 'A')}`, lasing && `P ${f(r.opticalPower ?? 0, 'W')}`].filter(Boolean).join(' · ') : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.laser.${r.state}`) : '', 'state');
   },
 };
 

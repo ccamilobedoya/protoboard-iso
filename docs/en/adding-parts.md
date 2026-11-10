@@ -185,8 +185,7 @@ comes with all of them, and the kit's types are built up to it:
 `test/pinout.test.js` ("a part up close") holds the rule: every type in `PART_TYPES` is either in
 `COMPLETE` (checked for all of the above) or in `PENDING` with its reason. A new type in neither fails
 the test, so the choice is made, never forgotten; moving a type from `PENDING` to `COMPLETE` is how
-the kit catches up (complete today: BJT, MOSFET, LED, a 555, resistor, capacitor, inductor, diode, Zener, bridge rectifier, potentiometer, NTC thermistor, photoresistor, push button, switch, regulator, battery, buzzer, RGB LED, 7-segment display, slide switch, tilt switch, LM35, relay, DC motor, PIR module, touch module). Look at the result once: a video's frame (`render-frames.js`) and the page up close
-the kit catches up (complete today: BJT, MOSFET, LED, a 555, resistor, capacitor, inductor, diode, Zener, bridge rectifier, potentiometer, NTC thermistor, photoresistor, push button, switch, regulator, battery, buzzer, RGB LED, 7-segment display, slide switch, tilt switch, LM35, relay, DC motor, LM393 sensor module). Look at the result once: a video's frame (`render-frames.js`) and the page up close
+the kit catches up (complete today: BJT, MOSFET, LED, a 555, resistor, capacitor, inductor, diode, Zener, bridge rectifier, potentiometer, NTC thermistor, photoresistor, push button, switch, regulator, battery, buzzer, RGB LED, 7-segment display, slide switch, tilt switch, LM35, relay, DC motor, PIR module, touch module, LM393 sensor module, laser module). Look at the result once: a video's frame (`render-frames.js`) and the page up close
 on a phone.
 
 ## 7. A sensor: joining the environment
@@ -220,6 +219,17 @@ function first: [rotary-encoder.md](rotary-encoder.md).
 A sensor on the usual comparator board (rain, soil, light, an infrared slot or pair, a Hall switch,
 a vibration contact) is not a new type: it is one row of the `sensor-module` table, its element and
 a glyph ([sensor-modules.md](sensor-modules.md#adding-a-ninth-part)).
+
+An **emitter** is the other way round: a part whose electrical state writes a field (a laser adds
+light, [environment.md](environment.md#emitters)). Its device declares `emits: ['light']` and a pure
+`emit(entry, reading)` that returns what it adds now from its own reading (`{ light: lux }`, 0 when it
+is off); the engine sums it over the ambient for every sensor of the field, a time step later, and
+solves the fixed point where there is no step (the start, a `set`, DC). Nothing else changes: no
+link to a sensor, no geometry. Give the reading what its card says about it (the engine puts
+`emission` on the reading: the value it adds and whether it is blocked), test what it adds at two
+operating points, and that a circuit without `environment` gets `ENV_EMITTER_ALONE`
+(`test/emitters.test.js`). A field that something may block names its blocker in `FIELDS`
+(`blockedBy`).
 
 ## Tests
 
