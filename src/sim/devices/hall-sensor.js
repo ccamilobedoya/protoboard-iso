@@ -4,7 +4,7 @@
 //   Vout = Vs/2 + 1.4 mV/G · (Vs / 5 V) · field,   held inside [0.95 V, Vs − 0.95 V]
 //
 // where Vs is the voltage between its supply and ground pins. The output sits behind 50 Ω and the chip
-// takes 6 mA from the supply (models.js HALL_LINEAR). It senses the environment's `field` (+ is a south
+// takes 6 mA from the supply (models.js HALL_LINEAR); the output is current-limited at 5 mA. It senses the environment's `field` (+ is a south
 // pole facing the marked face), unless the part gives its own.
 //
 // The element is the regulator's (../mna.js regulatorElement: the output held by a branch current that
@@ -13,11 +13,10 @@
 // the solver never meets a corner.
 //
 // The reading has the field, the voltage it should give, the output and the supply, the current VOUT
-// gives and the chip's own. Stresses: the supply over 8 V or reversed. Notes: the supply under 2.7 V
-// (the shared low-supply note), more than 1.5 mA taken from the output.
+// gives and the chip's own. Stresses: the supply over 8 V or reversed, the output asked for more than its 5 mA limit. Notes: the supply under 2.7 V
+// (the shared low-supply note), more than 1.5 mA taken from the output, the supply between 6.5 V (the operating maximum) and 8 V.
 
-import { resistor } from '../mna.js';
-import { HALL_LINEAR } from '../models.js';
+import { HALL_LINEAR, GMIN } from '../models.js';
 import { stress, note, q, volt, positiveNumbers } from './shared.js';
 
 const ROUND = 0.02; // V: how round the clamp's corners are
@@ -32,6 +31,30 @@ export function hallOutput(m, u, field) {
   // Under about 2 V the two margins would cross: they shrink with the supply.
   const margin = Math.min(m.margin, 0.45 * Math.max(0, u));
   return smin(smax(raw, margin), u - margin);
+}
+
+// The output stage: the 50 Ω of the output resistance, but a current-limited one. Its current is
+// limit · tanh(v / (R · limit)): the resistor's v / R near zero, the limit (outputLimit) for a short, with a
+// slope everywhere so Newton converges. The chip's output cannot give more than that, so a short to ground
+// or to the supply draws a few milliamperes, never the 50 mA a plain 50 Ω would.
+const limiterCurrent = (m, v) => m.outputLimit * Math.tanh(v / (m.outputResistance * m.outputLimit));
+function limitedOutput(a, b, m) {
+  return {
+    nodes: [a, b],
+    links: [[a, b]],
+    stamp(st, x) {
+      const v = volt(x, a) - volt(x, b);
+      const t = Math.tanh(v / (m.outputResistance * m.outputLimit));
+      const i = m.outputLimit * t;
+      const g = (1 - t * t) / m.outputResistance + GMIN;
+      st.device(this.nodes, [i, -i], [[g, -g], [-g, g]], [volt(x, a), volt(x, b)]);
+      return false;
+    },
+    currents(x) {
+      const i = limiterCurrent(m, volt(x, a) - volt(x, b));
+      return [i, -i];
+    },
+  };
 }
 
 // The element: V(out) − V(ref) = hallOutput(V(inp) − V(ref)), the output current from the supply, and
@@ -84,7 +107,7 @@ export const hallSensor = {
     const mid = h.inner();
     const m = p.model;
     const main = h.add(hallElement(h.pin(p.roles.vcc), h.pin(p.roles.gnd), mid, p.field, m));
-    const out = h.add(resistor(mid, h.pin(p.roles.out), m.outputResistance));
+    const out = h.add(limitedOutput(mid, h.pin(p.roles.out), m));
     return { main, out };
   },
   read(entry, h) {
@@ -99,6 +122,8 @@ export const hallSensor = {
       vs,
       vout,
       current: iout,
+      // What the output was asked for: the current its 50 Ω would carry, before the limit.
+      demand: Math.abs(hallOutput(entry.model, vs, entry.field) - vout) / entry.model.outputResistance,
       supply: iin,
       quiescent,
       power: vs * iin - vout * iout,
@@ -111,7 +136,9 @@ export const hallSensor = {
     const out = [
       stress('SIM_IC_SUPPLY', 'voltage', r.vs, m.maxSupply, 'V'),
       stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vs, m.maxReverse, 'V', { param: 'voltage' }),
+      stress('SIM_OVER_CURRENT', 'current', r.demand, m.outputLimit, 'A'),
     ];
+    if (r.vs > m.maxOperating && r.vs <= m.maxSupply) out.push(note('info', 'SIM_HALL_HIGH_SUPPLY', { part: entry.id, voltage: q(r.vs, 'V'), max: q(m.maxOperating, 'V') }));
     if (r.state === 'low') out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vs, 'V'), min: q(m.minSupply, 'V') }));
     if (Math.abs(r.current) > m.loadNote) out.push(note('info', 'SIM_HALL_LOAD', { part: entry.id, current: q(Math.abs(r.current), 'A'), max: q(m.loadNote, 'A') }));
     return out;

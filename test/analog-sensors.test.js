@@ -17,6 +17,7 @@ import { electretPeak, SENSOR_MODULES } from '../src/parts/sensors.js';
 import { buildCircuit } from '../src/circuit/build.js';
 import { createCamera } from '../src/core/camera.js';
 import { pinoutOf } from '../src/pinout.js';
+import { partLines } from '../src/sim/format.js';
 
 const near = (actual, expected, tol, what) => assert.ok(Math.abs(actual - expected) <= tol, `${what}: ${actual} against ${expected} ± ${tol}`);
 const codes = (s) => s.issues.map((i) => i.code);
@@ -184,8 +185,10 @@ test('active buzzer: from 2.0 V it is a 167 ohm load and sounds, quieter below 5
   near(buzzer(5).level, 85, 0.3, 'level at 5 V');
   assert.equal(buzzer(1.7).sounding, false);
   assert.ok(buzzer(1.7).current > 0.001 && buzzer(1.7).current < 0.01, 'the ramp is between nothing and the law');
-  // Over 35 mA a current note, over 7 V the maximum-supply warning, and neither at 5 V.
-  assert.ok(codes({ issues: buzzer(6).issues }).includes('SIM_OVER_CURRENT'));
+  // Over 35 mA a current note (never a warning), over 7.5 V the maximum-supply warning, and neither at 5 V.
+  const six = buzzer(6).issues;
+  assert.ok(codes({ issues: six }).includes('SIM_BUZZER_CURRENT') && !codes({ issues: six }).includes('SIM_OVER_CURRENT'));
+  assert.ok(six.every((i) => i.severity === 'info'), JSON.stringify(six));
   assert.ok(!codes({ issues: buzzer(6).issues }).includes('SIM_IC_SUPPLY'));
   assert.ok(codes({ issues: buzzer(8).issues }).includes('SIM_IC_SUPPLY'));
   assert.deepEqual(codes({ issues: buzzer(5).issues }), []);
@@ -415,4 +418,58 @@ test('49E with its supply reversed: the output sits at ground, the reverse note 
   const r = run({ type: 'hall-sensor', part: 'KY-035', pins: ['S', '+', '-'] }, { plus: ['-'], minus: ['+'] });
   near(r.vout, 0, 0.01, 'output');
   assert.ok(codes({ issues: r.issues }).includes('SIM_REVERSE_VOLTAGE'));
+});
+
+// The 49E's output is current-limited at 5 mA: a short draws about that, the supply current stays
+// positive (the chip's own 6 mA is more than the limit) and SIM_OVER_CURRENT says the output was asked for more.
+const hallShort = (railOfS) => simulate({ version: 1, board: 'bb830', supplies: [{ id: 'V1', voltage: 5 }], parts: [
+  { id: 'U1', type: 'hall-sensor', part: 'KY-035', field: 0, pins: ['c10', 'c11', 'c12'] },
+  { id: 'W1', type: 'wire', color: 'red', pins: ['a11', 'T+11'] }, { id: 'W2', type: 'wire', color: 'black', pins: ['a12', 'T-12'] },
+  { id: 'W3', type: 'wire', color: 'green', pins: ['a10', railOfS === 'gnd' ? 'T-10' : 'T+10'] }] });
+
+test('49E: S shorted to ground gives about 5 mA, not 50, and says SIM_OVER_CURRENT', () => {
+  const s = hallShort('gnd');
+  assert.ok(s.ok, JSON.stringify(s.issues));
+  near(s.parts.U1.current, 5e-3, 0.1e-3, 'output current');
+  near(s.parts.U1.supply, 11e-3, 0.2e-3, 'supply current');
+  assert.ok(codes(s).includes('SIM_OVER_CURRENT'), JSON.stringify(s.issues));
+  assert.ok(s.issues.find((i) => i.code === 'SIM_OVER_CURRENT').severity === 'warning');
+});
+
+test('49E: S shorted to the supply sinks 5 mA and the supply current never goes negative', () => {
+  const s = hallShort('vcc');
+  assert.ok(s.ok, JSON.stringify(s.issues));
+  near(s.parts.U1.current, -5e-3, 0.1e-3, 'output current');
+  assert.ok(s.parts.U1.supply > 0.5e-3, `supply ${s.parts.U1.supply}`);
+  assert.ok(codes(s).includes('SIM_OVER_CURRENT'), JSON.stringify(s.issues));
+});
+
+test('49E: a load inside the limit is unchanged (the 1 kΩ load of 2 mA says no over-current)', () => {
+  const loaded = simulate({ version: 1, board: 'bb830', supplies: [{ id: 'V1', voltage: 5 }], parts: [
+    { id: 'U1', type: 'hall-sensor', part: 'KY-035', field: 0, pins: ['c10', 'c11', 'c12'] }, { id: 'R1', type: 'resistor', value: '1.2k', pins: ['e10', 'e21'] },
+    { id: 'W1', type: 'wire', color: 'red', pins: ['a11', 'T+11'] }, { id: 'W2', type: 'wire', color: 'black', pins: ['a12', 'T-12'] }, { id: 'W3', type: 'wire', color: 'black', pins: ['a21', 'T-21'] }] });
+  assert.ok(loaded.ok && !codes(loaded).includes('SIM_OVER_CURRENT'), JSON.stringify(loaded.issues));
+  near(loaded.parts.U1.current, 2.5 / 1250, 0.05e-3, 'output current');
+});
+
+test('active buzzer: its card says it is not sounding for want of voltage between 1.5 and 2.0 V, and only "silent" under 1.5 V', () => {
+  const text = (v, lang) => partLines(buzzer(v), lang).map((l) => l.text)[0];
+  assert.equal(text(1.8, 'en'), 'silent · not enough voltage to sound');
+  assert.equal(text(1.8, 'es'), 'en silencio · sin voltaje suficiente para sonar');
+  assert.equal(text(1.0, 'en'), 'silent');
+  assert.match(text(5, 'en'), /^sounding/);
+});
+
+test('49E: a note between 6.5 V and the 8 V of the warning, nothing at 5 V', () => {
+  const at = (v) => codes({ issues: hall({}, { v }).issues });
+  assert.ok(at(7).includes('SIM_HALL_HIGH_SUPPLY') && !at(7).includes('SIM_IC_SUPPLY'));
+  assert.ok(!at(6.4).includes('SIM_HALL_HIGH_SUPPLY') && !at(5).includes('SIM_HALL_HIGH_SUPPLY'));
+  assert.ok(at(9).includes('SIM_IC_SUPPLY') && !at(9).includes('SIM_HALL_HIGH_SUPPLY'));
+});
+
+test('voltage sensor: a note above the 25 V on its label (40 V gives 8 V on S), none at 25 V', () => {
+  const over = voltage(40);
+  near(over.parts.U1.vs, 8, 0.01, 'S at 40 V');
+  assert.ok(codes(over).includes('SIM_VOLTAGE_SENSOR_RANGE') && over.issues.find((i) => i.code === 'SIM_VOLTAGE_SENSOR_RANGE').severity === 'info');
+  assert.ok(!codes(voltage(25)).includes('SIM_VOLTAGE_SENSOR_RANGE'));
 });

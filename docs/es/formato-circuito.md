@@ -347,8 +347,9 @@ continua basta para que suene desde unos 2,0 V (unos 2,3 kHz, 85 dB a 10 cm con 
 2,0 V, o sea 19,8 mA con 3,3 V). No toma casi nada bajo 1,5 V y la corriente sube suave hasta esa ley a
 los 2,0 V; no hay histéresis.
 Tiene polaridad: la pata `1` es la larga y el `+` de su carcasa; al revés es un circuito abierto de 100 kΩ,
-en silencio, y por encima de 1 V lo dice (`SIM_REVERSE_VOLTAGE`). Por encima de 7 V avisa con
-`SIM_IC_SUPPLY` (el código «más de su máximo» del kit) y por encima de 35 mA con `SIM_OVER_CURRENT`;
+en silencio, y por encima de 1 V lo dice (`SIM_REVERSE_VOLTAGE`). Por encima de 7,5 V avisa con
+`SIM_IC_SUPPLY` (el código «más de su máximo» del kit); por encima de 35 mA (desde unos 5,8 V, dentro de los 3 a 7 V de sus
+listados) solo anota `SIM_BUZZER_CURRENT`. Entre 1,5 y 2,0 V toma corriente sin sonar todavía, y su tarjeta lo dice;
 `SIM_BUZZER_DC` no le aplica. Su tarjeta dice *sonando · 2,3 kHz* y el nivel como «unos» N dB, o *en silencio*. Se distingue del pasivo por el fondo sellado
 de la carcasa (una banda de resina en su base en el dibujo) y porque pita apenas se alimenta; las recetas
 `rain-alarm` y `obstacle-buzzer` lo usan, a través de un PNP.

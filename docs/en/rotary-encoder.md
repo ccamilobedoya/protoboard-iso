@@ -16,7 +16,7 @@ Pins `CLK`, `DT`, `SW`, `+`, `GND`, as the board prints them, 2.54 mm, standing 
 one row of the breadboard (the board is 19 × 26 mm; the encoder is 12 × 12 mm with a 6 mm shaft that
 sticks 20 mm out towards the front). The module carries a 10 kΩ pull-up from `+` to `CLK`, to `DT`
 and to `SW`. They hang from the `+` pin: with `+` connected to nothing the outputs float, the
-classic mistake of the module (`SIM_ENCODER_FLOATING`). CLK is channel A and DT channel B.
+classic mistake of the module (`SIM_ENCODER_FLOATING`; a pin set as `INPUT_PULLUP` still reads them cleanly through its own pull-up, so the note says both). CLK is channel A and DT channel B.
 
 | Field | Default | |
 |---|---|---|
@@ -86,7 +86,7 @@ uses an interrupt (`attachInterrupt`) is not simulated yet.
 ## Limits and the bounce
 
 A contact carrying over 10 mA is `SIM_OVER_CURRENT` (an LED wired straight through a closed contact
-with a 220 Ω resistor from 5 V takes about 14 mA; with 470 Ω, 7 mA, no warning); a contact holding over
+with a 220 Ω resistor from 5 V takes about 15 mA through the contact, 14.4 mA of it in the LED; with 470 Ω, 7.5 mA, no warning); a contact holding over
 12 V open is `SIM_SWITCH_VOLTAGE`. A sketch's pin pulling a line low against `+` takes 0.5 mA and
 stresses nothing. The 10 mA and 12 V are the ratings of the EC11 at 5 V DC resistive load; the 12 V is
 the kit's choice for where to warn.

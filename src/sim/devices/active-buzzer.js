@@ -7,14 +7,14 @@
 // (19.8 mA) and fully on 5 V. Between 1.5 and 2.0 V the current rises through a smoothstep, so the law is
 // monotonic and Newton has a slope everywhere. There is no hysteresis: it is a function of the voltage
 // across it. Reversed it is an open circuit of 100 kΩ, silent; over 1 V the card says so
-// (SIM_REVERSE_VOLTAGE). Over 7 V SIM_IC_SUPPLY (the kit's "more than its maximum" warning), over 35 mA
-// SIM_OVER_CURRENT. `SIM_BUZZER_DC` is the passive one's note and does not apply.
+// (SIM_REVERSE_VOLTAGE). Over 7.5 V SIM_IC_SUPPLY (the kit's "more than its maximum" warning); over 35 mA (from
+// about 5.8 V) only the note SIM_BUZZER_CURRENT. `SIM_BUZZER_DC` is the passive one's note and does not apply.
 //
 // The reading has the voltage and current across it, whether it sounds, its pitch and its level in dB at
 // 10 cm (85 − 40·log10(5/V) below 5 V).
 
 import { ACTIVE_BUZZER, GMIN } from '../models.js';
-import { stress, currentTag, volt, positiveNumbers } from './shared.js';
+import { stress, note, q, currentTag, volt, positiveNumbers } from './shared.js';
 
 const resistance = (m) => m.rated / m.current;
 const smooth = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
@@ -65,6 +65,8 @@ export const activeBuzzer = {
     const current = entry.main.currents(h.x, h.ctx)[0];
     const sounding = voltage >= m.start - 0.005; // a few millivolts of wire drop do not silence it
     return {
+      // Between the two voltages it takes current (up to a few milliamperes) without sounding yet.
+      starting: !sounding && voltage > m.rampFrom,
       voltage,
       current,
       power: voltage * current,
@@ -76,14 +78,15 @@ export const activeBuzzer = {
   },
   limits(entry, r) {
     const m = entry.model;
-    return [
+    const out = [
       stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.voltage, m.maxReverse, 'V', { param: 'voltage' }),
       stress('SIM_IC_SUPPLY', 'voltage', r.voltage, m.maxVoltage, 'V'),
-      stress('SIM_OVER_CURRENT', 'current', Math.max(0, r.current), m.maxCurrent, 'A'),
     ];
+    if (r.current > m.maxCurrent) out.push(note('info', 'SIM_BUZZER_CURRENT', { part: entry.id, current: q(r.current, 'A'), max: q(m.maxCurrent, 'A') }));
+    return out;
   },
   lines(p, h) {
-    const lines = [h.raw(`buzzer.${p.sounding ? 'sounding' : 'silent'}`, p.sounding ? h.t('sim.buzzer.sounding', { frequency: h.f(p.frequency, 'Hz') }) : h.t(`sim.buzzer.${p.state === 'reversed' ? 'reversed' : 'silent'}`))];
+    const lines = [h.raw(`buzzer.${p.sounding ? 'sounding' : 'silent'}`, p.sounding ? h.t('sim.buzzer.sounding', { frequency: h.f(p.frequency, 'Hz') }) : h.t(`sim.buzzer.${p.state === 'reversed' ? 'reversed' : p.starting ? 'starting' : 'silent'}`))];
     if (p.sounding) lines.push(h.q('buzzer.level', h.t('sim.buzzer.level', { level: Math.round(p.level) })));
     lines.push(h.q('voltage', h.f(p.voltage, 'V')), h.q('current', h.f(p.current, 'A')), h.q('power', h.f(p.power, 'W')));
     return lines;

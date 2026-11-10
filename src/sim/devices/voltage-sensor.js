@@ -5,11 +5,11 @@
 //
 // The reading has the input (VIN to GND), S, their ratio and the current the divider takes. Stress: the
 // 30 kΩ over 100 mW (a 68 V input). S over a microcontroller's supply is that board's own check
-// (SIM_PIN_OVERVOLTAGE, ./mcu.js).
+// (SIM_PIN_OVERVOLTAGE, ./mcu.js). Over the 25 V on its label, a note.
 
 import { resistor } from '../mna.js';
 import { VOLTAGE_SENSOR } from '../models.js';
-import { stress, q, positiveNumbers } from './shared.js';
+import { stress, note, q, positiveNumbers } from './shared.js';
 
 export const voltageSensor = {
   types: ['voltage-sensor'],
@@ -44,7 +44,9 @@ export const voltageSensor = {
     };
   },
   limits(entry, r) {
-    return [stress('SIM_OVER_POWER', 'power', r.power30k, entry.model.maxPower, 'W')];
+    const out = [stress('SIM_OVER_POWER', 'power', r.power30k, entry.model.maxPower, 'W')];
+    if (r.vin > entry.model.rated) out.push(note('info', 'SIM_VOLTAGE_SENSOR_RANGE', { part: entry.id, voltage: q(r.vin, 'V'), max: q(entry.model.rated, 'V') }));
+    return out;
   },
   lines(p, h) {
     return [

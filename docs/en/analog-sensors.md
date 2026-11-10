@@ -40,13 +40,15 @@ Vout = Vs / 2 + 1.4 mV/G · (Vs / 5 V) · field          held inside [0.95 V, Vs
   +100 G gives 1.742 V. A board whose ADC reference is its own supply (an UNO's 5 V, an ESP32's 3.3 V)
   reads the same fraction either way, which is why the sketch of `hall-linear-uno` works on both
   after changing only the supply it assumes.
-- The output sits behind 50 Ω and the chip takes about 6 mA from the supply. The linear range
+- The output sits behind 50 Ω and is current-limited at about 5 mA (the class is good for ±1.5 mA); the chip takes about 6 mA from the supply, so a short on the output draws about 11 mA and never makes the supply current negative. The linear range
   is about ±650 G; the slider shows ±500 G, the field may be typed up to ±10 000 G.
 - It senses the environment's `field` ([environment.md](environment.md)); a `field` on the part wins.
 
 Limits and notes: `SIM_IC_SUPPLY` over 8 V (the sheets give no absolute maximum: the kit's figure),
 `SIM_REVERSE_VOLTAGE` reversed (the chip is off then: its output stays at ground), `SIM_MODULE_LOW_SUPPLY` under the 2.7 V it is specified from (the
-note every sensor uses), and `SIM_HALL_LOAD` (a note) when more than 1.5 mA is taken from the output.
+note every sensor uses), `SIM_HALL_LOAD` (a note) when more than 1.5 mA is taken from the output, `SIM_OVER_CURRENT`
+when the output is asked for more than its 5 mA limit (what a 50 Ω would carry, before the limit: a short asks for 50 mA), and
+`SIM_HALL_HIGH_SUPPLY` (a note) between 6.5 V, the end of its operating range, and the 8 V of the warning.
 The card shows the field, the output, the supply, the current VOUT gives and the chip's own.
 
 ## Reading them with `analogRead`
@@ -80,6 +82,8 @@ the same copper trace (a milliohm between them in the model).
   high-impedance reader. An ADC that loads it (an ESP32's sampling capacitor) reads a little low.
 - `SIM_OVER_POWER` on the 30 kΩ over 100 mW (a 68 V input). Whatever `S` reaches over a board's supply
   is that board's check (`SIM_PIN_OVERVOLTAGE`): 25 V in puts 5 V on a 3.3 V board's pin.
+  Over the 25 V printed on the module a note (`SIM_VOLTAGE_SENSOR_RANGE`) says it is out of its range: 40 V in
+  gives 8 V on `S`.
 
 The card shows the input, `S`, the ratio and the input current. The recipe multiplies the reading by
 five to give the volts.

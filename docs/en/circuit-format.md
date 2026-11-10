@@ -329,8 +329,9 @@ sound from about 2.0 V (about 2.3 kHz, 85 dB at 10 cm at its rated 5 V, 85 − 4
 about 78 dB on a 3.3 V pin) and it takes 30 mA at 5 V (a 167 Ω load from 2.0 V up, so 19.8 mA at 3.3 V).
 It takes next to nothing under 1.5 V and the current rises smoothly to the 167 Ω law at 2.0 V; there is
 no hysteresis. It has a polarity: pin `1` is the long lead and the `+` on its case; reversed it is an
-open circuit of 100 kΩ, silent, and over 1 V says so (`SIM_REVERSE_VOLTAGE`). Over 7 V it warns with
-`SIM_IC_SUPPLY` (the kit's "more than its maximum" code) and over 35 mA with `SIM_OVER_CURRENT`.
+open circuit of 100 kΩ, silent, and over 1 V says so (`SIM_REVERSE_VOLTAGE`). Over 7.5 V it warns with
+`SIM_IC_SUPPLY` (the kit's "more than its maximum" code); over 35 mA (from about 5.8 V, inside the 3 to 7 V of its
+listings) it only notes `SIM_BUZZER_CURRENT`. Between 1.5 and 2.0 V it takes current without sounding yet, and its card says so.
 `SIM_BUZZER_DC` does not apply to it. Its card says *sounding · 2.3 kHz* and the level as "about" N dB,
 or *silent*. Tell it from the passive one by the sealed bottom of the
 can (a resin band at its foot in the drawing) and by the fact that it beeps the moment it is powered;

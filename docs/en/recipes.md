@@ -22,7 +22,7 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 |---|---|---|
 | `led-resistor` | LED with a series resistor | R1 = 330, D1 = red, V1 = 5 V (1.5–15) |
 | `divider` | Voltage divider (output where R1 and R2 meet) | R1 = 10k, R2 = 10k, V1 = 9 V (1–30) |
-| `npn-switch` | Button → base resistor → NPN transistor switching an LED | R1 = 1k (base), R2 = 330, D1 = red, Q1 = 2N2222A (2N2222A, 2N3904, BC547, BC337, S8050), V1 = 5 V (3–12) |
+| `npn-switch` | Button → base resistor → NPN transistor switching an LED | R1 = 22k (base), R2 = 470, D1 = red, Q1 = 2N2222A (2N2222A, 2N3904, BC547, BC337, S8050), V1 = 5 V (3–12) |
 | `potentiometer-led` | Potentiometer's wiper dimming an LED | RV1 = 10k, R1 = 330, D1 = red, V1 = 5 V (3–12) |
 | `mosfet-switch` | Button → logic-level MOSFET switching an LED, gate pull-down | R1 = 220 (gate), R2 = 10k (pull-down), R3 = 330, D1 = red, Q1 = IRLZ44N (IRLZ44N, 2N7000), V1 = 5 V (3–12) |
 | `button-pullup` | Button to ground with a pull-up; an LED shows the output | R1 = 1k (pull-up), R2 = 330, D1 = green, V1 = 5 V (3–12) |
@@ -68,7 +68,7 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `obstacle-buzzer` | An FC-51 obstacle module whose OUT, low at an obstacle, turns on a PNP that switches an active buzzer | U1 = 0.5 (threshold), R1 = 1k (base) |
 | `hall-counter-uno` | Arduino UNO counting a magnet's passes with a KY-024 (DO on D2, falling edges) | U2 = 0.5 (threshold), U1 = its sketch |
 | `encoder-uno` | Arduino UNO: a KY-040 rotary encoder on D2 (CLK), D3 (DT) and D4 (SW), powered from the 5 V pin; the sketch counts clicks (CLK falls, DT says which way), prints the count when it changes and zeroes it with the push switch | U2 = 0 (bounce, ms), U1 = its sketch |
-| `encoder-dimmer-uno` | the same, with a LED on D9 (through R1) whose PWM brightness follows the count, 13 counts a click, the count held between 0 and 20 | R1 = 220, D1 = green, U1 = its sketch |
+| `encoder-dimmer-uno` | the same, with a LED on D9 (through R1) whose PWM brightness follows the count, 12 counts a click, the count held between 0 and 20 | R1 = 220, D1 = green, U1 = its sketch |
 | `laser-tripwire` | A KY-008 laser always on and an LDR-LM393 module: cut the beam (the environment's `beam`) and DO lights the LED through an NPN | U1 = 0.1 (threshold), R1 = 1k (base), R2 = 330, D1 = red |
 | `laser-uno` | Arduino UNO blinking a KY-008 at 1 Hz through an NPN (D7) and printing a photoresistor on A0 | R1 = 10k (divider), R2 = 1k (base), U1 = its sketch |
 | `uno-distance` | Arduino UNO measuring distance with an HC-SR04 (TRIG D9, ECHO D10, `pulseIn`, `us / 58`); environment `distance` 30 cm (range 2–100) and 20 °C | U1 = its sketch |
@@ -116,7 +116,7 @@ LM35 or a 10k NTC (B 3950).
 | `lm35-comparator` | The LM35 gives 10 mV per °C into IN+; the reference is 0.417 V (about 42 °C). Above it the output is released and R3, the output's pull-up, feeds the LED to ground (about 10 mA); below it the output sinks and the LED sees under 1 V (off). The LED is not "as in the potentiometer recipes" (fed from the supply, on when the output is low) because here the alarm must light when the input is *higher* |
 | `ntc-follower` | The NTC is on the supply side, so the voltage rises as it warms; the follower copies it into 10k. The supply is 9 V: an LM358's output stops about 1.5 V under it, and from 5 V it would cut the voltage the divider gives at 60 °C |
 | `thermistor-uno` | The same NTC over 10k on the UNO's 5 V, read on A0; the sketch gets the resistance from the ADC count and the temperature from `1/T = 1/T0 + ln(R/R0)/B`, and prints `T=<value>` every second (within 1.5 °C of the environment at 25 and at 60 °C) |
-| `laser-tripwire`, `laser-uno` | The laser (about 28 mA, 3 mW) adds about 9.8 klx to the room's 50 lx for every light sensor. In the tripwire the module's trimmer is at 0.1 (Vref 0.5 V, the switch near 300 lx): with the beam DO is at 0.2 V and the LED off; with `beam` on the photoresistor sees 50 lx, DO rises to about 2 V and the LED has about 9.6 mA. In `laser-uno` D7 drives the laser through an NPN (straight from the pin its 40 Ω output leaves the laser at about 20 mA, under its threshold: no beam); the Serial monitor shows `on  A0=1005` and `off A0=688` each second |
+| `laser-tripwire`, `laser-uno` | The laser (about 28 mA, 3 mW) adds about 9.8 klx to the room's 50 lx for every light sensor. In the tripwire the module's trimmer is at 0.1 (Vref 0.5 V, the switch near 300 lx): with the beam DO is at 0.2 V and the LED off; with `beam` on the photoresistor sees 50 lx, DO rises to about 3.7 V (a clean high: the 22 kΩ base resistor leaves the pull-up almost unloaded) and the LED has about 6.7 mA. In `laser-uno` D7 drives the laser through an NPN (straight from the pin its 40 Ω output leaves the laser at about 20 mA, under its threshold: no beam); the Serial monitor shows `on  A0=1005` and `off A0=688` each second |
 - Beside a recipe, `title`, `board`, `clearance`, `netLabels`, `environment`, `page` and `lang` may be given and
   replace the recipe's. `parts` and `nets` never (`RECIPE_AND_PARTS`).
 

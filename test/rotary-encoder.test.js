@@ -299,3 +299,33 @@ test('encoder-dimmer-uno: the count stops at 0, so 5 clicks back and one forward
   for (let k = 0; k < 400; k++) { e.advance(1e-3); lit = Math.max(lit, e.read().parts.D1.brightness ?? 0); }
   assert.ok(lit > 0.01, `the LED lights: ${lit}`);
 });
+
+// With + connected nowhere the note is raised whatever the pin does, and its text is true for both: a pin set as
+// INPUT reads a fixed 0 (nothing drives the line), one set as INPUT_PULLUP reads a clean 1 through its own pull-up.
+test('encoder: SIM_ENCODER_FLOATING is true for INPUT and for INPUT_PULLUP', async () => {
+  const { formatIssue } = await import('../src/index.js');
+  for (const [mode, level] of [['INPUT', 0], ['INPUT_PULLUP', 1]]) {
+    const program = `void setup(){Serial.begin(9600);pinMode(2,${mode});} void loop(){Serial.println(digitalRead(2));delay(50);}`;
+    const r = autoLayout({ parts: [{ id: 'U1', type: 'rotary-encoder' }, { id: 'B1', part: 'UNO', program }], nets: [['U1.GND', 'B1.GND'], ['U1.CLK', 'B1.D2']] });
+    assert.equal(r.status, 'done', JSON.stringify(r.problems));
+    const issue = simulate(r.circuit, { analysis: 'dc' }).issues.find((i) => i.code === 'SIM_ENCODER_FLOATING');
+    assert.ok(issue, `${mode}: the note is raised`);
+    const e = createEngine(compile(r.circuit).program);
+    assert.ok(e.start('dc', 1e-3));
+    for (let t = 0; t < 0.3; t += 1e-3) assert.ok(e.advance(1e-3));
+    const serial = e.read().parts.B1.program.serial;
+    assert.equal(String(serial[serial.length - 1]).trim(), String(level), `${mode} reads ${level}`);
+    for (const lang of ['en', 'es']) {
+      const text = formatIssue(issue, lang);
+      assert.ok(text.includes('INPUT_PULLUP') && text.includes('INPUT'), `${lang}: ${text}`);
+    }
+  }
+});
+
+test('encoder-dimmer-uno: analogWrite never gets more than 255 (20 clicks at the step the sketch writes)', () => {
+  const sketch = expandRecipe('encoder-dimmer-uno').spec.parts.find((p) => p.id === 'U1').program;
+  const step = Number(/analogWrite\(LED_PIN, count \* (\d+)\)/.exec(sketch)?.[1]);
+  const top = Number(/constrain\(count, 0, (\d+)\)/.exec(sketch)?.[1]);
+  assert.ok(step > 0 && top > 0, 'the sketch writes count times a step');
+  assert.ok(step * top <= 255, `${top} clicks · ${step} = ${step * top}`);
+});
