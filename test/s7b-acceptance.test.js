@@ -1,5 +1,5 @@
-// Acceptance tests for session S7b (emitters: a part that writes a field of the shared environment,
-// and the KY-008 laser), written from the brief alone (sections 1, 2, 3 and the acceptance list E1 … E12),
+// Acceptance tests for emitters (a part that writes a field of the shared environment) and the KY-008
+// laser, written from their contract (docs/en/environment.md#emitters) and checks E1 … E12,
 // before looking at any implementation.
 //
 // The contract in short: a device may `emit` into a level field (here `light`); what a sensor sees is the
@@ -8,13 +8,13 @@
 // `environment()` (seen), `ambient()`, `emissions()` and its controls carry `emitted`.
 //
 // The laser: KY-008, pins S + − in the order the module prints them, the middle one not connected. The
-// supply goes to S (positive) and − (ground). Brief numbers: Vf 2.2 V in series with 100 Ω, so
+// supply goes to S (positive) and − (ground). The model's numbers: Vf 2.2 V in series with 100 Ω, so
 // 28 mA at 5 V; P = 0.5 W/A · max(0, I − 22 mA) (3 mW at 5 V); it adds K · P lx with K = 3.33e6 lx/W
 // (10 000 lx at 5 V).
 //
-// Names the brief does not fix, assumed here (each one is listed in the report):
+// Names the contract does not fix, assumed here:
 //   - the laser's reading carries its optical power, in watts, as `parts.<id>.opticalPower`;
-//   - the laser's pins are 'S', '+' and '−' (U+2212 minus sign, as the brief prints it);
+//   - the laser's pins are 'S', '+' and '−' (U+2212 minus sign, as the module's print is written);
 //   - `set('environment', 'beam', …)` needs `beam` declared in the circuit's `environment`, as any field
 //     (a field the circuit does not have makes `set` return false), so the beam benches declare it;
 //   - an emitter that adds nothing shows as `emissions()` without `light` or with a total of 0.

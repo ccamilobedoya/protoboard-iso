@@ -184,7 +184,7 @@ server.registerTool(
 
 server.registerTool(
   'get_circuit',
-  { title: 'Get circuit', description: 'The circuit file as JSON (the only source of truth), with its revision and placement issues. A circuit made by layout carries spec: spec.nets are the connections it was asked for (edit them and pass them to layout to change what is connected).', inputSchema: { target: targetArg, lang: common.lang }, annotations: READ },
+  { title: 'Get circuit', description: 'The circuit file as JSON (the only source of truth), with its revision and what check says (placement; environment and emitters, e.g. ENV_EMITTER_ALONE; page; tour). A circuit made by layout carries spec: spec.nets are the connections it was asked for (edit them and pass them to layout to change what is connected).', inputSchema: { target: targetArg, lang: common.lang }, annotations: READ },
   safely(async ({ target, lang }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
