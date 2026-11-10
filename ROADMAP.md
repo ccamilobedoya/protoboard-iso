@@ -362,7 +362,9 @@ board ([docs/en/environment.md](docs/en/environment.md); decision of 2026-11-08 
 - ⬜ S4 · HC-SR04 ultrasonic (`distance` → echo pulse) and `pulseIn` in the program translator
 - ⬜ S5 · Analog modules: linear Hall 49E (`field`), voltage sensor 0–25 V, microphone KY-037 (`sound`)
 - ⬜ S6 · Library-level protocol sensors: DHT11 (`temperature`, `humidity`) and BME280 read by a board's program through their library calls
-- ⬜ S7 · Rotary encoder EC11 (`angle` → quadrature) and emitters (`emits`: a laser or an IR LED writes a field)
+- ⬜ S7a · Rotary encoder EC11 (`angle` → quadrature)
+- ✅ S7b · Emitters (2026-11-10): a device's `emits` and `emit(entry, reading)` write a field of the environment (sensors see the ambient plus the emitted share; `beam` blocks emitted light, `blockedBy` in the registry); one step of delay while stepping, a fixed point at the start, after a set and in DC (`SIM_ENV_FEEDBACK` when it does not settle), `ENV_EMITTER_ALONE`; `engine.ambient()`, `engine.emissions()`, a control's `emitted`, the panel row's share in words, `--parts` lists the emitters; the KY-008 laser (`laser`, up close); recipes `laser-tripwire`, `laser-uno`; tour `laser-tripwire.json`; [docs/en/environment.md#emitters](docs/en/environment.md#emitters)
+- ⬜ An infrared LED as an emitter and a bare phototransistor or IR receiver that reads it
 - ⬜ DHT11/BME280 bit-level protocol on the wire — optional, very low priority, kept so it is not forgotten
 - ⬜ Active buzzer (a tone generator inside: sounds on DC) for the alarm recipes
 - ⬜ Bench questions to settle on the real boards: whether the SW-420's LED is lit at rest, and the MH-RD's pin order

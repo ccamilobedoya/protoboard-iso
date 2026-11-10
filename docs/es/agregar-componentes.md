@@ -192,8 +192,7 @@ que un tipo nuevo viene con todas, y los tipos del kit se van completando hasta 
 `test/pinout.test.js` («a part up close») sostiene la regla: cada tipo de `PART_TYPES` está en `COMPLETE`
 (revisado en todo lo anterior) o en `PENDING` con su motivo. Un tipo nuevo que no esté en ninguna de las
 dos hace fallar la prueba, así la decisión se toma y no se olvida; pasar un tipo de `PENDING` a `COMPLETE`
-es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC, módulo PIR, módulo táctil). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
-es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC, módulo de sensor con LM393). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
+es como el kit se pone al día (completos hoy: BJT, MOSFET, LED, un 555, resistencia, condensador, bobina, diodo, Zener, puente rectificador, potenciómetro, termistor NTC, fotorresistencia, pulsador, interruptor, regulador, batería, zumbador, LED RGB, display de 7 segmentos, interruptor deslizante, interruptor de inclinación, LM35, relé, motor DC, módulo PIR, módulo táctil, módulo de sensor con LM393, módulo láser). Mira el resultado una vez: un fotograma de un video (`render-frames.js`)
 y la página de cerca en un celular.
 
 ## 7. Un sensor: unirse al ambiente
@@ -224,6 +223,16 @@ y puede dar `maxStep()` y `span()`; mira [sensores-temporizados.md](sensores-tem
 Un sensor en la placa de comparador de siempre (lluvia, suelo, luz, una ranura o un par infrarrojo,
 un interruptor Hall, un contacto de vibración) no es un tipo nuevo: es una fila de la tabla de
 `sensor-module`, su elemento y un glifo ([modulos-sensores.md](modulos-sensores.md#agregar-una-novena-pieza)).
+
+Un **emisor** es al revés: una pieza cuyo estado eléctrico escribe un campo (un láser agrega luz,
+[ambiente.md](ambiente.md#emisores)). Su dispositivo declara `emits: ['light']` y una función pura
+`emit(entry, reading)` que devuelve lo que agrega ahora desde su propia lectura (`{ light: lux }`, 0
+cuando está apagado); el motor lo suma al ambiente para todo sensor del campo, un paso de tiempo
+después, y resuelve el punto fijo donde no hay paso (el arranque, un `set`, DC). Nada más cambia: ni
+un enlace a un sensor ni geometría. Dale a la lectura lo que su ficha dice de él (el motor pone
+`emission` en la lectura: el valor que agrega y si está bloqueado), prueba lo que agrega en dos puntos
+de operación, y que un circuito sin `environment` recibe `ENV_EMITTER_ALONE` (`test/emitters.test.js`).
+Un campo que algo puede bloquear nombra a quien lo bloquea en `FIELDS` (`blockedBy`).
 
 ## Pruebas
 

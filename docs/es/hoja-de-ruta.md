@@ -368,7 +368,9 @@ dibujadas en la protoboard ([ambiente.md](ambiente.md); decisión del 2026-11-08
 - ⬜ S4 · Ultrasonido HC-SR04 (`distance` → pulso de eco) y `pulseIn` en el traductor de programas
 - ⬜ S5 · Módulos analógicos: Hall lineal 49E (`field`), sensor de voltaje 0–25 V, micrófono KY-037 (`sound`)
 - ⬜ S6 · Sensores de protocolo a nivel de biblioteca: DHT11 (`temperature`, `humidity`) y BME280 leídos por el programa de una placa con las llamadas de su biblioteca
-- ⬜ S7 · Encoder rotativo EC11 (`angle` → cuadratura) y emisores (`emits`: un láser o un LED IR escribe un campo)
+- ⬜ S7a · Encoder rotativo EC11 (`angle` → cuadratura)
+- ✅ S7b · Emisores (2026-11-10): `emits` y `emit(entry, reading)` de un dispositivo escriben un campo del ambiente (los sensores ven el ambiente más la parte emitida; `beam` bloquea la luz emitida, `blockedBy` en el registro); un paso de retraso al avanzar en el tiempo, un punto fijo al arrancar, después de un `set` y en DC (`SIM_ENV_FEEDBACK` cuando no se estabiliza), `ENV_EMITTER_ALONE`; `engine.ambient()`, `engine.emissions()`, el `emitted` de un control, la parte emitida en palabras en la fila del panel, `--parts` lista los emisores; el láser KY-008 (`laser`, de cerca); recetas `laser-tripwire`, `laser-uno`; recorrido `laser-tripwire.json`; [ambiente.md#emisores](ambiente.md#emisores)
+- ⬜ Un LED infrarrojo como emisor y un fototransistor suelto o un receptor IR que lo lea
 - ⬜ Protocolo de bits del DHT11/BME280 en el cable — opcional, prioridad muy baja, anotado para no olvidarlo
 - ⬜ Zumbador activo (con un generador de tono adentro: suena con CC) para las recetas de alarma
 - ⬜ Preguntas de banco por resolver en las placas reales: si el LED del SW-420 está encendido en reposo, y el orden de los pines del MH-RD

@@ -9,6 +9,26 @@ detail.
 
 ## [Unreleased]
 
+### Added
+
+- Emitters (sensors S7b; `docs/en/environment.md#emitters`): a part whose electrical state writes a
+  field of the environment. A device declares `emits` and `emit(entry, reading)`; every sensor of that
+  field sees the ambient value plus what the emitters add (a switch: either), and while the
+  environment's `beam` is on the emitted light does not reach them (`blockedBy` in the registry). What
+  a time step emits reaches the sensors in the next one; at the start, after a `set` and in DC the
+  engine iterates until the emissions settle, and says `SIM_ENV_FEEDBACK` when a loop does not
+  (8 rounds). An emitter in a circuit without `environment` is told (`ENV_EMITTER_ALONE`).
+  `engine.ambient()` and `engine.emissions()`; an environment control's `emitted`; the panel's row says
+  the share ("50 lx + 9.8 klx from LS1"), the indicator and a sensor's card show what the sensors see;
+  `render-frames.js --parts` lists the emitters of each field.
+- The KY-008 laser module (`laser`): a 650 nm laser diode behind 100 Ω between `S` and `−` (about
+  28 mA and 3 mW at 5 V), lasing above 22 mA and adding 3.33·10⁶ lx/W of its optical power to
+  `light` (a teaching simplification); `SIM_OVER_CURRENT` over 40 mA, `SIM_REVERSE_VOLTAGE` over 2 V in
+  reverse, `SIM_LASER_DIM` under its threshold; its view up close (symbol, inside view with its
+  mirrors, lens and beam, legend). Recipes `laser-tripwire` (an LDR-LM393 module and an NPN light an
+  LED when the beam is cut) and `laser-uno` (a UNO blinks it at 1 Hz and prints a photoresistor on
+  A0); the tour `examples/tours/laser-tripwire.json`. A pin may be written `−` for `-`.
+
 ## [0.10.0] - 2026-11-09
 
 Sensors: a shared environment that every sensor reads, its panel and indicator, real sensor recipes, the LM393 modules, the PIR and touch modules.

@@ -269,8 +269,12 @@ El circuito de un sensor se cuenta cambiando el mundo que lee, no la pieza: el c
   dial, que en los 2 a 400 cm por defecto del campo apenas movería la aguja (una luz en escala
   logarítmica, de 1 a 1000 lx; una temperatura, de 20 a 70 °C). Un circuito puede declarar el mismo
   rango también para su deslizador ([ambiente.md](ambiente.md)).
-- `render-frames.js --parts <circuito>` lista los campos con las piezas que siguen cada uno, y
+- `render-frames.js --parts <circuito>` lista los campos con las piezas que siguen cada uno (y las
+  piezas que escriben uno, un emisor como un láser, con lo que agregan ahora), y
   `value` lee un voltaje de salida con `field: "vout"` (los 10 mV por °C de un LM35).
+- La luz de un emisor es parte de lo que muestra el indicador (el valor de los sensores: la del
+  cuarto más la del láser); para cortar el haz de un láser, un `set` del `beam` del ambiente a `true`
+  (`examples/tours/laser-tripwire.json`, [ambiente.md](ambiente.md#emisores)).
 - Un programa (`toggle`, `cycle`, `ramp`, `keyframes`) mueve un campo solo, con el tiempo simulado; un
   `set` lo pausa. En un video, los pasos `set` son más fáciles de cronometrar que un programa.
 

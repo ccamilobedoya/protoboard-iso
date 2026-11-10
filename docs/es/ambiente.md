@@ -225,6 +225,81 @@ escala, un paso si lo tiene, su valor por defecto y su tipo. Luego su nombre en 
 defecto (un glifo especial es una rama en `gauge.js`, solo donde enseña más). Un sensor se une como
 dice [agregar-componentes.md](agregar-componentes.md#7-un-sensor-unirse-al-ambiente).
 
-Los emisores (una pieza que cambia el ambiente: una lámpara que alumbra la fotorresistencia de al
-lado) no son parte de esto: la interfaz de dispositivos guarda el nombre `emits` para ellos, para más
-adelante.
+## Emisores
+
+Algunas piezas cambian el ambiente en lugar de leerlo: un módulo láser (`laser`, el KY-008) está
+«encendido, con cierta potencia», y todo sensor de luz recibe lo que agrega. Nada se apunta ni se
+dibuja, como no se dibuja nada para un sensor: el indicador de `light` muestra la suma, y quien aprende
+lee en el panel cuánto de ella da cada emisor.
+
+- Un dispositivo declara los campos que escribe (`emits: ['light']`) y una función pura
+  `emit(entry, reading) → { light: lux }`: lo que agrega ahora, desde su lectura resuelta (0 cuando
+  está apagado). Solo se pueden emitir campos del registro.
+- Lo que un sensor ve de un campo de **nivel** es el valor del ambiente (lo que dicen el circuito, el
+  deslizador o un programa) más la suma de lo que agregan los emisores, recortado al límite del campo;
+  de un campo **interruptor**, el ambiente O cualquier emisor.
+- **`beam` bloquea la luz emitida.** Mientras el `beam` del ambiente está encendido (1: algo se
+  interpone), la parte emitida de `light` no llega a los sensores; la luz del ambiente sí. Así se
+  corta una barrera sin dibujar nada (receta `laser-tripwire`). La regla es general: un campo del
+  registro puede nombrar el interruptor que bloquea su parte emitida (`blockedBy: 'beam'` para
+  `light`). Un circuito con un emisor de luz recibe `beam` en su ambiente, así que el panel ofrece el
+  botón.
+- Los emisores actúan solo en un circuito que declara `environment` (como los sensores lo siguen solo
+  entonces). De un emisor en un circuito sin ambiente avisan `check` y la simulación:
+  `ENV_EMITTER_ALONE` (info), el circuito necesita `"environment": {}` para que su luz llegue a los
+  sensores.
+
+### Cuándo llega la luz
+
+- **Pasos de tiempo:** lo que un emisor agrega en el paso n (desde los voltajes resueltos allí) es lo
+  que los sensores ven en el paso n + 1: un paso de retraso, como el programa de una placa lee los
+  pines del paso anterior. Un láser que un pin apaga desaparece de los sensores un paso después. Con un
+  pin PWM la emisión es la del paso, así que la luz parpadea con el pin, como la corriente de un LED
+  (el indicador la muestra moviéndose; el ojo de un sensor real la promediaría).
+- **En t = 0, después de un `set` y en `simulate()` en DC** no hay paso que esperar: el motor itera
+  (resuelve → emisiones → los sensores las sienten → resuelve) hasta que cada emisión cambia menos de
+  1e-3 de sí misma, o 8 rondas. Un circuito sin emisores nunca lo hace, y sus pasos de tiempo cuestan lo
+  mismo que antes.
+- **Un lazo que no se estabiliza** (una lámpara cuya propia luz la apaga: un láser alimentado por un
+  transistor que un sensor de luz corta cuando hay mucha luz) se queda con la última ronda y dice
+  `SIM_ENV_FEEDBACK` (una advertencia: qué emisor, qué campo, qué sensores). El circuito real
+  parpadearía o quedaría a medias; la página, paso a paso, lo muestra parpadeando.
+
+### En el motor y en la página
+
+- `engine.environment()` es lo que ven los sensores (el ambiente más la parte que les llega);
+  `engine.ambient()` el ambiente solo; `engine.emissions()` lo que agrega cada emisor ahora:
+  `{ light: { total, parts: { LS1: 9800 }, blocked } }` (`{}` sin emisores; `blocked` para un campo
+  que nombra quién lo bloquea).
+- La entrada de un campo en `engine.controls()` conserva `value` = el ambiente (el deslizador mueve el
+  ambiente) y gana `emitted`, la parte que llega a los sensores ahora (0 mientras está bloqueada),
+  cuando un emisor lo escribe. `engine.set('environment', 'light', v)` fija el ambiente.
+- La página: la fila del panel y el indicador de un campo muestran lo que ven los sensores, y la fila
+  dice la parte en palabras («50 lx + 9,8 klx de LS1», o «50 lx · LS1 bloqueado (haz)»); el
+  deslizador se queda en el ambiente. La línea de la ficha de un sensor («Sigue el ambiente · luz
+  9,8 klx») dice el valor visto, y el `gauge` de un video también. La ficha del emisor dice lo que
+  agrega («agrega 9,8 klx a la luz», «por debajo de su umbral: sin haz», «bloqueado (haz)»).
+- `render-frames.js --parts` lista, junto a cada campo, las piezas que lo escriben.
+
+### El láser KY-008
+
+Pines `S`, `+`, `−` como los imprime la placa; el del medio no está conectado. Entre `S` y `−`, un
+diodo láser de 650 nm (Vf 2,2 V a 25 mA) tras una resistencia de 100 Ω: unos 28 mA y 3 mW a 5 V, 38 mA
+a 6 V. Potencia óptica P = 0,5 W/A · max(0, I − 22 mA); agrega K · P a `light`, con
+K = 3,33·10⁶ lx/W (3 mW → 10 000 lx). Esa K es una simplificación para enseñar: el punto de un haz
+pequeño es mucho más brillante que un cuarto y satura una fotorresistencia, que es lo que una barrera
+necesita; el número real depende del tamaño del punto. Por debajo de su umbral de 22 mA brilla como un
+LED tenue y no agrega nada (`SIM_LASER_DIM`, una nota). Más de 40 mA es `SIM_OVER_CURRENT`; al revés
+con más de 2 V, `SIM_REVERSE_VOLTAGE`. Los números son supuestos (las piezas del módulo usual no están
+marcadas) y tienen nombre en `src/sim/devices/laser.js`. No tiene un campo propio: su potencia es la
+que le da el circuito.
+
+Recetas: `laser-tripwire` (el láser siempre encendido, un módulo `LDR-LM393` cuyo DO enciende un LED
+con un NPN cuando se corta el haz) y `laser-uno` (un pin del UNO hace parpadear el láser a 1 Hz; una
+fotorresistencia en A0 imprime la luz que ve); el recorrido `examples/tours/laser-tripwire.json`.
+
+### Agregar un emisor
+
+`emits` y `emit` en su dispositivo ([agregar-componentes.md](agregar-componentes.md#7-un-sensor-unirse-al-ambiente));
+nada más cambia en `src/sim`. Un campo que algo puede bloquear nombra a quien lo bloquea en el
+registro (`blockedBy`).

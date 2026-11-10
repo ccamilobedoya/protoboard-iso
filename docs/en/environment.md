@@ -218,5 +218,78 @@ a step if it has one, its default and its kind. Then its name in both languages
 special glyph is a branch in `gauge.js`, only where it teaches more). A sensor joins it as
 [adding-parts.md](adding-parts.md#7-a-sensor-joining-the-environment) says.
 
-Emitters (a part that changes the environment: a lamp lighting the photoresistor next to it) are
-not part of this: the device interface keeps the name `emits` for them, for later.
+## Emitters
+
+Some parts change the environment instead of reading it: a laser module (`laser`, the KY-008) is
+"on, at some power", and every sensor of light receives what it adds. Nothing is aimed or drawn, as
+nothing is for a sensor: the indicator of `light` shows the sum, and the learner reads in the panel how
+much of it each emitter gives.
+
+- A device declares the fields it writes (`emits: ['light']`) and a pure
+  `emit(entry, reading) → { light: lux }`: what it adds now, from its solved reading (0 when it is
+  off). Only fields of the registry can be emitted.
+- What a sensor sees of a **level** field is the ambient value (what the circuit, the slider or a
+  program says) plus the sum of what the emitters add, clamped to the field's limit; of a **switch**
+  field, the ambient OR any emitter.
+- **`beam` blocks the emitted light.** While the environment's `beam` is on (1: something in the way),
+  the emitted share of `light` does not reach the sensors; the ambient light still does. That is how a
+  tripwire is cut without drawing anything (recipe `laser-tripwire`). The rule is general: a field of
+  the registry may name the switch that blocks its emitted share (`blockedBy: 'beam'` for `light`). A
+  circuit with an emitter of light gets `beam` in its environment, so the panel offers the toggle.
+- Emitters act only in a circuit that declares `environment` (as sensors follow it only then). An
+  emitter in a circuit without one is told by `check` and the simulation: `ENV_EMITTER_ALONE` (info),
+  the circuit needs `"environment": {}` for its light to reach the sensors.
+
+### When the light arrives
+
+- **Time steps:** what an emitter adds in step n (from the voltages solved there) is what the sensors
+  see in step n + 1: one step of delay, as a board's program reads the pins of the step before. A
+  laser that a pin switches off is gone from the sensors one step later. With a PWM pin the emission is
+  the step's, so the light flickers with the pin, as an LED's current does (the indicator shows it
+  moving; the eye of a real sensor would average it).
+- **At t = 0, after a `set` and in DC `simulate()`** there is no step to wait for: the engine
+  iterates (solve → emissions → the sensors feel them → solve) until every emission changes by less
+  than 1e-3 of itself, or 8 rounds. A circuit with no emitter never runs it, and its time steps cost
+  what they did.
+- **A loop that does not settle** (a lamp whose own light turns it off: a laser powered through a
+  transistor that a light sensor cuts when it is bright) keeps the last round and says
+  `SIM_ENV_FEEDBACK` (a warning: which emitter, which field, which sensors). The real circuit would
+  flicker or sit halfway; the page, stepping, shows it flickering.
+
+### In the engine and the page
+
+- `engine.environment()` is what the sensors see (ambient plus the share that reaches them);
+  `engine.ambient()` the ambient alone; `engine.emissions()` what each emitter adds now:
+  `{ light: { total, parts: { LS1: 9800 }, blocked } }` (`{}` without emitters; `blocked` for a field
+  that names a blocker).
+- `engine.controls()`' entry of a field keeps `value` = the ambient (the slider moves the ambient) and
+  gains `emitted`, the share that reaches the sensors now (0 while it is blocked), when an emitter
+  writes it. `engine.set('environment', 'light', v)` sets the ambient.
+- The page: the panel's row and the indicator of a field show what the sensors see, and the row says
+  the share in words ("50 lx + 9.8 klx from LS1", or "50 lx · LS1 blocked (beam)"); the slider stays
+  on the ambient. A sensor's card line ("Follows the environment · light 9.8 klx") says the seen
+  value, a video's `gauge` too. The emitter's own card says what it adds ("adds 9.8 klx to the light",
+  "below its threshold: no beam", "blocked (beam)").
+- `render-frames.js --parts` lists, beside each field, the parts that write it.
+
+### The KY-008 laser
+
+Pins `S`, `+`, `−` as the board prints them; the middle one is not connected. Between `S` and `−` a
+650 nm laser diode (Vf 2.2 V at 25 mA) behind a 100 Ω resistor: about 28 mA and 3 mW at 5 V, 38 mA at
+6 V. Optical power P = 0.5 W/A · max(0, I − 22 mA); it adds K · P to `light`, with K = 3.33·10⁶ lx/W
+(3 mW → 10 000 lx). That K is a teaching simplification: the spot of a small beam is far brighter than
+a room and saturates a photoresistor, which is what a tripwire needs; the real number depends on the
+spot's size. Below its 22 mA threshold it glows like a dim LED and adds nothing (`SIM_LASER_DIM`, a
+note). Over 40 mA is `SIM_OVER_CURRENT`; reversed by more than 2 V, `SIM_REVERSE_VOLTAGE`. The numbers
+are assumed (the usual module's parts are not marked) and named in `src/sim/devices/laser.js`. It has
+no field of its own: its power is what the circuit gives it.
+
+Recipes: `laser-tripwire` (the laser always on, an `LDR-LM393` module whose DO lights an LED through
+an NPN when the beam is cut) and `laser-uno` (a UNO pin blinks the laser at 1 Hz; a photoresistor on A0
+prints the light it sees); the tour `examples/tours/laser-tripwire.json`.
+
+### Adding an emitter
+
+`emits` and `emit` on its device ([adding-parts.md](adding-parts.md#7-a-sensor-joining-the-environment));
+nothing else in `src/sim` changes. A field that something may block names its blocker in the
+registry (`blockedBy`).
