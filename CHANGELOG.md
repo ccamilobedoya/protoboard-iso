@@ -9,6 +9,18 @@ detail.
 
 ## [Unreleased]
 
+### Added
+
+- Rotary encoder (sensors S7a; `docs/en/rotary-encoder.md`): the EC11 on its KY-040 module
+  (`rotary-encoder`: pins `CLK`, `DT`, `SW`, `+`, `GND`, 10 kΩ pull-ups from `+`, a push switch) driven by
+  the environment's `angle`. The target is snapped to the nearest click (18°) and the shaft, kept in the
+  device's carried state, follows it at `speed` by the shortest arc; CLK and DT are contacts to ground
+  in quadrature (clockwise: CLK first, DT a quarter of a cycle later), every edge within a step of
+  its time while the shaft turns and across `engine.set` calls, with an optional deterministic
+  `bounce`. `SIM_OVER_CURRENT` over 10 mA, `SIM_ENCODER_FLOATING` when `+` is not connected. Seen up
+  close with a wheel, two fingers and a timing strip. Recipes `encoder-uno` and `encoder-dimmer-uno`,
+  the example and tour `encoder-uno`.
+
 ## [0.10.0] - 2026-11-09
 
 Sensors: a shared environment that every sensor reads, its panel and indicator, real sensor recipes, the LM393 modules, the PIR and touch modules.

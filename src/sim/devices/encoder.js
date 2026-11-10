@@ -20,7 +20,7 @@ import { resistor } from '../mna.js';
 import { ENCODER } from '../models.js';
 import { stress, note, volt } from './shared.js';
 
-export const EDGES = [0.125, 0.375, 0.625, 0.875]; // in cycles: A closes, B closes, A opens, B opens
+const EDGES = [0.125, 0.375, 0.625, 0.875]; // in cycles: A closes, B closes, A opens, B opens
 export const QUIET = 1e9; // an age that is over: no change in memory
 
 // The target: the angle snapped to the nearest detent (ties round up), in [0, 360).
@@ -89,9 +89,12 @@ export function contacts(s, p) {
 }
 
 // Which way the shaft is turning now: 1 clockwise, -1 counter-clockwise, 0 still.
-export const direction = (s, p) => Math.sign(shortestArc(s.shaft, p.target)) * (Math.abs(shortestArc(s.shaft, p.target)) > 1e-9 ? 1 : 0);
+export function direction(s, p) {
+  const d = shortestArc(s.shaft, p.target);
+  return Math.abs(d) > 1e-9 ? Math.sign(d) : 0;
+}
 
-// The click the shaft is on (0 … detents - 1) and the nearest, whatever the sign of the arc.
+// The click the shaft is nearest to (0 … detents - 1).
 export const clickOf = (shaft, detents) => (((Math.round(shaft / (360 / detents)) % detents) + detents) % detents);
 
 // The step the element needs: short while the shaft moves or a contact is still bouncing, none at rest.

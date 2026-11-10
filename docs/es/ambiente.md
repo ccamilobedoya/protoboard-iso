@@ -43,7 +43,7 @@ circuito, un `set` o un programa por fuera se recortan, y `check` lo dice). Hoy 
 termistor y la fotorresistencia (`temperature`, `light`), el LM35 (`temperature`), el interruptor
 de inclinación (`tilt`) y los módulos de sensor con LM393 ([modulos-sensores.md](modulos-sensores.md):
 `rain`, `moisture`, `light`, `beam`, `distance` y `reflectance`, `field`, `vibration`, y `angle` para un
-disco de encoder); los demás campos quedan listos para los sensores que vienen. `reflectance` (la
+disco de encoder) y el encoder rotativo KY-040 ([encoder-rotativo.md](encoder-rotativo.md): `angle` es el objetivo al que gira su eje) lo leen; los demás campos quedan listos para los sensores que vienen. `reflectance` (la
 superficie bajo un seguidor de línea o frente a un sensor de obstáculos) y `beam` (algo en una ranura
 óptica) llegaron con esos módulos.
 

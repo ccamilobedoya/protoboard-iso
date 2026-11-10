@@ -368,7 +368,9 @@ dibujadas en la protoboard ([ambiente.md](ambiente.md); decisión del 2026-11-08
 - ⬜ S4 · Ultrasonido HC-SR04 (`distance` → pulso de eco) y `pulseIn` en el traductor de programas
 - ⬜ S5 · Módulos analógicos: Hall lineal 49E (`field`), sensor de voltaje 0–25 V, micrófono KY-037 (`sound`)
 - ⬜ S6 · Sensores de protocolo a nivel de biblioteca: DHT11 (`temperature`, `humidity`) y BME280 leídos por el programa de una placa con las llamadas de su biblioteca
-- ⬜ S7 · Encoder rotativo EC11 (`angle` → cuadratura) y emisores (`emits`: un láser o un LED IR escribe un campo)
+- ✅ S7a · Encoder rotativo EC11 en el módulo KY-040, familia F7 (2026-11-10): `rotary-encoder` (CLK, DT, SW, +, GND; pull-up de 10 kΩ desde `+`), manejado por el `angle` del ambiente como un objetivo ajustado al clic más cercano, que un eje guardado en el estado heredado del dispositivo sigue a `speed` por el arco más corto, CLK y DT como contactos de 0,1 Ω a tierra en cuadratura (a la derecha: primero CLK, DT 4,5° después), cada flanco a menos de un paso de su hora a través de las llamadas a `engine.set` (`maxStep()`/`span()`, sin cambios en el motor), `bounce` opcional y determinista, `SIM_OVER_CURRENT` sobre 10 mA, `SIM_ENCODER_FLOATING`; de cerca (símbolo, rueda y dedos con una franja de tiempos); recetas `encoder-uno` y `encoder-dimmer-uno`, el recorrido `encoder-uno`; `docs/es/encoder-rotativo.md`
+- ⬜ S7b · Emisores (`emits`: un láser o un LED IR escribe un campo)
+- ⬜ Encoder rotativo, pendiente: dos controles momentáneos "+1 clic" y "−1 clic" que muevan el objetivo un clic (una pieza que sigue al ambiente tendría que dejar el campo), `attachInterrupt` en el programa de una placa, el EC11 suelto sobre sus propios pines (sin pull-up) y la variante 15/30 (dos clics por ciclo)
 - ⬜ Protocolo de bits del DHT11/BME280 en el cable — opcional, prioridad muy baja, anotado para no olvidarlo
 - ⬜ Zumbador activo (con un generador de tono adentro: suena con CC) para las recetas de alarma
 - ⬜ Preguntas de banco por resolver en las placas reales: si el LED del SW-420 está encendido en reposo, y el orden de los pines del MH-RD

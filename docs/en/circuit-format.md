@@ -450,6 +450,20 @@ environment's field `touch`). Its first 0.5 s after power on ignore the pad
 { "id": "U1", "type": "touch-sensor", "mode": "toggle", "pins": ["h2", "h3", "h4"] }
 ```
 
+### rotary-encoder
+
+A KY-040 rotary encoder module standing on five pins `CLK`, `DT`, `SW`, `+`, `GND` (read from the
+left with its face toward you), the knob's shaft toward the front. `+` feeds the three 10 kΩ pull-ups
+on the module. Fields: `part` (`"KY-040"`), `pulses` and `detents` (20 and 20; another pair is
+`BAD_VALUE`), `speed` (degrees a second the shaft follows its target, default 360), `bounce`
+(milliseconds of chatter at each change, default 0), `pressed` (the push switch is held), `swPullup`
+(the pull-up on `SW`, default true) and `angle` (its own target angle, instead of the environment's).
+The table, the shaft and the bounce are in [rotary-encoder.md](rotary-encoder.md).
+
+```json
+{ "id": "U2", "type": "rotary-encoder", "pins": ["h2", "h3", "h4", "h5", "h6"] }
+```
+
 ### header
 
 A row of male header pins, to show where a module or a Dupont wire plugs in. Place it with
