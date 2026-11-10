@@ -7,19 +7,22 @@
 //   args      how many arguments its declaration takes: [min, max] (`DHT dht(2, DHT11)`, `Adafruit_BME280 bme`)
 //   floats    the methods that return a float (Serial.print shows them with two decimals, as Arduino does)
 //   chip      the I2C chip id its begin() accepts by default (an I2C class)
+//   ignored   methods accepted that change nothing the kit simulates (noted: SIM_PROGRAM_IGNORED); a
+//             class's own constants (Adafruit_BME280::MODE_FORCED) read as 0
 
 export const LIBRARY_INCLUDES = ['DHT.h', 'Wire.h', 'Adafruit_Sensor.h', 'Adafruit_BME280.h', 'Adafruit_BMP280.h', 'Arduino.h'];
 
 export const LIBRARY_CLASSES = [
-  { name: 'DHT', bus: 'pin', args: [2, 3], methods: ['begin', 'readTemperature', 'readHumidity', 'computeHeatIndex'], floats: ['readTemperature', 'readHumidity', 'computeHeatIndex'] },
-  { name: 'Adafruit_BME280', bus: 'i2c', args: [0, 0], chip: 0x60, methods: ['begin', 'readTemperature', 'readPressure', 'readHumidity', 'readAltitude'], floats: ['readTemperature', 'readPressure', 'readHumidity', 'readAltitude'] },
-  { name: 'Adafruit_BMP280', bus: 'i2c', args: [0, 0], chip: 0x58, methods: ['begin', 'readTemperature', 'readPressure', 'readAltitude'], floats: ['readTemperature', 'readPressure', 'readAltitude'] },
+  { name: 'DHT', bus: 'pin', args: [2, 3], methods: ['begin', 'readTemperature', 'readHumidity', 'computeHeatIndex', 'convertCtoF', 'convertFtoC'], floats: ['readTemperature', 'readHumidity', 'computeHeatIndex', 'convertCtoF', 'convertFtoC'] },
+  { name: 'Adafruit_BME280', bus: 'i2c', args: [0, 0], chip: 0x60, methods: ['begin', 'readTemperature', 'readPressure', 'readHumidity', 'readAltitude', 'setSampling', 'sensorID', 'takeForcedMeasurement', 'seaLevelForAltitude'], floats: ['readTemperature', 'readPressure', 'readHumidity', 'readAltitude', 'seaLevelForAltitude'], ignored: ['setSampling'] },
+  { name: 'Adafruit_BMP280', bus: 'i2c', args: [0, 0], chip: 0x58, methods: ['begin', 'readTemperature', 'readPressure', 'readAltitude', 'setSampling', 'sensorID', 'takeForcedMeasurement', 'seaLevelForAltitude'], floats: ['readTemperature', 'readPressure', 'readAltitude', 'seaLevelForAltitude'], ignored: ['setSampling'] },
 ];
 
-// The libraries' constants: DHT's sensor types (DHT.h) and C's NAN.
-export const LIBRARY_CONSTANTS = { DHT11: 11, DHT22: 22, NAN: Number.NaN };
+// The libraries' constants: DHT's sensor types (DHT.h: DHT11 11, DHT12 12, DHT21 = AM2301 21, DHT22 22)
+// and C's NAN.
+export const LIBRARY_CONSTANTS = { DHT11: 11, DHT12: 12, DHT21: 21, DHT22: 22, AM2301: 21, NAN: Number.NaN };
 // Sensor types a library knows but the kit does not have yet: noted, their reads give NaN.
-export const NOT_IN_KIT = ['DHT22'];
+export const NOT_IN_KIT = ['DHT12', 'DHT21', 'DHT22', 'AM2301'];
 // The default I2C address of both Adafruit libraries' begin() (BME280_ADDRESS, BMP280_ADDRESS).
 export const I2C_DEFAULT_ADDRESS = 0x77;
 
@@ -41,3 +44,5 @@ export function heatIndex(temperature, humidity, isFahrenheit = true) {
 // The Adafruit libraries' readAltitude(seaLevelhPa): metres from the pressure (hPa) in the standard
 // atmosphere, 44330 · (1 − (p / sea)^0.1903).
 export const altitudeOf = (hPa, sea = 1013.25) => 44330 * (1 - (hPa / sea) ** 0.1903);
+// And seaLevelForAltitude(altitude, hPa): the sea-level pressure that altitude and pressure mean.
+export const seaLevelOf = (metres, hPa) => hPa / (1 - metres / 44330) ** 5.255;

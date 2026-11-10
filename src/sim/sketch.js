@@ -180,6 +180,7 @@ export function translateSketch(source, { strings = [] } = {}) {
   const objects = new Map();
   let inFunction = false; // a library call waits (yield*): only inside a function's body
   const defineText = new Map(); // #define name → its text (a DHTTYPE that says DHT22)
+  const defineLines = new Map(); // #define name → its line
   const missing = new Set();
   // A call the runtime does not know: noted once (it returns 0). Its name stays out of the code.
   const noteMissing = (name, at) => {
@@ -243,6 +244,8 @@ export function translateSketch(source, { strings = [] } = {}) {
         continue;
       }
       const isOp = t.t === 'p' && t.v !== '(';
+      // Two values in a row (`2 3`, `x "a"`) are not C; in JavaScript they would not parse.
+      if (!isOp && !value && t.v !== '(') fail(t.t === 'str' ? '"' : t.v);
       termInt = false;
       termFloat = false;
       parts.push(term());
@@ -267,7 +270,14 @@ export function translateSketch(source, { strings = [] } = {}) {
       i = j;
     }
     exprInt = parts.length > 0 && ints.every((k) => k !== false);
-    exprFloat = floats.some(Boolean);
+    // A float result: a comparison or a logical operator gives an int (C's 0 or 1); a ternary is float
+    // only when one of its branches is.
+    const op = (k, ...names) => ints[k] === null && names.includes(parts[k]);
+    const ask = parts.findIndex((_, k) => op(k, '?'));
+    if (ask >= 0) {
+      const colon = parts.findIndex((_, k) => k > ask && op(k, ':'));
+      exprFloat = floats.slice(ask + 1, colon < 0 ? undefined : colon).some(Boolean) || (colon >= 0 && floats.slice(colon + 1).some(Boolean));
+    } else exprFloat = !parts.some((_, k) => op(k, '==', '!=', '<', '>', '<=', '>=', '&&', '||', '!')) && floats.some(Boolean);
     return parts.join(' ');
   }
   // One token of an expression, turning calls, casts and C-only words into JavaScript.
@@ -286,6 +296,12 @@ export function translateSketch(source, { strings = [] } = {}) {
         termFloat = float && !integer;
         return integer ? `__int(${operand})` : `(${operand})`;
       }
+    }
+    // A class's own constant (Adafruit_BME280::MODE_FORCED, an argument of setSampling): 0.
+    if (t.t === 'id' && CLASS_BY_NAME.has(t.v) && is('::', 1) && peek(2)?.t === 'id') {
+      pos += 3;
+      termInt = true;
+      return '0';
     }
     // A library class's name only declares an object, at the top level (see the top-level loop).
     if (t.t === 'id' && CLASS_BY_NAME.has(t.v)) throw new SketchError(t.line, t.v);
@@ -306,6 +322,10 @@ export function translateSketch(source, { strings = [] } = {}) {
         return `__missing(0${args ? `, ${args}` : ''})`;
       }
       termFloat = cls.floats.includes(method.v);
+      if (cls.ignored?.includes(method.v) && !missing.has(`${t.v}.${method.v}`)) {
+        missing.add(`${t.v}.${method.v}`);
+        issues.push({ code: 'SIM_PROGRAM_IGNORED', line: t.line, name: `${t.v}.${method.v}` });
+      }
       return `(yield* __lib(${object.k}, ${m}${args ? `, ${args}` : ''}))`;
     }
     // Wire.begin(…): starts the bus (an AVR turns on its pins' pull-ups; an ESP32's two pins say where
@@ -357,7 +377,10 @@ export function translateSketch(source, { strings = [] } = {}) {
       termFloat = floatFunctions.has(name) || FLOAT_API.has(name) || FLOAT_TYPES.has(name);
       if (name === 'delay') return `(yield ((${args}) / 1e3))`;
       // F("text"): the text itself (on a board it keeps the string in flash).
-      if (name === 'F') return `(${args})`;
+      if (name === 'F') {
+        if (!args.trim()) throw new SketchError(t.line, 'F()');
+        return `(${args})`;
+      }
       if (name === 'delayMicroseconds') return `(yield ((${args}) / 1e6))`;
       if (functions.has(name)) return `(yield* ${own(name)}(${args}))`;
       if (WAITING_API.has(name)) return `(yield* ${name}(${args}))`;
@@ -379,6 +402,9 @@ export function translateSketch(source, { strings = [] } = {}) {
     if (t.t === 'num') {
       termInt = /^(\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/.test(t.v);
       termFloat = !/^0[xXbB]/.test(t.v) && /[.eE]/.test(t.v);
+      // C's octal (010 is 8): the code is strict, where JavaScript has no such literal.
+      if (/^0[0-7]+$/.test(t.v)) return String(Number.parseInt(t.v, 8));
+      if (/^0\d+$/.test(t.v)) throw new SketchError(t.line, t.v);
     }
     if (t.t === 'id') termInt = typeOf(t.v) === 'int' || ['HIGH', 'LOW', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'].includes(t.v) || defines.has(t.v);
     if (t.t === 'id') termFloat = typeOf(t.v) === 'float' || t.v === 'PI';
@@ -428,6 +454,7 @@ export function translateSketch(source, { strings = [] } = {}) {
           pos++;
           const items = [];
           while (!is('}')) {
+            if (pos >= tokens.length) fail('}');
             items.push(expression([',', '}']));
             if (is(',')) pos++;
           }
@@ -620,6 +647,7 @@ export function translateSketch(source, { strings = [] } = {}) {
           out.push(`const ${own(define[1])} = ${inner};`);
           defined.push(define[1]);
           defineText.set(define[1], define[3].trim());
+          defineLines.set(define[1], t.line);
           if (/^-?\d+$/.test(define[3].trim())) defines.add(define[1]);
         } else if (include && !LIBRARY_INCLUDES.some((n) => n.toLowerCase() === include[1].trim().toLowerCase())) issues.push({ code: 'SIM_PROGRAM_LIBRARY', line: t.line, name: include[1] });
         continue;
@@ -671,12 +699,21 @@ export function translateSketch(source, { strings = [] } = {}) {
       }
     }
   } catch (error) {
-    if (!(error instanceof SketchError)) throw error;
-    issues.push({ code: 'SIM_PROGRAM_ERROR', line: error.line, message: error.message });
+    // Anything else the reading throws is a line it cannot read, never an exception out of here.
+    issues.push({ code: 'SIM_PROGRAM_ERROR', line: error instanceof SketchError ? error.line : line(), message: error instanceof SketchError ? error.message : '?' });
     return { js: null, issues };
   }
+  // A #define whose text names a library object or class: an object is only name.method(…).
+  for (const [name, value] of defineText) {
+    const named = value.match(/[A-Za-z_]\w*/g) ?? [];
+    if (named.some((n) => objects.has(n) || CLASS_BY_NAME.has(n))) {
+      issues.push({ code: 'SIM_PROGRAM_ERROR', line: defineLines.get(name) ?? 1, message: `#define ${name}` });
+      return { js: null, issues };
+    }
+  }
   if (!functions.has('setup') || !functions.has('loop')) issues.push({ code: 'SIM_PROGRAM_NO_LOOP', line: 1 });
-  const prelude = `const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire'].join(', ')} } = api;\nconst __str = [].concat(${strings.map((s) => JSON.stringify(s)).join(', ')});`;
+  // Strict: an assignment to a name nobody declared throws (it cannot become a global of the page).
+  const prelude = `'use strict'; const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire'].join(', ')} } = api;\nconst __str = [].concat(${strings.map((s) => JSON.stringify(s)).join(', ')});`;
   const js = `${prelude}\n${out.join('\n')}\nreturn { setup: typeof $setup === 'function' ? $setup : function* () {}, loop: typeof $loop === 'function' ? $loop : function* () {} };`;
   return { js: issues.some((i) => i.code === 'SIM_PROGRAM_ERROR') ? null : js, issues };
 }

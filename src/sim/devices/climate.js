@@ -87,7 +87,8 @@ function dhtCore({ s, vcc, gnd }, p, id) {
       if (supply < -C.dht.maxReverse) reason = 'reversed';
       else if (supply < C.dht.minSupply) reason = 'power';
       else if (up < p.warmup - 1e-9) reason = 'warmup';
-      else if (v(s) - v(gnd) < C.dht.high * supply) reason = 'low';
+      // The line low (no pull-up, or held down) — unless the library just took the pin from an output.
+      else if (!req.released && v(s) - v(gnd) < C.dht.high * supply) reason = 'low';
       const read = reason ? null : dhtValues(p);
       m.ok = !reason;
       m.t = read ? read.temperature : Number.NaN;
@@ -110,9 +111,14 @@ function boschCore({ vcc, gnd, rail, sda, scl }, p, id) {
     nodes: [],
     links: [],
     library: { classes: ['Adafruit_BME280', 'Adafruit_BMP280'], bus: 'i2c', id, at: [sda, scl], address: p.address },
-    memo: { verdict: null },
+    // configured: a begin() set it up since its supply last came; a supply that drops under the chip's
+    // minimum resets it (sleep mode, the reset values): reads give NaN until the next begin().
+    memo: { verdict: null, configured: false },
     stamp: () => false,
     currents: () => [],
+    accept(x, ctx = {}) {
+      if (ctx.h && volt(x, rail) - volt(x, gnd) < C.bosch.minSupply) this.memo.configured = false;
+    },
     answer(req) {
       const v = req.volt;
       const supply = v(vcc) - v(gnd);
@@ -129,6 +135,8 @@ function boschCore({ vcc, gnd, rail, sda, scl }, p, id) {
       else if (chipRail < C.bosch.minSupply) reason = 'power';
       else if (v(sda) - v(gnd) < C.bosch.high * chipRail || v(scl) - v(gnd) < C.bosch.high * chipRail) reason = 'low';
       else if (req.chip !== model.chip) reason = 'chip';
+      else if (req.method === 'read' && !this.memo.configured) reason = 'asleep';
+      if (req.method === 'begin') this.memo.configured = !reason;
       const values = reason ? null : boschValues(p, model.humidity);
       this.memo.verdict = verdict(reason);
       return { mine: true, ok: !reason, reason, ...(values ?? { temperature: Number.NaN, pressure: Number.NaN, humidity: Number.NaN }) };
@@ -198,6 +206,7 @@ export const climate = {
       return {
         part: entry.part,
         state,
+        warmup: entry.warmup,
         left: state === 'warmup' ? Math.max(0, entry.warmup - up) : null,
         length: state === 'warmup' ? entry.warmup : null,
         sensor: { temperature: entry.temperature, humidity: entry.humidity },
@@ -255,7 +264,12 @@ export const climate = {
       if (r.state === 'ready' && v > r.rail + C.bosch.overIo) out.push(note('info', 'SIM_PIN_OVER_VDDIO', { part: entry.id, pin, voltage: q(v, 'V'), max: q(r.rail + C.bosch.overIo, 'V') }));
     }
     const min = model.regulated ? C.bosch.minVin : C.bosch.minSupply;
-    if (r.vcc > 0.5 && r.vcc < min) out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(min, 'V') }));
+    // The regulated board under 3.4 V: its regulator is in dropout and the chip runs on what is left
+    // (about VIN − 0.2 V), still inside its range: a note that says so.
+    if (r.vcc > 0.5 && r.vcc < min) {
+      if (model.regulated && r.rail >= C.bosch.minSupply) out.push(note('info', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(min, 'V'), rail: q(r.rail, 'V'), variant: 'dropout' }));
+      else out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(min, 'V') }));
+    }
     return out;
   },
   lines(p, h) {
@@ -275,7 +289,7 @@ export const climate = {
       const hex = (n) => `0x${Math.trunc(n).toString(16)}`;
       const why = last.ok
         ? h.t('sim.climate.answered', { time: at })
-        : h.t(`sim.climate.why.${last.reason}`, { time: at, pin: last.gpio ?? '—', asked: hex(last.address ?? 0), own: hex(p.address ?? 0), chip: hex(last.chip ?? 0), mine: hex(p.chip ?? 0), voltage: h.f(p.vcc, 'V') });
+        : h.t(`sim.climate.why.${last.reason}`, { time: at, pin: last.gpio ?? '—', asked: hex(last.address ?? 0), own: hex(p.address ?? 0), chip: hex(last.chip ?? 0), mine: hex(p.chip ?? 0), voltage: h.f(p.vcc, 'V'), warmup: h.f(p.warmup ?? 1, 's') });
       lines.push(h.raw(last.ok ? 'climate.last' : 'climate.none', why));
     } else lines.push(h.raw('climate.last', h.t('sim.climate.unasked')));
     if (p.address != null) lines.push(h.q('climate.address', `0x${p.address.toString(16)} · ${h.t('sim.climate.chip', { chip: `0x${p.chip.toString(16)}` })}`));

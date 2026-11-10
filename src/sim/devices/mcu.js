@@ -140,6 +140,10 @@ export const mcu = {
         settle(x) {
           this.x = x;
           const before = JSON.stringify(this.runner.pins);
+          // Each round runs the program from its start again: the library sensors' memory (a DHT's last
+          // read) goes back to what it was before the first round, so a round does not use up a read.
+          if (!this.memos) this.memos = sensors.map((el) => JSON.stringify(el.memo ?? null));
+          else sensors.forEach((el, k) => (el.memo = JSON.parse(this.memos[k])));
           this.runner = fresh();
           this.runner.advance?.(0);
           sync();
