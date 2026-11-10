@@ -470,6 +470,18 @@ del campo `touch` del ambiente). Los primeros 0,5 s tras encenderlo ignoran el p
 { "id": "U1", "type": "touch-sensor", "mode": "toggle", "pins": ["h2", "h3", "h4"] }
 ```
 
+### ultrasonic-sensor (sensor ultrasónico)
+
+Un módulo ultrasónico de distancia HC-SR04 parado sobre cuatro patas `VCC`, `TRIG`, `ECHO`, `GND`
+(leídas de izquierda a derecha con sus cápsulas hacia ti). Funciona con 5 V; un pulso de 10 µs en
+`TRIG` arranca una medición y `ECHO` queda en alto (5 V) durante la ida y vuelta del sonido. Campos:
+`part` (`"HC-SR04"`, por defecto), `distance` (cm) y `temperature` (°C, por defecto 20), sus valores
+propios de los campos del ambiente ([sensor-ultrasonico.md](sensor-ultrasonico.md)).
+
+```json
+{ "id": "U2", "type": "ultrasonic-sensor", "pins": ["h20", "h21", "h22", "h23"] }
+```
+
 ### header (pines de cabecera)
 
 Una fila de pines macho, para mostrar dónde se enchufa un módulo o un cable Dupont. Se coloca

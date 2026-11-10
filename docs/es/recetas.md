@@ -68,6 +68,9 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `line-follower-uno` | Arduino UNO que lee un seguidor de línea TCRT5000 (DO en D2, AO en A0) y escribe LINE / NO LINE | U2 = 0,5 (umbral), U1 = su programa |
 | `obstacle-buzzer` | Un módulo de obstáculos FC-51 que absorbe por su OUT la corriente de un zumbador | U1 = 0,5 (umbral), R1 = 470 |
 | `hall-counter-uno` | Arduino UNO que cuenta las pasadas de un imán con un KY-024 (DO en D2, flancos de bajada) | U2 = 0,5 (umbral), U1 = su programa |
+| `uno-distance` | Arduino UNO que mide distancia con un HC-SR04 (TRIG D9, ECHO D10, `pulseIn`, `us / 58`); ambiente `distance` 30 cm (rango 2–100) y 20 °C | U1 = su programa |
+| `esp32-distance` | ESP32 DevKit con un HC-SR04 en VIN (5 V): ECHO por un divisor de 1 kΩ / 2 kΩ para que el pin de 3,3 V vea 3,33 V | R1 = 1k, R2 = 2k, U1 = su programa |
+| `distance-alarm-uno` | `uno-distance` con un LED en D13 que se enciende a menos de 15 cm | R1 = 220, D1 = rojo, U1 = su programa |
 
 `catalog` (MCP) o `parts` (consola) las listan con su título (la lista compacta de `catalog` deja fuera los valores); `catalog` con el nombre de una receta
 (`parts <nombre>` en la consola) muestra lo que enseña, sus componentes, redes, fuente, y el papel y

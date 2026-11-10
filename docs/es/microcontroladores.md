@@ -7,7 +7,7 @@ procesador, sino lo que se ve en los pines. Cada GPIO se comporta eléctricament
 programa corto con las funciones de Arduino decide, en el tiempo, qué hace cada pin. El mismo código
 sirve para todas las placas; lo que cambia son los números de cada familia.
 
-Planeado con el mantenedor el 2026-10-26. Las fases M1 a M4 están hechas.
+Planeado con el mantenedor el 2026-10-26. Las fases M1 a M5 están hechas.
 
 ## Por qué no emular el procesador
 
@@ -91,7 +91,7 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   respeta que `*`, `/` y `%` se agrupan de izquierda a derecha.
 - **Lo que puede llamar** (`src/sim/program.js`): `pinMode` (`INPUT`, `OUTPUT`, `INPUT_PULLUP`,
   `INPUT_PULLDOWN`), `digitalWrite`, `digitalRead`, `delay`, `delayMicroseconds`, `millis`,
-  `micros`, `Serial.begin/print/println` (sus últimas líneas salen en la ficha de la placa),
+  `micros`, `pulseIn` y `pulseInLong` ([más abajo](#pulsein)), `Serial.begin/print/println` (sus últimas líneas salen en la ficha de la placa),
   `analogRead` (el valor del ADC), `map`, `constrain`, `min`, `max`, `abs`, `log` (logaritmo natural, para la ecuación B de un termistor), `random` (una secuencia
   fija), las funciones de bits, `LED_BUILTIN` (2 en el DevKit, 8 en el C3, 13 en el UNO) y
   `A0`…`A5`. En un UNO, `digitalWrite(pin, HIGH)` sobre una entrada activa su pull-up, como en el
@@ -141,6 +141,43 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - Pruebas en `test/program.test.js`: ciclo y frecuencia de `analogWrite`, las dos formas de LEDC,
   `tone` con duración, el pin sin PWM del UNO, el paso sugerido y el brillo promediado.
 
+## pulseIn
+
+`pulseIn(pin, valor)` y `pulseIn(pin, valor, timeout)` (y `pulseInLong`, lo mismo aquí) devuelven el
+ancho del próximo pulso en `valor` en el pin, en microsegundos enteros, o 0 si `timeout`
+(microsegundos, 1 000 000 por defecto) pasa antes, contado desde la llamada, como el de Arduino: un
+pulso que ya va cuando se llama se deja pasar primero. El HC-SR04 es para lo que sirve
+([sensor-ultrasonico.md](sensor-ultrasonico.md)): `pulseIn(ECHO, HIGH, 30000)` es la ida y vuelta
+del sonido.
+
+- **Cómo espera.** Es un generador del entorno de ejecución que el traductor llama con `yield*`, como
+  las funciones propias. Lee el pin con los umbrales de la placa (los de `digitalRead`) al final de
+  cada paso, y entre dos miradas devuelve el paso (entrega un valor propio del entorno, nunca un
+  número, así que el `delay` de un programa no puede hacerse pasar por él). El ancho es el tiempo
+  entre el paso que vio empezar el pulso y el que lo vio terminar.
+- **Su precisión: los pasos terminan en los flancos.** Mirar al paso de la página (1 ms) leería un
+  eco de 5,8 ms al milisegundo, y un paso tan fino como para leerlo al microsegundo haría que la
+  página se arrastrara. Así que el motor termina un paso en cada evento que nombra un elemento
+  (`until()`, segundos desde ahora): `engine.advance(h)` toma h en trozos que terminan en cada evento
+  que cae dentro (como mucho 1 000 por llamada, ninguno a menos de un nanosegundo). Un programa
+  nombra cuándo despierta (el fin de un `delay` o un `delayMicroseconds`, el timeout de `pulseIn`),
+  así que `delayMicroseconds(10)` es un pulso de 10 µs en el pin; un sensor temporizado nombra su
+  próximo flanco (el HC-SR04: el fin de su ráfaga, el fin de su eco), así que el programa ve subir y
+  bajar `ECHO` a su tiempo y `pulseIn` lee 5 824 µs para 100 cm a 20 °C sea cual sea el paso de la
+  página. Un pulso de algo que no nombra flancos (un pulsador, un RC) se lee a un paso.
+- **Cuesta unos pocos pasos, no un paso fino.** El paso de la página sigue como estaba (`stepHint()`
+  y el ritmo no cambian): `uno-blink` toma 1 000 pasos por segundo simulado antes y después;
+  `uno-distance` (una medición cada 100 ms) toma unos 1 050, los cinco aterrizajes más o menos de
+  cada medición.
+- **Es seguro.** `pulseIn` es un nombre más de `SKETCH_API`, sin ningún acceso a miembros nuevo. Un
+  timeout que no es un número, negativo (sin signo, un número enorme en C) o mayor que 3 000 000 µs
+  se recorta a `LIMITS.pulseInMicros` (3 s); un timeout de 0 devuelve 0 enseguida. Un
+  `while (1) pulseIn(…)` sobre un pin que nada maneja espera como mucho un timeout por paso y
+  devuelve el paso; `test/attack.test.js` tiene estos casos.
+- **En la ficha:** mientras mira su pin, el programa de la placa espera hasta su timeout.
+- No corre así: `transient()` (el `simulate --transient` de la CLI) avanza con su paso fijo, así que
+  allí un pulso se lee a un paso.
+
 ## El plan
 
 | Fase | Qué | Estado |
@@ -149,6 +186,7 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 | **M2** | El programa: el `.ino` junto al circuito (o su texto), traducido a JavaScript; `pinMode`, `digitalWrite`, `digitalRead`, `delay`, `millis`, `Serial`; corre entre pasos de tiempo, `delay` espera en tiempo simulado; la página lo corre en tiempo real | ✅ 2026-10-26 |
 | **M3** | PWM como una onda cuadrada real en el tiempo (`analogWrite`, `ledcWrite`), `tone`, el paso que necesita en la página y el brillo promediado del LED, el monitor serie en la ficha de la placa | ✅ 2026-10-26 |
 | **M4** | Recetas con su programa: `esp32-led`, `esp32-button`, `uno-blink`, `uno-button`, `uno-pot-pwm`, `c3-blink`, `c3-pot-pwm`; probado potenciómetro → ADC → PWM con los números de cada placa | ✅ 2026-10-26 |
+| **M5** | `pulseIn` (2026-11-10): una espera en tiempo simulado que mide entre los pasos que terminan en los flancos; `engine.advance` aterriza en los eventos de cada elemento; recetas `uno-distance`, `esp32-distance`, `distance-alarm-uno` con el HC-SR04 | ✅ 2026-11-10 |
 | después | Un panel propio de consola serie en la página, `analogRead` con la curva real del ADC del ESP32, interrupciones (`attachInterrupt`), versiones simplificadas de librerías comunes, firmware real del UNO con avr8js como modo opcional, las dos filas de pines del ESP32 en un circuito (el límite del montaje) | — |
 
 El programa maneja la memoria que guardan los pines (`gpioStage`: `mode`, `level`, `pull`) a

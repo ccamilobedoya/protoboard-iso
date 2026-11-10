@@ -9,6 +9,27 @@ detail.
 
 ## [Unreleased]
 
+### Added
+
+- The HC-SR04 ultrasonic distance sensor and `pulseIn` (sensors S4; `docs/en/ultrasonic-sensor.md`,
+  `docs/en/microcontrollers.md`): the type `ultrasonic-sensor` (part `HC-SR04`, pins VCC TRIG ECHO
+  GND), standing on its four pins with its two capsules; its device is a state machine (TRIG high
+  10 µs or more, a 250 µs burst, ECHO high for the round trip 2·d / v with v = 331.3 + 0.606·T,
+  38 ms without an echo, 2 mA waiting and 15 mA measuring, no echo under 4.5 V) that reads the
+  environment's `distance` and `temperature`. A board's program calls `pulseIn` and `pulseInLong`,
+  which wait in simulated time and return whole microseconds (the timeout clamped to
+  `LIMITS.pulseInMicros`, 3 s). Up close: symbol, inside view (the burst out, the echo back, the
+  round trip) and legend. Recipes `uno-distance`, `esp32-distance` (a 1 kΩ / 2 kΩ divider brings
+  ECHO's 5 V to 3.33 V for the 3.3 V pin) and `distance-alarm-uno`; the timeline
+  `examples/tours/uno-distance.json`.
+
+### Changed
+
+- `engine.advance(h)` ends a step on each event an element names inside h (`until()`: a program
+  waking from a delay, `pulseIn`'s timeout, a timed sensor's edge), at most 1 000 a call, so
+  `delayMicroseconds(10)` is a 10 µs pulse on the pin and a program sees a sensor's edges at their
+  time, without a finer step for the page (`uno-blink` stays at 1 000 steps a simulated second).
+
 ## [0.10.0] - 2026-11-09
 
 Sensors: a shared environment that every sensor reads, its panel and indicator, real sensor recipes, the LM393 modules, the PIR and touch modules.

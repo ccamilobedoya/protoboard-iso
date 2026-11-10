@@ -213,7 +213,9 @@ field, and that a value on the part wins (`test/environment.test.js`).
 
 A sensor that answers in time (a PIR's delay, a touch module's response) has memory of its own:
 it lists the keys of its elements in `state: [...]` so `engine.set` carries them, and may give
-`maxStep()` and `span()`; see [timed-sensors.md](timed-sensors.md).
+`maxStep()` and `span()`; see [timed-sensors.md](timed-sensors.md). One whose output a program
+times to the microsecond (the HC-SR04's echo) names its next edge with `until()`, and the engine ends
+a step there; see [ultrasonic-sensor.md](ultrasonic-sensor.md).
 A sensor on the usual comparator board (rain, soil, light, an infrared slot or pair, a Hall switch,
 a vibration contact) is not a new type: it is one row of the `sensor-module` table, its element and
 a glyph ([sensor-modules.md](sensor-modules.md#adding-a-ninth-part)).

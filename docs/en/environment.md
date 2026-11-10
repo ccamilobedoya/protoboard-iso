@@ -46,6 +46,8 @@ LM393 sensor modules ([sensor-modules.md](sensor-modules.md): `rain`, `moisture`
 other fields are ready for the sensors that come next. `reflectance` (the surface under a line
 follower or in front of an obstacle sensor) and `beam` (something in an optical slot) came with
 those modules.
+The HC-SR04 ultrasonic module ([ultrasonic-sensor.md](ultrasonic-sensor.md)) reads `distance` and
+`temperature`, which sets the speed of sound.
 
 ## In the circuit
 
