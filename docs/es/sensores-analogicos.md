@@ -40,7 +40,10 @@ Vout = Vs / 2 + 1,4 mV/G · (Vs / 5 V) · campo          mantenida dentro de [0,
 - Es **ratiométrico**: el cero (Vs / 2) *y* la sensibilidad escalan con la alimentación. A 3,3 V,
   +100 G da 1,742 V. Una placa cuyo ADC usa su propia alimentación como referencia (los 5 V de un
   UNO, los 3,3 V de un ESP32) lee la misma fracción en ambos casos, por eso el programa de
-  `hall-linear-uno` sirve en las dos cambiando solo la alimentación que supone.
+  `hall-linear-uno` sirve en las dos cambiando solo la alimentación que supone. El UNO del kit lee
+  contra su riel real (AVcc: por USB unos 4,985 V), así que en reposo el programa imprime −1,75 G, una
+  cuenta de su conversión `5.0 / 1023`, sea cual sea la alimentación; el ADC del ESP32 conserva su
+  referencia fija.
 - La salida está tras 50 Ω y su corriente está limitada a unos 5 mA (la clase aguanta ±1,5 mA); el chip toma unos 6 mA de la alimentación, así que un corto en la salida dibuja unos 11 mA y nunca vuelve negativa la corriente de alimentación. El rango lineal es de
   unos ±650 G; el deslizador muestra ±500 G, el campo puede escribirse hasta ±10 000 G.
 - Siente el `field` del ambiente ([ambiente.md](ambiente.md)); un `field` en la parte gana.

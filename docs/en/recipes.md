@@ -80,7 +80,7 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `voltage-sensor-uno` | Arduino UNO measuring a 9 V supply through a voltage sensor module (a 5:1 divider) on A0 and printing the volts | V1 = its voltage (1 to 25 V), U1 = its sketch |
 | `uno-dht11` | Arduino UNO with a DHT11 module on D2 read through the DHT library every 2 s (`isnan` prints `fail`); environment 24 °C (range 0–50) and 41 %RH (range 20–90) ([library-sensors.md](library-sensors.md)) | U1 = its sketch |
 | `esp32-bme280` | ESP32 DevKit with a BME280 board on 3V3 and GPIO22/21: `begin(0x76)`, then temperature, pressure in hPa, humidity and altitude every second; environment with the pressure (range 900–1050 hPa) | U1 = its sketch |
-| `uno-bmp280-altitude` | Arduino UNO with a BMP280 board on its 3.3 V pin (the board has no regulator) and A4/A5, printing the altitude; environment pressure (range 700–1050 hPa) | U1 = its sketch |
+| `uno-bmp280-altitude` | Arduino UNO with a BMP280 board on its 3.3 V pin (the board has no regulator) and A4/A5, printing the altitude; Wire's pull-ups to 5 V lift the bus to about 3.68 V (`SIM_PIN_OVER_VDDIO`, a note); environment pressure (range 700–1050 hPa) | U1 = its sketch |
 
 `parts` (CLI) lists them with their titles; the compact `catalog` (MCP) lists only their names, by group (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), to stay short; `catalog` with a recipe's name (`parts
 <name>` in the CLI) shows its title and group, what it teaches, its parts, nets, supply, and each value's role and limits.

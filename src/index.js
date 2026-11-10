@@ -54,7 +54,10 @@ export function formatIssue(issue, lang = 'en') {
     params.node = t(lang, n.key, n.params);
   }
   const nearest = params.nearest ? ` ${t(lang, 'check.nearest', params)}` : '';
-  return `${t(lang, `severity.${issue.severity}`)}: ${t(lang, `check.${issue.code}`, params)}${nearest}`;
+  // A part may say the same code its own way: params.variant names check.<code>.<variant>.
+  const special = params.variant ? `check.${issue.code}.${params.variant}` : null;
+  const key = special && t(lang, special) !== special ? special : `check.${issue.code}`;
+  return `${t(lang, `severity.${issue.severity}`)}: ${t(lang, key, params)}${nearest}`;
 }
 
 // Value as shown to people: "4,7 kΩ", "rojo", "IRLZ44N" (null for wires).

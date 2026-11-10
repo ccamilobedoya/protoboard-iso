@@ -210,10 +210,13 @@ export const OPAMPS = {
 // pull-ups 45 kΩ, ADC 12 bits up to about 3.1 V at 11 dB); ESP32-C3 datasheet v2.4 (ADC up to
 // 2.5 V at 11 dB); Microchip ATmega328P datasheet (VOH 4.2 V at 20 mA, VIL 0.3·VCC, VIH 0.6·VCC,
 // pull-ups 20–50 kΩ, 40 mA absolute per pin, ADC 10 bits on AVCC); Arduino UNO R3 schematic.
+// adcRef 'vdd': the ADC's full scale is the board's own solved logic rail (the UNO's AVcc, the USB's 5 V
+// a little under 5 V behind its cable), not the nominal adcFull: a ratiometric sensor then reads the same
+// count whatever the supply. The ESP32 families keep their fixed reference (adcFull).
 export const MCUS = {
   esp32: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 3.1, own: 0.04, maxPin: 0.04, usbResistance: 0.2, regulator: { dropout: 1.1, quiescent: 5e-3, maxCurrent: 0.8, maxPower: 1 } },
   esp32c3: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 2.5, own: 0.02, maxPin: 0.04, usbResistance: 0.2, regulator: { dropout: 0.1, quiescent: 40e-6, maxCurrent: 0.5, maxPower: 0.5 } },
-  uno: { vdd: 5, outputResistance: 40, pull: 35e3, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5, own: 0.045, maxPin: 0.04, usbResistance: 0.3, regulator: { dropout: 0.28, quiescent: 1e-3, maxCurrent: 0.15, maxPower: 0.3 } },
+  uno: { vdd: 5, outputResistance: 40, pull: 35e3, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5, adcRef: 'vdd', own: 0.045, maxPin: 0.04, usbResistance: 0.3, regulator: { dropout: 0.28, quiescent: 1e-3, maxCurrent: 0.15, maxPower: 0.3 } },
 };
 // The default I2C pins of each family's Arduino core (Wire with no pins), as GPIO numbers: the UNO's
 // A4 = SDA and A5 = SCL [D]; the ESP32 DevKit's GPIO21 / GPIO22 [D]; the ESP32-C3's GPIO8 / GPIO9 [T]
@@ -419,12 +422,13 @@ export const ACTIVE_BUZZER = { rated: 5, current: 0.03, frequency: 2300, rampFro
 //   bosch.rail 3.3 V, dropout 0.2 V [A], quiescent 1 µA [A], minVin 3.4 V [A], maxVin 6.5 V [A]  the
 //                 regulated board's LDO
 //   bosch.pullup 10 kΩ [T] on SDA and SCL to the chip's rail; bosch.high 0.7 [A] as for the DHT
+//   bosch.overIo 0.3 V [D]  a pin's absolute maximum over VDDIO: a bus line above it is SIM_PIN_OVER_VDDIO
 //   bosch.temperature [-40, 85] °C, pressure [300, 1100] hPa, humidity [0, 100] %RH [D]
 //   boards.*.current  after begin() in the library's normal mode: BME280 0.47 mA [A, from the sheet's
 //                 peaks], BMP280 0.4 mA [A]; chip id 0x60 (BME280), 0x58 (BMP280) [D]
 export const CLIMATE = {
   dht: { minSupply: 3, maxSupply: 5.5, maxReverse: 0.3, standby: 120e-6, currentAt: 5, pullup: 10e3, interval: 2000, warmup: 1, temperature: [0, 50], humidity: [20, 90], high: 0.7 },
-  bosch: { minSupply: 1.71, maxSupply: 3.6, dead: 4.25, maxReverse: 0.3, rail: 3.3, dropout: 0.2, quiescent: 1e-6, minVin: 3.4, maxVin: 6.5, pullup: 10e3, high: 0.7, temperature: [-40, 85], pressure: [300, 1100], humidity: [0, 100] },
+  bosch: { overIo: 0.3, minSupply: 1.71, maxSupply: 3.6, dead: 4.25, maxReverse: 0.3, rail: 3.3, dropout: 0.2, quiescent: 1e-6, minVin: 3.4, maxVin: 6.5, pullup: 10e3, high: 0.7, temperature: [-40, 85], pressure: [300, 1100], humidity: [0, 100] },
   boards: {
     DHT11: { dht: true, humidity: true, pressure: false },
     BME280: { chip: 0x60, humidity: true, pressure: true, regulated: false, current: 0.47e-3 },

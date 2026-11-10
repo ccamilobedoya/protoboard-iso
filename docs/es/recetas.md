@@ -81,7 +81,7 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `voltage-sensor-uno` | Arduino UNO que mide una fuente de 9 V con un módulo sensor de voltaje (divisor 5:1) en A0 e imprime los voltios | V1 = su voltaje (1 a 25 V), U1 = su programa |
 | `uno-dht11` | Arduino UNO con un módulo DHT11 en D2 leído con la biblioteca DHT cada 2 s (`isnan` imprime `fail`); ambiente 24 °C (rango 0–50) y 41 %HR (rango 20–90) ([sensores-de-biblioteca.md](sensores-de-biblioteca.md)) | U1 = su programa |
 | `esp32-bme280` | ESP32 DevKit con una placa BME280 en 3V3 y GPIO22/21: `begin(0x76)`, luego temperatura, presión en hPa, humedad y altitud cada segundo; ambiente con la presión (rango 900–1050 hPa) | U1 = su programa |
-| `uno-bmp280-altitude` | Arduino UNO con una placa BMP280 en su pin de 3,3 V (la placa no tiene regulador) y A4/A5, que imprime la altitud; ambiente con la presión (rango 700–1050 hPa) | U1 = su programa |
+| `uno-bmp280-altitude` | Arduino UNO con una placa BMP280 en su pin de 3,3 V (la placa no tiene regulador) y A4/A5, que imprime la altitud; los pull-ups de Wire a 5 V suben el bus a unos 3,68 V (`SIM_PIN_OVER_VDDIO`, una nota); ambiente con la presión (rango 700–1050 hPa) | U1 = su programa |
 
 `parts` (consola) las lista con su título; el `catalog` compacto (MCP) solo da sus nombres, por grupo (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), para ser corto; `catalog` con el nombre de una receta
 (`parts <nombre>` en la consola) muestra su título y su grupo, lo que enseña, sus componentes, redes, fuente, y el papel y

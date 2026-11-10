@@ -9,6 +9,22 @@ detail.
 
 ## [Unreleased]
 
+### Fixed
+
+- A UNO's ADC reads against its own solved 5 V rail (AVcc), not a fixed 5.0 V: a ratiometric sensor
+  on USB reads the same count whatever the supply (`hall-linear-uno` at rest: −5.24 → −1.75 G, one
+  count of its sketch's conversion). The ESP32 families keep their fixed reference.
+- Library sensors, second round: each card tells only about the requests that were for it (two
+  sensors), `SIM_LIBRARY_SHARED` for two at one place; Wire's AVR pull-ups (a 3.3 V I2C board on a
+  UNO idles at about 3.68 V, `SIM_PIN_OVER_VDDIO`, a note) and `Wire.begin(sda, scl)` on an ESP32; a
+  Bosch chip that lost its supply reads NaN until `begin()`; the start's rounds no longer use up the
+  first DHT read; a DHT type not in the kit is told at run time; the regulated board in dropout is an
+  info note; the cards give the sensors' response times; `setSampling` accepted (`SIM_PROGRAM_IGNORED`),
+  `sensorID`, `takeForcedMeasurement`, `seaLevelForAltitude`, `convertCtoF`, `convertFtoC`.
+- Programs: a comparison or a ternary of ints prints as an int; malformed input (`F()`, two values in
+  a row, an object in a `#define`, an unclosed `{` in a `#define`) is `SIM_PROGRAM_ERROR` with its
+  line; the generated code is strict (an undeclared name is an error, never a global; C's octal).
+
 ### Added
 
 - Library-level climate sensors (sensors S6; `docs/en/library-sensors.md`): a board's program may

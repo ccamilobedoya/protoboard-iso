@@ -36,7 +36,7 @@ function run(source) {
 const sketch = (body) => `void setup() { ${body} }\nvoid loop() { delay(1000); }`;
 
 // What the JavaScript may name: its own words, the runtime's, and the sketch's ($-prefixed).
-const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'DHT11', 'DHT22', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
+const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
 function strayNames(js) {
   // The body, without the prelude (two lines) and the last line, and without the quoted names of
   // __missing("name", …), which JSON.stringify writes.
@@ -138,6 +138,30 @@ test('attack: a library object reaches nothing but its own methods', () => {
   for (const source of ['void setup() { DHT d(2, DHT11); }\nvoid loop() { }', 'void setup() { }\nvoid loop() { static DHT d(2, DHT11); }', 'void f(DHT d) { }\nvoid setup() { }\nvoid loop() { }', 'DHT dht(2, DHT11);\nfloat t = dht.readTemperature();\nvoid setup() { }\nvoid loop() { }', dhtSketch('int dht = 1;'), dhtSketch('', '#define T dht.readTemperature()\n')]) {
     assert.equal(run(source).r.js, null, source);
   }
+});
+
+test('attack: malformed input is an issue with its line, never code that does not parse or a global', () => {
+  for (const [source, line] of [
+    [dhtSketch('Serial.println(F());'), 3],
+    ['DHT d(2 3, DHT11);\nvoid setup() { }\nvoid loop() { }', 1],
+    ['#define T dht\nDHT dht(2, DHT11);\nvoid setup() { }\nvoid loop() { }', 1],
+    ['#define Q {\nvoid setup() { }\nvoid loop() { }', 1],
+    [sketch('Serial.println(1 2);'), 1],
+    [sketch('int x = 09;'), 1],
+  ]) {
+    const r = translateSketch(source);
+    assert.equal(r.js, null, source);
+    assert.deepEqual(r.issues.map((i) => [i.code, i.line]), [['SIM_PROGRAM_ERROR', line]], source);
+  }
+  // DHT21 is a type the library knows: noted, it reads NaN.
+  const dht21 = translateSketch('#include <DHT.h>\nDHT d(2, DHT21);\nvoid setup() { }\nvoid loop() { }');
+  assert.ok(dht21.js);
+  assert.deepEqual(dht21.issues.map((i) => [i.code, i.line]), [['SIM_PROGRAM_NOT_IN_KIT', 2]]);
+  // The code is strict: an assignment to a name nobody declared stops the program, it makes no global.
+  const undeclared = run(sketch('zzz = 1;'));
+  assert.match(undeclared.error, /\$zzz is not defined/);
+  assert.equal(globalThis.$zzz, undefined);
+  assert.deepEqual(run(sketch('int x = 010; Serial.println(x);')).log, ['8'], 'C\'s octal');
 });
 
 test('attack: library objects have a cap, and the runtime checks the numbers it is given', () => {

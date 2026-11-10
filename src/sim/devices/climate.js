@@ -17,9 +17,12 @@
 //
 // A request (from mcu.js): { cls, method ('begin' | 'read'), now (ms), pin (the node of the sketch's
 // pin) and gpio (its number), sda / scl (the nodes of the board's default I2C pins), address, chip,
-// force, volt(node) }. The DHT answers only on its own pin ({ ok, real, temperature, humidity }, or
-// null when the request is for another pin); an I2C chip answers every request of its bus with
-// { ok, reason, temperature, pressure (Pa), humidity }.
+// force, volt(node) }. An answer is `mine` when the request is for that sensor (the DHT on the pin
+// asked; the chip on the board's bus at the address asked): { mine: true, ok, real, temperature,
+// humidity } or { mine: true, ok, reason, temperature, pressure (Pa), humidity }, and it notes its own
+// verdict. A request for another pin or address gives { mine: false, miss: verdict } and notes
+// nothing: the board hands that verdict over (`note`) only when no sensor answered, so with two
+// sensors each card tells only about the requests that were for it.
 
 import { resistor, regulatorElement } from '../mna.js';
 import { CLIMATE as C } from '../models.js';
@@ -45,12 +48,12 @@ export const boschValues = ({ temperature, pressure, humidity }, humid = true) =
 
 // The DHT11's element: no current of its own (its supply and pull-up are resistors beside it), the
 // library's answers.
-function dhtCore({ s, vcc, gnd }, p) {
+function dhtCore({ s, vcc, gnd }, p, id) {
   const supplyOf = (v) => v(vcc) - v(gnd);
   return {
     nodes: [],
     links: [],
-    library: { classes: ['DHT'], bus: 'pin' },
+    library: { classes: ['DHT'], bus: 'pin', id, at: [s] },
     memo: { clock: 0, since: null, last: null, ok: false, t: Number.NaN, h: Number.NaN, verdict: null },
     stamp: () => false,
     currents: () => [],
@@ -73,11 +76,9 @@ function dhtCore({ s, vcc, gnd }, p) {
         if (req.pin != null && req.net(s) === req.pin) m.last = null;
         return null;
       }
-      if (req.pin == null || req.net(s) !== req.pin) {
-        m.verdict = { ok: false, reason: 'pin', gpio: req.gpio, at: req.now };
-        return null;
-      }
-      if (!req.force && m.last != null && req.now - m.last < C.dht.interval) return { ok: m.ok, real: false, temperature: m.t, humidity: m.h };
+      // Not for it (another pin): it says why, and the board notes that only if no sensor answered.
+      if (req.pin == null || req.net(s) !== req.pin) return { mine: false, miss: { ok: false, reason: 'pin', gpio: req.gpio, at: req.now } };
+      if (!req.force && m.last != null && req.now - m.last < C.dht.interval) return { mine: true, ok: m.ok, real: false, temperature: m.t, humidity: m.h };
       m.last = req.now;
       const v = req.volt;
       const supply = supplyOf(v);
@@ -86,44 +87,62 @@ function dhtCore({ s, vcc, gnd }, p) {
       if (supply < -C.dht.maxReverse) reason = 'reversed';
       else if (supply < C.dht.minSupply) reason = 'power';
       else if (up < p.warmup - 1e-9) reason = 'warmup';
-      else if (v(s) - v(gnd) < C.dht.high * supply) reason = 'low';
+      // The line low (no pull-up, or held down) — unless the library just took the pin from an output.
+      else if (!req.released && v(s) - v(gnd) < C.dht.high * supply) reason = 'low';
       const read = reason ? null : dhtValues(p);
       m.ok = !reason;
       m.t = read ? read.temperature : Number.NaN;
       m.h = read ? read.humidity : Number.NaN;
       m.verdict = { ok: m.ok, reason, gpio: req.gpio, at: req.now, supply, ...(read && read) };
-      return { ok: m.ok, real: true, temperature: m.t, humidity: m.h };
+      return { mine: true, ok: m.ok, real: true, temperature: m.t, humidity: m.h };
+    },
+    // A verdict the board hands over: a request that no sensor answered, and why not this one.
+    note(verdict) {
+      this.memo.verdict = verdict;
     },
   };
 }
 
 // A BME280 / BMP280 board's chip: answers on the board's default I2C pins when its rail is in range,
 // both lines are pulled up, the address is its own and the library's chip id is its own.
-function boschCore({ vcc, gnd, rail, sda, scl }, p) {
+function boschCore({ vcc, gnd, rail, sda, scl }, p, id) {
   const model = C.boards[p.part];
   return {
     nodes: [],
     links: [],
-    library: { classes: ['Adafruit_BME280', 'Adafruit_BMP280'], bus: 'i2c' },
-    memo: { verdict: null },
+    library: { classes: ['Adafruit_BME280', 'Adafruit_BMP280'], bus: 'i2c', id, at: [sda, scl], address: p.address },
+    // configured: a begin() set it up since its supply last came; a supply that drops under the chip's
+    // minimum resets it (sleep mode, the reset values): reads give NaN until the next begin().
+    memo: { verdict: null, configured: false },
     stamp: () => false,
     currents: () => [],
+    accept(x, ctx = {}) {
+      if (ctx.h && volt(x, rail) - volt(x, gnd) < C.bosch.minSupply) this.memo.configured = false;
+    },
     answer(req) {
       const v = req.volt;
       const supply = v(vcc) - v(gnd);
       const chipRail = v(rail) - v(gnd);
       let reason = null;
       const [onSda, onScl] = [req.net(sda), req.net(scl)];
-      if (req.sda == null || req.scl == null || onSda !== req.sda || onScl !== req.scl) reason = onSda === req.scl && onScl === req.sda && req.sda != null ? 'swapped' : 'bus';
-      else if (supply < -C.bosch.maxReverse) reason = 'reversed';
+      const verdict = (why) => ({ ok: !why, reason: why, method: req.method, address: req.address, chip: req.chip, cls: req.cls, at: req.now });
+      // Not for it (not on the board's bus, or another address): why, for the board to note only if no
+      // chip answered.
+      if (req.sda == null || req.scl == null || onSda !== req.sda || onScl !== req.scl) return { mine: false, miss: verdict(onSda === req.scl && onScl === req.sda && req.sda != null ? 'swapped' : 'bus') };
+      if (req.address !== p.address) return { mine: false, miss: verdict('address') };
+      if (supply < -C.bosch.maxReverse) reason = 'reversed';
       else if (!model.regulated && supply > C.bosch.dead) reason = 'dead';
       else if (chipRail < C.bosch.minSupply) reason = 'power';
       else if (v(sda) - v(gnd) < C.bosch.high * chipRail || v(scl) - v(gnd) < C.bosch.high * chipRail) reason = 'low';
-      else if (req.address !== p.address) reason = 'address';
       else if (req.chip !== model.chip) reason = 'chip';
+      else if (req.method === 'read' && !this.memo.configured) reason = 'asleep';
+      if (req.method === 'begin') this.memo.configured = !reason;
       const values = reason ? null : boschValues(p, model.humidity);
-      this.memo.verdict = { ok: !reason, reason, method: req.method, address: req.address, chip: req.chip, cls: req.cls, at: req.now };
-      return { ok: !reason, reason, ...(values ?? { temperature: Number.NaN, pressure: Number.NaN, humidity: Number.NaN }) };
+      this.memo.verdict = verdict(reason);
+      return { mine: true, ok: !reason, reason, ...(values ?? { temperature: Number.NaN, pressure: Number.NaN, humidity: Number.NaN }) };
+    },
+    note(v) {
+      this.memo.verdict = v;
     },
   };
 }
@@ -163,7 +182,7 @@ export const climate = {
       const [s, vcc, gnd] = ['S', '+', '−'].map((name) => h.pin(name));
       const supply = h.add(resistor(vcc, gnd, C.dht.currentAt / C.dht.standby));
       const pullup = h.add(resistor(s, vcc, C.dht.pullup));
-      return { supply, pullup, core: h.add(dhtCore({ s, vcc, gnd }, p)), nodes: { s, vcc, gnd } };
+      return { supply, pullup, core: h.add(dhtCore({ s, vcc, gnd }, p, h.id)), nodes: { s, vcc, gnd } };
     }
     const [vcc, gnd, scl, sda] = ['VCC', 'GND', 'SCL', 'SDA'].map((name) => h.pin(name));
     const rail = model.regulated ? h.inner() : vcc;
@@ -171,7 +190,7 @@ export const climate = {
     const supply = h.add(resistor(rail, gnd, C.bosch.rail / model.current));
     const pullSda = h.add(resistor(sda, rail, C.bosch.pullup));
     const pullScl = h.add(resistor(scl, rail, C.bosch.pullup));
-    return { regulator, supply, pullSda, pullScl, core: h.add(boschCore({ vcc, gnd, rail, sda, scl }, p)), nodes: { vcc, gnd, rail, sda, scl } };
+    return { regulator, supply, pullSda, pullScl, core: h.add(boschCore({ vcc, gnd, rail, sda, scl }, p, h.id)), nodes: { vcc, gnd, rail, sda, scl } };
   },
   read(entry, h) {
     const n = entry.nodes;
@@ -187,6 +206,7 @@ export const climate = {
       return {
         part: entry.part,
         state,
+        warmup: entry.warmup,
         left: state === 'warmup' ? Math.max(0, entry.warmup - up) : null,
         length: state === 'warmup' ? entry.warmup : null,
         sensor: { temperature: entry.temperature, humidity: entry.humidity },
@@ -238,8 +258,18 @@ export const climate = {
     out.push(stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, C.bosch.maxReverse, 'V', { param: 'voltage' }));
     const max = model.regulated ? C.bosch.maxVin : C.bosch.maxSupply;
     if (r.vcc > max) out.push(note('warning', 'SIM_IC_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), max: q(max, 'V') }));
+    // A bus line over the chip's VDDIO + 0.3 V (its pins' absolute maximum): an AVR's own pull-ups to
+    // 5 V against the board's 10 kΩ to 3.3 V idle at about 3.68 V. The bus still works: a note.
+    for (const [pin, v] of [['SDA', r.vsda], ['SCL', r.vscl]]) {
+      if (r.state === 'ready' && v > r.rail + C.bosch.overIo) out.push(note('info', 'SIM_PIN_OVER_VDDIO', { part: entry.id, pin, voltage: q(v, 'V'), max: q(r.rail + C.bosch.overIo, 'V') }));
+    }
     const min = model.regulated ? C.bosch.minVin : C.bosch.minSupply;
-    if (r.vcc > 0.5 && r.vcc < min) out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(min, 'V') }));
+    // The regulated board under 3.4 V: its regulator is in dropout and the chip runs on what is left
+    // (about VIN − 0.2 V), still inside its range: a note that says so.
+    if (r.vcc > 0.5 && r.vcc < min) {
+      if (model.regulated && r.rail >= C.bosch.minSupply) out.push(note('info', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(min, 'V'), rail: q(r.rail, 'V'), variant: 'dropout' }));
+      else out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(min, 'V') }));
+    }
     return out;
   },
   lines(p, h) {
@@ -259,7 +289,7 @@ export const climate = {
       const hex = (n) => `0x${Math.trunc(n).toString(16)}`;
       const why = last.ok
         ? h.t('sim.climate.answered', { time: at })
-        : h.t(`sim.climate.why.${last.reason}`, { time: at, pin: last.gpio ?? '—', asked: hex(last.address ?? 0), own: hex(p.address ?? 0), chip: hex(last.chip ?? 0), mine: hex(p.chip ?? 0), voltage: h.f(p.vcc, 'V') });
+        : h.t(`sim.climate.why.${last.reason}`, { time: at, pin: last.gpio ?? '—', asked: hex(last.address ?? 0), own: hex(p.address ?? 0), chip: hex(last.chip ?? 0), mine: hex(p.chip ?? 0), voltage: h.f(p.vcc, 'V'), warmup: h.f(p.warmup ?? 1, 's') });
       lines.push(h.raw(last.ok ? 'climate.last' : 'climate.none', why));
     } else lines.push(h.raw('climate.last', h.t('sim.climate.unasked')));
     if (p.address != null) lines.push(h.q('climate.address', `0x${p.address.toString(16)} · ${h.t('sim.climate.chip', { chip: `0x${p.chip.toString(16)}` })}`));

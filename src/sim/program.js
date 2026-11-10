@@ -6,8 +6,9 @@
 //
 //   const runner = createRunner(js, board)
 //     board: { family, gpio: [numbers wired], read(gpio) → { volts, vdd } | null, vil, vih,
-//              adcBits, adcFull, states: { gpio: { mode, level, pull } } (from io),
-//              ask(request) → the answer of the library sensor wired for it, or null (devices/mcu.js) }
+//              adcBits, adcFull, adcRef ('vdd': the full scale is the rail read() gives), states: { gpio: { mode, level, pull } } (from io),
+//              ask(request) → the answer of the library sensor wired for it, or null (devices/mcu.js),
+//              i2c: { sda, scl } its family's default I2C GPIOs }
 //   runner.advance(seconds) → true when a pin changed
 //   runner.pins: gpio → { mode, level, pull, pwm: { freq, duty } | null }: a pin with pwm switches
 //     in time (the board sets its level at each step from runner.time: levelAt)
@@ -29,7 +30,7 @@
 // checked against the runtime's own arrays. A method asks board.ask({ cls, method, pin | address, … })
 // and the sensor's device answers (it holds the truth: its power, its cache, the environment).
 
-import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, heatIndex, altitudeOf } from './libraries.js';
+import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, heatIndex, altitudeOf, seaLevelOf } from './libraries.js';
 
 const BUDGET = 2000; // loop turns or loop() calls per advance before it lets the step go on
 const LOG = 40; // Serial lines kept
@@ -55,6 +56,8 @@ const LOOK = Object.freeze({ look: true });
 const DHT_READ = 0.025; // s a real DHT read holds the sketch (the library's 20 ms start and the 40 bits)
 const DHT_INTERVAL = 2000; // ms: the library's MIN_INTERVAL (a read sooner returns the last one)
 const I2C_BEGIN = 0.1; // s an Adafruit BME280/BMP280 begin() takes (its delay(100))
+// DHT.h's sensor types by number, for a note.
+const DHT_TYPES = { 12: 'DHT12', 21: 'DHT21', 22: 'DHT22' };
 const OBJECTS_MAX = 64; // library objects at most (the translator caps them lower: LIMITS.libraryObjects)
 
 // A PWM pin's level at time t: high for the first `duty` of each period.
@@ -162,7 +165,9 @@ export function createRunner(js, board) {
     analogRead(n) {
       const r = volts(n);
       if (!r) return 0;
-      return Math.round(Math.min(1, Math.max(0, r.volts / board.adcFull)) * (2 ** board.adcBits - 1));
+      // Full scale: the board's own rail (an AVR's AVcc) or its fixed reference.
+      const full = board.adcRef === 'vdd' && r.vdd > 0 ? r.vdd : board.adcFull;
+      return Math.round(Math.min(1, Math.max(0, r.volts / full)) * (2 ** board.adcBits - 1));
     },
     // PWM, 8 bits: 0 is LOW, 255 HIGH, in between a square wave. On an UNO only its PWM pins;
     // any other reads it as digitalWrite (128 and up is HIGH), as the core does.
@@ -245,10 +250,20 @@ export function createRunner(js, board) {
     __array: (n) => new Array(Math.min(ARRAY_MAX, Math.max(0, Math.trunc(Number(n)) || 0))).fill(0),
     ...LIBRARY_CONSTANTS,
     isnan: (x) => Number.isNaN(Number(x)),
+    __wire: (sda, scl) => startWire(sda, scl),
     // A library object: k and c are numbers the translator chose, checked here all the same.
     __new(k, c, ...args) {
       if (!Number.isInteger(k) || k < 0 || k >= OBJECTS_MAX || !Number.isInteger(c) || !LIBRARY_CLASSES[c]) return;
       objects[k] = { cls: c, args: args.map(Number), begun: null, last: null };
+      // A DHT of a type the kit does not have (whatever names it: DHT22, 22, a constant): the board's
+      // card says so (runner.notes), and its reads give NaN.
+      if (LIBRARY_CLASSES[c].bus === 'pin') {
+        const type = Number(args[1]);
+        if (type !== LIBRARY_CONSTANTS.DHT11) {
+          const name = DHT_TYPES[type] ?? `DHT (type ${Number.isFinite(type) ? type : '?'})`;
+          if (!runner.notes.includes(name)) runner.notes.push(name);
+        }
+      }
     },
     // One of its methods: a generator (some of them wait), m its number in the class's list.
     *__lib(k, m, ...args) {
@@ -262,13 +277,26 @@ export function createRunner(js, board) {
   // ── Library objects ──
   const objects = [];
   const millisNow = () => Math.floor(runner.time * 1e3 + 1e-9);
-  const ask = (request) => (typeof runner.ask === 'function' ? runner.ask({ ...request, now: millisNow() }) : null);
+  // The I2C bus: the family's default pins, or the two an ESP32's Wire.begin(sda, scl) named.
+  let bus = board.i2c ?? null;
+  const ask = (request) => (typeof runner.ask === 'function' ? runner.ask({ ...request, bus, now: millisNow() }) : null);
+  // Wire starting (Wire.begin(), or a library's begin()): on an AVR, twi_init writes SDA and SCL high,
+  // which turns on their pins' pull-ups (as INPUT_PULLUP); on an ESP32, Wire.begin(sda, scl) moves the bus.
+  const startWire = (sda, scl) => {
+    if (board.family === 'uno') {
+      for (const n of [bus?.sda, bus?.scl]) if (n != null && pin(n).mode === 'input') set(n, { pull: 'up' });
+    } else if (Number.isInteger(Number(sda)) && Number.isInteger(Number(scl)) && Number(sda) >= 0 && Number(scl) >= 0) bus = { sda: Number(sda), scl: Number(scl) };
+  };
   // A DHT read: the sensor on the object's pin answers and keeps the library's 2 s cache itself; with
   // nothing there the library still times out every 2 s (its own cache, here on the object).
   function* dhtRead(o, force) {
-    const [pin, type] = o.args;
+    const [gpio, type] = o.args;
     if (type !== LIBRARY_CONSTANTS.DHT11) return null; // DHT22 is not in the kit yet: NaN
-    const answer = ask({ cls: 'DHT', method: 'read', pin, force: Boolean(force) });
+    // The library drives its pin itself (low for the start signal, then an input with pull-up): a pin
+    // the sketch left as an output is the library's for the read, so the line idles high again.
+    const taken = gpio != null && pin(gpio).mode === 'output';
+    if (taken) api.pinMode(gpio, MODE.INPUT_PULLUP);
+    const answer = ask({ cls: 'DHT', method: 'read', pin: gpio, force: Boolean(force), released: taken });
     let real = answer?.real;
     if (!answer) {
       const now = millisNow();
@@ -276,7 +304,7 @@ export function createRunner(js, board) {
       if (real) o.last = now;
     }
     if (real) {
-      api.pinMode(pin, MODE.INPUT_PULLUP); // the library leaves its pin so after each read
+      api.pinMode(gpio, MODE.INPUT_PULLUP); // the library leaves its pin so after each read
       yield DHT_READ;
     }
     return answer?.ok ? answer : null;
@@ -286,6 +314,7 @@ export function createRunner(js, board) {
   const ok = (a) => (a?.ok ? a : null);
   function* i2cBegin(o, address = I2C_DEFAULT_ADDRESS, chip) {
     const want = { address: Math.trunc(Number(address)), chip: chip == null ? LIBRARY_CLASSES[o.cls].chip : Math.trunc(Number(chip)) };
+    startWire();
     const answer = ask({ cls: LIBRARY_CLASSES[o.cls].name, method: 'begin', ...want });
     o.begun = answer?.ok ? want : null;
     yield I2C_BEGIN;
@@ -303,6 +332,14 @@ export function createRunner(js, board) {
       const a = ok(i2cRead(o));
       return a ? altitudeOf(a.pressure / 100, Number(sea)) : Number.NaN;
     },
+    // setSampling(…): the kit's readings do not depend on it (noted when translated).
+    () => 0,
+    // sensorID(): the chip id begin() read (0 before a begin that found it).
+    (o) => o.begun?.chip ?? 0,
+    // takeForcedMeasurement(): true while the chip answers (the kit measures all the time).
+    (o) => Boolean(ok(i2cRead(o))),
+    // seaLevelForAltitude(altitude m, pressure hPa)
+    (o, metres, hPa) => seaLevelOf(Number(metres), Number(hPa)),
   ];
   // Each class's methods in the order of LIBRARY_CLASSES[c].methods (the numbers the translator wrote).
   const METHODS = [
@@ -325,6 +362,9 @@ export function createRunner(js, board) {
       },
       // computeHeatIndex(temperature, humidity, isFahrenheit = true)
       (o, temperature, humidity, isFahrenheit = true) => heatIndex(Number(temperature), Number(humidity), Boolean(isFahrenheit)),
+      // convertCtoF(c), convertFtoC(f), as DHT.cpp (its 0.55555 back to °C).
+      (o, c) => Number(c) * 1.8 + 32,
+      (o, f) => (Number(f) - 32) * 0.55555,
     ],
     i2cMethods(true),
     i2cMethods(false),

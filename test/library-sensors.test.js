@@ -1,6 +1,6 @@
 // Library-level climate sensors (docs/en/library-sensors.md): a board's program calls the DHT and
 // Adafruit BME280 / BMP280 libraries, and the sensor wired where the library looks answers with the
-// environment through its range, resolution and timing. Numbers from the physics spec's checks (DHT11:
+// environment through its range, resolution and timing. Numbers from the datasheets and the libraries (DHT11:
 // nearest whole numbers, 0…50 °C, 20…90 %RH, 2 s cache, 1 s power-up, 25 ms a real read; BME280: 0.01 °C,
 // 1 Pa, 0.01 %RH, address and chip id, the library's readAltitude).
 
@@ -231,7 +231,7 @@ test('BME280: SDA and SCL swapped, or on D2/D3 of an UNO, and begin is false', (
   assert.deepEqual(serial(runTo(bench(uno('A4', 'A5')).engine, 0.3)), ['1'], 'on A4 / A5 it answers');
 });
 
-test('BME280 on 5 V: SIM_IC_SUPPLY and no answer; the regulated board on 5 V idles at 3.3 V and answers', () => {
+test('BME280 on 5 V: SIM_IC_SUPPLY and no answer; the regulated board on 5 V answers, its rail at 3.3 V', () => {
   const begin = boschSketch('Adafruit_BME280', 'Serial.println(bme.begin(0x76));');
   const nets = [['U1.5V', 'U2.VCC'], ['U2.GND', 'U1.GND'], ['U1.A5', 'U2.SCL'], ['U2.SDA', 'U1.A4']];
   const plain = bench({ parts: [{ id: 'U1', part: 'UNO', program: begin }, { id: 'U2', type: 'climate-sensor', part: 'BME280' }], nets, environment: { temperature: 25 } });
@@ -242,9 +242,43 @@ test('BME280 on 5 V: SIM_IC_SUPPLY and no answer; the regulated board on 5 V idl
   const regulated = bench({ parts: [{ id: 'U1', part: 'UNO', program: begin }, { id: 'U2', type: 'climate-sensor', part: 'BME280-5V' }], nets, environment: { temperature: 25 } });
   const g = runTo(regulated.engine, 0.3);
   assert.deepEqual(serial(g), ['1']);
-  near(g.parts.U2.vsda, 3.3, 0.05, 'SDA idles at the regulated rail');
   near(g.parts.U2.rail, 3.3, 0.05, 'the chip rail');
+  // On a UNO, Wire turns on the AVR's own pull-ups: (5/35k + 3.3/10k)/(1/35k + 1/10k) = 3.68 V.
+  near(g.parts.U2.vsda, 3.68, 0.05, 'SDA with the UNO\'s pull-ups');
   assert.ok(!codes(simulate(regulated.circuit).issues).includes('SIM_IC_SUPPLY'));
+});
+
+test('Wire on an AVR turns on its pull-ups: a 3.3 V I2C board on a UNO idles at 3.68 V, a note; on an ESP32 at 3.3 V, none', () => {
+  const sketch = (cls) => boschSketch(cls, 'Serial.println(bme.begin(0x76));');
+  for (const [board, part, cls, vcc, sda, scl, idle, noted] of [
+    ['UNO', 'BMP280', 'Adafruit_BMP280', '3V3', 'A4', 'A5', 3.68, true],
+    ['UNO', 'BME280', 'Adafruit_BME280', '3V3', 'A4', 'A5', 3.68, true],
+    ['UNO', 'BME280-5V', 'Adafruit_BME280', '5V', 'A4', 'A5', 3.68, true],
+    ['ESP32-DEVKIT', 'BME280', 'Adafruit_BME280', '3V3', 'D21', 'D22', 3.3, false],
+    ['ESP32-DEVKIT', 'BME280-5V', 'Adafruit_BME280', 'VIN', 'D21', 'D22', 3.3, false],
+  ]) {
+    const b = bench({ parts: [{ id: 'U1', part: board, program: sketch(cls) }, { id: 'U2', type: 'climate-sensor', part }], nets: [['U2.GND', 'U1.GND'], [`U1.${vcc}`, 'U2.VCC'], [`U1.${scl}`, 'U2.SCL'], ['U2.SDA', `U1.${sda}`]], environment: { temperature: 25 } });
+    const r = runTo(b.engine, 0.3);
+    assert.deepEqual(serial(r), ['1'], `${board} ${part}: the bus still works`);
+    near(r.parts.U2.vsda, idle, 0.05, `${board} ${part} SDA`);
+    near(r.parts.U2.vscl, idle, 0.05, `${board} ${part} SCL`);
+    const notes = simulate(b.circuit).issues.filter((i) => i.code === 'SIM_PIN_OVER_VDDIO');
+    assert.equal(notes.length > 0, noted, `${board} ${part}: SIM_PIN_OVER_VDDIO`);
+    for (const n of notes) assert.equal(n.severity, 'info');
+  }
+  // Before any begin, nothing turns them on: the bus idles at the board's 3.3 V.
+  const idle = bench({ parts: [{ id: 'U1', part: 'UNO', program: 'void setup() { }\nvoid loop() { delay(1000); }' }, { id: 'U2', type: 'climate-sensor', part: 'BMP280' }], nets: [['U2.GND', 'U1.GND'], ['U1.3V3', 'U2.VCC'], ['U1.A5', 'U2.SCL'], ['U2.SDA', 'U1.A4']], environment: { temperature: 25 } });
+  near(runTo(idle.engine, 0.1).parts.U2.vsda, 3.3, 0.05, 'no Wire, no pull-ups');
+});
+
+test('Wire.begin(sda, scl) on an ESP32 moves the bus there; the default pins then do not answer', () => {
+  const at = (sda, scl, call) => {
+    const b = bench({ parts: [{ id: 'U1', part: 'ESP32-DEVKIT', program: boschSketch('Adafruit_BME280', `${call}\n  Serial.println(bme.begin(0x76));`) }, { id: 'U2', type: 'climate-sensor', part: 'BME280' }], nets: [['U1.3V3', 'U2.VCC'], ['U2.GND', 'U1.GND'], [`U1.${scl}`, 'U2.SCL'], ['U2.SDA', `U1.${sda}`]], environment: { temperature: 25 } });
+    return serial(runTo(b.engine, 0.3));
+  };
+  assert.deepEqual(at('D18', 'D19', 'Wire.begin(18, 19);'), ['1'], 'on GPIO18/19 named by Wire.begin');
+  assert.deepEqual(at('D18', 'D19', 'Wire.begin();'), ['0'], 'Wire.begin() keeps 21/22');
+  assert.deepEqual(at('D21', 'D22', 'Wire.begin(18, 19);'), ['0'], 'the default pins are no longer the bus');
 });
 
 test('a part\'s own value wins over the environment, and its card says what it would answer and why not', () => {
@@ -353,4 +387,129 @@ test('page: the pressure row says the altitude, its indicator is a barometer', a
   assert.ok(pressure, 'a row with the barometer');
   assert.ok(pressure.querySelector('svg.gauge-pressure .face'));
   assert.match(pressure.querySelector('output').textContent, /^1013,25 hPa · 0 m en la atmósfera estándar$/);
+});
+
+test('two sensors: each card tells only about the requests that were for it; a request nobody answers is told to each that missed', () => {
+  const two = `#include <DHT.h>\nDHT a(2, DHT11);\nDHT b(3, DHT11);\nvoid setup() {\n  Serial.begin(9600);\n  a.begin();\n  b.begin();\n  delay(3000);\n  Serial.println(a.readTemperature());\n  Serial.println(b.readTemperature());\n}\nvoid loop() { delay(1000); }\n`;
+  const dhts = bench({ parts: [{ id: 'U1', part: 'UNO', program: two }, { id: 'U2', type: 'climate-sensor' }, { id: 'U3', type: 'climate-sensor', temperature: 30 }], nets: [['U1.5V', 'U2.+', 'U3.+'], ['U2.−', 'U1.GND', 'U3.−'], ['U1.D2', 'U2.S'], ['U1.D3', 'U3.S']], environment: { temperature: 25 } });
+  const r = runTo(dhts.engine, 3.2);
+  assert.deepEqual(numbers(r, 'U1'), [25, 30]);
+  assert.deepEqual([r.parts.U2.last.ok, r.parts.U2.last.gpio, r.parts.U3.last.ok, r.parts.U3.last.gpio], [true, 2, true, 3]);
+  const lib = `#include <Adafruit_BME280.h>\n#include <Adafruit_BMP280.h>\nAdafruit_BME280 e;\nAdafruit_BMP280 p;\nvoid setup() {\n  Serial.begin(9600);\n  Serial.println(e.begin(0x76));\n  Serial.println(p.begin(0x77));\n}\nvoid loop() { delay(1000); }\n`;
+  const bus = bench({ parts: [{ id: 'U1', part: 'ESP32-DEVKIT', program: lib }, { id: 'U2', type: 'climate-sensor', part: 'BME280' }, { id: 'U3', type: 'climate-sensor', part: 'BMP280', address: '0x77' }], nets: [['U1.3V3', 'U2.VCC', 'U3.VCC'], ['U2.GND', 'U1.GND', 'U3.GND'], ['U1.D22', 'U2.SCL', 'U3.SCL'], ['U1.D21', 'U2.SDA', 'U3.SDA']], environment: { temperature: 25 } });
+  const b = runTo(bus.engine, 0.5);
+  assert.deepEqual(serial(b), ['1', '1']);
+  assert.deepEqual([b.parts.U2.last.ok, b.parts.U2.last.cls, b.parts.U3.last.ok, b.parts.U3.last.cls], [true, 'Adafruit_BME280', true, 'Adafruit_BMP280']);
+  // Asked at 0x78, which neither is: each says the address.
+  const none = bench({ parts: [{ id: 'U1', part: 'ESP32-DEVKIT', program: lib.replace('e.begin(0x76)', 'e.begin(0x78)').replace('p.begin(0x77)', 'p.begin(0x78)') }, { id: 'U2', type: 'climate-sensor', part: 'BME280' }, { id: 'U3', type: 'climate-sensor', part: 'BMP280', address: '0x77' }], nets: [['U1.3V3', 'U2.VCC', 'U3.VCC'], ['U2.GND', 'U1.GND', 'U3.GND'], ['U1.D22', 'U2.SCL', 'U3.SCL'], ['U1.D21', 'U2.SDA', 'U3.SDA']], environment: { temperature: 25 } });
+  const n = runTo(none.engine, 0.5);
+  assert.deepEqual([n.parts.U2.last.reason, n.parts.U3.last.reason], ['address', 'address']);
+});
+
+test('two DHT11 on one pin, or two chips at one address: SIM_LIBRARY_SHARED, and the same one is read every time', () => {
+  const one = dhtSketch(readBoth);
+  const spec = { parts: [{ id: 'U1', part: 'UNO', program: one }, { id: 'U2', type: 'climate-sensor' }, { id: 'U3', type: 'climate-sensor', temperature: 30 }], nets: [['U1.5V', 'U2.+', 'U3.+'], ['U2.−', 'U1.GND', 'U3.−'], ['U1.D2', 'U2.S', 'U3.S']], environment: { temperature: 25 } };
+  const a = bench(spec);
+  const shared = simulate(a.circuit).issues.filter((i) => i.code === 'SIM_LIBRARY_SHARED');
+  assert.equal(shared.length, 1);
+  assert.deepEqual(shared[0].params.parts.split(', ').sort(), ['U2', 'U3']);
+  const first = numbers(runTo(a.engine, 3.1), 'U1')[0];
+  assert.equal(numbers(runTo(bench(spec).engine, 3.1), 'U1')[0], first, 'deterministic');
+  assert.equal(first, shared[0].params.first === 'U3' ? 30 : 25, 'the one the note names');
+  const chips = bench({ parts: [{ id: 'U1', part: 'ESP32-DEVKIT', program: boschSketch('Adafruit_BME280', 'Serial.println(bme.begin(0x76));') }, { id: 'U2', type: 'climate-sensor', part: 'BME280' }, { id: 'U3', type: 'climate-sensor', part: 'BME280' }], nets: [['U1.3V3', 'U2.VCC', 'U3.VCC'], ['U2.GND', 'U1.GND', 'U3.GND'], ['U1.D22', 'U2.SCL', 'U3.SCL'], ['U1.D21', 'U2.SDA', 'U3.SDA']], environment: { temperature: 25 } });
+  assert.ok(codes(simulate(chips.circuit).issues).includes('SIM_LIBRARY_SHARED'));
+  assert.ok(!codes(simulate(bench(unoDht({ program: one })).circuit).issues).includes('SIM_LIBRARY_SHARED'), 'one sensor: no note');
+});
+
+// ---------------------------------------------------------------- the second round of fixes
+
+import { translateSketch } from '../src/sim/sketch.js';
+import { createRunner } from '../src/sim/program.js';
+import { partLines } from '../src/sim/format.js';
+
+const runSketch = (body, seconds = 0) => {
+  const r = translateSketch(`void setup() { Serial.begin(9600); ${body} }\nvoid loop() { delay(1000); }`);
+  assert.ok(r.js, JSON.stringify(r.issues));
+  const runner = createRunner(r.js, { family: 'uno', states: {}, read: () => null, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 });
+  runner.advance(0);
+  if (seconds) runner.advance(seconds);
+  return runner;
+};
+
+test('Serial.print: a comparison or a logical result is an int; a ternary is a float only when a branch is', () => {
+  const r = runSketch('float f = 3.0; int n = 4; Serial.println(f > 2 ? 1 : 0); Serial.println(n * f > 10 ? n : 0); Serial.println(n > 2 ? f : 0); Serial.println(f > 2); Serial.println((f > 2) + 1); Serial.println(n > 1 && f > 1); Serial.println(f);');
+  assert.deepEqual(r.log, ['1', '4', '3.00', '1', '2', '1', '3.00']);
+});
+
+test('the DHT\'s type decided at run time: DHT22, 22, a constant or 12 is told in the board\'s card and reads NaN', () => {
+  for (const [head, name] of [['const int T = DHT22;\nDHT d(2, T);', 'DHT22'], ['DHT d(2, 22);', 'DHT22'], ['DHT d(2, 12);', 'DHT12'], ['DHT d(2, 7);', 'DHT (type 7)']]) {
+    const r = translateSketch(`#include <DHT.h>\n${head}\nvoid setup() { Serial.begin(9600); Serial.println(d.readTemperature()); }\nvoid loop() { delay(1000); }`);
+    assert.ok(r.js, head);
+    const runner = createRunner(r.js, { family: 'uno', states: {}, read: () => null, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 });
+    runner.advance(0);
+    assert.deepEqual(runner.notes, [name], head);
+    assert.deepEqual(runner.log, ['nan'], head);
+  }
+  const ok = translateSketch('#include <DHT.h>\nDHT d(2, DHT11);\nvoid setup() { }\nvoid loop() { delay(1000); }');
+  const runner = createRunner(ok.js, { family: 'uno', states: {}, read: () => null, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 });
+  runner.advance(0);
+  assert.deepEqual(runner.notes, []);
+});
+
+test('the first real read costs 25 ms at t = 0 too, with and without begin(): the start\'s rounds do not use it up', () => {
+  for (const begin of ['dht.begin();', '']) {
+    const program = `#include <DHT.h>\nDHT dht(2, DHT11);\nvoid setup() {\n  Serial.begin(9600);\n  ${begin}\n  unsigned long a = millis();\n  dht.readTemperature();\n  Serial.println(millis() - a);\n}\nvoid loop() { delay(1000); }\n`;
+    const { engine } = bench(unoDht({ program }));
+    near(numbers(runTo(engine, 0.1), 'U1')[0], 25, 1, `first read, ${begin || 'no begin'}`);
+  }
+});
+
+test('a BME280 that lost its supply answers NaN until begin() again', () => {
+  const program = boschSketch('Adafruit_BME280', 'Serial.println(bme.begin(0x76));\n  delay(1000);\n  Serial.println(bme.readPressure());\n  delay(2000);\n  Serial.println(bme.readPressure());\n  Serial.println(bme.begin(0x76));\n  Serial.println(bme.readPressure());');
+  const b = bench({ parts: [{ id: 'U1', part: 'ESP32-DEVKIT', program }, { id: 'U2', type: 'climate-sensor', part: 'BME280' }], nets: [['T+', 'U2.VCC'], ['U2.GND', 'U1.GND', 'T-'], ['U1.D22', 'U2.SCL'], ['U2.SDA', 'U1.D21']], supplies: [{ id: 'V1', kind: 'bench', voltage: 3.3, positive: 'T+', negative: 'T-' }], environment: { temperature: 25, pressure: 1013.25 } });
+  const r = runTo(b.engine, 3.4, { 1.5: (e) => assert.ok(e.set('V1', 'voltage', 1)), 2.5: (e) => assert.ok(e.set('V1', 'voltage', 3.3)) });
+  assert.deepEqual(serial(r), ['1', '101325.00', 'nan', '1', '101325.00']);
+});
+
+test('the regulated board under 3.4 V: an info note that its regulator is in dropout, not a warning', async () => {
+  const { formatIssue } = await import('../src/index.js');
+  const b = bench({ parts: [{ id: 'U1', part: 'ESP32-DEVKIT', program: boschSketch('Adafruit_BME280', 'Serial.println(bme.begin(0x76));') }, { id: 'U2', type: 'climate-sensor', part: 'BME280-5V' }], nets: [['U1.3V3', 'U2.VCC'], ['U2.GND', 'U1.GND'], ['U1.D22', 'U2.SCL'], ['U2.SDA', 'U1.D21']], environment: { temperature: 25 } });
+  assert.deepEqual(serial(runTo(b.engine, 0.3)), ['1']);
+  const low = simulate(b.circuit).issues.find((i) => i.code === 'SIM_MODULE_LOW_SUPPLY');
+  assert.equal(low.severity, 'info');
+  for (const lang of ['en', 'es']) assert.doesNotMatch(formatIssue(low, lang), /guarantee|garantiza/);
+  assert.match(formatIssue(low, 'en'), /dropout.*3\.1/);
+});
+
+test('the cards say the response time and the part\'s own warm-up', () => {
+  const lines = (reading, lang) => partLines(reading, lang).map((l) => l.text).join(' | ');
+  const early = dhtSketch('delay(400);\n  Serial.println(dht.readTemperature());');
+  const s = bench({ ...unoDht({ program: early }), parts: [{ id: 'U1', part: 'UNO', program: early }, { id: 'U2', type: 'climate-sensor', warmup: 2 }] });
+  const r = runTo(s.engine, 0.5).parts.U2;
+  assert.match(lines(r, 'en'), /powering up \(2 s\)/);
+  assert.match(lines(r, 'en'), /6 to 30 s/);
+  assert.match(lines(r, 'es'), /de 6 a 30 s/);
+  const bme = bench(espBosch(boschSketch('Adafruit_BME280', 'bme.begin(0x76);')));
+  assert.match(lines(runTo(bme.engine, 0.2).parts.U2, 'en'), /about 1 s/);
+});
+
+test('a DHT pin the sketch left as OUTPUT LOW: the library takes it over for the read', () => {
+  const program = dhtSketch('pinMode(2, OUTPUT);\n  digitalWrite(2, LOW);\n  delay(3000);\n  Serial.println(dht.readTemperature());', 2).replace('  dht.begin();\n', '');
+  const { engine } = bench(unoDht({ program, env: { temperature: 23.6 } }));
+  assert.deepEqual(numbers(runTo(engine, 3.1), 'U1'), [24]);
+});
+
+test('setSampling is accepted with a note; sensorID, takeForcedMeasurement, seaLevelForAltitude, convertCtoF and convertFtoC work', () => {
+  const program = boschSketch('Adafruit_BME280', 'Serial.println(bme.begin(0x76));\n  bme.setSampling(Adafruit_BME280::MODE_FORCED, Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::FILTER_OFF);\n  Serial.println(bme.sensorID());\n  Serial.println(bme.takeForcedMeasurement());\n  Serial.println(bme.seaLevelForAltitude(1000, 898.8));');
+  const t = translateSketch(program);
+  assert.ok(t.js, JSON.stringify(t.issues));
+  assert.deepEqual(t.issues.map((i) => i.code), ['SIM_PROGRAM_IGNORED']);
+  const [begun, id, forced, sea] = serial(runTo(bench(espBosch(program)).engine, 0.3));
+  assert.deepEqual([begun, id, forced], ['1', '96', '1']);
+  near(Number(sea), 1013.25, 0.2, 'sea level from 1000 m and 898.8 hPa');
+  const dhtConv = translateSketch('#include <DHT.h>\nDHT dht(2, DHT11);\nvoid setup() { Serial.begin(9600); Serial.println(dht.convertCtoF(24)); Serial.println(dht.convertFtoC(75.2)); }\nvoid loop() { delay(1000); }');
+  assert.deepEqual(dhtConv.issues, []);
+  const runner = createRunner(dhtConv.js, { family: 'uno', states: {}, read: () => null, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 });
+  runner.advance(0);
+  assert.deepEqual(runner.log, ['75.20', '24.00']);
 });

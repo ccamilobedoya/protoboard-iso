@@ -39,7 +39,9 @@ Vout = Vs / 2 + 1.4 mV/G · (Vs / 5 V) · field          held inside [0.95 V, Vs
 - It is **ratiometric**: the zero (Vs / 2) *and* the sensitivity scale with the supply. At 3.3 V,
   +100 G gives 1.742 V. A board whose ADC reference is its own supply (an UNO's 5 V, an ESP32's 3.3 V)
   reads the same fraction either way, which is why the sketch of `hall-linear-uno` works on both
-  after changing only the supply it assumes.
+  after changing only the supply it assumes. The kit's UNO reads against its real rail (AVcc: on USB
+  about 4.985 V), so at rest the sketch prints −1.75 G, one count of its `5.0 / 1023` conversion,
+  whatever the supply; the ESP32's ADC keeps its fixed reference.
 - The output sits behind 50 Ω and is current-limited at about 5 mA (the class is good for ±1.5 mA); the chip takes about 6 mA from the supply, so a short on the output draws about 11 mA and never makes the supply current negative. The linear range
   is about ±650 G; the slider shows ±500 G, the field may be typed up to ±10 000 G.
 - It senses the environment's `field` ([environment.md](environment.md)); a `field` on the part wins.
