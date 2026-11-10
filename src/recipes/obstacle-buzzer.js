@@ -3,6 +3,7 @@
 // its 20 mA). The kit's buzzer is passive: on DC it only clicks; an active one would sound.
 export default {
   name: 'obstacle-buzzer',
+  group: 'sensor-modules',
   title: { en: 'Obstacle alarm with an FC-51 module', es: 'Alarma de obstáculo con un módulo FC-51' },
   teaches: { en: 'The nearer the object, the more infrared comes back and the lower AO; past Vref OUT goes low and sinks the buzzer\'s current. The trimmer sets the distance, from about 4 to 28 cm', es: 'Cuanto más cerca el objeto, más infrarrojo vuelve y más baja AO; al pasar Vref OUT baja y absorbe la corriente del zumbador. El trimmer fija la distancia, de unos 4 a 28 cm' },
   parts: [

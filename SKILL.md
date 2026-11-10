@@ -68,8 +68,8 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 
 - **values**: the main field by id (`"R1": "470"`, `"D1": "green"`, `"Q1": "BC547"`, `"V1": 9`) or
   some fields (`"R1": {"value": "470", "tolerance": "1%"}`). Only the ids a recipe lists can change,
-  some within choices or a range: `catalog` lists every recipe with its title,
-  `catalog` with the recipe's name shows its values with defaults, parts, nets and limits. A wrong value is a `FIX_SPEC`
+  some within choices or a range: `catalog` lists every recipe name by group,
+  `catalog` with the recipe's name shows its title, values with defaults, parts, nets and limits. A wrong value is a `FIX_SPEC`
   that says what is allowed.
 - `title`, `board`, `clearance`, `netLabels`, `page` and `lang` may be given beside the recipe. Never
   `parts` or `nets`: to add to a recipe circuit, call `layout` on it again with the full parts and

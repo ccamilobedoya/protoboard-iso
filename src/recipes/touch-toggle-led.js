@@ -5,6 +5,7 @@
 // With 330 Ω it would take 4.5 mA and the level would sag past what the datasheet promises.
 export default {
   name: 'touch-toggle-led',
+  group: 'sensors',
   title: { en: 'Touch module toggles an LED', es: 'Módulo táctil alterna un LED' },
   teaches: { en: 'In toggle mode each touch flips the TTP223\'s output; its pin can drive a small LED directly, if the resistor keeps the current under the 4 mA its high level is guaranteed at', es: 'En modo alterna cada toque invierte la salida del TTP223; su pin puede manejar un LED pequeño directamente, si la resistencia mantiene la corriente bajo los 4 mA con que se garantiza su nivel alto' },
   parts: [

@@ -1,6 +1,7 @@
 // A Zener diode with its series resistor holding a load at its breakdown voltage.
 export default {
   name: 'zener-regulator',
+  group: 'power',
   title: { en: 'Zener regulator', es: 'Regulador con Zener' },
   teaches: { en: 'Reversed, the Zener holds its voltage; R1 takes the rest of the supply', es: 'En inversa, el Zener mantiene su voltaje; R1 se queda con el resto de la fuente' },
   parts: [

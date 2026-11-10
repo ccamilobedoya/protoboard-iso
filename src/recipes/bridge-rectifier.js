@@ -3,6 +3,7 @@
 // (100 µF to 2200 µF) leaves the jumpers in sight.
 export default {
   name: 'bridge-rectifier',
+  group: 'power',
   title: { en: 'Bridge rectifier with a filter capacitor', es: 'Puente rectificador con condensador de filtro' },
   teaches: { en: 'Both half-waves come out positive; C1 fills the gaps between peaks (ripple)', es: 'Los dos semiciclos salen positivos; C1 llena los huecos entre picos (rizado)' },
   parts: [

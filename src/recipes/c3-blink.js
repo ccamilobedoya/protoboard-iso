@@ -16,6 +16,7 @@ void loop() {
 
 export default {
   name: 'c3-blink',
+  group: 'boards',
   title: { en: 'ESP32-C3 SuperMini blinking an LED', es: 'ESP32-C3 SuperMini que hace parpadear un LED' },
   teaches: { en: 'A GPIO as an output at 3.3 V: digitalWrite(3, HIGH) lights D1', es: 'Un GPIO como salida a 3,3 V: digitalWrite(3, HIGH) enciende D1' },
   parts: [

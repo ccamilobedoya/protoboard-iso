@@ -37,6 +37,7 @@ void loop() {
 
 export default {
   name: 'encoder-uno',
+  group: 'sensors',
   title: { en: 'Arduino UNO: KY-040 rotary encoder counter', es: 'Arduino UNO: contador con encoder rotativo KY-040' },
   teaches: { en: 'A rotary encoder gives two square waves a quarter of a cycle apart: at each fall of CLK, DT high means clockwise and DT low counter-clockwise; the sketch must poll faster than 12.5 ms to miss no click', es: 'Un encoder rotativo da dos ondas cuadradas desfasadas un cuarto de ciclo: en cada bajada de CLK, DT alto es giro a la derecha y DT bajo a la izquierda; el programa debe leer más rápido que 12,5 ms para no perder ningún clic' },
   parts: [

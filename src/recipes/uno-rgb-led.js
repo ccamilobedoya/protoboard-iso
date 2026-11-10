@@ -32,6 +32,7 @@ void loop() {
 
 export default {
   name: 'uno-rgb-led',
+  group: 'boards',
   title: { en: 'Arduino UNO: an RGB LED mixes colours (PWM)', es: 'Arduino UNO: un LED RGB mezcla colores (PWM)' },
   teaches: { en: 'Three LEDs in one dome, each with its own resistor: their brightness, set by PWM, adds up to the colour the eye sees', es: 'Tres LEDs en una cúpula, cada uno con su resistencia: sus brillos, fijados con PWM, se suman en el color que ve el ojo' },
   parts: [

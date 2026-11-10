@@ -4,6 +4,7 @@
 // feeds the LED. The LM35's temperature is the environment's.
 export default {
   name: 'lm35-comparator',
+  group: 'sensors',
   title: { en: 'Temperature alarm with an LM35 and a comparator', es: 'Alarma de temperatura con LM35 y comparador' },
   teaches: { en: 'The LM35 gives 10 mV per °C; the comparator releases its output when that voltage passes the reference from the divider (about 42 °C) and the LED lights', es: 'El LM35 da 10 mV por °C; el comparador suelta su salida cuando ese voltaje pasa la referencia del divisor (unos 42 °C) y el LED se enciende' },
   environment: { temperature: 25 },

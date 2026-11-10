@@ -2,6 +2,7 @@
 // The LED shows the output (lit = high).
 export default {
   name: 'button-pulldown',
+  group: 'basics',
   title: { en: 'Button with a pull-down resistor', es: 'Pulsador con resistencia de pull-down' },
   teaches: { en: 'Released, R1 holds the output at ground (LED off); pressed, S1 takes it to the supply (LED on)', es: 'Suelto, R1 mantiene la salida en tierra (LED apagado); presionado, S1 la lleva a la fuente (LED encendido)' },
   parts: [

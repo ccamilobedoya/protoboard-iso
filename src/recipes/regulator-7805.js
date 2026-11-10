@@ -1,6 +1,7 @@
 // A 78xx linear regulator with its input and output capacitors and an LED on the output.
 export default {
   name: 'regulator-7805',
+  group: 'power',
   title: { en: '7805 regulator with a pilot LED', es: 'Regulador 7805 con LED piloto' },
   teaches: { en: 'A fixed output from a higher input; the difference is lost as heat in U1', es: 'Una salida fija a partir de una entrada mayor; la diferencia se pierde como calor en U1' },
   parts: [

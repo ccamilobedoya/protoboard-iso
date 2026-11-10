@@ -30,6 +30,7 @@ void loop() {
 
 export default {
   name: 'laser-uno',
+  group: 'sensors',
   title: { en: 'Arduino UNO: a laser and a light sensor', es: 'Arduino UNO: un láser y un sensor de luz' },
   teaches: { en: 'A pin switches the laser through a transistor; its light adds to the room\'s at the photoresistor, so the reading on A0 rises while it is on and falls back when it is off', es: 'Un pin enciende el láser con un transistor; su luz se suma a la del cuarto en la fotorresistencia, así que la lectura en A0 sube mientras está encendido y vuelve a bajar al apagarlo' },
   parts: [

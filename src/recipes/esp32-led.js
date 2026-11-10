@@ -17,6 +17,7 @@ void loop() {
 
 export default {
   name: 'esp32-led',
+  group: 'boards',
   title: { en: 'ESP32 blinking an LED', es: 'ESP32 que hace parpadear un LED' },
   teaches: { en: 'A GPIO pin as an output: digitalWrite(13, HIGH) lights D1, delay() sets the rhythm', es: 'Un pin GPIO como salida: digitalWrite(13, HIGH) enciende D1 y delay() marca el ritmo' },
   parts: [

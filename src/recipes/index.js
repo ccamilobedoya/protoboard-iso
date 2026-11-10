@@ -64,6 +64,10 @@ export const RECIPES = Object.fromEntries(
   [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn, ldrNightLight, ldrComparator, lm35Comparator, ntcFollower, thermistorUno, pirLamp, pirUno, touchToggleLed, touchUno, rainAlarm, soilLed, lightSwitchModule, lineFollowerUno, obstacleBuzzer, hallCounterUno, encoderUno, encoderDimmerUno, laserTripwire, laserUno].map((r) => [r.name, r]),
 );
 
+// The groups of recipes (one `group` word on each recipe module), in the order the compact catalog
+// lists them; their display names are the i18n keys `recipe.group.<group>`.
+export const RECIPE_GROUPS = ['basics', 'transistors', 'power', 'timing', 'op-amps', 'boards', 'sensors', 'sensor-modules'];
+
 // Fields a value may set besides its main one, by the kind of item (a part's type or "supply").
 const EXTRA = {
   resistor: ['tolerance', 'power'],
@@ -142,9 +146,9 @@ export function resolveRecipe(given) {
   return { spec: { ...r.spec, ...rest }, problems: [] };
 }
 
-// Short entries for the catalog: name, title, what it teaches, the changeable values with defaults.
+// Short entries for the catalog: name, title, group, what it teaches, the changeable values with defaults.
 export function recipeSummary(lang = 'en') {
-  return Object.fromEntries(Object.values(RECIPES).map((r) => [r.name, { title: text(r.title, lang), values: recipeDefaults(r) }]));
+  return Object.fromEntries(Object.values(RECIPES).map((r) => [r.name, { title: text(r.title, lang), group: r.group, values: recipeDefaults(r) }]));
 }
 
 // One recipe in full for the catalog: what it teaches, its parts, nets and supplies, and the
@@ -156,6 +160,7 @@ export function recipeEntry(name, lang = 'en') {
   return {
     kind: 'recipe',
     recipe: r.name,
+    group: r.group,
     title: text(r.title, lang),
     teaches: text(r.teaches, lang),
     parts: r.parts,

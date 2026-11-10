@@ -2,6 +2,7 @@
 // on V+, gain 1 + R2/R1 (3 by default). The oscilloscope of U1 shows the output.
 export default {
   name: 'opamp-noninverting',
+  group: 'op-amps',
   title: { en: 'Non-inverting amplifier', es: 'Amplificador no inversor' },
   teaches: { en: 'Gain = 1 + R2/R1: the output is the input times 3, in phase', es: 'Ganancia = 1 + R2/R1: la salida es la entrada por 3, en fase' },
   parts: [

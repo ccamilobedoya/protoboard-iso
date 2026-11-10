@@ -4,6 +4,7 @@
 // standing module, and a resistor there hides nothing that matters, while the LED sits in view.
 export default {
   name: 'soil-led',
+  group: 'sensor-modules',
   title: { en: 'Soil moisture LED with a YL-69 module', es: 'LED de humedad del suelo con un módulo YL-69' },
   teaches: { en: 'The damper the soil, the lower the fork\'s resistance and AO; past the trimmer\'s Vref DO goes low and sinks the LED\'s current', es: 'Cuanto más húmedo el suelo, más baja la resistencia de la horquilla y AO; al pasar el Vref del trimmer DO baja y absorbe la corriente del LED' },
   parts: [
