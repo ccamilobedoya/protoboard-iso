@@ -3099,7 +3099,10 @@
                       "light-switch-module",
                       "line-follower-uno",
                       "obstacle-buzzer",
-                      "hall-counter-uno"
+                      "hall-counter-uno",
+                      "uno-distance",
+                      "esp32-distance",
+                      "distance-alarm-uno"
                     ]
                   },
                   "values": {

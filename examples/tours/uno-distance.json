@@ -1,0 +1,28 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "uno-distance",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "An HC-SR04 measures distance with sound", "es": "Un HC-SR04 mide distancia con sonido" } },
+    { "at": 0, "do": "gauge", "environment": "distance", "on": true, "min": 2, "max": 100 },
+    { "at": 0, "do": "set", "environment": "distance", "value": 60, "move": "hit" },
+    { "at": 2200, "do": "focus", "parts": ["U2"] },
+    { "at": 2200, "do": "frame", "target": "U2", "move": "arrival" },
+    { "at": 2200, "do": "caption", "text": { "en": "A 10 µs pulse on TRIG: T sends eight cycles of 40 kHz", "es": "Un pulso de 10 µs en TRIG: T envía ocho ciclos de 40 kHz" } },
+    { "at": 5200, "do": "scene", "mode": "part", "part": "U2", "zoom": 1.2, "move": "travel" },
+    { "at": 5800, "do": "inside", "part": "U2", "on": true },
+    { "at": 5800, "do": "caption", "text": { "en": "ECHO stays high while the sound goes and comes back", "es": "ECHO queda en alto mientras el sonido va y vuelve" }, "line": { "en": "58 µs for each centimetre", "es": "58 µs por cada centímetro" } },
+    { "at": 9500, "do": "caption", "text": { "en": "Something comes closer: from 60 to 10 cm", "es": "Algo se acerca: de 60 a 10 cm" } },
+    { "at": 9500, "do": "set", "environment": "distance", "value": 10, "move": "travel", "ms": 1800 },
+    { "at": 12500, "do": "caption", "text": { "en": "Closer, a shorter echo: 0.58 ms is 10 cm", "es": "Más cerca, un eco más corto: 0,58 ms son 10 cm" }, "em": { "en": "0.58 ms", "es": "0,58 ms" } },
+    { "at": 16000, "do": "inside", "on": false },
+    { "at": 16000, "do": "scene", "mode": "board", "move": "travel" },
+    { "at": 16000, "do": "focus", "parts": ["U1", "U2"] },
+    { "at": 16000, "do": "frame", "target": ["U1", "U2"], "move": "travel" },
+    { "at": 16000, "do": "caption", "text": { "en": "pulseIn times ECHO; the program divides by 58", "es": "pulseIn mide ECHO; el programa divide entre 58" }, "line": { "en": "and prints the distance ten times a second", "es": "e imprime la distancia diez veces por segundo" } },
+    { "at": 20500, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 20500, "do": "caption", "text": { "en": "Warmer air carries sound faster: the temperature counts too", "es": "El aire caliente lleva el sonido más rápido: la temperatura también cuenta" } },
+    { "at": 24500, "do": "focus", "parts": [] }
+  ]
+}

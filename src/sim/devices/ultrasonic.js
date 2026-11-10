@@ -171,11 +171,12 @@ export const ultrasonic = {
     };
   },
   limits(entry, r) {
+    // The supply's limit is a warning, not a stress: its usual 5 V would read as near 5.5 V.
     const out = [
-      stress('SIM_IC_SUPPLY', 'voltage', r.vcc, U.maxSupply, 'V'),
       stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, U.maxReverse, 'V', { param: 'voltage' }),
       stress('SIM_OVER_CURRENT', 'current', Math.abs(r.echoCurrent), U.maxCurrent, 'A'),
     ];
+    if (r.vcc > U.maxSupply) out.push(note('warning', 'SIM_IC_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), max: q(U.maxSupply, 'V') }));
     if (r.vcc > 0.5 && r.vcc < U.minSupply) out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(U.minSupply, 'V') }));
     return out;
   },

@@ -219,3 +219,64 @@ test('up close: the symbol\'s letters and terminals, the printed face, the insid
   for (const [, key] of legend.matchAll(/\['[a-z]*', '([a-z]+)'\]/g)) for (const lang of ['en', 'es']) assert.notEqual(t(lang, `page.tour.legend.sonar.${key}`), `page.tour.legend.sonar.${key}`);
   for (const n of part.pinNames) for (const lang of ['en', 'es']) assert.notEqual(t(lang, `pin.role.ultrasonic-sensor.${n}`), `pin.role.ultrasonic-sensor.${n}`);
 });
+
+// The recipes (docs/en/recipes.md): ready in one layout, measuring what the environment says.
+const { expandRecipe } = await import('../src/recipes/index.js');
+const { checkCircuit } = await import('../src/index.js');
+const laidOut = (name) => {
+  const r = autoLayout(expandRecipe(name).spec);
+  assert.equal(r.status, 'done', `${name}: ${JSON.stringify(r.review.blocking)}`);
+  return r.circuit;
+};
+// Advances until a Serial line satisfies `ok`, at most `seconds` of simulated time; the time it took.
+function until(engine, ok, seconds) {
+  const t0 = engine.time;
+  while (engine.time - t0 < seconds - 1e-9) {
+    engine.advance(1e-3);
+    const line = engine.read().parts.U1.program.serial.at(-1);
+    if (line !== undefined && ok(Number(line))) return engine.time - t0;
+  }
+  return null;
+}
+
+test('uno-distance: prints the environment\'s distance, and follows it within half a second', () => {
+  const circuit = laidOut('uno-distance');
+  assert.deepEqual(checkCircuit(circuit).issues.filter((i) => i.severity !== 'info').map((i) => i.code), []);
+  const engine = createEngine(compile(circuit).program);
+  assert.ok(engine.start('dc', 1e-3));
+  assert.ok(until(engine, (cm) => Math.abs(cm - 30) <= 1, 0.5) != null, '30 cm');
+  assert.ok(engine.set('environment', 'distance', 10));
+  assert.ok(until(engine, (cm) => Math.abs(cm - 10) <= 1, 0.5) != null, '10 cm');
+});
+
+test('esp32-distance: the divider keeps the pin at 3.33 V with no over-voltage, and it reads 30 cm', () => {
+  const circuit = laidOut('esp32-distance');
+  const engine = createEngine(compile(circuit).program);
+  assert.ok(engine.start('dc', 1e-3));
+  let high = null;
+  const codes = new Set();
+  while (engine.time < 0.4) {
+    engine.advance(1e-3);
+    const r = engine.read();
+    if (r.parts.U2.state === 'echo') high = r.parts.U1.pins.find((x) => x.name === 'D18').voltage;
+    for (const s of Object.values(engine.stresses(r)).flat()) if (s.ratio > 1) codes.add(s.code);
+  }
+  near(high, 3.33, 0.05, 'D18 while ECHO is high');
+  assert.ok(!codes.has('SIM_OVER_CURRENT'));
+  const lines = engine.read().parts.U1.program.serial.map(Number);
+  for (const cm of lines) near(cm, 30, 1, 'the distance');
+  const issues = simulate(circuit, { analysis: 'transient', stop: 0.01, step: 1e-5 }).issues.map((i) => i.code);
+  assert.ok(!issues.includes('SIM_PIN_OVERVOLTAGE'), issues.join());
+});
+
+test('distance-alarm-uno: the LED lights under 15 cm', () => {
+  const engine = createEngine(compile(laidOut('distance-alarm-uno')).program);
+  assert.ok(engine.start('dc', 1e-3));
+  assert.ok(until(engine, (cm) => Math.abs(cm - 30) <= 1, 0.5) != null);
+  engine.advance(0.01);
+  assert.ok(engine.read().parts.D1.current < 1e-4, 'off at 30 cm');
+  assert.ok(engine.set('environment', 'distance', 10));
+  assert.ok(until(engine, (cm) => Math.abs(cm - 10) <= 1, 0.5) != null);
+  engine.advance(0.01);
+  assert.ok(engine.read().parts.D1.current > 5e-3, 'on at 10 cm');
+});
