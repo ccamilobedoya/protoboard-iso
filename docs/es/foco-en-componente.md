@@ -400,7 +400,14 @@ arriba sobre la pata 1 (la marca, `plus`); su símbolo es el domo sobre una base
 junto a la pata 1; su vista por dentro es el zumbador magnético pasivo del kit en corte, su bobina sobre
 un núcleo dentro de un imán de anillo y el disco de acero encima atraído con la corriente, con uno a tres
 arcos de sonido mientras la corriente cambia de una lectura a la siguiente y «en silencio: la DC fija
-solo lo calienta» con DC.
+solo lo calienta» con DC. El zumbador activo (`TMB12A05`) tiene la marca `plus-active`, que añade cómo
+distinguirlo del pasivo (el fondo sellado, pita apenas se alimenta); su símbolo lleva una onda cuadrada en
+el domo y su vista por dentro (`buzzer-active`) muestra el chip oscilador moviendo el disco piezoeléctrico,
+con arcos de sonido desde 3,5 V entre sus pines y silencio por debajo o al revés. El sensor Hall lineal
+muestra su placa Hall con el campo que la cruza y la salida como una barra entre tierra y la alimentación
+(`hall`); el módulo sensor de voltaje sus dos resistencias y el voltaje en S como la quinta parte de la
+entrada (`divider5`); el KY-037 usa la vista del módulo de sensor con el diafragma de su cápsula (`module`,
+elemento `electret`).
 
 Las filas de un LED RGB nombran sus chips y la común (R, COM, G, B en el orden del encapsulado) y su
 marca es la pata más larga, la común, con R sola a su lado (`longest`; el plano de su borde está junto a R

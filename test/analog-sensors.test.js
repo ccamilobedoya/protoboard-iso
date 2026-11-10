@@ -14,6 +14,9 @@ import { autoLayout } from '../src/layout.js';
 import { loadTour, tourIssues } from '../src/tour.js';
 import { compactCatalog, formatCompactCatalog } from '../src/node/catalog.js';
 import { electretPeak, SENSOR_MODULES } from '../src/parts/sensors.js';
+import { buildCircuit } from '../src/circuit/build.js';
+import { createCamera } from '../src/core/camera.js';
+import { pinoutOf } from '../src/pinout.js';
 
 const near = (actual, expected, tol, what) => assert.ok(Math.abs(actual - expected) <= tol, `${what}: ${actual} against ${expected} ± ${tol}`);
 const codes = (s) => s.issues.map((i) => i.code);
@@ -269,4 +272,63 @@ test('resolveRecipe: a deep copy; changing one spec leaves the recipe and the ne
   assert.equal(RECIPES['soil-led'].title.en, 'Soil moisture LED with a YL-69 module');
   assert.notEqual(resolveRecipe('soil-led').spec.environment, resolveRecipe('soil-led').spec.environment);
   assert.notEqual(resolveRecipe('soil-led').spec.page, resolveRecipe('soil-led').spec.page);
+});
+
+// Up close (F5): each new kind has its drawing in the page, read from the simulation. The page runs in
+// jsdom; the test is skipped where jsdom is not installed.
+test('up close: the Hall plate, the divider, the electret and the active buzzer are drawn from the reading', async (t) => {
+  let JSDOM;
+  try {
+    ({ JSDOM } = await import('jsdom'));
+  } catch {
+    return t.skip('jsdom not installed');
+  }
+  const { renderPage } = await import('../src/page.js');
+  const inside = async (circuit, id, more = []) => {
+    const steps = [{ at: 0, do: 'scene', mode: 'part', part: id }, { at: 0, do: 'inside', part: id, on: true }, ...more];
+    const html = renderPage({ ...circuit, page: { ...circuit.page, tour: { format: 'vertical', steps } } }, { lang: 'en' }).html;
+    const { window } = new JSDOM(html, { runScripts: 'outside-only', url: 'https://page.test/p.html?director=1' });
+    const size = { width: 360, height: 640 };
+    const rect = () => ({ left: 0, top: 0, right: size.width, bottom: size.height, x: 0, y: 0, ...size });
+    window.document.querySelector('main').getBoundingClientRect = rect;
+    for (const svg of window.document.querySelectorAll('svg')) svg.getBoundingClientRect = rect;
+    window.eval(html.match(/<script>([\s\S]*)<\/script>/)[1]);
+    window.protoboardLive.tour.play();
+    for (let ms = 0; ms <= 1500; ms += 100) window.protoboardLive.tick(100);
+    const box = window.document.querySelector('main > svg:not([hidden]) > .figure [data-inside]');
+    const text = (sel) => box?.querySelector(sel)?.textContent ?? null;
+    return { kind: box?.getAttribute('data-inside'), state: text('.state'), names: [...(box?.querySelectorAll('.pin-name') ?? [])].map((x) => x.textContent), count: (sel) => box?.querySelectorAll(sel).length ?? 0 };
+  };
+  const hall = await inside(layoutOf('hall-linear-uno').circuit, 'U2');
+  assert.equal(hall.kind, 'hall');
+  assert.equal(hall.state, 'output follows the field');
+  assert.ok(hall.names.includes('S') && hall.names.includes('+') && hall.names.includes('-'), hall.names.join());
+  const divider = await inside(layoutOf('voltage-sensor-uno').circuit, 'U2');
+  assert.equal(divider.kind, 'divider5');
+  assert.match(divider.state, /^S is a fifth of the input/);
+  assert.equal(divider.count('.film'), 2, 'two resistors');
+  const electret = await inside(layoutOf('clap-switch').circuit, 'U2');
+  assert.equal(electret.kind, 'module');
+  assert.equal(electret.count('.disc'), 1, 'the capsule\'s diaphragm');
+  const loud = await inside(layoutOf('clap-switch').circuit, 'U2', [{ at: 200, do: 'set', environment: 'sound', value: 105, move: 'cut' }]);
+  assert.match(loud.state, /^DO low: loud/);
+  const alarm = layoutOf('rain-alarm').circuit;
+  const quiet = await inside(alarm, 'BZ1');
+  assert.equal(quiet.kind, 'buzzer-active');
+  assert.equal(quiet.state, 'silent: under 3.5 V');
+  assert.equal(quiet.count('.sound'), 0);
+  const wet = await inside(alarm, 'BZ1', [{ at: 200, do: 'set', environment: 'rain', value: 1, move: 'cut' }]);
+  assert.match(wet.state, /^sounding at 2\.3 kHz/);
+  assert.ok(wet.count('.sound') >= 1 && wet.count('.disc.on') === 1);
+});
+
+test('up close: the active buzzer\'s pinout says how to tell it from the passive one;', () => {
+  const b = buildCircuit(layoutOf('rain-alarm').circuit);
+  const active = b.parts.find((p) => p.id === 'BZ1');
+  const passive = buildCircuit({ version: 1, board: 'bb830', parts: [{ id: 'BZ2', type: 'buzzer', pins: ['e10', 'e12'] }] }).parts[0];
+  for (const lang of ['en', 'es']) {
+    const text = pinoutOf(active, createCamera({ view: 'front' }), lang).mark.text;
+    assert.match(text, lang === 'en' ? /sealed bottom and beeps as soon as it is powered/ : /fondo sellado y pita apenas se alimenta/);
+    assert.doesNotMatch(pinoutOf(passive, createCamera({ view: 'front' }), lang).mark.text, /sealed|sellado/);
+  }
 });

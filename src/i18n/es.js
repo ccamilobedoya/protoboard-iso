@@ -461,6 +461,7 @@ export default {
   'pinout.common': 'La pata del medio de cada fila es su común; NC y NO en los extremos',
   'pinout.lead': 'Cable rojo {side}: el +; el negro, el −',
   'pinout.plus': '+ impreso arriba {side}: la pata 1, la +',
+  'pinout.plus-active': '+ impreso arriba {side}: la pata 1, la +; el activo tiene el fondo sellado y pita apenas se alimenta, el pasivo no',
   'probe.voltage': '{value} = voltaje (tensión) de {node}: punta roja (+) en esa tira, punta negra (−) en {ground}, la tierra de la fuente.',
   'probe.current': '{value} atraviesan {part}, de {from} a {to} (sentido convencional; los electrones van al revés). Un amperímetro en serie con {part} marcaría eso.',
   'probe.ic': 'Ic = {value}: entra por el colector (C) y sale por el emisor (E), junto con Ib (sentido convencional; los electrones van al revés).',

@@ -77,7 +77,7 @@ export const buzzer = {
     const right = normalize({ x: 1, y: 1, z: 0 });
     body.decals.push(textDecal({ text: '+', at: plus, right, down: cross(right, Z), size: active ? 3.4 : 2.6, color: MATERIALS.print, weight: 700 }));
     const leads = [a, b].flatMap((p) => lead([withZ(p, 0), withZ(p, 0.5)], { radius: 0.3, color: MATERIALS.tinned }));
-    return { primitives: [body, ...seal, ...leads], body: [body, ...seal], anchor: withZ(base, 0.5 + H), mark: { kind: 'plus', at: plus } };
+    return { primitives: [body, ...seal, ...leads], body: [body, ...seal], anchor: withZ(base, 0.5 + H), mark: { kind: active ? 'plus-active' : 'plus', at: plus } };
   },
 };
 

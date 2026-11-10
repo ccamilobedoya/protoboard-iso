@@ -462,6 +462,7 @@ export default {
   'pinout.common': 'The middle pin of each row is its common; NC and NO at the ends',
   'pinout.lead': 'Red lead {side}: the +; the black one, the −',
   'pinout.plus': '+ printed on top {side}: pin 1, the + lead',
+  'pinout.plus-active': '+ printed on top {side}: pin 1, the + lead; the active one has a sealed bottom and beeps as soon as it is powered, the passive one does not',
   'probe.voltage': '{value} = voltage of {node}: red probe (+) on that strip, black probe (−) on {ground}, the supply ground.',
   'probe.current': '{value} flows through {part}, from {from} to {to} (conventional direction; electrons go the other way). An ammeter in series with {part} would read this.',
   'probe.ic': 'Ic = {value}: in at the collector (C) and out at the emitter (E), together with Ib (conventional direction; electrons go the other way).',
