@@ -33,7 +33,11 @@
 //   ownField                optional: { field: the part's own name for it } when it is not the
 //                           field's ({ tilt: 'tilted' }): a part that gives it does not follow, and
 //                           its own control, moved, makes it stop following
-//   emits                   reserved for emitters (a part that changes the environment), later
+//   emits                   optional: the environment's fields an emitter writes (['light']; a laser):
+//   emit(entry, reading)    what it adds to each now, from its solved reading ({ light: lux }; 0 or
+//                           nothing when it is off). The engine sums them over the ambient values
+//                           for every sensor, one time step later (../environment.js, ../engine.js);
+//                           only in a circuit that declares an environment
 //   falstad(d, f)           optional: writes the part for Falstad's CircuitJS with the builder f
 //                           (../falstad.js); an equivalent adds its note with f.note. Without
 //                           it the export leaves the part out, with a note
@@ -66,8 +70,9 @@ import { motor } from './motor.js';
 import { pir } from './pir.js';
 import { touch } from './touch.js';
 import { sensorModule } from './sensor-module.js';
+import { laser } from './laser.js';
 
-export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, leds, bridge, mosfet, bjt, regulator, timer, opamp, mcu, lm35, relay, motor, battery, pir, touch, sensorModule];
+export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, leds, bridge, mosfet, bjt, regulator, timer, opamp, mcu, lm35, relay, motor, battery, pir, touch, sensorModule, laser];
 
 // Several devices may share a type (the ICs: timer, op-amp); each one accepts its own parts.
 const BY_TYPE = {};
