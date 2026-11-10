@@ -665,7 +665,6 @@ test('L15 (§5) · uno-dht11: the DHT11 on D2 of a UNO, delay(2000), isnan check
 
 test('L15 (§5) · uno-dht11 prints a line with 24 and 41 within 2.5 s, and after temperature 31 a line starting with 31 within 2.1 s more', () => {
   const { circuit } = layoutOf('uno-dht11');
-  const spec = circuit.spec;
   const board = boardOf(circuit, 'UNO');
   const engine = engineOf(circuit);
   const nums = (line) => (line.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
