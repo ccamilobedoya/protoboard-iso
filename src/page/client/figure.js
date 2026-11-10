@@ -1054,6 +1054,57 @@ const INSIDE = {
     label(g, 50, 103, r ? [`${data.ids[1]} ${f(r.vcc, 'V')}`, `${sig} ${f(r.vout, 'V')}`, Math.abs(r.current) >= 1e-6 && `I ${f(Math.abs(r.current), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
     label(g, 50, 114, r ? t(`page.tour.inside.touch.${r.state}`) : '', 'state');
   },
+  encoder(g, r, data, { t, f, control }) {
+    // A toothed metal wheel on the shaft, turned by its angle, and two springy fingers on its rim a
+    // quarter of a cycle (4.5°) apart: A at the top, B just clockwise of it. A finger lit touches a tooth,
+    // which grounds its line. Under the wheel a strip of the two lines around the present position
+    // (twice the width of a cycle, left is behind), a mark on it where the shaft is.
+    const [clk, dt] = data.ids;
+    const pitch = 360 / (data.detents || 20);
+    const shaft = r?.shaft ?? control?.('angle') ?? data.angle ?? 0;
+    const closed = { a: Boolean(r?.closed?.CLK), b: Boolean(r?.closed?.DT) };
+    const [cx, cy, inner, outer] = [50, 42, 17, 22];
+    const at = (radius, deg) => `${fixed(cx + radius * Math.sin((deg * Math.PI) / 180))} ${fixed(cy - radius * Math.cos((deg * Math.PI) / 180))}`;
+    make(g, 'circle', { class: 'core', cx, cy, r: inner });
+    // A tooth spans 9° of each cycle; it touches finger A while the shaft is between 2.25° and 11.25°.
+    for (let k = 0; k < 360 / pitch; k++) {
+      const from = shaft + k * pitch - 11.25;
+      const to = from + pitch / 2;
+      make(g, 'path', { class: 'plate', d: `M${at(inner, from)}L${at(outer, from)}A${outer} ${outer} 0 0 1 ${at(outer, to)}L${at(inner, to)}A${inner} ${inner} 0 0 0 ${at(inner, from)}Z` });
+    }
+    make(g, 'path', { class: 'dim', d: `M${cx} ${cy}L${at(inner - 2, shaft)}` });
+    make(g, 'circle', { class: 'out', cx, cy, r: 2 });
+    // The fingers, drawn apart so they can be told: the contact points are 4.5° of the rim apart.
+    for (const [name, deg, on, x] of [[clk, 0, closed.a, 30], [dt, pitch / 4, closed.b, 70]]) {
+      make(g, 'path', { class: `blade${on ? ' on' : ''}`, d: `M${at(outer + 1, deg)}L${fixed(x)} 8` });
+      label(g, x, 6, name, 'pin-name', 'middle', FIGURE.small);
+    }
+    // The strip: each line high while its contact is open, low while closed, over -18°…+18° of the shaft.
+    const span = pitch * 2;
+    const start = shaft - span / 2;
+    const level = (deg, channel) => {
+      const u = ((deg / pitch) % 1 + 1) % 1;
+      return channel === 'a' ? u >= 0.125 && u < 0.625 : u >= 0.375 && u < 0.875;
+    };
+    [['a', 72, closed.a], ['b', 87, closed.b]].forEach(([channel, top, on]) => {
+      let d = '';
+      let was = null;
+      for (let i = 0; i <= 72; i++) {
+        const deg = start + (i * span) / 72;
+        const low = level(deg, channel);
+        const x = 8 + (84 * i) / 72;
+        const y = top + (low ? 8 : 0);
+        d += was === null ? `M${fixed(x)} ${y}` : was === low ? `H${fixed(x)}` : `V${y}H${fixed(x)}`;
+        was = low;
+      }
+      make(g, 'path', { class: `junction${on ? ' on' : ''}`, d });
+      label(g, 4, top + 6, channel.toUpperCase(), 'note', 'end', FIGURE.small);
+    });
+    make(g, 'path', { class: 'dim', d: 'M50 68V97' });
+    const dir = r?.direction > 0 ? 'cw' : r?.direction < 0 ? 'ccw' : 'still';
+    label(g, 50, 106, r ? `${clk} ${f(r.vclk, 'V')} · ${dt} ${f(r.vdt, 'V')} · ${t('sim.encoder.shaft', { angle: fixed(Math.round(r.shaft * 10) / 10), click: r.click, detents: r.detents })}` : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.encoder.${dir}`) : '', 'state');
+  },
   module(g, r, data, { t, f, control }) {
     // An LM393 sensor module as its board: the divider (the fixed 10 kΩ over the element, AO between
     // them), the trimmer's Vref, AO and Vref as two bars against VCC (the one that is lower decides),

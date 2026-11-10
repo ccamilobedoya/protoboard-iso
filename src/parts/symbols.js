@@ -391,6 +391,21 @@ const touchSymbol = () => ({
   pins: { SIG: [96, 50], VCC: [50, 4], GND: [50, 96] },
   ids: { SIG: 'I/O', VCC: 'VCC', GND: 'GND' },
 });
+// A rotary encoder module: from the + rail a 10 kΩ pull-up to each of the three outputs, and from each
+// output a switch to the ground rail below: two contacts moved by the shaft (CLK and DT) and the push
+// switch (SW, with a bar over its blade). CLK leaves to the left, SW to the right, and DT's terminal is at
+// its own node, between them.
+const encoderSymbol = () => {
+  const column = (x, push) => [`M${x} 12V18`, `M${x - 3} 18H${x + 3}V30H${x - 3}Z`, `M${x} 30V50`, `M${x} 50V54`, `M${x} 54L${x + 7} 66`, `M${x} 72V88`, ...(push ? [`M${x - 4} 60H${x + 10}`, `M${x + 3} 60V56`] : [])];
+  return {
+    w: 100, h: 100,
+    strokes: ['M50 4V12', 'M24 12H76', ...column(24, false), ...column(50, false), ...column(76, true), 'M24 88H76', 'M50 88V96', 'M4 40H24', 'M76 40H96'],
+    fills: [],
+    texts: [{ x: 34, y: 24, text: '10k', anchor: 'start', small: true }, { x: 60, y: 24, text: '10k', anchor: 'start', small: true }, { x: 86, y: 24, text: '10k', anchor: 'start', small: true }],
+    pins: { '+': [50, 4], CLK: [4, 40], DT: [50, 40], SW: [96, 40], GND: [50, 96] },
+    ids: { '+': '+', CLK: 'CLK', DT: 'DT', SW: 'SW', GND: 'GND' },
+  };
+};
 // An LM393 sensor module as its schematic: the element (a box, its kind's letter) under the divider's
 // resistor, AO between them into the comparator's +, the trimmer's Vref into its −, DO out of the right;
 // VCC on top, GND at the bottom. Each pin's letter is what the board prints (A0, D0, +, G).
@@ -436,6 +451,7 @@ export function symbolOf(part) {
   if (part.type === 'motor') return motorSymbol();
   if (part.type === 'pir-sensor') return pirSymbol();
   if (part.type === 'touch-sensor') return touchSymbol();
+  if (part.type === 'rotary-encoder') return encoderSymbol();
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
   if (part.type === 'sensor-module') return sensorModuleSymbol(names, part.def?.params?.print, e.part ?? '');
   return null;
@@ -535,6 +551,11 @@ export function insideOf(part) {
   if (part.type === 'touch-sensor') {
     const { toggle, activeLow, fast } = limits();
     return { kind: 'touch', ids: ids(), toggle, activeLow, fast };
+  }
+  // A rotary encoder: its clicks a turn and the target angle it was given, from its device.
+  if (part.type === 'rotary-encoder') {
+    const { detents, angle } = limits();
+    return { kind: 'encoder', ids: ids(), detents, angle };
   }
   if (part.type === 'ic' && e.kind === 'TMR') return { kind: 'timer' };
   // An LM393 sensor module: its element and what it senses, the trimmer and which DO level detects

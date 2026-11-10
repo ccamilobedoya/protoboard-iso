@@ -32,6 +32,7 @@ export const TYPE_FIELDS = {
   motor: ['part', 'load', 'side', 'offset'],
   'pir-sensor': ['delay', 'sensitivity', 'mode', 'warmup', 'motion'],
   'touch-sensor': ['mode', 'activeLow', 'fast', 'touch'],
+  'rotary-encoder': ['part', 'pulses', 'detents', 'speed', 'bounce', 'pressed', 'swPullup', 'angle'],
   'sensor-module': ['part', 'threshold', 'wetness', 'moisture', 'light', 'beam', 'reflectance', 'distance', 'field', 'vibration', 'transmittance', 'slots', 'duty', 'seed'],
 };
 

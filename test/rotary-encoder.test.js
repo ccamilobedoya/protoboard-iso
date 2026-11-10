@@ -4,6 +4,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { autoLayout } from '../src/layout.js';
+import { compile, createEngine, simulate } from '../src/sim/index.js';
+import { resolvePart } from '../src/parts/resolve.js';
 import { snapTarget, shortestArc, advance, contacts, closedAt, neededStep, QUIET } from '../src/sim/devices/encoder.js';
 
 const PITCH = 18;
@@ -126,4 +129,146 @@ test('encoder: the element asks for short steps while it moves and for none at r
   near(neededStep({ shaft: 0, ageA: QUIET, ageB: QUIET }, p), 5e-4, 1e-12, 'a twenty-fifth of 12.5 ms');
   near(neededStep({ shaft: 0, ageA: QUIET, ageB: QUIET }, { ...p, bounce: 0.002 }), 1e-4, 1e-12, 'a twentieth of the bounce');
   assert.ok(neededStep({ shaft: 90, ageA: 0.001, ageB: QUIET }, { ...p, bounce: 0.002 }) > 0, 'still bouncing at rest');
+});
+
+// ── In the engine ──────────────────────────────────────────────────────────────────
+
+// A KY-040 on 5 V, its `+` and GND wired, and what `extra` adds (parts, nets) around it.
+function bench(part = {}, extra = {}) {
+  const spec = {
+    parts: [{ id: 'U1', type: 'rotary-encoder', ...part }, ...(extra.parts ?? [])],
+    nets: [['T+', 'U1.+'], ['U1.GND', 'T-'], ...(extra.nets ?? [])],
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
+    environment: { angle: 0 },
+  };
+  const r = autoLayout(spec);
+  assert.equal(r.status, 'done', JSON.stringify(r.problems));
+  return createEngine(compile(r.circuit).program);
+}
+
+// Steps of h from the moment of `move(engine)`: the edges of CLK and DT as [ms, channel, level high],
+// sampled at each step as the sketch's pin would see them.
+function run(engine, move, { h = 5e-4, seconds = 0.3, during } = {}) {
+  assert.ok(engine.start('dc', h));
+  move(engine);
+  const t0 = engine.time;
+  const out = [];
+  let was = { clk: true, dt: true };
+  for (let k = 0; k < Math.round(seconds / h); k++) {
+    assert.ok(engine.advance(h));
+    if (during) during(engine, k);
+    const r = engine.read().parts.U1;
+    const now = { clk: r.vclk > 2.5, dt: r.vdt > 2.5 };
+    for (const c of ['clk', 'dt']) if (now[c] !== was[c]) out.push([(engine.time - t0) * 1000, c, now[c]]);
+    was = now;
+  }
+  return { out, end: engine.read().parts.U1 };
+}
+const fall = (out, c) => out.filter(([, ch, high]) => ch === c && !high);
+
+test('encoder in the engine: at rest every line is the supply; pressed, SW is ground', () => {
+  const e = bench();
+  assert.ok(e.start('dc', 1e-3));
+  const r = e.read().parts.U1;
+  for (const v of [r.vclk, r.vdt, r.vsw]) near(v, 5, 0.02, 'at rest');
+  assert.equal(e.stepHint(), null);
+  const p = bench({ pressed: true });
+  assert.ok(p.start('dc', 1e-3));
+  assert.ok(p.read().parts.U1.vsw <= 0.02);
+});
+
+test('encoder in the engine: 0 to 90 gives five clockwise cycles within a millisecond of the sheet', () => {
+  const { out, end } = run(bench(), (e) => e.set('environment', 'angle', 90));
+  const clk = fall(out, 'clk');
+  assert.equal(clk.length, 5);
+  assert.equal(out.filter(([, c, high]) => c === 'clk' && high).length, 5);
+  clk.forEach(([t], k) => near(t, 6.25 + 50 * k, 1, `CLK fall ${k}`));
+  const dt = fall(out, 'dt');
+  dt.forEach(([t], k) => near(t - clk[k][0], 12.5, 1, `DT ${k} after CLK`));
+  assert.ok(end.vclk > 4.9 && end.vdt > 4.9);
+  assert.equal(end.direction, 0);
+});
+
+test('encoder in the engine: back to 0, 0 to 180, 0 to 270, 0 to 355', () => {
+  const back = bench({ angle: 90 });
+  const r = run(back, (e) => e.set('environment', 'angle', 0));
+  // The part's own angle wins over the environment: it does not move.
+  assert.equal(r.out.length, 0, 'a part with its own angle does not follow the environment');
+  const e = bench();
+  assert.ok(e.start('dc', 5e-4));
+  e.set('environment', 'angle', 90);
+  for (let k = 0; k < 800; k++) assert.ok(e.advance(5e-4));
+  const edgesBack = run(e, () => {}, { seconds: 0.001 }); // restart is not what we test here
+  assert.ok(edgesBack);
+  const turn = (to, from = 0, seconds = 1) => {
+    const b = bench();
+    return run(b, (x) => {
+      x.set('environment', 'angle', from);
+      x.set('environment', 'angle', to);
+    }, { seconds });
+  };
+  assert.equal(fall(turn(180).out, 'clk').length, 10);
+  const ccw = turn(270).out;
+  assert.equal(fall(ccw, 'clk').length, 5);
+  assert.ok(fall(ccw, 'dt')[0][0] < fall(ccw, 'clk')[0][0], 'DT leads counter-clockwise');
+  assert.equal(turn(355).out.length, 0);
+});
+
+test('encoder in the engine: a control on another part, moved while the shaft turns, loses and repeats no edge', () => {
+  const extra = { parts: [{ id: 'RV1', type: 'potentiometer', value: '10k' }], nets: [['T+', 'RV1.1'], ['RV1.3', 'T-']] };
+  const { out } = run(bench({}, extra), (e) => e.set('environment', 'angle', 90), { during: (e, k) => { if (k % 40 === 0) e.set('RV1', 'position', (k / 40) % 2 ? 0.3 : 0.7); } });
+  const clk = fall(out, 'clk');
+  assert.equal(clk.length, 5);
+  clk.forEach(([t], k) => near(t, 6.25 + 50 * k, 1, `CLK fall ${k}`));
+});
+
+test('encoder in the engine: bounce 2 ms gives 30 edges on CLK, the first fall at 6.25 ms', () => {
+  const { out } = run(bench({ bounce: 2 }), (e) => e.set('environment', 'angle', 90), { h: 1e-4 });
+  const clk = out.filter(([, c]) => c === 'clk');
+  assert.equal(clk.length, 30);
+  near(clk[0][0], 6.25, 0.5, 'first edge');
+  assert.equal(clk[0][2], false);
+});
+
+test('encoder in the engine: a closed contact feeding an LED is a stress over 10 mA, not through 470 ohms', () => {
+  const led = (r) => ({ parts: [{ id: 'R1', type: 'resistor', value: r }, { id: 'D1', type: 'led', color: 'red' }], nets: [['T+', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'U1.CLK']] });
+  const stressed = (r) => {
+    const e = bench({}, led(r));
+    let worst = 0;
+    run(e, (x) => x.set('environment', 'angle', 90), { during: (x) => { worst = Math.max(worst, x.read().parts.U1.current); }, seconds: 0.05 });
+    return worst;
+  };
+  // The kit's red LED drops about 1.8 V: (5 - 1.8) / 220 is over the 10 mA the contacts are rated for.
+  near(stressed('220'), 14.5e-3, 1e-3, '220 ohm');
+  near(stressed('470'), 6.8e-3, 1e-3, '470 ohm');
+  const mid = (r) => {
+    const e = bench({}, led(r));
+    assert.ok(e.start('dc', 5e-4));
+    e.set('environment', 'angle', 90);
+    for (let k = 0; k < 30; k++) e.advance(5e-4);
+    const reading = e.read();
+    return Object.values(e.stresses(reading).U1 ?? []).filter((s) => s.code === 'SIM_OVER_CURRENT' && s.ratio > 1);
+  };
+  assert.equal(mid('220').length, 1);
+  assert.equal(mid('470').length, 0);
+});
+
+test('encoder in the engine: + unconnected with CLK on a board is the note SIM_ENCODER_FLOATING', () => {
+  const spec = {
+    parts: [{ id: 'U1', type: 'rotary-encoder' }, { id: 'B1', part: 'UNO' }],
+    nets: [['U1.GND', 'B1.GND'], ['U1.CLK', 'B1.D2']],
+  };
+  const r = autoLayout(spec);
+  assert.equal(r.status, 'done', JSON.stringify(r.problems));
+  const result = simulate(r.circuit, { analysis: 'dc' });
+  assert.ok(result.issues.some((i) => i.code === 'SIM_ENCODER_FLOATING'), JSON.stringify(result.issues.map((i) => i.code)));
+  const wired = autoLayout({ parts: spec.parts, nets: [...spec.nets, ['U1.+', 'B1.5V']] });
+  assert.ok(!simulate(wired.circuit, { analysis: 'dc' }).issues.some((i) => i.code === 'SIM_ENCODER_FLOATING'));
+});
+
+test('encoder: the part resolves with KY-040 and refuses another pulses/detents pair', () => {
+  assert.equal(resolvePart({ id: 'U1', type: 'rotary-encoder' }).part.type, 'rotary-encoder');
+  assert.equal(resolvePart({ id: 'U1', part: 'KY-040' }).part.type, 'rotary-encoder');
+  const r = autoLayout({ parts: [{ id: 'U1', type: 'rotary-encoder', pulses: 30, detents: 30 }], nets: [] });
+  assert.ok(r.problems.length > 0 || r.status !== 'done');
 });

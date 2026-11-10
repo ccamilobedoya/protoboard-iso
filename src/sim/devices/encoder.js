@@ -16,7 +16,9 @@
 // the step that ends on it. While the shaft moves the element asks the engine for short steps
 // (`maxStep`), and for nothing when it is still.
 
+import { resistor } from '../mna.js';
 import { ENCODER } from '../models.js';
+import { stress, note, volt } from './shared.js';
 
 export const EDGES = [0.125, 0.375, 0.625, 0.875]; // in cycles: A closes, B closes, A opens, B opens
 export const QUIET = 1e9; // an age that is over: no change in memory
@@ -100,3 +102,141 @@ export function neededStep(s, p) {
   const quarter = p.pitch / 4 / p.speed;
   return Math.min(quarter / ENCODER.stepsPerQuarter, p.bounce > 0 ? p.bounce / 20 : Infinity);
 }
+
+// The two contacts, CLK and DT each to GND: a small resistance while closed, nothing while open. They
+// stamp the state at the END of the step being solved (`ahead`), and the shaft and the ages are the
+// memory the engine carries across a control's change (`state` in the device).
+function coreElement({ clk, dt, gnd }, m) {
+  const g = 1 / ENCODER.contact;
+  return {
+    nodes: [clk, dt, gnd],
+    links: [[clk, gnd], [dt, gnd]],
+    shaft: m.target,
+    ageA: QUIET,
+    ageB: QUIET,
+    ahead(x, ctx = {}) {
+      return advance(this, ctx.h, m);
+    },
+    closed(x, ctx) {
+      return contacts(this.ahead(x, ctx), m);
+    },
+    stamp(st, x, ctx = {}) {
+      const c = this.closed(x, ctx);
+      if (c.a) st.conductance(clk, gnd, g);
+      if (c.b) st.conductance(dt, gnd, g);
+      return false;
+    },
+    // Into the element at each node, in `nodes` order.
+    currents(x, ctx = {}) {
+      const c = this.closed(x, ctx);
+      const ia = c.a ? g * (volt(x, clk) - volt(x, gnd)) : 0;
+      const ib = c.b ? g * (volt(x, dt) - volt(x, gnd)) : 0;
+      return [ia, ib, -(ia + ib)];
+    },
+    accept(x, ctx = {}) {
+      Object.assign(this, this.ahead(x, ctx));
+    },
+    maxStep() {
+      return neededStep(this, m);
+    },
+    // The time between two edges: the shortest that matters (the page steps in real time by it).
+    span: () => m.pitch / 4 / m.speed,
+  };
+}
+
+export const encoder = {
+  types: ['rotary-encoder'],
+  kind: 'ENC',
+  // The shaft and the ages survive a slider elsewhere (engine.js carries `state`).
+  state: ['shaft', 'ageA', 'ageB'],
+  senses: ['angle'],
+  params(part, c) {
+    const e = part.def.electrical;
+    const names = part.pinNames;
+    const alone = (name) => (c.members?.[part.holes[names.indexOf(name)]?.node] ?? []).every((id) => id === part.id);
+    const env = c?.env?.('angle');
+    return {
+      angle: env === undefined ? (e.angle ?? 0) : env,
+      detents: e.detents,
+      pulses: e.pulses,
+      speed: e.speed,
+      bounce: e.bounce,
+      pressed: e.pressed,
+      swPullup: e.swPullup,
+      // The pull-ups hang from `+`: with it wired nowhere the outputs float.
+      unfed: alone('+') && !(alone('CLK') && alone('DT')),
+    };
+  },
+  controls: (p) => ({
+    angle: { min: 0, max: 360, limit: [0, 360], scale: 'linear', unit: '°', step: 360 / p.detents, value: p.angle },
+    pressed: { scale: 'momentary', value: Boolean(p.pressed) },
+  }),
+  set(p, field, value) {
+    if (field === 'angle') return { ...p, angle: Number(value) };
+    if (field === 'pressed') return { ...p, pressed: Boolean(value) };
+    return null;
+  },
+  sense: (p, field, value) => (field === 'angle' ? { ...p, angle: Number(value) } : null),
+  elements(p, h) {
+    const [clk, dt, sw, plus, gnd] = ['CLK', 'DT', 'SW', '+', 'GND'].map((name) => h.pin(name));
+    const pitch = 360 / p.detents;
+    const m = { target: snapTarget(p.angle, p.detents), speed: p.speed, pitch, bounce: p.bounce };
+    const pullups = [clk, dt, ...(p.swPullup ? [sw] : [])].map((node) => ({ node, el: h.add(resistor(plus, node, ENCODER.pullup)) }));
+    const main = h.add(coreElement({ clk, dt, gnd }, m));
+    const press = p.pressed ? h.add(resistor(sw, gnd, ENCODER.contact)) : null;
+    return { main, pullups, press, motion: m };
+  },
+  read(entry, h) {
+    const at = (name) => h.volt(entry.pins.find((x) => x.name === name).index);
+    const now = entry.main.ahead(h.x, h.ctx ?? {});
+    const shown = contacts(now, entry.motion);
+    const [ia, ib] = entry.main.currents(h.x, h.ctx ?? {});
+    const isw = entry.press ? entry.press.currents(h.x, h.ctx)[0] : 0;
+    const pull = { CLK: 0, DT: 0, SW: 0 };
+    const names = { [entry.pins.find((x) => x.name === 'CLK').index]: 'CLK', [entry.pins.find((x) => x.name === 'DT').index]: 'DT', [entry.pins.find((x) => x.name === 'SW').index]: 'SW' };
+    for (const { node, el } of entry.pullups) pull[names[node]] = el.currents(h.x, h.ctx)[0];
+    const gnd = at('GND');
+    const plus = at('+') - gnd;
+    return {
+      shaft: now.shaft,
+      target: entry.motion.target,
+      click: clickOf(now.shaft, entry.detents),
+      detents: entry.detents,
+      direction: direction(now, entry.motion),
+      closed: { CLK: shown.a, DT: shown.b, SW: Boolean(entry.pressed) },
+      vclk: at('CLK') - gnd,
+      vdt: at('DT') - gnd,
+      vsw: at('SW') - gnd,
+      vplus: plus,
+      // The current each contact carries to GND, and what each pull-up gives it.
+      contacts: { CLK: ia, DT: ib, SW: isw },
+      current: Math.max(Math.abs(ia), Math.abs(ib), Math.abs(isw)),
+      pressed: entry.pressed,
+      angle: entry.angle,
+      unfed: entry.unfed,
+      currents: { CLK: ia - pull.CLK, DT: ib - pull.DT, SW: isw - pull.SW, '+': pull.CLK + pull.DT + pull.SW, GND: -(ia + ib + isw) },
+      power: plus * (pull.CLK + pull.DT + pull.SW),
+    };
+  },
+  limits(entry, r) {
+    const out = [
+      stress('SIM_OVER_CURRENT', 'current', r.current, ENCODER.maxCurrent, 'A'),
+      stress('SIM_SWITCH_VOLTAGE', 'voltage', Math.max(Math.abs(r.vclk), Math.abs(r.vdt), Math.abs(r.vsw)), ENCODER.maxVoltage, 'V'),
+    ];
+    if (r.unfed) out.push(note('info', 'SIM_ENCODER_FLOATING', { part: entry.id }));
+    return out;
+  },
+  lines(p, h) {
+    const word = (open, v) => `${h.t(open ? 'sim.encoder.open' : 'sim.encoder.closed')} · ${h.f(v, 'V')}`;
+    return [
+      h.raw(`encoder.${p.direction > 0 ? 'cw' : p.direction < 0 ? 'ccw' : 'still'}`, h.t(`sim.encoder.${p.direction > 0 ? 'cw' : p.direction < 0 ? 'ccw' : 'still'}`)),
+      h.q('encoder.shaft', h.t('sim.encoder.shaft', { angle: String(Math.round(p.shaft * 10) / 10).replace('.', h.decimal), click: p.click, detents: p.detents })),
+      h.q('encoder.clk', word(!p.closed.CLK, p.vclk)),
+      h.q('encoder.dt', word(!p.closed.DT, p.vdt)),
+      h.q('encoder.sw', `${h.t(p.pressed ? 'sim.encoder.pressed' : 'sim.encoder.released')} · ${h.f(p.vsw, 'V')}`),
+      h.q('encoder.plus', h.f(p.vplus, 'V')),
+    ];
+  },
+  tag: (r) => ({ label: '', value: r.current, key: 'current' }),
+  scope: (r) => ({ v: { label: 'CLK', value: r.vclk }, i: null }),
+};

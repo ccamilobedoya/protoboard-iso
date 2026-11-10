@@ -190,3 +190,11 @@ Object.assign(MATERIALS, {
   irDark: '#1f1f24',
   trimmerKnob: '#f0ede4',
 });
+
+// Rotary encoder (EC11) on its KY-040 module: the encoder's steel body and bushing, its shaft, the
+// module's dark green board.
+Object.assign(MATERIALS, {
+  encoderBody: '#aeb3ba',
+  encoderShaft: '#cfd3d8',
+  encoderBoard: '#17503a',
+});
