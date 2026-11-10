@@ -3104,7 +3104,10 @@
                       "encoder-uno",
                       "encoder-dimmer-uno",
                       "laser-tripwire",
-                      "laser-uno"
+                      "laser-uno",
+                      "uno-distance",
+                      "esp32-distance",
+                      "distance-alarm-uno"
                     ]
                   },
                   "values": {

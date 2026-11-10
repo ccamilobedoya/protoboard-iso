@@ -167,7 +167,10 @@
                 "encoder-uno",
                 "encoder-dimmer-uno",
                 "laser-tripwire",
-                "laser-uno"
+                "laser-uno",
+                "uno-distance",
+                "esp32-distance",
+                "distance-alarm-uno"
               ]
             },
             "values": {
@@ -3047,7 +3050,8 @@
             "touch-sensor",
             "sensor-module",
             "rotary-encoder",
-            "laser"
+            "laser",
+            "ultrasonic-sensor"
           ]
         },
         "pins": {
@@ -3128,7 +3132,7 @@
         },
         "part": {
           "type": "string",
-          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270), sensor-module (MH-RD, YL-69, LDR-LM393, SLOT-IR, TCRT5000-M, KY-024, SW-420-M, FC-51), rotary-encoder (KY-040), laser (KY-008, the default) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
+          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270), sensor-module (MH-RD, YL-69, LDR-LM393, SLOT-IR, TCRT5000-M, KY-024, SW-420-M, FC-51), rotary-encoder (KY-040), laser (KY-008, the default), ultrasonic-sensor (HC-SR04, the default) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
         },
         "package": {
           "type": "string"
@@ -3321,7 +3325,7 @@
         },
         "temperature": {
           "type": "number",
-          "description": "thermistor, temperature-sensor (LM35): °C for the simulation (default 25)"
+          "description": "thermistor, temperature-sensor (LM35): °C for the simulation (default 25); ultrasonic-sensor: the air's, which sets the speed of sound (default 20)"
         },
         "light": {
           "type": "number",
@@ -3436,7 +3440,7 @@
         "distance": {
           "type": "number",
           "minimum": 0,
-          "description": "sensor-module TCRT5000-M, FC-51: its own distance to the surface or the object, cm, instead of the environment's"
+          "description": "sensor-module TCRT5000-M, FC-51, ultrasonic-sensor: its own distance to the surface or the object, cm, instead of the environment's"
         },
         "field": {
           "type": "number",

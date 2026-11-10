@@ -59,9 +59,12 @@ import encoderUno from './encoder-uno.js';
 import encoderDimmerUno from './encoder-dimmer-uno.js';
 import laserTripwire from './laser-tripwire.js';
 import laserUno from './laser-uno.js';
+import unoDistance from './uno-distance.js';
+import esp32Distance from './esp32-distance.js';
+import distanceAlarmUno from './distance-alarm-uno.js';
 
 export const RECIPES = Object.fromEntries(
-  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn, ldrNightLight, ldrComparator, lm35Comparator, ntcFollower, thermistorUno, pirLamp, pirUno, touchToggleLed, touchUno, rainAlarm, soilLed, lightSwitchModule, lineFollowerUno, obstacleBuzzer, hallCounterUno, encoderUno, encoderDimmerUno, laserTripwire, laserUno].map((r) => [r.name, r]),
+  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn, ldrNightLight, ldrComparator, lm35Comparator, ntcFollower, thermistorUno, pirLamp, pirUno, touchToggleLed, touchUno, rainAlarm, soilLed, lightSwitchModule, lineFollowerUno, obstacleBuzzer, hallCounterUno, encoderUno, encoderDimmerUno, laserTripwire, laserUno, unoDistance, esp32Distance, distanceAlarmUno].map((r) => [r.name, r]),
 );
 
 // The groups of recipes (one `group` word on each recipe module), in the order the compact catalog

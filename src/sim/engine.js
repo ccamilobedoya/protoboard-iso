@@ -12,7 +12,8 @@
 //   engine.start('dc' | 'zero', h) → ok    the state at t = 0 (DC values, or switched on with
 //                                          capacitors discharged)
 //   engine.step(h) → ok                    one time step of h seconds (a failed one changes nothing)
-//   engine.advance(h) → ok                 h seconds: one step, or shorter ones where Newton fails
+//   engine.advance(h) → ok                 h seconds: one step, or shorter ones where Newton fails;
+//                                          a step ends on each element's event inside h (`until()`)
 //   engine.read() → { nodes, parts, supplies }   the values now;  engine.time  seconds since start
 //   engine.stresses(reading) → { part: [stress…] }   each part against its limits (devices/)
 //   engine.timeConstants() → [seconds…]    τ = C·R and L/R of each capacitor and inductor, with R
@@ -63,6 +64,11 @@ import { FIELDS, createEnvironment, environmentControls, seenValues, emittedShar
 
 const SHORT_CURRENT = 3; // amperes from an unlimited source that mean "short circuit"
 const ADVANCE_SPLITS = 4; // advance(h): halvings of a step that failed, at most (h/16)
+// advance(h) ends a step on each event inside h (an element's `until()`: a program waking, a timed
+// sensor's edge), at most LANDINGS of them; an event closer than LAND_MIN is now. A sketch that wakes
+// every microsecond still gets h back in LANDINGS + 1 steps.
+const LANDINGS = 1000;
+const LAND_MIN = 1e-9;
 // What an element changes while Newton iterates (junction limiting, an op-amp's rail edge).
 const LIMITING = ['vd', 'vgs', 'vds', 'vbe', 'vbc', 'edge'];
 const EMIT_ROUNDS = 8; // solve → emissions → sensors rounds before a loop is called feedback
@@ -353,6 +359,19 @@ export function createEngine(source) {
   let glowSum = new Map();
   let glowTime = 0;
   const memories = () => prep.system.elements.filter((el) => 'accept' in el);
+  // The soonest event of an element (`until()`, seconds from now), or null. The step before is
+  // accepted first, as step() does: an element's clock must be the one of now.
+  function nextEvent() {
+    if (!x) return null;
+    if (pending) for (const el of memories()) el.accept(x, pending);
+    pending = null;
+    let soon = null;
+    for (const el of prep.system.elements) {
+      const u = el.until?.();
+      if (u > 0 && (soon === null || u < soon)) soon = u;
+    }
+    return soon;
+  }
   const env = program.environment ? createEnvironment(program.environment.spec, program.environment.fields) : null;
   // Emitters: what they add now (`emitted`, measured after each solve) and what the sensors last felt
   // (`used`: the emission of the step before, or of the last round of a fixed point). `feedback`: the
@@ -545,9 +564,17 @@ export function createEngine(source) {
     // One step of h, as step(); when Newton fails, the same h in two halves (each split again, down
     // to a sixteenth). The step that follows is h again: a hard instant (diodes switching) costs a
     // few more steps there and slows nothing after it. false when even the shortest piece fails.
-    advance(h, depth = ADVANCE_SPLITS) {
+    advance(h, depth = ADVANCE_SPLITS, land = true) {
+      // Events inside h (a program waking from delayMicroseconds, a sensor's edge) end steps of
+      // their own, so what reads them sees them at their time (pulseIn, docs/en/microcontrollers.md).
+      for (let k = 0; land && k < LANDINGS; k++) {
+        const soon = nextEvent();
+        if (!(soon > LAND_MIN && soon < h - LAND_MIN)) break;
+        if (!this.advance(soon, ADVANCE_SPLITS, false)) return false;
+        h -= soon;
+      }
       if (this.step(h)) return true;
-      return depth > 0 && this.advance(h / 2, depth - 1) && this.advance(h / 2, depth - 1);
+      return depth > 0 && this.advance(h / 2, depth - 1, false) && this.advance(h / 2, depth - 1, false);
     },
     read: () => (x ? mark(readAll(prep, x, ctx)) : null),
     get time() {

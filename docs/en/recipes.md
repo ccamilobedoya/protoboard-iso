@@ -71,6 +71,9 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `encoder-dimmer-uno` | the same, with a LED on D9 (through R1) whose PWM brightness follows the count, 13 counts a click, the count held between 0 and 20 | R1 = 220, D1 = green, U1 = its sketch |
 | `laser-tripwire` | A KY-008 laser always on and an LDR-LM393 module: cut the beam (the environment's `beam`) and DO lights the LED through an NPN | U1 = 0.1 (threshold), R1 = 1k (base), R2 = 330, D1 = red |
 | `laser-uno` | Arduino UNO blinking a KY-008 at 1 Hz through an NPN (D7) and printing a photoresistor on A0 | R1 = 10k (divider), R2 = 1k (base), U1 = its sketch |
+| `uno-distance` | Arduino UNO measuring distance with an HC-SR04 (TRIG D9, ECHO D10, `pulseIn`, `us / 58`); environment `distance` 30 cm (range 2–100) and 20 °C | U1 = its sketch |
+| `esp32-distance` | ESP32 DevKit with an HC-SR04 on VIN (5 V): ECHO through a 1 kΩ / 2 kΩ divider so the 3.3 V pin sees 3.33 V | R1 = 1k, R2 = 2k, U1 = its sketch |
+| `distance-alarm-uno` | `uno-distance` with an LED on D13 lit under 15 cm | R1 = 220, D1 = red, U1 = its sketch |
 
 `parts` (CLI) lists them with their titles; the compact `catalog` (MCP) lists only their names, by group (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), to stay short; `catalog` with a recipe's name (`parts
 <name>` in the CLI) shows its title and group, what it teaches, its parts, nets, supply, and each value's role and limits.

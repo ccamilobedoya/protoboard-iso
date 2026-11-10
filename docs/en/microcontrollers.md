@@ -7,7 +7,7 @@ processor, but what a learner sees at the pins. Each GPIO behaves electrically l
 and a short program in Arduino's own functions decides, in time, what each pin does. The same code
 serves every board; what changes are each family's numbers.
 
-Planned with the maintainer on 2026-10-26. Phases M1 to M4 are done.
+Planned with the maintainer on 2026-10-26. Phases M1 to M5 are done.
 
 ## Why not emulate the processor
 
@@ -90,7 +90,7 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   left to right.
 - **What it can call** (`src/sim/program.js`): `pinMode` (`INPUT`, `OUTPUT`, `INPUT_PULLUP`,
   `INPUT_PULLDOWN`), `digitalWrite`, `digitalRead`, `delay`, `delayMicroseconds`, `millis`,
-  `micros`, `Serial.begin/print/println` (its last lines show in the board's card), `analogRead`
+  `micros`, `pulseIn` and `pulseInLong` ([below](#pulsein)), `Serial.begin/print/println` (its last lines show in the board's card), `analogRead`
   (the ADC count), `map`, `constrain`, `min`, `max`, `abs`, `log` (natural logarithm, for a thermistor's B equation), `random` (a fixed sequence), the bit
   functions, `LED_BUILTIN` (2 on the DevKit, 8 on the C3, 13 on the UNO) and `A0`…`A5`. On an UNO,
   `digitalWrite(pin, HIGH)` on an input turns its pull-up on, as on the real chip.
@@ -136,6 +136,42 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - Tests in `test/program.test.js`: duty and frequency of `analogWrite`, both LEDC styles, `tone`
   with a duration, the UNO's non-PWM pin, the step hint and the averaged glow.
 
+## pulseIn
+
+`pulseIn(pin, value)` and `pulseIn(pin, value, timeout)` (and `pulseInLong`, the same here) return
+the width of the next pulse at `value` on the pin, in whole microseconds, or 0 when `timeout`
+(microseconds, 1 000 000 by default) passes first, counted from the call, as Arduino's: a pulse
+already under way when it is called is let go first. The HC-SR04 is what it is for
+([ultrasonic-sensor.md](ultrasonic-sensor.md)): `pulseIn(ECHO, HIGH, 30000)` is the round trip of
+the sound.
+
+- **How it waits.** It is a generator of the runtime that the translator calls with `yield*`, as
+  one's own functions are. It reads the pin with the board's thresholds (`digitalRead`'s) at the end
+  of every step, and between two looks it gives the step back (it yields a value of the runtime's
+  own, never a number, so a sketch's `delay` cannot pass for it). The width is the time between the
+  step that saw the pulse start and the one that saw it end.
+- **Its accuracy: the steps end on the edges.** Polling at the page's step (1 ms) would read a 5.8 ms
+  echo to a millisecond, and a step fine enough to read it to a microsecond would make the page crawl.
+  So the engine ends a step on every event an element names (`until()`, seconds from now):
+  `engine.advance(h)` takes h in pieces that end on each event inside it (at most 1 000 a call,
+  none closer than a nanosecond). A program names when it wakes (the end of a `delay` or a
+  `delayMicroseconds`, `pulseIn`'s timeout), so `delayMicroseconds(10)` is a pulse of 10 µs on the
+  pin; a timed sensor names its next edge (the HC-SR04: the end of its burst, the end of its echo),
+  so the program sees `ECHO` rise and fall at their times and `pulseIn` reads 5 824 µs for 100 cm at
+  20 °C whatever the page's step. A pulse from something that names no edges (a button, an RC) is
+  read to a step.
+- **It costs a few steps, not a fine step.** The page's step stays what it was (`stepHint()` and the
+  pace do not change): `uno-blink` takes 1 000 steps a simulated second before and after; `uno-distance`
+  (a measurement every 100 ms) takes about 1 050, the five or so landings of each measurement.
+- **It is safe.** `pulseIn` is one more name of `SKETCH_API`, with no new member access. A timeout
+  that is not a number, negative (unsigned, a huge number in C) or over 3 000 000 µs is clamped to
+  `LIMITS.pulseInMicros` (3 s); a timeout of 0 returns 0 at once. A `while (1) pulseIn(…)` on a pin
+  nothing drives waits one timeout per step at most and gives the step back; `test/attack.test.js`
+  has these cases.
+- **In the card:** while it looks at its pin, the board's program waits until its timeout.
+- Not run: `transient()` (the CLI's `simulate --transient`) steps at its fixed step, so there a
+  pulse is read to a step.
+
 ## The plan
 
 | Phase | What | State |
@@ -144,6 +180,7 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 | **M2** | The program: the `.ino` beside the circuit (or its text), translated to JavaScript; `pinMode`, `digitalWrite`, `digitalRead`, `delay`, `millis`, `Serial`; run between time steps, `delay` waits in simulated time; the page runs it in real time | ✅ 2026-10-26 |
 | **M3** | PWM as a real square wave in time (`analogWrite`, `ledcWrite`), `tone`, the step it needs in the page and the LED's averaged glow, the serial monitor in the board's card | ✅ 2026-10-26 |
 | **M4** | Recipes with their program: `esp32-led`, `esp32-button`, `uno-blink`, `uno-button`, `uno-pot-pwm`, `c3-blink`, `c3-pot-pwm`; tested potentiometer → ADC → PWM against each board's numbers | ✅ 2026-10-26 |
+| **M5** | `pulseIn` (2026-11-10): a wait in simulated time that measures between the steps ending on the edges; `engine.advance` lands on each element's events; recipes `uno-distance`, `esp32-distance`, `distance-alarm-uno` with the HC-SR04 | ✅ 2026-11-10 |
 | later | A serial console panel of its own in the page, `analogRead` against the ESP32 ADC's real curve, interrupts (`attachInterrupt`), simplified stand-ins for common libraries, real UNO firmware with avr8js as an optional mode, both ESP32 headers in one circuit (the layout limit) | — |
 
 The program drives the memory the pins keep (`gpioStage`: `mode`, `level`, `pull`) through one

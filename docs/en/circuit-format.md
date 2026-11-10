@@ -464,6 +464,18 @@ The table, the shaft and the bounce are in [rotary-encoder.md](rotary-encoder.md
 { "id": "U2", "type": "rotary-encoder", "pins": ["h2", "h3", "h4", "h5", "h6"] }
 ```
 
+### ultrasonic-sensor
+
+An HC-SR04 ultrasonic distance module standing on four pins `VCC`, `TRIG`, `ECHO`, `GND` (read from
+the left with its capsules toward you). It runs from 5 V; a 10 µs pulse on `TRIG` starts a
+measurement and `ECHO` stays high (5 V) for the round trip of the sound. Fields: `part` (`"HC-SR04"`,
+the default), `distance` (cm) and `temperature` (°C, default 20), its own values of the environment's
+fields ([ultrasonic-sensor.md](ultrasonic-sensor.md)).
+
+```json
+{ "id": "U2", "type": "ultrasonic-sensor", "pins": ["h20", "h21", "h22", "h23"] }
+```
+
 ### header
 
 A row of male header pins, to show where a module or a Dupont wire plugs in. Place it with

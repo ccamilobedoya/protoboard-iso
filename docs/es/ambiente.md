@@ -46,6 +46,8 @@ de inclinación (`tilt`) y los módulos de sensor con LM393 ([modulos-sensores.m
 disco de encoder) y el encoder rotativo KY-040 ([encoder-rotativo.md](encoder-rotativo.md): `angle` es el objetivo al que gira su eje) lo leen; los demás campos quedan listos para los sensores que vienen. `reflectance` (la
 superficie bajo un seguidor de línea o frente a un sensor de obstáculos) y `beam` (algo en una ranura
 óptica) llegaron con esos módulos.
+El módulo ultrasónico HC-SR04 ([sensor-ultrasonico.md](sensor-ultrasonico.md)) lee `distance` y
+`temperature`, que fija la velocidad del sonido.
 
 ## En el circuito
 

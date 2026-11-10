@@ -11,7 +11,16 @@
 //   runner.pins: gpio → { mode, level, pull, pwm: { freq, duty } | null }: a pin with pwm switches
 //     in time (the board sets its level at each step from runner.time: levelAt)
 //   runner.fastest() → the shortest PWM or tone period now (seconds), or null
+//   runner.until() → seconds until it wants to run again (a delay ending, or pulseIn looking at its
+//     pin until its timeout), or null; the engine ends a step there (engine.advance's landings), so
+//     delayMicroseconds(10) is a pulse of 10 µs and pulseIn measures from the steps that end on edges
 //   runner.time, runner.waitingUntil, runner.log (Serial lines), runner.error, runner.notes
+//
+// pulseIn(pin, value[, timeout µs]) is a generator the sketch calls with yield* (sketch.js): it
+// waits in simulated time, looking at its pin at the end of every step (it yields LOOK: "run me at
+// the next step"), and measures the pulse between the steps that saw it start and end. Exact when
+// what drives the pin says when its edges come (a timed sensor's `until()`), to a step otherwise.
+// The wait is bounded by the timeout, clamped to PULSE_IN_MAX (src/limits.js, pulseInMicros).
 
 const BUDGET = 2000; // loop turns or loop() calls per advance before it lets the step go on
 const LOG = 40; // Serial lines kept
@@ -29,6 +38,11 @@ const BUILTIN_LED = { uno: 13, esp32: 2, esp32c3: 8 };
 // on an ESP32 (Arduino core 3) any output pin, 1 kHz, 8 bits.
 const UNO_PWM = { 3: 490, 5: 980, 6: 980, 9: 490, 10: 490, 11: 490 };
 const ESP_PWM = 1000;
+export const PULSE_IN_MAX = 3_000_000; // µs: the longest pulseIn timeout (Arduino's default is 1 000 000)
+const PULSE_IN_DEFAULT = 1_000_000;
+// What pulseIn yields to look at its pin again at the end of the next step. An object of the
+// runtime's own: a sketch's delay() can only yield numbers.
+const LOOK = Object.freeze({ look: true });
 
 // A PWM pin's level at time t: high for the first `duty` of each period.
 export const levelAt = (pwm, t) => (pwm.duty >= 1 ? 1 : pwm.duty <= 0 ? 0 : (t * pwm.freq) % 1 < pwm.duty ? 1 : 0);
@@ -37,7 +51,7 @@ export function createRunner(js, board) {
   const pins = {};
   for (const [gpio, s] of Object.entries(board.states ?? {})) pins[gpio] = { ...s };
   const pin = (n) => (pins[n] ??= { mode: 'input', level: 0, pull: null, pwm: null });
-  const runner = { read: board.read, pins, time: 0, wait: 0, log: [], line: '', error: null, notes: [], changed: false, waitingUntil: 0 };
+  const runner = { read: board.read, pins, time: 0, wait: 0, log: [], line: '', error: null, notes: [], changed: false, waitingUntil: 0, looking: null };
   const set = (n, values) => {
     const p = pin(n);
     for (const [k, v] of Object.entries(values)) {
@@ -65,6 +79,37 @@ export function createRunner(js, board) {
     runner.log.push(...parts);
     if (runner.log.length > LOG) runner.log.splice(0, runner.log.length - LOG);
   };
+  // A pin's logic level with the board's thresholds; between them a real pin reads either: here it
+  // keeps what it read last.
+  const digital = (n) => {
+    const r = volts(n);
+    if (!r) return 0;
+    const v = r.volts / r.vdd;
+    lastRead[n] = v < board.vil ? 0 : v > board.vih ? 1 : lastRead[n] ?? 0;
+    return lastRead[n];
+  };
+  // pulseIn's wait: the width of the next pulse at `value` on pin n, in µs, or 0 when the timeout
+  // (µs, from the call) passes first. As Arduino's: a pulse already under way is let go first.
+  function* pulse(n, value, timeout) {
+    const level = value ? 1 : 0;
+    let limit = Number(timeout);
+    if (!(limit >= 0 && limit <= PULSE_IN_MAX)) limit = PULSE_IN_MAX; // not a number, negative (unsigned in C: huge), or over the cap
+    if (limit === 0) return 0; // nothing to wait for (a busy loop of these costs no more than a turn)
+    const deadline = runner.time + limit / 1e6;
+    const until = function* (want) {
+      while (digital(n) !== want) {
+        if (runner.time >= deadline - 1e-12) return false;
+        runner.looking = deadline;
+        yield LOOK;
+      }
+      return true;
+    };
+    if (!(yield* until(1 - level))) return 0;
+    if (!(yield* until(level))) return 0;
+    const start = runner.time;
+    if (!(yield* until(1 - level))) return 0;
+    return Math.round((runner.time - start) * 1e6);
+  }
   const show = (v, digits) => (typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(digits ?? 2)) : String(v));
   const analog = ANALOG[board.family] ?? [];
   const api = {
@@ -84,13 +129,13 @@ export function createRunner(js, board) {
       // On an AVR, writing HIGH to an input turns its pull-up on (the old way to ask for it).
       else if (board.family === 'uno') set(n, { pull: value ? 'up' : null });
     },
-    digitalRead(n) {
-      const r = volts(n);
-      if (!r) return 0;
-      const v = r.volts / r.vdd;
-      // Between the thresholds a real pin reads either; here it keeps what it read last.
-      lastRead[n] = v < board.vil ? 0 : v > board.vih ? 1 : lastRead[n] ?? 0;
-      return lastRead[n];
+    digitalRead: (n) => digital(n),
+    *pulseIn(n, value, timeout = PULSE_IN_DEFAULT) {
+      return yield* pulse(n, value, timeout);
+    },
+    // The same on Arduino's cores (it counts with micros() instead of cycles).
+    *pulseInLong(n, value, timeout = PULSE_IN_DEFAULT) {
+      return yield* pulse(n, value, timeout);
     },
     analogRead(n) {
       const r = volts(n);
@@ -186,11 +231,19 @@ export function createRunner(js, board) {
     return runner;
   }
   let gen = program.setup();
+  runner.until = () => {
+    if (runner.error) return null;
+    if (runner.looking != null) return Math.max(0, runner.looking - runner.time);
+    return runner.wait > 1e-12 ? runner.wait : null;
+  };
   runner.advance = (dt = 0) => {
     runner.changed = false;
     if (runner.error) return false;
     runner.time += dt;
-    runner.wait -= dt;
+    // A pulseIn looking at its pin goes on now, whatever the step was; a delay counts the step down.
+    if (runner.looking != null) runner.wait = 0;
+    else runner.wait -= dt;
+    runner.looking = null;
     for (const [n, end] of Object.entries(tones)) if (runner.time >= end) api.noTone(Number(n));
     let turns = 0;
     while (runner.wait <= 1e-12) {
@@ -206,10 +259,13 @@ export function createRunner(js, board) {
         if (++turns > BUDGET) break;
         continue;
       }
+      // pulseIn: nothing new to see before the next step (runner.looking holds its timeout).
+      if (r.value === LOOK) break;
       if (r.value > 0) runner.wait += r.value;
       else if (++turns > BUDGET) break;
     }
-    runner.waitingUntil = runner.time + Math.max(0, runner.wait);
+    // Until its delay ends, or until pulseIn's timeout while it looks at its pin.
+    runner.waitingUntil = runner.looking ?? runner.time + Math.max(0, runner.wait);
     return runner.changed;
   };
   return runner;

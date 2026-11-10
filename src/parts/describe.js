@@ -54,6 +54,7 @@ export function describeKeys(part) {
     case 'touch-sensor':
     case 'rotary-encoder':
     case 'laser':
+    case 'ultrasonic-sensor':
       return [part.type, ...(e.adjustable ? ['regulator.adjustable'] : [])];
     case 'regulator':
       return ['regulator', ...(e.adjustable ? ['regulator.adjustable'] : []), ...(e.family === 'AMS1117' ? ['regulator.ldo'] : [])];

@@ -65,6 +65,7 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 | `line-follower-uno`, `hall-counter-uno` | Arduino UNO reading a TCRT5000 line follower; counting a magnet's passes with a KY-024 |
 | `encoder-uno`, `encoder-dimmer-uno` | a KY-040 rotary encoder on a UNO counting clicks (CLK falls, DT gives the direction); the same dimming a LED with the count |
 | `laser-tripwire`, `laser-uno` | a KY-008 laser whose light reaches every light sensor (an emitter): a tripwire with an LDR-LM393 module; a UNO blinking it and reading a photoresistor |
+| `uno-distance`, `esp32-distance`, `distance-alarm-uno` | an HC-SR04 ultrasonic module read with `pulseIn` (the environment's `distance`): on an UNO; on an ESP32 with a divider on ECHO; with an LED under 15 cm |
 
 - **values**: the main field by id (`"R1": "470"`, `"D1": "green"`, `"Q1": "BC547"`, `"V1": 9`) or
   some fields (`"R1": {"value": "470", "tolerance": "1%"}`). Only the ids a recipe lists can change,

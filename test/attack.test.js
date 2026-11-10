@@ -88,7 +88,7 @@ test('attack: a string never lands in the code, and a "/" where a value goes is 
 test('attack: the JavaScript of every recipe and of hostile sketches names nothing else', () => {
   const programs = Object.keys(RECIPES).flatMap((name) => expandRecipe(name).spec.parts.map((p) => p.program).filter(Boolean));
   assert.ok(programs.length >= 5);
-  const hostile = [sketch('int a[3] = {1, 2, 3}; a[a[0]] = window + document + require + import_meta;'), sketch('Serial.write(1); Serial.flush();')];
+  const hostile = [sketch('int a[3] = {1, 2, 3}; a[a[0]] = window + document + require + import_meta;'), sketch('Serial.write(1); Serial.flush();'), sketch('long t = pulseIn(constructor, HIGH, pulseInLong(7, LOW)); Serial.println(t);')];
   for (const p of [...programs, ...hostile]) {
     const { js } = translateSketch(p);
     assert.ok(js, p);
@@ -105,6 +105,24 @@ test('attack: a sketch cannot take the memory or the time of the machine', { tim
   const busy = run('void setup() { while (true) { } }\nvoid loop() { }');
   assert.equal(busy.error, null, 'a loop that never waits gives the step back');
   assert.equal(run('void f(int "x") { }\n' + sketch('')).r.js, null, 'a parameter must be a name');
+});
+
+test('attack: pulseIn on a pin nothing drives gives the engine back, whatever its timeout', { timeout: 10000 }, () => {
+  for (const loop of ['pulseIn(7, HIGH);', 'while (1) pulseIn(7, HIGH);', 'pulseIn(7, HIGH, 4000000000);', 'while (true) { pulseIn(7, HIGH, 0); }', 'pulseIn(7, HIGH, -5); delayMicroseconds(1);']) {
+    const circuit = autoLayout({ board: 'auto', ...expandRecipe('uno-blink', { U1: `void setup() { pinMode(7, INPUT); }\nvoid loop() { ${loop} }` }).spec }).circuit;
+    const engine = createEngine(compile(circuit).program);
+    assert.ok(engine.start('dc', 1e-3));
+    const t0 = performance.now(); // real clock: the wall time is what a hostile sketch must not take
+    assert.ok(engine.advance(1), loop);
+    const wall = performance.now() - t0; // real clock: the same measurement
+    assert.ok(wall < 2000, `${loop}: ${Math.round(wall)} ms of wall time for one advance of 1 s`);
+    for (let k = 0; k < 100; k++) assert.ok(engine.advance(1e-3), loop);
+    assert.ok(Math.abs(engine.time - 1.1) < 1e-9, loop);
+    const u1 = engine.read().parts.U1.program;
+    assert.equal(u1.error, null, loop);
+    // Whatever timeout it gives, it waits at most the cap.
+    assert.ok(u1.until - u1.time <= LIMITS.pulseInMicros / 1e6 + 1e-9, loop);
+  }
 });
 
 // A board with a program file, in a folder of its own.

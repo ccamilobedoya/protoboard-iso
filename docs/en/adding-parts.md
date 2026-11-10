@@ -215,7 +215,9 @@ it lists the keys of its elements in `state: [...]` so `engine.set` carries them
 `maxStep()` and `span()`; see [timed-sensors.md](timed-sensors.md). A sensor that follows a
 field through a moving part (the rotary encoder's shaft, which chases the environment's `angle`
 at a bounded speed) keeps that part in the same carried state and writes its motion as a pure
-function first: [rotary-encoder.md](rotary-encoder.md).
+function first: [rotary-encoder.md](rotary-encoder.md). One whose output a program
+times to the microsecond (the HC-SR04's echo) names its next edge with `until()`, and the engine ends
+a step there; see [ultrasonic-sensor.md](ultrasonic-sensor.md).
 A sensor on the usual comparator board (rain, soil, light, an infrared slot or pair, a Hall switch,
 a vibration contact) is not a new type: it is one row of the `sensor-module` table, its element and
 a glyph ([sensor-modules.md](sensor-modules.md#adding-a-ninth-part)).

@@ -198,3 +198,8 @@ Object.assign(MATERIALS, {
   encoderShaft: '#cfd3d8',
   encoderBoard: '#17503a',
 });
+
+// The ultrasonic module (HC-SR04): the dark mesh over each capsule's face.
+Object.assign(MATERIALS, {
+  sonarMesh: '#3a3d42',
+});

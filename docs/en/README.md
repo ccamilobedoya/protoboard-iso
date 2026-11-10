@@ -31,5 +31,6 @@ planning live at the root: [ROADMAP.md](../../ROADMAP.md), [PLANNING.md](../../P
 - [Timed sensors: a PIR and a touch module](timed-sensors.md): Most sensors answer at once: change the light and the resistance changes.
 - [Timelines: every step and option](timeline.md): A timeline is the script of a video and of a page's tour (*See how it works*): a JSON file of steps, each at a time, each doing one thing.
 - [Translating](translating.md): There are two things to translate, and they are independent.
+- [The ultrasonic distance sensor (HC-SR04)](ultrasonic-sensor.md): The HC-SR04 measures distance with sound: one capsule (`T`) sends a short burst of 40 kHz, the other (`R`) listens for its echo, and the module holds `ECHO` high for as long as the sound took to go and come back.
 - [User experience pass: design and plan](ux-pass.md): Stage 3 left the page with many useful features: views, framing, labels, the current layer, time controls, Falstad, cards for parts and strips with their values, sliders and oscilloscope, a controls panel and warnings.
 <!-- /generated -->
