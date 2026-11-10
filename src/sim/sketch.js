@@ -516,6 +516,9 @@ export function translateSketch(source, { strings = [] } = {}) {
         scopes.pop();
       } else {
         const decl = declarators(integer, 'let', [';']);
+        // A global's value is computed once, before setup: a call that waits there (delay, pulseIn,
+        // one's own function, all generators here) has no time to wait in.
+        if (/\(yield[ *]/.test(decl)) fail('a call that waits, outside a function');
         expect(';');
         out.push(`${decl};`);
       }

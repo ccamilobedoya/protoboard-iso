@@ -48,7 +48,8 @@ const LOOK = Object.freeze({ look: true });
 export const levelAt = (pwm, t) => (pwm.duty >= 1 ? 1 : pwm.duty <= 0 ? 0 : (t * pwm.freq) % 1 < pwm.duty ? 1 : 0);
 
 export function createRunner(js, board) {
-  const pins = {};
+  // Maps by pin with no prototype: a pin named "__proto__" by a sketch is a key, never Object's.
+  const pins = Object.create(null);
   for (const [gpio, s] of Object.entries(board.states ?? {})) pins[gpio] = { ...s };
   const pin = (n) => (pins[n] ??= { mode: 'input', level: 0, pull: null, pwm: null });
   const runner = { read: board.read, pins, time: 0, wait: 0, log: [], line: '', error: null, notes: [], changed: false, waitingUntil: 0, looking: null };
@@ -63,9 +64,9 @@ export function createRunner(js, board) {
   };
   // Read through runner.read: a rebuilt circuit (a control changed) hands the runner its own.
   const volts = (n) => runner.read(n);
-  const lastRead = {};
-  const ledc = { pins: {}, channels: {} };
-  const tones = {}; // pin → time its tone ends
+  const lastRead = Object.create(null);
+  const ledc = { pins: Object.create(null), channels: Object.create(null) };
+  const tones = Object.create(null); // pin → time its tone ends
   // A duty of 0 or 1 is a plain level, no wave to step through.
   const pwmOf = (freq, duty) => (duty <= 0 ? { level: 0, pwm: null } : duty >= 1 ? { level: 1, pwm: null } : { pwm: { freq, duty } });
   runner.fastest = () => {
