@@ -65,10 +65,11 @@ import { FIELDS, createEnvironment, environmentControls, seenValues, emittedShar
 const SHORT_CURRENT = 3; // amperes from an unlimited source that mean "short circuit"
 const ADVANCE_SPLITS = 4; // advance(h): halvings of a step that failed, at most (h/16)
 // advance(h) ends a step on each event inside h (an element's `until()`: a program waking, a timed
-// sensor's edge), at most LANDINGS of them; an event closer than LAND_MIN is now. A sketch that wakes
-// every microsecond still gets h back in LANDINGS + 1 steps.
-const LANDINGS = 1000;
-const LAND_MIN = 1e-9;
+// sensor's edge), at most LANDINGS of them; an event closer than LAND_MIN is now. A measurement of
+// an HC-SR04 takes about five; a sketch that wakes every microsecond gets h back in LANDINGS + 1
+// steps, and past the cap the rest of h is one step (a faster software PWM is read a step late).
+const LANDINGS = 32;
+const LAND_MIN = 0.5e-6;
 // What an element changes while Newton iterates (junction limiting, an op-amp's rail edge).
 const LIMITING = ['vd', 'vgs', 'vds', 'vbe', 'vbc', 'edge'];
 const EMIT_ROUNDS = 8; // solve → emissions → sensors rounds before a loop is called feedback
@@ -564,17 +565,18 @@ export function createEngine(source) {
     // One step of h, as step(); when Newton fails, the same h in two halves (each split again, down
     // to a sixteenth). The step that follows is h again: a hard instant (diodes switching) costs a
     // few more steps there and slows nothing after it. false when even the shortest piece fails.
-    advance(h, depth = ADVANCE_SPLITS, land = true) {
-      // Events inside h (a program waking from delayMicroseconds, a sensor's edge) end steps of
-      // their own, so what reads them sees them at their time (pulseIn, docs/en/microcontrollers.md).
-      for (let k = 0; land && k < LANDINGS; k++) {
+    // Events inside h (a program waking from delayMicroseconds, a sensor's edge) end steps of their
+    // own, so what reads them sees them at their time (pulseIn, docs/en/microcontrollers.md). A
+    // failure in the middle returns false with the pieces before it taken: the time stands at the
+    // last piece that solved, as after a failed step.
+    advance(h) {
+      for (let k = 0; k < LANDINGS; k++) {
         const soon = nextEvent();
         if (!(soon > LAND_MIN && soon < h - LAND_MIN)) break;
-        if (!this.advance(soon, ADVANCE_SPLITS, false)) return false;
+        if (!halving(this, soon, ADVANCE_SPLITS)) return false;
         h -= soon;
       }
-      if (this.step(h)) return true;
-      return depth > 0 && this.advance(h / 2, depth - 1, false) && this.advance(h / 2, depth - 1, false);
+      return halving(this, h, ADVANCE_SPLITS);
     },
     read: () => (x ? mark(readAll(prep, x, ctx)) : null),
     get time() {
@@ -720,6 +722,9 @@ function changeProgram(program, id, field, value) {
   const s = program.supplies.find((sup) => (sup.part ?? sup.id) === id);
   return Boolean(s) && setSupply(s, field, value);
 }
+
+// One step of h, or two halves of it where Newton fails (each split again, `depth` times).
+const halving = (engine, h, depth) => engine.step(h) || (depth > 0 && halving(engine, h / 2, depth - 1) && halving(engine, h / 2, depth - 1));
 
 // What an element remembers between steps or Newton iterations: capacitor voltage, inductor
 // current, junction and transistor voltages. Matched by part and by the order the part added
