@@ -201,3 +201,21 @@ test('a slider elsewhere while ECHO is high does not start the measurement again
   const lines = printed(bench({ distance: 200 }).engine, 0.25);
   near(lines[0], echoWidth({ distance: 200, temperature: 20 }) * 1e6, 2, 'the echo of 200 cm');
 });
+
+test('up close: the symbol\'s letters and terminals, the printed face, the inside view and its legend', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { buildCircuit } = await import('../src/index.js');
+  const { symbolOf, insideOf } = await import('../src/parts/symbols.js');
+  const { t } = await import('../src/i18n/index.js');
+  const r = autoLayout({ parts: [{ id: 'S1', type: 'ultrasonic-sensor' }], nets: [['T+', 'S1.VCC'], ['S1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }] });
+  const part = buildCircuit(r.circuit).parts.find((p) => p.id === 'S1');
+  const symbol = symbolOf(part);
+  for (const n of part.pinNames) assert.ok(symbol.ids[n] && symbol.pins[n], n);
+  assert.equal(part.built.mark.kind, 'face');
+  assert.equal(insideOf(part).kind, 'sonar');
+  const figure = readFileSync(new URL('../src/page/client/figure.js', import.meta.url), 'utf8');
+  assert.match(figure, /\n {2}sonar\(g, r, data/);
+  const legend = readFileSync(new URL('../src/page/client/focus-view.js', import.meta.url), 'utf8').match(/\n {2}sonar: \[(.*)\],/)[1];
+  for (const [, key] of legend.matchAll(/\['[a-z]*', '([a-z]+)'\]/g)) for (const lang of ['en', 'es']) assert.notEqual(t(lang, `page.tour.legend.sonar.${key}`), `page.tour.legend.sonar.${key}`);
+  for (const n of part.pinNames) for (const lang of ['en', 'es']) assert.notEqual(t(lang, `pin.role.ultrasonic-sensor.${n}`), `pin.role.ultrasonic-sensor.${n}`);
+});

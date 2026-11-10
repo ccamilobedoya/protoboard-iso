@@ -407,6 +407,17 @@ const sensorModuleSymbol = (names, print, title) => {
   };
 };
 
+// An ultrasonic module as a block: the transmitter capsule (T) sends its arcs out, the receiver (R)
+// takes them in; TRIG comes in on the left, ECHO goes out on the right, VCC on top, GND under it.
+const ultrasonicSymbol = () => ({
+  w: 100, h: 100,
+  strokes: ['M20 22H80V78H20Z', 'M50 4V22', 'M50 78V96', 'M4 60H20', 'M80 60H96', 'M30 40a6 6 0 1 0 12 0a6 6 0 1 0 -12 0', 'M58 40a6 6 0 1 0 12 0a6 6 0 1 0 -12 0', 'M30 30Q36 25 42 30', 'M28 26Q36 19 44 26', 'M58 26Q64 31 70 26', 'M56 22Q64 29 72 22', 'M14 56L20 60L14 64'],
+  fills: [],
+  texts: [{ x: 36, y: 56, text: 'T', anchor: 'middle', small: true }, { x: 64, y: 56, text: 'R', anchor: 'middle', small: true }, { x: 23, y: 72, text: 'TRIG', anchor: 'start', small: true }, { x: 77, y: 72, text: 'ECHO', anchor: 'end', small: true }],
+  pins: { VCC: [50, 4], TRIG: [4, 60], ECHO: [96, 60], GND: [50, 96] },
+  ids: { VCC: 'VCC', TRIG: 'TRIG', ECHO: 'ECHO', GND: 'GND' },
+});
+
 export function symbolOf(part) {
   const e = part.def?.electrical ?? {};
   const names = part.pinNames ?? [];
@@ -437,6 +448,7 @@ export function symbolOf(part) {
   if (part.type === 'pir-sensor') return pirSymbol();
   if (part.type === 'touch-sensor') return touchSymbol();
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
+  if (part.type === 'ultrasonic-sensor') return ultrasonicSymbol();
   if (part.type === 'sensor-module') return sensorModuleSymbol(names, part.def?.params?.print, e.part ?? '');
   return null;
 }
@@ -543,5 +555,7 @@ export function insideOf(part) {
     const { element, stim = {}, threshold, active, doPin } = limits();
     return { kind: 'module', ids: ids(), names: part.pinNames, element, field: Object.keys(stim)[0], threshold, active, doPin };
   }
+  // An ultrasonic module: the range it sees, from its device's model.
+  if (part.type === 'ultrasonic-sensor') return { kind: 'sonar', ids: ids(), range: [2, 400] };
   return null;
 }

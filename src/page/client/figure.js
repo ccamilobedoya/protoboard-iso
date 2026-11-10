@@ -1094,6 +1094,37 @@ const INSIDE = {
     const field = data.field ?? 'rain';
     label(g, 50, 114, r ? t(`page.tour.inside.module.${low ? 'low' : 'high'}`, { what: t(`sim.sensor-module.${field}.${r.detected ? 'detected' : 'idle'}`) }) : '', 'state');
   },
+  sonar(g, r, data, { t, f }) {
+    // An ultrasonic module from the side: T and R (two piezo discs in their cans) look at a wall; the
+    // burst leaves T as arcs, reaches the wall half way through the echo and comes back to R; the bar
+    // under them fills with the round trip while ECHO is high, its lamp lit, and the width it reads
+    // with the distance that width means (÷ 58 µs per cm).
+    const [vcc, trig, echo] = data.ids;
+    const state = r?.state ?? 'idle';
+    const k = state === 'echo' && r.length > 0 ? Math.max(0, Math.min(1, 1 - r.left / r.length)) : 0;
+    const back = state === 'echo' && !r.noEcho && k >= 0.5;
+    make(g, 'path', { class: `disc${state === 'burst' || (state === 'echo' && k < 0.08) ? ' on' : ''}`, d: 'M12 20V40' });
+    make(g, 'path', { class: `disc${back && k > 0.92 ? ' on' : ''}`, d: 'M12 52V72' });
+    label(g, 6, 33, 'T', 'pin-name', 'middle', FIGURE.small);
+    label(g, 6, 65, 'R', 'pin-name', 'middle', FIGURE.small);
+    make(g, 'rect', { class: 'plate', x: 86, y: 14, width: 4, height: 64 });
+    label(g, 88, 10, r ? `${Math.round(r.distance)} cm` : '', 'note', 'middle', FIGURE.small);
+    // The sound: arcs near T in the burst; out to the wall and back to R in the echo.
+    const arcs = (x, y, out) => {
+      for (const dx of [0, 4]) make(g, 'path', { class: 'sound', d: `M${fixed(x + (out ? dx : -dx))} ${y - 8}A10 10 0 0 ${out ? 1 : 0} ${fixed(x + (out ? dx : -dx))} ${y + 8}` });
+    };
+    if (state === 'burst') arcs(16, 30, true);
+    else if (state === 'echo' && !back) arcs(16 + (84 - 20) * Math.min(1, 2 * k), r.noEcho ? 30 : 30 + 16 * Math.min(1, 2 * k), true);
+    else if (back) arcs(84 - (84 - 20) * (2 * k - 1), 46 + 16 * (2 * k - 1), false);
+    // The round trip: a bar that fills while ECHO is high, and ECHO's lamp.
+    make(g, 'rect', { class: 'film', x: 8, y: 82, width: 72, height: 7, rx: 2 });
+    if (k > 0) make(g, 'rect', { class: 'soc', x: 8, y: 82, width: fixed(72 * k), height: 7, rx: 2 });
+    make(g, 'circle', { class: `out${state === 'echo' ? ' active' : ''}`, cx: 91, cy: 85.5, r: 4 });
+    label(g, 91, 96, echo, 'pin-name', 'middle', FIGURE.small);
+    label(g, 44, 96, r ? (r.noEcho ? t('page.tour.inside.sonar.none', { time: f(r.width, 's') }) : `${f(r.width, 's')} → ${Math.round(r.means)} cm`) : '', 'note', 'middle', FIGURE.small);
+    label(g, 50, 103, r ? [`${vcc} ${f(r.vcc, 'V')}`, `${trig} ${f(r.vtrig, 'V')}`, `${echo} ${f(r.vecho, 'V')}`].join(' · ') : '', 'note');
+    label(g, 50, 114, r ? t(`page.tour.inside.sonar.${state}`) : '', 'state');
+  },
 };
 
 // `reading()`, `t`, `f` as the tour has them; `look()`: the current layer's scale (bench.js); `now()`:
