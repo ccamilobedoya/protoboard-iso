@@ -1122,7 +1122,9 @@ const INSIDE = {
     make(g, 'circle', { class: `out${state === 'echo' ? ' active' : ''}`, cx: 91, cy: 85.5, r: 4 });
     label(g, 91, 96, echo, 'pin-name', 'middle', FIGURE.small);
     label(g, 44, 96, r ? (r.noEcho ? t('page.tour.inside.sonar.none', { time: f(r.width, 's') }) : `${f(r.width, 's')} → ${Math.round(r.means)} cm`) : '', 'note', 'middle', FIGURE.small);
-    label(g, 50, 103, r ? [`${vcc} ${f(r.vcc, 'V')}`, `${trig} ${f(r.vtrig, 'V')}`, `${echo} ${f(r.vecho, 'V')}`].join(' · ') : '', 'note');
+    // Under a millivolt it is the solver's leakage, not a level.
+    const v = (x) => f(Math.abs(x) < 1e-3 ? 0 : x, 'V');
+    label(g, 50, 103, r ? [`${vcc} ${v(r.vcc)}`, `${trig} ${v(r.vtrig)}`, `${echo} ${v(r.vecho)}`].join(' · ') : '', 'note');
     label(g, 50, 114, r ? t(`page.tour.inside.sonar.${state}`) : '', 'state');
   },
 };
