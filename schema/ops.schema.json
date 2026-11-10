@@ -3266,7 +3266,10 @@
                       "laser-uno",
                       "uno-distance",
                       "esp32-distance",
-                      "distance-alarm-uno"
+                      "distance-alarm-uno",
+                      "uno-dht11",
+                      "esp32-bme280",
+                      "uno-bmp280-altitude"
                     ]
                   },
                   "values": {
