@@ -257,7 +257,17 @@ much of it each emitter gives.
 - **A loop that does not settle** (a lamp whose own light turns it off: a laser powered through a
   transistor that a light sensor cuts when it is bright) keeps the last round and says
   `SIM_ENV_FEEDBACK` (a warning: which emitter, which field, which sensors). The real circuit would
-  flicker or sit halfway; the page, stepping, shows it flickering.
+  flicker or sit halfway; the page, stepping, shows it flickering. The note comes with the DC results:
+  `simulate()` (the CLI, the MCP tool, the page's warnings) and `engine.dc()`, before or after a
+  start, for as long as the last fixed point (the start's or a `set`'s) did not settle; one that
+  settles clears it. `check` does not solve the circuit, so it never says it, and stepping adds
+  nothing to it.
+- **A transient** (`simulate --transient`, the MCP `simulate` tool) with emitters steps the same
+  engine as the page, with the same step of delay (the environment's programs held, as in any
+  transient); without emitters it runs as before.
+- **`engine.dc()` on a started engine** solves the circuit as it stands, the sensors at what they last
+  felt (while stepping, the light of the step before); it runs no fixed point of its own and changes
+  nothing in the running engine. Before any start it is the fixed point.
 
 ### In the engine and the page
 
@@ -267,7 +277,9 @@ much of it each emitter gives.
   that names a blocker).
 - `engine.controls()`' entry of a field keeps `value` = the ambient (the slider moves the ambient) and
   gains `emitted`, the share that reaches the sensors now (0 while it is blocked), when an emitter
-  writes it. `engine.set('environment', 'light', v)` sets the ambient.
+  writes it. `engine.set('environment', 'light', v)` sets the ambient. `emitted` is what arrives,
+  clamped by the field's limit (999 999 lx and a laser: 1 lx), while `emissions()`' `total` is all
+  the emitters add.
 - The page: the panel's row and the indicator of a field show what the sensors see, and the row says
   the share in words ("50 lx + 9.8 klx from LS1", or "50 lx · LS1 blocked (beam)"); the slider stays
   on the ambient. A sensor's card line ("Follows the environment · light 9.8 klx") says the seen

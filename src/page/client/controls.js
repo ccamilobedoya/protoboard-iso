@@ -59,7 +59,9 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
     const e = engine.emissions?.()[c.field];
     const from = Object.entries(e?.parts ?? {}).filter(([, v]) => v > 0).map(([id]) => id);
     if (!from.length) return ambient;
-    if (!(c.emitted > 0)) return t('page.env.blocked', { ambient, parts: from.join(', '), field: t(`sim.env.field.${FIELDS[c.field].blockedBy}`) });
+    if (e.blocked) return t('page.env.blocked', { ambient, parts: from.join(', '), field: t(`sim.env.field.${FIELDS[c.field].blockedBy}`) });
+    // What arrives: the field's limit may leave less than the emitters add, or nothing.
+    if (!(c.emitted > 0)) return ambient;
     return t('page.env.emitted', { ambient, share: show(c, c.emitted), parts: from.join(', ') });
   };
   // Every indicator on the page, by field: kept in step with the environment's values.

@@ -11,7 +11,8 @@
 //   environmentIssues(circuit)     what `check` says about the circuit's `environment`
 //   envText(field, value, decimal) a value as the page writes it ("300 lx", "25 °C"); null for a switch
 //   seenValues(ambient, emitted)   what the sensors see: the ambient values plus what the emitters add
-//   emittedShare(field, e, ambient) the share of an emission that reaches the sensors (0 while blocked)
+//   emittedShare(field, e, ambient) the share of an emission that reaches the sensors (0 while blocked,
+//                                  clamped to what the field's limit leaves above the ambient)
 //
 // A field of the circuit (`environment` at the top level) is a number, or { value?, program?, range? }:
 // `range` [min, max] is the span the slider and the indicator show (inside the field's limit; the
@@ -299,7 +300,15 @@ export const isBlocked = (field, ambient) => {
   const by = FIELDS[field]?.blockedBy;
   return Boolean(by && Number(ambient?.[by] ?? FIELDS[by].default));
 };
-export const emittedShare = (field, e, ambient) => (e && !isBlocked(field, ambient) ? e.total : 0);
+// The share that arrives: nothing while blocked, and for a level no more than the field's limit leaves
+// above the ambient (what the sensors see minus the ambient; never negative).
+export function emittedShare(field, e, ambient) {
+  if (!e || isBlocked(field, ambient)) return 0;
+  const f = FIELDS[field];
+  if (f.kind === 'switch') return e.total;
+  const base = ambient?.[field] ?? f.default;
+  return Math.max(0, Math.min(e.total, f.limit[1] - base));
+}
 
 // What the sensors see: a level is the ambient value plus the share that reaches them, clamped to the
 // field's limit; a switch is on when the ambient or any emitter says so. Only fields in the registry.

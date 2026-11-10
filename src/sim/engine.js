@@ -6,6 +6,8 @@
 //   engine.dc()                                         → operating point (each part with its
 //                                                         `stress`: value against each limit)
 //   engine.transient({ stop, step, start, points })     → time series
+//                                                       (with emitters it steps this engine:
+//                                                       one step of delay, programs held)
 // And step by step, for the live page:
 //   engine.start('dc' | 'zero', h) → ok    the state at t = 0 (DC values, or switched on with
 //                                          capacitors discharged)
@@ -42,6 +44,7 @@
 //                                                  now ({} without emitters)
 // Programs move with simulated time, before each step (as a generator's wave); dc() and the start
 // take them at t = 0. transient() keeps the environment as it is (programs run in the page).
+// dc() on a started engine solves the circuit as the sensors last felt it (no fixed point of its own).
 // Emitters (a device with `emits` and `emit(entry, reading)`: a laser writes `light`): what one adds
 // in a time step reaches the sensors in the next (one step of delay). At the start, after a set and in
 // dc() the engine iterates (solve → emissions → the sensors feel them → solve) until the emissions
@@ -451,9 +454,17 @@ export function createEngine(source) {
   // A circuit with emitters starts at its fixed point: dc(), environment() and a set before any start
   // already see the emitters' light.
   if (emitting()) settleDC();
-  return {
+  // A transient with emitters steps this engine (its start, its step with the programs held), so the
+  // emitters reach the sensors one step later as in the page; without emitters, the fixed prep's loop.
+  const drive = {
+    prep: () => prep,
+    begin: (start, h) => (api.start(start, h) ? null : 'SIM_NO_CONVERGENCE'),
+    step: (t, h) => api.step(h, true),
+    read: (c) => readAll(prep, x, c),
+  };
+  const api = {
     dc: () => (!emitting() ? dc(prep) : x ? mark(withFeedback(dc(prep))) : settleDC()),
-    transient: (options) => transient(prep, options),
+    transient: (options) => (emitting() ? transient(prep, options, drive) : transient(prep, options)),
     start(mode = 'dc', h = 1e-3) {
       lastH = h;
       const ambient = env ? env.rewind() : null;
@@ -489,7 +500,8 @@ export function createEngine(source) {
         used = m;
       }
     },
-    step(h) {
+    // `hold`: the environment's programs stay where they are (a transient, as before emitters).
+    step(h, hold = false) {
       if (!x) return false;
       if (pending) for (const el of memories()) el.accept(x, pending);
       pending = null;
@@ -499,7 +511,7 @@ export function createEngine(source) {
       // The environment's programs at the end of the step: the parts that follow them change first,
       // with what the emitters added in the step before (one step of delay).
       if (emitting()) used = emitted;
-      if (env && feel(program, seen(env.at(time + h)))) {
+      if (env && feel(program, seen(hold ? env.values() : env.at(time + h)))) {
         rebuild(false);
         setTime(prep, time + h);
       }
@@ -614,6 +626,7 @@ export function createEngine(source) {
     // element that keeps its own clock (`span()`, seconds: a timed sensor's), as one list.
     stimuli: () => [...(env ? env.spans() : []), ...prep.system.elements.map((el) => el.span?.()).filter((s) => s > 0)],
   };
+  return api;
 }
 
 // The parts that follow a field take its new value (their device's `sense`, else its `set`): true
@@ -757,9 +770,47 @@ function dc(prep) {
 
 // Transient: capacitors start discharged (start: 'zero', the supply switched on at t = 0)
 // or at their DC values (start: 'dc'). Fixed step; at most `points` samples are kept.
-function transient(prep, { stop, step, start = 'zero', points = 400 } = {}) {
-  // Elements with a memory (capacitors, inductors): they take each accepted step.
+// The stepping of a transient over a fixed `prep` (no emitters: nothing in it is rebuilt). An engine with
+// emitters drives the same loop with its own start and step (createEngine), so what the emitters add in a
+// step reaches the sensors in the next one, as in the page.
+//   begin(start, h) → error code or null;  step(t, h) → ok;  read(ctx) → readAll;  prep() → the prep now
+function fixedDrive(prep) {
+  // Elements with a memory (capacitors, inductors): they take each accepted step, at the start of the next.
   const caps = prep.system.elements.filter((el) => 'accept' in el);
+  let x = null;
+  let accepted = null;
+  return {
+    prep: () => prep,
+    begin(start, h) {
+      x = new Array(prep.system.size).fill(0);
+      setTime(prep, 0);
+      if (start === 'dc') {
+        const r = solveWithLimits(prep, x, {});
+        if (!r.ok) return 'SIM_NO_CONVERGENCE';
+        x = r.x;
+        for (const c of caps) c.accept(x, {});
+      }
+      // t = 0: the capacitors hold their starting voltage (a very short step pins them there).
+      const first = settle(prep, solveWithLimits(prep, x, { h: h * 1e-6 }), { h: h * 1e-6 });
+      if (!first.ok) return 'SIM_NO_CONVERGENCE';
+      x = first.x;
+      return null;
+    },
+    step(t, h) {
+      const ctx = { h };
+      if (accepted) for (const c of caps) c.accept(x, accepted);
+      setTime(prep, t);
+      const r = newton(prep.system, x, ctx);
+      if (!r.ok) return false;
+      x = r.x;
+      accepted = ctx;
+      return true;
+    },
+    read: (ctx) => readAll(prep, x, ctx),
+  };
+}
+
+function transient(prep, { stop, step, start = 'zero', points = 400 } = {}, drive = fixedDrive(prep)) {
   stop = Number(stop);
   step = Number(step);
   if (!(stop > 0)) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_BAD_TIME', {})] };
@@ -767,40 +818,27 @@ function transient(prep, { stop, step, start = 'zero', points = 400 } = {}) {
   const steps = Math.ceil(stop / step - 1e-9);
   if (steps > 2e5) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_BAD_TIME', {})] };
 
-  let x = new Array(prep.system.size).fill(0);
-  setTime(prep, 0);
-  if (start === 'dc') {
-    const r = solveWithLimits(prep, x, {});
-    if (!r.ok) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
-    x = r.x;
-    for (const c of caps) c.accept(x, {});
-  }
-  // t = 0: the capacitors hold their starting voltage (a very short step pins them there).
-  const first = settle(prep, solveWithLimits(prep, x, { h: step * 1e-6 }), { h: step * 1e-6 });
-  if (!first.ok) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
-  x = first.x;
+  const failed = drive.begin(start, step);
+  if (failed) return { analysis: 'transient', model: true, ok: false, issues: [...drive.prep().issues, issue('error', failed, {})] };
 
   const every = Math.max(1, Math.ceil(steps / points));
   const times = [];
   const samples = [];
   const record = (t, ctx) => {
     times.push(t);
-    samples.push(readAll(prep, x, ctx));
+    samples.push(drive.read(ctx));
   };
   record(0, { h: step * 1e-6 });
   const ctx = { h: step };
   const warnings = new Map();
   for (let k = 1; k <= steps; k++) {
-    setTime(prep, k * step);
-    const r = newton(prep.system, x, ctx);
-    if (!r.ok) return { analysis: 'transient', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE_AT', { time: q(k * step, 's') })] };
-    x = r.x;
+    if (!drive.step(k * step, step)) return { analysis: 'transient', model: true, ok: false, issues: [...drive.prep().issues, issue('error', 'SIM_NO_CONVERGENCE_AT', { time: q(k * step, 's') })] };
     if (k % every === 0 || k === steps) {
       record(k * step, ctx);
-      for (const w of limitIssues(prep, samples.at(-1))) warnings.set(`${w.code}:${w.params.part ?? w.params.supply ?? ''}`, w);
+      for (const w of limitIssues(drive.prep(), samples.at(-1))) warnings.set(`${w.code}:${w.params.part ?? w.params.supply ?? ''}`, w);
     }
-    for (const c of caps) c.accept(x, ctx);
   }
+  prep = drive.prep();
 
   // Series: one array per node, per supply and per part quantity.
   const series = (pick) => samples.map(pick);

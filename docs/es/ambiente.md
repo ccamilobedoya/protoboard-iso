@@ -265,7 +265,17 @@ lee en el panel cuánto de ella da cada emisor.
 - **Un lazo que no se estabiliza** (una lámpara cuya propia luz la apaga: un láser alimentado por un
   transistor que un sensor de luz corta cuando hay mucha luz) se queda con la última ronda y dice
   `SIM_ENV_FEEDBACK` (una advertencia: qué emisor, qué campo, qué sensores). El circuito real
-  parpadearía o quedaría a medias; la página, paso a paso, lo muestra parpadeando.
+  parpadearía o quedaría a medias; la página, paso a paso, lo muestra parpadeando. La nota llega con
+  los resultados en DC: `simulate()` (la CLI, la herramienta MCP, los avisos de la página) y
+  `engine.dc()`, antes o después de arrancar, mientras el último punto fijo (el del arranque o el de un
+  `set`) no se haya estabilizado; uno que se estabiliza la borra. `check` no resuelve el circuito, así
+  que nunca la dice, y avanzar en el tiempo no le agrega nada.
+- **Un transitorio** (`simulate --transient`, la herramienta MCP `simulate`) con emisores avanza el
+  mismo motor que la página, con el mismo paso de retraso (los programas del ambiente quietos, como en
+  todo transitorio); sin emisores corre como antes.
+- **`engine.dc()` en un motor ya arrancado** resuelve el circuito como está, con los sensores en lo
+  último que sintieron (al avanzar, la luz del paso anterior); no corre un punto fijo propio y no cambia
+  nada del motor en marcha. Antes de arrancar es el punto fijo.
 
 ### En el motor y en la página
 
@@ -275,7 +285,9 @@ lee en el panel cuánto de ella da cada emisor.
   que nombra quién lo bloquea).
 - La entrada de un campo en `engine.controls()` conserva `value` = el ambiente (el deslizador mueve el
   ambiente) y gana `emitted`, la parte que llega a los sensores ahora (0 mientras está bloqueada),
-  cuando un emisor lo escribe. `engine.set('environment', 'light', v)` fija el ambiente.
+  cuando un emisor lo escribe. `engine.set('environment', 'light', v)` fija el ambiente. `emitted` es lo
+  que llega, recortado por el límite del campo (999 999 lx y un láser: 1 lx), mientras que el `total` de
+  `emissions()` es todo lo que agregan los emisores.
 - La página: la fila del panel y el indicador de un campo muestran lo que ven los sensores, y la fila
   dice la parte en palabras («50 lx + 9,8 klx de LS1», o «50 lx · LS1 bloqueado (haz)»); el
   deslizador se queda en el ambiente. La línea de la ficha de un sensor («Sigue el ambiente · luz
