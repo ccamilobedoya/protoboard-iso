@@ -10,8 +10,8 @@
 // drawn). Below Ith the chip glows like a dim LED and adds nothing. The numbers marked [A] are assumed
 // (the usual module's parts are not marked); [T] typical of reseller sheets.
 //
-// The reading: the current, the voltage, the optical power, what it adds to `light` and its state
-// (off, dim, lasing, reversed). Stresses: over 40 mA, reverse over 2 V; a note while it conducts under
+// The reading: `current`, `voltage` (S to −), `opticalPower` (W), `light` (what it adds to the
+// environment's light, lx) and `state` (off, dim, lasing, reversed). Stresses: over 40 mA, reverse over 2 V; a note while it conducts under
 // its threshold, a warning when its beam passes the 5 mW of its class (a supply over its 5 V).
 
 import { resistor, junction } from '../mna.js';
@@ -61,14 +61,14 @@ export const laser = {
     const current = entry.main.currents(h.x, h.ctx)[0];
     const power = opticalPower(current);
     const state = voltage < -0.5 ? 'reversed' : current < LASER.glow ? 'off' : current < LASER.threshold ? 'dim' : 'lasing';
-    return { voltage, current, power: voltage * current, optical: power, light: addedLight(current), state, threshold: LASER.threshold, currents: { S: current, '+': 0, '−': -current } };
+    return { voltage, current, power: voltage * current, opticalPower: power, light: addedLight(current), state, threshold: LASER.threshold, currents: { S: current, '+': 0, '−': -current } };
   },
   // What it adds to the environment now (engine.js): its light, 0 when it does not lase.
   emit: (entry, r) => ({ light: r.light }),
   limits(entry, r) {
     const out = [stress('SIM_OVER_CURRENT', 'current', r.current, LASER.maxCurrent, 'A'), stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.voltage, LASER.maxReverse, 'V', { param: 'voltage' })];
     if (r.state === 'dim') out.push(note('info', 'SIM_LASER_DIM', { part: entry.id, current: q(r.current, 'A'), threshold: q(LASER.threshold, 'A') }));
-    if (r.optical > LASER.classLimit) out.push(note('warning', 'SIM_LASER_POWER', { part: entry.id, power: q(r.optical, 'W'), max: q(LASER.classLimit, 'W'), voltage: q(r.voltage, 'V') }));
+    if (r.opticalPower > LASER.classLimit) out.push(note('warning', 'SIM_LASER_POWER', { part: entry.id, power: q(r.opticalPower, 'W'), max: q(LASER.classLimit, 'W'), voltage: q(r.voltage, 'V') }));
     return out;
   },
   lines(p, h) {
@@ -78,7 +78,7 @@ export const laser = {
     const field = h.t('sim.env.field.light');
     const by = e?.blockedBy && h.t(`sim.env.field.${e.blockedBy}`);
     const effect = p.state !== 'lasing' ? h.t(`sim.laser.${p.state}`) : !e ? h.t('sim.laser.alone') : e.blocked ? h.t('sim.laser.blocked', { field: by }) : h.t('sim.laser.adds', { value: envText('light', e.value, h.decimal), field });
-    return [h.raw(`laser.${p.state}`, effect), h.q('laser.current', h.f(p.current, 'A')), h.q('laser.optical', h.f(p.optical, 'W')), h.q('laser.voltage', h.f(p.voltage, 'V')), h.q('laser.nc', h.t('sim.laser.nc'))];
+    return [h.raw(`laser.${p.state}`, effect), h.q('laser.current', h.f(p.current, 'A')), h.q('laser.optical', h.f(p.opticalPower, 'W')), h.q('laser.voltage', h.f(p.voltage, 'V')), h.q('laser.nc', h.t('sim.laser.nc'))];
   },
   tag: currentTag,
   falstad(d, f) {

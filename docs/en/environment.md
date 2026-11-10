@@ -227,7 +227,9 @@ much of it each emitter gives.
 
 - A device declares the fields it writes (`emits: ['light']`) and a pure
   `emit(entry, reading) → { light: lux }`: what it adds now, from its solved reading (0 when it is
-  off). Only fields of the registry can be emitted.
+  off). Only fields of the registry can be emitted. Only parts declared as emitters write: a lit LED
+  does not add light (a status LED lights its own lens, not a room; if it did, a light module's own DO
+  LED would flip it).
 - What a sensor sees of a **level** field is the ambient value (what the circuit, the slider or a
   program says) plus the sum of what the emitters add, clamped to the field's limit; of a **switch**
   field, the ambient OR any emitter.

@@ -1112,7 +1112,7 @@ const INSIDE = {
     make(g, 'rect', { class: 'metal', x: 63, y: 42, width: 3, height: 16 });
     make(g, 'path', { class: 'lens', d: 'M74 38A6 12 0 0 1 74 62A6 12 0 0 1 74 38Z' });
     if (lasing) {
-      const len = Math.min(22, 6 + 4 * ((r.optical ?? 0) * 1e3));
+      const len = Math.min(22, 6 + 4 * ((r.opticalPower ?? 0) * 1e3));
       make(g, 'path', { class: 'light', d: `M66 50H${fixed(74 + len)}` });
       make(g, 'path', { class: 'light-head', d: `M${fixed(78 + len)} 50L${fixed(72 + len)} 46.5L${fixed(72 + len)} 53.5Z` });
     }
@@ -1124,7 +1124,7 @@ const INSIDE = {
     if (i > 0) make(g, 'rect', { class: lasing ? 'soc' : 'headroom', x: 22, y: 76, width: fixed(56 * Math.min(1, i / top)), height: 6, rx: 2 });
     make(g, 'path', { class: 'lead', d: `M${fixed(22 + (56 * (data.threshold || 0.022)) / top)} 73V85` });
     label(g, 50, 92, `Ith ${f(data.threshold || 0.022, 'A')}`, 'quiet', 'middle', FIGURE.small);
-    label(g, 50, 103, r ? [`I ${f(i, 'A')}`, lasing && `P ${f(r.optical ?? 0, 'W')}`].filter(Boolean).join(' · ') : '', 'note');
+    label(g, 50, 103, r ? [`I ${f(i, 'A')}`, lasing && `P ${f(r.opticalPower ?? 0, 'W')}`].filter(Boolean).join(' · ') : '', 'note');
     label(g, 50, 114, r ? t(`page.tour.inside.laser.${r.state}`) : '', 'state');
   },
 };

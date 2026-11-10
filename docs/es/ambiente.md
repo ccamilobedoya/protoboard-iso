@@ -234,7 +234,9 @@ lee en el panel cuánto de ella da cada emisor.
 
 - Un dispositivo declara los campos que escribe (`emits: ['light']`) y una función pura
   `emit(entry, reading) → { light: lux }`: lo que agrega ahora, desde su lectura resuelta (0 cuando
-  está apagado). Solo se pueden emitir campos del registro.
+  está apagado). Solo se pueden emitir campos del registro. Solo escriben las piezas declaradas como
+  emisores: un LED encendido no agrega luz (un LED indicador alumbra su propia lente, no un cuarto; si
+  lo hiciera, el LED de DO de un módulo de luz lo haría cambiar solo).
 - Lo que un sensor ve de un campo de **nivel** es el valor del ambiente (lo que dicen el circuito, el
   deslizador o un programa) más la suma de lo que agregan los emisores, recortado al límite del campo;
   de un campo **interruptor**, el ambiente O cualquier emisor.

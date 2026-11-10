@@ -10,6 +10,8 @@ import { checkCircuit, inspectCircuit } from '../src/index.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { autoLayout } from '../src/layout.js';
 import { tourIssues, loadTour } from '../src/tour.js';
+import { renderPage } from '../src/page.js';
+import { installClock } from './clock.js';
 import { PART_TYPES } from '../src/parts/types/index.js';
 import { buildCircuit } from '../src/circuit/build.js';
 import { LASER, opticalPower, addedLight } from '../src/sim/devices/laser.js';
@@ -55,7 +57,7 @@ test('laser: at 5 V about 28 mA, 3 mW and 10 000 lx; at 6 V 38 mA and no over-cu
   const five = laserAt(5);
   assert.ok(Math.abs(five.p.current - expected(5)) < 2e-4, `${five.p.current} against ${expected(5)}`);
   assert.ok(Math.abs(five.p.current - 0.028) < 0.002);
-  assert.ok(Math.abs(five.p.optical - 0.003) < 3e-4);
+  assert.ok(Math.abs(five.p.opticalPower - 0.003) < 3e-4);
   assert.ok(Math.abs(five.p.light - 1e4) < 500);
   assert.equal(five.p.state, 'lasing');
   assert.deepEqual(five.issues, []);
@@ -171,4 +173,43 @@ test('laser-tripwire tour: validates, 20–30 s, Spanish captions, a gauge of li
   assert.equal(raw.steps.filter((s) => s.do === 'set' && s.environment === 'beam' && s.value === true).length, 2);
   assert.equal(raw.steps.filter((s) => s.do === 'set' && s.environment === 'beam' && s.value === false).length, 2);
   assert.ok(raw.steps.filter((s) => s.do === 'caption').every((s) => s.text?.es));
+});
+
+// ---------------------------------------------------------------- the page (jsdom)
+
+async function loadPage(html) {
+  let JSDOM;
+  try {
+    ({ JSDOM } = await import('jsdom'));
+  } catch {
+    return null;
+  }
+  const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://page.test/laser.html' });
+  const { window } = dom;
+  const rect = () => ({ left: 0, top: 0, right: 800, bottom: 500, width: 800, height: 500 });
+  window.document.querySelector('main').getBoundingClientRect = rect;
+  for (const svg of window.document.querySelectorAll('svg')) svg.getBoundingClientRect = rect;
+  window.testClock = installClock(window);
+  window.eval(html.match(/<script>([\s\S]*)<\/script>/)[1]);
+  return window;
+}
+
+test('page: the light row says the laser\'s share, the slider stays on the ambient, beam blocks it', async (t) => {
+  const c = circuitOf('laser-tripwire').circuit;
+  const window = await loadPage(renderPage(c, { lang: 'es' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const doc = window.document;
+  const rows = [...doc.querySelectorAll('.side .environment .env-row')];
+  const row = (field) => rows.find((r) => r.querySelector('.control').dataset.field === field);
+  const light = row('light');
+  assert.match(light.querySelector('output').textContent, /^50 lx \+ 9,\d klx de LS1$/);
+  // The indicator shows what the sensors see; the slider the ambient.
+  assert.match(light.querySelector('svg.gauge > text').textContent, /^9,\d klx$/);
+  const live = window.protoboardLive;
+  assert.equal(live.engine.ambient().light, 50);
+  // Cut the beam: the row says it is blocked, the indicator falls to the room's light, the LED lights.
+  row('beam').querySelector('button').click();
+  assert.equal(light.querySelector('output').textContent, '50 lx · LS1 bloqueado (haz)');
+  assert.equal(light.querySelector('svg.gauge > text').textContent, '50 lx');
+  assert.ok(live.reading.parts.D1.current > 5e-3);
 });

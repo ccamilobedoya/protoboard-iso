@@ -239,7 +239,8 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
       r.update = (cur) => {
         if (!cur) return;
         input.value = String(toSlider(c, cur.value));
-        out.textContent = c.id === 'environment' ? envShow(cur) : show(c, cur.value);
+        const text = c.id === 'environment' ? envShow(cur) : show(c, cur.value);
+        if (out.textContent !== text) out.textContent = text;
       };
     }
     r.update(c);
