@@ -6,6 +6,7 @@ import { DISTANCE } from './uno-distance.js';
 
 export default {
   name: 'esp32-distance',
+  group: 'sensors',
   title: { en: 'ESP32 with an HC-SR04 (ECHO through a divider)', es: 'ESP32 con un HC-SR04 (ECHO por un divisor)' },
   teaches: { en: 'The HC-SR04 needs 5 V and its ECHO is 5 V; a 3.3 V board\'s pin takes it through 1 kΩ / 2 kΩ, which leaves 3.33 V, while TRIG at 3.3 V is enough for the module', es: 'El HC-SR04 necesita 5 V y su ECHO es de 5 V; el pin de una placa de 3,3 V lo recibe por 1 kΩ / 2 kΩ, que deja 3,33 V, mientras que TRIG a 3,3 V le basta al módulo' },
   // The divider first: placed before the boards, its resistors keep clear of the module, whose

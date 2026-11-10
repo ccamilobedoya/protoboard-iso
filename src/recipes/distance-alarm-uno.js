@@ -8,6 +8,7 @@ const ALARM = DISTANCE.replace('const int ECHO = 10;\n', 'const int ECHO = 10;\n
 
 export default {
   name: 'distance-alarm-uno',
+  group: 'sensors',
   title: { en: 'Arduino UNO: LED alarm under 15 cm (HC-SR04)', es: 'Arduino UNO: alarma LED a menos de 15 cm (HC-SR04)' },
   teaches: { en: 'The program compares the distance it measured with a limit and lights an LED; pulseIn returns 0 when no echo comes, which is not "close"', es: 'El programa compara la distancia que midió con un límite y enciende un LED; pulseIn devuelve 0 cuando no llega eco, y eso no es «cerca»' },
   parts: [

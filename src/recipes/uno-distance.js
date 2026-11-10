@@ -26,6 +26,7 @@ void loop() {
 
 export default {
   name: 'uno-distance',
+  group: 'sensors',
   title: { en: 'Arduino UNO: HC-SR04 distance meter', es: 'Arduino UNO: medidor de distancia con HC-SR04' },
   teaches: { en: 'TRIG starts a ping; ECHO stays high for the round trip of the sound, and pulseIn measures it: microseconds ÷ 58 is centimetres', es: 'TRIG lanza un pulso de sonido; ECHO queda en alto durante su ida y vuelta, y pulseIn lo mide: microsegundos ÷ 58 son centímetros' },
   parts: [
