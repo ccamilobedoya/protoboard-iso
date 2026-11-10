@@ -65,7 +65,7 @@ detail.
 ### Changed
 
 - `engine.advance(h)` ends a step on each event an element names inside h (`until()`: a program
-  waking from a delay, `pulseIn`'s timeout, a timed sensor's edge), at most 1 000 a call, so
+  waking from a delay, `pulseIn`'s timeout, a timed sensor's edge), at most 32 a call, so
   `delayMicroseconds(10)` is a 10 µs pulse on the pin and a program sees a sensor's edges at their
   time, without a finer step for the page (`uno-blink` stays at 1 000 steps a simulated second).
 

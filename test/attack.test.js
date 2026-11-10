@@ -107,6 +107,35 @@ test('attack: a sketch cannot take the memory or the time of the machine', { tim
   assert.equal(run('void f(int "x") { }\n' + sketch('')).r.js, null, 'a parameter must be a name');
 });
 
+test('attack: a pin a sketch names "__proto__", "constructor" or a huge number is only a key', () => {
+  for (const pin of ['"__proto__"', '"constructor"', '"toString"', '1e999', '-1']) {
+    const r = run(sketch(`pinMode(${pin}, OUTPUT); digitalWrite(${pin}, HIGH); analogWrite(${pin}, 100); tone(${pin}, 440); noTone(${pin}); ledcAttach(${pin}, 1000, 8); ledcWrite(${pin}, 3); ledcSetup(${pin}, 1000, 8); ledcAttachPin(${pin}, ${pin}); digitalRead(${pin}); Serial.println(1);`));
+    assert.equal(r.error, null, pin);
+    assert.deepEqual(r.log, ['1'], pin);
+    assert.equal(({}).mode, undefined, `${pin}: Object.prototype untouched`);
+    assert.equal(({}).level, undefined, pin);
+    assert.equal(Object.hasOwn(Object.prototype, 'pull'), false, pin);
+  }
+});
+
+test('attack: a sketch that wakes every microsecond costs a bounded number of steps', { timeout: 20000 }, () => {
+  const circuit = autoLayout({ board: 'auto', ...expandRecipe('uno-blink', { U1: 'void setup() { pinMode(13, OUTPUT); }\nvoid loop() { delayMicroseconds(1); }' }).spec }).circuit;
+  const engine = createEngine(compile(circuit).program);
+  assert.ok(engine.start('dc', 1e-3));
+  let steps = 0;
+  const step = engine.step.bind(engine);
+  engine.step = (h, hold) => {
+    steps++;
+    return step(h, hold);
+  };
+  const t0 = performance.now(); // real clock: the wall time is what a hostile sketch must not take
+  for (let k = 0; k < 20; k++) assert.ok(engine.advance(1e-3));
+  const wall = performance.now() - t0; // real clock: the same measurement
+  assert.ok(steps <= 20 * 33, `${steps} steps for 20 advances`);
+  assert.ok(wall < 1000, `${Math.round(wall)} ms of wall time for 20 ms of a microsecond loop`);
+  assert.ok(Math.abs(engine.time - 0.02) < 1e-9);
+});
+
 test('attack: pulseIn on a pin nothing drives gives the engine back, whatever its timeout', { timeout: 10000 }, () => {
   for (const loop of ['pulseIn(7, HIGH);', 'while (1) pulseIn(7, HIGH);', 'pulseIn(7, HIGH, 4000000000);', 'while (true) { pulseIn(7, HIGH, 0); }', 'pulseIn(7, HIGH, -5); delayMicroseconds(1);']) {
     const circuit = autoLayout({ board: 'auto', ...expandRecipe('uno-blink', { U1: `void setup() { pinMode(7, INPUT); }\nvoid loop() { ${loop} }` }).spec }).circuit;

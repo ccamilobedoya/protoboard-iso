@@ -41,7 +41,9 @@ ECHO low                              ECHO low             ECHO high
 ```
 
 - `TRIG` reads high from 2.0 V, so a 3.3 V pin drives it. It must stay high 10 µs or more; a 5 µs
-  pulse is not taken. The measurement starts when `TRIG` falls.
+  pulse is not taken. The measurement starts when `TRIG` falls. Armed, the module asks the engine
+  for one landing 250 µs on (the burst's end, if `TRIG` falls now); held high longer (a button on
+  `TRIG`) it asks no more, and the fall that comes later is seen to a step.
 - The burst (eight cycles of 40 kHz, 200 µs, and about 50 µs of the module's own) lasts 250 µs;
   then `ECHO` rises.
 - `ECHO` stays high for the round trip, `2·d / v` with `v = 331.3 + 0.606·T` m/s: 5 824 µs at
@@ -74,9 +76,9 @@ so (`SIM_PIN_OVERVOLTAGE`). A divider of 1 kΩ from `ECHO` over 2 kΩ to ground 
 |---|---|
 | `SIM_IC_SUPPLY` | `VCC` over 5.5 V |
 | `SIM_REVERSE_VOLTAGE` | `VCC` reversed by more than 0.3 V |
-| `SIM_MODULE_LOW_SUPPLY` | `VCC` under 4.5 V: it answers "no echo" (under 2.5 V it is off, `ECHO` high impedance) |
-| `SIM_OVER_CURRENT` | `ECHO` giving more than 20 mA |
+| `SIM_MODULE_LOW_SUPPLY` | `VCC` from 0.5 to 4.5 V. From 2.5 V it runs and answers "no echo" (38 ms high); under 2.5 V it is off: `ECHO` high impedance, no measurement, no width in its card |
+| `SIM_OVER_CURRENT` | `ECHO` giving more than 100 mA (a short to ground). `ECHO` straight into a 3.3 V board's pin (about 46 mA through its clamp diode) is not the module's problem: the board's pin says `SIM_PIN_OVERVOLTAGE` |
 
-The 250 µs from `TRIG` to `ECHO` and the 20 Ω of `ECHO` are the kit's own figures, not the sheet's; a
-bench scope would settle both. The first guess for the output, 100 Ω, put the divider's middle at
-3.23 V, under the 3.33 V a bench reads, so the kit takes 20 Ω (a 5 V chip's output at a light load).
+The 250 µs from `TRIG` to `ECHO` and the 20 Ω of `ECHO` are assumed: no datasheet gives them, and a
+scope on a real module would settle both. With an ideal 5 V source the divider's middle is 3.33 V;
+behind 20 Ω (a 5 V chip's output at a light load) it is 3.30 V, behind 100 Ω it would be 3.23 V.

@@ -108,7 +108,10 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - **Lo que no corre:** clases, punteros, plantillas, macros con parámetros, librerías (un
   `#include` distinto del de Arduino se avisa: `SIM_PROGRAM_LIBRARY`); llamar a una función que nadie
   define devuelve 0 (`SIM_PROGRAM_UNSUPPORTED`); una línea que no entiende lo detiene
-  (`SIM_PROGRAM_ERROR`, con la línea); un archivo que falta (`SIM_PROGRAM_FILE`).
+  (`SIM_PROGRAM_ERROR`, con la línea); un archivo que falta (`SIM_PROGRAM_FILE`). Una variable
+  global cuyo valor llama a `delay`, a `pulseIn` o a una función propia del programa
+  (`long g = pulseIn(7, HIGH);`, `int x = mitad(4);`) es `SIM_PROGRAM_ERROR`: aquí esas llamadas
+  esperan en tiempo simulado, y el valor de una global no tiene tiempo en que esperar.
 - **Un programa es entrada externa** (CLAUDE.md, «External input»): su JavaScript solo nombra lo
   que da el entorno de ejecución (los nombres propios del programa llevan `$`, `Serial.<método>` es
   el único miembro, los índices son números, las cadenas quedan fuera del código), los arreglos
@@ -145,8 +148,11 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 
 `pulseIn(pin, valor)` y `pulseIn(pin, valor, timeout)` (y `pulseInLong`, lo mismo aquí) devuelven el
 ancho del próximo pulso en `valor` en el pin, en microsegundos enteros, o 0 si `timeout`
-(microsegundos, 1 000 000 por defecto) pasa antes, contado desde la llamada, como el de Arduino: un
-pulso que ya va cuando se llama se deja pasar primero. El HC-SR04 es para lo que sirve
+(microsegundos, 1 000 000 por defecto) pasa antes. El timeout es un solo plazo contado desde la
+llamada, para las tres esperas juntas (dejar pasar un pulso que ya va, el comienzo, el final), como
+en el `pulseIn` de Arduino (el núcleo AVR cuenta un solo presupuesto de vueltas en las tres;
+`pulseInLong` y el núcleo del ESP32 comparan `micros()` con el momento de la llamada en las tres): un
+pulso de 29,9 ms que empieza 1 ms después de la llamada da 0 con un timeout de 30 000 µs. El HC-SR04 es para lo que sirve
 ([sensor-ultrasonico.md](sensor-ultrasonico.md)): `pulseIn(ECHO, HIGH, 30000)` es la ida y vuelta
 del sonido.
 
@@ -159,7 +165,9 @@ del sonido.
   eco de 5,8 ms al milisegundo, y un paso tan fino como para leerlo al microsegundo haría que la
   página se arrastrara. Así que el motor termina un paso en cada evento que nombra un elemento
   (`until()`, segundos desde ahora): `engine.advance(h)` toma h en trozos que terminan en cada evento
-  que cae dentro (como mucho 1 000 por llamada, ninguno a menos de un nanosegundo). Un programa
+  que cae dentro (como mucho 32 por llamada, ninguno a menos de medio microsegundo; pasados los 32 el
+  resto de h es un solo paso, así que un PWM por programa más rápido que eso, un bucle de
+  `delayMicroseconds(1)`, se lee un paso tarde, sin aviso). Un programa
   nombra cuándo despierta (el fin de un `delay` o un `delayMicroseconds`, el timeout de `pulseIn`),
   así que `delayMicroseconds(10)` es un pulso de 10 µs en el pin; un sensor temporizado nombra su
   próximo flanco (el HC-SR04: el fin de su ráfaga, el fin de su eco), así que el programa ve subir y
@@ -168,12 +176,19 @@ del sonido.
 - **Cuesta unos pocos pasos, no un paso fino.** El paso de la página sigue como estaba (`stepHint()`
   y el ritmo no cambian): `uno-blink` toma 1 000 pasos por segundo simulado antes y después;
   `uno-distance` (una medición cada 100 ms) toma unos 1 050, los cinco aterrizajes más o menos de
-  cada medición.
+  cada medición. Un programa que despierta cada microsegundo cuesta 32 soluciones por llamada en
+  vez de una (unos 2 ms de una máquina cargada por cada 1 ms simulado; eran 1 000 soluciones antes
+  de bajar el tope).
+- **Un paso, con emisores.** La luz de un emisor llega a los sensores un paso del motor después
+  ([ambiente.md](ambiente.md)); un trozo aterrizado es un paso como cualquier otro, así que cerca de
+  una medición «un paso» puede ser de unos microsegundos. Los trozos corren en orden y ninguno se
+  salta.
 - **Es seguro.** `pulseIn` es un nombre más de `SKETCH_API`, sin ningún acceso a miembros nuevo. Un
   timeout que no es un número, negativo (sin signo, un número enorme en C) o mayor que 3 000 000 µs
   se recorta a `LIMITS.pulseInMicros` (3 s); un timeout de 0 devuelve 0 enseguida. Un
   `while (1) pulseIn(…)` sobre un pin que nada maneja espera como mucho un timeout por paso y
-  devuelve el paso; `test/attack.test.js` tiene estos casos.
+  devuelve el paso. Los mapas por pin del entorno no tienen prototipo, así que un pin llamado
+  `"__proto__"` o `"constructor"` es solo una clave. `test/attack.test.js` tiene estos casos.
 - **En la ficha:** mientras mira su pin, el programa de la placa espera hasta su timeout.
 - No corre así: `transient()` (el `simulate --transient` de la CLI) avanza con su paso fijo, así que
   allí un pulso se lee a un paso.

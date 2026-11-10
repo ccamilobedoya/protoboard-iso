@@ -273,3 +273,20 @@ test('delayMicroseconds: the engine ends a step on the program waking, so a 10 Â
   for (const s of high) assert.ok(Math.abs(s.h - 1e-5) < 1e-12, `a high step of ${s.h} s`);
   assert.ok(steps.length < 20 + 3 * 5, `${steps.length} steps for 20 ms`);
 });
+
+test('pulseIn: one deadline from the call for the three waits, as Arduino\'s', () => {
+  // A 29.9 ms pulse that starts 1 ms after the call ends 30.9 ms after it.
+  const sketch = (timeout) => `void setup() {}\nvoid loop() { Serial.println(pulseIn(10, HIGH, ${timeout})); delay(1000); }`;
+  const marks = [0.001, 0.0309];
+  assert.equal(pulseBench(sketch(30000), { rise: 0.001, fall: 0.0309, stop: 0.05, marks }).log[0], '0');
+  assert.equal(pulseBench(sketch(31000), { rise: 0.001, fall: 0.0309, stop: 0.05, marks }).log[0], '29900');
+});
+
+test('sketch: a global whose value waits (pulseIn, delay, one\'s own function) is an error with its line', () => {
+  for (const [source, line] of [['long g = pulseIn(7, HIGH, 10);\nvoid setup() {}\nvoid loop() {}', 1], ['int half(int n) { return n / 2; }\nint x = half(4);\nvoid setup() {}\nvoid loop() {}', 2]]) {
+    const r = translateSketch(source);
+    assert.equal(r.js, null);
+    assert.deepEqual(r.issues.map((i) => [i.code, i.line]), [['SIM_PROGRAM_ERROR', line]]);
+  }
+  assert.ok(translateSketch('int yield = 3;\nint y = 2 * 3;\nvoid setup() {}\nvoid loop() {}').js, 'a name like yield, or a plain value, is fine');
+});
