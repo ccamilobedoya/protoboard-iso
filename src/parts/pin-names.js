@@ -16,7 +16,7 @@ const SYNONYMS = [
   ['A', 'ANODE', 'ANODO'],
   ['K', 'CATHODE', 'CATODO'],
   ['+', 'POS', 'POSITIVE', 'POSITIVO'],
-  ['-', 'NEG', 'NEGATIVE', 'NEGATIVO'],
+  ['-', '−', 'NEG', 'NEGATIVE', 'NEGATIVO'],
   ['E', 'EMITTER', 'EMISOR'],
   ['B', 'BASE'],
   ['C', 'COLLECTOR', 'COLECTOR'],

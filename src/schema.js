@@ -42,7 +42,7 @@ export function buildSchemas() {
       height: { type: 'number' },
       color: { type: 'string' },
       size: { enum: [3, 5] },
-      part: { type: 'string', description: 'Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270), sensor-module (MH-RD, YL-69, LDR-LM393, SLOT-IR, TCRT5000-M, KY-024, SW-420-M, FC-51) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)' },
+      part: { type: 'string', description: 'Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270), sensor-module (MH-RD, YL-69, LDR-LM393, SLOT-IR, TCRT5000-M, KY-024, SW-420-M, FC-51), laser (KY-008, the default) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)' },
       package: { type: 'string' },
       pinNames: { type: 'array', items: text },
       marking: { type: 'string' },

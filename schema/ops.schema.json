@@ -3099,7 +3099,9 @@
                       "light-switch-module",
                       "line-follower-uno",
                       "obstacle-buzzer",
-                      "hall-counter-uno"
+                      "hall-counter-uno",
+                      "laser-tripwire",
+                      "laser-uno"
                     ]
                   },
                   "values": {
