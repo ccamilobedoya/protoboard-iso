@@ -41,7 +41,15 @@ export const FIELDS = {
   angle: { unit: '°', min: 0, max: 360, limit: [0, 360], scale: 'linear', step: 1, default: 0, kind: 'level' },
   reflectance: { unit: '%', min: 0, max: 100, limit: [0, 100], scale: 'linear', step: 1, default: 80, kind: 'level' },
   beam: { ...SWITCH },
+  // Air pressure (hPa): the slider spans a BME280's 300…1100 hPa; 1013.25 is the standard atmosphere at
+  // sea level (docs/en/library-sensors.md; the altitude it means: altitudeOfPressure).
+  pressure: { unit: 'hPa', min: 300, max: 1100, limit: [0, 1500], scale: 'linear', step: 0.05, default: 1013.25, kind: 'level' },
 };
+
+// The altitude (m) a pressure (hPa) means in the international standard atmosphere, the exponent the
+// Adafruit libraries use: 44330 · (1 − (p / 1013.25)^0.1903); and its inverse.
+export const altitudeOfPressure = (hPa) => 44330 * (1 - (Math.max(0, hPa) / 1013.25) ** 0.1903);
+export const pressureAtAltitude = (m) => 1013.25 * (1 - m / 44330) ** 5.255;
 
 export const PROGRAM_KINDS = ['toggle', 'cycle', 'ramp', 'keyframes'];
 export const CYCLE_SHAPES = ['sine', 'square', 'triangle'];

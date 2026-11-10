@@ -8,7 +8,8 @@ export const wire = {
   types: ['wire'],
   kind: 'W',
   params: () => ({}),
-  elements: (p, h) => ({ main: h.add(resistor(h.at(0), h.at(1), WIRE_RESISTANCE)) }),
+  // `joins`: its two ends are one net to a board asking a library sensor where it is (devices/mcu.js).
+  elements: (p, h) => ({ main: h.add(Object.assign(resistor(h.at(0), h.at(1), WIRE_RESISTANCE), { joins: true })) }),
   read: (entry, h) => twoTerminal(entry, entry.main, h),
   lines: twoTerminalLines,
   tag: currentTag,

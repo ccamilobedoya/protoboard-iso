@@ -203,3 +203,10 @@ Object.assign(MATERIALS, {
 Object.assign(MATERIALS, {
   sonarMesh: '#3a3d42',
 });
+
+// Climate sensors: the DHT11's blue box and its slots, the purple BME280 / BMP280 board.
+Object.assign(MATERIALS, {
+  dhtBlue: '#3f86cf',
+  dhtSlot: '#1f4f86',
+  pcbPurple: '#5b2a86',
+});

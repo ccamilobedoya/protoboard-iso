@@ -254,7 +254,8 @@ export function createRunner(js, board) {
       const o = Number.isInteger(k) && k >= 0 && k < OBJECTS_MAX ? objects[k] : undefined;
       const run = o && Number.isInteger(m) && m >= 0 ? METHODS[o.cls][m] : undefined;
       if (typeof run !== 'function') return 0;
-      return yield* run(o, ...args);
+      // A method that waits is a generator (a real DHT read, begin()); the others return at once.
+      return WAITS.has(run) ? yield* run(o, ...args) : run(o, ...args);
     },
   };
   // ── Library objects ──
@@ -294,20 +295,10 @@ export function createRunner(js, board) {
     function* (o, address, second) {
       return yield* i2cBegin(o, address, humidity ? undefined : second);
     },
-    function* (o) {
-      return ok(i2cRead(o))?.temperature ?? Number.NaN;
-    },
-    function* (o) {
-      return ok(i2cRead(o))?.pressure ?? Number.NaN;
-    },
-    ...(humidity
-      ? [
-          function* (o) {
-            return ok(i2cRead(o))?.humidity ?? Number.NaN;
-          },
-        ]
-      : []),
-    function* (o, sea = 1013.25) {
+    (o) => ok(i2cRead(o))?.temperature ?? Number.NaN,
+    (o) => ok(i2cRead(o))?.pressure ?? Number.NaN,
+    ...(humidity ? [(o) => ok(i2cRead(o))?.humidity ?? Number.NaN] : []),
+    (o, sea = 1013.25) => {
       const a = ok(i2cRead(o));
       return a ? altitudeOf(a.pressure / 100, Number(sea)) : Number.NaN;
     },
@@ -316,7 +307,7 @@ export function createRunner(js, board) {
   const METHODS = [
     [
       // begin(): the library sets its pin as an input with pull-up and lets the next read be a real one.
-      function* (o) {
+      (o) => {
         api.pinMode(o.args[0], MODE.INPUT_PULLUP);
         ask({ cls: 'DHT', method: 'begin', pin: o.args[0] });
         o.last = null;
@@ -332,13 +323,13 @@ export function createRunner(js, board) {
         return (yield* dhtRead(o, force))?.humidity ?? Number.NaN;
       },
       // computeHeatIndex(temperature, humidity, isFahrenheit = true)
-      function* (o, temperature, humidity, isFahrenheit = true) {
-        return heatIndex(Number(temperature), Number(humidity), Boolean(isFahrenheit));
-      },
+      (o, temperature, humidity, isFahrenheit = true) => heatIndex(Number(temperature), Number(humidity), Boolean(isFahrenheit)),
     ],
     i2cMethods(true),
     i2cMethods(false),
   ];
+  // The methods that wait (generators): the reads of a DHT and both begin()s.
+  const WAITS = new Set([METHODS[0][1], METHODS[0][2], METHODS[1][0], METHODS[2][0]]);
   let program;
   try {
     // eslint-disable-next-line no-new-func

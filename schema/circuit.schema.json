@@ -2680,6 +2680,164 @@
               "additionalProperties": false
             }
           ]
+        },
+        "pressure": {
+          "description": "hPa, 300…1100 on the slider, 0…1500 at most, default 1013.25",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "program": {
+                  "type": "object",
+                  "required": [
+                    "kind"
+                  ],
+                  "description": "Changes the field with simulated time: toggle, cycle, ramp, keyframes",
+                  "oneOf": [
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "toggle"
+                        },
+                        "high": {
+                          "type": "number"
+                        },
+                        "low": {
+                          "type": "number"
+                        },
+                        "on": {
+                          "type": "number",
+                          "minimum": 0,
+                          "description": "s at high"
+                        },
+                        "off": {
+                          "type": "number",
+                          "minimum": 0,
+                          "description": "s at low"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "high",
+                        "low",
+                        "on",
+                        "off"
+                      ],
+                      "additionalProperties": false,
+                      "description": "high for `on` s, then low for `off` s, starting high at t = 0"
+                    },
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "cycle"
+                        },
+                        "shape": {
+                          "enum": [
+                            "sine",
+                            "square",
+                            "triangle"
+                          ],
+                          "description": "a signal generator's: sine starts in the middle rising, square high first, triangle at the bottom (default sine)"
+                        },
+                        "period": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "description": "s"
+                        },
+                        "min": {
+                          "type": "number"
+                        },
+                        "max": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "period",
+                        "min",
+                        "max"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "ramp"
+                        },
+                        "from": {
+                          "type": "number"
+                        },
+                        "to": {
+                          "type": "number"
+                        },
+                        "seconds": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "from",
+                        "to",
+                        "seconds"
+                      ],
+                      "additionalProperties": false,
+                      "description": "from → to in `seconds`, then holds `to`"
+                    },
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "keyframes"
+                        },
+                        "points": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 1000,
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "description": "[[t, value], …], t in s going up: straight lines between them, the last one held"
+                        },
+                        "loop": {
+                          "type": "boolean",
+                          "description": "start again after the last point"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "points"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "range": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "description": "[min, max]: the span the slider and the indicator show (inside 0…1500, min < max); default 300…1100"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
         }
       },
       "additionalProperties": false
@@ -2886,7 +3044,8 @@
                   "tilt",
                   "angle",
                   "reflectance",
-                  "beam"
+                  "beam",
+                  "pressure"
                 ],
                 "description": "a field of the circuit's environment (instead of part or supply and field), shown with its indicator in the panel's Environment section"
               },
@@ -3051,7 +3210,8 @@
             "sensor-module",
             "rotary-encoder",
             "laser",
-            "ultrasonic-sensor"
+            "ultrasonic-sensor",
+            "climate-sensor"
           ]
         },
         "pins": {
@@ -3132,7 +3292,7 @@
         },
         "part": {
           "type": "string",
-          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270), sensor-module (MH-RD, YL-69, LDR-LM393, SLOT-IR, TCRT5000-M, KY-024, SW-420-M, FC-51), rotary-encoder (KY-040), laser (KY-008, the default), ultrasonic-sensor (HC-SR04, the default) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
+          "description": "Part number for diode, zener, bridge, mosfet, bjt, ic, regulator, ldr, seven-segment (5161AS common cathode, 5161BS common anode), slide-switch (SS12D00G3), tilt-switch (SW520D), temperature-sensor (LM35DZ default, LM35CZ), relay (SRD-05VDC-SL-C), motor (RE-140RA-12240 default, RE-140RA-2270), sensor-module (MH-RD, YL-69, LDR-LM393, SLOT-IR, TCRT5000-M, KY-024, SW-420-M, FC-51), rotary-encoder (KY-040), laser (KY-008, the default), ultrasonic-sensor (HC-SR04, the default), climate-sensor (DHT11 the default, BME280, BME280-5V, BMP280) (see src/parts/db.js); module: ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO (see src/parts/modules.js)"
         },
         "package": {
           "type": "string"
@@ -3325,7 +3485,36 @@
         },
         "temperature": {
           "type": "number",
-          "description": "thermistor, temperature-sensor (LM35): °C for the simulation (default 25); ultrasonic-sensor: the air's, which sets the speed of sound (default 20)"
+          "description": "thermistor, temperature-sensor (LM35): °C for the simulation (default 25); ultrasonic-sensor: the air's, which sets the speed of sound (default 20); climate-sensor: its own temperature, instead of the environment's"
+        },
+        "humidity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "climate-sensor: its own relative humidity, %RH, instead of the environment's"
+        },
+        "pressure": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1500,
+          "description": "climate-sensor BME280, BME280-5V, BMP280: its own air pressure, hPa, instead of the environment's"
+        },
+        "address": {
+          "oneOf": [
+            {
+              "enum": [
+                118,
+                119
+              ]
+            },
+            {
+              "enum": [
+                "0x76",
+                "0x77"
+              ]
+            }
+          ],
+          "description": "climate-sensor BME280, BME280-5V, BMP280: its I2C address, 0x76 (118, the default: SDO to ground) or 0x77 (119)"
         },
         "light": {
           "type": "number",
@@ -3373,7 +3562,7 @@
           "type": "number",
           "minimum": 0,
           "maximum": 120,
-          "description": "pir-sensor: seconds after power on with OUT low and motion ignored (default 30; 0 skips it)"
+          "description": "pir-sensor: seconds after power on with OUT low and motion ignored (default 30; 0 skips it); climate-sensor DHT11: seconds after power before a good read (default 1, at most 60)"
         },
         "motion": {
           "type": "boolean",

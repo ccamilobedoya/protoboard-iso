@@ -36,6 +36,7 @@ export const TYPE_FIELDS = {
   'sensor-module': ['part', 'threshold', 'wetness', 'moisture', 'light', 'beam', 'reflectance', 'distance', 'field', 'vibration', 'transmittance', 'slots', 'duty', 'seed'],
   laser: ['part'],
   'ultrasonic-sensor': ['part', 'distance', 'temperature'],
+  'climate-sensor': ['part', 'temperature', 'humidity', 'pressure', 'warmup', 'address'],
 };
 
 // Fields a part has that its type does not take (a typo, or another type's field): saved, they

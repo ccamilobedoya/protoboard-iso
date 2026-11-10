@@ -252,7 +252,7 @@ function kindLine(part, lang, kinds) {
 const VALUE_KEYS = {
   resistor: 'resistor', capacitor: 'capacitor', potentiometer: 'potentiometer', led: 'led', diode: 'part', bjt: 'part', mosfet: 'part', ic: 'part', battery: 'battery',
   zener: 'zener', bridge: 'part', module: 'part', regulator: 'part', inductor: 'inductor', thermistor: 'thermistor', ldr: 'part', 'seven-segment': 'part',
-  'slide-switch': 'part', 'tilt-switch': 'part', 'temperature-sensor': 'part', relay: 'part', motor: 'part', 'pir-sensor': 'part', 'touch-sensor': 'part', 'rotary-encoder': 'part', 'ultrasonic-sensor': 'part',
+  'slide-switch': 'part', 'tilt-switch': 'part', 'temperature-sensor': 'part', relay: 'part', motor: 'part', 'pir-sensor': 'part', 'touch-sensor': 'part', 'rotary-encoder': 'part', 'ultrasonic-sensor': 'part', 'climate-sensor': 'part',
 };
 function valueLine(part, lang) {
   const value = valueText(part, lang);
@@ -275,6 +275,7 @@ function explanations(lang) {
     ...['off', 'settling', 'held', 'idle', 'sensing', 'active', 'input', 'mode', 'vout', 'isig', 'vcc', 'own'].map((k) => `touch.${k}`),
     ...['still', 'cw', 'ccw', 'shaft', 'clk', 'dt', 'sw', 'plus'].map((k) => `encoder.${k}`),
     ...['off', 'idle', 'burst', 'echo', 'distance', 'width', 'speed', 'vecho', 'vtrig', 'vcc', 'own'].map((k) => `sonar.${k}`),
+    ...['off', 'reversed', 'dead', 'warmup', 'answer', 'last', 'none', 'address', 'accuracy', 'vcc', 'rail', 'own'].map((k) => `climate.${k}`),
     ...['vac', 'vdc', 'current'].map((k) => `bridge.${k}`),
     ...['temperature', 'light', 'resistance'].map((k) => `sensor.${k}`),
     ...['off', 'active', 'saturation'].map((r) => `region.bjt.${r}`), ...['off', 'linear', 'saturation'].map((r) => `region.mosfet.${r}`),
