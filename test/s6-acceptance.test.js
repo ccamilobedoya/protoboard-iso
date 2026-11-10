@@ -1,14 +1,14 @@
-// Acceptance tests for session S6 (the DHT11 and the BME280 / BMP280 read by a board's program through
-// their usual libraries, `climate-sensor`, and the `pressure` field), written from the brief (section 7
-// "Acceptance" L1 … L17 read with sections 1-5) and the physics notes (sections 12, 13 and 17 rows 59-66,
-// 68-79) alone, before looking at any implementation.
+// Acceptance tests of the library-level climate sensors (the DHT11 and the BME280 / BMP280 read by a board's
+// program through their usual libraries, `climate-sensor`, and the `pressure` field), written from their
+// contract before looking at any implementation: the Aosong DHT11 and Bosch BME280 / BMP280 datasheets and
+// the Adafruit libraries' behaviour.
 //
 // How a learner reads the result: what the sketch prints on Serial (every bench prints ONE number or word per
 // line, so parsing is unambiguous), pin voltages, and the issues list. Time is read through `millis()` printed
 // by the sketch. The engine is stepped as the page steps it (the engine's own `stepHint()` when it asks for a
 // finer step than 1 ms, else 1 ms).
 //
-// Names used that the brief does not fix are listed in the verifier's report (assumptions).
+// Pin names and part numbers are the kit's (src/parts/db.js).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -161,7 +161,7 @@ test('L1 · climate-sensor is a type of family sensor, with the part numbers DHT
   for (const part of PARTS) assert.ok(pinsOf(part, PIN_COUNT[part]).length === PIN_COUNT[part], `${part} builds with ${PIN_COUNT[part]} pins`);
 });
 
-test('L1 · the pins print as the brief says: DHT11 S + − ; BME280, BME280-5V and BMP280 VCC GND SCL SDA (5V board: VCC or VIN for the first)', () => {
+test('L1 · the pins print as the boards print them: DHT11 S + − ; BME280, BME280-5V and BMP280 VCC GND SCL SDA (5V board: VCC or VIN for the first)', () => {
   assert.deepEqual(pinsOf('DHT11', 3).map((n) => n.replace('-', '−')), ['S', '+', '−']);
   for (const part of ['BME280', 'BMP280']) assert.deepEqual(pinsOf(part, 4), ['VCC', 'GND', 'SCL', 'SDA']);
   const five = pinsOf('BME280-5V', 4);
@@ -193,7 +193,7 @@ test('L1 · pressure is in the environment: hPa, default 1013.25, slider 300…1
 
 // ---------------------------------------------------------------- includes, objects and helpers of the translator
 
-test('§1 · <DHT.h>, <Wire.h>, <Adafruit_Sensor.h>, <Adafruit_BME280.h> and <Adafruit_BMP280.h> are known includes; any other keeps the note', () => {
+test('Program · <DHT.h>, <Wire.h>, <Adafruit_Sensor.h>, <Adafruit_BME280.h> and <Adafruit_BMP280.h> are known includes; any other keeps the note', () => {
   const head = '#include <DHT.h>\n#include <Wire.h>\n#include <Adafruit_Sensor.h>\n#include <Adafruit_BME280.h>\n#include <Adafruit_BMP280.h>\nvoid setup() { Wire.begin(); }\nvoid loop() { delay(1000); }';
   const known = translateSketch(head);
   assert.ok(known.js, JSON.stringify(known.issues));
@@ -203,7 +203,7 @@ test('§1 · <DHT.h>, <Wire.h>, <Adafruit_Sensor.h>, <Adafruit_BME280.h> and <Ad
   assert.deepEqual(codes(other.issues), ['SIM_PROGRAM_LIBRARY']);
 });
 
-test('§1 · Wire.begin() and Wire.begin(sda, scl) are accepted and do nothing; the declarations of the three classes translate without notes', () => {
+test('Program · Wire.begin() and Wire.begin(sda, scl) are accepted and do nothing; the declarations of the three classes translate without notes', () => {
   const r = translateSketch(`${ctor('Adafruit_BME280')}\n#include <DHT.h>\nDHT dht(2, DHT11);\nvoid setup() { Wire.begin(); Wire.begin(21, 22); }\nvoid loop() { }`);
   assert.ok(r.js, JSON.stringify(r.issues));
   assert.deepEqual(r.issues, []);
@@ -211,14 +211,14 @@ test('§1 · Wire.begin() and Wire.begin(sda, scl) are accepted and do nothing; 
   assert.deepEqual(bmp.issues, []);
 });
 
-test('§1 · a method that is not in the class list is refused or noted: DHT.readPressure, BMP280.readHumidity, an unknown name', () => {
+test('Program · a method that is not in the class list is refused or noted: DHT.readPressure, BMP280.readHumidity, an unknown name', () => {
   for (const source of [dht('  Serial.println(dht.readPressure());'), i2c('  Serial.println(bme.readHumidity());', 'Adafruit_BMP280'), dht('  dht.explode();')]) {
     const r = translateSketch(source);
     assert.ok(r.js === null || r.issues.length > 0, `refused or noted: ${source.split('\n').slice(-3, -2)}`);
   }
 });
 
-test('§1 · isnan, NAN, F("text") and the printing of NaN: Serial prints "nan" and the text itself', () => {
+test('Program · isnan, NAN, F("text") and the printing of NaN: Serial prints "nan" and the text itself', () => {
   const program = `void setup() {
   Serial.begin(9600);
   float x = NAN;
@@ -232,7 +232,7 @@ void loop() { delay(1000); }`;
   assert.deepEqual(serialOf(engine), ['nan', 'isnan', 'number', 'hola']);
 });
 
-test('§1 · DHT22 gives a clear note "not in the kit yet" and reads NaN', () => {
+test('Program · DHT22 gives a clear note "not in the kit yet" and reads NaN', () => {
   const program = dht('  delay(3000);\n  float t = dht.readTemperature();\n  if (isnan(t)) Serial.println("fail"); else Serial.println("ok");', 2, 'DHT22');
   const r = translateSketch(program);
   assert.ok(r.js, 'translates');
@@ -245,34 +245,34 @@ test('§1 · DHT22 gives a clear note "not in the kit yet" and reads NaN', () =>
 
 // ---------------------------------------------------------------- L2 · DHT11 reads and rounding
 
-test('L2 (row 59) · 23.6 °C / 41.4 %RH read at 3 s: readTemperature 24, readHumidity 41', () => {
+test('L2 · 23.6 °C / 41.4 %RH read at 3 s: readTemperature 24, readHumidity 41', () => {
   const [t, h] = dhtReads({ temperature: 23.6, humidity: 41.4 });
   assert.equal(t, 24);
   assert.equal(h, 41);
 });
 
-test('L2 (row 60) · 23.4 °C → 23, 23.5 °C → 24, 41.5 %RH → 42', () => {
+test('L2 · 23.4 °C → 23, 23.5 °C → 24, 41.5 %RH → 42', () => {
   assert.equal(dhtReads({ temperature: 23.4, humidity: 41.5 })[0], 23);
   const [t, h] = dhtReads({ temperature: 23.5, humidity: 41.5 });
   assert.equal(t, 24);
   assert.equal(h, 42);
 });
 
-test('L2 (row 62) · 55 °C / 95 %RH read 50 / 90, and −5 °C / 10 %RH read 0 / 20', () => {
+test('L2 · 55 °C / 95 %RH read 50 / 90, and −5 °C / 10 %RH read 0 / 20', () => {
   const hot = dhtReads({ temperature: 55, humidity: 95 });
   assert.deepEqual(hot.slice(0, 2), [50, 90]);
   const cold = dhtReads({ temperature: -5, humidity: 10 });
   assert.deepEqual(cold.slice(0, 2), [0, 20]);
 });
 
-test('L2 (row 68) · readTemperature(true) at 23.6 °C is 75.2 °F ± 0.05', () => {
+test('L2 · readTemperature(true) at 23.6 °C is 75.2 °F ± 0.05', () => {
   const reads = dhtReads({ temperature: 23.6, humidity: 41.4 });
   near(reads[2], 75.2, 0.05, 'Fahrenheit');
 });
 
 // ---------------------------------------------------------------- L3 · the 2 s cache
 
-test('L3 (row 61) · read at 3.0 s with 20 °C, the environment set to 30 at 3.5 s: reads at 4.0 s and 5.1 s give 20, 20, 30', () => {
+test('L3 · read at 3.0 s with 20 °C, the environment set to 30 at 3.5 s: reads at 4.0 s and 5.1 s give 20, 20, 30', () => {
   const program = dht('  delay(3000);\n  Serial.println(dht.readTemperature());\n  delay(1000);\n  Serial.println(dht.readTemperature());\n  delay(1100);\n  Serial.println(dht.readTemperature());');
   const engine = engineOf(dhtBench({ environment: { temperature: 20, humidity: 41 }, program }));
   run(engine, 3.5);
@@ -287,19 +287,19 @@ test('L3 (row 61) · read at 3.0 s with 20 °C, the environment set to 30 at 3.5
 
 const failOrOk = dht('  delay(3000);\n  float h = dht.readHumidity();\n  float t = dht.readTemperature();\n  if (isnan(h) || isnan(t)) Serial.println("fail"); else Serial.println("ok");');
 
-test('L4 (row 63) · the same sketch prints "ok" when the module is powered and wired to the constructor\'s pin (the control)', () => {
+test('L4 · the same sketch prints "ok" when the module is powered and wired to the constructor\'s pin (the control)', () => {
   assert.deepEqual(serialOf(play(dhtBench({ program: failOrOk }), 3.3)), ['ok']);
 });
 
-test('L4 (row 63a) · VCC open: the sketch\'s isnan branch prints "fail"', () => {
+test('L4 · VCC open: the sketch\'s isnan branch prints "fail"', () => {
   assert.deepEqual(serialOf(play(dhtBench({ program: failOrOk, power: 'open' }), 3.3)), ['fail']);
 });
 
-test('L4 (row 63b) · the module on D3 while the sketch says D2: "fail"', () => {
+test('L4 · the module on D3 while the sketch says D2: "fail"', () => {
   assert.deepEqual(serialOf(play(dhtBench({ program: failOrOk, link: { data: 'D3' } }), 3.3)), ['fail']);
 });
 
-test('L4 (row 63d) · supply 2.5 V: "fail"; and SIM_MODULE_LOW_SUPPLY is raised (§12.3 stresses)', () => {
+test('L4 · supply 2.5 V: "fail"; and SIM_MODULE_LOW_SUPPLY is raised (the module's supply limits)', () => {
   assert.deepEqual(serialOf(play(dhtBench({ program: failOrOk, volts: 2.5 }), 3.3)), ['fail']);
   assert.ok(codes(simulate(dhtBench({ program: failOrOk, volts: 2.5 })).issues).includes('SIM_MODULE_LOW_SUPPLY'));
   assert.ok(!codes(simulate(dhtBench({ program: failOrOk, volts: 5 })).issues).includes('SIM_MODULE_LOW_SUPPLY'));
@@ -307,7 +307,7 @@ test('L4 (row 63d) · supply 2.5 V: "fail"; and SIM_MODULE_LOW_SUPPLY is raised 
 
 // ---------------------------------------------------------------- L5 · power-up
 
-test('L5 (row 64) · reads at 0.4 s, 1.2 s and 2.5 s after power: fail, fail, valid', () => {
+test('L5 · reads at 0.4 s, 1.2 s and 2.5 s after power: fail, fail, valid', () => {
   const program = dht(`  delay(400);
   float a = dht.readTemperature();
   if (isnan(a)) Serial.println("fail"); else Serial.println(a);
@@ -323,7 +323,7 @@ test('L5 (row 64) · reads at 0.4 s, 1.2 s and 2.5 s after power: fail, fail, va
 
 // ---------------------------------------------------------------- L6 · what a read costs
 
-test('L6 (row 65) · millis() around a real read differ by 25 ± 5 ms; around a cached one by 0…1 ms', () => {
+test('L6 · millis() around a real read differ by 25 ± 5 ms; around a cached one by 0…1 ms', () => {
   const program = dht(`  delay(3000);
   unsigned long a = millis();
   float t = dht.readTemperature();
@@ -340,12 +340,12 @@ test('L6 (row 65) · millis() around a real read differ by 25 ± 5 ms; around a 
 
 // ---------------------------------------------------------------- L7 · 3.3 V and 6.5 V
 
-test('L7 (row 66) · the module on the 3V3 pin of an ESP32 reads 24 / 41', () => {
+test('L7 · the module on the 3V3 pin of an ESP32 reads 24 / 41', () => {
   const engine = play(dhtBench({ board: 'ESP32-DEVKIT', power: 'board', program: dht('  delay(3000);\n  Serial.println(dht.readTemperature());\n  Serial.println(dht.readHumidity());') }), 3.3);
   assert.deepEqual(numbers(engine), [24, 41]);
 });
 
-test('L7 (row 66) · at 6.5 V the module says SIM_IC_SUPPLY; at 5 V it does not', () => {
+test('L7 · at 6.5 V the module says SIM_IC_SUPPLY; at 5 V it does not', () => {
   const program = dht('  delay(100);');
   assert.ok(codes(simulate(dhtBench({ program, volts: 6.5 })).issues).includes('SIM_IC_SUPPLY'), JSON.stringify(simulate(dhtBench({ program, volts: 6.5 })).issues));
   assert.ok(!codes(simulate(dhtBench({ program, volts: 5 })).issues).includes('SIM_IC_SUPPLY'));
@@ -353,7 +353,7 @@ test('L7 (row 66) · at 6.5 V the module says SIM_IC_SUPPLY; at 5 V it does not'
 
 // ---------------------------------------------------------------- L8 · heat index
 
-test('L8 (row 69) · computeHeatIndex(30, 60, false) is 32.83 ± 0.1 and (25, 50) is 24.86 ± 0.1', () => {
+test('L8 · computeHeatIndex(30, 60, false) is 32.83 ± 0.1 and (25, 50) is 24.86 ± 0.1', () => {
   const [a, b] = numbers(play(dhtBench({ program: dht('  delay(100);\n  Serial.println(dht.computeHeatIndex(30, 60, false), 3);\n  Serial.println(dht.computeHeatIndex(25, 50, false), 3);') }), 0.5));
   near(a, 32.83, 0.1, 'heat index at 30 °C / 60 %');
   near(b, 24.86, 0.1, 'heat index at 25 °C / 50 %');
@@ -363,13 +363,13 @@ test('L8 (row 69) · computeHeatIndex(30, 60, false) is 32.83 ± 0.1 and (25, 50
 
 const beginOn = (arg, options = {}, lib = 'Adafruit_BME280') => serialOf(play(bmeBench({ board: 'ESP32-DEVKIT', program: beginWith(arg, lib), ...options }), 0.5));
 
-test('L9 (row 70) · a BME280 at its default address on an ESP32: begin(0x76) true, begin(0x77) false, begin() false', () => {
+test('L9 · a BME280 at its default address on an ESP32: begin(0x76) true, begin(0x77) false, begin() false', () => {
   assert.deepEqual(beginOn('0x76'), ['true']);
   assert.deepEqual(beginOn('0x77'), ['false']);
   assert.deepEqual(beginOn(''), ['false']);
 });
 
-test('L9 (row 70) · with the part\'s address 0x77: begin(0x76) false, begin() true (the library\'s default is 0x77)', () => {
+test('L9 · with the part\'s address 0x77: begin(0x76) false, begin() true (the library\'s default is 0x77)', () => {
   assert.deepEqual(beginOn('0x76', { own: { address: 0x77 } }), ['false']);
   assert.deepEqual(beginOn('', { own: { address: 0x77 } }), ['true']);
   assert.deepEqual(beginOn('0x77', { own: { address: 0x77 } }), ['true']);
@@ -391,14 +391,14 @@ function bmeReads(environment, options = {}) {
 }
 const env = (temperature, humidity, pressure) => ({ temperature, humidity, pressure });
 
-test('L10 (rows 71, 73) · 1013.25 hPa: readPressure 101325 ± 1, readAltitude(1013.25) 0 ± 0.5, readAltitude(1020) 55.98 ± 0.5', () => {
+test('L10 · 1013.25 hPa: readPressure 101325 ± 1, readAltitude(1013.25) 0 ± 0.5, readAltitude(1020) 55.98 ± 0.5', () => {
   const [, p, , a, a2] = bmeReads(env(22, 45, 1013.25));
   near(p, 101325, 1, 'Pa');
   near(a, 0, 0.5, 'altitude');
   near(a2, 55.98, 0.5, 'altitude against 1020 hPa');
 });
 
-test('L10 (row 72) · 900 hPa reads 90000 Pa and 988.7 m; 1100 hPa reads −698.4 m; 300 hPa reads 9165.4 m (± 1 Pa, ± 0.5 m)', () => {
+test('L10 · 900 hPa reads 90000 Pa and 988.7 m; 1100 hPa reads −698.4 m; 300 hPa reads 9165.4 m (± 1 Pa, ± 0.5 m)', () => {
   const [, p, , a] = bmeReads(env(22, 45, 900));
   near(p, 90000, 1, 'Pa at 900 hPa');
   near(a, 988.7, 0.5, 'altitude at 900 hPa');
@@ -406,13 +406,13 @@ test('L10 (row 72) · 900 hPa reads 90000 Pa and 988.7 m; 1100 hPa reads −698.
   near(bmeReads(env(22, 45, 300))[3], 9165.4, 0.5, 'altitude at 300 hPa');
 });
 
-test('L10 (row 74) · 22.346 °C / 45.678 %RH read 22.35 / 45.68 (± 0.005)', () => {
+test('L10 · 22.346 °C / 45.678 %RH read 22.35 / 45.68 (± 0.005)', () => {
   const [t, , h] = bmeReads(env(22.346, 45.678, 1013.25));
   near(t, 22.35, 0.005, 'temperature');
   near(h, 45.68, 0.005, 'humidity');
 });
 
-test('L10 (row 75) · clamps: 100 °C → 85, −50 °C → −40, 120 % → 100, −5 % → 0, 1200 hPa → 110000 Pa, 200 hPa → 30000 Pa', () => {
+test('L10 · clamps: 100 °C → 85, −50 °C → −40, 120 % → 100, −5 % → 0, 1200 hPa → 110000 Pa, 200 hPa → 30000 Pa', () => {
   const hot = bmeReads(env(100, 120, 1200));
   near(hot[0], 85, 0.01, 'temperature clamp');
   near(hot[2], 100, 0.01, 'humidity clamp');
@@ -423,19 +423,19 @@ test('L10 (row 75) · clamps: 100 °C → 85, −50 °C → −40, 120 % → 100
   near(cold[1], 30000, 1, 'pressure clamp');
 });
 
-test('§3 · the part\'s own pressure wins over the environment (own value "pressure": 900 against 1013.25 hPa)', () => {
+test('Part · the part\'s own pressure wins over the environment (own value "pressure": 900 against 1013.25 hPa)', () => {
   const [, p] = bmeReads(env(22, 45, 1013.25), { own: { pressure: 900 } });
   near(p, 90000, 1, 'Pa from the part\'s own value');
 });
 
 // ---------------------------------------------------------------- L11 · BMP280 against BME280
 
-test('L11 (row 76) · a BMP280 part: Adafruit_BMP280 begin(0x76) true; Adafruit_BME280 begin(0x76) on the same board false', () => {
+test('L11 · a BMP280 part: Adafruit_BMP280 begin(0x76) true; Adafruit_BME280 begin(0x76) on the same board false', () => {
   assert.deepEqual(serialOf(play(bench({ part: 'BMP280', board: 'ESP32-DEVKIT', power: 'board', link: i2cLink['ESP32-DEVKIT'], environment: { pressure: 1013.25 }, program: beginWith('0x76', 'Adafruit_BMP280') }), 0.5)), ['true']);
   assert.deepEqual(serialOf(play(bench({ part: 'BMP280', board: 'ESP32-DEVKIT', power: 'board', link: i2cLink['ESP32-DEVKIT'], environment: { pressure: 1013.25 }, program: beginWith('0x76', 'Adafruit_BME280') }), 0.5)), ['false']);
 });
 
-test('L11 (row 76) · a BMP280 part answers pressure and altitude through its own library; a BMP has no readHumidity in the BMP library', () => {
+test('L11 · a BMP280 part answers pressure and altitude through its own library; a BMP has no readHumidity in the BMP library', () => {
   const program = i2c(`  if (!bme.begin(0x76)) { Serial.println("nobegin"); return; }
   Serial.println(bme.readPressure(), 3);
   Serial.println(bme.readAltitude(1013.25), 3);`, 'Adafruit_BMP280');
@@ -447,7 +447,7 @@ test('L11 (row 76) · a BMP280 part answers pressure and altitude through its ow
   assert.ok(r.js === null || r.issues.length > 0, 'readHumidity does not exist for Adafruit_BMP280');
 });
 
-test('§13.3 · the chip id must match the class: BMP library on a BME280 module is false with begin(0x76), true with begin(0x76, 0x60); BMP280 module with begin(0x76, 0x60) false', () => {
+test('Library · the chip id must match the class: BMP library on a BME280 module is false with begin(0x76), true with begin(0x76, 0x60); BMP280 module with begin(0x76, 0x60) false', () => {
   const on = (part, call) => serialOf(play(bench({ part, board: 'ESP32-DEVKIT', power: 'board', link: i2cLink['ESP32-DEVKIT'], environment: {}, program: beginWith(call, 'Adafruit_BMP280') }), 0.5));
   assert.deepEqual(on('BME280', '0x76'), ['false']);
   assert.deepEqual(on('BME280', '0x76, 0x60'), ['true']);
@@ -457,27 +457,27 @@ test('§13.3 · the chip id must match the class: BMP library on a BME280 module
 
 // ---------------------------------------------------------------- L12 · the bus pins
 
-test('L12 (row 77) · wired on the right pins begin is true (the control: UNO A4/A5, ESP32 21/22)', () => {
+test('L12 · wired on the right pins begin is true (the control: UNO A4/A5, ESP32 21/22)', () => {
   for (const board of ['UNO', 'ESP32-DEVKIT']) assert.deepEqual(serialOf(play(bmeBench({ board, program: beginWith('0x76') }), 0.5)), ['true'], board);
 });
 
-test('L12 (row 77) · SDA and SCL swapped: begin false (UNO and ESP32)', () => {
+test('L12 · SDA and SCL swapped: begin false (UNO and ESP32)', () => {
   assert.deepEqual(serialOf(play(bmeBench({ board: 'UNO', link: { sda: 'A5', scl: 'A4' }, program: beginWith('0x76') }), 0.5)), ['false']);
   assert.deepEqual(serialOf(play(bmeBench({ board: 'ESP32-DEVKIT', link: { sda: 'D22', scl: 'D21' }, program: beginWith('0x76') }), 0.5)), ['false']);
 });
 
-test('L12 (row 77) · on D2 / D3 of a UNO (SDA D2, SCL D3, and the other way round): begin false', () => {
+test('L12 · on D2 / D3 of a UNO (SDA D2, SCL D3, and the other way round): begin false', () => {
   assert.deepEqual(serialOf(play(bmeBench({ board: 'UNO', link: { sda: 'D2', scl: 'D3' }, program: beginWith('0x76') }), 0.5)), ['false']);
   assert.deepEqual(serialOf(play(bmeBench({ board: 'UNO', link: { sda: 'D3', scl: 'D2' }, program: beginWith('0x76') }), 0.5)), ['false']);
 });
 
-test('L12 (row 77) · SDA and SCL not connected: begin false', () => {
+test('L12 · SDA and SCL not connected: begin false', () => {
   assert.deepEqual(serialOf(play(bmeBench({ board: 'UNO', link: {}, program: beginWith('0x76') }), 0.5)), ['false']);
 });
 
 // ---------------------------------------------------------------- L13 · the BME280 supply
 
-test('L13 (rows 78, 79) · BME280 (3.3 V board) on 5 V: SIM_IC_SUPPLY and begin false; on 3.3 V: works, no SIM_IC_SUPPLY; on 1.5 V: begin false', () => {
+test('L13 · BME280 (3.3 V board) on 5 V: SIM_IC_SUPPLY and begin false; on 3.3 V: works, no SIM_IC_SUPPLY; on 1.5 V: begin false', () => {
   const at = (volts) => bmeBench({ board: 'UNO', volts, program: beginWith('0x76') });
   assert.ok(codes(simulate(at(5)).issues).includes('SIM_IC_SUPPLY'), JSON.stringify(simulate(at(5)).issues));
   assert.deepEqual(serialOf(play(at(5), 0.5)), ['false']);
@@ -486,7 +486,7 @@ test('L13 (rows 78, 79) · BME280 (3.3 V board) on 5 V: SIM_IC_SUPPLY and begin 
   assert.deepEqual(serialOf(play(at(1.5), 0.5)), ['false']);
 });
 
-test('L13 (row 79) · BME280-5V on 5 V: SDA idles at 3.3 ± 0.05 V, begin true, no SIM_IC_SUPPLY', () => {
+test('L13 · BME280-5V on 5 V: SDA idles at 3.3 ± 0.05 V, begin true, no SIM_IC_SUPPLY', () => {
   const circuit = bench({ part: 'BME280-5V', board: 'UNO', volts: 5, power: 'rail', link: i2cLink.UNO, environment: {}, program: beginWith('0x76') });
   const engine = play(circuit, 0.5);
   assert.deepEqual(serialOf(engine), ['true']);
@@ -495,7 +495,7 @@ test('L13 (row 79) · BME280-5V on 5 V: SDA idles at 3.3 ± 0.05 V, begin true, 
   assert.ok(!codes(simulate(circuit).issues).includes('SIM_IC_SUPPLY'));
 });
 
-test('§3 · BME280-5V under 3.4 V raises SIM_MODULE_LOW_SUPPLY (a note); on 5 V it does not', () => {
+test('Part · BME280-5V under 3.4 V raises SIM_MODULE_LOW_SUPPLY (a note); on 5 V it does not', () => {
   const at = (volts) => bench({ part: 'BME280-5V', board: 'UNO', volts, power: 'rail', link: i2cLink.UNO, environment: {}, program: beginWith('0x76') });
   assert.ok(codes(simulate(at(3.0)).issues).includes('SIM_MODULE_LOW_SUPPLY'), JSON.stringify(simulate(at(3.0)).issues));
   assert.ok(!codes(simulate(at(5)).issues).includes('SIM_MODULE_LOW_SUPPLY'));
@@ -503,7 +503,7 @@ test('§3 · BME280-5V under 3.4 V raises SIM_MODULE_LOW_SUPPLY (a note); on 5 V
 
 // ---------------------------------------------------------------- the card
 
-test('§3 cards · the DHT11 card says what it answers, the accuracy and why it does not answer, in both languages', () => {
+test('Cards · the DHT11 card says what it answers, the accuracy and why it does not answer, in both languages', () => {
   const text = (circuit, lang) => {
     const engine = play(circuit, 3.3);
     return partLines(engine.read().parts.U1, lang).map((l) => l.text).join(' | ');
@@ -522,7 +522,7 @@ test('§3 cards · the DHT11 card says what it answers, the accuracy and why it 
   }
 });
 
-test('§3 cards · a BME280 asked at 0x77 on a 0x76 board says both addresses; its accuracy shows (± 1 °C, ± 3 %RH, ± 1 hPa)', () => {
+test('Cards · a BME280 asked at 0x77 on a 0x76 board says both addresses; its accuracy shows (± 1 °C, ± 3 %RH, ± 1 hPa)', () => {
   const engine = play(bmeBench({ board: 'ESP32-DEVKIT', program: i2c(`  ${okWord('bme.begin()')}`) }), 0.5);
   assert.deepEqual(serialOf(engine), ['false']);
   for (const lang of ['en', 'es']) {
@@ -634,7 +634,7 @@ for (const name of RECIPE_NAMES) {
     for (const [id, visible] of seen) assert.ok(visible >= 0.5, `${id} is hidden in both views (${Math.round(visible * 100)} % at best)`);
   });
 
-  test(`L15 (§5) · ${name} carries an environment and a controls panel for each of its fields`, () => {
+  test(`L15 · ${name} carries an environment and a controls panel for each of its fields`, () => {
     const { circuit } = layoutOf(name);
     assert.ok(circuit.environment, 'an environment');
     const fields = Object.keys(circuit.environment);
@@ -648,7 +648,7 @@ for (const name of RECIPE_NAMES) {
 const rangeOf = (field) => (typeof field === 'object' ? field.range : null);
 const valueIn = (field) => (typeof field === 'object' ? field.value : field);
 
-test('L15 (§5) · uno-dht11: the DHT11 on D2 of a UNO, delay(2000), isnan check printing "fail"; environment temperature 24 range [0, 50], humidity 41 range [20, 90]', () => {
+test('L15 · uno-dht11: the DHT11 on D2 of a UNO, delay(2000), isnan check printing "fail"; environment temperature 24 range [0, 50], humidity 41 range [20, 90]', () => {
   const { circuit } = layoutOf('uno-dht11');
   const spec = circuit.spec;
   assert.equal(valueIn(circuit.environment.temperature), 24);
@@ -663,7 +663,7 @@ test('L15 (§5) · uno-dht11: the DHT11 on D2 of a UNO, delay(2000), isnan check
   assert.ok(spec.nets.some((n) => n.some((x) => /\.D2$/.test(x)) && n.some((x) => /\.(S|DATA|OUT)$/.test(x))), 'D2 is wired to the module\'s S');
 });
 
-test('L15 (§5) · uno-dht11 prints a line with 24 and 41 within 2.5 s, and after temperature 31 a line starting with 31 within 2.1 s more', () => {
+test('L15 · uno-dht11 prints a line with 24 and 41 within 2.5 s, and after temperature 31 a line starting with 31 within 2.1 s more', () => {
   const { circuit } = layoutOf('uno-dht11');
   const board = boardOf(circuit, 'UNO');
   const engine = engineOf(circuit);
@@ -679,7 +679,7 @@ test('L15 (§5) · uno-dht11 prints a line with 24 and 41 within 2.5 s, and afte
   assert.ok(after.some((l) => nums(l)[0] === 31), `a line with 31 within 2.1 s: ${JSON.stringify(after)}`);
 });
 
-test('L15 (§5) · esp32-bme280: a BME280 on an ESP32 DevKit (3V3, GND, 22, 21), begin(0x76), pressure range [900, 1050], prints 1013 within 2 s', () => {
+test('L15 · esp32-bme280: a BME280 on an ESP32 DevKit (3V3, GND, 22, 21), begin(0x76), pressure range [900, 1050], prints 1013 within 2 s', () => {
   const { circuit } = layoutOf('esp32-bme280');
   const spec = circuit.spec;
   assert.ok(circuit.parts.some((p) => p.part === 'ESP32-DEVKIT'));
@@ -697,7 +697,7 @@ test('L15 (§5) · esp32-bme280: a BME280 on an ESP32 DevKit (3V3, GND, 22, 21),
   assert.ok(lines.some((l) => /(^|[^\d.])1013(\.\d+)?([^\d]|$)/.test(l)), `a line with 1013: ${JSON.stringify(lines)}`);
 });
 
-test('L15 (§5) · uno-bmp280-altitude: a BMP280 on a UNO\'s 3V3 pin and A4 / A5, printing the altitude; the text says why 3.3 V and not 5 V', () => {
+test('L15 · uno-bmp280-altitude: a BMP280 on a UNO\'s 3V3 pin and A4 / A5, printing the altitude; the text says why 3.3 V and not 5 V', () => {
   const { circuit } = layoutOf('uno-bmp280-altitude');
   const spec = circuit.spec;
   assert.ok(circuit.parts.some((p) => p.type === TYPE && p.part === 'BMP280'));
@@ -751,7 +751,7 @@ test('L16 · the tour examples/tours/uno-dht11.json validates with render-frames
   assert.equal(r.status, 0, `${r.stdout}\n${r.stderr}`);
 });
 
-test('L16 (§5) · the tour plays uno-dht11, has Spanish captions, ends within 35 s, gauges of temperature and humidity, sets temperature 24 → 31 and humidity 41 → 70 with a travel', () => {
+test('L16 · the tour plays uno-dht11, has Spanish captions, ends within 35 s, gauges of temperature and humidity, sets temperature 24 → 31 and humidity 41 → 70 with a travel', () => {
   assert.ok(existsSync(tourFile), 'examples/tours/uno-dht11.json');
   const timeline = JSON.parse(readFileSync(tourFile, 'utf8'));
   const circuit = timelineCircuit(tourFile, timeline);

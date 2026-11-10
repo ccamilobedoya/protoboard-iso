@@ -1,6 +1,6 @@
 // Library-level climate sensors (docs/en/library-sensors.md): a board's program calls the DHT and
 // Adafruit BME280 / BMP280 libraries, and the sensor wired where the library looks answers with the
-// environment through its range, resolution and timing. Numbers from the physics spec's checks (DHT11:
+// environment through its range, resolution and timing. Numbers from the datasheets and the libraries (DHT11:
 // nearest whole numbers, 0…50 °C, 20…90 %RH, 2 s cache, 1 s power-up, 25 ms a real read; BME280: 0.01 °C,
 // 1 Pa, 0.01 %RH, address and chip id, the library's readAltitude).
 
