@@ -9,6 +9,10 @@ detail.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-09
+
+Sensors: a shared environment that every sensor reads, its panel and indicator, real sensor recipes, the LM393 modules, the PIR and touch modules.
+
 ### Added
 
 - Ranges for the environment's slider and indicator (sensors S0b; `docs/en/environment.md`): a
@@ -360,7 +364,8 @@ what it uses.
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.7.0...v0.8.0
