@@ -18,7 +18,7 @@ de los elementos), `src/parts/types/sensor-modules.js` (el tipo), `src/parts/pac
 `sound-level-led` ([recetas.md](recetas.md)); líneas de tiempo `examples/tours/soil-led.json`,
 `obstacle-buzzer.json` y `clap-switch.json`. `rain-alarm` y `obstacle-buzzer` activan un zumbador activo
 con un PNP, no con un NPN: DO baja cuando el módulo detecta, y un NPN manejado por él sonaría con el
-peine seco (el zumbador necesita 3,5 V entre sus pines y unos 30 mA, más de lo que aguanta la salida de
+peine seco (el zumbador toma unos 30 mA a 5 V, más de lo que aguanta la salida de
 20 mA del LM393). Los sensores analógicos que no van en esta placa (el Hall lineal 49E, el módulo sensor
 de voltaje) están en [sensores-analogicos.md](sensores-analogicos.md).
 
@@ -92,7 +92,7 @@ Cada elemento, en corto:
   lado el pico de la señal, y DO baja mientras ese pico sea mayor que la distancia entre AO y Vref,
   `Vpk > Vbias − Vref` (lo hace una fuente del pico entre el trimmer y el comparador; no hay forma de
   onda ni tiempo de retención). El trimmer parte con Vref 15 mV por debajo de la polarización (`threshold`
-  0,497 a 5 V), así que DO baja por encima de unos 98,5 dB; el deslizador de `threshold` lo mueve de a
+  0,497 a 5 V), así que DO baja por encima de unos 98,5 dB (con 3,3 V la misma fracción de VCC deja la distancia en unos 10 mV, así que baja desde unos 95 dB: el ajuste del trimmer y la polarización son una fracción de la alimentación, pero la señal no); el deslizador de `threshold` lo mueve de a
   0,05 %. **La placa real necesita su trimmer ajustado a milivoltios de la polarización** (un trimmer de
   25 vueltas, girado hasta que el LED de DO apenas se apaga en una sala silenciosa): unos milivoltios de
   más y nunca dispara o queda siempre en bajo, que es la experiencia que este modelo conserva. De cerca,

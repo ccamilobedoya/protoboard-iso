@@ -4,6 +4,9 @@
 export const issue = (severity, code, params) => ({ severity, code, params });
 export const q = (value, unit) => ({ value, unit }); // a quantity, formatted per language by formatIssue
 export const volt = (x, i) => (i >= 0 ? x[i] : 0);
+// The numbers of a circuit's `model` override that a solver may take: finite and above zero (a zero
+// reference or resistance would divide by zero); anything else is dropped.
+export const positiveNumbers = (o) => Object.fromEntries(Object.entries(o && typeof o === 'object' ? o : {}).filter(([, v]) => typeof v === 'number' && Number.isFinite(v) && v > 0));
 
 // A stress: a value against the limit it must stay under (current, power, voltage, reverse
 // voltage). ratio > 1 means exceeded: a warning `code` with { part, <param>: value, max }.

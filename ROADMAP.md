@@ -368,7 +368,7 @@ board ([docs/en/environment.md](docs/en/environment.md); decision of 2026-11-08 
 - ⬜ Rotary encoder, still to do: two momentary controls "+1 click" and "−1 click" that shift the target by one click (a part that follows the environment would need to leave the field), `attachInterrupt` in a board's program, the bare EC11 on its own pins (no pull-ups) and the 15/30 variant (two clicks a cycle)
 - ⬜ An infrared LED as an emitter and a bare phototransistor or IR receiver that reads it
 - ⬜ DHT11/BME280 bit-level protocol on the wire — optional, very low priority, kept so it is not forgotten
-- ✅ Active buzzer (2026-11-10): `TMB12A05`, a second part number of `buzzer` with its own device (silent under 1.5 V, 30 mA and 2.3 kHz from 3.5 V, polarity); `rain-alarm` and `obstacle-buzzer` use it through a PNP
+- ✅ Active buzzer (2026-11-10): `TMB12A05`, a second part number of `buzzer` with its own device (silent under 1.5 V, starting at 2.0 V and then 167 Ω: 30 mA and 2.3 kHz at 5 V, 19.8 mA on 3.3 V; polarity); `rain-alarm` and `obstacle-buzzer` use it through a PNP
 - ⬜ Bench questions to settle on the real boards: whether the SW-420's LED is lit at rest, and the MH-RD's pin order
 
 ## Stage 4 — On a phone or tablet ⬜

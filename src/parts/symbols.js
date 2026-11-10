@@ -552,7 +552,7 @@ export function insideOf(part) {
   if (part.type === 'buzzer') {
     const { resistance, maxPower } = limits();
     // The active one: its oscillator is inside, and what it takes is its device's rating.
-    if (e.kind === 'BZA') return { kind: 'buzzer-active', ids: ids(), minVoltage: limits().model?.minVoltage, frequency: limits().model?.frequency, maxCurrent: limits().model?.current };
+    if (e.kind === 'BZA') return { kind: 'buzzer-active', ids: ids(), minVoltage: limits().model?.start, frequency: limits().model?.frequency, maxCurrent: limits().model?.current };
     return { kind: 'buzzer', ids: ids(), resistance, maxCurrent: resistance > 0 ? Math.sqrt(maxPower / resistance) : null };
   }
   if (part.type === 'led') return { kind: 'led', color: LED_LIGHT[e.color] ?? LED_LIGHT.red };

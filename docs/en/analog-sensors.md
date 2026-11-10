@@ -45,7 +45,7 @@ Vout = Vs / 2 + 1.4 mV/G · (Vs / 5 V) · field          held inside [0.95 V, Vs
 - It senses the environment's `field` ([environment.md](environment.md)); a `field` on the part wins.
 
 Limits and notes: `SIM_IC_SUPPLY` over 8 V (the sheets give no absolute maximum: the kit's figure),
-`SIM_REVERSE_VOLTAGE` reversed, `SIM_MODULE_LOW_SUPPLY` under the 2.7 V it is specified from (the
+`SIM_REVERSE_VOLTAGE` reversed (the chip is off then: its output stays at ground), `SIM_MODULE_LOW_SUPPLY` under the 2.7 V it is specified from (the
 note every sensor uses), and `SIM_HALL_LOAD` (a note) when more than 1.5 mA is taken from the output.
 The card shows the field, the output, the supply, the current VOUT gives and the chip's own.
 

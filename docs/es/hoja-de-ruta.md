@@ -374,7 +374,7 @@ dibujadas en la protoboard ([ambiente.md](ambiente.md); decisión del 2026-11-08
 - ⬜ Encoder rotativo, pendiente: dos controles momentáneos "+1 clic" y "−1 clic" que muevan el objetivo un clic (una pieza que sigue al ambiente tendría que dejar el campo), `attachInterrupt` en el programa de una placa, el EC11 suelto sobre sus propios pines (sin pull-up) y la variante 15/30 (dos clics por ciclo)
 - ⬜ Un LED infrarrojo como emisor y un fototransistor suelto o un receptor IR que lo lea
 - ⬜ Protocolo de bits del DHT11/BME280 en el cable — opcional, prioridad muy baja, anotado para no olvidarlo
-- ✅ Zumbador activo (2026-11-10): `TMB12A05`, un segundo número de parte de `buzzer` con su propio dispositivo (en silencio bajo 1,5 V, 30 mA y 2,3 kHz desde 3,5 V, con polaridad); `rain-alarm` y `obstacle-buzzer` lo usan a través de un PNP
+- ✅ Zumbador activo (2026-11-10): `TMB12A05`, un segundo número de parte de `buzzer` con su propio dispositivo (en silencio bajo 1,5 V, arranca a 2,0 V y desde ahí 167 Ω: 30 mA y 2,3 kHz a 5 V, 19,8 mA con 3,3 V, con polaridad); `rain-alarm` y `obstacle-buzzer` lo usan a través de un PNP
 - ⬜ Preguntas de banco por resolver en las placas reales: si el LED del SW-420 está encendido en reposo, y el orden de los pines del MH-RD
 
 ## Etapa 4 — En el celular o la tableta ⬜

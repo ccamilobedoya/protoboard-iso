@@ -944,7 +944,7 @@ const INSIDE = {
     if (flowing(i)) shaft(g, i > 0 ? 34 : 66, 90, i > 0 ? 66 : 34, 90, widthOf(i));
     label(g, 50, 103, r ? [`V ${f(r.voltage ?? 0, 'V')}`, flowing(i) && `I ${f(Math.abs(i), 'A')}`].filter(Boolean).join(' · ') : '', 'note');
     const state = sounding ? 'sounding' : (r?.voltage ?? 0) < -0.5 ? 'reversed' : 'silent';
-    label(g, 50, 114, r ? t(`page.tour.inside.buzzer-active.${state}`, { min: f(data.minVoltage ?? 3.5, 'V'), frequency: f(data.frequency ?? 2300, 'Hz') }) : '', 'state');
+    label(g, 50, 114, r ? t(`page.tour.inside.buzzer-active.${state}`, { min: f(data.minVoltage ?? 2, 'V'), frequency: f(data.frequency ?? 2300, 'Hz') }) : '', 'state');
   },
   slide(g, r, data, { t, f, control }) {
     // Cut from the side, as its datasheet draws it: the frame with its three fixed contacts, 1, COM and
@@ -1233,7 +1233,7 @@ const INSIDE = {
     label(g, 98, 46, id(data.doPin ?? 'DO'), 'pin-name', 'end', FIGURE.small);
     label(g, 50, 103, r ? `AO ${f(ao, 'V')} · Vref ${f(vref, 'V')} · ${id(data.doPin ?? 'DO')} ${f(r.vdo, 'V')}` : '', 'note');
     const field = data.field ?? 'rain';
-    label(g, 50, 114, r ? t(`page.tour.inside.module.${low ? 'low' : 'high'}`, { what: t(`sim.sensor-module.${field}.${r.detected ? 'detected' : 'idle'}`) }) : '', 'state');
+    label(g, 50, 114, r ? (r.level === 'switching' ? t('sim.sensor-module.switching') : t(`page.tour.inside.module.${low ? 'low' : 'high'}`, { what: t(`sim.sensor-module.${field}.${r.detected ? 'detected' : 'idle'}`) })) : '', 'state');
   },
   laser(g, r, data, { t, f }) {
     // The laser diode's chip between its two cleaved faces (the mirrors), the light inside it growing

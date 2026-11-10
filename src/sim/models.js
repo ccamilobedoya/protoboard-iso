@@ -356,6 +356,8 @@ export const ULTRASONIC = {
   temperature: 20, distance: 50,
 };
 
+// Evidence tags in the figures below: [D] read in a published datasheet, [T] typical (listings and
+// community figures, consistent but not guaranteed), [A] assumed by the kit: no source, a free parameter.
 // Linear Hall sensor 49E / SS49E (Honeywell SS39ET/SS49E/SS59ET datasheet, read in secondary copies;
 // docs/en/analog-sensors.md). The output is ratiometric: Vout = Vs/2 + S · B with S = 1.4 mV/G at 5 V
 // [D: 1.0 to 1.75 typical 1.4], scaling with the supply (S · Vs / 5 V).
@@ -373,9 +375,14 @@ export const HALL_LINEAR = { sensitivity: 1.4e-3, reference: 5, margin: 0.95, qu
 //   leak 1 GΩ [A]: the unconnected "+" pin, so it never reads as a floating group
 export const VOLTAGE_SENSOR = { upper: 30e3, lower: 7.5e3, maxPower: 0.1, join: 1e-3, leak: 1e9 };
 
-// Active buzzer TMB12A05 (12 mm, 5 V; common datasheets of the 12 mm active buzzers) [T] unless marked.
-//   rated 5 V, works from 3.5 to 5.5 V, at most 30 mA at 5 V, 2300 ± 300 Hz, at least 85 dB at 10 cm
-//   silent under 1.5 V and almost no current [A]; above it the load is 5 V / 30 mA = 167 Ω [A], the
-//   change rounded over a volt (smoothstep from 1.5 to 2.5 V) so the solver has a slope everywhere
-//   maxReverse 0.5 V [A]: its polarity is marked + on the case; reversed it does not sound
-export const ACTIVE_BUZZER = { rated: 5, minVoltage: 3.5, maxVoltage: 5.5, current: 0.03, frequency: 2300, silentBelow: 1.5, fullAt: 2.5, maxReverse: 0.5, maxPower: 0.5 };
+// Active buzzer TMB12A05 (12 mm, 5 V, with an oscillator inside). The listings of this family disagree [T]:
+// rated 5 V, 30 mA at 5 V, 2300 Hz, 85 dB at 10 cm.
+//   start 2.0 V [A]: the self-oscillator starts there; from 1.5 V [A] the current rises to its full law
+//     over half a volt (a smoothstep, monotonic, so the solver has a slope everywhere); there is no
+//     hysteresis (the card has no memory of its own: it is a function of the voltage across it)
+//   from 2.0 V up it is a resistor, rated / current = 167 Ω [A: roughly linear in V], and it sounds:
+//     weakly at 3.3 V (19.8 mA), fully at 5 V; the level is about 85 − 40·log10(5/V) dB below 5 V [A]
+//   leak 1 µA per volt silent [A]; reversed it is an open circuit of 100 kΩ, silent, with a note from 1 V
+//   maxVoltage 7 V [A: the widest common intersection of the listings]: over it SIM_IC_SUPPLY, the kit's
+//     existing "more than its maximum supply" warning; maxCurrent 35 mA [A]: over it SIM_OVER_CURRENT
+export const ACTIVE_BUZZER = { rated: 5, current: 0.03, frequency: 2300, rampFrom: 1.5, start: 2.0, leak: 1e-6, reverseLeak: 1e-5, maxReverse: 1, maxVoltage: 7, maxCurrent: 0.035, level: 85 };

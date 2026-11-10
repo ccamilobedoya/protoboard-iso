@@ -182,7 +182,7 @@ reference (a textbook formula solved separately, or the datasheet figure).
 | inductor | winding resistance in series; a short in DC, backward Euler in transient | RL: I·(1 − e^(−t/τ)) |
 | thermistor, photoresistor | resistors whose value comes from the temperature (B equation) or the light (GL55 curve) | B equation at 50 °C; GL5528 at 10 lx |
 | buzzer | its coil, 16 Ω | — |
-| active buzzer (TMB12A05) | a load that takes nothing under 1.5 V and, from 2.5 V up, 5 V / 30 mA = 167 Ω (rounded between); sounds at 2.3 kHz from 3.5 V across it, + to −; reversed it takes nothing and warns over 0.5 V | 30 mA at 5 V; silent and under 1 mA at 1 V |
+| active buzzer (TMB12A05) | a load that takes next to nothing under 1.5 V, rises smoothly to 5 V / 30 mA = 167 Ω at 2.0 V and stays there; it sounds (2.3 kHz, about 85 − 40·log10(5/V) dB at 10 cm) from 2.0 V across it, + to −, with no hysteresis; reversed it is 100 kΩ, silent, and warns over 1 V; over 7 V `SIM_IC_SUPPLY`, over 35 mA `SIM_OVER_CURRENT` | 30 mA at 5 V, 19.8 mA and sounding at 3.3 V; silent and under 1 mA at 1 V |
 | linear Hall sensor 49E | a source of Vs/2 + 1.4 mV/G · (Vs/5) · field held in [0.95 V, Vs − 0.95 V] behind 50 Ω, 6 mA from the supply; stresses: supply over 8 V or reversed; notes: under 2.7 V, over 1.5 mA out | 2.500 / 2.640 / 2.360 V at 0 / +100 / −100 G and 5 V; 1.742 V at +100 G and 3.3 V; 4.05 V clamped |
 | voltage sensor module | 30 kΩ from VIN to S and 7.5 kΩ from S to GND, a milliohm joining − and GND; stress: the 30 kΩ over 100 mW | S = 2.40 V and 0.32 mA at 12 V in |
 | LED | Shockley + 10 Ω, Vf at 20 mA by colour; `"model": { "vf": 2.95 }` overrides | loop equation solved apart |

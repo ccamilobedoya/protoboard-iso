@@ -18,7 +18,7 @@
 
 import { resistor } from '../mna.js';
 import { HALL_LINEAR } from '../models.js';
-import { stress, note, q, volt } from './shared.js';
+import { stress, note, q, volt, positiveNumbers } from './shared.js';
 
 const ROUND = 0.02; // V: how round the clamp's corners are
 const smax = (a, b) => (a + b + Math.sqrt((a - b) ** 2 + ROUND ** 2)) / 2;
@@ -26,6 +26,8 @@ const smin = (a, b) => (a + b - Math.sqrt((a - b) ** 2 + ROUND ** 2)) / 2;
 
 // The output for a supply u (volts) and a field (gauss), above ground.
 export function hallOutput(m, u, field) {
+  // A reversed supply switches the chip off: the output stays at its ground pin (0 V behind 50 Ω).
+  u = Math.max(0, u);
   const raw = u / 2 + m.sensitivity * (u / m.reference) * field;
   // Under about 2 V the two margins would cross: they shrink with the supply.
   const margin = Math.min(m.margin, 0.45 * Math.max(0, u));
@@ -73,7 +75,7 @@ export const hallSensor = {
   senses: ['field'],
   params(part, c) {
     const e = part.def.electrical;
-    return { part: e.part, roles: e.roles, field: c?.env?.('field') ?? e.field ?? 0, model: { ...HALL_LINEAR, ...part.raw.model } };
+    return { part: e.part, roles: e.roles, field: c?.env?.('field') ?? e.field ?? 0, model: { ...HALL_LINEAR, ...positiveNumbers(part.raw.model) } };
   },
   // ±500 G on the slider, ±10 000 G typed (the datasheet's linear range is about ±650 G).
   controls: (p) => ({ field: { min: -500, max: 500, limit: [-10000, 10000], scale: 'linear', unit: 'G', step: 1, value: p.field } }),
@@ -93,7 +95,7 @@ export const hallSensor = {
     const quiescent = -ignd;
     return {
       field: entry.field,
-      ideal: hallOutput(entry.model, Math.max(0, vs), entry.field),
+      ideal: hallOutput(entry.model, vs, entry.field),
       vs,
       vout,
       current: iout,
