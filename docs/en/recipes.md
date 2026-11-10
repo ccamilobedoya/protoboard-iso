@@ -67,6 +67,8 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `line-follower-uno` | Arduino UNO reading a TCRT5000 line follower (DO on D2, AO on A0), printing LINE / NO LINE | U2 = 0.5 (threshold), U1 = its sketch |
 | `obstacle-buzzer` | An FC-51 obstacle module sinking a buzzer's current into its OUT | U1 = 0.5 (threshold), R1 = 470 |
 | `hall-counter-uno` | Arduino UNO counting a magnet's passes with a KY-024 (DO on D2, falling edges) | U2 = 0.5 (threshold), U1 = its sketch |
+| `laser-tripwire` | A KY-008 laser always on and an LDR-LM393 module: cut the beam (the environment's `beam`) and DO lights the LED through an NPN | U1 = 0.1 (threshold), R1 = 1k (base), R2 = 330, D1 = red |
+| `laser-uno` | Arduino UNO blinking a KY-008 at 1 Hz through an NPN (D7) and printing a photoresistor on A0 | R1 = 10k (divider), R2 = 1k (base), U1 = its sketch |
 
 `catalog` (MCP) or `parts` (CLI) lists them with their titles (the compact list `catalog` leaves the values out); `catalog` with a recipe's name (`parts
 <name>` in the CLI) shows what it teaches, its parts, nets, supply, and each value's role and limits.
@@ -105,6 +107,7 @@ LM35 or a 10k NTC (B 3950).
 | `lm35-comparator` | The LM35 gives 10 mV per °C into IN+; the reference is 0.417 V (about 42 °C). Above it the output is released and R3, the output's pull-up, feeds the LED to ground (about 10 mA); below it the output sinks and the LED sees under 1 V (off). The LED is not "as in the potentiometer recipes" (fed from the supply, on when the output is low) because here the alarm must light when the input is *higher* |
 | `ntc-follower` | The NTC is on the supply side, so the voltage rises as it warms; the follower copies it into 10k. The supply is 9 V: an LM358's output stops about 1.5 V under it, and from 5 V it would cut the voltage the divider gives at 60 °C |
 | `thermistor-uno` | The same NTC over 10k on the UNO's 5 V, read on A0; the sketch gets the resistance from the ADC count and the temperature from `1/T = 1/T0 + ln(R/R0)/B`, and prints `T=<value>` every second (within 1.5 °C of the environment at 25 and at 60 °C) |
+| `laser-tripwire`, `laser-uno` | The laser (about 28 mA, 3 mW) adds about 9.8 klx to the room's 50 lx for every light sensor. In the tripwire the module's trimmer is at 0.1 (Vref 0.5 V, the switch near 300 lx): with the beam DO is at 0.2 V and the LED off; with `beam` on the photoresistor sees 50 lx, DO rises to about 2 V and the LED has about 9.6 mA. In `laser-uno` D7 drives the laser through an NPN (straight from the pin its 40 Ω output leaves the laser at about 20 mA, under its threshold: no beam); the Serial monitor shows `on  A0=1005` and `off A0=688` each second |
 - Beside a recipe, `title`, `board`, `clearance`, `netLabels`, `environment`, `page` and `lang` may be given and
   replace the recipe's. `parts` and `nets` never (`RECIPE_AND_PARTS`).
 

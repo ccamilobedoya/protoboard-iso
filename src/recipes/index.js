@@ -55,9 +55,11 @@ import lightSwitchModule from './light-switch-module.js';
 import lineFollowerUno from './line-follower-uno.js';
 import obstacleBuzzer from './obstacle-buzzer.js';
 import hallCounterUno from './hall-counter-uno.js';
+import laserTripwire from './laser-tripwire.js';
+import laserUno from './laser-uno.js';
 
 export const RECIPES = Object.fromEntries(
-  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn, ldrNightLight, ldrComparator, lm35Comparator, ntcFollower, thermistorUno, pirLamp, pirUno, touchToggleLed, touchUno, rainAlarm, soilLed, lightSwitchModule, lineFollowerUno, obstacleBuzzer, hallCounterUno].map((r) => [r.name, r]),
+  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn, ldrNightLight, ldrComparator, lm35Comparator, ntcFollower, thermistorUno, pirLamp, pirUno, touchToggleLed, touchUno, rainAlarm, soilLed, lightSwitchModule, lineFollowerUno, obstacleBuzzer, hallCounterUno, laserTripwire, laserUno].map((r) => [r.name, r]),
 );
 
 // Fields a value may set besides its main one, by the kind of item (a part's type or "supply").

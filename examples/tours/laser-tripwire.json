@@ -1,0 +1,28 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "laser-tripwire",
+  "format": "vertical",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "board", "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "A laser tripwire: a beam and a light sensor", "es": "Una barrera láser: un haz y un sensor de luz" } },
+    { "at": 0, "do": "gauge", "environment": "light", "on": true, "min": 10, "max": 20000 },
+    { "at": 2200, "do": "focus", "parts": ["LS1", "U1"] },
+    { "at": 2200, "do": "frame", "target": ["LS1", "U1"], "move": "arrival" },
+    { "at": 2200, "do": "caption", "text": { "en": "The laser adds its light to the room's: about 10 klx", "es": "El láser suma su luz a la del cuarto: unos 10 klx" } },
+    { "at": 3000, "do": "value", "part": "LS1", "field": "current", "label": { "en": "laser", "es": "láser" } },
+    { "at": 6000, "do": "focus", "parts": ["U1", "D1"] },
+    { "at": 6000, "do": "frame", "target": ["U1", "D1"], "move": "travel" },
+    { "at": 6000, "do": "caption", "text": { "en": "We cut the beam: only the room's 50 lx is left", "es": "Cortamos el haz: queda solo la luz del cuarto, 50 lx" } },
+    { "at": 6800, "do": "set", "environment": "beam", "value": true },
+    { "at": 9000, "do": "caption", "text": { "en": "DO goes high, the transistor conducts and the LED lights", "es": "DO sube, el transistor conduce y el LED se enciende" } },
+    { "at": 9400, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
+    { "at": 12500, "do": "caption", "text": { "en": "The beam is back: the LED goes out", "es": "Vuelve el haz: el LED se apaga" } },
+    { "at": 13000, "do": "set", "environment": "beam", "value": false },
+    { "at": 16000, "do": "caption", "text": { "en": "Cut again: it answers every time", "es": "Lo cortamos otra vez: responde cada vez" } },
+    { "at": 16500, "do": "set", "environment": "beam", "value": true },
+    { "at": 19500, "do": "set", "environment": "beam", "value": false },
+    { "at": 20000, "do": "frame", "target": "board", "move": "travel" },
+    { "at": 20000, "do": "caption", "text": { "en": "Nothing is aimed: the laser's light reaches every light sensor", "es": "Nada se apunta: la luz del láser llega a todo sensor de luz" } },
+    { "at": 23500, "do": "focus", "parts": [] }
+  ]
+}

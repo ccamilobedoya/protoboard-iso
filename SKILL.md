@@ -63,6 +63,7 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 | `opamp-noninverting`, `opamp-inverting` | LM358 amplifiers, gain from R1 and R2, a sine from the generator |
 | `rain-alarm`, `soil-led`, `light-switch-module`, `obstacle-buzzer` | LM393 sensor modules (rain, soil, light, obstacle) whose DO drives a buzzer or an LED |
 | `line-follower-uno`, `hall-counter-uno` | Arduino UNO reading a TCRT5000 line follower; counting a magnet's passes with a KY-024 |
+| `laser-tripwire`, `laser-uno` | a KY-008 laser whose light reaches every light sensor (an emitter): a tripwire with an LDR-LM393 module; a UNO blinking it and reading a photoresistor |
 
 - **values**: the main field by id (`"R1": "470"`, `"D1": "green"`, `"Q1": "BC547"`, `"V1": 9`) or
   some fields (`"R1": {"value": "470", "tolerance": "1%"}`). Only the ids a recipe lists can change,
