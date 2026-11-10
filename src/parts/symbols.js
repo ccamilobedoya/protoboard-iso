@@ -15,6 +15,7 @@
 
 import { LED_LIGHT } from './colors.js';
 import { deviceFor } from '../sim/devices/index.js';
+import { LASER } from '../sim/devices/laser.js';
 
 const arrow = (x1, y1, x2, y2, size = 9) => {
   // A filled head at (x2, y2) pointing from (x1, y1).
@@ -407,6 +408,17 @@ const sensorModuleSymbol = (names, print, title) => {
   };
 };
 
+// A laser module: S on top through its 100 Ω into the laser diode (two arrows of light out of it, the
+// usual LED symbol with a beam's straight arrows), − at the bottom; + on the left, joined to nothing.
+const laserSymbol = () => ({
+  w: 100, h: 100,
+  strokes: ['M50 4V14', 'M44 14H56V32H44Z', 'M50 32V42', 'M32 42H68L50 64Z', 'M32 64H68', 'M50 64V96', 'M72 48H92', 'M72 58H92', 'M4 50H18', 'M14 46L22 54M22 46L14 54'],
+  fills: [arrow(72, 48, 94, 48, 7), arrow(72, 58, 94, 58, 7)],
+  texts: [{ x: 58, y: 12, text: 'S', anchor: 'start' }, { x: 58, y: 92, text: '−', anchor: 'start' }, { x: 6, y: 42, text: '+', anchor: 'start', small: true }, { x: 60, y: 27, text: '100 Ω', anchor: 'start', small: true, quiet: true }],
+  pins: { S: [50, 4], '+': [4, 50], '−': [50, 96] },
+  ids: { S: 'S', '+': '+', '−': '−' },
+});
+
 export function symbolOf(part) {
   const e = part.def?.electrical ?? {};
   const names = part.pinNames ?? [];
@@ -438,6 +450,7 @@ export function symbolOf(part) {
   if (part.type === 'touch-sensor') return touchSymbol();
   if (part.type === 'ic') return block(names, part.raw?.part ?? '');
   if (part.type === 'sensor-module') return sensorModuleSymbol(names, part.def?.params?.print, e.part ?? '');
+  if (part.type === 'laser') return laserSymbol();
   return null;
 }
 
@@ -543,5 +556,7 @@ export function insideOf(part) {
     const { element, stim = {}, threshold, active, doPin } = limits();
     return { kind: 'module', ids: ids(), names: part.pinNames, element, field: Object.keys(stim)[0], threshold, active, doPin };
   }
+  // A laser module: its threshold and the current it is rated for (its device's numbers), red light.
+  if (part.type === 'laser') return { kind: 'laser', ids: ids(), color: LED_LIGHT.red, threshold: LASER.threshold, maxCurrent: LASER.maxCurrent };
   return null;
 }

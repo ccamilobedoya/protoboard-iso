@@ -53,6 +53,7 @@ const LEGENDS = {
   pir: [['dome', 'dome'], ['comparator', 'element'], ['soc', 'timer'], ['pos', 'out'], ['', 'figures']],
   touch: [['plate', 'pad'], ['dielectric', 'finger'], ['latch', 'chip'], ['pos', 'out'], ['', 'figures']],
   module: [['film', 'divider'], ['headroom', 'ao'], ['soc', 'vref'], ['comparator', 'comparator'], ['', 'led']],
+  laser: [['chip', 'chip'], ['metal', 'mirrors'], ['', 'lens'], ['light', 'beam'], ['', 'figures']],
 };
 // Swatches in the figure's own colours that live in the script (sim/look.js), not in the style.
 const INLINE = { arrow: DOT_COLOR, heat: HEAT_COLOR, pos: VOLTAGE_COLORS.positive, neg: VOLTAGE_COLORS.negative };
