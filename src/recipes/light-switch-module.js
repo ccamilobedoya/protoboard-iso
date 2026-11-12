@@ -4,7 +4,7 @@ export default {
   name: 'light-switch-module',
   group: 'sensor-modules',
   title: { en: 'Light switch with an LDR-LM393 module', es: 'Interruptor de luz con un módulo LDR-LM393' },
-  teaches: { en: 'The module turns light into yes or no: DO goes low past about 18 lx with the trimmer in the middle, and the LED lights; the trimmer moves that point', es: 'El módulo convierte la luz en sí o no: DO baja a partir de unos 18 lx con el trimmer en el medio, y el LED se enciende; el trimmer mueve ese punto' },
+  teaches: { en: 'The module turns light into yes or no: DO goes low past about 18 lx with the trimmer in the middle (the figure is the model\'s photoresistor; a real one varies), and the LED lights; the trimmer moves that point', es: 'El módulo convierte la luz en sí o no: DO baja a partir de unos 18 lx con el trimmer en el medio (la cifra es de la fotorresistencia del modelo; una real varía), y el LED se enciende; el trimmer mueve ese punto' },
   parts: [
     { id: 'U1', type: 'sensor-module', part: 'LDR-LM393', threshold: 0.5 },
     { id: 'R1', type: 'resistor', value: '470' },

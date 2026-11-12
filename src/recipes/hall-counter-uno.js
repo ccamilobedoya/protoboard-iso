@@ -1,5 +1,5 @@
 // An Arduino UNO counting a magnet's passes with a KY-024 (A3144 Hall switch): DO on D2 goes low each
-// time a south pole comes near (160 G) and back high once it moves away (under 105 G); the program
+// time a south pole comes near (about 160 G in the model) and back high once it moves away (under about 105 G; real A3144 parts differ, and only a south pole counts: turn the magnet over if nothing counts); the program
 // counts the falling edges and prints the count.
 const COUNTER = `// Each time DO falls (a magnet arrives) the count goes up.
 const int HALL = 2;
@@ -26,7 +26,7 @@ export default {
   name: 'hall-counter-uno',
   group: 'sensor-modules',
   title: { en: 'Arduino UNO: KY-024 magnet counter', es: 'Arduino UNO: contador de imanes con KY-024' },
-  teaches: { en: 'The Hall switch turns on at 160 G and off under 105 G (hysteresis), so a magnet that wobbles near the threshold counts once; the program counts each fall of DO', es: 'El interruptor Hall se enciende a 160 G y se apaga por debajo de 105 G (histéresis), así que un imán que tiembla cerca del umbral cuenta una sola vez; el programa cuenta cada bajada de DO' },
+  teaches: { en: 'The Hall switch turns on at about 160 G and off under about 105 G in the model (hysteresis; real parts differ, and only a south pole counts: turn the magnet over if nothing counts), so a magnet that wobbles near the threshold counts once; the program counts each fall of DO', es: 'El interruptor Hall se enciende a unos 160 G y se apaga por debajo de unos 105 G en el modelo (histéresis; las piezas reales difieren, y solo cuenta un polo sur: da la vuelta al imán si no cuenta), así que un imán que tiembla cerca del umbral cuenta una sola vez; el programa cuenta cada bajada de DO' },
   parts: [
     { id: 'U1', part: 'UNO', program: COUNTER },
     { id: 'U2', type: 'sensor-module', part: 'KY-024', threshold: 0.5 },

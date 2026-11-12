@@ -6,7 +6,7 @@ export default {
   name: 'obstacle-buzzer',
   group: 'sensor-modules',
   title: { en: 'Obstacle alarm with an FC-51 module', es: 'Alarma de obstáculo con un módulo FC-51' },
-  teaches: { en: 'The nearer the object, the more infrared comes back and the lower AO; past Vref OUT goes low and the PNP lets the active buzzer\'s current through. The trimmer sets the distance: about 4.5 cm with it at 25 %, 9 cm at 50 % and 28 cm at 90 % (white paper)', es: 'Cuanto más cerca el objeto, más infrarrojo vuelve y más baja AO; al pasar Vref OUT baja y el PNP deja pasar la corriente del zumbador activo. El trimmer fija la distancia: unos 4,5 cm con él al 25 %, 9 cm al 50 % y 28 cm al 90 % (papel blanco)' },
+  teaches: { en: 'The nearer the object, the more infrared comes back and the lower AO; past Vref OUT goes low and the PNP lets the active buzzer\'s current through. The trimmer sets the distance: about 4 cm with it at 25 %, 9 cm at 50 % and 28 cm at 90 % (white paper, in the model: a real module varies with its parts and the surface)', es: 'Cuanto más cerca el objeto, más infrarrojo vuelve y más baja AO; al pasar Vref OUT baja y el PNP deja pasar la corriente del zumbador activo. El trimmer fija la distancia: unos 4 cm con él al 25 %, 9 cm al 50 % y 28 cm al 90 % (papel blanco, en el modelo: un módulo real varía con sus piezas y la superficie)' },
   parts: [
     { id: 'U1', type: 'sensor-module', part: 'FC-51', threshold: 0.5 },
     { id: 'R1', type: 'resistor', value: '1k' },

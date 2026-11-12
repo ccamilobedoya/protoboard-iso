@@ -12,7 +12,7 @@ void setup() {
 void loop() {
   int reading = analogRead(SENSOR);          // 0 … 1023 for 0 … 5 V on A0
   float pin = reading * 5.0 / 1023.0;
-  float volts = pin * 5.0;                   // the divider takes 4/5 of it
+  float volts = pin * 5.0;                   // S carries 1/5 of the input: multiply by 5
   Serial.println(volts);
   delay(500);
 }
