@@ -1,4 +1,4 @@
-// An Arduino UNO counting a magnet's passes with a KY-024 (A3144 Hall switch): DO on D2 goes low each
+// An Arduino UNO counting a magnet's passes with a KY-024 module (the kit models it with an A3144 Hall switch; the real board is reported to carry a linear 49E, not checked): DO on D2 goes low each
 // time a south pole comes near (about 160 G in the model) and back high once it moves away (under about 105 G; real A3144 parts differ, and only a south pole counts: turn the magnet over if nothing counts); the program
 // counts the falling edges and prints the count.
 const COUNTER = `// Each time DO falls (a magnet arrives) the count goes up.
