@@ -1194,7 +1194,7 @@ export default {
   'explain.pir.block': 'After OUT falls the module ignores motion for 2.5 s. With the jumper on L and someone moving all the time, OUT is high for the delay, low for 2.5 s, and so on.',
   'explain.pir.motion': 'Whether something warm is moving in front of the lens (the motion field of the environment, or this part\'s own switch). Still, it is off.',
   'explain.pir.jumper': 'The H/L jumper. H: motion while OUT is high starts the delay again. L: motion is ignored until OUT falls.',
-  'explain.pir.delay': 'How long OUT stays high (Tx), set by one of the two trimmers: about 3 s to 5 min. This model lets a circuit ask for less.',
+  'explain.pir.delay': 'How long OUT stays high (Tx), set by one of the two trimmers: about 2.5 s (the trimmer at its minimum) to 5 min.',
   'explain.pir.vout': 'The voltage at OUT: 3.3 V when active, whatever the supply, 0 V otherwise, behind about 500 Ω.',
   'explain.pir.iout': 'The current OUT gives. It is a weak output: it should drive a logic input or a transistor, and 2 mA is its limit.',
   'explain.pir.vcc': 'The voltage between VCC and GND that runs the module: 4.5 to 20 V, with a regulator inside.',

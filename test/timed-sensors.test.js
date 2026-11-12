@@ -4,6 +4,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { autoLayout } from '../src/layout.js';
 import { expandRecipe, RECIPES } from '../src/recipes/index.js';
 import { compile, createEngine, simulate } from '../src/sim/index.js';
@@ -307,6 +308,12 @@ test('the types are sensors with their pins and the fields they take', () => {
   assert.deepEqual(resolvePart({ id: 'U1', part: 'TTP223' }).part.type, 'touch-sensor');
   const bad = (part) => buildCircuit({ parts: [{ id: 'U1', pins: ['h2', 'h3', 'h4'], ...part }] }).issues.map((i) => i.code);
   assert.ok(bad({ type: 'pir-sensor', delay: 1000 }).includes('BAD_VALUE'));
+  // The shortest delay is the trimmer's minimum, 2.5 s: 2.4 is refused, 2.5 and 600 are not, and the JSON schema says so.
+  assert.ok(bad({ type: 'pir-sensor', delay: 2.4 }).includes('BAD_VALUE'));
+  assert.ok(!bad({ type: 'pir-sensor', delay: 2.5 }).includes('BAD_VALUE'));
+  assert.ok(!bad({ type: 'pir-sensor', delay: 600 }).includes('BAD_VALUE'));
+  const schema = readFileSync(new URL('../schema/circuit.schema.json', import.meta.url), 'utf8');
+  assert.match(schema, /"delay": \{\s*"type": "number",\s*"minimum": 2\.5,\s*"maximum": 600/);
   assert.ok(bad({ type: 'pir-sensor', mode: 'X' }).includes('UNKNOWN_KIND'));
   assert.ok(bad({ type: 'touch-sensor', mode: 'press' }).includes('UNKNOWN_KIND'));
   assert.ok(!bad({ type: 'pir-sensor', delay: 30, mode: 'l', warmup: 0, motion: true }).includes('BAD_VALUE'));
@@ -415,10 +422,10 @@ test('touch: a toggle latched on does not come back after the mode is changed aw
 });
 
 test('pir machine: a step that spans many phases spends all its time', () => {
-  const s = pirAdvance({ phase: HIGH, clock: 0 }, 10, true, { warmup: 0, delay: 0.3, mode: 'L', motion: true });
+  const s = pirAdvance({ phase: HIGH, clock: 0 }, 10, true, { warmup: 0, delay: 3, mode: 'L', motion: true });
   assert.equal(s.phase, BLOCK);
-  near(s.clock, 1.3, 1e-6, 'three rounds of 2.8 s and the 0.3 s of the fourth high leave 1.3 s of rest');
-  const huge = pirAdvance({ phase: HIGH, clock: 0 }, 1e6, true, { warmup: 0, delay: 0.3, mode: 'L', motion: true });
+  near(s.clock, 1.5, 1e-6, 'a round of 5.5 s (3 s high, 2.5 s of rest), a second high of 3 s and 1.5 s of the second rest');
+  const huge = pirAdvance({ phase: HIGH, clock: 0 }, 1e6, true, { warmup: 0, delay: 3, mode: 'L', motion: true });
   assert.ok(Number.isFinite(huge.clock), 'a huge step ends, with its remaining time counted');
 });
 

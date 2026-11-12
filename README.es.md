@@ -84,7 +84,7 @@ deslizadores cambian resistencias, fuentes y sensores mientras corre.
 ## Recetas
 
 Los circuitos de lección habituales salen listos por su nombre, solo con los valores que cambias
-([las 32 recetas](docs/es/recetas.md)):
+([todas las recetas](docs/es/recetas.md)):
 
 | | | |
 |---|---|---|

@@ -1193,7 +1193,7 @@ export default {
   'explain.pir.block': 'Cuando OUT baja, el módulo ignora el movimiento durante 2,5 s. Con el puente en L y alguien moviéndose todo el tiempo, OUT queda alto el retardo, bajo 2,5 s, y así.',
   'explain.pir.motion': 'Si algo caliente se mueve frente al lente (el campo movimiento del ambiente, o el interruptor propio de esta pieza). Quieto, está apagado.',
   'explain.pir.jumper': 'El puente H/L. H: el movimiento mientras OUT está alto reinicia el tiempo. L: el movimiento se ignora hasta que OUT baje.',
-  'explain.pir.delay': 'Cuánto tiempo queda OUT alto (Tx), fijado por uno de los dos trimmers: de unos 3 s a 5 min. Este modelo deja pedir menos en un circuito.',
+  'explain.pir.delay': 'Cuánto tiempo queda OUT alto (Tx), fijado por uno de los dos trimmers: de unos 2,5 s (el trimmer al mínimo) a 5 min.',
   'explain.pir.vout': 'El voltaje en OUT: 3,3 V cuando está activo, sea cual sea la alimentación, 0 V si no, detrás de unos 500 Ω.',
   'explain.pir.iout': 'La corriente que da OUT. Es una salida débil: debe manejar una entrada lógica o un transistor, y 2 mA es su límite.',
   'explain.pir.vcc': 'El voltaje entre VCC y GND que hace funcionar el módulo: de 4,5 a 20 V, con un regulador adentro.',

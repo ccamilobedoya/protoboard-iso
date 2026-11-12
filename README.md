@@ -82,7 +82,7 @@ sensors while it runs.
 ## Recipes
 
 Usual lesson circuits come ready by name, with only the values you change
-([all 32 recipes](docs/en/recipes.md)):
+([all the recipes](docs/en/recipes.md)):
 
 | | | |
 |---|---|---|
