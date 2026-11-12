@@ -86,7 +86,7 @@ export function buildSchemas() {
       dcr: { type: 'number', minimum: 0, description: 'inductor: winding resistance, ohms' },
       current: { type: 'number', exclusiveMinimum: 0, description: 'inductor: rated current, amperes' },
       resistance: { oneOf: [text, { type: 'number' }], description: 'buzzer: coil resistance (default 16 Ω)' },
-      delay: { type: 'number', minimum: 0.3, maximum: 600, description: 'pir-sensor: seconds OUT stays high after motion (the trimmer Tx; default 5)' },
+      delay: { type: 'number', minimum: 2.5, maximum: 600, description: 'pir-sensor: seconds OUT stays high after motion (the trimmer Tx; default 5)' },
       sensitivity: { type: 'number', minimum: 0, maximum: 1, description: 'pir-sensor: the sensitivity trimmer, 0…1 (default 0.5; the model has no range, so it only shows)' },
       mode: { type: 'string', description: 'pir-sensor: "H" (default) motion during OUT high starts the delay again, "L" ignores it; touch-sensor: "momentary" (default) SIG follows the touch, "toggle" each touch flips it' },
       warmup: { type: 'number', minimum: 0, maximum: 120, description: 'pir-sensor: seconds after power on with OUT low and motion ignored (default 30; 0 skips it); climate-sensor DHT11: seconds after power before a good read (default 1, at most 60)' },

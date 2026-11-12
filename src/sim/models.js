@@ -309,9 +309,9 @@ export const REGULATORS = {
 //   quiescent 65 µA at 5 V       a resistor VCC / 65 µA
 //   blocking 2.5 s       after OUT falls the module ignores motion (the lock-out time Ti)
 //   warmup 30 s [A]      sheets say 10 to 60 s; 0 skips it in an example
-//   delay [0.3, 600] s   the trimmer Tx = 24576 · R · C reads about 3 s to 5 min; the kit takes 5 s
-//                        by default and lets a circuit ask for less for a video
-export const PIR = { maxReverse: 0.3, minSupply: 4.5, maxSupply: 20, logic: 3.3, outputResistance: 500, maxCurrent: 2e-3, quiescent: 65e-6, quiescentAt: 5, blocking: 2.5, warmup: 30, delay: 5, delayRange: [0.3, 600], sliderRange: [3, 300] };
+//   delay [2.5, 600] s   the trimmer Tx = 24576 · R · C: about 2.5 s with the trimmer at its minimum (10 kΩ,
+//                        10 nF; sheets and tests report 3 to 4 s), up to 5 min; the kit takes 5 s by default
+export const PIR = { maxReverse: 0.3, minSupply: 4.5, maxSupply: 20, logic: 3.3, outputResistance: 500, maxCurrent: 2e-3, quiescent: 65e-6, quiescentAt: 5, blocking: 2.5, warmup: 30, delay: 5, delayRange: [2.5, 600], sliderRange: [3, 300] };
 
 // Capacitive touch TTP223 (Tontek TTP223-BA6 and TTP223B datasheets, at VDD = 3 V):
 //   supply [2, 5.5] V    operating voltage

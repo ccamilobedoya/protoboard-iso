@@ -2,8 +2,9 @@
 // the laser's light is added to the room's for every light sensor (the environment; nothing is
 // aimed), so the reading the Serial monitor prints jumps while the laser is on. The photoresistor is
 // a bare GL5528 over a 10 kΩ to ground (the 3-pin LDR-LM393 board has no AO pin to read).
-// The pin drives the laser through an NPN: straight from D7 its 40 Ω output drops the laser to about
-// 20 mA, under its 22 mA threshold (the simulation says SIM_LASER_DIM: a dim glow, no beam).
+// The pin drives the laser through an NPN: the module takes about 28 mA (the model's figure; it depends on the
+// module) and a UNO pin is recommended up to 20 mA (40 mA is the absolute maximum), so a pin alone is not the
+// way to feed it. The base takes about 4 mA from the pin.
 const BLINK = `// The laser on D7, a photoresistor divider on A0.
 const int LASER = 7;
 const int SENSOR = A0;
@@ -32,7 +33,7 @@ export default {
   name: 'laser-uno',
   group: 'sensors',
   title: { en: 'Arduino UNO: a laser and a light sensor', es: 'Arduino UNO: un láser y un sensor de luz' },
-  teaches: { en: 'A pin switches the laser through a transistor (straight from a UNO pin it gets about 20 mA, under its 22 mA threshold, so it would only glow); its light adds to the room\'s at the photoresistor, so the reading on A0 rises while it is on and falls back when it is off', es: 'Un pin enciende el láser con un transistor (directo de un pin del UNO recibe unos 20 mA, bajo su umbral de 22 mA, y solo brillaría); su luz se suma a la del cuarto en la fotorresistencia, así que la lectura en A0 sube mientras está encendido y vuelve a bajar al apagarlo' },
+  teaches: { en: 'A pin switches the laser through a transistor (the module takes about 28 mA and a UNO pin is recommended up to 20 mA, 40 mA at most); its light adds to the room\'s at the photoresistor, so the reading on A0 rises while it is on and falls back when it is off', es: 'Un pin enciende el láser con un transistor (el módulo toma unos 28 mA y de un pin del UNO se recomiendan hasta 20 mA, 40 mA como máximo); su luz se suma a la del cuarto en la fotorresistencia, así que la lectura en A0 sube mientras está encendido y vuelve a bajar al apagarlo' },
   parts: [
     { id: 'U1', part: 'UNO', program: BLINK },
     { id: 'R2', type: 'resistor', value: '1k' },

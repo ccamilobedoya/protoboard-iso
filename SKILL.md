@@ -67,7 +67,7 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 | `laser-tripwire`, `laser-uno` | a KY-008 laser whose light reaches every light sensor (an emitter): a tripwire with an LDR-LM393 module; a UNO blinking it and reading a photoresistor |
 | `uno-distance`, `esp32-distance`, `distance-alarm-uno` | an HC-SR04 ultrasonic module read with `pulseIn` (the environment's `distance`): on an UNO; on an ESP32 with a divider on ECHO; with an LED under 15 cm |
 | `hall-linear-uno`, `voltage-sensor-uno` | Arduino UNO reading analog sensors on A0: a KY-035 linear Hall sensor (gauss), a voltage sensor module measuring a 9 V supply |
-| `clap-switch`, `sound-level-led` | A KY-037 sound module: an Arduino UNO toggling an LED at each clap; DO sinking an LED's current while the sound is loud |
+| `clap-switch` | A KY-037 sound module: an Arduino UNO toggling an LED at each clap, whichever way DO moves |
 | `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude` | climate sensors read through their library (the environment's `temperature`, `humidity`, `pressure`): a DHT11 on an UNO; a BME280 on an ESP32's I2C; a BMP280 on an UNO's 3.3 V printing the altitude |
 
 - **values**: the main field by id (`"R1": "470"`, `"D1": "green"`, `"Q1": "BC547"`, `"V1": 9`) or

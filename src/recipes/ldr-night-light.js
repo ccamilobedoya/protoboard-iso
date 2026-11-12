@@ -1,14 +1,16 @@
 // A night light: a photoresistor and a resistor make a divider; its middle drives an NPN's base
 // through a resistor, and the transistor's collector switches an LED. The photoresistor is on the
 // ground side, so the divider's voltage rises as the light falls: the LED turns on in the dark.
-// With the defaults the LED has about 9 mA up to 100 lx, about 2 mA at 200 lx (the base starts to
-// conduct when the photoresistor falls to about 2 kΩ) and about 0.1 mA at 300 lx. The light is the
-// environment's, not a part's value.
+// With the defaults (5 V, R3 560 Ω) the LED has about 6 mA up to 100 lx, about 2 mA at 200 lx (the base
+// starts to conduct when the photoresistor falls to about 2 kΩ) and about 0.1 mA at 300 lx (model values;
+// a real photoresistor's resistance varies, which moves these light levels by a factor of about 0.6 to 1.5).
+// The supply goes from 3 to 9 V: at 9 V the LED takes about 13 mA and R3 about 90 mW; the switching light
+// level also rises with the supply. The light is the environment's, not a part's value.
 export default {
   name: 'ldr-night-light',
   group: 'sensors',
   title: { en: 'Night light with a photoresistor', es: 'Luz nocturna con fotorresistencia' },
-  teaches: { en: 'In the dark the photoresistor\'s resistance is high, the divider\'s voltage rises and the transistor switches the LED on; with light it falls and the LED goes out', es: 'A oscuras la resistencia de la fotorresistencia es alta, el voltaje del divisor sube y el transistor enciende el LED; con luz baja y el LED se apaga' },
+  teaches: { en: 'In the dark the photoresistor\'s resistance is high, the divider\'s voltage rises and the transistor switches the LED on; with light it falls and the LED goes out (it switches at about 95 lx on 3 V, 190 lx on 5 V and 375 lx on 9 V in the model, the light level following the supply; a real photoresistor moves that by a factor of 0.6 to 1.5)', es: 'A oscuras la resistencia de la fotorresistencia es alta, el voltaje del divisor sube y el transistor enciende el LED; con luz baja y el LED se apaga (conmuta a unos 95 lx con 3 V, 190 lx con 5 V y 375 lx con 9 V en el modelo, el nivel de luz sigue a la fuente; una fotorresistencia real lo mueve en un factor de 0,6 a 1,5)' },
   environment: { light: 300 },
   page: { controls: [{ environment: 'light' }] },
   parts: [
@@ -16,7 +18,7 @@ export default {
     { id: 'LDR1', type: 'ldr', part: 'GL5528' },
     { id: 'R2', type: 'resistor', value: '10k' },
     { id: 'Q1', part: 'BC547' },
-    { id: 'R3', type: 'resistor', value: '330' },
+    { id: 'R3', type: 'resistor', value: '560' },
     { id: 'D1', type: 'led', color: 'red' },
   ],
   nets: [['T+', 'R1.1', 'R3.1'], ['R1.2', 'LDR1.1', 'R2.1'], ['R2.2', 'Q1.B'], ['R3.2', 'D1.anode'], ['D1.cathode', 'Q1.C'], ['LDR1.2', 'Q1.E', 'T-']],
@@ -27,6 +29,6 @@ export default {
     R2: { field: 'value', role: { en: 'base resistor', es: 'resistencia de base' } },
     R3: { field: 'value', role: { en: 'LED resistor (collector)', es: 'resistencia del LED (colector)' } },
     D1: { field: 'color' },
-    V1: { field: 'voltage', min: 3, max: 12 },
+    V1: { field: 'voltage', min: 3, max: 9 },
   },
 };

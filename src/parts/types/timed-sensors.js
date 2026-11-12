@@ -6,7 +6,7 @@
 // The defaults are the real modules' with the trimmers and jumpers as they leave the factory; their
 // numbers are in src/sim/models.js (PIR, TOUCH). Kept here only as the limits a circuit may ask for.
 
-const PIR_DELAY = [0.3, 600]; // s: the trimmer's 3 s to 5 min, and less for an example that must not wait
+const PIR_DELAY = [2.5, 600]; // s: the trimmer's range; the BISS0001's Tx = 24576 · R · C is about 2.5 s with the trimmer at its minimum
 const flag = (v) => v === true || v === 1 || v === '1' || v === 'true';
 
 // fields: delay (s, default 5: the trimmer Tx), sensitivity (0…1, default 0.5: informative, the

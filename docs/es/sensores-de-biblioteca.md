@@ -96,8 +96,10 @@ fijo sin sentido; el kit da lo que dan las comprobaciones de la biblioteca). Un 
 **El bus en un UNO.** La biblioteca arranca `Wire`, y en un AVR eso enciende los pull-ups de SDA y SCL
 (unos 35 kΩ a 5 V). Contra los 10 kΩ a 3,3 V de una placa de 3,3 V las líneas quedan en
 (5/35k + 3,3/10k)/(1/35k + 1/10k) ≈ 3,68 V, por encima de VDDIO + 0,3 V = 3,6 V del chip: la nota
-`SIM_PIN_OVER_VDDIO`. El bus funciona igual, como en el banco (el UNO lee 3,68 V como alto); un
-convertidor de nivel deja las líneas dentro. La placa con regulador tampoco trae convertidor: en un UNO
+`SIM_PIN_OVER_VDDIO`. El bus funciona (el UNO lee 3,68 V como alto), pero pasa el máximo del chip:
+un convertidor de nivel deja las líneas dentro, o el programa apaga los pull-ups tras `begin()` con
+`digitalWrite(A4, LOW); digitalWrite(A5, LOW);` (la receta `uno-bmp280-altitude` lo hace: el bus queda
+entonces en 3,3 V; un cálculo estático se detiene dentro de `begin()` y aún muestra 3,68 V). La placa con regulador tampoco trae convertidor: en un UNO
 sus líneas quedan en los mismos 3,68 V. En un ESP32 el bus queda en 3,3 V. `Wire.begin(sda, scl)` en un
 ESP32 mueve el bus a esos dos GPIO. Bajo 3,4 V el regulador de la placa con regulador entra en caída y
 el chip funciona con lo que queda (3,3 V en VIN dan unos 3,1 V): una nota informativa,

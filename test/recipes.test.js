@@ -52,7 +52,10 @@ test('recipes with a source simulate without errors and without stressing a part
   for (const name of Object.keys(RECIPES)) {
     const s = simulate(layoutOf(name).circuit);
     assert.ok(s.ok, `${name}: ${JSON.stringify(s.issues)}`);
-    const over = Object.entries(s.parts).flatMap(([id, p]) => (p.stress ?? []).filter((x) => x.level !== 'fine').map((x) => `${id} ${x.quantity} ${x.level}`));
+    // touch-uno powers the TTP223 from 5 V on purpose (its output then clears the UNO's VIH): the model says
+    // "near" for a supply at 91 % of the module's 5.5 V, and only that.
+    const allowed = name === 'touch-uno' ? ['U2 voltage near'] : [];
+    const over = Object.entries(s.parts).flatMap(([id, p]) => (p.stress ?? []).filter((x) => x.level !== 'fine').map((x) => `${id} ${x.quantity} ${x.level}`)).filter((x) => !allowed.includes(x));
     assert.deepEqual(over, [], name);
   }
 });

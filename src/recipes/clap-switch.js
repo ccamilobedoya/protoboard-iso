@@ -1,28 +1,43 @@
 // A clap switch: an Arduino UNO watching the DO pin of a KY-037 sound module on D2 and toggling an LED
-// (D13, through 220 Ω) at each clap. The module's DO falls while the sound is loud (the electret's
-// signal peak takes AO under Vref; with the trimmer 15 mV under the bias that is above about 98 dB),
-// so the program looks for the falling edge, not the level: a clap that lasts a few hundredths of a
-// second toggles once. A quiet room (40 dB) leaves DO high.
-const CLAP = `// DO falls while the sound is loud: each fall is one clap and toggles the LED.
+// (D13, through 220 Ω) at each clap. Two things are not known about the real board, so the sketch does not
+// depend on them: which way DO moves with sound (makers' sheets say up, tutorials with code say down: not
+// confirmed) and how long it stays there (a comparator on a microphone's AC signal gives pulses shorter than a
+// delay()). So setup() takes the resting level as the one most of 100 readings had, and loop(), with no delay, takes the
+// change from rest to anything else as a clap: it toggles the LED, and the next clap is accepted only once DO is
+// back at rest and 200 ms (millis()) have passed, so a long noise counts once. In the
+// simulator DO falls with the sound (the electret's signal peak takes AO under Vref; with the trimmer 15 mV
+// under the bias that is above about 98 dB, a model figure); a quiet room (40 dB) leaves it high.
+const CLAP = `// Any change of DO from its resting level is a clap; the polarity of the board does not matter.
 const int MIC = 2;
 const int LED = 13;
+const int SAMPLES = 100;                  // readings taken at start-up to find the resting level
+const unsigned long QUIET_MS = 200;       // after a clap, ignore DO at least this long
 int lit = LOW;
-int before = HIGH;
+int rest = HIGH;
+bool armed = true;                        // ready for the next clap
+unsigned long lastClap = 0;
 
 void setup() {
   pinMode(MIC, INPUT);
   pinMode(LED, OUTPUT);
+  int highs = 0;
+  for (int i = 0; i < SAMPLES; i++) {
+    highs = highs + digitalRead(MIC);
+    delay(1);
+  }
+  rest = (highs * 2 >= SAMPLES) ? HIGH : LOW;   // the level most of the readings had: a short noise does not change it
 }
 
 void loop() {
+  // No delay here: the pulses of a real clap can be shorter than one.
   int now = digitalRead(MIC);
-  if (before == HIGH && now == LOW) {
+  if (now != rest && armed) {
+    armed = false;                        // one clap, however long the noise lasts
+    lastClap = millis();
     lit = (lit == LOW) ? HIGH : LOW;      // toggle
     digitalWrite(LED, lit);
-    delay(200);                           // let the clap die out
   }
-  before = now;
-  delay(5);
+  if (now == rest && millis() - lastClap >= QUIET_MS) armed = true;   // back at rest and quiet for a while
 }
 `;
 
@@ -30,7 +45,7 @@ export default {
   name: 'clap-switch',
   group: 'sensor-modules',
   title: { en: 'Arduino UNO: clap switch with a KY-037 sound module', es: 'Arduino UNO: interruptor de palmada con un módulo de sonido KY-037' },
-  teaches: { en: 'The microphone\'s signal is tiny: DO falls only when its peak beats the gap between the bias and the trimmer\'s Vref, about 98 dB with the trimmer set 15 mV under the bias. The program toggles the LED at each fall of DO', es: 'La señal del micrófono es diminuta: DO baja solo cuando su pico supera la distancia entre la polarización y el Vref del trimmer, unos 98 dB con el trimmer 15 mV por debajo de la polarización. El programa invierte el LED en cada bajada de DO' },
+  teaches: { en: 'A clap is a change of DO from its resting level, whichever way the board moves it (the polarity of a KY-037 is not confirmed) and however short the pulse is (shorter than a delay would let you see): the sketch takes as rest the level most of 100 readings had in setup, polls without waiting, acts on the change from rest, and accepts the next clap only when DO is back at rest and 200 ms have passed, so a long noise counts once. In the model DO falls when the microphone\'s peak beats the gap between the bias and the trimmer\'s Vref, about 98 dB with the trimmer 15 mV under the bias', es: 'Una palmada es un cambio de DO respecto de su nivel de reposo, hacia donde lo mueva la placa (la polaridad de un KY-037 no está confirmada) y por corto que sea el pulso (más corto de lo que dejaría ver un delay): el programa toma como reposo el nivel que tuvieron la mayoría de 100 lecturas en setup, lee sin esperar, actúa en el cambio desde el reposo y acepta otra palmada solo cuando DO vuelve al reposo y pasaron 200 ms, así que un ruido largo cuenta una vez. En el modelo DO baja cuando el pico del micrófono supera la distancia entre la polarización y el Vref del trimmer, unos 98 dB con el trimmer 15 mV por debajo de la polarización' },
   parts: [
     { id: 'U1', part: 'UNO', program: CLAP },
     { id: 'U2', type: 'sensor-module', part: 'KY-037', threshold: 0.497 },

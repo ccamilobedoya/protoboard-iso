@@ -232,6 +232,8 @@ test('laser: the dim note and the recipe say why a board pin does not light it, 
   for (const [lang, word] of [['en', /transistor/], ['es', /transistor/]]) {
     const text = formatIssue({ severity: 'info', code: 'SIM_LASER_DIM', params: { part: 'LS1', current: { value: 0.02, unit: 'A' }, threshold: { value: 0.022, unit: 'A' } } }, lang);
     assert.match(text, word, `${lang}: ${text}`);
-    assert.match(RECIPES['laser-uno'].teaches[lang], /22 mA/, `${lang}: the recipe says the threshold`);
+    // The recipe gives the checkable reason (the module's 28 mA against a pin's recommended 20 mA), not the model's 22 mA threshold.
+    assert.match(RECIPES['laser-uno'].teaches[lang], /28 mA/, `${lang}: the recipe says what the laser takes`);
+    assert.match(RECIPES['laser-uno'].teaches[lang], word, `${lang}: through a transistor`);
   }
 });

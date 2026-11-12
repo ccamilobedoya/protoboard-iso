@@ -11,6 +11,31 @@ detail.
 
 ### Fixed
 
+- Recipes: `clap-switch` no longer depends on which way a KY-037's DO moves (not
+  confirmed) nor on the pulse being long: it takes as rest the level most of 100 readings had in
+  `setup`, acts on the change from rest and accepts the next clap only when DO is back at rest and 200 ms
+  have passed, so a long noise counts once (tested with the board's DO falling and, through an inverter,
+  rising, with pulses of 0.2 to 500 ms); `sound-level-led` leaves the recipes (it lit an LED
+  straight from DO) and stays as `examples/sound-level-led.json` until the polarity is measured; the
+  kit's `KY-024` is described as modelled with an A3144 while the real board is reported to carry a
+  linear 49E; the HC-SR501's delay cannot go under 2.5 s (the trimmer's minimum; it was 0.3 s) and
+  `pir-uno` says a real module needs about a minute to warm up; `laser-tripwire` (5), `pir-lamp`,
+  `touch-toggle-led`, `light-switch-module`, `obstacle-buzzer` (3), `ldr-comparator` and
+  `lm35-comparator` (5) get a wider `clearance`, so a standing module no longer hides a resistor in
+  one of the two views (`laser-uno` stays at 2: 3, 4 and 5 fail to place its laser module).
+- Recipes checked against the simulator and the datasheets (the limits are named in the recipes): `encoder-uno` and `encoder-dimmer-uno` debounce CLK by time (8 ms, `millis()`), use
+  `INPUT_PULLUP` on the three lines and ship with 2 ms of bounce, so the count is exact with the whole
+  control (0 to 5 ms) up to about 800 °/s (before, 5 ms of bounce counted −1 after five clicks back);
+  `ldr-comparator` (V1 up to 12 V, R3 1 kΩ), `ldr-night-light` (V1 up to 9 V, R3 560 Ω) and
+  `lm35-comparator` (R3 1 kΩ) keep the LED and the LM393's output inside their limits over their
+  controls; `ntc-follower` takes 9 to 12 V and its temperature control ends at 65 °C, where an LM358
+  follower stops copying; `uno-bmp280-altitude` turns Wire's pull-ups off after `begin()` so the bus
+  idles at 3.3 V, not 3.68 V; `touch-uno` runs the TTP223 from 5 V; `hall-linear-uno` measures the
+  49E's zero at start-up (the average of 32 readings); `uno-bmp280-altitude` says that 3.3 V on the UNO's
+  I2C pins is below the 0.7 × VCC the ATmega328P asks for. Texts that claimed more than was known were corrected (`touch-toggle-led`
+  3.45 mA with 330 Ω, `laser-tripwire` about 410 lx, the laser's 28 mA against a pin's 20 mA, the
+  DHT11's 2 s as the library's limit, the voltage divider's 1/5) and the model's figures are said to
+  vary with the real part.
 - A UNO's ADC reads against its own solved 5 V rail (AVcc), not a fixed 5.0 V: a ratiometric sensor
   on USB reads the same count whatever the supply (`hall-linear-uno` at rest: −5.24 → −1.75 G, one
   count of its sketch's conversion). The ESP32 families keep their fixed reference.

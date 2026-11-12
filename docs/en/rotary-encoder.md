@@ -23,7 +23,7 @@ classic mistake of the module (`SIM_ENCODER_FLOATING`; a pin set as `INPUT_PULLU
 | `part` | `"KY-040"` | the only part number |
 | `pulses`, `detents` | 20, 20 | per revolution; another pair is refused with `BAD_VALUE`, because it would give a wrong wave |
 | `speed` | 360 | degrees a second the shaft follows its target (a brisk human turn) |
-| `bounce` | 0 | milliseconds of chatter at each change of CLK and DT; 0 is clean |
+| `bounce` | 0 (the recipes set 2) | milliseconds of chatter at each change of CLK and DT; 0 is clean |
 | `pressed` | false | the push switch is held down |
 | `swPullup` | true | the pull-up from `+` to `SW`; some clones leave it out |
 | `angle` | | the part's own target angle; without it the part follows the environment |
@@ -95,5 +95,10 @@ With `bounce` above 0, each transition of a contact at time t0 shows, determinis
 level for the first third of the bounce, the old one for the second third and the new one again from
 then on: three edges instead of one. At 2 ms, 0° → 90° gives 30 edges on CLK instead of 10, the first
 falling one still at 6.25 ms. The element then asks for steps of a twentieth of the bounce. The
-sketches of the recipes do not debounce, so a bounce above a millisecond or so miscounts them: a good
-exercise.
+first sketches of a course do not debounce, and with a bounce of a millisecond or so they miscount
+(5 clicks clockwise and 5 back ended at −1 with 5 ms): a good exercise. The sketches of `encoder-uno`
+and `encoder-dimmer-uno` filter by time instead: a change of CLK counts only if 8 ms have passed since
+the last one accepted, and the three lines use the chip's pull-ups (`INPUT_PULLUP`), so the recipes
+ship with `bounce` 2 and the count is exact with every value of the control, 0 to 5 ms. Measured over
+five clicks each way, twice, the filter holds up to about 800 °/s (more than two turns a second; it
+failed from 870 °/s) at every bounce from 0 to 5 ms; the 12.5 ms between edges is for 360 °/s. At a very fast turn (measured at 800 °/s) the filter can count a click too many if the shaft reverses right on an edge; at a hand's speed it is exact.

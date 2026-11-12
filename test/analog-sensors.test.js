@@ -212,13 +212,13 @@ const layoutOf = (name, values) => {
 };
 
 test('the four recipes and the two alarm recipes are DONE, clean, with their environment and page controls', () => {
-  for (const name of ['hall-linear-uno', 'voltage-sensor-uno', 'clap-switch', 'sound-level-led', 'rain-alarm', 'obstacle-buzzer']) {
+  for (const name of ['hall-linear-uno', 'voltage-sensor-uno', 'clap-switch', 'rain-alarm', 'obstacle-buzzer']) {
     const r = layoutOf(name);
     assert.equal(r.status, 'done', name);
     assert.deepEqual(r.review.blocking, [], name);
     assert.equal(r.check.ok, true, name);
   }
-  for (const [name, field, range] of [['hall-linear-uno', 'field', [-500, 500]], ['clap-switch', 'sound', [30, 110]], ['sound-level-led', 'sound', [30, 110]]]) {
+  for (const [name, field, range] of [['hall-linear-uno', 'field', [-500, 500]], ['clap-switch', 'sound', [30, 110]]]) {
     const c = layoutOf(name).circuit;
     assert.deepEqual(c.environment[field].range, range, name);
     assert.ok(c.page.controls.some((x) => x.environment === field), name);
@@ -238,6 +238,7 @@ const advance = (e, ms) => {
 test('hall-linear-uno prints the field within 15 G (0, +200, -200 G)', () => {
   for (const G of [0, 200, -200]) {
     const e = engineOf(layoutOf('hall-linear-uno').circuit);
+    advance(e, 200); // setup() measures the zero first, with no magnet near
     e.set('environment', 'field', G);
     advance(e, 1200);
     const last = Number(e.read().parts.U1.program.serial.at(-1));
@@ -253,7 +254,7 @@ test('voltage-sensor-uno prints the measured supply\'s volts', () => {
   }
 });
 
-test('clap-switch: a clap toggles the LED once, a second clap toggles it back; sound-level-led lights while loud', () => {
+test('clap-switch: a clap toggles the LED once, a second clap toggles it back', () => {
   const e = engineOf(layoutOf('clap-switch').circuit);
   const led = () => e.read().parts.D1.current;
   advance(e, 300);
@@ -265,12 +266,6 @@ test('clap-switch: a clap toggles the LED once, a second clap toggles it back; s
     advance(e, 400);
     assert.equal(led() > 3e-3, on, `after clap ${claps}`);
   }
-  const s = engineOf(layoutOf('sound-level-led').circuit);
-  advance(s, 50);
-  assert.ok(s.read().parts.D1.current < 1e-4);
-  s.set('environment', 'sound', 105);
-  advance(s, 50);
-  assert.ok(s.read().parts.D1.current > 3e-3);
 });
 
 test('the clap-switch tour validates and runs 20 to 30 s with Spanish captions and a sound gauge', () => {

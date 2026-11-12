@@ -2,7 +2,7 @@
 // the environment (nothing is aimed: its light is added to the room's for every light sensor). While
 // the beam reaches the module DO is low; cut it (the environment's `beam`) and the photoresistor sees
 // only the room, AO rises over Vref, DO goes high and drives an NPN through R1 that lights the LED.
-// The trimmer sits low (0.1: Vref 0.5 V, the switch near 300 lx) so the room's 50 lx reads as dark.
+// The trimmer sits low (0.1: Vref 0.5 V, the switch at about 410 lx in the model, measured; a real photoresistor moves it by a factor of 0.6 to 1.5) so the room's 50 lx reads as dark.
 // An NPN and not the LED on DO: DO high is the module's 10 kΩ pull-up, a fraction of a milliampere.
 // The base resistor is high on purpose: the pull-up's current is all that feeds the base. With 1 kΩ the base took
 // 1.3 mA and pulled DO down to 2.0 V, neither a high nor a low (and the module's own DO LED lit); to read as a
@@ -14,7 +14,7 @@ export default {
   name: 'laser-tripwire',
   group: 'sensor-modules',
   title: { en: 'Laser tripwire with a KY-008 and an LDR-LM393 module', es: 'Barrera láser con un KY-008 y un módulo LDR-LM393' },
-  teaches: { en: 'The laser\'s light adds to the room\'s for the light sensor; cut the beam and only the room is left: DO goes high, the transistor conducts and the LED lights', es: 'La luz del láser se suma a la del cuarto para el sensor de luz; corta el haz y queda solo la del cuarto: DO sube, el transistor conduce y el LED se enciende' },
+  teaches: { en: 'The laser\'s light adds to the room\'s for the light sensor; cut the beam and only the room is left: DO goes high, the transistor conducts and the LED lights (with the trimmer at 0.1 it only works in a room under about 410 lx; the figure depends on the photoresistor)', es: 'La luz del láser se suma a la del cuarto para el sensor de luz; corta el haz y queda solo la del cuarto: DO sube, el transistor conduce y el LED se enciende (con el trimmer en 0,1 solo funciona en un cuarto de menos de unos 410 lx; la cifra depende de la fotorresistencia)' },
   parts: [
     { id: 'LS1', type: 'laser', part: 'KY-008' },
     { id: 'U1', type: 'sensor-module', part: 'LDR-LM393', threshold: 0.1 },
@@ -24,6 +24,8 @@ export default {
     { id: 'D1', type: 'led', color: 'red' },
   ],
   nets: [['T+', 'LS1.S', 'U1.VCC', 'R2.1'], ['LS1.−', 'U1.GND', 'Q1.E', 'T-'], ['U1.DO', 'R1.1'], ['R1.2', 'Q1.B'], ['R2.2', 'D1.anode'], ['D1.cathode', 'Q1.C']],
+  // Room between the groups: without it a standing module or the LED hides a resistor in one of the two views.
+  clearance: 5,
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
   environment: { light: 50, beam: false },
   page: { controls: [{ environment: 'beam', label: { en: 'Cut the beam', es: 'Cortar el haz' } }, { environment: 'light' }, { part: 'U1', field: 'threshold' }] },

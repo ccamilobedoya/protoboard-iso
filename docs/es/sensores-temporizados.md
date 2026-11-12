@@ -22,7 +22,7 @@ detrás de 500 Ω mientras está activo y 0 V si no, sea cual sea la alimentaci�
 
 | Campo | Por defecto | |
 |---|---|---|
-| `delay` | 5 | segundos que `OUT` queda alto (el trimmer Tx); de 0,3 a 600, el deslizador de 3 a 300 s |
+| `delay` | 5 | segundos que `OUT` queda alto (el trimmer Tx); de 2,5 a 600 (2,5 s es el trimmer al mínimo), el deslizador de 3 a 300 s |
 | `mode` | `"H"` | el puente: `H` el movimiento durante el retardo lo reinicia, `L` el movimiento se ignora mientras está alto |
 | `warmup` | 30 | segundos tras encenderlo con `OUT` bajo y el movimiento ignorado; 0 lo omite |
 | `sensitivity` | 0.5 | el otro trimmer; informativo, el modelo no tiene alcance |
@@ -71,7 +71,7 @@ cerca de un miliamperio de `SIG`).
   registra. Una alterna se invierte cuando el toque se registra, no cuando se suelta.
 - `SIG` por encima de 10 mA es `SIM_OVER_CURRENT`; entre los 4 mA entregados o 8 mA recibidos con que
   se garantizan sus niveles y los 10 mA, `SIM_TOUCH_OUTPUT_SPEC` (una nota). Más de 5,5 V es
-  `SIM_IC_SUPPLY`, menos de 2 V `SIM_MODULE_LOW_SUPPLY` (el código que usa también el PIR). *Confirmado
+  `SIM_IC_SUPPLY` (los 5,5 V son el tope del rango de trabajo, de 2,0 a 5,5 V, y en la copia de la hoja del TTP223-BA6 que se encontró, una preliminar, también son el máximo absoluto, así que una fuente de 5 V, el 91 %, sale como «cerca» en la ficha: el aviso es correcto, no es un error en el dato de la pieza), menos de 2 V `SIM_MODULE_LOW_SUPPLY` (el código que usa también el PIR). *Confirmado
   2026-11-09:* los 10 mA del esfuerzo y los 4 mA / 8 mA de la nota son una decisión del kit a partir de
   los puntos de prueba de la hoja, no límites que la hoja dé.
 

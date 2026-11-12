@@ -1,12 +1,12 @@
 // A temperature alarm: an LM35 (10 mV per °C) into an LM393's IN+ against a reference from a
-// divider (10 kΩ over 910 Ω from 5 V ≈ 0.417 V, about 42 °C). Cold, IN+ is lower and the output
+// divider (10 kΩ over 910 Ω from 5 V ≈ 0.417 V, about 42 °C, give or take 4 °C with 5 % resistors). Cold, IN+ is lower and the output
 // sinks, keeping the LED off; past the reference the output is released and its pull-up resistor
-// feeds the LED. The LM35's temperature is the environment's.
+// feeds the LED. R3 is 1 kΩ: with 330 Ω the cold output sank 12.8 mA, above what an LM393 guarantees (6 mA); now it sinks 4.7 mA and the lit LED takes 3.4 mA. The LM35's temperature is the environment's.
 export default {
   name: 'lm35-comparator',
   group: 'sensors',
   title: { en: 'Temperature alarm with an LM35 and a comparator', es: 'Alarma de temperatura con LM35 y comparador' },
-  teaches: { en: 'The LM35 gives 10 mV per °C; the comparator releases its output when that voltage passes the reference from the divider (about 42 °C) and the LED lights', es: 'El LM35 da 10 mV por °C; el comparador suelta su salida cuando ese voltaje pasa la referencia del divisor (unos 42 °C) y el LED se enciende' },
+  teaches: { en: 'The LM35 gives 10 mV per °C; the comparator releases its output when that voltage passes the reference from the divider (about 42 °C, give or take 4 °C with 5 % resistors) and the LED lights', es: 'El LM35 da 10 mV por °C; el comparador suelta su salida cuando ese voltaje pasa la referencia del divisor (unos 42 °C, con ±4 °C si las resistencias son del 5 %) y el LED se enciende' },
   environment: { temperature: 25 },
   page: { controls: [{ environment: 'temperature' }] },
   parts: [
@@ -14,11 +14,11 @@ export default {
     { id: 'R2', type: 'resistor', value: '910' },
     { id: 'U2', type: 'temperature-sensor', part: 'LM35DZ' },
     { id: 'U1', part: 'LM393' },
-    { id: 'R3', type: 'resistor', value: '330' },
+    { id: 'R3', type: 'resistor', value: '1k' },
     { id: 'D1', type: 'led', color: 'red' },
   ],
   nets: [['B+', 'T+', 'R1.1', 'U2.+VS', 'U1.VCC', 'R3.1'], ['B-', 'T-', 'R2.2', 'U2.GND', 'U1.GND', 'D1.cathode'], ['R1.2', 'R2.1', 'U1.IN1-'], ['U2.VOUT', 'U1.IN1+'], ['R3.2', 'U1.OUT1', 'D1.anode']],
-  clearance: 3,
+  clearance: 5,
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
   values: {
     R1: { field: 'value', role: { en: 'reference divider, top', es: 'divisor de referencia, arriba' } },

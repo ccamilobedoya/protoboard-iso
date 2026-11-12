@@ -1,8 +1,8 @@
 // An Arduino UNO reading a DHT11 module on D2 with the DHT library (docs/en/library-sensors.md): every
 // two seconds both reads, a "fail" line when the sensor does not answer, else the temperature and the
-// humidity. The module's S has its own 10 kΩ pull-up to +; it answers at most every 2 s (the library
-// repeats its last reading in between), so the loop waits 2 s first.
-export const DHT11_SKETCH = `// DHT11: temperature and humidity every 2 s (the sensor answers no faster).
+// humidity. The module's S has its own 10 kΩ pull-up to +; the library asks for a new reading at most every 2 s
+// (it repeats its last one in between; the DHT11 chip itself admits one a second), so the loop waits 2 s first.
+export const DHT11_SKETCH = `// DHT11: temperature and humidity every 2 s (the library's own limit; the chip admits 1 s).
 #include <DHT.h>
 
 DHT dht(2, DHT11);
@@ -32,7 +32,7 @@ export default {
   name: 'uno-dht11',
   group: 'sensors',
   title: { en: 'Arduino UNO: temperature and humidity with a DHT11', es: 'Arduino UNO: temperatura y humedad con un DHT11' },
-  teaches: { en: 'A sensor read through its library: the DHT11 answers on one data pin, in whole degrees and whole %RH, at most every 2 s; isnan() tells a failed read', es: 'Un sensor que se lee con su biblioteca: el DHT11 responde por un solo pin de datos, en grados y %HR enteros, a lo sumo cada 2 s; isnan() dice si la lectura falló' },
+  teaches: { en: 'A sensor read through its library: the DHT11 answers on one data pin, in whole degrees and whole %RH, read through a library that asks at most every 2 s (the chip itself admits one a second); isnan() tells a failed read', es: 'Un sensor que se lee con su biblioteca: el DHT11 responde por un solo pin de datos, en grados y %HR enteros, con una biblioteca que pide a lo sumo cada 2 s (el chip admite una lectura por segundo); isnan() dice si la lectura falló' },
   parts: [
     { id: 'U1', part: 'UNO', program: DHT11_SKETCH },
     { id: 'U2', type: 'climate-sensor', part: 'DHT11' },
