@@ -9,6 +9,10 @@ detail.
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-11-12
+
+Recipe summaries short enough for a phone, and a touch module on a nominal 5 V supply no longer marked as near its limit.
+
 ### Changed
 
 - Recipes: the paragraph each recipe's page opens with (`teaches`) is at most 280 characters for `encoder-uno`, `clap-switch`, `uno-bmp280-altitude`, `encoder-dimmer-uno`, `ldr-night-light`, `ntc-follower` and `obstacle-buzzer` (it was 300 to 650), so the drawing stays in the first screen of a phone; a test caps every recipe at 340. The caveats that were there (the encoder filter at a reversal, the ATmega328P's I2C high level, the KY-037's polarity, the night light's switching levels) are in each recipe's header comment and in `docs/en/recipes.md`.
@@ -522,7 +526,8 @@ what it uses.
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.11.1...HEAD
+[0.11.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.9.0...v0.9.1
