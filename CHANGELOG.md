@@ -11,6 +11,19 @@ detail.
 
 ### Fixed
 
+- Recipes after the physics review (measured with the simulator; the datasheet limits are named in
+  the recipes): `encoder-uno` and `encoder-dimmer-uno` debounce CLK by time (8 ms, `millis()`), use
+  `INPUT_PULLUP` on the three lines and ship with 2 ms of bounce, so the count is exact with the whole
+  control (0 to 5 ms) up to about 800 °/s (before, 5 ms of bounce counted −1 after five clicks back);
+  `ldr-comparator` (V1 up to 12 V, R3 1 kΩ), `ldr-night-light` (V1 up to 9 V, R3 560 Ω) and
+  `lm35-comparator` (R3 1 kΩ) keep the LED and the LM393's output inside their limits over their
+  controls; `ntc-follower` takes 9 to 12 V and its temperature control ends at 65 °C, where an LM358
+  follower stops copying; `uno-bmp280-altitude` turns Wire's pull-ups off after `begin()` so the bus
+  idles at 3.3 V, not 3.68 V; `touch-uno` runs the TTP223 from 5 V; `hall-linear-uno` measures the
+  49E's zero at start-up. Texts that claimed more than was known were corrected (`touch-toggle-led`
+  3.45 mA with 330 Ω, `laser-tripwire` about 410 lx, the laser's 28 mA against a pin's 20 mA, the
+  DHT11's 2 s as the library's limit, the voltage divider's 1/5) and the model's figures are said to
+  vary with the real part.
 - A UNO's ADC reads against its own solved 5 V rail (AVcc), not a fixed 5.0 V: a ratiometric sensor
   on USB reads the same count whatever the supply (`hall-linear-uno` at rest: −5.24 → −1.75 G, one
   count of its sketch's conversion). The ESP32 families keep their fixed reference.
