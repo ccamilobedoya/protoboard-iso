@@ -1,4 +1,4 @@
-// What the physics review of the sensor recipes found, one test each (a finding that did not hold has none):
+// The sensor recipes against the simulator and the datasheet limits, one test each:
 // the encoder sketches against the contacts' bounce, the supplies' ranges against the parts' limits, the
 // BMP280's bus voltage, the touch module's output level, and the figures the recipes' texts quote. Every
 // number here was measured with the simulator; the datasheet limits they are compared with are named where used.
@@ -191,7 +191,8 @@ test('laser-tripwire: with the beam cut it trips under about 410 lx and not over
 test('laser-uno: the laser takes about 28 mA through the transistor, and its text gives the verifiable reason', () => {
   const o = open('laser-uno');
   play(o.e, 0.1, 0.001);
-  near(o.e.read().parts.LS1.current * 1e3, 27, 2, 'laser mA');
+  near(o.e.read().parts.LS1.current * 1e3, 27.0, 0.3, 'laser mA through the transistor');
+  near(open('laser-tripwire').read().parts.LS1.current * 1e3, 27.9, 0.3, 'laser mA from the supply, the "about 28 mA" of the texts');
   const text = JSON.stringify(RECIPES['laser-uno']);
   assert.match(text, /28 mA/);
   assert.match(text, /20 mA/);
@@ -235,7 +236,7 @@ test('hall-linear-uno: the sketch measures the zero at start-up, so a field pres
   near(Number(serialOf(o.e).at(-1)), 100, 15, '200 G is 100 G over the zero it started with');
 });
 
-// ── Encargo 2 · KY-037: the clap switch does not depend on DO's polarity or on the pulse being long ────────
+// ── clap-switch does not depend on DO's polarity or on the pulse being long ─────────────────────────────
 
 // The recipe's circuit, and the same with an inverter (a 2N3904 with a 10 kΩ pull-up) between DO and D2:
 // DO's levels reach the UNO swapped, as on a board whose DO rises with the sound.
@@ -256,32 +257,57 @@ function clapCircuit(inverted) {
   return e;
 }
 
-test('clap-switch: one clap is one change of the LED, with DO falling or rising and a pulse of 3 ms or 60 ms', () => {
+// Plays `seconds` with the engine's step capped at `cap`, so a pulse shorter than the usual cap is not skipped.
+const lit = (e) => e.read().parts.D1.current > 3e-3;
+function clap(e, ms) {
+  const step = Math.min(0.0005, ms / 1000);
+  assert.ok(e.set('environment', 'sound', 105));
+  play(e, ms / 1000, step);
+  assert.ok(e.set('environment', 'sound', 40));
+  play(e, 0.4, 0.0005);
+}
+
+test('clap-switch: one clap is one change of the LED, with DO falling or rising, for pulses of 0.2, 3, 60 and 500 ms', () => {
   for (const inverted of [false, true]) {
-    for (const pulse of [0.003, 0.06]) {
+    for (const ms of [0.2, 3, 60, 500]) {
       const e = clapCircuit(inverted);
-      const lit = () => e.read().parts.D1.current > 3e-3;
       play(e, 0.4, 0.0005);
-      assert.equal(lit(), false, 'off in a quiet room');
-      for (const expected of [true, false, true]) {
-        assert.ok(e.set('environment', 'sound', 105));
-        play(e, pulse, 0.0005);
-        assert.ok(e.set('environment', 'sound', 40));
-        play(e, 0.4, 0.0005);
-        assert.equal(lit(), expected, `inverted ${inverted}, pulse ${pulse} s`);
+      assert.equal(lit(e), false, 'off in a quiet room');
+      for (const expected of [true, false]) {
+        clap(e, ms);
+        assert.equal(lit(e), expected, `inverted ${inverted}, pulse ${ms} ms`);
       }
     }
   }
 });
 
-test('clap-switch: the sketch reads the rest level in setup and has no delay in loop', () => {
-  const sketch = RECIPES['clap-switch'].parts.find((p) => p.id === 'U1').program;
-  assert.match(sketch, /rest = digitalRead\(MIC\)/);
-  assert.match(sketch, /millis\(\) - lastClap >= QUIET_MS/);
-  assert.ok(!/delay\(/.test(sketch));
+test('clap-switch: a sustained noise of 1 s is one change, and a short noise while it starts does not swap the rest level', () => {
+  for (const inverted of [false, true]) {
+    const e = clapCircuit(inverted);
+    play(e, 0.4, 0.0005);
+    clap(e, 1000);
+    assert.equal(lit(e), true, `inverted ${inverted}: one change for the long noise`);
+    // A 20 ms noise during setup(), whose 100 readings take about 100 ms: the majority is still the rest level.
+    const f = clapCircuit(inverted);
+    assert.ok(f.set('environment', 'sound', 105));
+    play(f, 0.02, 0.0005);
+    assert.ok(f.set('environment', 'sound', 40));
+    play(f, 0.5, 0.0005);
+    assert.equal(lit(f), false, `inverted ${inverted}: nothing lit after a start with noise`);
+    clap(f, 60);
+    assert.equal(lit(f), true, `inverted ${inverted}: a clap is a clap`);
+  }
 });
 
-// ── Encargo 2 · room between the parts of the new recipes ────────────────────────────────────────────────
+test('clap-switch: the sketch takes the rest level from many readings and has no delay in loop', () => {
+  const sketch = RECIPES['clap-switch'].parts.find((p) => p.id === 'U1').program;
+  assert.match(sketch, /SAMPLES = 100/);
+  assert.match(sketch, /rest = \(highs \* 2 >= SAMPLES\)/);
+  assert.match(sketch, /millis\(\) - lastClap >= QUIET_MS/);
+  assert.ok(!/delay\([^)]*\);\s*\n\}\s*$/.test(sketch.split('void loop()')[1]) && !/delay\(/.test(sketch.split('void loop()')[1]));
+});
+
+// ── room between the parts: clearance ─────────────────────────────────────────────────────────────────
 
 test('recipes with a wider clearance lay out, are APPROVED, and hide no part in both views (laser-uno stays at 2: 3, 4 and 5 fail on LS1)', async () => {
   const { review } = await import('../src/review.js');
@@ -298,7 +324,7 @@ test('recipes with a wider clearance lay out, are APPROVED, and hide no part in 
   }
 });
 
-// ── Encargo 2 · HC-SR501: the shortest delay is the trimmer's minimum, about 2.5 s ────────────────────────
+// ── HC-SR501: the shortest delay is the trimmer's minimum, about 2.5 s ─────────────────────────────────
 
 test('pir-sensor: the delay cannot go under 2.5 s; the recipes\' control starts there and pir-uno says what a real module does at power-up', () => {
   const ok = autoLayout({ parts: [{ id: 'U1', type: 'pir-sensor', delay: 2.5 }], nets: [['T+', 'U1.VCC'], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }] });
