@@ -238,6 +238,7 @@ const advance = (e, ms) => {
 test('hall-linear-uno prints the field within 15 G (0, +200, -200 G)', () => {
   for (const G of [0, 200, -200]) {
     const e = engineOf(layoutOf('hall-linear-uno').circuit);
+    advance(e, 200); // setup() measures the zero first, with no magnet near
     e.set('environment', 'field', G);
     advance(e, 1200);
     const last = Number(e.read().parts.U1.program.serial.at(-1));

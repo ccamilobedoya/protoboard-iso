@@ -414,6 +414,7 @@ test('B8 · hall-linear-uno prints a value within ± 15 G of the environment\'s 
   assert.ok(board, 'an Arduino UNO');
   for (const field of [0, 200, -200]) {
     const e = engineOf(c);
+    play(e, 0.2); // setup() measures the zero first, with no magnet near
     assert.ok(e.set('environment', 'field', field), `set field ${field}`);
     play(e, 3);
     const { serial, error } = e.read().parts[board.id].program;
