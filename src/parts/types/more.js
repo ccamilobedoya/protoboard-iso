@@ -58,7 +58,7 @@ export const thermistor = {
     return {
       package: 'bead',
       params: {},
-      label: { value: r25, unit: 'Ω', extra: 'NTC' },
+      label: { value: r25, unit: 'Ω' }, // no 'NTC' here: the part's name (type.thermistor) already says it
       electrical: { kind: 'R', resistance, maxPower: 0.05, sensor: { kind: 'thermistor', temperature, r25, beta } },
     };
   },
