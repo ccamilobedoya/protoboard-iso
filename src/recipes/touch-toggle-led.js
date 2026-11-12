@@ -23,7 +23,7 @@ export default {
   page: { controls: [{ environment: 'touch' }] },
   values: {
     U1: { field: 'mode', choices: ['toggle', 'momentary'], extra: ['activeLow', 'fast'], role: { en: 'toggle: each touch flips the output; momentary: it follows the touch; activeLow and fast as the module\'s solder pads', es: 'toggle: cada toque invierte la salida; momentary: la sigue; activeLow y fast como los pads de soldadura del módulo' } },
-    R1: { field: 'value', role: { en: 'LED resistor: keep the current under 4 mA, the output\'s guaranteed high level (470 Ω gives about 3 mA by the plain sum, 2.7 mA in the simulation)', es: 'resistencia del LED: mantén la corriente bajo 4 mA, el nivel alto garantizado de la salida (470 Ω da unos 3 mA por la suma simple, 2,7 mA en la simulación)' } },
+    R1: { field: 'value', role: { en: 'LED resistor: keep the current under 4 mA, the output\'s guaranteed high level (470 Ω gives 3.2 mA by the plain sum, 2.7 mA in the simulation)', es: 'resistencia del LED: mantén la corriente bajo 4 mA, el nivel alto garantizado de la salida (470 Ω da 3,2 mA por la suma simple, 2,7 mA en la simulación)' } },
     D1: { field: 'color' },
   },
 };

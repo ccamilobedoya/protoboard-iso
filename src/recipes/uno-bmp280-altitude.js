@@ -5,7 +5,9 @@
 // chip's interface-pin maximum of VDDIO + 0.3 V = 3.6 V (Bosch datasheet, as listed by distributors and
 // the BME280 sheet; the PDF itself was not read). So the sketch turns them off after begin() with
 // digitalWrite(A4, LOW) and digitalWrite(A5, LOW): the bus then idles at the module's 3.3 V. SDA on A4
-// and SCL on A5, the UNO's I2C pins.
+// and SCL on A5, the UNO's I2C pins. The bus then idles at 3.3 V, but the ATmega328P's datasheet asks 0.7·VCC =
+// 3.5 V at 5 V as a high on its I2C pins (the two-wire interface table; the model's 0.6·VCC is the ordinary pins'
+// figure): it usually works, but it is outside the specification. A level shifter or a 3.3 V board is the right way.
 const SKETCH = `// BMP280: the altitude from the air pressure, every second.
 #include <Wire.h>
 #include <Adafruit_BMP280.h>
@@ -36,7 +38,7 @@ export default {
   name: 'uno-bmp280-altitude',
   group: 'sensors',
   title: { en: 'Arduino UNO: altitude with a BMP280 (on 3.3 V)', es: 'Arduino UNO: altitud con un BMP280 (a 3,3 V)' },
-  teaches: { en: 'The usual BMP280 board has no regulator: it goes on the UNO\'s 3.3 V pin, not 5 V (over its 4.25 V maximum). Wire turns on the UNO\'s own pull-ups to 5 V, which would lift SDA and SCL to about 3.68 V, over the chip\'s 3.6 V limit for its interface pins; after begin() the sketch turns them off, so the bus idles at the module\'s 3.3 V. Lower pressure, higher altitude', es: 'La placa BMP280 de siempre no tiene regulador: va al pin de 3,3 V del UNO, no a 5 V (pasa su máximo de 4,25 V). Wire enciende los pull-ups propios del UNO a 5 V, que subirían SDA y SCL a unos 3,68 V, sobre los 3,6 V que admiten los pines de interfaz del chip; tras begin() el programa los apaga y el bus queda en los 3,3 V del módulo. Menos presión, más altitud' },
+  teaches: { en: 'The usual BMP280 board has no regulator: it goes on the UNO\'s 3.3 V pin, not 5 V (over its 4.25 V maximum). Wire turns on the UNO\'s own pull-ups to 5 V, which would lift SDA and SCL to about 3.68 V, over the chip\'s 3.6 V limit for its interface pins; after begin() the sketch turns them off, so the bus idles at the module\'s 3.3 V. The UNO at 5 V asks 0.7 × VCC = 3.5 V as a high on its I2C pins (ATmega328P datasheet), so this usually works but is outside the specification: a level shifter or a 3.3 V board is the correct way. Lower pressure, higher altitude', es: 'La placa BMP280 de siempre no tiene regulador: va al pin de 3,3 V del UNO, no a 5 V (pasa su máximo de 4,25 V). Wire enciende los pull-ups propios del UNO a 5 V, que subirían SDA y SCL a unos 3,68 V, sobre los 3,6 V que admiten los pines de interfaz del chip; tras begin() el programa los apaga y el bus queda en los 3,3 V del módulo. El UNO a 5 V pide 0,7 × VCC = 3,5 V como nivel alto en sus pines I2C (hoja del ATmega328P), así que suele funcionar pero queda fuera de especificación: lo correcto es un conversor de nivel o una placa de 3,3 V. Menos presión, más altitud' },
   parts: [
     { id: 'U1', part: 'UNO', program: SKETCH },
     { id: 'U2', type: 'climate-sensor', part: 'BMP280' },

@@ -4,7 +4,8 @@
 // Contacts chatter when they change (the module's own control goes up to 5 ms), so CLK is debounced by
 // time: a change is accepted only when 8 ms have passed since the last accepted one, and the three
 // lines use the chip's pull-ups. The loop waits 1 ms between reads, far under the 12.5 ms between two
-// edges of a brisk turn (360 degrees a second).
+// edges of a brisk turn (360 degrees a second). At a very fast turn (measured at 800 degrees a second) the
+// filter can count one click too many if the shaft reverses right on an edge; at a hand's speed it is exact.
 const COUNTER = `// Count the encoder's clicks: CLK falls, then DT says which way.
 const int CLK_PIN = 2;
 const int DT_PIN = 3;
@@ -47,7 +48,7 @@ export default {
   name: 'encoder-uno',
   group: 'sensors',
   title: { en: 'Arduino UNO: KY-040 rotary encoder counter', es: 'Arduino UNO: contador con encoder rotativo KY-040' },
-  teaches: { en: 'A rotary encoder gives two square waves a quarter of a cycle apart: at each fall of CLK, DT high means clockwise and DT low counter-clockwise; the contacts chatter, so the sketch ignores a CLK change less than 8 ms after the last one it accepted (with the bounce set from 0 to 5 ms the count stays exact up to about 800 degrees a second, over two turns a second), and it must poll faster than 12.5 ms (the gap at 360 degrees a second) to miss no click', es: 'Un encoder rotativo da dos ondas cuadradas desfasadas un cuarto de ciclo: en cada bajada de CLK, DT alto es giro a la derecha y DT bajo a la izquierda; los contactos rebotan, así que el programa ignora un cambio de CLK a menos de 8 ms del último que aceptó (con el rebote entre 0 y 5 ms la cuenta sigue exacta hasta unos 800 grados por segundo, más de dos vueltas por segundo), y debe leer más rápido que 12,5 ms (el intervalo a 360 grados por segundo) para no perder ningún clic' },
+  teaches: { en: 'A rotary encoder gives two square waves a quarter of a cycle apart: at each fall of CLK, DT high means clockwise and DT low counter-clockwise; the contacts chatter, so the sketch ignores a CLK change less than 8 ms after the last one it accepted (with the bounce set from 0 to 5 ms the count stays exact up to about 800 degrees a second, over two turns a second), and it must poll faster than 12.5 ms (the gap at 360 degrees a second) to miss no click; at a very fast turn (measured at 800 degrees a second) the filter can count a click too many if the shaft reverses right on an edge, at a hand\'s speed it is exact', es: 'Un encoder rotativo da dos ondas cuadradas desfasadas un cuarto de ciclo: en cada bajada de CLK, DT alto es giro a la derecha y DT bajo a la izquierda; los contactos rebotan, así que el programa ignora un cambio de CLK a menos de 8 ms del último que aceptó (con el rebote entre 0 y 5 ms la cuenta sigue exacta hasta unos 800 grados por segundo, más de dos vueltas por segundo), y debe leer más rápido que 12,5 ms (el intervalo a 360 grados por segundo) para no perder ningún clic; a un giro muy rápido (medido a 800 grados por segundo) el filtro puede contar un clic de más si el eje cambia de sentido justo sobre un flanco, a velocidad de mano cuenta exacto' },
   parts: [
     { id: 'U1', part: 'UNO', program: COUNTER },
     { id: 'U2', type: 'rotary-encoder', bounce: 2 },

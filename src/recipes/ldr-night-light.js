@@ -10,7 +10,7 @@ export default {
   name: 'ldr-night-light',
   group: 'sensors',
   title: { en: 'Night light with a photoresistor', es: 'Luz nocturna con fotorresistencia' },
-  teaches: { en: 'In the dark the photoresistor\'s resistance is high, the divider\'s voltage rises and the transistor switches the LED on; with light it falls and the LED goes out (it switches at about 150 to 250 lx in the model; a real photoresistor moves that by a factor of 0.6 to 1.5)', es: 'A oscuras la resistencia de la fotorresistencia es alta, el voltaje del divisor sube y el transistor enciende el LED; con luz baja y el LED se apaga (conmuta entre unos 150 y 250 lx en el modelo; una fotorresistencia real lo mueve en un factor de 0,6 a 1,5)' },
+  teaches: { en: 'In the dark the photoresistor\'s resistance is high, the divider\'s voltage rises and the transistor switches the LED on; with light it falls and the LED goes out (it switches at about 95 lx on 3 V, 190 lx on 5 V and 375 lx on 9 V in the model, the light level following the supply; a real photoresistor moves that by a factor of 0.6 to 1.5)', es: 'A oscuras la resistencia de la fotorresistencia es alta, el voltaje del divisor sube y el transistor enciende el LED; con luz baja y el LED se apaga (conmuta a unos 95 lx con 3 V, 190 lx con 5 V y 375 lx con 9 V en el modelo, el nivel de luz sigue a la fuente; una fotorresistencia real lo mueve en un factor de 0,6 a 1,5)' },
   environment: { light: 300 },
   page: { controls: [{ environment: 'light' }] },
   parts: [

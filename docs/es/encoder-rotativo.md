@@ -105,4 +105,4 @@ si pasaron 8 ms desde el último aceptado, y las tres líneas usan los pull-ups 
 (`INPUT_PULLUP`), así que las recetas salen con `bounce` 2 y la cuenta es exacta con todos los valores
 del control, de 0 a 5 ms. Medido con cinco clics en cada sentido, dos veces, el filtro aguanta hasta
 unos 800 °/s (más de dos vueltas por segundo; falló desde 870 °/s) con cualquier rebote de 0 a 5 ms;
-los 12,5 ms entre flancos son para 360 °/s.
+los 12,5 ms entre flancos son para 360 °/s. A un giro muy rápido (medido a 800 °/s) el filtro puede contar un clic de más si el eje cambia de sentido justo sobre un flanco; a velocidad de mano cuenta exacto.

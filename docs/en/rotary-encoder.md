@@ -101,4 +101,4 @@ and `encoder-dimmer-uno` filter by time instead: a change of CLK counts only if 
 the last one accepted, and the three lines use the chip's pull-ups (`INPUT_PULLUP`), so the recipes
 ship with `bounce` 2 and the count is exact with every value of the control, 0 to 5 ms. Measured over
 five clicks each way, twice, the filter holds up to about 800 °/s (more than two turns a second; it
-failed from 870 °/s) at every bounce from 0 to 5 ms; the 12.5 ms between edges is for 360 °/s.
+failed from 870 °/s) at every bounce from 0 to 5 ms; the 12.5 ms between edges is for 360 °/s. At a very fast turn (measured at 800 °/s) the filter can count a click too many if the shaft reverses right on an edge; at a hand's speed it is exact.
