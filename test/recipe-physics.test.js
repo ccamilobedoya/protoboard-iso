@@ -234,3 +234,81 @@ test('hall-linear-uno: the sketch measures the zero at start-up, so a field pres
   play(o.e, 1.2, 0.001);
   near(Number(serialOf(o.e).at(-1)), 100, 15, '200 G is 100 G over the zero it started with');
 });
+
+// ── Encargo 2 · KY-037: the clap switch does not depend on DO's polarity or on the pulse being long ────────
+
+// The recipe's circuit, and the same with an inverter (a 2N3904 with a 10 kΩ pull-up) between DO and D2:
+// DO's levels reach the UNO swapped, as on a board whose DO rises with the sound.
+function clapCircuit(inverted) {
+  const { spec } = expandRecipe('clap-switch');
+  if (inverted) {
+    spec.parts.push({ id: 'Q1', part: '2N3904' }, { id: 'R2', type: 'resistor', value: '10k' }, { id: 'R3', type: 'resistor', value: '10k' });
+    spec.nets = spec.nets.filter((n) => !(n.includes('U2.DO') && n.includes('U1.D2')));
+    spec.nets.push(['U2.DO', 'R2.1'], ['R2.2', 'Q1.B'], ['Q1.C', 'R3.1', 'U1.D2']);
+    spec.nets.find((n) => n.includes('U1.5V')).push('R3.2');
+    spec.nets.find((n) => n.includes('U2.GND')).push('Q1.E');
+  }
+  const r = autoLayout(spec);
+  // (The bench with the inverter may leave a part hidden in the drawing: only its electrical circuit matters here.)
+  assert.ok(r.circuit, 'a circuit');
+  const e = createEngine(compile(r.circuit).program);
+  assert.ok(e.start('dc'));
+  return e;
+}
+
+test('clap-switch: one clap is one change of the LED, with DO falling or rising and a pulse of 3 ms or 60 ms', () => {
+  for (const inverted of [false, true]) {
+    for (const pulse of [0.003, 0.06]) {
+      const e = clapCircuit(inverted);
+      const lit = () => e.read().parts.D1.current > 3e-3;
+      play(e, 0.4, 0.0005);
+      assert.equal(lit(), false, 'off in a quiet room');
+      for (const expected of [true, false, true]) {
+        assert.ok(e.set('environment', 'sound', 105));
+        play(e, pulse, 0.0005);
+        assert.ok(e.set('environment', 'sound', 40));
+        play(e, 0.4, 0.0005);
+        assert.equal(lit(), expected, `inverted ${inverted}, pulse ${pulse} s`);
+      }
+    }
+  }
+});
+
+test('clap-switch: the sketch reads the rest level in setup and has no delay in loop', () => {
+  const sketch = RECIPES['clap-switch'].parts.find((p) => p.id === 'U1').program;
+  assert.match(sketch, /rest = digitalRead\(MIC\)/);
+  assert.match(sketch, /millis\(\) - lastClap >= QUIET_MS/);
+  assert.ok(!/delay\(/.test(sketch));
+});
+
+// ── Encargo 2 · room between the parts of the new recipes ────────────────────────────────────────────────
+
+test('recipes with a wider clearance lay out, are APPROVED, and hide no part in both views (laser-uno stays at 2: 3, 4 and 5 fail on LS1)', async () => {
+  const { review } = await import('../src/review.js');
+  const { inspectCircuit } = await import('../src/index.js');
+  const wanted = { 'laser-tripwire': 5, 'pir-lamp': 3, 'touch-toggle-led': 3, 'light-switch-module': 3, 'obstacle-buzzer': 3, 'ldr-comparator': 5, 'lm35-comparator': 5, 'laser-uno': 2 };
+  for (const [name, clearance] of Object.entries(wanted)) {
+    assert.equal(expandRecipe(name).spec.clearance, clearance, name);
+    const r = autoLayout(expandRecipe(name).spec);
+    assert.equal(r.status, 'done', name);
+    assert.equal(review(r.circuit).verdict, 'approved', name);
+    const best = new Map();
+    for (const view of ['front', 'back']) for (const p of inspectCircuit(r.circuit, { view }).parts) best.set(p.id, Math.max(best.get(p.id) ?? 0, p.visible));
+    for (const [id, visible] of best) if (!/^W/.test(id)) assert.ok(visible >= 0.5, `${name} ${id} ${Math.round(visible * 100)} %`);
+  }
+});
+
+// ── Encargo 2 · HC-SR501: the shortest delay is the trimmer's minimum, about 2.5 s ────────────────────────
+
+test('pir-sensor: the delay cannot go under 2.5 s; the recipes\' control starts there and pir-uno says what a real module does at power-up', () => {
+  const ok = autoLayout({ parts: [{ id: 'U1', type: 'pir-sensor', delay: 2.5 }], nets: [['T+', 'U1.VCC'], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }] });
+  assert.ok(ok.circuit, '2.5 s is accepted');
+  assert.ok(simulate(ok.circuit).ok);
+  const bad = autoLayout({ parts: [{ id: 'U1', type: 'pir-sensor', delay: 2.4 }], nets: [['T+', 'U1.VCC'], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }] });
+  const issues = JSON.stringify(bad.problems ?? []) + JSON.stringify(bad.check ?? '') + JSON.stringify(bad.circuit ? simulate(bad.circuit).issues : '');
+  assert.match(issues, /BAD_VALUE/, '2.4 s is refused');
+  assert.equal(RECIPES['pir-lamp'].values.U1.min, 2.5);
+  assert.equal(RECIPES['pir-uno'].values.U2.min, 2.5);
+  assert.match(RECIPES['pir-uno'].teaches.en, /minute to warm up/);
+  assert.match(RECIPES['pir-uno'].teaches.es, /minuto de calentamiento/);
+});
