@@ -16,11 +16,13 @@ export default {
     { id: 'D1', type: 'led', color: 'yellow' },
   ],
   nets: [['T+', 'U1.VCC', 'R2.1'], ['U1.OUT', 'R1.1'], ['R1.2', 'Q1.B'], ['R2.2', 'D1.anode'], ['D1.cathode', 'Q1.C'], ['Q1.E', 'U1.GND', 'T-']],
+  // Room between the groups: without it a standing module or the LED hides a resistor in one of the two views.
+  clearance: 3,
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
   environment: { motion: false },
   page: { controls: [{ environment: 'motion' }, { part: 'U1', field: 'delay' }] },
   values: {
-    U1: { field: 'delay', min: 0.3, max: 60, extra: ['mode', 'warmup'], role: { en: 'seconds OUT stays high after the last motion (the delay trimmer); mode H repeats, L ignores motion while high; warmup in seconds', es: 'segundos que OUT queda alto tras el último movimiento (el trimmer de retardo); modo H repite, L ignora el movimiento mientras está alto; warmup en segundos' } },
+    U1: { field: 'delay', min: 2.5, max: 60, extra: ['mode', 'warmup'], role: { en: 'seconds OUT stays high after the last motion (the delay trimmer); mode H repeats, L ignores motion while high; warmup in seconds', es: 'segundos que OUT queda alto tras el último movimiento (el trimmer de retardo); modo H repite, L ignora el movimiento mientras está alto; warmup en segundos' } },
     R1: { field: 'value', role: { en: 'base resistor: OUT gives (3.3 V − 0.7 V) / (500 Ω + R1), far under its 2 mA', es: 'resistencia de base: OUT da (3,3 V − 0,7 V) / (500 Ω + R1), muy por debajo de sus 2 mA' } },
     R2: { field: 'value', role: { en: 'lamp resistor', es: 'resistencia de la lámpara' } },
     D1: { field: 'color' },

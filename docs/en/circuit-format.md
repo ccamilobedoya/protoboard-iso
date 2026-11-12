@@ -440,7 +440,7 @@ still.
 
 An HC-SR501 PIR motion module standing on three pins `VCC`, `OUT`, `GND` (read from the left with its
 back toward you), its Fresnel dome toward the front. It runs from 4.5 to 20 V and `OUT` is 3.3 V
-behind 500 Ω while active. Fields: `delay` (seconds `OUT` stays high, 0.3 to 600, default 5),
+behind 500 Ω while active. Fields: `delay` (seconds `OUT` stays high, 2.5 to 600, default 5),
 `mode` (`"H"` motion during the delay starts it again, default; `"L"` ignores it), `warmup` (seconds
 with `OUT` low after power on, default 30, 0 skips it), `sensitivity` (0 to 1, informative) and
 `motion` (its own value of the environment's field `motion`). The two times, the jumper and the

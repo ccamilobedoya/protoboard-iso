@@ -461,7 +461,7 @@ pasa su par de bloqueo, deja el eje quieto.
 Un módulo de movimiento PIR HC-SR501 parado sobre tres patas `VCC`, `OUT`, `GND` (leídas de izquierda
 a derecha con su espalda hacia ti), con su cúpula de Fresnel hacia el frente. Funciona de 4,5 a 20 V y
 `OUT` es de 3,3 V detrás de 500 Ω mientras está activo. Campos: `delay` (segundos que `OUT` queda alto,
-de 0,3 a 600, por defecto 5), `mode` (`"H"` el movimiento durante el retardo lo reinicia, por defecto;
+de 2,5 a 600, por defecto 5), `mode` (`"H"` el movimiento durante el retardo lo reinicia, por defecto;
 `"L"` lo ignora), `warmup` (segundos con `OUT` bajo tras encenderlo, por defecto 30, 0 lo omite),
 `sensitivity` (de 0 a 1, informativo) y `motion` (su valor propio del campo `motion` del ambiente). Los
 dos tiempos, el puente y el calentamiento están en [sensores-temporizados.md](sensores-temporizados.md).
