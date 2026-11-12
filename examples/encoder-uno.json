@@ -35,7 +35,7 @@
     {
       "id": "U1",
       "part": "UNO",
-      "program": "// Count the encoder's clicks: CLK falls, then DT says which way.\nconst int CLK_PIN = 2;\nconst int DT_PIN = 3;\nconst int SW_PIN = 4;\nint count = 0;\nint lastClk = HIGH;\n\nvoid setup() {\n  Serial.begin(9600);\n  pinMode(CLK_PIN, INPUT);\n  pinMode(DT_PIN, INPUT);\n  pinMode(SW_PIN, INPUT);\n}\n\nvoid loop() {\n  int clk = digitalRead(CLK_PIN);\n  if (lastClk == HIGH && clk == LOW) {\n    if (digitalRead(DT_PIN) == HIGH) {\n      count = count + 1;\n    } else {\n      count = count - 1;\n    }\n    Serial.println(count);\n  }\n  lastClk = clk;\n  if (digitalRead(SW_PIN) == LOW && count != 0) {\n    count = 0;\n    Serial.println(count);\n  }\n  delay(1);\n}\n",
+      "program": "// Count the encoder's clicks: CLK falls, then DT says which way.\nconst int CLK_PIN = 2;\nconst int DT_PIN = 3;\nconst int SW_PIN = 4;\nconst unsigned long DEBOUNCE_MS = 8;\nint count = 0;\nint lastClk = HIGH;\nunsigned long lastChange = 0;\n\nvoid setup() {\n  Serial.begin(9600);\n  pinMode(CLK_PIN, INPUT_PULLUP);\n  pinMode(DT_PIN, INPUT_PULLUP);\n  pinMode(SW_PIN, INPUT_PULLUP);\n}\n\nvoid loop() {\n  int clk = digitalRead(CLK_PIN);\n  if (clk != lastClk && millis() - lastChange >= DEBOUNCE_MS) {\n    lastChange = millis();\n    if (clk == LOW) {\n      if (digitalRead(DT_PIN) == HIGH) {\n        count = count + 1;\n      } else {\n        count = count - 1;\n      }\n      Serial.println(count);\n    }\n    lastClk = clk;\n  }\n  if (digitalRead(SW_PIN) == LOW && count != 0) {\n    count = 0;\n    Serial.println(count);\n  }\n  delay(1);\n}\n",
       "type": "module",
       "pins": {
         "5v": "f2",
@@ -54,7 +54,8 @@
         "g14",
         "g15",
         "g16"
-      ]
+      ],
+      "bounce": 2
     },
     {
       "id": "W1",

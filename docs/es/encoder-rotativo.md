@@ -23,7 +23,7 @@ módulo (`SIM_ENCODER_FLOATING`; un pin en `INPUT_PULLUP` las lee limpias con su
 | `part` | `"KY-040"` | el único número de parte |
 | `pulses`, `detents` | 20, 20 | por vuelta; otro par se rechaza con `BAD_VALUE`, porque daría una onda equivocada |
 | `speed` | 360 | grados por segundo con que el eje sigue a su objetivo (un giro humano enérgico) |
-| `bounce` | 0 | milisegundos de rebote en cada cambio de CLK y DT; 0 es limpio |
+| `bounce` | 0 (las recetas fijan 2) | milisegundos de rebote en cada cambio de CLK y DT; 0 es limpio |
 | `pressed` | false | el pulsador está oprimido |
 | `swPullup` | true | el pull-up de `+` a `SW`; algunos clones no lo traen |
 | `angle` | | el ángulo objetivo propio de la pieza; sin él la pieza sigue al ambiente |
@@ -98,5 +98,11 @@ Con `bounce` mayor que 0, cada transición de un contacto en el tiempo t0 muestr
 determinista, el nivel nuevo durante el primer tercio del rebote, el viejo durante el segundo tercio y
 el nuevo otra vez de ahí en adelante: tres flancos en lugar de uno. Con 2 ms, 0° → 90° da 30 flancos
 en CLK en vez de 10, el primero de bajada todavía en 6,25 ms. El elemento pide entonces pasos de una
-veinteava parte del rebote. Los programas de las recetas no filtran el rebote, así que un rebote mayor
-que un milisegundo más o menos los hace contar mal: un buen ejercicio.
+veinteava parte del rebote. Los primeros programas de un curso no filtran el rebote, y con un rebote de un milisegundo más o
+menos cuentan mal (5 clics a la derecha y 5 de vuelta terminaban en −1 con 5 ms): un buen ejercicio.
+Los programas de `encoder-uno` y `encoder-dimmer-uno` filtran por tiempo: un cambio de CLK cuenta solo
+si pasaron 8 ms desde el último aceptado, y las tres líneas usan los pull-ups del chip
+(`INPUT_PULLUP`), así que las recetas salen con `bounce` 2 y la cuenta es exacta con todos los valores
+del control, de 0 a 5 ms. Medido con cinco clics en cada sentido, dos veces, el filtro aguanta hasta
+unos 800 °/s (más de dos vueltas por segundo; falló desde 870 °/s) con cualquier rebote de 0 a 5 ms;
+los 12,5 ms entre flancos son para 360 °/s.
