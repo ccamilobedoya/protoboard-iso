@@ -1,6 +1,7 @@
 // An Arduino UNO reading a TTP223 touch module on D2 and printing TOUCH when a finger arrives and
-// RELEASE when it leaves. The module runs from the UNO's 3.3 V pin (it takes 2 to 5.5 V; 5 V would be
-// 91 % of its top), so its output is 3.3 V when active: above the 3 V the UNO needs to read a HIGH.
+// RELEASE when it leaves. The module runs from the UNO's 5 V pin (it takes 2 to 5.5 V), so its output is 5 V
+// when active: well above the 3 V the UNO needs to read a HIGH (0.6 of its 5 V supply). On 3.3 V the output
+// would be 3.3 V, only 0.3 V of margin.
 const TOUCH = `// Print the moments the pad is touched and let go.
 const int TOUCH_PIN = 2;
 int before = LOW;
@@ -24,12 +25,12 @@ export default {
   name: 'touch-uno',
   group: 'sensors',
   title: { en: 'Arduino UNO: touch sensor', es: 'Arduino UNO: sensor táctil' },
-  teaches: { en: 'The TTP223 gives a clean digital level that follows the finger, 60 to 220 ms late; the program prints each change; on the UNO\'s 3.3 V its output is 3.3 V, enough for a HIGH', es: 'El TTP223 da un nivel digital limpio que sigue al dedo, con 60 a 220 ms de retraso; el programa imprime cada cambio; con los 3,3 V del UNO su salida es de 3,3 V, suficiente para un HIGH' },
+  teaches: { en: 'The TTP223 gives a clean digital level that follows the finger, 60 to 220 ms late; the program prints each change; powered from the UNO\'s 5 V its output is 5 V, well above the 3 V the UNO needs for a HIGH', es: 'El TTP223 da un nivel digital limpio que sigue al dedo, con 60 a 220 ms de retraso; el programa imprime cada cambio; alimentado con los 5 V del UNO su salida es de 5 V, muy por encima de los 3 V que el UNO necesita para un HIGH' },
   parts: [
     { id: 'U1', part: 'UNO', program: TOUCH },
     { id: 'U2', type: 'touch-sensor', mode: 'momentary' },
   ],
-  nets: [['U1.3V3', 'U2.VCC'], ['U2.SIG', 'U1.D2'], ['U2.GND', 'U1.GND']],
+  nets: [['U1.5V', 'U2.VCC'], ['U2.SIG', 'U1.D2'], ['U2.GND', 'U1.GND']],
   environment: { touch: false },
   page: { controls: [{ environment: 'touch' }] },
   values: {
