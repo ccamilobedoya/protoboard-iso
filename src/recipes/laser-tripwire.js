@@ -24,6 +24,8 @@ export default {
     { id: 'D1', type: 'led', color: 'red' },
   ],
   nets: [['T+', 'LS1.S', 'U1.VCC', 'R2.1'], ['LS1.−', 'U1.GND', 'Q1.E', 'T-'], ['U1.DO', 'R1.1'], ['R1.2', 'Q1.B'], ['R2.2', 'D1.anode'], ['D1.cathode', 'Q1.C']],
+  // Room between the groups: without it a standing module or the LED hides a resistor in one of the two views.
+  clearance: 5,
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
   environment: { light: 50, beam: false },
   page: { controls: [{ environment: 'beam', label: { en: 'Cut the beam', es: 'Cortar el haz' } }, { environment: 'light' }, { part: 'U1', field: 'threshold' }] },

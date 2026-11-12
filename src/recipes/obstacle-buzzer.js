@@ -14,6 +14,8 @@ export default {
     { id: 'BZ1', type: 'buzzer', part: 'TMB12A05' },
   ],
   nets: [['T+', 'U1.VCC', 'Q1.E'], ['U1.GND', 'T-'], ['U1.OUT', 'R1.1'], ['R1.2', 'Q1.B'], ['Q1.C', 'BZ1.1'], ['BZ1.2', 'T-']],
+  // Room between the groups: without it a standing module or the LED hides a resistor in one of the two views.
+  clearance: 3,
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
   environment: { distance: { value: 30, range: [2, 40] }, reflectance: 90 },
   page: { controls: [{ environment: 'distance', min: 2, max: 40 }, { part: 'U1', field: 'threshold' }] },

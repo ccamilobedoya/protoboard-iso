@@ -14,7 +14,7 @@ The code: `src/parts/sensors.js` (`SENSOR_MODULES`: the table of the part number
 formulas), `src/parts/types/sensor-modules.js` (the type), `src/parts/packages/sensor-module.js`
 (the drawing), `src/sim/devices/sensor-module.js` (the simulation). Recipes: `rain-alarm`,
 `soil-led`, `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`,
-`clap-switch`, `sound-level-led` ([recipes.md](recipes.md)); timelines `examples/tours/soil-led.json`,
+`clap-switch` ([recipes.md](recipes.md)); the circuit `examples/sound-level-led.json` (a recipe until the KY-037's polarity could not be confirmed); timelines `examples/tours/soil-led.json`,
 `obstacle-buzzer.json` and `clap-switch.json`. `rain-alarm` and `obstacle-buzzer` switch an active buzzer
 with a PNP, not an NPN: DO goes low when the module detects, and an NPN driven by it would sound while
 the comb is dry (the buzzer takes about 30 mA at 5 V, more than the LM393's 20 mA output
@@ -55,7 +55,7 @@ VCC ─┬─ 1 kΩ ─ power LED ─ GND
 | `LDR-LM393` | DO GND VCC | `light` (`light`, lx) | GL5528 photoresistor | light (from 17.6 lx) |
 | `SLOT-IR` | A0 D0 GND VCC | `beam` (`beam`, true = blocked) | IR LED and phototransistor across a slot | the beam reaches it |
 | `TCRT5000-M` | A0 D0 GND VCC | `distance`, `reflectance` (both) | IR LED and phototransistor, reflective | white within about 1.5 cm |
-| `KY-024` | DO + G AO | `field` (`field`, G) | A3144 Hall switch, on at 160 G, off at 105 G | a south pole near it |
+| `KY-024` | DO + G AO | `field` (`field`, G) | A3144 Hall switch as the kit models it (the real board is reported to carry a linear 49E: not checked), on at 160 G, off at 105 G | a south pole near it |
 | `SW-420-M` | DO GND VCC | `vibration` (`vibration`) | spring contact, 10 Ω closed | at rest (high while shaken) |
 | `FC-51` | OUT GND VCC | `distance`, `reflectance` (both) | IR LED and receiver side by side | an obstacle (9 cm for white) |
 | `KY-037` | DO + G AO | `sound` (`sound`, dB SPL) | electret capsule, its bias at VCC/2 | a loud sound (above about 98 dB) |
@@ -79,7 +79,7 @@ Each element in short:
   nothing past 3 cm); the FC-51 `reflectance` · 0.5 mA / (1 + (d / 10 cm)²). Saturated, AO settles
   near 0.2 V. Neither models ambient light (the infrared that daylight adds to the receiver): they
   sense only `distance` and `reflectance`, a choice made for this first version.
-- **Hall**: the A3144 is a latch: on at 160 G, off at 105 G, kept between (it lives in the element's
+- **Hall**: the kit models the `KY-024` with an A3144, a latch (reseller and maker pages report that the real KY-024 board carries a linear 49E with the comparator on top; the part number here is the module, the chip inside is the model's choice, and the bench check is on the roadmap). The A3144 is a latch: on at 160 G, off at 105 G, kept between (it lives in the element's
   `closed`, which the engine carries when a slider moves). AO jumps between about 0.09 V and VCC. The
   chip is specified from 4.5 V: on 3.3 V it works but says `SIM_MODULE_LOW_SUPPLY`.
 - **Sound (KY-037)**: an electret capsule with a JFET and a 10 kΩ bias, so AO sits at **VCC/2** (2.5 V at
@@ -89,7 +89,7 @@ Each element in short:
   gap between AO and Vref, `Vpk > Vbias − Vref` (a source of the peak between the trimmer and the
   comparator does it; there is no waveform, no hold time). The trimmer's default puts Vref 15 mV under the
   bias (`threshold` 0.497 at 5 V), so DO falls above about 98.5 dB (on 3.3 V the same share of VCC leaves the gap at about 10 mV, so it falls from about 95 dB: the trimmer's setting is a share of the supply, the bias too, but the signal is not); the `threshold` slider moves it in
-  steps of 0.05 %. **The real board needs its trimmer set within millivolts of the bias** (a 25-turn
+  steps of 0.05 %. **Which way DO moves on a real KY-037 is not confirmed**: makers' sheets say it rises with the sound, tutorials with code say it falls, and the schematic could not be read; the model follows the other LM393 boards (DO falls, the LED on), and the bench check is on the roadmap. The `clap-switch` sketch does not depend on it. **The real board needs its trimmer set within millivolts of the bias** (a 25-turn
   trimmer, turned until the DO LED just goes out in a quiet room): a few millivolts too far and it never
   triggers or is always low, which is the experience this model keeps. Up close, the element is the
   capsule: a charged diaphragm in front of a plate. It senses the environment's `sound`.

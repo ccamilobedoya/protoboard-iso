@@ -23,7 +23,7 @@ export default {
     { id: 'D1', type: 'led', color: 'red' },
   ],
   nets: [['B+', 'T+', 'RV1.1', 'LDR1.1', 'U1.VCC', 'R2.1', 'R3.1'], ['B-', 'T-', 'RV1.3', 'R1.2', 'U1.GND'], ['RV1.W', 'U1.IN1-'], ['LDR1.2', 'R1.1', 'U1.IN1+'], ['R2.2', 'U1.OUT1', 'D1.cathode'], ['R3.2', 'D1.anode']],
-  clearance: 3,
+  clearance: 5,
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
   values: {
     RV1: { field: 'position', min: 0, max: 1, role: { en: 'potentiometer (the reference: where the switch happens)', es: 'potenciómetro (la referencia: dónde ocurre la conmutación)' } },

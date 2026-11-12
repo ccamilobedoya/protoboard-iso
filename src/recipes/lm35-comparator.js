@@ -18,7 +18,7 @@ export default {
     { id: 'D1', type: 'led', color: 'red' },
   ],
   nets: [['B+', 'T+', 'R1.1', 'U2.+VS', 'U1.VCC', 'R3.1'], ['B-', 'T-', 'R2.2', 'U2.GND', 'U1.GND', 'D1.cathode'], ['R1.2', 'R2.1', 'U1.IN1-'], ['U2.VOUT', 'U1.IN1+'], ['R3.2', 'U1.OUT1', 'D1.anode']],
-  clearance: 3,
+  clearance: 5,
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
   values: {
     R1: { field: 'value', role: { en: 'reference divider, top', es: 'divisor de referencia, arriba' } },

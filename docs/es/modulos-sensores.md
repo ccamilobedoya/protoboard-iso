@@ -14,8 +14,8 @@ dice qué elemento lleva.
 El código: `src/parts/sensors.js` (`SENSOR_MODULES`: la tabla de los números de parte y las fórmulas
 de los elementos), `src/parts/types/sensor-modules.js` (el tipo), `src/parts/packages/sensor-module.js`
 (el dibujo), `src/sim/devices/sensor-module.js` (la simulación). Recetas: `rain-alarm`, `soil-led`,
-`light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`, `clap-switch`,
-`sound-level-led` ([recetas.md](recetas.md)); líneas de tiempo `examples/tours/soil-led.json`,
+`light-switch-module`, `line-follower-uno`, `obstacle-buzzer`, `hall-counter-uno`, `clap-switch`
+([recetas.md](recetas.md)); el circuito `examples/sound-level-led.json` (fue una receta hasta que no se pudo confirmar la polaridad del KY-037); líneas de tiempo `examples/tours/soil-led.json`,
 `obstacle-buzzer.json` y `clap-switch.json`. `rain-alarm` y `obstacle-buzzer` activan un zumbador activo
 con un PNP, no con un NPN: DO baja cuando el módulo detecta, y un NPN manejado por él sonaría con el
 peine seco (el zumbador toma unos 30 mA a 5 V, más de lo que aguanta la salida de
@@ -57,7 +57,7 @@ VCC ─┬─ 1 kΩ ─ LED de encendido ─ GND
 | `LDR-LM393` | DO GND VCC | `light` (`light`, lx) | fotorresistencia GL5528 | luz (desde 17,6 lx) |
 | `SLOT-IR` | A0 D0 GND VCC | `beam` (`beam`, true = cortado) | LED IR y fototransistor a través de una ranura | le llega el haz |
 | `TCRT5000-M` | A0 D0 GND VCC | `distance`, `reflectance` (los dos) | LED IR y fototransistor, por reflexión | blanco a menos de unos 1,5 cm |
-| `KY-024` | DO + G AO | `field` (`field`, G) | interruptor Hall A3144, enciende a 160 G, apaga a 105 G | un polo sur cerca |
+| `KY-024` | DO + G AO | `field` (`field`, G) | interruptor Hall A3144 como lo modela el kit (de la placa real se reporta que lleva un 49E lineal: sin comprobar), enciende a 160 G, apaga a 105 G | un polo sur cerca |
 | `SW-420-M` | DO GND VCC | `vibration` (`vibration`) | contacto de resorte, 10 Ω cerrado | en reposo (alto mientras vibra) |
 | `FC-51` | OUT GND VCC | `distance`, `reflectance` (los dos) | LED IR y receptor lado a lado | un obstáculo (9 cm para el blanco) |
 | `KY-037` | DO + G AO | `sound` (`sound`, dB SPL) | cápsula de electreto, su polarización en VCC/2 | un sonido fuerte (más de unos 98 dB) |
@@ -81,7 +81,7 @@ Cada elemento, en corto:
   más allá de 3 cm); el FC-51 `reflectance` · 0,5 mA / (1 + (d / 10 cm)²). Saturado, AO queda cerca de
   0,2 V. Ninguno de los dos modela la luz ambiente (el infrarrojo que la luz del día suma al receptor):
   solo sienten `distance` y `reflectance`, una decisión de esta primera versión.
-- **Hall**: el A3144 es un enclavamiento: enciende a 160 G, apaga a 105 G y entre los dos se queda como
+- **Hall**: el kit modela el `KY-024` con un A3144, un enclavamiento (páginas de vendedores y aficionados reportan que la placa KY-024 real lleva un 49E lineal con el comparador encima; el número de parte aquí es el módulo, el chip de dentro es la elección del modelo, y la comprobación en el banco está en la hoja de ruta). El A3144 es un enclavamiento: enciende a 160 G, apaga a 105 G y entre los dos se queda como
   está (vive en el `closed` del elemento, que el motor conserva cuando se mueve un deslizador). AO salta
   entre unos 0,09 V y VCC. El chip está especificado desde 4,5 V: con 3,3 V funciona pero dice
   `SIM_MODULE_LOW_SUPPLY`.
@@ -93,7 +93,7 @@ Cada elemento, en corto:
   `Vpk > Vbias − Vref` (lo hace una fuente del pico entre el trimmer y el comparador; no hay forma de
   onda ni tiempo de retención). El trimmer parte con Vref 15 mV por debajo de la polarización (`threshold`
   0,497 a 5 V), así que DO baja por encima de unos 98,5 dB (con 3,3 V la misma fracción de VCC deja la distancia en unos 10 mV, así que baja desde unos 95 dB: el ajuste del trimmer y la polarización son una fracción de la alimentación, pero la señal no); el deslizador de `threshold` lo mueve de a
-  0,05 %. **La placa real necesita su trimmer ajustado a milivoltios de la polarización** (un trimmer de
+  0,05 %. **Hacia dónde se mueve DO en un KY-037 real no está confirmado**: las hojas de los fabricantes dicen que sube con el sonido, los tutoriales con código dicen que baja, y no se pudo leer el esquemático; el modelo sigue a las otras placas LM393 (DO baja, el LED se enciende) y la medición en el banco está en la hoja de ruta. El programa de `clap-switch` no depende de eso. **La placa real necesita su trimmer ajustado a milivoltios de la polarización** (un trimmer de
   25 vueltas, girado hasta que el LED de DO apenas se apaga en una sala silenciosa): unos milivoltios de
   más y nunca dispara o queda siempre en bajo, que es la experiencia que este modelo conserva. De cerca,
   el elemento es la cápsula: un diafragma cargado frente a una placa. Siente el `sound` del ambiente.

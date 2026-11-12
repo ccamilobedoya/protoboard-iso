@@ -16,6 +16,8 @@ export default {
     { id: 'D1', type: 'led', color: 'red' },
   ],
   nets: [['T+', 'U1.VCC'], ['U1.SIG', 'R1.1'], ['R1.2', 'D1.anode'], ['D1.cathode', 'U1.GND', 'T-']],
+  // Room between the groups: without it a standing module or the LED hides a resistor in one of the two views.
+  clearance: 3,
   supplies: [{ id: 'V1', kind: 'bench', voltage: 3.3, positive: 'T+', negative: 'T-' }],
   environment: { touch: false },
   page: { controls: [{ environment: 'touch' }] },
