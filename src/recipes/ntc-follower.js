@@ -10,7 +10,7 @@ export default {
   name: 'ntc-follower',
   group: 'sensors',
   title: { en: 'NTC thermistor divider with a follower', es: 'Divisor con termistor NTC y seguidor' },
-  teaches: { en: 'A thermistor divider turns temperature into a voltage; the follower copies it to a load without loading the divider, as long as the output can follow: an LM358 stops about 1.5 V under its supply (about 65 °C at 9 V, which is where the temperature control ends), and the current through the thermistor warms it a little', es: 'Un divisor con termistor convierte la temperatura en un voltaje; el seguidor lo copia a una carga sin cargar el divisor, mientras la salida pueda seguirlo: un LM358 se detiene a unos 1,5 V de su alimentación (unos 65 °C con 9 V, donde termina el control de temperatura), y la corriente por el termistor lo calienta un poco' },
+  teaches: { en: 'A thermistor divider turns temperature into a voltage; the follower copies it to a load without loading the divider, as long as the output can follow: an LM358 stops about 1.5 V under its supply, about 65 °C at 9 V.', es: 'Un divisor con termistor convierte la temperatura en un voltaje; el seguidor lo copia a una carga sin cargar el divisor, mientras la salida pueda seguirlo: un LM358 se detiene a unos 1,5 V de su alimentación, unos 65 °C con 9 V.' },
   environment: { temperature: 25 },
   page: { controls: [{ environment: 'temperature', min: -20, max: 65 }] },
   parts: [

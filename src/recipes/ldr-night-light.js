@@ -5,12 +5,13 @@
 // starts to conduct when the photoresistor falls to about 2 kΩ) and about 0.1 mA at 300 lx (model values;
 // a real photoresistor's resistance varies, which moves these light levels by a factor of about 0.6 to 1.5).
 // The supply goes from 3 to 9 V: at 9 V the LED takes about 13 mA and R3 about 90 mW; the switching light
-// level also rises with the supply. The light is the environment's, not a part's value.
+// level also rises with the supply (the LED at half its dark current: about 95 lx on 3 V, 190 lx on 5 V and
+// 375 lx on 9 V in the model). The light is the environment's, not a part's value.
 export default {
   name: 'ldr-night-light',
   group: 'sensors',
   title: { en: 'Night light with a photoresistor', es: 'Luz nocturna con fotorresistencia' },
-  teaches: { en: 'In the dark the photoresistor\'s resistance is high, the divider\'s voltage rises and the transistor switches the LED on; with light it falls and the LED goes out (it switches at about 95 lx on 3 V, 190 lx on 5 V and 375 lx on 9 V in the model, the light level following the supply; a real photoresistor moves that by a factor of 0.6 to 1.5)', es: 'A oscuras la resistencia de la fotorresistencia es alta, el voltaje del divisor sube y el transistor enciende el LED; con luz baja y el LED se apaga (conmuta a unos 95 lx con 3 V, 190 lx con 5 V y 375 lx con 9 V en el modelo, el nivel de luz sigue a la fuente; una fotorresistencia real lo mueve en un factor de 0,6 a 1,5)' },
+  teaches: { en: 'In the dark the photoresistor\'s resistance is high, the divider\'s voltage rises and the transistor switches the LED on; with light it falls and the LED goes out. It switches at about 95 lx on 3 V, 190 lx on 5 V and 375 lx on 9 V in the model.', es: 'A oscuras la resistencia de la fotorresistencia es alta, el voltaje del divisor sube y el transistor enciende el LED; con luz baja y el LED se apaga. Conmuta a unos 95 lx con 3 V, 190 lx con 5 V y 375 lx con 9 V en el modelo.' },
   environment: { light: 300 },
   page: { controls: [{ environment: 'light' }] },
   parts: [
