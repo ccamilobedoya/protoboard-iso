@@ -312,7 +312,7 @@ test('clap-switch: the sketch takes the rest level from many readings and has no
 test('recipes with a wider clearance lay out, are APPROVED, and hide no part in both views (laser-uno stays at 2: 3, 4 and 5 fail on LS1)', async () => {
   const { review } = await import('../src/review.js');
   const { inspectCircuit } = await import('../src/index.js');
-  const wanted = { 'laser-tripwire': 5, 'pir-lamp': 3, 'touch-toggle-led': 3, 'light-switch-module': 3, 'obstacle-buzzer': 3, 'ldr-comparator': 5, 'lm35-comparator': 5, 'laser-uno': 2 };
+  const wanted = { 'laser-tripwire': 5, 'pir-lamp': 3, 'touch-toggle-led': 4, 'light-switch-module': 3, 'obstacle-buzzer': 3, 'ldr-comparator': 5, 'lm35-comparator': 5, 'laser-uno': 2 };
   for (const [name, clearance] of Object.entries(wanted)) {
     assert.equal(expandRecipe(name).spec.clearance, clearance, name);
     const r = autoLayout(expandRecipe(name).spec);

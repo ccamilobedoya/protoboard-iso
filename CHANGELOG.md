@@ -9,6 +9,16 @@ detail.
 
 ## [Unreleased]
 
+### Changed
+
+- Recipes: the paragraph each recipe's page opens with (`teaches`) is at most 280 characters for `encoder-uno`, `clap-switch`, `uno-bmp280-altitude`, `encoder-dimmer-uno`, `ldr-night-light`, `ntc-follower` and `obstacle-buzzer` (it was 300 to 650), so the drawing stays in the first screen of a phone; a test caps every recipe at 340. The caveats that were there (the encoder filter at a reversal, the ATmega328P's I2C high level, the KY-037's polarity, the night light's switching levels) are in each recipe's header comment and in `docs/en/recipes.md`.
+- The thermistor's label reads "TH1 · 10 kΩ", not "TH1 · 10 kΩ NTC": the part's name already says NTC.
+
+### Fixed
+
+- Simulator: the TTP223 module's supply is marked "near its limit" from 95 % of its 5.5 V (5.225 V), not from 80 %, so the nominal 5 V of a UNO shows no mark and no note; a stress can carry its own start for "near" (`nearAt`). Over 5.5 V is still exceeded.
+- Recipe `touch-toggle-led`: more `clearance`, so the leader line of R1's label no longer passes over a jumper (a mark beside "R1 · 470 Ω" in the page).
+
 ## [0.11.0] - 2026-11-12
 
 More sensors: ultrasonic distance and `pulseIn`, Hall, voltage and sound modules, climate sensors read through their libraries, a rotary encoder, emitters and a laser; and the sensor recipes checked part by part against their limits.
