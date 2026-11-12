@@ -12485,7 +12485,8 @@
        "max": 5.5,
        "unit": "V",
        "ratio": 0.5999999454545205,
-       "level": "fine"
+       "level": "fine",
+       "nearAt": 0.95
       },
       {
        "quantity": "reverse",

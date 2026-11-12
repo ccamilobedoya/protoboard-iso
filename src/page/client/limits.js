@@ -74,7 +74,7 @@ export function setupLimits(page, { engine, t, f, now = () => (typeof performanc
     const now = new Set();
     for (const [id, items] of Object.entries(stresses)) {
       for (const s of items) {
-        const level = stressLevel(s.ratio);
+        const level = stressLevel(s.ratio, s.nearAt);
         if (level === 'near') now.add(id);
         if (level !== 'exceeded') continue;
         const key = keyOf(id, s);

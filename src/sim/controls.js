@@ -97,9 +97,10 @@ export function snapE24(v) {
 }
 
 // Stress levels (docs/en/live-simulation.md): fine under 80 %, near the limit up to 100 %,
-// exceeded above.
+// exceeded above. A stress may carry its own start for "near" (`nearAt`, in devices/shared.js) when
+// its limit is the top of a working range, where running at the nominal value is normal use.
 export const NEAR = 0.8;
-export function stressLevel(ratio) {
-  if (!(ratio > NEAR)) return 'fine';
+export function stressLevel(ratio, nearAt = NEAR) {
+  if (!(ratio > nearAt)) return 'fine';
   return ratio > 1 ? 'exceeded' : 'near';
 }

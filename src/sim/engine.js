@@ -798,7 +798,7 @@ function dc(prep) {
     const part = reading.parts[p.id];
     if (part.floating) continue;
     const list = partStresses(p, part).filter((s) => !s.note);
-    if (list.length) part.stress = list.map(({ quantity, value, max, unit, ratio, pin }) => ({ quantity, value, max, unit, ratio, level: stressLevel(ratio), ...(pin && { pin }) }));
+    if (list.length) part.stress = list.map(({ quantity, value, max, unit, ratio, pin, nearAt }) => ({ quantity, value, max, unit, ratio, level: stressLevel(ratio, nearAt), ...(pin && { pin }), ...(nearAt && { nearAt }) }));
   }
   return { analysis: 'dc', model: true, ok: true, iterations: r.iterations, ground: prep.ground, ...reading, issues: [...prep.issues, ...limitIssues(prep, reading)] };
 }

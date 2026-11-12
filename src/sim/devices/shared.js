@@ -12,8 +12,9 @@ export const positiveNumbers = (o) => Object.fromEntries(Object.entries(o && typ
 // voltage). ratio > 1 means exceeded: a warning `code` with { part, <param>: value, max }.
 // The page will show the ratio as levels (fine, near the limit, exceeded). `pin`: the one chip of
 // several in a package it is about (an RGB LED's R, a display's segment a), named as "D1.R".
-export function stress(code, quantity, value, max, unit, { param = quantity, reportMax = true, pin } = {}) {
-  return { code, quantity, value, max, unit, ratio: max > 0 ? value / max : 0, param, reportMax, ...(pin && { pin }) };
+// `nearAt`: where "near the limit" starts, when it is not the usual 80 % (controls.js).
+export function stress(code, quantity, value, max, unit, { param = quantity, reportMax = true, pin, nearAt } = {}) {
+  return { code, quantity, value, max, unit, ratio: max > 0 ? value / max : 0, param, reportMax, ...(pin && { pin }), ...(nearAt && { nearAt }) };
 }
 // Something to say that is not a limit (a buzzer on DC, a regulator out of regulation).
 export const note = (severity, code, params) => ({ note: issue(severity, code, params) });

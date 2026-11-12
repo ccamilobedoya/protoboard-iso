@@ -436,8 +436,7 @@ for (const name of RECIPE_NAMES) {
     const s = simulate(r.circuit);
     assert.ok(s.ok, `${name}: ${JSON.stringify(s.issues)}`);
     const over = Object.entries(s.parts).flatMap(([id, p]) => (p.stress ?? []).filter((x) => x.level !== 'fine').map((x) => `${id} ${x.quantity} ${x.level}`));
-    // touch-uno runs the TTP223 from 5 V on purpose: the model calls that supply "near" (91 % of 5.5 V), nothing more.
-    assert.deepEqual(name === 'touch-uno' ? over.filter((x) => x !== 'U2 voltage near') : over, [], name);
+    assert.deepEqual(over, [], name);
   });
 
   test(`C9: recipe ${name} carries an environment and a controls panel for its input`, () => {

@@ -107,6 +107,8 @@ the tests green, this page and the roadmap up to date.
   | near the limit | 80–100 % | amber outline |
   | exceeded | > 100 % | pulsing red outline, ⚠ badge, a warning with value and limit ("LED1: 38 mA, max 30 mA") |
 
+  A limit that is the top of a working range may start "near" later (the TTP223's supply, at 95 %), so a nominal supply is not marked.
+
   Once exceeded, the part stays marked "exceeded" until the simulation is reset, even if a slider
   goes back or the peak was brief. A warnings panel lists them; tapping one focuses the part.
 

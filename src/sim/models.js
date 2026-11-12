@@ -324,7 +324,9 @@ export const PIR = { maxReverse: 0.3, minSupply: 4.5, maxSupply: 20, logic: 3.3,
 //                        limits); maxCurrent 10 mA [A] is where the kit warns
 //   quiescent            3 µA in low-power mode and 7 µA in fast mode (maximum values), as a
 //                        resistor at 3.3 V
-export const TOUCH = { maxReverse: 0.3, minSupply: 2, maxSupply: 5.5, response: 0.22, fastResponse: 0.06, settle: 0.5, highResistance: 150, lowResistance: 75, sourceSpec: 4e-3, sinkSpec: 8e-3, maxCurrent: 10e-3, quiescent: 3e-6, fastQuiescent: 7e-6, quiescentAt: 3.3 };
+//   nearSupply 0.95      "near the limit" for the supply starts at 95 % of maxSupply (5.225 V), not 80 %:
+//                        maxSupply is the top of the working range, so a nominal 5 V is normal use
+export const TOUCH = { maxReverse: 0.3, minSupply: 2, maxSupply: 5.5, nearSupply: 0.95, response: 0.22, fastResponse: 0.06, settle: 0.5, highResistance: 150, lowResistance: 75, sourceSpec: 4e-3, sinkSpec: 8e-3, maxCurrent: 10e-3, quiescent: 3e-6, fastQuiescent: 7e-6, quiescentAt: 3.3 };
 
 // Rotary encoder EC11 on the KY-040 module (docs/en/rotary-encoder.md; ALPS EC11 datasheets, the module
 // manuals):

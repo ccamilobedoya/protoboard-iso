@@ -69,7 +69,7 @@ milliampere from `SIG`).
 - A change of `touch` is registered once it has lasted the response time; a shorter touch is not
   registered at all. A toggle flips when the touch is registered, not when it is released.
 - `SIG` over 10 mA is `SIM_OVER_CURRENT`; between the 4 mA sourced or 8 mA sunk its levels are
-  guaranteed at and 10 mA, `SIM_TOUCH_OUTPUT_SPEC` (a note). Over 5.5 V is `SIM_IC_SUPPLY` (the 5.5 V is the top of the working range, 2.0 to 5.5 V, and in the TTP223-BA6 sheet copy found, a preliminary one, it is also the absolute maximum, so a 5 V supply, 91 % of it, shows as "near" on the card: the warning is right, it is not a mistake in the part's data), under 2 V
+  guaranteed at and 10 mA, `SIM_TOUCH_OUTPUT_SPEC` (a note). Over 5.5 V is `SIM_IC_SUPPLY` (the 5.5 V is the top of the working range, 2.0 to 5.5 V, and in the TTP223-BA6 sheet copy found, a preliminary one, it is also the absolute maximum; "near" starts at 95 % of it, 5.225 V, not at the usual 80 %, so the nominal 5 V of a UNO, 91 %, shows nothing), under 2 V
   `SIM_MODULE_LOW_SUPPLY` (the code the PIR uses too). *Confirmed 2026-11-09:* the 10 mA of the stress and the
   4 mA / 8 mA of the note are the kit's choice from the datasheet's test points, not limits the sheet
   gives.

@@ -6,7 +6,7 @@ import { autoLayout, specFromCircuit } from '../src/layout.js';
 import { simulate } from '../src/sim/index.js';
 import { resolvePart } from '../src/parts/resolve.js';
 import { catalogEntry, compactCatalog } from '../src/node/catalog.js';
-import { formatIssue } from '../src/index.js';
+import { formatIssue, buildCircuit, labelText } from '../src/index.js';
 
 const why = (r) => [...r.problems, ...r.review.blocking].map((b) => formatIssue(b, 'en')).join('\n') + JSON.stringify(r.check);
 const layoutOf = (name, values) => {
@@ -52,10 +52,7 @@ test('recipes with a source simulate without errors and without stressing a part
   for (const name of Object.keys(RECIPES)) {
     const s = simulate(layoutOf(name).circuit);
     assert.ok(s.ok, `${name}: ${JSON.stringify(s.issues)}`);
-    // touch-uno powers the TTP223 from 5 V on purpose (its output then clears the UNO's VIH): the model says
-    // "near" for a supply at 91 % of the module's 5.5 V, and only that.
-    const allowed = name === 'touch-uno' ? ['U2 voltage near'] : [];
-    const over = Object.entries(s.parts).flatMap(([id, p]) => (p.stress ?? []).filter((x) => x.level !== 'fine').map((x) => `${id} ${x.quantity} ${x.level}`)).filter((x) => !allowed.includes(x));
+    const over = Object.entries(s.parts).flatMap(([id, p]) => (p.stress ?? []).filter((x) => x.level !== 'fine').map((x) => `${id} ${x.quantity} ${x.level}`));
     assert.deepEqual(over, [], name);
   }
 });
@@ -115,4 +112,20 @@ test('recipes: every one documented in English and Spanish', () => {
     const doc = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
     for (const name of Object.keys(RECIPES)) assert.ok(doc.includes(`\`${name}\``), `${file}: ${name}`);
   }
+});
+
+// The entry paragraph of a recipe's page sits under the title: a few sentences, so the drawing stays in
+// the first screen of a phone (the median is about 125 characters).
+test('recipes: the text each page opens with (`teaches`, in both languages) is at most 340 characters', () => {
+  for (const [name, recipe] of Object.entries(RECIPES)) {
+    for (const lang of ['en', 'es']) assert.ok(recipe.teaches[lang].length <= 340, `${name} ${lang}: ${recipe.teaches[lang].length} characters`);
+  }
+});
+
+test('recipes: the thermistor\'s label says its value once, not its kind (the part\'s name already does)', () => {
+  const { spec } = expandRecipe('ntc-follower');
+  const built = buildCircuit(autoLayout(spec).circuit);
+  const th = built.parts.find((p) => p.id === 'TH1');
+  assert.equal(labelText(th, 'en'), 'TH1 · 10 kΩ');
+  assert.equal(labelText(th, 'es'), 'TH1 · 10 kΩ');
 });
