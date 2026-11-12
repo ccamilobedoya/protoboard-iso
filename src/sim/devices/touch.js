@@ -173,7 +173,7 @@ export const touch = {
   },
   limits(entry, r) {
     const out = [
-      stress('SIM_IC_SUPPLY', 'voltage', r.vcc, TOUCH.maxSupply, 'V'),
+      stress('SIM_IC_SUPPLY', 'voltage', r.vcc, TOUCH.maxSupply, 'V', { nearAt: TOUCH.nearSupply }),
       stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, TOUCH.maxReverse, 'V', { param: 'voltage' }),
       stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), TOUCH.maxCurrent, 'A'),
     ];

@@ -45,7 +45,7 @@ test('controls: the slider maps (log, E24, linear with step) go and come back', 
   const lin = { min: 0, max: 30, scale: 'linear', step: 0.1 };
   assert.equal(fromSlider(lin, 500), 15);
   assert.ok(close(fromSlider(lin, 123), 3.7, 1e-12));
-  assert.deepEqual([0.5, 0.8, 0.81, 1, 1.01].map(stressLevel), ['fine', 'fine', 'near', 'near', 'exceeded']);
+  assert.deepEqual([0.5, 0.8, 0.81, 1, 1.01].map((ratio) => stressLevel(ratio)), ['fine', 'fine', 'near', 'near', 'exceeded']);
 });
 
 test('controls: every adjustable part and supply lists its controls', () => {

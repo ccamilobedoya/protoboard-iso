@@ -9,6 +9,7 @@ import { autoLayout } from '../src/layout.js';
 import { expandRecipe, RECIPES } from '../src/recipes/index.js';
 import { compile, createEngine, simulate } from '../src/sim/index.js';
 import { paceOf } from '../src/sim/pace.js';
+import { stressLevel } from '../src/sim/controls.js';
 import { pirAdvance, WARMUP, IDLE, HIGH, BLOCK, OFF } from '../src/sim/devices/pir.js';
 import { touchAdvance, SETTLING, HELD, RUN } from '../src/sim/devices/touch.js';
 import { checkCircuit, inspectCircuit, renderCircuit, buildCircuit, formatIssue } from '../src/index.js';
@@ -268,6 +269,35 @@ test('touch: SIG is as high as the supply (check 44), active low swaps the level
   near(low[1.5], 0, 0.05, 'low while touched');
   const six = simulate(autoLayout({ parts: [{ id: 'U1', type: 'touch-sensor' }], nets: [['T+', 'U1.VCC'], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 6, positive: 'T+', negative: 'T-' }] }).circuit);
   assert.ok(six.issues.some((i) => i.code === 'SIM_IC_SUPPLY'));
+});
+
+test('touch: the nominal 5 V supply is not "near" the 5.5 V top of its range; "near" starts at 95 % of it, and over 5.5 V is still exceeded', () => {
+  const level = (volts) => {
+    const circuit = autoLayout({ parts: [{ id: 'U1', type: 'touch-sensor' }], nets: [['T+', 'U1.VCC'], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: volts, positive: 'T+', negative: 'T-' }] }).circuit;
+    return simulate(circuit).parts.U1.stress.find((x) => x.quantity === 'voltage').level;
+  };
+  assert.equal(level(3.3), 'fine');
+  assert.equal(level(5), 'fine');
+  assert.equal(level(5.2), 'fine');
+  assert.equal(level(5.3), 'near');
+  assert.equal(level(5.6), 'exceeded');
+});
+
+test('touch-toggle-led: no label leader passes over another part in either view', () => {
+  const circuit = autoLayout(expandRecipe('touch-toggle-led').spec).circuit;
+  for (const view of ['front', 'back']) {
+    const leaders = inspectCircuit(circuit, { view }).problems.filter((p) => p.code === 'LEADER_OVER_PART' || p.code === 'LEADER_CROSSING');
+    assert.deepEqual(leaders, [], view);
+  }
+});
+
+test('stress levels: an ordinary limit starts "near" at 80 %, a stress may name its own start', () => {
+  assert.equal(stressLevel(0.8), 'fine');
+  assert.equal(stressLevel(0.81), 'near');
+  assert.equal(stressLevel(0.91), 'near');
+  assert.equal(stressLevel(0.91, 0.95), 'fine');
+  assert.equal(stressLevel(0.96, 0.95), 'near');
+  assert.equal(stressLevel(1.01, 0.95), 'exceeded');
 });
 
 // ── what the page needs ────────────────────────────────────────────────────────────────────
