@@ -174,7 +174,6 @@
                 "hall-linear-uno",
                 "voltage-sensor-uno",
                 "clap-switch",
-                "sound-level-led",
                 "uno-dht11",
                 "esp32-bme280",
                 "uno-bmp280-altitude"
@@ -3554,7 +3553,7 @@
         },
         "delay": {
           "type": "number",
-          "minimum": 0.3,
+          "minimum": 2.5,
           "maximum": 600,
           "description": "pir-sensor: seconds OUT stays high after motion (the trimmer Tx; default 5)"
         },

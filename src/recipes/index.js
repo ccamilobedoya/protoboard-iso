@@ -65,13 +65,12 @@ import distanceAlarmUno from './distance-alarm-uno.js';
 import hallLinearUno from './hall-linear-uno.js';
 import voltageSensorUno from './voltage-sensor-uno.js';
 import clapSwitch from './clap-switch.js';
-import soundLevelLed from './sound-level-led.js';
 import unoDht11 from './uno-dht11.js';
 import esp32Bme280 from './esp32-bme280.js';
 import unoBmp280Altitude from './uno-bmp280-altitude.js';
 
 export const RECIPES = Object.fromEntries(
-  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn, ldrNightLight, ldrComparator, lm35Comparator, ntcFollower, thermistorUno, pirLamp, pirUno, touchToggleLed, touchUno, rainAlarm, soilLed, lightSwitchModule, lineFollowerUno, obstacleBuzzer, hallCounterUno, encoderUno, encoderDimmerUno, laserTripwire, laserUno, unoDistance, esp32Distance, distanceAlarmUno, hallLinearUno, voltageSensorUno, clapSwitch, soundLevelLed, unoDht11, esp32Bme280, unoBmp280Altitude].map((r) => [r.name, r]),
+  [ledResistor, divider, npnSwitch, potentiometerLed, mosfetSwitch, buttonPullup, buttonPulldown, rcSquare, astable555, regulator7805, regulatorAms1117, bridgeRectifier, zenerRegulator, esp32Led, esp32Button, opampComparator, lm393Comparator, opampFollower, opampNoninverting, opampInverting, unoBlink, unoButton, unoPotPwm, c3Blink, c3PotPwm, unoRgbLed, unoSevenSegment, slideSwitchLeds, tiltAlarm, lm35Uno, relayNpn, motorNpn, ldrNightLight, ldrComparator, lm35Comparator, ntcFollower, thermistorUno, pirLamp, pirUno, touchToggleLed, touchUno, rainAlarm, soilLed, lightSwitchModule, lineFollowerUno, obstacleBuzzer, hallCounterUno, encoderUno, encoderDimmerUno, laserTripwire, laserUno, unoDistance, esp32Distance, distanceAlarmUno, hallLinearUno, voltageSensorUno, clapSwitch, unoDht11, esp32Bme280, unoBmp280Altitude].map((r) => [r.name, r]),
 );
 
 // The groups of recipes (one `group` word on each recipe module), in the order the compact catalog

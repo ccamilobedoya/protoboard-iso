@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "title": {
+    "en": "Sound level LED with a KY-037 module",
+    "es": "LED de nivel de sonido con un módulo KY-037"
+  },
+  "board": "auto",
+  "clearance": 1,
+  "description": {
+    "en": "The sound-level-led circuit as laid out (it was a recipe until the polarity of the KY-037's DO could not be confirmed): a KY-037 sound module whose DO sinks the current of an LED through 470 ohm while the sound is loud. In the model DO falls with the sound; whether the real board does is not confirmed, so the circuit is kept here and not offered as a recipe.",
+    "es": "El circuito sound-level-led tal como se monta (fue una receta hasta que no se pudo confirmar la polaridad del DO del KY-037): un módulo de sonido KY-037 cuyo DO absorbe la corriente de un LED con 470 ohmios mientras el sonido es fuerte. En el modelo DO baja con el sonido; que la placa real lo haga no está confirmado, así que el circuito queda aquí y no se ofrece como receta."
+  },
+  "environment": {
+    "sound": {
+      "value": 40,
+      "range": [
+        30,
+        110
+      ]
+    }
+  },
+  "page": {
+    "controls": [
+      {
+        "environment": "sound"
+      },
+      {
+        "part": "U1",
+        "field": "threshold",
+        "min": 0.485,
+        "max": 0.5
+      }
+    ]
+  },
+  "parts": [
+    {
+      "id": "U1",
+      "type": "sensor-module",
+      "part": "KY-037",
+      "threshold": 0.497,
+      "pins": [
+        "g2",
+        "g3",
+        "g4",
+        "g5"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "red",
+      "pins": [
+        "T+10",
+        "j10"
+      ]
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "470",
+      "pins": [
+        "i9",
+        "i2"
+      ]
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "j3",
+        "T+2"
+      ]
+    },
+    {
+      "id": "W2",
+      "type": "wire",
+      "color": "orange",
+      "pins": [
+        "h9",
+        "f10"
+      ]
+    },
+    {
+      "id": "W3",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "j4",
+        "T-4"
+      ]
+    }
+  ],
+  "supplies": [
+    {
+      "id": "V1",
+      "kind": "bench",
+      "voltage": 5,
+      "positive": "T+",
+      "negative": "T-"
+    }
+  ],
+  "spec": {
+    "nets": [
+      [
+        "T+",
+        "U1.VCC",
+        "D1.anode"
+      ],
+      [
+        "D1.cathode",
+        "R1.1"
+      ],
+      [
+        "R1.2",
+        "U1.DO"
+      ],
+      [
+        "U1.GND",
+        "T-"
+      ]
+    ],
+    "wires": [
+      "W1",
+      "W2",
+      "W3"
+    ]
+  }
+}

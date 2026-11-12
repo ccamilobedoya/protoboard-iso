@@ -305,7 +305,7 @@ test('B6 · the passive default buzzer on 5 V DC still gives SIM_BUZZER_DC', () 
 
 // ---------------------------------------------------------------- B7 · the recipes
 
-const NEW_RECIPES = ['hall-linear-uno', 'voltage-sensor-uno', 'clap-switch', 'sound-level-led'];
+const NEW_RECIPES = ['hall-linear-uno', 'voltage-sensor-uno', 'clap-switch'];
 const SWITCHED = ['rain-alarm', 'obstacle-buzzer'];
 const laid = (name) => {
   const { spec, problems } = expandRecipe(name);
