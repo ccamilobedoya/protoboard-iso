@@ -8,6 +8,8 @@
 // and it saves, in d (where the browser sees <dir>; default <dir>):
 //   <name>-desk.png 1280×800 · <name>-tablet.png 1024×700 · <name>-phone.png 390×760
 //   <name>-embed-wide.png 900×620 and <name>-embed-phone.png 390×760, the page inside the note
+//   <name>-frame-1000x560.png, -frame-1000x800.png and -frame-700x500.png: the page filling an iframe of
+//   that size, as a widget in a chat does (a wide frame, short or not)
 //   and, with --tap ID, the same after tapping that part (<name>-<size>-<ID>.png).
 // --theme fixes the page's theme (page.theme) and adds it to the names (<name>-dark-desk.png).
 // The pages are served from https://ux.local/ by the function itself (page.route), so the browser
@@ -24,6 +26,9 @@ const SIZES = [
   ['phone', 390, 760, false],
   ['embed-wide', 900, 620, true],
   ['embed-phone', 390, 760, true],
+  ['frame-1000x560', 1000, 560, 'frame'],
+  ['frame-1000x800', 1000, 800, 'frame'],
+  ['frame-700x500', 700, 500, 'frame'],
 ];
 
 const host = (name, title) => `<!doctype html>
@@ -31,6 +36,12 @@ const host = (name, title) => `<!doctype html>
 <title>${title}</title>
 <style>body{margin:0;background:#f3f3f3;font:15px/1.5 system-ui,sans-serif;color:#333}p{margin:0;padding:12px 16px}iframe{display:block;width:100%;height:460px;border:0;background:#fff}</style></head>
 <body><p>Lesson text above the circuit, as in a note.</p><iframe src="${name}.html" allowfullscreen></iframe>${'<p>Lesson text below the circuit.</p>'.repeat(12)}</body></html>
+`;
+
+// The page filling the whole viewport through an iframe, as a chat widget does.
+const frameHost = (name) => `<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{margin:0}iframe{display:block;width:100vw;height:100vh;border:0}</style></head>
+<body><iframe src="${name}.html"></iframe></body></html>
 `;
 
 // Runs in the Playwright runner: serve the files, load each page at each size, tap if asked.
@@ -49,9 +60,9 @@ async function shots(page, { pages, sizes, dir, tap }) {
   for (const name of pages) {
     for (const [size, width, height, embed] of sizes) {
       await page.setViewportSize({ width, height });
-      await page.goto(`https://ux.local/${name}${embed ? '.embed' : ''}.html`);
+      await page.goto(`https://ux.local/${name}${embed === 'frame' ? '.frame' : embed ? '.embed' : ''}.html`);
       await page.waitForTimeout(600);
-      const frame = embed ? page.frameLocator('iframe') : page;
+      const frame = embed ? page.frameLocator('iframe') : page; // (a 'frame' size and an embed both read the page inside an iframe)
       await page.screenshot({ path: `${dir}/${name}-${size}.png` });
       saved.push(`${name}-${size}.png`);
       if (tap && (await tapPart(frame, tap))) {
@@ -98,6 +109,7 @@ for (const target of args.targets) {
   const name = args.theme ? `${paths.name}-${args.theme}` : paths.name;
   writeFileSync(join(out, `${name}.html`), html);
   writeFileSync(join(out, `${name}.embed.html`), host(name, name));
+  writeFileSync(join(out, `${name}.frame.html`), frameHost(name));
   names.push(name);
 }
 const options = { pages: names, sizes: SIZES, dir: args.browserDir ?? out, tap: args.tap };

@@ -7,14 +7,15 @@
 //     .info               the card of the tapped part or strip (card.js), with its own head
 //     .side               the circuit's panels: controls, warnings, Falstad notes (live page)
 //
-// Wide screens (> 760 px): a panel on the right over the drawing; peek leaves only its head.
+// Wide screens (> 760 px, or landscape from 640 px): a panel on the right over the drawing; peek leaves only its head.
 // Narrow screens: a bottom sheet in three heights, dragged with a finger (it follows 1:1, resists
 // past its ends and lands where the release velocity throws it) or stepped by tapping its head.
 // Whenever it opens over the selected parts, the frame moves so they stay in the free area.
 
 import { panBy, partsRect } from './view.js';
 
-const NARROW = '(max-width: 760px)';
+// The same question as WIDE in page/style.js, asked the other way round.
+const NARROW = 'not ((min-width: 761px) or ((min-width: 640px) and (min-aspect-ratio: 13/10)))';
 const SUMMARY_HEIGHT = 24; // the summary line of a peeking sheet (style.js)
 
 // Where a flick lands (Apple's projection, deceleration 0.998), and the soft end past a limit.

@@ -387,3 +387,14 @@ test('taps: the open part tapped again picks the part under it; a tap that hits 
   click(front.querySelector('.board'), 12, 8);
   assert.equal(open(), title(b));
 });
+
+test('the inspector is a side panel on a wide or a wide-and-short frame, a sheet otherwise; the scope is capped', async () => {
+  const { STYLE } = await import('../src/page/style.js');
+  const { readFileSync } = await import('node:fs');
+  const wide = '(min-width: 761px) or ((min-width: 640px) and (min-aspect-ratio: 13/10))';
+  assert.ok(STYLE.includes(`@media ${wide} {\n  .inspector { top: 8px`), 'the panel');
+  assert.ok(STYLE.includes(`@media not (${wide}) {\n  .inspector { left: 0`), 'the sheet');
+  const client = readFileSync(new URL('../src/page/client/inspector.js', import.meta.url), 'utf8');
+  assert.ok(client.includes(`const NARROW = 'not (${wide})'`), 'the script asks the same question');
+  assert.match(STYLE, /\.info \.scope svg \{[^}]*max-width: 320px/);
+});

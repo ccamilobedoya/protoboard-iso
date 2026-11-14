@@ -46,6 +46,11 @@ const MOVE_TOKENS = Object.entries(MOVES)
 // the notebook and stage themes keeps its lines, they are the look of those themes.
 export const GRID_STRENGTH = 0.5;
 
+// The inspector is a panel on the right (WIDE) or a sheet from the bottom (everything else): a screen
+// wider than 760 px, or a landscape frame of 640 px and up (a widget in a chat is wide and short).
+// page/client/inspector.js asks the same question (NARROW).
+const WIDE = '(min-width: 761px) or ((min-width: 640px) and (min-aspect-ratio: 13/10))';
+
 export const STYLE = `
 :root {
   ${MOVE_TOKENS}
@@ -262,7 +267,7 @@ main { position: relative; }
 .info .summary { display: none; align-items: baseline; gap: 8px; padding: 0 0 6px; white-space: nowrap; overflow: hidden; }
 /* Only in a peeking sheet (all it shows); open, the Simulation section below says the same. Each
    value has a slot of its own, so a value that changes length never pushes the others. */
-@media (max-width: 760px) { .inspector[data-size="peek"] .info .summary:not([hidden]) { display: flex; } }
+@media not (${WIDE}) { .inspector[data-size="peek"] .info .summary:not([hidden]) { display: flex; } }
 .info .summary .slot { display: inline-block; width: 8.5ch; text-align: right; } /* sign, three digits, unit: at most 8 */
 .info .summary .model, .model-badge { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: var(--ink-3); border: 1px solid var(--hair); border-radius: 4px; padding: 1px 5px; }
 .info .summary .values { display: flex; gap: 6px; font-family: var(--mono); font-size: 12px; color: var(--accent); }
@@ -312,7 +317,7 @@ nav .falstad .flag { width: auto; flex: none; color: var(--warn-ink); background
 nav .falstad .flag[hidden] { display: none; }
 .info .scope { margin-top: 8px; }
 .info .scope h3 { margin: 0 0 2px; }
-.info .scope svg { display: block; width: 100%; height: auto; font-family: inherit; }
+.info .scope svg { display: block; width: 100%; max-width: 320px; height: auto; font-family: inherit; } /* the traces and their labels scale with the width: in a wide sheet they would fill the frame */
 .scope-screen { fill: var(--scope); }
 .scope-grid { stroke: var(--scope-grid); stroke-width: 0.6; }
 .scope-zero { stroke: var(--scope-zero); stroke-width: 0.8; }
@@ -692,12 +697,12 @@ body.embedded .first-hint .alone, body:not(.embedded) .first-hint .framed { disp
 /* MODEL lives in the bar, right, as grey text (V3): shown with the first card, not at rest. */
 nav .model-badge { display: none; align-self: center; margin: 0 6px; border: none; padding: 0; white-space: nowrap; pointer-events: none; }
 body.show-results.focusing nav .model-badge { display: block; }
-@media (min-width: 761px) {
+@media ${WIDE} {
   .inspector { top: 8px; right: 8px; width: 300px; max-height: calc(100% - 16px); border-radius: 6px; }
   .inspector .collapse[aria-expanded="true"] .icon { transform: rotate(180deg); }
   .zoom { right: auto; left: 8px; }
 }
-@media (max-width: 760px) {
+@media not (${WIDE}) {
   .inspector { left: 0; right: 0; bottom: 0; height: 85%; border-bottom: none; border-radius: 12px 12px 0 0; transition: transform 280ms var(--ease-drawer); }
   .inspector.dragging { transition: none; }
   .inspector .grip { display: block; }
@@ -710,7 +715,7 @@ body.show-results.focusing nav .model-badge { display: block; }
 /* Entrances (U5): the menu grows from its button, the panel slides in a little; exits are instant. */
 nav .menu { transform-origin: top right; transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out); }
 @starting-style { nav .menu { opacity: 0; transform: scale(0.96); } }
-@media (min-width: 761px) {
+@media ${WIDE} {
   .inspector { transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out); }
   @starting-style { .inspector { opacity: 0; transform: translateX(12px); } }
 }

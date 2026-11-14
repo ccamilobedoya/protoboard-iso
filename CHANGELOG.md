@@ -21,6 +21,7 @@ detail.
 
 ### Changed
 
+- The inspector is a side panel also on a landscape frame from 640 px wide (a chat widget), not only above 760 px, and the oscilloscope in a card is capped at 320 px wide: in a wide, short frame the sheet covered the board and the traces filled the width. `scripts/ux-shots.js` takes the page in frames of 1000×560, 1000×800 and 700×500.
 - A part's view up close is on in every live page (`"page": { "focusView": false }` or `renderPage(…, { focusView: false })` turns it off; recordings and frames never have it), so the MCP viewer has it too. The eye in a part's card now opens it (a part without a close-up has no eye) and the card's first row is gone; the see-through toggle left the card (`ghost` stays for timelines). Pages grow 3 to 6 % (the pinouts).
 - The page's background grid of dots (light and dark themes) is half as strong, so it no longer competes with the board's own holes when the board is seen from afar (`GRID_STRENGTH` in `src/page/style.js`); the notebook and stage themes keep their paper lines.
 - The MCP App viewer no longer has the button "Ask about this part" nor sends `ui/message`: hosts show a security warning when a message lands in the user's box. It talks to the model only through the silent model-context update.
