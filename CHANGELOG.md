@@ -9,6 +9,14 @@ detail.
 
 ## [Unreleased]
 
+### Added
+
+- MCP Apps, a pilot: in a host that supports the extension, `layout` shows the circuit's live page inside the conversation (resource `ui://protoboard-iso/board.html`, app-only tool `page_parts`, which rebuilds an older revision from the history). Tapping a part updates the model's context in one line; the card's "Ask about this part" sends a message. Offered only to a client that announces the extension (`PROTOBOARD_APPS=on|off|auto`); any other client gets the same tools and answers. `mcp/http.js` serves the server on 127.0.0.1 for testing, `scripts/app-host-check.js` drives the reference host. A board's sketch does not run under the specification's default CSP (it needs `unsafe-eval`). See `docs/en/mcp-apps.md`.
+
+### Changed
+
+- `src/page.js`: `renderPageParts` returns a page's per-circuit pieces and `renderPage` composes the same document from them (byte-identical); the MCP server itself moved to `mcp/core.js` (`mcp/server.js` is its stdio entry).
+
 ## [0.11.1] - 2026-11-12
 
 Recipe summaries short enough for a phone, and a touch module on a nominal 5 V supply no longer marked as near its limit.
