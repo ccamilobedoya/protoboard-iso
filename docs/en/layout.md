@@ -311,12 +311,13 @@ a caller (above all a small model) that reads only the last line knows what to d
 | `STATUS:` | Means | Next |
 |---|---|---|
 | `DONE` | every net is there, nothing failed to place, the review approves | report |
+| `WARNINGS` | built and the nets are right, but a part would be damaged as wired (⚠): the review is approved with warnings | tell the user first which part and why it burns; keep it only if that is the point, else offer the fix |
 | `CHANGES` | created, but a net, a placement or the review left something (✖) | fix only those, with `suggest` and `apply_ops`, then `review` |
 | `FIX_SPEC` | nothing created: the spec has errors | fix every ✖ and call again |
 | `SPEC_OK` | `check_only`: the spec is consistent | call again without it |
 
 Before 2026-10-20 the text ended with the review's verdict, which could say APPROVED with a net
-missing. The CLI exits 0 only for `DONE` (1 for `FIX_SPEC`, 2 for `CHANGES`).
+missing. The CLI exits 0 for `DONE` and `WARNINGS` (1 for `FIX_SPEC`, 2 for `CHANGES`).
 
 ## The numbers that steer it
 

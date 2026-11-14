@@ -159,6 +159,12 @@ answer has `times` and the same quantities as arrays.
 | `SIM_IC_SUPPLY` | a chip fed above its maximum (555: 16 V; LM358: 32 V; 741: 36 V in total) |
 | `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | a part not simulated yet (chips other than the 555), or a part number without its own model |
 
+`review` runs this same DC analysis and lists every stress past its limit (the codes that name a
+part and a maximum: `SIM_OVER_CURRENT`, `SIM_OVER_POWER`, `SIM_REVERSE_VOLTAGE`, `SIM_IC_SUPPLY`, …;
+not the supply, floating or note codes) as a **hazard**: the verdict becomes APPROVED WITH WARNINGS,
+never blocking, and `layout` ends in `STATUS: WARNINGS`. It reads the DC point only, so a peak that a
+transient shows (a PWM pin, a 555's output, a generator's wave) is not found by it.
+
 ## Models
 
 All in `src/sim/models.js`, each checked once in `test/sim.test.js` against an independent

@@ -9,6 +9,16 @@ detail.
 
 ## [Unreleased]
 
+### Added
+
+- `review` lists electrical hazards (`hazards`): each stress the simulator's DC point takes past a maximum, as `simulate` reports it. They do not block; the verdict is `approved-with-warnings` (APPROVED WITH WARNINGS, «APROBADO CON AVISOS»), with a section "As wired, this would damage:" and a line of guidance. `layout` ends in `STATUS: WARNINGS` (exit 0) for it, and the agent reports use `WARNINGS` too. Transient peaks (PWM, a 555, a generator) are not found.
+
+### Fixed
+
+- Layout again on an existing circuit kept a part's old holes even when its new nets no longer wanted them (a cathode left on the ground rail), which made a short; a part now keeps its holes only when every pin still fits its net.
+- `layout` printed a review that ignored the nets asked for, so it could say APPROVED beside a "nets joined" error; its review now reads them.
+- SKILL.md, the layout tool's description and the agents said to give `parts` "only if parts change" when changing a circuit; a partial list fails with `FIX_SPEC`. They now say to give the full list and the supplies again.
+
 ## [0.11.1] - 2026-11-12
 
 Recipe summaries short enough for a phone, and a touch module on a nominal 5 V supply no longer marked as near its limit.

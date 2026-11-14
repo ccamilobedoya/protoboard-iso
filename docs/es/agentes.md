@@ -15,6 +15,11 @@ Usan las herramientas MCP ([mcp.md](mcp.md)) y, si no están, la línea de coman
 
 ## `review`: la definición de «terminado» que todos comparten
 
+Hay un tercer resultado entre los dos: un circuito de dibujo correcto que dañaría un componente tal como
+está conectado (un LED directo a 9 V) queda **APROBADO CON AVISOS** (`hazards`, del punto en DC del
+simulador; sin umbrales nuevos). No bloquea ni es una ronda de arreglos: el agente lo reporta de forma
+visible y la conversación principal se lo dice al usuario, porque quemar un componente puede ser la lección.
+
 ```bash
 node bin/protoboard-iso.js review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]
 ```
@@ -171,8 +176,8 @@ Needed for: <circuito o clase>
 
 Las respuestas siguen los formatos del final de cada archivo de agente (`LAYOUT REPORT`,
 `REVIEW REPORT`, `PARTS REPORT`). Cada una termina en una sola línea `STATUS:`, así la conversación
-principal sabe qué sigue sin leer el resto: montaje `DONE | CHANGES | BLOCKED`, revisión
-`APPROVED | CHANGES` (la misma palabra que su veredicto), componentes `DONE | BLOCKED`.
+principal sabe qué sigue sin leer el resto: montaje `DONE | WARNINGS | CHANGES | BLOCKED`, revisión
+`APPROVED | WARNINGS | CHANGES` (la misma palabra que su veredicto), componentes `DONE | BLOCKED`.
 `node scripts/report-status.js < informe` comprueba la línea y que coincida con el informe.
 
 ## Mantener los agentes al día

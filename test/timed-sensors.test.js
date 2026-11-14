@@ -501,7 +501,8 @@ test('pir and touch: power is the sum of V·I over the pins, with GND lifted abo
 test('pir and touch: a supply the wrong way round is SIM_REVERSE_VOLTAGE', () => {
   for (const type of ['pir-sensor', 'touch-sensor']) {
     const r = autoLayout({ parts: [{ id: 'U1', type }], nets: [['T+', 'U1.VCC'], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T-', negative: 'T+' }] });
-    assert.equal(r.status, 'done', type);
+    // The reversed supply is a hazard (the module would be damaged as wired): built, nets right, WARNINGS.
+    assert.equal(r.status, 'warnings', type);
     const issue = simulate(r.circuit).issues.find((i) => i.code === 'SIM_REVERSE_VOLTAGE');
     assert.ok(issue, `${type}: a warning for the reversed supply`);
     for (const lang of ['en', 'es']) assert.ok(!formatIssue(issue, lang).includes('check.'), `${type} ${lang}`);

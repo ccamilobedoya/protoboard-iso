@@ -62,12 +62,12 @@ path of `mcp/server.js` and the environment above.
 | `inspect` | the drawing in numbers; `part` for one part only | no |
 | `query` | `kind: at \| node \| free` with `ref` | no |
 | `netlist` | the circuit as nets: groups joined by wires, the pins on each (`R1.1@d20`), labels, pins alone on a net | no |
-| `layout` | a usual lesson circuit by name: `recipe` and only the `values` that change ([recipes.md](recipes.md)); otherwise a whole circuit placed in one call from its parts (no holes, signal order; part numbers, modules and aliases) and nets (pins and rails; usual pin names work: `D1.K`, `U1.VIN`, `U1.GPIO4`): layers by distance from the source, rules per part kind, jumpers, ground nets to a − rail, the nets check and the lesson review, laid out again and repaired jumper by jumper. On an existing target, laid out again as one revision with only what changes (`expect_revision`; parts keep their holes; `undo` restores). The nets stay in the circuit (`spec`). Ends in `STATUS: DONE \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` only checks. The algorithm: [layout.md](layout.md) | yes |
+| `layout` | a usual lesson circuit by name: `recipe` and only the `values` that change ([recipes.md](recipes.md)); otherwise a whole circuit placed in one call from its parts (no holes, signal order; part numbers, modules and aliases) and nets (pins and rails; usual pin names work: `D1.K`, `U1.VIN`, `U1.GPIO4`): layers by distance from the source, rules per part kind, jumpers, ground nets to a − rail, the nets check and the lesson review, laid out again and repaired jumper by jumper. On an existing target, laid out again as one revision with the new nets and, if parts change, the full parts list (`expect_revision`; parts keep their holes; `undo` restores). The nets stay in the circuit (`spec`). Ends in `STATUS: DONE \| WARNINGS \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` only checks. The algorithm: [layout.md](layout.md) | yes |
 | `suggest` | valid placements for a new part, each with its `add` operation and the nearest body (`nearest`: part and gap); `profile` also leaves out what that review blocks; `parts` places several in order and answers one batch | no |
 | `apply_ops` | atomic batch; `dry_run` first, then `expect_revision`, `author`, `note` | yes |
 | `try_ops` | the same batch as a dry run only: what it would fix and introduce; for read-only roles (the reviewer) | no |
 | `undo` | undo the latest change (new revision) | yes |
-| `review` | APPROVED or CHANGES from measurements, profile `lesson` or `draft`; each blocking item names its `parts` and `views`; `explain: true` adds the profile's rules; a circuit with `spec` also gets its nets checked | no |
+| `review` | APPROVED, APPROVED WITH WARNINGS (`hazards`: parts the DC simulation takes past a maximum; they do not block) or CHANGES from measurements, profile `lesson` or `draft`; each blocking item names its `parts` and `views`; `explain: true` adds the profile's rules; a circuit with `spec` also gets its nets checked | no |
 | `history` | revisions, authors, notes, operations | no |
 | `render` | writes the SVG; `png_width` also returns a PNG image; `page: true` rewrites the embeddable page ([embedding.md](embedding.md)); `sim: true` draws the simulation results; `focus: [ids]` dims the rest; `flow: true` the current layer | outputs only |
 | `simulate` | node voltages and part currents, a model ([simulation.md](simulation.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` adds the link that opens the circuit in Falstad ([falstad.md](falstad.md)) | no |
@@ -102,7 +102,7 @@ layout    {target: "switch", nets: <spec.nets with one change>, expect_revision:
                                      → … STATUS: DONE · rev 1 (every other part where it was)
 apply_ops {target, ops: [{op: "set", part: "R2", value: "470"}], dry_run: true} → what it fixes / introduces
 apply_ops {target, ops, expect_revision: 1, author: "claude", note: "dimmer LED"} → rev 2
-review    {target}                   → APPROVED (nets checked against the spec)
+review    {target}                   → APPROVED (nets checked against the spec; APPROVED WITH WARNINGS when a part would burn)
 undo      {target}                   → rev 3, R2 back to 330
 ```
 

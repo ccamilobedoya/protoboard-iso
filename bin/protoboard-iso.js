@@ -151,7 +151,7 @@ if (command === 'layout') {
     fail(1);
   }
   console.log(args.json ? JSON.stringify({ ...result, circuit: undefined }, null, 2) : formatLayout(result, outLang, { t, formatIssue }));
-  fail(result.status === 'done' ? 0 : 2);
+  fail(result.status === 'done' || result.status === 'warnings' ? 0 : 2);
 } else if (command === 'render') {
   const circuit = loadCircuit(paths);
   const { svg, issues } = renderCircuit(circuit, viewOptions);
@@ -243,7 +243,7 @@ if (command === 'layout') {
 } else if (command === 'review') {
   const result = review(loadCircuit(paths), { profile: args.profile, views: args.views, lang, explain: args.explain });
   console.log(args.json ? JSON.stringify(result, null, 2) : formatReview(result, lang, { t, formatIssue }));
-  fail(result.verdict === 'approved' ? 0 : 2);
+  fail(result.verdict === 'changes' ? 2 : 0);
 } else if (command === 'undo') {
   const result = undoTarget(target, { author: args.author, views: args.views, lang, outputLang: args.lang, outputs: args.outputs });
   console.log(args.json ? JSON.stringify(result, null, 2) : formatChange(result, lang, { t, formatIssue }));

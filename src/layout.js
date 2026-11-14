@@ -32,7 +32,7 @@ import { suggest } from './query.js';
 import { applyOps } from './ops.js';
 import { buildCircuit } from './circuit/build.js';
 import { problemKey } from './diff.js';
-import { review } from './review.js';
+import { review, formatHazards } from './review.js';
 import { PART_TYPES } from './parts/types/index.js';
 import { PACKAGES } from './parts/packages/index.js';
 import { SWITCH_STYLES } from './parts/types/switch.js';
@@ -225,10 +225,10 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   let tries = 0;
   for (let attempt = 0; attempt < TRIES; attempt++) {
     tries++;
-    const r = layoutOnce(spec, { profile, forbid, previous, memo, boxes });
+    const r = layoutOnce(spec, { profile, forbid, previous, memo, boxes, asked: asked.nets });
     const score = (x) => (x.check.ok ? 0 : 100) + x.problems.length * 10 + x.review.blocking.length;
     if (!best || score(r) < score(best)) best = r;
-    if (r.check.ok && r.review.verdict === 'approved' && !r.problems.length) break;
+    if (r.check.ok && r.review.verdict !== 'changes' && !r.problems.length) break;
     // A board covering a pin's strip is no place problem another try can fix.
     if (r.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED')) break;
     const rank = new Map(r.sequence.map((id, i) => [id, i]));
@@ -275,14 +275,15 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
     if (!added) break;
   }
   // A covered pin: no jumper reaches it, so the repair (seconds of suggest) cannot help.
-  if (!(best.check.ok && best.review.verdict === 'approved' && !best.problems.length) && !best.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED')) best = repair(best, spec, { profile });
+  if (!(best.check.ok && best.review.verdict !== 'changes' && !best.problems.length) && !best.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED')) best = repair(best, spec, { profile, asked: asked.nets });
   // Kept in the circuit: what was asked (not the conventions added to it) and which wires are
   // layout's own jumpers, so layout can run again on it and review can check the connections.
   const ids = new Set(spec.parts.map((p) => p.id));
   const circuit = { ...best.circuit, spec: { ...asked, wires: best.circuit.parts.filter((p) => p.type === 'wire' && !ids.has(p.id)).map((p) => p.id) } };
   // One verdict for the whole answer: the nets, the placement problems and the review together,
   // so a caller that reads only the last line cannot take "review approved" for done.
-  const status = best.check.ok && best.review.verdict === 'approved' && !best.problems.length ? 'done' : 'changes';
+  // A part that would be damaged as wired is neither a fix to make nor a plain success: its own status.
+  const status = !best.check.ok || best.review.verdict === 'changes' || best.problems.length ? 'changes' : best.review.hazards.length ? 'warnings' : 'done';
   return { ...best, circuit, notes: [...notes, ...(best.notes ?? [])], status, tries, ms: Date.now() - started };
 }
 
@@ -331,7 +332,7 @@ function groundToRail(nets, parts, supplies, notes, board) {
 // left apart and a jumper named by a blocking item are routed again with suggest (which measures
 // what a wire hides in both views, and may go through a free strip: VIA_WIRE). A repair is kept
 // only when the nets stay right and nothing new blocks.
-function repair(best, spec, { profile }) {
+function repair(best, spec, { profile, asked }) {
   let { circuit, problems, check, review: verdict } = best;
   const notes = [];
   const score = (c, v, p) => (c.ok ? 0 : 100) + p.length * 10 + v.blocking.length;
@@ -346,7 +347,7 @@ function repair(best, spec, { profile }) {
     const r = applyOps(base, ops);
     if (r.errors.length) return false;
     const c = checkNets(r.circuit, nets);
-    const v = review(r.circuit, { profile, views: ['front', 'back'] });
+    const v = review({ ...r.circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'] });
     const p = problems.filter((x) => x !== fixed);
     if (score(c, v, p) >= score(check, verdict, problems)) return false;
     ({ circuit, check, review: verdict, problems } = { circuit: r.circuit, check: c, review: v, problems: p });
@@ -435,7 +436,7 @@ function footprintOf(part) {
   return box;
 }
 
-function layoutOnce(spec, { profile, forbid, previous, memo = new Map(), boxes = new Map() }) {
+function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), boxes = new Map() }) {
   // A part's box from above, by its holes (the same part in the same holes has the same body).
   const boxOf = (p) => {
     const key = `${p.id} ${p.holes.map((h) => h?.id).join(' ')}`;
@@ -863,15 +864,22 @@ function layoutOnce(spec, { profile, forbid, previous, memo = new Map(), boxes =
       if (!spread.has(key)) spread.set(key, x);
     }
     const ordered = [...scored.slice(0, MAX_TRIED), ...ahead.slice(0, MAX_TRIED / 2), ...[...spread.values()].sort((p, q) => p.at - q.at).slice(0, MAX_TRIED)].map((x) => x.ids);
+    // Its old holes only when every pin is still where its NEW net wants it (a rail of its net, or
+    // a strip empty or of its net, joining no other net): `valid`, the rule every candidate meets.
     if (was?.type === part.type && was.pins && !was.pin1) {
       const now = Array.isArray(was.pins) ? (was.pins.length === pinNames.length ? was.pins : null) : pinNames.every((n) => was.pins[n]) ? Object.fromEntries(pinNames.map((n) => [n, was.pins[n]])) : null;
-      if (now) ordered.unshift(now);
+      if (now && valid(pinNames.map((n, i) => (Array.isArray(now) ? now[i] : now[n])))) ordered.unshift(now);
     }
     let done = null;
     if (was?.type === part.type && was.pin1) {
       // Chips and boards placed by pin 1: the same pin 1 (and row spacing) as before.
       const op = { op: 'add', part: { ...part, pin1: was.pin1, ...(was.rowSpacing !== undefined && part.rowSpacing === undefined && { rowSpacing: was.rowSpacing }) } };
-      if (!forbid.has(forbidKey(op.part)) && tryOps([op])) done = built.parts.find((p) => p.id === part.id).holes.map((h) => h?.id);
+      const before = { circuit, built, baseline };
+      if (!forbid.has(forbidKey(op.part)) && tryOps([op])) {
+        const holes = built.parts.find((p) => p.id === part.id).holes.map((h) => h?.id);
+        if (valid(holes)) done = holes;
+        else ({ circuit, built, baseline } = before);
+      }
     }
     for (const pin1 of done ? [] : pin1s) {
       const op = { op: 'add', part: { ...part, pin1 } };
@@ -1078,7 +1086,9 @@ function layoutOnce(spec, { profile, forbid, previous, memo = new Map(), boxes =
     else circuit = r.circuit;
   }
 
-  const verdict = review(circuit, { profile, views: ['front', 'back'] });
+  // With the nets asked for, as every later review reads them from the circuit's spec: a verdict
+  // that ignored them could say APPROVED over a short.
+  const verdict = review({ ...circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'] });
 
   const columns = buildCircuit(circuit).board?.spec.columns;
   const sequence = circuit.parts.map((p) => p.id); // placement order: parts, then jumpers
@@ -1110,9 +1120,13 @@ export function formatLayout(r, lang, { t, formatIssue }) {
   if (r.check.ok) lines.push(t(lang, 'layout.netsOk'));
   for (const m of r.check.missing) lines.push(`  ✖ ${t(lang, 'layout.missing', { net: m.net, pins: m.pins.join(', ') })}`);
   for (const s of r.check.shorted) lines.push(`  ✖ ${t(lang, 'layout.shorted', { nets: s.nets.join(' + ') })}`);
-  lines.push(t(lang, r.review.verdict === 'approved' ? 'layout.approved' : 'layout.changes', { count: r.review.blocking.length }));
-  for (const b of r.review.blocking) lines.push(`  ✖ ${formatIssue(b, lang)}${b.views ? ` [${b.views.join(', ')}]` : ''}`);
-  const open = r.problems.length + r.check.missing.length + r.check.shorted.length + r.review.blocking.length;
-  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, `layout.status.${r.status}`, { count: open })}`);
+  // The nets are said above, in layout's words: not twice.
+  const blocking = r.review.blocking.filter((b) => !b.code.startsWith('SPEC_NET'));
+  const headline = r.review.verdict === 'approved' ? 'layout.approved' : r.review.verdict === 'changes' ? (blocking.length ? 'layout.changes' : 'layout.changesNets') : 'layout.warnings';
+  lines.push(t(lang, headline, { count: blocking.length }));
+  for (const b of blocking) lines.push(`  ✖ ${formatIssue(b, lang)}${b.views ? ` [${b.views.join(', ')}]` : ''}`);
+  lines.push(...formatHazards(r.review, lang, formatIssue, t));
+  const open = r.problems.length + r.check.missing.length + r.check.shorted.length + blocking.length;
+  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, `layout.status.${r.status}`, { count: open, hazards: r.review.hazards.length })}`);
   return lines.join('\n');
 }
