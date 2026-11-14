@@ -52,8 +52,17 @@ update did not reach it. The viewer can call the server's tools, so it routes th
   and revision, and whether the circuit has a newer revision; or «Nothing is tapped on the board.» Without
   `target`, the most recent selection of any circuit.
 
-The server keeps it in memory only: the last 32 circuits, one selection each, until the server restarts
-(or reloads its code). Nothing is written to disk.
+Claude Desktop starts two processes of the stdio server for one session, and the viewer's calls and the
+model's land in different ones, so nothing they share may live in a process's memory. The selection is
+therefore a small hidden file in the root, `.app-selection.json` (next to the debug report; no listing
+shows it as a circuit), written atomically (a temp file, then rename), read on every `selection` call,
+with at most the last 32 circuits, one selection each; an entry older than 24 hours is ignored and
+pruned. It holds the tapped part and its line (at most 300 characters), nothing else. A root that cannot
+be written falls back to the process's memory, and `selection` says once that it cannot be shared. The
+chunks of `page_parts` need no shared state either: a process that does not have the page rebuilds it
+from the manifest's `revision` and checks that it hashes to the `id`. And a stdio server now ends when
+its stdin ends or closes (the SDK's transport does not watch for it, and a host reached over ssh does not
+always deliver a hangup).
 
 ## For a model that sees the board
 

@@ -56,8 +56,18 @@ que pasa el toque por el servidor:
   hace cuánto, el circuito y la revisión, y si el circuito tiene una revisión más nueva; o «No hay nada
   tocado en el tablero.» Sin `target`, la selección más reciente de cualquier circuito.
 
-El servidor la guarda solo en memoria: los últimos 32 circuitos, una selección cada uno, hasta que el
-servidor se reinicia (o recarga su código). No se escribe nada en disco.
+Claude Desktop arranca dos procesos del servidor stdio para una sesión, y las llamadas del visor y las
+del modelo caen en procesos distintos, así que nada de lo que comparten puede vivir en la memoria de un
+proceso. Por eso la selección es un archivo oculto pequeño en la raíz, `.app-selection.json` (junto al
+reporte de depuración; ningún listado lo muestra como circuito), escrito de forma atómica (un archivo
+temporal y luego renombrado), leído en cada llamada a `selection`, con a lo sumo los últimos 32
+circuitos, una selección cada uno; una entrada de más de 24 horas se ignora y se poda. Guarda la pieza
+tocada y su línea (de 300 caracteres como máximo), nada más. Una raíz que no se puede escribir recurre
+a la memoria del proceso, y `selection` avisa una vez que no se puede compartir. Los trozos de
+`page_parts` tampoco necesitan estado compartido: un proceso que no tiene la página la reconstruye con
+la `revision` del manifiesto y comprueba que dé el `id`. Y un servidor stdio ahora termina cuando su
+stdin termina o se cierra (el transporte del SDK no lo vigila, y un anfitrión por ssh no siempre
+entrega el colgado).
 
 ## Para un modelo que ve el tablero
 

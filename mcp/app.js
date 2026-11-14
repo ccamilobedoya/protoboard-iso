@@ -17,7 +17,7 @@
 //                      <root>/.app-report.jsonl (stops at 256 KB; detail cut at 4 KB)
 //   renderForApps(d)   render's description for a client that shows the viewer: no push to PNG
 
-import { readFileSync, existsSync, statSync, appendFileSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, appendFileSync, writeFileSync, renameSync, rmSync } from 'node:fs';
 import { resolve, relative, sep } from 'node:path';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
@@ -144,29 +144,71 @@ function pageParts({ target, revision, lang, chunk, id }) {
 // What the user last tapped in the viewer. A host with a local connector does not let the model read
 // what the widget knows (nor call the widget's tools), so the viewer tells the server (selection_set,
 // app-only) and the model asks it (selection, a model-visible tool offered to the same clients as the
-// viewer). In memory only, the last SELECTION_KEEP targets, never written to disk.
+// viewer). A host may run two processes of this server for one session (Claude Desktop does), the
+// viewer's calls landing in one and the model's in the other: so the state is a hidden file in the
+// root (SELECTION_FILE, next to the debug report), written atomically (temp file + rename), read on
+// every call, at most SELECTION_KEEP circuits and SELECTION_TTL old. A root that cannot be written
+// falls back to this process's memory, and `selection` says once that it cannot be shared.
+export const SELECTION_FILE = '.app-selection.json';
 export const SELECTION_KEEP = 32;
-const selections = new Map(); // target -> { revision, part, line, at }; the newest last
+export const SELECTION_TTL = 24 * 3600e3;
+const memory = new Map(); // the fallback, and what this process wrote when the file could not be
+let unshared = false;
+let saidUnshared = false;
 const ago = (ms) => (ms < 90e3 ? `${Math.max(1, Math.round(ms / 1000))} s` : ms < 90 * 60e3 ? `${Math.round(ms / 60e3)} min` : `${Math.round(ms / 3600e3)} h`);
+
+// The entries now (target -> { revision, part, line, at }), the old ones dropped.
+function readSelections() {
+  let entries = {};
+  try {
+    const data = JSON.parse(readFileSync(resolve(ROOT, SELECTION_FILE), 'utf8'));
+    if (data && typeof data.entries === 'object') entries = data.entries;
+  } catch {
+    // none yet, or unreadable: as if empty
+  }
+  for (const [key, value] of memory) if (!entries[key] || entries[key].at < value.at) entries[key] = value;
+  const now = Date.now();
+  return Object.fromEntries(Object.entries(entries).filter(([, e]) => e && typeof e.at === 'number' && now - e.at < SELECTION_TTL).sort((x, y) => x[1].at - y[1].at).slice(-SELECTION_KEEP));
+}
 
 function selectionSet({ target, revision, part, line }) {
   const full = resolve(ROOT, String(target));
   if (full !== ROOT && !full.startsWith(ROOT + sep)) return fail(`"${target}" is outside the allowed folder.`);
   const key = relative(ROOT, full) || '.';
-  selections.delete(key);
-  selections.set(key, { revision, part: part ?? null, line: part ? String(line).slice(0, 300) : '', at: Date.now() });
-  while (selections.size > SELECTION_KEEP) selections.delete(selections.keys().next().value);
+  const entry = { revision, part: part ?? null, line: part ? String(line).slice(0, 300) : '', at: Date.now() };
+  const entries = readSelections();
+  delete entries[key];
+  entries[key] = entry;
+  const kept = Object.fromEntries(Object.entries(entries).slice(-SELECTION_KEEP));
+  const file = resolve(ROOT, SELECTION_FILE);
+  const temp = `${file}.${process.pid}.tmp`;
+  try {
+    writeFileSync(temp, JSON.stringify({ entries: kept }));
+    renameSync(temp, file);
+    memory.clear();
+    unshared = false;
+  } catch {
+    try {
+      rmSync(temp, { force: true });
+    } catch {
+      // nothing to clean
+    }
+    memory.set(key, entry);
+    while (memory.size > SELECTION_KEEP) memory.delete(memory.keys().next().value);
+    unshared = true;
+  }
   return { content: [{ type: 'text', text: 'ok' }] };
 }
 
 function selectionGet({ target }) {
+  const entries = readSelections();
   let key = null;
   if (target != null) {
     const full = resolve(ROOT, String(target));
     if (full !== ROOT && !full.startsWith(ROOT + sep)) return fail(`"${target}" is outside the allowed folder.`);
     key = relative(ROOT, full) || '.';
-  } else key = [...selections.keys()].at(-1) ?? null;
-  const got = key != null ? selections.get(key) : null;
+  } else key = Object.keys(entries).at(-1) ?? null;
+  const got = key != null ? entries[key] : null;
   let lang = process.env.PROTOBOARD_LANG ?? 'en';
   let latest = null;
   if (got) {
@@ -177,9 +219,11 @@ function selectionGet({ target }) {
       lang = pickLanguage(undefined, circuit.lang);
     }
   }
-  if (!got?.part) return { content: [{ type: 'text', text: t(lang, 'app.selection.none') }] };
+  const warn = unshared && !saidUnshared ? ` ${t(lang, 'app.selection.unshared')}` : '';
+  if (unshared) saidUnshared = true;
+  if (!got?.part) return { content: [{ type: 'text', text: t(lang, 'app.selection.none') + warn }] };
   const newer = latest != null && latest !== got.revision ? t(lang, 'app.selection.newer', { latest }) : '';
-  return { content: [{ type: 'text', text: t(lang, 'app.selection', { ago: ago(Date.now() - got.at), line: got.line, target: key, revision: got.revision, newer }) }] };
+  return { content: [{ type: 'text', text: t(lang, 'app.selection', { ago: ago(Date.now() - got.at), line: got.line, target: key, revision: got.revision, newer }) + warn }] };
 }
 
 // One line of the viewer's diagnostics. The file is fixed inside the root; it stops growing at REPORT_MAX.

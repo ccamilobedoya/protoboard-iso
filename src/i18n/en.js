@@ -710,6 +710,7 @@ export default {
   'app.layoutNote': "The user sees this circuit as a live board in the chat: do not render or draw it. What they tap is read with `selection`; never call the widget's own tools.",
   'app.selection': '{line} Tapped {ago} ago, circuit {target}, revision {revision}{newer}.',
   'app.selection.none': 'Nothing is tapped on the board.',
+  'app.selection.unshared': 'The root cannot be written, so this answer cannot be shared with another process of the server.',
   'app.selection.newer': ', now at revision {latest}',
   'page.app.newer': 'Revision {revision} as it was; the circuit is now at revision {latest}.',
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):

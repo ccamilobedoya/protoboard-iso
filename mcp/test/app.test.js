@@ -160,7 +160,8 @@ test('selection: what the viewer tells the server, read back by the model; null 
   for (let k = 0; k < 40; k++) await host.callTool({ name: 'selection_set', arguments: { target: `many-${k}`, revision: 0, part: 'R1', line: `Open on the board: R1 ${k}.` } });
   assert.equal(textOf(await host.callTool({ name: 'selection', arguments: { target: 'many-0' } })), 'Nothing is tapped on the board.', 'the oldest is forgotten');
   assert.match(textOf(await host.callTool({ name: 'selection', arguments: { target: 'many-39' } })), /R1 39/);
-  assert.ok(!existsSync(join(root, '.selection')) && !readdirSync(root).some((f) => /selection/.test(f)), 'nothing on disk');
+  assert.ok(existsSync(join(root, '.app-selection.json')) && !readdirSync(root).some((f) => f.endsWith('.tmp')), 'one hidden file, no temp left');
+  assert.ok(!textOf(await host.callTool({ name: 'list_circuits', arguments: {} })).includes('selection'), 'never listed as a circuit');
   // a client without MCP Apps cannot call either
   for (const name of ['selection', 'selection_set']) {
     const r = await plain.callTool({ name, arguments: { target: 'sel' } }).catch(() => ({ isError: true }));
