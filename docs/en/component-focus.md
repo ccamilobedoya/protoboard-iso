@@ -467,9 +467,9 @@ at its five sizes, `validate_contrast` and an a11y review of the bar and the leg
 maintainer tries it on a phone and a tablet and approves it, and the pages without it are byte for byte
 as before.
 
-**As built (2026-11-01).** On in a page whose circuit says `"page": { "focusView": true }` (or made with
-`renderPage(…, { focusView: true })`; the demo site has it on every simulated page); no `?focusView=1`
-any more. The six points, as solved, with the taste and UX skills (an app screen: the page's own tokens,
+**As built (2026-11-01).** First on in a page whose circuit said `"page": { "focusView": true }`; since
+2026-11-14 on in every live page (`"page": { "focusView": false }` turns it off) and entered from the eye
+in the card's head, not from a first row; no `?focusView=1` any more. The six points, as solved, with the taste and UX skills (an app screen: the page's own tokens,
 flat surfaces, the hairline edge its other floating panel has, 44 px targets, no ornament):
 
 1. **Outside taps** do nothing while the part is up (`page.focusing`, read by the page's tap handler);

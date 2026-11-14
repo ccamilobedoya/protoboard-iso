@@ -90,9 +90,11 @@ la página que lo contiene.
 
 ## Una pieza de cerca
 
-Con `"page": { "focusView": true }` en el circuito (o `renderPage(…, { focusView: true })`), la página en
-vivo deja ver cualquier pieza de cerca (no un cable ni una placa de desarrollo): la ficha de la pieza
-ofrece *Ver la pieza de cerca* como su primera fila. La pieza sube sola a un pedestal y una barra abajo
+Toda página en vivo deja ver cualquier pieza de cerca (no un cable ni una placa de desarrollo): el ojo
+en la ficha de la pieza, *Ver la pieza de cerca* (una pieza sin vista de cerca no tiene ojo). Viene
+encendida por defecto; `"page": { "focusView": false }` en el circuito (o `renderPage(…, { focusView:
+false })`) la apaga, y las grabaciones y los cuadros de una línea de tiempo nunca la tienen. Agrega a
+la página los diagramas de patas de las piezas (entre +3 y +6 %: led-resistor 1,13 → 1,17 MB). La pieza sube sola a un pedestal y una barra abajo
 tiene:
 
 - **‹ Volver** y el nombre de la pieza: Volver (o Escape) baja la pieza a sus agujeros, con la cámara

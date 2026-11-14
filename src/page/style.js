@@ -501,17 +501,12 @@ body.layer-flow main[data-scene] > svg > .spotlight { opacity: 1; }
 /* The current layer, whose own glow stands in for the lights on the board, is not drawn there: an LED
    on the bench keeps its light, and a bigger resistor dims it. */
 body.layer-flow main[data-scene] > svg > .lights { display: inline; }
-/* A part's view up close (F5; page/client/focus-view.js). The card's entry is its first row: a step of
-   tone, the pedestal's icon, the words, a chevron. On the pedestal a dock at the bottom: the legend of the
+/* A part's view up close (F5; page/client/focus-view.js). The card's entry is its eye button. On the pedestal a dock at the bottom: the legend of the
    inside view when it is on, and the bar (Back and the part's name; two segmented controls, one per room
    around the part, each as wide as its options). Flat surfaces and the theme's tokens, with the hairline
    edge the page's other floating panel (the menu) has; 44 px targets. */
-.focus-open { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; margin: 2px 0 8px; padding: 0 12px; border: none; border-radius: 8px; background: var(--well); color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
-.focus-open > span { flex: 1; }
-.focus-open::after { content: "›"; color: var(--ink-3); font-size: 18px; line-height: 1; }
-.focus-open .icon { color: var(--accent); }
-.focus-open:hover { background: var(--press); }
-.focus-open:focus-visible, .focus-dock button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.focus-dock button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .focus-dock { position: absolute; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); z-index: 4; display: flex; flex-direction: column; gap: 8px; max-width: 640px; margin: 0 auto; }
 .focus-dock[hidden], .focus-legend[hidden] { display: none; }
 .focus-bar, .focus-legend { background: var(--card); color: var(--ink); border: 1px solid var(--hair); border-radius: 12px; }
@@ -571,7 +566,7 @@ body.layer-flow main[data-scene] > svg > .lights { display: inline; }
   .focus-dock .segmented { flex: 1; }
   .focus-dock .segmented button { flex: 1; padding: 0 6px; }
 }
-:is([data-theme="stage"], [data-theme="notebook"]) :is(.focus-open, .focus-bar, .focus-legend, .focus-back, .focus-dock .segmented, .focus-dock .segmented button) { border-radius: 2px; }
+:is([data-theme="stage"], [data-theme="notebook"]) :is(.focus-bar, .focus-legend, .focus-back, .focus-dock .segmented, .focus-dock .segmented button) { border-radius: 2px; }
 /* Up close, the page's bar steps aside (the dock has Back): more room, and on a narrow screen a bar
    grown with the time's buttons would widen the whole page. */
 body.focus-view nav { display: none; }

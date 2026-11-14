@@ -215,7 +215,7 @@ export function buildSchemas() {
             description: 'The timeline the page plays as *See how it works* (and a video is made from): the name of a JSON file beside the circuit (timeline.schema.json), read only from its folder, or the timeline itself',
             oneOf: [{ type: 'string', pattern: '\\.json$' }, { $ref: 'timeline.schema.json' }],
           },
-          focusView: { type: 'boolean', description: "A part's view up close (the live page): the card of a part offers it, and the part goes alone on its pedestal with its pins, bench, symbol and inside view a tap away (default false)" },
+          focusView: { type: 'boolean', description: "A part's view up close (the live page): the card of a part has an eye button for it, and the part goes alone on its pedestal with its pins, bench, symbol and inside view a tap away; default true, false turns it off)" },
           start: { enum: ['dc', 'zero'], description: "Live simulation (with results or flow): 'dc' opens at the DC values (default); 'zero' switches on at t = 0 with capacitors discharged and runs" },
         },
         additionalProperties: false,

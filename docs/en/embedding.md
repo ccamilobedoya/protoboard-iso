@@ -83,9 +83,11 @@ the host page.
 
 ## A part up close
 
-With `"page": { "focusView": true }` in the circuit (or `renderPage(…, { focusView: true })`), the live
-page lets a learner take any part (not a wire or a development board) up close: the part's card offers
-*See the part up close* as its first row. The part goes alone onto a pedestal and a bar at the bottom
+Every live page lets a learner take any part (not a wire or a development board) up close: the eye in
+the part's card, *See the part up close* (there is no eye for a part without a close-up). It is on by
+default; `"page": { "focusView": false }` in the circuit (or `renderPage(…, { focusView: false })`) turns
+it off, and recordings and timeline frames never have it. It adds the parts' pinouts to the page (about
++3 to +6 %: led-resistor 1.13 → 1.17 MB). The part goes alone onto a pedestal and a bar at the bottom
 holds:
 
 - **‹ Back** and the part's name: Back (or Escape) lands the part in its holes, the camera keeping it

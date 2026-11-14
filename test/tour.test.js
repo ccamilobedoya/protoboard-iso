@@ -188,6 +188,11 @@ test('tour: only in a page that has one', async (t) => {
   const window = await loadPage(renderPage(plain).html, { width: 800, height: 500 });
   if (!window) return t.skip('jsdom not installed');
   assert.equal(window.document.querySelector('.tour-play'), null);
-  assert.equal(window.protoboardLive.tour, null);
-  assert.doesNotMatch(renderPage(plain).html, /"tour":/);
+  // Only the empty timeline the view up close runs its steps with: nothing to play.
+  assert.equal(window.protoboardLive.tour.log.length, 0);
+  assert.equal(JSON.parse(renderPage(plain).html.match(/"tour":(\{"format":"vertical","theme":"stage","steps":\[\]\})/)[1]).steps.length, 0);
+  // Without the view up close, no tour at all.
+  const off = await loadPage(renderPage(plain, { focusView: false }).html, { width: 800, height: 500 });
+  assert.equal(off.protoboardLive.tour, null);
+  assert.doesNotMatch(renderPage(plain, { focusView: false }).html, /"tour":/);
 });

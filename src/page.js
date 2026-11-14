@@ -392,10 +392,10 @@ export function renderPageParts(circuit, options = {}) {
   const compiled = results || flow ? compile(circuit) : null;
   const live = compiled?.program ? liveData(circuit, lang, flow, templates, compiled.program) : null;
   // The tour plays in a live page only: its steps move controls and read the simulation.
-  // A part's view up close (F5; page.focusView, or the option): the page carries the pinouts of every
+  // A part's view up close (F5; on, unless page.focusView is false or the option says so): the page carries the pinouts of every
   // part and, without a timeline, an empty one, so the player is there to run the view's steps
   // (focus-view.js).
-  const focusView = Boolean((options.focusView ?? circuit.page?.focusView === true) && live);
+  const focusView = Boolean((options.focusView ?? circuit.page?.focusView !== false) && live);
   const tour = live ? withCycles(loadTour(circuit, lang).tour, compiled.program, circuit) ?? (focusView ? { format: 'vertical', theme: 'stage', steps: [] } : null) : null;
   const data = {
     parts,
@@ -414,7 +414,7 @@ export function renderPageParts(circuit, options = {}) {
     ...(tour && { tour }),
     ...(tour && pinoutData(circuit, focusView ? { steps: [...tour.steps, ...viewSteps(built)] } : tour, built, rendered, lang)),
     ...(focusView && { focusView: true }),
-    text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit'), tabPart: t(lang, 'page.tab.part'), tabStrip: t(lang, 'page.tab.strip'), model: t(lang, 'sim.badge'), modelShort: t(lang, 'page.model') },
+    text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, focus: focusView ? t(lang, 'page.tour.view.open') : null, close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit'), tabPart: t(lang, 'page.tab.part'), tabStrip: t(lang, 'page.tab.strip'), model: t(lang, 'sim.badge'), modelShort: t(lang, 'page.model') },
   };
   const title = titleOf(circuit, lang) ?? t(lang, 'page.untitled');
   // The grid of holes continued under the drawing, in it, so it moves with the board (V4).

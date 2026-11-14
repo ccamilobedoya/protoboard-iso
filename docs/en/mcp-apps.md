@@ -58,6 +58,9 @@ every `ui/update-model-context` with the text sent and the result or the error (
 `error` and `unhandledrejection` events.
 In Claude Desktop's config (`env` of the server): `"PROTOBOARD_APPS_DEBUG": "1"`.
 
+The viewer has the part's close-up too (the eye in the card; on by default in every live page). It adds
+about 32 KB to `page_parts` for led-resistor (571 to 603 KB), 42 KB for the 555 astable (976 to 1018 KB).
+
 ## Which hosts
 
 The server offers all of this to a client that announces the extension in its capabilities

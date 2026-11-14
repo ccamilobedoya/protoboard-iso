@@ -190,9 +190,8 @@ test('page: tapping a part focuses it and opens its card; tapping the board clea
   assert.match(rules, /\.results > \[data-part="Q1"\]/);
   assert.match(rules, /\.results > \[data-node="18:a-e"\]/);
   assert.doesNotMatch(rules, /data-part="R2"/);
-  const ghost = [...card.querySelectorAll('button')].find((b) => b.textContent === 'Ver a través');
-  ghost.click();
-  assert.match(doc.getElementById('dynamic').textContent, /\.parts > \[data-part="Q1"\], \.spotlight > \[data-part="Q1"\] \{ opacity: 0\.2; \}/);
+  // The card no longer toggles see-through (the eye opens the part up close); the state stays for timelines.
+  assert.ok(![...card.querySelectorAll('button')].some((b) => b.textContent === 'Ver a través'));
 
   front.querySelector('.board').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
   assert.ok(card.hidden);

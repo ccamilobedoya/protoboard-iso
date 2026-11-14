@@ -59,6 +59,10 @@ capacidades del anfitrión; el contexto aparte), cada `ui/update-model-context` 
 el resultado o el error (código y mensaje), los eventos `error` y `unhandledrejection`. En la configuración de Claude Desktop
 (`env` del servidor): `"PROTOBOARD_APPS_DEBUG": "1"`.
 
+El visor también tiene la vista de cerca de la pieza (el ojo de la ficha; encendida por defecto en toda
+página en vivo). Suma unos 32 KB a `page_parts` en led-resistor (571 a 603 KB) y 42 KB en el 555 astable
+(976 a 1018 KB).
+
 ## Qué anfitriones
 
 El servidor ofrece todo esto a un cliente que anuncia la extensión en sus capacidades

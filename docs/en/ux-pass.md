@@ -139,8 +139,7 @@ strip* becomes a first-time pill over the frame that goes away after the first t
 
 ### Inspector
 
-One container for every card, with a sticky header: title, ✕, and the *See through* toggle for a
-part. Order of sections: what it is (kind, value, use here) → values with a **MODEL** badge →
+One container for every card, with a sticky header: title, ✕, and, for a part with a close-up, the eye (*See the part up close*; it was a *See through* toggle until 2026-11-14). Order of sections: what it is (kind, value, use here) → values with a **MODEL** badge →
 oscilloscope → its controls → pins / leads (collapsed). With nothing selected, the inspector shows
 the **Circuit** tab: the `page.controls` sliders, the warnings (with *Clear marks*), the Falstad
 notes. A warning also lights a dot on the bar so it is never missed.

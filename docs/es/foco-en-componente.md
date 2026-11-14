@@ -500,9 +500,9 @@ de demostración con ella, `ux-shots.js` en sus cinco tamaños, `validate_contra
 accesibilidad de la barra y las leyendas. Terminada cuando el mantenedor la prueba en un celular y una
 tableta y la aprueba, y las páginas sin ella quedan idénticas byte a byte.
 
-**Cómo quedó (2026-11-01).** Se enciende en una página cuyo circuito dice `"page": { "focusView": true }`
-(o hecha con `renderPage(…, { focusView: true })`; el sitio de demostración la tiene en cada página que
-se simula); ya no hace falta `?focusView=1`. Los seis puntos, resueltos con los skills de taste y UX (una
+**Cómo quedó (2026-11-01).** Primero se encendía en una página cuyo circuito decía `"page": { "focusView": true }`;
+desde el 2026-11-14 está encendida en toda página en vivo (`"page": { "focusView": false }` la apaga) y se
+entra por el ojo del encabezado de la ficha, no por una primera fila; ya no hace falta `?focusView=1`. Los seis puntos, resueltos con los skills de taste y UX (una
 pantalla de aplicación: los tokens de la propia página, superficies planas, el borde fino que tiene su
 otro panel flotante, áreas táctiles de 44 px, nada de adornos):
 

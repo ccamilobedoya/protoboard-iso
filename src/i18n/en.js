@@ -343,7 +343,6 @@ export default {
   'page.info.with': 'with {list}',
   'page.info.alone': 'nothing else there',
   'page.info.supply': 'supply {supply} ({sign})',
-  'page.info.ghost': 'See through',
   'page.info.close': 'Close',
   'explain.voltage': 'Voltage between its two pins: the difference in energy per unit charge from one side to the other. It is what a multimeter on V would read with the red probe on the first pin and the black one on the second.',
   'explain.current': 'Current through the part: how much charge passes each second (1 mA is a thousandth of a coulomb per second). What goes in through one pin comes out of the other. A multimeter measures it in series, opening the circuit.',

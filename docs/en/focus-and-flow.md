@@ -29,8 +29,8 @@ page with those parts in focus (the ones a lesson is about).
   `description`, shown directly), and where each pin goes and what else is there ("B → c17, column 17 (rows a–e) — with R1 (2)").
 - **The card lives in the inspector**: a panel on the right on a wide screen, a bottom sheet on a
   phone (three heights: a strip with the name and the values, half, full; drag it or tap its head).
-  Its head stays at the top: the name, **See through** (the eye: makes the part transparent, to see
-  what is behind it) and **Close** (✕). On a phone with the sheet folded, a line under it shows a
+  Its head stays at the top: the name, **See the part up close** (the eye, for a part that has a close-up: a wire or a
+  development board has none; it was a see-through toggle until 2026-11-14, now that the board can be flipped) and **Close** (✕). On a phone with the sheet folded, a line under it shows a
   *MODEL* chip and the main values, each in a fixed slot so a changing value never pushes the others
   (open, the *Simulation* section says the same, so the line hides). Then what it is, its values, its oscilloscope, its controls, and the pins, folded. When the
   inspector opens over the part, the drawing moves so the part stays in view.

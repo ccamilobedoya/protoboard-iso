@@ -342,7 +342,6 @@ export default {
   'page.info.with': 'con {list}',
   'page.info.alone': 'no hay nada más ahí',
   'page.info.supply': 'fuente {supply} ({sign})',
-  'page.info.ghost': 'Ver a través',
   'page.info.close': 'Cerrar',
   'explain.voltage': 'Voltaje (tensión) entre sus dos patas: la diferencia de energía por unidad de carga entre un lado y el otro. Es lo que marcaría el multímetro en V con la punta roja en la primera pata y la negra en la segunda.',
   'explain.current': 'Corriente que atraviesa el componente: cuánta carga pasa por segundo (1 mA es una milésima de culombio por segundo). Lo que entra por una pata sale por la otra. El multímetro la mide en serie, abriendo el circuito.',

@@ -847,8 +847,8 @@ test('moves: a pin step names a pin of a part, or its mark, or none', () => {
   // The page gets the part and the pin's index (an alias read by the kit).
   const steps = loadTour(npn({ steps: anatomy }), 'en').tour.steps.filter((s) => s.do === 'pin' && s.pin);
   assert.deepEqual(steps.map((s) => [s.part, s.index]), [['Q1', 0], ['Q1', 1], ['Q1', 2]]);
-  // A page carries the pinouts its steps name, and nothing more without them.
-  const data = (tour) => JSON.parse(renderPage(npn(tour), { lang: 'en' }).html.match(/<script type="application\/json" id="page-data">([\s\S]*?)<\/script>/)[1]);
+  // Without the view up close, a page carries the pinouts its steps name, and nothing more without them.
+  const data = (tour) => JSON.parse(renderPage(npn(tour), { lang: 'en', focusView: false }).html.match(/<script type="application\/json" id="page-data">([\s\S]*?)<\/script>/)[1]);
   assert.deepEqual(Object.keys(data({ steps: anatomy }).pinouts.front), ['Q1']);
   assert.equal(data({ steps: pedestal }).pinouts, undefined);
 });
@@ -1223,12 +1223,13 @@ test('moves: M23 a regulator, a battery and a buzzer inside, from the circuit', 
   assert.ok(sounding.count('.sound') >= 1 && sounding.count('.disc.on') === 1);
 });
 
-// A part's view up close in the page (F5; page/client/focus-view.js): only in a page made with it; the
-// card's first row puts the part on its pedestal with its bar; taps on the drawing keep it there; Back
+// A part's view up close in the page (F5; page/client/focus-view.js): in every live page unless it says
+// `focusView: false`; the eye in the card's head puts the part on its pedestal with its bar; taps on the drawing keep it there; Back
 // lands it without the camera going anywhere else.
 test('moves: a part up close in the page: the card\'s entry, the bar, outside taps kept, Back without a jump', async (t) => {
-  const plain = renderPage(npn({ steps: [] }), { lang: 'en' }).html;
-  assert.doesNotMatch(plain, /"focusView":true/);
+  assert.doesNotMatch(renderPage(npn({ steps: [] }), { lang: 'en', focusView: false }).html, /"focusView":true/);
+  assert.doesNotMatch(renderPage({ ...npn({ steps: [] }), page: { focusView: false } }, { lang: 'en' }).html, /"focusView":true/, 'the circuit can turn it off');
+  assert.match(renderPage(npn({ steps: [] }), { lang: 'en' }).html, /"focusView":true/, 'on by default');
   const circuit = { ...npn({ steps: [] }), page: { focusView: true } };
   const html = renderPage(circuit, { lang: 'en' }).html;
   const data = JSON.parse(html.match(/id="page-data">([\s\S]*?)<\/script>/)[1]);
@@ -1244,12 +1245,13 @@ test('moves: a part up close in the page: the card\'s entry, the bar, outside ta
   assert.ok(dock?.hidden, 'the dock waits');
   assert.deepEqual([...dock.querySelectorAll('.segmented button')].map((b) => b.textContent), ['Pins', 'Bench', 'Symbol', 'Inside']);
   assert.deepEqual([...dock.querySelectorAll('.segmented')].map((g) => g.getAttribute('aria-label')), ['Under the part', 'Beside the part']);
-  // The card of Q1: its first row is the entry.
+  // The card of Q1: the eye in its head is the entry.
   const part = doc.querySelector('main > svg:not([hidden]) .parts [data-part="Q1"]');
   part.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-  const entry = doc.querySelector('.info .focus-open');
-  assert.equal(entry?.previousElementSibling?.className, 'head', 'right under the card\'s head');
-  assert.equal(entry.textContent, 'See the part up close');
+  assert.equal(doc.querySelector('.info .focus-open'), null, 'no row of its own any more');
+  const entry = doc.querySelector('.info .head .actions button');
+  assert.equal(entry.title, 'See the part up close');
+  assert.equal(doc.querySelectorAll('.info .head .actions button').length, 2, 'the eye and the close');
   entry.click();
   for (let k = 0; k < 30; k++) live.tick(FRAME);
   assert.equal(doc.querySelector('main').dataset.scene, 'part');

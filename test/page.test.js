@@ -309,7 +309,7 @@ test('the inspector holds the card and the circuit\'s panels: tabs, a fixed head
   assert.equal(box.dataset.tab, 'part');
   const head = plain.doc.querySelector('.info .head');
   assert.match(head.querySelector('h2').textContent, /^R1/);
-  assert.deepEqual([...head.querySelectorAll('.actions button')].map((b) => b.title), ['Ver a través', 'Cerrar'], 'see-through and close, as icons, in the head');
+  assert.deepEqual([...head.querySelectorAll('.actions button')].map((b) => b.title), ['Ver la pieza de cerca', 'Cerrar'], 'the eye (the part up close) and close, as icons, in the head');
   assert.ok(plain.doc.querySelector('.info details.pins ul > li'), 'pins folded');
   assert.match(plain.doc.querySelector('.info .summary').textContent, /^MODELO/, 'the summary starts with the MODEL chip');
   assert.equal(plain.doc.querySelectorAll('.info .summary .values > .slot').length, 3, 'one slot per value, so a change never pushes the others');

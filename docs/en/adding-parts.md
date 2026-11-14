@@ -171,7 +171,7 @@ output, the result tags, the probes and the page find it there.
 
 A part goes on its own pedestal in two places: a video about one part (`scene`, `pin`, `bench`,
 `symbol`, `inside` in a timeline, [timeline.md](timeline.md)) and the page's view up close
-(`page.focusView`, [embedding.md](embedding.md)). Both show the same five things, so a new part type
+(the page's `focusView`, [embedding.md](embedding.md)). Both show the same five things, so a new part type
 comes with all of them, and the kit's types are built up to it:
 
 | What | Where | Why |

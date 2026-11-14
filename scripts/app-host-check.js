@@ -8,7 +8,7 @@
 // default: it allows 'unsafe-eval') or the spec's restrictive default (`spec`: no eval), and starts
 // mcp/http.js on :3001 with a fresh root and PROTOBOARD_APPS=on (basic-host does not announce the
 // extension in its capabilities). Then: layout led-resistor (P1, tap R1, the current layer
-// moving; P3, the context line), layout uno-blink (P2, does the sketch
+// moving; P3, the context line; P6, a resistor and an LED up close and back), layout uno-blink (P2, does the sketch
 // run), apply_ops and the first view's page_parts with the old revision (P4), and five layouts for
 // the time from tool result to first paint (P5). Screenshots at deviceScaleFactor 2, named by step;
 // the measurements as JSON on stdout.
@@ -162,6 +162,22 @@ try {
   const context = await shown('Model Context', sentContext);
   check('P3 model context', Boolean(sentContext) && context && sentContext.length <= 300, { sent: sentContext, shownByHost: context });
   await shot('p3-host-panels');
+
+  // P6: a part up close and back (the eye in the card's head), for a resistor and an LED.
+  const upClose = {};
+  for (const id of ['R1', 'D1']) {
+    await frame1?.locator(`main > svg:not([hidden]) .parts [data-part="${id}"]`).first().click({ force: true });
+    await page.waitForTimeout(500);
+    await frame1?.locator('.info .head .actions button').first().click();
+    await page.waitForTimeout(1500);
+    const scene = await frame1?.evaluate(() => document.querySelector('main').dataset.scene ?? null);
+    await shot(`p6-${id}-close`, outer1);
+    await frame1?.locator('.focus-back').click();
+    await page.waitForTimeout(1500);
+    const after = await frame1?.evaluate(() => document.querySelector('main').dataset.scene ?? null);
+    upClose[id] = { scene, after };
+  }
+  check('P6 up close and back', Object.values(upClose).every((u) => u.scene === 'part' && u.after !== 'part'), { upClose });
 
   // P2: a board's sketch (new Function in src/sim/program.js) under this CSP.
   before = await callTool('layout', { target: 'blink', recipe: 'uno-blink' });
