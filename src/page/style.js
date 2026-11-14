@@ -41,10 +41,10 @@ const MOVE_TOKENS = Object.entries(MOVES)
   .join('\n  ');
 
 // How strong the page's background grid of holes is, against its first look (1). The board's own
-// holes compete with it when the whole board is seen from afar, so it is half. A single value:
+// holes compete with it when the whole board is seen from afar, so it is a quarter. A single value:
 // the dots of the light and dark themes are multiplied by it (--grid-strength); the engineering paper of
 // the notebook and stage themes keeps its lines, they are the look of those themes.
-export const GRID_STRENGTH = 0.5;
+export const GRID_STRENGTH = 0.25;
 
 // The inspector is a panel on the right (WIDE) or a sheet from the bottom (everything else): a screen
 // wider than 760 px, or a landscape frame of 640 px and up (a widget in a chat is wide and short).
