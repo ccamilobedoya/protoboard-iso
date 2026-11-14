@@ -142,6 +142,7 @@ node bin/protoboard-iso.js suggest <target> --part '<json>' --between <node>,<no
 node bin/protoboard-iso.js review <target> [--profile lesson|draft]   # APPROVED or CHANGES
 npm run schemas               # after changing types, boards, views or operations
 npm run test:mcp              # MCP server end-to-end (needs: cd mcp && npm install)
+node scripts/clean-install-check.js   # a fresh clone of HEAD: the README's commands, cd mcp && npm install (network), MCP over stdio incl. PNG; exit 0/1/2; not in verify (CI job clean-install runs it on Linux, macOS, Windows)
 node scripts/golden.js [--write]  # simulator output against test/fixtures/sim-golden.json (--write after an intended change)
 node scripts/frames.js [--runs 2] [--write] [--determinism]  # live page frames (Chromium) against the hashes in test/frames/; SKIPPED without a browser
 node scripts/ux-shots.js <targets…> -o <dir> [--browser-dir d] [--tap ID]  # page screenshots at five sizes, alone and in a note (docs/en/ux-pass.md)

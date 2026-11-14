@@ -9,6 +9,24 @@ detail.
 
 ## [Unreleased]
 
+### Fixed
+
+- PNG now works in the documented MCP install: `cd mcp && npm install` puts `@resvg/resvg-js` in `mcp/node_modules`, which the kit could not see from `src/`; the server now tells the kit where to look (`rasterSearchIn`). Before, `render` with `png_width` answered "PNG not available" on every fresh clone.
+- `render -o x.png` no longer writes SVG text under a `.png` name: it writes a real PNG, or fails with exit 1 and says how to get PNG.
+- The `claude mcp add` example and the MCP docs point `PROTOBOARD_ROOT` at a folder of circuits of your own, not the clone.
+
+### Added
+
+- CLI: `render --png-width`; `catalog` as the name of the catalogue (`parts` still works); `layout`, `apply` and `undo` print the page's absolute path (a line before `STATUS` for `layout`); the MCP answers of `layout`, `apply_ops`, `undo` and `render` carry it too (`pagePath` in JSON).
+- `scripts/clean-install-check.js` and the CI job `clean-install` (Linux, macOS, Windows): a fresh clone, the README's commands, `cd mcp && npm install`, the MCP server over stdio (layout, review, simulate, render with `png_width`).
+- Docs: a Claude Desktop section (the exact `claude_desktop_config.json`, an absolute `node` path with nvm, Windows paths) in `docs/en/mcp.md` and `docs/es/mcp.md`; the README states Node 22, where the page is, how to open it, a PowerShell variant and a Windows way to link the skill.
+
+### Changed
+
+- The README's "Try it in a minute" lays out `led-resistor` (an LED that is lit when simulated) instead of `npn-switch` (a button not pressed: the LED showed 0 %).
+- `SKILL.md`'s CLI block lists `check`, `nets`, `catalog` and the PNG output; the circuit-layout agent points to `catalog` for the recipes instead of repeating a list.
+- `mcp/package-lock.json` updated inside the current major (the SDK's transitive `hono` advisories are gone: `npm audit` reports none).
+
 ## [0.11.1] - 2026-11-12
 
 Recipe summaries short enough for a phone, and a touch module on a nominal 5 V supply no longer marked as near its limit.
