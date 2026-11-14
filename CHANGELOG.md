@@ -21,6 +21,7 @@ detail.
 
 ### Changed
 
+- The page's background grid of dots (light and dark themes) is half as strong, so it no longer competes with the board's own holes when the board is seen from afar (`GRID_STRENGTH` in `src/page/style.js`); the notebook and stage themes keep their paper lines.
 - The MCP App viewer no longer has the button "Ask about this part" nor sends `ui/message`: hosts show a security warning when a message lands in the user's box. It talks to the model only through the silent model-context update.
 - The README's "Try it in a minute" lays out `led-resistor` (an LED that is lit when simulated) instead of `npn-switch` (a button not pressed: the LED showed 0 %).
 - `SKILL.md`'s CLI block lists `check`, `nets`, `catalog` and the PNG output; the circuit-layout agent points to `catalog` for the recipes instead of repeating a list.

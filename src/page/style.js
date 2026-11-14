@@ -40,6 +40,12 @@ const MOVE_TOKENS = Object.entries(MOVES)
   .map(([name, m]) => `--move-${name}-ms: ${m.ms}ms;${m.curve ? ` --move-${name}-ease: cubic-bezier(${m.curve.join(', ')});` : ''}`)
   .join('\n  ');
 
+// How strong the page's background grid of holes is, against its first look (1). The board's own
+// holes compete with it when the whole board is seen from afar, so it is half. A single value:
+// the dots of the light and dark themes are multiplied by it (--grid-strength); the engineering paper of
+// the notebook and stage themes keeps its lines, they are the look of those themes.
+export const GRID_STRENGTH = 0.5;
+
 export const STYLE = `
 :root {
   ${MOVE_TOKENS}
@@ -65,7 +71,7 @@ export const STYLE = `
   --trace-v: #f5a623; --trace-v-ink: #8a5a00; --trace-i: #00e5ff; --trace-i-ink: #00687a;
   /* The grid of holes continued under the drawing (stage and video, V4; render/hole-grid.js): in
      the drawing, so it moves and scales with the board; dots on the bench, lines on the stage. */
-  --grid-dot: rgba(26, 26, 26, 0.22); --grid-dot-major: rgba(26, 26, 26, 0.38); --grid-line: transparent; --grid-line-major: transparent;
+  --grid-strength: ${GRID_STRENGTH}; --grid-dot: rgba(26, 26, 26, calc(0.22 * var(--grid-strength))); --grid-dot-major: rgba(26, 26, 26, calc(0.38 * var(--grid-strength))); --grid-line: transparent; --grid-line-major: transparent;
   /* The video's caption (V4): the face, its inks, and its sizes as a share of the frame's width. */
   --cap-face: var(--sans); --cap-ink: var(--ink); --cap-ink-2: var(--ink-3); --cap-value: var(--accent);
 }
@@ -82,7 +88,7 @@ export const STYLE = `
   --tag-v: #6fa8e8; --tag-i: #ef8a6e;
   --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
   --pulse: #fff3c4; --canvas: #121211; --veil: #121211; --cap-value: #ffb340;
-  --grid-dot: rgba(255, 255, 255, 0.18); --grid-dot-major: rgba(255, 255, 255, 0.3);
+  --grid-dot: rgba(255, 255, 255, calc(0.18 * var(--grid-strength))); --grid-dot-major: rgba(255, 255, 255, calc(0.3 * var(--grid-strength)));
 } }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -97,7 +103,7 @@ export const STYLE = `
   --tag-v: #6fa8e8; --tag-i: #ef8a6e;
   --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
   --pulse: #fff3c4; --canvas: #121211; --veil: #121211; --cap-value: #ffb340;
-  --grid-dot: rgba(255, 255, 255, 0.18); --grid-dot-major: rgba(255, 255, 255, 0.3);
+  --grid-dot: rgba(255, 255, 255, calc(0.18 * var(--grid-strength))); --grid-dot-major: rgba(255, 255, 255, calc(0.3 * var(--grid-strength)));
 }
 :root[data-theme="stage"] {
   /* The stage (V4): the notebook at night. A slate ground with the engineering grid in pale blue,
