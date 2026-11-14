@@ -69,7 +69,7 @@ test('layout answers the same text to both; the host also gets {target, revision
   const b = await host.callTool({ name: 'layout', arguments: args('led-b') });
   assert.ok(!a.isError && !b.isError, textOf(a));
   const steady = (r) => textOf(r).replace(/ \d+ ms /, ' … ms '); // the time it took differs
-  assert.equal(steady(b), steady(a).replace('led-a', 'led-b'), 'same text');
+  assert.equal(steady(b), steady(a).replaceAll('led-a', 'led-b'), 'same text');
   assert.equal(a.structuredContent, undefined);
   assert.deepEqual(b.structuredContent, { target: 'led-b', revision: 0, lang: 'es' });
 
