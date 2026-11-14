@@ -5,13 +5,14 @@
 // pages written always come from the current code, without reconnecting. Changing a tool's name or
 // its input schema still needs a reconnect: the answer says so.
 //
-// Environment: PROTOBOARD_ROOT, PROTOBOARD_LANG (see tools.js), PROTOBOARD_APPS (below).
+// Environment: PROTOBOARD_ROOT, PROTOBOARD_LANG (see tools.js), PROTOBOARD_APPS and PROTOBOARD_APPS_DEBUG (below).
 //
 // MCP Apps (app.js): a client that announces the extension also gets the viewer resource, the
 // app-only tool page_parts and, on the tools in APP_LINKED, _meta.ui.resourceUri and a small
 // structuredContent. Every other client gets exactly what it got before. PROTOBOARD_APPS=on offers
 // them to every client (a host that shows MCP Apps without announcing it, as the reference
-// basic-host does), off to none; auto (default) follows the announcement.
+// basic-host does), off to none; auto (default) follows the announcement. PROTOBOARD_APPS_DEBUG=1
+// also registers the app-only tool app_report (app.js).
 
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -19,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { Worker } from 'node:worker_threads';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { TOOLS, INSTRUCTIONS, VERSION } from './tools.js';
-import { APP_TOOLS, APP_LINKED, VIEWER, linkedMeta, supportsApps } from './app.js';
+import { APP_TOOLS, APP_LINKED, VIEWER, linkedMeta, supportsApps, renderForApps } from './app.js';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const WATCHED = [join(HERE, '..', 'src'), join(HERE, 'tools.js'), join(HERE, 'kit-worker.js'), join(HERE, 'app.js')];
@@ -105,9 +106,11 @@ async function call(name, args) {
 
 // A linked tool's handler puts the viewer's data beside its answer (`app`): it becomes the
 // result's structuredContent for a client that shows the viewer, and is dropped for any other.
+// `appNote`: one last line of text, only for that client (the model need not draw what is on screen).
 const forClient = (result, apps) => {
-  const { app, ...rest } = result ?? {};
-  return apps && app && !rest.isError ? { ...rest, structuredContent: app } : rest;
+  const { app, appNote, ...rest } = result ?? {};
+  if (!apps || !app || rest.isError) return rest;
+  return { ...rest, content: appNote ? [...(rest.content ?? []), { type: 'text', text: appNote }] : rest.content, structuredContent: app };
 };
 
 // One server per connection (stdio has one; http.js one per session); the worker is shared.
@@ -126,6 +129,7 @@ export function createServer() {
     if (!apps) return;
     for (const item of [...appOnly, viewer]) item.enabled = true;
     for (const name of APP_LINKED) tools[name]._meta = linkedMeta;
+    tools.render.description = renderForApps(tools.render.description);
   };
   return server;
 }

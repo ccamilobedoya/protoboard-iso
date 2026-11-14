@@ -34,6 +34,7 @@ Environment:
 | `PROTOBOARD_ROOT` | current directory | the only folder the server reads and writes; paths outside are refused |
 | `PROTOBOARD_LANG` | `en` | default language of answers and files (`en`, `es`); a circuit's own `"lang"` and a tool's `lang` argument win over it |
 | `PROTOBOARD_APPS` | `auto` | the circuit's live page inside hosts with MCP Apps: `auto` to a client that announces the extension, `on` to every client, `off` to none ([mcp-apps.md](mcp-apps.md)) |
+| `PROTOBOARD_APPS_DEBUG` | unset | `1`: the viewer reports what the host answers to `<root>/.app-report.jsonl` ([mcp-apps.md](mcp-apps.md)) |
 
 ## Register it
 

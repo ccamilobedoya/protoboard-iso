@@ -27,6 +27,7 @@ test('the standalone page carries no bridge to a host; the viewer carries no cir
   assert.doesNotMatch(html, /ui\/initialize|ui\/message|update-model-context|app-ask/);
   const viewer = renderAppViewer({ version: '1.2.3' });
   assert.match(viewer, /ui\/initialize/);
+  assert.doesNotMatch(viewer, /ui\/message|sendMessage/, 'the viewer never puts text in the user\'s message box');
   assert.match(viewer, /<html data-version="1\.2\.3">/);
   assert.doesNotMatch(viewer, /id="page-data"|id="sim-program"|<main>/);
   assert.doesNotMatch(viewer, /<script src|<link |https?:\/\/(?!www\.w3\.org|www\.falstad\.com)/, 'no network (the Falstad export is a link the reader opens)');

@@ -514,7 +514,7 @@ ${p.program ? `<script type="application/json" id="sim-program">${safeJson(p.pro
 // The viewer of an MCP App (mcp/app.js serves it as ui://protoboard-iso/board.html): the page's
 // fixed CSS and the live script with a bridge to the host (page/client/app.js), and no circuit.
 // The host loads it once; each tool result's circuit arrives as renderPageParts' pieces.
-const APP_STYLE = '.app-note { margin: 0; padding: 4px 10px; font-size: 13px; background: var(--canvas); color: var(--ink); border-bottom: 1px solid var(--ink-4); }\n.app-ask { margin: 8px 0 0; }';
+const APP_STYLE = '.app-note { margin: 0; padding: 4px 10px; font-size: 13px; background: var(--canvas); color: var(--ink); border-bottom: 1px solid var(--ink-4); }';
 let viewerScript = null;
 export function renderAppViewer({ version = '0' } = {}) {
   viewerScript ??= bundleScript('page/client/app-page.js', { comments: false });

@@ -35,6 +35,7 @@ Variables de entorno:
 | `PROTOBOARD_ROOT` | la carpeta actual | la única carpeta que el servidor lee y escribe; rechaza rutas fuera de ella |
 | `PROTOBOARD_LANG` | `en` | idioma por defecto de las respuestas y de los archivos (`en`, `es`); el `"lang"` del propio circuito y el argumento `lang` de cada herramienta ganan sobre él |
 | `PROTOBOARD_APPS` | `auto` | la página en vivo del circuito dentro de anfitriones con MCP Apps: `auto` a un cliente que anuncia la extensión, `on` a todo cliente, `off` a ninguno ([mcp-apps.md](mcp-apps.md)) |
+| `PROTOBOARD_APPS_DEBUG` | sin definir | `1`: el visor reporta lo que responde el anfitrión a `<raíz>/.app-report.jsonl` ([mcp-apps.md](mcp-apps.md)) |
 
 ## Registrarlo
 

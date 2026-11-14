@@ -3,7 +3,7 @@
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, writeFileSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -69,7 +69,14 @@ test('layout answers the same text to both; the host also gets {target, revision
   const b = await host.callTool({ name: 'layout', arguments: args('led-b') });
   assert.ok(!a.isError && !b.isError, textOf(a));
   const steady = (r) => textOf(r).replace(/ \d+ ms /, ' … ms '); // the time it took differs
-  assert.equal(steady(b), steady(a).replaceAll('led-a', 'led-b'), 'same text');
+  // The app client's text is the plain one plus exactly one final line: the board is already on screen.
+  const note = 'The user already sees this circuit as a live board in the chat: do not render or draw an image of it.';
+  const esNote = 'El usuario ya ve este circuito como tablero vivo en el chat: no generes ni dibujes una imagen.';
+  assert.equal(steady(b), `${steady(a).replaceAll('led-a', 'led-b')}\n${esNote}`, 'same text plus one line');
+  assert.ok(Buffer.byteLength(`\n${esNote}`) < 160 && Buffer.byteLength(`\n${note}`) < 160, 'the added line is short');
+  const en = await host.callTool({ name: 'layout', arguments: { target: 'led-en', recipe: 'led-resistor', lang: 'en' } });
+  assert.ok(textOf(en).endsWith(`\n${note}`));
+  assert.ok(!textOf(await plain.callTool({ name: 'layout', arguments: { target: 'led-en2', recipe: 'led-resistor', lang: 'en' } })).includes('live board'));
   assert.equal(a.structuredContent, undefined);
   assert.deepEqual(b.structuredContent, { target: 'led-b', revision: 0, lang: 'es' });
 
@@ -81,7 +88,7 @@ test('layout answers the same text to both; the host also gets {target, revision
   assert.equal(p.lang, 'es');
   assert.match(p.markup, /^<nav hidden>/);
   assert.ok(p.data.parts.R1 && p.program, 'part data and the program of a live page');
-  assert.equal(got.structuredContent.texts.ask, 'Preguntar por esta pieza');
+  assert.deepEqual(Object.keys(got.structuredContent.texts), ['context', 'newer']);
   assert.ok(Buffer.byteLength(textOf(got)) < 100, 'the text of page_parts stays small');
 });
 
@@ -109,5 +116,56 @@ test('PROTOBOARD_APPS=on offers the viewer to a host that does not announce it; 
   } finally {
     await on.close();
     await off.close();
+  }
+});
+
+test('render does not push a model that sees the board to PNG; other clients keep the description', async () => {
+  const render = (r) => r.tools.find((t) => t.name === 'render').description;
+  const a = render(await plain.listTools());
+  const b = render(await host.listTools());
+  assert.match(a, /Add png_width to also get a PNG/);
+  assert.ok(!/png_width/.test(b) && /already sees the circuit as a live board/.test(b), b);
+});
+
+test('app_report exists only with PROTOBOARD_APPS_DEBUG=1 and an app client; it writes capped lines inside the root', async () => {
+  const names = async (c) => (await c.listTools()).tools.map((t) => t.name);
+  assert.ok(!(await names(host)).includes('app_report'), 'not without the variable');
+  const debugRoot = mkdtempSync(join(tmpdir(), 'protoboard-app-debug-'));
+  const env = { PROTOBOARD_ROOT: debugRoot, PROTOBOARD_APPS_DEBUG: '1' };
+  const plainDebug = await connect({}, { ...env, PROTOBOARD_APPS: 'auto' });
+  const hostDebug = await connect(UI, env);
+  try {
+    assert.ok(!(await names(plainDebug)).includes('app_report'), 'not for a client without MCP Apps');
+    const refused = await plainDebug.callTool({ name: 'app_report', arguments: { event: 'x' } }).catch(() => ({ isError: true }));
+    assert.ok(refused.isError, 'not callable');
+    assert.ok(!existsSync(join(debugRoot, '.app-report.jsonl')));
+    const tool = (await hostDebug.listTools()).tools.find((t) => t.name === 'app_report');
+    assert.deepEqual(tool._meta.ui.visibility, ['app']);
+    const file = join(debugRoot, '.app-report.jsonl');
+    const r = await hostDebug.callTool({ name: 'app_report', arguments: { event: 'ui/initialize', detail: { hostInfo: { name: 'h' } } } });
+    assert.ok(!r.isError, textOf(r));
+    const lines = readFileSync(file, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.equal(lines.length, 1);
+    assert.equal(lines[0].event, 'ui/initialize');
+    assert.deepEqual(lines[0].detail, { hostInfo: { name: 'h' } });
+    assert.ok(!Number.isNaN(Date.parse(lines[0].t)));
+    // detail is cut at 4 KB
+    await hostDebug.callTool({ name: 'app_report', arguments: { event: 'big', detail: 'x'.repeat(20000) } });
+    const big = JSON.parse(readFileSync(file, 'utf8').trim().split('\n')[1]);
+    assert.ok(Buffer.byteLength(big.detail) < 4200 && big.detail.endsWith('[cut]'));
+    // the file stops growing at 256 KB
+    writeFileSync(file, 'x'.repeat(256 * 1024));
+    await hostDebug.callTool({ name: 'app_report', arguments: { event: 'late' } });
+    assert.equal(statSync(file).size, 256 * 1024);
+    // page_parts tells the viewer that debugging is on; the path is fixed in the root
+    await hostDebug.callTool({ name: 'layout', arguments: { target: 'd', recipe: 'led-resistor' } });
+    const parts = await hostDebug.callTool({ name: 'page_parts', arguments: { target: 'd' } });
+    assert.equal(parts.structuredContent.debug, true);
+    assert.ok(!existsSync(join(debugRoot, '..', '.app-report.jsonl')));
+    const off = await host.callTool({ name: 'page_parts', arguments: { target: 'led-b' } });
+    assert.equal(off.structuredContent.debug, undefined);
+  } finally {
+    await plainDebug.close();
+    await hostDebug.close();
   }
 });

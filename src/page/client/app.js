@@ -8,9 +8,14 @@
 // page_parts for that revision's pieces (src/page.js, renderPageParts), mounts them into its own
 // document and starts the page. The pieces never pass through the model.
 //
-// Two ways back to the conversation, both short: tapping a part updates the model's context
-// (ui/update-model-context: one line, debounced, at most CONTEXT_MAX characters), and the button
-// "Ask about this part" in the part's card sends a chat message (ui/message).
+// One way back to the conversation, and a silent one: tapping a part updates the model's context
+// (ui/update-model-context: one line, debounced, at most CONTEXT_MAX characters). The viewer never
+// sends a message (ui/message): hosts show those under a security warning in the user's message
+// box. It was tried and removed (docs/en/mcp-apps.md).
+//
+// Debugging (the server runs with PROTOBOARD_APPS_DEBUG=1 and says so with the pieces): the viewer
+// reports what the host answers (ui/initialize, every context update, errors) through the app-only tool app_report. Nobody can open the devtools of a
+// host from the server, so the answer has to travel the other way.
 
 export const PROTOCOL = '2026-01-26';
 export const CONTEXT_MAX = 300;
@@ -29,7 +34,7 @@ export function createBridge(win, target = win.parent) {
       const w = waiting.get(m.id);
       if (!w) return;
       waiting.delete(m.id);
-      if (m.error) w.reject(new Error(m.error.message ?? String(m.error)));
+      if (m.error) w.reject(Object.assign(new Error(m.error.message ?? String(m.error)), { code: m.error.code }));
       else w.resolve(m.result);
       return;
     }
@@ -88,9 +93,41 @@ export function partLine(page, id) {
   return { part: id, about: about.join(', ') };
 }
 
+// The viewer's reports to the server. Until the pieces say whether debugging is on, they wait.
+export function createReporter(bridge) {
+  let on = null;
+  let count = 0;
+  const waiting = [];
+  const send = (event, detail) => bridge.request('tools/call', { name: 'app_report', arguments: { event, detail } }).catch(() => {});
+  return {
+    enable(flag) {
+      on = Boolean(flag);
+      for (const [event, detail] of waiting.splice(0)) if (on) send(event, detail);
+    },
+    report(event, detail) {
+      if (on === false || ++count > 300) return;
+      if (on === null) waiting.length < 40 && waiting.push([event, detail]);
+      else send(event, detail);
+    },
+  };
+}
+
+// A request to the host, with what it sent and what came back (result or error) reported.
+const asking = (bridge, app, method, params, sent) =>
+  bridge.request(method, params).then(
+    (result) => {
+      app.report(method, { sent, result: result ?? null });
+      return result;
+    },
+    (e) => {
+      app.report(method, { sent, error: { code: e.code ?? null, message: e.message } });
+      throw e;
+    },
+  );
+
 const clip = (text, max) => (text.length <= max ? text : `${text.slice(0, max - 1)}…`);
 
-// The page's extension inside a host: the context line and the card's button.
+// The page's extension inside a host: the context line.
 export function appExtension(bridge, app) {
   return (page) => {
     let timer = null;
@@ -101,28 +138,11 @@ export function appExtension(bridge, app) {
       if (text === sent) return;
       sent = text;
       app.contexts.push(text);
-      bridge.request('ui/update-model-context', { content: text ? [{ type: 'text', text }] : [] }).catch(() => {});
+      asking(bridge, app, 'ui/update-model-context', { content: text ? [{ type: 'text', text }] : [] }, text).catch(() => {});
     };
     const before = page.cardChanged;
     page.cardChanged = () => {
       before?.();
-      const id = page.open;
-      if (id && !id.startsWith('node:') && !page.info.hidden && page.data.parts[id]) {
-        const row = document.createElement('p');
-        row.className = 'app-ask';
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'link';
-        b.textContent = app.texts.ask;
-        b.addEventListener('click', () => {
-          const line = partLine(page, id);
-          const text = fill(app.texts.question, { ...line, target: app.target });
-          app.messages.push(text);
-          bridge.request('ui/message', { role: 'user', content: [{ type: 'text', text }] }).catch(() => {});
-        });
-        row.appendChild(b);
-        page.info.appendChild(row);
-      }
       clearTimeout(timer);
       timer = setTimeout(update, 400);
     };
@@ -133,7 +153,14 @@ export function appExtension(bridge, app) {
 export function startApp(win, startPage, liveExtensions) {
   const doc = win.document;
   const bridge = createBridge(win);
-  const app = { target: null, contexts: [], messages: [], times: {}, texts: null, error: null };
+  const app = { target: null, contexts: [], times: {}, texts: null, error: null };
+  const reporter = createReporter(bridge);
+  app.report = reporter.report;
+  // Anything that goes wrong in the viewer, as the host would hide it.
+  let errors = 0;
+  const failed = (what, e) => errors++ < 10 && app.report(what, { message: e?.message ?? String(e), stack: String(e?.stack ?? '').slice(0, 600) });
+  win.addEventListener('error', (e) => failed('error', e.error ?? { message: e.message }));
+  win.addEventListener('unhandledrejection', (e) => failed('unhandledrejection', e.reason));
   win.protoboardApp = app; // read by tests (scripts/app-host-check.js)
   const say = (text) => {
     const p = doc.createElement('p');
@@ -160,6 +187,7 @@ export function startApp(win, startPage, liveExtensions) {
       // Another revision's pieces, as this view would ask for them (tests: scripts/app-host-check.js).
       app.fetchParts = (revision) => bridge.request('tools/call', { name: 'page_parts', arguments: { target: asked.target, revision, lang: asked.lang } }).then((r) => ({ revision: r.structuredContent?.parts?.revision, latest: r.structuredContent?.latest, values: Object.fromEntries(Object.entries(r.structuredContent?.parts?.data?.parts ?? {}).map(([id, part]) => [id, part.value?.text ?? null])) }));
       app.texts = got.texts;
+      reporter.enable(got.debug);
       app.revision = got.parts.revision;
       mount(doc, got.parts);
       startPage([...(got.parts.script === 'live' ? liveExtensions : []), appExtension(bridge, app)]);
@@ -174,8 +202,13 @@ export function startApp(win, startPage, liveExtensions) {
     .request('ui/initialize', { appInfo: { name: 'protoboard-iso', version: doc.documentElement.dataset.version ?? '0' }, appCapabilities: {}, protocolVersion: PROTOCOL })
     .then((answer) => {
       context = { ...(answer?.hostContext ?? {}) };
+      app.report('ui/initialize', { protocolVersion: answer?.protocolVersion, hostInfo: answer?.hostInfo, hostCapabilities: answer?.hostCapabilities });
+      app.report('ui/initialize.hostContext', answer?.hostContext);
       bridge.notify('ui/notifications/initialized', {});
     })
-    .catch((e) => (app.error = e.message));
+    .catch((e) => {
+      app.error = e.message;
+      app.report('ui/initialize', { error: { code: e.code ?? null, message: e.message } });
+    });
   return app;
 }

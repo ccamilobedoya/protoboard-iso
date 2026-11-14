@@ -21,14 +21,42 @@ current one is rebuilt from the history (each change carries its inverse: `circu
 `src/node/workspace.js`), so a view keeps showing the circuit it was made for; it says when a newer
 revision exists.
 
-Back to the conversation, two short things:
+Back to the conversation, one silent thing:
 
 - Tapping a part updates the model's context (`ui/update-model-context`) with one line, at most 300
   characters, 400 ms after the last tap: the part, its value and, with the results on, its voltage
   and current as the card shows them ("Open on the board: R1, Resistance: 330 Ω, Voltage: 7.08 V,
   Current: 21.5 mA.").
-- The part's card has a button **Ask about this part**, which sends a chat message (`ui/message`).
-  The standalone page never shows it: the bridge is only in the viewer's script.
+- The viewer sends no chat message (`ui/message`). It had a button "Ask about this part" that did;
+  in Claude Desktop it fills the user's message box under a banner ("Use caution before running this
+  prompt…"), which breeds distrust, so it was tried and removed. The viewer talks to the model only
+  through the silent context update above. The standalone page never has the bridge: it is only in
+  the viewer's script.
+- The specification (2026-01-26) defines no host capability for `ui/update-model-context`
+  (`HostCapabilities` lists `openLinks`, `serverTools`, `serverResources`, `logging`, `sandbox`), so
+  there is nothing to check before sending. It says a host MAY defer the context until the user's next
+  message, MAY dedupe it, and answers an error `-32000` if it denies it. Whether the model sees the
+  line is what the debug report below shows.
+
+## For a model that sees the board
+
+A client that gets the viewer receives one more final line in `layout`'s text, saying the user already
+sees the circuit as a live board in the chat, so the model should not render or draw an image (about
+100 bytes: "The user already sees this circuit as a live board in the chat: do not render or draw an
+image of it."). Its `render` description drops the advice on `png_width`. Any other client gets the
+same text and descriptions as before.
+
+## Diagnostics
+
+Nobody can open a host's devtools from the server, so the viewer can report to it. With
+`PROTOBOARD_APPS_DEBUG=1` the server also registers the app-only tool `app_report { event, detail }`
+(only for a client that gets the viewer; without the variable the tool does not exist) and tells the
+viewer with the pieces. Each report is a JSON line `{t, event, detail}` appended to
+`<PROTOBOARD_ROOT>/.app-report.jsonl`; the file stops growing at 256 KB and `detail` is cut at 4 KB.
+The viewer reports: the result of `ui/initialize` (host info and capabilities; the host context apart),
+every `ui/update-model-context` with the text sent and the result or the error (code and message),
+`error` and `unhandledrejection` events.
+In Claude Desktop's config (`env` of the server): `"PROTOBOARD_APPS_DEBUG": "1"`.
 
 ## Which hosts
 
@@ -47,7 +75,7 @@ Tested with the reference `basic-host` only. Claude Desktop and claude.ai are un
   the split); `renderAppViewer` is the fixed viewer.
 - `src/page/client/app.js`: the bridge, hand-written (JSON-RPC 2.0 over `postMessage`: `ui/initialize`,
   `ui/notifications/initialized`, the tool's result, `tools/call`, `ui/update-model-context`,
-  `ui/message`, `ui/notifications/size-changed`), about 180 lines, instead of bundling
+  `ui/notifications/size-changed`), about 180 lines, instead of bundling
   `@modelcontextprotocol/ext-apps`: no new dependency and nothing for the licence check. Entry:
   `app-page.js`, which starts the page explicitly once the pieces are in the document.
 - `mcp/app.js` (the resource, `page_parts`, which tools link the viewer); `mcp/core.js` offers them by

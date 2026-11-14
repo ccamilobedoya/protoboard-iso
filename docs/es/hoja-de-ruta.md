@@ -442,7 +442,7 @@ después de revisar licencias y datos privados.
 - ⬜ `AGENTS.md` (ver «Circuitos con un modelo pequeño»)
 
 **G · El circuito dentro de la conversación (MCP Apps)** 🔜
-- ✅ Piloto (2026-11-14): `layout` muestra la página en vivo en anfitriones con MCP Apps (recurso del visor, `page_parts` solo para la app, revisión fijada desde el historial, una línea de contexto al tocar y «Preguntar por esta pieza»); probado en el `basic-host` de referencia ([mcp-apps.md](mcp-apps.md))
+- ✅ Piloto (2026-11-14): `layout` muestra la página en vivo en anfitriones con MCP Apps (recurso del visor, `page_parts` solo para la app, revisión fijada desde el historial y una línea silenciosa de contexto al tocar); probado en el `basic-host` de referencia ([mcp-apps.md](mcp-apps.md))
 - ⬜ El programa de una placa sin `unsafe-eval` (un intérprete, o el programa avanzado en el servidor): hoy no corre con la CSP por defecto de la especificación
 - ⬜ Un `page_parts` más pequeño (hoy 430–980 KB; Claude puede guardar como archivo los resultados de más de unos 150 000 caracteres) y una prueba en Claude Desktop
 

@@ -8,7 +8,7 @@
 // default: it allows 'unsafe-eval') or the spec's restrictive default (`spec`: no eval), and starts
 // mcp/http.js on :3001 with a fresh root and PROTOBOARD_APPS=on (basic-host does not announce the
 // extension in its capabilities). Then: layout led-resistor (P1, tap R1, the current layer
-// moving; P3, the context line and "Ask about this part"), layout uno-blink (P2, does the sketch
+// moving; P3, the context line), layout uno-blink (P2, does the sketch
 // run), apply_ops and the first view's page_parts with the old revision (P4), and five layouts for
 // the time from tool result to first paint (P5). Screenshots at deviceScaleFactor 2, named by step;
 // the measurements as JSON on stdout.
@@ -142,7 +142,7 @@ try {
   const drawn = frame1 ? await frame1.evaluate(() => ({ svgs: document.querySelectorAll('main > svg').length, parts: document.querySelectorAll('[data-part]').length, height: innerHeight })) : null;
   await frame1?.locator('main > svg:not([hidden]) [data-part="R1"]').first().click({ force: true });
   await page.waitForTimeout(700);
-  const card = frame1 ? await frame1.evaluate(() => ({ title: document.querySelector('.info h2')?.textContent, lines: [...document.querySelectorAll('.info .terms li')].map((li) => li.textContent), ask: document.querySelector('.app-ask button')?.textContent ?? null })) : null;
+  const card = frame1 ? await frame1.evaluate(() => ({ title: document.querySelector('.info h2')?.textContent, lines: [...document.querySelectorAll('.info .terms li')].map((li) => li.textContent) })) : null;
   await shot('p1-2-card', outer1);
   check('P1 board', Boolean(first.painted && drawn?.svgs && drawn.parts), { drawn, error: first.error });
   check('P1 tap', card?.title === 'R1' || /R1/.test(card?.title ?? ''), { card });
@@ -154,20 +154,13 @@ try {
   const b = await shot('p1-4-current-b', boardBox);
   check('P1 current moves', !a.equals(b), { differ: !a.equals(b) });
 
-  // P3: the context line the host received, then "Ask about this part".
+  // P3: the context line the host received, .
   const hostText = async () => page.evaluate(() => document.body.textContent);
   const sentContext = await frame1?.evaluate(() => window.protoboardApp.contexts.at(-1));
   // The host shows each in a folded panel: its label and the first characters of the text.
   const shown = async (label, text) => Boolean(text) && (await hostText()).includes(label) && (await hostText()).includes(text.slice(0, 40));
   const context = await shown('Model Context', sentContext);
   check('P3 model context', Boolean(sentContext) && context && sentContext.length <= 300, { sent: sentContext, shownByHost: context });
-  await frame1?.locator('main > svg:not([hidden]) [data-part="R1"]').first().click({ force: true }).catch(() => {});
-  await page.waitForTimeout(300);
-  if (!(await frame1?.locator('.app-ask button').count())) await frame1?.locator('main > svg:not([hidden]) [data-part="R1"]').first().click({ force: true });
-  await frame1?.locator('.app-ask button').click();
-  await page.waitForTimeout(500);
-  const asked = await frame1?.evaluate(() => window.protoboardApp.messages.at(-1));
-  check('P3 message', await shown('Messages', asked), { sent: asked });
   await shot('p3-host-panels');
 
   // P2: a board's sketch (new Function in src/sim/program.js) under this CSP.

@@ -362,7 +362,7 @@ server.registerTool(
       : createTarget(full, result.circuit, { author, note, lang: lang ?? 'en', outputLang });
     if (saved.errors.length) return { isError: true, content: [{ type: 'text', text: saved.errors.map((e) => formatIssue(e, lang)).join('\n') }] };
     // `app`: the viewer's data, for a client that shows MCP Apps (core.js; never in the text).
-    return { ...text(`${formatLayout(result, out, { t, formatIssue })}\n${rel(full)} · rev ${saved.revision}${pageLine(saved.files, out)}`), app: appView(rel(full), saved.revision, out) };
+    return { ...text(`${formatLayout(result, out, { t, formatIssue })}\n${rel(full)} · rev ${saved.revision}${pageLine(saved.files, out)}`), app: appView(rel(full), saved.revision, out), appNote: t(out, 'app.layoutNote') };
   }),
 );
 

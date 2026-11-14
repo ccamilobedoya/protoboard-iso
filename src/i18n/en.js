@@ -705,9 +705,8 @@ export default {
   'page.gesture.wheel': 'Use Ctrl (⌘ on a Mac) + scroll to zoom',
   'page.hint.results': 'Tap a part or a strip to see what it is and its simulated values',
   'page.revision': 'revision {revision}',
-  'page.app.ask': 'Ask about this part',
   'page.app.context': 'Open on the board: {part}, {about}.',
-  'page.app.question': 'About {part} ({about}) in the circuit {target}: what does it do here, and why this value?',
+  'app.layoutNote': 'The user already sees this circuit as a live board in the chat: do not render or draw an image of it.',
   'page.app.newer': 'Revision {revision} as it was; the circuit is now at revision {latest}.',
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):
   protoboard-iso layout <target> [spec.json|-] [--check] [--expect-revision n]   # the whole circuit placed from its parts and nets; an existing target is laid out again (docs/en/layout.md)
