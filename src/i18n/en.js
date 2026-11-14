@@ -702,7 +702,7 @@ export default {
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):
   protoboard-iso layout <target> [spec.json|-] [--check] [--expect-revision n]   # the whole circuit placed from its parts and nets; an existing target is laid out again (docs/en/layout.md)
   protoboard-iso layout <target> --recipe <name> [--values '<json>']   # a lesson circuit by name (docs/en/recipes.md)
-  protoboard-iso render <target> [-o out.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
+  protoboard-iso render <target> [-o out.svg|out.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <target> [--transient stop[,step]] [--start zero|dc] [--lang en|es] [--json]
   protoboard-iso page <target> [-o page.html] [--lang en|es] [--fit parts|board]
   protoboard-iso inspect <target> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
@@ -716,8 +716,11 @@ export default {
   protoboard-iso review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
   protoboard-iso undo <target> [--author name] [--json]
   protoboard-iso history <target> [--json]
-  protoboard-iso parts [name] [--lang en|es]`,
+  protoboard-iso catalog [name] [--lang en|es]   # what the kit knows: part types, modules, boards, recipes (parts works too)`,
   'cli.written': 'Written {file} ({parts} parts, {issues} issues).',
+  'cli.page': 'Page: {file} (open it in a browser)',
+  'cli.pngMissing': 'PNG output needs @resvg/resvg-js: run `cd mcp && npm install` in the kit folder, or write an .svg name instead.',
+  'cli.pngWidthNeedsPng': '--png-width only applies when the output name ends in .png.',
   'cli.noIssues': 'No problems found.',
   'cli.unknownOption': 'Unknown option {option}.',
   'cli.missingValue': 'The option {option} needs a value after it.',

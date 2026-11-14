@@ -701,7 +701,7 @@ export default {
   'cli.usage': `Uso (<objetivo> = un archivo de circuito o una carpeta con circuit.json):
   protoboard-iso layout <objetivo> [spec.json|-] [--check] [--expect-revision n]   # el circuito entero, ubicado a partir de sus componentes y redes; si ya existe, se vuelve a montar (docs/es/montaje-automatico.md)
   protoboard-iso layout <objetivo> --recipe <nombre> [--values '<json>']   # un circuito de clase por su nombre (docs/es/recetas.md)
-  protoboard-iso render <objetivo> [-o salida.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
+  protoboard-iso render <objetivo> [-o salida.svg|salida.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <objetivo> [--transient fin[,paso]] [--start zero|dc] [--lang en|es] [--json]
   protoboard-iso page <objetivo> [-o pagina.html] [--lang en|es] [--fit parts|board]
   protoboard-iso inspect <objetivo> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
@@ -715,8 +715,11 @@ export default {
   protoboard-iso review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]
   protoboard-iso undo <objetivo> [--author nombre] [--json]
   protoboard-iso history <objetivo> [--json]
-  protoboard-iso parts [nombre] [--lang en|es]`,
+  protoboard-iso catalog [nombre] [--lang en|es]   # lo que el kit conoce: tipos, módulos, placas, recetas (parts también funciona)`,
   'cli.written': 'Escrito {file} ({parts} componentes, {issues} observaciones).',
+  'cli.page': 'Página: {file} (ábrela en un navegador)',
+  'cli.pngMissing': 'La salida PNG necesita @resvg/resvg-js: ejecuta `cd mcp && npm install` en la carpeta del kit, o usa un nombre .svg.',
+  'cli.pngWidthNeedsPng': '--png-width solo aplica cuando el nombre de salida termina en .png.',
   'cli.noIssues': 'Sin problemas.',
   'cli.unknownOption': 'Opción desconocida: {option}.',
   'cli.missingValue': 'La opción {option} necesita un valor después.',

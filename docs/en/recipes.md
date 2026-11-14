@@ -81,7 +81,7 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `esp32-bme280` | ESP32 DevKit with a BME280 board on 3V3 and GPIO22/21: `begin(0x76)`, then temperature, pressure in hPa, humidity and altitude every second; environment with the pressure (range 900–1050 hPa) | U1 = its sketch |
 | `uno-bmp280-altitude` | Arduino UNO with a BMP280 board on its 3.3 V pin (the board has no regulator) and A4/A5, printing the altitude; Wire's pull-ups to 5 V would lift the bus to about 3.68 V, over the chip's 3.6 V (VDDIO + 0.3 V), so the sketch turns them off after `begin()` (the board itself has no regulator, so on 5 V the chip would be over its 4.25 V absolute maximum) (`digitalWrite(A4, LOW)`, `digitalWrite(A5, LOW)`) and the bus idles at 3.3 V (the ATmega328P's datasheet asks 0.7 × VCC = 3.5 V as a high on its I2C pins, so it usually works but is outside the specification: a level shifter or a 3.3 V board is correct) (a static solve, which stops inside `begin()`, still says `SIM_PIN_OVER_VDDIO`); environment pressure (range 700–1050 hPa) | U1 = its sketch |
 
-`parts` (CLI) lists them with their titles; the compact `catalog` (MCP) lists only their names, by group (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), to stay short; `catalog` with a recipe's name (`parts
+`catalog` (CLI; `parts` still works) lists them with their titles; the compact `catalog` (MCP) lists only their names, by group (`basics`, `transistors`, `power`, `timing`, `op-amps`, `boards`, `sensors`, `sensor-modules`), to stay short; `catalog` with a recipe's name (`catalog
 <name>` in the CLI) shows its title and group, what it teaches, its parts, nets, supply, and each value's role and limits.
 
 ## Values

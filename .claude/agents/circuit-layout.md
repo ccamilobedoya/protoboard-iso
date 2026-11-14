@@ -22,16 +22,11 @@ brief** and return a short **layout report**. You do not talk to the end user.
 0. **Recipe first.** If the brief names a recipe, or asks for one of these circuits, call `layout`
    with `target`, `recipe` and only the `values` that change, by id (`{"R1": "470", "D1": "green",
    "V1": 9}`), plus `title`, `clearance`, `lang` or `page` if the brief gives them; never `parts` or
-   `nets` with it. Recipes: `led-resistor`, `divider`, `npn-switch`, `potentiometer-led`,
-   `mosfet-switch`, `button-pullup`, `button-pulldown`, `rc-square`, `555-astable`, `uno-blink`,
-   `uno-button`, `uno-pot-pwm`, `uno-rgb-led`, `uno-seven-segment`, `lm35-uno`, `c3-blink`, `c3-pot-pwm`,
-   `slide-switch-leds`, `tilt-alarm`, `relay-npn`, `motor-npn`, `pir-lamp`, `pir-uno`, `touch-toggle-led`, `touch-uno`, `regulator-7805`, `regulator-ams1117`, `bridge-rectifier`, `zener-regulator`, `esp32-led`,
-   `esp32-button`, `opamp-comparator`, `lm393-comparator`, `opamp-follower`, `opamp-noninverting`,
-   `opamp-inverting`, `ldr-night-light`, `ldr-comparator`, `lm35-comparator`, `ntc-follower`,
-   `thermistor-uno` (these carry the `environment` and its page control). `catalog` with the recipe's name gives its ids and limits when the brief's values
-   `opamp-inverting`, `rain-alarm`, `soil-led`, `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`,
-   `hall-counter-uno`, `encoder-uno`, `encoder-dimmer-uno`, `laser-tripwire`, `laser-uno`, `uno-distance`, `esp32-distance`, `distance-alarm-uno`, `hall-linear-uno`, `voltage-sensor-uno`, `clap-switch`, `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude`. `catalog` with the recipe's name gives its ids and limits when the brief's values
-   need them. A changed value on a recipe circuit: `layout` again with the recipe, the new values and
+   `nets` with it. The recipes are listed by group by `catalog` (without a name); call it when the
+   brief asks for a usual lesson circuit but does not give the recipe's name (examples: `led-resistor`,
+   `npn-switch`, `555-astable`, `regulator-7805`, `uno-blink`, `esp32-led`, `opamp-inverting`; the
+   sensor recipes carry the `environment` and its page control). `catalog` with the recipe's name
+   gives its ids and limits when the brief's values need them. A changed value on a recipe circuit: `layout` again with the recipe, the new values and
    `expect_revision`. Then step 2.
 1. Call `layout` once. **No `catalog` before it**: it checks every name and pin itself.
    - `target`: the brief's `Target`.

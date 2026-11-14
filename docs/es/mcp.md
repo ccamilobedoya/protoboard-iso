@@ -42,16 +42,57 @@ Si `node` no está en el PATH con el que arranca Claude Code (por ejemplo, con n
 con rutas absolutas en tu alcance local; tiene prioridad sobre `.mcp.json`:
 
 ```bash
-claude mcp add --scope local protoboard-iso -e PROTOBOARD_ROOT=$PWD -e PROTOBOARD_LANG=es \
+claude mcp add --scope local protoboard-iso -e PROTOBOARD_ROOT="$HOME/circuits" -e PROTOBOARD_LANG=es \
   -- "$(command -v node)" "$PWD/mcp/server.js"
 claude mcp get protoboard-iso     # debe decir: Connected
 ```
 
-Para usarlo desde otro proyecto (por ejemplo, la carpeta de un curso con sus propios
-circuitos), corre el mismo comando desde ese proyecto con `PROTOBOARD_ROOT` apuntando a él.
+Córrelo desde el clon (`$PWD/mcp/server.js`). `PROTOBOARD_ROOT` es una carpeta tuya para los
+circuitos (`mkdir "$HOME/circuits"` antes), no el clon; para guardarlos con un proyecto (por ejemplo, la
+carpeta de un curso), apúntalo a esa carpeta.
 
-**Claude Desktop y otros clientes:** un servidor stdio con el comando `node`, como argumento
-la ruta absoluta de `mcp/server.js`, y las variables de arriba.
+**Otros clientes:** un servidor stdio con el comando `node`, como argumento la ruta absoluta de
+`mcp/server.js`, y las variables de arriba.
+
+### Claude Desktop
+
+Abre el archivo desde **Settings > Developer > Edit Config** (crea `claude_desktop_config.json`
+si no existe y muestra dónde está), agrega el servidor en `mcpServers`, guarda, y cierra Claude
+Desktop por completo y vuélvelo a abrir:
+
+```json
+{
+  "mcpServers": {
+    "protoboard-iso": {
+      "command": "node",
+      "args": ["/ruta/absoluta/a/protoboard-iso/mcp/server.js"],
+      "env": {
+        "PROTOBOARD_ROOT": "/ruta/absoluta/a/mis-circuitos",
+        "PROTOBOARD_LANG": "es"
+      }
+    }
+  }
+}
+```
+
+- `args` lleva la ruta absoluta de `mcp/server.js` dentro del clon, después de `cd mcp && npm install`.
+- `PROTOBOARD_ROOT` es una carpeta tuya donde se guardarán los circuitos (créala antes). **No** es
+  el clon: el servidor solo lee y escribe dentro de ella.
+- `PROTOBOARD_LANG` es `en` o `es`.
+- Claude Desktop arranca el servidor con su propio PATH. Si `node` está instalado con nvm (u otro
+  gestor de versiones) puede que no lo encuentre: pon la ruta absoluta de `node` en `command`
+  (`command -v node` la muestra en macOS y Linux; `where node` en Windows).
+- En Windows escribe las rutas con barras invertidas dobles o con barras normales:
+
+```json
+"command": "C:\\Program Files\\nodejs\\node.exe",
+"args": ["C:\\protoboard-iso\\mcp\\server.js"],
+"env": { "PROTOBOARD_ROOT": "C:/mis-circuitos" }
+```
+
+Cada circuito es una carpeta bajo la raíz; la página de cada uno es `out/<nombre>.html` dentro de
+ella, y cada respuesta de `layout`, `apply_ops` y `undo` dice su ruta absoluta: haz doble clic
+para abrirla.
 
 ## Herramientas
 
