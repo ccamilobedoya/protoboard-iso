@@ -43,6 +43,7 @@ import { createBoard, boardLayout, BOARDS } from '../src/board/board.js';
 import { autoLayout, formatLayout, specFromCircuit, specProblems } from '../src/layout.js';
 import { RECIPES, resolveRecipe } from '../src/recipes/index.js';
 import { formatBoardLayout } from '../src/board/layout-text.js';
+import { appView } from './app.js';
 import { compactCatalog, catalogSuggestions, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
 
 // The rasteriser `cd mcp && npm install` puts in mcp/node_modules, which the kit cannot see from src/.
@@ -360,7 +361,8 @@ server.registerTool(
       ? relayoutTarget(full, result.circuit, { expectRevision, author, note, lang: lang ?? 'en', outputLang })
       : createTarget(full, result.circuit, { author, note, lang: lang ?? 'en', outputLang });
     if (saved.errors.length) return { isError: true, content: [{ type: 'text', text: saved.errors.map((e) => formatIssue(e, lang)).join('\n') }] };
-    return text(`${formatLayout(result, out, { t, formatIssue })}\n${rel(full)} · rev ${saved.revision}${pageLine(saved.files, out)}`);
+    // `app`: the viewer's data, for a client that shows MCP Apps (core.js; never in the text).
+    return { ...text(`${formatLayout(result, out, { t, formatIssue })}\n${rel(full)} · rev ${saved.revision}${pageLine(saved.files, out)}`), app: appView(rel(full), saved.revision, out) };
   }),
 );
 

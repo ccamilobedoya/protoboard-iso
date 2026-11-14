@@ -6,6 +6,7 @@
         "scripts/*.js",
         "src/page/client/live-page.js",
         "src/page/client/static-page.js",
+        "src/page/client/app-page.js",
         ".claude/hooks/*.js",
         "test/**/*.test.js"
       ],
@@ -20,6 +21,7 @@
     "mcp": {
       "entry": [
         "kit-worker.js",
+        "http.js",
         "test/**/*.test.js"
       ],
       "project": [

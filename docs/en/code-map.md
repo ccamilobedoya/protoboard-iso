@@ -120,7 +120,8 @@ page (page.js) = interactive SVG per view + JSON for the card ─▶ out/<name>.
 | `sim/compile.js`, `sim/engine.js` | compile: circuit → program (plain JSON, Node only); engine: runs a program (no dependencies, bundled into pages); `set` carries over the keys of `STATE` and those a device lists in `state`; `advance(h)` ends a step on each element's `until()` inside h (a program waking from a delay, `pulseIn`'s timeout, a sensor's edge) |
 | `i18n/` | every sentence; `pickLanguage` decides the language |
 | `bin/protoboard-iso.js` | command line |
-| `mcp/server.js`, `mcp/tools.js`, `mcp/kit-worker.js` | MCP server (own package): `tools.js` defines the tools, which call the same functions; `server.js` registers them and runs them in a worker it restarts when the kit's code changes |
+| `mcp/server.js`, `mcp/core.js`, `mcp/tools.js`, `mcp/kit-worker.js` | MCP server (own package): `tools.js` defines the tools, which call the same functions; `core.js` registers them and runs them in a worker it restarts when the kit's code changes; `server.js` serves it over stdio |
+| `mcp/app.js`, `mcp/http.js`, `src/page/client/app.js`, `app-page.js` | MCP Apps ([mcp-apps.md](mcp-apps.md)): the viewer resource (`renderAppViewer`), the app-only `page_parts` (`renderPageParts`, `circuitAt` for an older revision), the viewer's bridge to the host; `http.js` serves the same server on 127.0.0.1 for testing (`scripts/app-host-check.js`) |
 
 ## Conventions that are easy to break
 

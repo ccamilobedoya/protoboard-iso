@@ -120,7 +120,8 @@ página (page.js) = un SVG interactivo por vista + JSON para la ficha ─▶ out
 | `sim/compile.js`, `sim/engine.js` | compilar: circuito → programa (JSON plano, solo Node); motor: corre un programa (sin dependencias, va dentro de las páginas); `set` lleva las claves de `STATE` y las que un dispositivo lista en `state`; `advance(h)` termina un paso en cada `until()` de un elemento que cae dentro de h (un programa que despierta de un delay, el timeout de `pulseIn`, el flanco de un sensor) |
 | `i18n/` | todas las frases; `pickLanguage` decide el idioma |
 | `bin/protoboard-iso.js` | línea de comandos |
-| `mcp/server.js`, `mcp/tools.js`, `mcp/kit-worker.js` | servidor MCP (paquete propio): `tools.js` define las herramientas, que llaman a las mismas funciones; `server.js` las registra y las corre en un *worker* que reinicia cuando cambia el código del kit |
+| `mcp/app.js`, `mcp/http.js`, `src/page/client/app.js`, `app-page.js` | MCP Apps ([mcp-apps.md](mcp-apps.md)): el recurso del visor (`renderAppViewer`), `page_parts` solo para la app (`renderPageParts`, `circuitAt` para una revisión anterior), el puente del visor con el anfitrión; `http.js` sirve el mismo servidor en 127.0.0.1 para probar (`scripts/app-host-check.js`) |
+| `mcp/server.js`, `mcp/core.js`, `mcp/tools.js`, `mcp/kit-worker.js` | servidor MCP (paquete propio): `tools.js` define las herramientas, que llaman a las mismas funciones; `core.js` las registra y las corre en un *worker* que reinicia cuando cambia el código del kit; `server.js` lo sirve por stdio |
 
 ## Convenciones fáciles de romper
 

@@ -9,7 +9,9 @@ layer over the same functions as the CLI (see [agent-interface.md](agent-interfa
 
 It lives in its own package (`mcp/package.json`) because it needs the MCP SDK and Zod; the
 kit itself stays dependency-free. The tools are defined in `mcp/tools.js`; `mcp/server.js`
-registers them and runs their handlers in a worker thread (`mcp/kit-worker.js`).
+registers them and runs their handlers in a worker thread (`mcp/kit-worker.js`); the server
+itself is `mcp/core.js`. In a host with MCP Apps, `layout` also shows the circuit's live page in the
+conversation: [mcp-apps.md](mcp-apps.md).
 
 **It reloads the kit by itself.** Before each call the server checks whether the kit's code
 (`src/`, `mcp/tools.js`) changed since its worker started; if so it starts a new worker, so the
@@ -31,6 +33,7 @@ Environment:
 |---|---|---|
 | `PROTOBOARD_ROOT` | current directory | the only folder the server reads and writes; paths outside are refused |
 | `PROTOBOARD_LANG` | `en` | default language of answers and files (`en`, `es`); a circuit's own `"lang"` and a tool's `lang` argument win over it |
+| `PROTOBOARD_APPS` | `auto` | the circuit's live page inside hosts with MCP Apps: `auto` to a client that announces the extension, `on` to every client, `off` to none ([mcp-apps.md](mcp-apps.md)) |
 
 ## Register it
 

@@ -48,6 +48,25 @@ export function readHistory(paths) {
     .map((line) => JSON.parse(line));
 }
 
+// The circuit as it was at an earlier revision: the current one with the inverse of every later
+// change applied, newest first (each history line carries its inverse). Null when the history
+// does not reach that far back or an inverse does not apply.
+export function circuitAt(paths, revision) {
+  const current = loadCircuit(paths);
+  const now = current.revision ?? 0;
+  if (revision === now) return current;
+  if (!Number.isInteger(revision) || revision < 0 || revision > now) return null;
+  const later = readHistory(paths).filter((h) => h.revision > revision).sort((a, b) => b.revision - a.revision);
+  if (later.length !== now - revision || later.some((h) => !Array.isArray(h.inverse))) return null;
+  let circuit = current;
+  for (const entry of later) {
+    const result = applyOps(circuit, entry.inverse);
+    if (result.errors.length) return null;
+    circuit = result.circuit;
+  }
+  return withFolder({ ...circuit, revision }, paths);
+}
+
 function saveCircuit(paths, circuit) {
   writeFileSync(paths.circuitFile, `${JSON.stringify(circuit, null, 2)}\n`);
 }

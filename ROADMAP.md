@@ -435,6 +435,11 @@ package. Planned on 2026-10-26 after a review of licences and private data.
 - ⬜ Skill evaluations: a few requests ("an LED with its resistor on 9 V") that must end in `review` APPROVED, to check that the skill triggers and that a small model uses it well
 - ⬜ `AGENTS.md` (see "Circuits with a small model")
 
+**G · The circuit inside the conversation (MCP Apps)** 🔜
+- ✅ Pilot (2026-11-14): `layout` shows the live page in hosts with MCP Apps (viewer resource, app-only `page_parts`, revision pinning from the history, a context line on tap and "Ask about this part"); checked in the reference `basic-host` ([mcp-apps.md](docs/en/mcp-apps.md))
+- ⬜ A board's sketch without `unsafe-eval` (an interpreter, or the program stepped in the server): today it does not run under the specification's default CSP
+- ⬜ Smaller `page_parts` (430–980 KB today; Claude may store results over about 150,000 characters as files) and a check in Claude Desktop
+
 **F · Launch**
 - ⬜ Release published, demo online, a short announcement with the GIF
 

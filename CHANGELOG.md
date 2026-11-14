@@ -15,12 +15,14 @@ detail.
 - `scripts/clean-install-check.js` and the CI job `clean-install` (Linux, macOS, Windows): a fresh clone, the README's commands, `cd mcp && npm install`, the MCP server over stdio (layout, review, simulate, render with `png_width`).
 - Docs: a Claude Desktop section (the exact `claude_desktop_config.json`, an absolute `node` path with nvm, Windows paths) in `docs/en/mcp.md` and `docs/es/mcp.md`; the README states Node 22, where the page is, how to open it, a PowerShell variant and a Windows way to link the skill.
 - `review` lists electrical hazards (`hazards`): each stress the simulator's DC point takes past a maximum, as `simulate` reports it. They do not block; the verdict is `approved-with-warnings` (APPROVED WITH WARNINGS, «APROBADO CON AVISOS»), with a section "As wired, this would damage:" and a line of guidance. `layout` ends in `STATUS: WARNINGS` (exit 0) for it, and the agent reports use `WARNINGS` too. Transient peaks (PWM, a 555, a generator) are not found.
+- MCP Apps, a pilot: in a host that supports the extension, `layout` shows the circuit's live page inside the conversation (resource `ui://protoboard-iso/board.html`, app-only tool `page_parts`, which rebuilds an older revision from the history). Tapping a part updates the model's context in one line; the card's "Ask about this part" sends a message. Offered only to a client that announces the extension (`PROTOBOARD_APPS=on|off|auto`); any other client gets the same tools and answers. `mcp/http.js` serves the server on 127.0.0.1 for testing, `scripts/app-host-check.js` drives the reference host. A board's sketch does not run under the specification's default CSP (it needs `unsafe-eval`). See `docs/en/mcp-apps.md`.
 
 ### Changed
 
 - The README's "Try it in a minute" lays out `led-resistor` (an LED that is lit when simulated) instead of `npn-switch` (a button not pressed: the LED showed 0 %).
 - `SKILL.md`'s CLI block lists `check`, `nets`, `catalog` and the PNG output; the circuit-layout agent points to `catalog` for the recipes instead of repeating a list.
 - `mcp/package-lock.json` updated inside the current major (the SDK's transitive `hono` advisories are gone: `npm audit` reports none).
+- `src/page.js`: `renderPageParts` returns a page's per-circuit pieces and `renderPage` composes the same document from them (byte-identical); the MCP server itself moved to `mcp/core.js` (`mcp/server.js` is its stdio entry).
 
 ### Fixed
 

@@ -10,7 +10,9 @@ de la línea de comandos (ver [interfaz-para-agentes.md](interfaz-para-agentes.m
 
 Vive en su propio paquete (`mcp/package.json`) porque necesita el SDK de MCP y Zod; el kit en
 sí sigue sin dependencias. Las herramientas se definen en `mcp/tools.js`; `mcp/server.js` las
-registra y corre sus funciones en un hilo aparte (*worker*, `mcp/kit-worker.js`).
+registra y corre sus funciones en un hilo aparte (*worker*, `mcp/kit-worker.js`); el servidor
+mismo es `mcp/core.js`. En un anfitrión con MCP Apps, `layout` además muestra la página en vivo del
+circuito en la conversación: [mcp-apps.md](mcp-apps.md).
 
 **Recarga el kit solo.** Antes de cada llamada, el servidor mira si el código del kit (`src/`,
 `mcp/tools.js`) cambió desde que arrancó su *worker*; si cambió, arranca uno nuevo, así que las
@@ -32,6 +34,7 @@ Variables de entorno:
 |---|---|---|
 | `PROTOBOARD_ROOT` | la carpeta actual | la única carpeta que el servidor lee y escribe; rechaza rutas fuera de ella |
 | `PROTOBOARD_LANG` | `en` | idioma por defecto de las respuestas y de los archivos (`en`, `es`); el `"lang"` del propio circuito y el argumento `lang` de cada herramienta ganan sobre él |
+| `PROTOBOARD_APPS` | `auto` | la página en vivo del circuito dentro de anfitriones con MCP Apps: `auto` a un cliente que anuncia la extensión, `on` a todo cliente, `off` a ninguno ([mcp-apps.md](mcp-apps.md)) |
 
 ## Registrarlo
 
