@@ -165,6 +165,13 @@ entran por la pata. El transitorio trae `times` y las mismas magnitudes como lis
 | `SIM_IC_SUPPLY` | un chip alimentado por encima de su máximo (555: 16 V; LM358: 32 V; 741: 36 V en total) |
 | `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | un componente que todavía no se simula (los chips que no son el 555), o una referencia sin modelo propio |
 
+`review` corre este mismo análisis en DC y lista como **peligro** (`hazards`) cada esfuerzo que pasa
+su límite (los códigos que nombran un componente y un máximo: `SIM_OVER_CURRENT`, `SIM_OVER_POWER`,
+`SIM_REVERSE_VOLTAGE`, `SIM_IC_SUPPLY`, …; no los de la fuente, nodos flotantes ni notas): el veredicto
+pasa a APROBADO CON AVISOS, sin bloquear, y `layout` termina en `STATUS: WARNINGS`. Lee solo el punto en
+DC, así que un pico que muestra el transitorio (un pin PWM, la salida de un 555, una onda del generador)
+no lo encuentra.
+
 ## Modelos
 
 Todos en `src/sim/models.js`, cada uno comprobado una vez en `test/sim.test.js` contra una

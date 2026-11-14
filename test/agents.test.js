@@ -64,7 +64,7 @@ test('report status: the last line, checked against the report', () => {
   const review = (verdict, status) => `REVIEW REPORT\nTarget: led · revision 2 · profile lesson\nVerdict: ${verdict}\nNotes: none\nSTATUS: ${status}\n`;
   assert.deepEqual(reportStatus(review('APPROVED', 'APPROVED')), { kind: 'REVIEW REPORT', status: 'APPROVED' });
   assert.match(reportStatus(review('CHANGES', 'APPROVED')).error, /Verdict says CHANGES/);
-  assert.match(reportStatus(review('APPROVED', 'DONE')).error, /ends in APPROVED \| CHANGES/);
+  assert.match(reportStatus(review('APPROVED', 'DONE')).error, /ends in APPROVED \| WARNINGS \| CHANGES/);
   assert.match(reportStatus('LAYOUT REPORT\nReview: CHANGES (2 blocking) · notes: 1\nSTATUS: DONE').error, /not DONE/);
   assert.equal(reportStatus('Here it is:\n```text\nLAYOUT REPORT\nReview: APPROVED · notes: 0\nOpen: nothing\nSTATUS: DONE\n```\n').status, 'DONE', 'inside a code block');
   assert.match(reportStatus('LAYOUT REPORT\nOpen: nothing').error, /last line/);

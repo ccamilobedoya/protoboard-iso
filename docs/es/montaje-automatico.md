@@ -339,12 +339,13 @@ quien lea solo la última línea (sobre todo un modelo pequeño) sabe qué hacer
 | `STATUS:` | Significa | Sigue |
 |---|---|---|
 | `DONE` | están todas las redes, nada quedó sin ubicar y la revisión aprueba | reportar |
+| `WARNINGS` | armado y con las redes bien, pero un componente se dañaría tal como está conectado (⚠): la revisión es aprobada con avisos | decirle primero al usuario cuál componente y por qué se quema; dejarlo solo si esa es la idea, si no ofrecer el arreglo |
 | `CHANGES` | se creó, pero una red, una ubicación o la revisión dejaron algo (✖) | arreglar solo eso con `suggest` y `apply_ops`, luego `review` |
 | `FIX_SPEC` | no se creó nada: la especificación tiene errores | arreglar cada ✖ y volver a llamar |
 | `SPEC_OK` | `check_only`: la especificación es coherente | volver a llamar sin él |
 
 Antes del 2026-10-20 el texto terminaba con el veredicto de la revisión, que podía decir APROBADO
-con una red sin conectar. La consola sale con 0 solo con `DONE` (1 con `FIX_SPEC`, 2 con `CHANGES`).
+con una red sin conectar. La consola sale con 0 con `DONE` y `WARNINGS` (1 con `FIX_SPEC`, 2 con `CHANGES`).
 
 ## Los números que lo gobiernan
 

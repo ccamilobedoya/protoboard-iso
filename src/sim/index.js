@@ -16,6 +16,7 @@ import { compile } from './compile.js';
 import { createEngine } from './engine.js';
 import { lookupModule } from '../parts/modules.js';
 import { FIELDS, createEnvironment, environmentControls } from './environment.js';
+import { stressIssue } from './devices/shared.js';
 
 
 export { compile, createEngine };
@@ -26,6 +27,20 @@ export function simulate(circuit, options = {}) {
   if (compiled.fatal) return { analysis, model: true, ok: false, issues: compiled.issues };
   const engine = createEngine(compiled.program);
   return analysis === 'transient' ? engine.transient(options) : engine.dc();
+}
+
+// The parts that would be damaged as wired: the DC operating point (the one `simulate` prints
+// without --transient), every stress past its limit (ratio above 1, what the simulator calls
+// exceeded) as the warning `simulate` gives for it. Empty when the circuit cannot be simulated (no
+// source, placement errors, no convergence). A PWM pin, a 555 or a generator is judged at its DC
+// point only: a peak a transient shows is not found here.
+export function hazards(circuit) {
+  const compiled = compile(circuit);
+  if (compiled.fatal) return [];
+  const engine = createEngine(compiled.program);
+  const reading = engine.dc();
+  if (!reading.ok) return [];
+  return Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
 }
 
 // What `check` says about the controls panel (page.controls): each entry must name a part or a

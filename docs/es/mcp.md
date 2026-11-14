@@ -104,12 +104,12 @@ para abrirla.
 | `inspect` | el dibujo en números; `part` para un solo componente | no |
 | `query` | `kind: at \| node \| free` con `ref` | no |
 | `netlist` | el circuito como redes: grupos unidos por cables, las patas de cada una (`R1.1@d20`), etiquetas, patas solas en su red | no |
-| `layout` | un circuito de clase habitual por su nombre: `recipe` y solo los `values` que cambian ([recetas.md](recetas.md)); si no, un circuito entero ubicado en una llamada a partir de sus componentes (sin agujeros, en el orden de la señal; números de parte, módulos y alias) y sus redes (patas y rieles; valen los nombres de pata usuales: `D1.K`, `U1.VIN`, `U1.GPIO4`): capas por distancia a la fuente, reglas por tipo de pieza, cables, redes de tierra a un riel −, la revisión de redes y la revisión lesson, con reintentos y reparación cable por cable. Sobre un destino que ya existe, lo vuelve a montar en una sola revisión dando solo lo que cambia (`expect_revision`; las piezas conservan sus agujeros; `undo` lo deshace). Las redes quedan en el circuito (`spec`). Termina en `STATUS: DONE \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` solo revisa. El algoritmo: [montaje-automatico.md](montaje-automatico.md) | sí |
+| `layout` | un circuito de clase habitual por su nombre: `recipe` y solo los `values` que cambian ([recetas.md](recetas.md)); si no, un circuito entero ubicado en una llamada a partir de sus componentes (sin agujeros, en el orden de la señal; números de parte, módulos y alias) y sus redes (patas y rieles; valen los nombres de pata usuales: `D1.K`, `U1.VIN`, `U1.GPIO4`): capas por distancia a la fuente, reglas por tipo de pieza, cables, redes de tierra a un riel −, la revisión de redes y la revisión lesson, con reintentos y reparación cable por cable. Sobre un destino que ya existe, lo vuelve a montar en una sola revisión dando las redes nuevas y, si cambian componentes, la lista completa (`expect_revision`; las piezas conservan sus agujeros; `undo` lo deshace). Las redes quedan en el circuito (`spec`). Termina en `STATUS: DONE \| WARNINGS \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` solo revisa. El algoritmo: [montaje-automatico.md](montaje-automatico.md) | sí |
 | `suggest` | posiciones válidas para un componente nuevo, cada una con su operación `add` y el cuerpo más cercano (`nearest`: componente y holgura); `profile` deja fuera también lo que esa revisión bloquea; `parts` coloca varios en orden y responde un solo lote | no |
 | `apply_ops` | lote atómico; primero `dry_run`, luego `expect_revision`, `author`, `note` | sí |
 | `try_ops` | el mismo lote, solo en seco: qué arreglaría y qué introduciría; para los roles de solo lectura (el revisor) | no |
 | `undo` | deshace el último cambio (revisión nueva) | sí |
-| `review` | APROBADO o CAMBIOS a partir de mediciones, perfil `lesson` o `draft`; cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `explain: true` agrega las reglas del perfil; un circuito con `spec` también tiene sus redes revisadas | no |
+| `review` | APROBADO, APROBADO CON AVISOS (`hazards`: componentes que la simulación en DC pasa de un máximo; no bloquean) o CAMBIOS a partir de mediciones, perfil `lesson` o `draft`; cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `explain: true` agrega las reglas del perfil; un circuito con `spec` también tiene sus redes revisadas | no |
 | `history` | revisiones, autores, notas, operaciones | no |
 | `render` | escribe el SVG; con `png_width` devuelve también una imagen PNG; con `page: true` reescribe la página para embeber ([embeber.md](embeber.md)); con `sim: true` dibuja los resultados de la simulación; `focus: [ids]` atenúa lo demás; `flow: true` la capa de corriente | solo salidas |
 | `simulate` | voltajes de los grupos y corrientes de los componentes, un modelo ([simulacion.md](simulacion.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` agrega el enlace que abre el circuito en Falstad ([falstad.md](falstad.md)) | no |
@@ -145,7 +145,7 @@ layout    {target: "interruptor", nets: <spec.nets con un cambio>, expect_revisi
                                      → … STATUS: DONE · rev 1 (todo lo demás en su lugar)
 apply_ops {target, ops: [{op: "set", part: "R2", value: "470"}], dry_run: true} → qué arregla / qué introduce
 apply_ops {target, ops, expect_revision: 1, author: "claude", note: "LED menos brillante"} → rev 2
-review    {target}                   → APROBADO (redes revisadas contra el spec)
+review    {target}                   → APROBADO (redes revisadas contra el spec; APROBADO CON AVISOS si un componente se quemaría)
 undo      {target}                   → rev 3, R2 vuelve a 330
 ```
 

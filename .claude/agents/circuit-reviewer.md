@@ -32,9 +32,11 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
   made by the layout tool keeps its nets (`spec`): `review` already blocks a net that is no longer connected
   (`SPEC_NET_MISSING`); a fix for that is a jumper; if the connections changed on purpose, say that the circuit
   must be laid out again with the new nets (the layout agent's job, not yours).
-- With a source, `simulate` once: a short, a part over its limit or a floating group is blocking
-  even when `review` approves. Report warnings only, **never values** (a value may be waiting for a
-  learner's prediction).
+- With a source, `simulate` once: a short or a floating group is blocking even when `review`
+  approves. A part over its limit is a hazard (`review` lists it, verdict APPROVED WITH WARNINGS):
+  it does not block and is not a fix round; report it prominently, naming part, value and limit,
+  with `Verdict: WARNINGS`. Otherwise report warnings only, **never values** (a value may be waiting
+  for a learner's prediction).
 - Keep advisory notes short: at most five, the most useful first.
 
 ## Review report (reply format)
@@ -42,13 +44,13 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
 ```text
 REVIEW REPORT
 Target: <target> · revision <n> · profile <profile>
-Verdict: APPROVED | CHANGES
+Verdict: APPROVED | WARNINGS | CHANGES
 Blocking:
   - <issue> → fix: <ops JSON, dry-run checked: fixes …, introduces nothing>
 Connections: <ok | what is wrong>
 Simulation: <runs, no warnings | warnings | no source>
 Notes: <up to five>
-STATUS: APPROVED | CHANGES
+STATUS: APPROVED | WARNINGS | CHANGES
 ```
 
 The last line is always `STATUS:`, the same word as `Verdict`. `node scripts/report-status.js`

@@ -11,8 +11,8 @@ import { pathToFileURL } from 'node:url';
 
 // The words each kind of report may end with.
 export const STATUSES = {
-  'LAYOUT REPORT': ['DONE', 'CHANGES', 'BLOCKED'],
-  'REVIEW REPORT': ['APPROVED', 'CHANGES'],
+  'LAYOUT REPORT': ['DONE', 'WARNINGS', 'CHANGES', 'BLOCKED'],
+  'REVIEW REPORT': ['APPROVED', 'WARNINGS', 'CHANGES'],
   'PARTS REPORT': ['DONE', 'BLOCKED'],
 };
 
