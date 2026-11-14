@@ -11,6 +11,7 @@
 
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve, relative, join, sep, basename } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 
 import {
@@ -30,7 +31,7 @@ import { formatChange } from '../src/diff.js';
 import { queryAt, queryNode, queryFree, suggest, suggestMany } from '../src/query.js';
 import { formatAt, formatNode, formatFree, formatSuggest, formatSuggestMany } from '../src/query-format.js';
 import { resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget, relayoutTarget, writePage } from '../src/node/workspace.js';
-import { svgToPng, rasterAvailable } from '../src/node/raster.js';
+import { svgToPng, rasterAvailable, rasterSearchIn } from '../src/node/raster.js';
 import { review, formatReview, PROFILES } from '../src/review.js';
 import { simulate } from '../src/sim/index.js';
 import { pickLanguage } from '../src/i18n/index.js';
@@ -43,6 +44,9 @@ import { autoLayout, formatLayout, specFromCircuit, specProblems } from '../src/
 import { RECIPES, resolveRecipe } from '../src/recipes/index.js';
 import { formatBoardLayout } from '../src/board/layout-text.js';
 import { compactCatalog, catalogSuggestions, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
+
+// The rasteriser `cd mcp && npm install` puts in mcp/node_modules, which the kit cannot see from src/.
+rasterSearchIn(fileURLToPath(new URL('.', import.meta.url)));
 
 const ROOT = resolve(process.env.PROTOBOARD_ROOT ?? process.cwd());
 const DEFAULT_LANG = LANGUAGES[process.env.PROTOBOARD_LANG] ? process.env.PROTOBOARD_LANG : 'en';
@@ -83,7 +87,9 @@ function existing(target) {
 const text = (s) => ({ content: [{ type: 'text', text: s }] });
 const json = (value) => text(JSON.stringify(value, null, 2));
 const answer = (format, value, readable) => (format === 'json' ? json(value) : text(readable()));
-const relFiles = (files) => (files ? Object.fromEntries(Object.entries(files).map(([k, v]) => [k, rel(v)])) : files);
+// Paths relative to the root, plus where the page is as an absolute path (to open by double-click).
+const relFiles = (files) => (files ? { ...Object.fromEntries(Object.entries(files).map(([k, v]) => [k, rel(v)])), ...(files.pageFile && { pagePath: resolve(files.pageFile) }) } : files);
+const pageLine = (files, lang) => (files?.pageFile ? `\n${t(lang ?? 'en', 'cli.page', { file: resolve(files.pageFile) })}` : '');
 
 // Language of every answer and every file written: the `lang` the tool was called with, else
 // the circuit's own "lang", else PROTOBOARD_LANG. Resolved here once for all tools; the
@@ -354,7 +360,7 @@ server.registerTool(
       ? relayoutTarget(full, result.circuit, { expectRevision, author, note, lang: lang ?? 'en', outputLang })
       : createTarget(full, result.circuit, { author, note, lang: lang ?? 'en', outputLang });
     if (saved.errors.length) return { isError: true, content: [{ type: 'text', text: saved.errors.map((e) => formatIssue(e, lang)).join('\n') }] };
-    return text(`${formatLayout(result, out, { t, formatIssue })}\n${rel(full)} · rev ${saved.revision}`);
+    return text(`${formatLayout(result, out, { t, formatIssue })}\n${rel(full)} · rev ${saved.revision}${pageLine(saved.files, out)}`);
   }),
 );
 
@@ -379,7 +385,7 @@ server.registerTool(
     const { full } = existing(target);
     const result = applyToTarget(full, ops, { dryRun: dry_run, expectRevision: expect_revision, author, note, views, lang, outputLang });
     const out = { ...result, circuit: undefined, files: relFiles(result.files) };
-    const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }));
+    const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }) + pageLine(result.files, lang));
     return result.errors.length ? { ...response, isError: true } : response;
   }),
 );
@@ -462,7 +468,7 @@ server.registerTool(
     const { full } = existing(target);
     const result = undoTarget(full, { author, lang, outputLang });
     const out = { ...result, files: relFiles(result.files) };
-    const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }));
+    const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }) + pageLine(result.files, lang));
     return result.errors.length ? { ...response, isError: true } : response;
   }),
 );
@@ -513,9 +519,9 @@ server.registerTool(
     const file = join(paths.outDir, `${paths.name}.${view}${fit === 'parts' ? '.zoom' : ''}${annotate ? '.annotated' : ''}${sim ? '.sim' : ''}${focus?.length ? '.focus' : ''}${flow ? '.flow' : ''}.svg`);
     writeFileSync(file, svg);
     const pageFile = page ? writePage(paths, circuit, { lang }).pageFile : null;
-    const content = [{ type: 'text', text: JSON.stringify({ svg: rel(file), ...(pageFile && { page: rel(pageFile) }), bytes: Buffer.byteLength(svg), issues: issues.length }) }];
+    const content = [{ type: 'text', text: JSON.stringify({ svg: rel(file), ...(pageFile && { page: rel(pageFile), pagePath: resolve(pageFile) }), bytes: Buffer.byteLength(svg), issues: issues.length }) }];
     if (png_width) {
-      if (!(await rasterAvailable())) content.push({ type: 'text', text: 'PNG not available: install @resvg/resvg-js.' });
+      if (!(await rasterAvailable())) content.push({ type: 'text', text: 'PNG not available: @resvg/resvg-js is not installed (run npm install in the mcp/ folder).' });
       else content.push({ type: 'image', mimeType: 'image/png', data: Buffer.from(await svgToPng(svg, { width: png_width })).toString('base64') });
     }
     return { content };
