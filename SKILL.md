@@ -220,5 +220,5 @@ node bin/protoboard-iso.js page <target> · catalog [name]   # catalog: every ty
 A target is a circuit folder (`circuit.json`, `history.jsonl`, `out/`) or a circuit file.
 Exit codes: 0 fine (`layout`: `DONE`), 1 errors or refused, 2 review `CHANGES`. `layout`, `apply`
 and `undo` print where the page is (an absolute path) as the line before `STATUS` (`layout`) or
-the last line. PNG needs `@resvg/resvg-js` (`npm install` in the kit folder; the MCP server finds
-the one in `mcp/`): the CLI and the MCP `png_width` do the same.
+the last line. PNG needs `@resvg/resvg-js` (`cd mcp && npm install` in the kit folder; the CLI and the MCP
+server both find it there): the CLI and the MCP `png_width` do the same.

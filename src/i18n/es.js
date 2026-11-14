@@ -718,7 +718,7 @@ export default {
   protoboard-iso catalog [nombre] [--lang en|es]   # lo que el kit conoce: tipos, módulos, placas, recetas (parts también funciona)`,
   'cli.written': 'Escrito {file} ({parts} componentes, {issues} observaciones).',
   'cli.page': 'Página: {file} (ábrela en un navegador)',
-  'cli.pngMissing': 'La salida PNG necesita @resvg/resvg-js: ejecuta `npm install` en la carpeta del kit, o usa un nombre .svg.',
+  'cli.pngMissing': 'La salida PNG necesita @resvg/resvg-js: ejecuta `cd mcp && npm install` en la carpeta del kit, o usa un nombre .svg.',
   'cli.pngWidthNeedsPng': '--png-width solo aplica cuando el nombre de salida termina en .png.',
   'cli.noIssues': 'Sin problemas.',
   'cli.unknownOption': 'Opción desconocida: {option}.',

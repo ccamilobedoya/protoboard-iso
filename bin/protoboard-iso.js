@@ -6,7 +6,8 @@
 //             2 review says CHANGES.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join, resolve, extname } from 'node:path';
+import { join, resolve, extname, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { renderCircuit, inspectCircuit, formatReport, checkCircuit, formatIssue, PART_TYPES, PART_NUMBERS, t } from '../src/index.js';
 import { pickLanguage } from '../src/i18n/index.js';
 import { formatChange } from '../src/diff.js';
@@ -20,7 +21,7 @@ import { parseValue } from '../src/core/units.js';
 import { resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory, writePage, createTarget, relayoutTarget } from '../src/node/workspace.js';
 import { autoLayout, formatLayout, specFromCircuit, specProblems } from '../src/layout.js';
 import { resolveRecipe } from '../src/recipes/index.js';
-import { svgToPng, rasterAvailable } from '../src/node/raster.js';
+import { svgToPng, rasterAvailable, rasterSearchIn } from '../src/node/raster.js';
 import { catalogEntry, formatCatalogEntry, compactCatalog, recipeLine } from '../src/node/catalog.js';
 
 // Strict: an option nobody knows, or one whose value is missing, is an error (args.errors), so a
@@ -91,6 +92,9 @@ function readOps(args, source) {
   const parsed = JSON.parse(text);
   return Array.isArray(parsed) ? parsed : [parsed];
 }
+
+// The rasteriser may be where the MCP install put it (cd mcp && npm install).
+rasterSearchIn(join(dirname(fileURLToPath(import.meta.url)), '..', 'mcp'));
 
 const args = parseArgs(process.argv.slice(2));
 const [command, target, extra, extra2] = args._;

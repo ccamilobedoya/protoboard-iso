@@ -17,7 +17,7 @@ const CANDIDATES = [
   'C:\\Windows\\Fonts\\arial.ttf',
 ];
 
-export const RASTER_MISSING = 'PNG output needs @resvg/resvg-js: run `npm install` in the kit folder (the MCP server: `npm install` in its mcp/ folder).';
+export const RASTER_MISSING = 'PNG output needs @resvg/resvg-js: run `cd mcp && npm install` in the kit folder.';
 
 let resvg;
 const extraRoots = [];

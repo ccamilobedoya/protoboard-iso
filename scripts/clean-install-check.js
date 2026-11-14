@@ -122,6 +122,12 @@ async function main(work) {
   }
   check(/^(APPROVED|APROBADO) /m.test(last), 'README: the last command (review) approves the circuit');
 
+  // 2b. Before any install the CLI cannot make a PNG: it says so readably and writes nothing.
+  const cliFile = join(clone, 'bin', 'protoboard-iso.js');
+  const png = join(work, 'cli.png');
+  const cli = run(process.execPath, [cliFile, 'render', join(clone, splitArgs(lines[0])[3]), '-o', png], { cwd: clone });
+  check(cli.status !== 0 && !existsSync(png) && /cd mcp && npm install/.test(cli.stderr), 'CLI before any install: render -o x.png fails readably (exit != 0, no file)', `${cli.status} ${cli.stderr}`);
+
   // 3. The documented MCP install. Only this step needs the network.
   const install = run('npm', ['install', '--no-audit', '--no-fund'], { cwd: join(clone, 'mcp') });
   if (install.status !== 0) {
@@ -133,11 +139,13 @@ async function main(work) {
   check(true, 'cd mcp && npm install');
   check(!existsSync(join(clone, 'node_modules')), 'still no node_modules at the clone root (the case that broke PNG)');
 
-  // 4. (The circuit the README's first command made.) The CLI never writes SVG text under a .png name (it may fail when nothing is installed at the root).
-  const png = join(work, 'cli.png');
-  const cli = run(process.execPath, [join(clone, 'bin', 'protoboard-iso.js'), 'render', join(clone, splitArgs(lines[0])[3]), '-o', png], { cwd: clone });
-  if (cli.status === 0) check(readFileSync(png).subarray(0, 8).equals(PNG_SIGNATURE), 'CLI: render -o x.png writes a real PNG');
-  else check(!existsSync(png) && /npm install/.test(cli.stderr), 'CLI: render -o x.png fails with a readable message and writes nothing', cli.stderr);
+  // 4. After it, the same CLI command writes a real PNG (the rasteriser is found under mcp/).
+  const png2 = join(work, 'cli2.png');
+  const cli2 = run(process.execPath, [cliFile, 'render', join(clone, splitArgs(lines[0])[3]), '-o', png2, '--png-width', '600'], { cwd: clone });
+  if (check(cli2.status === 0 && existsSync(png2), 'CLI after the MCP install: render -o x.png --png-width 600 succeeds', cli2.stderr)) {
+    const bytes = readFileSync(png2);
+    check(bytes.subarray(0, 8).equals(PNG_SIGNATURE) && bytes.readUInt32BE(16) === 600, 'CLI: the file is a PNG 600 px wide');
+  }
 
   // 5. The MCP server over stdio, with the SDK the install put in the clone.
   const sdk = createRequire(join(clone, 'mcp', 'package.json'));

@@ -521,7 +521,7 @@ server.registerTool(
     const pageFile = page ? writePage(paths, circuit, { lang }).pageFile : null;
     const content = [{ type: 'text', text: JSON.stringify({ svg: rel(file), ...(pageFile && { page: rel(pageFile), pagePath: resolve(pageFile) }), bytes: Buffer.byteLength(svg), issues: issues.length }) }];
     if (png_width) {
-      if (!(await rasterAvailable())) content.push({ type: 'text', text: 'PNG not available: @resvg/resvg-js is not installed (run npm install in the mcp/ folder).' });
+      if (!(await rasterAvailable())) content.push({ type: 'text', text: 'PNG not available: @resvg/resvg-js is not installed (run cd mcp && npm install).' });
       else content.push({ type: 'image', mimeType: 'image/png', data: Buffer.from(await svgToPng(svg, { width: png_width })).toString('base64') });
     }
     return { content };
