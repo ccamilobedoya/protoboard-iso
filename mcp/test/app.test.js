@@ -8,6 +8,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { fetchPageParts } from '../../src/page/client/app.js';
+import { RESULT_MAX } from '../app.js';
 
 const root = mkdtempSync(join(tmpdir(), 'protoboard-app-'));
 const UI = { extensions: { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } } };
@@ -19,6 +21,15 @@ const connect = async (capabilities, env = {}) => {
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [new URL('../server.js', import.meta.url).pathname], env: { ...process.env, PROTOBOARD_ROOT: root, PROTOBOARD_LANG: 'en', PROTOBOARD_APPS: 'auto', ...env } }));
   return client;
 };
+// The viewer's own fetch (manifest, then chunks), over a client; every result stays under the cap.
+const sizes = [];
+const fetchParts = (client, args, options) =>
+  fetchPageParts(async (a) => {
+    const r = await client.callTool({ name: 'page_parts', arguments: a });
+    sizes.push(Buffer.byteLength(JSON.stringify(r)));
+    if (r.isError) throw new Error(r.content[0].text);
+    return r.structuredContent;
+  }, args, options);
 const textOf = (r) => r.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n');
 
 before(async () => {
@@ -80,29 +91,29 @@ test('layout answers the same text to both; the host also gets {target, revision
   assert.equal(a.structuredContent, undefined);
   assert.deepEqual(b.structuredContent, { target: 'led-b', revision: 0, lang: 'es' });
 
-  const got = await host.callTool({ name: 'page_parts', arguments: { target: 'led-b', revision: 0 } });
-  assert.ok(!got.isError, textOf(got));
-  const p = got.structuredContent.parts;
+  const got = await fetchParts(host, { target: 'led-b', revision: 0 });
+  const p = got.parts;
   assert.equal(p.revision, 0);
-  assert.equal(got.structuredContent.latest, 0);
+  assert.equal(got.latest, 0);
   assert.equal(p.lang, 'es');
   assert.match(p.markup, /^<nav hidden>/);
   assert.ok(p.data.parts.R1 && p.program, 'part data and the program of a live page');
-  assert.deepEqual(Object.keys(got.structuredContent.texts), ['context', 'newer']);
-  assert.ok(Buffer.byteLength(textOf(got)) < 100, 'the text of page_parts stays small');
+  assert.deepEqual(Object.keys(got.texts), ['context', 'newer', 'loading', 'failed']);
+  const manifest = await host.callTool({ name: 'page_parts', arguments: { target: 'led-b', revision: 0 } });
+  assert.ok(Buffer.byteLength(textOf(manifest)) < 100, 'the text of page_parts stays small');
 });
 
 test('page_parts pins a revision: an older one is rebuilt from the history', async () => {
-  const before = await host.callTool({ name: 'page_parts', arguments: { target: 'led-b', revision: 0 } });
+  const before = await fetchParts(host, { target: 'led-b', revision: 0 });
   const changed = await host.callTool({ name: 'apply_ops', arguments: { target: 'led-b', ops: [{ op: 'set', part: 'R1', value: '1k' }], expect_revision: 0 } });
   assert.ok(!changed.isError, textOf(changed));
-  const old = await host.callTool({ name: 'page_parts', arguments: { target: 'led-b', revision: 0 } });
-  const now = await host.callTool({ name: 'page_parts', arguments: { target: 'led-b', revision: 1 } });
-  assert.equal(old.structuredContent.parts.revision, 0);
-  assert.equal(old.structuredContent.latest, 1);
-  assert.deepEqual(old.structuredContent.parts.data, before.structuredContent.parts.data, 'revision 0 as it was');
-  assert.equal(now.structuredContent.parts.revision, 1);
-  assert.notDeepEqual(now.structuredContent.parts.data.parts.R1, old.structuredContent.parts.data.parts.R1);
+  const old = await fetchParts(host, { target: 'led-b', revision: 0 });
+  const now = await fetchParts(host, { target: 'led-b', revision: 1 });
+  assert.equal(old.parts.revision, 0);
+  assert.equal(old.latest, 1);
+  assert.deepEqual(old.parts.data, before.parts.data, 'revision 0 as it was');
+  assert.equal(now.parts.revision, 1);
+  assert.notDeepEqual(now.parts.data.parts.R1, old.parts.data.parts.R1);
   const outside = await host.callTool({ name: 'page_parts', arguments: { target: '../x' } });
   assert.ok(outside.isError);
 });
@@ -160,7 +171,7 @@ test('app_report exists only with PROTOBOARD_APPS_DEBUG=1 and an app client; it 
     // page_parts tells the viewer that debugging is on; the path is fixed in the root
     await hostDebug.callTool({ name: 'layout', arguments: { target: 'd', recipe: 'led-resistor' } });
     const parts = await hostDebug.callTool({ name: 'page_parts', arguments: { target: 'd' } });
-    assert.equal(parts.structuredContent.debug, true);
+    assert.equal(parts.structuredContent.debug, true, 'the manifest says so');
     assert.ok(!existsSync(join(debugRoot, '..', '.app-report.jsonl')));
     const off = await host.callTool({ name: 'page_parts', arguments: { target: 'led-b' } });
     assert.equal(off.structuredContent.debug, undefined);

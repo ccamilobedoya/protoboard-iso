@@ -1,7 +1,7 @@
 // The MCP App in the official test host (the ext-apps repository's examples/basic-host, built with
 // its own `npm run build`, kept outside this repository), driven by Chromium:
 //
-//   node scripts/app-host-check.js <basic-host dir> [-o shots] [--csp host|spec] [--host-port 8180]
+//   node scripts/app-host-check.js <basic-host dir> [-o shots] [--csp host|spec] [--host-port 8180] [--recipes a,b]
 //
 // It serves the host's dist/ itself, on 127.0.0.1 only: the host on --host-port and its sandbox proxy on
 // :8081 (the port the host's build asks for) with a Content-Security-Policy header, either the one basic-host's serve.ts builds (`host`,
@@ -234,6 +234,19 @@ try {
   const median = (xs) => [...xs].sort((x, y) => x - y)[Math.floor(xs.length / 2)];
   results.paint = { runs: times, medianToPaintMs: median(times.map((x) => x.toPaint)), medianToPartsMs: median(times.map((x) => x.toParts)) };
   check('P5 timings', times.length === 5, {});
+
+  // P7: the calls and the time to first paint of other recipes (--recipes a,b,c; three runs each).
+  results.recipes = {};
+  for (const name of flag('--recipes', '').split(',').filter(Boolean)) {
+    const runs = [];
+    for (let k = 0; k < 3; k++) {
+      before = await callTool('layout', { target: `p7-${name}-${k}`, recipe: name });
+      const v = await viewAfter(before);
+      const t = await v.frame?.evaluate(() => ({ ...window.protoboardApp.times, calls: window.protoboardApp.calls ?? 1 }));
+      if (t?.painted) runs.push({ calls: t.calls, toParts: Math.round(t.parts - t.result), toPaint: Math.round(t.painted - t.result) });
+    }
+    results.recipes[name] = { calls: runs[0]?.calls, medianToPartsMs: median(runs.map((x) => x.toParts)), medianToPaintMs: median(runs.map((x) => x.toPaint)) };
+  }
 } catch (e) {
   results.error = e.message.split('\n')[0];
   await browser?.contexts()[0]?.pages()[0]?.screenshot({ path: join(shots, 'error.png') }).catch(() => {});

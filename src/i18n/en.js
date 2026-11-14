@@ -706,6 +706,8 @@ export default {
   'page.revision': 'revision {revision}',
   'page.app.context': 'Open on the board: {part}, {about}.',
   'app.layoutNote': 'The user already sees this circuit as a live board in the chat: do not render or draw an image of it.',
+  'page.app.loading': 'Loading the circuit… {done}/{total}',
+  'page.app.failed': 'The circuit could not be loaded: {error}',
   'page.app.newer': 'Revision {revision} as it was; the circuit is now at revision {latest}.',
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):
   protoboard-iso layout <target> [spec.json|-] [--check] [--expect-revision n]   # the whole circuit placed from its parts and nets; an existing target is laid out again (docs/en/layout.md)

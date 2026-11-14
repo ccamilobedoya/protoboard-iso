@@ -14,7 +14,7 @@ oscilloscope. A host without MCP Apps gets exactly the same tools, descriptions 
 | resource `ui://protoboard-iso/board.html` | the viewer, `text/html;profile=mcp-app`: the page's CSS and its live script, with no circuit (`renderAppViewer` in `src/page.js`); no outside origin, so the host's restrictive default CSP applies |
 | `layout`'s `_meta.ui.resourceUri` | the host shows the viewer for each `layout` call |
 | `layout`'s `structuredContent` | `{ target, revision, lang }`, a few dozen bytes; its text is the same as without MCP Apps |
-| tool `page_parts { target, revision?, lang? }` | `visibility: ["app"]`: only the viewer calls it, never the model. The circuit's page in pieces (`renderPageParts`): the attributes, the markup (the two views' SVG, the bar, the inspector), the data and the board's program, and the viewer's texts in the circuit's language |
+| tool `page_parts { target, revision?, lang?, chunk?, id? }` | `visibility: ["app"]`: only the viewer calls it, never the model. The circuit's page in pieces (`renderPageParts`): the attributes, the markup (the two views' SVG, the bar, the inspector), the data and the board's program, and the viewer's texts in the circuit's language |
 
 The pieces never pass through the model: the viewer asks for them itself. A revision older than the
 current one is rebuilt from the history (each change carries its inverse: `circuitAt` in
@@ -97,10 +97,24 @@ Tested with the reference `basic-host` only. Claude Desktop and claude.ai are un
   `basic-host` allows `unsafe-eval`, so there it runs. Two ways out, neither built: run the sketch
   with an interpreter instead of generated code, or step the program in the server and send the
   pins' states.
-- **Size.** The viewer is about 600 KB (160 KB gzip); `page_parts` answers 430 KB (led-resistor) to
-  980 KB (555 astable), mostly the two views' SVG. Claude's documentation says a tool result over
-  about 150,000 characters may be stored as a file instead of reaching the app when code execution
-  is on; whether that applies to a call from the app is not documented.
+- **Size, and the host's limit.** The viewer is about 600 KB (160 KB gzip); a page's pieces are 0.6 MB
+  (led-resistor) to 1.5 MB (the largest recipe, `uno-seven-segment`: 1,483,598 bytes; the largest example
+  `switches`: 1,508,890). Claude Desktop refuses a tool result over **983,040 bytes**, also for the calls a
+  viewer makes (seen on 2026-11-14: «the document exceeds this tool's 983040-byte limit»), so `page_parts`
+  hands the page over in chunks: a call without `chunk` returns a manifest (`revision`, `latest`, `id`,
+  `chunks`, `bytes`, the viewer's texts), and `chunk: n` with the manifest's `revision` and `id` returns the
+  n-th piece of the page's JSON (cut as text, at most 200 KB as JSON escapes it, never inside a character).
+  No result of the app-only tools passes `RESULT_MAX`, 256 KB, serialized (a test checks every recipe and
+  every example). The viewer fetches four chunks at a time, retries a failed one once, shows «Loading the
+  circuit… n/total» meanwhile and an error line in the widget if a chunk still fails (with `app_report`
+  on, the retry and the failure are reported). The `id` (a hash of the assembled page) pins the content:
+  the server keeps the last three assembled pages and rebuilds an older one from the history if it is gone,
+  refusing it if it no longer hashes to the `id`. Calls and time from the tool result to first paint, in the
+  reference host (median of three; single call → chunks): led-resistor 1 → 4 calls, 129 → 149 ms; 555 astable
+  1 → 7, 328 → 380 ms; uno-blink 1 → 4, 170 → 191 ms; uno-seven-segment 1 → 10, 605 → 594 ms. Not done:
+  fetching the second view or the close-up data later; chunking alone satisfies the limit.
+  Claude's documentation says a tool result over about 150,000 characters may be stored as a file when code
+  execution is on; whether that applies to a call from the app is not documented.
 - The context line and the button follow the card: when the live page rebuilds a card by itself
   (its lines change), the button goes until the next tap.
 - Only `layout` shows the viewer. `apply_ops`, `undo` and `render` could too, but an agent calls them

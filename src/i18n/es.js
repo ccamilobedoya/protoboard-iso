@@ -705,6 +705,8 @@ export default {
   'page.revision': 'revisión {revision}',
   'page.app.context': 'Abierta en la protoboard: {part}, {about}.',
   'app.layoutNote': 'El usuario ya ve este circuito como tablero vivo en el chat: no generes ni dibujes una imagen.',
+  'page.app.loading': 'Cargando el circuito… {done}/{total}',
+  'page.app.failed': 'No se pudo cargar el circuito: {error}',
   'page.app.newer': 'La revisión {revision} tal como era; el circuito ya va en la revisión {latest}.',
   'cli.usage': `Uso (<objetivo> = un archivo de circuito o una carpeta con circuit.json):
   protoboard-iso layout <objetivo> [spec.json|-] [--check] [--expect-revision n]   # el circuito entero, ubicado a partir de sus componentes y redes; si ya existe, se vuelve a montar (docs/es/montaje-automatico.md)

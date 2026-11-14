@@ -149,6 +149,42 @@ export function appExtension(bridge, app) {
   };
 }
 
+// A page arrives in chunks (mcp/app.js: a host refuses a tool result over a size; Claude Desktop's is
+// 983,040 bytes). `call(args)` is one page_parts call, resolved to its structuredContent. The first
+// call, without `chunk`, is the manifest; then each chunk is fetched, a few at a time, each retried
+// once if it fails, and the pieces are joined and parsed. The manifest's id pins the revision: the
+// server cuts every chunk from the same build.
+export const PARALLEL = 4;
+export async function fetchPageParts(call, args, { onProgress = () => {}, onRetry = () => {} } = {}) {
+  const manifest = await call(args);
+  const pinned = { ...args, revision: manifest.revision, id: manifest.id };
+  const pieces = new Array(manifest.chunks);
+  let next = 0;
+  let done = 0;
+  onProgress(0, manifest.chunks, manifest);
+  const worker = async () => {
+    while (next < manifest.chunks) {
+      const index = next++;
+      let got;
+      try {
+        got = await call({ ...pinned, chunk: index });
+      } catch (first) {
+        onRetry(index, first);
+        got = await call({ ...pinned, chunk: index }).catch((e) => {
+          throw Object.assign(new Error(`chunk ${index + 1}/${manifest.chunks}: ${e.message}`), { chunk: index });
+        });
+      }
+      if (got?.id !== manifest.id || got.index !== index || typeof got.data !== 'string') throw Object.assign(new Error(`chunk ${index + 1}/${manifest.chunks} is not part of this page`), { chunk: index });
+      pieces[index] = got.data;
+      onProgress(++done, manifest.chunks, manifest);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(PARALLEL, manifest.chunks) }, worker));
+  const json = pieces.join('');
+  if (json.length !== manifest.bytes) throw new Error(`the page came in ${json.length} units of ${manifest.bytes}`);
+  return { ...manifest, parts: JSON.parse(json) };
+}
+
 // The whole life of the viewer: handshake, the tool's result, the pieces, the page.
 export function startApp(win, startPage, liveExtensions) {
   const doc = win.document;
@@ -167,6 +203,7 @@ export function startApp(win, startPage, liveExtensions) {
     p.className = 'app-note';
     p.textContent = text;
     doc.body.prepend(p);
+    return p;
   };
   let context = {};
   let started = false;
@@ -178,24 +215,41 @@ export function startApp(win, startPage, liveExtensions) {
     app.times.result = win.performance.now();
     const size = context.containerDimensions ?? {};
     if (size.height == null) bridge.notify('ui/notifications/size-changed', { height: Math.min(size.maxHeight ?? HEIGHT, HEIGHT) });
+    const call = async (args) => {
+      app.calls = (app.calls ?? 0) + 1;
+      const answer = await bridge.request('tools/call', { name: 'page_parts', arguments: args });
+      if (answer?.isError || !answer?.structuredContent) throw new Error(answer?.content?.[0]?.text ?? 'no page');
+      return answer.structuredContent;
+    };
+    let loading = null;
+    let texts = null;
     try {
-      const answer = await bridge.request('tools/call', { name: 'page_parts', arguments: { target: asked.target, revision: asked.revision, lang: asked.lang } });
-      const got = answer?.structuredContent;
-      if (answer?.isError || !got?.parts) throw new Error(answer?.content?.[0]?.text ?? 'no page');
+      const request = { target: asked.target, revision: asked.revision, lang: asked.lang };
+      const got = await fetchPageParts(call, request, {
+        onProgress: (n, total, manifest) => {
+          reporter.enable(manifest.debug);
+          texts = manifest.texts;
+          loading ??= say(fill(manifest.texts.loading, { done: 0, total }));
+          loading.textContent = fill(manifest.texts.loading, { done: n, total });
+        },
+        onRetry: (index, e) => app.report('chunk-retry', { index, message: e.message }),
+      });
+      loading?.remove();
       app.times.parts = win.performance.now();
       app.target = asked.target;
       // Another revision's pieces, as this view would ask for them (tests: scripts/app-host-check.js).
-      app.fetchParts = (revision) => bridge.request('tools/call', { name: 'page_parts', arguments: { target: asked.target, revision, lang: asked.lang } }).then((r) => ({ revision: r.structuredContent?.parts?.revision, latest: r.structuredContent?.latest, values: Object.fromEntries(Object.entries(r.structuredContent?.parts?.data?.parts ?? {}).map(([id, part]) => [id, part.value?.text ?? null])) }));
+      app.fetchParts = (revision) => fetchPageParts(call, { ...request, revision }).then((r) => ({ revision: r.parts?.revision, latest: r.latest, values: Object.fromEntries(Object.entries(r.parts?.data?.parts ?? {}).map(([id, part]) => [id, part.value?.text ?? null])) }));
       app.texts = got.texts;
-      reporter.enable(got.debug);
       app.revision = got.parts.revision;
       mount(doc, got.parts);
       startPage([...(got.parts.script === 'live' ? liveExtensions : []), appExtension(bridge, app)]);
       if (got.latest !== got.parts.revision) say(fill(got.texts.newer, { revision: got.parts.revision, latest: got.latest }));
       win.requestAnimationFrame(() => win.requestAnimationFrame(() => (app.times.painted = win.performance.now())));
     } catch (e) {
+      loading?.remove();
       app.error = e.message;
-      say(e.message);
+      app.report('page-failed', { message: e.message, chunk: e.chunk ?? null });
+      say(texts?.failed ? fill(texts.failed, { error: e.message }) : e.message);
     }
   });
   bridge

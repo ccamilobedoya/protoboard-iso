@@ -15,7 +15,7 @@ herramientas, descripciones y respuestas que antes.
 | recurso `ui://protoboard-iso/board.html` | el visor, `text/html;profile=mcp-app`: el CSS de la página y su script en vivo, sin circuito (`renderAppViewer` en `src/page.js`); sin orígenes externos, así que aplica la CSP restrictiva por defecto del anfitrión |
 | `_meta.ui.resourceUri` de `layout` | el anfitrión muestra el visor en cada llamada a `layout` |
 | `structuredContent` de `layout` | `{ target, revision, lang }`, unas decenas de bytes; su texto es el mismo que sin MCP Apps |
-| herramienta `page_parts { target, revision?, lang? }` | `visibility: ["app"]`: solo la llama el visor, nunca el modelo. La página del circuito en piezas (`renderPageParts`): los atributos, el marcado (el SVG de las dos vistas, la barra, el inspector), los datos y el programa de la placa, y los textos del visor en el idioma del circuito |
+| herramienta `page_parts { target, revision?, lang?, chunk?, id? }` | `visibility: ["app"]`: solo la llama el visor, nunca el modelo. La página del circuito en piezas (`renderPageParts`): los atributos, el marcado (el SVG de las dos vistas, la barra, el inspector), los datos y el programa de la placa, y los textos del visor en el idioma del circuito |
 
 Las piezas nunca pasan por el modelo: el visor las pide él mismo. Una revisión anterior a la actual
 se reconstruye desde el historial (cada cambio lleva su inverso: `circuitAt` en
@@ -101,11 +101,26 @@ Probado solo con el `basic-host` de referencia. Claude Desktop y claude.ai no es
   LED se queda como empezó). `basic-host` permite `unsafe-eval`, así que ahí corre. Dos salidas,
   ninguna hecha: correr el programa con un intérprete en vez de código generado, o avanzar el
   programa en el servidor y mandar los estados de los pines.
-- **Tamaño.** El visor pesa unos 600 KB (160 KB con gzip); `page_parts` responde de 430 KB
-  (led-resistor) a 980 KB (555 astable), casi todo el SVG de las dos vistas. La documentación de
-  Claude dice que un resultado de más de unos 150 000 caracteres puede guardarse como archivo en vez
-  de llegar a la app cuando la ejecución de código está activa; no dice si eso aplica a una llamada
-  hecha desde la app.
+- **Tamaño y el límite del anfitrión.** El visor pesa unos 600 KB (160 KB con gzip); las piezas de una
+  página van de 0,6 MB (led-resistor) a 1,5 MB (la receta más grande, `uno-seven-segment`: 1 483 598 bytes;
+  el ejemplo más grande, `switches`: 1 508 890). Claude Desktop rechaza un resultado de herramienta de más
+  de **983 040 bytes**, también en las llamadas que hace un visor (visto el 2026-11-14: «the document
+  exceeds this tool's 983040-byte limit»), así que `page_parts` entrega la página en trozos: una llamada sin
+  `chunk` devuelve un manifiesto (`revision`, `latest`, `id`, `chunks`, `bytes`, los textos del visor), y
+  `chunk: n` con la `revision` y el `id` del manifiesto devuelve el n-ésimo trozo del JSON de la página
+  (cortado como texto, de a lo sumo 200 KB ya escapado como JSON, nunca dentro de un carácter). Ningún
+  resultado de las herramientas solo para la app pasa de `RESULT_MAX`, 256 KB, serializado (una prueba
+  revisa cada receta y cada ejemplo). El visor pide cuatro trozos a la vez, reintenta una vez el que
+  falle, muestra «Cargando el circuito… n/total» mientras tanto y una línea de error en el widget si un
+  trozo sigue fallando (con `app_report` activo se reportan el reintento y el fallo). El `id` (un hash de
+  la página armada) fija el contenido: el servidor guarda las tres últimas páginas armadas y reconstruye
+  una más vieja desde el historial si ya no está, y la rechaza si ya no da el mismo `id`. Llamadas y
+  tiempo desde el resultado de la herramienta hasta el primer pintado, en el anfitrión de referencia
+  (mediana de tres; una llamada → trozos): led-resistor 1 → 4 llamadas, 129 → 149 ms; 555 astable 1 → 7,
+  328 → 380 ms; uno-blink 1 → 4, 170 → 191 ms; uno-seven-segment 1 → 10, 605 → 594 ms. No se hizo: pedir
+  después la segunda vista o los datos de la vista de cerca; los trozos bastan para el límite. La
+  documentación de Claude dice que un resultado de más de unos 150 000 caracteres puede guardarse como
+  archivo cuando la ejecución de código está activa; no dice si eso aplica a una llamada hecha desde la app.
 - La línea de contexto y el botón siguen a la tarjeta: cuando la página en vivo reconstruye una
   tarjeta sola (cambian sus líneas), el botón se va hasta el siguiente toque.
 - Solo `layout` muestra el visor. `apply_ops`, `undo` y `render` también podrían, pero un agente los

@@ -9,8 +9,9 @@
 //   APP_LINKED         tools whose result the host shows in the viewer (their _meta.ui.resourceUri)
 //   appView(result)    { target, revision, lang } a linked tool's handler puts beside its answer
 //                      (as `app`); server.js turns it into structuredContent, or drops it
-//   APP_TOOLS          page_parts { target, revision?, lang? }: the pieces (renderPageParts) of that
-//                      revision, rebuilt from the history when it is older; only the app may call it.
+//   APP_TOOLS          page_parts { target, revision?, lang?, chunk?, id? }: the pieces (renderPageParts)
+//                      of that revision, rebuilt from the history when it is older, as a manifest and
+//                      then chunks under RESULT_MAX each; only the app may call it.
 //                      With PROTOBOARD_APPS_DEBUG=1 also app_report { event, detail }: the viewer's
 //                      diagnostics (what the host answered it), one JSON line each in
 //                      <root>/.app-report.jsonl (stops at 256 KB; detail cut at 4 KB)
@@ -18,6 +19,7 @@
 
 import { readFileSync, existsSync, statSync, appendFileSync } from 'node:fs';
 import { resolve, relative, sep } from 'node:path';
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { renderPageParts, renderAppViewer } from '../src/page.js';
 import { resolveTarget, circuitAt, loadCircuit } from '../src/node/workspace.js';
@@ -51,22 +53,91 @@ export const VIEWER = {
 
 const fail = (text) => ({ isError: true, content: [{ type: 'text', text }] });
 
-function pageParts({ target, revision, lang }) {
+// The most a tool result of the viewer's may weigh, as the serialized JSON-RPC result. Claude Desktop
+// refuses a result over 983,040 bytes (seen 2026-11-14, also for calls the viewer makes), and a page's
+// pieces go from 0.6 to 1.5 MB: page_parts hands them over in chunks of at most CHUNK_BYTES.
+export const RESULT_MAX = 256 * 1024;
+export const CHUNK_BYTES = 200 * 1024; // of the chunk's text as JSON escapes it: room left for the wrapper
+
+// Where to cut the text so that each piece, serialized as a JSON string, is at most `budget` bytes.
+// Cuts are indices in UTF-16 units and never fall inside a surrogate pair.
+export function cutPoints(text, budget = CHUNK_BYTES) {
+  const cuts = [0];
+  let used = 0;
+  for (let i = 0; i < text.length; ) {
+    const c = text.charCodeAt(i);
+    let units = 1;
+    let bytes;
+    if (c === 34 || c === 92 || c === 8 || c === 9 || c === 10 || c === 12 || c === 13) bytes = 2;
+    else if (c < 0x20) bytes = 6;
+    else if (c < 0x80) bytes = 1;
+    else if (c < 0x800) bytes = 2;
+    else if (c >= 0xd800 && c <= 0xdbff && (text.charCodeAt(i + 1) & 0xfc00) === 0xdc00) {
+      bytes = 4;
+      units = 2;
+    } else if (c >= 0xd800 && c <= 0xdfff) bytes = 6; // a lone surrogate is escaped as \udXXX
+    else bytes = 3;
+    if (used + bytes > budget) {
+      cuts.push(i);
+      used = 0;
+    }
+    used += bytes;
+    i += units;
+  }
+  cuts.push(text.length);
+  return cuts;
+}
+
+// The last few assembled pages, so the chunks of one page are cut from one build. A page is rebuilt
+// from the history when it is gone (the revision is pinned), and must hash to the same id.
+const KEEP = 3;
+const assembled = new Map();
+
+function assemble({ target, revision, lang }) {
   const full = resolve(ROOT, String(target));
-  if (full !== ROOT && !full.startsWith(ROOT + sep)) return fail(`"${target}" is outside the allowed folder.`);
+  if (full !== ROOT && !full.startsWith(ROOT + sep)) return { error: `"${target}" is outside the allowed folder.` };
   const paths = resolveTarget(full);
-  if (!existsSync(paths.circuitFile)) return fail(`No circuit at "${target}".`);
+  if (!existsSync(paths.circuitFile)) return { error: `No circuit at "${target}".` };
   const current = loadCircuit(paths);
   const latest = current.revision ?? 0;
   // An older revision is rebuilt from the history (inverses); one that cannot be gives the current.
   const circuit = revision != null && revision !== latest ? (circuitAt(paths, revision) ?? current) : current;
   const out = pickLanguage(lang, circuit.lang);
   const { parts, issues } = renderPageParts(circuit, { lang: out });
-  if (!parts) return fail(issues.map((i) => i.code).join(', ') || 'nothing to draw');
-  const texts = Object.fromEntries(['context', 'newer'].map((k) => [k, t(out, `page.app.${k}`)]));
+  if (!parts) return { error: issues.map((i) => i.code).join(', ') || 'nothing to draw' };
+  const json = JSON.stringify(parts);
+  const id = createHash('sha1').update(json).digest('hex').slice(0, 16);
+  const texts = Object.fromEntries(['context', 'newer', 'loading', 'failed'].map((k) => [k, t(out, `page.app.${k}`)]));
+  return { page: { id, json, cuts: cutPoints(json), revision: parts.revision, latest, texts, target: relative(ROOT, full) || '.' } };
+}
+
+// No `chunk`: the manifest of the page (its revision, how many chunks, an id that pins the content).
+// With `chunk` and `revision` (the manifest's) and `id`: that piece of the page's JSON.
+function pageParts({ target, revision, lang, chunk, id }) {
+  const kept = id ? assembled.get(id) : null;
+  let page = kept;
+  if (!page) {
+    const built = assemble({ target, revision, lang });
+    if (built.error) return fail(built.error);
+    page = built.page;
+    if (id && page.id !== id) return fail('The circuit changed while the page was loading: open it again.');
+    assembled.set(page.id, page);
+    while (assembled.size > KEEP) assembled.delete(assembled.keys().next().value);
+  } else {
+    assembled.delete(id); // most recent last
+    assembled.set(id, page);
+  }
+  const chunks = page.cuts.length - 1;
+  if (chunk == null) {
+    return {
+      content: [{ type: 'text', text: `${page.target} · rev ${page.revision}` }],
+      structuredContent: { target: page.target, latest: page.latest, revision: page.revision, id: page.id, chunks, bytes: page.json.length, texts: page.texts, ...(DEBUG && { debug: true }) },
+    };
+  }
+  if (chunk < 0 || chunk >= chunks) return fail(`No chunk ${chunk}: the page has ${chunks}.`);
   return {
-    content: [{ type: 'text', text: `${relative(ROOT, full) || '.'} · rev ${parts.revision}` }],
-    structuredContent: { target: relative(ROOT, full) || '.', latest, parts, texts, ...(DEBUG && { debug: true }) },
+    content: [{ type: 'text', text: `chunk ${chunk + 1}/${chunks}` }],
+    structuredContent: { id: page.id, index: chunk, data: page.json.slice(page.cuts[chunk], page.cuts[chunk + 1]) },
   };
 }
 
@@ -93,8 +164,8 @@ export const APP_TOOLS = [
     name: 'page_parts',
     config: {
       title: 'Page pieces (viewer only)',
-      description: 'For the board viewer: a revision\'s page in pieces.',
-      inputSchema: { target: z.string(), revision: z.number().int().min(0).optional(), lang: z.enum(Object.keys(LANGUAGES)).optional() },
+      description: 'For the board viewer: a revision\'s page, as a manifest and then chunks.',
+      inputSchema: { target: z.string(), revision: z.number().int().min(0).optional(), lang: z.enum(Object.keys(LANGUAGES)).optional(), chunk: z.number().int().min(0).optional(), id: z.string().max(40).optional() },
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: VIEWER_URI, visibility: ['app'] } },
     },
