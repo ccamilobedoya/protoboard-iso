@@ -8,7 +8,7 @@
 // default: it allows 'unsafe-eval') or the spec's restrictive default (`spec`: no eval), and starts
 // mcp/http.js on :3001 with a fresh root and PROTOBOARD_APPS=on (basic-host does not announce the
 // extension in its capabilities). Then: layout led-resistor (P1, tap R1, the current layer
-// moving; P3, the context line; P6, a resistor and an LED up close and back), layout uno-blink (P2, does the sketch
+// moving; P3, the context line; P6, a resistor and an LED up close and back; P8, what the `selection` tool says of the tapped part), layout uno-blink (P2, does the sketch
 // run), apply_ops and the first view's page_parts with the old revision (P4), and five layouts for
 // the time from tool result to first paint (P5). Screenshots at deviceScaleFactor 2, named by step;
 // the measurements as JSON on stdout.
@@ -162,6 +162,17 @@ try {
   const context = await shown('Model Context', sentContext);
   check('P3 model context', Boolean(sentContext) && context && sentContext.length <= 300, { sent: sentContext, shownByHost: context });
   await shot('p3-host-panels');
+
+  // P8: what the model would read: the `selection` tool, from a client of its own, names R1 with its values
+  // (the tap above reached the server through the viewer's selection_set, 400 ms after it).
+  const sdk = join(ROOT, 'mcp', 'node_modules', '@modelcontextprotocol', 'sdk', 'dist', 'esm', 'client');
+  const { Client } = await import(join(sdk, 'index.js'));
+  const { StreamableHTTPClientTransport } = await import(join(sdk, 'streamableHttp.js'));
+  const model = new Client({ name: 'model', version: '0' }, { capabilities: {} });
+  await model.connect(new StreamableHTTPClientTransport(new URL('http://127.0.0.1:3001/mcp')));
+  const said = (await model.callTool({ name: 'selection', arguments: { target: 'led' } })).content[0].text;
+  await model.close();
+  check('P8 selection', /R1/.test(said) && /330/.test(said), { said });
 
   // P6: a part up close and back (the eye in the card's head), for a resistor and an LED.
   const upClose = {};

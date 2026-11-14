@@ -141,6 +141,47 @@ function pageParts({ target, revision, lang, chunk, id }) {
   };
 }
 
+// What the user last tapped in the viewer. A host with a local connector does not let the model read
+// what the widget knows (nor call the widget's tools), so the viewer tells the server (selection_set,
+// app-only) and the model asks it (selection, a model-visible tool offered to the same clients as the
+// viewer). In memory only, the last SELECTION_KEEP targets, never written to disk.
+export const SELECTION_KEEP = 32;
+const selections = new Map(); // target -> { revision, part, line, at }; the newest last
+const ago = (ms) => (ms < 90e3 ? `${Math.max(1, Math.round(ms / 1000))} s` : ms < 90 * 60e3 ? `${Math.round(ms / 60e3)} min` : `${Math.round(ms / 3600e3)} h`);
+
+function selectionSet({ target, revision, part, line }) {
+  const full = resolve(ROOT, String(target));
+  if (full !== ROOT && !full.startsWith(ROOT + sep)) return fail(`"${target}" is outside the allowed folder.`);
+  const key = relative(ROOT, full) || '.';
+  selections.delete(key);
+  selections.set(key, { revision, part: part ?? null, line: part ? String(line).slice(0, 300) : '', at: Date.now() });
+  while (selections.size > SELECTION_KEEP) selections.delete(selections.keys().next().value);
+  return { content: [{ type: 'text', text: 'ok' }] };
+}
+
+function selectionGet({ target }) {
+  let key = null;
+  if (target != null) {
+    const full = resolve(ROOT, String(target));
+    if (full !== ROOT && !full.startsWith(ROOT + sep)) return fail(`"${target}" is outside the allowed folder.`);
+    key = relative(ROOT, full) || '.';
+  } else key = [...selections.keys()].at(-1) ?? null;
+  const got = key != null ? selections.get(key) : null;
+  let lang = process.env.PROTOBOARD_LANG ?? 'en';
+  let latest = null;
+  if (got) {
+    const paths = resolveTarget(resolve(ROOT, key));
+    if (existsSync(paths.circuitFile)) {
+      const circuit = loadCircuit(paths);
+      latest = circuit.revision ?? 0;
+      lang = pickLanguage(undefined, circuit.lang);
+    }
+  }
+  if (!got?.part) return { content: [{ type: 'text', text: t(lang, 'app.selection.none') }] };
+  const newer = latest != null && latest !== got.revision ? t(lang, 'app.selection.newer', { latest }) : '';
+  return { content: [{ type: 'text', text: t(lang, 'app.selection', { ago: ago(Date.now() - got.at), line: got.line, target: key, revision: got.revision, newer }) }] };
+}
+
 // One line of the viewer's diagnostics. The file is fixed inside the root; it stops growing at REPORT_MAX.
 function appReport({ event, detail }) {
   const file = resolve(ROOT, REPORT_FILE);
@@ -172,6 +213,40 @@ export const APP_TOOLS = [
     handler: async (args) => {
       try {
         return pageParts(args);
+      } catch (e) {
+        return fail(e.message);
+      }
+    },
+  },
+  {
+    name: 'selection_set',
+    config: {
+      title: 'Selection (viewer only)',
+      description: 'For the board viewer: the part the user tapped.',
+      inputSchema: { target: z.string().max(200), revision: z.number().int().min(0), part: z.string().max(60).nullable(), line: z.string().max(400) },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+      _meta: { ui: { resourceUri: VIEWER_URI, visibility: ['app'] } },
+    },
+    handler: async (args) => {
+      try {
+        return selectionSet(args);
+      } catch (e) {
+        return fail(e.message);
+      }
+    },
+  },
+  // For the model, offered with the viewer: the viewer's state it cannot read from the widget.
+  {
+    name: 'selection',
+    config: {
+      title: 'Selection',
+      description: 'What the user last tapped on the live board shown in the chat: part, readings, how long ago. Use when they say "this" or point at something.',
+      inputSchema: { target: z.string().optional() },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    },
+    handler: async (args) => {
+      try {
+        return selectionGet(args);
       } catch (e) {
         return fail(e.message);
       }

@@ -3,7 +3,7 @@
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, existsSync, writeFileSync, statSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, writeFileSync, statSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -66,11 +66,17 @@ test('a host with MCP Apps gets the viewer, the link on layout and an app-only p
   assert.ok(!/id="page-data"/.test(read.contents[0].text), 'the viewer carries no circuit');
 });
 
-test('what a session loads grows by at most 300 bytes of descriptions with MCP Apps', async () => {
+test('what a session loads grows by little with MCP Apps; the model-visible tool is short', async () => {
   const words = (tools) => tools.reduce((n, t) => n + Buffer.byteLength(`${t.title ?? ''}${t.description ?? ''}`), 0);
   const a = await plain.listTools();
   const b = await host.listTools();
-  assert.ok(words(b.tools) - words(a.tools) <= 300, `${words(b.tools) - words(a.tools)} bytes`);
+  assert.ok(words(b.tools) - words(a.tools) <= 600, `${words(b.tools) - words(a.tools)} bytes`);
+  const selection = b.tools.find((t) => t.name === 'selection');
+  assert.ok(Buffer.byteLength(JSON.stringify(selection)) < 450, `${Buffer.byteLength(JSON.stringify(selection))} bytes`);
+  assert.equal(selection._meta, undefined, 'visible to the model');
+  assert.deepEqual(b.tools.find((t) => t.name === 'selection_set')._meta.ui.visibility, ['app'], 'app-only');
+  assert.ok(!a.tools.some((t) => t.name.startsWith('selection')), 'nothing for a client without MCP Apps');
+  console.log(`tools/list for an app client: +${Buffer.byteLength(JSON.stringify(b.tools)) - Buffer.byteLength(JSON.stringify(a.tools))} bytes; selection ${Buffer.byteLength(JSON.stringify(selection))}`);
   assert.equal(plain.getInstructions(), host.getInstructions());
 });
 
@@ -81,10 +87,10 @@ test('layout answers the same text to both; the host also gets {target, revision
   assert.ok(!a.isError && !b.isError, textOf(a));
   const steady = (r) => textOf(r).replace(/ \d+ ms /, ' … ms '); // the time it took differs
   // The app client's text is the plain one plus exactly one final line: the board is already on screen.
-  const note = 'The user already sees this circuit as a live board in the chat: do not render or draw an image of it.';
-  const esNote = 'El usuario ya ve este circuito como tablero vivo en el chat: no generes ni dibujes una imagen.';
+  const note = "The user sees this circuit as a live board in the chat: do not render or draw it. What they tap is read with `selection`; never call the widget's own tools.";
+  const esNote = 'El usuario ve este circuito como tablero vivo en el chat: no lo generes ni lo dibujes. Lo que toca se lee con `selection`; nunca llames las herramientas del widget.';
   assert.equal(steady(b), `${steady(a).replaceAll('led-a', 'led-b')}\n${esNote}`, 'same text plus one line');
-  assert.ok(Buffer.byteLength(`\n${esNote}`) < 160 && Buffer.byteLength(`\n${note}`) < 160, 'the added line is short');
+  assert.ok(Buffer.byteLength(`\n${esNote}`) < 240 && Buffer.byteLength(`\n${note}`) < 240, 'the added line is short');
   const en = await host.callTool({ name: 'layout', arguments: { target: 'led-en', recipe: 'led-resistor', lang: 'en' } });
   assert.ok(textOf(en).endsWith(`\n${note}`));
   assert.ok(!textOf(await plain.callTool({ name: 'layout', arguments: { target: 'led-en2', recipe: 'led-resistor', lang: 'en' } })).includes('live board'));
@@ -127,6 +133,38 @@ test('PROTOBOARD_APPS=on offers the viewer to a host that does not announce it; 
   } finally {
     await on.close();
     await off.close();
+  }
+});
+
+test('selection: what the viewer tells the server, read back by the model; null clears; bounded; app clients only', async () => {
+  await host.callTool({ name: 'layout', arguments: { target: 'sel', recipe: 'led-resistor', lang: 'en' } });
+  const none = await host.callTool({ name: 'selection', arguments: { target: 'sel' } });
+  assert.equal(textOf(none), 'Nothing is tapped on the board.');
+  const set = await host.callTool({ name: 'selection_set', arguments: { target: 'sel', revision: 0, part: 'R1', line: 'Open on the board: R1, Resistance: 330 Ω, Current: 21.5 mA.' } });
+  assert.ok(!set.isError, textOf(set));
+  const got = textOf(await host.callTool({ name: 'selection', arguments: { target: 'sel' } }));
+  assert.match(got, /^Open on the board: R1, Resistance: 330 Ω, Current: 21\.5 mA\. Tapped \d+ s ago, circuit sel, revision 0\.$/);
+  // without a target: the most recent one, across targets
+  await host.callTool({ name: 'selection_set', arguments: { target: 'led-a', revision: 0, part: 'D1', line: 'Open on the board: D1, Color: red.' } });
+  assert.match(textOf(await host.callTool({ name: 'selection', arguments: {} })), /D1.*led-a/);
+  // a newer revision is said
+  await host.callTool({ name: 'apply_ops', arguments: { target: 'sel', ops: [{ op: 'set', part: 'R1', value: '1k' }], expect_revision: 0 } });
+  assert.match(textOf(await host.callTool({ name: 'selection', arguments: { target: 'sel' } })), /revision 0, now at revision 1\./);
+  // null clears
+  await host.callTool({ name: 'selection_set', arguments: { target: 'sel', revision: 1, part: null, line: '' } });
+  assert.equal(textOf(await host.callTool({ name: 'selection', arguments: { target: 'sel' } })), 'Nothing is tapped on the board.');
+  // inputs are capped and the path stays in the root
+  assert.ok((await host.callTool({ name: 'selection_set', arguments: { target: '../x', revision: 0, part: 'R1', line: 'x' } }).catch((e) => ({ isError: true, e }))).isError);
+  assert.ok((await host.callTool({ name: 'selection_set', arguments: { target: 'sel', revision: 0, part: 'R1', line: 'x'.repeat(401) } }).catch(() => ({ isError: true }))).isError, 'a long line is refused');
+  // bounded memory: 40 targets, only the last 32 are kept
+  for (let k = 0; k < 40; k++) await host.callTool({ name: 'selection_set', arguments: { target: `many-${k}`, revision: 0, part: 'R1', line: `Open on the board: R1 ${k}.` } });
+  assert.equal(textOf(await host.callTool({ name: 'selection', arguments: { target: 'many-0' } })), 'Nothing is tapped on the board.', 'the oldest is forgotten');
+  assert.match(textOf(await host.callTool({ name: 'selection', arguments: { target: 'many-39' } })), /R1 39/);
+  assert.ok(!existsSync(join(root, '.selection')) && !readdirSync(root).some((f) => /selection/.test(f)), 'nothing on disk');
+  // a client without MCP Apps cannot call either
+  for (const name of ['selection', 'selection_set']) {
+    const r = await plain.callTool({ name, arguments: { target: 'sel' } }).catch(() => ({ isError: true }));
+    assert.ok(r.isError, `${name} is not offered`);
   }
 });
 

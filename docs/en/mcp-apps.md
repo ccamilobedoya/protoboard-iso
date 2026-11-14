@@ -32,18 +32,34 @@ Back to the conversation, one silent thing:
   prompt…"), which breeds distrust, so it was tried and removed. The viewer talks to the model only
   through the silent context update above. The standalone page never has the bridge: it is only in
   the viewer's script.
-- The specification (2026-01-26) defines no host capability for `ui/update-model-context`
-  (`HostCapabilities` lists `openLinks`, `serverTools`, `serverResources`, `logging`, `sandbox`), so
-  there is nothing to check before sending. It says a host MAY defer the context until the user's next
-  message, MAY dedupe it, and answers an error `-32000` if it denies it. Whether the model sees the
-  line is what the debug report below shows.
+- The specification's own text lists no host capability for `ui/update-model-context`, but the hosts and
+  the ext-apps schema do: Claude advertises `updateModelContext {text, image}`. The viewer sends the
+  update only where the host advertises it (or gave no list of capabilities at all). The spec says a host
+  MAY defer the context until the user's next message, MAY dedupe it, and answers `-32000` if it denies it.
+  Claude Desktop accepts it (result `{}`), yet the model did not know the tapped part (see `selection`).
+
+## `selection`: the model reads what was tapped through the server
+
+With a local connector, Claude does not let the model read what a widget knows, nor call the widget's
+tools (the host answers «Widget … tools can't run: it comes from a local connector»), and the context
+update did not reach it. The viewer can call the server's tools, so it routes the tap through the server:
+
+- `selection_set { target, revision, part | null, line }`, app-only (`visibility: ["app"]`): the viewer
+  sends the same line as the context update (at most 300 characters; with the results off the page
+  shows no readings, so the line has none), debounced the same way, and `part: null` when the card closes.
+- `selection { target? }`, a tool the model sees, offered only to clients that get the viewer (about 450
+  bytes with its schema): the last tap with its readings as the page shows them, how long ago, the circuit
+  and revision, and whether the circuit has a newer revision; or «Nothing is tapped on the board.» Without
+  `target`, the most recent selection of any circuit.
+
+The server keeps it in memory only: the last 32 circuits, one selection each, until the server restarts
+(or reloads its code). Nothing is written to disk.
 
 ## For a model that sees the board
 
-A client that gets the viewer receives one more final line in `layout`'s text, saying the user already
-sees the circuit as a live board in the chat, so the model should not render or draw an image (about
-100 bytes: "The user already sees this circuit as a live board in the chat: do not render or draw an
-image of it."). Its `render` description drops the advice on `png_width`. Any other client gets the
+A client that gets the viewer receives one more final line in `layout`'s text: the user sees the circuit
+as a live board in the chat, so the model should not render or draw it, reads what they tap with
+`selection` and never calls the widget's own tools (under 240 bytes). Its `render` description drops the advice on `png_width`. Any other client gets the
 same text and descriptions as before.
 
 ## Diagnostics

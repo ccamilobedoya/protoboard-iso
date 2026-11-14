@@ -1,6 +1,7 @@
 // The page in pieces for an MCP App (renderPageParts, renderAppViewer, page/client/app.js) and an
 // older revision rebuilt from the history (circuitAt).
 
+import { partLine } from '../src/page/client/app.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, mkdtempSync } from 'node:fs';
@@ -52,4 +53,16 @@ test('circuitAt rebuilds an older revision from the inverses in the history', ()
   assert.equal(circuitAt(paths, 3).revision, 3);
   assert.equal(circuitAt(paths, 9), null);
   assert.equal(circuitAt(paths, -1), null);
+});
+
+test('the line sent about a tapped part carries readings only where the page shows results', () => {
+  const part = { value: { text: 'Resistance: 330 Ω' } };
+  const terms = [{ dataset: { explain: 'voltage' }, textContent: 'Voltage: 7.08 V ' }, { dataset: { explain: 'current' }, textContent: 'Current: 21.5 mA' }, { dataset: { explain: 'power' }, textContent: 'Power: 152 mW' }];
+  const page = (results) => ({ data: { parts: { R1: part } }, state: { results }, info: { querySelectorAll: () => terms } });
+  assert.deepEqual(partLine(page(true), 'R1'), { part: 'R1', about: 'Resistance: 330 Ω, Voltage: 7.08 V, Current: 21.5 mA' });
+  assert.deepEqual(partLine(page(false), 'R1'), { part: 'R1', about: 'Resistance: 330 Ω' }, 'hidden results: no readings');
+  // and a page made without results says so to the script
+  const html = renderPage({ ...example('led-resistor.json'), page: { results: false } }, { lang: 'en' }).html;
+  assert.doesNotMatch(html, /<body[^>]*data-results="on"/);
+  assert.match(renderPage(example('led-resistor.json'), { lang: 'en' }).html, /<body[^>]*data-results="on"/);
 });

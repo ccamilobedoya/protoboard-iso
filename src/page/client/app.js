@@ -113,14 +113,14 @@ export function createReporter(bridge) {
 }
 
 // A request to the host, with what it sent and what came back (result or error) reported.
-const asking = (bridge, app, method, params, sent) =>
+const asking = (bridge, app, method, params, sent, name = method) =>
   bridge.request(method, params).then(
     (result) => {
-      app.report(method, { sent, result: result ?? null });
+      app.report(name, { sent, result: result ?? null });
       return result;
     },
     (e) => {
-      app.report(method, { sent, error: { code: e.code ?? null, message: e.message } });
+      app.report(name, { sent, error: { code: e.code ?? null, message: e.message } });
       throw e;
     },
   );
@@ -138,7 +138,12 @@ export function appExtension(bridge, app) {
       if (text === sent) return;
       sent = text;
       app.contexts.push(text);
-      asking(bridge, app, 'ui/update-model-context', { content: text ? [{ type: 'text', text }] : [] }, text).catch(() => {});
+      // The host's own channel, where it says it takes one (the specification defines no capability for
+      // it; Claude advertises updateModelContext).
+      if (app.canContext) asking(bridge, app, 'ui/update-model-context', { content: text ? [{ type: 'text', text }] : [] }, text).catch(() => {});
+      // And the server's, which the model can read with its tool `selection` even where a host does not
+      // let it read the widget (a local connector).
+      if (app.target != null) asking(bridge, app, 'tools/call', { name: 'selection_set', arguments: { target: app.target, revision: app.revision ?? 0, part: line?.part ?? null, line: text } }, text, 'selection_set').catch(() => {});
     };
     const before = page.cardChanged;
     page.cardChanged = () => {
@@ -189,7 +194,7 @@ export async function fetchPageParts(call, args, { onProgress = () => {}, onRetr
 export function startApp(win, startPage, liveExtensions) {
   const doc = win.document;
   const bridge = createBridge(win);
-  const app = { target: null, contexts: [], times: {}, texts: null, error: null };
+  const app = { target: null, contexts: [], times: {}, texts: null, error: null, canContext: false };
   const reporter = createReporter(bridge);
   app.report = reporter.report;
   // Anything that goes wrong in the viewer, as the host would hide it.
@@ -256,6 +261,9 @@ export function startApp(win, startPage, liveExtensions) {
     .request('ui/initialize', { appInfo: { name: 'protoboard-iso', version: doc.documentElement.dataset.version ?? '0' }, appCapabilities: {}, protocolVersion: PROTOCOL })
     .then((answer) => {
       context = { ...(answer?.hostContext ?? {}) };
+      // Send a context update only where the host says it takes one (a host that gave no list of
+      // capabilities at all is given the benefit of the doubt).
+      app.canContext = !answer?.hostCapabilities || Boolean(answer.hostCapabilities.updateModelContext);
       app.report('ui/initialize', { protocolVersion: answer?.protocolVersion, hostInfo: answer?.hostInfo, hostCapabilities: answer?.hostCapabilities });
       app.report('ui/initialize.hostContext', answer?.hostContext);
       bridge.notify('ui/notifications/initialized', {});

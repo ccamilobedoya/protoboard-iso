@@ -33,18 +33,37 @@ De vuelta a la conversación, una cosa silenciosa:
   before running this prompt…»), lo que genera desconfianza, así que se probó y se quitó. El visor
   habla con el modelo solo por la actualización silenciosa de contexto de arriba. La página suelta
   nunca tiene el puente: solo está en el script del visor.
-- La especificación (2026-01-26) no define ninguna capacidad del anfitrión para
-  `ui/update-model-context` (`HostCapabilities` lista `openLinks`, `serverTools`, `serverResources`,
-  `logging`, `sandbox`), así que no hay nada que comprobar antes de enviar. Dice que el anfitrión PUEDE
-  aplazar el contexto hasta el siguiente mensaje del usuario, PUEDE deduplicarlo, y responde un error
-  `-32000` si lo niega. Si el modelo ve la línea lo muestra el reporte de depuración de abajo.
+- El texto de la especificación no lista ninguna capacidad del anfitrión para `ui/update-model-context`,
+  pero los anfitriones y el esquema de ext-apps sí: Claude anuncia `updateModelContext {text, image}`. El
+  visor envía la actualización solo donde el anfitrión la anuncia (o no dio ninguna lista de
+  capacidades). La especificación dice que el anfitrión PUEDE aplazar el contexto hasta el siguiente
+  mensaje del usuario, PUEDE deduplicarlo, y responde `-32000` si lo niega. Claude Desktop lo acepta
+  (resultado `{}`), pero el modelo no conocía la pieza tocada (véase `selection`).
+
+## `selection`: el modelo lee lo tocado a través del servidor
+
+Con un conector local, Claude no deja que el modelo lea lo que sabe un widget, ni que llame sus
+herramientas (el anfitrión responde «Widget … tools can't run: it comes from a local connector»), y la
+actualización de contexto no le llegaba. El visor sí puede llamar las herramientas del servidor, así
+que pasa el toque por el servidor:
+
+- `selection_set { target, revision, part | null, line }`, solo para la app (`visibility: ["app"]`): el
+  visor manda la misma línea de la actualización de contexto (de 300 caracteres como máximo; con los
+  resultados apagados la página no muestra lecturas, así que la línea no las lleva), con el mismo
+  retardo, y `part: null` cuando se cierra la ficha.
+- `selection { target? }`, una herramienta que el modelo ve, ofrecida solo a los clientes que reciben el
+  visor (unos 450 bytes con su esquema): el último toque con sus lecturas como las muestra la página,
+  hace cuánto, el circuito y la revisión, y si el circuito tiene una revisión más nueva; o «No hay nada
+  tocado en el tablero.» Sin `target`, la selección más reciente de cualquier circuito.
+
+El servidor la guarda solo en memoria: los últimos 32 circuitos, una selección cada uno, hasta que el
+servidor se reinicia (o recarga su código). No se escribe nada en disco.
 
 ## Para un modelo que ve el tablero
 
-Un cliente que recibe el visor recibe una última línea más en el texto de `layout`: el usuario ya ve
-el circuito como tablero vivo en el chat, así que el modelo no debe generar ni dibujar una imagen
-(unos 100 bytes: «El usuario ya ve este circuito como tablero vivo en el chat: no generes ni dibujes
-una imagen.»). La descripción de `render` pierde el consejo sobre `png_width`. Cualquier otro cliente
+Un cliente que recibe el visor recibe una última línea más en el texto de `layout`: el usuario ve el
+circuito como tablero vivo en el chat, así que el modelo no debe generarlo ni dibujarlo, lee lo que
+toca con `selection` y nunca llama las herramientas del widget (menos de 240 bytes). La descripción de `render` pierde el consejo sobre `png_width`. Cualquier otro cliente
 recibe los mismos textos y descripciones de antes.
 
 ## Diagnóstico
