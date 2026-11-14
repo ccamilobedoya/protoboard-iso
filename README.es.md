@@ -28,22 +28,34 @@ simulados por este kit.
 
 ## Pruébalo en un minuto
 
+Necesitas [Node.js](https://nodejs.org/) 22 o más nuevo. Compruébalo con `node --version`: debe
+mostrar `v22` o más.
+
 <!-- smoke -->
 ```bash
 git clone https://github.com/ccamilobedoya/protoboard-iso.git
 cd protoboard-iso                      # no hay nada que instalar
-node bin/protoboard-iso.js layout mi-interruptor --recipe npn-switch --values '{"R1":"470","D1":"green"}' --lang es
+node bin/protoboard-iso.js layout mi-led --recipe led-resistor --values '{"R1":"470","D1":"green"}' --lang es
 ```
 
-Eso monta un interruptor con transistor a partir de una **receta**, lo revisa y escribe
-`mi-interruptor/`: el circuito (`circuit.json`), su historial y `out/mi-interruptor.html`, una sola
-página con el dibujo y la simulación en vivo. Ábrela en un navegador. Después:
+Eso monta un LED con su resistencia a partir de una **receta**, lo revisa y escribe `mi-led/`: el
+circuito (`circuit.json`), su historial y `out/mi-led.html`, una sola página con el dibujo y la
+simulación en vivo. El comando imprime dónde quedó la página (`Página: …`): ábrela con doble clic
+sobre ese archivo, o arrástrala a un navegador. Después:
 
 <!-- smoke -->
 ```bash
-node bin/protoboard-iso.js simulate mi-interruptor --lang es          # voltajes y corrientes, en texto
-node bin/protoboard-iso.js render mi-interruptor --view back --lang es # el dibujo desde el otro lado
-node bin/protoboard-iso.js review mi-interruptor --lang es             # APROBADO o HAY QUE CAMBIAR, y por qué
+node bin/protoboard-iso.js simulate mi-led --lang es          # voltajes y corrientes, en texto
+node bin/protoboard-iso.js render mi-led --view back --lang es # el dibujo desde el otro lado
+node bin/protoboard-iso.js review mi-led --lang es             # APROBADO o HAY QUE CAMBIAR, y por qué
+```
+
+En PowerShell de Windows las comillas de `--values` no llegan igual al programa (Windows PowerShell
+5.1 quita las comillas dobles internas). Pasa el mismo JSON por la entrada estándar, que funciona
+en cualquier consola:
+
+```powershell
+'{"recipe":"led-resistor","values":{"R1":"470","D1":"green"}}' | node bin/protoboard-iso.js layout mi-led - --lang es
 ```
 
 ## De una descripción a una lección
@@ -110,14 +122,17 @@ registra `.mcp.json`; en otro lugar:
 
 ```bash
 cd mcp && npm install && cd ..
-claude mcp add protoboard-iso -e PROTOBOARD_ROOT="$PWD" -e PROTOBOARD_LANG=es -- node "$PWD/mcp/server.js"
+mkdir -p "$HOME/circuits"              # donde se guardan tus circuitos: una carpeta tuya, no este clon
+claude mcp add protoboard-iso -e PROTOBOARD_ROOT="$HOME/circuits" -e PROTOBOARD_LANG=es -- node "$PWD/mcp/server.js"
 ```
 
-Después pide un circuito con palabras («un LED con su resistencia a 9 V»). Instalación y
-herramientas: [docs/es/mcp.md](docs/es/mcp.md).
+Después pide un circuito con palabras («un LED con su resistencia a 9 V»). Instalación,
+herramientas y la configuración de Claude Desktop (con rutas de Windows): [docs/es/mcp.md](docs/es/mcp.md).
 
 **Skill para agentes.** `SKILL.md` le dice a un asistente cómo usar el kit. Enlaza esta carpeta en
-tu directorio de skills, por ejemplo `ln -s "$PWD" ~/.claude/skills/protoboard-iso`. Para trabajar
+tu directorio de skills: `ln -s "$PWD" ~/.claude/skills/protoboard-iso` (macOS, Linux), o en PowerShell
+`New-Item -ItemType Junction -Path "$HOME\.claude\skills\protoboard-iso" -Target (Get-Location)`
+(crea antes `$HOME\.claude\skills` si no existe; copiar la carpeta ahí también sirve). Para trabajar
 circuitos, el repositorio trae además tres agentes en `.claude/agents/` (uno monta, otro revisa,
 otro agrega componentes): [agentes](docs/es/agentes.md).
 

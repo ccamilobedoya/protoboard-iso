@@ -19,7 +19,7 @@ export function smokeCommands(markdown) {
     .filter((l) => l && !/^git clone |^cd protoboard-iso$/.test(l));
 }
 
-for (const [readme, name] of [['README.md', 'my-switch'], ['README.es.md', 'mi-interruptor']]) {
+for (const [readme, name] of [['README.md', 'my-led'], ['README.es.md', 'mi-led']]) {
   test(`${readme}: the try-it commands run as written`, () => {
     const commands = smokeCommands(readFileSync(join(root, readme), 'utf8'));
     assert.ok(commands.length >= 4, `smoke blocks found: ${commands.length} commands`);

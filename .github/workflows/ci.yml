@@ -61,3 +61,24 @@ jobs:
           gitleaks version
       - name: Verify
         run: npm run verify
+
+  # What a person gets on a fresh clone, on each system a learner may use: the README's commands,
+  # the documented MCP install (cd mcp && npm install) and the server over stdio, including PNG.
+  # Not part of npm run verify: it needs the network and takes a while.
+  clean-install:
+    name: clean install (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Clean install check
+        run: node scripts/clean-install-check.js

@@ -41,16 +41,56 @@ If `node` is not on the PATH Claude Code starts with (for example with nvm), reg
 with absolute paths in your local scope instead; it takes precedence over `.mcp.json`:
 
 ```bash
-claude mcp add --scope local protoboard-iso -e PROTOBOARD_ROOT=$PWD -e PROTOBOARD_LANG=es \
+claude mcp add --scope local protoboard-iso -e PROTOBOARD_ROOT="$HOME/circuits" -e PROTOBOARD_LANG=es \
   -- "$(command -v node)" "$PWD/mcp/server.js"
 claude mcp get protoboard-iso     # should say: Connected
 ```
 
-To use it from another project (for example a course folder with its own circuits), run the
-same command from that project with `PROTOBOARD_ROOT` pointing at it.
+Run it from the clone (`$PWD/mcp/server.js`). `PROTOBOARD_ROOT` is a folder of your own for the
+circuits (`mkdir "$HOME/circuits"` first), not the clone; to keep them with a project (for example a
+course folder), point it at that folder.
 
-**Claude Desktop / other clients:** a stdio server with command `node`, argument the absolute
-path of `mcp/server.js` and the environment above.
+**Other clients:** a stdio server with command `node`, argument the absolute path of
+`mcp/server.js` and the environment above.
+
+### Claude Desktop
+
+Open the file from **Settings > Developer > Edit Config** (it creates `claude_desktop_config.json`
+if it does not exist and shows where it is), add the server under `mcpServers`, save, and quit and
+reopen Claude Desktop completely:
+
+```json
+{
+  "mcpServers": {
+    "protoboard-iso": {
+      "command": "node",
+      "args": ["/absolute/path/to/protoboard-iso/mcp/server.js"],
+      "env": {
+        "PROTOBOARD_ROOT": "/absolute/path/to/my-circuits",
+        "PROTOBOARD_LANG": "en"
+      }
+    }
+  }
+}
+```
+
+- `args` holds the absolute path of `mcp/server.js` in the clone, after `cd mcp && npm install`.
+- `PROTOBOARD_ROOT` is a folder of your own where the circuits will be saved (create it first).
+  It is **not** the clone: the server reads and writes only inside it.
+- `PROTOBOARD_LANG` is `en` or `es`.
+- Claude Desktop starts the server with its own PATH. If `node` is installed with nvm (or any
+  version manager) it may not be found: put the absolute path of `node` in `command`
+  (`command -v node` prints it on macOS and Linux; `where node` on Windows).
+- On Windows write the paths with doubled backslashes or with forward slashes:
+
+```json
+"command": "C:\\Program Files\\nodejs\\node.exe",
+"args": ["C:\\protoboard-iso\\mcp\\server.js"],
+"env": { "PROTOBOARD_ROOT": "C:/my-circuits" }
+```
+
+Each circuit is a folder under the root; the page of each is `out/<name>.html` inside it, and every
+`layout`, `apply_ops` and `undo` answer says its absolute path: double-click it to open it.
 
 ## Tools
 

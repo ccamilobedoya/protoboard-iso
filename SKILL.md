@@ -209,12 +209,16 @@ in its card; leave it out when the learner should work it out.
 node bin/protoboard-iso.js layout <target> --recipe npn-switch [--values '{"R1":"470"}']
 node bin/protoboard-iso.js layout <target> [spec.json] [--check] [--expect-revision n]
 node bin/protoboard-iso.js apply <target> --ops '<json>' --dry-run      # then --expect-revision n
-node bin/protoboard-iso.js review | netlist | inspect | history | undo <target>
+node bin/protoboard-iso.js review | check | netlist | nets | inspect | history | undo <target>
 node bin/protoboard-iso.js suggest <target> --part '<json>' --between <group>,<group>
 node bin/protoboard-iso.js simulate <target> [--transient stop,step]
 node bin/protoboard-iso.js render <target> -o out.svg [--view back] [--fit parts]
-node bin/protoboard-iso.js page <target> · parts [name]   # parts: every type, its pins and part numbers, and the recipes
+node bin/protoboard-iso.js render <target> -o out.png [--png-width 900]   # a real PNG; fails (exit 1) when @resvg/resvg-js is not installed
+node bin/protoboard-iso.js page <target> · catalog [name]   # catalog: every type, its pins and part numbers, and the recipes (parts is the old name)
 ```
 
 A target is a circuit folder (`circuit.json`, `history.jsonl`, `out/`) or a circuit file.
-Exit codes: 0 fine (`layout`: `DONE`), 1 errors or refused, 2 review `CHANGES`.
+Exit codes: 0 fine (`layout`: `DONE`), 1 errors or refused, 2 review `CHANGES`. `layout`, `apply`
+and `undo` print where the page is (an absolute path) as the line before `STATUS` (`layout`) or
+the last line. PNG needs `@resvg/resvg-js` (`npm install` in the kit folder; the MCP server finds
+the one in `mcp/`): the CLI and the MCP `png_width` do the same.

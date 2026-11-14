@@ -133,9 +133,9 @@ async function main(work) {
   check(true, 'cd mcp && npm install');
   check(!existsSync(join(clone, 'node_modules')), 'still no node_modules at the clone root (the case that broke PNG)');
 
-  // 4. The CLI never writes SVG text under a .png name (it may fail when nothing is installed at the root).
+  // 4. (The circuit the README's first command made.) The CLI never writes SVG text under a .png name (it may fail when nothing is installed at the root).
   const png = join(work, 'cli.png');
-  const cli = run(process.execPath, [join(clone, 'bin', 'protoboard-iso.js'), 'render', join(clone, 'my-switch'), '-o', png], { cwd: clone });
+  const cli = run(process.execPath, [join(clone, 'bin', 'protoboard-iso.js'), 'render', join(clone, splitArgs(lines[0])[3]), '-o', png], { cwd: clone });
   if (cli.status === 0) check(readFileSync(png).subarray(0, 8).equals(PNG_SIGNATURE), 'CLI: render -o x.png writes a real PNG');
   else check(!existsSync(png) && /npm install/.test(cli.stderr), 'CLI: render -o x.png fails with a readable message and writes nothing', cli.stderr);
 
