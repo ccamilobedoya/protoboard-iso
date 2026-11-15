@@ -739,7 +739,7 @@ export default {
   protoboard-iso review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
   protoboard-iso undo <target> [--author name] [--json]
   protoboard-iso history <target> [--json]
-  protoboard-iso catalog [name] [--lang en|es]   # what the kit knows: part types, modules, boards, recipes (parts works too)`,
+  protoboard-iso catalog [name] [--json] [--lang en|es]   # what the kit knows: part types, modules, boards, recipes; a part's text and limits (parts works too)`,
   'cli.written': 'Written {file} ({parts} parts, {issues} issues).',
   'cli.page': 'Page: {file} (open it in a browser)',
   'cli.pngMissing': 'PNG output needs @resvg/resvg-js: run `cd mcp && npm install` in the kit folder, or write an .svg name instead.',
@@ -818,6 +818,15 @@ export default {
   'catalog.pins': 'pins:',
   'catalog.parts': 'parts:',
   'catalog.fields': 'fields:',
+  'catalog.about': 'about:',
+  'catalog.pinRoles': 'pin roles:',
+  'catalog.limits': 'limits (the simulator\'s):',
+  'catalog.limit.max': 'maximum {quantity} {value}',
+  'catalog.limit.rated': 'rated {quantity} {value}',
+  'catalog.limit.each.pins': 'per pin',
+  'catalog.limit.each.contacts': 'per contact',
+  'catalog.limit.each.amps': 'per amplifier',
+  'catalog.limitFields': 'by default (field {fields})',
   'catalog.example': 'example ({file}):',
   'catalog.alias': '"{name}" is a name for: {fields}. Write it as such in a circuit, or just {"part": "{name}"} in a layout.',
   'catalog.closest': 'Closest names: {names}.',

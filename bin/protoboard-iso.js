@@ -294,7 +294,7 @@ if (command === 'layout') {
     console.log(t(lang, 'catalog.unknown', { name: target, types: Object.keys(PART_TYPES).join(', ') }));
     fail(1);
   }
-  console.log(formatCatalogEntry(entry, lang));
+  console.log(args.json ? JSON.stringify(entry, null, 2) : formatCatalogEntry(entry, lang));
 } else if (command === 'catalog' || command === 'parts') {
   for (const [type, def] of Object.entries(PART_TYPES)) {
     const numbers = Object.entries(PART_NUMBERS).filter(([, e]) => e.type === type).map(([n]) => n);

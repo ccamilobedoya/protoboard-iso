@@ -170,6 +170,18 @@ test('catalog: a compact list by default, one entry in detail by name', async ()
   assert.ok(jsonOf(await call('catalog', { format: 'json' })).partNumbers['1N4007'], 'the full registry as JSON');
 });
 
+test('catalog: a part answers what it is, what each pin does and the limits the simulator checks', async () => {
+  const led = textOf(await call('catalog', { name: 'led' }));
+  assert.match(led, /\n {2}about: LED: a diode that gives light\. .*The long lead is the anode/);
+  assert.match(led, /\n {2}pin roles: anode · the \+ side, in; cathode · the − side, out\n/);
+  assert.match(led, /\n {2}limits \(the simulator's\): rated current 20 mA · maximum current 30 mA · maximum reverse voltage 5 V\n/);
+  const es = textOf(await call('catalog', { name: 'resistor', lang: 'es' }));
+  assert.match(es, /\n {2}límites \(los del simulador\): la potencia hasta 250 mW, por defecto \(campo power\)\n/);
+  const q = jsonOf(await call('catalog', { name: '2N2222A', format: 'json' }));
+  assert.deepEqual(q.limits, [{ kind: 'max', quantity: 'power', value: 0.5, unit: 'W' }]);
+  assert.ok(q.about.startsWith('NPN bipolar transistor'));
+});
+
 test('netlist: groups joined by wires, with the pins on each net', async () => {
   const r = jsonOf(await call('netlist', { target: 'circuits/led', format: 'json' }));
   const all = r.nets.flatMap((n) => n.pins);

@@ -103,7 +103,7 @@ function supplyList(circuit, board) {
 }
 
 // A battery part as a supply: its leads are its two holes; switched off it is no source at all.
-function batterySupply(part) {
+export function batterySupply(part) {
   const e = part.def.electrical;
   return { id: part.id, kind: 'battery', part: part.id, voltage: e.emf, internalResistance: e.resistance, positive: part.holes[0].id, negative: part.holes[1].id, currentLimit: null, battery: e, off: !e.on };
 }

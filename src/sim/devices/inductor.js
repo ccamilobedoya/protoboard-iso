@@ -6,6 +6,7 @@ import { stress, twoTerminal, twoTerminalLines, currentTag } from './shared.js';
 export const inductor = {
   types: ['inductor'],
   kind: 'L',
+  limitFields: () => ['current'],
   read: (entry, h) => twoTerminal(entry, entry.main, h),
   lines: twoTerminalLines,
   tag: currentTag,
