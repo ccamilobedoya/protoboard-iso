@@ -66,3 +66,40 @@ test('docs: the Node they promise is the one engines says', () => {
     assert.deepEqual([...new Set(promised)], [min], `${file}: Node ≥ ${min}`);
   }
 });
+
+// The jobs of a workflow, by name: the text of each, from its line under jobs: to the next.
+const jobsOf = (yml) => Object.fromEntries(yml.split(/^jobs:\n/m)[1].split(/^(?= {2}[\w-]+:\n)/m).filter((b) => /^ {2}[\w-]+:/.test(b)).map((b) => [/^ {2}([\w-]+):/.exec(b)[1], b]));
+
+test('release: on a tag v* or by hand with dry_run, Node 22, write permission only on the job that publishes', () => {
+  const release = read('.github/workflows/release.yml');
+  assert.match(release, /^on:\n {2}push:\n {4}tags: \['v\*'\]\n {2}workflow_dispatch:\n {4}inputs:\n {6}dry_run:/m);
+  assert.match(release, /^permissions:\n {2}contents: read$/m, 'read by default');
+  const jobs = jobsOf(release);
+  assert.deepEqual(Object.keys(jobs), ['build', 'release']);
+  assert.match(jobs.build, /permissions:\n\s+contents: read/);
+  assert.equal((release.match(/contents: write/g) ?? []).length, 1);
+  assert.match(jobs.release, /permissions:\n\s+contents: write/);
+  assert.match(jobs.release, /if: github\.ref_type == 'tag' && !\(github\.event_name == 'workflow_dispatch' && inputs\.dry_run\)/, 'never on a dry run, never without a tag');
+  const min = /^>=(\d+)$/.exec(JSON.parse(read('package.json')).engines.node)[1];
+  assert.deepEqual([...release.matchAll(/node-version: (\S+)/g)].map((m) => m[1]), [min], 'the Node engines promises');
+  assert.match(jobs.build, /persist-credentials: false/);
+});
+
+test('release: the build checks before it builds, and publishes the four files with the changelog as notes', () => {
+  const { build, release } = jobsOf(read('.github/workflows/release.yml'));
+  const order = ['node scripts/release-assets.js check "$tag"', 'node scripts/release-assets.js notes "$version" > release-notes.md', 'node scripts/pack-skill.js --check', 'zip -qrX', 'node scripts/pack-mcpb.js --out', 'sha256sum -- *.zip *.mcpb > SHA256SUMS', 'actions/upload-artifact@'];
+  const at = order.map((s) => build.indexOf(s));
+  assert.ok(at.every((i) => i >= 0), `every step is there: ${order.filter((_, i) => at[i] < 0).join(', ')}`);
+  assert.deepEqual([...at].sort((a, b) => a - b), at, 'in this order');
+  for (const name of ['plugin-', 'skill-', ''].map((k) => `protoboard-iso-${k}\${VERSION}.${k ? 'zip' : 'mcpb'}`)) assert.ok(build.includes(name), name);
+  assert.match(build, /unzip -Z1 "\$f" \| cut -d\/ -f1 \| sort -u\)" = protoboard-iso/, 'one top-level folder in each zip');
+  assert.match(build, /npm --prefix mcp ci --omit=dev --omit=optional --ignore-scripts/, 'no rasteriser');
+  assert.doesNotMatch(build, /gh release/);
+  assert.match(release, /gh release create "\$TAG" release\/dist\/\* --repo "\$GITHUB_REPOSITORY" --verify-tag --title "\$TAG" --notes-file release\/release-notes\.md/);
+  assert.match(release, /GH_TOKEN: \$\{\{ github\.token \}\}/);
+});
+
+test('release: the official mcpb CLI is pinned to an exact version', async () => {
+  const { MCPB_CLI } = await import('../scripts/pack-mcpb.js');
+  assert.match(MCPB_CLI, /^@anthropic-ai\/mcpb@\d+\.\d+\.\d+$/);
+});
