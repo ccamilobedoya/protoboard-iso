@@ -11,7 +11,7 @@ import { dirname, join, normalize } from 'node:path';
 const root = new URL('../', import.meta.url).pathname;
 const read = (f) => readFileSync(join(root, f), 'utf8');
 // Documents that are not part of a pair: one file for both languages, or not for readers.
-const SINGLE = new Set(['CLAUDE.md', 'SKILL.md', 'CHANGELOG.md', 'src/sim/README.md', 'mcp/README.md', '.interface-design/system.md']);
+const SINGLE = new Set(['CLAUDE.md', 'CHANGELOG.md', 'src/sim/README.md', 'mcp/README.md', '.interface-design/system.md']);
 
 // The other language's file a document's top link names, or null.
 export function pairOf(file, text) {
@@ -30,7 +30,9 @@ export function shapeOf(text) {
 
 const tracked = execFileSync('git', ['ls-files', '-z', '-co', '--exclude-standard', '*.md'], { cwd: root, encoding: 'utf8' })
   .split('\0')
-  .filter((f) => f && !f.startsWith('.claude/') && !f.startsWith('test/') && !SINGLE.has(f));
+  // The plugin (its sources in plugin-src/ and the packed plugin/) is in English only: the skill
+  // answers in the user's language, and the Claude apps show one README.
+  .filter((f) => f && !/^(\.claude|test|plugin|plugin-src)\//.test(f) && !SINGLE.has(f));
 
 test('parity: every document has its copy in the other language, and they point at each other', () => {
   assert.ok(tracked.length >= 40);

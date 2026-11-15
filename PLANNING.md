@@ -109,9 +109,16 @@ circuit.json ──▶ type ──▶ package ──▶ primitives ──▶ cam
 
 ## 4. Best practices
 
-### For the skill (`SKILL.md`)
-- **Keep it short.** Workflow, format summary, rules. Details live in `docs/` and are read
-  only when needed (progressive disclosure).
+### For the skill (`plugin-src/SKILL.md`)
+- **One skill, packed as a plugin.** `plugin-src/` holds the skill and its references;
+  `npm run pack-skill` writes `plugin/` with a copy of the kit's run-time files inside the skill's
+  folder, committed and never edited by hand (a test fails when it is stale). No tool profiles,
+  no named slash commands.
+- **Keep it short.** Workflow, the shape of the reply, the stop rule. Details live in the skill's
+  `references/` and are read only at the step that needs them (progressive disclosure).
+- **Only the kit's facts.** The skill reports what the kit says, informs the options the kit
+  declares (what can change, what can be asked) and does not recommend or propose experiments;
+  no calls after `DONE`, at most two corrections per circuit.
 - **The description decides when the skill loads.** It must say *when* to use it
   (breadboard circuits, wiring guides, "draw/see this circuit").
 - **Deterministic code does the work.** If the assistant would have to calculate something,
@@ -297,3 +304,4 @@ the Spanish copy.
 | 2026-11-14 | **The server keeps no state in memory that matters; the root is the only state**: the selection, the assembled pages (chunks) and the debug report go to `<root>/.protoboard/` (bounded, atomic writes, safe to delete); circuit changes run under a lock so `expect_revision` holds between processes; tools run in-process, in a restarting worker only with `PROTOBOARD_DEV=1`. | Claude Desktop runs two processes of the stdio server per session and sends the viewer's and the model's calls to different ones, which broke an in-memory selection; any process may also die or be duplicated. Disk is the one thing all of them share. In-process handlers keep the installed server simple (no watcher, no worker). | in force |
 | 2026-11-14 | **Messages from the viewer tried and removed**: the viewer had a button "Ask about this part" (`ui/message`); it is gone, and the viewer only talks to the model through the silent `ui/update-model-context`. | In Claude Desktop the message lands in the user's message box under the banner "Use caution before running this prompt. Malicious content could trick Claude…", which breeds distrust; the owner does not want it. Nothing else in the viewer sends `ui/message` (a test checks the viewer's script). | in force |
 | 2026-11-14 | **The live page inside MCP App hosts, as a pilot**: `layout` links a fixed viewer (`ui://protoboard-iso/board.html`, the page's CSS and live script) and returns only `{target, revision, lang}`; the viewer fetches the circuit's pieces with the app-only `page_parts` (an older revision rebuilt from the history's inverses). The bridge to the host is hand-written, not the ext-apps SDK. It is offered only to a client that announces `io.modelcontextprotocol/ui`, or to all with `PROTOBOARD_APPS=on`; only `layout` is linked. | The pieces (hundreds of KB) never pass through the model, and a host without MCP Apps sees the same tools and answers byte for byte. A hand-written bridge is about 180 lines with no new dependency; the SDK would add a bundle and a licence entry for the same few messages. The reference host does not announce the extension, hence the switch. Linking `apply_ops` would add a view per change an agent makes. Measured limits: a board's sketch needs `unsafe-eval`, which the specification's default CSP denies; `page_parts` is 430–980 KB. | in force |
+| 2026-11-15 | **One skill with the kit inside, packed as a committed plugin folder**: the root `SKILL.md` is gone; `plugin-src/SKILL.md` is short (how to run, recipes first, the `STATUS` table, the stop rule, a fixed shape for the reply built from `layout`'s readings, program and what can change), its long guide is split into `references/`; `scripts/pack-skill.js` writes `plugin/` (manifest with the package's version, README, licence, the skill with `bin/` and `src/` copied under `scripts/`; `schema/` left out, never read at run time), and `.claude-plugin/marketplace.json` at the root lists it | People without a terminal get the kit by adding one plugin to a Claude app: the chat copies a skill's whole folder, scripts included, to its sandbox (Node 22 there, and the kit has no dependencies), while it ignores a plugin's local MCP server; a top-level `bin/` makes claude.ai refuse a plugin, so the plugin cannot be the repository root. Committed and checked by a test so what the marketplace serves is what was reviewed | in force |

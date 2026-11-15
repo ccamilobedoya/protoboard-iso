@@ -129,7 +129,7 @@ Every tool answers in readable text, or JSON with `format: "json"`. Errors come 
 errors with a readable message (`isError`), never as a crash. Read-only tools are annotated
 `readOnlyHint`, so clients can allow them without asking.
 
-The server also sends **instructions**, the same guide as `SKILL.md` in a few lines: which tool for
+The server also sends **instructions**, the same guide as the plugin's skill (`plugin-src/SKILL.md`) in a few lines: which tool for
 which task (recipes first: a usual lesson circuit → `layout` with `recipe`; another new circuit → `layout`; other connections in a circuit made by `layout` → `layout`
 again; a value or a fix → `apply_ops`), what each `STATUS:` means, the operations loop, how to check
 (`review`, `netlist`, `simulate`, never showing a value to predict), the holes, and the page's

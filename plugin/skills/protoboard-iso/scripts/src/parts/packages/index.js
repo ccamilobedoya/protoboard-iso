@@ -1,0 +1,35 @@
+// Registry of physical packages. A package knows only geometry: how big the body is,
+// how far apart its leads may go and how to draw it. What the part does electrically
+// lives in ../types.
+
+import axial from './axial.js';
+import led from './led.js';
+import radialCan from './radial-can.js';
+import disc from './disc.js';
+import to220 from './to220.js';
+import to92 from './to92.js';
+import wire from './wire.js';
+import tactile from './tactile.js';
+import pot from './pot.js';
+import dip from './dip.js';
+import battery from './battery.js';
+import trimmer from './trimmer.js';
+import kbp from './sip.js';
+import devboard from './devboard.js';
+import uno from './uno.js';
+import despi from './despi.js';
+import ams1117 from './ams1117.js';
+import { rocker, latching } from './switch.js';
+import { bead, ldr, buzzer, header } from './small.js';
+import ledRgb from './led-rgb.js';
+import sevenSegment from './seven-segment.js';
+import { slide, tilt } from './board-switch.js';
+import { relay, motor } from './actuators.js';
+import { pirModule, touchModule } from './timed-sensors.js';
+import sensorModule from './sensor-module.js';
+import encoderModule from './encoder-module.js';
+import { laserModule } from './laser.js';
+import { ultrasonicModule } from './ultrasonic.js';
+import { dhtModule, bmeBoard } from './climate.js';
+
+export const PACKAGES = Object.fromEntries([axial, led, radialCan, disc, to220, to92, pot, tactile, dip, wire, battery, trimmer, kbp, devboard, uno, despi, ams1117, rocker, latching, bead, ldr, buzzer, header, ledRgb, sevenSegment, slide, tilt, relay, motor, pirModule, touchModule, sensorModule, encoderModule, laserModule, ultrasonicModule, dhtModule, bmeBoard].map((p) => [p.id, p]));

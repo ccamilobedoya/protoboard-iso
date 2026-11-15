@@ -1,0 +1,657 @@
+// Schematic symbols by kind of part (a video about one part, F4; docs/en/component-focus.md): the
+// symbol a datasheet or a schematic draws for it, as data for the page, which only draws it beside
+// the part on its pedestal and joins each terminal to the real pin (page/client/symbol.js).
+//
+//   symbolOf(part) → { w, h, strokes: [d], fills: [d], texts: [{ x, y, text, anchor }], pins: { name: [x, y] },
+//                      ids: { name: 'B' } } or null
+//
+// `ids`: what the symbol calls each pin (a letter, a chip's number), written by the page at the real
+// pin's tip, so the symbol and the part say which leg is which without a line between them.
+//
+// Units: a box `w` wide and `h` tall (100 for a part of two or three pins); strokes are SVG path data,
+// drawn with the line's colour, fills filled with it; `pins` are the ends of the leads, by the part's
+// own pin names. Only the kinds a first wave of videos needs; a part without one: null
+// (TOUR_NO_SYMBOL).
+
+import { LED_LIGHT } from './colors.js';
+import { deviceFor } from '../sim/devices/index.js';
+import { LASER } from '../sim/devices/laser.js';
+
+const arrow = (x1, y1, x2, y2, size = 9) => {
+  // A filled head at (x2, y2) pointing from (x1, y1).
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  const p = (da) => `${(x2 - size * Math.cos(a + da)).toFixed(1)} ${(y2 - size * Math.sin(a + da)).toFixed(1)}`;
+  return `M${x2} ${y2}L${p(0.45)}L${p(-0.45)}Z`;
+};
+
+function bjt(pnp) {
+  // Circle, base bar, collector up and emitter down on the right; the emitter's arrow out (NPN) or in (PNP).
+  const head = pnp ? arrow(64, 73, 46, 63) : arrow(42, 61, 62, 72);
+  return {
+    w: 100, h: 100,
+    strokes: ['M86 50A32 32 0 1 1 22 50A32 32 0 1 1 86 50Z', 'M6 50H40', 'M40 32V68', 'M40 41L66 27V4', 'M40 59L66 73V96'],
+    fills: [head],
+    texts: [{ x: 10, y: 44, text: 'B', anchor: 'start' }, { x: 74, y: 12, text: 'C', anchor: 'start' }, { x: 74, y: 94, text: 'E', anchor: 'start' }],
+    pins: { B: [6, 50], C: [66, 4], E: [66, 96] },
+    ids: { B: 'B', C: 'C', E: 'E' },
+  };
+}
+
+function mosfet(p) {
+  // Gate plate apart from a channel of three pieces; drain up, source down; the body's arrow in (N) or out (P).
+  const head = p ? arrow(46, 50, 64, 50) : arrow(64, 50, 46, 50);
+  return {
+    w: 100, h: 100,
+    strokes: ['M6 62H32', 'M32 30V70', 'M42 26V38', 'M42 44V56', 'M42 62V74', 'M42 32H66V4', 'M42 68H66V96', 'M42 50H66V68'],
+    fills: [head],
+    texts: [{ x: 10, y: 56, text: 'G', anchor: 'start' }, { x: 74, y: 12, text: 'D', anchor: 'start' }, { x: 74, y: 94, text: 'S', anchor: 'start' }],
+    pins: { G: [6, 62], D: [66, 4], S: [66, 96] },
+    ids: { G: 'G', D: 'D', S: 'S' },
+  };
+}
+
+// A diode pointing down: anode at the top, cathode at the bottom.
+function diode(names, { light = false, zener = false } = {}) {
+  const bar = zener ? 'M32 70L36 64H64L68 58' : 'M32 64H68';
+  const rays = light ? ['M74 40L90 30', 'M76 54L92 44'] : [];
+  return {
+    w: 100, h: 100,
+    strokes: ['M50 4V34', 'M32 34H68L50 64Z', bar, 'M50 64V96', ...rays],
+    fills: light ? [arrow(74, 40, 90, 30, 7), arrow(76, 54, 92, 44, 7)] : [],
+    texts: [{ x: 58, y: 14, text: 'A', anchor: 'start' }, { x: 58, y: 92, text: 'K', anchor: 'start' }],
+    pins: { [names[0]]: [50, 4], [names[1]]: [50, 96] },
+    ids: { [names[0]]: 'A', [names[1]]: 'K' },
+  };
+}
+
+// A two-lead symbol standing up: the first pin at the top, the second at the bottom; `ids` what the
+// symbol calls them (their own names unless it says otherwise).
+const upright = (names, strokes, { texts = [], ids = names } = {}) => ({ w: 100, h: 100, strokes, fills: [], texts, pins: { [names[0]]: [50, 4], [names[1]]: [50, 96] }, ids: { [names[0]]: ids[0], [names[1]]: ids[1] } });
+
+const ZIGZAG = 'M50 4V24L62 29L38 39L62 49L38 59L62 69L50 74V96';
+const resistor = (names) => upright(names, [ZIGZAG]);
+
+// A sensor that is a resistor: the zigzag with what it senses. An NTC thermistor's (IEC 60617) is the
+// diagonal line through it with a short foot, "−t°" beside it (its resistance falls as it warms); a
+// photoresistor's, two arrows of light coming in.
+const thermistor = (names) => upright(names, [ZIGZAG, 'M26 80H34L74 22'], { texts: [{ x: 76, y: 34, text: '−t°', anchor: 'start', small: true }] });
+function ldr(names) {
+  const s = upright(names, [ZIGZAG, 'M92 22L72 34', 'M94 42L74 54']);
+  s.fills = [arrow(92, 22, 70, 35, 7), arrow(94, 42, 72, 55, 7)];
+  return s;
+}
+
+// A potentiometer: the zigzag between pins 1 (top) and 3 (bottom), the wiper's arrow coming in from
+// the right onto its middle.
+function potentiometer() {
+  return {
+    w: 100, h: 100,
+    strokes: [ZIGZAG, 'M96 50H70'],
+    fills: [arrow(96, 50, 64, 50)],
+    texts: [{ x: 58, y: 14, text: '1', anchor: 'start' }, { x: 58, y: 92, text: '3', anchor: 'start' }, { x: 88, y: 44, text: 'W', anchor: 'middle' }],
+    pins: { 1: [50, 4], W: [96, 50], 3: [50, 96] },
+    ids: { 1: '1', W: 'W', 3: '3' },
+  };
+}
+
+// A coil of four humps between its leads.
+const inductor = (names) => upright(names, ['M50 4V22A7 7 0 0 1 50 36A7 7 0 0 1 50 50A7 7 0 0 1 50 64A7 7 0 0 1 50 78V96']);
+
+function capacitor(names, polarised) {
+  const lower = polarised ? 'M30 62Q50 52 70 62' : 'M30 56H70';
+  const plus = polarised ? [{ x: 74, y: 36, text: '+', anchor: 'start' }] : [];
+  return upright(names, ['M50 4V44', 'M30 44H70', lower, `M50 ${polarised ? 57 : 56}V96`], { texts: plus, ids: polarised ? ['+', '−'] : names });
+}
+
+// A chip as a block: pins 1… down the left side and the rest up the right one, as the package counts
+// them; each pin's name inside, the part number above.
+function block(names, title) {
+  const half = Math.ceil(names.length / 2);
+  const top = 16;
+  const h = top + half * 18 + 14;
+  const strokes = [`M18 ${top}H82V${h - 4}H18Z`];
+  const texts = [{ x: 50, y: 10, text: title, anchor: 'middle', quiet: true }];
+  const pins = {};
+  const ids = {};
+  names.forEach((name, i) => {
+    const left = i < half;
+    const y = top + 14 + 18 * (left ? i : names.length - 1 - i);
+    strokes.push(left ? `M2 ${y}H18` : `M82 ${y}H98`);
+    texts.push({ x: left ? 22 : 78, y: y + 3, text: name, anchor: left ? 'start' : 'end', small: true });
+    // The pin's number on its lead, outside the block, as a datasheet prints it.
+    texts.push({ x: left ? 10 : 90, y: y - 3, text: String(i + 1), anchor: 'middle', small: true, number: true });
+    pins[name] = [left ? 2 : 98, y];
+    ids[name] = String(i + 1);
+  });
+  return { w: 100, h, strokes, fills: [], texts, pins, ids };
+}
+
+// A bridge rectifier: four diodes on the sides of a diamond, all pointing up to +; the AC pins at the
+// sides, + at the top, − at the bottom. `ids` tell the two AC pins apart (~1, ~2), as the pinout does.
+function bridge() {
+  const at = { '+': [50, 14], AC2: [86, 50], '-': [50, 86], AC1: [14, 50] };
+  const strokes = ['M50 4V14', 'M50 86V96', 'M4 50H14', 'M86 50H96'];
+  const r = (v) => Math.round(v * 10) / 10;
+  for (const [a, k] of [['AC1', '+'], ['AC2', '+'], ['-', 'AC1'], ['-', 'AC2']]) {
+    // Each diode in the middle of its side: the line to its triangle, the triangle, its bar, the line on.
+    const [[ax, ay], [kx, ky]] = [at[a], at[k]];
+    const len = Math.hypot(kx - ax, ky - ay);
+    const [ux, uy] = [(kx - ax) / len, (ky - ay) / len];
+    const [mx, my] = [(ax + kx) / 2, (ay + ky) / 2];
+    const p = (along, across) => `${r(mx + ux * along - uy * across)} ${r(my + uy * along + ux * across)}`;
+    strokes.push(`M${ax} ${ay}L${p(-6, 0)}`, `M${p(-6, 7)}L${p(-6, -7)}L${p(6, 0)}Z`, `M${p(6, 7)}L${p(6, -7)}`, `M${p(6, 0)}L${kx} ${ky}`);
+  }
+  return {
+    w: 100, h: 100,
+    strokes,
+    fills: [],
+    texts: [{ x: 58, y: 10, text: '+', anchor: 'start' }, { x: 58, y: 96, text: '−', anchor: 'start' }, { x: 6, y: 42, text: '~1', anchor: 'start', small: true }, { x: 94, y: 42, text: '~2', anchor: 'end', small: true }],
+    pins: { '+': [50, 4], AC1: [4, 50], AC2: [96, 50], '-': [50, 96] },
+    ids: { '+': '+', AC1: '~1', AC2: '~2', '-': '−' },
+  };
+}
+
+// A small circle (a contact) as a path, for the strokes.
+const ring = (x, y, r = 2.5) => `M${x + r} ${y}A${r} ${r} 0 1 1 ${x - r} ${y}A${r} ${r} 0 1 1 ${x + r} ${y}Z`;
+
+// A tactile push button (IEC 60617, normally open): 1–2 down the left and 3–4 down the right, each pair
+// one piece of metal with a dot where its contact leaves it; the bar held over both contacts by its
+// plunger, which pressed joins the two pieces.
+function button() {
+  return {
+    w: 100, h: 100,
+    strokes: ['M14 4V96', 'M86 4V96', 'M14 62H34', 'M86 62H66', ring(36.5, 62), ring(63.5, 62), 'M28 48H72', 'M50 48V20', 'M40 20H60'],
+    fills: [ring(14, 62, 2.6), ring(86, 62, 2.6)],
+    texts: [{ x: 20, y: 14, text: '1', anchor: 'start' }, { x: 20, y: 92, text: '2', anchor: 'start' }, { x: 80, y: 14, text: '3', anchor: 'end' }, { x: 80, y: 92, text: '4', anchor: 'end' }],
+    pins: { 1: [14, 4], 2: [14, 96], 3: [86, 4], 4: [86, 96] },
+    ids: { 1: '1', 2: '2', 3: '3', 4: '4' },
+  };
+}
+
+// Only the pins a switch's circuit lists are its part's (the others are left unwired on the table): the
+// symbol draws the whole switch, its terminals and letters for those.
+const listed = (s, names) => ({ ...s, pins: Object.fromEntries(names.map((n) => [n, s.pins[n]])), ids: Object.fromEntries(names.map((n) => [n, n])) });
+
+// A rocker (SPST): tab 1 at the top, tab 2 at the bottom, the blade from 2 lifted off 1's contact, as a
+// schematic draws it (open); its letters are the tabs' numbers.
+const rocker = (names) => listed({ w: 100, h: 100, strokes: ['M50 4V34', ring(50, 36.5), 'M50 96V66', 'M50 66L30 40'], fills: [ring(50, 66, 2.6)], texts: [{ x: 58, y: 14, text: '1', anchor: 'start' }, { x: 58, y: 92, text: '2', anchor: 'start' }], pins: { 1: [50, 4], 2: [50, 96] } }, names);
+
+// A latching button (DPDT): a changeover per row, its common on the left and its blade on NC (released,
+// as a schematic draws it), NO under it; both blades on one dashed link to the push at the top.
+function latching(names) {
+  // The push at the top and the link, dashed, from it down through both blades.
+  const strokes = ['M40 6H60', 'M50 6V9'];
+  for (let d = 12; d < 72; d += 6) strokes.push(`M50 ${d}V${d + 3}`);
+  const texts = [];
+  const pins = {};
+  for (const [row, y] of [[1, 34], [2, 78]]) {
+    strokes.push(`M6 ${y}H30`, ring(30, y, 2.2), `M30 ${y}L66 ${y - 11}`, `M70 ${y - 12}H94`, `M70 ${y + 12}H94`, ring(68, y - 12, 2.2), ring(68, y + 12, 2.2));
+    texts.push({ x: 6, y: y - 5, text: `C${row}`, anchor: 'start', small: true }, { x: 94, y: y - 15, text: `NC${row}`, anchor: 'end', small: true }, { x: 94, y: y + 9, text: `NO${row}`, anchor: 'end', small: true });
+    Object.assign(pins, { [`C${row}`]: [6, y], [`NC${row}`]: [94, y - 12], [`NO${row}`]: [94, y + 12] });
+  }
+  return listed({ w: 100, h: 100, strokes, fills: [], texts, pins }, names);
+}
+
+// A linear regulator (IEC 60617 draws a box with its terminals): IN on the left, OUT on the right and
+// the common (GND, or an LM317's ADJ) under it; the part number above. A module's printed names are
+// its letters (VIN for IN).
+function regulator(names, title, printed) {
+  const ref = names.includes('ADJ') ? 'ADJ' : 'GND';
+  const id = (n) => (printed && n === 'IN' ? 'VIN' : n);
+  return {
+    w: 100, h: 100,
+    strokes: ['M24 30H76V70H24Z', 'M4 50H24', 'M76 50H96', 'M50 70V96'],
+    fills: [],
+    texts: [{ x: 50, y: 22, text: title, anchor: 'middle', quiet: true }, { x: 28, y: 53, text: id('IN'), anchor: 'start', small: true }, { x: 72, y: 53, text: 'OUT', anchor: 'end', small: true }, { x: 50, y: 66, text: ref, anchor: 'middle', small: true }],
+    pins: { IN: [4, 50], OUT: [96, 50], [ref]: [50, 96] },
+    ids: { IN: id('IN'), OUT: 'OUT', [ref]: ref },
+  };
+}
+
+// A battery: its cells in series, + at the top; each cell a long plate (+) over a short thick one (−),
+// as a schematic draws it, one pair per cell up to four (more: the first two and the last, a dashed
+// line between).
+function battery(series) {
+  const n = Math.max(1, series);
+  const drawn = n > 4 ? 3 : n;
+  const pitch = 14;
+  const top = Math.round(50 - (drawn * pitch + (n > 4 ? 8 : 0)) / 2);
+  const strokes = [`M50 4V${top + 3}`];
+  const fills = [];
+  let y = top;
+  for (let k = 0; k < drawn; k++) {
+    strokes.push(`M30 ${y + 3}H70`);
+    fills.push(`M40 ${y + 8}H60V${y + 11}H40Z`);
+    // Between two cells, the lead from one's − to the next one's +; dashed where cells are left out.
+    if (k < drawn - 1 && n > 4 && k === 1) {
+      strokes.push(`M50 ${y + 11}V${y + 13}`, `M50 ${y + 16}V${y + 18}`, `M50 ${y + 21}V${y + pitch + 11}`);
+      y += 8;
+    } else if (k < drawn - 1) strokes.push(`M50 ${y + 11}V${y + pitch + 3}`);
+    y += pitch;
+  }
+  strokes.push(`M50 ${y - pitch + 11}V96`);
+  return {
+    w: 100, h: 100,
+    strokes,
+    fills,
+    texts: [{ x: 74, y: top + 6, text: '+', anchor: 'start' }, { x: 64, y: y - pitch + 14, text: '−', anchor: 'start' }, ...(n > 4 ? [{ x: 26, y: 54, text: `${n}×`, anchor: 'end', small: true, quiet: true }] : [])],
+    pins: { '+': [50, 4], '-': [50, 96] },
+    ids: { '+': '+', '-': '−' },
+  };
+}
+
+// A buzzer (IEC 60617: a dome on a flat base), its two leads down from the base; + by pin 1, the side
+// its top is marked.
+// The active one has its oscillator drawn inside the dome (a small square wave).
+const buzzer = (active = false) => ({
+  w: 100, h: 100,
+  strokes: ['M22 58A28 28 0 0 1 78 58Z', 'M36 58V96', 'M64 58V96', ...(active ? ['M38 52H44V44H50V52H56V44H62'] : [])],
+  fills: [],
+  texts: [{ x: 30, y: 82, text: '+', anchor: 'end' }],
+  pins: { 1: [36, 96], 2: [64, 96] },
+  ids: { 1: '+', 2: '−' },
+});
+
+// A small LED pointing down from (x, top) to (x, top + 20): its triangle, its bar, two rays out to
+// the right; for the parts of several LEDs.
+function smallLed(x, top, rays = true) {
+  const strokes = [`M${x - 5} ${top}H${x + 5}L${x} ${top + 9}Z`, `M${x - 5} ${top + 9}H${x + 5}`];
+  const fills = [];
+  if (rays) {
+    strokes.push(`M${x + 6} ${top + 2}L${x + 11} ${top - 2}`);
+    fills.push(arrow(x + 6, top + 2, x + 12, top - 2.5, 4));
+  }
+  return { strokes, fills };
+}
+
+// Several LEDs to one common pin, as a datasheet's internal circuit draws them: each chip's pin at the
+// top, its LED pointing down to the common's bar under them (a common cathode), or down from the
+// common's bar over them to the pins under it (a common anode). `names`: the chips' pins in order;
+// `commons`: the common's pins along the bar; `ids` what the symbol calls each one.
+function ledArray(names, commons, anode, ids, labels) {
+  const n = names.length;
+  // Few chips spread over the middle (their rays to the right stay inside); many over the whole box.
+  const [x0, span] = n > 4 ? [8, 84] : [26, 48];
+  const xs = names.map((_, i) => (n === 1 ? 50 : x0 + (i * span) / (n - 1)));
+  const strokes = [];
+  const fills = [];
+  const texts = [];
+  const pins = {};
+  // Cathode: the pins at the top, LEDs from 34 down, the bar at 70, the common below it (y 96).
+  // Anode: the common at the top, the bar at 30, the LEDs from 42 down, the pins at the bottom. Many
+  // pins: their letters beyond their ends (above or below), the terminals moved in to make room.
+  const inset = n > 4 ? 10 : 0;
+  const [pinY, ledTop, barY, comY] = anode ? [96 - inset, 42, 30, 4] : [4 + inset, 34, 70, 96];
+  xs.forEach((x, i) => {
+    const led = smallLed(x, ledTop, n <= 4);
+    strokes.push(...led.strokes, anode ? `M${x} ${barY}V${ledTop}M${x} ${ledTop + 9}V${pinY}` : `M${x} ${pinY}V${ledTop}M${x} ${ledTop + 9}V${barY}`);
+    fills.push(...led.fills);
+    texts.push(n > 4 ? { x, y: anode ? pinY + 9 : pinY - 4, text: labels[i], anchor: 'middle', small: true } : { x: x + 3, y: anode ? pinY - 8 : pinY + 18, text: labels[i], anchor: 'start', small: true });
+    pins[names[i]] = [x, pinY];
+  });
+  strokes.push(`M${xs[0]} ${barY}H${xs.at(-1)}`);
+  const cx = commons.length === 1 ? [50] : commons.map((_, k) => 30 + (40 * k) / (commons.length - 1));
+  commons.forEach((name, k) => {
+    strokes.push(`M${cx[k]} ${barY}V${comY}`);
+    pins[name] = [cx[k], comY];
+  });
+  texts.push({ x: cx.at(-1) + 6, y: anode ? comY + 10 : comY - 4, text: ids[commons[0]], anchor: 'start', small: true });
+  return { w: 100, h: 100, strokes, fills: [...fills, ...cx.map((x) => ring(x, barY, 1.8))], texts, pins, ids };
+}
+
+// An RGB LED: three LEDs, R, G and B, to their common (K for a common cathode, A for a common anode).
+function rgbLed(anode) {
+  const ids = { R: 'R', G: 'G', B: 'B', COM: anode ? 'A' : 'K' };
+  return ledArray(['R', 'G', 'B'], ['COM'], anode, ids, ['R', 'G', 'B']);
+}
+
+// A 7-segment display: its eight LEDs, a–g and DP, to the common, both of its common pins on the bar.
+function sevenSegment(anode) {
+  const segs = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'DP'];
+  const ids = { ...Object.fromEntries(segs.map((n) => [n, n])), COM1: 'COM', COM2: 'COM' };
+  return ledArray(segs, ['COM1', 'COM2'], anode, ids, segs);
+}
+
+// A slide switch (SPDT, IEC 60617 changeover): the common on the left, its blade from the pivot to the
+// throw its knob has (1 above, 2 below), the other one's contact open.
+function slideSwitch(slid) {
+  return {
+    w: 100, h: 100,
+    strokes: ['M4 50H28', ring(30.5, 50, 2.2), 'M70 30H96', 'M70 70H96', ring(67.8, 30, 2.2), ring(67.8, 70, 2.2), slid ? 'M32 51L65 68' : 'M32 49L65 32'],
+    fills: [],
+    texts: [{ x: 6, y: 44, text: 'COM', anchor: 'start', small: true }, { x: 94, y: 24, text: '1', anchor: 'end' }, { x: 94, y: 88, text: '2', anchor: 'end' }],
+    pins: { 1: [96, 30], COM: [4, 50], 2: [96, 70] },
+    ids: { 1: '1', COM: 'COM', 2: '2' },
+  };
+}
+
+// A tilt switch: a switch (1 at the top, 2 at the bottom) closed as it stands upright, the ball that
+// moves it drawn beside its blade.
+const tiltSwitch = () => ({
+  w: 100, h: 100,
+  strokes: ['M50 4V34', ring(50, 36.5), 'M50 96V66', 'M50 66L46.5 39.5', ring(34, 56, 6)],
+  fills: [ring(50, 66, 2.6)],
+  texts: [{ x: 58, y: 14, text: '1', anchor: 'start' }, { x: 58, y: 92, text: '2', anchor: 'start' }],
+  pins: { 1: [50, 4], 2: [50, 96] },
+  ids: { 1: '1', 2: '2' },
+});
+
+// An LM35 as a block, the way its datasheet draws it: +VS on top, VOUT out of the right side, GND
+// under it; the part number over it.
+const lm35 = (title) => ({
+  w: 100, h: 100,
+  strokes: ['M24 30H76V70H24Z', 'M50 4V30', 'M76 50H96', 'M50 70V96'],
+  fills: [],
+  texts: [{ x: 46, y: 22, text: title, anchor: 'end', quiet: true }, { x: 50, y: 41, text: '+VS', anchor: 'middle', small: true }, { x: 72, y: 53, text: 'VOUT', anchor: 'end', small: true }, { x: 50, y: 66, text: 'GND', anchor: 'middle', small: true }],
+  pins: { '+VS': [50, 4], VOUT: [96, 50], GND: [50, 96] },
+  ids: { '+VS': '+VS', VOUT: 'VOUT', GND: 'GND' },
+});
+
+// A relay (IEC 60617): its coil as a box, A1 above and A2 under it; its changeover on the right, COM
+// up from the bottom to the blade, resting on NC (de-energised, as a schematic draws it), NO beside
+// it; a dashed link from the coil to the blade. Only the pins its circuit lists are its part's.
+const relaySymbol = (names) =>
+  listed(
+    {
+      w: 100, h: 100,
+      strokes: ['M10 34H36V66H10Z', 'M23 4V34', 'M23 66V96', 'M72 96V68', ring(72, 65.5, 2.2), 'M72 65L57 35', ring(56, 32.5, 2.2), ring(88, 32.5, 2.2), 'M56 30V4', 'M88 30V4', 'M36 50H40', 'M44 50H48', 'M52 50H56', 'M60 50H63'],
+      fills: [],
+      texts: [{ x: 28, y: 14, text: 'A1', anchor: 'start', small: true }, { x: 28, y: 92, text: 'A2', anchor: 'start', small: true }, { x: 76, y: 92, text: 'COM', anchor: 'start', small: true }, { x: 52, y: 14, text: 'NC', anchor: 'end', small: true }, { x: 84, y: 14, text: 'NO', anchor: 'end', small: true }],
+      pins: { A1: [23, 4], A2: [23, 96], COM: [72, 96], NC: [56, 4], NO: [88, 4] },
+    },
+    names,
+  );
+
+// A DC motor: a circle with M, + at the top and − at the bottom.
+const motorSymbol = () => ({
+  w: 100, h: 100,
+  strokes: ['M50 4V28', 'M72 50A22 22 0 1 1 28 50A22 22 0 1 1 72 50Z', 'M50 72V96'],
+  fills: [],
+  texts: [{ x: 50, y: 56, text: 'M', anchor: 'middle' }, { x: 58, y: 14, text: '+', anchor: 'start' }, { x: 58, y: 92, text: '−', anchor: 'start' }],
+  pins: { '+': [50, 4], '-': [50, 96] },
+  ids: { '+': '+', '-': '−' },
+});
+
+// A PIR module as a block: the pyroelectric element, two opposed halves, into a comparator that drives
+// OUT; VCC on top, GND under it.
+const pirSymbol = () => ({
+  w: 100, h: 100,
+  strokes: ['M24 22H76V78H24Z', 'M50 4V22', 'M50 78V96', 'M76 50H96', 'M30 42H38V58H30Z', 'M40 42H48V58H40Z', 'M48 50H54', 'M54 40V60L70 50Z'],
+  fills: [],
+  texts: [{ x: 31, y: 36, text: '+', anchor: 'middle', small: true }, { x: 44, y: 36, text: '−', anchor: 'middle', small: true }, { x: 58, y: 18, text: 'PIR', anchor: 'start', quiet: true }, { x: 72, y: 64, text: 'OUT', anchor: 'end', small: true }],
+  pins: { VCC: [50, 4], OUT: [96, 50], GND: [50, 96] },
+  ids: { VCC: 'VCC', OUT: 'OUT', GND: 'GND' },
+});
+
+// A touch module as a block: a pad (one plate of a capacitor, the finger the other) into the chip that
+// drives I/O; VCC on top, GND under it.
+const touchSymbol = () => ({
+  w: 100, h: 100,
+  strokes: ['M24 22H76V78H24Z', 'M50 4V22', 'M50 78V96', 'M76 50H96', 'M30 44H46', 'M30 54H46', 'M38 54V66', 'M56 38H70V62H56Z', 'M46 44H50V50H56', 'M46 54H50V50'],
+  fills: [],
+  texts: [{ x: 38, y: 38, text: 'pad', anchor: 'middle', small: true }, { x: 63, y: 53, text: 'IC', anchor: 'middle', small: true }, { x: 72, y: 71, text: 'I/O', anchor: 'end', small: true }],
+  pins: { SIG: [96, 50], VCC: [50, 4], GND: [50, 96] },
+  ids: { SIG: 'I/O', VCC: 'VCC', GND: 'GND' },
+});
+// A rotary encoder module: from the + rail a 10 kΩ pull-up to each of the three outputs, and from each
+// output a switch to the ground rail below: two contacts moved by the shaft (CLK and DT) and the push
+// switch (SW, with a bar over its blade). CLK leaves to the left, SW to the right, and DT's terminal is at
+// its own node, between them.
+const encoderSymbol = () => {
+  const column = (x, push) => [`M${x} 12V18`, `M${x - 3} 18H${x + 3}V30H${x - 3}Z`, `M${x} 30V50`, `M${x} 50V54`, `M${x} 54L${x + 7} 66`, `M${x} 72V88`, ...(push ? [`M${x - 4} 60H${x + 10}`, `M${x + 3} 60V56`] : [])];
+  return {
+    w: 100, h: 100,
+    strokes: ['M50 4V12', 'M24 12H76', ...column(24, false), ...column(50, false), ...column(76, true), 'M24 88H76', 'M50 88V96', 'M4 40H24', 'M76 40H96'],
+    fills: [],
+    texts: [{ x: 34, y: 24, text: '10k', anchor: 'start', small: true }, { x: 60, y: 24, text: '10k', anchor: 'start', small: true }, { x: 86, y: 24, text: '10k', anchor: 'start', small: true }],
+    pins: { '+': [50, 4], CLK: [4, 40], DT: [50, 40], SW: [96, 40], GND: [50, 96] },
+    ids: { '+': '+', CLK: 'CLK', DT: 'DT', SW: 'SW', GND: 'GND' },
+  };
+};
+// An LM393 sensor module as its schematic: the element (a box, its kind's letter) under the divider's
+// resistor, AO between them into the comparator's +, the trimmer's Vref into its −, DO out of the right;
+// VCC on top, GND at the bottom. Each pin's letter is what the board prints (A0, D0, +, G).
+const sensorModuleSymbol = (names, print, title) => {
+  const at = { VCC: [50, 4], GND: [50, 96], AO: [4, 62], DO: [96, 50], OUT: [96, 50] };
+  const ids = Object.fromEntries(names.map((n, i) => [n, print?.[i] ?? n]));
+  return {
+    w: 100, h: 100,
+    strokes: ['M50 4V12', 'M50 88V96', 'M12 12H88V88H12Z', 'M26 12V24', 'M21 24H31V40H21Z', 'M26 40V48', 'M21 48H31V68H21Z', 'M26 68V88', 'M26 44H52', 'M4 62H12', 'M40 62H52', 'M40 54V70', 'M52 34V66L78 50Z', 'M78 50H96'],
+    fills: [],
+    texts: [{ x: 56, y: 47, text: '+', anchor: 'start', small: true }, { x: 56, y: 63, text: '−', anchor: 'start', small: true }, { x: 26, y: 61, text: 'E', anchor: 'middle', small: true }, { x: 34, y: 78, text: 'Vref', anchor: 'start', small: true }, { x: 50, y: 100, text: title, anchor: 'middle', quiet: true }],
+    pins: Object.fromEntries(names.map((n) => [n, at[n]])),
+    ids,
+  };
+};
+
+// A laser module: S on top through its 100 Ω into the laser diode (two arrows of light out of it, the
+// usual LED symbol with a beam's straight arrows), − at the bottom; + on the left, joined to nothing.
+const laserSymbol = () => ({
+  w: 100, h: 100,
+  strokes: ['M50 4V14', 'M44 14H56V32H44Z', 'M50 32V42', 'M32 42H68L50 64Z', 'M32 64H68', 'M50 64V96', 'M72 48H92', 'M72 58H92', 'M4 50H18', 'M14 46L22 54M22 46L14 54'],
+  fills: [arrow(72, 48, 94, 48, 7), arrow(72, 58, 94, 58, 7)],
+  texts: [{ x: 58, y: 12, text: 'S', anchor: 'start' }, { x: 58, y: 92, text: '−', anchor: 'start' }, { x: 6, y: 42, text: '+', anchor: 'start', small: true }, { x: 60, y: 27, text: '100 Ω', anchor: 'start', small: true, quiet: true }],
+  pins: { S: [50, 4], '+': [4, 50], '−': [50, 96] },
+  ids: { S: 'S', '+': '+', '−': '−' },
+});
+
+// An ultrasonic module as a block: the transmitter capsule (T) sends its arcs out, the receiver (R)
+// takes them in; TRIG comes in on the left, ECHO goes out on the right, VCC on top, GND under it.
+const ultrasonicSymbol = () => ({
+  w: 100, h: 100,
+  strokes: ['M20 22H80V78H20Z', 'M50 4V22', 'M50 78V96', 'M4 60H20', 'M80 60H96', 'M30 40a6 6 0 1 0 12 0a6 6 0 1 0 -12 0', 'M58 40a6 6 0 1 0 12 0a6 6 0 1 0 -12 0', 'M30 30Q36 25 42 30', 'M28 26Q36 19 44 26', 'M58 26Q64 31 70 26', 'M56 22Q64 29 72 22', 'M14 56L20 60L14 64'],
+  fills: [],
+  texts: [{ x: 36, y: 56, text: 'T', anchor: 'middle', small: true }, { x: 64, y: 56, text: 'R', anchor: 'middle', small: true }, { x: 23, y: 72, text: 'TRIG', anchor: 'start', small: true }, { x: 77, y: 72, text: 'ECHO', anchor: 'end', small: true }],
+  pins: { VCC: [50, 4], TRIG: [4, 60], ECHO: [96, 60], GND: [50, 96] },
+  ids: { VCC: 'VCC', TRIG: 'TRIG', ECHO: 'ECHO', GND: 'GND' },
+});
+
+// A linear Hall sensor as a block with the Hall plate's symbol (a square with a cross): supply on top,
+// the output out of the right side, ground under it; each pin's letter as the part prints it.
+const hallSymbol = (names, roles, title) => ({
+  w: 100, h: 100,
+  strokes: ['M24 30H76V70H24Z', 'M50 4V30', 'M76 50H96', 'M50 70V96', 'M38 40H52V58H38Z', 'M45 44V54M41 49H49'],
+  fills: [],
+  texts: [{ x: 46, y: 22, text: title, anchor: 'end', quiet: true }, { x: 72, y: 53, text: 'OUT', anchor: 'end', small: true }],
+  pins: { [roles.vcc]: [50, 4], [roles.out]: [96, 50], [roles.gnd]: [50, 96] },
+  ids: Object.fromEntries(names.map((n) => [n, n === '-' ? '-' : n])),
+});
+
+// The voltage sensor module: a 30 kΩ from VIN down to S and a 7.5 kΩ from S to ground; the board's "+"
+// goes nowhere. The terminal's contacts are VIN (top) and GND (bottom); S comes out of the middle.
+const voltageSensorSymbol = (title) => ({
+  w: 100, h: 100,
+  strokes: ['M40 4V14', 'M34 14H46V38H34Z', 'M40 38V50', 'M40 50V58', 'M34 58H46V82H34Z', 'M40 82V96', 'M40 50H96', 'M4 28H14', 'M4 4H40', 'M4 96H40'],
+  fills: [],
+  texts: [{ x: 52, y: 29, text: '30k', anchor: 'start', small: true }, { x: 52, y: 73, text: '7.5k', anchor: 'start', small: true }, { x: 92, y: 45, text: 'S', anchor: 'end', small: true }, { x: 18, y: 31, text: 'N/C', anchor: 'start', quiet: true }, { x: 80, y: 90, text: title, anchor: 'end', quiet: true }],
+  pins: { VIN: [4, 4], S: [96, 50], GND: [4, 96], '-': [40, 96], '+': [4, 28] },
+  ids: { VIN: 'VIN', S: 'S', GND: 'GND', '-': '-', '+': '+' },
+});
+
+// A climate sensor as a block with what it measures inside (°C, %RH, hPa): a DHT11's S on the left
+// (its one data line, pulled up to + inside), + on top, − under it; a BME280 / BMP280's two I2C lines
+// on the right, VCC on top, GND under it.
+const climateSymbol = (part) => {
+  const dht = part === 'DHT11';
+  const what = dht ? '°C %RH' : part === 'BMP280' ? '°C hPa' : '°C %RH hPa';
+  if (dht) {
+    return {
+      w: 100, h: 100,
+      strokes: ['M22 22H78V78H22Z', 'M50 4V22', 'M50 78V96', 'M4 50H22', 'M36 30V48', 'M32 30H40'],
+      fills: [],
+      texts: [{ x: 50, y: 62, text: what, anchor: 'middle', small: true }, { x: 50, y: 72, text: part, anchor: 'middle', small: true, quiet: true }, { x: 25, y: 46, text: 'S', anchor: 'start', small: true }],
+      pins: { S: [4, 50], '+': [50, 4], '−': [50, 96] },
+      ids: { S: 'S', '+': '+', '−': '−' },
+    };
+  }
+  return {
+    w: 100, h: 100,
+    strokes: ['M22 22H78V78H22Z', 'M50 4V22', 'M50 78V96', 'M78 40H96', 'M78 60H96'],
+    fills: [],
+    texts: [{ x: 48, y: 52, text: what, anchor: 'middle', small: true }, { x: 48, y: 64, text: part, anchor: 'middle', small: true, quiet: true }, { x: 75, y: 37, text: 'SCL', anchor: 'end', small: true }, { x: 75, y: 72, text: 'SDA', anchor: 'end', small: true }, { x: 30, y: 33, text: 'I2C', anchor: 'start', small: true, quiet: true }],
+    pins: { VCC: [50, 4], GND: [50, 96], SCL: [96, 40], SDA: [96, 60] },
+    ids: { VCC: 'VCC', GND: 'GND', SCL: 'SCL', SDA: 'SDA' },
+  };
+};
+
+export function symbolOf(part) {
+  const e = part.def?.electrical ?? {};
+  const names = part.pinNames ?? [];
+  if (part.type === 'bjt') return bjt(e.polarity === 'pnp');
+  if (part.type === 'mosfet') return mosfet(e.channel === 'p');
+  if (part.type === 'led') return diode(names, { light: true });
+  if (part.type === 'diode') return diode(names);
+  if (part.type === 'zener') return diode(names, { zener: true });
+  if (part.type === 'bridge') return bridge();
+  if (part.type === 'resistor') return resistor(names);
+  if (part.type === 'capacitor') return capacitor(names, e.polarised === true);
+  if (part.type === 'inductor') return inductor(names);
+  if (part.type === 'thermistor') return thermistor(names);
+  if (part.type === 'ldr') return ldr(names);
+  if (part.type === 'potentiometer') return potentiometer();
+  if (part.type === 'button') return button();
+  if (part.type === 'switch') return e.style === 'latching' ? latching(names) : rocker(names);
+  if (part.type === 'regulator') return regulator(names, e.part ?? part.raw?.part ?? '', Boolean(e.family));
+  if (part.type === 'battery') return battery(e.series ?? e.cells ?? 1);
+  if (part.type === 'buzzer') return buzzer(e.kind === 'BZA');
+  if (part.type === 'rgb-led') return rgbLed(e.common === 'anode');
+  if (part.type === 'seven-segment') return sevenSegment(e.common === 'anode');
+  if (part.type === 'slide-switch') return slideSwitch(e.on === true);
+  if (part.type === 'tilt-switch') return tiltSwitch();
+  if (part.type === 'temperature-sensor') return lm35(e.part ?? 'LM35');
+  if (part.type === 'relay') return relaySymbol(names);
+  if (part.type === 'motor') return motorSymbol();
+  if (part.type === 'pir-sensor') return pirSymbol();
+  if (part.type === 'touch-sensor') return touchSymbol();
+  if (part.type === 'rotary-encoder') return encoderSymbol();
+  if (part.type === 'ic') return block(names, part.raw?.part ?? '');
+  if (part.type === 'ultrasonic-sensor') return ultrasonicSymbol();
+  if (part.type === 'climate-sensor') return climateSymbol(e.part ?? 'DHT11');
+  if (part.type === 'sensor-module') return sensorModuleSymbol(names, part.def?.params?.print, e.part ?? '');
+  if (part.type === 'laser') return laserSymbol();
+  if (part.type === 'hall-sensor') return hallSymbol(names, e.roles, e.part ?? '');
+  if (part.type === 'voltage-sensor') return voltageSensorSymbol(e.part ?? '');
+  return null;
+}
+
+// The teaching diagram a part's kind has (`inside`, page/client/figure.js draws it from the reading),
+// or null (TOUR_NO_INSIDE). A two-lead part's carries the symbol's letters for its pins (`ids`, in the
+// part's order) and the limit the simulator holds it to (its device's params), so the drawing can show
+// how near it is.
+export function insideOf(part) {
+  const e = part.def?.electrical ?? {};
+  const ids = () => (part.pinNames ?? []).map((n) => symbolOf(part)?.ids[n] ?? n);
+  // A device's params may note what it assumed (a diode's default model): nothing to note here.
+  const limits = () => deviceFor(part)?.params(part, { issues: [] }) ?? {};
+  if (part.type === 'resistor') return { kind: 'resistor', ids: ids(), maxPower: limits().maxPower };
+  if (part.type === 'capacitor') return { kind: 'capacitor', ids: ids(), maxVoltage: limits().maxVoltage };
+  if (part.type === 'inductor') return { kind: 'inductor', ids: ids(), maxCurrent: limits().maxCurrent, dcr: limits().dcr };
+  if (part.type === 'bjt') return { kind: 'bjt', pnp: e.polarity === 'pnp' };
+  if (part.type === 'mosfet') return { kind: 'mosfet', p: e.channel === 'p' };
+  // A diode's and a Zener's junction, a bridge's four diodes: each with the current it is rated for (a
+  // Zener also its power and its Vz, the voltage its depletion zone is drawn against).
+  if (part.type === 'diode') return { kind: 'diode', ids: ids(), maxCurrent: limits().model?.maxCurrent };
+  if (part.type === 'zener') return { kind: 'zener', ids: ids(), vz: limits().model?.vz, maxCurrent: limits().model?.maxCurrent, maxPower: limits().model?.maxPower };
+  if (part.type === 'bridge') return { kind: 'bridge', ids: ids(), maxCurrent: limits().model?.maxCurrent };
+  // A sensor's inside view reads what it senses from the reading (`sensor`); a potentiometer's wiper
+  // from its position control, this the position in the circuit file until one moves it.
+  if (part.type === 'thermistor') return { kind: 'thermistor', ids: ids(), r25: e.sensor?.r25, beta: e.sensor?.beta, temperature: e.sensor?.temperature };
+  if (part.type === 'ldr') return { kind: 'ldr', ids: ids(), light: e.sensor?.light };
+  if (part.type === 'potentiometer') return { kind: 'potentiometer', ids: ids(), resistance: e.resistance, position: e.position };
+  // A push button's two pieces and the contact pressing joins (its device's, 1 and 3); a switch's
+  // contacts, the ones its position closes, with the pins its circuit lists. Pressed or on from the
+  // circuit file until its control moves it.
+  if (part.type === 'button') return { kind: 'button', ids: ids(), contact: limits().contact, pressed: e.pressed === true };
+  if (part.type === 'switch') {
+    const { style, on, onContacts, offContacts } = limits();
+    return { kind: 'switch', style, ids: ids(), on, onContacts, offContacts };
+  }
+  // A regulator's pass transistor and error amplifier, against its dropout and its limits (its device's
+  // model); an LM317's reference sits between OUT and ADJ, so its divider is outside it.
+  if (part.type === 'regulator') {
+    const { model = {}, ref } = limits();
+    return { kind: 'regulator', ids: ['IN', 'OUT', ref].map((n) => symbolOf(part).ids[n]), adjustable: ref === 'ADJ', vref: model.vref, dropout: model.dropout, maxCurrent: model.maxCurrent, maxPower: model.maxPower };
+  }
+  // A battery's cells and chemistry, its internal resistance and the current it is meant for (the
+  // simulator's own figures: its supply has no device params).
+  if (part.type === 'battery') return { kind: 'battery', ids: ids(), chemistry: e.chemistry, series: e.series ?? e.cells, resistance: e.resistance, maxCurrent: e.maxCurrent, rechargeable: e.rechargeable === true, charge: e.charge ?? null };
+  // A buzzer's coil (a resistor to the simulator) and the current its rating allows (P = I²R).
+  if (part.type === 'buzzer') {
+    const { resistance, maxPower } = limits();
+    // The active one: its oscillator is inside, and what it takes is its device's rating.
+    if (e.kind === 'BZA') return { kind: 'buzzer-active', ids: ids(), minVoltage: limits().model?.start, frequency: limits().model?.frequency, maxCurrent: limits().model?.current };
+    return { kind: 'buzzer', ids: ids(), resistance, maxCurrent: resistance > 0 ? Math.sqrt(maxPower / resistance) : null };
+  }
+  if (part.type === 'led') return { kind: 'led', color: LED_LIGHT[e.color] ?? LED_LIGHT.red };
+  // A part of several LEDs: each chip with its pin's letter and the colour of its light, the common's
+  // letter, and the current a chip is rated for (its device's model).
+  if (part.type === 'rgb-led' || part.type === 'seven-segment') {
+    const { channels = [] } = limits();
+    const symbol = symbolOf(part);
+    return {
+      kind: part.type === 'rgb-led' ? 'rgb' : 'segments',
+      ids: ids(),
+      common: e.common,
+      commonId: symbol.ids[e.commons[0]],
+      chips: channels.map((c) => ({ pin: c.pin, id: symbol.ids[c.pin], color: LED_LIGHT[c.color] ?? LED_LIGHT.red })),
+      maxCurrent: channels[0]?.model.maxCurrent,
+    };
+  }
+  // A switch in the board: where its control has it (the circuit file until it moves), its contacts
+  // and the current a closed one is rated for (its device's).
+  if (part.type === 'slide-switch' || part.type === 'tilt-switch') {
+    const { on, onContacts, offContacts, maxCurrent, maxVoltage } = limits();
+    return { kind: part.type === 'slide-switch' ? 'slide' : 'tilt', ids: ids(), on, onContacts, offContacts, maxCurrent, maxVoltage };
+  }
+  // An LM35: its temperature from the circuit file (the reading's once it runs), the range its grade
+  // reads, and its gain.
+  if (part.type === 'temperature-sensor') {
+    const { temperature, range, model = {} } = limits();
+    return { kind: 'lm35', ids: ids(), temperature, range, gain: model.gain, maxCurrent: model.maxCurrent };
+  }
+  // A linear Hall sensor: its field from the circuit file (the reading's once it runs), which pin is which.
+  if (part.type === 'hall-sensor') return { kind: 'hall', ids: ids(), names: part.pinNames, roles: e.roles, field: limits().field };
+  // A voltage sensor module: the divider's two resistors.
+  if (part.type === 'voltage-sensor') return { kind: 'divider5', ids: ids(), names: part.pinNames, upper: limits().model?.upper, lower: limits().model?.lower };
+  // A relay: its coil's thresholds and its nominal voltage (its device's model), the pins in use.
+  if (part.type === 'relay') {
+    const { model = {} } = limits();
+    return { kind: 'relay', ids: ids(), names: part.pinNames, pullIn: model.pullIn, dropOut: model.dropOut, nominal: model.nominal };
+  }
+  // A DC motor: the top of its voltage range and its no-load speed there (the rotation arrow's full
+  // length), from its device's model.
+  if (part.type === 'motor') {
+    const { model = {}, k, R, b } = limits();
+    const top = model.range?.[1];
+    return { kind: 'motor', ids: ids(), maxVoltage: top, fullSpeed: k > 0 ? (k * top) / (k * k + R * b) : null };
+  }
+  // A PIR module: its delay, the jumper and the warm-up it was asked for. A touch module: its mode,
+  // polarity and response, from their device.
+  if (part.type === 'pir-sensor') {
+    const { delay, mode, warmup } = limits();
+    return { kind: 'pir', ids: ids(), delay, mode, warmup };
+  }
+  if (part.type === 'touch-sensor') {
+    const { toggle, activeLow, fast } = limits();
+    return { kind: 'touch', ids: ids(), toggle, activeLow, fast };
+  }
+  // A rotary encoder: its clicks a turn and the target angle it was given, from its device.
+  if (part.type === 'rotary-encoder') {
+    const { detents, angle } = limits();
+    return { kind: 'encoder', ids: ids(), detents, angle };
+  }
+  if (part.type === 'ic' && e.kind === 'TMR') return { kind: 'timer' };
+  // An LM393 sensor module: its element and what it senses, the trimmer and which DO level detects
+  // (its device's params), its pins by name.
+  if (part.type === 'sensor-module') {
+    const { element, stim = {}, threshold, active, doPin } = limits();
+    return { kind: 'module', ids: ids(), names: part.pinNames, element, field: Object.keys(stim)[0], threshold, active, doPin };
+  }
+  // A laser module: its threshold and the current it is rated for (its device's numbers), red light.
+  if (part.type === 'laser') return { kind: 'laser', ids: ids(), color: LED_LIGHT.red, threshold: LASER.threshold, maxCurrent: LASER.maxCurrent };
+  // An ultrasonic module: the range it sees, from its device's model.
+  if (part.type === 'ultrasonic-sensor') return { kind: 'sonar', ids: ids(), range: [2, 400] };
+  // A climate sensor: which magnitudes it has (a DHT11 no pressure, a BMP280 no humidity).
+  if (part.type === 'climate-sensor') return { kind: 'climate', ids: ids(), part: e.part, humidity: e.part !== 'BMP280', pressure: e.part !== 'DHT11', temperature: e.temperature ?? 25 };
+  return null;
+}

@@ -37,7 +37,11 @@ export function links(markdown) {
 }
 
 test('docs: every relative link and anchor of the Markdown files resolves', () => {
-  const files = execFileSync('git', ['ls-files', '-z', '-co', '--exclude-standard', '*.md'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean);
+  // plugin-src/ is left out: its links resolve in the packed folder, plugin/, which is checked here
+  // (and by test/plugin.test.js).
+  const files = execFileSync('git', ['ls-files', '-z', '-co', '--exclude-standard', '*.md'], { cwd: root, encoding: 'utf8' })
+    .split('\0')
+    .filter((f) => f && !f.startsWith('plugin-src/'));
   assert.ok(files.length > 20);
   const anchors = new Map();
   const anchorsOf = (file) => anchors.get(file) ?? anchors.set(file, slugs(readFileSync(join(root, file), 'utf8'))).get(file);

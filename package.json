@@ -22,7 +22,6 @@
     "protoboard-iso": "./bin/protoboard-iso.js"
   },
   "files": [
-    "SKILL.md",
     "bin",
     "docs",
     "examples",
@@ -45,7 +44,8 @@
     "dupes": "jscpd --config .jscpd.json",
     "options": "node scripts/project-options.js",
     "context-size": "node scripts/context-size.js",
-    "docs-index": "node scripts/docs-index.js"
+    "docs-index": "node scripts/docs-index.js",
+    "pack-skill": "node scripts/pack-skill.js"
   },
   "engines": {
     "node": ">=22"

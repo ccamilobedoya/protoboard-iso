@@ -16,7 +16,7 @@ embeber en una lección.
   agujeros ocupados, patas que no alcanzan y componentes que se montan unos sobre otros.
 - **Simulado** (un modelo, y lo dice): voltajes, corrientes, un osciloscopio, LED que se encienden,
   avisos cuando un componente pasa de su límite, y hasta un programa de Arduino corriendo.
-- **Hecho para asistentes**: un skill (`SKILL.md`), un servidor MCP y tres agentes, para que un
+- **Hecho para asistentes**: un plugin con un skill (el kit adentro), un servidor MCP y tres agentes, para que un
   asistente de IA describa el circuito y el kit haga la geometría. Nunca calcula un agujero a mano.
 - **Sin dependencias**: JavaScript simple, Node ≥ 22 o un navegador. En inglés y en español.
 
@@ -129,10 +129,12 @@ claude mcp add protoboard-iso -e PROTOBOARD_ROOT="$HOME/circuits" -e PROTOBOARD_
 Después pide un circuito con palabras («un LED con su resistencia a 9 V»). Instalación,
 herramientas y la configuración de Claude Desktop (con rutas de Windows): [docs/es/mcp.md](docs/es/mcp.md).
 
-**Skill para agentes.** `SKILL.md` le dice a un asistente cómo usar el kit. Enlaza esta carpeta en
-tu directorio de skills: `ln -s "$PWD" ~/.claude/skills/protoboard-iso` (macOS, Linux), o en PowerShell
-`New-Item -ItemType Junction -Path "$HOME\.claude\skills\protoboard-iso" -Target (Get-Location)`
-(crea antes `$HOME\.claude\skills` si no existe; copiar la carpeta ahí también sirve). Para trabajar
+**Plugin con el skill** (las apps de Claude y Claude Code; en las apps no hace falta una terminal).
+El plugin de [plugin/](plugin/README.md) trae un skill con el kit adentro: corre donde el asistente
+ejecuta código, con Node ≥ 22 y nada que instalar. En la app de Claude, agrega el marketplace con la
+URL de este repositorio (`https://github.com/ccamilobedoya/protoboard-iso`) e instala
+`protoboard-iso`; en Claude Code, `/plugin marketplace add ccamilobedoya/protoboard-iso` y después
+`/plugin install protoboard-iso@protoboard-iso`. Para trabajar
 circuitos, el repositorio trae además tres agentes en `.claude/agents/` (uno monta, otro revisa,
 otro agrega componentes): [agentes](docs/es/agentes.md).
 

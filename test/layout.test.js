@@ -136,15 +136,18 @@ test('a ground net without a rail goes to the − rail, with a note', () => {
   assert.deepEqual(r.circuit.spec.nets[2], ['D1.cathode', 'U1.GND'], 'the spec keeps what was asked, not the convention');
 });
 
-test('the example in SKILL.md lays out to STATUS: DONE (the first thing an assistant copies)', async () => {
+test("the skill's spec examples lay out to STATUS: DONE (the first thing an assistant copies)", async () => {
   const { readFileSync } = await import('node:fs');
-  const skill = readFileSync(new URL('../SKILL.md', import.meta.url), 'utf8');
-  const block = /## 1\. [^\n]*\n+```json\n([\s\S]*?)```/.exec(skill)?.[1];
-  assert.ok(block, 'SKILL.md section 1 starts with a json example');
-  const { target, ...example } = JSON.parse(block);
-  assert.ok(target);
-  const r = autoLayout(example);
-  assert.equal(r.status, 'done', formatLayout(r, 'en', { t, formatIssue }));
+  const read = (f) => readFileSync(new URL(`../plugin-src/${f}`, import.meta.url), 'utf8');
+  const short = /\*\*Anything else:\*\*[\s\S]*?```json\n([\s\S]*?)```/.exec(read('SKILL.md'))?.[1];
+  const long = /^# `layout` from parts and nets\n[\s\S]*?```json\n([\s\S]*?)```/m.exec(read('references/spec.md'))?.[1];
+  assert.ok(short, 'SKILL.md has a json spec after "Anything else"');
+  assert.ok(long, 'references/spec.md starts with a json example');
+  for (const block of [short, long]) {
+    const { target, ...example } = JSON.parse(block);
+    const r = autoLayout(example);
+    assert.equal(r.status, 'done', formatLayout(r, 'en', { t, formatIssue }));
+  }
 });
 
 // The algorithm since 2026-10-31: sides across the channel, scored candidates, jumpers as a
