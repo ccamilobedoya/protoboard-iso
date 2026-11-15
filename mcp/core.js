@@ -1,11 +1,14 @@
 // The MCP server of protoboard-iso, without its transport (server.js: stdio; http.js: local HTTP
-// for testing an MCP App host). The tools are defined in tools.js; their handlers run
-// in a worker (kit-worker.js). Before each call the server checks whether the kit's code (src/ and
-// the tools) changed since the worker started; if so it starts a new worker, so the answers and the
-// pages written always come from the current code, without reconnecting. Changing a tool's name or
-// its input schema still needs a reconnect: the answer says so.
+// for testing an MCP App host). The tools are defined in tools.js. By default their handlers run
+// in this process and the server keeps no state in memory: the circuits folder (and .protoboard/ in
+// it, app.js) is all there is, so a process may die or be duplicated at any time. With
+// PROTOBOARD_DEV=1 (the repository's own .mcp.json) they run in a worker (kit-worker.js) and, before
+// each call, the server checks whether the kit's code (src/ and the tools) changed since the worker
+// started; if so it starts a new worker, so the answers and the pages written come from the current
+// code, without reconnecting. Changing a tool's name or its input schema still needs a reconnect: the
+// answer says so.
 //
-// Environment: PROTOBOARD_ROOT, PROTOBOARD_LANG (see tools.js), PROTOBOARD_APPS and PROTOBOARD_APPS_DEBUG (below).
+// Environment: PROTOBOARD_ROOT, PROTOBOARD_LANG (see tools.js), PROTOBOARD_DEV, PROTOBOARD_APPS and PROTOBOARD_APPS_DEBUG (below).
 //
 // MCP Apps (app.js): a client that announces the extension also gets the viewer resource, the
 // app-only tool page_parts and, on the tools in APP_LINKED, _meta.ui.resourceUri and a small
@@ -77,7 +80,22 @@ function startWorker() {
   ready.catch(() => {});
 }
 
+const DEV = process.env.PROTOBOARD_DEV === '1';
+const handlers = new Map([...TOOLS, ...APP_TOOLS].map((tool) => [tool.name, tool.handler]));
+handlers.set(`resource:${VIEWER.uri}`, VIEWER.read);
+
+// The default: the handler here, answering as the worker does (kit-worker.js).
+async function callHere(name, args) {
+  const handler = handlers.get(name);
+  try {
+    return handler ? await handler(args) : { isError: true, content: [{ type: 'text', text: `The kit has no tool "${name}".` }] };
+  } catch (e) {
+    return { isError: true, content: [{ type: 'text', text: e?.message ?? String(e) }] };
+  }
+}
+
 async function call(name, args) {
+  if (!DEV) return callHere(name, args);
   const notes = [];
   if (worker && codeStamp() !== stamp) {
     worker.terminate();
@@ -134,4 +152,4 @@ export function createServer() {
   return server;
 }
 
-startWorker();
+if (DEV) startWorker();

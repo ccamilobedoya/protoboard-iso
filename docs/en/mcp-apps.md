@@ -54,13 +54,11 @@ update did not reach it. The viewer can call the server's tools, so it routes th
 
 Claude Desktop starts two processes of the stdio server for one session, and the viewer's calls and the
 model's land in different ones, so nothing they share may live in a process's memory. The selection is
-therefore a small hidden file in the root, `.app-selection.json` (next to the debug report; no listing
-shows it as a circuit), written atomically (a temp file, then rename), read on every `selection` call,
+therefore a small hidden file in the root, `.protoboard/selection.json` (no listing shows the folder), written atomically (a temp file, then rename), read on every `selection` call,
 with at most the last 32 circuits, one selection each; an entry older than 24 hours is ignored and
 pruned. It holds the tapped part and its line (at most 300 characters), nothing else. A root that cannot
 be written falls back to the process's memory, and `selection` says once that it cannot be shared. The
-chunks of `page_parts` need no shared state either: a process that does not have the page rebuilds it
-from the manifest's `revision` and checks that it hashes to the `id`. And a stdio server now ends when
+chunks of `page_parts` are served from files too (`.protoboard/pages/`, below). And a stdio server now ends when
 its stdin ends or closes (the SDK's transport does not watch for it, and a host reached over ssh does not
 always deliver a hangup).
 
@@ -77,7 +75,7 @@ Nobody can open a host's devtools from the server, so the viewer can report to i
 `PROTOBOARD_APPS_DEBUG=1` the server also registers the app-only tool `app_report { event, detail }`
 (only for a client that gets the viewer; without the variable the tool does not exist) and tells the
 viewer with the pieces. Each report is a JSON line `{t, event, detail}` appended to
-`<PROTOBOARD_ROOT>/.app-report.jsonl`; the file stops growing at 256 KB and `detail` is cut at 4 KB.
+`<PROTOBOARD_ROOT>/.protoboard/app-report.jsonl`; the file stops growing at 256 KB and `detail` is cut at 4 KB.
 The viewer reports: the result of `ui/initialize` (host info and capabilities; the host context apart),
 every `ui/update-model-context` with the text sent and the result or the error (code and message),
 `error` and `unhandledrejection` events.
@@ -133,8 +131,10 @@ Tested with the reference `basic-host` only. Claude Desktop and claude.ai are un
   every example). The viewer fetches four chunks at a time, retries a failed one once, shows «Loading the
   circuit… n/total» meanwhile and an error line in the widget if a chunk still fails (with `app_report`
   on, the retry and the failure are reported). The `id` (a hash of the assembled page) pins the content:
-  the server keeps the last three assembled pages and rebuilds an older one from the history if it is gone,
-  refusing it if it no longer hashes to the `id`. Calls and time from the tool result to first paint, in the
+  the server writes the assembled page once, when its manifest is first asked for, to
+  `.protoboard/pages/`, and any process cuts any chunk from that file; if the file is gone it rebuilds the
+  page at the pinned revision (from the history if it is older) and refuses it if it no longer hashes to
+  the `id`. Calls and time from the tool result to first paint, in the
   reference host (median of three; single call → chunks): led-resistor 1 → 4 calls, 129 → 149 ms; 555 astable
   1 → 7, 328 → 380 ms; uno-blink 1 → 4, 170 → 191 ms; uno-seven-segment 1 → 10, 605 → 594 ms. Not done:
   fetching the second view or the close-up data later; chunking alone satisfies the limit.

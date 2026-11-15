@@ -35,7 +35,8 @@ Variables de entorno:
 | `PROTOBOARD_ROOT` | la carpeta actual | la única carpeta que el servidor lee y escribe; rechaza rutas fuera de ella |
 | `PROTOBOARD_LANG` | `en` | idioma por defecto de las respuestas y de los archivos (`en`, `es`); el `"lang"` del propio circuito y el argumento `lang` de cada herramienta ganan sobre él |
 | `PROTOBOARD_APPS` | `auto` | la página en vivo del circuito dentro de anfitriones con MCP Apps: `auto` a un cliente que anuncia la extensión, `on` a todo cliente, `off` a ninguno ([mcp-apps.md](mcp-apps.md)) |
-| `PROTOBOARD_APPS_DEBUG` | sin definir | `1`: el visor reporta lo que responde el anfitrión a `<raíz>/.app-report.jsonl` ([mcp-apps.md](mcp-apps.md)) |
+| `PROTOBOARD_DEV` | sin definir | `1`: las herramientas corren en un worker que se reinicia cuando cambia el código del kit (para trabajar en el kit; el `.mcp.json` de este repositorio lo pone) |
+| `PROTOBOARD_APPS_DEBUG` | sin definir | `1`: el visor reporta lo que responde el anfitrión a `<raíz>/.protoboard/app-report.jsonl` ([mcp-apps.md](mcp-apps.md)) |
 
 ## Registrarlo
 
@@ -136,6 +137,30 @@ herramienta para qué tarea (primero las recetas: un circuito de clase habitual 
 ciclo de operaciones, cómo revisar (`review`, `netlist`, `simulate`, sin mostrar nunca un valor por
 predecir), los agujeros y la simulación de la página. Nunca reescribir los archivos de circuito; PNG
 solo cuando importa el estilo.
+
+## Qué guarda el servidor y dónde
+
+El servidor no guarda en memoria nada que importe: un anfitrión puede correr dos procesos suyos para una
+sesión (Claude Desktop lo hace), y cualquiera puede morir o duplicarse en cualquier momento. Lo que guarda
+está en disco, en la raíz:
+
+- **Los circuitos**: `circuit.json`, `history.jsonl` y `out/` de cada carpeta, o un archivo de circuito.
+  Dos procesos pueden cambiar un mismo circuito: el cambio se hace bajo un candado (una carpeta
+  `circuit.json.lock`, que se toma si pasa de 30 s), así que `expect_revision` se cumple para una sola de
+  dos llamadas simultáneas y la otra recibe `REVISION_MISMATCH`.
+- **`.protoboard/`**, la carpeta oculta propia del servidor (`list_circuits` y la búsqueda de circuitos
+  de la raíz la ignoran), escrita con un archivo temporal que se renombra:
+  - `selection.json`: lo último que tocó el usuario en el tablero vivo (MCP Apps), a lo sumo los últimos
+    32 circuitos, nada de más de 24 horas ([mcp-apps.md](mcp-apps.md)).
+  - `pages/<hash del circuito>.<revisión>.<id>.json`: la página armada que se entrega al visor en
+    trozos; las 2 revisiones más nuevas por circuito, a lo sumo 64 archivos y 64 MB en total, nada de
+    más de 7 días, podado cada vez que se escribe uno.
+  - `app-report.jsonl`, solo con `PROTOBOARD_APPS_DEBUG=1`: a lo sumo 256 KB, una línea por reporte.
+
+Borrar `.protoboard/` en cualquier momento es seguro: todo lo que tiene se reconstruye o solo se olvida.
+Por defecto las herramientas corren dentro del proceso del servidor; con `PROTOBOARD_DEV=1` (puesto en el
+`.mcp.json` de este repositorio) corren en un worker que se reinicia cuando cambia el código del kit, una
+comodidad para trabajar en el kit. El servidor termina cuando su stdin termina o se cierra.
 
 ## Ejemplo de sesión
 

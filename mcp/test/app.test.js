@@ -160,7 +160,7 @@ test('selection: what the viewer tells the server, read back by the model; null 
   for (let k = 0; k < 40; k++) await host.callTool({ name: 'selection_set', arguments: { target: `many-${k}`, revision: 0, part: 'R1', line: `Open on the board: R1 ${k}.` } });
   assert.equal(textOf(await host.callTool({ name: 'selection', arguments: { target: 'many-0' } })), 'Nothing is tapped on the board.', 'the oldest is forgotten');
   assert.match(textOf(await host.callTool({ name: 'selection', arguments: { target: 'many-39' } })), /R1 39/);
-  assert.ok(existsSync(join(root, '.app-selection.json')) && !readdirSync(root).some((f) => f.endsWith('.tmp')), 'one hidden file, no temp left');
+  assert.ok(existsSync(join(root, '.protoboard', 'selection.json')) && !readdirSync(join(root, '.protoboard')).some((f) => f.endsWith('.tmp')), 'one hidden file, no temp left');
   assert.ok(!textOf(await host.callTool({ name: 'list_circuits', arguments: {} })).includes('selection'), 'never listed as a circuit');
   // a client without MCP Apps cannot call either
   for (const name of ['selection', 'selection_set']) {
@@ -188,10 +188,10 @@ test('app_report exists only with PROTOBOARD_APPS_DEBUG=1 and an app client; it 
     assert.ok(!(await names(plainDebug)).includes('app_report'), 'not for a client without MCP Apps');
     const refused = await plainDebug.callTool({ name: 'app_report', arguments: { event: 'x' } }).catch(() => ({ isError: true }));
     assert.ok(refused.isError, 'not callable');
-    assert.ok(!existsSync(join(debugRoot, '.app-report.jsonl')));
+    assert.ok(!existsSync(join(debugRoot, '.protoboard', 'app-report.jsonl')));
     const tool = (await hostDebug.listTools()).tools.find((t) => t.name === 'app_report');
     assert.deepEqual(tool._meta.ui.visibility, ['app']);
-    const file = join(debugRoot, '.app-report.jsonl');
+    const file = join(debugRoot, '.protoboard', 'app-report.jsonl');
     const r = await hostDebug.callTool({ name: 'app_report', arguments: { event: 'ui/initialize', detail: { hostInfo: { name: 'h' } } } });
     assert.ok(!r.isError, textOf(r));
     const lines = readFileSync(file, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
@@ -211,7 +211,7 @@ test('app_report exists only with PROTOBOARD_APPS_DEBUG=1 and an app client; it 
     await hostDebug.callTool({ name: 'layout', arguments: { target: 'd', recipe: 'led-resistor' } });
     const parts = await hostDebug.callTool({ name: 'page_parts', arguments: { target: 'd' } });
     assert.equal(parts.structuredContent.debug, true, 'the manifest says so');
-    assert.ok(!existsSync(join(debugRoot, '..', '.app-report.jsonl')));
+    assert.ok(!existsSync(join(debugRoot, '..', '.protoboard', 'app-report.jsonl')));
     const off = await host.callTool({ name: 'page_parts', arguments: { target: 'led-b' } });
     assert.equal(off.structuredContent.debug, undefined);
   } finally {

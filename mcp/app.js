@@ -17,8 +17,8 @@
 //                      <root>/.app-report.jsonl (stops at 256 KB; detail cut at 4 KB)
 //   renderForApps(d)   render's description for a client that shows the viewer: no push to PNG
 
-import { readFileSync, existsSync, statSync, appendFileSync, writeFileSync, renameSync, rmSync } from 'node:fs';
-import { resolve, relative, sep } from 'node:path';
+import { readFileSync, existsSync, statSync, appendFileSync, writeFileSync, renameSync, rmSync, readdirSync, mkdirSync } from 'node:fs';
+import { resolve, relative, sep, join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { renderPageParts, renderAppViewer } from '../src/page.js';
@@ -30,7 +30,11 @@ export const VIEWER_URI = 'ui://protoboard-iso/board.html';
 export const VIEWER_MIME = 'text/html;profile=mcp-app';
 export const APP_LINKED = ['layout'];
 export const DEBUG = process.env.PROTOBOARD_APPS_DEBUG === '1';
-export const REPORT_FILE = '.app-report.jsonl';
+// The server's own state, in one hidden folder of the root (listings skip it, deleting it is always
+// safe): the viewer's selection, the assembled pages being handed over, the debug report. Every write
+// is a temp file renamed into place, so two processes of one host never see half a file.
+export const STATE_DIR = '.protoboard';
+export const REPORT_FILE = `${STATE_DIR}/app-report.jsonl`;
 export const REPORT_MAX = 256 * 1024;
 export const DETAIL_MAX = 4096;
 const PNG_ADVICE = ' Add png_width to also get a PNG image back (slow to read: use only to judge style, keep it small, e.g. 900).';
@@ -88,10 +92,61 @@ export function cutPoints(text, budget = CHUNK_BYTES) {
   return cuts;
 }
 
-// The last few assembled pages, so the chunks of one page are cut from one build. A page is rebuilt
-// from the history when it is gone (the revision is pinned), and must hash to the same id.
-const KEEP = 3;
-const assembled = new Map();
+// The assembled pages being handed over live in files, not in memory: a host may run two processes of
+// this server and send the manifest to one and the chunks to the other. A page is written once, when
+// its manifest is first asked for (.protoboard/pages/<circuit hash>.<revision>.<id>.json: the parts'
+// JSON), and every chunk is cut from the file. A chunk whose file is gone is rebuilt at the pinned
+// revision, which must hash to the same id. Pruned on write: the newest PAGES_PER_TARGET revisions of a
+// circuit, PAGES_MAX files, PAGES_MAX_BYTES, and nothing older than PAGES_TTL.
+export const PAGES_DIR = `${STATE_DIR}/pages`;
+export const PAGES_PER_TARGET = 2;
+export const PAGES_MAX = 64;
+export const PAGES_MAX_BYTES = 64 * 1024 * 1024;
+export const PAGES_TTL = 7 * 24 * 3600e3;
+const targetKey = (key) => createHash('sha1').update(key).digest('hex').slice(0, 12);
+
+// Writes `content` to `file` atomically (a temp file in the same folder, then rename).
+function writeAtomic(file, content) {
+  mkdirSync(dirname(file), { recursive: true });
+  const temp = `${file}.${process.pid}.tmp`;
+  try {
+    writeFileSync(temp, content);
+    renameSync(temp, file);
+  } catch (e) {
+    rmSync(temp, { force: true });
+    throw e;
+  }
+}
+
+function prunePages(dir, keep) {
+  let files;
+  try {
+    files = readdirSync(dir)
+      .map((name) => {
+        const m = /^([0-9a-f]{12})\.(\d+)\.([0-9a-f]{16})\.json$/.exec(name);
+        if (!m) return null;
+        const st = statSync(join(dir, name));
+        return { name, key: m[1], revision: Number(m[2]), mtime: st.mtimeMs, size: st.size };
+      })
+      .filter(Boolean);
+  } catch {
+    return;
+  }
+  const now = Date.now();
+  const drop = new Set(files.filter((f) => now - f.mtime > PAGES_TTL).map((f) => f.name));
+  const byKey = Map.groupBy(files.filter((f) => !drop.has(f.name)), (f) => f.key);
+  for (const group of byKey.values()) {
+    const revisions = [...new Set(group.map((f) => f.revision))].sort((x, y) => y - x).slice(0, PAGES_PER_TARGET);
+    for (const f of group) if (!revisions.includes(f.revision) && f.name !== keep) drop.add(f.name);
+  }
+  let rest = files.filter((f) => !drop.has(f.name)).sort((x, y) => y.mtime - x.mtime);
+  let bytes = 0;
+  rest.forEach((f, i) => {
+    bytes += f.size;
+    if ((i >= PAGES_MAX || bytes > PAGES_MAX_BYTES) && f.name !== keep) drop.add(f.name);
+  });
+  for (const name of drop) rmSync(join(dir, name), { force: true });
+}
 
 function assemble({ target, revision, lang }) {
   const full = resolve(ROOT, String(target));
@@ -107,37 +162,70 @@ function assemble({ target, revision, lang }) {
   if (!parts) return { error: issues.map((i) => i.code).join(', ') || 'nothing to draw' };
   const json = JSON.stringify(parts);
   const id = createHash('sha1').update(json).digest('hex').slice(0, 16);
+  const key = relative(ROOT, full) || '.';
   const texts = Object.fromEntries(['context', 'newer', 'loading', 'failed'].map((k) => [k, t(out, `page.app.${k}`)]));
-  return { page: { id, json, cuts: cutPoints(json), revision: parts.revision, latest, texts, target: relative(ROOT, full) || '.' } };
+  return { page: { id, json, revision: parts.revision, latest, texts, target: key, key } };
+}
+
+// The page's file, written if it is not there yet (a failed write is no reason to fail the call).
+function keepPage(page) {
+  const dir = resolve(ROOT, PAGES_DIR);
+  const name = `${targetKey(page.key)}.${page.revision}.${page.id}.json`;
+  if (!existsSync(join(dir, name))) {
+    try {
+      writeAtomic(join(dir, name), page.json);
+      prunePages(dir, name);
+    } catch {
+      // read-only root: the page is served from this build
+    }
+  }
+}
+
+// Where the chunks of a page end: a pure function of its text, remembered for the last few pages only
+// to spare the scan (nothing depends on it: a process that lacks it computes it again).
+const cutMemo = new Map();
+function cutsOf(json, id) {
+  if (cutMemo.has(id)) return cutMemo.get(id);
+  const cuts = cutPoints(json);
+  cutMemo.set(id, cuts);
+  while (cutMemo.size > 4) cutMemo.delete(cutMemo.keys().next().value);
+  return cuts;
 }
 
 // No `chunk`: the manifest of the page (its revision, how many chunks, an id that pins the content).
 // With `chunk` and `revision` (the manifest's) and `id`: that piece of the page's JSON.
 function pageParts({ target, revision, lang, chunk, id }) {
-  const kept = id ? assembled.get(id) : null;
-  let page = kept;
-  if (!page) {
+  let json = null;
+  let page = null;
+  if (chunk != null && id) {
+    const full = resolve(ROOT, String(target));
+    if (full !== ROOT && !full.startsWith(ROOT + sep)) return fail(`"${target}" is outside the allowed folder.`);
+    try {
+      json = readFileSync(join(resolve(ROOT, PAGES_DIR), `${targetKey(relative(ROOT, full) || '.')}.${revision}.${String(id).replace(/[^0-9a-f]/g, '')}.json`), 'utf8');
+    } catch {
+      json = null;
+    }
+  }
+  if (json == null) {
     const built = assemble({ target, revision, lang });
     if (built.error) return fail(built.error);
     page = built.page;
     if (id && page.id !== id) return fail('The circuit changed while the page was loading: open it again.');
-    assembled.set(page.id, page);
-    while (assembled.size > KEEP) assembled.delete(assembled.keys().next().value);
-  } else {
-    assembled.delete(id); // most recent last
-    assembled.set(id, page);
+    if (chunk == null || id) keepPage(page);
+    json = page.json;
   }
-  const chunks = page.cuts.length - 1;
+  const cuts = cutsOf(json, page?.id ?? id);
+  const chunks = cuts.length - 1;
   if (chunk == null) {
     return {
       content: [{ type: 'text', text: `${page.target} · rev ${page.revision}` }],
-      structuredContent: { target: page.target, latest: page.latest, revision: page.revision, id: page.id, chunks, bytes: page.json.length, texts: page.texts, ...(DEBUG && { debug: true }) },
+      structuredContent: { target: page.target, latest: page.latest, revision: page.revision, id: page.id, chunks, bytes: json.length, texts: page.texts, ...(DEBUG && { debug: true }) },
     };
   }
   if (chunk < 0 || chunk >= chunks) return fail(`No chunk ${chunk}: the page has ${chunks}.`);
   return {
     content: [{ type: 'text', text: `chunk ${chunk + 1}/${chunks}` }],
-    structuredContent: { id: page.id, index: chunk, data: page.json.slice(page.cuts[chunk], page.cuts[chunk + 1]) },
+    structuredContent: { id, index: chunk, data: json.slice(cuts[chunk], cuts[chunk + 1]) },
   };
 }
 
@@ -149,10 +237,10 @@ function pageParts({ target, revision, lang, chunk, id }) {
 // root (SELECTION_FILE, next to the debug report), written atomically (temp file + rename), read on
 // every call, at most SELECTION_KEEP circuits and SELECTION_TTL old. A root that cannot be written
 // falls back to this process's memory, and `selection` says once that it cannot be shared.
-export const SELECTION_FILE = '.app-selection.json';
+export const SELECTION_FILE = `${STATE_DIR}/selection.json`;
 export const SELECTION_KEEP = 32;
 export const SELECTION_TTL = 24 * 3600e3;
-const memory = new Map(); // the fallback, and what this process wrote when the file could not be
+const memory = new Map(); // only the fallback: what this process could not write to the file
 let unshared = false;
 let saidUnshared = false;
 const ago = (ms) => (ms < 90e3 ? `${Math.max(1, Math.round(ms / 1000))} s` : ms < 90 * 60e3 ? `${Math.round(ms / 60e3)} min` : `${Math.round(ms / 3600e3)} h`);
@@ -180,19 +268,11 @@ function selectionSet({ target, revision, part, line }) {
   delete entries[key];
   entries[key] = entry;
   const kept = Object.fromEntries(Object.entries(entries).slice(-SELECTION_KEEP));
-  const file = resolve(ROOT, SELECTION_FILE);
-  const temp = `${file}.${process.pid}.tmp`;
   try {
-    writeFileSync(temp, JSON.stringify({ entries: kept }));
-    renameSync(temp, file);
+    writeAtomic(resolve(ROOT, SELECTION_FILE), JSON.stringify({ entries: kept }));
     memory.clear();
     unshared = false;
   } catch {
-    try {
-      rmSync(temp, { force: true });
-    } catch {
-      // nothing to clean
-    }
     memory.set(key, entry);
     while (memory.size > SELECTION_KEEP) memory.delete(memory.keys().next().value);
     unshared = true;
@@ -240,6 +320,7 @@ function appReport({ event, detail }) {
   let shown = detail ?? null;
   const json = JSON.stringify(shown) ?? 'null';
   if (Buffer.byteLength(json) > DETAIL_MAX) shown = `${Buffer.from(json).subarray(0, DETAIL_MAX).toString()}…[cut]`;
+  mkdirSync(dirname(file), { recursive: true });
   appendFileSync(file, `${JSON.stringify({ t: new Date().toISOString(), event: String(event).slice(0, 100), detail: shown })}\n`);
   return { content: [{ type: 'text', text: 'ok' }] };
 }

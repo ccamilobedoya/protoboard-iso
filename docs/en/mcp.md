@@ -34,7 +34,8 @@ Environment:
 | `PROTOBOARD_ROOT` | current directory | the only folder the server reads and writes; paths outside are refused |
 | `PROTOBOARD_LANG` | `en` | default language of answers and files (`en`, `es`); a circuit's own `"lang"` and a tool's `lang` argument win over it |
 | `PROTOBOARD_APPS` | `auto` | the circuit's live page inside hosts with MCP Apps: `auto` to a client that announces the extension, `on` to every client, `off` to none ([mcp-apps.md](mcp-apps.md)) |
-| `PROTOBOARD_APPS_DEBUG` | unset | `1`: the viewer reports what the host answers to `<root>/.app-report.jsonl` ([mcp-apps.md](mcp-apps.md)) |
+| `PROTOBOARD_DEV` | unset | `1`: the tools run in a worker restarted when the kit's code changes (for working on the kit; this repository's `.mcp.json` sets it) |
+| `PROTOBOARD_APPS_DEBUG` | unset | `1`: the viewer reports what the host answers to `<root>/.protoboard/app-report.jsonl` ([mcp-apps.md](mcp-apps.md)) |
 
 ## Register it
 
@@ -133,6 +134,30 @@ which task (recipes first: a usual lesson circuit → `layout` with `recipe`; an
 again; a value or a fix → `apply_ops`), what each `STATUS:` means, the operations loop, how to check
 (`review`, `netlist`, `simulate`, never showing a value to predict), the holes, and the page's
 simulation. Never rewrite circuit files; PNG only when style matters.
+
+## What the server keeps and where
+
+The server holds no state in memory that matters: a host may run two processes of it for one session
+(Claude Desktop does), and any of them may die or be duplicated at any time. What it keeps is on disk, in
+the root:
+
+- **The circuits**: `circuit.json`, `history.jsonl` and `out/` of each folder, or a circuit file. Two
+  processes may change one circuit: the change is made under a lock (a folder `circuit.json.lock`,
+  taken over if older than 30 s), so `expect_revision` is honoured by exactly one of two simultaneous
+  calls and the other gets `REVISION_MISMATCH`.
+- **`.protoboard/`**, the server's own hidden folder (`list_circuits` and the root's circuit search
+  ignore it), written with a temp file renamed into place:
+  - `selection.json`: what the user last tapped in the live board (MCP Apps), at most the last 32
+    circuits, nothing older than 24 hours ([mcp-apps.md](mcp-apps.md)).
+  - `pages/<circuit hash>.<revision>.<id>.json`: the assembled page being handed to the viewer in chunks;
+    the newest 2 revisions per circuit, at most 64 files and 64 MB in all, nothing older than 7 days,
+    pruned whenever one is written.
+  - `app-report.jsonl`, only with `PROTOBOARD_APPS_DEBUG=1`: at most 256 KB, one line per report.
+
+Deleting `.protoboard/` at any time is safe: everything in it is rebuilt or only forgotten. By default the
+tools run inside the server process; with `PROTOBOARD_DEV=1` (set in this repository's `.mcp.json`) they run
+in a worker that is restarted when the kit's code changes, a convenience for working on the kit. The
+server ends when its stdin ends or closes.
 
 ## Example session
 
