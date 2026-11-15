@@ -302,8 +302,39 @@ descriptions and fine touches stay operations (`apply_ops`).
 ### The answer
 
 `{ status, circuit, placed: [{ id, type, pins, rails, shared }], wires, columns, problems, sequence,
-check, review, tries, ms }`; `formatLayout` writes it for the CLI and the MCP tool (texts `layout.*` in
-`src/i18n/`).
+check, review, tries, readings?, programs?, changeable?, ms }`; `formatLayout` writes it for the CLI
+and the MCP tool (texts `layout.*` in `src/i18n/`).
+
+When the circuit was built (`DONE` or `WARNINGS`, a new circuit or `layout` again on one), the answer
+also says what a reply needs, so one call is enough and every number and option an assistant repeats
+comes from the kit (`src/layout-answer.js`). After the review's lines and before the page and
+`STATUS:` lines:
+
+```text
+Readings (at rest, a model): supply 9 V · D1 20.6 mA, brightness 103 % of 20 mA
+Program U1 (Arduino sketch):
+  // Blink: D13 on for half a second, off for half a second.
+  …
+Can change (layout with the recipe and values): R1 = 330 (current-limiting resistor) · D1 = green · V1 = 9 V [1.5…15]
+```
+
+- **Readings** (`readings: { sources: [{ id, kind, voltage, current }], parts: [{ id, kind, current,
+  brightness? }] }`): the simulator's DC point, the one `simulate` prints. The sources first (a
+  supply, a battery, a board's USB), then the parts whose job is to be driven: LEDs (current and
+  brightness), then buzzers, motors, relay coils and lasers. At most four parts in the text, then how
+  many more `simulate` lists. Left out when the circuit has no source, the DC point cannot be solved,
+  a board runs a program (the program decides what is lit, a rest point at time zero would mislead)
+  or a supply is a generator (the signal is the point, not its rest value), and when the page hides the
+  results (`page.simulation` or `page.results` false: a value a learner must predict first).
+- **Program** (`programs: [{ part, text, truncated, file?, omitted? }]`): each board's sketch as it
+  is stored (the text, or the `.ino` file beside the circuit, read only inside its folder), each line
+  indented two spaces. Past 80 lines or 4 000 characters, the first 40 lines and a line saying how
+  many were left out and where the whole text is. Every line break a reader may see (`\r`, `\u2028`
+  and the like) ends a line there too, so no line of a sketch can pass for the `STATUS:` line.
+- **Can change** (`changeable: [{ id, field, value, role?, min?, max?, choices? }]`): for a circuit
+  made from a recipe, what the recipe accepts, with the value the circuit has now, its role, and its
+  choices (`[a | b]`) or range (`[min…max]`); a program is `(sketch)`, never its text. The same limits
+  as `catalog <recipe>` prints.
 
 `status` is the one verdict of the whole answer, and the text ends with it in a line of its own, so
 a caller (above all a small model) that reads only the last line knows what to do:

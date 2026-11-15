@@ -33,6 +33,8 @@ import { applyOps } from './ops.js';
 import { buildCircuit } from './circuit/build.js';
 import { problemKey } from './diff.js';
 import { review, formatHazards } from './review.js';
+import { answerExtras, formatExtras } from './layout-answer.js';
+import { CIRCUIT_FOLDER } from './beside.js';
 import { PART_TYPES } from './parts/types/index.js';
 import { PACKAGES } from './parts/packages/index.js';
 import { SWITCH_STYLES } from './parts/types/switch.js';
@@ -204,7 +206,7 @@ function onDoubleBoard(spec) {
   return { spec: twin, renamed: [...renamed].sort() };
 }
 
-function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = null } = {}) {
+function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = null, folder, lang } = {}) {
   const started = Date.now();
   const valid = validateSpec(spec);
   if (checkOnly || !valid.ok) return { status: valid.ok ? 'spec_ok' : 'fix_spec', invalid: !valid.ok, checked: true, parts: valid.parts, nets: valid.nets, problems: valid.problems, ms: Date.now() - started };
@@ -284,7 +286,10 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   // so a caller that reads only the last line cannot take "review approved" for done.
   // A part that would be damaged as wired is neither a fix to make nor a plain success: its own status.
   const status = !best.check.ok || best.review.verdict === 'changes' || best.problems.length ? 'changes' : best.review.hazards.length ? 'warnings' : 'done';
-  return { ...best, circuit, notes: [...notes, ...(best.notes ?? [])], status, tries, ms: Date.now() - started };
+  // A built circuit's answer also carries its readings, its programs and what its recipe lets
+  // change (layout-answer.js), so one call says everything the reply needs.
+  const extras = status === 'changes' ? {} : answerExtras(circuit, { folder: folder ?? previous?.[CIRCUIT_FOLDER], lang: lang ?? spec.lang });
+  return { ...best, circuit, notes: [...notes, ...(best.notes ?? [])], status, tries, ...extras, ms: Date.now() - started };
 }
 
 // Pins that are ground by name: GND, GND2, VSS, 0V.
@@ -1126,6 +1131,7 @@ export function formatLayout(r, lang, { t, formatIssue }) {
   lines.push(t(lang, headline, { count: blocking.length }));
   for (const b of blocking) lines.push(`  ✖ ${formatIssue(b, lang)}${b.views ? ` [${b.views.join(', ')}]` : ''}`);
   lines.push(...formatHazards(r.review, lang, formatIssue, t));
+  lines.push(...formatExtras(r, lang, t));
   const open = r.problems.length + r.check.missing.length + r.check.shorted.length + blocking.length;
   lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, `layout.status.${r.status}`, { count: open, hazards: r.review.hazards.length })}`);
   return lines.join('\n');

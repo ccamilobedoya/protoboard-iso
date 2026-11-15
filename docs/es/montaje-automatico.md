@@ -330,8 +330,42 @@ valores, descripciones y retoques finos siguen siendo operaciones (`apply_ops`).
 ### La respuesta
 
 `{ status, circuit, placed: [{ id, type, pins, rails, shared }], wires, columns, problems, sequence,
-check, review, tries, ms }`; `formatLayout` la escribe para la consola y la herramienta MCP (textos
-`layout.*` en `src/i18n/`).
+check, review, tries, readings?, programs?, changeable?, ms }`; `formatLayout` la escribe para la
+consola y la herramienta MCP (textos `layout.*` en `src/i18n/`).
+
+Cuando el circuito quedó armado (`DONE` o `WARNINGS`, un circuito nuevo o `layout` otra vez sobre
+uno), la respuesta dice además lo que necesita una respuesta al usuario, para que baste una llamada y
+cada número y opción que repita un asistente salga del kit (`src/layout-answer.js`). Después de las
+líneas de la revisión y antes de las de la página y `STATUS:`:
+
+```text
+Lecturas (en reposo, un modelo): fuente 9 V · D1 20,6 mA, brillo 103 % del de 20 mA
+Programa U1 (sketch de Arduino):
+  // Blink: D13 on for half a second, off for half a second.
+  …
+Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitadora) · D1 = green · V1 = 9 V [1,5…15]
+```
+
+- **Lecturas** (`readings: { sources: [{ id, kind, voltage, current }], parts: [{ id, kind, current,
+  brightness? }] }`): el punto de operación en DC del simulador, el que imprime `simulate`. Primero
+  las fuentes (una fuente de banco, una batería, el USB de una tarjeta), luego los componentes cuyo
+  trabajo es ser accionados: los LEDs (corriente y brillo), luego zumbadores, motores, bobinas de
+  relé y láseres. A lo sumo cuatro en el texto, y después cuántos más lista `simulate`. Se omiten
+  cuando el circuito no tiene fuente, el punto en DC no se puede resolver, una tarjeta corre un
+  programa (el programa decide qué se enciende; un punto en reposo en el tiempo cero engañaría) o una
+  fuente es un generador (lo que importa es la señal, no su valor en reposo), y cuando la página oculta
+  los resultados (`page.simulation` o `page.results` en false: un valor que el aprendiz debe
+  predecir primero).
+- **Programa** (`programs: [{ part, text, truncated, file?, omitted? }]`): el sketch de cada tarjeta
+  tal como está guardado (el texto, o el archivo `.ino` junto al circuito, leído solo dentro de su
+  carpeta), cada línea con dos espacios de sangría. Pasadas 80 líneas o 4 000 caracteres, las
+  primeras 40 líneas y una línea que dice cuántas se dejaron fuera y dónde está el texto completo.
+  Todo salto de línea que pueda ver un lector (`\r`, `\u2028` y parecidos) termina ahí también una
+  línea, así que ninguna línea de un sketch puede pasar por la línea `STATUS:`.
+- **Se puede cambiar** (`changeable: [{ id, field, value, role?, min?, max?, choices? }]`): para un
+  circuito hecho con una receta, lo que la receta acepta, con el valor que tiene ahora el circuito,
+  su papel y sus opciones (`[a | b]`) o su rango (`[min…max]`); un programa es `(sketch)`, nunca su
+  texto. Los mismos límites que imprime `catalog <receta>`.
 
 `status` es el veredicto único de toda la respuesta, y el texto termina con él en su propia línea:
 quien lea solo la última línea (sobre todo un modelo pequeño) sabe qué hacer.

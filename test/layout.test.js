@@ -235,3 +235,110 @@ test('layout again on a recipe circuit with one more LED moves nothing that was 
   assert.equal(again.status, 'done', formatLayout(again, 'en', { t, formatIssue }));
   for (const p of first.circuit.parts.filter((q) => q.type !== 'wire')) assert.deepEqual(again.circuit.parts.find((q) => q.id === p.id).pins, p.pins, p.id);
 });
+
+// layout's answer carries what the reply needs (src/layout-answer.js): the readings at rest, each
+// board's program and what a recipe lets change, only when the circuit was built.
+test('layout answer: a recipe circuit gives its readings and what it lets change, in both languages, also laid out again', async () => {
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  const { specFromCircuit } = await import('../src/layout.js');
+  const r = autoLayout(expandRecipe('led-resistor', { V1: 9, D1: 'green' }).spec);
+  assert.equal(r.status, 'done');
+  assert.deepEqual(r.readings.sources.map((s) => [s.id, s.kind, Math.round(s.voltage)]), [['V1', 'supply', 9]]);
+  assert.deepEqual(r.readings.parts.map((p) => [p.id, p.kind]), [['D1', 'led']]);
+  assert.ok(r.readings.parts[0].current > 0.015 && r.readings.parts[0].brightness > 0.9, JSON.stringify(r.readings));
+  assert.equal(r.programs, undefined);
+  assert.deepEqual(r.changeable, [
+    { id: 'R1', field: 'value', value: '330', role: 'current-limiting resistor' },
+    { id: 'D1', field: 'color', value: 'green' },
+    { id: 'V1', field: 'voltage', value: 9, min: 1.5, max: 15 },
+  ]);
+  const en = formatLayout(r, 'en', { t, formatIssue }).split('\n');
+  assert.match(en.at(-1), /^STATUS: DONE · /);
+  assert.match(en.at(-3), /^Readings \(at rest, a model\): supply 9 V · D1 20\.\d mA, brightness 10\d % of 20 mA$/);
+  assert.equal(en.at(-2), 'Can change (layout with the recipe and values): R1 = 330 (current-limiting resistor) · D1 = green · V1 = 9 V [1.5…15]');
+  const es = formatLayout(autoLayout(expandRecipe('led-resistor', { V1: 9, D1: 'green' }).spec, { lang: 'es' }), 'es', { t, formatIssue }).split('\n');
+  assert.match(es.at(-3), /^Lecturas \(en reposo, un modelo\): fuente 9 V · D1 20,\d mA, brillo 10\d % del de 20 mA$/);
+  assert.equal(es.at(-2), 'Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitadora) · D1 = green · V1 = 9 V [1,5…15]');
+  // Laid out again on the circuit it made: the same three things, the values it has now.
+  const again = autoLayout(specFromCircuit(r.circuit), { previous: r.circuit });
+  assert.equal(again.status, 'done');
+  assert.deepEqual(again.changeable, r.changeable);
+  assert.deepEqual(again.readings.parts.map((p) => p.id), ['D1']);
+});
+
+test('layout answer: a board prints its program and no readings; a generator gives no readings', async () => {
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  const blink = autoLayout(expandRecipe('uno-blink').spec);
+  assert.equal(blink.status, 'done');
+  assert.equal(blink.readings, undefined, 'the program decides what is lit');
+  assert.equal(blink.programs.length, 1);
+  assert.equal(blink.programs[0].truncated, false);
+  const text = formatLayout(blink, 'en', { t, formatIssue });
+  assert.doesNotMatch(text, /Readings/);
+  assert.match(text, /\nProgram U1 \(Arduino sketch\):\n {2}\/\/ Blink: D13 on for half a second, off for half a second\.\n {2}const int LED = 13;\n\n {2}void setup\(\) \{\n {4}pinMode\(LED, OUTPUT\);/);
+  assert.match(text, /U1 = \(sketch\)\n/);
+  assert.doesNotMatch(text.split('\n').filter((l) => l.startsWith('Can change')).join(''), /digitalWrite/, 'never the text in the can-change line');
+  assert.match(formatLayout(autoLayout(expandRecipe('uno-blink').spec, { lang: 'es' }), 'es', { t, formatIssue }), /\nPrograma U1 \(sketch de Arduino\):\n/);
+  const square = autoLayout(expandRecipe('rc-square').spec);
+  assert.equal(square.status, 'done');
+  assert.equal(square.readings, undefined, 'the signal is the point, not its rest value');
+  assert.doesNotMatch(formatLayout(square, 'en', { t, formatIssue }), /Readings/);
+  assert.match(formatLayout(square, 'en', { t, formatIssue }), /G1 = 100 Hz \[0\.1…100000\]/);
+});
+
+test('layout answer: a spec of its own with a battery gives readings and no can-change line; no source gives none of the three', () => {
+  const battery = autoLayout({ ...spec, supplies: [{ id: 'B1', kind: 'battery', voltage: 9, positive: 'T+', negative: 'T-' }] });
+  assert.equal(battery.status, 'done');
+  assert.deepEqual(battery.readings.sources.map((s) => [s.id, s.kind]), [['B1', 'battery']]);
+  assert.equal(battery.changeable, undefined);
+  const text = formatLayout(battery, 'en', { t, formatIssue });
+  assert.match(text, /\nReadings \(at rest, a model\): battery [\d.]+ V · D1 [\d.]+ mA, brightness \d+ % of 20 mA\n/);
+  assert.doesNotMatch(text, /Can change|Program/);
+  const { supplies, ...none } = spec;
+  const bare = autoLayout(none);
+  assert.equal(bare.status, 'done');
+  for (const k of ['readings', 'programs', 'changeable']) assert.equal(bare[k], undefined, k);
+  assert.equal(autoLayout({ ...spec, page: { simulation: false } }).readings, undefined, 'a value a learner must predict stays hidden');
+  assert.doesNotMatch(formatLayout(bare, 'en', { t, formatIssue }), /Readings|Program|Can change/);
+});
+
+test('layout answer: more than four loads end with how many simulate lists', async () => {
+  const leds = Array.from({ length: 6 }, (_, i) => i + 1);
+  const r = autoLayout({
+    board: 'auto',
+    parts: leds.flatMap((i) => [{ id: `R${i}`, type: 'resistor', value: '1k' }, { id: `D${i}`, type: 'led', color: 'red' }]),
+    nets: leds.flatMap((i) => [['T+', `R${i}.1`], [`R${i}.2`, `D${i}.anode`], [`D${i}.cathode`, 'T-']]),
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
+  });
+  assert.equal(r.readings.parts.length, 6);
+  const line = formatLayout(r, 'en', { t, formatIssue }).split('\n').find((l) => l.startsWith('Readings'));
+  assert.equal(line.split(' · ').length, 1 + 4 + 1, line);
+  assert.match(line, / · 2 more \(simulate lists them\)$/);
+});
+
+test('layout answer: a long program is cut to its first lines and says where the rest is', async () => {
+  const { mkdtempSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  const long = `void setup() {}\nvoid loop() {\n${Array.from({ length: 100 }, (_, i) => `  delay(${i + 1});`).join('\n')}\n}\n`;
+  const r = autoLayout(expandRecipe('uno-blink', { U1: long }).spec);
+  assert.equal(r.status, 'done');
+  assert.deepEqual([r.programs[0].truncated, r.programs[0].text.split('\n').length, r.programs[0].omitted], [true, 40, 63]);
+  const lines = formatLayout(r, 'en', { t, formatIssue }).split('\n');
+  const at = lines.indexOf('Program U1 (Arduino sketch):');
+  assert.equal(lines[at + 40], '    delay(38);');
+  assert.equal(lines[at + 41], '  … 63 more lines not shown: the whole sketch is in the circuit (get_circuit, or circuit.json).');
+  assert.match(formatLayout(autoLayout(expandRecipe('uno-blink', { U1: long }).spec, { lang: 'es' }), 'es', { t, formatIssue }), / {2}… 63 líneas más sin mostrar: el sketch completo está en el circuito/);
+  // Under 80 lines but over 4000 characters: cut too, and never past the characters.
+  const wide = `void setup() {}\nvoid loop() {\n${Array.from({ length: 50 }, (_, i) => `  delay(${i}); // ${'x'.repeat(100)}`).join('\n')}\n}\n`;
+  const w = autoLayout(expandRecipe('uno-blink', { U1: wide }).spec).programs[0];
+  assert.ok(w.truncated && w.text.length <= 4000, `${w.text.length}`);
+  // From a .ino file beside the circuit: read inside its folder, and the cut names the file.
+  const folder = mkdtempSync(join(tmpdir(), 'layout-ino-'));
+  writeFileSync(join(folder, 'long.ino'), long);
+  const f = autoLayout(expandRecipe('uno-blink', { U1: 'long.ino' }).spec, { folder });
+  assert.deepEqual([f.programs[0].file, f.programs[0].truncated], ['long.ino', true]);
+  assert.match(formatLayout(f, 'en', { t, formatIssue }), /\n {2}… 63 more lines not shown: the whole sketch is in long\.ino, beside the circuit\.\n/);
+  assert.equal(autoLayout(expandRecipe('uno-blink', { U1: 'long.ino' }).spec).programs, undefined, 'no folder: nothing read');
+});

@@ -16,9 +16,9 @@ import { resolvePart, closestNames } from '../parts/resolve.js';
 import { VIEWS } from '../core/camera.js';
 import { OP_NAMES } from '../ops.js';
 import { ANNOTATION_LAYERS } from '../annotate.js';
-import { LANGUAGES, t } from '../i18n/index.js';
+import { LANGUAGES, t, decimalSeparator } from '../i18n/index.js';
 import { buildSchemas } from '../schema.js';
-import { recipeSummary, recipeEntry, RECIPE_GROUPS } from '../recipes/index.js';
+import { recipeSummary, recipeEntry, RECIPE_GROUPS, valueLimits } from '../recipes/index.js';
 
 export { COMMON_FIELDS, TYPE_FIELDS } from '../parts/fields.js';
 import { TYPE_FIELDS } from '../parts/fields.js';
@@ -216,8 +216,7 @@ export function formatCatalogEntry(e, lang = 'en') {
     if (e.supplies) lines.push(`  supplies: ${e.supplies.map((x) => JSON.stringify(x)).join(', ')}`);
     lines.push(`  ${t(lang, 'catalog.recipeValues')}`);
     for (const [id, v] of Object.entries(e.values)) {
-      const limits = v.choices ? ` [${v.choices.join(', ')}]` : v.min !== undefined || v.max !== undefined ? ` [${v.min ?? ''}…${v.max ?? ''}]` : '';
-      lines.push(`    ${id}: ${v.field} = ${v.default}${limits}${v.role ? ` · ${v.role}` : ''}`);
+      lines.push(`    ${id}: ${v.field} = ${v.default}${valueLimits(v, decimalSeparator(lang))}${v.role ? ` · ${v.role}` : ''}`);
     }
     return lines.join('\n');
   }

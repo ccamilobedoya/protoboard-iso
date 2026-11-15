@@ -270,10 +270,18 @@ test('layout with a recipe: ready in one call, the catalog lists it, bad values 
   const listed = await call('catalog', {});
   assert.match(listed.content[0].text, /transistors = npn-switch, /); // names by group; the title is in the recipe's own entry
   assert.ok(!/R1=1k/.test(listed.content[0].text), 'the compact list leaves the values to the entry');
-  assert.match((await call('catalog', { name: 'npn-switch' })).content[0].text, /Q1: part = 2N2222A \[2N2222A, 2N3904/);
+  assert.match((await call('catalog', { name: 'npn-switch' })).content[0].text, /Q1: part = 2N2222A \[2N2222A \| 2N3904/);
   const made = await call('layout', { target: 'recipe-switch', recipe: 'npn-switch', values: { R1: '470', V1: 9 } });
   assert.ok(!made.isError, made.content[0].text);
   assert.match(made.content[0].text, /STATUS: DONE/);
+  // The answer says what the reply needs: the readings at rest and what the recipe lets change, now.
+  assert.match(made.content[0].text, /\nReadings \(at rest, a model\): supply 9 V · D1 [\d.]+ [pnµm]?A, brightness \d+ % of 20 mA\n/);
+  assert.match(made.content[0].text, /\nCan change \(layout with the recipe and values\): R1 = 470 \(base resistor\) · R2 = 330 [^\n]* · V1 = 9 V \[3…12\]\nSTATUS: DONE/);
+  const again = await call('layout', { target: 'recipe-switch' });
+  assert.match(again.content[0].text, /\nCan change [^\n]*R1 = 470 [^\n]*\n/, 'layout again on the target says it too');
+  const blink = await call('layout', { target: 'recipe-blink', recipe: 'uno-blink', lang: 'es' });
+  assert.match(blink.content[0].text, /\nPrograma U1 \(sketch de Arduino\):\n {2}\/\/ Blink: D13/);
+  assert.doesNotMatch(blink.content[0].text, /Lecturas/);
   const circuit = JSON.parse((await call('get_circuit', { target: 'recipe-switch', format: 'json' })).content[0].text).circuit;
   assert.deepEqual(circuit.spec.recipe, { name: 'npn-switch', values: { R1: '470', V1: 9 } });
   assert.equal(circuit.parts.find((p) => p.id === 'R1').value, '470');

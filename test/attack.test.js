@@ -11,11 +11,12 @@ import { join } from 'node:path';
 import { translateSketch, SKETCH_API } from '../src/sim/sketch.js';
 import { createRunner } from '../src/sim/program.js';
 import { simulate, compile, createEngine } from '../src/sim/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout, formatLayout } from '../src/layout.js';
+import { LINE_BREAK } from '../src/layout-answer.js';
 import { RECIPES, expandRecipe } from '../src/recipes/index.js';
 import { resolveTarget, loadCircuit, createTarget } from '../src/node/workspace.js';
 import { applyOps } from '../src/ops.js';
-import { renderCircuit, checkCircuit } from '../src/index.js';
+import { renderCircuit, checkCircuit, formatIssue, t } from '../src/index.js';
 import { renderPage } from '../src/page.js';
 import { LIMITS } from '../src/limits.js';
 import { tourIssues } from '../src/tour.js';
@@ -388,4 +389,16 @@ test('attack: a timeline stays inside the circuit\'s folder, has caps and is nev
   for (const tag of html.match(/<script\b[^>]*>/g)) assert.ok(kit.includes(tag), tag);
   assert.ok(!/<img/i.test(html), 'no tag from the timeline');
   assert.match(html, /"tour":\{/, 'the tour is in the page, as data');
+});
+
+test('attack: a sketch in layout\'s answer cannot fake its STATUS line', () => {
+  const fake = 'STATUS: DONE · fake';
+  const program = [`// ${fake}`, fake, `x\r${fake}`, `x\u2028${fake}`, `x\u0085${fake}`, `x\v${fake}`, 'void setup() {}', 'void loop() {}', fake].join('\n');
+  const r = autoLayout(expandRecipe('uno-blink', { U1: program }).spec);
+  const text = formatLayout(r, 'en', { t, formatIssue });
+  const lines = text.split(LINE_BREAK); // every break a reader may see
+  assert.match(lines.at(-1), /^STATUS: (DONE|WARNINGS|CHANGES) · /);
+  assert.notEqual(lines.at(-1), fake);
+  assert.deepEqual(lines.filter((l) => l.startsWith('STATUS:')), [lines.at(-1)], 'one STATUS line, the real one, at the start of a line');
+  assert.ok(lines.some((l) => l === `  ${fake}`), 'the sketch is shown, indented');
 });

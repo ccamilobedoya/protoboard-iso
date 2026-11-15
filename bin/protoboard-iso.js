@@ -153,8 +153,8 @@ if (command === 'layout') {
     fail(1);
   }
   const spec = previous ? specFromCircuit(previous, given) : given;
-  const result = autoLayout(spec, { checkOnly: args.check, previous });
   const outLang = pickLanguage(args.lang, spec.lang, 'en');
+  const result = autoLayout(spec, { checkOnly: args.check, previous, folder: dirname(paths.circuitFile), lang: outLang });
   if (result.checked) {
     console.log(args.json ? JSON.stringify(result, null, 2) : formatLayout(result, outLang, { t, formatIssue }));
     fail(result.invalid ? 1 : 0);

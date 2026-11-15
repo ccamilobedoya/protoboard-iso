@@ -10,7 +10,7 @@
 // Every tool answers in readable text by default, or JSON with format: "json".
 
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { resolve, relative, join, sep, basename } from 'node:path';
+import { resolve, relative, join, sep, basename, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 
@@ -359,8 +359,8 @@ server.registerTool(
     if (previous && !nets && !previous.spec?.nets) return refuse('LAYOUT_NO_SPEC');
     if (!previous && (!parts || !nets)) return refuse('LAYOUT_NEEDS_SPEC');
     const spec = previous ? specFromCircuit(previous, given) : given;
-    const result = autoLayout(spec, { checkOnly, previous });
     const out = pickLanguage(lang, spec.lang);
+    const result = autoLayout(spec, { checkOnly, previous, folder: dirname(paths.circuitFile), lang: out });
     if (result.checked) return { ...(result.invalid && { isError: true }), content: [{ type: 'text', text: formatLayout(result, out, { t, formatIssue }) }] };
     const saved = previous
       ? relayoutTarget(full, result.circuit, { expectRevision, author, note, lang: lang ?? 'en', outputLang })

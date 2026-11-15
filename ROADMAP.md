@@ -429,6 +429,7 @@ package. Planned on 2026-10-26 after a review of licences and private data.
 - ⬜ Decide the copyright line (today "protoboard-iso contributors") and the `author` field
 
 **E · Packaging the skill**
+- ✅ `layout`'s answer carries the readings, a board's program and what a recipe lets change (2026-11-15): one call says what a reply needs, every number and option from the kit, so an assistant does not run `simulate` to have something to say, shows the sketch, and offers only changes the recipe accepts ([layout.md](docs/en/layout.md), "The answer")
 - ⬜ Claude Code plugin: `.claude-plugin/plugin.json` and a `marketplace.json` in this repository, bundling the skill, the three agents and the MCP server (`/plugin marketplace add …`). To solve: the MCP server needs `npm install` (bundle it into one file, or publish it to npm and start it with `npx`); `.mcp.json` paths with `${CLAUDE_PLUGIN_ROOT}`; check how a plugin prefixes MCP tool names, and update the agents' tool lists (`npm run test:mcp` catches stale names)
 - ⬜ A skill zip for claude.ai or the API, CLI only (no dependencies): `scripts/pack-skill.js` with `SKILL.md`, `bin`, `src`, `schema`, the essential docs and the examples, no tests or development notes; first check that Node is available where those skills run
 - ⬜ npm packages: `protoboard-iso` (CLI, `npx protoboard-iso`) and the MCP server as a second package (today `files` leaves `mcp/` out); then list it in MCP server directories

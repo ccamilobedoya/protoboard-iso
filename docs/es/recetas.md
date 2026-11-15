@@ -134,6 +134,13 @@ conexiones se llama a `layout` sobre él con `parts` y `nets` completos (`get_ci
 desde ahí es un circuito propio y pierde `spec.recipe`. Un valor o una descripción sola también se
 cambian con `apply_ops`.
 
+La respuesta de `layout` para un circuito de receta termina, antes de sus líneas de página y
+`STATUS:`, con lo que la receta deja cambiar, con los valores que tiene ahora el circuito (`Se puede
+cambiar (layout con la receta y values): R1 = 330 (resistencia limitadora) · D1 = green · V1 = 9 V
+[1,5…15]`), junto a las lecturas en reposo y al programa de una tarjeta
+([montaje-automatico.md](montaje-automatico.md), «La respuesta»): los cambios que se ofrecen son
+esos, no otros.
+
 Las recetas de microcontroladores (ESP32, UNO, C3) corren un programa
 ([microcontroladores.md](microcontroladores.md)); `values: { "U1": "parpadeo.ino" }` pone el programa
 propio en su lugar (un archivo junto al circuito, o su texto). Sus pines son fijos; las del C3 dejan

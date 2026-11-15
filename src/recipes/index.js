@@ -92,6 +92,14 @@ const items = (recipe) => new Map([...recipe.parts.map((p) => [p.id, p]), ...(re
 const kindOf = (item) => (item.supply ? 'supply' : item.type);
 const text = (v, lang) => (v && typeof v === 'object' ? v[lang] ?? v.en : v);
 
+// How a value's limits read, in the catalog and in layout's answer: choices as [a | b | c], a
+// range as [min…max] (in the language's decimals), nothing when it has neither.
+export function valueLimits(rule, decimal = '.') {
+  const n = (x) => (x === undefined ? '' : String(x).replace('.', decimal));
+  if (rule.choices) return ` [${rule.choices.join(' | ')}]`;
+  return rule.min !== undefined || rule.max !== undefined ? ` [${n(rule.min)}…${n(rule.max)}]` : '';
+}
+
 // The current value of each changeable item: { R1: '1k', V1: 5, Q1: '2N2222A' }.
 export function recipeDefaults(recipe) {
   const all = items(recipe);

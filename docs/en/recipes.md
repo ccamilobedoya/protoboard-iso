@@ -130,6 +130,12 @@ and `undo` brings the old values back. To add parts or connections, call `layout
 full `parts` and `nets` (`get_circuit` shows them): it is then a circuit of its own and loses
 `spec.recipe`. A value or a description alone can also be changed with `apply_ops`.
 
+`layout`'s answer for a recipe circuit ends, before its page and `STATUS:` lines, with what the
+recipe lets change, at the values the circuit has now (`Can change (layout with the recipe and
+values): R1 = 330 (current-limiting resistor) · D1 = green · V1 = 9 V [1.5…15]`), beside the
+readings at rest and a board's program ([layout.md](layout.md), "The answer"): the changes to offer
+are those, not others.
+
 The microcontroller recipes (ESP32, UNO, C3) run a program ([microcontrollers.md](microcontrollers.md));
 `values: { "U1": "blink.ino" }` puts one's own sketch in its place (a file beside the circuit, or its
 text). Their pins are fixed; the C3 ones keep everything on its left header (5V, GND, 3V3, GPIO0–4). The 555 is simulated since 2026-10-26: its page
