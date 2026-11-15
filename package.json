@@ -45,7 +45,8 @@
     "options": "node scripts/project-options.js",
     "context-size": "node scripts/context-size.js",
     "docs-index": "node scripts/docs-index.js",
-    "pack-skill": "node scripts/pack-skill.js"
+    "pack-skill": "node scripts/pack-skill.js",
+    "pack-mcpb": "node scripts/pack-mcpb.js"
   },
   "engines": {
     "node": ">=22"

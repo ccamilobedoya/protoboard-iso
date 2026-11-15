@@ -67,7 +67,7 @@ export function normalizeTarget(target) {
   if (existsSync(join(ROOT, plain))) return plain;
   if (existsSync(join(ROOT, rest))) return rest;
   if (existsSync(join(ROOT, parts[0]))) return plain;
-  const holdsCircuits = readdirSync(ROOT, { withFileTypes: true }).some((e) => !e.name.startsWith('.') && existsSync(join(ROOT, e.name, 'circuit.json')));
+  const holdsCircuits = existsSync(ROOT) && readdirSync(ROOT, { withFileTypes: true }).some((e) => !e.name.startsWith('.') && existsSync(join(ROOT, e.name, 'circuit.json')));
   return holdsCircuits ? rest : plain;
 }
 
@@ -140,7 +140,8 @@ const READ = { readOnlyHint: true, destructiveHint: false, openWorldHint: false 
 const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
 
 function findCircuits(dir, depth = 0, out = []) {
-  if (depth > 4) return out;
+  // A root that does not exist yet (a new folder chosen at install) holds no circuits.
+  if (depth > 4 || !existsSync(dir)) return out;
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.name.startsWith('.') || ['node_modules', 'out', 'schema'].includes(entry.name)) continue;
     const full = join(dir, entry.name);
@@ -190,7 +191,8 @@ server.registerTool(
       const title = typeof c.title === 'object' ? c.title?.en ?? Object.values(c.title)[0] : c.title;
       return { target: rel(full), title: title ?? null, revision: c.revision ?? 0, parts: c.parts.length };
     });
-    return answer(format, { root: ROOT, circuits: items }, () => [`root: ${ROOT}`, ...items.map((i) => `${i.target} · rev ${i.revision} · ${i.parts} parts${i.title ? ` · ${i.title}` : ''}`)].join('\n'));
+    const empty = items.length ? [] : [existsSync(ROOT) ? 'No circuits yet: layout makes the first one.' : 'No circuits yet: this folder does not exist yet, and layout creates it with the first circuit.'];
+    return answer(format, { root: ROOT, circuits: items }, () => [`root: ${ROOT}`, ...empty, ...items.map((i) => `${i.target} · rev ${i.revision} · ${i.parts} parts${i.title ? ` · ${i.title}` : ''}`)].join('\n'));
   }),
 );
 
