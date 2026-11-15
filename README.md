@@ -136,6 +136,13 @@ by this repository's URL (`https://github.com/ccamilobedoya/protoboard-iso`) and
 repository also has three agents in `.claude/agents/` (one lays out, one reviews, one adds parts):
 [agents](docs/en/agents.md).
 
+**Desktop extension** (Claude Desktop; optional, no terminal). The plugin works by itself; the
+extension adds the live board inside the conversation, where you tap a part or move a slider. It
+is the MCP server in one file (`.mcpb`, an MCP Bundle) with everything it needs: download
+`protoboard-iso-<version>.mcpb` from the
+[releases](https://github.com/ccamilobedoya/protoboard-iso/releases), double-click it and choose
+the folder for your circuits. Details: [Claude Desktop with one click](docs/en/mcp.md#claude-desktop-with-one-click).
+
 **As a library**, in Node or a browser:
 
 ```js

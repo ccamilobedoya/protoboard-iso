@@ -58,6 +58,31 @@ course folder), point it at that folder.
 **Other clients:** a stdio server with command `node`, argument the absolute path of
 `mcp/server.js` and the environment above.
 
+### Claude Desktop with one click
+
+The desktop extension is this server in one file that Claude Desktop installs, with what it needs
+inside (no clone, no `npm install`, no configuration file). With it the circuit's live board shows
+up inside the conversation ([mcp-apps.md](mcp-apps.md)).
+
+1. Download `protoboard-iso-<version>.mcpb` from the repository's
+   [releases](https://github.com/ccamilobedoya/protoboard-iso/releases) (`SHA256SUMS` beside it
+   has its checksum).
+2. Double-click it (or drag it onto **Settings > Extensions** in Claude Desktop) and confirm the
+   install.
+3. Choose the **circuits folder**: where your circuits are saved; the kit reads and writes only
+   there. The default is a `Protoboard` folder in your documents; it is created with the first
+   circuit if it does not exist.
+4. In a new conversation, ask for a circuit ("an LED with its resistor on 9 V").
+
+The extension runs on the Node.js that Claude Desktop brings, so nothing else is installed; it sets
+`PROTOBOARD_APPS=on`, since it is only for a host that shows the board. It does not carry the
+optional PNG rasteriser (`render` with `png_width` answers that PNG is not available; the board and
+the pages do not need it). The release builds it (`scripts/pack-mcpb.js` with the official `mcpb`
+CLI); a clone builds the same folder with `npm run pack-mcpb -- --out <dir>`.
+
+The manual configuration below is the alternative: for a clone you change, or to set
+`PROTOBOARD_LANG`.
+
 ### Claude Desktop
 
 Open the file from **Settings > Developer > Edit Config** (it creates `claude_desktop_config.json`

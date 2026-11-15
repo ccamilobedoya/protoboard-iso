@@ -59,6 +59,32 @@ carpeta de un curso), apúntalo a esa carpeta.
 **Otros clientes:** un servidor stdio con el comando `node`, como argumento la ruta absoluta de
 `mcp/server.js`, y las variables de arriba.
 
+### Claude Desktop con un clic
+
+La extensión de escritorio es este servidor en un solo archivo que Claude Desktop instala, con lo
+que necesita adentro (sin clon, sin `npm install`, sin archivo de configuración). Con ella, el
+tablero en vivo del circuito aparece dentro de la conversación ([mcp-apps.md](mcp-apps.md)).
+
+1. Descarga `protoboard-iso-<versión>.mcpb` de las
+   [versiones publicadas](https://github.com/ccamilobedoya/protoboard-iso/releases) del repositorio
+   (`SHA256SUMS`, a su lado, trae su suma de verificación).
+2. Haz doble clic en él (o arrástralo a **Settings > Extensions** en Claude Desktop) y confirma la
+   instalación.
+3. Elige la **carpeta de circuitos**: donde se guardan tus circuitos; el kit solo lee y escribe
+   ahí. Por defecto es una carpeta `Protoboard` en tus documentos; si no existe, se crea con el
+   primer circuito.
+4. En una conversación nueva, pide un circuito («un LED con su resistencia a 9 V»).
+
+La extensión corre con el Node.js que trae Claude Desktop, así que no se instala nada más; pone
+`PROTOBOARD_APPS=on`, porque solo es para un anfitrión que muestra el tablero. No trae el
+rasterizador opcional de PNG (`render` con `png_width` responde que el PNG no está disponible; el
+tablero y las páginas no lo necesitan). La construye la publicación de cada versión
+(`scripts/pack-mcpb.js` con la CLI oficial `mcpb`); un clon arma la misma carpeta con
+`npm run pack-mcpb -- --out <carpeta>`.
+
+La configuración manual de abajo es la alternativa: para un clon que cambias, o para fijar
+`PROTOBOARD_LANG`.
+
 ### Claude Desktop
 
 Abre el archivo desde **Settings > Developer > Edit Config** (crea `claude_desktop_config.json`
