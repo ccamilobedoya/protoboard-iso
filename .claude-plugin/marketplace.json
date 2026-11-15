@@ -1,0 +1,12 @@
+{
+  "name": "protoboard-iso",
+  "owner": { "name": "protoboard-iso contributors" },
+  "description": "Breadboard circuits built, checked and simulated by the protoboard-iso kit, as a plugin for the Claude apps.",
+  "plugins": [
+    {
+      "name": "protoboard-iso",
+      "source": "./plugin",
+      "description": "Ask for a circuit and get it built on a breadboard: real holes, wires, a check, and a live page with the simulation."
+    }
+  ]
+}

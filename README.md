@@ -14,7 +14,7 @@ circuit, draws it in isometric SVG and simulates it in a page you can embed in a
   strips, occupied holes, leads that cannot reach and parts that overlap.
 - **Simulated** (a model, and labelled as one): voltages, currents, an oscilloscope, LEDs that
   light up, warnings when a part is pushed past its limits, even an Arduino sketch running.
-- **Made for assistants**: a skill (`SKILL.md`), an MCP server and three agents, so an AI
+- **Made for assistants**: a plugin with one skill (the kit inside), an MCP server and three agents, so an AI
   assistant describes the circuit and the kit does the geometry. It never computes a hole by hand.
 - **No dependencies**: plain JavaScript, Node ≥ 22 or a browser. English and Spanish.
 
@@ -127,10 +127,12 @@ claude mcp add protoboard-iso -e PROTOBOARD_ROOT="$HOME/circuits" -- node "$PWD/
 Then ask for a circuit in plain words ("an LED with its resistor on 9 V"). Setup, the tools and
 the Claude Desktop configuration (Windows paths included): [docs/en/mcp.md](docs/en/mcp.md).
 
-**Agent skill.** `SKILL.md` tells an assistant how to use the kit. Link this folder into your
-skills directory: `ln -s "$PWD" ~/.claude/skills/protoboard-iso` (macOS, Linux), or in PowerShell
-`New-Item -ItemType Junction -Path "$HOME\.claude\skills\protoboard-iso" -Target (Get-Location)`
-(create `$HOME\.claude\skills` first if it does not exist; copying the folder there also works). For circuit work the
+**Plugin with the skill** (the Claude apps and Claude Code; no terminal needed in the apps). The
+plugin in [plugin/](plugin/README.md) holds one skill with the kit inside: it runs where the
+assistant runs code, with Node ≥ 22 and nothing to install. In the Claude app, add the marketplace
+by this repository's URL (`https://github.com/ccamilobedoya/protoboard-iso`) and install
+`protoboard-iso`; in Claude Code, `/plugin marketplace add ccamilobedoya/protoboard-iso`, then
+`/plugin install protoboard-iso@protoboard-iso`. For circuit work the
 repository also has three agents in `.claude/agents/` (one lays out, one reviews, one adds parts):
 [agents](docs/en/agents.md).
 

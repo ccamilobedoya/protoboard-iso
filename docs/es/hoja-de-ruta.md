@@ -192,7 +192,7 @@ patas (`D1.K` en un LED, `U1.DISCH` en un 555).
 
 **Cualquier modelo, no solo Claude**
 
-- ⬜ `AGENTS.md` en la raíz (lo leen Codex, Gemini CLI, Cursor y otros) con el flujo corto; `SKILL.md` y `.claude/agents/` quedan para Claude Code
+- ⬜ `AGENTS.md` en la raíz (lo leen Codex, Gemini CLI, Cursor y otros) con el flujo corto; el skill del plugin (`plugin-src/SKILL.md`) y `.claude/agents/` quedan para Claude
 - ⬜ Prompts MCP (`build_circuit`, `review_circuit`): el procedimiento de los agentes servido por el servidor MCP, así cualquier cliente MCP lo recibe, no solo las herramientas
 - ⬜ `schema/layout.schema.json`: el JSON Schema de la especificación, para modelos que generan JSON restringido por un esquema
 - ✅ `SKILL.md` reordenado (2026-10-20): una tabla de qué herramienta para qué tarea, `layout` primero con un ejemplo resuelto (un test comprueba que sale `DONE`), las líneas `STATUS:`, cambiar un circuito volviéndolo a montar, el ciclo de operaciones, revisar y mostrar; el formato escrito a mano queda en `docs/es/formato-circuito.md` (11,5 KB → 8,7 KB). Las instrucciones del servidor MCP y las descripciones de sus herramientas dicen lo mismo (⬜ las recetas primero, cuando existan)
@@ -435,8 +435,9 @@ después de revisar licencias y datos privados.
 - ⬜ Decidir la línea de copyright (hoy «protoboard-iso contributors») y el campo `author`
 
 **E · Empaquetar el skill**
-- ⬜ Plugin de Claude Code: `.claude-plugin/plugin.json` y un `marketplace.json` en este repositorio, con el skill, los tres agentes y el servidor MCP (`/plugin marketplace add …`). Por resolver: el servidor MCP necesita `npm install` (agruparlo en un solo archivo, o publicarlo en npm y arrancarlo con `npx`); rutas de `.mcp.json` con `${CLAUDE_PLUGIN_ROOT}`; revisar qué prefijo pone un plugin a los nombres de las herramientas MCP y actualizar las listas de los agentes (`npm run test:mcp` detecta nombres viejos)
-- ⬜ Un zip del skill para claude.ai o la API, solo con la línea de comandos (sin dependencias): `scripts/pack-skill.js` con `SKILL.md`, `bin`, `src`, `schema`, la documentación esencial y los ejemplos, sin pruebas ni notas de desarrollo; antes, comprobar que haya Node donde corren esos skills
+- ✅ Un plugin con un skill, el kit adentro (2026-11-15): `plugin-src/` (un `SKILL.md` corto con una forma fija de la respuesta y una regla de parada, la guía larga en `references/`), `npm run pack-skill` escribe `plugin/` (en git; la versión del manifiesto sale de `package.json`; el skill lleva `bin/` y `src/`, no `schema/`), `.claude-plugin/marketplace.json` en la raíz (`/plugin marketplace add <dueño>/<repo>`, o la URL del repositorio en la app de Claude); `test/plugin.test.js` comprueba que está al día, dentro de los límites del directorio público, de acuerdo con el kit y que corre desde una copia de solo lectura. Los agentes y el servidor MCP quedan fuera: el chat ignora los agentes y los servidores MCP locales de un plugin
+- ⬜ El flujo de publicación: comprimir la carpeta del plugin (`node scripts/pack-skill.js --out <carpeta>`) y adjuntarla a cada versión de GitHub, para claude.ai o la API sin el marketplace
+- ⬜ Una extensión `.mcpb` del servidor MCP para Claude Desktop
 - ⬜ Paquetes en npm: `protoboard-iso` (línea de comandos, `npx protoboard-iso`) y el servidor MCP como segundo paquete (hoy `files` deja fuera `mcp/`); después, listarlo en los directorios de servidores MCP
 - ⬜ Evaluaciones del skill: unos cuantos pedidos («un LED con su resistencia a 9 V») que deben terminar en `review` APPROVED, para comprobar que el skill se activa y que un modelo pequeño lo usa bien
 - ⬜ `AGENTS.md` (ver «Circuitos con un modelo pequeño»)

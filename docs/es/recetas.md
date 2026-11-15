@@ -154,8 +154,9 @@ página parpadea, en cámara lenta (el tiempo de la página sigue a la constante
    (lo que fija la forma corta) y, si hace falta, `role` (`{ en, es }`), `choices`, `min`/`max`,
    `extra` (los campos permitidos, cuando no sirven los de cada tipo).
 3. Dale un `group` (una palabra de `RECIPE_GROUPS` en `src/recipes/index.js`, puesta en el propio módulo; el catálogo compacto lista las recetas por grupo, solo nombres, y una prueba falla si una receta no lo tiene; un grupo nuevo necesita sus textos `recipe.group.<nombre>` en `src/i18n/en.js` y `es.js`). Regístrala en `src/recipes/index.js` y corre `npm run schemas` (el esquema lista los nombres).
-4. Agrégala a las tablas de esta página, de [recipes.md](../en/recipes.md) y de `SKILL.md`, y a la
-   lista del agente `circuit-layout`. `npm test` comprueba que sale `DONE` con sus valores por
+4. Agrégala a las tablas de esta página, de [recipes.md](../en/recipes.md) y de
+   `plugin-src/references/recipes.md` del skill, a la lista de `plugin-src/SKILL.md` (después
+   `npm run pack-skill`) y a la lista del agente `circuit-layout`. `npm test` comprueba que sale `DONE` con sus valores por
    defecto y con cada opción, que se simula sin forzar ningún componente, que su nombre no es el de
    ningún componente y que las dos páginas la nombran; `npm run layout-bench` muestra sus intentos y
    su tiempo.

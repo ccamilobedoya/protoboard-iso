@@ -11,6 +11,7 @@ detail.
 
 ### Added
 
+- A plugin for the Claude apps with one skill and the kit inside (`plugin/`, committed, written by `npm run pack-skill` from `plugin-src/`; `--check`, `--out <dir>`), listed by `.claude-plugin/marketplace.json` at the root: `/plugin marketplace add ccamilobedoya/protoboard-iso` in Claude Code, or the repository's URL in the Claude app. The skill is short: recipes first, the `STATUS` table, a stop rule (at most two corrections, no calls after `DONE`), a fixed shape for the reply from what `layout` says, only the kit's facts; the long guide is in its `references/`. `test/plugin.test.js` checks that `plugin/` is fresh, within the public directory's limits, agrees with the kit (recipes, commands, `STATUS` values, links) and runs from a read-only copy.
 - CLI: `render --png-width`; `catalog` as the name of the catalogue (`parts` still works); `layout`, `apply` and `undo` print the page's absolute path (a line before `STATUS` for `layout`); the MCP answers of `layout`, `apply_ops`, `undo` and `render` carry it too (`pagePath` in JSON).
 - `scripts/clean-install-check.js` and the CI job `clean-install` (Linux, macOS, Windows): a fresh clone, the README's commands, `cd mcp && npm install`, the MCP server over stdio (layout, review, simulate, render with `png_width`).
 - Docs: a Claude Desktop section (the exact `claude_desktop_config.json`, an absolute `node` path with nvm, Windows paths) in `docs/en/mcp.md` and `docs/es/mcp.md`; the README states Node 22, where the page is, how to open it, a PowerShell variant and a Windows way to link the skill.
@@ -30,6 +31,10 @@ detail.
 - `SKILL.md`'s CLI block lists `check`, `nets`, `catalog` and the PNG output; the circuit-layout agent points to `catalog` for the recipes instead of repeating a list.
 - `mcp/package-lock.json` updated inside the current major (the SDK's transitive `hono` advisories are gone: `npm audit` reports none).
 - `src/page.js`: `renderPageParts` returns a page's per-circuit pieces and `renderPage` composes the same document from them (byte-identical); the MCP server itself moved to `mcp/core.js` (`mcp/server.js` is its stdio entry).
+
+### Removed
+
+- The root `SKILL.md`, and the README's instructions to link the repository as a skill: the plugin's skill replaces both, and the npm package no longer ships it.
 
 ### Fixed
 

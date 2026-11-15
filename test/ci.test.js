@@ -58,10 +58,10 @@ test('ruleset: it requires the CI jobs by their names, blocks force pushes and d
 
 test('docs: the Node they promise is the one engines says', () => {
   const min = /^>=(\d+)$/.exec(JSON.parse(read('package.json')).engines.node)[1];
-  for (const file of ['README.md', 'README.es.md', 'SKILL.md', 'PLANNING.md', 'docs/es/planeacion.md']) {
+  for (const file of ['README.md', 'README.es.md', 'plugin-src/SKILL.md', 'PLANNING.md', 'docs/es/planeacion.md']) {
     // The decision log (section 5) keeps what was decided then: only what is in force counts.
     const text = read(file).split(/^## 5\./m)[0];
-    const promised = [...text.matchAll(/Node(?:\.js)? ≥ (\d+)/g)].map((m) => m[1]);
+    const promised = [...text.matchAll(/Node(?:\.js)? (?:≥ (\d+)|(\d+) or later)/g)].map((m) => m[1] ?? m[2]);
     assert.ok(promised.length, `${file} says which Node`);
     assert.deepEqual([...new Set(promised)], [min], `${file}: Node ≥ ${min}`);
   }

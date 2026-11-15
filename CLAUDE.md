@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Guide for Claude Code (and any AI assistant) working **on** this repository. To *use* the
-kit as a skill, see `SKILL.md`.
+kit as a skill, see `plugin-src/SKILL.md`.
 
 **If `CLAUDE.local.md` exists, read it first**: it holds the maintainer's personal context
 (language, machine setup, course). It is not in git; `CLAUDE.local.md.example` says what goes in it.
@@ -125,6 +125,7 @@ node scripts/github-ruleset.js [--apply]   # the owner, once: protect main (CI r
 node scripts/agent-bench.js [--run]        # the agents on three fixed briefs (--run spends tokens), compared with the last run
 npm run options [-- --write] · npm run context-size   # project.json's options block in CLAUDE.md; what a session loads at start
 npm run docs-index [-- --write]   # docs/en/README.md and docs/es/README.md, written from the documents
+npm run pack-skill                # plugin/ again, after a change to plugin-src/, bin/ or src/
 node .claude/hooks/usage.js --summary   # tokens, calls and cache hits per session and agent (.claude/state/usage.jsonl)
 npm run examples              # examples/*.json → examples/out/*.svg + index.html gallery
 npm run examples -- --lang es # same, Spanish messages and labels
@@ -224,6 +225,7 @@ src/sim/         simulator: compile.js (circuit → program), engine.js (runs it
                  see its README
 src/page/        page.js's browser side: client/ (script modules), style.js
 bin/             CLI
+plugin-src/      the plugin's skill and README; plugin/ is written from it (npm run pack-skill)
 scripts/         render-examples.js (+ gallery), preview.js (PNG), readme-images.js (docs/img),
                  demo-site.js (GitHub Pages, .github/workflows/pages.yml), verify.js (npm run verify),
                  setup.js + hooks/ (git hooks), report-status.js (agents' STATUS line),

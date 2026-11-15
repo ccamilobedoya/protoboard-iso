@@ -1,0 +1,725 @@
+// CSS of the embeddable page (see ../page.js). Plain text inlined into the HTML.
+//
+// Visibility is driven by classes on <body> and by two <style> elements the script rewrites:
+//   body.no-labels       labels hidden                 body.focusing    veil shown (a part is tapped)
+//   body.show-results    simulation results on (pageSimulation)  body.layer-flow  current layer
+//   body[data-flow]      the style of the current layer: plan or real (src/sim/paths.js)
+//   body.speed-log       dot speed on a log scale (each dot path carries --lin and --log)
+//   #dynamic             strips, coordinates and result tags of the focused part (or the tapped
+//                        strip, with its probes); see-through rules
+//   #probe               the probes/arrows of the result tag hovered or tapped
+//   #stress              (live page) the boxes (layer marks) of the parts near or past their limits
+// .side holds the live page's panels (warnings, controls), top right; .info the card, bottom left.
+// Layers in each SVG: holegrid (the page only), (under), board, parts, labels, (annotations), veil, strips, coords, spotlight (made
+// by the script: copies of the tapped parts), flow, spotlabels (made by the script: copies of their
+// labels, above the current), results, probes; in a live page, marks (boxes around each part,
+// for its limits) between flow and spotlabels. Hidden by default: veil, flow, strips, coords,
+// results and probes.
+// The bar is one row grouped by job; on a narrow screen its labels give way to icons (U3).
+// body.embedded: the page is inside an iframe (see page/client/view.js for what gestures do then).
+// .zoom: zoom in, out, fit and full screen, bottom right; .gesture-hint: "use two fingers…" over the drawing.
+//
+// Colours (UX pass, U2): every colour of the page is a token on :root, from
+// .interface-design/system.md (bench palette). Dark follows the system unless <html data-theme>
+// fixes a theme: light or dark (the bench), notebook or stage (the notebook by day and at night,
+// V4); page.theme in the circuit, the reader's choice in the ⋯ menu, or ?theme= in the link (see
+// page/client/main.js).
+// In the page only, the drawing's background, veil, labels, result tags and the grid of holes
+// (render/hole-grid.js) take the tokens too,
+// by CSS over their presentation attributes: the static SVG keeps its own colours.
+// Touch: hover only with a fine pointer, feedback on :active, 40 px targets on a coarse pointer.
+
+import { CAPTION_LAYOUTS, MOVES, SCOPE_BOX, EMPHASIS } from './client/moves.js';
+
+// The oscilloscope's box of a portrait recording (moves.js, SCOPE_BOX), in % of the height.
+const boxCss = ({ top, bottom }) => `top: ${Math.round(top * 1000) / 10}%; height: ${Math.round((bottom - top) * 1000) / 10}%;`;
+
+// The moves of a timeline as tokens (page/client/moves.js): --move-<name>-ms and, with a curve,
+// --move-<name>-ease.
+const MOVE_TOKENS = Object.entries(MOVES)
+  .map(([name, m]) => `--move-${name}-ms: ${m.ms}ms;${m.curve ? ` --move-${name}-ease: cubic-bezier(${m.curve.join(', ')});` : ''}`)
+  .join('\n  ');
+
+// How strong the page's background grid of holes is, against its first look (1). The board's own
+// holes compete with it when the whole board is seen from afar, so it is a quarter. A single value:
+// the dots of the light and dark themes are multiplied by it (--grid-strength); the engineering paper of
+// the notebook and stage themes keeps its lines, they are the look of those themes.
+export const GRID_STRENGTH = 0.25;
+
+// The inspector is a panel on the right (WIDE) or a sheet from the bottom (everything else): a screen
+// wider than 760 px, or a landscape frame of 640 px and up (a widget in a chat is wide and short).
+// page/client/inspector.js asks the same question (NARROW).
+const WIDE = '(min-width: 761px) or ((min-width: 640px) and (min-aspect-ratio: 13/10))';
+
+export const STYLE = `
+:root {
+  ${MOVE_TOKENS}
+  /* Motion (U5, from the review-animations standard): enter and exit ease-out, on-screen movement
+     ease-in-out, the sheet the drawer curve; UI under 300 ms; presses 120 ms. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --t-press: 120ms;
+  /* The two kinds of semiconductor in a part's inside view (page/client/figure.js), in every theme. */
+  --inside-n: #4a78bd; --inside-p: #b8644a;
+  --sans: system-ui, -apple-system, "Segoe UI", Lato, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  color-scheme: light;
+  --bench: #f3f1ea; --well: #e8e5dc; --card: #ffffff; --canvas: #fbfaf7; --press: #dedad0;
+  --ink: #1a1a1a; --ink-2: #4a4a47; --ink-3: #6e6c66; --ink-4: #9a9893;
+  --hair: rgba(26, 26, 26, 0.14); --hair-strong: rgba(26, 26, 26, 0.25); --hair-soft: rgba(26, 26, 26, 0.07);
+  --accent: #1b6ec2; --accent-deep: #145596; --accent-soft: #e9f0f9; --on-accent: #ffffff;
+  --danger: #d93829; --danger-ink: #a82a1e; --danger-soft: #fbeeec; --danger-hover: #f6dcd8;
+  --warn: #c98a00; --warn-ink: #7a5600; --warn-soft: #fdf6e3; --warn-edge: #e0c060;
+  --tooltip: #1a1a1a; --on-tooltip: #f3f1ea; --hint: rgba(0, 0, 0, 0.5); --on-hint: #ffffff;
+  --pulse: #f2a900; --veil: #fbfaf7; --label-edge: #52606d; --leader: #7b8794; --label-ink: #1f2933;
+  --tag-v: #1b6ec2; --tag-i: #b5452a;
+  --scope: #0d1418; --scope-grid: rgba(255, 255, 255, 0.09); --scope-zero: #557079; --scope-scale: #9fb3bb;
+  --trace-v: #f5a623; --trace-v-ink: #8a5a00; --trace-i: #00e5ff; --trace-i-ink: #00687a;
+  /* The grid of holes continued under the drawing (stage and video, V4; render/hole-grid.js): in
+     the drawing, so it moves and scales with the board; dots on the bench, lines on the stage. */
+  --grid-strength: ${GRID_STRENGTH}; --grid-dot: rgba(26, 26, 26, calc(0.22 * var(--grid-strength))); --grid-dot-major: rgba(26, 26, 26, calc(0.38 * var(--grid-strength))); --grid-line: transparent; --grid-line-major: transparent;
+  /* The video's caption (V4): the face, its inks, and its sizes as a share of the frame's width. */
+  --cap-face: var(--sans); --cap-ink: var(--ink); --cap-ink-2: var(--ink-3); --cap-value: var(--accent);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) {
+  color-scheme: dark;
+  --bench: #1e1d1b; --well: #272623; --card: #2c2b28; --press: #3a3935;
+  --ink: #eceae4; --ink-2: #c4c1b8; --ink-3: #9a978e; --ink-4: #75736c;
+  --hair: rgba(255, 255, 255, 0.1); --hair-strong: rgba(255, 255, 255, 0.18); --hair-soft: rgba(255, 255, 255, 0.06);
+  --accent: #6fa8e8; --accent-deep: #4a86c9; --accent-soft: #263445; --on-accent: #111111;
+  --danger: #e8705f; --danger-ink: #f09a8c; --danger-soft: #3a2522; --danger-hover: #4a2c28;
+  --warn: #e0b040; --warn-ink: #f0cc70; --warn-soft: #362d17; --warn-edge: #7a6020;
+  --tooltip: #eceae4; --on-tooltip: #1e1d1b;
+  --label-edge: #8a96a3; --leader: #8a96a3; --label-ink: #eceae4;
+  --tag-v: #6fa8e8; --tag-i: #ef8a6e;
+  --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
+  --pulse: #fff3c4; --canvas: #121211; --veil: #121211; --cap-value: #ffb340;
+  --grid-dot: rgba(255, 255, 255, calc(0.18 * var(--grid-strength))); --grid-dot-major: rgba(255, 255, 255, calc(0.3 * var(--grid-strength)));
+} }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bench: #1e1d1b; --well: #272623; --card: #2c2b28; --press: #3a3935;
+  --ink: #eceae4; --ink-2: #c4c1b8; --ink-3: #9a978e; --ink-4: #75736c;
+  --hair: rgba(255, 255, 255, 0.1); --hair-strong: rgba(255, 255, 255, 0.18); --hair-soft: rgba(255, 255, 255, 0.06);
+  --accent: #6fa8e8; --accent-deep: #4a86c9; --accent-soft: #263445; --on-accent: #111111;
+  --danger: #e8705f; --danger-ink: #f09a8c; --danger-soft: #3a2522; --danger-hover: #4a2c28;
+  --warn: #e0b040; --warn-ink: #f0cc70; --warn-soft: #362d17; --warn-edge: #7a6020;
+  --tooltip: #eceae4; --on-tooltip: #1e1d1b;
+  --label-edge: #8a96a3; --leader: #8a96a3; --label-ink: #eceae4;
+  --tag-v: #6fa8e8; --tag-i: #ef8a6e;
+  --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
+  --pulse: #fff3c4; --canvas: #121211; --veil: #121211; --cap-value: #ffb340;
+  --grid-dot: rgba(255, 255, 255, calc(0.18 * var(--grid-strength))); --grid-dot-major: rgba(255, 255, 255, calc(0.3 * var(--grid-strength)));
+}
+:root[data-theme="stage"] {
+  /* The stage (V4): the notebook at night. A slate ground with the engineering grid in pale blue,
+     chalk ink, the system's serif for what is told. The video's theme; a page may take it too. */
+  color-scheme: dark;
+  --bench: #151a21; --well: #151a21; --card: #1d232c; --canvas: #151a21; --press: #2a323d;
+  --ink: #efe9da; --ink-2: #c9c3b4; --ink-3: #9aa3ad; --ink-4: #75808c;
+  --hair: rgba(255, 255, 255, 0.09); --hair-strong: rgba(255, 255, 255, 0.18); --hair-soft: rgba(255, 255, 255, 0.05);
+  --accent: #9cc6ff; --accent-deep: #6fa3e6; --accent-soft: #223247; --on-accent: #0e1218;
+  --danger: #e8705f; --danger-ink: #f09a8c; --danger-soft: #3a2522; --danger-hover: #4a2c28;
+  --warn: #e0b040; --warn-ink: #f0cc70; --warn-soft: #362d17; --warn-edge: #7a6020;
+  --tooltip: #efe9da; --on-tooltip: #151a21;
+  --pulse: #fff3c4; --veil: #151a21; --label-edge: #7f8c9b; --leader: #7f8c9b; --label-ink: #efe9da;
+  --tag-v: #9cc6ff; --tag-i: #ffcc5c;
+  --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
+  --grid-dot: transparent; --grid-dot-major: transparent; --grid-line: rgba(156, 198, 255, 0.1); --grid-line-major: rgba(156, 198, 255, 0.22);
+  --cap-face: "Literata Caption", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --cap-ink: #efe9da; --cap-ink-2: #9aa3ad; --cap-value: #ffcc5c;
+}
+:root[data-theme="notebook"] {
+  /* The notebook (V4): the lab notebook by day. Cream engineering paper with the grid in blue ink,
+     near-black ink, the system's serif for what is told. A theme for lessons and videos alike. */
+  color-scheme: light;
+  --bench: #f4efe2; --well: #ebe4d3; --card: #fbf8f0; --canvas: #f4efe2; --press: #e0d8c4;
+  --ink: #1c1a16; --ink-2: #4a463f; --ink-3: #6b665c; --ink-4: #8f897d;
+  --hair: rgba(28, 26, 22, 0.14); --hair-strong: rgba(28, 26, 22, 0.25); --hair-soft: rgba(28, 26, 22, 0.07);
+  --accent: #184f8f; --accent-deep: #123d6f; --accent-soft: #e2e9f3; --on-accent: #fbf8f0;
+  --tooltip: #1c1a16; --on-tooltip: #f4efe2;
+  --pulse: #e09400; --veil: #f4efe2; --label-edge: #6b665c; --leader: #8f897d; --label-ink: #1c1a16;
+  --tag-v: #184f8f; --tag-i: #a3461f;
+  --grid-dot: transparent; --grid-dot-major: transparent; --grid-line: rgba(24, 79, 143, 0.1); --grid-line-major: rgba(24, 79, 143, 0.22);
+  --cap-face: "Literata Caption", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --cap-ink: #1c1a16; --cap-ink-2: #6b665c; --cap-value: #184f8f;
+}
+/* The two notebooks (stage and notebook): square corners, chalk or ink on the pressed buttons, the
+   serif for a card's title. */
+:is([data-theme="stage"], [data-theme="notebook"]) :is(nav button, .info button, .info .explain, .inspector) { border-radius: 2px; }
+:is([data-theme="stage"], [data-theme="notebook"]) nav button[aria-pressed="true"] { color: var(--on-accent); background: var(--ink); }
+:is([data-theme="stage"], [data-theme="notebook"]) .inspector { border-color: transparent; }
+:is([data-theme="stage"], [data-theme="notebook"]) .info h2 { font-family: var(--cap-face); font-size: 18px; }
+/* At night and on paper the bar has no ground of its own: the drawing's ground goes up to the top. */
+:is([data-theme="dark"], [data-theme="stage"], [data-theme="notebook"]) nav { background: transparent; border-bottom-color: transparent; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) nav { background: transparent; border-bottom-color: transparent; } }
+:is([data-theme="dark"], [data-theme="stage"], [data-theme="notebook"]) body { background: var(--canvas); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) body { background: var(--canvas); } }
+html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; height: 100%; background: var(--bench); color: var(--ink); font-family: var(--sans); }
+body { display: flex; flex-direction: column; }
+button { touch-action: manipulation; -webkit-user-select: none; user-select: none; transition: background-color 100ms ease-out, color 100ms ease-out, transform var(--t-press) var(--ease-out); }
+/* Press feedback on the buttons that are pressed often (not on the rows of a menu or a card). */
+nav > .group button:active, nav .more-button:active, nav .warn-flag:active, .zoom button:active, .info .icon-button:active, .inspector .collapse:active { transform: scale(0.96); }
+/* The bar (UX pass, U3): one row, grouped by job; labels give way to icons on a narrow screen. */
+nav { position: relative; z-index: 4; display: flex; flex-wrap: nowrap; align-items: center; gap: 2px; min-height: 36px; box-sizing: border-box; padding: 3px 4px; font-size: 13px; background: var(--well); border-bottom: 1px solid var(--hair); }
+nav[hidden] { display: none; }
+nav .group { display: flex; align-items: center; gap: 2px; padding: 0 4px; }
+nav .group + .group { border-left: 1px solid var(--hair); }
+nav .spacer { flex: 1; }
+nav button { display: inline-flex; align-items: center; gap: 6px; height: 28px; min-width: 28px; justify-content: center; font: inherit; color: var(--ink); background: none; border: 1px solid transparent; border-radius: 4px; padding: 0 8px; cursor: pointer; white-space: nowrap; }
+nav button:active { background: var(--press); }
+nav button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
+.icon { flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+nav .more-button .icon { stroke-width: 2.4; }
+nav .warn-flag { color: var(--danger-ink); background: var(--danger-soft); }
+nav .warn-flag[hidden] { display: none; }
+nav .warn-flag .count { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+nav .more { position: relative; }
+nav .menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; display: flex; flex-direction: column; min-width: 230px; padding: 4px; background: var(--card); border: 1px solid var(--hair); border-radius: 6px; }
+nav .menu[hidden] { display: none; }
+nav .menu button, nav .menu a { display: flex; width: 100%; height: auto; min-height: 32px; justify-content: flex-start; text-align: left; color: var(--ink); text-decoration: none; padding: 6px 8px; border-radius: 4px; box-sizing: border-box; }
+nav .menu [role="menuitemradio"]::before { content: ""; display: inline-block; width: 1.3em; flex: none; }
+nav .menu [role="menuitemradio"][aria-checked="true"]::before { content: "✓"; color: var(--accent); }
+nav .menu-group { display: flex; flex-direction: column; padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px solid var(--hair-soft); }
+nav .menu-title { padding: 4px 8px 2px; font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
+nav .menu .revision { padding: 6px 8px 2px; margin-top: 4px; border-top: 1px solid var(--hair-soft); color: var(--ink-3); font-size: 12px; }
+@media (max-width: 760px) {
+  /* The two buttons that change what is shown keep their word (V3); flip and frame are icons. */
+  nav .label { display: none; }
+  nav button[data-key="labels"] .label, nav button[data-key="layer"] .label { display: inline; }
+  nav button { padding: 0 6px; }
+  nav .group { padding: 0 2px; }
+}
+@media (max-width: 400px) { nav .time .clock { display: none; } }
+main { flex: 1; min-height: 0; display: flex; overflow: hidden; user-select: none; -webkit-user-select: none; cursor: grab; background: var(--canvas); }
+main.dragging { cursor: grabbing; }
+/* Gestures belong to the drawing only: on main itself, touch-action would also reach the inspector
+   inside it in some browsers (Safari), and its card would not scroll. */
+main > svg { display: block; width: 100%; height: 100%; touch-action: none; }
+main > svg[hidden] { display: none; }
+/* While a flip measures the new view (view.js flipView) both views lie over each other. */
+main.flipping > svg { position: absolute; inset: 0; }
+/* Embedded (inside an iframe): one finger scrolls the note; two fingers are handled by the script. */
+body.embedded main > svg { touch-action: pan-x pan-y; }
+/* The drawing, in the page only: its background, veil, labels and result tags follow the theme. */
+main > svg > rect:first-child { fill: var(--canvas); }
+/* The grid of holes (V4): its marks' sizes and the minor ones' fading are set per zoom (view.js). */
+.holegrid { pointer-events: none; }
+.holegrid .grid-minor .grid-dot { fill: var(--grid-dot); }
+.holegrid .grid-major .grid-dot { fill: var(--grid-dot-major); }
+.holegrid .grid-minor .grid-line { stroke: var(--grid-line); }
+.holegrid .grid-major .grid-line { stroke: var(--grid-line-major); }
+.veil > * { fill: var(--veil); }
+.labels rect, .spotlabels rect { fill: var(--card); stroke: var(--label-edge); }
+.labels text, .spotlabels text { fill: var(--label-ink); }
+.labels line, .spotlabels line { stroke: var(--leader); }
+.labels circle, .spotlabels circle { fill: var(--label-edge); stroke: var(--card); }
+.results rect[data-q] { fill: var(--card); }
+.results rect[data-q="node"] { stroke: var(--tag-v); }
+.results text[data-q="node"] { fill: var(--tag-v); }
+.results rect[data-q]:not([data-q="node"]) { stroke: var(--tag-i); }
+.results text[data-q]:not([data-q="node"]) { fill: var(--tag-i); }
+.results .badge { fill: var(--ink-3); stroke: var(--canvas); }
+/* At rest (stage and video, V3) the parts are named by short labels beside them; Labels shows the
+   boxes with leaders instead. A tapped part's box comes forward either way (spotlabels). */
+body.no-labels .labels, body:not(.no-labels) .shortlabels { display: none; }
+.shortlabels text, .spotlabels .short { fill: var(--label-ink); stroke: var(--bench); }
+body:not(.show-results) .results, body:not(.show-results) .info .sim { display: none; }
+.veil, .strips, .coords, .flow, .results, .lights { pointer-events: none; }
+.pulse { pointer-events: none; }
+.pulse > * { stroke: var(--pulse); stroke-width: 4.5px; stroke-dasharray: none; stroke-linecap: round; } /* M7: the flash along the current's path */
+body.layer-flow .lights { display: none; } /* the current layer draws its own glow, over the veil */
+/* The plan (stage and video, V3): the parts in focus are drawn over the current layer, seen through,
+   so its lines read under their bodies; a pad's edge is the colour behind it. */
+body.layer-flow[data-flow="plan"] .spotlight { opacity: 0.5; }
+/* A timeline's flow with scope "focus": the pieces off the focused nets are not drawn (focus.js, scopeFlow). */
+main > svg > .flow > [data-out] { display: none; }
+/* A flow step's sense (tour.js): the dots in the colour of the way the current runs now, a little thicker. */
+main[data-sense] > svg > .flow > .dots { stroke: var(--flow-sense); stroke-width: 3.4; }
+/* A timeline's solid focus (focus with solid): the part pointed at is drawn whole over the current. */
+body.layer-flow.focus-solid[data-flow="plan"] .spotlight { opacity: 1; }
+.flow .pad-edge { stroke: var(--veil); }
+.coords > text { fill: var(--accent); }
+.coords > * { display: none; }
+.results > [data-q] { pointer-events: auto; cursor: help; }
+.probes { pointer-events: none; }
+.probes > * { display: none; }
+.veil, .flow, .strips > *, .results > * { display: none; }
+/* The MODEL stamp of the drawing gives way to the page's own badge (top left, and in the card). */
+.results .badge { display: none !important; }
+body.focusing .veil, body.layer-flow .veil, body.layer-flow .flow { display: inline; }
+[data-part] { cursor: pointer; }
+.dots { animation: dots linear infinite; animation-duration: var(--lin); }
+body.speed-log .dots { animation-duration: var(--log); }
+@keyframes dots { to { stroke-dashoffset: -9; } }
+@media (prefers-reduced-motion: reduce) { .dots { animation: none; } }
+body.live .dots { animation: none; }
+nav .time .clock { margin-left: 4px; color: var(--ink-3); font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; min-width: 6.5em; }
+main { position: relative; }
+.info { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 0 12px 10px; color: var(--ink); font-size: 13px; line-height: 1.4; font-variant-numeric: tabular-nums; cursor: auto; user-select: text; -webkit-user-select: text; touch-action: auto; }
+.info[hidden] { display: none; }
+.info .head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 8px 0 4px; background: var(--card); }
+.info h2 { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; margin: 0; }
+.info .head .actions { margin: 0; gap: 2px; flex: none; }
+.info .icon-button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; color: var(--ink-2); background: none; border: none; border-radius: 4px; }
+.info .icon-button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.info .summary { display: none; align-items: baseline; gap: 8px; padding: 0 0 6px; white-space: nowrap; overflow: hidden; }
+/* Only in a peeking sheet (all it shows); open, the Simulation section below says the same. Each
+   value has a slot of its own, so a value that changes length never pushes the others. */
+@media not (${WIDE}) { .inspector[data-size="peek"] .info .summary:not([hidden]) { display: flex; } }
+.info .summary .slot { display: inline-block; width: 8.5ch; text-align: right; } /* sign, three digits, unit: at most 8 */
+.info .summary .model, .model-badge { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: var(--ink-3); border: 1px solid var(--hair); border-radius: 4px; padding: 1px 5px; }
+.info .summary .values { display: flex; gap: 6px; font-family: var(--mono); font-size: 12px; color: var(--accent); }
+.info details.pins { margin-top: 8px; }
+.info details.pins > summary { font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; }
+.info h3 { font-size: 11px; font-weight: 600; margin: 8px 0 2px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.info p { margin: 2px 0; }
+.info .type { color: var(--ink-2); }
+.info .here { margin-top: 6px; }
+.info ul { margin: 0; padding-left: 16px; }
+.info .actions { display: flex; gap: 6px; margin-top: 8px; }
+.info button { font: inherit; color: var(--ink); background: var(--bench); border: 1px solid var(--hair-strong); border-radius: 4px; padding: 3px 9px; cursor: pointer; }
+.info button:active { background: var(--press); }
+.info button[aria-pressed="true"] { color: var(--on-accent); background: var(--accent); border-color: var(--accent-deep); }
+.info ul.terms { list-style: none; padding-left: 0; }
+.info .term { display: block; width: 100%; text-align: left; color: inherit; background: none; border: none; border-radius: 4px; padding: 2px 4px; margin: 0; cursor: help; }
+.info .term::after { content: " ⓘ"; color: var(--ink-4); }
+.info .term[aria-expanded="true"] { background: var(--accent-soft); }
+.info .link { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: none; border-radius: 4px; padding: 1px 4px; margin: 0 0 0 -4px; cursor: pointer; }
+.info .link::after { content: " ›"; color: var(--ink-4); }
+.info .term:active, .info .link:active { background: var(--accent-soft); }
+.info .explain { margin: 2px 4px 6px; padding: 6px 8px; background: var(--well); border-left: 3px solid var(--accent); border-radius: 4px; color: var(--ink-2); }
+.info .explain[hidden] { display: none; }
+.info .tip { color: var(--ink-3); font-size: 12px; }
+.tooltip { position: absolute; z-index: 6; max-width: 260px; padding: 6px 8px; background: var(--tooltip); color: var(--on-tooltip); border-radius: 4px; font-size: 12px; line-height: 1.35; pointer-events: none; }
+.tooltip[hidden] { display: none; }
+
+.side { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 6px; padding: 4px 10px 10px; cursor: auto; touch-action: auto; user-select: none; -webkit-user-select: none; }
+.side .panel { color: var(--ink); font-size: 13px; padding: 2px 0; }
+.side .panel[hidden] { display: none; }
+.side .head { display: block; width: 100%; text-align: left; font: inherit; font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; background: none; border: none; padding: 2px 0; cursor: pointer; }
+.side .head::after { content: " ▾"; }
+.side .head[aria-expanded="false"]::after { content: " ▸"; }
+.side .body[hidden] { display: none; }
+.side .warnings { border: 1px solid var(--danger); background: var(--danger-soft); border-radius: 6px; padding: 6px 10px 8px; }
+.side .warnings h3 { font-size: 11px; margin: 2px 0 4px; color: var(--danger-ink); text-transform: uppercase; letter-spacing: 0.05em; }
+.side .warnings ul { list-style: none; margin: 0; padding: 0; }
+.side .warning { display: block; width: 100%; text-align: left; font: inherit; color: var(--danger-ink); background: none; border: none; border-radius: 4px; padding: 3px 4px; cursor: pointer; }
+.side .warning:active { background: var(--danger-hover); }
+.side .falstad-notes { border: 1px solid var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 6px 10px 8px; }
+.side .falstad-notes h3 { font-size: 11px; margin: 2px 0 4px; color: var(--warn-ink); text-transform: uppercase; letter-spacing: 0.05em; }
+.side .falstad-notes ul { margin: 0; padding-left: 16px; color: var(--warn-ink); }
+nav .falstad { display: flex; align-items: center; gap: 4px; }
+nav .falstad .open { flex: 1; color: var(--accent); }
+nav .falstad .open::after { content: " ↗"; }
+nav .falstad .flag { width: auto; flex: none; color: var(--warn-ink); background: var(--warn-soft); border-color: var(--warn-edge); }
+nav .falstad .flag[hidden] { display: none; }
+.info .scope { margin-top: 8px; }
+.info .scope h3 { margin: 0 0 2px; }
+.info .scope svg { display: block; width: 100%; max-width: 320px; height: auto; font-family: inherit; } /* the traces and their labels scale with the width: in a wide sheet they would fill the frame */
+.scope-screen { fill: var(--scope); }
+.scope-grid { stroke: var(--scope-grid); stroke-width: 0.6; }
+.scope-zero { stroke: var(--scope-zero); stroke-width: 0.8; }
+.scope-trace { fill: none; stroke-width: 1.5; stroke-linejoin: round; }
+.scope-trace.v { stroke: var(--trace-v); }
+.scope-trace.i { stroke: var(--trace-i); }
+.scope-label { font-size: 10px; font-weight: 600; }
+.scope-label.v { fill: var(--trace-v-ink); }
+.scope-label.i { fill: var(--trace-i-ink); }
+.scope-label.inside.v { fill: var(--trace-v); }
+.scope-label.inside.i { fill: var(--trace-i); }
+.scope-scale { fill: var(--scope-scale); font-family: var(--mono); font-size: 8px; text-anchor: end; }
+.scope-time { fill: var(--ink-3); font-size: 9px; }
+.scope-end { text-anchor: end; }
+.scope-model { text-anchor: middle; font-style: italic; }
+/* A set seen by a recording's probe (M11): a dashed line where it happened, the new value beside it. */
+.scope-mark { stroke: var(--scope-scale); stroke-width: 1; stroke-dasharray: 3 2; }
+.scope-mark-text { fill: var(--scope-scale); font-size: 9px; font-weight: 600; }
+/* The marks' texts and the delta over the trace: a halo of the screen's colour, so the trace never
+   crosses them; the cycles before a mark, faint (a probe's compare). */
+.scope-mark-text, .scope-delta { stroke: var(--scope); stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; }
+.scope-delta { fill: var(--cap-value, var(--trace-v)); font-size: 9px; font-weight: 700; text-anchor: middle; font-variant-numeric: tabular-nums; }
+.scope-trace.ghost { opacity: 0.32; stroke-dasharray: 2 2; }
+/* A comparing box's texts sit on plates of the screen's colour, in their own bands (scope.js). */
+.scope-plate { fill: var(--scope); }
+.scope-mark-text.scope-end { text-anchor: end; }
+.side .clear, .control .hold { font: inherit; color: var(--ink); background: var(--bench); border: 1px solid var(--hair-strong); border-radius: 4px; padding: 3px 9px; cursor: pointer; margin-top: 4px; }
+.side .clear:active, .control .hold:active { background: var(--press); }
+.control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 8px; margin: 4px 0; }
+.control .name { color: var(--ink-2); }
+.control .value { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; color: var(--accent); text-align: right; }
+.control input[type="range"] { grid-column: 1 / -1; width: 100%; margin: 2px 0; accent-color: var(--accent); touch-action: pan-y; }
+.control .buttons { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.control .hold { margin: 0; touch-action: none; }
+.control .hold[aria-pressed="true"] { color: var(--on-accent); background: var(--accent); border-color: var(--accent-deep); }
+.info .adjust { margin-top: 4px; }
+/* The environment (sensors, S0; page/client/gauge.js): each field's indicator, 44 px, beside its row
+   in the panel and in a sensor's card; tokens only, so it follows every theme. */
+.gauge { width: 44px; height: 44px; flex: none; overflow: visible; }
+.gauge text { font: 600 8px var(--sans); fill: var(--ink-2); text-anchor: middle; }
+.gauge .track { fill: none; stroke: var(--hair-strong); stroke-width: 3; stroke-linecap: round; }
+.gauge .fill { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+.gauge .needle { stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
+.gauge .hub { fill: var(--ink); }
+.gauge .sun-halo { fill: var(--pulse); }
+.gauge .sun-rays { stroke: var(--pulse); stroke-width: 2; stroke-linecap: round; }
+.gauge .sun-core { fill: var(--pulse); stroke: var(--ink-3); stroke-width: 1; }
+.gauge .glass { fill: var(--card); stroke: var(--ink-3); stroke-width: 1.2; }
+.gauge .mercury { fill: var(--danger); }
+.gauge .lamp { fill: var(--pulse); stroke: var(--ink-3); stroke-width: 1; }
+.gauge .lamp-ring { fill: none; stroke: var(--pulse); stroke-width: 2; }
+.gauge .face { fill: var(--card); stroke: var(--ink-3); stroke-width: 1.2; }
+.gauge .tick { stroke: var(--ink-3); stroke-width: 1; stroke-linecap: round; }
+.env-row { display: grid; grid-template-columns: 44px 1fr; gap: 0 8px; align-items: center; }
+.env-row .control { margin: 2px 0; }
+.control .env-pause { grid-column: 1 / -1; justify-self: start; margin-top: 2px; }
+.info .env-sense { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.info .env-sense .name { color: var(--ink-2); flex: 1 1 auto; }
+/* A timeline's gauge: the indicator in a box of its own, in a corner (data-corner tl, tr, bl, br). In
+   the page, top right; in a recording, the corners of the room the caption and the platforms' buttons
+   leave (portrait: from 29 % down, or up from 26 %; landscape: the right half). */
+.gauge-inset { position: absolute; z-index: 2; top: 56px; right: 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; background: var(--card); border: 1px solid var(--hair); border-radius: 8px; color: var(--ink-2); font: 600 11px var(--sans); pointer-events: none; }
+body.director .gauge-inset { top: auto; right: auto; padding: var(--cap-gap); gap: calc(var(--cap-gap) / 2); background: var(--veil); border: none; border-radius: var(--cap-gap); font: 500 var(--cap-label)/1.2 var(--sans); color: var(--cap-ink-2); }
+body.director .gauge-inset .gauge { width: 20vmin; height: 20vmin; }
+@media (orientation: portrait) { body.director .gauge-inset[data-corner^="t"] { top: 29%; } body.director .gauge-inset[data-corner^="b"] { bottom: 26%; } body.director .gauge-inset[data-corner$="l"] { left: var(--cap-pad); } body.director .gauge-inset[data-corner$="r"] { right: var(--cap-pad); } }
+@media (orientation: landscape) { body.director .gauge-inset[data-corner^="t"] { top: 9%; } body.director .gauge-inset[data-corner^="b"] { bottom: 9%; } body.director .gauge-inset[data-corner$="l"] { left: calc(50% + var(--cap-pad) / 2); } body.director .gauge-inset[data-corner$="r"] { right: var(--cap-pad); } }
+.info .stress { color: var(--danger-ink); font-weight: bold; }
+/* Limits: a box around the part (layer marks), opacity in a few steps: cheap to redraw. */
+.marks { pointer-events: none; }
+.marks > * { display: none; }
+@keyframes stress-pulse { from { opacity: 1; } to { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .marks > * { animation: none !important; } }
+/* Quiet until the drawing is first moved or tapped (V3): no frame, the canvas's colour, see-through. */
+.zoom { position: absolute; right: 8px; bottom: 8px; z-index: 1; display: flex; flex-direction: column; background: color-mix(in srgb, var(--canvas) 72%, transparent); border: none; border-radius: 6px; overflow: hidden; cursor: auto; touch-action: manipulation; opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease-out); }
+body.touched .zoom, .zoom:focus-within { opacity: 1; pointer-events: auto; }
+.zoom[hidden], .zoom button[hidden] { display: none; }
+.zoom button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; margin: 0; color: var(--ink); background: none; border: none; cursor: pointer; }
+.zoom button:first-child { border-top: none; }
+.zoom button:active { background: var(--press); }
+.zoom button[aria-pressed="true"] { color: var(--accent); }
+.gesture-hint { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; padding: 16px; text-align: center; font-size: 16px; color: var(--on-hint); background: var(--hint); opacity: 0; transition: opacity 200ms ease-out; pointer-events: none; }
+.gesture-hint.on { opacity: 1; }
+/* Hover only where there is a mouse: on touch a hover state sticks after the tap. */
+@media (hover: hover) and (pointer: fine) {
+  nav button:not([aria-pressed="true"]):hover { background: var(--bench); }
+  .info button:not([aria-pressed="true"]):hover, .side .clear:hover, .control .hold:not([aria-pressed="true"]):hover { background: var(--well); }
+  .info .term:hover, .info .link:hover { background: var(--accent-soft); }
+  .side .warning:hover { background: var(--danger-hover); }
+  .zoom button:hover { background: var(--well); }
+}
+/* Touch: targets of at least 40 px. */
+@media (pointer: coarse) {
+  nav button { height: 40px; min-width: 40px; }
+  nav .menu button, nav .menu a { min-height: 40px; }
+  .info .actions button, .side .clear, .control .hold { min-height: 40px; }
+  .info .icon-button { width: 40px; height: 40px; }
+  .zoom button { width: 40px; height: 40px; }
+}
+/* The first-time hint (bar.js): what can be tapped and how to move, alone or inside a note. */
+.first-hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 2; box-sizing: border-box; width: max-content; max-width: calc(100% - 24px); display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; text-align: center; color: var(--on-tooltip); background: var(--tooltip); border-radius: 6px; font-size: 13px; line-height: 1.35; pointer-events: none; }
+.first-hint[hidden] { display: none; }
+/* The tour (stage and video, V2): its caption over the top of the drawing, text from the timeline.
+   In a recording (body.director) it is the video's caption layer instead, below. */
+.tour-caption { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 3; box-sizing: border-box; width: max-content; max-width: min(560px, calc(100% - 24px)); padding: 10px 14px; color: var(--on-tooltip); background: var(--tooltip); border-radius: 8px; pointer-events: none; }
+.tour-caption p { margin: 0; clip-path: inset(-0.5em -100vw -0.25em -100vw); } /* each line a mask its text rises into (M12) */
+.tour-caption .in { display: block; }
+.tour-caption .text { font-size: 17px; line-height: 1.35; font-weight: 600; }
+.tour-caption .line { margin-top: 2px; font-size: 14px; line-height: 1.35; opacity: 0.85; }
+.tour-caption .data { margin-top: 4px; font-family: var(--mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+.tour-caption .value { margin-top: 6px; }
+.tour-caption .value .in { display: flex; align-items: baseline; gap: 8px; }
+.tour-caption .value .label { font-size: 13px; opacity: 0.85; }
+.tour-caption .value .number { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 24px; font-weight: 600; }
+.tour-caption .stop { display: block; margin-top: 6px; font-size: 12px; opacity: 0.7; }
+.tour-caption[hidden], .tour-caption [hidden] { display: none; }
+/* A caption's emphasis (em): those words bolder and larger, in the caption's own colour (moves.js,
+   EMPHASIS); the accent stays for the data and the trace. */
+.tour-caption .em, .tour-card .em { color: var(--cap-em, inherit); font-size: ${EMPHASIS.scale}em; font-weight: ${EMPHASIS.weight}; }
+/* A card (card): a sentence alone over the whole screen, centred in the band the platforms leave free. */
+.tour-card { position: absolute; inset: 0; z-index: 4; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.4em; padding: 15% 24px 35%; text-align: center; color: var(--ink); background: var(--canvas); pointer-events: none; }
+.tour-card[hidden], .tour-card [hidden] { display: none; }
+.tour-card p { margin: 0; text-wrap: balance; }
+.tour-card .text { font-size: 28px; font-weight: 600; line-height: 1.1; }
+.tour-card .line { font-size: 20px; line-height: 1.15; }
+body.touring .first-hint { display: none; }
+/* A recording (?director=1; stage and video, V4): the frame of a video. No chrome, one label (the
+   told part's, tour.js), no result tags (the value that matters is in the caption, large). The
+   caption has no box: the text on the ground, its sizes a share of the frame's width (56 and 44 px
+   at 1080 wide; 52 at 1920 wide). One idea in at most two lines of one rank: the second line (line)
+   is drawn as the first by default (--cap-line-*), a data row (data: a value, "1 kΩ → 100 kΩ") in
+   the sans with tabular figures and the accent, as large as the text (56 px; 52 at 1920 wide: its
+   figures read as large as the words). 90 px a side (a safe width of 900 px: about 32 characters of
+   the serif at 56 px; render-frames.js counts the lines as laid out, at most two). A scrim of the canvas's colour behind the block keeps it
+   readable over a light board (4.5:1 at least, measured by render-frames.js). Portrait (vertical
+   video): from 16 % of the height, the circuit below it (the director's inset, live.js);
+   landscape: the left half, the circuit right. The top 15 % and bottom 25 % of a vertical frame
+   are the platforms' (their buttons). */
+body.director {
+  --cap-text: 5.1852vw; --cap-number: 4.0741vw; --cap-data: 5.1852vw; --cap-label: 2.4074vw;
+  --cap-pad: 8.3333vw; --cap-top: 16%; --cap-gap: 1.2963vw;
+  --card-text: 10.3704vw; --card-line: 7.4074vw;
+}
+@media (orientation: landscape) { body.director {
+  --cap-text: 2.7083vw; --cap-number: 2.1354vw; --cap-data: 2.7083vw; --cap-label: 1.25vw;
+  --cap-pad: 4.6875vw; --cap-top: 9%; --cap-gap: 0.7292vw;
+  --card-text: 5.8333vw; --card-line: 4.1667vw;
+} }
+/* A card in a recording: 112 and 80 px at 1080 wide (60 and 45 at 1920), in the caption's face and
+   colours, within the caption's safe width, between the platforms' bands (15 % to 65 % of the height). */
+body.director .tour-card { padding: 15% var(--cap-pad) 35%; color: var(--cap-ink); }
+body.director .tour-card .text { font: var(--cap-weight, 600) var(--card-text)/1.08 var(--cap-face); }
+body.director .tour-card .line { font: var(--cap-weight, 600) var(--card-line)/1.12 var(--cap-face); color: var(--cap-ink); }
+:is([data-theme="stage"], [data-theme="notebook"]) body.director { --cap-weight: 500; }
+/* A video about one part (M17, M18; docs/en/component-focus.md). On the pedestal (data-scene="part")
+   only the told part's copy stays, over the hole grid: the board, the other parts, their labels and
+   the focus's own layers unseen (display, not opacity: nothing left to paint). Landing
+   (data-scene="land") the board and the parts slide in opaque under the veil while the focus's layers
+   stay away; touched down (data-scene="lit") the board lightens as the veil goes (tour.js). The
+   lights of the other parts are hidden by a rule tour.js writes with the part's id. */
+/* A pedestal's light (tour.js, sceneLight): on the pedestal only, never once the board is back. */
+.scene-light { pointer-events: none; }
+main:not([data-scene="part"]) > svg > .scene-light { display: none; }
+main[data-scene="part"] > svg > :is(.under, .board, .parts, .labels, .shortlabels, .veil, .strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
+main[data-scene="land"] > svg > :is(.strips, .coords, .flow, .marks, .results, .probes) { display: none !important; }
+main[data-scene="lit"] > svg > :is(.strips, .coords, .marks, .results, .probes) { display: none !important; }
+main:is([data-scene="land"], [data-scene="lit"]) > svg > .veil { display: inline !important; }
+/* A part's pinout (M19, M20; page/client/pinout.js): the leaders, dots and rows under the part's copy;
+   sizes are set by the script, in drawing units, for px on screen. */
+.pinout { pointer-events: none; }
+.pinout .lead { fill: none; stroke: var(--accent); stroke-linejoin: round; stroke-linecap: round; }
+.pinout .tip { fill: var(--accent); }
+.pinout .row, .pinout .quiet { font-family: var(--mono); letter-spacing: 0.02em; }
+.pinout .row { fill: var(--ink); }
+.pinout .quiet { fill: var(--ink-3); }
+.pinout .quiet.mark { fill: var(--ink-2); }
+/* A part's bench (M21; page/client/bench.js): stubs and pads in the voltage's colour, the dots of the
+   current layer, the readings in the caption's tokens. On the pedestal the part stays solid even with
+   the current layer on (elsewhere the plan sees through the parts in focus). */
+.bench { pointer-events: none; }
+.bench .stub, .bench .dots { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.bench text { font-family: var(--mono); }
+.bench .name, .bench .to { fill: var(--ink-3); }
+.bench .volts { fill: var(--cap-value); font-weight: 600; }
+.bench .amps { fill: var(--ink-2); }
+body.layer-flow main[data-scene] > svg > .spotlight { opacity: 1; }
+/* The current layer, whose own glow stands in for the lights on the board, is not drawn there: an LED
+   on the bench keeps its light, and a bigger resistor dims it. */
+body.layer-flow main[data-scene] > svg > .lights { display: inline; }
+/* A part's view up close (F5; page/client/focus-view.js). The card's entry is its eye button. On the pedestal a dock at the bottom: the legend of the
+   inside view when it is on, and the bar (Back and the part's name; two segmented controls, one per room
+   around the part, each as wide as its options). Flat surfaces and the theme's tokens, with the hairline
+   edge the page's other floating panel (the menu) has; 44 px targets. */
+
+.focus-dock button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.focus-dock { position: absolute; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); z-index: 4; display: flex; flex-direction: column; gap: 8px; max-width: 640px; margin: 0 auto; }
+.focus-dock[hidden], .focus-legend[hidden] { display: none; }
+.focus-bar, .focus-legend { background: var(--card); color: var(--ink); border: 1px solid var(--hair); border-radius: 12px; }
+.focus-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px; }
+.focus-head { display: flex; align-items: center; gap: 4px; flex: 1 1 auto; min-width: 0; }
+.focus-back { display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 12px 0 8px; border: none; border-radius: 8px; background: none; color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.focus-back:hover { background: var(--well); }
+.focus-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: 14px; }
+.focus-groups { display: flex; gap: 8px; flex: 0 1 auto; }
+.focus-dock .segmented { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--well); }
+.focus-dock .segmented button { min-height: 40px; min-width: 44px; padding: 0 12px; border: none; border-radius: 8px; background: none; color: var(--ink-2); font: inherit; font-size: 14px; white-space: nowrap; cursor: pointer; }
+.focus-dock .segmented button[hidden] { display: none; }
+.focus-dock .segmented button:hover { color: var(--ink); }
+.focus-dock .segmented button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.focus-legend { padding: 10px 14px 12px; font-size: 13px; line-height: 1.4; }
+.focus-legend h3 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+.focus-legend ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.focus-legend li { display: flex; align-items: flex-start; gap: 8px; }
+.focus-legend .swatch { flex: none; width: 14px; height: 14px; margin-top: 2px; border-radius: 3px; }
+.focus-legend .swatch.n { background: var(--inside-n); }
+.focus-legend .swatch.p { background: var(--inside-p); }
+.focus-legend .swatch.oxide { background: var(--ink-3); }
+.focus-legend .swatch.channel { background: var(--inside-n); outline: 1px solid var(--accent); }
+.focus-legend .swatch.comparator, .focus-legend .swatch.latch { background: var(--accent-soft); outline: 1px solid var(--accent); }
+.focus-legend .swatch.arrow { height: 6px; margin-top: 6px; border-radius: 3px; }
+.focus-legend .swatch.film { background: var(--ink-4); }
+.focus-legend .swatch.plate { background: var(--ink-2); }
+.focus-legend .swatch.pos, .focus-legend .swatch.neg { border-radius: 50%; }
+.focus-legend .swatch.coil { box-sizing: border-box; border: 2px solid var(--ink-2); border-radius: 50%; }
+.focus-legend .swatch.field { box-sizing: border-box; border: 1px dashed var(--accent); border-radius: 50%; }
+.focus-legend .swatch.depletion { box-sizing: border-box; background: var(--well); border: 1px dashed var(--ink-3); }
+.focus-legend .swatch.conducting { background: var(--accent-soft); outline: 1px solid var(--accent); }
+.focus-legend .swatch.track { height: 6px; margin-top: 6px; border-radius: 3px; background: var(--ink-4); }
+.focus-legend .swatch.wiper { box-sizing: border-box; border-left: 3px solid var(--accent); border-radius: 0; }
+.focus-legend .swatch.bead { background: var(--well); border-radius: 50%; outline: 1px solid var(--ink-3); }
+.focus-legend .swatch.cds { height: 6px; margin-top: 6px; border-radius: 3px; background: var(--inside-p); }
+.focus-legend .swatch.light { background: var(--warn); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+.focus-legend .swatch.metal { background: var(--ink-2); }
+.focus-legend .swatch.dome { box-sizing: border-box; border-top: 3px solid var(--accent); border-radius: 50% 50% 0 0; }
+.focus-legend .swatch.blade { height: 4px; margin-top: 7px; border-radius: 2px; background: var(--accent); }
+.focus-legend .swatch.pass { background: var(--ink-4); outline: 1px solid var(--ink-2); }
+.focus-legend .swatch.headroom { width: 8px; margin-left: 3px; margin-right: 3px; background: var(--accent); }
+.focus-legend .swatch.cell { box-sizing: border-box; border: 1.5px solid var(--ink-2); }
+.focus-legend .swatch.soc { background: var(--accent-soft); outline: 1px solid var(--accent); }
+.focus-legend .swatch.disc { box-sizing: border-box; border-bottom: 3px solid var(--accent); border-radius: 0 0 50% 50%; }
+.focus-legend .swatch.sound { box-sizing: border-box; border-top: 2px solid var(--accent); border-radius: 50% 50% 0 0; }
+.focus-legend .swatch.ball { background: var(--ink-4); border-radius: 50%; outline: 1px solid var(--ink-2); }
+.focus-legend .swatch.gauge { background: var(--well); outline: 1px solid var(--ink-3); }
+.focus-legend .swatch.plunger { background: var(--ink-4); outline: 1px solid var(--ink-3); }
+.focus-legend .swatch.magnet { background: var(--ink-4); outline: 1px solid var(--ink-3); }
+.focus-legend .swatch.dielectric { background: var(--accent-soft); outline: 1px solid var(--ink-3); }
+.focus-legend .swatch[hidden] { display: block; visibility: hidden; }
+/* On a phone the bar takes two rows: Back and the name, then the two controls sharing the width. */
+@media (max-width: 560px) {
+  .focus-head { flex-basis: 100%; }
+  .focus-groups { flex: 1 1 100%; }
+  .focus-dock .segmented { flex: 1; }
+  .focus-dock .segmented button { flex: 1; padding: 0 6px; }
+}
+:is([data-theme="stage"], [data-theme="notebook"]) :is(.focus-bar, .focus-legend, .focus-back, .focus-dock .segmented, .focus-dock .segmented button) { border-radius: 2px; }
+/* Up close, the page's bar steps aside (the dock has Back): more room, and on a narrow screen a bar
+   grown with the time's buttons would widen the whole page. */
+body.focus-view nav { display: none; }
+/* Up close, a pinch is the drawing's, never the browser's: a finger on the dock or the page's edge must
+   not zoom the whole page (it pushed the dock past the screen's edge). */
+body.focus-view, body.focus-view main, body.focus-view .focus-dock { touch-action: none; }
+/* Safari on a phone lays its floating toolbar over the page's bottom: the dock stands above it. */
+@supports (-webkit-touch-callout: none) { .focus-dock { bottom: max(76px, env(safe-area-inset-bottom)); } }
+/* The figure beside a part (M22, M23; page/client/figure.js): its schematic symbol, or a teaching view
+   of its inside with n and p material, the oxide and gate, a comparator or latch that is acting, a
+   resistor's film on its core, a capacitor's plates, an inductor's coil and its field, a diode's
+   depletion zone, a bridge's conducting diodes, a potentiometer's track and wiper, a thermistor's
+   bead and its shaking atoms, a photoresistor's track and the light on it, a push button's dome and a
+   switch's blade, a regulator's headroom, a battery's cells and their charge, a buzzer's magnet, coil,
+   disc and sound, the current as arrows in the dots' colour. */
+.figure { pointer-events: none; }
+.figure .stroke, .figure .lens, .figure .lead { fill: none; stroke: var(--ink-2); stroke-linecap: round; stroke-linejoin: round; }
+.figure .fill { fill: var(--ink-2); }
+.figure text { font-family: var(--mono); }
+.figure .pin-name { fill: var(--accent); }
+.figure .current { fill: var(--cap-value); }
+.figure .pin-id { fill: var(--accent); font-family: var(--mono); font-weight: 600; }
+.figure .quiet, .figure .note { fill: var(--ink-3); }
+.figure .state, .figure .layer-name { fill: var(--ink); }
+.figure .state { font-family: var(--sans); }
+.figure .layer.n, .figure .channel.n { fill: var(--inside-n); }
+.figure .layer.p, .figure .channel.p { fill: var(--inside-p); }
+.figure .channel { stroke: var(--accent); stroke-width: 1; }
+.figure .oxide { fill: var(--ink-3); }
+.figure .metal { fill: var(--ink-2); }
+.figure .lens, .figure .lead, .figure .comparator, .figure .latch { stroke-width: 1.4; }
+.figure .comparator, .figure .latch { fill: none; stroke: var(--ink-2); }
+.figure .comparator.active, .figure .latch.active { fill: var(--accent-soft); stroke: var(--accent); }
+.figure .out { fill: var(--ink-3); }
+.figure .out.active { fill: var(--cap-value); }
+.figure .core { fill: var(--well); stroke: var(--ink-3); stroke-width: 1; }
+.figure .film { fill: var(--ink-4); }
+.figure .groove { stroke: var(--well); stroke-width: 1.6; }
+.figure .dim { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.figure .plate { fill: var(--ink-2); }
+.figure .dielectric { fill: var(--accent-soft); }
+.figure .charge { font-weight: 700; }
+.figure .coil { fill: none; stroke: var(--ink-2); stroke-width: 2.4; stroke-linecap: round; }
+.figure .field { fill: none; stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; }
+.figure .depletion { fill: var(--well); stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+.figure .junction { fill: none; stroke: var(--ink-2); stroke-width: 1.4; stroke-linejoin: round; }
+.figure .junction.on { fill: var(--accent-soft); stroke: var(--accent); }
+.figure .track { fill: none; stroke: var(--ink-4); stroke-width: 7; }
+.figure .wiper { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+.figure .wiper-tip { fill: var(--accent); }
+.figure .atom { fill: var(--ink-2); }
+.figure .shake { fill: none; stroke: var(--ink-2); stroke-width: 0.8; stroke-dasharray: 1.5 1.5; }
+.figure .cds { fill: none; stroke: var(--inside-p); stroke-width: 3; stroke-linejoin: round; }
+.figure .cds.lit { stroke: var(--warn); }
+.figure .light { stroke: var(--warn); stroke-width: 1.6; stroke-linecap: round; }
+.figure .light-head { fill: var(--warn); }
+.figure .dome { fill: none; stroke: var(--ink-2); stroke-width: 2.4; stroke-linecap: round; }
+.figure .dome.on, .figure .blade.on { stroke: var(--accent); }
+.figure .blade { fill: none; stroke: var(--ink-2); stroke-width: 3; stroke-linecap: round; }
+.figure .plunger { fill: var(--ink-4); stroke: var(--ink-3); stroke-width: 1; }
+.figure .rocker { fill: var(--ink-4); stroke: var(--ink-2); stroke-width: 1.4; stroke-linejoin: round; }
+.figure .link { fill: none; stroke: var(--ink-3); stroke-width: 1.4; stroke-dasharray: 3 3; }
+.figure .pass { fill: var(--ink-4); stroke: var(--ink-2); stroke-width: 1.4; }
+.figure .gauge { fill: var(--well); stroke: var(--ink-3); stroke-width: 1; }
+.figure .headroom { fill: var(--accent); }
+.figure .headroom.low { fill: var(--warn); }
+.figure .cell { fill: var(--well); stroke: var(--ink-2); stroke-width: 1.4; }
+.figure .soc { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 0.8; }
+.figure .warning { fill: var(--danger); font-weight: 700; }
+.figure .magnet { fill: var(--ink-4); stroke: var(--ink-3); stroke-width: 1; }
+.figure .winding { fill: none; stroke: var(--accent-deep); stroke-width: 2.4; stroke-linecap: round; }
+.figure .disc { fill: none; stroke: var(--ink-2); stroke-width: 2.4; stroke-linecap: round; }
+.figure .disc.on, .figure .sound { stroke: var(--accent); }
+.figure .ball { fill: var(--ink-4); stroke: var(--ink-2); stroke-width: 1.2; }
+.figure .ball.on { stroke: var(--accent); }
+.figure .sound { fill: none; stroke-width: 1.6; stroke-linecap: round; }
+body.director nav, body.director .zoom, body.director .inspector, body.director .gesture-hint, body.director .first-hint, body.director .tooltip { display: none !important; }
+body.director main { cursor: default; }
+body.director .labels, body.director .results, body.director .probes { display: none !important; }
+body.director .shortlabels { visibility: hidden; } /* still measured: a part is framed with its label */
+body.director .tour-caption { left: 0; right: 0; top: var(--cap-top); transform: none; width: auto; max-width: none; padding: 0 var(--cap-pad); background: none; border-radius: 0; color: var(--cap-ink); }
+@media (orientation: landscape) { body.director .tour-caption { right: 50%; } }
+body.director .tour-caption .text { font: var(--cap-weight, 600) var(--cap-text)/1.15 var(--cap-face); text-wrap: balance; }
+body.director .tour-caption .line { margin-top: 0; font: var(--cap-line-weight, var(--cap-weight, 600)) var(--cap-line-size, var(--cap-text))/1.15 var(--cap-line-face, var(--cap-face)); color: var(--cap-line-ink, var(--cap-ink)); opacity: 1; text-wrap: balance; }
+body.director .tour-caption .data { margin-top: var(--cap-gap); font: 500 var(--cap-data)/1.15 var(--sans); font-variant-numeric: tabular-nums; color: var(--cap-value); }
+/* The scrim: the canvas's colour behind the caption's block, fading out above and below it. */
+body.director .tour-caption::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: calc(-2 * var(--cap-gap)); bottom: calc(-2.5 * var(--cap-gap)); background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--canvas) 88%, transparent) calc(2 * var(--cap-gap)), color-mix(in srgb, var(--canvas) 88%, transparent) calc(100% - 2.5 * var(--cap-gap)), transparent); pointer-events: none; }
+body.director .tour-caption.leaving::before { display: none; }
+body.director .tour-caption .value { margin-top: var(--cap-gap); }
+body.director .tour-caption .value .in { flex-direction: row-reverse; justify-content: flex-end; gap: var(--cap-gap); }
+body.director .tour-caption .value .number { font-size: var(--cap-number); font-weight: 500; line-height: 1; color: var(--cap-value); }
+body.director .tour-caption .value .label { font-size: var(--cap-label); color: var(--cap-ink-2); opacity: 1; }
+/* M11: the oscilloscope in a box of its own (a recording's probe): portrait, the band from 56 % to 75 %
+   (view.js keeps the circuit above it), or on top (place "top"), from 28 % to 40 %, between the
+   caption and the circuit; landscape, under the caption in the left half. Compact (size "compact",
+   scope.js): no title, no note, the value inside the trace, two axis labels. */
+.scope-inset { display: none; }
+body.director .scope-inset { display: block; position: absolute; z-index: 2; left: var(--cap-pad); right: var(--cap-pad); ${boxCss(SCOPE_BOX.bottom)} box-sizing: border-box; padding: var(--cap-gap); background: var(--veil); border-radius: var(--cap-gap); }
+@media (orientation: portrait) { body.director .scope-inset.top { ${boxCss(SCOPE_BOX.top)} } ${Object.entries(CAPTION_LAYOUTS).map(([n, l]) => `body.director[data-caption-lines="${n}"] .scope-inset.top { ${boxCss(l.scope)} }`).join(' ')} }
+body.director .scope-inset.compact { padding: calc(var(--cap-gap) / 2); }
+body.director .scope-inset.compact h3 { display: none; }
+body.director .scope-inset.compact .scope-trace { stroke-width: 2.4; }
+@media (orientation: landscape) { body.director .scope-inset { right: calc(50% + var(--cap-pad) / 2); top: 50%; height: 40%; } }
+body.director .scope-inset .scope { height: 100%; display: flex; flex-direction: column; }
+body.director .scope-inset h3 { margin: 0 0 var(--cap-gap); font: 500 var(--cap-label)/1.2 var(--sans); color: var(--cap-ink-2); }
+body.director .scope-inset svg { flex: 1 1 auto; min-height: 0; width: 100%; font-family: var(--sans); }
+.first-hint small { font-size: 12px; opacity: 0.8; }
+body.embedded .first-hint .alone, body:not(.embedded) .first-hint .framed { display: none; }
+/* The inspector (inspector.js, UX pass U4): the card and the circuit's panels, in tabs. */
+.inspector { position: absolute; z-index: 2; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; color: var(--ink); background: var(--card); border: 1px solid var(--hair); cursor: auto; }
+.inspector[hidden] { display: none; }
+.inspector[data-tab="part"] .side, .inspector[data-tab="circuit"] .info { display: none; }
+.inspector .grip { display: none; flex: none; width: 36px; height: 4px; margin: 6px auto 0; border-radius: 2px; background: var(--hair-strong); }
+.inspector .tabs { flex: none; display: flex; align-items: center; gap: 2px; padding: 2px 4px 0 6px; border-bottom: 1px solid var(--hair-soft); }
+.inspector .tabs .spacer { flex: 1; }
+.inspector [role="tab"] { font: inherit; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 8px 6px; cursor: pointer; }
+.inspector [role="tab"][hidden] { display: none; }
+.inspector [role="tab"][aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.inspector .tabs.single [role="tab"] { border-bottom-color: transparent; }
+.inspector .collapse { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; color: var(--ink-3); background: none; border: none; border-radius: 4px; cursor: pointer; }
+.inspector .collapse:active { background: var(--press); }
+.inspector .collapse .icon { transition: transform 160ms var(--ease-out); }
+/* MODEL lives in the bar, right, as grey text (V3): shown with the first card, not at rest. */
+nav .model-badge { display: none; align-self: center; margin: 0 6px; border: none; padding: 0; white-space: nowrap; pointer-events: none; }
+body.show-results.focusing nav .model-badge { display: block; }
+@media ${WIDE} {
+  .inspector { top: 8px; right: 8px; width: 300px; max-height: calc(100% - 16px); border-radius: 6px; }
+  .inspector .collapse[aria-expanded="true"] .icon { transform: rotate(180deg); }
+  .zoom { right: auto; left: 8px; }
+}
+@media not (${WIDE}) {
+  .inspector { left: 0; right: 0; bottom: 0; height: 85%; border-bottom: none; border-radius: 12px 12px 0 0; transition: transform 280ms var(--ease-drawer); }
+  .inspector.dragging { transition: none; }
+  .inspector .grip { display: block; }
+  .inspector .tabs, .inspector .grip { touch-action: none; }
+  .inspector .collapse[aria-expanded="false"] .icon { transform: rotate(180deg); }
+  body.sheet-up .zoom { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .inspector { transition: none; } }
+@media (hover: hover) and (pointer: fine) { .inspector [role="tab"]:hover, .inspector .collapse:hover { color: var(--ink); } }
+/* Entrances (U5): the menu grows from its button, the panel slides in a little; exits are instant. */
+nav .menu { transform-origin: top right; transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out); }
+@starting-style { nav .menu { opacity: 0; transform: scale(0.96); } }
+@media ${WIDE} {
+  .inspector { transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out); }
+  @starting-style { .inspector { opacity: 0; transform: translateX(12px); } }
+}
+@media (prefers-reduced-motion: reduce) {
+  nav .menu, .inspector { transition: none; }
+  nav > .group button:active, nav .more-button:active, nav .warn-flag:active, .zoom button:active, .info .icon-button:active, .inspector .collapse:active { transform: none; }
+}`;

@@ -1,0 +1,193 @@
+// The director (stage and video, V1; docs/en/stage-and-video.md): one clock that owns the time of
+// a page that tells a circuit. Only with ?director=1 in the link and only in a live page; every
+// other page keeps its own loop (live.js) and does not change.
+//
+// tick(ms) advances, in this order: the cues due (start(cues): { at, run(director) }, how the
+// timeline's player, tour.js, plays), the camera, the controls and tweens being moved, and the
+// simulation with its dots, glow, colours and tags, all written once per tick; then the `after`
+// hooks (a value shown from the new reading). Cues follow their own clock, which stands still
+// while a hold waits for a condition (a timeline's wait-until), so later steps move with it. Nothing in a tick reads the system clock:
+// a sequence played with tick(1000/30) gives the same frames every time. In the page a
+// requestAnimationFrame loop calls tick with the time that passed (live.js); a recorder calls it
+// with 1000/fps.
+//
+// The director moves things on purpose, so it ignores prefers-reduced-motion: what a learner's
+// page does under reduced motion is the timeline player's choice (tour.js), not the clock's.
+
+import { clampBox, frameAt, easeOut, numbers, partBox, partsBounds, insetFrame, setBox, fitFrame } from './view.js';
+
+const EPSILON = 1e-6; // ms
+
+export const wantsDirector = (search) => new URLSearchParams(search).get('director') === '1';
+// ?director=landing: the page as the live background of a site's landing, not a recording. The same
+// chrome as a recording (no bar, the caption on the ground, one label) with the circuit framed
+// closer, but the page keeps its own clock between plays and the reader's reduced motion: its tour
+// plays by itself and again after a pause, and under reduced motion only when asked (tour.play()).
+export const wantsLanding = (search) => new URLSearchParams(search).get('director') === 'landing';
+
+// `sim`: what live.js lends the director — controls() (engine.controls()), set(id, field, value)
+// (controls.js, so the rows in the card and the panel follow), advance(ms) (the page's frame for
+// that much time: simulation, dots, and a repaint) and batch(fn) (inside fn a control's change
+// does not repaint: advance does, once, at the end).
+export function createDirector(page, sim) {
+  let time = 0;
+  let cueTime = 0; // the cues' clock: stands still while a hold waits
+  let cues = [];
+  let hold = null; // { test, left }: cues wait until test() is true, at most `left` ms
+  let camera = null; // { from, to, t0, ms, ease }
+  const moving = new Map(); // id|field → { id, field, from, to, log, t0, ms, ease }
+  const tweens = new Set(); // { apply(e), t0, ms, ease }
+  const after = new Set();
+
+  // A target is a box [x, y, w, h] of numbers (a frame as it is), 'board' or 'parts' (the page's
+  // two frames; 'parts' as a button fits it, filling a portrait screen), 'here' (the frame as it is
+  // now), a part's id or a list of ids (all of them). `zoom` closes in on its centre (below 1, out);
+  // `pan` then moves it by shares of its own width and height ([0.2, 0]: a fifth of the frame to the
+  // right). With a reserved margin (page.inset: a recording, V4) a named target is shown in the area
+  // the margin leaves free.
+  // `alone`: a part framed without its label, in the middle (the pedestal of a video about one part,
+  // where the caption names it and its label is not shown).
+  function boxOf(target, zoom = 1, pan = null, alone = false) {
+    if (Array.isArray(target) && target.every((n) => typeof n === 'number')) return target;
+    const svg = page.current();
+    const inset = page.inset?.();
+    const here = target === 'here';
+    let box;
+    if (here) box = page.box?.slice() ?? numbers(svg.getAttribute('viewBox'));
+    else if (target === 'board') box = numbers(svg.dataset.board);
+    else if (target === 'parts') box = inset ? partsBounds(page) ?? numbers(svg.dataset.parts) : fitFrame(page, numbers(svg.dataset.parts));
+    // A recording frames a part with its label (both must be in the video); a landing frames the part
+    // alone, so it sits in the middle (the label is the lesser thing there).
+    else box = partBox(page, target, { label: page.told !== undefined && !page.landing && !alone });
+    if (!box) return null;
+    if (zoom !== 1) {
+      const [x, y, w, h] = box;
+      box = [x + (w - w / zoom) / 2, y + (h - h / zoom) / 2, w / zoom, h / zoom];
+    }
+    if (pan) box = [box[0] + pan[0] * box[2], box[1] + pan[1] * box[3], box[2], box[3]];
+    return inset && !here ? insetFrame(page, box, inset) : box;
+  }
+  const progress = (m) => (m.ms > 0 ? Math.min(1, (time - m.t0) / m.ms) : 1);
+
+  const director = {
+    get time() {
+      return time;
+    },
+    // From t = 0 with these cues (run in order of `at`, those with the same `at` in the order given).
+    start(list = []) {
+      director.stop();
+      time = 0;
+      cueTime = 0;
+      cues = list.map((c, k) => ({ ...c, k })).sort((a, b) => a.at - b.at || a.k - b.k);
+    },
+    // Everything that was moving stays where it is; nothing more happens.
+    stop() {
+      cues = [];
+      hold = null;
+      camera = null;
+      moving.clear();
+      tweens.clear();
+      after.clear();
+    },
+    // Something still to come or still moving.
+    get busy() {
+      return cues.length > 0 || hold != null || camera != null || moving.size > 0 || tweens.size > 0;
+    },
+    // The controls' values now (sim.controls()): what a landing puts back at the end of a loop.
+    controls() {
+      return sim.controls().map((c) => ({ id: c.id, field: c.field, value: c.value }));
+    },
+    // Cues wait until test() is true (checked on each tick, on the last reading), at most `max` ms.
+    hold(test, max) {
+      hold = { test, left: max };
+    },
+    // apply(e) on every tick for `ms`, e going 0 → 1 along `ease`.
+    tween(apply, { ms = 0, ease = easeOut } = {}) {
+      if (!(ms > 0)) return apply(1);
+      tweens.add({ apply, t0: time, ms, ease });
+    },
+    // fn() after every tick's simulation, until stop().
+    after(fn) {
+      after.add(fn);
+    },
+    // Move the frame there in `ms` along `ease` (k → share of the way), from where it is now.
+    frame(target, { ms = 0, ease = easeOut, zoom = 1, pan = null, alone = false } = {}) {
+      const box = boxOf(target, zoom, pan, alone);
+      if (!box) return false;
+      camera = null;
+      if (!(ms > 0) || !page.box) setBox(page, box);
+      else camera = { from: page.box.slice(), to: clampBox(page, box), t0: time, ms, ease };
+      return true;
+    },
+    // A gesture took the frame (view.js setBox): the camera lets go.
+    stopFrame() {
+      camera = null;
+    },
+    // Move a control to `value` in `ms`: a number along `ease` (on a log scale by ratios, as its
+    // slider moves), anything else (a button) at once.
+    set(id, field, value, { ms = 0, ease = easeOut } = {}) {
+      const key = `${id}|${field}`;
+      moving.delete(key);
+      const c = sim.controls().find((x) => x.id === id && x.field === field);
+      if (!c) return false;
+      if (!(ms > 0) || typeof value !== 'number' || typeof c.value !== 'number') return sim.set(id, field, value) !== false;
+      const log = c.scale === 'log' && c.value > 0 && value > 0;
+      moving.set(key, { id, field, from: c.value, to: value, log, t0: time, ms, ease });
+      return true;
+    },
+    tick(ms) {
+      const dt = Math.max(0, Number(ms) || 0);
+      const end = time + dt;
+      // A cue starts its moves at its own time, not at the end of the tick that reached it.
+      let left = dt;
+      for (;;) {
+        if (hold) {
+          if (hold.test()) hold = null;
+          else {
+            const wait = Math.min(left, hold.left);
+            hold.left -= wait;
+            left -= wait;
+            time += wait;
+            if (hold.left > 0) break;
+            hold = null;
+          }
+        }
+        const next = cues[0];
+        // A cue due at the end of this tick runs in it: 72 ticks of 1000/30 ms add up to a hair
+        // under 2400 in floating point, and a cue at 2400 would wait a frame.
+        if (!next || next.at > cueTime + left + EPSILON) {
+          cueTime += left;
+          break;
+        }
+        const gap = Math.max(0, next.at - cueTime);
+        cueTime += gap;
+        left -= gap;
+        time += gap;
+        cues.shift();
+        next.run(director);
+      }
+      time = end;
+      if (camera) {
+        const k = progress(camera);
+        frameAt(page, camera.from, camera.to, camera.ease(k));
+        if (k >= 1) camera = null;
+      }
+      sim.batch(() => {
+        for (const [key, m] of moving) {
+          const k = progress(m);
+          const e = m.ease(k);
+          sim.set(m.id, m.field, k >= 1 ? m.to : m.log ? m.from * (m.to / m.from) ** e : m.from + (m.to - m.from) * e);
+          if (k >= 1) moving.delete(key);
+        }
+        for (const tw of tweens) {
+          const k = progress(tw);
+          tw.apply(tw.ease(k));
+          if (k >= 1) tweens.delete(tw);
+        }
+        sim.advance(dt);
+      });
+      for (const fn of after) fn();
+    },
+  };
+  return director;
+}

@@ -1,0 +1,94 @@
+// Device modules: everything the simulator knows about one kind of part, in one file.
+//
+// A device is a plain object:
+//   types         part types it handles (`type` in the circuit file)
+//   accepts(part) optional: whether it handles this part of its types (one IC of many); the
+//                 others are unsupported
+//   kind          the reading's kind ('R', 'LED', 'Q'…); devices that share a kind share their
+//                 reading hooks (lines, tag, probe, currentPins), looked up by kind
+//   params(part, c)  compile time (Node): what the part needs, as plain JSON; c: { issues,
+//                    members (node → ids of the parts on it), env(field) }; a sensor reads
+//                    c.env(field): the environment's value at t = 0, or undefined (the part has
+//                    its own value, or the circuit declares no environment)
+//   elements(p, h)   run time: adds its MNA elements, returns them by name; the "entry" a
+//                    reading gets is { id, kind, pins, ...params, ...elements }
+//                    h: { id, pin(name), at(i), inner(), node(name), add(element), supplies }
+//   read(entry, h)   its values; h: { x, ctx, volt(index), supplyReading(supply) }
+//   pinCurrents(entry, out, h)  optional: current into the part at each pin (default from
+//                               `currents`, or ± `current` for two pins)
+//   limits(entry, reading)  optional: stresses (value against a limit, see shared.js) and notes
+//   lines(reading, h)       the card lines [{ key, text }]; null = nothing at all
+//   tag(reading)            the current tag on the board { label, value, key } or null
+//   probe(reading)          optional: what the page says about that tag { key, value }
+//   currentPins(reading)    optional: where the tag's current goes in and out [[pin, ±1]]
+//   source                  true for batteries: their warnings come after the other parts'
+//   controls(p)             optional: what a learner may change, { field: control } (see
+//                           ../controls.js); bundleable, so the page builds its sliders from it
+//   set(p, field, value)    the params with that field changed (a pure formula), or null
+//   scope(reading)          optional: what the oscilloscope plots, { v, i } each { label, value }
+//                           or null (../scope.js); default: voltage and current of two leads
+//   senses                  optional: the environment's fields a sensor may follow (['light'];
+//                           ../environment.js); the engine changes a part that follows one with
+//   sense(p, field, value)  the params at that field's new value (a pure formula; default: set)
+//   ownField                optional: { field: the part's own name for it } when it is not the
+//                           field's ({ tilt: 'tilted' }): a part that gives it does not follow, and
+//                           its own control, moved, makes it stop following
+//   emits                   optional: the environment's fields an emitter writes (['light']; a laser):
+//   emit(entry, reading)    what it adds to each now, from its solved reading ({ light: lux }; 0 or
+//                           nothing when it is off). The engine sums them over the ambient values
+//                           for every sensor, one time step later (../environment.js, ../engine.js);
+//                           only in a circuit that declares an environment
+//   falstad(d, f)           optional: writes the part for Falstad's CircuitJS with the builder f
+//                           (../falstad.js); an equivalent adds its note with f.note. Without
+//                           it the export leaves the part out, with a note
+//
+// Adding a kind of part: its type in src/parts/types/, one file here, one line below, one test
+// against an independent reference in test/sim.test.js. Nothing else in src/sim changes. A sensor
+// adds `senses` and reads c.env(field) in params (docs/en/adding-parts.md, §7).
+
+import { wire } from './wire.js';
+import { resistor, thermistor, ldr, buzzer } from './resistor.js';
+import { capacitor } from './capacitor.js';
+import { inductor } from './inductor.js';
+import { potentiometer } from './potentiometer.js';
+import { button } from './button.js';
+import { toggle } from './switch.js';
+import { header } from './header.js';
+import { diode, led } from './diode.js';
+import { bridge } from './bridge.js';
+import { mosfet } from './mosfet.js';
+import { bjt } from './bjt.js';
+import { regulator } from './regulator.js';
+import { timer } from './timer.js';
+import { opamp } from './opamp.js';
+import { mcu } from './mcu.js';
+import { battery } from './battery.js';
+import { leds } from './leds.js';
+import { lm35 } from './lm35.js';
+import { relay } from './relay.js';
+import { motor } from './motor.js';
+import { pir } from './pir.js';
+import { touch } from './touch.js';
+import { sensorModule } from './sensor-module.js';
+import { encoder } from './encoder.js';
+import { laser } from './laser.js';
+import { ultrasonic } from './ultrasonic.js';
+import { hallSensor } from './hall-sensor.js';
+import { voltageSensor } from './voltage-sensor.js';
+import { activeBuzzer } from './active-buzzer.js';
+import { climate } from './climate.js';
+
+export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, leds, bridge, mosfet, bjt, regulator, timer, opamp, mcu, lm35, relay, motor, battery, pir, touch, sensorModule, encoder, laser, ultrasonic, hallSensor, voltageSensor, activeBuzzer, climate];
+
+// Several devices may share a type (the ICs: timer, op-amp); each one accepts its own parts.
+const BY_TYPE = {};
+for (const d of DEVICES) for (const t of d.types) (BY_TYPE[t] ??= []).push(d);
+// The device that runs a compiled part ({ type, kind }): the only one of its type, else the one of
+// its kind (compile.js writes the kind of the device it chose).
+export const deviceOfProgram = (d) => (BY_TYPE[d.type]?.length > 1 ? BY_TYPE[d.type].find((x) => x.kind === d.kind) : BY_TYPE[d.type]?.[0]) ?? null;
+// The first device of each kind answers for the readings of that kind.
+export const DEVICE_BY_KIND = {};
+for (const d of DEVICES) DEVICE_BY_KIND[d.kind] ??= d;
+
+export const deviceFor = (part) => (BY_TYPE[part.type] ?? []).find((d) => !d.accepts || d.accepts(part)) ?? null;
+export const deviceOfReading = (reading) => (reading && !reading.unsupported ? DEVICE_BY_KIND[reading.kind] ?? null : null);

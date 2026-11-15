@@ -148,8 +148,9 @@ blinks, in slow motion (the page's time follows the slowest time constant).
    short form sets), and optionally `role` (`{ en, es }`), `choices`, `min`/`max`, `extra` (the
    allowed fields, when the defaults by kind do not fit).
 3. Give it a `group` (one word of `RECIPE_GROUPS` in `src/recipes/index.js`, set in the module itself; the compact catalog lists recipes by group, names only, and a test fails for a recipe without one; a new group needs its `recipe.group.<name>` texts in `src/i18n/en.js` and `es.js`). Register it in `src/recipes/index.js` and `npm run schemas` (the schema lists the names).
-4. Add it to the tables in this page, [recetas.md](../es/recetas.md) and `SKILL.md`, and to the list
-   in the `circuit-layout` agent. `npm test` checks that it comes out `DONE` with its defaults and
+4. Add it to the tables in this page, [recetas.md](../es/recetas.md) and the skill's
+   `plugin-src/references/recipes.md`, to the list in `plugin-src/SKILL.md` (then
+   `npm run pack-skill`), and to the list in the `circuit-layout` agent. `npm test` checks that it comes out `DONE` with its defaults and
    with every choice, that it simulates without stressing a part, that its name is no part's name,
    and that both pages name it; `npm run layout-bench` shows its tries and time.
 

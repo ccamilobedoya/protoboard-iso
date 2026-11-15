@@ -21,8 +21,8 @@ is and how it works inside) and `explain.*` (what each value of the card means),
 
 ## A circuit's own texts
 
-A circuit can fix the language of everything made from it with `"lang"` (see SKILL.md,
-*Languages*: a language asked for in the call wins, then the circuit's, then the default).
+A circuit can fix the language of everything made from it with `"lang"` (see the skill's
+`plugin-src/references/board-and-cli.md`, *Languages*: a language asked for in the call wins, then the circuit's, then the default).
 
 What a circuit says about itself has two formats: a plain string, shown as it is in every
 language, or one text per language, `{ "en": "…", "es": "…" }` (for `title` and each part's

@@ -1,0 +1,144 @@
+// Known part numbers. Each entry says which package the part uses and the name of each
+// lead in package order (pin 1, pin 2, pin 3). Add your own parts here.
+//
+// `model` holds what the simulator needs to pick a device model (src/sim/models.js).
+
+import { SENSOR_MODULES } from './sensors.js';
+
+export const PART_NUMBERS = {
+  // MOSFETs
+  IRLZ44N: { type: 'mosfet', package: 'TO-220', pins: ['G', 'D', 'S'], model: { channel: 'n', logicLevel: true } },
+  IRF520: { type: 'mosfet', package: 'TO-220', pins: ['G', 'D', 'S'], model: { channel: 'n' } },
+  IRF9540: { type: 'mosfet', package: 'TO-220', pins: ['G', 'D', 'S'], model: { channel: 'p' } },
+  '2N7000': { type: 'mosfet', package: 'TO-92', pins: ['S', 'G', 'D'], model: { channel: 'n' } },
+
+  // Bipolar transistors
+  '2N2222A': { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'npn' } },
+  '2N3904': { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'npn' } },
+  '2N3906': { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'pnp' } },
+  BC547: { type: 'bjt', package: 'TO-92', pins: ['C', 'B', 'E'], model: { polarity: 'npn' } },
+  BC557: { type: 'bjt', package: 'TO-92', pins: ['C', 'B', 'E'], model: { polarity: 'pnp' } },
+  '2N2907A': { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'pnp' } },
+  BC548: { type: 'bjt', package: 'TO-92', pins: ['C', 'B', 'E'], model: { polarity: 'npn' } },
+  BC549: { type: 'bjt', package: 'TO-92', pins: ['C', 'B', 'E'], model: { polarity: 'npn' } },
+  BC550: { type: 'bjt', package: 'TO-92', pins: ['C', 'B', 'E'], model: { polarity: 'npn' } },
+  BC558: { type: 'bjt', package: 'TO-92', pins: ['C', 'B', 'E'], model: { polarity: 'pnp' } },
+  BC337: { type: 'bjt', package: 'TO-92', pins: ['C', 'B', 'E'], model: { polarity: 'npn' } },
+  BC327: { type: 'bjt', package: 'TO-92', pins: ['C', 'B', 'E'], model: { polarity: 'pnp' } },
+  BC517: { type: 'bjt', package: 'TO-92', pins: ['C', 'B', 'E'], model: { polarity: 'npn', darlington: true } },
+  S8050: { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'npn' } },
+  S8550: { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'pnp' } },
+  S9012: { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'pnp' } },
+  S9013: { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'npn' } },
+  S9014: { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'npn' } },
+  S9015: { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'pnp' } },
+  S9018: { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'npn' } },
+  // Toshiba's 2SC1815 / 2SA1015 have the collector in the middle.
+  C1815: { type: 'bjt', package: 'TO-92', pins: ['E', 'C', 'B'], model: { polarity: 'npn' } },
+  A1015: { type: 'bjt', package: 'TO-92', pins: ['E', 'C', 'B'], model: { polarity: 'pnp' } },
+  '2N5551': { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'npn' } },
+  '2N5401': { type: 'bjt', package: 'TO-92', pins: ['E', 'B', 'C'], model: { polarity: 'pnp' } },
+  TIP120: { type: 'bjt', package: 'TO-220', pins: ['B', 'C', 'E'], model: { polarity: 'npn', darlington: true } },
+
+  // Integrated circuits (DIP): pins in order 1…N
+  NE555: { type: 'ic', package: 'dip', pins: ['GND', 'TRIG', 'OUT', 'RESET', 'CTRL', 'THR', 'DIS', 'VCC'], model: { function: 'timer' } },
+  LM358: { type: 'ic', package: 'dip', pins: ['OUT1', 'IN1-', 'IN1+', 'GND', 'IN2+', 'IN2-', 'OUT2', 'VCC'], model: { function: 'dual op-amp' } },
+  '74HC595': { type: 'ic', package: 'dip', pins: ['QB', 'QC', 'QD', 'QE', 'QF', 'QG', 'QH', 'GND', "QH'", 'SRCLR', 'SRCLK', 'RCLK', 'OE', 'SER', 'QA', 'VCC'], model: { function: 'shift register' } },
+  CD4017: { type: 'ic', package: 'dip', pins: ['Q5', 'Q1', 'Q0', 'Q2', 'Q6', 'Q7', 'Q3', 'VSS', 'Q8', 'Q4', 'Q9', 'CO', 'CE', 'CLK', 'MR', 'VDD'], model: { function: 'decade counter' } },
+  LM324: { type: 'ic', package: 'dip', pins: ['OUT1', 'IN1-', 'IN1+', 'VCC', 'IN2+', 'IN2-', 'OUT2', 'OUT3', 'IN3-', 'IN3+', 'GND', 'IN4+', 'IN4-', 'OUT4'], model: { function: 'quad op-amp' } },
+  LM393: { type: 'ic', package: 'dip', pins: ['OUT1', 'IN1-', 'IN1+', 'GND', 'IN2+', 'IN2-', 'OUT2', 'VCC'], model: { function: 'dual comparator' } },
+  UA741: { type: 'ic', package: 'dip', pins: ['NULL1', 'IN-', 'IN+', 'V-', 'NULL2', 'OUT', 'V+', 'NC'], model: { function: 'op-amp' } },
+  NE5532: { type: 'ic', package: 'dip', pins: ['OUT1', 'IN1-', 'IN1+', 'V-', 'IN2+', 'IN2-', 'OUT2', 'V+'], model: { function: 'dual op-amp' } },
+  // LM386: pins 1 and 8 are both "GAIN" in the datasheet; named apart here.
+  LM386: { type: 'ic', package: 'dip', pins: ['GAIN1', 'IN-', 'IN+', 'GND', 'OUT', 'VS', 'BYPASS', 'GAIN8'], model: { function: 'audio amplifier' } },
+  ULN2003: { type: 'ic', package: 'dip', pins: ['IN1', 'IN2', 'IN3', 'IN4', 'IN5', 'IN6', 'IN7', 'GND', 'COM', 'OUT7', 'OUT6', 'OUT5', 'OUT4', 'OUT3', 'OUT2', 'OUT1'], model: { function: 'darlington array' } },
+  ULN2803: { type: 'ic', package: 'dip', pins: ['IN1', 'IN2', 'IN3', 'IN4', 'IN5', 'IN6', 'IN7', 'IN8', 'GND', 'COM', 'OUT8', 'OUT7', 'OUT6', 'OUT5', 'OUT4', 'OUT3', 'OUT2', 'OUT1'], model: { function: 'darlington array' } },
+  PC817: { type: 'ic', package: 'dip', pins: ['A', 'K', 'E', 'C'], model: { function: 'optocoupler' } },
+
+  // Linear voltage regulators (TO-220). 78xx: fixed output; LM317: 1.25 V above ADJ.
+  ...Object.fromEntries([5, 6, 8, 9, 10, 12, 15, 18, 24].map((v) => [`78${String(v).padStart(2, '0')}`, { type: 'regulator', package: 'TO-220', pins: ['IN', 'GND', 'OUT'], model: { output: v } }])),
+  LM317: { type: 'regulator', package: 'TO-220', pins: ['ADJ', 'OUT', 'IN'], model: { adjustable: true, reference: 1.25 } },
+  // AMS1117 low-dropout regulator on its small module (right-angle pins VIN · OUT · GND, power
+  // LED on the output). The pin is called IN like the other regulators; the board prints VIN.
+  ...Object.fromEntries([['3.3', 3.3], ['5.0', 5]].map(([name, v]) => [`AMS1117-${name}`, { type: 'regulator', package: 'ams1117-module', pins: ['IN', 'OUT', 'GND'], model: { output: v, family: 'AMS1117', led: true } }])),
+
+  // Diodes (axial)
+  '1N4007': { type: 'diode', package: 'axial', pins: ['A', 'K'], body: { length: 5.2, diameter: 2.7, color: 'epoxyBlack', band: 'lead' } },
+  '1N4148': { type: 'diode', package: 'axial', pins: ['A', 'K'], body: { length: 3.8, diameter: 1.8, color: 'glass', band: 'epoxyBlack', opacity: 0.85 } },
+  '1N5819': { type: 'diode', package: 'axial', pins: ['A', 'K'], body: { length: 5.2, diameter: 2.7, color: 'epoxyBlack', band: 'lead' } },
+  // 1N4001…1N4006: the 1N4007 with a lower reverse rating (same body, same forward model).
+  ...Object.fromEntries([1, 2, 3, 4, 5, 6].map((n) => [`1N400${n}`, { type: 'diode', package: 'axial', pins: ['A', 'K'], body: { length: 5.2, diameter: 2.7, color: 'epoxyBlack', band: 'lead' } }])),
+  '1N5399': { type: 'diode', package: 'axial', pins: ['A', 'K'], body: { length: 7.0, diameter: 3.6, color: 'epoxyBlack', band: 'lead' } }, // DO-15
+  '1N5408': { type: 'diode', package: 'axial', pins: ['A', 'K'], body: { length: 9.5, diameter: 5.3, color: 'epoxyBlack', band: 'lead' } }, // DO-201AD
+  '1N5822': { type: 'diode', package: 'axial', pins: ['A', 'K'], body: { length: 9.5, diameter: 5.3, color: 'epoxyBlack', band: 'lead' } }, // DO-201AD
+  FR107: { type: 'diode', package: 'axial', pins: ['A', 'K'], body: { length: 5.2, diameter: 2.7, color: 'epoxyBlack', band: 'lead' } }, // DO-41
+  FR207: { type: 'diode', package: 'axial', pins: ['A', 'K'], body: { length: 7.0, diameter: 3.6, color: 'epoxyBlack', band: 'lead' } }, // DO-15
+
+  // Bridge rectifiers, KBP case: four diodes in one flat body, pins + ~ ~ − in a row. KBP2xx
+  // 2 A, KBP3xx 3 A; the rest is the reverse voltage, numbered either way by the makers
+  // (KBP206 = 600 V, KBP210 and KBP307 = 1000 V).
+  ...Object.fromEntries(['KBP2', 'KBP3'].flatMap((family) => ['005', '01', '02', '04', '06', '07', '08', '10'].map((v) => [`${family}${v}`, { type: 'bridge', package: 'kbp', pins: ['+', 'AC1', 'AC2', '-'], model: { family } }]))),
+
+  // 7-segment displays, 0.56" single digit (5161AS / 5161BS spec sheet): pins 1–5 along the bottom
+  // edge from the left, 6–10 back along the top, as a DIP counts them, the rows 15.24 mm apart.
+  // Pins 3 and 8 are both the common.
+  '5161AS': { type: 'seven-segment', package: '7seg-056', pins: ['e', 'd', 'COM1', 'c', 'DP', 'b', 'a', 'COM2', 'f', 'g'], model: { common: 'cathode' } },
+  '5161BS': { type: 'seven-segment', package: '7seg-056', pins: ['e', 'd', 'COM1', 'c', 'DP', 'b', 'a', 'COM2', 'f', 'g'], model: { common: 'anode' } },
+  // LM35 temperature sensors in TO-92 (TI SNIS159H): +VS, VOUT, GND, pins 1–3 from the left with
+  // the flat face toward you (the datasheet's bottom view). D grade 0–100 °C, C grade −40–110 °C.
+  ...Object.fromEntries(['LM35DZ', 'LM35CZ'].map((n) => [n, { type: 'temperature-sensor', package: 'TO-92', pins: ['+VS', 'VOUT', 'GND'], model: { grade: n } }])),
+  // Switches that stand in the breadboard: the SS-12D00 slide switch (SPDT; Vimex drawing) and the
+  // SW-520D ball tilt switch (Bailin Electronics sheet).
+  SS12D00G3: { type: 'slide-switch', package: 'slide-ss12', pins: ['1', 'COM', '2'], model: {} },
+  SW520D: { type: 'tilt-switch', package: 'tilt-sw520', pins: ['1', '2'], model: {} },
+  // A 5 V relay (Songle SRD datasheet): the coil A1 A2 (no polarity: no diode inside), the common, the
+  // contact closed while the coil pulls (NO) and the one closed while it rests (NC).
+  'SRD-05VDC-SL-C': { type: 'relay', package: 'relay-srd', pins: ['A1', 'A2', 'COM', 'NO', 'NC'], model: {} },
+  // Small DC motors (Mabuchi RE-140RA datasheet): its two terminals, (+) and (−) printed by them.
+  ...Object.fromEntries(['RE-140RA-12240', 'RE-140RA-2270'].map((n) => [n, { type: 'motor', package: 'motor-140', pins: ['+', '-'], model: {} }])),
+  // LM393 sensor modules (family F3): one board standing on its pins, its element per part number,
+  // pins as each board prints them (src/parts/sensors.js SENSOR_MODULES).
+  ...Object.fromEntries(Object.entries(SENSOR_MODULES).map(([n, m]) => [n, { type: 'sensor-module', package: 'sensor-module', pins: m.pins, model: {} }])),
+  // KY-040 rotary encoder module (family F7, docs/en/rotary-encoder.md): an EC11 and three pull-ups on a board with five pins.
+  'KY-040': { type: 'rotary-encoder', package: 'encoder-module', pins: ['CLK', 'DT', 'SW', '+', 'GND'], model: {} },
+  // Analog sensors (docs/en/analog-sensors.md): the linear Hall sensor 49E, bare in a TO-92 (VCC, GND, OUT
+  // with the flat face toward you) or on its KY-035 module (S, +, −); `roles` says which pin is which.
+  'KY-035': { type: 'hall-sensor', package: 'sensor-module', pins: ['S', '+', '-'], model: { roles: { out: 'S', vcc: '+', gnd: '-' } } },
+  '49E': { type: 'hall-sensor', package: 'TO-92', pins: ['VCC', 'GND', 'OUT'], model: { roles: { out: 'OUT', vcc: 'VCC', gnd: 'GND' } } },
+  // Voltage sensor module (30 kΩ / 7.5 kΩ divider): S, +, − on the board's header and the terminal's
+  // two contacts, VIN and GND, as two more pins (a wire each).
+  'VOLT-25V': { type: 'voltage-sensor', package: 'sensor-module', pins: ['S', '+', '-', 'VIN', 'GND'], model: {} },
+  // Active buzzer (12 mm, 5 V, with its own oscillator): the passive `buzzer` type's second part number.
+  TMB12A05: { type: 'buzzer', package: 'buzzer', pins: ['1', '2'], model: { active: true } },
+  // Zener diodes, 1 W, DO-41 glass (1N4728A = 3.3 V … 1N4751A = 30 V). The `zener` type also
+  // takes just a voltage ("5V1"); see src/sim/models.js for the breakdown model.
+  ...Object.fromEntries([3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1, 10, 11, 12, 13, 15, 16, 18, 20, 22, 24, 27, 30].map((vz, i) => [`1N${4728 + i}A`, { type: 'zener', package: 'axial', pins: ['A', 'K'], model: { vz } }])),
+  // A laser module (KY-008, reseller sheets): S, the middle pin joined to nothing, − as printed.
+  'KY-008': { type: 'laser', package: 'laser-module', pins: ['S', '+', '−'], model: {} },
+  // The HC-SR04 ultrasonic module (its datasheet): VCC, TRIG, ECHO, GND as printed, left to right
+  // with the capsules toward you.
+  'HC-SR04': { type: 'ultrasonic-sensor', package: 'ultrasonic-module', pins: ['VCC', 'TRIG', 'ECHO', 'GND'], model: {} },
+  // Climate sensors read at library level (types/climate-sensor.js): the usual DHT11 module prints
+  // S, +, − (other boards print +, OUT, − or DATA, VCC, GND: one more row with their order); the
+  // BME280 / BMP280 boards VCC, GND, SCL, SDA.
+  DHT11: { type: 'climate-sensor', package: 'dht-module', pins: ['S', '+', '−'], model: {} },
+  BME280: { type: 'climate-sensor', package: 'bme-board', pins: ['VCC', 'GND', 'SCL', 'SDA'], model: {} },
+  'BME280-5V': { type: 'climate-sensor', package: 'bme-board', pins: ['VCC', 'GND', 'SCL', 'SDA'], model: {} },
+  BMP280: { type: 'climate-sensor', package: 'bme-board', pins: ['VCC', 'GND', 'SCL', 'SDA'], model: {} },
+};
+
+// Other names for the same part: "LM7805", "L7805CV" and "MC7805" are a 7805; "LM317T" an LM317;
+// "AMS1117-3V3" and "AMS1117-33" an AMS1117-3.3.
+export function lookupPartNumber(number) {
+  const n = String(number ?? '').toUpperCase().replace(/\s+/g, '');
+  if (PART_NUMBERS[n]) return { number: n, entry: PART_NUMBERS[n] };
+  const regulator = /^(?:LM|L|MC|KA|UA)?(78\d\d)(?:C?[VTP]|A?CT)?$/.exec(n) ?? /^(LM317)[TK]?$/.exec(n);
+  if (regulator && PART_NUMBERS[regulator[1]]) return { number: regulator[1], entry: PART_NUMBERS[regulator[1]] };
+  const ams = /^AMS1117-?(3[.V]?3|5(?:[.V]0?)?)$/.exec(n);
+  if (ams) {
+    const number = ams[1].startsWith('3') ? 'AMS1117-3.3' : 'AMS1117-5.0';
+    return { number, entry: PART_NUMBERS[number] };
+  }
+  const named = { '2SC1815': 'C1815', '2SA1015': 'A1015', '2N2907': '2N2907A', '2N2222': '2N2222A', LM741: 'UA741', LM35: 'LM35DZ', LM35D: 'LM35DZ', LM35C: 'LM35CZ', 'SS-12D00G3': 'SS12D00G3', SS12D00: 'SS12D00G3', 'SS-12D00': 'SS12D00G3', 'SW-520D': 'SW520D', SW520: 'SW520D', 'SW-520': 'SW520D', SRD05VDCSLC: 'SRD-05VDC-SL-C', 'SRD-05VDC': 'SRD-05VDC-SL-C', SRD05VDC: 'SRD-05VDC-SL-C', 'RE-140RA': 'RE-140RA-12240', RE140RA: 'RE-140RA-12240', 'RE-140': 'RE-140RA-12240', RE140RA12240: 'RE-140RA-12240', RE140RA2270: 'RE-140RA-2270', MHRD: 'MH-RD', 'MH-RD-RAIN': 'MH-RD', YL69: 'YL-69', 'LM393-LDR': 'LDR-LM393', LDRLM393: 'LDR-LM393', SLOTIR: 'SLOT-IR', TCRT5000M: 'TCRT5000-M', TCRT5000: 'TCRT5000-M', KY024: 'KY-024', 'SW-420': 'SW-420-M', SW420: 'SW-420-M', SW420M: 'SW-420-M', FC51: 'FC-51', KY040: 'KY-040', 'KY-40': 'KY-040', KY008: 'KY-008', HCSR04: 'HC-SR04', SR04: 'HC-SR04', KY035: 'KY-035', SS49E: '49E', VOLT25V: 'VOLT-25V', 'VOLTAGE-SENSOR': 'VOLT-25V', KY037: 'KY-037', 'KY-015': 'DHT11', KY015: 'DHT11', 'GY-BME280': 'BME280', GYBME280: 'BME280', 'GY-BMP280': 'BMP280', GYBMP280: 'BMP280', BME2805V: 'BME280-5V' }[n];
+  return named ? { number: named, entry: PART_NUMBERS[named] } : null;
+}

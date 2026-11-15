@@ -131,7 +131,7 @@ Todas responden en texto legible, o en JSON con `format: "json"`. Los errores vu
 errores de la herramienta con un mensaje legible (`isError`), nunca como una caída. Las de
 solo lectura llevan `readOnlyHint`, para que los clientes puedan permitirlas sin preguntar.
 
-El servidor envía además **instrucciones**, la misma guía de `SKILL.md` en pocas líneas: qué
+El servidor envía además **instrucciones**, la misma guía del skill del plugin (`plugin-src/SKILL.md`) en pocas líneas: qué
 herramienta para qué tarea (primero las recetas: un circuito de clase habitual → `layout` con `recipe`; otro circuito nuevo → `layout`; otras conexiones en un circuito hecho con
 `layout` → `layout` otra vez; un valor o un arreglo → `apply_ops`), qué significa cada `STATUS:`, el
 ciclo de operaciones, cómo revisar (`review`, `netlist`, `simulate`, sin mostrar nunca un valor por
