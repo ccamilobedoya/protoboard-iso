@@ -8,10 +8,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile, execFileSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
 import { gitEnv } from './git-env.js';
 import { scanRepo, scanText, GENERIC, NEVER_COMMIT, localPatterns } from './privacy/scan.js';
 
@@ -68,7 +68,7 @@ test('gitleaks finds no secret in the history, the changes or the new files', as
   }
   // Tokens made now, so no file holds one: committed, staged, changed and new.
   const token = () => `gh${'p_'}${[...randomBytes(36)].map((b) => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[b % 62]).join('')}`;
-  const dir = mkdtempSync(join(tmpdir(), 'pbi-gitleaks-'));
+  const dir = tempDir('pbi-gitleaks-');
   const commit = (m) => git(dir, '-c', 'user.name=test', '-c', `user.email=test${at}example.com`, 'commit', '-qm', m);
   git(dir, 'init', '-q');
   writeFileSync(join(dir, 'a.txt'), 'clean\n');
@@ -136,7 +136,7 @@ test('privacy cases: names never committed, whatever their case', () => {
 });
 
 test('privacy cases: the maintainer\'s words match in NFC or NFD, and a bad line is a finding', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'pbi-privacy-'));
+  const dir = tempDir('pbi-privacy-');
   const file = join(dir, 'privacy.local.txt');
   writeFileSync(file, `# a comment\nMontaña\n${'Peña'.normalize('NFD')}\n(\n`);
   const { patterns, bad } = localPatterns(file);
@@ -148,7 +148,7 @@ test('privacy cases: the maintainer\'s words match in NFC or NFD, and a bad line
 });
 
 test('privacy cases: in a repository, accents in names, forced adds and unreadable files are found', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'pbi-privacy-'));
+  const dir = tempDir('pbi-privacy-');
   git(dir, 'init', '-q');
   writeFileSync(join(dir, '.gitignore'), 'local.env\nprivacy.local.txt\n');
   writeFileSync(join(dir, 'privacy.local.txt'), 'Montaña\n');

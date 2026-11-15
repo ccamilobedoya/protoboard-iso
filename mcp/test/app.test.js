@@ -3,15 +3,14 @@
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, existsSync, writeFileSync, statSync, readdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, existsSync, writeFileSync, statSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../../scripts/tmp.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { fetchPageParts } from '../../src/page/client/app.js';
-import { RESULT_MAX } from '../app.js';
 
-const root = mkdtempSync(join(tmpdir(), 'protoboard-app-'));
+const root = tempDir('protoboard-app-');
 const UI = { extensions: { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } } };
 let plain;
 let host;
@@ -207,7 +206,7 @@ test('render does not push a model that sees the board to PNG; other clients kee
 test('app_report exists only with PROTOBOARD_APPS_DEBUG=1 and an app client; it writes capped lines inside the root', async () => {
   const names = async (c) => (await c.listTools()).tools.map((t) => t.name);
   assert.ok(!(await names(host)).includes('app_report'), 'not without the variable');
-  const debugRoot = mkdtempSync(join(tmpdir(), 'protoboard-app-debug-'));
+  const debugRoot = tempDir('protoboard-app-debug-');
   const env = { PROTOBOARD_ROOT: debugRoot, PROTOBOARD_APPS_DEBUG: '1' };
   const plainDebug = await connect({}, { ...env, PROTOBOARD_APPS: 'auto' });
   const hostDebug = await connect(UI, env);

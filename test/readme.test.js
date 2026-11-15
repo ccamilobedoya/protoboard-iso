@@ -4,9 +4,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
 
 const root = new URL('../', import.meta.url).pathname;
 
@@ -23,7 +23,7 @@ for (const [readme, name] of [['README.md', 'my-led'], ['README.es.md', 'mi-led'
   test(`${readme}: the try-it commands run as written`, () => {
     const commands = smokeCommands(readFileSync(join(root, readme), 'utf8'));
     assert.ok(commands.length >= 4, `smoke blocks found: ${commands.length} commands`);
-    const dir = mkdtempSync(join(tmpdir(), 'pbi-readme-'));
+    const dir = tempDir('pbi-readme-');
     const outputs = commands.map((c) => execSync(c.replaceAll('node bin/', `node ${join(root, 'bin')}/`), { cwd: dir, encoding: 'utf8', stdio: 'pipe' }));
     assert.ok(existsSync(join(dir, name, 'circuit.json')), 'the circuit');
     assert.ok(existsSync(join(dir, name, 'out', `${name}.html`)), 'its page');

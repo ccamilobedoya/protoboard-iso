@@ -3,13 +3,13 @@
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../../scripts/tmp.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
-const root = mkdtempSync(join(tmpdir(), 'protoboard-mcp-'));
+const root = tempDir('protoboard-mcp-');
 const led = JSON.parse(readFileSync(new URL('../../examples/led-resistor.json', import.meta.url), 'utf8'));
 let client;
 

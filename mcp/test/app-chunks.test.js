@@ -4,19 +4,19 @@
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readdirSync, copyFileSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readdirSync, copyFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../../scripts/tmp.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { fetchPageParts } from '../../src/page/client/app.js';
-import { RESULT_MAX, CHUNK_BYTES, cutPoints } from '../app.js';
+import { RESULT_MAX, cutPoints } from '../app.js';
 import { RECIPES } from '../../src/recipes/index.js';
 import { renderPageParts } from '../../src/page.js';
 import { pickLanguage } from '../../src/i18n/index.js';
 import { loadCircuit, resolveTarget } from '../../src/node/workspace.js';
 
-const root = mkdtempSync(join(tmpdir(), 'protoboard-chunks-'));
+const root = tempDir('protoboard-chunks-');
 const examples = new URL('../../examples/', import.meta.url).pathname;
 let host;
 let biggest = { bytes: 0, name: '' };

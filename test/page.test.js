@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync, existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
 import { renderPage } from '../src/page.js';
 import { installClock } from './clock.js';
 import { createTarget, applyToTarget, pageFileOf, resolveTarget } from '../src/node/workspace.js';
@@ -41,7 +41,7 @@ test('the page follows the circuit view and the fit option', () => {
 });
 
 test('every saved change rewrites the page under the same name', () => {
-  const target = join(mkdtempSync(join(tmpdir(), 'pbi-page-')), 'led');
+  const target = join(tempDir('pbi-page-'), 'led');
   const created = createTarget(target, { title: 'LED', parts: [{ id: 'R1', type: 'resistor', value: '330', pins: ['j10', 'j14'] }] });
   const page = pageFileOf(resolveTarget(target));
   assert.equal(created.files.pageFile, page);
@@ -140,7 +140,7 @@ test('dragging pans, pinching zooms, and the frame stays on the board', async (t
 });
 
 test('language: the one asked for, else the circuit\'s own "lang", else the default', () => {
-  const target = join(mkdtempSync(join(tmpdir(), 'pbi-lang-')), 'led');
+  const target = join(tempDir('pbi-lang-'), 'led');
   const parts = [{ id: 'R1', type: 'resistor', value: '330', pins: ['j10', 'j14'] }];
   createTarget(target, { lang: 'es', parts }, { lang: 'en' });
   const page = () => readFileSync(pageFileOf(resolveTarget(target)), 'utf8');

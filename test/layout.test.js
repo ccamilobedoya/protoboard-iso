@@ -359,8 +359,8 @@ test('layout answer: more than four loads end with how many simulate lists', asy
 });
 
 test('layout answer: a long program is cut to its first lines and says where the rest is', async () => {
-  const { mkdtempSync, writeFileSync } = await import('node:fs');
-  const { tmpdir } = await import('node:os');
+  const { writeFileSync } = await import('node:fs');
+  const { tempDir } = await import('../scripts/tmp.js');
   const { join } = await import('node:path');
   const { expandRecipe } = await import('../src/recipes/index.js');
   const long = `void setup() {}\nvoid loop() {\n${Array.from({ length: 100 }, (_, i) => `  delay(${i + 1});`).join('\n')}\n}\n`;
@@ -377,7 +377,7 @@ test('layout answer: a long program is cut to its first lines and says where the
   const w = autoLayout(expandRecipe('uno-blink', { U1: wide }).spec).programs[0];
   assert.ok(w.truncated && w.text.length <= 4000, `${w.text.length}`);
   // From a .ino file beside the circuit: read inside its folder, and the cut names the file.
-  const folder = mkdtempSync(join(tmpdir(), 'layout-ino-'));
+  const folder = tempDir('layout-ino-');
   writeFileSync(join(folder, 'long.ino'), long);
   const f = autoLayout(expandRecipe('uno-blink', { U1: 'long.ino' }).spec, { folder });
   assert.deepEqual([f.programs[0].file, f.programs[0].truncated], ['long.ino', true]);

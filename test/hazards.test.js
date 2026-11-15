@@ -4,9 +4,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
 import { autoLayout, specFromCircuit, formatLayout } from '../src/layout.js';
 import { review, formatReview } from '../src/review.js';
 import { RECIPES, expandRecipe } from '../src/recipes/index.js';
@@ -78,7 +78,7 @@ test('recipes with their defaults: none would damage a part', () => {
 });
 
 test('cli: layout and review exit 0 with the warnings status, CHANGES is still 2', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'pbiso-'));
+  const dir = tempDir('pbiso-');
   const file = join(dir, 'spec.json');
   writeFileSync(file, JSON.stringify(led(null)));
   const cli = (...args) => spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), ...args], { cwd: dir, encoding: 'utf8' });
@@ -140,10 +140,10 @@ test('layout again, property: with one net changed, never a short together with 
 });
 
 test('undo after layout again restores the first layout exactly', async () => {
-  const { mkdtempSync: mk } = await import('node:fs');
+  const { tempDir: mk } = await import('../scripts/tmp.js');
   const { readFileSync } = await import('node:fs');
   const { createTarget, relayoutTarget, undoTarget } = await import('../src/node/workspace.js');
-  const dir = join(mk(join(tmpdir(), 'pbiso-')), 'c');
+  const dir = join(mk('pbiso-'), 'c');
   const first = autoLayout(expandRecipe('led-resistor', { V1: 9 }).spec);
   createTarget(dir, first.circuit, { outputs: false });
   const before = JSON.parse(readFileSync(join(dir, 'circuit.json'), 'utf8'));

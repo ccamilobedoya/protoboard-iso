@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const cli = (...args) => spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), ...args], { cwd: root, encoding: 'utf8' });
@@ -37,15 +38,14 @@ test('cli: known options and "-" for standard input still read', () => {
 
 // ---- clean-install contract: names and paths say what they are
 
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, existsSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import { rasterAvailable } from '../src/node/raster.js';
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 test('cli: render to a .png name writes a real PNG or fails, never SVG text under that name', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'pbi-cli-'));
+  const dir = tempDir('pbi-cli-');
   const out = join(dir, 'x.png');
   const r = cli('render', example, '-o', out, '--png-width', '400');
   if (await rasterAvailable()) {
@@ -61,7 +61,7 @@ test('cli: render to a .png name writes a real PNG or fails, never SVG text unde
 });
 
 test('cli: --png-width with an SVG output is an error, not silently ignored', () => {
-  const r = cli('render', example, '-o', join(mkdtempSync(join(tmpdir(), 'pbi-cli-')), 'x.svg'), '--png-width', '400');
+  const r = cli('render', example, '-o', join(tempDir('pbi-cli-'), 'x.svg'), '--png-width', '400');
   assert.equal(r.status, 1);
   assert.match(r.stderr, /--png-width/);
 });
@@ -75,7 +75,7 @@ test('cli: catalog is the name of the catalogue and parts still works', () => {
 });
 
 test('cli: layout, apply and undo say where the page is (absolute, before STATUS for layout)', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'pbi-cli-'));
+  const dir = tempDir('pbi-cli-');
   const run = (...a) => spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), ...a], { cwd: dir, encoding: 'utf8' });
   const made = run('layout', 'sw', '--recipe', 'npn-switch');
   assert.equal(made.status, 0, made.stderr);

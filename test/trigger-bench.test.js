@@ -2,9 +2,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
 import { PROMPTS, BUDGET_USD, commandFor, readStream, endState } from '../scripts/trigger-bench.js';
 
 test('the bench has its prompts: 12 new, 4 changes, 3 negatives, none naming the kit', () => {
@@ -32,7 +32,7 @@ test('readStream finds the kit calls and the cost; endState checks the root', ()
   const { calls, result } = readStream(`${lines}\nnot json`);
   assert.deepEqual(calls, ['layout', 'review']);
   assert.equal(result.total_cost_usd, 0.01);
-  const root = mkdtempSync(join(tmpdir(), 'tb-'));
+  const root = tempDir('tb-');
   mkdirSync(join(root, 'led'));
   writeFileSync(join(root, 'led', 'circuit.json'), JSON.stringify({ revision: 1, parts: [{ id: 'R1', value: '1k' }] }));
   const change = PROMPTS.find((p) => p.id === 'c1');

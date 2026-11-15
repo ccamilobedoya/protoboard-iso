@@ -4,9 +4,9 @@
 import { partLine } from '../src/page/client/app.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
 import { renderPage, renderPageParts, renderAppViewer } from '../src/page.js';
 import { createTarget, applyToTarget, undoTarget, circuitAt, resolveTarget, loadCircuit } from '../src/node/workspace.js';
 import { CONTEXT_MAX } from '../src/page/client/app.js';
@@ -36,7 +36,7 @@ test('the standalone page carries no bridge to a host; the viewer carries no cir
 });
 
 test('circuitAt rebuilds an older revision from the inverses in the history', () => {
-  const dir = join(mkdtempSync(join(tmpdir(), 'protoboard-at-')), 'led');
+  const dir = join(tempDir('protoboard-at-'), 'led');
   const circuit = example('led-resistor.json');
   createTarget(dir, circuit, { outputs: false });
   const paths = resolveTarget(dir);

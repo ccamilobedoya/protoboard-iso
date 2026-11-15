@@ -162,7 +162,7 @@ node bin/protoboard-iso.js render <file.json> -o out.svg [--view back] [--fit pa
 
 `npm run verify` runs steps 1 and 2 (plus lint, unused code, copies and coverage) and exits 0, 1
 or 2; a step that could not run (a missing `npm install`) is never a pass. The pre-push hook runs
-it. After an intended change of the examples' issues: `npm run verify -- --write-examples`.
+it. Every step runs with its own `TMPDIR`, and anything a test leaves in it fails the run: make scratch folders with `tempDir()` (`scripts/tmp.js`). After an intended change of the examples' issues: `npm run verify -- --write-examples`.
 
 1. `npm test` passes (and `npm run test:mcp` when `src/` APIs or `mcp/` changed).
 2. `npm run examples` shows no new issues except the intended ones
