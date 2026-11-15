@@ -17,6 +17,9 @@ import { decimalSeparator } from './i18n/index.js';
 // Parts whose job is to be driven, by the simulator's kind: LEDs first, then the rest.
 const LOADS = { LED: 'led', LEDS: 'leds', BZA: 'buzzer', MOT: 'motor', RLY: 'relay', LSR: 'laser' };
 const SHOWN_LOADS = 4;
+// Under this a load is off: what it carries is the model's leakage (an LED behind a transistor that
+// is off reads some pA), which would read like a real current. The JSON keeps the number.
+const OFF_CURRENT = 1e-6;
 
 const runsProgram = (p) => p?.program != null && p.program !== '';
 
@@ -37,7 +40,10 @@ function readingsOf(circuit) {
   for (const [id, p] of Object.entries(r.parts ?? {})) {
     if (p.kind === 'BAT') sources.push({ id, kind: 'battery', voltage: p.on ? p.voltage : 0, current: p.on ? p.current : 0, ...(!p.on && { off: true }) });
     else if (p.kind === 'MCU' && p.usb) sources.push({ id, kind: 'usb', voltage: p.usb.voltage, current: p.usb.current });
-    else if (LOADS[p.kind]) (p.kind.startsWith('LED') ? leds : others).push({ id, kind: LOADS[p.kind], current: Math.abs(p.current ?? 0), ...(p.kind === 'LED' && { brightness: p.brightness }) });
+    else if (LOADS[p.kind]) {
+      const current = Math.abs(p.current ?? 0);
+      (p.kind.startsWith('LED') ? leds : others).push({ id, kind: LOADS[p.kind], current, ...(current < OFF_CURRENT && { off: true }), ...(p.kind === 'LED' && { brightness: p.brightness }) });
+    }
   }
   return sources.length ? { sources, parts: [...leds, ...others] } : null;
 }
@@ -115,7 +121,7 @@ export function formatExtras(r, lang, t) {
     const { sources, parts } = r.readings;
     const many = sources.length > 1;
     const source = (s) => (s.kind === 'usb' ? `${s.id} USB ${f(s.voltage, 'V')}` : `${t(lang, `layout.readings.${s.kind}`)}${many ? ` ${s.id}` : ''} ${s.off ? t(lang, 'sim.battery.off') : f(s.voltage, 'V')}`);
-    const load = (p) => `${p.id} ${f(p.current, 'A')}${p.brightness != null ? `, ${t(lang, 'sim.brightness', { percent: Math.round(p.brightness * 100) })}` : ''}`;
+    const load = (p) => `${p.id} ${p.off ? '0 mA' : f(p.current, 'A')}${p.brightness != null ? `, ${t(lang, 'sim.brightness', { percent: Math.round(p.brightness * 100) })}` : ''}`;
     const items = [...sources.map(source), ...parts.slice(0, SHOWN_LOADS).map(load)];
     if (parts.length > SHOWN_LOADS) items.push(t(lang, 'layout.readings.more', { count: parts.length - SHOWN_LOADS }));
     lines.push(t(lang, 'layout.readings', { items: items.join(' · ') }));

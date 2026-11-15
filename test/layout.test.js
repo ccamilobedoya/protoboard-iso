@@ -302,6 +302,21 @@ test('layout answer: a spec of its own with a battery gives readings and no can-
   assert.doesNotMatch(formatLayout(bare, 'en', { t, formatIssue }), /Readings|Program|Can change/);
 });
 
+test('layout answer: a load that is off reads 0 mA, not the model\'s leakage; the JSON keeps the number', async () => {
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  const r = autoLayout(expandRecipe('npn-switch').spec);
+  assert.equal(r.status, 'done');
+  const d1 = r.readings.parts.find((p) => p.id === 'D1');
+  assert.equal(d1.off, true);
+  assert.ok(d1.current > 0 && d1.current < 1e-6, `the raw leakage stays: ${d1.current}`);
+  const en = formatLayout(r, 'en', { t, formatIssue }).split('\n').find((l) => l.startsWith('Readings'));
+  assert.equal(en, 'Readings (at rest, a model): supply 5 V · D1 0 mA, brightness 0 % of 20 mA');
+  const es = formatLayout(autoLayout(expandRecipe('npn-switch').spec, { lang: 'es' }), 'es', { t, formatIssue }).split('\n').find((l) => l.startsWith('Lecturas'));
+  assert.equal(es, 'Lecturas (en reposo, un modelo): fuente 5 V · D1 0 mA, brillo 0 % del de 20 mA');
+  // A lit LED is not off.
+  assert.equal(autoLayout(expandRecipe('led-resistor').spec).readings.parts[0].off, undefined);
+});
+
 test('layout answer: more than four loads end with how many simulate lists', async () => {
   const leds = Array.from({ length: 6 }, (_, i) => i + 1);
   const r = autoLayout({
