@@ -59,7 +59,7 @@ test('the selection file: entries older than 24 h are ignored, 32 targets at mos
   const root = mkdtempSync(join(tmpdir(), 'protoboard-sel-'));
   const a = await connect(root);
   try {
-    const old = Date.now() - SELECTION_TTL - 1000;
+    const old = Date.now() - SELECTION_TTL - 1000; // real clock: file times, a process's exit time and the 2 s it has to end are real
     mkdirSync(join(root, STATE_DIR), { recursive: true });
     writeFileSync(join(root, SELECTION_FILE), JSON.stringify({ entries: { stale: { revision: 0, part: 'R1', line: 'old', at: old } } }));
     assert.equal(textOf(await a.callTool({ name: 'selection', arguments: { target: 'stale' } })), 'Nothing is tapped on the board.');
@@ -89,13 +89,13 @@ test('the selection file: entries older than 24 h are ignored, 32 targets at mos
 test('the stdio server ends when its stdin closes, worker included, and when its stdout breaks', async () => {
   const root = mkdtempSync(join(tmpdir(), 'protoboard-exit-'));
   const child = spawn(process.execPath, [server], { env: { ...process.env, PROTOBOARD_ROOT: root }, stdio: ['pipe', 'pipe', 'ignore'] });
-  const exited = new Promise((resolve) => child.once('exit', (code, signal) => resolve({ code, signal, at: Date.now() })));
+  const exited = new Promise((resolve) => child.once('exit', (code, signal) => resolve({ code, signal, at: Date.now() }))); // real clock: file times, a process's exit time and the 2 s it has to end are real
   const reply = new Promise((resolve) => child.stdout.once('data', resolve));
   child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 't', version: '0' } } })}\n`);
   await reply;
-  const closedAt = Date.now();
+  const closedAt = Date.now(); // real clock: file times, a process's exit time and the 2 s it has to end are real
   child.stdin.end();
-  const done = await Promise.race([exited, new Promise((r) => setTimeout(() => r(null), 2000))]);
+  const done = await Promise.race([exited, new Promise((r) => setTimeout(() => r(null), 2000))]); // real clock: file times, a process's exit time and the 2 s it has to end are real
   if (!done) child.kill();
   assert.ok(done, 'still running 2 s after stdin closed');
   assert.ok(done.at - closedAt < 2000);
@@ -128,7 +128,7 @@ test('pages are files, not memory: the manifest from one process, its chunks fro
     assert.deepEqual(kept, [3, 4].slice(-PAGES_PER_TARGET), `${kept}`);
     // nothing older than the TTL survives the next write
     const old = readdirSync(dir)[0];
-    const longAgo = new Date(Date.now() - PAGES_TTL - 60000);
+    const longAgo = new Date(Date.now() - PAGES_TTL - 60000); // real clock: file times, a process's exit time and the 2 s it has to end are real
     utimesSync(join(dir, old), longAgo, longAgo);
     await a.callTool({ name: 'apply_ops', arguments: { target: 'led', ops: [{ op: 'set', part: 'R1', value: '9k' }] } });
     await a.callTool({ name: 'page_parts', arguments: { target: 'led' } });
@@ -175,7 +175,7 @@ test('with PROTOBOARD_DEV=1 (a worker) the server also ends when stdin closes', 
   child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 't', version: '0' } } })}\n`);
   await reply;
   child.stdin.end();
-  const code = await Promise.race([exited, new Promise((r) => setTimeout(() => r('still running'), 2000))]);
+  const code = await Promise.race([exited, new Promise((r) => setTimeout(() => r('still running'), 2000))]); // real clock: file times, a process's exit time and the 2 s it has to end are real
   if (code === 'still running') child.kill();
   assert.equal(code, 0);
 });
