@@ -6,7 +6,8 @@
 //             2 review says CHANGES.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve, extname, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { renderCircuit, inspectCircuit, formatReport, checkCircuit, formatIssue, PART_TYPES, PART_NUMBERS, t } from '../src/index.js';
 import { pickLanguage } from '../src/i18n/index.js';
 import { formatChange } from '../src/diff.js';
@@ -20,6 +21,7 @@ import { parseValue } from '../src/core/units.js';
 import { resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory, writePage, createTarget, relayoutTarget } from '../src/node/workspace.js';
 import { autoLayout, formatLayout, specFromCircuit, specProblems } from '../src/layout.js';
 import { resolveRecipe } from '../src/recipes/index.js';
+import { svgToPng, rasterAvailable, rasterSearchIn } from '../src/node/raster.js';
 import { catalogEntry, formatCatalogEntry, compactCatalog, recipeLine } from '../src/node/catalog.js';
 
 // Strict: an option nobody knows, or one whose value is missing, is an error (args.errors), so a
@@ -37,6 +39,7 @@ function parseArgs(argv) {
     else if (a === '--view') args.view = value();
     else if (a === '--views') args.views = value()?.split(',');
     else if (a === '--lang') args.lang = value();
+    else if (a === '--png-width') args.pngWidth = Number(value());
     else if (a === '--scale') args.scale = Number(value());
     else if (a === '--no-labels') args.labels = false;
     else if (a === '--labels') args.labels = value();
@@ -90,6 +93,9 @@ function readOps(args, source) {
   return Array.isArray(parsed) ? parsed : [parsed];
 }
 
+// The rasteriser may be where the MCP install put it (cd mcp && npm install).
+rasterSearchIn(join(dirname(fileURLToPath(import.meta.url)), '..', 'mcp'));
+
 const args = parseArgs(process.argv.slice(2));
 const [command, target, extra, extra2] = args._;
 const paths = target ? resolveTarget(target) : null;
@@ -110,9 +116,18 @@ if (args.errors.length) {
   fail(2);
 }
 
-if (args.help || !command || (command !== 'parts' && !target)) {
+if (args.help || !command || (command !== 'parts' && command !== 'catalog' && !target)) {
   console.log(t(lang, 'cli.usage'));
   fail(command ? 0 : 1);
+}
+
+// Where the page is, as an absolute path in one line (the person opens it by double-clicking).
+const pageLine = (files, outLang) => (files?.pageFile ? t(outLang, 'cli.page', { file: resolve(files.pageFile) }) : null);
+// A formatted answer whose last line is STATUS: the page line goes just before it.
+function beforeStatus(text, line) {
+  if (!line) return text;
+  const at = text.lastIndexOf('\nSTATUS:');
+  return at < 0 ? `${text}\n${line}` : `${text.slice(0, at)}\n${line}${text.slice(at)}`;
 }
 
 const viewOptions = { view: args.view, lang, scale: args.scale || undefined, labels: args.labels, fit: args.fit, annotate: args.annotate, sim: args.sim, focus: args.focus, flow: args.flow };
@@ -150,8 +165,8 @@ if (command === 'layout') {
     printIssues(created.errors, outLang);
     fail(1);
   }
-  console.log(args.json ? JSON.stringify({ ...result, circuit: undefined }, null, 2) : formatLayout(result, outLang, { t, formatIssue }));
-  fail(result.status === 'done' ? 0 : 2);
+  console.log(args.json ? JSON.stringify({ ...result, circuit: undefined, files: created.files }, null, 2) : beforeStatus(formatLayout(result, outLang, { t, formatIssue }), pageLine(created.files, outLang)));
+  fail(result.status === 'done' || result.status === 'warnings' ? 0 : 2);
 } else if (command === 'render') {
   const circuit = loadCircuit(paths);
   const { svg, issues } = renderCircuit(circuit, viewOptions);
@@ -162,7 +177,21 @@ if (command === 'layout') {
     mkdirSync(paths.outDir, { recursive: true });
     out = join(paths.outDir, `${paths.name}.${args.view ?? circuit.view ?? 'front'}${args.annotate ? '.annotated' : ''}${args.sim ? '.sim' : ''}${args.focus ? '.focus' : ''}${args.flow ? '.flow' : ''}.svg`);
   }
-  writeFileSync(out, svg);
+  // A name ending in .png is a PNG or an error, never SVG text under a PNG name.
+  const wantsPng = extname(out).toLowerCase() === '.png';
+  if (wantsPng) {
+    if (!(await rasterAvailable())) {
+      console.error(t(lang, 'cli.pngMissing'));
+      fail(1);
+    }
+    writeFileSync(out, await svgToPng(svg, { width: args.pngWidth ?? 900 }));
+  } else {
+    if (args.pngWidth !== undefined) {
+      console.error(t(lang, 'cli.pngWidthNeedsPng'));
+      fail(1);
+    }
+    writeFileSync(out, svg);
+  }
   console.log(t(lang, 'cli.written', { file: out, parts: circuit.parts.length, issues: issues.length }));
   fail(issues.some((i) => i.severity === 'error') ? 1 : 0);
 } else if (command === 'simulate') {
@@ -178,7 +207,7 @@ if (command === 'layout') {
   const { pageFile, issues } = writePage(paths, circuit, { lang, fit: args.fit, out: args.out });
   printIssues(issues, lang);
   if (!pageFile) fail(1);
-  console.log(t(lang, 'cli.written', { file: pageFile, parts: circuit.parts.length, issues: issues.length }));
+  console.log(t(lang, 'cli.written', { file: resolve(pageFile), parts: circuit.parts.length, issues: issues.length }));
   fail(issues.some((i) => i.severity === 'error') ? 1 : 0);
 } else if (command === 'inspect') {
   const report = inspectCircuit(loadCircuit(paths), viewOptions);
@@ -208,7 +237,7 @@ if (command === 'layout') {
     fail(1);
   }
   const result = applyToTarget(target, ops, { dryRun: args.dryRun, author: args.author, note: args.note, expectRevision: args.expectRevision, views: args.views, lang, outputLang: args.lang, outputs: args.outputs });
-  console.log(args.json ? JSON.stringify({ ...result, circuit: undefined }, null, 2) : formatChange(result, lang, { t, formatIssue }));
+  console.log(args.json ? JSON.stringify({ ...result, circuit: undefined }, null, 2) : [formatChange(result, lang, { t, formatIssue }), pageLine(result.files, lang)].filter(Boolean).join('\n'));
   fail(result.errors.length ? 1 : 0);
 } else if (command === 'query') {
   const circuit = loadCircuit(paths);
@@ -243,10 +272,10 @@ if (command === 'layout') {
 } else if (command === 'review') {
   const result = review(loadCircuit(paths), { profile: args.profile, views: args.views, lang, explain: args.explain });
   console.log(args.json ? JSON.stringify(result, null, 2) : formatReview(result, lang, { t, formatIssue }));
-  fail(result.verdict === 'approved' ? 0 : 2);
+  fail(result.verdict === 'changes' ? 2 : 0);
 } else if (command === 'undo') {
   const result = undoTarget(target, { author: args.author, views: args.views, lang, outputLang: args.lang, outputs: args.outputs });
-  console.log(args.json ? JSON.stringify(result, null, 2) : formatChange(result, lang, { t, formatIssue }));
+  console.log(args.json ? JSON.stringify(result, null, 2) : [formatChange(result, lang, { t, formatIssue }), pageLine(result.files, lang)].filter(Boolean).join('\n'));
   fail(result.errors.length ? 1 : 0);
 } else if (command === 'history') {
   const history = readHistory(paths);
@@ -258,15 +287,15 @@ if (command === 'layout') {
       console.log(t(lang, 'history.entry', { revision: h.revision, time: h.time, author: h.author, note: h.note ? ` (${h.note})` : '', ops }));
     }
   }
-} else if (command === 'parts' && target) {
-  // parts <name>: one type, part number, module, board or recipe in detail.
+} else if ((command === 'catalog' || command === 'parts') && target) {
+  // catalog <name> (parts is the older name, kept): one type, part number, module, board or recipe in detail.
   const entry = catalogEntry(target, lang);
   if (!entry) {
     console.log(t(lang, 'catalog.unknown', { name: target, types: Object.keys(PART_TYPES).join(', ') }));
     fail(1);
   }
   console.log(formatCatalogEntry(entry, lang));
-} else if (command === 'parts') {
+} else if (command === 'catalog' || command === 'parts') {
   for (const [type, def] of Object.entries(PART_TYPES)) {
     const numbers = Object.entries(PART_NUMBERS).filter(([, e]) => e.type === type).map(([n]) => n);
     const pins = def.pins ? def.pins.join(', ') : '—';

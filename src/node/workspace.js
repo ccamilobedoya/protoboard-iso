@@ -10,7 +10,7 @@
 //   { revision, time, author, note, ops, inverse, undoes? }
 // Outputs (SVG, page, report.json) are derived and can be deleted at any time.
 
-import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, mkdirSync, rmSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { applyOps, CIRCUIT_FIELDS } from '../ops.js';
 import { evaluate, diffEvaluations } from '../diff.js';
@@ -46,6 +46,25 @@ export function readHistory(paths) {
     .split('\n')
     .filter((line) => line.trim())
     .map((line) => JSON.parse(line));
+}
+
+// The circuit as it was at an earlier revision: the current one with the inverse of every later
+// change applied, newest first (each history line carries its inverse). Null when the history
+// does not reach that far back or an inverse does not apply.
+export function circuitAt(paths, revision) {
+  const current = loadCircuit(paths);
+  const now = current.revision ?? 0;
+  if (revision === now) return current;
+  if (!Number.isInteger(revision) || revision < 0 || revision > now) return null;
+  const later = readHistory(paths).filter((h) => h.revision > revision).sort((a, b) => b.revision - a.revision);
+  if (later.length !== now - revision || later.some((h) => !Array.isArray(h.inverse))) return null;
+  let circuit = current;
+  for (const entry of later) {
+    const result = applyOps(circuit, entry.inverse);
+    if (result.errors.length) return null;
+    circuit = result.circuit;
+  }
+  return withFolder({ ...circuit, revision }, paths);
 }
 
 function saveCircuit(paths, circuit) {
@@ -91,8 +110,45 @@ function commit(paths, circuit, entry) {
   return saved;
 }
 
+// Two processes may change one circuit (a host can run two of the MCP server): the read of the
+// revision, its check and the write go under a lock, a folder made next to circuit.json (mkdir either
+// makes it or fails), so expect_revision means what it says. A lock older than LOCK_STALE ms is a
+// process that died, and is taken over.
+const LOCK_STALE = 30000;
+const LOCK_WAIT = 10000;
+function withLock(paths, fn) {
+  const lock = `${paths.circuitFile}.lock`;
+  const start = Date.now();
+  for (;;) {
+    try {
+      mkdirSync(lock);
+      break;
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+      try {
+        if (Date.now() - statSync(lock).mtimeMs > LOCK_STALE) rmSync(lock, { recursive: true, force: true });
+      } catch {
+        // gone meanwhile
+      }
+      if (Date.now() - start > LOCK_WAIT) throw new Error(`The circuit is locked by another process (${lock}); try again.`);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20); // a pause of 20 ms
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    rmSync(lock, { recursive: true, force: true });
+  }
+}
+
 // options: dryRun, author, note, expectRevision, views, lang (default), outputLang (asked for), outputs (default true)
 export function applyToTarget(target, ops, options = {}) {
+  const paths = resolveTarget(target);
+  if (!existsSync(paths.circuitFile)) return applyLocked(target, ops, options);
+  return withLock(paths, () => applyLocked(target, ops, options));
+}
+
+function applyLocked(target, ops, options) {
   const { dryRun = false, author = 'unknown', note = '', expectRevision, views, lang = 'en', outputLang, outputs = true } = options;
   const paths = resolveTarget(target);
   const current = loadCircuit(paths);
@@ -138,7 +194,13 @@ export function relayoutTarget(target, circuit, options = {}) {
 }
 
 // Undoes the most recent change that has not been undone yet.
-export function undoTarget(target, { author = 'unknown', views, lang = 'en', outputLang, outputs = true } = {}) {
+export function undoTarget(target, options = {}) {
+  const paths = resolveTarget(target);
+  if (!existsSync(paths.circuitFile)) return undoLocked(target, options);
+  return withLock(paths, () => undoLocked(target, options));
+}
+
+function undoLocked(target, { author = 'unknown', views, lang = 'en', outputLang, outputs = true }) {
   const paths = resolveTarget(target);
   const history = readHistory(paths);
   const undone = new Set(history.filter((h) => h.undoes).map((h) => h.undoes));

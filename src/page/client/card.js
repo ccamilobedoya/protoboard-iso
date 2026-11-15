@@ -104,12 +104,8 @@ function openInfo(page, id, open) {
   const p = data.parts[id];
   info.textContent = '';
   head(page, p.title, [
-    [data.text.ghost, (b) => {
-      if (state.ghost.has(id)) state.ghost.delete(id);
-      else state.ghost.add(id);
-      b.setAttribute('aria-pressed', String(state.ghost.has(id)));
-      applyFocus(page);
-    }, state.ghost.has(id), 'eye'],
+    // The eye takes the part up close (focus-view.js), where the page has that and the part can show it.
+    ...(page.canFocus?.(id) ? [[data.text.focus, () => page.openFocus(id), undefined, 'eye']] : []),
     [data.text.close, () => select(page, null), undefined, 'close'],
   ]);
   fillSummary(page, item(info, 'div', null, 'summary'), p.sim);
@@ -119,7 +115,6 @@ function openInfo(page, id, open) {
   if (p.sim.length) fillSim(page, item(info, 'div', null, 'sim'), p.sim, open);
   page.buildScope?.(info, id);
   page.buildControls?.(info, id);
-  page.buildFocusView?.(info, id);
   // Each pin's line opens the card of its strip, which the part often covers on screen. Folded:
   // where the pins go is reference, read less often than what the part does.
   const fold = item(info, 'details', null, 'pins');

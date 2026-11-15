@@ -309,7 +309,7 @@ test('the inspector holds the card and the circuit\'s panels: tabs, a fixed head
   assert.equal(box.dataset.tab, 'part');
   const head = plain.doc.querySelector('.info .head');
   assert.match(head.querySelector('h2').textContent, /^R1/);
-  assert.deepEqual([...head.querySelectorAll('.actions button')].map((b) => b.title), ['Ver a través', 'Cerrar'], 'see-through and close, as icons, in the head');
+  assert.deepEqual([...head.querySelectorAll('.actions button')].map((b) => b.title), ['Ver la pieza de cerca', 'Cerrar'], 'the eye (the part up close) and close, as icons, in the head');
   assert.ok(plain.doc.querySelector('.info details.pins ul > li'), 'pins folded');
   assert.match(plain.doc.querySelector('.info .summary').textContent, /^MODELO/, 'the summary starts with the MODEL chip');
   assert.equal(plain.doc.querySelectorAll('.info .summary .values > .slot').length, 3, 'one slot per value, so a change never pushes the others');
@@ -386,4 +386,15 @@ test('taps: the open part tapped again picks the part under it; a tap that hits 
   doc.elementsFromPoint = (x, y) => (Math.hypot(x - 12, y - 8) > 1 ? [el(b)] : []);
   click(front.querySelector('.board'), 12, 8);
   assert.equal(open(), title(b));
+});
+
+test('the inspector is a side panel on a wide or a wide-and-short frame, a sheet otherwise; the scope is capped', async () => {
+  const { STYLE } = await import('../src/page/style.js');
+  const { readFileSync } = await import('node:fs');
+  const wide = '(min-width: 761px) or ((min-width: 640px) and (min-aspect-ratio: 13/10))';
+  assert.ok(STYLE.includes(`@media ${wide} {\n  .inspector { top: 8px`), 'the panel');
+  assert.ok(STYLE.includes(`@media not (${wide}) {\n  .inspector { left: 0`), 'the sheet');
+  const client = readFileSync(new URL('../src/page/client/inspector.js', import.meta.url), 'utf8');
+  assert.ok(client.includes(`const NARROW = 'not (${wide})'`), 'the script asks the same question');
+  assert.match(STYLE, /\.info \.scope svg \{[^}]*max-width: 320px/);
 });

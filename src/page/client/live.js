@@ -255,7 +255,8 @@ export function setupLive(page) {
   if (written) page.onShow.push(() => written.fill(Infinity));
   let peak = 0;
   const recording = wantsDirector(location.search);
-  const landing = !recording && Boolean(data.tour) && wantsLanding(location.search);
+  // (The empty timeline a page carries for the view up close is not a tour to play.)
+  const landing = !recording && Boolean(data.tour?.steps?.length) && wantsLanding(location.search);
   const rate = landing ? LANDING.rate : 1; // a landing's tour runs calmer (tour.js, LANDING)
   let director = null; // set below, once the controls it moves exist
   let directing = false; // the director has the time: a recording, or a tour playing

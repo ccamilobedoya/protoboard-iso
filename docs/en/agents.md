@@ -15,6 +15,11 @@ tools ([mcp.md](mcp.md)) and fall back to the CLI.
 
 ## `review`: the shared definition of done
 
+A third outcome sits between the two: a circuit whose drawing is right but that would damage a part as
+wired (an LED straight across 9 V) is **APPROVED WITH WARNINGS** (`hazards`, from the simulator's DC
+point; no new thresholds). It does not block and is not a fix round: the agent reports it prominently,
+and the main conversation tells the user, since burning a part can be the lesson.
+
 ```bash
 node bin/protoboard-iso.js review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
 ```
@@ -162,7 +167,7 @@ Needed for: <circuit or lesson>
 
 Replies follow the formats at the end of each agent file (`LAYOUT REPORT`, `REVIEW REPORT`,
 `PARTS REPORT`). Each ends in one `STATUS:` line, so the main conversation knows what comes next
-without reading the rest: layout `DONE | CHANGES | BLOCKED`, review `APPROVED | CHANGES` (the same
+without reading the rest: layout `DONE | WARNINGS | CHANGES | BLOCKED`, review `APPROVED | WARNINGS | CHANGES` (the same
 word as its verdict), parts `DONE | BLOCKED`. `node scripts/report-status.js < report` checks the
 line and that it agrees with the report.
 

@@ -143,7 +143,7 @@ import { applyToTarget, undoTarget, readHistory } from 'protoboard-iso/workspace
    goes. Then propose a batch of operations; `apply --dry-run`.
 3. If the diff introduces nothing unintended, apply with `--expect-revision`, an author and
    a note that says why.
-4. `review <target>` until it says APPROVED (see [agents.md](agents.md) for profiles).
+4. `review <target>` until it says APPROVED (see [agents.md](agents.md) for profiles). APPROVED WITH WARNINGS means the drawing is right but a part would be damaged as wired (`hazards`): tell the user and keep it only if that is the point.
 5. Never edit `circuit.json` by hand while others work on it, and never edit outputs.
 
 ## Agents

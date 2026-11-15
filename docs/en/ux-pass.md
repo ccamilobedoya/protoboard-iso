@@ -16,6 +16,8 @@ with the tests green, this page and the roadmap up to date.
 
 ## Status
 
+- 2026-11-14, from a chat widget (about 1000 px wide, 500 to 800 tall): the inspector is a side panel on a screen wider than 760 px **or** on a landscape frame from 640 px (aspect 13:10 and up), a bottom sheet otherwise (it covered most of a 700×500 frame); the oscilloscope is capped at 320 px wide (its traces and labels scaled with the width and filled a wide sheet). `scripts/ux-shots.js` also takes the page in a frame of 1000×560, 1000×800 and 700×500.
+
 - ✅ U0 (2026-10-16): `scripts/ux-shots.js`; the "before" set is the review's screenshots.
 - ✅ U1 (2026-10-16): gestures by context, zoom buttons, double tap to a part, full screen. Checked
   in Chromium with touch emulation inside an iframe: one finger and the wheel scroll the note, two
@@ -139,8 +141,7 @@ strip* becomes a first-time pill over the frame that goes away after the first t
 
 ### Inspector
 
-One container for every card, with a sticky header: title, ✕, and the *See through* toggle for a
-part. Order of sections: what it is (kind, value, use here) → values with a **MODEL** badge →
+One container for every card, with a sticky header: title, ✕, and, for a part with a close-up, the eye (*See the part up close*; it was a *See through* toggle until 2026-11-14). Order of sections: what it is (kind, value, use here) → values with a **MODEL** badge →
 oscilloscope → its controls → pins / leads (collapsed). With nothing selected, the inspector shows
 the **Circuit** tab: the `page.controls` sliders, the warnings (with *Clear marks*), the Falstad
 notes. A warning also lights a dot on the bar so it is never missed.

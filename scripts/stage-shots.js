@@ -409,7 +409,7 @@ function parse(argv) {
 async function main() {
   const args = parse(process.argv.slice(2));
   const circuit = loadCircuit(resolveTarget(args.target));
-  const { html } = renderPage(circuit, { lang: args.lang });
+  const { html } = renderPage(circuit, { lang: args.lang, focusView: false }); // stage shots are recordings: no view up close
   const name = basename(args.target).replace(/\.json$/, '');
   const { browser, missing } = await openBrowser();
   if (missing) {

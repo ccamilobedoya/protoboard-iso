@@ -20,7 +20,7 @@ const jsonOf = (r) => JSON.parse(r.content.find((c) => c.type === 'text').text);
 before(async () => {
   client = new Client({ name: 'test', version: '0.0.0' });
   await client.connect(
-    new StdioClientTransport({ command: process.execPath, args: [new URL('../server.js', import.meta.url).pathname], env: { ...process.env, PROTOBOARD_ROOT: root, PROTOBOARD_LANG: 'en' } }),
+    new StdioClientTransport({ command: process.execPath, args: [new URL('../server.js', import.meta.url).pathname], env: { ...process.env, PROTOBOARD_ROOT: root, PROTOBOARD_LANG: 'en', PROTOBOARD_DEV: '1' } }),
   );
 });
 after(async () => client?.close());

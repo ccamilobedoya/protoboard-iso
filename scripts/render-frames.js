@@ -450,7 +450,7 @@ async function main() {
     console.log(count ? `✖ ${count} problem(s) above` : `✔ ${basename(args.timeline)}: ${tour.steps.length} steps, the last at ${last.toFixed(1)} s, no problems`);
     return count ? 1 : 0;
   }
-  const { html } = renderPage(circuit, { lang: args.lang });
+  const { html } = renderPage(circuit, { lang: args.lang, focusView: false }); // a recording never has the view up close
   if (!html) throw new Error('the circuit has no page');
   const name = basename(args.timeline).replace(/\.json$/, '');
   const formats = args.formats ?? [tour.format];

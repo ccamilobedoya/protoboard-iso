@@ -48,7 +48,7 @@ export function casePage(c) {
   const r = autoLayout(expandRecipe(c.recipe, c.values).spec);
   if (r.status !== 'done') throw new Error(`recipe ${c.recipe}: ${r.status}`);
   const circuit = c.tour ? { ...r.circuit, page: { ...r.circuit.page, tour: JSON.parse(readFileSync(join(root, c.tour), 'utf8')) } } : r.circuit;
-  const { html } = renderPage(circuit, { lang: c.lang ?? 'en' });
+  const { html } = renderPage(circuit, { lang: c.lang ?? 'en', focusView: false }); // frames never have the view up close
   return html;
 }
 

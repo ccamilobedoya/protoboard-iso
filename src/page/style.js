@@ -40,6 +40,17 @@ const MOVE_TOKENS = Object.entries(MOVES)
   .map(([name, m]) => `--move-${name}-ms: ${m.ms}ms;${m.curve ? ` --move-${name}-ease: cubic-bezier(${m.curve.join(', ')});` : ''}`)
   .join('\n  ');
 
+// How strong the page's background grid of holes is, against its first look (1). The board's own
+// holes compete with it when the whole board is seen from afar, so it is a quarter. A single value:
+// the dots of the light and dark themes are multiplied by it (--grid-strength); the engineering paper of
+// the notebook and stage themes keeps its lines, they are the look of those themes.
+export const GRID_STRENGTH = 0.25;
+
+// The inspector is a panel on the right (WIDE) or a sheet from the bottom (everything else): a screen
+// wider than 760 px, or a landscape frame of 640 px and up (a widget in a chat is wide and short).
+// page/client/inspector.js asks the same question (NARROW).
+const WIDE = '(min-width: 761px) or ((min-width: 640px) and (min-aspect-ratio: 13/10))';
+
 export const STYLE = `
 :root {
   ${MOVE_TOKENS}
@@ -65,7 +76,7 @@ export const STYLE = `
   --trace-v: #f5a623; --trace-v-ink: #8a5a00; --trace-i: #00e5ff; --trace-i-ink: #00687a;
   /* The grid of holes continued under the drawing (stage and video, V4; render/hole-grid.js): in
      the drawing, so it moves and scales with the board; dots on the bench, lines on the stage. */
-  --grid-dot: rgba(26, 26, 26, 0.22); --grid-dot-major: rgba(26, 26, 26, 0.38); --grid-line: transparent; --grid-line-major: transparent;
+  --grid-strength: ${GRID_STRENGTH}; --grid-dot: rgba(26, 26, 26, calc(0.22 * var(--grid-strength))); --grid-dot-major: rgba(26, 26, 26, calc(0.38 * var(--grid-strength))); --grid-line: transparent; --grid-line-major: transparent;
   /* The video's caption (V4): the face, its inks, and its sizes as a share of the frame's width. */
   --cap-face: var(--sans); --cap-ink: var(--ink); --cap-ink-2: var(--ink-3); --cap-value: var(--accent);
 }
@@ -82,7 +93,7 @@ export const STYLE = `
   --tag-v: #6fa8e8; --tag-i: #ef8a6e;
   --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
   --pulse: #fff3c4; --canvas: #121211; --veil: #121211; --cap-value: #ffb340;
-  --grid-dot: rgba(255, 255, 255, 0.18); --grid-dot-major: rgba(255, 255, 255, 0.3);
+  --grid-dot: rgba(255, 255, 255, calc(0.18 * var(--grid-strength))); --grid-dot-major: rgba(255, 255, 255, calc(0.3 * var(--grid-strength)));
 } }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -97,7 +108,7 @@ export const STYLE = `
   --tag-v: #6fa8e8; --tag-i: #ef8a6e;
   --trace-v-ink: #f5b84a; --trace-i-ink: #5fe3f5;
   --pulse: #fff3c4; --canvas: #121211; --veil: #121211; --cap-value: #ffb340;
-  --grid-dot: rgba(255, 255, 255, 0.18); --grid-dot-major: rgba(255, 255, 255, 0.3);
+  --grid-dot: rgba(255, 255, 255, calc(0.18 * var(--grid-strength))); --grid-dot-major: rgba(255, 255, 255, calc(0.3 * var(--grid-strength)));
 }
 :root[data-theme="stage"] {
   /* The stage (V4): the notebook at night. A slate ground with the engineering grid in pale blue,
@@ -256,7 +267,7 @@ main { position: relative; }
 .info .summary { display: none; align-items: baseline; gap: 8px; padding: 0 0 6px; white-space: nowrap; overflow: hidden; }
 /* Only in a peeking sheet (all it shows); open, the Simulation section below says the same. Each
    value has a slot of its own, so a value that changes length never pushes the others. */
-@media (max-width: 760px) { .inspector[data-size="peek"] .info .summary:not([hidden]) { display: flex; } }
+@media not (${WIDE}) { .inspector[data-size="peek"] .info .summary:not([hidden]) { display: flex; } }
 .info .summary .slot { display: inline-block; width: 8.5ch; text-align: right; } /* sign, three digits, unit: at most 8 */
 .info .summary .model, .model-badge { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: var(--ink-3); border: 1px solid var(--hair); border-radius: 4px; padding: 1px 5px; }
 .info .summary .values { display: flex; gap: 6px; font-family: var(--mono); font-size: 12px; color: var(--accent); }
@@ -306,7 +317,7 @@ nav .falstad .flag { width: auto; flex: none; color: var(--warn-ink); background
 nav .falstad .flag[hidden] { display: none; }
 .info .scope { margin-top: 8px; }
 .info .scope h3 { margin: 0 0 2px; }
-.info .scope svg { display: block; width: 100%; height: auto; font-family: inherit; }
+.info .scope svg { display: block; width: 100%; max-width: 320px; height: auto; font-family: inherit; } /* the traces and their labels scale with the width: in a wide sheet they would fill the frame */
 .scope-screen { fill: var(--scope); }
 .scope-grid { stroke: var(--scope-grid); stroke-width: 0.6; }
 .scope-zero { stroke: var(--scope-zero); stroke-width: 0.8; }
@@ -495,17 +506,12 @@ body.layer-flow main[data-scene] > svg > .spotlight { opacity: 1; }
 /* The current layer, whose own glow stands in for the lights on the board, is not drawn there: an LED
    on the bench keeps its light, and a bigger resistor dims it. */
 body.layer-flow main[data-scene] > svg > .lights { display: inline; }
-/* A part's view up close (F5; page/client/focus-view.js). The card's entry is its first row: a step of
-   tone, the pedestal's icon, the words, a chevron. On the pedestal a dock at the bottom: the legend of the
+/* A part's view up close (F5; page/client/focus-view.js). The card's entry is its eye button. On the pedestal a dock at the bottom: the legend of the
    inside view when it is on, and the bar (Back and the part's name; two segmented controls, one per room
    around the part, each as wide as its options). Flat surfaces and the theme's tokens, with the hairline
    edge the page's other floating panel (the menu) has; 44 px targets. */
-.focus-open { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; margin: 2px 0 8px; padding: 0 12px; border: none; border-radius: 8px; background: var(--well); color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
-.focus-open > span { flex: 1; }
-.focus-open::after { content: "›"; color: var(--ink-3); font-size: 18px; line-height: 1; }
-.focus-open .icon { color: var(--accent); }
-.focus-open:hover { background: var(--press); }
-.focus-open:focus-visible, .focus-dock button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.focus-dock button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .focus-dock { position: absolute; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); z-index: 4; display: flex; flex-direction: column; gap: 8px; max-width: 640px; margin: 0 auto; }
 .focus-dock[hidden], .focus-legend[hidden] { display: none; }
 .focus-bar, .focus-legend { background: var(--card); color: var(--ink); border: 1px solid var(--hair); border-radius: 12px; }
@@ -565,7 +571,7 @@ body.layer-flow main[data-scene] > svg > .lights { display: inline; }
   .focus-dock .segmented { flex: 1; }
   .focus-dock .segmented button { flex: 1; padding: 0 6px; }
 }
-:is([data-theme="stage"], [data-theme="notebook"]) :is(.focus-open, .focus-bar, .focus-legend, .focus-back, .focus-dock .segmented, .focus-dock .segmented button) { border-radius: 2px; }
+:is([data-theme="stage"], [data-theme="notebook"]) :is(.focus-bar, .focus-legend, .focus-back, .focus-dock .segmented, .focus-dock .segmented button) { border-radius: 2px; }
 /* Up close, the page's bar steps aside (the dock has Back): more room, and on a narrow screen a bar
    grown with the time's buttons would widen the whole page. */
 body.focus-view nav { display: none; }
@@ -691,12 +697,12 @@ body.embedded .first-hint .alone, body:not(.embedded) .first-hint .framed { disp
 /* MODEL lives in the bar, right, as grey text (V3): shown with the first card, not at rest. */
 nav .model-badge { display: none; align-self: center; margin: 0 6px; border: none; padding: 0; white-space: nowrap; pointer-events: none; }
 body.show-results.focusing nav .model-badge { display: block; }
-@media (min-width: 761px) {
+@media ${WIDE} {
   .inspector { top: 8px; right: 8px; width: 300px; max-height: calc(100% - 16px); border-radius: 6px; }
   .inspector .collapse[aria-expanded="true"] .icon { transform: rotate(180deg); }
   .zoom { right: auto; left: 8px; }
 }
-@media (max-width: 760px) {
+@media not (${WIDE}) {
   .inspector { left: 0; right: 0; bottom: 0; height: 85%; border-bottom: none; border-radius: 12px 12px 0 0; transition: transform 280ms var(--ease-drawer); }
   .inspector.dragging { transition: none; }
   .inspector .grip { display: block; }
@@ -709,7 +715,7 @@ body.show-results.focusing nav .model-badge { display: block; }
 /* Entrances (U5): the menu grows from its button, the panel slides in a little; exits are instant. */
 nav .menu { transform-origin: top right; transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out); }
 @starting-style { nav .menu { opacity: 0; transform: scale(0.96); } }
-@media (min-width: 761px) {
+@media ${WIDE} {
   .inspector { transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out); }
   @starting-style { .inspector { opacity: 0; transform: translateX(12px); } }
 }

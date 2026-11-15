@@ -34,3 +34,57 @@ test('cli: known options and "-" for standard input still read', () => {
   const dry = spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'apply', example, '-', '--dry-run'], { cwd: root, encoding: 'utf8', input: '{"op":"set","part":"R1","value":"470"}' });
   assert.equal(dry.status, 0, dry.stderr);
 });
+
+// ---- clean-install contract: names and paths say what they are
+
+import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { isAbsolute } from 'node:path';
+import { rasterAvailable } from '../src/node/raster.js';
+
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+test('cli: render to a .png name writes a real PNG or fails, never SVG text under that name', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pbi-cli-'));
+  const out = join(dir, 'x.png');
+  const r = cli('render', example, '-o', out, '--png-width', '400');
+  if (await rasterAvailable()) {
+    assert.equal(r.status, 0, r.stderr);
+    const bytes = readFileSync(out);
+    assert.deepEqual(bytes.subarray(0, 8), PNG);
+    assert.equal(bytes.readUInt32BE(16), 400, 'IHDR width');
+  } else {
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /npm install/);
+    assert.ok(!existsSync(out) || readFileSync(out).subarray(0, 8).equals(PNG), 'no SVG text in a .png');
+  }
+});
+
+test('cli: --png-width with an SVG output is an error, not silently ignored', () => {
+  const r = cli('render', example, '-o', join(mkdtempSync(join(tmpdir(), 'pbi-cli-')), 'x.svg'), '--png-width', '400');
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /--png-width/);
+});
+
+test('cli: catalog is the name of the catalogue and parts still works', () => {
+  const a = cli('catalog');
+  assert.equal(a.status, 0, a.stderr);
+  assert.equal(cli('parts').stdout, a.stdout);
+  assert.equal(cli('catalog', 'resistor').stdout, cli('parts', 'resistor').stdout);
+  assert.match(cli('--help').stdout, /protoboard-iso catalog/);
+});
+
+test('cli: layout, apply and undo say where the page is (absolute, before STATUS for layout)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pbi-cli-'));
+  const run = (...a) => spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), ...a], { cwd: dir, encoding: 'utf8' });
+  const made = run('layout', 'sw', '--recipe', 'npn-switch');
+  assert.equal(made.status, 0, made.stderr);
+  const lines = made.stdout.trim().split('\n');
+  assert.match(lines.at(-1), /^STATUS: DONE/);
+  const page = lines.at(-2).match(/^Page: (.+?) \(open it/)?.[1];
+  assert.ok(page && isAbsolute(page) && existsSync(page), lines.at(-2));
+  const applied = run('apply', 'sw', '--ops', '{"op":"set","part":"R1","value":"470"}');
+  assert.match(applied.stdout.trim().split('\n').at(-1), /^Page: \//);
+  assert.match(run('undo', 'sw').stdout.trim().split('\n').at(-1), /^Page: \//);
+  assert.match(run('layout', 'sw2', '--recipe', 'npn-switch', '--lang', 'es').stdout.trim().split('\n').at(-2), /^Página: \//);
+});

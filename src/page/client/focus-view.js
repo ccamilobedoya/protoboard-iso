@@ -3,7 +3,7 @@
 // page made with it (page.focusView in the circuit, or renderPage's `focusView`); a recording or a
 // landing never has it.
 //
-// The card of a part offers *See the part up close* as its first row. On the pedestal a bar at the
+// The card of a part offers *See the part up close* as its eye button. On the pedestal a bar at the
 // bottom names the part and holds two segmented controls, one per room around the part: under it the
 // pins or the bench, beside it the symbol or the inside view (one of each at a time, as in a video);
 // a pressed segment pressed again turns its room off. With the inside view on, a legend above the bar
@@ -251,16 +251,9 @@ export function setupFocusView(page, { tour, t }) {
     }, PAGE_VIEW.back + 100);
   }
 
-  // *See the part up close*, first in the card of a part the view can show.
-  page.buildFocusView = (info, id) => {
-    if (!page.data.pinouts?.[page.state.view]?.[id]) return;
-    const b = make('button', 'focus-open');
-    b.type = 'button';
-    b.innerHTML = iconSvg('pedestal');
-    make('span', null, b).textContent = t('page.tour.view.open');
-    b.addEventListener('click', () => enter(id));
-    info.querySelector('.head')?.after(b);
-  };
+  // *See the part up close*: the eye in the card of a part the view can show (card.js).
+  page.canFocus = (id) => Boolean(page.data.pinouts?.[page.state.view]?.[id]);
+  page.openFocus = enter;
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && on) leave();
   });

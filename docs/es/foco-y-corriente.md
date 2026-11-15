@@ -30,8 +30,8 @@ página con esos componentes en foco (los que explica la lección).
   con R1 (2)»).
 - **La ficha vive en el inspector**: un panel a la derecha en una pantalla ancha, una hoja inferior
   en el celular (tres alturas: una franja con el nombre y los valores, media, completa; se arrastra o
-  se toca su encabezado). Su encabezado queda arriba: el nombre, **Ver a través** (el ojo: vuelve
-  transparente el componente, para ver qué hay detrás) y **Cerrar** (✕). En el celular, con la hoja
+  se toca su encabezado). Su encabezado queda arriba: el nombre, **Ver la pieza de cerca** (el ojo, en una pieza que tenga vista de cerca: un cable o una
+  placa de desarrollo no la tienen; fue un botón de «ver a través» hasta el 2026-11-14, ahora que la protoboard se puede voltear) y **Cerrar** (✕). En el celular, con la hoja
   plegada, una línea debajo muestra una etiqueta *MODELO* y los valores principales, cada uno en una
   casilla fija para que un valor que cambia no empuje a los demás (abierta, la sección *Simulación*
   dice lo mismo, así que la línea se oculta). Después, qué es, sus valores, su

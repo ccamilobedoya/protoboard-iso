@@ -10,7 +10,9 @@ de la línea de comandos (ver [interfaz-para-agentes.md](interfaz-para-agentes.m
 
 Vive en su propio paquete (`mcp/package.json`) porque necesita el SDK de MCP y Zod; el kit en
 sí sigue sin dependencias. Las herramientas se definen en `mcp/tools.js`; `mcp/server.js` las
-registra y corre sus funciones en un hilo aparte (*worker*, `mcp/kit-worker.js`).
+registra y corre sus funciones en un hilo aparte (*worker*, `mcp/kit-worker.js`); el servidor
+mismo es `mcp/core.js`. En un anfitrión con MCP Apps, `layout` además muestra la página en vivo del
+circuito en la conversación: [mcp-apps.md](mcp-apps.md).
 
 **Recarga el kit solo.** Antes de cada llamada, el servidor mira si el código del kit (`src/`,
 `mcp/tools.js`) cambió desde que arrancó su *worker*; si cambió, arranca uno nuevo, así que las
@@ -32,6 +34,9 @@ Variables de entorno:
 |---|---|---|
 | `PROTOBOARD_ROOT` | la carpeta actual | la única carpeta que el servidor lee y escribe; rechaza rutas fuera de ella |
 | `PROTOBOARD_LANG` | `en` | idioma por defecto de las respuestas y de los archivos (`en`, `es`); el `"lang"` del propio circuito y el argumento `lang` de cada herramienta ganan sobre él |
+| `PROTOBOARD_APPS` | `auto` | la página en vivo del circuito dentro de anfitriones con MCP Apps: `auto` a un cliente que anuncia la extensión, `on` a todo cliente, `off` a ninguno ([mcp-apps.md](mcp-apps.md)) |
+| `PROTOBOARD_DEV` | sin definir | `1`: las herramientas corren en un worker que se reinicia cuando cambia el código del kit (para trabajar en el kit; el `.mcp.json` de este repositorio lo pone) |
+| `PROTOBOARD_APPS_DEBUG` | sin definir | `1`: el visor reporta lo que responde el anfitrión a `<raíz>/.protoboard/app-report.jsonl` ([mcp-apps.md](mcp-apps.md)) |
 
 ## Registrarlo
 
@@ -42,16 +47,57 @@ Si `node` no está en el PATH con el que arranca Claude Code (por ejemplo, con n
 con rutas absolutas en tu alcance local; tiene prioridad sobre `.mcp.json`:
 
 ```bash
-claude mcp add --scope local protoboard-iso -e PROTOBOARD_ROOT=$PWD -e PROTOBOARD_LANG=es \
+claude mcp add --scope local protoboard-iso -e PROTOBOARD_ROOT="$HOME/circuits" -e PROTOBOARD_LANG=es \
   -- "$(command -v node)" "$PWD/mcp/server.js"
 claude mcp get protoboard-iso     # debe decir: Connected
 ```
 
-Para usarlo desde otro proyecto (por ejemplo, la carpeta de un curso con sus propios
-circuitos), corre el mismo comando desde ese proyecto con `PROTOBOARD_ROOT` apuntando a él.
+Córrelo desde el clon (`$PWD/mcp/server.js`). `PROTOBOARD_ROOT` es una carpeta tuya para los
+circuitos (`mkdir "$HOME/circuits"` antes), no el clon; para guardarlos con un proyecto (por ejemplo, la
+carpeta de un curso), apúntalo a esa carpeta.
 
-**Claude Desktop y otros clientes:** un servidor stdio con el comando `node`, como argumento
-la ruta absoluta de `mcp/server.js`, y las variables de arriba.
+**Otros clientes:** un servidor stdio con el comando `node`, como argumento la ruta absoluta de
+`mcp/server.js`, y las variables de arriba.
+
+### Claude Desktop
+
+Abre el archivo desde **Settings > Developer > Edit Config** (crea `claude_desktop_config.json`
+si no existe y muestra dónde está), agrega el servidor en `mcpServers`, guarda, y cierra Claude
+Desktop por completo y vuélvelo a abrir:
+
+```json
+{
+  "mcpServers": {
+    "protoboard-iso": {
+      "command": "node",
+      "args": ["/ruta/absoluta/a/protoboard-iso/mcp/server.js"],
+      "env": {
+        "PROTOBOARD_ROOT": "/ruta/absoluta/a/mis-circuitos",
+        "PROTOBOARD_LANG": "es"
+      }
+    }
+  }
+}
+```
+
+- `args` lleva la ruta absoluta de `mcp/server.js` dentro del clon, después de `cd mcp && npm install`.
+- `PROTOBOARD_ROOT` es una carpeta tuya donde se guardarán los circuitos (créala antes). **No** es
+  el clon: el servidor solo lee y escribe dentro de ella.
+- `PROTOBOARD_LANG` es `en` o `es`.
+- Claude Desktop arranca el servidor con su propio PATH. Si `node` está instalado con nvm (u otro
+  gestor de versiones) puede que no lo encuentre: pon la ruta absoluta de `node` en `command`
+  (`command -v node` la muestra en macOS y Linux; `where node` en Windows).
+- En Windows escribe las rutas con barras invertidas dobles o con barras normales:
+
+```json
+"command": "C:\\Program Files\\nodejs\\node.exe",
+"args": ["C:\\protoboard-iso\\mcp\\server.js"],
+"env": { "PROTOBOARD_ROOT": "C:/mis-circuitos" }
+```
+
+Cada circuito es una carpeta bajo la raíz; la página de cada uno es `out/<nombre>.html` dentro de
+ella, y cada respuesta de `layout`, `apply_ops` y `undo` dice su ruta absoluta: haz doble clic
+para abrirla.
 
 ## Herramientas
 
@@ -63,12 +109,12 @@ la ruta absoluta de `mcp/server.js`, y las variables de arriba.
 | `inspect` | el dibujo en números; `part` para un solo componente | no |
 | `query` | `kind: at \| node \| free` con `ref` | no |
 | `netlist` | el circuito como redes: grupos unidos por cables, las patas de cada una (`R1.1@d20`), etiquetas, patas solas en su red | no |
-| `layout` | un circuito de clase habitual por su nombre: `recipe` y solo los `values` que cambian ([recetas.md](recetas.md)); si no, un circuito entero ubicado en una llamada a partir de sus componentes (sin agujeros, en el orden de la señal; números de parte, módulos y alias) y sus redes (patas y rieles; valen los nombres de pata usuales: `D1.K`, `U1.VIN`, `U1.GPIO4`): capas por distancia a la fuente, reglas por tipo de pieza, cables, redes de tierra a un riel −, la revisión de redes y la revisión lesson, con reintentos y reparación cable por cable. Sobre un destino que ya existe, lo vuelve a montar en una sola revisión dando solo lo que cambia (`expect_revision`; las piezas conservan sus agujeros; `undo` lo deshace). Las redes quedan en el circuito (`spec`). Termina en `STATUS: DONE \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` solo revisa. El algoritmo: [montaje-automatico.md](montaje-automatico.md) | sí |
+| `layout` | un circuito de clase habitual por su nombre: `recipe` y solo los `values` que cambian ([recetas.md](recetas.md)); si no, un circuito entero ubicado en una llamada a partir de sus componentes (sin agujeros, en el orden de la señal; números de parte, módulos y alias) y sus redes (patas y rieles; valen los nombres de pata usuales: `D1.K`, `U1.VIN`, `U1.GPIO4`): capas por distancia a la fuente, reglas por tipo de pieza, cables, redes de tierra a un riel −, la revisión de redes y la revisión lesson, con reintentos y reparación cable por cable. Sobre un destino que ya existe, lo vuelve a montar en una sola revisión dando las redes nuevas y, si cambian componentes, la lista completa (`expect_revision`; las piezas conservan sus agujeros; `undo` lo deshace). Las redes quedan en el circuito (`spec`). Termina en `STATUS: DONE \| WARNINGS \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` solo revisa. El algoritmo: [montaje-automatico.md](montaje-automatico.md) | sí |
 | `suggest` | posiciones válidas para un componente nuevo, cada una con su operación `add` y el cuerpo más cercano (`nearest`: componente y holgura); `profile` deja fuera también lo que esa revisión bloquea; `parts` coloca varios en orden y responde un solo lote | no |
 | `apply_ops` | lote atómico; primero `dry_run`, luego `expect_revision`, `author`, `note` | sí |
 | `try_ops` | el mismo lote, solo en seco: qué arreglaría y qué introduciría; para los roles de solo lectura (el revisor) | no |
 | `undo` | deshace el último cambio (revisión nueva) | sí |
-| `review` | APROBADO o CAMBIOS a partir de mediciones, perfil `lesson` o `draft`; cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `explain: true` agrega las reglas del perfil; un circuito con `spec` también tiene sus redes revisadas | no |
+| `review` | APROBADO, APROBADO CON AVISOS (`hazards`: componentes que la simulación en DC pasa de un máximo; no bloquean) o CAMBIOS a partir de mediciones, perfil `lesson` o `draft`; cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `explain: true` agrega las reglas del perfil; un circuito con `spec` también tiene sus redes revisadas | no |
 | `history` | revisiones, autores, notas, operaciones | no |
 | `render` | escribe el SVG; con `png_width` devuelve también una imagen PNG; con `page: true` reescribe la página para embeber ([embeber.md](embeber.md)); con `sim: true` dibuja los resultados de la simulación; `focus: [ids]` atenúa lo demás; `flow: true` la capa de corriente | solo salidas |
 | `simulate` | voltajes de los grupos y corrientes de los componentes, un modelo ([simulacion.md](simulacion.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` agrega el enlace que abre el circuito en Falstad ([falstad.md](falstad.md)) | no |
@@ -92,6 +138,30 @@ ciclo de operaciones, cómo revisar (`review`, `netlist`, `simulate`, sin mostra
 predecir), los agujeros y la simulación de la página. Nunca reescribir los archivos de circuito; PNG
 solo cuando importa el estilo.
 
+## Qué guarda el servidor y dónde
+
+El servidor no guarda en memoria nada que importe: un anfitrión puede correr dos procesos suyos para una
+sesión (Claude Desktop lo hace), y cualquiera puede morir o duplicarse en cualquier momento. Lo que guarda
+está en disco, en la raíz:
+
+- **Los circuitos**: `circuit.json`, `history.jsonl` y `out/` de cada carpeta, o un archivo de circuito.
+  Dos procesos pueden cambiar un mismo circuito: el cambio se hace bajo un candado (una carpeta
+  `circuit.json.lock`, que se toma si pasa de 30 s), así que `expect_revision` se cumple para una sola de
+  dos llamadas simultáneas y la otra recibe `REVISION_MISMATCH`.
+- **`.protoboard/`**, la carpeta oculta propia del servidor (`list_circuits` y la búsqueda de circuitos
+  de la raíz la ignoran), escrita con un archivo temporal que se renombra:
+  - `selection.json`: lo último que tocó el usuario en el tablero vivo (MCP Apps), a lo sumo los últimos
+    32 circuitos, nada de más de 24 horas ([mcp-apps.md](mcp-apps.md)).
+  - `pages/<hash del circuito>.<revisión>.<id>.json`: la página armada que se entrega al visor en
+    trozos; las 2 revisiones más nuevas por circuito, a lo sumo 64 archivos y 64 MB en total, nada de
+    más de 7 días, podado cada vez que se escribe uno.
+  - `app-report.jsonl`, solo con `PROTOBOARD_APPS_DEBUG=1`: a lo sumo 256 KB, una línea por reporte.
+
+Borrar `.protoboard/` en cualquier momento es seguro: todo lo que tiene se reconstruye o solo se olvida.
+Por defecto las herramientas corren dentro del proceso del servidor; con `PROTOBOARD_DEV=1` (puesto en el
+`.mcp.json` de este repositorio) corren en un worker que se reinicia cuando cambia el código del kit, una
+comodidad para trabajar en el kit. El servidor termina cuando su stdin termina o se cierra.
+
 ## Ejemplo de sesión
 
 ```text
@@ -104,7 +174,7 @@ layout    {target: "interruptor", nets: <spec.nets con un cambio>, expect_revisi
                                      → … STATUS: DONE · rev 1 (todo lo demás en su lugar)
 apply_ops {target, ops: [{op: "set", part: "R2", value: "470"}], dry_run: true} → qué arregla / qué introduce
 apply_ops {target, ops, expect_revision: 1, author: "claude", note: "LED menos brillante"} → rev 2
-review    {target}                   → APROBADO (redes revisadas contra el spec)
+review    {target}                   → APROBADO (redes revisadas contra el spec; APROBADO CON AVISOS si un componente se quemaría)
 undo      {target}                   → rev 3, R2 vuelve a 330
 ```
 

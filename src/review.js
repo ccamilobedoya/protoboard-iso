@@ -6,12 +6,16 @@
 //   lesson  for teaching layouts: nothing hidden, no label trouble, parts not cramped
 //   draft   only errors and warnings block
 //
-// review(circuit, { profile, views, explain }) → { verdict: 'approved' | 'changes', blocking, advisory, summary }
+// review(circuit, { profile, views, explain }) → { verdict: 'approved' | 'approved-with-warnings' | 'changes', blocking, hazards, advisory, summary }
+// `hazards`: parts the simulator's DC point (the one `simulate` prints) takes past a maximum, as
+// wired. They never block (a learner may burn a part on purpose); they change the verdict from
+// approved to approved-with-warnings, so nobody reads a plain APPROVED over a part that would burn.
 // Each blocking item names the parts it is about (`parts`) and the views it shows in (`views`), so
 // the fix is clear without another inspect; `explain` adds the profile's rules (`rules`).
 
 import { evaluate } from './diff.js';
 import { checkNets } from './nets.js';
+import { hazards as simulatedHazards } from './sim/index.js';
 
 export const PROFILES = {
   lesson: {
@@ -99,6 +103,9 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
     for (const s of nets.shorted) once(blocking, { severity: 'error', code: 'SPEC_NETS_SHORTED', params: { nets: s.nets.join(' + ') } });
   }
 
+  // Electrical hazards: the simulator's own "exceeded its maximum" findings, on any profile.
+  const hazards = simulatedHazards(circuit).map((h) => ({ ...h, parts: partsOf(h, ids) }));
+
   for (const p of blocking) {
     p.parts = partsOf(p, ids);
     const seenIn = [...(viewsOf.get(`${p.code} ${JSON.stringify(p.params)}`) ?? [])].filter((v) => v !== 'any');
@@ -108,15 +115,17 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
     profile,
     views,
     ...(explain && { rules: { blocks: ['error', 'warning', ...policy.block], hiddenEverywhere: policy.hiddenEverywhere, hiddenBelow: policy.hiddenBelow, advise: policy.advise ?? 'everything else' } }),
-    verdict: blocking.length ? 'changes' : 'approved',
+    verdict: blocking.length ? 'changes' : hazards.length ? 'approved-with-warnings' : 'approved',
     blocking,
+    hazards,
     advisory,
-    summary: { parts: circuit.parts?.length ?? 0, blocking: blocking.length, advisory: advisory.length },
+    summary: { parts: circuit.parts?.length ?? 0, blocking: blocking.length, hazards: hazards.length, advisory: advisory.length },
   };
 }
 
 export function formatReview(r, lang, { t, formatIssue }) {
-  const lines = [t(lang, r.verdict === 'approved' ? 'review.approved' : 'review.changes', { profile: r.profile, views: r.views.join(', '), ...r.summary })];
+  const headline = { approved: 'review.approved', 'approved-with-warnings': 'review.warnings', changes: 'review.changes' }[r.verdict];
+  const lines = [t(lang, headline, { profile: r.profile, views: r.views.join(', '), ...r.summary })];
   if (r.rules) {
     const codes = r.rules.blocks.filter((c) => c !== 'error' && c !== 'warning');
     lines.push(t(lang, 'review.rules', { codes: codes.join(', ') || '—' }));
@@ -129,9 +138,16 @@ export function formatReview(r, lang, { t, formatIssue }) {
       lines.push(`  ✖ ${formatIssue(p, lang)}${where ? ` [${where}]` : ''}`);
     }
   }
+  lines.push(...formatHazards(r, lang, formatIssue, t));
   if (r.advisory.length) {
     lines.push(t(lang, 'review.advisory'));
     for (const p of r.advisory) lines.push(`  · ${formatIssue(p, lang)}${p.view ? ` [${p.view}]` : ''}`);
   }
   return lines.join('\n');
+}
+
+// The hazards as lines (also layout's): what would be damaged, then what to do about it.
+export function formatHazards(r, lang, formatIssue, t) {
+  if (!r.hazards?.length) return [];
+  return [t(lang, 'review.hazards'), ...r.hazards.map((h) => `  ⚠ ${formatIssue(h, lang)}`), t(lang, 'review.hazardsAdvice')];
 }

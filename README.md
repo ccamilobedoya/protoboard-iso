@@ -26,22 +26,34 @@ by this kit.
 
 ## Try it in a minute
 
+You need [Node.js](https://nodejs.org/) 22 or newer. Check it with `node --version`: it must print
+`v22` or higher.
+
 <!-- smoke -->
 ```bash
 git clone https://github.com/ccamilobedoya/protoboard-iso.git
 cd protoboard-iso                      # nothing to install
-node bin/protoboard-iso.js layout my-switch --recipe npn-switch --values '{"R1":"470","D1":"green"}'
+node bin/protoboard-iso.js layout my-led --recipe led-resistor --values '{"R1":"470","D1":"green"}'
 ```
 
-That lays out a transistor switch from a **recipe**, reviews it, and writes `my-switch/`: the
-circuit (`circuit.json`), its history, and `out/my-switch.html`, a single page with the drawing and
-the live simulation. Open it in a browser. Then:
+That lays out an LED with its resistor from a **recipe**, reviews it, and writes `my-led/`: the
+circuit (`circuit.json`), its history, and `out/my-led.html`, a single page with the drawing and
+the live simulation. The command prints where the page is (`Page: …`): open that file by
+double-clicking it, or drag it into a browser. Then:
 
 <!-- smoke -->
 ```bash
-node bin/protoboard-iso.js simulate my-switch          # voltages and currents, as text
-node bin/protoboard-iso.js render my-switch --view back # the drawing from the other side
-node bin/protoboard-iso.js review my-switch             # APPROVED or CHANGES, and why
+node bin/protoboard-iso.js simulate my-led          # voltages and currents, as text
+node bin/protoboard-iso.js render my-led --view back # the drawing from the other side
+node bin/protoboard-iso.js review my-led             # APPROVED or CHANGES, and why
+```
+
+On Windows PowerShell the quotes of `--values` do not reach the program the same way (Windows
+PowerShell 5.1 strips the inner double quotes). Pass the same JSON through standard input
+instead, which works in every shell:
+
+```powershell
+'{"recipe":"led-resistor","values":{"R1":"470","D1":"green"}}' | node bin/protoboard-iso.js layout my-led -
 ```
 
 ## From a description to a lesson
@@ -108,14 +120,17 @@ circuit is changed with operations instead of being rewritten.
 
 ```bash
 cd mcp && npm install && cd ..
-claude mcp add protoboard-iso -e PROTOBOARD_ROOT="$PWD" -- node "$PWD/mcp/server.js"
+mkdir -p "$HOME/circuits"              # where your circuits are saved: a folder of your own, not this clone
+claude mcp add protoboard-iso -e PROTOBOARD_ROOT="$HOME/circuits" -- node "$PWD/mcp/server.js"
 ```
 
-Then ask for a circuit in plain words ("an LED with its resistor on 9 V"). Setup and the tools:
-[docs/en/mcp.md](docs/en/mcp.md).
+Then ask for a circuit in plain words ("an LED with its resistor on 9 V"). Setup, the tools and
+the Claude Desktop configuration (Windows paths included): [docs/en/mcp.md](docs/en/mcp.md).
 
 **Agent skill.** `SKILL.md` tells an assistant how to use the kit. Link this folder into your
-skills directory, for example `ln -s "$PWD" ~/.claude/skills/protoboard-iso`. For circuit work the
+skills directory: `ln -s "$PWD" ~/.claude/skills/protoboard-iso` (macOS, Linux), or in PowerShell
+`New-Item -ItemType Junction -Path "$HOME\.claude\skills\protoboard-iso" -Target (Get-Location)`
+(create `$HOME\.claude\skills` first if it does not exist; copying the folder there also works). For circuit work the
 repository also has three agents in `.claude/agents/` (one lays out, one reviews, one adds parts):
 [agents](docs/en/agents.md).
 

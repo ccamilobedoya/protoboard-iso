@@ -129,13 +129,16 @@ A recipe is a lesson circuit the kit already knows: proven parts, nets and suppl
 | `STATUS:` | Means | Do |
 |---|---|---|
 | `DONE` | every net is there and the lesson review approves | nothing more (descriptions, if wanted, with `apply_ops`) |
+| `WARNINGS` | built, nets right, but a part would be damaged as wired (⚠ lines) | tell the user first, in plain words, which part and why it burns; keep it if showing the failure is the point, else offer the fix (series resistor, lower supply). Never fix it silently, never refuse: it is a teaching moment |
 | `CHANGES` | created, but the items marked ✖ are open | fix only those with section 2, then `review` |
 | `FIX_SPEC` | nothing created: the spec has mistakes | fix every ✖ (each lists what it accepts) and call again |
 | `SPEC_OK` | `check_only`: the spec is consistent | call again without it |
 
-**Change it later** by calling `layout` on the same target with only what changes: the whole new
-`nets` (start from `spec.nets`), `parts` only if parts change, and `expect_revision`. Every part keeps
-its holes when it still fits, the circuit keeps the new nets, and `undo` brings the old layout back.
+**Change it later** by calling `layout` on the same target with the whole new `nets` (start from
+`spec.nets`) and, if parts or supplies change, the **full** `parts` list (a call with only the
+changed parts fails with `FIX_SPEC`: the nets name parts it lacks) and `supplies` again, plus
+`expect_revision`. A part keeps its holes only when every pin is still where its new net wants
+it; otherwise it is placed again. `undo` brings the old layout back.
 
 ## 2. Operations: small, checked changes
 
@@ -158,9 +161,13 @@ review                     until APPROVED · undo when needed
 
 ## 3. Check it
 
-- **`review`** is the definition of done: APPROVED or CHANGES, profile `lesson` (teaching layouts)
-  or `draft` (only errors and warnings). Each blocking item names its parts and views. A circuit
-  made by `layout` also gets its nets checked against what was asked.
+- **`review`** is the definition of done: APPROVED, APPROVED WITH WARNINGS or CHANGES, profile
+  `lesson` (teaching layouts) or `draft` (only errors and warnings). Each blocking item names its
+  parts and views. A circuit made by `layout` also gets its nets checked against what was asked.
+  It also runs the simulator's DC point (the one `simulate` prints) and lists as hazards the parts
+  past a maximum (`hazards`, ⚠): they do not block, because burning a part can be the lesson, but
+  the verdict is never a plain APPROVED over them. Transient peaks (PWM, a 555, a generator) are not
+  found by it.
 - **`netlist`**: every net with its pins, one call to compare with what the circuit must do.
 - **`simulate`** (a model, not a measurement): node voltages and part currents, DC or transient;
   warnings for shorts, overloads and floating groups. It needs a source (a supply or a battery
@@ -209,12 +216,16 @@ in its card; leave it out when the learner should work it out.
 node bin/protoboard-iso.js layout <target> --recipe npn-switch [--values '{"R1":"470"}']
 node bin/protoboard-iso.js layout <target> [spec.json] [--check] [--expect-revision n]
 node bin/protoboard-iso.js apply <target> --ops '<json>' --dry-run      # then --expect-revision n
-node bin/protoboard-iso.js review | netlist | inspect | history | undo <target>
+node bin/protoboard-iso.js review | check | netlist | nets | inspect | history | undo <target>
 node bin/protoboard-iso.js suggest <target> --part '<json>' --between <group>,<group>
 node bin/protoboard-iso.js simulate <target> [--transient stop,step]
 node bin/protoboard-iso.js render <target> -o out.svg [--view back] [--fit parts]
-node bin/protoboard-iso.js page <target> · parts [name]   # parts: every type, its pins and part numbers, and the recipes
+node bin/protoboard-iso.js render <target> -o out.png [--png-width 900]   # a real PNG; fails (exit 1) when @resvg/resvg-js is not installed
+node bin/protoboard-iso.js page <target> · catalog [name]   # catalog: every type, its pins and part numbers, and the recipes (parts is the old name)
 ```
 
 A target is a circuit folder (`circuit.json`, `history.jsonl`, `out/`) or a circuit file.
-Exit codes: 0 fine (`layout`: `DONE`), 1 errors or refused, 2 review `CHANGES`.
+Exit codes: 0 fine (`layout`: `DONE`), 1 errors or refused, 2 review `CHANGES`. `layout`, `apply`
+and `undo` print where the page is (an absolute path) as the line before `STATUS` (`layout`) or
+the last line. PNG needs `@resvg/resvg-js` (`cd mcp && npm install` in the kit folder; the CLI and the MCP
+server both find it there): the CLI and the MCP `png_width` do the same.

@@ -22,16 +22,11 @@ brief** and return a short **layout report**. You do not talk to the end user.
 0. **Recipe first.** If the brief names a recipe, or asks for one of these circuits, call `layout`
    with `target`, `recipe` and only the `values` that change, by id (`{"R1": "470", "D1": "green",
    "V1": 9}`), plus `title`, `clearance`, `lang` or `page` if the brief gives them; never `parts` or
-   `nets` with it. Recipes: `led-resistor`, `divider`, `npn-switch`, `potentiometer-led`,
-   `mosfet-switch`, `button-pullup`, `button-pulldown`, `rc-square`, `555-astable`, `uno-blink`,
-   `uno-button`, `uno-pot-pwm`, `uno-rgb-led`, `uno-seven-segment`, `lm35-uno`, `c3-blink`, `c3-pot-pwm`,
-   `slide-switch-leds`, `tilt-alarm`, `relay-npn`, `motor-npn`, `pir-lamp`, `pir-uno`, `touch-toggle-led`, `touch-uno`, `regulator-7805`, `regulator-ams1117`, `bridge-rectifier`, `zener-regulator`, `esp32-led`,
-   `esp32-button`, `opamp-comparator`, `lm393-comparator`, `opamp-follower`, `opamp-noninverting`,
-   `opamp-inverting`, `ldr-night-light`, `ldr-comparator`, `lm35-comparator`, `ntc-follower`,
-   `thermistor-uno` (these carry the `environment` and its page control). `catalog` with the recipe's name gives its ids and limits when the brief's values
-   `opamp-inverting`, `rain-alarm`, `soil-led`, `light-switch-module`, `line-follower-uno`, `obstacle-buzzer`,
-   `hall-counter-uno`, `encoder-uno`, `encoder-dimmer-uno`, `laser-tripwire`, `laser-uno`, `uno-distance`, `esp32-distance`, `distance-alarm-uno`, `hall-linear-uno`, `voltage-sensor-uno`, `clap-switch`, `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude`. `catalog` with the recipe's name gives its ids and limits when the brief's values
-   need them. A changed value on a recipe circuit: `layout` again with the recipe, the new values and
+   `nets` with it. The recipes are listed by group by `catalog` (without a name); call it when the
+   brief asks for a usual lesson circuit but does not give the recipe's name (examples: `led-resistor`,
+   `npn-switch`, `555-astable`, `regulator-7805`, `uno-blink`, `esp32-led`, `opamp-inverting`; the
+   sensor recipes carry the `environment` and its page control). `catalog` with the recipe's name
+   gives its ids and limits when the brief's values need them. A changed value on a recipe circuit: `layout` again with the recipe, the new values and
    `expect_revision`. Then step 2.
 1. Call `layout` once. **No `catalog` before it**: it checks every name and pin itself.
    - `target`: the brief's `Target`.
@@ -56,14 +51,19 @@ brief** and return a short **layout report**. You do not talk to the end user.
    - Sensors (LDR, NTC, LM35, tilt switch): give them no `light`/`temperature`/`tilted` unless the
      brief does; when it names the room's light or temperature, set the circuit's `environment` after
      layout with a `circuit` operation (`{"op": "circuit", "environment": {"light": 300}}`).
-   - **On an existing circuit** (it has a `spec`): give only what changes, the whole list of it
-     (`nets` from its `spec.nets`, edited; `parts` only if parts change) and `expect_revision`. The
-     rest stays, every part keeps its holes when it still fits, and `undo` brings the old one back.
+   - **On an existing circuit** (it has a `spec`): give the whole new `nets` (from its `spec.nets`,
+     edited), the **full** `parts` list if parts change (a partial one fails with `FIX_SPEC`) and
+     `supplies` again if they change, plus `expect_revision`. A part keeps its holes only when
+     every pin is still where its new net wants it; `undo` brings the old one back.
 2. **Do what the last line says.** Every answer ends in `STATUS:`:
    - `DONE` → step 3.
    - `FIX_SPEC` → nothing was created. Fix **every** ✖ in your spec (each one lists the names it
      accepts) and call `layout` again, same target. If a part is unknown and none of the closest
      names is it, stop: report it as missing.
+   - `WARNINGS` → the circuit is built and its nets are right, but the ⚠ lines say a part would be
+     damaged as wired. It is not a fix round: do not change it, report it first and prominently
+     (part, value, limit), `Review: APPROVED WITH WARNINGS`, `STATUS: WARNINGS`. The main
+     conversation tells the user and decides.
    - `CHANGES` → the circuit exists. Fix only the ✖ items, with Path B steps 3 to 6. A ✖ saying a
      pin cannot be reached because a board covers its strip (`LAYOUT_PIN_COVERED`) has no fix by
      operations: name another pin with the same signal in the nets (`GND2` for `GND`) and call
@@ -71,7 +71,8 @@ brief** and return a short **layout report**. You do not talk to the end user.
      to `double`, two boards side by side, and says so: `LAYOUT_DOUBLE_BOARD`.)
 3. Descriptions, if the brief asks for them: one `apply_ops` with `set` ops (dry run first).
 4. With a source: `simulate` once. Report only whether it runs and its warnings (short, over
-   current, floating), **never values**: a value may be waiting for a learner's prediction.
+   current, floating), **never values**: a value may be waiting for a learner's prediction. (A part
+   past a maximum is already in `layout`'s answer as a hazard: report it as in `WARNINGS` above.)
 5. Report.
 
 ## Path B · operations (changes and fixes)
@@ -123,13 +124,14 @@ brief** and return a short **layout report**. You do not talk to the end user.
 LAYOUT REPORT
 Target: <target> · revision <n>
 Done: <one line per part placed or changed: id, type/value, holes>
-Review: APPROVED | CHANGES (<n> blocking) · notes: <n>
+Review: APPROVED | APPROVED WITH WARNINGS (<what would be damaged, value, limit>) | CHANGES (<n> blocking) · notes: <n>
 Simulation: runs, no warnings | <warnings> | no source
 Open: <what you could not do and why, or "nothing">
-STATUS: DONE | CHANGES | BLOCKED
+STATUS: DONE | WARNINGS | CHANGES | BLOCKED
 ```
 
-The last line is always `STATUS:`: `DONE` when the review approves and nothing is open, `CHANGES`
+The last line is always `STATUS:`: `DONE` when the review approves and nothing is open, `WARNINGS`
+when it approves but a part would be damaged as wired, `CHANGES`
 when the review still blocks, `BLOCKED` when you could not build it (a missing part, a spec that
 does not read). `node scripts/report-status.js` checks it.
 

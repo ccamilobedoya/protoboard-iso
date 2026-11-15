@@ -17,6 +17,8 @@ sesión termina con las pruebas en verde, esta página y la hoja de ruta al día
 
 ## Estado
 
+- 2026-11-14, desde un widget de chat (unos 1000 px de ancho, de 500 a 800 de alto): el inspector es un panel lateral en una pantalla de más de 760 px **o** en un marco apaisado desde 640 px (proporción 13:10 o más), y una hoja inferior en los demás casos (tapaba casi todo un marco de 700×500); el osciloscopio tiene un tope de 320 px de ancho (sus trazos y etiquetas crecían con el ancho y llenaban una hoja ancha). `scripts/ux-shots.js` también toma la página en un marco de 1000×560, 1000×800 y 700×500.
+
 - ✅ U0 (2026-10-16): `scripts/ux-shots.js`; el juego de «antes» son las capturas de la revisión.
 - ✅ U1 (2026-10-16): gestos según el contexto, botones de zoom, doble toque a un componente,
   pantalla completa. Revisado en Chromium con emulación táctil dentro de un iframe: un dedo y la

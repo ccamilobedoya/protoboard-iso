@@ -9,6 +9,9 @@
 // made today keeps working and gets the new features without changing its link.
 //
 //   renderPage(circuit, { lang, views, fit }) → { html, issues }   (html is null if nothing can be drawn)
+//   renderPageParts(circuit, options) → { parts, issues }   the same page as pieces: what is the circuit's
+//     own (attributes, markup, data, program, which script) without the fixed CSS and script, for a
+//     viewer that already carries those (renderAppViewer, an MCP App)
 //
 // This file builds the HTML: one interactive SVG per view (renderCircuit with interactive) and
 // the JSON the script reads (partData). The browser side is in page/client/ (modules bundled
@@ -369,7 +372,7 @@ function benchLabel(circuit, built, part, i, lang) {
 // JSON inside <script> must never contain "</script>".
 const safeJson = (value) => JSON.stringify(value).replace(/</g, '\\u003c');
 
-export function renderPage(circuit, options = {}) {
+export function renderPageParts(circuit, options = {}) {
   const { lang = 'en', fit = 'parts' } = options;
   const first = circuit?.view ?? 'front';
   const views = options.views ?? [first, OPPOSITE[first]].filter(Boolean);
@@ -379,7 +382,7 @@ export function renderPage(circuit, options = {}) {
   const { results, flow } = pageSimulation(circuit);
   const rendered = views.map((view) => ({ view, ...viewSvg(circuit, view, fit, lang, { sim: results, flow }) }));
   const issues = rendered[0]?.issues ?? [];
-  if (!rendered.length || rendered.some((r) => !r.svg)) return { html: null, issues };
+  if (!rendered.length || rendered.some((r) => !r.svg)) return { parts: null, issues };
 
   const sim = results ? simulate(circuit, { analysis: 'dc' }) : null;
   const { built, parts, nodes, probes, kinds, templates } = partData(circuit, lang, sim);
@@ -389,10 +392,10 @@ export function renderPage(circuit, options = {}) {
   const compiled = results || flow ? compile(circuit) : null;
   const live = compiled?.program ? liveData(circuit, lang, flow, templates, compiled.program) : null;
   // The tour plays in a live page only: its steps move controls and read the simulation.
-  // A part's view up close (F5; page.focusView, or the option): the page carries the pinouts of every
+  // A part's view up close (F5; on, unless page.focusView is false or the option says so): the page carries the pinouts of every
   // part and, without a timeline, an empty one, so the player is there to run the view's steps
   // (focus-view.js).
-  const focusView = Boolean((options.focusView ?? circuit.page?.focusView === true) && live);
+  const focusView = Boolean((options.focusView ?? circuit.page?.focusView !== false) && live);
   const tour = live ? withCycles(loadTour(circuit, lang).tour, compiled.program, circuit) ?? (focusView ? { format: 'vertical', theme: 'stage', steps: [] } : null) : null;
   const data = {
     parts,
@@ -411,7 +414,7 @@ export function renderPage(circuit, options = {}) {
     ...(tour && { tour }),
     ...(tour && pinoutData(circuit, focusView ? { steps: [...tour.steps, ...viewSteps(built)] } : tour, built, rendered, lang)),
     ...(focusView && { focusView: true }),
-    text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, ghost: t(lang, 'page.info.ghost'), close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit'), tabPart: t(lang, 'page.tab.part'), tabStrip: t(lang, 'page.tab.strip'), model: t(lang, 'sim.badge'), modelShort: t(lang, 'page.model') },
+    text: { pins: t(lang, 'page.info.pins'), leads: t(lang, 'page.node.leads'), strip: t(lang, 'page.node.open'), results: results ? t(lang, 'page.results') : null, focus: focusView ? t(lang, 'page.tour.view.open') : null, close: t(lang, 'page.info.close'), explain: t(lang, 'page.info.explain'), gestureTouch: t(lang, 'page.gesture.touch'), gestureWheel: t(lang, 'page.gesture.wheel'), fullscreen: t(lang, 'page.fullscreen'), fullscreenExit: t(lang, 'page.fullscreen.exit'), tabPart: t(lang, 'page.tab.part'), tabStrip: t(lang, 'page.tab.strip'), model: t(lang, 'sim.badge'), modelShort: t(lang, 'page.model') },
   };
   const title = titleOf(circuit, lang) ?? t(lang, 'page.untitled');
   // The grid of holes continued under the drawing, in it, so it moves with the board (V4).
@@ -451,24 +454,17 @@ export function renderPage(circuit, options = {}) {
   // Theme: the system's unless the circuit fixes it (page.theme); the reader's choice in the menu
   // and ?theme= in the link win (main.js).
   const theme = THEMES.includes(circuit.page?.theme) ? circuit.page.theme : null;
-  const html = `<!doctype html>
-<html lang="${lang}"${theme ? ` data-theme="${theme}"` : ''}>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#e8e5dc">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#272623">
-<meta name="generator" content="protoboard-iso">
-<meta name="revision" content="${circuit.revision ?? 0}">
-<title>${escapeXml(title)}</title>
-<style>${STYLE}
-</style>${data.tour ? `\n<style id="caption-face">${captionFaceCss()}</style>` : ''}
-<style id="dynamic"></style>
-<style id="probe"></style>
-</head>
-<body data-fit="${fit}"${results ? ' data-results="on"' : ''}${flow ? ` data-flow="${flowStyle(circuit)}"` : ''}>
-<nav hidden>${nav}</nav>
+  return {
+    issues,
+    parts: {
+      lang,
+      title,
+      revision: circuit.revision ?? 0,
+      theme,
+      body: { fit, ...(results && { results: 'on' }), ...(flow && { flow: flowStyle(circuit) }) },
+      // The caption face, only for a page that plays a timeline.
+      css: data.tour ? captionFaceCss() : null,
+      markup: `<nav hidden>${nav}</nav>
 <main>
 ${svgs.join('\n')}
 ${inspector}
@@ -476,11 +472,69 @@ ${inspector}
 <div class="gesture-hint" aria-live="polite"></div>
 ${hint}
 <div class="tooltip" hidden></div>
-</main>
-<script type="application/json" id="page-data">${safeJson(data)}</script>
-${live ? `<script type="application/json" id="sim-program">${safeJson(compiled.program)}</script>\n` : ''}<script>${pageScript(Boolean(live))}</script>
+</main>`,
+      data,
+      program: live ? compiled.program : null,
+      script: live ? 'live' : 'static',
+    },
+  };
+}
+
+// The page from its pieces: the fixed CSS and script around the circuit's own markup and data.
+export function renderPage(circuit, options = {}) {
+  const { parts: p, issues } = renderPageParts(circuit, options);
+  if (!p) return { html: null, issues };
+  const body = Object.entries(p.body).map(([k, v]) => ` data-${k}="${v}"`).join('');
+  const html = `<!doctype html>
+<html lang="${p.lang}"${p.theme ? ` data-theme="${p.theme}"` : ''}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#e8e5dc">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#272623">
+<meta name="generator" content="protoboard-iso">
+<meta name="revision" content="${p.revision}">
+<title>${escapeXml(p.title)}</title>
+<style>${STYLE}
+</style>${p.css != null ? `\n<style id="caption-face">${p.css}</style>` : ''}
+<style id="dynamic"></style>
+<style id="probe"></style>
+</head>
+<body${body}>
+${p.markup}
+<script type="application/json" id="page-data">${safeJson(p.data)}</script>
+${p.program ? `<script type="application/json" id="sim-program">${safeJson(p.program)}</script>\n` : ''}<script>${pageScript(p.script === 'live')}</script>
 </body>
 </html>
 `;
   return { html, issues };
+}
+
+// The viewer of an MCP App (mcp/app.js serves it as ui://protoboard-iso/board.html): the page's
+// fixed CSS and the live script with a bridge to the host (page/client/app.js), and no circuit.
+// The host loads it once; each tool result's circuit arrives as renderPageParts' pieces.
+const APP_STYLE = '.app-note { margin: 0; padding: 4px 10px; font-size: 13px; background: var(--canvas); color: var(--ink); border-bottom: 1px solid var(--ink-4); }';
+let viewerScript = null;
+export function renderAppViewer({ version = '0' } = {}) {
+  viewerScript ??= bundleScript('page/client/app-page.js', { comments: false });
+  return `<!doctype html>
+<html data-version="${escapeXml(String(version))}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="generator" content="protoboard-iso">
+<title>protoboard-iso</title>
+<style>${STYLE}
+${APP_STYLE}
+</style>
+<style id="dynamic"></style>
+<style id="probe"></style>
+</head>
+<body>
+<script>${viewerScript}</script>
+</body>
+</html>
+`;
 }

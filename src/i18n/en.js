@@ -112,7 +112,9 @@ export default {
   'layout.missing': 'Net {net}: {pins} not connected to the rest.',
   'layout.shorted': 'Nets {nets} ended up joined (a short).',
   'layout.approved': 'Review (lesson): APPROVED.',
+  'layout.warnings': 'Review (lesson): APPROVED WITH WARNINGS.',
   'layout.changes': 'Review (lesson): CHANGES, {count} to fix:',
+  'layout.changesNets': 'Review (lesson): CHANGES, because of the nets above.',
   'check.LAYOUT_PART_FAILED': '{part} found no place (reasons below).',
   'check.LAYOUT_WIRE_FAILED': 'No jumper fits from {from} to {to}.',
   'check.LAYOUT_PIN_COVERED': '{part}.{pin} ({hole}) cannot be reached: {part} covers every other hole of its strip, so no jumper fits there. Use another pin with the same signal, or two boards side by side (board "double").',
@@ -138,6 +140,7 @@ export default {
   'layout.net': 'net {net}:',
   'layout.status.done': 'the circuit is ready: every net is there and the lesson review approves it. Add descriptions if the brief asks, and report.',
   'layout.status.changes': 'the circuit was created, with {count} items marked ✖ above still open. Fix only those (suggest, then apply_ops with a dry run), then run review.',
+  'layout.status.warnings': 'the circuit is built and its nets are right, but {hazards} part(s) would be damaged as wired (marked ⚠ above). Tell the user first, in plain words, which part and why it burns; keep it as it is only if showing the failure is what they want, otherwise offer the fix (a series resistor or a lower supply). Do not fix it silently and do not refuse.',
   'layout.status.fix_spec': 'nothing was created. Fix every ✖ above in the spec and call layout again.',
   'layout.status.spec_ok': 'the spec is consistent. Call layout again without check_only (CLI: without --check) to place it.',
   'check.UNKNOWN_PART_NAME': '{part}: the kit does not know "{name}". Closest: {suggestions}.',
@@ -171,6 +174,9 @@ export default {
 
   'review.approved': 'APPROVED ({profile}, views {views}): {parts} parts, nothing blocking; notes: {advisory}.',
   'review.changes': 'CHANGES NEEDED ({profile}, views {views}): to fix: {blocking}; notes: {advisory}.',
+  'review.warnings': 'APPROVED WITH WARNINGS ({profile}, views {views}): {parts} parts, nothing to fix in the drawing, but {hazards} part(s) would be damaged as wired; notes: {advisory}.',
+  'review.hazards': 'As wired, this would damage:',
+  'review.hazardsAdvice': 'Keep it if showing the failure is the point; otherwise add or raise a series resistance, or lower the supply. Say so to the user before changing anything.',
   'review.blocking': 'Must fix:',
   'review.advisory': 'Worth knowing:',
   'review.rules': 'Blocks: every error and warning, and in any view: {codes}.',
@@ -337,7 +343,6 @@ export default {
   'page.info.with': 'with {list}',
   'page.info.alone': 'nothing else there',
   'page.info.supply': 'supply {supply} ({sign})',
-  'page.info.ghost': 'See through',
   'page.info.close': 'Close',
   'explain.voltage': 'Voltage between its two pins: the difference in energy per unit charge from one side to the other. It is what a multimeter on V would read with the red probe on the first pin and the black one on the second.',
   'explain.current': 'Current through the part: how much charge passes each second (1 mA is a thousandth of a coulomb per second). What goes in through one pin comes out of the other. A multimeter measures it in series, opening the circuit.',
@@ -699,10 +704,19 @@ export default {
   'page.gesture.wheel': 'Use Ctrl (⌘ on a Mac) + scroll to zoom',
   'page.hint.results': 'Tap a part or a strip to see what it is and its simulated values',
   'page.revision': 'revision {revision}',
+  'page.app.context': 'Open on the board: {part}, {about}.',
+  'page.app.loading': 'Loading the circuit… {done}/{total}',
+  'page.app.failed': 'The circuit could not be loaded: {error}',
+  'app.layoutNote': "The user sees this circuit as a live board in the chat: do not render or draw it. What they tap is read with `selection`; never call the widget's own tools.",
+  'app.selection': '{line} Tapped {ago} ago, circuit {target}, revision {revision}{newer}.',
+  'app.selection.none': 'Nothing is tapped on the board.',
+  'app.selection.unshared': 'The root cannot be written, so this answer cannot be shared with another process of the server.',
+  'app.selection.newer': ', now at revision {latest}',
+  'page.app.newer': 'Revision {revision} as it was; the circuit is now at revision {latest}.',
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):
   protoboard-iso layout <target> [spec.json|-] [--check] [--expect-revision n]   # the whole circuit placed from its parts and nets; an existing target is laid out again (docs/en/layout.md)
   protoboard-iso layout <target> --recipe <name> [--values '<json>']   # a lesson circuit by name (docs/en/recipes.md)
-  protoboard-iso render <target> [-o out.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
+  protoboard-iso render <target> [-o out.svg|out.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <target> [--transient stop[,step]] [--start zero|dc] [--lang en|es] [--json]
   protoboard-iso page <target> [-o page.html] [--lang en|es] [--fit parts|board]
   protoboard-iso inspect <target> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
@@ -716,8 +730,11 @@ export default {
   protoboard-iso review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
   protoboard-iso undo <target> [--author name] [--json]
   protoboard-iso history <target> [--json]
-  protoboard-iso parts [name] [--lang en|es]`,
+  protoboard-iso catalog [name] [--lang en|es]   # what the kit knows: part types, modules, boards, recipes (parts works too)`,
   'cli.written': 'Written {file} ({parts} parts, {issues} issues).',
+  'cli.page': 'Page: {file} (open it in a browser)',
+  'cli.pngMissing': 'PNG output needs @resvg/resvg-js: run `cd mcp && npm install` in the kit folder, or write an .svg name instead.',
+  'cli.pngWidthNeedsPng': '--png-width only applies when the output name ends in .png.',
   'cli.noIssues': 'No problems found.',
   'cli.unknownOption': 'Unknown option {option}.',
   'cli.missingValue': 'The option {option} needs a value after it.',

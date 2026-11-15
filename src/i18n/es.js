@@ -111,7 +111,9 @@ export default {
   'layout.missing': 'Red {net}: {pins} no quedó conectado con el resto.',
   'layout.shorted': 'Las redes {nets} quedaron unidas (un corto).',
   'layout.approved': 'Revisión (lesson): APROBADO.',
+  'layout.warnings': 'Revisión (lesson): APROBADO CON AVISOS.',
   'layout.changes': 'Revisión (lesson): HAY QUE CAMBIAR, {count} por arreglar:',
+  'layout.changesNets': 'Revisión (lesson): HAY QUE CAMBIAR, por las redes de arriba.',
   'check.LAYOUT_PART_FAILED': '{part} no encontró lugar (los motivos, abajo).',
   'check.LAYOUT_WIRE_FAILED': 'Ningún cable cabe de {from} a {to}.',
   'check.LAYOUT_PIN_COVERED': 'No se llega a {part}.{pin} ({hole}): {part} tapa todos los demás agujeros de su tira, así que ningún cable cabe ahí. Usa otra pata con la misma señal, o dos protoboards lado a lado (board "double").',
@@ -137,6 +139,7 @@ export default {
   'layout.net': 'red {net}:',
   'layout.status.done': 'el circuito está listo: están todas las redes y la revisión lesson lo aprueba. Agrega las descripciones si el encargo las pide, y reporta.',
   'layout.status.changes': 'el circuito se creó, pero quedan {count} puntos marcados con ✖ arriba. Arregla solo esos (suggest y luego apply_ops con dry run) y vuelve a correr review.',
+  'layout.status.warnings': 'el circuito está armado y sus redes están bien, pero {hazards} componente(s) se dañarían tal como está conectado (marcados con ⚠ arriba). Díselo primero al usuario, en palabras simples: cuál componente y por qué se quema; déjalo así solo si lo que quiere es mostrar la falla, y si no ofrece el arreglo (una resistencia en serie o menos voltaje). No lo arregles en silencio ni te niegues.',
   'layout.status.fix_spec': 'no se creó nada. Arregla en el spec cada ✖ de arriba y vuelve a llamar layout.',
   'layout.status.spec_ok': 'el spec es coherente. Vuelve a llamar layout sin check_only (CLI: sin --check) para colocarlo.',
   'check.UNKNOWN_PART_NAME': '{part}: el kit no conoce «{name}». Lo más parecido: {suggestions}.',
@@ -170,6 +173,9 @@ export default {
 
   'review.approved': 'APROBADO ({profile}, vistas {views}): {parts} componentes, nada que bloquee; notas: {advisory}.',
   'review.changes': 'HAY QUE CAMBIAR ({profile}, vistas {views}): por arreglar: {blocking}; notas: {advisory}.',
+  'review.warnings': 'APROBADO CON AVISOS ({profile}, vistas {views}): {parts} componentes, nada que arreglar en el dibujo, pero {hazards} componente(s) se dañarían tal como está conectado; notas: {advisory}.',
+  'review.hazards': 'Tal como está conectado, esto dañaría:',
+  'review.hazardsAdvice': 'Déjalo así si mostrar la falla es la idea; si no, agrega o sube una resistencia en serie, o baja el voltaje. Díselo al usuario antes de cambiar nada.',
   'review.blocking': 'Hay que arreglar:',
   'review.advisory': 'Conviene saber:',
   'review.rules': 'Bloquea: todo error y aviso, y en cualquier vista: {codes}.',
@@ -336,7 +342,6 @@ export default {
   'page.info.with': 'con {list}',
   'page.info.alone': 'no hay nada más ahí',
   'page.info.supply': 'fuente {supply} ({sign})',
-  'page.info.ghost': 'Ver a través',
   'page.info.close': 'Cerrar',
   'explain.voltage': 'Voltaje (tensión) entre sus dos patas: la diferencia de energía por unidad de carga entre un lado y el otro. Es lo que marcaría el multímetro en V con la punta roja en la primera pata y la negra en la segunda.',
   'explain.current': 'Corriente que atraviesa el componente: cuánta carga pasa por segundo (1 mA es una milésima de culombio por segundo). Lo que entra por una pata sale por la otra. El multímetro la mide en serie, abriendo el circuito.',
@@ -698,10 +703,19 @@ export default {
   'page.gesture.wheel': 'Usa Ctrl (⌘ en Mac) + rueda para acercar',
   'page.hint.results': 'Toca un componente o una tira para ver qué es y sus valores simulados',
   'page.revision': 'revisión {revision}',
+  'page.app.context': 'Abierta en la protoboard: {part}, {about}.',
+  'page.app.loading': 'Cargando el circuito… {done}/{total}',
+  'page.app.failed': 'No se pudo cargar el circuito: {error}',
+  'app.layoutNote': 'El usuario ve este circuito como tablero vivo en el chat: no lo generes ni lo dibujes. Lo que toca se lee con `selection`; nunca llames las herramientas del widget.',
+  'app.selection': '{line} Tocado hace {ago}, circuito {target}, revisión {revision}{newer}.',
+  'app.selection.none': 'No hay nada tocado en el tablero.',
+  'app.selection.unshared': 'La carpeta raíz no se puede escribir, así que esta respuesta no se comparte con otro proceso del servidor.',
+  'app.selection.newer': ', ahora en la revisión {latest}',
+  'page.app.newer': 'La revisión {revision} tal como era; el circuito ya va en la revisión {latest}.',
   'cli.usage': `Uso (<objetivo> = un archivo de circuito o una carpeta con circuit.json):
   protoboard-iso layout <objetivo> [spec.json|-] [--check] [--expect-revision n]   # el circuito entero, ubicado a partir de sus componentes y redes; si ya existe, se vuelve a montar (docs/es/montaje-automatico.md)
   protoboard-iso layout <objetivo> --recipe <nombre> [--values '<json>']   # un circuito de clase por su nombre (docs/es/recetas.md)
-  protoboard-iso render <objetivo> [-o salida.svg] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
+  protoboard-iso render <objetivo> [-o salida.svg|salida.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <objetivo> [--transient fin[,paso]] [--start zero|dc] [--lang en|es] [--json]
   protoboard-iso page <objetivo> [-o pagina.html] [--lang en|es] [--fit parts|board]
   protoboard-iso inspect <objetivo> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
@@ -715,8 +729,11 @@ export default {
   protoboard-iso review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]
   protoboard-iso undo <objetivo> [--author nombre] [--json]
   protoboard-iso history <objetivo> [--json]
-  protoboard-iso parts [nombre] [--lang en|es]`,
+  protoboard-iso catalog [nombre] [--lang en|es]   # lo que el kit conoce: tipos, módulos, placas, recetas (parts también funciona)`,
   'cli.written': 'Escrito {file} ({parts} componentes, {issues} observaciones).',
+  'cli.page': 'Página: {file} (ábrela en un navegador)',
+  'cli.pngMissing': 'La salida PNG necesita @resvg/resvg-js: ejecuta `cd mcp && npm install` en la carpeta del kit, o usa un nombre .svg.',
+  'cli.pngWidthNeedsPng': '--png-width solo aplica cuando el nombre de salida termina en .png.',
   'cli.noIssues': 'Sin problemas.',
   'cli.unknownOption': 'Opción desconocida: {option}.',
   'cli.missingValue': 'La opción {option} necesita un valor después.',

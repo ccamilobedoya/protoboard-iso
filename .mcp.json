@@ -6,7 +6,8 @@
         "mcp/server.js"
       ],
       "env": {
-        "PROTOBOARD_ROOT": "."
+        "PROTOBOARD_ROOT": ".",
+        "PROTOBOARD_DEV": "1"
       }
     }
   }
