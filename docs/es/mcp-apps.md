@@ -13,7 +13,7 @@ herramientas, descripciones y respuestas que antes.
 | Pieza | Qué es |
 |---|---|
 | recurso `ui://protoboard-iso/board.html` | el visor, `text/html;profile=mcp-app`: el CSS de la página y su script en vivo, sin circuito (`renderAppViewer` en `src/page.js`); sin orígenes externos, así que aplica la CSP restrictiva por defecto del anfitrión |
-| `_meta.ui.resourceUri` de `layout` | el anfitrión muestra el visor en cada llamada a `layout` |
+| `_meta.ui.resourceUri` de `layout`, `apply_ops` y `undo` | el anfitrión muestra el visor en cada llamada de esas herramientas |
 | `structuredContent` de `layout` | `{ target, revision, lang }`, unas decenas de bytes; su texto es el mismo que sin MCP Apps |
 | herramienta `page_parts { target, revision?, lang?, chunk?, id? }` | `visibility: ["app"]`: solo la llama el visor, nunca el modelo. La página del circuito en piezas (`renderPageParts`): los atributos, el marcado (el SVG de las dos vistas, la barra, el inspector), los datos y el programa de la placa, y los textos del visor en el idioma del circuito |
 
@@ -150,5 +150,8 @@ Probado solo con el `basic-host` de referencia. Claude Desktop y claude.ai no es
   archivo cuando la ejecución de código está activa; no dice si eso aplica a una llamada hecha desde la app.
 - La línea de contexto y el botón siguen a la tarjeta: cuando la página en vivo reconstruye una
   tarjeta sola (cambian sus líneas), el botón se va hasta el siguiente toque.
-- Solo `layout` muestra el visor. `apply_ops`, `undo` y `render` también podrían, pero un agente los
-  llama muchas veces por circuito y cada llamada agregaría una vista a la conversación.
+- `layout`, `apply_ops` y `undo` muestran el visor cuando guardan una revisión, así que un cambio
+  aparece en el chat como un tablero nuevo (los anteriores conservan su revisión y no se refrescan solos; uno montado después de un cambio avisa que hay una
+  revisión más nueva); una prueba en seco, un cambio fallido, `try_ops`, `render` y las herramientas de solo
+  lectura nunca lo hacen. Cada respuesta así termina en la misma línea que la de `layout`. Un agente que
+  hace muchos cambios agrega un tablero a la conversación por cada uno.

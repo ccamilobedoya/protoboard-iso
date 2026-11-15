@@ -6,7 +6,7 @@
 //
 //   VIEWER_URI         ui://protoboard-iso/board.html, text/html;profile=mcp-app (src/page.js,
 //                      renderAppViewer): the page's CSS and script, no circuit
-//   APP_LINKED         tools whose result the host shows in the viewer (their _meta.ui.resourceUri)
+//   APP_LINKED         tools whose saved result the host shows in the viewer (a dry run never does) (their _meta.ui.resourceUri)
 //   appView(result)    { target, revision, lang } a linked tool's handler puts beside its answer
 //                      (as `app`); server.js turns it into structuredContent, or drops it
 //   APP_TOOLS          page_parts { target, revision?, lang?, chunk?, id? }: the pieces (renderPageParts)
@@ -28,7 +28,7 @@ import { LANGUAGES, pickLanguage, t } from '../src/i18n/index.js';
 export const EXTENSION = 'io.modelcontextprotocol/ui';
 export const VIEWER_URI = 'ui://protoboard-iso/board.html';
 export const VIEWER_MIME = 'text/html;profile=mcp-app';
-export const APP_LINKED = ['layout'];
+export const APP_LINKED = ['layout', 'apply_ops', 'undo'];
 export const DEBUG = process.env.PROTOBOARD_APPS_DEBUG === '1';
 // The server's own state, in one hidden folder of the root (listings skip it, deleting it is always
 // safe): the viewer's selection, the assembled pages being handed over, the debug report. Every write

@@ -90,6 +90,11 @@ const json = (value) => text(JSON.stringify(value, null, 2));
 const answer = (format, value, readable) => (format === 'json' ? json(value) : text(readable()));
 // Paths relative to the root, plus where the page is as an absolute path (to open by double-click).
 const relFiles = (files) => (files ? { ...Object.fromEntries(Object.entries(files).map(([k, v]) => [k, rel(v)])), ...(files.pageFile && { pagePath: resolve(files.pageFile) }) } : files);
+// For a client that shows the viewer: the board of the revision just saved, and the line that says so.
+const appFor = (full, revision, lang) => {
+  const out = pickLanguage(lang, loadCircuit(resolveTarget(full)).lang);
+  return { app: appView(rel(full), revision, out), appNote: t(out, 'app.layoutNote') };
+};
 const pageLine = (files, lang) => (files?.pageFile ? `\n${t(lang ?? 'en', 'cli.page', { file: resolve(files.pageFile) })}` : '');
 
 // Language of every answer and every file written: the `lang` the tool was called with, else
@@ -388,7 +393,8 @@ server.registerTool(
     const result = applyToTarget(full, ops, { dryRun: dry_run, expectRevision: expect_revision, author, note, views, lang, outputLang });
     const out = { ...result, circuit: undefined, files: relFiles(result.files) };
     const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }) + pageLine(result.files, lang));
-    return result.errors.length ? { ...response, isError: true } : response;
+    if (result.errors.length) return { ...response, isError: true };
+    return result.applied ? { ...response, ...appFor(full, result.revision, lang) } : response; // a dry run shows no board
   }),
 );
 
@@ -471,7 +477,8 @@ server.registerTool(
     const result = undoTarget(full, { author, lang, outputLang });
     const out = { ...result, files: relFiles(result.files) };
     const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }) + pageLine(result.files, lang));
-    return result.errors.length ? { ...response, isError: true } : response;
+    if (result.errors.length) return { ...response, isError: true };
+    return result.applied ? { ...response, ...appFor(full, result.revision, lang) } : response; // a dry run shows no board
   }),
 );
 

@@ -109,6 +109,33 @@ test('layout answers the same text to both; the host also gets {target, revision
   assert.ok(Buffer.byteLength(textOf(manifest)) < 100, 'the text of page_parts stays small');
 });
 
+test('apply_ops and undo show the board for a host (dry runs and other tools never do); other clients keep the same text', async () => {
+  const { tools } = await host.listTools();
+  const linked = tools.filter((x) => x._meta?.ui?.resourceUri && !x._meta.ui.visibility).map((x) => x.name).sort();
+  assert.deepEqual(linked, ['apply_ops', 'layout', 'undo']);
+  const plainTools = (await plain.listTools()).tools;
+  assert.ok(plainTools.every((x) => x._meta === undefined));
+  await plain.callTool({ name: 'layout', arguments: { target: 'chg-a', recipe: 'led-resistor', lang: 'en' } });
+  await host.callTool({ name: 'layout', arguments: { target: 'chg-b', recipe: 'led-resistor', lang: 'en' } });
+  const ops = (target) => ({ target, ops: [{ op: 'set', part: 'R1', value: '1k' }], expect_revision: 0, lang: 'en' });
+  const a = await plain.callTool({ name: 'apply_ops', arguments: ops('chg-a') });
+  const b = await host.callTool({ name: 'apply_ops', arguments: ops('chg-b') });
+  assert.ok(!a.isError && !b.isError, textOf(a));
+  const note = "The user sees this circuit as a live board in the chat: do not render or draw it. What they tap is read with `selection`; never call the widget's own tools.";
+  assert.equal(textOf(b).replace(/chg-b/g, 'chg-a'), `${textOf(a)}\n${note}`.replace(/ \d+ ms /, ' … ms '), 'the same text plus the one line');
+  assert.equal(a.structuredContent, undefined);
+  assert.deepEqual(b.structuredContent, { target: 'chg-b', revision: 1, lang: 'en' });
+  // a dry run, a failed change and the read-only tools show nothing
+  const dry = await host.callTool({ name: 'apply_ops', arguments: { ...ops('chg-b'), expect_revision: 1, dry_run: true } });
+  assert.equal(dry.structuredContent, undefined);
+  const stale = await host.callTool({ name: 'apply_ops', arguments: ops('chg-b') });
+  assert.ok(stale.isError && stale.structuredContent === undefined);
+  assert.equal((await host.callTool({ name: 'try_ops', arguments: { target: 'chg-b', ops: [{ op: 'set', part: 'R1', value: '2k' }] } })).structuredContent, undefined);
+  assert.equal((await host.callTool({ name: 'review', arguments: { target: 'chg-b' } })).structuredContent, undefined);
+  const undone = await host.callTool({ name: 'undo', arguments: { target: 'chg-b' } });
+  assert.deepEqual(undone.structuredContent, { target: 'chg-b', revision: 2, lang: 'en' });
+});
+
 test('page_parts pins a revision: an older one is rebuilt from the history', async () => {
   const before = await fetchParts(host, { target: 'led-b', revision: 0 });
   const changed = await host.callTool({ name: 'apply_ops', arguments: { target: 'led-b', ops: [{ op: 'set', part: 'R1', value: '1k' }], expect_revision: 0 } });

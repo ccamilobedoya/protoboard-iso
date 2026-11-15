@@ -12,7 +12,7 @@ oscilloscope. A host without MCP Apps gets exactly the same tools, descriptions 
 | Piece | What it is |
 |---|---|
 | resource `ui://protoboard-iso/board.html` | the viewer, `text/html;profile=mcp-app`: the page's CSS and its live script, with no circuit (`renderAppViewer` in `src/page.js`); no outside origin, so the host's restrictive default CSP applies |
-| `layout`'s `_meta.ui.resourceUri` | the host shows the viewer for each `layout` call |
+| `_meta.ui.resourceUri` of `layout`, `apply_ops` and `undo` | the host shows the viewer for each call of those tools |
 | `layout`'s `structuredContent` | `{ target, revision, lang }`, a few dozen bytes; its text is the same as without MCP Apps |
 | tool `page_parts { target, revision?, lang?, chunk?, id? }` | `visibility: ["app"]`: only the viewer calls it, never the model. The circuit's page in pieces (`renderPageParts`): the attributes, the markup (the two views' SVG, the bar, the inspector), the data and the board's program, and the viewer's texts in the circuit's language |
 
@@ -142,5 +142,7 @@ Tested with the reference `basic-host` only. Claude Desktop and claude.ai are un
   execution is on; whether that applies to a call from the app is not documented.
 - The context line and the button follow the card: when the live page rebuilds a card by itself
   (its lines change), the button goes until the next tap.
-- Only `layout` shows the viewer. `apply_ops`, `undo` and `render` could too, but an agent calls them
-  many times per circuit and each call would add a view to the conversation.
+- `layout`, `apply_ops` and `undo` show the viewer when they save a revision, so a change appears in the
+  chat as a new board (the earlier boards keep their revision and do not refresh themselves; one mounted after a change says a newer revision exists); a dry run, a
+  failed change, `try_ops`, `render` and the read-only tools never do. Each such answer ends in the same
+  line as `layout`'s. An agent that makes many changes adds a board to the conversation for each one.

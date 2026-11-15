@@ -228,7 +228,12 @@ try {
   check('P2 sketch runs', evalAllowed === true && t0 !== t1 && blinks && !evalErrors.length, { evalAllowed, evalInSandbox, clock: [t0, t1], boardChanges: blinks, evalErrors, warnings, error: blink.error });
 
   // P4: a change, then the first view asks for its own (older) revision and the current one.
-  await callTool('apply_ops', { target: 'led', ops: [{ op: 'set', part: 'R1', value: '1k' }], expect_revision: 0 });
+  before = await callTool('apply_ops', { target: 'led', ops: [{ op: 'set', part: 'R1', value: '1k' }], expect_revision: 0 });
+  // The change shows its own board: a second view at revision 1, while the first keeps revision 0 (it says nothing: the note about a newer revision shows only when a view is mounted after the change; no view refreshes itself).
+  const second = await viewAfter(before);
+  const newBoard = await second.frame?.evaluate(() => ({ revision: window.protoboardApp.revision, r1: JSON.parse(document.getElementById('page-data').textContent).parts.R1.value.text }));
+  const firstNote = await frame1?.evaluate(() => ({ revision: window.protoboardApp.revision, note: document.querySelector('.app-note')?.textContent ?? null }));
+  check("P4b a change shows its board", newBoard?.revision === 1 && /1 kΩ/.test(newBoard.r1) && firstNote?.revision === 0, { newBoard, firstNote });
   await page.waitForTimeout(2500);
   const old = await frame1?.evaluate(() => window.protoboardApp.fetchParts(0));
   const now = await frame1?.evaluate(() => window.protoboardApp.fetchParts(1));
