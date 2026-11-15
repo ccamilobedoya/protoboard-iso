@@ -67,6 +67,7 @@ export default {
   type: 'resistor',
   family: 'passive',
   pins: ['1', '2'],
+  typical: { value: '330' },
 
   resolve(part) {
     const ohms = parseValue(part.value);

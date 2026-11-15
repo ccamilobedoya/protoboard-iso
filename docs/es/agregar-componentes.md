@@ -39,7 +39,9 @@ export default {
 ```
 
 Regístralo en `src/parts/types/index.js` (su `family` debe ser una de `FAMILIES` allí; si no, una prueba falla), agrega `type.<nombre>` en cada archivo de
-`src/i18n/` y una fila en `docs/*/` (formato del circuito).
+`src/i18n/` y una fila en `docs/*/` (formato del circuito). Si el tipo pelado no se resuelve (le falta un
+valor o un número de parte), dale `typical`, los campos de un ejemplar típico (`typical: { value: '330' }`):
+`catalog <tipo>` describe ese, también en el plugin, que no trae `examples/`; una prueba revisa cada tipo.
 
 ## 3. Un encapsulado nuevo
 

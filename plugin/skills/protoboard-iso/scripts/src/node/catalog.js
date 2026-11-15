@@ -1,7 +1,9 @@
 // What the kit knows, short enough to read: the compact list (every type with its pins, the part
 // numbers by type, modules, batteries) or one entry in detail (a type, a part number or a
-// module: pins, package, the fields it takes and a real part from examples/ to copy). The full
-// registry is still there as JSON for tools. Node only: the example is read from disk.
+// module: pins, package, the fields it takes and a real part from examples/ to copy, when the
+// kit's examples are there). What it says about a part comes from src/ alone, so the packed plugin,
+// which has no examples/, says the same. The full registry is still there as JSON for tools. Node
+// only: the example is read from disk.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { PART_TYPES, FAMILIES } from '../parts/types/index.js';
@@ -12,7 +14,7 @@ import { BATTERY_FORMATS } from '../parts/batteries.js';
 import { LDR_PARTS } from '../parts/types/more.js';
 import { BOARDS, createBoard, boardLayout } from '../board/board.js';
 import { formatBoardLayout } from '../board/layout-text.js';
-import { resolvePart, closestNames } from '../parts/resolve.js';
+import { resolvePart, closestNames, pinsOf } from '../parts/resolve.js';
 import { VIEWS } from '../core/camera.js';
 import { OP_NAMES } from '../ops.js';
 import { ANNOTATION_LAYERS } from '../annotate.js';
@@ -53,28 +55,37 @@ function exampleOf(type, number) {
   return number ? exampleOf(type) : null;
 }
 
-// The example's part, only when it is that part number (exampleOf falls back to any of the type).
-const sameNumber = (example, number) => (example && String(example.part.part).toUpperCase() === number.toUpperCase() ? example.part : null);
-
 const fieldsOf = (type) => {
   const props = buildSchemas()['circuit.schema.json'].$defs.part.properties;
   return Object.fromEntries((TYPE_FIELDS[type] ?? []).filter((f) => props[f]).map((f) => [f, props[f].description ?? (props[f].enum ? props[f].enum.join(' | ') : '')]));
 };
 
 // A part as the type resolves it, not placed: what describePart, pinRoles and partRatings read.
+// A bare type that needs more takes its `typical` fields (a resistor's value, a module's part
+// number); a part wired pin by name (a switch, a relay, a board beside the breadboard) is taken
+// with every pin it has, each to a hole that does not matter here.
 function unplaced(raw) {
   const type = PART_TYPES[raw.type];
-  const def = type?.resolve(raw);
+  let def = type?.resolve(raw);
+  if (def?.error && type.typical) {
+    raw = { ...type.typical, ...raw };
+    def = type.resolve(raw);
+  }
+  if (def?.error?.code === 'MODULE_PINS') {
+    const all = pinsOf(raw);
+    const names = all.length ? all : (lookupPartNumber(raw.part)?.entry.pins ?? []);
+    raw = { ...raw, pins: Object.fromEntries(names.map((n) => [n, 'a1'])) };
+    def = type.resolve(raw);
+  }
   if (!def || def.error) return null;
   return { id: raw.id, type: raw.type, raw, def, pinNames: def.pinNames ?? type.pins ?? [] };
 }
 
 // What the page's card says about a typical instance (`raw`: the part number, or a type with its
-// defaults; `fallback`: a real part from examples/ when the bare one needs more, a resistor's value)
-// and the limits the simulator checks it against. The fields its limits follow are left at their
-// defaults, so a resistor says the power of the default 1/4 W, not the example's.
-function facts(raw, fallback, lang) {
-  let part = unplaced(raw) ?? (fallback && unplaced({ ...fallback, id: 'X1' }));
+// defaults) and the limits the simulator checks it against. The fields its limits follow are left
+// at their defaults, so a resistor says the power of the default 1/4 W.
+function facts(raw, lang) {
+  let part = unplaced(raw);
   if (!part) return {};
   let ratings = partRatings(part);
   const follow = ratings?.fields ?? [];
@@ -128,7 +139,7 @@ function catalogEntryExact(name, lang = 'en') {
       ...(key === 'module' && { modules: Object.fromEntries(Object.entries(MODULES).map(([k, m]) => [k, { name: m.label, mount: m.mount, pins: pinsOfModule(m) }])) }),
       ...(key === 'battery' && { formats: Object.fromEntries(Object.entries(BATTERY_FORMATS).map(([k, f]) => [k, { default: f.default, chemistries: Object.keys(f.chemistries) }])) }),
       ...(key === 'ldr' && { parts: Object.keys(LDR_PARTS) }),
-      ...facts({ id: 'X1', type: key }, example?.part, lang),
+      ...facts({ id: 'X1', type: key }, lang),
       example,
     };
   }
@@ -136,16 +147,16 @@ function catalogEntryExact(name, lang = 'en') {
   if (moduleKey) {
     const m = MODULES[moduleKey];
     const example = exampleOf('module', moduleKey);
-    return { kind: 'module', type: 'module', part: moduleKey, name: m.label, mount: m.mount, pins: pinsOfModule(m), fields: fieldsOf('module'), ...facts({ id: 'X1', type: 'module', part: moduleKey }, sameNumber(example, moduleKey), lang), example };
+    return { kind: 'module', type: 'module', part: moduleKey, name: m.label, mount: m.mount, pins: pinsOfModule(m), fields: fieldsOf('module'), ...facts({ id: 'X1', type: 'module', part: moduleKey }, lang), example };
   }
   const found = lookupPartNumber(key);
   if (found) {
     const { number, entry } = found;
     const example = exampleOf(entry.type, number);
-    return { kind: 'part', type: entry.type, part: number, package: entry.package, pins: entry.pins, fields: fieldsOf(entry.type), ...facts({ id: 'X1', type: entry.type, part: number }, sameNumber(example, number), lang), example };
+    return { kind: 'part', type: entry.type, part: number, package: entry.package, pins: entry.pins, fields: fieldsOf(entry.type), ...facts({ id: 'X1', type: entry.type, part: number }, lang), example };
   }
   const ldr = Object.keys(LDR_PARTS).find((k) => k.toUpperCase() === key.toUpperCase());
-  if (ldr) return { kind: 'part', type: 'ldr', part: ldr, pins: PART_TYPES.ldr.pins, fields: fieldsOf('ldr'), ...facts({ id: 'X1', type: 'ldr', part: ldr }, null, lang), example: exampleOf('ldr') };
+  if (ldr) return { kind: 'part', type: 'ldr', part: ldr, pins: PART_TYPES.ldr.pins, fields: fieldsOf('ldr'), ...facts({ id: 'X1', type: 'ldr', part: ldr }, lang), example: exampleOf('ldr') };
   return null;
 }
 

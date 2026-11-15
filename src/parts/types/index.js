@@ -1,7 +1,9 @@
 // Registry of part types. A type turns what the circuit file says ("resistor, 4k7")
 // into a package, its drawing parameters, a label and the electrical description the
 // simulator will use later. To add a type, write a module with { type, pins, resolve }
-// and list it here.
+// and list it here. A type whose bare form does not resolve (a resistor needs a value, a sensor
+// module its part number) also says `typical`: the fields of a typical instance, which `catalog`
+// describes (its card's text, pin roles and limits) without any circuit to copy from.
 
 import resistor from './resistor.js';
 import capacitor from './capacitor.js';

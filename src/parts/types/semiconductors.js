@@ -74,6 +74,7 @@ export const zener = {
   type: 'zener',
   family: 'semiconductor',
   pins: ['A', 'K'],
+  typical: { value: '5V1' },
   resolve(part) {
     let vz;
     let number = null;

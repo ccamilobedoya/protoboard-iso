@@ -19,6 +19,7 @@ export const inductor = {
   type: 'inductor',
   family: 'passive',
   pins: ['1', '2'],
+  typical: { value: '100u' },
   resolve(part) {
     const henries = parseValue(part.value);
     if (!(henries > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value) } } };
@@ -124,6 +125,7 @@ export const header = {
   type: 'header',
   family: 'connection',
   pins: null,
+  typical: { count: 4 },
   resolve(part) {
     const count = Number(part.count ?? (Array.isArray(part.pins) ? part.pins.length : part.pins ? Object.keys(part.pins).length : NaN));
     if (!(Number.isInteger(count) && count >= 1 && count <= 40)) return { error: { code: 'BAD_VALUE', params: { value: `count ${part.count}` } } };

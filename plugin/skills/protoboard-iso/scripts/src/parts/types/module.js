@@ -29,6 +29,7 @@ export default {
   type: 'module',
   family: 'module',
   pins: null,
+  typical: { part: 'UNO' },
   resolve(part) {
     const found = lookupModule(part.part);
     if (!found) return { error: { code: 'UNKNOWN_MODULE', params: { number: String(part.part), options: Object.keys(MODULES).join(', ') } } };

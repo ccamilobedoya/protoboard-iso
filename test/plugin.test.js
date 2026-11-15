@@ -1,15 +1,21 @@
 // The plugin folder (plugin/, written by scripts/pack-skill.js): it is what a fresh pack writes, it
 // passes the public directory's limits, its skill agrees with the kit (recipes, commands, STATUS
-// values, links), and the kit inside runs from a read-only copy.
+// values, links), the kit inside runs from a read-only copy, and its catalog says what the
+// repository's says about every part without the examples/ it does not carry.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, normalize } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { listTree, SKILL, staleness } from '../scripts/pack-skill.js';
 import { RECIPES } from '../src/recipes/index.js';
 import en from '../src/i18n/en.js';
+import { t } from '../src/i18n/index.js';
+import { compactCatalog, catalogEntry } from '../src/node/catalog.js';
+import { MODULES } from '../src/parts/modules.js';
+import { BOARDS } from '../src/board/board.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const plugin = join(root, 'plugin');
@@ -113,6 +119,43 @@ test('plugin: the packed kit runs from a read-only copy: layout --recipe led-res
     assert.equal(r.status, 0, r.stdout + r.stderr);
     assert.match(r.stdout, /^STATUS: DONE/m);
     assert.ok(existsSync(join(work, 'led/out/led.html')), 'the page is written');
+  } finally {
+    if (process.platform !== 'win32') spawnSync('chmod', ['-R', 'u+w', copy]);
+    rmSync(temp, { recursive: true, force: true });
+  }
+});
+
+test("plugin: the packed catalog, without examples/, says what the repository's says about every part, in both languages", async () => {
+  // The packed copy, imported where it is: its examples/ would be beside its src/, and there is none.
+  assert.ok(!existsSync(join(skillDir, 'scripts/examples')), 'the plugin carries no examples/');
+  const packed = await import(pathToFileURL(join(skillDir, 'scripts/src/node/catalog.js')).href);
+  const types = compactCatalog('en').types;
+  const names = [...Object.keys(types), ...Object.values(types).flatMap((v) => v.parts ?? []), ...Object.keys(MODULES), ...Object.keys(BOARDS)];
+  const facts = (e) => e && { about: e.about, pinRoles: e.pinRoles, limits: e.limits, limitFields: e.limitFields };
+  for (const lang of ['en', 'es']) {
+    for (const name of names) {
+      const repo = catalogEntry(name, lang);
+      assert.ok(repo, `${name}: in the catalog`);
+      assert.deepEqual(facts(packed.catalogEntry(name, lang)), facts(repo), `${name} (${lang})`);
+      if (repo.kind !== 'board') assert.ok(repo.about, `${name} (${lang}): it has its card's text`);
+    }
+  }
+  assert.equal(packed.catalogEntry('resistor').example, null, 'the packed catalog has no example to show');
+});
+
+test('plugin: from a read-only copy, catalog resistor, UNO and relay say what the part is and its limits, in both languages', () => {
+  const temp = mkdtempSync(join(tmpdir(), 'plugin-catalog-'));
+  const copy = join(temp, 'skill');
+  try {
+    cpSync(skillDir, copy, { recursive: true });
+    if (process.platform !== 'win32') spawnSync('chmod', ['-R', 'a-w', copy]);
+    for (const lang of ['en', 'es']) {
+      for (const name of ['resistor', 'UNO', 'relay']) {
+        const r = spawnSync(process.execPath, [join(copy, 'scripts/bin/protoboard-iso.js'), 'catalog', name, '--lang', lang], { cwd: temp, encoding: 'utf8' });
+        assert.equal(r.status, 0, r.stdout + r.stderr);
+        for (const key of ['catalog.about', 'catalog.limits']) assert.ok(r.stdout.includes(`\n  ${t(lang, key)} `), `${name} (${lang}): ${t(lang, key)}\n${r.stdout}`);
+      }
+    }
   } finally {
     if (process.platform !== 'win32') spawnSync('chmod', ['-R', 'u+w', copy]);
     rmSync(temp, { recursive: true, force: true });

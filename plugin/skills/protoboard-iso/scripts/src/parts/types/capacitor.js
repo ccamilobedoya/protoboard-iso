@@ -46,6 +46,7 @@ export default {
   type: 'capacitor',
   family: 'passive',
   pins: ['1', '2'],
+  typical: { value: '100n' },
 
   resolve(part) {
     const farads = parseValue(part.value);
