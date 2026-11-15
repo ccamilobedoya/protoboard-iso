@@ -52,6 +52,8 @@ test('parts by name: part numbers, modules and aliases resolve without a type; u
   assert.equal(resolvePart({ id: 'R1', type: 'resistencia', value: '1k' }).part.type, 'resistor');
   assert.equal(resolvePart({ id: 'D1', part: 'LED', color: 'red' }).part.type, 'led');
   assert.equal(resolvePart({ id: 'A1', part: 'Arduino UNO' }).error?.code ?? resolvePart({ id: 'A1', part: 'UNO' }).part.type, 'module');
+  // A bare number people say for a part resolves to its full part number, in a layout and in the catalog.
+  assert.deepEqual(resolvePart({ id: 'U2', part: '555' }).part, { id: 'U2', type: 'ic', part: 'NE555' });
   const unknown = resolvePart({ id: 'D2', part: '1N4148W' });
   assert.equal(unknown.error.code, 'UNKNOWN_PART_NAME');
   assert.match(unknown.error.params.suggestions, /1N4148/);
