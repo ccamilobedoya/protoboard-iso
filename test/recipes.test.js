@@ -129,3 +129,33 @@ test('recipes: the thermistor\'s label says its value once, not its kind (the pa
   assert.equal(labelText(th, 'en'), 'TH1 · 10 kΩ');
   assert.equal(labelText(th, 'es'), 'TH1 · 10 kΩ');
 });
+
+// The recipes' tables (docs/en/recipes.md, docs/es/recetas.md) list each value's default as the
+// recipe has it: "R1 = 1k (base)", "R1, R2 = 330", "R1 … R7 = 220". A recipe's own default changed
+// without its row (as npn-switch's R1 = 22k once) fails here. A board's sketch is not compared.
+test('the recipes documents give every recipe a row whose defaults are the recipe\'s, in both languages', () => {
+  const idsOf = (spec) => {
+    const run = /^([A-Z]+)(\d+)\s*…\s*[A-Z]+(\d+)$/.exec(spec);
+    return run ? Array.from({ length: Number(run[3]) - Number(run[2]) + 1 }, (_, i) => `${run[1]}${Number(run[2]) + i}`) : spec.split(/\s*,\s*/);
+  };
+  for (const [file, decimal] of [['docs/en/recipes.md', '.'], ['docs/es/recetas.md', ',']]) {
+    const listed = new Set();
+    for (const line of readFileSync(new URL(`../${file}`, import.meta.url), 'utf8').split('\n')) {
+      const row = /^\| `([^`]+)` \| .* \| ([^|]+) \|$/.exec(line);
+      const recipe = row && RECIPES[row[1]];
+      if (!recipe) continue;
+      listed.add(row[1]);
+      const defaults = recipeDefaults(recipe);
+      const cells = [...row[2].replace(/\([^)]*\)/g, '').matchAll(/([A-Z]+\d+(?:\s*(?:,|…)\s*[A-Z]+\d+)*)\s*=\s*(\d+,\d+|[^,\s]+)/g)];
+      assert.ok(cells.length, `${file}, ${row[1]}: no "ID = value" in its row`);
+      for (const c of cells) {
+        for (const id of idsOf(c[1])) {
+          assert.ok(recipe.values[id], `${file}, ${row[1]}: ${id} is not one of its values`);
+          if (recipe.values[id].field === 'program') continue;
+          assert.equal(c[2].replace(decimal, '.'), String(defaults[id]), `${file}, ${row[1]}: ${id}'s default`);
+        }
+      }
+    }
+    assert.deepEqual([...listed].sort(), Object.keys(RECIPES).sort(), `${file}: one row per recipe`);
+  }
+});
