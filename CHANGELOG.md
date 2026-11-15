@@ -23,6 +23,8 @@ detail.
 
 ### Changed
 
+- `catalog <part>`: every limit in "limits (the simulator's)" says what it belongs to when the quantity alone does not: a relay's `6 V (coil)` and `10 A (contacts)`, a motor's `140 mA (when stalled)`, a board's `800 mA (3.3 V regulator)`, a regulator's `(output)` and `(input)`, an IC's or sensor module's `(supply)`, a switch's voltage `across an open contact` (it showed an untranslated key). The UNO no longer lists a 150 mA regulator limit: its logic rail is the USB's 5 V and the simulator checks no regulator there. `catalog 555` and a layout part `555` are the NE555.
+- The Arduino UNO's card says each pin is meant to give about 20 mA and that 40 mA is the absolute maximum (what the simulator warns at), instead of "about 20 mA each at most" next to a 40 mA limit.
 - `layout`'s readings line prints a load whose current is under 1 µA (the model's leakage, an LED behind a transistor that is off) as `0 mA`, keeping its brightness; the JSON keeps the number and adds `off: true`.
 - `catalog <recipe>` shows a value's choices as `[a | b | c]` (was `[a, b, c]`) and a range in the language's decimals (`[1,5…15]` in Spanish), the same formatting as `layout`'s answer.
 
@@ -38,6 +40,7 @@ detail.
 
 ### Fixed
 
+- The text of a development board (`catalog <board>`, the page's card) no longer says "Not simulated yet": boards are simulated pin by pin and run their program. Only the adapter board's text still says it.
 - `docs/en/recipes.md`: the `npn-switch` row gave R1 = 22k and R2 = 470 (the recipe has 1k and 330), `lm393-comparator` R3 = 1k (330), `clap-switch` left out R1's and D1's defaults and `voltage-sensor-uno` V1's; a stray copy of a bullet in "Recipes with a real sensor" is gone. The Spanish document had the same rows and colours in Spanish where the field takes `green`. A test now checks every row's defaults against the recipe, in both languages.
 - The MCP server keeps no state in memory that matters (a host may run two processes of it): the viewer's selection, the assembled pages handed over in chunks and the debug report live in `<root>/.protoboard/` (bounded, safe to delete, ignored by `list_circuits`; written with temp file + rename); the tools run in the server process by default, and in a restarting worker only with `PROTOBOARD_DEV=1` (set in this repository's `.mcp.json`). A change to a circuit (`apply_ops`, `undo`, `layout` on an existing one) is made under a lock, so two simultaneous calls with the same `expect_revision` give exactly one winner. Chunks of a page can be served by another process than the one that made the manifest.
 - The stdio MCP server now exits when its stdin ends or closes, or its stdout breaks (the SDK does not watch for it; servers were left behind after a host over ssh went away).

@@ -72,7 +72,7 @@ export const motor = {
   },
   limits(entry, r) {
     const m = entry.model;
-    return [stress('SIM_MOTOR_VOLTAGE', 'voltage', Math.abs(r.voltage), m.range[1], 'V'), stress('SIM_MOTOR_STALL', 'current', r.state === 'stalled' ? Math.abs(r.current) : 0, m.efficient.current, 'A')];
+    return [stress('SIM_MOTOR_VOLTAGE', 'voltage', Math.abs(r.voltage), m.range[1], 'V', { of: 'supply' }), stress('SIM_MOTOR_STALL', 'current', r.state === 'stalled' ? Math.abs(r.current) : 0, m.efficient.current, 'A', { of: 'stall' })];
   },
   lines(p, h) {
     const lines = [

@@ -79,7 +79,7 @@ export const activeBuzzer = {
   limits(entry, r) {
     const m = entry.model;
     const out = [
-      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.voltage, m.maxReverse, 'V', { param: 'voltage' }),
+      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.voltage, m.maxReverse, 'V', { param: 'voltage', of: 'supply' }),
       stress('SIM_IC_SUPPLY', 'voltage', r.voltage, m.maxVoltage, 'V'),
     ];
     if (r.current > m.maxCurrent) out.push(note('info', 'SIM_BUZZER_CURRENT', { part: entry.id, current: q(r.current, 'A'), max: q(m.maxCurrent, 'A') }));

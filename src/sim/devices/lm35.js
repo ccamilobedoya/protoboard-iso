@@ -58,8 +58,8 @@ export const lm35 = {
     const m = entry.model;
     const out = [
       stress('SIM_IC_SUPPLY', 'voltage', r.vs, m.maxSupply, 'V'),
-      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vs, m.maxReverse, 'V', { param: 'voltage' }),
-      stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), m.maxCurrent, 'A'),
+      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vs, m.maxReverse, 'V', { param: 'voltage', of: 'supply' }),
+      stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), m.maxCurrent, 'A', { of: 'output' }),
     ];
     if (r.state === 'low') out.push(note('warning', 'SIM_LM35_LOW_SUPPLY', { part: entry.id, voltage: q(r.vs, 'V'), min: q(m.minSupply, 'V') }));
     const [lo, hi] = entry.range;

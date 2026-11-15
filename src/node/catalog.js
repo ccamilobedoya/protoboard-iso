@@ -251,7 +251,7 @@ export function formatCompactCatalog(c, lang = 'en') {
 function limitsText(e, lang) {
   const items = e.limits.map((l) => {
     const text = t(lang, `catalog.limit.${l.kind}`, { quantity: t(lang, `page.warnings.q.${l.quantity}`), value: formatValue(l.value, l.unit, { decimal: decimalSeparator(lang) }) });
-    return `${text}${l.pins ? ` (${l.pins.join(', ')})` : ''}${l.each ? ` ${t(lang, `catalog.limit.each.${l.each}`)}` : ''}`;
+    return `${text}${l.pins ? ` (${l.pins.join(', ')})` : ''}${l.of ? ` (${t(lang, `catalog.limit.of.${l.of}`)})` : ''}${l.each ? ` ${t(lang, `catalog.limit.each.${l.each}`)}` : ''}`;
   });
   return `${items.join(' · ')}${e.limitFields ? `, ${t(lang, 'catalog.limitFields', { fields: e.limitFields.join(', ') })}` : ''}`;
 }

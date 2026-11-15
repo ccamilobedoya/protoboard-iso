@@ -345,7 +345,7 @@ export const sensorModule = {
   limits(entry, r) {
     const m = entry.model;
     const out = [
-      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, m.maxReverse, 'V', { param: 'voltage' }),
+      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, m.maxReverse, 'V', { param: 'voltage', of: 'supply' }),
       stress('SIM_OVER_CURRENT', 'current', Math.abs(r.sink), OPAMPS.LM393.maxCurrent, 'A', { pin: entry.doPin }),
     ];
     if (OPTICAL.includes(entry.element)) out.push(stress('SIM_OVER_CURRENT', 'current', r.ir, m.irMax, 'A', { pin: 'IR' }));

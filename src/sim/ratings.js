@@ -3,10 +3,12 @@
 // every maximum here is the number a simulation would warn at. Nothing is restated by hand: a model
 // that changes changes this. Used by `catalog <part>` (node/catalog.js). Node only.
 //
-//   partRatings(part) → { limits: [{ kind, quantity, value, unit, pins?, each? }], fields? } or null
+//   partRatings(part) → { limits: [{ kind, quantity, value, unit, pins?, of?, each? }], fields? } or null
 //     part:   { id, type, raw, def, pinNames } (def from the type's resolve; no holes needed)
 //     kind:   'rated' (what the part is made for, an LED's 20 mA) or 'max' (where a warning starts)
 //     pins:   the chips of a package a limit is about (an RGB LED's R, G, B), when it says
+//     of:     what the limit belongs to when the quantity alone does not say (supply, coil, stall, output…),
+//             from the stress's `of`; a supply limit of an IC says so by its code
 //     each:   the reading's list a limit is repeated over ('pins' of a board, 'contacts' of a switch)
 //     fields: the part's fields its limits follow (a resistor's `power`), from the device's limitFields
 //   null: the simulator has no limits for it (no device, or a device without `limits`).
@@ -48,6 +50,9 @@ function ratedOf(entry) {
   return values.map((value) => ({ kind: 'rated', quantity: 'current', value, unit: 'A' }));
 }
 
+// A stress's code that already says what it is about, for the devices that do not name it.
+const OF_BY_CODE = { SIM_IC_SUPPLY: 'supply' };
+
 export function partRatings(part) {
   const device = deviceFor(part);
   if (!device?.limits) return null;
@@ -62,9 +67,10 @@ export function partRatings(part) {
   const limits = ratedOf(entry);
   // Only limits the simulator reports with their maximum; one line for the chips that share it.
   for (const s of stresses.filter((x) => !x.note && x.reportMax && Number.isFinite(x.max) && x.max > 0)) {
-    const same = limits.find((l) => l.kind === 'max' && l.quantity === s.quantity && l.value === s.max && l.unit === s.unit && l.each === s.each && Boolean(l.pins) === Boolean(s.pin));
+    const of = s.of ?? OF_BY_CODE[s.code];
+    const same = limits.find((l) => l.kind === 'max' && l.quantity === s.quantity && l.value === s.max && l.unit === s.unit && l.each === s.each && l.of === of && Boolean(l.pins) === Boolean(s.pin));
     if (same && s.pin) same.pins.push(s.pin);
-    else if (!same) limits.push({ kind: 'max', quantity: s.quantity, value: s.max, unit: s.unit, ...(s.pin && { pins: [s.pin] }), ...(s.each && { each: s.each }) });
+    else if (!same) limits.push({ kind: 'max', quantity: s.quantity, value: s.max, unit: s.unit, ...(s.pin && { pins: [s.pin] }), ...(of && { of }), ...(s.each && { each: s.each }) });
   }
   if (!limits.length) return null;
   const fields = device.limitFields?.(entry) ?? [];

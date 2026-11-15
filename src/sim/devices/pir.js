@@ -163,8 +163,8 @@ export const pir = {
   limits(entry, r) {
     const out = [
       stress('SIM_IC_SUPPLY', 'voltage', r.vcc, PIR.maxSupply, 'V'),
-      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, PIR.maxReverse, 'V', { param: 'voltage' }),
-      stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), PIR.maxCurrent, 'A'),
+      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, PIR.maxReverse, 'V', { param: 'voltage', of: 'supply' }),
+      stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), PIR.maxCurrent, 'A', { of: 'output' }),
     ];
     if (r.vcc > 0.5 && r.vcc < PIR.minSupply) out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(PIR.minSupply, 'V') }));
     if (r.state === 'warmup') out.push(note('info', 'SIM_PIR_WARMUP', { part: entry.id, time: q(r.left, 's') }));

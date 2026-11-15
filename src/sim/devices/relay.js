@@ -63,8 +63,8 @@ export const relay = {
   limits(entry, r) {
     const m = entry.model;
     return [
-      stress('SIM_RELAY_COIL', 'voltage', r.drive, m.maxVoltage, 'V'),
-      stress('SIM_OVER_CURRENT', 'current', Math.abs(r.closed ? r.contacts.NO : r.contacts.NC), m.maxContactCurrent, 'A'),
+      stress('SIM_RELAY_COIL', 'voltage', r.drive, m.maxVoltage, 'V', { of: 'coil' }),
+      stress('SIM_OVER_CURRENT', 'current', Math.abs(r.closed ? r.contacts.NO : r.contacts.NC), m.maxContactCurrent, 'A', { of: 'contacts' }),
       stress('SIM_RELAY_KICK', 'voltage', r.kick, m.nominal, 'V', { reportMax: false }),
     ];
   },

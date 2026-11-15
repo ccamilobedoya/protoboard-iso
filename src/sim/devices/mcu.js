@@ -282,7 +282,7 @@ export const mcu = {
     const m = entry.model;
     const out = r.pins.map((x) => stress('SIM_OVER_CURRENT', 'current', Math.abs(x.current), m.maxPin, 'A'));
     for (const ids of entry.ctrl?.shared ?? []) out.push(note('warning', 'SIM_LIBRARY_SHARED', { part: entry.id, parts: ids.join(', '), first: ids[0] }));
-    if (r.rail != null) out.push(stress('SIM_OVER_CURRENT', 'current', r.rail, m.regulator.maxCurrent, 'A'));
+    if (r.rail != null && entry.power.logic !== entry.power.usb) out.push(stress('SIM_OVER_CURRENT', 'current', r.rail, m.regulator.maxCurrent, 'A', { of: 'regulator' }));
     for (const x of r.pins) {
       if (x.voltage > r.vdd + 0.3 || x.voltage < -0.3) out.push(note('warning', 'SIM_PIN_OVERVOLTAGE', { part: entry.id, pin: x.name, voltage: q(x.voltage, 'V'), max: q(r.vdd, 'V') }));
     }

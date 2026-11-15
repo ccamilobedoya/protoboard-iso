@@ -135,8 +135,8 @@ export const hallSensor = {
     const m = entry.model;
     const out = [
       stress('SIM_IC_SUPPLY', 'voltage', r.vs, m.maxSupply, 'V'),
-      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vs, m.maxReverse, 'V', { param: 'voltage' }),
-      stress('SIM_OVER_CURRENT', 'current', r.demand, m.outputLimit, 'A'),
+      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vs, m.maxReverse, 'V', { param: 'voltage', of: 'supply' }),
+      stress('SIM_OVER_CURRENT', 'current', r.demand, m.outputLimit, 'A', { of: 'output' }),
     ];
     if (r.vs > m.maxOperating && r.vs <= m.maxSupply) out.push(note('info', 'SIM_HALL_HIGH_SUPPLY', { part: entry.id, voltage: q(r.vs, 'V'), max: q(m.maxOperating, 'V') }));
     if (r.state === 'low') out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vs, 'V'), min: q(m.minSupply, 'V') }));
