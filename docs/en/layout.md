@@ -70,8 +70,11 @@ of forbidden places (`forbid`) carries over.
 Everything a spec can get wrong, in one pass, before placing anything: a missing or repeated id,
 a name the kit does not know (with the closest ones), a field the part's type does not take
 (`UNKNOWN_FIELD`, from `strayFields` in `src/parts/fields.js`: `"state": "on"` on a switch, whose
-field is `on`), a net naming a part or a pin that is not there (with the pins it has), and a part
-in no net (a warning). Any error → nothing is placed and every problem comes back together, so the
+field is `on`), a field the type cannot read (the part's own `resolve`: a resistor's `"abc"` says it
+takes a resistance such as `330` or `4k7`, an LED colour there is none of lists the colours; a part
+wired pin by name, `MODULE_PINS`, is left to its placement), a net naming a part or a pin that is not
+there (with the pins it has; not for a part whose fields could not be read), and a part in no net
+(a warning). Any error → nothing is placed and every problem comes back together, so the
 caller fixes them all in one round. `check_only` / `--check` stops here.
 
 Pin names are read as people write them (`findPin`, `src/parts/pin-names.js`): the part's own name

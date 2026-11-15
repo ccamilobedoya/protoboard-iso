@@ -301,6 +301,10 @@ test('layout with a recipe: ready in one call, the catalog lists it, bad values 
   assert.ok(bad.isError);
   assert.match(bad.content[0].text, /RECIPE|2N3904/);
   assert.match(bad.content[0].text, /STATUS: FIX_SPEC/);
+  const unreadable = await call('layout', { target: 'recipe-bad', recipe: 'led-resistor', values: { R1: 'abc' } });
+  assert.ok(unreadable.isError);
+  assert.match(unreadable.content[0].text, /R1: cannot read the value "abc"\. It takes a resistance in ohms, such as 330, 4k7/);
+  assert.match(unreadable.content[0].text, /STATUS: FIX_SPEC/);
   const both = await call('layout', { target: 'recipe-bad', recipe: 'divider', nets: [['R1.1', 'T+']] });
   assert.ok(both.isError);
   assert.ok((await call('get_circuit', { target: 'recipe-bad' })).isError, 'nothing created');

@@ -49,7 +49,9 @@ With the connector's tools: `layout` with `{"target": "switch", "recipe": "npn-s
   some fields (`"R1": {"value": "470", "tolerance": "1%"}`). Only the ids a recipe lists can change,
   some within choices or a range: `kit catalog` lists every recipe name by group, `kit catalog
   <recipe>` shows its title, values with defaults, parts, nets and limits. An id the recipe does not
-  list, or a value outside its choices or range, is a `FIX_SPEC` that says what is allowed.
+  list, a value outside its choices or range, or a value the kit cannot read (`"R1": "abc"`, a
+  colour there is none of), is a `FIX_SPEC` that says what is accepted (a resistance such as `330`
+  or `4k7`); nothing is built.
 - `title`, `board`, `clearance`, `netLabels`, `page` and `lang` may be given beside the recipe (in a
   spec file with `"recipe"`). Never `parts` or `nets`: to add to a recipe circuit, call `layout` on
   it again with the full parts and nets ([spec.md](spec.md)).

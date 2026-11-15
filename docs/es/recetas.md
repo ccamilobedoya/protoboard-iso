@@ -98,7 +98,10 @@ los límites de cada valor.
 - **Solo cambia lo que la receta lista.** Cualquier otra cosa, un valor fuera de las opciones o del
   rango, o un campo no permitido, es un `FIX_SPEC` que dice qué se permite (`RECIPE_VALUE_UNKNOWN`,
   `RECIPE_VALUE_CHOICE`, `RECIPE_VALUE_RANGE`, `RECIPE_VALUE_FIELD`; una receta desconocida,
-  `RECIPE_UNKNOWN`, viene con los nombres más parecidos). Los identificadores y las redes no
+  `RECIPE_UNKNOWN`, viene con los nombres más parecidos). También lo es un valor que el kit no sabe
+  leer, y no se arma nada: `"R1": "abc"` dice que lleva una resistencia como `330`, `4k7` o `1M`
+  (`BAD_VALUE`), un color que no existe lista los colores (`UNKNOWN_COLOR`), y el `"V1": "abc"` de
+  una fuente no es un número (`RECIPE_VALUE_NUMBER`). Los identificadores y las redes no
   cambian nunca: son lo que hace que la receta salga lista.
 - Junto con la receta se pueden dar `title`, `board`, `clearance`, `netLabels`, `environment`, `page`
   y `lang`, que reemplazan los de la receta. `parts` y `nets`, nunca (`RECIPE_AND_PARTS`).

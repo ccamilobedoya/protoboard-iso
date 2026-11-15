@@ -95,7 +95,10 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 - **Only what the recipe lists can change.** Anything else, a value outside the choices or the
   range, or a field not allowed, is a `FIX_SPEC` that says what is allowed (`RECIPE_VALUE_UNKNOWN`,
   `RECIPE_VALUE_CHOICE`, `RECIPE_VALUE_RANGE`, `RECIPE_VALUE_FIELD`; an unknown recipe,
-  `RECIPE_UNKNOWN`, comes with the closest names). Ids and nets never change: they are what makes a
+  `RECIPE_UNKNOWN`, comes with the closest names). So is a value the kit cannot read, and nothing is
+  built: `"R1": "abc"` says it takes a resistance such as `330`, `4k7` or `1M` (`BAD_VALUE`), a
+  colour there is none of lists the colours (`UNKNOWN_COLOR`), a supply's `"V1": "abc"` is not a
+  number (`RECIPE_VALUE_NUMBER`). Ids and nets never change: they are what makes a
   recipe come out ready.
 - Beside a recipe, `title`, `board`, `clearance`, `netLabels`, `environment`, `page` and `lang` may be
   given and replace the recipe's. `parts` and `nets` never (`RECIPE_AND_PARTS`).

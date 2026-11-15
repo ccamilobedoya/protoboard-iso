@@ -35,7 +35,7 @@ export const potentiometer = {
   pins: ['1', 'W', '3'],
   resolve(part) {
     const ohms = parseValue(part.value ?? '10k');
-    if (!(ohms > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value) } } };
+    if (!(ohms > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value), variant: 'resistance' } } };
     const position = part.position ?? 0.5;
     if (!(position >= 0 && position <= 1)) return { error: { code: 'BAD_VALUE', params: { value: `position ${part.position}` } } };
     const style = part.style ?? 'knob';

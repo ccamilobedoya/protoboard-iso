@@ -129,6 +129,8 @@ export function expandRecipe(name, values = {}) {
       if (!allowed.includes(field)) problems.push({ severity: 'error', code: 'RECIPE_VALUE_FIELD', params: { recipe: recipe.name, id, field, fields: allowed.join(', ') } });
       else if (field === rule.field && rule.choices && !rule.choices.some((c) => String(c).toUpperCase() === String(v).toUpperCase()))
         problems.push({ severity: 'error', code: 'RECIPE_VALUE_CHOICE', params: { id, value: String(v), choices: rule.choices.join(', ') } });
+      else if (field === rule.field && (rule.min !== undefined || rule.max !== undefined) && Number.isNaN(Number(v)))
+        problems.push({ severity: 'error', code: 'RECIPE_VALUE_NUMBER', params: { id, value: String(v), min: rule.min ?? '—', max: rule.max ?? '—', example: all.get(id)?.[field] ?? rule.min ?? rule.max } });
       else if (field === rule.field && (rule.min !== undefined || rule.max !== undefined) && !(Number(v) >= (rule.min ?? -Infinity) && Number(v) <= (rule.max ?? Infinity)))
         problems.push({ severity: 'error', code: 'RECIPE_VALUE_RANGE', params: { id, value: String(v), min: rule.min ?? '—', max: rule.max ?? '—' } });
       else changes.set(id, { ...changes.get(id), [field]: v });

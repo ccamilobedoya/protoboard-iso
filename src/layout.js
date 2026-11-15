@@ -109,13 +109,15 @@ const TRIES = 8;
 const REPAIRS = 4; // jumpers the repair may route again with suggest (each one measures drawings)
 
 // Everything a list of parts and nets can get wrong, found in one pass before placing anything:
-// names the kit does not know (with the closest ones), repeated ids, nets that name a part or a
+// names the kit does not know (with the closest ones), repeated ids, a field its type cannot read
+// (a resistor's "abc", an LED colour there is none of: what it takes), nets that name a part or a
 // pin that is not there (with the pins it has), parts in no net. Parts come back resolved
 // ("7805" → regulator 7805, "KCD1" → rocker switch).
 export function validateSpec(spec) {
   const problems = [];
   const parts = [];
   const seen = new Set();
+  const unreadable = new Set(); // parts whose pins cannot be known: their nets are not checked
   for (const raw of spec.parts ?? []) {
     if (!raw?.id) {
       problems.push({ severity: 'error', code: 'MISSING_ID', params: { index: parts.length + 1 } });
@@ -128,6 +130,12 @@ export function validateSpec(spec) {
     else {
       parts.push(r.part);
       for (const field of strayFields(r.part)) problems.push({ severity: 'error', code: 'UNKNOWN_FIELD', params: { part: r.part.id, field, fields: fieldsOfType(r.part.type).join(', ') } });
+      // A part beside the board is given its pins by name when it is placed (MODULE_PINS).
+      const def = PART_TYPES[r.part.type].resolve(r.part);
+      if (def.error && def.error.code !== 'MODULE_PINS') {
+        problems.push({ severity: 'error', ...def.error, params: { part: r.part.id, ...def.error.params } });
+        unreadable.add(r.part.id);
+      }
     }
   }
   const byId = new Map(parts.map((p) => [p.id, p]));
@@ -149,7 +157,7 @@ export function validateSpec(spec) {
       return;
     }
     inNet.add(part.id);
-    const names = pinsOf(part);
+    const names = unreadable.has(part.id) ? [] : pinsOf(part);
     if (!names.length) return ref;
     const name = findPin(names, m[2], part.type);
     if (name === undefined) problems.push({ severity: 'error', code: 'NET_UNKNOWN_PIN', params: { where, ref: String(ref), part: part.id, pin: m[2], names: names.join(', ') } });

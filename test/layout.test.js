@@ -3,6 +3,28 @@ import assert from 'node:assert/strict';
 import { autoLayout, checkNets, formatLayout } from '../src/layout.js';
 import { formatIssue, t, checkCircuit } from '../src/index.js';
 
+test('a part whose value or colour the kit cannot read is refused before placing anything, with what it takes', () => {
+  const nets = (id, a, b) => [[`${id}.${a}`, 'T+'], [`${id}.${b}`, 'T-']];
+  const cases = [
+    [{ id: 'R1', type: 'resistor', value: 'abc' }, ['1', '2'], /It takes a resistance in ohms, such as 330, 4k7 or 1M\./, /Lleva una resistencia en ohmios/],
+    [{ id: 'C1', type: 'capacitor', value: '10 apples' }, ['1', '2'], /It takes a capacitance in farads, such as 100n/, /Lleva una capacidad en faradios/],
+    [{ id: 'L1', type: 'inductor', value: 'x' }, ['1', '2'], /It takes an inductance in henries/, /Lleva una inductancia en henrios/],
+    [{ id: 'D1', type: 'zener', value: 'five' }, ['A', 'K'], /It takes a Zener voltage/, /Lleva una tensión de Zener/],
+    [{ id: 'D1', type: 'led', color: 'pink' }, ['anode', 'cathode'], /unknown colour "pink"\. Options: red/, /D1: color desconocido/],
+  ];
+  for (const [part, [a, b], en, es] of cases) {
+    const r = autoLayout({ parts: [part], nets: nets(part.id, a, b) });
+    assert.equal(r.status, 'fix_spec', JSON.stringify(part));
+    assert.equal(r.circuit, undefined, 'nothing created');
+    assert.equal(r.problems.length, 1, `only that problem, not the nets: ${r.problems.map((p) => p.code)}`);
+    const text = formatIssue(r.problems[0], 'en');
+    assert.ok(text.startsWith(`error: ${part.id}: `) && text.includes(`"${part.value ?? part.color}"`), text);
+    assert.match(text, en);
+    assert.match(formatIssue(r.problems[0], 'es'), es);
+    assert.match(formatLayout(r, 'en', { t, formatIssue }).split('\n').at(-1), /^STATUS: FIX_SPEC · /);
+  }
+});
+
 // A 5 V regulator with its capacitors and a pilot LED, from a 9 V battery's strip.
 const spec = {
   board: 'auto',

@@ -74,8 +74,12 @@ anterior; solo pasa de uno a otro el conjunto de lugares prohibidos (`forbid`).
 Todo lo que una especificación puede tener mal, de una pasada y antes de ubicar nada: un `id` que
 falta o se repite, un nombre que el kit no conoce (con los más parecidos), un campo que el tipo
 del componente no usa (`UNKNOWN_FIELD`, de `strayFields` en `src/parts/fields.js`: `"state": "on"`
-en un interruptor, cuyo campo es `on`), una red que nombra un componente o una pata que no existe
-(con las patas que sí tiene) y un componente que no está en ninguna red (aviso). Con cualquier
+en un interruptor, cuyo campo es `on`), un campo que el tipo no sabe leer (el `resolve` del propio
+componente: el `"abc"` de una resistencia dice que lleva una resistencia como `330` o `4k7`, un color
+de LED que no existe lista los colores; un componente cableado pata por pata, `MODULE_PINS`, se deja
+a su colocación), una red que nombra un componente o una pata que no existe (con las patas que sí
+tiene; no para un componente cuyos campos no se pudieron leer) y un componente que no está en
+ninguna red (aviso). Con cualquier
 error no se ubica nada y vuelven todos los problemas juntos, así se corrigen en una sola ronda.
 `check_only` / `--check` se detiene aquí.
 

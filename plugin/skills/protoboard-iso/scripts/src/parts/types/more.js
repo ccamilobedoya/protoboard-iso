@@ -22,7 +22,7 @@ export const inductor = {
   typical: { value: '100u' },
   resolve(part) {
     const henries = parseValue(part.value);
-    if (!(henries > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value) } } };
+    if (!(henries > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value), variant: 'inductance' } } };
     const tolerance = parseTolerance(part.tolerance ?? '10%');
     const microhenries = henries * 1e6;
     const names = resistorBands(microhenries, tolerance, 4);
