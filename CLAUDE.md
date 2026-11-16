@@ -121,12 +121,9 @@ npm test                      # unit + rendering tests (node:test, no dependenci
 npm run verify [-- --quick]    # the whole verification below as one command: exit 0 pass, 1 fail, 2 a step could not run
 npm run setup                 # once per clone: git hooks (pre-commit: verify --quick; pre-push: verify)
 npm run lint · npm run knip · npm run dupes · npm run coverage   # Biome, unused code, copies, c8 thresholds
-node scripts/github-ruleset.js [--apply]   # the owner, once: protect main (CI required), secret scanning
-node scripts/agent-bench.js [--run]        # the agents on three fixed briefs (--run spends tokens), compared with the last run
 npm run options [-- --write] · npm run context-size   # project.json's options block in CLAUDE.md; what a session loads at start
 npm run docs-index [-- --write]   # docs/en/README.md and docs/es/README.md, written from the documents
 npm run pack-skill                # plugin/ again, after a change to plugin-src/, bin/ or src/
-node .claude/hooks/usage.js --summary   # tokens, calls and cache hits per session and agent (.claude/state/usage.jsonl)
 npm run examples              # examples/*.json → examples/out/*.svg + index.html gallery
 npm run examples -- --lang es # same, Spanish messages and labels
 npm run preview [-- filter]   # examples/out/*.svg → examples/out/png/*.png (needs npm install)
@@ -147,11 +144,9 @@ node scripts/clean-install-check.js   # a fresh clone of HEAD: the README's comm
 node scripts/golden.js [--write]  # simulator output against test/fixtures/sim-golden.json (--write after an intended change)
 node scripts/frames.js [--runs 2] [--write] [--determinism]  # live page frames (Chromium) against the hashes in test/frames/; SKIPPED without a browser
 node scripts/ux-shots.js <targets…> -o <dir> [--browser-dir d] [--tap ID]  # page screenshots at five sizes, alone and in a note (docs/en/ux-pass.md)
-node scripts/stage-shots.js [target] [-o dir]  # the stage theme and a recording in both video formats, the frame's rules measured (Chromium)
 node scripts/render-frames.js <timeline.json> [--format both] [--lang es] [--check] [--validate]  # a video's frames, subtitles and timeline.json
 node scripts/render-frames.js --parts <recipe> [--what-if R1.resistance=1e5] [--json]  # what a timeline can name; a set's cycles (docs/en/making-a-video.md)
 node scripts/assemble.js <dir…> -o video.mp4 [--burn]  # frame folders → one video with ffmpeg (exit 2 without it)
-node scripts/mockups.js [--lang es]  # conductor view mock-ups → examples/out/mockups/
 node scripts/readme-images.js [filter]  # docs/img/*.png for the READMEs (needs npm install)
 node scripts/demo-site.js [-o site]     # the demo site: every recipe and example as a live page
 node bin/protoboard-iso.js check <file.json> [--lang es]
