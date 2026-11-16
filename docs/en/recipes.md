@@ -103,6 +103,64 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 - Beside a recipe, `title`, `board`, `clearance`, `netLabels`, `environment`, `page` and `lang` may be
   given and replace the recipe's. `parts` and `nets` never (`RECIPE_AND_PARTS`).
 
+## Goals: a result instead of a value
+
+A value entry may offer a **goal**: the result the user wants (a current, a frequency), given
+instead of the value that sets it. The kit picks the standard value with its own simulator, so the
+figure it reports is the one `simulate` and the page show:
+
+```bash
+layout led --recipe led-resistor --values '{"V1": 9, "D1": {"current": "15mA"}}'
+layout blink --recipe 555-astable --values '{"U1": {"frequency": "1Hz"}}'
+```
+
+```text
+Solved: R1 = 470 Ω (E24) for D1 at 15 mA: 15.2 mA simulated, 2 % over (next values: 430 Ω 16.6 mA · 510 Ω 14.1 mA)
+Solved: R2 = 68 kΩ (E24; unchanged: R1 = 1 kΩ, C1 = 10 µF) for U1 at 1 Hz: 1.03 Hz simulated, 3 % over (next values: 62 kΩ 1.12 Hz · 75 kΩ 933 mHz)
+```
+
+- **Which value.** Resistors in E24, capacitors in E6, within the decades the goal or the type
+  declares (resistors 10 Ω to 1 MΩ; the 555's R2 1 kΩ to 1 MΩ and C1 1 µF to 100 µF). The one whose
+  simulated result is nearest to the goal (relative error); between results equally near (within one
+  percentage point), one that overstresses no part. A goal that can only be met by overstressing a
+  part is obeyed: the circuit is built and the hazard review ends it in `STATUS: WARNINGS` saying what
+  burns. A goal no standard value reaches gets the nearest one in range, and the line says
+  `out of reach`.
+- **How.** A DC goal with one knob sweeps its series (the simulator's `engine.set`, under a
+  millisecond each). A goal with several knobs or measured over time is ranked first by a named
+  closed form (`src/recipes/estimates.js`: `555-astable`, f = 1.44 / ((R1 + 2·R2)·C1)) and only its
+  best candidates are measured (the 555 on D1's blinking, with a step of 1/500 of the expected
+  period: within about 1 % of the page's pace). Knobs move in order: the 555's R2 first, C1 too only
+  when R2 alone cannot reach the goal; R1 stays.
+- **What it says**: a `Solved:` line (`Resuelto:`) before the readings, and `solved: [...]` in the
+  JSON: the value chosen, the simulated result, how far from the goal and on which side, the
+  neighbouring standard values with their results, the state the goal is about (`S1 pressed`,
+  `RV1 at 0 %`) and what stays.
+- **What is stored**: the values chosen, like any value (`spec.recipe.values` gets `R1: "470"`). The
+  goal is not kept and a later `layout` solves nothing again: it gives its values as usual.
+- **Errors** (`FIX_SPEC`, nothing built): a goal the recipe does not declare for that id
+  (`RECIPE_GOAL_UNKNOWN`, which lists the recipe's goals), a goal value that cannot be read, `"abc"`
+  or another unit (`RECIPE_GOAL_VALUE`), and a goal and a value for the same knob in one call
+  (`RECIPE_GOAL_AND_VALUE`: give one of them).
+
+**The advisory.** With no goal in the call, a recipe circuit whose part runs above its rated value
+without burning (an LED at 107 % of its rated 20 mA, so no hazard and `STATUS: DONE`) gets one line,
+and nothing is changed: `Note: D1 is at 107 % of its rated 20 mA with R1 = 330 Ω; R1 = 360 Ω would
+give 19.7 mA.` (`Nota:`; `advice: [...]` in the JSON). The value suggested is the standard one nearest
+to the rating without passing it. Not printed when a goal was given (the `Solved` line says it) nor
+when the page hides the results for a learner to predict.
+
+Recipes with goals: `led-resistor`, `npn-switch` (S1 pressed), `potentiometer-led` (RV1 at 0 %),
+`mosfet-switch` (S1 pressed), `button-pulldown` (S1 pressed), `regulator-7805`, `regulator-ams1117`,
+`esp32-led`, `uno-blink`, `c3-blink` (the sketch's first state, the LED lit), `opamp-comparator`,
+`lm393-comparator`, `opamp-follower` (RV1 at 0 %), `slide-switch-leds` (D1, and D2 with S1 slid) and
+`tilt-alarm` (S1 tilted): `D1.current`; `555-astable`: `U1.frequency`. `catalog <recipe>` lists them.
+Left out for now, each needing more than this declaration: `button-pullup` (its LED is fed through the
+1 kΩ pull-up, so R2 alone reaches about 3 mA), the 555's LED (lit half the time), `bridge-rectifier`
+(an AC source), `uno-button`, `uno-pot-pwm`, `c3-pot-pwm` (the sketch sets the LED over time),
+`relay-npn` (the contact closes over time), `encoder-dimmer-uno` (no series resistor) and the sensor
+recipes (the LED follows the environment and the sensor's own output limit).
+
 ## Recipes with a real sensor
 
 A recipe may carry an `environment` and a `page` ([environment.md](environment.md)), copied into the
@@ -133,7 +191,8 @@ full `parts` and `nets` (`get_circuit` shows them): it is then a circuit of its 
 
 `layout`'s answer for a recipe circuit ends, before its page and `STATUS:` lines, with what the
 recipe lets change, at the values the circuit has now (`Can change (layout with the recipe and
-values): R1 = 330 (current-limiting resistor) · D1 = green · V1 = 9 V [1.5…15]`), beside the
+values): R1 = 330 (current-limiting resistor) · D1 = green · V1 = 9 V [1.5…15] · D1 current (a goal: …)`),
+beside the
 readings at rest and a board's program ([layout.md](layout.md), "The answer"): the changes to offer
 are those, not others.
 
@@ -154,6 +213,12 @@ blinks, in slow motion (the page's time follows the slowest time constant).
    `netLabels`, `environment` (the circuit's, for a sensor), `page`, `clearance`, and `values`: for each id that may change, `field` (what the
    short form sets), and optionally `role` (`{ en, es }`), `choices`, `min`/`max`, `extra` (the
    allowed fields, when the defaults by kind do not fit).
+   A goal is one more key on a value entry, `goals: { current: { set: 'R1', reading: 'current' } }`
+   (optionally `when`, the state it is about, as `{ S1: { pressed: true } }`, and `range`, the decades
+   of a knob); a goal measured over time names `measure: 'cycle'`, `of` and an `estimate` of
+   `src/recipes/estimates.js`. An entry may carry goals only (`U1: { goals: … }`). The header of
+   `src/recipes/goals.js` lists the keys; `npm test` checks each goal is reached at the recipe's
+   defaults and ends `DONE`.
 3. Give it a `group` (one word of `RECIPE_GROUPS` in `src/recipes/index.js`, set in the module itself; the compact catalog lists recipes by group, names only, and a test fails for a recipe without one; a new group needs its `recipe.group.<name>` texts in `src/i18n/en.js` and `es.js`). Register it in `src/recipes/index.js` and `npm run schemas` (the schema lists the names).
 4. Add it to the tables in this page, [recetas.md](../es/recetas.md) and the skill's
    `plugin-src/references/recipes.md`, to the list in `plugin-src/SKILL.md` (then

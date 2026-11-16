@@ -113,7 +113,10 @@ que `layout` recibe por nombre con solo los valores que cambian (`{"recipe": "np
 {"R1": "470"}}`), cada uno probado para que salga `DONE` en una llamada. Un circuito de receta no
 necesita agente: la conversación principal llama a `layout` ella misma y deja al agente de montaje
 para `CHANGES` (o pasa la receta en la línea `Recipe:` del encargo). El camino A del agente empieza
-por la receta cuando el encargo pide uno de esos circuitos.
+por la receta cuando el encargo pide uno de esos circuitos. Un resultado que el usuario quiere (la corriente de un LED, la
+frecuencia de un 555) va en los valores como meta (`{"D1": {"current": "15mA"}}`, desde el
+2026-11-16): el kit elige el valor estándar, nadie lo calcula, y la línea `Solved:` que imprime se
+transmite tal cual.
 
 ## El ciclo (lo maneja la conversación principal)
 

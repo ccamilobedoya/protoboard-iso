@@ -106,7 +106,9 @@ Since 2026-10-26: **recipes** ([recipes.md](recipes.md)), the usual lesson circu
 {"R1": "470"}}`), each one tested to come out `DONE` in one call. A recipe circuit needs no agent:
 the main conversation calls `layout` itself and keeps the layout agent for `CHANGES` (or passes
 the recipe in the brief's `Recipe:` line). The agent's path A starts with the recipe when the brief
-asks for one of those circuits.
+asks for one of those circuits. A result the user wants (an LED's current, a 555's frequency) goes in the
+values as a goal (`{"D1": {"current": "15mA"}}`, since 2026-11-16): the kit picks the standard value,
+nobody works it out, and the `Solved:` line it prints is relayed as it is.
 
 ## The loop (run by the main conversation)
 

@@ -305,7 +305,7 @@ descriptions and fine touches stay operations (`apply_ops`).
 ### The answer
 
 `{ status, circuit, placed: [{ id, type, pins, rails, shared }], wires, columns, problems, sequence,
-check, review, tries, readings?, programs?, changeable?, ms }`; `formatLayout` writes it for the CLI
+check, review, tries, solved?, advice?, readings?, programs?, changeable?, ms }`; `formatLayout` writes it for the CLI
 and the MCP tool (texts `layout.*` in `src/i18n/`).
 
 When the circuit was built (`DONE` or `WARNINGS`, a new circuit or `layout` again on one), the answer
@@ -314,13 +314,25 @@ comes from the kit (`src/layout-answer.js`). After the review's lines and before
 `STATUS:` lines:
 
 ```text
+Solved: R1 = 470 Ω (E24) for D1 at 15 mA: 15.2 mA simulated, 2 % over (next values: 430 Ω 16.6 mA · 510 Ω 14.1 mA)
+Note: D1 is at 107 % of its rated 20 mA with R1 = 330 Ω; R1 = 360 Ω would give 19.7 mA.
 Readings (at rest, a model): supply 9 V · D1 20.6 mA, brightness 103 % of 20 mA
 Program U1 (Arduino sketch):
   // Blink: D13 on for half a second, off for half a second.
   …
-Can change (layout with the recipe and values): R1 = 330 (current-limiting resistor) · D1 = green · V1 = 9 V [1.5…15]
+Can change (layout with the recipe and values): R1 = 330 (current-limiting resistor) · D1 = green · V1 = 9 V [1.5…15] · D1 current (a goal: {"D1":{"current":"15mA"}})
 ```
 
+- **Solved** (`solved: [{ id, goal, target, values, result, error, hazard, reachable, neighbours, kept?, when? }]`):
+  only when the call gave a recipe's goal ([recipes.md](recipes.md#goals-a-result-instead-of-a-value)):
+  the standard values chosen, the result the simulator gives with them, how far from the goal and on
+  which side, the neighbouring values with their results, `out of reach` when no standard value in
+  range gets there. The two lines above never come together: the first is one call's, the second
+  another's.
+- **Note** (`advice: [{ id, goal, value, rated, knob, suggest }]`): only with no goal in the call, for a
+  recipe circuit with `STATUS: DONE` and its readings shown, whose part with a goal runs above its
+  rated value: by how much, and the standard value that would bring it nearest to the rating without
+  passing it. Information only: nothing is changed.
 - **Readings** (`readings: { sources: [{ id, kind, voltage, current }], parts: [{ id, kind, current,
   brightness? }] }`): the simulator's DC point, the one `simulate` prints. The sources first (a
   supply, a battery, a board's USB), then the parts whose job is to be driven: LEDs (current and
@@ -337,7 +349,8 @@ Can change (layout with the recipe and values): R1 = 330 (current-limiting resis
 - **Can change** (`changeable: [{ id, field, value, role?, min?, max?, choices? }]`): for a circuit
   made from a recipe, what the recipe accepts, with the value the circuit has now, its role, and its
   choices (`[a | b]`) or range (`[min…max]`); a program is `(sketch)`, never its text. The same limits
-  as `catalog <recipe>` prints.
+  as `catalog <recipe>` prints. Its goals come last (`{ id, goal, set, example }`), each with the
+  `values` that asks for it.
 
 `status` is the one verdict of the whole answer, and the text ends with it in a line of its own, so
 a caller (above all a small model) that reads only the last line knows what to do:

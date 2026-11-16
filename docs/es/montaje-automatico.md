@@ -334,7 +334,7 @@ valores, descripciones y retoques finos siguen siendo operaciones (`apply_ops`).
 ### La respuesta
 
 `{ status, circuit, placed: [{ id, type, pins, rails, shared }], wires, columns, problems, sequence,
-check, review, tries, readings?, programs?, changeable?, ms }`; `formatLayout` la escribe para la
+check, review, tries, solved?, advice?, readings?, programs?, changeable?, ms }`; `formatLayout` la escribe para la
 consola y la herramienta MCP (textos `layout.*` en `src/i18n/`).
 
 Cuando el circuito quedó armado (`DONE` o `WARNINGS`, un circuito nuevo o `layout` otra vez sobre
@@ -343,13 +343,25 @@ cada número y opción que repita un asistente salga del kit (`src/layout-answer
 líneas de la revisión y antes de las de la página y `STATUS:`:
 
 ```text
+Resuelto: R1 = 470 Ω (E24) para D1 a 15 mA: 15,2 mA simulados, 2 % por encima (valores vecinos: 430 Ω 16,6 mA · 510 Ω 14,1 mA)
+Nota: D1 queda al 107 % de su nominal de 20 mA con R1 = 330 Ω; con R1 = 360 Ω daría 19,7 mA.
 Lecturas (en reposo, un modelo): fuente 9 V · D1 20,6 mA, brillo 103 % del de 20 mA
 Programa U1 (sketch de Arduino):
   // Blink: D13 on for half a second, off for half a second.
   …
-Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitadora) · D1 = green · V1 = 9 V [1,5…15]
+Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitadora) · D1 = green · V1 = 9 V [1,5…15] · D1 current (una meta: {"D1":{"current":"15mA"}})
 ```
 
+- **Resuelto** (`solved: [{ id, goal, target, values, result, error, hazard, reachable, neighbours, kept?, when? }]`):
+  solo cuando la llamada dio una meta de la receta ([recetas.md](recetas.md#metas-un-resultado-en-lugar-de-un-valor)):
+  los valores estándar elegidos, el resultado que da el simulador con ellos, a qué distancia de la
+  meta y de qué lado, los valores vecinos con sus resultados, `fuera de alcance` cuando ningún valor
+  estándar del rango llega. Las dos líneas de arriba nunca salen juntas: la primera es de una
+  llamada, la segunda de otra.
+- **Nota** (`advice: [{ id, goal, value, rated, knob, suggest }]`): solo sin meta en la llamada, para un
+  circuito de receta con `STATUS: DONE` y sus lecturas a la vista, cuyo componente con meta trabaja
+  por encima de su valor nominal: cuánto, y el valor estándar que lo dejaría lo más cerca del nominal
+  sin pasarlo. Solo información: no se cambia nada.
 - **Lecturas** (`readings: { sources: [{ id, kind, voltage, current }], parts: [{ id, kind, current,
   brightness? }] }`): el punto de operación en DC del simulador, el que imprime `simulate`. Primero
   las fuentes (una fuente de banco, una batería, el USB de una tarjeta), luego los componentes cuyo
@@ -369,7 +381,8 @@ Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitado
 - **Se puede cambiar** (`changeable: [{ id, field, value, role?, min?, max?, choices? }]`): para un
   circuito hecho con una receta, lo que la receta acepta, con el valor que tiene ahora el circuito,
   su papel y sus opciones (`[a | b]`) o su rango (`[min…max]`); un programa es `(sketch)`, nunca su
-  texto. Los mismos límites que imprime `catalog <receta>`.
+  texto. Los mismos límites que imprime `catalog <receta>`. Sus metas van al final (`{ id, goal, set, example }`), cada una con
+  los `values` que la piden.
 
 `status` es el veredicto único de toda la respuesta, y el texto termina con él en su propia línea:
 quien lea solo la última línea (sobre todo un modelo pequeño) sabe qué hacer.

@@ -52,6 +52,21 @@ With the connector's tools: `layout` with `{"target": "switch", "recipe": "npn-s
   list, a value outside its choices or range, or a value the kit cannot read (`"R1": "abc"`, a
   colour there is none of), is a `FIX_SPEC` that says what is accepted (a resistance such as `330`
   or `4k7`); nothing is built.
+- **goals**: when the user wants a result, not a value (an LED's current, a 555's frequency), give
+  it as a goal and the kit picks the standard value with its simulator: `"D1": {"current": "15mA"}`,
+  `"U1": {"frequency": "1Hz"}`. Never work the value out yourself. The answer's `Solved:` line
+  (`Resuelto:`) says the value chosen, the simulated result, how far from the goal, and the
+  neighbouring values: relay it as printed. A goal that burns a part is still built and ends in
+  `WARNINGS`; one out of reach gets the nearest value and the line says so. Do not give a goal and
+  the value it sets (`R1` with `D1.current`) in one call. Only the value chosen is kept: a later
+  call with other values does not solve again. Goals: `D1.current` in `led-resistor`, `npn-switch`,
+  `potentiometer-led`, `mosfet-switch`, `button-pulldown`, `regulator-7805`, `regulator-ams1117`,
+  `esp32-led`, `uno-blink`, `c3-blink`, `opamp-comparator`, `lm393-comparator`, `opamp-follower`,
+  `tilt-alarm`, `slide-switch-leds` (and `D2.current`); `U1.frequency` in `555-astable`
+  (`kit catalog <recipe>` lists them).
+- **Note line**: with no goal, a part above its rated value (but not burning) gets a `Note:` line
+  (`Nota:`) with the value that would bring it under. It is information: relay it, change nothing
+  unless the user asks.
 - `title`, `board`, `clearance`, `netLabels`, `page` and `lang` may be given beside the recipe (in a
   spec file with `"recipe"`). Never `parts` or `nets`: to add to a recipe circuit, call `layout` on
   it again with the full parts and nets ([spec.md](spec.md)).

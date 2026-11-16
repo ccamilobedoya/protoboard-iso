@@ -106,6 +106,68 @@ los límites de cada valor.
 - Junto con la receta se pueden dar `title`, `board`, `clearance`, `netLabels`, `environment`, `page`
   y `lang`, que reemplazan los de la receta. `parts` y `nets`, nunca (`RECIPE_AND_PARTS`).
 
+## Metas: un resultado en lugar de un valor
+
+Una entrada de `values` puede ofrecer una **meta**: el resultado que el usuario quiere (una
+corriente, una frecuencia), dado en lugar del valor que lo fija. El kit elige el valor estándar con
+su propio simulador, así la cifra que informa es la que muestran `simulate` y la página:
+
+```bash
+layout led --recipe led-resistor --values '{"V1": 9, "D1": {"current": "15mA"}}'
+layout blink --recipe 555-astable --values '{"U1": {"frequency": "1Hz"}}'
+```
+
+```text
+Resuelto: R1 = 470 Ω (E24) para D1 a 15 mA: 15,2 mA simulados, 2 % por encima (valores vecinos: 430 Ω 16,6 mA · 510 Ω 14,1 mA)
+Resuelto: R2 = 68 kΩ (E24; sin cambio: R1 = 1 kΩ, C1 = 10 µF) para U1 a 1 Hz: 1,03 Hz simulados, 3 % por encima (valores vecinos: 62 kΩ 1,12 Hz · 75 kΩ 933 mHz)
+```
+
+- **Qué valor.** Resistencias en E24, condensadores en E6, dentro de las décadas que declara la meta
+  o el tipo (resistencias de 10 Ω a 1 MΩ; la R2 del 555 de 1 kΩ a 1 MΩ y C1 de 1 µF a 100 µF). El
+  que da el resultado simulado más cercano a la meta (error relativo); entre resultados igual de
+  cercanos (a menos de un punto porcentual), uno que no fuerce ningún componente. Una meta que solo se
+  cumple forzando un componente se obedece: el circuito se arma y la revisión de riesgos lo termina en
+  `STATUS: WARNINGS` diciendo qué se quema. Una meta que ningún valor estándar alcanza recibe el más
+  cercano dentro del rango, y la línea dice `fuera de alcance`.
+- **Cómo.** Una meta de continua con una sola perilla recorre su serie (`engine.set` del simulador,
+  menos de un milisegundo cada valor). Una meta con varias perillas o medida en el tiempo se ordena
+  primero con una fórmula cerrada con nombre (`src/recipes/estimates.js`: `555-astable`,
+  f = 1,44 / ((R1 + 2·R2)·C1)) y solo se miden sus mejores candidatos (el 555 sobre el parpadeo de
+  D1, con un paso de 1/500 del periodo esperado: a cerca de 1 % del ritmo de la página). Las perillas
+  se mueven en orden: primero la R2 del 555, C1 también solo cuando R2 sola no alcanza la meta; R1 se
+  queda.
+- **Qué dice**: una línea `Resuelto:` (`Solved:`) antes de las lecturas, y `solved: [...]` en el
+  JSON: el valor elegido, el resultado simulado, a qué distancia de la meta y de qué lado, los
+  valores estándar vecinos con sus resultados, el estado del que habla la meta (`S1 presionado`,
+  `RV1 al 0 %`) y lo que se queda.
+- **Qué se guarda**: los valores elegidos, como cualquier valor (`spec.recipe.values` recibe
+  `R1: "470"`). La meta no se guarda y un `layout` posterior no resuelve nada otra vez: da sus valores
+  como siempre.
+- **Errores** (`FIX_SPEC`, no se arma nada): una meta que la receta no declara para ese identificador
+  (`RECIPE_GOAL_UNKNOWN`, que lista las metas de la receta), un valor de meta que no se puede leer,
+  `"abc"` u otra unidad (`RECIPE_GOAL_VALUE`), y una meta y un valor para la misma perilla en la misma
+  llamada (`RECIPE_GOAL_AND_VALUE`: da uno de los dos).
+
+**El aviso.** Sin meta en la llamada, un circuito de receta cuyo componente trabaja por encima de su
+valor nominal sin quemarse (un LED al 107 % de sus 20 mA nominales: ningún riesgo y `STATUS: DONE`)
+recibe una línea, y no se cambia nada: `Nota: D1 queda al 107 % de su nominal de 20 mA con
+R1 = 330 Ω; con R1 = 360 Ω daría 19,7 mA.` (`Note:`; `advice: [...]` en el JSON). El valor sugerido es
+el estándar más cercano al nominal sin pasarlo. No aparece cuando se dio una meta (lo dice la línea
+`Resuelto`) ni cuando la página oculta los resultados para que un estudiante los prediga.
+
+Recetas con metas: `led-resistor`, `npn-switch` (S1 presionado), `potentiometer-led` (RV1 al 0 %),
+`mosfet-switch` (S1 presionado), `button-pulldown` (S1 presionado), `regulator-7805`,
+`regulator-ams1117`, `esp32-led`, `uno-blink`, `c3-blink` (el primer estado del programa, el LED
+encendido), `opamp-comparator`, `lm393-comparator`, `opamp-follower` (RV1 al 0 %),
+`slide-switch-leds` (D1, y D2 con S1 deslizado) y `tilt-alarm` (S1 inclinado): `D1.current`;
+`555-astable`: `U1.frequency`. `catalog <receta>` las lista. Quedan por ahora fuera, porque cada una
+necesita algo más que esta declaración: `button-pullup` (su LED se alimenta a través del pull-up de
+1 kΩ, así R2 sola llega a unos 3 mA), el LED del 555 (encendido la mitad del tiempo),
+`bridge-rectifier` (una fuente alterna), `uno-button`, `uno-pot-pwm`, `c3-pot-pwm` (el programa fija
+el LED en el tiempo), `relay-npn` (el contacto se cierra con el tiempo), `encoder-dimmer-uno` (sin
+resistencia en serie) y las recetas de sensores (el LED sigue al ambiente y al límite de la salida del
+sensor).
+
 ## Recetas con un sensor real
 
 Una receta puede llevar un `environment` y un `page` ([ambiente.md](ambiente.md)), que pasan al
@@ -138,7 +200,7 @@ cambian con `apply_ops`.
 La respuesta de `layout` para un circuito de receta termina, antes de sus líneas de página y
 `STATUS:`, con lo que la receta deja cambiar, con los valores que tiene ahora el circuito (`Se puede
 cambiar (layout con la receta y values): R1 = 330 (resistencia limitadora) · D1 = green · V1 = 9 V
-[1,5…15]`), junto a las lecturas en reposo y al programa de una tarjeta
+[1,5…15] · D1 current (una meta: …)`), junto a las lecturas en reposo y al programa de una tarjeta
 ([montaje-automatico.md](montaje-automatico.md), «La respuesta»): los cambios que se ofrecen son
 esos, no otros.
 
@@ -161,6 +223,12 @@ página parpadea, en cámara lenta (el tiempo de la página sigue a la constante
    `netLabels`, `environment` (el del circuito, para un sensor), `page`, `clearance`, y `values`: para cada identificador que puede cambiar, `field`
    (lo que fija la forma corta) y, si hace falta, `role` (`{ en, es }`), `choices`, `min`/`max`,
    `extra` (los campos permitidos, cuando no sirven los de cada tipo).
+   Una meta es una clave más de una entrada, `goals: { current: { set: 'R1', reading: 'current' } }`
+   (si hace falta, `when`, el estado del que habla, como `{ S1: { pressed: true } }`, y `range`, las
+   décadas de una perilla); una meta medida en el tiempo da `measure: 'cycle'`, `of` y una `estimate`
+   de `src/recipes/estimates.js`. Una entrada puede llevar solo metas (`U1: { goals: … }`). El
+   comentario al comienzo de `src/recipes/goals.js` lista las claves; `npm test` comprueba que cada
+   meta se alcanza con los valores por defecto de la receta y termina en `DONE`.
 3. Dale un `group` (una palabra de `RECIPE_GROUPS` en `src/recipes/index.js`, puesta en el propio módulo; el catálogo compacto lista las recetas por grupo, solo nombres, y una prueba falla si una receta no lo tiene; un grupo nuevo necesita sus textos `recipe.group.<nombre>` en `src/i18n/en.js` y `es.js`). Regístrala en `src/recipes/index.js` y corre `npm run schemas` (el esquema lista los nombres).
 4. Agrégala a las tablas de esta página, de [recipes.md](../en/recipes.md) y de
    `plugin-src/references/recipes.md` del skill, a la lista de `plugin-src/SKILL.md` (después

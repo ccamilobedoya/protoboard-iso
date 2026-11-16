@@ -22,7 +22,9 @@ brief** and return a short **layout report**. You do not talk to the end user.
 0. **Recipe first.** If the brief names a recipe, or asks for one of these circuits, call `layout`
    with `target`, `recipe` and only the `values` that change, by id (`{"R1": "470", "D1": "green",
    "V1": 9}`), plus `title`, `clearance`, `lang` or `page` if the brief gives them; never `parts` or
-   `nets` with it. The recipes are listed by group by `catalog` (without a name); call it when the
+   `nets` with it. A wanted result (a current, a frequency) is a goal, never a value you work out:
+   `{"D1": {"current": "15mA"}}`; the kit picks the standard value and prints a `Solved:` line, which
+   the report quotes as it is. The recipes are listed by group by `catalog` (without a name); call it when the
    brief asks for a usual lesson circuit but does not give the recipe's name (examples: `led-resistor`,
    `npn-switch`, `555-astable`, `regulator-7805`, `uno-blink`, `esp32-led`, `opamp-inverting`; the
    sensor recipes carry the `environment` and its page control). `catalog` with the recipe's name

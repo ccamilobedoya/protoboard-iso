@@ -37,7 +37,8 @@ The kit is in this skill's folder, [scripts/bin/protoboard-iso.js](scripts/bin/p
 kit layout circuits/green-led --recipe led-resistor --values '{"V1": 9, "R1": "470", "D1": "green"}'
 ```
 
-Give only the values the user asked for. Recipes: led-resistor, divider, npn-switch,
+Give only the values the user asked for; a wanted result (a current, a frequency) goes as a goal,
+`{"D1": {"current": "15mA"}}`, and the kit picks the value. Recipes: led-resistor, divider, npn-switch,
 potentiometer-led, mosfet-switch, button-pullup, button-pulldown, rc-square, 555-astable,
 regulator-7805, regulator-ams1117, bridge-rectifier, zener-regulator, esp32-led, esp32-button,
 opamp-comparator, lm393-comparator, opamp-follower, opamp-noninverting, opamp-inverting, uno-blink,
@@ -91,8 +92,9 @@ question of the user that they answer.
 In the user's language, in this order and nothing else:
 
 1. One sentence: what was built, with the values the kit used.
-2. The readings, exactly as `layout`'s `Readings` line (`Lecturas`) gives them; skip it when the
-   line is absent.
+2. The readings, exactly as `layout`'s `Readings` line (`Lecturas`) gives them, and its `Solved`
+   and `Note` lines (`Resuelto`, `Nota`) as printed; skip what is absent. A `Note` is information:
+   act on it only if the user asks.
 3. The page: `layout` prints `Page: <path>` (`Página:`), one self-contained HTML file. Hand that
    file over as a file to open, exactly as written: never paste, rewrite, shorten or re-create it,
    and do not make an image of it. After every change, hand over the new page. (With the
