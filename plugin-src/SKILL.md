@@ -74,7 +74,7 @@ Every `layout` ends in `STATUS:`. Act on it and on nothing else:
 | STATUS | Do |
 |---|---|
 | `DONE` | Reply (below). Stop. |
-| `WARNINGS` | Built, but a part would be damaged as wired. Reply, with the warnings; do not fix it silently or refuse. |
+| `WARNINGS` | Built, but a part would be damaged as wired. Reply, with the warnings and the kit's `To fix it` line; do not fix it silently or refuse. |
 | `FIX_SPEC` | Nothing was built. Fix exactly the lines marked ✖ (each says what it accepts) and call again. |
 | `CHANGES` | Built, with open items marked ✖. Fix only those ([references/operations.md](references/operations.md)), then `kit review`. |
 | `SPEC_OK` | Only after `--check`: call again without it. |
@@ -83,6 +83,18 @@ Every `layout` ends in `STATUS:`. Act on it and on nothing else:
 or `WARNINGS`, stop: show the user the ✖ lines and ask how to go on. Never repeat a failed call
 unchanged. **No calls after `DONE`**: `layout`'s answer already has the readings, the program and
 what can change; run `simulate`, `review` or `catalog` only for a question they answer.
+
+## Where the kit has no answer
+
+**The kit first.** Only where it says it has none (a fixed sentence such as "The kit has no computed
+fix for this.", a `STATUS` it cannot get past, a part it lacks) use your own knowledge or a search,
+and try any idea of yours before it reaches the circuit: `layout` with `--dry-run` (connector:
+`dry_run: true`) saves nothing; apply only what ends `DONE` (or the `WARNINGS` asked for).
+**"Fix it"**: apply the kit's `To fix it` line as one change; with none, try the smallest change.
+Never redesign (new parts, new stages) when one part fixes it, unless asked. Trials are not
+changes and are not shown one by one; at most three per request. If none passes, apply nothing
+beyond the request, say what is still wrong and why, and ask. More:
+[references/beyond-the-kit.md](references/beyond-the-kit.md).
 
 ## Reply
 
@@ -97,16 +109,19 @@ In the user's language, in this order, nothing else:
    file over, as written: never paste, rewrite or re-create it, nor make an image of it. After every change, hand over the new page. (With the connector's tools, skip this.)
 4. With a board, the sketch in a code block, exactly as `layout`'s `Program` block (`Programa`)
    gives it.
-5. With `WARNINGS`: which part and why, plainly, from the ⚠ lines.
+5. With `WARNINGS`: which part and why, plainly, from the ⚠ lines, and the kit's `To fix it` line
+   (`Para arreglarlo`) or that it has none.
 6. What can be changed, from `layout`'s `Can change` line (`Se puede cambiar`): the ids with their
    meaning and limits, as information. Give it for a new circuit (a new folder); after a change to
    the same circuit, leave it out unless the line differs from the one you gave. Only on the first
    circuit of the conversation, add: "You can change a value, add or remove parts, ask about a
    part or how it is connected, or undo a change; tap a part in the page to see its card."
 
-Every sentence of a reply is what the kit printed or, after it and marked "General knowledge, not
-from the kit:", something else; that includes any explanation added to a net list or a part's card.
-No closing offers or suggestions. No wiring list in prose unless asked how it is connected.
+Three kinds of sentence, in this order, never mixed: what the kit says; what you added **and the
+kit confirmed** (say what: "the kit confirms D10 stays at 19 mA"); what it cannot check, marked
+"General knowledge, not from the kit:" (also in a net list or a part's card). The `Checked` line
+(`Revisado`) is for you: tell only what matters to the request or a warning. No closing offers or
+suggestions. No wiring list in prose unless asked how it is connected.
 
 ## Change it, ask about it
 
@@ -120,6 +135,5 @@ No closing offers or suggestions. No wiring list in prose unless asked how it is
 
 Checks, operations, drawings: [references/operations.md](references/operations.md). Board, languages,
 circuit files, every command: [references/board-and-cli.md](references/board-and-cli.md).
-The kit checks the DC point at rest and with each control moved alone (not combinations, nor the
-peaks of a PWM or a 555); a circuit that oscillates by itself has no `Readings` line, it never
-rests. It is a teaching model, not a datasheet: say so when it comes up.
+A circuit that oscillates by itself has no `Readings` line, it never rests. The kit is a teaching
+model, not a datasheet: say so when it comes up.

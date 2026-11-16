@@ -30,7 +30,7 @@ its card; leave it out when the learner should work it out.
 
 ```bash
 kit layout <folder> --recipe npn-switch [--values '{"R1":"470"}']
-kit layout <folder> [spec.json] [--check] [--expect-revision n]
+kit layout <folder> [spec.json] [--check] [--dry-run] [--expect-revision n]
 kit apply <folder> --ops '<json>' --dry-run      # then --expect-revision n
 kit review | check | netlist | nets | inspect | history | undo <folder>
 kit query <folder> at c12 | node 9:a-e | free --near e10

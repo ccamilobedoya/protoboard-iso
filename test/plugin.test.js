@@ -71,7 +71,8 @@ test("plugin: the skill's frontmatter", () => {
   assert.equal(fm.fields.name, SKILL, 'name = its folder');
   assert.match(fm.fields.name, /^[a-z0-9-]{1,64}$/);
   assert.ok(fm.fields.description.length <= 1024, `description: ${fm.fields.description.length} characters, 1024 at most`);
-  assert.ok(Buffer.byteLength(fm.body) < 7 * 1024, `body: ${Buffer.byteLength(fm.body)} bytes, the short skill stays under 7 KB`);
+  // 8 KB since the skill also says where the kit has no answer and how a trial works (2026-11-16).
+  assert.ok(Buffer.byteLength(fm.body) < 8 * 1024, `body: ${Buffer.byteLength(fm.body)} bytes, the short skill stays under 8 KB`);
 });
 
 test('plugin: the skill and the kit agree (recipes, commands, STATUS values, links)', () => {
@@ -104,7 +105,7 @@ test('plugin: the skill and the kit agree (recipes, commands, STATUS values, lin
   // The STATUS table of SKILL.md: one row per value the kit can print, and no other.
   const rows = [...skill.matchAll(/^\| `([A-Z_]+)` \|/gm)].map((m) => m[1]);
   assert.deepEqual([...rows].sort(), [...statuses].sort(), "SKILL.md's STATUS table");
-  for (const ref of ['spec.md', 'operations.md', 'board-and-cli.md', 'recipes.md']) assert.ok(skill.includes(`](references/${ref})`), `SKILL.md points to references/${ref}`);
+  for (const ref of ['spec.md', 'operations.md', 'board-and-cli.md', 'recipes.md', 'beyond-the-kit.md']) assert.ok(skill.includes(`](references/${ref})`), `SKILL.md points to references/${ref}`);
 });
 
 test('plugin: the packed kit runs from a read-only copy: layout --recipe led-resistor ends in DONE and writes the page', () => {
