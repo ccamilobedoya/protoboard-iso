@@ -119,7 +119,7 @@ layout blink --recipe 555-astable --values '{"U1": {"frequency": "1Hz"}}'
 
 ```text
 Resuelto: R1 = 470 Ω (E24) para D1 a 15 mA: 15,2 mA simulados, 2 % por encima (valores vecinos: 430 Ω 16,6 mA · 510 Ω 14,1 mA)
-Resuelto: R2 = 68 kΩ (E24; sin cambio: R1 = 1 kΩ, C1 = 10 µF) para U1 a 1 Hz: 1,03 Hz simulados, 3 % por encima (valores vecinos: 62 kΩ 1,12 Hz · 75 kΩ 933 mHz)
+Resuelto: R2 = 68 kΩ (E24; sin cambio: R1 = 1 kΩ, C1 = 10 µF) para U1 a 1 Hz: 1,03 Hz simulados, 3 % por encima (valores vecinos: 62 kΩ 1,12 Hz · 75 kΩ 0,93 Hz)
 ```
 
 - **Qué valor.** Resistencias en E24, condensadores en E6, dentro de las décadas que declara la meta

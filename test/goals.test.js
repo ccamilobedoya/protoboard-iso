@@ -164,6 +164,11 @@ test('555 at 1 Hz and at 10 Hz: within 4 % of the datasheet formula, and the fig
     assert.ok(Math.abs(s.result / page - 1) < 0.015, `${s.result} Hz against the page's ${page}`);
     assert.match(line(r, 'Solved:'), /^Solved: R2 = [\d.]+ kΩ \(E24; unchanged: R1 = 1 kΩ, C1 = 10 µF\) for U1 at \d+ Hz: [\d.]+ Hz simulated, /);
   }
+  // A frequency under 1 Hz reads in Hz with decimals (a beginner reads Hz), in both languages.
+  const one = layoutOf('555-astable', { U1: { frequency: '1Hz' } });
+  assert.match(line(one, 'Solved:'), /\(next values: 62 kΩ 1\.12 Hz · 75 kΩ 0\.93 Hz\)/);
+  assert.match(formatLayout(one, 'es', { t, formatIssue }), /\(valores vecinos: 62 kΩ 1,12 Hz · 75 kΩ 0,93 Hz\)/);
+  assert.doesNotMatch(formatLayout(one, 'en', { t, formatIssue }), /mHz/);
   // Out of R2's reach with C1 as it is: C1 moves too (R2 first, then C1).
   const slow = layoutOf('555-astable', { U1: { frequency: '0.05Hz' } });
   assert.deepEqual(slow.solved[0].values.map((v) => v.id), ['R2', 'C1']);

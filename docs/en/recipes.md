@@ -116,7 +116,7 @@ layout blink --recipe 555-astable --values '{"U1": {"frequency": "1Hz"}}'
 
 ```text
 Solved: R1 = 470 Ω (E24) for D1 at 15 mA: 15.2 mA simulated, 2 % over (next values: 430 Ω 16.6 mA · 510 Ω 14.1 mA)
-Solved: R2 = 68 kΩ (E24; unchanged: R1 = 1 kΩ, C1 = 10 µF) for U1 at 1 Hz: 1.03 Hz simulated, 3 % over (next values: 62 kΩ 1.12 Hz · 75 kΩ 933 mHz)
+Solved: R2 = 68 kΩ (E24; unchanged: R1 = 1 kΩ, C1 = 10 µF) for U1 at 1 Hz: 1.03 Hz simulated, 3 % over (next values: 62 kΩ 1.12 Hz · 75 kΩ 0.93 Hz)
 ```
 
 - **Which value.** Resistors in E24, capacitors in E6, within the decades the goal or the type

@@ -50,6 +50,9 @@ export function formatValue(value, unit = '', { decimal = '.', digits = 3 } = {}
   // Below a femto it is the solver's rounding, not a value ("-1,52e-18 pV" for a switched-off part).
   if (value === 0 || Math.abs(value) < 1e-15) return `0 ${unit}`.trim();
   const magnitude = Math.abs(value);
+  // A frequency under 1 Hz reads in Hz, never mHz: "0.93 Hz", with the decimals a value just above
+  // 1 Hz shows ("1.12 Hz"), one significant digit fewer than the others.
+  if (unit === 'Hz' && magnitude < 0.9995) return `${String(Number(value.toPrecision(Math.max(1, digits - 1)))).replace('.', decimal)} Hz`;
   const [factor, prefix] = ENGINEERING.find(([f]) => magnitude >= f * 0.9995) ?? ENGINEERING.at(-1);
   const mantissa = Number((value / factor).toPrecision(digits));
   const text = String(mantissa).replace('.', decimal);
