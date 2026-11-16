@@ -39,6 +39,7 @@ import { solveGoals } from './recipes/solve.js';
 import { parseValue, valueText } from './core/units.js';
 import { CIRCUIT_FOLDER } from './beside.js';
 import { PART_TYPES } from './parts/types/index.js';
+import { lookupModule } from './parts/modules.js';
 import { PACKAGES } from './parts/packages/index.js';
 import { SWITCH_STYLES } from './parts/types/switch.js';
 import { resolvePart, pinsOf } from './parts/resolve.js';
@@ -194,23 +195,123 @@ export function validateSpec(spec) {
 // laid out again with them, each part keeping its holes. The answer's `solved` says what was done.
 export function autoLayout(spec, options = {}) {
   const started = Date.now();
-  const first = placeCircuit(spec, options);
+  const first = inAnyOrder(spec, options);
   if (!spec.goals?.length || first.checked) return first;
   // A circuit whose nets are not right would give the goal a wrong figure: nothing is solved.
   if (!first.check.ok) return { ...first, notes: [...first.notes, ...spec.goals.map(unsolvedNote)] };
   const { solved, unsolved } = solveGoals(first.circuit, spec.goals);
   const texts = Object.fromEntries(solved.flatMap((s) => Object.entries(s.chosen)).map(([id, v]) => [id, valueText(v)]));
-  const parts = spec.parts.map((p) => (texts[p.id] ? { ...p, value: texts[p.id] } : p));
+  // Again in the order that was laid out (the one given, or one the nets gave: inAnyOrder).
+  const rank = new Map(first.order.map((id, i) => [id, i]));
+  const parts = [...spec.parts].sort((a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity)).map((p) => (texts[p.id] ? { ...p, value: texts[p.id] } : p));
   // What is stored is the values chosen, like any value: the goal is not kept, so a later layout
   // gives its own values as usual and solves nothing again.
   const recipe = spec.recipe && { ...spec.recipe, values: { ...spec.recipe.values, ...texts } };
   const moved = spec.parts.some((p) => texts[p.id] && parseValue(p.value) !== parseValue(texts[p.id]));
-  const r = moved ? placeCircuit({ ...spec, parts, ...(recipe && { recipe }) }, { ...options, previous: first.circuit }) : first;
+  const r = moved ? placeCircuit({ ...spec, parts, ...(recipe && { recipe }) }, { ...options, previous: first.circuit, keepOrder: first.keepOrder }) : first;
   if (!moved && recipe) r.circuit.spec.recipe = recipe;
   return { ...r, solved, notes: [...r.notes, ...unsolved.map(unsolvedNote)], tries: first.tries + (moved ? r.tries : 0), ms: Date.now() - started };
 }
 
 const unsolvedNote = (g) => ({ severity: 'warning', code: 'RECIPE_GOAL_UNSOLVED', params: { id: g.id, goal: g.goal } });
+
+// The result must not depend on the order the caller lists the parts in. The order given is tried
+// first, as it always was (a spec that ends DONE stays exactly as it is, and costs no more); when it
+// leaves something to fix, the orders the nets give (signalOrders) are tried too, and the best
+// result is kept: nets and review first, then jumpers, then columns. `order`: the parts' ids in the
+// order laid out; `keepOrder`: that order was placed as it is (no layers), for a second layout of
+// the same circuit (a recipe's goals) to use it again.
+function inAnyOrder(spec, options) {
+  const listed = { ...placeCircuit(spec, options), order: (spec.parts ?? []).map((p) => p?.id) };
+  if (listed.checked || listed.status !== 'changes' || listed.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED')) return listed;
+  const seen = new Set([`${listed.order.join(' ')}|false`]);
+  let best = listed;
+  let tries = listed.tries;
+  let ms = listed.ms;
+  for (const { parts, keepOrder } of signalOrders(spec)) {
+    const order = parts.map((p) => p.id);
+    const key = `${order.join(' ')}|${keepOrder}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const r = placeCircuit({ ...spec, parts }, { ...options, keepOrder });
+    tries += r.tries;
+    ms += r.ms;
+    if (rankOf(r) < rankOf(best)) best = { ...r, order, keepOrder, notes: [{ severity: 'info', code: 'LAYOUT_ORDER_FROM_NETS', params: { parts: order.join(', ') } }, ...r.notes] };
+    if (best.status !== 'changes') break;
+  }
+  return { ...best, tries, ms };
+}
+
+// Lower is better: a circuit ready (or built with a hazard) before one left to fix, then what is
+// left to fix, then jumpers and columns.
+const rankOf = (r) => (r.status === 'changes' ? 1e6 : 0) + ((r.check.ok ? 0 : 100) + r.problems.length * 10 + r.review.blocking.length) * 1e3 + (r.wires ?? 0) * 10 + (r.columns ?? 0) / 100;
+
+// Power pins by name: a net through one of them feeds stages, it does not chain them.
+const POWER_PIN = /^(GND\d*|VSS|0V|5V|3V3|3\.3V|VIN|VCC|VDD|V\+|V-|IOREF)$/i;
+
+// Orders of the parts read from the nets alone, whatever order they were listed in. The source:
+// the part of a supply's positive pin, else a microcontroller board, else the first part on a +
+// rail, else the first part in the nets. Nets of power (a rail, a ground or power pin, a supply's
+// terminal) do not chain stages: they only reach parts the signal nets do not. Ties go by where a
+// part first appears in the nets. Two orders, each placed as it is (no layers):
+// - by distance from the source along the signal nets, sources first (U1, R1…R7, then the display
+//   all seven feed);
+// - from the far end back: the reverse of a depth-first walk from the source, so each part comes
+//   before the one that drives it and a board's leads land on strips its parts already hold
+//   (BZ1, R3, D2, R2, D1, R1, U1).
+// Measured over every recipe (layout-bench's set): where the order given fails, one of the two
+// ends DONE in every case but one (docs/en/layout.md, "Any order").
+export function signalOrders(spec) {
+  const valid = validateSpec(spec);
+  if (!valid.ok) return [];
+  const byId = new Map(valid.parts.map((p) => [p.id, p]));
+  const raw = new Map((spec.parts ?? []).map((p) => [p.id, p]));
+  const supplyPins = new Set((valid.supplies ?? []).flatMap((s) => [pinKey(s.positive), pinKey(s.negative)]).filter(Boolean));
+  const firstSeen = new Map();
+  const nets = valid.nets.map((n) => {
+    const pins = (Array.isArray(n) ? n : n.pins ?? []).map(String);
+    const refs = pins.filter((p) => !railName(p) && pinKey(p));
+    for (const ref of refs) {
+      const id = ref.split('.')[0];
+      if (byId.has(id) && !firstSeen.has(id)) firstSeen.set(id, firstSeen.size);
+    }
+    const power = pins.some(railName) || refs.some((r) => supplyPins.has(pinKey(r)) || POWER_PIN.test(r.split('.').slice(1).join('.')));
+    return { ids: [...new Set(refs.map((r) => r.split('.')[0]))].filter((id) => byId.has(id)), power, plus: pins.some((p) => railName(p)?.endsWith('+')) };
+  });
+  const seenAt = (id) => firstSeen.get(id) ?? Infinity;
+  const ids = [...byId.keys()].sort((a, b) => seenAt(a) - seenAt(b));
+  const links = (power) => {
+    const m = new Map(ids.map((id) => [id, new Set()]));
+    for (const n of nets) if (n.power === power) for (const a of n.ids) for (const b of n.ids) if (a !== b) m.get(a).add(b);
+    return new Map([...m].map(([id, s]) => [id, [...s].sort((a, b) => seenAt(a) - seenAt(b))]));
+  };
+  const signal = links(false);
+  const power = links(true);
+  const positive = (valid.supplies ?? []).map((s) => pinKey(s.positive)?.split('.')[0]).find((id) => byId.has(id));
+  const board = ids.find((id) => byId.get(id).type === 'module' && lookupModule(byId.get(id).part)?.module.gpio);
+  const onPlus = nets.find((n) => n.plus && n.ids.length)?.ids.sort((a, b) => seenAt(a) - seenAt(b))[0];
+  const source = positive ?? board ?? onPlus ?? ids[0];
+  // Then a part power reaches from those placed, else the first left.
+  const nextFrom = (out) => out.flatMap((id) => power.get(id)).find((id) => !out.includes(id)) ?? ids.find((id) => !out.includes(id));
+  const chains = [];
+  const visit = (id) => {
+    if (chains.includes(id)) return;
+    chains.push(id);
+    for (const n of signal.get(id)) visit(n);
+  };
+  for (let next = source; next; next = nextFrom(chains)) visit(next);
+  const layers = [];
+  for (let next = source; next; next = nextFrom(layers)) {
+    for (let queue = [next]; queue.length; ) {
+      const id = queue.shift();
+      if (layers.includes(id)) continue;
+      layers.push(id);
+      queue.push(...signal.get(id).filter((n) => !layers.includes(n)));
+    }
+  }
+  const of = (order) => order.map((id) => raw.get(id) ?? byId.get(id));
+  return [{ parts: of(layers), keepOrder: true }, { parts: of([...chains].reverse()), keepOrder: true }];
+}
 
 function placeCircuit(spec, options) {
   const single = layoutSpec(spec, options);
@@ -241,7 +342,7 @@ function onDoubleBoard(spec) {
   return { spec: twin, renamed: [...renamed].sort() };
 }
 
-function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = null, folder, lang } = {}) {
+function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = null, folder, lang, keepOrder = false } = {}) {
   const started = Date.now();
   const valid = validateSpec(spec);
   if (checkOnly || !valid.ok) return { status: valid.ok ? 'spec_ok' : 'fix_spec', invalid: !valid.ok, checked: true, parts: valid.parts, nets: valid.nets, problems: valid.problems, ms: Date.now() - started };
@@ -262,7 +363,7 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   let tries = 0;
   for (let attempt = 0; attempt < TRIES; attempt++) {
     tries++;
-    const r = layoutOnce(spec, { profile, forbid, previous, memo, boxes, asked: asked.nets });
+    const r = layoutOnce(spec, { profile, forbid, previous, memo, boxes, asked: asked.nets, keepOrder });
     const score = (x) => (x.check.ok ? 0 : 100) + x.problems.length * 10 + x.review.blocking.length;
     if (!best || score(r) < score(best)) best = r;
     if (r.check.ok && r.review.verdict !== 'changes' && !r.problems.length) break;
@@ -481,7 +582,7 @@ function footprintOf(part) {
   return box;
 }
 
-function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), boxes = new Map() }) {
+function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), boxes = new Map(), keepOrder = false }) {
   // A part's box from above, by its holes (the same part in the same holes has the same body).
   const boxOf = (p) => {
     const key = `${p.id} ${p.holes.map((h) => h?.id).join(' ')}`;
@@ -589,7 +690,8 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
     }
   }
   const given = new Map(parts.map((p, i) => [p.id, i]));
-  const order = [...parts].sort((a, b) => (layer.get(a.id) ?? Infinity) - (layer.get(b.id) ?? Infinity) || given.get(a.id) - given.get(b.id));
+  // keepOrder: an order read from the nets (signalOrders), placed as it is.
+  const order = keepOrder ? [...parts] : [...parts].sort((a, b) => (layer.get(a.id) ?? Infinity) - (layer.get(b.id) ?? Infinity) || given.get(a.id) - given.get(b.id));
 
   // What each part is: its pins and the rule that places it.
   const infos = new Map();
@@ -1179,3 +1281,4 @@ export function formatLayout(r, lang, { t, formatIssue }) {
   lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, `layout.status.${r.status}`, { count: open, hazards: r.review.hazards.length })}`);
   return lines.join('\n');
 }
+

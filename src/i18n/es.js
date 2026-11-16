@@ -129,6 +129,7 @@ export default {
   'check.LAYOUT_GROUND_PARTNERS': 'Las redes con {pin} también llevan {pins}: la misma tierra dentro de la placa, en la otra fila de pines, así cada riel − se une con la tierra de su propio lado.',
   'check.LAYOUT_GROUND_TO_RAILS': 'La red {net} ({pin}) es tierra: va a los rieles − {rails}, los de afuera de cada protoboard de la doble.',
   'check.LAYOUT_GROUND_TO_RAIL': 'La red {net} ({pin}) es tierra: va al riel {rail}, como en cualquier protoboard.',
+  'check.LAYOUT_ORDER_FROM_NETS': 'El orden en que venían los componentes dejaba algo por arreglar: se montaron en el orden que dan sus redes ({parts}).',
   'check.LAYOUT_REPAIRED': 'El cable de {from} a {to} se volvió a trazar para que nada quede tapado ni suelto.',
   'check.RECIPE_UNKNOWN': 'No hay una receta «{name}». Recetas: {recipes}.',
   'check.RECIPE_VALUE_UNKNOWN': '{id} no se puede cambiar en la receta {recipe}; se pueden: {ids}.',

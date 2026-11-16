@@ -130,6 +130,7 @@ export default {
   'check.LAYOUT_GROUND_PARTNERS': 'The nets with {pin} also take {pins}: the same ground inside the board, on the other header, so each − rail is joined to the ground pin on its own side.',
   'check.LAYOUT_GROUND_TO_RAILS': 'Net {net} ({pin}) is ground: joined to the − rails {rails}, the outer ones of each board of the double board.',
   'check.LAYOUT_GROUND_TO_RAIL': 'Net {net} ({pin}) is ground: joined to the {rail} rail, as on any breadboard.',
+  'check.LAYOUT_ORDER_FROM_NETS': 'The order the parts were listed in left something to fix: laid out in the order their nets give ({parts}).',
   'check.LAYOUT_REPAIRED': 'Jumper from {from} to {to} routed again so nothing is hidden or left apart.',
   'check.RECIPE_UNKNOWN': 'There is no recipe "{name}". Recipes: {recipes}.',
   'check.RECIPE_VALUE_UNKNOWN': '{id} cannot be changed in recipe {recipe}; these can: {ids}.',
