@@ -328,7 +328,7 @@ server.registerTool(
       values: z
         .record(z.string(), z.union([z.string(), z.number(), z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]))]))
         .optional()
-        .describe('With recipe: only what changes, by id. The main value ({"R1":"470","V1":9,"D1":"green","Q1":"BC547"}) or some fields ({"R1":{"value":"470","tolerance":"1%"}})'),
+        .describe('With recipe: only what changes, by id. The main value ({"R1":"470","V1":9,"D1":"green","Q1":"BC547"}) or some fields ({"R1":{"value":"470","tolerance":"1%"}}), or a goal the kit solves ({"D1":{"current":"15mA"}})'),
       parts: z.array(z.object({ id: z.string() }).passthrough()).min(1).optional().describe('Required for a new circuit; for an existing one, omit to keep its parts, or give the FULL list when they change (a partial list fails). ' + 'Parts without pins, in signal order: a type ({"id":"R1","type":"resistor","value":"1k"}) or just a part number, module or alias ({"id":"U1","part":"7805"}, {"id":"S1","part":"KCD1"}); no need to look them up in the catalog first. A microcontroller board takes each pin\'s state for the simulation: {"id":"U1","part":"ESP32-DEVKIT","io":{"D13":"high"}}'),
       nets: z
         .array(z.union([z.array(z.string()), z.object({ pins: z.array(z.string()), color: z.string().optional() })]))

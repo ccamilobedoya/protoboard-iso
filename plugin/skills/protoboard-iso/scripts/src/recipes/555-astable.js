@@ -34,5 +34,8 @@ export default {
     R3: { field: 'value', role: { en: 'LED resistor', es: 'resistencia del LED' } },
     D1: { field: 'color' },
     V1: { field: 'voltage', min: 4.5, max: 15 },
+    // A frequency asked for ({ U1: { frequency: '1Hz' } }): R2 moves first, then C1 if R2 alone
+    // cannot reach it; R1 stays. Ranked by the datasheet's formula, measured on D1's blinking.
+    U1: { goals: { frequency: { set: ['R2', 'C1'], measure: 'cycle', of: 'D1', estimate: '555-astable', range: { R2: ['1k', '1M'], C1: ['1u', '100u'] } } } },
   },
 };

@@ -18,5 +18,8 @@ export default {
   values: {
     R1: { field: 'value', role: { en: 'red LED resistor', es: 'resistencia del LED rojo' } },
     R2: { field: 'value', role: { en: 'green LED resistor', es: 'resistencia del LED verde' } },
+    // Goals only: a current for each LED, each with the switch on its side.
+    D1: { goals: { current: { set: 'R1', reading: 'current' } } },
+    D2: { goals: { current: { set: 'R2', reading: 'current', when: { S1: { slid: true } } } } },
   },
 };

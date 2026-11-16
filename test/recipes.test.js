@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { RECIPES, expandRecipe, resolveRecipe, recipeDefaults } from '../src/recipes/index.js';
+import { goalsOf, QUANTITIES } from '../src/recipes/goals.js';
+import { ESTIMATES } from '../src/recipes/estimates.js';
 import { autoLayout, specFromCircuit } from '../src/layout.js';
 import { simulate } from '../src/sim/index.js';
 import { resolvePart } from '../src/parts/resolve.js';
@@ -22,6 +24,34 @@ for (const name of Object.keys(RECIPES)) {
     assert.deepEqual(r.circuit.spec.recipe, { name });
   });
 }
+
+// One case per goal a recipe declares (docs/en/recipes.md, "Goals"): its example is reachable at the
+// recipe's defaults, solved into standard values, and the circuit solved ends DONE.
+for (const [name, recipe] of Object.entries(RECIPES)) {
+  for (const g of goalsOf(recipe)) {
+    test(`recipe ${name}: the goal ${g.id}.${g.goal} = ${g.example} is reached and the circuit is ready`, () => {
+      const r = layoutOf(name, { [g.id]: { [g.goal]: g.example } });
+      assert.equal(r.status, 'done', why(r));
+      assert.equal(r.solved.length, 1);
+      const [s] = r.solved;
+      assert.equal(s.reachable, true);
+      assert.ok(Math.abs(s.error) < 0.1, `${s.result} for ${s.target}`);
+      for (const v of s.values) assert.equal(r.circuit.parts.find((p) => p.id === v.id).value, r.circuit.spec.recipe.values[v.id]);
+    });
+  }
+}
+
+test('recipes: every goal is declared as data the solver knows', () => {
+  for (const [name, recipe] of Object.entries(RECIPES)) {
+    for (const g of goalsOf(recipe)) {
+      const label = `${name} ${g.id}.${g.goal}`;
+      assert.ok(QUANTITIES[g.goal], `${label}: a goal of goals.js QUANTITIES`);
+      assert.ok(g.reading || (g.measure === 'cycle' && g.of && ESTIMATES[g.estimate]), `${label}: a reading, or a cycle with an estimate`);
+      for (const id of g.set) assert.ok(['resistor', 'capacitor'].includes(recipe.parts.find((p) => p.id === id)?.type), `${label}: ${id} is a resistor or a capacitor`);
+      assert.ok(recipe.parts.some((p) => p.id === g.id), `${label}: names a part`);
+    }
+  }
+});
 
 test('recipes: every choice of a part comes out ready too', () => {
   for (const [name, recipe] of Object.entries(RECIPES)) {
@@ -44,7 +74,8 @@ test('recipe bridge-rectifier: any usual filter capacitor leaves the jumpers in 
 test('recipes: each value names an item that has that field', () => {
   for (const [name, recipe] of Object.entries(RECIPES)) {
     const defaults = recipeDefaults(recipe);
-    for (const id of Object.keys(recipe.values)) assert.notEqual(defaults[id], undefined, `${name}: ${id}`);
+    // An entry that only carries goals has no value of its own.
+    for (const [id, rule] of Object.entries(recipe.values)) if (rule.field) assert.notEqual(defaults[id], undefined, `${name}: ${id}`);
   }
 });
 
@@ -76,7 +107,9 @@ test('recipe problems: unknown name, item, field, choice and range; never with p
   assert.deepEqual(codes(unknown), ['RECIPE_UNKNOWN']);
   assert.match(unknown.problems[0].params.recipes, /npn-switch/);
   assert.deepEqual(codes(expandRecipe('npn-switch', { R9: '1k' })), ['RECIPE_VALUE_UNKNOWN']);
-  assert.deepEqual(codes(expandRecipe('npn-switch', { D1: { size: 5 } })), ['RECIPE_VALUE_FIELD']);
+  assert.deepEqual(codes(expandRecipe('divider', { R1: { size: 5 } })), ['RECIPE_VALUE_FIELD']);
+  // In a recipe with goals, an unknown field may be a goal asked of the wrong part: the message lists both.
+  assert.deepEqual(codes(expandRecipe('npn-switch', { D1: { size: 5 } })), ['RECIPE_GOAL_UNKNOWN']);
   assert.deepEqual(codes(expandRecipe('npn-switch', { Q1: 'IRLZ44N' })), ['RECIPE_VALUE_CHOICE']);
   assert.deepEqual(codes(expandRecipe('npn-switch', { V1: 40 })), ['RECIPE_VALUE_RANGE']);
   assert.deepEqual(codes(resolveRecipe({ recipe: 'divider', nets: [['R1.1', 'T+']] })), ['RECIPE_AND_PARTS']);

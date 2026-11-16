@@ -28,7 +28,7 @@ export default {
   nets: [['U1.D13', 'R1.1'], ['R1.2', 'D1.anode'], ['D1.cathode', 'U1.GND']],
   values: {
     R1: { field: 'value', role: { en: 'LED resistor', es: 'resistencia del LED' } },
-    D1: { field: 'color' },
+    D1: { field: 'color', goals: { current: { set: 'R1', reading: 'current' } } },
     U1: { field: 'program', role: { en: 'the sketch (text, or a .ino file beside the circuit)', es: 'el programa (texto, o un archivo .ino junto al circuito)' } },
   },
 };

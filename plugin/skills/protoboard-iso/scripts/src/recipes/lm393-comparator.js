@@ -20,7 +20,7 @@ export default {
     R1: { field: 'value', role: { en: 'reference divider, top', es: 'divisor de referencia, arriba' } },
     R2: { field: 'value', role: { en: 'reference divider, bottom', es: 'divisor de referencia, abajo' } },
     R3: { field: 'value', role: { en: 'LED resistor (pull-up)', es: 'resistencia del LED (pull-up)' } },
-    D1: { field: 'color' },
+    D1: { field: 'color', goals: { current: { set: 'R3', reading: 'current', when: { RV1: { position: 0 } } } } },
     V1: { field: 'voltage', min: 3, max: 30 },
   },
 };

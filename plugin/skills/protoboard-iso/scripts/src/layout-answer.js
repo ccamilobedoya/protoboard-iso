@@ -4,13 +4,20 @@
 // enough for an assistant to tell the user what the circuit does, show the sketch and offer only
 // changes the kit accepts, every number taken from the kit (docs/en/layout.md, "The answer").
 //
-//   answerExtras(circuit, { folder, lang }) → { readings?, programs?, changeable? }
+//   answerExtras(circuit, { folder, lang, advise }) → { readings?, programs?, changeable?, advice? }
 //   formatExtras(r, lang, t) → lines for formatLayout, before its STATUS line
+//
+// Two lines come before the readings: `Solved` (r.solved, from autoLayout: the values a goal chose,
+// the simulated result, how far from the goal and the neighbouring standard values) and `Note` (the
+// advisory: a part of a goal above its rated value as built, and the value that would bring it
+// under; information only, nothing is changed).
 
 import { simulate } from './sim/index.js';
 import { readBeside, programFile, CIRCUIT_FOLDER } from './beside.js';
 import { LIMITS } from './limits.js';
 import { RECIPES, recipeDefaults, valueLimits } from './recipes/index.js';
+import { goalsOf } from './recipes/goals.js';
+import { adviseGoals } from './recipes/solve.js';
 import { formatValue } from './core/units.js';
 import { decimalSeparator } from './i18n/index.js';
 
@@ -28,8 +35,10 @@ const runsProgram = (p) => p?.program != null && p.program !== '';
 // board running a program (the program decides what is lit, not the rest point at time zero), a
 // generator (its signal is the point, not the value it has at rest), or a page that hides the
 // results (page.simulation or page.results false: a value a learner must predict first).
+const hidden = (circuit) => circuit.page?.simulation === false || circuit.page?.results === false;
+
 function readingsOf(circuit) {
-  if (circuit.page?.simulation === false || circuit.page?.results === false) return null;
+  if (hidden(circuit)) return null;
   if ((circuit.parts ?? []).some(runsProgram)) return null;
   if ((circuit.supplies ?? []).some((s) => s?.kind === 'generator')) return null;
   const r = simulate(circuit);
@@ -97,26 +106,81 @@ function changeableOf(circuit, lang) {
   if (!recipe) return null;
   const items = new Map([...(circuit.parts ?? []).map((p) => [p.id, p]), ...(circuit.supplies ?? []).map((s) => [s.id, s])]);
   const defaults = recipeDefaults(recipe);
-  return Object.entries(recipe.values).map(([id, v]) => {
-    const value = v.field === 'program' ? null : (items.get(id)?.[v.field] ?? defaults[id] ?? null);
-    return { id, field: v.field, value, ...(v.role && { role: text(v.role, lang) }), ...(v.min !== undefined && { min: v.min }), ...(v.max !== undefined && { max: v.max }), ...(v.choices && { choices: v.choices }) };
-  });
+  const values = Object.entries(recipe.values)
+    .filter(([, v]) => v.field)
+    .map(([id, v]) => {
+      const value = v.field === 'program' ? null : (items.get(id)?.[v.field] ?? defaults[id] ?? null);
+      return { id, field: v.field, value, ...(v.role && { role: text(v.role, lang) }), ...(v.min !== undefined && { min: v.min }), ...(v.max !== undefined && { max: v.max }), ...(v.choices && { choices: v.choices }) };
+    });
+  // The goals it offers, after the values: what to ask for a result instead of a value.
+  const goals = goalsOf(recipe).map((g) => ({ id: g.id, goal: g.goal, set: g.set, example: { [g.id]: { [g.goal]: g.example } } }));
+  return [...values, ...goals];
 }
 
-export function answerExtras(circuit, { folder, lang = 'en' } = {}) {
+// The advisory, for a recipe's circuit built with its values (no goal in the call) whose readings
+// are not hidden from a learner.
+function adviceOf(circuit) {
+  const recipe = RECIPES[circuit.spec?.recipe?.name];
+  if (!recipe || hidden(circuit)) return null;
+  const goals = goalsOf(recipe);
+  if (!goals.length) return null;
+  const list = adviseGoals(circuit, goals);
+  return list.length ? list : null;
+}
+
+export function answerExtras(circuit, { folder, lang = 'en', advise = true } = {}) {
   const readings = readingsOf(circuit);
   const programs = programsOf(circuit, folder ?? circuit[CIRCUIT_FOLDER]);
   const changeable = changeableOf(circuit, lang);
-  return { ...(readings && { readings }), ...(programs && { programs }), ...(changeable && { changeable }) };
+  const advice = advise && readings ? adviceOf(circuit) : null;
+  return { ...(advice && { advice }), ...(readings && { readings }), ...(programs && { programs }), ...(changeable && { changeable }) };
 }
 
 // The unit a recipe's numeric value is in, by its field (a resistor's "330" carries its own).
 const FIELD_UNITS = { voltage: 'V', amplitude: 'V', frequency: 'Hz' };
 
+const KNOB_UNITS = { resistor: 'Ω', capacitor: 'F' };
+
+// How far a result is from its goal, in words: "3 % over", "0.4 % under", "on the goal".
+function offBy(error, lang, t, decimal) {
+  const percent = Math.abs(error) * 100;
+  if (percent < 0.05) return t(lang, 'layout.solved.exact');
+  const shown = percent < 0.5 ? percent.toFixed(1).replace('.', decimal) : String(Math.round(percent));
+  return t(lang, error > 0 ? 'layout.solved.over' : 'layout.solved.under', { percent: shown });
+}
+
+// The state a goal is about: "S1 pressed", "RV1 at 100 %" (a control without words: "S1 on = false").
+const WHEN_WORDS = new Set(['pressed', 'slid', 'tilted', 'position']);
+function stateOf(when, lang, t) {
+  const items = Object.entries(when ?? {}).flatMap(([id, fields]) =>
+    Object.entries(fields).map(([field, v]) => (WHEN_WORDS.has(field) && (v === true || field === 'position') ? t(lang, `layout.when.${field}`, { id, percent: Math.round(v * 100) }) : `${id} ${field} = ${v}`)),
+  );
+  return items.length ? t(lang, 'layout.when', { items: items.join(', ') }) : '';
+}
+
+function solvedLine(s, lang, t, f, decimal) {
+  const knob = (v) => f(v.value, KNOB_UNITS[v.type]);
+  const values = s.values.map((v) => `${v.id} = ${knob(v)}`).join(', ');
+  const series = [...new Set(s.values.map((v) => v.series))].join(', ');
+  const kept = s.kept?.length ? t(lang, 'layout.solved.kept', { items: s.kept.map((v) => `${v.id} = ${knob(v)}`).join(', ') }) : '';
+  const reach = s.reachable ? '' : t(lang, 'layout.solved.reach', { range: s.range.map((x) => t(lang, 'layout.solved.range', { id: x.id, lo: f(x.lo, KNOB_UNITS[x.type]), hi: f(x.hi, KNOB_UNITS[x.type]) })).join(', ') });
+  const one = s.values.length === 1;
+  const neighbour = (n) => `${s.values.map((v) => `${one ? '' : `${v.id} = `}${knob({ ...v, value: n.values[v.id] })}`).join(', ')} ${f(n.result, s.unit)}`;
+  const next = s.neighbours.length ? t(lang, 'layout.solved.next', { items: s.neighbours.map(neighbour).join(' · ') }) : '';
+  return t(lang, 'layout.solved', { values, series: `${series}${kept}`, part: s.id, target: f(s.target, s.unit), when: stateOf(s.when, lang, t), result: f(s.result, s.unit), off: offBy(s.error, lang, t, decimal), reach, next });
+}
+
+function adviceLine(a, lang, t, f) {
+  const unit = KNOB_UNITS[a.knob.type];
+  return t(lang, 'layout.advice', { part: a.id, percent: Math.round((a.value / a.rated) * 100), rated: f(a.rated, a.unit), when: stateOf(a.when, lang, t), knob: a.knob.id, value: f(a.knob.value, unit), suggest: f(a.suggest.value, unit), result: f(a.suggest.result, a.unit) });
+}
+
 export function formatExtras(r, lang, t) {
   const decimal = decimalSeparator(lang);
   const f = (v, unit) => formatValue(v, unit, { decimal });
   const lines = [];
+  for (const s of r.solved ?? []) lines.push(solvedLine(s, lang, t, f, decimal));
+  for (const a of r.advice ?? []) lines.push(adviceLine(a, lang, t, f));
   if (r.readings) {
     const { sources, parts } = r.readings;
     const many = sources.length > 1;
@@ -137,7 +201,8 @@ export function formatExtras(r, lang, t) {
       const shown = typeof c.value === 'number' ? String(c.value).replace('.', decimal) : String(c.value ?? '—');
       return FIELD_UNITS[c.field] && typeof c.value === 'number' ? `${shown} ${FIELD_UNITS[c.field]}` : shown;
     };
-    const items = r.changeable.map((c) => `${c.id} = ${value(c)}${valueLimits(c, decimal)}${c.role && c.field !== 'program' ? ` (${c.role})` : ''}`);
+    const item = (c) => (c.goal ? t(lang, 'layout.changeable.goal', { id: c.id, goal: c.goal, example: JSON.stringify(c.example) }) : `${c.id} = ${value(c)}${valueLimits(c, decimal)}${c.role && c.field !== 'program' ? ` (${c.role})` : ''}`);
+    const items = r.changeable.map(item);
     lines.push(t(lang, 'layout.changeable', { items: items.join(' · ') }));
   }
   return lines;

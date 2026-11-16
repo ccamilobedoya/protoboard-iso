@@ -19,7 +19,7 @@ export default {
     R1: { field: 'value', role: { en: 'gate resistor', es: 'resistencia de compuerta' } },
     R2: { field: 'value', role: { en: 'gate pull-down', es: 'resistencia de pull-down de la compuerta' } },
     R3: { field: 'value', role: { en: 'LED resistor (drain)', es: 'resistencia del LED (drenador)' } },
-    D1: { field: 'color' },
+    D1: { field: 'color', goals: { current: { set: 'R3', reading: 'current', when: { S1: { pressed: true } } } } },
     Q1: { field: 'part', choices: ['IRLZ44N', '2N7000'] },
     V1: { field: 'voltage', min: 3, max: 12 },
   },

@@ -276,6 +276,10 @@ export function formatCatalogEntry(e, lang = 'en') {
     for (const [id, v] of Object.entries(e.values)) {
       lines.push(`    ${id}: ${v.field} = ${v.default}${valueLimits(v, decimalSeparator(lang))}${v.role ? ` · ${v.role}` : ''}`);
     }
+    if (e.goals) {
+      lines.push(`  ${t(lang, 'catalog.recipeGoals')}`);
+      for (const g of e.goals) lines.push(`    ${g.id}: ${g.goal} → ${g.set.join(', ')} · ${JSON.stringify(g.example)}`);
+    }
     return lines.join('\n');
   }
   if (e.kind === 'board') return `${e.part} (${e.name})\n  ${formatBoardLayout(e.layout, lang)}`;

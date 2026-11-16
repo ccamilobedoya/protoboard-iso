@@ -278,14 +278,15 @@ test('layout answer: a recipe circuit gives its readings and what it lets change
     { id: 'R1', field: 'value', value: '330', role: 'current-limiting resistor' },
     { id: 'D1', field: 'color', value: 'green' },
     { id: 'V1', field: 'voltage', value: 9, min: 1.5, max: 15 },
+    { id: 'D1', goal: 'current', set: ['R1'], example: { D1: { current: '15mA' } } },
   ]);
   const en = formatLayout(r, 'en', { t, formatIssue }).split('\n');
   assert.match(en.at(-1), /^STATUS: DONE · /);
   assert.match(en.at(-3), /^Readings \(at rest, a model\): supply 9 V · D1 20\.\d mA, brightness 10\d % of 20 mA$/);
-  assert.equal(en.at(-2), 'Can change (layout with the recipe and values): R1 = 330 (current-limiting resistor) · D1 = green · V1 = 9 V [1.5…15]');
+  assert.equal(en.at(-2), 'Can change (layout with the recipe and values): R1 = 330 (current-limiting resistor) · D1 = green · V1 = 9 V [1.5…15] · D1 current (a goal: {"D1":{"current":"15mA"}})');
   const es = formatLayout(autoLayout(expandRecipe('led-resistor', { V1: 9, D1: 'green' }).spec, { lang: 'es' }), 'es', { t, formatIssue }).split('\n');
   assert.match(es.at(-3), /^Lecturas \(en reposo, un modelo\): fuente 9 V · D1 20,\d mA, brillo 10\d % del de 20 mA$/);
-  assert.equal(es.at(-2), 'Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitadora) · D1 = green · V1 = 9 V [1,5…15]');
+  assert.equal(es.at(-2), 'Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitadora) · D1 = green · V1 = 9 V [1,5…15] · D1 current (una meta: {"D1":{"current":"15mA"}})');
   // Laid out again on the circuit it made: the same three things, the values it has now.
   const again = autoLayout(specFromCircuit(r.circuit), { previous: r.circuit });
   assert.equal(again.status, 'done');
@@ -303,7 +304,7 @@ test('layout answer: a board prints its program and no readings; a generator giv
   const text = formatLayout(blink, 'en', { t, formatIssue });
   assert.doesNotMatch(text, /Readings/);
   assert.match(text, /\nProgram U1 \(Arduino sketch\):\n {2}\/\/ Blink: D13 on for half a second, off for half a second\.\n {2}const int LED = 13;\n\n {2}void setup\(\) \{\n {4}pinMode\(LED, OUTPUT\);/);
-  assert.match(text, /U1 = \(sketch\)\n/);
+  assert.match(text, /U1 = \(sketch\)( · |\n)/);
   assert.doesNotMatch(text.split('\n').filter((l) => l.startsWith('Can change')).join(''), /digitalWrite/, 'never the text in the can-change line');
   assert.match(formatLayout(autoLayout(expandRecipe('uno-blink').spec, { lang: 'es' }), 'es', { t, formatIssue }), /\nPrograma U1 \(sketch de Arduino\):\n/);
   const square = autoLayout(expandRecipe('rc-square').spec);

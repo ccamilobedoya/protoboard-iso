@@ -278,6 +278,22 @@ test('layout check_only reads parts by name and reports every problem without cr
   assert.ok((await call('get_circuit', { target: 'circuits/checked' })).isError, 'nothing created');
 });
 
+test('layout with a goal: the kit picks the standard value and says so; without one, the advisory', async () => {
+  const solved = await call('layout', { target: 'goal-led', recipe: 'led-resistor', values: { V1: 9, D1: { current: '15mA' } } });
+  assert.ok(!solved.isError, textOf(solved));
+  assert.match(textOf(solved), /\nSolved: R1 = 470 Ω \(E24\) for D1 at 15 mA: 15\.\d mA simulated, \d+ % over \(next values: 430 Ω [^)]*\)\nReadings /);
+  assert.doesNotMatch(textOf(solved), /\nNote:/);
+  assert.match(textOf(solved), /STATUS: DONE/);
+  const stored = JSON.parse((await call('get_circuit', { target: 'goal-led', format: 'json' })).content[0].text).circuit;
+  assert.deepEqual(stored.spec.recipe, { name: 'led-resistor', values: { V1: 9, R1: '470' } });
+  const advised = await call('layout', { target: 'goal-advice', recipe: 'led-resistor', values: { V1: 9 } });
+  assert.match(textOf(advised), /\nNote: D1 is at 10\d % of its rated 20 mA with R1 = 330 Ω; R1 = \d+ Ω would give [\d.]+ mA\.\n/);
+  assert.match(textOf(advised), /STATUS: DONE/);
+  const wrong = await call('layout', { target: 'goal-bad', recipe: 'led-resistor', values: { D1: { current: 'abc' } } });
+  assert.ok(wrong.isError);
+  assert.match(textOf(wrong), /D1\.current = abc cannot be read[^\n]*\nSTATUS: FIX_SPEC/);
+});
+
 test('layout with a recipe: ready in one call, the catalog lists it, bad values change nothing', async () => {
   const listed = await call('catalog', {});
   assert.match(listed.content[0].text, /transistors = npn-switch, /); // names by group; the title is in the recipe's own entry
@@ -288,7 +304,7 @@ test('layout with a recipe: ready in one call, the catalog lists it, bad values 
   assert.match(made.content[0].text, /STATUS: DONE/);
   // The answer says what the reply needs: the readings at rest and what the recipe lets change, now.
   assert.match(made.content[0].text, /\nReadings \(at rest, a model\): supply 9 V · D1 [\d.]+ [pnµm]?A, brightness \d+ % of 20 mA\n/);
-  assert.match(made.content[0].text, /\nCan change \(layout with the recipe and values\): R1 = 470 \(base resistor\) · R2 = 330 [^\n]* · V1 = 9 V \[3…12\]\nSTATUS: DONE/);
+  assert.match(made.content[0].text, /\nCan change \(layout with the recipe and values\): R1 = 470 \(base resistor\) · R2 = 330 [^\n]* · V1 = 9 V \[3…12\] · D1 current \(a goal: \{"D1":\{"current":"15mA"\}\}\)\nSTATUS: DONE/);
   const again = await call('layout', { target: 'recipe-switch' });
   assert.match(again.content[0].text, /\nCan change [^\n]*R1 = 470 [^\n]*\n/, 'layout again on the target says it too');
   const blink = await call('layout', { target: 'recipe-blink', recipe: 'uno-blink', lang: 'es' });

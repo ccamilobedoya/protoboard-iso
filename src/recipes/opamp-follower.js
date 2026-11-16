@@ -16,7 +16,7 @@ export default {
   values: {
     RV1: { field: 'value', role: { en: 'potentiometer (the input)', es: 'potenciómetro (la entrada)' } },
     R1: { field: 'value', role: { en: 'LED resistor', es: 'resistencia del LED' } },
-    D1: { field: 'color' },
+    D1: { field: 'color', goals: { current: { set: 'R1', reading: 'current', when: { RV1: { position: 0 } } } } },
     U1: { field: 'part', choices: ['LM358', 'LM324'] },
     V1: { field: 'voltage', min: 5, max: 30 },
   },

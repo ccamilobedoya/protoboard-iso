@@ -34,6 +34,8 @@ import { buildCircuit } from './circuit/build.js';
 import { problemKey } from './diff.js';
 import { review, formatHazards } from './review.js';
 import { answerExtras, formatExtras } from './layout-answer.js';
+import { solveGoals } from './recipes/solve.js';
+import { parseValue, valueText } from './core/units.js';
 import { CIRCUIT_FOLDER } from './beside.js';
 import { PART_TYPES } from './parts/types/index.js';
 import { PACKAGES } from './parts/packages/index.js';
@@ -185,7 +187,31 @@ export function validateSpec(spec) {
 // on both headers: LAYOUT_PIN_COVERED) goes on a double board when the spec does not name one: two
 // boards side by side, the DevKit across the joint with a free strip under each header
 // (LAYOUT_DOUBLE_BOARD; docs/en/layout.md, "Two boards").
+//
+// A recipe's goals (spec.goals, from expandRecipe: a current, a frequency) are solved on the circuit
+// laid out with the values as given (recipes/solve.js); when the chosen standard values differ, it is
+// laid out again with them, each part keeping its holes. The answer's `solved` says what was done.
 export function autoLayout(spec, options = {}) {
+  const started = Date.now();
+  const first = placeCircuit(spec, options);
+  if (!spec.goals?.length || first.checked) return first;
+  // A circuit whose nets are not right would give the goal a wrong figure: nothing is solved.
+  if (!first.check.ok) return { ...first, notes: [...first.notes, ...spec.goals.map(unsolvedNote)] };
+  const { solved, unsolved } = solveGoals(first.circuit, spec.goals);
+  const texts = Object.fromEntries(solved.flatMap((s) => Object.entries(s.chosen)).map(([id, v]) => [id, valueText(v)]));
+  const parts = spec.parts.map((p) => (texts[p.id] ? { ...p, value: texts[p.id] } : p));
+  // What is stored is the values chosen, like any value: the goal is not kept, so a later layout
+  // gives its own values as usual and solves nothing again.
+  const recipe = spec.recipe && { ...spec.recipe, values: { ...spec.recipe.values, ...texts } };
+  const moved = spec.parts.some((p) => texts[p.id] && parseValue(p.value) !== parseValue(texts[p.id]));
+  const r = moved ? placeCircuit({ ...spec, parts, ...(recipe && { recipe }) }, { ...options, previous: first.circuit }) : first;
+  if (!moved && recipe) r.circuit.spec.recipe = recipe;
+  return { ...r, solved, notes: [...r.notes, ...unsolved.map(unsolvedNote)], tries: first.tries + (moved ? r.tries : 0), ms: Date.now() - started };
+}
+
+const unsolvedNote = (g) => ({ severity: 'warning', code: 'RECIPE_GOAL_UNSOLVED', params: { id: g.id, goal: g.goal } });
+
+function placeCircuit(spec, options) {
   const single = layoutSpec(spec, options);
   const covered = single.problems?.find((p) => p.code === 'LAYOUT_PIN_COVERED');
   if (!covered || (spec.board ?? 'auto') !== 'auto') return single;
@@ -296,7 +322,9 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   const status = !best.check.ok || best.review.verdict === 'changes' || best.problems.length ? 'changes' : best.review.hazards.length ? 'warnings' : 'done';
   // A built circuit's answer also carries its readings, its programs and what its recipe lets
   // change (layout-answer.js), so one call says everything the reply needs.
-  const extras = status === 'changes' ? {} : answerExtras(circuit, { folder: folder ?? previous?.[CIRCUIT_FOLDER], lang: lang ?? spec.lang });
+  // The advisory only when nothing burns (a hazard already says what is wrong) and no goal was
+  // given (the Solved line says everything).
+  const extras = status === 'changes' ? {} : answerExtras(circuit, { folder: folder ?? previous?.[CIRCUIT_FOLDER], lang: lang ?? spec.lang, advise: status === 'done' && !spec.goals?.length });
   return { ...best, circuit, notes: [...notes, ...(best.notes ?? [])], status, tries, ...extras, ms: Date.now() - started };
 }
 
@@ -393,6 +421,7 @@ export function specFromCircuit(circuit, given = {}) {
       parts: given.parts ?? parts,
       nets: given.nets ?? circuit.spec?.nets,
       recipe: given.recipe ?? (given.parts || given.nets ? undefined : circuit.spec?.recipe),
+      goals: given.goals,
       supplies: given.supplies ?? circuit.spec?.supplies ?? circuit.supplies,
       board: pick('board'),
       clearance: pick('clearance'),
