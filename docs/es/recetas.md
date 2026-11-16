@@ -151,8 +151,8 @@ Resuelto: R2 = 68 kΩ (E24; sin cambio: R1 = 1 kΩ, C1 = 10 µF) para U1 a 1 Hz:
 
 **El aviso.** Sin meta en la llamada, un circuito de receta cuyo componente trabaja por encima de su
 valor nominal sin quemarse (un LED al 107 % de sus 20 mA nominales: ningún riesgo y `STATUS: DONE`)
-recibe una línea, y no se cambia nada: `Nota: D1 queda al 107 % de su nominal de 20 mA con
-R1 = 330 Ω; con R1 = 360 Ω daría 19,7 mA.` (`Note:`; `advice: [...]` en el JSON). El valor sugerido es
+recibe una línea, y no se cambia nada: `Para revisar: D1 queda al 107 % de su nominal de 20 mA con
+R1 = 330 Ω; con R1 = 360 Ω daría 19,7 mA.` (`Worth checking:`; `advice: [...]` en el JSON). El valor sugerido es
 el estándar más cercano al nominal sin pasarlo. No aparece cuando se dio una meta (lo dice la línea
 `Resuelto`) ni cuando la página oculta los resultados para que un estudiante los prediga.
 

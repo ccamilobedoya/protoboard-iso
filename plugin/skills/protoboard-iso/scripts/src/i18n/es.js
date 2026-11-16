@@ -169,7 +169,7 @@ export default {
   'layout.when.slid': '{id} deslizado',
   'layout.when.tilted': '{id} inclinado',
   'layout.when.position': '{id} al {percent} %',
-  'layout.advice': 'Nota: {part} queda al {percent} % de su nominal de {rated}{when} con {knob} = {value}; con {knob} = {suggest} daría {result}.',
+  'layout.advice': 'Para revisar: {part} queda al {percent} % de su nominal de {rated}{when} con {knob} = {value}; con {knob} = {suggest} daría {result}.',
   'layout.changeable.goal': '{id} {goal} (una meta: {example})',
   'layout.status.done': 'el circuito está listo: están todas las redes y la revisión lesson lo aprueba. Agrega las descripciones si el encargo las pide, y reporta.',
   'layout.status.changes': 'el circuito se creó, pero quedan {count} puntos marcados con ✖ arriba. Arregla solo esos (suggest y luego apply_ops con dry run) y vuelve a correr review.',

@@ -202,16 +202,16 @@ test('the advisory: printed above the rating with nothing changed, absent under 
   assert.equal(part(nine, 'R1').value, '330', 'nothing is changed');
   const [a] = nine.advice;
   assert.ok(a.value > a.rated && a.suggest.result <= a.rated);
-  assert.match(line(nine, 'Note:'), /^Note: D1 is at 10\d % of its rated 20 mA with R1 = 330 Ω; R1 = \d+ Ω would give 1\d\.\d mA\.$/);
+  assert.match(line(nine, 'Worth checking:'), /^Worth checking: D1 is at 10\d % of its rated 20 mA with R1 = 330 Ω; R1 = \d+ Ω would give 1\d\.\d mA\.$/);
   const es = layoutOf('led-resistor', { V1: 9 }, {}, { lang: 'es' });
-  assert.match(line(es, 'Nota:', 'es'), /^Nota: D1 queda al 10\d % de su nominal de 20 mA con R1 = 330 Ω; con R1 = \d+ Ω daría 1\d,\d mA\.$/);
+  assert.match(line(es, 'Para revisar:', 'es'), /^Para revisar: D1 queda al 10\d % de su nominal de 20 mA con R1 = 330 Ω; con R1 = \d+ Ω daría 1\d,\d mA\.$/);
   assert.match(lines(nine).at(-1), /^STATUS: DONE/);
   assert.equal(layoutOf('led-resistor', { V1: 5 }).advice, undefined);
   assert.equal(layoutOf('led-resistor', { V1: 9, D1: { current: '25mA' } }).advice, undefined, 'a goal given: the Solved line says it');
   for (const page of [{ results: false }, { simulation: false }]) {
     const hidden = layoutOf('led-resistor', { V1: 9 }, { page });
     assert.equal(hidden.advice, undefined, JSON.stringify(page));
-    assert.equal(line(hidden, 'Note:'), undefined);
+    assert.equal(line(hidden, 'Worth checking:'), undefined);
   }
 });
 

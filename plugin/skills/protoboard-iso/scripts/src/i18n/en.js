@@ -170,7 +170,7 @@ export default {
   'layout.when.slid': '{id} slid',
   'layout.when.tilted': '{id} tilted',
   'layout.when.position': '{id} at {percent} %',
-  'layout.advice': 'Note: {part} is at {percent} % of its rated {rated}{when} with {knob} = {value}; {knob} = {suggest} would give {result}.',
+  'layout.advice': 'Worth checking: {part} is at {percent} % of its rated {rated}{when} with {knob} = {value}; {knob} = {suggest} would give {result}.',
   'layout.changeable.goal': '{id} {goal} (a goal: {example})',
   'layout.status.done': 'the circuit is ready: every net is there and the lesson review approves it. Add descriptions if the brief asks, and report.',
   'layout.status.changes': 'the circuit was created, with {count} items marked ✖ above still open. Fix only those (suggest, then apply_ops with a dry run), then run review.',

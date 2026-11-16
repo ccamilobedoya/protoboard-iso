@@ -315,7 +315,7 @@ comes from the kit (`src/layout-answer.js`). After the review's lines and before
 
 ```text
 Solved: R1 = 470 Ω (E24) for D1 at 15 mA: 15.2 mA simulated, 2 % over (next values: 430 Ω 16.6 mA · 510 Ω 14.1 mA)
-Note: D1 is at 107 % of its rated 20 mA with R1 = 330 Ω; R1 = 360 Ω would give 19.7 mA.
+Worth checking: D1 is at 107 % of its rated 20 mA with R1 = 330 Ω; R1 = 360 Ω would give 19.7 mA.
 Readings (at rest, a model): supply 9 V · D1 20.6 mA, brightness 103 % of 20 mA
 Program U1 (Arduino sketch):
   // Blink: D13 on for half a second, off for half a second.
@@ -329,7 +329,7 @@ Can change (layout with the recipe and values): R1 = 330 (current-limiting resis
   which side, the neighbouring values with their results, `out of reach` when no standard value in
   range gets there. The two lines above never come together: the first is one call's, the second
   another's.
-- **Note** (`advice: [{ id, goal, value, rated, knob, suggest }]`): only with no goal in the call, for a
+- **Worth checking** (`advice: [{ id, goal, value, rated, knob, suggest }]`): only with no goal in the call, for a
   recipe circuit with `STATUS: DONE` and its readings shown, whose part with a goal runs above its
   rated value: by how much, and the standard value that would bring it nearest to the rating without
   passing it. Information only: nothing is changed.

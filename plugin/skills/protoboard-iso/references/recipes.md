@@ -64,8 +64,8 @@ With the connector's tools: `layout` with `{"target": "switch", "recipe": "npn-s
   `esp32-led`, `uno-blink`, `c3-blink`, `opamp-comparator`, `lm393-comparator`, `opamp-follower`,
   `tilt-alarm`, `slide-switch-leds` (and `D2.current`); `U1.frequency` in `555-astable`
   (`kit catalog <recipe>` lists them).
-- **Note line**: with no goal, a part above its rated value (but not burning) gets a `Note:` line
-  (`Nota:`) with the value that would bring it under. It is information: relay it, change nothing
+- **Worth-checking line**: with no goal, a part above its rated value (but not burning) gets a `Worth checking:` line
+  (`Para revisar:`) with the value that would bring it under. It is information: relay it, change nothing
   unless the user asks.
 - `title`, `board`, `clearance`, `netLabels`, `page` and `lang` may be given beside the recipe (in a
   spec file with `"recipe"`). Never `parts` or `nets`: to add to a recipe circuit, call `layout` on

@@ -282,12 +282,12 @@ test('layout with a goal: the kit picks the standard value and says so; without 
   const solved = await call('layout', { target: 'goal-led', recipe: 'led-resistor', values: { V1: 9, D1: { current: '15mA' } } });
   assert.ok(!solved.isError, textOf(solved));
   assert.match(textOf(solved), /\nSolved: R1 = 470 Ω \(E24\) for D1 at 15 mA: 15\.\d mA simulated, \d+ % over \(next values: 430 Ω [^)]*\)\nReadings /);
-  assert.doesNotMatch(textOf(solved), /\nNote:/);
+  assert.doesNotMatch(textOf(solved), /\nWorth checking:/);
   assert.match(textOf(solved), /STATUS: DONE/);
   const stored = JSON.parse((await call('get_circuit', { target: 'goal-led', format: 'json' })).content[0].text).circuit;
   assert.deepEqual(stored.spec.recipe, { name: 'led-resistor', values: { V1: 9, R1: '470' } });
   const advised = await call('layout', { target: 'goal-advice', recipe: 'led-resistor', values: { V1: 9 } });
-  assert.match(textOf(advised), /\nNote: D1 is at 10\d % of its rated 20 mA with R1 = 330 Ω; R1 = \d+ Ω would give [\d.]+ mA\.\n/);
+  assert.match(textOf(advised), /\nWorth checking: D1 is at 10\d % of its rated 20 mA with R1 = 330 Ω; R1 = \d+ Ω would give [\d.]+ mA\.\n/);
   assert.match(textOf(advised), /STATUS: DONE/);
   const wrong = await call('layout', { target: 'goal-bad', recipe: 'led-resistor', values: { D1: { current: 'abc' } } });
   assert.ok(wrong.isError);

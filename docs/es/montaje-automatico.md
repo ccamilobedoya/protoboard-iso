@@ -344,7 +344,7 @@ líneas de la revisión y antes de las de la página y `STATUS:`:
 
 ```text
 Resuelto: R1 = 470 Ω (E24) para D1 a 15 mA: 15,2 mA simulados, 2 % por encima (valores vecinos: 430 Ω 16,6 mA · 510 Ω 14,1 mA)
-Nota: D1 queda al 107 % de su nominal de 20 mA con R1 = 330 Ω; con R1 = 360 Ω daría 19,7 mA.
+Para revisar: D1 queda al 107 % de su nominal de 20 mA con R1 = 330 Ω; con R1 = 360 Ω daría 19,7 mA.
 Lecturas (en reposo, un modelo): fuente 9 V · D1 20,6 mA, brillo 103 % del de 20 mA
 Programa U1 (sketch de Arduino):
   // Blink: D13 on for half a second, off for half a second.
@@ -358,7 +358,7 @@ Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitado
   meta y de qué lado, los valores vecinos con sus resultados, `fuera de alcance` cuando ningún valor
   estándar del rango llega. Las dos líneas de arriba nunca salen juntas: la primera es de una
   llamada, la segunda de otra.
-- **Nota** (`advice: [{ id, goal, value, rated, knob, suggest }]`): solo sin meta en la llamada, para un
+- **Para revisar** (`advice: [{ id, goal, value, rated, knob, suggest }]`): solo sin meta en la llamada, para un
   circuito de receta con `STATUS: DONE` y sus lecturas a la vista, cuyo componente con meta trabaja
   por encima de su valor nominal: cuánto, y el valor estándar que lo dejaría lo más cerca del nominal
   sin pasarlo. Solo información: no se cambia nada.

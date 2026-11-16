@@ -8,7 +8,7 @@
 //   formatExtras(r, lang, t) → lines for formatLayout, before its STATUS line
 //
 // Two lines come before the readings: `Solved` (r.solved, from autoLayout: the values a goal chose,
-// the simulated result, how far from the goal and the neighbouring standard values) and `Note` (the
+// the simulated result, how far from the goal and the neighbouring standard values) and `Worth checking` (the
 // advisory: a part of a goal above its rated value as built, and the value that would bring it
 // under; information only, nothing is changed).
 

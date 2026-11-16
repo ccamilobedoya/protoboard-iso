@@ -146,7 +146,7 @@ Solved: R2 = 68 kΩ (E24; unchanged: R1 = 1 kΩ, C1 = 10 µF) for U1 at 1 Hz: 1.
 
 **The advisory.** With no goal in the call, a recipe circuit whose part runs above its rated value
 without burning (an LED at 107 % of its rated 20 mA, so no hazard and `STATUS: DONE`) gets one line,
-and nothing is changed: `Note: D1 is at 107 % of its rated 20 mA with R1 = 330 Ω; R1 = 360 Ω would
+and nothing is changed: `Worth checking: D1 is at 107 % of its rated 20 mA with R1 = 330 Ω; R1 = 360 Ω would
 give 19.7 mA.` (`Nota:`; `advice: [...]` in the JSON). The value suggested is the standard one nearest
 to the rating without passing it. Not printed when a goal was given (the `Solved` line says it) nor
 when the page hides the results for a learner to predict.
