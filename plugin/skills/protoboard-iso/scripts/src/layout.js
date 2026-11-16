@@ -33,10 +33,11 @@ import { applyOps } from './ops.js';
 import { buildCircuit } from './circuit/build.js';
 import { problemKey } from './diff.js';
 import { review, formatHazards } from './review.js';
-import { hazardFix } from './fix.js';
+import { hazardFix, specWithFix } from './fix.js';
 import { answerExtras, formatExtras } from './layout-answer.js';
 import { solveGoals } from './recipes/solve.js';
-import { parseValue, valueText } from './core/units.js';
+import { parseValue, valueText, formatValue } from './core/units.js';
+import { decimalSeparator } from './i18n/index.js';
 import { CIRCUIT_FOLDER } from './beside.js';
 import { PART_TYPES } from './parts/types/index.js';
 import { lookupModule } from './parts/modules.js';
@@ -536,6 +537,18 @@ export function specFromCircuit(circuit, given = {}) {
       page: pick('page'),
     }).filter(([, v]) => v !== undefined),
   );
+}
+
+// The spec of a circuit made by layout with the kit's current computed fix applied (layout --fix,
+// the MCP tool's fix: true): only on that request, never by itself. The fix is the one the review of
+// the circuit as it is prints ("To fix it"). → { spec, applied } | { nothing: true } (no hazard) |
+// { refuse: code } (LAYOUT_FIX_NO_SPEC: written by hand; LAYOUT_FIX_NO_FIX: the kit has none).
+export function fixRequest(circuit) {
+  if (!circuit?.spec?.nets) return { refuse: 'LAYOUT_FIX_NO_SPEC' };
+  const r = review(circuit);
+  if (!r.hazards.length) return { nothing: true };
+  if (!r.fix) return { refuse: 'LAYOUT_FIX_NO_FIX' };
+  return specWithFix(specFromCircuit(circuit), r.fix);
 }
 
 const linkKey = (a, b) => `link ${[a, b].sort().join(' ')}`;
@@ -1277,8 +1290,14 @@ export function formatLayout(r, lang, { t, formatIssue }) {
   lines.push(...formatExtras(r, lang, t));
   const open = r.problems.length + r.check.missing.length + r.check.shorted.length + blocking.length;
   // A trial (layout --dry-run, the MCP tool's dry_run): the same answer, and nothing was written.
+  if (r.applied) lines.push(appliedLine(r.applied, lang, t));
   if (r.trial) lines.push(t(lang, 'layout.trial'));
   lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, `layout.status.${r.status}`, { count: open, hazards: r.review.hazards.length })}`);
   return lines.join('\n');
 }
 
+// "Applied the fix: R3 = 200 Ω in series with BZ1." (layout --fix)
+function appliedLine(a, lang, t) {
+  const value = formatValue(a.value, 'Ω', { decimal: decimalSeparator(lang) });
+  return t(lang, a.kind === 'set' ? 'layout.fixApplied.set' : 'layout.fixApplied.add', { part: a.part, value, with: a.with });
+}

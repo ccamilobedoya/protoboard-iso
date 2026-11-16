@@ -40,7 +40,7 @@ import { compile, createEngine } from '../src/sim/index.js';
 import { toFalstad } from '../src/sim/falstad.js';
 import { nets, formatNets } from '../src/nets.js';
 import { createBoard, boardLayout, BOARDS } from '../src/board/board.js';
-import { autoLayout, formatLayout, specFromCircuit, specProblems } from '../src/layout.js';
+import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest } from '../src/layout.js';
 import { RECIPES, resolveRecipe } from '../src/recipes/index.js';
 import { formatBoardLayout } from '../src/board/layout-text.js';
 import { appView } from './app.js';
@@ -320,7 +320,7 @@ server.registerTool(
   {
     title: 'Build a circuit on a breadboard',
     description:
-      'Place a whole circuit in one call. A usual lesson circuit first: recipe with only the values that change ({"recipe":"npn-switch","values":{"R1":"470"}}; catalog lists the recipes; catalog with the name gives their values). Otherwise from its parts (no holes, in signal order; a part number, module or alias is enough) and its nets (pins and rails; usual pin names work: D1.K, U1.VIN, U1.DISCH, U1.GPIO4): parts left to right by distance from the source, jumpers for what is left apart, ground nets to a − rail, then the nets check and the lesson review, laid out again a few times and repaired jumper by jumper. On an existing target it lays the circuit out again as one revision (undo restores it): give the new nets and, if parts change, the full parts list; a part keeps its holes when its pins still fit its nets. The nets are kept in the circuit (spec) and review checks them. The answer ends in STATUS: DONE (ready), WARNINGS (built, a part would burn as wired: tell the user first), CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review), FIX_SPEC (nothing created: fix every ✖ in the spec and call again) or SPEC_OK (check_only).',
+      'Place a whole circuit in one call. A usual lesson circuit first: recipe with only the values that change ({"recipe":"npn-switch","values":{"R1":"470"}}; catalog lists the recipes; catalog with the name gives their values). Otherwise from its parts (no holes, any order; a part number, module or alias is enough) and its nets (pins and rails; usual pin names work: D1.K, U1.VIN, U1.DISCH, U1.GPIO4): parts left to right by distance from the source, jumpers for what is left apart, ground nets to a − rail, then the nets check and the lesson review, laid out again a few times and repaired jumper by jumper. On an existing target it lays the circuit out again as one revision (undo restores it): give the new nets and, if parts change, the full parts list; a part keeps its holes when its pins still fit its nets. The nets are kept in the circuit (spec) and review checks them. The answer ends in STATUS: DONE (ready), WARNINGS (built, a part would burn as wired: tell the user first), CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review), FIX_SPEC (nothing created: fix every ✖ in the spec and call again) or SPEC_OK (check_only).',
 
     inputSchema: {
       target: z.string().describe('Folder relative to the root (e.g. led-switch): new, or an existing circuit to lay out again'),
@@ -329,7 +329,7 @@ server.registerTool(
         .record(z.string(), z.union([z.string(), z.number(), z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]))]))
         .optional()
         .describe('With recipe: only what changes, by id. The main value ({"R1":"470","V1":9,"D1":"green","Q1":"BC547"}) or some fields ({"R1":{"value":"470","tolerance":"1%"}}), or a goal the kit solves ({"D1":{"current":"15mA"}})'),
-      parts: z.array(z.object({ id: z.string() }).passthrough()).min(1).optional().describe('Required for a new circuit; for an existing one, omit to keep its parts, or give the FULL list when they change (a partial list fails). ' + 'Parts without pins, in signal order: a type ({"id":"R1","type":"resistor","value":"1k"}) or just a part number, module or alias ({"id":"U1","part":"7805"}, {"id":"S1","part":"KCD1"}); no need to look them up in the catalog first. A microcontroller board takes each pin\'s state for the simulation: {"id":"U1","part":"ESP32-DEVKIT","io":{"D13":"high"}}'),
+      parts: z.array(z.object({ id: z.string() }).passthrough()).min(1).optional().describe('Required for a new circuit; for an existing one, omit to keep its parts, or give the FULL list when they change (a partial list fails). ' + 'Parts without pins: a type ({"id":"R1","type":"resistor","value":"1k"}) or just a part number, module or alias ({"id":"U1","part":"7805"}, {"id":"S1","part":"KCD1"}); no need to look them up in the catalog first. A microcontroller board takes each pin\'s state for the simulation: {"id":"U1","part":"ESP32-DEVKIT","io":{"D13":"high"}}'),
       nets: z
         .array(z.union([z.array(z.string()), z.object({ pins: z.array(z.string()), color: z.string().optional() })]))
         .optional()
@@ -344,26 +344,36 @@ server.registerTool(
       expect_revision: z.number().int().min(0).optional().describe('Existing circuit: refuse if it changed since this revision'),
       check_only: z.boolean().optional().describe('Only check the parts and nets (unknown names with the closest ones, nets naming a missing part or pin, parts in no net) and create nothing'),
       dry_run: z.boolean().optional().describe('The whole answer, nothing saved: try an idea first'),
+      fix: z.boolean().optional().describe("Existing circuit, nothing else given: apply the kit's To fix it line"),
       author: z.string().optional(),
       note: z.string().optional(),
       lang: common.lang,
     },
     annotations: WRITE,
   },
-  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, expect_revision: expectRevision, check_only: checkOnly, dry_run: dryRun, author = 'layout', note = 'layout', lang, outputLang }) => {
+  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, expect_revision: expectRevision, check_only: checkOnly, dry_run: dryRun, fix, author = 'layout', note, lang, outputLang }) => {
     const full = inside(target);
     const paths = resolveTarget(full);
     const previous = existsSync(paths.circuitFile) ? loadCircuit(paths) : null;
+    const refuse = (code) => ({ isError: true, content: [{ type: 'text', text: formatIssue({ severity: 'error', code, params: { target } }, lang) }] });
+    // fix: the circuit with the kit's computed fix applied (fixRequest), only on this request.
+    let fixed = null;
+    if (fix) {
+      if ([recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance].some((v) => v !== undefined)) return refuse('LAYOUT_FIX_AND_SPEC');
+      fixed = previous ? fixRequest(previous) : { refuse: 'LAYOUT_FIX_NO_SPEC' };
+      if (fixed.refuse) return refuse(fixed.refuse);
+      if (fixed.nothing) return text(formatIssue({ severity: 'info', code: 'LAYOUT_FIX_NONE', params: { target } }, lang));
+    }
+    note ??= fixed ? 'layout fix' : 'layout';
     const fromRecipe = resolveRecipe(Object.fromEntries(Object.entries({ recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, lang }).filter(([, v]) => v !== undefined)));
     if (fromRecipe.problems.length) return { isError: true, content: [{ type: 'text', text: formatLayout(specProblems(fromRecipe.problems), lang ?? 'en', { t, formatIssue }) }] };
     ({ parts, nets } = fromRecipe.spec);
     const given = fromRecipe.spec;
-    const refuse = (code) => ({ isError: true, content: [{ type: 'text', text: formatIssue({ severity: 'error', code, params: { target } }, lang) }] });
-    if (previous && !nets && !previous.spec?.nets) return refuse('LAYOUT_NO_SPEC');
+    if (!fixed && previous && !nets && !previous.spec?.nets) return refuse('LAYOUT_NO_SPEC');
     if (!previous && (!parts || !nets)) return refuse('LAYOUT_NEEDS_SPEC');
-    const spec = previous ? specFromCircuit(previous, given) : given;
+    const spec = fixed ? fixed.spec : previous ? specFromCircuit(previous, given) : given;
     const out = pickLanguage(lang, spec.lang);
-    const result = autoLayout(spec, { checkOnly, previous, folder: dirname(paths.circuitFile), lang: out });
+    const result = { ...autoLayout(spec, { checkOnly, previous, folder: dirname(paths.circuitFile), lang: out }), ...(fixed && { applied: fixed.applied }) };
     if (result.checked) return { ...(result.invalid && { isError: true }), content: [{ type: 'text', text: formatLayout(result, out, { t, formatIssue }) }] };
     // A trial: the same answer, nothing written and no board shown (as try_ops).
     if (dryRun) return text(formatLayout({ ...result, trial: true }, out, { t, formatIssue }));

@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { autoLayout, signalOrders, specFromCircuit } from '../src/layout.js';
+import { autoLayout, fixRequest, signalOrders, specFromCircuit } from '../src/layout.js';
 import { RECIPES, expandRecipe } from '../src/recipes/index.js';
 
 // A small linear congruential generator: the same shuffles on every run and machine.
@@ -83,4 +83,20 @@ test('a resistor added in series ends DONE in either order, new or on the circui
     const holes = (c, id) => JSON.stringify(c.parts.find((p) => p.id === id).pins);
     for (const id of ['U1', 'R1', 'D1']) assert.equal(holes(again.circuit, id), holes(built.circuit, id), `${how}: ${id} keeps its holes`);
   }
+});
+
+// The transistor variant (the buzzer from 5 V through an NPN driven by D10): with the board's 5 V pin
+// wired straight to the buzzer (no rail), and with the kit's own fix applied (a resistor in series
+// with the buzzer), the order given leaves a jumper that does not fit; an order of the nets lays it out.
+test('the transistor variant: 5 V straight to the buzzer is built (WARNINGS), and with the kit\'s fix applied it ends DONE', () => {
+  const npn = JSON.parse(readFileSync(new URL('fixtures/kit-first/buzzer-npn.json', import.meta.url), 'utf8'));
+  const straight = autoLayout({ ...npn, nets: npn.nets.map((n) => n.filter((ref) => ref !== 'T+')) });
+  assert.equal(straight.status, 'warnings', JSON.stringify(straight.problems));
+  assert.ok(straight.check.ok);
+  const built = autoLayout(npn);
+  const request = fixRequest(built.circuit);
+  assert.equal(request.applied.kind, 'add-series');
+  assert.equal(request.applied.with, 'BZ1');
+  const fixed = autoLayout(request.spec, { previous: built.circuit });
+  assert.equal(fixed.status, 'done', JSON.stringify([fixed.problems, fixed.review.blocking.map((b) => b.code)]));
 });

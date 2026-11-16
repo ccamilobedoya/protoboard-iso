@@ -123,6 +123,10 @@ export default {
   'check.LAYOUT_WIRE_FAILED': 'No jumper fits from {from} to {to}.',
   'check.LAYOUT_PIN_COVERED': '{part}.{pin} ({hole}) cannot be reached: {part} covers every other hole of its strip, so no jumper fits there. Use another pin with the same signal, or two boards side by side (board "double").',
   'check.LAYOUT_NO_SPEC': '{target} was not made by layout, so it has no nets to lay out again: pass nets (and parts) to lay it out from scratch.',
+  'check.LAYOUT_FIX_NO_SPEC': '{target} was not made by layout (it has no spec): the fix is applied only to circuits made by layout.',
+  'check.LAYOUT_FIX_NO_FIX': 'The kit has no computed fix for this. Nothing was changed: try an idea in a trial of layout first.',
+  'check.LAYOUT_FIX_AND_SPEC': 'Give the fix or a spec (or values), not both: the fix takes the circuit as it is and changes only what the kit computed.',
+  'check.LAYOUT_FIX_NONE': 'Nothing to fix: as wired, no part of {target} would be damaged. Nothing was changed.',
   'check.LAYOUT_NEEDS_SPEC': '{target} is a new circuit: layout needs its parts and nets.',
   'check.LAYOUT_DOUBLE_BOARD': 'On one board {part} would cover the whole strip of {part}.{pin}: laid out on two boards side by side (board "double", inner rails taken off), {part} across the joint with a free strip under each header.',
   'check.LAYOUT_DOUBLE_RAILS': 'The T rails are the ones taken off a double board: {rails} (its back pair of rails).',
@@ -175,6 +179,8 @@ export default {
   'layout.changeable.goal': '{id} {goal} (a goal: {example})',
   'layout.status.done': 'the circuit is ready: every net is there and the lesson review approves it. Add descriptions if the brief asks, and report.',
   'layout.status.changes': 'the circuit was created, with {count} items marked ✖ above still open. Fix only those (suggest, then apply_ops with a dry run), then run review.',
+  'layout.fixApplied.set': 'Applied the fix: {part} = {value}.',
+  'layout.fixApplied.add': 'Applied the fix: {part} = {value} in series with {with}.',
   'layout.trial': 'Trial: nothing was saved.',
   'layout.status.warnings': 'the circuit is built and its nets are right, but {hazards} part(s) would be damaged as wired (marked ⚠ above). Tell the user first, in plain words, which part and why it burns; keep it as it is only if showing the failure is what they want, otherwise offer the kit’s fix (its “To fix it” line; when it has none, try an idea in a dry run of layout first). Do not fix it silently and do not refuse.',
   'layout.status.fix_spec': 'nothing was created. Fix every ✖ above in the spec and call layout again.',
@@ -788,6 +794,7 @@ export default {
   'page.app.newer': 'Revision {revision} as it was; the circuit is now at revision {latest}.',
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):
   protoboard-iso layout <target> [spec.json|-] [--check] [--dry-run] [--expect-revision n]   # the whole circuit placed from its parts and nets; an existing target is laid out again (docs/en/layout.md)
+  protoboard-iso layout <target> --fix [--dry-run]   # the kit's computed fix (its "To fix it" line) applied, as one revision
   protoboard-iso layout <target> --recipe <name> [--values '<json>']   # a lesson circuit by name (docs/en/recipes.md)
   protoboard-iso render <target> [-o out.svg|out.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <target> [--transient stop[,step]] [--start zero|dc] [--lang en|es] [--json]

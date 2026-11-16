@@ -122,6 +122,10 @@ export default {
   'check.LAYOUT_WIRE_FAILED': 'Ningún cable cabe de {from} a {to}.',
   'check.LAYOUT_PIN_COVERED': 'No se llega a {part}.{pin} ({hole}): {part} tapa todos los demás agujeros de su tira, así que ningún cable cabe ahí. Usa otra pata con la misma señal, o dos protoboards lado a lado (board "double").',
   'check.LAYOUT_NO_SPEC': '{target} no se hizo con layout, así que no tiene redes para volver a montarlo: pasa nets (y parts) para montarlo desde cero.',
+  'check.LAYOUT_FIX_NO_SPEC': '{target} no se hizo con layout (no tiene spec): el arreglo solo se aplica a circuitos hechos con layout.',
+  'check.LAYOUT_FIX_NO_FIX': 'El kit no tiene un arreglo calculado para esto. No se cambió nada: ensaya antes una idea con layout en ensayo.',
+  'check.LAYOUT_FIX_AND_SPEC': 'Da el arreglo o un spec (o valores), no ambos: el arreglo toma el circuito tal como está y cambia solo lo que el kit calculó.',
+  'check.LAYOUT_FIX_NONE': 'Nada que arreglar: tal como está conectado, ningún componente de {target} se dañaría. No se cambió nada.',
   'check.LAYOUT_NEEDS_SPEC': '{target} es un circuito nuevo: layout necesita sus parts y nets.',
   'check.LAYOUT_DOUBLE_BOARD': 'En una sola protoboard {part} taparía toda la tira de {part}.{pin}: se montó en dos protoboards lado a lado (board "double", sin los rieles del medio), con {part} sobre la unión y una tira libre bajo cada fila de pines.',
   'check.LAYOUT_DOUBLE_RAILS': 'Los rieles T son los que se le quitan a una protoboard doble: {rails} (su par de rieles de atrás).',
@@ -174,6 +178,8 @@ export default {
   'layout.changeable.goal': '{id} {goal} (una meta: {example})',
   'layout.status.done': 'el circuito está listo: están todas las redes y la revisión lesson lo aprueba. Agrega las descripciones si el encargo las pide, y reporta.',
   'layout.status.changes': 'el circuito se creó, pero quedan {count} puntos marcados con ✖ arriba. Arregla solo esos (suggest y luego apply_ops con dry run) y vuelve a correr review.',
+  'layout.fixApplied.set': 'Arreglo aplicado: {part} = {value}.',
+  'layout.fixApplied.add': 'Arreglo aplicado: {part} = {value} en serie con {with}.',
   'layout.trial': 'Ensayo: no se guardó nada.',
   'layout.status.warnings': 'el circuito está armado y sus redes están bien, pero {hazards} componente(s) se dañarían tal como está conectado (marcados con ⚠ arriba). Díselo primero al usuario, en palabras simples: cuál componente y por qué se quema; déjalo así solo si lo que quiere es mostrar la falla, y si no ofrece el arreglo del kit (su línea «Para arreglarlo»; si no tiene, ensaya antes una idea con layout en ensayo). No lo arregles en silencio ni te niegues.',
   'layout.status.fix_spec': 'no se creó nada. Arregla en el spec cada ✖ de arriba y vuelve a llamar layout.',
@@ -787,6 +793,7 @@ export default {
   'page.app.newer': 'La revisión {revision} tal como era; el circuito ya va en la revisión {latest}.',
   'cli.usage': `Uso (<objetivo> = un archivo de circuito o una carpeta con circuit.json):
   protoboard-iso layout <objetivo> [spec.json|-] [--check] [--dry-run] [--expect-revision n]   # el circuito entero, ubicado a partir de sus componentes y redes; si ya existe, se vuelve a montar (docs/es/montaje-automatico.md)
+  protoboard-iso layout <objetivo> --fix [--dry-run]   # el arreglo calculado del kit (su línea «Para arreglarlo») aplicado, como una revisión
   protoboard-iso layout <objetivo> --recipe <nombre> [--values '<json>']   # un circuito de clase por su nombre (docs/es/recetas.md)
   protoboard-iso render <objetivo> [-o salida.svg|salida.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <objetivo> [--transient fin[,paso]] [--start zero|dc] [--lang en|es] [--json]

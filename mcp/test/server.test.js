@@ -301,6 +301,27 @@ test('layout dry_run: the same answer and STATUS, a trial line, nothing written,
   assert.deepEqual([readFileSync(file, 'utf8'), readFileSync(join(root, 'trial-led', 'history.jsonl'), 'utf8')], before, 'the circuit is untouched');
 });
 
+test('layout fix: the kit applies its own computed fix as one revision; with nothing to fix or a spec too it says so', async () => {
+  const made = await call('layout', { target: 'fix-led', recipe: 'led-resistor', values: { V1: 9, R1: '10' } });
+  assert.match(textOf(made), /STATUS: WARNINGS/);
+  const value = /To fix it: R1 = (\d+) Ω/.exec(textOf(made))?.[1];
+  assert.ok(value, textOf(made));
+  const both = await call('layout', { target: 'fix-led', fix: true, values: { R1: '1k' } });
+  assert.ok(both.isError);
+  assert.match(textOf(both), /Give the fix or a spec \(or values\), not both/);
+  const fixed = await call('layout', { target: 'fix-led', fix: true });
+  assert.ok(!fixed.isError, textOf(fixed));
+  assert.match(textOf(fixed), new RegExp(`\\nApplied the fix: R1 = ${value} Ω\\.\\n[^]*STATUS: DONE`));
+  assert.doesNotMatch(textOf(fixed), /⚠/);
+  const history = textOf(await call('history', { target: 'fix-led' }));
+  assert.match(history, /rev 1 [^\n]*layout fix/);
+  const none = await call('layout', { target: 'fix-led', fix: true, lang: 'es' });
+  assert.ok(!none.isError);
+  assert.match(textOf(none), /Nada que arreglar: tal como está conectado, ningún componente de fix-led se dañaría\. No se cambió nada\./);
+  assert.match(textOf(await call('history', { target: 'fix-led' })), /rev 1 /, 'no revision more');
+  assert.doesNotMatch(textOf(await call('history', { target: 'fix-led' })), /rev 2 /);
+});
+
 test('layout with a goal: the kit picks the standard value and says so; without one, the advisory', async () => {
   const solved = await call('layout', { target: 'goal-led', recipe: 'led-resistor', values: { V1: 9, D1: { current: '15mA' } } });
   assert.ok(!solved.isError, textOf(solved));

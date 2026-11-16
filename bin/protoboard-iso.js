@@ -19,7 +19,7 @@ import { simulate } from '../src/sim/index.js';
 import { formatSimulation } from '../src/sim/format.js';
 import { parseValue } from '../src/core/units.js';
 import { resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory, writePage, createTarget, relayoutTarget } from '../src/node/workspace.js';
-import { autoLayout, formatLayout, specFromCircuit, specProblems } from '../src/layout.js';
+import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest } from '../src/layout.js';
 import { resolveRecipe } from '../src/recipes/index.js';
 import { svgToPng, rasterAvailable, rasterSearchIn } from '../src/node/raster.js';
 import { catalogEntry, formatCatalogEntry, compactCatalog, recipeLine } from '../src/node/catalog.js';
@@ -68,6 +68,7 @@ function parseArgs(argv) {
     else if (a === '--focus') args.focus = value()?.split(',');
     else if (a === '--flow') args.flow = true;
     else if (a === '--check') args.check = true;
+    else if (a === '--fix') args.fix = true;
     else if (a === '--recipe') args.recipe = value();
     else if (a === '--values') args.values = ((v) => (v === undefined ? undefined : JSON.parse(v)))(value());
     else if (a === '-h' || a === '--help') args.help = true;
@@ -137,7 +138,20 @@ if (command === 'layout') {
   // existing target, laid out again (the spec's fields replace the circuit's, the rest stays).
   // --recipe name [--values json]: a recipe instead of a spec (or "recipe" in the spec file).
   // --dry-run: a trial, the same answer and nothing written (below).
+  // --fix: the circuit with the kit's computed fix applied, as one revision (fixRequest), only on
+  // this request; with no hazard nothing changes and it is not an error.
   const previous = existsSync(paths.circuitFile) ? loadCircuit(paths) : null;
+  let fixed = null;
+  if (args.fix) {
+    const refuse = (code, exit = 1) => {
+      printIssues([{ severity: exit ? 'error' : 'info', code, params: { target } }], lang);
+      fail(exit);
+    };
+    if (extra || args.recipe || args.values) refuse('LAYOUT_FIX_AND_SPEC');
+    fixed = previous ? fixRequest(previous) : { refuse: 'LAYOUT_FIX_NO_SPEC' };
+    if (fixed.refuse) refuse(fixed.refuse);
+    if (fixed.nothing) refuse('LAYOUT_FIX_NONE', 0);
+  }
   if (!extra && !previous && !args.recipe) {
     console.log(t(lang, 'cli.usage'));
     fail(1);
@@ -153,9 +167,9 @@ if (command === 'layout') {
     printIssues([{ severity: 'error', code: 'LAYOUT_NO_SPEC', params: { target } }], lang);
     fail(1);
   }
-  const spec = previous ? specFromCircuit(previous, given) : given;
+  const spec = fixed ? fixed.spec : previous ? specFromCircuit(previous, given) : given;
   const outLang = pickLanguage(args.lang, spec.lang, 'en');
-  const result = autoLayout(spec, { checkOnly: args.check, previous, folder: dirname(paths.circuitFile), lang: outLang });
+  const result = { ...autoLayout(spec, { checkOnly: args.check, previous, folder: dirname(paths.circuitFile), lang: outLang }), ...(fixed && { applied: fixed.applied }) };
   if (result.checked) {
     console.log(args.json ? JSON.stringify(result, null, 2) : formatLayout(result, outLang, { t, formatIssue }));
     fail(result.invalid ? 1 : 0);
@@ -167,7 +181,7 @@ if (command === 'layout') {
     console.log(args.json ? JSON.stringify({ ...trial, circuit: undefined }, null, 2) : formatLayout(trial, outLang, { t, formatIssue }));
     fail(result.status === 'done' || result.status === 'warnings' ? 0 : 2);
   }
-  const save = { author: args.author ?? 'layout', note: args.note ?? 'layout', lang: outLang, outputs: args.outputs };
+  const save = { author: args.author ?? 'layout', note: args.note ?? (fixed ? 'layout --fix' : 'layout'), lang: outLang, outputs: args.outputs };
   const created = previous ? relayoutTarget(target, result.circuit, { ...save, expectRevision: args.expectRevision }) : createTarget(target, result.circuit, save);
   if (created.errors.length) {
     printIssues(created.errors, outLang);

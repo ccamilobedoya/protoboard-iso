@@ -22,7 +22,7 @@
 // damage is not a fix. `brings`: each hazard's quantity with the fix, in the state it was found in.
 
 import { compile, createEngine, controlStates, engineHazards, enterState } from './sim/index.js';
-import { standardValues } from './core/units.js';
+import { standardValues, valueText } from './core/units.js';
 import { choose, sweepResistor } from './recipes/solve.js';
 
 const CANDIDATES = 6;
@@ -229,4 +229,36 @@ export function hazardFix(circuit, hazards) {
     return { fix: c.kind === 'set' ? { kind: 'set', part: c.part, value: found.value, brings } : { kind: 'add-series', with: c.with, pin: c.pin, value: found.value, brings } };
   }
   return { fix: null, noFix: true };
+}
+
+// The spec of a circuit with its computed fix applied, for layout to lay out as one change (layout
+// --fix, the MCP tool's fix: true; docs/en/layout.md, "Applying the kit's fix"). Nothing here
+// decides to fix: it runs only on that request.
+//   'set'         the resistor's new value (and the recipe's, when the circuit came from one)
+//   'add-series'  a new resistor, the next R number of the circuit, between the pin and the net it
+//                 was on (its pin 1 on the net, pin 2 on the pin; a supply clipped to the pin stays
+//                 on the net), listed just before the part it is in series with (just after a board
+//                 for one of its own pins): signal order. A recipe no longer describes the circuit.
+// → { spec, applied: { kind, part, value, with? } }
+export function specWithFix(spec, fix) {
+  const value = valueText(fix.value);
+  if (fix.kind === 'set') {
+    const parts = spec.parts.map((p) => (p.id === fix.part ? { ...p, value } : p));
+    const recipe = spec.recipe && { ...spec.recipe, values: { ...spec.recipe.values, [fix.part]: value } };
+    return { spec: { ...spec, parts, ...(recipe && { recipe }) }, applied: { kind: 'set', part: fix.part, value: fix.value } };
+  }
+  const max = Math.max(0, ...spec.parts.map((p) => /^R(\d+)$/.exec(p.id)?.[1]).filter(Boolean).map(Number));
+  let n = max + 1;
+  while (spec.parts.some((p) => p.id === `R${n}`)) n++;
+  const id = `R${n}`;
+  const same = (ref) => String(ref).toLowerCase() === fix.pin.toLowerCase();
+  const swap = (pins) => pins.map((ref) => (same(ref) ? `${id}.1` : ref));
+  const nets = spec.nets.map((net) => (Array.isArray(net) ? swap(net) : { ...net, pins: swap(net.pins ?? []) }));
+  const supplies = spec.supplies?.map((s) => ({ ...s, ...(s.positive != null && same(s.positive) && { positive: `${id}.1` }), ...(s.negative != null && same(s.negative) && { negative: `${id}.1` }) }));
+  const parts = [...spec.parts];
+  const owner = fix.pin.split('.')[0];
+  const at = parts.findIndex((p) => p.id === owner);
+  parts.splice(fix.with === owner ? at : at + 1, 0, { id, type: 'resistor', value });
+  const { recipe, ...rest } = spec;
+  return { spec: { ...rest, parts, nets: [...nets, [`${id}.2`, fix.pin]], ...(supplies && { supplies }) }, applied: { kind: 'add-series', part: id, value: fix.value, with: fix.with } };
 }
