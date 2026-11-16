@@ -8,7 +8,8 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { autoLayout, specFromCircuit, formatLayout } from '../src/layout.js';
-import { review, formatReview } from '../src/review.js';
+import { review, formatReview, formatHazards } from '../src/review.js';
+import { compile, createEngine, controlStates, engineHazards, STATES_MAX } from '../src/sim/index.js';
 import { RECIPES, expandRecipe } from '../src/recipes/index.js';
 import { applyOps } from '../src/ops.js';
 import { formatIssue, t } from '../src/index.js';
@@ -75,6 +76,82 @@ test('recipes with their defaults: none would damage a part', () => {
     if (known.has(name)) assert.ok(hazards.length, `${name} is on the known list but has no hazard any more: remove it`);
     else assert.deepEqual(hazards, [], name);
   }
+});
+
+// ---- with a control operated (sim/index.js checkHazards): one control at a time, the others at rest
+
+test('npn-switch with a 47 Ω collector resistor at 12 V: nothing burns at rest, D1 and R2 burn with S1 pressed', () => {
+  const r = autoLayout(expandRecipe('npn-switch', { R2: '47', V1: 12 }).spec);
+  assert.equal(r.status, 'warnings');
+  assert.equal(r.review.verdict, 'approved-with-warnings');
+  assert.deepEqual(r.review.hazardStates, { checked: 1, total: 1 });
+  const d1 = r.review.hazards.find((h) => h.params.part === 'D1');
+  assert.equal(d1.code, 'SIM_OVER_CURRENT');
+  assert.deepEqual(d1.when, { part: 'S1', field: 'pressed', value: true });
+  assert.ok(d1.params.current.value > 0.17 && d1.params.current.value < 0.19, 'about 178 mA');
+  assert.ok(r.review.hazards.every((h) => h.when), 'nothing at rest');
+  const en = formatLayout(r, 'en', { t, formatIssue });
+  assert.match(en, /⚠ warning: D1 carries 178 mA, more than its maximum 30 mA, with S1 pressed\.\n/);
+  assert.match(en, /⚠ warning: R2 dissipates [\d.]+ W, more than its 250 mW: it overheats, with S1 pressed\.\n/);
+  assert.match(en.split('\n').at(-1), /^STATUS: WARNINGS · /);
+  const es = formatLayout(r, 'es', { t, formatIssue });
+  assert.match(es, /⚠ aviso: Por D1 pasan 178 mA, más que su máximo de 30 mA, con S1 oprimido\.\n/);
+  // The same recipe at its defaults: nothing burns pressed either.
+  const fine = autoLayout(expandRecipe('npn-switch').spec);
+  assert.equal(fine.status, 'done');
+  assert.deepEqual(fine.review.hazards, []);
+  assert.deepEqual(fine.review.hazardStates, { checked: 1, total: 1 });
+});
+
+test('a slide switch in its other position: the green LED with a 10 Ω resistor burns only slid to 2', () => {
+  const r = autoLayout(expandRecipe('slide-switch-leds', { R2: '10' }).spec);
+  assert.equal(r.status, 'warnings');
+  const d2 = r.review.hazards.find((h) => h.params.part === 'D2' && h.code === 'SIM_OVER_CURRENT');
+  assert.deepEqual(d2.when, { part: 'S1', field: 'slid', value: true });
+  assert.match(formatIssue(d2, 'en'), /, with S1 slid to 2 \(COM–2\)\.$/);
+  assert.match(formatIssue(d2, 'es'), /, con S1 deslizado a 2 \(COM–2\)\.$/);
+});
+
+test('a potentiometer at an end of its travel: a 10 Ω LED resistor burns the LED with the wiper on pin 1', () => {
+  const r = autoLayout(expandRecipe('potentiometer-led', { R1: '10', V1: 12 }).spec);
+  assert.equal(r.status, 'warnings');
+  assert.deepEqual(r.review.hazardStates, { checked: 2, total: 2 });
+  const d1 = r.review.hazards.find((h) => h.params.part === 'D1' && h.code === 'SIM_OVER_CURRENT');
+  assert.deepEqual(d1.when, { part: 'RV1', field: 'position', value: 0 });
+  assert.match(formatIssue(d1, 'en'), /, with RV1 at the end of its travel on the pin 1 side\.$/);
+  assert.match(formatIssue(d1, 'es'), /, con RV1 al final de su recorrido, del lado del pin 1\.$/);
+  // The other end puts nothing across the LED: no hazard there.
+  assert.ok(!r.review.hazards.some((h) => h.when?.value === 1));
+});
+
+test('a hazard at rest is reported once, at rest, even when it is also there with the button pressed', () => {
+  const spec = {
+    parts: [{ id: 'D1', part: 'LED', color: 'red' }, { id: 'S1', type: 'button' }, { id: 'R1', type: 'resistor', value: '470' }, { id: 'D2', part: 'LED', color: 'green' }],
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 9, positive: 'T+', negative: 'T-' }],
+    nets: [['T+', 'D1.anode', 'S1.1'], ['D1.cathode', 'T-'], ['S1.3', 'R1.1'], ['R1.2', 'D2.anode'], ['D2.cathode', 'T-']],
+  };
+  const r = autoLayout(spec);
+  assert.equal(r.status, 'warnings');
+  assert.equal(r.review.hazards.length, 1);
+  assert.equal(r.review.hazards[0].params.part, 'D1');
+  assert.equal(r.review.hazards[0].when, undefined);
+  assert.doesNotMatch(formatLayout(r, 'en', { t, formatIssue }), /with S1 pressed/);
+});
+
+test('the states are capped: past the cap the review says how many were checked, never silence', () => {
+  const r = autoLayout(expandRecipe('npn-switch', { R2: '47', V1: 12 }).spec);
+  const compiled = compile(r.circuit);
+  const engine = createEngine(compiled.program);
+  const states = controlStates(compiled.program, engine);
+  assert.deepEqual(states, [{ part: 'S1', field: 'pressed', value: true, rest: false }]);
+  // With room for no state, the hazard pressed is not found, and the count says so.
+  assert.deepEqual(engineHazards(engine, states, 0), { hazards: [], states: { checked: 0, total: 1 } });
+  assert.ok(STATES_MAX >= 16);
+  const capped = { hazards: [], hazardStates: { checked: STATES_MAX, total: STATES_MAX + 6 } };
+  assert.match(formatHazards(capped, 'en', formatIssue, t).join('\n'), new RegExp(`^Control states checked for damage: ${STATES_MAX} of ${STATES_MAX + 6} \\(one control at a time`));
+  assert.match(formatHazards(capped, 'es', formatIssue, t).join('\n'), new RegExp(`^Estados de los controles revisados por daño: ${STATES_MAX} de ${STATES_MAX + 6}`));
+  // Every state checked: no line.
+  assert.deepEqual(formatHazards({ hazards: [], hazardStates: { checked: 1, total: 1 } }, 'en', formatIssue, t), []);
 });
 
 test('cli: layout and review exit 0 with the warnings status, CHANGES is still 2', () => {

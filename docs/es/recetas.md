@@ -125,7 +125,8 @@ Resuelto: R2 = 68 kΩ (E24; sin cambio: R1 = 1 kΩ, C1 = 10 µF) para U1 a 1 Hz:
 - **Qué valor.** Resistencias en E24, condensadores en E6, dentro de las décadas que declara la meta
   o el tipo (resistencias de 10 Ω a 1 MΩ; la R2 del 555 de 1 kΩ a 1 MΩ y C1 de 1 µF a 100 µF). El
   que da el resultado simulado más cercano a la meta (error relativo); entre resultados igual de
-  cercanos (a menos de un punto porcentual), uno que no fuerce ningún componente. Una meta que solo se
+  cercanos (a menos de un punto porcentual), uno que no fuerce ningún componente (la misma revisión de
+  riesgos: en reposo y con cada control movido solo). Una meta que solo se
   cumple forzando un componente se obedece: el circuito se arma y la revisión de riesgos lo termina en
   `STATUS: WARNINGS` diciendo qué se quema. Una meta que ningún valor estándar alcanza recibe el más
   cercano dentro del rango, y la línea dice `fuera de alcance`.

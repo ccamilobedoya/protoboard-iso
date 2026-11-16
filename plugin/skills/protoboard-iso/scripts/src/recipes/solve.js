@@ -9,11 +9,13 @@
 // by it first and only its best candidates are measured. Knobs are moved in their declared order:
 // the first alone, and the next one too only when the first cannot reach the goal in its range.
 // The value chosen is the one whose result is nearest to the goal; between results equally near
-// (TIE), one that overstresses nothing. A goal that overstresses a part is obeyed (the hazard
-// review says so); a goal no standard value reaches gets the nearest one, marked out of reach.
+// (TIE), one that overstresses nothing: the hazard review's own check (sim/index.js checkHazards: at
+// rest and with each control operated), not only the goal's state. A goal that overstresses a part
+// is obeyed (the hazard review says so); a goal no standard value reaches gets the nearest one,
+// marked out of reach.
 
 import { parseValue, standardValues, valueText } from '../core/units.js';
-import { compile, createEngine } from '../sim/index.js';
+import { compile, createEngine, checkHazards, controlStates, engineHazards } from '../sim/index.js';
 import { periodOf } from '../sim/cycle.js';
 import { ESTIMATES } from './estimates.js';
 import { QUANTITIES } from './goals.js';
@@ -56,21 +58,26 @@ function engineFor(circuit, values, goal, h) {
   return { e, program: compiled.program };
 }
 
-const overstressed = (e, reading) => Object.values(e.stresses(reading)).some((list) => list.some((s) => s.ratio > 1));
+// Whether the circuit with these values would damage a part, as the review says it.
+const damages = (circuit, values) => checkHazards(withValues(circuit, values)).hazards.length > 0;
 const readingOf = (reading, goal) => Math.abs(reading?.parts[goal.id]?.[goal.reading] ?? NaN);
 
 // Every value of a one-knob DC goal, simulated: [{ value, result, hazard }] in the series' order.
+// The hazard check has an engine of its own (never started: each state is its own DC point).
 function sweep(circuit, goal, knob) {
   const start = engineFor(circuit, {}, goal);
   if (!start) return null;
   const { e } = start;
+  const check = createEngine(compile(circuit).program);
+  const states = controlStates(check.program(), check);
   const out = [];
   for (const value of knob.list) {
     // A resistor is changed in place; anything else is compiled again with its new value.
-    const run = knob.type === 'resistor' && e.set(knob.id, 'resistance', value) ? start : engineFor(circuit, { [knob.id]: value }, goal);
+    const inPlace = knob.type === 'resistor' && e.set(knob.id, 'resistance', value);
+    const run = inPlace ? start : engineFor(circuit, { [knob.id]: value }, goal);
     if (!run) continue;
-    const reading = run.e.read();
-    out.push({ value, result: readingOf(reading, goal), hazard: overstressed(run.e, reading) });
+    const hazard = inPlace && check.set(knob.id, 'resistance', value) ? engineHazards(check, states).hazards.length > 0 : damages(circuit, { [knob.id]: value });
+    out.push({ value, result: readingOf(run.e.read(), goal), hazard });
   }
   return out.filter((c) => Number.isFinite(c.result));
 }
@@ -93,7 +100,7 @@ function measureCycle(circuit, goal, values, expected) {
   const run = engineFor(circuit, values, goal, h);
   if (!run) return null;
   const period = periodOf(run.e, goal.of, h, PERIODS_MAX * STEPS_PER_PERIOD);
-  return period > 0 ? { result: 1 / period, hazard: overstressed(run.e, run.e.read()) } : null;
+  return period > 0 ? { result: 1 / period, hazard: damages(circuit, values) } : null;
 }
 
 // Every combination of the moving knobs' values (the others at their current value).

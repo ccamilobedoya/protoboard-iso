@@ -124,5 +124,6 @@ No wiring list in prose unless the user asks how it is connected.
 
 Checks, operations and drawings: [references/operations.md](references/operations.md). The board,
 languages, circuit files and every command: [references/board-and-cli.md](references/board-and-cli.md).
-The kit checks the resting point only (not the peaks of a PWM or a 555), and it is a teaching
+The kit checks the DC point at rest and with each control moved alone (not combinations, nor the
+peaks of a PWM or a 555), and it is a teaching
 model, not a datasheet: say so when it comes up.

@@ -168,9 +168,25 @@ entran por la pata. El transitorio trae `times` y las mismas magnitudes como lis
 `review` corre este mismo análisis en DC y lista como **peligro** (`hazards`) cada esfuerzo que pasa
 su límite (los códigos que nombran un componente y un máximo: `SIM_OVER_CURRENT`, `SIM_OVER_POWER`,
 `SIM_REVERSE_VOLTAGE`, `SIM_IC_SUPPLY`, …; no los de la fuente, nodos flotantes ni notas): el veredicto
-pasa a APROBADO CON AVISOS, sin bloquear, y `layout` termina en `STATUS: WARNINGS`. Lee solo el punto en
-DC, así que un pico que muestra el transitorio (un pin PWM, la salida de un 555, una onda del generador)
-no lo encuentra.
+pasa a APROBADO CON AVISOS, sin bloquear, y `layout` termina en `STATUS: WARNINGS`. Lee el punto en DC
+en reposo y otra vez con cada control que el estudiante mueve con la mano, uno a la vez y los demás en
+reposo: un pulsador (o el de un codificador rotatorio) oprimido, un interruptor en su otra posición (uno
+basculante, un botón con enclavamiento, uno deslizante, uno de inclinación inclinado), un potenciómetro
+o un trimmer en cada extremo de su recorrido. Un peligro que solo aparece en uno de esos estados dice en
+cuál (`… más que su máximo de 30 mA, con S1 oprimido.`; en JSON `hazards[].when: { part, field, value }`);
+uno que ya está en reposo se lista una sola vez, en reposo.
+
+Lo que no encuentra:
+
+- **Combinaciones** de controles (dos pulsadores oprimidos a la vez, un interruptor movido y un
+  potenciómetro en un extremo): solo se mueve un control a la vez.
+- **Más de 24 estados**: se resuelven en el orden de los componentes, y pasado ese tope la revisión dice
+  cuántos revisó (`Estados de los controles revisados por daño: 24 de 30 …`; JSON `hazardStates:
+  { checked, total }`).
+- **Sensores que siguen el ambiente** (luz, temperatura, movimiento, toque, el trimmer de un módulo…), el
+  programa de una placa, otros deslizadores (el de una resistencia, la carga de un motor) y los controles
+  de las fuentes: se leen como el circuito los deja.
+- **Picos** que muestra un transitorio (un pin PWM, la salida de un 555, una onda del generador).
 
 ## Modelos
 

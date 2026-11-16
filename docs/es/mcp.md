@@ -140,7 +140,7 @@ para abrirla.
 | `apply_ops` | lote atómico; primero `dry_run`, luego `expect_revision`, `author`, `note` | sí |
 | `try_ops` | el mismo lote, solo en seco: qué arreglaría y qué introduciría; para los roles de solo lectura (el revisor) | no |
 | `undo` | deshace el último cambio (revisión nueva) | sí |
-| `review` | APROBADO, APROBADO CON AVISOS (`hazards`: componentes que la simulación en DC pasa de un máximo; no bloquean) o CAMBIOS a partir de mediciones, perfil `lesson` o `draft`; cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `explain: true` agrega las reglas del perfil; un circuito con `spec` también tiene sus redes revisadas | no |
+| `review` | APROBADO, APROBADO CON AVISOS (`hazards`: componentes que la simulación en DC pasa de un máximo, en reposo o con un control accionado; no bloquean) o CAMBIOS a partir de mediciones, perfil `lesson` o `draft`; cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `explain: true` agrega las reglas del perfil; un circuito con `spec` también tiene sus redes revisadas | no |
 | `history` | revisiones, autores, notas, operaciones | no |
 | `render` | escribe el SVG; con `png_width` devuelve también una imagen PNG; con `page: true` reescribe la página para embeber ([embeber.md](embeber.md)); con `sim: true` dibuja los resultados de la simulación; `focus: [ids]` atenúa lo demás; `flow: true` la capa de corriente | solo salidas |
 | `simulate` | voltajes de los grupos y corrientes de los componentes, un modelo ([simulacion.md](simulacion.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` agrega el enlace que abre el circuito en Falstad ([falstad.md](falstad.md)) | no |

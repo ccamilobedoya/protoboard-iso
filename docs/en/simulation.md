@@ -162,8 +162,24 @@ answer has `times` and the same quantities as arrays.
 `review` runs this same DC analysis and lists every stress past its limit (the codes that name a
 part and a maximum: `SIM_OVER_CURRENT`, `SIM_OVER_POWER`, `SIM_REVERSE_VOLTAGE`, `SIM_IC_SUPPLY`, …;
 not the supply, floating or note codes) as a **hazard**: the verdict becomes APPROVED WITH WARNINGS,
-never blocking, and `layout` ends in `STATUS: WARNINGS`. It reads the DC point only, so a peak that a
-transient shows (a PWM pin, a 555's output, a generator's wave) is not found by it.
+never blocking, and `layout` ends in `STATUS: WARNINGS`. It reads the DC point at rest and again with
+each control a learner moves by hand, one at a time with the others at rest: a push button (or a
+rotary encoder's) pressed, a switch in its other position (a rocker, a latching button, a slide
+switch, a tilt switch tipped), a potentiometer or trimmer at each end of its travel. A hazard found
+only in one of those states says which (`… more than its maximum 30 mA, with S1 pressed.`; in JSON
+`hazards[].when: { part, field, value }`); one that is there at rest is listed once, at rest.
+
+What it does not find:
+
+- **Combinations** of controls (two buttons pressed together, a switch moved and a potentiometer at
+  an end): only one control is moved at a time.
+- **More than 24 states**: they are solved in the order of the parts, and past that the review says
+  how many were (`Control states checked for damage: 24 of 30 …`; JSON `hazardStates: { checked,
+  total }`).
+- **Sensors that follow the environment** (light, temperature, motion, touch, a module's trimmer…),
+  a board's program, other sliders (a resistor's, a motor's load) and the supplies' controls: they are
+  read as the circuit leaves them.
+- **Peaks** that a transient shows (a PWM pin, a 555's output, a generator's wave).
 
 ## Models
 

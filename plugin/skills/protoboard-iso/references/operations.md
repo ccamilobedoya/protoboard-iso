@@ -35,8 +35,11 @@ kit review <folder>                          until APPROVED · kit undo <folder>
   warnings). Each blocking item names its parts and views. A circuit made by `layout` also gets its
   nets checked against what was asked. It also runs the simulator's DC point (the one `simulate`
   prints) and lists as hazards the parts past a maximum (⚠): they do not block, because burning a
-  part can be the lesson, but the verdict is never a plain APPROVED over them. Transient peaks (PWM,
-  a 555, a generator) are not found by it.
+  part can be the lesson, but the verdict is never a plain APPROVED over them. It reads that point at
+  rest and with each control moved alone (a button pressed, a switch in its other position, a
+  potentiometer at each end), and a hazard found only so says when (`with S1 pressed`). Not found:
+  combinations of controls, sensors that follow the environment, a board's program, and transient
+  peaks (PWM, a 555, a generator).
 - **`kit netlist <folder>`**: every net with its pins, one call to compare with what the circuit
   must do.
 - **`kit simulate <folder> [--transient stop,step]`** (a model, not a measurement): node voltages

@@ -122,7 +122,8 @@ Solved: R2 = 68 kΩ (E24; unchanged: R1 = 1 kΩ, C1 = 10 µF) for U1 at 1 Hz: 1.
 - **Which value.** Resistors in E24, capacitors in E6, within the decades the goal or the type
   declares (resistors 10 Ω to 1 MΩ; the 555's R2 1 kΩ to 1 MΩ and C1 1 µF to 100 µF). The one whose
   simulated result is nearest to the goal (relative error); between results equally near (within one
-  percentage point), one that overstresses no part. A goal that can only be met by overstressing a
+  percentage point), one that overstresses no part (the hazard review's own check: at rest and with
+  each control moved alone). A goal that can only be met by overstressing a
   part is obeyed: the circuit is built and the hazard review ends it in `STATUS: WARNINGS` saying what
   burns. A goal no standard value reaches gets the nearest one in range, and the line says
   `out of reach`.

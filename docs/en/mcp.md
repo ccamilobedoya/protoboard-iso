@@ -137,7 +137,7 @@ Each circuit is a folder under the root; the page of each is `out/<name>.html` i
 | `apply_ops` | atomic batch; `dry_run` first, then `expect_revision`, `author`, `note` | yes |
 | `try_ops` | the same batch as a dry run only: what it would fix and introduce; for read-only roles (the reviewer) | no |
 | `undo` | undo the latest change (new revision) | yes |
-| `review` | APPROVED, APPROVED WITH WARNINGS (`hazards`: parts the DC simulation takes past a maximum; they do not block) or CHANGES from measurements, profile `lesson` or `draft`; each blocking item names its `parts` and `views`; `explain: true` adds the profile's rules; a circuit with `spec` also gets its nets checked | no |
+| `review` | APPROVED, APPROVED WITH WARNINGS (`hazards`: parts the DC simulation takes past a maximum, at rest or with one control operated; they do not block) or CHANGES from measurements, profile `lesson` or `draft`; each blocking item names its `parts` and `views`; `explain: true` adds the profile's rules; a circuit with `spec` also gets its nets checked | no |
 | `history` | revisions, authors, notes, operations | no |
 | `render` | writes the SVG; `png_width` also returns a PNG image; `page: true` rewrites the embeddable page ([embedding.md](embedding.md)); `sim: true` draws the simulation results; `focus: [ids]` dims the rest; `flow: true` the current layer | outputs only |
 | `simulate` | node voltages and part currents, a model ([simulation.md](simulation.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` adds the link that opens the circuit in Falstad ([falstad.md](falstad.md)) | no |

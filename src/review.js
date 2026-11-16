@@ -6,16 +6,18 @@
 //   lesson  for teaching layouts: nothing hidden, no label trouble, parts not cramped
 //   draft   only errors and warnings block
 //
-// review(circuit, { profile, views, explain }) → { verdict: 'approved' | 'approved-with-warnings' | 'changes', blocking, hazards, advisory, summary }
+// review(circuit, { profile, views, explain }) → { verdict: 'approved' | 'approved-with-warnings' | 'changes', blocking, hazards, hazardStates?, advisory, summary }
 // `hazards`: parts the simulator's DC point (the one `simulate` prints) takes past a maximum, as
-// wired. They never block (a learner may burn a part on purpose); they change the verdict from
+// wired, at rest or with one control operated (`when`: a button pressed, a switch moved, a
+// potentiometer at an end; sim/index.js checkHazards); `hazardStates`: { checked, total } of those
+// states, when the circuit has any (checked below total: the rest were not). They never block (a learner may burn a part on purpose); they change the verdict from
 // approved to approved-with-warnings, so nobody reads a plain APPROVED over a part that would burn.
 // Each blocking item names the parts it is about (`parts`) and the views it shows in (`views`), so
 // the fix is clear without another inspect; `explain` adds the profile's rules (`rules`).
 
 import { evaluate } from './diff.js';
 import { checkNets } from './nets.js';
-import { hazards as simulatedHazards } from './sim/index.js';
+import { checkHazards } from './sim/index.js';
 
 export const PROFILES = {
   lesson: {
@@ -104,7 +106,8 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
   }
 
   // Electrical hazards: the simulator's own "exceeded its maximum" findings, on any profile.
-  const hazards = simulatedHazards(circuit).map((h) => ({ ...h, parts: partsOf(h, ids) }));
+  const simulated = checkHazards(circuit);
+  const hazards = simulated.hazards.map((h) => ({ ...h, parts: partsOf(h, ids) }));
 
   for (const p of blocking) {
     p.parts = partsOf(p, ids);
@@ -118,6 +121,7 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
     verdict: blocking.length ? 'changes' : hazards.length ? 'approved-with-warnings' : 'approved',
     blocking,
     hazards,
+    ...(simulated.states.total && { hazardStates: simulated.states }),
     advisory,
     summary: { parts: circuit.parts?.length ?? 0, blocking: blocking.length, hazards: hazards.length, advisory: advisory.length },
   };
@@ -146,8 +150,11 @@ export function formatReview(r, lang, { t, formatIssue }) {
   return lines.join('\n');
 }
 
-// The hazards as lines (also layout's): what would be damaged, then what to do about it.
+// The hazards as lines (also layout's): what would be damaged, then what to do about it; and, when
+// the circuit had more control states than were solved, how many were.
 export function formatHazards(r, lang, formatIssue, t) {
-  if (!r.hazards?.length) return [];
-  return [t(lang, 'review.hazards'), ...r.hazards.map((h) => `  ⚠ ${formatIssue(h, lang)}`), t(lang, 'review.hazardsAdvice')];
+  const lines = r.hazards?.length ? [t(lang, 'review.hazards'), ...r.hazards.map((h) => `  ⚠ ${formatIssue(h, lang)}`), t(lang, 'review.hazardsAdvice')] : [];
+  const states = r.hazardStates;
+  if (states && states.checked < states.total) lines.push(t(lang, 'review.hazardsUnchecked', states));
+  return lines;
 }
