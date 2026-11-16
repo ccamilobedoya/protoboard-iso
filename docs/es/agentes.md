@@ -17,8 +17,12 @@ Usan las herramientas MCP ([mcp.md](mcp.md)) y, si no están, la línea de coman
 
 Hay un tercer resultado entre los dos: un circuito de dibujo correcto que dañaría un componente tal como
 está conectado (un LED directo a 9 V) queda **APROBADO CON AVISOS** (`hazards`, del punto en DC del
-simulador; sin umbrales nuevos). No bloquea ni es una ronda de arreglos: el agente lo reporta de forma
-visible y la conversación principal se lo dice al usuario, porque quemar un componente puede ser la lección.
+simulador en reposo, con cada control accionado y con cada salida del programa de una placa en alto; sin
+umbrales nuevos). No bloquea ni es una ronda de arreglos: el agente lo reporta de forma visible, con el
+arreglo calculado por el kit (`Para arreglarlo: …`, o «El kit no tiene un arreglo calculado para
+esto.»), y la conversación principal se lo dice al usuario, porque quemar un componente puede ser la
+lección. Un arreglo pedido es esa línea como un solo cambio; cualquier otra idea se ensaya antes con el
+`dry_run` de `layout` (sin guardar nada) y se aplica solo si el ensayo termina en `DONE`.
 
 ```bash
 node bin/protoboard-iso.js review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]

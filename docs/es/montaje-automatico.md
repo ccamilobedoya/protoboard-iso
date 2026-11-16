@@ -13,8 +13,8 @@ Puntos de entrada; todos llaman a `autoLayout(spec, { profile, checkOnly })`:
 
 | Desde | Llamada |
 |---|---|
-| MCP | herramienta `layout` (`target`, `recipe` y `values`, o `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`) |
-| Consola | `node bin/protoboard-iso.js layout <objetivo nuevo> <spec.json \| -> [--check] [--json]`, o `--recipe <nombre> [--values '<json>']` (sale con 0 si queda listo, 2 si hay cambios) |
+| MCP | herramienta `layout` (`target`, `recipe` y `values`, o `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`, `dry_run`) |
+| Consola | `node bin/protoboard-iso.js layout <objetivo nuevo> <spec.json \| -> [--check] [--dry-run] [--json]`, o `--recipe <nombre> [--values '<json>']` (sale con 0 si queda listo, 2 si hay cambios) |
 | Código | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'`; una receta pasa antes a especificación con `resolveRecipe` (`src/recipes/index.js`) |
 | Banco de pruebas | `npm run layout-bench [-- spec.json …]` (corre `examples/layout/*.json` y todas las recetas) |
 
@@ -337,6 +337,20 @@ valores, descripciones y retoques finos siguen siendo operaciones (`apply_ops`).
 check, review, tries, solved?, advice?, readings?, programs?, changeable?, ms }`; `formatLayout` la escribe para la
 consola y la herramienta MCP (textos `layout.*` en `src/i18n/`).
 
+Después del veredicto de la revisión y sus peligros (⚠), las líneas de peligro de la propia revisión:
+el arreglo calculado por el kit (`Para arreglarlo: …`, o «El kit no tiene un arreglo calculado para
+esto.»; JSON `review.fix`, `review.noFix`), qué hacer con ellos y, cuando el circuito quedó armado, la
+línea `Revisado`: lo que la revisión de peligros cubrió en este circuito y lo que no
+([simulacion.md](simulacion.md#el-arreglo); JSON `review.checked`):
+
+```text
+Tal como está conectado, esto dañaría:
+  ⚠ aviso: Por U1.D10 pasan 88,3 mA, más que su máximo de 40 mA, con D10 en alto.
+Para arreglarlo: una resistencia de 200 Ω en serie con BZ1 deja el pin D10 de U1 en 19,4 mA (máximo 40 mA).
+Déjalo así si mostrar la falla es la idea. Díselo al usuario antes de cambiar nada.
+Revisado: en reposo, 3 salidas del programa. No revisado: picos al conmutar, combinaciones de salidas del programa.
+```
+
 Cuando el circuito quedó armado (`DONE` o `WARNINGS`, un circuito nuevo o `layout` otra vez sobre
 uno), la respuesta dice además lo que necesita una respuesta al usuario, para que baste una llamada y
 cada número y opción que repita un asistente salga del kit (`src/layout-answer.js`). Después de las
@@ -387,13 +401,22 @@ Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitado
   texto. Los mismos límites que imprime `catalog <receta>`. Sus metas van al final (`{ id, goal, set, example }`), cada una con
   los `values` que la piden.
 
+**Un ensayo** (`--dry-run`; en la herramienta MCP `dry_run: true`, la palabra que usa `apply_ops`):
+todo lo anterior, sobre el circuito como quedaría después de la llamada (un objetivo nuevo, o uno que
+ya existe montado otra vez), con la misma respuesta y el mismo `STATUS`, sin escribir nada: ni archivo
+del circuito, ni historial, ni página, ni revisión, ni carpeta de salidas; en un anfitrión MCP con el
+visor no se muestra tablero (como `try_ops`). Su última línea antes de `STATUS:` lo dice: `Ensayo: no
+se guardó nada.` (`Trial: nothing was saved.`); la línea de la página no va. Así se ensaya una idea que
+el kit no calculó (un arreglo propio de un asistente) antes de que llegue al circuito. `check_only` /
+`--check` sigue revisando solo la especificación.
+
 `status` es el veredicto único de toda la respuesta, y el texto termina con él en su propia línea:
 quien lea solo la última línea (sobre todo un modelo pequeño) sabe qué hacer.
 
 | `STATUS:` | Significa | Sigue |
 |---|---|---|
 | `DONE` | están todas las redes, nada quedó sin ubicar y la revisión aprueba | reportar |
-| `WARNINGS` | armado y con las redes bien, pero un componente se dañaría tal como está conectado (⚠): la revisión es aprobada con avisos | decirle primero al usuario cuál componente y por qué se quema; dejarlo solo si esa es la idea, si no ofrecer el arreglo |
+| `WARNINGS` | armado y con las redes bien, pero un componente se dañaría tal como está conectado (⚠): la revisión es aprobada con avisos | decirle primero al usuario cuál componente y por qué se quema; dejarlo solo si esa es la idea, si no ofrecer el arreglo del kit (`Para arreglarlo`), o si no hay, ensayar antes una idea con `--dry-run` |
 | `CHANGES` | se creó, pero una red, una ubicación o la revisión dejaron algo (✖) | arreglar solo eso con `suggest` y `apply_ops`, luego `review` |
 | `FIX_SPEC` | no se creó nada: la especificación tiene errores | arreglar cada ✖ y volver a llamar |
 | `SPEC_OK` | `check_only`: la especificación es coherente | volver a llamar sin él |

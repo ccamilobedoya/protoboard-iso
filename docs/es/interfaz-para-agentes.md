@@ -148,7 +148,7 @@ import { applyToTarget, undoTarget, readHistory } from 'protoboard-iso/workspace
    componente nuevo. Luego proponer un lote de operaciones; `apply --dry-run`.
 3. Si la diferencia no introduce nada indeseado, aplicar con `--expect-revision`, un autor y
    una nota que diga por qué.
-4. `review <objetivo>` hasta que diga APROBADO (perfiles en [agentes.md](agentes.md)). APROBADO CON AVISOS significa que el dibujo está bien pero un componente se dañaría tal como está conectado (`hazards`): díselo al usuario y déjalo solo si esa es la idea.
+4. `review <objetivo>` hasta que diga APROBADO (perfiles en [agentes.md](agentes.md)). APROBADO CON AVISOS significa que el dibujo está bien pero un componente se dañaría tal como está conectado (`hazards`): díselo al usuario y déjalo solo si esa es la idea. Si no, su línea `Para arreglarlo` es el arreglo, un cambio; si no la hay («El kit no tiene un arreglo calculado para esto.»), una idea propia se ensaya antes con `layout <objetivo> … --dry-run` (MCP `dry_run: true`: la respuesta entera, sin guardar nada) y se aplica solo si el ensayo termina en `DONE`.
 5. Nunca editar `circuit.json` a mano mientras otros trabajan en él, ni editar las salidas.
 
 ## Agentes

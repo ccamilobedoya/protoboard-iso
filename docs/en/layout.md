@@ -12,8 +12,8 @@ Entry points, all calling `autoLayout(spec, { profile, checkOnly })`:
 
 | From | Call |
 |---|---|
-| MCP | tool `layout` (`target`, `recipe` and `values`, or `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`) |
-| CLI | `node bin/protoboard-iso.js layout <new target> <spec.json \| -> [--check] [--json]`, or `--recipe <name> [--values '<json>']` (exit 0 done, 2 changes) |
+| MCP | tool `layout` (`target`, `recipe` and `values`, or `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`, `dry_run`) |
+| CLI | `node bin/protoboard-iso.js layout <new target> <spec.json \| -> [--check] [--dry-run] [--json]`, or `--recipe <name> [--values '<json>']` (exit 0 done, 2 changes) |
 | Code | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'`; a recipe is turned into a spec first by `resolveRecipe` (`src/recipes/index.js`) |
 | Bench | `npm run layout-bench [-- spec.json …]` (runs `examples/layout/*.json` and every recipe) |
 
@@ -308,6 +308,20 @@ descriptions and fine touches stay operations (`apply_ops`).
 check, review, tries, solved?, advice?, readings?, programs?, changeable?, ms }`; `formatLayout` writes it for the CLI
 and the MCP tool (texts `layout.*` in `src/i18n/`).
 
+After the review's verdict and its hazards (⚠), the hazard lines of the review itself: the kit's
+computed fix of the hazards (`To fix it: …`, or "The kit has no computed fix for this."; JSON
+`review.fix`, `review.noFix`), what to do about them, and, when the circuit was built, the
+`Checked` line: what the hazard check covered for this circuit and what it did not
+([simulation.md](simulation.md#the-fix); JSON `review.checked`):
+
+```text
+As wired, this would damage:
+  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA, with D10 high.
+To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.4 mA (maximum 40 mA).
+Keep it if showing the failure is the point. Say so to the user before changing anything.
+Checked: at rest, 3 program outputs. Not checked: peaks while switching, combinations of program outputs.
+```
+
 When the circuit was built (`DONE` or `WARNINGS`, a new circuit or `layout` again on one), the answer
 also says what a reply needs, so one call is enough and every number and option an assistant repeats
 comes from the kit (`src/layout-answer.js`). After the review's lines and before the page and
@@ -355,13 +369,21 @@ Can change (layout with the recipe and values): R1 = 330 (current-limiting resis
   as `catalog <recipe>` prints. Its goals come last (`{ id, goal, set, example }`), each with the
   `values` that asks for it.
 
+**A trial** (`--dry-run`; the MCP tool's `dry_run: true`, the word `apply_ops` uses): everything
+above, on the circuit as it would be after the call (a new target, or an existing one laid out
+again), with the same answer and `STATUS`, and nothing written: no circuit file, no history, no page,
+no revision, no outputs folder; in an MCP host with the viewer no board is shown (as `try_ops`). Its
+last line before `STATUS:` says so: `Trial: nothing was saved.` (`Ensayo: no se guardó nada.`); the
+page line is left out. It is how an idea the kit did not compute (a fix of an assistant's own) is
+tried before it reaches the circuit. `check_only` / `--check` still checks only the spec.
+
 `status` is the one verdict of the whole answer, and the text ends with it in a line of its own, so
 a caller (above all a small model) that reads only the last line knows what to do:
 
 | `STATUS:` | Means | Next |
 |---|---|---|
 | `DONE` | every net is there, nothing failed to place, the review approves | report |
-| `WARNINGS` | built and the nets are right, but a part would be damaged as wired (⚠): the review is approved with warnings | tell the user first which part and why it burns; keep it only if that is the point, else offer the fix |
+| `WARNINGS` | built and the nets are right, but a part would be damaged as wired (⚠): the review is approved with warnings | tell the user first which part and why it burns; keep it only if that is the point, else offer the kit's fix (`To fix it`), or with none try an idea with `--dry-run` first |
 | `CHANGES` | created, but a net, a placement or the review left something (✖) | fix only those, with `suggest` and `apply_ops`, then `review` |
 | `FIX_SPEC` | nothing created: the spec has errors | fix every ✖ and call again |
 | `SPEC_OK` | `check_only`: the spec is consistent | call again without it |

@@ -34,8 +34,9 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
   must be laid out again with the new nets (the layout agent's job, not yours).
 - With a source, `simulate` once: a short or a floating group is blocking even when `review`
   approves. A part over its limit is a hazard (`review` lists it, verdict APPROVED WITH WARNINGS):
-  it does not block and is not a fix round; report it prominently, naming part, value and limit,
-  with `Verdict: WARNINGS`. Otherwise report warnings only, **never values** (a value may be waiting
+  it does not block and is not a fix round; report it prominently, naming part, value, limit and
+  state, with the kit's `To fix it` line as the proposed fix (or that it has none), and
+  `Verdict: WARNINGS`. Otherwise report warnings only, **never values** (a value may be waiting
   for a learner's prediction).
 - Keep advisory notes short: at most five, the most useful first.
 

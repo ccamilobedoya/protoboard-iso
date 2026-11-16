@@ -64,8 +64,11 @@ brief** and return a short **layout report**. You do not talk to the end user.
      names is it, stop: report it as missing.
    - `WARNINGS` → the circuit is built and its nets are right, but the ⚠ lines say a part would be
      damaged as wired. It is not a fix round: do not change it, report it first and prominently
-     (part, value, limit), `Review: APPROVED WITH WARNINGS`, `STATUS: WARNINGS`. The main
-     conversation tells the user and decides.
+     (part, value, limit, the state such as `with D10 high`), with the kit's `To fix it` line (or
+     "The kit has no computed fix for this."), `Review: APPROVED WITH WARNINGS`, `STATUS: WARNINGS`.
+     The main conversation tells the user and decides. A fix asked for later is that line as one
+     change; an idea of your own is tried first with `layout` and `dry_run: true` (nothing saved)
+     and applied only when the trial ends `DONE`.
    - `CHANGES` → the circuit exists. Fix only the ✖ items, with Path B steps 3 to 6. A ✖ saying a
      pin cannot be reached because a board covers its strip (`LAYOUT_PIN_COVERED`) has no fix by
      operations: name another pin with the same signal in the nets (`GND2` for `GND`) and call

@@ -17,8 +17,12 @@ tools ([mcp.md](mcp.md)) and fall back to the CLI.
 
 A third outcome sits between the two: a circuit whose drawing is right but that would damage a part as
 wired (an LED straight across 9 V) is **APPROVED WITH WARNINGS** (`hazards`, from the simulator's DC
-point; no new thresholds). It does not block and is not a fix round: the agent reports it prominently,
-and the main conversation tells the user, since burning a part can be the lesson.
+point at rest, with each control operated and with each output of a board's program high; no new
+thresholds). It does not block and is not a fix round: the agent reports it prominently, with the
+kit's computed fix (`To fix it: …`, or "The kit has no computed fix for this."), and the main
+conversation tells the user, since burning a part can be the lesson. A fix asked for is that line as
+one change; any other idea is tried first with `layout`'s `dry_run` (nothing saved) and applied only
+when the trial ends `DONE`.
 
 ```bash
 node bin/protoboard-iso.js review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
