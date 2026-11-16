@@ -12,7 +12,7 @@
 // advisory: a part of a goal above its rated value as built, and the value that would bring it
 // under; information only, nothing is changed).
 
-import { simulate } from './sim/index.js';
+import { simulate, compile } from './sim/index.js';
 import { readBeside, programFile, CIRCUIT_FOLDER } from './beside.js';
 import { LIMITS } from './limits.js';
 import { RECIPES, recipeDefaults, valueLimits } from './recipes/index.js';
@@ -37,10 +37,43 @@ const runsProgram = (p) => p?.program != null && p.program !== '';
 // results (page.simulation or page.results false: a value a learner must predict first).
 const hidden = (circuit) => circuit.page?.simulation === false || circuit.page?.results === false;
 
+// A timer wired as an astable: the circuit never rests, so one instant of it is not "at rest". Read
+// from the compiled circuit's own connections, no simulation: a timer (kind TMR) whose TRIG and THR
+// are on one net with a capacitor, and whose DIS or OUT is on that net or one resistor away from it
+// (the capacitor then charges and discharges between the 1/3 and 2/3 thresholds by itself: the
+// datasheet's astable, with DIS through R2 or OUT through one resistor). A timer wired otherwise (a
+// monostable, a latch, a threshold detector) keeps its readings.
+export function oscillatesBy(program) {
+  const parent = new Map();
+  const find = (x) => {
+    if (!parent.has(x)) parent.set(x, x);
+    if (parent.get(x) === x) return x;
+    const root = find(parent.get(x));
+    parent.set(x, root);
+    return root;
+  };
+  const devices = program.devices ?? [];
+  for (const d of devices) if (d.kind === 'W' && d.pins?.length === 2) parent.set(find(d.pins[0].node), find(d.pins[1].node));
+  const net = (d, name) => {
+    const pin = d.pins.find((p) => p.name === name);
+    return pin ? find(pin.node) : null;
+  };
+  const touches = (type, node) => devices.filter((d) => d.type === type && d.pins.some((p) => find(p.node) === node));
+  return devices.some((d) => {
+    if (d.kind !== 'TMR') return false;
+    const timing = net(d, 'THR');
+    if (timing == null || timing !== net(d, 'TRIG') || !touches('capacitor', timing).length) return false;
+    const reaches = (node) => node === timing || touches('resistor', timing).some((r) => r.pins.some((p) => find(p.node) === node));
+    return reaches(net(d, 'DIS')) || reaches(net(d, 'OUT'));
+  });
+}
+
 function readingsOf(circuit) {
   if (hidden(circuit)) return null;
   if ((circuit.parts ?? []).some(runsProgram)) return null;
   if ((circuit.supplies ?? []).some((s) => s?.kind === 'generator')) return null;
+  const compiled = compile(circuit);
+  if (!compiled.fatal && oscillatesBy(compiled.program)) return null;
   const r = simulate(circuit);
   if (!r.ok) return null;
   const sources = Object.entries(r.supplies ?? {}).map(([id, s]) => ({ id, kind: s.kind === 'battery' ? 'battery' : 'supply', voltage: s.voltage, current: s.current }));

@@ -314,6 +314,42 @@ test('layout answer: a board prints its program and no readings; a generator giv
   assert.match(formatLayout(square, 'en', { t, formatIssue }), /G1 = 100 Hz \[0\.1…100000\]/);
 });
 
+test('layout answer: a timer wired as an astable has no readings (it never rests); one wired otherwise keeps them', async () => {
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  const astable = autoLayout(expandRecipe('555-astable').spec);
+  assert.equal(astable.status, 'done');
+  assert.equal(astable.readings, undefined, 'one instant of a circuit that never rests');
+  assert.equal(astable.advice, undefined);
+  for (const lang of ['en', 'es']) {
+    const text = formatLayout(autoLayout(expandRecipe('555-astable').spec, { lang }), lang, { t, formatIssue });
+    assert.doesNotMatch(text, /Readings|Lecturas/);
+    assert.match(text, /\n(Can change|Se puede cambiar) /, 'the rest of the answer stays');
+  }
+  // The same chip as a monostable (THR and DIS on the capacitor, TRIG held high): it settles, so the readings stay.
+  const mono = expandRecipe('555-astable').spec;
+  mono.parts = mono.parts.filter((p) => p.id !== 'R2');
+  mono.nets = [
+    ['T+', 'U1.VCC', 'U1.RESET', 'U1.TRIG', 'R1.1'],
+    ['R1.2', 'U1.DIS', 'U1.THR', 'C1.+'],
+    ['C1.-', 'T-'],
+    ['U1.CTRL', 'C2.1'],
+    ['C2.2', 'T-'],
+    ['U1.GND', 'T-'],
+    ['U1.OUT', 'R3.1'],
+    ['R3.2', 'D1.anode'],
+    ['D1.cathode', 'T-'],
+  ];
+  const settled = autoLayout(mono);
+  assert.equal(settled.status, 'done', JSON.stringify(settled.issues ?? settled.check));
+  assert.ok(settled.readings, 'a timer that settles keeps its readings line');
+  // Tied TRIG and THR on a divider, no capacitor: a threshold detector, not an oscillator.
+  const detector = expandRecipe('555-astable').spec;
+  detector.nets = detector.nets.map((n) => n.filter((x) => x !== 'C1.+' && x !== 'U1.DIS'));
+  detector.parts = detector.parts.filter((p) => p.id !== 'C1');
+  detector.nets = detector.nets.filter((n) => n.length > 1 && !n.includes('C1.-'));
+  assert.ok(autoLayout(detector).readings, 'no capacitor on the timing net: no oscillation');
+});
+
 test('layout answer: a spec of its own with a battery gives readings and no can-change line; no source gives none of the three', () => {
   const battery = autoLayout({ ...spec, supplies: [{ id: 'B1', kind: 'battery', voltage: 9, positive: 'T+', negative: 'T-' }] });
   assert.equal(battery.status, 'done');

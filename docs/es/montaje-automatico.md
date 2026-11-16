@@ -368,8 +368,11 @@ Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitado
   trabajo es ser accionados: los LEDs (corriente y brillo), luego zumbadores, motores, bobinas de
   relé y láseres. A lo sumo cuatro en el texto, y después cuántos más lista `simulate`. Se omiten
   cuando el circuito no tiene fuente, el punto en DC no se puede resolver, una tarjeta corre un
-  programa (el programa decide qué se enciende; un punto en reposo en el tiempo cero engañaría) o una
-  fuente es un generador (lo que importa es la señal, no su valor en reposo), y cuando la página oculta
+  programa (el programa decide qué se enciende; un punto en reposo en el tiempo cero engañaría), una
+  fuente es un generador (lo que importa es la señal, no su valor en reposo) o un temporizador está
+  armado como astable (nunca reposa: su TRIG y su THR comparten red con un condensador, y su DIS o su
+  OUT está en esa red o a una resistencia de ella, como en la receta `555-astable`; un temporizador
+  armado como monoestable o como detector conserva sus lecturas), y cuando la página oculta
   los resultados (`page.simulation` o `page.results` en false: un valor que el aprendiz debe
   predecir primero).
 - **Programa** (`programs: [{ part, text, truncated, file?, omitted? }]`): el sketch de cada tarjeta

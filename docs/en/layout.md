@@ -338,8 +338,11 @@ Can change (layout with the recipe and values): R1 = 330 (current-limiting resis
   supply, a battery, a board's USB), then the parts whose job is to be driven: LEDs (current and
   brightness), then buzzers, motors, relay coils and lasers. At most four parts in the text, then how
   many more `simulate` lists. Left out when the circuit has no source, the DC point cannot be solved,
-  a board runs a program (the program decides what is lit, a rest point at time zero would mislead)
-  or a supply is a generator (the signal is the point, not its rest value), and when the page hides the
+  a board runs a program (the program decides what is lit, a rest point at time zero would mislead),
+  a supply is a generator (the signal is the point, not its rest value) or a timer is wired as an
+  astable (it never rests: its TRIG and THR share a net with a capacitor, and its DIS or OUT is on that
+  net or one resistor from it, as in the `555-astable` recipe; a timer wired as a monostable or a
+  detector keeps its readings), and when the page hides the
   results (`page.simulation` or `page.results` false: a value a learner must predict first).
 - **Program** (`programs: [{ part, text, truncated, file?, omitted? }]`): each board's sketch as it
   is stored (the text, or the `.ino` file beside the circuit, read only inside its folder), each line
