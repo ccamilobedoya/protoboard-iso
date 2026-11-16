@@ -142,8 +142,10 @@ otro agrega componentes): [agentes](docs/es/agentes.md).
 extensión agrega el tablero en vivo dentro de la conversación, donde tocas un componente o mueves
 un deslizador. Es el servidor MCP en un solo archivo (`.mcpb`, un MCP Bundle) con todo lo que
 necesita: descarga `protoboard-iso-<versión>.mcpb` de las
-[versiones publicadas](https://github.com/ccamilobedoya/protoboard-iso/releases), haz doble clic y
-elige la carpeta para tus circuitos. Detalles: [Claude Desktop con un clic](docs/es/mcp.md#claude-desktop-con-un-clic).
+[versiones publicadas](https://github.com/ccamilobedoya/protoboard-iso/releases), haz doble clic,
+elige la carpeta para tus circuitos, enciende la extensión en sus ajustes (se instala apagada) y
+pide un circuito. El aviso de instalación sobre el acceso al computador es de la aplicación, con
+toda extensión local. Detalles: [Claude Desktop con un clic](docs/es/mcp.md#claude-desktop-con-un-clic).
 
 **Como librería**, en Node o en un navegador:
 

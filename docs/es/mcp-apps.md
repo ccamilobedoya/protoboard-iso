@@ -98,7 +98,10 @@ como pide la especificación. Algunos anfitriones muestran MCP Apps sin anunciar
 referencia del repositorio ext-apps no lo anuncia); para ellos, `PROTOBOARD_APPS=on` lo ofrece a todo
 cliente, `off` a ninguno, `auto` (por defecto) sigue el anuncio.
 
-Probado solo con el `basic-host` de referencia. Claude Desktop y claude.ai no están probados.
+Probado con el `basic-host` de referencia y en Claude Desktop en Windows con la extensión de
+escritorio ([mcp.md](mcp.md#claude-desktop-con-un-clic)): el Node.js que trae ejecutó el servidor, el
+tablero en vivo se mostró dentro de la conversación y tocar un componente llegó al asistente. La
+extensión llega apagada y hay que encenderla a mano. claude.ai no está probado.
 
 ## Cómo está hecho
 

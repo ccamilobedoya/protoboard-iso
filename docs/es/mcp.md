@@ -73,12 +73,22 @@ tablero en vivo del circuito aparece dentro de la conversación ([mcp-apps.md](m
 3. Elige la **carpeta de circuitos**: donde se guardan tus circuitos; el kit solo lee y escribe
    ahí. Por defecto es una carpeta `Protoboard` en tus documentos; si no existe, se crea con el
    primer circuito.
-4. En una conversación nueva, pide un circuito («un LED con su resistencia a 9 V»).
+4. **Enciende la extensión**, en los ajustes de la extensión: Claude Desktop la instala apagada.
+5. En una conversación nueva, pide un circuito («un LED con su resistencia a 9 V»).
+
+El diálogo de instalación avisa de que la extensión obtiene acceso a todo lo que hay en el
+computador. Claude Desktop muestra ese aviso con toda extensión local, haga lo que haga. Esta, según
+su código, solo lee y escribe dentro de la carpeta de circuitos (una ruta fuera de ella se rechaza) y
+no hace ninguna petición de red; el aviso es de la aplicación, no algo que esta extensión pida más
+allá de eso. La especificación de MCPB no tiene un campo del manifiesto para encender una extensión
+al instalarla ni para cambiar el aviso, y no documenta que firmar un paquete cambie ninguna de las
+dos cosas ([MANIFEST.md](https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md),
+[CLI.md](https://github.com/modelcontextprotocol/mcpb/blob/main/CLI.md)).
 
 La extensión corre con el Node.js que trae Claude Desktop, así que no se instala nada más; pone
 `PROTOBOARD_APPS=on`, porque solo es para un anfitrión que muestra el tablero. No trae el
-rasterizador opcional de PNG (`render` con `png_width` responde que el PNG no está disponible; el
-tablero y las páginas no lo necesitan). La construye la publicación de cada versión
+rasterizador opcional de PNG (`render` con `png_width` responde que el PNG no está disponible en esta
+instalación, y que el SVG y la página sí; el tablero y las páginas no lo necesitan). La construye la publicación de cada versión
 (`scripts/pack-mcpb.js` con la CLI oficial `mcpb`); un clon arma la misma carpeta con
 `npm run pack-mcpb -- --out <carpeta>`.
 

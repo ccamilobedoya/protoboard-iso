@@ -17,7 +17,7 @@ const CANDIDATES = [
   'C:\\Windows\\Fonts\\arial.ttf',
 ];
 
-export const RASTER_MISSING = 'PNG output needs @resvg/resvg-js: run `cd mcp && npm install` in the kit folder.';
+export const RASTER_MISSING = 'PNG is not available in this install: the SVG and the page are.';
 
 let resvg;
 const extraRoots = [];

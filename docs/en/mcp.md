@@ -72,12 +72,21 @@ up inside the conversation ([mcp-apps.md](mcp-apps.md)).
 3. Choose the **circuits folder**: where your circuits are saved; the kit reads and writes only
    there. The default is a `Protoboard` folder in your documents; it is created with the first
    circuit if it does not exist.
-4. In a new conversation, ask for a circuit ("an LED with its resistor on 9 V").
+4. **Switch the extension on**, in the extension's settings: Claude Desktop installs it switched off.
+5. In a new conversation, ask for a circuit ("an LED with its resistor on 9 V").
+
+The install dialog warns that the extension gets access to everything on the computer. Claude Desktop
+shows that warning for every local extension, whatever it does. This one, in its code, reads and
+writes only inside the circuits folder (a path outside it is refused) and makes no network requests;
+the warning is the app's, not something this extension asks for beyond that. The MCPB specification
+has no manifest field to switch an extension on at install or to change the warning, and signing a
+bundle is not documented as changing either ([MANIFEST.md](https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md),
+[CLI.md](https://github.com/modelcontextprotocol/mcpb/blob/main/CLI.md)).
 
 The extension runs on the Node.js that Claude Desktop brings, so nothing else is installed; it sets
 `PROTOBOARD_APPS=on`, since it is only for a host that shows the board. It does not carry the
-optional PNG rasteriser (`render` with `png_width` answers that PNG is not available; the board and
-the pages do not need it). The release builds it (`scripts/pack-mcpb.js` with the official `mcpb`
+optional PNG rasteriser (`render` with `png_width` answers that PNG is not available in this install,
+and that the SVG and the page are; the board and the pages do not need it). The release builds it (`scripts/pack-mcpb.js` with the official `mcpb`
 CLI); a clone builds the same folder with `npm run pack-mcpb -- --out <dir>`.
 
 The manual configuration below is the alternative: for a clone you change, or to set

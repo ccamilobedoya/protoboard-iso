@@ -115,6 +115,11 @@ test('render writes an SVG and returns a PNG only when asked', async () => {
   const withPng = await call('render', { target: 'circuits/led', fit: 'parts', annotate: 'all', png_width: 300 });
   const image = withPng.content.find((c) => c.type === 'image');
   if (image) assert.equal(image.mimeType, 'image/png');
+  else {
+    const said = withPng.content.map((c) => c.text ?? '').join('\n');
+    assert.match(said, /PNG is not available in this install: the SVG and the page are\./);
+    assert.doesNotMatch(said, /npm install/);
+  }
 });
 
 test('paths outside the root and unknown circuits are refused', async () => {
