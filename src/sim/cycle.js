@@ -51,10 +51,10 @@ function cycleOf(samples, lit) {
 }
 
 // Run until every watched reading has shown CYCLES risings since `from`, or the steps run out.
-function run(engine, h, watch, from) {
+function run(engine, h, watch, from, maxSteps = MAX_STEPS) {
   const samples = Object.fromEntries(watch.map((w) => [w.key, []]));
   const seen = () => watch.every((w) => edges(samples[w.key]).up.length >= CYCLES);
-  for (let n = 0; n < MAX_STEPS; n++) {
+  for (let n = 0; n < maxSteps; n++) {
     if (!engine.advance(h)) break;
     const r = engine.read();
     for (const w of watch) {
@@ -92,6 +92,17 @@ export function cycles(program, { sets = [], start = 'dc', parts = null, perSeco
   if (now.h > 0) h = now.periodic ? now.h : Math.min(h, now.h);
   const after = run(engine, h, watch, engine.time);
   return { perSecond: speed, before, after };
+}
+
+// One part's period with a step chosen by the caller, not the page's pace: a recipe's goal
+// (recipes/goals.js) measures a few candidates this way, with a step of a few hundredths of the
+// period it expects, which reads within a few tenths of a percent of the page's figure and costs
+// tens of milliseconds instead of seconds. `engine`: started already, with any state set.
+// The period in simulated s, or null when no two cycles were seen within `maxSteps`.
+export function periodOf(engine, id, h, maxSteps) {
+  const r = engine.read()?.parts[id] ?? {};
+  const field = typeof r.brightness === 'number' ? 'brightness' : 'voltage';
+  return run(engine, h, [{ id, field, key: `${id}|${field}` }], engine.time, maxSteps)[id]?.period ?? null;
 }
 
 const known = new Map(); // a program and its sets → cycles: pages of one circuit are made again and again

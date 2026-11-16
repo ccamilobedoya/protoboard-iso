@@ -55,3 +55,39 @@ export function formatValue(value, unit = '', { decimal = '.', digits = 3 } = {}
   const text = String(mantissa).replace('.', decimal);
   return `${text} ${prefix}${unit}`.trim();
 }
+
+// The preferred-number series of IEC 60063 (one decade each): the values parts are made in.
+// Resistors come in E24 (5 %) and its subsets, capacitors mostly in E6 (20 %).
+export const E_SERIES = {
+  E6: [1.0, 1.5, 2.2, 3.3, 4.7, 6.8],
+  E12: [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2],
+  E24: [1.0, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2.0, 2.2, 2.4, 2.7, 3.0, 3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1],
+};
+
+// Rounded as the series prints its values: 4.7e3, not 4699.999999999999.
+const tidy = (v) => Number(v.toPrecision(3));
+
+// Every value of a series from lo to hi (inclusive, in base units), ascending.
+export function standardValues(series, lo, hi) {
+  const table = E_SERIES[series];
+  const out = [];
+  for (let e = Math.floor(Math.log10(lo)) - 1; e <= Math.ceil(Math.log10(hi)); e++) {
+    for (const m of table) {
+      const v = tidy(m * 10 ** e);
+      if (v >= lo * (1 - 1e-9) && v <= hi * (1 + 1e-9)) out.push(v);
+    }
+  }
+  return out;
+}
+
+// The value of a series nearest to v on a log scale (a tie goes to the lower one).
+export function nearestStandard(v, series = 'E24') {
+  if (!(v > 0)) return v;
+  const decade = 10 ** Math.floor(Math.log10(v));
+  let best = 1;
+  for (const m of [...E_SERIES[series], 10]) if (Math.abs(Math.log(m / (v / decade))) < Math.abs(Math.log(best / (v / decade))) - 1e-12) best = m;
+  return tidy(best * decade);
+}
+
+// A value as a part's field writes it: 470 → "470", 4700 → "4.7k", 1e-5 → "10u".
+export const valueText = (v) => formatValue(v, '', { digits: 3 }).replace(/\s+/g, '').replace('µ', 'u');

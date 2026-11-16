@@ -1,5 +1,6 @@
 // Controls: the values a learner may change while the simulation runs (stage 3, phase 5), and
-// the stress levels the page shows. No imports outside parts/batteries.js, so the page bundles it.
+// the stress levels the page shows. No imports outside parts/batteries.js and core/units.js (both
+// bundleable), so the page bundles it.
 //
 // A control is { field, min, max, scale, unit, value, limit?, step?, snap?, percent? }:
 //   min, max the slider's default range (page.controls may choose another one inside `limit`)
@@ -13,6 +14,7 @@
 // supplies are here. The engine gathers both (engine.controls(), engine.set()).
 
 import { batteryModel, cellVoltage } from '../parts/batteries.js';
+import { nearestStandard } from '../core/units.js';
 
 export const BENCH_MAX = 30; // volts: a common bench supply (0–30 V)
 
@@ -85,16 +87,9 @@ export function toSlider(c, v) {
   return Math.round(Math.min(1, Math.max(0, u)) * SLIDER);
 }
 
-// Standard resistor values (E24, 5 %): the nearest one on a log scale.
-const E24 = [1.0, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2.0, 2.2, 2.4, 2.7, 3.0, 3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1, 10];
-export function snapE24(v) {
-  if (!(v > 0)) return v;
-  const decade = 10 ** Math.floor(Math.log10(v));
-  const m = v / decade;
-  let best = E24[0];
-  for (const e of E24) if (Math.abs(Math.log(e / m)) < Math.abs(Math.log(best / m))) best = e;
-  return Number((best * decade).toPrecision(2));
-}
+// Standard resistor values (E24, 5 %): the nearest one on a log scale (the table is in core/units.js,
+// shared with the recipes' goals).
+export const snapE24 = (v) => nearestStandard(v, 'E24');
 
 // Stress levels (docs/en/live-simulation.md): fine under 80 %, near the limit up to 100 %,
 // exceeded above. A stress may carry its own start for "near" (`nearAt`, in devices/shared.js) when
