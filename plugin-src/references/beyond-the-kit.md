@@ -11,7 +11,7 @@ Spanish). Only these, a `STATUS` you cannot get past and what the `Checked` line
 
 | The kit prints | Means | You |
 |---|---|---|
-| "The kit has no computed fix for this." · "El kit no tiene un arreglo calculado para esto." | a hazard (⚠) that no single resistor clears | think of the smallest change, try it (below) |
+| "The kit has no computed fix for this." · "El kit no tiene un arreglo calculado para esto." | a hazard (⚠) that no single resistor clears (`--fix` refuses too) | think of the smallest change, try it (below) |
 | "… the kit does not know “<name>”. Closest: …" · "… el kit no conoce «<name>». Lo más parecido: …" (also "the kit does not know the part type", `… in its <type> table`) | a part the kit does not have | say so; use the closest part only if the person agrees |
 | "… the kit does not simulate this part yet: it is drawn, …" · "… el kit todavía no simula este componente: se dibuja, …" | drawn, not simulated: no reading or warning covers it | say what is then not checked |
 | "… the kit does not offer “<field>” in recipe <name> …" · "… el kit no ofrece «<field>» en la receta <name> …" | a value or goal the recipe does not have | use a listed one, or a spec of your own |
@@ -46,20 +46,26 @@ To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.4 mA (maxi
 STATUS: WARNINGS · …
 ```
 
-Tell the person which part burns and why, and the kit's fix. If they want it fixed, that line is
-one change: the same spec with `R3` (200 Ω) between `U1.D10` and `BZ1.1` (`["U1.D10", "R3.1"]`,
-`["R3.2", "BZ1.1"]`, R3 listed just before BZ1), tried first:
+Tell the person which part burns and why, and the kit's fix. If they want it fixed, the kit applies
+its own fix in one call, as one change (`kit undo` restores it):
 
 ```bash
-kit layout circuits/two-leds spec.json --dry-run
+kit layout circuits/two-leds --fix
 ```
 
-It ends `Trial: nothing was saved.` and `STATUS: DONE`, with no ⚠: apply it (the same call without
-`--dry-run`) and say what the kit confirmed: "with the 200 Ω resistor the kit finds no part past
-its limit, in any state it checks (D10 at 19.4 mA)". A redesign, a transistor driving the buzzer
-from 5 V, was not asked for; tried, it ends `WARNINGS`: the buzzer straight across 5 V dissipates
-1.4 W, more than its 500 mW, with D10 high. One trial shows it; three changes to the person's
-circuit would not have been needed.
+(connector: `layout` with `fix: true`; add `--dry-run` to try it first). The kit adds `R3` (200 Ω)
+between `U1.D10` and `BZ1.1`, lays the circuit out again and ends
+`Applied the fix: R3 = 200 Ω in series with BZ1.` (`Arreglo aplicado: …`) and `STATUS: DONE`, with
+no ⚠. Say what the kit confirmed: "with the 200 Ω resistor the kit finds no part past its limit, in
+any state it checks (D10 at 19.4 mA)". `--fix` takes nothing else (no spec, no values); with no
+hazard it says there is nothing to fix and changes nothing.
+
+Write the change yourself only when the kit has no computed fix: the same spec with your change
+(the parts in any order), tried first with `kit layout <folder> spec.json --dry-run`, then the same
+call without `--dry-run` if it ends `DONE`. A redesign, a transistor driving the buzzer from 5 V,
+was not asked for; tried, it ends `WARNINGS`: the buzzer straight across 5 V dissipates 1.4 W, more
+than its 500 mW, with D10 high. One trial shows it; three changes to the person's circuit would not
+have been needed.
 
 ## A part the kit does not have
 

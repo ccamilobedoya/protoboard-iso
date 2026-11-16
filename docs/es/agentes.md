@@ -21,8 +21,9 @@ simulador en reposo, con cada control accionado y con cada salida del programa d
 umbrales nuevos). No bloquea ni es una ronda de arreglos: el agente lo reporta de forma visible, con el
 arreglo calculado por el kit (`Para arreglarlo: …`, o «El kit no tiene un arreglo calculado para
 esto.»), y la conversación principal se lo dice al usuario, porque quemar un componente puede ser la
-lección. Un arreglo pedido es esa línea como un solo cambio; cualquier otra idea se ensaya antes con el
-`dry_run` de `layout` (sin guardar nada) y se aplica solo si el ensayo termina en `DONE`.
+lección. Un arreglo pedido es esa línea, que el kit aplica en una llamada (`layout` con `fix: true`;
+en la consola `layout <objetivo> --fix`); cualquier otra idea se ensaya antes con el `dry_run` de
+`layout` (sin guardar nada) y se aplica solo si el ensayo termina en `DONE`.
 
 ```bash
 node bin/protoboard-iso.js review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]
@@ -82,8 +83,8 @@ llamadas y unos 185 000 tokens. Lo que lo reduce:
 ## `layout`: el circuito entero en una llamada (desde el 2026-10-17)
 
 Para un circuito nuevo sin posiciones fijas, el agente de montaje empieza con `layout` (herramienta
-MCP o `protoboard-iso layout <objetivo> <spec.json>`): los componentes sin patas en el orden de la
-señal y las redes como listas de patas y rieles. El algoritmo ubica los componentes por capas
+MCP o `protoboard-iso layout <objetivo> <spec.json>`): los componentes sin patas (en cualquier
+orden: primero se prueba el dado, luego los que dan las redes) y las redes como listas de patas y rieles. El algoritmo ubica los componentes por capas
 (distancia a la fuente) y con reglas según el tipo de pieza, agrega los cables y verifica las redes
 y la revisión lesson, en alrededor de un segundo; medido con la fuente de dos rieles de `examples/layout/two-rail-supply.json` (10
 componentes, 10 redes): aprobada, 7 cables, 1,8 s. Lo que no logra resolver vuelve como puntos que

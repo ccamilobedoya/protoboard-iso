@@ -1292,7 +1292,9 @@ export function formatLayout(r, lang, { t, formatIssue }) {
   // A trial (layout --dry-run, the MCP tool's dry_run): the same answer, and nothing was written.
   if (r.applied) lines.push(appliedLine(r.applied, lang, t));
   if (r.trial) lines.push(t(lang, 'layout.trial'));
-  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, `layout.status.${r.status}`, { count: open, hazards: r.review.hazards.length })}`);
+  // A trial that ends CHANGES created nothing: its own words, not "the circuit was created".
+  const said = r.trial && r.status === 'changes' ? 'layout.trialChanges' : `layout.status.${r.status}`;
+  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, said, { count: open, hazards: r.review.hazards.length })}`);
   return lines.join('\n');
 }
 

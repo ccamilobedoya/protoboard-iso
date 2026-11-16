@@ -20,9 +20,10 @@ wired (an LED straight across 9 V) is **APPROVED WITH WARNINGS** (`hazards`, fro
 point at rest, with each control operated and with each output of a board's program high; no new
 thresholds). It does not block and is not a fix round: the agent reports it prominently, with the
 kit's computed fix (`To fix it: …`, or "The kit has no computed fix for this."), and the main
-conversation tells the user, since burning a part can be the lesson. A fix asked for is that line as
-one change; any other idea is tried first with `layout`'s `dry_run` (nothing saved) and applied only
-when the trial ends `DONE`.
+conversation tells the user, since burning a part can be the lesson. A fix asked for is that line,
+applied by the kit in one call (`layout` with `fix: true`; CLI `layout <target> --fix`); any other
+idea is tried first with `layout`'s `dry_run` (nothing saved) and applied only when the trial ends
+`DONE`.
 
 ```bash
 node bin/protoboard-iso.js review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
@@ -78,7 +79,7 @@ Measured on 2026-10-16: a layout agent rebuilding a two-rail supply took 68 call
 ## `layout`: the whole circuit in one call (since 2026-10-17)
 
 For a new circuit without fixed positions the layout agent starts with `layout` (MCP tool or
-`protoboard-iso layout <target> <spec.json>`): parts without pins in signal order, and nets as
+`protoboard-iso layout <target> <spec.json>`): parts without pins (in any order: the order given is tried first, then the orders the nets give), and nets as
 lists of pins and rails. The algorithm places the parts by layers (distance from the source), by
 rules per part kind, adds the jumpers and checks the nets and the lesson review, in about a second;
 measured on the two-rail supply of `examples/layout/two-rail-supply.json` (10 parts, 10 nets): approved, 7 jumpers, 1.8 s. What it

@@ -291,3 +291,10 @@ test('the Checked line says only what applies: controls, combinations, environme
   assert.deepEqual(none.checked, { rest: false, controls: 0, outputs: 0, notChecked: ['no-source'] });
   assert.match(formatReview(review({ parts: [{ id: 'R1', type: 'resistor', value: '1k', pins: ['a1', 'a5'] }] }), 'en', { t, formatIssue }), /\nChecked: nothing\. Not checked: nothing could be simulated: no source\.\n/);
 });
+
+test('a trial that ends CHANGES says nothing was created, in both languages; a real layout keeps its wording', () => {
+  const left = { ...built, status: 'changes', problems: [{ severity: 'warning', code: 'LAYOUT_WIRE_FAILED', params: { from: '12:a-e', to: '11:f-j' } }] };
+  assert.equal(lastLine(text({ ...left, trial: true })), 'STATUS: CHANGES · as tried, the circuit would be left with 1 items marked ✖ above (nothing was created). Try another idea in a trial, or apply this one and fix only those.');
+  assert.equal(lastLine(text({ ...left, trial: true }, 'es')), 'STATUS: CHANGES · tal como se ensayó, el circuito quedaría con 1 puntos marcados con ✖ arriba (no se creó nada). Ensaya otra idea, o aplica esta y arregla solo esos.');
+  assert.match(lastLine(text(left)), /^STATUS: CHANGES · the circuit was created, with 1 items/);
+});

@@ -86,15 +86,14 @@ what can change; run `simulate`, `review` or `catalog` only for a question they 
 
 ## Where the kit has no answer
 
-**The kit first.** Only where it says it has none (a fixed sentence such as "The kit has no computed
-fix for this.", a `STATUS` it cannot get past, a part it lacks) use your own knowledge or a search,
-and try any idea of yours before it reaches the circuit: `layout` with `--dry-run` (connector:
-`dry_run: true`) saves nothing; apply only what ends `DONE` (or the `WARNINGS` asked for).
-**"Fix it"**: apply the kit's `To fix it` line as one change; with none, try the smallest change.
-Never redesign (new parts, new stages) when one part fixes it, unless asked. Trials are not
-changes and are not shown one by one; at most three per request. If none passes, apply nothing
-beyond the request, say what is still wrong and why, and ask. More:
-[references/beyond-the-kit.md](references/beyond-the-kit.md).
+**"Fix it"** after a `To fix it` line: `kit layout <folder> --fix` (connector: `fix: true`), one
+call, one change. **The kit first.** Only where it says it has none (a fixed sentence such as "The
+kit has no computed fix for this.", a `STATUS` it cannot get past, a part it lacks) use your own
+knowledge or a search, and try your idea first: `layout` with `--dry-run` (connector:
+`dry_run: true`) saves nothing; apply only what ends `DONE` (or the `WARNINGS` asked for). Try the
+smallest change; never redesign (new parts, new stages) unless asked. Trials are not changes nor
+shown one by one; at most three per request. If none passes, apply nothing beyond the request, say
+what is still wrong and why, and ask. More: [references/beyond-the-kit.md](references/beyond-the-kit.md).
 
 ## Reply
 

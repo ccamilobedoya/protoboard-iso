@@ -221,6 +221,10 @@ The kit has no computed fix for this.
   computes it once, on the circuit it keeps (not on each try).
 - **Cost**: measured 82 ms on the buzzer circuit above, 10 ms on an LED asked for 50 mA, 105 ms on a
   buzzer across 5 V through a transistor; only for a circuit with hazards.
+- **Applied only when asked**: `layout <target> --fix` (the MCP tool's `fix: true`) lays a circuit
+  made by `layout` out again with its computed fix, as one revision, and says so
+  (`Applied the fix: R3 = 200 Ω in series with BZ1.`); nothing else applies it
+  ([layout.md](layout.md#laying-out-again-an-existing-circuit-since-2026-10-20)).
 
 ### What it does not check
 

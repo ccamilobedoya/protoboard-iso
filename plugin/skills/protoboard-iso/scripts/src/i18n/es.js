@@ -180,6 +180,7 @@ export default {
   'layout.status.changes': 'el circuito se creó, pero quedan {count} puntos marcados con ✖ arriba. Arregla solo esos (suggest y luego apply_ops con dry run) y vuelve a correr review.',
   'layout.fixApplied.set': 'Arreglo aplicado: {part} = {value}.',
   'layout.fixApplied.add': 'Arreglo aplicado: {part} = {value} en serie con {with}.',
+  'layout.trialChanges': 'tal como se ensayó, el circuito quedaría con {count} puntos marcados con ✖ arriba (no se creó nada). Ensaya otra idea, o aplica esta y arregla solo esos.',
   'layout.trial': 'Ensayo: no se guardó nada.',
   'layout.status.warnings': 'el circuito está armado y sus redes están bien, pero {hazards} componente(s) se dañarían tal como está conectado (marcados con ⚠ arriba). Díselo primero al usuario, en palabras simples: cuál componente y por qué se quema; déjalo así solo si lo que quiere es mostrar la falla, y si no ofrece el arreglo del kit (su línea «Para arreglarlo»; si no tiene, ensaya antes una idea con layout en ensayo). No lo arregles en silencio ni te niegues.',
   'layout.status.fix_spec': 'no se creó nada. Arregla en el spec cada ✖ de arriba y vuelve a llamar layout.',
