@@ -95,6 +95,11 @@ test('layout answers the same text to both; the host also gets {target, revision
   assert.ok(!textOf(await plain.callTool({ name: 'layout', arguments: { target: 'led-en2', recipe: 'led-resistor', lang: 'en' } })).includes('live board'));
   assert.equal(a.structuredContent, undefined);
   assert.deepEqual(b.structuredContent, { target: 'led-b', revision: 0, lang: 'es' });
+  // A trial shows no board: no structuredContent, no note, as try_ops.
+  const trial = await host.callTool({ name: 'layout', arguments: { ...args('led-trial'), dry_run: true } });
+  assert.equal(trial.structuredContent, undefined);
+  assert.ok(!textOf(trial).includes(esNote));
+  assert.match(textOf(trial), /\nEnsayo: no se guardó nada\.\nSTATUS: DONE/);
 
   const got = await fetchParts(host, { target: 'led-b', revision: 0 });
   const p = got.parts;

@@ -68,7 +68,9 @@ test('a circuit that cannot be simulated has no hazards', () => {
 });
 
 test('recipes with their defaults: none would damage a part', () => {
-  // Known list: recipes whose defaults are past a limit (none today; the owner decides about any listed here).
+  // Known list: recipes whose defaults are past a limit, at rest, with each control operated or with
+  // each output of a board's program high (none today; the maintainer decides about any listed here,
+  // each with a comment saying what burns and when).
   const known = new Set([]);
   for (const name of Object.keys(RECIPES)) {
     const r = autoLayout(expandRecipe(name).spec);
@@ -84,7 +86,7 @@ test('npn-switch with a 47 Ω collector resistor at 12 V: nothing burns at rest,
   const r = autoLayout(expandRecipe('npn-switch', { R2: '47', V1: 12 }).spec);
   assert.equal(r.status, 'warnings');
   assert.equal(r.review.verdict, 'approved-with-warnings');
-  assert.deepEqual(r.review.hazardStates, { checked: 1, total: 1 });
+  assert.deepEqual(r.review.hazardStates, { checked: 1, total: 1, controls: 1, outputs: 0 });
   const d1 = r.review.hazards.find((h) => h.params.part === 'D1');
   assert.equal(d1.code, 'SIM_OVER_CURRENT');
   assert.deepEqual(d1.when, { part: 'S1', field: 'pressed', value: true });
@@ -100,7 +102,7 @@ test('npn-switch with a 47 Ω collector resistor at 12 V: nothing burns at rest,
   const fine = autoLayout(expandRecipe('npn-switch').spec);
   assert.equal(fine.status, 'done');
   assert.deepEqual(fine.review.hazards, []);
-  assert.deepEqual(fine.review.hazardStates, { checked: 1, total: 1 });
+  assert.deepEqual(fine.review.hazardStates, { checked: 1, total: 1, controls: 1, outputs: 0 });
 });
 
 test('a slide switch in its other position: the green LED with a 10 Ω resistor burns only slid to 2', () => {
@@ -115,7 +117,7 @@ test('a slide switch in its other position: the green LED with a 10 Ω resistor 
 test('a potentiometer at an end of its travel: a 10 Ω LED resistor burns the LED with the wiper on pin 1', () => {
   const r = autoLayout(expandRecipe('potentiometer-led', { R1: '10', V1: 12 }).spec);
   assert.equal(r.status, 'warnings');
-  assert.deepEqual(r.review.hazardStates, { checked: 2, total: 2 });
+  assert.deepEqual(r.review.hazardStates, { checked: 2, total: 2, controls: 1, outputs: 0 });
   const d1 = r.review.hazards.find((h) => h.params.part === 'D1' && h.code === 'SIM_OVER_CURRENT');
   assert.deepEqual(d1.when, { part: 'RV1', field: 'position', value: 0 });
   assert.match(formatIssue(d1, 'en'), /, with RV1 at the end of its travel on the pin 1 side\.$/);
@@ -145,11 +147,11 @@ test('the states are capped: past the cap the review says how many were checked,
   const states = controlStates(compiled.program, engine);
   assert.deepEqual(states, [{ part: 'S1', field: 'pressed', value: true, rest: false }]);
   // With room for no state, the hazard pressed is not found, and the count says so.
-  assert.deepEqual(engineHazards(engine, states, 0), { hazards: [], states: { checked: 0, total: 1 } });
+  assert.deepEqual(engineHazards(engine, states, 0), { hazards: [], states: { checked: 0, total: 1, controls: 1, outputs: 0 }, ok: true });
   assert.ok(STATES_MAX >= 16);
   const capped = { hazards: [], hazardStates: { checked: STATES_MAX, total: STATES_MAX + 6 } };
-  assert.match(formatHazards(capped, 'en', formatIssue, t).join('\n'), new RegExp(`^Control states checked for damage: ${STATES_MAX} of ${STATES_MAX + 6} \\(one control at a time`));
-  assert.match(formatHazards(capped, 'es', formatIssue, t).join('\n'), new RegExp(`^Estados de los controles revisados por daño: ${STATES_MAX} de ${STATES_MAX + 6}`));
+  assert.match(formatHazards(capped, 'en', formatIssue, t).join('\n'), new RegExp(`^States checked for damage: ${STATES_MAX} of ${STATES_MAX + 6} \\(one control or program output at a time`));
+  assert.match(formatHazards(capped, 'es', formatIssue, t).join('\n'), new RegExp(`^Estados revisados por daño: ${STATES_MAX} de ${STATES_MAX + 6}`));
   // Every state checked: no line.
   assert.deepEqual(formatHazards({ hazards: [], hazardStates: { checked: 1, total: 1 } }, 'en', formatIssue, t), []);
 });

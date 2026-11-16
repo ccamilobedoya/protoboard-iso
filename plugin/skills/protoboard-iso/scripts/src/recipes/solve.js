@@ -63,21 +63,44 @@ const damages = (circuit, values) => checkHazards(withValues(circuit, values)).h
 const readingOf = (reading, goal) => Math.abs(reading?.parts[goal.id]?.[goal.reading] ?? NaN);
 
 // Every value of a one-knob DC goal, simulated: [{ value, result, hazard }] in the series' order.
-// The hazard check has an engine of its own (never started: each state is its own DC point).
+// A resistor is changed in place (sweepResistor); anything else is compiled again with its new value.
 function sweep(circuit, goal, knob) {
   const start = engineFor(circuit, {}, goal);
   if (!start) return null;
-  const { e } = start;
-  const check = createEngine(compile(circuit).program);
-  const states = controlStates(check.program(), check);
+  const read = (e) => readingOf(e.read(), goal);
+  if (knob.type === 'resistor') {
+    const fallback = (value) => {
+      const run = engineFor(circuit, { [knob.id]: value }, goal);
+      return run && { result: read(run.e), hazard: damages(circuit, { [knob.id]: value }) };
+    };
+    return sweepResistor(start.e, createEngine(compile(circuit).program), knob.id, knob.list, read, { fallback });
+  }
   const out = [];
   for (const value of knob.list) {
-    // A resistor is changed in place; anything else is compiled again with its new value.
-    const inPlace = knob.type === 'resistor' && e.set(knob.id, 'resistance', value);
-    const run = inPlace ? start : engineFor(circuit, { [knob.id]: value }, goal);
-    if (!run) continue;
-    const hazard = inPlace && check.set(knob.id, 'resistance', value) ? engineHazards(check, states).hazards.length > 0 : damages(circuit, { [knob.id]: value });
-    out.push({ value, result: readingOf(run.e.read(), goal), hazard });
+    const run = engineFor(circuit, { [knob.id]: value }, goal);
+    if (run) out.push({ value, result: read(run.e), hazard: damages(circuit, { [knob.id]: value }) });
+  }
+  return out.filter((c) => Number.isFinite(c.result));
+}
+
+// Every value of the resistor `id`, set in place on `engine` (read(engine) is the result) and on
+// `check`, an engine of the same program never started, for the hazard review's own check (at rest,
+// with each control operated, with each program output high). Shared by the goals and the fix of a
+// hazard (src/fix.js). `hazards: false` leaves `hazard` out (the fix checks only the values it
+// picks); `fallback(value)` → { result, hazard } | null when a value cannot be set in place.
+export function sweepResistor(engine, check, id, list, read, { hazards = true, fallback = null } = {}) {
+  const states = hazards ? controlStates(check.program(), check) : null;
+  const out = [];
+  for (const value of list) {
+    if (!engine.set(id, 'resistance', value)) {
+      const other = fallback?.(value);
+      if (other) out.push({ value, ...other });
+      continue;
+    }
+    const result = read(engine);
+    if (!hazards) out.push({ value, result });
+    else if (check.set(id, 'resistance', value)) out.push({ value, result, hazard: engineHazards(check, states).hazards.length > 0 });
+    else out.push({ value, result, hazard: fallback?.(value)?.hazard ?? true });
   }
   return out.filter((c) => Number.isFinite(c.result));
 }

@@ -62,9 +62,11 @@ export function formatIssue(issue, lang = 'en') {
   return issue.when ? `${text.replace(/\.$/, '')}, ${whenText(issue.when, lang)}.` : text;
 }
 
-// "with S1 pressed", "with RV1 at the pin-3 end of its travel"; a control without words of its own:
+// "with S1 pressed", "with RV1 at the pin-3 end of its travel", "with D10 high"; a control without words of its own:
 // "with S1 on = false".
-function whenText({ part, field, value }, lang) {
+function whenText({ part, field, value, pin, name }, lang) {
+  // A board's output held high by the hazard check (sim/index.js): "with D10 high".
+  if (pin) return t(lang, 'hazard.when.pin', { pin: name ?? pin });
   const key = field === 'position' ? `hazard.when.position.${value > 0.5 ? 3 : 1}` : `hazard.when.${field}.${Boolean(value)}`;
   const words = t(lang, key, { part });
   return words !== key ? words : t(lang, 'hazard.when', { part, field, value: String(value) });

@@ -136,6 +136,7 @@ if (command === 'layout') {
   // layout <target> [spec.json | -]: the whole circuit placed from its parts and nets; on an
   // existing target, laid out again (the spec's fields replace the circuit's, the rest stays).
   // --recipe name [--values json]: a recipe instead of a spec (or "recipe" in the spec file).
+  // --dry-run: a trial, the same answer and nothing written (below).
   const previous = existsSync(paths.circuitFile) ? loadCircuit(paths) : null;
   if (!extra && !previous && !args.recipe) {
     console.log(t(lang, 'cli.usage'));
@@ -158,6 +159,13 @@ if (command === 'layout') {
   if (result.checked) {
     console.log(args.json ? JSON.stringify(result, null, 2) : formatLayout(result, outLang, { t, formatIssue }));
     fail(result.invalid ? 1 : 0);
+  }
+  // --dry-run: the whole answer of the circuit as it would be after the call, and nothing written
+  // (no circuit file, history, page or outputs folder; an existing circuit stays as it was).
+  if (args.dryRun) {
+    const trial = { ...result, trial: true };
+    console.log(args.json ? JSON.stringify({ ...trial, circuit: undefined }, null, 2) : formatLayout(trial, outLang, { t, formatIssue }));
+    fail(result.status === 'done' || result.status === 'warnings' ? 0 : 2);
   }
   const save = { author: args.author ?? 'layout', note: args.note ?? 'layout', lang: outLang, outputs: args.outputs };
   const created = previous ? relayoutTarget(target, result.circuit, { ...save, expectRevision: args.expectRevision }) : createTarget(target, result.circuit, save);

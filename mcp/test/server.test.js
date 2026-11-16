@@ -283,6 +283,24 @@ test('layout check_only reads parts by name and reports every problem without cr
   assert.ok((await call('get_circuit', { target: 'circuits/checked' })).isError, 'nothing created');
 });
 
+test('layout dry_run: the same answer and STATUS, a trial line, nothing written, new or existing', async () => {
+  const trial = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9 }, dry_run: true });
+  assert.ok(!trial.isError, textOf(trial));
+  assert.match(textOf(trial), /\nTrial: nothing was saved\.\nSTATUS: DONE · [^\n]*$/);
+  assert.equal(trial.structuredContent, undefined);
+  assert.equal(trial._meta, undefined);
+  assert.ok(!existsSync(join(root, 'trial-led')), 'no folder');
+  const made = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9 } });
+  const steady = (text) => text.replace(/ \d+ ms /, ' … ms ').split('\n').filter((l) => !/^(Trial: |trial-led · rev |Page: )/.test(l)).join('\n');
+  assert.equal(steady(textOf(trial)), steady(textOf(made)));
+  const file = join(root, 'trial-led', 'circuit.json');
+  const before = [readFileSync(file, 'utf8'), readFileSync(join(root, 'trial-led', 'history.jsonl'), 'utf8')];
+  const again = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9, R1: '10' }, dry_run: true, lang: 'es' });
+  assert.match(textOf(again), /\nEnsayo: no se guardó nada\.\nSTATUS: WARNINGS · /);
+  assert.match(textOf(again), /\nPara arreglarlo: R1 = \d+ Ω deja a R1 en [^\n]* y a D1 en/);
+  assert.deepEqual([readFileSync(file, 'utf8'), readFileSync(join(root, 'trial-led', 'history.jsonl'), 'utf8')], before, 'the circuit is untouched');
+});
+
 test('layout with a goal: the kit picks the standard value and says so; without one, the advisory', async () => {
   const solved = await call('layout', { target: 'goal-led', recipe: 'led-resistor', values: { V1: 9, D1: { current: '15mA' } } });
   assert.ok(!solved.isError, textOf(solved));
@@ -296,7 +314,7 @@ test('layout with a goal: the kit picks the standard value and says so; without 
   assert.match(textOf(advised), /STATUS: DONE/);
   const wrong = await call('layout', { target: 'goal-bad', recipe: 'led-resistor', values: { D1: { current: 'abc' } } });
   assert.ok(wrong.isError);
-  assert.match(textOf(wrong), /D1\.current = abc cannot be read[^\n]*\nSTATUS: FIX_SPEC/);
+  assert.match(textOf(wrong), /D1\.current: the kit does not understand the value abc[^\n]*\nSTATUS: FIX_SPEC/);
 });
 
 test('a part that burns only with the button pressed: layout ends WARNINGS saying so, review has the state in JSON', async () => {
@@ -333,7 +351,7 @@ test('layout with a recipe: ready in one call, the catalog lists it, bad values 
   assert.match(bad.content[0].text, /STATUS: FIX_SPEC/);
   const unreadable = await call('layout', { target: 'recipe-bad', recipe: 'led-resistor', values: { R1: 'abc' } });
   assert.ok(unreadable.isError);
-  assert.match(unreadable.content[0].text, /R1: cannot read the value "abc"\. It takes a resistance in ohms, such as 330, 4k7/);
+  assert.match(unreadable.content[0].text, /R1: the kit does not understand the value "abc"\. It takes a resistance in ohms, such as 330, 4k7/);
   assert.match(unreadable.content[0].text, /STATUS: FIX_SPEC/);
   const both = await call('layout', { target: 'recipe-bad', recipe: 'divider', nets: [['R1.1', 'T+']] });
   assert.ok(both.isError);

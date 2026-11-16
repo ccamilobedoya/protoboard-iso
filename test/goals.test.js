@@ -177,8 +177,8 @@ test('555 at 1 Hz and at 10 Hz: within 4 % of the datasheet formula, and the fig
 
 test('FIX_SPEC, in both languages, nothing built: a goal the recipe lacks, a goal that cannot be read, a goal and a value for one knob', () => {
   const cases = [
-    [{ R1: { current: '15mA' } }, 'RECIPE_GOAL_UNKNOWN', /R1 has no value field or goal "current" in recipe led-resistor \(its fields: value, tolerance, power; the recipe's goals: D1\.current, as \{"D1":\{"current":"15mA"\}\}\)/, /R1 no tiene el campo ni la meta «current» en la receta led-resistor \(sus campos: value, tolerance, power; las metas de la receta: D1\.current, como/],
-    [{ D1: { current: 'abc' } }, 'RECIPE_GOAL_VALUE', /D1\.current = abc cannot be read: give a number in A, such as 15mA\./, /D1\.current = abc no se puede leer: da un número en A, como 15mA\./],
+    [{ R1: { current: '15mA' } }, 'RECIPE_GOAL_UNKNOWN', /R1: the kit does not offer "current" in recipe led-resistor \(its fields: value, tolerance, power; the recipe's goals: D1\.current, as \{"D1":\{"current":"15mA"\}\}\)/, /R1: el kit no ofrece «current» en la receta led-resistor \(sus campos: value, tolerance, power; las metas de la receta: D1\.current, como/],
+    [{ D1: { current: 'abc' } }, 'RECIPE_GOAL_VALUE', /D1\.current: the kit does not understand the value abc: give a number in A, such as 15mA\./, /D1\.current: el kit no entiende el valor abc: da un número en A, como 15mA\./],
     [{ D1: { current: '15mV' } }, 'RECIPE_GOAL_VALUE', /give a number in A/, /da un número en A/],
     [{ R1: '470', D1: { current: '15mA' } }, 'RECIPE_GOAL_AND_VALUE', /D1\.current chooses R1, and R1 is given too: give one of them \(the goal or the value\)\./, /D1\.current elige R1, y R1 también viene dado: da solo uno de los dos/],
   ];

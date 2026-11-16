@@ -28,6 +28,9 @@
 //                                          memory, junction voltages, and the keys a device lists
 //                                          in `state`: a timed sensor's phase and clock) and
 //                                          solved again at once
+//   engine.drive(id, pin, level) → ok      a board's pin held at a level whatever its program says
+//                                          (1 or 0; null lets the program drive it again): the
+//                                          hazard check's program-output states (sim/index.js)
 //   engine.stepHint() → seconds | null     the step a running PWM or tone needs, or an element's
 //                                          own `maxStep()` while it is timing
 // The environment (environment.js; only when the circuit declares one): its fields are controls with
@@ -631,6 +634,15 @@ export function createEngine(source) {
         return feel(program, seen(env.values())) ? rebuildSettled() : true;
       }
       if (!changeProgram(program, id, field, value)) return false;
+      return rebuildSettled();
+    },
+    drive(id, pin, level) {
+      const d = program.devices.find((dev) => dev.id === id && dev.kind === 'MCU' && !dev.unsupported);
+      if (!d?.params.gpios.some((g) => g.name === pin)) return false;
+      const driven = { ...d.params.driven };
+      if (level == null) delete driven[pin];
+      else driven[pin] = level ? 1 : 0;
+      d.params = { ...d.params, driven };
       return rebuildSettled();
     },
     resume(id, field) {

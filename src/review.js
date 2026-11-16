@@ -6,18 +6,26 @@
 //   lesson  for teaching layouts: nothing hidden, no label trouble, parts not cramped
 //   draft   only errors and warnings block
 //
-// review(circuit, { profile, views, explain }) → { verdict: 'approved' | 'approved-with-warnings' | 'changes', blocking, hazards, hazardStates?, advisory, summary }
+// review(circuit, { profile, views, explain, fix }) → { verdict: 'approved' | 'approved-with-warnings' | 'changes', blocking, hazards, hazardStates?, fix?, noFix?, checked, advisory, summary }
 // `hazards`: parts the simulator's DC point (the one `simulate` prints) takes past a maximum, as
-// wired, at rest or with one control operated (`when`: a button pressed, a switch moved, a
-// potentiometer at an end; sim/index.js checkHazards); `hazardStates`: { checked, total } of those
+// wired, at rest, with one control operated or with one output of a board's program high (`when`: a
+// button pressed, a switch moved, a potentiometer at an end, "with D10 high"; sim/index.js
+// checkHazards); `hazardStates`: { checked, total, controls, outputs } of those
 // states, when the circuit has any (checked below total: the rest were not). They never block (a learner may burn a part on purpose); they change the verdict from
 // approved to approved-with-warnings, so nobody reads a plain APPROVED over a part that would burn.
+// `fix` (src/fix.js): with hazards, the simplest change the simulator finds that clears them all (a
+// resistor's new value, or one resistor added in series), or `fix: null` with `noFix: true`; `fix:
+// false` in the options leaves it out (layout's own tries: it computes it once, on the circuit it
+// keeps). `checked` (sim/index.js coverageOf): what the hazard check covered and what it could not.
 // Each blocking item names the parts it is about (`parts`) and the views it shows in (`views`), so
 // the fix is clear without another inspect; `explain` adds the profile's rules (`rules`).
 
 import { evaluate } from './diff.js';
 import { checkNets } from './nets.js';
 import { checkHazards } from './sim/index.js';
+import { hazardFix } from './fix.js';
+import { formatValue } from './core/units.js';
+import { decimalSeparator } from './i18n/index.js';
 
 export const PROFILES = {
   lesson: {
@@ -48,7 +56,7 @@ function partsOf(p, ids) {
   return out;
 }
 
-export function review(circuit, { profile = 'lesson', views = ['front', 'back'], lang = 'en', explain = false } = {}) {
+export function review(circuit, { profile = 'lesson', views = ['front', 'back'], lang = 'en', explain = false, fix = true } = {}) {
   const policy = PROFILES[profile] ?? PROFILES.lesson;
   const { problems } = evaluate(circuit, { views, lang });
   const ids = new Set((circuit.parts ?? []).map((p) => p.id));
@@ -122,6 +130,8 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
     blocking,
     hazards,
     ...(simulated.states.total && { hazardStates: simulated.states }),
+    ...(fix && hazards.length && hazardFix(circuit, simulated.hazards)),
+    checked: simulated.checked,
     advisory,
     summary: { parts: circuit.parts?.length ?? 0, blocking: blocking.length, hazards: hazards.length, advisory: advisory.length },
   };
@@ -150,11 +160,46 @@ export function formatReview(r, lang, { t, formatIssue }) {
   return lines.join('\n');
 }
 
-// The hazards as lines (also layout's): what would be damaged, then what to do about it; and, when
-// the circuit had more control states than were solved, how many were.
-export function formatHazards(r, lang, formatIssue, t) {
-  const lines = r.hazards?.length ? [t(lang, 'review.hazards'), ...r.hazards.map((h) => `  ⚠ ${formatIssue(h, lang)}`), t(lang, 'review.hazardsAdvice')] : [];
+// The hazards as lines (also layout's): what would be damaged, the kit's fix (or that it has none),
+// what to do about it; when the circuit had more states than were solved, how many were; and,
+// unless `checked` is false (a layout that left something to fix), the Checked line.
+export function formatHazards(r, lang, formatIssue, t, { checked = true } = {}) {
+  const lines = [];
+  if (r.hazards?.length) {
+    lines.push(t(lang, 'review.hazards'), ...r.hazards.map((h) => `  ⚠ ${formatIssue(h, lang)}`));
+    if (r.fix) lines.push(fixLine(r.fix, lang, t));
+    else if (r.noFix) lines.push(t(lang, 'review.noFix'));
+    lines.push(t(lang, 'review.hazardsAdvice'));
+  }
   const states = r.hazardStates;
   if (states && states.checked < states.total) lines.push(t(lang, 'review.hazardsUnchecked', states));
+  if (checked && r.checked) lines.push(checkedLine(r.checked, lang, t));
   return lines;
+}
+
+// "To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.5 mA (maximum 40 mA)."
+function fixLine(fix, lang, t) {
+  const decimal = decimalSeparator(lang);
+  const f = (v, unit) => formatValue(v, unit, { decimal });
+  const brings = fix.brings
+    .filter((b) => b.value != null)
+    .map((b) => {
+      const [part, ...pin] = String(b.part).split('.');
+      const subject = pin.length ? t(lang, 'review.fix.pin', { part, pin: pin.join('.') }) : t(lang, 'review.fix.part', { part });
+      return t(lang, 'review.fix.brings', { subject, value: f(b.value, b.unit), max: f(b.max, b.unit) });
+    })
+    .join(t(lang, 'review.fix.and'));
+  const value = f(fix.value, 'Ω');
+  return fix.kind === 'set' ? t(lang, 'review.fix.set', { part: fix.part, value, brings }) : t(lang, 'review.fix.add', { with: fix.with, value, brings });
+}
+
+// "Checked: at rest, 2 controls, 3 program outputs. Not checked: peaks while switching, combinations of controls."
+function checkedLine(c, lang, t) {
+  const done = [];
+  if (c.rest) done.push(t(lang, 'review.checked.rest'));
+  if (c.controls) done.push(t(lang, `review.checked.controls.${c.controls === 1 ? 'one' : 'many'}`, { count: c.controls }));
+  if (c.outputs) done.push(t(lang, `review.checked.outputs.${c.outputs === 1 ? 'one' : 'many'}`, { count: c.outputs }));
+  const which = c.controls && c.outputs ? 'both' : c.outputs ? 'outputs' : 'controls';
+  const open = c.notChecked.map((code) => t(lang, `review.notChecked.${code === 'combinations' ? `combinations.${which}` : code}`, { count: c.skipped ?? 0, parts: (c.unsimulated ?? []).join(', ') }));
+  return t(lang, 'review.checked', { done: done.join(', ') || t(lang, 'review.checked.nothing'), open: open.join(', ') || t(lang, 'review.notChecked.none') });
 }

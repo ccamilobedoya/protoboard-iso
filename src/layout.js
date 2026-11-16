@@ -33,6 +33,7 @@ import { applyOps } from './ops.js';
 import { buildCircuit } from './circuit/build.js';
 import { problemKey } from './diff.js';
 import { review, formatHazards } from './review.js';
+import { hazardFix } from './fix.js';
 import { answerExtras, formatExtras } from './layout-answer.js';
 import { solveGoals } from './recipes/solve.js';
 import { parseValue, valueText } from './core/units.js';
@@ -324,6 +325,8 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   // change (layout-answer.js), so one call says everything the reply needs.
   // The advisory only when nothing burns (a hazard already says what is wrong) and no goal was
   // given (the Solved line says everything).
+  // The fix of its hazards (src/fix.js), once, on the circuit kept: the tries did not search for one.
+  if (best.review.hazards.length) best = { ...best, review: { ...best.review, ...hazardFix(circuit, best.review.hazards) } };
   const extras = status === 'changes' ? {} : answerExtras(circuit, { folder: folder ?? previous?.[CIRCUIT_FOLDER], lang: lang ?? spec.lang, advise: status === 'done' && !spec.goals?.length });
   return { ...best, circuit, notes: [...notes, ...(best.notes ?? [])], status, tries, ...extras, ms: Date.now() - started };
 }
@@ -388,7 +391,7 @@ function repair(best, spec, { profile, asked }) {
     const r = applyOps(base, ops);
     if (r.errors.length) return false;
     const c = checkNets(r.circuit, nets);
-    const v = review({ ...r.circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'] });
+    const v = review({ ...r.circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'], fix: false });
     const p = problems.filter((x) => x !== fixed);
     if (score(c, v, p) >= score(check, verdict, problems)) return false;
     ({ circuit, check, review: verdict, problems } = { circuit: r.circuit, check: c, review: v, problems: p });
@@ -1130,7 +1133,7 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
 
   // With the nets asked for, as every later review reads them from the circuit's spec: a verdict
   // that ignored them could say APPROVED over a short.
-  const verdict = review({ ...circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'] });
+  const verdict = review({ ...circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'], fix: false });
 
   const columns = buildCircuit(circuit).board?.spec.columns;
   const sequence = circuit.parts.map((p) => p.id); // placement order: parts, then jumpers
@@ -1167,9 +1170,12 @@ export function formatLayout(r, lang, { t, formatIssue }) {
   const headline = r.review.verdict === 'approved' ? 'layout.approved' : r.review.verdict === 'changes' ? (blocking.length ? 'layout.changes' : 'layout.changesNets') : 'layout.warnings';
   lines.push(t(lang, headline, { count: blocking.length }));
   for (const b of blocking) lines.push(`  ✖ ${formatIssue(b, lang)}${b.views ? ` [${b.views.join(', ')}]` : ''}`);
-  lines.push(...formatHazards(r.review, lang, formatIssue, t));
+  // The Checked line only for a circuit built (DONE or WARNINGS): one left to fix is not the answer yet.
+  lines.push(...formatHazards(r.review, lang, formatIssue, t, { checked: r.status !== 'changes' }));
   lines.push(...formatExtras(r, lang, t));
   const open = r.problems.length + r.check.missing.length + r.check.shorted.length + blocking.length;
+  // A trial (layout --dry-run, the MCP tool's dry_run): the same answer, and nothing was written.
+  if (r.trial) lines.push(t(lang, 'layout.trial'));
   lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, `layout.status.${r.status}`, { count: open, hazards: r.review.hazards.length })}`);
   return lines.join('\n');
 }

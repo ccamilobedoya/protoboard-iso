@@ -68,9 +68,11 @@ export function partRatings(part) {
   // Only limits the simulator reports with their maximum; one line for the chips that share it.
   for (const s of stresses.filter((x) => !x.note && x.reportMax && Number.isFinite(x.max) && x.max > 0)) {
     const of = s.of ?? OF_BY_CODE[s.code];
-    const same = limits.find((l) => l.kind === 'max' && l.quantity === s.quantity && l.value === s.max && l.unit === s.unit && l.each === s.each && l.of === of && Boolean(l.pins) === Boolean(s.pin));
-    if (same && s.pin) same.pins.push(s.pin);
-    else if (!same) limits.push({ kind: 'max', quantity: s.quantity, value: s.max, unit: s.unit, ...(s.pin && { pins: [s.pin] }), ...(of && { of }), ...(s.each && { each: s.each }) });
+    // A pin named by the rest reading itself (a board's r.pins[i].name) is the list's, not a pin.
+    const pin = typeof s.pin === 'string' ? s.pin : null;
+    const same = limits.find((l) => l.kind === 'max' && l.quantity === s.quantity && l.value === s.max && l.unit === s.unit && l.each === s.each && l.of === of && Boolean(l.pins) === Boolean(pin));
+    if (same && pin) same.pins.push(pin);
+    else if (!same) limits.push({ kind: 'max', quantity: s.quantity, value: s.max, unit: s.unit, ...(pin && { pins: [pin] }), ...(of && { of }), ...(s.each && { each: s.each }) });
   }
   if (!limits.length) return null;
   const fields = device.limitFields?.(entry) ?? [];

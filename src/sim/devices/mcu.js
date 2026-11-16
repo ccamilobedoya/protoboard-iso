@@ -76,11 +76,15 @@ export const mcu = {
     const byGpio = new Map();
     if (p.sketch) {
       const states = Object.fromEntries(p.gpios.filter((g) => g.state).map((g) => [g.gpio, g.state]));
+      // A pin held by engine.drive (the hazard check's "with D10 high") keeps its level whatever the
+      // program writes; the program itself runs on unchanged.
+      const held = new Map(p.gpios.filter((g) => p.driven?.[g.name] != null).map((g) => [g.gpio, p.driven[g.name]]));
       const sync = () => {
         for (const [gpio, stage] of byGpio) {
           const st = entry.ctrl.runner.pins[gpio];
+          if (held.has(gpio)) Object.assign(stage, { mode: 'output', level: held.get(gpio), pull: null, pwm: null });
           // A PWM or tone switches in time: its level at the runner's clock (this step's start).
-          if (st) Object.assign(stage, { mode: st.mode, level: st.pwm ? levelAt(st.pwm, entry.ctrl.runner.time) : st.level, pull: st.pull, pwm: st.pwm ?? null });
+          else if (st) Object.assign(stage, { mode: st.mode, level: st.pwm ? levelAt(st.pwm, entry.ctrl.runner.time) : st.level, pull: st.pull, pwm: st.pwm ?? null });
         }
       };
       const volt = (i) => (i >= 0 ? entry.ctrl.x?.[i] ?? 0 : 0);
@@ -280,7 +284,8 @@ export const mcu = {
   },
   limits(entry, r) {
     const m = entry.model;
-    const out = r.pins.map((x) => stress('SIM_OVER_CURRENT', 'current', Math.abs(x.current), m.maxPin, 'A'));
+    // Each pin by its name (U1.D10), so the warning says which one and two pins are two hazards.
+    const out = r.pins.map((x) => stress('SIM_OVER_CURRENT', 'current', Math.abs(x.current), m.maxPin, 'A', { pin: x.name }));
     for (const ids of entry.ctrl?.shared ?? []) out.push(note('warning', 'SIM_LIBRARY_SHARED', { part: entry.id, parts: ids.join(', '), first: ids[0] }));
     if (r.rail != null && entry.power.logic !== entry.power.usb) out.push(stress('SIM_OVER_CURRENT', 'current', r.rail, m.regulator.maxCurrent, 'A', { of: 'regulator' }));
     for (const x of r.pins) {

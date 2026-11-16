@@ -166,7 +166,7 @@ export const INSTRUCTIONS = [
   'Breadboard circuits: describe what is connected; the kit places, draws, checks and simulates it. Never compute holes, colour codes, voltages or currents yourself, and never rewrite circuit files.',
   `Recipes first: a usual lesson circuit is layout with recipe and only the values that change (${Object.keys(RECIPES).join(', ')}; catalog with the name shows its parts, nets and values). It comes out ready, nothing to work out.`,
   'Which tool: another new circuit → layout (parts without holes, nets of pins and rails). Other connections or parts in a circuit made by layout (get_circuit shows a spec) → layout again on the same target with the new nets (the full parts list if parts change) and expect_revision (parts keep their holes if they fit; undo restores). A value, a description, a fix or a hand-made circuit → apply_ops.',
-  'layout ends in one line, STATUS: DONE (ready) · WARNINGS (built, but a part would burn as wired: tell the user) · CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review) · FIX_SPEC (nothing created: fix every ✖ in the spec and call again) · SPEC_OK (check_only).',
+  'layout ends in one line, STATUS: DONE (ready) · WARNINGS (built, but a part would burn as wired: tell the user, with the fix the kit finds) · CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review) · FIX_SPEC (nothing created: fix every ✖ in the spec and call again) · SPEC_OK (check_only).',
   'Operations: history and inspect (numbers, not pictures) → query / suggest → apply_ops with dry_run → apply_ops with expect_revision, author and note → review until APPROVED → undo if needed.',
   'Check: review is the definition of done (it also checks the nets of a circuit made by layout); netlist lists every net; simulate gives a model, and a value a learner must predict is never shown. render returns a PNG only when asked: images are slow to read.',
   'Holes: a1…j63 (row letter + column), rails T-, T+, B+, B- plus the column (T+9). Rows a–e of a column are connected, f–j too; each rail is one group. Board "double": two boards side by side for a wide development board across the joint, rows a–t (k–o, p–t on the back board), rails B± and U± (no T); layout picks it by itself when a DevKit would cover a pin\'s strip.',
@@ -343,13 +343,14 @@ server.registerTool(
       clearance: z.number().optional().describe('Gap between bodies in mm (default 1; 3 for a roomier lesson)'),
       expect_revision: z.number().int().min(0).optional().describe('Existing circuit: refuse if it changed since this revision'),
       check_only: z.boolean().optional().describe('Only check the parts and nets (unknown names with the closest ones, nets naming a missing part or pin, parts in no net) and create nothing'),
+      dry_run: z.boolean().optional().describe('The whole answer, nothing saved: try an idea first'),
       author: z.string().optional(),
       note: z.string().optional(),
       lang: common.lang,
     },
     annotations: WRITE,
   },
-  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, expect_revision: expectRevision, check_only: checkOnly, author = 'layout', note = 'layout', lang, outputLang }) => {
+  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, expect_revision: expectRevision, check_only: checkOnly, dry_run: dryRun, author = 'layout', note = 'layout', lang, outputLang }) => {
     const full = inside(target);
     const paths = resolveTarget(full);
     const previous = existsSync(paths.circuitFile) ? loadCircuit(paths) : null;
@@ -364,6 +365,8 @@ server.registerTool(
     const out = pickLanguage(lang, spec.lang);
     const result = autoLayout(spec, { checkOnly, previous, folder: dirname(paths.circuitFile), lang: out });
     if (result.checked) return { ...(result.invalid && { isError: true }), content: [{ type: 'text', text: formatLayout(result, out, { t, formatIssue }) }] };
+    // A trial: the same answer, nothing written and no board shown (as try_ops).
+    if (dryRun) return text(formatLayout({ ...result, trial: true }, out, { t, formatIssue }));
     const saved = previous
       ? relayoutTarget(full, result.circuit, { expectRevision, author, note, lang: lang ?? 'en', outputLang })
       : createTarget(full, result.circuit, { author, note, lang: lang ?? 'en', outputLang });
@@ -427,7 +430,7 @@ server.registerTool(
   'review',
   {
     title: 'Review circuit',
-    description: 'Verdict from measurements in both views: APPROVED, APPROVED WITH WARNINGS (hazards: parts the DC simulation takes past a maximum, at rest or with one control operated; not blocking) or CHANGES, with what must be fixed (blocking: each with the parts it is about and the views it shows in) and what is worth knowing. Profile lesson (default) is strict for teaching layouts; draft only blocks errors and warnings. explain: true adds the profile\'s rules (what blocks). lesson blocks a part hidden in every view (its best view shows less than 70 % of it); a circuit made by layout also has its nets checked against its spec.',
+    description: 'Verdict from measurements in both views: APPROVED, APPROVED WITH WARNINGS (hazards: parts the DC simulation takes past a maximum, at rest, with one control operated or one program output high, and the fix the kit finds; not blocking) or CHANGES, with what must be fixed (blocking: each with the parts it is about and the views it shows in) and what is worth knowing. Profile lesson (default) is strict for teaching layouts; draft only blocks errors and warnings. explain: true adds the profile\'s rules (what blocks). lesson blocks a part hidden in every view (its best view shows less than 70 % of it); a circuit made by layout also has its nets checked against its spec.',
     inputSchema: { target: targetArg, profile: z.enum(Object.keys(PROFILES)).optional(), views: z.array(z.enum(Object.keys(VIEWS))).optional(), explain: z.boolean().optional(), ...common },
     annotations: READ,
   },
