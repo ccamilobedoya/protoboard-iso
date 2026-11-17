@@ -13,11 +13,15 @@ const read = (f) => readFileSync(join(root, f), 'utf8');
 // Documents that are not part of a pair: one file for both languages, or not for readers.
 const SINGLE = new Set(['CLAUDE.md', 'CHANGELOG.md', 'src/sim/README.md', 'mcp/README.md', '.interface-design/system.md']);
 
-// The other language's file a document's top link names, or null.
+// The other language's file a document's top link names, or null: *[Español](…)* on a line of its
+// own, or, in a centred HTML header (the READMEs), <a href="…">Español</a>.
+const TOP = /^\*\[(?:Español|Leer en español|English|Read in English)\]\(([^)#]+)\)\*|<a href="([^"#:]+)">(?:Español|English)<\/a>/m;
 export function pairOf(file, text) {
-  const m = /^\*\[(?:Español|Leer en español|English|Read in English)\]\(([^)#]+)\)\*/m.exec(text.split('\n').slice(0, 6).join('\n'));
-  return m ? normalize(join(dirname(file), m[1])) : null;
+  const m = TOP.exec(text.split('\n').slice(0, 6).join('\n'));
+  return m ? normalize(join(dirname(file), m[1] ?? m[2])) : null;
 }
+// The English side of a pair: its top link points at the Spanish copy.
+const english = (text) => /^\*\[(?:Español|Leer en español)\]|<a href="[^"#:]+">Español<\/a>/m.test(text.split('\n').slice(0, 6).join('\n'));
 // What a translation must keep: headings per level, code blocks, table rows.
 export function shapeOf(text) {
   const prose = text.replace(/^```[\s\S]*?^```/gm, '```');
@@ -48,7 +52,7 @@ test('parity: every document has its copy in the other language, and they point 
 
 test('parity: each pair keeps the same headings, code blocks and table rows', () => {
   const found = [];
-  for (const file of tracked.filter((f) => /^\*\[(?:Español|Leer en español)\]/m.test(read(f)))) {
+  for (const file of tracked.filter((f) => english(read(f)))) {
     const other = pairOf(file, read(file));
     const a = shapeOf(read(file));
     const b = shapeOf(read(other));

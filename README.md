@@ -1,33 +1,31 @@
-# protoboard-iso
+<p align="center"><img src="plugin-src/icon.png" width="96" alt=""></p>
+<h1 align="center">Protoboard ISO</h1>
+<p align="center"><strong>Breadboard circuits you can build, break and understand, from a sentence.</strong><br>Ask for a circuit. See it built on a breadboard, hole by hole, and running.</p>
+<p align="center"><a href="https://ccamilobedoya.github.io/protoboard-iso/">Live demo</a> · <a href="README.es.md">Español</a> · <a href="docs/en/README.md">Docs</a> · <a href="LICENSE">MIT licence</a></p>
 
-*[Leer en español](README.es.md)*
+![A speech bubble asks for "a red LED with its resistor on 9 V". Beside it, on a breadboard, a resistor, a red LED and a jumper come in one by one; the LED lights, dots of current run around the circuit, and "15.2 mA through the LED" appears under the bubble.](docs/img/hero.gif)
 
-**Breadboard circuits you can copy onto your own breadboard.** You say which parts and what is
-connected; the kit places every part in real holes at its real size, adds the jumpers, checks the
-circuit, draws it in isometric SVG and simulates it in a page you can embed in a lesson.
+## Start here
 
-![A 555 timer blinking an LED, laid out by the kit](docs/img/hero.png)
+Three ways in, from the easiest to the most technical.
 
-- **Drawn to scale**: resistors with their real colour bands, LEDs, capacitors, transistors,
-  regulators, chips, development boards (ESP32, Arduino UNO), batteries. Front and back views.
-- **Checked**: from the holes alone the kit knows what is connected, and warns about shorted
-  strips, occupied holes, leads that cannot reach and parts that overlap.
-- **Simulated** (a model, and labelled as one): voltages, currents, an oscilloscope, LEDs that
-  light up, warnings when a part is pushed past its limits, even an Arduino sketch running.
-- **Made for assistants**: a plugin with one skill (the kit inside), an MCP server and three agents, so an AI
-  assistant describes the circuit and the kit does the geometry. It never computes a hole by hand.
-- **No dependencies**: plain JavaScript, Node ≥ 22 or a browser. English and Spanish.
+**Just look.** Open the [live demo](https://ccamilobedoya.github.io/protoboard-iso/): every
+ready-made circuit as a page you can play with. Tap a part, press *Current*, turn the board around.
+Nothing to install.
 
-**Live demo:** [every recipe as a live page](https://ccamilobedoya.github.io/protoboard-iso/)
-(tap a part, press *Current*, turn the board around).
+**With Claude, no terminal.** In the Claude app, go to Customize → Plugins → Add → Add marketplace,
+paste this repository's URL, `https://github.com/ccamilobedoya/protoboard-iso`, and install
+*Protoboard ISO*. It needs code execution turned on in the app. Then ask in your own words:
 
-**In use:** [ohmio.dev](https://ohmio.dev/) teaches electronics with circuits drawn and simulated
-by this kit.
+> a red LED with its resistor on 9 V
 
-## Try it in a minute
+For the live board **inside** the conversation in Claude Desktop there is an optional extension, a
+`.mcpb` file, attached to the [releases](https://github.com/ccamilobedoya/protoboard-iso/releases)
+from the first published release on. Install it with a double click, then switch it on in the
+extension's settings ([details](docs/en/mcp.md#claude-desktop-with-one-click)).
 
-You need [Node.js](https://nodejs.org/) 22 or newer. Check it with `node --version`: it must print
-`v22` or higher.
+**With a terminal.** You need [Node.js](https://nodejs.org/) 22 or newer: `node --version` must
+print `v22` or higher.
 
 <!-- smoke -->
 ```bash
@@ -36,27 +34,63 @@ cd protoboard-iso                      # nothing to install
 node bin/protoboard-iso.js layout my-led --recipe led-resistor --values '{"R1":"470","D1":"green"}'
 ```
 
-That lays out an LED with its resistor from a **recipe**, reviews it, and writes `my-led/`: the
-circuit (`circuit.json`), its history, and `out/my-led.html`, a single page with the drawing and
-the live simulation. The command prints where the page is (`Page: …`): open that file by
-double-clicking it, or drag it into a browser. Then:
-
-<!-- smoke -->
-```bash
-node bin/protoboard-iso.js simulate my-led          # voltages and currents, as text
-node bin/protoboard-iso.js render my-led --view back # the drawing from the other side
-node bin/protoboard-iso.js review my-led             # APPROVED or CHANGES, and why
-```
-
-On Windows PowerShell the quotes of `--values` do not reach the program the same way (Windows
-PowerShell 5.1 strips the inner double quotes). Pass the same JSON through standard input
-instead, which works in every shell:
+That builds an LED with its resistor from a **recipe** (a ready-made circuit by name), checks it,
+and writes `my-led/` with `out/my-led.html`: one page with the drawing and the live simulation. The
+command prints where the page is (`Page: …`): double-click that file, or drag it into a browser.
+On Windows PowerShell, pass the same values through standard input instead:
 
 ```powershell
 '{"recipe":"led-resistor","values":{"R1":"470","D1":"green"}}' | node bin/protoboard-iso.js layout my-led -
 ```
 
-## From a description to a lesson
+## What you can ask
+
+- "a red LED with its resistor on 9 V"
+- "make the resistor 1k"
+- "a red LED on 9 V with 15 mA through the LED"
+- "an Arduino UNO blinking an LED, with its sketch"
+- "what is this part, and which leg is which?"
+- "fix it", after a warning
+
+The kit does what you ask even when it is a bad idea, and tells you what would burn and how to fix
+it: that is how one learns.
+
+## What you get
+
+| | | |
+|---|---|---|
+| ![A 555 timer blinking an LED, laid out by the kit](docs/img/hero.png)<br>**On the breadboard.** Every part in real holes, at its real size, with its jumpers: copy it onto yours. | ![The live page: an LED tapped, with its voltage, current, brightness and oscilloscope](docs/img/live-page.png)<br>**Running.** One page with the simulation: tap a part for its voltage, current and oscilloscope. | ![The LED and its resistor, the board seen from the other side, labelled R1 · 330 Ω and D1 · red](docs/img/led-resistor.back.png)<br>**From the other side.** The board turned around, labelled, so nothing hides behind a part. |
+
+And an honest answer. An Arduino driving a buzzer directly from a pin
+([the circuit](test/fixtures/kit-first/buzzer-on-pin.json)), as `layout` reports it:
+
+```text
+Review (lesson): APPROVED WITH WARNINGS.
+As wired, this would damage:
+  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA, with D10 high.
+To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.4 mA (maximum 40 mA).
+```
+
+## Recipes
+
+Usual lesson circuits come ready by name, with only the values you change
+([all the recipes](docs/en/recipes.md)):
+
+| | | |
+|---|---|---|
+| ![npn-switch](docs/img/recipes/npn-switch.png)<br>`npn-switch`: a button and a transistor switch an LED | ![regulator-7805](docs/img/recipes/regulator-7805.png)<br>`regulator-7805`: a linear regulator and a pilot LED | ![bridge-rectifier](docs/img/recipes/bridge-rectifier.png)<br>`bridge-rectifier`: a bridge, a filter capacitor, a sine in |
+| ![opamp-noninverting](docs/img/recipes/opamp-noninverting.png)<br>`opamp-noninverting`: an LM358 amplifier | ![esp32-led](docs/img/recipes/esp32-led.png)<br>`esp32-led`: an ESP32 running a blink sketch | ![uno-pot-pwm](docs/img/recipes/uno-pot-pwm.png)<br>`uno-pot-pwm`: an Arduino UNO dims an LED from a potentiometer |
+
+Also: `led-resistor`, `divider`, `potentiometer-led`, `mosfet-switch`, `button-pullup`,
+`button-pulldown`, `rc-square`, `555-astable`, `regulator-ams1117`, `zener-regulator`,
+`esp32-button`, `opamp-comparator`, `lm393-comparator`, `opamp-follower`, `opamp-inverting`,
+`uno-blink`, `uno-button`, `c3-blink`, `c3-pot-pwm`.
+
+More circuit files, each with what it shows: [examples/](examples/README.md).
+
+## How it works
+
+From a description to a lesson, in six steps:
 
 | 1. Describe | 2. Placed and drawn | 3. Checked |
 |---|---|---|
@@ -89,34 +123,34 @@ sit in an iframe or a notes app ([embedding](docs/en/embedding.md)). Tap a part 
 its values, an oscilloscope and what each value means; sliders change resistors, supplies and
 sensors while it runs.
 
-![The live page: an LED tapped, with its voltage, current, brightness and oscilloscope](docs/img/live-page.png)
+## For developers
 
-## Recipes
+<details>
+<summary><strong>The command line</strong></summary>
 
-Usual lesson circuits come ready by name, with only the values you change
-([all the recipes](docs/en/recipes.md)):
+`node bin/protoboard-iso.js <command>`: `layout`, `check`, `render`, `inspect`, `simulate`, `page`,
+`review`, `query`, `suggest`, `apply`, `undo`, `history`. Run it with no arguments for the full
+list. After the circuit of [Start here](#start-here), `my-led/` also holds the circuit
+(`circuit.json`) and its history. Then:
 
-| | | |
-|---|---|---|
-| ![npn-switch](docs/img/recipes/npn-switch.png)<br>`npn-switch`: a button and a transistor switch an LED | ![regulator-7805](docs/img/recipes/regulator-7805.png)<br>`regulator-7805`: a linear regulator and a pilot LED | ![bridge-rectifier](docs/img/recipes/bridge-rectifier.png)<br>`bridge-rectifier`: a bridge, a filter capacitor, a sine in |
-| ![opamp-noninverting](docs/img/recipes/opamp-noninverting.png)<br>`opamp-noninverting`: an LM358 amplifier | ![esp32-led](docs/img/recipes/esp32-led.png)<br>`esp32-led`: an ESP32 running a blink sketch | ![uno-pot-pwm](docs/img/recipes/uno-pot-pwm.png)<br>`uno-pot-pwm`: an Arduino UNO dims an LED from a potentiometer |
+<!-- smoke -->
+```bash
+node bin/protoboard-iso.js simulate my-led          # voltages and currents, as text
+node bin/protoboard-iso.js render my-led --view back # the drawing from the other side
+node bin/protoboard-iso.js review my-led             # APPROVED or CHANGES, and why
+```
 
-Also: `led-resistor`, `divider`, `potentiometer-led`, `mosfet-switch`, `button-pullup`,
-`button-pulldown`, `rc-square`, `555-astable`, `regulator-ams1117`, `zener-regulator`,
-`esp32-button`, `opamp-comparator`, `lm393-comparator`, `opamp-follower`, `opamp-inverting`,
-`uno-blink`, `uno-button`, `c3-blink`, `c3-pot-pwm`.
+The quotes of `--values` do not reach the program the same way in Windows PowerShell 5.1 (it
+strips the inner double quotes): standard input, as in Start here, works in every shell.
+[Agent interface](docs/en/agent-interface.md) explains how a circuit is changed with operations
+instead of being rewritten.
 
-More circuit files, each with what it shows: [examples/](examples/README.md).
+</details>
 
-## Three ways to use it
+<details>
+<summary><strong>The MCP server</strong> (Claude Code, Claude Desktop and other MCP clients)</summary>
 
-**Command line.** `node bin/protoboard-iso.js <command>`: `layout`, `check`, `render`,
-`inspect`, `simulate`, `page`, `review`, `query`, `suggest`, `apply`, `undo`, `history`. Run it
-with no arguments for the full list. [Agent interface](docs/en/agent-interface.md) explains how a
-circuit is changed with operations instead of being rewritten.
-
-**MCP server** (Claude Code, Claude Desktop and other MCP clients). In this repository,
-`.mcp.json` already registers it; elsewhere:
+In this repository, `.mcp.json` already registers it; elsewhere:
 
 ```bash
 cd mcp && npm install && cd ..
@@ -127,32 +161,63 @@ claude mcp add protoboard-iso -e PROTOBOARD_ROOT="$HOME/circuits" -- node "$PWD/
 Then ask for a circuit in plain words ("an LED with its resistor on 9 V"). Setup, the tools and
 the Claude Desktop configuration (Windows paths included): [docs/en/mcp.md](docs/en/mcp.md).
 
-**Plugin with the skill** (the Claude apps and Claude Code; no terminal needed in the apps). The
-plugin in [plugin/](plugin/README.md) holds one skill with the kit inside: it runs where the
-assistant runs code, with Node ≥ 22 and nothing to install. In the Claude app, add the marketplace
-by this repository's URL (`https://github.com/ccamilobedoya/protoboard-iso`) and install
+</details>
+
+<details>
+<summary><strong>The plugin and the desktop extension</strong>, in detail</summary>
+
+**Plugin with the skill** (the Claude apps and Claude Code). The plugin in
+[plugin/](plugin/README.md) holds one skill with the kit inside: it runs where the assistant runs
+code, with Node ≥ 22 and nothing to install. In the Claude app, add the marketplace by this
+repository's URL (`https://github.com/ccamilobedoya/protoboard-iso`) and install
 `protoboard-iso`; in Claude Code, `/plugin marketplace add ccamilobedoya/protoboard-iso`, then
-`/plugin install protoboard-iso@protoboard-iso`. For circuit work the
-repository also has three agents in `.claude/agents/` (one lays out, one reviews, one adds parts):
-[agents](docs/en/agents.md).
+`/plugin install protoboard-iso@protoboard-iso`.
 
 **Desktop extension** (Claude Desktop; optional, no terminal). The plugin works by itself; the
 extension adds the live board inside the conversation, where you tap a part or move a slider. It
-is the MCP server in one file (`.mcpb`, an MCP Bundle) with everything it needs: download
-`protoboard-iso-<version>.mcpb` from the
+is the MCP server in one file (`.mcpb`, an MCP Bundle) with everything it needs. From the first
+published release on, download `protoboard-iso-<version>.mcpb` from the
 [releases](https://github.com/ccamilobedoya/protoboard-iso/releases), double-click it, choose
 the folder for your circuits, switch the extension on in its settings (it installs switched off)
 and ask for a circuit. The install warning about access to the computer is the app's, shown for
 every local extension. Details: [Claude Desktop with one click](docs/en/mcp.md#claude-desktop-with-one-click).
 
-**As a library**, in Node or a browser:
+</details>
+
+<details>
+<summary><strong>As a library</strong>, in Node or a browser</summary>
 
 ```js
 import { renderCircuit } from './src/index.js';
 const { svg, issues } = renderCircuit(circuit, { view: 'front', lang: 'en' });
 ```
 
+</details>
+
+<details>
+<summary><strong>Agents</strong> for circuit work</summary>
+
+The repository has three agents in `.claude/agents/`: one lays out, one reviews, one adds parts.
+How to run them and their brief formats: [agents](docs/en/agents.md).
+
+</details>
+
 ## What it is and is not
+
+- **Drawn to scale**: resistors with their real colour bands, LEDs, capacitors, transistors,
+  regulators, chips, development boards (ESP32, Arduino UNO), batteries. Front and back views.
+- **Checked**: from the holes alone the kit knows what is connected, and warns about shorted
+  strips, occupied holes, leads that cannot reach and parts that overlap.
+- **Simulated** (a model, and labelled as one): voltages, currents, an oscilloscope, LEDs that
+  light up, warnings when a part is pushed past its limits, even an Arduino sketch running.
+- **Made for assistants**: a plugin with one skill (the kit inside), an MCP server and three
+  agents, so an AI assistant describes the circuit and the kit does the geometry. It never
+  computes a hole by hand.
+- **No dependencies**: plain JavaScript, Node ≥ 22 or a browser. English and Spanish.
+- **In use**: [ohmio.dev](https://ohmio.dev/) teaches electronics with circuits drawn and
+  simulated by this kit.
+
+And what it is not:
 
 - The simulation is a **model**, not a measurement: every result says so. It is good for seeing
   why an LED needs a resistor or how a capacitor charges; it is not a replacement for SPICE.
@@ -204,7 +269,8 @@ and the Spanish documentation follows the English. `CLAUDE.md` has the rules of 
 one of them: no personal data, private paths or private hostnames in anything committed.
 
 The pictures in this README are drawn by the kit: `npm install` (development only), then
-`node scripts/readme-images.js`.
+`node scripts/readme-images.js`. The animation is recorded by the kit too: `npm run readme-gif`
+(it also needs ffmpeg).
 
 ## Credits
 

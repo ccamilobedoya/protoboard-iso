@@ -30,10 +30,13 @@ export function slugs(markdown) {
   return out;
 }
 
-// The relative links of a Markdown file, outside code: [text](target) and ![alt](target).
+// The relative links of a Markdown file, outside code: [text](target), ![alt](target), and the
+// src and href of the HTML a README's header or a gallery uses.
 export function links(markdown) {
   const text = markdown.replace(/^```[\s\S]*?^```/gm, '').replace(/`[^`\n]*`/g, '');
-  return [...text.matchAll(/\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)].map((m) => m[1]).filter((l) => !/^[a-z][a-z0-9+.-]*:/i.test(l));
+  const md = [...text.matchAll(/\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)].map((m) => m[1]);
+  const html = [...text.matchAll(/<(?:img|a)\s[^>]*?\b(?:src|href)="([^"]+)"/g)].map((m) => m[1]);
+  return [...md, ...html].filter((l) => !/^[a-z][a-z0-9+.-]*:/i.test(l));
 }
 
 test('docs: every relative link and anchor of the Markdown files resolves', () => {
@@ -65,6 +68,7 @@ test('docs: slugs as GitHub makes them', () => {
   assert.ok(s.has('notas') && s.has('notas-1'));
   assert.ok(!s.has('not-a-heading'));
   assert.deepEqual(links('[a](docs/x.md#y) ![i](img/a.png) [w](https://x.org) `[c](no.md)`'), ['docs/x.md#y', 'img/a.png']);
+  assert.deepEqual(links('<p align="center"><img src="icon.png" width="96" alt=""> <a href="README.es.md">Español</a> <a href="https://x.org">w</a></p>'), ['icon.png', 'README.es.md']);
 });
 
 // Two style rules the documents keep (markdownlint's others fight the repository's style: a bold
