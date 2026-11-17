@@ -814,6 +814,7 @@ export default {
   'cli.written': 'Escrito {file} ({parts} componentes, {issues} observaciones).',
   'cli.page': 'Página: {file} (ábrela en un navegador)',
   'cli.pngMissing': 'El PNG no está disponible en esta instalación: el SVG y la página sí. Usa un nombre .svg.',
+  'cli.pngClone': 'En un clon del kit, cd mcp && npm install lo agrega.',
   'mcp.pngMissing': 'El PNG no está disponible en esta instalación: el SVG y la página sí.',
   'cli.pngWidthNeedsPng': '--png-width solo aplica cuando el nombre de salida termina en .png.',
   'cli.noIssues': 'Sin problemas.',

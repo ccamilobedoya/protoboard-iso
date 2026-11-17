@@ -95,7 +95,8 @@ function readOps(args, source) {
 }
 
 // The rasteriser may be where the MCP install put it (cd mcp && npm install).
-rasterSearchIn(join(dirname(fileURLToPath(import.meta.url)), '..', 'mcp'));
+const MCP_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'mcp');
+rasterSearchIn(MCP_DIR);
 
 const args = parseArgs(process.argv.slice(2));
 const [command, target, extra, extra2] = args._;
@@ -203,7 +204,8 @@ if (command === 'layout') {
   const wantsPng = extname(out).toLowerCase() === '.png';
   if (wantsPng) {
     if (!(await rasterAvailable())) {
-      console.error(t(lang, 'cli.pngMissing'));
+      // Only a clone has mcp/ beside bin/ (the plugin and the extension do not): there, say how to get PNG.
+      console.error(`${t(lang, 'cli.pngMissing')}${existsSync(join(MCP_DIR, 'package.json')) ? ` ${t(lang, 'cli.pngClone')}` : ''}`);
       fail(1);
     }
     writeFileSync(out, await svgToPng(svg, { width: args.pngWidth ?? 900 }));

@@ -14,7 +14,7 @@
 // never redistributed, and without it the server answers a PNG request with its usual message.
 
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { listTree } from './pack-skill.js';
@@ -129,7 +129,11 @@ function installDependencies(dir) {
   const lock = JSON.parse(readFileSync(join(work, 'package-lock.json'), 'utf8')).packages;
   const installed = Object.keys(lock).filter((p) => p && existsSync(join(work, p, 'package.json')));
   const wrong = installed.filter((p) => lock[p].dev || lock[p].optional);
-  if (existsSync(join(work, 'node_modules/@resvg'))) wrong.push('node_modules/@resvg');
+  // npm 10 leaves the omitted package's scope folder behind, empty: only a folder with something in it
+  // is the rasteriser. The empty one is dropped so the bundle has no trace of it.
+  const scope = join(work, 'node_modules/@resvg');
+  if (existsSync(scope) && readdirSync(scope).length) wrong.push('node_modules/@resvg');
+  else if (existsSync(scope)) rmdirSync(scope);
   if (wrong.length) throw new Error(`not production dependencies: ${wrong.join(', ')}`);
   cpSync(join(work, 'node_modules'), join(dir, 'mcp/node_modules'), { recursive: true, filter: (from) => !/[\\/]node_modules[\\/]\.bin$/.test(from) });
   return installed.length;

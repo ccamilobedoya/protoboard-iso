@@ -56,7 +56,7 @@ test('cli: render to a .png name writes a real PNG or fails, never SVG text unde
   } else {
     assert.notEqual(r.status, 0);
     assert.match(r.stderr, /not available in this install: the SVG and the page are/);
-    assert.doesNotMatch(r.stderr, /npm install/, 'a hint that makes no sense inside the desktop extension');
+    assert.match(r.stderr, /cd mcp && npm install/, 'in a clone (mcp/ beside bin/) the message says how to get PNG');
     assert.ok(!existsSync(out) || readFileSync(out).subarray(0, 8).equals(PNG), 'no SVG text in a .png');
   }
 });
