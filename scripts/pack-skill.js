@@ -51,6 +51,8 @@ export function packTo(dir) {
   const copies = [
     ['plugin-src/README.md', 'README.md'],
     ['LICENSE', 'LICENSE'],
+    // The listing's icon: a square PNG where the apps look for it (drawn from plugin-src/icon.svg).
+    ['plugin-src/icon.png', '.claude-plugin/icon.png'],
     ['plugin-src/SKILL.md', `${skill}/SKILL.md`],
     ...listTree(join(SOURCE, 'references')).map((f) => [`plugin-src/references/${f}`, `${skill}/references/${f}`]),
     ...kitFiles().map(([from, to]) => [from, `${skill}/${to}`]),

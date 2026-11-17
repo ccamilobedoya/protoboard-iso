@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>protoboard-iso</title>
+  <rect width="32" height="32" rx="6" fill="#151a21"/>
+  <path d="M10 24h2v6h-2zM20 24h2v4h-2z" fill="#c9c3b4"/>
+  <path d="M8 20V13a8 8 0 0 1 16 0v7z" fill="#4fd17a"/>
+  <rect x="6" y="20" width="20" height="4" rx="1" fill="#4fd17a"/>
+  <path d="M12 13a4 4 0 0 1 4-4" fill="none" stroke="#d9f7e2" stroke-width="2" stroke-linecap="round"/>
+</svg>

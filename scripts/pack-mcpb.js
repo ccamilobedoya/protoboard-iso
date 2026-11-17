@@ -74,6 +74,7 @@ export function manifestFor(tools) {
     support: pkg.bugs.url,
     license: pkg.license,
     keywords: ['breadboard', 'electronics', 'circuit', 'simulation', 'education'],
+    icon: 'icon.png',
     server: {
       type: 'node',
       entry_point: ENTRY_POINT,
@@ -107,7 +108,8 @@ export function bundleFiles() {
   const src = listTree(join(root, 'src'))
     .filter((f) => !f.endsWith('.md'))
     .map((f) => `src/${f}`);
-  return ['LICENSE', ...mcp, ...src].map((f) => [f, f]);
+  // The icon is the plugin's (plugin-src/icon.png), at the bundle's root as the manifest says.
+  return [...['LICENSE', ...mcp, ...src].map((f) => [f, f]), ['plugin-src/icon.png', 'icon.png']];
 }
 
 // The bundle's package.json: src/ is ES modules, which Node reads from the nearest package.json.

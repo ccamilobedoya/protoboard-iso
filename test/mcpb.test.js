@@ -86,7 +86,8 @@ test("mcpb: the manifest's tools are the server's, without those only the viewer
 test('mcpb: the server and the kit it imports, nothing of tests, docs, examples, the plugin or the rasteriser', { skip: noDeps && 'mcp/node_modules is missing: cd mcp && npm install' }, async () => {
   const { files } = await bundle();
   const top = [...new Set(files.map((f) => f.split('/')[0]))].sort();
-  assert.deepEqual(top, ['LICENSE', 'manifest.json', 'mcp', 'package.json', 'src']);
+  assert.deepEqual(top, ['LICENSE', 'icon.png', 'manifest.json', 'mcp', 'package.json', 'src']);
+  assert.equal(packed.manifest.icon, 'icon.png');
   const banned = files.filter((f) => /^(test|docs|examples|plugin|plugin-src|scripts|bin|schema|mcp\/test)\//.test(f) || f.includes('node_modules/@resvg') || f.endsWith('.md'));
   assert.deepEqual(banned, []);
   for (const f of ['mcp/server.js', 'mcp/core.js', 'mcp/tools.js', 'mcp/app.js', 'mcp/kit-worker.js', 'mcp/package.json', 'src/index.js']) assert.ok(files.includes(f), f);
