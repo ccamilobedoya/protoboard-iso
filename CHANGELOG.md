@@ -9,6 +9,10 @@ detail.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-17
+
+The kit inside a plugin: one short skill that carries the kit and runs where an assistant runs code, with a desktop extension for the live board in the conversation. `layout` answers with the readings, a board's program, what can change, what was checked, a goal solved with the simulator and the computed fix of a hazard; it takes any part order, a trial that saves nothing and `--fix`. Hazards are read with each control and each program output operated.
+
 ### Added
 
 - The README (en/es) rewritten for people first: a centred header, an animation recorded by the kit (`docs/img/hero.gif`, `hero.es.gif`; `npm run readme-gif`, `scripts/readme-gif.js`, timeline `examples/tours/readme-hero.json`), *Start here* in three doors, what you can ask, what you get, and the developer material in collapsible sections. `render-frames.js --no-captions` no longer fails the first frame for a caption it does not draw.
@@ -601,7 +605,8 @@ what it uses.
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.11.1...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.11.1...v0.12.0
 [0.11.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.9.1...v0.10.0
