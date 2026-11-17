@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
 import { applyOps, OP_NAMES, evaluate, diffEvaluations, PART_TYPES } from '../src/index.js';
 import { applyToTarget, undoTarget, readHistory, resolveTarget, loadCircuit } from '../src/node/workspace.js';
 import { buildSchemas } from '../src/schema.js';
@@ -62,7 +62,7 @@ test('the diff says what a change fixes and what it breaks', () => {
 });
 
 function workspace() {
-  const dir = mkdtempSync(join(tmpdir(), 'protoboard-iso-'));
+  const dir = tempDir('protoboard-iso-');
   const target = join(dir, 'led');
   mkdirSync(target);
   writeFileSync(join(target, 'circuit.json'), JSON.stringify(example('led-resistor.json')));

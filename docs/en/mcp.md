@@ -58,6 +58,40 @@ course folder), point it at that folder.
 **Other clients:** a stdio server with command `node`, argument the absolute path of
 `mcp/server.js` and the environment above.
 
+### Claude Desktop with one click
+
+The desktop extension is this server in one file that Claude Desktop installs, with what it needs
+inside (no clone, no `npm install`, no configuration file). With it the circuit's live board shows
+up inside the conversation ([mcp-apps.md](mcp-apps.md)).
+
+1. Download `protoboard-iso-<version>.mcpb` from the repository's
+   [releases](https://github.com/ccamilobedoya/protoboard-iso/releases) (`SHA256SUMS` beside it
+   has its checksum).
+2. Double-click it (or drag it onto **Settings > Extensions** in Claude Desktop) and confirm the
+   install.
+3. Choose the **circuits folder**: where your circuits are saved; the kit reads and writes only
+   there. The default is a `Protoboard` folder in your documents; it is created with the first
+   circuit if it does not exist.
+4. **Switch the extension on**, in the extension's settings: Claude Desktop installs it switched off.
+5. In a new conversation, ask for a circuit ("an LED with its resistor on 9 V").
+
+The install dialog warns that the extension gets access to everything on the computer. Claude Desktop
+shows that warning for every local extension, whatever it does. This one, in its code, reads and
+writes only inside the circuits folder (a path outside it is refused) and makes no network requests;
+the warning is the app's, not something this extension asks for beyond that. The MCPB specification
+has no manifest field to switch an extension on at install or to change the warning, and signing a
+bundle is not documented as changing either ([MANIFEST.md](https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md),
+[CLI.md](https://github.com/modelcontextprotocol/mcpb/blob/main/CLI.md)).
+
+The extension runs on the Node.js that Claude Desktop brings, so nothing else is installed; it sets
+`PROTOBOARD_APPS=on`, since it is only for a host that shows the board. It does not carry the
+optional PNG rasteriser (`render` with `png_width` answers that PNG is not available in this install,
+and that the SVG and the page are; the board and the pages do not need it). The release builds it (`scripts/pack-mcpb.js` with the official `mcpb`
+CLI); a clone builds the same folder with `npm run pack-mcpb -- --out <dir>`.
+
+The manual configuration below is the alternative: for a clone you change, or to set
+`PROTOBOARD_LANG`.
+
 ### Claude Desktop
 
 Open the file from **Settings > Developer > Edit Config** (it creates `claude_desktop_config.json`
@@ -107,16 +141,16 @@ Each circuit is a folder under the root; the page of each is `out/<name>.html` i
 | `inspect` | the drawing in numbers; `part` for one part only | no |
 | `query` | `kind: at \| node \| free` with `ref` | no |
 | `netlist` | the circuit as nets: groups joined by wires, the pins on each (`R1.1@d20`), labels, pins alone on a net | no |
-| `layout` | a usual lesson circuit by name: `recipe` and only the `values` that change ([recipes.md](recipes.md)); otherwise a whole circuit placed in one call from its parts (no holes, signal order; part numbers, modules and aliases) and nets (pins and rails; usual pin names work: `D1.K`, `U1.VIN`, `U1.GPIO4`): layers by distance from the source, rules per part kind, jumpers, ground nets to a − rail, the nets check and the lesson review, laid out again and repaired jumper by jumper. On an existing target, laid out again as one revision with the new nets and, if parts change, the full parts list (`expect_revision`; parts keep their holes; `undo` restores). The nets stay in the circuit (`spec`). Ends in `STATUS: DONE \| WARNINGS \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` only checks. The algorithm: [layout.md](layout.md) | yes |
+| `layout` | a usual lesson circuit by name: `recipe` and only the `values` that change ([recipes.md](recipes.md)); otherwise a whole circuit placed in one call from its parts (no holes, any order: the order given first, then the orders the nets give; part numbers, modules and aliases) and nets (pins and rails; usual pin names work: `D1.K`, `U1.VIN`, `U1.GPIO4`): layers by distance from the source, rules per part kind, jumpers, ground nets to a − rail, the nets check and the lesson review, laid out again and repaired jumper by jumper. On an existing target, laid out again as one revision with the new nets and, if parts change, the full parts list (`expect_revision`; parts keep their holes; `undo` restores). The nets stay in the circuit (`spec`). Ends in `STATUS: DONE \| WARNINGS \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` only checks; `dry_run` is a trial: the same answer and `STATUS`, ending `Trial: nothing was saved.`, nothing written and no board shown (to try an idea before it reaches the circuit); `fix: true` alone on a circuit made by `layout` applies the kit's computed fix (`To fix it`) as one revision and says `Applied the fix: …`. The algorithm: [layout.md](layout.md) | yes |
 | `suggest` | valid placements for a new part, each with its `add` operation and the nearest body (`nearest`: part and gap); `profile` also leaves out what that review blocks; `parts` places several in order and answers one batch | no |
 | `apply_ops` | atomic batch; `dry_run` first, then `expect_revision`, `author`, `note` | yes |
 | `try_ops` | the same batch as a dry run only: what it would fix and introduce; for read-only roles (the reviewer) | no |
 | `undo` | undo the latest change (new revision) | yes |
-| `review` | APPROVED, APPROVED WITH WARNINGS (`hazards`: parts the DC simulation takes past a maximum; they do not block) or CHANGES from measurements, profile `lesson` or `draft`; each blocking item names its `parts` and `views`; `explain: true` adds the profile's rules; a circuit with `spec` also gets its nets checked | no |
+| `review` | APPROVED, APPROVED WITH WARNINGS (`hazards`: parts the DC simulation takes past a maximum, at rest, with one control operated or with one output of a board's program high; they do not block; then the kit's computed fix, `fix`, or `noFix`, and the `checked` line of what was and was not checked) or CHANGES from measurements, profile `lesson` or `draft`; each blocking item names its `parts` and `views`; `explain: true` adds the profile's rules; a circuit with `spec` also gets its nets checked | no |
 | `history` | revisions, authors, notes, operations | no |
 | `render` | writes the SVG; `png_width` also returns a PNG image; `page: true` rewrites the embeddable page ([embedding.md](embedding.md)); `sim: true` draws the simulation results; `focus: [ids]` dims the rest; `flow: true` the current layer | outputs only |
 | `simulate` | node voltages and part currents, a model ([simulation.md](simulation.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` adds the link that opens the circuit in Falstad ([falstad.md](falstad.md)) | no |
-| `catalog` | without `name`: a compact list (types grouped by family, each with its pins and its first part numbers, `… (+N more)` for the rest; modules, batteries, boards, views, operations); and the recipes as names by group (`catalog` with the recipe's name gives its title, parts, nets and values); with `name` (a type, part number, module or recipe): pins, package, the fields it takes and a real part from `examples/` to copy (for a recipe, its parts, nets and values with their limits); `format: "json"` without `name`: every registry in full | no |
+| `catalog` | without `name`: a compact list (types grouped by family, each with its pins and its first part numbers, `… (+N more)` for the rest; modules, batteries, boards, views, operations); and the recipes as names by group (`catalog` with the recipe's name gives its title, parts, nets and values); with `name` (a type, part number, module or recipe): pins, package, the fields it takes and a real part from `examples/` to copy, and for a part what its card in the page says it is (`about`), what each pin does (`pinRoles`) and the limits the simulator checks it against (`limits`: rated and maximum values with their units; `limitFields`, the fields they follow, as a resistor's `power`) (for a recipe, its parts, nets and values with their limits); `format: "json"` without `name`: every registry in full | no |
 
 **Groups by pin.** Wherever a tool takes a group (`suggest`'s `between` and `connect`,
 `query node`), a pin of a part already placed names the group it is in: `"R1.2"`, `"U1.OUT"`.
@@ -129,7 +163,7 @@ Every tool answers in readable text, or JSON with `format: "json"`. Errors come 
 errors with a readable message (`isError`), never as a crash. Read-only tools are annotated
 `readOnlyHint`, so clients can allow them without asking.
 
-The server also sends **instructions**, the same guide as `SKILL.md` in a few lines: which tool for
+The server also sends **instructions**, the same guide as the plugin's skill (`plugin-src/SKILL.md`) in a few lines: which tool for
 which task (recipes first: a usual lesson circuit → `layout` with `recipe`; another new circuit → `layout`; other connections in a circuit made by `layout` → `layout`
 again; a value or a fix → `apply_ops`), what each `STATUS:` means, the operations loop, how to check
 (`review`, `netlist`, `simulate`, never showing a value to predict), the holes, and the page's

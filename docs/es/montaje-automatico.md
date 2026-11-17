@@ -13,8 +13,8 @@ Puntos de entrada; todos llaman a `autoLayout(spec, { profile, checkOnly })`:
 
 | Desde | Llamada |
 |---|---|
-| MCP | herramienta `layout` (`target`, `recipe` y `values`, o `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`) |
-| Consola | `node bin/protoboard-iso.js layout <objetivo nuevo> <spec.json \| -> [--check] [--json]`, o `--recipe <nombre> [--values '<json>']` (sale con 0 si queda listo, 2 si hay cambios) |
+| MCP | herramienta `layout` (`target`, `recipe` y `values`, o `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`, `dry_run`, `fix`) |
+| Consola | `node bin/protoboard-iso.js layout <objetivo nuevo> <spec.json \| -> [--check] [--dry-run] [--json]`, o `--recipe <nombre> [--values '<json>']`, o `layout <objetivo> --fix [--dry-run]` (sale con 0 si queda listo, 2 si hay cambios) |
 | Código | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'`; una receta pasa antes a especificación con `resolveRecipe` (`src/recipes/index.js`) |
 | Banco de pruebas | `npm run layout-bench [-- spec.json …]` (corre `examples/layout/*.json` y todas las recetas) |
 
@@ -41,7 +41,8 @@ especificación común antes de que corra todo lo de abajo.
 }
 ```
 
-- `parts`: sin `pins`, en el orden de la señal (el orden desempata, ver el paso 1). Un componente
+- `parts`: sin `pins`, en cualquier orden: el orden dado se prueba primero y desempata (paso 1), y
+  si deja algo por arreglar se prueban también los órdenes que dan las redes ([Cualquier orden](#cualquier-orden-los-órdenes-que-dan-las-redes-desde-el-2026-11-16)). Un componente
   es un tipo con sus campos, o solo una referencia, un módulo o un alias (`"7805"`, `"KCD1"`,
   `"UNO"`, `"resistencia"`): `resolvePart` (`src/parts/resolve.js`) completa el tipo.
 - `nets`: cada una, una lista de patas (`"D1.K"`; el nombre de la pata no distingue mayúsculas) y
@@ -74,8 +75,12 @@ anterior; solo pasa de uno a otro el conjunto de lugares prohibidos (`forbid`).
 Todo lo que una especificación puede tener mal, de una pasada y antes de ubicar nada: un `id` que
 falta o se repite, un nombre que el kit no conoce (con los más parecidos), un campo que el tipo
 del componente no usa (`UNKNOWN_FIELD`, de `strayFields` en `src/parts/fields.js`: `"state": "on"`
-en un interruptor, cuyo campo es `on`), una red que nombra un componente o una pata que no existe
-(con las patas que sí tiene) y un componente que no está en ninguna red (aviso). Con cualquier
+en un interruptor, cuyo campo es `on`), un campo que el tipo no sabe leer (el `resolve` del propio
+componente: el `"abc"` de una resistencia dice que lleva una resistencia como `330` o `4k7`, un color
+de LED que no existe lista los colores; un componente cableado pata por pata, `MODULE_PINS`, se deja
+a su colocación), una red que nombra un componente o una pata que no existe (con las patas que sí
+tiene; no para un componente cuyos campos no se pudieron leer) y un componente que no está en
+ninguna red (aviso). Con cualquier
 error no se ubica nada y vuelven todos los problemas juntos, así se corrigen en una sola ronda.
 `check_only` / `--check` se detiene aquí.
 
@@ -259,6 +264,50 @@ Rehacer el montaje es más simple y predecible que parcharlo: un intento tarda 0
 pasos que un intento repite del anterior no se vuelven a construir (las pruebas de geometría se
 recuerdan durante toda la llamada).
 
+### Cualquier orden: los órdenes que dan las redes (desde el 2026-11-16)
+
+El ciclo de reintentos de arriba repara un lugar a la vez; lo que no puede cambiar es el orden en que
+se ubican los componentes, y ese orden lo daba quien llama. El mismo circuito escrito de dos maneras
+podía terminar `DONE` de una y `CHANGES` de la otra (medido: una resistencia agregada en serie con un
+zumbador, escrita al final de los componentes y no antes del zumbador, sobre el circuito ya ubicado:
+`No cabe ningún cable` y la red del zumbador suelta). Las capas del paso 1 no ayudan ahí: una red de
+tierra que pasa por el pin `GND` de una placa hace a cada componente vecino de la placa, así que todos
+quedan en la capa 1 y decide el orden dado.
+
+Por eso `autoLayout` (`inAnyOrder`) monta primero en el orden dado, igual que antes: una
+especificación que termina `DONE` (o `WARNINGS`) queda tal cual y no cuesta nada más. Solo si termina
+`CHANGES` prueba los órdenes que dan las redes (`signalOrders`), cada uno ubicado tal como está (sin
+capas), y se queda con el mejor resultado: primero las redes y la revisión, luego los cables, luego
+las columnas. Los dos órdenes salen solo de las redes, así que son los mismos sea cual sea el orden en
+que vinieron los componentes:
+
+- **la fuente**: el componente del pin positivo de una fuente, si no una placa con microcontrolador,
+  si no el primer componente en un riel +, si no el primero en las redes;
+- **solo redes de señal**: una red con un riel, un pin de tierra o de alimentación (`GND`, `5V`,
+  `3V3`, `VIN`, `VCC`…) o un borne de una fuente alimenta etapas y no las encadena; solo alcanza
+  componentes a los que no llegan las redes de señal. Los empates van por dónde aparece primero un
+  componente en las redes;
+- **por distancia a la fuente**, las fuentes primero: `U1, R1…R7, DS1` (el display después de las
+  siete resistencias que lo alimentan);
+- **desde el otro extremo**: el recorrido en profundidad desde la fuente, al revés, así cada
+  componente va antes del que lo maneja y las patas de una placa caen en tiras que ya tienen sus
+  componentes: `BZ1, R3, D2, R2, D1, R1, U1`.
+
+La respuesta lo dice en una nota (`LAYOUT_ORDER_FROM_NETS`: «se montaron en el orden que dan sus
+redes (…)»), y `order` y `keepOrder` en el resultado dejan que un segundo montaje de la misma llamada
+(las metas de una receta) use otra vez ese orden.
+
+Medido sobre todas las recetas con sus componentes barajados (`test/layout-order.test.js` guarda una
+muestra de catorce, tres barajas con semilla cada una): donde el orden dado falla, uno de los dos
+termina `DONE`, salvo `esp32-distance` (en la protoboard doble solo terminan `DONE` los órdenes con el
+divisor antes del DevKit y el sensor después; la prueba la nombra). El banco no cambia: cada
+especificación termina igual, con la misma ubicación, porque todas terminan `DONE` en su propio orden.
+Un montaje que falla y se recupera cuesta sus intentos fallidos: 4,3 s en el caso medido de arriba
+(3,2 s de ellos, el orden dado que falla), contra 0,6 s con la resistencia escrita antes del
+zumbador; unos 9 s en la variante con transistor de ese circuito con su arreglo (nueve componentes y
+una placa). Sobre todas las recetas barajadas tres veces: 0,26 s en promedio donde el orden dado
+funciona, 2,3 s (a lo sumo 7 s) donde falla.
+
 ### Dos protoboards: un DevKit en las dos filas de pines (desde el 2026-10-31)
 
 El circuito impreso de un ESP32 DevKit mide unos 11 agujeros de ancho y sus filas de pines quedan a
@@ -324,14 +373,105 @@ eso:
   solo se vuelve a montar si la llamada da sus redes (si no, `LAYOUT_NO_SPEC`); entonces sus cables se
   dejan fuera, porque las redes ya dicen qué unen.
 
+**Aplicar el arreglo del kit** (`layout <objetivo> --fix`; en la herramienta MCP `fix: true`; desde
+el 2026-11-16). Sobre un circuito hecho con `layout`, el kit toma el arreglo que su revisión imprime
+para el circuito tal como está (`Para arreglarlo`, [simulacion.md](simulacion.md#el-arreglo)) y monta
+el circuito con él como una revisión (`fixRequest` en `src/layout.js`, `specWithFix` en
+`src/fix.js`): `set`, el valor nuevo de la resistencia (y el de la receta, en un circuito de receta);
+`add-series`, una resistencia nueva con el siguiente número R del circuito entre el pin y la red en
+la que estaba (`["U1.D10", "R3.1"]`, `["R3.2", "BZ1.1"]`), escrita justo antes del componente con
+el que queda en serie. La respuesta es la de cualquier `layout`, con una línea más antes de
+`STATUS:`: `Arreglo aplicado: R3 = 200 Ω en serie con BZ1.` (`Applied the fix: R3 = 200 Ω in series
+with BZ1.`); `--dry-run` lo vuelve un ensayo; `undo` devuelve el circuito (y su aviso). El kit nunca
+aplica un arreglo por su cuenta, solo con esta petición. Donde no hay nada que aplicar lo dice y no
+cambia nada: sin peligro (`LAYOUT_FIX_NONE`, no es un error: sale con 0), sin arreglo calculado
+(`LAYOUT_FIX_NO_FIX`: «El kit no tiene un arreglo calculado para esto.»), un circuito sin `spec`
+(`LAYOUT_FIX_NO_SPEC`), con una especificación o valores además (`LAYOUT_FIX_AND_SPEC`); los tres
+últimos salen con 1 (en la herramienta MCP: un error).
+
 Así el spec es el estado deseado: cambiar conexiones es dar redes nuevas y volver a llamar `layout`;
 valores, descripciones y retoques finos siguen siendo operaciones (`apply_ops`).
 
 ### La respuesta
 
 `{ status, circuit, placed: [{ id, type, pins, rails, shared }], wires, columns, problems, sequence,
-check, review, tries, ms }`; `formatLayout` la escribe para la consola y la herramienta MCP (textos
-`layout.*` en `src/i18n/`).
+check, review, tries, solved?, advice?, readings?, programs?, changeable?, ms }`; `formatLayout` la escribe para la
+consola y la herramienta MCP (textos `layout.*` en `src/i18n/`).
+
+Después del veredicto de la revisión y sus peligros (⚠), las líneas de peligro de la propia revisión:
+el arreglo calculado por el kit (`Para arreglarlo: …`, o «El kit no tiene un arreglo calculado para
+esto.»; JSON `review.fix`, `review.noFix`), qué hacer con ellos y, cuando el circuito quedó armado, la
+línea `Revisado`: lo que la revisión de peligros cubrió en este circuito y lo que no
+([simulacion.md](simulacion.md#el-arreglo); JSON `review.checked`):
+
+```text
+Tal como está conectado, esto dañaría:
+  ⚠ aviso: Por U1.D10 pasan 88,3 mA, más que su máximo de 40 mA, con D10 en alto.
+Para arreglarlo: una resistencia de 200 Ω en serie con BZ1 deja el pin D10 de U1 en 19,4 mA (máximo 40 mA).
+Déjalo así si mostrar la falla es la idea. Díselo al usuario antes de cambiar nada.
+Revisado: en reposo, 3 salidas del programa. No revisado: picos al conmutar, combinaciones de salidas del programa.
+```
+
+Cuando el circuito quedó armado (`DONE` o `WARNINGS`, un circuito nuevo o `layout` otra vez sobre
+uno), la respuesta dice además lo que necesita una respuesta al usuario, para que baste una llamada y
+cada número y opción que repita un asistente salga del kit (`src/layout-answer.js`). Después de las
+líneas de la revisión y antes de las de la página y `STATUS:`:
+
+```text
+Resuelto: R1 = 470 Ω (E24) para D1 a 15 mA: 15,2 mA simulados, 2 % por encima (valores vecinos: 430 Ω 16,6 mA · 510 Ω 14,1 mA)
+Para revisar: D1 queda al 107 % de su nominal de 20 mA con R1 = 330 Ω; con R1 = 360 Ω daría 19,7 mA.
+Lecturas (en reposo, un modelo): fuente 9 V · D1 20,6 mA, brillo 103 % del de 20 mA
+Programa U1 (sketch de Arduino):
+  // Blink: D13 on for half a second, off for half a second.
+  …
+Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitadora) · D1 = green · V1 = 9 V [1,5…15] · D1 current (una meta: {"D1":{"current":"15mA"}})
+```
+
+- **Resuelto** (`solved: [{ id, goal, target, values, result, error, hazard, reachable, neighbours, kept?, when? }]`):
+  solo cuando la llamada dio una meta de la receta ([recetas.md](recetas.md#metas-un-resultado-en-lugar-de-un-valor)):
+  los valores estándar elegidos, el resultado que da el simulador con ellos, a qué distancia de la
+  meta y de qué lado, los valores vecinos con sus resultados, `fuera de alcance` cuando ningún valor
+  estándar del rango llega. Las dos líneas de arriba nunca salen juntas: la primera es de una
+  llamada, la segunda de otra.
+- **Para revisar** (`advice: [{ id, goal, value, rated, knob, suggest }]`): solo sin meta en la llamada, para un
+  circuito de receta con `STATUS: DONE` y sus lecturas a la vista, cuyo componente con meta trabaja
+  por encima de su valor nominal: cuánto, y el valor estándar que lo dejaría lo más cerca del nominal
+  sin pasarlo. Solo información: no se cambia nada.
+- **Lecturas** (`readings: { sources: [{ id, kind, voltage, current }], parts: [{ id, kind, current,
+  brightness? }] }`): el punto de operación en DC del simulador, el que imprime `simulate`. Primero
+  las fuentes (una fuente de banco, una batería, el USB de una tarjeta), luego los componentes cuyo
+  trabajo es ser accionados: los LEDs (corriente y brillo), luego zumbadores, motores, bobinas de
+  relé y láseres. A lo sumo cuatro en el texto, y después cuántos más lista `simulate`. Se omiten
+  cuando el circuito no tiene fuente, el punto en DC no se puede resolver, una tarjeta corre un
+  programa (el programa decide qué se enciende; un punto en reposo en el tiempo cero engañaría), una
+  fuente es un generador (lo que importa es la señal, no su valor en reposo) o un temporizador está
+  armado como astable (nunca reposa: su TRIG y su THR comparten red con un condensador, y su DIS o su
+  OUT está en esa red o a una resistencia de ella, como en la receta `555-astable`; un temporizador
+  armado como monoestable o como detector conserva sus lecturas), y cuando la página oculta
+  los resultados (`page.simulation` o `page.results` en false: un valor que el aprendiz debe
+  predecir primero).
+- **Programa** (`programs: [{ part, text, truncated, file?, omitted? }]`): el sketch de cada tarjeta
+  tal como está guardado (el texto, o el archivo `.ino` junto al circuito, leído solo dentro de su
+  carpeta), cada línea con dos espacios de sangría. Pasadas 80 líneas o 4 000 caracteres, las
+  primeras 40 líneas y una línea que dice cuántas se dejaron fuera y dónde está el texto completo.
+  Todo salto de línea que pueda ver un lector (`\r`, `\u2028` y parecidos) termina ahí también una
+  línea, así que ninguna línea de un sketch puede pasar por la línea `STATUS:`.
+- **Se puede cambiar** (`changeable: [{ id, field, value, role?, min?, max?, choices? }]`): para un
+  circuito hecho con una receta, lo que la receta acepta, con el valor que tiene ahora el circuito,
+  su papel y sus opciones (`[a | b]`) o su rango (`[min…max]`); un programa es `(sketch)`, nunca su
+  texto. Los mismos límites que imprime `catalog <receta>`. Sus metas van al final (`{ id, goal, set, example }`), cada una con
+  los `values` que la piden.
+
+**Un ensayo** (`--dry-run`; en la herramienta MCP `dry_run: true`, la palabra que usa `apply_ops`):
+todo lo anterior, sobre el circuito como quedaría después de la llamada (un objetivo nuevo, o uno que
+ya existe montado otra vez), con la misma respuesta y el mismo `STATUS`, sin escribir nada: ni archivo
+del circuito, ni historial, ni página, ni revisión, ni carpeta de salidas; en un anfitrión MCP con el
+visor no se muestra tablero (como `try_ops`). Su última línea antes de `STATUS:` lo dice: `Ensayo: no
+se guardó nada.` (`Trial: nothing was saved.`); la línea de la página no va. Así se ensaya una idea que
+el kit no calculó (un arreglo propio de un asistente) antes de que llegue al circuito. Un ensayo que
+termina `CHANGES` dice lo que es en su línea `STATUS` (`tal como se ensayó, el circuito quedaría con
+… puntos marcados con ✖ arriba (no se creó nada)`), no que se creó un circuito. `check_only` /
+`--check` sigue revisando solo la especificación.
 
 `status` es el veredicto único de toda la respuesta, y el texto termina con él en su propia línea:
 quien lea solo la última línea (sobre todo un modelo pequeño) sabe qué hacer.
@@ -339,8 +479,8 @@ quien lea solo la última línea (sobre todo un modelo pequeño) sabe qué hacer
 | `STATUS:` | Significa | Sigue |
 |---|---|---|
 | `DONE` | están todas las redes, nada quedó sin ubicar y la revisión aprueba | reportar |
-| `WARNINGS` | armado y con las redes bien, pero un componente se dañaría tal como está conectado (⚠): la revisión es aprobada con avisos | decirle primero al usuario cuál componente y por qué se quema; dejarlo solo si esa es la idea, si no ofrecer el arreglo |
-| `CHANGES` | se creó, pero una red, una ubicación o la revisión dejaron algo (✖) | arreglar solo eso con `suggest` y `apply_ops`, luego `review` |
+| `WARNINGS` | armado y con las redes bien, pero un componente se dañaría tal como está conectado (⚠): la revisión es aprobada con avisos | decirle primero al usuario cuál componente y por qué se quema; dejarlo solo si esa es la idea, si no ofrecer el arreglo del kit (`Para arreglarlo`), o si no hay, ensayar antes una idea con `--dry-run` |
+| `CHANGES` | se creó, pero una red, una ubicación o la revisión dejaron algo (✖); en un ensayo no se creó nada | arreglar solo eso con `suggest` y `apply_ops`, luego `review`; tras un ensayo, probar otra idea o aplicar esta |
 | `FIX_SPEC` | no se creó nada: la especificación tiene errores | arreglar cada ✖ y volver a llamar |
 | `SPEC_OK` | `check_only`: la especificación es coherente | volver a llamar sin él |
 
@@ -468,7 +608,8 @@ En orden de lo que más rendiría:
    puede gastar sus intentos en una sola zona; prohibir una región pequeña, o rehacer solo los
    componentes posteriores a la víctima, convergería más rápido.
 4. **Una fuente, dos líneas.** Las capas salen de un solo componente, así que un circuito con dos
-   entradas o con realimentación se ubica en el orden dado después de la primera rama; los cursores
+   entradas o con realimentación se ubica en el orden dado después de la primera rama (los órdenes que
+   dan las redes se prueban solo si falla); los cursores
    nunca retroceden, así que un circuito largo crece a lo largo en sus dos mitades, sin una tercera
    línea de etapas.
 5. **El equilibrio entre mitades es suave.** Un circuito con todos sus rieles en una mitad se queda

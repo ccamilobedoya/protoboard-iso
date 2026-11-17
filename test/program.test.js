@@ -4,9 +4,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
 import { translateSketch } from '../src/sim/sketch.js';
 import { simulate, compile, createEngine } from '../src/sim/index.js';
 import { autoLayout } from '../src/layout.js';
@@ -102,7 +102,7 @@ test('a button read by the program lights an LED; the engine steps it as the pag
 });
 
 test('the program as a .ino file beside the circuit; a missing one is reported', () => {
-  const folder = mkdtempSync(join(tmpdir(), 'pbi-'));
+  const folder = tempDir('pbi-');
   const circuit = laid(expandRecipe('esp32-led').spec);
   circuit.parts.find((p) => p.id === 'U1').program = 'blink.ino';
   writeFileSync(join(folder, 'circuit.json'), JSON.stringify(circuit));

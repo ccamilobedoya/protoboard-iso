@@ -7,6 +7,7 @@
 //   pinIndex(part, name)            → index of the pin a step names ("B", "base", "2"), or -1
 //   pinRole(part, i, lang)          → the pin's row of text ("collector · the load", "3 OUT · output")
 //   pinList(part, lang)             → [{ ref, name, text }] what --parts lists
+//   pinRoles(part, lang)            → [{ name, text }] the pins that have a role, what `catalog` says
 //   pinoutOf(part, camera, lang)    → { kind, pins: [{ name, word, text, id, node, x, y }], mark } for the page
 //                                    (word: the pin's name in the page's language, "ánodo")
 //
@@ -49,6 +50,9 @@ export function pinRole(part, i, lang = 'en') {
   if (isChip(part)) return does ? `${i + 1} ${name} · ${does}` : `${i + 1} ${name}`;
   return does ?? word(name, lang);
 }
+
+// The rows of the pins the kit says something about (`catalog <part>`), in the pins' order.
+export const pinRoles = (part, lang = 'en') => (part.pinNames ?? []).flatMap((name, i) => (role(part, name, lang) ? [{ name, text: pinRole(part, i, lang) }] : []));
 
 export function pinList(part, lang = 'en') {
   return (part.pinNames ?? []).map((name, i) => ({ ref: `${part.id}.${name}`, name, text: pinRole(part, i, lang) }));

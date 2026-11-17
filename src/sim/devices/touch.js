@@ -174,8 +174,8 @@ export const touch = {
   limits(entry, r) {
     const out = [
       stress('SIM_IC_SUPPLY', 'voltage', r.vcc, TOUCH.maxSupply, 'V', { nearAt: TOUCH.nearSupply }),
-      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, TOUCH.maxReverse, 'V', { param: 'voltage' }),
-      stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), TOUCH.maxCurrent, 'A'),
+      stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, TOUCH.maxReverse, 'V', { param: 'voltage', of: 'supply' }),
+      stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), TOUCH.maxCurrent, 'A', { of: 'output' }),
     ];
     if (r.vcc > 0.5 && r.vcc < TOUCH.minSupply) out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(TOUCH.minSupply, 'V') }));
     // Between the currents its levels are guaranteed at and where the kit warns: only a note.

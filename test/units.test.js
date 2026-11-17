@@ -34,3 +34,16 @@ test('formatValue picks the prefix and the decimal separator', () => {
   assert.equal(formatValue(1e-3, 'F'), '1 mF');
   assert.equal(formatValue(470e-6, 'F'), '470 µF');
 });
+
+test('formatValue: a frequency under 1 Hz in Hz with decimals, never mHz; other units keep their prefixes', () => {
+  assert.equal(formatValue(0.933, 'Hz'), '0.93 Hz');
+  assert.equal(formatValue(0.933, 'Hz', { decimal: ',' }), '0,93 Hz');
+  assert.equal(formatValue(0.1, 'Hz'), '0.1 Hz');
+  assert.equal(formatValue(0.0123, 'Hz'), '0.012 Hz');
+  assert.equal(formatValue(-0.5, 'Hz'), '-0.5 Hz');
+  assert.equal(formatValue(0.9999, 'Hz'), '1 Hz');
+  assert.equal(formatValue(1.12, 'Hz'), '1.12 Hz');
+  assert.equal(formatValue(2300, 'Hz'), '2.3 kHz');
+  assert.equal(formatValue(0.933, 'A'), '933 mA');
+  assert.equal(formatValue(0.933, 'V'), '933 mV');
+});

@@ -1,0 +1,58 @@
+// Push buttons and potentiometers.
+
+import { parseValue } from '../../core/units.js';
+
+// fields: color (cap colour), pressed (for the simulator, default false)
+export const button = {
+  type: 'button',
+  family: 'control',
+  pins: ['1', '2', '3', '4'],
+  // Pins always connected inside the part: the checker treats each group as one.
+  internal: [['1', '2'], ['3', '4']],
+  resolve(part) {
+    return {
+      package: 'tactile-6x6',
+      params: { color: part.color },
+      internal: this.internal,
+      label: { key: part.pressed ? 'state.pressed' : 'state.released' },
+      electrical: { kind: 'SW', pressed: Boolean(part.pressed), poles: [['1', '2'], ['3', '4']] },
+    };
+  },
+};
+
+// Three-digit value code printed on trimmers: two significant digits and the number of
+// zeros, in ohms ("103" = 10 kΩ, "501" = 500 Ω).
+export function valueCode(ohms) {
+  const zeros = Math.max(0, Math.floor(Math.log10(ohms) + 1e-9) - 1);
+  return `${Math.round(ohms / 10 ** zeros)}${zeros}`;
+}
+
+// fields: value (end-to-end resistance, "10k"), position (wiper 0…1, default 0.5),
+//         style ('knob': panel type with a knob, default | 'trimmer': multi-turn 3296W)
+export const potentiometer = {
+  type: 'potentiometer',
+  family: 'control',
+  pins: ['1', 'W', '3'],
+  resolve(part) {
+    const ohms = parseValue(part.value ?? '10k');
+    if (!(ohms > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value), variant: 'resistance' } } };
+    const position = part.position ?? 0.5;
+    if (!(position >= 0 && position <= 1)) return { error: { code: 'BAD_VALUE', params: { value: `position ${part.position}` } } };
+    const style = part.style ?? 'knob';
+    if (style === 'trimmer') {
+      return {
+        package: 'trimmer-3296',
+        params: { code: valueCode(ohms) },
+        label: { value: ohms, unit: 'Ω' },
+        electrical: { kind: 'POT', resistance: ohms, position, trimmer: true },
+      };
+    }
+    if (style !== 'knob') return { error: { code: 'UNKNOWN_KIND', params: { kind: `style ${style}`, options: 'knob, trimmer' } } };
+    return {
+      package: 'pot-vertical',
+      params: { position },
+      label: { value: ohms, unit: 'Ω' },
+      electrical: { kind: 'POT', resistance: ohms, position },
+    };
+  },
+};

@@ -143,7 +143,7 @@ import { applyToTarget, undoTarget, readHistory } from 'protoboard-iso/workspace
    goes. Then propose a batch of operations; `apply --dry-run`.
 3. If the diff introduces nothing unintended, apply with `--expect-revision`, an author and
    a note that says why.
-4. `review <target>` until it says APPROVED (see [agents.md](agents.md) for profiles). APPROVED WITH WARNINGS means the drawing is right but a part would be damaged as wired (`hazards`): tell the user and keep it only if that is the point.
+4. `review <target>` until it says APPROVED (see [agents.md](agents.md) for profiles). APPROVED WITH WARNINGS means the drawing is right but a part would be damaged as wired (`hazards`): tell the user and keep it only if that is the point. Otherwise its `To fix it` line is the fix, one change the kit applies itself on request: `layout <target> --fix` (MCP `fix: true`; on a circuit made by `layout`); with none ("The kit has no computed fix for this."), an idea of one's own is tried first with `layout <target> … --dry-run` (MCP `dry_run: true`: the whole answer, nothing saved) and applied only when the trial ends `DONE`.
 5. Never edit `circuit.json` by hand while others work on it, and never edit outputs.
 
 ## Agents

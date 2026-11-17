@@ -162,8 +162,96 @@ answer has `times` and the same quantities as arrays.
 `review` runs this same DC analysis and lists every stress past its limit (the codes that name a
 part and a maximum: `SIM_OVER_CURRENT`, `SIM_OVER_POWER`, `SIM_REVERSE_VOLTAGE`, `SIM_IC_SUPPLY`, …;
 not the supply, floating or note codes) as a **hazard**: the verdict becomes APPROVED WITH WARNINGS,
-never blocking, and `layout` ends in `STATUS: WARNINGS`. It reads the DC point only, so a peak that a
-transient shows (a PWM pin, a 555's output, a generator's wave) is not found by it.
+never blocking, and `layout` ends in `STATUS: WARNINGS`. It reads the DC point at rest and again in
+each of these states, one at a time with everything else at rest (`src/sim/index.js`,
+`checkHazards`):
+
+- **Each control a learner moves by hand**: a push button (or a rotary encoder's) pressed, a switch
+  in its other position (a rocker, a latching button, a slide switch, a tilt switch tipped), a
+  potentiometer or trimmer at each end of its travel.
+- **Each output of a board's program held high** (since 2026-11-16): the pins the program has made
+  outputs by the time it first waits (its `setup()` and `loop()` up to the first `delay`: the pin
+  modes of the DC point, so `pinMode`, and the `digitalWrite`, `tone`, `analogWrite` and `ledcWrite`
+  that make a pin an output there). Each is held high with `engine.drive` while the program runs on;
+  a pin already high at rest adds nothing. A board's pin is named in the warning (`U1.D10`).
+
+A hazard found only in one of those states says which (`… more than its maximum 30 mA, with S1
+pressed.`, `… with D10 high.`; in JSON `hazards[].when: { part, field, value }` or `{ part, pin,
+name, value: 1 }`); one that is there at rest is listed once, at rest. Measured on a board that
+blinks two LEDs and beeps a buzzer (three outputs, two held high): the check took 16.0 ms before and
+16.5 ms with the program's states (most of it is compiling the circuit).
+
+### The fix
+
+For each circuit with hazards the kit works out with its own simulator the simplest change that
+clears **every** hazard in **every** state above, and says it as information; it changes nothing
+(`src/fix.js`):
+
+```text
+To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.4 mA (maximum 40 mA).
+To fix it: R1 = 360 Ω brings R1 to 140 mW (maximum 250 mW) and D1 to 19.7 mA (maximum 30 mA).
+The kit has no computed fix for this.
+```
+
+- **Candidates, in this order**, the first that clears everything wins: (1) a new value for a
+  resistor already in series with the stressed part or its branch (the part itself when it is a
+  resistor), (2) one new resistor in series with the stressed part, or with each load on a board's
+  pin, or with the pin itself. At most six candidates.
+- **The value** is searched in E24 from 10 Ω to 1 MΩ with the goal solver's own sweep
+  (`sweepResistor` in `src/recipes/solve.js`, the resistor changed in place). It aims the stressed
+  quantity at the part's **rated value** where it has one (an LED's 20 mA), otherwise at **half of
+  its maximum** (a pin's 40 mA → 20 mA, a resistor's 250 mW → 125 mW): the rated value is what the
+  part is meant to run at, and half the absolute maximum is the usual margin for a part without one
+  (a microcontroller pin "meant to give about 20 mA"). The nearest result at or under the aim that
+  clears every hazard is chosen; when the nearest does not (the added resistor would overheat
+  itself, or the damage moves to another part), the next values down are tried by bisection.
+  The aim is set by a hazard on another part than the resistor being changed (an LED's current, not
+  its resistor's own power).
+- **A resistor that is not placed**: candidate (2) is tried on the compiled circuit, not on the
+  layout: the pin is split from its net and a ¼ W resistor joins them, so its own power is judged
+  too. A change that only moves the damage elsewhere is not a fix.
+- **One line per circuit**: several hazards with one cause get one fix; when no single resistor
+  clears them all, the fixed sentence "The kit has no computed fix for this." (Spanish: "El kit no
+  tiene un arreglo calculado para esto."), the signal that an assistant is on its own (and must try
+  its idea with `layout --dry-run` before it reaches the circuit). Example: a 16 V capacitor straight
+  across 25 V (no current flows in DC, so no resistor in series changes its voltage).
+- **JSON**: the review's `fix: { kind: 'set', part, value, brings }` or `{ kind: 'add-series',
+  with, pin, value, brings }` (`brings: [{ part, quantity, value, max, unit, when? }]`: each hazard's
+  quantity with the fix, in the state it was found in), or `fix: null` with `noFix: true`. `layout`
+  computes it once, on the circuit it keeps (not on each try).
+- **Cost**: measured 82 ms on the buzzer circuit above, 10 ms on an LED asked for 50 mA, 105 ms on a
+  buzzer across 5 V through a transistor; only for a circuit with hazards.
+- **Applied only when asked**: `layout <target> --fix` (the MCP tool's `fix: true`) lays a circuit
+  made by `layout` out again with its computed fix, as one revision, and says so
+  (`Applied the fix: R3 = 200 Ω in series with BZ1.`); nothing else applies it
+  ([layout.md](layout.md#laying-out-again-an-existing-circuit-since-2026-10-20)).
+
+### What it does not check
+
+After the hazards, the review and `layout` (when the circuit was built) print one line with what
+the check covered and what it did not, for this circuit
+(`Checked: at rest, 3 program outputs. Not checked: peaks while switching, combinations of program
+outputs.`; JSON `checked: { rest, controls, outputs, notChecked: [code…], skipped?, unsimulated? }`).
+The codes, only those that apply:
+
+- `switching`, **peaks while switching** (a board's program, a 555, a generator): a PWM pin, a
+  tone, a 555's output or a generator's wave is judged at its DC point; the peaks a transient shows
+  are not found.
+- `combinations`, **combinations** of controls and outputs (two buttons pressed together, two pins
+  high at once), when there are two or more: one is moved at a time.
+- `environment`, **what the sensors read from the environment** (light, temperature, motion,
+  touch, a module's trimmer…): read as the circuit leaves them. Other sliders (a resistor's, a
+  motor's load) and the supplies' controls are too.
+- `limit`, **states past the limit**: at most 24 (controls first, in the order of the parts, then
+  pins); the review also says how many were checked (`States checked for damage: 24 of 30 …`; JSON
+  `hazardStates: { checked, total, controls, outputs }`).
+- `unsimulated`, **parts drawn but not simulated** (`SIM_UNSUPPORTED`).
+- `no-source` / `no-simulation`, **nothing could be simulated** (no source, or another reason the
+  simulator's issues give).
+- A pin the program first makes an output later than its first wait (no `pinMode` in `setup()`) is
+  not in the states.
+
+With nothing left: `Not checked: nothing that applies to this circuit.`
 
 ## Models
 

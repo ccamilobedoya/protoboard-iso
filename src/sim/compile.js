@@ -33,7 +33,7 @@ import { deviceFor } from './devices/index.js';
 import { issue } from './devices/shared.js';
 import { translateSketch } from './sketch.js';
 import { LIMITS } from '../limits.js';
-import { readBeside } from '../beside.js';
+import { readBeside, programFile } from '../beside.js';
 import { FIELDS, cleanEnvironment, createEnvironment } from './environment.js';
 
 // A board's program (docs/en/microcontrollers.md, M2): the sketch's text in "program", or the name
@@ -44,8 +44,8 @@ function sketchOf(circuit, part, issues) {
   const given = part.raw.program;
   if (given == null || given === '') return null;
   let text = String(given);
-  if (/\.ino$/i.test(text.trim()) && !text.includes('\n')) {
-    const name = text.trim();
+  const name = programFile(text);
+  if (name) {
     const read = readBeside(circuit, name, LIMITS.sketchChars);
     if (read.error === 'outside') {
       issues.push(issue('warning', 'SIM_PROGRAM_OUTSIDE', { part: part.id, file: name }));
@@ -103,7 +103,7 @@ function supplyList(circuit, board) {
 }
 
 // A battery part as a supply: its leads are its two holes; switched off it is no source at all.
-function batterySupply(part) {
+export function batterySupply(part) {
   const e = part.def.electrical;
   return { id: part.id, kind: 'battery', part: part.id, voltage: e.emf, internalResistance: e.resistance, positive: part.holes[0].id, negative: part.holes[1].id, currentLimit: null, battery: e, off: !e.on };
 }

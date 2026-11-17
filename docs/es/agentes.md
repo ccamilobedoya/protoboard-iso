@@ -17,8 +17,13 @@ Usan las herramientas MCP ([mcp.md](mcp.md)) y, si no están, la línea de coman
 
 Hay un tercer resultado entre los dos: un circuito de dibujo correcto que dañaría un componente tal como
 está conectado (un LED directo a 9 V) queda **APROBADO CON AVISOS** (`hazards`, del punto en DC del
-simulador; sin umbrales nuevos). No bloquea ni es una ronda de arreglos: el agente lo reporta de forma
-visible y la conversación principal se lo dice al usuario, porque quemar un componente puede ser la lección.
+simulador en reposo, con cada control accionado y con cada salida del programa de una placa en alto; sin
+umbrales nuevos). No bloquea ni es una ronda de arreglos: el agente lo reporta de forma visible, con el
+arreglo calculado por el kit (`Para arreglarlo: …`, o «El kit no tiene un arreglo calculado para
+esto.»), y la conversación principal se lo dice al usuario, porque quemar un componente puede ser la
+lección. Un arreglo pedido es esa línea, que el kit aplica en una llamada (`layout` con `fix: true`;
+en la consola `layout <objetivo> --fix`); cualquier otra idea se ensaya antes con el `dry_run` de
+`layout` (sin guardar nada) y se aplica solo si el ensayo termina en `DONE`.
 
 ```bash
 node bin/protoboard-iso.js review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]
@@ -78,8 +83,8 @@ llamadas y unos 185 000 tokens. Lo que lo reduce:
 ## `layout`: el circuito entero en una llamada (desde el 2026-10-17)
 
 Para un circuito nuevo sin posiciones fijas, el agente de montaje empieza con `layout` (herramienta
-MCP o `protoboard-iso layout <objetivo> <spec.json>`): los componentes sin patas en el orden de la
-señal y las redes como listas de patas y rieles. El algoritmo ubica los componentes por capas
+MCP o `protoboard-iso layout <objetivo> <spec.json>`): los componentes sin patas (en cualquier
+orden: primero se prueba el dado, luego los que dan las redes) y las redes como listas de patas y rieles. El algoritmo ubica los componentes por capas
 (distancia a la fuente) y con reglas según el tipo de pieza, agrega los cables y verifica las redes
 y la revisión lesson, en alrededor de un segundo; medido con la fuente de dos rieles de `examples/layout/two-rail-supply.json` (10
 componentes, 10 redes): aprobada, 7 cables, 1,8 s. Lo que no logra resolver vuelve como puntos que
@@ -113,7 +118,10 @@ que `layout` recibe por nombre con solo los valores que cambian (`{"recipe": "np
 {"R1": "470"}}`), cada uno probado para que salga `DONE` en una llamada. Un circuito de receta no
 necesita agente: la conversación principal llama a `layout` ella misma y deja al agente de montaje
 para `CHANGES` (o pasa la receta en la línea `Recipe:` del encargo). El camino A del agente empieza
-por la receta cuando el encargo pide uno de esos circuitos.
+por la receta cuando el encargo pide uno de esos circuitos. Un resultado que el usuario quiere (la corriente de un LED, la
+frecuencia de un 555) va en los valores como meta (`{"D1": {"current": "15mA"}}`, desde el
+2026-11-16): el kit elige el valor estándar, nadie lo calcula, y la línea `Solved:` que imprime se
+transmite tal cual.
 
 ## El ciclo (lo maneja la conversación principal)
 

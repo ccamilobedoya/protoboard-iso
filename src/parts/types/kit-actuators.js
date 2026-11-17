@@ -26,6 +26,7 @@ export const relay = {
   type: 'relay',
   family: 'output',
   pins: null,
+  typical: { part: 'SRD-05VDC-SL-C' },
   resolve(part) {
     const f = found(part.part ?? 'SRD-05VDC-SL-C', 'relay');
     if (!f) return { error: { code: 'UNKNOWN_PART_NUMBER', params: { number: String(part.part), type: 'relay' } } };

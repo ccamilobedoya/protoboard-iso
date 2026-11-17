@@ -56,7 +56,8 @@ part may only need a line in `src/parts/db.js`.
 - Look once at a small close-up (`render` with `fit: parts`, `png_width: 700`, or `node
   scripts/preview.js <name> --width 700`) to judge the shape; front and back if geometry is new.
 - Update `docs/*/circuit-format.md`, `docs/*/simulation.md` (models table) and the roadmap,
-  in both languages, and the parts table in `SKILL.md`.
+  in both languages, and the plugin's skill when the part changes what it says
+  (`plugin-src/references/spec.md`, then `npm run pack-skill`).
 - The repository is public: nothing private in what you write (CLAUDE.md, "Privacy"). A part
   someone owns is described by its part number and datasheet, not by whose bench it is on; notes
   from `CLAUDE.local.md` or a private notes app are made generic first. `npm test` checks it.

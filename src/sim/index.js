@@ -30,17 +30,128 @@ export function simulate(circuit, options = {}) {
 }
 
 // The parts that would be damaged as wired: the DC operating point (the one `simulate` prints
-// without --transient), every stress past its limit (ratio above 1, what the simulator calls
-// exceeded) as the warning `simulate` gives for it. Empty when the circuit cannot be simulated (no
-// source, placement errors, no convergence). A PWM pin, a 555 or a generator is judged at its DC
-// point only: a peak a transient shows is not found here.
-export function hazards(circuit) {
+// without --transient) at rest, with each control a learner operates by hand and with each output of
+// a board's program driven high, every stress past its limit (ratio above 1, what the simulator calls
+// exceeded) as the warning `simulate` gives for it.
+//
+//   checkHazards(circuit) → { hazards: [issue…], states: { checked, total, controls, outputs }, checked }
+//
+// The states, one at a time with everything else at rest (never combinations):
+// - controls: a push button (and a rotary encoder's) pressed, a switch in its other position (a
+//   rocker, a latching button, a slide switch, a tilt switch tipped), a potentiometer or trimmer at
+//   each end of its travel;
+// - program outputs: each pin a board's program has made an output by the time it first waits
+//   (setup() and loop() up to its first delay: the pin modes of the DC point, so `pinMode`, and the
+//   `digitalWrite`, `tone`, `analogWrite` and `ledcWrite` that make a pin an output there), held
+//   high with engine.drive while the program runs on. A pin already high at rest adds nothing; a
+//   pin the program first makes an output later is not in them.
+// A hazard found only in one of them carries `when`: `{ part, field, value }` for a control,
+// `{ part, pin, name, value: 1 }` for a pin ("with D10 high"); one that is there at rest is reported
+// once, at rest. At most STATES_MAX states are solved, controls first (in the order of the parts),
+// then pins: `states.checked` below `states.total` says the rest were not. `controls` counts the
+// controls (a potentiometer's two ends are one control), `outputs` the program's output pins (also
+// those high at rest, which the rest point covers). Sensors that follow the environment, sliders of
+// other kinds and supplies are judged as they are. Empty when the circuit cannot be simulated (no
+// source, placement errors, no convergence). Not a transient: a PWM pin, a tone, a 555 or a generator
+// is judged at its DC point, and a peak while something switches is not found here. `checked` says
+// all of this for the answer's "Checked" line (coverageOf).
+export const STATES_MAX = 24;
+const OPERATED = { SW: ['pressed'], ENC: ['pressed'], SWT: null, POT: ['position'] };
+
+// The states to solve for a compiled program, from its engine's controls at rest.
+export function controlStates(program, engine) {
+  const kinds = new Map(program.devices.filter((d) => !d.unsupported).map((d) => [d.id, d.kind]));
+  const out = [];
+  for (const c of engine.controls()) {
+    const kind = kinds.get(c.id);
+    if (!(kind in OPERATED) || (OPERATED[kind] && !OPERATED[kind].includes(c.field))) continue;
+    if (kind === 'POT') {
+      for (const end of [0, 1]) if (c.value !== end) out.push({ part: c.id, field: c.field, value: end, rest: c.value });
+    } else if (c.scale === 'momentary' || c.scale === 'toggle') out.push({ part: c.id, field: c.field, value: !c.value, rest: c.value });
+  }
+  return out;
+}
+
+// The output pins of each board that runs a program, from the reading at rest: { pins: [{ part, pin }],
+// states: the ones low at rest, each to be held high }. A pin's name in the text is "D10", or "U1.D10"
+// when more than one board runs a program.
+export function programOutputs(reading) {
+  const boards = Object.entries(reading?.parts ?? {}).filter(([, r]) => r?.kind === 'MCU' && r.program);
+  const pins = [];
+  const states = [];
+  for (const [id, r] of boards) {
+    for (const x of r.pins ?? []) {
+      if (x.mode !== 'output') continue;
+      pins.push({ part: id, pin: x.name });
+      if (!x.level) states.push({ part: id, pin: x.name, name: boards.length > 1 ? `${id}.${x.name}` : x.name, value: 1 });
+    }
+  }
+  return { pins, states };
+}
+
+const exceeded = (engine, reading) => Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
+const hazardKey = (h) => `${h.code} ${h.params.part}`;
+// A state on and off: a control set, or a pin held.
+export const enterState = (engine, s) => (s.pin ? engine.drive(s.part, s.pin, s.value) : engine.set(s.part, s.field, s.value));
+export const leaveState = (engine, s) => (s.pin ? engine.drive(s.part, s.pin, null) : engine.set(s.part, s.field, s.rest));
+
+// The hazards of an engine that has not been started (each state is its own DC point), with the
+// control states of controlStates and the program outputs of its rest point; every control and pin
+// is left at rest again.
+export function engineHazards(engine, states, max = STATES_MAX) {
+  const rest = engine.dc();
+  if (!rest.ok) return { hazards: [], states: { checked: 0, total: states.length, controls: 0, outputs: 0 }, ok: false };
+  const outputs = programOutputs(rest);
+  const all = [...states, ...outputs.states];
+  const hazards = exceeded(engine, rest);
+  const atRest = new Set(hazards.map(hazardKey));
+  const tried = all.slice(0, max);
+  for (const s of tried) {
+    if (!enterState(engine, s)) continue;
+    const reading = engine.dc();
+    const when = s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value };
+    if (reading.ok) for (const h of exceeded(engine, reading)) if (!atRest.has(hazardKey(h))) hazards.push({ ...h, when });
+    leaveState(engine, s);
+  }
+  const controls = new Set(states.map((s) => `${s.part} ${s.field}`)).size;
+  return { hazards, states: { checked: tried.length, total: all.length, controls, outputs: outputs.pins.length }, ok: true };
+}
+
+export function checkHazards(circuit) {
   const compiled = compile(circuit);
-  if (compiled.fatal) return [];
+  if (compiled.fatal) return { hazards: [], states: { checked: 0, total: 0, controls: 0, outputs: 0 }, checked: coverageOf(compiled, null) };
   const engine = createEngine(compiled.program);
-  const reading = engine.dc();
-  if (!reading.ok) return [];
-  return Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
+  const result = engineHazards(engine, controlStates(compiled.program, engine));
+  return { ...result, checked: coverageOf(compiled, result) };
+}
+
+// What the hazard check covered and what it could not, for the answer's "Checked" line (review.js):
+// { rest, controls, outputs, notChecked: [code…], skipped?, unsimulated? }. The codes, only those
+// that apply to this circuit:
+//   switching     something switches in time (a board's program, a 555, a generator): its peaks
+//   combinations  two or more controls and outputs: each was operated alone
+//   environment   sensors that follow the circuit's environment: judged at the value they read now
+//   limit         more states than STATES_MAX (`skipped`: how many were not solved)
+//   unsimulated   parts drawn but not simulated (`unsimulated`: their ids)
+//   no-source     nothing could be simulated: the circuit has no source
+//   no-simulation nothing could be simulated for another reason (the simulator's issues say which)
+export function coverageOf(compiled, result) {
+  if (compiled.fatal || !result?.ok) {
+    const code = (compiled.issues ?? []).some((i) => i.code === 'SIM_NO_SUPPLY') ? 'no-source' : 'no-simulation';
+    return { rest: false, controls: 0, outputs: 0, notChecked: [code] };
+  }
+  const { program } = compiled;
+  const devices = program.devices ?? [];
+  const { controls, outputs, checked, total } = result.states;
+  const notChecked = [];
+  const switches = outputs > 0 || devices.some((d) => d.kind === 'TMR' || (d.kind === 'MCU' && d.params?.sketch)) || (program.supplies ?? []).some((s) => s.generator && !s.off);
+  if (switches) notChecked.push('switching');
+  if (controls + outputs >= 2) notChecked.push('combinations');
+  if (devices.some((d) => d.follows?.length)) notChecked.push('environment');
+  if (checked < total) notChecked.push('limit');
+  const unsimulated = devices.filter((d) => d.unsupported).map((d) => d.id);
+  if (unsimulated.length) notChecked.push('unsimulated');
+  return { rest: true, controls, outputs, notChecked, ...(checked < total && { skipped: total - checked }), ...(unsimulated.length && { unsimulated }) };
 }
 
 // What `check` says about the controls panel (page.controls): each entry must name a part or a

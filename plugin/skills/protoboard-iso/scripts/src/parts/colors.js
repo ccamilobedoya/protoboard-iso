@@ -1,0 +1,222 @@
+// Shared palettes. Every part takes its colours from here, so a change in one place
+// restyles the whole kit.
+
+// Resistor colour code, IEC 60062. digit: value of the band; multiplier: power of ten.
+export const BAND_COLORS = {
+  silver: { hex: '#c0c4ca', multiplier: -2, tolerance: 10 },
+  gold: { hex: '#c9a43b', multiplier: -1, tolerance: 5 },
+  black: { hex: '#1d1d1f', digit: 0, multiplier: 0 },
+  brown: { hex: '#7a4a24', digit: 1, multiplier: 1, tolerance: 1 },
+  red: { hex: '#cc2f2b', digit: 2, multiplier: 2, tolerance: 2 },
+  orange: { hex: '#ec7a26', digit: 3, multiplier: 3 },
+  yellow: { hex: '#f3c62d', digit: 4, multiplier: 4 },
+  green: { hex: '#2f9b4f', digit: 5, multiplier: 5, tolerance: 0.5 },
+  blue: { hex: '#2d63c4', digit: 6, multiplier: 6, tolerance: 0.25 },
+  violet: { hex: '#7a4bb3', digit: 7, multiplier: 7, tolerance: 0.1 },
+  grey: { hex: '#8b8d91', digit: 8, multiplier: 8, tolerance: 0.05 },
+  white: { hex: '#f5f5f2', digit: 9, multiplier: 9 },
+};
+
+export const DIGIT_COLORS = Object.entries(BAND_COLORS)
+  .filter(([, c]) => c.digit !== undefined)
+  .sort((a, b) => a[1].digit - b[1].digit)
+  .map(([name]) => name);
+
+export const MULTIPLIER_COLORS = Object.fromEntries(Object.entries(BAND_COLORS).map(([name, c]) => [c.multiplier, name]));
+
+export const TOLERANCE_COLORS = Object.fromEntries(
+  Object.entries(BAND_COLORS)
+    .filter(([, c]) => c.tolerance !== undefined)
+    .map(([name, c]) => [c.tolerance, name]),
+);
+
+export const MATERIALS = {
+  lead: '#c8ccd2',
+  tinned: '#d9dce0',
+  carbonFilm: '#d8c398',
+  metalFilm: '#8db6dc',
+  cement: '#ecebe6',
+  cementPrint: '#2b2b2b',
+  epoxyBlack: '#2a2a2d',
+  glass: '#e98b3a',
+  aluminium: '#b9bdc4',
+  capSleeve: '#22305a',
+  capStripe: '#c7ccd8',
+  ceramic: '#d88a3d',
+  print: '#e6e6e6',
+  tab: '#c4c8cd',
+};
+
+export const LED_COLORS = {
+  red: '#e0353b',
+  green: '#3cbf58',
+  yellow: '#f4d23a',
+  blue: '#3a7be0',
+  white: '#eef1f5',
+  orange: '#f28b27',
+};
+
+// The colour of the light each LED gives, for drawing it lit (vivid, unlike its plastic). A white
+// LED is drawn slightly yellow, or it would vanish on a white page.
+export const LED_LIGHT = {
+  red: '#ff2020',
+  green: '#1fe04f',
+  yellow: '#ffd000',
+  blue: '#2a6bff',
+  white: '#ffe066',
+  orange: '#ff7a00',
+};
+
+export const WIRE_COLORS = {
+  red: '#d33a32',
+  black: '#2b2b2e',
+  blue: '#2f64c4',
+  green: '#2f9b4f',
+  yellow: '#f0c330',
+  orange: '#ec7a26',
+  white: '#f2f2ef',
+  violet: '#7a4bb3',
+  grey: '#8b8d91',
+  brown: '#7a4a24',
+};
+
+// Annotation colours for connected groups (nodes): distinct, readable on the board.
+export const NODE_COLORS = ['#2a78d6', '#eb6834', '#1f9d55', '#c2399b', '#c99a06', '#6b4fc8', '#0e9aa7', '#d6455d', '#5f7d1e', '#8a5a2b'];
+
+// Bodies of switches, potentiometers and chips.
+Object.assign(MATERIALS, {
+  switchBase: '#2b2b2e',
+  switchPlate: '#c4c8cd',
+  potBody: '#2f63ad',
+  knob: '#3b3b3f',
+  knobMark: '#f2f2ef',
+  chip: '#27272b',
+  chipMark: '#55555b',
+});
+
+// Batteries: holders, cell wraps per chemistry (with the accent at the + end), 9 V block, pouch.
+Object.assign(MATERIALS, {
+  holder: '#232326',
+  nickel: '#d7dadf',
+  cellPrint: '#f2f2ef',
+  slider: '#e8e8e4',
+  trimmer: '#2d6fd1',
+  brass: '#c8a24a',
+  screwSlot: '#6b5420',
+  ldrBody: '#f1ede4',
+  ldrTrack: '#d9772b',
+  buzzer: '#1f1f22',
+  inductor: '#3f8f5a',
+  rgbLens: '#eceae4', // an RGB LED's milky diffusing epoxy
+  displayBody: '#2a2a2d', // a 7-segment display's black case and face
+  displayFace: '#19191b',
+  segmentOff: '#d9d4c8', // a segment's milky diffuser, unlit
+});
+export const CELL_WRAPS = {
+  alkaline: { body: '#2a2c31', accent: '#c9a43b' },
+  nimh: { body: '#e9edf2', accent: '#3a7bd5', print: '#26292d' },
+  'li-ion': { body: '#2f7d5b', accent: '#2f7d5b' },
+  lifepo4: { body: '#3164b0', accent: '#3164b0' },
+  lipo: { body: '#cdd2d9', accent: '#d9a43a', print: '#26292d' },
+};
+
+// Development boards: PCBs, headers, the ESP32 module's metal can and antenna, connectors.
+Object.assign(MATERIALS, {
+  pcbBlack: '#1f2124',
+  pcbBlue: '#1d5fa8',
+  pcbPrint: '#f2f2f2',
+  headerBlack: '#202023',
+  moduleBlue: '#23262b',
+  copper: '#c99a4b',
+  shield: '#c9ccd1',
+  shieldPrint: '#4a4d52',
+  antennaCeramic: '#3a3a3e',
+  ledBlue: '#5aa2ff',
+  resetRed: '#d23b3b',
+  crystal: '#d4d7dc',
+  smdCap: '#b9946a', // ceramic chip capacitor
+  smdLed: '#f3d9d4', // chip LED, off (clear lens over a red die)
+});
+
+// Switches off the board (KCD1 rocker, 7 × 7 latching button) and the clips that wire them.
+Object.assign(MATERIALS, {
+  rockerBody: '#1c1c1f',
+  rockerRed: '#c8242b',
+  rockerPrint: '#f4f0ea',
+  latchBody: '#202024',
+  latchCap: '#f1f1ee',
+  clipJaw: '#c9ccd1',
+  clipBoot: '#d23b3b',
+});
+
+// Switches on the board: the SS-12D00 slide switch's plated frame, its phenolic base and its knob;
+// the SW-520D tilt switch's heat-shrink tube and the resin end its leads leave.
+Object.assign(MATERIALS, {
+  slideFrame: '#b9bdc2',
+  slideBase: '#d8c9a3',
+  slideSlot: '#2a2b2e',
+  slideKnob: '#222225',
+  tiltTube: '#1d1e21',
+  tiltResin: '#3a3b3f',
+});
+
+// Parts that move, on the table beside the board: the SRD relay's blue case and its print; the
+// RE-140RA motor's steel can, its end cap, a white pulley on its shaft and the dark notch on it that
+// shows the shaft turning.
+Object.assign(MATERIALS, {
+  relayCase: '#2f5aa8',
+  relayPrint: '#e6edf7',
+  motorCan: '#c3c6cb',
+  motorCap: '#a9adb3',
+  motorPulley: '#ece8df',
+  motorNotch: '#2a2b2e',
+});
+
+// Timed sensor modules: the PIR's green board, its white Fresnel dome (two whites, for the facets)
+// and the jumper cap on its H/L pins; the touch module's sensing pad ring.
+Object.assign(MATERIALS, {
+  pcbGreen: '#1f7a46',
+  domeWhite: '#f4f2ea',
+  domeFacet: '#e2dfd2',
+  jumperCap: '#2a2a2d',
+  padRing: '#cfd8e6',
+});
+
+// LM393 sensor modules: the gold of a rain comb and a soil fork, an IR LED's clear (slightly blue)
+// lens and its receiver's dark one, the yellow-green of a CdS track's disc, a Hall chip's black case.
+Object.assign(MATERIALS, {
+  combGold: '#d6ae4f',
+  irClear: '#cfe0ec',
+  irDark: '#1f1f24',
+  trimmerKnob: '#f0ede4',
+});
+
+// Rotary encoder (EC11) on its KY-040 module: the encoder's steel body and bushing, its shaft, the
+// module's dark green board.
+Object.assign(MATERIALS, {
+  encoderBody: '#aeb3ba',
+  encoderShaft: '#cfd3d8',
+  encoderBoard: '#17503a',
+});
+
+// The ultrasonic module (HC-SR04): the dark mesh over each capsule's face.
+Object.assign(MATERIALS, {
+  sonarMesh: '#3a3d42',
+});
+
+// The analog modules: the KY-037's electret capsule and the voltage sensor's screw terminal.
+Object.assign(MATERIALS, {
+  micCan: '#b9bcc2',
+  micHole: '#1c1d21',
+  terminalBlue: '#2f66b8',
+});
+
+// The active buzzer's resin band.
+Object.assign(MATERIALS, { buzzerResin: '#5b4a2e' });
+
+// Climate sensors: the DHT11's blue box and its slots, the purple BME280 / BMP280 board.
+Object.assign(MATERIALS, {
+  dhtBlue: '#3f86cf',
+  dhtSlot: '#1f4f86',
+  pcbPurple: '#5b2a86',
+});

@@ -18,9 +18,10 @@
 
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { tempDir } from './tmp.js';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -72,7 +73,7 @@ const sandboxServer = createServer((req, res) => {
   res.writeHead(200, { 'content-type': 'text/html', 'content-security-policy': CSP, 'cache-control': 'no-store' }).end(readFileSync(join(dist, 'sandbox.html')));
 });
 
-const root = mkdtempSync(join(tmpdir(), 'protoboard-app-host-'));
+const root = tempDir('protoboard-app-host-');
 const mcp = (child = spawn(process.execPath, [join(ROOT, 'mcp', 'http.js'), '3001'], { env: { ...process.env, PROTOBOARD_ROOT: root, PROTOBOARD_LANG: 'en', PROTOBOARD_APPS: 'on' }, stdio: ['ignore', 'ignore', 'pipe'] }));
 await new Promise((ok, fail) => {
   mcp.stderr.on('data', (d) => /MCP over HTTP/.test(String(d)) && ok());

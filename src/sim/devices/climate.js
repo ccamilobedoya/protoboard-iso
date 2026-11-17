@@ -249,13 +249,13 @@ export const climate = {
   limits(entry, r) {
     const out = [];
     if (entry.dht) {
-      out.push(stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, C.dht.maxReverse, 'V', { param: 'voltage' }));
+      out.push(stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, C.dht.maxReverse, 'V', { param: 'voltage', of: 'supply' }));
       if (r.vcc > C.dht.maxSupply) out.push(note('warning', 'SIM_IC_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), max: q(C.dht.maxSupply, 'V') }));
       if (r.vcc > 0.5 && r.vcc < C.dht.minSupply) out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(C.dht.minSupply, 'V') }));
       return out;
     }
     const model = C.boards[entry.part];
-    out.push(stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, C.bosch.maxReverse, 'V', { param: 'voltage' }));
+    out.push(stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.vcc, C.bosch.maxReverse, 'V', { param: 'voltage', of: 'supply' }));
     const max = model.regulated ? C.bosch.maxVin : C.bosch.maxSupply;
     if (r.vcc > max) out.push(note('warning', 'SIM_IC_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), max: q(max, 'V') }));
     // A bus line over the chip's VDDIO + 0.3 V (its pins' absolute maximum): an AVR's own pull-ups to

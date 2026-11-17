@@ -59,6 +59,42 @@ carpeta de un curso), apúntalo a esa carpeta.
 **Otros clientes:** un servidor stdio con el comando `node`, como argumento la ruta absoluta de
 `mcp/server.js`, y las variables de arriba.
 
+### Claude Desktop con un clic
+
+La extensión de escritorio es este servidor en un solo archivo que Claude Desktop instala, con lo
+que necesita adentro (sin clon, sin `npm install`, sin archivo de configuración). Con ella, el
+tablero en vivo del circuito aparece dentro de la conversación ([mcp-apps.md](mcp-apps.md)).
+
+1. Descarga `protoboard-iso-<versión>.mcpb` de las
+   [versiones publicadas](https://github.com/ccamilobedoya/protoboard-iso/releases) del repositorio
+   (`SHA256SUMS`, a su lado, trae su suma de verificación).
+2. Haz doble clic en él (o arrástralo a **Settings > Extensions** en Claude Desktop) y confirma la
+   instalación.
+3. Elige la **carpeta de circuitos**: donde se guardan tus circuitos; el kit solo lee y escribe
+   ahí. Por defecto es una carpeta `Protoboard` en tus documentos; si no existe, se crea con el
+   primer circuito.
+4. **Enciende la extensión**, en los ajustes de la extensión: Claude Desktop la instala apagada.
+5. En una conversación nueva, pide un circuito («un LED con su resistencia a 9 V»).
+
+El diálogo de instalación avisa de que la extensión obtiene acceso a todo lo que hay en el
+computador. Claude Desktop muestra ese aviso con toda extensión local, haga lo que haga. Esta, según
+su código, solo lee y escribe dentro de la carpeta de circuitos (una ruta fuera de ella se rechaza) y
+no hace ninguna petición de red; el aviso es de la aplicación, no algo que esta extensión pida más
+allá de eso. La especificación de MCPB no tiene un campo del manifiesto para encender una extensión
+al instalarla ni para cambiar el aviso, y no documenta que firmar un paquete cambie ninguna de las
+dos cosas ([MANIFEST.md](https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md),
+[CLI.md](https://github.com/modelcontextprotocol/mcpb/blob/main/CLI.md)).
+
+La extensión corre con el Node.js que trae Claude Desktop, así que no se instala nada más; pone
+`PROTOBOARD_APPS=on`, porque solo es para un anfitrión que muestra el tablero. No trae el
+rasterizador opcional de PNG (`render` con `png_width` responde que el PNG no está disponible en esta
+instalación, y que el SVG y la página sí; el tablero y las páginas no lo necesitan). La construye la publicación de cada versión
+(`scripts/pack-mcpb.js` con la CLI oficial `mcpb`); un clon arma la misma carpeta con
+`npm run pack-mcpb -- --out <carpeta>`.
+
+La configuración manual de abajo es la alternativa: para un clon que cambias, o para fijar
+`PROTOBOARD_LANG`.
+
 ### Claude Desktop
 
 Abre el archivo desde **Settings > Developer > Edit Config** (crea `claude_desktop_config.json`
@@ -109,16 +145,16 @@ para abrirla.
 | `inspect` | el dibujo en números; `part` para un solo componente | no |
 | `query` | `kind: at \| node \| free` con `ref` | no |
 | `netlist` | el circuito como redes: grupos unidos por cables, las patas de cada una (`R1.1@d20`), etiquetas, patas solas en su red | no |
-| `layout` | un circuito de clase habitual por su nombre: `recipe` y solo los `values` que cambian ([recetas.md](recetas.md)); si no, un circuito entero ubicado en una llamada a partir de sus componentes (sin agujeros, en el orden de la señal; números de parte, módulos y alias) y sus redes (patas y rieles; valen los nombres de pata usuales: `D1.K`, `U1.VIN`, `U1.GPIO4`): capas por distancia a la fuente, reglas por tipo de pieza, cables, redes de tierra a un riel −, la revisión de redes y la revisión lesson, con reintentos y reparación cable por cable. Sobre un destino que ya existe, lo vuelve a montar en una sola revisión dando las redes nuevas y, si cambian componentes, la lista completa (`expect_revision`; las piezas conservan sus agujeros; `undo` lo deshace). Las redes quedan en el circuito (`spec`). Termina en `STATUS: DONE \| WARNINGS \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` solo revisa. El algoritmo: [montaje-automatico.md](montaje-automatico.md) | sí |
+| `layout` | un circuito de clase habitual por su nombre: `recipe` y solo los `values` que cambian ([recetas.md](recetas.md)); si no, un circuito entero ubicado en una llamada a partir de sus componentes (sin agujeros, en cualquier orden: primero el dado, luego los que dan las redes; números de parte, módulos y alias) y sus redes (patas y rieles; valen los nombres de pata usuales: `D1.K`, `U1.VIN`, `U1.GPIO4`): capas por distancia a la fuente, reglas por tipo de pieza, cables, redes de tierra a un riel −, la revisión de redes y la revisión lesson, con reintentos y reparación cable por cable. Sobre un destino que ya existe, lo vuelve a montar en una sola revisión dando las redes nuevas y, si cambian componentes, la lista completa (`expect_revision`; las piezas conservan sus agujeros; `undo` lo deshace). Las redes quedan en el circuito (`spec`). Termina en `STATUS: DONE \| WARNINGS \| CHANGES \| FIX_SPEC \| SPEC_OK`; `check_only` solo revisa; `dry_run` es un ensayo: la misma respuesta y el mismo `STATUS`, terminando en `Ensayo: no se guardó nada.`, sin escribir nada ni mostrar tablero (para ensayar una idea antes de que llegue al circuito); `fix: true` solo, sobre un circuito hecho con `layout`, aplica el arreglo calculado del kit (`Para arreglarlo`) como una revisión y dice `Arreglo aplicado: …`. El algoritmo: [montaje-automatico.md](montaje-automatico.md) | sí |
 | `suggest` | posiciones válidas para un componente nuevo, cada una con su operación `add` y el cuerpo más cercano (`nearest`: componente y holgura); `profile` deja fuera también lo que esa revisión bloquea; `parts` coloca varios en orden y responde un solo lote | no |
 | `apply_ops` | lote atómico; primero `dry_run`, luego `expect_revision`, `author`, `note` | sí |
 | `try_ops` | el mismo lote, solo en seco: qué arreglaría y qué introduciría; para los roles de solo lectura (el revisor) | no |
 | `undo` | deshace el último cambio (revisión nueva) | sí |
-| `review` | APROBADO, APROBADO CON AVISOS (`hazards`: componentes que la simulación en DC pasa de un máximo; no bloquean) o CAMBIOS a partir de mediciones, perfil `lesson` o `draft`; cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `explain: true` agrega las reglas del perfil; un circuito con `spec` también tiene sus redes revisadas | no |
+| `review` | APROBADO, APROBADO CON AVISOS (`hazards`: componentes que la simulación en DC pasa de un máximo, en reposo, con un control accionado o con una salida del programa de una placa en alto; no bloquean; luego el arreglo calculado por el kit, `fix`, o `noFix`, y la línea `checked` de lo que se revisó y lo que no) o CAMBIOS a partir de mediciones, perfil `lesson` o `draft`; cada punto que bloquea nombra sus componentes (`parts`) y vistas (`views`); `explain: true` agrega las reglas del perfil; un circuito con `spec` también tiene sus redes revisadas | no |
 | `history` | revisiones, autores, notas, operaciones | no |
 | `render` | escribe el SVG; con `png_width` devuelve también una imagen PNG; con `page: true` reescribe la página para embeber ([embeber.md](embeber.md)); con `sim: true` dibuja los resultados de la simulación; `focus: [ids]` atenúa lo demás; `flow: true` la capa de corriente | solo salidas |
 | `simulate` | voltajes de los grupos y corrientes de los componentes, un modelo ([simulacion.md](simulacion.md)); `analysis: dc \| transient`, `stop`, `step`, `start`; `falstad: true` agrega el enlace que abre el circuito en Falstad ([falstad.md](falstad.md)) | no |
-| `catalog` | sin `name`: una lista compacta (tipos agrupados por familia, cada uno con sus patas y sus primeros números de parte, `… (+N más)` para el resto; módulos, baterías, protoboards, vistas, operaciones); y las recetas, solo sus nombres por grupo (`catalog` con el nombre de la receta da su título, componentes, redes y valores); con `name` (un tipo, número de parte, módulo o receta): patas, encapsulado, los campos que acepta y un componente real de `examples/` para copiar (de una receta, sus componentes, redes y valores con sus límites); `format: "json"` sin `name`: todos los registros completos | no |
+| `catalog` | sin `name`: una lista compacta (tipos agrupados por familia, cada uno con sus patas y sus primeros números de parte, `… (+N más)` para el resto; módulos, baterías, protoboards, vistas, operaciones); y las recetas, solo sus nombres por grupo (`catalog` con el nombre de la receta da su título, componentes, redes y valores); con `name` (un tipo, número de parte, módulo o receta): patas, encapsulado, los campos que acepta y un componente real de `examples/` para copiar, y de un componente lo que su tarjeta en la página dice que es (`about`), qué hace cada pata (`pinRoles`) y los límites con que lo revisa el simulador (`limits`: valores nominales y máximos con sus unidades; `limitFields`, los campos de los que dependen, como `power` en una resistencia) (de una receta, sus componentes, redes y valores con sus límites); `format: "json"` sin `name`: todos los registros completos | no |
 
 **Grupos por pata.** Donde una herramienta pide un grupo (`between` y `connect` de `suggest`,
 `query node`), una pata de un componente ya colocado nombra el grupo donde está: `"R1.2"`, `"U1.OUT"`.
@@ -131,7 +167,7 @@ Todas responden en texto legible, o en JSON con `format: "json"`. Los errores vu
 errores de la herramienta con un mensaje legible (`isError`), nunca como una caída. Las de
 solo lectura llevan `readOnlyHint`, para que los clientes puedan permitirlas sin preguntar.
 
-El servidor envía además **instrucciones**, la misma guía de `SKILL.md` en pocas líneas: qué
+El servidor envía además **instrucciones**, la misma guía del skill del plugin (`plugin-src/SKILL.md`) en pocas líneas: qué
 herramienta para qué tarea (primero las recetas: un circuito de clase habitual → `layout` con `recipe`; otro circuito nuevo → `layout`; otras conexiones en un circuito hecho con
 `layout` → `layout` otra vez; un valor o un arreglo → `apply_ops`), qué significa cada `STATUS:`, el
 ciclo de operaciones, cómo revisar (`review`, `netlist`, `simulate`, sin mostrar nunca un valor por

@@ -1,8 +1,10 @@
 // Biome as a linter only (npm run lint): the formatter stays off so the code keeps its own style.
 // The recommended rules, without the ones that fight a style the code uses on purpose.
+// plugin/ is left out: it is a generated copy of bin/ and src/ (scripts/pack-skill.js), linted here
+// as the original, and test/plugin.test.js fails when the copy differs.
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "files": { "includes": ["**/*.js", "!**/node_modules", "!examples/out", "!site", "!schema"] },
+  "files": { "includes": ["**/*.js", "!**/node_modules", "!examples/out", "!site", "!schema", "!plugin"] },
   "formatter": { "enabled": false },
   "assist": { "enabled": false },
   "linter": {

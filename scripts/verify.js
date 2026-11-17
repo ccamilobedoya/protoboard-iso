@@ -12,9 +12,10 @@
 // Named verify, not review: review is the circuit review (bin/protoboard-iso.js review).
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { tempDir } from './tmp.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const EXPECTED = join(root, 'test/fixtures/examples-issues.json');
@@ -39,6 +40,16 @@ export function failureDetail(output) {
   if (start < 0) return tail.join('\n');
   const failing = lines.slice(start, start + 80).filter((l) => !tail.includes(l));
   return [...failing, ...(lines.length - start > 80 ? ['…'] : []), ...tail].join('\n');
+}
+
+// What a step left in the scratch folder (the TMPDIR every step runs with) that no earlier step
+// had left: names not in `known`, which then learns them. Empty when every test cleaned up.
+// Node's own compile cache (npm and Node put it in TMPDIR) is a tool's, not a test's.
+const TOOL_FILES = new Set(['node-compile-cache']);
+export function newLeftovers(dir, known) {
+  const fresh = readdirSync(dir).filter((name) => !known.has(name) && !TOOL_FILES.has(name));
+  for (const name of fresh) known.add(name);
+  return fresh;
 }
 
 // Each step: run() → { status: 'pass' | 'fail' | 'skip', detail }.
@@ -107,11 +118,22 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const quick = process.argv.includes('--quick');
   // npm test runs the quick checks too; the quick step is only for --quick.
   const steps = STEPS.filter((s) => (quick ? s.quick : s.full));
+  // Every step runs with its own TMPDIR, a folder made here and removed at exit: whatever a test or
+  // a script leaves behind lands there, is named below as a failure, and never reaches the shared
+  // temporary folder, not even when a step crashes. Nothing from another process can be in it.
+  const scratch = tempDir('pbi-verify-');
+  process.env.TMPDIR = scratch;
+  const known = new Set();
   const results = [];
   for (const step of steps) {
     if (process.stdout.isTTY) process.stdout.write(`… ${step.name}\r`);
     const started = Date.now();
     const r = step.run();
+    const left = newLeftovers(scratch, known);
+    if (left.length) {
+      r.detail = `${r.detail ? `${r.detail}\n` : ''}left in the temporary folder (remove what the test creates, scripts/tmp.js): ${left.join(', ')}`;
+      if (r.status === 'pass') r.status = 'fail';
+    }
     results.push(r);
     const mark = { pass: '✔', fail: '✖', skip: '﹣' }[r.status];
     if (process.stdout.isTTY) process.stdout.write('\x1b[2K');

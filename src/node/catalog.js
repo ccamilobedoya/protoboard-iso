@@ -1,7 +1,9 @@
 // What the kit knows, short enough to read: the compact list (every type with its pins, the part
 // numbers by type, modules, batteries) or one entry in detail (a type, a part number or a
-// module: pins, package, the fields it takes and a real part from examples/ to copy). The full
-// registry is still there as JSON for tools. Node only: the example is read from disk.
+// module: pins, package, the fields it takes and a real part from examples/ to copy, when the
+// kit's examples are there). What it says about a part comes from src/ alone, so the packed plugin,
+// which has no examples/, says the same. The full registry is still there as JSON for tools. Node
+// only: the example is read from disk.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { PART_TYPES, FAMILIES } from '../parts/types/index.js';
@@ -12,13 +14,17 @@ import { BATTERY_FORMATS } from '../parts/batteries.js';
 import { LDR_PARTS } from '../parts/types/more.js';
 import { BOARDS, createBoard, boardLayout } from '../board/board.js';
 import { formatBoardLayout } from '../board/layout-text.js';
-import { resolvePart, closestNames } from '../parts/resolve.js';
+import { resolvePart, closestNames, pinsOf } from '../parts/resolve.js';
 import { VIEWS } from '../core/camera.js';
 import { OP_NAMES } from '../ops.js';
 import { ANNOTATION_LAYERS } from '../annotate.js';
-import { LANGUAGES, t } from '../i18n/index.js';
+import { LANGUAGES, t, decimalSeparator } from '../i18n/index.js';
 import { buildSchemas } from '../schema.js';
-import { recipeSummary, recipeEntry, RECIPE_GROUPS } from '../recipes/index.js';
+import { recipeSummary, recipeEntry, RECIPE_GROUPS, valueLimits } from '../recipes/index.js';
+import { describePart } from '../parts/describe.js';
+import { pinRoles } from '../pinout.js';
+import { partRatings } from '../sim/ratings.js';
+import { formatValue } from '../core/units.js';
 
 export { COMMON_FIELDS, TYPE_FIELDS } from '../parts/fields.js';
 import { TYPE_FIELDS } from '../parts/fields.js';
@@ -54,6 +60,44 @@ const fieldsOf = (type) => {
   return Object.fromEntries((TYPE_FIELDS[type] ?? []).filter((f) => props[f]).map((f) => [f, props[f].description ?? (props[f].enum ? props[f].enum.join(' | ') : '')]));
 };
 
+// A part as the type resolves it, not placed: what describePart, pinRoles and partRatings read.
+// A bare type that needs more takes its `typical` fields (a resistor's value, a module's part
+// number); a part wired pin by name (a switch, a relay, a board beside the breadboard) is taken
+// with every pin it has, each to a hole that does not matter here.
+function unplaced(raw) {
+  const type = PART_TYPES[raw.type];
+  let def = type?.resolve(raw);
+  if (def?.error && type.typical) {
+    raw = { ...type.typical, ...raw };
+    def = type.resolve(raw);
+  }
+  if (def?.error?.code === 'MODULE_PINS') {
+    const all = pinsOf(raw);
+    const names = all.length ? all : (lookupPartNumber(raw.part)?.entry.pins ?? []);
+    raw = { ...raw, pins: Object.fromEntries(names.map((n) => [n, 'a1'])) };
+    def = type.resolve(raw);
+  }
+  if (!def || def.error) return null;
+  return { id: raw.id, type: raw.type, raw, def, pinNames: def.pinNames ?? type.pins ?? [] };
+}
+
+// What the page's card says about a typical instance (`raw`: the part number, or a type with its
+// defaults) and the limits the simulator checks it against. The fields its limits follow are left
+// at their defaults, so a resistor says the power of the default 1/4 W.
+function facts(raw, lang) {
+  let part = unplaced(raw);
+  if (!part) return {};
+  let ratings = partRatings(part);
+  const follow = ratings?.fields ?? [];
+  if (follow.some((f) => f in part.raw)) {
+    part = unplaced(Object.fromEntries(Object.entries(part.raw).filter(([k]) => !follow.includes(k)))) ?? part;
+    ratings = partRatings(part);
+  }
+  const about = describePart(part, lang);
+  const roles = pinRoles(part, lang);
+  return { ...(about && { about }), ...(roles.length && { pinRoles: Object.fromEntries(roles.map((r) => [r.name, r.text])) }), ...(ratings && { limits: ratings.limits, ...(ratings.fields && { limitFields: ratings.fields }) }) };
+}
+
 const pinsOfModule = (m) => m.pins ?? m.headers.flatMap((h) => h.pins.map(([n]) => n));
 
 // Everything, in short: what an agent reads before building a circuit.
@@ -83,6 +127,7 @@ function catalogEntryExact(name, lang = 'en') {
   if (boardId) return { kind: 'board', type: 'board', part: boardId, name: BOARDS[boardId].name?.[lang] ?? BOARDS[boardId].name?.en, layout: boardLayout(createBoard(boardId)) };
   if (PART_TYPES[key]) {
     const type = PART_TYPES[key];
+    const example = exampleOf(key);
     const numbers = Object.entries(PART_NUMBERS).filter(([, e]) => e.type === key);
     return {
       kind: 'type',
@@ -94,21 +139,24 @@ function catalogEntryExact(name, lang = 'en') {
       ...(key === 'module' && { modules: Object.fromEntries(Object.entries(MODULES).map(([k, m]) => [k, { name: m.label, mount: m.mount, pins: pinsOfModule(m) }])) }),
       ...(key === 'battery' && { formats: Object.fromEntries(Object.entries(BATTERY_FORMATS).map(([k, f]) => [k, { default: f.default, chemistries: Object.keys(f.chemistries) }])) }),
       ...(key === 'ldr' && { parts: Object.keys(LDR_PARTS) }),
-      example: exampleOf(key),
+      ...facts({ id: 'X1', type: key }, lang),
+      example,
     };
   }
   const moduleKey = Object.keys(MODULES).find((k) => k.toUpperCase() === key.toUpperCase());
   if (moduleKey) {
     const m = MODULES[moduleKey];
-    return { kind: 'module', type: 'module', part: moduleKey, name: m.label, mount: m.mount, pins: pinsOfModule(m), fields: fieldsOf('module'), example: exampleOf('module', moduleKey) };
+    const example = exampleOf('module', moduleKey);
+    return { kind: 'module', type: 'module', part: moduleKey, name: m.label, mount: m.mount, pins: pinsOfModule(m), fields: fieldsOf('module'), ...facts({ id: 'X1', type: 'module', part: moduleKey }, lang), example };
   }
   const found = lookupPartNumber(key);
   if (found) {
     const { number, entry } = found;
-    return { kind: 'part', type: entry.type, part: number, package: entry.package, pins: entry.pins, fields: fieldsOf(entry.type), example: exampleOf(entry.type, number) };
+    const example = exampleOf(entry.type, number);
+    return { kind: 'part', type: entry.type, part: number, package: entry.package, pins: entry.pins, fields: fieldsOf(entry.type), ...facts({ id: 'X1', type: entry.type, part: number }, lang), example };
   }
   const ldr = Object.keys(LDR_PARTS).find((k) => k.toUpperCase() === key.toUpperCase());
-  if (ldr) return { kind: 'part', type: 'ldr', part: ldr, pins: PART_TYPES.ldr.pins, fields: fieldsOf('ldr'), example: exampleOf('ldr') };
+  if (ldr) return { kind: 'part', type: 'ldr', part: ldr, pins: PART_TYPES.ldr.pins, fields: fieldsOf('ldr'), ...facts({ id: 'X1', type: 'ldr', part: ldr }, lang), example: exampleOf('ldr') };
   return null;
 }
 
@@ -209,6 +257,16 @@ export function formatCompactCatalog(c, lang = 'en') {
   return lines.join('\n');
 }
 
+// "rated current 20 mA · maximum current 30 mA · maximum reverse voltage 5 V", in the page's words
+// for each quantity (page.warnings.q.*), and the fields the limits follow.
+function limitsText(e, lang) {
+  const items = e.limits.map((l) => {
+    const text = t(lang, `catalog.limit.${l.kind}`, { quantity: t(lang, `page.warnings.q.${l.quantity}`), value: formatValue(l.value, l.unit, { decimal: decimalSeparator(lang) }) });
+    return `${text}${l.pins ? ` (${l.pins.join(', ')})` : ''}${l.of ? ` (${t(lang, `catalog.limit.of.${l.of}`)})` : ''}${l.each ? ` ${t(lang, `catalog.limit.each.${l.each}`)}` : ''}`;
+  });
+  return `${items.join(' · ')}${e.limitFields ? `, ${t(lang, 'catalog.limitFields', { fields: e.limitFields.join(', ') })}` : ''}`;
+}
+
 export function formatCatalogEntry(e, lang = 'en') {
   const aliasLine = e.alias ? `\n  ${t(lang, 'catalog.alias', { name: e.alias.name, fields: JSON.stringify(e.alias.fields) })}` : '';
   if (e.kind === 'recipe') {
@@ -216,16 +274,22 @@ export function formatCatalogEntry(e, lang = 'en') {
     if (e.supplies) lines.push(`  supplies: ${e.supplies.map((x) => JSON.stringify(x)).join(', ')}`);
     lines.push(`  ${t(lang, 'catalog.recipeValues')}`);
     for (const [id, v] of Object.entries(e.values)) {
-      const limits = v.choices ? ` [${v.choices.join(', ')}]` : v.min !== undefined || v.max !== undefined ? ` [${v.min ?? ''}…${v.max ?? ''}]` : '';
-      lines.push(`    ${id}: ${v.field} = ${v.default}${limits}${v.role ? ` · ${v.role}` : ''}`);
+      lines.push(`    ${id}: ${v.field} = ${v.default}${valueLimits(v, decimalSeparator(lang))}${v.role ? ` · ${v.role}` : ''}`);
+    }
+    if (e.goals) {
+      lines.push(`  ${t(lang, 'catalog.recipeGoals')}`);
+      for (const g of e.goals) lines.push(`    ${g.id}: ${g.goal} → ${g.set.join(', ')} · ${JSON.stringify(g.example)}`);
     }
     return lines.join('\n');
   }
   if (e.kind === 'board') return `${e.part} (${e.name})\n  ${formatBoardLayout(e.layout, lang)}`;
   const head = e.kind === 'type' ? `${e.type} (${e.name})` : `${e.part} → ${e.type}${e.package ? ` · ${e.package}` : ''}${e.mount ? ` · ${e.mount}` : ''}`;
   const lines = [head];
+  if (e.about) lines.push(`  ${t(lang, 'catalog.about')} ${e.about}`);
   if (e.pins) lines.push(`  ${t(lang, 'catalog.pins')} ${e.pins.join(' ')}`);
   else lines.push(`  ${t(lang, 'catalog.pins')} ${t(lang, 'catalog.pinsFromPart')}`);
+  if (e.pinRoles) lines.push(`  ${t(lang, 'catalog.pinRoles')} ${Object.values(e.pinRoles).join('; ')}`);
+  if (e.limits) lines.push(`  ${t(lang, 'catalog.limits')} ${limitsText(e, lang)}`);
   if (Array.isArray(e.parts)) lines.push(`  ${t(lang, 'catalog.parts')} ${e.parts.join(', ')}`);
   else if (e.parts) for (const [n, p] of Object.entries(e.parts)) lines.push(`  ${n} · ${p.package} · ${p.pins.join(' ')}`);
   if (e.modules) for (const [n, m] of Object.entries(e.modules)) lines.push(`  ${n} (${m.name}, ${m.mount}) · ${m.pins.join(' ')}`);

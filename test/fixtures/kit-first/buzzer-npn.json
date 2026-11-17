@@ -1,0 +1,87 @@
+{
+  "title": {
+    "en": "The redesign tried instead: the buzzer from 5 V through an NPN driven by D10",
+    "es": "El rediseño que se probó: el zumbador desde 5 V con un NPN que maneja D10"
+  },
+  "parts": [
+    {
+      "id": "U1",
+      "part": "UNO",
+      "program": "const int LED1 = 8;\nconst int LED2 = 9;\nconst int BUZZER = 10;\n\nvoid setup() {\n  pinMode(LED1, OUTPUT);\n  pinMode(LED2, OUTPUT);\n  pinMode(BUZZER, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(LED1, HIGH);\n  delay(500);\n  digitalWrite(LED1, LOW);\n  digitalWrite(LED2, HIGH);\n  tone(BUZZER, 1000);\n  delay(500);\n  digitalWrite(LED2, LOW);\n  noTone(BUZZER);\n}\n"
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "220"
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "red"
+    },
+    {
+      "id": "R2",
+      "type": "resistor",
+      "value": "220"
+    },
+    {
+      "id": "D2",
+      "type": "led",
+      "color": "green"
+    },
+    {
+      "id": "R3",
+      "type": "resistor",
+      "value": "1k"
+    },
+    {
+      "id": "Q1",
+      "part": "2N2222"
+    },
+    {
+      "id": "BZ1",
+      "type": "buzzer"
+    }
+  ],
+  "nets": [
+    [
+      "U1.D8",
+      "R1.1"
+    ],
+    [
+      "R1.2",
+      "D1.anode"
+    ],
+    [
+      "U1.D9",
+      "R2.1"
+    ],
+    [
+      "R2.2",
+      "D2.anode"
+    ],
+    [
+      "U1.D10",
+      "R3.1"
+    ],
+    [
+      "R3.2",
+      "Q1.B"
+    ],
+    [
+      "U1.5V",
+      "BZ1.1",
+      "T+"
+    ],
+    [
+      "BZ1.2",
+      "Q1.C"
+    ],
+    [
+      "U1.GND",
+      "D1.cathode",
+      "D2.cathode",
+      "Q1.E"
+    ]
+  ]
+}

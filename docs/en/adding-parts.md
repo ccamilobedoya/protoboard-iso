@@ -37,7 +37,9 @@ export default {
 ```
 
 Register it in `src/parts/types/index.js` (its `family` must be one of `FAMILIES` there; a test fails otherwise), add `type.<name>` to every file in `src/i18n/`
-and a row to `docs/*/circuit-format.md`.
+and a row to `docs/*/circuit-format.md`. If the bare type does not resolve (it needs a value or a part
+number), give it `typical`, the fields of a typical instance (`typical: { value: '330' }`): `catalog <type>`
+describes that one, also in the plugin, which has no `examples/`; a test checks every type.
 
 ## 3. A new package
 

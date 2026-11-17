@@ -1,0 +1,279 @@
+// Public API.
+//
+//   renderCircuit(circuit, options)  → { svg, scene, issues, netlist }
+//   inspectCircuit(circuit, options) → report: positions, visibility, label problems
+//   formatReport(report, lang)       → the report as readable text
+//   checkCircuit(circuit)            → { issues, netlist }
+//   formatIssue(issue, lang)         → "warning: R1: …"
+//   applyOps(circuit, ops)           → { circuit, inverse, errors }   (pure, see ops.js)
+//   evaluate / diffEvaluations       → what a change fixes and introduces (see diff.js)
+//   queryAt / queryNode / queryFree / suggest → questions and placements (see query.js)
+//   review(circuit, { profile })     → approved / changes, from measurements (see review.js)
+//   File-based history and undo live in src/node/workspace.js (Node only).
+//
+// Works the same in Node and in the browser: no dependencies, no file access.
+
+import { createCamera, VIEWS } from './core/camera.js';
+import { formatValue, parseValue } from './core/units.js';
+import { drawBoard } from './board/draw-board.js';
+import { BOARDS, createBoard, boardLayout, supplyRails } from './board/board.js';
+import { buildScene } from './render/scene.js';
+import { sceneToSvg } from './render/svg.js';
+import { inspectScene, formatReport as formatReportWith } from './inspect.js';
+import { parseAnnotations, annotateScene, nodeColors, ANNOTATION_LAYERS } from './annotate.js';
+import { buildCircuit } from './circuit/build.js';
+import { nodeParams } from './circuit/checks.js';
+import { t, decimalSeparator, LANGUAGES } from './i18n/index.js';
+import { PART_TYPES } from './parts/types/index.js';
+import { PACKAGES } from './parts/packages/index.js';
+import { PART_NUMBERS } from './parts/db.js';
+import { resistorBands } from './parts/types/resistor.js';
+import { simulate, pageControlIssues } from './sim/index.js';
+import { tourIssues } from './tour.js';
+import { environmentIssues } from './sim/environment.js';
+import { emitterIssues } from './sim/compile.js';
+import { resultsOverlay } from './sim/overlay.js';
+import { flowOps, lightOps, shadeOps, segmentOps, flowStyle } from './sim/paths.js';
+import { probeOps } from './sim/probes.js';
+import { focusLayers, veilOps, stripOps, coordOps, nodesOf } from './render/focus.js';
+import { shortLabelOps } from './render/short-labels.js';
+
+export { applyOps, OP_NAMES, CIRCUIT_FIELDS } from './ops.js';
+export { evaluate, diffEvaluations, problemKey } from './diff.js';
+export { queryAt, queryNode, queryFree, suggest, resolveNode } from './query.js';
+export { review, formatReview, PROFILES } from './review.js';
+export { ANNOTATION_LAYERS, BOARDS, createBoard, PART_TYPES, PACKAGES, PART_NUMBERS, VIEWS, LANGUAGES, parseValue, formatValue, resistorBands, t, buildCircuit };
+
+export function formatIssue(issue, lang = 'en') {
+  const decimal = decimalSeparator(lang);
+  const params = Object.fromEntries(
+    Object.entries(issue.params).map(([k, v]) => [k, typeof v === 'number' ? String(v).replace('.', decimal) : v && typeof v === 'object' && 'unit' in v ? formatValue(v.value, v.unit, { decimal }) : v]),
+  );
+  if (params.node) {
+    const n = nodeParams(params.node);
+    params.node = t(lang, n.key, n.params);
+  }
+  const nearest = params.nearest ? ` ${t(lang, 'check.nearest', params)}` : '';
+  // A part may say the same code its own way: params.variant names check.<code>.<variant>.
+  const special = params.variant ? `check.${issue.code}.${params.variant}` : null;
+  const key = special && t(lang, special) !== special ? special : `check.${issue.code}`;
+  const text = `${t(lang, `severity.${issue.severity}`)}: ${t(lang, key, params)}${nearest}`;
+  // A hazard found with a control operated (sim/index.js checkHazards) says in which state.
+  return issue.when ? `${text.replace(/\.$/, '')}, ${whenText(issue.when, lang)}.` : text;
+}
+
+// "with S1 pressed", "with RV1 at the pin-3 end of its travel", "with D10 high"; a control without words of its own:
+// "with S1 on = false".
+function whenText({ part, field, value, pin, name }, lang) {
+  // A board's output held high by the hazard check (sim/index.js): "with D10 high".
+  if (pin) return t(lang, 'hazard.when.pin', { pin: name ?? pin });
+  const key = field === 'position' ? `hazard.when.position.${value > 0.5 ? 3 : 1}` : `hazard.when.${field}.${Boolean(value)}`;
+  const words = t(lang, key, { part });
+  return words !== key ? words : t(lang, 'hazard.when', { part, field, value: String(value) });
+}
+
+// Value as shown to people: "4,7 kΩ", "rojo", "IRLZ44N" (null for wires).
+export function valueText(part, lang = 'en') {
+  const label = part?.def.label;
+  if (!label) return null;
+  let text;
+  if (label.value !== undefined) text = formatValue(label.value, label.unit, { decimal: decimalSeparator(lang) });
+  else if (label.key) text = t(lang, label.key);
+  else text = label.text;
+  return label.extra ? `${text} ${label.extra}` : text;
+}
+
+export function labelText(part, lang = 'en') {
+  const value = valueText(part, lang);
+  return value ? `${part.id} · ${value}` : null;
+}
+
+export function checkCircuit(circuit) {
+  const { issues, netlist, parts } = buildCircuit(circuit);
+  return { issues: [...issues, ...environmentIssues(circuit), ...emitterIssues(circuit, parts), ...pageControlIssues(circuit), ...tourIssues(circuit)], netlist };
+}
+
+// A piece lying entirely beyond one side face of the board (a battery on the table, the low
+// part of its leads), on the side the camera does not see: the board stands between it and
+// the viewer, so it is painted before the board. Above the board top nothing is hidden, and
+// the board never covers it there either.
+const SIDE_FACES = [
+  [(p, s) => p.x < -0.01, { x: -1, y: 0, z: 0 }],
+  [(p, s) => p.x > s.length + 0.01, { x: 1, y: 0, z: 0 }],
+  [(p, s) => p.y < -0.01, { x: 0, y: -1, z: 0 }],
+  [(p, s) => p.y > s.width + 0.01, { x: 0, y: 1, z: 0 }],
+];
+function behindBoard(primitive, size, camera) {
+  const pts = primitive.faces.flatMap((f) => f.pts);
+  return SIDE_FACES.some(([outside, n]) => n.x * camera.toViewer.x + n.y * camera.toViewer.y < 0 && pts.every((p) => outside(p, size)));
+}
+
+// Shared by render and inspect: circuit → resolved parts → scene (+ annotations).
+function sceneFor(circuit, options = {}) {
+  const view = options.view ?? circuit?.view ?? 'front';
+  const { lang = 'en', scale = 5, labels = true, fit = 'board' } = options;
+  const layers = parseAnnotations(options.annotate);
+  const result = buildCircuit(circuit);
+  if (!result.board) return { result, scene: null, view, scale, lang };
+
+  const camera = createCamera({ view, scale });
+  const highlight = layers.has('nodes') ? nodeColors(result.netlist) : new Map();
+  // The board's blocks (two on a double board), the far one first: they are drawn in this order.
+  const base = drawBoard(result.board, { netLabels: circuit.netLabels ?? {}, highlight, allNumbers: layers.has('grid') });
+  if (camera.toViewer.y < 0) base.reverse();
+  const items = [];
+  const under = [];
+  for (const part of result.parts) {
+    for (const primitive of part.built.primitives) {
+      primitive.part = part.id;
+      (behindBoard(primitive, result.board.spec.size, camera) ? under : items).push(primitive);
+    }
+  }
+  const anchors = [];
+  if (labels) {
+    for (const part of result.parts) {
+      // labels: true / 'both' → "R1 · 330 Ω", 'id' → "R1", 'value' → "330 Ω"
+      const text = labels === 'id' ? (part.def.label ? part.id : null) : labels === 'value' ? valueText(part, lang) : labelText(part, lang);
+      if (!text) continue;
+      const at = camera.project(part.built.anchor);
+      anchors.push({ x: at.x, y: at.y, text, part: part.id });
+    }
+  }
+  const scene = buildScene({ camera, base, items, under, labels: anchors, fit });
+  if (layers.size) annotateScene(scene, result, layers);
+  addLayers(scene, result, circuit, options, lang);
+  return { result, scene, view, scale, lang };
+}
+
+// Optional layers, always in this order: lights (right after the parts), shortlabels (right after
+// the labels, a page only), veil, strips, coords, spotlight, flow, marks, spotlabels, results,
+// probes; in the plan, flow before spotlight.
+//   focus: ['R1']   dim everything but these parts and their strips (static images)
+//   flow: true      conductor view: conductors coloured by voltage, dots for conventional
+//                   current (moving in a page, still in a static image); flowStyle 'plan' (the
+//                   default, or the circuit's page.flow.style) or 'real' (src/sim/paths.js)
+//   sim: true       simulation results, labelled as a model
+//   interactive     a page: every part tagged and copied, every strip ready, shown by CSS; with
+//                   sim or flow, a hidden mark around each part (its limits, see markOps)
+function addLayers(scene, built, circuit, options, lang) {
+  const needSim = options.sim || options.flow;
+  const sim = needSim ? simulate(circuit, { analysis: 'dc' }) : null;
+  const extra = { shortlabels: [], veil: [], strips: [], coords: [], spotlight: [], flow: [], marks: [], spotlabels: [], results: [], probes: [] };
+  if (options.interactive) {
+    extra.veil = veilOps(scene.frame);
+    extra.strips = stripOps(scene, built.board, [...usedNodes(built, circuit)]);
+    // Column numbers and row letters of every lead, shown for the tapped part only.
+    extra.coords = coordOps(scene, built.board, built.parts.flatMap((p) => p.holes));
+    // The page clones the focused parts into .spotlight when needed: no copies in the file.
+    // At rest it names the parts with short labels beside them (render/short-labels.js).
+    const wires = new Set(built.parts.filter((p) => p.def.electrical?.kind === 'W').map((p) => p.id));
+    const texts = built.parts.map((p) => ({ part: p.id, text: labelText(p, lang) })).filter((x) => x.text);
+    extra.shortlabels = shortLabelOps(scene, texts, wires);
+  } else if (options.focus?.length) {
+    Object.assign(extra, focusLayers(scene, built, options.focus));
+  }
+  if (options.flow) {
+    // The conductor view draws the strips in use itself, coloured: no grey strips under them.
+    if (!options.interactive) extra.veil = veilOps(scene.frame);
+    // A page gets every piece, tagged for the live simulation to move and colour.
+    extra.flow = flowOps(scene, built, sim, circuit, { live: Boolean(options.interactive), style: options.flowStyle ?? flowStyle(circuit) });
+  }
+  if (options.interactive && needSim) extra.marks = markOps(scene, built);
+  if (options.sim) {
+    // LEDs glow with their current, over the parts (the current layer draws its own glow).
+    if (options.interactive || !options.flow) extra.lights = lightOps(scene, built, sim, circuit);
+    // An LED that is off is drawn dark (look.js, SHADE): its shade goes into the parts, right after
+    // the LED's last piece, so what is drawn in front of it stays in front.
+    // A display's lit segments too: on its face, of the part.
+    for (const op of [...shadeOps(scene, built, sim), ...segmentOps(scene, built, sim)]) {
+      const at = scene.layers.parts.findLastIndex((x) => x.part === op.part);
+      scene.layers.parts.splice(at < 0 ? scene.layers.parts.length : at + 1, 0, op);
+    }
+    extra.results = resultsOverlay(scene, built, sim, lang);
+    // A page shows, on demand, where each tag's value comes from (probes, arrows).
+    if (options.interactive) extra.probes = probeOps(scene, built, sim, circuit);
+    // With a focus, only the focused parts' currents and the voltages of their groups.
+    if (!options.interactive && options.focus?.length) {
+      const ids = new Set(options.focus);
+      const nodes = new Set(nodesOf(built, ids));
+      extra.results = extra.results.filter((op) => op.cls === 'badge' || ids.has(op.part) || nodes.has(op.data?.node));
+    }
+  }
+  // The lit LEDs go right over the parts, under the labels and everything else. In the plan the
+  // parts in focus go over the current layer, seen through (the page sets their opacity), so its
+  // lines read under their bodies.
+  const { lights = [], shortlabels, spotlight, flow, ...rest } = extra;
+  const { under, board, parts, labels, ...others } = scene.layers;
+  const plan = options.flow && (options.flowStyle ?? flowStyle(circuit)) === 'plan';
+  const told = plan ? { flow, spotlight: options.interactive ? spotlight : spotlight.map((op) => ({ ...op, opacity: 0.5 })) } : { spotlight, flow };
+  scene.layers = { under, board, parts, lights, labels, shortlabels, ...others, ...pick(rest, ['veil', 'strips', 'coords']), ...told, ...rest };
+}
+
+// A rounded box around each part on screen (its polygons, leads included), hidden: the live page
+// shows it when the part nears or passes a limit (page/client/limits.js). A plain stroke whose
+// opacity changes, instead of a CSS filter on the part: a blur filter is redrawn on every frame
+// the dots move, and made the page crawl.
+const MARK_PAD = 3;
+function markOps(scene, built) {
+  const box = new Map();
+  for (const op of [...scene.layers.under, ...scene.layers.parts]) {
+    if (op.kind !== 'polygon' || op.part == null) continue;
+    const b = box.get(op.part) ?? { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    for (const p of op.pts) {
+      b.x0 = Math.min(b.x0, p.x);
+      b.y0 = Math.min(b.y0, p.y);
+      b.x1 = Math.max(b.x1, p.x);
+      b.y1 = Math.max(b.y1, p.y);
+    }
+    box.set(op.part, b);
+  }
+  const wires = new Set(built.parts.filter((p) => p.def.electrical?.kind === 'W').map((p) => p.id));
+  return [...box].filter(([id]) => !wires.has(id)).map(([id, b]) => ({
+    kind: 'rect', x: b.x0 - MARK_PAD, y: b.y0 - MARK_PAD, width: b.x1 - b.x0 + 2 * MARK_PAD, height: b.y1 - b.y0 + 2 * MARK_PAD, rx: 4,
+    fill: 'none', stroke: '#d0281a', strokeWidth: 2, cls: 'mark', data: { mark: id },
+  }));
+}
+
+const pick = (obj, keys) => Object.fromEntries(keys.map((k) => [k, obj[k]]));
+
+// Groups with a lead in them, plus the rails a supply is clipped to.
+function usedNodes(built, circuit) {
+  const nodes = new Set(Object.keys(built.netlist.nodes));
+  for (const s of Array.isArray(circuit.supplies) ? circuit.supplies : []) {
+    const [positive, negative] = supplyRails(built.board.spec);
+    for (const ref of [s.positive ?? positive, s.negative ?? negative]) {
+      const hole = built.board.find(String(ref));
+      const node = hole ? hole.node : String(ref);
+      if ([...built.board.holes.values()].some((h) => h.node === node)) nodes.add(node);
+    }
+  }
+  return nodes;
+}
+
+const titleOf = (circuit, lang) => (typeof circuit.title === 'object' ? circuit.title?.[lang] ?? circuit.title?.en : circuit.title);
+
+// options: view, lang, scale (px per mm), labels (true | 'both' | 'id' | 'value' | false),
+//          fit ('board' | 'parts'),
+//          annotate ('pins,boxes,nodes,grid' | 'all'), background,
+//          sim (true: DC simulation results in the `results` layer, see src/sim/overlay.js),
+//          focus (['R1', …]: dim the rest, see src/render/focus.js), flow (true: current flow),
+//          interactive (true: everything a page needs to focus and show flow on demand)
+export function renderCircuit(circuit, options = {}) {
+  const { result, scene, lang } = sceneFor(circuit, options);
+  if (!scene) return { svg: null, scene: null, issues: result.issues, netlist: result.netlist };
+  const svg = sceneToSvg(scene, { background: options.background ?? '#ffffff', title: titleOf(circuit, lang), tagParts: Boolean(options.interactive) });
+  return { svg, scene, issues: result.issues, netlist: result.netlist };
+}
+
+// Same options as renderCircuit. The report describes exactly what renderCircuit draws.
+export function inspectCircuit(circuit, options = {}) {
+  const { result, scene, view, scale, lang } = sceneFor(circuit, options);
+  if (!scene) return { view, scale, frame: null, parts: [], text: null, problems: [], issues: result.issues };
+  const report = inspectScene(scene, result, { view, scale });
+  report.board = boardLayout(result.board);
+  const byId = new Map(result.parts.map((p) => [p.id, p]));
+  for (const p of report.parts) p.value = valueText(byId.get(p.id), lang);
+  return report;
+}
+
+export const formatReport = (report, lang = 'en') => formatReportWith(report, lang, formatIssue);

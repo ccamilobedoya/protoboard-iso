@@ -1,0 +1,11 @@
+{
+  "name": "protoboard-iso",
+  "displayName": "Protoboard ISO",
+  "version": "written from package.json by scripts/pack-skill.js",
+  "description": "Ask for a circuit and get it built on a breadboard: real holes, wires, a check, and a live page with the simulation. An LED, a 555, a sensor, an Arduino or ESP32 with its sketch.",
+  "author": { "name": "protoboard-iso contributors", "url": "https://github.com/ccamilobedoya/protoboard-iso" },
+  "homepage": "https://github.com/ccamilobedoya/protoboard-iso",
+  "repository": "https://github.com/ccamilobedoya/protoboard-iso",
+  "license": "MIT",
+  "keywords": ["breadboard", "electronics", "circuit", "arduino", "esp32", "simulation", "education"]
+}

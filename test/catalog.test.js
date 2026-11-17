@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PART_TYPES, FAMILIES } from '../src/parts/types/index.js';
 import { buildSchemas } from '../src/schema.js';
-import { COMMON_FIELDS, TYPE_FIELDS, compactCatalog, catalogEntry, formatCompactCatalog } from '../src/node/catalog.js';
+import { t } from '../src/i18n/index.js';
+import { COMMON_FIELDS, TYPE_FIELDS, compactCatalog, catalogEntry, formatCatalogEntry, formatCompactCatalog } from '../src/node/catalog.js';
 
 test('every field of a part belongs to every type or to some types', () => {
   const props = Object.keys(buildSchemas()['circuit.schema.json'].$defs.part.properties);
@@ -19,6 +20,8 @@ test('the compact catalog is short; an entry tells pins, fields and an example',
   assert.ok(ldr.parts.length && ldr.fields.light);
   assert.equal(catalogEntry('UNO').kind, 'module');
   assert.equal(catalogEntry('2SC1815').part, 'C1815');
+  assert.equal(catalogEntry('555').part, 'NE555', 'a bare 555 is the NE555');
+  assert.equal(catalogEntry('555').type, 'ic');
   assert.equal(catalogEntry('nope'), null);
 });
 
@@ -56,7 +59,6 @@ test('the compact catalog keeps its types in groups and stays short in English',
 
 test('every recipe is in one of the recipe groups, and the compact catalog lists the recipes by group, names only', async () => {
   const { RECIPES, RECIPE_GROUPS } = await import('../src/recipes/index.js');
-  const { t } = await import('../src/i18n/index.js');
   for (const r of Object.values(RECIPES)) {
     assert.ok(RECIPE_GROUPS.includes(r.group), `recipe "${r.name}": set its "group" to one of ${RECIPE_GROUPS.join(', ')} (src/recipes/index.js)`);
   }
@@ -79,4 +81,87 @@ test('every recipe is in one of the recipe groups, and the compact catalog lists
   }
   assert.equal(catalogEntry('divider', 'es').title, 'Divisor de voltaje');
   assert.equal(catalogEntry('divider', 'en').group, 'basics');
+});
+
+// catalog <part> answers a question about a part from the kit alone (src/sim/ratings.js): the
+// card's text (describePart), what each pin does (pin.role.*) and the limits the simulator checks.
+test('a part\'s entry carries the card\'s text, its pins\' roles and the simulator\'s limits, in both languages', async () => {
+  const { LED_LIMITS, RESISTOR_POWER } = await import('../src/sim/models.js');
+  const line = (text, key, lang) => text.split('\n').find((l) => l.startsWith(`  ${t(lang, key)} `));
+
+  const led = catalogEntry('led');
+  assert.equal(led.about, t('en', 'describe.led'));
+  assert.deepEqual(led.pinRoles, { anode: t('en', 'pin.role.led.anode'), cathode: t('en', 'pin.role.led.cathode') });
+  assert.deepEqual(led.limits, [
+    { kind: 'rated', quantity: 'current', value: LED_LIMITS.ratedCurrent, unit: 'A' },
+    { kind: 'max', quantity: 'current', value: LED_LIMITS.maxCurrent, unit: 'A' },
+    { kind: 'max', quantity: 'reverse', value: LED_LIMITS.maxReverse, unit: 'V' },
+  ]);
+  const en = formatCatalogEntry(led, 'en');
+  assert.equal(line(en, 'catalog.limits', 'en'), "  limits (the simulator's): rated current 20 mA · maximum current 30 mA · maximum reverse voltage 5 V");
+  assert.equal(line(en, 'catalog.about', 'en'), `  about: ${t('en', 'describe.led')}`);
+  assert.equal(line(en, 'catalog.pinRoles', 'en'), '  pin roles: anode · the + side, in; cathode · the − side, out');
+  const es = formatCatalogEntry(catalogEntry('led', 'es'), 'es');
+  assert.equal(line(es, 'catalog.limits', 'es'), '  límites (los del simulador): la corriente nominal 20 mA · la corriente hasta 30 mA · el voltaje inverso hasta 5 V');
+  assert.equal(line(es, 'catalog.about', 'es'), `  qué es: ${t('es', 'describe.led')}`);
+
+  // A resistor: the power of its default rating, and the field that changes it.
+  const resistor = catalogEntry('resistor');
+  assert.deepEqual(resistor.limits, [{ kind: 'max', quantity: 'power', value: RESISTOR_POWER['1/4'], unit: 'W' }]);
+  assert.deepEqual(resistor.limitFields, ['power']);
+  assert.equal(line(formatCatalogEntry(resistor, 'en'), 'catalog.limits', 'en'), "  limits (the simulator's): maximum power 250 mW, by default (field power)");
+  assert.equal(line(formatCatalogEntry(catalogEntry('resistor', 'es'), 'es'), 'catalog.limits', 'es'), '  límites (los del simulador): la potencia hasta 250 mW, por defecto (campo power)');
+
+  // A transistor by its part number: its own model's power.
+  const { BJTS } = await import('../src/sim/models.js');
+  const q = catalogEntry('2N2222A');
+  assert.equal(q.about, t('en', 'describe.bjt.npn'));
+  assert.deepEqual(q.limits, [{ kind: 'max', quantity: 'power', value: BJTS['2N2222A'].maxPower, unit: 'W' }]);
+  assert.equal(q.pinRoles.B, t('en', 'pin.role.bjt.B'));
+
+  // A microcontroller board: its text, and a limit repeated over its pins says so.
+  const uno = catalogEntry('UNO');
+  assert.ok(uno.about.includes(t('en', 'describe.module.uno')), uno.about);
+  assert.ok(uno.limits.some((l) => l.each === 'pins'), JSON.stringify(uno.limits));
+  assert.match(formatCatalogEntry(uno, 'en'), /\n {2}limits \(the simulator's\): maximum current 40 mA per pin\n/);
+  assert.match(formatCatalogEntry(catalogEntry('UNO', 'es'), 'es'), /\n {2}límites \(los del simulador\): la corriente hasta 40 mA por pata\n/);
+
+  // Chips of a package that share a limit say which; a chip the simulator does not run, and a
+  // breadboard, get no line for what the kit does not know.
+  assert.deepEqual(catalogEntry('rgb-led').limits.find((l) => l.kind === 'max' && l.quantity === 'current').pins, ['R', 'G', 'B']);
+  const register = catalogEntry('74HC595');
+  assert.ok(register.about && register.limits === undefined);
+  assert.doesNotMatch(formatCatalogEntry(register, 'en'), /limits/);
+  const board = catalogEntry('bb830');
+  for (const k of ['about', 'pinRoles', 'limits']) assert.equal(board[k], undefined, k);
+
+  // The JSON is the same data as the text.
+  const json = JSON.parse(JSON.stringify(catalogEntry('led', 'es')));
+  assert.equal(json.about, t('es', 'describe.led'));
+  assert.deepEqual(json.limits, led.limits);
+});
+
+test('every limit says what it belongs to when the quantity alone does not, in both languages', () => {
+  const line = (name, lang) => formatCatalogEntry(catalogEntry(name, lang), lang).split('\n').find((l) => l.includes(t(lang, 'catalog.limits')));
+  assert.match(line('relay', 'en'), /maximum voltage 6 V \(coil\) · maximum current 10 A \(contacts\)/);
+  assert.match(line('relay', 'es'), /el voltaje hasta 6 V \(bobina\) · la corriente hasta 10 A \(contactos\)/);
+  assert.match(line('motor', 'en'), /maximum current 140 mA \(when stalled\)/);
+  assert.match(line('motor', 'es'), /la corriente hasta 140 mA \(con el eje frenado\)/);
+  assert.match(line('ESP32-DEVKIT', 'en'), /maximum current 40 mA per pin · maximum current 800 mA \(3\.3 V regulator\)/);
+  assert.match(line('AMS1117-3.3', 'en'), /maximum current 800 mA \(output\) · maximum voltage 15 V \(input\)/);
+  assert.match(line('NE555', 'en'), /maximum voltage 16 V \(supply\)/);
+  assert.match(line('slide-switch', 'en'), /maximum voltage 30 V across an open contact$/);
+  // The UNO's logic rail is the USB's 5 V itself: the simulator checks no regulator there, so none is listed.
+  assert.equal(line('UNO', 'en'), "  limits (the simulator's): maximum current 40 mA per pin");
+  // Two limits of one part with the same quantity are told apart, and no key is left untranslated.
+  for (const lang of ['en', 'es']) {
+    for (const name of Object.keys(PART_TYPES)) {
+      const e = catalogEntry(name, lang);
+      if (!e?.limits) continue;
+      const text = formatCatalogEntry(e, lang);
+      assert.doesNotMatch(text, /catalog\.limit/, `${lang} ${name}`);
+      const keys = e.limits.map((l) => [l.kind, l.quantity, l.each, l.of, (l.pins ?? []).join()].join('|'));
+      assert.equal(new Set(keys).size, keys.length, `${name}: two limits that read the same`);
+    }
+  }
 });

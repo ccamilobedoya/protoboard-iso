@@ -14,7 +14,7 @@ export default {
   values: {
     U1: { field: 'part', choices: ['AMS1117-3.3', 'AMS1117-5.0'] },
     R1: { field: 'value', role: { en: 'LED resistor', es: 'resistencia del LED' } },
-    D1: { field: 'color' },
+    D1: { field: 'color', goals: { current: { set: 'R1', reading: 'current' } } },
     V1: { field: 'voltage', min: 4.5, max: 15 },
   },
 };

@@ -1,0 +1,99 @@
+# A release, built here so nothing is built by hand: on a tag v<version>, the plugin as a zip, the
+# skill alone as a zip (to upload as a skill), the desktop extension (.mcpb, scripts/pack-mcpb.js
+# with the pinned official CLI) and their SHA256SUMS, published as the tag's GitHub release with the
+# version's section of CHANGELOG.md as its notes. The checks are scripts/release-assets.js.
+# Run by hand with dry_run, it builds the same files as workflow artifacts and publishes nothing.
+# Actions are pinned by commit SHA (the tag after it is for people and dependabot).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build the files as workflow artifacts only, without a release
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      # A tag is released only as v + package.json's version, with its section in CHANGELOG.md.
+      # Run by hand on a branch, the version itself stands for the tag.
+      - name: Check the tag, the version and the changelog
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "$REF_TYPE" = tag ]; then tag="$REF_NAME"; else tag="v${version}"; fi
+          node scripts/release-assets.js check "$tag"
+          node scripts/release-assets.js notes "$version" > release-notes.md
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+      - name: The committed plugin is fresh
+        run: node scripts/pack-skill.js --check
+      # The server's tool list (for the manifest) is read from mcp/tools.js, which needs zod.
+      - name: Install the server's dependencies
+        run: npm --prefix mcp ci --omit=dev --omit=optional --ignore-scripts
+      - name: The plugin and the skill as zips, each with one top-level folder protoboard-iso/
+        run: |
+          mkdir -p dist "$RUNNER_TEMP/plugin" "$RUNNER_TEMP/skill"
+          cp -R plugin "$RUNNER_TEMP/plugin/protoboard-iso"
+          cp -R plugin/skills/protoboard-iso "$RUNNER_TEMP/skill/protoboard-iso"
+          (cd "$RUNNER_TEMP/plugin" && zip -qrX "$GITHUB_WORKSPACE/dist/protoboard-iso-plugin-${VERSION}.zip" protoboard-iso)
+          (cd "$RUNNER_TEMP/skill" && zip -qrX "$GITHUB_WORKSPACE/dist/protoboard-iso-skill-${VERSION}.zip" protoboard-iso)
+          for f in dist/*.zip; do
+            test "$(unzip -Z1 "$f" | cut -d/ -f1 | sort -u)" = protoboard-iso
+          done
+      - name: The desktop extension (.mcpb)
+        run: node scripts/pack-mcpb.js --out "$RUNNER_TEMP/mcpb" --pack "dist/protoboard-iso-${VERSION}.mcpb"
+      - name: Checksums
+        working-directory: dist
+        run: |
+          sha256sum -- *.zip *.mcpb > SHA256SUMS
+          cat SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ env.VERSION }}
+          path: |
+            dist/
+            release-notes.md
+          if-no-files-found: error
+
+  # Only on a tag, and not on a dry run: the one job that may write to the repository.
+  release:
+    needs: build
+    if: github.ref_type == 'tag' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-*
+          path: release
+          merge-multiple: true
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" release/dist/* --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" --notes-file release/release-notes.md

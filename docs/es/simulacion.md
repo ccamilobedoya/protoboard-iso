@@ -168,9 +168,98 @@ entran por la pata. El transitorio trae `times` y las mismas magnitudes como lis
 `review` corre este mismo análisis en DC y lista como **peligro** (`hazards`) cada esfuerzo que pasa
 su límite (los códigos que nombran un componente y un máximo: `SIM_OVER_CURRENT`, `SIM_OVER_POWER`,
 `SIM_REVERSE_VOLTAGE`, `SIM_IC_SUPPLY`, …; no los de la fuente, nodos flotantes ni notas): el veredicto
-pasa a APROBADO CON AVISOS, sin bloquear, y `layout` termina en `STATUS: WARNINGS`. Lee solo el punto en
-DC, así que un pico que muestra el transitorio (un pin PWM, la salida de un 555, una onda del generador)
-no lo encuentra.
+pasa a APROBADO CON AVISOS, sin bloquear, y `layout` termina en `STATUS: WARNINGS`. Lee el punto en DC
+en reposo y otra vez en cada uno de estos estados, uno a la vez y todo lo demás en reposo
+(`src/sim/index.js`, `checkHazards`):
+
+- **Cada control que el estudiante mueve con la mano**: un pulsador (o el de un codificador rotatorio)
+  oprimido, un interruptor en su otra posición (uno basculante, un botón con enclavamiento, uno
+  deslizante, uno de inclinación inclinado), un potenciómetro o un trimmer en cada extremo de su
+  recorrido.
+- **Cada salida del programa de una placa puesta en alto** (desde el 2026-11-16): los pines que el
+  programa ya volvió salidas cuando espera por primera vez (su `setup()` y su `loop()` hasta el primer
+  `delay`: los modos de pin del punto en DC, así que `pinMode`, y los `digitalWrite`, `tone`,
+  `analogWrite` y `ledcWrite` que vuelven salida un pin ahí). Cada uno se sostiene en alto con
+  `engine.drive` mientras el programa sigue corriendo; un pin que ya está en alto en reposo no agrega
+  nada. El aviso nombra el pin de la placa (`U1.D10`).
+
+Un peligro que solo aparece en uno de esos estados dice en cuál (`… más que su máximo de 30 mA, con S1
+oprimido.`, `… con D10 en alto.`; en JSON `hazards[].when: { part, field, value }` o `{ part, pin, name,
+value: 1 }`); uno que ya está en reposo se lista una sola vez, en reposo. Medido en una placa que
+parpadea dos LED y hace sonar un zumbador (tres salidas, dos puestas en alto): la revisión tardaba
+16,0 ms y tarda 16,5 ms con los estados del programa (casi todo es compilar el circuito).
+
+### El arreglo
+
+Para cada circuito con peligros, el kit calcula con su propio simulador el cambio más simple que
+quita **todos** los peligros en **todos** los estados de arriba, y lo dice como información; no
+cambia nada (`src/fix.js`):
+
+```text
+Para arreglarlo: una resistencia de 200 Ω en serie con BZ1 deja el pin D10 de U1 en 19,4 mA (máximo 40 mA).
+Para arreglarlo: R1 = 360 Ω deja a R1 en 140 mW (máximo 250 mW) y a D1 en 19,7 mA (máximo 30 mA).
+El kit no tiene un arreglo calculado para esto.
+```
+
+- **Candidatos, en este orden**, gana el primero que lo quita todo: (1) un valor nuevo para una
+  resistencia que ya está en serie con el componente forzado o su rama (el mismo componente si es una
+  resistencia), (2) una resistencia nueva en serie con el componente forzado, o con cada carga del pin
+  de una placa, o con el pin mismo. A lo sumo seis candidatos.
+- **El valor** se busca en E24 de 10 Ω a 1 MΩ con el mismo barrido del solucionador de metas
+  (`sweepResistor` en `src/recipes/solve.js`, la resistencia cambiada en su lugar). Apunta la magnitud
+  forzada al **valor nominal** del componente si lo tiene (los 20 mA de un LED) y si no a **la mitad de
+  su máximo** (los 40 mA de un pin → 20 mA, los 250 mW de una resistencia → 125 mW): el nominal es
+  aquello a lo que el componente debe trabajar, y la mitad del máximo absoluto es el margen usual de
+  uno que no lo tiene (un pin de microcontrolador «pensado para dar unos 20 mA»). Se elige el
+  resultado más cercano en o bajo esa meta que quite todos los peligros; si el más cercano no lo hace
+  (la resistencia agregada se recalentaría, o el daño pasa a otro componente), se prueban los valores
+  siguientes hacia abajo por bisección. La meta la pone un peligro de otro componente que la
+  resistencia que se cambia (la corriente de un LED, no la potencia de su propia resistencia).
+- **Una resistencia que no está puesta**: el candidato (2) se prueba en el circuito compilado, no en
+  el montaje: el pin se separa de su red y una resistencia de ¼ W las une, así que también se juzga su
+  propia potencia. Un cambio que solo mueve el daño a otro lado no es un arreglo.
+- **Una línea por circuito**: varios peligros con una causa dan un arreglo; si ninguna resistencia sola
+  los quita todos, la frase fija «El kit no tiene un arreglo calculado para esto.» (en inglés: «The kit
+  has no computed fix for this.»), la señal de que un asistente queda por su cuenta (y debe ensayar su
+  idea con `layout --dry-run` antes de que llegue al circuito). Ejemplo: un condensador de 16 V
+  directo sobre 25 V (en DC no pasa corriente, así que ninguna resistencia en serie cambia su voltaje).
+- **JSON**: en la revisión, `fix: { kind: 'set', part, value, brings }` o `{ kind: 'add-series', with,
+  pin, value, brings }` (`brings: [{ part, quantity, value, max, unit, when? }]`: la magnitud de cada
+  peligro con el arreglo, en el estado en que se encontró), o `fix: null` con `noFix: true`. `layout`
+  lo calcula una vez, sobre el circuito que guarda (no en cada intento).
+- **Costo**: medido, 82 ms en el circuito del zumbador de arriba, 10 ms en un LED pedido a 50 mA,
+  105 ms en un zumbador sobre 5 V a través de un transistor; solo para un circuito con peligros.
+- **Se aplica solo si se pide**: `layout <objetivo> --fix` (en la herramienta MCP `fix: true`) vuelve
+  a montar un circuito hecho con `layout` con su arreglo calculado, como una revisión, y lo dice
+  (`Arreglo aplicado: R3 = 200 Ω en serie con BZ1.`); nada más lo aplica
+  ([montaje-automatico.md](montaje-automatico.md#volver-a-montar-un-circuito-que-ya-existe-desde-el-2026-10-20)).
+
+### Lo que no revisa
+
+Después de los peligros, la revisión y `layout` (cuando el circuito quedó armado) imprimen una línea
+con lo que la revisión cubrió y lo que no, para este circuito (`Revisado: en reposo, 3 salidas del
+programa. No revisado: picos al conmutar, combinaciones de salidas del programa.`; JSON `checked: {
+rest, controls, outputs, notChecked: [código…], skipped?, unsimulated? }`). Los códigos, solo los que
+aplican:
+
+- `switching`, **picos al conmutar** (el programa de una placa, un 555, un generador): un pin PWM, un
+  tono, la salida de un 555 o una onda del generador se juzgan en su punto en DC; los picos que muestra
+  un transitorio no se encuentran.
+- `combinations`, **combinaciones** de controles y salidas (dos pulsadores oprimidos a la vez, dos pines
+  en alto a la vez), cuando hay dos o más: se mueve uno a la vez.
+- `environment`, **lo que los sensores leen del ambiente** (luz, temperatura, movimiento, toque, el
+  trimmer de un módulo…): se leen como el circuito los deja. Otros deslizadores (el de una
+  resistencia, la carga de un motor) y los controles de las fuentes también.
+- `limit`, **estados pasado el límite**: a lo sumo 24 (primero los controles, en el orden de los
+  componentes, luego los pines); la revisión también dice cuántos revisó (`Estados revisados por daño:
+  24 de 30 …`; JSON `hazardStates: { checked, total, controls, outputs }`).
+- `unsimulated`, **componentes dibujados pero no simulados** (`SIM_UNSUPPORTED`).
+- `no-source` / `no-simulation`, **no se pudo simular nada** (no hay fuente, u otra razón que dicen los
+  avisos del simulador).
+- Un pin que el programa vuelve salida después de su primera espera (sin `pinMode` en `setup()`) no
+  está en los estados.
+
+Si no queda nada: `No revisado: nada que aplique a este circuito.`
 
 ## Modelos
 

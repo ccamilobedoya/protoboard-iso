@@ -1,0 +1,17 @@
+// Jumper wire: a small resistance (the wire and its two contacts).
+
+import { resistor } from '../mna.js';
+import { WIRE_RESISTANCE } from '../models.js';
+import { twoTerminal, twoTerminalLines, currentTag } from './shared.js';
+
+export const wire = {
+  types: ['wire'],
+  kind: 'W',
+  params: () => ({}),
+  // `joins`: its two ends are one net to a board asking a library sensor where it is (devices/mcu.js).
+  elements: (p, h) => ({ main: h.add(Object.assign(resistor(h.at(0), h.at(1), WIRE_RESISTANCE), { joins: true })) }),
+  read: (entry, h) => twoTerminal(entry, entry.main, h),
+  lines: twoTerminalLines,
+  tag: currentTag,
+  falstad: (d, f) => f.wire(d.pins[0].node, d.pins[1].node, WIRE_RESISTANCE),
+};

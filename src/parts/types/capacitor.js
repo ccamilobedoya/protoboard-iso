@@ -46,10 +46,11 @@ export default {
   type: 'capacitor',
   family: 'passive',
   pins: ['1', '2'],
+  typical: { value: '100n' },
 
   resolve(part) {
     const farads = parseValue(part.value);
-    if (!(farads > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value) } } };
+    if (!(farads > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value), variant: 'capacitance' } } };
     const kind = part.kind ?? (farads >= 1e-6 ? 'electrolytic' : 'ceramic');
 
     if (kind === 'electrolytic') {

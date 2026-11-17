@@ -1,0 +1,41 @@
+// The NE555 as an astable: R1, R2 and C1 set the frequency, the output blinks an LED.
+export default {
+  name: '555-astable',
+  group: 'timing',
+  title: { en: '555 astable blinking an LED', es: '555 astable que hace parpadear un LED' },
+  teaches: { en: 'C1 charges through R1 + R2 and discharges through R2: f ≈ 1.44 / ((R1 + 2·R2) · C1)', es: 'C1 se carga por R1 + R2 y se descarga por R2: f ≈ 1,44 / ((R1 + 2·R2) · C1)' },
+  parts: [
+    { id: 'R1', type: 'resistor', value: '1k' },
+    { id: 'R2', type: 'resistor', value: '10k' },
+    { id: 'U1', part: 'NE555' },
+    { id: 'C1', type: 'capacitor', kind: 'electrolytic', value: '10u' },
+    { id: 'C2', type: 'capacitor', value: '10n' },
+    { id: 'R3', type: 'resistor', value: '330' },
+    { id: 'D1', type: 'led', color: 'red' },
+  ],
+  nets: [
+    ['T+', 'U1.VCC', 'U1.RESET', 'R1.1'],
+    ['R1.2', 'R2.1', 'U1.DIS'],
+    ['R2.2', 'U1.THR', 'U1.TRIG', 'C1.+'],
+    ['C1.-', 'T-'],
+    ['U1.CTRL', 'C2.1'],
+    ['C2.2', 'T-'],
+    ['U1.GND', 'T-'],
+    ['U1.OUT', 'R3.1'],
+    ['R3.2', 'D1.anode'],
+    ['D1.cathode', 'T-'],
+  ],
+  supplies: [{ id: 'V1', kind: 'bench', voltage: 9, positive: 'T+', negative: 'T-' }],
+  page: { start: 'zero' },
+  values: {
+    R1: { field: 'value', role: { en: 'timing resistor (charge only)', es: 'resistencia de tiempo (solo carga)' } },
+    R2: { field: 'value', role: { en: 'timing resistor (charge and discharge)', es: 'resistencia de tiempo (carga y descarga)' } },
+    C1: { field: 'value', role: { en: 'timing capacitor', es: 'condensador de tiempo' } },
+    R3: { field: 'value', role: { en: 'LED resistor', es: 'resistencia del LED' } },
+    D1: { field: 'color' },
+    V1: { field: 'voltage', min: 4.5, max: 15 },
+    // A frequency asked for ({ U1: { frequency: '1Hz' } }): R2 moves first, then C1 if R2 alone
+    // cannot reach it; R1 stays. Ranked by the datasheet's formula, measured on D1's blinking.
+    U1: { goals: { frequency: { set: ['R2', 'C1'], measure: 'cycle', of: 'D1', estimate: '555-astable', range: { R2: ['1k', '1M'], C1: ['1u', '100u'] } } } },
+  },
+};

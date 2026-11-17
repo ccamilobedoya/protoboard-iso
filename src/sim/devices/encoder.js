@@ -225,8 +225,8 @@ export const encoder = {
   },
   limits(entry, r) {
     const out = [
-      stress('SIM_OVER_CURRENT', 'current', r.current, ENCODER.maxCurrent, 'A'),
-      stress('SIM_SWITCH_VOLTAGE', 'voltage', Math.max(Math.abs(r.vclk), Math.abs(r.vdt), Math.abs(r.vsw)), ENCODER.maxVoltage, 'V'),
+      stress('SIM_OVER_CURRENT', 'current', r.current, ENCODER.maxCurrent, 'A', { of: 'contacts' }),
+      stress('SIM_SWITCH_VOLTAGE', 'voltage', Math.max(Math.abs(r.vclk), Math.abs(r.vdt), Math.abs(r.vsw)), ENCODER.maxVoltage, 'V', { of: 'contacts' }),
     ];
     if (r.unfed) out.push(note('info', 'SIM_ENCODER_FLOATING', { part: entry.id }));
     return out;

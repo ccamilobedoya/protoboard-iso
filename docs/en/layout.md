@@ -12,8 +12,8 @@ Entry points, all calling `autoLayout(spec, { profile, checkOnly })`:
 
 | From | Call |
 |---|---|
-| MCP | tool `layout` (`target`, `recipe` and `values`, or `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`) |
-| CLI | `node bin/protoboard-iso.js layout <new target> <spec.json \| -> [--check] [--json]`, or `--recipe <name> [--values '<json>']` (exit 0 done, 2 changes) |
+| MCP | tool `layout` (`target`, `recipe` and `values`, or `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`, `dry_run`, `fix`) |
+| CLI | `node bin/protoboard-iso.js layout <new target> <spec.json \| -> [--check] [--dry-run] [--json]`, or `--recipe <name> [--values '<json>']`, or `layout <target> --fix [--dry-run]` (exit 0 done, 2 changes) |
 | Code | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'`; a recipe is turned into a spec first by `resolveRecipe` (`src/recipes/index.js`) |
 | Bench | `npm run layout-bench [-- spec.json …]` (runs `examples/layout/*.json` and every recipe) |
 
@@ -39,7 +39,8 @@ by name with only the values that change; it becomes an ordinary spec before any
 }
 ```
 
-- `parts`: no `pins`, in signal order (the order breaks ties, see step 1). A part is a type with
+- `parts`: no `pins`, in any order: the order given is tried first and breaks ties (step 1), and
+  when it leaves something to fix the orders the nets give are tried too ([Any order](#any-order-the-orders-the-nets-give-since-2026-11-16)). A part is a type with
   its fields, or only a part number, module or alias (`"7805"`, `"KCD1"`, `"UNO"`, `"resistencia"`):
   `resolvePart` (`src/parts/resolve.js`) fills in the type.
 - `nets`: each one a list of pin references (`"D1.K"`, case-insensitive pin names) and rails
@@ -70,8 +71,11 @@ of forbidden places (`forbid`) carries over.
 Everything a spec can get wrong, in one pass, before placing anything: a missing or repeated id,
 a name the kit does not know (with the closest ones), a field the part's type does not take
 (`UNKNOWN_FIELD`, from `strayFields` in `src/parts/fields.js`: `"state": "on"` on a switch, whose
-field is `on`), a net naming a part or a pin that is not there (with the pins it has), and a part
-in no net (a warning). Any error → nothing is placed and every problem comes back together, so the
+field is `on`), a field the type cannot read (the part's own `resolve`: a resistor's `"abc"` says it
+takes a resistance such as `330` or `4k7`, an LED colour there is none of lists the colours; a part
+wired pin by name, `MODULE_PINS`, is left to its placement), a net naming a part or a pin that is not
+there (with the pins it has; not for a part whose fields could not be read), and a part in no net
+(a warning). Any error → nothing is placed and every problem comes back together, so the
 caller fixes them all in one round. `check_only` / `--check` stops here.
 
 Pin names are read as people write them (`findPin`, `src/parts/pin-names.js`): the part's own name
@@ -237,6 +241,47 @@ Laying out again is simpler and more predictable than patching a layout in place
 0.05–0.5 s, and the steps a try repeats from the one before are not built again (the geometry
 checks are remembered for the whole call).
 
+### Any order: the orders the nets give (since 2026-11-16)
+
+The relayout loop above repairs one place at a time; what it cannot change is the order the parts
+are placed in, and that order came from the caller. The same circuit listed two ways could end
+`DONE` one way and `CHANGES` the other (measured: a resistor added in series with a buzzer, listed
+at the end of the parts instead of before the buzzer, on the circuit already placed: `No jumper fits`
+and the buzzer's net left apart). Step 1's layers do not help there: a ground net through a board's
+`GND` pin makes every part a neighbour of the board, so they are all in layer 1 and the order given
+decides.
+
+So `autoLayout` (`inAnyOrder`) lays the circuit out in the order given first, exactly as before: a
+spec that ends `DONE` (or `WARNINGS`) stays as it is and costs nothing more. Only when it ends
+`CHANGES` does it try the orders the nets give (`signalOrders`), each placed as it is (no layers),
+and keep the best result: nets and review first, then jumpers, then columns. Both orders are read
+from the nets alone, so they are the same whatever order the parts were listed in:
+
+- **the source**: the part of a supply's positive pin, else a microcontroller board, else the first
+  part on a + rail, else the first part in the nets;
+- **signal nets only**: a net with a rail, a ground or power pin (`GND`, `5V`, `3V3`, `VIN`, `VCC`…)
+  or a supply's terminal feeds stages and does not chain them; it only reaches parts the signal nets
+  do not. Ties go by where a part first appears in the nets;
+- **by distance from the source**, sources first: `U1, R1…R7, DS1` (the display after the seven
+  resistors that feed it);
+- **from the far end back**: the reverse of a depth-first walk from the source, so each part comes
+  before the one that drives it and a board's leads land on strips its parts already hold:
+  `BZ1, R3, D2, R2, D1, R1, U1`.
+
+The answer then says so in a note (`LAYOUT_ORDER_FROM_NETS`: "laid out in the order their nets
+give (…)"), and `order` and `keepOrder` in the result let a second layout of the same call (a
+recipe's goals) use that order again.
+
+Measured over every recipe with its parts shuffled (`test/layout-order.test.js` keeps a sample of
+fourteen, three seeded shuffles each): where the order given fails, one of the two ends `DONE`,
+except `esp32-distance` (on the double board only the orders with the divider before the DevKit and
+the sensor after it end `DONE`; the test names it). The bench is unchanged: every spec of it ends
+the same, with the same placement, since all of them end `DONE` in their own order. A layout that
+fails and recovers costs its failed tries: 4.3 s for the measured case above (3.2 s of it the order
+given failing), against 0.6 s with the resistor listed before the buzzer; about 9 s for the transistor
+variant of that circuit with its fix (nine parts and a board). Over every recipe shuffled three
+times: 0.26 s on average where the order given works, 2.3 s (at most 7 s) where it fails.
+
 ### Two boards: a DevKit on both headers (since 2026-10-31)
 
 An ESP32 DevKit's PCB is about 11 holes wide with its headers 9 to 11 holes apart: on one board it
@@ -296,14 +341,100 @@ supplies that name pins, and the ids of its own jumpers (`spec.wires`). With it:
   laid out again only when the call gives its nets (`LAYOUT_NO_SPEC` otherwise); its wires are then
   left out, since the nets say what they join.
 
+**Applying the kit's fix** (`layout <target> --fix`; the MCP tool's `fix: true`; since 2026-11-16).
+On a circuit made by `layout`, the kit takes the fix its review prints for the circuit as it is
+(`To fix it`, [simulation.md](simulation.md#the-fix)) and lays the circuit out with it as one
+revision (`fixRequest` in `src/layout.js`, `specWithFix` in `src/fix.js`): `set`, the resistor's
+new value (and the recipe's value, for a recipe circuit); `add-series`, a new resistor with the
+next R number of the circuit between the pin and the net it was on (`["U1.D10", "R3.1"]`,
+`["R3.2", "BZ1.1"]`), listed just before the part it is in series with. The answer is any
+`layout`'s, with one line more before `STATUS:`: `Applied the fix: R3 = 200 Ω in series with BZ1.`
+(`Arreglo aplicado: R3 = 200 Ω en serie con BZ1.`); `--dry-run` makes it a trial; `undo` brings
+the circuit (and its warning) back. The kit never applies a fix by itself, only on this request.
+Where there is nothing to apply it says so and changes nothing: no hazard (`LAYOUT_FIX_NONE`, not an
+error: exit 0), no computed fix (`LAYOUT_FIX_NO_FIX`: "The kit has no computed fix for this."), a
+circuit without `spec` (`LAYOUT_FIX_NO_SPEC`), a spec or values given too (`LAYOUT_FIX_AND_SPEC`);
+the last three exit 1 (the MCP tool: an error).
+
 So the spec is the desired state: a change of connections is new nets and `layout` again; values,
 descriptions and fine touches stay operations (`apply_ops`).
 
 ### The answer
 
 `{ status, circuit, placed: [{ id, type, pins, rails, shared }], wires, columns, problems, sequence,
-check, review, tries, ms }`; `formatLayout` writes it for the CLI and the MCP tool (texts `layout.*` in
-`src/i18n/`).
+check, review, tries, solved?, advice?, readings?, programs?, changeable?, ms }`; `formatLayout` writes it for the CLI
+and the MCP tool (texts `layout.*` in `src/i18n/`).
+
+After the review's verdict and its hazards (⚠), the hazard lines of the review itself: the kit's
+computed fix of the hazards (`To fix it: …`, or "The kit has no computed fix for this."; JSON
+`review.fix`, `review.noFix`), what to do about them, and, when the circuit was built, the
+`Checked` line: what the hazard check covered for this circuit and what it did not
+([simulation.md](simulation.md#the-fix); JSON `review.checked`):
+
+```text
+As wired, this would damage:
+  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA, with D10 high.
+To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.4 mA (maximum 40 mA).
+Keep it if showing the failure is the point. Say so to the user before changing anything.
+Checked: at rest, 3 program outputs. Not checked: peaks while switching, combinations of program outputs.
+```
+
+When the circuit was built (`DONE` or `WARNINGS`, a new circuit or `layout` again on one), the answer
+also says what a reply needs, so one call is enough and every number and option an assistant repeats
+comes from the kit (`src/layout-answer.js`). After the review's lines and before the page and
+`STATUS:` lines:
+
+```text
+Solved: R1 = 470 Ω (E24) for D1 at 15 mA: 15.2 mA simulated, 2 % over (next values: 430 Ω 16.6 mA · 510 Ω 14.1 mA)
+Worth checking: D1 is at 107 % of its rated 20 mA with R1 = 330 Ω; R1 = 360 Ω would give 19.7 mA.
+Readings (at rest, a model): supply 9 V · D1 20.6 mA, brightness 103 % of 20 mA
+Program U1 (Arduino sketch):
+  // Blink: D13 on for half a second, off for half a second.
+  …
+Can change (layout with the recipe and values): R1 = 330 (current-limiting resistor) · D1 = green · V1 = 9 V [1.5…15] · D1 current (a goal: {"D1":{"current":"15mA"}})
+```
+
+- **Solved** (`solved: [{ id, goal, target, values, result, error, hazard, reachable, neighbours, kept?, when? }]`):
+  only when the call gave a recipe's goal ([recipes.md](recipes.md#goals-a-result-instead-of-a-value)):
+  the standard values chosen, the result the simulator gives with them, how far from the goal and on
+  which side, the neighbouring values with their results, `out of reach` when no standard value in
+  range gets there. The two lines above never come together: the first is one call's, the second
+  another's.
+- **Worth checking** (`advice: [{ id, goal, value, rated, knob, suggest }]`): only with no goal in the call, for a
+  recipe circuit with `STATUS: DONE` and its readings shown, whose part with a goal runs above its
+  rated value: by how much, and the standard value that would bring it nearest to the rating without
+  passing it. Information only: nothing is changed.
+- **Readings** (`readings: { sources: [{ id, kind, voltage, current }], parts: [{ id, kind, current,
+  brightness? }] }`): the simulator's DC point, the one `simulate` prints. The sources first (a
+  supply, a battery, a board's USB), then the parts whose job is to be driven: LEDs (current and
+  brightness), then buzzers, motors, relay coils and lasers. At most four parts in the text, then how
+  many more `simulate` lists. Left out when the circuit has no source, the DC point cannot be solved,
+  a board runs a program (the program decides what is lit, a rest point at time zero would mislead),
+  a supply is a generator (the signal is the point, not its rest value) or a timer is wired as an
+  astable (it never rests: its TRIG and THR share a net with a capacitor, and its DIS or OUT is on that
+  net or one resistor from it, as in the `555-astable` recipe; a timer wired as a monostable or a
+  detector keeps its readings), and when the page hides the
+  results (`page.simulation` or `page.results` false: a value a learner must predict first).
+- **Program** (`programs: [{ part, text, truncated, file?, omitted? }]`): each board's sketch as it
+  is stored (the text, or the `.ino` file beside the circuit, read only inside its folder), each line
+  indented two spaces. Past 80 lines or 4 000 characters, the first 40 lines and a line saying how
+  many were left out and where the whole text is. Every line break a reader may see (`\r`, `\u2028`
+  and the like) ends a line there too, so no line of a sketch can pass for the `STATUS:` line.
+- **Can change** (`changeable: [{ id, field, value, role?, min?, max?, choices? }]`): for a circuit
+  made from a recipe, what the recipe accepts, with the value the circuit has now, its role, and its
+  choices (`[a | b]`) or range (`[min…max]`); a program is `(sketch)`, never its text. The same limits
+  as `catalog <recipe>` prints. Its goals come last (`{ id, goal, set, example }`), each with the
+  `values` that asks for it.
+
+**A trial** (`--dry-run`; the MCP tool's `dry_run: true`, the word `apply_ops` uses): everything
+above, on the circuit as it would be after the call (a new target, or an existing one laid out
+again), with the same answer and `STATUS`, and nothing written: no circuit file, no history, no page,
+no revision, no outputs folder; in an MCP host with the viewer no board is shown (as `try_ops`). Its
+last line before `STATUS:` says so: `Trial: nothing was saved.` (`Ensayo: no se guardó nada.`); the
+page line is left out. It is how an idea the kit did not compute (a fix of an assistant's own) is
+tried before it reaches the circuit. A trial that ends `CHANGES` says what it is in its `STATUS`
+line (`as tried, the circuit would be left with … items marked ✖ above (nothing was created)`), not
+that a circuit was created. `check_only` / `--check` still checks only the spec.
 
 `status` is the one verdict of the whole answer, and the text ends with it in a line of its own, so
 a caller (above all a small model) that reads only the last line knows what to do:
@@ -311,8 +442,8 @@ a caller (above all a small model) that reads only the last line knows what to d
 | `STATUS:` | Means | Next |
 |---|---|---|
 | `DONE` | every net is there, nothing failed to place, the review approves | report |
-| `WARNINGS` | built and the nets are right, but a part would be damaged as wired (⚠): the review is approved with warnings | tell the user first which part and why it burns; keep it only if that is the point, else offer the fix |
-| `CHANGES` | created, but a net, a placement or the review left something (✖) | fix only those, with `suggest` and `apply_ops`, then `review` |
+| `WARNINGS` | built and the nets are right, but a part would be damaged as wired (⚠): the review is approved with warnings | tell the user first which part and why it burns; keep it only if that is the point, else offer the kit's fix (`To fix it`), or with none try an idea with `--dry-run` first |
+| `CHANGES` | created, but a net, a placement or the review left something (✖); in a trial nothing was created | fix only those, with `suggest` and `apply_ops`, then `review`; after a trial, try another idea or apply this one |
 | `FIX_SPEC` | nothing created: the spec has errors | fix every ✖ and call again |
 | `SPEC_OK` | `check_only`: the spec is consistent | call again without it |
 
@@ -438,7 +569,8 @@ In order of what would pay most:
    still spend its tries in one area; forbidding a small region, or retrying only the parts after
    the victim, would converge faster.
 4. **One source, two lines.** The layers start from one part, so a circuit with two inputs or a
-   feedback loop is placed in the order given after the first branch; the cursors never go back, so
+   feedback loop is placed in the order given after the first branch (the orders the nets give are
+   tried only when it fails); the cursors never go back, so
    a long circuit grows in length on its two halves, with no third line of stages.
 5. **Side balance is soft.** A circuit whose rails are all on one half stays there (it is the
    cheapest); the other half fills only when a half would be more than `SIDE_SLACK` columns longer

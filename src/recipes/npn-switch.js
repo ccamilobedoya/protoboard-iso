@@ -17,7 +17,7 @@ export default {
   values: {
     R1: { field: 'value', role: { en: 'base resistor', es: 'resistencia de base' } },
     R2: { field: 'value', role: { en: 'LED resistor (collector)', es: 'resistencia del LED (colector)' } },
-    D1: { field: 'color' },
+    D1: { field: 'color', goals: { current: { set: 'R2', reading: 'current', when: { S1: { pressed: true } } } } },
     Q1: { field: 'part', choices: ['2N2222A', '2N3904', 'BC547', 'BC337', 'S8050'] },
     V1: { field: 'voltage', min: 3, max: 12 },
   },

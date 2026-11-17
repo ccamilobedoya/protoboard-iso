@@ -68,8 +68,8 @@ export const regulator = {
     f.note('falstad.regulator', { part: d.id, voltage: { value: vout, unit: 'V' } });
   },
   limits(entry, r) {
-    const out = [stress(entry.module ? 'SIM_REG_HOT_MODULE' : 'SIM_REG_HOT', 'power', r.power, entry.model.maxPower, 'W'), stress('SIM_OVER_CURRENT', 'current', r.current, entry.model.maxCurrent, 'A')];
-    if (entry.model.maxInput) out.push(stress('SIM_REG_INPUT', 'voltage', r.across, entry.model.maxInput, 'V'));
+    const out = [stress(entry.module ? 'SIM_REG_HOT_MODULE' : 'SIM_REG_HOT', 'power', r.power, entry.model.maxPower, 'W'), stress('SIM_OVER_CURRENT', 'current', r.current, entry.model.maxCurrent, 'A', { of: 'output' })];
+    if (entry.model.maxInput) out.push(stress('SIM_REG_INPUT', 'voltage', r.across, entry.model.maxInput, 'V', { of: 'input' }));
     // A module wired backwards: its datasheet warns it shorts the supply.
     if (entry.module && r.across < -0.5) out.push(note('warning', 'SIM_REG_REVERSED', { part: entry.id, vin: q(r.across, 'V') }));
     else if (r.state === 'dropout' && r.vin > 0.5) out.push(note('info', 'SIM_REG_DROPOUT', { part: entry.id, vin: q(r.vin, 'V'), vout: q(r.vout, 'V'), dropout: q(entry.model.dropout, 'V') }));

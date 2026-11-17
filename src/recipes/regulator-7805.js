@@ -16,7 +16,7 @@ export default {
   values: {
     U1: { field: 'part', choices: ['7805', '7806', '7808', '7809'] },
     R1: { field: 'value', role: { en: 'LED resistor', es: 'resistencia del LED' } },
-    D1: { field: 'color' },
+    D1: { field: 'color', goals: { current: { set: 'R1', reading: 'current' } } },
     V1: { field: 'voltage', min: 7, max: 35 },
   },
 };

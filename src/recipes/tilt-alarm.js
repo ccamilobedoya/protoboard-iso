@@ -15,5 +15,7 @@ export default {
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
   values: {
     R1: { field: 'value', role: { en: 'resistor (sets the LED\'s current, and the switch\'s while upright)', es: 'resistencia (fija la corriente del LED, y la del interruptor mientras está derecho)' } },
+    // A goal only: the LED's current while tilted (upright, the switch takes it).
+    D1: { goals: { current: { set: 'R1', reading: 'current', when: { S1: { tilted: true } } } } },
   },
 };

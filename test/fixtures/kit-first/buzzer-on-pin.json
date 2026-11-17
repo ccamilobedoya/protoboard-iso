@@ -1,0 +1,65 @@
+{
+  "title": {
+    "en": "Two LEDs and a buzzer on an UNO (the buzzer straight on D10)",
+    "es": "Dos LED y un zumbador en un UNO (el zumbador directo en D10)"
+  },
+  "parts": [
+    {
+      "id": "U1",
+      "part": "UNO",
+      "program": "const int LED1 = 8;\nconst int LED2 = 9;\nconst int BUZZER = 10;\n\nvoid setup() {\n  pinMode(LED1, OUTPUT);\n  pinMode(LED2, OUTPUT);\n  pinMode(BUZZER, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(LED1, HIGH);\n  delay(500);\n  digitalWrite(LED1, LOW);\n  digitalWrite(LED2, HIGH);\n  tone(BUZZER, 1000);\n  delay(500);\n  digitalWrite(LED2, LOW);\n  noTone(BUZZER);\n}\n"
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "220"
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "red"
+    },
+    {
+      "id": "R2",
+      "type": "resistor",
+      "value": "220"
+    },
+    {
+      "id": "D2",
+      "type": "led",
+      "color": "green"
+    },
+    {
+      "id": "BZ1",
+      "type": "buzzer"
+    }
+  ],
+  "nets": [
+    [
+      "U1.D8",
+      "R1.1"
+    ],
+    [
+      "R1.2",
+      "D1.anode"
+    ],
+    [
+      "U1.D9",
+      "R2.1"
+    ],
+    [
+      "R2.2",
+      "D2.anode"
+    ],
+    [
+      "U1.D10",
+      "BZ1.1"
+    ],
+    [
+      "U1.GND",
+      "D1.cathode",
+      "D2.cathode",
+      "BZ1.2"
+    ]
+  ]
+}

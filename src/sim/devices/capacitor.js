@@ -8,6 +8,7 @@ import { stress, twoTerminal, twoTerminalLines, currentTag } from './shared.js';
 export const capacitor = {
   types: ['capacitor'],
   kind: 'C',
+  limitFields: (p) => (p.polarised ? ['voltage'] : []), // a ceramic one's rating is the kit's, not a field
   read: (entry, h) => twoTerminal(entry, entry.main, h),
   lines: twoTerminalLines,
   tag: currentTag,

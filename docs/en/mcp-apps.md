@@ -92,7 +92,10 @@ as the specification asks. Some hosts show MCP Apps without announcing it (the r
 `basic-host` of the ext-apps repository does not); for them, `PROTOBOARD_APPS=on` offers it to every
 client, `off` to none, `auto` (default) follows the announcement.
 
-Tested with the reference `basic-host` only. Claude Desktop and claude.ai are untested.
+Tested with the reference `basic-host` and in Claude Desktop on Windows with the desktop extension
+([mcp.md](mcp.md#claude-desktop-with-one-click)): the Node.js it brings ran the server, the live board
+showed inside the conversation and tapping a part reached the assistant. The extension arrives
+switched off and has to be switched on by hand. claude.ai is untested.
 
 ## How it is built
 

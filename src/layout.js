@@ -33,7 +33,14 @@ import { applyOps } from './ops.js';
 import { buildCircuit } from './circuit/build.js';
 import { problemKey } from './diff.js';
 import { review, formatHazards } from './review.js';
+import { hazardFix, specWithFix } from './fix.js';
+import { answerExtras, formatExtras } from './layout-answer.js';
+import { solveGoals } from './recipes/solve.js';
+import { parseValue, valueText, formatValue } from './core/units.js';
+import { decimalSeparator } from './i18n/index.js';
+import { CIRCUIT_FOLDER } from './beside.js';
 import { PART_TYPES } from './parts/types/index.js';
+import { lookupModule } from './parts/modules.js';
 import { PACKAGES } from './parts/packages/index.js';
 import { SWITCH_STYLES } from './parts/types/switch.js';
 import { resolvePart, pinsOf } from './parts/resolve.js';
@@ -107,13 +114,15 @@ const TRIES = 8;
 const REPAIRS = 4; // jumpers the repair may route again with suggest (each one measures drawings)
 
 // Everything a list of parts and nets can get wrong, found in one pass before placing anything:
-// names the kit does not know (with the closest ones), repeated ids, nets that name a part or a
+// names the kit does not know (with the closest ones), repeated ids, a field its type cannot read
+// (a resistor's "abc", an LED colour there is none of: what it takes), nets that name a part or a
 // pin that is not there (with the pins it has), parts in no net. Parts come back resolved
 // ("7805" → regulator 7805, "KCD1" → rocker switch).
 export function validateSpec(spec) {
   const problems = [];
   const parts = [];
   const seen = new Set();
+  const unreadable = new Set(); // parts whose pins cannot be known: their nets are not checked
   for (const raw of spec.parts ?? []) {
     if (!raw?.id) {
       problems.push({ severity: 'error', code: 'MISSING_ID', params: { index: parts.length + 1 } });
@@ -126,6 +135,12 @@ export function validateSpec(spec) {
     else {
       parts.push(r.part);
       for (const field of strayFields(r.part)) problems.push({ severity: 'error', code: 'UNKNOWN_FIELD', params: { part: r.part.id, field, fields: fieldsOfType(r.part.type).join(', ') } });
+      // A part beside the board is given its pins by name when it is placed (MODULE_PINS).
+      const def = PART_TYPES[r.part.type].resolve(r.part);
+      if (def.error && def.error.code !== 'MODULE_PINS') {
+        problems.push({ severity: 'error', ...def.error, params: { part: r.part.id, ...def.error.params } });
+        unreadable.add(r.part.id);
+      }
     }
   }
   const byId = new Map(parts.map((p) => [p.id, p]));
@@ -147,7 +162,7 @@ export function validateSpec(spec) {
       return;
     }
     inNet.add(part.id);
-    const names = pinsOf(part);
+    const names = unreadable.has(part.id) ? [] : pinsOf(part);
     if (!names.length) return ref;
     const name = findPin(names, m[2], part.type);
     if (name === undefined) problems.push({ severity: 'error', code: 'NET_UNKNOWN_PIN', params: { where, ref: String(ref), part: part.id, pin: m[2], names: names.join(', ') } });
@@ -175,7 +190,131 @@ export function validateSpec(spec) {
 // on both headers: LAYOUT_PIN_COVERED) goes on a double board when the spec does not name one: two
 // boards side by side, the DevKit across the joint with a free strip under each header
 // (LAYOUT_DOUBLE_BOARD; docs/en/layout.md, "Two boards").
+//
+// A recipe's goals (spec.goals, from expandRecipe: a current, a frequency) are solved on the circuit
+// laid out with the values as given (recipes/solve.js); when the chosen standard values differ, it is
+// laid out again with them, each part keeping its holes. The answer's `solved` says what was done.
 export function autoLayout(spec, options = {}) {
+  const started = Date.now();
+  const first = inAnyOrder(spec, options);
+  if (!spec.goals?.length || first.checked) return first;
+  // A circuit whose nets are not right would give the goal a wrong figure: nothing is solved.
+  if (!first.check.ok) return { ...first, notes: [...first.notes, ...spec.goals.map(unsolvedNote)] };
+  const { solved, unsolved } = solveGoals(first.circuit, spec.goals);
+  const texts = Object.fromEntries(solved.flatMap((s) => Object.entries(s.chosen)).map(([id, v]) => [id, valueText(v)]));
+  // Again in the order that was laid out (the one given, or one the nets gave: inAnyOrder).
+  const rank = new Map(first.order.map((id, i) => [id, i]));
+  const parts = [...spec.parts].sort((a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity)).map((p) => (texts[p.id] ? { ...p, value: texts[p.id] } : p));
+  // What is stored is the values chosen, like any value: the goal is not kept, so a later layout
+  // gives its own values as usual and solves nothing again.
+  const recipe = spec.recipe && { ...spec.recipe, values: { ...spec.recipe.values, ...texts } };
+  const moved = spec.parts.some((p) => texts[p.id] && parseValue(p.value) !== parseValue(texts[p.id]));
+  const r = moved ? placeCircuit({ ...spec, parts, ...(recipe && { recipe }) }, { ...options, previous: first.circuit, keepOrder: first.keepOrder }) : first;
+  if (!moved && recipe) r.circuit.spec.recipe = recipe;
+  return { ...r, solved, notes: [...r.notes, ...unsolved.map(unsolvedNote)], tries: first.tries + (moved ? r.tries : 0), ms: Date.now() - started };
+}
+
+const unsolvedNote = (g) => ({ severity: 'warning', code: 'RECIPE_GOAL_UNSOLVED', params: { id: g.id, goal: g.goal } });
+
+// The result must not depend on the order the caller lists the parts in. The order given is tried
+// first, as it always was (a spec that ends DONE stays exactly as it is, and costs no more); when it
+// leaves something to fix, the orders the nets give (signalOrders) are tried too, and the best
+// result is kept: nets and review first, then jumpers, then columns. `order`: the parts' ids in the
+// order laid out; `keepOrder`: that order was placed as it is (no layers), for a second layout of
+// the same circuit (a recipe's goals) to use it again.
+function inAnyOrder(spec, options) {
+  const listed = { ...placeCircuit(spec, options), order: (spec.parts ?? []).map((p) => p?.id) };
+  if (listed.checked || listed.status !== 'changes' || listed.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED')) return listed;
+  const seen = new Set([`${listed.order.join(' ')}|false`]);
+  let best = listed;
+  let tries = listed.tries;
+  let ms = listed.ms;
+  for (const { parts, keepOrder } of signalOrders(spec)) {
+    const order = parts.map((p) => p.id);
+    const key = `${order.join(' ')}|${keepOrder}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const r = placeCircuit({ ...spec, parts }, { ...options, keepOrder });
+    tries += r.tries;
+    ms += r.ms;
+    if (rankOf(r) < rankOf(best)) best = { ...r, order, keepOrder, notes: [{ severity: 'info', code: 'LAYOUT_ORDER_FROM_NETS', params: { parts: order.join(', ') } }, ...r.notes] };
+    if (best.status !== 'changes') break;
+  }
+  return { ...best, tries, ms };
+}
+
+// Lower is better: a circuit ready (or built with a hazard) before one left to fix, then what is
+// left to fix, then jumpers and columns.
+const rankOf = (r) => (r.status === 'changes' ? 1e6 : 0) + ((r.check.ok ? 0 : 100) + r.problems.length * 10 + r.review.blocking.length) * 1e3 + (r.wires ?? 0) * 10 + (r.columns ?? 0) / 100;
+
+// Power pins by name: a net through one of them feeds stages, it does not chain them.
+const POWER_PIN = /^(GND\d*|VSS|0V|5V|3V3|3\.3V|VIN|VCC|VDD|V\+|V-|IOREF)$/i;
+
+// Orders of the parts read from the nets alone, whatever order they were listed in. The source:
+// the part of a supply's positive pin, else a microcontroller board, else the first part on a +
+// rail, else the first part in the nets. Nets of power (a rail, a ground or power pin, a supply's
+// terminal) do not chain stages: they only reach parts the signal nets do not. Ties go by where a
+// part first appears in the nets. Two orders, each placed as it is (no layers):
+// - by distance from the source along the signal nets, sources first (U1, R1…R7, then the display
+//   all seven feed);
+// - from the far end back: the reverse of a depth-first walk from the source, so each part comes
+//   before the one that drives it and a board's leads land on strips its parts already hold
+//   (BZ1, R3, D2, R2, D1, R1, U1).
+// Measured over every recipe (layout-bench's set): where the order given fails, one of the two
+// ends DONE in every case but one (docs/en/layout.md, "Any order").
+export function signalOrders(spec) {
+  const valid = validateSpec(spec);
+  if (!valid.ok) return [];
+  const byId = new Map(valid.parts.map((p) => [p.id, p]));
+  const raw = new Map((spec.parts ?? []).map((p) => [p.id, p]));
+  const supplyPins = new Set((valid.supplies ?? []).flatMap((s) => [pinKey(s.positive), pinKey(s.negative)]).filter(Boolean));
+  const firstSeen = new Map();
+  const nets = valid.nets.map((n) => {
+    const pins = (Array.isArray(n) ? n : n.pins ?? []).map(String);
+    const refs = pins.filter((p) => !railName(p) && pinKey(p));
+    for (const ref of refs) {
+      const id = ref.split('.')[0];
+      if (byId.has(id) && !firstSeen.has(id)) firstSeen.set(id, firstSeen.size);
+    }
+    const power = pins.some(railName) || refs.some((r) => supplyPins.has(pinKey(r)) || POWER_PIN.test(r.split('.').slice(1).join('.')));
+    return { ids: [...new Set(refs.map((r) => r.split('.')[0]))].filter((id) => byId.has(id)), power, plus: pins.some((p) => railName(p)?.endsWith('+')) };
+  });
+  const seenAt = (id) => firstSeen.get(id) ?? Infinity;
+  const ids = [...byId.keys()].sort((a, b) => seenAt(a) - seenAt(b));
+  const links = (power) => {
+    const m = new Map(ids.map((id) => [id, new Set()]));
+    for (const n of nets) if (n.power === power) for (const a of n.ids) for (const b of n.ids) if (a !== b) m.get(a).add(b);
+    return new Map([...m].map(([id, s]) => [id, [...s].sort((a, b) => seenAt(a) - seenAt(b))]));
+  };
+  const signal = links(false);
+  const power = links(true);
+  const positive = (valid.supplies ?? []).map((s) => pinKey(s.positive)?.split('.')[0]).find((id) => byId.has(id));
+  const board = ids.find((id) => byId.get(id).type === 'module' && lookupModule(byId.get(id).part)?.module.gpio);
+  const onPlus = nets.find((n) => n.plus && n.ids.length)?.ids.sort((a, b) => seenAt(a) - seenAt(b))[0];
+  const source = positive ?? board ?? onPlus ?? ids[0];
+  // Then a part power reaches from those placed, else the first left.
+  const nextFrom = (out) => out.flatMap((id) => power.get(id)).find((id) => !out.includes(id)) ?? ids.find((id) => !out.includes(id));
+  const chains = [];
+  const visit = (id) => {
+    if (chains.includes(id)) return;
+    chains.push(id);
+    for (const n of signal.get(id)) visit(n);
+  };
+  for (let next = source; next; next = nextFrom(chains)) visit(next);
+  const layers = [];
+  for (let next = source; next; next = nextFrom(layers)) {
+    for (let queue = [next]; queue.length; ) {
+      const id = queue.shift();
+      if (layers.includes(id)) continue;
+      layers.push(id);
+      queue.push(...signal.get(id).filter((n) => !layers.includes(n)));
+    }
+  }
+  const of = (order) => order.map((id) => raw.get(id) ?? byId.get(id));
+  return [{ parts: of(layers), keepOrder: true }, { parts: of([...chains].reverse()), keepOrder: true }];
+}
+
+function placeCircuit(spec, options) {
   const single = layoutSpec(spec, options);
   const covered = single.problems?.find((p) => p.code === 'LAYOUT_PIN_COVERED');
   if (!covered || (spec.board ?? 'auto') !== 'auto') return single;
@@ -204,7 +343,7 @@ function onDoubleBoard(spec) {
   return { spec: twin, renamed: [...renamed].sort() };
 }
 
-function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = null } = {}) {
+function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = null, folder, lang, keepOrder = false } = {}) {
   const started = Date.now();
   const valid = validateSpec(spec);
   if (checkOnly || !valid.ok) return { status: valid.ok ? 'spec_ok' : 'fix_spec', invalid: !valid.ok, checked: true, parts: valid.parts, nets: valid.nets, problems: valid.problems, ms: Date.now() - started };
@@ -225,7 +364,7 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   let tries = 0;
   for (let attempt = 0; attempt < TRIES; attempt++) {
     tries++;
-    const r = layoutOnce(spec, { profile, forbid, previous, memo, boxes, asked: asked.nets });
+    const r = layoutOnce(spec, { profile, forbid, previous, memo, boxes, asked: asked.nets, keepOrder });
     const score = (x) => (x.check.ok ? 0 : 100) + x.problems.length * 10 + x.review.blocking.length;
     if (!best || score(r) < score(best)) best = r;
     if (r.check.ok && r.review.verdict !== 'changes' && !r.problems.length) break;
@@ -284,7 +423,14 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   // so a caller that reads only the last line cannot take "review approved" for done.
   // A part that would be damaged as wired is neither a fix to make nor a plain success: its own status.
   const status = !best.check.ok || best.review.verdict === 'changes' || best.problems.length ? 'changes' : best.review.hazards.length ? 'warnings' : 'done';
-  return { ...best, circuit, notes: [...notes, ...(best.notes ?? [])], status, tries, ms: Date.now() - started };
+  // A built circuit's answer also carries its readings, its programs and what its recipe lets
+  // change (layout-answer.js), so one call says everything the reply needs.
+  // The advisory only when nothing burns (a hazard already says what is wrong) and no goal was
+  // given (the Solved line says everything).
+  // The fix of its hazards (src/fix.js), once, on the circuit kept: the tries did not search for one.
+  if (best.review.hazards.length) best = { ...best, review: { ...best.review, ...hazardFix(circuit, best.review.hazards) } };
+  const extras = status === 'changes' ? {} : answerExtras(circuit, { folder: folder ?? previous?.[CIRCUIT_FOLDER], lang: lang ?? spec.lang, advise: status === 'done' && !spec.goals?.length });
+  return { ...best, circuit, notes: [...notes, ...(best.notes ?? [])], status, tries, ...extras, ms: Date.now() - started };
 }
 
 // Pins that are ground by name: GND, GND2, VSS, 0V.
@@ -347,7 +493,7 @@ function repair(best, spec, { profile, asked }) {
     const r = applyOps(base, ops);
     if (r.errors.length) return false;
     const c = checkNets(r.circuit, nets);
-    const v = review({ ...r.circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'] });
+    const v = review({ ...r.circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'], fix: false });
     const p = problems.filter((x) => x !== fixed);
     if (score(c, v, p) >= score(check, verdict, problems)) return false;
     ({ circuit, check, review: verdict, problems } = { circuit: r.circuit, check: c, review: v, problems: p });
@@ -380,6 +526,7 @@ export function specFromCircuit(circuit, given = {}) {
       parts: given.parts ?? parts,
       nets: given.nets ?? circuit.spec?.nets,
       recipe: given.recipe ?? (given.parts || given.nets ? undefined : circuit.spec?.recipe),
+      goals: given.goals,
       supplies: given.supplies ?? circuit.spec?.supplies ?? circuit.supplies,
       board: pick('board'),
       clearance: pick('clearance'),
@@ -390,6 +537,18 @@ export function specFromCircuit(circuit, given = {}) {
       page: pick('page'),
     }).filter(([, v]) => v !== undefined),
   );
+}
+
+// The spec of a circuit made by layout with the kit's current computed fix applied (layout --fix,
+// the MCP tool's fix: true): only on that request, never by itself. The fix is the one the review of
+// the circuit as it is prints ("To fix it"). → { spec, applied } | { nothing: true } (no hazard) |
+// { refuse: code } (LAYOUT_FIX_NO_SPEC: written by hand; LAYOUT_FIX_NO_FIX: the kit has none).
+export function fixRequest(circuit) {
+  if (!circuit?.spec?.nets) return { refuse: 'LAYOUT_FIX_NO_SPEC' };
+  const r = review(circuit);
+  if (!r.hazards.length) return { nothing: true };
+  if (!r.fix) return { refuse: 'LAYOUT_FIX_NO_FIX' };
+  return specWithFix(specFromCircuit(circuit), r.fix);
 }
 
 const linkKey = (a, b) => `link ${[a, b].sort().join(' ')}`;
@@ -436,7 +595,7 @@ function footprintOf(part) {
   return box;
 }
 
-function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), boxes = new Map() }) {
+function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), boxes = new Map(), keepOrder = false }) {
   // A part's box from above, by its holes (the same part in the same holes has the same body).
   const boxOf = (p) => {
     const key = `${p.id} ${p.holes.map((h) => h?.id).join(' ')}`;
@@ -544,7 +703,8 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
     }
   }
   const given = new Map(parts.map((p, i) => [p.id, i]));
-  const order = [...parts].sort((a, b) => (layer.get(a.id) ?? Infinity) - (layer.get(b.id) ?? Infinity) || given.get(a.id) - given.get(b.id));
+  // keepOrder: an order read from the nets (signalOrders), placed as it is.
+  const order = keepOrder ? [...parts] : [...parts].sort((a, b) => (layer.get(a.id) ?? Infinity) - (layer.get(b.id) ?? Infinity) || given.get(a.id) - given.get(b.id));
 
   // What each part is: its pins and the rule that places it.
   const infos = new Map();
@@ -1088,7 +1248,7 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
 
   // With the nets asked for, as every later review reads them from the circuit's spec: a verdict
   // that ignored them could say APPROVED over a short.
-  const verdict = review({ ...circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'] });
+  const verdict = review({ ...circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'], fix: false });
 
   const columns = buildCircuit(circuit).board?.spec.columns;
   const sequence = circuit.parts.map((p) => p.id); // placement order: parts, then jumpers
@@ -1125,8 +1285,21 @@ export function formatLayout(r, lang, { t, formatIssue }) {
   const headline = r.review.verdict === 'approved' ? 'layout.approved' : r.review.verdict === 'changes' ? (blocking.length ? 'layout.changes' : 'layout.changesNets') : 'layout.warnings';
   lines.push(t(lang, headline, { count: blocking.length }));
   for (const b of blocking) lines.push(`  ✖ ${formatIssue(b, lang)}${b.views ? ` [${b.views.join(', ')}]` : ''}`);
-  lines.push(...formatHazards(r.review, lang, formatIssue, t));
+  // The Checked line only for a circuit built (DONE or WARNINGS): one left to fix is not the answer yet.
+  lines.push(...formatHazards(r.review, lang, formatIssue, t, { checked: r.status !== 'changes' }));
+  lines.push(...formatExtras(r, lang, t));
   const open = r.problems.length + r.check.missing.length + r.check.shorted.length + blocking.length;
-  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, `layout.status.${r.status}`, { count: open, hazards: r.review.hazards.length })}`);
+  // A trial (layout --dry-run, the MCP tool's dry_run): the same answer, and nothing was written.
+  if (r.applied) lines.push(appliedLine(r.applied, lang, t));
+  if (r.trial) lines.push(t(lang, 'layout.trial'));
+  // A trial that ends CHANGES created nothing: its own words, not "the circuit was created".
+  const said = r.trial && r.status === 'changes' ? 'layout.trialChanges' : `layout.status.${r.status}`;
+  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, said, { count: open, hazards: r.review.hazards.length })}`);
   return lines.join('\n');
+}
+
+// "Applied the fix: R3 = 200 Ω in series with BZ1." (layout --fix)
+function appliedLine(a, lang, t) {
+  const value = formatValue(a.value, 'Ω', { decimal: decimalSeparator(lang) });
+  return t(lang, a.kind === 'set' ? 'layout.fixApplied.set' : 'layout.fixApplied.add', { part: a.part, value, with: a.with });
 }

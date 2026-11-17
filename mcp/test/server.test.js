@@ -3,13 +3,13 @@
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../../scripts/tmp.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
-const root = mkdtempSync(join(tmpdir(), 'protoboard-mcp-'));
+const root = tempDir('protoboard-mcp-');
 const led = JSON.parse(readFileSync(new URL('../../examples/led-resistor.json', import.meta.url), 'utf8'));
 let client;
 
@@ -115,6 +115,11 @@ test('render writes an SVG and returns a PNG only when asked', async () => {
   const withPng = await call('render', { target: 'circuits/led', fit: 'parts', annotate: 'all', png_width: 300 });
   const image = withPng.content.find((c) => c.type === 'image');
   if (image) assert.equal(image.mimeType, 'image/png');
+  else {
+    const said = withPng.content.map((c) => c.text ?? '').join('\n');
+    assert.match(said, /PNG is not available in this install: the SVG and the page are\./);
+    assert.doesNotMatch(said, /npm install/);
+  }
 });
 
 test('paths outside the root and unknown circuits are refused', async () => {
@@ -168,6 +173,18 @@ test('catalog: a compact list by default, one entry in detail by name', async ()
   assert.equal(type.example.part.type, 'header');
   assert.ok((await call('catalog', { name: 'flux-capacitor' })).isError);
   assert.ok(jsonOf(await call('catalog', { format: 'json' })).partNumbers['1N4007'], 'the full registry as JSON');
+});
+
+test('catalog: a part answers what it is, what each pin does and the limits the simulator checks', async () => {
+  const led = textOf(await call('catalog', { name: 'led' }));
+  assert.match(led, /\n {2}about: LED: a diode that gives light\. .*The long lead is the anode/);
+  assert.match(led, /\n {2}pin roles: anode · the \+ side, in; cathode · the − side, out\n/);
+  assert.match(led, /\n {2}limits \(the simulator's\): rated current 20 mA · maximum current 30 mA · maximum reverse voltage 5 V\n/);
+  const es = textOf(await call('catalog', { name: 'resistor', lang: 'es' }));
+  assert.match(es, /\n {2}límites \(los del simulador\): la potencia hasta 250 mW, por defecto \(campo power\)\n/);
+  const q = jsonOf(await call('catalog', { name: '2N2222A', format: 'json' }));
+  assert.deepEqual(q.limits, [{ kind: 'max', quantity: 'power', value: 0.5, unit: 'W' }]);
+  assert.ok(q.about.startsWith('NPN bipolar transistor'));
 });
 
 test('netlist: groups joined by wires, with the pins on each net', async () => {
@@ -266,14 +283,86 @@ test('layout check_only reads parts by name and reports every problem without cr
   assert.ok((await call('get_circuit', { target: 'circuits/checked' })).isError, 'nothing created');
 });
 
+test('layout dry_run: the same answer and STATUS, a trial line, nothing written, new or existing', async () => {
+  const trial = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9 }, dry_run: true });
+  assert.ok(!trial.isError, textOf(trial));
+  assert.match(textOf(trial), /\nTrial: nothing was saved\.\nSTATUS: DONE · [^\n]*$/);
+  assert.equal(trial.structuredContent, undefined);
+  assert.equal(trial._meta, undefined);
+  assert.ok(!existsSync(join(root, 'trial-led')), 'no folder');
+  const made = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9 } });
+  const steady = (text) => text.replace(/ \d+ ms /, ' … ms ').split('\n').filter((l) => !/^(Trial: |trial-led · rev |Page: )/.test(l)).join('\n');
+  assert.equal(steady(textOf(trial)), steady(textOf(made)));
+  const file = join(root, 'trial-led', 'circuit.json');
+  const before = [readFileSync(file, 'utf8'), readFileSync(join(root, 'trial-led', 'history.jsonl'), 'utf8')];
+  const again = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9, R1: '10' }, dry_run: true, lang: 'es' });
+  assert.match(textOf(again), /\nEnsayo: no se guardó nada\.\nSTATUS: WARNINGS · /);
+  assert.match(textOf(again), /\nPara arreglarlo: R1 = \d+ Ω deja a R1 en [^\n]* y a D1 en/);
+  assert.deepEqual([readFileSync(file, 'utf8'), readFileSync(join(root, 'trial-led', 'history.jsonl'), 'utf8')], before, 'the circuit is untouched');
+});
+
+test('layout fix: the kit applies its own computed fix as one revision; with nothing to fix or a spec too it says so', async () => {
+  const made = await call('layout', { target: 'fix-led', recipe: 'led-resistor', values: { V1: 9, R1: '10' } });
+  assert.match(textOf(made), /STATUS: WARNINGS/);
+  const value = /To fix it: R1 = (\d+) Ω/.exec(textOf(made))?.[1];
+  assert.ok(value, textOf(made));
+  const both = await call('layout', { target: 'fix-led', fix: true, values: { R1: '1k' } });
+  assert.ok(both.isError);
+  assert.match(textOf(both), /Give the fix or a spec \(or values\), not both/);
+  const fixed = await call('layout', { target: 'fix-led', fix: true });
+  assert.ok(!fixed.isError, textOf(fixed));
+  assert.match(textOf(fixed), new RegExp(`\\nApplied the fix: R1 = ${value} Ω\\.\\n[^]*STATUS: DONE`));
+  assert.doesNotMatch(textOf(fixed), /⚠/);
+  const history = textOf(await call('history', { target: 'fix-led' }));
+  assert.match(history, /rev 1 [^\n]*layout fix/);
+  const none = await call('layout', { target: 'fix-led', fix: true, lang: 'es' });
+  assert.ok(!none.isError);
+  assert.match(textOf(none), /Nada que arreglar: tal como está conectado, ningún componente de fix-led se dañaría\. No se cambió nada\./);
+  assert.match(textOf(await call('history', { target: 'fix-led' })), /rev 1 /, 'no revision more');
+  assert.doesNotMatch(textOf(await call('history', { target: 'fix-led' })), /rev 2 /);
+});
+
+test('layout with a goal: the kit picks the standard value and says so; without one, the advisory', async () => {
+  const solved = await call('layout', { target: 'goal-led', recipe: 'led-resistor', values: { V1: 9, D1: { current: '15mA' } } });
+  assert.ok(!solved.isError, textOf(solved));
+  assert.match(textOf(solved), /\nSolved: R1 = 470 Ω \(E24\) for D1 at 15 mA: 15\.\d mA simulated, \d+ % over \(next values: 430 Ω [^)]*\)\nReadings /);
+  assert.doesNotMatch(textOf(solved), /\nWorth checking:/);
+  assert.match(textOf(solved), /STATUS: DONE/);
+  const stored = JSON.parse((await call('get_circuit', { target: 'goal-led', format: 'json' })).content[0].text).circuit;
+  assert.deepEqual(stored.spec.recipe, { name: 'led-resistor', values: { V1: 9, R1: '470' } });
+  const advised = await call('layout', { target: 'goal-advice', recipe: 'led-resistor', values: { V1: 9 } });
+  assert.match(textOf(advised), /\nWorth checking: D1 is at 10\d % of its rated 20 mA with R1 = 330 Ω; R1 = \d+ Ω would give [\d.]+ mA\.\n/);
+  assert.match(textOf(advised), /STATUS: DONE/);
+  const wrong = await call('layout', { target: 'goal-bad', recipe: 'led-resistor', values: { D1: { current: 'abc' } } });
+  assert.ok(wrong.isError);
+  assert.match(textOf(wrong), /D1\.current: the kit does not understand the value abc[^\n]*\nSTATUS: FIX_SPEC/);
+});
+
+test('a part that burns only with the button pressed: layout ends WARNINGS saying so, review has the state in JSON', async () => {
+  const made = await call('layout', { target: 'pressed-burns', recipe: 'npn-switch', values: { R2: '47', V1: 12 } });
+  assert.match(textOf(made), /⚠ warning: D1 carries 178 mA, more than its maximum 30 mA, with S1 pressed\./);
+  assert.match(textOf(made), /STATUS: WARNINGS/);
+  const r = jsonOf(await call('review', { target: 'pressed-burns', format: 'json' }));
+  assert.equal(r.verdict, 'approved-with-warnings');
+  assert.deepEqual(r.hazards.find((h) => h.params.part === 'D1').when, { part: 'S1', field: 'pressed', value: true });
+});
+
 test('layout with a recipe: ready in one call, the catalog lists it, bad values change nothing', async () => {
   const listed = await call('catalog', {});
   assert.match(listed.content[0].text, /transistors = npn-switch, /); // names by group; the title is in the recipe's own entry
   assert.ok(!/R1=1k/.test(listed.content[0].text), 'the compact list leaves the values to the entry');
-  assert.match((await call('catalog', { name: 'npn-switch' })).content[0].text, /Q1: part = 2N2222A \[2N2222A, 2N3904/);
+  assert.match((await call('catalog', { name: 'npn-switch' })).content[0].text, /Q1: part = 2N2222A \[2N2222A \| 2N3904/);
   const made = await call('layout', { target: 'recipe-switch', recipe: 'npn-switch', values: { R1: '470', V1: 9 } });
   assert.ok(!made.isError, made.content[0].text);
   assert.match(made.content[0].text, /STATUS: DONE/);
+  // The answer says what the reply needs: the readings at rest and what the recipe lets change, now.
+  assert.match(made.content[0].text, /\nReadings \(at rest, a model\): supply 9 V · D1 [\d.]+ [pnµm]?A, brightness \d+ % of 20 mA\n/);
+  assert.match(made.content[0].text, /\nCan change \(layout with the recipe and values\): R1 = 470 \(base resistor\) · R2 = 330 [^\n]* · V1 = 9 V \[3…12\] · D1 current \(a goal: \{"D1":\{"current":"15mA"\}\}\)\nSTATUS: DONE/);
+  const again = await call('layout', { target: 'recipe-switch' });
+  assert.match(again.content[0].text, /\nCan change [^\n]*R1 = 470 [^\n]*\n/, 'layout again on the target says it too');
+  const blink = await call('layout', { target: 'recipe-blink', recipe: 'uno-blink', lang: 'es' });
+  assert.match(blink.content[0].text, /\nPrograma U1 \(sketch de Arduino\):\n {2}\/\/ Blink: D13/);
+  assert.doesNotMatch(blink.content[0].text, /Lecturas/);
   const circuit = JSON.parse((await call('get_circuit', { target: 'recipe-switch', format: 'json' })).content[0].text).circuit;
   assert.deepEqual(circuit.spec.recipe, { name: 'npn-switch', values: { R1: '470', V1: 9 } });
   assert.equal(circuit.parts.find((p) => p.id === 'R1').value, '470');
@@ -281,6 +370,10 @@ test('layout with a recipe: ready in one call, the catalog lists it, bad values 
   assert.ok(bad.isError);
   assert.match(bad.content[0].text, /RECIPE|2N3904/);
   assert.match(bad.content[0].text, /STATUS: FIX_SPEC/);
+  const unreadable = await call('layout', { target: 'recipe-bad', recipe: 'led-resistor', values: { R1: 'abc' } });
+  assert.ok(unreadable.isError);
+  assert.match(unreadable.content[0].text, /R1: the kit does not understand the value "abc"\. It takes a resistance in ohms, such as 330, 4k7/);
+  assert.match(unreadable.content[0].text, /STATUS: FIX_SPEC/);
   const both = await call('layout', { target: 'recipe-bad', recipe: 'divider', nets: [['R1.1', 'T+']] });
   assert.ok(both.isError);
   assert.ok((await call('get_circuit', { target: 'recipe-bad' })).isError, 'nothing created');

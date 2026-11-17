@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Guide for Claude Code (and any AI assistant) working **on** this repository. To *use* the
-kit as a skill, see `SKILL.md`.
+kit as a skill, see `plugin-src/SKILL.md`.
 
 **If `CLAUDE.local.md` exists, read it first**: it holds the maintainer's personal context
 (language, machine setup, course). It is not in git; `CLAUDE.local.md.example` says what goes in it.
@@ -121,11 +121,9 @@ npm test                      # unit + rendering tests (node:test, no dependenci
 npm run verify [-- --quick]    # the whole verification below as one command: exit 0 pass, 1 fail, 2 a step could not run
 npm run setup                 # once per clone: git hooks (pre-commit: verify --quick; pre-push: verify)
 npm run lint · npm run knip · npm run dupes · npm run coverage   # Biome, unused code, copies, c8 thresholds
-node scripts/github-ruleset.js [--apply]   # the owner, once: protect main (CI required), secret scanning
-node scripts/agent-bench.js [--run]        # the agents on three fixed briefs (--run spends tokens), compared with the last run
 npm run options [-- --write] · npm run context-size   # project.json's options block in CLAUDE.md; what a session loads at start
 npm run docs-index [-- --write]   # docs/en/README.md and docs/es/README.md, written from the documents
-node .claude/hooks/usage.js --summary   # tokens, calls and cache hits per session and agent (.claude/state/usage.jsonl)
+npm run pack-skill                # plugin/ again, after a change to plugin-src/, bin/ or src/
 npm run examples              # examples/*.json → examples/out/*.svg + index.html gallery
 npm run examples -- --lang es # same, Spanish messages and labels
 npm run preview [-- filter]   # examples/out/*.svg → examples/out/png/*.png (needs npm install)
@@ -146,11 +144,9 @@ node scripts/clean-install-check.js   # a fresh clone of HEAD: the README's comm
 node scripts/golden.js [--write]  # simulator output against test/fixtures/sim-golden.json (--write after an intended change)
 node scripts/frames.js [--runs 2] [--write] [--determinism]  # live page frames (Chromium) against the hashes in test/frames/; SKIPPED without a browser
 node scripts/ux-shots.js <targets…> -o <dir> [--browser-dir d] [--tap ID]  # page screenshots at five sizes, alone and in a note (docs/en/ux-pass.md)
-node scripts/stage-shots.js [target] [-o dir]  # the stage theme and a recording in both video formats, the frame's rules measured (Chromium)
 node scripts/render-frames.js <timeline.json> [--format both] [--lang es] [--check] [--validate]  # a video's frames, subtitles and timeline.json
 node scripts/render-frames.js --parts <recipe> [--what-if R1.resistance=1e5] [--json]  # what a timeline can name; a set's cycles (docs/en/making-a-video.md)
 node scripts/assemble.js <dir…> -o video.mp4 [--burn]  # frame folders → one video with ffmpeg (exit 2 without it)
-node scripts/mockups.js [--lang es]  # conductor view mock-ups → examples/out/mockups/
 node scripts/readme-images.js [filter]  # docs/img/*.png for the READMEs (needs npm install)
 node scripts/demo-site.js [-o site]     # the demo site: every recipe and example as a live page
 node bin/protoboard-iso.js check <file.json> [--lang es]
@@ -161,7 +157,7 @@ node bin/protoboard-iso.js render <file.json> -o out.svg [--view back] [--fit pa
 
 `npm run verify` runs steps 1 and 2 (plus lint, unused code, copies and coverage) and exits 0, 1
 or 2; a step that could not run (a missing `npm install`) is never a pass. The pre-push hook runs
-it. After an intended change of the examples' issues: `npm run verify -- --write-examples`.
+it. Every step runs with its own `TMPDIR`, and anything a test leaves in it fails the run: make scratch folders with `tempDir()` (`scripts/tmp.js`). After an intended change of the examples' issues: `npm run verify -- --write-examples`.
 
 1. `npm test` passes (and `npm run test:mcp` when `src/` APIs or `mcp/` changed).
 2. `npm run examples` shows no new issues except the intended ones
@@ -224,6 +220,7 @@ src/sim/         simulator: compile.js (circuit → program), engine.js (runs it
                  see its README
 src/page/        page.js's browser side: client/ (script modules), style.js
 bin/             CLI
+plugin-src/      the plugin's skill and README; plugin/ is written from it (npm run pack-skill)
 scripts/         render-examples.js (+ gallery), preview.js (PNG), readme-images.js (docs/img),
                  demo-site.js (GitHub Pages, .github/workflows/pages.yml), verify.js (npm run verify),
                  setup.js + hooks/ (git hooks), report-status.js (agents' STATUS line),

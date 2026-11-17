@@ -12,7 +12,8 @@ export default {
   supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
   values: {
     R1: { field: 'value', role: { en: 'current-limiting resistor', es: 'resistencia limitadora' } },
-    D1: { field: 'color' },
+    // A current asked for instead of a resistor ({ D1: { current: '15mA' } }): layout picks R1 in E24.
+    D1: { field: 'color', goals: { current: { set: 'R1', reading: 'current' } } },
     V1: { field: 'voltage', min: 1.5, max: 15 },
   },
 };

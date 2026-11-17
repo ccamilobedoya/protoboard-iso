@@ -13,6 +13,12 @@ const within = (folder, file) => {
   return rel !== '' && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
 };
 
+// The file a board's program names ("blink.ino"), or null when the program is the sketch's text.
+export const programFile = (program) => {
+  const text = String(program ?? '');
+  return /\.ino$/i.test(text.trim()) && !text.includes('\n') ? text.trim() : null;
+};
+
 // { text } or { error: 'outside' | 'file' | 'size', size }: outside the folder, missing or
 // unreadable (or no folder: a circuit given whole), larger than `limit` bytes.
 export function readBeside(circuit, name, limit) {

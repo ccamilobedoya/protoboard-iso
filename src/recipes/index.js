@@ -6,8 +6,13 @@
 //
 //   expandRecipe('npn-switch', { R1: '470', D1: { color: 'green' }, V1: 9 }) → { spec, problems }
 //   resolveRecipe({ recipe, values, title, … }) → the layout spec, or problems (FIX_SPEC)
+//
+// A value entry may also offer goals, a result instead of a value ({ D1: { current: '15mA' } }):
+// they come out of the values as the spec's `goals`, and layout picks the standard values that
+// reach them (goals.js, solve.js).
 
 import { closestNames } from '../parts/resolve.js';
+import { takeGoals, goalsOf, goalNames, goalExample } from './goals.js';
 import ledResistor from './led-resistor.js';
 import divider from './divider.js';
 import npnSwitch from './npn-switch.js';
@@ -92,10 +97,19 @@ const items = (recipe) => new Map([...recipe.parts.map((p) => [p.id, p]), ...(re
 const kindOf = (item) => (item.supply ? 'supply' : item.type);
 const text = (v, lang) => (v && typeof v === 'object' ? v[lang] ?? v.en : v);
 
+// How a value's limits read, in the catalog and in layout's answer: choices as [a | b | c], a
+// range as [min…max] (in the language's decimals), nothing when it has neither.
+export function valueLimits(rule, decimal = '.') {
+  const n = (x) => (x === undefined ? '' : String(x).replace('.', decimal));
+  if (rule.choices) return ` [${rule.choices.join(' | ')}]`;
+  return rule.min !== undefined || rule.max !== undefined ? ` [${n(rule.min)}…${n(rule.max)}]` : '';
+}
+
 // The current value of each changeable item: { R1: '1k', V1: 5, Q1: '2N2222A' }.
+// An entry that only carries goals (the 555's U1) has no value: it is left out.
 export function recipeDefaults(recipe) {
   const all = items(recipe);
-  return Object.fromEntries(Object.entries(recipe.values).map(([id, v]) => [id, all.get(id)?.[v.field]]));
+  return Object.fromEntries(Object.entries(recipe.values).filter(([, v]) => v.field).map(([id, v]) => [id, all.get(id)?.[v.field]]));
 }
 
 // The recipe's spec with the values given. Each value is the main field's ("1k", 9) or an object
@@ -106,21 +120,27 @@ export function expandRecipe(name, values = {}) {
     const close = closestNames(name, 3, Object.keys(RECIPES));
     return { problems: [{ severity: 'error', code: 'RECIPE_UNKNOWN', params: { name: String(name), recipes: (close.length ? close : Object.keys(RECIPES)).join(', ') } }] };
   }
-  const problems = [];
+  const taken = takeGoals(recipe, values);
+  const problems = [...taken.problems];
   const all = items(recipe);
   const changes = new Map();
-  for (const [id, given] of Object.entries(values ?? {})) {
+  const hasGoals = goalsOf(recipe).length > 0;
+  for (const [id, given] of Object.entries(taken.values)) {
     const rule = recipe.values[id];
     if (!rule) {
       problems.push({ severity: 'error', code: 'RECIPE_VALUE_UNKNOWN', params: { recipe: recipe.name, id, ids: Object.keys(recipe.values).join(', ') } });
       continue;
     }
-    const allowed = [...new Set([rule.field, ...(rule.extra ?? EXTRA[kindOf(all.get(id))] ?? [])])];
-    const fields = given && typeof given === 'object' ? given : { [rule.field]: given };
+    const allowed = rule.field ? [...new Set([rule.field, ...(rule.extra ?? EXTRA[kindOf(all.get(id))] ?? [])])] : [];
+    const fields = given && typeof given === 'object' ? given : { [rule.field ?? '']: given };
     for (const [field, v] of Object.entries(fields)) {
-      if (!allowed.includes(field)) problems.push({ severity: 'error', code: 'RECIPE_VALUE_FIELD', params: { recipe: recipe.name, id, field, fields: allowed.join(', ') } });
+      // A field it does not have, in a recipe with goals: it may be a goal asked of the wrong part.
+      if (!allowed.includes(field) && hasGoals) problems.push({ severity: 'error', code: 'RECIPE_GOAL_UNKNOWN', params: { recipe: recipe.name, id, field: field || String(v), fields: allowed.join(', ') || '—', goals: goalNames(recipe), example: goalExample(recipe) } });
+      else if (!allowed.includes(field)) problems.push({ severity: 'error', code: 'RECIPE_VALUE_FIELD', params: { recipe: recipe.name, id, field, fields: allowed.join(', ') } });
       else if (field === rule.field && rule.choices && !rule.choices.some((c) => String(c).toUpperCase() === String(v).toUpperCase()))
         problems.push({ severity: 'error', code: 'RECIPE_VALUE_CHOICE', params: { id, value: String(v), choices: rule.choices.join(', ') } });
+      else if (field === rule.field && (rule.min !== undefined || rule.max !== undefined) && Number.isNaN(Number(v)))
+        problems.push({ severity: 'error', code: 'RECIPE_VALUE_NUMBER', params: { id, value: String(v), min: rule.min ?? '—', max: rule.max ?? '—', example: all.get(id)?.[field] ?? rule.min ?? rule.max } });
       else if (field === rule.field && (rule.min !== undefined || rule.max !== undefined) && !(Number(v) >= (rule.min ?? -Infinity) && Number(v) <= (rule.max ?? Infinity)))
         problems.push({ severity: 'error', code: 'RECIPE_VALUE_RANGE', params: { id, value: String(v), min: rule.min ?? '—', max: rule.max ?? '—' } });
       else changes.set(id, { ...changes.get(id), [field]: v });
@@ -130,8 +150,11 @@ export function expandRecipe(name, values = {}) {
   const apply = (item) => ({ ...item, ...changes.get(item.id) });
   // Every piece is copied (parts, supplies, title, net labels, environment, page): what a caller does to
   // the spec it gets never reaches the recipe, nor the next spec.
+  // The recipe's values as given, without the goals: those are solved by layout, which stores the
+  // values it chose in their place (the goal itself is not kept).
   const spec = structuredClone({
-    recipe: { name: recipe.name, ...(Object.keys(values ?? {}).length && { values }) },
+    recipe: { name: recipe.name, ...(Object.keys(taken.values).length && { values: taken.values }) },
+    ...(taken.goals.length && { goals: taken.goals }),
     title: recipe.title,
     board: 'auto',
     ...(recipe.clearance && { clearance: recipe.clearance }),
@@ -181,7 +204,10 @@ export function recipeEntry(name, lang = 'en') {
     nets: r.nets,
     ...(r.supplies && { supplies: r.supplies }),
     values: Object.fromEntries(
-      Object.entries(r.values).map(([id, v]) => [id, { field: v.field, default: defaults[id], ...(v.role && { role: text(v.role, lang) }), ...(v.choices && { choices: v.choices }), ...(v.min !== undefined && { min: v.min }), ...(v.max !== undefined && { max: v.max }) }]),
+      Object.entries(r.values)
+        .filter(([, v]) => v.field)
+        .map(([id, v]) => [id, { field: v.field, default: defaults[id], ...(v.role && { role: text(v.role, lang) }), ...(v.choices && { choices: v.choices }), ...(v.min !== undefined && { min: v.min }), ...(v.max !== undefined && { max: v.max }) }]),
     ),
+    ...(goalsOf(r).length && { goals: goalsOf(r).map((g) => ({ id: g.id, goal: g.goal, set: g.set, unit: g.unit, example: { [g.id]: { [g.goal]: g.example } }, ...(g.when && { when: g.when }) })) }),
   };
 }

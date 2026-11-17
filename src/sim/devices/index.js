@@ -17,6 +17,8 @@
 //   pinCurrents(entry, out, h)  optional: current into the part at each pin (default from
 //                               `currents`, or ± `current` for two pins)
 //   limits(entry, reading)  optional: stresses (value against a limit, see shared.js) and notes
+//   limitFields(p)          optional: the part's fields its limits follow (['power']), which
+//                           `catalog` names beside them (../ratings.js)
 //   lines(reading, h)       the card lines [{ key, text }]; null = nothing at all
 //   tag(reading)            the current tag on the board { label, value, key } or null
 //   probe(reading)          optional: what the page says about that tag { key, value }

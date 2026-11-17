@@ -53,7 +53,7 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `c3-blink` | ESP32-C3 SuperMini que hace parpadear un LED en GPIO3 | R1 = 220, D1 = red, U1 = su programa |
 | `c3-pot-pwm` | ESP32-C3: un potenciómetro en GPIO4 regula un LED en GPIO3 (ADC y PWM a 1 kHz) | RV1 = 10k, R1 = 220, D1 = red, U1 = su programa |
 | `opamp-comparator` | LM358 que compara un potenciómetro con la mitad de la fuente; un LED en su salida | RV1 = 10k (cursor en 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 5 V (5–30) |
-| `lm393-comparator` | Comparador LM393: su colector abierto hunde la corriente de un LED alimentado desde la fuente | RV1 = 10k (cursor en 30 %), R1 = 10k, R2 = 10k, R3 = 1k, D1 = red, V1 = 5 V (3–12) |
+| `lm393-comparator` | Comparador LM393: su colector abierto hunde la corriente de un LED alimentado desde la fuente | RV1 = 10k (cursor en 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, V1 = 5 V (3–12) |
 | `opamp-follower` | Seguidor de voltaje con LM358: la salida copia un potenciómetro y alimenta un LED | RV1 = 100k, R1 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 9 V (9–12), control de temperatura −20 a 65 °C |
 | `opamp-noninverting` | Amplificador no inversor con LM358, ganancia 1 + R2/R1, una senoidal del generador en V+ | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0,5 V de pico (0,01–5) |
 | `opamp-inverting` | Amplificador inversor con LM358, ganancia −R2/R1 alrededor de la mitad de la fuente (un divisor en V+) | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0,5 V de pico (0,01–3) |
@@ -63,21 +63,21 @@ node bin/protoboard-iso.js layout interruptor --recipe npn-switch --values '{"R1
 | `ntc-follower` | Divisor con termistor NTC copiado por un seguidor LM358 hacia una carga de 10k (siente `temperature`) | TH1 = 10k, R1 = 10k, R2 = 10k (carga), V1 = 9 V (9–12), control de temperatura −20 a 65 °C |
 | `thermistor-uno` | Arduino UNO que lee un divisor con NTC en A0 y escribe `T=<°C>` cada segundo con la ecuación B (siente `temperature`) | TH1 = 10k, R1 = 10k, U1 = su programa (`program`) |
 | `rain-alarm` | Un módulo de lluvia MH-RD cuyo DO, en bajo cuando está mojado, enciende un PNP (S8550) que activa un zumbador activo (TMB12A05, suena con continua) | U1 = 0,5 (umbral, 0,05–0,95), R1 = 1k (base) |
-| `soil-led` | Un módulo de suelo YL-69 que enciende un LED hacia su DO con el suelo húmedo | U1 = 0,5 (umbral), R1 = 470, D1 = verde |
-| `light-switch-module` | El módulo LDR-LM393 de 3 pines que enciende un LED hacia su DO con luz (unos 18 lx con el trimmer en el medio, la fotorresistencia del modelo; una real varía) | U1 = 0,5 (umbral), R1 = 470, D1 = amarillo |
+| `soil-led` | Un módulo de suelo YL-69 que enciende un LED hacia su DO con el suelo húmedo | U1 = 0,5 (umbral), R1 = 470, D1 = green |
+| `light-switch-module` | El módulo LDR-LM393 de 3 pines que enciende un LED hacia su DO con luz (unos 18 lx con el trimmer en el medio, la fotorresistencia del modelo; una real varía) | U1 = 0,5 (umbral), R1 = 470, D1 = yellow |
 | `line-follower-uno` | Arduino UNO que lee un seguidor de línea TCRT5000 (DO en D2, AO en A0) y escribe LINE / NO LINE | U2 = 0,5 (umbral), U1 = su programa |
 | `obstacle-buzzer` | Un módulo de obstáculos FC-51 cuyo OUT, en bajo ante un obstáculo, enciende un PNP que activa un zumbador activo (suena a menos de unos 4 cm con el trimmer al 25 %, 9 cm al 50 % y 28 cm al 90 %, papel blanco, en el modelo: un módulo real varía) | U1 = 0,5 (umbral), R1 = 1k (base) |
 | `hall-counter-uno` | Arduino UNO que cuenta las pasadas de un imán con un KY-024 (modelado con un A3144; de la placa real se reporta que lleva un 49E lineal: sin comprobar) (DO en D2, flancos de bajada; en el modelo se enciende a unos 160 G y se apaga bajo unos 105 G, las piezas reales difieren y solo cuenta un polo sur) | U2 = 0,5 (umbral), U1 = su programa |
 | `encoder-uno` | Arduino UNO: un encoder rotativo KY-040 en D2 (CLK), D3 (DT) y D4 (SW), alimentado con el pin de 5 V; el programa cuenta clics (CLK cae, DT dice hacia dónde), escribe la cuenta cuando cambia y la pone en cero con el pulsador | U2 = 2 (bounce, ms, 0–5; el programa filtra CLK por tiempo, 8 ms; a un giro muy rápido, medido a 800 °/s, el filtro puede contar un clic de más si el eje cambia de sentido justo sobre un flanco), U1 = su programa |
 | `encoder-dimmer-uno` | lo mismo, con un LED en D9 (por R1) cuyo brillo PWM sigue a la cuenta, 12 cuentas por clic, la cuenta retenida entre 0 y 20, el mismo filtro de 8 ms (20 cuentas son 240 de los 255 que admite `analogWrite`; la misma salvedad del giro muy rápido que `encoder-uno`) | U2 = 2 (bounce, ms), R1 = 220, D1 = green, U1 = su programa |
-| `laser-tripwire` | Un láser KY-008 siempre encendido y un módulo LDR-LM393: corta el haz (el `beam` del ambiente) y DO enciende el LED con un NPN (con el trimmer en 0,1 dispara bajo unos 410 lx en el cuarto; la cifra depende de la fotorresistencia) | U1 = 0,1 (umbral), R1 = 22k (base), R2 = 470, D1 = rojo |
+| `laser-tripwire` | Un láser KY-008 siempre encendido y un módulo LDR-LM393: corta el haz (el `beam` del ambiente) y DO enciende el LED con un NPN (con el trimmer en 0,1 dispara bajo unos 410 lx en el cuarto; la cifra depende de la fotorresistencia) | U1 = 0,1 (umbral), R1 = 22k (base), R2 = 470, D1 = red |
 | `laser-uno` | Arduino UNO que hace parpadear un KY-008 a 1 Hz con un NPN (D7) e imprime una fotorresistencia en A0 | R1 = 10k (divisor), R2 = 1k (base), U1 = su programa |
 | `uno-distance` | Arduino UNO que mide distancia con un HC-SR04 (TRIG D9, ECHO D10, `pulseIn`, `us / 58`); ambiente `distance` 30 cm (rango 2–100) y 20 °C | U1 = su programa |
 | `esp32-distance` | ESP32 DevKit con un HC-SR04 en VIN (5 V): ECHO por un divisor de 1 kΩ / 2 kΩ para que el pin de 3,3 V vea 3,33 V | R1 = 1k, R2 = 2k, U1 = su programa |
-| `distance-alarm-uno` | `uno-distance` con un LED en D13 que se enciende a menos de 15 cm | R1 = 220, D1 = rojo, U1 = su programa |
+| `distance-alarm-uno` | `uno-distance` con un LED en D13 que se enciende a menos de 15 cm | R1 = 220, D1 = red, U1 = su programa |
 | `hall-linear-uno` | Arduino UNO que lee un sensor Hall lineal KY-035 en A0 e imprime el campo en gauss; el programa mide el cero al arrancar (el de un 49E real cae entre 2,25 y 2,75 V, hasta ±180 G de error si no), así que arráncalo sin imán cerca | U1 = su programa |
-| `clap-switch` | Arduino UNO que invierte un LED con cada palmada, desde el DO de un módulo de sonido KY-037 en D2; el programa toma como reposo el nivel que tuvieron la mayoría de 100 lecturas en `setup` y toma el cambio desde él como palmada (otra solo cuando DO vuelve al reposo y pasaron 200 ms, así que un ruido largo cuenta una vez), así que sirve hacia donde la placa mueva DO y con pulsos más cortos que un `delay` (en el modelo DO baja cuando el pico del micrófono supera la distancia entre la polarización y el Vref del trimmer: unos 98 dB con el trimmer 15 mV por debajo de la polarización; la polaridad real de la placa no está confirmada) | U2 = 0,497 (umbral), D1, R1, U1 = su programa |
-| `voltage-sensor-uno` | Arduino UNO que mide una fuente de 9 V con un módulo sensor de voltaje (divisor 5:1) en A0 e imprime los voltios (S lleva 1/5 de la entrada) | V1 = su voltaje (1 a 25 V), U1 = su programa |
+| `clap-switch` | Arduino UNO que invierte un LED con cada palmada, desde el DO de un módulo de sonido KY-037 en D2; el programa toma como reposo el nivel que tuvieron la mayoría de 100 lecturas en `setup` y toma el cambio desde él como palmada (otra solo cuando DO vuelve al reposo y pasaron 200 ms, así que un ruido largo cuenta una vez), así que sirve hacia donde la placa mueva DO y con pulsos más cortos que un `delay` (en el modelo DO baja cuando el pico del micrófono supera la distancia entre la polarización y el Vref del trimmer: unos 98 dB con el trimmer 15 mV por debajo de la polarización; la polaridad real de la placa no está confirmada) | U2 = 0,497 (umbral), R1 = 220, D1 = green, U1 = su programa |
+| `voltage-sensor-uno` | Arduino UNO que mide una fuente de 9 V con un módulo sensor de voltaje (divisor 5:1) en A0 e imprime los voltios (S lleva 1/5 de la entrada) | V1 = 9 V (1–25), U1 = su programa |
 | `uno-dht11` | Arduino UNO con un módulo DHT11 en D2 leído con la biblioteca DHT cada 2 s (el límite es de la biblioteca; el chip admite una lectura por segundo) (`isnan` imprime `fail`); ambiente 24 °C (rango 0–50) y 41 %HR (rango 20–90) ([sensores-de-biblioteca.md](sensores-de-biblioteca.md)) | U1 = su programa |
 | `esp32-bme280` | ESP32 DevKit con una placa BME280 en 3V3 y GPIO22/21: `begin(0x76)`, luego temperatura, presión en hPa, humedad y altitud cada segundo; ambiente con la presión (rango 900–1050 hPa) | U1 = su programa |
 | `uno-bmp280-altitude` | Arduino UNO con una placa BMP280 en su pin de 3,3 V (la placa no tiene regulador) y A4/A5, que imprime la altitud; los pull-ups de Wire a 5 V subirían el bus a unos 3,68 V, sobre los 3,6 V del chip (VDDIO + 0,3 V), así que el programa los apaga tras `begin()` (la placa no tiene regulador: a 5 V el chip pasaría su máximo absoluto de 4,25 V) (`digitalWrite(A4, LOW)`, `digitalWrite(A5, LOW)`) y el bus queda en 3,3 V (la hoja del ATmega328P pide 0,7 × VCC = 3,5 V como nivel alto en sus pines I2C, así que suele funcionar pero queda fuera de especificación: lo correcto es un conversor de nivel o una placa de 3,3 V) (un cálculo estático, que se detiene dentro de `begin()`, todavía dice `SIM_PIN_OVER_VDDIO`); ambiente con la presión (rango 700–1050 hPa) | U1 = su programa |
@@ -98,10 +98,76 @@ los límites de cada valor.
 - **Solo cambia lo que la receta lista.** Cualquier otra cosa, un valor fuera de las opciones o del
   rango, o un campo no permitido, es un `FIX_SPEC` que dice qué se permite (`RECIPE_VALUE_UNKNOWN`,
   `RECIPE_VALUE_CHOICE`, `RECIPE_VALUE_RANGE`, `RECIPE_VALUE_FIELD`; una receta desconocida,
-  `RECIPE_UNKNOWN`, viene con los nombres más parecidos). Los identificadores y las redes no
+  `RECIPE_UNKNOWN`, viene con los nombres más parecidos). También lo es un valor que el kit no sabe
+  leer, y no se arma nada: `"R1": "abc"` dice que lleva una resistencia como `330`, `4k7` o `1M`
+  (`BAD_VALUE`), un color que no existe lista los colores (`UNKNOWN_COLOR`), y el `"V1": "abc"` de
+  una fuente no es un número (`RECIPE_VALUE_NUMBER`). Los identificadores y las redes no
   cambian nunca: son lo que hace que la receta salga lista.
 - Junto con la receta se pueden dar `title`, `board`, `clearance`, `netLabels`, `environment`, `page`
   y `lang`, que reemplazan los de la receta. `parts` y `nets`, nunca (`RECIPE_AND_PARTS`).
+
+## Metas: un resultado en lugar de un valor
+
+Una entrada de `values` puede ofrecer una **meta**: el resultado que el usuario quiere (una
+corriente, una frecuencia), dado en lugar del valor que lo fija. El kit elige el valor estándar con
+su propio simulador, así la cifra que informa es la que muestran `simulate` y la página:
+
+```bash
+layout led --recipe led-resistor --values '{"V1": 9, "D1": {"current": "15mA"}}'
+layout blink --recipe 555-astable --values '{"U1": {"frequency": "1Hz"}}'
+```
+
+```text
+Resuelto: R1 = 470 Ω (E24) para D1 a 15 mA: 15,2 mA simulados, 2 % por encima (valores vecinos: 430 Ω 16,6 mA · 510 Ω 14,1 mA)
+Resuelto: R2 = 68 kΩ (E24; sin cambio: R1 = 1 kΩ, C1 = 10 µF) para U1 a 1 Hz: 1,03 Hz simulados, 3 % por encima (valores vecinos: 62 kΩ 1,12 Hz · 75 kΩ 0,93 Hz)
+```
+
+- **Qué valor.** Resistencias en E24, condensadores en E6, dentro de las décadas que declara la meta
+  o el tipo (resistencias de 10 Ω a 1 MΩ; la R2 del 555 de 1 kΩ a 1 MΩ y C1 de 1 µF a 100 µF). El
+  que da el resultado simulado más cercano a la meta (error relativo); entre resultados igual de
+  cercanos (a menos de un punto porcentual), uno que no fuerce ningún componente (la misma revisión de
+  riesgos: en reposo y con cada control movido solo). Una meta que solo se
+  cumple forzando un componente se obedece: el circuito se arma y la revisión de riesgos lo termina en
+  `STATUS: WARNINGS` diciendo qué se quema. Una meta que ningún valor estándar alcanza recibe el más
+  cercano dentro del rango, y la línea dice `fuera de alcance`.
+- **Cómo.** Una meta de continua con una sola perilla recorre su serie (`engine.set` del simulador,
+  menos de un milisegundo cada valor). Una meta con varias perillas o medida en el tiempo se ordena
+  primero con una fórmula cerrada con nombre (`src/recipes/estimates.js`: `555-astable`,
+  f = 1,44 / ((R1 + 2·R2)·C1)) y solo se miden sus mejores candidatos (el 555 sobre el parpadeo de
+  D1, con un paso de 1/500 del periodo esperado: a cerca de 1 % del ritmo de la página). Las perillas
+  se mueven en orden: primero la R2 del 555, C1 también solo cuando R2 sola no alcanza la meta; R1 se
+  queda.
+- **Qué dice**: una línea `Resuelto:` (`Solved:`) antes de las lecturas, y `solved: [...]` en el
+  JSON: el valor elegido, el resultado simulado, a qué distancia de la meta y de qué lado, los
+  valores estándar vecinos con sus resultados, el estado del que habla la meta (`S1 presionado`,
+  `RV1 al 0 %`) y lo que se queda.
+- **Qué se guarda**: los valores elegidos, como cualquier valor (`spec.recipe.values` recibe
+  `R1: "470"`). La meta no se guarda y un `layout` posterior no resuelve nada otra vez: da sus valores
+  como siempre.
+- **Errores** (`FIX_SPEC`, no se arma nada): una meta que la receta no declara para ese identificador
+  (`RECIPE_GOAL_UNKNOWN`, que lista las metas de la receta), un valor de meta que no se puede leer,
+  `"abc"` u otra unidad (`RECIPE_GOAL_VALUE`), y una meta y un valor para la misma perilla en la misma
+  llamada (`RECIPE_GOAL_AND_VALUE`: da uno de los dos).
+
+**El aviso.** Sin meta en la llamada, un circuito de receta cuyo componente trabaja por encima de su
+valor nominal sin quemarse (un LED al 107 % de sus 20 mA nominales: ningún riesgo y `STATUS: DONE`)
+recibe una línea, y no se cambia nada: `Para revisar: D1 queda al 107 % de su nominal de 20 mA con
+R1 = 330 Ω; con R1 = 360 Ω daría 19,7 mA.` (`Worth checking:`; `advice: [...]` en el JSON). El valor sugerido es
+el estándar más cercano al nominal sin pasarlo. No aparece cuando se dio una meta (lo dice la línea
+`Resuelto`) ni cuando la página oculta los resultados para que un estudiante los prediga.
+
+Recetas con metas: `led-resistor`, `npn-switch` (S1 presionado), `potentiometer-led` (RV1 al 0 %),
+`mosfet-switch` (S1 presionado), `button-pulldown` (S1 presionado), `regulator-7805`,
+`regulator-ams1117`, `esp32-led`, `uno-blink`, `c3-blink` (el primer estado del programa, el LED
+encendido), `opamp-comparator`, `lm393-comparator`, `opamp-follower` (RV1 al 0 %),
+`slide-switch-leds` (D1, y D2 con S1 deslizado) y `tilt-alarm` (S1 inclinado): `D1.current`;
+`555-astable`: `U1.frequency`. `catalog <receta>` las lista. Quedan por ahora fuera, porque cada una
+necesita algo más que esta declaración: `button-pullup` (su LED se alimenta a través del pull-up de
+1 kΩ, así R2 sola llega a unos 3 mA), el LED del 555 (encendido la mitad del tiempo),
+`bridge-rectifier` (una fuente alterna), `uno-button`, `uno-pot-pwm`, `c3-pot-pwm` (el programa fija
+el LED en el tiempo), `relay-npn` (el contacto se cierra con el tiempo), `encoder-dimmer-uno` (sin
+resistencia en serie) y las recetas de sensores (el LED sigue al ambiente y al límite de la salida del
+sensor).
 
 ## Recetas con un sensor real
 
@@ -122,8 +188,6 @@ una GL5528, el termómetro un LM35 o un NTC de 10k (B 3950).
 | `ntc-follower` | El NTC está del lado de la fuente, así que el voltaje sube al calentarse; el seguidor lo copia a 10k. La fuente es de 9 V (el control permite de 9 a 12): la salida de un LM358 se queda a unos 1,5 V de la fuente, así que con 9 V el seguidor copia el divisor hasta unos 7,5 V (unos 65 °C), donde termina el control de temperatura de la página; con 5 V lo recortaría desde unos 45 °C. El termistor se calienta solo: 2 mW con 9 V y 3,6 mW con 12 V como máximo (medido; lo que eso hace a su temperatura depende de la constante de disipación de la pieza, que no se midió) |
 | `thermistor-uno` | El mismo NTC sobre 10k en los 5 V del UNO, leído en A0; el programa saca la resistencia del conteo del ADC y la temperatura de `1/T = 1/T0 + ln(R/R0)/B`, y escribe `T=<valor>` cada segundo (a menos de 1,5 °C del ambiente a 25 y a 60 °C) |
 | `laser-tripwire`, `laser-uno` | El láser (unos 28 mA, 3 mW) agrega unos 9,8 klx a los 50 lx del cuarto para todo sensor de luz. En la barrera el trimmer del módulo está en 0,1 (Vref 0,5 V, el cambio en unos 410 lx en el modelo, medido): con el haz DO está en 0,2 V y el LED apagado; con `beam` encendido la fotorresistencia ve 50 lx, DO sube a unos 3,7 V (un alto limpio: la resistencia de base de 22 kΩ casi no carga el pull-up) y el LED tiene unos 6,7 mA. En `laser-uno` D7 maneja el láser con un NPN (el módulo toma unos 28 mA y de un pin del UNO se recomiendan hasta 20 mA, 40 mA como máximo, así que un pin no basta para alimentarlo); el monitor serie muestra `on  A0=1009` y `off A0=689` cada segundo |
-- Junto con la receta se pueden dar `title`, `board`, `clearance`, `netLabels`, `environment`, `page` y `lang`, que
-  reemplazan los de la receta. `parts` y `nets`, nunca (`RECIPE_AND_PARTS`).
 
 ## Después del montaje
 
@@ -133,6 +197,13 @@ componente conserva sus agujeros, y `undo` trae los valores de antes. Para agreg
 conexiones se llama a `layout` sobre él con `parts` y `nets` completos (`get_circuit` los muestra):
 desde ahí es un circuito propio y pierde `spec.recipe`. Un valor o una descripción sola también se
 cambian con `apply_ops`.
+
+La respuesta de `layout` para un circuito de receta termina, antes de sus líneas de página y
+`STATUS:`, con lo que la receta deja cambiar, con los valores que tiene ahora el circuito (`Se puede
+cambiar (layout con la receta y values): R1 = 330 (resistencia limitadora) · D1 = green · V1 = 9 V
+[1,5…15] · D1 current (una meta: …)`), junto a las lecturas en reposo y al programa de una tarjeta
+([montaje-automatico.md](montaje-automatico.md), «La respuesta»): los cambios que se ofrecen son
+esos, no otros.
 
 Las recetas de microcontroladores (ESP32, UNO, C3) corren un programa
 ([microcontroladores.md](microcontroladores.md)); `values: { "U1": "parpadeo.ino" }` pone el programa
@@ -153,9 +224,16 @@ página parpadea, en cámara lenta (el tiempo de la página sigue a la constante
    `netLabels`, `environment` (el del circuito, para un sensor), `page`, `clearance`, y `values`: para cada identificador que puede cambiar, `field`
    (lo que fija la forma corta) y, si hace falta, `role` (`{ en, es }`), `choices`, `min`/`max`,
    `extra` (los campos permitidos, cuando no sirven los de cada tipo).
+   Una meta es una clave más de una entrada, `goals: { current: { set: 'R1', reading: 'current' } }`
+   (si hace falta, `when`, el estado del que habla, como `{ S1: { pressed: true } }`, y `range`, las
+   décadas de una perilla); una meta medida en el tiempo da `measure: 'cycle'`, `of` y una `estimate`
+   de `src/recipes/estimates.js`. Una entrada puede llevar solo metas (`U1: { goals: … }`). El
+   comentario al comienzo de `src/recipes/goals.js` lista las claves; `npm test` comprueba que cada
+   meta se alcanza con los valores por defecto de la receta y termina en `DONE`.
 3. Dale un `group` (una palabra de `RECIPE_GROUPS` en `src/recipes/index.js`, puesta en el propio módulo; el catálogo compacto lista las recetas por grupo, solo nombres, y una prueba falla si una receta no lo tiene; un grupo nuevo necesita sus textos `recipe.group.<nombre>` en `src/i18n/en.js` y `es.js`). Regístrala en `src/recipes/index.js` y corre `npm run schemas` (el esquema lista los nombres).
-4. Agrégala a las tablas de esta página, de [recipes.md](../en/recipes.md) y de `SKILL.md`, y a la
-   lista del agente `circuit-layout`. `npm test` comprueba que sale `DONE` con sus valores por
+4. Agrégala a las tablas de esta página, de [recipes.md](../en/recipes.md) y de
+   `plugin-src/references/recipes.md` del skill, a la lista de `plugin-src/SKILL.md` (después
+   `npm run pack-skill`) y a la lista del agente `circuit-layout`. `npm test` comprueba que sale `DONE` con sus valores por
    defecto y con cada opción, que se simula sin forzar ningún componente, que su nombre no es el de
    ningún componente y que las dos páginas la nombran; `npm run layout-bench` muestra sus intentos y
    su tiempo.

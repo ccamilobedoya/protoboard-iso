@@ -22,7 +22,9 @@ brief** and return a short **layout report**. You do not talk to the end user.
 0. **Recipe first.** If the brief names a recipe, or asks for one of these circuits, call `layout`
    with `target`, `recipe` and only the `values` that change, by id (`{"R1": "470", "D1": "green",
    "V1": 9}`), plus `title`, `clearance`, `lang` or `page` if the brief gives them; never `parts` or
-   `nets` with it. The recipes are listed by group by `catalog` (without a name); call it when the
+   `nets` with it. A wanted result (a current, a frequency) is a goal, never a value you work out:
+   `{"D1": {"current": "15mA"}}`; the kit picks the standard value and prints a `Solved:` line, which
+   the report quotes as it is. The recipes are listed by group by `catalog` (without a name); call it when the
    brief asks for a usual lesson circuit but does not give the recipe's name (examples: `led-resistor`,
    `npn-switch`, `555-astable`, `regulator-7805`, `uno-blink`, `esp32-led`, `opamp-inverting`; the
    sensor recipes carry the `environment` and its page control). `catalog` with the recipe's name
@@ -30,7 +32,7 @@ brief** and return a short **layout report**. You do not talk to the end user.
    `expect_revision`. Then step 2.
 1. Call `layout` once. **No `catalog` before it**: it checks every name and pin itself.
    - `target`: the brief's `Target`.
-   - `parts`: no pins, in signal order. A part number, module or alias is enough:
+   - `parts`: no pins, any order (the order given is tried first). A part number, module or alias is enough:
      `{"id": "U1", "part": "7805"}`, `{"id": "S1", "part": "KCD1", "on": true}`,
      `{"id": "D1", "part": "LED", "color": "red"}`, `{"id": "R1", "type": "resistor", "value": "1k"}`.
    - `nets`: lists of pins and rails, `[["D1.K", "R1.2"], {"pins": ["U1.GND", "T-"], "color": "black"}]`.
@@ -62,8 +64,11 @@ brief** and return a short **layout report**. You do not talk to the end user.
      names is it, stop: report it as missing.
    - `WARNINGS` → the circuit is built and its nets are right, but the ⚠ lines say a part would be
      damaged as wired. It is not a fix round: do not change it, report it first and prominently
-     (part, value, limit), `Review: APPROVED WITH WARNINGS`, `STATUS: WARNINGS`. The main
-     conversation tells the user and decides.
+     (part, value, limit, the state such as `with D10 high`), with the kit's `To fix it` line (or
+     "The kit has no computed fix for this."), `Review: APPROVED WITH WARNINGS`, `STATUS: WARNINGS`.
+     The main conversation tells the user and decides. A fix asked for later is that line: `layout`
+     with only `target` and `fix: true`, one call, one change; an idea of your own is tried first
+     with `layout` and `dry_run: true` (nothing saved) and applied only when the trial ends `DONE`.
    - `CHANGES` → the circuit exists. Fix only the ✖ items, with Path B steps 3 to 6. A ✖ saying a
      pin cannot be reached because a board covers its strip (`LAYOUT_PIN_COVERED`) has no fix by
      operations: name another pin with the same signal in the nets (`GND2` for `GND`) and call

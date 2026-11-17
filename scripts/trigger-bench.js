@@ -21,9 +21,9 @@
 // artifacts instead of files), and a model's habits change with its version.
 
 import { spawn, execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { tempDir } from './tmp.js';
 import { fileURLToPath } from 'node:url';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
@@ -102,7 +102,7 @@ const saveState = (state) => {
 };
 
 async function runOne(prompt, model) {
-  const dir = mkdtempSync(join(tmpdir(), 'trigger-bench-'));
+  const dir = tempDir('trigger-bench-');
   const root = join(dir, 'root');
   mkdirSync(root);
   const cwd = join(dir, 'cwd');

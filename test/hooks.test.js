@@ -4,9 +4,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { gitEnv } from './git-env.js';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
 import { refusal } from '../.claude/hooks/guard-secrets.js';
 import { secretPath, SECRET_NAMES } from '../.claude/hooks/secret-paths.js';
 import { usageOf, latest } from '../.claude/hooks/usage.js';
@@ -65,7 +66,7 @@ test('guard: as a hook it answers with a deny decision, and with nothing otherwi
 });
 
 test('stop: a reminder of uncommitted work, and silence when there is none', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'pbi-stop-'));
+  const dir = tempDir('pbi-stop-');
   const git = (...args) => execFileSync('git', args, { cwd: dir, env: gitEnv() });
   git('init', '-q');
   assert.equal(hook('stop-uncommitted.js', {}, { CLAUDE_PROJECT_DIR: dir }), '', 'an empty repository');
@@ -106,7 +107,7 @@ test('usage: a transcript summed once per response, with tools and the cache hit
 });
 
 test('usage: as a hook it appends one line under .claude/state and prints nothing', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'pbi-usage-'));
+  const dir = tempDir('pbi-usage-');
   const transcript = join(dir, 't.jsonl');
   writeFileSync(transcript, JSON.stringify({ type: 'assistant', message: { id: 'm1', model: 'claude-x', usage: { input_tokens: 1, output_tokens: 2 }, content: [] } }));
   const input = { hook_event_name: 'SubagentStop', session_id: 's', agent_type: 'circuit-layout', agent_transcript_path: transcript };

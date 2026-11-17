@@ -7,6 +7,8 @@ import { buildCircuit } from '../src/circuit/build.js';
 import { checkCircuit, PART_NUMBERS } from '../src/index.js';
 import { describeKeys, describePart } from '../src/parts/describe.js';
 import { LANGUAGES } from '../src/i18n/index.js';
+import { catalogEntry } from '../src/node/catalog.js';
+import * as models from '../src/sim/models.js';
 
 const samples = [
   { id: 'R1', type: 'resistor', value: '330', pins: ['j5', 'j9'] },
@@ -51,4 +53,22 @@ test('a description per language missing one is reported; a plain string is fine
   assert.equal(issue({ es: 'Limita la corriente del LED' }).params.missing, 'en');
   assert.equal(issue('Limita la corriente'), undefined, 'a plain string is the generic format, shown as it is');
   assert.equal(issue({ en: 'x', es: '  ' }).params.missing, 'es');
+});
+
+test('a development board is described as simulated, and no board text contradicts its limits', () => {
+  const boards = ['ESP32-DEVKIT', 'ESP32-C3-SUPERMINI', 'UNO'];
+  for (const board of boards) {
+    for (const lang of Object.keys(LANGUAGES)) {
+      const text = catalogEntry(board, lang).about;
+      assert.doesNotMatch(text, /Not simulated|no se simula/i, `${board} ${lang}`);
+      assert.match(text, lang === 'en' ? /simulator follows each pin/ : /simulador sigue cada pin/, `${board} ${lang}`);
+    }
+  }
+  // The UNO's card gives the recommended current and the absolute maximum the simulator warns at.
+  const { MCUS } = models;
+  assert.equal(MCUS.uno.maxPin, 0.04);
+  assert.match(LANGUAGES.en['describe.module.uno'], /about 20 mA.*40 mA is the absolute maximum/);
+  assert.match(LANGUAGES.es['describe.module.uno'], /unos 20 mA.*40 mA es el máximo absoluto/);
+  // The adapter board is the one module that is not simulated, and still says so.
+  assert.match(LANGUAGES.en['describe.module.adapter'], /Not simulated yet/);
 });

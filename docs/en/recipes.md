@@ -22,7 +22,7 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 |---|---|---|
 | `led-resistor` | LED with a series resistor | R1 = 330, D1 = red, V1 = 5 V (1.5–15) |
 | `divider` | Voltage divider (output where R1 and R2 meet) | R1 = 10k, R2 = 10k, V1 = 9 V (1–30) |
-| `npn-switch` | Button → base resistor → NPN transistor switching an LED | R1 = 22k (base), R2 = 470, D1 = red, Q1 = 2N2222A (2N2222A, 2N3904, BC547, BC337, S8050), V1 = 5 V (3–12) |
+| `npn-switch` | Button → base resistor → NPN transistor switching an LED | R1 = 1k (base), R2 = 330, D1 = red, Q1 = 2N2222A (2N2222A, 2N3904, BC547, BC337, S8050), V1 = 5 V (3–12) |
 | `potentiometer-led` | Potentiometer's wiper dimming an LED | RV1 = 10k, R1 = 330, D1 = red, V1 = 5 V (3–12) |
 | `mosfet-switch` | Button → logic-level MOSFET switching an LED, gate pull-down | R1 = 220 (gate), R2 = 10k (pull-down), R3 = 330, D1 = red, Q1 = IRLZ44N (IRLZ44N, 2N7000), V1 = 5 V (3–12) |
 | `button-pullup` | Button to ground with a pull-up; an LED shows the output | R1 = 1k (pull-up), R2 = 330, D1 = green, V1 = 5 V (3–12) |
@@ -52,7 +52,7 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `c3-blink` | ESP32-C3 SuperMini blinking an LED on GPIO3 | R1 = 220, D1 = red, U1 = its sketch |
 | `c3-pot-pwm` | ESP32-C3: a potentiometer on GPIO4 dims an LED on GPIO3 (ADC and PWM at 1 kHz) | RV1 = 10k, R1 = 220, D1 = red, U1 = its sketch |
 | `opamp-comparator` | LM358 comparing a potentiometer with half the supply; an LED on its output | RV1 = 10k (wiper at 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 5 V (5–30) |
-| `lm393-comparator` | LM393 comparator: its open collector sinks an LED fed from the supply | RV1 = 10k (wiper at 30 %), R1 = 10k, R2 = 10k, R3 = 1k, D1 = red, V1 = 5 V (3–12) |
+| `lm393-comparator` | LM393 comparator: its open collector sinks an LED fed from the supply | RV1 = 10k (wiper at 30 %), R1 = 10k, R2 = 10k, R3 = 330, D1 = red, V1 = 5 V (3–12) |
 | `opamp-follower` | LM358 voltage follower: the output copies a potentiometer and drives an LED | RV1 = 100k, R1 = 330, D1 = red, U1 = LM358 (LM358, LM324), V1 = 9 V (9–12), temperature control −20 to 65 °C |
 | `opamp-noninverting` | LM358 non-inverting amplifier, gain 1 + R2/R1, a sine from the generator on V+ | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0.5 V peak (0.01–5) |
 | `opamp-inverting` | LM358 inverting amplifier, gain −R2/R1 around half the supply (a divider on V+) | R1 = 10k, R2 = 20k, U1 = LM358 (LM358, LM324), V1 = 9 V (5–30), G1 = 0.5 V peak (0.01–3) |
@@ -75,8 +75,8 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 | `esp32-distance` | ESP32 DevKit with an HC-SR04 on VIN (5 V): ECHO through a 1 kΩ / 2 kΩ divider so the 3.3 V pin sees 3.33 V | R1 = 1k, R2 = 2k, U1 = its sketch |
 | `distance-alarm-uno` | `uno-distance` with an LED on D13 lit under 15 cm | R1 = 220, D1 = red, U1 = its sketch |
 | `hall-linear-uno` | Arduino UNO reading a KY-035 linear Hall sensor on A0 and printing the field in gauss; the sketch measures the zero at start-up (a real 49E's lies anywhere from 2.25 to 2.75 V, up to ±180 G of error otherwise), so start it with no magnet near | U1 = its sketch |
-| `clap-switch` | Arduino UNO toggling an LED at each clap, from a KY-037 sound module's DO on D2; the sketch takes as rest the level most of 100 readings had in `setup` and takes the change from it as a clap (the next one only after DO is back at rest and 200 ms have passed, so a long noise counts once), so it works whichever way the board moves DO and with pulses shorter than a `delay` (in the model DO falls when the microphone's peak beats the gap between the bias and the trimmer's Vref: about 98 dB with the trimmer 15 mV under the bias; the board's real polarity is not confirmed) | U2 = 0.497 (threshold), D1, R1, U1 = its sketch |
-| `voltage-sensor-uno` | Arduino UNO measuring a 9 V supply through a voltage sensor module (a 5:1 divider) on A0 and printing the volts (S carries 1/5 of the input) | V1 = its voltage (1 to 25 V), U1 = its sketch |
+| `clap-switch` | Arduino UNO toggling an LED at each clap, from a KY-037 sound module's DO on D2; the sketch takes as rest the level most of 100 readings had in `setup` and takes the change from it as a clap (the next one only after DO is back at rest and 200 ms have passed, so a long noise counts once), so it works whichever way the board moves DO and with pulses shorter than a `delay` (in the model DO falls when the microphone's peak beats the gap between the bias and the trimmer's Vref: about 98 dB with the trimmer 15 mV under the bias; the board's real polarity is not confirmed) | U2 = 0.497 (threshold), R1 = 220, D1 = green, U1 = its sketch |
+| `voltage-sensor-uno` | Arduino UNO measuring a 9 V supply through a voltage sensor module (a 5:1 divider) on A0 and printing the volts (S carries 1/5 of the input) | V1 = 9 V (1–25), U1 = its sketch |
 | `uno-dht11` | Arduino UNO with a DHT11 module on D2 read through the DHT library every 2 s (the library's own limit; the chip admits one reading a second) (`isnan` prints `fail`); environment 24 °C (range 0–50) and 41 %RH (range 20–90) ([library-sensors.md](library-sensors.md)) | U1 = its sketch |
 | `esp32-bme280` | ESP32 DevKit with a BME280 board on 3V3 and GPIO22/21: `begin(0x76)`, then temperature, pressure in hPa, humidity and altitude every second; environment with the pressure (range 900–1050 hPa) | U1 = its sketch |
 | `uno-bmp280-altitude` | Arduino UNO with a BMP280 board on its 3.3 V pin (the board has no regulator) and A4/A5, printing the altitude; Wire's pull-ups to 5 V would lift the bus to about 3.68 V, over the chip's 3.6 V (VDDIO + 0.3 V), so the sketch turns them off after `begin()` (the board itself has no regulator, so on 5 V the chip would be over its 4.25 V absolute maximum) (`digitalWrite(A4, LOW)`, `digitalWrite(A5, LOW)`) and the bus idles at 3.3 V (the ATmega328P's datasheet asks 0.7 × VCC = 3.5 V as a high on its I2C pins, so it usually works but is outside the specification: a level shifter or a 3.3 V board is correct) (a static solve, which stops inside `begin()`, still says `SIM_PIN_OVER_VDDIO`); environment pressure (range 700–1050 hPa) | U1 = its sketch |
@@ -95,10 +95,72 @@ node bin/protoboard-iso.js layout switch --recipe npn-switch --values '{"R1":"47
 - **Only what the recipe lists can change.** Anything else, a value outside the choices or the
   range, or a field not allowed, is a `FIX_SPEC` that says what is allowed (`RECIPE_VALUE_UNKNOWN`,
   `RECIPE_VALUE_CHOICE`, `RECIPE_VALUE_RANGE`, `RECIPE_VALUE_FIELD`; an unknown recipe,
-  `RECIPE_UNKNOWN`, comes with the closest names). Ids and nets never change: they are what makes a
+  `RECIPE_UNKNOWN`, comes with the closest names). So is a value the kit cannot read, and nothing is
+  built: `"R1": "abc"` says it takes a resistance such as `330`, `4k7` or `1M` (`BAD_VALUE`), a
+  colour there is none of lists the colours (`UNKNOWN_COLOR`), a supply's `"V1": "abc"` is not a
+  number (`RECIPE_VALUE_NUMBER`). Ids and nets never change: they are what makes a
   recipe come out ready.
 - Beside a recipe, `title`, `board`, `clearance`, `netLabels`, `environment`, `page` and `lang` may be
   given and replace the recipe's. `parts` and `nets` never (`RECIPE_AND_PARTS`).
+
+## Goals: a result instead of a value
+
+A value entry may offer a **goal**: the result the user wants (a current, a frequency), given
+instead of the value that sets it. The kit picks the standard value with its own simulator, so the
+figure it reports is the one `simulate` and the page show:
+
+```bash
+layout led --recipe led-resistor --values '{"V1": 9, "D1": {"current": "15mA"}}'
+layout blink --recipe 555-astable --values '{"U1": {"frequency": "1Hz"}}'
+```
+
+```text
+Solved: R1 = 470 Ω (E24) for D1 at 15 mA: 15.2 mA simulated, 2 % over (next values: 430 Ω 16.6 mA · 510 Ω 14.1 mA)
+Solved: R2 = 68 kΩ (E24; unchanged: R1 = 1 kΩ, C1 = 10 µF) for U1 at 1 Hz: 1.03 Hz simulated, 3 % over (next values: 62 kΩ 1.12 Hz · 75 kΩ 0.93 Hz)
+```
+
+- **Which value.** Resistors in E24, capacitors in E6, within the decades the goal or the type
+  declares (resistors 10 Ω to 1 MΩ; the 555's R2 1 kΩ to 1 MΩ and C1 1 µF to 100 µF). The one whose
+  simulated result is nearest to the goal (relative error); between results equally near (within one
+  percentage point), one that overstresses no part (the hazard review's own check: at rest and with
+  each control moved alone). A goal that can only be met by overstressing a
+  part is obeyed: the circuit is built and the hazard review ends it in `STATUS: WARNINGS` saying what
+  burns. A goal no standard value reaches gets the nearest one in range, and the line says
+  `out of reach`.
+- **How.** A DC goal with one knob sweeps its series (the simulator's `engine.set`, under a
+  millisecond each). A goal with several knobs or measured over time is ranked first by a named
+  closed form (`src/recipes/estimates.js`: `555-astable`, f = 1.44 / ((R1 + 2·R2)·C1)) and only its
+  best candidates are measured (the 555 on D1's blinking, with a step of 1/500 of the expected
+  period: within about 1 % of the page's pace). Knobs move in order: the 555's R2 first, C1 too only
+  when R2 alone cannot reach the goal; R1 stays.
+- **What it says**: a `Solved:` line (`Resuelto:`) before the readings, and `solved: [...]` in the
+  JSON: the value chosen, the simulated result, how far from the goal and on which side, the
+  neighbouring standard values with their results, the state the goal is about (`S1 pressed`,
+  `RV1 at 0 %`) and what stays.
+- **What is stored**: the values chosen, like any value (`spec.recipe.values` gets `R1: "470"`). The
+  goal is not kept and a later `layout` solves nothing again: it gives its values as usual.
+- **Errors** (`FIX_SPEC`, nothing built): a goal the recipe does not declare for that id
+  (`RECIPE_GOAL_UNKNOWN`, which lists the recipe's goals), a goal value that cannot be read, `"abc"`
+  or another unit (`RECIPE_GOAL_VALUE`), and a goal and a value for the same knob in one call
+  (`RECIPE_GOAL_AND_VALUE`: give one of them).
+
+**The advisory.** With no goal in the call, a recipe circuit whose part runs above its rated value
+without burning (an LED at 107 % of its rated 20 mA, so no hazard and `STATUS: DONE`) gets one line,
+and nothing is changed: `Worth checking: D1 is at 107 % of its rated 20 mA with R1 = 330 Ω; R1 = 360 Ω would
+give 19.7 mA.` (`Nota:`; `advice: [...]` in the JSON). The value suggested is the standard one nearest
+to the rating without passing it. Not printed when a goal was given (the `Solved` line says it) nor
+when the page hides the results for a learner to predict.
+
+Recipes with goals: `led-resistor`, `npn-switch` (S1 pressed), `potentiometer-led` (RV1 at 0 %),
+`mosfet-switch` (S1 pressed), `button-pulldown` (S1 pressed), `regulator-7805`, `regulator-ams1117`,
+`esp32-led`, `uno-blink`, `c3-blink` (the sketch's first state, the LED lit), `opamp-comparator`,
+`lm393-comparator`, `opamp-follower` (RV1 at 0 %), `slide-switch-leds` (D1, and D2 with S1 slid) and
+`tilt-alarm` (S1 tilted): `D1.current`; `555-astable`: `U1.frequency`. `catalog <recipe>` lists them.
+Left out for now, each needing more than this declaration: `button-pullup` (its LED is fed through the
+1 kΩ pull-up, so R2 alone reaches about 3 mA), the 555's LED (lit half the time), `bridge-rectifier`
+(an AC source), `uno-button`, `uno-pot-pwm`, `c3-pot-pwm` (the sketch sets the LED over time),
+`relay-npn` (the contact closes over time), `encoder-dimmer-uno` (no series resistor) and the sensor
+recipes (the LED follows the environment and the sensor's own output limit).
 
 ## Recipes with a real sensor
 
@@ -119,8 +181,6 @@ LM35 or a 10k NTC (B 3950).
 | `ntc-follower` | The NTC is on the supply side, so the voltage rises as it warms; the follower copies it into 10k. The supply is 9 V (the control allows 9 to 12): an LM358's output stops about 1.5 V under it, so at 9 V the follower copies the divider up to about 7.5 V (about 65 °C), where the page's temperature control ends; at 5 V it would cut it from about 45 °C. The thermistor warms itself: 2 mW at 9 V and 3.6 mW at 12 V at most (measured; what that does to its temperature depends on the part's dissipation constant, not measured here) |
 | `thermistor-uno` | The same NTC over 10k on the UNO's 5 V, read on A0; the sketch gets the resistance from the ADC count and the temperature from `1/T = 1/T0 + ln(R/R0)/B`, and prints `T=<value>` every second (within 1.5 °C of the environment at 25 and at 60 °C) |
 | `laser-tripwire`, `laser-uno` | The laser (about 28 mA, 3 mW) adds about 9.8 klx to the room's 50 lx for every light sensor. In the tripwire the module's trimmer is at 0.1 (Vref 0.5 V, the switch at about 410 lx in the model, measured): with the beam DO is at 0.2 V and the LED off; with `beam` on the photoresistor sees 50 lx, DO rises to about 3.7 V (a clean high: the 22 kΩ base resistor leaves the pull-up almost unloaded) and the LED has about 6.7 mA. In `laser-uno` D7 drives the laser through an NPN (the module takes about 28 mA and a UNO pin is recommended up to 20 mA, 40 mA at most, so a pin does not feed it alone); the Serial monitor shows `on  A0=1009` and `off A0=689` each second |
-- Beside a recipe, `title`, `board`, `clearance`, `netLabels`, `environment`, `page` and `lang` may be given and
-  replace the recipe's. `parts` and `nets` never (`RECIPE_AND_PARTS`).
 
 ## After it is laid out
 
@@ -129,6 +189,13 @@ call on the same target with the new values (and `expect_revision`): every part 
 and `undo` brings the old values back. To add parts or connections, call `layout` on it with the
 full `parts` and `nets` (`get_circuit` shows them): it is then a circuit of its own and loses
 `spec.recipe`. A value or a description alone can also be changed with `apply_ops`.
+
+`layout`'s answer for a recipe circuit ends, before its page and `STATUS:` lines, with what the
+recipe lets change, at the values the circuit has now (`Can change (layout with the recipe and
+values): R1 = 330 (current-limiting resistor) · D1 = green · V1 = 9 V [1.5…15] · D1 current (a goal: …)`),
+beside the
+readings at rest and a board's program ([layout.md](layout.md), "The answer"): the changes to offer
+are those, not others.
 
 The microcontroller recipes (ESP32, UNO, C3) run a program ([microcontrollers.md](microcontrollers.md));
 `values: { "U1": "blink.ino" }` puts one's own sketch in its place (a file beside the circuit, or its
@@ -147,9 +214,16 @@ blinks, in slow motion (the page's time follows the slowest time constant).
    `netLabels`, `environment` (the circuit's, for a sensor), `page`, `clearance`, and `values`: for each id that may change, `field` (what the
    short form sets), and optionally `role` (`{ en, es }`), `choices`, `min`/`max`, `extra` (the
    allowed fields, when the defaults by kind do not fit).
+   A goal is one more key on a value entry, `goals: { current: { set: 'R1', reading: 'current' } }`
+   (optionally `when`, the state it is about, as `{ S1: { pressed: true } }`, and `range`, the decades
+   of a knob); a goal measured over time names `measure: 'cycle'`, `of` and an `estimate` of
+   `src/recipes/estimates.js`. An entry may carry goals only (`U1: { goals: … }`). The header of
+   `src/recipes/goals.js` lists the keys; `npm test` checks each goal is reached at the recipe's
+   defaults and ends `DONE`.
 3. Give it a `group` (one word of `RECIPE_GROUPS` in `src/recipes/index.js`, set in the module itself; the compact catalog lists recipes by group, names only, and a test fails for a recipe without one; a new group needs its `recipe.group.<name>` texts in `src/i18n/en.js` and `es.js`). Register it in `src/recipes/index.js` and `npm run schemas` (the schema lists the names).
-4. Add it to the tables in this page, [recetas.md](../es/recetas.md) and `SKILL.md`, and to the list
-   in the `circuit-layout` agent. `npm test` checks that it comes out `DONE` with its defaults and
+4. Add it to the tables in this page, [recetas.md](../es/recetas.md) and the skill's
+   `plugin-src/references/recipes.md`, to the list in `plugin-src/SKILL.md` (then
+   `npm run pack-skill`), and to the list in the `circuit-layout` agent. `npm test` checks that it comes out `DONE` with its defaults and
    with every choice, that it simulates without stressing a part, that its name is no part's name,
    and that both pages name it; `npm run layout-bench` shows its tries and time.
 

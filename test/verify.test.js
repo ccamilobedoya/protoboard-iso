@@ -2,9 +2,10 @@
 // a step that could not run is never a pass, and the examples are held to the issues they report.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, statSync } from 'node:fs';
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { examplesIssues, issueChanges, exitCode, failureDetail, STEPS } from '../scripts/verify.js';
+import { examplesIssues, issueChanges, exitCode, failureDetail, newLeftovers, STEPS } from '../scripts/verify.js';
+import { tempDir } from '../scripts/tmp.js';
 
 const root = new URL('../', import.meta.url).pathname;
 
@@ -55,4 +56,18 @@ test('git hooks: executable, pre-commit quick, pre-push the whole verification',
   const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
   assert.equal(pkg.scripts.verify, 'node scripts/verify.js');
   assert.equal(pkg.scripts.setup, 'node scripts/setup.js');
+});
+
+test('verify: what a step leaves in the scratch folder is named once, and a clean folder is clean', () => {
+  const dir = tempDir('pbi-verify-test-');
+  const known = new Set();
+  assert.deepEqual(newLeftovers(dir, known), []);
+  mkdirSync(join(dir, 'pbi-left'));
+  writeFileSync(join(dir, 'file.txt'), 'x');
+  assert.deepEqual(newLeftovers(dir, known).sort(), ['file.txt', 'pbi-left']);
+  assert.deepEqual(newLeftovers(dir, known), [], 'a name already reported is not reported again');
+  mkdirSync(join(dir, 'node-compile-cache'));
+  assert.deepEqual(newLeftovers(dir, known), [], "Node's own cache is not a test's leftover");
+  mkdirSync(join(dir, 'later'));
+  assert.deepEqual(newLeftovers(dir, known), ['later']);
 });

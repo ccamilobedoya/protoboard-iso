@@ -45,6 +45,7 @@ const resistive = {
 export const resistor = {
   types: ['resistor'],
   ...resistive,
+  limitFields: () => ['power'],
   // The range stays around the value in the circuit file (`nominal`), wherever the slider is.
   controls: (p) => ({ resistance: { min: Math.max(1, (p.nominal ?? p.resistance) / 100), max: Math.min(10e6, (p.nominal ?? p.resistance) * 100), limit: [1e-3, 1e12], scale: 'log', unit: 'Ω', snap: 'E24', value: p.resistance } }),
   set: (p, field, value) => (field === 'resistance' ? { ...p, nominal: p.nominal ?? p.resistance, resistance: value } : null),

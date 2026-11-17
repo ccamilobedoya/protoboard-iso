@@ -28,6 +28,7 @@ export const sensorModule = {
   type: 'sensor-module',
   family: 'sensor',
   pins: null, // from the part number
+  typical: { part: 'KY-037' },
   resolve(part) {
     const found = lookupPartNumber(part.part);
     if (!found || found.entry.type !== 'sensor-module') return { error: { code: 'UNKNOWN_PART_NUMBER', params: { number: `${part.part} (${NAMES.join(', ')})`, type: 'sensor-module' } } };

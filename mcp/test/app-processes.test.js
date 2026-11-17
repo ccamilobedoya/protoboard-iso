@@ -5,9 +5,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readdirSync, existsSync, chmodSync, readFileSync, writeFileSync, rmSync, mkdirSync, utimesSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readdirSync, existsSync, chmodSync, readFileSync, writeFileSync, rmSync, mkdirSync, utimesSync } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../../scripts/tmp.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { fetchPageParts } from '../../src/page/client/app.js';
@@ -22,7 +22,7 @@ const connect = async (root, env = {}) => {
 const textOf = (r) => r.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n');
 
 test('two processes on one root: A gets selection_set, B answers selection; A makes a manifest, B serves its chunks', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'protoboard-two-'));
+  const root = tempDir('protoboard-two-');
   const a = await connect(root);
   const b = await connect(root);
   try {
@@ -56,7 +56,7 @@ test('two processes on one root: A gets selection_set, B answers selection; A ma
 });
 
 test('the selection file: entries older than 24 h are ignored, 32 targets at most, a read-only root falls back to memory and says so once', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'protoboard-sel-'));
+  const root = tempDir('protoboard-sel-');
   const a = await connect(root);
   try {
     const old = Date.now() - SELECTION_TTL - 1000; // real clock: file times, a process's exit time and the 2 s it has to end are real
@@ -87,7 +87,7 @@ test('the selection file: entries older than 24 h are ignored, 32 targets at mos
 });
 
 test('the stdio server ends when its stdin closes, worker included, and when its stdout breaks', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'protoboard-exit-'));
+  const root = tempDir('protoboard-exit-');
   const child = spawn(process.execPath, [server], { env: { ...process.env, PROTOBOARD_ROOT: root }, stdio: ['pipe', 'pipe', 'ignore'] });
   const exited = new Promise((resolve) => child.once('exit', (code, signal) => resolve({ code, signal, at: Date.now() }))); // real clock: file times, a process's exit time and the 2 s it has to end are real
   const reply = new Promise((resolve) => child.stdout.once('data', resolve));
@@ -103,7 +103,7 @@ test('the stdio server ends when its stdin closes, worker included, and when its
 });
 
 test('pages are files, not memory: the manifest from one process, its chunks from another, after the file or without it; pruned on write', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'protoboard-pages-'));
+  const root = tempDir('protoboard-pages-');
   const a = await connect(root);
   const b = await connect(root);
   try {
@@ -147,7 +147,7 @@ test('pages are files, not memory: the manifest from one process, its chunks fro
 });
 
 test('two processes apply to one circuit with the same expected revision: exactly one wins, the other gets REVISION_MISMATCH', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'protoboard-race-'));
+  const root = tempDir('protoboard-race-');
   const a = await connect(root, { PROTOBOARD_APPS: 'off' });
   const b = await connect(root, { PROTOBOARD_APPS: 'off' });
   try {
@@ -168,7 +168,7 @@ test('two processes apply to one circuit with the same expected revision: exactl
 });
 
 test('with PROTOBOARD_DEV=1 (a worker) the server also ends when stdin closes', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'protoboard-exit-dev-'));
+  const root = tempDir('protoboard-exit-dev-');
   const child = spawn(process.execPath, [server], { env: { ...process.env, PROTOBOARD_ROOT: root, PROTOBOARD_DEV: '1' }, stdio: ['pipe', 'pipe', 'ignore'] });
   const exited = new Promise((resolve) => child.once('exit', (code) => resolve(code)));
   const reply = new Promise((resolve) => child.stdout.once('data', resolve));

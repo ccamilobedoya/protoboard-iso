@@ -10,7 +10,7 @@
 // Every tool answers in readable text by default, or JSON with format: "json".
 
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { resolve, relative, join, sep, basename } from 'node:path';
+import { resolve, relative, join, sep, basename, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 
@@ -40,7 +40,7 @@ import { compile, createEngine } from '../src/sim/index.js';
 import { toFalstad } from '../src/sim/falstad.js';
 import { nets, formatNets } from '../src/nets.js';
 import { createBoard, boardLayout, BOARDS } from '../src/board/board.js';
-import { autoLayout, formatLayout, specFromCircuit, specProblems } from '../src/layout.js';
+import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest } from '../src/layout.js';
 import { RECIPES, resolveRecipe } from '../src/recipes/index.js';
 import { formatBoardLayout } from '../src/board/layout-text.js';
 import { appView } from './app.js';
@@ -67,7 +67,7 @@ export function normalizeTarget(target) {
   if (existsSync(join(ROOT, plain))) return plain;
   if (existsSync(join(ROOT, rest))) return rest;
   if (existsSync(join(ROOT, parts[0]))) return plain;
-  const holdsCircuits = readdirSync(ROOT, { withFileTypes: true }).some((e) => !e.name.startsWith('.') && existsSync(join(ROOT, e.name, 'circuit.json')));
+  const holdsCircuits = existsSync(ROOT) && readdirSync(ROOT, { withFileTypes: true }).some((e) => !e.name.startsWith('.') && existsSync(join(ROOT, e.name, 'circuit.json')));
   return holdsCircuits ? rest : plain;
 }
 
@@ -140,7 +140,8 @@ const READ = { readOnlyHint: true, destructiveHint: false, openWorldHint: false 
 const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
 
 function findCircuits(dir, depth = 0, out = []) {
-  if (depth > 4) return out;
+  // A root that does not exist yet (a new folder chosen at install) holds no circuits.
+  if (depth > 4 || !existsSync(dir)) return out;
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.name.startsWith('.') || ['node_modules', 'out', 'schema'].includes(entry.name)) continue;
     const full = join(dir, entry.name);
@@ -165,7 +166,7 @@ export const INSTRUCTIONS = [
   'Breadboard circuits: describe what is connected; the kit places, draws, checks and simulates it. Never compute holes, colour codes, voltages or currents yourself, and never rewrite circuit files.',
   `Recipes first: a usual lesson circuit is layout with recipe and only the values that change (${Object.keys(RECIPES).join(', ')}; catalog with the name shows its parts, nets and values). It comes out ready, nothing to work out.`,
   'Which tool: another new circuit → layout (parts without holes, nets of pins and rails). Other connections or parts in a circuit made by layout (get_circuit shows a spec) → layout again on the same target with the new nets (the full parts list if parts change) and expect_revision (parts keep their holes if they fit; undo restores). A value, a description, a fix or a hand-made circuit → apply_ops.',
-  'layout ends in one line, STATUS: DONE (ready) · WARNINGS (built, but a part would burn as wired: tell the user) · CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review) · FIX_SPEC (nothing created: fix every ✖ in the spec and call again) · SPEC_OK (check_only).',
+  'layout ends in one line, STATUS: DONE (ready) · WARNINGS (built, but a part would burn as wired: tell the user, with the fix the kit finds) · CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review) · FIX_SPEC (nothing created: fix every ✖ in the spec and call again) · SPEC_OK (check_only).',
   'Operations: history and inspect (numbers, not pictures) → query / suggest → apply_ops with dry_run → apply_ops with expect_revision, author and note → review until APPROVED → undo if needed.',
   'Check: review is the definition of done (it also checks the nets of a circuit made by layout); netlist lists every net; simulate gives a model, and a value a learner must predict is never shown. render returns a PNG only when asked: images are slow to read.',
   'Holes: a1…j63 (row letter + column), rails T-, T+, B+, B- plus the column (T+9). Rows a–e of a column are connected, f–j too; each rail is one group. Board "double": two boards side by side for a wide development board across the joint, rows a–t (k–o, p–t on the back board), rails B± and U± (no T); layout picks it by itself when a DevKit would cover a pin\'s strip.',
@@ -190,7 +191,8 @@ server.registerTool(
       const title = typeof c.title === 'object' ? c.title?.en ?? Object.values(c.title)[0] : c.title;
       return { target: rel(full), title: title ?? null, revision: c.revision ?? 0, parts: c.parts.length };
     });
-    return answer(format, { root: ROOT, circuits: items }, () => [`root: ${ROOT}`, ...items.map((i) => `${i.target} · rev ${i.revision} · ${i.parts} parts${i.title ? ` · ${i.title}` : ''}`)].join('\n'));
+    const empty = items.length ? [] : [existsSync(ROOT) ? 'No circuits yet: layout makes the first one.' : 'No circuits yet: this folder does not exist yet, and layout creates it with the first circuit.'];
+    return answer(format, { root: ROOT, circuits: items }, () => [`root: ${ROOT}`, ...empty, ...items.map((i) => `${i.target} · rev ${i.revision} · ${i.parts} parts${i.title ? ` · ${i.title}` : ''}`)].join('\n'));
   }),
 );
 
@@ -318,7 +320,7 @@ server.registerTool(
   {
     title: 'Build a circuit on a breadboard',
     description:
-      'Place a whole circuit in one call. A usual lesson circuit first: recipe with only the values that change ({"recipe":"npn-switch","values":{"R1":"470"}}; catalog lists the recipes; catalog with the name gives their values). Otherwise from its parts (no holes, in signal order; a part number, module or alias is enough) and its nets (pins and rails; usual pin names work: D1.K, U1.VIN, U1.DISCH, U1.GPIO4): parts left to right by distance from the source, jumpers for what is left apart, ground nets to a − rail, then the nets check and the lesson review, laid out again a few times and repaired jumper by jumper. On an existing target it lays the circuit out again as one revision (undo restores it): give the new nets and, if parts change, the full parts list; a part keeps its holes when its pins still fit its nets. The nets are kept in the circuit (spec) and review checks them. The answer ends in STATUS: DONE (ready), WARNINGS (built, a part would burn as wired: tell the user first), CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review), FIX_SPEC (nothing created: fix every ✖ in the spec and call again) or SPEC_OK (check_only).',
+      'Place a whole circuit in one call. A usual lesson circuit first: recipe with only the values that change ({"recipe":"npn-switch","values":{"R1":"470"}}; catalog lists the recipes; catalog with the name gives their values). Otherwise from its parts (no holes, any order; a part number, module or alias is enough) and its nets (pins and rails; usual pin names work: D1.K, U1.VIN, U1.DISCH, U1.GPIO4): parts left to right by distance from the source, jumpers for what is left apart, ground nets to a − rail, then the nets check and the lesson review, laid out again a few times and repaired jumper by jumper. On an existing target it lays the circuit out again as one revision (undo restores it): give the new nets and, if parts change, the full parts list; a part keeps its holes when its pins still fit its nets. The nets are kept in the circuit (spec) and review checks them. The answer ends in STATUS: DONE (ready), WARNINGS (built, a part would burn as wired: tell the user first), CHANGES (created: fix only the ✖ items with suggest and apply_ops, then review), FIX_SPEC (nothing created: fix every ✖ in the spec and call again) or SPEC_OK (check_only).',
 
     inputSchema: {
       target: z.string().describe('Folder relative to the root (e.g. led-switch): new, or an existing circuit to lay out again'),
@@ -326,8 +328,8 @@ server.registerTool(
       values: z
         .record(z.string(), z.union([z.string(), z.number(), z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]))]))
         .optional()
-        .describe('With recipe: only what changes, by id. The main value ({"R1":"470","V1":9,"D1":"green","Q1":"BC547"}) or some fields ({"R1":{"value":"470","tolerance":"1%"}})'),
-      parts: z.array(z.object({ id: z.string() }).passthrough()).min(1).optional().describe('Required for a new circuit; for an existing one, omit to keep its parts, or give the FULL list when they change (a partial list fails). ' + 'Parts without pins, in signal order: a type ({"id":"R1","type":"resistor","value":"1k"}) or just a part number, module or alias ({"id":"U1","part":"7805"}, {"id":"S1","part":"KCD1"}); no need to look them up in the catalog first. A microcontroller board takes each pin\'s state for the simulation: {"id":"U1","part":"ESP32-DEVKIT","io":{"D13":"high"}}'),
+        .describe('With recipe: only what changes, by id. The main value ({"R1":"470","V1":9,"D1":"green","Q1":"BC547"}) or some fields ({"R1":{"value":"470","tolerance":"1%"}}), or a goal the kit solves ({"D1":{"current":"15mA"}})'),
+      parts: z.array(z.object({ id: z.string() }).passthrough()).min(1).optional().describe('Required for a new circuit; for an existing one, omit to keep its parts, or give the FULL list when they change (a partial list fails). ' + 'Parts without pins: a type ({"id":"R1","type":"resistor","value":"1k"}) or just a part number, module or alias ({"id":"U1","part":"7805"}, {"id":"S1","part":"KCD1"}); no need to look them up in the catalog first. A microcontroller board takes each pin\'s state for the simulation: {"id":"U1","part":"ESP32-DEVKIT","io":{"D13":"high"}}'),
       nets: z
         .array(z.union([z.array(z.string()), z.object({ pins: z.array(z.string()), color: z.string().optional() })]))
         .optional()
@@ -341,27 +343,40 @@ server.registerTool(
       clearance: z.number().optional().describe('Gap between bodies in mm (default 1; 3 for a roomier lesson)'),
       expect_revision: z.number().int().min(0).optional().describe('Existing circuit: refuse if it changed since this revision'),
       check_only: z.boolean().optional().describe('Only check the parts and nets (unknown names with the closest ones, nets naming a missing part or pin, parts in no net) and create nothing'),
+      dry_run: z.boolean().optional().describe('The whole answer, nothing saved: try an idea first'),
+      fix: z.boolean().optional().describe("Existing circuit, nothing else given: apply the kit's To fix it line"),
       author: z.string().optional(),
       note: z.string().optional(),
       lang: common.lang,
     },
     annotations: WRITE,
   },
-  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, expect_revision: expectRevision, check_only: checkOnly, author = 'layout', note = 'layout', lang, outputLang }) => {
+  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, expect_revision: expectRevision, check_only: checkOnly, dry_run: dryRun, fix, author = 'layout', note, lang, outputLang }) => {
     const full = inside(target);
     const paths = resolveTarget(full);
     const previous = existsSync(paths.circuitFile) ? loadCircuit(paths) : null;
+    const refuse = (code) => ({ isError: true, content: [{ type: 'text', text: formatIssue({ severity: 'error', code, params: { target } }, lang) }] });
+    // fix: the circuit with the kit's computed fix applied (fixRequest), only on this request.
+    let fixed = null;
+    if (fix) {
+      if ([recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance].some((v) => v !== undefined)) return refuse('LAYOUT_FIX_AND_SPEC');
+      fixed = previous ? fixRequest(previous) : { refuse: 'LAYOUT_FIX_NO_SPEC' };
+      if (fixed.refuse) return refuse(fixed.refuse);
+      if (fixed.nothing) return text(formatIssue({ severity: 'info', code: 'LAYOUT_FIX_NONE', params: { target } }, lang));
+    }
+    note ??= fixed ? 'layout fix' : 'layout';
     const fromRecipe = resolveRecipe(Object.fromEntries(Object.entries({ recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, lang }).filter(([, v]) => v !== undefined)));
     if (fromRecipe.problems.length) return { isError: true, content: [{ type: 'text', text: formatLayout(specProblems(fromRecipe.problems), lang ?? 'en', { t, formatIssue }) }] };
     ({ parts, nets } = fromRecipe.spec);
     const given = fromRecipe.spec;
-    const refuse = (code) => ({ isError: true, content: [{ type: 'text', text: formatIssue({ severity: 'error', code, params: { target } }, lang) }] });
-    if (previous && !nets && !previous.spec?.nets) return refuse('LAYOUT_NO_SPEC');
+    if (!fixed && previous && !nets && !previous.spec?.nets) return refuse('LAYOUT_NO_SPEC');
     if (!previous && (!parts || !nets)) return refuse('LAYOUT_NEEDS_SPEC');
-    const spec = previous ? specFromCircuit(previous, given) : given;
-    const result = autoLayout(spec, { checkOnly, previous });
+    const spec = fixed ? fixed.spec : previous ? specFromCircuit(previous, given) : given;
     const out = pickLanguage(lang, spec.lang);
+    const result = { ...autoLayout(spec, { checkOnly, previous, folder: dirname(paths.circuitFile), lang: out }), ...(fixed && { applied: fixed.applied }) };
     if (result.checked) return { ...(result.invalid && { isError: true }), content: [{ type: 'text', text: formatLayout(result, out, { t, formatIssue }) }] };
+    // A trial: the same answer, nothing written and no board shown (as try_ops).
+    if (dryRun) return text(formatLayout({ ...result, trial: true }, out, { t, formatIssue }));
     const saved = previous
       ? relayoutTarget(full, result.circuit, { expectRevision, author, note, lang: lang ?? 'en', outputLang })
       : createTarget(full, result.circuit, { author, note, lang: lang ?? 'en', outputLang });
@@ -425,7 +440,7 @@ server.registerTool(
   'review',
   {
     title: 'Review circuit',
-    description: 'Verdict from measurements in both views: APPROVED, APPROVED WITH WARNINGS (hazards: parts the DC simulation takes past a maximum; not blocking) or CHANGES, with what must be fixed (blocking: each with the parts it is about and the views it shows in) and what is worth knowing. Profile lesson (default) is strict for teaching layouts; draft only blocks errors and warnings. explain: true adds the profile\'s rules (what blocks). lesson blocks a part hidden in every view (its best view shows less than 70 % of it); a circuit made by layout also has its nets checked against its spec.',
+    description: 'Verdict from measurements in both views: APPROVED, APPROVED WITH WARNINGS (hazards: parts the DC simulation takes past a maximum, at rest, with one control operated or one program output high, and the fix the kit finds; not blocking) or CHANGES, with what must be fixed (blocking: each with the parts it is about and the views it shows in) and what is worth knowing. Profile lesson (default) is strict for teaching layouts; draft only blocks errors and warnings. explain: true adds the profile\'s rules (what blocks). lesson blocks a part hidden in every view (its best view shows less than 70 % of it); a circuit made by layout also has its nets checked against its spec.',
     inputSchema: { target: targetArg, profile: z.enum(Object.keys(PROFILES)).optional(), views: z.array(z.enum(Object.keys(VIEWS))).optional(), explain: z.boolean().optional(), ...common },
     annotations: READ,
   },
@@ -530,7 +545,7 @@ server.registerTool(
     const pageFile = page ? writePage(paths, circuit, { lang }).pageFile : null;
     const content = [{ type: 'text', text: JSON.stringify({ svg: rel(file), ...(pageFile && { page: rel(pageFile), pagePath: resolve(pageFile) }), bytes: Buffer.byteLength(svg), issues: issues.length }) }];
     if (png_width) {
-      if (!(await rasterAvailable())) content.push({ type: 'text', text: 'PNG not available: @resvg/resvg-js is not installed (run cd mcp && npm install).' });
+      if (!(await rasterAvailable())) content.push({ type: 'text', text: t(lang ?? 'en', 'mcp.pngMissing') });
       else content.push({ type: 'image', mimeType: 'image/png', data: Buffer.from(await svgToPng(svg, { width: png_width })).toString('base64') });
     }
     return { content };
