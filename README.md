@@ -2,30 +2,32 @@
 <h1 align="center">Protoboard ISO</h1>
 <p align="center"><strong>Breadboard circuits you can build, break and understand, from a sentence.</strong><br>Ask for a circuit. See it built on a breadboard, hole by hole, and running.</p>
 <p align="center"><a href="https://ccamilobedoya.github.io/protoboard-iso/">Live demo</a> · <a href="README.es.md">Español</a> · <a href="docs/en/README.md">Docs</a> · <a href="LICENSE">MIT licence</a></p>
+<p align="center"><a href="https://github.com/ccamilobedoya/protoboard-iso/actions/workflows/ci.yml"><img src="https://github.com/ccamilobedoya/protoboard-iso/actions/workflows/ci.yml/badge.svg" alt="CI status"></a> <a href="CHANGELOG.md"><img src="https://img.shields.io/github/package-json/v/ccamilobedoya/protoboard-iso?label=version" alt="Version"></a> <a href="LICENSE"><img src="https://img.shields.io/github/license/ccamilobedoya/protoboard-iso" alt="MIT licence"></a> <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/node-22%20or%20newer-339933" alt="Node.js 22 or newer"></a></p>
 
 ![A speech bubble asks for "a red LED with its resistor on 9 V". Beside it, on a breadboard, a resistor, a red LED and a jumper come in one by one; the LED lights, dots of current run around the circuit, and "15.2 mA through the LED" appears under the bubble.](docs/img/hero.gif)
 
-## Start here
+## Quick start
 
-Three ways in, from the easiest to the most technical.
+Pick one. Each takes about a minute.
 
-**Just look.** Open the [live demo](https://ccamilobedoya.github.io/protoboard-iso/): every
-ready-made circuit as a page you can play with. Tap a part, press *Current*, turn the board around.
-Nothing to install.
+### 1. See it running
 
-**With Claude, no terminal.** In the Claude app, go to Customize → Plugins → Add → Add marketplace,
-paste this repository's URL, `https://github.com/ccamilobedoya/protoboard-iso`, and install
-*Protoboard ISO*. It needs code execution turned on in the app. Then ask in your own words:
+[**Open the live demo**](https://ccamilobedoya.github.io/protoboard-iso/) in your browser. Nothing to install.
 
-> a red LED with its resistor on 9 V
+### 2. Ask Claude for a circuit
 
-For the live board **inside** the conversation in Claude Desktop there is an optional extension, a
-`.mcpb` file, attached to the [releases](https://github.com/ccamilobedoya/protoboard-iso/releases)
-from the first published release on. Install it with a double click, then switch it on in the
-extension's settings ([details](docs/en/mcp.md#claude-desktop-with-one-click)).
+No terminal. In the Claude app:
 
-**With a terminal.** You need [Node.js](https://nodejs.org/) 22 or newer: `node --version` must
-print `v22` or higher.
+1. Open **Customize → Plugins → Add → Add marketplace**.
+2. Paste `https://github.com/ccamilobedoya/protoboard-iso` and install **Protoboard ISO**.
+3. Ask in your own words: *a red LED with its resistor on 9 V*.
+
+Code execution must be on in the app. To see the board inside the chat in Claude Desktop,
+[add the extension](docs/en/mcp.md#claude-desktop-with-one-click).
+
+### 3. Run it on your computer
+
+Needs [Node.js](https://nodejs.org/) 22 or newer, and nothing else.
 
 <!-- smoke -->
 ```bash
@@ -34,14 +36,8 @@ cd protoboard-iso                      # nothing to install
 node bin/protoboard-iso.js layout my-led --recipe led-resistor --values '{"R1":"470","D1":"green"}'
 ```
 
-That builds an LED with its resistor from a **recipe** (a ready-made circuit by name), checks it,
-and writes `my-led/` with `out/my-led.html`: one page with the drawing and the live simulation. The
-command prints where the page is (`Page: …`): double-click that file, or drag it into a browser.
-On Windows PowerShell, pass the same values through standard input instead:
-
-```powershell
-'{"recipe":"led-resistor","values":{"R1":"470","D1":"green"}}' | node bin/protoboard-iso.js layout my-led -
-```
+Open the page it prints (`Page: …`) in a browser. More commands, and Windows PowerShell:
+[for developers](#for-developers).
 
 ## What you can ask
 
@@ -130,7 +126,7 @@ sensors while it runs.
 
 `node bin/protoboard-iso.js <command>`: `layout`, `check`, `render`, `inspect`, `simulate`, `page`,
 `review`, `query`, `suggest`, `apply`, `undo`, `history`. Run it with no arguments for the full
-list. After the circuit of [Start here](#start-here), `my-led/` also holds the circuit
+list. After the circuit of the [quick start](#quick-start), `my-led/` also holds the circuit
 (`circuit.json`) and its history. Then:
 
 <!-- smoke -->
@@ -141,7 +137,13 @@ node bin/protoboard-iso.js review my-led             # APPROVED or CHANGES, and 
 ```
 
 The quotes of `--values` do not reach the program the same way in Windows PowerShell 5.1 (it
-strips the inner double quotes): standard input, as in Start here, works in every shell.
+strips the inner double quotes). Pass the same values through standard input instead, which works
+in every shell:
+
+```powershell
+'{"recipe":"led-resistor","values":{"R1":"470","D1":"green"}}' | node bin/protoboard-iso.js layout my-led -
+```
+
 [Agent interface](docs/en/agent-interface.md) explains how a circuit is changed with operations
 instead of being rewritten.
 

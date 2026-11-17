@@ -2,32 +2,32 @@
 <h1 align="center">Protoboard ISO</h1>
 <p align="center"><strong>Circuitos en protoboard para armar, romper y entender, a partir de una frase.</strong><br>Pide un circuito. Míralo armado en la protoboard, hueco por hueco, y funcionando.</p>
 <p align="center"><a href="https://ccamilobedoya.github.io/protoboard-iso/es/">Demostración en vivo</a> · <a href="README.md">English</a> · <a href="docs/es/README.md">Documentación</a> · <a href="LICENSE">Licencia MIT</a></p>
+<p align="center"><a href="https://github.com/ccamilobedoya/protoboard-iso/actions/workflows/ci.yml"><img src="https://github.com/ccamilobedoya/protoboard-iso/actions/workflows/ci.yml/badge.svg" alt="Estado de las pruebas"></a> <a href="CHANGELOG.md"><img src="https://img.shields.io/github/package-json/v/ccamilobedoya/protoboard-iso?label=versi%C3%B3n" alt="Versión"></a> <a href="LICENSE"><img src="https://img.shields.io/github/license/ccamilobedoya/protoboard-iso" alt="Licencia MIT"></a> <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/node-22%20o%20m%C3%A1s%20nuevo-339933" alt="Node.js 22 o más nuevo"></a></p>
 
 ![Un globo de diálogo pide «un LED rojo con su resistencia a 9 V». Al lado, en una protoboard, entran una resistencia, un LED rojo y un cable, uno por uno; el LED se enciende, puntos de corriente recorren el circuito y bajo el globo aparece «15,2 mA por el LED».](docs/img/hero.es.gif)
 
-## Empieza aquí
+## Inicio rápido
 
-Tres entradas, de la más fácil a la más técnica.
+Elige una. Cada una toma más o menos un minuto.
 
-**Solo mirar.** Abre la [demostración en vivo](https://ccamilobedoya.github.io/protoboard-iso/es/):
-cada circuito listo como una página para jugar. Toca un componente, pulsa *Corriente*, dale la
-vuelta a la protoboard. No hay nada que instalar.
+### 1. Míralo funcionando
 
-**Con Claude, sin terminal.** En la app de Claude, ve a Customize → Plugins → Add → Add marketplace
-(los nombres del menú en inglés), pega la URL de este repositorio,
-`https://github.com/ccamilobedoya/protoboard-iso`, e instala *Protoboard ISO*. Necesita la
-ejecución de código activada en la app. Después pide con tus palabras:
+[**Abre la demostración en vivo**](https://ccamilobedoya.github.io/protoboard-iso/es/) en tu navegador. No hay nada que instalar.
 
-> un LED rojo con su resistencia a 9 V
+### 2. Pídele un circuito a Claude
 
-Para tener la protoboard en vivo **dentro** de la conversación en Claude Desktop hay una extensión
-opcional, un archivo `.mcpb`, que va adjunta a las
-[versiones publicadas](https://github.com/ccamilobedoya/protoboard-iso/releases) a partir de la
-primera. Se instala con doble clic y después se enciende en los ajustes de la extensión
-([detalles](docs/es/mcp.md#claude-desktop-con-un-clic)).
+Sin terminal. En la app de Claude:
 
-**Con una terminal.** Necesitas [Node.js](https://nodejs.org/) 22 o más nuevo: `node --version`
-debe mostrar `v22` o más.
+1. Abre **Customize → Plugins → Add → Add marketplace** (los nombres del menú, en inglés).
+2. Pega `https://github.com/ccamilobedoya/protoboard-iso` e instala **Protoboard ISO**.
+3. Pide con tus palabras: *un LED rojo con su resistencia a 9 V*.
+
+La ejecución de código debe estar activada en la app. Para ver la protoboard dentro del chat en
+Claude Desktop, [agrega la extensión](docs/es/mcp.md#claude-desktop-con-un-clic).
+
+### 3. Córrelo en tu computador
+
+Necesita [Node.js](https://nodejs.org/) 22 o más nuevo, y nada más.
 
 <!-- smoke -->
 ```bash
@@ -36,14 +36,8 @@ cd protoboard-iso                      # no hay nada que instalar
 node bin/protoboard-iso.js layout mi-led --recipe led-resistor --values '{"R1":"470","D1":"green"}' --lang es
 ```
 
-Eso arma un LED con su resistencia a partir de una **receta** (un circuito listo, por su nombre), lo
-revisa y escribe `mi-led/` con `out/mi-led.html`: una sola página con el dibujo y la simulación en
-vivo. El comando imprime dónde quedó la página (`Página: …`): ábrela con doble clic, o arrástrala a
-un navegador. En PowerShell de Windows, pasa los mismos valores por la entrada estándar:
-
-```powershell
-'{"recipe":"led-resistor","values":{"R1":"470","D1":"green"}}' | node bin/protoboard-iso.js layout mi-led - --lang es
-```
+Abre en un navegador la página que imprime (`Página: …`). Más comandos, y PowerShell de Windows:
+[para desarrolladores](#para-desarrolladores).
 
 ## Qué puedes pedir
 
@@ -132,7 +126,7 @@ deslizadores cambian resistencias, fuentes y sensores mientras corre.
 
 `node bin/protoboard-iso.js <comando>`: `layout`, `check`, `render`, `inspect`, `simulate`, `page`,
 `review`, `query`, `suggest`, `apply`, `undo`, `history`. Sin argumentos muestra la lista completa.
-Después del circuito de [Empieza aquí](#empieza-aquí), `mi-led/` guarda también el circuito
+Después del circuito de [inicio rápido](#inicio-rápido), `mi-led/` guarda también el circuito
 (`circuit.json`) y su historial. Luego:
 
 <!-- smoke -->
@@ -143,7 +137,13 @@ node bin/protoboard-iso.js review mi-led --lang es             # APROBADO o HAY 
 ```
 
 En Windows PowerShell 5.1 las comillas de `--values` no llegan igual al programa (quita las
-comillas dobles internas): la entrada estándar, como en Empieza aquí, funciona en cualquier consola.
+comillas dobles internas). Pasa los mismos valores por la entrada estándar, que funciona en
+cualquier consola:
+
+```powershell
+'{"recipe":"led-resistor","values":{"R1":"470","D1":"green"}}' | node bin/protoboard-iso.js layout mi-led - --lang es
+```
+
 [Interfaz para agentes](docs/es/interfaz-para-agentes.md) explica cómo se cambia un circuito con
 operaciones en vez de reescribirlo.
 
