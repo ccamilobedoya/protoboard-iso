@@ -419,7 +419,8 @@ package. Planned on 2026-10-26 after a review of licences and private data.
 - ✅ `scripts/readme-images.js`: the README and examples images drawn by the kit (`docs/img/`); `live-page.png` is a screenshot (`scripts/ux-shots.js`)
 - ✅ `scripts/demo-site.js` and `.github/workflows/pages.yml`: every recipe and every example with a source as a live page, in English and Spanish, with an index
 - ✅ Turn on GitHub Pages (Settings → Pages → Source: GitHub Actions) so the README's demo link works: on, checked 2026-10-29 (the demo answers, the workflow runs on every push)
-- ⬜ A short GIF or video of the live page (current flowing, the oscilloscope, a slider); made with the frame exporter of *Stage and video* (V5)
+- ✅ A short GIF of the kit at work, made with the frame exporter of *Stage and video* (V5) — done 2026-11-16: `docs/img/hero.gif` and `hero.es.gif` (a request in a bubble, the parts coming in, the current; 7.4 s, about 1.3 MB each), `scripts/readme-gif.js` (`npm run readme-gif`, not in `verify`), its timeline `examples/tours/readme-hero.json`; `hero.png` stays as the still. The oscilloscope and a slider are not in it: the live page shows them
+- ✅ README (en/es) rewritten for people first (2026-11-16): a centred header, the animation, *Start here* in three doors (look, Claude without a terminal, a terminal), what you can ask, what you get (three pictures and a warning with its computed fix), then recipes, how it works, and the developer material in collapsible sections; `test/parity.test.js` reads the header's language link, `test/docs.test.js` also checks the `src` and `href` of HTML in Markdown
 
 **C · Examples** ✅ (2026-10-26)
 - ✅ `examples/README.md` (en/es): the three ways to describe a circuit (by hand, layout, recipe), the examples by theme with a thumbnail each, `common-mistakes.json` marked as wrong on purpose, how to add one

@@ -147,7 +147,7 @@ node scripts/ux-shots.js <targets…> -o <dir> [--browser-dir d] [--tap ID]  # p
 node scripts/render-frames.js <timeline.json> [--format both] [--lang es] [--check] [--validate]  # a video's frames, subtitles and timeline.json
 node scripts/render-frames.js --parts <recipe> [--what-if R1.resistance=1e5] [--json]  # what a timeline can name; a set's cycles (docs/en/making-a-video.md)
 node scripts/assemble.js <dir…> -o video.mp4 [--burn]  # frame folders → one video with ffmpeg (exit 2 without it)
-node scripts/readme-images.js [filter]  # docs/img/*.png for the READMEs (needs npm install)
+node scripts/readme-images.js [filter] · npm run readme-gif  # docs/img PNGs; the hero GIF (ffmpeg)
 node scripts/demo-site.js [-o site]     # the demo site: every recipe and example as a live page
 node bin/protoboard-iso.js check <file.json> [--lang es]
 node bin/protoboard-iso.js render <file.json> -o out.svg [--view back] [--fit parts]

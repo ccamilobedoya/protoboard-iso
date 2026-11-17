@@ -418,3 +418,4 @@ Lo que `--validate` agrega para este tipo:
 | `focus-555.json` | receta `555-astable` | un video sobre una pieza: el NE555 |
 | `focus-zener.json` | receta `zener-regulator` | un video sobre una pieza: el 1N4733A (escrito por un modelo mediano solo con esta guía) |
 | `environment.json` | `examples/environment.json` | los sensores leen el ambiente: baja la luz (se enciende el LED), sube la temperatura (la salida del LM35) |
+| `readme-hero.json` | receta `led-resistor` (`scripts/readme-gif.js` la monta a 9 V con la meta de 15 mA) | la animación del README: horizontal, entran las piezas y después la corriente; grabada sin subtítulos, el pedido dibujado como un globo |
