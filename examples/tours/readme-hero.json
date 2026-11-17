@@ -1,0 +1,13 @@
+{
+  "$schema": "../../schema/timeline.schema.json",
+  "circuit": "led-resistor",
+  "format": "horizontal",
+  "steps": [
+    { "at": 0, "do": "frame", "target": "parts", "zoom": 1.3, "pan": [0.06, -0.04], "move": "cut" },
+    { "at": 0, "do": "caption", "text": { "en": "a red LED with its resistor on 9 V", "es": "un LED rojo con su resistencia a 9 V" } },
+    { "at": 0, "do": "assemble", "gap": 700, "parts": [{ "part": "R1", "enter": "fade" }, "D1", "W1"] },
+    { "at": 2400, "do": "flow", "on": true, "ramp": 600, "style": "real" },
+    { "at": 3000, "do": "value", "part": "D1", "field": "current", "label": { "en": "through the LED", "es": "por el LED" } },
+    { "at": 5200, "do": "focus", "parts": [] }
+  ]
+}

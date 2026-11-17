@@ -290,7 +290,7 @@ function intervals(samples, key, make) {
   return out;
 }
 
-async function openBrowser() {
+export async function openBrowser() {
   let chromium;
   try {
     ({ chromium } = await import('playwright'));
@@ -469,7 +469,9 @@ async function main() {
       rmSync(join(dir, 'frames'), { recursive: true, force: true });
       mkdirSync(join(dir, 'frames'), { recursive: true });
       const firstAt = Math.min(...tour.steps.map((x) => x.at));
-      const options = { format, fps: args.fps, tail: args.tail, theme: args.theme, captions: args.captions, first: tour.steps.filter((x) => x.at === firstAt) };
+      // Without the caption layer (--no-captions) the first frame has no caption to be whole.
+      const first = tour.steps.filter((x) => x.at === firstAt && (args.captions || x.do !== 'caption'));
+      const options = { format, fps: args.fps, tail: args.tail, theme: args.theme, captions: args.captions, first };
       const run = await record(browser, file, { ...options, captionLines: tour.captionLines ?? 2 }, dir);
       const names = run.hashes.map((_, k) => `frames/${String(k).padStart(6, '0')}.png`);
       writeFileSync(join(dir, 'frames.sha256'), run.hashes.map((h, k) => `${h}  ${names[k]}\n`).join(''));
