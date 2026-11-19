@@ -1,7 +1,7 @@
 {
   "name": "protoboard-iso",
   "displayName": "Protoboard ISO",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "Ask for a circuit and get it built on a breadboard: real holes, wires, a check, and a live page with the simulation. An LED, a 555, a sensor, an Arduino or ESP32 with its sketch.",
   "author": {
     "name": "protoboard-iso contributors",

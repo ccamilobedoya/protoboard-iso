@@ -9,6 +9,10 @@ detail.
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-18
+
+A fix for videos: a part that lands stays seen when the focus moves on before it touches down.
+
 ### Fixed
 
 - A video that lands its lead part and moves the focus to another part before it touches down no longer leaves the landed part unseen on the board: its own pieces stayed hidden under a copy that left with the focus. Touched down, the part is shown whole (`toBoard` in `src/page/client/tour.js`); test in `test/moves.test.js`.
@@ -609,7 +613,8 @@ what it uses.
 - An isometric SVG of a breadboard circuit, with parts placed in real holes at real sizes, front and
   back views, checks of the placement, `inspect` and annotation layers (stage 1).
 
-[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.11.1...v0.12.0
 [0.11.1]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/ccamilobedoya/protoboard-iso/compare/v0.10.0...v0.11.0
