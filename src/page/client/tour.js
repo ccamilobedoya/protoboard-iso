@@ -465,6 +465,9 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
         page.told = null;
         applyFocus(page);
       }
+      // The part is on the board now, whole: its own pieces were left unseen while its copy stood
+      // over the veil, and the copy may be gone already (the focus moved on during the land).
+      showPart(page, id, 1);
       event('land', { part: id });
       if (quick) litDone(false);
       else lighten(s, at + ms);

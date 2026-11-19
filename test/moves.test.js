@@ -781,6 +781,23 @@ test('moves: a circuit video opens on the pedestal and lands without an assemble
   assert.deepEqual([...r.svg().querySelectorAll(':scope > .spotlight > [data-part]')].map((el) => el.getAttribute('data-part')).filter((v, i, a) => a.indexOf(v) === i), ['R1'], 'the focus after it');
 });
 
+// The focus moves on to another part while the lead part is still landing (a video that lands the
+// chip and turns to the LED it drives): the landed part's own pieces were unseen under its copy over
+// the veil, and that copy goes with the focus. Touched down, the part must be seen in its holes.
+test('moves: a focus that moves on during a land leaves the landed part seen on the board', async (t) => {
+  const r = await recording([
+    { at: 0, do: 'scene', mode: 'part', part: 'Q1', zoom: 1.6 },
+    { at: 1000, do: 'land', part: 'Q1' },
+    { at: 1000, do: 'focus', parts: ['Q1'], move: 'travel' },
+    { at: 1000 + MOVES.travel.ms / 2, do: 'focus', parts: ['R1'] },
+  ]);
+  if (!r) return t.skip('jsdom not installed');
+  r.to(1000 + 2 * MOVES.travel.ms + LAND.ramp + LAND.reveal + 2 * FRAME);
+  assert.equal(r.doc.querySelector('main').dataset.scene, undefined, 'on the board');
+  for (const el of r.svg().querySelectorAll(':scope > :is(.parts, .under) > [data-part="Q1"]')) assert.equal(el.style.opacity, '', 'Q1 seen in its holes');
+  assert.equal(r.svg().querySelector('.lift'), null, 'nothing in the air');
+});
+
 // The anatomy of a part on its pedestal (F2; docs/en/component-focus.md): M19 a pin lights, M20 its
 // row comes in; `mark` lights the package's mark and writes what it tells.
 const anatomy = [

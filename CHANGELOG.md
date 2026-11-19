@@ -9,6 +9,10 @@ detail.
 
 ## [Unreleased]
 
+### Fixed
+
+- A video that lands its lead part and moves the focus to another part before it touches down no longer leaves the landed part unseen on the board: its own pieces stayed hidden under a copy that left with the focus. Touched down, the part is shown whole (`toBoard` in `src/page/client/tour.js`); test in `test/moves.test.js`.
+
 ## [0.12.0] - 2026-11-17
 
 The kit inside a plugin: one short skill that carries the kit and runs where an assistant runs code, with a desktop extension for the live board in the conversation. `layout` answers with the readings, a board's program, what can change, what was checked, a goal solved with the simulator and the computed fix of a hazard; it takes any part order, a trial that saves nothing and `--fix`. Hazards are read with each control and each program output operated.
