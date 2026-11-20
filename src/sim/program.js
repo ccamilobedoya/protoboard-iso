@@ -17,6 +17,7 @@
 //     pin until its timeout), or null; the engine ends a step there (engine.advance's landings), so
 //     delayMicroseconds(10) is a pulse of 10 µs and pulseIn measures from the steps that end on edges
 //   runner.time, runner.waitingUntil, runner.log (Serial lines), runner.error, runner.notes
+//   runner.stamps (the time each line of log was ended), runner.printed (lines ended since setup)
 //   runner.stuck: the last advance used its whole budget of turns inside one call (setup() or one
 //     loop()) without it returning and without a wait: a program that never lets time pass
 //     (`void loop() { while (1) {} }`); a loop() that returns without a delay is not stuck
@@ -71,7 +72,7 @@ export function createRunner(js, board) {
   const pins = Object.create(null);
   for (const [gpio, s] of Object.entries(board.states ?? {})) pins[gpio] = { ...s };
   const pin = (n) => (pins[n] ??= { mode: 'input', level: 0, pull: null, pwm: null });
-  const runner = { read: board.read, ask: board.ask ?? null, pins, time: 0, wait: 0, log: [], line: '', error: null, notes: [], changed: false, waitingUntil: 0, looking: null, stuck: false };
+  const runner = { read: board.read, ask: board.ask ?? null, pins, time: 0, wait: 0, log: [], stamps: [], printed: 0, line: '', error: null, notes: [], changed: false, waitingUntil: 0, looking: null, stuck: false };
   const set = (n, values) => {
     const p = pin(n);
     for (const [k, v] of Object.entries(values)) {
@@ -97,7 +98,12 @@ export function createRunner(js, board) {
     const parts = (runner.line + text).split('\n').map((p) => p.slice(0, LINE_MAX));
     runner.line = parts.pop();
     runner.log.push(...parts);
-    if (runner.log.length > LOG) runner.log.splice(0, runner.log.length - LOG);
+    for (const _ of parts) runner.stamps.push(runner.time);
+    runner.printed += parts.length;
+    if (runner.log.length > LOG) {
+      runner.log.splice(0, runner.log.length - LOG);
+      runner.stamps.splice(0, runner.stamps.length - LOG);
+    }
   };
   // A pin's logic level with the board's thresholds; between them a real pin reads either: here it
   // keeps what it read last.
