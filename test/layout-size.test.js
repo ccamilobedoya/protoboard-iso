@@ -51,9 +51,9 @@ test('the size bound passes every recipe, every layout example and every example
 test('a spec that cannot fit is FIX_SPEC at once, with the columns needed and available and how many parts fit', () => {
   const parts = [{ id: 'BT1', type: 'battery', format: '9V' }, ...Array.from({ length: 400 }, (_, i) => ({ id: `U${i + 1}`, part: 'NE555' }))];
   const nets = [['BT1.+', ...parts.slice(1).map((p) => `${p.id}.VCC`)], ['BT1.-', ...parts.slice(1).map((p) => `${p.id}.GND`)]];
-  const started = Date.now();
+  const started = Date.now(); // real clock: a speed bound
   const r = autoLayout({ parts, nets });
-  assert.ok(Date.now() - started < 5000);
+  assert.ok(Date.now() - started < 5000); // real clock: a speed bound
   assert.equal(r.status, 'fix_spec');
   const p = r.problems.find((x) => x.code === 'LAYOUT_TOO_LARGE');
   assert.ok(p.params.needed > p.params.available, JSON.stringify(p.params));
@@ -98,18 +98,18 @@ test('the same spec gives the same circuit', () => {
 });
 
 test('ten LEDs from one pin are built in one or two tries, not left to fix', () => {
-  const started = Date.now();
+  const started = Date.now(); // real clock: a speed bound
   const r = autoLayout(pairs(10));
-  assert.ok(Date.now() - started < 60_000, `${Date.now() - started} ms`);
+  assert.ok(Date.now() - started < 60_000, `${Date.now() - started} ms`); // real clock: a speed bound
   assert.ok(['done', 'warnings'].includes(r.status), formatLayout(r, 'en', { t, formatIssue }));
   assert.ok(r.check.ok);
   assert.ok(r.tries <= 2, `${r.tries} tries`);
 });
 
 test('the budget stops the search with its best try and a line that says so', () => {
-  const started = Date.now();
+  const started = Date.now(); // real clock: a speed bound
   const r = autoLayout(pairs(10), { budget: 0.5 });
-  assert.ok(Date.now() - started < 20_000, `${Date.now() - started} ms`);
+  assert.ok(Date.now() - started < 20_000, `${Date.now() - started} ms`); // real clock: the budget's bound
   assert.equal(r.status, 'changes');
   const p = r.problems.find((x) => x.code === 'LAYOUT_BUDGET');
   assert.ok(p);
