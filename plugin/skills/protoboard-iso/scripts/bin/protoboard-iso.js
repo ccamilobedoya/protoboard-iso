@@ -106,6 +106,7 @@ function parseArgs(argv) {
     else if (a === '--fix') args.fix = true;
     else if (a === '--recipe') args.recipe = value();
     else if (a === '--values') args.valuesText = value();
+    else if (a === '--budget') [args.budget] = [value()].filter((v) => v !== undefined && (Number(v) > 0 || !args.errors.push(['cli.badBudget', { option: a, value: v }]))).map(Number);
     else if (a === '-h' || a === '--help') args.help = true;
     else if (/^--?[A-Za-z]/.test(a)) args.errors.push(['cli.unknownOption', { option: a }]);
     else args._.push(a);
@@ -269,7 +270,7 @@ async function run(seen) {
     // No spec given on an existing circuit: it is laid out again from its kept spec, and says so.
     const again = previous && !extra && !args.recipe && !args.values && !fixed && !args.json && !args.check ? `${t(pickLanguage(args.lang, spec.lang, 'en'), 'layout.again', { revision: previous.revision ?? 0 })}\n` : '';
     const outLang = pickLanguage(args.lang, spec.lang, 'en');
-    const result = { ...autoLayout(spec, { checkOnly: args.check, previous, folder: dirname(paths.circuitFile), lang: outLang }), ...(fixed && { applied: fixed.applied }) };
+    const result = { ...autoLayout(spec, { checkOnly: args.check, previous, folder: dirname(paths.circuitFile), lang: outLang, budget: args.budget }), ...(fixed && { applied: fixed.applied }) };
     if (result.checked) {
       console.log(args.json ? JSON.stringify(result, null, 2) : formatLayout(result, outLang, { t, formatIssue }));
       fail(result.invalid ? 1 : 0);

@@ -11,13 +11,15 @@ export function createCoverage(frame, { cell = 1 } = {}) {
   const owner = new Int16Array(cols * rows).fill(-1);
   const ids = [];
   const index = new Map();
-  const footprints = []; // per part: Set of cell indices it painted (union of its polygons)
+  // Per part: the cells it painted, in painting order, repeats included (a typed list, not a Set:
+  // a long board's parts paint millions of cells, and a Set takes ten times the memory).
+  const footprints = [];
 
   const idOf = (part) => {
     if (!index.has(part)) {
       index.set(part, ids.length);
       ids.push(part);
-      footprints.push(new Set());
+      footprints.push({ cells: new Int32Array(64), n: 0 });
     }
     return index.get(part);
   };
@@ -69,7 +71,12 @@ export function createCoverage(frame, { cell = 1 } = {}) {
       const fp = footprints[id];
       fill(pts, (i) => {
         owner[i] = id;
-        fp.add(i);
+        if (fp.n === fp.cells.length) {
+          const more = new Int32Array(fp.cells.length * 2);
+          more.set(fp.cells);
+          fp.cells = more;
+        }
+        fp.cells[fp.n++] = i;
       });
     },
     // Part that is on top at a screen point, or null.
@@ -82,16 +89,21 @@ export function createCoverage(frame, { cell = 1 } = {}) {
     },
     // For every part: area painted, visible share and who covers the rest.
     visibility() {
+      const seen = ids.length < 65535 ? new Uint16Array(cols * rows) : new Int32Array(cols * rows); // part id + 1 that counted a cell already
       return ids.map((part, id) => {
-        const fp = footprints[id];
+        const { cells, n } = footprints[id];
         const hiddenBy = new Map();
         let shown = 0;
-        for (const i of fp) {
+        let area = 0;
+        for (let k = 0; k < n; k++) {
+          const i = cells[k];
+          if (seen[i] === id + 1) continue;
+          seen[i] = id + 1;
+          area++;
           const top = owner[i];
           if (top === id) shown++;
           else if (top >= 0) hiddenBy.set(ids[top], (hiddenBy.get(ids[top]) ?? 0) + 1);
         }
-        const area = fp.size;
         return {
           part,
           area: area * cell * cell,

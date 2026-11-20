@@ -144,10 +144,10 @@ test('F7c: a sketch that never lets time pass ends in under 20 s with the stuck 
   const dir = join(work, 'stuck');
   const l = cli(['layout', dir, file], 240000);
   assert.ok(existsSync(join(dir, 'circuit.json')), `layout: ${l.stdout}${l.stderr}`);
-  const started = Date.now();
+  const started = Date.now(); // real clock: the acceptance bound on how long the run takes
   const r = cli(['simulate', dir, '--run', '5'], 20000);
   assert.notEqual(r.status, null, 'did not end in 20 s');
-  assert.ok(Date.now() - started < 20000);
+  assert.ok(Date.now() - started < 20000); // real clock: the acceptance bound on how long the run takes
   // The existing warning (SIM_PROGRAM_STUCK): "the program never lets time pass".
   assert.match(r.stdout + r.stderr, /never lets time pass/);
 });

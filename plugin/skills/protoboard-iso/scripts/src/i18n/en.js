@@ -136,6 +136,11 @@ export default {
   'check.LAYOUT_GROUND_TO_RAILS': 'Net {net} ({pin}) is ground: joined to the − rails {rails}, the outer ones of each board of the double board.',
   'check.LAYOUT_GROUND_TO_RAIL': 'Net {net} ({pin}) is ground: joined to the {rail} rail, as on any breadboard.',
   'check.LAYOUT_ORDER_FROM_NETS': 'The order the parts were listed in left something to fix: laid out in the order their nets give ({parts}).',
+  'check.LAYOUT_NETS_JOINED': 'Nets {nets} share {pins}: a pin in two nets joins them, so they are one net here.',
+  'check.LAYOUT_TOO_LARGE': 'Too large for one board: about {needed} columns needed, {available} available ({parts} parts). About {fit} parts fit one board: split it into two or more circuits.',
+  'check.LAYOUT_SEARCH_LONG': 'A large circuit ({parts} parts): one try of the search takes about {seconds} s, more than its budget of {budget} s. It tries anyway; a larger budget may be needed.',
+  'check.LAYOUT_BUDGET': 'The search stopped at its budget of {seconds} s with its best try so far: {parts} parts not placed, {nets} nets not joined, {blocking} review items open. The options: a larger budget (CLI --budget, MCP budget_s, at most {max} s) or a smaller circuit.',
+  'check.LAYOUT_BUDGET_CAPPED': 'A budget of {asked} s is more than the kit allows: it searches for {max} s at most.',
   'check.LAYOUT_REPAIRED': 'Jumper from {from} to {to} routed again so nothing is hidden or left apart.',
   'check.RECIPE_UNKNOWN': 'There is no recipe "{name}". Recipes: {recipes}.',
   'check.RECIPE_VALUE_UNKNOWN': '{id} cannot be changed in recipe {recipe}; these can: {ids}.',
@@ -869,7 +874,7 @@ export default {
   'app.selection.newer': ', now at revision {latest}',
   'page.app.newer': 'Revision {revision} as it was; the circuit is now at revision {latest}.',
   'cli.usage': `Usage (<target> = a circuit file or a circuit folder with circuit.json):
-  protoboard-iso layout <target> [spec.json|-] [--check] [--dry-run] [--expect-revision n]   # the whole circuit placed from its parts and nets; an existing target is laid out again (docs/en/layout.md)
+  protoboard-iso layout <target> [spec.json|-] [--check] [--dry-run] [--expect-revision n] [--budget seconds]   # the whole circuit placed from its parts and nets; an existing target is laid out again (docs/en/layout.md)
   protoboard-iso layout <target> --fix [--dry-run]   # the kit's computed fix (its "To fix it" line) applied, as one revision
   protoboard-iso layout <target> --recipe <name> [--values '<json>']   # a lesson circuit by name (docs/en/recipes.md)
   protoboard-iso render <target> [-o out.svg|out.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
@@ -898,6 +903,7 @@ export default {
   'cli.noIssues': 'No problems found.',
   'cli.unknownOption': 'Unknown option {option}.',
   'cli.missingValue': 'The option {option} needs a value after it.',
+  'cli.badBudget': 'The option {option} takes a number of seconds above 0 (got "{value}").',
   "check.INPUT_MISSING": "{what}: the file {file} does not exist. Check the path and try again.",
   "check.INPUT_UNREADABLE": "{what}: cannot read {file} ({reason}). Check that it is a file you can open.",
   "check.INPUT_EMPTY": "{what}: {file} is empty. Put {shape} in it.",

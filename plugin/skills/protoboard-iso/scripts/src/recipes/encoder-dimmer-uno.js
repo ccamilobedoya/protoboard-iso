@@ -57,7 +57,7 @@ export default {
     { id: 'R1', type: 'resistor', value: '220' },
     { id: 'D1', type: 'led', color: 'green' },
   ],
-  nets: [['U1.5V', 'U2.+'], ['U2.CLK', 'U1.D2'], ['U2.DT', 'U1.D3'], ['U2.SW', 'U1.D4'], ['U2.GND', 'U1.GND'], ['U1.D9', 'D1.A'], ['D1.K', 'R1.1'], ['R1.2', 'U1.GND']],
+  nets: [['U1.5V', 'U2.+'], ['U2.CLK', 'U1.D2'], ['U2.DT', 'U1.D3'], ['U2.SW', 'U1.D4'], ['U2.GND', 'U1.GND', 'R1.2'], ['U1.D9', 'D1.A'], ['D1.K', 'R1.1']],
   environment: { angle: { value: 0, range: [0, 360] } },
   page: { controls: [{ environment: 'angle' }, { part: 'U2', field: 'pressed' }] },
   values: {

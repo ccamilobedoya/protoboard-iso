@@ -135,6 +135,11 @@ export default {
   'check.LAYOUT_GROUND_TO_RAILS': 'La red {net} ({pin}) es tierra: va a los rieles − {rails}, los de afuera de cada protoboard de la doble.',
   'check.LAYOUT_GROUND_TO_RAIL': 'La red {net} ({pin}) es tierra: va al riel {rail}, como en cualquier protoboard.',
   'check.LAYOUT_ORDER_FROM_NETS': 'El orden en que venían los componentes dejaba algo por arreglar: se montaron en el orden que dan sus redes ({parts}).',
+  'check.LAYOUT_NETS_JOINED': 'Las redes {nets} comparten {pins}: un pin en dos redes las une, así que aquí son una sola red.',
+  'check.LAYOUT_TOO_LARGE': 'Demasiado grande para una protoboard: hacen falta unas {needed} columnas y hay {available} ({parts} componentes). En una protoboard caben unos {fit} componentes: divídelo en dos o más circuitos.',
+  'check.LAYOUT_SEARCH_LONG': 'Un circuito grande ({parts} componentes): un intento de la búsqueda tarda unos {seconds} s, más que su límite de tiempo de {budget} s. Lo intenta igual; puede hacer falta un límite mayor.',
+  'check.LAYOUT_BUDGET': 'La búsqueda se detuvo en su límite de tiempo de {seconds} s con su mejor intento hasta ahí: {parts} componentes sin colocar, {nets} redes sin unir, {blocking} puntos de la revisión abiertos. Las opciones: un límite mayor (CLI --budget, MCP budget_s, como mucho {max} s) o un circuito más pequeño.',
+  'check.LAYOUT_BUDGET_CAPPED': 'Un límite de {asked} s es más de lo que permite el kit: busca {max} s como mucho.',
   'check.LAYOUT_REPAIRED': 'El cable de {from} a {to} se volvió a trazar para que nada quede tapado ni suelto.',
   'check.RECIPE_UNKNOWN': 'No hay una receta «{name}». Recetas: {recipes}.',
   'check.RECIPE_VALUE_UNKNOWN': '{id} no se puede cambiar en la receta {recipe}; se pueden: {ids}.',
@@ -868,7 +873,7 @@ export default {
   'app.selection.newer': ', ahora en la revisión {latest}',
   'page.app.newer': 'La revisión {revision} tal como era; el circuito ya va en la revisión {latest}.',
   'cli.usage': `Uso (<objetivo> = un archivo de circuito o una carpeta con circuit.json):
-  protoboard-iso layout <objetivo> [spec.json|-] [--check] [--dry-run] [--expect-revision n]   # el circuito entero, ubicado a partir de sus componentes y redes; si ya existe, se vuelve a montar (docs/es/montaje-automatico.md)
+  protoboard-iso layout <objetivo> [spec.json|-] [--check] [--dry-run] [--expect-revision n] [--budget segundos]   # el circuito entero, ubicado a partir de sus componentes y redes; si ya existe, se vuelve a montar (docs/es/montaje-automatico.md)
   protoboard-iso layout <objetivo> --fix [--dry-run]   # el arreglo calculado del kit (su línea «Para arreglarlo») aplicado, como una revisión
   protoboard-iso layout <objetivo> --recipe <nombre> [--values '<json>']   # un circuito de clase por su nombre (docs/es/recetas.md)
   protoboard-iso render <objetivo> [-o salida.svg|salida.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
@@ -897,6 +902,7 @@ export default {
   'cli.noIssues': 'Sin problemas.',
   'cli.unknownOption': 'Opción desconocida: {option}.',
   'cli.missingValue': 'La opción {option} necesita un valor después.',
+  'cli.badBudget': 'La opción {option} lleva un número de segundos mayor que 0 (llegó "{value}").',
   "check.INPUT_MISSING": "{what}: el archivo {file} no existe. Revisa la ruta e inténtalo de nuevo.",
   "check.INPUT_UNREADABLE": "{what}: no se puede leer {file} ({reason}). Revisa que sea un archivo que puedas abrir.",
   "check.INPUT_EMPTY": "{what}: {file} está vacío. Pon ahí {shape}.",

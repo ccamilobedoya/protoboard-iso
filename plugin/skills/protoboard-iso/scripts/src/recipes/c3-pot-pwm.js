@@ -28,7 +28,7 @@ export default {
     { id: 'R1', type: 'resistor', value: '220' },
     { id: 'D1', type: 'led', color: 'red' },
   ],
-  nets: [['U1.3V3', 'RV1.1'], ['RV1.3', 'U1.GND'], ['RV1.W', 'U1.GPIO4'], ['U1.GPIO3', 'R1.1'], ['R1.2', 'D1.anode'], ['D1.cathode', 'U1.GND']],
+  nets: [['U1.3V3', 'RV1.1'], ['RV1.3', 'U1.GND', 'D1.cathode'], ['RV1.W', 'U1.GPIO4'], ['U1.GPIO3', 'R1.1'], ['R1.2', 'D1.anode']],
   values: {
     RV1: { field: 'value', role: { en: 'potentiometer (the input)', es: 'potenciómetro (la entrada)' } },
     R1: { field: 'value', role: { en: 'LED resistor', es: 'resistencia del LED' } },
