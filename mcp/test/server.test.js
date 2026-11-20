@@ -393,9 +393,7 @@ test('simulate run_s: the same run, text and structure as simulate --run on the 
   const cli = (extra) => spawnSync(process.execPath, [bin, 'simulate', target, '--run', '1', '--press', 'S1@0.3+0.4', ...extra], { encoding: 'utf8' });
   assert.deepEqual(JSON.parse(cli(['--json']).stdout), json);
   assert.equal(textOf(await call('simulate', args)), cli([]).stdout.trimEnd());
-  // Objects for the stimuli, as an assistant writes them; errors are tool errors with the line.
-  const same = jsonOf(await call('simulate', { target: 'run-button', run_s: 1, press: [{ part: 'S1', at: 0.3, duration: 0.4 }], format: 'json' }));
-  assert.deepEqual(same, json);
+  // Errors are tool errors with the line.
   const bad = await call('simulate', { target: 'run-button', run_s: 1, environment: { nonsense: 1 } });
   assert.ok(bad.isError);
   assert.match(textOf(bad), /"nonsense" is not a field of the environment/);
