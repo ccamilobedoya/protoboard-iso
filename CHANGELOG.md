@@ -18,8 +18,16 @@ detail.
 - The `Checked` line is truthful: a sensor set by its own value (an LDR's `light` without an environment) is `what the sensors read from the environment`; `what U2 does` for one part; `what the program of U1 does where the kit cannot run it` for a program with a doubt.
 - `catalog` marks part numbers and modules the simulator only draws (`drawn, not simulated: 74HC595, …`; `74HC595 (not simulated: drawn only)` in the CLI list, `Not simulated: …` in an entry), and its field texts no longer name source or docs paths.
 
+- `simulate <target> --run <seconds>` (MCP `simulate` with `run_s`): the circuit run as the page runs it, from switch-on, with stimuli (`--env light=0.5`, `--set RV1=0.8`, `--press S1@0.5+0.2`, `--at 1.0:light=0.1`), answering what the program printed with its times, each output's share of the time on, its changes, spans on, frequency and duty when it toggles, and the readings at the end; bounded (60 s simulated, 15 s of the machine), nothing saved. `--env` and `--set` also work with the DC point and `--transient`.
+- `--transient` on a circuit whose board runs a program steps it as the page does (events landed, at most 1 ms a piece) and names `--run`; before, a 10 µs pulse was lost and the distance alarm's LED never lit.
+- `layout`'s answer has a `Behaviour, first 2 s` line for a circuit that changes by itself: the frequency and duty of what toggles (`D1 1 Hz, on 50 % of the time`), from a run bounded at 0.8 s of the machine's time.
+- The `Checked` line names the environment's fields visited at both ends (`Checked: at rest, light at both ends`).
+
 ### Fixed
 
+- An op-amp with positive feedback (a relaxation oscillator) stopped at its first switch (`did not converge`): Newton now stops at the edges of its linear range at most twice per solve.
+- A sketch's comparison stored in an `int` (`int pressed = digitalRead(2) == LOW;`) was always 0, so `uno-button`'s LED never lit.
+- `--transient 1,1e-5`: a step written with an exponent was read as no step at all; a number the kit cannot read is now an error.
 - Wording that overstated: reverse supply says it "can be destroyed" and that any reverse voltage on a supply is outside its ratings (a development board: "the board can be damaged"); a ceramic capacitor over its rating says its dielectric can break down, an electrolytic slightly reversed only degrades; a LED in reverse "can burn out"; a relay "may not pull in", and a coil under a quarter of its pull-in current (a leak) is not reported; a finding seen in several states is reported in the one that tells most.
 
 - The `Readings` line named a battery part twice (`battery BT1 8.92 V · battery BT1 8.92 V`); a drawn battery is named once, by its id.

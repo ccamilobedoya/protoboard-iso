@@ -113,7 +113,58 @@ Set them with an operation like any circuit field:
 - **Transient.** `stop` and `step` in seconds; capacitors start discharged and inductors with
   no current (`start: "zero"`, the supply switched on at t = 0), or at their DC values
   (`start: "dc"`). Backward Euler with a
-  fixed step; at most 400 samples are kept (`points`).
+  fixed step; at most 400 samples are kept (`points`). A circuit whose board runs a program is
+  stepped as the page steps it (below, "A run"): pieces of at most 1 ms that end on each event of
+  the program and of the timed modules, so a 10 µs pulse or an echo is at its time; the answer
+  then has a note naming `--run`, which says what the program printed and how its outputs toggle.
+- **A run** (`simulate <target> --run <seconds>`, MCP `run_s`). The circuit as the page runs it,
+  from switch-on (the page's start: its DC point, or capacitors discharged with `page.start:
+  "zero"`), for that many simulated seconds: the same engine and the same step (`sim/pace.js`),
+  the board's program with `pulseIn`, the library sensors, the encoder and the timed modules. It
+  answers what an assistant needs to say whether the circuit does what was asked:
+  - **Serial**: what the program printed, each line with its time, in order, and the count (a
+    long story keeps its first and last lines, `runSerialLines` in `src/limits.js`);
+  - **outputs over time**, one per part that shows something (an LED, a chip of an RGB LED, a
+    segment of a display, a buzzer, a relay, a motor), each op-amp's output and each pin a
+    program drives (`U1.D13`): the share of the time it was on, how many times it changed, the
+    spans it was on (`intervals`) and, when it toggles regularly (every period within 10 % of
+    their mean, the start-up's first period left out), its frequency, period and duty. Edges are
+    found between steps: a pin at the step its program changed it, an LED a pin drives in the
+    middle of that step, anything slower where it crosses its level (an LED at 5 % of its rated
+    current, a relay closed, a motor over 30 r/min, a pin or an op-amp's output over half its
+    rail);
+  - **the readings at the end**, as the DC point prints them, and every warning the run produced.
+
+  Stimuli, each usable several times: `--env light=0.5,distance=10` (fields of the environment,
+  in the catalog's units, inside the field's range: an unknown field or a value outside it is an
+  input error, exit 1), `--set RV1=0.8,SW1=on` (a control: a potentiometer's position, a
+  switch, a sensor's own field such as `U2=30` on an LM35; `ID.field=value` when it has several),
+  `--press SW1@0.5+0.2` (pressed at 0.5 s for 0.2 s), `--at 1.0:light=0.1` (a field or a control
+  changed at a time). A sensor that reads a field by a value of its own follows the field a run
+  sets, and the run says so (`RUN_ENV_ATTACHED`). `--env` and `--set` also apply to the DC point
+  and to `--transient`. Nothing is saved: the circuit file and its history stay as they were.
+  Bounded: at most `runSeconds` (60) of simulated time (more is capped, `RUN_CAPPED`) and
+  `runMs` (15 s) of the machine's (`RUN_BUDGET`: it ends where it got to); a program that never
+  lets time pass ends with `SIM_PROGRAM_STUCK`.
+
+  ```text
+  $ protoboard-iso simulate alarm --run 1 --env distance=10
+  Run from switch-on (the page's start) — a model, not a measurement: 1 s in steps of 1 ms (1000 steps).
+  Serial (10 lines, in order):
+    844 µs     10
+    …
+  Outputs over time:
+    D1 (LED): on 100 % of the time · changes: 1 (on 857 µs → 1 s)
+    U1.D9 (pin): 9.92 Hz, on < 1 % of the time (period 101 ms) · changes: 20
+  Readings at 1 s:
+  …
+  ```
+
+  `layout`'s answer has the same in one line for a circuit that changes by itself (a board's
+  program, a 555, a generator, an op-amp beside a capacitor): `Behaviour, first 2 s (simulated, a
+  model): D1 1 Hz, on 50 % of the time`, from a run bounded at 0.8 s of the machine's time and a
+  step no shorter than a 20 000th of it; past the bound it says it was not measured and names
+  `simulate --run 2`.
 
 ## Results
 
@@ -133,6 +184,16 @@ Set them with an operation like any circuit field:
               // DC only: each part against its limits (fine < 80 %, near ≤ 100 %, exceeded)
               // D1.stress: [{ quantity: 'current', value, max, unit: 'A', ratio, level: 'fine' | 'near' | 'exceeded' }]
   issues: [ … ] }
+```
+
+A run (`--run`, `run_s`):
+
+```js
+{ ok: true, run: { seconds: 1, step: 0.001, steps: 1000, start: 'dc' },
+  serial: { count: 10, lines: [{ t: 0.00084, text: '10' }, …] },    // kept: when capped
+  outputs: [{ id: 'D1', kind: 'led', onShare: 0.999, changes: 1, frequency: null, period: null, duty: null,
+              intervals: [[0.00086, 1]] }, …],                         // an output still on closes at the end
+  boards: 1, readings: { … the DC point's shape, at the end … }, issues: [ … ] }
 ```
 
 Two-terminal parts: `voltage` = first pin − second pin, `current` flows from the first pin to
@@ -344,6 +405,5 @@ voltage of an LED measured on the bench).
 
 ## Not yet
 
-Chips other than the 555, the op-amps and the LM393 (logic, optocouplers, the LM386, the ULN arrays) are left unconnected and reported, and so is the DESPI-C02 adapter; a microcontroller board runs its program (`"program"`, with PWM and `tone`; [microcontrollers.md](microcontrollers.md)). Op-amps have no bandwidth or slew rate yet: a fast signal comes out as if the chip were ideal. The 555 has no paths in the conductor view yet: its current shows at its pins and strips. No events during
-a transient (pressing a button at a given time), no self-heating, no battery discharge over
+Chips other than the 555, the op-amps and the LM393 (logic, optocouplers, the LM386, the ULN arrays) are left unconnected and reported, and so is the DESPI-C02 adapter; a microcontroller board runs its program (`"program"`, with PWM and `tone`; [microcontrollers.md](microcontrollers.md)). Op-amps have no bandwidth or slew rate yet: a fast signal comes out as if the chip were ideal (a relaxation oscillator with positive feedback runs: Newton stops at the edges of the linear range at most twice per solve, so it switches rails; an LM358 one with 47 kΩ and 10 nF runs at about 920 Hz, the textbook formula's 968 Hz with ideal rails). The 555 has no paths in the conductor view yet: its current shows at its pins and strips. Events at a time are for a run (`--press`, `--at`), not for `--transient`; no self-heating, no battery discharge over
 time (`charge` is fixed for a run). Animation (stage 3) will read these same results.

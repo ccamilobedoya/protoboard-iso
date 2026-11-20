@@ -524,6 +524,9 @@ before saying it works.
 - ✅ Parts under 50 % visible in every view get a line in `layout`'s answer (information)
 - ✅ The `Readings` line names each source once
 - ✅ `catalog` marks what is drawn but not simulated and names no source paths
+- ✅ An assistant can check what a circuit does from the command line (C5): `simulate --run <s>` runs it as the page does (one engine) with `--env`, `--set`, `--press` and `--at`, and says what the program printed, each output's share of time on, changes, frequency and duty, and the readings at the end; `--transient` steps a board's program as the page does and names `--run`; `layout`'s answer has a `Behaviour, first 2 s` line for a circuit that changes by itself; MCP `simulate` takes `run_s`, `environment`, `set`, `press`, `at`
+- ✅ The op-amp relaxation oscillator runs (it stopped at its first switch); a sketch's `int x = a == b;` is 1 or 0 (it was always 0: `uno-button` never lit)
+- ✅ The `Checked` line names the environment's fields visited at both ends (`at rest, light at both ends`)
 
 ## Optional, later ⬜
 

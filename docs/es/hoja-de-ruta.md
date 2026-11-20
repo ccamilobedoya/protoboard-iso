@@ -531,6 +531,9 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ✅ Los componentes que se ven menos del 50 % en todas las vistas tienen una línea en la respuesta de `layout` (información)
 - ✅ La línea `Lecturas` nombra cada fuente una vez
 - ✅ `catalog` marca lo que se dibuja pero no se simula y no nombra rutas de las fuentes
+- ✅ Un asistente puede comprobar desde la línea de comandos lo que hace un circuito (C5): `simulate --run <s>` lo corre como la página (un solo motor) con `--env`, `--set`, `--press` y `--at`, y dice lo que imprimió el programa, la parte del tiempo que cada salida estuvo encendida, sus cambios, su frecuencia y su ciclo útil, y las lecturas al final; `--transient` avanza el programa de una placa como la página y nombra `--run`; la respuesta de `layout` trae una línea `Comportamiento, primeros 2 s` para un circuito que cambia solo; `simulate` del MCP lleva `run_s`, `environment`, `set`, `press`, `at`
+- ✅ El oscilador de relajación con amplificador operacional corre (se detenía en su primer cambio); `int x = a == b;` de un sketch es 1 o 0 (siempre era 0: `uno-button` nunca encendía)
+- ✅ La línea `Revisado` nombra los campos del ambiente visitados en sus dos extremos (`en reposo, luz en sus dos extremos`)
 
 ## Opcional, más adelante ⬜
 
