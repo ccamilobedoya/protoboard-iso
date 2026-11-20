@@ -5,7 +5,7 @@
 // Exit codes: 0 fine · 1 errors (or a refused change, or no placement found) ·
 //             2 review says CHANGES.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, resolve, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderCircuit, inspectCircuit, formatReport, checkCircuit, formatIssue, PART_TYPES, t } from '../src/index.js';

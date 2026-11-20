@@ -79,7 +79,10 @@ const buttonSpec = (nets) => ({ parts: [{ id: 'S1', type: 'button' }, { id: 'R1'
 
 test('a button wired across joined pins still lays out; the finding is a doubt, never a blocking placement problem', () => {
   const across = autoLayout(buttonSpec([['T+', 'S1.1'], ['S1.2', 'R1.1'], ['R1.2', 'D1.anode'], ['D1.cathode', 'T-']]));
-  assert.equal(across.status, 'done');
+  // Built, and the doubt is told before saying it works: WARNINGS, never CHANGES.
+  assert.equal(across.status, 'warnings');
+  assert.deepEqual(across.review.blocking, []);
+  assert.ok(across.review.doubts.some((d) => d.code === 'BUTTON_PINS_JOINED'));
   assert.deepEqual(across.problems ?? [], []);
   assert.ok(checkHazards(across.circuit).doubts.some((d) => d.code === 'BUTTON_PINS_JOINED' && d.severity === 'warning'));
   assert.ok(checkCircuit(across.circuit).issues.some((i) => i.code === 'BUTTON_PINS_JOINED' && i.severity === 'warning'));

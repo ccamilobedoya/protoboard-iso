@@ -11,11 +11,12 @@ detail.
 
 ### Changed
 
-- `DONE` means checked. Beside the hazards (a part that would burn), `review` returns `doubts`: what the kit could not check (a part wired in with no simulation model, such as a 74HC595 or an LM386, `SIM_PART_NOT_SIMULATED`; any issue about a board's program, such as a file not found, a syntax error or `shiftOut()`; a program that never lets time pass, `SIM_PROGRAM_STUCK`, or that stopped with an error, `SIM_PROGRAM_STOPPED`; any other warning of the simulation that is not a hazard; a source whose DC point does not solve). One doubt makes the verdict APPROVED WITH WARNINGS and `layout` end `STATUS: WARNINGS`, with the doubts as ⚠ lines under their own heading and a `STATUS` line that asks to tell the user each point first. Hazards alone keep their words and the `To fix it` line. `summary.doubts` counts them.
+- `DONE` means checked. Beside the hazards (a part that would burn), `review` returns `doubts`: what the kit could not check (a part wired in with no simulation model, such as a 74HC595 or an LM386, `SIM_PART_NOT_SIMULATED`; any issue about a board's program, such as a file not found, a syntax error or `shiftOut()`; a program that never lets time pass, `SIM_PROGRAM_STUCK`, the runner's own flag, or that stopped with an error, `SIM_PROGRAM_STOPPED`; any other warning of the simulation that is not a hazard; a source whose DC point does not solve). One doubt makes the verdict APPROVED WITH WARNINGS and `layout` end `STATUS: WARNINGS`, with the doubts as ⚠ lines under their own heading and a `STATUS` line that asks to tell the user each point first. Hazards alone keep their words and the `To fix it` line. `summary.doubts` counts them.
+- A push button whose joined pins carry two nets (`BUTTON_PINS_JOINED`) is a doubt, never a ✖: layout ends `WARNINGS`, `check` lists it as a warning, `apply` saves it and marks it ⚠ (`DOUBT_CODES` in `src/circuit/checks.js`).
 - `layout` reads a board's `.ino` file from the circuit's folder when it judges the circuit it keeps (the tries had none), and a file not found says where the kit looked and that it goes beside `circuit.json`.
 - `layout`'s answer says in one line each part under 50 % visible in every view (`review.hidden`), as information.
 - The `Checked` line is truthful: a sensor set by its own value (an LDR's `light` without an environment) is `what the sensors read from the environment`; `what U2 does` for one part; `what the program of U1 does where the kit cannot run it` for a program with a doubt.
-- `catalog` marks part numbers and modules the simulator only draws (`drawn, not simulated: 74HC595, …`; `Simulation: none` in an entry), and its field texts no longer name source or docs paths.
+- `catalog` marks part numbers and modules the simulator only draws (`drawn, not simulated: 74HC595, …`; `74HC595 (not simulated: drawn only)` in the CLI list, `Not simulated: …` in an entry), and its field texts no longer name source or docs paths.
 
 ### Fixed
 

@@ -252,6 +252,10 @@ las imprimen como líneas `⚠` bajo su propio encabezado (`El kit no pudo compr
 de los peligros (`src/sim/index.js`, `doubtsOf`). Nunca bloquean. `DONE` significa entonces lo que
 dice: el kit revisó el circuito y no encontró nada que decir.
 
+- Hallazgos del cableado que el kit reporta y nunca bloquea (`DOUBT_CODES` en
+  `src/circuit/checks.js`): `BUTTON_PINS_JOINED`, un pulsador cuyos dos pines de un mismo lado (una
+  sola pieza de metal) llevan dos redes distintas, así que oprimirlo no cambia nada. `check` lo lista
+  como aviso; `apply` guarda un cambio que lo agrega y lo marca con ⚠.
 - `SIM_PART_NOT_SIMULATED`: un componente conectado al circuito sin modelo de simulación (un
   74HC595, un LM386, un CD4017…; `catalog` los marca): se dibuja y sus pines quedan abiertos, así
   que lo que hace, y lo que maneja, no se sabe. Un componente sin conectar a nada no es una duda.
@@ -262,9 +266,9 @@ dice: el kit revisó el circuito y no encontró nada que decir.
   (`SIM_PROGRAM_IGNORED` sigue siendo una nota). También `SIM_PROGRAM_STOPPED`, un programa que se
   detuvo con un error en reposo, y `SIM_PROGRAM_STUCK`, un programa que nunca deja pasar el tiempo:
   `setup()` o una llamada de `loop()` que nunca vuelve y nunca espera (`void loop() { while (1) {} }`).
-  Este se encuentra corriendo el programa en reposo unas pocas vueltas de su ejecutor, cada una
-  limitada por su presupuesto de pasos, nunca esperando; un `loop()` que vuelve sin `delay()` es un
-  programa que funciona.
+  Lo dice el propio ejecutor del programa (`stuck`, `src/sim/program.js`): un avance gastó todo su
+  presupuesto de pasos dentro de una sola llamada, nunca esperando; un `loop()` que vuelve sin
+  `delay()` es un programa que funciona.
 - Cualquier otro aviso o error que dé la simulación en reposo o en uno de los estados de arriba (con
   su `when`) que no sea un peligro ni esté ya bloqueando: ningún aviso que imprima el simulador puede
   quedar invisible para `layout`. `SIM_FLOATING` lo es solo cuando en los nodos flotantes hay un

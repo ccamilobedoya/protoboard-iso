@@ -244,6 +244,10 @@ heading (`The kit could not check this …`), after the hazards (`src/sim/index.
 They never block. `DONE` then means what it says: the kit checked the circuit and found nothing to
 tell.
 
+- Wiring findings the kit reports and never blocks on (`DOUBT_CODES` in `src/circuit/checks.js`):
+  `BUTTON_PINS_JOINED`, a push button whose two pins on one side (one metal piece) carry two
+  different nets, so pressing it changes nothing. `check` lists it as a warning; `apply` saves a
+  change that adds it and marks it ⚠.
 - `SIM_PART_NOT_SIMULATED`: a part wired into the circuit with no simulation model (a 74HC595, an
   LM386, a CD4017…; `catalog` marks them): it is drawn and its pins are left open, so what it does,
   and what it drives, is unknown. A part wired to nothing is not a doubt.
@@ -253,9 +257,9 @@ tell.
   class not in the kit, no `setup()`/`loop()` (`SIM_PROGRAM_IGNORED` stays a note). Also
   `SIM_PROGRAM_STOPPED`, a program that stopped with an error at rest, and `SIM_PROGRAM_STUCK`, a
   program that never lets time pass: `setup()` or one call of `loop()` that never returns and never
-  waits (`void loop() { while (1) {} }`). That one is found by running the program at rest for a
-  few rounds of its runner, each bounded by its budget of turns, never by waiting; a `loop()` that
-  returns without a `delay()` is a working program.
+  waits (`void loop() { while (1) {} }`). The program's runner says so itself
+  (`stuck`, `src/sim/program.js`): one advance used its whole budget of turns inside one call, never
+  by waiting; a `loop()` that returns without a `delay()` is a working program.
 - Any other warning or error the simulation gives at rest or in one of the states above (with its
   `when`) that is not a hazard and not already blocking: whatever warning the simulator prints can
   no longer be invisible to `layout`. `SIM_FLOATING` is one only when a simulated part wired in by

@@ -219,14 +219,17 @@ export function fullCatalog(lang = 'en') {
 }
 
 // The part types one per line, as `catalog` without a name prints them (the CLI): its pins and
-// part numbers, each type or part number the simulator only draws marked so.
+// part numbers, each type or part number the simulator only draws marked so where it is named
+// ("74HC595 (drawn, not simulated)"), so a reader of one entry cannot miss it.
 export function partTypeLines(lang = 'en') {
   const c = compactCatalog(lang);
   return Object.entries(c.types).map(([type, v]) => {
     const pins = v.pins ? v.pins.join(', ') : '—';
     const parts = Object.entries(PART_NUMBERS).filter(([, e]) => e.type === type).map(([n]) => n);
-    const drawn = v.simulated === false ? ` ${t(lang, 'catalog.typeNotSimulated')}` : v.notSimulated ? `  ${t(lang, 'catalog.notSimulated', { parts: v.notSimulated.join(', ') })}` : '';
-    return `${type.padEnd(10)} ${v.name.padEnd(20)} pins: ${pins}${parts.length ? `  parts: ${parts.join(', ')}` : ''}${drawn}`;
+    const only = new Set(v.notSimulated ?? []);
+    const named = parts.map((n) => (only.has(n) ? `${n} ${t(lang, 'catalog.typeNotSimulated')}` : n));
+    const drawn = v.simulated === false ? ` ${t(lang, 'catalog.typeNotSimulated')}` : '';
+    return `${type.padEnd(10)} ${v.name.padEnd(20)} pins: ${pins}${named.length ? `  parts: ${named.join(', ')}` : ''}${drawn}`;
   });
 }
 

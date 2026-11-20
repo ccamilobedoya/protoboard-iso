@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { autoLayout, formatLayout } from '../src/layout.js';
@@ -166,10 +166,10 @@ test('catalog marks what is drawn but not simulated, and names no path of the so
   assert.match(ic, /not simulated: .*LM386/);
   assert.doesNotMatch(ic.split('not simulated')[1], /NE555|LM358/);
   const cliList = partTypeLines('en').find((l) => l.startsWith('ic '));
-  assert.match(cliList, /not simulated: 74HC595.*LM386/);
-  assert.doesNotMatch(cliList.split('not simulated')[1], /NE555|LM358/);
-  assert.match(formatCatalogEntry(catalogEntry('74HC595'), 'en'), /Simulation: none/);
-  assert.doesNotMatch(formatCatalogEntry(catalogEntry('NE555'), 'en'), /Simulation: none/);
+  assert.match(cliList, /74HC595 \(not simulated: drawn only\).*LM386 \(not simulated: drawn only\)/);
+  assert.match(cliList, /NE555, LM358,/);
+  assert.match(formatCatalogEntry(catalogEntry('74HC595'), 'en'), /Not simulated: the kit draws it/);
+  assert.doesNotMatch(formatCatalogEntry(catalogEntry('NE555'), 'en'), /not simulated/i);
   for (const name of [null, 'buzzer', 'led', 'module', 'UNO', 'ic']) {
     const out = name ? formatCatalogEntry(catalogEntry(name), 'en') : list;
     assert.doesNotMatch(out, /\bsrc\/|\bdocs\//, String(name));
@@ -187,4 +187,32 @@ test('the CLI review --json carries doubts next to hazards', () => {
   assert.equal(j.verdict, 'approved-with-warnings');
   assert.deepEqual(j.hazards, []);
   assert.deepEqual(j.doubts.map((d) => d.code), ['SIM_PART_NOT_SIMULATED']);
+});
+
+test('a button across its joined pins is a doubt: layout WARNINGS, check lists it, apply saves it with ⚠', () => {
+  const button = (nets) => ({ parts: [{ id: 'S1', type: 'button' }, { id: 'R1', type: 'resistor', value: '330' }, { id: 'D1', type: 'led', color: 'red' }], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }], nets });
+  const dir = tempDir('pbi-c1-');
+  const spec = join(dir, 'spec.json');
+  writeFileSync(spec, JSON.stringify(button([['T+', 'S1.1'], ['S1.2', 'R1.1'], ['R1.2', 'D1.anode'], ['D1.cathode', 'T-']])));
+  const target = join(dir, 'b');
+  const made = cli('layout', target, spec, '--lang', 'en');
+  assert.equal(made.status, 0, made.stdout);
+  assert.match(lastLine(made.stdout), /^STATUS: WARNINGS/);
+  const heading = made.stdout.indexOf('The kit could not check this');
+  assert.ok(heading > 0 && made.stdout.indexOf('⚠ warning: S1: pins 1 and 2 are joined') > heading, made.stdout);
+  assert.doesNotMatch(made.stdout, /✖/);
+  const check = JSON.parse(cli('check', target, '--json').stdout);
+  assert.ok(check.issues.some((i) => i.code === 'BUTTON_PINS_JOINED' && i.severity === 'warning'));
+  // Taken out and put back by apply: saved, marked ⚠, not a new error.
+  const s1 = JSON.parse(readFileSync(join(target, 'circuit.json'), 'utf8')).parts.find((p) => p.id === 'S1');
+  assert.equal(cli('apply', target, '--ops', JSON.stringify([{ op: 'remove', part: 'S1' }])).status, 0);
+  const back = cli('apply', target, '--ops', JSON.stringify([{ op: 'add', part: s1 }]), '--lang', 'en');
+  assert.equal(back.status, 0, back.stdout + back.stderr);
+  assert.match(back.stdout, /⚠ new: warning: S1: pins 1 and 2 are joined/);
+  assert.doesNotMatch(back.stdout, /✖|refused|errors/i);
+  // Wired across the button (one pin of each side): DONE with no ⚠.
+  writeFileSync(spec, JSON.stringify(button([['T+', 'S1.1', 'S1.2'], ['S1.3', 'R1.1'], ['R1.2', 'D1.anode'], ['D1.cathode', 'T-']])));
+  const ok = cli('layout', join(dir, 'ok'), spec, '--lang', 'en');
+  assert.match(lastLine(ok.stdout), /^STATUS: DONE/);
+  assert.doesNotMatch(ok.stdout, /⚠/);
 });

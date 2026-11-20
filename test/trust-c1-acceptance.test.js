@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { autoLayout, formatLayout } from '../src/layout.js';
 import { formatIssue, t } from '../src/index.js';
+import { RECIPES } from '../src/recipes/index.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const SLOW = { timeout: 120_000 };
@@ -95,7 +96,7 @@ test('A4: every recipe in the catalog ends DONE, or WARNINGS with its reason (th
   const list = run(['catalog']).stdout;
   const after = list.slice(list.indexOf('Recipes'));
   const names = [...after.matchAll(/^ {2}([a-z0-9][a-z0-9-]*) \(/gm)].map((m) => m[1]);
-  assert.ok(names.length >= 20, `recipes found: ${names.length}`);
+  assert.deepEqual([...names].sort(), Object.keys(RECIPES).sort(), 'every recipe of the kit');
   const notDone = [];
   for (const name of names) {
     const dir = tempDir('pbi-c1-');
@@ -250,6 +251,9 @@ test('A14: a part under 50 % visible in every view gets one line in layout\'s an
     review: {
       ...r.review,
       advisory: [hidden('R1', 30, 'front'), hidden('R1', 20, 'back'), hidden('R2', 30, 'front'), hidden('R2', 90, 'back')],
+      // What review() computes from those PART_HIDDEN entries (its best view: R1 30 %; R2 is 90 % seen
+      // from the back, so not in the list); formatLayout reads this.
+      hidden: [{ part: 'R1', visible: 30, by: ['W9'] }],
     },
   };
   const text = formatLayout(fake, 'en', { t, formatIssue });

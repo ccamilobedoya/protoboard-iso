@@ -340,7 +340,7 @@ test('layout with a goal: the kit picks the standard value and says so; without 
 
 test('a part that burns only with the button pressed: layout ends WARNINGS saying so, review has the state in JSON', async () => {
   const made = await call('layout', { target: 'pressed-burns', recipe: 'npn-switch', values: { R2: '47', V1: 12 } });
-  assert.match(textOf(made), /⚠ warning: D1 carries 178 mA, more than its maximum 30 mA, with S1 pressed\./);
+  assert.match(textOf(made), /⚠ warning: D1 carries 178 mA, more than its maximum 30 mA: it burns out, with S1 pressed\./);
   assert.match(textOf(made), /STATUS: WARNINGS/);
   const r = jsonOf(await call('review', { target: 'pressed-burns', format: 'json' }));
   assert.equal(r.verdict, 'approved-with-warnings');
