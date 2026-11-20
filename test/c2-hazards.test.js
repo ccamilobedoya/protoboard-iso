@@ -4,6 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { autoLayout } from '../src/layout.js';
+import { expandRecipe } from '../src/recipes/index.js';
 import { checkHazards, simulate } from '../src/sim/index.js';
 import { hazardFix } from '../src/fix.js';
 import { checkCircuit, formatIssue } from '../src/index.js';
@@ -72,4 +73,26 @@ test('a motor rated to 3 V on 5 V has no computed fix; an LED on 9 V keeps its r
   const shown = formatSimulation(simulate(led), 'en', { formatIssue });
   assert.match(shown, /brightness over its maximum/);
   assert.doesNotMatch(shown, /\d{4} %/);
+});
+
+const buttonSpec = (nets) => ({ parts: [{ id: 'S1', type: 'button' }, { id: 'R1', type: 'resistor', value: '330' }, { id: 'D1', type: 'led', color: 'red' }], nets, supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }] });
+
+test('a button wired across joined pins still lays out; the finding is a doubt, never a blocking placement problem', () => {
+  const across = autoLayout(buttonSpec([['T+', 'S1.1'], ['S1.2', 'R1.1'], ['R1.2', 'D1.anode'], ['D1.cathode', 'T-']]));
+  assert.equal(across.status, 'done');
+  assert.deepEqual(across.problems ?? [], []);
+  assert.ok(checkHazards(across.circuit).doubts.some((d) => d.code === 'BUTTON_PINS_JOINED' && d.severity === 'warning'));
+  assert.ok(checkCircuit(across.circuit).issues.some((i) => i.code === 'BUTTON_PINS_JOINED' && i.severity === 'warning'));
+  const one = autoLayout(buttonSpec([['T+', 'S1.1', 'S1.2'], ['S1.3', 'R1.1'], ['R1.2', 'D1.anode'], ['D1.cathode', 'T-']]));
+  assert.equal(one.status, 'done');
+  assert.ok(!checkHazards(one.circuit).doubts.some((d) => d.code === 'BUTTON_PINS_JOINED'));
+  assert.ok(!checkCircuit(one.circuit).issues.some((i) => i.code === 'BUTTON_PINS_JOINED'));
+});
+
+test('the button recipes lay out DONE with no BUTTON_PINS_JOINED', () => {
+  for (const name of ['button-pullup', 'button-pulldown', 'uno-button']) {
+    const r = autoLayout(expandRecipe(name).spec);
+    assert.equal(r.status, 'done', name);
+    assert.ok(!checkCircuit(r.circuit).issues.some((i) => i.code === 'BUTTON_PINS_JOINED'), name);
+  }
 });
