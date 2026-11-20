@@ -54,8 +54,8 @@ test('a board drives a buzzer straight from D10: WARNINGS with D10 high, the pin
   assert.deepEqual(h.when, { part: 'U1', pin: 'D10', name: 'D10', value: 1 });
   assert.ok(h.params.current.value > 0.085 && h.params.current.value < 0.092, 'about 88 mA');
   assert.equal(h.params.max.value, 0.04);
-  assert.match(text(built), /⚠ warning: U1\.D10 carries 88\.\d mA, more than its maximum 40 mA, with D10 high\.\n/);
-  assert.match(text(built, 'es'), /⚠ aviso: Por U1\.D10 pasan 88,\d mA, más que su máximo de 40 mA, con D10 en alto\.\n/);
+  assert.match(text(built), /⚠ warning: U1\.D10 carries 88\.\d mA, more than its maximum 40 mA: the pin can be damaged, with D10 high\.\n/);
+  assert.match(text(built, 'es'), /⚠ aviso: Por U1\.D10 pasan 88,\d mA, más que su máximo de 40 mA: el pin se puede dañar, con D10 en alto\.\n/);
   assert.match(lastLine(text(built)), /^STATUS: WARNINGS · /);
   // The states: the three outputs of the program, D8 high at rest already, D9 and D10 held high.
   assert.deepEqual(built.review.hazardStates, { checked: 2, total: 2, controls: 0, outputs: 3 });

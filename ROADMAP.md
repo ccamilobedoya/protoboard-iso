@@ -503,6 +503,14 @@ in the log of `PLANNING.md`.
 - ✅ Status per decision (N09): every entry of the decision log in `PLANNING.md` (and `planeacion.md`) gets a status, and a replaced one says «replaced by N»; a test checks it. Today: entries have no status, so a reader cannot tell which ones still hold — done 2026-10-29: a status column in both logs (76 in force, 5 replaced in whole or in part), `test/decisions.test.js`
 - ✅ Index of the documents (N18): `docs/en/README.md` and `docs/es/README.md` with a generated block, one line per document (title and what it is for), and a step in `npm run verify` that fails when it is stale. Today: the README and the code map link documents, but nothing lists them all — done 2026-10-29: `docs/en/README.md`, `docs/es/README.md`, `scripts/docs-index.js`; the check lives in `test/docs.test.js` (part of `npm test`, so of `npm run verify`)
 
+## Trust: what DONE means (2026-11) 🔜
+
+- ✅ Reverse polarity is a hazard (regulators, op-amps, 555, boards); a negative bench supply simulates
+- ✅ The hazard check visits the ends of each environment field a sensor follows
+- ✅ A relay driven but not pulled in (`SIM_RELAY_UNDERDRIVEN`); a button across joined pins (`BUTTON_PINS_JOINED`)
+- ✅ A computed fix leaves the part working; damage lines say what happens to the part
+- ⬜ The same "driven but not working" idea for other parts (see the notes of the work)
+
 ## Optional, later ⬜
 
 Ideas worth keeping, with no date. Pick them up after the stages above, or when a lesson

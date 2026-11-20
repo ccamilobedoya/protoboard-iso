@@ -438,3 +438,20 @@ export const CLIMATE = {
     BMP280: { chip: 0x58, humidity: false, pressure: true, regulated: false, current: 0.4e-3 },
   },
 };
+
+// Reverse voltage a supply input takes before it is damaged: the supply pin below the ground (or common)
+// pin, in volts. One place for every family; the physics review reads this table.
+//   ic         0.5 V [assumed]: an IC's input has a substrate or ESD diode to its ground pin that starts to
+//              conduct near 0.6 V; the datasheets of regulators (78xx, LM317), the 555 and the op-amps
+//              give no reverse rating at all (their absolute maximum is the ground pin as the lowest
+//              potential), so any reverse voltage is outside it and 0.5 V only keeps the solver's noise out.
+//   board      0.5 V [assumed]: a development board's supply pins (its regulator, its USB diode): same reason.
+//   capacitor  1 V [assumed]: aluminium electrolytic datasheets allow a reverse voltage of about 1 V
+//              briefly (the contract's "about 1 V"); beyond it the oxide layer reforms and the part heats.
+// A LED counts as lit, for a computed fix, from a tenth of its rated current (brightness 0.1): the
+// look of the page says a tenth of the rated current "still shows clearly" (look.js, glowOpacity).
+export const LED_LIT = 0.1;
+// Above this share of the rated current (1.5 = the 30 mA an LED's maximum is, against its rated 20 mA [assumed
+// for every family]) a brightness is said in words ("over its maximum"), not as a percentage.
+export const BRIGHTNESS_OVER = 1.5;
+export const REVERSE_LIMITS = { ic: 0.5, board: 0.5, capacitor: 1 };

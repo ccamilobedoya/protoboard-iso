@@ -510,6 +510,14 @@ las decisiones en el registro de `PLANNING.md`.
 - ✅ Estado por decisión (N09): cada entrada del registro de decisiones de `PLANNING.md` (y `planeacion.md`) lleva un estado, y una reemplazada dice «reemplazada por N»; una prueba lo comprueba. Hoy: las entradas no tienen estado, y quien lee no sabe cuáles siguen en pie — hecho el 2026-10-29: una columna de estado en los dos registros (76 vigentes, 5 reemplazadas del todo o en parte), `test/decisions.test.js`
 - ✅ Índice de los documentos (N18): `docs/en/README.md` y `docs/es/README.md` con un bloque generado, una línea por documento (título y para qué sirve), y un paso de `npm run verify` que falla cuando queda viejo. Hoy: el README y el mapa del código enlazan documentos, pero nada los lista todos — hecho el 2026-10-29: `docs/en/README.md`, `docs/es/README.md`, `scripts/docs-index.js`; la comprobación vive en `test/docs.test.js` (parte de `npm test`, y así de `npm run verify`)
 
+## Confianza: qué significa LISTO (2026-11) 🔜
+
+- ✅ La polaridad invertida es un peligro (reguladores, amplificadores, 555, placas); una fuente de banco negativa se simula
+- ✅ La revisión de peligros visita los extremos de cada campo del ambiente que sigue un sensor
+- ✅ Un relé manejado que no cierra (`SIM_RELAY_UNDERDRIVEN`); un pulsador entre pines unidos (`BUTTON_PINS_JOINED`)
+- ✅ Un arreglo calculado deja la pieza funcionando; las líneas de daño dicen qué le pasa a la pieza
+- ⬜ La misma idea de «manejado pero no funciona» para otras piezas
+
 ## Opcional, más adelante ⬜
 
 Ideas que vale la pena guardar, sin fecha. Se retoman después de las etapas de arriba, o

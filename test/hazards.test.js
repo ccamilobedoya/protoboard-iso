@@ -93,11 +93,11 @@ test('npn-switch with a 47 Ω collector resistor at 12 V: nothing burns at rest,
   assert.ok(d1.params.current.value > 0.17 && d1.params.current.value < 0.19, 'about 178 mA');
   assert.ok(r.review.hazards.every((h) => h.when), 'nothing at rest');
   const en = formatLayout(r, 'en', { t, formatIssue });
-  assert.match(en, /⚠ warning: D1 carries 178 mA, more than its maximum 30 mA, with S1 pressed\.\n/);
+  assert.match(en, /⚠ warning: D1 carries 178 mA, more than its maximum 30 mA: it burns out, with S1 pressed\.\n/);
   assert.match(en, /⚠ warning: R2 dissipates [\d.]+ W, more than its 250 mW: it overheats, with S1 pressed\.\n/);
   assert.match(en.split('\n').at(-1), /^STATUS: WARNINGS · /);
   const es = formatLayout(r, 'es', { t, formatIssue });
-  assert.match(es, /⚠ aviso: Por D1 pasan 178 mA, más que su máximo de 30 mA, con S1 oprimido\.\n/);
+  assert.match(es, /⚠ aviso: Por D1 pasan 178 mA, más que su máximo de 30 mA: se quema, con S1 oprimido\.\n/);
   // The same recipe at its defaults: nothing burns pressed either.
   const fine = autoLayout(expandRecipe('npn-switch').spec);
   assert.equal(fine.status, 'done');
@@ -147,7 +147,7 @@ test('the states are capped: past the cap the review says how many were checked,
   const states = controlStates(compiled.program, engine);
   assert.deepEqual(states, [{ part: 'S1', field: 'pressed', value: true, rest: false }]);
   // With room for no state, the hazard pressed is not found, and the count says so.
-  assert.deepEqual(engineHazards(engine, states, 0), { hazards: [], states: { checked: 0, total: 1, controls: 1, outputs: 0 }, ok: true });
+  assert.deepEqual(engineHazards(engine, states, 0), { hazards: [], doubts: [], states: { checked: 0, total: 1, controls: 1, outputs: 0 }, ok: true });
   assert.ok(STATES_MAX >= 16);
   const capped = { hazards: [], hazardStates: { checked: STATES_MAX, total: STATES_MAX + 6 } };
   assert.match(formatHazards(capped, 'en', formatIssue, t).join('\n'), new RegExp(`^States checked for damage: ${STATES_MAX} of ${STATES_MAX + 6} \\(one control or program output at a time`));

@@ -2,6 +2,7 @@
 
 import { t, decimalSeparator } from '../i18n/index.js';
 import { formatValue } from '../core/units.js';
+import { BRIGHTNESS_OVER } from './models.js';
 import { nodeParams } from '../circuit/checks.js';
 import { linesFor, runtimeWords } from './lines.js';
 
@@ -51,7 +52,7 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
     else if (p.kind === 'MCU') text = [p.usb ? `USB ${f(p.usb.voltage, 'V')} ${f(p.usb.current, 'A')}` : null, `${t(lang, 'sim.q.mcu.vdd')} ${f(p.vdd, 'V')}`, ...p.pins.map((x) => `${x.name} ${x.mode === 'output' ? t(lang, `sim.mcu.${x.level ? 'high' : 'low'}`) : t(lang, `sim.mcu.input${x.pull ? `.${x.pull}` : ''}`)} ${f(x.voltage, 'V')} ${f(x.current, 'A')}`), p.program?.error ? t(lang, 'sim.mcu.programError', { error: p.program.error }) : null, f(p.power, 'W')].filter(Boolean).join(' · ');
     else if (p.kind === 'OPA') text = [...p.amps.map((a) => `${a.name ? `${t(lang, 'sim.opamp.amp', { n: a.name })}: ` : ''}${t(lang, 'sim.opamp.' + a.state)} · V+ ${f(a.vplus, 'V')} · V− ${f(a.vminus, 'V')} · ${t(lang, 'sim.q.opamp.vout')} ${f(a.vout, 'V')} · ${f(a.current, 'A')}`), f(p.power, 'W')].join(' · ');
     else if (p.kind === 'TMR') text = `${t(lang, 'sim.timer.' + p.state)} · ${t(lang, 'sim.q.timer.vout')} ${f(p.vout, 'V')} · ${t(lang, 'sim.q.timer.vthr')} ${f(p.vthr, 'V')} · ${t(lang, 'sim.q.timer.iout')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
-    else if (p.kind === 'LEDS') text = [...Object.entries(p.channels).map(([pin, c]) => `${pin} ${f(c.voltage, 'V')} ${f(c.current, 'A')} ${Math.round(c.brightness * 100)} %`), `${t(lang, 'sim.q.leds.common')} ${f(Math.abs(p.current), 'A')}`, f(p.power, 'W')].join(' · ');
+    else if (p.kind === 'LEDS') text = [...Object.entries(p.channels).map(([pin, c]) => `${pin} ${f(c.voltage, 'V')} ${f(c.current, 'A')} ${c.brightness > BRIGHTNESS_OVER ? t(lang, 'sim.bright.over') : `${Math.round(c.brightness * 100)} %`}`), `${t(lang, 'sim.q.leds.common')} ${f(Math.abs(p.current), 'A')}`, f(p.power, 'W')].join(' · ');
     else if (p.kind === 'TMP') text = [p.state !== 'ok' && t(lang, `sim.lm35.${p.state}`), `${f(p.temperature, '°C')}`, `${t(lang, 'sim.q.lm35.vout')} ${f(p.vout, 'V')}`, `${t(lang, 'sim.q.lm35.vs')} ${f(p.vs, 'V')}`, `${t(lang, 'sim.q.lm35.own')} ${f(p.quiescent, 'A')}`].filter(Boolean).join(' · ');
     else if (p.kind === 'HAL') text = [p.state !== 'ok' && t(lang, `sim.hall.${p.state}`), `${p.field} G`, `${t(lang, 'sim.q.hall.vout')} ${f(p.vout, 'V')}`, `${t(lang, 'sim.q.hall.vs')} ${f(p.vs, 'V')}`, `${t(lang, 'sim.q.hall.own')} ${f(p.quiescent, 'A')}`].filter(Boolean).join(' · ');
     else if (p.kind === 'VSN') text = `${t(lang, 'sim.q.divider.vin')} ${f(p.vin, 'V')} · S ${f(p.vs, 'V')} · ${t(lang, 'sim.q.divider.current')} ${f(p.current, 'A')}`;

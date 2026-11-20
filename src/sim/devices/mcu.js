@@ -11,9 +11,9 @@
 // adapter) stay unsupported: `accepts` takes only boards whose family has a model.
 
 import { resistor, junction, regulatorElement, partSource, gpioStage } from '../mna.js';
-import { MCUS, I2C_PINS } from '../models.js';
+import { MCUS, I2C_PINS, REVERSE_LIMITS } from '../models.js';
 import { createRunner, levelAt } from '../program.js';
-import { issue, stress, note, q } from './shared.js';
+import { issue, stress, reverseSupply, note, q } from './shared.js';
 
 const ESD = { is: 1e-14, n: 1 }; // the protection diodes on every pin
 const RESET_PULL = 10e3; // EN / RESET pull-up on the board
@@ -280,7 +280,7 @@ export const mcu = {
     const power = entry.pins.reduce((sum, x) => sum + h.volt(x.index) * (currents[x.name] ?? 0), 0) + (entry.usb ? 5 * usb : 0);
     const run = entry.ctrl?.runner;
     const program = run ? { error: run.error, time: run.time, until: run.waitingUntil, serial: [...run.log, ...(run.line ? [run.line] : [])].slice(-12), notes: [...run.notes] } : null;
-    return { usb: entry.usb ? { voltage: v(entry.vbus), current: usb } : null, vdd: v(entry.vdd), rail, pins, power, currents, ...(program && { program }) };
+    return { usb: entry.usb ? { voltage: v(entry.vbus), current: usb } : null, vbus: v(entry.vbus), vdd: v(entry.vdd), rail, pins, power, currents, ...(program && { program }) };
   },
   limits(entry, r) {
     const m = entry.model;
@@ -288,6 +288,14 @@ export const mcu = {
     const out = r.pins.map((x) => stress('SIM_OVER_CURRENT', 'current', Math.abs(x.current), m.maxPin, 'A', { pin: x.name }));
     for (const ids of entry.ctrl?.shared ?? []) out.push(note('warning', 'SIM_LIBRARY_SHARED', { part: entry.id, parts: ids.join(', '), first: ids[0] }));
     if (r.rail != null && entry.power.logic !== entry.power.usb) out.push(stress('SIM_OVER_CURRENT', 'current', r.rail, m.regulator.maxCurrent, 'A', { of: 'regulator' }));
+    // A supply pin below the ground pin (a battery the wrong way round): the board's power pin of the USB
+    // rail and its logic rail, each named with the ground pin.
+    const gnd = entry.power.ground?.find((n) => entry.wired.includes(n)) ?? 'GND';
+    const rails = [[entry.power.usb, r.vbus], ...(entry.power.logic !== entry.power.usb ? [[entry.power.logic, r.vdd]] : [])].filter(([name]) => name && entry.wired.includes(name));
+    if (rails.length) {
+      const [name, volts] = rails.reduce((a, b) => (Number(b[1]) < Number(a[1]) ? b : a));
+      out.push(reverseSupply(-volts, REVERSE_LIMITS.board, name, gnd));
+    }
     for (const x of r.pins) {
       if (x.voltage > r.vdd + 0.3 || x.voltage < -0.3) out.push(note('warning', 'SIM_PIN_OVERVOLTAGE', { part: entry.id, pin: x.name, voltage: q(x.voltage, 'V'), max: q(r.vdd, 'V') }));
     }

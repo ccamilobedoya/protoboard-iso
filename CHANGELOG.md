@@ -9,6 +9,11 @@ detail.
 
 ## [Unreleased]
 
+### Fixed
+
+- Trust: a circuit fed backwards is a hazard, not a silent APPROVED: regulators, op-amps, the 555 and development boards with the supply pin below the ground pin (`SIM_REVERSE_VOLTAGE`, the line names both pins), a bench supply with a negative `voltage` simulates as the same supply reversed, the hazard check also visits the bottom and top of each environment field a sensor follows, a relay driven but not pulled in says so (`SIM_RELAY_UNDERDRIVEN`), and a push button with different nets on two joined pins says so (`BUTTON_PINS_JOINED`).
+- A computed fix leaves an LED lit and a motor above the bottom of its voltage range, or the kit says it has none; a lone overloaded resistor gets none. Damage lines end by saying what happens to the part; a brightness far over the rated one is said in words, not as thousands of per cent.
+
 ## [0.12.1] - 2026-11-18
 
 A fix for videos: a part that lands stays seen when the focus moves on before it touches down.
