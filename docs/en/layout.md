@@ -188,9 +188,12 @@ measures a drawing (`src/layout-sight.js`): the part, the parts it overlaps on s
 those, painted far to near in both views at 2 px/mm in a frame around them. If it leaves itself, or
 a part it covers more than before, under `SEEN_SHARE` (75 %) in its best view, the next candidate is
 tried; the first one by cost is used only when none is free of it. Jumpers (step 3) are measured the
-same way. Before, what hides what was found only after a whole try, by the review, and the relayout
-loop moved one place per try: ten LEDs with their resistors spent all 24 tries on resistors hidden
-by LEDs and jumpers; now the first try is clean.
+same way. It starts only when the first try leaves more than `HIDDEN_SETTLED` (5) parts hidden in
+every view: the relayout loop moves one place per item and per try, which settles every recipe (at
+most 5, `laser-uno`) and none of the large cases (ten LEDs from one pin 6 to 11, an UNO with a
+74HC595 and eight LEDs 8), which spent all 24 tries on resistors hidden by LEDs and jumpers. So a
+circuit the loop settles is placed exactly as before (recipes are published and filmed), and a
+large one is measured from its second try on and ends in two or three.
 
 After each part the cursor of its half (both halves for a part across the channel; the half of each
 lead for a part off the board) moves to two columns past its rightmost lead, or past the right edge
@@ -334,8 +337,11 @@ difference, which its line says.
 **Memory.** A part is added without copying the circuit (`addOne`; `applyOps` copies all of it),
 built alone on a board shared by the candidates of the same size (`builtAlone`), and the memo of the
 geometry checks keeps at most `MEMO_STATES` (1500) states, and before each review only that try's
-own steps. Two hundred resistors in series on a 9 V battery: `DONE` in one try, about 8 s; the
-review's drawing of a board 400 columns long is the largest part of its memory (below).
+own steps. `buildCircuit` keeps its last two results by the circuit's text (one review built the
+same circuit five or six times), and the inspector's raster keeps each part's cells in a typed list,
+not a Set (`src/render/coverage.js`); both give the same figures (`test/recipe-visibility.test.js`).
+Two hundred resistors in series on a 9 V battery: `DONE` in one try, about 6 s, 0.62 GB; through the
+CLI, with its page, about 1.05–1.1 GB (below).
 
 ### Cost: what made large circuits slow (measured 2026-11-20)
 
@@ -352,22 +358,24 @@ LEDs with their resistors (on 0.12.1 ten took 59 s and ended
 - **The tries never converged.** Each try ended with three to nine parts or jumpers hidden in both
   views (`PART_HIDDEN`), the relayout loop moved one place per try, and the orders the nets give ran
   eight tries more each, one of them the very order already placed: 24 tries and the repair's
-  `suggest` (each candidate a full drawing, 13 s). Now visibility is measured while placing, and an
-  order equal to the one already placed is skipped.
+  `suggest` (each candidate a full drawing, 13 s). Now visibility is measured while placing once the
+  first try shows the loop cannot settle it, and an order equal to the one already placed is skipped.
 
-Measured on 2026-11-20, load average about 1 (one process each, peak resident memory), before → after:
+Measured on 2026-11-20, load average 1 to 1.5 (one process each, peak resident memory), before →
+after:
 
 | Case | Before (0.12.1 code) | After |
 |---|---|---|
-| UNO pin D8 → ten LEDs with 220 Ω, a program driving it | `CHANGES`, 24 tries, 64 s, 2.9 GB | `WARNINGS` (the pin over its current), 1 try, 2.6–3.3 s, 0.3–0.5 GB |
-| the same with twenty | did not end in 180 s | `WARNINGS`, 2 tries, 9 s, 0.6 GB |
-| UNO + 74HC595 + eight LEDs (18 parts) | `WARNINGS`, 20 tries, 37 s, 2.8 GB | `WARNINGS`, 9 tries, 12–15 s, 0.5 GB |
-| two hundred resistors in series on a 9 V battery | out of memory, exit 134 | `DONE`, 1 try, 8 s, 1.08 GB (the CLI with its page: 1.5 GB) |
-| every recipe (60) / with the layout examples (65) | 20.3 s / 24.8 s | 14.7 s / 18.1 s, all `DONE` |
+| UNO pin D8 → ten LEDs with 220 Ω, a program driving it | `CHANGES`, 24 tries, 64 s, 2.9 GB | `WARNINGS` (the pin over its current), 2 tries, 3.0 s, 0.4 GB |
+| the same with twenty | did not end in 180 s | `WARNINGS`, 3 tries, 8.3 s, 0.5 GB |
+| UNO + 74HC595 + eight LEDs (18 parts) | `WARNINGS`, 20 tries, 37 s, 2.8 GB | `WARNINGS`, 12 tries, 9.4 s, 0.6 GB |
+| two hundred resistors in series on a 9 V battery | out of memory, exit 134 | `DONE`, 1 try, 5.6 s, 0.62 GB; the CLI with its page 8.8 s, 1.04–1.11 GB |
+| every recipe (60) / with the layout examples (65) | 16.7 s / 20.9 s | 15.9 s / 17.7 s, all `DONE` |
 
-Three recipes got slower on their own: `uno-seven-segment` 1.3 → 2.1 s (the same three tries, each
-measuring what it hides), `clap-switch` 0.6 → 1.1 s (its two ground nets through `U1.GND` are now
-one, and it takes 8 tries instead of 3), `voltage-sensor-uno` 0.07 → 0.4 s (3 tries instead of 1).
+Against the kit just before this work (with the doubts and the `Behaviour` line), the recipes went
+from 26.5 s to 15.6 s and none got slower by more than 10 %. Placements: every recipe and layout
+example is placed as on 0.12.1 except the four whose ground nets are now one (`uno-button`,
+`encoder-dimmer-uno`, `clap-switch`, `esp32-both-headers.json`).
 
 ### Two boards: a DevKit on both headers (since 2026-10-31)
 
@@ -559,6 +567,7 @@ missing. The CLI exits 0 for `DONE` and `WARNINGS` (1 for `FIX_SPEC`, 2 for `CHA
 | `PAIRS_PER_GROUP`, `JOIN_TRIES` | 40, 40 | jumper pairs measured per pair of groups; rejections before a net gives up |
 | `OVER_COST`, `OVER_MARGIN` | 12 mm, 0.3 mm | a jumper's cost per body it crosses; a jumper ending at a body's edge does not cross it |
 | `TRIES`, `REPAIRS` | 8, 4 | relayouts at most; jumpers the repair routes again at most |
+| `HIDDEN_SETTLED` | 5 | parts hidden in every view the first try may leave to the relayout loop; more, and what each place hides is measured from then on |
 | `SEEN_SHARE` | 75 % | a place that leaves a part under this share in its best view is used only when no other is free of it (`src/layout-sight.js`; the review blocks under 70 %) |
 | `MEMO_STATES` | 1500 | states the memo of one layout keeps |
 | `BUDGET_SECONDS`, `LIMITS.layoutSeconds` | 60 s, 300 s | the search's budget by default, and at most |
@@ -651,13 +660,14 @@ next call.
 
 In order of what would pay most:
 
-1. **Visibility is measured place by place, but the first place by cost wins when none is free of
-   it** (since 2026-11-20, "What it hides"). A better fallback (the least hidden, without a strange
-   place far away: tried, it made `uno-seven-segment` end `CHANGES`) would make more first tries pass.
-2. **The review's drawing is the largest part of a long circuit's memory.** For two hundred
-   resistors (a board 400 columns long) `review` takes about 450 MB of resident memory on its own,
-   the page as much again (`src/inspect.js`, `src/render/coverage.js`: a raster of the whole frame
-   at 5 px/mm and a set of cells per part).
+1. **Visibility is measured place by place only for large circuits, and the first place by cost wins
+   when none is free of it** (since 2026-11-20, "What it hides"). A better fallback (the least
+   hidden, without a strange place far away: tried, it made `uno-seven-segment` end `CHANGES`) would
+   make more first tries pass.
+2. **A long circuit's page and review take most of its memory.** For two hundred resistors (a board
+   400 columns long) the page alone peaks at about 0.6 GB (two interactive views, 17 MB of HTML),
+   and the CLI process at 1.04–1.11 GB: the drawings' geometry is garbage the engine collects late.
+   A coarser raster for wide frames was measured and saved nothing.
 3. **The loop forbids one place at a time** and starts over. With several blocking items it can
    still spend its tries in one area; forbidding a small region, or retrying only the parts after
    the victim, would converge faster.

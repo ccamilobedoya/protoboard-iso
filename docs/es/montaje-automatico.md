@@ -206,10 +206,13 @@ revisión mide un dibujo (`src/layout-sight.js`): el componente, los que se le s
 y lo que tapa a esos, pintados de lejos a cerca en las dos vistas a 2 px/mm, en un marco alrededor
 de ellos. Si se deja a sí mismo, o a un componente que tapa más que antes, por debajo de
 `SEEN_SHARE` (75 %) en su mejor vista, se prueba la candidata siguiente; la primera por costo se usa
-solo si ninguna se libra. Los cables (paso 3) se miden igual. Antes, qué tapa qué se sabía solo
-después de un intento entero, por la revisión, y el ciclo de reintentos movía un lugar por intento:
-diez LED con sus resistencias gastaban los 24 intentos en resistencias tapadas por LED y cables;
-ahora el primer intento sale limpio.
+solo si ninguna se libra. Los cables (paso 3) se miden igual. Empieza solo cuando el primer intento
+deja más de `HIDDEN_SETTLED` (5) componentes tapados en todas las vistas: el ciclo de reintentos
+mueve un lugar por punto y por intento, lo que arregla todas las recetas (como mucho 5,
+`laser-uno`) y ninguno de los casos grandes (diez LED de una pata, de 6 a 11; un UNO con un 74HC595
+y ocho LED, 8), que gastaban los 24 intentos en resistencias tapadas por LED y cables. Así un
+circuito que el ciclo arregla queda exactamente como antes (las recetas se publican y se filman), y
+uno grande se mide desde su segundo intento y termina en dos o tres.
 
 Después de cada componente, el cursor de su mitad (las dos mitades si está a caballo del canal; la
 mitad de cada pata si está fuera de la protoboard) pasa a dos columnas más allá de su pata más a la
@@ -367,9 +370,12 @@ fuente de diferencia, y su línea lo dice.
 **Memoria.** Un componente se agrega sin copiar el circuito (`addOne`; `applyOps` lo copia entero),
 se construye solo en una protoboard que comparten las candidatas del mismo tamaño (`builtAlone`), y
 la memoria de las comprobaciones de geometría guarda como mucho `MEMO_STATES` (1500) estados, y antes
-de cada revisión solo los pasos de ese intento. Doscientas resistencias en serie con una pila de
-9 V: `DONE` en un intento, unos 8 s; el dibujo de la revisión de una protoboard de 400 columnas es la
-mayor parte de su memoria (abajo).
+de cada revisión solo los pasos de ese intento. `buildCircuit` guarda sus dos últimos resultados por
+el texto del circuito (una revisión construía el mismo circuito cinco o seis veces), y la trama del
+inspector guarda las celdas de cada componente en una lista tipada, no en un Set
+(`src/render/coverage.js`); las dos dan las mismas cifras (`test/recipe-visibility.test.js`).
+Doscientas resistencias en serie con una pila de 9 V: `DONE` en un intento, unos 6 s, 0,62 GB; por
+la consola, con su página, unos 1,05–1,1 GB (abajo).
 
 ### Costo: lo que hacía lentos los circuitos grandes (medido el 2026-11-20)
 
@@ -389,23 +395,24 @@ terminaban en 120 s, un spec parecido se quedó sin memoria):
   tapados en las dos vistas (`PART_HIDDEN`), el ciclo movía un lugar por intento, y los órdenes que
   dan las redes corrían ocho intentos más cada uno, uno de ellos el mismo orden ya montado: 24
   intentos y el `suggest` de la reparación (cada candidata un dibujo entero, 13 s). Ahora la
-  visibilidad se mide al ubicar, y un orden igual al ya montado se salta.
+  visibilidad se mide al ubicar cuando el primer intento muestra que el ciclo no lo arregla, y un
+  orden igual al ya montado se salta.
 
-Medido el 2026-11-20, con carga media de 1 (un proceso cada uno, memoria residente máxima), antes →
-después:
+Medido el 2026-11-20, con carga media de 1 a 1,5 (un proceso cada uno, memoria residente máxima),
+antes → después:
 
 | Caso | Antes (código de la 0.12.1) | Después |
 |---|---|---|
-| pata D8 de un UNO → diez LED con 220 Ω, un programa que la maneja | `CHANGES`, 24 intentos, 64 s, 2,9 GB | `WARNINGS` (la pata por encima de su corriente), 1 intento, 2,6–3,3 s, 0,3–0,5 GB |
-| lo mismo con veinte | no terminó en 180 s | `WARNINGS`, 2 intentos, 9 s, 0,6 GB |
-| UNO + 74HC595 + ocho LED (18 componentes) | `WARNINGS`, 20 intentos, 37 s, 2,8 GB | `WARNINGS`, 9 intentos, 12–15 s, 0,5 GB |
-| doscientas resistencias en serie con una pila de 9 V | sin memoria, salida 134 | `DONE`, 1 intento, 8 s, 1,08 GB (la consola con su página: 1,5 GB) |
-| todas las recetas (60) / con los ejemplos de montaje (65) | 20,3 s / 24,8 s | 14,7 s / 18,1 s, todas `DONE` |
+| pata D8 de un UNO → diez LED con 220 Ω, un programa que la maneja | `CHANGES`, 24 intentos, 64 s, 2,9 GB | `WARNINGS` (la pata por encima de su corriente), 2 intentos, 3,0 s, 0,4 GB |
+| lo mismo con veinte | no terminó en 180 s | `WARNINGS`, 3 intentos, 8,3 s, 0,5 GB |
+| UNO + 74HC595 + ocho LED (18 componentes) | `WARNINGS`, 20 intentos, 37 s, 2,8 GB | `WARNINGS`, 12 intentos, 9,4 s, 0,6 GB |
+| doscientas resistencias en serie con una pila de 9 V | sin memoria, salida 134 | `DONE`, 1 intento, 5,6 s, 0,62 GB; la consola con su página 8,8 s, 1,04–1,11 GB |
+| todas las recetas (60) / con los ejemplos de montaje (65) | 16,7 s / 20,9 s | 15,9 s / 17,7 s, todas `DONE` |
 
-Tres recetas se volvieron más lentas por sí solas: `uno-seven-segment` 1,3 → 2,1 s (los mismos tres
-intentos, cada uno midiendo lo que tapa), `clap-switch` 0,6 → 1,1 s (sus dos redes de tierra por
-`U1.GND` ahora son una, y toma 8 intentos en vez de 3), `voltage-sensor-uno` 0,07 → 0,4 s (3
-intentos en vez de 1).
+Frente al kit justo antes de este trabajo (con las dudas y la línea `Comportamiento`), las recetas
+pasaron de 26,5 s a 15,6 s y ninguna se volvió más lenta en más de 10 %. Ubicaciones: todas las
+recetas y los ejemplos de montaje quedan como en la 0.12.1 salvo los cuatro cuyas redes de tierra
+ahora son una (`uno-button`, `encoder-dimmer-uno`, `clap-switch`, `esp32-both-headers.json`).
 
 ### Dos protoboards: un DevKit en las dos filas de pines (desde el 2026-10-31)
 
@@ -608,6 +615,7 @@ con una red sin conectar. La consola sale con 0 con `DONE` y `WARNINGS` (1 con `
 | `PAIRS_PER_GROUP`, `JOIN_TRIES` | 40, 40 | pares de agujeros que se miden por par de grupos; rechazos antes de que una red se rinda |
 | `OVER_COST`, `OVER_MARGIN` | 12 mm, 0,3 mm | el costo de un cable por cada cuerpo que cruza; un cable que termina en el borde de un cuerpo no lo cruza |
 | `TRIES`, `REPAIRS` | 8, 4 | reintentos como máximo; cables que la reparación vuelve a trazar como máximo |
+| `HIDDEN_SETTLED` | 5 | componentes tapados en todas las vistas que el primer intento puede dejarle al ciclo de reintentos; con más, lo que tapa cada lugar se mide desde ahí |
 | `SEEN_SHARE` | 75 % | un lugar que deja a un componente por debajo de esta parte en su mejor vista se usa solo si ningún otro se libra (`src/layout-sight.js`; la revisión bloquea por debajo de 70 %) |
 | `MEMO_STATES` | 1500 | estados que guarda la memoria de un montaje |
 | `BUDGET_SECONDS`, `LIMITS.layoutSeconds` | 60 s, 300 s | el límite de tiempo de la búsqueda por defecto, y como mucho |
@@ -702,14 +710,15 @@ en su siguiente llamada.
 
 En orden de lo que más rendiría:
 
-1. **La visibilidad se mide lugar por lugar, pero gana el primero por costo cuando ninguno se libra**
-   (desde el 2026-11-20, «Lo que tapa»). Un mejor recurso (el menos tapado, sin irse a un lugar raro
-   y lejano: probado, hacía terminar `uno-seven-segment` en `CHANGES`) haría pasar más primeros
-   intentos.
-2. **El dibujo de la revisión es la mayor parte de la memoria de un circuito largo.** Con doscientas
-   resistencias (una protoboard de 400 columnas) `review` toma por sí solo unos 450 MB de memoria
-   residente, y la página otro tanto (`src/inspect.js`, `src/render/coverage.js`: una trama de todo
-   el marco a 5 px/mm y un conjunto de celdas por componente).
+1. **La visibilidad se mide lugar por lugar solo en circuitos grandes, y gana el primero por costo
+   cuando ninguno se libra** (desde el 2026-11-20, «Lo que tapa»). Un mejor recurso (el menos tapado,
+   sin irse a un lugar raro y lejano: probado, hacía terminar `uno-seven-segment` en `CHANGES`) haría
+   pasar más primeros intentos.
+2. **La página y la revisión de un circuito largo se llevan la mayor parte de su memoria.** Con
+   doscientas resistencias (una protoboard de 400 columnas) la página sola llega a unos 0,6 GB (dos
+   vistas interactivas, 17 MB de HTML), y el proceso de la consola a 1,04–1,11 GB: la geometría de
+   los dibujos es basura que el motor recoge tarde. Se midió una trama más gruesa para marcos anchos
+   y no ahorró nada.
 3. **El ciclo prohíbe un lugar a la vez** y empieza de nuevo. Con varios ítems bloqueantes todavía
    puede gastar sus intentos en una sola zona; prohibir una región pequeña, o rehacer solo los
    componentes posteriores a la víctima, convergería más rápido.
