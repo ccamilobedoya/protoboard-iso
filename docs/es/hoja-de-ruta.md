@@ -522,6 +522,8 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ✅ La revisión de peligros visita los extremos de cada campo del ambiente que sigue un sensor
 - ✅ Un relé manejado que no cierra (`SIM_RELAY_UNDERDRIVEN`); un pulsador entre pines unidos (`BUTTON_PINS_JOINED`)
 - ✅ Un arreglo calculado deja la pieza funcionando; las líneas de daño dicen qué le pasa a la pieza
+- ⬜ Un arreglo calculado para un motor sobre su rango como «una resistencia de N Ω de al menos X W» (un motor de 3 V en 5 V pide unos 4,7 Ω a 1 W; hoy el kit dice que no tiene porque una de ¼ W se recalienta)
+- ⬜ Límites para una pieza con pines sin conectar (un 555 suelto con la alimentación invertida no se marca)
 - ⬜ La misma idea de «manejado pero no funciona» para otras piezas
 - ✅ Dudas junto a los peligros: `review` devuelve `doubts` (un componente conectado sin modelo de simulación, todo aviso sobre el programa de una placa, un programa atascado sin dejar pasar el tiempo, cualquier otro aviso de la simulación, una fuente que no se resuelve); basta una para APROBADO CON AVISOS y `STATUS: WARNINGS`, bajo su propio encabezado, en la consola y en las herramientas MCP (`src/sim/index.js` `doubtsOf`, `src/review.js`)
 - ✅ Un archivo de programa no encontrado dice dónde buscó el kit (la carpeta del circuito, junto a `circuit.json`); layout juzga el circuito que deja desde su carpeta
@@ -533,6 +535,9 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ✅ Los circuitos grandes no son lentos por construcción (C4): una ubicación se comprueba frente a los componentes que tiene cerca, no reconstruyendo el circuito entero; lo que tapa un lugar se mide al ubicar (`src/layout-sight.js`); memoria acotada (sin copiar el circuito por candidata, una memoria con tope). Diez LED de una pata: un intento, `WARNINGS`, unos 3 s (eran 24 intentos, `CHANGES`, unos 60 s); doscientas resistencias en serie: `DONE` (se quedaba sin memoria)
 - ✅ Las redes que comparten una pata son una sola red, con una nota que las nombra (`LAYOUT_NETS_JOINED`); el mismo spec da el mismo circuito
 - ⬜ El dibujo de la revisión de una protoboard muy larga se lleva la mayor parte de la memoria (doscientas resistencias: unos 450 MB la revisión, otro tanto la página): una trama por vista de todo el marco (`src/inspect.js`, `src/render/coverage.js`)
+- ✅ Un asistente puede comprobar desde la línea de comandos lo que hace un circuito (C5): `simulate --run <s>` lo corre como la página (un solo motor) con `--env`, `--set`, `--press` y `--at`, y dice lo que imprimió el programa, la parte del tiempo que cada salida estuvo encendida, sus cambios, su frecuencia y su ciclo útil, y las lecturas al final; `--transient` avanza el programa de una placa como la página y nombra `--run`; la respuesta de `layout` trae una línea `Comportamiento, primeros 2 s` para un circuito que cambia solo; `simulate` del MCP lleva `run_s`, `environment`, `set`, `press`, `at`
+- ✅ El oscilador de relajación con amplificador operacional corre (se detenía en su primer cambio); `int x = a == b;` de un sketch es 1 o 0 (siempre era 0: `uno-button` nunca encendía)
+- ✅ La línea `Revisado` nombra los campos del ambiente visitados en sus dos extremos (`en reposo, luz en sus dos extremos`)
 
 ## Opcional, más adelante ⬜
 

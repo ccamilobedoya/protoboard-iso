@@ -26,6 +26,7 @@ const error = (code, params) => ({ severity: 'error', code, params });
 // issue (code + params), so every front end says the same thing in the person's language.
 export function inputIssueFor(issue, lang = 'en') {
   const { what, shape } = issue.params;
+  if (!what) return issue; // a cap (src/limits.js): its params are numbers
   return { ...issue, params: { ...issue.params, what: t(lang, `input.what.${what}`), ...(shape && { shape: t(lang, `input.shape.${shape}`) }), ...(issue.params.got && { got: t(lang, `input.got.${issue.params.got}`) }) } };
 }
 export const inputErrorText = (issue, lang = 'en') => formatIssue(inputIssueFor(issue, lang), lang);
@@ -81,8 +82,23 @@ export function resolveTarget(target) {
 export function loadCircuit(paths) {
   if (!existsSync(paths.circuitFile)) throw inputError('INPUT_MISSING', { what: 'circuit', file: paths.circuitFile, shape: 'object', reason: 'ENOENT' });
   const large = fileTooLarge(statSync(paths.circuitFile).size);
-  if (large) throw Object.assign(new Error(t('en', `check.${large.code}`, large.params)), { issue: large });
-  return withFolder(readJsonInput(paths.circuitFile, { what: 'circuit' }), paths);
+  if (large) throw new InputError(large); // a cap is a mistake of the input, said in the person's language
+  const circuit = readJsonInput(paths.circuitFile, { what: 'circuit' });
+  checkCircuitShape(circuit, paths.circuitFile);
+  return withFolder(circuit, paths);
+}
+
+// The shape of a circuit read from disk, checked once here for every command: the fields the kit
+// walks must be what it expects, so no command meets a list that is text and fails inside.
+const FIELD_SHAPES = { parts: 'objectList', supplies: 'list', spec: 'object', netLabels: 'object', environment: 'object', page: 'object' };
+function checkCircuitShape(circuit, file) {
+  for (const [field, shape] of Object.entries(FIELD_SHAPES)) {
+    const value = circuit[field];
+    if (value === undefined || value === null) continue;
+    const isObject = typeof value === 'object' && !Array.isArray(value);
+    const ok = shape === 'object' ? isObject : Array.isArray(value) && (shape === 'list' || value.every((v) => v && typeof v === 'object' && !Array.isArray(v)));
+    if (!ok) throw inputError('INPUT_BAD_FIELD', { what: 'circuit', file, field, shape, got: gotWord(value) });
+  }
 }
 const withFolder = (circuit, paths) => Object.defineProperty(circuit, CIRCUIT_FOLDER, { value: dirname(paths.circuitFile), enumerable: false, configurable: true });
 

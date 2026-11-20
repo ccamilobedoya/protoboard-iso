@@ -133,6 +133,11 @@ test('analogWrite on an ESP32: 1 kHz, its duty in 8 bits; 0 and 255 are plain le
   assert.equal(full.parts.U1.pins[0].pwm, undefined, 'no wave to step through');
 });
 
+test('a comparison stored in an int is 1 or 0, as C++ makes it (int on = digitalRead(2) == LOW)', () => {
+  const r = simulate(ledWith('void setup() { pinMode(13, OUTPUT); }\nvoid loop() { int on = 3 > 2; int off = 2 > 3; digitalWrite(13, on - off); delay(10); }'));
+  assert.ok(r.parts.D1.current > 5e-3, 'the LED is lit by a true comparison');
+});
+
 test('ESP32 LEDC, core 3 and core 2; tone with a duration, then quiet', () => {
   const core3 = pwmOf('void setup() { ledcAttach(13, 2000, 10); ledcWrite(13, 768); }\nvoid loop() { delay(1000); }');
   assert.ok(Math.abs(core3.duty - 768 / 1023) < 0.03, `duty ${core3.duty}`);

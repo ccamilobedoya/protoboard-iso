@@ -160,6 +160,12 @@ export const mcu = {
           if (ctx.h) this.runner.advance?.(ctx.h);
           sync();
         },
+        // What the program printed (engine.serial): the lines kept, the time each ended, and how many
+        // lines it has ended since setup.
+        serial() {
+          const r = this.runner;
+          return { printed: r.printed ?? 0, lines: r.log ?? [], stamps: r.stamps ?? [] };
+        },
         // When the program wants to run again (a delay ending, pulseIn's timeout): the engine ends a
         // step there, so a delayMicroseconds(10) is a pulse of 10 µs (engine.advance).
         until() {
@@ -294,7 +300,7 @@ export const mcu = {
     const rails = [[entry.power.usb, r.vbus], ...(entry.power.logic !== entry.power.usb ? [[entry.power.logic, r.vdd]] : [])].filter(([name]) => name && entry.wired.includes(name));
     if (rails.length) {
       const [name, volts] = rails.reduce((a, b) => (Number(b[1]) < Number(a[1]) ? b : a));
-      out.push(reverseSupply(-volts, REVERSE_LIMITS.board, name, gnd));
+      out.push(reverseSupply(-volts, REVERSE_LIMITS.board, name, gnd, 'board'));
     }
     for (const x of r.pins) {
       if (x.voltage > r.vdd + 0.3 || x.voltage < -0.3) out.push(note('warning', 'SIM_PIN_OVERVOLTAGE', { part: entry.id, pin: x.name, voltage: q(x.voltage, 'V'), max: q(r.vdd, 'V') }));

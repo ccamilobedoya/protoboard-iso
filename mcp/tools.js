@@ -34,8 +34,9 @@ import { InputError, inputErrorText, resolveTarget, loadCircuit, readHistory, ap
 import { svgToPng, rasterAvailable, rasterSearchIn } from '../src/node/raster.js';
 import { review, formatReview, PROFILES } from '../src/review.js';
 import { simulate } from '../src/sim/index.js';
+import { runCircuit, stimuliFromArgs, prepareRun } from '../src/sim/run.js';
 import { pickLanguage } from '../src/i18n/index.js';
-import { formatSimulation, formatFalstad } from '../src/sim/format.js';
+import { formatSimulation, formatFalstad, formatRun } from '../src/sim/format.js';
 import { compile, createEngine } from '../src/sim/index.js';
 import { toFalstad } from '../src/sim/falstad.js';
 import { nets, formatNets } from '../src/nets.js';
@@ -461,22 +462,44 @@ server.registerTool(
   {
     title: 'Simulate circuit',
     description:
-      'Node voltages and part currents from the circuit (a model, not a measurement). Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit"; kind "generator" for a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, short circuits and floating nodes. An emitter (a laser) adds its light to the environment for every light sensor, solved together. falstad: true adds the link that opens the same circuit in Falstad CircuitJS (DC state, parts Falstad lacks as equivalents, listed). Never show results a learner is asked to predict, and Falstad shows every value.',
+      'Node voltages and part currents from the circuit (a model, not a measurement). run_s: seconds run as the page runs it (environment, set, press "S1@0.5+0.2", at "1:light=9"): Serial, outputs, Hz. Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit"; kind "generator" for a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, shorts, floating nodes; a laser\'s light reaches the light sensors. falstad: true adds the link that opens the same circuit in Falstad CircuitJS (DC state, parts Falstad lacks as equivalents, listed). Never show results a learner is asked to predict, and Falstad shows every value.',
     inputSchema: {
       target: targetArg,
       analysis: z.enum(['dc', 'transient']).optional(),
       stop: z.number().positive().optional().describe('transient end time, s'),
       step: z.number().positive().optional().describe('transient step, s (default stop/1000)'),
       start: z.enum(['zero', 'dc']).optional(),
+      run_s: z.number().positive().optional(),
+      environment: z.any().optional(),
+      set: z.any().optional(),
+      press: z.array(z.string()).optional(),
+      at: z.array(z.string()).optional(),
       falstad: z.boolean().optional().describe('also the link that opens this circuit in Falstad CircuitJS'),
       ...common,
     },
     annotations: READ,
   },
-  safely(async ({ target, analysis = 'dc', stop, step, start, falstad = false, lang, format }) => {
+  safely(async ({ target, analysis = 'dc', stop, step, start, run_s, environment, set, press, at, falstad = false, lang, format }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
-    const result = simulate(circuit, { analysis, stop, step, start });
+    // The same stimuli and run as the command line (simulate --run, src/sim/run.js); nothing is saved.
+    const said = stimuliFromArgs({ environment, set, press, at });
+    const refused = (errors) => ({ ...answer(format, { ok: false, errors }, () => errors.map((e) => formatIssue(e, lang)).join('\n')), isError: true });
+    if (said.errors.length) return refused(said.errors);
+    if (run_s !== undefined) {
+      const run = runCircuit(circuit, { seconds: run_s, stimuli: said.stimuli });
+      if (run.errors) return refused(run.errors);
+      const response = answer(format, run, () => formatRun(run, lang, { formatIssue, netLabels: circuit.netLabels }));
+      return run.ok ? response : { ...response, isError: true };
+    }
+    if (said.stimuli.press.length || said.stimuli.at.length) return refused([{ severity: 'error', code: 'RUN_ONLY', params: { option: said.stimuli.press.length ? 'press' : 'at' } }]);
+    let result;
+    if (said.stimuli.env.length || said.stimuli.set.length) {
+      const prepared = prepareRun(circuit, said.stimuli);
+      if (prepared.errors) return refused(prepared.errors);
+      result = prepared.fatal ? { analysis, model: true, ok: false, issues: prepared.issues } : analysis === 'transient' ? prepared.engine.transient({ stop, step, start }) : prepared.engine.dc();
+      if (result.issues && prepared.issues?.length) result = { ...result, issues: [...result.issues, ...prepared.issues] };
+    } else result = simulate(circuit, { analysis, stop, step, start });
     if (falstad && result.ok) {
       const { program } = compile(circuit);
       const engine = createEngine(program);

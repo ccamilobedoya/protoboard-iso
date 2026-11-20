@@ -4,13 +4,17 @@
 // enough for an assistant to tell the user what the circuit does, show the sketch and offer only
 // changes the kit accepts, every number taken from the kit (docs/en/layout.md, "The answer").
 //
-//   answerExtras(circuit, { folder, lang, advise }) → { readings?, programs?, changeable?, advice? }
+//   answerExtras(circuit, { folder, lang, advise }) → { readings?, behaviour?, programs?, changeable?, advice? }
 //   formatExtras(r, lang, t) → lines for formatLayout, before its STATUS line
 //
 // Two lines come before the readings: `Solved` (r.solved, from autoLayout: the values a goal chose,
 // the simulated result, how far from the goal and the neighbouring standard values) and `Worth checking` (the
 // advisory: a part of a goal above its rated value as built, and the value that would bring it
 // under; information only, nothing is changed).
+// `Behaviour, first 2 s` follows the readings for a circuit that changes by itself (a board's program,
+// a 555, a generator, an op-amp beside a capacitor; sim/run.js behaviourOf): what each output did in a
+// bounded run, its frequency and duty when it toggles. The run stops at BEHAVIOUR_MS of the machine's
+// time, and the line then says it was not measured and how to measure it.
 
 import { simulate, compile } from './sim/index.js';
 import { readBeside, programFile, CIRCUIT_FOLDER } from './beside.js';
@@ -19,6 +23,7 @@ import { RECIPES, recipeDefaults, valueLimits } from './recipes/index.js';
 import { goalsOf } from './recipes/goals.js';
 import { adviseGoals } from './recipes/solve.js';
 import { formatValue } from './core/units.js';
+import { behaviourOf } from './sim/run.js';
 import { decimalSeparator } from './i18n/index.js';
 
 // Parts whose job is to be driven, by the simulator's kind: LEDs first, then the rest.
@@ -164,12 +169,26 @@ function adviceOf(circuit) {
   return list.length ? list : null;
 }
 
+const BEHAVIOUR_S = 2;
+const BEHAVIOUR_MS = 800;
+const SHOWN_OUTPUTS = 4;
+function behaviourLineOf(circuit) {
+  if (hidden(circuit)) return null;
+  const b = behaviourOf(circuit, { seconds: BEHAVIOUR_S, budgetMs: BEHAVIOUR_MS });
+  if (!b) return null;
+  if (b.skipped) return { seconds: b.seconds, skipped: b.skipped };
+  // What a person sees first: the parts, then the pins a program drives.
+  const outputs = [...b.outputs.filter((o) => o.kind !== 'pin'), ...b.outputs.filter((o) => o.kind === 'pin')];
+  return { seconds: b.seconds, outputs: outputs.map(({ intervals, intervalsTotal, ...o }) => o) };
+}
+
 export function answerExtras(circuit, { folder, lang = 'en', advise = true } = {}) {
   const readings = readingsOf(circuit);
+  const behaviour = behaviourLineOf(circuit);
   const programs = programsOf(circuit, folder ?? circuit[CIRCUIT_FOLDER]);
   const changeable = changeableOf(circuit, lang);
   const advice = advise && readings ? adviceOf(circuit) : null;
-  return { ...(advice && { advice }), ...(readings && { readings }), ...(programs && { programs }), ...(changeable && { changeable }) };
+  return { ...(advice && { advice }), ...(readings && { readings }), ...(behaviour && { behaviour }), ...(programs && { programs }), ...(changeable && { changeable }) };
 }
 
 // The unit a recipe's numeric value is in, by its field (a resistor's "330" carries its own).
@@ -227,6 +246,7 @@ export function formatExtras(r, lang, t) {
     if (parts.length > SHOWN_LOADS) items.push(t(lang, 'layout.readings.more', { count: parts.length - SHOWN_LOADS }));
     lines.push(t(lang, 'layout.readings', { items: items.join(' · ') }));
   }
+  if (r.behaviour) lines.push(behaviourText(r.behaviour, lang, t, f));
   for (const p of r.programs ?? []) {
     lines.push(t(lang, 'layout.program', { part: p.part }));
     for (const line of p.text.split('\n')) lines.push(line ? `  ${line}` : '');
@@ -243,4 +263,22 @@ export function formatExtras(r, lang, t) {
     lines.push(t(lang, 'layout.changeable', { items: items.join(' · ') }));
   }
   return lines;
+}
+
+// "Behaviour, first 2 s (simulated): D1 1 Hz, on 50 % of the time · U1.D13 1 Hz, on 50 % of the time".
+function behaviourText(b, lang, t, f) {
+  const seconds = f(b.seconds, 's');
+  if (b.skipped) {
+    const why = b.skipped.code === 'RUN_BUDGET' ? t(lang, 'layout.behaviour.slow', { budget: f(BEHAVIOUR_MS / 1000, 's') }) : t(lang, 'layout.behaviour.failed', { time: b.skipped.params?.time ? f(b.skipped.params.time.value, 's') : '0 s' });
+    return t(lang, 'layout.behaviour.skipped', { seconds, why, run: String(b.seconds) });
+  }
+  const item = (o) => {
+    const percent = Math.round(100 * (o.duty ?? o.onShare));
+    if (o.frequency) return t(lang, 'layout.behaviour.rhythm', { id: o.id, frequency: f(o.frequency, 'Hz'), percent });
+    if (!o.changes) return t(lang, o.onShare > 0.5 ? 'layout.behaviour.on' : 'layout.behaviour.off', { id: o.id });
+    return t(lang, 'layout.behaviour.share', { id: o.id, percent: Math.round(100 * o.onShare), changes: o.changes });
+  };
+  const items = b.outputs.slice(0, SHOWN_OUTPUTS).map(item);
+  if (b.outputs.length > SHOWN_OUTPUTS) items.push(t(lang, 'layout.behaviour.more', { count: b.outputs.length - SHOWN_OUTPUTS }));
+  return t(lang, 'layout.behaviour', { seconds, items: items.length ? items.join(' · ') : t(lang, 'layout.behaviour.none') });
 }

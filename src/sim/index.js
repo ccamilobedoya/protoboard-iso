@@ -94,7 +94,7 @@ export function environmentStates(program, engine) {
   const out = [];
   for (const c of engine.controls()) {
     if (c.id !== 'environment' || !followed.has(c.field) || !Number.isFinite(c.min) || !Number.isFinite(c.max)) continue;
-    for (const value of [c.min, c.max]) if (value !== c.value) out.push({ part: 'environment', field: c.field, value, rest: c.value, ...(c.programmed && { programmed: true }) });
+    for (const [end, value] of [['min', c.min], ['max', c.max]]) if (value !== c.value) out.push({ part: 'environment', field: c.field, value, end, rest: c.value, ...(c.programmed && { programmed: true }) });
   }
   return out;
 }
@@ -129,6 +129,8 @@ const PROGRAM_DOUBTS = new Set(['SIM_PROGRAM_FILE', 'SIM_PROGRAM_OUTSIDE', 'SIM_
 const warningsOf = (reading) => (reading.issues ?? []).filter((i) => (PROGRAM_DOUBTS.has(i.code) || i.severity === 'warning' || i.severity === 'error') && !NOT_DOUBTS.has(i.code));
 // One doubt per code and part (its readings change from state to state), and per call or file a
 // program's issue names; an issue that names no part, by all its params.
+// Doubts that can show in several states: the quantity whose highest value is the one reported.
+const STRONGEST = { SIM_RELAY_UNDERDRIVEN: 'current' };
 const doubtKey = (i) => (i.params?.part != null ? `${i.code} ${i.params.part} ${i.params.name ?? i.params.file ?? ''} ${i.params.line ?? ''}` : `${i.code} ${JSON.stringify(i.params ?? {})}`);
 const exceeded = (engine, reading) => Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
 const hazardKey = (h) => `${h.code} ${h.params.part}`;
@@ -160,21 +162,43 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
   const doubted = new Set(doubts.map(doubtKey));
   const tried = all.slice(0, max);
   for (const s of tried) {
-    if (!enterState(engine, s)) continue;
-    const reading = engine.dc();
-    const when = s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value };
+    const eng = s.engine ?? engine; // an environment state of a circuit that declares none runs on its own engine
+    if (!enterState(eng, s)) continue;
+    const reading = eng.dc();
+    const when = s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value, ...(s.end && { end: s.end }) };
     if (reading.ok) {
-      for (const h of exceeded(engine, reading)) if (!atRest.has(hazardKey(h))) hazards.push({ ...h, when });
-      for (const d of warningsOf(reading)) if (!doubted.has(doubtKey(d))) {
-        doubted.add(doubtKey(d));
-        doubts.push({ ...d, when });
+      for (const h of exceeded(eng, reading)) if (!atRest.has(hazardKey(h))) hazards.push({ ...h, when });
+      for (const d of warningsOf(reading)) {
+        if (!doubted.has(doubtKey(d))) {
+          doubted.add(doubtKey(d));
+          doubts.push({ ...d, when });
+        } else if (STRONGEST[d.code]) {
+          // Seen in several states: the one that tells the most (a relay's weak drive: the highest coil current).
+          const at = doubts.findIndex((x) => doubtKey(x) === doubtKey(d));
+          if (d.params[STRONGEST[d.code]].value > doubts[at].params[STRONGEST[d.code]].value) doubts[at] = { ...d, when };
+        }
       }
     }
-    leaveState(engine, s);
+    leaveState(eng, s);
   }
   const fields = new Set(states.filter((s) => s.part === 'environment').map((s) => s.field)).size;
   const controls = new Set(states.filter((s) => s.part !== 'environment').map((s) => `${s.part} ${s.field}`)).size;
-  return { hazards, doubts: doubts.filter((d) => !hazards.some((h) => hazardKey(h) === hazardKey(d))), states: { checked: tried.length, total: all.length, controls, outputs: outputs.pins.length, ...(fields && { environment: fields }) }, ok: true, ...(collect && { rest }) };
+  // The fields visited at both ends, by name, for the Checked line ("light at both ends").
+  const environmentFields = [...new Set(tried.filter((s) => s.part === 'environment').map((s) => s.field))];
+  return { hazards, doubts: doubts.filter((d) => !hazards.some((h) => hazardKey(h) === hazardKey(d))), states: { checked: tried.length, total: all.length, controls, outputs: outputs.pins.length, ...(fields && { environment: fields }) }, ok: true, ...(environmentFields.length && { environmentFields }), ...(collect && { rest }) };
+}
+
+// A circuit that declares no environment still has sensors that read one (an LDR's light, a
+// thermistor's temperature, each by its own value): the field is visited at both ends of its range all
+// the same. The circuit is compiled again with an empty environment declared, so its sensors follow
+// the registry's default range, and these states run on that engine (`engine` of the state); a sensor
+// with a value of its own is left as it is. Nothing here changes the reading at rest.
+function undeclaredEnvironmentStates(circuit, program) {
+  if (program.environment || !(program.devices ?? []).some(senses)) return [];
+  const again = compile({ ...circuit, environment: {} });
+  if (again.fatal) return [];
+  const engine = createEngine(again.program);
+  return environmentStates(again.program, engine).map((s) => ({ ...s, engine }));
 }
 
 // checkHazards' `doubts` (doubtsOf): what the kit could not tell, the one list the review shows.
@@ -182,7 +206,7 @@ export function checkHazards(circuit) {
   const compiled = compile(circuit);
   if (compiled.fatal) return { hazards: [], states: { checked: 0, total: 0, controls: 0, outputs: 0 }, checked: coverageOf(compiled, null), doubts: doubtsOf(circuit, compiled, null) };
   const engine = createEngine(compiled.program);
-  const { rest, ...result } = engineHazards(engine, controlStates(compiled.program, engine), STATES_MAX, { collect: true });
+  const { rest, ...result } = engineHazards(engine, [...controlStates(compiled.program, engine), ...undeclaredEnvironmentStates(circuit, compiled.program)], STATES_MAX, { collect: true });
   const doubts = doubtsOf(circuit, compiled, { ...result, rest });
   return { ...result, checked: coverageOf(compiled, result, doubts), doubts };
 }
@@ -257,7 +281,8 @@ function wired(program, d) {
 }
 
 // What the hazard check covered and what it could not, for the answer's "Checked" line (review.js):
-// { rest, controls, outputs, notChecked: [code…], skipped?, unsimulated? }. The codes, only those
+// { rest, controls, outputs, environment?, fields? (the environment's fields visited at both ends),
+// notChecked: [code…], skipped?, unsimulated? }. The codes, only those
 // that apply to this circuit:
 //   switching     something switches in time (a board's program, a 555, a generator): its peaks
 //   combinations  two or more controls and outputs: each was operated alone
@@ -287,7 +312,7 @@ export function coverageOf(compiled, result, doubts = []) {
   if (unsimulated.length) notChecked.push('unsimulated');
   const programs = [...new Set(doubts.filter((d) => d.code.startsWith('SIM_PROGRAM_')).map((d) => String(d.params.part)))];
   if (programs.length) notChecked.push('program');
-  return { rest: true, controls, outputs, ...(environment && { environment }), notChecked, ...(checked < total && { skipped: total - checked }), ...(unsimulated.length && { unsimulated }), ...(programs.length && { programs }) };
+  return { rest: true, controls, outputs, ...(environment && { environment }), ...(result.environmentFields && { fields: result.environmentFields }), notChecked, ...(checked < total && { skipped: total - checked }), ...(unsimulated.length && { unsimulated }), ...(programs.length && { programs }) };
 }
 
 // A part that reads the world by its own value when the circuit declares no environment (an LDR's

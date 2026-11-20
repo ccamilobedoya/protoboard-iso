@@ -450,8 +450,14 @@ export const CLIMATE = {
 //              briefly (the contract's "about 1 V"); beyond it the oxide layer reforms and the part heats.
 // A LED counts as lit, for a computed fix, from a tenth of its rated current (brightness 0.1): the
 // look of the page says a tenth of the rated current "still shows clearly" (look.js, glowOpacity).
+// A coil carrying less than this share of its pull-in current is leaking, not driven (a transistor's
+// leakage in daylight): no "driven but not pulled in" warning [assumed].
+export const RELAY_DRIVEN_SHARE = 0.25;
 export const LED_LIT = 0.1;
 // Above this share of the rated current (1.5 = the 30 mA an LED's maximum is, against its rated 20 mA [assumed
 // for every family]) a brightness is said in words ("over its maximum"), not as a percentage.
 export const BRIGHTNESS_OVER = 1.5;
+// NOTE: for ic and board the figure is only a noise floor for the solver: no datasheet rates a reverse
+// voltage on a supply pin, so ANY reverse voltage is outside the ratings and the text says that, not
+// "more than N V it withstands".
 export const REVERSE_LIMITS = { ic: 0.5, board: 0.5, capacitor: 1 };

@@ -16,7 +16,7 @@
 // the transistor's breakdown, and damages it.
 
 import { resistor, inductor as inductorEl, relayCore } from '../mna.js';
-import { RELAYS } from '../models.js';
+import { RELAYS, RELAY_DRIVEN_SHARE } from '../models.js';
 import { stress, note, q } from './shared.js';
 
 const CONTACTS = ['COM', 'NO', 'NC'];
@@ -65,7 +65,7 @@ export const relay = {
     // Driven but not pulled in: the coil's current is above the drop-out current (something drives it)
     // and under the pull-in current, and the armature is at rest. A pulled-in relay in that band holds
     // (its hysteresis): it works. The thresholds are the model's own (models.js, RELAYS).
-    const half = !r.closed && Math.abs(r.current) > m.dropOut && Math.abs(r.current) < m.pullIn;
+    const half = !r.closed && Math.abs(r.current) > Math.max(m.dropOut, RELAY_DRIVEN_SHARE * m.pullIn) && Math.abs(r.current) < m.pullIn;
     return [
       ...(half ? [note('warning', 'SIM_RELAY_UNDERDRIVEN', { part: entry.id, current: q(Math.abs(r.current), 'A'), needs: q(m.pullIn, 'A'), release: q(m.dropOut, 'A') })] : []),
       stress('SIM_RELAY_COIL', 'voltage', r.drive, m.maxVoltage, 'V', { of: 'coil' }),

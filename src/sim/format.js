@@ -31,6 +31,13 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
   if (result.analysis === 'transient') return formatTransient(result, lang, { f, lines, issues, nodeName });
 
   lines.push(t(lang, 'sim.dc', { iterations: result.iterations }));
+  readingLines(result, lang, { f, lines, nodeName, decimal });
+  issues();
+  return lines.join('\n');
+}
+
+// Supplies, nodes and parts of one reading (the DC point, or the end of a run).
+function readingLines(result, lang, { f, lines, nodeName, decimal }) {
   lines.push(t(lang, 'sim.supplies'));
   for (const [id, s] of Object.entries(result.supplies)) {
     lines.push(`  ${pad(id, 6)} ${pad(f(s.voltage, 'V'), 10)} ${pad(f(s.current, 'A'), 10)} ${pad(f(s.power, 'W'), 10)} ${t(lang, `sim.mode.${s.mode}`)}`);
@@ -79,8 +86,72 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
     if (p.floating) text += ` · ${t(lang, 'sim.floating')}`;
     lines.push(`  ${pad(id, 6)} ${text}`);
   }
-  issues();
+}
+
+// A run (sim/run.js) as text: what the program printed (the first and the last lines when it is
+// long), one line per output (its rhythm when it toggles regularly, else its share of the time on and,
+// when there are a few, the spans it was on), the readings at the end, the notes.
+const SERIAL_SHOWN = 10;
+// biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what it replaces
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g;
+const SPANS_SHOWN = 3;
+export function formatRun(result, lang = 'en', { formatIssue, netLabels = {} } = {}) {
+  const decimal = decimalSeparator(lang);
+  const f = (value, unit) => (value == null ? t(lang, 'sim.floating') : formatValue(value, unit, { decimal }));
+  const lines = [];
+  const notes = (list) => {
+    if (!list?.length) return;
+    lines.push(t(lang, 'sim.issues'));
+    for (const i of list) lines.push(`  ${formatIssue(i, lang)}`);
+  };
+  if (!result.ok && !result.readings) {
+    lines.push(t(lang, 'sim.failed'));
+    notes(result.issues ?? result.errors);
+    return lines.join('\n');
+  }
+  const { run, serial, outputs } = result;
+  lines.push(t(lang, 'sim.run', { start: t(lang, `sim.run.start.${run.start}`), seconds: f(run.seconds, 's'), step: f(run.step, 's'), steps: run.steps }));
+  if (result.boards > 0 || serial.count > 0) {
+    if (!serial.count) lines.push(t(lang, 'sim.run.serialNone'));
+    else {
+      lines.push(t(lang, 'sim.run.serial', { count: serial.count }));
+      const shown = serial.lines;
+      // What a program printed is shown as it is, but never as a line of the answer of its own.
+      const line = (l) => `  ${pad(f(l.t, 's'), 10)} ${l.board ? `${l.board}: ` : ''}${String(l.text).replace(CONTROL, '\uFFFD')}`;
+      if (serial.count <= SERIAL_SHOWN && shown.length === serial.count) for (const l of shown) lines.push(line(l));
+      else {
+        for (const l of shown.slice(0, SERIAL_SHOWN / 2)) lines.push(line(l));
+        lines.push(t(lang, 'sim.run.serialMore', { count: serial.count - SERIAL_SHOWN }));
+        for (const l of shown.slice(-SERIAL_SHOWN / 2)) lines.push(line(l));
+      }
+    }
+  }
+  if (!outputs.length) lines.push(t(lang, 'sim.run.noOutputs'));
+  else {
+    lines.push(t(lang, 'sim.run.outputs'));
+    for (const o of outputs) lines.push(`  ${outputText(o, lang, f)}`);
+  }
+  if (result.readings?.ok) {
+    lines.push(t(lang, 'sim.run.readings', { time: f(run.seconds, 's') }));
+    const nodeName = (n) => {
+      const np = nodeParams(n);
+      const name = np ? t(lang, np.key, np.params) : n;
+      return netLabels[n] ? `${name} (${netLabels[n]})` : name;
+    };
+    readingLines(result.readings, lang, { f, lines, nodeName, decimal });
+  }
+  notes(result.issues);
   return lines.join('\n');
+}
+
+// One output in a line: "D1 (LED): 1 Hz, on 50 % of the time (period 1 s) · 7 changes".
+const percentOf = (share) => (share > 0 && share < 0.005 ? '< 1' : share < 1 && share > 0.995 ? '> 99' : String(Math.round(100 * share)));
+export function outputText(o, lang, f) {
+  const params = { id: o.id, kind: t(lang, `sim.run.kind.${o.kind}`), changes: o.changes };
+  if (o.frequency) return t(lang, 'sim.run.regular', { ...params, frequency: f(o.frequency, 'Hz'), period: f(o.period, 's'), percent: percentOf(o.duty ?? o.onShare) });
+  if (!o.changes) return t(lang, o.onShare > 0.5 ? 'sim.run.always' : 'sim.run.never', params);
+  const spans = o.intervals.length && o.intervals.length <= SPANS_SHOWN && !o.intervalsTotal ? t(lang, 'sim.run.spans', { list: o.intervals.map(([a, b]) => `${f(a, 's')} → ${f(b, 's')}`).join(', ') }) : '';
+  return t(lang, 'sim.run.share', { ...params, percent: percentOf(o.onShare), spans });
 }
 
 // A table at about ten evenly spaced times: capacitor voltages and supply currents (the

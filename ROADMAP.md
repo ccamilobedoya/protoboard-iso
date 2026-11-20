@@ -515,6 +515,8 @@ before saying it works.
 - ✅ The hazard check visits the ends of each environment field a sensor follows
 - ✅ A relay driven but not pulled in (`SIM_RELAY_UNDERDRIVEN`); a button across joined pins (`BUTTON_PINS_JOINED`)
 - ✅ A computed fix leaves the part working; damage lines say what happens to the part
+- ⬜ A computed fix for a motor above its range as "a resistor of N Ω rated at least X W" (a 3 V motor on 5 V needs about 4.7 Ω at 1 W; today the kit says it has none because a ¼ W candidate overheats)
+- ⬜ Limits for a part with unconnected pins (a bare 555 with its supply reversed is not flagged)
 - ⬜ The same "driven but not working" idea for other parts (see the notes of the work)
 - ✅ Doubts beside hazards: `review` returns `doubts` (a part wired in with no simulation model, every issue about a board's program, a program stuck without time passing, any other warning of the simulation, a source that does not solve); one is enough for APPROVED WITH WARNINGS and `STATUS: WARNINGS`, under its own heading, in the CLI and the MCP tools (`src/sim/index.js` `doubtsOf`, `src/review.js`)
 - ✅ A program file not found says where the kit looked (the circuit's folder, beside `circuit.json`); layout judges the circuit it keeps from its folder
@@ -526,6 +528,9 @@ before saying it works.
 - ✅ Large circuits are not slow by construction (C4): a placement is checked against the parts near it, not the whole circuit rebuilt; what a place hides is measured while placing (`src/layout-sight.js`); memory bounded (no circuit copy per candidate, a bounded memo). Ten LEDs from one pin: one try, `WARNINGS`, about 3 s (was 24 tries, `CHANGES`, about 60 s); two hundred resistors in series: `DONE` (was out of memory)
 - ✅ Nets that share a pin are one net, with a note naming them (`LAYOUT_NETS_JOINED`); the same spec gives the same circuit
 - ⬜ The review's drawing of a very long board takes most of the memory (two hundred resistors: about 450 MB for the review, as much for the page): a raster per view of the whole frame (`src/inspect.js`, `src/render/coverage.js`)
+- ✅ An assistant can check what a circuit does from the command line (C5): `simulate --run <s>` runs it as the page does (one engine) with `--env`, `--set`, `--press` and `--at`, and says what the program printed, each output's share of time on, changes, frequency and duty, and the readings at the end; `--transient` steps a board's program as the page does and names `--run`; `layout`'s answer has a `Behaviour, first 2 s` line for a circuit that changes by itself; MCP `simulate` takes `run_s`, `environment`, `set`, `press`, `at`
+- ✅ The op-amp relaxation oscillator runs (it stopped at its first switch); a sketch's `int x = a == b;` is 1 or 0 (it was always 0: `uno-button` never lit)
+- ✅ The `Checked` line names the environment's fields visited at both ends (`at rest, light at both ends`)
 
 ## Optional, later ⬜
 

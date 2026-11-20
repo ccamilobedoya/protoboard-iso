@@ -119,7 +119,61 @@ Se fijan con una operación, como cualquier campo del circuito:
 - **Transitorio.** `stop` y `step` en segundos; los capacitores empiezan descargados y los
   inductores sin corriente (`start: "zero"`, la fuente se enciende en t = 0), o en sus valores de
   DC (`start: "dc"`).
-  Euler implícito con paso fijo; se guardan como mucho 400 muestras (`points`).
+  Euler implícito con paso fijo; se guardan como mucho 400 muestras (`points`). Un circuito cuya
+  placa corre un programa avanza como lo hace la página (abajo, «Una ejecución»): trozos de 1 ms
+  como mucho que terminan en cada evento del programa y de los módulos temporizados, así un pulso
+  de 10 µs o un eco quedan en su momento; la respuesta trae entonces una nota que nombra `--run`,
+  que dice lo que imprimió el programa y cómo cambian sus salidas.
+- **Una ejecución** (`simulate <objetivo> --run <segundos>`, MCP `run_s`). El circuito como lo
+  corre la página, desde el encendido (como empieza la página: su punto de DC, o los capacitores
+  descargados con `page.start: "zero"`), durante esos segundos simulados: el mismo motor y el
+  mismo paso (`sim/pace.js`), el programa de la placa con `pulseIn`, los sensores de biblioteca, el
+  encoder y los módulos temporizados. Responde lo que un asistente necesita para decir si el
+  circuito hace lo que se pidió:
+  - **Serial**: lo que imprimió el programa, cada línea con su tiempo, en orden, y cuántas (una
+    historia larga guarda sus primeras y últimas líneas, `runSerialLines` en `src/limits.js`);
+  - **las salidas en el tiempo**, una por cada componente que muestra algo (un LED, un chip de un
+    LED RGB, un segmento de un display, un zumbador, un relé, un motor), la salida de cada
+    amplificador operacional y cada pin que maneja un programa (`U1.D13`): la parte del tiempo que
+    estuvo encendida, cuántas veces cambió, los tramos en que estuvo encendida (`intervals`) y,
+    cuando cambia con regularidad (cada periodo a menos del 10 % de su media, sin el primero del
+    arranque), su frecuencia, periodo y ciclo útil. Los flancos se buscan entre pasos: un pin en el
+    paso en que su programa lo cambió, un LED que maneja un pin en la mitad de ese paso, y lo más
+    lento donde cruza su nivel (un LED al 5 % de su corriente nominal, un relé cerrado, un motor
+    sobre 30 r/min, un pin o la salida de un amplificador sobre la mitad de su riel);
+  - **las lecturas al final**, como las imprime el punto de DC, y cada aviso de la ejecución.
+
+  Estímulos, cada uno se puede repetir: `--env light=0.5,distance=10` (campos del ambiente, en las
+  unidades del catálogo, dentro del rango del campo: un campo desconocido o un valor fuera de él es
+  un error de entrada, salida 1), `--set RV1=0.8,SW1=on` (un control: la posición de un
+  potenciómetro, un interruptor, un campo propio de un sensor como `U2=30` en un LM35;
+  `ID.campo=valor` cuando tiene varios), `--press SW1@0.5+0.2` (presionado a los 0,5 s durante
+  0,2 s), `--at 1.0:light=0.1` (un campo o un control que cambia en un momento). Un sensor que lee
+  un campo por un valor propio sigue el campo que fija la ejecución, y la ejecución lo dice
+  (`RUN_ENV_ATTACHED`). `--env` y `--set` sirven también para el punto de DC y para
+  `--transient`. No se guarda nada: el archivo del circuito y su historial quedan como estaban.
+  Acotada: a lo sumo `runSeconds` (60) de tiempo simulado (más se recorta, `RUN_CAPPED`) y `runMs`
+  (15 s) de tiempo de la máquina (`RUN_BUDGET`: termina donde llegó); un programa que nunca deja
+  pasar el tiempo termina con `SIM_PROGRAM_STUCK`.
+
+  ```text
+  $ protoboard-iso simulate alarma --run 1 --env distance=10 --lang es
+  Ejecución desde el encendido (como empieza la página) — un modelo, no una medición: 1 s en pasos de 1 ms (1000 pasos).
+  Serial (10 líneas, en orden):
+    844 µs     10
+    …
+  Salidas en el tiempo:
+    D1 (LED): encendido el 100 % del tiempo · cambios: 1 (encendido 857 µs → 1 s)
+    U1.D9 (pin): 9,92 Hz, encendido el < 1 % del tiempo (periodo 101 ms) · cambios: 20
+  Lecturas a los 1 s:
+  …
+  ```
+
+  La respuesta de `layout` trae lo mismo en una línea para un circuito que cambia solo (el
+  programa de una placa, un 555, un generador, un amplificador operacional junto a un capacitor):
+  `Comportamiento, primeros 2 s (simulado, un modelo): D1 1 Hz, encendido el 50 % del tiempo`, de
+  una ejecución acotada a 0,8 s de tiempo de la máquina y un paso no menor que una veinte milésima
+  de ella; pasado el límite dice que no se midió y nombra `simulate --run 2`.
 
 ## Resultados
 
@@ -141,6 +195,16 @@ Se fijan con una operación, como cualquier campo del circuito:
   issues: [ … ] }
 ```
 
+Una ejecución (`--run`, `run_s`):
+
+```js
+{ ok: true, run: { seconds: 1, step: 0.001, steps: 1000, start: 'dc' },
+  serial: { count: 10, lines: [{ t: 0.00084, text: '10' }, …] },    // kept: cuando se recorta
+  outputs: [{ id: 'D1', kind: 'led', onShare: 0.999, changes: 1, frequency: null, period: null, duty: null,
+              intervals: [[0.00086, 1]] }, …],                         // una salida aún encendida cierra al final
+  boards: 1, readings: { … la forma del punto de DC, al final … }, issues: [ … ] }
+```
+
 Componentes de dos patas: `voltage` = primera pata − segunda, y `current` va de la primera pata a
 la segunda a través del componente. Las corrientes de los transistores son positivas cuando
 entran por la pata. El transitorio trae `times` y las mismas magnitudes como listas.
@@ -151,7 +215,7 @@ entran por la pata. El transitorio trae `times` y las mismas magnitudes como lis
 |---|---|
 | `SIM_OVER_POWER` | una resistencia por encima de su potencia (`power`: "1/4" W por defecto) o un transistor por encima de lo que aguanta su encapsulado |
 | `SIM_OVER_CURRENT` | un LED con más de 30 mA; un diodo, inductor, regulador o batería por encima de su máximo |
-| `SIM_REVERSE_VOLTAGE` | una pieza alimentada al revés: un LED con más de 5 V en inversa; un regulador, amplificador operacional, 555 o placa de desarrollo cuyo pin de alimentación queda a más de 0,5 V por debajo de su pin de tierra ("en un circuito real se destruye"; la línea nombra los dos pines); módulos de sensores sobre su cifra. Los umbrales están en un solo sitio: `REVERSE_LIMITS` en `src/sim/models.js` |
+| `SIM_REVERSE_VOLTAGE` | una pieza alimentada al revés: un LED con más de 5 V en inversa; un regulador, amplificador operacional, 555 o placa de desarrollo cuyo pin de alimentación queda a más de 0,5 V por debajo de su pin de tierra ("cualquier voltaje inverso en una alimentación queda fuera de sus especificaciones: en un circuito real se puede destruir"; la línea nombra los dos pines y el voltaje; 0,5 V es solo un piso de ruido, ninguna hoja de datos lo da); módulos de sensores sobre su cifra. Los umbrales están en un solo sitio: `REVERSE_LIMITS` en `src/sim/models.js` |
 | `SIM_RELAY_UNDERDRIVEN` | un relé cuya bobina lleva más que su corriente de suelta y menos que la de cierre, con la armadura en reposo: lo manejan, pero no cierra. No es daño: `checkHazards` lo devuelve en `doubts` (con el estado donde se halló), `simulate` en sus notas |
 | `SIM_CAP_REVERSED`, `SIM_CAP_OVER_VOLTAGE` | un electrolítico al revés; cualquier capacitor por encima de su voltaje |
 | `SIM_SUPPLY_LIMITED` | una fuente de banco en su límite de corriente (corriente constante) |
@@ -184,6 +248,10 @@ en reposo y otra vez en cada uno de estos estados, uno a la vez y todo lo demás
   arriba. Una línea de daño termina diciendo qué le pasa a ese tipo de pieza (se quema, se
   recalienta, el pin se puede dañar…), y un arreglo calculado deja el LED encendido y el motor por
   encima del piso de su rango de voltaje, o el kit dice que no lo tiene.
+- Límite, tal como está hoy: una pieza con pines sin conectar la saltan los límites, así que un 555
+  suelto con la alimentación invertida y los demás pines al aire no se marca. Un relé con menos de un
+  cuarto de su corriente de cierre tiene una fuga, no un manejo, y no se avisa; si el aviso sale en
+  varios estados, se da el de mayor corriente de bobina, con su estado.
 - **Cada salida del programa de una placa puesta en alto** (desde el 2026-11-16): los pines que el
   programa ya volvió salidas cuando espera por primera vez (su `setup()` y su `loop()` hasta el primer
   `delay`: los modos de pin del punto en DC, así que `pinMode`, y los `digitalWrite`, `tone`,
@@ -354,7 +422,7 @@ Los chips que no son el 555, los amplificadores operacionales ni el LM393 (lógi
 LM386, los arreglos ULN) quedan sin conectar y se avisa, igual que el adaptador DESPI-C02; una placa con
 microcontrolador corre su programa (`"program"`, con PWM y `tone`;
 [microcontroladores.md](microcontroladores.md)). Los amplificadores operacionales todavía no
-tienen ancho de banda ni velocidad de subida: una señal rápida sale como si el chip fuera ideal. El 555 todavía no tiene recorridos en la vista de conductores: su corriente
-se ve en sus patas y sus tiras. No hay eventos durante un transitorio (presionar un botón en un momento dado), ni
+tienen ancho de banda ni velocidad de subida: una señal rápida sale como si el chip fuera ideal (un oscilador de relajación con realimentación positiva sí corre: Newton se detiene en los bordes del rango lineal a lo sumo dos veces por cálculo, así cambia de riel; uno con un LM358, 47 kΩ y 10 nF oscila a unos 920 Hz, y la fórmula de libro da 968 Hz con rieles ideales). El 555 todavía no tiene recorridos en la vista de conductores: su corriente
+se ve en sus patas y sus tiras. Los eventos en un momento dado son para una ejecución (`--press`, `--at`), no para `--transient`; no hay
 autocalentamiento, ni descarga de la batería con el tiempo (`charge` es fija en cada cálculo).
 La animación (etapa 3) leerá estos mismos resultados.

@@ -255,10 +255,12 @@ function fixLine(fix, lang, t) {
   return fix.kind === 'set' ? t(lang, 'review.fix.set', { part: fix.part, value, brings }) : t(lang, 'review.fix.add', { with: fix.with, value, brings });
 }
 
-// "Checked: at rest, 2 controls, 3 program outputs. Not checked: peaks while switching, combinations of controls."
+// "Checked: at rest, light at both ends, 2 controls, 3 program outputs. Not checked: peaks while
+// switching, combinations of controls."
 function checkedLine(c, lang, t) {
   const done = [];
   if (c.rest) done.push(t(lang, 'review.checked.rest'));
+  if (c.rest && c.fields?.length) done.push(t(lang, 'review.checked.environment', { fields: c.fields.map((f) => t(lang, `sim.env.field.${f}`)).join(t(lang, 'review.checked.and')) }));
   if (c.controls) done.push(t(lang, `review.checked.controls.${c.controls === 1 ? 'one' : 'many'}`, { count: c.controls }));
   if (c.outputs) done.push(t(lang, `review.checked.outputs.${c.outputs === 1 ? 'one' : 'many'}`, { count: c.outputs }));
   const which = c.controls && c.outputs ? 'both' : c.outputs ? 'outputs' : 'controls';
