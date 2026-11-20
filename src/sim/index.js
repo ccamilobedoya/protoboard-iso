@@ -162,11 +162,12 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
   const doubted = new Set(doubts.map(doubtKey));
   const tried = all.slice(0, max);
   for (const s of tried) {
-    if (!enterState(engine, s)) continue;
-    const reading = engine.dc();
+    const eng = s.engine ?? engine; // an environment state of a circuit that declares none runs on its own engine
+    if (!enterState(eng, s)) continue;
+    const reading = eng.dc();
     const when = s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value, ...(s.end && { end: s.end }) };
     if (reading.ok) {
-      for (const h of exceeded(engine, reading)) if (!atRest.has(hazardKey(h))) hazards.push({ ...h, when });
+      for (const h of exceeded(eng, reading)) if (!atRest.has(hazardKey(h))) hazards.push({ ...h, when });
       for (const d of warningsOf(reading)) {
         if (!doubted.has(doubtKey(d))) {
           doubted.add(doubtKey(d));
@@ -178,11 +179,24 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
         }
       }
     }
-    leaveState(engine, s);
+    leaveState(eng, s);
   }
   const fields = new Set(states.filter((s) => s.part === 'environment').map((s) => s.field)).size;
   const controls = new Set(states.filter((s) => s.part !== 'environment').map((s) => `${s.part} ${s.field}`)).size;
   return { hazards, doubts: doubts.filter((d) => !hazards.some((h) => hazardKey(h) === hazardKey(d))), states: { checked: tried.length, total: all.length, controls, outputs: outputs.pins.length, ...(fields && { environment: fields }) }, ok: true, ...(collect && { rest }) };
+}
+
+// A circuit that declares no environment still has sensors that read one (an LDR's light, a
+// thermistor's temperature, each by its own value): the field is visited at both ends of its range all
+// the same. The circuit is compiled again with an empty environment declared, so its sensors follow
+// the registry's default range, and these states run on that engine (`engine` of the state); a sensor
+// with a value of its own is left as it is. Nothing here changes the reading at rest.
+function undeclaredEnvironmentStates(circuit, program) {
+  if (program.environment || !(program.devices ?? []).some(senses)) return [];
+  const again = compile({ ...circuit, environment: {} });
+  if (again.fatal) return [];
+  const engine = createEngine(again.program);
+  return environmentStates(again.program, engine).map((s) => ({ ...s, engine }));
 }
 
 // checkHazards' `doubts` (doubtsOf): what the kit could not tell, the one list the review shows.
@@ -190,7 +204,7 @@ export function checkHazards(circuit) {
   const compiled = compile(circuit);
   if (compiled.fatal) return { hazards: [], states: { checked: 0, total: 0, controls: 0, outputs: 0 }, checked: coverageOf(compiled, null), doubts: doubtsOf(circuit, compiled, null) };
   const engine = createEngine(compiled.program);
-  const { rest, ...result } = engineHazards(engine, controlStates(compiled.program, engine), STATES_MAX, { collect: true });
+  const { rest, ...result } = engineHazards(engine, [...controlStates(compiled.program, engine), ...undeclaredEnvironmentStates(circuit, compiled.program)], STATES_MAX, { collect: true });
   const doubts = doubtsOf(circuit, compiled, { ...result, rest });
   return { ...result, checked: coverageOf(compiled, result, doubts), doubts };
 }

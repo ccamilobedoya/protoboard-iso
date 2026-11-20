@@ -143,3 +143,16 @@ test('a relay driven too weakly says it may not pull in; the daylight leak is no
   assert.match(formatIssue(d, 'es'), /con luz del ambiente en su mínimo\.$/);
   assert.ok(!simulate(day).issues.some((i) => i.code === 'SIM_RELAY_UNDERDRIVEN'), 'at rest in daylight: a leak, not a drive');
 });
+
+test('a circuit that declares no environment still has its sensor visited at both ends', () => {
+  const c = built(NIGHT('10k'));
+  assert.equal(c.environment, undefined);
+  const r = checkHazards(c);
+  const d = r.doubts.find((x) => x.code === 'SIM_RELAY_UNDERDRIVEN');
+  assert.ok(d, JSON.stringify(r.doubts));
+  assert.deepEqual([d.when.field, d.when.end], ['light', 'min']);
+  assert.equal(r.states.environment, 1);
+  assert.equal(r.states.checked, r.states.total);
+  const rest = simulate(c);
+  assert.ok(!rest.issues.some((i) => i.code === 'SIM_RELAY_UNDERDRIVEN'), 'the reading at rest is the sensor\'s own value, unchanged');
+});
