@@ -9,6 +9,15 @@ detail.
 
 ## [Unreleased]
 
+### Fixed
+
+- A missing, empty, malformed or wrongly shaped spec, operations or circuit file is answered in one or two lines (exit 1; `STATUS: FIX_SPEC` for `layout`), never a stack trace; an unexpected error is `internal error: …` (exit 3; `PROTOBOARD_DEBUG=1` adds the stack).
+- A spec with no parts is `STATUS: FIX_SPEC`, not a circuit of zero parts.
+- The command line sets its exit code and lets the output drain: `simulate --json` through a pipe is no longer cut at 64 KiB, and `| head -1` ends quietly.
+- `apply` no longer saves input the kit cannot read (a value the part does not understand, an unknown part, pin, field or hole): the batch is refused, nothing is saved, also in `--dry-run`. A change that is readable but wrong (a short, a collision) is still saved, now with a line saying `with K new error(s)` and that it cannot be simulated until fixed; the diff counts everything `check` reports, and `--json` carries `newErrors`.
+- A language given with `layout --lang` stays with the circuit, so `apply`, `undo` and the rest answer in it.
+- `layout` on an existing circuit with no spec says on its first line that it laid the circuit out again.
+
 ## [0.12.1] - 2026-11-18
 
 A fix for videos: a part that lands stays seen when the focus moves on before it touches down.
