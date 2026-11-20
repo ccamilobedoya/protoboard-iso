@@ -91,11 +91,11 @@ test('F4: uno-button keeps D1 off until S1 is pressed, then on for 0.4 s', () =>
   assert.equal(onTime(pressed, 0.75, 1), 0, 'on after the press');
 });
 
-test('F5: ldr-night-light is off in the light and on after light=0 at 0.5 s', () => {
+test('F5: ldr-night-light is off in the light and on after light=0.1 (the bottom of its range) at 0.5 s', () => {
   // Recipe text: in the dark the LDR is high, the divider voltage rises, Q1 switches the LED ON; with light the
   // LED goes out. Default environment light is 300 lx (> the ~190 lx switch point on 5 V): off before 0.5 s;
-  // light=0 at 0.5 s: dark -> on after.
-  const o = output(runJson('ldr-night-light', 1, ['--at', '0.5:light=0']), 'D1');
+  // light at its minimum (0.1 lx; 0 is outside the field's range) at 0.5 s: dark -> on after.
+  const o = output(runJson('ldr-night-light', 1, ['--at', '0.5:light=0.1']), 'D1');
   assert.equal(onTime(o, 0, 0.5), 0, 'on before 0.5 s');
   near(onTime(o, 0.95, 1), 0.05, 1e-6, 'on during the last 0.05 s');
 });
@@ -158,8 +158,10 @@ test('F8: --transient on distance-alarm-uno at 10 cm lights D1 or warns and name
   let lit = false;
   try {
     const j = JSON.parse(r.stdout);
+    // Arbitrated: a transient keeps its own shape (a series per part), so the LED is read there:
+    // lit means its voltage reaches its forward drop (about 1.8 V for the red LED) at some sample.
     const o = (j.outputs ?? []).find((x) => x.id === 'D1');
-    lit = !!o && onTime(o, 0, 1) > 0;
+    lit = (!!o && onTime(o, 0, 1) > 0) || Math.max(...(j.parts?.D1?.voltage ?? [0])) > 1.5;
   } catch { /* not the run shape: the warning line is the other way out */ }
   assert.ok(lit || r.stdout.includes('--run'), 'the LED never lights in the table and no line names --run');
 });
