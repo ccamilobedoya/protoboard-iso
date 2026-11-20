@@ -31,6 +31,7 @@
 import { suggest } from './query.js';
 import { applyOps } from './ops.js';
 import { buildCircuit } from './circuit/build.js';
+import { checkOccupancy, checkConnections, checkCollisions, checkCrossings } from './circuit/checks.js';
 import { problemKey } from './diff.js';
 import { review, formatHazards, simulationOf, verdictOf } from './review.js';
 import { hazardFix, specWithFix } from './fix.js';
@@ -47,7 +48,7 @@ import { resolvePart, pinsOf } from './parts/resolve.js';
 import { findPin } from './parts/pin-names.js';
 import { checkNets, internalLinks } from './nets.js';
 import { assignSides } from './layout-sides.js';
-import { BOARDS, railName, boardSides, channelPairs } from './board/board.js';
+import { BOARDS, railName, boardSides, channelPairs, columnsUsed, createBoard } from './board/board.js';
 
 export { checkNets };
 import { strayFields, fieldsOfType } from './parts/fields.js';
@@ -592,6 +593,74 @@ function electricalNets(nets) {
   return [...groups.values()];
 }
 
+// The geometry check of one part added to a circuit already built, without building the rest
+// again. Every placement check (circuit/checks.js) is about one part, or a pair of parts whose
+// boxes meet or that share a strip: so the part alone is built, and checked with the parts that
+// come near it. That is what made a layout cost the square of its parts: before, each candidate
+// rebuilt every part's drawing from the start (a resistor's lathe, an LED's dome), and a large
+// circuit tries thousands of candidates (docs/en/layout.md, "Cost"). The issues are the same as a
+// whole build's for the part and its pairs; the others are the ones already accepted (`partial`:
+// the caller keeps its baseline). Null when it cannot answer exactly, and the caller builds the
+// whole circuit: an operation other than one `add`, a part lying beside the board (its drawing
+// follows the board's size), or a board that grows with this part.
+const boardColumns = new Map(); // "board columns" → the columns that board really has once grown
+function columnsOf(board, columns) {
+  const key = `${board} ${columns}`;
+  if (!boardColumns.has(key)) boardColumns.set(key, createBoard(board, { columns }).spec.columns);
+  return boardColumns.get(key);
+}
+const reachBoxes = new WeakMap(); // built part → the box of all it draws (body, leads, wires)
+function reachOf(part) {
+  if (!reachBoxes.has(part)) {
+    const box = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity };
+    const grow = (q) => {
+      box.x0 = Math.min(box.x0, q.x);
+      box.x1 = Math.max(box.x1, q.x);
+      box.y0 = Math.min(box.y0, q.y);
+      box.y1 = Math.max(box.y1, q.y);
+      box.z0 = Math.min(box.z0, q.z);
+      box.z1 = Math.max(box.z1, q.z);
+    };
+    for (const list of [part.built?.primitives, part.built?.body]) for (const prim of list ?? []) for (const f of prim.faces) for (const q of f.pts) grow(q);
+    for (const path of Array.isArray(part.built?.paths) ? part.built.paths : []) for (const q of path.points ?? []) grow(q);
+    for (const h of part.holes ?? []) if (h) grow(h.pos);
+    reachBoxes.set(part, box);
+  }
+  return reachBoxes.get(part);
+}
+function addedOnly(circuit, built, next, ops) {
+  if (ops.length !== 1 || ops[0].op !== 'add' || ops[0].index !== undefined || BESIDE.has(ops[0].part?.type)) return null;
+  // The board as it is: a part beside it is drawn from its size, so a board that grows draws them again.
+  const board = next.board ?? 'bb830';
+  const wanted = columnsUsed(next) + 2 + HEADROOM;
+  if (columnsOf(board, wanted) !== built.board.spec.columns) return null;
+  const raw = next.parts.at(-1);
+  if (raw?.id !== ops[0].part.id) return null;
+  // The part alone, on a board of the same size: its own issues (holes, leads, fields).
+  const alone = buildCircuit({ ...next, supplies: undefined, parts: [raw] }, { headroom: wanted - 2 - columnsUsed({ parts: [raw] }) });
+  const me = alone.parts[0];
+  if (!me || alone.issues.some((i) => i.severity === 'error')) return { board: built.board, parts: built.parts, issues: alone.issues, partial: true };
+  const clearance = Number(next.clearance) || 0;
+  const a = reachOf(me);
+  const m = clearance + 1;
+  const nodes = new Set(me.holes.map((h) => h.node));
+  const near = built.parts.filter((p) => {
+    const b = reachOf(p);
+    return (a.x0 - m < b.x1 && b.x0 < a.x1 + m && a.y0 - m < b.y1 && b.y0 < a.y1 + m) || p.holes.some((h) => h && nodes.has(h.node));
+  });
+  const parts = [...near, me];
+  const netlist = { board: built.board.spec.id, nodes: {} };
+  for (const part of parts) part.holes.forEach((hole, i) => (netlist.nodes[hole.node] ??= []).push({ part: part.id, pin: part.pinNames[i], hole: hole.id }));
+  const issues = [
+    ...alone.issues,
+    ...checkOccupancy(parts),
+    ...checkConnections(parts, netlist, { netLabels: next.netLabels }),
+    ...checkCollisions(parts, { clearance }),
+    ...checkCrossings(parts),
+  ];
+  return { board: built.board, parts: [...built.parts, me], issues, partial: true };
+}
+
 // The box a body covers seen from above.
 function footprintOf(part) {
   const box = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
@@ -633,6 +702,10 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
   // State, rebuilt after each change (geometry only: fast).
   let built = buildCircuit(circuit, { headroom: HEADROOM });
   let baseline = new Set(blocking(built.issues).map(problemKey));
+  // Each state of this call (the circuit after the parts and jumpers accepted so far) has an id:
+  // the memo is keyed by it and the operation, not by the whole circuit written out, so its keys
+  // stay small however large the circuit grows.
+  let state = 0;
   const used = () => new Set(built.parts.flatMap((p) => p.holes.map((h) => h?.id)));
   const holeOf = (ref) => {
     for (const p of built.parts) {
@@ -643,21 +716,24 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
   };
   // Apply the ops if they add no blocking problem; true when applied.
   const tryOps = (ops) => {
-    const key = `${JSON.stringify(circuit.parts)}|${JSON.stringify(ops)}`;
-    if (!memo.has(key)) memo.set(key, check(ops));
+    const key = `${state}|${JSON.stringify(ops)}`;
+    if (!memo.has(key)) {
+      const r = check(ops);
+      memo.set(key, r && { ...r, state: memo.size + 1 });
+    }
     const r = memo.get(key);
     if (!r) return false;
-    ({ circuit, built, baseline } = r);
+    ({ circuit, built, baseline, state } = r);
     return true;
   };
   const check = (ops) => {
     const r = applyOps(circuit, ops);
     if (r.errors.length) return null;
-    const next = buildCircuit(r.circuit, { headroom: HEADROOM });
+    const next = addedOnly(circuit, built, r.circuit, ops) ?? buildCircuit(r.circuit, { headroom: HEADROOM });
     if (next.issues.some((i) => i.severity === 'error')) return null;
     const after = blocking(next.issues);
     if (after.some((i) => !baseline.has(problemKey(i)) && !(i.code === 'FLOATING_PIN'))) return null;
-    return { circuit: r.circuit, built: next, baseline: new Set(after.map(problemKey)) };
+    return { circuit: r.circuit, built: { board: next.board, parts: next.parts }, baseline: next.partial ? new Set([...baseline, ...after.map(problemKey)]) : new Set(after.map(problemKey)) };
   };
   // What is on each strip (node → electrical net id, or "x…" for a pin in no net) and where each
   // electrical net already has holes, from the parts placed so far.
