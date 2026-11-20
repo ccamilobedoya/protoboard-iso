@@ -12,8 +12,8 @@ Entry points, all calling `autoLayout(spec, { profile, checkOnly })`:
 
 | From | Call |
 |---|---|
-| MCP | tool `layout` (`target`, `recipe` and `values`, or `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`, `dry_run`, `fix`) |
-| CLI | `node bin/protoboard-iso.js layout <new target> <spec.json \| -> [--check] [--dry-run] [--json]`, or `--recipe <name> [--values '<json>']`, or `layout <target> --fix [--dry-run]` (exit 0 done, 2 changes) |
+| MCP | tool `layout` (`target`, `recipe` and `values`, or `parts`, `nets`, `supplies`; `board`, `title`, `netLabels`, `environment`, `page`, `clearance`, `check_only`, `dry_run`, `fix`, `budget_s`) |
+| CLI | `node bin/protoboard-iso.js layout <new target> <spec.json \| -> [--check] [--dry-run] [--json] [--budget <seconds>]`, or `--recipe <name> [--values '<json>']`, or `layout <target> --fix [--dry-run]` (exit 0 done, 2 changes) |
 | Code | `import { autoLayout, validateSpec, checkNets } from './src/layout.js'`; a recipe is turned into a spec first by `resolveRecipe` (`src/recipes/index.js`) |
 | Bench | `npm run layout-bench [-- spec.json …]` (runs `examples/layout/*.json` and every recipe) |
 
@@ -45,7 +45,11 @@ by name with only the values that change; it becomes an ordinary spec before any
   `resolvePart` (`src/parts/resolve.js`) fills in the type.
 - `nets`: each one a list of pin references (`"D1.K"`, case-insensitive pin names) and rails
   (`"T-"`, `"B+"`), or `{ pins, color }`. A pin alone (`["D1.A"]`) is fine: it is where a supply
-  will connect. Two nets that share a pin or a rail are one net (`["T-", "B-"]` bridges the grounds).
+  will connect. A pin listed in several nets joins them: they become one net, where the first of
+  them was, its pins in the order they came (note `LAYOUT_NETS_JOINED`: "Nets 1, 2, 3 share U1.D8"),
+  the same circuit as the spec with the pins in one list (since 2026-11-20; before, each was routed
+  apart and a board's pin could find no place). Two nets that share a rail stay two nets, joined
+  through the rail (`["T-", "B-"]` bridges the grounds).
 - `supplies`: as in a circuit, except that `positive` and `negative` may name a pin; it becomes a
   free hole of that pin's strip once placed.
 - `board` (`auto` by default: the elastic board that grows in length, or two side by side when a
@@ -168,12 +172,25 @@ not for bodies held up off the board, `HELD_UP`), wins. Where it was before (lay
 first of all; candidates with a hole well inside the box of a body already on the board are not
 built at all.
 
-**`tryOps` (the acceptance test).** Apply the `add` operation, rebuild the circuit **geometry only**
-(`buildCircuit`: occupancy, lead lengths, body overlap, crossings, clearance; milliseconds, nothing
-is drawn) and accept only if it adds no error and no new blocking problem compared to the circuit
-before (`blocking` = errors, warnings and `TOO_CLOSE` notes). `FLOATING_PIN` is tolerated because the
+**`tryOps` (the acceptance test).** Add the part and check the **geometry only** (occupancy, lead
+lengths, body overlap, crossings, clearance; nothing is drawn), and accept only if it adds no error
+and no new blocking problem compared to the circuit before (`blocking` = errors, warnings and
+`TOO_CLOSE` notes). Since 2026-11-20 the part is built alone and checked with the parts whose boxes
+come near it or that share a strip with it (`addedOnly`): every placement check is about one part
+or a pair, so the answer is the one a whole build gives, in a time that does not grow with the
+circuit. A board that grows with the part draws again the parts lying beside it (they follow its
+size). `FLOATING_PIN` is tolerated because the
 jumpers come later. A place in `forbid` is skipped. The answers are remembered for the whole call
 (by circuit and operation), so a relayout that repeats the first steps does not build them again.
+
+**What it hides (since 2026-11-20).** A place the geometry accepts is then measured as the review
+measures a drawing (`src/layout-sight.js`): the part, the parts it overlaps on screen and what covers
+those, painted far to near in both views at 2 px/mm in a frame around them. If it leaves itself, or
+a part it covers more than before, under `SEEN_SHARE` (75 %) in its best view, the next candidate is
+tried; the first one by cost is used only when none is free of it. Jumpers (step 3) are measured the
+same way. Before, what hides what was found only after a whole try, by the review, and the relayout
+loop moved one place per try: ten LEDs with their resistors spent all 24 tries on resistors hidden
+by LEDs and jumpers; now the first try is clean.
 
 After each part the cursor of its half (both halves for a part across the channel; the half of each
 lead for a part off the board) moves to two columns past its rightmost lead, or past the right edge
@@ -281,6 +298,76 @@ fails and recovers costs its failed tries: 4.3 s for the measured case above (3.
 given failing), against 0.6 s with the resistor listed before the buzzer; about 9 s for the transistor
 variant of that circuit with its fix (nine parts and a board). Over every recipe shuffled three
 times: 0.26 s on average where the order given works, 2.3 s (at most 7 s) where it fails.
+
+### Size and budget: calculate first, never run away (since 2026-11-20)
+
+**The size, before placing.** `estimateSize` (in `autoLayout`, after the spec is valid; also with
+`--check`) bounds from below the columns the spec takes, from its parts and nets alone, in well
+under a second: a strip holds pins of one electrical net, so a net without a rail needs a strip for
+every five pins and a pin in no net one of its own (`sides` strips per column: 2, or 4 on the double
+board); a chip across the channel (a DIP) takes its columns there whole. Against the columns the
+board can grow to (`LIMITS.boardColumns`, 600, on `auto` and `double`; a fixed board's own):
+
+- more than the board: `STATUS: FIX_SPEC`, exit 1, nothing created, one line with the numbers
+  (`LAYOUT_TOO_LARGE`: "about 1600 columns needed, 600 available (401 parts). About 150 parts fit
+  one board: split it into two or more circuits");
+- it fits, but one try of the search takes longer than the budget (`SECONDS_PER_PART`, 0.12 s per
+  part on the board, measured): a first note says so (`LAYOUT_SEARCH_LONG`) and it tries anyway.
+
+It is a bound, not a guess of the layout: it never refuses what the search can place. Every recipe,
+layout example and example circuit stays under half the board (`test/layout-size.test.js`).
+
+**The budget.** `layout` takes a wall-clock budget: 60 s by default (`BUDGET_SECONDS`), CLI
+`--budget <seconds>`, MCP `budget_s`, at most `LIMITS.layoutSeconds` (300; more is that, with a note
+`LAYOUT_BUDGET_CAPPED`). The search checks it before each part, each jumper, each try, each order
+and each repair, and `suggest` before each candidate it measures. When it runs out the search stops
+where it is and answers with the best try so far, `STATUS: CHANGES`, and one line: "The search
+stopped at its budget of 60 s with its best try so far: N parts not placed, M nets not joined, K
+review items open. The options: a larger budget … or a smaller circuit" (`LAYOUT_BUDGET`). The
+circuit is still written (exit 2, as any `CHANGES`). The computed fix of its hazards is not searched
+then (seconds of simulations, for a circuit still to fix).
+
+**The same spec, the same circuit.** Nothing in the search depends on the clock except the budget:
+two runs of a spec give the same `circuit.json`, and a budget that ran out is the only source of
+difference, which its line says.
+
+**Memory.** A part is added without copying the circuit (`addOne`; `applyOps` copies all of it),
+built alone on a board shared by the candidates of the same size (`builtAlone`), and the memo of the
+geometry checks keeps at most `MEMO_STATES` (1500) states, and before each review only that try's
+own steps. Two hundred resistors in series on a 9 V battery: `DONE` in one try, about 8 s; the
+review's drawing of a board 400 columns long is the largest part of its memory (below).
+
+### Cost: what made large circuits slow (measured 2026-11-20)
+
+Profiled with `node --cpu-prof` and counters in the search, on an UNO pin driving ten and twenty
+LEDs with their resistors (on 0.12.1 ten took 59 s and ended
+`CHANGES`, twenty did not end in 120 s, a similar spec ran out of memory):
+
+- **Every candidate rebuilt the whole circuit.** `tryOps` called `buildCircuit` on all of it: every
+  part's 3D geometry from the start (a resistor's lathe, an LED's dome) and the pairwise checks over
+  every pair. Ten pairs: 2849 checks of about 15 parts each in 24 tries, 34 s of 92 s; the cost of a
+  try grew with the square of the parts. Now the part alone, against the parts near it.
+- **The memo kept a whole build per candidate**, keyed by the whole circuit written out: 2.9 GB of
+  resident memory for ten pairs; `applyOps` also copied the whole circuit for each candidate.
+- **The tries never converged.** Each try ended with three to nine parts or jumpers hidden in both
+  views (`PART_HIDDEN`), the relayout loop moved one place per try, and the orders the nets give ran
+  eight tries more each, one of them the very order already placed: 24 tries and the repair's
+  `suggest` (each candidate a full drawing, 13 s). Now visibility is measured while placing, and an
+  order equal to the one already placed is skipped.
+
+Measured on 2026-11-20, load average about 1 (one process each, peak resident memory), before → after:
+
+| Case | Before (0.12.1 code) | After |
+|---|---|---|
+| UNO pin D8 → ten LEDs with 220 Ω, a program driving it | `CHANGES`, 24 tries, 64 s, 2.9 GB | `WARNINGS` (the pin over its current), 1 try, 2.6–3.3 s, 0.3–0.5 GB |
+| the same with twenty | did not end in 180 s | `WARNINGS`, 2 tries, 9 s, 0.6 GB |
+| UNO + 74HC595 + eight LEDs (18 parts) | `WARNINGS`, 20 tries, 37 s, 2.8 GB | `WARNINGS`, 9 tries, 12–15 s, 0.5 GB |
+| two hundred resistors in series on a 9 V battery | out of memory, exit 134 | `DONE`, 1 try, 8 s, 1.08 GB (the CLI with its page: 1.5 GB) |
+| every recipe (60) / with the layout examples (65) | 20.3 s / 24.8 s | 14.7 s / 18.1 s, all `DONE` |
+
+Three recipes got slower on their own: `uno-seven-segment` 1.3 → 2.1 s (the same three tries, each
+measuring what it hides), `clap-switch` 0.6 → 1.1 s (its two ground nets through `U1.GND` are now
+one, and it takes 8 tries instead of 3), `voltage-sensor-uno` 0.07 → 0.4 s (3 tries instead of 1).
 
 ### Two boards: a DevKit on both headers (since 2026-10-31)
 
@@ -472,6 +559,10 @@ missing. The CLI exits 0 for `DONE` and `WARNINGS` (1 for `FIX_SPEC`, 2 for `CHA
 | `PAIRS_PER_GROUP`, `JOIN_TRIES` | 40, 40 | jumper pairs measured per pair of groups; rejections before a net gives up |
 | `OVER_COST`, `OVER_MARGIN` | 12 mm, 0.3 mm | a jumper's cost per body it crosses; a jumper ending at a body's edge does not cross it |
 | `TRIES`, `REPAIRS` | 8, 4 | relayouts at most; jumpers the repair routes again at most |
+| `SEEN_SHARE` | 75 % | a place that leaves a part under this share in its best view is used only when no other is free of it (`src/layout-sight.js`; the review blocks under 70 %) |
+| `MEMO_STATES` | 1500 | states the memo of one layout keeps |
+| `BUDGET_SECONDS`, `LIMITS.layoutSeconds` | 60 s, 300 s | the search's budget by default, and at most |
+| `SECONDS_PER_PART` | 0.12 s | one try per part on the board, for the note that a spec is beyond the budget |
 | cursor start | 2 | first column used, on each half |
 | `clearance` | 1 mm (spec default) | gap between bodies; 3 for a roomier lesson |
 
@@ -542,9 +633,11 @@ half (`B`, rows a–e) and the rails, `channelCrossings` (asked nets with pins i
   Node version) to a baseline: `.claude/state/layout-bench.json` by default, which is not in git
   (`.claude/state/` is ignored), so each clone keeps its own.
 - `npm run layout-bench -- --compare [file]` runs again and prints, per case, what changed against
-  the baseline (jumpers, wire length, column span, holes, crossings, tries, status) with its sign,
-  the cases new or missing, and a totals line (jumpers, wire mm, crossings, cases `DONE`). Time is
-  saved but never compared. With spec files as arguments, put them before the flags.
+  the baseline (jumpers, wire length, column span, holes, crossings, tries, time, status) with its
+  sign, the cases new or missing, and a totals line (jumpers, wire mm, crossings, cases `DONE`,
+  ms). Time is compared since 2026-11-20 (before and after a change to the search's cost); on a
+  machine shared with other work it is noisy, so compare at the same load. With spec files as
+  arguments, put them before the flags; `--budget <seconds>` gives each layout that budget.
 - A spec in `examples/layout/` may carry `"bench": { "expect": "changes", "why": "…" }`: a case the
   algorithm cannot solve yet. The bench removes the key before laying out, prints the case as
   `EXPECTED CHANGES` and does not count it as failed; everything else must be `DONE` for exit
@@ -558,17 +651,13 @@ next call.
 
 In order of what would pay most:
 
-1. **Visibility is still found mostly by the relayout loop.** A jumper pays for each body it
-   crosses (step 3), and a candidate pays for enclosing a tall part's way to its rail (step 2b), but
-   placement still does not know what hides what in the isometric drawing: an UNO's leads arching
-   over the board, a long jumper across a half over a resistor, a tall LED in front of a low part.
-   The loop finds them (one to five tries in the bench). A cheap estimate of each view (how tall a
-   body is and what lies behind it), or measuring the visibility of the chosen candidate only,
-   would make more first tries pass.
-2. **Each candidate builds the whole circuit.** `tryOps` rebuilds every part's geometry to check
-   one more; that is most of the time (the checks are remembered across tries, which helps the
-   loop, not the first try). An incremental check (only what the new part touches) would let the
-   algorithm try many more candidates in the same time.
+1. **Visibility is measured place by place, but the first place by cost wins when none is free of
+   it** (since 2026-11-20, "What it hides"). A better fallback (the least hidden, without a strange
+   place far away: tried, it made `uno-seven-segment` end `CHANGES`) would make more first tries pass.
+2. **The review's drawing is the largest part of a long circuit's memory.** For two hundred
+   resistors (a board 400 columns long) `review` takes about 450 MB of resident memory on its own,
+   the page as much again (`src/inspect.js`, `src/render/coverage.js`: a raster of the whole frame
+   at 5 px/mm and a set of cells per part).
 3. **The loop forbids one place at a time** and starts over. With several blocking items it can
    still spend its tries in one area; forbidding a small region, or retrying only the parts after
    the victim, would converge faster.

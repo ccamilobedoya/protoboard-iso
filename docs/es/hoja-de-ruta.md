@@ -529,6 +529,10 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ✅ Los componentes que se ven menos del 50 % en todas las vistas tienen una línea en la respuesta de `layout` (información)
 - ✅ La línea `Lecturas` nombra cada fuente una vez
 - ✅ `catalog` marca lo que se dibuja pero no se simula y no nombra rutas de las fuentes
+- ✅ El montaje calcula antes de intentar (C4): un spec que no cabe en la protoboard es `FIX_SPEC` de una vez, con las columnas que hacen falta y las que hay y cuántos componentes caben en una (`LAYOUT_TOO_LARGE`); uno que pasa del límite de tiempo de la búsqueda se dice antes de empezar (`LAYOUT_SEARCH_LONG`); la búsqueda tiene un límite de tiempo de reloj (60 s, consola `--budget`, MCP `budget_s`, como mucho `LIMITS.layoutSeconds`) y se detiene en él con su mejor intento y una línea que lo dice (`LAYOUT_BUDGET`)
+- ✅ Los circuitos grandes no son lentos por construcción (C4): una ubicación se comprueba frente a los componentes que tiene cerca, no reconstruyendo el circuito entero; lo que tapa un lugar se mide al ubicar (`src/layout-sight.js`); memoria acotada (sin copiar el circuito por candidata, una memoria con tope). Diez LED de una pata: un intento, `WARNINGS`, unos 3 s (eran 24 intentos, `CHANGES`, unos 60 s); doscientas resistencias en serie: `DONE` (se quedaba sin memoria)
+- ✅ Las redes que comparten una pata son una sola red, con una nota que las nombra (`LAYOUT_NETS_JOINED`); el mismo spec da el mismo circuito
+- ⬜ El dibujo de la revisión de una protoboard muy larga se lleva la mayor parte de la memoria (doscientas resistencias: unos 450 MB la revisión, otro tanto la página): una trama por vista de todo el marco (`src/inspect.js`, `src/render/coverage.js`)
 
 ## Opcional, más adelante ⬜
 

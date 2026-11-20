@@ -522,6 +522,10 @@ before saying it works.
 - ✅ Parts under 50 % visible in every view get a line in `layout`'s answer (information)
 - ✅ The `Readings` line names each source once
 - ✅ `catalog` marks what is drawn but not simulated and names no source paths
+- ✅ Layout calculates before it tries (C4): a spec that cannot fit the board is `FIX_SPEC` at once with the columns needed and available and how many parts fit one board (`LAYOUT_TOO_LARGE`); one beyond the search's budget is said before it starts (`LAYOUT_SEARCH_LONG`); the search has a wall-clock budget (60 s, CLI `--budget`, MCP `budget_s`, at most `LIMITS.layoutSeconds`) and stops at it with its best try and a line that says so (`LAYOUT_BUDGET`)
+- ✅ Large circuits are not slow by construction (C4): a placement is checked against the parts near it, not the whole circuit rebuilt; what a place hides is measured while placing (`src/layout-sight.js`); memory bounded (no circuit copy per candidate, a bounded memo). Ten LEDs from one pin: one try, `WARNINGS`, about 3 s (was 24 tries, `CHANGES`, about 60 s); two hundred resistors in series: `DONE` (was out of memory)
+- ✅ Nets that share a pin are one net, with a note naming them (`LAYOUT_NETS_JOINED`); the same spec gives the same circuit
+- ⬜ The review's drawing of a very long board takes most of the memory (two hundred resistors: about 450 MB for the review, as much for the page): a raster per view of the whole frame (`src/inspect.js`, `src/render/coverage.js`)
 
 ## Optional, later ⬜
 
