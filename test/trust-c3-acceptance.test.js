@@ -122,22 +122,42 @@ test('D6 (large output): simulate --transient --json | head -c 100: the kit exit
 
 const badOps = '[{"op":"set","part":"U2","angle":-72}]';
 
-test('D7: apply --dry-run reports the value the part does not understand as a new error', () => {
+// Arbitrated after the contract was written (a decision of the maintainer): a change is one of two
+// kinds. Input the kit cannot read (a value a part does not understand, an unknown pin…) is the
+// caller's slip and is refused whole. A circuit the kit reads and that turns out wrong (a part on
+// occupied holes, a short) is allowed, because getting it wrong is part of learning: it is saved,
+// and the save line says so.
+
+test('D7: apply --dry-run reports the value the part does not understand and says the real run would be refused', () => {
   const { target } = laid('c3-d7a-', 'encoder-uno');
   const r = cli(['apply', target, '--ops', badOps, '--dry-run']);
-  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.status, 1, r.stderr);
   assert.match(r.stdout, /^\s*✖ new: error: .*U2.*$/m);
+  assert.match(r.stdout, /would be refused/);
   assert.doesNotMatch(r.stdout, /no change in issues/);
 });
 
-test('D7: apply saves with "1 new error" in words, and undo restores a circuit simulate accepts', () => {
+test('D7: apply refuses a value the part does not understand: nothing saved, and simulate still accepts the circuit', () => {
   const { target } = laid('c3-d7b-', 'encoder-uno');
   const r = cli(['apply', target, '--ops', badOps]);
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stdout, /^\s*✖ new: error: .*U2.*$/m);
+  assert.match(r.stdout, /Nothing was saved/);
+  assert.doesNotMatch(r.stdout, /Saved as revision/);
+  const s = cli(['simulate', target]);
+  assert.equal(s.status, 0, s.stderr);
+  assert.doesNotMatch(`${s.stdout}${s.stderr}`, /placement errors/);
+});
+
+test('D7: apply saves a readable change that breaks the circuit, says so in words, and undo takes it back', () => {
+  const { target } = laid('c3-d7c-');
+  // R1 moved onto holes the LED already uses: read fine, wrong as a circuit.
+  const r = cli(['apply', target, '--ops', '[{"op":"move","part":"R1","pins":["j6","j2"]}]']);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /Saved as revision 1 with 1 new error/);
+  assert.match(r.stdout, /Saved as revision 1 with \d+ new error/);
   assert.doesNotMatch(r.stdout, /no change in issues/);
-  const u = cli(['undo', target]);
-  assert.equal(u.status, 0, u.stderr);
+  assert.match(`${cli(['simulate', target]).stdout}`, /placement errors/);
+  assert.equal(cli(['undo', target]).status, 0);
   const s = cli(['simulate', target]);
   assert.equal(s.status, 0, s.stderr);
   assert.doesNotMatch(`${s.stdout}${s.stderr}`, /placement errors/);
