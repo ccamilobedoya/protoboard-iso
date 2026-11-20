@@ -20,7 +20,7 @@ detail.
 
 - `simulate <target> --run <seconds>` (MCP `simulate` with `run_s`): the circuit run as the page runs it, from switch-on, with stimuli (`--env light=0.5`, `--set RV1=0.8`, `--press S1@0.5+0.2`, `--at 1.0:light=0.1`), answering what the program printed with its times, each output's share of the time on, its changes, spans on, frequency and duty when it toggles, and the readings at the end; bounded (60 s simulated, 15 s of the machine), nothing saved. `--env` and `--set` also work with the DC point and `--transient`.
 - `--transient` on a circuit whose board runs a program steps it as the page does (events landed, at most 1 ms a piece) and names `--run`; before, a 10 µs pulse was lost and the distance alarm's LED never lit.
-- `layout`'s answer has a `Behaviour, first 2 s` line for a circuit that changes by itself: the frequency and duty of what toggles (`D1 1 Hz, on 50 % of the time`), from a run bounded at 0.8 s of the machine's time.
+- `layout`'s answer has a `Behaviour, first 2 s` line for a circuit that changes by itself: the frequency and duty of what toggles (`D1 1 Hz, on 50 % of the time`), from a run bounded at 25 000 steps of the simulation, so the same circuit gives the same line on any machine (it was 0.8 s of the machine's time, and a busy machine printed `not measured` for the 555 and the op-amp oscillator).
 - The `Checked` line names the environment's fields visited at both ends (`Checked: at rest, light at both ends`).
 
 ### Fixed
@@ -48,6 +48,12 @@ detail.
 - A missing field in an operation is named (`needs \`part\``), never "undefined".
 - Trust: a circuit fed backwards is a hazard, not a silent APPROVED: regulators, op-amps, the 555 and development boards with the supply pin below the ground pin (`SIM_REVERSE_VOLTAGE`, the line names both pins), a bench supply with a negative `voltage` simulates as the same supply reversed, the hazard check also visits the bottom and top of each environment field a sensor follows, a relay driven but not pulled in says so (`SIM_RELAY_UNDERDRIVEN`), and a push button with different nets on two joined pins says so (`BUTTON_PINS_JOINED`).
 - A computed fix leaves an LED lit and a motor above the bottom of its voltage range, or the kit says it has none; a lone overloaded resistor gets none. Damage lines end by saying what happens to the part; a brightness far over the rated one is said in words, not as thousands of per cent.
+
+- `catalog buzzer` says which kind is which (no part number: the passive one, silent on steady DC; `TMB12A05`: the active one), and the active buzzer's card no longer starts by calling it passive.
+- An unknown part with no close name says so and points to `catalog` (it printed `Closest: —.`); a speaker, an LED strip, a servo, a transformer or an LCD names what the kit has near (a passive buzzer, single LEDs, a DC motor, a signal generator, a 7-segment display).
+- A resistor, potentiometer, capacitor, inductor or Zener with no value says the value is missing and what it takes (it printed `"undefined"`).
+- An option the kit cannot read (`--expect-revision abc`) is named on the last line, with `See the options with --help.` after it.
+- The doubts' heading says what is true of all of them, the ones the kit could not check and the ones it checked and found may not work: `The kit cannot confirm these work (so it cannot say the circuit works):`.
 
 ## [0.12.1] - 2026-11-18
 

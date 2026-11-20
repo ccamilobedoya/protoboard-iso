@@ -71,7 +71,7 @@ export default {
 
   resolve(part) {
     const ohms = parseValue(part.value);
-    if (!(ohms > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value), variant: 'resistance' } } };
+    if (!(ohms > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value ?? ''), variant: part.value == null || part.value === '' ? 'resistance.missing' : 'resistance' } } };
     const tolerance = parseTolerance(part.tolerance);
     const power = String(part.power ?? '1/4').replace(/\s*W$/i, '');
     if (CEMENT_SIZES[power]) {

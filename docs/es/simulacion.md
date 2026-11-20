@@ -172,8 +172,11 @@ Se fijan con una operación, como cualquier campo del circuito:
   La respuesta de `layout` trae lo mismo en una línea para un circuito que cambia solo (el
   programa de una placa, un 555, un generador, un amplificador operacional junto a un capacitor):
   `Comportamiento, primeros 2 s (simulado, un modelo): D1 1 Hz, encendido el 50 % del tiempo`, de
-  una ejecución acotada a 0,8 s de tiempo de la máquina y un paso no menor que una veinte milésima
-  de ella; pasado el límite dice que no se midió y nombra `simulate --run 2`.
+  una ejecución acotada a 25 000 pasos de la simulación (así el mismo circuito da la misma línea en
+  cualquier máquina; tarda más o menos lo que los 0,8 s de tiempo de la máquina que reemplazó,
+  `BEHAVIOUR_STEPS` en `src/sim/run.js`) y un paso no menor que una veinte milésima de ella; pasado
+  el límite dice que no se midió (`la ejecución necesitaba más de 25 000 pasos de la simulación`) y
+  nombra `simulate --run 2`.
 
 ## Resultados
 
@@ -312,11 +315,13 @@ El kit no tiene un arreglo calculado para esto.
 
 ### Lo que no pudo saber (dudas)
 
-Un peligro es un componente que el kit ve quemarse. Una **duda** es algo que el kit no pudo
-comprobar en absoluto, así que no puede decir que el circuito funciona: la revisión las lista en
+Un peligro es un componente que el kit ve quemarse. Una **duda** es algo que el kit no puede
+garantizar, así que no puede decir que el circuito funciona: lo que no pudo comprobar en absoluto
+(un componente sin modelo, un programa que no puede correr) o lo que comprobó y encontró que puede
+no funcionar (un relé que puede no cerrar, un pulsador entre patas unidas): la revisión las lista en
 `doubts` (con la misma forma que los peligros: `{ severity: 'warning', code, params, parts }`), basta
 una para que el veredicto sea APROBADO CON AVISOS y `layout` termine en `STATUS: WARNINGS`, y ambos
-las imprimen como líneas `⚠` bajo su propio encabezado (`El kit no pudo comprobar esto …`), después
+las imprimen como líneas `⚠` bajo su propio encabezado (`El kit no puede confirmar que esto funcione …`), después
 de los peligros (`src/sim/index.js`, `doubtsOf`). Nunca bloquean. `DONE` significa entonces lo que
 dice: el kit revisó el circuito y no encontró nada que decir.
 

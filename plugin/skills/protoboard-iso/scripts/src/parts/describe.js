@@ -80,7 +80,8 @@ export function describeKeys(part) {
     case 'voltage-sensor':
       return ['voltage-sensor'];
     case 'buzzer':
-      return ['buzzer', ...(e.kind === 'BZA' ? ['buzzer.active'] : [])];
+      // The active one stands alone: the passive one's text says it is silent on DC.
+      return e.kind === 'BZA' ? ['buzzer.active'] : ['buzzer'];
     case 'climate-sensor':
       return ['climate-sensor', `climate-sensor.${e.part}`];
     case 'battery':

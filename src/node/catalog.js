@@ -100,7 +100,8 @@ function facts(raw, lang) {
     part = unplaced(Object.fromEntries(Object.entries(part.raw).filter(([k]) => !follow.includes(k)))) ?? part;
     ratings = partRatings(part);
   }
-  const about = describePart(part, lang);
+  // A type with a passive and an active kind says which is which (the part number decides).
+  const about = [describePart(part, lang), raw.type === 'buzzer' && !raw.part ? t(lang, 'catalog.buzzer.kinds') : null].filter(Boolean).join(' ');
   const roles = pinRoles(part, lang);
   return { ...(about && { about }), ...(roles.length && { pinRoles: Object.fromEntries(roles.map((r) => [r.name, r.text])) }), ...(ratings && { limits: ratings.limits, ...(ratings.fields && { limitFields: ratings.fields }) }) };
 }

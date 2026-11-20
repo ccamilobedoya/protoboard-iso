@@ -118,7 +118,7 @@ export function checkConnections(parts, netlist, { netLabels = {} } = {}) {
 
 // Warnings that are doubts, not placement problems: findings about the wiring the person asked for
 // that the kit reports and never blocks on. `check` lists them (severity warning); the review shows
-// them only as doubts, under "The kit could not check this" (sim/index.js wiringIssues → doubtsOf),
+// them only as doubts, under "The kit cannot confirm these work" (sim/index.js wiringIssues → doubtsOf),
 // never as a ✖ to fix; `apply` saves a change that adds one and marks it ⚠, not ✖. The next such
 // finding is one more code here (and its check in wiringIssues).
 export const DOUBT_CODES = new Set(['BUTTON_PINS_JOINED']);

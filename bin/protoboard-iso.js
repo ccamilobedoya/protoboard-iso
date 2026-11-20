@@ -203,8 +203,10 @@ async function run(seen) {
   };
 
   if (args.errors.length) {
-    for (const [key, params] of args.errors) console.error(t(lang, key, params));
-    console.error(t(lang, 'cli.seeHelp'));
+    // The last line is the one a reader sees: it names the option, and where the options are.
+    const said = args.errors.map(([key, params]) => t(lang, key, params));
+    said[said.length - 1] += ` ${t(lang, 'cli.seeHelp')}`;
+    for (const line of said) console.error(line);
     fail(2);
   }
   // JSON given on the command line is read like a file: one line and exit 1 when it is wrong.

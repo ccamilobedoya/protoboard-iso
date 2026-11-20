@@ -13,7 +13,7 @@
 //     or { ok: false, errors: [issue…] } for a stimulus that names nothing or is out of range (an
 //     input error: the command exits 1) or { ok: false, issues } when the circuit cannot run.
 //   prepareRun(circuit, stimuli) → { engine, compiled, issues, events } | { errors }   (also --transient)
-//   behaviourOf(circuit, { seconds, budgetMs }) → { outputs, skipped? } | null   layout's line
+//   behaviourOf(circuit, { seconds, maxSteps }) → { outputs, skipped? } | null   layout's line
 //
 // An output is a part that shows something (an LED, a chip of an RGB LED or a segment of a display, a
 // buzzer, a relay, a motor), each op-amp's output (U1.OUT1, high or low) and each pin a board's
@@ -335,7 +335,7 @@ function rhythm(w) {
 
 // ── The run ────────────────────────────────────────────────────────────────────────────
 
-export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.runMs, minStep = 0, checks = CHECKS, compiled = null } = {}) {
+export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.runMs, maxSteps = Number.POSITIVE_INFINITY, minStep = 0, checks = CHECKS, compiled = null } = {}) {
   const asked = Number(seconds);
   if (!(asked > 0)) return { ok: false, errors: [bad('RUN_BAD_TIME', { value: String(seconds).slice(0, 40), max: LIMITS.runSeconds })] };
   const prepared = prepareRun(circuit, stimuli, compiled);
@@ -421,6 +421,11 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
       look();
       nextCheck += total / checks;
     }
+    // A bound in steps gives the same answer on any machine (layout's line); the clock is the backstop.
+    if (steps >= maxSteps && engine.time < total - 1e-9) {
+      issues.push(issue('warning', 'RUN_STEPS', { time: { value: engine.time, unit: 's' }, seconds: { value: total, unit: 's' }, steps: maxSteps }));
+      break;
+    }
     if (steps % BUDGET_EVERY === 0 && t0() - began > budgetMs) {
       issues.push(issue('warning', 'RUN_BUDGET', { time: { value: engine.time, unit: 's' }, seconds: { value: total, unit: 's' }, budget: { value: budgetMs / 1000, unit: 's' } }));
       break;
@@ -483,18 +488,21 @@ export function runsByItself(program) {
   return devices.some((d) => d.kind === 'MCU' && d.params?.sketch) || has('TMR') || (program.supplies ?? []).some((s) => s.generator && !s.off) || (has('OPA') && has('C'));
 }
 
-// The first seconds of a circuit that changes by itself, in a bounded run: { seconds, outputs } or
-// { skipped: { code, params } } when the bound was hit; null for a circuit that does not run by itself.
-export function behaviourOf(circuit, { seconds = 2, budgetMs = 800 } = {}) {
+// The first seconds of a circuit that changes by itself, in a run bounded by a count of steps (the
+// same line on any machine; BEHAVIOUR_STEPS costs about as much as the 0.8 s of machine time it
+// replaced): { seconds, outputs } or { skipped: { code, params } } when the bound was hit; null for a
+// circuit that does not run by itself.
+export const BEHAVIOUR_STEPS = 25000;
+export function behaviourOf(circuit, { seconds = 2, maxSteps = BEHAVIOUR_STEPS } = {}) {
   const compiled = compile(circuit);
   if (compiled.fatal || !runsByItself(compiled.program)) return null;
   // A step no shorter than a 20 000th of the run: a 555 beside a small capacitor would take the page's
   // tens of microseconds and seconds of the machine; the edges are still found between two steps.
   // Its limits are read once, at the end (the review judges the hazards).
-  const r = runCircuit(circuit, { seconds, budgetMs, minStep: seconds / 20000, checks: 0, compiled });
+  const r = runCircuit(circuit, { seconds, maxSteps, minStep: seconds / 20000, checks: 0, compiled });
   if (!r.ok && r.errors) return null;
   if (!r.ok) return { seconds, skipped: r.issues.find((i) => i.severity === 'error') ?? issue('error', 'SIM_NO_CONVERGENCE', {}) };
-  const budget = r.issues.find((i) => i.code === 'RUN_BUDGET');
+  const budget = r.issues.find((i) => i.code === 'RUN_STEPS' || i.code === 'RUN_BUDGET');
   if (budget) return { seconds, skipped: budget };
   return { seconds, outputs: r.outputs };
 }

@@ -23,7 +23,7 @@ import { RECIPES, recipeDefaults, valueLimits } from './recipes/index.js';
 import { goalsOf } from './recipes/goals.js';
 import { adviseGoals } from './recipes/solve.js';
 import { formatValue } from './core/units.js';
-import { behaviourOf } from './sim/run.js';
+import { behaviourOf, BEHAVIOUR_STEPS } from './sim/run.js';
 import { decimalSeparator } from './i18n/index.js';
 
 // Parts whose job is to be driven, by the simulator's kind: LEDs first, then the rest.
@@ -170,11 +170,10 @@ function adviceOf(circuit) {
 }
 
 const BEHAVIOUR_S = 2;
-const BEHAVIOUR_MS = 800;
 const SHOWN_OUTPUTS = 4;
 function behaviourLineOf(circuit) {
   if (hidden(circuit)) return null;
-  const b = behaviourOf(circuit, { seconds: BEHAVIOUR_S, budgetMs: BEHAVIOUR_MS });
+  const b = behaviourOf(circuit, { seconds: BEHAVIOUR_S });
   if (!b) return null;
   if (b.skipped) return { seconds: b.seconds, skipped: b.skipped };
   // What a person sees first: the parts, then the pins a program drives.
@@ -269,7 +268,8 @@ export function formatExtras(r, lang, t) {
 function behaviourText(b, lang, t, f) {
   const seconds = f(b.seconds, 's');
   if (b.skipped) {
-    const why = b.skipped.code === 'RUN_BUDGET' ? t(lang, 'layout.behaviour.slow', { budget: f(BEHAVIOUR_MS / 1000, 's') }) : t(lang, 'layout.behaviour.failed', { time: b.skipped.params?.time ? f(b.skipped.params.time.value, 's') : '0 s' });
+    const why = b.skipped.code === 'RUN_STEPS' ? t(lang, 'layout.behaviour.steps', { steps: String(BEHAVIOUR_STEPS).replace(/\B(?=(\d{3})+$)/g, ' ') })
+      : b.skipped.code === 'RUN_BUDGET' ? t(lang, 'layout.behaviour.slow', { budget: f(LIMITS.runMs / 1000, 's') }) : t(lang, 'layout.behaviour.failed', { time: b.skipped.params?.time ? f(b.skipped.params.time.value, 's') : '0 s' });
     return t(lang, 'layout.behaviour.skipped', { seconds, why, run: String(b.seconds) });
   }
   const item = (o) => {

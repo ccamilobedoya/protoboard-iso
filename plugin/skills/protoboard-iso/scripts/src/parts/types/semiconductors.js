@@ -86,7 +86,7 @@ export const zener = {
     } else {
       vz = zenerVoltage(part.value);
     }
-    if (!(vz > 0 && vz <= 200)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value ?? part.part), variant: 'zener' } } };
+    if (!(vz > 0 && vz <= 200)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value ?? part.part ?? ''), variant: (part.value ?? part.part) == null || (part.value ?? part.part) === '' ? 'zener.missing' : 'zener' } } };
     return {
       package: 'axial',
       params: {

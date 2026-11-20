@@ -8,7 +8,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { simulate, checkHazards } from '../src/sim/index.js';
-import { runCircuit, parseStimuli, stimuliFromArgs } from '../src/sim/run.js';
+import { runCircuit, parseStimuli, stimuliFromArgs, behaviourOf, BEHAVIOUR_STEPS } from '../src/sim/run.js';
 import { autoLayout, formatLayout } from '../src/layout.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { review, formatReview } from '../src/review.js';
@@ -225,8 +225,21 @@ test('the op-amp oscillator over time: its output toggles near the formula, also
   const formula = 1 / (2 * 47e3 * 10e-9 * Math.log(3));
   assert.ok(Math.abs(out.frequency - formula) / formula < 0.1, `${out.frequency} Hz`);
   const answer = formatLayout(autoLayout(OSCILLATOR), 'en', { t, formatIssue });
-  // Its line names the frequency, or (on a machine busy enough to pass the bound) says it was not measured.
-  assert.match(answer, /\nBehaviour, first 2 s(?: \(simulated, a model\): U1\.OUT1 \d+ Hz, on \d+ % of the time|: not measured, the run took more than 800 ms of the machine's time \(simulate --run 2 measures it\)\.)\n/);
+  // Its line names the frequency on any machine: the bound is a count of steps, not the clock.
+  assert.match(answer, /\nBehaviour, first 2 s \(simulated, a model\): U1\.OUT1 \d+ Hz, on \d+ % of the time\n/);
+});
+
+test('layout\'s behaviour line is bounded by steps, not the clock: the same circuit, the same line', () => {
+  const circuit = recipe('555-astable');
+  const full = behaviourOf(circuit);
+  assert.ok(full.outputs?.length, JSON.stringify(full));
+  assert.deepEqual(behaviourOf(circuit), full, 'the same run twice');
+  const cut = behaviourOf(circuit, { maxSteps: 100 });
+  assert.equal(cut.skipped.code, 'RUN_STEPS');
+  assert.equal(cut.skipped.params.steps, 100);
+  assert.ok(BEHAVIOUR_STEPS >= 20000, 'room for a 2 s run at its 20 000th step');
+  const answer = formatLayout(autoLayout(expandRecipe('c3-pot-pwm').spec), 'en', { t, formatIssue });
+  assert.match(answer, /\nBehaviour, first 2 s(?: \(simulated, a model\): |: not measured, the run needed more than 25 000 steps of the simulation \(simulate --run 2 measures it\)\.\n)/);
 });
 
 test('layout\'s answer: a frequency for uno-blink, no behaviour line for led-resistor; both DONE', () => {

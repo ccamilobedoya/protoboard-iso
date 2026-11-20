@@ -162,9 +162,11 @@ Set them with an operation like any circuit field:
 
   `layout`'s answer has the same in one line for a circuit that changes by itself (a board's
   program, a 555, a generator, an op-amp beside a capacitor): `Behaviour, first 2 s (simulated, a
-  model): D1 1 Hz, on 50 % of the time`, from a run bounded at 0.8 s of the machine's time and a
-  step no shorter than a 20 000th of it; past the bound it says it was not measured and names
-  `simulate --run 2`.
+  model): D1 1 Hz, on 50 % of the time`, from a run bounded at 25 000 steps of the simulation (so the
+  same circuit gives the same line on any machine; about as long as the 0.8 s of the machine's
+  time it replaced, `BEHAVIOUR_STEPS` in `src/sim/run.js`) and a step no shorter than a 20 000th of
+  it; past the bound it says it was not measured (`the run needed more than 25 000 steps of the
+  simulation`) and names `simulate --run 2`.
 
 ## Results
 
@@ -301,11 +303,13 @@ The kit has no computed fix for this.
 
 ### What it could not tell (doubts)
 
-A hazard is a part the kit sees burning. A **doubt** is something the kit could not check at all,
-so it cannot say the circuit works: the review lists them in `doubts` (same shape as the hazards:
+A hazard is a part the kit sees burning. A **doubt** is something the kit cannot vouch for, so it
+cannot say the circuit works: what it could not check at all (a part with no model, a program it
+cannot run) or what it checked and found may not work (a relay that may not pull in, a button
+across joined pins): the review lists them in `doubts` (same shape as the hazards:
 `{ severity: 'warning', code, params, parts }`), any one of them makes the verdict APPROVED WITH
 WARNINGS and `layout` end `STATUS: WARNINGS`, and both print them as `⚠` lines under their own
-heading (`The kit could not check this …`), after the hazards (`src/sim/index.js`, `doubtsOf`).
+heading (`The kit cannot confirm these work …`), after the hazards (`src/sim/index.js`, `doubtsOf`).
 They never block. `DONE` then means what it says: the kit checked the circuit and found nothing to
 tell.
 

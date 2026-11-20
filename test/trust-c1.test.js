@@ -41,7 +41,7 @@ test('a wired part with no simulation model is a doubt: WARNINGS, its own ⚠ he
   assert.deepEqual(r.review.doubts[0].parts, ['U1']);
   assert.equal(r.review.summary.doubts, 1);
   const out = text(r);
-  assert.match(out, /The kit could not check this/);
+  assert.match(out, /The kit cannot confirm these work/);
   assert.doesNotMatch(out, /As wired, this would damage/);
   assert.match(out, /⚠ .*U1 \(LM386\) is drawn and wired/);
   // The floating nodes it leaves are its own doubt's consequence: not said again.
@@ -114,7 +114,7 @@ test('hazards alone keep their words and the fix; hazards and doubts together sh
   assert.equal(both.status, 'warnings');
   const b = text(both);
   assert.match(b, /As wired, this would damage/);
-  assert.match(b, /The kit could not check this/);
+  assert.match(b, /The kit cannot confirm these work/);
   assert.match(b, /To fix it/);
   assert.match(lastLine(b), /would be damaged as wired and 1 point\(s\) the kit could not check/);
   const rv = formatReview(review(both.circuit), 'en', { t, formatIssue });
@@ -198,7 +198,7 @@ test('a button across its joined pins is a doubt: layout WARNINGS, check lists i
   const made = cli('layout', target, spec, '--lang', 'en');
   assert.equal(made.status, 0, made.stdout);
   assert.match(lastLine(made.stdout), /^STATUS: WARNINGS/);
-  const heading = made.stdout.indexOf('The kit could not check this');
+  const heading = made.stdout.indexOf('The kit cannot confirm these work');
   assert.ok(heading > 0 && made.stdout.indexOf('⚠ warning: S1: pins 1 and 2 are joined') > heading, made.stdout);
   assert.doesNotMatch(made.stdout, /✖/);
   const check = JSON.parse(cli('check', target, '--json').stdout);

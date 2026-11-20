@@ -102,6 +102,30 @@ export function closestNames(name, count = 3, names = ALL_NAMES) {
     .map(({ candidate }) => candidate);
 }
 
+// Common asks the kit does not have, by name, to what it has that comes nearest
+// (check.UNKNOWN_PART_NAME.<variant>, in every language).
+const NEAR = {
+  speaker: ['SPEAKER', 'LOUDSPEAKER', 'ALTAVOZ', 'PARLANTE', 'BOCINA'],
+  ledstrip: ['LEDSTRIP', 'STRIP', 'TIRALED', 'TIRALEDS', 'TIRADELED', 'TIRADELEDS', 'WS2812', 'WS2812B', 'NEOPIXEL', 'SK6812'],
+  servo: ['SERVO', 'SERVOMOTOR', 'SG90', 'MG90S', 'MG996R'],
+  transformer: ['TRANSFORMER', 'TRANSFORMADOR', 'TRAFO'],
+  lcd: ['LCD', 'LCD1602', 'LCD16X2', 'LCD2004', 'LCD20X4', '1602', 'LCDI2C', 'PANTALLALCD'],
+};
+const nearOf = (name) => {
+  const key = norm(name).replace(/[-_.]/g, '');
+  return Object.keys(NEAR).find((k) => NEAR[k].includes(key));
+};
+
+// A name the kit does not have: the near part for a common ask, else the closest names, else none
+// (each says what to do: check.UNKNOWN_PART_NAME and its variants).
+function unknownName(part, name) {
+  const params = { part: part.id ?? '?', name: String(name ?? '—') };
+  const near = nearOf(name);
+  if (near) return { severity: 'error', code: 'UNKNOWN_PART_NAME', params: { ...params, suggestions: '—', variant: near } };
+  const suggestions = closestNames(name).join(', ');
+  return { severity: 'error', code: 'UNKNOWN_PART_NAME', params: { ...params, suggestions: suggestions || '—', ...(!suggestions && { variant: 'none' }) } };
+}
+
 // A part as written to a part the kit can build: { part } or { error }.
 export function resolvePart(raw) {
   const part = { ...raw };
@@ -126,7 +150,7 @@ export function resolvePart(raw) {
   if (module) return { part: { ...part, type: 'module', part: module.id } };
   const ldr = Object.keys(LDR_PARTS).find((k) => norm(k) === key);
   if (ldr) return { part: { ...part, type: 'ldr', part: ldr } };
-  return { error: { severity: 'error', code: 'UNKNOWN_PART_NAME', params: { part: part.id ?? '?', name: String(name ?? '—'), suggestions: closestNames(name).join(', ') || '—' } } };
+  return { error: unknownName(part, name) };
 }
 
 // The pin names a resolved part takes; for a switch or a board beside the breadboard, all the
