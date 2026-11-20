@@ -24,6 +24,7 @@
 import { compile, createEngine, controlStates, engineHazards, enterState } from './sim/index.js';
 import { standardValues, valueText } from './core/units.js';
 import { choose, sweepResistor } from './recipes/solve.js';
+import { LED_LIT } from './sim/models.js';
 
 const CANDIDATES = 6;
 const VERIFIED = 8; // bisection steps over the values under the aim (121 values: 7)
@@ -131,6 +132,25 @@ function quantityOf(engine, reading, hazard) {
   return (engine.stresses(reading)[id] ?? []).find((x) => x.code === hazard.code && x.pin === pin) ?? null;
 }
 
+// Whether the part a hazard is about still does its job with the fix in place, in the state the
+// hazard was found in: an LED is lit (LED_LIT of its rated current), a motor gets at least the
+// bottom of its voltage range. A fix that clears the hazard by stopping the part is not a fix. Other
+// parts have no such range in the model: they are not asked.
+function stillWorks(found, hazards) {
+  return hazards.every((h) => {
+    const s = subjectOf(found.program, h);
+    if (!s || !['LED', 'LEDS', 'MOT'].includes(s.d.kind)) return true;
+    const engine = measurer(found.program, h);
+    if (!engine || !engine.set(found.id, 'resistance', found.value)) return false;
+    const reading = engine.dc();
+    const part = reading.ok ? reading.parts[s.d.id] : null;
+    if (!part) return false;
+    if (s.d.kind === 'MOT') return Math.abs(part.voltage) >= (s.d.params.model.range?.[0] ?? 0);
+    const lit = s.pin ? part.channels?.[s.pin] : part;
+    return (lit?.brightness ?? 0) >= LED_LIT;
+  });
+}
+
 // An unstarted engine of the program in the hazard's state, to read its quantity value by value.
 function measurer(program, hazard) {
   const engine = createEngine(program);
@@ -166,7 +186,10 @@ function tryCandidate(base, candidate, hazards) {
   const check = createEngine(program);
   const states = controlStates(check.program(), check);
   const clears = (c) => check.set(id, 'resistance', c.value) && ((v) => v.ok && !v.hazards.length)(engineHazards(check, states));
-  const found = (c) => ({ value: c.value, program, id });
+  const found = (c) => {
+    const f = { value: c.value, program, id };
+    return stillWorks(f, hazards) ? f : null;
+  };
   // The aim's side first: the results at or under it, nearest first (choose's pick leads). Further
   // down the list a value limits more, so the values that clear everything are its tail: the first
   // of them by bisection (a few checks, not one per value).
@@ -220,6 +243,10 @@ export function hazardFix(circuit, hazards) {
     const lead = from.find((h) => String(h.params.part).split('.')[0] !== c.part) ?? from[0];
     return { c, ordered: [lead, ...hazards.filter((x) => x !== lead)] };
   });
+  // Only resistors over their power, nothing else wrong: a resistor that is the circuit's load (a
+  // stand-in for a heater, a lamp) has no value the kit can choose for it: a bigger one stops it doing
+  // what it is there for. The way out (a part of more watts, another design) is a person's.
+  if (hazards.every((h) => h.code === 'SIM_OVER_POWER' && isResistor(subjectOf(program, h)?.d) && !subjectOf(program, h).pin)) return { fix: null, noFix: true };
   const sets = candidates.filter((x) => x.c.kind === 'set');
   const adds = candidates.filter((x) => x.c.kind !== 'set');
   for (const { c, ordered } of [...sets, ...adds].slice(0, CANDIDATES)) {

@@ -506,6 +506,11 @@ in the log of `PLANNING.md`.
 ## Trust: what DONE means (2026-11)
 
 - ✅ The command line never crashes, cuts its output or saves silently (C3): a missing, empty or malformed file is one or two lines and exit 1 (`STATUS: FIX_SPEC` for `layout`), an unexpected error is `internal error:` with exit 3 (no stack unless `PROTOBOARD_DEBUG=1`), output drains before the process ends and a closed pipe ends quietly, an empty spec is `FIX_SPEC`, `apply` refuses input the kit cannot read (nothing saved) and says in words when it saved a change that adds errors, one language per circuit, and `layout` on an existing circuit says it laid it out again
+- ✅ Reverse polarity is a hazard (regulators, op-amps, 555, boards); a negative bench supply simulates
+- ✅ The hazard check visits the ends of each environment field a sensor follows
+- ✅ A relay driven but not pulled in (`SIM_RELAY_UNDERDRIVEN`); a button across joined pins (`BUTTON_PINS_JOINED`)
+- ✅ A computed fix leaves the part working; damage lines say what happens to the part
+- ⬜ The same "driven but not working" idea for other parts (see the notes of the work)
 
 ## Optional, later ⬜
 

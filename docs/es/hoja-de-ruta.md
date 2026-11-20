@@ -513,6 +513,11 @@ las decisiones en el registro de `PLANNING.md`.
 ## Confianza: qué significa «terminado» (2026-11)
 
 - ✅ La línea de comandos no se cae, no corta su salida ni guarda en silencio (C3): un archivo que falta, vacío o mal formado son una o dos líneas y salida 1 (`STATUS: FIX_SPEC` en `layout`), un error inesperado es `error interno:` con salida 3 (sin traza salvo `PROTOBOARD_DEBUG=1`), la salida se vacía antes de que termine el proceso y una tubería cerrada termina en silencio, una spec vacía es `FIX_SPEC`, `apply` rechaza lo que el kit no puede leer (no guarda nada) y dice con palabras cuando guardó un cambio que agrega errores, un idioma por circuito, y `layout` sobre un circuito existente dice que lo montó de nuevo
+- ✅ La polaridad invertida es un peligro (reguladores, amplificadores, 555, placas); una fuente de banco negativa se simula
+- ✅ La revisión de peligros visita los extremos de cada campo del ambiente que sigue un sensor
+- ✅ Un relé manejado que no cierra (`SIM_RELAY_UNDERDRIVEN`); un pulsador entre pines unidos (`BUTTON_PINS_JOINED`)
+- ✅ Un arreglo calculado deja la pieza funcionando; las líneas de daño dicen qué le pasa a la pieza
+- ⬜ La misma idea de «manejado pero no funciona» para otras piezas
 
 ## Opcional, más adelante ⬜
 

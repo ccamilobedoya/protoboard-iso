@@ -80,7 +80,20 @@ import { voltageSensor } from './voltage-sensor.js';
 import { activeBuzzer } from './active-buzzer.js';
 import { climate } from './climate.js';
 
+// What happens to a part that carries more than it takes: the key of `effect.*` in src/i18n, which a
+// damage line ends with (the stress's own `extra.effect` wins, as a reversed supply's). By the part's
+// kind; a board says whether it is a pin; anything else heats when the stress is power, else "damaged".
+const EFFECT_OF_KIND = { R: 'overheats', LED: 'burns', LEDS: 'burns', D: 'burns', LSR: 'burns', BAT: 'battery', Q: 'overheats', M: 'overheats', MOT: 'overheats', RLY: 'overheats', L: 'overheats', C: 'capacitor' };
+const effectOf = (kind, s) => s.extra?.effect ?? (kind === 'MCU' ? (s.pin ? 'pin' : 'board') : EFFECT_OF_KIND[kind] ?? (s.quantity === 'power' ? 'overheats' : 'damaged'));
+
 export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, leds, bridge, mosfet, bjt, regulator, timer, opamp, mcu, lm35, relay, motor, battery, pir, touch, sensorModule, encoder, laser, ultrasonic, hallSensor, voltageSensor, activeBuzzer, climate];
+
+// Every limit a device reports carries that effect, for the text of its issue (shared.js, stressIssue).
+for (const d of DEVICES) {
+  if (!d.limits) continue;
+  const own = d.limits;
+  d.limits = (entry, reading) => own.call(d, entry, reading).map((s) => (s.note ? s : { ...s, extra: { effect: effectOf(d.kind, s), ...s.extra } }));
+}
 
 // Several devices may share a type (the ICs: timer, op-amp); each one accepts its own parts.
 const BY_TYPE = {};

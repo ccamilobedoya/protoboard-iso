@@ -94,6 +94,18 @@ export function checkConnections(parts, netlist, { netLabels = {} } = {}) {
     }
   }
   const byId = new Map(parts.map((p) => [p.id, p]));
+  // A push button's pins 1–2 (and 3–4) are one metal piece: two different nets on two pins of the
+  // same side are joined for good, and pressing the button changes nothing.
+  for (const part of parts) {
+    if (part.type !== 'button') continue;
+    const sides = part.def.internal ?? [];
+    for (const side of sides) {
+      const wired = side.map((pin) => ({ pin, node: part.holes[part.pinNames.indexOf(pin)]?.node })).filter(({ node }) => node != null && ((netlist.nodes[node]?.length ?? 0) > 1 || netLabels[node.split(':')[0]] !== undefined));
+      if (new Set(wired.map((w) => w.node)).size < 2) continue;
+      const other = sides.find((s) => s !== side)?.[0] ?? side.at(-1);
+      out.push(issue('warning', 'BUTTON_PINS_JOINED', { part: part.id, pins: wired.map((w) => w.pin).join(' and '), use: `${wired[0].pin} and ${other}` }));
+    }
+  }
   const connectedThroughPart = (partId, pin) => {
     const part = byId.get(partId);
     const group = (part?.def.internal ?? []).find((g) => g.includes(pin));

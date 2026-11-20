@@ -96,7 +96,11 @@ function supplyList(circuit, board) {
       if (model.error) return { ...common, voltage: NaN };
       return { ...common, voltage: model.emf, internalResistance: model.resistance, battery: model };
     }
-    const voltage = Number(s.voltage);
+    // A negative voltage is the same supply the other way round: its terminals swap and the voltage
+    // is positive (so a part it feeds backwards is judged as such, by its own limits).
+    const asked = Number(s.voltage);
+    const voltage = Math.abs(asked);
+    if (asked < 0) [common.positive, common.negative] = [common.negative, common.positive];
     const cells = Math.max(1, Math.round(voltage / 1.5));
     return { ...common, voltage, internalResistance: Number(s.internalResistance ?? (kind === 'battery' ? cells * BATTERY_CELL_RESISTANCE : 0)) };
   });

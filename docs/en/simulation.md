@@ -145,7 +145,8 @@ answer has `times` and the same quantities as arrays.
 |---|---|
 | `SIM_OVER_POWER` | a resistor above its rating (`power`: "1/4" W by default) or a transistor above its package limit |
 | `SIM_OVER_CURRENT` | an LED above 30 mA, a diode, inductor, regulator or battery above its maximum |
-| `SIM_REVERSE_VOLTAGE` | an LED with more than 5 V in reverse |
+| `SIM_REVERSE_VOLTAGE` | a part fed backwards: an LED with more than 5 V in reverse; a regulator, op-amp, 555 or development board whose supply pin sits more than 0.5 V below its ground pin ("in a real circuit it is destroyed"; the line names both pins); sensor modules over their own figure. Thresholds in one place: `REVERSE_LIMITS` in `src/sim/models.js` |
+| `SIM_RELAY_UNDERDRIVEN` | a relay whose coil carries more than its drop-out current and less than its pull-in current, the armature at rest: driven, but it does not pull in. Not damage: `checkHazards` returns it in `doubts` (with the state it was found in), `simulate` in its notes |
 | `SIM_CAP_REVERSED`, `SIM_CAP_OVER_VOLTAGE` | an electrolytic the wrong way round; any capacitor above its voltage |
 | `SIM_SUPPLY_LIMITED` | a bench supply at its current limit (constant current) |
 | `SIM_SHORT_CIRCUIT` | an unlimited supply delivering more than 3 A; a battery whose load is under half an ohm |
@@ -169,6 +170,13 @@ each of these states, one at a time with everything else at rest (`src/sim/index
 - **Each control a learner moves by hand**: a push button (or a rotary encoder's) pressed, a switch
   in its other position (a rocker, a latching button, a slide switch, a tilt switch tipped), a
   potentiometer or trimmer at each end of its travel.
+- **Each field of the environment a sensor follows, at the bottom and at the top of its range**
+  (the circuit's `range` for it, else the registry's), one field at a time: a circuit that works
+  at the middle of the range can stop working in the dark or in the heat. A bench supply with a
+  negative `voltage` is the same supply the other way round, so what it feeds backwards is judged
+  by rule above. A damage line ends by saying what happens to that kind of part (it burns out, it
+  overheats, the pin can be damaged…), and a computed fix leaves the LED lit and the motor above
+  the bottom of its voltage range, or the kit says it has none.
 - **Each output of a board's program held high** (since 2026-11-16): the pins the program has made
   outputs by the time it first waits (its `setup()` and `loop()` up to the first `delay`: the pin
   modes of the DC point, so `pinMode`, and the `digitalWrite`, `tone`, `analogWrite` and `ledcWrite`
