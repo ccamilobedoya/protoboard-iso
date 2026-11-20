@@ -207,6 +207,11 @@ test('B9 · LED on 9 V without a resistor: hazard kept, fix near 360 ohm, conseq
   const line = text.split('\n').find((l) => l.includes('D1 carries'));
   assert.ok(line, text);
   assert.match(line, /burn/i, line); // LED: burns out
+});
+
+test('B9 · LED on 9 V without a resistor: no brightness over 1000 % in layout, review or simulate text', () => {
+  const t = build({ parts: [{ id: 'D1', part: 'LED', color: 'red' }], nets: [['T+', 'D1.anode'], ['D1.cathode', 'T-']], supplies: bench(9) });
+  const text = run(['review', t]).stdout;
   const everything = [text, run(['simulate', t]).stdout, run(['layout', t, `${t}.spec.json`]).stdout].join('\n');
   for (const m of everything.matchAll(/(\d[\d.,]*)\s*%/g)) {
     assert.ok(Number(m[1].replace(',', '')) <= 1000, `a percentage over 1000 %: ${m[0]}`);
