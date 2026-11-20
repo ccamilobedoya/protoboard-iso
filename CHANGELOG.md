@@ -20,6 +20,8 @@ detail.
 
 ### Fixed
 
+- Wording that overstated: reverse supply says it "can be destroyed" and that any reverse voltage on a supply is outside its ratings (a development board: "the board can be damaged"); a ceramic capacitor over its rating says its dielectric can break down, an electrolytic slightly reversed only degrades; a LED in reverse "can burn out"; a relay "may not pull in", and a coil under a quarter of its pull-in current (a leak) is not reported; a finding seen in several states is reported in the one that tells most.
+
 - The `Readings` line named a battery part twice (`battery BT1 8.92 V · battery BT1 8.92 V`); a drawn battery is named once, by its id.
 - A missing, empty, malformed or wrongly shaped spec, operations or circuit file is answered in one or two lines (exit 1; `STATUS: FIX_SPEC` for `layout`), never a stack trace; an unexpected error is `internal error: …` (exit 3; `PROTOBOARD_DEBUG=1` adds the stack).
 - A spec with no parts is `STATUS: FIX_SPEC`, not a circuit of zero parts.

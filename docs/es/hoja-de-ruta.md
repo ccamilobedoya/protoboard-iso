@@ -522,6 +522,8 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ✅ La revisión de peligros visita los extremos de cada campo del ambiente que sigue un sensor
 - ✅ Un relé manejado que no cierra (`SIM_RELAY_UNDERDRIVEN`); un pulsador entre pines unidos (`BUTTON_PINS_JOINED`)
 - ✅ Un arreglo calculado deja la pieza funcionando; las líneas de daño dicen qué le pasa a la pieza
+- ⬜ Un arreglo calculado para un motor sobre su rango como «una resistencia de N Ω de al menos X W» (un motor de 3 V en 5 V pide unos 4,7 Ω a 1 W; hoy el kit dice que no tiene porque una de ¼ W se recalienta)
+- ⬜ Límites para una pieza con pines sin conectar (un 555 suelto con la alimentación invertida no se marca)
 - ⬜ La misma idea de «manejado pero no funciona» para otras piezas
 - ✅ Dudas junto a los peligros: `review` devuelve `doubts` (un componente conectado sin modelo de simulación, todo aviso sobre el programa de una placa, un programa atascado sin dejar pasar el tiempo, cualquier otro aviso de la simulación, una fuente que no se resuelve); basta una para APROBADO CON AVISOS y `STATUS: WARNINGS`, bajo su propio encabezado, en la consola y en las herramientas MCP (`src/sim/index.js` `doubtsOf`, `src/review.js`)
 - ✅ Un archivo de programa no encontrado dice dónde buscó el kit (la carpeta del circuito, junto a `circuit.json`); layout juzga el circuito que deja desde su carpeta

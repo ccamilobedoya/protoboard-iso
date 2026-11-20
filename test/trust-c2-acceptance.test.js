@@ -138,8 +138,15 @@ test('B5 · night light at light 0: simulate emits SIM_RELAY_UNDERDRIVEN as a wa
 });
 
 test('B5 · night light: review reports SIM_RELAY_UNDERDRIVEN somewhere (hazards, doubts or advisory), naming K1', () => {
+  // The spec as laid out, no environment declared: the review still visits the sensor's field at both ends.
   const r = reviewJson(build(NIGHT('10k')));
   const text = JSON.stringify(r);
+  // The dark state is reported (about 42 mA with its state), not the daylight leak.
+  const d = (r.doubts ?? []).find((x) => x.code === 'SIM_RELAY_UNDERDRIVEN');
+  assert.ok(d, `no relay doubt: ${text.slice(0, 300)}`);
+  assert.ok(d.params.current.value > 0.04 && d.params.current.value < 0.043, JSON.stringify(d));
+  assert.equal(d.when?.field, 'light');
+  assert.equal(d.when?.end, 'min');
   assert.match(text, /SIM_RELAY_UNDERDRIVEN/, `review: ${text.slice(0, 600)}`);
   assert.match(text, /K1/);
 });

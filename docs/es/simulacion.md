@@ -151,7 +151,7 @@ entran por la pata. El transitorio trae `times` y las mismas magnitudes como lis
 |---|---|
 | `SIM_OVER_POWER` | una resistencia por encima de su potencia (`power`: "1/4" W por defecto) o un transistor por encima de lo que aguanta su encapsulado |
 | `SIM_OVER_CURRENT` | un LED con más de 30 mA; un diodo, inductor, regulador o batería por encima de su máximo |
-| `SIM_REVERSE_VOLTAGE` | una pieza alimentada al revés: un LED con más de 5 V en inversa; un regulador, amplificador operacional, 555 o placa de desarrollo cuyo pin de alimentación queda a más de 0,5 V por debajo de su pin de tierra ("en un circuito real se destruye"; la línea nombra los dos pines); módulos de sensores sobre su cifra. Los umbrales están en un solo sitio: `REVERSE_LIMITS` en `src/sim/models.js` |
+| `SIM_REVERSE_VOLTAGE` | una pieza alimentada al revés: un LED con más de 5 V en inversa; un regulador, amplificador operacional, 555 o placa de desarrollo cuyo pin de alimentación queda a más de 0,5 V por debajo de su pin de tierra ("cualquier voltaje inverso en una alimentación queda fuera de sus especificaciones: en un circuito real se puede destruir"; la línea nombra los dos pines y el voltaje; 0,5 V es solo un piso de ruido, ninguna hoja de datos lo da); módulos de sensores sobre su cifra. Los umbrales están en un solo sitio: `REVERSE_LIMITS` en `src/sim/models.js` |
 | `SIM_RELAY_UNDERDRIVEN` | un relé cuya bobina lleva más que su corriente de suelta y menos que la de cierre, con la armadura en reposo: lo manejan, pero no cierra. No es daño: `checkHazards` lo devuelve en `doubts` (con el estado donde se halló), `simulate` en sus notas |
 | `SIM_CAP_REVERSED`, `SIM_CAP_OVER_VOLTAGE` | un electrolítico al revés; cualquier capacitor por encima de su voltaje |
 | `SIM_SUPPLY_LIMITED` | una fuente de banco en su límite de corriente (corriente constante) |
@@ -184,6 +184,10 @@ en reposo y otra vez en cada uno de estos estados, uno a la vez y todo lo demás
   arriba. Una línea de daño termina diciendo qué le pasa a ese tipo de pieza (se quema, se
   recalienta, el pin se puede dañar…), y un arreglo calculado deja el LED encendido y el motor por
   encima del piso de su rango de voltaje, o el kit dice que no lo tiene.
+- Límite, tal como está hoy: una pieza con pines sin conectar la saltan los límites, así que un 555
+  suelto con la alimentación invertida y los demás pines al aire no se marca. Un relé con menos de un
+  cuarto de su corriente de cierre tiene una fuga, no un manejo, y no se avisa; si el aviso sale en
+  varios estados, se da el de mayor corriente de bobina, con su estado.
 - **Cada salida del programa de una placa puesta en alto** (desde el 2026-11-16): los pines que el
   programa ya volvió salidas cuando espera por primera vez (su `setup()` y su `loop()` hasta el primer
   `delay`: los modos de pin del punto en DC, así que `pinMode`, y los `digitalWrite`, `tone`,

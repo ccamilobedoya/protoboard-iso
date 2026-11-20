@@ -66,7 +66,7 @@ export const laser = {
   // What it adds to the environment now (engine.js): its light, 0 when it does not lase.
   emit: (entry, r) => ({ light: r.light }),
   limits(entry, r) {
-    const out = [stress('SIM_OVER_CURRENT', 'current', r.current, LASER.maxCurrent, 'A'), stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.voltage, LASER.maxReverse, 'V', { param: 'voltage' })];
+    const out = [stress('SIM_OVER_CURRENT', 'current', r.current, LASER.maxCurrent, 'A'), stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.voltage, LASER.maxReverse, 'V', { param: 'voltage', extra: { effect: 'canBurn' } })];
     if (r.state === 'dim') out.push(note('info', 'SIM_LASER_DIM', { part: entry.id, current: q(r.current, 'A'), threshold: q(LASER.threshold, 'A') }));
     if (r.opticalPower > LASER.classLimit) out.push(note('warning', 'SIM_LASER_POWER', { part: entry.id, power: q(r.opticalPower, 'W'), max: q(LASER.classLimit, 'W'), voltage: q(r.voltage, 'V') }));
     return out;

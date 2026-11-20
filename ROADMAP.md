@@ -515,6 +515,8 @@ before saying it works.
 - ✅ The hazard check visits the ends of each environment field a sensor follows
 - ✅ A relay driven but not pulled in (`SIM_RELAY_UNDERDRIVEN`); a button across joined pins (`BUTTON_PINS_JOINED`)
 - ✅ A computed fix leaves the part working; damage lines say what happens to the part
+- ⬜ A computed fix for a motor above its range as "a resistor of N Ω rated at least X W" (a 3 V motor on 5 V needs about 4.7 Ω at 1 W; today the kit says it has none because a ¼ W candidate overheats)
+- ⬜ Limits for a part with unconnected pins (a bare 555 with its supply reversed is not flagged)
 - ⬜ The same "driven but not working" idea for other parts (see the notes of the work)
 - ✅ Doubts beside hazards: `review` returns `doubts` (a part wired in with no simulation model, every issue about a board's program, a program stuck without time passing, any other warning of the simulation, a source that does not solve); one is enough for APPROVED WITH WARNINGS and `STATUS: WARNINGS`, under its own heading, in the CLI and the MCP tools (`src/sim/index.js` `doubtsOf`, `src/review.js`)
 - ✅ A program file not found says where the kit looked (the circuit's folder, beside `circuit.json`); layout judges the circuit it keeps from its folder
