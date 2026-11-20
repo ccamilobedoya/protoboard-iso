@@ -94,7 +94,7 @@ export function environmentStates(program, engine) {
   const out = [];
   for (const c of engine.controls()) {
     if (c.id !== 'environment' || !followed.has(c.field) || !Number.isFinite(c.min) || !Number.isFinite(c.max)) continue;
-    for (const value of [c.min, c.max]) if (value !== c.value) out.push({ part: 'environment', field: c.field, value, rest: c.value, ...(c.programmed && { programmed: true }) });
+    for (const [end, value] of [['min', c.min], ['max', c.max]]) if (value !== c.value) out.push({ part: 'environment', field: c.field, value, end, rest: c.value, ...(c.programmed && { programmed: true }) });
   }
   return out;
 }
@@ -129,6 +129,8 @@ const PROGRAM_DOUBTS = new Set(['SIM_PROGRAM_FILE', 'SIM_PROGRAM_OUTSIDE', 'SIM_
 const warningsOf = (reading) => (reading.issues ?? []).filter((i) => (PROGRAM_DOUBTS.has(i.code) || i.severity === 'warning' || i.severity === 'error') && !NOT_DOUBTS.has(i.code));
 // One doubt per code and part (its readings change from state to state), and per call or file a
 // program's issue names; an issue that names no part, by all its params.
+// Doubts that can show in several states: the quantity whose highest value is the one reported.
+const STRONGEST = { SIM_RELAY_UNDERDRIVEN: 'current' };
 const doubtKey = (i) => (i.params?.part != null ? `${i.code} ${i.params.part} ${i.params.name ?? i.params.file ?? ''} ${i.params.line ?? ''}` : `${i.code} ${JSON.stringify(i.params ?? {})}`);
 const exceeded = (engine, reading) => Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
 const hazardKey = (h) => `${h.code} ${h.params.part}`;
@@ -162,12 +164,18 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
   for (const s of tried) {
     if (!enterState(engine, s)) continue;
     const reading = engine.dc();
-    const when = s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value };
+    const when = s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value, ...(s.end && { end: s.end }) };
     if (reading.ok) {
       for (const h of exceeded(engine, reading)) if (!atRest.has(hazardKey(h))) hazards.push({ ...h, when });
-      for (const d of warningsOf(reading)) if (!doubted.has(doubtKey(d))) {
-        doubted.add(doubtKey(d));
-        doubts.push({ ...d, when });
+      for (const d of warningsOf(reading)) {
+        if (!doubted.has(doubtKey(d))) {
+          doubted.add(doubtKey(d));
+          doubts.push({ ...d, when });
+        } else if (STRONGEST[d.code]) {
+          // Seen in several states: the one that tells the most (a relay's weak drive: the highest coil current).
+          const at = doubts.findIndex((x) => doubtKey(x) === doubtKey(d));
+          if (d.params[STRONGEST[d.code]].value > doubts[at].params[STRONGEST[d.code]].value) doubts[at] = { ...d, when };
+        }
       }
     }
     leaveState(engine, s);

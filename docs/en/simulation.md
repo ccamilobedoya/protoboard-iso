@@ -145,7 +145,7 @@ answer has `times` and the same quantities as arrays.
 |---|---|
 | `SIM_OVER_POWER` | a resistor above its rating (`power`: "1/4" W by default) or a transistor above its package limit |
 | `SIM_OVER_CURRENT` | an LED above 30 mA, a diode, inductor, regulator or battery above its maximum |
-| `SIM_REVERSE_VOLTAGE` | a part fed backwards: an LED with more than 5 V in reverse; a regulator, op-amp, 555 or development board whose supply pin sits more than 0.5 V below its ground pin ("in a real circuit it is destroyed"; the line names both pins); sensor modules over their own figure. Thresholds in one place: `REVERSE_LIMITS` in `src/sim/models.js` |
+| `SIM_REVERSE_VOLTAGE` | a part fed backwards: an LED with more than 5 V in reverse; a regulator, op-amp, 555 or development board whose supply pin sits more than 0.5 V below its ground pin ("any reverse voltage on a supply is outside its ratings: in a real circuit it can be destroyed"; the line names both pins and the voltage; 0.5 V is only a noise floor, no datasheet rates it); sensor modules over their own figure. Thresholds in one place: `REVERSE_LIMITS` in `src/sim/models.js` |
 | `SIM_RELAY_UNDERDRIVEN` | a relay whose coil carries more than its drop-out current and less than its pull-in current, the armature at rest: driven, but it does not pull in. Not damage: `checkHazards` returns it in `doubts` (with the state it was found in), `simulate` in its notes |
 | `SIM_CAP_REVERSED`, `SIM_CAP_OVER_VOLTAGE` | an electrolytic the wrong way round; any capacitor above its voltage |
 | `SIM_SUPPLY_LIMITED` | a bench supply at its current limit (constant current) |
@@ -177,6 +177,10 @@ each of these states, one at a time with everything else at rest (`src/sim/index
   by rule above. A damage line ends by saying what happens to that kind of part (it burns out, it
   overheats, the pin can be damaged…), and a computed fix leaves the LED lit and the motor above
   the bottom of its voltage range, or the kit says it has none.
+- Limit, as it is today: a part with unconnected pins is skipped by the limits, so a bare 555 with
+  its supply reversed and the other pins open is not flagged. A relay driven under a quarter of its
+  pull-in current is a leak, not a drive, and is not reported; when the warning shows in several
+  states, the one with the highest coil current is reported, with its state.
 - **Each output of a board's program held high** (since 2026-11-16): the pins the program has made
   outputs by the time it first waits (its `setup()` and `loop()` up to the first `delay`: the pin
   modes of the DC point, so `pinMode`, and the `digitalWrite`, `tone`, `analogWrite` and `ledcWrite`

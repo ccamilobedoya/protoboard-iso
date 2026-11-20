@@ -60,6 +60,6 @@ export const led = {
   },
   limits: (entry, r) => [
     stress('SIM_OVER_CURRENT', 'current', r.current, entry.model.maxCurrent, 'A'),
-    stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.voltage, entry.model.maxReverse, 'V', { param: 'voltage' }),
+    stress('SIM_REVERSE_VOLTAGE', 'reverse', -r.voltage, entry.model.maxReverse, 'V', { param: 'voltage', extra: { effect: 'canBurn' } }),
   ],
 };

@@ -82,7 +82,7 @@ export const leds = {
       return [
         stress('SIM_OVER_CURRENT', 'current', ch.current, m.maxCurrent, 'A', { pin: c.pin }),
         ...(m.maxPower ? [stress('SIM_OVER_POWER', 'power', Math.abs(ch.power), m.maxPower, 'W', { pin: c.pin })] : []),
-        stress('SIM_REVERSE_VOLTAGE', 'reverse', -ch.voltage, m.maxReverse, 'V', { param: 'voltage', pin: c.pin }),
+        stress('SIM_REVERSE_VOLTAGE', 'reverse', -ch.voltage, m.maxReverse, 'V', { param: 'voltage', pin: c.pin, extra: { effect: 'canBurn' } }),
       ];
     });
   },

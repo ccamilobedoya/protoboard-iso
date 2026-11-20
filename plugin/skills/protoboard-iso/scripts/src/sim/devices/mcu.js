@@ -294,7 +294,7 @@ export const mcu = {
     const rails = [[entry.power.usb, r.vbus], ...(entry.power.logic !== entry.power.usb ? [[entry.power.logic, r.vdd]] : [])].filter(([name]) => name && entry.wired.includes(name));
     if (rails.length) {
       const [name, volts] = rails.reduce((a, b) => (Number(b[1]) < Number(a[1]) ? b : a));
-      out.push(reverseSupply(-volts, REVERSE_LIMITS.board, name, gnd));
+      out.push(reverseSupply(-volts, REVERSE_LIMITS.board, name, gnd, 'board'));
     }
     for (const x of r.pins) {
       if (x.voltage > r.vdd + 0.3 || x.voltage < -0.3) out.push(note('warning', 'SIM_PIN_OVERVOLTAGE', { part: entry.id, pin: x.name, voltage: q(x.voltage, 'V'), max: q(r.vdd, 'V') }));

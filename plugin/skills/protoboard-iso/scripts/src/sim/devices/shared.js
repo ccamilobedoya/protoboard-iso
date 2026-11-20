@@ -20,7 +20,7 @@ export function stress(code, quantity, value, max, unit, { param = quantity, rep
 }
 // A supply fed backwards: `value` is how far the `low` pin sits below the `high` one (positive when
 // reversed), against `max`, the most the part takes (models.js, REVERSE_LIMITS). The line names both pins.
-export const reverseSupply = (value, max, low, high, effect = 'destroyed') => stress('SIM_REVERSE_VOLTAGE', 'reverse', value, max, 'V', { param: 'voltage', of: 'supply', extra: { variant: 'pins', low, high, effect } });
+export const reverseSupply = (value, max, low, high, effect = 'maybeDestroyed') => stress('SIM_REVERSE_VOLTAGE', 'reverse', value, max, 'V', { param: 'voltage', of: 'supply', extra: { variant: 'pins', low, high, effect } });
 // Something to say that is not a limit (a buzzer on DC, a regulator out of regulation).
 export const note = (severity, code, params) => ({ note: issue(severity, code, params) });
 

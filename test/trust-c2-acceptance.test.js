@@ -138,7 +138,9 @@ test('B5 · night light at light 0: simulate emits SIM_RELAY_UNDERDRIVEN as a wa
 });
 
 test('B5 · night light: review reports SIM_RELAY_UNDERDRIVEN somewhere (hazards, doubts or advisory), naming K1', () => {
-  const r = reviewJson(build(NIGHT('10k')));
+  // The environment is declared (a sensor follows it): the review visits its dark end. At rest in daylight
+  // the coil only leaks (under a quarter of its pull-in) and is no longer reported.
+  const r = reviewJson(build(NIGHT('10k'), { ops: light0 }));
   const text = JSON.stringify(r);
   assert.match(text, /SIM_RELAY_UNDERDRIVEN/, `review: ${text.slice(0, 600)}`);
   assert.match(text, /K1/);

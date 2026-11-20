@@ -99,3 +99,47 @@ test('the button recipes lay out DONE with no BUTTON_PINS_JOINED', () => {
     assert.ok(!checkCircuit(r.circuit).issues.some((i) => i.code === 'BUTTON_PINS_JOINED'), name);
   }
 });
+
+// ---- round 3: wording that does not overstate
+const lineOf = (c, code, lang = 'en') => {
+  const h = checkHazards(c).hazards.find((x) => x.code === code);
+  return h ? formatIssue(h, lang) : null;
+};
+
+test('reverse supply on a regulator: "can be destroyed", no rating invented, both pins and the voltage named', () => {
+  const c = built({ parts: [bat, { id: 'U1', part: '7805' }], nets: [['BT1.-', 'U1.VIN'], ['BT1.+', 'U1.GND'], ['U1.GND', 'T-']] });
+  const en = lineOf(c, 'SIM_REVERSE_VOLTAGE');
+  assert.match(en, /IN sits 8\.99 V below its GND, and any reverse voltage on a supply is outside its ratings: in a real circuit it can be destroyed\./);
+  assert.doesNotMatch(en, /withstands|500 mV/);
+  assert.match(lineOf(c, 'SIM_REVERSE_VOLTAGE', 'es'), /se puede destruir\.$/);
+});
+
+test('a capacitor over its rating: ceramic breaks down, electrolytic vents; a slight reverse only degrades', () => {
+  const over = (kind) => built({ parts: [bat, { id: 'C1', type: 'capacitor', value: '100n', kind, voltage: 6 }], nets: [['BT1.+', 'C1.+'], ['BT1.-', 'C1.-']] });
+  assert.match(lineOf(over('electrolytic'), 'SIM_CAP_OVER_VOLTAGE'), /heats up, vents and can burst/);
+  const ceramic = built({ parts: [{ id: 'C1', type: 'capacitor', value: '100n' }], nets: [['T+', 'C1.1'], ['T-', 'C1.2']], supplies: [{ id: 'V1', kind: 'bench', voltage: 90, positive: 'T+', negative: 'T-' }] });
+  assert.match(lineOf(ceramic, 'SIM_CAP_OVER_VOLTAGE'), /its dielectric can break down and short\./);
+  const slight = built({ parts: [{ id: 'C1', type: 'capacitor', value: '100u', kind: 'electrolytic' }], nets: [['T+', 'C1.-'], ['T-', 'C1.+']], supplies: [{ id: 'V1', kind: 'bench', voltage: 1.5, positive: 'T+', negative: 'T-' }] });
+  assert.match(lineOf(slight, 'SIM_CAP_REVERSED'), /degrades and can fail/);
+  const hard = built({ parts: [{ id: 'C1', type: 'capacitor', value: '100u', kind: 'electrolytic' }], nets: [['T+', 'C1.-'], ['T-', 'C1.+']], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }] });
+  assert.match(lineOf(hard, 'SIM_CAP_REVERSED'), /vents and can burst/);
+});
+
+test('a LED reversed past its rating can burn out; forward over-current burns out', () => {
+  const led = (a, k) => built({ parts: [{ id: 'D1', type: 'led', color: 'red' }], nets: [['T+', a], [k, 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 9, positive: 'T+', negative: 'T-' }] });
+  assert.match(lineOf(led('D1.K', 'D1.A'), 'SIM_REVERSE_VOLTAGE'), /it can burn out\.$/);
+  assert.match(lineOf(led('D1.A', 'D1.K'), 'SIM_OVER_CURRENT'), /it burns out\.$/);
+});
+
+test('a relay driven too weakly says it may not pull in; the daylight leak is no drive; the dark is the state reported', () => {
+  const day = { ...built(NIGHT('10k')), environment: { light: 300 } };
+  const r = checkHazards(day);
+  const d = r.doubts.find((x) => x.code === 'SIM_RELAY_UNDERDRIVEN');
+  assert.ok(d, JSON.stringify(r.doubts));
+  assert.equal(d.when.field, 'light');
+  assert.equal(d.when.end, 'min');
+  assert.ok(d.params.current.value > 0.04);
+  assert.match(formatIssue(d, 'en'), /it may not pull in.*with the environment's light at its minimum\.$/);
+  assert.match(formatIssue(d, 'es'), /con luz del ambiente en su mínimo\.$/);
+  assert.ok(!simulate(day).issues.some((i) => i.code === 'SIM_RELAY_UNDERDRIVEN'), 'at rest in daylight: a leak, not a drive');
+});

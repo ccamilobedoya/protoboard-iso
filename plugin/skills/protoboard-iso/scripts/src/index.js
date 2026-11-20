@@ -64,7 +64,9 @@ export function formatIssue(issue, lang = 'en') {
 
 // "with S1 pressed", "with RV1 at the pin-3 end of its travel", "with D10 high"; a control without words of its own:
 // "with S1 on = false".
-function whenText({ part, field, value, pin, name }, lang) {
+function whenText({ part, field, value, pin, name, end }, lang) {
+  // An environment field at an end of its range: "with the environment's light at its minimum".
+  if (part === 'environment' && end) return t(lang, `hazard.when.environment.${end}`, { field: t(lang, `sim.env.field.${field}`) });
   // A board's output held high by the hazard check (sim/index.js): "with D10 high".
   if (pin) return t(lang, 'hazard.when.pin', { pin: name ?? pin });
   const key = field === 'position' ? `hazard.when.position.${value > 0.5 ? 3 : 1}` : `hazard.when.${field}.${Boolean(value)}`;
