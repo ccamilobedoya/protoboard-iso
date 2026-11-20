@@ -17,9 +17,16 @@ import { createEngine } from './engine.js';
 import { lookupModule } from '../parts/modules.js';
 import { FIELDS, createEnvironment, environmentControls } from './environment.js';
 import { stressIssue, issue } from './devices/shared.js';
-import { createRunner } from './program.js';
-import { MCUS } from './models.js';
 import { deviceOfProgram } from './devices/index.js';
+import { buildCircuit } from '../circuit/build.js';
+import { checkButtonPins } from '../circuit/checks.js';
+
+// Findings about the wiring itself that `check` and the hazard check report (not placement checks):
+// each is a doubt of the review (doubtsOf), never a blocking item (circuit/checks.js DOUBT_CODES).
+export function wiringIssues(circuit) {
+  const built = buildCircuit(circuit);
+  return built.board ? checkButtonPins(built.parts, built.netlist, { netLabels: circuit.netLabels }) : [];
+}
 
 
 export { compile, createEngine };
@@ -37,12 +44,14 @@ export function simulate(circuit, options = {}) {
 // a board's program driven high, every stress past its limit (ratio above 1, what the simulator calls
 // exceeded) as the warning `simulate` gives for it.
 //
-//   checkHazards(circuit) → { hazards: [issue…], states: { checked, total, controls, outputs }, checked }
+//   checkHazards(circuit) → { hazards: [issue…], doubts: [issue…], states: { checked, total, controls, outputs, environment? }, checked }
 //
 // The states, one at a time with everything else at rest (never combinations):
 // - controls: a push button (and a rotary encoder's) pressed, a switch in its other position (a
 //   rocker, a latching button, a slide switch, a tilt switch tipped), a potentiometer or trimmer at
 //   each end of its travel;
+// - environment: each field a sensor of the circuit follows (a circuit that declares an environment)
+//   at the bottom and at the top of its range, one field at a time (`environment` counts the fields);
 // - program outputs: each pin a board's program has made an output by the time it first waits
 //   (setup() and loop() up to its first delay: the pin modes of the DC point, so `pinMode`, and the
 //   `digitalWrite`, `tone`, `analogWrite` and `ledcWrite` that make a pin an output there), held
@@ -53,8 +62,9 @@ export function simulate(circuit, options = {}) {
 // once, at rest. At most STATES_MAX states are solved, controls first (in the order of the parts),
 // then pins: `states.checked` below `states.total` says the rest were not. `controls` counts the
 // controls (a potentiometer's two ends are one control), `outputs` the program's output pins (also
-// those high at rest, which the rest point covers). Sensors that follow the environment, sliders of
-// other kinds and supplies are judged as they are. Empty when the circuit cannot be simulated (no
+// those high at rest, which the rest point covers). Sliders of other kinds and supplies are judged as
+// they are. `doubts`: the warnings of DOUBTS (a relay driven but not pulled in) that are no damage,
+// each once with its `when`, as the hazards have. Empty when the circuit cannot be simulated (no
 // source, placement errors, no convergence). Not a transient: a PWM pin, a tone, a 555 or a generator
 // is judged at its DC point, and a peak while something switches is not found here. `checked` says
 // all of this for the answer's "Checked" line (coverageOf).
@@ -71,6 +81,20 @@ export function controlStates(program, engine) {
     if (kind === 'POT') {
       for (const end of [0, 1]) if (c.value !== end) out.push({ part: c.id, field: c.field, value: end, rest: c.value });
     } else if (c.scale === 'momentary' || c.scale === 'toggle') out.push({ part: c.id, field: c.field, value: !c.value, rest: c.value });
+  }
+  return [...out, ...environmentStates(program, engine)];
+}
+
+// The environment's fields a sensor of the circuit follows (a circuit that declares an environment),
+// each at the bottom and at the top of its range (the circuit's `range` for it, else the registry's),
+// one field at a time: a sensor at the end of its range is where a circuit that works at the middle
+// stops working (a dark room, a hot day). A value equal to the one at rest adds nothing.
+export function environmentStates(program, engine) {
+  const followed = new Set((program.devices ?? []).filter((d) => !d.unsupported).flatMap((d) => d.follows ?? []));
+  const out = [];
+  for (const c of engine.controls()) {
+    if (c.id !== 'environment' || !followed.has(c.field) || !Number.isFinite(c.min) || !Number.isFinite(c.max)) continue;
+    for (const value of [c.min, c.max]) if (value !== c.value) out.push({ part: 'environment', field: c.field, value, rest: c.value, ...(c.programmed && { programmed: true }) });
   }
   return out;
 }
@@ -92,74 +116,103 @@ export function programOutputs(reading) {
   return { pins, states };
 }
 
+// The warnings and errors of a reading that may be doubts of the review (doubtsOf): everything the
+// simulation says is wrong or unknown (a relay driven but not pulled in, a pin over its rail, a
+// module under its supply, a program's issues…), except notes and NOT_DOUBTS; the hazards are taken
+// out by engineHazards. Once each (by code and part), at rest or in the first state that shows it.
+// Issues that are never doubts: the part said as not simulated (SIM_PART_NOT_SIMULATED says it), a
+// note on a program, a circuit that has no source or is not placed (the Checked line and the
+// placement checks say those).
+const NOT_DOUBTS = new Set(['SIM_UNSUPPORTED', 'SIM_PROGRAM_IGNORED', 'SIM_NO_SUPPLY', 'SIM_PLACEMENT_ERRORS']);
+// Issues of a board's program: doubts whatever their severity (a library not simulated is a note).
+const PROGRAM_DOUBTS = new Set(['SIM_PROGRAM_FILE', 'SIM_PROGRAM_OUTSIDE', 'SIM_PROGRAM_TOO_LARGE', 'SIM_PROGRAM_ERROR', 'SIM_PROGRAM_UNSUPPORTED', 'SIM_PROGRAM_LIBRARY', 'SIM_PROGRAM_NO_LOOP', 'SIM_PROGRAM_NOT_IN_KIT']);
+const warningsOf = (reading) => (reading.issues ?? []).filter((i) => (PROGRAM_DOUBTS.has(i.code) || i.severity === 'warning' || i.severity === 'error') && !NOT_DOUBTS.has(i.code));
+// One doubt per code and part (its readings change from state to state), and per call or file a
+// program's issue names; an issue that names no part, by all its params.
+const doubtKey = (i) => (i.params?.part != null ? `${i.code} ${i.params.part} ${i.params.name ?? i.params.file ?? ''} ${i.params.line ?? ''}` : `${i.code} ${JSON.stringify(i.params ?? {})}`);
 const exceeded = (engine, reading) => Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
 const hazardKey = (h) => `${h.code} ${h.params.part}`;
 // A state on and off: a control set, or a pin held.
 export const enterState = (engine, s) => (s.pin ? engine.drive(s.part, s.pin, s.value) : engine.set(s.part, s.field, s.value));
-export const leaveState = (engine, s) => (s.pin ? engine.drive(s.part, s.pin, null) : engine.set(s.part, s.field, s.rest));
+export function leaveState(engine, s) {
+  if (s.pin) return engine.drive(s.part, s.pin, null);
+  const ok = engine.set(s.part, s.field, s.rest);
+  if (s.programmed) engine.resume(s.part, s.field); // an environment program runs again, as before
+  return ok;
+}
 
 // The hazards of an engine that has not been started (each state is its own DC point), with the
 // control states of controlStates and the program outputs of its rest point; every control and pin
 // is left at rest again.
-// With `collect`, also `issues`: every issue the simulation gave in those DC points (the one at
-// rest, then each state's with its `when`), and `rest`, the reading at rest: for the review's doubts.
+// `doubts`: the warnings of those DC points that are no hazard (warningsOf), each once, with the `when`
+// of the state it was first found in. With `collect`, also `rest`, the reading at rest (doubtsOf
+// reads each board's program there).
 export function engineHazards(engine, states, max = STATES_MAX, { collect = false } = {}) {
   const rest = engine.dc();
-  if (!rest.ok) return { hazards: [], states: { checked: 0, total: states.length, controls: 0, outputs: 0 }, ok: false, ...(collect && { issues: rest.issues ?? [] }) };
+  if (!rest.ok) return { hazards: [], doubts: collect ? warningsOf(rest) : [], states: { checked: 0, total: states.length, controls: 0, outputs: 0 }, ok: false };
   const outputs = programOutputs(rest);
   const all = [...states, ...outputs.states];
   const hazards = exceeded(engine, rest);
-  const issues = [...(rest.issues ?? [])];
   const atRest = new Set(hazards.map(hazardKey));
+  // What is wrong or unknown without damaging anything (a relay driven too weakly to pull in), once
+  // each, at rest or in the first state that shows it.
+  const doubts = warningsOf(rest);
+  const doubted = new Set(doubts.map(doubtKey));
   const tried = all.slice(0, max);
   for (const s of tried) {
     if (!enterState(engine, s)) continue;
     const reading = engine.dc();
     const when = s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value };
-    if (reading.ok) for (const h of exceeded(engine, reading)) if (!atRest.has(hazardKey(h))) hazards.push({ ...h, when });
-    for (const i of reading.issues ?? []) issues.push({ ...i, when });
+    if (reading.ok) {
+      for (const h of exceeded(engine, reading)) if (!atRest.has(hazardKey(h))) hazards.push({ ...h, when });
+      for (const d of warningsOf(reading)) if (!doubted.has(doubtKey(d))) {
+        doubted.add(doubtKey(d));
+        doubts.push({ ...d, when });
+      }
+    }
     leaveState(engine, s);
   }
-  const controls = new Set(states.map((s) => `${s.part} ${s.field}`)).size;
-  return { hazards, states: { checked: tried.length, total: all.length, controls, outputs: outputs.pins.length }, ok: true, ...(collect && { issues, rest }) };
+  const fields = new Set(states.filter((s) => s.part === 'environment').map((s) => s.field)).size;
+  const controls = new Set(states.filter((s) => s.part !== 'environment').map((s) => `${s.part} ${s.field}`)).size;
+  return { hazards, doubts: doubts.filter((d) => !hazards.some((h) => hazardKey(h) === hazardKey(d))), states: { checked: tried.length, total: all.length, controls, outputs: outputs.pins.length, ...(fields && { environment: fields }) }, ok: true, ...(collect && { rest }) };
 }
 
-// checkHazards also returns `doubts` (doubtsOf): what the simulation could not tell.
+// checkHazards' `doubts` (doubtsOf): what the kit could not tell, the one list the review shows.
 export function checkHazards(circuit) {
   const compiled = compile(circuit);
   if (compiled.fatal) return { hazards: [], states: { checked: 0, total: 0, controls: 0, outputs: 0 }, checked: coverageOf(compiled, null), doubts: doubtsOf(circuit, compiled, null) };
   const engine = createEngine(compiled.program);
-  const { rest, issues, ...result } = engineHazards(engine, controlStates(compiled.program, engine), STATES_MAX, { collect: true });
-  const doubts = doubtsOf(circuit, compiled, { ...result, issues, rest });
+  const { rest, ...result } = engineHazards(engine, controlStates(compiled.program, engine), STATES_MAX, { collect: true });
+  const doubts = doubtsOf(circuit, compiled, { ...result, rest });
   return { ...result, checked: coverageOf(compiled, result, doubts), doubts };
 }
 
 // What the kit could not tell about a circuit, beside what would be damaged: the review's `doubts`
-// (review.js), each an issue { severity: 'warning', code, params }. Any of them turns an APPROVED into
-// APPROVED WITH WARNINGS, so nobody reads a plain DONE over a circuit the kit did not check:
+// (review.js), each an issue { severity: 'warning', code, params, when? }, once each. Any of them
+// turns an APPROVED into APPROVED WITH WARNINGS, so nobody reads a plain DONE over a circuit the kit
+// did not check. One list, from every source:
+// - the wiring findings (wiringIssues: a button whose two joined pins carry the net, BUTTON_PINS_JOINED);
 // - SIM_PART_NOT_SIMULATED: a part wired into the circuit that has no simulation model (it is
 //   drawn and its pins are left open in the simulation: what it does, and what it drives, is unknown);
-// - every issue about a board's program (PROGRAM_DOUBTS, whatever its severity; SIM_PROGRAM_IGNORED
-//   stays a note), SIM_PROGRAM_STUCK (a program that never lets time pass: programStuck) and
-//   SIM_PROGRAM_STOPPED (it stopped with an error at rest);
-// - every other warning or error the simulation gave at rest or in one of the states the hazard
-//   check solves (with its `when`), unless it is one of the hazards; a circuit with a source whose
-//   DC point does not solve (SIM_NO_CONVERGENCE) or whose supply is not valid (SIM_BAD_SUPPLY).
+// - SIM_PROGRAM_STOPPED (a board's program stopped with an error at rest) and SIM_PROGRAM_STUCK (it
+//   never lets time pass: the runner's `stuck`, program.js);
+// - engineHazards' doubts: every warning or error of the DC point at rest and of each state the
+//   hazard check solves (the controls, the environment's ends, the program's outputs), with the
+//   `when` of the state it was found in, that is not a hazard: a relay driven but not pulled in, the
+//   issues of a board's program (a file not found, a syntax error, a call it does not know), a pin
+//   over its rail, a source whose DC point does not solve (SIM_NO_CONVERGENCE)…; a SIM_FLOATING only
+//   when it touches the circuit (outside);
+// - with a compile that cannot run: SIM_BAD_SUPPLY (a supply that is not valid).
 // A circuit with no source at all is not a doubt: the Checked line says nothing could be simulated.
-const PROGRAM_DOUBTS = new Set(['SIM_PROGRAM_FILE', 'SIM_PROGRAM_OUTSIDE', 'SIM_PROGRAM_TOO_LARGE', 'SIM_PROGRAM_ERROR', 'SIM_PROGRAM_UNSUPPORTED', 'SIM_PROGRAM_LIBRARY', 'SIM_PROGRAM_NO_LOOP', 'SIM_PROGRAM_NOT_IN_KIT']);
-// Issues that are never doubts: notes, the part said as not simulated, or a circuit that has no
-// source or is not placed (the Checked line and the placement checks say those).
-const NOT_DOUBTS = new Set(['SIM_UNSUPPORTED', 'SIM_PROGRAM_IGNORED', 'SIM_NO_SUPPLY', 'SIM_PLACEMENT_ERRORS']);
-
 export function doubtsOf(circuit, compiled, result) {
   const out = [];
   const seen = new Set();
   const add = (i) => {
-    const key = `${i.code} ${JSON.stringify(i.params)}`;
-    if (seen.has(key)) return;
-    seen.add(key);
+    if (seen.has(doubtKey(i))) return;
+    seen.add(doubtKey(i));
     out.push({ ...i, severity: 'warning' });
   };
+  for (const i of wiringIssues(circuit)) add(i);
   if (compiled.fatal) {
     for (const i of compiled.issues ?? []) if (i.code === 'SIM_BAD_SUPPLY') add(i);
     return out;
@@ -171,30 +224,29 @@ export function doubtsOf(circuit, compiled, result) {
     const p = raw.get(d.id);
     add(issue('warning', 'SIM_PART_NOT_SIMULATED', { part: d.id, name: String(p?.part ?? p?.type ?? d.id) }));
   }
-  const hazards = new Set((result?.hazards ?? []).map(hazardKey));
-  const doubt = (i) => (i.severity === 'warning' || i.severity === 'error') && !NOT_DOUBTS.has(i.code) && !hazards.has(hazardKey(i));
-  // The program's own issues first (compile's, also when the DC point does not solve), then the rest.
-  const issues = [...(program.issues ?? []), ...(result?.issues ?? [])];
-  for (const i of issues) if (PROGRAM_DOUBTS.has(i.code) && !i.when) add(i);
+  // The program's own issues first (compile's, also when the DC point does not solve), then its run.
+  for (const i of program.issues ?? []) if (PROGRAM_DOUBTS.has(i.code)) add(i);
   for (const [id, r] of Object.entries(result?.rest?.parts ?? {})) {
     if (r?.kind !== 'MCU' || !r.program) continue;
     if (r.program.error) add(issue('warning', 'SIM_PROGRAM_STOPPED', { part: id, message: String(r.program.error).slice(0, 80) }));
-    else if (programStuck(program, id, r)) add(issue('warning', 'SIM_PROGRAM_STUCK', { part: id }));
+    else if (r.program.stuck) add(issue('warning', 'SIM_PROGRAM_STUCK', { part: id }));
   }
-  for (const i of issues) if (!PROGRAM_DOUBTS.has(i.code) && doubt(i) && !(i.code === 'SIM_FLOATING' && outside(program, i))) add(i);
+  for (const i of result?.doubts ?? []) if (!(i.code === 'SIM_FLOATING' && outside(program, i))) add(i);
   return out;
 }
 
 // Floating nodes (SIM_FLOATING) that are outside the circuit: no part on them that is simulated has
 // a pin on a node that is not floating (parts set on the board and wired to nothing, a part not
 // simulated and what only it touches: its own doubt says it). A node such as a MOSFET's gate left
-// open, whose part is wired in by its other pins, is inside: a doubt.
+// open, whose part is wired in by its other pins, is inside: a doubt. A switch's open contact (a
+// button's side that nothing else touches) is outside too: it carries nothing until it is closed.
+const CONTACTS = new Set(['SW', 'SWT']);
 function outside(program, i) {
   const floating = new Set(String(i.params.nodes ?? '').split(', '));
   const devices = new Map((program.devices ?? []).map((d) => [d.id, d]));
   return [...floating].every((n) => (program.members?.[n] ?? []).every((id) => {
     const d = devices.get(id);
-    return !d || d.unsupported || d.pins.every((pin) => floating.has(pin.node));
+    return !d || d.unsupported || CONTACTS.has(d.kind) || d.pins.every((pin) => floating.has(pin.node));
   }));
 }
 
@@ -202,39 +254,6 @@ function outside(program, i) {
 function wired(program, d) {
   const supplied = new Set((program.supplies ?? []).flatMap((s) => [s.p, s.n]));
   return d.pins.some((pin) => supplied.has(pin.node) || (program.members?.[pin.node] ?? []).some((id) => id !== d.id));
-}
-
-// Whether a board's program never lets time pass: setup() or one call of loop() runs on without
-// returning and without waiting (a delay, pulseIn), so the simulation's time never reaches what
-// comes after (`void loop() { while (1) {} }`). Asked of a runner of its own (program.js, the one
-// place that runs a program), its pins reading the voltages at rest; its loop() is followed by one
-// second of wait (a fixed text around the translated sketch), so a loop() that returns, with or
-// without a delay, lets time pass. The runner stops each advance after its budget of turns, so
-// this is bounded: PROBE_ADVANCES advances at most.
-const PROBE_ADVANCES = 8;
-const probeOf = (js) => `const __sketch = (function () {\n${js}\n})();\nreturn { setup: __sketch.setup, loop: function* () { yield* __sketch.loop(); yield 1; } };`;
-function programStuck(program, id, reading) {
-  const d = program.devices.find((x) => x.id === id && x.kind === 'MCU' && !x.unsupported);
-  const js = d?.params?.sketch;
-  if (!js) return false;
-  const model = { ...MCUS[d.params.family], ...d.params.model };
-  const gpioOf = new Map((d.params.gpios ?? []).map((g) => [g.gpio, g.name]));
-  const byName = new Map((reading.pins ?? []).map((p) => [p.name, p]));
-  const vdd = reading.vdd ?? model.vdd;
-  const read = (gpio) => {
-    const pin = byName.get(gpioOf.get(Math.trunc(Number(gpio))));
-    return pin && Number.isFinite(pin.voltage) && vdd > 0 ? { volts: pin.voltage, vdd } : null;
-  };
-  const runner = createRunner(probeOf(js), { family: d.params.family, states: {}, read, ask: () => null, i2c: {}, vil: model.vil, vih: model.vih, adcBits: model.adcBits, adcFull: model.adcFull, adcRef: model.adcRef });
-  let dt = 0;
-  for (let k = 0; k < PROBE_ADVANCES; k++) {
-    runner.advance(dt);
-    if (runner.error) return false;
-    const next = runner.until();
-    if (next == null) return true;
-    dt = next;
-  }
-  return false;
 }
 
 // What the hazard check covered and what it could not, for the answer's "Checked" line (review.js):
@@ -257,18 +276,18 @@ export function coverageOf(compiled, result, doubts = []) {
   }
   const { program } = compiled;
   const devices = program.devices ?? [];
-  const { controls, outputs, checked, total } = result.states;
+  const { controls, outputs, checked, total, environment = 0 } = result.states;
   const notChecked = [];
   const switches = outputs > 0 || devices.some((d) => d.kind === 'TMR' || (d.kind === 'MCU' && d.params?.sketch)) || (program.supplies ?? []).some((s) => s.generator && !s.off);
   if (switches) notChecked.push('switching');
-  if (controls + outputs >= 2) notChecked.push('combinations');
+  if (controls + outputs + environment >= 2) notChecked.push('combinations');
   if (devices.some((d) => d.follows?.length || senses(d))) notChecked.push('environment');
   if (checked < total) notChecked.push('limit');
   const unsimulated = devices.filter((d) => d.unsupported).map((d) => d.id);
   if (unsimulated.length) notChecked.push('unsimulated');
   const programs = [...new Set(doubts.filter((d) => d.code.startsWith('SIM_PROGRAM_')).map((d) => String(d.params.part)))];
   if (programs.length) notChecked.push('program');
-  return { rest: true, controls, outputs, notChecked, ...(checked < total && { skipped: total - checked }), ...(unsimulated.length && { unsimulated }), ...(programs.length && { programs }) };
+  return { rest: true, controls, outputs, ...(environment && { environment }), notChecked, ...(checked < total && { skipped: total - checked }), ...(unsimulated.length && { unsimulated }), ...(programs.length && { programs }) };
 }
 
 // A part that reads the world by its own value when the circuit declares no environment (an LDR's
@@ -295,6 +314,11 @@ export function pageSimulation(circuit) {
 }
 
 export function pageControlIssues(circuit) {
+  const wiring = wiringIssues(circuit);
+  return [...wiring, ...controlIssues(circuit)];
+}
+
+function controlIssues(circuit) {
   const list = circuit?.page?.controls;
   if (!Array.isArray(list) || !list.length) return [];
   const warn = (code, params = {}) => ({ severity: 'warning', code, params });

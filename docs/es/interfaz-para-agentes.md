@@ -160,7 +160,10 @@ Los roles de montaje, revisor y bibliotecario, construidos sobre estas herramien
 | Código | Significado |
 |---|---|
 | 0 | todo bien |
-| 1 | errores en el circuito, un cambio rechazado (`REVISION_MISMATCH`, operaciones mal formadas), nada que deshacer o ninguna posición encontrada |
+| 1 | errores en el circuito, un cambio rechazado (`REVISION_MISMATCH`, operaciones mal formadas, o un valor, pieza, pin, campo o agujero que el kit no puede leer: no se guarda nada), un archivo que falta, vacío o que no es JSON, nada que deshacer o ninguna posición encontrada |
 | 2 | `review` pide cambios |
+| 3 | un error interno del kit (`error interno: …`; repórtalo con el comando; `PROTOBOARD_DEBUG=1` muestra la traza) |
+
+`apply` guarda un cambio legible pero equivocado (un corto, una colisión) y dice `Guardado como revisión N con K error(es) nuevo(s)`; `undo` lo deshace.
 
 Todos los comandos que informan algo aceptan también `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `nets`, `review`).

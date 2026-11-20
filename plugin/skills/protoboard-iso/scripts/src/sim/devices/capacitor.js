@@ -2,7 +2,7 @@
 // Electrolytic (polarised) ones warn when reversed.
 
 import { capacitor as capacitorEl } from '../mna.js';
-import { CERAMIC_VOLTAGE } from '../models.js';
+import { CERAMIC_VOLTAGE, REVERSE_LIMITS } from '../models.js';
 import { stress, twoTerminal, twoTerminalLines, currentTag } from './shared.js';
 
 export const capacitor = {
@@ -20,7 +20,7 @@ export const capacitor = {
   falstad: (d, f) => f.capacitor(d.pins[0].node, d.pins[1].node, d.params.capacitance),
   limits(entry, r) {
     const out = [];
-    if (entry.polarised) out.push(stress('SIM_CAP_REVERSED', 'reverse', -r.voltage, 0.5, 'V', { param: 'voltage', reportMax: false }));
+    if (entry.polarised) out.push(stress('SIM_CAP_REVERSED', 'reverse', -r.voltage, REVERSE_LIMITS.capacitor, 'V', { param: 'voltage', reportMax: false }));
     out.push(stress('SIM_CAP_OVER_VOLTAGE', 'voltage', Math.abs(r.voltage), entry.maxVoltage, 'V'));
     return out;
   },

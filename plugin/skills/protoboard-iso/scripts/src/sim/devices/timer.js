@@ -5,8 +5,8 @@
 // unsupported: `accepts` takes only parts whose model says they are a timer.
 
 import { resistor, timerCore } from '../mna.js';
-import { TIMERS } from '../models.js';
-import { stress } from './shared.js';
+import { TIMERS, REVERSE_LIMITS } from '../models.js';
+import { stress, reverseSupply } from './shared.js';
 
 const PINS = ['GND', 'TRIG', 'OUT', 'RESET', 'CTRL', 'THR', 'DIS', 'VCC'];
 
@@ -44,7 +44,7 @@ export const timer = {
   },
   limits(entry, r) {
     const m = entry.model;
-    return [stress('SIM_IC_SUPPLY', 'voltage', r.vcc, m.maxSupply, 'V'), stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), m.maxCurrent, 'A', { of: 'output' }), stress('SIM_OVER_POWER', 'power', r.power, m.maxPower, 'W')];
+    return [stress('SIM_IC_SUPPLY', 'voltage', r.vcc, m.maxSupply, 'V'), stress('SIM_OVER_CURRENT', 'current', Math.abs(r.current), m.maxCurrent, 'A', { of: 'output' }), stress('SIM_OVER_POWER', 'power', r.power, m.maxPower, 'W'), reverseSupply(-r.vcc, REVERSE_LIMITS.ic, 'VCC', 'GND')];
   },
   lines(p, h) {
     return [

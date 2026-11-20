@@ -517,12 +517,18 @@ Lo encontraron asistentes que hicieron de asistente de un usuario nuevo sobre un
 comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró nada que decir;
 `WARNINGS` significa armado, y cada línea ⚠ se le dice al usuario antes de decir que funciona.
 
+- ✅ La línea de comandos no se cae, no corta su salida ni guarda en silencio (C3): un archivo que falta, vacío o mal formado son una o dos líneas y salida 1 (`STATUS: FIX_SPEC` en `layout`), un error inesperado es `error interno:` con salida 3 (sin traza salvo `PROTOBOARD_DEBUG=1`), la salida se vacía antes de que termine el proceso y una tubería cerrada termina en silencio, una spec vacía es `FIX_SPEC`, `apply` rechaza lo que el kit no puede leer (no guarda nada) y dice con palabras cuando guardó un cambio que agrega errores, un idioma por circuito, y `layout` sobre un circuito existente dice que lo montó de nuevo
+- ✅ La polaridad invertida es un peligro (reguladores, amplificadores, 555, placas); una fuente de banco negativa se simula
+- ✅ La revisión de peligros visita los extremos de cada campo del ambiente que sigue un sensor
+- ✅ Un relé manejado que no cierra (`SIM_RELAY_UNDERDRIVEN`); un pulsador entre pines unidos (`BUTTON_PINS_JOINED`)
+- ✅ Un arreglo calculado deja la pieza funcionando; las líneas de daño dicen qué le pasa a la pieza
+- ⬜ La misma idea de «manejado pero no funciona» para otras piezas
 - ✅ Dudas junto a los peligros: `review` devuelve `doubts` (un componente conectado sin modelo de simulación, todo aviso sobre el programa de una placa, un programa atascado sin dejar pasar el tiempo, cualquier otro aviso de la simulación, una fuente que no se resuelve); basta una para APROBADO CON AVISOS y `STATUS: WARNINGS`, bajo su propio encabezado, en la consola y en las herramientas MCP (`src/sim/index.js` `doubtsOf`, `src/review.js`)
 - ✅ Un archivo de programa no encontrado dice dónde buscó el kit (la carpeta del circuito, junto a `circuit.json`); layout juzga el circuito que deja desde su carpeta
 - ✅ La línea `Revisado` es veraz (un sensor con su propio valor, «hace» para un componente, un programa que el kit no puede correr)
 - ✅ Los componentes que se ven menos del 50 % en todas las vistas tienen una línea en la respuesta de `layout` (información)
 - ✅ La línea `Lecturas` nombra cada fuente una vez
-- ✅ `catalog` marca lo que se dibuja pero no se simula y no nombra rutas de las fuentes (la lista de la consola necesita conectar `partTypeLines` en `bin/`)
+- ✅ `catalog` marca lo que se dibuja pero no se simula y no nombra rutas de las fuentes
 
 ## Opcional, más adelante ⬜
 

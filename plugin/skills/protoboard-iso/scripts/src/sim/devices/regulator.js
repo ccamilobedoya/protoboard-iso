@@ -4,8 +4,8 @@
 // current is part of what the module draws, not of what it delivers.
 
 import { regulatorElement, resistor, junction } from '../mna.js';
-import { REGULATORS, ledModel } from '../models.js';
-import { stress, note, q } from './shared.js';
+import { REGULATORS, ledModel, REVERSE_LIMITS, BRIGHTNESS_OVER } from '../models.js';
+import { stress, reverseSupply, note, q } from './shared.js';
 
 export const regulator = {
   types: ['regulator'],
@@ -70,14 +70,15 @@ export const regulator = {
   limits(entry, r) {
     const out = [stress(entry.module ? 'SIM_REG_HOT_MODULE' : 'SIM_REG_HOT', 'power', r.power, entry.model.maxPower, 'W'), stress('SIM_OVER_CURRENT', 'current', r.current, entry.model.maxCurrent, 'A', { of: 'output' })];
     if (entry.model.maxInput) out.push(stress('SIM_REG_INPUT', 'voltage', r.across, entry.model.maxInput, 'V', { of: 'input' }));
-    // A module wired backwards: its datasheet warns it shorts the supply.
-    if (entry.module && r.across < -0.5) out.push(note('warning', 'SIM_REG_REVERSED', { part: entry.id, vin: q(r.across, 'V') }));
-    else if (r.state === 'dropout' && r.vin > 0.5) out.push(note('info', 'SIM_REG_DROPOUT', { part: entry.id, vin: q(r.vin, 'V'), vout: q(r.vout, 'V'), dropout: q(entry.model.dropout, 'V') }));
+    // Fed backwards (the input below its ground or adjust pin): any chip is outside its ratings; the
+    // module's datasheet adds that it shorts the supply.
+    out.push(reverseSupply(-r.across, REVERSE_LIMITS.ic, 'IN', entry.ref));
+    if (r.state === 'dropout' && r.vin > 0.5) out.push(note('info', 'SIM_REG_DROPOUT', { part: entry.id, vin: q(r.vin, 'V'), vout: q(r.vout, 'V'), dropout: q(entry.model.dropout, 'V') }));
     return out;
   },
   lines(p, h) {
     const lines = [h.raw(`reg.${p.state}`, h.t(`sim.reg.${p.state}`)), h.q('reg.vin', h.f(p.vin, 'V')), h.q('reg.vout', h.f(p.vout, 'V')), h.q('reg.headroom', h.f(p.headroom, 'V')), h.q('reg.iout', h.f(p.current, 'A')), h.q('reg.quiescent', h.f(p.quiescent, 'A'))];
-    if (p.led) lines.push(h.q('reg.led', h.t('sim.reg.led', { current: h.f(p.led.current, 'A'), percent: Math.round(p.led.brightness * 100) })));
+    if (p.led) lines.push(h.q('reg.led', p.led.brightness > BRIGHTNESS_OVER ? h.t('sim.reg.led.over', { current: h.f(p.led.current, 'A') }) : h.t('sim.reg.led', { current: h.f(p.led.current, 'A'), percent: Math.round(p.led.brightness * 100) })));
     lines.push(h.q('power', h.f(p.power, 'W')));
     return lines;
   },

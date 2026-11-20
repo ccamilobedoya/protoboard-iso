@@ -13,14 +13,59 @@
 import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, mkdirSync, rmSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { applyOps, CIRCUIT_FIELDS } from '../ops.js';
-import { evaluate, diffEvaluations } from '../diff.js';
-import { renderCircuit, inspectCircuit } from '../index.js';
+import { evaluate, diffEvaluations, newErrorCount, isInputMistake } from '../diff.js';
+import { renderCircuit, inspectCircuit, formatIssue } from '../index.js';
 import { renderPage } from '../page.js';
 import { pickLanguage, t } from '../i18n/index.js';
 import { circuitTooLarge, fileTooLarge } from '../limits.js';
 import { CIRCUIT_FOLDER } from '../beside.js';
 
 const error = (code, params) => ({ severity: 'error', code, params });
+
+// A file the user names that cannot be used (missing, empty, not JSON, wrong shape): an error with an
+// issue (code + params), so every front end says the same thing in the person's language.
+export function inputIssueFor(issue, lang = 'en') {
+  const { what, shape } = issue.params;
+  return { ...issue, params: { ...issue.params, what: t(lang, `input.what.${what}`), ...(shape && { shape: t(lang, `input.shape.${shape}`) }), ...(issue.params.got && { got: t(lang, `input.got.${issue.params.got}`) }) } };
+}
+export const inputErrorText = (issue, lang = 'en') => formatIssue(inputIssueFor(issue, lang), lang);
+export class InputError extends Error {
+  constructor(issue) {
+    super(inputErrorText(issue, 'en'));
+    this.issue = issue;
+  }
+}
+const inputError = (code, params) => new InputError(error(code, params));
+const gotWord = (v) => (v === null ? 'null' : Array.isArray(v) ? 'list' : typeof v === 'object' ? 'object' : typeof v === 'string' ? 'text' : typeof v === 'number' ? 'number' : 'boolean');
+
+// Text that must hold JSON: what it is ('spec' | 'ops' | 'circuit' | 'history' | 'timeline'), where it
+// came from (a file name, "standard input"), the shape wanted ('object', or 'objects': one or a list).
+export function parseJsonInput(text, { what, file, shape = 'object' }) {
+  if (!String(text).trim()) throw inputError('INPUT_EMPTY', { what, file, shape });
+  let value;
+  try {
+    value = JSON.parse(text);
+  } catch (e) {
+    throw inputError('INPUT_NOT_JSON', { what, file, shape, reason: String(e.message).replace(/^JSON\.parse: /, '') });
+  }
+  const object = value !== null && typeof value === 'object';
+  if (!object || (shape === 'object' && Array.isArray(value)) || (shape === 'objects' && Array.isArray(value) && !value.every((v) => v && typeof v === 'object' && !Array.isArray(v)))) {
+    throw inputError('INPUT_BAD_SHAPE', { what, file, shape, got: gotWord(value) });
+  }
+  return value;
+}
+
+// Reads a file (or standard input when `file` is "-") and parses it as above.
+export function readJsonInput(file, { what, shape = 'object' }) {
+  const label = file === '-' ? 'standard input' : file;
+  let text;
+  try {
+    text = readFileSync(file === '-' ? 0 : file, 'utf8');
+  } catch (e) {
+    throw inputError(e.code === 'ENOENT' ? 'INPUT_MISSING' : 'INPUT_UNREADABLE', { what, file: label, shape, reason: e.code ?? e.message });
+  }
+  return parseJsonInput(text, { what, file: label, shape });
+}
 
 export function resolveTarget(target) {
   if (existsSync(target) && statSync(target).isDirectory()) {
@@ -34,9 +79,10 @@ export function resolveTarget(target) {
 // program file ("program": "blink.ino") is read from there when it is simulated. A file over
 // the size cap is not read at all (src/limits.js).
 export function loadCircuit(paths) {
+  if (!existsSync(paths.circuitFile)) throw inputError('INPUT_MISSING', { what: 'circuit', file: paths.circuitFile, shape: 'object', reason: 'ENOENT' });
   const large = fileTooLarge(statSync(paths.circuitFile).size);
   if (large) throw Object.assign(new Error(t('en', `check.${large.code}`, large.params)), { issue: large });
-  return withFolder(JSON.parse(readFileSync(paths.circuitFile, 'utf8')), paths);
+  return withFolder(readJsonInput(paths.circuitFile, { what: 'circuit' }), paths);
 }
 const withFolder = (circuit, paths) => Object.defineProperty(circuit, CIRCUIT_FOLDER, { value: dirname(paths.circuitFile), enumerable: false, configurable: true });
 
@@ -45,7 +91,7 @@ export function readHistory(paths) {
   return readFileSync(paths.historyFile, 'utf8')
     .split('\n')
     .filter((line) => line.trim())
-    .map((line) => JSON.parse(line));
+    .map((line, i) => parseJsonInput(line, { what: 'history', file: `${paths.historyFile} (line ${i + 1})` }));
 }
 
 // The circuit as it was at an earlier revision: the current one with the inverse of every later
@@ -141,7 +187,7 @@ function withLock(paths, fn) {
   }
 }
 
-// options: dryRun, author, note, expectRevision, views, lang (default), outputLang (asked for), outputs (default true)
+// options: refuse (default true: input mistakes refuse the batch; layout passes false), dryRun, author, note, expectRevision, views, lang (default), outputLang (asked for), outputs (default true)
 export function applyToTarget(target, ops, options = {}) {
   const paths = resolveTarget(target);
   if (!existsSync(paths.circuitFile)) return applyLocked(target, ops, options);
@@ -160,11 +206,14 @@ function applyLocked(target, ops, options) {
   if (result.errors.length) return { applied: false, revision, errors: result.errors };
 
   const diff = diffEvaluations(evaluate(current, { views, lang }), evaluate(result.circuit, { views, lang }));
+  // Input mistakes (diff.js) refuse the whole batch, in a dry run too (it says the real run would).
+  const mistakes = options.refuse === false ? [] : diff.introduced.filter(isInputMistake);
+  if (mistakes.length) return { applied: false, refused: true, ...(dryRun && { dryRun: true }), revision, errors: mistakes, diff };
   if (dryRun) return { applied: false, dryRun: true, revision, nextRevision: revision + 1, errors: [], diff, circuit: result.circuit };
 
   const saved = commit(paths, result.circuit, { author, note, ops, inverse: result.inverse });
   const files = outputs ? writeOutputs(paths, saved, { lang, outputLang }) : null;
-  return { applied: true, revision: saved.revision, errors: [], diff, files };
+  return { applied: true, revision: saved.revision, errors: [], diff, newErrors: newErrorCount(diff), files };
 }
 
 // Creates a circuit folder (circuit.json, history.jsonl, out/). Refuses to overwrite.
@@ -190,7 +239,7 @@ export function relayoutTarget(target, circuit, options = {}) {
   const current = loadCircuit(resolveTarget(target));
   const fields = Object.fromEntries(CIRCUIT_FIELDS.filter((k) => k !== 'view').map((k) => [k, circuit[k] ?? null]).filter(([k, v]) => v !== null || k in current));
   const ops = [...(current.parts ?? []).map((p) => ({ op: 'remove', part: p.id })), ...(Object.keys(fields).length ? [{ op: 'circuit', ...fields }] : []), ...circuit.parts.map((part) => ({ op: 'add', part }))];
-  return applyToTarget(target, ops, options);
+  return applyToTarget(target, ops, { ...options, refuse: false });
 }
 
 // Undoes the most recent change that has not been undone yet.

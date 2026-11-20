@@ -5,8 +5,8 @@
 // read as floating.
 
 import { resistor, opampStage, comparatorStage } from '../mna.js';
-import { OPAMPS } from '../models.js';
-import { stress } from './shared.js';
+import { OPAMPS, REVERSE_LIMITS } from '../models.js';
+import { stress, reverseSupply } from './shared.js';
 
 export const opamp = {
   types: ['ic'],
@@ -84,6 +84,7 @@ export const opamp = {
       stress('SIM_IC_SUPPLY', 'voltage', r.supply, m.maxSupply, 'V'),
       ...r.amps.map((a) => stress('SIM_OVER_CURRENT', 'current', Math.abs(a.current), m.maxCurrent, 'A')),
       stress('SIM_OVER_POWER', 'power', r.power, m.maxPower, 'W'),
+      reverseSupply(-r.supply, REVERSE_LIMITS.ic, m.supply[0], m.supply[1]),
     ];
   },
   lines(p, h) {

@@ -7,6 +7,7 @@
 //   linesFor(reading, { t(key, params), decimal }) → [{ key, text }]
 
 import { formatValue } from '../core/units.js';
+import { BRIGHTNESS_OVER } from './models.js';
 import { deviceOfReading } from './devices/index.js';
 import { envText } from './environment.js';
 
@@ -22,7 +23,11 @@ export function linesFor(p, { t, decimal }) {
   const f = (value, unit) => (value == null ? t('sim.floating') : formatValue(value, unit, { decimal }));
   const raw = (key, text) => ({ key, text });
   if (p.unsupported) return [raw('unsupported', t('sim.unsupported'))];
-  const h = { f, decimal, raw, q: (key, value) => ({ key, text: `${t(`sim.q.${key}`)}: ${value}` }), t, runtime: (hours) => runtimeWords(hours, { t, decimal }) };
+  // Brightness is a share of the rated current (100 % = 20 mA); far above it (BRIGHTNESS_OVER) a percentage reads as
+  // thousands when a part has no resistor, so it says "over its maximum" instead (the current is on the line).
+  const bright = (b) => (b > BRIGHTNESS_OVER ? t('sim.bright.over') : `${Math.round(b * 100)} %`);
+  const brightLine = (b) => (b > BRIGHTNESS_OVER ? t('sim.brightness.over') : t('sim.brightness', { percent: Math.round(b * 100) }));
+  const h = { f, decimal, raw, bright, brightLine, q: (key, value) => ({ key, text: `${t(`sim.q.${key}`)}: ${value}` }), t, runtime: (hours) => runtimeWords(hours, { t, decimal }) };
   const own = deviceOfReading(p)?.lines(p, h);
   if (own === null) return [];
   const lines = own ?? [];

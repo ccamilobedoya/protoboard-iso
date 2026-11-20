@@ -32,6 +32,7 @@
 import { evaluate } from './diff.js';
 import { checkNets } from './nets.js';
 import { checkHazards } from './sim/index.js';
+import { DOUBT_CODES } from './circuit/checks.js';
 import { resolve } from 'node:path';
 import { CIRCUIT_FOLDER } from './beside.js';
 import { hazardFix } from './fix.js';
@@ -96,6 +97,8 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
   }
 
   for (const p of problems) {
+    // A wiring doubt comes with the simulation's doubts below, never as a thing to fix.
+    if (DOUBT_CODES.has(p.code)) continue;
     const { view, ...plain } = p;
     if (p.code === 'PART_HIDDEN') {
       const all = hiddenIn.get(p.params.part);

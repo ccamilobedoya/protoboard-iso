@@ -116,6 +116,44 @@ export function checkConnections(parts, netlist, { netLabels = {} } = {}) {
   return out;
 }
 
+// Warnings that are doubts, not placement problems: findings about the wiring the person asked for
+// that the kit reports and never blocks on. `check` lists them (severity warning); the review shows
+// them only as doubts, under "The kit could not check this" (sim/index.js wiringIssues → doubtsOf),
+// never as a ✖ to fix; `apply` saves a change that adds one and marks it ⚠, not ✖. The next such
+// finding is one more code here (and its check in wiringIssues).
+export const DOUBT_CODES = new Set(['BUTTON_PINS_JOINED']);
+
+// A push button's pins 1–2 (and 3–4) are one metal piece: two different nets on two pins of the
+// same side are joined for good, and pressing the button changes nothing. It is a finding about the
+// wiring the person asked for, not about a placement, so it is not among the placement checks (a
+// warning there makes the router and `suggest` refuse every placement that carries it): `check` and
+// the hazard check (sim/index.js) ask for it. Nets are the strips joined by wires.
+export function checkButtonPins(parts, netlist, { netLabels = {} } = {}) {
+  const parent = new Map();
+  const find = (n) => {
+    let x = n;
+    while (parent.has(x) && parent.get(x) !== x) x = parent.get(x);
+    return x;
+  };
+  for (const part of parts) {
+    if (part.type !== 'wire' || part.holes.length < 2) continue;
+    const [a, b] = [find(part.holes[0].node), find(part.holes.at(-1).node)];
+    if (a !== b) parent.set(a, b);
+  }
+  const out = [];
+  for (const part of parts) {
+    if (part.type !== 'button') continue;
+    const sides = part.def.internal ?? [];
+    for (const side of sides) {
+      const wired = side.map((pin) => ({ pin, node: part.holes[part.pinNames.indexOf(pin)]?.node })).filter(({ node }) => node != null && ((netlist.nodes[node]?.length ?? 0) > 1 || netLabels[node.split(':')[0]] !== undefined));
+      if (new Set(wired.map((w) => find(w.node))).size < 2) continue;
+      const other = sides.find((x) => x !== side)?.[0] ?? side.at(-1);
+      out.push(issue('warning', 'BUTTON_PINS_JOINED', { part: part.id, pins: wired.map((w) => w.pin).join(' and '), use: `${wired[0].pin} and ${other}` }));
+    }
+  }
+  return out;
+}
+
 function bounds(primitives) {
   const b = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
   for (const prim of primitives) {

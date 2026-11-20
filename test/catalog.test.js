@@ -123,8 +123,8 @@ test('a part\'s entry carries the card\'s text, its pins\' roles and the simulat
   const uno = catalogEntry('UNO');
   assert.ok(uno.about.includes(t('en', 'describe.module.uno')), uno.about);
   assert.ok(uno.limits.some((l) => l.each === 'pins'), JSON.stringify(uno.limits));
-  assert.match(formatCatalogEntry(uno, 'en'), /\n {2}limits \(the simulator's\): maximum current 40 mA per pin\n/);
-  assert.match(formatCatalogEntry(catalogEntry('UNO', 'es'), 'es'), /\n {2}límites \(los del simulador\): la corriente hasta 40 mA por pata\n/);
+  assert.match(formatCatalogEntry(uno, 'en'), /\n {2}limits \(the simulator's\): maximum current 40 mA per pin · maximum reverse voltage 500 mV \(supply\)\n/);
+  assert.match(formatCatalogEntry(catalogEntry('UNO', 'es'), 'es'), /\n {2}límites \(los del simulador\): la corriente hasta 40 mA por pata · el voltaje inverso hasta 500 mV \(alimentación\)\n/);
 
   // Chips of a package that share a limit say which; a chip the simulator does not run, and a
   // breadboard, get no line for what the kit does not know.
@@ -152,7 +152,7 @@ test('every limit says what it belongs to when the quantity alone does not, in b
   assert.match(line('NE555', 'en'), /maximum voltage 16 V \(supply\)/);
   assert.match(line('slide-switch', 'en'), /maximum voltage 30 V across an open contact$/);
   // The UNO's logic rail is the USB's 5 V itself: the simulator checks no regulator there, so none is listed.
-  assert.equal(line('UNO', 'en'), "  limits (the simulator's): maximum current 40 mA per pin");
+  assert.equal(line('UNO', 'en'), "  limits (the simulator's): maximum current 40 mA per pin · maximum reverse voltage 500 mV (supply)");
   // Two limits of one part with the same quantity are told apart, and no key is left untranslated.
   for (const lang of ['en', 'es']) {
     for (const name of Object.keys(PART_TYPES)) {

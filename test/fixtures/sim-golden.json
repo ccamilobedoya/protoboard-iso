@@ -92,6 +92,14 @@
        "unit": "A",
        "ratio": 0.005961813252430929,
        "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -8.975350240181438,
+       "max": 0.5,
+       "unit": "V",
+       "ratio": -17.950700480362876,
+       "level": "fine"
       }
      ]
     },
@@ -1151,6 +1159,7 @@
       "voltage": 4.98653635184254,
       "current": 0.04487882719154375
      },
+     "vbus": 4.98653635184254,
      "vdd": 4.98653635184254,
      "rail": null,
      "power": 0.22439413590799656,
@@ -1845,6 +1854,14 @@
        "max": 0.6,
        "unit": "W",
        "ratio": 0.003332652830172428,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -4.999489572432891,
+       "max": 0.5,
+       "unit": "V",
+       "ratio": -9.998979144865782,
        "level": "fine"
       }
      ]
@@ -3109,6 +3126,14 @@
        "unit": "W",
        "ratio": 0.003332757807783079,
        "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -4.99956831305799,
+       "max": 0.5,
+       "unit": "V",
+       "ratio": -9.99913662611598,
+       "level": "fine"
       }
      ]
     },
@@ -4299,6 +4324,7 @@
       "voltage": 4.991000000892166,
       "current": 0.044999995540866214
      },
+     "vbus": 4.991000000892166,
      "vdd": 3.2999996322034724,
      "rail": 0.03999999555884157,
      "power": 0.22499997767073662,
@@ -4592,6 +4618,7 @@
       "voltage": 4.989659236128939,
       "current": 0.05170381935701004
      },
+     "vbus": 4.989659236128939,
      "vdd": 3.299999622207516,
      "rail": 0.04670381937510233,
      "power": 0.2371604816066411,
@@ -5055,6 +5082,7 @@
       "voltage": 4.98959297891588,
       "current": 0.052035105425591296
      },
+     "vbus": 4.98959297891588,
      "vdd": 3.299999621706554,
      "rail": 0.04703510543708843,
      "power": 0.23772400694672802,
@@ -5165,6 +5193,14 @@
        "max": 0.8,
        "unit": "A",
        "ratio": 0.05879388179636053,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -3.299999621706554,
+       "max": 0.5,
+       "unit": "V",
+       "ratio": -6.599999243413108,
        "level": "fine"
       }
      ]
@@ -6018,7 +6054,7 @@
       {
        "quantity": "reverse",
        "value": 0,
-       "max": 0.5,
+       "max": 1,
        "unit": "V",
        "ratio": 0,
        "level": "fine"
@@ -10495,9 +10531,9 @@
       {
        "quantity": "reverse",
        "value": -4.9999999944999995,
-       "max": 0.5,
+       "max": 1,
        "unit": "V",
-       "ratio": -9.999999988999999,
+       "ratio": -4.9999999944999995,
        "level": "fine"
       },
       {
@@ -10762,9 +10798,9 @@
       {
        "quantity": "reverse",
        "value": -10.406883375760698,
-       "max": 0.5,
+       "max": 1,
        "unit": "V",
-       "ratio": -20.813766751521396,
+       "ratio": -10.406883375760698,
        "level": "fine"
       },
       {
@@ -12840,6 +12876,7 @@
       "voltage": 4.984149683747697,
       "current": 0.05283438751267927
      },
+     "vbus": 4.984149683747697,
      "vdd": 4.984149683747697,
      "rail": null,
      "power": 0.22695850136172507,
@@ -13678,7 +13715,8 @@
       "max": {
        "value": 0.25,
        "unit": "W"
-      }
+      },
+      "effect": "overheats"
      }
     },
     {
@@ -13693,14 +13731,15 @@
       "max": {
        "value": 0.03,
        "unit": "A"
-      }
+      },
+      "effect": "burns"
      }
     }
    ]
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (9 Newton iterations).\nSupplies:\n  B1     11.9 V     30.1 mA    359 mW     constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  rail T+ (+5 V)                 11.9 V\n  column 9 (rows f–j)            2.02 V\n  column 10 (rows f–j)           1.5 mV\nParts:\n  R1     9.92 V     30.1 mA    298 mW\n  D1     2.02 V     30.1 mA    60.7 mW · brightness 150 % of 20 mA\n  W1     1.5 mV     30.1 mA    45.2 µW\nNotes:\n  warning: R1 dissipates 298 mW, more than its 250 mW: it overheats.\n  warning: D1 carries 30.1 mA, more than its maximum 30 mA.",
-   "es": "Punto de operación en DC — un modelo, no una medición (9 iteraciones de Newton).\nFuentes:\n  B1     11,9 V     30,1 mA    359 mW     voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  riel T+ (+5 V)                 11,9 V\n  columna 9 (filas f–j)          2,02 V\n  columna 10 (filas f–j)         1,5 mV\nComponentes:\n  R1     9,92 V     30,1 mA    298 mW\n  D1     2,02 V     30,1 mA    60,7 mW · brillo 150 % del de 20 mA\n  W1     1,5 mV     30,1 mA    45,2 µW\nObservaciones:\n  aviso: R1 disipa 298 mW, más que sus 250 mW: se recalienta.\n  aviso: Por D1 pasan 30,1 mA, más que su máximo de 30 mA."
+   "en": "DC operating point — a model, not a measurement (9 Newton iterations).\nSupplies:\n  B1     11.9 V     30.1 mA    359 mW     constant voltage\nNodes (voltage from rail T- (GND)):\n  rail T- (GND)                  0 V\n  rail T+ (+5 V)                 11.9 V\n  column 9 (rows f–j)            2.02 V\n  column 10 (rows f–j)           1.5 mV\nParts:\n  R1     9.92 V     30.1 mA    298 mW\n  D1     2.02 V     30.1 mA    60.7 mW · brightness 150 % of 20 mA\n  W1     1.5 mV     30.1 mA    45.2 µW\nNotes:\n  warning: R1 dissipates 298 mW, more than its 250 mW: it overheats.\n  warning: D1 carries 30.1 mA, more than its maximum 30 mA: it burns out.",
+   "es": "Punto de operación en DC — un modelo, no una medición (9 iteraciones de Newton).\nFuentes:\n  B1     11,9 V     30,1 mA    359 mW     voltaje constante\nGrupos (voltaje medido desde riel T- (GND)):\n  riel T- (GND)                  0 V\n  riel T+ (+5 V)                 11,9 V\n  columna 9 (filas f–j)          2,02 V\n  columna 10 (filas f–j)         1,5 mV\nComponentes:\n  R1     9,92 V     30,1 mA    298 mW\n  D1     2,02 V     30,1 mA    60,7 mW · brillo 150 % del de 20 mA\n  W1     1,5 mV     30,1 mA    45,2 µW\nObservaciones:\n  aviso: R1 disipa 298 mW, más que sus 250 mW: se recalienta.\n  aviso: Por D1 pasan 30,1 mA, más que su máximo de 30 mA: se quema."
   },
   "lines": {
    "en": {
@@ -13733,7 +13772,7 @@
      },
      {
       "key": "brightness",
-      "text": "Brightness: brightness 150 % of 20 mA"
+      "text": "Brightness: brightness over its maximum (more than 20 mA)"
      }
     ],
     "W1": [
@@ -13781,7 +13820,7 @@
      },
      {
       "key": "brightness",
-      "text": "Brillo: brillo 150 % del de 20 mA"
+      "text": "Brillo: brillo por encima de su máximo (más de 20 mA)"
      }
     ],
     "W1": [

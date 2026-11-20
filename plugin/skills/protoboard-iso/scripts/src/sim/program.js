@@ -17,6 +17,9 @@
 //     pin until its timeout), or null; the engine ends a step there (engine.advance's landings), so
 //     delayMicroseconds(10) is a pulse of 10 µs and pulseIn measures from the steps that end on edges
 //   runner.time, runner.waitingUntil, runner.log (Serial lines), runner.error, runner.notes
+//   runner.stuck: the last advance used its whole budget of turns inside one call (setup() or one
+//     loop()) without it returning and without a wait: a program that never lets time pass
+//     (`void loop() { while (1) {} }`); a loop() that returns without a delay is not stuck
 //
 // pulseIn(pin, value[, timeout µs]) is a generator the sketch calls with yield* (sketch.js): it
 // waits in simulated time, looking at its pin at the end of every step (it yields LOOK: "run me at
@@ -68,7 +71,7 @@ export function createRunner(js, board) {
   const pins = Object.create(null);
   for (const [gpio, s] of Object.entries(board.states ?? {})) pins[gpio] = { ...s };
   const pin = (n) => (pins[n] ??= { mode: 'input', level: 0, pull: null, pwm: null });
-  const runner = { read: board.read, ask: board.ask ?? null, pins, time: 0, wait: 0, log: [], line: '', error: null, notes: [], changed: false, waitingUntil: 0, looking: null };
+  const runner = { read: board.read, ask: board.ask ?? null, pins, time: 0, wait: 0, log: [], line: '', error: null, notes: [], changed: false, waitingUntil: 0, looking: null, stuck: false };
   const set = (n, values) => {
     const p = pin(n);
     for (const [k, v] of Object.entries(values)) {
@@ -395,6 +398,8 @@ export function createRunner(js, board) {
     runner.looking = null;
     for (const [n, end] of Object.entries(tones)) if (runner.time >= end) api.noTone(Number(n));
     let turns = 0;
+    let spins = 0; // turns of a loop inside the current call since it began, with no wait
+    runner.stuck = false;
     while (runner.wait <= 1e-12) {
       let r;
       try {
@@ -405,13 +410,19 @@ export function createRunner(js, board) {
       }
       if (r.done) {
         gen = program.loop();
+        spins = 0;
         if (++turns > BUDGET) break;
         continue;
       }
       // pulseIn: nothing new to see before the next step (runner.looking holds its timeout).
       if (r.value === LOOK) break;
-      if (r.value > 0) runner.wait += r.value;
-      else if (++turns > BUDGET) break;
+      if (r.value > 0) {
+        runner.wait += r.value;
+        spins = 0;
+      } else if (++turns > BUDGET) {
+        runner.stuck = ++spins >= BUDGET;
+        break;
+      } else spins++;
     }
     // Until its delay ends, or until pulseIn's timeout while it looks at its pin.
     runner.waitingUntil = runner.looking ?? runner.time + Math.max(0, runner.wait);

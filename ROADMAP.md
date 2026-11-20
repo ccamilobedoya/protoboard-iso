@@ -510,12 +510,18 @@ and `review` `APPROVED` on circuits the kit could not check. The rule now: `DONE
 checked it and found nothing to tell; `WARNINGS` means built, and each ⚠ line is told to the user
 before saying it works.
 
+- ✅ The command line never crashes, cuts its output or saves silently (C3): a missing, empty or malformed file is one or two lines and exit 1 (`STATUS: FIX_SPEC` for `layout`), an unexpected error is `internal error:` with exit 3 (no stack unless `PROTOBOARD_DEBUG=1`), output drains before the process ends and a closed pipe ends quietly, an empty spec is `FIX_SPEC`, `apply` refuses input the kit cannot read (nothing saved) and says in words when it saved a change that adds errors, one language per circuit, and `layout` on an existing circuit says it laid it out again
+- ✅ Reverse polarity is a hazard (regulators, op-amps, 555, boards); a negative bench supply simulates
+- ✅ The hazard check visits the ends of each environment field a sensor follows
+- ✅ A relay driven but not pulled in (`SIM_RELAY_UNDERDRIVEN`); a button across joined pins (`BUTTON_PINS_JOINED`)
+- ✅ A computed fix leaves the part working; damage lines say what happens to the part
+- ⬜ The same "driven but not working" idea for other parts (see the notes of the work)
 - ✅ Doubts beside hazards: `review` returns `doubts` (a part wired in with no simulation model, every issue about a board's program, a program stuck without time passing, any other warning of the simulation, a source that does not solve); one is enough for APPROVED WITH WARNINGS and `STATUS: WARNINGS`, under its own heading, in the CLI and the MCP tools (`src/sim/index.js` `doubtsOf`, `src/review.js`)
 - ✅ A program file not found says where the kit looked (the circuit's folder, beside `circuit.json`); layout judges the circuit it keeps from its folder
 - ✅ The `Checked` line is truthful (a sensor by its own value, one part "does", a program the kit cannot run)
 - ✅ Parts under 50 % visible in every view get a line in `layout`'s answer (information)
 - ✅ The `Readings` line names each source once
-- ✅ `catalog` marks what is drawn but not simulated and names no source paths (the CLI's list needs `partTypeLines` wired in `bin/`)
+- ✅ `catalog` marks what is drawn but not simulated and names no source paths
 
 ## Optional, later ⬜
 
