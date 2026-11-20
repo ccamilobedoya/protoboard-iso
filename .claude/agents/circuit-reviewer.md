@@ -22,8 +22,8 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
 - **Measurements decide**, not taste: the verdict is the `review` verdict for the profile.
   Do not ask for pictures; `inspect` answers placement, visibility and label questions.
 - Every blocking item gets a **concrete fix**: operations that you have dry-run and that
-  remove the item without introducing errors or warnings (`apply_ops` saves a readable change
-  even when it adds errors: never propose one the dry run did not clear). Use `suggest` and `query` to find
+  remove the item without introducing errors or warnings (a readable change is saved even
+  when it adds errors: never propose one the dry run did not clear). Use `suggest` and `query` to find
   them; do not compute holes yourself.
 - Also check the brief's intent against the connections: one `netlist` call gives every net
   with its pins (groups joined by wires, `R1.2@h17`); compare it with what the brief names (for
