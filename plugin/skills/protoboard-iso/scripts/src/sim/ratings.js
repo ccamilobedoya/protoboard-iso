@@ -12,9 +12,13 @@
 //     each:   the reading's list a limit is repeated over ('pins' of a board, 'contacts' of a switch)
 //     fields: the part's fields its limits follow (a resistor's `power`), from the device's limitFields
 //   null: the simulator has no limits for it (no device, or a device without `limits`).
+//   partControls(part) → { controls: { field: { min, max, limit?, unit, scale, percent?, step? } }, senses: [field] }
+//     or null (no device): what a run (`simulate --set`) and the page's sliders change on it, and the
+//     environment's fields it follows when it gives no value of its own
 
 import { deviceFor } from './devices/index.js';
 import { batterySupply } from './compile.js';
+import { supplyControls } from './controls.js';
 
 // A reading at rest: every value reads 0, a list has one entry, and a stress made inside a list
 // remembers the list's name. Devices read their readings in many shapes (r.current, r.pins[i],
@@ -77,4 +81,30 @@ export function partRatings(part) {
   if (!limits.length) return null;
   const fields = device.limitFields?.(entry) ?? [];
   return { limits, ...(fields.length && { fields }) };
+}
+
+// What can be changed on a part while it runs, and what it reads from the environment, from its
+// device as the engine builds it (no circuit: the environment is left out, so a sensor's own
+// stimulus shows which fields its part number follows).
+export function partControls(part) {
+  const device = deviceFor(part);
+  if (!device) return null;
+  let entry;
+  let controls = {};
+  try {
+    entry = entryOf(part, device);
+    controls = device.controls?.(entry) ?? (entry.supply ? supplyControls(entry.supply) : {});
+  } catch {
+    return null;
+  }
+  const shape = ({ min, max, limit, unit, scale, percent, step }) => ({ min, max, ...(limit && { limit }), unit: unit ?? '', scale, ...(percent && { percent }), ...(step && { step }) });
+  // The fields this part follows of its device's: a module's stimulus lists them; a field with a
+  // name of the part's own (a tilt switch's `tilted`) only where it has that control; a device that
+  // keeps them by name (a DHT11 has no pressure) only those it keeps.
+  const all = device.senses ?? [];
+  const keeps = all.some((f) => f in entry);
+  const senses = entry.stim && typeof entry.stim === 'object'
+    ? Object.keys(entry.stim).filter((f) => all.includes(f))
+    : all.filter((f) => (device.ownField?.[f] ? device.ownField[f] in controls : !keeps || entry[f] !== undefined));
+  return { controls: Object.fromEntries(Object.entries(controls).map(([f, c]) => [f, shape(c)])), senses };
 }

@@ -23,7 +23,7 @@ import { buildSchemas } from '../schema.js';
 import { recipeSummary, recipeEntry, RECIPE_GROUPS, valueLimits } from '../recipes/index.js';
 import { describePart } from '../parts/describe.js';
 import { pinRoles } from '../pinout.js';
-import { partRatings } from '../sim/ratings.js';
+import { partRatings, partControls } from '../sim/ratings.js';
 import { deviceFor } from '../sim/devices/index.js';
 import { formatValue } from '../core/units.js';
 
@@ -344,4 +344,22 @@ export function formatCatalogEntry(e, lang = 'en') {
   }
   if (e.example) lines.push(`  ${t(lang, 'catalog.example', { file: e.example.file })} ${JSON.stringify(e.example.part)}`);
   return `${lines.join('\n')}${aliasLine}`;
+}
+
+// What each part takes, for the skill's reference written by scripts/parts-reference.js: per type its
+// pins, the fields a spec and a `set` operation take (the schema's words), and for the bare type and
+// each part number or module: its pins, whether it is simulated, what a run changes on it
+// (`simulate --set`, the page's sliders) and the environment's fields it reads. All from src/.
+export function partReference(lang = 'en') {
+  const numbersOf = (type) => (type === 'ldr' ? Object.keys(LDR_PARTS) : type === 'module' ? Object.keys(MODULES) : Object.entries(PART_NUMBERS).filter(([, e]) => e.type === type).map(([n]) => n));
+  return Object.keys(PART_TYPES).map((type) => {
+    const variants = [null, ...numbersOf(type)].map((number) => {
+      const part = unplaced({ id: 'X1', type, ...(number && { part: number }) });
+      if (!part) return { part: number, pins: null, simulated: null };
+      const device = deviceFor(part);
+      const run = device ? partControls(part) : null;
+      return { part: number, pins: part.pinNames, simulated: Boolean(device), ...(run && { controls: run.controls, senses: run.senses }) };
+    });
+    return { type, name: t(lang, `type.${type}`), family: PART_TYPES[type].family, pins: PART_TYPES[type].pins ?? null, fields: fieldsOf(type), variants };
+  });
 }

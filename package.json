@@ -42,6 +42,7 @@
     "coverage": "c8 npm test",
     "knip": "knip --no-progress",
     "dupes": "jscpd --config .jscpd.json",
+    "parts-reference": "node scripts/parts-reference.js",
     "options": "node scripts/project-options.js",
     "context-size": "node scripts/context-size.js",
     "docs-index": "node scripts/docs-index.js",
