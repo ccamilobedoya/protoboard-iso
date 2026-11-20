@@ -67,9 +67,10 @@ function drawingOf(part, view) {
           box.y0 = Math.min(box.y0, p.y);
           box.y1 = Math.max(box.y1, p.y);
         }
-        faces.push(pts);
+        faces.push({ pts, depth: pts.reduce((t, q) => t + q.depth, 0) / pts.length });
       }
-      if (faces.length) prims.push({ depth: count ? sum / count : 0, faces });
+      // Far to near inside the primitive, as render/scene.js paints its faces.
+      if (faces.length) prims.push({ depth: count ? sum / count : 0, faces: faces.sort((a, b) => b.depth - a.depth).map((f) => f.pts) });
     }
     cache[view] = { prims, box };
   }
@@ -128,39 +129,35 @@ function sharesIn(view, parts, me, asked) {
   const order = [];
   for (const p of parts) if (meet(drawingOf(p, view).box, box)) for (const prim of drawingOf(p, view).prims) order.push({ p, prim });
   order.sort((a, b) => b.prim.depth - a.prim.depth);
+  // Each asked part's own pixels (its footprint), gathered while it is painted.
+  const mine = new Map(asked.map((p) => [p, { mark: new Uint8Array(frame.cols * frame.rows), cells: [] }]));
   for (const { p, prim } of order) {
     const id = index.get(p);
-    const faces = prim.faces.map((pts) => ({ pts, depth: pts.reduce((s, q) => s + q.depth, 0) / pts.length })).sort((a, b) => b.depth - a.depth);
-    for (const { pts } of faces) {
-      if (p === me) fill(pts, frame, (i) => (withMe[i] = id));
-      else
-        fill(pts, frame, (i) => {
-          withMe[i] = id;
-          without[i] = id;
-        });
+    const own = mine.get(p);
+    for (const pts of prim.faces) {
+      fill(pts, frame, (i) => {
+        withMe[i] = id;
+        if (p !== me) without[i] = id;
+        if (own && !own.mark[i]) {
+          own.mark[i] = 1;
+          own.cells.push(i);
+        }
+      });
     }
   }
-  // Each asked part's own pixels, painted alone, and how many it owns in each picture.
+  // How many of them it owns in each picture.
   const out = new Map();
-  const tag = new Int32Array(frame.cols * frame.rows);
-  asked.forEach((p, k) => {
+  for (const [p, { cells }] of mine) {
+    if (!cells.length) continue;
     const id = index.get(p);
-    let area = 0;
     let a = 0;
     let b = 0;
-    for (const prim of drawingOf(p, view).prims) {
-      for (const pts of prim.faces) {
-        fill(pts, frame, (i) => {
-          if (tag[i] === k + 1) return;
-          tag[i] = k + 1;
-          area++;
-          if (withMe[i] === id) a++;
-          if (without[i] === id) b++;
-        });
-      }
+    for (const i of cells) {
+      if (withMe[i] === id) a++;
+      if (without[i] === id) b++;
     }
-    if (area) out.set(p, { now: a / area, was: b / area });
-  });
+    out.set(p, { now: a / cells.length, was: b / cells.length });
+  }
   return out;
 }
 

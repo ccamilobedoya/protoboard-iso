@@ -561,6 +561,9 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
     for (const p of r.problems) if (p.code === 'LAYOUT_WIRE_FAILED') strike(latest(p.parts ?? []));
     if (!added) break;
   }
+  // The tries are over: what they remembered goes before the repair and the simulation.
+  memo.clear();
+  boxes.clear();
   // A covered pin: no jumper reaches it, so the repair (seconds of suggest) cannot help.
   if (!(best.check.ok && best.review.verdict !== 'changes' && !best.problems.length) && !best.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED') && !over(clock)) best = repair(best, spec, { profile, asked: asked.nets, clock });
   // Kept in the circuit: what was asked (not the conventions added to it) and which wires are
