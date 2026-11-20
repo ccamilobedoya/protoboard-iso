@@ -52,7 +52,7 @@ export default {
     { id: 'R1', type: 'resistor', value: '220' },
     { id: 'D1', type: 'led', color: 'green' },
   ],
-  nets: [['U1.5V', 'U2.VCC'], ['U2.GND', 'U1.GND'], ['U2.DO', 'U1.D2'], ['U1.D13', 'R1.1'], ['R1.2', 'D1.anode'], ['D1.cathode', 'U1.GND']],
+  nets: [['U1.5V', 'U2.VCC'], ['U2.GND', 'U1.GND', 'D1.cathode'], ['U2.DO', 'U1.D2'], ['U1.D13', 'R1.1'], ['R1.2', 'D1.anode']],
   environment: { sound: { value: 40, range: [30, 110] } },
   page: { controls: [{ environment: 'sound' }, { part: 'U2', field: 'threshold', min: 0.485, max: 0.5 }] },
   values: {

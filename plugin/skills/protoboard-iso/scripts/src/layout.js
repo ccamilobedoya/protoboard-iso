@@ -114,6 +114,7 @@ const blocking = (issues) => issues.filter((i) => i.severity !== 'info' || i.cod
 // jumper) placed last among the ones a blocking item names: the whole layout takes well under a
 // second, so this is simpler and more predictable than patching in place. Keeps the best try.
 const TRIES = 8;
+const HIDDEN_SETTLED = 5; // parts hidden in every view the first try may leave to the relayout loop alone (measured: every recipe leaves at most 5, laser-uno; ten LEDs from one pin 6 to 11, an UNO with a 74HC595 and eight LEDs 8)
 const MEMO_STATES = 1500; // states the memo of one layout keeps (each holds the parts built so far: about 0.3 MB at 40 parts)
 const REPAIRS = 4; // jumpers the repair may route again with suggest (each one measures drawings)
 
@@ -509,13 +510,24 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   const troubled = new Map(); // part → tries in which it was hidden by a jumper or hid one
   let best = null;
   let tries = 0;
+  // Measuring what each place hides (src/layout-sight.js) starts only when the first try leaves more
+  // parts hidden than the relayout loop can move (it moves one place per item and per try, and repairs a
+  // few): a circuit the loop settles is placed exactly as before, so a published recipe does not
+  // move; a large one (ten LEDs left six hidden in every try) is measured from then on.
+  let sight = false;
   for (let attempt = 0; attempt < TRIES; attempt++) {
     if (attempt && over(clock)) break;
     tries++;
-    const r = layoutOnce(spec, { profile, forbid, previous, memo, boxes, asked: asked.nets, keepOrder, clock });
+    const r = layoutOnce(spec, { profile, forbid, previous, memo, boxes, asked: asked.nets, keepOrder, clock, sight });
     const score = (x) => (x.check.ok ? 0 : 100) + x.problems.length * 10 + x.review.blocking.length;
     if (!best || score(r) < score(best)) best = r;
     if (r.check.ok && r.review.verdict !== 'changes' && !r.problems.length) break;
+    if (!sight && attempt === 0 && r.review.blocking.filter((b) => b.code === 'PART_HIDDEN').length > HIDDEN_SETTLED) {
+      sight = true;
+      forbid.clear();
+      troubled.clear();
+      continue;
+    }
     // A board covering a pin's strip is no place problem another try can fix.
     if (r.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED')) break;
     const rank = new Map(r.sequence.map((id, i) => [id, i]));
@@ -841,7 +853,7 @@ function footprintOf(part) {
   return box;
 }
 
-function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), boxes = new Map(), keepOrder = false, clock = null }) {
+function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), boxes = new Map(), keepOrder = false, clock = null, sight = true }) {
   // A part's box from above, by its holes (the same part in the same holes has the same body).
   const boxOf = (p) => {
     const key = `${p.id} ${p.holes.map((h) => h?.id).join(' ')}`;
@@ -1347,7 +1359,7 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
           // A place where the part would hide another one (or be hidden) in both views is kept
           // only when no other place is free of it: the review would block it after the whole
           // try, and a try is what a large circuit cannot afford many of.
-          const damage = BESIDE.has(part.type) ? 0 : hiddenBy(built.parts, built.parts.find((p) => p.id === part.id));
+          const damage = !sight || BESIDE.has(part.type) ? 0 : hiddenBy(built.parts, built.parts.find((p) => p.id === part.id));
           if (!damage) {
             done = pinMap;
             break;
@@ -1493,7 +1505,7 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
         const id = nextWireId();
         const before = { circuit, built, baseline, state };
         if (tryOps([{ op: 'add', part: { id, type: 'wire', color: colourOf(net), pins: [x.id, y.id] } }])) {
-          const damage = hiddenBy(built.parts, built.parts.find((p) => p.id === id));
+          const damage = sight ? hiddenBy(built.parts, built.parts.find((p) => p.id === id)) : 0;
           if (!damage) {
             joined = { id, a, b };
             break;
