@@ -17,9 +17,9 @@ const bin = join(root, 'bin/protoboard-iso.js');
 
 // The CLI as a child process, with a wall-clock timeout; `elapsed` in ms, `timedOut` when killed.
 function cli(args, { timeout, nodeArgs = [] } = {}) {
-  const started = Date.now();
+  const started = Date.now(); // real clock: the acceptance bound on how long the CLI runs
   const r = spawnSync(process.execPath, [...nodeArgs, bin, ...args], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28, timeout, killSignal: 'SIGKILL' });
-  return { ...r, elapsed: Date.now() - started, timedOut: r.error?.code === 'ETIMEDOUT', stdout: r.stdout ?? '', stderr: r.stderr ?? '' };
+  return { ...r, elapsed: Date.now() - started, timedOut: r.error?.code === 'ETIMEDOUT', stdout: r.stdout ?? '', stderr: r.stderr ?? '' }; // real clock: the acceptance bound on how long the CLI runs
 }
 const lastLine = (r) => r.stdout.trim().split('\n').at(-1);
 const describe = (r) => `exit ${r.status} signal ${r.signal} elapsed ${r.elapsed} ms; last line: ${lastLine(r)}`;
