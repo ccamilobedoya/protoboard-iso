@@ -40,7 +40,8 @@ import { compile, createEngine } from '../src/sim/index.js';
 import { toFalstad } from '../src/sim/falstad.js';
 import { nets, formatNets } from '../src/nets.js';
 import { createBoard, boardLayout, BOARDS } from '../src/board/board.js';
-import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest } from '../src/layout.js';
+import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest, BUDGET_SECONDS } from '../src/layout.js';
+import { LIMITS } from '../src/limits.js';
 import { RECIPES, resolveRecipe } from '../src/recipes/index.js';
 import { formatBoardLayout } from '../src/board/layout-text.js';
 import { appView } from './app.js';
@@ -347,13 +348,14 @@ server.registerTool(
       check_only: z.boolean().optional().describe('Only check the parts and nets (unknown names with the closest ones, nets naming a missing part or pin, parts in no net) and create nothing'),
       dry_run: z.boolean().optional().describe('The whole answer, nothing saved: try an idea first'),
       fix: z.boolean().optional().describe("Existing circuit, nothing else given: apply the kit's To fix it line"),
+      budget_s: z.number().positive().optional().describe(`Seconds the search may take (default ${BUDGET_SECONDS}, at most ${LIMITS.layoutSeconds}); then its best try comes back as CHANGES, saying so`),
       author: z.string().optional(),
       note: z.string().optional(),
       lang: common.lang,
     },
     annotations: WRITE,
   },
-  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, expect_revision: expectRevision, check_only: checkOnly, dry_run: dryRun, fix, author = 'layout', note, lang, outputLang }) => {
+  safely(async ({ target, recipe, values, parts, nets, supplies, board, title, netLabels, environment, page, clearance, expect_revision: expectRevision, check_only: checkOnly, dry_run: dryRun, fix, budget_s: budget, author = 'layout', note, lang, outputLang }) => {
     const full = inside(target);
     const paths = resolveTarget(full);
     const previous = existsSync(paths.circuitFile) ? loadCircuit(paths) : null;
@@ -376,7 +378,7 @@ server.registerTool(
     const spec = fixed ? fixed.spec : previous ? specFromCircuit(previous, given) : given;
     const out = pickLanguage(lang, spec.lang);
     if (!Array.isArray(spec.parts) || !spec.parts.length) return { isError: true, content: [{ type: 'text', text: formatLayout(specProblems([{ severity: 'error', code: 'SPEC_EMPTY', params: {} }]), out, { t, formatIssue }) }] };
-    const result = { ...autoLayout(spec, { checkOnly, previous, folder: dirname(paths.circuitFile), lang: out }), ...(fixed && { applied: fixed.applied }) };
+    const result = { ...autoLayout(spec, { checkOnly, previous, folder: dirname(paths.circuitFile), lang: out, budget }), ...(fixed && { applied: fixed.applied }) };
     if (result.checked) return { ...(result.invalid && { isError: true }), content: [{ type: 'text', text: formatLayout(result, out, { t, formatIssue }) }] };
     // A trial: the same answer, nothing written and no board shown (as try_ops).
     if (dryRun) return text(formatLayout({ ...result, trial: true }, out, { t, formatIssue }));

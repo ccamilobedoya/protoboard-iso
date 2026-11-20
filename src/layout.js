@@ -50,6 +50,7 @@ import { checkNets, internalLinks } from './nets.js';
 import { assignSides } from './layout-sides.js';
 import { hiddenBy, reachOf } from './layout-sight.js';
 import { BOARDS, railName, boardSides, channelPairs, columnsUsed, createBoard } from './board/board.js';
+import { LIMITS } from './limits.js';
 
 export { checkNets };
 import { strayFields, fieldsOfType } from './parts/fields.js';
@@ -172,17 +173,68 @@ export function validateSpec(spec) {
     return name === undefined ? ref : `${part.id}.${name}`;
   };
   // Pin references come back in the part's own names ("D1.K" → "D1.cathode", "U1.GPIO4" → "U1.D4").
-  const nets = (spec.nets ?? []).map((n, i) => {
+  const named = (spec.nets ?? []).map((n, i) => {
     const pins = (Array.isArray(n) ? n : n?.pins ?? []).map((ref) => checkRef(ref, i + 1) ?? ref);
     return Array.isArray(n) ? pins : { ...n, pins };
   });
+  const { nets, joined } = joinSharedPins(named);
   const supplies = spec.supplies?.map((s) => {
     const out = { ...s };
     for (const key of ['positive', 'negative']) if (s[key] != null) out[key] = checkRef(s[key], s.id ?? 'supply') ?? s[key];
     return out;
   });
   for (const p of parts) if (!inNet.has(p.id)) problems.push({ severity: 'warning', code: 'PART_IN_NO_NET', params: { part: p.id } });
-  return { parts, nets, ...(supplies && { supplies }), problems, ok: !problems.some((p) => p.severity === 'error') };
+  for (const j of joined) problems.push({ severity: 'info', code: 'LAYOUT_NETS_JOINED', params: j });
+  return { parts, nets, joined, ...(supplies && { supplies }), problems, ok: !problems.some((p) => p.severity === 'error') };
+}
+
+// A pin listed in several nets joins them: that is what the words mean electrically. They become one
+// net, where the first of them was, its pins in the order they came (each once) and the first colour
+// given; the same circuit as a spec with the pins in one list. Rails do not join nets here (two nets
+// on T- are two strips joined through the rail, as before). → { nets, joined: [{ nets, pins }] }
+export function joinSharedPins(nets) {
+  const pinsOf = (n) => (Array.isArray(n) ? n : n?.pins ?? []);
+  const keyOf = (ref) => (railName(ref) ? null : pinKey(ref));
+  const parent = nets.map((_, i) => i);
+  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  const owner = new Map(); // pin → the first net it is in
+  nets.forEach((n, i) => {
+    for (const k of pinsOf(n).map(keyOf).filter(Boolean)) {
+      if (!owner.has(k)) owner.set(k, i);
+      else {
+        const [a, b] = [find(owner.get(k)), find(i)];
+        parent[Math.max(a, b)] = Math.min(a, b);
+      }
+    }
+  });
+  const groups = new Map();
+  nets.forEach((_, i) => groups.set(find(i), [...(groups.get(find(i)) ?? []), i]));
+  if (groups.size === nets.length) return { nets, joined: [] };
+  const out = [];
+  const joined = [];
+  for (const [root, members] of groups) {
+    if (members.length === 1) {
+      out.push(nets[root]);
+      continue;
+    }
+    const seen = new Map(); // pin → nets it is in
+    const pins = [];
+    for (const i of members) {
+      for (const ref of pinsOf(nets[i])) {
+        const k = keyOf(ref) ?? railName(ref);
+        if (!seen.has(k)) {
+          seen.set(k, new Set());
+          pins.push(ref);
+        }
+        seen.get(k).add(i);
+      }
+    }
+    const color = members.map((i) => nets[i]?.color).find(Boolean);
+    out.push(color ? { pins, color } : pins);
+    const both = pins.filter((ref) => keyOf(ref) && seen.get(keyOf(ref)).size > 1);
+    joined.push({ nets: members.map((i) => i + 1).join(', '), pins: both.join(', ') });
+  }
+  return { nets: out, joined };
 }
 
 // previous: the circuit as it is (layout again on an existing target). Each part and jumper first
@@ -197,8 +249,97 @@ export function validateSpec(spec) {
 // A recipe's goals (spec.goals, from expandRecipe: a current, a frequency) are solved on the circuit
 // laid out with the values as given (recipes/solve.js); when the chosen standard values differ, it is
 // laid out again with them, each part keeping its holes. The answer's `solved` says what was done.
+//
+// The kit calculates before it tries (docs/en/layout.md, "Size and budget"): a spec that cannot fit
+// the board is told so at once (LAYOUT_TOO_LARGE, nothing placed), one beyond what the search places
+// within its budget is said before it starts (LAYOUT_SEARCH_LONG), and the search stops at its budget
+// (options.budget, seconds; BUDGET_SECONDS by default, at most LIMITS.layoutSeconds) with its best
+// try so far and a line that says so (LAYOUT_BUDGET).
 export function autoLayout(spec, options = {}) {
   const started = Date.now();
+  const asked = Number(options.budget ?? BUDGET_SECONDS);
+  const seconds = Math.min(asked > 0 ? asked : BUDGET_SECONDS, LIMITS.layoutSeconds);
+  const clock = { at: started + seconds * 1000, seconds, hit: false };
+  const before = [];
+  if (asked > LIMITS.layoutSeconds) before.push({ severity: 'info', code: 'LAYOUT_BUDGET_CAPPED', params: { asked, max: LIMITS.layoutSeconds } });
+  const valid = validateSpec(spec);
+  if (valid.ok) {
+    const size = estimateSize(valid, spec.board ?? 'auto');
+    if (size.needed > size.available) return { ...specProblems([{ severity: 'error', code: 'LAYOUT_TOO_LARGE', params: size }]), parts: valid.parts, size };
+    if (size.seconds > seconds) before.push({ severity: 'info', code: 'LAYOUT_SEARCH_LONG', params: { parts: size.parts, seconds: size.seconds, budget: seconds } });
+  }
+  const r = laidOut(spec, { ...options, clock }, started);
+  if (r.checked) return r;
+  const out = { ...r, notes: [...before, ...(r.notes ?? [])], budget: seconds };
+  // The budget ran out somewhere: the answer is the best try so far, and says so.
+  if (clock.hit && !out.problems.some((p) => p.code === 'LAYOUT_BUDGET')) return { ...out, status: 'changes', problems: [...out.problems, budgetProblem(out, seconds, spec)] };
+  return out;
+}
+
+export const BUDGET_SECONDS = 60; // a layout's budget when none is given (CLI --budget, MCP budget_s)
+
+// The clock has run out (and stays so): the search stops where it is.
+const over = (clock) => {
+  if (clock && !clock.hit && Date.now() > clock.at) clock.hit = true;
+  return Boolean(clock?.hit);
+};
+
+// What the best try still has open when the budget stopped the search.
+function budgetProblem(r, seconds, spec) {
+  const placed = new Set((r.circuit?.parts ?? []).map((p) => p.id));
+  const parts = (spec.parts ?? []).filter((p) => !placed.has(p?.id)).length;
+  const nets = (r.check?.missing?.length ?? 0) + (r.check?.shorted?.length ?? 0);
+  const blocking = (r.review?.blocking ?? []).filter((b) => !b.code.startsWith('SPEC_NET')).length; // the nets are counted already
+  return { severity: 'warning', code: 'LAYOUT_BUDGET', params: { seconds, parts, nets, blocking, max: LIMITS.layoutSeconds } };
+}
+
+// A lower bound of the columns a spec takes, from its parts and nets alone, against the columns the
+// board can grow to; and the seconds one try of the search takes, roughly. Nothing is placed.
+// - Strips: a strip (five holes on one side of the channel) holds pins of one electrical net only;
+//   a net with a rail can put every pin there, the others need a strip for every five pins, and a
+//   pin in no net a strip of its own. The board has `sides` strips per column.
+// - A chip across the channel (a DIP) takes its columns there whole: two never share one.
+// A bound, never an estimate of the layout: it must not refuse what the search can place (every
+// recipe and example passes it far below the board, test/layout-size.test.js).
+const SECONDS_PER_PART = 0.12; // one try, measured: ten LEDs and resistors 2.5 s, two hundred resistors 7 s
+export function estimateSize(valid, board) {
+  const devkit = valid.parts.some((p) => p.type === 'module' && PACKAGES[PART_TYPES[p.type].resolve(p).package]?.expandPin1);
+  const spec = BOARDS[board === 'auto' && devkit ? 'double' : board] ?? BOARDS.auto;
+  const sides = boardSides(spec).order.length;
+  const channels = Math.max(1, channelPairs(spec).length);
+  const available = spec.elastic ? LIMITS.boardColumns : spec.columns;
+  const nets = electricalNets(valid.nets.map((n) => {
+    const pins = (Array.isArray(n) ? n : n?.pins ?? []).map(String);
+    return { refs: pins.filter((x) => !railName(x)), rails: pins.map(railName).filter(Boolean) };
+  }));
+  const netOf = new Map(nets.flatMap((e) => e.pins.map((k) => [k, e])));
+  const count = new Map();
+  let strips = 0;
+  let across = 0;
+  let onBoard = 0;
+  for (const part of valid.parts) {
+    const type = PART_TYPES[part.type];
+    const def = type.resolve(part);
+    const beside = def.error?.code === 'MODULE_PINS';
+    const pins = beside ? [] : def.pinNames ?? type.pins ?? [];
+    const named = [...netOf.keys()].filter((k) => k.split('.')[0] === part.id);
+    if (!beside && part.type !== 'wire') onBoard++;
+    for (const key of beside ? named : pins.map((n) => `${part.id}.${String(n).toLowerCase()}`)) {
+      const e = netOf.get(key);
+      if (!e) strips++;
+      else if (!e.rails.length) count.set(e, (count.get(e) ?? 0) + 1);
+    }
+    if (def.package === 'dip') across += Math.ceil(pins.length / 2);
+  }
+  for (const n of count.values()) strips += Math.ceil(n / 5);
+  const needed = Math.max(Math.ceil(strips / sides), Math.ceil(across / channels));
+  const parts = valid.parts.length;
+  return { needed, available, parts, fit: Math.max(1, Math.floor((parts * available) / Math.max(needed, 1))), seconds: Math.ceil(SECONDS_PER_PART * onBoard) };
+}
+
+// The layout itself (autoLayout without the size and the budget's line).
+function laidOut(spec, options, started) {
+  const { clock } = options;
   const first = inAnyOrder(spec, options);
   if (!spec.goals?.length || first.checked) return first;
   // A circuit whose nets are not right would give the goal a wrong figure: nothing is solved.
@@ -211,7 +352,7 @@ export function autoLayout(spec, options = {}) {
   // What is stored is the values chosen, like any value: the goal is not kept, so a later layout
   // gives its own values as usual and solves nothing again.
   const recipe = spec.recipe && { ...spec.recipe, values: { ...spec.recipe.values, ...texts } };
-  const moved = spec.parts.some((p) => texts[p.id] && parseValue(p.value) !== parseValue(texts[p.id]));
+  const moved = spec.parts.some((p) => texts[p.id] && parseValue(p.value) !== parseValue(texts[p.id])) && !over(clock);
   const r = moved ? placeCircuit({ ...spec, parts, ...(recipe && { recipe }) }, { ...options, previous: first.circuit, keepOrder: first.keepOrder }) : first;
   if (!moved && recipe) r.circuit.spec.recipe = recipe;
   return { ...r, solved, notes: [...r.notes, ...unsolved.map(unsolvedNote)], tries: first.tries + (moved ? r.tries : 0), ms: Date.now() - started };
@@ -239,6 +380,7 @@ function inAnyOrder(spec, options) {
     const key = order.join(' ');
     if (seen.has(key)) continue;
     seen.add(key);
+    if (over(options.clock)) break;
     const r = placeCircuit({ ...spec, parts }, { ...options, keepOrder });
     tries += r.tries;
     ms += r.ms;
@@ -322,7 +464,7 @@ export function signalOrders(spec) {
 function placeCircuit(spec, options) {
   const single = layoutSpec(spec, options);
   const covered = single.problems?.find((p) => p.code === 'LAYOUT_PIN_COVERED');
-  if (!covered || (spec.board ?? 'auto') !== 'auto') return single;
+  if (!covered || (spec.board ?? 'auto') !== 'auto' || over(options.clock)) return single;
   const { spec: twin, renamed } = onDoubleBoard(spec);
   const double = layoutSpec(twin, options);
   if (double.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED')) return single;
@@ -348,7 +490,7 @@ function onDoubleBoard(spec) {
   return { spec: twin, renamed: [...renamed].sort() };
 }
 
-function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = null, folder, lang, keepOrder = false } = {}) {
+function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = null, folder, lang, keepOrder = false, clock = null } = {}) {
   const started = Date.now();
   const valid = validateSpec(spec);
   if (checkOnly || !valid.ok) return { status: valid.ok ? 'spec_ok' : 'fix_spec', invalid: !valid.ok, checked: true, parts: valid.parts, nets: valid.nets, problems: valid.problems, ms: Date.now() - started };
@@ -357,7 +499,7 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
     nets: valid.nets,
     ...(valid.supplies?.some((s) => pinKey(s.positive) || pinKey(s.negative)) && { supplies: valid.supplies }),
   };
-  const notes = [];
+  const notes = valid.problems.filter((p) => p.code === 'LAYOUT_NETS_JOINED');
   spec = { ...spec, parts: valid.parts, nets: groundToRail(valid.nets, valid.parts, valid.supplies, notes, BOARDS[spec.board ?? 'auto']), ...(valid.supplies && { supplies: valid.supplies }) };
   const forbid = new Set(); // "id pins" keys
   // Every try starts from an empty board and decides the same way until it meets a place forbidden
@@ -368,8 +510,9 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   let best = null;
   let tries = 0;
   for (let attempt = 0; attempt < TRIES; attempt++) {
+    if (attempt && over(clock)) break;
     tries++;
-    const r = layoutOnce(spec, { profile, forbid, previous, memo, boxes, asked: asked.nets, keepOrder });
+    const r = layoutOnce(spec, { profile, forbid, previous, memo, boxes, asked: asked.nets, keepOrder, clock });
     const score = (x) => (x.check.ok ? 0 : 100) + x.problems.length * 10 + x.review.blocking.length;
     if (!best || score(r) < score(best)) best = r;
     if (r.check.ok && r.review.verdict !== 'changes' && !r.problems.length) break;
@@ -419,7 +562,7 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
     if (!added) break;
   }
   // A covered pin: no jumper reaches it, so the repair (seconds of suggest) cannot help.
-  if (!(best.check.ok && best.review.verdict !== 'changes' && !best.problems.length) && !best.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED')) best = repair(best, spec, { profile, asked: asked.nets });
+  if (!(best.check.ok && best.review.verdict !== 'changes' && !best.problems.length) && !best.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED') && !over(clock)) best = repair(best, spec, { profile, asked: asked.nets, clock });
   // Kept in the circuit: what was asked (not the conventions added to it) and which wires are
   // layout's own jumpers, so layout can run again on it and review can check the connections.
   const ids = new Set(spec.parts.map((p) => p.id));
@@ -442,7 +585,8 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   // The advisory only when nothing burns (a hazard already says what is wrong) and no goal was
   // given (the Solved line says everything).
   // The fix of its hazards (src/fix.js), once, on the circuit kept: the tries did not search for one.
-  if (best.review.hazards.length) best = { ...best, review: { ...best.review, ...hazardFix(seen, sim.raw) } };
+  // Not once the budget ran out: the answer is a try to fix, and the search for a fix takes seconds.
+  if (best.review.hazards.length && !clock?.hit) best = { ...best, review: { ...best.review, ...hazardFix(seen, sim.raw) } };
   const extras = status === 'changes' ? {} : answerExtras(circuit, { folder: folder ?? previous?.[CIRCUIT_FOLDER], lang: lang ?? spec.lang, advise: status === 'done' && !spec.goals?.length });
   return { ...best, circuit, notes: [...notes, ...(best.notes ?? [])], status, tries, ...extras, ms: Date.now() - started };
 }
@@ -492,16 +636,16 @@ function groundToRail(nets, parts, supplies, notes, board) {
 // left apart and a jumper named by a blocking item are routed again with suggest (which measures
 // what a wire hides in both views, and may go through a free strip: VIA_WIRE). A repair is kept
 // only when the nets stay right and nothing new blocks.
-function repair(best, spec, { profile, asked }) {
+function repair(best, spec, { profile, asked, clock }) {
   let { circuit, problems, check, review: verdict } = best;
   const notes = [];
   const score = (c, v, p) => (c.ok ? 0 : 100) + p.length * 10 + v.blocking.length;
   const nets = spec.nets.map((n) => (Array.isArray(n) ? { pins: n } : n));
   let left = REPAIRS;
   const attempt = (remove, between, color, fixed) => {
-    if (left-- <= 0) return false;
+    if (left-- <= 0 || over(clock)) return false;
     const base = remove ? applyOps(circuit, [{ op: 'remove', part: remove }]).circuit : circuit;
-    const s = suggest(base, { type: 'wire', ...(color && { color }) }, { between, profile, limit: 1, candidates: 8, maxCandidates: 24, via: false });
+    const s = suggest(base, { type: 'wire', ...(color && { color }) }, { between, profile, limit: 1, candidates: 8, maxCandidates: 24, via: false, deadline: clock?.at });
     const ops = s.placements?.[0]?.ops;
     if (!ops) return false;
     const r = applyOps(base, ops);
@@ -694,7 +838,7 @@ function footprintOf(part) {
   return box;
 }
 
-function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), boxes = new Map(), keepOrder = false }) {
+function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), boxes = new Map(), keepOrder = false, clock = null }) {
   // A part's box from above, by its holes (the same part in the same holes has the same body).
   const boxOf = (p) => {
     const key = `${p.id} ${p.holes.map((h) => h?.id).join(' ')}`;
@@ -942,6 +1086,8 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
   const covered = new Set(); // strips of pins a board covers: no jumper reaches them
   const overBoard = new Set(); // boards across the channel: the holes under their PCB are out of reach
   for (const part of order) {
+    // The budget ran out: the parts not placed yet stay out (the answer says how many).
+    if (over(clock)) break;
     const info = infos.get(part.id);
     const { def, pkg, pinNames, kind } = info;
     const s = sides.get(part.id) ?? halfInfo.order[0];
@@ -1215,7 +1361,7 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
     if (!done) {
       // No rule fits (a crowded spot, a part kind without a rule): suggest, near the cursor.
       // Its places in `forbid` are skipped, as for the rules.
-      const r = suggest(circuit, part, { near: `${halfInfo.ascending[s][2]}${cur + 2}`, limit: 3, candidates: 6, maxCandidates: 24, room: false, via: false });
+      const r = suggest(circuit, part, { near: `${halfInfo.ascending[s][2]}${cur + 2}`, limit: 3, candidates: 6, maxCandidates: 24, room: false, via: false, deadline: clock?.at });
       const allowed = (p) => !p.ops.some((o) => o.op === 'add' && o.part?.id === part.id && forbid.has(forbidKey(o.part)));
       const best = r.placements?.find((p) => allowed(p) && tryOps(p.ops));
       if (best) done = best.pins;
@@ -1308,6 +1454,7 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
   };
   const rejected = new Set(); // pairs of holes the geometry refused: not tried again
   for (const net of nets) {
+    if (over(clock)) break;
     const groups = [];
     for (const ref of net.refs) {
       const h = holeOf(ref);
@@ -1337,6 +1484,7 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
       let fallback = null; // the cheapest jumper that hides a part: used only when none is free of it
       let hiding = 0;
       for (const { x, y, a, b } of edges) {
+        if (over(clock)) break;
         const key = `${x.id} ${y.id}`;
         if (rejected.has(key) || forbid.has(forbidKey({ type: 'wire', pins: [x.id, y.id] })) || forbid.has(linkKey(x.node, y.node))) continue;
         const id = nextWireId();
@@ -1427,7 +1575,8 @@ export const specProblems = (problems) => ({ status: 'fix_spec', invalid: true, 
 export function formatLayout(r, lang, { t, formatIssue }) {
   if (r.checked) {
     const lines = [t(lang, r.invalid ? 'layout.invalid' : 'layout.valid', { parts: r.parts.length })];
-    for (const p of r.parts) lines.push(`  ${p.id}: ${p.type}${p.part ? ` ${p.part}` : ''}${p.style ? ` (${p.style})` : ''}${p.value ? ` ${p.value}` : ''}${p.color ? ` ${p.color}` : ''}`);
+    // A spec too large for the board: its numbers say it, not a line per part.
+    for (const p of r.size ? [] : r.parts) lines.push(`  ${p.id}: ${p.type}${p.part ? ` ${p.part}` : ''}${p.style ? ` (${p.style})` : ''}${p.value ? ` ${p.value}` : ''}${p.color ? ` ${p.color}` : ''}`);
     if (!r.invalid) for (const [i, n] of (r.nets ?? []).entries()) lines.push(`  ${t(lang, 'layout.net', { net: i + 1 })} ${(Array.isArray(n) ? n : n.pins).join(', ')}`);
     for (const p of r.problems) lines.push(`  ${p.severity === 'error' ? '✖' : '·'} ${formatIssue(p, lang)}`);
     lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, `layout.status.${r.status}`)}`);

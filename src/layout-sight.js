@@ -14,7 +14,7 @@
 
 import { createCamera } from './core/camera.js';
 
-export const SEEN_SHARE = 0.75; // the review blocks under 70 % in every view; jumpers come later and cover a little more
+const SEEN_SHARE = 0.75; // the review blocks under 70 % in every view; jumpers come later and cover a little more
 const SCALE = 2; // px per mm (the drawings use 5)
 const VIEWS = ['front', 'back'];
 const cameras = Object.fromEntries(VIEWS.map((v) => [v, createCamera({ view: v, scale: SCALE })]));

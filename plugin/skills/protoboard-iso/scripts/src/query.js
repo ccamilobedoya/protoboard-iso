@@ -345,7 +345,8 @@ function tally(reasons) {
 // room (default true): leave out placements that take the last usable hole of a strip still
 // waiting for a connection, or of a group named in `reserve` ({ "U1.OUT": 2 }: two more
 // connections will go there). When nothing is left, hint.reasons says why, most frequent first.
-export function suggest(circuit, part, { connect, between, near, limit = 5, candidates = 12, maxCandidates = 48, views, profile, window = 20, reserve, room = true, dependents, via = true } = {}) {
+// deadline: a time (ms since the epoch) after which no more candidates are measured (layout's budget).
+export function suggest(circuit, part, { connect, between, near, limit = 5, candidates = 12, maxCandidates = 48, views, profile, window = 20, reserve, room = true, dependents, via = true, deadline } = {}) {
   const policy = profile ? PROFILES[profile] : null;
   if (profile && !policy) return { error: { severity: 'error', code: 'UNKNOWN_PROFILE', params: { profile, options: Object.keys(PROFILES).join(', ') } } };
   views ??= policy?.hiddenEverywhere ? ['front', 'back'] : ['front'];
@@ -435,9 +436,9 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
   let considered = 0;
   let looked = 0;
   let fallback = null;
-  while (placements.length < limit && considered < pool.length && !(dependents?.length && looked >= LOOKAHEAD)) {
+  while (placements.length < limit && considered < pool.length && !(dependents?.length && looked >= LOOKAHEAD) && !(deadline && Date.now() > deadline)) {
     const batch = [];
-    while (considered < pool.length && (considered < candidates || batch.length < limit - placements.length)) {
+    while (considered < pool.length && (considered < candidates || batch.length < limit - placements.length) && !(deadline && Date.now() > deadline)) {
       const m = measure(pool[considered++]);
       if (m) batch.push(m);
     }
