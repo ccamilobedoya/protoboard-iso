@@ -24,6 +24,7 @@ import { recipeSummary, recipeEntry, RECIPE_GROUPS, valueLimits } from '../recip
 import { describePart } from '../parts/describe.js';
 import { pinRoles } from '../pinout.js';
 import { partRatings } from '../sim/ratings.js';
+import { deviceFor } from '../sim/devices/index.js';
 import { formatValue } from '../core/units.js';
 
 export { COMMON_FIELDS, TYPE_FIELDS } from '../parts/fields.js';
@@ -55,9 +56,15 @@ function exampleOf(type, number) {
   return number ? exampleOf(type) : null;
 }
 
+// The schema's words point to the kit's sources and docs ("see src/parts/db.js", "(docs/en/…)"),
+// which a user of the plugin does not have: the catalog says the thing without them.
+export const withoutPaths = (text) =>
+  String(text)
+    .replace(/\s*\((?:see )?(?:src|docs)\/[^)]*\)/g, '')
+    .replace(/\s*(?:see )?(?:src|docs)\/\S+/g, '');
 const fieldsOf = (type) => {
   const props = buildSchemas()['circuit.schema.json'].$defs.part.properties;
-  return Object.fromEntries((TYPE_FIELDS[type] ?? []).filter((f) => props[f]).map((f) => [f, props[f].description ?? (props[f].enum ? props[f].enum.join(' | ') : '')]));
+  return Object.fromEntries((TYPE_FIELDS[type] ?? []).filter((f) => props[f]).map((f) => [f, withoutPaths(props[f].description ?? (props[f].enum ? props[f].enum.join(' | ') : ''))]));
 };
 
 // A part as the type resolves it, not placed: what describePart, pinRoles and partRatings read.
@@ -100,6 +107,18 @@ function facts(raw, lang) {
 
 const pinsOfModule = (m) => m.pins ?? m.headers.flatMap((h) => h.pins.map(([n]) => n));
 
+// Whether the simulator has a model for a part (`raw`: a type, a part number or a module): false
+// for one it only draws (a 74HC595, an LM386: its pins are left open in the simulation, and a circuit
+// with it ends WARNINGS), so an assistant knows before building. Null when it cannot be resolved
+// without more fields.
+export function simulates(raw) {
+  const part = unplaced({ id: 'X1', ...raw });
+  return part ? Boolean(deviceFor(part)) : null;
+}
+
+// Part numbers of a type the simulator only draws.
+const drawnOnly = (type, numbers) => numbers.filter((n) => simulates({ type, part: n }) === false);
+
 // Everything, in short: what an agent reads before building a circuit.
 export function compactCatalog(lang = 'en') {
   const numbers = {};
@@ -107,9 +126,12 @@ export function compactCatalog(lang = 'en') {
   numbers.ldr = Object.keys(LDR_PARTS); // photoresistors are not in the part-number table
   return {
     types: Object.fromEntries(
-      Object.entries(PART_TYPES).map(([k, v]) => [k, { name: t(lang, `type.${k}`), family: v.family, pins: v.pins ?? null, ...(numbers[k] && { parts: numbers[k] }) }]),
+      Object.entries(PART_TYPES).map(([k, v]) => {
+        const drawn = drawnOnly(k, numbers[k] ?? []);
+        return [k, { name: t(lang, `type.${k}`), family: v.family, pins: v.pins ?? null, ...(numbers[k] && { parts: numbers[k] }), ...(simulates({ type: k }) === false && { simulated: false }), ...(drawn.length && { notSimulated: drawn }) }];
+      }),
     ),
-    modules: Object.fromEntries(Object.entries(MODULES).map(([k, m]) => [k, { name: m.label, mount: m.mount }])),
+    modules: Object.fromEntries(Object.entries(MODULES).map(([k, m]) => [k, { name: m.label, mount: m.mount, ...(simulates({ type: 'module', part: k }) === false && { simulated: false }) }])),
     batteries: Object.keys(BATTERY_FORMATS),
     boards: Object.keys(BOARDS),
     views: Object.keys(VIEWS),
@@ -139,6 +161,8 @@ function catalogEntryExact(name, lang = 'en') {
       ...(key === 'module' && { modules: Object.fromEntries(Object.entries(MODULES).map(([k, m]) => [k, { name: m.label, mount: m.mount, pins: pinsOfModule(m) }])) }),
       ...(key === 'battery' && { formats: Object.fromEntries(Object.entries(BATTERY_FORMATS).map(([k, f]) => [k, { default: f.default, chemistries: Object.keys(f.chemistries) }])) }),
       ...(key === 'ldr' && { parts: Object.keys(LDR_PARTS) }),
+      ...(simulates({ type: key }) === false && { simulated: false }),
+      ...((drawn) => drawn.length && { notSimulated: drawn })(drawnOnly(key, numbers.map(([n]) => n))),
       ...facts({ id: 'X1', type: key }, lang),
       example,
     };
@@ -147,13 +171,13 @@ function catalogEntryExact(name, lang = 'en') {
   if (moduleKey) {
     const m = MODULES[moduleKey];
     const example = exampleOf('module', moduleKey);
-    return { kind: 'module', type: 'module', part: moduleKey, name: m.label, mount: m.mount, pins: pinsOfModule(m), fields: fieldsOf('module'), ...facts({ id: 'X1', type: 'module', part: moduleKey }, lang), example };
+    return { kind: 'module', type: 'module', part: moduleKey, name: m.label, mount: m.mount, pins: pinsOfModule(m), fields: fieldsOf('module'), ...(simulates({ type: 'module', part: moduleKey }) === false && { simulated: false }), ...facts({ id: 'X1', type: 'module', part: moduleKey }, lang), example };
   }
   const found = lookupPartNumber(key);
   if (found) {
     const { number, entry } = found;
     const example = exampleOf(entry.type, number);
-    return { kind: 'part', type: entry.type, part: number, package: entry.package, pins: entry.pins, fields: fieldsOf(entry.type), ...facts({ id: 'X1', type: entry.type, part: number }, lang), example };
+    return { kind: 'part', type: entry.type, part: number, package: entry.package, pins: entry.pins, fields: fieldsOf(entry.type), ...(simulates({ type: entry.type, part: number }) === false && { simulated: false }), ...facts({ id: 'X1', type: entry.type, part: number }, lang), example };
   }
   const ldr = Object.keys(LDR_PARTS).find((k) => k.toUpperCase() === key.toUpperCase());
   if (ldr) return { kind: 'part', type: 'ldr', part: ldr, pins: PART_TYPES.ldr.pins, fields: fieldsOf('ldr'), ...facts({ id: 'X1', type: 'ldr', part: ldr }, lang), example: exampleOf('ldr') };
@@ -192,6 +216,18 @@ export function fullCatalog(lang = 'en') {
     annotations: ANNOTATION_LAYERS,
     languages: Object.keys(LANGUAGES),
   };
+}
+
+// The part types one per line, as `catalog` without a name prints them (the CLI): its pins and
+// part numbers, each type or part number the simulator only draws marked so.
+export function partTypeLines(lang = 'en') {
+  const c = compactCatalog(lang);
+  return Object.entries(c.types).map(([type, v]) => {
+    const pins = v.pins ? v.pins.join(', ') : '—';
+    const parts = Object.entries(PART_NUMBERS).filter(([, e]) => e.type === type).map(([n]) => n);
+    const drawn = v.simulated === false ? ` ${t(lang, 'catalog.typeNotSimulated')}` : v.notSimulated ? `  ${t(lang, 'catalog.notSimulated', { parts: v.notSimulated.join(', ') })}` : '';
+    return `${type.padEnd(10)} ${v.name.padEnd(20)} pins: ${pins}${parts.length ? `  parts: ${parts.join(', ')}` : ''}${drawn}`;
+  });
 }
 
 // One recipe in a line: its name, title and (unless `values` is false, as in the compact catalog,
@@ -240,10 +276,11 @@ export function formatCompactCatalog(c, lang = 'en') {
     lines.push(family);
     for (const [k, v] of types) {
       const pins = v.pins ? v.pins.join(' ') : t(lang, 'catalog.pinsPerPart');
-      lines.push(`  ${k}: ${pins}${v.parts ? ` · ${shortParts(v.parts, lang)}` : ''}`);
+      const drawn = v.simulated === false ? ` ${t(lang, 'catalog.typeNotSimulated')}` : v.notSimulated ? ` · ${t(lang, 'catalog.notSimulated', { parts: v.notSimulated.join(', ') })}` : '';
+      lines.push(`  ${k}: ${pins}${v.parts ? ` · ${shortParts(v.parts, lang)}` : ''}${drawn}`);
     }
   }
-  lines.push(`${t(lang, 'catalog.modules')} ${Object.entries(c.modules).map(([k, m]) => `${k} (${m.mount})`).join(', ')}`);
+  lines.push(`${t(lang, 'catalog.modules')} ${Object.entries(c.modules).map(([k, m]) => `${k} (${m.mount})${m.simulated === false ? ` ${t(lang, 'catalog.typeNotSimulated')}` : ''}`).join(', ')}`);
   lines.push(`${t(lang, 'catalog.batteries')} ${c.batteries.join(', ')}`);
   lines.push(`${t(lang, 'catalog.boards')} ${c.boards.join(', ')} · ${t(lang, 'catalog.views')} ${c.views.join(', ')} · ${t(lang, 'catalog.operations')} ${c.operations.join(', ')}`);
   if (c.recipes) {
@@ -286,6 +323,8 @@ export function formatCatalogEntry(e, lang = 'en') {
   const head = e.kind === 'type' ? `${e.type} (${e.name})` : `${e.part} → ${e.type}${e.package ? ` · ${e.package}` : ''}${e.mount ? ` · ${e.mount}` : ''}`;
   const lines = [head];
   if (e.about) lines.push(`  ${t(lang, 'catalog.about')} ${e.about}`);
+  if (e.simulated === false) lines.push(`  ${t(lang, 'catalog.simulation.none')}`);
+  else if (e.notSimulated) lines.push(`  ${t(lang, 'catalog.simulation.some', { parts: e.notSimulated.join(', ') })}`);
   if (e.pins) lines.push(`  ${t(lang, 'catalog.pins')} ${e.pins.join(' ')}`);
   else lines.push(`  ${t(lang, 'catalog.pins')} ${t(lang, 'catalog.pinsFromPart')}`);
   if (e.pinRoles) lines.push(`  ${t(lang, 'catalog.pinRoles')} ${Object.values(e.pinRoles).join('; ')}`);
