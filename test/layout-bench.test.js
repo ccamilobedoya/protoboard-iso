@@ -47,4 +47,8 @@ test('layout bench: a run is compared with the baseline, with sign, totals, new 
   assert.match(out, /- gone: missing/);
   assert.match(out, /totals: jumpers 6 → 7/);
   assert.equal(compareRuns(before, before).length, 1, 'no deltas: only the totals line');
+  // Time is compared too (before and after a change to the search's cost).
+  const timed = compareRuns({ a: m({ ms: 900 }) }, { a: m({ ms: 3000 }) }).join('\n');
+  assert.match(timed, /a: ms 3000 → 900 \(-2100\)/);
+  assert.match(timed, /ms 3000 → 900$/);
 });

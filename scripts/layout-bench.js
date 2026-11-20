@@ -1,13 +1,15 @@
 // The layout algorithm against a fixed set of specs, to measure a change before and after it
 // (docs/en/layout.md, "Changing the algorithm").
-//   npm run layout-bench [-- spec.json …] [--save [file]] [--compare [file]]
+//   npm run layout-bench [-- spec.json …] [--save [file]] [--compare [file]] [--budget seconds]
 //
 // One line per spec: verdict, nets check, the metrics of scripts/layout-metrics.js, and every
 // blocking item or failure. Without arguments it runs examples/layout/*.json and every recipe
 // with its default values (src/recipes/): a recipe must come out ready in one call. A spec may
 // carry "bench": { "expect": "changes", "why": "…" } for a case the algorithm cannot solve yet:
 // ending in that status is not a failure. --save writes the metrics to a baseline (default
-// .claude/state/layout-bench.json, not in git); --compare prints what changed against it.
+// .claude/state/layout-bench.json, not in git); --compare prints what changed against it, time
+// included (a machine shared with other work makes it noisy: compare at the same load). --budget
+// gives each layout that budget (60 s by default, src/layout.js).
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -26,7 +28,7 @@ export function benchSpec(raw) {
 }
 
 // What differs between a run and the baseline, as "name: metric before → now (±delta)".
-const FIELDS = [['jumpers', (m) => m.jumpers], ['wireLength', (m) => m.wireLength], ['columns.span', (m) => m.columns.span], ['holes.T', (m) => m.holes.T], ['holes.B', (m) => m.holes.B], ['holes.rail', (m) => m.holes.rail], ['channelCrossings', (m) => m.channelCrossings], ['tries', (m) => m.tries], ['status', (m) => m.status]];
+const FIELDS = [['jumpers', (m) => m.jumpers], ['wireLength', (m) => m.wireLength], ['columns.span', (m) => m.columns.span], ['holes.T', (m) => m.holes.T], ['holes.B', (m) => m.holes.B], ['holes.rail', (m) => m.holes.rail], ['channelCrossings', (m) => m.channelCrossings], ['tries', (m) => m.tries], ['ms', (m) => m.ms], ['status', (m) => m.status]];
 const sign = (d) => `${d > 0 ? '+' : ''}${Math.round(d * 10) / 10}`;
 export function compareRuns(now, before) {
   const lines = [];
@@ -43,9 +45,9 @@ export function compareRuns(now, before) {
     if (changes.length) lines.push(`  ${name}: ${changes.join(' · ')}`);
   }
   for (const name of Object.keys(before)) if (!now[name]) lines.push(`  - ${name}: missing from this run`);
-  const sum = (set, get) => Math.round(Object.values(set).reduce((s, m) => s + get(m), 0) * 10) / 10;
+  const sum = (set, get) => Math.round(Object.values(set).reduce((s, m) => s + (get(m) ?? 0), 0) * 10) / 10;
   const total = (label, get) => `${label} ${sum(before, get)} → ${sum(now, get)}`;
-  lines.push(`totals: ${total('jumpers', (m) => m.jumpers)} · ${total('wire mm', (m) => m.wireLength)} · ${total('crossings', (m) => m.channelCrossings)} · ${total('DONE', (m) => (m.status === 'done' ? 1 : 0))}`);
+  lines.push(`totals: ${total('jumpers', (m) => m.jumpers)} · ${total('wire mm', (m) => m.wireLength)} · ${total('crossings', (m) => m.channelCrossings)} · ${total('DONE', (m) => (m.status === 'done' ? 1 : 0))} · ${total('ms', (m) => m.ms)}`);
   return lines;
 }
 
@@ -54,7 +56,8 @@ function main() {
   const flags = {};
   const positional = [];
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--save' || argv[i] === '--compare') {
+    if (argv[i] === '--budget') flags.budget = Number(argv[++i]);
+    else if (argv[i] === '--save' || argv[i] === '--compare') {
       const key = argv[i].slice(2);
       const next = argv[i + 1];
       flags[key] = next && !next.startsWith('--') ? next : DEFAULT_BASELINE; // a file right after the flag; spec files go before it
@@ -71,7 +74,7 @@ function main() {
   const measured = {};
   for (const { name, raw } of cases) {
     const { spec, expect, why } = benchSpec(raw());
-    const r = autoLayout(spec);
+    const r = autoLayout(spec, { budget: flags.budget });
     if (r.invalid) {
       failed++;
       console.log(`${name}: INVALID SPEC`);
