@@ -31,10 +31,7 @@
 import { suggest } from './query.js';
 import { applyOps } from './ops.js';
 import { buildCircuit } from './circuit/build.js';
-import { createCamera } from './core/camera.js';
-import { buildScene } from './render/scene.js';
-import { createCoverage } from './render/coverage.js';
-import { checkOccupancy, checkConnections, checkCollisions, checkCrossings } from './circuit/checks.js';
+import { checkOccupancy, checkLeads, checkConnections, checkCollisions, checkCrossings } from './circuit/checks.js';
 import { problemKey } from './diff.js';
 import { review, formatHazards, simulationOf, verdictOf } from './review.js';
 import { hazardFix, specWithFix } from './fix.js';
@@ -51,6 +48,7 @@ import { resolvePart, pinsOf } from './parts/resolve.js';
 import { findPin } from './parts/pin-names.js';
 import { checkNets, internalLinks } from './nets.js';
 import { assignSides } from './layout-sides.js';
+import { hiddenBy, reachOf } from './layout-sight.js';
 import { BOARDS, railName, boardSides, channelPairs, columnsUsed, createBoard } from './board/board.js';
 
 export { checkNets };
@@ -115,6 +113,7 @@ const blocking = (issues) => issues.filter((i) => i.severity !== 'info' || i.cod
 // jumper) placed last among the ones a blocking item names: the whole layout takes well under a
 // second, so this is simpler and more predictable than patching in place. Keeps the best try.
 const TRIES = 8;
+const MEMO_STATES = 1500; // states the memo of one layout keeps (each holds the parts built so far: about 0.3 MB at 40 parts)
 const REPAIRS = 4; // jumpers the repair may route again with suggest (each one measures drawings)
 
 // Everything a list of parts and nets can get wrong, found in one pass before placing anything:
@@ -229,13 +228,15 @@ const unsolvedNote = (g) => ({ severity: 'warning', code: 'RECIPE_GOAL_UNSOLVED'
 function inAnyOrder(spec, options) {
   const listed = { ...placeCircuit(spec, options), order: (spec.parts ?? []).map((p) => p?.id) };
   if (listed.checked || listed.status !== 'changes' || listed.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED')) return listed;
-  const seen = new Set([`${listed.order.join(' ')}|false`]);
+  // An order the nets give may be the very order the layers already placed: the same tries again.
+  const ids = new Set(listed.order);
+  const seen = new Set([listed.sequence.filter((id) => ids.has(id)).join(' ')]);
   let best = listed;
   let tries = listed.tries;
   let ms = listed.ms;
   for (const { parts, keepOrder } of signalOrders(spec)) {
     const order = parts.map((p) => p.id);
-    const key = `${order.join(' ')}|${keepOrder}`;
+    const key = order.join(' ');
     if (seen.has(key)) continue;
     seen.add(key);
     const r = placeCircuit({ ...spec, parts }, { ...options, keepOrder });
@@ -606,52 +607,57 @@ function electricalNets(nets) {
 // the caller keeps its baseline). Null when it cannot answer exactly, and the caller builds the
 // whole circuit: an operation other than one `add`, a part lying beside the board (its drawing
 // follows the board's size), or a board that grows with this part.
-const boardColumns = new Map(); // "board columns" → the columns that board really has once grown
-function columnsOf(board, columns) {
+const boards = new Map(); // "board columns" → that board grown (never changed by anyone: shared)
+const boardOf = (board, columns) => {
   const key = `${board} ${columns}`;
-  if (!boardColumns.has(key)) boardColumns.set(key, createBoard(board, { columns }).spec.columns);
-  return boardColumns.get(key);
-}
-const reachBoxes = new WeakMap(); // built part → the box of all it draws (body, leads, wires)
-function reachOf(part) {
-  if (!reachBoxes.has(part)) {
-    const box = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity };
-    const grow = (q) => {
-      box.x0 = Math.min(box.x0, q.x);
-      box.x1 = Math.max(box.x1, q.x);
-      box.y0 = Math.min(box.y0, q.y);
-      box.y1 = Math.max(box.y1, q.y);
-      box.z0 = Math.min(box.z0, q.z);
-      box.z1 = Math.max(box.z1, q.z);
-    };
-    for (const list of [part.built?.primitives, part.built?.body]) for (const prim of list ?? []) for (const f of prim.faces) for (const q of f.pts) grow(q);
-    for (const path of Array.isArray(part.built?.paths) ? part.built.paths : []) for (const q of path.points ?? []) grow(q);
-    for (const h of part.holes ?? []) if (h) grow(h.pos);
-    reachBoxes.set(part, box);
+  if (!boards.has(key)) {
+    if (boards.size > 64) boards.clear();
+    boards.set(key, createBoard(board, { columns }));
   }
-  return reachBoxes.get(part);
+  return boards.get(key);
+};
+const columnsOf = (board, columns) => boardOf(board, columns).spec.columns;
+
+// One part on the board, built as buildCircuit builds it (pins as a list or by pin 1), with the
+// issues it has alone (its leads): without a new board for each candidate, which for a long
+// circuit was most of the memory a layout took. Null for anything else (buildCircuit then).
+function builtAlone(raw, board) {
+  const type = PART_TYPES[raw.type];
+  const def = type?.resolve(raw);
+  const pkg = def && !def.error ? PACKAGES[def.package] : null;
+  if (!pkg) return null;
+  const pinNames = def.pinNames ?? type.pins;
+  let ids = raw.pins;
+  if (raw.pin1 !== undefined && raw.pins === undefined && pkg.expandPin1) {
+    ids = pkg.expandPin1(board, raw.pin1, def.params);
+    if (!ids) return null;
+  }
+  if (!Array.isArray(ids) || ids.length !== pinNames.length) return null;
+  const holes = ids.map((id) => board.find(id));
+  if (holes.some((h) => !h)) return null;
+  const part = { id: raw.id, type: raw.type, raw, def, pkg, pinNames, holes, built: pkg.build({ pins: holes.map((h) => h.pos), params: def.params, board }) };
+  return { board, parts: [part], issues: checkLeads(part, board.pitch) };
 }
 function addedOnly(circuit, built, next, ops) {
   if (ops.length !== 1 || ops[0].op !== 'add' || ops[0].index !== undefined || BESIDE.has(ops[0].part?.type)) return null;
-  // The board as it is: a part beside it is drawn from its size, so a board that grows draws them again.
-  const board = next.board ?? 'bb830';
-  const wanted = columnsUsed(next) + 2 + HEADROOM;
-  if (columnsOf(board, wanted) !== built.board.spec.columns) return null;
   const raw = next.parts.at(-1);
   if (raw?.id !== ops[0].part.id) return null;
-  // The part alone, on a board of the same size: its own issues (holes, leads, fields).
-  const alone = buildCircuit({ ...next, supplies: undefined, parts: [raw] }, { headroom: wanted - 2 - columnsUsed({ parts: [raw] }) });
-  const me = alone.parts[0];
-  if (!me || alone.issues.some((i) => i.severity === 'error')) return { board: built.board, parts: built.parts, issues: alone.issues, partial: true };
+  const board = next.board ?? 'bb830';
+  const wanted = columnsUsed(next) + 2 + HEADROOM;
+  // A board that grows with this part draws the parts beside it again (they follow its size): they
+  // are built again with the part, and checked again as it is.
+  const grows = columnsOf(board, wanted) !== built.board.spec.columns;
+  const raws = [...(grows ? next.parts.filter((p) => BESIDE.has(p.type)) : []), raw];
+  const alone = (!grows && builtAlone(raw, boardOf(board, wanted))) || buildCircuit({ ...next, supplies: undefined, parts: raws }, { headroom: wanted - 2 - columnsUsed({ parts: raws }) });
+  if (alone.parts.length !== raws.length || alone.issues.some((i) => i.severity === 'error')) return { board: built.board, parts: built.parts, issues: alone.issues, partial: true };
+  const fresh = new Map(alone.parts.map((p) => [p.id, p]));
+  const all = [...built.parts.map((p) => fresh.get(p.id) ?? p), fresh.get(raw.id)];
+  const changed = alone.parts;
   const clearance = Number(next.clearance) || 0;
-  const a = reachOf(me);
   const m = clearance + 1;
-  const nodes = new Set(me.holes.map((h) => h.node));
-  const near = built.parts.filter((p) => {
-    const b = reachOf(p);
-    return (a.x0 - m < b.x1 && b.x0 < a.x1 + m && a.y0 - m < b.y1 && b.y0 < a.y1 + m) || p.holes.some((h) => h && nodes.has(h.node));
-  });
-  const parts = [...near, me];
+  const nodes = new Set(changed.flatMap((p) => p.holes.map((h) => h.node)));
+  const meets = (a, b) => a.x0 - m < b.x1 && b.x0 < a.x1 + m && a.y0 - m < b.y1 && b.y0 < a.y1 + m;
+  const parts = all.filter((p) => changed.includes(p) || changed.some((c) => meets(reachOf(c), reachOf(p))) || p.holes.some((h) => h && nodes.has(h.node)));
   const netlist = { board: built.board.spec.id, nodes: {} };
   for (const part of parts) part.holes.forEach((hole, i) => (netlist.nodes[hole.node] ??= []).push({ part: part.id, pin: part.pinNames[i], hole: hole.id }));
   const issues = [
@@ -661,52 +667,19 @@ function addedOnly(circuit, built, next, ops) {
     ...checkCollisions(parts, { clearance }),
     ...checkCrossings(parts),
   ];
-  return { board: built.board, parts: [...built.parts, me], issues, partial: true };
+  // The issues of the parts drawn again are all in `issues`: their old ones go (`redrawn`).
+  return { board: grows ? alone.board : built.board, parts: all, issues, partial: true, redrawn: changed.filter((p) => p.id !== raw.id).map((p) => p.id) };
 }
 
-// Whether a part just placed hides a part near it (or is hidden by them) in both views, as the
-// review measures it (PART_HIDDEN in every view blocks): the part and the parts its drawing overlaps
-// on screen, painted alone at a small scale. Only a part that drops below SEEN_SHARE because of
-// this one counts (a part already hidden is not this one's doing). Measured on ten LEDs with their
-// resistors: without it every try hid a resistor behind an LED somewhere and the relayout loop
-// spent all its tries on them.
-const SEEN_SHARE = 0.75; // the review blocks under 70 % in every view; jumpers come later and cover a little more
-const SEEN_SCALE = 2; // px per mm for the estimate (the drawings use 5)
-const SEEN_VIEWS = ['front', 'back'];
-const cameras = Object.fromEntries(SEEN_VIEWS.map((v) => [v, createCamera({ view: v, scale: SEEN_SCALE })]));
-const screenBoxes = new WeakMap(); // built part → { view: box on screen }
-function screenOf(part, view) {
-  if (!screenBoxes.has(part)) {
-    const b = reachOf(part);
-    const corners = [b.x0, b.x1].flatMap((x) => [b.y0, b.y1].flatMap((y) => [b.z0, b.z1].map((z) => ({ x, y, z }))));
-    screenBoxes.set(part, Object.fromEntries(SEEN_VIEWS.map((v) => {
-      const pts = corners.map((q) => cameras[v].project(q));
-      return [v, { x0: Math.min(...pts.map((q) => q.x)), x1: Math.max(...pts.map((q) => q.x)), y0: Math.min(...pts.map((q) => q.y)), y1: Math.max(...pts.map((q) => q.y)) }];
-    })));
-  }
-  return screenBoxes.get(part)[view];
-}
-function shownShares(parts) {
-  const best = new Map();
-  for (const view of SEEN_VIEWS) {
-    const items = parts.flatMap((p) => p.built.primitives.map((prim) => Object.assign(prim, { part: p.id })));
-    const scene = buildScene({ camera: cameras[view], items, labels: [] });
-    const coverage = createCoverage(scene.frame);
-    for (const op of scene.layers.parts) if (op.kind === 'polygon') coverage.paint(op.pts, op.part);
-    for (const v of coverage.visibility()) if (v.area > 0) best.set(v.part, Math.max(best.get(v.part) ?? 0, v.visible));
-  }
-  return best;
-}
-function hidesAPart(parts, id) {
-  const me = parts.find((p) => p.id === id);
-  if (!me?.built?.primitives?.length) return false;
-  const meet = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
-  const near = parts.filter((p) => p !== me && p.built?.primitives?.length && SEEN_VIEWS.some((v) => meet(screenOf(p, v), screenOf(me, v))));
-  if (!near.length) return false;
-  const now = shownShares([...near, me]);
-  if ((now.get(id) ?? 1) < SEEN_SHARE) return true;
-  const was = shownShares(near);
-  return near.some((p) => (now.get(p.id) ?? 1) < SEEN_SHARE && (was.get(p.id) ?? 1) >= SEEN_SHARE);
+// One part added at the end, as applyOps does it, without copying the parts already there (applyOps
+// copies the whole circuit for every operation: for every candidate of every part, a copy kept in
+// the memo for each state, the square of the parts in memory). The parts of a state are shared with
+// the states after it and never changed; layoutOnce copies the circuit it returns. Null for any
+// other operation.
+function addOne(circuit, ops) {
+  const part = ops.length === 1 && ops[0].op === 'add' && ops[0].index === undefined ? ops[0].part : null;
+  if (!part || typeof part !== 'object' || !part.id || !part.type || circuit.parts.some((p) => p.id === part.id)) return null;
+  return { circuit: { ...circuit, parts: [...circuit.parts, structuredClone(part)] }, errors: [] };
 }
 
 // The box a body covers seen from above.
@@ -763,25 +736,45 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
     return null;
   };
   // Apply the ops if they add no blocking problem; true when applied.
+  // The memo keeps at most MEMO_STATES states (each holds the parts built so far), the ones used
+  // last: what the next try repeats is the start of this one.
   const tryOps = (ops) => {
     const key = `${state}|${JSON.stringify(ops)}`;
-    if (!memo.has(key)) {
-      const r = check(ops);
-      memo.set(key, r && { ...r, state: memo.size + 1 });
+    let r = memo.get(key);
+    if (r === undefined) {
+      r = check(ops);
+      if (r) {
+        memo.states = (memo.states ?? 0) + 1;
+        memo.ids = (memo.ids ?? 0) + 1;
+        r = { ...r, state: memo.ids, parent: state };
+      }
+      memo.set(key, r);
+      if (memo.states > MEMO_STATES) {
+        for (const [k, v] of memo) {
+          if (memo.states <= MEMO_STATES * 0.8) break;
+          if (v) {
+            memo.delete(k);
+            memo.states--;
+          }
+        }
+      }
+    } else if (r) {
+      memo.delete(key);
+      memo.set(key, r);
     }
-    const r = memo.get(key);
     if (!r) return false;
     ({ circuit, built, baseline, state } = r);
     return true;
   };
   const check = (ops) => {
-    const r = applyOps(circuit, ops);
+    const r = addOne(circuit, ops) ?? applyOps(circuit, ops);
     if (r.errors.length) return null;
     const next = addedOnly(circuit, built, r.circuit, ops) ?? buildCircuit(r.circuit, { headroom: HEADROOM });
     if (next.issues.some((i) => i.severity === 'error')) return null;
     const after = blocking(next.issues);
     if (after.some((i) => !baseline.has(problemKey(i)) && !(i.code === 'FLOATING_PIN'))) return null;
-    return { circuit: r.circuit, built: { board: next.board, parts: next.parts }, baseline: next.partial ? new Set([...baseline, ...after.map(problemKey)]) : new Set(after.map(problemKey)) };
+    const kept = next.redrawn?.length ? [...baseline].filter((k) => !next.redrawn.some((id) => k.includes(`"${id}"`))) : baseline;
+    return { circuit: r.circuit, built: { board: next.board, parts: next.parts }, baseline: next.partial ? new Set([...kept, ...after.map(problemKey)]) : new Set(after.map(problemKey)) };
   };
   // What is on each strip (node → electrical net id, or "x…" for a pin in no net) and where each
   // electrical net already has holes, from the parts placed so far.
@@ -1205,7 +1198,8 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
           // A place where the part would hide another one (or be hidden) in both views is kept
           // only when no other place is free of it: the review would block it after the whole
           // try, and a try is what a large circuit cannot afford many of.
-          if (BESIDE.has(part.type) || !hidesAPart(built.parts, part.id)) {
+          const damage = BESIDE.has(part.type) ? 0 : hiddenBy(built.parts, built.parts.find((p) => p.id === part.id));
+          if (!damage) {
             done = pinMap;
             break;
           }
@@ -1348,7 +1342,8 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
         const id = nextWireId();
         const before = { circuit, built, baseline, state };
         if (tryOps([{ op: 'add', part: { id, type: 'wire', color: colourOf(net), pins: [x.id, y.id] } }])) {
-          if (!hidesAPart(built.parts, id)) {
+          const damage = hiddenBy(built.parts, built.parts.find((p) => p.id === id));
+          if (!damage) {
             joined = { id, a, b };
             break;
           }
@@ -1403,6 +1398,20 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
     else circuit = r.circuit;
   }
 
+  // Its own copy: the parts of the memo's states are shared (addOne).
+  circuit = structuredClone(circuit);
+  // The memo keeps this try's own steps only, which the next try repeats up to the place it
+  // forbids; the places measured and left (each holding a whole state's parts) go before the
+  // review draws the circuit.
+  const path = new Set();
+  const byState = new Map([...memo].filter(([, v]) => v).map(([, v]) => [v.state, v]));
+  for (let id = state; id && !path.has(id); id = byState.get(id)?.parent) path.add(id);
+  for (const [k, v] of memo) {
+    if (v && !path.has(v.state)) {
+      memo.delete(k);
+      memo.states--;
+    }
+  }
   // With the nets asked for, as every later review reads them from the circuit's spec: a verdict
   // that ignored them could say APPROVED over a short.
   const verdict = review({ ...circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'], fix: false });
