@@ -118,6 +118,18 @@ test('D6 (large output): simulate --transient --json | head -c 100: the kit exit
   assert.equal(spawnSync('cat', [err], { encoding: 'utf8' }).stdout, '', 'stderr is not empty');
 });
 
+test('D6 (failing command): check <circuit with errors> | head -1 keeps the kit exit code 1', () => {
+  const dir = tempDir('c3-d6c-');
+  const bad = join(dir, 'bad.json');
+  writeFileSync(bad, JSON.stringify({ parts: [{ id: 'R1', type: 'resistor', value: 'banana', pins: ['a1', 'a5'] }] }));
+  const alone = cli(['check', bad]);
+  assert.equal(alone.status, 1);
+  const r = spawnSync('bash', ['-c', `"$NODE" "$BIN" check "$T" 2>"$ERR" | head -1 >/dev/null; echo "\${PIPESTATUS[0]}"`], {
+    cwd: root, encoding: 'utf8', env: { ...process.env, NODE: process.execPath, BIN: bin, ERR: join(dir, 'err.txt'), T: bad },
+  });
+  assert.equal(r.stdout.trim(), '1', 'exit status of the kit through a closed pipe');
+});
+
 // ---- D7: apply tells the truth about what it saved
 
 const badOps = '[{"op":"set","part":"U2","angle":-72}]';

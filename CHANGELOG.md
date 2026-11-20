@@ -27,6 +27,11 @@ detail.
 - `apply` no longer saves input the kit cannot read (a value the part does not understand, an unknown part, pin, field or hole): the batch is refused, nothing is saved, also in `--dry-run`. A change that is readable but wrong (a short, a collision) is still saved, now with a line saying `with K new error(s)` and that it cannot be simulated until fixed; the diff counts everything `check` reports, and `--json` carries `newErrors`.
 - A language given with `layout --lang` stays with the circuit, so `apply`, `undo` and the rest answer in it.
 - `layout` on an existing circuit with no spec says on its first line that it laid the circuit out again.
+- A reader that closes the pipe (`check … | head -1`) no longer hides the command's exit code; any other write failure (a full disk) is one line and exit 3.
+- A circuit over the size cap, or whose fields have the wrong shape (`"parts":"x"`), is an input error (exit 1) in the person's language, checked once where the circuit is loaded.
+- `apply` refuses a field the part does not take (`UNKNOWN_FIELD`, a warning) like the other unreadable input; a part placed oddly (`DIP_SHAPE`…) stays an outcome.
+- A number or language option that is not valid (`--expect-revision abc`, `--lang fr`) is refused by the argument parser with its name; JSON given on the command line (`--values`) is read like a file (exit 1); `layout --lang` replaces the language stored in the circuit.
+- A missing field in an operation is named (`needs \`part\``), never "undefined".
 - Trust: a circuit fed backwards is a hazard, not a silent APPROVED: regulators, op-amps, the 555 and development boards with the supply pin below the ground pin (`SIM_REVERSE_VOLTAGE`, the line names both pins), a bench supply with a negative `voltage` simulates as the same supply reversed, the hazard check also visits the bottom and top of each environment field a sensor follows, a relay driven but not pulled in says so (`SIM_RELAY_UNDERDRIVEN`), and a push button with different nets on two joined pins says so (`BUTTON_PINS_JOINED`).
 - A computed fix leaves an LED lit and a motor above the bottom of its voltage range, or the kit says it has none; a lone overloaded resistor gets none. Damage lines end by saying what happens to the part; a brightness far over the rated one is said in words, not as thousands of per cent.
 

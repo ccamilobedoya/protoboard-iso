@@ -872,6 +872,12 @@ export default {
   "change.refused": "Refused: the change has input the kit does not understand (fix what ✖ says; the circuit is as it was):",
   "change.refusedNothing": "Nothing was saved.",
   "change.refusedDry": "Dry run: the real run would be refused. Nothing was saved.",
+  "check.INPUT_BAD_FIELD": "{what}: in {file}, \"{field}\" holds {got}, but it must be {shape}.",
+  "input.shape.list": "a list",
+  "input.shape.objectList": "a list of objects",
+  "cli.writeFailed": "Could not write the output ({reason}).",
+  "cli.badNumber": "The option {option} takes a number, not \"{value}\".",
+  "cli.badLang": "The language \"{value}\" is not one the kit knows (choose from {options}).",
   'cli.seeHelp': 'See the options with --help.',
   'cli.nodes': 'Connected groups in use:',
 

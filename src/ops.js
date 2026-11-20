@@ -41,11 +41,17 @@ export function applyOps(circuit, ops) {
     const name = op?.op;
     const fail = (code, params = {}) => errors.push(error(code, { index, op: String(name), ...params }));
     const partAt = () => {
+      if (op.part === undefined || op.part === null || op.part === '') {
+        fail('OP_BAD', { need: '`part` (the id of a part)' });
+        return -1;
+      }
       const at = indexOf(op.part);
       if (at < 0) fail('OP_UNKNOWN_PART', { part: String(op.part) });
       return at;
     };
 
+    if (!op || typeof op !== 'object' || Array.isArray(op)) return fail('OP_BAD', { op: '—', need: 'an object with `op`' });
+    if (name === undefined) return fail('OP_BAD', { op: '—', need: `\`op\` (one of ${OP_NAMES.join(', ')})` });
     switch (name) {
       case 'add': {
         const part = op.part;

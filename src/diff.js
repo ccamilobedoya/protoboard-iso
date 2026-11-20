@@ -39,15 +39,18 @@ export function evaluate(circuit, { views = ['front'], fit = 'board', lang = 'en
 //    getting it wrong). Every error code not listed here is an outcome.
 export const INPUT_MISTAKE_CODES = new Set([
   'INVALID_CIRCUIT', 'UNKNOWN_BOARD', 'DUPLICATE_ID', 'MISSING_ID', 'UNKNOWN_TYPE', 'UNKNOWN_PART_NUMBER', 'UNKNOWN_COLOR',
-  'UNKNOWN_KIND', 'UNKNOWN_PACKAGE', 'BAD_VALUE', 'PIN_COUNT', 'UNKNOWN_PIN', 'MISSING_PIN', 'UNKNOWN_HOLE', 'DIP_SHAPE',
-  'BUTTON_SHAPE', 'UNKNOWN_FIELD', 'UNKNOWN_PART_NAME', 'UNKNOWN_MODULE', 'MODULE_PINS', 'MODULE_SHAPE', 'BRIDGE_SHAPE',
+  'UNKNOWN_KIND', 'UNKNOWN_PACKAGE', 'BAD_VALUE', 'PIN_COUNT', 'UNKNOWN_PIN', 'MISSING_PIN', 'UNKNOWN_HOLE',
+  'UNKNOWN_FIELD', 'UNKNOWN_PART_NAME', 'UNKNOWN_MODULE', 'MODULE_PINS',
   'PAGE_CONTROL_TARGET', 'PAGE_CONTROL_UNKNOWN', 'PAGE_CONTROL_RANGE', 'ENV_UNKNOWN_FIELD', 'ENV_OUT_OF_RANGE', 'ENV_SHAPE',
-  'ENV_BAD_PROGRAM', 'ENV_BAD_RANGE', 'ENV_EMITTER_ALONE',
+  'ENV_BAD_PROGRAM', 'ENV_BAD_RANGE',
 ]);
-export const isInputMistake = (p) => p.severity === 'error' && INPUT_MISTAKE_CODES.has(p.code);
+// A listed code is refused whatever its severity (UNKNOWN_FIELD is a warning); the shape codes
+// (DIP_SHAPE, BUTTON_SHAPE, MODULE_SHAPE, BRIDGE_SHAPE: a part read fine but placed oddly) and
+// ENV_EMITTER_ALONE are outcomes, and a doubt (DOUBT_CODES) is never refused.
+export const isInputMistake = (p) => INPUT_MISTAKE_CODES.has(p.code) && !DOUBT_CODES.has(p.code);
 
 // How many errors (not notes or warnings) a change introduces.
-export const newErrorCount = (diff) => diff.introduced.filter((p) => p.severity === 'error').length;
+export const newErrorCount = (diff) => diff.introduced.filter((p) => p.severity === 'error' && !DOUBT_CODES.has(p.code)).length;
 
 export function diffEvaluations(before, after) {
   const beforeKeys = new Map(before.problems.map((p) => [problemKey(p), p]));

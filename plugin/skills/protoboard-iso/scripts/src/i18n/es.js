@@ -871,6 +871,12 @@ export default {
   "change.refused": "Rechazado: el cambio trae algo que el kit no entiende (corrige lo que dice ✖; el circuito sigue como estaba):",
   "change.refusedNothing": "No se guardó nada.",
   "change.refusedDry": "Prueba: la ejecución real sería rechazada. No se guardó nada.",
+  "check.INPUT_BAD_FIELD": "{what}: en {file}, \"{field}\" trae {got}, pero debe ser {shape}.",
+  "input.shape.list": "una lista",
+  "input.shape.objectList": "una lista de objetos",
+  "cli.writeFailed": "No se pudo escribir la salida ({reason}).",
+  "cli.badNumber": "La opción {option} recibe un número, no \"{value}\".",
+  "cli.badLang": "El idioma \"{value}\" no es uno que el kit conozca (elige entre {options}).",
   'cli.seeHelp': 'Las opciones se ven con --help.',
   'cli.nodes': 'Grupos conectados en uso:',
 

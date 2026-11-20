@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync, spawn } from 'node:child_process';
-import { writeFileSync, existsSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 
@@ -74,9 +74,83 @@ test('output is never cut: a long transient read through a pipe arrives whole', 
   assert.ok(JSON.parse(text));
 });
 
-test('a reader that closes the pipe early ends quietly', () => {
-  const r = spawnSync('sh', ['-c', `${JSON.stringify(process.execPath)} ${JSON.stringify(bin)} catalog | head -1; echo "kit=$\{PIPESTATUS:-0}"`], { encoding: 'utf8' });
-  assert.equal(r.stderr, '');
+const piped = (cmd, env = {}) => spawnSync('bash', ['-c', `"$NODE" "$BIN" ${cmd} 2>"$ERR" | head -1 >/dev/null; echo "\${PIPESTATUS[0]}"`], { encoding: 'utf8', env: { ...process.env, NODE: process.execPath, BIN: bin, ...env } });
+
+test('a reader that closes the pipe early ends quietly and the kit keeps its own exit code', () => {
+  const dir = tempDir('trust-epipe-');
+  const bad = join(dir, 'bad.json');
+  writeFileSync(bad, JSON.stringify({ parts: [{ id: 'R1', type: 'resistor', value: 'banana', pins: ['a1', 'a5'] }] }));
+  const ok = piped('catalog', { ERR: join(dir, 'e1.txt') });
+  assert.equal(ok.stdout.trim(), '0');
+  assert.equal(readFileSync(join(dir, 'e1.txt'), 'utf8'), '');
+  const failing = piped(`check "${bad}"`, { ERR: join(dir, 'e2.txt') });
+  assert.equal(failing.stdout.trim(), '1');
+  assert.equal(readFileSync(join(dir, 'e2.txt'), 'utf8'), '');
+});
+
+test('a write error is one line and exit 3, no stack', () => {
+  const r = spawnSync('bash', ['-c', `"$NODE" "$BIN" catalog > /dev/full`], { encoding: 'utf8', env: { ...process.env, NODE: process.execPath, BIN: bin } });
+  assert.equal(r.status, 3);
+  assert.match(r.stderr, /Could not write the output/);
+  noStack(r);
+});
+
+test('a circuit file over the size cap, or with the wrong shape, is an input error (exit 1), not a kit fault', () => {
+  const dir = tempDir('trust-shape-');
+  writeFileSync(join(dir, 'big.json'), JSON.stringify({ parts: [], pad: 'x'.repeat(1_100_000) }));
+  const big = cli(['check', join(dir, 'big.json')]);
+  assert.equal(big.status, 1);
+  assert.match(big.stderr, /more than the 1000000 the kit accepts/);
+  assert.doesNotMatch(big.stderr, /internal error/);
+  const folder = join(dir, 'f');
+  assert.equal(cli(['layout', folder, '--recipe', 'led-resistor']).status, 0);
+  writeFileSync(join(folder, 'circuit.json'), '{"parts":"x"}');
+  for (const args of [['layout', folder, '--recipe', 'led-resistor'], ['check', folder], ['simulate', folder], ['inspect', folder]]) {
+    const r = cli(args);
+    assert.equal(r.status, 1, args[0]);
+    assert.doesNotMatch(r.stdout + r.stderr, /internal error/);
+    assert.match(r.stdout + r.stderr, /"parts" holds text/);
+  }
+  assert.match(cli(['layout', folder, '--recipe', 'led-resistor']).stdout.trim().split('\n').at(-1), /^STATUS: FIX_SPEC/);
+});
+
+test('apply refuses a field the part does not take (a warning, still a mistake)', () => {
+  const dir = tempDir('trust-field-');
+  const c = join(dir, 'c');
+  assert.equal(cli(['layout', c, '--recipe', 'led-resistor']).status, 0);
+  const r = cli(['apply', c, '--ops', '[{"op":"add","part":{"id":"R9","type":"resistor","value":"1k","ZZZ-NOPE":1,"pins":["a1","a5"]}}]']);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /Nothing was saved/);
+});
+
+test('numbers, JSON and languages on the command line are checked', () => {
+  const dir = tempDir('trust-args-');
+  const c = join(dir, 'c');
+  assert.equal(cli(['layout', c, '--recipe', 'led-resistor', '--lang', 'es']).status, 0);
+  const rev = cli(['apply', c, '--lang', 'en', '--expect-revision', 'abc', '--ops', '[]']);
+  assert.equal(rev.status, 2);
+  assert.match(rev.stderr, /--expect-revision takes a number/);
+  assert.doesNotMatch(rev.stdout + rev.stderr, /NaN/);
+  const values = cli(['layout', join(dir, 'd'), '--recipe', 'led-resistor', '--values', 'x']);
+  assert.equal(values.status, 1);
+  assert.match(values.stdout.trim().split('\n').at(-1), /^STATUS: FIX_SPEC/);
+  const fr = cli(['layout', c, '--lang', 'fr']);
+  assert.equal(fr.status, 2);
+  assert.match(fr.stderr, /"fr"/);
+  assert.match(cli(['layout', c, '--lang', 'en']).stdout, /^Laid out the existing circuit again/);
+  assert.match(cli(['apply', c, '--ops', '[{"op":"set","part":"R1","value":"470"}]']).stdout, /^Saved/);
+});
+
+test('a missing field in an operation is named, never "undefined"', () => {
+  const dir = tempDir('trust-undef-');
+  const c = join(dir, 'c');
+  assert.equal(cli(['layout', c, '--recipe', 'led-resistor']).status, 0);
+  for (const [ops, want] of [['[{"op":"remove"}]', /needs `part`/], ['{}', /needs `op`/]]) {
+    const r = cli(['apply', c, '--lang', 'en', '--ops', ops]);
+    assert.equal(r.status, 1, ops);
+    assert.match(r.stdout, want);
+    assert.doesNotMatch(r.stdout, /undefined/);
+  }
 });
 
 test('apply refuses what the kit cannot read, in a dry run too, and saves nothing', () => {

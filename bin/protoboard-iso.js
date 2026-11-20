@@ -9,7 +9,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, resolve, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderCircuit, inspectCircuit, formatReport, checkCircuit, formatIssue, PART_TYPES, t } from '../src/index.js';
-import { pickLanguage } from '../src/i18n/index.js';
+import { pickLanguage, LANGUAGES } from '../src/i18n/index.js';
 import { formatChange } from '../src/diff.js';
 import { queryAt, queryNode, queryFree, suggest, suggestMany } from '../src/query.js';
 import { formatAt, formatNode, formatFree, formatSuggest, formatSuggestMany } from '../src/query-format.js';
@@ -26,17 +26,28 @@ import { catalogEntry, formatCatalogEntry, compactCatalog, recipeLine, partTypeL
 
 // Strict: an option nobody knows, or one whose value is missing, is an error (args.errors), so a
 // typo never runs a command with a default the person did not ask for.
-// An option whose value is JSON: a mistake is an error of the arguments, never a stack trace.
-function jsonOption(option, text) {
+// An option that takes a number: anything else is refused here, with the option's name, so a
+// command never runs on NaN. (JSON given on the command line is read later by the same reader as
+// files, parseJsonInput.)
+const badOptions = [];
+function numOption(option, text, { integer = false, min } = {}) {
   if (text === undefined) return undefined;
-  try {
-    return JSON.parse(text);
-  } catch (e) {
-    badJson.push(['cli.badJson', { option, reason: e.message }]);
+  const n = text.trim() === '' ? Number.NaN : Number(text);
+  if (!Number.isFinite(n) || (integer && !Number.isInteger(n)) || (min !== undefined && n < min)) {
+    badOptions.push(['cli.badNumber', { option, value: text }]);
     return undefined;
   }
+  return n;
 }
-const badJson = [];
+// An unknown language is refused, not silently turned into English.
+function langOption(option, text) {
+  if (text === undefined) return undefined;
+  if (!LANGUAGES[text]) {
+    badOptions.push(['cli.badLang', { value: text, options: Object.keys(LANGUAGES).join(', ') }]);
+    return undefined;
+  }
+  return text;
+}
 
 function parseArgs(argv) {
   const args = { _: [], errors: [] };
@@ -50,9 +61,9 @@ function parseArgs(argv) {
     if (a === '-o' || a === '--out') args.out = value();
     else if (a === '--view') args.view = value();
     else if (a === '--views') args.views = value()?.split(',');
-    else if (a === '--lang') args.lang = value();
-    else if (a === '--png-width') args.pngWidth = Number(value());
-    else if (a === '--scale') args.scale = Number(value());
+    else if (a === '--lang') args.lang = langOption(a, value());
+    else if (a === '--png-width') args.pngWidth = numOption(a, value(), { integer: true, min: 1 });
+    else if (a === '--scale') args.scale = numOption(a, value(), { min: 0 });
     else if (a === '--no-labels') args.labels = false;
     else if (a === '--labels') args.labels = value();
     else if (a === '--fit') args.fit = value();
@@ -64,14 +75,14 @@ function parseArgs(argv) {
     else if (a === '--dry-run') args.dryRun = true;
     else if (a === '--author') args.author = value();
     else if (a === '--note') args.note = value();
-    else if (a === '--expect-revision') args.expectRevision = Number(value());
+    else if (a === '--expect-revision') args.expectRevision = numOption(a, value(), { integer: true, min: 0 });
     else if (a === '--no-outputs') args.outputs = false;
     else if (a === '--part') args.part = value();
     else if (a === '--between') args.between = value()?.split(',');
     else if (a === '--connect') args.connect = value();
     else if (a === '--near') args.near = value();
-    else if (a === '--limit') args.limit = Number(value());
-    else if (a === '--window') args.window = Number(value());
+    else if (a === '--limit') args.limit = numOption(a, value(), { integer: true, min: 1 });
+    else if (a === '--window') args.window = numOption(a, value(), { integer: true, min: 0 });
     else if (a === '--empty') args.empty = true;
     else if (a === '--profile') args.profile = value();
     else if (a === '--transient') args.transient = value()?.split(',');
@@ -82,12 +93,12 @@ function parseArgs(argv) {
     else if (a === '--check') args.check = true;
     else if (a === '--fix') args.fix = true;
     else if (a === '--recipe') args.recipe = value();
-    else if (a === '--values') args.values = jsonOption(a, value());
+    else if (a === '--values') args.valuesText = value();
     else if (a === '-h' || a === '--help') args.help = true;
     else if (/^--?[A-Za-z]/.test(a)) args.errors.push(['cli.unknownOption', { option: a }]);
     else args._.push(a);
   }
-  args.errors.push(...badJson);
+  args.errors.push(...badOptions);
   return args;
 }
 
@@ -113,8 +124,24 @@ rasterSearchIn(MCP_DIR);
 // Exit codes are set with process.exitCode and the process ends when its output has drained, so a
 // pipe is never cut (process.exit would drop what is still buffered). `fail` stops the command.
 class Exit extends Error {}
-// A reader that closes its end (| head -1) is not an error.
-for (const stream of [process.stdout, process.stderr]) stream.on('error', (e) => (e.code === 'EPIPE' ? process.exit(0) : (() => { throw e; })()));
+// A reader that closes its end (| head -1) is not an error and does not change the command's own exit
+// code: writing just stops. Any other write failure (a full disk) is one line and exit 3.
+let currentLang = 'en';
+let writeFailed = false;
+for (const stream of [process.stdout, process.stderr]) {
+  stream.on('error', (e) => {
+    if (e.code === 'EPIPE' || writeFailed) return;
+    writeFailed = true;
+    try {
+      process.stderr.write(`${t(currentLang, 'cli.writeFailed', { reason: e.code ?? e.message })}\n${process.env.PROTOBOARD_DEBUG === '1' && e.stack ? `${e.stack}\n` : ''}`);
+    } catch {
+      // stderr is gone too
+    }
+  });
+}
+process.on('exit', () => {
+  if (writeFailed) process.exitCode = 3;
+});
 
 async function main() {
   let command;
@@ -123,6 +150,7 @@ async function main() {
     await run((c, l) => {
       command = c;
       lang = l;
+      currentLang = l;
     });
   } catch (e) {
     if (e instanceof Exit) return;
@@ -166,6 +194,8 @@ async function run(seen) {
     console.error(t(lang, 'cli.seeHelp'));
     fail(2);
   }
+  // JSON given on the command line is read like a file: one line and exit 1 when it is wrong.
+  if (args.valuesText !== undefined) args.values = parseJsonInput(args.valuesText, { what: 'option', file: '--values' });
 
   if (args.help || !command || (command !== 'parts' && command !== 'catalog' && !target)) {
     console.log(t(lang, 'cli.usage'));
@@ -218,8 +248,8 @@ async function run(seen) {
       fail(1);
     }
     const built = fixed ? fixed.spec : previous ? specFromCircuit(previous, given) : given;
-    // A language asked for with --lang stays with the circuit, so later answers keep it.
-    const spec = args.lang && !built.lang ? { ...built, lang: args.lang } : built;
+    // A language asked for with --lang replaces the stored one and stays with the circuit, so later answers keep it.
+    const spec = args.lang && built.lang !== args.lang ? { ...built, lang: args.lang } : built;
     if (!Array.isArray(spec.parts) || !spec.parts.length) {
       console.log(formatLayout(specProblems([{ severity: 'error', code: 'SPEC_EMPTY', params: {} }]), pickLanguage(args.lang, spec.lang, 'en'), { t, formatIssue }));
       fail(1);
