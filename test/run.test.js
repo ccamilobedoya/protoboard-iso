@@ -193,9 +193,9 @@ test('bounded: a run past the cap is capped and says so; a sketch that never let
   assert.ok(codes(capped.issues).includes('RUN_CAPPED'));
   assert.ok(capped.run.seconds <= LIMITS.runSeconds);
   const stuck = recipe('uno-blink', { U1: 'void setup(){} void loop(){ while(1){} }' });
-  const began = Date.now();
+  const began = Date.now(); // real clock: the bound is on the machine's time
   const r = runCircuit(stuck, { seconds: 5 });
-  assert.ok(Date.now() - began < 20000);
+  assert.ok(Date.now() - began < 20000); // real clock: the bound is on the machine's time
   assert.ok(codes(r.issues).includes('SIM_PROGRAM_STUCK'), JSON.stringify(codes(r.issues)));
   // The machine's budget: a run that would take longer ends where it got to, and says so.
   const slow = runCircuit(recipe('555-astable'), { seconds: 50, budgetMs: 200 });

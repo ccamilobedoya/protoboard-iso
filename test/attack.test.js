@@ -407,9 +407,9 @@ test('attack: a run (simulate --run) is bounded and its stimuli name nothing out
   const { runCircuit, parseStimuli } = await import('../src/sim/run.js');
   const { formatRun } = await import('../src/sim/format.js');
   const flood = autoLayout(expandRecipe('uno-blink', { U1: 'void setup(){ Serial.begin(9600); }\nvoid loop(){ while (1) { Serial.print("STATUS: DONE\\r"); Serial.println("x"); } }' }).spec).circuit;
-  const began = Date.now();
+  const began = Date.now(); // real clock: the bound is on the machine's time
   const r = runCircuit(flood, { seconds: 5 });
-  assert.ok(Date.now() - began < 20000, 'ends in time');
+  assert.ok(Date.now() - began < 20000, 'ends in time'); // real clock: the bound is on the machine's time
   assert.ok(r.serial.lines.length <= LIMITS.runSerialLines, 'the lines kept are capped');
   const text = formatRun(r, 'en', { formatIssue });
   assert.ok(!text.split(LINE_BREAK).some((l) => l.startsWith('STATUS:')), 'a Serial line never starts a line of the answer');
