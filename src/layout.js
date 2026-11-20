@@ -31,6 +31,9 @@
 import { suggest } from './query.js';
 import { applyOps } from './ops.js';
 import { buildCircuit } from './circuit/build.js';
+import { createCamera } from './core/camera.js';
+import { buildScene } from './render/scene.js';
+import { createCoverage } from './render/coverage.js';
 import { checkOccupancy, checkConnections, checkCollisions, checkCrossings } from './circuit/checks.js';
 import { problemKey } from './diff.js';
 import { review, formatHazards, simulationOf, verdictOf } from './review.js';
@@ -661,6 +664,51 @@ function addedOnly(circuit, built, next, ops) {
   return { board: built.board, parts: [...built.parts, me], issues, partial: true };
 }
 
+// Whether a part just placed hides a part near it (or is hidden by them) in both views, as the
+// review measures it (PART_HIDDEN in every view blocks): the part and the parts its drawing overlaps
+// on screen, painted alone at a small scale. Only a part that drops below SEEN_SHARE because of
+// this one counts (a part already hidden is not this one's doing). Measured on ten LEDs with their
+// resistors: without it every try hid a resistor behind an LED somewhere and the relayout loop
+// spent all its tries on them.
+const SEEN_SHARE = 0.75; // the review blocks under 70 % in every view; jumpers come later and cover a little more
+const SEEN_SCALE = 2; // px per mm for the estimate (the drawings use 5)
+const SEEN_VIEWS = ['front', 'back'];
+const cameras = Object.fromEntries(SEEN_VIEWS.map((v) => [v, createCamera({ view: v, scale: SEEN_SCALE })]));
+const screenBoxes = new WeakMap(); // built part → { view: box on screen }
+function screenOf(part, view) {
+  if (!screenBoxes.has(part)) {
+    const b = reachOf(part);
+    const corners = [b.x0, b.x1].flatMap((x) => [b.y0, b.y1].flatMap((y) => [b.z0, b.z1].map((z) => ({ x, y, z }))));
+    screenBoxes.set(part, Object.fromEntries(SEEN_VIEWS.map((v) => {
+      const pts = corners.map((q) => cameras[v].project(q));
+      return [v, { x0: Math.min(...pts.map((q) => q.x)), x1: Math.max(...pts.map((q) => q.x)), y0: Math.min(...pts.map((q) => q.y)), y1: Math.max(...pts.map((q) => q.y)) }];
+    })));
+  }
+  return screenBoxes.get(part)[view];
+}
+function shownShares(parts) {
+  const best = new Map();
+  for (const view of SEEN_VIEWS) {
+    const items = parts.flatMap((p) => p.built.primitives.map((prim) => Object.assign(prim, { part: p.id })));
+    const scene = buildScene({ camera: cameras[view], items, labels: [] });
+    const coverage = createCoverage(scene.frame);
+    for (const op of scene.layers.parts) if (op.kind === 'polygon') coverage.paint(op.pts, op.part);
+    for (const v of coverage.visibility()) if (v.area > 0) best.set(v.part, Math.max(best.get(v.part) ?? 0, v.visible));
+  }
+  return best;
+}
+function hidesAPart(parts, id) {
+  const me = parts.find((p) => p.id === id);
+  if (!me?.built?.primitives?.length) return false;
+  const meet = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+  const near = parts.filter((p) => p !== me && p.built?.primitives?.length && SEEN_VIEWS.some((v) => meet(screenOf(p, v), screenOf(me, v))));
+  if (!near.length) return false;
+  const now = shownShares([...near, me]);
+  if ((now.get(id) ?? 1) < SEEN_SHARE) return true;
+  const was = shownShares(near);
+  return near.some((p) => (now.get(p.id) ?? 1) < SEEN_SHARE && (was.get(p.id) ?? 1) >= SEEN_SHARE);
+}
+
 // The box a body covers seen from above.
 function footprintOf(part) {
   const box = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
@@ -1119,11 +1167,11 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
     if (was?.type === part.type && was.pin1) {
       // Chips and boards placed by pin 1: the same pin 1 (and row spacing) as before.
       const op = { op: 'add', part: { ...part, pin1: was.pin1, ...(was.rowSpacing !== undefined && part.rowSpacing === undefined && { rowSpacing: was.rowSpacing }) } };
-      const before = { circuit, built, baseline };
+      const before = { circuit, built, baseline, state };
       if (!forbid.has(forbidKey(op.part)) && tryOps([op])) {
         const holes = built.parts.find((p) => p.id === part.id).holes.map((h) => h?.id);
         if (valid(holes)) done = holes;
-        else ({ circuit, built, baseline } = before);
+        else ({ circuit, built, baseline, state } = before);
       }
     }
     for (const pin1 of done ? [] : pin1s) {
@@ -1146,18 +1194,29 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
         return alone || [...built.board.holes.values()].some((o) => o.node === h.node && !now.has(o.id) && !(o.pos.x > box.x0 + m && o.pos.x < box.x1 - m && o.pos.y > box.y0 + m && o.pos.y < box.y1 - m));
       });
     };
+    let fallback = null;
     for (const pins of done ? [] : ordered) {
       const pinMap = Array.isArray(pins) ? pins : pinNames.map((n) => pins[n]);
       const op = { op: 'add', part: { ...part, pins: kind === 'beside' ? Object.fromEntries(pinNames.map((n, i) => [n, pinMap[i]])) : pinMap } };
       if (forbid.has(forbidKey(op.part))) continue;
-      const before = { circuit, built, baseline };
+      const before = { circuit, built, baseline, state };
       if (tryOps([op])) {
         if (reachable(pinMap)) {
-          done = pinMap;
-          break;
+          // A place where the part would hide another one (or be hidden) in both views is kept
+          // only when no other place is free of it: the review would block it after the whole
+          // try, and a try is what a large circuit cannot afford many of.
+          if (BESIDE.has(part.type) || !hidesAPart(built.parts, part.id)) {
+            done = pinMap;
+            break;
+          }
+          fallback ??= { pinMap, at: { circuit, built, baseline, state } };
         }
-        ({ circuit, built, baseline } = before);
+        ({ circuit, built, baseline, state } = before);
       }
+    }
+    if (!done && fallback) {
+      ({ circuit, built, baseline, state } = fallback.at);
+      done = fallback.pinMap;
     }
     if (!done) {
       // No rule fits (a crowded spot, a part kind without a rule): suggest, near the cursor.
@@ -1279,22 +1338,35 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
         }
       }
       edges.sort((p, q) => p.cost - q.cost);
-      let joined = false;
+      let joined = null;
       let failed = 0;
+      let fallback = null; // the cheapest jumper that hides a part: used only when none is free of it
+      let hiding = 0;
       for (const { x, y, a, b } of edges) {
         const key = `${x.id} ${y.id}`;
         if (rejected.has(key) || forbid.has(forbidKey({ type: 'wire', pins: [x.id, y.id] })) || forbid.has(linkKey(x.node, y.node))) continue;
         const id = nextWireId();
+        const before = { circuit, built, baseline, state };
         if (tryOps([{ op: 'add', part: { id, type: 'wire', color: colourOf(net), pins: [x.id, y.id] } }])) {
-          jumpers.push({ id, net, a: a.node, b: b.node });
-          wires++;
-          joined = true;
-          break;
+          if (!hidesAPart(built.parts, id)) {
+            joined = { id, a, b };
+            break;
+          }
+          fallback ??= { id, a, b, at: { circuit, built, baseline, state } };
+          ({ circuit, built, baseline, state } = before);
+          if (++hiding >= JOIN_TRIES) break;
+          continue;
         }
         rejected.add(key);
         if (++failed >= JOIN_TRIES) break;
       }
+      if (!joined && fallback) {
+        ({ circuit, built, baseline, state } = fallback.at);
+        joined = fallback;
+      }
       if (!joined) break;
+      jumpers.push({ id: joined.id, net, a: joined.a.node, b: joined.b.node });
+      wires++;
     }
     // What is still apart: each piece named with the nearest group by column of the largest piece
     // (where the repair goes).
