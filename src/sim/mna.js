@@ -480,10 +480,16 @@ export function brake(w, torque, slip) {
 // would leave the linear range it stops just inside it (LIMIT volts from the edge, where the slope
 // is near 1 and the next step is nearly exact); if the next iteration still wants out on that
 // side, the output really saturates and it goes.
+// With positive feedback (a Schmitt trigger, a relaxation oscillator) the solution at the instant
+// the output switches lies on the other rail, and the linear range between is the unstable middle:
+// a stop at each edge in turn would send Newton round the same four iterations for ever (the
+// op-amp oscillator stopped at its first switch). So each solve stops at the edges at most
+// EDGE_STOPS times; after that the output saturates where the iteration takes it.
 // The output current x[branch] comes from vcc while it sources and goes to vee while it sinks,
 // split smoothly at a few microamperes so the supply pins carry what they would.
 const SOFT = 0.02;
 const LIMIT = 2 * SOFT;
+const EDGE_STOPS = 2;
 const softplus = (z) => (z > 40 ? z : z < -40 ? 0 : Math.log1p(Math.exp(z)));
 const logistic = (z) => 1 / (1 + Math.exp(-Math.max(-300, Math.min(300, z))));
 const SPLIT = 1e-6;
@@ -515,8 +521,10 @@ export function opampStage({ p, n, vcc, vee, o }, m) {
     needsRow: true,
     vd: 0,
     edge: null,
+    solve: null,
+    stops: 0,
     shape,
-    stamp(st, x) {
+    stamp(st, x, ctx) {
       const k = this.branch;
       const S = volt(x, vcc) - volt(x, vee);
       const { lo, hi } = range(S);
@@ -524,9 +532,19 @@ export function opampStage({ p, n, vcc, vee, o }, m) {
       const uOf = (vd) => m.gain * vd + S / 2;
       let vd = want;
       let edge = null;
-      if (uOf(want) > hi + LIMIT && uOf(this.vd) < hi + LIMIT && this.edge !== 'hi') edge = 'hi';
-      else if (uOf(want) < lo - LIMIT && uOf(this.vd) > lo - LIMIT && this.edge !== 'lo') edge = 'lo';
-      if (edge) vd = ((edge === 'hi' ? hi - LIMIT : lo + LIMIT) - S / 2) / m.gain;
+      // A new solve (Newton is called with a new ctx each time): its count of stops starts again.
+      if (ctx !== this.solve) {
+        this.solve = ctx;
+        this.stops = 0;
+      }
+      if (this.stops < EDGE_STOPS) {
+        if (uOf(want) > hi + LIMIT && uOf(this.vd) < hi + LIMIT && this.edge !== 'hi') edge = 'hi';
+        else if (uOf(want) < lo - LIMIT && uOf(this.vd) > lo - LIMIT && this.edge !== 'lo') edge = 'lo';
+      }
+      if (edge) {
+        vd = ((edge === 'hi' ? hi - LIMIT : lo + LIMIT) - S / 2) / m.gain;
+        this.stops++;
+      }
       this.edge = edge;
       const limited = edge !== null;
       this.vd = vd;
