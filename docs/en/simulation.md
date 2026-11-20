@@ -226,12 +226,43 @@ The kit has no computed fix for this.
   (`Applied the fix: R3 = 200 Ω in series with BZ1.`); nothing else applies it
   ([layout.md](layout.md#laying-out-again-an-existing-circuit-since-2026-10-20)).
 
+### What it could not tell (doubts)
+
+A hazard is a part the kit sees burning. A **doubt** is something the kit could not check at all,
+so it cannot say the circuit works: the review lists them in `doubts` (same shape as the hazards:
+`{ severity: 'warning', code, params, parts }`), any one of them makes the verdict APPROVED WITH
+WARNINGS and `layout` end `STATUS: WARNINGS`, and both print them as `⚠` lines under their own
+heading (`The kit could not check this …`), after the hazards (`src/sim/index.js`, `doubtsOf`).
+They never block. `DONE` then means what it says: the kit checked the circuit and found nothing to
+tell.
+
+- `SIM_PART_NOT_SIMULATED`: a part wired into the circuit with no simulation model (a 74HC595, an
+  LM386, a CD4017…; `catalog` marks them): it is drawn and its pins are left open, so what it does,
+  and what it drives, is unknown. A part wired to nothing is not a doubt.
+- Every issue about a board's program: the file not found (`SIM_PROGRAM_FILE`, which says the
+  folder the kit looked in: the circuit's, beside `circuit.json`), outside the folder, too large, a
+  syntax error with its line, a call the simulator does not know (`shiftOut()`), a library or a
+  class not in the kit, no `setup()`/`loop()` (`SIM_PROGRAM_IGNORED` stays a note). Also
+  `SIM_PROGRAM_STOPPED`, a program that stopped with an error at rest, and `SIM_PROGRAM_STUCK`, a
+  program that never lets time pass: `setup()` or one call of `loop()` that never returns and never
+  waits (`void loop() { while (1) {} }`). That one is found by running the program at rest for a
+  few rounds of its runner, each bounded by its budget of turns, never by waiting; a `loop()` that
+  returns without a `delay()` is a working program.
+- Any other warning or error the simulation gives at rest or in one of the states above (with its
+  `when`) that is not a hazard and not already blocking: whatever warning the simulator prints can
+  no longer be invisible to `layout`. `SIM_FLOATING` is one only when a simulated part wired in by
+  another pin is on the floating nodes (a MOSFET's gate left open); nodes outside the circuit (parts
+  wired to nothing, what only a part not simulated touches) are not.
+- A circuit with a source whose DC point does not solve (`SIM_NO_CONVERGENCE`) or whose supply is
+  not valid (`SIM_BAD_SUPPLY`). A circuit with no source at all is not a doubt: its Checked line
+  says nothing could be simulated.
+
 ### What it does not check
 
 After the hazards, the review and `layout` (when the circuit was built) print one line with what
 the check covered and what it did not, for this circuit
 (`Checked: at rest, 3 program outputs. Not checked: peaks while switching, combinations of program
-outputs.`; JSON `checked: { rest, controls, outputs, notChecked: [code…], skipped?, unsimulated? }`).
+outputs.`; JSON `checked: { rest, controls, outputs, notChecked: [code…], skipped?, unsimulated?, programs? }`).
 The codes, only those that apply:
 
 - `switching`, **peaks while switching** (a board's program, a 555, a generator): a PWM pin, a
@@ -240,12 +271,15 @@ The codes, only those that apply:
 - `combinations`, **combinations** of controls and outputs (two buttons pressed together, two pins
   high at once), when there are two or more: one is moved at a time.
 - `environment`, **what the sensors read from the environment** (light, temperature, motion,
-  touch, a module's trimmer…): read as the circuit leaves them. Other sliders (a resistor's, a
+  touch, a module's trimmer…): read as the circuit leaves them, the circuit's `environment` or a
+  value of the part's own (an LDR's `light`). Other sliders (a resistor's, a
   motor's load) and the supplies' controls are too.
 - `limit`, **states past the limit**: at most 24 (controls first, in the order of the parts, then
   pins); the review also says how many were checked (`States checked for damage: 24 of 30 …`; JSON
   `hazardStates: { checked, total, controls, outputs }`).
-- `unsimulated`, **parts drawn but not simulated** (`SIM_UNSUPPORTED`).
+- `unsimulated`, **parts drawn but not simulated** (`SIM_UNSUPPORTED`; each also a doubt).
+- `program`, **a board's program where the kit cannot run it** (JSON `programs`: the boards with a
+  program doubt).
 - `no-source` / `no-simulation`, **nothing could be simulated** (no source, or another reason the
   simulator's issues give).
 - A pin the program first makes an output later than its first wait (no `pinMode` in `setup()`) is

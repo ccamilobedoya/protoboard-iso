@@ -437,9 +437,13 @@ Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitado
   circuito de receta con `STATUS: DONE` y sus lecturas a la vista, cuyo componente con meta trabaja
   por encima de su valor nominal: cuánto, y el valor estándar que lo dejaría lo más cerca del nominal
   sin pasarlo. Solo información: no se cambia nada.
+- **Difícil de ver** (`review.hidden: [{ part, visible, by }]`): un componente (no un puente) que se ve
+  menos del 50 % en todas las vistas que dejó layout, una línea por componente con lo que se ve en su
+  mejor vista y lo que lo tapa. Solo información: no cambia el estado (las reglas propias de la
+  revisión siguen bloqueando un componente tapado en todas las vistas de una lección).
 - **Lecturas** (`readings: { sources: [{ id, kind, voltage, current }], parts: [{ id, kind, current,
   brightness? }] }`): el punto de operación en DC del simulador, el que imprime `simulate`. Primero
-  las fuentes (una fuente de banco, una batería, el USB de una tarjeta), luego los componentes cuyo
+  las fuentes (una fuente de banco, una batería por su id, el USB de una tarjeta; cada una una vez), luego los componentes cuyo
   trabajo es ser accionados: los LEDs (corriente y brillo), luego zumbadores, motores, bobinas de
   relé y láseres. A lo sumo cuatro en el texto, y después cuántos más lista `simulate`. Se omiten
   cuando el circuito no tiene fuente, el punto en DC no se puede resolver, una tarjeta corre un
@@ -479,7 +483,7 @@ quien lea solo la última línea (sobre todo un modelo pequeño) sabe qué hacer
 | `STATUS:` | Significa | Sigue |
 |---|---|---|
 | `DONE` | están todas las redes, nada quedó sin ubicar y la revisión aprueba | reportar |
-| `WARNINGS` | armado y con las redes bien, pero un componente se dañaría tal como está conectado (⚠): la revisión es aprobada con avisos | decirle primero al usuario cuál componente y por qué se quema; dejarlo solo si esa es la idea, si no ofrecer el arreglo del kit (`Para arreglarlo`), o si no hay, ensayar antes una idea con `--dry-run` |
+| `WARNINGS` | armado y con las redes bien, pero cada línea ⚠ de arriba hay que decírsela al usuario antes de decir que funciona: un componente que se dañaría tal como está conectado (un peligro), o algo que el kit no pudo comprobar (una duda: un componente sin simular, un programa que no puede correr, un aviso de la simulación; [simulacion.md](simulacion.md#lo-que-no-pudo-saber-dudas)); la revisión es aprobada con avisos | decirle primero cada una al usuario, en palabras simples; dejar el circuito como lo pidió salvo que quiera un cambio; para un peligro ofrecer el arreglo del kit (`Para arreglarlo`), o si no hay, ensayar antes una idea con `--dry-run` |
 | `CHANGES` | se creó, pero una red, una ubicación o la revisión dejaron algo (✖); en un ensayo no se creó nada | arreglar solo eso con `suggest` y `apply_ops`, luego `review`; tras un ensayo, probar otra idea o aplicar esta |
 | `FIX_SPEC` | no se creó nada: la especificación tiene errores | arreglar cada ✖ y volver a llamar |
 | `SPEC_OK` | `check_only`: la especificación es coherente | volver a llamar sin él |

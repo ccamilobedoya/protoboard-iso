@@ -23,7 +23,10 @@ kit's computed fix (`To fix it: …`, or "The kit has no computed fix for this."
 conversation tells the user, since burning a part can be the lesson. A fix asked for is that line,
 applied by the kit in one call (`layout` with `fix: true`; CLI `layout <target> --fix`); any other
 idea is tried first with `layout`'s `dry_run` (nothing saved) and applied only when the trial ends
-`DONE`.
+`DONE`. The same verdict comes with **doubts** (`doubts`: what the kit could not check, a part not
+simulated, a program it cannot run, any warning of the simulation; [simulation.md](simulation.md#what-it-could-not-tell-doubts)):
+the agent reports each one and never says the circuit works; `DONE` and `APPROVED` mean the kit
+checked it and found nothing to tell.
 
 ```bash
 node bin/protoboard-iso.js review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]

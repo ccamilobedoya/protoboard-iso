@@ -234,12 +234,45 @@ El kit no tiene un arreglo calculado para esto.
   (`Arreglo aplicado: R3 = 200 Ω en serie con BZ1.`); nada más lo aplica
   ([montaje-automatico.md](montaje-automatico.md#volver-a-montar-un-circuito-que-ya-existe-desde-el-2026-10-20)).
 
+### Lo que no pudo saber (dudas)
+
+Un peligro es un componente que el kit ve quemarse. Una **duda** es algo que el kit no pudo
+comprobar en absoluto, así que no puede decir que el circuito funciona: la revisión las lista en
+`doubts` (con la misma forma que los peligros: `{ severity: 'warning', code, params, parts }`), basta
+una para que el veredicto sea APROBADO CON AVISOS y `layout` termine en `STATUS: WARNINGS`, y ambos
+las imprimen como líneas `⚠` bajo su propio encabezado (`El kit no pudo comprobar esto …`), después
+de los peligros (`src/sim/index.js`, `doubtsOf`). Nunca bloquean. `DONE` significa entonces lo que
+dice: el kit revisó el circuito y no encontró nada que decir.
+
+- `SIM_PART_NOT_SIMULATED`: un componente conectado al circuito sin modelo de simulación (un
+  74HC595, un LM386, un CD4017…; `catalog` los marca): se dibuja y sus pines quedan abiertos, así
+  que lo que hace, y lo que maneja, no se sabe. Un componente sin conectar a nada no es una duda.
+- Todo aviso sobre el programa de una placa: el archivo no encontrado (`SIM_PROGRAM_FILE`, que dice
+  la carpeta donde buscó el kit: la del circuito, junto a `circuit.json`), fuera de la carpeta,
+  demasiado grande, un error de sintaxis con su línea, una llamada que el simulador no conoce
+  (`shiftOut()`), una librería o una clase que no está en el kit, sin `setup()`/`loop()`
+  (`SIM_PROGRAM_IGNORED` sigue siendo una nota). También `SIM_PROGRAM_STOPPED`, un programa que se
+  detuvo con un error en reposo, y `SIM_PROGRAM_STUCK`, un programa que nunca deja pasar el tiempo:
+  `setup()` o una llamada de `loop()` que nunca vuelve y nunca espera (`void loop() { while (1) {} }`).
+  Este se encuentra corriendo el programa en reposo unas pocas vueltas de su ejecutor, cada una
+  limitada por su presupuesto de pasos, nunca esperando; un `loop()` que vuelve sin `delay()` es un
+  programa que funciona.
+- Cualquier otro aviso o error que dé la simulación en reposo o en uno de los estados de arriba (con
+  su `when`) que no sea un peligro ni esté ya bloqueando: ningún aviso que imprima el simulador puede
+  quedar invisible para `layout`. `SIM_FLOATING` lo es solo cuando en los nodos flotantes hay un
+  componente simulado conectado al circuito por otra pata (la compuerta de un MOSFET al aire); los
+  nodos por fuera del circuito (componentes sin conectar a nada, lo que solo toca un componente sin
+  simular) no.
+- Un circuito con fuente cuyo punto en DC no se resuelve (`SIM_NO_CONVERGENCE`) o cuya fuente no es
+  válida (`SIM_BAD_SUPPLY`). Un circuito sin ninguna fuente no es una duda: su línea Revisado dice que
+  no se pudo simular nada.
+
 ### Lo que no revisa
 
 Después de los peligros, la revisión y `layout` (cuando el circuito quedó armado) imprimen una línea
 con lo que la revisión cubrió y lo que no, para este circuito (`Revisado: en reposo, 3 salidas del
 programa. No revisado: picos al conmutar, combinaciones de salidas del programa.`; JSON `checked: {
-rest, controls, outputs, notChecked: [código…], skipped?, unsimulated? }`). Los códigos, solo los que
+rest, controls, outputs, notChecked: [código…], skipped?, unsimulated?, programs? }`). Los códigos, solo los que
 aplican:
 
 - `switching`, **picos al conmutar** (el programa de una placa, un 555, un generador): un pin PWM, un
@@ -248,12 +281,15 @@ aplican:
 - `combinations`, **combinaciones** de controles y salidas (dos pulsadores oprimidos a la vez, dos pines
   en alto a la vez), cuando hay dos o más: se mueve uno a la vez.
 - `environment`, **lo que los sensores leen del ambiente** (luz, temperatura, movimiento, toque, el
-  trimmer de un módulo…): se leen como el circuito los deja. Otros deslizadores (el de una
+  trimmer de un módulo…): se leen como el circuito los deja, con el `environment` del circuito o con un
+  valor propio del componente (la `light` de una LDR). Otros deslizadores (el de una
   resistencia, la carga de un motor) y los controles de las fuentes también.
 - `limit`, **estados pasado el límite**: a lo sumo 24 (primero los controles, en el orden de los
   componentes, luego los pines); la revisión también dice cuántos revisó (`Estados revisados por daño:
   24 de 30 …`; JSON `hazardStates: { checked, total, controls, outputs }`).
-- `unsimulated`, **componentes dibujados pero no simulados** (`SIM_UNSUPPORTED`).
+- `unsimulated`, **componentes dibujados pero no simulados** (`SIM_UNSUPPORTED`; cada uno también es una duda).
+- `program`, **el programa de una placa donde el kit no puede correrlo** (JSON `programs`: las placas
+  con una duda de programa).
 - `no-source` / `no-simulation`, **no se pudo simular nada** (no hay fuente, u otra razón que dicen los
   avisos del simulador).
 - Un pin que el programa vuelve salida después de su primera espera (sin `pinMode` en `setup()`) no

@@ -503,6 +503,20 @@ in the log of `PLANNING.md`.
 - ✅ Status per decision (N09): every entry of the decision log in `PLANNING.md` (and `planeacion.md`) gets a status, and a replaced one says «replaced by N»; a test checks it. Today: entries have no status, so a reader cannot tell which ones still hold — done 2026-10-29: a status column in both logs (76 in force, 5 replaced in whole or in part), `test/decisions.test.js`
 - ✅ Index of the documents (N18): `docs/en/README.md` and `docs/es/README.md` with a generated block, one line per document (title and what it is for), and a step in `npm run verify` that fails when it is stale. Today: the README and the code map link documents, but nothing lists them all — done 2026-10-29: `docs/en/README.md`, `docs/es/README.md`, `scripts/docs-index.js`; the check lives in `test/docs.test.js` (part of `npm test`, so of `npm run verify`)
 
+## Trust: what DONE means (2026-11) 🔜
+
+Found by assistants acting as a first-time user's on a clean clone of 0.12.1: `layout` ended `DONE`
+and `review` `APPROVED` on circuits the kit could not check. The rule now: `DONE` means the kit
+checked it and found nothing to tell; `WARNINGS` means built, and each ⚠ line is told to the user
+before saying it works.
+
+- ✅ Doubts beside hazards: `review` returns `doubts` (a part wired in with no simulation model, every issue about a board's program, a program stuck without time passing, any other warning of the simulation, a source that does not solve); one is enough for APPROVED WITH WARNINGS and `STATUS: WARNINGS`, under its own heading, in the CLI and the MCP tools (`src/sim/index.js` `doubtsOf`, `src/review.js`)
+- ✅ A program file not found says where the kit looked (the circuit's folder, beside `circuit.json`); layout judges the circuit it keeps from its folder
+- ✅ The `Checked` line is truthful (a sensor by its own value, one part "does", a program the kit cannot run)
+- ✅ Parts under 50 % visible in every view get a line in `layout`'s answer (information)
+- ✅ The `Readings` line names each source once
+- ✅ `catalog` marks what is drawn but not simulated and names no source paths (the CLI's list needs `partTypeLines` wired in `bin/`)
+
 ## Optional, later ⬜
 
 Ideas worth keeping, with no date. Pick them up after the stages above, or when a lesson

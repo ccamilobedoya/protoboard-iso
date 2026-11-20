@@ -510,6 +510,20 @@ las decisiones en el registro de `PLANNING.md`.
 - ✅ Estado por decisión (N09): cada entrada del registro de decisiones de `PLANNING.md` (y `planeacion.md`) lleva un estado, y una reemplazada dice «reemplazada por N»; una prueba lo comprueba. Hoy: las entradas no tienen estado, y quien lee no sabe cuáles siguen en pie — hecho el 2026-10-29: una columna de estado en los dos registros (76 vigentes, 5 reemplazadas del todo o en parte), `test/decisions.test.js`
 - ✅ Índice de los documentos (N18): `docs/en/README.md` y `docs/es/README.md` con un bloque generado, una línea por documento (título y para qué sirve), y un paso de `npm run verify` que falla cuando queda viejo. Hoy: el README y el mapa del código enlazan documentos, pero nada los lista todos — hecho el 2026-10-29: `docs/en/README.md`, `docs/es/README.md`, `scripts/docs-index.js`; la comprobación vive en `test/docs.test.js` (parte de `npm test`, y así de `npm run verify`)
 
+## Confianza: qué significa DONE (2026-11) 🔜
+
+Lo encontraron asistentes que hicieron de asistente de un usuario nuevo sobre un clon limpio de
+0.12.1: `layout` terminaba en `DONE` y `review` en `APPROVED` con circuitos que el kit no pudo
+comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró nada que decir;
+`WARNINGS` significa armado, y cada línea ⚠ se le dice al usuario antes de decir que funciona.
+
+- ✅ Dudas junto a los peligros: `review` devuelve `doubts` (un componente conectado sin modelo de simulación, todo aviso sobre el programa de una placa, un programa atascado sin dejar pasar el tiempo, cualquier otro aviso de la simulación, una fuente que no se resuelve); basta una para APROBADO CON AVISOS y `STATUS: WARNINGS`, bajo su propio encabezado, en la consola y en las herramientas MCP (`src/sim/index.js` `doubtsOf`, `src/review.js`)
+- ✅ Un archivo de programa no encontrado dice dónde buscó el kit (la carpeta del circuito, junto a `circuit.json`); layout juzga el circuito que deja desde su carpeta
+- ✅ La línea `Revisado` es veraz (un sensor con su propio valor, «hace» para un componente, un programa que el kit no puede correr)
+- ✅ Los componentes que se ven menos del 50 % en todas las vistas tienen una línea en la respuesta de `layout` (información)
+- ✅ La línea `Lecturas` nombra cada fuente una vez
+- ✅ `catalog` marca lo que se dibuja pero no se simula y no nombra rutas de las fuentes (la lista de la consola necesita conectar `partTypeLines` en `bin/`)
+
 ## Opcional, más adelante ⬜
 
 Ideas que vale la pena guardar, sin fecha. Se retoman después de las etapas de arriba, o

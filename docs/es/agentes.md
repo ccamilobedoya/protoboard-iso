@@ -23,7 +23,11 @@ arreglo calculado por el kit (`Para arreglarlo: …`, o «El kit no tiene un arr
 esto.»), y la conversación principal se lo dice al usuario, porque quemar un componente puede ser la
 lección. Un arreglo pedido es esa línea, que el kit aplica en una llamada (`layout` con `fix: true`;
 en la consola `layout <objetivo> --fix`); cualquier otra idea se ensaya antes con el `dry_run` de
-`layout` (sin guardar nada) y se aplica solo si el ensayo termina en `DONE`.
+`layout` (sin guardar nada) y se aplica solo si el ensayo termina en `DONE`. El mismo veredicto llega
+con **dudas** (`doubts`: lo que el kit no pudo comprobar, un componente sin simular, un programa que no
+puede correr, cualquier aviso de la simulación; [simulacion.md](simulacion.md#lo-que-no-pudo-saber-dudas)):
+el agente reporta cada una y nunca dice que el circuito funciona; `DONE` y `APPROVED` significan que el
+kit lo revisó y no encontró nada que decir.
 
 ```bash
 node bin/protoboard-iso.js review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]

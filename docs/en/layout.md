@@ -404,9 +404,13 @@ Can change (layout with the recipe and values): R1 = 330 (current-limiting resis
   recipe circuit with `STATUS: DONE` and its readings shown, whose part with a goal runs above its
   rated value: by how much, and the standard value that would bring it nearest to the rating without
   passing it. Information only: nothing is changed.
+- **Hard to see** (`review.hidden: [{ part, visible, by }]`): a part (not a jumper) under 50 %
+  visible in every view layout kept, one line each with its best view's share and what covers it.
+  Information only: it does not change the status (the review's own rules still block a part hidden
+  in every view of a lesson).
 - **Readings** (`readings: { sources: [{ id, kind, voltage, current }], parts: [{ id, kind, current,
   brightness? }] }`): the simulator's DC point, the one `simulate` prints. The sources first (a
-  supply, a battery, a board's USB), then the parts whose job is to be driven: LEDs (current and
+  supply, a battery by its id, a board's USB; each once), then the parts whose job is to be driven: LEDs (current and
   brightness), then buzzers, motors, relay coils and lasers. At most four parts in the text, then how
   many more `simulate` lists. Left out when the circuit has no source, the DC point cannot be solved,
   a board runs a program (the program decides what is lit, a rest point at time zero would mislead),
@@ -442,7 +446,7 @@ a caller (above all a small model) that reads only the last line knows what to d
 | `STATUS:` | Means | Next |
 |---|---|---|
 | `DONE` | every net is there, nothing failed to place, the review approves | report |
-| `WARNINGS` | built and the nets are right, but a part would be damaged as wired (⚠): the review is approved with warnings | tell the user first which part and why it burns; keep it only if that is the point, else offer the kit's fix (`To fix it`), or with none try an idea with `--dry-run` first |
+| `WARNINGS` | built and the nets are right, but each ⚠ line above must be told to the user before saying it works: a part that would be damaged as wired (a hazard), or something the kit could not check (a doubt: a part not simulated, a program it cannot run, a warning of the simulation; [simulation.md](simulation.md#what-it-could-not-tell-doubts)); the review is approved with warnings | tell the user each one first, in plain words; keep the circuit as asked unless they want a change; for a hazard offer the kit's fix (`To fix it`), or with none try an idea with `--dry-run` first |
 | `CHANGES` | created, but a net, a placement or the review left something (✖); in a trial nothing was created | fix only those, with `suggest` and `apply_ops`, then `review`; after a trial, try another idea or apply this one |
 | `FIX_SPEC` | nothing created: the spec has errors | fix every ✖ and call again |
 | `SPEC_OK` | `check_only`: the spec is consistent | call again without it |
