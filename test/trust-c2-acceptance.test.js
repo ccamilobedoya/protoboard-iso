@@ -65,11 +65,12 @@ const ledReversed = (volts) => ({
   supplies: bench(volts),
 });
 
-test('B2 · a red LED reversed with a resistor on 9 V: no SIM_REVERSE_VOLTAGE (contract wording)', () => {
-  // NOTE: the red LED's reverse rating in the kit is 5 V and the reversed LED sees about 9 V (no current drops
-  // across the resistor), so v0.12.1 already warns. The contract says no hazard for a reversed LED: asserted as written.
+test('B2 · a red LED reversed with a resistor on 9 V: past its 5 V reverse rating, so the hazard stays', () => {
+  // Arbitrated: the contract's first wording ("no hazard for a reversed LED") was wrong for 9 V. The
+  // red LED's reverse rating is 5 V and the reversed LED sees about 9 V (no current, so nothing drops
+  // across the resistor): the kit warned before this work and still must.
   const r = reviewJson(build(ledReversed(9)));
-  assert.ok(!hasCode(r.hazards, 'SIM_REVERSE_VOLTAGE'), `hazards: ${JSON.stringify(r.hazards)}`);
+  assert.ok(hasCode(r.hazards, 'SIM_REVERSE_VOLTAGE', 'D1'), `hazards: ${JSON.stringify(r.hazards)}`);
 });
 
 test('B2 guard · a red LED reversed on 4 V (below its 5 V reverse rating): no SIM_REVERSE_VOLTAGE', () => {
