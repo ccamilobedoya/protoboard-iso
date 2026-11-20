@@ -17,6 +17,14 @@ import { createEngine } from './engine.js';
 import { lookupModule } from '../parts/modules.js';
 import { FIELDS, createEnvironment, environmentControls } from './environment.js';
 import { stressIssue } from './devices/shared.js';
+import { buildCircuit } from '../circuit/build.js';
+import { checkButtonPins } from '../circuit/checks.js';
+
+// Findings about the wiring itself that `check` and the hazard check report (not placement checks).
+export function wiringIssues(circuit) {
+  const built = buildCircuit(circuit);
+  return built.board ? checkButtonPins(built.parts, built.netlist, { netLabels: circuit.netLabels }) : [];
+}
 
 
 export { compile, createEngine };
@@ -156,10 +164,11 @@ export function engineHazards(engine, states, max = STATES_MAX) {
 
 export function checkHazards(circuit) {
   const compiled = compile(circuit);
-  if (compiled.fatal) return { hazards: [], doubts: [], states: { checked: 0, total: 0, controls: 0, outputs: 0 }, checked: coverageOf(compiled, null) };
+  const wiring = wiringIssues(circuit);
+  if (compiled.fatal) return { hazards: [], doubts: wiring, states: { checked: 0, total: 0, controls: 0, outputs: 0 }, checked: coverageOf(compiled, null) };
   const engine = createEngine(compiled.program);
   const result = engineHazards(engine, controlStates(compiled.program, engine));
-  return { ...result, checked: coverageOf(compiled, result) };
+  return { ...result, doubts: [...wiring, ...result.doubts], checked: coverageOf(compiled, result) };
 }
 
 // What the hazard check covered and what it could not, for the answer's "Checked" line (review.js):
@@ -210,6 +219,11 @@ export function pageSimulation(circuit) {
 }
 
 export function pageControlIssues(circuit) {
+  const wiring = wiringIssues(circuit);
+  return [...wiring, ...controlIssues(circuit)];
+}
+
+function controlIssues(circuit) {
   const list = circuit?.page?.controls;
   if (!Array.isArray(list) || !list.length) return [];
   const warn = (code, params = {}) => ({ severity: 'warning', code, params });
