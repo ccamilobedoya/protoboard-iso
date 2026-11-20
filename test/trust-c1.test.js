@@ -64,9 +64,9 @@ test('a board program the kit cannot run is a doubt: syntax error with its line,
   assert.equal(error?.params.line, 1);
   assert.match(text(syntax), /⚠ .*line 1/);
 
-  const started = Date.now();
+  const started = Date.now(); // real clock: a stuck program must not hang the layout
   const stuck = autoLayout(uno('void setup(){} void loop(){ while(1){} }'));
-  assert.ok(Date.now() - started < 20_000);
+  assert.ok(Date.now() - started < 20_000); // real clock: the same bound, in wall time
   assert.equal(stuck.status, 'warnings');
   assert.deepEqual(stuck.review.doubts.map((d) => d.code), ['SIM_PROGRAM_STUCK']);
   assert.match(text(stuck), /never lets time pass/);
