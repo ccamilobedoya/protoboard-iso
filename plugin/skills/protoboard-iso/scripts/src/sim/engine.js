@@ -15,10 +15,14 @@
 //   engine.advance(h) → ok                 h seconds: one step, or shorter ones where Newton fails;
 //                                          a step ends on each element's event inside h (`until()`)
 //   engine.read() → { nodes, parts, supplies }   the values now;  engine.time  seconds since start
+//   engine.readParts(ids: Set) → { id: reading }  only those parts, now
+//   engine.now() → the values now as dc() gives them (each part's `stress`, the limits' warnings)
+//   engine.onStep                          a function called after every step taken (a run's watch)
 //   engine.stresses(reading) → { part: [stress…] }   each part against its limits (devices/)
 //   engine.timeConstants() → [seconds…]    τ = C·R and L/R of each capacitor and inductor, with R
 //                                          the resistance it sees at the DC operating point, and
 //                                          an element's own times (a relay's `times`)
+//   engine.serial() → { id: { printed, lines, stamps } }   what each board's program printed
 //   engine.periods() → [seconds…]          the period of each signal generator (generator.js);
 //                                          their sources follow the wave at every time step
 // Controls (sliders, the push button):
@@ -47,7 +51,8 @@
 //   engine.emissions() → { field: { total, parts: { id: value }, blocked? } }   what each emitter adds
 //                                                  now ({} without emitters)
 // Programs move with simulated time, before each step (as a generator's wave); dc() and the start
-// take them at t = 0. transient() keeps the environment as it is (programs run in the page).
+// take them at t = 0. transient() keeps the environment as it is (programs run in the page), except
+// in a circuit whose board runs a program: there it steps as the page does (`stepping` below).
 // dc() on a started engine solves the circuit as the sensors last felt it (no fixed point of its own).
 // Emitters (a device with `emits` and `emit(entry, reading)`: a laser writes `light`): what one adds
 // in a time step reaches the sensors in the next (one step of delay). At the start, after a set and in
@@ -75,6 +80,10 @@ const LANDINGS = 32;
 const LAND_MIN = 0.5e-6;
 // What an element changes while Newton iterates (junction limiting, an op-amp's rail edge).
 const LIMITING = ['vd', 'vgs', 'vds', 'vbe', 'vbc', 'edge'];
+// A transient of a circuit whose board runs a program steps at most PROGRAM_STEP at a time (the
+// page's step for a program, sim/pace.js), never under MIN_PIECE for a PWM or tone (the page's floor).
+export const PROGRAM_STEP = 1e-3;
+export const MIN_PIECE = 5e-6;
 const EMIT_ROUNDS = 8; // solve → emissions → sensors rounds before a loop is called feedback
 const EMIT_SETTLED = 1e-3; // relative change of every emission under which they have settled
 
@@ -488,9 +497,30 @@ export function createEngine(source) {
     step: (t, h) => api.step(h, true),
     read: (c) => readAll(prep, x, c),
   };
+  // A board's program: the transient steps as the page does (engine.advance: a step ends on each
+  // event of an element, so a delayMicroseconds(10) or an echo's edge is at its time; a step Newton
+  // cannot take is split), in pieces no longer than the sampling step, PROGRAM_STEP and the step a
+  // running PWM or tone needs (stepHint). The environment's programs run too, as in the page.
+  const stepping = {
+    prep: () => prep,
+    begin: (start, h) => (api.start(start, Math.min(h, PROGRAM_STEP)) ? null : 'SIM_NO_CONVERGENCE'),
+    step(t, h) {
+      while (time < t - 1e-12) {
+        const hint = api.stepHint();
+        const piece = Math.min(t - time, h, PROGRAM_STEP, hint > 0 ? Math.max(MIN_PIECE, hint) : Infinity);
+        if (!api.advance(piece)) return false;
+      }
+      return true;
+    },
+    read: () => mark(readAll(prep, x, ctx)),
+  };
   const api = {
     dc: () => (!emitting() ? dc(prep) : x ? mark(withFeedback(dc(prep))) : settleDC()),
-    transient: (options) => (emitting() ? transient(prep, options, drive) : transient(prep, options)),
+    transient(options) {
+      if (!api.hasProgram()) return emitting() ? transient(prep, options, drive) : transient(prep, options);
+      const r = transient(prep, options, stepping);
+      return { ...r, issues: [...r.issues, issue('info', 'SIM_TRANSIENT_PROGRAM', {})] };
+    },
     start(mode = 'dc', h = 1e-3) {
       lastH = h;
       const ambient = env ? env.rewind() : null;
@@ -566,6 +596,7 @@ export function createEngine(source) {
         for (const [pin, c] of Object.entries(r.channels ?? {})) glowSum.set(`${p.id}.${pin}`, (glowSum.get(`${p.id}.${pin}`) ?? 0) + c.brightness * h);
       }
       glowTime += h;
+      api.onStep?.();
       return true;
     },
     // One step of h, as step(); when Newton fails, the same h in two halves (each split again, down
@@ -585,6 +616,21 @@ export function createEngine(source) {
       return halving(this, h, ADVANCE_SPLITS);
     },
     read: () => (x ? mark(readAll(prep, x, ctx)) : null),
+    // Only these parts' readings, now ({ id: reading }): what a run watches after every step.
+    readParts(ids) {
+      if (!x) return null;
+      const out = {};
+      for (const p of prep.parts) if (ids.has(p.id)) out[p.id] = partReading(p, x, ctx, prep.floating);
+      return out;
+    },
+    // The readings now in the shape dc() gives them: each part with its `stress`, and the warnings
+    // of its limits (what `simulate` prints at the end of a run).
+    now() {
+      if (!x) return null;
+      const reading = mark(readAll(prep, x, ctx));
+      withStress(prep, reading);
+      return withFeedback({ analysis: 'state', model: true, ok: true, time, ground: prep.ground, ...reading, issues: [...prep.issues, ...limitIssues(prep, reading)] });
+    },
     get time() {
       return time;
     },
@@ -596,6 +642,13 @@ export function createEngine(source) {
         const list = partStresses(p, r).filter((s) => !s.note);
         if (list.length) out[p.id] = list;
       }
+      return out;
+    },
+    // What each board's program printed: { id: { printed, lines, stamps } } (an element's `serial()`,
+    // devices/mcu.js): `printed` counts every line ended since setup, `lines` keeps the last few.
+    serial() {
+      const out = {};
+      for (const [id, list] of prep.owned) for (const el of list) if (el.serial) out[id] = el.serial();
       return out;
     },
     timeConstants: () => timeConstants(prep),
@@ -775,7 +828,9 @@ function timeConstants(prep) {
     st.rhs(b, -1);
     const y = solveInPlace(st.A, st.b);
     if (!y) continue;
-    const resistance = (a >= 0 ? y[a] : 0) - (b >= 0 ? y[b] : 0);
+    // With positive feedback around it (an op-amp relaxation oscillator at its unstable DC point) the
+    // resistance it sees is negative: its size is still how fast it moves away from there.
+    const resistance = Math.abs((a >= 0 ? y[a] : 0) - (b >= 0 ? y[b] : 0));
     if (!(resistance > 0) || !Number.isFinite(resistance) || resistance > 1e9) continue;
     out.push(own.memory.kind === 'C' ? own.memory.value * resistance : own.memory.value / resistance);
   }
@@ -805,14 +860,18 @@ function dc(prep) {
   const r = settle(prep, solveWithLimits(prep, new Array(prep.system.size).fill(0), ctx), ctx);
   if (!r.ok) return { analysis: 'dc', model: true, ok: false, issues: [...prep.issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
   const reading = readAll(prep, r.x, ctx);
-  // Each part against its limits: { quantity, value, max, unit, ratio, level } (controls.js).
+  withStress(prep, reading);
+  return { analysis: 'dc', model: true, ok: true, iterations: r.iterations, ground: prep.ground, ...reading, issues: [...prep.issues, ...limitIssues(prep, reading)] };
+}
+
+// Each part against its limits: { quantity, value, max, unit, ratio, level } (controls.js).
+function withStress(prep, reading) {
   for (const p of prep.parts) {
     const part = reading.parts[p.id];
     if (part.floating) continue;
     const list = partStresses(p, part).filter((s) => !s.note);
     if (list.length) part.stress = list.map(({ quantity, value, max, unit, ratio, pin, nearAt }) => ({ quantity, value, max, unit, ratio, level: stressLevel(ratio, nearAt), ...(pin && { pin }), ...(nearAt && { nearAt }) }));
   }
-  return { analysis: 'dc', model: true, ok: true, iterations: r.iterations, ground: prep.ground, ...reading, issues: [...prep.issues, ...limitIssues(prep, reading)] };
 }
 
 // Transient: capacitors start discharged (start: 'zero', the supply switched on at t = 0)

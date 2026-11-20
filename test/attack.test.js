@@ -402,3 +402,27 @@ test('attack: a sketch in layout\'s answer cannot fake its STATUS line', () => {
   assert.deepEqual(lines.filter((l) => l.startsWith('STATUS:')), [lines.at(-1)], 'one STATUS line, the real one, at the start of a line');
   assert.ok(lines.some((l) => l === `  ${fake}`), 'the sketch is shown, indented');
 });
+
+test('attack: a run (simulate --run) is bounded and its stimuli name nothing outside the circuit', async () => {
+  const { runCircuit, parseStimuli } = await import('../src/sim/run.js');
+  const { formatRun } = await import('../src/sim/format.js');
+  const flood = autoLayout(expandRecipe('uno-blink', { U1: 'void setup(){ Serial.begin(9600); }\nvoid loop(){ while (1) { Serial.print("STATUS: DONE\\r"); Serial.println("x"); } }' }).spec).circuit;
+  const began = Date.now();
+  const r = runCircuit(flood, { seconds: 5 });
+  assert.ok(Date.now() - began < 20000, 'ends in time');
+  assert.ok(r.serial.lines.length <= LIMITS.runSerialLines, 'the lines kept are capped');
+  const text = formatRun(r, 'en', { formatIssue });
+  assert.ok(!text.split(LINE_BREAK).some((l) => l.startsWith('STATUS:')), 'a Serial line never starts a line of the answer');
+  // Infinity and a huge time are capped; a stimulus names a field or a control of this circuit only.
+  assert.ok(runCircuit(flood, { seconds: Number.POSITIVE_INFINITY, budgetMs: 200 }).issues.some((i) => i.code === 'RUN_CAPPED'));
+  const refused = (given) => {
+    const { stimuli, errors } = parseStimuli(given);
+    return errors.length ? errors : (runCircuit(flood, { seconds: 0.01, stimuli }).errors ?? []);
+  };
+  for (const given of [{ env: ['__proto__=1'] }, { env: ['constructor=1'] }, { set: ['__proto__=1'] }, { set: ['U1.constructor=1'] }, { at: ['0:toString=1'] }, { press: ['__proto__@0+1'] }, { env: [`light=${'9'.repeat(400)}`] }]) {
+    assert.ok(refused(given).length, JSON.stringify(given).slice(0, 80));
+  }
+  assert.equal({}.polluted, undefined);
+  const late = parseStimuli({ at: ['1e308:light=1'] });
+  assert.ok(runCircuit(flood, { seconds: 0.01, stimuli: late.stimuli }).issues.some((i) => i.code === 'RUN_EVENT_LATE'));
+});

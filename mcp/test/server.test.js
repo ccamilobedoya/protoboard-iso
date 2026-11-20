@@ -378,3 +378,25 @@ test('layout with a recipe: ready in one call, the catalog lists it, bad values 
   assert.ok(both.isError);
   assert.ok((await call('get_circuit', { target: 'recipe-bad' })).isError, 'nothing created');
 });
+
+test('simulate run_s: the same run, text and structure as simulate --run on the command line', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const laid = await call('layout', { target: 'run-button', recipe: 'uno-button' });
+  assert.ok(!laid.isError, textOf(laid));
+  const args = { target: 'run-button', run_s: 1, press: ['S1@0.3+0.4'] };
+  const json = jsonOf(await call('simulate', { ...args, format: 'json' }));
+  const d1 = json.outputs.find((o) => o.id === 'D1');
+  assert.equal(d1.intervals.length, 1);
+  assert.ok(Math.abs(d1.intervals[0][1] - d1.intervals[0][0] - 0.4) < 0.02);
+  const bin = new URL('../../bin/protoboard-iso.js', import.meta.url).pathname;
+  const target = join(root, 'run-button');
+  const cli = (extra) => spawnSync(process.execPath, [bin, 'simulate', target, '--run', '1', '--press', 'S1@0.3+0.4', ...extra], { encoding: 'utf8' });
+  assert.deepEqual(JSON.parse(cli(['--json']).stdout), json);
+  assert.equal(textOf(await call('simulate', args)), cli([]).stdout.trimEnd());
+  // Objects for the stimuli, as an assistant writes them; errors are tool errors with the line.
+  const same = jsonOf(await call('simulate', { target: 'run-button', run_s: 1, press: [{ part: 'S1', at: 0.3, duration: 0.4 }], format: 'json' }));
+  assert.deepEqual(same, json);
+  const bad = await call('simulate', { target: 'run-button', run_s: 1, environment: { nonsense: 1 } });
+  assert.ok(bad.isError);
+  assert.match(textOf(bad), /"nonsense" is not a field of the environment/);
+});

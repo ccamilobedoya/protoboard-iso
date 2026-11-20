@@ -16,7 +16,8 @@ import { formatAt, formatNode, formatFree, formatSuggest, formatSuggestMany } fr
 import { nets, formatNets } from '../src/nets.js';
 import { review, formatReview } from '../src/review.js';
 import { simulate } from '../src/sim/index.js';
-import { formatSimulation } from '../src/sim/format.js';
+import { formatSimulation, formatRun } from '../src/sim/format.js';
+import { runCircuit, parseStimuli, prepareRun } from '../src/sim/run.js';
 import { parseValue } from '../src/core/units.js';
 import { InputError, inputErrorText, inputIssueFor, readJsonInput, parseJsonInput, resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory, writePage, createTarget, relayoutTarget } from '../src/node/workspace.js';
 import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest } from '../src/layout.js';
@@ -48,6 +49,12 @@ function langOption(option, text) {
   }
   return text;
 }
+
+// A time in seconds: a plain number (1, 0.5, 1e-5) or one with a unit or prefix (10m, 2s); NaN otherwise.
+const timeOf = (text) => {
+  const n = String(text ?? '').trim() === '' ? Number.NaN : Number(text);
+  return Number.isFinite(n) ? n : parseValue(String(text).replace(/s$/, ''));
+};
 
 function parseArgs(argv) {
   const args = { _: [], errors: [] };
@@ -87,6 +94,11 @@ function parseArgs(argv) {
     else if (a === '--profile') args.profile = value();
     else if (a === '--transient') args.transient = value()?.split(',');
     else if (a === '--start') args.start = value();
+    else if (a === '--run') args.run = value();
+    else if (a === '--env') (args.env ??= []).push(value());
+    else if (a === '--set') (args.set ??= []).push(value());
+    else if (a === '--press') (args.press ??= []).push(value());
+    else if (a === '--at') (args.at ??= []).push(value());
     else if (a === '--sim') args.sim = true;
     else if (a === '--focus') args.focus = value()?.split(',');
     else if (a === '--flow') args.flow = true;
@@ -306,11 +318,41 @@ async function run(seen) {
     console.log(t(lang, 'cli.written', { file: out, parts: circuit.parts.length, issues: issues.length }));
     fail(issues.some((i) => i.severity === 'error') ? 1 : 0);
   } else if (command === 'simulate') {
+    // --run <s>: what it does over time, as the page runs it (src/sim/run.js); --env, --set, --press
+    // and --at are its stimuli (--env and --set also for the DC point and --transient). Nothing here
+    // changes the circuit.
     const circuit = loadCircuit(paths);
-    const options = args.transient
-      ? { analysis: 'transient', stop: parseValue(args.transient[0]), step: args.transient[1] ? parseValue(args.transient[1]) : undefined, start: args.start }
-      : { analysis: 'dc' };
-    const result = simulate(circuit, options);
+    const refuse = (errors) => {
+      if (args.json) console.log(JSON.stringify({ ok: false, errors: errors.map((e) => ({ ...e, text: formatIssue(e, lang) })) }, null, 2));
+      else for (const e of errors) console.error(formatIssue(e, lang));
+      fail(1);
+    };
+    if (args.run !== undefined && args.transient) {
+      console.error(t(lang, 'cli.runOrTransient'));
+      fail(1);
+    }
+    const said = parseStimuli({ env: args.env, set: args.set, press: args.press, at: args.at });
+    if (said.errors.length) refuse(said.errors);
+    if (args.run !== undefined) {
+      const result = runCircuit(circuit, { seconds: timeOf(args.run), stimuli: said.stimuli });
+      if (result.errors) refuse(result.errors);
+      console.log(args.json ? JSON.stringify(result, null, 2) : formatRun(result, lang, { formatIssue, netLabels: circuit.netLabels }));
+      fail(result.ok ? 0 : 1);
+    }
+    for (const [option, list] of [['--press', said.stimuli.press], ['--at', said.stimuli.at]]) if (list.length) refuse([{ severity: 'error', code: 'RUN_ONLY', params: { option } }]);
+    const [stop, step] = (args.transient ?? []).map(timeOf);
+    if (args.transient && (!(stop > 0) || (args.transient[1] !== undefined && !(step > 0)))) {
+      console.error(t(lang, 'cli.badNumber', { option: '--transient', value: args.transient.join(',') }));
+      fail(2);
+    }
+    const options = args.transient ? { analysis: 'transient', stop, step, start: args.start } : { analysis: 'dc' };
+    let result;
+    if (said.stimuli.env.length || said.stimuli.set.length) {
+      const prepared = prepareRun(circuit, said.stimuli);
+      if (prepared.errors) refuse(prepared.errors);
+      result = prepared.fatal ? { analysis: options.analysis, model: true, ok: false, issues: prepared.issues } : options.analysis === 'transient' ? prepared.engine.transient(options) : prepared.engine.dc();
+      if (result.issues && prepared.issues?.length) result = { ...result, issues: [...result.issues, ...prepared.issues] };
+    } else result = simulate(circuit, options);
     console.log(args.json ? JSON.stringify(result, null, 2) : formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }));
     fail(result.ok ? 0 : 1);
   } else if (command === 'page') {

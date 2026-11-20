@@ -160,6 +160,12 @@ export const mcu = {
           if (ctx.h) this.runner.advance?.(ctx.h);
           sync();
         },
+        // What the program printed (engine.serial): the lines kept, the time each ended, and how many
+        // lines it has ended since setup.
+        serial() {
+          const r = this.runner;
+          return { printed: r.printed ?? 0, lines: r.log ?? [], stamps: r.stamps ?? [] };
+        },
         // When the program wants to run again (a delay ending, pulseIn's timeout): the engine ends a
         // step there, so a delayMicroseconds(10) is a pulse of 10 µs (engine.advance).
         until() {

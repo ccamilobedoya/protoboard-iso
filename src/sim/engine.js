@@ -828,7 +828,9 @@ function timeConstants(prep) {
     st.rhs(b, -1);
     const y = solveInPlace(st.A, st.b);
     if (!y) continue;
-    const resistance = (a >= 0 ? y[a] : 0) - (b >= 0 ? y[b] : 0);
+    // With positive feedback around it (an op-amp relaxation oscillator at its unstable DC point) the
+    // resistance it sees is negative: its size is still how fast it moves away from there.
+    const resistance = Math.abs((a >= 0 ? y[a] : 0) - (b >= 0 ? y[b] : 0));
     if (!(resistance > 0) || !Number.isFinite(resistance) || resistance > 1e9) continue;
     out.push(own.memory.kind === 'C' ? own.memory.value * resistance : own.memory.value / resistance);
   }

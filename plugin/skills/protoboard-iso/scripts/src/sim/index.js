@@ -183,7 +183,9 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
   }
   const fields = new Set(states.filter((s) => s.part === 'environment').map((s) => s.field)).size;
   const controls = new Set(states.filter((s) => s.part !== 'environment').map((s) => `${s.part} ${s.field}`)).size;
-  return { hazards, doubts: doubts.filter((d) => !hazards.some((h) => hazardKey(h) === hazardKey(d))), states: { checked: tried.length, total: all.length, controls, outputs: outputs.pins.length, ...(fields && { environment: fields }) }, ok: true, ...(collect && { rest }) };
+  // The fields visited at both ends, by name, for the Checked line ("light at both ends").
+  const environmentFields = [...new Set(tried.filter((s) => s.part === 'environment').map((s) => s.field))];
+  return { hazards, doubts: doubts.filter((d) => !hazards.some((h) => hazardKey(h) === hazardKey(d))), states: { checked: tried.length, total: all.length, controls, outputs: outputs.pins.length, ...(fields && { environment: fields }) }, ok: true, ...(environmentFields.length && { environmentFields }), ...(collect && { rest }) };
 }
 
 // A circuit that declares no environment still has sensors that read one (an LDR's light, a
@@ -279,7 +281,8 @@ function wired(program, d) {
 }
 
 // What the hazard check covered and what it could not, for the answer's "Checked" line (review.js):
-// { rest, controls, outputs, notChecked: [code…], skipped?, unsimulated? }. The codes, only those
+// { rest, controls, outputs, environment?, fields? (the environment's fields visited at both ends),
+// notChecked: [code…], skipped?, unsimulated? }. The codes, only those
 // that apply to this circuit:
 //   switching     something switches in time (a board's program, a 555, a generator): its peaks
 //   combinations  two or more controls and outputs: each was operated alone
@@ -309,7 +312,7 @@ export function coverageOf(compiled, result, doubts = []) {
   if (unsimulated.length) notChecked.push('unsimulated');
   const programs = [...new Set(doubts.filter((d) => d.code.startsWith('SIM_PROGRAM_')).map((d) => String(d.params.part)))];
   if (programs.length) notChecked.push('program');
-  return { rest: true, controls, outputs, ...(environment && { environment }), notChecked, ...(checked < total && { skipped: total - checked }), ...(unsimulated.length && { unsimulated }), ...(programs.length && { programs }) };
+  return { rest: true, controls, outputs, ...(environment && { environment }), ...(result.environmentFields && { fields: result.environmentFields }), notChecked, ...(checked < total && { skipped: total - checked }), ...(unsimulated.length && { unsimulated }), ...(programs.length && { programs }) };
 }
 
 // A part that reads the world by its own value when the circuit declares no environment (an LDR's
