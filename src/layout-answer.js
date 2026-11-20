@@ -79,8 +79,11 @@ function readingsOf(circuit) {
   const sources = Object.entries(r.supplies ?? {}).map(([id, s]) => ({ id, kind: s.kind === 'battery' ? 'battery' : 'supply', voltage: s.voltage, current: s.current }));
   const leds = [];
   const others = [];
+  // A battery part is also one of the supplies the simulation reports: each source is said once.
+  const listed = new Set(sources.map((s) => s.id));
   for (const [id, p] of Object.entries(r.parts ?? {})) {
-    if (p.kind === 'BAT') sources.push({ id, kind: 'battery', voltage: p.on ? p.voltage : 0, current: p.on ? p.current : 0, ...(!p.on && { off: true }) });
+    if (p.kind === 'BAT' && listed.has(id)) sources.splice(sources.findIndex((s) => s.id === id), 1);
+    if (p.kind === 'BAT') sources.push({ id, kind: 'battery', part: true, voltage: p.on ? p.voltage : 0, current: p.on ? p.current : 0, ...(!p.on && { off: true }) });
     else if (p.kind === 'MCU' && p.usb) sources.push({ id, kind: 'usb', voltage: p.usb.voltage, current: p.usb.current });
     else if (LOADS[p.kind]) {
       const current = Math.abs(p.current ?? 0);
@@ -217,7 +220,8 @@ export function formatExtras(r, lang, t) {
   if (r.readings) {
     const { sources, parts } = r.readings;
     const many = sources.length > 1;
-    const source = (s) => (s.kind === 'usb' ? `${s.id} USB ${f(s.voltage, 'V')}` : `${t(lang, `layout.readings.${s.kind}`)}${many ? ` ${s.id}` : ''} ${s.off ? t(lang, 'sim.battery.off') : f(s.voltage, 'V')}`);
+    // A drawn battery is named by its id (BT1), as the parts are; a bench supply only when there are several.
+    const source = (s) => (s.kind === 'usb' ? `${s.id} USB ${f(s.voltage, 'V')}` : `${t(lang, `layout.readings.${s.kind}`)}${many || s.part ? ` ${s.id}` : ''} ${s.off ? t(lang, 'sim.battery.off') : f(s.voltage, 'V')}`);
     const load = (p) => `${p.id} ${p.off ? '0 mA' : f(p.current, 'A')}${p.brightness != null ? `, ${t(lang, 'sim.brightness', { percent: Math.round(p.brightness * 100) })}` : ''}`;
     const items = [...sources.map(source), ...parts.slice(0, SHOWN_LOADS).map(load)];
     if (parts.length > SHOWN_LOADS) items.push(t(lang, 'layout.readings.more', { count: parts.length - SHOWN_LOADS }));
