@@ -245,7 +245,8 @@ export function createRunner(js, board) {
       available: () => 0,
       read: () => -1,
     },
-    __int: (x) => (Number.isFinite(x) ? Math.trunc(x) : 0),
+    // A comparison is a bool, which C++ turns into 1 or 0 (int pressed = digitalRead(2) == LOW).
+    __int: (x) => (typeof x === 'boolean' ? Number(x) : Number.isFinite(x) ? Math.trunc(x) : 0),
     __missing: () => 0,
     // An index is always a whole number, so a[i] can never name a property ("constructor").
     __idx: (i) => (Number.isFinite(Number(i)) ? Math.trunc(Number(i)) : 0),
