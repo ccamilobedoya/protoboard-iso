@@ -10,9 +10,9 @@ import { autoLayout } from '../src/layout.js';
 import { expandRecipe } from '../src/recipes/index.js';
 
 const codes = (issues) => issues.map((i) => i.code);
-const laid = (spec) => {
+const laid = (spec, status = 'done') => {
   const r = autoLayout({ board: 'auto', ...spec });
-  assert.equal(r.status, 'done');
+  assert.equal(r.status, status);
   return r.circuit;
 };
 const withIo = (circuit, id, io, extra = {}) => ({ ...circuit, parts: circuit.parts.map((p) => (p.id === id ? { ...p, program: undefined, ...extra, io } : p)) });
@@ -69,7 +69,7 @@ test('5 V on an ESP32 pin: its protection diodes conduct, and the page says so',
       { id: 'R1', type: 'resistor', value: '1k' },
     ],
     nets: [['U1.VIN', 'R1.1'], ['R1.2', 'U1.D13']],
-  });
+  }, 'warnings'); // the over-voltage is a warning of the simulation: told before saying it works
   const r = simulate(circuit);
   assert.ok(r.ok, JSON.stringify(r.issues));
   assert.ok(codes(r.issues).includes('SIM_PIN_OVERVOLTAGE'), JSON.stringify(r.issues));

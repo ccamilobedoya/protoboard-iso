@@ -32,7 +32,7 @@ import { suggest } from './query.js';
 import { applyOps } from './ops.js';
 import { buildCircuit } from './circuit/build.js';
 import { problemKey } from './diff.js';
-import { review, formatHazards } from './review.js';
+import { review, formatHazards, simulationOf, verdictOf } from './review.js';
 import { hazardFix, specWithFix } from './fix.js';
 import { answerExtras, formatExtras } from './layout-answer.js';
 import { solveGoals } from './recipes/solve.js';
@@ -419,16 +419,25 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   // layout's own jumpers, so layout can run again on it and review can check the connections.
   const ids = new Set(spec.parts.map((p) => p.id));
   const circuit = { ...best.circuit, spec: { ...asked, wires: best.circuit.parts.filter((p) => p.type === 'wire' && !ids.has(p.id)).map((p) => p.id) } };
+  // The simulation's part of the review again, once, on the circuit kept and seen from its folder:
+  // a board's .ino file is read from there (the tries had no folder), so its hazards and doubts are
+  // the ones every later review gives.
+  const where = folder ?? previous?.[CIRCUIT_FOLDER];
+  const seen = where ? Object.defineProperty({ ...circuit }, CIRCUIT_FOLDER, { value: where, enumerable: false }) : circuit;
+  const sim = simulationOf(seen, new Set(circuit.parts.map((p) => p.id)), best.review.blocking);
+  const { hazardStates, ...plain } = best.review;
+  best = { ...best, review: { ...plain, verdict: verdictOf(plain.blocking, sim.hazards, sim.doubts), hazards: sim.hazards, doubts: sim.doubts, checked: sim.checked, ...(sim.states.total && { hazardStates: sim.states }), summary: { ...plain.summary, hazards: sim.hazards.length, doubts: sim.doubts.length } } };
   // One verdict for the whole answer: the nets, the placement problems and the review together,
   // so a caller that reads only the last line cannot take "review approved" for done.
-  // A part that would be damaged as wired is neither a fix to make nor a plain success: its own status.
-  const status = !best.check.ok || best.review.verdict === 'changes' || best.problems.length ? 'changes' : best.review.hazards.length ? 'warnings' : 'done';
+  // A part that would be damaged as wired, or something the kit could not check (a doubt: a part
+  // not simulated, a program it cannot run), is neither a fix to make nor a plain success: WARNINGS.
+  const status = !best.check.ok || best.review.verdict === 'changes' || best.problems.length ? 'changes' : best.review.hazards.length || best.review.doubts.length ? 'warnings' : 'done';
   // A built circuit's answer also carries its readings, its programs and what its recipe lets
   // change (layout-answer.js), so one call says everything the reply needs.
   // The advisory only when nothing burns (a hazard already says what is wrong) and no goal was
   // given (the Solved line says everything).
   // The fix of its hazards (src/fix.js), once, on the circuit kept: the tries did not search for one.
-  if (best.review.hazards.length) best = { ...best, review: { ...best.review, ...hazardFix(circuit, best.review.hazards) } };
+  if (best.review.hazards.length) best = { ...best, review: { ...best.review, ...hazardFix(seen, sim.raw) } };
   const extras = status === 'changes' ? {} : answerExtras(circuit, { folder: folder ?? previous?.[CIRCUIT_FOLDER], lang: lang ?? spec.lang, advise: status === 'done' && !spec.goals?.length });
   return { ...best, circuit, notes: [...notes, ...(best.notes ?? [])], status, tries, ...extras, ms: Date.now() - started };
 }
@@ -1287,15 +1296,26 @@ export function formatLayout(r, lang, { t, formatIssue }) {
   for (const b of blocking) lines.push(`  ✖ ${formatIssue(b, lang)}${b.views ? ` [${b.views.join(', ')}]` : ''}`);
   // The Checked line only for a circuit built (DONE or WARNINGS): one left to fix is not the answer yet.
   lines.push(...formatHazards(r.review, lang, formatIssue, t, { checked: r.status !== 'changes' }));
+  // Parts hard to see in every view: information, one line each (review.js hidden).
+  for (const h of r.review.hidden ?? []) lines.push(t(lang, h.by.length ? 'layout.hidden' : 'layout.hiddenAlone', { part: h.part, visible: h.visible, by: h.by.join(', ') }));
   lines.push(...formatExtras(r, lang, t));
   const open = r.problems.length + r.check.missing.length + r.check.shorted.length + blocking.length;
+  const doubts = r.review.doubts ?? [];
+  const warned = r.review.hazards.length + doubts.length;
   // A trial (layout --dry-run, the MCP tool's dry_run): the same answer, and nothing was written.
   if (r.applied) lines.push(appliedLine(r.applied, lang, t));
   if (r.trial) lines.push(t(lang, 'layout.trial'));
   // A trial that ends CHANGES created nothing: its own words, not "the circuit was created".
   const said = r.trial && r.status === 'changes' ? 'layout.trialChanges' : `layout.status.${r.status}`;
-  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, said, { count: open, hazards: r.review.hazards.length })}`);
+  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, warningsKey(r, said), { count: r.status === 'warnings' ? warned : open, hazards: r.review.hazards.length, doubts: doubts.length })}`);
   return lines.join('\n');
+}
+
+// WARNINGS in its words: only hazards keep the words about damage and the kit's fix; doubts, or
+// both, say that each ⚠ point is told to the user first.
+function warningsKey(r, said) {
+  if (r.status !== 'warnings' || !r.review.doubts?.length) return said;
+  return r.review.hazards.length ? 'layout.statusBoth' : 'layout.statusDoubts';
 }
 
 // "Applied the fix: R3 = 200 Ω in series with BZ1." (layout --fix)

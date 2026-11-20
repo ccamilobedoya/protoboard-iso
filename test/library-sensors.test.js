@@ -20,8 +20,9 @@ const codes = (issues) => issues.map((i) => i.code);
 // is called when the simulated time reaches that second.
 function bench(spec) {
   const laid = autoLayout(spec);
-  // Laid out (a part hidden behind another, 'changes', does not change what it simulates).
-  assert.ok(['done', 'changes'].includes(laid.status), JSON.stringify(laid.issues));
+  // Laid out (a part hidden behind another, 'changes', does not change what it simulates; these
+  // circuits are wrong on purpose, so the simulation's warnings make them 'warnings').
+  assert.ok(['done', 'warnings', 'changes'].includes(laid.status), JSON.stringify(laid.issues));
   const engine = createEngine(compile(laid.circuit).program);
   assert.ok(engine.start('dc', 1e-3));
   return { circuit: laid.circuit, engine };

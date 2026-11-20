@@ -31,7 +31,8 @@ function pirEngine(part = {}, load = '10k', volts = 5) {
     environment: { motion: false },
   };
   const r = autoLayout(spec);
-  assert.equal(r.status, 'done', JSON.stringify(r.problems));
+  // Outside its 4.5…20 V the module is not guaranteed to work: a doubt, so WARNINGS.
+  assert.equal(r.status, volts >= 4.5 && volts <= 20 ? 'done' : 'warnings', JSON.stringify(r.problems));
   return createEngine(compile(r.circuit).program);
 }
 

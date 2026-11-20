@@ -36,7 +36,9 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
   approves. A part over its limit is a hazard (`review` lists it, verdict APPROVED WITH WARNINGS):
   it does not block and is not a fix round; report it prominently, naming part, value, limit and
   state, with the kit's `To fix it` line as the proposed fix (or that it has none), and
-  `Verdict: WARNINGS`. Otherwise report warnings only, **never values** (a value may be waiting
+  `Verdict: WARNINGS`. A doubt (`doubts`, under `The kit could not check this`: a part not
+  simulated, a program the kit cannot run) is the same verdict: report each one, never "it works".
+  Otherwise report warnings only, **never values** (a value may be waiting
   for a learner's prediction).
 - Keep advisory notes short: at most five, the most useful first.
 

@@ -123,7 +123,9 @@ test('voltage sensor: 25 V with S on a 3.3 V board\'s pin is the board\'s over-v
     nets: [['T+', 'U1.VIN'], ['U1.GND', 'U1.-', 'U2.GND', 'T-'], ['U1.S', 'U2.D34']],
     supplies: [{ id: 'V1', kind: 'bench', voltage: 25, positive: 'T+', negative: 'T-' }],
   });
-  assert.equal(r.status, 'done', JSON.stringify(r.problems));
+  // Built; the over-voltage the simulation warns about is told before saying it works (a doubt).
+  assert.equal(r.status, 'warnings', JSON.stringify(r.problems));
+  assert.ok(r.review.doubts.some((d) => d.code === 'SIM_PIN_OVERVOLTAGE'), JSON.stringify(r.review.doubts));
   const s = simulate(r.circuit);
   assert.ok(s.ok, JSON.stringify(s.issues));
   assert.ok(s.parts.U1.vs > 3.6, `S is held up to the board's clamp: ${s.parts.U1.vs}`);

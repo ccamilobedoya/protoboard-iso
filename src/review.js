@@ -6,7 +6,7 @@
 //   lesson  for teaching layouts: nothing hidden, no label trouble, parts not cramped
 //   draft   only errors and warnings block
 //
-// review(circuit, { profile, views, explain, fix }) → { verdict: 'approved' | 'approved-with-warnings' | 'changes', blocking, hazards, hazardStates?, fix?, noFix?, checked, advisory, summary }
+// review(circuit, { profile, views, explain, fix }) → { verdict: 'approved' | 'approved-with-warnings' | 'changes', blocking, hazards, doubts, hazardStates?, fix?, noFix?, checked, hidden, advisory, summary }
 // `hazards`: parts the simulator's DC point (the one `simulate` prints) takes past a maximum, as
 // wired, at rest, with one control operated or with one output of a board's program high (`when`: a
 // button pressed, a switch moved, a potentiometer at an end, "with D10 high"; sim/index.js
@@ -19,10 +19,21 @@
 // keeps). `checked` (sim/index.js coverageOf): what the hazard check covered and what it could not.
 // Each blocking item names the parts it is about (`parts`) and the views it shows in (`views`), so
 // the fix is clear without another inspect; `explain` adds the profile's rules (`rules`).
+// `doubts` (sim/index.js doubtsOf): what the kit could not tell, the other kind of ⚠ beside the
+// hazards: a part wired in with no simulation model, a board's program the kit cannot run as
+// written (a file not found, a syntax error, a call it does not know, a loop that never lets time
+// pass), any other warning the simulation gives that is not a hazard or already blocking. They never
+// block either; one of them is enough for approved-with-warnings: the verdict says "the kit checked
+// it and found nothing to tell" only when that is true. A board's program file is looked for in the
+// circuit's folder (beside.js): its doubt carries `folder`, where the kit looked.
+// `hidden`: the parts (not jumpers) under HARD_TO_SEE % visible in every view reviewed, each with
+// its best view's share and the parts that cover it (layout's answer says them; information only).
 
 import { evaluate } from './diff.js';
 import { checkNets } from './nets.js';
 import { checkHazards } from './sim/index.js';
+import { resolve } from 'node:path';
+import { CIRCUIT_FOLDER } from './beside.js';
 import { hazardFix } from './fix.js';
 import { formatValue } from './core/units.js';
 import { decimalSeparator } from './i18n/index.js';
@@ -113,9 +124,10 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
     for (const s of nets.shorted) once(blocking, { severity: 'error', code: 'SPEC_NETS_SHORTED', params: { nets: s.nets.join(' + ') } });
   }
 
-  // Electrical hazards: the simulator's own "exceeded its maximum" findings, on any profile.
-  const simulated = checkHazards(circuit);
-  const hazards = simulated.hazards.map((h) => ({ ...h, parts: partsOf(h, ids) }));
+  // Electrical hazards: the simulator's own "exceeded its maximum" findings, on any profile; and
+  // what it could not tell (doubts), unless it is already a blocking item.
+  const simulated = simulationOf(circuit, ids, blocking);
+  const { hazards, doubts } = simulated;
 
   for (const p of blocking) {
     p.parts = partsOf(p, ids);
@@ -126,20 +138,62 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
     profile,
     views,
     ...(explain && { rules: { blocks: ['error', 'warning', ...policy.block], hiddenEverywhere: policy.hiddenEverywhere, hiddenBelow: policy.hiddenBelow, advise: policy.advise ?? 'everything else' } }),
-    verdict: blocking.length ? 'changes' : hazards.length ? 'approved-with-warnings' : 'approved',
+    verdict: verdictOf(blocking, hazards, doubts),
     blocking,
     hazards,
+    doubts,
     ...(simulated.states.total && { hazardStates: simulated.states }),
-    ...(fix && hazards.length && hazardFix(circuit, simulated.hazards)),
+    ...(fix && hazards.length && hazardFix(circuit, simulated.raw)),
     checked: simulated.checked,
+    hidden: hiddenParts(circuit, views, hiddenIn),
     advisory,
-    summary: { parts: circuit.parts?.length ?? 0, blocking: blocking.length, hazards: hazards.length, advisory: advisory.length },
+    summary: { parts: circuit.parts?.length ?? 0, blocking: blocking.length, hazards: hazards.length, doubts: doubts.length, advisory: advisory.length },
   };
 }
 
+export const verdictOf = (blocking, hazards, doubts) => (blocking.length ? 'changes' : hazards.length || doubts.length ? 'approved-with-warnings' : 'approved');
+
+// The simulation's part of a review: { hazards, raw (the hazards as checkHazards gave them, for
+// fix.js), doubts, states, checked }, each hazard and doubt with the parts it names. A doubt that is
+// already a blocking item (the same code and params) is not said twice. Layout calls it again on the
+// circuit it keeps, with its folder (a board's .ino file is read from there).
+export function simulationOf(circuit, ids = new Set((circuit.parts ?? []).map((p) => p.id)), blocking = []) {
+  const simulated = checkHazards(circuit);
+  const blocked = new Set(blocking.map((b) => `${b.code} ${JSON.stringify(b.params)}`));
+  const folder = circuit[CIRCUIT_FOLDER];
+  const doubts = simulated.doubts
+    .filter((d) => !blocked.has(`${d.code} ${JSON.stringify(d.params)}`))
+    .map((d) => {
+      // A program file not found: where the kit looked (the circuit's folder), or that it has none.
+      if (d.code === 'SIM_PROGRAM_FILE') return { ...d, params: { ...d.params, ...(folder ? { folder: resolve(String(folder)), variant: 'folder' } : { variant: 'noFolder' }) }, parts: partsOf(d, ids) };
+      return { ...d, parts: partsOf(d, ids) };
+    });
+  return { hazards: simulated.hazards.map((h) => ({ ...h, parts: partsOf(h, ids) })), raw: simulated.hazards, doubts, states: simulated.states, checked: simulated.checked };
+}
+
+// Under this share (percent) in its best view, a part is hard to see: layout's answer says so.
+export const HARD_TO_SEE = 50;
+
+// Parts (not jumpers) under HARD_TO_SEE % visible in every view: { part, visible (its best view),
+// by: [parts that cover it] }, from the PART_HIDDEN problems by view.
+function hiddenParts(circuit, views, hiddenIn) {
+  const types = new Map((circuit.parts ?? []).map((p) => [p.id, p.type]));
+  const out = [];
+  for (const [part, all] of hiddenIn) {
+    if (types.get(part) === 'wire') continue;
+    const shown = (v) => Math.min(100, ...all.filter((x) => (x.view ?? views[0]) === v).map((x) => x.params.visible));
+    const visible = Math.max(...views.map(shown));
+    if (!(visible < HARD_TO_SEE)) continue;
+    const by = [...new Set(all.flatMap((x) => String(x.params.by ?? '').split(/,\s*/)).filter(Boolean))];
+    out.push({ part, visible, by });
+  }
+  return out;
+}
+
 export function formatReview(r, lang, { t, formatIssue }) {
-  const headline = { approved: 'review.approved', 'approved-with-warnings': 'review.warnings', changes: 'review.changes' }[r.verdict];
-  const lines = [t(lang, headline, { profile: r.profile, views: r.views.join(', '), ...r.summary })];
+  const warnings = r.doubts?.length ? (r.hazards?.length ? 'review.warningsBoth' : 'review.warningsDoubts') : 'review.warnings';
+  const headline = { approved: 'review.approved', 'approved-with-warnings': warnings, changes: 'review.changes' }[r.verdict];
+  const lines = [t(lang, headline, { profile: r.profile, views: r.views.join(', '), doubts: 0, ...r.summary })];
   if (r.rules) {
     const codes = r.rules.blocks.filter((c) => c !== 'error' && c !== 'warning');
     lines.push(t(lang, 'review.rules', { codes: codes.join(', ') || '—' }));
@@ -161,7 +215,7 @@ export function formatReview(r, lang, { t, formatIssue }) {
 }
 
 // The hazards as lines (also layout's): what would be damaged, the kit's fix (or that it has none),
-// what to do about it; when the circuit had more states than were solved, how many were; and,
+// what to do about it; then the doubts under their own heading (what the kit could not tell); when the circuit had more states than were solved, how many were; and,
 // unless `checked` is false (a layout that left something to fix), the Checked line.
 export function formatHazards(r, lang, formatIssue, t, { checked = true } = {}) {
   const lines = [];
@@ -170,6 +224,11 @@ export function formatHazards(r, lang, formatIssue, t, { checked = true } = {}) 
     if (r.fix) lines.push(fixLine(r.fix, lang, t));
     else if (r.noFix) lines.push(t(lang, 'review.noFix'));
     lines.push(t(lang, 'review.hazardsAdvice'));
+  }
+  // What the kit could not tell: the other kind of ⚠, under its own heading.
+  if (r.doubts?.length) {
+    lines.push(t(lang, 'review.doubts'), ...r.doubts.map((d) => `  ⚠ ${formatIssue(d, lang)}`));
+    lines.push(t(lang, 'review.doubtsAdvice'));
   }
   const states = r.hazardStates;
   if (states && states.checked < states.total) lines.push(t(lang, 'review.hazardsUnchecked', states));
@@ -200,6 +259,8 @@ function checkedLine(c, lang, t) {
   if (c.controls) done.push(t(lang, `review.checked.controls.${c.controls === 1 ? 'one' : 'many'}`, { count: c.controls }));
   if (c.outputs) done.push(t(lang, `review.checked.outputs.${c.outputs === 1 ? 'one' : 'many'}`, { count: c.outputs }));
   const which = c.controls && c.outputs ? 'both' : c.outputs ? 'outputs' : 'controls';
-  const open = c.notChecked.map((code) => t(lang, `review.notChecked.${code === 'combinations' ? `combinations.${which}` : code}`, { count: c.skipped ?? 0, parts: (c.unsimulated ?? []).join(', ') }));
+  const many = (list) => ((list ?? []).length === 1 ? 'one' : 'many');
+  const key = (code) => (code === 'combinations' ? `combinations.${which}` : code === 'unsimulated' ? `unsimulated.${many(c.unsimulated)}` : code === 'program' ? `program.${many(c.programs)}` : code);
+  const open = c.notChecked.map((code) => t(lang, `review.notChecked.${key(code)}`, { count: c.skipped ?? 0, parts: (c.unsimulated ?? []).join(', '), programs: (c.programs ?? []).join(', ') }));
   return t(lang, 'review.checked', { done: done.join(', ') || t(lang, 'review.checked.nothing'), open: open.join(', ') || t(lang, 'review.notChecked.none') });
 }
