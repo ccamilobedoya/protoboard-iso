@@ -22,7 +22,8 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
 - **Measurements decide**, not taste: the verdict is the `review` verdict for the profile.
   Do not ask for pictures; `inspect` answers placement, visibility and label questions.
 - Every blocking item gets a **concrete fix**: operations that you have dry-run and that
-  remove the item without introducing errors or warnings. Use `suggest` and `query` to find
+  remove the item without introducing errors or warnings (`apply_ops` saves a readable change
+  even when it adds errors: never propose one the dry run did not clear). Use `suggest` and `query` to find
   them; do not compute holes yourself.
 - Also check the brief's intent against the connections: one `netlist` call gives every net
   with its pins (groups joined by wires, `R1.2@h17`); compare it with what the brief names (for
@@ -36,8 +37,15 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
   approves. A part over its limit is a hazard (`review` lists it, verdict APPROVED WITH WARNINGS):
   it does not block and is not a fix round; report it prominently, naming part, value, limit and
   state, with the kit's `To fix it` line as the proposed fix (or that it has none), and
-  `Verdict: WARNINGS`. A doubt (`doubts`, under `The kit could not check this`: a part not
-  simulated, a program the kit cannot run) is the same verdict: report each one, never "it works".
+  `Verdict: WARNINGS`. A doubt (`doubts`, under `The kit cannot confirm these work`: a part not
+  simulated, a program that does not run, stops, gets stuck or calls a function the kit does not
+  know, a relay that may not pull in, a button across joined pins, a pin over its voltage) is the
+  same verdict: report each one as written, never "it works".
+- With a program, a sensor or an oscillator, check what the brief says it does: `simulate` with
+  `run_s` and the brief's conditions (`environment`, `set`, `press`, `at`; CLI `simulate --run`).
+  An output that does not do what the brief says (an LED that stays off at the distance it should
+  light) is blocking, named with the run's line; behaviour (on/off, frequency, Serial lines) is not
+  a value a learner predicts.
   Otherwise report warnings only, **never values** (a value may be waiting
   for a learner's prediction).
 - Keep advisory notes short: at most five, the most useful first.

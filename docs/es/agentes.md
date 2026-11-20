@@ -24,10 +24,22 @@ esto.»), y la conversación principal se lo dice al usuario, porque quemar un c
 lección. Un arreglo pedido es esa línea, que el kit aplica en una llamada (`layout` con `fix: true`;
 en la consola `layout <objetivo> --fix`); cualquier otra idea se ensaya antes con el `dry_run` de
 `layout` (sin guardar nada) y se aplica solo si el ensayo termina en `DONE`. El mismo veredicto llega
-con **dudas** (`doubts`: lo que el kit no pudo comprobar, un componente sin simular, un programa que no
-puede correr, cualquier aviso de la simulación; [simulacion.md](simulacion.md#lo-que-no-pudo-saber-dudas)):
+con **dudas** (`doubts`, bajo «El kit no puede confirmar que esto funcione»: lo que el kit no pudo
+comprobar o encontró que puede no funcionar, un componente sin simular, un programa que no corre, se
+detiene o llama una función que el kit no conoce, un relé que puede no cerrar, un pulsador entre patas
+unidas, cualquier aviso de la simulación; [simulacion.md](simulacion.md#lo-que-no-pudo-saber-dudas)):
 el agente reporta cada una y nunca dice que el circuito funciona; `DONE` y `APPROVED` significan que el
-kit lo revisó y no encontró nada que decir.
+kit lo revisó y no encontró nada que decir. En un circuito con programa, sensor u oscilador, los
+agentes de montaje y de revisión además lo corren con las condiciones del encargo (`simulate` con
+`run_s`, `environment`, `set`, `press`, `at`; en la consola `simulate --run`) y reportan lo que
+hicieron las salidas, tal como se imprimió; una salida que no hace lo que dice el encargo queda
+abierta, no terminada. El `.ino` de una placa va en la carpeta del circuito, junto a `circuit.json`.
+«Too large for one board» de `layout` (`FIX_SPEC`) se reporta como `BLOCKED` (hay que partir el
+circuito), y una búsqueda que se detuvo en su presupuesto se intenta una vez con más `budget_s` o se
+reporta: la misma llamada da la misma respuesta. `apply_ops` rechaza lo que no puede leer y guarda un
+cambio legible que agrega errores, diciéndolo: los agentes aplican solo un cambio que el ensayo dejó
+limpio. El bibliotecario de componentes reescribe `references/parts.md` de la habilidad (`npm run
+parts-reference -- --write`) con cada componente nuevo.
 
 ```bash
 node bin/protoboard-iso.js review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]

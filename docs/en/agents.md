@@ -23,10 +23,21 @@ kit's computed fix (`To fix it: …`, or "The kit has no computed fix for this."
 conversation tells the user, since burning a part can be the lesson. A fix asked for is that line,
 applied by the kit in one call (`layout` with `fix: true`; CLI `layout <target> --fix`); any other
 idea is tried first with `layout`'s `dry_run` (nothing saved) and applied only when the trial ends
-`DONE`. The same verdict comes with **doubts** (`doubts`: what the kit could not check, a part not
-simulated, a program it cannot run, any warning of the simulation; [simulation.md](simulation.md#what-it-could-not-tell-doubts)):
+`DONE`. The same verdict comes with **doubts** (`doubts`, under "The kit cannot confirm these
+work": what the kit could not check or found may not work, a part not simulated, a program that
+does not run, stops or calls a function the kit does not know, a relay that may not pull in, a button
+across joined pins, any warning of the simulation; [simulation.md](simulation.md#what-it-could-not-tell-doubts)):
 the agent reports each one and never says the circuit works; `DONE` and `APPROVED` mean the kit
-checked it and found nothing to tell.
+checked it and found nothing to tell. For a circuit with a program, a sensor or an oscillator, the
+layout and review agents also run it with the brief's conditions (`simulate` with `run_s`,
+`environment`, `set`, `press`, `at`; CLI `simulate --run`) and report what the outputs did, as
+printed; an output that does not do what the brief says is open, not done. A board's `.ino` goes in
+the circuit's folder, beside `circuit.json`. `layout`'s "Too large for one board" (`FIX_SPEC`) is
+reported as `BLOCKED` (the circuit must be split), and a search stopped at its budget is tried once
+with a larger `budget_s` or reported: the same call gives the same answer. `apply_ops` refuses input
+it cannot read and saves a readable change that adds errors, saying so: agents apply only a diff the
+dry run cleared. The parts librarian rewrites the skill's `references/parts.md` (`npm run
+parts-reference -- --write`) with every new part.
 
 ```bash
 node bin/protoboard-iso.js review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]

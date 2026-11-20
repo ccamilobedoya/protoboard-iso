@@ -30,7 +30,7 @@ brief** and return a short **layout report**. You do not talk to the end user.
    sensor recipes carry the `environment` and its page control). `catalog` with the recipe's name
    gives its ids and limits when the brief's values need them. A changed value on a recipe circuit: `layout` again with the recipe, the new values and
    `expect_revision`. Then step 2.
-1. Call `layout` once. **No `catalog` before it**: it checks every name and pin itself.
+1. Call `layout` once. **No `catalog` before it** for names and pins: it checks them itself.
    - `target`: the brief's `Target`.
    - `parts`: no pins, any order (the order given is tried first). A part number, module or alias is enough:
      `{"id": "U1", "part": "7805"}`, `{"id": "S1", "part": "KCD1", "on": true}`,
@@ -42,9 +42,12 @@ brief** and return a short **layout report**. You do not talk to the end user.
      itself: no `supplies`. The brief's pin states go in its `io`: `{"id": "U1", "part":
      "ESP32-DEVKIT", "io": {"D13": "high", "D27": "input_pullup"}}` (`high`, `low`, `input`,
      `input_pullup`, `input_pulldown`); `simulate` warns about a pin name or state it does not know.
-     A brief with a program: `"program": "<name>.ino"` when the file is beside the circuit, else the
-     sketch's text as given; `simulate` reports a line it cannot read (`SIM_PROGRAM_ERROR`) or a
-     function it does not know. Never rewrite the learner's sketch.
+     A brief with a program: `"program": "<name>.ino"` when the file is in the circuit's folder,
+     beside `circuit.json` (put it there before `layout`: anywhere else it is not read, and the
+     answer says where the kit looked), else the sketch's text as given. A line the kit cannot read
+     or a function it does not know (`shiftOut`) is a ⚠ doubt. Never rewrite the learner's sketch.
+   - A part you have not used (a chip, a module): `catalog` with its name first only to see
+     whether it is simulated; one marked "Not simulated" is built anyway and ends `WARNINGS`.
    - `supplies` only for a bench supply (a pin may stand for its strip: `"positive": "D1.A"`). A
      battery the brief names ("4 × AA", "two 18650") is a part: `{"id": "BT1", "type": "battery",
      "format": "AA", "cells": 4}`, its `+` and `-` in the nets.
@@ -61,7 +64,9 @@ brief** and return a short **layout report**. You do not talk to the end user.
    - `DONE` → step 3.
    - `FIX_SPEC` → nothing was created. Fix **every** ✖ in your spec (each one lists the names it
      accepts) and call `layout` again, same target. If a part is unknown and none of the closest
-     names is it, stop: report it as missing.
+     names is it (or the line names only what the kit has near), stop: report it as missing.
+     "Too large for one board" is not fixed by trying again: report `BLOCKED` with its numbers (the
+     circuit must be split).
    - `WARNINGS` → the circuit is built and its nets are right, but the ⚠ lines say a part would be
      damaged as wired. It is not a fix round: do not change it, report it first and prominently
      (part, value, limit, the state such as `with D10 high`), with the kit's `To fix it` line (or
@@ -69,18 +74,25 @@ brief** and return a short **layout report**. You do not talk to the end user.
      The main conversation tells the user and decides. A fix asked for later is that line: `layout`
      with only `target` and `fix: true`, one call, one change; an idea of your own is tried first
      with `layout` and `dry_run: true` (nothing saved) and applied only when the trial ends `DONE`.
-     The ⚠ lines under `The kit could not check this` are doubts (a part not simulated, a program
-     the kit cannot run, a warning of the simulation): not a fix round either; report each one
-     first, as it is written, and never say the circuit works.
+     The ⚠ lines under `The kit cannot confirm these work` are doubts (a part not simulated, a
+     program that does not run or stops, a relay that may not pull in, a button across joined
+     pins, a warning of the simulation): not a fix round either; report each one first, as it is
+     written, and never say the circuit works.
    - `CHANGES` → the circuit exists. Fix only the ✖ items, with Path B steps 3 to 6. A ✖ saying a
      pin cannot be reached because a board covers its strip (`LAYOUT_PIN_COVERED`) has no fix by
      operations: name another pin with the same signal in the nets (`GND2` for `GND`) and call
      `layout` again, or report it. (With `board` left to `auto`, layout already moves such a board
-     to `double`, two boards side by side, and says so: `LAYOUT_DOUBLE_BOARD`.)
+     to `double`, two boards side by side, and says so: `LAYOUT_DOUBLE_BOARD`.) A ✖ saying the
+     search stopped at its budget: the same call gives the same answer; call once with a larger
+     `budget_s` (at most 300) or report it.
 3. Descriptions, if the brief asks for them: one `apply_ops` with `set` ops (dry run first).
 4. With a source: `simulate` once. Report only whether it runs and its warnings (short, over
    current, floating), **never values**: a value may be waiting for a learner's prediction. (A part
    past a maximum is already in `layout`'s answer as a hazard: report it as in `WARNINGS` above.)
+   With a program, a sensor or an oscillator, also `simulate` with `run_s` and the brief's
+   conditions (`environment`, `set`, `press`, `at`) and report what the outputs did (on, off,
+   frequency) and the Serial lines, as printed, under `Simulation:`. An output that does not do what
+   the brief says is `Open:`, not done.
 5. Report.
 
 ## Path B · operations (changes and fixes)
@@ -95,8 +107,9 @@ brief** and return a short **layout report**. You do not talk to the end user.
    freer strip. When nothing fits, `suggest` says why (`reasons`): act on the reason, never repeat
    the same call.
 4. `apply_ops` with `dry_run: true`, read the diff, then apply with `expect_revision`,
-   `author: "circuit-layout"` and a `note` that says why. A diff that introduces an error or a
-   warning is not applied: find another placement. On `REVISION_MISMATCH`, `get_circuit` and
+   `author: "circuit-layout"` and a `note` that says why. Apply only a diff that introduces no
+   error or warning: `apply_ops` saves a readable change even when it adds errors (it says so), and
+   refuses input it cannot read (nothing saved); after a bad save, `undo`. On `REVISION_MISMATCH`, `get_circuit` and
    `history` before retrying.
 5. `netlist` once: compare every net with the brief's connections; fix what differs.
 6. `review` with the brief's profile. While it says CHANGES, fix the blocking items (each names
@@ -132,14 +145,14 @@ brief** and return a short **layout report**. You do not talk to the end user.
 LAYOUT REPORT
 Target: <target> · revision <n>
 Done: <one line per part placed or changed: id, type/value, holes>
-Review: APPROVED | APPROVED WITH WARNINGS (<what would be damaged, value, limit>) | CHANGES (<n> blocking) · notes: <n>
-Simulation: runs, no warnings | <warnings> | no source
+Review: APPROVED | APPROVED WITH WARNINGS (<what would be damaged, value, limit; what the kit cannot confirm>) | CHANGES (<n> blocking) · notes: <n>
+Simulation: runs, no warnings | <warnings> | no source · run: <what the outputs did, as printed>
 Open: <what you could not do and why, or "nothing">
 STATUS: DONE | WARNINGS | CHANGES | BLOCKED
 ```
 
 The last line is always `STATUS:`: `DONE` when the review approves and nothing is open, `WARNINGS`
-when it approves but a part would be damaged as wired, `CHANGES`
+when it approves but a part would be damaged as wired or a ⚠ doubt is open, `CHANGES`
 when the review still blocks, `BLOCKED` when you could not build it (a missing part, a spec that
 does not read). `node scripts/report-status.js` checks it.
 
