@@ -503,6 +503,10 @@ in the log of `PLANNING.md`.
 - ✅ Status per decision (N09): every entry of the decision log in `PLANNING.md` (and `planeacion.md`) gets a status, and a replaced one says «replaced by N»; a test checks it. Today: entries have no status, so a reader cannot tell which ones still hold — done 2026-10-29: a status column in both logs (76 in force, 5 replaced in whole or in part), `test/decisions.test.js`
 - ✅ Index of the documents (N18): `docs/en/README.md` and `docs/es/README.md` with a generated block, one line per document (title and what it is for), and a step in `npm run verify` that fails when it is stale. Today: the README and the code map link documents, but nothing lists them all — done 2026-10-29: `docs/en/README.md`, `docs/es/README.md`, `scripts/docs-index.js`; the check lives in `test/docs.test.js` (part of `npm test`, so of `npm run verify`)
 
+## Trust: what DONE means (2026-11)
+
+- ✅ The command line never crashes, cuts its output or saves silently (C3): a missing, empty or malformed file is one or two lines and exit 1 (`STATUS: FIX_SPEC` for `layout`), an unexpected error is `internal error:` with exit 3 (no stack unless `PROTOBOARD_DEBUG=1`), output drains before the process ends and a closed pipe ends quietly, an empty spec is `FIX_SPEC`, `apply` refuses input the kit cannot read (nothing saved) and says in words when it saved a change that adds errors, one language per circuit, and `layout` on an existing circuit says it laid it out again
+
 ## Optional, later ⬜
 
 Ideas worth keeping, with no date. Pick them up after the stages above, or when a lesson

@@ -510,6 +510,10 @@ las decisiones en el registro de `PLANNING.md`.
 - ✅ Estado por decisión (N09): cada entrada del registro de decisiones de `PLANNING.md` (y `planeacion.md`) lleva un estado, y una reemplazada dice «reemplazada por N»; una prueba lo comprueba. Hoy: las entradas no tienen estado, y quien lee no sabe cuáles siguen en pie — hecho el 2026-10-29: una columna de estado en los dos registros (76 vigentes, 5 reemplazadas del todo o en parte), `test/decisions.test.js`
 - ✅ Índice de los documentos (N18): `docs/en/README.md` y `docs/es/README.md` con un bloque generado, una línea por documento (título y para qué sirve), y un paso de `npm run verify` que falla cuando queda viejo. Hoy: el README y el mapa del código enlazan documentos, pero nada los lista todos — hecho el 2026-10-29: `docs/en/README.md`, `docs/es/README.md`, `scripts/docs-index.js`; la comprobación vive en `test/docs.test.js` (parte de `npm test`, y así de `npm run verify`)
 
+## Confianza: qué significa «terminado» (2026-11)
+
+- ✅ La línea de comandos no se cae, no corta su salida ni guarda en silencio (C3): un archivo que falta, vacío o mal formado son una o dos líneas y salida 1 (`STATUS: FIX_SPEC` en `layout`), un error inesperado es `error interno:` con salida 3 (sin traza salvo `PROTOBOARD_DEBUG=1`), la salida se vacía antes de que termine el proceso y una tubería cerrada termina en silencio, una spec vacía es `FIX_SPEC`, `apply` rechaza lo que el kit no puede leer (no guarda nada) y dice con palabras cuando guardó un cambio que agrega errores, un idioma por circuito, y `layout` sobre un circuito existente dice que lo montó de nuevo
+
 ## Opcional, más adelante ⬜
 
 Ideas que vale la pena guardar, sin fecha. Se retoman después de las etapas de arriba, o

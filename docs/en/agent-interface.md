@@ -155,7 +155,10 @@ Layout, reviewer and parts librarian roles built on these tools: [agents.md](age
 | Code | Meaning |
 |---|---|
 | 0 | fine |
-| 1 | errors in the circuit, a refused change (`REVISION_MISMATCH`, bad operations), nothing to undo, or no placement found |
+| 1 | errors in the circuit, a refused change (`REVISION_MISMATCH`, bad operations, or a value, part, pin, field or hole the kit cannot read: nothing is saved), a file that is missing, empty or not JSON, nothing to undo, or no placement found |
 | 2 | `review` says CHANGES |
+| 3 | an internal error in the kit (`internal error: …`; report it with the command; `PROTOBOARD_DEBUG=1` shows the stack) |
+
+`apply` saves a change that is readable but wrong (a short, a collision) and says `Saved as revision N with K new error(s)`; `undo` takes it back.
 
 Every command that reports something also takes `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `nets`, `review`).

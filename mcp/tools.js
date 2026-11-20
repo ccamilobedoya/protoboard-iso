@@ -30,7 +30,7 @@ import {
 import { formatChange } from '../src/diff.js';
 import { queryAt, queryNode, queryFree, suggest, suggestMany } from '../src/query.js';
 import { formatAt, formatNode, formatFree, formatSuggest, formatSuggestMany } from '../src/query-format.js';
-import { resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget, relayoutTarget, writePage } from '../src/node/workspace.js';
+import { InputError, inputErrorText, resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget, relayoutTarget, writePage } from '../src/node/workspace.js';
 import { svgToPng, rasterAvailable, rasterSearchIn } from '../src/node/raster.js';
 import { review, formatReview, PROFILES } from '../src/review.js';
 import { simulate } from '../src/sim/index.js';
@@ -116,7 +116,9 @@ function safely(handler) {
     try {
       return await handler({ ...args, outputLang: args.lang, lang: pickLanguage(args.lang, circuitLang(args), DEFAULT_LANG) });
     } catch (e) {
-      return { isError: true, content: [{ type: 'text', text: e.message }] };
+      // A file that cannot be used is said in the person's language, as the command line says it.
+      const text = e instanceof InputError ? inputErrorText(e.issue, pickLanguage(args.lang, circuitLang(args), DEFAULT_LANG)) : e.message;
+      return { isError: true, content: [{ type: 'text', text }] };
     }
   };
 }
@@ -373,6 +375,7 @@ server.registerTool(
     if (!previous && (!parts || !nets)) return refuse('LAYOUT_NEEDS_SPEC');
     const spec = fixed ? fixed.spec : previous ? specFromCircuit(previous, given) : given;
     const out = pickLanguage(lang, spec.lang);
+    if (!Array.isArray(spec.parts) || !spec.parts.length) return { isError: true, content: [{ type: 'text', text: formatLayout(specProblems([{ severity: 'error', code: 'SPEC_EMPTY', params: {} }]), out, { t, formatIssue }) }] };
     const result = { ...autoLayout(spec, { checkOnly, previous, folder: dirname(paths.circuitFile), lang: out }), ...(fixed && { applied: fixed.applied }) };
     if (result.checked) return { ...(result.invalid && { isError: true }), content: [{ type: 'text', text: formatLayout(result, out, { t, formatIssue }) }] };
     // A trial: the same answer, nothing written and no board shown (as try_ops).
