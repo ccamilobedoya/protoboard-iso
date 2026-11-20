@@ -148,8 +148,15 @@ import { applyToTarget, undoTarget, readHistory } from 'protoboard-iso/workspace
    componente nuevo. Luego proponer un lote de operaciones; `apply --dry-run`.
 3. Si la diferencia no introduce nada indeseado, aplicar con `--expect-revision`, un autor y
    una nota que diga por qué.
-4. `review <objetivo>` hasta que diga APROBADO (perfiles en [agentes.md](agentes.md)). APROBADO CON AVISOS significa que el dibujo está bien pero un componente se dañaría tal como está conectado (`hazards`) o el kit no pudo comprobar algo (`doubts`: un componente sin simular, un programa que no puede correr): díselo al usuario y déjalo solo si esa es la idea. Si no, su línea `Para arreglarlo` es el arreglo, un cambio que el kit aplica solo si se le pide: `layout <objetivo> --fix` (MCP `fix: true`; en un circuito hecho con `layout`); si no la hay («El kit no tiene un arreglo calculado para esto.»), una idea propia se ensaya antes con `layout <objetivo> … --dry-run` (MCP `dry_run: true`: la respuesta entera, sin guardar nada) y se aplica solo si el ensayo termina en `DONE`.
-5. Nunca editar `circuit.json` a mano mientras otros trabajan en él, ni editar las salidas.
+4. `review <objetivo>` hasta que diga APROBADO (perfiles en [agentes.md](agentes.md)). APROBADO CON AVISOS significa que el dibujo está bien pero un componente se dañaría tal como está conectado (`hazards`) o el kit no puede confirmar que algo funcione (`doubts`, bajo «El kit no puede confirmar que esto funcione»: un componente sin simular, un programa que no corre o llama algo desconocido, un relé que puede no cerrar, un pulsador entre patas unidas): díselo al usuario y déjalo solo si esa es la idea. Si no, su línea `Para arreglarlo` es el arreglo, un cambio que el kit aplica solo si se le pide: `layout <objetivo> --fix` (MCP `fix: true`; en un circuito hecho con `layout`); si no la hay («El kit no tiene un arreglo calculado para esto.»), una idea propia se ensaya antes con `layout <objetivo> … --dry-run` (MCP `dry_run: true`: la respuesta entera, sin guardar nada) y se aplica solo si el ensayo termina en `DONE`.
+5. Un circuito con programa, sensor u oscilador: antes de decir que hace lo pedido, correrlo con
+   las condiciones del usuario, `simulate <objetivo> --run <segundos>` con `--env campo=valor`,
+   `--set ID=valor`, `--press ID@inicio+duración`, `--at tiempo:campo=valor` (MCP `simulate` con
+   `run_s`, `environment`, `set`, `press`, `at`), y citar lo que imprimió: el Serial del programa, la
+   parte del tiempo encendida de cada salida, su frecuencia ([simulacion.md](simulacion.md)). La
+   línea `Comportamiento, primeros 2 s` de `layout` es el circuito tal como está, sin el estímulo del
+   usuario.
+6. Nunca editar `circuit.json` a mano mientras otros trabajan en él, ni editar las salidas.
 
 ## Agentes
 
@@ -160,8 +167,8 @@ Los roles de montaje, revisor y bibliotecario, construidos sobre estas herramien
 | Código | Significado |
 |---|---|
 | 0 | todo bien |
-| 1 | errores en el circuito, un cambio rechazado (`REVISION_MISMATCH`, operaciones mal formadas, o un valor, pieza, pin, campo o agujero que el kit no puede leer: no se guarda nada), un archivo que falta, vacío o que no es JSON, nada que deshacer o ninguna posición encontrada |
-| 2 | `review` pide cambios |
+| 1 | un error de entrada (`layout`: `STATUS: FIX_SPEC`, no se crea nada), errores en el circuito, un cambio rechazado (`REVISION_MISMATCH`, operaciones mal formadas, o un valor, pieza, pin, campo o agujero que el kit no puede leer: no se guarda nada), un archivo que falta, vacío o que no es JSON, nada que deshacer o ninguna posición encontrada |
+| 2 | `review` pide cambios (`layout`: `STATUS: CHANGES`), o una opción que el comando no acepta o no puede leer (`--expect-revision abc`, `--lang fr`): la opción se nombra en la última línea |
 | 3 | un error interno del kit (`error interno: …`; repórtalo con el comando; `PROTOBOARD_DEBUG=1` muestra la traza) |
 
 `apply` guarda un cambio legible pero equivocado (un corto, una colisión) y dice `Guardado como revisión N con K error(es) nuevo(s)`; `undo` lo deshace.

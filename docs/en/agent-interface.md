@@ -143,8 +143,14 @@ import { applyToTarget, undoTarget, readHistory } from 'protoboard-iso/workspace
    goes. Then propose a batch of operations; `apply --dry-run`.
 3. If the diff introduces nothing unintended, apply with `--expect-revision`, an author and
    a note that says why.
-4. `review <target>` until it says APPROVED (see [agents.md](agents.md) for profiles). APPROVED WITH WARNINGS means the drawing is right but a part would be damaged as wired (`hazards`) or the kit could not check something (`doubts`: a part not simulated, a program it cannot run): tell the user each ⚠ first; for a hazard keep it only if that is the point. Otherwise its `To fix it` line is the fix, one change the kit applies itself on request: `layout <target> --fix` (MCP `fix: true`; on a circuit made by `layout`); with none ("The kit has no computed fix for this."), an idea of one's own is tried first with `layout <target> … --dry-run` (MCP `dry_run: true`: the whole answer, nothing saved) and applied only when the trial ends `DONE`.
-5. Never edit `circuit.json` by hand while others work on it, and never edit outputs.
+4. `review <target>` until it says APPROVED (see [agents.md](agents.md) for profiles). APPROVED WITH WARNINGS means the drawing is right but a part would be damaged as wired (`hazards`) or the kit cannot confirm something works (`doubts`, under "The kit cannot confirm these work": a part not simulated, a program that does not run or calls something unknown, a relay that may not pull in, a button across joined pins): tell the user each ⚠ first; for a hazard keep it only if that is the point. Otherwise its `To fix it` line is the fix, one change the kit applies itself on request: `layout <target> --fix` (MCP `fix: true`; on a circuit made by `layout`); with none ("The kit has no computed fix for this."), an idea of one's own is tried first with `layout <target> … --dry-run` (MCP `dry_run: true`: the whole answer, nothing saved) and applied only when the trial ends `DONE`.
+5. A circuit with a program, a sensor or an oscillator: before saying it does what was asked, run
+   it with the user's conditions, `simulate <target> --run <seconds>` with `--env field=value`,
+   `--set ID=value`, `--press ID@start+duration`, `--at time:field=value` (MCP `simulate` with
+   `run_s`, `environment`, `set`, `press`, `at`), and quote what it printed: the program's Serial,
+   each output's share of time on, its frequency ([simulation.md](simulation.md)). `layout`'s
+   `Behaviour, first 2 s` line is the circuit as it is, without the user's stimulus.
+6. Never edit `circuit.json` by hand while others work on it, and never edit outputs.
 
 ## Agents
 
@@ -155,8 +161,8 @@ Layout, reviewer and parts librarian roles built on these tools: [agents.md](age
 | Code | Meaning |
 |---|---|
 | 0 | fine |
-| 1 | errors in the circuit, a refused change (`REVISION_MISMATCH`, bad operations, or a value, part, pin, field or hole the kit cannot read: nothing is saved), a file that is missing, empty or not JSON, nothing to undo, or no placement found |
-| 2 | `review` says CHANGES |
+| 1 | an input mistake (`layout`: `STATUS: FIX_SPEC`, nothing created), errors in the circuit, a refused change (`REVISION_MISMATCH`, bad operations, or a value, part, pin, field or hole the kit cannot read: nothing is saved), a file that is missing, empty or not JSON, nothing to undo, or no placement found |
+| 2 | `review` says CHANGES (`layout`: `STATUS: CHANGES`), or an option the command does not take or cannot read (`--expect-revision abc`, `--lang fr`): the option is named on the last line |
 | 3 | an internal error in the kit (`internal error: …`; report it with the command; `PROTOBOARD_DEBUG=1` shows the stack) |
 
 `apply` saves a change that is readable but wrong (a short, a collision) and says `Saved as revision N with K new error(s)`; `undo` takes it back.

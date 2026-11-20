@@ -468,7 +468,7 @@ computed fix of the hazards (`To fix it: …`, or "The kit has no computed fix f
 
 ```text
 As wired, this would damage:
-  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA, with D10 high.
+  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA: the pin can be damaged, with D10 high.
 To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.4 mA (maximum 40 mA).
 Keep it if showing the failure is the point. Say so to the user before changing anything.
 Checked: at rest, 3 program outputs. Not checked: peaks while switching, combinations of program outputs.
@@ -515,7 +515,7 @@ Can change (layout with the recipe and values): R1 = 330 (current-limiting resis
   detector keeps its readings), and when the page hides the
   results (`page.simulation` or `page.results` false: a value a learner must predict first).
 - **Program** (`programs: [{ part, text, truncated, file?, omitted? }]`): each board's sketch as it
-  is stored (the text, or the `.ino` file beside the circuit, read only inside its folder), each line
+  is stored (the text, or the `.ino` file in the circuit's folder, beside `circuit.json`, read only there), each line
   indented two spaces. Past 80 lines or 4 000 characters, the first 40 lines and a line saying how
   many were left out and where the whole text is. Every line break a reader may see (`\r`, `\u2028`
   and the like) ends a line there too, so no line of a sketch can pass for the `STATUS:` line.
@@ -541,7 +541,7 @@ a caller (above all a small model) that reads only the last line knows what to d
 | `STATUS:` | Means | Next |
 |---|---|---|
 | `DONE` | every net is there, nothing failed to place, the review approves | report |
-| `WARNINGS` | built and the nets are right, but each ⚠ line above must be told to the user before saying it works: a part that would be damaged as wired (a hazard), or something the kit could not check (a doubt: a part not simulated, a program it cannot run, a warning of the simulation; [simulation.md](simulation.md#what-it-could-not-tell-doubts)); the review is approved with warnings | tell the user each one first, in plain words; keep the circuit as asked unless they want a change; for a hazard offer the kit's fix (`To fix it`), or with none try an idea with `--dry-run` first |
+| `WARNINGS` | built and the nets are right, but each ⚠ line above must be told to the user before saying it works: a part that would be damaged as wired (a hazard), or something the kit cannot confirm works (a doubt, under "The kit cannot confirm these work": a part not simulated, a program that does not run, a relay that may not pull in, a button across joined pins, a warning of the simulation; [simulation.md](simulation.md#what-it-could-not-tell-doubts)); the review is approved with warnings | tell the user each one first, in plain words; keep the circuit as asked unless they want a change; for a hazard offer the kit's fix (`To fix it`), or with none try an idea with `--dry-run` first |
 | `CHANGES` | created, but a net, a placement or the review left something (✖); in a trial nothing was created | fix only those, with `suggest` and `apply_ops`, then `review`; after a trial, try another idea or apply this one |
 | `FIX_SPEC` | nothing created: the spec has errors | fix every ✖ and call again |
 | `SPEC_OK` | `check_only`: the spec is consistent | call again without it |

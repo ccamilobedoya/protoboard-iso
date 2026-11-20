@@ -512,7 +512,7 @@ línea `Revisado`: lo que la revisión de peligros cubrió en este circuito y lo
 
 ```text
 Tal como está conectado, esto dañaría:
-  ⚠ aviso: Por U1.D10 pasan 88,3 mA, más que su máximo de 40 mA, con D10 en alto.
+  ⚠ aviso: Por U1.D10 pasan 88,3 mA, más que su máximo de 40 mA: el pin se puede dañar, con D10 en alto.
 Para arreglarlo: una resistencia de 200 Ω en serie con BZ1 deja el pin D10 de U1 en 19,4 mA (máximo 40 mA).
 Déjalo así si mostrar la falla es la idea. Díselo al usuario antes de cambiar nada.
 Revisado: en reposo, 3 salidas del programa. No revisado: picos al conmutar, combinaciones de salidas del programa.
@@ -561,7 +561,7 @@ Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitado
   los resultados (`page.simulation` o `page.results` en false: un valor que el aprendiz debe
   predecir primero).
 - **Programa** (`programs: [{ part, text, truncated, file?, omitted? }]`): el sketch de cada tarjeta
-  tal como está guardado (el texto, o el archivo `.ino` junto al circuito, leído solo dentro de su
+  tal como está guardado (el texto, o el archivo `.ino` en la carpeta del circuito, junto a `circuit.json`, leído solo dentro de su
   carpeta), cada línea con dos espacios de sangría. Pasadas 80 líneas o 4 000 caracteres, las
   primeras 40 líneas y una línea que dice cuántas se dejaron fuera y dónde está el texto completo.
   Todo salto de línea que pueda ver un lector (`\r`, `\u2028` y parecidos) termina ahí también una
@@ -589,7 +589,7 @@ quien lea solo la última línea (sobre todo un modelo pequeño) sabe qué hacer
 | `STATUS:` | Significa | Sigue |
 |---|---|---|
 | `DONE` | están todas las redes, nada quedó sin ubicar y la revisión aprueba | reportar |
-| `WARNINGS` | armado y con las redes bien, pero cada línea ⚠ de arriba hay que decírsela al usuario antes de decir que funciona: un componente que se dañaría tal como está conectado (un peligro), o algo que el kit no pudo comprobar (una duda: un componente sin simular, un programa que no puede correr, un aviso de la simulación; [simulacion.md](simulacion.md#lo-que-no-pudo-saber-dudas)); la revisión es aprobada con avisos | decirle primero cada una al usuario, en palabras simples; dejar el circuito como lo pidió salvo que quiera un cambio; para un peligro ofrecer el arreglo del kit (`Para arreglarlo`), o si no hay, ensayar antes una idea con `--dry-run` |
+| `WARNINGS` | armado y con las redes bien, pero cada línea ⚠ de arriba hay que decírsela al usuario antes de decir que funciona: un componente que se dañaría tal como está conectado (un peligro), o algo que el kit no puede confirmar que funcione (una duda, bajo «El kit no puede confirmar que esto funcione»: un componente sin simular, un programa que no corre, un relé que puede no cerrar, un pulsador entre patas unidas, un aviso de la simulación; [simulacion.md](simulacion.md#lo-que-no-pudo-saber-dudas)); la revisión es aprobada con avisos | decirle primero cada una al usuario, en palabras simples; dejar el circuito como lo pidió salvo que quiera un cambio; para un peligro ofrecer el arreglo del kit (`Para arreglarlo`), o si no hay, ensayar antes una idea con `--dry-run` |
 | `CHANGES` | se creó, pero una red, una ubicación o la revisión dejaron algo (✖); en un ensayo no se creó nada | arreglar solo eso con `suggest` y `apply_ops`, luego `review`; tras un ensayo, probar otra idea o aplicar esta |
 | `FIX_SPEC` | no se creó nada: la especificación tiene errores | arreglar cada ✖ y volver a llamar |
 | `SPEC_OK` | `check_only`: la especificación es coherente | volver a llamar sin él |
