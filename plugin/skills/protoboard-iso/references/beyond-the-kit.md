@@ -12,15 +12,16 @@ Spanish). Only these, a `STATUS` you cannot get past and what the `Checked` line
 | The kit prints | Means | You |
 |---|---|---|
 | "The kit has no computed fix for this." · "El kit no tiene un arreglo calculado para esto." | a hazard (⚠) that no single resistor clears (`--fix` refuses too) | think of the smallest change, try it (below) |
-| "… the kit does not know “<name>”. Closest: …" · "… el kit no conoce «<name>». Lo más parecido: …" (also "the kit does not know the part type", `… in its <type> table`) | a part the kit does not have | say so; use the closest part only if the person agrees |
-| "… the kit does not simulate this part yet: it is drawn, …" · "… el kit todavía no simula este componente: se dibuja, …" | drawn, not simulated: no reading or warning covers it | say what is then not checked |
+| "… the kit does not know “<name>”. Closest: …" · "… el kit no conoce «<name>». Lo más parecido: …"; with nothing close, "… and has no part with a close name; catalog lists every part it has."; for a speaker, an LED strip, a servo, a transformer or an LCD, "Nearest it has: …" · "Lo más cercano que tiene: …" | a part the kit does not have | say so; use the closest or nearest part only if the person agrees |
+| "… is drawn and wired, but the kit has no simulation model for it …" · "… está dibujado y conectado, pero el kit no tiene modelo de simulación para él …" (a ⚠ under "The kit cannot confirm these work"); `catalog` says "Not simulated" | drawn, not simulated: no reading or warning covers it, nor what it drives | say what is then not checked |
 | "… the kit does not offer “<field>” in recipe <name> …" · "… el kit no ofrece «<field>» en la receta <name> …" | a value or goal the recipe does not have | use a listed one, or a spec of your own |
 | "… the kit does not understand the value “<value>” …" · "… el kit no entiende el valor «<value>» …" | a value it cannot read | write it as the line says |
 
 The `Checked` line (`Revisado`) says what the hazard check covered for this circuit: at rest, each
 control alone, each output of a board's program high alone. What it does not cover (`Not
-checked`): peaks while something switches, combinations, what sensors read from the environment,
-states past the limit, parts not simulated. Tell the person the part that matters to their request
+checked`): peaks while something switches, combinations, what sensors read between the ends of
+their range (the ends themselves are checked: `distance and temperature at both ends`), states past
+the limit, parts not simulated. Tell the person the part that matters to their request
 or to a warning (a coil switched by a program: its switching peaks are not checked).
 
 ## A trial: `layout --dry-run`
@@ -40,13 +41,18 @@ D10 to ground. `layout` ends:
 
 ```text
 As wired, this would damage:
-  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA, with D10 high.
+  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA: the pin can be damaged, with D10 high.
 To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.4 mA (maximum 40 mA).
 …
 STATUS: WARNINGS · …
 ```
 
-Tell the person which part burns and why, and the kit's fix. If they want it fixed, the kit applies
+Tell the person which part burns and why, and the kit's fix. The other kind of ⚠, under "The kit
+cannot confirm these work (so it cannot say the circuit works):", is what the kit could not check or
+found may not work (a part not simulated, a program that stops or calls a function the kit does not
+know, a relay that may not pull in, a button across its joined pins): it has no `To fix it` line.
+Tell each one in plain words before saying the circuit works, and leave the circuit as asked unless
+the person wants a change. If they want it fixed, the kit applies
 its own fix in one call, as one change (`kit undo` restores it):
 
 ```bash

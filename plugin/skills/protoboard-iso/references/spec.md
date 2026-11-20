@@ -39,10 +39,16 @@ fields.
 - A **microcontroller board** (`ESP32-DEVKIT`, `ESP32-C3-SUPERMINI`, `UNO`) is powered by USB (no
   supply needed) and takes each pin's state for the simulation:
   `{"id": "U1", "part": "ESP32-DEVKIT", "io": {"D13": "high", "D27": "input_pullup"}}`, or runs a
-  program: `"program": "blink.ino"` (a file beside the circuit, the Arduino sketch as uploaded) or
-  the sketch's text. `setup()`, `loop()`, `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`,
+  program: `"program": "blink.ino"` (the Arduino sketch as uploaded, a file **in the circuit's
+  folder, beside `circuit.json`**: `circuits/<name>/blink.ino`, written there before `layout`;
+  anywhere else it is not read, and the answer says where the kit looked) or the sketch's text. `setup()`, `loop()`, `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`,
   `analogWrite`/`ledcWrite` (PWM), `tone`, `delay`, `millis`, `Serial.println` run in simulated
-  time, and the page runs them in real time.
+  time, and the page runs them in real time. A function the kit does not know (`shiftOut`, a
+  library's) is a ⚠ under "The kit cannot confirm these work": the program runs only as far as the
+  kit can follow. Check what it does with `kit simulate <folder> --run <s>` ([run-it.md](run-it.md)).
+- A part the simulator only draws (`kit catalog` says "Not simulated": a 74HC595, an LM386, a
+  ULN2003…) is built and wired, and the answer ends `WARNINGS`: nothing about it is checked. What
+  every part takes: [parts.md](parts.md).
 
 ## Nets
 
@@ -53,7 +59,8 @@ to a − rail by itself.
 
 ## Supplies and the rest
 
-- **supplies**: a bench supply on the rails (`voltage`, `currentLimit`; `positive` may name a pin);
+- **supplies**: a bench supply on the rails (`voltage`, `currentLimit`; `positive` may name a pin;
+  a negative `voltage` is the same supply reversed, and a part fed backwards is a ⚠ hazard);
   `"kind": "generator"` for a signal generator. Not needed with a battery part.
 - Also `board` (`auto` by default: it grows as needed), `clearance` (mm; 3 for lessons), `title`,
   `netLabels`, `page`, `lang`; `--check` (`check_only: true`) only checks the spec.
