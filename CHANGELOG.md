@@ -28,6 +28,7 @@ detail.
 
 ### Fixed
 
+- The underdriven-relay line no longer prescribes "a smaller base resistor, a bigger driver" (that loaded a sensor's divider and made it worse): it says what the coil gets, what it needs, and that the stage driving it does not deliver it.
 - A buzzer wired backwards got "To fix it: a 820 kΩ resistor in series", which silences it. For a reverse-voltage hazard the fix is now the part turned round or a supply's leads swapped (`fix.kind` `swap` / `swap-supply`, also through `specWithFix`); a series resistor is never offered for it.
 - A relay's coil or a motor switched by a transistor, a MOSFET or a board's pin with no diode across it ended `DONE`; it is a doubt now (`COIL_NO_FLYBACK`): the switch can be damaged when it turns off, and a diode across the coil fixes it. A wiring check: it never blocks placement.
 - An HC-SR04's ECHO (5 V) straight on an ESP32 pin got no warning: ECHO is low at rest. `SIM_PIN_OVERVOLTAGE` now comes from the highest voltage each board pin sees over the review's states and its run, with the moment (`D18 reaches 4.05 V at 262 µs of the kit's run`).

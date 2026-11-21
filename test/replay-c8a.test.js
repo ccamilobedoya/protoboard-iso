@@ -165,3 +165,11 @@ test('a regulator fed backwards by its battery: the fix swaps the battery\'s lea
   assert.deepEqual(r.review.fix, { kind: 'swap-supply', supply: 'BT1' });
   assert.match(formatLayout(r, 'es', { t, formatIssue }), /Para arreglarlo: intercambia los cables de BT1/);
 });
+
+// ---- 6. Say what is needed, not what to change
+
+test('the underdriven relay says what the coil gets and needs, and no prescription', () => {
+  const i = { severity: 'warning', code: 'SIM_RELAY_UNDERDRIVEN', params: { part: 'K1', current: { value: 0.03, unit: 'A' }, needs: { value: 0.0536, unit: 'A' }, release: { value: 0.0054, unit: 'A' } } };
+  for (const lang of ['en', 'es']) assert.doesNotMatch(formatIssue(i, lang), /base resistor|resistencia de base|driver/);
+  assert.match(formatIssue(i, 'en'), /K1: its coil carries 30 mA.*from 53\.6 mA.*does not deliver the current it needs\.$/);
+});
