@@ -28,6 +28,7 @@ detail.
 
 ### Fixed
 
+- A supply written `voltage: -5` read "supply 5 V": the readings and `simulate` now name it as written (`-5 V`, `written negative: T- is the positive rail`), and `layout`'s answer has a `Note:` line saying the rail named + is the lower one.
 - The underdriven-relay line no longer prescribes "a smaller base resistor, a bigger driver" (that loaded a sensor's divider and made it worse): it says what the coil gets, what it needs, and that the stage driving it does not deliver it.
 - A buzzer wired backwards got "To fix it: a 820 kΩ resistor in series", which silences it. For a reverse-voltage hazard the fix is now the part turned round or a supply's leads swapped (`fix.kind` `swap` / `swap-supply`, also through `specWithFix`); a series resistor is never offered for it.
 - A relay's coil or a motor switched by a transistor, a MOSFET or a board's pin with no diode across it ended `DONE`; it is a doubt now (`COIL_NO_FLYBACK`): the switch can be damaged when it turns off, and a diode across the coil fixes it. A wiring check: it never blocks placement.

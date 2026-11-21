@@ -104,6 +104,10 @@ El negativo de la primera fuente es la **tierra** (0 V); sin `supplies`, el de l
 batería. Una segunda fuente sin conexión con la
 primera alimenta un circuito aparte, medido desde su propio negativo.
 
+Un `voltage` negativo (`-5`) es la misma fuente al revés: se simula con sus terminales
+intercambiados y se lee como está escrito (`V1 -5 V … escrita en negativo: T- es el riel positivo, no
+T+`); la respuesta de `layout` trae una línea `Nota:` que dice que el riel llamado + es el más bajo.
+
 Se fijan con una operación, como cualquier campo del circuito:
 `{ "op": "circuit", "supplies": [ … ] }`.
 

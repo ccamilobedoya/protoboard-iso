@@ -547,6 +547,7 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ✅ Una bobina conmutada sin diodo de rueda libre es una duda (C8a, `COIL_NO_FLYBACK` en `DOUBT_CODES`): la bobina de un relé o un motor conmutados por un transistor, un MOSFET o un pin de una placa sin diodo en paralelo; las recetas con relé o motor no la reciben
 - ✅ El arreglo de un componente al revés es voltearlo (C8a): para un peligro de voltaje inverso `hazardFix` prueba el componente con sus dos patas intercambiadas y luego los cables de cada fuente (`swap`, `swap-supply`); nunca una resistencia en serie
 - ✅ Decir lo que hace falta (C8a): la línea del relé mal manejado dice lo que recibe la bobina, lo que necesita y que la etapa que la maneja no se lo entrega, sin receta
+- ✅ Una fuente negativa muestra su signo (C8a): `voltage: -5` se lee `-5 V` en las lecturas y en `simulate`, con el riel que en realidad es positivo, y la respuesta de `layout` trae una nota que lo dice
 - ⬜ Lo que agregarían las instrucciones del servidor MCP con una cifra de `scripts/trigger-bench.js` (el contexto de arranque está en sus 48 KB): el `.ino` en la carpeta del circuito, una ejecución antes de decir que un programa funciona
 
 ## Opcional, más adelante ⬜

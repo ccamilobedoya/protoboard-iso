@@ -100,9 +100,12 @@ function supplyList(circuit, board) {
     // is positive (so a part it feeds backwards is judged as such, by its own limits).
     const asked = Number(s.voltage);
     const voltage = Math.abs(asked);
+    // `written`: what the circuit says (−5 V), so the readings name it that way; `named`: the rail
+    // written as its + (the lower one in fact) and `high`, the one that is positive.
+    const written = asked < 0 ? { written: asked, named: common.positive, high: common.negative } : {};
     if (asked < 0) [common.positive, common.negative] = [common.negative, common.positive];
     const cells = Math.max(1, Math.round(voltage / 1.5));
-    return { ...common, voltage, internalResistance: Number(s.internalResistance ?? (kind === 'battery' ? cells * BATTERY_CELL_RESISTANCE : 0)) };
+    return { ...common, ...written, voltage, internalResistance: Number(s.internalResistance ?? (kind === 'battery' ? cells * BATTERY_CELL_RESISTANCE : 0)) };
   });
 }
 

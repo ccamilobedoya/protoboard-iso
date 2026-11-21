@@ -81,7 +81,7 @@ function readingsOf(circuit) {
   if (!compiled.fatal && oscillatesBy(compiled.program)) return null;
   const r = simulate(circuit);
   if (!r.ok) return null;
-  const sources = Object.entries(r.supplies ?? {}).map(([id, s]) => ({ id, kind: s.kind === 'battery' ? 'battery' : 'supply', voltage: s.voltage, current: s.current }));
+  const sources = Object.entries(r.supplies ?? {}).map(([id, s]) => ({ id, kind: s.kind === 'battery' ? 'battery' : 'supply', voltage: s.voltage, current: s.current, ...(s.written < 0 && { named: s.named, high: s.high }) }));
   const leds = [];
   const others = [];
   // A battery part is also one of the supplies the simulation reports: each source is said once.
@@ -181,8 +181,19 @@ function behaviourLineOf(circuit) {
   return { seconds: b.seconds, outputs: outputs.map(({ intervals, intervalsTotal, ...o }) => o) };
 }
 
+// The supplies written with a negative voltage: one line in the answer says the rail named + is the
+// lower one (the readings name the voltage as written, −5 V).
+function negativeOf(circuit) {
+  const list = (circuit.supplies ?? []).map((s, i) => ({ id: s?.id ?? `V${i + 1}`, voltage: Number(s?.voltage) })).filter((s) => s.voltage < 0);
+  if (!list.length) return null;
+  const compiled = compile(circuit);
+  if (compiled.fatal) return null;
+  return list.map((s) => ({ ...s, ...(({ named, high }) => ({ named, high }))(compiled.program.supplies.find((x) => x.id === s.id) ?? {}) }));
+}
+
 export function answerExtras(circuit, { folder, lang = 'en', advise = true } = {}) {
   const readings = readingsOf(circuit);
+  const negative = negativeOf(circuit);
   // The run reads a board's .ino from the circuit's folder, as the review did.
   const where = folder ?? circuit[CIRCUIT_FOLDER];
   const seen = where && circuit[CIRCUIT_FOLDER] !== where ? Object.defineProperty({ ...circuit }, CIRCUIT_FOLDER, { value: where, enumerable: false }) : circuit;
@@ -190,7 +201,7 @@ export function answerExtras(circuit, { folder, lang = 'en', advise = true } = {
   const programs = programsOf(circuit, folder ?? circuit[CIRCUIT_FOLDER]);
   const changeable = changeableOf(circuit, lang);
   const advice = advise && readings ? adviceOf(circuit) : null;
-  return { ...(advice && { advice }), ...(readings && { readings }), ...(behaviour && { behaviour }), ...(programs && { programs }), ...(changeable && { changeable }) };
+  return { ...(advice && { advice }), ...(negative && { negative }), ...(readings && { readings }), ...(behaviour && { behaviour }), ...(programs && { programs }), ...(changeable && { changeable }) };
 }
 
 // The unit a recipe's numeric value is in, by its field (a resistor's "330" carries its own).
@@ -238,6 +249,7 @@ export function formatExtras(r, lang, t) {
   const lines = [];
   for (const s of r.solved ?? []) lines.push(solvedLine(s, lang, t, f, decimal));
   for (const a of r.advice ?? []) lines.push(adviceLine(a, lang, t, f));
+  for (const n of r.negative ?? []) lines.push(t(lang, 'layout.negativeSupply', { id: n.id, voltage: f(n.voltage, 'V'), named: n.named, high: n.high }));
   if (r.readings) {
     const { sources, parts } = r.readings;
     const many = sources.length > 1;

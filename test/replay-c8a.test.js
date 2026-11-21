@@ -173,3 +173,16 @@ test('the underdriven relay says what the coil gets and needs, and no prescripti
   for (const lang of ['en', 'es']) assert.doesNotMatch(formatIssue(i, lang), /base resistor|resistencia de base|driver/);
   assert.match(formatIssue(i, 'en'), /K1: its coil carries 30 mA.*from 53\.6 mA.*does not deliver the current it needs\.$/);
 });
+
+// ---- 7. A negative supply shows its sign
+
+test('a supply written at -5 V reads as written, and the answer says which rail is the positive one', () => {
+  const r = autoLayout({ supplies: [{ id: 'V1', voltage: -5, positive: 'T+', negative: 'T-' }], parts: [{ id: 'R1', type: 'resistor', value: '1k' }, { id: 'D1', type: 'led', color: 'red' }], nets: [['T-', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'T+']] });
+  const lines = formatLayout(r, 'en', { t, formatIssue }).split('\n');
+  assert.equal(lines.filter((l) => /written with a negative voltage/.test(l)).length, 1);
+  assert.ok(lines.includes('Note: V1 is written with a negative voltage (-5 V), so the rail named T+ is the lower one: T- is the positive rail in fact.'), lines.join('\n'));
+  assert.ok(lines.some((l) => /^Readings .*supply -5 V/.test(l)));
+  const sim = simulate(r.circuit);
+  assert.equal(sim.supplies.V1.voltage < 0, true);
+  assert.ok(sim.parts.D1.current > 1e-3, 'the LED, wired for it, is lit');
+});

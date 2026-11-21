@@ -214,6 +214,10 @@ function dcAnchor(node) {
 
 // ── Reading results ─────────────────────────────────────────────────────────────────
 
+// A supply written with a negative voltage (compile.js swapped its terminals) reads as written: its
+// voltage from the rail named + to the one named −, negative, with `written` and the rails.
+const writtenAs = (s, r) => (s.written < 0 ? { ...r, voltage: -r.voltage, written: s.written, named: s.named, high: s.high } : r);
+
 function supplyReading(s, x, ctx) {
   if (s.off) return { voltage: volt(x, s.pIndex) - volt(x, s.nIndex), current: 0, power: 0, mode: 'OFF' };
   if (s.generator) {
@@ -257,7 +261,7 @@ function readAll(prep, x, ctx) {
   const nodes = {};
   for (const [name, i] of prep.index) if (!name.startsWith('~')) nodes[name] = prep.floating.has(name) ? null : volt(x, i);
   const parts = Object.fromEntries(prep.parts.map((p) => [p.id, partReading(p, x, ctx, prep.floating)]));
-  const supplies = Object.fromEntries(prep.supplies.map((s) => [s.id, { kind: s.kind, ...supplyReading(s, x, ctx) }]));
+  const supplies = Object.fromEntries(prep.supplies.map((s) => [s.id, { kind: s.kind, ...writtenAs(s, supplyReading(s, x, ctx)) }]));
   return { nodes, parts, supplies };
 }
 
