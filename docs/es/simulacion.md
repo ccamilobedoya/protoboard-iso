@@ -328,7 +328,11 @@ dice: el kit revisó el circuito y no encontró nada que decir.
 - Hallazgos del cableado que el kit reporta y nunca bloquea (`DOUBT_CODES` en
   `src/circuit/checks.js`): `BUTTON_PINS_JOINED`, un pulsador cuyos dos pines de un mismo lado (una
   sola pieza de metal) llevan dos redes distintas, así que oprimirlo no cambia nada. `check` lo lista
-  como aviso; `apply` guarda un cambio que lo agrega y lo marca con ⚠.
+  como aviso; `apply` guarda un cambio que lo agrega y lo marca con ⚠. `COIL_NO_FLYBACK`, la bobina de
+  un relé o un motor conmutados por el colector de un transistor, el drenador de un MOSFET o un pin de
+  una placa sin un diodo en el nodo que corta el interruptor (en paralelo con la bobina, o hacia un
+  riel como en un puente H): el interruptor se puede dañar al apagarse. Un motor en un interruptor
+  simple o directo en una fuente no tiene interruptor que dañar.
 - `SIM_PART_NOT_SIMULATED`: un componente conectado al circuito sin modelo de simulación (un
   74HC595, un LM386, un CD4017…; `catalog` los marca): se dibuja y sus pines quedan abiertos, así
   que lo que hace, y lo que maneja, no se sabe. Un componente sin conectar a nada no es una duda.

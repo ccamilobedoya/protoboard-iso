@@ -110,3 +110,32 @@ test('an HC-SR04 ECHO straight on an ESP32 pin: over its voltage during the echo
   // At rest ECHO is low: the DC point alone says nothing.
   assert.ok(!simulate(r.circuit).issues.some((i) => i.code === 'SIM_PIN_OVERVOLTAGE'));
 });
+
+// ---- 4. A coil switched with no flyback diode is a doubt (COIL_NO_FLYBACK)
+
+const PUMP = (diode) => ({
+  supplies: [{ voltage: 5, positive: 'T+', negative: 'T-' }],
+  parts: [{ id: 'M1', part: 'YL-69' }, { id: 'R1', type: 'resistor', value: '1k' }, { id: 'Q1', part: '2N2222A' }, { id: 'K1', part: 'SRD-05VDC-SL-C' }, { id: 'P1', type: 'motor', part: 'RE-140RA-12240' }, ...(diode ? [{ id: 'D1', part: '1N4007' }] : [])],
+  nets: [['T+', 'M1.VCC', 'K1.A1', 'K1.COM', ...(diode ? ['D1.K'] : [])], ['T-', 'M1.GND', 'Q1.E', 'P1.-'], ['M1.DO', 'R1.1'], ['R1.2', 'Q1.B'], ['Q1.C', 'K1.A2', ...(diode ? ['D1.A'] : [])], ['K1.NO', 'P1.+']],
+});
+
+test('a relay coil switched by a transistor with no diode across it: a doubt naming both; with the diode, none', () => {
+  const bare = autoLayout(PUMP(false));
+  assert.equal(bare.status, 'warnings');
+  const d = bare.review.doubts.filter((x) => x.code === 'COIL_NO_FLYBACK');
+  assert.equal(d.length, 1, JSON.stringify(bare.review.doubts));
+  assert.match(formatIssue(d[0], 'en'), /^warning: K1's coil is switched by Q1 with no diode across it: when Q1 turns off.*Q1 can be damaged\. A diode across the coil/);
+  assert.ok(!bare.review.blocking.length, 'a doubt never blocks');
+  const guarded = autoLayout(PUMP(true));
+  assert.ok(guarded.circuit.parts.some((p) => p.id === 'D1'));
+  assert.ok(!guarded.review.doubts.some((x) => x.code === 'COIL_NO_FLYBACK'));
+});
+
+test('a motor on a plain switch or straight on a battery has no switch to damage', () => {
+  const sw = autoLayout({ parts: [{ id: 'S1', type: 'slide-switch' }, { id: 'M1', type: 'motor' }], nets: [['T+', 'S1.COM'], ['S1.1', 'M1.+'], ['M1.-', 'T-']], supplies: [{ id: 'V1', voltage: 3, positive: 'T+', negative: 'T-' }] });
+  assert.notEqual(sw.status, 'changes', JSON.stringify(sw.problems));
+  assert.ok(!sw.review.doubts.some((x) => x.code === 'COIL_NO_FLYBACK'), JSON.stringify(sw.review.doubts));
+  const bat = autoLayout({ parts: [{ id: 'M1', type: 'motor' }], nets: [['T+', 'M1.+'], ['M1.-', 'T-']], supplies: [{ id: 'V1', voltage: 3, positive: 'T+', negative: 'T-' }] });
+  assert.notEqual(bat.status, 'changes', JSON.stringify(bat.problems));
+  assert.ok(!bat.review.doubts.some((x) => x.code === 'COIL_NO_FLYBACK'));
+});

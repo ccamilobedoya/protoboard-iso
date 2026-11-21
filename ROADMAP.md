@@ -537,6 +537,7 @@ before saying it works.
 - ✅ A board's `.ino` beside `circuit.json` is found in every state the hazard check visits (C8a): the environment's ends of a circuit that declares none were compiled from a copy without the circuit's folder, so `layout` and `review` said the file was not found while `simulate` ran it
 - ✅ An output that never comes on is a doubt (C8a, `SIM_OUTPUT_NEVER_ON`): an LED, a chip or segment, a buzzer, a relay, a motor or a laser wired into a circuit with a source that is off in every state the kit visits and through a run; a relay fed from a sensor module's output, a joule thief of uncoupled coils and LEDs behind a chip not simulated no longer end `DONE`; no recipe or example gets it
 - ✅ A pin over its voltage is seen when it happens (C8a): `SIM_PIN_OVERVOLTAGE` from the highest voltage each board pin sees over the visited states and over the review's run, with the moment (an HC-SR04's ECHO on an ESP32 pin)
+- ✅ A coil switched with no flyback diode is a doubt (C8a, `COIL_NO_FLYBACK` in `DOUBT_CODES`): a relay's coil or a motor switched by a transistor, a MOSFET or a board's pin with no diode across it; recipes with a relay or a motor do not get it
 - ⬜ What the MCP server's instructions would add with a number from `scripts/trigger-bench.js` (the startup context is at its 48 KB): the `.ino` in the circuit's folder, a run before saying a program works
 
 ## Optional, later ⬜

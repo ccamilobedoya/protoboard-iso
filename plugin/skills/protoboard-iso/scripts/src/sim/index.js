@@ -19,7 +19,7 @@ import { FIELDS, createEnvironment, environmentControls } from './environment.js
 import { stressIssue, issue } from './devices/shared.js';
 import { deviceOfProgram } from './devices/index.js';
 import { buildCircuit } from '../circuit/build.js';
-import { checkButtonPins } from '../circuit/checks.js';
+import { checkButtonPins, checkFlyback } from '../circuit/checks.js';
 import { CIRCUIT_FOLDER } from '../beside.js';
 import { outputsOf, outputOn, runCircuit, runsByItself, BEHAVIOUR_STEPS } from './run.js';
 
@@ -27,7 +27,9 @@ import { outputsOf, outputOn, runCircuit, runsByItself, BEHAVIOUR_STEPS } from '
 // each is a doubt of the review (doubtsOf), never a blocking item (circuit/checks.js DOUBT_CODES).
 export function wiringIssues(circuit) {
   const built = buildCircuit(circuit);
-  return built.board ? checkButtonPins(built.parts, built.netlist, { netLabels: circuit.netLabels }) : [];
+  if (!built.board) return [];
+  const compiled = compile(circuit);
+  return [...checkButtonPins(built.parts, built.netlist, { netLabels: circuit.netLabels }), ...(compiled.fatal ? [] : checkFlyback(compiled.program))];
 }
 
 

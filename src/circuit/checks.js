@@ -121,7 +121,7 @@ export function checkConnections(parts, netlist, { netLabels = {} } = {}) {
 // them only as doubts, under "The kit cannot confirm these work" (sim/index.js wiringIssues → doubtsOf),
 // never as a ✖ to fix; `apply` saves a change that adds one and marks it ⚠, not ✖. The next such
 // finding is one more code here (and its check in wiringIssues).
-export const DOUBT_CODES = new Set(['BUTTON_PINS_JOINED']);
+export const DOUBT_CODES = new Set(['BUTTON_PINS_JOINED', 'COIL_NO_FLYBACK']);
 
 // A push button's pins 1–2 (and 3–4) are one metal piece: two different nets on two pins of the
 // same side are joined for good, and pressing the button changes nothing. It is a finding about the
@@ -150,6 +150,44 @@ export function checkButtonPins(parts, netlist, { netLabels = {} } = {}) {
       const other = sides.find((x) => x !== side)?.[0] ?? side.at(-1);
       out.push(issue('warning', 'BUTTON_PINS_JOINED', { part: part.id, pins: wired.map((w) => w.pin).join(' and '), use: `${wired[0].pin} and ${other}` }));
     }
+  }
+  return out;
+}
+
+// A relay's coil or a motor switched by a transistor, a MOSFET or a board's pin, with no diode on
+// the node the switch cuts (across the coil, cathode to the supply side, or from that node to a rail
+// as an H-bridge has): when the switch turns off, the coil's current drives that node far past the
+// supply and the switch can be damaged. Read from a compiled circuit (sim/compile.js: devices with
+// their pins' nodes), wires merged into one node. A motor on a plain switch or straight on a battery
+// has no switch to damage: nothing to say. A doubt (DOUBT_CODES), never a placement problem.
+const SWITCH_PINS = { Q: ['C'], M: ['D'] };
+export function checkFlyback(program) {
+  const parent = new Map();
+  const find = (x) => {
+    while (parent.has(x) && parent.get(x) !== x) x = parent.get(x);
+    return x;
+  };
+  const devices = (program?.devices ?? []).filter((d) => !d.unsupported);
+  for (const d of devices) if (d.kind === 'W' && d.pins?.length === 2) {
+    const [a, b] = [find(d.pins[0].node), find(d.pins[1].node)];
+    if (a !== b) parent.set(a, b);
+  }
+  const on = (d, names) => d.pins.filter((p) => !names || names.includes(p.name)).map((p) => find(p.node));
+  // The nodes a switch cuts: a transistor's collector, a MOSFET's drain, a board's GPIO (an emitter or a
+  // source is most often on a rail, which every coil touches).
+  const switched = new Map();
+  for (const d of devices) {
+    const names = SWITCH_PINS[d.kind] ?? (d.kind === 'MCU' ? (d.params?.gpios ?? []).map((g) => g.name) : null);
+    if (names) for (const n of on(d, names)) if (!switched.has(n)) switched.set(n, d.id);
+  }
+  const diodes = new Set(devices.filter((d) => d.kind === 'D').flatMap((d) => on(d)));
+  const out = [];
+  for (const d of devices) {
+    if (d.kind !== 'RLY' && d.kind !== 'MOT') continue;
+    const ends = on(d, d.kind === 'RLY' ? ['A1', 'A2'] : null);
+    const cut = ends.filter((n) => switched.has(n) && !diodes.has(n));
+    if (!cut.length || ends.some((n) => switched.has(n) && diodes.has(n))) continue;
+    out.push(issue('warning', 'COIL_NO_FLYBACK', { part: d.id, by: switched.get(cut[0]), variant: d.kind === 'RLY' ? 'relay' : 'motor' }));
   }
   return out;
 }

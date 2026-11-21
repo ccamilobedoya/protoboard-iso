@@ -316,7 +316,10 @@ tell.
 - Wiring findings the kit reports and never blocks on (`DOUBT_CODES` in `src/circuit/checks.js`):
   `BUTTON_PINS_JOINED`, a push button whose two pins on one side (one metal piece) carry two
   different nets, so pressing it changes nothing. `check` lists it as a warning; `apply` saves a
-  change that adds it and marks it ⚠.
+  change that adds it and marks it ⚠. `COIL_NO_FLYBACK`, a relay's coil or a motor switched by a
+  transistor's collector, a MOSFET's drain or a board's pin with no diode on the node the switch cuts
+  (across the coil, or to a rail as in an H-bridge): the switch can be damaged when it turns off. A
+  motor on a plain switch or straight on a supply has no switch to damage.
 - `SIM_PART_NOT_SIMULATED`: a part wired into the circuit with no simulation model (a 74HC595, an
   LM386, a CD4017…; `catalog` marks them): it is drawn and its pins are left open, so what it does,
   and what it drives, is unknown. A part wired to nothing is not a doubt.
