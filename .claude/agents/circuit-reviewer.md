@@ -36,11 +36,14 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
 - With a source, `simulate` once: a short or a floating group is blocking even when `review`
   approves. A part over its limit is a hazard (`review` lists it, verdict APPROVED WITH WARNINGS):
   it does not block and is not a fix round; report it prominently, naming part, value, limit and
-  state, with the kit's `To fix it` line as the proposed fix (or that it has none), and
+  state, with the kit's `To fix it` line as the proposed fix (or that it has none; a part in
+  backwards is turned round, `layout` with `fix: true`), and
   `Verdict: WARNINGS`. A doubt (`doubts`, under `The kit cannot confirm these work`: a part not
   simulated, a program that does not run, stops, gets stuck or calls a function the kit does not
-  know, a relay that may not pull in, a button across joined pins, a pin over its voltage) is the
-  same verdict: report each one as written, never "it works".
+  know, a two-dimensional array, a relay that may not pull in, an output that never comes on, a
+  coil switched with no diode across it, a button across joined pins, a pin over its voltage) is
+  the same verdict: report each one as written, never "it works". A `Note:` (a supply written
+  negative) is reported as printed; a figure said "about" as approximate.
 - With a program, a sensor or an oscillator, check what the brief says it does: `simulate` with
   `run_s` and the brief's conditions (`environment`, `set`, `press`, `at`; CLI `simulate --run`).
   An output that does not do what the brief says (an LED that stays off at the distance it should

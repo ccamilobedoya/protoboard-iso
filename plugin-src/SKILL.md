@@ -65,9 +65,9 @@ What each one is: [references/recipes.md](references/recipes.md).
 A part number or common name is enough (`"part": "2N2222A"`, `"UNO"`). A board's program is a
 `.ino` file **in the circuit's folder, beside `circuit.json`** (`circuits/<name>/blink.ino`, written
 before `layout`), named in `"program"`, written only with what [references/sketch.md](references/sketch.md)
-lists (arrays of one dimension). A part you have not used: `kit catalog <name>` first; "drawn, not
-simulated" means nothing about it is checked. `"board": "double"`: two boards side by side, for a
-development board too wide for one. Spec details: [references/spec.md](references/spec.md); each
+lists (`shiftOut` works; arrays of one dimension only). A part you have not used: `kit catalog
+<name>` first; "drawn, not simulated" means nothing about it is checked. Spec details:
+[references/spec.md](references/spec.md); each
 part's pins (which is +, which way a knob turns, which pins switch), fields and units:
 [references/parts.md](references/parts.md).
 
@@ -78,7 +78,7 @@ Every `layout` ends in `STATUS:`. Act on it:
 | STATUS | Do |
 |---|---|
 | `DONE` | Checked, nothing to tell. Reply (below). |
-| `WARNINGS` | Built. Each ⚠ is a part that would be damaged (with `To fix it`, or "no computed fix") or something the kit cannot confirm works. Reply, telling each one; do not fix silently or refuse. |
+| `WARNINGS` | Built. Each ⚠ is a part that would be damaged (with `To fix it`, or "no computed fix") or something the kit cannot confirm works (an output that never comes on, a coil with no diode across it). Reply, telling each one; do not fix silently or refuse. Each case: [references/warnings.md](references/warnings.md). |
 | `FIX_SPEC` | Nothing built. Fix exactly the ✖ lines and call again. "Too large for one board": split it into circuits. |
 | `CHANGES` | Built, ✖ open; the kit already tried other orders and the double board. Make the change a ✖ names next, else fix only those ([references/operations.md](references/operations.md)), then `kit review`. "stopped at its budget": `--budget` or a smaller circuit. |
 | `SPEC_OK` | Only after `--check`: call again without it. |
@@ -91,10 +91,10 @@ unchanged. After `DONE`, run more only for a question the answer does not settle
 ## Check what it does
 
 Before you say a circuit with a program, a sensor or an oscillator does what was asked, run it
-with the user's conditions and quote what it printed (Serial lines, each output's time on,
-frequency): `kit simulate circuits/<name> --run 2 --env distance=10`; also `--set RV1=0.8`,
-`--press S1@0.5+0.2`, `--at 1:light=50`. `Behaviour, first 2 s` is only 2 s: run a longer
-sequence (a traffic light) for its whole cycle. Example: [references/run-it.md](references/run-it.md).
+with the user's conditions and quote what it printed (Serial lines, each output's time on):
+`kit simulate circuits/<name> --run 2 --env distance=10`. `Behaviour, first 2 s` is only 2 s: run
+a longer sequence (a traffic light) for its whole cycle. Options and an example:
+[references/run-it.md](references/run-it.md).
 
 ## Where the kit has no answer
 
@@ -102,7 +102,8 @@ sequence (a traffic light) for its whole cycle. Example: [references/run-it.md](
 is Y" is the right answer, not a failure. Ask before building with Y: "The kit has no X. Shall I use
 Y instead? It differs in …".
 
-**"Fix it"** after `To fix it`: `kit layout <folder> --fix` (connector: `fix: true`), one change.
+**"Fix it"** after `To fix it`: `kit layout <folder> --fix` (connector: `fix: true`), one change
+(a part in backwards: it turns it round).
 Only where the kit says it has none (a fixed sentence, a `STATUS` it cannot get past, a part it
 lacks) use your own knowledge, and try it first with `layout … --dry-run` (connector:
 `dry_run: true`); apply only what ends `DONE` (or the `WARNINGS` asked for). At
@@ -117,9 +118,10 @@ in Spanish):
 1. What was built, with the kit's values, in one sentence.
 2. With `WARNINGS`: every ⚠, plainly (which part, what happens or what the kit cannot confirm) and
    the `To fix it` line or that there is none, before any sentence that says the circuit works.
-   A part you added to clear one (a resistor for a buzzer): say what and why.
+   A part you added to clear one (a diode across a coil): say what and why.
 3. As printed: `Readings`, `Behaviour, first 2 s`, `Solved`, `Worth checking` (information: act
-   only if asked); and what `simulate --run` showed for what was asked. Not the `· note:` lines.
+   only if asked); and what `simulate --run` showed for what was asked. A `Note:` line (a supply
+   written negative) too; not the `· note:` lines. A figure said "about" is approximate: say so.
 4. The page: the `Page: <path>` file, handed over as written (never pasted, rewritten or redrawn),
    again after every change. (With the connector's tools, skip this.)
 5. With a board, the sketch in a code block, exactly as the `Program` block.
@@ -135,9 +137,7 @@ list in prose unless asked.
 ## Change it, ask about it
 
 A value of a recipe: the same call with all the `--values`; other parts or nets: `layout` on the
-same folder with the whole spec; `kit undo <folder>`, `kit history <folder>`; current or voltage:
-`kit simulate <folder>` (a model); connections: `kit nets <folder>`; a part: `kit catalog <name>`.
-
-Operations, checks, drawings: [references/operations.md](references/operations.md). Board,
-languages, every command and exit code: [references/board-and-cli.md](references/board-and-cli.md).
+same folder with the whole spec. Undo, history, a current, the nets, the board (`double`), every
+command and exit code: [references/board-and-cli.md](references/board-and-cli.md); operations
+and checks: [references/operations.md](references/operations.md).
 The kit is a teaching model, not a datasheet: say so when it comes up.

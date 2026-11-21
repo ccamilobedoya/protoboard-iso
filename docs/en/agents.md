@@ -21,13 +21,17 @@ point at rest, with each control operated and with each output of a board's prog
 thresholds). It does not block and is not a fix round: the agent reports it prominently, with the
 kit's computed fix (`To fix it: …`, or "The kit has no computed fix for this."), and the main
 conversation tells the user, since burning a part can be the lesson. A fix asked for is that line,
-applied by the kit in one call (`layout` with `fix: true`; CLI `layout <target> --fix`); any other
+applied by the kit in one call (`layout` with `fix: true`; CLI `layout <target> --fix`; for a part
+in backwards it turns the part round or swaps the supply's leads, never adds a resistor); any other
 idea is tried first with `layout`'s `dry_run` (nothing saved) and applied only when the trial ends
 `DONE`. The same verdict comes with **doubts** (`doubts`, under "The kit cannot confirm these
 work": what the kit could not check or found may not work, a part not simulated, a program that
-does not run, stops or calls a function the kit does not know, a relay that may not pull in, a button
-across joined pins, any warning of the simulation; [simulation.md](simulation.md#what-it-could-not-tell-doubts)):
-the agent reports each one and never says the circuit works; `DONE` and `APPROVED` mean the kit
+does not run, stops or calls a function the kit does not know (`shiftOut` runs; a two-dimensional
+array is refused by its line), a relay that may not pull in, an output that never comes on, a coil
+switched with no diode across it, a button across joined pins, any warning of the simulation;
+[simulation.md](simulation.md#what-it-could-not-tell-doubts)): the agent reports each one and never
+says the circuit works. A `Note:` line (a supply written with a negative voltage: which rail is
+positive in fact) is reported as printed, and a figure the answer says "about" as approximate; `DONE` and `APPROVED` mean the kit
 checked it and found nothing to tell. For a circuit with a program, a sensor or an oscillator, the
 layout and review agents also run it with the brief's conditions (`simulate` with `run_s`,
 `environment`, `set`, `press`, `at`; CLI `simulate --run`) and report what the outputs did, as

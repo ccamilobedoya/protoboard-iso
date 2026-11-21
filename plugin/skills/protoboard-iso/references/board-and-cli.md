@@ -26,6 +26,12 @@ circuit (`title`, each part's `description`) are one string, or one per language
 `{ "en": "…", "es": "…" }`. A part's `description` says how it is used in this circuit and shows in
 its card; leave it out when the learner should work it out.
 
+## Change it, ask about it
+
+`kit undo <folder>` takes the last change back and `kit history <folder>` lists them; a current or a
+voltage: `kit simulate <folder>` (a model); the connections: `kit nets <folder>`; a part:
+`kit catalog <name>`; drawings: `kit render` (below).
+
 ## Every command
 
 ```bash

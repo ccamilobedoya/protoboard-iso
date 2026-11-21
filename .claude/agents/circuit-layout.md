@@ -45,7 +45,8 @@ brief** and return a short **layout report**. You do not talk to the end user.
      A brief with a program: `"program": "<name>.ino"` when the file is in the circuit's folder,
      beside `circuit.json` (put it there before `layout`: anywhere else it is not read, and the
      answer says where the kit looked), else the sketch's text as given. A line the kit cannot read
-     or a function it does not know (`shiftOut`) is a ⚠ doubt. Never rewrite the learner's sketch.
+     or a function it does not know (`attachInterrupt`; `shiftOut` and `shiftIn` run) is a ⚠ doubt,
+     and so is a two-dimensional array (refused by its line). Never rewrite the learner's sketch.
    - A part you have not used (a chip, a module): `catalog` with its name first only to see
      whether it is simulated; one marked "Not simulated" is built anyway and ends `WARNINGS`.
    - `supplies` only for a bench supply (a pin may stand for its strip: `"positive": "D1.A"`). A
@@ -72,12 +73,16 @@ brief** and return a short **layout report**. You do not talk to the end user.
      (part, value, limit, the state such as `with D10 high`), with the kit's `To fix it` line (or
      "The kit has no computed fix for this."), `Review: APPROVED WITH WARNINGS`, `STATUS: WARNINGS`.
      The main conversation tells the user and decides. A fix asked for later is that line: `layout`
-     with only `target` and `fix: true`, one call, one change; an idea of your own is tried first
+     with only `target` and `fix: true`, one call, one change (a part in backwards: it turns the
+     part round or swaps the supply's leads, never a resistor); an idea of your own is tried first
      with `layout` and `dry_run: true` (nothing saved) and applied only when the trial ends `DONE`.
      The ⚠ lines under `The kit cannot confirm these work` are doubts (a part not simulated, a
-     program that does not run or stops, a relay that may not pull in, a button across joined
-     pins, a warning of the simulation): not a fix round either; report each one first, as it is
-     written, and never say the circuit works.
+     program that does not run or stops, a relay that may not pull in, an output that never comes
+     on, a coil switched with no diode across it, a button across joined pins, a warning of the
+     simulation): not a fix round either; report each one first, as it is written, and never say
+     the circuit works. A `Note:` line (a supply written with a negative voltage: which rail is
+     positive in fact) goes into the report as printed; a figure the answer says "about" is
+     reported as approximate.
    - `CHANGES` → the circuit exists. Layout already tried, from its best try, the orders the nets
      give, the double board (when a development board covers a part or a strip) and the tallest or
      widest parts first; a ✖ followed by `→ next the kit would try: …` names one spec change: make
