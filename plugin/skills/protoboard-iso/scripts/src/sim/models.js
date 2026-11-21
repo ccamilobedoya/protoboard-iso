@@ -450,8 +450,9 @@ export const CLIMATE = {
 //              briefly (the contract's "about 1 V"); beyond it the oxide layer reforms and the part heats.
 // A LED counts as lit, for a computed fix, from a tenth of its rated current (brightness 0.1): the
 // look of the page says a tenth of the rated current "still shows clearly" (look.js, glowOpacity).
-// A coil carrying less than this share of its pull-in current is leaking, not driven (a transistor's
-// leakage in daylight): no "driven but not pulled in" warning [assumed].
+// A coil carrying less than this share of its pull-in current is leaking, not driven hard (a
+// transistor's leakage in daylight): no "driven but not pulled in" warning [assumed]. It hides nothing:
+// a relay that never pulls in in any state the review visits is SIM_OUTPUT_NEVER_ON (sim/index.js).
 export const RELAY_DRIVEN_SHARE = 0.25;
 export const LED_LIT = 0.1;
 // Above this share of the rated current (1.5 = the 30 mA an LED's maximum is, against its rated 20 mA [assumed

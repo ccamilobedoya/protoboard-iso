@@ -39,6 +39,7 @@ const ON = {
   buzzer: { level: 0.5 },
   'passive-buzzer': { level: 1e-3 },
   relay: { level: 0.5 },
+  laser: { level: 0.5 },
   motor: { level: 30 }, // r/min
   pin: { level: 0.5 }, // of the board's logic rail
   output: { level: 0.5 }, // an op-amp's, of its supply
@@ -242,8 +243,8 @@ export function prepareRun(circuit, stimuli = {}, given = null) {
 // ── Watching the outputs ──────────────────────────────────────────────────────────────
 
 // The outputs of a compiled circuit: { id, part, kind, value(reading) }; a board's pins are added as
-// its program makes them outputs (pinOutputs).
-function outputsOf(program) {
+// its program makes them outputs (pinOutputs). Also the hazard check's (sim/index.js litOutputs).
+export function outputsOf(program) {
   const out = [];
   for (const d of program.devices ?? []) {
     if (d.unsupported) continue;
@@ -255,6 +256,8 @@ function outputsOf(program) {
     else if (d.type === 'buzzer') out.push({ id: d.id, part: d.id, kind: 'buzzer', on: ON['passive-buzzer'], value: (r) => Math.abs(r.current ?? 0) });
     else if (d.kind === 'RLY') out.push({ id: d.id, part: d.id, kind: 'relay', value: (r) => (r.closed ? 1 : 0) });
     else if (d.kind === 'MOT') out.push({ id: d.id, part: d.id, kind: 'motor', value: (r) => Math.abs(r.rpm ?? 0) });
+    // A laser module is on from where it glows (devices/laser.js: dim, then lasing).
+    else if (d.kind === 'LSR') out.push({ id: d.id, part: d.id, kind: 'laser', value: (r) => (r.state === 'dim' || r.state === 'lasing' ? 1 : 0) });
     // An op-amp's output, high or low against its supply: what toggles in a relaxation oscillator.
     else if (d.kind === 'OPA' && !d.params?.model?.openCollector) {
       d.params.channels.forEach((ch) => {
@@ -264,6 +267,12 @@ function outputsOf(program) {
   }
   return out;
 }
+
+// Whether an output is on in one reading of its part (the same levels a run uses).
+export const outputOn = (o, reading) => {
+  const v = reading && !reading.floating ? o.value(reading) : undefined;
+  return typeof v === 'number' && Number.isFinite(v) && v >= (o.on ?? ON[o.kind]).level;
+};
 
 function tracker(o) {
   return { ...o, level: (o.on ?? ON[o.kind]).level, last: null, lit: false, since: 0, onTime: 0, changes: 0, intervals: [], kept: 0, rises: [], falls: [] };

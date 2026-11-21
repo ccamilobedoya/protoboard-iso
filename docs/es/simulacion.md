@@ -332,6 +332,19 @@ dice: el kit revisó el circuito y no encontró nada que decir.
 - `SIM_PART_NOT_SIMULATED`: un componente conectado al circuito sin modelo de simulación (un
   74HC595, un LM386, un CD4017…; `catalog` los marca): se dibuja y sus pines quedan abiertos, así
   que lo que hace, y lo que maneja, no se sabe. Un componente sin conectar a nada no es una duda.
+- `SIM_OUTPUT_NEVER_ON`: un componente cuyo trabajo es mostrar o mover algo (un LED, un chip de un
+  LED RGB, un segmento de un display, un zumbador, un relé, un motor, un láser), conectado a un
+  circuito con fuente, que está apagado en todos los estados que visita el kit: en reposo, con cada
+  control, en cada extremo del ambiente, con cada salida del programa, luego cada campo de un
+  ambiente declarado y cada control que ofrece la página, y una ejecución (los primeros 2 s cuando el
+  circuito cambia solo, y después cada uno de esos estados sostenido 0,5 s y soltado). Los
+  componentes que nunca se encienden son una sola duda (`D1, D2 nunca se encienden`); un chip o
+  segmento que nunca enciende mientras los demás sí se nombra (`DS1: dp`); un relé dice lo más que
+  recibió su bobina y la corriente de cierre que necesita (una bobina alimentada desde la salida de
+  un módulo sensor: 3,2 mA de 53,6 mA). Un relé manejado por encima de la cuarta parte de su
+  corriente de cierre que no cierra es `SIM_RELAY_UNDERDRIVEN`. No se dice cuando el programa de la
+  placa no se puede correr tal como está escrito (su propia duda lo dice). Las dos cifras de la
+  ejecución son supuestas (`src/sim/index.js`).
 - Todo aviso sobre el programa de una placa: el archivo no encontrado (`SIM_PROGRAM_FILE`, que dice
   la carpeta donde buscó el kit: la del circuito, junto a `circuit.json`), fuera de la carpeta,
   demasiado grande, un error de sintaxis con su línea, una llamada que el simulador no conoce

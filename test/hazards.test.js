@@ -77,6 +77,8 @@ test('recipes with their defaults: none would damage a part', () => {
     const hazards = r.review.hazards.map((h) => formatIssue(h, 'en'));
     if (known.has(name)) assert.ok(hazards.length, `${name} is on the known list but has no hazard any more: remove it`);
     else assert.deepEqual(hazards, [], name);
+    // Every output of a recipe comes on in some state the kit visits (SIM_OUTPUT_NEVER_ON).
+    assert.deepEqual(r.review.doubts.filter((d) => d.code === 'SIM_OUTPUT_NEVER_ON').map((d) => formatIssue(d, 'en')), [], name);
   }
 });
 

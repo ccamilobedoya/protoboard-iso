@@ -402,7 +402,9 @@ test('layout answer: a long program is cut to its first lines and says where the
   const { expandRecipe } = await import('../src/recipes/index.js');
   const long = `void setup() {}\nvoid loop() {\n${Array.from({ length: 100 }, (_, i) => `  delay(${i + 1});`).join('\n')}\n}\n`;
   const r = autoLayout(expandRecipe('uno-blink', { U1: long }).spec);
-  assert.equal(r.status, 'done');
+  // A sketch of delays only never lights the LED: a doubt (SIM_OUTPUT_NEVER_ON), the only one.
+  assert.equal(r.status, 'warnings');
+  assert.deepEqual(r.review.doubts.map((d) => d.code), ['SIM_OUTPUT_NEVER_ON']);
   assert.deepEqual([r.programs[0].truncated, r.programs[0].text.split('\n').length, r.programs[0].omitted], [true, 40, 63]);
   const lines = formatLayout(r, 'en', { t, formatIssue }).split('\n');
   const at = lines.indexOf('Program U1 (Arduino sketch):');

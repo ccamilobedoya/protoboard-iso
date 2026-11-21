@@ -320,6 +320,17 @@ tell.
 - `SIM_PART_NOT_SIMULATED`: a part wired into the circuit with no simulation model (a 74HC595, an
   LM386, a CD4017…; `catalog` marks them): it is drawn and its pins are left open, so what it does,
   and what it drives, is unknown. A part wired to nothing is not a doubt.
+- `SIM_OUTPUT_NEVER_ON`: a part whose job is to show or move something (an LED, a chip of an RGB
+  LED, a segment of a display, a buzzer, a relay, a motor, a laser), wired into a circuit with a
+  source, that is off in every state the kit visits: at rest, each control, each end of the
+  environment, each program output, then every field of a declared environment and every control the
+  page offers, and a run (the first 2 s when the circuit changes by itself, then each of those states
+  held 0.5 s and released). Parts that never come on are one doubt (`D1, D2 never come on`); a chip
+  or segment that never lights while the others do is named (`DS1: dp`); a relay says the most its
+  coil got and the pull-in it needs (a coil fed from a sensor module's output: 3.2 mA of 53.6 mA). A
+  relay driven past a quarter of its pull-in current that does not pull in is
+  `SIM_RELAY_UNDERDRIVEN` instead. Not said when the board's program cannot run as written (its own
+  doubt says so). The two figures of the run are assumed (`src/sim/index.js`).
 - Every issue about a board's program: the file not found (`SIM_PROGRAM_FILE`, which says the
   folder the kit looked in: the circuit's, beside `circuit.json`), outside the folder, too large, a
   syntax error with its line, a call the simulator does not know (`shiftOut()`), a library or a

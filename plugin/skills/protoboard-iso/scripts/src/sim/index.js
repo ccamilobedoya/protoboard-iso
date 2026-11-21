@@ -21,6 +21,7 @@ import { deviceOfProgram } from './devices/index.js';
 import { buildCircuit } from '../circuit/build.js';
 import { checkButtonPins } from '../circuit/checks.js';
 import { CIRCUIT_FOLDER } from '../beside.js';
+import { outputsOf, outputOn, runCircuit, runsByItself, BEHAVIOUR_STEPS } from './run.js';
 
 // Findings about the wiring itself that `check` and the hazard check report (not placement checks):
 // each is a doubt of the review (doubtsOf), never a blocking item (circuit/checks.js DOUBT_CODES).
@@ -153,6 +154,8 @@ export function leaveState(engine, s) {
 export function engineHazards(engine, states, max = STATES_MAX, { collect = false } = {}) {
   const rest = engine.dc();
   if (!rest.ok) return { hazards: [], doubts: collect ? warningsOf(rest) : [], states: { checked: 0, total: states.length, controls: 0, outputs: 0 }, ok: false };
+  const lit = litTracker(engine.program());
+  lit.see(rest);
   const outputs = programOutputs(rest);
   const all = [...states, ...outputs.states];
   const hazards = exceeded(engine, rest);
@@ -168,6 +171,7 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
     const reading = eng.dc();
     const when = s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value, ...(s.end && { end: s.end }) };
     if (reading.ok) {
+      lit.see(reading);
       for (const h of exceeded(eng, reading)) if (!atRest.has(hazardKey(h))) hazards.push({ ...h, when });
       for (const d of warningsOf(reading)) {
         if (!doubted.has(doubtKey(d))) {
@@ -186,7 +190,118 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
   const controls = new Set(states.filter((s) => s.part !== 'environment').map((s) => `${s.part} ${s.field}`)).size;
   // The fields visited at both ends, by name, for the Checked line ("light at both ends").
   const environmentFields = [...new Set(tried.filter((s) => s.part === 'environment').map((s) => s.field))];
-  return { hazards, doubts: doubts.filter((d) => !hazards.some((h) => hazardKey(h) === hazardKey(d))), states: { checked: tried.length, total: all.length, controls, outputs: outputs.pins.length, ...(fields && { environment: fields }) }, ok: true, ...(environmentFields.length && { environmentFields }), ...(collect && { rest }) };
+  return { hazards, doubts: doubts.filter((d) => !hazards.some((h) => hazardKey(h) === hazardKey(d))), states: { checked: tried.length, total: all.length, controls, outputs: outputs.pins.length, ...(fields && { environment: fields }) }, ok: true, ...(environmentFields.length && { environmentFields }), ...(collect && { rest, lit }) };
+}
+
+// The outputs of a circuit (sim/run.js outputsOf: an LED, each chip of an RGB LED or segment of a
+// display, a buzzer, a relay, a motor, a laser) and whether each came on in a reading seen so far,
+// with each relay's highest coil current (what SIM_OUTPUT_NEVER_ON says for it).
+// An LED (a chip, a segment) counts as on here from where it glows at all, not from where it is
+// plainly lit (the run's 5 %): 0.2 µA of 20 mA. The doubt is for a part that stays dark, and a goal of
+// 1 µA is a dim LED, not a dark one [assumed].
+const GLOWS = { led: { level: 1e-5 }, segment: { level: 1e-5 } };
+function litTracker(program) {
+  const devices = new Map(program.devices.map((d) => [d.id, d]));
+  // A chip of an RGB LED or a segment counts when its own pin is wired (a display's unused point is not).
+  const own = (o) => o.id === o.part || pinWired(program, devices.get(o.part), o.id.slice(o.part.length + 1));
+  const watched = outputsOf(program).filter((o) => o.kind !== 'output' && wired(program, devices.get(o.part)) && own(o));
+  const on = new Set();
+  const coil = new Map();
+  return {
+    watched,
+    on,
+    coil,
+    see(reading) {
+      for (const o of watched) {
+        const r = reading.parts?.[o.part];
+        if (outputOn(GLOWS[o.kind] ? { ...o, on: GLOWS[o.kind] } : o, r)) on.add(o.id);
+        if (o.kind === 'relay' && r) coil.set(o.part, Math.max(coil.get(o.part) ?? 0, Math.abs(r.current ?? 0)));
+      }
+    },
+  };
+}
+
+// An output that never comes on (SIM_OUTPUT_NEVER_ON): a part whose job is to show or move something,
+// wired into a circuit with a source, that is off in every state the hazard check solved (at rest,
+// each control, each end of the environment, each program output) and, for a circuit that changes by
+// itself (a board's program, a 555, a generator, an oscillator), through the bounded run of layout's
+// Behaviour line. One doubt per part; a part with several outputs (an RGB LED, a display) names the
+// ones that never came on when others did. A relay says its highest coil current and its pull-in.
+const NEVER_ON_SECONDS = 2;
+// The scripted run's pieces: each state held this long (a touch module registers after 220 ms), then
+// released for the gap; at most NEVER_ON_STATES of them, after the plain seconds above [assumed].
+const NEVER_ON_HOLD = 0.5;
+const NEVER_ON_GAP = 0.2;
+const NEVER_ON_STATES = 24;
+function neverOn(circuit, compiled, engine, states, lit) {
+  const dark = () => lit.watched.filter((o) => !lit.on.has(o.id));
+  if (!dark().length) return [];
+  // More states, for this question only (they add no hazard): every field of a declared environment
+  // (a beam a laser crosses, which no sensor follows) and every control the page offers (a module's
+  // trimmer), at each end.
+  const extra = extraStates(circuit, engine, states);
+  for (const s of extra) {
+    if (!enterState(engine, s)) continue;
+    const reading = engine.dc();
+    if (reading.ok) lit.see(reading);
+    leaveState(engine, s);
+  }
+  // A run: the plain first seconds (a program, a 555, an oscillator), then each state in turn, held and
+  // released (a touch module in toggle mode, a PIR's hold time: things a DC point cannot show).
+  const timed = (compiled.program.devices ?? []).some((d) => !d.unsupported && deviceOfProgram(d)?.state);
+  // Each field also at the middle of its range: the two ends of a shaft's angle are one position.
+  const middles = [];
+  for (const c of engine.controls()) {
+    if (!(c.id === 'environment' || [...states, ...extra].some((s) => s.part === c.id && s.field === c.field))) continue;
+    if (c.id === 'environment' && ![...states, ...extra].some((s) => s.part === 'environment' && s.field === c.field)) continue;
+    const middle = (c.min + c.max) / 2;
+    if (c.scale !== 'momentary' && c.scale !== 'toggle' && Number.isFinite(middle) && middle !== c.value) middles.push({ part: c.id, field: c.field, value: middle, rest: c.value });
+  }
+  const steps = [...states, ...extra, ...middles].filter((s) => !s.pin && !s.engine).slice(0, NEVER_ON_STATES);
+  if (dark().length && (runsByItself(compiled.program) || timed || steps.length)) {
+    const at = [];
+    steps.forEach((s, k) => {
+      const time = NEVER_ON_SECONDS + k * (NEVER_ON_HOLD + NEVER_ON_GAP);
+      const name = s.part === 'environment' ? s.field : `${s.part}.${s.field}`;
+      at.push({ time, name, value: String(s.value) }, { time: time + NEVER_ON_HOLD, name, value: String(s.rest) });
+    });
+    const seconds = NEVER_ON_SECONDS + steps.length * (NEVER_ON_HOLD + NEVER_ON_GAP);
+    const run = runCircuit(circuit, { seconds, stimuli: { at }, maxSteps: BEHAVIOUR_STEPS * 2, minStep: seconds / 20000, checks: 0, compiled });
+    // A run that did not end its seconds still says what came on in the time it ran.
+    for (const o of run.outputs ?? []) if (o.onShare > 0 || o.changes > 0) lit.on.add(o.id);
+  }
+  const out = [];
+  const left = dark();
+  // Whole parts that never came on, in one doubt (eight LEDs behind a chip not simulated are one
+  // finding); a relay, and a part some of whose outputs did come on, each in its own.
+  const whole = [];
+  for (const part of [...new Set(left.map((o) => o.part))]) {
+    const own = lit.watched.filter((o) => o.part === part);
+    const off = left.filter((o) => o.part === part);
+    const kind = own[0].kind;
+    if (kind === 'relay') {
+      const d = compiled.program.devices.find((x) => x.id === part);
+      out.push(issue('warning', 'SIM_OUTPUT_NEVER_ON', { part, kind, variant: 'relay', current: { value: lit.coil.get(part) ?? 0, unit: 'A' }, needs: { value: d.params.model.pullIn, unit: 'A' } }));
+    } else if (own.length > 1 && off.length < own.length) out.push(issue('warning', 'SIM_OUTPUT_NEVER_ON', { part, kind, variant: 'channels', channels: off.map((o) => o.id.slice(part.length + 1)).join(', ') }));
+    else whole.push(part);
+  }
+  if (whole.length) out.unshift(issue('warning', 'SIM_OUTPUT_NEVER_ON', { part: whole.join(', '), ...(whole.length > 1 && { variant: 'many' }) }));
+  return out;
+}
+
+// The states neverOn adds: the fields of a declared environment the hazard check did not visit, and
+// the controls of page.controls, each at its ends (a switch: its other position).
+function extraStates(circuit, engine, states) {
+  const done = new Set(states.map((s) => `${s.part} ${s.field}`));
+  const offered = new Set((circuit.page?.controls ?? []).map((c) => (c?.environment != null ? `environment ${c.environment}` : `${c?.part ?? c?.supply} ${c?.field}`)));
+  const out = [];
+  for (const c of engine.controls()) {
+    const key = `${c.id} ${c.field}`;
+    if (done.has(key) || c.programmed || !(c.id === 'environment' ? circuit.environment && Object.hasOwn(circuit.environment, c.field) : offered.has(key))) continue;
+    if (c.scale === 'momentary' || c.scale === 'toggle') out.push({ part: c.id, field: c.field, value: !c.value, rest: c.value });
+    else for (const value of [c.min, c.max]) if (Number.isFinite(value) && value !== c.value) out.push({ part: c.id, field: c.field, value, rest: c.value });
+  }
+  return out;
 }
 
 // A circuit that declares no environment still has sensors that read one (an LDR's light, a
@@ -209,8 +324,9 @@ export function checkHazards(circuit) {
   const compiled = compile(circuit);
   if (compiled.fatal) return { hazards: [], states: { checked: 0, total: 0, controls: 0, outputs: 0 }, checked: coverageOf(compiled, null), doubts: doubtsOf(circuit, compiled, null) };
   const engine = createEngine(compiled.program);
-  const { rest, ...result } = engineHazards(engine, [...controlStates(compiled.program, engine), ...undeclaredEnvironmentStates(circuit, compiled.program)], STATES_MAX, { collect: true });
-  const doubts = doubtsOf(circuit, compiled, { ...result, rest });
+  const { rest, lit, ...result } = engineHazards(engine, [...controlStates(compiled.program, engine), ...undeclaredEnvironmentStates(circuit, compiled.program)], STATES_MAX, { collect: true });
+  const dark = result.ok ? neverOn(circuit, compiled, engine, [...controlStates(compiled.program, engine)], lit) : [];
+  const doubts = doubtsOf(circuit, compiled, { ...result, rest, dark });
   return { ...result, checked: coverageOf(compiled, result, doubts), doubts };
 }
 
@@ -258,7 +374,15 @@ export function doubtsOf(circuit, compiled, result) {
     if (r.program.error) add(issue('warning', 'SIM_PROGRAM_STOPPED', { part: id, message: String(r.program.error).slice(0, 80) }));
     else if (r.program.stuck) add(issue('warning', 'SIM_PROGRAM_STUCK', { part: id }));
   }
+  // A relay driven past its drop-out current somewhere but never pulled in is SIM_RELAY_UNDERDRIVEN
+  // (it may not pull in); one never driven that far anywhere is SIM_OUTPUT_NEVER_ON (it does not).
+  const driven = new Set((result?.doubts ?? []).filter((i) => i.code === 'SIM_RELAY_UNDERDRIVEN').map((i) => i.params.part));
   for (const i of result?.doubts ?? []) if (!(i.code === 'SIM_FLOATING' && outside(program, i))) add(i);
+  // A program the kit cannot run as written leaves its outputs unvisited: its own doubt says so. A
+  // board with no program yet (wired before the sketch is written) has no outputs to visit either.
+  const idle = (program.devices ?? []).some((d) => d.kind === 'MCU' && !d.unsupported && !d.params?.sketch);
+  const unrun = idle || out.some((i) => i.code.startsWith('SIM_PROGRAM_'));
+  for (const i of result?.dark ?? []) if (!unrun && !(i.params.variant === 'relay' && driven.has(i.params.part))) add(i);
   return out;
 }
 
@@ -275,6 +399,13 @@ function outside(program, i) {
     const d = devices.get(id);
     return !d || d.unsupported || CONTACTS.has(d.kind) || d.pins.every((pin) => floating.has(pin.node));
   }));
+}
+
+// A device's pin, by name, on a node another part or a supply is on.
+function pinWired(program, d, name) {
+  const pin = d?.pins.find((p) => p.name === name);
+  if (!pin) return false;
+  return (program.supplies ?? []).some((s) => s.p === pin.node || s.n === pin.node) || (program.members?.[pin.node] ?? []).some((id) => id !== d.id);
 }
 
 // A device with a pin on a node another part or a supply is on: wired into the circuit.
