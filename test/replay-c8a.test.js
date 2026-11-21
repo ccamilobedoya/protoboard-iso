@@ -6,8 +6,9 @@ import { spawnSync } from 'node:child_process';
 import { writeFileSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
-import { autoLayout } from '../src/layout.js';
-import { formatIssue } from '../src/index.js';
+import { autoLayout, formatLayout } from '../src/layout.js';
+import { formatIssue, t } from '../src/index.js';
+import { specWithFix } from '../src/fix.js';
 import { checkHazards, simulate } from '../src/sim/index.js';
 
 const root = new URL('../', import.meta.url).pathname;
@@ -138,4 +139,29 @@ test('a motor on a plain switch or straight on a battery has no switch to damage
   const bat = autoLayout({ parts: [{ id: 'M1', type: 'motor' }], nets: [['T+', 'M1.+'], ['M1.-', 'T-']], supplies: [{ id: 'V1', voltage: 3, positive: 'T+', negative: 'T-' }] });
   assert.notEqual(bat.status, 'changes', JSON.stringify(bat.problems));
   assert.ok(!bat.review.doubts.some((x) => x.code === 'COIL_NO_FLYBACK'));
+});
+
+// ---- 5. The fix of a part that is in backwards is to turn it round
+
+test('a buzzer wired backwards: the fix turns it round, never a series resistor', () => {
+  const spec = {
+    parts: [{ id: 'BT1', type: 'battery', format: 'AA', cells: 3 }, { id: 'SW1', type: 'button' }, { id: 'BZ1', part: 'TMB12A05' }],
+    nets: [['BT1.+', 'SW1.1'], ['SW1.3', 'BZ1.2'], ['BZ1.1', 'BT1.-']],
+  };
+  const r = autoLayout(spec);
+  assert.ok(r.review.hazards.some((h) => h.code === 'SIM_REVERSE_VOLTAGE'), JSON.stringify(r.review.hazards));
+  assert.equal(r.review.fix?.kind, 'swap', JSON.stringify(r.review.fix));
+  const text = formatLayout(r, 'en', { t, formatIssue });
+  assert.match(text, /To fix it: turn BZ1 round/);
+  assert.doesNotMatch(text, /resistor in series with BZ1/);
+  // Applied, the spec has its two leads exchanged, and the hazard is gone.
+  const fixed = autoLayout(specWithFix(spec, r.review.fix).spec);
+  assert.deepEqual(fixed.review.hazards, []);
+});
+
+test('a regulator fed backwards by its battery: the fix swaps the battery\'s leads', () => {
+  const r = autoLayout({ parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'U1', part: 'L7805' }, { id: 'C1', type: 'capacitor', value: '100n' }], nets: [['BT1.-', 'U1.IN'], ['BT1.+', 'U1.GND', 'C1.2'], ['U1.OUT', 'C1.1']] });
+  assert.ok(r.review.hazards.some((h) => h.code === 'SIM_REVERSE_VOLTAGE'), JSON.stringify(r.review.hazards));
+  assert.deepEqual(r.review.fix, { kind: 'swap-supply', supply: 'BT1' });
+  assert.match(formatLayout(r, 'es', { t, formatIssue }), /Para arreglarlo: intercambia los cables de BT1/);
 });

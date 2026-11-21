@@ -257,6 +257,8 @@ export default {
   'review.noFix': 'El kit no tiene un arreglo calculado para esto.',
   'review.fix.set': 'Para arreglarlo: {part} = {value} deja {brings}.',
   'review.fix.add': 'Para arreglarlo: una resistencia de {value} en serie con {with} deja {brings}.',
+  'review.fix.swap': 'Para arreglarlo: voltea {part} (intercambia su {a} y su {b}); eso quita todos los daños de arriba.',
+  'review.fix.swapSupply': 'Para arreglarlo: intercambia los cables de {supply} (su + y su −); eso quita todos los daños de arriba.',
   'review.fix.brings': '{subject} en {value} (máximo {max})',
   'review.fix.pin': 'el pin {pin} de {part}',
   'review.fix.part': 'a {part}',

@@ -280,6 +280,12 @@ Para arreglarlo: R1 = 360 Ω deja a R1 en 140 mW (máximo 250 mW) y a D1 en 19,7
 El kit no tiene un arreglo calculado para esto.
 ```
 
+- **Un componente al revés se voltea.** Para un peligro de voltaje inverso los candidatos son el
+  componente con sus dos patas intercambiadas (`Para arreglarlo: voltea BZ1 (intercambia su 1 y su 2)`),
+  y luego cada fuente o batería con sus cables intercambiados (`Para arreglarlo: intercambia los
+  cables de BT1 (su + y su −)`), el primero que quita todos los peligros en todos los estados
+  (`fix.kind` `swap` o `swap-supply`). Nunca se ofrece una resistencia en serie para un peligro
+  inverso (solo silencia un zumbador): si ningún intercambio lo quita, el kit no tiene arreglo calculado.
 - **Candidatos, en este orden**, gana el primero que lo quita todo: (1) un valor nuevo para una
   resistencia que ya está en serie con el componente forzado o su rama (el mismo componente si es una
   resistencia), (2) una resistencia nueva en serie con el componente forzado, o con cada carga del pin

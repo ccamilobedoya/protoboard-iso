@@ -28,6 +28,7 @@ detail.
 
 ### Fixed
 
+- A buzzer wired backwards got "To fix it: a 820 kΩ resistor in series", which silences it. For a reverse-voltage hazard the fix is now the part turned round or a supply's leads swapped (`fix.kind` `swap` / `swap-supply`, also through `specWithFix`); a series resistor is never offered for it.
 - A relay's coil or a motor switched by a transistor, a MOSFET or a board's pin with no diode across it ended `DONE`; it is a doubt now (`COIL_NO_FLYBACK`): the switch can be damaged when it turns off, and a diode across the coil fixes it. A wiring check: it never blocks placement.
 - An HC-SR04's ECHO (5 V) straight on an ESP32 pin got no warning: ECHO is low at rest. `SIM_PIN_OVERVOLTAGE` now comes from the highest voltage each board pin sees over the review's states and its run, with the moment (`D18 reaches 4.05 V at 262 µs of the kit's run`).
 - An output that never comes on is a doubt (`SIM_OUTPUT_NEVER_ON`): a relay fed straight from a sensor module's output (3 mA in a coil that needs 54 mA), a joule thief of two uncoupled inductors and LEDs behind a chip the kit does not simulate ended `DONE`; now `WARNINGS`, naming the parts. The hazard check also visits a declared environment's other fields (a laser's `beam`), the page's controls and a run with each state held and released (a touch module in toggle mode).

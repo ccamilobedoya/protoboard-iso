@@ -222,11 +222,54 @@ function bringsOf(found, hazards) {
   });
 }
 
+// A part in backwards is turned round, never limited: a resistor in series with a buzzer wired the
+// wrong way only silences it. For a reverse hazard (SIM_REVERSE_VOLTAGE) the candidates are the part
+// with its two leads swapped, then each supply (a bench supply, a battery part) with its leads swapped;
+// the first that clears every hazard in every state is the fix ('swap', 'swap-supply'). No series
+// resistor is offered while a reverse hazard is left.
+const isReverse = (h) => h.code === 'SIM_REVERSE_VOLTAGE';
+function swapCandidates(program, hazards) {
+  const out = [];
+  for (const h of hazards.filter(isReverse)) {
+    const s = subjectOf(program, h);
+    if (s && !s.pin && s.d.pins.length === 2 && s.d.kind !== 'MCU' && h.params.variant !== 'pins') out.push({ kind: 'swap', part: s.d.id, pins: s.d.pins.map((p) => p.name) });
+  }
+  for (const x of program.supplies ?? []) if (x.id) out.push({ kind: 'swap-supply', supply: x.id });
+  for (const d of program.devices) if (d.kind === 'BAT' && d.pins.length === 2) out.push({ kind: 'swap-supply', supply: d.id, part: true });
+  return out.filter((c, k) => out.findIndex((x) => JSON.stringify(x) === JSON.stringify(c)) === k);
+}
+function swapped(program, c) {
+  const out = structuredClone(program);
+  if (c.kind === 'swap' || c.part) {
+    const d = out.devices.find((x) => x.id === (c.part === true ? c.supply : c.part));
+    const [a, b] = d.pins;
+    [a.node, b.node] = [b.node, a.node];
+  } else {
+    const x = out.supplies.find((y) => y.id === c.supply);
+    [x.p, x.n] = [x.n, x.p];
+  }
+  return out;
+}
+function trySwaps(program, hazards) {
+  for (const c of swapCandidates(program, hazards)) {
+    const changed = swapped(program, c);
+    const engine = createEngine(changed);
+    const r = engineHazards(engine, controlStates(changed, engine));
+    if (!r.ok || r.hazards.length) continue;
+    return c.kind === 'swap' ? { kind: 'swap', part: c.part, pins: c.pins } : { kind: 'swap-supply', supply: c.supply };
+  }
+  return null;
+}
+
 export function hazardFix(circuit, hazards) {
   if (!hazards?.length) return {};
   const compiled = compile(circuit);
   if (compiled.fatal) return { fix: null, noFix: true };
   const { program } = compiled;
+  if (hazards.some(isReverse)) {
+    const fix = trySwaps(program, hazards);
+    return fix ? { fix } : { fix: null, noFix: true };
+  }
   const nets = netsOf(program);
   // Each candidate once, with the hazards that propose it. The one it is aimed at: a hazard on
   // another part than the resistor it changes (the LED a resistor feeds, not the resistor's own
@@ -268,6 +311,18 @@ export function hazardFix(circuit, hazards) {
 //                 for one of its own pins): signal order. A recipe no longer describes the circuit.
 // → { spec, applied: { kind, part, value, with? } }
 export function specWithFix(spec, fix) {
+  // A part turned round: its two pins swap in the nets; a supply's leads: its + and − swap.
+  if (fix.kind === 'swap' || fix.kind === 'swap-supply') {
+    const id = fix.kind === 'swap' ? fix.part : fix.supply;
+    // The part's two leads as the spec names them (an alias such as D1.A is the anode): exchanged.
+    const all = spec.nets.flatMap((net) => (Array.isArray(net) ? net : (net.pins ?? [])));
+    const own = [...new Set(all.filter((ref) => String(ref).split('.')[0] === id))];
+    const lead = (ref) => (own.length === 2 && own.includes(ref) ? own.find((x) => x !== ref) : ref);
+    const swap = (pins) => pins.map(lead);
+    const nets = spec.nets.map((net) => (Array.isArray(net) ? swap(net) : { ...net, pins: swap(net.pins ?? []) }));
+    const supplies = spec.supplies?.map((x) => (x.id === id ? { ...x, positive: x.negative, negative: x.positive } : x));
+    return { spec: { ...spec, nets, ...(supplies && { supplies }) }, applied: { kind: fix.kind, part: id } };
+  }
   const value = valueText(fix.value);
   if (fix.kind === 'set') {
     const parts = spec.parts.map((p) => (p.id === fix.part ? { ...p, value } : p));

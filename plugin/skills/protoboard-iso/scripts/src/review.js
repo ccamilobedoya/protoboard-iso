@@ -241,6 +241,8 @@ export function formatHazards(r, lang, formatIssue, t, { checked = true } = {}) 
 
 // "To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.5 mA (maximum 40 mA)."
 function fixLine(fix, lang, t) {
+  if (fix.kind === 'swap') return t(lang, 'review.fix.swap', { part: fix.part, a: fix.pins[0], b: fix.pins[1] });
+  if (fix.kind === 'swap-supply') return t(lang, 'review.fix.swapSupply', { supply: fix.supply });
   const decimal = decimalSeparator(lang);
   const f = (v, unit) => formatValue(v, unit, { decimal });
   const brings = fix.brings

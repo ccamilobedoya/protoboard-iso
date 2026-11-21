@@ -258,6 +258,8 @@ export default {
   'review.noFix': 'The kit has no computed fix for this.',
   'review.fix.set': 'To fix it: {part} = {value} brings {brings}.',
   'review.fix.add': 'To fix it: a {value} resistor in series with {with} brings {brings}.',
+  'review.fix.swap': 'To fix it: turn {part} round (swap its {a} and {b}); that clears every hazard above.',
+  'review.fix.swapSupply': 'To fix it: swap the leads of {supply} (its + and −); that clears every hazard above.',
   'review.fix.brings': '{subject} to {value} (maximum {max})',
   'review.fix.pin': "{part}'s {pin}",
   'review.fix.part': '{part}',

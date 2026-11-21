@@ -268,6 +268,12 @@ To fix it: R1 = 360 Ω brings R1 to 140 mW (maximum 250 mW) and D1 to 19.7 mA (m
 The kit has no computed fix for this.
 ```
 
+- **A part in backwards is turned round.** For a reverse-voltage hazard the candidates are the part
+  with its two leads swapped (`To fix it: turn BZ1 round (swap its 1 and 2)`), then each supply or
+  battery with its leads swapped (`To fix it: swap the leads of BT1 (its + and −)`), the first that
+  clears every hazard in every state (`fix.kind` `swap` or `swap-supply`). A series resistor is never
+  offered for a reverse hazard (it only silences a buzzer): with none of the swaps clearing it, the
+  kit has no computed fix.
 - **Candidates, in this order**, the first that clears everything wins: (1) a new value for a
   resistor already in series with the stressed part or its branch (the part itself when it is a
   resistor), (2) one new resistor in series with the stressed part, or with each load on a board's
