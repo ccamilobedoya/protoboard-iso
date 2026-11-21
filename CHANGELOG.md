@@ -30,7 +30,9 @@ detail.
 - `references/sketch.md` in the skill: what a board's program may use (functions, `Serial`, constants, types and arrays, libraries), written from the simulator's own tables and a probe of each common Arduino name through the translator and the runner (`scripts/sketch-reference.js`, with `npm run parts-reference -- --write`); `test/sketch-reference.test.js` fails when it is stale or says what the simulator does not do.
 - `references/parts.md` in the skill: for every part type and part number, its pins, the fields a spec and a `set` take, what a run changes on it and the environment's fields it reads, with units and ranges. Written from the kit's data by `npm run parts-reference -- --write` (`partReference` in `src/node/catalog.js`, `partControls` in `src/sim/ratings.js`); `test/parts-reference.test.js` fails when it is stale.
 
-### Fixed
+- The test suite lays the sixty recipes out once (`test/recipe-sweep.test.js`): the checks that each laid them all out again (ready in one call, no hazard and every output on, the visibility figures, simulating without stress, layout again with one net changed, the acceptance checks A4, B10 and E8) read that one sweep, with their assertions unchanged; A4 reads the answer in process instead of sixty CLI runs, and `kit-first` copies one CLI layout of its buzzer circuit instead of making it five times. `npm test` on a four-core machine at a load of about 4: 775 s → 661 s.
+
+### Fixed### Fixed
 
 - An H-bridge driven by a sketch got "Q3 dissipates 3.65 W … with D4 high": each program output was raised alone. With a program that runs, the hazard check now visits the combinations of outputs its run reaches (`with D2 + D5 high`).
 - Figures that disagreed: `layout`'s Behaviour line said 1.11 kHz where `simulate --run` said 1.04 kHz (a fast rhythm is now measured again in the page's step; `about` under five periods); a pin overloaded under the half-rail line read "off the whole time" beside LEDs on (a pin is reported by what the program writes); `--transient` gives the step solved and the spacing of the samples printed; a loaded pin's reading names its output resistance.

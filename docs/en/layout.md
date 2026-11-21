@@ -377,7 +377,7 @@ built alone on a board shared by the candidates of the same size (`builtAlone`),
 geometry checks keeps at most `MEMO_STATES` (1500) states, and before each review only that try's
 own steps. `buildCircuit` keeps its last two results by the circuit's text (one review built the
 same circuit five or six times), and the inspector's raster keeps each part's cells in a typed list,
-not a Set (`src/render/coverage.js`); both give the same figures (`test/recipe-visibility.test.js`).
+not a Set (`src/render/coverage.js`); both give the same figures (`test/recipe-sweep.test.js`, the visibility check).
 Two hundred resistors in series on a 9 V battery: `DONE` in one try, about 6 s, 0.62 GB; through the
 CLI, with its page, about 1.05–1.1 GB (below).
 

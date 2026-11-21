@@ -9,7 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { autoLayout, formatLayout } from '../src/layout.js';
@@ -44,6 +44,18 @@ function withFix(spec, fix, { atEnd = false } = {}) {
 
 const buzzer = fixture('buzzer-on-pin.json');
 const built = autoLayout(buzzer);
+// The buzzer circuit laid out through the CLI once (`layout <folder> spec.json`); each test that
+// starts from it gets its own copy of the folder, under the name it uses.
+let made = null;
+function laidOut(dir, name) {
+  if (!made) {
+    made = tempDir('pbiso-kit-first-made-');
+    writeFileSync(join(made, 'spec.json'), JSON.stringify(buzzer));
+    assert.equal(cli(['layout', 'circuits/c', 'spec.json'], made).status, 0);
+  }
+  writeFileSync(join(dir, 'spec.json'), JSON.stringify(buzzer));
+  cpSync(join(made, 'circuits/c'), join(dir, 'circuits', name), { recursive: true });
+}
 
 test('a board drives a buzzer straight from D10: WARNINGS with D10 high, the pin, its figure and maximum', () => {
   assert.equal(built.status, 'warnings');
@@ -88,8 +100,7 @@ const appliedText = (fix, lang = 'en') => {
 
 test('layout --fix applies the kit\'s own fix in one call: DONE, one revision, the line saying what; undo brings the warning back', () => {
   const dir = tempDir('pbiso-kit-first-');
-  writeFileSync(join(dir, 'spec.json'), JSON.stringify(buzzer));
-  assert.equal(cli(['layout', 'circuits/two-leds', 'spec.json'], dir).status, 0);
+  laidOut(dir, 'two-leds');
   const r = cli(['layout', 'circuits/two-leds', '--fix'], dir);
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(lastLine(r.stdout), /^STATUS: DONE · /);
@@ -116,8 +127,7 @@ test('layout --fix applies the kit\'s own fix in one call: DONE, one revision, t
 
 test('layout --fix --dry-run is a trial of the fix: the same answer, nothing written', () => {
   const dir = tempDir('pbiso-kit-first-');
-  writeFileSync(join(dir, 'spec.json'), JSON.stringify(buzzer));
-  assert.equal(cli(['layout', 'circuits/two-leds', 'spec.json'], dir).status, 0);
+  laidOut(dir, 'two-leds');
   const files = ['circuit.json', 'history.jsonl'].map((f) => join(dir, 'circuits/two-leds', f));
   const before = files.map((f) => readFileSync(f));
   const r = cli(['layout', 'circuits/two-leds', '--fix', '--dry-run'], dir);
@@ -192,7 +202,7 @@ for (const atEnd of [false, true]) {
     const strip = (s, drop) => s.replace(/^Laid out .*$/m, '').split('\n').filter((l) => !drop.test(l)).join('\n');
     assert.equal(strip(trial.stdout, /^Trial: /), strip(real.stdout, /^Page: /));
     // On the circuit as first built (with the warning), as one change.
-    assert.equal(cli(['layout', 'circuits/built', 'spec.json'], dir).status, 0);
+    laidOut(dir, 'built');
     const before = JSON.parse(readFileSync(join(dir, 'circuits/built/circuit.json'), 'utf8'));
     const again = cli(['layout', 'circuits/built', 'fixed.json'], dir);
     assert.equal(again.status, 0, again.stdout + again.stderr);
@@ -217,9 +227,8 @@ test('the redesign tried instead (a transistor driving the buzzer from 5 V) ends
 
 test('a trial on an existing circuit leaves its file and its history as they were, in both languages', () => {
   const dir = tempDir('pbiso-kit-first-');
-  writeFileSync(join(dir, 'spec.json'), JSON.stringify(buzzer));
   writeFileSync(join(dir, 'fixed.json'), JSON.stringify(withFix(buzzer, built.review.fix)));
-  assert.equal(cli(['layout', 'circuits/two-leds', 'spec.json'], dir).status, 0);
+  laidOut(dir, 'two-leds');
   const file = join(dir, 'circuits/two-leds/circuit.json');
   const history = join(dir, 'circuits/two-leds/history.jsonl');
   const before = [readFileSync(file), readFileSync(history)];

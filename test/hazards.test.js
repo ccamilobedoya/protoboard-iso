@@ -7,10 +7,10 @@ import { spawnSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
-import { autoLayout, specFromCircuit, formatLayout } from '../src/layout.js';
+import { autoLayout, formatLayout } from '../src/layout.js';
 import { review, formatReview, formatHazards } from '../src/review.js';
 import { compile, createEngine, controlStates, engineHazards, STATES_MAX } from '../src/sim/index.js';
-import { RECIPES, expandRecipe } from '../src/recipes/index.js';
+import { expandRecipe } from '../src/recipes/index.js';
 import { applyOps } from '../src/ops.js';
 import { formatIssue, t } from '../src/index.js';
 
@@ -67,20 +67,8 @@ test('a circuit that cannot be simulated has no hazards', () => {
   assert.deepEqual(review(r.circuit).hazards, []);
 });
 
-test('recipes with their defaults: none would damage a part', () => {
-  // Known list: recipes whose defaults are past a limit, at rest, with each control operated or with
-  // each output of a board's program high (none today; the maintainer decides about any listed here,
-  // each with a comment saying what burns and when).
-  const known = new Set([]);
-  for (const name of Object.keys(RECIPES)) {
-    const r = autoLayout(expandRecipe(name).spec);
-    const hazards = r.review.hazards.map((h) => formatIssue(h, 'en'));
-    if (known.has(name)) assert.ok(hazards.length, `${name} is on the known list but has no hazard any more: remove it`);
-    else assert.deepEqual(hazards, [], name);
-    // Every output of a recipe comes on in some state the kit visits (SIM_OUTPUT_NEVER_ON).
-    assert.deepEqual(r.review.doubts.filter((d) => d.code === 'SIM_OUTPUT_NEVER_ON').map((d) => formatIssue(d, 'en')), [], name);
-  }
-});
+// The recipes with their defaults (none would damage a part) are checked in test/recipe-sweep.test.js,
+// on the sweep every such check reads.
 
 // ---- with a control operated (sim/index.js checkHazards): one control at a time, the others at rest
 
@@ -190,35 +178,7 @@ test('layout again: a part keeps its holes only where its new nets want them (LE
   assert.equal(autoLayout(next).status, 'done');
 });
 
-const railOf = (ref) => /^[TBUK][+-]$/.test(String(ref));
-test('layout again, property: with one net changed, never a short together with DONE or APPROVED; DONE means the nets are clean', () => {
-  let tried = 0;
-  for (const name of Object.keys(RECIPES)) {
-    const first = autoLayout(expandRecipe(name).spec);
-    if (first.status !== 'done') continue;
-    const base = specFromCircuit(first.circuit);
-    const nets = base.nets.map((n) => (Array.isArray(n) ? { pins: [...n] } : { ...n, pins: [...n.pins] }));
-    const withRail = nets.findIndex((n) => n.pins.some(railOf) && n.pins.some((p) => !railOf(p)));
-    const without = nets.findIndex((n, i) => i !== withRail && !n.pins.some(railOf));
-    if (withRail < 0 || without < 0) continue;
-    // Variant: the first pin of the net on a rail joins another net (a pin leaves a rail and lands on another node).
-    const variant = nets.map((n) => ({ ...n, pins: [...n.pins] }));
-    const moved = variant[withRail].pins.find((p) => !railOf(p));
-    variant[withRail].pins = variant[withRail].pins.filter((p) => p !== moved);
-    variant[without].pins.push(moved);
-    const r = autoLayout(specFromCircuit(first.circuit, { nets: variant }), { previous: first.circuit });
-    if (r.checked) continue; // the variant is not a valid spec
-    tried++;
-    const text = formatLayout(r, 'en', { t, formatIssue });
-    if (r.check.shorted.length) {
-      assert.equal(r.review.verdict, 'changes', `${name}: a short with a review that approves\n${text}`);
-      assert.doesNotMatch(text, /APPROVED/, name);
-    }
-    if (r.status === 'done') assert.ok(r.check.ok && r.review.verdict === 'approved', `${name}: DONE with open nets\n${text}`);
-    if (r.status === 'warnings') assert.ok(r.check.ok, name);
-  }
-  assert.ok(tried >= 8, `only ${tried} recipes gave a variant`);
-});
+// Layout again with one net changed, on every recipe: test/recipe-sweep.test.js (the shared sweep).
 
 test('undo after layout again restores the first layout exactly', async () => {
   const { tempDir: mk } = await import('../scripts/tmp.js');

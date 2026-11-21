@@ -9,8 +9,6 @@ import { spawnSync } from 'node:child_process';
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
-import { RECIPES, resolveRecipe } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const bin = join(root, 'bin/protoboard-iso.js');
@@ -178,19 +176,7 @@ test('E7: the same 5-pair spec twice gives the same circuit.json', () => {
   assert.deepEqual(run('a'), run('b'));
 });
 
-test('E8: every recipe still lays out to DONE (in process)', () => {
-  const failures = [];
-  for (const name of Object.keys(RECIPES)) {
-    const { spec, problems } = resolveRecipe({ recipe: name });
-    if (problems.length) {
-      failures.push(`${name}: recipe problems ${problems.map((p) => p.code).join(',')}`);
-      continue;
-    }
-    const r = autoLayout(spec, { lang: 'en' });
-    if (r.status !== 'done') failures.push(`${name}: ${r.status}`);
-  }
-  assert.deepEqual(failures, []);
-});
+// E8, every recipe still lays out to DONE: test/recipe-sweep.test.js (the shared sweep).
 
 test('E9: --budget with a value that is not a number is refused by the parser, naming the option', () => {
   const dir = tempDir('c4-e9-');

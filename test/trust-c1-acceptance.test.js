@@ -95,23 +95,18 @@ test('A3: the uno-blink recipe (everything simulated) is still DONE with no ⚠'
 });
 
 // ---- A4
-test('A4: every recipe in the catalog ends DONE, or WARNINGS with its reason (the others are listed)', SLOW, () => {
+// The catalog lists every recipe of the kit (through the CLI, as a user reads it); that each ends DONE,
+// or WARNINGS with its reason, is checked in test/recipe-sweep.test.js on the shared sweep (the CLI's
+// answer is formatLayout's text; laying out sixty recipes through the CLI again cost 90 s).
+test('A4: the catalog lists every recipe of the kit', SLOW, () => {
   const list = run(['catalog']).stdout;
   const after = list.slice(list.indexOf('Recipes'));
   const names = [...after.matchAll(/^ {2}([a-z0-9][a-z0-9-]*) \(/gm)].map((m) => m[1]);
   assert.deepEqual([...names].sort(), Object.keys(RECIPES).sort(), 'every recipe of the kit');
-  const notDone = [];
-  for (const name of names) {
-    const dir = tempDir('pbi-c1-');
-    const r = run(['layout', join(dir, 'circuit.json'), '--recipe', name]);
-    const status = /^STATUS: (\w+)/.exec(lastLine(r.stdout))?.[1];
-    if (status !== 'DONE') notDone.push({ name, status, why: warnLines(r.stdout).join(' | ') });
-  }
-  if (notDone.length) console.log('A4: recipes not DONE (a human reads these):', JSON.stringify(notDone, null, 1));
-  for (const n of notDone) {
-    assert.equal(n.status, 'WARNINGS', `${n.name} must be DONE or WARNINGS, not ${n.status}`);
-    assert.ok(n.why, `${n.name}: WARNINGS needs its ⚠ reason`);
-  }
+  // One of them through the CLI end to end: the status line the sweep reads from formatLayout.
+  const dir = tempDir('pbi-c1-');
+  const r = run(['layout', join(dir, 'circuit.json'), '--recipe', names[0]]);
+  assert.match(lastLine(r.stdout), /^STATUS: (DONE|WARNINGS)/, r.stdout);
 });
 
 // ---- A5

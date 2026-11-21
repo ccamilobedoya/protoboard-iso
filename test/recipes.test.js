@@ -5,7 +5,6 @@ import { RECIPES, expandRecipe, resolveRecipe, recipeDefaults } from '../src/rec
 import { goalsOf, QUANTITIES } from '../src/recipes/goals.js';
 import { ESTIMATES } from '../src/recipes/estimates.js';
 import { autoLayout, specFromCircuit } from '../src/layout.js';
-import { simulate } from '../src/sim/index.js';
 import { resolvePart } from '../src/parts/resolve.js';
 import { catalogEntry, compactCatalog } from '../src/node/catalog.js';
 import { formatIssue, buildCircuit, labelText } from '../src/index.js';
@@ -17,13 +16,8 @@ const layoutOf = (name, values) => {
   return autoLayout(spec);
 };
 
-for (const name of Object.keys(RECIPES)) {
-  test(`recipe ${name}: ready in one layout call, with its defaults`, () => {
-    const r = layoutOf(name);
-    assert.equal(r.status, 'done', why(r));
-    assert.deepEqual(r.circuit.spec.recipe, { name });
-  });
-}
+// Every recipe ready in one layout call with its defaults, and simulating without errors or stress:
+// test/recipe-sweep.test.js (the shared sweep).
 
 // One case per goal a recipe declares (docs/en/recipes.md, "Goals"): its example is reachable at the
 // recipe's defaults, solved into standard values, and the circuit solved ends DONE.
@@ -76,15 +70,6 @@ test('recipes: each value names an item that has that field', () => {
     const defaults = recipeDefaults(recipe);
     // An entry that only carries goals has no value of its own.
     for (const [id, rule] of Object.entries(recipe.values)) if (rule.field) assert.notEqual(defaults[id], undefined, `${name}: ${id}`);
-  }
-});
-
-test('recipes with a source simulate without errors and without stressing a part', () => {
-  for (const name of Object.keys(RECIPES)) {
-    const s = simulate(layoutOf(name).circuit);
-    assert.ok(s.ok, `${name}: ${JSON.stringify(s.issues)}`);
-    const over = Object.entries(s.parts).flatMap(([id, p]) => (p.stress ?? []).filter((x) => x.level !== 'fine').map((x) => `${id} ${x.quantity} ${x.level}`));
-    assert.deepEqual(over, [], name);
   }
 });
 

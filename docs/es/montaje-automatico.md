@@ -416,7 +416,7 @@ la memoria de las comprobaciones de geometría guarda como mucho `MEMO_STATES` (
 de cada revisión solo los pasos de ese intento. `buildCircuit` guarda sus dos últimos resultados por
 el texto del circuito (una revisión construía el mismo circuito cinco o seis veces), y la trama del
 inspector guarda las celdas de cada componente en una lista tipada, no en un Set
-(`src/render/coverage.js`); las dos dan las mismas cifras (`test/recipe-visibility.test.js`).
+(`src/render/coverage.js`); las dos dan las mismas cifras (`test/recipe-sweep.test.js`, la comprobación de visibilidad).
 Doscientas resistencias en serie con una pila de 9 V: `DONE` en un intento, unos 6 s, 0,62 GB; por
 la consola, con su página, unos 1,05–1,1 GB (abajo).
 

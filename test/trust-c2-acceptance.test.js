@@ -15,9 +15,6 @@ import { spawnSync } from 'node:child_process';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
-import { RECIPES, expandRecipe } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
-import { review } from '../src/index.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const dir = tempDir('c2-acc-');
@@ -227,19 +224,7 @@ test('B9 · LED on 9 V without a resistor: no brightness over 1000 % in layout, 
 });
 
 // ---------------------------------------------------------------- B10
-// Baseline v0.12.1: all 60 recipes review "approved" with no hazard and no blocking item at rest (recorded 2026-11-20).
-const RECIPE_BASELINE_COUNT = 60;
-test('B10 · the recipe list is the one the baseline was recorded on', () => {
-  assert.equal(Object.keys(RECIPES).length, RECIPE_BASELINE_COUNT);
-});
-for (const name of Object.keys(RECIPES)) {
-  test(`B10 · recipe ${name} gains no hazard (baseline: none) and stays approved`, () => {
-    const r = review(autoLayout(expandRecipe(name).spec).circuit);
-    assert.deepEqual(r.hazards.map((h) => `${h.code}:${(h.parts ?? []).join(',')}`), []);
-    assert.deepEqual(r.blocking, []);
-    assert.equal(r.verdict, 'approved');
-  });
-}
+// Every recipe gains no hazard and stays approved: test/recipe-sweep.test.js (the shared sweep).
 
 // ---------------------------------------------------------------- B11
 test('B11 · the golden simulator output passes (or its changed cases are listed in the report)', () => {
