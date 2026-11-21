@@ -330,6 +330,43 @@ zumbador; unos 9 s en la variante con transistor de ese circuito con su arreglo 
 una placa). Sobre todas las recetas barajadas tres veces: 0,26 s en promedio donde el orden dado
 funciona, 2,3 s (a lo sumo 7 s) donde falla.
 
+### Lo que prueba el montaje antes de CHANGES (desde el 2026-11-20)
+
+La misma especificación da siempre el mismo circuito, así que enviarla otra vez no ayuda; lo que
+les sirvió a los asistentes que recibieron `CHANGES` fue una prueba que haría una persona: poner
+otro componente de primero, o llevar el circuito a la protoboard más grande, **montado otra vez
+sobre el circuito ya hecho** (cada componente prueba primero los huecos que tiene ahí, como en un
+segundo montaje de un objetivo). `inAnyOrder` ahora lo hace solo antes de responder `CHANGES`
+(`withTrials`), desde su mejor intento, cada prueba con a lo sumo `TRIAL_TRIES` intentos del ciclo
+de reintentos, en este orden, y se queda con la primera que termina sin `CHANGES` (si no, la mejor
+con el mismo rango):
+
+1. **los órdenes que dan las redes otra vez**, desde el mejor intento (`LAYOUT_ORDER_FROM_NETS`);
+2. **la protoboard doble**, cuando un punto bloqueante nombra una placa de desarrollo (un módulo con
+   GPIO: un UNO, un DevKit) junto con otro componente (lo tapa a él o a una tira suya) y la
+   especificación no nombra su protoboard: en el orden dado y luego en los órdenes de las redes
+   (`LAYOUT_TRIED_DOUBLE`, `LAYOUT_TRIED_DOUBLE_ORDER`: «se montó en la protoboard doble … porque U1
+   tapaba a U2 en una sola»);
+3. **los componentes más altos de primero**, luego **los más anchos** (por el cuerpo en el dibujo
+   del mejor intento; una placa de desarrollo y un componente al lado de la protoboard no se
+   mueven), con las capas empezando por ellos (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`).
+
+Nada eléctrico cambia y no se le pregunta a nadie; la respuesta trae una nota que dice qué cambió
+respecto a la especificación escrita. Una prueba corre solo mientras el límite de tiempo alcanza.
+Cuando la respuesta sigue en `CHANGES`, cada línea ✖ va seguida del único cambio de la
+especificación que el kit probaría después (`next` en el punto: la primera prueba que el límite
+dejó sin hacer; si no, la protoboard doble cuando se nombra una placa de desarrollo y el circuito no
+está en una; si no, poner de primero el componente tapado y luego el que lo tapa; si no, «muévelo
+con suggest»), y una línea dice qué se probó (`layout.tried`).
+
+Medido en las tres especificaciones con las que los asistentes recibieron `CHANGES`
+(`test/layout-trials.test.js`, carga 3 en una máquina de cuatro núcleos; antes: `CHANGES` en 14, 38
+y 35 s): un cable puente bajo un módulo ultrasónico, `DONE` en 13 s (los órdenes de las redes desde
+el mejor intento); un contador de siete segmentos con botón, `DONE` en 27 s (igual); un UNO que tapa
+medio 74HC595, `WARNINGS` (el registro de desplazamiento no se simula) en la protoboard doble en
+35 s. El banco no cambia: cada especificación termina `DONE` en su propio orden, así que no corre
+ninguna prueba.
+
 ### Tamaño y límite de tiempo: calcular primero, nunca desbocarse (desde el 2026-11-20)
 
 **El tamaño, antes de ubicar.** `estimateSize` (en `autoLayout`, cuando el spec es válido; también

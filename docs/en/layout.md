@@ -302,6 +302,39 @@ given failing), against 0.6 s with the resistor listed before the buzzer; about 
 variant of that circuit with its fix (nine parts and a board). Over every recipe shuffled three
 times: 0.26 s on average where the order given works, 2.3 s (at most 7 s) where it fails.
 
+### What layout tries before CHANGES (since 2026-11-20)
+
+The same spec always gives the same circuit, so sending it again does not help; what helped the
+assistants who got `CHANGES` was a trial a person would make: list another part first, or put the
+circuit on the larger board, **laid out again on the circuit already made** (every part first tries
+the holes it has there, as a second layout of a target does). `inAnyOrder` now does that itself
+before it answers `CHANGES` (`withTrials`), from its best try so far, each trial with at most
+`TRIAL_TRIES` tries of the relayout loop, in this order, and keeps the first that ends without
+`CHANGES` (else the best by the same rank):
+
+1. **the orders the nets give again**, from the best try (`LAYOUT_ORDER_FROM_NETS`);
+2. **the double board**, when a development board (a module with GPIO: an UNO, a DevKit) is named by
+   a blocking item with another part (it covers it or a strip of it) and the spec does not name its
+   board: in the order given, then in the orders of the nets (`LAYOUT_TRIED_DOUBLE`,
+   `LAYOUT_TRIED_DOUBLE_ORDER`: "placed on the double board … because U1 covered U2 on one board");
+3. **the tallest parts first**, then **the widest** (by the body on the best try's drawing; a
+   development board and a part lying beside the board are not moved), with the layers starting
+   from them (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`).
+
+Nothing electrical changes and nobody is asked; the answer carries one note saying what changed
+from the spec as written. A trial runs only while the budget allows. When the answer is still
+`CHANGES`, every ✖ line is followed by the one spec change the kit would try next (`next` on the
+item: the first trial the budget left, else the double board when a development board is named
+and the circuit is not on one, else listing the hidden part, then what hides it, first; else
+"move it with suggest"), and a line says what was tried (`layout.tried`).
+
+Measured on the three specs assistants got `CHANGES` for (`test/layout-trials.test.js`, load 3 on
+a four-core machine; before: `CHANGES` in 14, 38 and 35 s): a jumper under an ultrasonic module
+`DONE` in 13 s (the orders of the nets from the best try); a seven-segment counter with a button
+`DONE` in 27 s (the same); an UNO covering half of a 74HC595 `WARNINGS` (the shift register is not
+simulated) on the double board in 35 s. The bench is unchanged: every spec of it ends `DONE` in its
+own order, so no trial runs.
+
 ### Size and budget: calculate first, never run away (since 2026-11-20)
 
 **The size, before placing.** `estimateSize` (in `autoLayout`, after the spec is valid; also with
