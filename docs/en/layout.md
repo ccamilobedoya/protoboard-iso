@@ -188,12 +188,16 @@ measures a drawing (`src/layout-sight.js`): the part, the parts it overlaps on s
 those, painted far to near in both views at 2 px/mm in a frame around them. If it leaves itself, or
 a part it covers more than before, under `SEEN_SHARE` (75 %) in its best view, the next candidate is
 tried; the first one by cost is used only when none is free of it. Jumpers (step 3) are measured the
-same way. It starts only when the first try leaves more than `HIDDEN_SETTLED` (5) parts hidden in
-every view: the relayout loop moves one place per item and per try, which settles every recipe (at
-most 5, `laser-uno`) and none of the large cases (ten LEDs from one pin 6 to 11, an UNO with a
-74HC595 and eight LEDs 8), which spent all 24 tries on resistors hidden by LEDs and jumpers. So a
-circuit the loop settles is placed exactly as before (recipes are published and filmed), and a
-large one is measured from its second try on and ends in two or three.
+same way. It runs as a second search, only when the first (the relayout loop without it, as layout
+always placed) ends with something blocking, from an empty forbid list; the better of the two is
+kept, the first on a tie. The loop settles every recipe (`laser-uno` leaves 5 parts hidden on its
+first try and none on its sixth), so a recipe is placed exactly as before (recipes are published
+and filmed), and a large circuit the loop cannot settle (ten LEDs from one pin, an UNO with a
+74HC595 and eight LEDs) is measured once its first search is over. Until 2026-11-20 the second
+search started after the first try when that try left more than 5 parts hidden (`HIDDEN_SETTLED`):
+one recipe sat at exactly 5, so one part more in a recipe would have moved it. The rule now depends
+on how the first search ends, never on a count; its price is the first search's tries on a large
+circuit (ten LEDs from one pin: 9 tries and 4.5 s instead of 2 and 1.8 s, load 2).
 
 After each part the cursor of its half (both halves for a part across the channel; the half of each
 lead for a part off the board) moves to two columns past its rightmost lead, or past the right edge
@@ -328,12 +332,13 @@ item: the first trial the budget left, else the double board when a development 
 and the circuit is not on one, else listing the hidden part, then what hides it, first; else
 "move it with suggest"), and a line says what was tried (`layout.tried`).
 
-Measured on the three specs assistants got `CHANGES` for (`test/layout-trials.test.js`, load 3 on
-a four-core machine; before: `CHANGES` in 14, 38 and 35 s): a jumper under an ultrasonic module
-`DONE` in 13 s (the orders of the nets from the best try); a seven-segment counter with a button
-`DONE` in 27 s (the same); an UNO covering half of a 74HC595 `WARNINGS` (the shift register is not
-simulated) on the double board in 35 s. The bench is unchanged: every spec of it ends `DONE` in its
-own order, so no trial runs.
+Measured on the three specs assistants got `CHANGES` for (`test/layout-trials.test.js`, load 2–3
+on a four-core machine; before: `CHANGES` in 14, 38 and 35 s): a jumper under an ultrasonic module
+`DONE` in 20–27 s (the orders of the nets from the best try); a seven-segment counter with a button
+`DONE` in 36 s (the same); an UNO covering half of a 74HC595 `WARNINGS` (the shift register is not
+simulated) in 32 s, on one board, by the orders of the nets before any trial (with the second search
+below, "What it hides"; before it, the double board trial solved it in 1.3 s). The bench is
+unchanged: every spec of it ends `DONE` in its own order, so no trial runs.
 
 ### Size and budget: calculate first, never run away (since 2026-11-20)
 
@@ -600,7 +605,7 @@ missing. The CLI exits 0 for `DONE` and `WARNINGS` (1 for `FIX_SPEC`, 2 for `CHA
 | `PAIRS_PER_GROUP`, `JOIN_TRIES` | 40, 40 | jumper pairs measured per pair of groups; rejections before a net gives up |
 | `OVER_COST`, `OVER_MARGIN` | 12 mm, 0.3 mm | a jumper's cost per body it crosses; a jumper ending at a body's edge does not cross it |
 | `TRIES`, `REPAIRS` | 8, 4 | relayouts at most; jumpers the repair routes again at most |
-| `HIDDEN_SETTLED` | 5 | parts hidden in every view the first try may leave to the relayout loop; more, and what each place hides is measured from then on |
+| `TRIAL_TRIES` | 2 | tries of the relayout loop each trial before `CHANGES` gets ("What layout tries before CHANGES"); the trials that worked took one or two |
 | `SEEN_SHARE` | 75 % | a place that leaves a part under this share in its best view is used only when no other is free of it (`src/layout-sight.js`; the review blocks under 70 %) |
 | `MEMO_STATES` | 1500 | states the memo of one layout keeps |
 | `BUDGET_SECONDS`, `LIMITS.layoutSeconds` | 60 s, 300 s | the search's budget by default, and at most |

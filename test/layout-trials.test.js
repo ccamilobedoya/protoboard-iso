@@ -18,20 +18,23 @@ const runs = new Map();
 const laid = (name) => runs.get(name) ?? runs.set(name, autoLayout(spec(name), { budget: BUDGET })).get(name);
 const TRIED = ['LAYOUT_ORDER_FROM_NETS', 'LAYOUT_TRIED_DOUBLE', 'LAYOUT_TRIED_DOUBLE_ORDER', 'LAYOUT_TRIED_TALLEST', 'LAYOUT_TRIED_WIDEST'];
 
-test('trials: an UNO covering half of a 74HC595 ends on the double board, saying why, nothing electrical changed', () => {
-  const r = autoLayout(spec('uno-595-leds'), { budget: BUDGET });
+test('trials: an UNO covering half of a 74HC595 ends without CHANGES, nothing electrical changed', () => {
+  // Since the second search (the one that measures what each place hides) runs whenever the first
+  // ends blocked, the orders of the nets settle it on one board; before, the double board did.
+  const r = laid('uno-595-leds');
   assert.notEqual(r.status, 'changes', text(r));
   assert.ok(r.check.ok, 'every net asked for, nothing shorted');
   assert.equal(r.review.blocking.length, 0);
-  assert.equal(r.circuit.board, 'double');
-  const notes = r.notes.filter((n) => TRIED.includes(n.code));
-  assert.equal(notes.length, 1, 'one note says what was changed from the spec as written');
-  assert.match(notes[0].code, /^LAYOUT_TRIED_DOUBLE/);
-  assert.equal(notes[0].params.board, 'U1');
-  assert.equal(notes[0].params.part, 'U2');
-  assert.match(text(r), /double board .*because U1 covered U2/);
-  assert.match(text(r, 'es'), /protoboard doble .*porque U1 tapaba a U2/);
+  assert.equal(r.notes.filter((n) => TRIED.includes(n.code)).length, 1, 'one note says what was changed from the spec as written');
   assert.equal(r.circuit.parts.filter((p) => p.type !== 'wire').length, 18, 'no part added or taken away');
+});
+
+test('trials: the double board note says which board covered which part, in both languages', () => {
+  const note = { severity: 'info', code: 'LAYOUT_TRIED_DOUBLE', params: { board: 'U1', part: 'U2' } };
+  assert.match(formatIssue(note, 'en'), /double board .*because U1 covered U2 on one board.*Nothing electrical changed/);
+  assert.match(formatIssue(note, 'es'), /protoboard doble .*porque U1 tapaba a U2 en una sola.*Nada eléctrico cambió/);
+  const ordered = { ...note, code: 'LAYOUT_TRIED_DOUBLE_ORDER', params: { ...note.params, parts: 'U1, U2' } };
+  assert.match(formatIssue(ordered, 'en'), /because U1 covered U2 .*\(U1, U2\)/);
 });
 
 test('trials: a jumper hidden under an ultrasonic module and a seven-segment counter end without CHANGES on one board', () => {
