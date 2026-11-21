@@ -183,7 +183,10 @@ function behaviourLineOf(circuit) {
 
 export function answerExtras(circuit, { folder, lang = 'en', advise = true } = {}) {
   const readings = readingsOf(circuit);
-  const behaviour = behaviourLineOf(circuit);
+  // The run reads a board's .ino from the circuit's folder, as the review did.
+  const where = folder ?? circuit[CIRCUIT_FOLDER];
+  const seen = where && circuit[CIRCUIT_FOLDER] !== where ? Object.defineProperty({ ...circuit }, CIRCUIT_FOLDER, { value: where, enumerable: false }) : circuit;
+  const behaviour = behaviourLineOf(seen);
   const programs = programsOf(circuit, folder ?? circuit[CIRCUIT_FOLDER]);
   const changeable = changeableOf(circuit, lang);
   const advice = advise && readings ? adviceOf(circuit) : null;

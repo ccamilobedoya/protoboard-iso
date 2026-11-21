@@ -28,6 +28,7 @@ import { paceOf } from './pace.js';
 import { FIELDS } from './environment.js';
 import { issue } from './devices/shared.js';
 import { LIMITS } from '../limits.js';
+import { CIRCUIT_FOLDER } from '../beside.js';
 
 // What "on" is for each kind of output: the quantity of its reading and the level it must reach.
 // An LED lit at 5 % of its rated current (1 mA for 20 mA) is visibly on; a passive buzzer takes 1 mA.
@@ -185,7 +186,9 @@ export function prepareRun(circuit, stimuli = {}, given = null) {
   }
   const declared = named.size > 0 || circuit.environment !== undefined;
   // `given`: the circuit compiled already (layout's line), used when the run changes no field.
-  const compiled = given && !named.size ? given : compile(declared ? { ...circuit, environment } : circuit);
+  // The copy keeps the circuit's folder (a hidden key), where a board's .ino file is read from.
+  const copy = declared ? Object.defineProperty({ ...circuit, environment }, CIRCUIT_FOLDER, { value: circuit[CIRCUIT_FOLDER], enumerable: false }) : circuit;
+  const compiled = given && !named.size ? given : compile(copy);
   if (compiled.fatal) return { fatal: true, issues: compiled.issues };
   const engine = createEngine(compiled.program);
   // A sensor that reads its field by a value of its own follows the field the run sets (the run says

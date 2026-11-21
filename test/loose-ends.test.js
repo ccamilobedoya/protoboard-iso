@@ -74,3 +74,19 @@ test("the doubts' heading holds for what the kit could not check and for what it
   assert.equal(t('en', 'review.doubts'), 'The kit cannot confirm these work (so it cannot say the circuit works):');
   assert.equal(t('es', 'review.doubts'), 'El kit no puede confirmar que esto funcione (así que no puede decir que el circuito funciona):');
 });
+
+test("a board's .ino beside circuit.json runs in simulate --run and in layout's Behaviour line", async () => {
+  const { tempDir } = await import('../scripts/tmp.js');
+  const { mkdirSync, writeFileSync } = await import('node:fs');
+  const dir = tempDir('pb-ino-run-');
+  mkdirSync(join(dir, 'circuits/blink'), { recursive: true });
+  writeFileSync(join(dir, 'circuits/blink/blink.ino'), 'void setup() { pinMode(13, OUTPUT); Serial.begin(9600); }\nvoid loop() { digitalWrite(13, HIGH); Serial.println(1); delay(500); digitalWrite(13, LOW); delay(500); }\n');
+  const run = (args) => spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), ...args], { cwd: dir, encoding: 'utf8' });
+  const made = run(['layout', 'circuits/blink', '--recipe', 'uno-blink', '--values', '{"U1": "blink.ino"}']);
+  assert.equal(made.status, 0, made.stdout + made.stderr);
+  assert.match(made.stdout, /\nBehaviour, first 2 s \(simulated, a model\): D1 1 Hz, on 50 % of the time/);
+  const r = run(['simulate', 'circuits/blink', '--run', '1', '--env', 'light=100']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^Serial \(\d+ lines?, in order\):/m, 'the program ran from its file, with an environment given too');
+  assert.match(r.stdout, /D1 \(LED\): [^\n]*1 Hz|D1 \(LED\): on 50 %/);
+});

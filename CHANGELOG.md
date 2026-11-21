@@ -58,6 +58,8 @@ detail.
 - An option the kit cannot read (`--expect-revision abc`) is named on the last line, with `See the options with --help.` after it.
 - The doubts' heading says what is true of all of them, the ones the kit could not check and the ones it checked and found may not work: `The kit cannot confirm these work (so it cannot say the circuit works):`.
 
+- A board's program in a `.ino` file beside `circuit.json` did not run in `simulate --run` with an environment given, nor in `layout`'s `Behaviour` line (the run's copy of the circuit lost its folder): the LED of a distance alarm stayed off at any distance.
+
 ## [0.12.1] - 2026-11-18
 
 A fix for videos: a part that lands stays seen when the focus moves on before it touches down.
