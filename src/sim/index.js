@@ -132,8 +132,8 @@ const warningsOf = (reading) => (reading.issues ?? []).filter((i) => (PROGRAM_DO
 // One doubt per code and part (its readings change from state to state), and per call or file a
 // program's issue names; an issue that names no part, by all its params.
 // Doubts that can show in several states: the quantity whose highest value is the one reported.
-const STRONGEST = { SIM_RELAY_UNDERDRIVEN: 'current' };
-const doubtKey = (i) => (i.params?.part != null ? `${i.code} ${i.params.part} ${i.params.name ?? i.params.file ?? ''} ${i.params.line ?? ''}` : `${i.code} ${JSON.stringify(i.params ?? {})}`);
+const STRONGEST = { SIM_RELAY_UNDERDRIVEN: 'current', SIM_PIN_OVERVOLTAGE: 'voltage' };
+const doubtKey = (i) => (i.params?.part != null ? `${i.code} ${i.params.part} ${i.params.name ?? i.params.file ?? i.params.pin ?? ''} ${i.params.line ?? ''}` : `${i.code} ${JSON.stringify(i.params ?? {})}`);
 const exceeded = (engine, reading) => Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
 const hazardKey = (h) => `${h.code} ${h.params.part}`;
 // A state on and off: a control set, or a pin held.
@@ -233,43 +233,19 @@ const NEVER_ON_SECONDS = 2;
 const NEVER_ON_HOLD = 0.5;
 const NEVER_ON_GAP = 0.2;
 const NEVER_ON_STATES = 24;
-function neverOn(circuit, compiled, engine, states, lit) {
+function neverOn(circuit, compiled, engine, states, lit, extra = extraStates(circuit, engine, states)) {
   const dark = () => lit.watched.filter((o) => !lit.on.has(o.id));
   if (!dark().length) return [];
   // More states, for this question only (they add no hazard): every field of a declared environment
   // (a beam a laser crosses, which no sensor follows) and every control the page offers (a module's
   // trimmer), at each end.
-  const extra = extraStates(circuit, engine, states);
   for (const s of extra) {
     if (!enterState(engine, s)) continue;
     const reading = engine.dc();
     if (reading.ok) lit.see(reading);
     leaveState(engine, s);
   }
-  // A run: the plain first seconds (a program, a 555, an oscillator), then each state in turn, held and
-  // released (a touch module in toggle mode, a PIR's hold time: things a DC point cannot show).
-  const timed = (compiled.program.devices ?? []).some((d) => !d.unsupported && deviceOfProgram(d)?.state);
-  // Each field also at the middle of its range: the two ends of a shaft's angle are one position.
-  const middles = [];
-  for (const c of engine.controls()) {
-    if (!(c.id === 'environment' || [...states, ...extra].some((s) => s.part === c.id && s.field === c.field))) continue;
-    if (c.id === 'environment' && ![...states, ...extra].some((s) => s.part === 'environment' && s.field === c.field)) continue;
-    const middle = (c.min + c.max) / 2;
-    if (c.scale !== 'momentary' && c.scale !== 'toggle' && Number.isFinite(middle) && middle !== c.value) middles.push({ part: c.id, field: c.field, value: middle, rest: c.value });
-  }
-  const steps = [...states, ...extra, ...middles].filter((s) => !s.pin && !s.engine).slice(0, NEVER_ON_STATES);
-  if (dark().length && (runsByItself(compiled.program) || timed || steps.length)) {
-    const at = [];
-    steps.forEach((s, k) => {
-      const time = NEVER_ON_SECONDS + k * (NEVER_ON_HOLD + NEVER_ON_GAP);
-      const name = s.part === 'environment' ? s.field : `${s.part}.${s.field}`;
-      at.push({ time, name, value: String(s.value) }, { time: time + NEVER_ON_HOLD, name, value: String(s.rest) });
-    });
-    const seconds = NEVER_ON_SECONDS + steps.length * (NEVER_ON_HOLD + NEVER_ON_GAP);
-    const run = runCircuit(circuit, { seconds, stimuli: { at }, maxSteps: BEHAVIOUR_STEPS * 2, minStep: seconds / 20000, checks: 0, compiled });
-    // A run that did not end its seconds still says what came on in the time it ran.
-    for (const o of run.outputs ?? []) if (o.onShare > 0 || o.changes > 0) lit.on.add(o.id);
-  }
+  if (dark().length) for (const o of visitRun(circuit, compiled, engine, states, extra, true)?.outputs ?? []) if (o.onShare > 0 || o.changes > 0) lit.on.add(o.id);
   const out = [];
   const left = dark();
   // Whole parts that never came on, in one doubt (eight LEDs behind a chip not simulated are one
@@ -287,6 +263,75 @@ function neverOn(circuit, compiled, engine, states, lit) {
   }
   if (whole.length) out.unshift(issue('warning', 'SIM_OUTPUT_NEVER_ON', { part: whole.join(', '), ...(whole.length > 1 && { variant: 'many' }) }));
   return out;
+}
+
+// The run of the review: the plain first seconds (a program, a 555, an oscillator), then each state
+// in turn, held and released (a touch module in toggle mode, a PIR's hold time, a shaft turned to the
+// middle of its range: things a DC point cannot show). Null when nothing calls for one: the circuit
+// does not change by itself and `always` is false (no output left dark). Kept for the same circuit
+// as a simulation sees it (wires merged, parts in order), so layout's tries pay for it once.
+const RUNS = new Map();
+const RUNS_KEPT = 16;
+function visitRun(circuit, compiled, engine, states, extra, always) {
+  const program = compiled.program;
+  const timed = (program.devices ?? []).some((d) => !d.unsupported && deviceOfProgram(d)?.state);
+  if (!runsByItself(program) && !always) return null;
+  const all = [...states, ...extra];
+  // Each field also at the middle of its range: the two ends of a shaft's angle are one position.
+  const middles = [];
+  for (const c of engine.controls()) {
+    if (!all.some((s) => s.part === c.id && s.field === c.field)) continue;
+    const middle = (c.min + c.max) / 2;
+    if (c.scale !== 'momentary' && c.scale !== 'toggle' && Number.isFinite(middle) && middle !== c.value) middles.push({ part: c.id, field: c.field, value: middle, rest: c.value });
+  }
+  const steps = [...all, ...middles].filter((s) => !s.pin && !s.engine).slice(0, NEVER_ON_STATES);
+  if (!runsByItself(program) && !timed && !steps.length) return null;
+  const at = [];
+  steps.forEach((s, k) => {
+    const time = NEVER_ON_SECONDS + k * (NEVER_ON_HOLD + NEVER_ON_GAP);
+    const name = s.part === 'environment' ? s.field : `${s.part}.${s.field}`;
+    at.push({ time, name, value: String(s.value) }, { time: time + NEVER_ON_HOLD, name, value: String(s.rest) });
+  });
+  const seconds = NEVER_ON_SECONDS + steps.length * (NEVER_ON_HOLD + NEVER_ON_GAP);
+  const key = `${electricalKey(program)} ${JSON.stringify(at)}`;
+  if (RUNS.has(key)) return RUNS.get(key);
+  // Until `visited` the run is in the hazard check's own states (the plain seconds, then `states`): a
+  // pin's extremes are read there; the rest only answers whether an output comes on.
+  const visited = NEVER_ON_SECONDS + steps.filter((s) => states.includes(s)).length * (NEVER_ON_HOLD + NEVER_ON_GAP);
+  const run = runCircuit(circuit, { seconds, stimuli: { at }, maxSteps: BEHAVIOUR_STEPS * 2, minStep: seconds / 20000, checks: 0, compiled, extremesUntil: visited });
+  RUNS.set(key, run);
+  if (RUNS.size > RUNS_KEPT) RUNS.delete(RUNS.keys().next().value);
+  return run;
+}
+
+// A compiled circuit as the simulation sees it, whatever the holes: wires merged into one node, each
+// node named by where it first appears in the parts' order.
+function electricalKey(program) {
+  const parent = new Map();
+  const find = (x) => {
+    while (parent.has(x) && parent.get(x) !== x) x = parent.get(x);
+    return x;
+  };
+  for (const d of program.devices ?? []) if (d.kind === 'W' && d.pins?.length === 2) {
+    const [a, b] = [find(d.pins[0].node), find(d.pins[1].node)];
+    if (a !== b) parent.set(a, b);
+  }
+  const names = new Map();
+  const name = (n) => {
+    const root = find(n);
+    if (!names.has(root)) names.set(root, names.size);
+    return names.get(root);
+  };
+  const devices = (program.devices ?? []).filter((d) => d.kind !== 'W').map((d) => [d.id, d.kind, d.type, d.unsupported ?? false, d.params ?? null, d.pins.map((p) => [p.name, name(p.node)])]);
+  const supplies = (program.supplies ?? []).map((x) => ({ ...x, p: name(x.p), n: name(x.n) }));
+  return JSON.stringify([devices, supplies, program.environment ?? null]);
+}
+
+// A board's pin outside 0…its rail at some moment of the review's run (SIM_PIN_OVERVOLTAGE with the
+// time: a 5 V echo pulse on a 3.3 V board's pin is low at rest); 0.3 V of margin as the DC check.
+const PIN_MARGIN = 0.3;
+function pinPeaks(run) {
+  return (run?.pinExtremes ?? []).filter((x) => x.over > PIN_MARGIN).map((x) => issue('warning', 'SIM_PIN_OVERVOLTAGE', { part: x.part, pin: x.pin, voltage: { value: x.voltage, unit: 'V' }, max: { value: x.vdd, unit: 'V' }, time: { value: x.time, unit: 's' }, variant: 'run' }));
 }
 
 // The states neverOn adds: the fields of a declared environment the hazard check did not visit, and
@@ -325,7 +370,17 @@ export function checkHazards(circuit) {
   if (compiled.fatal) return { hazards: [], states: { checked: 0, total: 0, controls: 0, outputs: 0 }, checked: coverageOf(compiled, null), doubts: doubtsOf(circuit, compiled, null) };
   const engine = createEngine(compiled.program);
   const { rest, lit, ...result } = engineHazards(engine, [...controlStates(compiled.program, engine), ...undeclaredEnvironmentStates(circuit, compiled.program)], STATES_MAX, { collect: true });
-  const dark = result.ok ? neverOn(circuit, compiled, engine, [...controlStates(compiled.program, engine)], lit) : [];
+  const states = controlStates(compiled.program, engine);
+  const dark = result.ok ? neverOn(circuit, compiled, engine, states, lit) : [];
+  // A board's pins over the run: the highest voltage each sees, beside the DC states' (a pin seen over
+  // its rail at a DC state keeps that finding unless the run sees it higher).
+  if (result.ok && (compiled.program.devices ?? []).some((d) => d.kind === 'MCU' && !d.unsupported && d.params?.sketch)) {
+    for (const peak of pinPeaks(visitRun(circuit, compiled, engine, states, extraStates(circuit, engine, states), false))) {
+      const at = result.doubts.findIndex((d) => doubtKey(d) === doubtKey(peak));
+      if (at < 0) result.doubts.push(peak);
+      else if (Math.abs(peak.params.voltage.value) > Math.abs(result.doubts[at].params.voltage.value)) result.doubts[at] = peak;
+    }
+  }
   const doubts = doubtsOf(circuit, compiled, { ...result, rest, dark });
   return { ...result, checked: coverageOf(compiled, result, doubts), doubts };
 }

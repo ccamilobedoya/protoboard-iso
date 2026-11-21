@@ -1122,6 +1122,7 @@ export default {
   'check.SIM_PIN_STATE': '{part}: {pin} = "{state}" is not a pin state ({states}).',
   'check.SIM_PIN_INPUT_ONLY': '{part}: {pin} can only be an input; it was left as one.',
   'check.SIM_PIN_OVERVOLTAGE': '{part}: {pin} is at {voltage}, outside 0…{max}: the chip\'s protection diodes are conducting. On an ESP32, 5 V on a pin can damage it.',
+  'check.SIM_PIN_OVERVOLTAGE.run': '{part}: {pin} reaches {voltage} at {time} of the kit\'s run, outside 0…{max}: the chip\'s protection diodes conduct while it lasts (it is fine at rest). On an ESP32, 5 V on a pin can damage it.',
   'sim.opamp.amp': 'Amplifier {n}',
   'sim.opamp.linear': 'linear (output follows the inputs)',
   'sim.opamp.high': 'saturated high',

@@ -229,7 +229,7 @@ entran por la pata. El transitorio trae `times` y las mismas magnitudes como lis
 | `SIM_RELAY_COIL`, `SIM_RELAY_KICK` | la bobina de un relé con más de su 120 % (6 V); su bobina cortada sin nada en paralelo, con el voltaje invertido muy por encima de la fuente (un diodo en paralelo con la bobina lo limita a cerca de 1 V) |
 | `SIM_MOTOR_VOLTAGE`, `SIM_MOTOR_STALL` | un motor DC sobre el tope de su rango de voltaje; frenado por su carga, tomando su corriente de bloqueo |
 | `SIM_FLOATING` | grupos sin camino de corriente continua hasta la fuente (por ejemplo, la compuerta de un MOSFET sin conectar) |
-| `SIM_PIN_OVERVOLTAGE`, `SIM_PIN_UNKNOWN`, `SIM_PIN_STATE`, `SIM_PIN_INPUT_ONLY` | un pin de un microcontrolador fuera de su riel (diodos de protección conduciendo); una entrada de `io` que no nombra un GPIO conectado, un estado que no conoce o una salida en un pin que solo puede ser entrada |
+| `SIM_PIN_OVERVOLTAGE`, `SIM_PIN_UNKNOWN`, `SIM_PIN_STATE`, `SIM_PIN_INPUT_ONLY` | un pin de un microcontrolador fuera de su riel (diodos de protección conduciendo), en un estado de CC de la revisión (lo más alto que llega allí) o en un momento de la ejecución de la revisión, con ese tiempo (el eco de 5 V de un HC-SR04 en un pin de un ESP32, bajo en reposo; `variant: 'run'`); una entrada de `io` que no nombra un GPIO conectado, un estado que no conoce o una salida en un pin que solo puede ser entrada |
 | `SIM_IC_SUPPLY` | un chip alimentado por encima de su máximo (555: 16 V; LM358: 32 V; 741: 36 V en total) |
 | `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | un componente que todavía no se simula (los chips que no son el 555), o una referencia sin modelo propio |
 

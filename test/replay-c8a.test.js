@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { autoLayout } from '../src/layout.js';
 import { formatIssue } from '../src/index.js';
-import { checkHazards } from '../src/sim/index.js';
+import { checkHazards, simulate } from '../src/sim/index.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const bin = join(root, 'bin/protoboard-iso.js');
@@ -91,4 +91,22 @@ test('no example gets SIM_OUTPUT_NEVER_ON (the recipes: test/hazards.test.js)', 
     const found = checkHazards(c).doubts.filter((d) => d.code === 'SIM_OUTPUT_NEVER_ON');
     assert.deepEqual(found.map((d) => formatIssue(d, 'en')), [], name);
   }
+});
+
+// ---- 3. A pin over its voltage is seen when it happens, not only at rest
+
+const ECHO = (board, power) => ({
+  parts: [{ id: 'U1', part: board, program: 'void setup(){pinMode(5,OUTPUT);pinMode(18,INPUT);Serial.begin(115200);}\nvoid loop(){digitalWrite(5,LOW);delayMicroseconds(2);digitalWrite(5,HIGH);delayMicroseconds(10);digitalWrite(5,LOW);long us=pulseIn(18,HIGH,30000);Serial.println(us/58);delay(200);}' }, { id: 'S1', part: 'HC-SR04' }],
+  nets: [[`U1.${power}`, 'S1.VCC'], ['U1.GND', 'S1.GND'], ['U1.D5', 'S1.TRIG'], ['U1.D18', 'S1.ECHO']],
+});
+
+test('an HC-SR04 ECHO straight on an ESP32 pin: over its voltage during the echo, with the moment', () => {
+  const r = autoLayout(ECHO('ESP32-DEVKIT', 'VIN'));
+  const d = r.review.doubts.find((x) => x.code === 'SIM_PIN_OVERVOLTAGE');
+  assert.ok(d, JSON.stringify(r.review.doubts));
+  assert.equal(d.params.pin, 'D18');
+  assert.ok(d.params.voltage.value > 3.6 && d.params.time.value > 0);
+  assert.match(formatIssue(d, 'en'), /^warning: U1: D18 reaches 4\.\d+ V at .+ of the kit's run, outside 0…3\.3 V/);
+  // At rest ECHO is low: the DC point alone says nothing.
+  assert.ok(!simulate(r.circuit).issues.some((i) => i.code === 'SIM_PIN_OVERVOLTAGE'));
 });

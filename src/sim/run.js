@@ -347,7 +347,7 @@ function rhythm(w) {
 
 // ── The run ────────────────────────────────────────────────────────────────────────────
 
-export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.runMs, maxSteps = Number.POSITIVE_INFINITY, minStep = 0, checks = CHECKS, compiled = null } = {}) {
+export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.runMs, maxSteps = Number.POSITIVE_INFINITY, minStep = 0, checks = CHECKS, compiled = null, extremesUntil = Number.POSITIVE_INFINITY } = {}) {
   const asked = Number(seconds);
   if (!(asked > 0)) return { ok: false, errors: [bad('RUN_BAD_TIME', { value: String(seconds).slice(0, 40), max: LIMITS.runSeconds })] };
   const prepared = prepareRun(circuit, stimuli, compiled);
@@ -371,6 +371,7 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
   const ids = new Set([...watches.map((w) => w.part), ...boards]);
   const serial = { count: 0, head: [], tail: [], seen: Object.fromEntries(boards.map((id) => [id, 0])) };
   const flags = new Map(); // a program's error or stuck, once each
+  const extremes = new Map(); // "U1.D18" → the sample farthest outside its rail
   const sample = () => {
     const t = engine.time;
     const r = engine.readParts(ids);
@@ -380,6 +381,10 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
       if (!board) continue;
       for (const x of board.pins ?? []) {
         const key = `${id}.${x.name}`;
+        // The farthest each pin goes outside 0…its logic rail, and when (sim/index.js: a pin over its
+        // voltage while something switches, an echo pulse at 5 V on a 3.3 V board).
+        const over = Math.max(x.voltage - board.vdd, -x.voltage);
+        if (t <= extremesUntil && Number.isFinite(over) && board.vdd > 0 && over > (extremes.get(key)?.over ?? 0)) extremes.set(key, { part: id, pin: x.name, voltage: x.voltage, vdd: board.vdd, time: t, over });
         if (x.mode !== 'output' && !pins.has(key)) continue;
         if (!pins.has(key)) pins.set(key, tracker({ id: key, part: id, kind: 'pin' }));
         observe(pins.get(key), t, x.mode === 'output' && board.vdd > 0 ? x.voltage / board.vdd : 0);
@@ -454,6 +459,7 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
     serial: { count: serial.count, lines, ...(lines.length < serial.count && { kept: lines.length }) },
     outputs,
     boards: boards.length,
+    pinExtremes: [...extremes.values()],
     readings,
     issues: [...(readings?.issues ?? []).filter((i) => i.severity === 'info'), ...issues, ...flags.values(), ...warnings.values()],
   };

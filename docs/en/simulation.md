@@ -219,7 +219,7 @@ answer has `times` and the same quantities as arrays.
 | `SIM_RELAY_COIL`, `SIM_RELAY_KICK` | a relay's coil driven over its 120 % (6 V); its coil cut off with nothing across it, its voltage reversed far past the supply (a diode across the coil holds it to about 1 V) |
 | `SIM_MOTOR_VOLTAGE`, `SIM_MOTOR_STALL` | a DC motor over the top of its voltage range; held still by its load, drawing its stall current |
 | `SIM_FLOATING` | groups with no DC path to the supply (an unconnected MOSFET gate, for example) |
-| `SIM_PIN_OVERVOLTAGE`, `SIM_PIN_UNKNOWN`, `SIM_PIN_STATE`, `SIM_PIN_INPUT_ONLY` | a microcontroller pin beyond its rail (protection diodes conducting); an `io` entry naming no wired GPIO, a state it does not know, or an output on an input-only pin |
+| `SIM_PIN_OVERVOLTAGE`, `SIM_PIN_UNKNOWN`, `SIM_PIN_STATE`, `SIM_PIN_INPUT_ONLY` | a microcontroller pin beyond its rail (protection diodes conducting), in a DC state of the review (the highest it reaches there) or at a moment of the review's run, with that time (an HC-SR04's 5 V echo on an ESP32 pin, low at rest; `variant: 'run'`); an `io` entry naming no wired GPIO, a state it does not know, or an output on an input-only pin |
 | `SIM_IC_SUPPLY` | a chip fed above its maximum (555: 16 V; LM358: 32 V; 741: 36 V in total) |
 | `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | a part not simulated yet (chips other than the 555), or a part number without its own model |
 
