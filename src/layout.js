@@ -114,7 +114,7 @@ const blocking = (issues) => issues.filter((i) => i.severity !== 'info' || i.cod
 // jumper) placed last among the ones a blocking item names: the whole layout takes well under a
 // second, so this is simpler and more predictable than patching in place. Keeps the best try.
 const TRIES = 8;
-const HIDDEN_SETTLED = 5; // parts hidden in every view the first try may leave to the relayout loop alone (measured: every recipe leaves at most 5, laser-uno; ten LEDs from one pin 6 to 11, an UNO with a 74HC595 and eight LEDs 8)
+const TRIAL_TRIES = 2; // tries of each trial (withTrials): the ones that worked took one or two (test/layout-trials.test.js); each try of a large circuit costs seconds
 const MEMO_STATES = 1500; // states the memo of one layout keeps (each holds the parts built so far: about 0.3 MB at 40 parts)
 const REPAIRS = 4; // jumpers the repair may route again with suggest (each one measures drawings)
 
@@ -354,7 +354,9 @@ function laidOut(spec, options, started) {
   // gives its own values as usual and solves nothing again.
   const recipe = spec.recipe && { ...spec.recipe, values: { ...spec.recipe.values, ...texts } };
   const moved = spec.parts.some((p) => texts[p.id] && parseValue(p.value) !== parseValue(texts[p.id])) && !over(clock);
-  const r = moved ? placeCircuit({ ...spec, parts, ...(recipe && { recipe }) }, { ...options, previous: first.circuit, keepOrder: first.keepOrder }) : first;
+  // On the board a trial chose (withTrials: `base`, the double board's spec), saying so again.
+  const again = moved && placeCircuit({ ...(first.base ?? spec), parts, ...(recipe && { recipe }) }, { ...options, previous: first.circuit, keepOrder: first.keepOrder });
+  const r = again ? { ...again, notes: [...first.notes.filter((n) => n.code.startsWith('LAYOUT_TRIED_')), ...again.notes] } : first;
   if (!moved && recipe) r.circuit.spec.recipe = recipe;
   return { ...r, solved, notes: [...r.notes, ...unsolved.map(unsolvedNote)], tries: first.tries + (moved ? r.tries : 0), ms: Date.now() - started };
 }
@@ -388,7 +390,113 @@ function inAnyOrder(spec, options) {
     if (rankOf(r) < rankOf(best)) best = { ...r, order, keepOrder, notes: [{ severity: 'info', code: 'LAYOUT_ORDER_FROM_NETS', params: { parts: order.join(', ') } }, ...r.notes] };
     if (best.status !== 'changes') break;
   }
-  return { ...best, tries, ms };
+  best = { ...best, tries, ms };
+  return best.status === 'changes' ? withTrials(spec, best, options) : best;
+}
+
+// What a person tries when the kit answers CHANGES, tried by the kit itself before it answers
+// (docs/en/layout.md, "What layout tries before CHANGES"). Each trial is laid out from the best try
+// so far (`previous`: every part first tries the holes it has there, as a second layout of a target
+// does, which is what made a person's second attempt work where the first could not):
+// - the orders the nets give again (signalOrders), from there;
+// - the tallest parts listed first, then the widest (the layers start from them);
+// - the larger board, when a development board covers a part or a strip, in the order given and
+//   the orders of the nets.
+// Nothing electrical changes and nobody is asked: the best result is kept, with one note saying
+// what was changed from the spec as written. When it still ends CHANGES, every blocking item gets
+// `next`: the one spec change the kit would try next (`nextTry`). Deterministic: the same spec
+// gives the same trials in the same order, and the first that ends without CHANGES is kept.
+function withTrials(spec, best, options) {
+  const trials = trialsOf(spec, best);
+  let out = best;
+  let { tries, ms } = best;
+  const done = [];
+  const seen = new Set();
+  for (const trial of trials) {
+    if (over(options.clock)) break;
+    if (!done.some((d) => sameChange(d, trial.change))) done.push(trial.change);
+    const key = `${trial.spec.board ?? 'auto'}|${trial.keepOrder}|${trial.spec.parts.map((p) => p.id).join(' ')}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const r = placeCircuit(trial.spec, { ...options, previous: best.circuit, keepOrder: trial.keepOrder, maxTries: TRIAL_TRIES });
+    tries += r.tries;
+    ms += r.ms;
+    if (rankOf(r) < rankOf(out)) out = { ...r, order: trial.spec.parts.map((p) => p.id), keepOrder: trial.keepOrder, base: trial.spec, notes: [...trial.notes, ...r.notes] };
+    if (out.status !== 'changes') break;
+  }
+  out = { ...out, tries, ms };
+  if (out.status !== 'changes') return out;
+  out.tried = done;
+  const left = trials.map((x) => x.change).filter((c, i, all) => c.kind !== 'nets' && !done.some((d) => sameChange(d, c)) && all.findIndex((x) => sameChange(x, c)) === i);
+  const next = (b) => ({ ...b, next: nextTry(b, spec, out, left, done) });
+  const missing = out.check.missing.map((m) => ({ ...m, next: nextTry({ parts: m.pins.map((x) => String(x).split('.')[0]) }, spec, out, left, done) }));
+  return { ...out, review: { ...out.review, blocking: out.review.blocking.map(next) }, problems: out.problems.map(next), check: { ...out.check, missing } };
+}
+
+const sameChange = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// A development board (an UNO, a DevKit): a module with GPIO pins.
+// A spec's part may name only its part number (`{ id, part: 'UNO' }`): its type is then a module.
+const isDevBoard = (part) => Boolean(part && (part.type ?? 'module') === 'module' && lookupModule(part.part)?.module.gpio);
+
+// The parts a blocking item names (a hidden part and what covers it, the parts of a net left apart).
+const partsNamed = (b) => [b?.params?.part, b?.params?.by, ...(b?.parts ?? [])].flatMap((x) => String(x ?? '').split(', ')).filter(Boolean);
+
+// The trials, in the order they are tried. Heights and footprints are measured on the best try's
+// own drawing; a development board and a part lying beside the board are not moved to the front.
+function trialsOf(spec, best) {
+  const parts = spec.parts ?? [];
+  const byId = new Map(parts.map((p) => [p.id, p]));
+  const trials = signalOrders(spec).map((o) => ({ spec: { ...spec, parts: o.parts }, keepOrder: true, change: { kind: 'nets' }, notes: [{ severity: 'info', code: 'LAYOUT_ORDER_FROM_NETS', params: { parts: o.parts.map((p) => p.id).join(', ') } }] }));
+  const built = buildCircuit(best.circuit);
+  const size = new Map();
+  for (const p of built.parts) {
+    if (p.type === 'wire' || !byId.has(p.id) || p.def?.error?.code === 'MODULE_PINS' || isDevBoard(p.raw)) continue;
+    const box = footprintOf(p);
+    let z = 0;
+    for (const prim of p.built?.body ?? []) for (const f of prim.faces) for (const q of f.pts) z = Math.max(z, q.z);
+    size.set(p.id, { tall: Math.round(z * 10), wide: Math.round((box.x1 - box.x0) * (box.y1 - box.y0)) });
+  }
+  // The larger board: a development board covers a part or a strip on this one.
+  const items = [...best.review.blocking, ...best.problems];
+  const item = items.find((b) => b.code === 'PART_HIDDEN' && isDevBoard(byId.get(b.params?.by)) && byId.has(b.params?.part)) ?? items.find((b) => partsNamed(b).length > 1 && partsNamed(b).some((id) => isDevBoard(byId.get(id))));
+  if (item && (spec.board ?? 'auto') === 'auto' && best.circuit.board !== 'double') {
+    const coverer = partsNamed(item).find((id) => isDevBoard(byId.get(id)));
+    const covered = partsNamed(item).find((id) => id !== coverer);
+    const { spec: twin, renamed } = onDoubleBoard(spec);
+    const change = { kind: 'board', board: 'double' };
+    const rails = renamed.length ? [{ severity: 'info', code: 'LAYOUT_DOUBLE_RAILS', params: { rails: renamed.join(', ') } }] : [];
+    const params = { board: coverer, part: covered };
+    const double = [{ spec: twin, keepOrder: false, change, notes: [{ severity: 'info', code: 'LAYOUT_TRIED_DOUBLE', params }, ...rails] }];
+    for (const o of signalOrders(twin)) {
+      const note = { severity: 'info', code: 'LAYOUT_TRIED_DOUBLE_ORDER', params: { ...params, parts: o.parts.map((p) => p.id).join(', ') } };
+      double.push({ spec: { ...twin, parts: o.parts }, keepOrder: true, change, notes: [note, ...rails] });
+    }
+    // After the orders on this board: a circuit that fits one board stays on it.
+    trials.push(...double);
+  }
+  for (const [measure, code] of [['tall', 'LAYOUT_TRIED_TALLEST'], ['wide', 'LAYOUT_TRIED_WIDEST']]) {
+    const ids = [...size.keys()].sort((a, b) => size.get(b)[measure] - size.get(a)[measure]);
+    if (!ids.length) continue;
+    const lead = ids.filter((id) => size.get(id)[measure] === size.get(ids[0])[measure]);
+    const order = [...lead.map((id) => byId.get(id)), ...parts.filter((p) => !lead.includes(p.id))];
+    if (order.every((p, i) => p.id === parts[i]?.id)) continue;
+    trials.push({ spec: { ...spec, parts: order }, keepOrder: false, change: { kind: 'first', parts: lead.join(', ') }, notes: [{ severity: 'info', code, params: { parts: lead.join(', ') } }] });
+  }
+  return trials;
+}
+
+// The one spec change the kit would try next for a blocking item that is still open: a trial the
+// budget left (in the order the kit tries them), else one the kit does not try alone (the larger
+// board on a spec that names its board; listing the hidden part, then what hides it, first).
+function nextTry(b, spec, out, left, done) {
+  const ids = partsNamed(b);
+  if (left.length) return left[0];
+  const byId = new Map((spec.parts ?? []).map((p) => [p.id, p]));
+  if (ids.some((id) => isDevBoard(byId.get(id))) && out.circuit?.board !== 'double') return { kind: 'board', board: 'double' };
+  const first = ids.find((id) => byId.has(id) && !isDevBoard(byId.get(id)) && spec.parts[0]?.id !== id && !done.some((d) => d.kind === 'first' && d.parts.split(', ')[0] === id));
+  if (first) return { kind: 'first', parts: first };
+  return { kind: 'by-hand', part: ids[0] ?? '?' };
 }
 
 // Lower is better: a circuit ready (or built with a hazard) before one left to fix, then what is
@@ -491,7 +599,7 @@ function onDoubleBoard(spec) {
   return { spec: twin, renamed: [...renamed].sort() };
 }
 
-function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = null, folder, lang, keepOrder = false, clock = null } = {}) {
+function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = null, folder, lang, keepOrder = false, clock = null, maxTries = TRIES } = {}) {
   const started = Date.now();
   const valid = validateSpec(spec);
   if (checkOnly || !valid.ok) return { status: valid.ok ? 'spec_ok' : 'fix_spec', invalid: !valid.ok, checked: true, parts: valid.parts, nets: valid.nets, problems: valid.problems, ms: Date.now() - started };
@@ -510,68 +618,69 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   const troubled = new Map(); // part → tries in which it was hidden by a jumper or hid one
   let best = null;
   let tries = 0;
-  // Measuring what each place hides (src/layout-sight.js) starts only when the first try leaves more
-  // parts hidden than the relayout loop can move (it moves one place per item and per try, and repairs a
-  // few): a circuit the loop settles is placed exactly as before, so a published recipe does not
-  // move; a large one (ten LEDs left six hidden in every try) is measured from then on.
-  let sight = false;
-  for (let attempt = 0; attempt < TRIES; attempt++) {
-    if (attempt && over(clock)) break;
-    tries++;
-    const r = layoutOnce(spec, { profile, forbid, previous, memo, boxes, asked: asked.nets, keepOrder, clock, sight });
-    const score = (x) => (x.check.ok ? 0 : 100) + x.problems.length * 10 + x.review.blocking.length;
-    if (!best || score(r) < score(best)) best = r;
-    if (r.check.ok && r.review.verdict !== 'changes' && !r.problems.length) break;
-    if (!sight && attempt === 0 && r.review.blocking.filter((b) => b.code === 'PART_HIDDEN').length > HIDDEN_SETTLED) {
-      sight = true;
-      forbid.clear();
-      troubled.clear();
-      continue;
+  const score = (x) => (x.check.ok ? 0 : 100) + x.problems.length * 10 + x.review.blocking.length;
+  const ready = (x) => x.check.ok && x.review.verdict !== 'changes' && !x.problems.length;
+  // Two searches, the second only when the first ends with something blocking. The first places
+  // as layout always has: a circuit it settles (every recipe, test/recipe-visibility.test.js) keeps
+  // its placement, whatever it hid on the way. The second measures what each place hides
+  // (src/layout-sight.js), from an empty forbid list: a large circuit the first cannot settle (ten
+  // LEDs from one pin leave six parts hidden in every try) is measured from then on. Which search
+  // runs depends on how the first ended, never on a count of what its first try hid.
+  for (const sight of [false, true]) {
+    if (sight && (ready(best) || best.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED') || over(clock))) break;
+    forbid.clear();
+    troubled.clear();
+    for (let attempt = 0; attempt < maxTries; attempt++) {
+      if ((attempt || sight) && over(clock)) break;
+      tries++;
+      const r = layoutOnce(spec, { profile, forbid, previous, memo, boxes, asked: asked.nets, keepOrder, clock, sight });
+      if (!best || score(r) < score(best)) best = r;
+      if (ready(r)) break;
+      // A board covering a pin's strip is no place problem another try can fix.
+      if (r.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED')) break;
+      const rank = new Map(r.sequence.map((id, i) => [id, i]));
+      const partOf = (id) => r.circuit.parts.find((p) => p.id === id);
+      const latest = (ids) => ids.filter((v) => rank.has(v)).sort((x, y) => rank.get(y) - rank.get(x))[0];
+      let added = false;
+      let board = null;
+      // `link`: the jumper's two groups are not to be joined directly at all (the net joins them
+      // some other way), not only through those two holes.
+      const strike = (victim, link = false) => {
+        const part = victim && partOf(victim);
+        if (!part) return;
+        const keys = [forbidKey(part)];
+        if (part.type === 'wire' && link) {
+          board ??= buildCircuit(r.circuit).board;
+          keys.push(linkKey(...part.pins.map((id) => board.find(id)?.node)));
+        }
+        for (const key of keys) {
+          if (forbid.has(key)) continue;
+          forbid.add(key);
+          added = true;
+        }
+      };
+      for (const b of r.review.blocking) {
+        let victim = latest(Object.values(b.params ?? {}).map(String));
+        // A jumper that hides a part or is hidden by one: the first time the jumper moves; the second
+        // time (the same part in such trouble in a try before) the part moves, since moving jumpers
+        // did not help (its strips have no free hole in sight, or every way round crosses it); after
+        // that the link itself goes, so the net joins those groups some other way.
+        let link = false;
+        if (b.code === 'PART_HIDDEN' && partOf(victim)?.type === 'wire') {
+          const wire = victim;
+          const involved = [b.params.part, b.params.by].filter((id) => partOf(id) && partOf(id).type !== 'wire');
+          const times = Math.max(0, ...involved.map((id) => troubled.get(id) ?? 0));
+          for (const id of involved) troubled.set(id, (troubled.get(id) ?? 0) + 1);
+          if (times === 1) victim = latest(involved.filter((id) => troubled.get(id) > 1)) ?? victim;
+          // A jumper over a part: the way it goes is the trouble, so its link goes at once.
+          link = victim === wire && (times >= 2 || partOf(b.params.by)?.type === 'wire');
+        }
+        strike(victim, link);
+      }
+      // A net left apart: the part placed last on the strips no jumper could join moves.
+      for (const p of r.problems) if (p.code === 'LAYOUT_WIRE_FAILED') strike(latest(p.parts ?? []));
+      if (!added) break;
     }
-    // A board covering a pin's strip is no place problem another try can fix.
-    if (r.problems.some((p) => p.code === 'LAYOUT_PIN_COVERED')) break;
-    const rank = new Map(r.sequence.map((id, i) => [id, i]));
-    const partOf = (id) => r.circuit.parts.find((p) => p.id === id);
-    const latest = (ids) => ids.filter((v) => rank.has(v)).sort((x, y) => rank.get(y) - rank.get(x))[0];
-    let added = false;
-    let board = null;
-    // `link`: the jumper's two groups are not to be joined directly at all (the net joins them
-    // some other way), not only through those two holes.
-    const strike = (victim, link = false) => {
-      const part = victim && partOf(victim);
-      if (!part) return;
-      const keys = [forbidKey(part)];
-      if (part.type === 'wire' && link) {
-        board ??= buildCircuit(r.circuit).board;
-        keys.push(linkKey(...part.pins.map((id) => board.find(id)?.node)));
-      }
-      for (const key of keys) {
-        if (forbid.has(key)) continue;
-        forbid.add(key);
-        added = true;
-      }
-    };
-    for (const b of r.review.blocking) {
-      let victim = latest(Object.values(b.params ?? {}).map(String));
-      // A jumper that hides a part or is hidden by one: the first time the jumper moves; the second
-      // time (the same part in such trouble in a try before) the part moves, since moving jumpers
-      // did not help (its strips have no free hole in sight, or every way round crosses it); after
-      // that the link itself goes, so the net joins those groups some other way.
-      let link = false;
-      if (b.code === 'PART_HIDDEN' && partOf(victim)?.type === 'wire') {
-        const wire = victim;
-        const involved = [b.params.part, b.params.by].filter((id) => partOf(id) && partOf(id).type !== 'wire');
-        const times = Math.max(0, ...involved.map((id) => troubled.get(id) ?? 0));
-        for (const id of involved) troubled.set(id, (troubled.get(id) ?? 0) + 1);
-        if (times === 1) victim = latest(involved.filter((id) => troubled.get(id) > 1)) ?? victim;
-        // A jumper over a part: the way it goes is the trouble, so its link goes at once.
-        link = victim === wire && (times >= 2 || partOf(b.params.by)?.type === 'wire');
-      }
-      strike(victim, link);
-    }
-    // A net left apart: the part placed last on the strips no jumper could join moves.
-    for (const p of r.problems) if (p.code === 'LAYOUT_WIRE_FAILED') strike(latest(p.parts ?? []));
-    if (!added) break;
   }
   // The tries are over: what they remembered goes before the repair and the simulation.
   memo.clear();
@@ -1603,18 +1712,22 @@ export function formatLayout(r, lang, { t, formatIssue }) {
     lines.push(`  ${p.id}: ${Object.entries(p.pins).map(([n, h]) => `${n}→${h}`).join(', ')}${how ? ` · ${how}` : ''}`);
   }
   for (const n of r.notes ?? []) lines.push(`  · ${formatIssue(n, lang)}`);
+  // After each ✖ of an answer that is still CHANGES once the kit's own trials are over: the one
+  // spec change it would try next (withTrials).
+  const next = (x) => (x.next ? [`      ${nextLine(x.next, lang, t)}`] : []);
   for (const p of r.problems) {
-    lines.push(`  ✖ ${formatIssue(p, lang)}`);
+    lines.push(`  ✖ ${formatIssue(p, lang)}`, ...next(p));
     for (const reason of p.reasons ?? []) lines.push(`      ×${reason.count} ${formatIssue(reason.example, lang)}`);
   }
   if (r.check.ok) lines.push(t(lang, 'layout.netsOk'));
-  for (const m of r.check.missing) lines.push(`  ✖ ${t(lang, 'layout.missing', { net: m.net, pins: m.pins.join(', ') })}`);
+  for (const m of r.check.missing) lines.push(`  ✖ ${t(lang, 'layout.missing', { net: m.net, pins: m.pins.join(', ') })}`, ...next(m));
   for (const s of r.check.shorted) lines.push(`  ✖ ${t(lang, 'layout.shorted', { nets: s.nets.join(' + ') })}`);
   // The nets are said above, in layout's words: not twice.
   const blocking = r.review.blocking.filter((b) => !b.code.startsWith('SPEC_NET'));
   const headline = r.review.verdict === 'approved' ? 'layout.approved' : r.review.verdict === 'changes' ? (blocking.length ? 'layout.changes' : 'layout.changesNets') : 'layout.warnings';
   lines.push(t(lang, headline, { count: blocking.length }));
-  for (const b of blocking) lines.push(`  ✖ ${formatIssue(b, lang)}${b.views ? ` [${b.views.join(', ')}]` : ''}`);
+  for (const b of blocking) lines.push(`  ✖ ${formatIssue(b, lang)}${b.views ? ` [${b.views.join(', ')}]` : ''}`, ...next(b));
+  if (r.tried?.length) lines.push(t(lang, 'layout.tried', { list: r.tried.map((c) => t(lang, `layout.tried.${c.kind}`, c)).join(', ') }));
   // The Checked line only for a circuit built (DONE or WARNINGS): one left to fix is not the answer yet.
   lines.push(...formatHazards(r.review, lang, formatIssue, t, { checked: r.status !== 'changes' }));
   // Parts hard to see in every view: information, one line each (review.js hidden).
@@ -1638,6 +1751,9 @@ function warningsKey(r, said) {
   if (r.status !== 'warnings' || !r.review.doubts?.length) return said;
   return r.review.hazards.length ? 'layout.statusBoth' : 'layout.statusDoubts';
 }
+
+// "→ next the kit would try: add "board": "double" to the spec."
+const nextLine = (n, lang, t) => t(lang, n.kind === 'board' ? 'layout.next.board' : n.kind === 'first' ? 'layout.next.first' : 'layout.next.byHand', n);
 
 // "Applied the fix: R3 = 200 Ω in series with BZ1." (layout --fix)
 function appliedLine(a, lang, t) {

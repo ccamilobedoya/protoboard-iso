@@ -111,9 +111,19 @@ const NEAR = {
   transformer: ['TRANSFORMER', 'TRANSFORMADOR', 'TRAFO'],
   lcd: ['LCD', 'LCD1602', 'LCD16X2', 'LCD2004', 'LCD20X4', '1602', 'LCDI2C', 'PANTALLALCD'],
 };
+// Words that name a common ask only when they are the whole name ("strip" alone; "pin header strip"
+// is no LED strip).
+const WHOLE_ONLY = new Set(['STRIP']);
+// Matched on the whole name, then on the words it contains and the runs of words next to each other
+// joined ("LED strip 12V" → LED, STRIP, 12V, LEDSTRIP…; "tira de LED" → TIRADELED), in English and
+// Spanish: a size or a voltage written after the name does not hide what was asked.
 const nearOf = (name) => {
   const key = norm(name).replace(/[-_.]/g, '');
-  return Object.keys(NEAR).find((k) => NEAR[k].includes(key));
+  const whole = Object.keys(NEAR).find((k) => NEAR[k].includes(key));
+  if (whole) return whole;
+  const words = String(name ?? '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^A-Z0-9]+/).filter(Boolean);
+  const runs = words.flatMap((_, i) => words.slice(i).map((__, j) => words.slice(i, i + j + 1).join(''))).filter((w) => !WHOLE_ONLY.has(w));
+  return Object.keys(NEAR).find((k) => runs.some((w) => NEAR[k].includes(w)));
 };
 
 // A name the kit does not have: the near part for a common ask, else the closest names, else none

@@ -206,13 +206,18 @@ revisión mide un dibujo (`src/layout-sight.js`): el componente, los que se le s
 y lo que tapa a esos, pintados de lejos a cerca en las dos vistas a 2 px/mm, en un marco alrededor
 de ellos. Si se deja a sí mismo, o a un componente que tapa más que antes, por debajo de
 `SEEN_SHARE` (75 %) en su mejor vista, se prueba la candidata siguiente; la primera por costo se usa
-solo si ninguna se libra. Los cables (paso 3) se miden igual. Empieza solo cuando el primer intento
-deja más de `HIDDEN_SETTLED` (5) componentes tapados en todas las vistas: el ciclo de reintentos
-mueve un lugar por punto y por intento, lo que arregla todas las recetas (como mucho 5,
-`laser-uno`) y ninguno de los casos grandes (diez LED de una pata, de 6 a 11; un UNO con un 74HC595
-y ocho LED, 8), que gastaban los 24 intentos en resistencias tapadas por LED y cables. Así un
-circuito que el ciclo arregla queda exactamente como antes (las recetas se publican y se filman), y
-uno grande se mide desde su segundo intento y termina en dos o tres.
+solo si ninguna se libra. Los cables (paso 3) se miden igual. Corre como una segunda búsqueda, solo
+cuando la primera (el ciclo de reintentos sin medir, como siempre ubicó el montaje) termina con algo
+que bloquea, desde una lista de prohibidos vacía; se queda la mejor de las dos, la primera si
+empatan. El ciclo arregla todas las recetas (`laser-uno` deja 5 componentes tapados en su primer
+intento y ninguno en el sexto), así que una receta queda exactamente como antes (las recetas se
+publican y se filman), y un circuito grande que el ciclo no arregla (diez LED de una pata, un UNO con
+un 74HC595 y ocho LED) se mide cuando termina su primera búsqueda. Hasta el 2026-11-20 la segunda
+búsqueda empezaba después del primer intento cuando ese intento dejaba más de 5 componentes tapados
+(`HIDDEN_SETTLED`): una receta estaba justo en 5, así que un componente más en una receta la habría
+movido. La regla ahora depende de cómo termina la primera búsqueda, nunca de una cuenta; su precio
+son los intentos de la primera búsqueda en un circuito grande (diez LED de una pata: 9 intentos y
+4,5 s en vez de 2 y 1,8 s, con carga 2).
 
 Después de cada componente, el cursor de su mitad (las dos mitades si está a caballo del canal; la
 mitad de cada pata si está fuera de la protoboard) pasa a dos columnas más allá de su pata más a la
@@ -329,6 +334,44 @@ Un montaje que falla y se recupera cuesta sus intentos fallidos: 4,3 s en el cas
 zumbador; unos 9 s en la variante con transistor de ese circuito con su arreglo (nueve componentes y
 una placa). Sobre todas las recetas barajadas tres veces: 0,26 s en promedio donde el orden dado
 funciona, 2,3 s (a lo sumo 7 s) donde falla.
+
+### Lo que prueba el montaje antes de CHANGES (desde el 2026-11-20)
+
+La misma especificación da siempre el mismo circuito, así que enviarla otra vez no ayuda; lo que
+les sirvió a los asistentes que recibieron `CHANGES` fue una prueba que haría una persona: poner
+otro componente de primero, o llevar el circuito a la protoboard más grande, **montado otra vez
+sobre el circuito ya hecho** (cada componente prueba primero los huecos que tiene ahí, como en un
+segundo montaje de un objetivo). `inAnyOrder` ahora lo hace solo antes de responder `CHANGES`
+(`withTrials`), desde su mejor intento, cada prueba con a lo sumo `TRIAL_TRIES` intentos del ciclo
+de reintentos, en este orden, y se queda con la primera que termina sin `CHANGES` (si no, la mejor
+con el mismo rango):
+
+1. **los órdenes que dan las redes otra vez**, desde el mejor intento (`LAYOUT_ORDER_FROM_NETS`);
+2. **la protoboard doble**, cuando un punto bloqueante nombra una placa de desarrollo (un módulo con
+   GPIO: un UNO, un DevKit) junto con otro componente (lo tapa a él o a una tira suya) y la
+   especificación no nombra su protoboard: en el orden dado y luego en los órdenes de las redes
+   (`LAYOUT_TRIED_DOUBLE`, `LAYOUT_TRIED_DOUBLE_ORDER`: «se montó en la protoboard doble … porque U1
+   tapaba a U2 en una sola»);
+3. **los componentes más altos de primero**, luego **los más anchos** (por el cuerpo en el dibujo
+   del mejor intento; una placa de desarrollo y un componente al lado de la protoboard no se
+   mueven), con las capas empezando por ellos (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`).
+
+Nada eléctrico cambia y no se le pregunta a nadie; la respuesta trae una nota que dice qué cambió
+respecto a la especificación escrita. Una prueba corre solo mientras el límite de tiempo alcanza.
+Cuando la respuesta sigue en `CHANGES`, cada línea ✖ va seguida del único cambio de la
+especificación que el kit probaría después (`next` en el punto: la primera prueba que el límite
+dejó sin hacer; si no, la protoboard doble cuando se nombra una placa de desarrollo y el circuito no
+está en una; si no, poner de primero el componente tapado y luego el que lo tapa; si no, «muévelo
+con suggest»), y una línea dice qué se probó (`layout.tried`).
+
+Medido en las tres especificaciones con las que los asistentes recibieron `CHANGES`
+(`test/layout-trials.test.js`, carga 2–3 en una máquina de cuatro núcleos; antes: `CHANGES` en 14,
+38 y 35 s): un cable puente bajo un módulo ultrasónico, `DONE` en 20–27 s (los órdenes de las redes
+desde el mejor intento); un contador de siete segmentos con botón, `DONE` en 36 s (igual); un UNO que
+tapa medio 74HC595, `WARNINGS` (el registro de desplazamiento no se simula) en 32 s, en una sola
+protoboard, con los órdenes de las redes antes de cualquier prueba (con la segunda búsqueda de «Lo
+que tapa»; antes de ella, la prueba de la protoboard doble lo resolvía en 1,3 s). El banco no cambia:
+cada especificación termina `DONE` en su propio orden, así que no corre ninguna prueba.
 
 ### Tamaño y límite de tiempo: calcular primero, nunca desbocarse (desde el 2026-11-20)
 
@@ -615,7 +658,7 @@ con una red sin conectar. La consola sale con 0 con `DONE` y `WARNINGS` (1 con `
 | `PAIRS_PER_GROUP`, `JOIN_TRIES` | 40, 40 | pares de agujeros que se miden por par de grupos; rechazos antes de que una red se rinda |
 | `OVER_COST`, `OVER_MARGIN` | 12 mm, 0,3 mm | el costo de un cable por cada cuerpo que cruza; un cable que termina en el borde de un cuerpo no lo cruza |
 | `TRIES`, `REPAIRS` | 8, 4 | reintentos como máximo; cables que la reparación vuelve a trazar como máximo |
-| `HIDDEN_SETTLED` | 5 | componentes tapados en todas las vistas que el primer intento puede dejarle al ciclo de reintentos; con más, lo que tapa cada lugar se mide desde ahí |
+| `TRIAL_TRIES` | 2 | intentos del ciclo de reintentos que recibe cada prueba antes de `CHANGES` («Lo que prueba el montaje antes de CHANGES»); las pruebas que sirvieron tomaron uno o dos |
 | `SEEN_SHARE` | 75 % | un lugar que deja a un componente por debajo de esta parte en su mejor vista se usa solo si ningún otro se libra (`src/layout-sight.js`; la revisión bloquea por debajo de 70 %) |
 | `MEMO_STATES` | 1500 | estados que guarda la memoria de un montaje |
 | `BUDGET_SECONDS`, `LIMITS.layoutSeconds` | 60 s, 300 s | el límite de tiempo de la búsqueda por defecto, y como mucho |

@@ -13,36 +13,44 @@ part gives itself wins over the environment. Ranges are what the kit accepts; un
 
 - Fields (spec, or `set` in an operation): `value`: a resistance in ohms, such as 330, 4k7 or 1M · `tolerance`: "5%", "1%" · `bands`: 4 | 5 · `power`: "1/8", "1/4", "1/2", "1"; "3", "5", "10" draw a cement resistor
 - No part number: pins `1`, `2`; while it runs: `resistance` 0.001 … 1e12 Ω; the slider 3.3 … 33000 Ω.
+- What each pin does: 1 · by the first band; 2 · the other end.
 
 ## `capacitor` · Capacitor
 
 - Fields (spec, or `set` in an operation): `value`: a capacitance in farads, such as 100n, 4u7 or 470u · `kind`: ceramic | electrolytic · `voltage`: electrolytic: rated volts · `diameter` · `height`
 - No part number: pins `1`, `2`; nothing to change while it runs.
+- What each pin does: 1 · one plate; 2 · the other plate.
 
 ## `potentiometer` · Potentiometer
 
 - Fields (spec, or `set` in an operation): `value`: a resistance in ohms, such as 330, 4k7 or 1M · `style`: "knob" (default) | "trimmer" (multi-turn 3296W) · `position`: potentiometer wiper position
 - No part number: pins `1`, `W`, `3`; while it runs: `position` 0 … 1, a share: 0.5 is half.
+- What each pin does: 1 · one end of the track; W · wiper, slides on it; 3 · the other end.
+- Position 0 puts the wiper (W) at pin 1 and 1 at pin 3: with pin 1 on the supply and pin 3 on ground, 0 gives W the whole voltage and 1 gives it 0 V.
 
 ## `diode` · Diode
 
 - Fields (spec, or `set` in an operation): `part`: a part number below
 - No part number, `1N4007`, `1N4148`, `1N5819`, `1N4001`, `1N4002`, `1N4003`, `1N4004`, `1N4005`, `1N4006`, `1N5399`, `1N5408`, `1N5822`, `FR107`, `FR207`: pins `A`, `K`; nothing to change while it runs.
+- What each pin does: anode · current goes in; cathode · current comes out.
 
 ## `zener` · Zener diode
 
 - Fields (spec, or `set` in an operation): `part`: a part number below · `value`: a Zener voltage from 0 to 200 V, such as 5V1 or 12
 - No part number, `1N4728A`, `1N4729A`, `1N4730A`, `1N4731A`, `1N4732A`, `1N4733A`, `1N4734A`, `1N4735A`, `1N4736A`, `1N4737A`, `1N4738A`, `1N4739A`, `1N4740A`, `1N4741A`, `1N4742A`, `1N4743A`, `1N4744A`, `1N4745A`, `1N4746A`, `1N4747A`, `1N4748A`, `1N4749A`, `1N4750A`, `1N4751A`: pins `A`, `K`; nothing to change while it runs.
+- What each pin does: anode · to the − side; cathode · held at Vz.
 
 ## `bridge` · Bridge rectifier
 
 - Fields (spec, or `set` in an operation): `part`: a part number below
 - No part number, `KBP2005`, `KBP201`, `KBP202`, `KBP204`, `KBP206`, `KBP207`, `KBP208`, `KBP210`, `KBP3005`, `KBP301`, `KBP302`, `KBP304`, `KBP306`, `KBP307`, `KBP308`, `KBP310`: pins `+`, `AC1`, `AC2`, `-`; nothing to change while it runs.
+- What each pin does: + · DC out, to the load; ~1 · AC in; ~2 · AC in, the other end; − · DC back from the load.
 
 ## `led` · LED
 
 - Fields (spec, or `set` in an operation): `color` · `size`: 3 | 5
 - No part number: pins `anode`, `cathode`; nothing to change while it runs.
+- What each pin does: anode · the + side, in; cathode · the − side, out.
 
 ## `mosfet` · MOSFET
 
@@ -84,6 +92,8 @@ part gives itself wins over the environment. Ranges are what the kit accepts; un
 
 - Fields (spec, or `set` in an operation): `pressed`: button state · `color`
 - No part number: pins `1`, `2`, `3`, `4`; while it runs: `pressed` on / off (held: `--press ID@t+dur`).
+- What each pin does: 1 · joined to 2 inside; 2 · joined to 1 inside; 3 · joined to 4 inside; 4 · joined to 3 inside.
+- Pins 1 and 2 are joined inside, and so are 3 and 4: the switch is between the two pairs, so a net on 1 (or 2) and a net on 3 (or 4) are joined while it is pressed.
 
 ## `wire` · Jumper wire
 
@@ -94,6 +104,7 @@ part gives itself wins over the environment. Ranges are what the kit accepts; un
 
 - Fields (spec, or `set` in an operation): `format`: AA, AAA, 18650, 9V or pouch (LiPo) · `chemistry`: default by format (AA/AAA alkaline, 18650 li-ion, pouch lipo) · `cells`: cells (or 9 V blocks) in series; voltages add up · `charge`: state of charge, 0 empty … 1 full; without it, the nominal voltage · `capacity`: "2000 mAh" (a number is mAh); default by format · `voltage`: measured open-circuit volts (wins over charge) · `internalResistance`: ohms, for the whole pack · `switch`: a holder with a slide switch, and its position. Only in a circuit written by hand: `side`, `offset`
 - No part number: pins `+`, `-`; while it runs: `charge` 0 … 1, a share: 0.5 is half.
+- What each pin does: + · red lead, to the load; − · black lead, the return.
 
 ## `module` · Development board
 
@@ -112,21 +123,26 @@ part gives itself wins over the environment. Ranges are what the kit accepts; un
 
 - Fields (spec, or `set` in an operation): `value`: an inductance in henries, such as 10u, 100u or 1m · `dcr`: winding resistance, ohms · `current`: rated current, amperes
 - No part number: pins `1`, `2`; nothing to change while it runs.
+- What each pin does: 1 · by the first band; 2 · the other end.
 
 ## `thermistor` · NTC thermistor
 
 - Fields (spec, or `set` in an operation): `value`: a resistance in ohms, such as 330, 4k7 or 1M · `beta`: B constant in kelvin (default 3950) · `temperature`: thermistor, temperature-sensor (LM35): °C for the simulation (default 25)
 - No part number: pins `1`, `2`; while it runs: `temperature` -55 … 150 °C; the slider -20 … 100 °C; reads the environment's `temperature` in °C (`--env` -20 … 100 °C), unless the part gives its own value.
+- What each pin does: 1 · one lead; 2 · the other lead.
 
 ## `ldr` · Photoresistor (LDR)
 
 - Fields (spec, or `set` in an operation): `part`: a part number below · `light`: illuminance in lux for the simulation (default 100). Parts: GL5516, GL5528, GL5537, GL5539, GL5549
 - No part number, `GL5516`, `GL5528`, `GL5537`, `GL5539`, `GL5549`: pins `1`, `2`; while it runs: `light` 0 … 1e6 lx; the slider 0.1 … 10000 lx; reads the environment's `light` in lx (`--env` 0.1 … 10000 lx), unless the part gives its own value.
+- What each pin does: 1 · one lead; 2 · the other lead.
 
 ## `buzzer` · Buzzer
 
 - Fields (spec, or `set` in an operation): `part`: a part number below · `resistance`: coil resistance (default 16 Ω)
 - No part number, `TMB12A05`: pins `1`, `2`; nothing to change while it runs.
+- What each pin does: + · under the + on top; − · the other lead.
+- Pin 1 is + (under the + on top), pin 2 is −. With no part number it is the passive one: silent on steady DC (a button and a battery only heat its coil), it sounds with a square wave such as tone(); TMB12A05 is the active one, which sounds on steady DC, so a button that sounds a buzzer needs TMB12A05.
 
 ## `header` · Header pins
 
@@ -137,6 +153,7 @@ part gives itself wins over the environment. Ranges are what the kit accepts; un
 
 - Fields (spec, or `set` in an operation): `common`: the common pin (COM, the longest lead) is the chips' cathode (default) or their anode
 - No part number: pins `R`, `COM`, `G`, `B`; nothing to change while it runs.
+- What each pin does: R · red chip; common · the longest lead; G · green chip; B · blue chip.
 
 ## `seven-segment` · 7-segment display
 
@@ -147,17 +164,20 @@ part gives itself wins over the environment. Ranges are what the kit accepts; un
 
 - Fields (spec, or `set` in an operation): `part`: a part number below · `slid`: the knob slid over to pin 2's side (COM joined to 2); default false (COM joined to 1)
 - No part number, `SS12D00G3`: pins `1`, `COM`, `2`; while it runs: `slid` on / off.
+- What each pin does: 1 · to COM, knob at 1; COM · common, middle; 2 · to COM, knob at 2.
 
 ## `tilt-switch` · Tilt switch
 
 - Fields (spec, or `set` in an operation): `part`: a part number below · `tilted`: tipped over past its angle (open); default false (upright, closed)
 - No part number, `SW520D`: pins `1`, `2`; while it runs: `tilted` on / off; reads the environment's `tilt` (on / off), unless the part gives its own value.
+- What each pin does: 1 · a lead; 2 · the other lead.
 
 ## `temperature-sensor` · Temperature sensor
 
 - Fields (spec, or `set` in an operation): `part`: a part number below · `temperature`: thermistor, temperature-sensor (LM35): °C for the simulation (default 25)
 - No part number, `LM35DZ`: pins `+VS`, `VOUT`, `GND`; while it runs: `temperature` -55 … 150 °C; the slider 0 … 100 °C; reads the environment's `temperature` in °C (`--env` -20 … 100 °C), unless the part gives its own value.
 - `LM35CZ`: pins `+VS`, `VOUT`, `GND`; while it runs: `temperature` -55 … 150 °C; the slider 0 … 110 °C; reads the environment's `temperature` in °C (`--env` -20 … 100 °C), unless the part gives its own value.
+- What each pin does: +VS · supply, 4–30 V; VOUT · 10 mV per °C; GND · ground, 0 V.
 
 ## `relay` · Relay
 
@@ -169,16 +189,19 @@ part gives itself wins over the environment. Ranges are what the kit accepts; un
 - Fields (spec, or `set` in an operation): `part`: a part number below · `load`: a load on its shaft in mN·m, against its turning (default 0); over its stall torque it holds the shaft still. Only in a circuit written by hand: `side`, `offset`
 - No part number, `RE-140RA-12240`: pins `+`, `-`; while it runs: `load` 0 … 100 mN·m; the slider 0 … 3 mN·m.
 - `RE-140RA-2270`: pins `+`, `-`; while it runs: `load` 0 … 100 mN·m; the slider 0 … 5 mN·m.
+- What each pin does: + · red lead, by (+); − · black lead.
 
 ## `pir-sensor` · PIR motion sensor
 
 - Fields (spec, or `set` in an operation): `delay`: seconds OUT stays high after motion (the trimmer Tx; default 5) · `sensitivity`: the sensitivity trimmer, 0…1 (default 0.5; the model has no range, so it only shows) · `mode`: "H" (default) motion during OUT high starts the delay again, "L" ignores it · `warmup`: seconds after power on with OUT low and motion ignored (default 30; 0 skips it) · `motion`: its own value of the environment field motion (a part that gives it does not follow the environment)
 - No part number: pins `VCC`, `OUT`, `GND`; while it runs: `motion` on / off; `retrigger` on / off; `delay` 2.5 … 600 s; the slider 3 … 300 s; reads the environment's `motion` (on / off), unless the part gives its own value.
+- What each pin does: VCC · supply, 4.5–20 V; OUT · 3.3 V while it sees motion; GND · ground, 0 V.
 
 ## `touch-sensor` · Touch sensor
 
 - Fields (spec, or `set` in an operation): `mode`: "momentary" (default) SIG follows the touch, "toggle" each touch flips it · `activeLow`: SIG low while touched (or while a toggle is on); default false · `fast`: the 60 ms response instead of the 220 ms low-power one; default false · `touch`: its own value of the environment field touch
 - No part number: pins `SIG`, `VCC`, `GND`; while it runs: `touch` on / off; `toggleMode` on / off; reads the environment's `touch` (on / off), unless the part gives its own value.
+- What each pin does: SIG · the output, printed I/O; VCC · supply, 2–5.5 V; GND · ground, 0 V.
 
 ## `sensor-module` · Sensor module (LM393)
 
@@ -197,27 +220,32 @@ part gives itself wins over the environment. Ranges are what the kit accepts; un
 
 - Fields (spec, or `set` in an operation): `part`: a part number below · `pulses`: pulses a turn; only 20 (the usual KY-040) is modelled · `detents`: clicks a turn; only 20 (the usual KY-040) is modelled · `speed`: degrees a second the shaft follows its target (default 360) · `bounce`: milliseconds of chatter at each change of CLK and DT, deterministic (default 0) · `pressed`: button state; its push switch is held down · `swPullup`: the 10 kΩ from + to SW is on the module (default true; some clones omit it) · `angle`: its own target angle, degrees (snapped to the nearest click), instead of the environment's
 - No part number, `KY-040`: pins `CLK`, `DT`, `SW`, `+`, `GND`; while it runs: `angle` 0 … 360 °; `pressed` on / off (held: `--press ID@t+dur`); reads the environment's `angle` in ° (`--env` 0 … 360 °), unless the part gives its own value.
+- What each pin does: CLK · channel A, low while its contact is closed; DT · channel B, a quarter cycle after A turning clockwise; SW · the push switch, low while pressed; + · supply of the pull-ups, 3.3–5 V; GND · ground, 0 V.
 
 ## `laser` · Laser module
 
 - Fields (spec, or `set` in an operation): `part`: a part number below
 - No part number, `KY-008`: pins `S`, `+`, `−`; nothing to change while it runs.
+- What each pin does: S · the laser diode's +, through 100 Ω; + · not connected on the board; − · the diode's cathode, to ground.
 
 ## `ultrasonic-sensor` · Ultrasonic distance sensor
 
 - Fields (spec, or `set` in an operation): `part`: a part number below · `distance`: sensor-module TCRT5000-M, FC-51, ultrasonic-sensor: its own distance to the surface or the object, cm, instead of the environment's · `temperature`: the air's, which sets the speed of sound (default 20)
 - No part number, `HC-SR04`: pins `VCC`, `TRIG`, `ECHO`, `GND`; while it runs: `distance` 0 … 1000 cm; the slider 2 … 400 cm; reads the environment's `distance` in cm (`--env` 2 … 400 cm), `temperature` in °C (`--env` -20 … 100 °C), unless the part gives its own value.
+- What each pin does: VCC · supply, 5 V; TRIG · a 10 µs pulse starts it; ECHO · high for the round trip; GND · ground, 0 V.
 
 ## `hall-sensor` · Linear Hall sensor
 
 - Fields (spec, or `set` in an operation): `part`: a part number below · `field`: sensor-module KY-024, hall-sensor: its own magnetic field, G (+ a south pole at its face), instead of the environment's
 - No part number, `KY-035`: pins `S`, `+`, `-`; while it runs: `field` -10000 … 10000 G; the slider -500 … 500 G; reads the environment's `field` in G (`--env` -500 … 500 G), unless the part gives its own value.
 - `49E`: pins `VCC`, `GND`, `OUT`; while it runs: `field` -10000 … 10000 G; the slider -500 … 500 G; reads the environment's `field` in G (`--env` -500 … 500 G), unless the part gives its own value.
+- What each pin does: S · output, half the supply with no magnet; + · supply, 2.7–6.5 V; − · ground, 0 V.
 
 ## `voltage-sensor` · Voltage sensor module
 
 - Fields (spec, or `set` in an operation): `part`: a part number below
 - No part number, `VOLT-25V`: pins `S`, `+`, `-`, `VIN`, `GND`; nothing to change while it runs.
+- What each pin does: S · a fifth of the input voltage; + · not connected inside; − · ground, joined to the terminal's GND; VIN · the terminal's positive contact, the voltage to measure; GND · the terminal's negative contact, joined to −.
 
 ## `climate-sensor` · Climate sensor (library)
 

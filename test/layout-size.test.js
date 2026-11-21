@@ -97,13 +97,15 @@ test('the same spec gives the same circuit', () => {
   assert.deepEqual(a.circuit, b.circuit);
 });
 
-test('ten LEDs from one pin are built in one or two tries, not left to fix', () => {
+test('ten LEDs from one pin are built, not left to fix: the second search settles them in one or two tries', () => {
   const started = Date.now(); // real clock: a speed bound
   const r = autoLayout(pairs(10));
   assert.ok(Date.now() - started < 60_000, `${Date.now() - started} ms`); // real clock: a speed bound
   assert.ok(['done', 'warnings'].includes(r.status), formatLayout(r, 'en', { t, formatIssue }));
   assert.ok(r.check.ok);
-  assert.ok(r.tries <= 2, `${r.tries} tries`);
+  // The first search (without measuring what each place hides) runs its 8 tries first, so that a
+  // circuit it settles keeps its placement (src/layout.js, layoutSpec); the second ends in one or two.
+  assert.ok(r.tries <= 8 + 2, `${r.tries} tries`);
 });
 
 test('the budget stops the search with its best try and a line that says so', () => {

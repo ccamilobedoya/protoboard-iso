@@ -9,6 +9,8 @@ import { PART_TYPES } from '../src/parts/types/index.js';
 import { PART_NUMBERS } from '../src/parts/db.js';
 import { MODULES } from '../src/parts/modules.js';
 import { partReference } from '../src/node/catalog.js';
+import * as layoutModule from '../src/layout.js';
+import { simulate } from '../src/sim/index.js';
 
 const text = readFileSync(FILE, 'utf8');
 
@@ -43,4 +45,24 @@ test("a field's shared description keeps only what is about the part's own type"
   assert.equal(forType('pir-sensor: seconds (the trimmer Tx; default 5)', 'pir-sensor'), 'seconds (the trimmer Tx; default 5)');
   assert.equal(forType('electrolytic: rated volts; battery: measured volts', 'battery'), 'measured volts');
   assert.equal(forType('plain words', 'led'), 'plain words');
+});
+
+// The notes parts.md gives a type (reference.<type> in src/i18n) say what a run does: each is
+// checked here against the simulator, so the skill can rely on it.
+test('parts.md: which way a potentiometer runs, which buzzer pin is +, which button pins switch, as a run gives them', () => {
+  const { autoLayout } = layoutModule;
+  const volts = (r, part, pin) => r.parts[part].pins[pin];
+  const pot = (position) => simulate(autoLayout({ parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'RV1', type: 'potentiometer', value: '10k', position }, { id: 'R1', type: 'resistor', value: '1M' }], nets: [['BT1.+', 'RV1.1'], ['RV1.3', 'BT1.-'], ['RV1.W', 'R1.1'], ['R1.2', 'BT1.-']] }).circuit);
+  assert.ok(Math.abs(volts(pot(0), 'RV1', 'W') - volts(pot(0), 'RV1', '1')) < 0.01, 'position 0: the wiper at pin 1');
+  assert.ok(Math.abs(volts(pot(1), 'RV1', 'W') - volts(pot(1), 'RV1', '3')) < 0.01, 'position 1: the wiper at pin 3');
+  assert.match(text, /Position 0 puts the wiper \(W\) at pin 1 and 1 at pin 3/);
+  // A button between a battery and an active buzzer: pressed, 1 and 3 are joined and it sounds; the
+  // passive one on the same DC is silent (the kit says it only heats its coil).
+  const buzzer = (part, pressed) => simulate(autoLayout({ parts: [{ id: 'BT1', type: 'battery', format: 'AA', cells: 4 }, { id: 'S1', type: 'button', pressed }, { id: 'BZ1', type: 'buzzer', ...(part && { part }) }], nets: [['BT1.+', 'S1.1'], ['S1.3', 'BZ1.1'], ['BZ1.2', 'BT1.-']] }).circuit);
+  assert.equal(buzzer('TMB12A05', true).parts.BZ1.sounding, true, 'pressed: S1.1 and S1.3 joined, the active buzzer sounds');
+  assert.equal(buzzer('TMB12A05', false).parts.BZ1.sounding, false, 'released: 1 and 3 apart');
+  assert.ok(buzzer('TMB12A05', true).parts.BZ1.pins['1'] > buzzer('TMB12A05', true).parts.BZ1.pins['2'], 'pin 1 is +');
+  assert.equal(buzzer(null, true).parts.BZ1.sounding, undefined, 'the passive buzzer has no sound on DC');
+  assert.match(text, /Pin 1 is \+[^\n]*a button that sounds a buzzer needs TMB12A05/);
+  assert.match(text, /the switch is between the two pairs/);
 });

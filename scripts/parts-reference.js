@@ -15,6 +15,7 @@ import { partReference } from '../src/node/catalog.js';
 import { FIELDS } from '../src/sim/environment.js';
 import { t } from '../src/i18n/index.js';
 import { PART_TYPES } from '../src/parts/types/index.js';
+import { FILE as SKETCH_FILE, sketchReference } from './sketch-reference.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 export const FILE = join(root, 'plugin-src/references/parts.md');
@@ -116,6 +117,8 @@ function typeSection(e) {
     const who = g.names.map((n) => (n ? code(n) : 'No part number')).join(', ');
     lines.push(`- ${who}: ${variantLines(g).join('; ')}.`);
   }
+  if (e.roles) lines.push(`- What each pin does: ${e.roles.join('; ')}.`);
+  if (e.note) lines.push(`- ${e.note}`);
   return lines.join('\n');
 }
 
@@ -136,12 +139,14 @@ export function partsReference() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  // sketch.md (scripts/sketch-reference.js) is written and checked with it.
   if (process.argv.includes('--write')) {
     writeFileSync(FILE, partsReference());
-    console.log('plugin-src/references/parts.md written.');
+    writeFileSync(SKETCH_FILE, sketchReference());
+    console.log('plugin-src/references/parts.md and sketch.md written.');
   } else if (process.argv.includes('--check')) {
-    const fresh = readFileSync(FILE, 'utf8') === partsReference();
-    console.log(fresh ? 'parts.md is up to date.' : 'parts.md is stale: npm run parts-reference -- --write');
+    const fresh = readFileSync(FILE, 'utf8') === partsReference() && readFileSync(SKETCH_FILE, 'utf8') === sketchReference();
+    console.log(fresh ? 'parts.md and sketch.md are up to date.' : 'parts.md or sketch.md is stale: npm run parts-reference -- --write');
     process.exitCode = fresh ? 0 : 1;
   } else process.stdout.write(partsReference());
 }

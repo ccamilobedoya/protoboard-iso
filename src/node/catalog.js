@@ -360,6 +360,12 @@ export function partReference(lang = 'en') {
       const run = device ? partControls(part) : null;
       return { part: number, pins: part.pinNames, simulated: Boolean(device), ...(run && { controls: run.controls, senses: run.senses }) };
     });
-    return { type, name: t(lang, `type.${type}`), family: PART_TYPES[type].family, pins: PART_TYPES[type].pins ?? null, fields: fieldsOf(type), variants };
+    // A type with fixed pins: what each pin does (catalog's pin roles), and what a spec must know
+    // about it that no field says (`reference.<type>` in src/i18n: which way a knob runs, which pin
+    // is +, which pins make the switch), checked against a run in test/parts-reference.test.js.
+    const bare = PART_TYPES[type].pins && unplaced({ id: 'X1', type });
+    const roles = bare ? pinRoles(bare, lang).map((r) => r.text) : [];
+    const note = `reference.${type}` in LANGUAGES.en ? t(lang, `reference.${type}`) : null;
+    return { type, name: t(lang, `type.${type}`), family: PART_TYPES[type].family, pins: PART_TYPES[type].pins ?? null, fields: fieldsOf(type), variants, ...(roles.length && { roles }), ...(note && { note }) };
   });
 }
