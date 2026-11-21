@@ -38,8 +38,9 @@ export function formatSimulation(result, lang = 'en', { formatIssue, netLabels =
 
 // Supplies, nodes and parts of one reading (the DC point, or the end of a run).
 function readingLines(result, lang, { f, lines, nodeName, decimal }) {
-  lines.push(t(lang, 'sim.supplies'));
-  for (const [id, s] of Object.entries(result.supplies)) {
+  // A board on USB alone has no supply of its own: no heading over nothing.
+  if (Object.keys(result.supplies ?? {}).length) lines.push(t(lang, 'sim.supplies'));
+  for (const [id, s] of Object.entries(result.supplies ?? {})) {
     const written = s.written < 0 ? ` · ${t(lang, 'sim.supplyNegative', { named: s.named, high: s.high })}` : '';
     lines.push(`  ${pad(id, 6)} ${pad(f(s.voltage, 'V'), 10)} ${pad(f(s.current, 'A'), 10)} ${pad(f(s.power, 'W'), 10)} ${t(lang, `sim.mode.${s.mode}`)}${written}`);
   }

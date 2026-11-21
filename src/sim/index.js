@@ -136,7 +136,7 @@ const warningsOf = (reading) => (reading.issues ?? []).filter((i) => (PROGRAM_DO
 // Doubts that can show in several states: the quantity whose highest value is the one reported.
 const STRONGEST = { SIM_RELAY_UNDERDRIVEN: 'current', SIM_PIN_OVERVOLTAGE: 'voltage' };
 const doubtKey = (i) => (i.params?.part != null ? `${i.code} ${i.params.part} ${i.params.name ?? i.params.file ?? i.params.pin ?? ''} ${i.params.line ?? ''}` : `${i.code} ${JSON.stringify(i.params ?? {})}`);
-const exceeded = (engine, reading) => Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
+const exceededAll = (engine, reading) => Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
 const hazardKey = (h) => `${h.code} ${h.params.part}`;
 // A state on and off: a control set, or a pin held.
 export const enterState = (engine, s) => (s.pin ? engine.drive(s.part, s.pin, s.value) : engine.set(s.part, s.field, s.value));
@@ -156,7 +156,11 @@ export function leaveState(engine, s) {
 export function engineHazards(engine, states, max = STATES_MAX, { collect = false } = {}) {
   const rest = engine.dc();
   if (!rest.ok) return { hazards: [], doubts: collect ? warningsOf(rest) : [], states: { checked: 0, total: states.length, controls: 0, outputs: 0 }, ok: false };
-  const lit = litTracker(engine.program());
+  // A part wired to nothing (left out by a layout that stopped at its budget) is open: no hazard.
+  const compiledProgram = engine.program();
+  const open = new Set((compiledProgram.devices ?? []).filter((d) => !d.unsupported && d.kind !== 'W' && !wired(compiledProgram, d)).map((d) => d.id));
+  const exceeded = (eng, reading) => exceededAll(eng, reading).filter((h) => !open.has(String(h.params.part).split('.')[0]));
+  const lit = litTracker(compiledProgram);
   lit.see(rest);
   const outputs = programOutputs(rest);
   const all = [...states, ...outputs.states];

@@ -542,6 +542,7 @@ before saying it works.
 - ✅ Say what is needed (C8a): the underdriven-relay line says what the coil gets, what it needs and that the driver stage does not deliver it, with no prescription
 - ✅ A negative supply shows its sign (C8a): `voltage: -5` reads `-5 V` in the readings and `simulate`, with the rail that is positive in fact, and `layout`'s answer has one note saying so
 - ✅ The sketch runner knows the standard names (C8a): `shiftOut`/`shiftIn` with `MSBFIRST`/`LSBFIRST`, `TWO_PI`, `HALF_PI`, `DEG_TO_RAD`, `RAD_TO_DEG`; an unknown name is said by its name, never with the translator's `$`; a two-dimensional array is refused with its line (`SIM_PROGRAM_ARRAY_DIMENSIONS`)
+- ✅ Loose ends (C8a): `simulate --run` prints no empty `Supplies:` heading; a part wired to nothing (left out by a layout at its budget) has no hazard
 - ⬜ What the MCP server's instructions would add with a number from `scripts/trigger-bench.js` (the startup context is at its 48 KB): the `.ino` in the circuit's folder, a run before saying a program works
 
 ## Optional, later ⬜

@@ -186,3 +186,16 @@ test('a supply written at -5 V reads as written, and the answer says which rail 
   assert.equal(sim.supplies.V1.voltage < 0, true);
   assert.ok(sim.parts.D1.current > 1e-3, 'the LED, wired for it, is lit');
 });
+
+// ---- 11. Loose ends
+
+test('simulate --run on a board fed by USB alone prints no empty Supplies heading', () => {
+  const dir = tempDir('c8a-usb-');
+  assert.equal(cli(['layout', join(dir, 'c'), '--recipe', 'uno-blink']).status, 0);
+  const run = cli(['simulate', join(dir, 'c'), '--run', '0.5']);
+  assert.equal(run.status, 0, run.stderr);
+  const lines = run.stdout.split('\n');
+  const at = lines.indexOf('Supplies:');
+  assert.ok(at < 0 || /^\s+\S/.test(lines[at + 1] ?? '') && !/^Nodes/.test(lines[at + 1]), run.stdout);
+  assert.ok(!lines.some((l, k) => l === 'Supplies:' && /^Nodes/.test(lines[k + 1] ?? '')));
+});

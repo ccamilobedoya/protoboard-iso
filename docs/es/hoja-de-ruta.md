@@ -549,6 +549,7 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ✅ Decir lo que hace falta (C8a): la línea del relé mal manejado dice lo que recibe la bobina, lo que necesita y que la etapa que la maneja no se lo entrega, sin receta
 - ✅ Una fuente negativa muestra su signo (C8a): `voltage: -5` se lee `-5 V` en las lecturas y en `simulate`, con el riel que en realidad es positivo, y la respuesta de `layout` trae una nota que lo dice
 - ✅ El intérprete de sketches conoce los nombres estándar (C8a): `shiftOut`/`shiftIn` con `MSBFIRST`/`LSBFIRST`, `TWO_PI`, `HALF_PI`, `DEG_TO_RAD`, `RAD_TO_DEG`; un nombre desconocido se dice por su nombre, nunca con el `$` del traductor; un arreglo de dos dimensiones se rechaza con su línea (`SIM_PROGRAM_ARRAY_DIMENSIONS`)
+- ✅ Cabos sueltos (C8a): `simulate --run` no imprime un encabezado `Alimentación:` vacío; un componente sin conectar a nada (dejado fuera por un layout en su presupuesto) no tiene peligros
 - ⬜ Lo que agregarían las instrucciones del servidor MCP con una cifra de `scripts/trigger-bench.js` (el contexto de arranque está en sus 48 KB): el `.ino` en la carpeta del circuito, una ejecución antes de decir que un programa funciona
 
 ## Opcional, más adelante ⬜
