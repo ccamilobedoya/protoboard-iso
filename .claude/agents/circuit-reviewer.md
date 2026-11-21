@@ -37,7 +37,7 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
   approves. A part over its limit is a hazard (`review` lists it, verdict APPROVED WITH WARNINGS):
   it does not block and is not a fix round; report it prominently, naming part, value, limit and
   state, with the kit's `To fix it` line as the proposed fix (or that it has none; a part in
-  backwards is turned round, `layout` with `fix: true`), and
+  backwards is turned round, a fix the layout agent applies), and
   `Verdict: WARNINGS`. A doubt (`doubts`, under `The kit cannot confirm these work`: a part not
   simulated, a program that does not run, stops, gets stuck or calls a function the kit does not
   know, a two-dimensional array, a relay that may not pull in, an output that never comes on, a
