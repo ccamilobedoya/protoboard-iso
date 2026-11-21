@@ -20,6 +20,7 @@ import { stressIssue, issue } from './devices/shared.js';
 import { deviceOfProgram } from './devices/index.js';
 import { buildCircuit } from '../circuit/build.js';
 import { checkButtonPins } from '../circuit/checks.js';
+import { CIRCUIT_FOLDER } from '../beside.js';
 
 // Findings about the wiring itself that `check` and the hazard check report (not placement checks):
 // each is a doubt of the review (doubtsOf), never a blocking item (circuit/checks.js DOUBT_CODES).
@@ -195,7 +196,9 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
 // with a value of its own is left as it is. Nothing here changes the reading at rest.
 function undeclaredEnvironmentStates(circuit, program) {
   if (program.environment || !(program.devices ?? []).some(senses)) return [];
-  const again = compile({ ...circuit, environment: {} });
+  // The folder is not an own enumerable key (node/workspace.js): a spread would lose it, and a
+  // board's program named by file ("weather.ino") would not be found in these states.
+  const again = compile(Object.defineProperty({ ...circuit, environment: {} }, CIRCUIT_FOLDER, { value: circuit[CIRCUIT_FOLDER], enumerable: false }));
   if (again.fatal) return [];
   const engine = createEngine(again.program);
   return environmentStates(again.program, engine).map((s) => ({ ...s, engine }));
