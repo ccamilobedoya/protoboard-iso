@@ -11,9 +11,9 @@ is below when they want the kit to check it.
 
 ## Functions
 
-- From the simulator's table: `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`, `analogWrite`, `millis`, `micros`, `abs`, `min`, `max`, `map`, `constrain`, `random`, `randomSeed`, `sqrt`, `log`, `pow`, `sin`, `cos`, `round`, `floor`, `ceil`, `bitRead`, `bitWrite`, `bitSet`, `bitClear`, `ledcAttach`, `ledcAttachPin`, `ledcSetup`, `ledcWrite`, `tone`, `noTone`, `pulseIn`, `pulseInLong`, `isnan`.
+- From the simulator's table: `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`, `analogWrite`, `millis`, `micros`, `abs`, `min`, `max`, `map`, `constrain`, `random`, `randomSeed`, `sqrt`, `log`, `pow`, `sin`, `cos`, `round`, `floor`, `ceil`, `bitRead`, `bitWrite`, `bitSet`, `bitClear`, `ledcAttach`, `ledcAttachPin`, `ledcSetup`, `ledcWrite`, `tone`, `noTone`, `pulseIn`, `pulseInLong`, `isnan`, `shiftOut`, `shiftIn`.
 - Also: `delay`, `delayMicroseconds`; your own functions, with their types.
-- Not known (noted, they return 0 or stop the program): `shiftOut`, `shiftIn`, `attachInterrupt`, `detachInterrupt`, `interrupts`, `noInterrupts`, `analogReference`, `analogReadResolution`, `tan`, `atan2`, `sq`, `highByte`, `lowByte`, `bit`.
+- Not known (noted, they return 0 or stop the program): `attachInterrupt`, `detachInterrupt`, `interrupts`, `noInterrupts`, `analogReference`, `analogReadResolution`, `tan`, `atan2`, `sq`, `highByte`, `lowByte`, `bit`.
 
 ## Serial
 
@@ -21,13 +21,13 @@ is below when they want the kit to check it.
 
 ## Constants
 
-- Known: `HIGH`, `LOW`, `INPUT`, `OUTPUT`, `INPUT_PULLUP`, `INPUT_PULLDOWN`, `LED_BUILTIN`, `A0`, `A5`, `PI`, `true`, `false` (the analog pins of the board: `A0` … `A5` on an UNO); `#define NAME value` and `const` globals of your own.
-- Not defined (a program that uses one stops): `A6`, `A7`, `MSBFIRST`, `LSBFIRST`, `RISING`, `FALLING`, `CHANGE`, `DEG_TO_RAD`.
+- Known: `HIGH`, `LOW`, `INPUT`, `OUTPUT`, `INPUT_PULLUP`, `INPUT_PULLDOWN`, `LED_BUILTIN`, `A0`, `A5`, `PI`, `true`, `false`, `MSBFIRST`, `LSBFIRST`, `DEG_TO_RAD` (the analog pins of the board: `A0` … `A5` on an UNO); `#define NAME value` and `const` globals of your own.
+- Not defined (a program that uses one stops): `A6`, `A7`, `RISING`, `FALLING`, `CHANGE`.
 
 ## Types and arrays
 
 - Types: `int`, `long`, `unsigned long`, `byte`, `bool`, `boolean`, `char`, `float`, `double`, `uint8_t`, `uint16_t`, `int32_t`, `word`, `String`. A `String` holds text for `Serial.print`; its methods (`.length()`, `.substring()`…) are not read.
-- Arrays: one dimension, `int a[3] = {1, 2, 3};`; two dimensions are not read (`int a[2][3]` stops the program before it starts): flatten one into one dimension, `a[row * 3 + col]`.
+- Arrays: one dimension, `int a[3] = {1, 2, 3};`; two dimensions are refused (`int a[2][3]`: the kit names the array and its line, and the program does not run): flatten one into one dimension, `a[row * 3 + col]`.
 - Statements: if / else, while, do … while, for, switch, break, continue, return; casts such as `(int) x`; number suffixes (`1000UL`). No pointers, classes of your own or templates.
 
 ## Libraries

@@ -22,6 +22,20 @@ test('sketch.md: what it says works runs, and what it says is unknown does not',
   assert.deepEqual(probe('void setup() { delay(10); } void loop() { delay(1000); }'), { issues: [], error: null });
   const shift = probe('void setup() { shiftOut(2, 3, 1, 5); } void loop() { delay(1000); }');
   assert.equal(text.includes('Not known (noted, they return 0 or stop the program): `shiftOut`'), shift.issues.length > 0);
+  assert.equal(text.includes('`shiftOut`, `shiftIn`.'), shift.issues.length === 0 && !shift.error);
   const two = probe('int a[2][3] = {{1, 2, 3}, {4, 5, 6}}; void setup() { } void loop() { delay(1000); }');
-  assert.equal(/two dimensions are not read/.test(text), Boolean(two.error || two.issues.length));
+  assert.equal(/two dimensions are refused/.test(text), Boolean(two.error || two.issues.length));
+});
+
+test("sketch.md: a two-dimensional array is refused with the kit's own message, never run", () => {
+  const two = probe('int a[2][3] = {{1, 2, 3}, {4, 5, 6}}; void setup() { a[1][2] = a[0][1]; } void loop() { delay(1000); }');
+  assert.equal(two.error, 'not read');
+  assert.deepEqual(two.issues.map((i) => i.code), ['SIM_PROGRAM_ARRAY_DIMENSIONS']);
+  assert.match(text, /two dimensions are refused/);
+});
+
+test('sketch.md: shiftOut and shiftIn run, and the bit orders are known constants', () => {
+  assert.deepEqual(probe('void setup() { shiftOut(2, 3, MSBFIRST, 5); byte b = shiftIn(4, 3, LSBFIRST); } void loop() { delay(1000); }'), { issues: [], error: null });
+  assert.doesNotMatch(text, /Not known[^\n]*`shiftOut`/);
+  assert.match(text, /Known: [^\n]*`MSBFIRST`, `LSBFIRST`/);
 });

@@ -19,10 +19,11 @@ export const FILE = join(root, 'plugin-src/references/sketch.md');
 const code = (s) => `\`${s}\``;
 
 // A sketch run for a moment on an UNO with nothing wired: what the translator noted and whether the
-// program stopped with an error.
+// program stopped with an error. A sketch the translator refuses (a read error, a two-dimensional
+// array) has no program to run (js is null), as in compile.js: it is "not read", never run.
 export function probe(source) {
   const { js, issues } = translateSketch(source);
-  if (issues.some((i) => i.code === 'SIM_PROGRAM_ERROR')) return { issues, error: 'not read' };
+  if (js == null || issues.some((i) => i.code === 'SIM_PROGRAM_ERROR')) return { issues, error: 'not read' };
   const runner = createRunner(js, { family: 'uno', states: {}, read: () => null });
   runner.advance(0.01);
   return { issues, error: runner.error };
@@ -96,7 +97,7 @@ export function sketchReference() {
     '## Types and arrays',
     '',
     `- Types: ${list(types.yes)}${types.no.length ? `; not read: ${list(types.no)}` : ''}${types.yes.includes('String') && !stringMethods ? '. A `String` holds text for `Serial.print`; its methods (`.length()`, `.substring()`…) are not read' : ''}.`,
-    `- Arrays: ${one ? 'one dimension, `int a[3] = {1, 2, 3};`' : 'none'}; ${two ? 'two dimensions too (`int a[2][3] = {{…}, {…}};`)' : 'two dimensions are not read (`int a[2][3]` stops the program before it starts): flatten one into one dimension, `a[row * 3 + col]`'}.`,
+    `- Arrays: ${one ? 'one dimension, `int a[3] = {1, 2, 3};`' : 'none'}; ${two ? 'two dimensions too (`int a[2][3] = {{…}, {…}};`)' : 'two dimensions are refused (`int a[2][3]`: the kit names the array and its line, and the program does not run): flatten one into one dimension, `a[row * 3 + col]`'}.`,
     statements ? '- Statements: if / else, while, do … while, for, switch, break, continue, return; casts such as `(int) x`; number suffixes (`1000UL`). No pointers, classes of your own or templates.' : '- Statements: the probe of if, for, while, do, switch and casts did not run: see `kit simulate <folder> --run`.',
     '',
     '## Libraries',
