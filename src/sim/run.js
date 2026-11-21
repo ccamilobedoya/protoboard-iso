@@ -395,7 +395,8 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
       }
       // Which of its outputs the program holds high now: each combination once (sim/index.js visits them).
       if (combos.size < COMBINATIONS) {
-        const high = (board.pins ?? []).filter((x) => x.mode === 'output' && x.level && !x.pwm).map((x) => x.name);
+        // A PWM or tone pin counts as high: the hazard check holds it high, its worst case (as before).
+        const high = (board.pins ?? []).filter((x) => x.mode === 'output' && (x.pwm ? x.pwm.duty > 0 : x.level)).map((x) => x.name);
         const key = `${id} ${high.join(',')}`;
         if (!combos.has(key)) combos.set(key, { part: id, high });
       }

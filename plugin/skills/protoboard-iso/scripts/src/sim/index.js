@@ -146,12 +146,14 @@ function combinationStates(rest, combinations) {
   for (const c of combinations) {
     const board = rest.parts?.[c.part];
     if (!board) continue;
-    const outputs = (board.pins ?? []).filter((x) => x.mode === 'output' && !x.pwm).map((x) => x.name);
+    const outputs = (board.pins ?? []).filter((x) => x.mode === 'output').map((x) => x.name);
     const now = outputs.filter((n) => board.pins.find((x) => x.name === n).level);
     // All low, or as at rest: the rest point covers it (a hazard there has no pin to name).
     if (!c.high.length || (now.length === c.high.length && now.every((n) => c.high.includes(n)))) continue;
     const name = c.high.map((n) => (many ? `${c.part}.${n}` : n)).join(' + ');
-    out.push({ part: c.part, pins: outputs.map((n) => [n, c.high.includes(n) ? 1 : 0]), pin: c.high[0], name, value: 1, combination: true });
+    // A pin the program makes an output only later is one of them too.
+    const pins = [...new Set([...outputs, ...c.high])];
+    out.push({ part: c.part, pins: pins.map((n) => [n, c.high.includes(n) ? 1 : 0]), pin: c.high[0], name, value: 1, combination: true });
   }
   return out;
 }
@@ -200,7 +202,12 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
     const when = s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value, ...(s.end && { end: s.end }) };
     if (reading.ok) {
       lit.see(reading);
-      for (const h of exceeded(eng, reading)) if (!atRest.has(hazardKey(h))) hazards.push({ ...h, when });
+      for (const h of exceeded(eng, reading)) {
+        if (atRest.has(hazardKey(h))) continue;
+        // In a combination, a pin's own hazard names that pin (U1.D10 with D9 + D10 high: D10).
+        const own = s.pins && String(h.params.part).startsWith(`${s.part}.`) ? String(h.params.part).slice(s.part.length + 1) : null;
+        hazards.push({ ...h, when: own && s.pins.some(([p, v]) => p === own && v) ? { ...when, pin: own } : when });
+      }
       for (const d of warningsOf(reading)) {
         if (!doubted.has(doubtKey(d))) {
           doubted.add(doubtKey(d));

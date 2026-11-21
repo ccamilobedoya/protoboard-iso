@@ -1,6 +1,6 @@
 // The kit first, then a trial (docs/en/simulation.md, "The fix"; docs/en/layout.md, "The answer"):
 // the whole loop at the kit's level, with no model involved. A board's program burns a pin only while
-// it drives it high: the hazard check finds it ("with D10 high"), the kit computes the fix (one
+// it drives it high: the hazard check finds it in the combination the sketch reaches ("with D9 + D10 high", C8a), the kit computes the fix (one
 // resistor in series with the buzzer) and applies it when asked (layout --fix: one call, one
 // revision, undo brings the warning back); the same change written by hand ends DONE in a trial
 // (layout --dry-run, which writes nothing) and applied, whatever order the parts are listed in; and
@@ -51,14 +51,16 @@ test('a board drives a buzzer straight from D10: WARNINGS with D10 high, the pin
   const [h] = built.review.hazards;
   assert.equal(built.review.hazards.length, 1);
   assert.equal(h.params.part, 'U1.D10');
-  assert.deepEqual(h.when, { part: 'U1', pin: 'D10', name: 'D10', value: 1 });
+  assert.deepEqual(h.when, { part: 'U1', pin: 'D10', name: 'D9 + D10', value: 1 });
   assert.ok(h.params.current.value > 0.085 && h.params.current.value < 0.092, 'about 88 mA');
   assert.equal(h.params.max.value, 0.04);
-  assert.match(text(built), /⚠ warning: U1\.D10 carries 88\.\d mA, more than its maximum 40 mA: the pin can be damaged, with D10 high\.\n/);
-  assert.match(text(built, 'es'), /⚠ aviso: Por U1\.D10 pasan 88,\d mA, más que su máximo de 40 mA: el pin se puede dañar, con D10 en alto\.\n/);
+  assert.match(text(built), /⚠ warning: U1\.D10 carries 88\.\d mA, more than its maximum 40 mA: the pin can be damaged, with D9 \+ D10 high\.\n/);
+  assert.match(text(built, 'es'), /⚠ aviso: Por U1\.D10 pasan 88,\d mA, más que su máximo de 40 mA: el pin se puede dañar, con D9 \+ D10 en alto\.\n/);
   assert.match(lastLine(text(built)), /^STATUS: WARNINGS · /);
   // The states: the three outputs of the program, D8 high at rest already, D9 and D10 held high.
-  assert.deepEqual(built.review.hazardStates, { checked: 2, total: 2, controls: 0, outputs: 3 });
+  // Since C8a the program runs, so its outputs are visited as its run combined them: D8 alone (as at
+  // rest), then D9 with D10 (the tone): one state.
+  assert.deepEqual(built.review.hazardStates, { checked: 1, total: 1, controls: 0, outputs: 3, combined: true });
 });
 
 test('the kit computes the fix: one resistor in series with BZ1, aimed at half the pin\'s maximum', () => {
@@ -93,7 +95,7 @@ test('layout --fix applies the kit\'s own fix in one call: DONE, one revision, t
   assert.match(lastLine(r.stdout), /^STATUS: DONE · /);
   assert.ok(r.stdout.includes(`\n${appliedText(built.review.fix)}\n`), r.stdout);
   assert.doesNotMatch(r.stdout, /⚠/);
-  assert.match(r.stdout, /\nChecked: at rest, 3 program outputs\. Not checked: peaks while switching, combinations of program outputs\.\n/);
+  assert.match(r.stdout, /\nChecked: at rest, 3 program outputs\. Not checked: peaks while switching\.\n/);
   const circuit = JSON.parse(readFileSync(join(dir, 'circuits/two-leds/circuit.json'), 'utf8'));
   const R3 = circuit.parts.find((p) => p.id === 'R3');
   assert.equal(R3.type, 'resistor');
@@ -185,7 +187,7 @@ for (const atEnd of [false, true]) {
     const real = cli(['layout', 'circuits/two-leds', 'fixed.json'], dir);
     assert.equal(real.status, 0, real.stdout + real.stderr);
     assert.match(lastLine(real.stdout), /^STATUS: DONE · /);
-    assert.match(real.stdout, /\nChecked: at rest, 3 program outputs\. Not checked: peaks while switching, combinations of program outputs\.\n/);
+    assert.match(real.stdout, /\nChecked: at rest, 3 program outputs\. Not checked: peaks while switching\.\n/);
     // The same answer, but the trial's line and the page's.
     const strip = (s, drop) => s.replace(/^Laid out .*$/m, '').split('\n').filter((l) => !drop.test(l)).join('\n');
     assert.equal(strip(trial.stdout, /^Trial: /), strip(real.stdout, /^Page: /));
@@ -208,7 +210,7 @@ test('the redesign tried instead (a transistor driving the buzzer from 5 V) ends
   const r = cli(['layout', 'circuits/npn', 'npn.json', '--dry-run'], dir);
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(lastLine(r.stdout), /^STATUS: WARNINGS · /);
-  assert.match(r.stdout, /⚠ warning: BZ1 dissipates 1\.\d+ W, more than its 500 mW: it overheats, with D10 high\.\n/);
+  assert.match(r.stdout, /⚠ warning: BZ1 dissipates 1\.\d+ W, more than its 500 mW: it overheats, with D9 \+ D10 high\.\n/);
   assert.match(r.stdout, /\nTrial: nothing was saved\.\nSTATUS: WARNINGS/);
   assert.ok(!existsSync(join(dir, 'circuits')));
 });
@@ -275,9 +277,9 @@ test('the program outputs: pins already high at rest add no state; a review prin
   assert.deepEqual(outputs.pins.map((p) => p.pin), ['D8', 'D9', 'D10']);
   assert.deepEqual(outputs.states.map((s) => s.pin), ['D9', 'D10'], 'D8 is high at rest');
   const r = review(built.circuit);
-  assert.deepEqual(r.checked, { rest: true, controls: 0, outputs: 3, notChecked: ['switching', 'combinations'] });
-  assert.match(formatReview(r, 'en', { t, formatIssue }), /\nChecked: at rest, 3 program outputs\. Not checked: peaks while switching, combinations of program outputs\.\n/);
-  assert.match(formatReview(r, 'es', { t, formatIssue }), /\nRevisado: en reposo, 3 salidas del programa\. No revisado: picos al conmutar, combinaciones de salidas del programa\.\n/);
+  assert.deepEqual(r.checked, { rest: true, controls: 0, outputs: 3, notChecked: ['switching'] });
+  assert.match(formatReview(r, 'en', { t, formatIssue }), /\nChecked: at rest, 3 program outputs\. Not checked: peaks while switching\.\n/);
+  assert.match(formatReview(r, 'es', { t, formatIssue }), /\nRevisado: en reposo, 3 salidas del programa\. No revisado: picos al conmutar\.\n/);
 });
 
 test('the Checked line says only what applies: controls, combinations, environment, no source', () => {
