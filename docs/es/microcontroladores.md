@@ -96,6 +96,11 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   fija), las funciones de bits, `LED_BUILTIN` (2 en el DevKit, 8 en el C3, 13 en el UNO) y
   `A0`…`A5`. En un UNO, `digitalWrite(pin, HIGH)` sobre una entrada activa su pull-up, como en el
   chip real.
+  `shiftOut` y `shiftIn` con `MSBFIRST` / `LSBFIRST` (ocho `digitalWrite` de las patas de datos y de
+  reloj, sin tiempo entre ellos), `PI`, `TWO_PI`, `HALF_PI`, `DEG_TO_RAD`, `RAD_TO_DEG`. Un nombre que
+  el kit no tiene detiene el programa con `NAME is not a name the kit's Arduino subset knows`. Los
+  arreglos tienen una dimensión: `const int C[6][3] = {…}` se rechaza con su línea
+  (`SIM_PROGRAM_ARRAY_DIMENSIONS`); escríbelo como una sola lista, `C[fila * 3 + columna]`.
 - **Cómo corre:** cada función pasa a ser un generador, así que `delay()` espera en tiempo simulado.
   El programa corre entre pasos de tiempo, con los voltajes del paso anterior, como el biestable del
   555: un cambio vale un paso después (1 ms en la página). En t = 0 vuelve a empezar con los voltajes

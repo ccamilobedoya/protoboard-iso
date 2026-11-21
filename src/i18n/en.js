@@ -1102,6 +1102,7 @@ export default {
   'check.SIM_PROGRAM_OUTSIDE': '{part}: its program file {file} is outside the circuit\'s folder; it is not read. Put the .ino file beside the circuit.',
   'check.SIM_PROGRAM_TOO_LARGE': '{part}: the program has {size} characters, more than the {limit} the kit reads; it does not run.',
   'check.SIM_PROGRAM_ERROR': '{part}: the program does not read at line {line} (near "{message}"); it does not run.',
+  'check.SIM_PROGRAM_ARRAY_DIMENSIONS': '{part}: {name} at line {line} has two dimensions, and arrays have one in the kit\'s Arduino subset, so the program does not run. Write it as one list (C[row * 3 + column]).',
   'check.SIM_PROGRAM_UNSUPPORTED': '{part}: {name}() at line {line} is not something the simulator knows; it returns 0.',
   'check.SIM_PROGRAM_LIBRARY': '{part}: the library {name} (line {line}) is not simulated.',
   'check.SIM_PROGRAM_NO_LOOP': '{part}: the program has no setup() or no loop().',

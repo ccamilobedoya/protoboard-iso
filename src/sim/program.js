@@ -41,6 +41,9 @@ const LOG = 40; // Serial lines kept
 const LINE_MAX = 1000; // characters kept of one Serial line
 const ARRAY_MAX = 100_000; // elements of one array (an ESP32 has 320 KB of RAM)
 const MODE = { INPUT: 0, OUTPUT: 1, INPUT_PULLUP: 2, INPUT_PULLDOWN: 3 };
+// A name the sketch uses that nobody defines: JavaScript says "$NAME is not defined" ($ is the
+// translator's prefix, sketch.js); the error says it is not in the kit's Arduino subset, by its name.
+const errorText = (e) => String(e?.message ?? e).replace(/^\$([A-Za-z_]\w*) is not defined$/, "$1 is not a name the kit's Arduino subset knows");
 // Analog pin names: GPIO numbers on each family (Arduino-ESP32 and the UNO's core).
 const ANALOG = {
   uno: [14, 15, 16, 17, 18, 19],
@@ -153,6 +156,30 @@ export function createRunner(js, board) {
     LED_BUILTIN: BUILTIN_LED[board.family] ?? 13,
     A0: analog[0], A1: analog[1], A2: analog[2], A3: analog[3], A4: analog[4], A5: analog[5],
     PI: Math.PI,
+    TWO_PI: 2 * Math.PI,
+    HALF_PI: Math.PI / 2,
+    DEG_TO_RAD: Math.PI / 180,
+    RAD_TO_DEG: 180 / Math.PI,
+    MSBFIRST: 1,
+    LSBFIRST: 0,
+    // shiftOut and shiftIn are plain digitalWrite / digitalRead sequences, as the Arduino core's: eight
+    // bits, the clock high then low for each (no time passes between them in the kit).
+    shiftOut(data, clock, order, value) {
+      for (let k = 0; k < 8; k++) {
+        api.digitalWrite(data, order === 0 ? (value >> k) & 1 : (value >> (7 - k)) & 1);
+        api.digitalWrite(clock, 1);
+        api.digitalWrite(clock, 0);
+      }
+    },
+    shiftIn(data, clock, order) {
+      let value = 0;
+      for (let k = 0; k < 8; k++) {
+        api.digitalWrite(clock, 1);
+        if (api.digitalRead(data)) value |= 1 << (order === 0 ? k : 7 - k);
+        api.digitalWrite(clock, 0);
+      }
+      return value;
+    },
     pinMode(n, mode) {
       if (mode === MODE.OUTPUT) set(n, { mode: 'output', pull: null });
       else set(n, { mode: 'input', pull: mode === MODE.INPUT_PULLUP ? 'up' : mode === MODE.INPUT_PULLDOWN ? 'down' : null, pwm: null });
@@ -386,7 +413,7 @@ export function createRunner(js, board) {
     // eslint-disable-next-line no-new-func
     program = new Function('api', js)(api);
   } catch (e) {
-    runner.error = String(e.message ?? e);
+    runner.error = errorText(e);
     return runner;
   }
   let gen = program.setup();
@@ -412,7 +439,7 @@ export function createRunner(js, board) {
       try {
         r = gen.next();
       } catch (e) {
-        runner.error = String(e.message ?? e);
+        runner.error = errorText(e);
         break;
       }
       if (r.done) {

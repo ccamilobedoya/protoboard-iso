@@ -41,13 +41,13 @@ const TYPES = new Set(['void', 'int', 'long', 'short', 'byte', 'bool', 'boolean'
 const QUALIFIERS = new Set(['const', 'static', 'volatile', 'unsigned', 'signed']);
 const INTEGER = new Set(['int', 'long', 'short', 'byte', 'char', 'unsigned', 'signed', 'size_t', 'word', 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t']);
 // What the runtime gives (program.js); anything else called and not defined is noted.
-export const SKETCH_API = ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'analogWrite', 'millis', 'micros', 'abs', 'min', 'max', 'map', 'constrain', 'random', 'randomSeed', 'sqrt', 'log', 'pow', 'sin', 'cos', 'round', 'floor', 'ceil', 'bitRead', 'bitWrite', 'bitSet', 'bitClear', 'ledcAttach', 'ledcAttachPin', 'ledcSetup', 'ledcWrite', 'tone', 'noTone', 'pulseIn', 'pulseInLong', 'isnan'];
+export const SKETCH_API = ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'analogWrite', 'millis', 'micros', 'abs', 'min', 'max', 'map', 'constrain', 'random', 'randomSeed', 'sqrt', 'log', 'pow', 'sin', 'cos', 'round', 'floor', 'ceil', 'bitRead', 'bitWrite', 'bitSet', 'bitClear', 'ledcAttach', 'ledcAttachPin', 'ledcSetup', 'ledcWrite', 'tone', 'noTone', 'pulseIn', 'pulseInLong', 'isnan', 'shiftOut', 'shiftIn'];
 // Runtime functions that wait in simulated time (generators, as one's own functions): yield*.
 const WAITING_API = new Set(['pulseIn', 'pulseInLong']);
-const SKETCH_CONSTANTS = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', ...Object.keys(LIBRARY_CONSTANTS)];
+const SKETCH_CONSTANTS = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'Serial', ...Object.keys(LIBRARY_CONSTANTS)];
 const ASSIGN = new Set(['=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=']);
 // Runtime functions that return an integer (an int divided by them stays an int).
-const INT_API = new Set(['digitalRead', 'analogRead', 'millis', 'micros', 'map', 'random', 'constrain', 'abs', 'min', 'max', 'bitRead', 'pulseIn', 'pulseInLong', 'isnan']);
+const INT_API = new Set(['digitalRead', 'analogRead', 'millis', 'micros', 'map', 'random', 'constrain', 'abs', 'min', 'max', 'bitRead', 'pulseIn', 'pulseInLong', 'isnan', 'shiftIn']);
 // Runtime functions that return a float (Serial.print shows a float with two decimals, as Arduino).
 const FLOAT_API = new Set(['sqrt', 'log', 'pow', 'sin', 'cos']);
 const FLOAT_TYPES = new Set(['float', 'double']);
@@ -130,9 +130,11 @@ function tokenize(source, issues) {
 }
 
 class SketchError extends Error {
-  constructor(line, message) {
+  constructor(line, message, code = 'SIM_PROGRAM_ERROR', name = null) {
     super(message);
     this.line = line;
+    this.code = code;
+    this.name = name;
   }
 }
 
@@ -442,6 +444,8 @@ export function translateSketch(source, { strings = [] } = {}) {
       let array = false;
       let size = null;
       while (is('[')) {
+        // Arrays have one dimension in the kit (const int C[6][3] is refused with its own line).
+        if (array) throw new SketchError(line(), '[', 'SIM_PROGRAM_ARRAY_DIMENSIONS', name);
         pos++;
         size = is(']') ? null : expression([']']);
         expect(']');
@@ -700,7 +704,8 @@ export function translateSketch(source, { strings = [] } = {}) {
     }
   } catch (error) {
     // Anything else the reading throws is a line it cannot read, never an exception out of here.
-    issues.push({ code: 'SIM_PROGRAM_ERROR', line: error instanceof SketchError ? error.line : line(), message: error instanceof SketchError ? error.message : '?' });
+    const known = error instanceof SketchError;
+    issues.push({ code: known ? error.code : 'SIM_PROGRAM_ERROR', line: known ? error.line : line(), message: known ? error.message : '?', ...(known && error.name && { name: error.name }) });
     return { js: null, issues };
   }
   // A #define whose text names a library object or class: an object is only name.method(…).

@@ -93,7 +93,12 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   `micros`, `pulseIn` and `pulseInLong` ([below](#pulsein)), `Serial.begin/print/println` (its last lines show in the board's card), `analogRead`
   (the ADC count), `map`, `constrain`, `min`, `max`, `abs`, `log` (natural logarithm, for a thermistor's B equation), `random` (a fixed sequence), the bit
   functions, `LED_BUILTIN` (2 on the DevKit, 8 on the C3, 13 on the UNO) and `A0`…`A5`. On an UNO,
-  `digitalWrite(pin, HIGH)` on an input turns its pull-up on, as on the real chip.
+  `digitalWrite(pin, HIGH)` on an input turns its pull-up on, as on the real chip. `shiftOut` and
+  `shiftIn` with `MSBFIRST` / `LSBFIRST` (eight `digitalWrite`s of the data and clock pins, no time
+  between them), `PI`, `TWO_PI`, `HALF_PI`, `DEG_TO_RAD`, `RAD_TO_DEG`. A name the kit does not have
+  stops the program with `NAME is not a name the kit's Arduino subset knows`. Arrays have one
+  dimension: `const int C[6][3] = {…}` is refused with its line (`SIM_PROGRAM_ARRAY_DIMENSIONS`);
+  write it as one list, `C[row * 3 + column]`.
 - **How it runs:** every function becomes a generator, so `delay()` waits in simulated time. The
   program runs between time steps, from the voltages of the step before, as the 555's latch: a
   change takes effect one step later (1 ms in the page). At t = 0 it starts over from the

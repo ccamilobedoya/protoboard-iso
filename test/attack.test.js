@@ -37,7 +37,7 @@ function run(source) {
 const sketch = (body) => `void setup() { ${body} }\nvoid loop() { delay(1000); }`;
 
 // What the JavaScript may name: its own words, the runtime's, and the sketch's ($-prefixed).
-const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
+const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
 function strayNames(js) {
   // The body, without the prelude (two lines) and the last line, and without the quoted names of
   // __missing("name", …), which JSON.stringify writes.
@@ -62,7 +62,8 @@ test('attack: a sketch cannot reach JavaScript through a member, an index or a g
   assert.match(index.r.js, /\[__idx\(__str\[1\]\)\]/);
   const global = run(sketch('Serial.println(process); Serial.println(globalThis); Serial.println(api);'));
   assert.ok(global.r.js);
-  assert.match(global.error, /\$process is not defined/, 'a name of the sketch is its own: $process');
+  // A name of the sketch is its own ($process); the error names it as the sketch wrote it.
+  assert.equal(global.error, "process is not a name the kit's Arduino subset knows");
   const viaCall = run(sketch('int x = Function("globalThis.__pwned = 1"); eval("globalThis.__pwned = 1");'));
   assert.equal(viaCall.pwned, undefined, 'an unknown call returns 0 and is noted');
   assert.deepEqual(codes(viaCall.r.issues), ['SIM_PROGRAM_UNSUPPORTED', 'SIM_PROGRAM_UNSUPPORTED']);
@@ -160,7 +161,7 @@ test('attack: malformed input is an issue with its line, never code that does no
   assert.deepEqual(dht21.issues.map((i) => [i.code, i.line]), [['SIM_PROGRAM_NOT_IN_KIT', 2]]);
   // The code is strict: an assignment to a name nobody declared stops the program, it makes no global.
   const undeclared = run(sketch('zzz = 1;'));
-  assert.match(undeclared.error, /\$zzz is not defined/);
+  assert.equal(undeclared.error, "zzz is not a name the kit's Arduino subset knows");
   assert.equal(globalThis.$zzz, undefined);
   assert.deepEqual(run(sketch('int x = 010; Serial.println(x);')).log, ['8'], 'C\'s octal');
 });
@@ -425,4 +426,24 @@ test('attack: a run (simulate --run) is bounded and its stimuli name nothing out
   assert.equal({}.polluted, undefined);
   const late = parseStimuli({ at: ['1e308:light=1'] });
   assert.ok(runCircuit(flood, { seconds: 0.01, stimuli: late.stimuli }).issues.some((i) => i.code === 'RUN_EVENT_LATE'));
+});
+
+test('attack: shiftOut and shiftIn are digitalWrite sequences, the Arduino constants are known, a 2-D array is refused', () => {
+  const pins = { family: 'uno', states: {}, read: (n) => ({ volts: n === 4 ? 5 : 0, vdd: 5 }), vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 };
+  const r = translateSketch(sketch('pinMode(2, OUTPUT); pinMode(3, OUTPUT); shiftOut(2, 3, MSBFIRST, 0xA5); shiftOut(2, 3, LSBFIRST, 1); Serial.println(shiftIn(4, 3, MSBFIRST)); Serial.println(TWO_PI > PI);'));
+  assert.deepEqual(r.issues, []);
+  assert.deepEqual(strayNames(r.js), []);
+  const runner = createRunner(r.js, pins);
+  runner.advance(0);
+  assert.equal(runner.error ?? null, null);
+  assert.deepEqual(runner.log, ['255', '1']);
+  // A name the kit does not have: said by its name, never with the translator's "$".
+  const unknown = run(sketch('int x = CHANGE;'));
+  assert.equal(unknown.error, "CHANGE is not a name the kit's Arduino subset knows");
+  assert.doesNotMatch(unknown.error, /\$/);
+  // Arrays have one dimension: a 2-D one is refused with its own line, not run.
+  const two = translateSketch('const int C[6][3] = {{1,2,3},{4,5,6},{7,8,9},{1,1,1},{2,2,2},{3,3,3}};\n' + sketch(''));
+  assert.equal(two.js, null);
+  assert.deepEqual(two.issues.map((i) => [i.code, i.line, i.name]), [['SIM_PROGRAM_ARRAY_DIMENSIONS', 1, 'C']]);
+  assert.match(formatIssue({ severity: 'warning', code: 'SIM_PROGRAM_ARRAY_DIMENSIONS', params: { part: 'U1', name: 'C', line: 1 } }, 'en'), /arrays have one in the kit's Arduino subset/);
 });
