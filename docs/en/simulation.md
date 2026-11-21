@@ -319,7 +319,8 @@ The kit has no computed fix for this.
   buzzer across 5 V through a transistor; only for a circuit with hazards.
 - **Applied only when asked**: `layout <target> --fix` (the MCP tool's `fix: true`) lays a circuit
   made by `layout` out again with its computed fix, as one revision, and says so
-  (`Applied the fix: R3 = 200 Ω in series with BZ1.`); nothing else applies it
+  (`Applied the fix: R3 = 200 Ω in series with BZ1.`, or for a part in backwards `Applied the
+  fix: turned BZ1 round (its 1 and 2 swapped).`); nothing else applies it
   ([layout.md](layout.md#laying-out-again-an-existing-circuit-since-2026-10-20)).
 
 ### What it could not tell (doubts)

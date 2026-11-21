@@ -215,6 +215,8 @@ export default {
   'layout.status.changes': 'the circuit was created, with {count} items marked ✖ above still open. Fix only those (suggest, then apply_ops with a dry run), then run review.',
   'layout.fixApplied.set': 'Applied the fix: {part} = {value}.',
   'layout.fixApplied.add': 'Applied the fix: {part} = {value} in series with {with}.',
+  'layout.fixApplied.swap': 'Applied the fix: turned {part} round (its {a} and {b} swapped).',
+  'layout.fixApplied.swapSupply': 'Applied the fix: swapped the leads of {part} (its + and −).',
   'layout.trialChanges': 'as tried, the circuit would be left with {count} items marked ✖ above (nothing was created). Try another idea in a trial, or apply this one and fix only those.',
   'layout.trial': 'Trial: nothing was saved.',
   'layout.status.warnings': 'the circuit is built and its nets are right, but {hazards} part(s) would be damaged as wired (marked ⚠ above). Tell the user first, in plain words, which part and why it burns; keep it as it is only if showing the failure is what they want, otherwise offer the kit’s fix (its “To fix it” line; when it has none, try an idea in a dry run of layout first). Do not fix it silently and do not refuse.',

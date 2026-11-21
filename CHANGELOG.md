@@ -69,6 +69,8 @@ detail.
 - An option the kit cannot read (`--expect-revision abc`) is named on the last line, with `See the options with --help.` after it.
 - The doubts' heading says what is true of all of them, the ones the kit could not check and the ones it checked and found may not work: `The kit cannot confirm these work (so it cannot say the circuit works):`.
 
+- `layout --fix` on a part in backwards said `Applied the fix: BZ1 = ? in series with {with}.`: the swap fixes say what they did (`Applied the fix: turned BZ1 round (its 1 and 2 swapped).`, `Applied the fix: swapped the leads of V1 (its + and −).`), and a bench supply with no rails of its own is really swapped (it stayed on T+ and T−, and the hazard stayed).
+- `npm run parts-reference -- --write` threw since a two-dimensional array is refused by the translator; `references/sketch.md` lists `shiftOut`, `shiftIn`, `MSBFIRST` and `LSBFIRST` as known and says a two-dimensional array is refused by its line.
 - A board's program in a `.ino` file beside `circuit.json` did not run in `simulate --run` with an environment given, nor in `layout`'s `Behaviour` line (the run's copy of the circuit lost its folder): the LED of a distance alarm stayed off at any distance.
 
 ## [0.12.1] - 2026-11-18

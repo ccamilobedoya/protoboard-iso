@@ -529,9 +529,13 @@ el circuito con él como una revisión (`fixRequest` en `src/layout.js`, `specWi
 `src/fix.js`): `set`, el valor nuevo de la resistencia (y el de la receta, en un circuito de receta);
 `add-series`, una resistencia nueva con el siguiente número R del circuito entre el pin y la red en
 la que estaba (`["U1.D10", "R3.1"]`, `["R3.2", "BZ1.1"]`), escrita justo antes del componente con
-el que queda en serie. La respuesta es la de cualquier `layout`, con una línea más antes de
-`STATUS:`: `Arreglo aplicado: R3 = 200 Ω en serie con BZ1.` (`Applied the fix: R3 = 200 Ω in series
-with BZ1.`); `--dry-run` lo vuelve un ensayo; `undo` devuelve el circuito (y su aviso). El kit nunca
+el que queda en serie; `swap`, un componente puesto al revés, volteado (sus dos patas intercambiadas
+en las redes); `swap-supply`, los cables de una fuente intercambiados (una fuente de banco sin rieles
+propios recibe los de la protoboard, escritos al revés; una batería como componente, sus dos patas en
+las redes). La respuesta es la de cualquier `layout`, con una línea más antes de `STATUS:`:
+`Arreglo aplicado: R3 = 200 Ω en serie con BZ1.` (`Applied the fix: R3 = 200 Ω in series with
+BZ1.`), `Arreglo aplicado: BZ1 volteado (su 1 y su 2 intercambiados).` o `Arreglo aplicado:
+intercambiados los cables de V1 (su + y su −).`; `--dry-run` lo vuelve un ensayo; `undo` devuelve el circuito (y su aviso). El kit nunca
 aplica un arreglo por su cuenta, solo con esta petición. Donde no hay nada que aplicar lo dice y no
 cambia nada: sin peligro (`LAYOUT_FIX_NONE`, no es un error: sale con 0), sin arreglo calculado
 (`LAYOUT_FIX_NO_FIX`: «El kit no tiene un arreglo calculado para esto.»), un circuito sin `spec`

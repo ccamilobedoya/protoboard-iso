@@ -1755,8 +1755,11 @@ function warningsKey(r, said) {
 // "→ next the kit would try: add "board": "double" to the spec."
 const nextLine = (n, lang, t) => t(lang, n.kind === 'board' ? 'layout.next.board' : n.kind === 'first' ? 'layout.next.first' : 'layout.next.byHand', n);
 
-// "Applied the fix: R3 = 200 Ω in series with BZ1." (layout --fix)
+// "Applied the fix: R3 = 200 Ω in series with BZ1." (layout --fix); a part turned round or a
+// supply's leads swapped say so, with no value.
 function appliedLine(a, lang, t) {
+  if (a.kind === 'swap') return t(lang, 'layout.fixApplied.swap', { part: a.part, a: a.pins?.[0] ?? '1', b: a.pins?.[1] ?? '2' });
+  if (a.kind === 'swap-supply') return t(lang, 'layout.fixApplied.swapSupply', { part: a.part });
   const value = formatValue(a.value, 'Ω', { decimal: decimalSeparator(lang) });
   return t(lang, a.kind === 'set' ? 'layout.fixApplied.set' : 'layout.fixApplied.add', { part: a.part, value, with: a.with });
 }

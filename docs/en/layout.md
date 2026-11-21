@@ -480,9 +480,13 @@ On a circuit made by `layout`, the kit takes the fix its review prints for the c
 revision (`fixRequest` in `src/layout.js`, `specWithFix` in `src/fix.js`): `set`, the resistor's
 new value (and the recipe's value, for a recipe circuit); `add-series`, a new resistor with the
 next R number of the circuit between the pin and the net it was on (`["U1.D10", "R3.1"]`,
-`["R3.2", "BZ1.1"]`), listed just before the part it is in series with. The answer is any
-`layout`'s, with one line more before `STATUS:`: `Applied the fix: R3 = 200 Ω in series with BZ1.`
-(`Arreglo aplicado: R3 = 200 Ω en serie con BZ1.`); `--dry-run` makes it a trial; `undo` brings
+`["R3.2", "BZ1.1"]`), listed just before the part it is in series with; `swap`, a part in
+backwards turned round (its two leads exchanged in the nets); `swap-supply`, a supply's leads
+exchanged (a bench supply with no rails of its own gets the board's, written the other way round;
+a battery part, its two leads in the nets). The answer is any `layout`'s, with one line more
+before `STATUS:`: `Applied the fix: R3 = 200 Ω in series with BZ1.` (`Arreglo aplicado: R3 = 200 Ω
+en serie con BZ1.`), `Applied the fix: turned BZ1 round (its 1 and 2 swapped).` or `Applied the
+fix: swapped the leads of V1 (its + and −).`; `--dry-run` makes it a trial; `undo` brings
 the circuit (and its warning) back. The kit never applies a fix by itself, only on this request.
 Where there is nothing to apply it says so and changes nothing: no hazard (`LAYOUT_FIX_NONE`, not an
 error: exit 0), no computed fix (`LAYOUT_FIX_NO_FIX`: "The kit has no computed fix for this."), a

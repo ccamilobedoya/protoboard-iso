@@ -331,7 +331,8 @@ El kit no tiene un arreglo calculado para esto.
   105 ms en un zumbador sobre 5 V a través de un transistor; solo para un circuito con peligros.
 - **Se aplica solo si se pide**: `layout <objetivo> --fix` (en la herramienta MCP `fix: true`) vuelve
   a montar un circuito hecho con `layout` con su arreglo calculado, como una revisión, y lo dice
-  (`Arreglo aplicado: R3 = 200 Ω en serie con BZ1.`); nada más lo aplica
+  (`Arreglo aplicado: R3 = 200 Ω en serie con BZ1.`, o para un componente al revés `Arreglo
+  aplicado: BZ1 volteado (su 1 y su 2 intercambiados).`); nada más lo aplica
   ([montaje-automatico.md](montaje-automatico.md#volver-a-montar-un-circuito-que-ya-existe-desde-el-2026-10-20)).
 
 ### Lo que no pudo saber (dudas)

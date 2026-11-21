@@ -22,6 +22,7 @@
 // damage is not a fix. `brings`: each hazard's quantity with the fix, in the state it was found in.
 
 import { compile, createEngine, controlStates, engineHazards, enterState } from './sim/index.js';
+import { BOARDS, supplyRails } from './board/board.js';
 import { standardValues, valueText } from './core/units.js';
 import { choose, sweepResistor } from './recipes/solve.js';
 import { LED_LIT } from './sim/models.js';
@@ -320,8 +321,11 @@ export function specWithFix(spec, fix) {
     const lead = (ref) => (own.length === 2 && own.includes(ref) ? own.find((x) => x !== ref) : ref);
     const swap = (pins) => pins.map(lead);
     const nets = spec.nets.map((net) => (Array.isArray(net) ? swap(net) : { ...net, pins: swap(net.pins ?? []) }));
-    const supplies = spec.supplies?.map((x) => (x.id === id ? { ...x, positive: x.negative, negative: x.positive } : x));
-    return { spec: { ...spec, nets, ...(supplies && { supplies }) }, applied: { kind: fix.kind, part: id } };
+    // A supply with no rails of its own is on the board's (T+ and T−): written out, then exchanged,
+    // or the swap would change nothing.
+    const [positive, negative] = supplyRails(typeof spec.board === 'string' ? BOARDS[spec.board] : spec.board);
+    const supplies = spec.supplies?.map((x) => (x.id === id ? { ...x, positive: x.negative ?? negative, negative: x.positive ?? positive } : x));
+    return { spec: { ...spec, nets, ...(supplies && { supplies }) }, applied: { kind: fix.kind, part: id, ...(fix.pins && { pins: fix.pins }) } };
   }
   const value = valueText(fix.value);
   if (fix.kind === 'set') {
