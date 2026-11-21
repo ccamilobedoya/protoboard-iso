@@ -337,7 +337,7 @@ on a four-core machine; before: `CHANGES` in 14, 38 and 35 s): a jumper under an
 `DONE` in 20–27 s (the orders of the nets from the best try); a seven-segment counter with a button
 `DONE` in 36 s (the same); an UNO covering half of a 74HC595 `WARNINGS` (the shift register is not
 simulated) in 32 s, on one board, by the orders of the nets before any trial (with the second search
-below, "What it hides"; before it, the double board trial solved it in 1.3 s). The bench is
+above, "What it hides"; before it, the double board trial solved it in 1.3 s). The bench is
 unchanged: every spec of it ends `DONE` in its own order, so no trial runs.
 
 ### Size and budget: calculate first, never run away (since 2026-11-20)
