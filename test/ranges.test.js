@@ -13,7 +13,7 @@ import { renderPage } from '../src/page.js';
 import { loadTour, tourIssues } from '../src/tour.js';
 import { CIRCUIT_FOLDER } from '../src/beside.js';
 import { expandRecipe } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { installClock } from './clock.js';
 
 const examples = fileURLToPath(new URL('../examples/', import.meta.url));

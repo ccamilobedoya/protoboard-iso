@@ -7,7 +7,8 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
-import { autoLayout, fixRequest, formatLayout } from '../src/layout.js';
+import { fixRequest, formatLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { formatIssue, t } from '../src/index.js';
 
 const root = new URL('../', import.meta.url).pathname;

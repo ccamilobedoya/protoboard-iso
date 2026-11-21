@@ -6,14 +6,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { autoLayout, formatLayout } from '../src/layout.js';
+import { formatLayout } from '../src/layout.js';
+import { autoLayout, GENEROUS_BUDGET } from './layout-generous.js';
 import { formatIssue, t } from '../src/index.js';
 
 const spec = (name) => JSON.parse(readFileSync(new URL(`fixtures/layout-trials/${name}.json`, import.meta.url), 'utf8'));
 const text = (r, lang = 'en') => formatLayout(r, lang, { t, formatIssue });
-// These take tens of seconds each on a loaded machine: a budget well above that, so the test
-// measures what the trials find, not the machine (the default budget is BUDGET_SECONDS).
-const BUDGET = 150;
+// These take tens of seconds each on a loaded machine: the largest budget (test/layout-generous.js),
+// so the test measures what the trials find, not the machine (the default budget is BUDGET_SECONDS).
+const BUDGET = GENEROUS_BUDGET;
 const runs = new Map();
 const laid = (name) => runs.get(name) ?? runs.set(name, autoLayout(spec(name), { budget: BUDGET })).get(name);
 const TRIED = ['LAYOUT_ORDER_FROM_NETS', 'LAYOUT_TRIED_DOUBLE', 'LAYOUT_TRIED_DOUBLE_ORDER', 'LAYOUT_TRIED_TALLEST', 'LAYOUT_TRIED_WIDEST'];

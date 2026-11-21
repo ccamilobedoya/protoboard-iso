@@ -6,7 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { compile, createEngine, simulate } from '../src/sim/index.js';
 import { PART_TYPES } from '../src/parts/types/index.js';
 import { dhtValues, boschValues } from '../src/sim/devices/climate.js';

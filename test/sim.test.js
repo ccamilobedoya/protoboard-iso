@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { checkCircuit } from '../src/index.js';
 import { simulate, compile } from '../src/sim/index.js';
 import { createEngine } from '../src/sim/engine.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { VT, WIRE_RESISTANCE, DIODES, ledModel, MOSFETS, BJTS } from '../src/sim/models.js';
 

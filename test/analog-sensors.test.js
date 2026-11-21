@@ -10,7 +10,7 @@ import { PART_TYPES } from '../src/parts/types/index.js';
 import { lookupPartNumber } from '../src/parts/db.js';
 import { findPin } from '../src/parts/pin-names.js';
 import { RECIPES, expandRecipe, resolveRecipe } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { loadTour, tourIssues } from '../src/tour.js';
 import { compactCatalog, formatCompactCatalog } from '../src/node/catalog.js';
 import { electretPeak, SENSOR_MODULES } from '../src/parts/sensors.js';

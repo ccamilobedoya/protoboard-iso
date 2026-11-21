@@ -79,33 +79,47 @@ function drawingOf(part, view) {
 
 const meet = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
-// Scanline fill of a polygon at cell centres (even-odd), as render/coverage.js, in a frame.
-function fill(pts, frame, visit) {
+// Scanline fill of a polygon at cell centres (even-odd), as render/coverage.js. A frame's origin is
+// whole cells, so a polygon's runs of cells are the same in every frame, moved: they are found once
+// per polygon on the whole grid (rows and columns of cell centres) and cut to each frame.
+const runsOf = new WeakMap();
+function runs(pts) {
+  let out = runsOf.get(pts);
+  if (out) return out;
+  out = [];
   let minY = Infinity;
   let maxY = -Infinity;
   for (const p of pts) {
-    minY = Math.min(minY, p.y - frame.y);
-    maxY = Math.max(maxY, p.y - frame.y);
+    minY = Math.min(minY, p.y);
+    maxY = Math.max(maxY, p.y);
   }
-  const r0 = Math.max(0, Math.ceil(minY - 0.5));
-  const r1 = Math.min(frame.rows - 1, Math.floor(maxY - 0.5));
   const xs = [];
-  for (let r = r0; r <= r1; r++) {
+  for (let r = Math.ceil(minY - 0.5); r <= Math.floor(maxY - 0.5); r++) {
     const y = r + 0.5;
     xs.length = 0;
     for (let i = 0; i < pts.length; i++) {
       const a = pts[i];
       const b = pts[(i + 1) % pts.length];
-      const ya = a.y - frame.y;
-      const yb = b.y - frame.y;
-      if ((ya <= y && yb > y) || (yb <= y && ya > y)) xs.push(a.x - frame.x + ((y - ya) / (yb - ya)) * (b.x - a.x));
+      if ((a.y <= y && b.y > y) || (b.y <= y && a.y > y)) xs.push(a.x + ((y - a.y) / (b.y - a.y)) * (b.x - a.x));
     }
     xs.sort((p, q) => p - q);
     for (let k = 0; k + 1 < xs.length; k += 2) {
-      const c0 = Math.max(0, Math.ceil(xs[k] - 0.5));
-      const c1 = Math.min(frame.cols - 1, Math.floor(xs[k + 1] - 0.5));
-      for (let c = c0; c <= c1; c++) visit(r * frame.cols + c);
+      const c0 = Math.ceil(xs[k] - 0.5);
+      const c1 = Math.floor(xs[k + 1] - 0.5);
+      if (c0 <= c1) out.push(r, c0, c1);
     }
+  }
+  runsOf.set(pts, out);
+  return out;
+}
+function fill(pts, frame, visit) {
+  const list = runs(pts);
+  for (let k = 0; k < list.length; k += 3) {
+    const r = list[k] - frame.y;
+    if (r < 0 || r >= frame.rows) continue;
+    const c0 = Math.max(0, list[k + 1] - frame.x);
+    const c1 = Math.min(frame.cols - 1, list[k + 2] - frame.x);
+    for (let c = c0; c <= c1; c++) visit(r * frame.cols + c);
   }
 }
 

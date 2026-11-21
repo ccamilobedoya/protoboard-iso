@@ -21,7 +21,7 @@ import { inspectCircuit, renderCircuit, checkCircuit } from '../src/index.js';
 import { PART_TYPES } from '../src/parts/types/index.js';
 import { catalogEntry, compactCatalog, formatCompactCatalog } from '../src/node/catalog.js';
 import { RECIPES, expandRecipe } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { tourIssues, loadTour } from '../src/tour.js';
 import { buildCircuit } from '../src/circuit/build.js';
 import { createCamera } from '../src/core/camera.js';

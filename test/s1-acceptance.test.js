@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { RECIPES, expandRecipe } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { simulate, compile, createEngine } from '../src/sim/index.js';
 import { checkCircuit, formatIssue } from '../src/index.js';
 import { compactCatalog } from '../src/node/catalog.js';

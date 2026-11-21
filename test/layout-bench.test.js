@@ -3,7 +3,7 @@
 // compared with a baseline.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { benchSpec, compareRuns } from '../scripts/layout-bench.js';
 import { layoutMetrics } from '../scripts/layout-metrics.js';

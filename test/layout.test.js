@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { autoLayout, checkNets, formatLayout } from '../src/layout.js';
+import { checkNets, formatLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { formatIssue, t, checkCircuit } from '../src/index.js';
 
 test('a part whose value or colour the kit cannot read is refused before placing anything, with what it takes', () => {

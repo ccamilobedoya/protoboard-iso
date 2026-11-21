@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { compile, createEngine, simulate } from '../src/sim/index.js';
 import { sonarAdvance, sonarUntil, echoWidth, IDLE, BURST, ECHO, OFF } from '../src/sim/devices/ultrasonic.js';
 import { PART_TYPES } from '../src/parts/types/index.js';

@@ -11,8 +11,25 @@ import { DOUBT_CODES } from './circuit/checks.js';
 const sortKeys = (obj) => Object.fromEntries(Object.entries(obj ?? {}).sort(([a], [b]) => a.localeCompare(b)));
 export const problemKey = (p) => `${p.severity} ${p.code} ${JSON.stringify(sortKeys(p.params))}`;
 
+// The last evaluations, by the circuit's text and the options: layout's search measures the same
+// circuit again and again (a candidate suggest measured, then the try's review; one try's circuit in
+// the next), and a measurement is a pure function of them. Each caller gets its own copy.
+const EVALUATED = new Map();
+const EVALUATED_KEPT = 64;
+const FOLDER = Symbol.for('protoboard-iso.folder'); // beside.js CIRCUIT_FOLDER (Node-only module)
+
 // views: which camera views to measure (each adds its drawing problems, tagged by view).
-export function evaluate(circuit, { views = ['front'], fit = 'board', lang = 'en' } = {}) {
+export function evaluate(circuit, options = {}) {
+  const key = JSON.stringify([circuit, circuit?.[FOLDER] ?? null, options.views ?? null, options.fit ?? null, options.lang ?? null]);
+  let r = EVALUATED.get(key);
+  if (r) EVALUATED.delete(key);
+  else r = measured(circuit, options);
+  EVALUATED.set(key, r);
+  if (EVALUATED.size > EVALUATED_KEPT) EVALUATED.delete(EVALUATED.keys().next().value);
+  return structuredClone(r);
+}
+
+function measured(circuit, { views = ['front'], fit = 'board', lang = 'en' } = {}) {
   const problems = [];
   const visibility = {};
   views.forEach((view, i) => {

@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { simulate, compile, createEngine } from '../src/sim/index.js';
 import { SENSOR_MODULES, ldrResistance, LDR_PARTS } from '../src/parts/sensors.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { buildCircuit } from '../src/circuit/build.js';
 import { findPin } from '../src/parts/pin-names.js';
 import { PART_TYPES } from '../src/parts/types/index.js';

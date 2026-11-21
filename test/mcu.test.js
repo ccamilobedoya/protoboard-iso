@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { simulate } from '../src/sim/index.js';
 import { MCUS } from '../src/sim/models.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { expandRecipe } from '../src/recipes/index.js';
 
 const codes = (issues) => issues.map((i) => i.code);

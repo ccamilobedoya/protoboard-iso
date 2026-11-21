@@ -32,7 +32,9 @@ detail.
 
 - The test suite lays the sixty recipes out once (`test/recipe-sweep.test.js`): the checks that each laid them all out again (ready in one call, no hazard and every output on, the visibility figures, simulating without stress, layout again with one net changed, the acceptance checks A4, B10 and E8) read that one sweep, with their assertions unchanged; A4 reads the answer in process instead of sixty CLI runs, and `kit-first` copies one CLI layout of its buzzer circuit instead of making it five times. `npm test` on a four-core machine at a load of about 4: 775 s → 661 s.
 
-### Fixed### Fixed
+- `layout` judges each try of its search by its placement only (the drawing and the nets); the hazards over states, the doubts, the computed fix, the readings and the Behaviour run are worked out once, on the circuit kept (they never change which try wins). A measurement of the same circuit is reused (`evaluate`), and the sight search's polygons are scanned once. The laser and HC-SR04 on an UNO: 29 s → 15 s; the same placements, statuses and tries everywhere (the layout bench line by line, the frames, the golden file). The tests that are not about the budget lay out with the largest budget (`test/layout-generous.js`), so a busy machine never turns their result into `CHANGES`.
+
+### Fixed### Fixed### Fixed
 
 - An H-bridge driven by a sketch got "Q3 dissipates 3.65 W … with D4 high": each program output was raised alone. With a program that runs, the hazard check now visits the combinations of outputs its run reaches (`with D2 + D5 high`).
 - Figures that disagreed: `layout`'s Behaviour line said 1.11 kHz where `simulate --run` said 1.04 kHz (a fast rhythm is now measured again in the page's step; `about` under five periods); a pin overloaded under the half-rail line read "off the whole time" beside LEDs on (a pin is reported by what the program writes); `--transient` gives the step solved and the spacing of the samples printed; a loaded pin's reading names its output resistance.

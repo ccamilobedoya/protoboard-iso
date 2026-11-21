@@ -405,6 +405,17 @@ unir, K puntos de la revisión abiertos. Las opciones: un límite mayor … o un
 (`LAYOUT_BUDGET`). El circuito se escribe igual (sale con 2, como todo `CHANGES`). El arreglo
 calculado de sus peligros no se busca entonces (segundos de simulaciones, para un circuito que
 todavía hay que arreglar).
+Un presupuesto de reloj hace que un resultado dependa de lo ocupada que esté la máquina, así que las
+pruebas que no tratan del presupuesto montan con `test/layout-generous.js` (el presupuesto más grande,
+300 s); solo las pruebas del presupuesto usan el de por defecto.
+
+**Lo que juzga la búsqueda.** Cada intento se juzga por su ubicación: el dibujo y las redes (una
+revisión con `electrical: false`). Los daños en los estados, las dudas, el arreglo calculado, las
+lecturas y la ejecución de Comportamiento se calculan una vez, sobre el circuito que guarda toda la
+búsqueda (`judged` en `src/layout.js`, su tiempo en el `ms` de la respuesta): no dependen de dónde
+quedan los componentes, así que nunca cambian qué intento gana. Juzgar así cada intento y cada ensayo
+había hecho dos veces más lento un circuito grande (el láser y el HC-SR04 en un UNO de
+`test/ultrasonic.test.js`: 29 s, otra vez 15 s).
 
 **El mismo spec, el mismo circuito.** Nada de la búsqueda depende del reloj salvo el límite de
 tiempo: dos corridas de un spec dan el mismo `circuit.json`, y un límite que se acabó es la única

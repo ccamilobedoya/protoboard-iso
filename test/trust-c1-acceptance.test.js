@@ -10,7 +10,8 @@ import { spawnSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
-import { autoLayout, formatLayout } from '../src/layout.js';
+import { formatLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { formatIssue, t } from '../src/index.js';
 import { RECIPES } from '../src/recipes/index.js';
 

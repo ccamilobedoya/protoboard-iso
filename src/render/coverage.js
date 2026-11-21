@@ -26,12 +26,19 @@ export function createCoverage(frame, { cell = 1 } = {}) {
   const toCol = (x) => (x - frame.x) / cell;
   const toRow = (y) => (y - frame.y) / cell;
 
-  // Scanline fill at cell centres (even-odd rule).
+  // Scanline fill at cell centres (even-odd rule). Each corner in cells once, not once per row.
+  const rowsOf = new Float64Array(64);
+  const colsOf = new Float64Array(64);
   function fill(pts, visit) {
+    const n = pts.length;
+    const ry = n <= 64 ? rowsOf : new Float64Array(n);
+    const cx = n <= 64 ? colsOf : new Float64Array(n);
     let minY = Infinity;
     let maxY = -Infinity;
-    for (const p of pts) {
-      const r = toRow(p.y);
+    for (let i = 0; i < n; i++) {
+      const r = toRow(pts[i].y);
+      ry[i] = r;
+      cx[i] = toCol(pts[i].x);
       if (r < minY) minY = r;
       if (r > maxY) maxY = r;
     }
@@ -41,13 +48,12 @@ export function createCoverage(frame, { cell = 1 } = {}) {
     for (let r = r0; r <= r1; r++) {
       const y = r + 0.5;
       xs.length = 0;
-      for (let i = 0; i < pts.length; i++) {
-        const a = pts[i];
-        const b = pts[(i + 1) % pts.length];
-        const ya = toRow(a.y);
-        const yb = toRow(b.y);
+      for (let i = 0; i < n; i++) {
+        const j = i + 1 === n ? 0 : i + 1;
+        const ya = ry[i];
+        const yb = ry[j];
         if ((ya <= y && yb > y) || (yb <= y && ya > y)) {
-          xs.push(toCol(a.x) + ((y - ya) / (yb - ya)) * (toCol(b.x) - toCol(a.x)));
+          xs.push(cx[i] + ((y - ya) / (yb - ya)) * (cx[j] - cx[i]));
         }
       }
       xs.sort((p, q) => p - q);

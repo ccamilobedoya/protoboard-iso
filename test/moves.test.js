@@ -12,7 +12,7 @@ import { CIRCUIT_FOLDER } from '../src/beside.js';
 import { DOT_PERIOD } from '../src/sim/look.js';
 import { timelineCircuit } from '../scripts/render-frames.js';
 import { expandRecipe } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { CAPTION, CARD, INSERT, LIGHT, RAISE, NUDGE, MOVES, ASSEMBLE, LAND, PAGE_VIEW } from '../src/page/client/moves.js';
 
 const FRAME = 1000 / 30;

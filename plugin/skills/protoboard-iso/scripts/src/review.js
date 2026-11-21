@@ -68,7 +68,9 @@ function partsOf(p, ids) {
   return out;
 }
 
-export function review(circuit, { profile = 'lesson', views = ['front', 'back'], lang = 'en', explain = false, fix = true } = {}) {
+// `electrical: false`: the drawing and the nets only, no simulation (layout's search judges placements
+// so; the circuit it keeps gets the simulation's part once, layout.js `judged`).
+export function review(circuit, { profile = 'lesson', views = ['front', 'back'], lang = 'en', explain = false, fix = true, electrical = true } = {}) {
   const policy = PROFILES[profile] ?? PROFILES.lesson;
   const { problems } = evaluate(circuit, { views, lang });
   const ids = new Set((circuit.parts ?? []).map((p) => p.id));
@@ -129,7 +131,7 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
 
   // Electrical hazards: the simulator's own "exceeded its maximum" findings, on any profile; and
   // what it could not tell (doubts), unless it is already a blocking item.
-  const simulated = simulationOf(circuit, ids, blocking);
+  const simulated = electrical ? simulationOf(circuit, ids, blocking) : { hazards: [], raw: [], doubts: [], states: {}, checked: null };
   const { hazards, doubts } = simulated;
 
   for (const p of blocking) {

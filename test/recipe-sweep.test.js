@@ -8,7 +8,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { autoLayout, formatLayout, specFromCircuit } from '../src/layout.js';
+import { formatLayout, specFromCircuit } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { simulate } from '../src/sim/index.js';
 import { RECIPES, expandRecipe, resolveRecipe } from '../src/recipes/index.js';
 import { formatIssue, inspectCircuit, t } from '../src/index.js';

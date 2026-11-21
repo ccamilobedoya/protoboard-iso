@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { expandRecipe, RECIPES } from '../src/recipes/index.js';
 import { compile, createEngine, simulate } from '../src/sim/index.js';
 import { paceOf } from '../src/sim/pace.js';

@@ -16,7 +16,7 @@ import { compile, createEngine } from '../src/sim/index.js';
 import { tourIssues, loadTour } from '../src/tour.js';
 import { renderPage } from '../src/page.js';
 import { RECIPES, expandRecipe } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { compactCatalog, formatCompactCatalog } from '../src/node/catalog.js';
 import { installClock } from './clock.js';
 

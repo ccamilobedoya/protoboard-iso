@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { translateSketch } from '../src/sim/sketch.js';
 import { simulate, compile, createEngine } from '../src/sim/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { resolveTarget, loadCircuit } from '../src/node/workspace.js';
 

@@ -342,9 +342,9 @@ export function estimateSize(valid, board) {
 function laidOut(spec, options, started) {
   const { clock } = options;
   const first = inAnyOrder(spec, options);
-  if (!spec.goals?.length || first.checked) return first;
+  if (!spec.goals?.length || first.checked) return judged(first);
   // A circuit whose nets are not right would give the goal a wrong figure: nothing is solved.
-  if (!first.check.ok) return { ...first, notes: [...first.notes, ...spec.goals.map(unsolvedNote)] };
+  if (!first.check.ok) return judged({ ...first, notes: [...first.notes, ...spec.goals.map(unsolvedNote)] });
   const { solved, unsolved } = solveGoals(first.circuit, spec.goals);
   const texts = Object.fromEntries(solved.flatMap((s) => Object.entries(s.chosen)).map(([id, v]) => [id, valueText(v)]));
   // Again in the order that was laid out (the one given, or one the nets gave: inAnyOrder).
@@ -356,9 +356,10 @@ function laidOut(spec, options, started) {
   const moved = spec.parts.some((p) => texts[p.id] && parseValue(p.value) !== parseValue(texts[p.id])) && !over(clock);
   // On the board a trial chose (withTrials: `base`, the double board's spec), saying so again.
   const again = moved && placeCircuit({ ...(first.base ?? spec), parts, ...(recipe && { recipe }) }, { ...options, previous: first.circuit, keepOrder: first.keepOrder });
-  const r = again ? { ...again, notes: [...first.notes.filter((n) => n.code.startsWith('LAYOUT_TRIED_')), ...again.notes] } : first;
+  // Not moved: judged as it was laid out, before its recipe takes the values (the answer's lines then).
+  const r = again ? { ...again, notes: [...first.notes.filter((n) => n.code.startsWith('LAYOUT_TRIED_')), ...again.notes] } : judged(first);
   if (!moved && recipe) r.circuit.spec.recipe = recipe;
-  return { ...r, solved, notes: [...r.notes, ...unsolved.map(unsolvedNote)], tries: first.tries + (moved ? r.tries : 0), ms: Date.now() - started };
+  return judged({ ...r, solved, notes: [...r.notes, ...unsolved.map(unsolvedNote)], tries: first.tries + (moved ? r.tries : 0), ms: Date.now() - started });
 }
 
 const unsolvedNote = (g) => ({ severity: 'warning', code: 'RECIPE_GOAL_UNSOLVED', params: { id: g.id, goal: g.goal } });
@@ -691,28 +692,37 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   // layout's own jumpers, so layout can run again on it and review can check the connections.
   const ids = new Set(spec.parts.map((p) => p.id));
   const circuit = { ...best.circuit, spec: { ...asked, wires: best.circuit.parts.filter((p) => p.type === 'wire' && !ids.has(p.id)).map((p) => p.id) } };
-  // The simulation's part of the review again, once, on the circuit kept and seen from its folder:
-  // a board's .ino file is read from there (the tries had no folder), so its hazards and doubts are
-  // the ones every later review gives.
-  const where = folder ?? previous?.[CIRCUIT_FOLDER];
-  const seen = where ? Object.defineProperty({ ...circuit }, CIRCUIT_FOLDER, { value: where, enumerable: false }) : circuit;
+  // Judged by placement only: the electrical judgement (hazards over states, doubts, the fix, the
+  // readings and the Behaviour run) is done once, on the circuit the whole search keeps (judged,
+  // from laidOut). A hazard or a doubt never changes which placement wins: they do not depend on
+  // where the parts sit, only on what is connected.
+  const status = !best.check.ok || best.review.verdict === 'changes' || best.problems.length ? 'changes' : 'placed';
+  return { ...best, circuit, notes: [...notes, ...(best.notes ?? [])], status, tries, ms: Date.now() - started, toJudge: { folder: folder ?? previous?.[CIRCUIT_FOLDER], lang: lang ?? spec.lang, goals: Boolean(spec.goals?.length), clock } };
+}
+
+// The electrical part of the answer, once, on the circuit kept, seen from its folder: a board's .ino
+// file is read from there (the tries had no folder), so its hazards and doubts are the ones every
+// later review gives. One verdict for the whole answer: the nets, the placement problems and the
+// review together, so a caller that reads only the last line cannot take "review approved" for done;
+// a part that would be damaged as wired, or something the kit could not check (a doubt), is neither
+// a fix to make nor a plain success: WARNINGS. The fix of its hazards (src/fix.js), not once the
+// budget ran out (the answer is then a try to fix, and the search for a fix takes seconds). A built
+// circuit's answer also carries its readings, its programs and what its recipe lets change
+// (layout-answer.js); the advisory only when nothing burns and no goal was given.
+function judged(r) {
+  if (!r.toJudge) return r;
+  const started = Date.now();
+  const { toJudge: { folder, lang, goals, clock }, ...best } = r;
+  const { circuit } = best;
+  const seen = folder ? Object.defineProperty({ ...circuit }, CIRCUIT_FOLDER, { value: folder, enumerable: false }) : circuit;
   const sim = simulationOf(seen, new Set(circuit.parts.map((p) => p.id)), best.review.blocking);
   const { hazardStates, ...plain } = best.review;
-  best = { ...best, review: { ...plain, verdict: verdictOf(plain.blocking, sim.hazards, sim.doubts), hazards: sim.hazards, doubts: sim.doubts, checked: sim.checked, ...(sim.states.total && { hazardStates: sim.states }), summary: { ...plain.summary, hazards: sim.hazards.length, doubts: sim.doubts.length } } };
-  // One verdict for the whole answer: the nets, the placement problems and the review together,
-  // so a caller that reads only the last line cannot take "review approved" for done.
-  // A part that would be damaged as wired, or something the kit could not check (a doubt: a part
-  // not simulated, a program it cannot run), is neither a fix to make nor a plain success: WARNINGS.
-  const status = !best.check.ok || best.review.verdict === 'changes' || best.problems.length ? 'changes' : best.review.hazards.length || best.review.doubts.length ? 'warnings' : 'done';
-  // A built circuit's answer also carries its readings, its programs and what its recipe lets
-  // change (layout-answer.js), so one call says everything the reply needs.
-  // The advisory only when nothing burns (a hazard already says what is wrong) and no goal was
-  // given (the Solved line says everything).
-  // The fix of its hazards (src/fix.js), once, on the circuit kept: the tries did not search for one.
-  // Not once the budget ran out: the answer is a try to fix, and the search for a fix takes seconds.
-  if (best.review.hazards.length && !clock?.hit) best = { ...best, review: { ...best.review, ...hazardFix(seen, sim.raw) } };
-  const extras = status === 'changes' ? {} : answerExtras(circuit, { folder: folder ?? previous?.[CIRCUIT_FOLDER], lang: lang ?? spec.lang, advise: status === 'done' && !spec.goals?.length });
-  return { ...best, circuit, notes: [...notes, ...(best.notes ?? [])], status, tries, ...extras, ms: Date.now() - started };
+  let review = { ...plain, verdict: verdictOf(plain.blocking, sim.hazards, sim.doubts), hazards: sim.hazards, doubts: sim.doubts, checked: sim.checked, ...(sim.states.total && { hazardStates: sim.states }), summary: { ...plain.summary, hazards: sim.hazards.length, doubts: sim.doubts.length } };
+  const status = best.status === 'changes' ? 'changes' : review.hazards.length || review.doubts.length ? 'warnings' : 'done';
+  if (review.hazards.length && !clock?.hit) review = { ...review, ...hazardFix(seen, sim.raw) };
+  const extras = status === 'changes' ? {} : answerExtras(circuit, { folder, lang, advise: status === 'done' && !goals });
+  // Its time counts in the layout's (`ms`, what the bench sums), as when each try was judged.
+  return { ...best, review, status, ...extras, ms: (best.ms ?? 0) + Date.now() - started };
 }
 
 // Pins that are ground by name: GND, GND2, VSS, 0V.
@@ -775,7 +785,7 @@ function repair(best, spec, { profile, asked, clock }) {
     const r = applyOps(base, ops);
     if (r.errors.length) return false;
     const c = checkNets(r.circuit, nets);
-    const v = review({ ...r.circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'], fix: false });
+    const v = review({ ...r.circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'], fix: false, electrical: false });
     const p = problems.filter((x) => x !== fixed);
     if (score(c, v, p) >= score(check, verdict, problems)) return false;
     ({ circuit, check, review: verdict, problems } = { circuit: r.circuit, check: c, review: v, problems: p });
@@ -1686,7 +1696,7 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
   }
   // With the nets asked for, as every later review reads them from the circuit's spec: a verdict
   // that ignored them could say APPROVED over a short.
-  const verdict = review({ ...circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'], fix: false });
+  const verdict = review({ ...circuit, spec: { nets: asked } }, { profile, views: ['front', 'back'], fix: false, electrical: false });
 
   const columns = buildCircuit(circuit).board?.spec.columns;
   const sequence = circuit.parts.map((p) => p.id); // placement order: parts, then jumpers

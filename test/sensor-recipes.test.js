@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { RECIPES, expandRecipe, resolveRecipe } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { checkCircuit } from '../src/index.js';
 import { compile, createEngine } from '../src/sim/index.js';
 import { loadTour, tourIssues } from '../src/tour.js';

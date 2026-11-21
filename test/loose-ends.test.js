@@ -7,7 +7,8 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { resolvePart } from '../src/parts/resolve.js';
-import { autoLayout, formatLayout } from '../src/layout.js';
+import { formatLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { formatIssue, t } from '../src/index.js';
 import { catalogEntry } from '../src/node/catalog.js';
 

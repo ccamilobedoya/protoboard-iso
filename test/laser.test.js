@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { simulate, compile, createEngine } from '../src/sim/index.js';
 import { checkCircuit, inspectCircuit } from '../src/index.js';
 import { expandRecipe, RECIPES } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { tourIssues, loadTour } from '../src/tour.js';
 import { renderPage } from '../src/page.js';
 import { installClock } from './clock.js';

@@ -11,7 +11,7 @@ import { buildCircuit } from '../src/circuit/build.js';
 import { createCamera } from '../src/core/camera.js';
 import { pinIndex, pinRole, pinList, pinoutOf } from '../src/pinout.js';
 import { expandRecipe, RECIPES } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { dot } from '../src/core/vec.js';
 import { symbolOf as symbolOfPart, insideOf as insideOfPart } from '../src/parts/symbols.js';
 

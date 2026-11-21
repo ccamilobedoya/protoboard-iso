@@ -34,7 +34,7 @@ import { buildCircuit } from '../src/circuit/build.js';
 import { PART_TYPES } from '../src/parts/types/index.js';
 import { catalogEntry, compactCatalog, formatCompactCatalog } from '../src/node/catalog.js';
 import { RECIPES, expandRecipe } from '../src/recipes/index.js';
-import { autoLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { symbolOf, insideOf } from '../src/parts/symbols.js';
 import { t as translate } from '../src/i18n/index.js';
 import { tourIssues } from '../src/tour.js';

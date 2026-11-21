@@ -6,7 +6,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { autoLayout, fixRequest, formatLayout } from '../src/layout.js';
+import { fixRequest, formatLayout } from '../src/layout.js';
+import { autoLayout } from './layout-generous.js';
 import { formatIssue, t } from '../src/index.js';
 import { expandRecipe } from '../src/recipes/index.js';
 

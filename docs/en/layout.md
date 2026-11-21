@@ -366,7 +366,16 @@ where it is and answers with the best try so far, `STATUS: CHANGES`, and one lin
 stopped at its budget of 60 s with its best try so far: N parts not placed, M nets not joined, K
 review items open. The options: a larger budget … or a smaller circuit" (`LAYOUT_BUDGET`). The
 circuit is still written (exit 2, as any `CHANGES`). The computed fix of its hazards is not searched
-then (seconds of simulations, for a circuit still to fix).
+then (seconds of simulations, for a circuit still to fix). A wall-clock budget makes a result depend
+on how busy the machine is, so the tests that are not about the budget lay out through
+`test/layout-generous.js` (the largest budget, 300 s); only the budget's own tests use the default.
+
+**What the search judges.** Each try is judged by its placement: the drawing and the nets (a
+review with `electrical: false`). Hazards over states, doubts, the computed fix, the readings and
+the Behaviour run are worked out once, on the circuit the whole search keeps (`judged` in
+`src/layout.js`, its time in the answer's `ms`): they do not depend on where the parts sit, so they
+never change which try wins. Judging every try and every trial so had made a large circuit twice
+as slow (the laser and HC-SR04 on an UNO of `test/ultrasonic.test.js`: 29 s, 15 s again).
 
 **The same spec, the same circuit.** Nothing in the search depends on the clock except the budget:
 two runs of a spec give the same `circuit.json`, and a budget that ran out is the only source of
