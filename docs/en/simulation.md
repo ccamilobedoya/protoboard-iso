@@ -258,7 +258,12 @@ each of these states, one at a time with everything else at rest (`src/sim/index
   outputs by the time it first waits (its `setup()` and `loop()` up to the first `delay`: the pin
   modes of the DC point, so `pinMode`, and the `digitalWrite`, `tone`, `analogWrite` and `ledcWrite`
   that make a pin an output there). Each is held high with `engine.drive` while the program runs on;
-  a pin already high at rest adds nothing. A board's pin is named in the warning (`U1.D10`).
+  a pin already high at rest adds nothing. A board's pin is named in the warning (`U1.D10`). When
+  the program runs, the states are instead the combinations of its outputs the review's run saw
+  (each once, the ones high held high and the rest low: `… with D2 + D5 high`), so a sketch that
+  never raises two pins together is never judged with them together; the Checked line then does not
+  list combinations of program outputs as not checked. Without a program, or when it cannot run,
+  each output alone as above.
 
 A hazard found only in one of those states says which (`… more than its maximum 30 mA, with S1
 pressed.`, `… with D10 high.`; in JSON `hazards[].when: { part, field, value }` or `{ part, pin,

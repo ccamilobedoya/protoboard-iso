@@ -234,3 +234,21 @@ test('--transient says the step it solved and the spacing of the samples it prin
   const r = cli(['simulate', join(root, 'examples/battery-regulator.json'), '--transient', '0.05,1e-6']);
   assert.match(r.stdout.split('\n')[0], /50 ms solved in steps of 1 µs; 401 samples printed, 125 µs apart\./);
 });
+
+// ---- 8. Damage is checked in the states a program really reaches
+
+const HBRIDGE = (loop) => ({
+  parts: [{ id: 'U1', part: 'UNO', program: `void setup(){for(int p=2;p<=5;p++){pinMode(p,OUTPUT);}digitalWrite(2,HIGH);digitalWrite(3,HIGH);}\nvoid loop(){${loop}}` }, { id: 'M1', type: 'motor' }, { id: 'Q1', part: '2N2907A' }, { id: 'Q2', part: '2N2907A' }, { id: 'Q3', part: '2N2222A' }, { id: 'Q4', part: '2N2222A' }, ...[1, 2, 3, 4].map((k) => ({ id: `R${k}`, type: 'resistor', value: '1k' }))],
+  supplies: [{ id: 'V1', voltage: 5 }],
+  nets: [['T+', 'Q1.E', 'Q2.E'], ['Q1.C', 'Q3.C', 'M1.+'], ['Q2.C', 'Q4.C', 'M1.-'], ['Q3.E', 'Q4.E', 'U1.GND', 'T-'], ['U1.D2', 'R1.1'], ['R1.2', 'Q1.B'], ['U1.D3', 'R2.1'], ['R2.2', 'Q2.B'], ['U1.D4', 'R3.1'], ['R3.2', 'Q3.B'], ['U1.D5', 'R4.1'], ['R4.2', 'Q4.B']],
+});
+
+test('an H-bridge driven by its sketch: no shoot-through from a pin the sketch never raises alone', () => {
+  const good = autoLayout(HBRIDGE('digitalWrite(3,HIGH);digitalWrite(4,LOW);digitalWrite(2,LOW);digitalWrite(5,HIGH);delay(500);digitalWrite(5,LOW);digitalWrite(2,HIGH);digitalWrite(3,LOW);digitalWrite(4,HIGH);delay(500);'));
+  assert.deepEqual(good.review.hazards.map((h) => formatIssue(h, 'en')), []);
+  assert.doesNotMatch(formatLayout(good, 'en', { t, formatIssue }), /combinations of program outputs/);
+  // A sketch that turns on both transistors of one leg: both are named, in the states it reaches.
+  const bad = autoLayout(HBRIDGE('digitalWrite(2,LOW);digitalWrite(4,HIGH);delay(500);digitalWrite(4,LOW);digitalWrite(2,HIGH);delay(500);'));
+  const burnt = new Set(bad.review.hazards.map((h) => h.params.part));
+  assert.ok(burnt.has('Q1') || burnt.has('Q3'), JSON.stringify(bad.review.hazards));
+});

@@ -28,6 +28,7 @@ detail.
 
 ### Fixed
 
+- An H-bridge driven by a sketch got "Q3 dissipates 3.65 W … with D4 high": each program output was raised alone. With a program that runs, the hazard check now visits the combinations of outputs its run reaches (`with D2 + D5 high`).
 - Figures that disagreed: `layout`'s Behaviour line said 1.11 kHz where `simulate --run` said 1.04 kHz (a fast rhythm is now measured again in the page's step; `about` under five periods); a pin overloaded under the half-rail line read "off the whole time" beside LEDs on (a pin is reported by what the program writes); `--transient` gives the step solved and the spacing of the samples printed; a loaded pin's reading names its output resistance.
 - `simulate --run` printed an empty `Supplies:` heading for a board on USB alone; a part wired to nothing is open, never a hazard.
 - `shiftOut(DS, SH, MSBFIRST, c)` stopped with `$MSBFIRST is not defined`: `shiftOut`, `shiftIn`, `MSBFIRST`, `LSBFIRST`, `TWO_PI`, `HALF_PI`, `DEG_TO_RAD` and `RAD_TO_DEG` are in the kit's Arduino subset; an unknown name says it is not in that subset, by its own name; a two-dimensional array is refused with its line (`SIM_PROGRAM_ARRAY_DIMENSIONS`).

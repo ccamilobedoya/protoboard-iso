@@ -138,9 +138,28 @@ const STRONGEST = { SIM_RELAY_UNDERDRIVEN: 'current', SIM_PIN_OVERVOLTAGE: 'volt
 const doubtKey = (i) => (i.params?.part != null ? `${i.code} ${i.params.part} ${i.params.name ?? i.params.file ?? i.params.pin ?? ''} ${i.params.line ?? ''}` : `${i.code} ${JSON.stringify(i.params ?? {})}`);
 const exceededAll = (engine, reading) => Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
 const hazardKey = (h) => `${h.code} ${h.params.part}`;
-// A state on and off: a control set, or a pin held.
-export const enterState = (engine, s) => (s.pin ? engine.drive(s.part, s.pin, s.value) : engine.set(s.part, s.field, s.value));
+// The combinations of a run (run.js `combinations`) as states: each board's outputs held as seen
+// (the ones high, the rest low), those equal to the rest point left out. "with D2 and D5 high".
+function combinationStates(rest, combinations) {
+  const many = Object.values(rest.parts ?? {}).filter((r) => r?.kind === 'MCU' && r.program).length > 1;
+  const out = [];
+  for (const c of combinations) {
+    const board = rest.parts?.[c.part];
+    if (!board) continue;
+    const outputs = (board.pins ?? []).filter((x) => x.mode === 'output' && !x.pwm).map((x) => x.name);
+    const now = outputs.filter((n) => board.pins.find((x) => x.name === n).level);
+    // All low, or as at rest: the rest point covers it (a hazard there has no pin to name).
+    if (!c.high.length || (now.length === c.high.length && now.every((n) => c.high.includes(n)))) continue;
+    const name = c.high.map((n) => (many ? `${c.part}.${n}` : n)).join(' + ');
+    out.push({ part: c.part, pins: outputs.map((n) => [n, c.high.includes(n) ? 1 : 0]), pin: c.high[0], name, value: 1, combination: true });
+  }
+  return out;
+}
+
+// A state on and off: a control set, or a pin held (a combination: several pins).
+export const enterState = (engine, s) => (s.pins ? s.pins.every(([pin, v]) => engine.drive(s.part, pin, v)) : s.pin ? engine.drive(s.part, s.pin, s.value) : engine.set(s.part, s.field, s.value));
 export function leaveState(engine, s) {
+  if (s.pins) return s.pins.every(([pin]) => engine.drive(s.part, pin, null));
   if (s.pin) return engine.drive(s.part, s.pin, null);
   const ok = engine.set(s.part, s.field, s.rest);
   if (s.programmed) engine.resume(s.part, s.field); // an environment program runs again, as before
@@ -153,7 +172,7 @@ export function leaveState(engine, s) {
 // `doubts`: the warnings of those DC points that are no hazard (warningsOf), each once, with the `when`
 // of the state it was first found in. With `collect`, also `rest`, the reading at rest (doubtsOf
 // reads each board's program there).
-export function engineHazards(engine, states, max = STATES_MAX, { collect = false } = {}) {
+export function engineHazards(engine, states, max = STATES_MAX, { collect = false, combinations = null } = {}) {
   const rest = engine.dc();
   if (!rest.ok) return { hazards: [], doubts: collect ? warningsOf(rest) : [], states: { checked: 0, total: states.length, controls: 0, outputs: 0 }, ok: false };
   // A part wired to nothing (left out by a layout that stopped at its budget) is open: no hazard.
@@ -163,7 +182,10 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
   const lit = litTracker(compiledProgram);
   lit.see(rest);
   const outputs = programOutputs(rest);
-  const all = [...states, ...outputs.states];
+  // A program that runs: its outputs as the run saw them together (each combination once), not each
+  // output alone (an H-bridge's sketch never turns on both transistors of one leg).
+  const pinStates = combinations ? combinationStates(rest, combinations) : outputs.states;
+  const all = [...states, ...pinStates];
   const hazards = exceeded(engine, rest);
   const atRest = new Set(hazards.map(hazardKey));
   // What is wrong or unknown without damaging anything (a relay driven too weakly to pull in), once
@@ -196,7 +218,7 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
   const controls = new Set(states.filter((s) => s.part !== 'environment').map((s) => `${s.part} ${s.field}`)).size;
   // The fields visited at both ends, by name, for the Checked line ("light at both ends").
   const environmentFields = [...new Set(tried.filter((s) => s.part === 'environment').map((s) => s.field))];
-  return { hazards, doubts: doubts.filter((d) => !hazards.some((h) => hazardKey(h) === hazardKey(d))), states: { checked: tried.length, total: all.length, controls, outputs: outputs.pins.length, ...(fields && { environment: fields }) }, ok: true, ...(environmentFields.length && { environmentFields }), ...(collect && { rest, lit }) };
+  return { hazards, doubts: doubts.filter((d) => !hazards.some((h) => hazardKey(h) === hazardKey(d))), states: { checked: tried.length, total: all.length, controls, outputs: outputs.pins.length, ...(fields && { environment: fields }), ...(combinations && { combined: true }) }, ok: true, ...(environmentFields.length && { environmentFields }), ...(collect && { rest, lit }) };
 }
 
 // The outputs of a circuit (sim/run.js outputsOf: an LED, each chip of an RGB LED or segment of a
@@ -245,7 +267,10 @@ function neverOn(circuit, compiled, engine, states, lit, extra = extraStates(cir
   // More states, for this question only (they add no hazard): every field of a declared environment
   // (a beam a laser crosses, which no sensor follows) and every control the page offers (a module's
   // trimmer), at each end.
-  for (const s of extra) {
+  // Each program output alone too (the hazard check visits the run's combinations): a sketch that
+  // reaches its seventh segment after the run's seconds still lights it.
+  const singles = programOutputs(engine.dc()).states;
+  for (const s of [...extra, ...singles]) {
     if (!enterState(engine, s)) continue;
     const reading = engine.dc();
     if (reading.ok) lit.see(reading);
@@ -375,13 +400,17 @@ export function checkHazards(circuit) {
   const compiled = compile(circuit);
   if (compiled.fatal) return { hazards: [], states: { checked: 0, total: 0, controls: 0, outputs: 0 }, checked: coverageOf(compiled, null), doubts: doubtsOf(circuit, compiled, null) };
   const engine = createEngine(compiled.program);
-  const { rest, lit, ...result } = engineHazards(engine, [...controlStates(compiled.program, engine), ...undeclaredEnvironmentStates(circuit, compiled.program)], STATES_MAX, { collect: true });
   const states = controlStates(compiled.program, engine);
+  // A board's program that runs: the review's run first, for the combinations of outputs it reaches.
+  const programmed = (compiled.program.devices ?? []).some((d) => d.kind === 'MCU' && !d.unsupported && d.params?.sketch);
+  const runFirst = programmed ? visitRun(circuit, compiled, engine, states, extraStates(circuit, engine, states), false) : null;
+  const runs = runFirst?.ok && !(runFirst.issues ?? []).some((i) => i.code === 'SIM_PROGRAM_STOPPED' || i.code === 'SIM_PROGRAM_STUCK') && !(compiled.program.issues ?? []).some((i) => PROGRAM_DOUBTS.has(i.code) && i.severity !== 'info');
+  const { rest, lit, ...result } = engineHazards(engine, [...states, ...undeclaredEnvironmentStates(circuit, compiled.program)], STATES_MAX, { collect: true, ...(runs && runFirst.combinations?.length && { combinations: runFirst.combinations }) });
   const dark = result.ok ? neverOn(circuit, compiled, engine, states, lit) : [];
   // A board's pins over the run: the highest voltage each sees, beside the DC states' (a pin seen over
   // its rail at a DC state keeps that finding unless the run sees it higher).
-  if (result.ok && (compiled.program.devices ?? []).some((d) => d.kind === 'MCU' && !d.unsupported && d.params?.sketch)) {
-    for (const peak of pinPeaks(visitRun(circuit, compiled, engine, states, extraStates(circuit, engine, states), false))) {
+  if (result.ok && programmed) {
+    for (const peak of pinPeaks(runFirst)) {
       const at = result.doubts.findIndex((d) => doubtKey(d) === doubtKey(peak));
       if (at < 0) result.doubts.push(peak);
       else if (Math.abs(peak.params.voltage.value) > Math.abs(result.doubts[at].params.voltage.value)) result.doubts[at] = peak;
@@ -500,7 +529,8 @@ export function coverageOf(compiled, result, doubts = []) {
   const notChecked = [];
   const switches = outputs > 0 || devices.some((d) => d.kind === 'TMR' || (d.kind === 'MCU' && d.params?.sketch)) || (program.supplies ?? []).some((s) => s.generator && !s.off);
   if (switches) notChecked.push('switching');
-  if (controls + outputs + environment >= 2) notChecked.push('combinations');
+  // A program's outputs visited as the run combined them count as one: their combinations were seen.
+  if (controls + (result.states.combined ? Math.min(outputs, 1) : outputs) + environment >= 2) notChecked.push('combinations');
   if (devices.some((d) => d.follows?.length || senses(d))) notChecked.push('environment');
   if (checked < total) notChecked.push('limit');
   const unsimulated = devices.filter((d) => d.unsupported).map((d) => d.id);

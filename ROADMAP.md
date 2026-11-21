@@ -544,6 +544,7 @@ before saying it works.
 - ✅ The sketch runner knows the standard names (C8a): `shiftOut`/`shiftIn` with `MSBFIRST`/`LSBFIRST`, `TWO_PI`, `HALF_PI`, `DEG_TO_RAD`, `RAD_TO_DEG`; an unknown name is said by its name, never with the translator's `$`; a two-dimensional array is refused with its line (`SIM_PROGRAM_ARRAY_DIMENSIONS`)
 - ✅ Loose ends (C8a): `simulate --run` prints no empty `Supplies:` heading; a part wired to nothing (left out by a layout at its budget) has no hazard
 - 🔜 Two figures for one thing agree (C8a, partly): the Behaviour line measures a fast rhythm in the page's step as `simulate --run` does (`about` under five periods); a driven pin by what the program writes; `--transient` says the step solved and the samples' spacing; a loaded pin's readings name its output resistance. Still open: a buzzer's beeps beside its tone, which state a motor's pin current is from, the output resistance in `catalog`
+- ✅ Damage is checked in the states a program really reaches (C8a): with a program that runs, the hazard check visits the combinations of its outputs the review's run saw, not each output alone (an H-bridge's sketch no longer reports a shoot-through it never makes)
 - ⬜ What the MCP server's instructions would add with a number from `scripts/trigger-bench.js` (the startup context is at its 48 KB): the `.ino` in the circuit's folder, a run before saying a program works
 
 ## Optional, later ⬜

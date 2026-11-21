@@ -49,6 +49,7 @@ const PERIODS = 50; // the last periods measured
 const EDGES = 1000; // risings and fallings kept for that
 const CHECKS = 200; // times the limits are read during a run (and at its end)
 const BUDGET_EVERY = 32; // steps between two looks at the clock
+const COMBINATIONS = 64; // combinations of a board's outputs kept from a run
 
 const t0 = () => globalThis.performance?.now?.() ?? Date.now();
 const num = (text) => {
@@ -372,6 +373,7 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
   const serial = { count: 0, head: [], tail: [], seen: Object.fromEntries(boards.map((id) => [id, 0])) };
   const flags = new Map(); // a program's error or stuck, once each
   const extremes = new Map(); // "U1.D18" → the sample farthest outside its rail
+  const combos = new Map(); // "U1 D2,D5" → { part, high }: each combination of a board's outputs seen
   const sample = () => {
     const t = engine.time;
     const r = engine.readParts(ids);
@@ -390,6 +392,12 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
         // A pin by what the program writes to it (a pin loaded past its rating sags under the half-rail
         // line, but it is still driven high: its voltage is a reading, not its state); PWM by its voltage.
         observe(pins.get(key), t, x.mode !== 'output' || !(board.vdd > 0) ? 0 : x.pwm ? x.voltage / board.vdd : x.level ? 1 : 0);
+      }
+      // Which of its outputs the program holds high now: each combination once (sim/index.js visits them).
+      if (combos.size < COMBINATIONS) {
+        const high = (board.pins ?? []).filter((x) => x.mode === 'output' && x.level && !x.pwm).map((x) => x.name);
+        const key = `${id} ${high.join(',')}`;
+        if (!combos.has(key)) combos.set(key, { part: id, high });
       }
       const pr = board.program;
       if (pr?.error && !flags.has(`e${id}`)) flags.set(`e${id}`, issue('warning', 'SIM_PROGRAM_STOPPED', { part: id, message: String(pr.error).slice(0, 80) }));
@@ -462,6 +470,7 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
     outputs,
     boards: boards.length,
     pinExtremes: [...extremes.values()],
+    combinations: [...combos.values()],
     readings,
     issues: [...(readings?.issues ?? []).filter((i) => i.severity === 'info'), ...issues, ...flags.values(), ...warnings.values()],
   };

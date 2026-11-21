@@ -270,7 +270,12 @@ en reposo y otra vez en cada uno de estos estados, uno a la vez y todo lo demás
   `delay`: los modos de pin del punto en DC, así que `pinMode`, y los `digitalWrite`, `tone`,
   `analogWrite` y `ledcWrite` que vuelven salida un pin ahí). Cada uno se sostiene en alto con
   `engine.drive` mientras el programa sigue corriendo; un pin que ya está en alto en reposo no agrega
-  nada. El aviso nombra el pin de la placa (`U1.D10`).
+  nada. El aviso nombra el pin de la placa (`U1.D10`). Cuando el programa corre, los estados son en
+  cambio las combinaciones de sus salidas que vio la ejecución de la revisión (cada una una vez, las
+  altas en alto y el resto en bajo: `… con D2 + D5 en alto`), así que un sketch que nunca sube dos
+  pines a la vez nunca se juzga con los dos juntos; la línea Revisado ya no lista entonces las
+  combinaciones de salidas del programa como no revisadas. Sin programa, o si no puede correr, cada
+  salida sola como arriba.
 
 Un peligro que solo aparece en uno de esos estados dice en cuál (`… más que su máximo de 30 mA, con S1
 oprimido.`, `… con D10 en alto.`; en JSON `hazards[].when: { part, field, value }` o `{ part, pin, name,
