@@ -53,17 +53,20 @@ const shiftSpec = {
   nets: [['U1.5V', 'U2.VCC', 'U2.SRCLR', 'T+'], ['U1.GND', 'U2.GND', 'U2.OE', 'T-'], ['U1.D2', 'U2.SER'], ['U1.D3', 'U2.SRCLK'], ['U1.D4', 'U2.RCLK'], ['U2.QA', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'T-']],
 };
 
-test('A1: a 74HC595 with a shiftOut sketch ends WARNINGS, with a ⚠ for U2 and one for shiftOut; review lists the doubts', SLOW, () => {
+// shiftOut is in the kit's Arduino subset since C8a: the ⚠ beside U2 is now that D1 never comes on
+// (the chip that would drive it is not simulated), no longer that shiftOut is unknown.
+test('A1: a 74HC595 with a shiftOut sketch ends WARNINGS, with a ⚠ for U2 and one for the LED behind it; review lists the doubts', SLOW, () => {
   const { r, circuit, out } = build(shiftSpec);
   assert.equal(r.status, 0, r.stderr);
   assert.match(lastLine(out), /^STATUS: WARNINGS/, out);
   const w = warnLines(out);
   assert.ok(w.some((l) => /\bU2\b/.test(l)), `a ⚠ line naming U2\n${out}`);
-  assert.ok(w.some((l) => /shiftOut/.test(l)), `a ⚠ line naming shiftOut\n${out}`);
+  assert.ok(w.some((l) => /\bD1 never comes on/.test(l)), `a ⚠ line naming D1\n${out}`);
+  assert.ok(!w.some((l) => /shiftOut/.test(l)), `shiftOut runs\n${out}`);
   const j = reviewJson(circuit);
   assert.equal(j.verdict, 'approved-with-warnings');
   assert.ok(codes(j.doubts).includes('SIM_PART_NOT_SIMULATED'), JSON.stringify(j.doubts));
-  assert.ok(codes(j.doubts).includes('SIM_PROGRAM_UNSUPPORTED'), JSON.stringify(j.doubts));
+  assert.ok(codes(j.doubts).includes('SIM_OUTPUT_NEVER_ON'), JSON.stringify(j.doubts));
   assert.deepEqual(j.hazards, []);
   assert.ok(j.summary?.doubts >= 2, `summary.doubts: ${JSON.stringify(j.summary)}`);
   // review says them too, as ⚠ lines.
