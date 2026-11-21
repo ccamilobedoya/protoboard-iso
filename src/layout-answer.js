@@ -289,6 +289,7 @@ function behaviourText(b, lang, t, f) {
   }
   const item = (o) => {
     const percent = Math.round(100 * (o.duty ?? o.onShare));
+    if (o.frequency && o.about) return t(lang, 'layout.behaviour.rhythmAbout', { id: o.id, frequency: formatValue(Number(o.frequency.toPrecision(2)), 'Hz', { decimal: decimalSeparator(lang) }), percent });
     if (o.frequency) return t(lang, 'layout.behaviour.rhythm', { id: o.id, frequency: f(o.frequency, 'Hz'), percent });
     if (!o.changes) return t(lang, o.onShare > 0.5 ? 'layout.behaviour.on' : 'layout.behaviour.off', { id: o.id });
     return t(lang, 'layout.behaviour.share', { id: o.id, percent: Math.round(100 * o.onShare), changes: o.changes });

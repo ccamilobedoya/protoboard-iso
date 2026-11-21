@@ -173,12 +173,18 @@ Se fijan con una operación, como cualquier campo del circuito:
   …
   ```
 
+  Un pin se informa por lo que el programa le escribe (un pin cargado por debajo de la mitad del riel
+  sigue en alto; su voltaje caído está en las lecturas, con `(a través de su resistencia de salida de
+  40 Ω)` en un pin que lleva más de 1 mA).
+
   La respuesta de `layout` trae lo mismo en una línea para un circuito que cambia solo (el
   programa de una placa, un 555, un generador, un amplificador operacional junto a un capacitor):
   `Comportamiento, primeros 2 s (simulado, un modelo): D1 1 Hz, encendido el 50 % del tiempo`, de
   una ejecución acotada a 25 000 pasos de la simulación (así el mismo circuito da la misma línea en
   cualquier máquina; tarda más o menos lo que los 0,8 s de tiempo de la máquina que reemplazó,
-  `BEHAVIOUR_STEPS` en `src/sim/run.js`) y un paso no menor que una veinte milésima de ella; pasado
+  `BEHAVIOUR_STEPS` en `src/sim/run.js`) y un paso no menor que una veinte milésima de ella (un ritmo de menos de 50 de esos pasos por periodo
+  se mide otra vez en el paso propio de la página, como lo mide `simulate --run`, dentro del mismo
+  límite; con menos de cinco periodos enteros dice `unos` con dos cifras); pasado
   el límite dice que no se midió (`la ejecución necesitaba más de 25 000 pasos de la simulación`) y
   nombra `simulate --run 2`.
 

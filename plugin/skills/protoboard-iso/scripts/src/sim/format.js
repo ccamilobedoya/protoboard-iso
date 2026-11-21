@@ -58,7 +58,7 @@ function readingLines(result, lang, { f, lines, nodeName, decimal }) {
     else if (p.kind === 'SW') text = `${t(lang, p.pressed ? 'state.pressed' : 'state.released')} · ${f(p.current, 'A')}`;
     else if (p.kind === 'BR') text = `${t(lang, 'sim.q.bridge.vac')} ${f(p.vac, 'V')} · ${t(lang, 'sim.q.bridge.vdc')} ${f(p.vdc, 'V')} · ${t(lang, 'sim.q.bridge.current')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'REG') text = `${t(lang, 'sim.reg.' + p.state)} · ${t(lang, 'sim.q.reg.vin')} ${f(p.vin, 'V')} · ${t(lang, 'sim.q.reg.vout')} ${f(p.vout, 'V')} · ${t(lang, 'sim.q.reg.iout')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
-    else if (p.kind === 'MCU') text = [p.usb ? `USB ${f(p.usb.voltage, 'V')} ${f(p.usb.current, 'A')}` : null, `${t(lang, 'sim.q.mcu.vdd')} ${f(p.vdd, 'V')}`, ...p.pins.map((x) => `${x.name} ${x.mode === 'output' ? t(lang, `sim.mcu.${x.level ? 'high' : 'low'}`) : t(lang, `sim.mcu.input${x.pull ? `.${x.pull}` : ''}`)} ${f(x.voltage, 'V')} ${f(x.current, 'A')}`), p.program?.error ? t(lang, 'sim.mcu.programError', { error: p.program.error }) : null, f(p.power, 'W')].filter(Boolean).join(' · ');
+    else if (p.kind === 'MCU') text = [p.usb ? `USB ${f(p.usb.voltage, 'V')} ${f(p.usb.current, 'A')}` : null, `${t(lang, 'sim.q.mcu.vdd')} ${f(p.vdd, 'V')}`, ...p.pins.map((x) => `${x.name} ${x.mode === 'output' ? t(lang, `sim.mcu.${x.level ? 'high' : 'low'}`) : t(lang, `sim.mcu.input${x.pull ? `.${x.pull}` : ''}`)} ${f(x.voltage, 'V')} ${f(x.current, 'A')}${x.behind ? ` ${t(lang, 'sim.mcu.behind', { resistance: f(x.behind, 'Ω') })}` : ''}`), p.program?.error ? t(lang, 'sim.mcu.programError', { error: p.program.error }) : null, f(p.power, 'W')].filter(Boolean).join(' · ');
     else if (p.kind === 'OPA') text = [...p.amps.map((a) => `${a.name ? `${t(lang, 'sim.opamp.amp', { n: a.name })}: ` : ''}${t(lang, 'sim.opamp.' + a.state)} · V+ ${f(a.vplus, 'V')} · V− ${f(a.vminus, 'V')} · ${t(lang, 'sim.q.opamp.vout')} ${f(a.vout, 'V')} · ${f(a.current, 'A')}`), f(p.power, 'W')].join(' · ');
     else if (p.kind === 'TMR') text = `${t(lang, 'sim.timer.' + p.state)} · ${t(lang, 'sim.q.timer.vout')} ${f(p.vout, 'V')} · ${t(lang, 'sim.q.timer.vthr')} ${f(p.vthr, 'V')} · ${t(lang, 'sim.q.timer.iout')} ${f(p.current, 'A')} · ${f(p.power, 'W')}`;
     else if (p.kind === 'LEDS') text = [...Object.entries(p.channels).map(([pin, c]) => `${pin} ${f(c.voltage, 'V')} ${f(c.current, 'A')} ${c.brightness > BRIGHTNESS_OVER ? t(lang, 'sim.bright.over') : `${Math.round(c.brightness * 100)} %`}`), `${t(lang, 'sim.q.leds.common')} ${f(Math.abs(p.current), 'A')}`, f(p.power, 'W')].join(' · ');
@@ -159,7 +159,7 @@ export function outputText(o, lang, f) {
 // A table at about ten evenly spaced times: capacitor voltages and supply currents (the
 // JSON answer has every sample, every node and every part).
 function formatTransient(result, lang, { f, lines, issues }) {
-  lines.push(t(lang, 'sim.transient', { start: t(lang, `sim.start.${result.start}`), stop: f(result.stop, 's'), step: f(result.step, 's'), points: result.times.length }));
+  lines.push(t(lang, 'sim.transient', { start: t(lang, `sim.start.${result.start}`), stop: f(result.stop, 's'), step: f(result.step, 's'), points: result.times.length, spacing: f(result.times.length > 1 ? result.times[1] - result.times[0] : result.step, 's') }));
   const caps = Object.keys(result.parts).filter((id) => result.parts[id].voltage && /^C/i.test(id));
   const columns = [
     ...caps.map((id) => ({ head: `V(${id})`, values: result.parts[id].voltage, unit: 'V' })),

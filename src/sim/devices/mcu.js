@@ -19,6 +19,9 @@ const ESD = { is: 1e-14, n: 1 }; // the protection diodes on every pin
 const RESET_PULL = 10e3; // EN / RESET pull-up on the board
 const MODES = { high: { mode: 'output', level: 1 }, low: { mode: 'output', level: 0 }, input: { mode: 'input' }, input_pullup: { mode: 'input', pull: 'up' }, input_pulldown: { mode: 'input', pull: 'down' } };
 
+// Over this current (1 mA) an output pin's reading names its output resistance [assumed].
+const LOADED_PIN = 1e-3;
+
 export const mcu = {
   types: ['module'],
   kind: 'MCU',
@@ -281,7 +284,9 @@ export const mcu = {
         const read = voltage < m.vil * vdd ? 0 : voltage > m.vih * vdd ? 1 : null;
         const full = m.adcRef === 'vdd' && vdd > 0 ? vdd : m.adcFull;
         const adc = info.adc ? Math.round(Math.min(1, Math.max(0, voltage / full)) * (2 ** m.adcBits - 1)) : null;
-        return { name: info.name, gpio: info.gpio, mode: s.stage.mode, level: s.stage.level, pull: s.stage.pull, ...(s.stage.pwm && { pwm: s.stage.pwm }), voltage, current, read, adc };
+        // A loaded output says the resistance its current comes through (part of every pin-current figure).
+        const loaded = s.stage.mode === 'output' && Math.abs(current) > LOADED_PIN;
+        return { name: info.name, gpio: info.gpio, mode: s.stage.mode, level: s.stage.level, pull: s.stage.pull, ...(s.stage.pwm && { pwm: s.stage.pwm }), voltage, current, read, adc, ...(loaded && { behind: m.outputResistance }) };
       });
     const power = entry.pins.reduce((sum, x) => sum + h.volt(x.index) * (currents[x.name] ?? 0), 0) + (entry.usb ? 5 * usb : 0);
     const run = entry.ctrl?.runner;

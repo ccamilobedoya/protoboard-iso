@@ -164,12 +164,18 @@ Set them with an operation like any circuit field:
   …
   ```
 
+  A pin is reported by what the program writes to it (a pin loaded under the half-rail line is still
+  high; its sagging voltage is in the readings, with `(through its 40 Ω output resistance)` on a pin
+  carrying more than 1 mA).
+
   `layout`'s answer has the same in one line for a circuit that changes by itself (a board's
   program, a 555, a generator, an op-amp beside a capacitor): `Behaviour, first 2 s (simulated, a
   model): D1 1 Hz, on 50 % of the time`, from a run bounded at 25 000 steps of the simulation (so the
   same circuit gives the same line on any machine; about as long as the 0.8 s of the machine's
   time it replaced, `BEHAVIOUR_STEPS` in `src/sim/run.js`) and a step no shorter than a 20 000th of
-  it; past the bound it says it was not measured (`the run needed more than 25 000 steps of the
+  it (a rhythm faster than 50 of those steps per period is measured again in the page's own step, as
+  `simulate --run` measures it, within the same bound; under five whole periods there it says `about`
+  with two figures); past the bound it says it was not measured (`the run needed more than 25 000 steps of the
   simulation`) and names `simulate --run 2`.
 
 ## Results

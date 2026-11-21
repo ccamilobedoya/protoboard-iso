@@ -199,3 +199,38 @@ test('simulate --run on a board fed by USB alone prints no empty Supplies headin
   assert.ok(at < 0 || /^\s+\S/.test(lines[at + 1] ?? '') && !/^Nodes/.test(lines[at + 1]), run.stdout);
   assert.ok(!lines.some((l, k) => l === 'Supplies:' && /^Nodes/.test(lines[k + 1] ?? '')));
 });
+
+// ---- 9. Two figures for one thing agree, or one of them says "about"
+
+test('an op-amp oscillator: the Behaviour line and simulate --run give the same frequency', () => {
+  const dir = tempDir('c8a-osc-');
+  writeFileSync(join(dir, 'osc.json'), JSON.stringify({
+    parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'U1', part: 'LM358' }, { id: 'R1', type: 'resistor', value: '10k' }, { id: 'R2', type: 'resistor', value: '10k' }, { id: 'R3', type: 'resistor', value: '10k' }, { id: 'R4', type: 'resistor', value: '10k' }, { id: 'C1', type: 'capacitor', value: '68n' }],
+    nets: [['BT1.+', 'U1.VCC', 'R1.1'], ['BT1.-', 'U1.GND', 'R2.2', 'C1.2'], ['R1.2', 'R2.1', 'U1.IN1+', 'R3.1'], ['R3.2', 'U1.OUT1', 'R4.1'], ['R4.2', 'U1.IN1-', 'C1.1']],
+  }));
+  const laid = cli(['layout', join(dir, 'c'), join(dir, 'osc.json')]);
+  const line = laid.stdout.split('\n').find((l) => l.startsWith('Behaviour'));
+  const run = cli(['simulate', join(dir, 'c'), '--run', '2']);
+  const fromLine = /U1\.OUT1 (?:about )?([\d.]+ kHz)/.exec(line)?.[1];
+  const fromRun = /U1\.OUT1 \(op-amp output\): ([\d.]+ kHz)/.exec(run.stdout)?.[1];
+  assert.ok(fromLine && fromRun, `${line}\n${run.stdout}`);
+  assert.equal(fromLine, fromRun);
+});
+
+test('a pin overloaded under the half-rail line is reported by what the program writes, with its output resistance', () => {
+  const dir = tempDir('c8a-pin-');
+  const leds = Array.from({ length: 12 }, (_, k) => ({ id: `D${k + 1}`, type: 'led', color: 'red' }));
+  writeFileSync(join(dir, 's.json'), JSON.stringify({
+    parts: [{ id: 'U1', part: 'UNO', program: 'void setup(){pinMode(13,OUTPUT);digitalWrite(13,HIGH);}\nvoid loop(){delay(1000);}' }, ...leds],
+    nets: [['U1.D13', ...leds.map((d) => `${d.id}.A`)], ['U1.GND', ...leds.map((d) => `${d.id}.K`)]],
+  }));
+  cli(['layout', join(dir, 'c'), join(dir, 's.json')]);
+  const run = cli(['simulate', join(dir, 'c'), '--run', '0.5']);
+  assert.match(run.stdout, /U1\.D13 \(pin\): on the whole time/, run.stdout);
+  assert.match(run.stdout, /D13 output HIGH [\d.]+ m?V [\d.]+ mA \(through its 40 Ω output resistance\)/, run.stdout);
+});
+
+test('--transient says the step it solved and the spacing of the samples it printed', () => {
+  const r = cli(['simulate', join(root, 'examples/battery-regulator.json'), '--transient', '0.05,1e-6']);
+  assert.match(r.stdout.split('\n')[0], /50 ms solved in steps of 1 µs; 401 samples printed, 125 µs apart\./);
+});

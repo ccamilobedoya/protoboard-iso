@@ -342,7 +342,7 @@ function rhythm(w) {
     ...downs.map(([a, c]) => w.rises.find((t) => t > a && t < c)).map((rise, k) => (rise == null ? null : downs[k][1] - downs[k][0] - (rise - downs[k][0]))),
   ].filter((x) => x != null);
   const duty = on.length ? on.reduce((s, x) => s + x, 0) / on.length / mean : null;
-  return { frequency: 1 / mean, period: mean, duty };
+  return { frequency: 1 / mean, period: mean, duty, periods: Math.max(ups.length, downs.length) };
 }
 
 // ── The run ────────────────────────────────────────────────────────────────────────────
@@ -387,7 +387,9 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
         if (t <= extremesUntil && Number.isFinite(over) && board.vdd > 0 && over > (extremes.get(key)?.over ?? 0)) extremes.set(key, { part: id, pin: x.name, voltage: x.voltage, vdd: board.vdd, time: t, over });
         if (x.mode !== 'output' && !pins.has(key)) continue;
         if (!pins.has(key)) pins.set(key, tracker({ id: key, part: id, kind: 'pin' }));
-        observe(pins.get(key), t, x.mode === 'output' && board.vdd > 0 ? x.voltage / board.vdd : 0);
+        // A pin by what the program writes to it (a pin loaded past its rating sags under the half-rail
+        // line, but it is still driven high: its voltage is a reading, not its state); PWM by its voltage.
+        observe(pins.get(key), t, x.mode !== 'output' || !(board.vdd > 0) ? 0 : x.pwm ? x.voltage / board.vdd : x.level ? 1 : 0);
       }
       const pr = board.program;
       if (pr?.error && !flags.has(`e${id}`)) flags.set(`e${id}`, issue('warning', 'SIM_PROGRAM_STOPPED', { part: id, message: String(pr.error).slice(0, 80) }));
@@ -491,6 +493,7 @@ function summary(w, end) {
     frequency: r?.frequency ?? null,
     period: r?.period ?? null,
     duty: r?.duty ?? null,
+    ...(r && { periods: r.periods }),
     intervals,
     ...(w.kept + (w.lit ? 1 : 0) > intervals.length && { intervalsTotal: w.kept + (w.lit ? 1 : 0) }),
   };
@@ -522,5 +525,19 @@ export function behaviourOf(circuit, { seconds = 2, maxSteps = BEHAVIOUR_STEPS }
   if (!r.ok) return { seconds, skipped: r.issues.find((i) => i.severity === 'error') ?? issue('error', 'SIM_NO_CONVERGENCE', {}) };
   const budget = r.issues.find((i) => i.code === 'RUN_STEPS' || i.code === 'RUN_BUDGET');
   if (budget) return { seconds, skipped: budget };
-  return { seconds, outputs: r.outputs };
+  // The step above is coarse for a fast rhythm (a 1 kHz 555 in steps of 100 µs reads 7 % high): its
+  // frequency and duty are measured again as simulate --run measures them, in the page's own step,
+  // for as long as the same bound of steps allows. Fewer than ABOUT_PERIODS whole periods there: `about`.
+  const coarse = r.outputs.filter((o) => o.period && r.run.step > o.period / FINE_STEPS);
+  if (!coarse.length) return { seconds, outputs: r.outputs };
+  const fine = runCircuit(circuit, { seconds, maxSteps, checks: 0, compiled });
+  const again = new Map((fine.outputs ?? []).map((o) => [o.id, o]));
+  const outputs = r.outputs.map((o) => {
+    const f = coarse.includes(o) ? again.get(o.id) : null;
+    if (!f?.period) return coarse.includes(o) ? { ...o, about: true } : o;
+    return { ...o, frequency: f.frequency, period: f.period, duty: f.duty, periods: f.periods, ...(f.periods < ABOUT_PERIODS && { about: true }) };
+  });
+  return { seconds, outputs };
 }
+const FINE_STEPS = 50; // steps per period under which a rhythm is measured again [assumed]
+const ABOUT_PERIODS = 5; // whole periods under which a frequency is said as "about" (the contract)
