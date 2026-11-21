@@ -112,6 +112,13 @@ tiene); `check_only` solo revisa. Medido con un modelo más pequeño con la mism
 llamadas y 52 s, nueve de ellas consultas a `catalog` que esto vuelve innecesarias. Cómo funciona
 el algoritmo, sus límites y cómo cambiarlo: [montaje-automatico.md](montaje-automatico.md).
 
+Desde el 2026-11-20: antes de que `layout` responda `CHANGES` prueba lo que probaría una persona
+(los órdenes que dan las redes, la protoboard doble cuando una placa de desarrollo tapa un
+componente, los componentes más altos o más anchos de primero, cada uno desde su mejor intento), y
+cada ✖ que queda termina con el único cambio de la especificación que probaría después (`→ lo
+siguiente que probaría el kit: …`); el agente de montaje hace ese cambio en una llamada antes de
+arreglar con operaciones ([montaje-automatico.md](montaje-automatico.md#lo-que-prueba-el-montaje-antes-de-changes-desde-el-2026-11-20)).
+
 Desde el 2026-10-20 (pensando en modelos pequeños): el archivo del agente empieza eligiendo camino
 (A: `layout` para un circuito nuevo; B: operaciones para cambios y arreglos) en vez de un solo ciclo
 largo; `layout` lee los nombres de las patas como los escribe la gente (`D1.K` para el cátodo de un

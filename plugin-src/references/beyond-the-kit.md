@@ -75,7 +75,22 @@ have been needed.
 
 ## A part the kit does not have
 
-Say so, with the kit's sentence. Offer the closest part the kit has, and use it only if the person
-agrees; say what is then not the same (its values, its pins) and what is not simulated. A part
-drawn but not simulated gives no readings and no warnings: say that nothing about it is checked.
-Never draw it yourself.
+Say so, with the kit's sentence: "the kit does not have X; the nearest it has is Y" is a complete
+and right answer, not a failure (building in prose instead of the kit is what is ruled out, not
+this). The kit finds the common asks inside longer names too ("LED strip 12V", "tira de LED",
+"parlante 8 ohm", "micro servo SG90", "pantalla LCD"). Before building with the nearest part, ask,
+in the person's language:
+
+> The kit has no X. The nearest it has is Y, which differs in … (its values, its pins, what is not
+> simulated). Shall I build it with Y?
+
+Use it only if the person agrees, and say again what is not the same. A part drawn but not
+simulated gives no readings and no warnings: say that nothing about it is checked. Never draw it
+yourself.
+
+## A change the person did not ask for
+
+When you clear a ⚠ with a change nobody asked for (the kit's `--fix`, or a part you add, such as a
+resistor in series with a buzzer on a pin), say in the reply what was added and why, with what the
+kit confirmed after it: "I added R3 (200 Ω) in series with the buzzer: without it D10 would carry
+88 mA, past its 40 mA; the kit confirms 19.4 mA with it."

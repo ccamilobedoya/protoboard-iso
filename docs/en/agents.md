@@ -105,6 +105,12 @@ only checks. Measured with a smaller model on the same supply: 13 calls and 52 s
 `catalog` lookups that this makes unnecessary. How the algorithm works, its limits and how to
 change it: [layout.md](layout.md).
 
+Since 2026-11-20: before `layout` answers `CHANGES` it tries what a person would (the orders the
+nets give, the double board when a development board covers a part, the tallest or widest parts
+first, each from its best try), and each ✖ left ends with the one spec change it would try next
+(`→ next the kit would try: …`); the layout agent makes that change in one call before fixing by
+operations ([layout.md](layout.md#what-layout-tries-before-changes-since-2026-11-20)).
+
 Since 2026-10-20 (aimed at small models): the agent's file starts with a choice of path (A: `layout`
 for a new circuit; B: operations for changes and fixes) instead of one long loop; `layout` reads pin
 names as people write them (`D1.K` for an LED's cathode, `U1.DISCH`, `U1.GPIO4`, `U1.VIN`); its

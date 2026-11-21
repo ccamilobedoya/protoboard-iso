@@ -78,7 +78,11 @@ brief** and return a short **layout report**. You do not talk to the end user.
      program that does not run or stops, a relay that may not pull in, a button across joined
      pins, a warning of the simulation): not a fix round either; report each one first, as it is
      written, and never say the circuit works.
-   - `CHANGES` → the circuit exists. Fix only the ✖ items, with Path B steps 3 to 6. A ✖ saying a
+   - `CHANGES` → the circuit exists. Layout already tried, from its best try, the orders the nets
+     give, the double board (when a development board covers a part or a strip) and the tallest or
+     widest parts first; a ✖ followed by `→ next the kit would try: …` names one spec change: make
+     it and call `layout` once (that call is your one correction). Else fix only the ✖ items, with
+     Path B steps 3 to 6. A ✖ saying a
      pin cannot be reached because a board covers its strip (`LAYOUT_PIN_COVERED`) has no fix by
      operations: name another pin with the same signal in the nets (`GND2` for `GND`) and call
      `layout` again, or report it. (With `board` left to `auto`, layout already moves such a board
