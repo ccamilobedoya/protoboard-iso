@@ -64,7 +64,14 @@ export function formatIssue(issue, lang = 'en') {
 
 // "with S1 pressed", "with RV1 at the pin-3 end of its travel", "with D10 high"; a control without words of its own:
 // "with S1 on = false".
-function whenText({ part, field, value, pin, name, end }, lang) {
+function whenText({ part, field, value, pin, name, end, time, high, rest }, lang) {
+  // A run's warning (sim/run.js): its strongest reading, when, and the pin's level then.
+  if (time != null) {
+    const at = formatValue(time, 's', { decimal: decimalSeparator(lang) });
+    return pin ? t(lang, high ? 'hazard.when.runHigh' : 'hazard.when.runLow', { time: at, pin }) : t(lang, 'hazard.when.run', { time: at });
+  }
+  // A board's pin the program sets high in its first state (the DC point of setup()).
+  if (pin && rest) return t(lang, 'hazard.when.pinRest', { pin: name ?? pin });
   // An environment field at an end of its range: "with the environment's light at its minimum".
   if (part === 'environment' && end) return t(lang, `hazard.when.environment.${end}`, { field: t(lang, `sim.env.field.${field}`) });
   // A board's output held high by the hazard check (sim/index.js): "with D10 high".

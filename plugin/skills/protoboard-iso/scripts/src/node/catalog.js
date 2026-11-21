@@ -9,7 +9,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { PART_TYPES, FAMILIES } from '../parts/types/index.js';
 import { PART_NUMBERS, lookupPartNumber } from '../parts/db.js';
 import { PACKAGES } from '../parts/packages/index.js';
-import { MODULES } from '../parts/modules.js';
+import { MODULES, lookupModule } from '../parts/modules.js';
+import { MCUS } from '../sim/models.js';
 import { BATTERY_FORMATS } from '../parts/batteries.js';
 import { LDR_PARTS } from '../parts/types/more.js';
 import { BOARDS, createBoard, boardLayout } from '../board/board.js';
@@ -103,7 +104,12 @@ function facts(raw, lang) {
   // A type with a passive and an active kind says which is which (the part number decides).
   const about = [describePart(part, lang), raw.type === 'buzzer' && !raw.part ? t(lang, 'catalog.buzzer.kinds') : null].filter(Boolean).join(' ');
   const roles = pinRoles(part, lang);
-  return { ...(about && { about }), ...(roles.length && { pinRoles: Object.fromEntries(roles.map((r) => [r.name, r.text])) }), ...(ratings && { limits: ratings.limits, ...(ratings.fields && { limitFields: ratings.fields }) }) };
+  // A development board's output pin as the simulator drives it: its rail behind a resistance, with
+  // where that figure comes from (sim/models.js MCUS) or that it is assumed.
+  const family = raw.part ? lookupModule(raw.part)?.module.family : null;
+  const mcu = MCUS[family];
+  const pinOutput = mcu && { voltage: mcu.vdd, resistance: mcu.outputResistance, source: t(lang, `catalog.pinOutput.source.${family}`) };
+  return { ...(about && { about }), ...(pinOutput && { pinOutput }), ...(roles.length && { pinRoles: Object.fromEntries(roles.map((r) => [r.name, r.text])) }), ...(ratings && { limits: ratings.limits, ...(ratings.fields && { limitFields: ratings.fields }) }) };
 }
 
 const pinsOfModule = (m) => m.pins ?? m.headers.flatMap((h) => h.pins.map(([n]) => n));
@@ -333,6 +339,10 @@ export function formatCatalogEntry(e, lang = 'en') {
   else lines.push(`  ${t(lang, 'catalog.pins')} ${t(lang, 'catalog.pinsFromPart')}`);
   if (e.pinRoles) lines.push(`  ${t(lang, 'catalog.pinRoles')} ${Object.values(e.pinRoles).join('; ')}`);
   if (e.limits) lines.push(`  ${t(lang, 'catalog.limits')} ${limitsText(e, lang)}`);
+  if (e.pinOutput) {
+    const f = (v, u) => formatValue(v, u, { decimal: decimalSeparator(lang) });
+    lines.push(`  ${t(lang, 'catalog.pinOutput', { voltage: f(e.pinOutput.voltage, 'V'), resistance: f(e.pinOutput.resistance, 'Ω'), source: e.pinOutput.source })}`);
+  }
   if (Array.isArray(e.parts)) lines.push(`  ${t(lang, 'catalog.parts')} ${e.parts.join(', ')}`);
   else if (e.parts) for (const [n, p] of Object.entries(e.parts)) lines.push(`  ${n} · ${p.package} · ${p.pins.join(' ')}`);
   if (e.modules) for (const [n, m] of Object.entries(e.modules)) lines.push(`  ${n} (${m.name}, ${m.mount}) · ${m.pins.join(' ')}`);

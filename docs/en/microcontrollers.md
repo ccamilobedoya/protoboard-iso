@@ -46,6 +46,11 @@ board's pins in `src/parts/modules.js` (`power`, `gpio`, `adc`, `inputOnly`).
 | Own current | 40 mA (C3: 20 mA), no radio | 45 mA (chip, USB bridge, power LED) |
 | Limits | 40 mA per pin (absolute maximum); a pin beyond VDD + 0.3 V or below −0.3 V (protection diodes conducting: `SIM_PIN_OVERVOLTAGE`) | the same, at 5 V |
 
+`kit catalog <board>` says the output resistance with where it comes from (`output pins (the
+simulator's model): each is 5 V or 0 V behind 40 Ω (from the ATmega328P datasheet: 4.2 V out at
+20 mA from 5 V)`; JSON `pinOutput`): the ESP32's from its datasheet, the ESP32-C3's assumed to be
+the ESP32's.
+
 - **Power:** a board on USB (`"usb": true`, the default) is a source: 5 V behind the cable's
   resistance on its USB pin (VIN on a DevKit, 5V on the others). With no other supply, ground is its
   GND, so `esp32-led` simulates with nothing else. `"usb": false`: the board takes its power from the

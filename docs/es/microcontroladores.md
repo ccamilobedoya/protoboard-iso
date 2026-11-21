@@ -46,6 +46,11 @@ de cada placa en `src/parts/modules.js` (`power`, `gpio`, `adc`, `inputOnly`).
 | Consumo propio | 40 mA (C3: 20 mA), sin radio | 45 mA (chip, puente USB, LED de encendido) |
 | Límites | 40 mA por pin (máximo absoluto); un pin por encima de VDD + 0,3 V o por debajo de −0,3 V (diodos de protección conduciendo: `SIM_PIN_OVERVOLTAGE`) | lo mismo, a 5 V |
 
+`kit catalog <placa>` dice la resistencia de salida con su origen (`pines de salida (el modelo del
+simulador): cada uno es 5 V o 0 V detrás de 40 Ω (de la hoja de datos del ATmega328P: 4,2 V de salida
+a 20 mA desde 5 V)`; en JSON `pinOutput`): la del ESP32 de su hoja de datos, la del ESP32-C3 supuesta
+igual a la del ESP32.
+
 - **Alimentación:** una placa con USB (`"usb": true`, por defecto) es una fuente: 5 V tras la
   resistencia del cable en su pin de USB (VIN en un DevKit, 5V en las otras). Sin otra fuente, la
   tierra es su GND, así que `esp32-led` se simula sin nada más. `"usb": false`: la placa toma su

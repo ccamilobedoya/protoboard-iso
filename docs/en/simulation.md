@@ -101,7 +101,8 @@ first one feeds a separate circuit, measured from its own negative.
 
 A negative `voltage` (`-5`) is the same supply the other way round: it is simulated with its
 terminals swapped, and read as written (`V1 -5 V … written negative: T- is the positive rail, not
-T+`); `layout`'s answer has one `Note:` line saying the rail named + is the lower one.
+T+`); `layout`'s answer has one `Note:` line saying the rail named + is the lower one. Its control
+(the page's slider, `--set V1=-9`) is as written too: from −30 V to 0, at −5 V.
 
 Set them with an operation like any circuit field:
 `{ "op": "circuit", "supplies": [ … ] }`.
@@ -136,8 +137,18 @@ Set them with an operation like any circuit field:
     found between steps: a pin at the step its program changed it, an LED a pin drives in the
     middle of that step, anything slower where it crosses its level (an LED at 5 % of its rated
     current, a relay closed, a motor over 30 r/min, a pin or an op-amp's output over half its
-    rail);
-  - **the readings at the end**, as the DC point prints them, and every warning the run produced.
+    rail). A passive buzzer is said by when it is heard: it sounds while its current changes at
+    least every 50 ms (a tone of 20 Hz or more; `SOUND_GAP`, assumed), so its line gives the
+    beeps (the share of the run it sounds, how many times and how often it starts) and the
+    tone's frequency apart (`BZ1 (buzzer): beeps 2 Hz (every 500 ms), sounding 20 % of the time ·
+    beeps: 4 · tone 2 kHz`); on a steady current it is silent (it only clicks). An active buzzer
+    sounds on DC: its line is when it sounds, as before;
+  - **the readings at the end**, as the DC point prints them, and every warning the run produced,
+    each once at its strongest reading with when it came (`at its strongest in the run, at 10 ms,
+    with D9 high`): a figure of a run belongs to that moment, not to the DC point (a motor on a pin
+    takes more as it starts than turning steadily, and drives current back into the pin set low as
+    it slows down). The hazard of the DC point names its state too: on a board's pin the program
+    sets high there, `with D9 high, as the program first sets it`.
 
   Stimuli, each usable several times: `--env light=0.5,distance=10` (fields of the environment,
   in the catalog's units, inside the field's range: an unknown field or a value outside it is an
@@ -205,6 +216,10 @@ A run (`--run`, `run_s`):
   serial: { count: 10, lines: [{ t: 0.00084, text: '10' }, …] },    // kept: when capped
   outputs: [{ id: 'D1', kind: 'led', onShare: 0.999, changes: 1, frequency: null, period: null, duty: null,
               intervals: [[0.00086, 1]] }, …],                         // an output still on closes at the end
+  // a passive buzzer adds sound (the same fields, when it is heard, and starts) and tone:
+  //   { id: 'BZ1', kind: 'buzzer', onShare: 0.1, frequency: 2000, …,   // its current, each cycle
+  //     sound: { onShare: 0.2, changes: 8, starts: 4, frequency: 2, period: 0.5, duty: 0.2, intervals },
+  //     tone: { frequency: 2000, period: 0.0005 } }
   boards: 1, readings: { … the DC point's shape, at the end … }, issues: [ … ] }
 ```
 
@@ -354,7 +369,8 @@ tell.
   or segment that never lights while the others do is named (`DS1: dp`); a relay says the most its
   coil got and the pull-in it needs (a coil fed from a sensor module's output: 3.2 mA of 53.6 mA). A
   relay driven past a quarter of its pull-in current that does not pull in is
-  `SIM_RELAY_UNDERDRIVEN` instead. Not said when the board's program cannot run as written (its own
+  `SIM_RELAY_UNDERDRIVEN` instead. A passive buzzer never heard (on a steady current, or none) is
+  `BZ1 never sounds` (`variant: 'passive'`): it sounds only with a current that changes. Not said when the board's program cannot run as written (its own
   doubt says so). The two figures of the run are assumed (`src/sim/index.js`).
 - Every issue about a board's program: the file not found (`SIM_PROGRAM_FILE`, which says the
   folder the kit looked in: the circuit's, beside `circuit.json`), outside the folder, too large, a

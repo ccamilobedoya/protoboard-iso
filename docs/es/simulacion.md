@@ -107,6 +107,8 @@ primera alimenta un circuito aparte, medido desde su propio negativo.
 Un `voltage` negativo (`-5`) es la misma fuente al revés: se simula con sus terminales
 intercambiados y se lee como está escrito (`V1 -5 V … escrita en negativo: T- es el riel positivo, no
 T+`); la respuesta de `layout` trae una línea `Nota:` que dice que el riel llamado + es el más bajo.
+Su control (el deslizador de la página, `--set V1=-9`) también va como está escrito: de −30 V a 0,
+en −5 V.
 
 Se fijan con una operación, como cualquier campo del circuito:
 `{ "op": "circuit", "supplies": [ … ] }`.
@@ -144,8 +146,19 @@ Se fijan con una operación, como cualquier campo del circuito:
     arranque), su frecuencia, periodo y ciclo útil. Los flancos se buscan entre pasos: un pin en el
     paso en que su programa lo cambió, un LED que maneja un pin en la mitad de ese paso, y lo más
     lento donde cruza su nivel (un LED al 5 % de su corriente nominal, un relé cerrado, un motor
-    sobre 30 r/min, un pin o la salida de un amplificador sobre la mitad de su riel);
-  - **las lecturas al final**, como las imprime el punto de DC, y cada aviso de la ejecución.
+    sobre 30 r/min, un pin o la salida de un amplificador sobre la mitad de su riel). Un zumbador
+    pasivo se dice por cuándo se oye: suena mientras su corriente cambia al menos cada 50 ms (un
+    tono de 20 Hz o más; `SOUND_GAP`, supuesto), así que su línea da los pitidos (la parte de la
+    ejecución en que suena, cuántas veces y cada cuánto empieza) y la frecuencia del tono aparte
+    (`BZ1 (zumbador): pita 2 Hz (cada 500 ms), sonando el 20 % del tiempo · pitidos: 4 · tono
+    2 kHz`); con corriente continua está en silencio (solo chasquea). Un zumbador activo suena con
+    continua: su línea es cuándo suena, como antes;
+  - **las lecturas al final**, como las imprime el punto de DC, y cada aviso de la ejecución, una vez
+    cada uno en su lectura más fuerte y con cuándo llegó (`en su punto más fuerte de la ejecución, a
+    los 10 ms, con D9 en alto`): una cifra de una ejecución es de ese momento, no del punto de DC (un
+    motor en un pin toma más al arrancar que girando estable, y empuja corriente de vuelta al pin
+    puesto en bajo mientras frena). El daño del punto de DC también nombra su estado: en un pin de la
+    placa que el programa pone en alto ahí, `con D9 en alto, como el programa lo pone primero`.
 
   Estímulos, cada uno se puede repetir: `--env light=0.5,distance=10` (campos del ambiente, en las
   unidades del catálogo, dentro del rango del campo: un campo desconocido o un valor fuera de él es
@@ -215,6 +228,10 @@ Una ejecución (`--run`, `run_s`):
   serial: { count: 10, lines: [{ t: 0.00084, text: '10' }, …] },    // kept: cuando se recorta
   outputs: [{ id: 'D1', kind: 'led', onShare: 0.999, changes: 1, frequency: null, period: null, duty: null,
               intervals: [[0.00086, 1]] }, …],                         // una salida aún encendida cierra al final
+  // un zumbador pasivo agrega sound (los mismos campos, cuándo se oye, y starts) y tone:
+  //   { id: 'BZ1', kind: 'buzzer', onShare: 0.1, frequency: 2000, …,   // su corriente, cada ciclo
+  //     sound: { onShare: 0.2, changes: 8, starts: 4, frequency: 2, period: 0.5, duty: 0.2, intervals },
+  //     tone: { frequency: 2000, period: 0.0005 } }
   boards: 1, readings: { … la forma del punto de DC, al final … }, issues: [ … ] }
 ```
 
@@ -368,7 +385,9 @@ dice: el kit revisó el circuito y no encontró nada que decir.
   segmento que nunca enciende mientras los demás sí se nombra (`DS1: dp`); un relé dice lo más que
   recibió su bobina y la corriente de cierre que necesita (una bobina alimentada desde la salida de
   un módulo sensor: 3,2 mA de 53,6 mA). Un relé manejado por encima de la cuarta parte de su
-  corriente de cierre que no cierra es `SIM_RELAY_UNDERDRIVEN`. No se dice cuando el programa de la
+  corriente de cierre que no cierra es `SIM_RELAY_UNDERDRIVEN`. Un zumbador pasivo que nunca se oye
+  (con corriente continua, o sin ninguna) es `BZ1 nunca suena` (`variant: 'passive'`): suena solo con
+  una corriente que cambia. No se dice cuando el programa de la
   placa no se puede correr tal como está escrito (su propia duda lo dice). Las dos cifras de la
   ejecución son supuestas (`src/sim/index.js`).
 - Todo aviso sobre el programa de una placa: el archivo no encontrado (`SIM_PROGRAM_FILE`, que dice

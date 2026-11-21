@@ -279,6 +279,16 @@ export function formatExtras(r, lang, t) {
   return lines;
 }
 
+// A passive buzzer in the Behaviour line: its beeps and its tone apart ("BZ1 beeps 2 Hz, sounding
+// 20 % of the time, tone 2 kHz"); silent on a steady current.
+function soundItem(o, lang, t, f) {
+  const s = o.sound;
+  const tone = o.tone ? t(lang, 'layout.behaviour.tone', { frequency: f(o.tone.frequency, 'Hz') }) : '';
+  if (s.frequency) return t(lang, 'layout.behaviour.beeps', { id: o.id, frequency: f(s.frequency, 'Hz'), percent: Math.round(100 * (s.duty ?? s.onShare)), tone });
+  if (!s.changes) return s.onShare > 0.5 ? t(lang, 'layout.behaviour.sounds', { id: o.id, tone }) : t(lang, o.onShare > 0 ? 'layout.behaviour.click' : 'layout.behaviour.silent', { id: o.id });
+  return t(lang, 'layout.behaviour.soundShare', { id: o.id, percent: Math.round(100 * s.onShare), starts: s.starts, tone });
+}
+
 // "Behaviour, first 2 s (simulated): D1 1 Hz, on 50 % of the time · U1.D13 1 Hz, on 50 % of the time".
 function behaviourText(b, lang, t, f) {
   const seconds = f(b.seconds, 's');
@@ -288,6 +298,7 @@ function behaviourText(b, lang, t, f) {
     return t(lang, 'layout.behaviour.skipped', { seconds, why, run: String(b.seconds) });
   }
   const item = (o) => {
+    if (o.sound) return soundItem(o, lang, t, f);
     const percent = Math.round(100 * (o.duty ?? o.onShare));
     if (o.frequency && o.about) return t(lang, 'layout.behaviour.rhythmAbout', { id: o.id, frequency: formatValue(Number(o.frequency.toPrecision(2)), 'Hz', { decimal: decimalSeparator(lang) }), percent });
     if (o.frequency) return t(lang, 'layout.behaviour.rhythm', { id: o.id, frequency: f(o.frequency, 'Hz'), percent });

@@ -8,7 +8,8 @@
 //   parseStimuli({ env, set, press, at }) → { stimuli, errors }   the command line's texts, each a list
 //   runCircuit(circuit, { seconds, stimuli, budgetMs }) →
 //     { ok, run: { seconds, step, steps, asked? }, serial: { count, lines: [{ t, text, board? }] },
-//       outputs: [{ id, kind, onShare, changes, frequency, period, duty, intervals: [[on, off]…] }],
+//       outputs: [{ id, kind, onShare, changes, frequency, period, duty, intervals: [[on, off]…],
+//         sound?, tone? }],
 //       readings: engine.now() at the end, issues: [issue…] }
 //     or { ok: false, errors: [issue…] } for a stimulus that names nothing or is out of range (an
 //     input error: the command exits 1) or { ok: false, issues } when the circuit cannot run.
@@ -21,6 +22,11 @@
 // past ON[kind], each edge interpolated between the two steps around it. `frequency`, `period` and
 // `duty` only when it toggles regularly (REGULAR), measured over its last whole periods, the first one
 // (the start-up) left out when there are more.
+// A passive buzzer sounds only while its current changes at an audible rate: the fields above are its
+// current's (each cycle of a tone is a change), and `sound` is when it is heard, as the same fields
+// (onShare, changes, starts, frequency, period, duty, intervals: the beeps), with `tone`, the
+// frequency of the cycles inside them. On a steady current it is on above and silent in `sound` (it
+// only clicks). An active buzzer sounds on DC: its fields above are already when it sounds.
 
 import { compile } from './compile.js';
 import { createEngine, MIN_PIECE } from './engine.js';
@@ -50,6 +56,9 @@ const EDGES = 1000; // risings and fallings kept for that
 const CHECKS = 200; // times the limits are read during a run (and at its end)
 const BUDGET_EVERY = 32; // steps between two looks at the clock
 const COMBINATIONS = 64; // combinations of a board's outputs kept from a run
+// Two changes of a passive buzzer's current closer than this are one sound: a tone of 20 Hz or more at
+// any duty from 0 to 100 %; slower changes (a pin toggled at 10 Hz, a button) are clicks [assumed].
+const SOUND_GAP = 0.05;
 
 const t0 = () => globalThis.performance?.now?.() ?? Date.now();
 const num = (text) => {
@@ -254,7 +263,7 @@ export function outputsOf(program) {
       const kind = d.type === 'seven-segment' ? 'segment' : 'led';
       for (const c of d.params?.channels ?? []) out.push({ id: `${d.id}.${c.pin}`, part: d.id, kind, value: (r) => r.channels?.[c.pin]?.brightness });
     } else if (d.kind === 'BZA') out.push({ id: d.id, part: d.id, kind: 'buzzer', value: (r) => (r.sounding ? 1 : 0) });
-    else if (d.type === 'buzzer') out.push({ id: d.id, part: d.id, kind: 'buzzer', on: ON['passive-buzzer'], value: (r) => Math.abs(r.current ?? 0) });
+    else if (d.type === 'buzzer') out.push({ id: d.id, part: d.id, kind: 'buzzer', passive: true, on: ON['passive-buzzer'], value: (r) => Math.abs(r.current ?? 0) });
     else if (d.kind === 'RLY') out.push({ id: d.id, part: d.id, kind: 'relay', value: (r) => (r.closed ? 1 : 0) });
     else if (d.kind === 'MOT') out.push({ id: d.id, part: d.id, kind: 'motor', value: (r) => Math.abs(r.rpm ?? 0) });
     // A laser module is on from where it glows (devices/laser.js: dim, then lasing).
@@ -269,14 +278,43 @@ export function outputsOf(program) {
   return out;
 }
 
-// Whether an output is on in one reading of its part (the same levels a run uses).
+// Whether an output is on in one reading of its part (the same levels a run uses). A passive buzzer
+// is never on in one reading: a steady current only clicks it, and a sound is a current that changes
+// (a run's `sound`).
 export const outputOn = (o, reading) => {
+  if (o.passive) return false;
   const v = reading && !reading.floating ? o.value(reading) : undefined;
   return typeof v === 'number' && Number.isFinite(v) && v >= (o.on ?? ON[o.kind]).level;
 };
 
 function tracker(o) {
-  return { ...o, level: (o.on ?? ON[o.kind]).level, last: null, lit: false, since: 0, onTime: 0, changes: 0, intervals: [], kept: 0, rises: [], falls: [] };
+  const w = { ...o, level: (o.on ?? ON[o.kind]).level, last: null, lit: false, since: 0, onTime: 0, changes: 0, intervals: [], kept: 0, rises: [], falls: [] };
+  if (o.passive) w.sound = { lit: false, since: 0, onTime: 0, changes: 0, intervals: [], kept: 0, rises: [], falls: [], last: null, lastRising: false, cycleRise: null, cycles: 0, cycleTime: 0 };
+  return w;
+}
+// A change of a passive buzzer's current at `at` (rising or not): it sounds from the change before,
+// when that one was less than SOUND_GAP ago. The tone: rises counted inside each sound.
+function soundChange(s, at, rising) {
+  if (!s.lit && s.last != null && at - s.last < SOUND_GAP) {
+    edge(s, s.last, true);
+    s.cycleRise = s.lastRising ? s.last : null;
+  }
+  if (s.lit && rising) {
+    if (s.cycleRise != null) {
+      s.cycles++;
+      s.cycleTime += at - s.cycleRise;
+    }
+    s.cycleRise = at;
+  }
+  s.last = at;
+  s.lastRising = rising;
+}
+// Silent once no change came for SOUND_GAP: the sound ended at the last change.
+function soundQuiet(s, t) {
+  if (s.lit && t - s.last >= SOUND_GAP) {
+    edge(s, s.last, false);
+    s.cycleRise = null;
+  }
 }
 // A sample (t, v): an edge between the last sample and this one, interpolated at the level.
 function observe(w, t, v) {
@@ -299,6 +337,7 @@ function observe(w, t, v) {
   w.last = [t, v];
 }
 function edge(w, at, on) {
+  if (w.sound) soundChange(w.sound, at, on);
   w.changes++;
   w.lit = on;
   if (on) {
@@ -377,7 +416,10 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
   const sample = () => {
     const t = engine.time;
     const r = engine.readParts(ids);
-    for (const w of watches) observe(w, t, r[w.part] && !r[w.part].floating ? w.value(r[w.part]) : undefined);
+    for (const w of watches) {
+      observe(w, t, r[w.part] && !r[w.part].floating ? w.value(r[w.part]) : undefined);
+      if (w.sound) soundQuiet(w.sound, t);
+    }
     for (const id of boards) {
       const board = r[id];
       if (!board) continue;
@@ -418,10 +460,21 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
   sample();
   engine.onStep = sample;
 
+  // Each warning once, at the strongest reading of its first quantity seen over the run, with the time
+  // and, for a board's pin, whether the program held it high or low then: a figure of a run is not the
+  // DC point's (a motor's current at start or coasting into a pin set low is not its steady one).
   const warnings = new Map();
   const look = () => {
     const now = engine.now();
-    for (const w of now?.issues ?? []) if (w.severity !== 'info') warnings.set(`${w.code}:${w.params?.part ?? w.params?.supply ?? ''}`, w);
+    for (const w of now?.issues ?? []) {
+      if (w.severity === 'info') continue;
+      const key = `${w.code}:${w.params?.part ?? w.params?.supply ?? ''}`;
+      const was = warnings.get(key);
+      if (was && !(strength(w) > strength(was))) continue;
+      const [board, pin] = String(w.params?.part ?? '').split('.');
+      const level = pin ? now.parts?.[board]?.pins?.find((x) => x.name === pin && x.mode === 'output') : null;
+      warnings.set(key, { ...w, when: { time: engine.time, ...(level && { pin, high: Boolean(level.pwm ? level.pwm.duty > 0 : level.level) }) } });
+    }
     return now;
   };
   const began = t0();
@@ -477,6 +530,12 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
   };
 }
 
+// A warning's first quantity ({ value, unit }), as a size to keep the strongest of a run.
+function strength(w) {
+  const q = Object.values(w.params ?? {}).find((v) => v && typeof v === 'object' && typeof v.value === 'number');
+  return q ? Math.abs(q.value) : 0;
+}
+
 // The first half of the cap, then the last lines.
 function keepLine(serial, line) {
   const half = LIMITS.runSerialLines / 2;
@@ -488,6 +547,17 @@ function keepLine(serial, line) {
 }
 
 function summary(w, end) {
+  const out = spansOf(w, end);
+  if (!w.sound) return out;
+  const s = w.sound;
+  // A sound still going at the end lasts to its last change, or to the end while it changes.
+  if (s.lit && end - s.last >= SOUND_GAP) edge(s, s.last, false);
+  const { id, kind, ...sound } = spansOf(s, end);
+  // The tone: whole cycles, rise to rise, inside the sounds.
+  const tone = s.cycles > 0 && s.cycleTime > 0 ? { frequency: s.cycles / s.cycleTime, period: s.cycleTime / s.cycles } : null;
+  return { ...out, sound: { ...sound, starts: s.kept + (s.lit ? 1 : 0) }, tone };
+}
+function spansOf(w, end) {
   const intervals = w.intervals.slice();
   let onTime = w.onTime;
   if (w.lit) {
@@ -545,7 +615,7 @@ export function behaviourOf(circuit, { seconds = 2, maxSteps = BEHAVIOUR_STEPS }
   const outputs = r.outputs.map((o) => {
     const f = coarse.includes(o) ? again.get(o.id) : null;
     if (!f?.period) return coarse.includes(o) ? { ...o, about: true } : o;
-    return { ...o, frequency: f.frequency, period: f.period, duty: f.duty, periods: f.periods, ...(f.periods < ABOUT_PERIODS && { about: true }) };
+    return { ...o, frequency: f.frequency, period: f.period, duty: f.duty, periods: f.periods, ...(f.periods < ABOUT_PERIODS && { about: true }), ...(o.sound && f.tone && { tone: f.tone }) };
   });
   return { seconds, outputs };
 }

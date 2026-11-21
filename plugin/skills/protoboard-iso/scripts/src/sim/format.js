@@ -150,10 +150,26 @@ export function formatRun(result, lang = 'en', { formatIssue, netLabels = {} } =
 const percentOf = (share) => (share > 0 && share < 0.005 ? '< 1' : share < 1 && share > 0.995 ? '> 99' : String(Math.round(100 * share)));
 export function outputText(o, lang, f) {
   const params = { id: o.id, kind: t(lang, `sim.run.kind.${o.kind}`), changes: o.changes };
+  if (o.sound) return soundText(o, lang, f, params);
   if (o.frequency) return t(lang, 'sim.run.regular', { ...params, frequency: f(o.frequency, 'Hz'), period: f(o.period, 's'), percent: percentOf(o.duty ?? o.onShare) });
   if (!o.changes) return t(lang, o.onShare > 0.5 ? 'sim.run.always' : 'sim.run.never', params);
   const spans = o.intervals.length && o.intervals.length <= SPANS_SHOWN && !o.intervalsTotal ? t(lang, 'sim.run.spans', { list: o.intervals.map(([a, b]) => `${f(a, 's')} → ${f(b, 's')}`).join(', ') }) : '';
   return t(lang, 'sim.run.share', { ...params, percent: percentOf(o.onShare), spans });
+}
+
+// A passive buzzer by when it is heard (its beeps) and its tone, apart: "BZ1 (buzzer): beeps 2 Hz
+// (every 500 ms), sounding 20 % of the time · beeps: 4 · tone 2 kHz".
+function soundText(o, lang, f, params) {
+  const s = o.sound;
+  const tone = o.tone ? t(lang, 'sim.run.tone', { frequency: f(o.tone.frequency, 'Hz') }) : '';
+  const p = { ...params, starts: s.starts, tone };
+  if (s.frequency) return t(lang, 'sim.run.sound.regular', { ...p, frequency: f(s.frequency, 'Hz'), period: f(s.period, 's'), percent: percentOf(s.onShare) });
+  if (!s.changes) {
+    if (s.onShare > 0.5) return t(lang, 'sim.run.sound.always', p);
+    return o.onShare > 0 ? t(lang, 'sim.run.sound.click', { ...p, percent: percentOf(o.onShare) }) : t(lang, 'sim.run.sound.silent', p);
+  }
+  const spans = s.intervals.length && s.intervals.length <= SPANS_SHOWN && !s.intervalsTotal ? t(lang, 'sim.run.sound.spans', { list: s.intervals.map(([a, b]) => `${f(a, 's')} → ${f(b, 's')}`).join(', ') }) : '';
+  return t(lang, 'sim.run.sound.share', { ...p, percent: percentOf(s.onShare), spans });
 }
 
 // A table at about ten evenly spaced times: capacitor voltages and supply currents (the

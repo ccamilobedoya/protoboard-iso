@@ -33,6 +33,9 @@ export function supplyControls(s) {
     if (s.battery.measured) return {};
     return { charge: { min: 0, max: 1, scale: 'linear', unit: '', percent: true, value: s.battery.charge ?? chargeFor(s.battery) } };
   }
+  // A supply written negative (compile.js swapped its terminals) is shown and set as written: −5 V on
+  // a control from −30 to 0.
+  if (s.written < 0) return { voltage: { min: -Math.max(BENCH_MAX, s.voltage), max: 0, limit: [-1000, 0], scale: 'linear', unit: 'V', step: 0.1, value: -s.voltage } };
   return { voltage: { min: 0, max: Math.max(BENCH_MAX, s.voltage), limit: [0, 1000], scale: 'linear', unit: 'V', step: 0.1, value: s.voltage } };
 }
 
@@ -45,6 +48,12 @@ export function setSupply(s, field, value) {
     return true;
   }
   if (field === 'voltage' && !s.battery) {
+    if (s.written < 0) {
+      if (value > 0) return false;
+      s.voltage = -value;
+      if (value < 0) s.written = value;
+      return true;
+    }
     s.voltage = value;
     return true;
   }

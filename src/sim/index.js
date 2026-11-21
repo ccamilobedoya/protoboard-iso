@@ -188,7 +188,17 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
   // output alone (an H-bridge's sketch never turns on both transistors of one leg).
   const pinStates = combinations ? combinationStates(rest, combinations) : outputs.states;
   const all = [...states, ...pinStates];
-  const hazards = exceeded(engine, rest);
+  // A hazard at rest on a board's pin the program sets high there names that state ("with D9 high, as
+  // the program first sets it"): the figure is that state's, not one of a run.
+  const highAtRest = (h) => {
+    const [board, pin] = String(h.params.part).split('.');
+    const x = pin && rest.parts?.[board]?.kind === 'MCU' && rest.parts[board].program ? rest.parts[board].pins?.find((p) => p.name === pin && p.mode === 'output') : null;
+    return x && (x.pwm ? x.pwm.duty > 0 : x.level) ? { part: board, pin, name: pin, value: 1, rest: true } : null;
+  };
+  const hazards = exceeded(engine, rest).map((h) => {
+    const when = highAtRest(h);
+    return when ? { ...h, when } : h;
+  });
   const atRest = new Set(hazards.map(hazardKey));
   // What is wrong or unknown without damaging anything (a relay driven too weakly to pull in), once
   // each, at rest or in the first state that shows it.
@@ -283,7 +293,8 @@ function neverOn(circuit, compiled, engine, states, lit, extra = extraStates(cir
     if (reading.ok) lit.see(reading);
     leaveState(engine, s);
   }
-  if (dark().length) for (const o of visitRun(circuit, compiled, engine, states, extra, true)?.outputs ?? []) if (o.onShare > 0 || o.changes > 0) lit.on.add(o.id);
+  // A passive buzzer is on when it sounds (its run's `sound`), not when a steady current clicks it.
+  if (dark().length) for (const o of visitRun(circuit, compiled, engine, states, extra, true)?.outputs ?? []) if (o.sound ? o.sound.onShare > 0 || o.sound.changes > 0 : o.onShare > 0 || o.changes > 0) lit.on.add(o.id);
   const out = [];
   const left = dark();
   // Whole parts that never came on, in one doubt (eight LEDs behind a chip not simulated are one
@@ -296,7 +307,8 @@ function neverOn(circuit, compiled, engine, states, lit, extra = extraStates(cir
     if (kind === 'relay') {
       const d = compiled.program.devices.find((x) => x.id === part);
       out.push(issue('warning', 'SIM_OUTPUT_NEVER_ON', { part, kind, variant: 'relay', current: { value: lit.coil.get(part) ?? 0, unit: 'A' }, needs: { value: d.params.model.pullIn, unit: 'A' } }));
-    } else if (own.length > 1 && off.length < own.length) out.push(issue('warning', 'SIM_OUTPUT_NEVER_ON', { part, kind, variant: 'channels', channels: off.map((o) => o.id.slice(part.length + 1)).join(', ') }));
+    } else if (own[0].passive) out.push(issue('warning', 'SIM_OUTPUT_NEVER_ON', { part, kind, variant: 'passive' }));
+    else if (own.length > 1 && off.length < own.length) out.push(issue('warning', 'SIM_OUTPUT_NEVER_ON', { part, kind, variant: 'channels', channels: off.map((o) => o.id.slice(part.length + 1)).join(', ') }));
     else whole.push(part);
   }
   if (whole.length) out.unshift(issue('warning', 'SIM_OUTPUT_NEVER_ON', { part: whole.join(', '), ...(whole.length > 1 && { variant: 'many' }) }));
