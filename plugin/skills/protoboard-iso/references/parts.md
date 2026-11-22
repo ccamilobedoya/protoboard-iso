@@ -76,7 +76,7 @@ part gives itself wins over the environment. Ranges are what the kit accepts; un
 - `LM324`: pins `OUT1`, `IN1-`, `IN1+`, `VCC`, `IN2+`, `IN2-`, `OUT2`, `OUT3`, `IN3-`, `IN3+`, `GND`, `IN4+`, `IN4-`, `OUT4`; nothing to change while it runs.
 - `UA741`: pins `NULL1`, `IN-`, `IN+`, `V-`, `NULL2`, `OUT`, `V+`, `NC`; nothing to change while it runs.
 - `NE5532`: pins `OUT1`, `IN1-`, `IN1+`, `V-`, `IN2+`, `IN2-`, `OUT2`, `V+`; nothing to change while it runs.
-- `LM386`: drawn, not simulated: it gives no readings and no warnings, and a circuit with it ends `WARNINGS`; pins `GAIN1`, `IN-`, `IN+`, `GND`, `OUT`, `VS`, `BYPASS`, `GAIN8`.
+- `LM386`: pins `GAIN1`, `IN-`, `IN+`, `GND`, `OUT`, `VS`, `BYPASS`, `GAIN8`; nothing to change while it runs.
 - `ULN2003`: pins `IN1`, `IN2`, `IN3`, `IN4`, `IN5`, `IN6`, `IN7`, `GND`, `COM`, `OUT7`, `OUT6`, `OUT5`, `OUT4`, `OUT3`, `OUT2`, `OUT1`; nothing to change while it runs.
 - `ULN2803`: pins `IN1`, `IN2`, `IN3`, `IN4`, `IN5`, `IN6`, `IN7`, `IN8`, `GND`, `COM`, `OUT8`, `OUT7`, `OUT6`, `OUT5`, `OUT4`, `OUT3`, `OUT2`, `OUT1`; nothing to change while it runs.
 - `PC817`: pins `A`, `K`, `E`, `C`; nothing to change while it runs.

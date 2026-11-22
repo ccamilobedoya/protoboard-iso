@@ -94,6 +94,14 @@
        "level": "fine"
       },
       {
+       "quantity": "voltage",
+       "value": 8.975350240181438,
+       "max": 35,
+       "unit": "V",
+       "ratio": 0.2564385782908982,
+       "level": "fine"
+      },
+      {
        "quantity": "reverse",
        "value": -8.975350240181438,
        "max": 0.5,

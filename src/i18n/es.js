@@ -2036,4 +2036,7 @@ export default {
   'explain.amp.iout': 'Corriente que sale por OUT hacia la carga (negativa cuando entra). A través del capacitor de salida es la corriente del parlante.',
   'check.SIM_IC_SUPPLY_RANGE': '{part} funciona con {voltage}, fuera de los {min} a {max} que da su hoja de datos: no se garantiza que funcione como muestra el modelo.',
   'catalog.model.lm386': 'Simulado: la salida en la mitad de la alimentación, una ganancia de 20 con las patas 1 y 8 al aire y de 200 con un capacitor entre ellas (los 1,35 kΩ y 15 kΩ de la hoja de datos), entradas de 50 kΩ, una salida que llega a unos 1 V de cada riel, 4 mA propios. Sin modelar: ancho de banda, distorsión, ruido, el refuerzo de graves de la pata 1 a la 5. El kit todavía no tiene parlante: una resistencia de 8 Ω hace sus veces.',
+  'check.SIM_REG_INPUT.chip': '{part} tiene {voltage} en la entrada, más que su máximo absoluto de {max}{effect} Baja el voltaje de la fuente, o reduce parte de él antes del regulador.',
+  'check.SIM_REG_INPUT.differential': '{part} tiene {voltage} entre la entrada y la salida, más que su máximo absoluto de {max}{effect} Baja el voltaje de la fuente, o reduce parte de él antes del regulador.',
+  'catalog.limit.of.inputOutput': 'entrada a salida',
 };

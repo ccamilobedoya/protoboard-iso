@@ -259,6 +259,26 @@ test('catalog: the LM386 is simulated, says what it leaves out and that an 8 Ω 
   assert.match(text, /maximum voltage 15 V \(supply\)/);
 });
 
+// ---- Regulators: the maximum input
+
+const reg7805 = once(() => autoLayout({ supplies: [{ id: 'V1', voltage: 12 }], parts: [{ id: 'U1', part: '7805' }, { id: 'R1', type: 'resistor', value: '1k' }], nets: [['T+', 'U1.IN'], ['U1.GND', 'T-'], ['U1.OUT', 'R1.1'], ['R1.2', 'T-']] }));
+const fed = (circuit, voltage) => ({ ...circuit, supplies: circuit.supplies.map((s) => ({ ...s, voltage })) });
+
+test('regulators: a 7805 at 30 V is within its input rating, at 40 V it is a hazard (35 V absolute maximum)', () => {
+  const { circuit } = reg7805();
+  assert.deepEqual(checkHazards(fed(circuit, 30)).hazards, []);
+  const over = checkHazards(fed(circuit, 40)).hazards;
+  assert.ok(over.some((h) => h.code === 'SIM_REG_INPUT' && h.params.part === 'U1' && h.params.effect === 'damaged'), JSON.stringify(over));
+});
+
+test('catalog: every regulator shows its maximum input from its datasheet', () => {
+  const limit = (n) => formatCatalogEntry(catalogEntry(n), 'en').split('\n').find((l) => l.includes('limits'));
+  for (const n of ['7805', '7809', '7812', '7815', '7818']) assert.match(limit(n), /maximum voltage 35 V \(input\)/, n);
+  assert.match(limit('7824'), /maximum voltage 40 V \(input\)/);
+  assert.match(limit('LM317'), /maximum voltage 40 V \(input to output\)/);
+  for (const n of ['AMS1117-3.3', 'AMS1117-5.0']) assert.match(limit(n), /maximum voltage 15 V \(input\)/, n);
+});
+
 // ---- The live page (jsdom)
 
 const example = (name) => JSON.parse(readFileSync(join(root, 'examples', name), 'utf8'));

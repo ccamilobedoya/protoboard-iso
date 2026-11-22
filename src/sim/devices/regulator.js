@@ -13,7 +13,9 @@ export const regulator = {
   params(part) {
     const e = part.def.electrical;
     const base = e.adjustable ? REGULATORS.LM317 : REGULATORS[e.family] ?? REGULATORS.fixed;
-    const out = { model: { ...base, vref: e.adjustable ? e.reference : e.output, ...part.raw.model }, ref: e.adjustable ? 'ADJ' : 'GND' };
+    // A part number's own figures over its family's (the 7824's higher maximum input).
+    const own = e.family || e.adjustable ? {} : REGULATORS[e.part] ?? {};
+    const out = { model: { ...base, ...own, vref: e.adjustable ? e.reference : e.output, ...part.raw.model }, ref: e.adjustable ? 'ADJ' : 'GND' };
     if (e.family) out.module = true;
     if (e.led) out.led = { resistance: e.led.resistance, model: ledModel(e.led.color) };
     return out;
@@ -69,7 +71,10 @@ export const regulator = {
   },
   limits(entry, r) {
     const out = [stress(entry.module ? 'SIM_REG_HOT_MODULE' : 'SIM_REG_HOT', 'power', r.power, entry.model.maxPower, 'W'), stress('SIM_OVER_CURRENT', 'current', r.current, entry.model.maxCurrent, 'A', { of: 'output' })];
-    if (entry.model.maxInput) out.push(stress('SIM_REG_INPUT', 'voltage', r.across, entry.model.maxInput, 'V', { of: 'input' }));
+    // Its maximum input: the module's own words say 12 V; a 78xx's is an absolute maximum to GND, an
+    // LM317's is between its input and its output.
+    if (entry.model.maxInput) out.push(stress('SIM_REG_INPUT', 'voltage', r.across, entry.model.maxInput, 'V', { of: 'input', ...(!entry.module && { extra: { variant: 'chip' } }) }));
+    if (entry.model.maxInputOutput) out.push(stress('SIM_REG_INPUT', 'voltage', r.headroom, entry.model.maxInputOutput, 'V', { of: 'inputOutput', extra: { variant: 'differential' } }));
     // Fed backwards (the input below its ground or adjust pin): any chip is outside its ratings; the
     // module's datasheet adds that it shorts the supply.
     out.push(reverseSupply(-r.across, REVERSE_LIMITS.ic, 'IN', entry.ref));

@@ -2038,4 +2038,7 @@ export default {
   'explain.amp.iout': 'Current that leaves through OUT into the load (negative when it flows in). Through the output capacitor it is the speaker\'s current.',
   'check.SIM_IC_SUPPLY_RANGE': '{part} runs from {voltage}, outside the {min} to {max} its datasheet gives for it: it is not guaranteed to work as the model shows.',
   'catalog.model.lm386': 'Simulated: the output at half the supply, a gain of 20 with pins 1 and 8 open and 200 with a capacitor between them (the datasheet\'s 1.35 kΩ and 15 kΩ), 50 kΩ inputs, a swing to about 1 V from each rail, 4 mA of its own. Not modelled: bandwidth, distortion, noise, the bass boost from pin 1 to pin 5. The kit has no loudspeaker yet: an 8 Ω resistor stands for it.',
+  'check.SIM_REG_INPUT.chip': '{part} has {voltage} at its input, more than its absolute maximum {max}{effect} Lower the supply voltage, or drop part of it before the regulator.',
+  'check.SIM_REG_INPUT.differential': '{part} has {voltage} between its input and its output, more than its absolute maximum {max}{effect} Lower the supply voltage, or drop part of it before the regulator.',
+  'catalog.limit.of.inputOutput': 'input to output',
 };
