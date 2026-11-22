@@ -40,7 +40,8 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
   backwards is turned round, a fix the layout agent applies), and
   `Verdict: WARNINGS`. A doubt (`doubts`, under `The kit cannot confirm these work`: a part not
   simulated, a program that does not run, stops, gets stuck or calls a function the kit does not
-  know, a two-dimensional array, a relay that may not pull in, an output that never comes on, a
+  know, a two-dimensional array, a mistake in the sketch, a chip with no supply, a logic input
+  open or under its high level, a relay that may not pull in, an output that never comes on, a
   coil switched with no diode across it, a button across joined pins, a pin over its voltage) is
   the same verdict: report each one as written, never "it works". A `Note:` (a supply written
   negative) is reported as printed; a figure said "about" as approximate.

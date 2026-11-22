@@ -382,6 +382,7 @@ export default {
   'check.SIM_DEFAULT_MODEL': '{part}: no hay modelo de simulación para esta referencia; se usa un {model} típico.',
   'check.SIM_UNSUPPORTED': '{part}: el kit todavía no simula este componente: se dibuja, y sus patas quedan sin conectar en la simulación.',
   'check.SIM_SEPARATE_CIRCUIT': 'La fuente {supply} alimenta un circuito aparte: sus voltajes se miden desde su propio borne −.',
+  'check.SIM_SEPARATE_CIRCUIT.board': 'La placa {supply}, por USB, alimenta un circuito aparte: sus voltajes se miden desde su propio GND.',
   'check.SIM_NO_CONVERGENCE': 'La simulación no convergió: revisa si hay componentes conectados de una forma imposible (por ejemplo, dos fuentes en paralelo).',
   'check.SIM_NO_CONVERGENCE_AT': 'La simulación se detuvo en {time}: ahí no convergió.',
   'check.SIM_BAD_TIME': 'Transitorio: indica un tiempo final positivo (stop) y un paso pequeño (como mucho 200 000 pasos).',

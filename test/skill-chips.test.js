@@ -19,7 +19,7 @@ test("chips.md's generated blocks are the catalog's (npm run parts-reference -- 
 test('chips.md: each worked spec ends DONE and prints the lines quoted after it', () => {
   const runs = runDoc(text, { prefix: 'pb-chips-' });
   const layouts = runs.filter((r) => r.command.startsWith('kit layout '));
-  assert.equal(layouts.length, 6, 'one worked spec per section (two for the ULNs)');
+  assert.equal(layouts.length, 7, 'one worked spec per chip, and a board reading the PC817');
   for (const r of layouts) assert.match(r.stdout, /^STATUS: DONE/m, r.command);
   for (const chip of CHIPS) assert.ok(text.includes(`"part": "${chip}"`), `a worked spec with ${chip}`);
   assert.ok(runs.reduce((n, r) => n + r.quoted, 0) >= 7);
@@ -40,4 +40,23 @@ test('chips.md: a ULN with COM off the coil and a PC817 with no resistor are ⚠
   const opto = spec('opto.json');
   const bare = { ...opto, parts: opto.parts.filter((p) => p.id !== 'R1'), nets: opto.nets.filter((n) => !n.includes('R1.2')).map((n) => n.map((p) => (p === 'R1.1' ? 'U1.A' : p))) };
   assert.ok(autoLayout(bare).review.hazards.some((h) => h.params.part === 'U1'), 'the LED over its current');
+});
+
+// chips.md: eight red LEDs on 330 Ω take a 74HC595 over its 70 mA when all are on (a run says so,
+// where layout's review does not reach that moment); with 1 kΩ the run has no warning. Measured on
+// the placed example with its LEDs made red, so no layout is needed.
+test("chips.md: eight red LEDs on 330 Ω take a 74HC595 over its 70 mA in a run, and 1 kΩ does not", async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { writeFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { tempDir } = await import('../scripts/tmp.js');
+  const root = new URL('../', import.meta.url).pathname;
+  const circuit = JSON.parse(readFileSync(join(root, 'examples/uno-74hc595-fill.json'), 'utf8'));
+  for (const p of circuit.parts) if (p.type === 'led') p.color = 'red';
+  const file = join(tempDir('pb-chips-595-'), 'red8.json');
+  writeFileSync(file, JSON.stringify(circuit));
+  const run = (...extra) => spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'simulate', file, '--run', '2', ...extra], { encoding: 'utf8' }).stdout;
+  assert.match(text, /warns `U2 carries 71\.3 mA, more than its\s+maximum 70 mA`/);
+  assert.match(run(), /warning: U2 carries 71\.3 mA, more than its maximum 70 mA/);
+  assert.doesNotMatch(run('--set', [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `R${n}=1k`).join(',')), /warning:/);
 });

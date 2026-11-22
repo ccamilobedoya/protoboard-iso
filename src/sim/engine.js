@@ -188,6 +188,15 @@ function prepare(program) {
       issues.push(issue('info', 'SIM_SEPARATE_CIRCUIT', { supply: s.id }));
     }
   }
+  // A board on USB is a source too: its island, when no supply reaches it, takes its GND as its own
+  // reference, as another supply's island does.
+  for (const el of elements) {
+    if (el.reference && find(el.nodes[1]) !== find(-1)) {
+      tied.push(el.nodes[1]);
+      union(el.nodes[1], -1);
+      issues.push(issue('info', 'SIM_SEPARATE_CIRCUIT', { supply: el.reference, variant: 'board' }));
+    }
+  }
   const floating = new Set(names.filter((name, i) => find(i) !== find(-1) && !name.startsWith('~')));
   // In DC, each floating island is anchored to ground at one node. No direct current can flow in
   // it, so nothing changes, but its matrix rows are no longer left with only GMIN, which an

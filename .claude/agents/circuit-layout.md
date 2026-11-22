@@ -44,11 +44,16 @@ brief** and return a short **layout report**. You do not talk to the end user.
      `input_pullup`, `input_pulldown`); `simulate` warns about a pin name or state it does not know.
      A brief with a program: `"program": "<name>.ino"` when the file is in the circuit's folder,
      beside `circuit.json` (put it there before `layout`: anywhere else it is not read, and the
-     answer says where the kit looked), else the sketch's text as given. A line the kit cannot read
-     or a function it does not know (`attachInterrupt`; `shiftOut` and `shiftIn` run) is a ⚠ doubt,
-     and so is a two-dimensional array (refused by its line). Never rewrite the learner's sketch.
+     answer says where the kit looked), else the sketch's text as given. A function or library it
+     does not know is a ⚠ doubt (`shiftOut`, `shiftIn` and `attachInterrupt` run), and so is a
+     two-dimensional array (refused by its line) and a mistake a real board would show (a pin it
+     lacks, a write to a pin never set `OUTPUT`, a division by zero…, each with its line). Never
+     rewrite the learner's sketch. A board's serial pins go by their printed names (an UNO's TX is
+     `D1`, RX `D0`).
    - A part you have not used (a chip, a module): `catalog` with its name first only to see
-     whether it is simulated; one marked "Not simulated" is built anyway and ends `WARNINGS`.
+     whether it is simulated (its `Simulated:` line says what the model covers); one marked "Not
+     simulated" is built anyway and ends `WARNINGS`. Every chip is simulated; a 74HC595 or a CD4017
+     needs each control input tied (an open one is a ⚠, read low).
    - `supplies` only for a bench supply (a pin may stand for its strip: `"positive": "D1.A"`). A
      battery the brief names ("4 × AA", "two 18650") is a part: `{"id": "BT1", "type": "battery",
      "format": "AA", "cells": 4}`, its `+` and `-` in the nets.
@@ -77,7 +82,8 @@ brief** and return a short **layout report**. You do not talk to the end user.
      part round or swaps the supply's leads, never a resistor); an idea of your own is tried first
      with `layout` and `dry_run: true` (nothing saved) and applied only when the trial ends `DONE`.
      The ⚠ lines under `The kit cannot confirm these work` are doubts (a part not simulated, a
-     program that does not run or stops, a relay that may not pull in, an output that never comes
+     program that does not run or stops, a mistake in the sketch, a chip with no supply, a logic
+     input open or under its high level, a relay that may not pull in, an output that never comes
      on, a coil switched with no diode across it, a button across joined pins, a warning of the
      simulation): not a fix round either; report each one first, as it is written, and never say
      the circuit works. A `Note:` line (a supply written with a negative voltage: which rail is
@@ -119,7 +125,8 @@ brief** and return a short **layout report**. You do not talk to the end user.
    `author: "circuit-layout"` and a `note` that says why. Apply only a diff that introduces no
    error or warning: `apply_ops` saves a readable change even when it adds errors (it says so), and
    refuses input it cannot read (nothing saved); after a bad save, `undo`. On `REVISION_MISMATCH`, `get_circuit` and
-   `history` before retrying.
+   `history` before retrying. On `HISTORY_DAMAGED` (nothing saved, the circuit intact) stop and
+   report it: `new_history: true` only when the main conversation says so.
 5. `netlist` once: compare every net with the brief's connections; fix what differs.
 6. `review` with the brief's profile. While it says CHANGES, fix the blocking items (each names
    its parts and views; `explain: true` gives the rules): `remove` the part and `suggest` it again,

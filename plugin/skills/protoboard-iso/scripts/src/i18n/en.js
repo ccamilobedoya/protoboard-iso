@@ -383,6 +383,7 @@ export default {
   'check.SIM_DEFAULT_MODEL': '{part}: no simulation model for this part number; a typical {model} is used.',
   'check.SIM_UNSUPPORTED': '{part}: the kit does not simulate this part yet: it is drawn, and its pins are left unconnected in the simulation.',
   'check.SIM_SEPARATE_CIRCUIT': 'Supply {supply} feeds a separate circuit: its voltages are measured from its own − terminal.',
+  'check.SIM_SEPARATE_CIRCUIT.board': 'Board {supply}, on USB, powers a separate circuit: its voltages are measured from its own GND.',
   'check.SIM_NO_CONVERGENCE': 'The simulation did not converge: check for parts connected in an impossible way (for example two supplies in parallel).',
   'check.SIM_NO_CONVERGENCE_AT': 'The simulation stopped at {time}: it did not converge there.',
   'check.SIM_BAD_TIME': 'Transient: give a positive end time (stop) and a step small enough (at most 200 000 steps).',

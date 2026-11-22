@@ -97,7 +97,9 @@ time runs one period a second, with at least 100 steps per period. Examples
 `half-wave-rectifier.json` and `rc-square-wave.json`.
 
 The first supply's negative is **ground** (0 V); with no `supplies`, the first battery part's. A second supply with no connection to the
-first one feeds a separate circuit, measured from its own negative.
+first one feeds a separate circuit, measured from its own negative; so does a development board on
+USB with no connection to the supplies (the output side of an optocoupler read by an UNO), measured
+from its own GND (it was left floating: "no DC path to the supply").
 
 A negative `voltage` (`-5`) is the same supply the other way round: it is simulated with its
 terminals swapped, and read as written (`V1 -5 V … written negative: T- is the positive rail, not

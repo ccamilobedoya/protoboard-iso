@@ -27,8 +27,10 @@ de la fuente, nunca agrega una resistencia); cualquier otra idea se ensaya antes
 `layout` (sin guardar nada) y se aplica solo si el ensayo termina en `DONE`. El mismo veredicto llega
 con **dudas** (`doubts`, bajo «El kit no puede confirmar que esto funcione»: lo que el kit no pudo
 comprobar o encontró que puede no funcionar, un componente sin simular, un programa que no corre, se
-detiene o llama una función que el kit no conoce (`shiftOut` corre; un arreglo de dos dimensiones se
-rechaza por su línea), un relé que puede no cerrar, una salida que nunca se enciende, una bobina
+detiene o llama una función que el kit no conoce (`shiftOut` y `attachInterrupt` corren; un arreglo
+de dos dimensiones se rechaza por su línea), un error del programa que una placa real mostraría
+(nombrado por su línea), un chip sin alimentación, una entrada lógica al aire o por debajo de su
+nivel alto, un relé que puede no cerrar, una salida que nunca se enciende, una bobina
 conmutada sin diodo en paralelo, un pulsador entre patas unidas, cualquier aviso de la simulación;
 [simulacion.md](simulacion.md#lo-que-no-pudo-saber-dudas)): el agente reporta cada una y nunca dice que
 el circuito funciona. Una línea `Nota:` (una fuente escrita con voltaje negativo: cuál riel es el
@@ -242,6 +244,9 @@ renombrada o eliminada no pasa desapercibida.
   herramientas MCP también.
 - Cada agente firma sus cambios con su nombre como `author`, así `history` muestra quién
   hizo qué.
+- Un `history.jsonl` dañado (`HISTORY_DAMAGED`: `apply_ops` no guarda nada, el circuito está intacto)
+  se reporta, no se esquiva: `new_history: true` guarda el archivo viejo como `history.jsonl.damaged`
+  y empieza de nuevo, y solo la conversación principal, con el usuario, lo decide.
 - Agentes de vida corta: uno nuevo por tarea; se reutiliza solo para las rondas de arreglos
   del mismo circuito.
   Los números son opciones con nombre en `project.json` (`review_rounds`, `briefs_per_agent`),

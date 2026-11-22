@@ -24,12 +24,18 @@ Wire it right:
   with `MSBFIRST` bit 0 of `value` lands on `QA`.
 - Each output through its own resistor to its LED. `QA` is on the other side of the chip from
   `QB`…`QH`: name the pins, `layout` places them.
+- The chip takes at most 70 mA through `VCC` for all its outputs together. Eight red LEDs on
+  330 Ω from 5 V go over it when all are on: `layout` can still end `DONE` (its review does not reach
+  that moment) while `kit simulate <folder> --run 3` warns `U2 carries 71.3 mA, more than its
+  maximum 70 mA`. With 1 kΩ each the run has no warning. Run a fill to its last LED and tell any
+  `warning:`.
 - From an ESP32 (3.3 V pins) feed the chip from `3V3`, not 5 V: at 5 V its inputs do not reach
   their high level (a ⚠).
 - `QH'` to the next chip's `SER` (same `SRCLK` and `RCLK`) chains a second one.
 
-Worked spec: an UNO filling four LEDs one by one (`QE`…`QH` take four more the same way). The
-sketch, written first, beside where `circuit.json` will be:
+Worked spec: an UNO filling four LEDs one by one (`QE`…`QH` take four more the same way; for n
+LEDs the sketch counts `% (n + 1)`). The sketch, written first, beside where `circuit.json` will
+be:
 
 ```cpp circuits/shift/fill.ino
 const int DATA = 11;   // to SER
@@ -290,6 +296,49 @@ kit simulate circuits/opto --set S1=on
 
 ```text
   D1     2.04 V     8.4 mA     17.1 mW · brightness 42 % of 20 mA
+```
+
+A board reading the output side (a button on a 12 V side read by an UNO): `C` to a pin set
+`INPUT_PULLUP`, `E` to the board's `GND`; the board on USB is that side's supply, so no supply is
+named for it. The pin reads `LOW` while the button is pressed.
+
+```cpp circuits/isolated/read.ino
+void setup() {
+  Serial.begin(9600);
+  pinMode(2, INPUT_PULLUP);
+}
+
+void loop() {
+  Serial.println(digitalRead(2));
+  delay(500);
+}
+```
+
+```json isolated.json
+{
+  "supplies": [{ "id": "V1", "voltage": 12, "positive": "S1.1", "negative": "U1.K" }],
+  "parts": [
+    { "id": "S1", "type": "button" },
+    { "id": "R1", "type": "resistor", "value": "1k" },
+    { "id": "U1", "part": "PC817" },
+    { "id": "U2", "part": "UNO", "program": "read.ino" }
+  ],
+  "nets": [["S1.3", "R1.1"], ["R1.2", "U1.A"], ["U1.C", "U2.D2"], ["U1.E", "U2.GND"]]
+}
+```
+
+```bash
+kit layout circuits/isolated isolated.json
+```
+
+```bash
+kit simulate circuits/isolated --run 1 --press S1@0.2+0.5
+```
+
+```text
+  0 s        1
+  500 ms     0
+  note: Board U2, on USB, powers a separate circuit: its voltages are measured from its own GND.
 ```
 
 ## LM386 audio amplifier

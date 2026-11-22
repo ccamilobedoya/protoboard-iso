@@ -65,6 +65,9 @@ export const mcu = {
     if (p.usb) {
       const top = h.inner();
       entry.usb = add(partSource(top, gnd, 5));
+      // On USB the board is a reference of its own: a circuit isolated from the other supplies (the
+      // output side of an optocoupler) is measured from its GND, never left floating (engine.js).
+      entry.usb.reference = h.id;
       add(resistor(top, vbus, m.usbResistance));
     }
     const regulator = (out) => add(regulatorElement(vbus, gnd, out, { vref: 3.3, ...m.regulator }));

@@ -26,8 +26,10 @@ in backwards it turns the part round or swaps the supply's leads, never adds a r
 idea is tried first with `layout`'s `dry_run` (nothing saved) and applied only when the trial ends
 `DONE`. The same verdict comes with **doubts** (`doubts`, under "The kit cannot confirm these
 work": what the kit could not check or found may not work, a part not simulated, a program that
-does not run, stops or calls a function the kit does not know (`shiftOut` runs; a two-dimensional
-array is refused by its line), a relay that may not pull in, an output that never comes on, a coil
+does not run, stops or calls a function the kit does not know (`shiftOut` and `attachInterrupt`
+run; a two-dimensional array is refused by its line), a mistake in the sketch a real board would
+show (named by its line), a chip with no supply, a logic input open or under its high level, a
+relay that may not pull in, an output that never comes on, a coil
 switched with no diode across it, a button across joined pins, any warning of the simulation;
 [simulation.md](simulation.md#what-it-could-not-tell-doubts)): the agent reports each one and never
 says the circuit works. A `Note:` line (a supply written with a negative voltage: which rail is
@@ -224,6 +226,9 @@ an agent lists exists in the server, so a renamed or removed tool is caught.
 
 - Agents are loaded when a Claude Code session starts in this repository; MCP tools too.
 - Each agent writes its name as `author`, so `history` shows who did what.
+- A damaged `history.jsonl` (`HISTORY_DAMAGED`: `apply_ops` saves nothing, the circuit is intact) is
+  reported, not worked around: `new_history: true` keeps the old file as `history.jsonl.damaged` and
+  starts again, and only the main conversation, with the user, decides it.
 - Keep agents short-lived: a new agent per task, reuse it only for the fix rounds of the same
   circuit. The numbers are named options in `project.json` (`review_rounds`, `briefs_per_agent`),
   shown in `CLAUDE.md`.

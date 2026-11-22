@@ -61,7 +61,9 @@ or an option the kit does not take or a value it does not read (`--start foo`; i
 line); **3** a fault in the kit
 (`internal error: …`): report it, do not work around it.
 
-`layout` calculates before it places: "Too large for one board" (`FIX_SPEC`, nothing created) gives
+`CHANGES` comes after `layout` already tried the orders the nets give, the double board (when a
+development board covers a part or a strip) and the tallest or widest parts first. `layout`
+calculates before it places: "Too large for one board" (`FIX_SPEC`, nothing created) gives
 the columns needed and how many parts fit one board, so split the circuit; a large circuit says
 before it starts that one try takes longer than the budget. The search stops at `--budget` seconds
 (60 by default, at most 300; connector: `budget_s`) with its best try, `STATUS: CHANGES` and a line

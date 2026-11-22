@@ -102,7 +102,9 @@ por período. Ejemplos `half-wave-rectifier.json` y `rc-square-wave.json`.
 
 El negativo de la primera fuente es la **tierra** (0 V); sin `supplies`, el de la primera
 batería. Una segunda fuente sin conexión con la
-primera alimenta un circuito aparte, medido desde su propio negativo.
+primera alimenta un circuito aparte, medido desde su propio negativo; igual una placa de desarrollo
+por USB sin conexión con las fuentes (el lado de salida de un optoacoplador leído por un UNO), medida
+desde su propio GND (quedaba al aire: «no hay camino de corriente continua hasta la fuente»).
 
 Un `voltage` negativo (`-5`) es la misma fuente al revés: se simula con sus terminales
 intercambiados y se lee como está escrito (`V1 -5 V … escrita en negativo: T- es el riel positivo, no
