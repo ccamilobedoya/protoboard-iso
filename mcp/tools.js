@@ -449,7 +449,7 @@ server.registerTool(
   'review',
   {
     title: 'Review circuit',
-    description: 'Verdict from measurements in both views: APPROVED, APPROVED WITH WARNINGS (hazards: parts the DC simulation takes past a maximum, at rest, with one control operated or the program outputs its run reaches, and the fix the kit finds; doubts: what it cannot vouch for; not blocking) or CHANGES, with what must be fixed (blocking: each with the parts it is about and the views it shows in) and what is worth knowing. Profile lesson (default) is strict for teaching layouts; draft only blocks errors and warnings. explain: true adds the profile\'s rules (what blocks). lesson blocks a part hidden in every view (its best view shows less than 70 % of it); a circuit made by layout also has its nets checked against its spec.',
+    description: 'Verdict from measurements in both views: APPROVED, APPROVED WITH WARNINGS (hazards: parts the DC simulation takes past a maximum, at rest, one control operated or the outputs a program sets, and the fix the kit finds; doubts: what it cannot vouch for; not blocking) or CHANGES, with what must be fixed (blocking: each with the parts it is about and the views it shows in) and what is worth knowing. Profile lesson (default) is strict for teaching layouts; draft only blocks errors and warnings. explain: true adds the profile\'s rules (what blocks). lesson blocks a part hidden in every view (its best view shows less than 70 % of it); a circuit made by layout also has its nets checked against its spec.',
     inputSchema: { target: targetArg, profile: z.enum(Object.keys(PROFILES)).optional(), views: z.array(z.enum(Object.keys(VIEWS))).optional(), explain: z.boolean().optional(), ...common },
     annotations: READ,
   },
