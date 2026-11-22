@@ -136,4 +136,3 @@ not, from the ⚠ lines and the `Checked` line. A ⚠ that says the kit cannot t
 <!-- SKETCH SESSION: what a run shows about a board's program (interrupts, Serial between boards,
 deep sleep, `char`) goes here, from the sketch runner's own report. Until then: what a sketch may
 use is in sketch.md. -->
-
