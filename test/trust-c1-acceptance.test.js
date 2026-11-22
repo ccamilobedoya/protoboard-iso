@@ -73,14 +73,14 @@ test('A1: a 74HC595 with a shiftOut sketch is simulated: DONE, no ⚠ for U2, th
 });
 
 // ---- A2
-test('A2: an LM386 wired to a supply ends WARNINGS with a ⚠ naming U1', SLOW, () => {
-  const { r, out } = build({
-    parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'U1', part: 'LM386' }],
-    nets: [['BT1.+', 'U1.VS'], ['BT1.-', 'U1.GND']],
-  });
+// The LM386 this took is simulated now (C11, its own acceptance file): the part the kit still draws
+// only is the e-paper adapter of examples/epaper-esp32.json, which layout cannot place by itself, so
+// the CLI's review of that example is the answer: approved with warnings, its ⚠ naming EP1.
+test('A2: a part the kit only draws, wired to a supply, has a ⚠ naming it (now the e-paper adapter)', SLOW, () => {
+  const r = run(['review', 'examples/epaper-esp32.json']);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(lastLine(out), /^STATUS: WARNINGS/, out);
-  assert.ok(warnLines(out).some((l) => /\bU1\b/.test(l)), out);
+  assert.match(r.stdout, /^APPROVED WITH WARNINGS/m, r.stdout);
+  assert.ok(warnLines(r.stdout).some((l) => /\bEP1\b/.test(l)), r.stdout);
 });
 
 // ---- A3 (must not change)
@@ -213,8 +213,10 @@ test('A12: three LEDs on a 9 V battery: the Readings line names BT1 once', SLOW,
 });
 
 // ---- A13
-// Since C11a the 74HC595 is simulated: it is no longer marked.
-test('A13: catalog marks LM386 as not simulated, and NE555, LM358 and 74HC595 not; no text points to src/ or docs/', () => {
+// Since C11 every chip of the kit is simulated: none is marked. The one part still drawn only is the
+// DESPI-C02 adapter (a module), whose entry says so; the list's marking itself is tested in process with a
+// part with no model of the tests' own (test/trust-c1.test.js).
+test('A13: catalog marks none of the chips as not simulated, and the DESPI-C02 entry says it is; no text points to src/ or docs/', () => {
   const list = run(['catalog']).stdout;
   const controls = ['NE555', 'LM358'];
   const marked = (name) => {
@@ -222,12 +224,11 @@ test('A13: catalog marks LM386 as not simulated, and NE555, LM358 and 74HC595 no
     const byLine = list.split('\n').some((l) => /not simulated/i.test(l) && l.includes(name) && !controls.some((c) => l.includes(c)));
     return bySegment || byLine;
   };
-  assert.ok(!marked('74HC595'), '74HC595 is simulated');
-  assert.ok(marked('LM386'), 'LM386 marked as not simulated');
+  for (const chip of ['74HC595', 'CD4017', 'LM386', 'ULN2003', 'PC817']) assert.ok(!marked(chip), `${chip} is simulated`);
   assert.ok(!marked('NE555'), 'NE555 is simulated');
   assert.ok(!marked('LM358'), 'LM358 is simulated');
-  assert.match(run(['catalog', 'LM386']).stdout, /not simulated/i, 'catalog <part> says it too');
-  assert.doesNotMatch(run(['catalog', '74HC595']).stdout, /not simulated/i);
+  assert.match(run(['catalog', 'DESPI-C02']).stdout, /not simulated/i, 'catalog <part> says it for a part drawn only');
+  for (const chip of ['74HC595', 'LM386']) assert.doesNotMatch(run(['catalog', chip]).stdout, /not simulated/i);
   assert.doesNotMatch(run(['catalog', 'NE555']).stdout, /not simulated/i);
   for (const args of [[], ['buzzer'], ['led']]) {
     const text = run(['catalog', ...args]).stdout;

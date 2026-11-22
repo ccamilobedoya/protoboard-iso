@@ -150,7 +150,10 @@ output, the result tags, the probes and the page find it there.
 - Devices that share a `kind` share their reading hooks (`lines`, `tag`, `probe`,
   `currentPins`); `test/devices.test.js` checks it.
 - Several devices may share a part `type` (the ICs: timer, op-amps): each says which parts it
-  takes with `accepts(part)`, and the program records its `kind`.
+  takes with `accepts(part)`, and the program records its `kind` (for a chip, the one `ICS` in
+  `src/parts/types/semiconductors.js` gives its `function`: give a new kind of chip its line there).
+- **What the model covers**: `modelText`, the key of a `catalog.model.*` text in `src/i18n`, two or
+  three lines that `catalog <part>` prints (what it models, what it leaves out, its limits).
 - **A new microcontroller board** needs no device: in `src/parts/modules.js` give it `power` (its
   USB, logic, ground and reset pins), `gpio` (each pin's GPIO number), `adc` and `inputOnly`; its
   family's numbers go in `MCUS` (`src/sim/models.js`), from its datasheet

@@ -59,6 +59,7 @@ const LOGIC = {
 export const shiftRegister = {
   types: ['ic'],
   kind: 'SR',
+  modelText: 'shiftRegister',
   accepts: (part) => part.def.electrical?.function === 'shift register' && Boolean(SHIFT_REGISTERS[part.def.electrical.part]),
   // The register, the latches and what each input last read: carried over when the circuit is rebuilt
   // (a control moved) and kept between steps.

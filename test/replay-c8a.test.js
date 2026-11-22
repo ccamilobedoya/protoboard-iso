@@ -8,7 +8,8 @@ import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { formatLayout } from '../src/layout.js';
 import { autoLayout } from './layout-generous.js';
-import { formatIssue, t, review } from '../src/index.js';
+import { formatIssue, t } from '../src/index.js';
+import { UNSIMULATED } from './unsimulated-part.js';
 import { specWithFix } from '../src/fix.js';
 import { checkHazards, simulate } from '../src/sim/index.js';
 
@@ -76,24 +77,14 @@ test('a joule thief of two uncoupled inductors leaves its LED dark: a doubt, not
 });
 
 // C10b: LEDs that hang from a chip not simulated are not called dead; the chip's own doubt names them.
-// Since C11a the 74HC595 is simulated: the part the kit still only draws is the DESPI-C02 adapter
-// (placed by hand: layout does not place it).
+// Since C11 every chip is simulated: the part with no model is the tests' own (test/unsimulated-part.js).
 test('LEDs behind a chip that is not simulated are named by its doubt, not called never on', () => {
-  const circuit = {
-    supplies: [{ id: 'V1', voltage: 5 }],
-    parts: [
-      { id: 'U1', type: 'module', part: 'DESPI-C02', pins: { '3.3V': 'j24', GND: 'j23', BUSY: 'j20', RES: 'j17' } },
-      { id: 'W1', type: 'wire', color: 'red', pins: ['T+24', 'i24'] },
-      { id: 'W2', type: 'wire', color: 'black', pins: ['T-23', 'i23'] },
-      { id: 'R1', type: 'resistor', value: '330', pins: ['h20', 'h15'] },
-      { id: 'D1', type: 'led', color: 'red', pins: { anode: 'f15', cathode: 'f16' } },
-      { id: 'W3', type: 'wire', color: 'black', pins: ['j16', 'T-16'] },
-      { id: 'R2', type: 'resistor', value: '330', pins: ['g17', 'g12'] },
-      { id: 'D2', type: 'led', color: 'green', pins: { anode: 'f12', cathode: 'f11' } },
-      { id: 'W4', type: 'wire', color: 'black', pins: ['j11', 'T-11'] },
-    ],
-  };
-  const r = { review: review(circuit) };
+  const r = autoLayout({
+    supplies: [{ voltage: 5, positive: 'T+', negative: 'T-' }],
+    parts: [{ id: 'U1', part: UNSIMULATED }, { id: 'R1', type: 'resistor', value: '330' }, { id: 'D1', type: 'led', color: 'red' }, { id: 'R2', type: 'resistor', value: '330' }, { id: 'D2', type: 'led', color: 'green' }],
+    nets: [['T+', 'U1.VCC'], ['T-', 'U1.GND', 'D1.K', 'D2.K'], ['U1.OUT', 'R1.1'], ['R1.2', 'D1.A'], ['U1.IN', 'R2.1'], ['R2.2', 'D2.A']],
+  });
+  assert.equal(r.status, 'warnings');
   assert.deepEqual(neverOn(r), []);
   const chip = r.review.doubts.find((d) => d.code === 'SIM_PART_NOT_SIMULATED');
   assert.match(formatIssue(chip, 'en'), /the kit cannot tell what U1 does, nor what D1, D2 do, which depend on it/);

@@ -13,6 +13,7 @@ import { review, formatReview } from '../src/review.js';
 import { checkHazards } from '../src/sim/index.js';
 import { formatIssue, t } from '../src/index.js';
 import { compactCatalog, formatCompactCatalog, catalogEntry, formatCatalogEntry, partTypeLines, simulates } from '../src/node/catalog.js';
+import { UNSIMULATED } from './unsimulated-part.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const cli = (...args) => spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), ...args], { encoding: 'utf8', timeout: 60_000 });
@@ -32,24 +33,39 @@ const withProgram = (program) => {
   return { ...placed, parts: placed.parts.map((p) => (p.id === 'U1' ? { ...p, program } : p)) };
 };
 
+// The LM386 this used to take is simulated now (C11); the e-paper adapter of examples/epaper-esp32.json
+// is a part the kit still draws only (layout cannot place a module beside the board by itself, so
+// the circuit is the example as drawn and its review is the answer).
+const epaper = () => JSON.parse(readFileSync(join(root, 'examples/epaper-esp32.json'), 'utf8'));
 test('a wired part with no simulation model is a doubt: WARNINGS, its own ⚠ heading, hazards empty', () => {
-  const r = autoLayout({ parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'U1', part: 'LM386' }], nets: [['BT1.+', 'U1.VS'], ['BT1.-', 'U1.GND']] });
-  assert.equal(r.status, 'warnings');
-  assert.equal(r.review.verdict, 'approved-with-warnings');
-  assert.deepEqual(r.review.hazards, []);
-  assert.deepEqual(r.review.doubts.map((d) => d.code), ['SIM_PART_NOT_SIMULATED']);
-  assert.deepEqual(r.review.doubts[0].params, { part: 'U1', name: 'LM386' });
-  assert.deepEqual(r.review.doubts[0].parts, ['U1']);
-  assert.equal(r.review.summary.doubts, 1);
-  const out = text(r);
+  const v = review(epaper());
+  assert.equal(v.verdict, 'approved-with-warnings');
+  assert.deepEqual(v.hazards, []);
+  assert.deepEqual(v.doubts.map((d) => d.code), ['SIM_PART_NOT_SIMULATED']);
+  assert.deepEqual(v.doubts[0].params, { part: 'EP1', name: 'DESPI-C02' });
+  assert.deepEqual(v.doubts[0].parts, ['EP1']);
+  assert.equal(v.summary.doubts, 1);
+  const out = formatReview(v, 'en', { t, formatIssue });
   assert.match(out, /The kit cannot confirm these work/);
   assert.doesNotMatch(out, /As wired, this would damage/);
-  assert.match(out, /⚠ .*U1 \(LM386\) is drawn and wired/);
+  assert.match(out, /⚠ .*EP1 \(DESPI-C02\) is drawn and wired/);
   // The floating nodes it leaves are its own doubt's consequence: not said again.
   assert.doesNotMatch(out, /no DC path/);
-  assert.match(out, /what U1 does \(not simulated\)/);
-  assert.match(lastLine(out), /^STATUS: WARNINGS · .*1 point\(s\) are marked ⚠ above/);
-  for (const lang of ['en', 'es']) assert.doesNotMatch(text(r, lang), /\{\w+\}/);
+  assert.match(out, /what EP1 does \(not simulated\)/);
+  for (const lang of ['en', 'es']) assert.doesNotMatch(formatReview(v, lang, { t, formatIssue }), /\{\w+\}/);
+});
+
+// The same through layout, with a part layout places (the tests' own part with no model): WARNINGS,
+// the not-simulated ⚠ naming the LED behind it, which is not called dead.
+test('layout: a wired chip with no model ends WARNINGS with its ⚠, which names the LED behind it', () => {
+  const r = autoLayout({ supplies: [{ voltage: 5, positive: 'T+', negative: 'T-' }], parts: [{ id: 'U1', part: UNSIMULATED }, { id: 'R1', type: 'resistor', value: '330' }, { id: 'D1', type: 'led', color: 'red' }], nets: [['T+', 'U1.VCC'], ['T-', 'U1.GND', 'D1.K'], ['U1.OUT', 'R1.1'], ['R1.2', 'D1.A']] });
+  assert.equal(r.status, 'warnings');
+  assert.deepEqual(r.review.hazards, []);
+  assert.deepEqual(r.review.doubts.map((d) => d.code), ['SIM_PART_NOT_SIMULATED']);
+  const out = text(r);
+  assert.match(out, new RegExp(`⚠ .*U1 \\(${UNSIMULATED}\\) is drawn and wired.*nor what D1 do`));
+  assert.doesNotMatch(out, /D1 never comes on/);
+  assert.match(lastLine(out), /^STATUS: WARNINGS/);
 });
 
 test('a part not wired to anything is not a doubt; a plain header is simulated', () => {
@@ -164,14 +180,15 @@ test('a part hard to see in every view gets its own line in the answer', () => {
 test('catalog marks what is drawn but not simulated, and names no path of the sources', () => {
   const list = formatCompactCatalog(compactCatalog('en'), 'en');
   const ic = list.split('\n').find((l) => l.startsWith('  ic:'));
-  // Since C11a the 74HC595 is simulated: not marked.
-  assert.match(ic, /not simulated: .*LM386/);
-  assert.doesNotMatch(ic.split('not simulated')[1], /NE555|LM358|74HC595/);
+  // Since C11 every chip of the kit is simulated: none is marked; the tests' own part with no model is.
+  assert.match(ic, new RegExp(`not simulated: .*${UNSIMULATED}`));
+  assert.doesNotMatch(ic.split('not simulated')[1] ?? '', /NE555|LM358|74HC595|CD4017|LM386|ULN2003|ULN2803|PC817/);
   const cliList = partTypeLines('en').find((l) => l.startsWith('ic '));
-  assert.match(cliList, /LM386 \(not simulated: drawn only\)/);
-  assert.match(cliList, /NE555, LM358, 74HC595,/);
-  assert.match(formatCatalogEntry(catalogEntry('LM386'), 'en'), /Not simulated: the kit draws it/);
-  assert.doesNotMatch(formatCatalogEntry(catalogEntry('74HC595'), 'en'), /not simulated/i);
+  assert.match(cliList, new RegExp(`${UNSIMULATED} \\(not simulated: drawn only\\)`));
+  assert.match(cliList, /NE555, LM358, 74HC595, CD4017, LM324, LM393, UA741, NE5532, LM386, ULN2003, ULN2803, PC817,/);
+  assert.match(formatCatalogEntry(catalogEntry(UNSIMULATED), 'en'), /Not simulated: the kit draws it/);
+  assert.match(formatCatalogEntry(catalogEntry('DESPI-C02'), 'en'), /Not simulated: the kit draws it/);
+  for (const chip of ['74HC595', 'CD4017', 'LM386', 'ULN2003', 'ULN2803', 'PC817']) assert.doesNotMatch(formatCatalogEntry(catalogEntry(chip), 'en'), /not simulated/i, chip);
   assert.doesNotMatch(formatCatalogEntry(catalogEntry('NE555'), 'en'), /not simulated/i);
   for (const name of [null, 'buzzer', 'led', 'module', 'UNO', 'ic']) {
     const out = name ? formatCatalogEntry(catalogEntry(name), 'en') : list;
@@ -183,8 +200,7 @@ test('the CLI review --json carries doubts next to hazards', () => {
   const dir = tempDir('pbi-c1-');
   const file = join(dir, 'c', 'circuit.json');
   mkdirSync(join(dir, 'c'));
-  const built = autoLayout({ parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'U1', part: 'LM386' }], nets: [['BT1.+', 'U1.VS'], ['BT1.-', 'U1.GND']] });
-  writeFileSync(file, JSON.stringify(built.circuit));
+  writeFileSync(file, JSON.stringify(epaper()));
   const r = cli('review', join(dir, 'c'), '--json');
   const j = JSON.parse(r.stdout);
   assert.equal(j.verdict, 'approved-with-warnings');

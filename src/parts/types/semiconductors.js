@@ -176,6 +176,8 @@ export const mosfet = transistor('mosfet', 'IRLZ44N');
 
 // Integrated circuits in DIP packages. Place them with "pin1" (e.g. "f10").
 const ICS = { timer: 'TMR', 'op-amp': 'OPA', 'dual op-amp': 'OPA', 'quad op-amp': 'OPA', 'dual comparator': 'OPA', 'shift register': 'SR', 'decade counter': 'CNT' };
+// The analog driver chips (src/sim/devices/darlington.js, optocoupler.js, lm386.js).
+Object.assign(ICS, { 'darlington array': 'DRV', optocoupler: 'OPT', 'audio amplifier': 'AMP' });
 
 export const ic = {
   type: 'ic',

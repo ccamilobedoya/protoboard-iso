@@ -286,9 +286,13 @@ export const MOTORS = {
   'RE-140RA-2270': { nominal: 1.5, range: [1.5, 3], noLoad: { rpm: 8100, current: 0.21 }, efficient: { rpm: 6150, current: 0.66, torque: 0.66e-3 }, stall: { torque: 2.74e-3, current: 2.1 }, inertia: 1e-7, inductance: 1e-3 },
 };
 
+// maxInput: the absolute maximum input voltage (IN to GND): 35 V for the 7805 to 7818 and 40 V for
+// the 7824 (TI LM340/LM78xx, ON MC7800 datasheets); maxInputOutput: the LM317's absolute maximum
+// input-to-output differential, 40 V (TI LM317 datasheet).
 export const REGULATORS = {
-  fixed: { dropout: 2.0, quiescent: 5e-3, maxCurrent: 1.5, maxPower: 2 },
-  LM317: { dropout: 2.0, quiescent: 50e-6, maxCurrent: 1.5, maxPower: 2 },
+  fixed: { dropout: 2.0, quiescent: 5e-3, maxCurrent: 1.5, maxPower: 2, maxInput: 35 },
+  7824: { maxInput: 40 },
+  LM317: { dropout: 2.0, quiescent: 50e-6, maxCurrent: 1.5, maxPower: 2, maxInputOutput: 40 },
   // AMS1117 (SOT-223) on its small module: dropout 1.1 V typical at 800 mA (1.3 V max), 5 mA
   // own current (10 mA max), 800 mA rated. maxPower: the tab soldered to a few mm² of copper,
   // about 90-100 °C/W, so 1 W takes the junction from 25 °C to its 125 °C. Source: Advanced

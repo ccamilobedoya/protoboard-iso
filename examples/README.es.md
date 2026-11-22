@@ -81,6 +81,14 @@ microcontroladores: [microcontroladores.md](../docs/es/microcontroladores.md).
 | <img src="../docs/img/examples/parts-showcase.png" width="280" alt="Todos los componentes del kit"> | **[parts-showcase.json](parts-showcase.json)**: resistencias (5 % y 1 %), diodos, LED (uno RGB), condensadores, transistores, un módulo AMS1117, un display de 7 segmentos, interruptores deslizante y de inclinación, un LM35 y, al lado de la protoboard, un relé y un motor DC, con cables. Sus notas sobre patas sin conectar son esperadas. |
 | <img src="../docs/img/examples/more-parts.png" width="280" alt="Más componentes"> | **[more-parts.json](more-parts.json)**: trimmer, Zener, inductor, termistor, LDR, zumbador, pines de cabecera, LM324, LM317, PC817 y celdas de litio. |
 
+## Chips analógicos
+
+| | |
+|---|---|
+| <img src="../docs/img/examples/uln2003-relay.png" width="280" alt="Un UNO conmuta un relé con un ULN2003"> | **[uln2003-relay.json](uln2003-relay.json)**: el D8 de un UNO maneja el canal 1 de un ULN2003, cuyo OUT1 recibe la corriente de la bobina del relé desde 5 V; COM en los mismos 5 V es el diodo de protección de la bobina. El relé se activa un segundo y se suelta otro. |
+| <img src="../docs/img/examples/pc817-isolated-led.png" width="280" alt="Un optoacoplador PC817 entre un lado de 9 V y uno de 5 V"> | **[pc817-isolated-led.json](pc817-isolated-led.json)**: un botón en una batería de 9 V enciende el LED infrarrojo del PC817 con 680 Ω; su fototransistor recibe la corriente de un LED verde desde una fuente de 5 V. Los dos lados no comparten ningún cable y cada uno tiene su propia tierra; presiona el botón en la página. |
+| <img src="../docs/img/examples/lm386-amplifier.png" width="280" alt="Un LM386 amplifica una señal de 1 kHz sobre 8 ohmios"> | **[lm386-amplifier.json](lm386-amplifier.json)**: la onda de 1 kHz y 50 mV del generador entra por 10 µF a un LM386 con las patas 1 y 8 al aire (ganancia 20); la carga de 8 Ω recibe cerca de 1 V de pico a través de 220 µF, alrededor de los 4,5 V en que descansa la salida. La resistencia de 8 Ω hace de parlante, que el kit todavía no tiene. |
+
 ## Mal a propósito
 
 | | |

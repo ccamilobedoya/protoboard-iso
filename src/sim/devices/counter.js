@@ -76,6 +76,7 @@ const LOGIC = {
 export const counter = {
   types: ['ic'],
   kind: 'CNT',
+  modelText: 'counter',
   accepts: (part) => part.def.electrical?.function === 'decade counter' && Boolean(COUNTERS[part.def.electrical.part]),
   // The count and what each input last read: carried over when the circuit is rebuilt (a button
   // pressed) and kept between steps.

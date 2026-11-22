@@ -4,7 +4,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { autoLayout } from './layout-generous.js';
-import { formatIssue, review } from '../src/index.js';
+import { formatIssue } from '../src/index.js';
+import { UNSIMULATED } from './unsimulated-part.js';
 
 const codes = (list) => list.map((i) => i.code);
 
@@ -48,25 +49,19 @@ test('LEDs behind a CD4017 clocked by a 555 are judged: no doubt says the chip i
 
 // An LED wired backwards beside the same kind of chip never comes on for a reason the kit simulated:
 // it keeps its doubt; the LED behind the chip does not get one.
-// Since C11a the 74HC595 is simulated: the part the kit still only draws is the DESPI-C02 adapter,
-// placed by hand (layout does not place it). D2 hangs from the 5 V rail through R2, backwards.
+// Since C11 every chip is simulated: the part with no model is the tests' own (test/unsimulated-part.js).
 test('an output dark for a reason the kit simulated keeps its doubt beside a chip not simulated', () => {
-  const circuit = {
-    supplies: [{ id: 'V1', voltage: 5 }],
+  const r = autoLayout({
+    supplies: [{ voltage: 5, positive: 'T+', negative: 'T-' }],
     parts: [
-      { id: 'U1', type: 'module', part: 'DESPI-C02', pins: { '3.3V': 'j24', GND: 'j23', BUSY: 'j20' } },
-      { id: 'W1', type: 'wire', color: 'red', pins: ['T+24', 'i24'] },
-      { id: 'W2', type: 'wire', color: 'black', pins: ['T-23', 'i23'] },
-      { id: 'R1', type: 'resistor', value: '330', pins: ['h20', 'h15'] },
-      { id: 'D1', type: 'led', color: 'red', pins: { anode: 'f15', cathode: 'f16' } },
-      { id: 'W3', type: 'wire', color: 'black', pins: ['j16', 'T-16'] },
-      { id: 'W4', type: 'wire', color: 'red', pins: ['T+7', 'j7'] },
-      { id: 'R2', type: 'resistor', value: '330', pins: ['g7', 'g12'] },
-      { id: 'D2', type: 'led', color: 'green', pins: { anode: 'f11', cathode: 'f12' } },
-      { id: 'W5', type: 'wire', color: 'black', pins: ['j11', 'T-11'] },
+      { id: 'U1', part: UNSIMULATED },
+      { id: 'R1', type: 'resistor', value: '330' },
+      { id: 'D1', type: 'led', color: 'red' },
+      { id: 'R2', type: 'resistor', value: '330' },
+      { id: 'D2', type: 'led', color: 'green' },
     ],
-  };
-  const r = { review: review(circuit) };
+    nets: [['T+', 'U1.VCC', 'R2.1'], ['T-', 'U1.GND', 'D1.K', 'D2.A'], ['U1.OUT', 'R1.1'], ['R1.2', 'D1.A'], ['R2.2', 'D2.K']],
+  });
   const never = r.review.doubts.filter((d) => d.code === 'SIM_OUTPUT_NEVER_ON');
   assert.deepEqual(never.map((d) => d.params.part), ['D2'], JSON.stringify(r.review.doubts));
   assert.equal(r.review.doubts.find((d) => d.code === 'SIM_PART_NOT_SIMULATED').params.drives, 'D1');

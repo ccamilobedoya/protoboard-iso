@@ -171,9 +171,9 @@ test('74HC595: an input left open is warned and read as low; the catalog says wh
   assert.notEqual(entry.simulated, false);
   const text = formatCatalogEntry(entry, 'en');
   assert.doesNotMatch(text, /Not simulated/);
-  assert.match(text, /model: simulated: SRCLK shifts SER/);
+  assert.match(text, /\n {2}Simulated: SRCLK shifts SER/);
   assert.match(text, /maximum current 35 mA \(QA, QB, QC, QD, QE, QF, QG, QH, QH'\) \(output\)/);
-  assert.match(formatCatalogEntry(catalogEntry('74HC595', 'es'), 'es'), /modelo: se simula/);
+  assert.match(formatCatalogEntry(catalogEntry('74HC595', 'es'), 'es'), /\n {2}Simulado: SRCLK mete SER/);
 });
 
 // The live page bundles the engine and the devices: the example's LEDs fill in the page as in a run.
@@ -300,7 +300,7 @@ test('CD4017 clocked by a board\'s pin: each rising edge of the sketch counts, Q
   assert.equal(countOf(runCircuit(c, { seconds: 0.35 }).readings, 'U2'), 'Q1');
   const entry = formatCatalogEntry(catalogEntry('CD4017'), 'en');
   assert.doesNotMatch(entry, /Not simulated/);
-  assert.match(entry, /model: simulated: CLK rising/);
+  assert.match(entry, /\n {2}Simulated: CLK rising/);
   assert.match(entry, /maximum power 100 mW \(Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8, Q9, CO\) \(output\)/);
 });
 
@@ -323,3 +323,16 @@ test('CD4017 in the live page: the chaser\'s LEDs light one at a time, in order'
   assert.ok(order.length >= 4, order.join(' '));
   for (let k = 1; k < order.length; k++) assert.equal(order[k], (order[k - 1] % 5) + 1, order.join(' '));
 });
+
+// Every IC part number the kit lists has a model of its own: a part listed and silently unsimulated is
+// the defect this work was about. Each one, placed on the board with a supply, is read by its device
+// (no `unsupported` reading, no SIM_UNSUPPORTED) and its catalog entry does not say "not simulated".
+const { PART_NUMBERS } = await import('../src/parts/db.js');
+for (const [name, entry] of Object.entries(PART_NUMBERS).filter(([n, e]) => e.type === 'ic' && !n.startsWith('TEST-'))) {
+  test(`every IC is simulated: ${name}`, () => {
+    const r = simulate({ supplies: [{ id: 'V1', voltage: 5 }], parts: [{ id: 'U1', type: 'ic', part: name, pin1: 'e10' }] });
+    assert.ok(r.parts?.U1 && !r.parts.U1.unsupported, `${name}: ${JSON.stringify(r.parts?.U1 ?? r.issues)}`);
+    assert.ok(!r.issues.some((i) => i.code === 'SIM_UNSUPPORTED'), name);
+    assert.doesNotMatch(formatCatalogEntry(catalogEntry(name), 'en'), /not simulated/i, `${entry.model?.function}`);
+  });
+}

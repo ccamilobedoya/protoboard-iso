@@ -323,7 +323,7 @@ export function openInputs(part, c, names) {
 // What a logic chip says beside its limits: a supply under its minimum, an input in the undefined band.
 export function logicNotes(entry, r, m) {
   const out = [];
-  if (r.vcc > 0.1 && r.vcc < m.minSupply) out.push(note('warning', 'SIM_IC_UNDER_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(m.minSupply, 'V') }));
+  if (r.vcc > 0.1 && r.vcc < m.minSupply) out.push(note('warning', 'SIM_IC_SUPPLY_RANGE', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(m.minSupply, 'V'), max: q(m.maxSupply, 'V') }));
   for (const [pin, v] of Object.entries(r.between ?? {})) out.push(note('warning', 'SIM_IC_INPUT_LEVEL', { part: entry.id, pin, voltage: q(v, 'V'), high: q(m.vih * r.vcc, 'V'), low: q(m.vil * r.vcc, 'V') }));
   return out;
 }
