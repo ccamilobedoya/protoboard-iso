@@ -21,7 +21,27 @@ import { deviceOfProgram } from './devices/index.js';
 import { buildCircuit } from '../circuit/build.js';
 import { checkButtonPins, checkFlyback } from '../circuit/checks.js';
 import { CIRCUIT_FOLDER } from '../beside.js';
-import { outputsOf, outputOn, runCircuit, runsByItself, BEHAVIOUR_STEPS } from './run.js';
+import { outputsOf, outputOn, runCircuit, runsByItself, BEHAVIOUR_STEPS, restingStates } from './run.js';
+
+export { restingStates };
+
+// The DC point of a circuit with two resting states (restingStates): it is the balance between them,
+// so the answer says so (SIM_TWO_STATES, a warning: the readings shown are not a state the real
+// circuit rests in) and carries each state (`states`: what is on and off in it, and its reading).
+export function withStates(circuit, result) {
+  if (!result?.ok || result.analysis !== 'dc') return result;
+  const two = restingStates(circuit);
+  if (!two) return result;
+  const words = (s) => {
+    const parts = Object.entries(s.reading.parts ?? {}).filter(([, p]) => p.kind === 'Q' || p.kind === 'M');
+    const on = [...parts.filter(([, p]) => p.region !== 'off').map(([id]) => id), ...s.on];
+    const off = [...parts.filter(([, p]) => p.region === 'off').map(([id]) => id), ...outputsOf(compile(circuit).program).filter((o) => !s.on.includes(o.id)).map((o) => o.id)];
+    return { on: on.join(', ') || '—', off: off.join(', ') || '—' };
+  };
+  const [a, b] = two.states.map(words);
+  const states = two.states.map((s) => ({ on: s.on, nodes: s.nodes, parts: s.reading.parts, supplies: s.reading.supplies }));
+  return { ...result, states, issues: [...(result.issues ?? []), issue('warning', 'SIM_TWO_STATES', { on1: a.on, off1: a.off, on2: b.on, off2: b.off })] };
+}
 
 // Findings about the wiring itself that `check` and the hazard check report (not placement checks):
 // each is a doubt of the review (doubtsOf), never a blocking item (circuit/checks.js DOUBT_CODES).

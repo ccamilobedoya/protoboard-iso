@@ -190,3 +190,61 @@ test('a jumper hidden in one view only is a note of an APPROVED review, never a 
   // The draft profile keeps what the drawing says.
   assert.ok(review(autoLayout(expandRecipe('potentiometer-led').spec).circuit, { profile: 'draft', electrical: false }).blocking.some((a) => a.code === 'PART_HIDDEN' && a.severity === 'warning'));
 });
+
+// ---- 2. A circuit with two resting states says so
+
+const LATCH = {
+  parts: [
+    { id: 'BT1', type: 'battery', format: '9V' },
+    { id: 'R1', type: 'resistor', value: '1k' }, { id: 'R2', type: 'resistor', value: '1k' },
+    { id: 'R3', type: 'resistor', value: '10k' }, { id: 'R4', type: 'resistor', value: '10k' },
+    { id: 'R5', type: 'resistor', value: '470' },
+    { id: 'Q1', part: '2N2222A' }, { id: 'Q2', part: '2N2222A' },
+    { id: 'D1', type: 'led', color: 'green' },
+    { id: 'SW1', type: 'button' }, { id: 'SW2', type: 'button' },
+  ],
+  nets: [
+    ['BT1.+', 'T+'], ['BT1.-', 'T-'], ['T+', 'R1.1'], ['R1.2', 'Q1.C', 'R4.1', 'R5.1'], ['R5.2', 'D1.A'], ['D1.K', 'T-'],
+    ['T+', 'R2.1'], ['R2.2', 'Q2.C', 'R3.1'], ['R3.2', 'Q1.B', 'SW1.1'], ['R4.2', 'Q2.B', 'SW2.1'],
+    ['Q1.E', 'T-'], ['Q2.E', 'T-'], ['SW1.3', 'T-'], ['SW2.3', 'T-'],
+  ],
+};
+
+test('a transistor latch says it has two resting states, with the readings of each, and runs from the first', async () => {
+  const { formatLayout } = await import('../src/layout.js');
+  const { restingStates, simulate, withStates } = await import('../src/sim/index.js');
+  const { runCircuit } = await import('../src/sim/run.js');
+  const r = autoLayout(LATCH);
+  const two = restingStates(r.circuit);
+  assert.equal(two?.states.length, 2);
+  const lit = two.states.map((s) => s.reading.parts.D1.current > 1e-3);
+  assert.deepEqual([...lit].sort(), [false, true], 'D1 lit in one state, dark in the other');
+  for (const s of two.states) assert.deepEqual(Object.values(s.reading.parts).filter((p) => p.kind === 'Q').map((p) => p.region === 'off').sort(), [false, true], 'one transistor on, one off');
+  const { t } = await import('../src/index.js');
+  const text = formatLayout(r, 'en', { t, formatIssue });
+  assert.match(text, /\nTwo resting states \(a model\): .*a real circuit never stays in; it powers up in one of them, and the kit cannot say which/);
+  assert.match(text, /\n {2}1\. Q1 (on|off), Q2 (on|off) · battery BT1 [\d.]+ V · D1 /);
+  assert.match(text, /\n {2}2\. /);
+  assert.doesNotMatch(text, /\nReadings \(at rest/);
+  const dc = withStates(r.circuit, simulate(r.circuit));
+  assert.equal(dc.states.length, 2);
+  assert.match(formatIssue(dc.issues.find((i) => i.code === 'SIM_TWO_STATES'), 'en'), /^warning: These readings are the balance point between the circuit's two resting states/);
+  const run = runCircuit(r.circuit, { seconds: 0.5 });
+  assert.equal(run.run.state, 1);
+  assert.equal(run.outputs.find((o) => o.id === 'D1').onShare > 0.5, lit[0], 'the run rests in the first state');
+  const { formatRun } = await import('../src/sim/format.js');
+  assert.match(formatRun(run, 'en', { formatIssue }), /^Run from the first of its two resting states \(/);
+});
+
+test('two transistors in cascade, with no loop, keep one resting point', async () => {
+  const { restingStates } = await import('../src/sim/index.js');
+  const r = autoLayout({
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 9, positive: 'T+', negative: 'T-' }],
+    parts: [
+      { id: 'R1', type: 'resistor', value: '100k' }, { id: 'R2', type: 'resistor', value: '1k' }, { id: 'R3', type: 'resistor', value: '10k' },
+      { id: 'R4', type: 'resistor', value: '1k' }, { id: 'Q1', part: '2N2222A' }, { id: 'Q2', part: '2N2222A' },
+    ],
+    nets: [['T+', 'R1.1', 'R2.1', 'R4.1'], ['R1.2', 'Q1.B'], ['R2.2', 'Q1.C', 'R3.1'], ['R3.2', 'Q2.B'], ['R4.2', 'Q2.C'], ['Q1.E', 'Q2.E', 'T-']],
+  });
+  assert.equal(restingStates(r.circuit), null);
+});

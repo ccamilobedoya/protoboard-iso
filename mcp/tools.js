@@ -32,7 +32,7 @@ import { formatAt, formatNode, formatFree, formatSuggest, formatSuggestMany } fr
 import { InputError, inputErrorText, resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget, relayoutTarget, writePage } from '../src/node/workspace.js';
 import { svgToPng, rasterAvailable, rasterSearchIn } from '../src/node/raster.js';
 import { review, formatReview, PROFILES } from '../src/review.js';
-import { simulate } from '../src/sim/index.js';
+import { simulate, withStates } from '../src/sim/index.js';
 import { runCircuit, stimuliFromArgs, prepareRun } from '../src/sim/run.js';
 import { pickLanguage } from '../src/i18n/index.js';
 import { formatSimulation, formatFalstad, formatRun } from '../src/sim/format.js';
@@ -498,7 +498,7 @@ server.registerTool(
       if (prepared.errors) return refused(prepared.errors);
       result = prepared.fatal ? { analysis, model: true, ok: false, issues: prepared.issues } : analysis === 'transient' ? prepared.engine.transient({ stop, step, start }) : prepared.engine.dc();
       if (result.issues && prepared.issues?.length) result = { ...result, issues: [...result.issues, ...prepared.issues] };
-    } else result = simulate(circuit, { analysis, stop, step, start });
+    } else result = withStates(circuit, simulate(circuit, { analysis, stop, step, start }));
     if (falstad && result.ok) {
       const { program } = compile(circuit);
       const engine = createEngine(program);

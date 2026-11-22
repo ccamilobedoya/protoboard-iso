@@ -15,7 +15,7 @@ import { queryAt, queryNode, queryFree, suggest, suggestMany } from '../src/quer
 import { formatAt, formatNode, formatFree, formatSuggest, formatSuggestMany } from '../src/query-format.js';
 import { nets, formatNets } from '../src/nets.js';
 import { review, formatReview } from '../src/review.js';
-import { simulate } from '../src/sim/index.js';
+import { simulate, withStates } from '../src/sim/index.js';
 import { formatSimulation, formatRun } from '../src/sim/format.js';
 import { runCircuit, parseStimuli, prepareRun } from '../src/sim/run.js';
 import { parseValue } from '../src/core/units.js';
@@ -362,7 +362,7 @@ async function run(seen) {
       if (prepared.errors) refuse(prepared.errors);
       result = prepared.fatal ? { analysis: options.analysis, model: true, ok: false, issues: prepared.issues } : options.analysis === 'transient' ? prepared.engine.transient(options) : prepared.engine.dc();
       if (result.issues && prepared.issues?.length) result = { ...result, issues: [...result.issues, ...prepared.issues] };
-    } else result = simulate(circuit, options);
+    } else result = withStates(circuit, simulate(circuit, options));
     console.log(args.json ? JSON.stringify(result, null, 2) : formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }));
     fail(result.ok ? 0 : 1);
   } else if (command === 'page') {

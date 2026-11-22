@@ -16,14 +16,14 @@
 // bounded run, its frequency and duty when it toggles. The run stops at BEHAVIOUR_MS of the machine's
 // time, and the line then says it was not measured and how to measure it.
 
-import { simulate, compile } from './sim/index.js';
+import { simulate, compile, restingStates } from './sim/index.js';
 import { readBeside, programFile, CIRCUIT_FOLDER } from './beside.js';
 import { LIMITS } from './limits.js';
 import { RECIPES, recipeDefaults, valueLimits } from './recipes/index.js';
 import { goalsOf } from './recipes/goals.js';
 import { adviseGoals } from './recipes/solve.js';
 import { formatValue } from './core/units.js';
-import { behaviourOf, BEHAVIOUR_STEPS } from './sim/run.js';
+import { behaviourOf, BEHAVIOUR_STEPS, gainsOf } from './sim/run.js';
 import { decimalSeparator } from './i18n/index.js';
 
 // Parts whose job is to be driven, by the simulator's kind: LEDs first, then the rest.
@@ -81,6 +81,16 @@ function readingsOf(circuit) {
   if (!compiled.fatal && oscillatesBy(compiled.program)) return null;
   const r = simulate(circuit);
   if (!r.ok) return null;
+  const rest = readingFrom(r);
+  if (!rest) return null;
+  // Two resting states (a latch): the point at rest is a balance between them; each is said instead.
+  const two = compiled.fatal ? null : restingStates(circuit, compiled);
+  if (!two) return rest;
+  return { ...rest, states: two.states.map((s) => ({ ...readingFrom(s.reading), gains: gainsOf(s.reading) })) };
+}
+
+// A reading's sources and loads, as the Readings line says them.
+function readingFrom(r) {
   const sources = Object.entries(r.supplies ?? {}).map(([id, s]) => ({ id, kind: s.kind === 'battery' ? 'battery' : 'supply', voltage: s.voltage, current: s.current, ...(s.written < 0 && { named: s.named, high: s.high }) }));
   const leds = [];
   const others = [];
@@ -251,14 +261,24 @@ export function formatExtras(r, lang, t) {
   for (const a of r.advice ?? []) lines.push(adviceLine(a, lang, t, f));
   for (const n of r.negative ?? []) lines.push(t(lang, 'layout.negativeSupply', { id: n.id, voltage: f(n.voltage, 'V'), named: n.named, high: n.high }));
   if (r.readings) {
-    const { sources, parts } = r.readings;
-    const many = sources.length > 1;
-    // A drawn battery is named by its id (BT1), as the parts are; a bench supply only when there are several.
-    const source = (s) => (s.kind === 'usb' ? `${s.id} USB ${f(s.voltage, 'V')}` : `${t(lang, `layout.readings.${s.kind}`)}${many || s.part ? ` ${s.id}` : ''} ${s.off ? t(lang, 'sim.battery.off') : f(s.voltage, 'V')}`);
-    const load = (p) => `${p.id} ${p.off ? '0 mA' : f(p.current, 'A')}${p.brightness != null ? `, ${t(lang, 'sim.brightness', { percent: Math.round(p.brightness * 100) })}` : ''}`;
-    const items = [...sources.map(source), ...parts.slice(0, SHOWN_LOADS).map(load)];
-    if (parts.length > SHOWN_LOADS) items.push(t(lang, 'layout.readings.more', { count: parts.length - SHOWN_LOADS }));
-    lines.push(t(lang, 'layout.readings', { items: items.join(' · ') }));
+    const itemsOf = ({ sources, parts }) => {
+      const many = sources.length > 1;
+      // A drawn battery is named by its id (BT1), as the parts are; a bench supply only when there are several.
+      const source = (s) => (s.kind === 'usb' ? `${s.id} USB ${f(s.voltage, 'V')}` : `${t(lang, `layout.readings.${s.kind}`)}${many || s.part ? ` ${s.id}` : ''} ${s.off ? t(lang, 'sim.battery.off') : f(s.voltage, 'V')}`);
+      const load = (p) => `${p.id} ${p.off ? '0 mA' : f(p.current, 'A')}${p.brightness != null ? `, ${t(lang, 'sim.brightness', { percent: Math.round(p.brightness * 100) })}` : ''}`;
+      const items = [...sources.map(source), ...parts.slice(0, SHOWN_LOADS).map(load)];
+      if (parts.length > SHOWN_LOADS) items.push(t(lang, 'layout.readings.more', { count: parts.length - SHOWN_LOADS }));
+      return items;
+    };
+    if (r.readings.states) {
+      // Two resting states: each with its transistors on or off, then its readings; the point at rest
+      // between them is not said as a reading (a real circuit never sits there).
+      lines.push(t(lang, 'layout.states'));
+      r.readings.states.forEach((s, k) => {
+        const gains = s.gains.map((g) => t(lang, g.on ? 'layout.states.on' : 'layout.states.off', { id: g.id })).join(', ');
+        lines.push(`  ${k + 1}. ${[gains, ...itemsOf(s)].join(' · ')}`);
+      });
+    } else lines.push(t(lang, 'layout.readings', { items: itemsOf(r.readings).join(' · ') }));
   }
   if (r.behaviour) lines.push(behaviourText(r.behaviour, lang, t, f));
   for (const p of r.programs ?? []) {

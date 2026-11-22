@@ -112,7 +112,9 @@ export function formatRun(result, lang = 'en', { formatIssue, netLabels = {} } =
     return lines.join('\n');
   }
   const { run, serial, outputs } = result;
-  lines.push(t(lang, 'sim.run', { start: t(lang, `sim.run.start.${run.start}.${run.start === (run.page ?? run.start) ? 'page' : 'other'}`), seconds: f(run.seconds, 's'), step: f(run.step, 's'), steps: run.steps }));
+  const gains = (s) => [...s.gains.map((g) => t(lang, g.on ? 'layout.states.on' : 'layout.states.off', { id: g.id })), ...s.on.map((id) => t(lang, 'sim.run.state.lit', { id }))].join(', ');
+  const from = run.states ? t(lang, 'sim.run.start.state', { first: gains(run.states[0]), second: gains(run.states[1]) }) : t(lang, `sim.run.start.${run.start}.${run.start === (run.page ?? run.start) ? 'page' : 'other'}`);
+  lines.push(t(lang, 'sim.run', { start: from, seconds: f(run.seconds, 's'), step: f(run.step, 's'), steps: run.steps }));
   // A run that covers less than was asked (capped at the limit, stopped by the machine's time or its
   // steps) says so first, and each heading after it names the span it covers.
   const ran = run.ran ?? run.seconds;

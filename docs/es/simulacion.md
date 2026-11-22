@@ -208,6 +208,21 @@ Se fijan con una operación, como cualquier campo del circuito:
   límite; con menos de cinco periodos enteros dice `unos` con dos cifras); pasado
   el límite dice que no se midió (`la ejecución necesitaba más de 25 000 pasos de la simulación`) y
   nombra `simulate --run 2`.
+- **Dos estados de reposo** (un enclavamiento de transistores, un flip-flop). Su punto de DC puede
+  ser el equilibrio entre sus dos estados estables, los dos transistores a medias, en el que un
+  circuito real nunca se queda. Después del punto de DC de un circuito con dos transistores o más (y
+  sin placa, 555 ni amplificador operacional), el kit empuja la base o la compuerta de cada
+  transistor 50 mV, hacia arriba y hacia abajo, con 1 nF en cada nodo (lo que tiene un nodo real), y
+  lo deja asentarse: un punto estable recoge el empujón, un punto de equilibrio se escapa a un estado
+  a cada lado (`restingStates` en `src/sim/run.js`; el signo de la ganancia del lazo diría lo mismo,
+  pero el sistema tiene fuentes e interruptores cuyas filas no son dinámica, así que el empujón usa
+  el motor que corre la página). Cada estado se resuelve otra vez sin las capacitancias agregadas,
+  así sus lecturas son las del circuito. La respuesta de `layout` dice entonces `Dos estados de
+  reposo (un modelo): … al encenderlo queda en uno de los dos, y el kit no puede decir en cuál` y las
+  lecturas de cada estado (`1. Q1 apagado, Q2 conduce · batería BT1 8,98 V · D1 4,54 mA …`) en vez
+  de la línea `Lecturas`; el punto de DC de `simulate` agrega el aviso `SIM_TWO_STATES` y `states`
+  en `--json`; `--run` desde el punto de reposo empieza desde el primer estado y lo dice (`run.state`,
+  `run.states` en `--json`). Ninguna receta ni ejemplo tiene dos.
 
 ## Resultados
 

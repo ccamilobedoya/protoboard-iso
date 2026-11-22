@@ -196,6 +196,21 @@ Set them with an operation like any circuit field:
   `simulate --run` measures it, within the same bound; under five whole periods there it says `about`
   with two figures); past the bound it says it was not measured (`the run needed more than 25 000 steps of the
   simulation`) and names `simulate --run 2`.
+- **Two resting states** (a transistor latch, a flip-flop). Its DC point can be the balance between
+  its two stable states, both transistors half on, which a real circuit never sits in. After the DC
+  point of a circuit with two transistors or more (and no board, 555 or op-amp), the kit pushes each
+  transistor's base or gate by 50 mV, up and down, with 1 nF on every node (what a real node has),
+  and lets it settle: a stable point takes the push back, a balance point runs away to a state on each
+  side (`restingStates` in `src/sim/run.js`; the sign of the loop gain would say the same, but the
+  system holds sources and switches whose rows are not dynamics, so the push uses the engine the
+  page runs). Each state is then solved again without the added capacitances, so its readings are
+  the circuit's own. `layout`'s answer then says `Two resting states (a model): … it powers up in one
+  of them, and the kit cannot say which` and each state's readings (`1. Q1 off, Q2 on · battery BT1
+  8.98 V · D1 4.54 mA …`) instead of the `Readings` line; the DC point of `simulate` adds the warning
+  `SIM_TWO_STATES` and `states` in `--json`; `--run` from the resting point starts from the first
+  state and says so (`Run from the first of its two resting states (Q1 off, Q2 on, D1 on); a real
+  circuit may power up in the other …`; `run.state`, `run.states` in `--json`). No recipe or example
+  has two.
 
 ## Results
 
