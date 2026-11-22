@@ -26,6 +26,7 @@ import { setupPinout } from './pinout.js';
 import { setupBench } from './bench.js';
 import { setupFigure } from './figure.js';
 import { partsRect } from './view.js';
+import { ownValue } from './own.js';
 
 // A step run on its own (`run`) takes the move a timeline's step takes by default (src/tour.js).
 const DEFAULT_MOVES = { frame: 'arrival', scene: 'arrival', land: 'travel', pin: 'arrival', bench: 'arrival', symbol: 'arrival', inside: 'arrival' };
@@ -120,7 +121,7 @@ export function setupTour(page, { director, t, f, recording, landing = false, re
   }
 
   let shown = null; // { part, field, k } the value on screen, k: share of its count
-  const readingOf = (part, field) => reading()?.parts[part]?.[field];
+  const readingOf = (part, field) => ownValue(reading()?.parts, part)?.[field];
   function showValue() {
     if (!shown) return;
     const v = readingOf(shown.part, shown.field);

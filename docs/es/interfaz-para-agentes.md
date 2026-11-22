@@ -119,6 +119,15 @@ Prueba en seco (no se guardó nada): la revisión 0 → 1 cambiaría:
 Aquí el movimiento habría destapado a R1 pero desconectaba el LED: la prueba en seco lo
 muestra antes de guardar nada. `--views front,back` mide las dos vistas.
 
+El diff es el juicio que `review` da de las dos revisiones, menos lo que necesita correr la
+simulación (`judge` en `src/diff.js`): los chequeos de colocación y los problemas del dibujo, las
+conexiones que pidió el spec del montaje (`SPEC_NET_MISSING`, `SPEC_NETS_SHORTED`) y las dudas que
+se hallan sin resolver nada (el archivo del programa de una placa que falta o está fuera de la
+carpeta, un sketch que el kit no puede leer, un componente sin modelo, las dudas del cableado),
+marcadas con ⚠. Así `apply` y `review` nunca discrepan sobre la colocación de una revisión; las
+dudas de los estados que visita el chequeo de peligros y de su ejecución (una salida que nunca se
+enciende) las dice `review`.
+
 **Revisiones.** Cada cambio guardado sube el `revision` del circuito y agrega una línea al
 historial. `--expect-revision n` se niega a aplicar si el circuito ya no está en `n`, así
 dos agentes nunca se pisan: ante `REVISION_MISMATCH`, volver a leer y reintentar.
@@ -133,6 +142,13 @@ node bin/protoboard-iso.js undo <objetivo> --author claude
 Cada línea del historial: `{ revision, time, author, note, ops, inverse, undoes? }`. `undo`
 aplica la inversa del último cambio que no se haya deshecho y la registra como una revisión
 nueva; si se vuelve a llamar, sigue retrocediendo.
+
+Una línea del historial que el kit no puede leer (basura, bytes al azar, una escritura cortada) es
+`HISTORY_DAMAGED`: `apply`, `undo` e `history` se niegan con el archivo y la línea, y no se guarda
+nada (una revisión agregada después nunca se podría deshacer). El circuito en sí es otro archivo
+y está intacto. `apply … --new-history` (MCP `apply_ops` con `new_history`) deja el archivo dañado
+al lado del nuevo (`history.jsonl.damaged`) y empieza un historial desde el circuito como está:
+deshacer vuelve hasta esa revisión y no más.
 
 ## En la API
 
@@ -173,4 +189,4 @@ Los roles de montaje, revisor y bibliotecario, construidos sobre estas herramien
 
 `apply` guarda un cambio legible pero equivocado (un corto, una colisión) y dice `Guardado como revisión N con K error(es) nuevo(s)`; `undo` lo deshace.
 
-Todos los comandos que informan algo aceptan también `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `nets`, `review`).
+Todos los comandos que informan algo aceptan también `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `nets`, `review`). Con `--json` toda respuesta es un solo valor JSON, también un error: `{ "ok": false, "code": "INPUT_MISSING", "message": "…" }` para un archivo que no está, una opción que el kit no conoce (`BAD_OPTION`), un nombre que `catalog` no conoce (`UNKNOWN_NAME`) o el uso (`USAGE`); `catalog --json` es el catálogo entero y `catalog parts | boards | modules | recipes` lista una clase.

@@ -114,6 +114,14 @@ Dry run (nothing saved): revision 0 → 1 would change:
 Here the move would have hidden less of R1 but disconnected the LED: the dry run shows it
 before anything is saved. `--views front,back` measures both views.
 
+The diff is the judgement `review` gives of the two revisions, less what needs the simulation to
+run (`judge` in `src/diff.js`): the placement checks and drawing problems, the connections the
+layout spec asked for (`SPEC_NET_MISSING`, `SPEC_NETS_SHORTED`), and the doubts found without
+solving anything (a board's program file missing or outside the folder, a sketch the kit cannot
+read, a part with no model, the wiring doubts), marked ⚠. So `apply` and `review` never disagree
+about the placement of a revision; the doubts of the hazard check's states and its run (an output
+that never comes on) are said by `review`.
+
 **Revisions.** Every saved change bumps `revision` in the circuit and appends a line to
 the history. `--expect-revision n` refuses to apply if the circuit is no longer at `n`, so
 two agents never overwrite each other: on `REVISION_MISMATCH`, read again and retry.
@@ -128,6 +136,13 @@ node bin/protoboard-iso.js undo <target> --author claude
 Each history line: `{ revision, time, author, note, ops, inverse, undoes? }`. `undo`
 applies the inverse of the latest change not yet undone and records it as a new revision;
 calling it again walks further back.
+
+A history line the kit cannot read (garbage, random bytes, a cut write) is `HISTORY_DAMAGED`:
+`apply`, `undo` and `history` refuse with the file and the line, and nothing is saved (a revision
+added after it could never be undone). The circuit itself is a separate file and is intact.
+`apply … --new-history` (MCP `apply_ops` with `new_history`) keeps the damaged file beside the
+new one (`history.jsonl.damaged`) and starts a history from the circuit as it is: undo goes back
+to that revision and no further.
 
 ## In the API
 
@@ -167,4 +182,4 @@ Layout, reviewer and parts librarian roles built on these tools: [agents.md](age
 
 `apply` saves a change that is readable but wrong (a short, a collision) and says `Saved as revision N with K new error(s)`; `undo` takes it back.
 
-Every command that reports something also takes `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `nets`, `review`).
+Every command that reports something also takes `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `nets`, `review`). With `--json` every answer is one JSON value, an error too: `{ "ok": false, "code": "INPUT_MISSING", "message": "…" }` for a file that is not there, an option the kit does not know (`BAD_OPTION`), a name `catalog` does not know (`UNKNOWN_NAME`) or the usage (`USAGE`); `catalog --json` is the whole catalog and `catalog parts | boards | modules | recipes` lists one kind.

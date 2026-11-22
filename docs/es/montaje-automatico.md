@@ -404,7 +404,14 @@ su límite de tiempo de 60 s con su mejor intento hasta ahí: N componentes sin 
 unir, K puntos de la revisión abiertos. Las opciones: un límite mayor … o un circuito más pequeño»
 (`LAYOUT_BUDGET`). El circuito se escribe igual (sale con 2, como todo `CHANGES`). El arreglo
 calculado de sus peligros no se busca entonces (segundos de simulaciones, para un circuito que
-todavía hay que arreglar).
+todavía hay que arreglar). El límite se cuenta en trabajo, no en tiempo: cada colocación probada (y
+cada candidata que mide `suggest`) cuenta 1 + los componentes del circuito entre los que se revisa,
+`WORK_PER_SECOND` (5000) por cada segundo de límite, así que el mismo spec se detiene en el mismo
+lugar en cada corrida y máquina (una red de 250 resistencias: unos 45 s en un escritorio ocupado,
+todas colocadas, el mismo circuito dos veces; tardaba 84 s y colocaba 203, y luego 189). El reloj es
+solo la guarda de afuera: una máquina tan lenta que llegue antes a él se detiene ahí, y la línea dice
+que ese corte no se repite (`LAYOUT_BUDGET`, variante `clock`); la respuesta trae `tried: { placements,
+max, byClock? }`.
 Un presupuesto de reloj hace que un resultado dependa de lo ocupada que esté la máquina, así que las
 pruebas que no tratan del presupuesto montan con `test/layout-generous.js` (el presupuesto más grande,
 300 s); solo las pruebas del presupuesto usan el de por defecto.
@@ -632,7 +639,9 @@ Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitado
 
 **Un ensayo** (`--dry-run`; en la herramienta MCP `dry_run: true`, la palabra que usa `apply_ops`):
 todo lo anterior, sobre el circuito como quedaría después de la llamada (un objetivo nuevo, o uno que
-ya existe montado otra vez), con la misma respuesta y el mismo `STATUS`, sin escribir nada: ni archivo
+ya existe montado otra vez), con la misma respuesta y el mismo `STATUS` (cuyas palabras dicen que fue
+un ensayo: `DONE · tal como se ensayó, el circuito quedaría listo … no se guardó nada`, y `WARNINGS`
+termina en `Esto fue un ensayo … no se guardó nada`), sin escribir nada: ni archivo
 del circuito, ni historial, ni página, ni revisión, ni carpeta de salidas; en un anfitrión MCP con el
 visor no se muestra tablero (como `try_ops`). Su última línea antes de `STATUS:` lo dice: `Ensayo: no
 se guardó nada.` (`Trial: nothing was saved.`); la línea de la página no va. Así se ensaya una idea que

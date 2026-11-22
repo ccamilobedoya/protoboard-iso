@@ -41,7 +41,7 @@ import { parseValue, valueText, formatValue } from './core/units.js';
 import { decimalSeparator } from './i18n/index.js';
 import { CIRCUIT_FOLDER } from './beside.js';
 import { PART_TYPES } from './parts/types/index.js';
-import { lookupModule } from './parts/modules.js';
+import { lookupModule, headerPins } from './parts/modules.js';
 import { PACKAGES } from './parts/packages/index.js';
 import { SWITCH_STYLES } from './parts/types/switch.js';
 import { resolvePart, pinsOf } from './parts/resolve.js';
@@ -59,6 +59,9 @@ const PALETTE = ['orange', 'green', 'yellow', 'blue', 'white', 'violet'];
 const TALL = new Set(['TO-220', 'ams1117-module']);
 const KNOBS = new Set(['pot-vertical']); // packages with a knob towards the front
 const HELD_UP = new Set([...TALL, ...KNOBS]); // bodies held up off the board: leads and jumpers pass below their box
+// The width of a battery across the edge it lies on, in mm (parts/packages/battery.js dimensions):
+// a holder of round cells side by side, or a block.
+const batteryWidth = (params = {}) => (params.shape === 'cell' ? params.cells * params.diameter + (params.cells - 1) * 0.6 + 2.4 : (params.size?.[1] ?? 30));
 const BESIDE = new Set(['switch', 'module', 'battery', 'relay', 'motor']); // bodies off the board: only their holes count
 const SPAN = 8; // columns a part may slide past the cursor looking for room
 const HEADROOM = SPAN + 12; // columns the elastic board keeps past the circuit while placing
@@ -134,6 +137,8 @@ export function validateSpec(spec) {
       continue;
     }
     if (seen.has(raw.id)) problems.push({ severity: 'error', code: 'DUPLICATE_ID', params: { part: raw.id } });
+    // A net names a pin as "R1.1": an id with a space in it cannot be named there.
+    if (/\s/.test(String(raw.id))) problems.push({ severity: 'error', code: 'ID_HAS_SPACE', params: { part: String(raw.id), example: String(raw.id).replace(/\s+/g, '') || 'R1' } });
     seen.add(raw.id);
     const r = resolvePart(raw);
     if (r.error) problems.push(r.error);
@@ -157,6 +162,8 @@ export function validateSpec(spec) {
       return;
     }
     const m = /^([^.\s]+)\.(\S+)$/.exec(String(ref).trim());
+    // A pin of a part whose id has a space: that part's own line says so.
+    if (!m && [...seen].some((id) => /\s/.test(String(id)) && String(ref).startsWith(`${id}.`))) return undefined;
     if (!m) {
       problems.push({ severity: 'error', code: 'NET_BAD_REF', params: { where, ref: String(ref) } });
       return undefined;
@@ -184,7 +191,7 @@ export function validateSpec(spec) {
     for (const key of ['positive', 'negative']) if (s[key] != null) out[key] = checkRef(s[key], s.id ?? 'supply') ?? s[key];
     return out;
   });
-  for (const p of parts) if (!inNet.has(p.id)) problems.push({ severity: 'warning', code: 'PART_IN_NO_NET', params: { part: p.id } });
+  for (const p of parts) if (!inNet.has(p.id) && !/\s/.test(String(p.id))) problems.push({ severity: 'warning', code: 'PART_IN_NO_NET', params: { part: p.id } });
   for (const j of joined) problems.push({ severity: 'info', code: 'LAYOUT_NETS_JOINED', params: j });
   return { parts, nets, joined, ...(supplies && { supplies }), problems, ok: !problems.some((p) => p.severity === 'error') };
 }
@@ -260,7 +267,10 @@ export function autoLayout(spec, options = {}) {
   const started = Date.now();
   const asked = Number(options.budget ?? BUDGET_SECONDS);
   const seconds = Math.min(asked > 0 ? asked : BUDGET_SECONDS, LIMITS.layoutSeconds);
-  const clock = { at: started + seconds * 1000, seconds, hit: false };
+  // The budget is counted in placements tried (WORK_PER_SECOND each second of it), so a spec stops at
+  // the same place on every run and machine; the wall clock is only the outer guard (a slow machine
+  // reaches it first, and then the answer says the cut is not repeatable: LAYOUT_BUDGET variant).
+  const clock = { at: started + seconds * 1000, seconds, hit: false, work: 0, workMax: Math.max(1, Math.round(seconds * WORK_PER_SECOND)), wall: false };
   const before = [];
   if (asked > LIMITS.layoutSeconds) before.push({ severity: 'info', code: 'LAYOUT_BUDGET_CAPPED', params: { asked, max: LIMITS.layoutSeconds } });
   const valid = validateSpec(spec);
@@ -271,27 +281,37 @@ export function autoLayout(spec, options = {}) {
   }
   const r = laidOut(spec, { ...options, clock }, started);
   if (r.checked) return r;
-  const out = { ...r, notes: [...before, ...(r.notes ?? [])], budget: seconds };
+  const out = { ...r, notes: [...before, ...(r.notes ?? [])], budget: seconds, tried: { placements: clock.work, max: clock.workMax, ...(clock.wall && { byClock: true }) } };
   // The budget ran out somewhere: the answer is the best try so far, and says so.
-  if (clock.hit && !out.problems.some((p) => p.code === 'LAYOUT_BUDGET')) return { ...out, status: 'changes', problems: [...out.problems, budgetProblem(out, seconds, spec)] };
+  if (clock.hit && !out.problems.some((p) => p.code === 'LAYOUT_BUDGET')) return { ...out, status: 'changes', problems: [...out.problems, budgetProblem(out, seconds, spec, clock)] };
   return out;
 }
 
 export const BUDGET_SECONDS = 60; // a layout's budget when none is given (CLI --budget, MCP budget_s)
 
-// The clock has run out (and stays so): the search stops where it is.
+// What the budget counts per second of it: placements tried, each weighed by 1 + the parts it is
+// checked among. A net of 250 resistors does about 8500 a second on a desktop of 2016 under load, so a
+// budget ends by its count at about 0.6 of its wall clock there, and a machine up to that much
+// slower still ends by the count (repeatable); a slower one reaches the clock and says so.
+export const WORK_PER_SECOND = 5000;
+// The budget has run out (and stays so): its count of placements tried is spent, or, as the outer
+// guard, its wall clock. The search stops where it is.
 const over = (clock) => {
-  if (clock && !clock.hit && Date.now() > clock.at) clock.hit = true;
+  if (clock && !clock.hit && clock.work >= clock.workMax) clock.hit = true;
+  if (clock && !clock.hit && Date.now() > clock.at) {
+    clock.hit = true;
+    clock.wall = true;
+  }
   return Boolean(clock?.hit);
 };
 
 // What the best try still has open when the budget stopped the search.
-function budgetProblem(r, seconds, spec) {
+function budgetProblem(r, seconds, spec, clock) {
   const placed = new Set((r.circuit?.parts ?? []).map((p) => p.id));
   const parts = (spec.parts ?? []).filter((p) => !placed.has(p?.id)).length;
   const nets = (r.check?.missing?.length ?? 0) + (r.check?.shorted?.length ?? 0);
   const blocking = (r.review?.blocking ?? []).filter((b) => !b.code.startsWith('SPEC_NET')).length; // the nets are counted already
-  return { severity: 'warning', code: 'LAYOUT_BUDGET', params: { seconds, parts, nets, blocking, max: LIMITS.layoutSeconds } };
+  return { severity: 'warning', code: 'LAYOUT_BUDGET', params: { seconds, parts, nets, blocking, max: LIMITS.layoutSeconds, tried: clock?.work ?? 0, counted: clock?.workMax ?? 0, ...(clock?.wall && { variant: 'clock' }) } };
 }
 
 // A lower bound of the columns a spec takes, from its parts and nets alone, against the columns the
@@ -779,7 +799,7 @@ function repair(best, spec, { profile, asked, clock }) {
   const attempt = (remove, between, color, fixed) => {
     if (left-- <= 0 || over(clock)) return false;
     const base = remove ? applyOps(circuit, [{ op: 'remove', part: remove }]).circuit : circuit;
-    const s = suggest(base, { type: 'wire', ...(color && { color }) }, { between, profile, limit: 1, candidates: 8, maxCandidates: 24, via: false, deadline: clock?.at });
+    const s = suggest(base, { type: 'wire', ...(color && { color }) }, { between, profile, limit: 1, candidates: 8, maxCandidates: 24, via: false, deadline: clock?.at, work: clock ?? undefined });
     const ops = s.placements?.[0]?.ops;
     if (!ops) return false;
     const r = applyOps(base, ops);
@@ -1020,6 +1040,9 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
     const key = `${state}|${JSON.stringify(ops)}`;
     let r = memo.get(key);
     if (r === undefined) {
+      // A placement tried: what the budget counts, weighed by the parts it is checked among (its cost
+      // grows with them: measured on a net of 250 resistors, the time per part placed stays the same).
+      if (clock) clock.work += 1 + circuit.parts.length;
       r = check(ops);
       if (r) {
         memo.states = (memo.states ?? 0) + 1;
@@ -1119,6 +1142,13 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
     const beside = def.error?.code === 'MODULE_PINS';
     const pkg = PACKAGES[def.package];
     let pinNames = def.error ? named : def.pinNames ?? type.pins ?? named;
+    // A board beside the breadboard is placed by the pins in use (MODULE_PINS); one that no net names
+    // (a board alone) is given its ground lead, so it has a place: nothing else is joined to it.
+    if (beside && part.type === 'module' && !named.length) {
+      const all = headerPins(lookupModule(part.part)?.module ?? {}) ?? [];
+      const ground = findPin(all, 'GND');
+      if (ground) pinNames = [ground];
+    }
     if (beside && part.type === 'switch') {
       const style = SWITCH_STYLES[part.style ?? 'rocker'];
       const partners = style.on.filter((pair) => pair.some((n) => named.includes(n.toLowerCase()))).flat();
@@ -1468,9 +1498,15 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
       });
     };
     let fallback = null;
-    for (const pins of done ? [] : ordered) {
+    // A battery lies beside the board where its leads point: a second one whose leads land near the
+    // first's would lie on it (both get the same place off the board). When it collides as placed, it
+    // is laid beside the other along that edge: offsets of its own width, nearer first. One battery,
+    // or one placed by `offset`, is tried as it was.
+    const along = part.type === 'battery' && part.offset === undefined && (circuit.parts ?? []).some((p) => p.type === 'battery') ? batteryWidth(def.params) + 4 : 0;
+    const shifts = along ? [0, 1, -1, 2, -2, 3, -3].map((k) => k * along) : [0];
+    for (const [pins, shift] of done ? [] : ordered.flatMap((pins) => shifts.map((k) => [pins, k]))) {
       const pinMap = Array.isArray(pins) ? pins : pinNames.map((n) => pins[n]);
-      const op = { op: 'add', part: { ...part, pins: kind === 'beside' ? Object.fromEntries(pinNames.map((n, i) => [n, pinMap[i]])) : pinMap } };
+      const op = { op: 'add', part: { ...part, ...(shift && { offset: Math.round(shift * 10) / 10 }), pins: kind === 'beside' ? Object.fromEntries(pinNames.map((n, i) => [n, pinMap[i]])) : pinMap } };
       if (forbid.has(forbidKey(op.part))) continue;
       const before = { circuit, built, baseline, state };
       if (tryOps([op])) {
@@ -1495,7 +1531,7 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
     if (!done) {
       // No rule fits (a crowded spot, a part kind without a rule): suggest, near the cursor.
       // Its places in `forbid` are skipped, as for the rules.
-      const r = suggest(circuit, part, { near: `${halfInfo.ascending[s][2]}${cur + 2}`, limit: 3, candidates: 6, maxCandidates: 24, room: false, via: false, deadline: clock?.at });
+      const r = suggest(circuit, part, { near: `${halfInfo.ascending[s][2]}${cur + 2}`, limit: 3, candidates: 6, maxCandidates: 24, room: false, via: false, deadline: clock?.at, work: clock ?? undefined });
       const allowed = (p) => !p.ops.some((o) => o.op === 'add' && o.part?.id === part.id && forbid.has(forbidKey(o.part)));
       const best = r.placements?.find((p) => allowed(p) && tryOps(p.ops));
       if (best) done = best.pins;
@@ -1750,8 +1786,10 @@ export function formatLayout(r, lang, { t, formatIssue }) {
   if (r.applied) lines.push(appliedLine(r.applied, lang, t));
   if (r.trial) lines.push(t(lang, 'layout.trial'));
   // A trial that ends CHANGES created nothing: its own words, not "the circuit was created".
-  const said = r.trial && r.status === 'changes' ? 'layout.trialChanges' : `layout.status.${r.status}`;
-  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, warningsKey(r, said), { count: r.status === 'warnings' ? warned : open, hazards: r.review.hazards.length, doubts: doubts.length })}`);
+  const said = r.trial && r.status === 'changes' ? 'layout.trialChanges' : r.trial && r.status === 'done' ? 'layout.trialDone' : `layout.status.${r.status}`;
+  // Its DONE and WARNINGS words say "the circuit is ready" or "built": a trial says nothing was saved.
+  const trialTail = r.trial && r.status === 'warnings' ? ` ${t(lang, 'layout.trialNotBuilt')}` : '';
+  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, warningsKey(r, said), { count: r.status === 'warnings' ? warned : open, hazards: r.review.hazards.length, doubts: doubts.length })}${trialTail}`);
   return lines.join('\n');
 }
 

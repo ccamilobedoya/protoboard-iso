@@ -25,7 +25,10 @@ export default {
   'check.UNKNOWN_KIND': '{part}: clase desconocida, "{kind}". Opciones: {options}.',
   'check.UNKNOWN_PACKAGE': '{part}: encapsulado desconocido, "{package}". Los conocidos son: {options}.',
   'check.BAD_VALUE': '{part}: el kit no entiende el valor «{value}».',
+  'check.BAD_VALUE.resistance.notPositive': '{part}: «{value}» no es una resistencia: un resistor tiene más de 0 Ω (para no tener resistencia, usa un cable). El kit toma de {min} a {max}, como 330, 4k7 o 1M.',
+  'check.BAD_VALUE.resistance.range': '{part}: «{value}» está fuera de las resistencias que toma el kit, de {min} a {max} (su código de colores no tiene bandas para ella; m es mili, M es mega).',
   'check.BAD_VALUE.resistance': '{part}: el kit no entiende el valor «{value}». Lleva una resistencia en ohmios, como 330, 4k7 o 1M.',
+  'check.BAD_VALUE.resistance.form': '{part}: el kit no entiende el valor «{value}». Lleva una resistencia en ohmios, como 330, 4k7 o 1M: un número con uno de los prefijos p, n, u, m, k, M, G y sin exponente (1G, no 1e9), de {min} a {max}.',
   'check.BAD_VALUE.resistance.missing': '{part}: le falta el valor. Lleva una resistencia en ohmios, como "value": "330", "4k7" o "1M".',
   'check.BAD_VALUE.capacitance': '{part}: el kit no entiende el valor «{value}». Lleva una capacidad en faradios, como 100n, 4u7 o 470u.',
   'check.BAD_VALUE.capacitance.missing': '{part}: le falta el valor. Lleva una capacidad en faradios, como "value": "100n", "4u7" o "470u".',
@@ -84,6 +87,8 @@ export default {
   'check.CIRCUIT_TOO_MANY_PARTS': 'El circuito quedaría con {size} componentes, más de los {limit} que acepta el kit.',
   'check.CIRCUIT_TOO_LARGE': 'El circuito ocupa {size} bytes, más de los {limit} que acepta el kit; no se lee.',
   'check.NOTHING_TO_UNDO': 'No hay nada que deshacer.',
+  'check.HISTORY_DAMAGED': 'El archivo de historial {file} está dañado en la línea {line}: no es una entrada que el kit pueda leer, así que deshacer e historial no pueden seguir desde ahí y no se guardó nada. El circuito en sí (circuit.json) está intacto. Para seguir, empieza un historial nuevo desde el circuito como está con {option} (el archivo dañado queda al lado, terminado en .damaged), o repara esa línea.',
+  'change.newHistory': 'Historial nuevo desde la revisión {from}: deshacer no va más atrás. El dañado queda como {kept}.',
 
   'change.failed': 'No se cambió nada:',
   'change.dryRun': 'Prueba en seco (no se guardó nada): la revisión {from} → {to} cambiaría:',
@@ -153,7 +158,8 @@ export default {
   'check.LAYOUT_NETS_JOINED': 'Las redes {nets} comparten {pins}: un pin en dos redes las une, así que aquí son una sola red.',
   'check.LAYOUT_TOO_LARGE': 'Demasiado grande para una protoboard: hacen falta unas {needed} columnas y hay {available} ({parts} componentes). En una protoboard caben unos {fit} componentes: divídelo en dos o más circuitos.',
   'check.LAYOUT_SEARCH_LONG': 'Un circuito grande ({parts} componentes): un intento de la búsqueda tarda unos {seconds} s, más que su límite de tiempo de {budget} s. Lo intenta igual; puede hacer falta un límite mayor.',
-  'check.LAYOUT_BUDGET': 'La búsqueda se detuvo en su límite de tiempo de {seconds} s con su mejor intento hasta ahí: {parts} componentes sin colocar, {nets} redes sin unir, {blocking} puntos de la revisión abiertos. Las opciones: un límite mayor (CLI --budget, MCP budget_s, como mucho {max} s) o un circuito más pequeño.',
+  'check.LAYOUT_BUDGET.clock': 'La búsqueda se detuvo en el reloj de su límite de {seconds} s, antes de probar las colocaciones que cuenta para ese límite: esta máquina es más lenta de lo que el kit supone, así que este corte no se repite (otra corrida puede colocar otros componentes). Su mejor intento hasta ahí: {parts} componentes sin colocar, {nets} redes sin unir, {blocking} puntos de la revisión abiertos. Las opciones: un límite mayor (CLI --budget, MCP budget_s, como mucho {max} s) o un circuito más pequeño.',
+  'check.LAYOUT_BUDGET': 'La búsqueda se detuvo en su límite de {seconds} s (contado en colocaciones probadas, no en tiempo, así que el mismo spec se detiene en el mismo lugar en cada corrida) con su mejor intento hasta ahí: {parts} componentes sin colocar, {nets} redes sin unir, {blocking} puntos de la revisión abiertos. Las opciones: un límite mayor (CLI --budget, MCP budget_s, como mucho {max} s) o un circuito más pequeño.',
   'check.LAYOUT_BUDGET_CAPPED': 'Un límite de {asked} s es más de lo que permite el kit: busca {max} s como mucho.',
   'check.LAYOUT_REPAIRED': 'El cable de {from} a {to} se volvió a trazar para que nada quede tapado ni suelto.',
   'check.RECIPE_UNKNOWN': 'No hay una receta «{name}». Recetas: {recipes}.',
@@ -229,6 +235,8 @@ export default {
   'layout.fixApplied.swapSupply': 'Arreglo aplicado: intercambiados los cables de {part} (su + y su −).',
   'layout.trialChanges': 'tal como se ensayó, el circuito quedaría con {count} puntos marcados con ✖ arriba (no se creó nada). Ensaya otra idea, o aplica esta y arregla solo esos.',
   'layout.trial': 'Ensayo: no se guardó nada.',
+  'layout.trialDone': 'tal como se ensayó, el circuito quedaría listo: están todas las redes y la revisión de lección lo aprueba. Esto fue un ensayo (--dry-run; MCP: dry_run): no se guardó nada; córrelo otra vez sin eso para armarlo.',
+  'layout.trialNotBuilt': 'Esto fue un ensayo (--dry-run; MCP: dry_run): no se guardó nada y el circuito todavía no existe; córrelo otra vez sin eso para armarlo.',
   'layout.status.warnings': 'el circuito está armado y sus redes están bien, pero {hazards} componente(s) se dañarían tal como está conectado (marcados con ⚠ arriba). Díselo primero al usuario, en palabras simples: cuál componente y por qué se quema; déjalo así solo si lo que quiere es mostrar la falla, y si no ofrece el arreglo del kit (su línea «Para arreglarlo»; si no tiene, ensaya antes una idea con layout en ensayo). No lo arregles en silencio ni te niegues.',
   'layout.statusDoubts': 'el circuito está armado y sus redes están bien, pero hay {count} punto(s) marcados con ⚠ arriba: cosas que el kit no pudo comprobar. Díselos primero al usuario, uno por uno y en palabras simples, antes de decir que el circuito funciona; deja el circuito como lo pidió salvo que quiera un cambio. No lo arregles en silencio ni te niegues.',
   'layout.statusBoth': 'el circuito está armado y sus redes están bien, pero hay {count} punto(s) marcados con ⚠ arriba: {hazards} componente(s) se dañarían tal como está conectado y {doubts} punto(s) que el kit no pudo comprobar. Díselos primero al usuario, uno por uno y en palabras simples, antes de decir que el circuito funciona; deja el circuito como lo pidió salvo que quiera un cambio (para el daño, ofrece el arreglo del kit, su línea «Para arreglarlo»). No lo arregles en silencio ni te niegues.',
@@ -243,6 +251,7 @@ export default {
   'check.UNKNOWN_PART_NAME.servo': '{part}: el kit no conoce «{name}» (un servo). Lo más cercano que tiene: un motor DC (tipo motor), que gira pero no se queda en un ángulo.',
   'check.UNKNOWN_PART_NAME.transformer': '{part}: el kit no conoce «{name}» (un transformador). Lo más cercano que tiene: un generador de señal en los rieles (una fuente con kind generator) para la alterna que da un secundario, o una bobina (tipo inductor).',
   'check.UNKNOWN_PART_NAME.lcd': '{part}: el kit no conoce «{name}» (una pantalla LCD). Lo más cercano que tiene: un display de 7 segmentos (tipo seven-segment), o el monitor serie de la placa para texto.',
+  'check.ID_HAS_SPACE': '«{part}»: el id de un componente no lleva espacios, porque una red nombra sus patas como id.pata («R1.1»). Escríbelo «{example}», en el componente y en las redes.',
   'check.NET_BAD_REF': 'Red {where}: «{ref}» no es una pata («U1.OUT») ni un riel (T+, T-, B+, B-; U+, U- en una protoboard doble).',
   'check.NET_UNKNOWN_PART': 'Red {where}: «{ref}» nombra a {part}, que no está entre los componentes ({parts}).',
   'check.NET_UNKNOWN_PIN': 'Red {where}: {part} no tiene la pata «{pin}». Sus patas: {names}.',
@@ -946,14 +955,14 @@ export default {
   protoboard-iso check <objetivo> [--lang en|es] [--json]
   protoboard-iso netlist <objetivo>
   protoboard-iso nets <objetivo> [--lang en|es] [--json]
-  protoboard-iso apply <objetivo> [ops.json | -] [--ops '<json>'] [--dry-run] [--author nombre] [--note texto] [--expect-revision n] [--views front,back] [--json]
+  protoboard-iso apply <objetivo> [ops.json | -] [--ops '<json>'] [--dry-run] [--author nombre] [--note texto] [--expect-revision n] [--views front,back] [--json] [--new-history]
   protoboard-iso query <objetivo> at <hole> | node <node|hole> | free [--near <hole|node|column>] [--limit n] [--empty]
   protoboard-iso suggest <objetivo> --part '<json>' [--between <node>,<node>] [--connect '<json>'] [--near …] [--limit n] [--window mm] [--profile lesson|draft]
   protoboard-iso suggest <objetivo> --parts '[{"part": {…}, "between": […]}, …]' [--profile lesson|draft]
   protoboard-iso review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]
-  protoboard-iso undo <objetivo> [--author nombre] [--json]
+  protoboard-iso undo <objetivo> [--dry-run] [--author nombre] [--json]
   protoboard-iso history <objetivo> [--json]
-  protoboard-iso catalog [nombre] [--json] [--lang en|es]   # lo que el kit conoce: tipos, módulos, placas, recetas; de un componente, su texto y sus límites (parts también funciona)`,
+  protoboard-iso catalog [nombre] [--json] [--lang en|es]   # lo que el kit conoce: tipos, módulos, placas, recetas; de un componente, su texto y sus límites. catalog parts | boards | modules | recipes lista una clase; el comando parts es catalog`,
   'cli.written': 'Escrito {file} ({parts} componentes, {issues} observaciones).',
   'cli.page': 'Página: {file} (ábrela en un navegador)',
   'cli.runOrTransient': 'simulate lleva --run o --transient, no los dos.',
@@ -983,7 +992,7 @@ export default {
   "cli.badJson": "El valor de {option} no es JSON válido ({reason}).",
   "cli.internal": "error interno: {message}",
   "cli.internalReport": "Es una falla del kit, no de tu entrada. Repórtala con el comando que ejecutaste (PROTOBOARD_DEBUG=1 muestra la traza).",
-  "change.appliedWithErrors": "Guardado como revisión {revision} con {count} error(es) nuevo(s) (✖ arriba): el circuito no se puede simular hasta corregirlos. undo lo deshace.",
+  "change.appliedWithErrors": "Guardado como revisión {revision} con {count} error(es) nuevo(s) (✖ arriba): review dice CHANGES, y el circuito no funciona como se pidió hasta corregirlos. undo lo deshace.",
   "layout.again": "Se montó de nuevo el circuito existente desde su spec guardada (revisión {revision}); undo devuelve el montaje anterior.",
   "input.got.null": "null",
   "input.got.list": "una lista",
@@ -999,6 +1008,9 @@ export default {
   "input.shape.objectList": "una lista de objetos",
   "cli.writeFailed": "No se pudo escribir la salida ({reason}).",
   "cli.badNumber": "La opción {option} recibe un número, no \"{value}\".",
+  "cli.layoutNothing": "No hay un circuito en {target}: uno nuevo necesita un spec (layout {target} spec.json) o una receta (layout {target} --recipe led-resistor; catalog recipes las lista).",
+  "cli.badRun": "--run lleva los segundos que dura, un número de {min} a {max} (10m es 10 ms; más de {max} se corta ahí), no \"{value}\".",
+  "cli.badTransient": "--transient lleva el tiempo que se simula, mayor que 0, y si quieres el paso, mayor que 0 (--transient 5,1m: 5 s en pasos de 1 ms), no \"{value}\".",
   "cli.badLang": "El idioma \"{value}\" no es uno que el kit conozca (elige entre {options}).",
   'cli.seeHelp': 'Las opciones se ven con --help.',
   'cli.nodes': 'Grupos conectados en uso:',
@@ -1442,6 +1454,10 @@ export default {
   'check.COIL_NO_FLYBACK': '{part} lo conmuta {by} sin un diodo en paralelo: cuando {by} se apaga, la corriente de la bobina lleva ese extremo muy por encima de la fuente, y {by} se puede dañar. Un diodo en paralelo con la bobina (un 1N4007, con el cátodo hacia el lado de la fuente) se lleva esa corriente.',
   'check.COIL_NO_FLYBACK.relay': 'La bobina de {part} la conmuta {by} sin un diodo en paralelo: cuando {by} se apaga, la corriente de la bobina lleva ese extremo muy por encima de la fuente, y {by} se puede dañar. Un diodo en paralelo con la bobina (un 1N4007, con el cátodo hacia el lado de la fuente) se lleva esa corriente.',
   'check.COIL_NO_FLYBACK.motor': 'El motor {part} lo conmuta {by} sin un diodo en paralelo: cuando {by} se apaga, las bobinas del motor llevan ese extremo muy por encima de la fuente, y {by} se puede dañar. Un diodo en paralelo con el motor (un 1N4007, con el cátodo hacia el lado de la fuente) se lleva esa corriente.',
+  'check.SUPPLY_PINS_UNWIRED': '{part} no tiene alimentación: sus patas de alimentación {pins} no están conectadas las dos, así que no puede funcionar. Conecta cada una a su lado de la fuente.',
+  'check.SUPPLY_PINS_UNWIRED.one': '{part} no tiene alimentación: su pata de alimentación {open} no va a ninguna parte (de {pins}), así que no puede funcionar. Conéctala a su lado de la fuente.',
+  'check.SUPPLY_PINS_UNWIRED.both': '{part} no tiene alimentación: sus patas de alimentación {pins} no van a ninguna parte, así que no puede funcionar. Conecta cada una a su lado de la fuente.',
+  'check.SUPPLY_PINS_UNWIRED.same': '{part} no tiene alimentación: sus patas de alimentación {pins} están en la misma red, así que no recibe voltaje y no puede funcionar. Conecta cada una a su propio lado de la fuente.',
   'check.SIM_OUTPUT_NEVER_ON': '{part} nunca se enciende: el kit no encontró ningún estado en el que lo haga, de los de la línea Revisado y a lo largo de la ejecución de la línea Comportamiento cuando la hay. Lo que debería encenderlo no le llega.',
   'check.SIM_OUTPUT_NEVER_ON.many': '{part} nunca se encienden: el kit no encontró ningún estado en el que lo hagan, de los de la línea Revisado y a lo largo de la ejecución de la línea Comportamiento cuando la hay. Lo que debería encenderlos no les llega.',
   'check.SIM_OUTPUT_NEVER_ON.channels': '{part}: {channels} nunca se encienden mientras el resto sí: el kit no encontró ningún estado en el que lo hagan, de los de la línea Revisado y a lo largo de la ejecución de la línea Comportamiento cuando la hay.',

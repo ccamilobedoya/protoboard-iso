@@ -397,6 +397,12 @@ dice: el kit revisó el circuito y no encontró nada que decir.
   una placa sin un diodo en el nodo que corta el interruptor (en paralelo con la bobina, o hacia un
   riel como en un puente H): el interruptor se puede dañar al apagarse. Un motor en un interruptor
   simple o directo en una fuente no tiene interruptor que dañar.
+  `SUPPLY_PINS_UNWIRED`, un componente conectado al circuito cuyas patas de alimentación no están
+  conectadas las dos a algo, o están en una misma red (un LM358 con VCC y GND sueltos, un 555 con
+  todas las patas en una red): no puede funcionar. Las patas de alimentación son las del propio
+  componente: el `supply` de su modelo, o si no las que el kit lee por su nombre como alimentación
+  positiva y tierra (VCC, VDD, V+… y GND, VSS…); una placa de desarrollo (5V, 3V3, su USB) y un
+  componente que no está conectado a nada no se juzgan.
 - `SIM_PART_NOT_SIMULATED`: un componente conectado al circuito sin modelo de simulación (un
   adaptador DESPI-C02, hoy el único; `catalog` lo marca): se dibuja y sus pines quedan abiertos, así
   que lo que hace, y lo que maneja, no se sabe. Las salidas que cuelgan de él se nombran en su línea

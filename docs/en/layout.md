@@ -366,8 +366,14 @@ where it is and answers with the best try so far, `STATUS: CHANGES`, and one lin
 stopped at its budget of 60 s with its best try so far: N parts not placed, M nets not joined, K
 review items open. The options: a larger budget … or a smaller circuit" (`LAYOUT_BUDGET`). The
 circuit is still written (exit 2, as any `CHANGES`). The computed fix of its hazards is not searched
-then (seconds of simulations, for a circuit still to fix). A wall-clock budget makes a result depend
-on how busy the machine is, so the tests that are not about the budget lay out through
+then (seconds of simulations, for a circuit still to fix). The budget is counted in work, not in
+time: each placement tried (and each candidate `suggest` measures) counts 1 + the parts of the circuit
+it is checked among, `WORK_PER_SECOND` (5000) for each second of budget, so the same spec stops at the
+same place on every run and machine (a net of 250 resistors: about 45 s on a busy desktop, every part
+placed, the same circuit twice; it took 84 s and placed 203, then 189). The wall clock is only the
+outer guard: a machine slow enough to reach it first stops there, and the line says that cut is not
+repeatable (`LAYOUT_BUDGET`, variant `clock`); the answer has `tried: { placements, max, byClock? }`.
+The tests that are not about the budget lay out through
 `test/layout-generous.js` (the largest budget, 300 s); only the budget's own tests use the default.
 
 **What the search judges.** Each try is judged by its placement: the drawing and the nets (a
@@ -578,7 +584,9 @@ Can change (layout with the recipe and values): R1 = 330 (current-limiting resis
 
 **A trial** (`--dry-run`; the MCP tool's `dry_run: true`, the word `apply_ops` uses): everything
 above, on the circuit as it would be after the call (a new target, or an existing one laid out
-again), with the same answer and `STATUS`, and nothing written: no circuit file, no history, no page,
+again), with the same answer and `STATUS` (whose words say it was a trial: `DONE · as tried, the
+circuit would be ready … nothing was saved`, and `WARNINGS` ends `This was a trial … nothing was
+saved`), and nothing written: no circuit file, no history, no page,
 no revision, no outputs folder; in an MCP host with the viewer no board is shown (as `try_ops`). Its
 last line before `STATUS:` says so: `Trial: nothing was saved.` (`Ensayo: no se guardó nada.`); the
 page line is left out. It is how an idea the kit did not compute (a fix of an assistant's own) is

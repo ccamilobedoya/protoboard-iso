@@ -199,9 +199,10 @@ for (const atEnd of [false, true]) {
     assert.equal(real.status, 0, real.stdout + real.stderr);
     assert.match(lastLine(real.stdout), /^STATUS: DONE · /);
     assert.match(real.stdout, /\nChecked: at rest, 3 program outputs\. Not checked: peaks while switching\.\n/);
-    // The same answer, but the trial's line and the page's.
-    const strip = (s, drop) => s.replace(/^Laid out .*$/m, '').split('\n').filter((l) => !drop.test(l)).join('\n');
+    // The same answer, but the trial's line and the page's, and the STATUS words (a trial says nothing was saved, C12).
+    const strip = (s, drop) => s.replace(/^Laid out .*$/m, '').split('\n').filter((l) => !drop.test(l) && !/^STATUS: /.test(l)).join('\n');
     assert.equal(strip(trial.stdout, /^Trial: /), strip(real.stdout, /^Page: /));
+    assert.match(lastLine(trial.stdout), /^STATUS: DONE · as tried, .*nothing was saved/);
     // On the circuit as first built (with the warning), as one change.
     laidOut(dir, 'built');
     const before = JSON.parse(readFileSync(join(dir, 'circuits/built/circuit.json'), 'utf8'));

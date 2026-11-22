@@ -7,6 +7,8 @@
 
 import { inspectCircuit, checkCircuit } from './index.js';
 import { DOUBT_CODES } from './circuit/checks.js';
+import { checkNets } from './nets.js';
+import { compile, doubtsOf } from './sim/index.js';
 
 const sortKeys = (obj) => Object.fromEntries(Object.entries(obj ?? {}).sort(([a], [b]) => a.localeCompare(b)));
 export const problemKey = (p) => `${p.severity} ${p.code} ${JSON.stringify(sortKeys(p.params))}`;
@@ -34,8 +36,10 @@ function measured(circuit, { views = ['front'], fit = 'board', lang = 'en' } = {
   const visibility = {};
   views.forEach((view, i) => {
     const report = inspectCircuit(circuit, { view, fit, lang });
-    if (i === 0) problems.push(...report.issues);
-    problems.push(...report.problems.map((p) => (views.length > 1 ? { ...p, view } : p)));
+    // A loop, not push(...list): a spread passes every item as an argument, and a batch of a few
+    // hundred parts has more problems than the stack holds arguments.
+    if (i === 0) for (const p of report.issues) problems.push(p);
+    for (const p of report.problems) problems.push(views.length > 1 ? { ...p, view } : p);
     for (const part of report.parts) visibility[views.length > 1 ? `${part.id}@${view}` : part.id] = part.visible;
   });
   // What check reports counts too: simulate refuses on the same placement errors, so a change that
@@ -43,6 +47,43 @@ function measured(circuit, { views = ['front'], fit = 'board', lang = 'en' } = {
   const seen = new Set(problems.map(problemKey));
   for (const issue of checkCircuit(circuit).issues) if (!seen.has(problemKey(issue))) problems.push(issue);
   return { problems, visibility };
+}
+
+// What `apply` and `undo` measure before and after a change: the same judgement `review` gives of a
+// revision, less what needs the simulation to run. evaluate's problems, plus
+//  - the connections the layout spec asked for (review.js: SPEC_NET_MISSING, SPEC_NETS_SHORTED), so a
+//    part moved off its strip is "new: error", not a note;
+//  - the doubts the kit finds without solving or running anything (sim/index.js doubtsOf on the
+//    compiled circuit: a board's program file missing or outside the folder, a sketch the kit cannot
+//    translate, a part with no simulation model, the wiring doubts), each a warning as review says it.
+// The doubts of the hazard check's states and its run (an output that never comes on, a pin over its
+// voltage) stay review's: a change is measured in a moment, a review takes its time.
+export function judge(circuit, options = {}) {
+  const r = evaluate(circuit, options);
+  const seen = new Set(r.problems.map((p) => `${p.code} ${JSON.stringify(sortKeys(p.params))}`));
+  const add = (p) => {
+    const key = `${p.code} ${JSON.stringify(sortKeys(p.params))}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    r.problems.push(p);
+  };
+  if (circuit?.spec?.nets?.length) {
+    const asked = circuit.spec.nets.map((n) => (Array.isArray(n) ? { pins: n } : n));
+    const nets = checkNets(circuit, asked);
+    for (const m of nets.missing) add({ severity: 'error', code: 'SPEC_NET_MISSING', params: { net: m.net, pins: m.pins.join(', ') } });
+    for (const sh of nets.shorted) add({ severity: 'error', code: 'SPEC_NETS_SHORTED', params: { nets: sh.nets.join(' + ') } });
+  }
+  // Only what the placement lets the kit read: a circuit that cannot be built has its errors already.
+  if (!r.problems.some((p) => p.severity === 'error' && isInputMistake(p))) {
+    const compiled = compile(circuit);
+    const folder = circuit?.[FOLDER];
+    for (const d of doubtsOf(circuit, compiled, null)) {
+      // As review words it: a program file not found says where the kit looked.
+      if (d.code === 'SIM_PROGRAM_FILE') add({ ...d, doubt: true, params: { ...d.params, ...(folder ? { folder: String(folder), variant: 'folder' } : { variant: 'noFolder' }) } });
+      else add({ ...d, doubt: true });
+    }
+  }
+  return r;
 }
 
 // Two classes of error a change can introduce. The rule:
@@ -84,7 +125,7 @@ export function diffEvaluations(before, after) {
   return { fixed, introduced, kept, visibility };
 }
 
-const mark = (p) => (p.severity === 'info' ? '·' : DOUBT_CODES.has(p.code) ? '⚠' : '✖');
+const mark = (p) => (p.severity === 'info' ? '·' : p.doubt || DOUBT_CODES.has(p.code) ? '⚠' : '✖');
 
 // Readable summary of an apply/undo result. `formatIssue` comes from index.js.
 export function formatChange(result, lang, { t, formatIssue }) {
@@ -112,6 +153,7 @@ export function formatChange(result, lang, { t, formatIssue }) {
   if (visibility.length) lines.push(`  ${t(lang, 'change.visibility')}: ${visibility.map((v) => `${v.part} ${pct(v.before)} → ${pct(v.after)}`).join(', ')}`);
   // Saved, and the kit allows it, but the person is told in words that it does not work now.
   if (result.applied && !result.dryRun && !result.undid && result.newErrors > 0) lines.push(t(lang, 'change.appliedWithErrors', { revision: result.revision, count: result.newErrors }));
+  if (result.newHistory) lines.push(`  ${t(lang, 'change.newHistory', result.newHistory)}`);
   if (result.files) lines.push(`  ${t(lang, 'change.outputs', { svg: result.files.svgFile, report: result.files.reportFile })}`);
   return lines.join('\n');
 }

@@ -7,7 +7,7 @@ import { formatIssue, t, checkCircuit } from '../src/index.js';
 test('a part whose value or colour the kit cannot read is refused before placing anything, with what it takes', () => {
   const nets = (id, a, b) => [[`${id}.${a}`, 'T+'], [`${id}.${b}`, 'T-']];
   const cases = [
-    [{ id: 'R1', type: 'resistor', value: 'abc' }, ['1', '2'], /It takes a resistance in ohms, such as 330, 4k7 or 1M\./, /Lleva una resistencia en ohmios/],
+    [{ id: 'R1', type: 'resistor', value: 'abc' }, ['1', '2'], /It takes a resistance in ohms, such as 330, 4k7 or 1M: a number with one of the prefixes/, /Lleva una resistencia en ohmios/],
     [{ id: 'C1', type: 'capacitor', value: '10 apples' }, ['1', '2'], /It takes a capacitance in farads, such as 100n/, /Lleva una capacidad en faradios/],
     [{ id: 'L1', type: 'inductor', value: 'x' }, ['1', '2'], /It takes an inductance in henries/, /Lleva una inductancia en henrios/],
     [{ id: 'D1', type: 'zener', value: 'five' }, ['A', 'K'], /It takes a Zener voltage/, /Lleva una tensión de Zener/],

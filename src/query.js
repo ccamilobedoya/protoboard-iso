@@ -345,8 +345,10 @@ function tally(reasons) {
 // room (default true): leave out placements that take the last usable hole of a strip still
 // waiting for a connection, or of a group named in `reserve` ({ "U1.OUT": 2 }: two more
 // connections will go there). When nothing is left, hint.reasons says why, most frequent first.
-// deadline: a time (ms since the epoch) after which no more candidates are measured (layout's budget).
-export function suggest(circuit, part, { connect, between, near, limit = 5, candidates = 12, maxCandidates = 48, views, profile, window = 20, reserve, room = true, dependents, via = true, deadline } = {}) {
+// deadline: a time (ms since the epoch) after which no more candidates are measured (layout's budget,
+// its outer guard); work: layout's count of placements tried ({ work, workMax }): each candidate measured
+// counts 1 + the parts of the circuit, and none is measured once it is spent, so the same spec stops at the same place on any machine.
+export function suggest(circuit, part, { connect, between, near, limit = 5, candidates = 12, maxCandidates = 48, views, profile, window = 20, reserve, room = true, dependents, via = true, deadline, work } = {}) {
   const policy = profile ? PROFILES[profile] : null;
   if (profile && !policy) return { error: { severity: 'error', code: 'UNKNOWN_PROFILE', params: { profile, options: Object.keys(PROFILES).join(', ') } } };
   views ??= policy?.hiddenEverywhere ? ['front', 'back'] : ['front'];
@@ -436,9 +438,11 @@ export function suggest(circuit, part, { connect, between, near, limit = 5, cand
   let considered = 0;
   let looked = 0;
   let fallback = null;
-  while (placements.length < limit && considered < pool.length && !(dependents?.length && looked >= LOOKAHEAD) && !(deadline && Date.now() > deadline)) {
+  const spent = () => (work && work.work >= work.workMax) || (deadline && Date.now() > deadline);
+  while (placements.length < limit && considered < pool.length && !(dependents?.length && looked >= LOOKAHEAD) && !spent()) {
     const batch = [];
-    while (considered < pool.length && (considered < candidates || batch.length < limit - placements.length) && !(deadline && Date.now() > deadline)) {
+    while (considered < pool.length && (considered < candidates || batch.length < limit - placements.length) && !spent()) {
+      if (work) work.work += 1 + (circuit.parts?.length ?? 0);
       const m = measure(pool[considered++]);
       if (m) batch.push(m);
     }

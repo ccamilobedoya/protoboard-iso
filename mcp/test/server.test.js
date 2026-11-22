@@ -283,7 +283,7 @@ test('layout check_only reads parts by name and reports every problem without cr
   assert.ok((await call('get_circuit', { target: 'circuits/checked' })).isError, 'nothing created');
 });
 
-test('layout dry_run: the same answer and STATUS, a trial line, nothing written, new or existing', async () => {
+test('layout dry_run: the same answer, a trial line, a STATUS that says nothing was saved, nothing written, new or existing', async () => {
   const trial = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9 }, dry_run: true });
   assert.ok(!trial.isError, textOf(trial));
   assert.match(textOf(trial), /\nTrial: nothing was saved\.\nSTATUS: DONE · [^\n]*$/);
@@ -291,8 +291,11 @@ test('layout dry_run: the same answer and STATUS, a trial line, nothing written,
   assert.equal(trial._meta, undefined);
   assert.ok(!existsSync(join(root, 'trial-led')), 'no folder');
   const made = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9 } });
-  const steady = (text) => text.replace(/ \d+ ms /, ' … ms ').split('\n').filter((l) => !/^(Trial: |trial-led · rev |Page: )/.test(l)).join('\n');
+  // The STATUS words differ on purpose: a trial says nothing was saved (C12).
+  const steady = (text) => text.replace(/ \d+ ms /, ' … ms ').split('\n').filter((l) => !/^(Trial: |trial-led · rev |Page: |STATUS: )/.test(l)).join('\n');
   assert.equal(steady(textOf(trial)), steady(textOf(made)));
+  assert.match(textOf(trial), /STATUS: DONE · as tried, the circuit would be ready[^\n]*nothing was saved/);
+  assert.match(textOf(made), /STATUS: DONE · the circuit is ready/);
   const file = join(root, 'trial-led', 'circuit.json');
   const before = [readFileSync(file, 'utf8'), readFileSync(join(root, 'trial-led', 'history.jsonl'), 'utf8')];
   const again = await call('layout', { target: 'trial-led', recipe: 'led-resistor', values: { V1: 9, R1: '10' }, dry_run: true, lang: 'es' });

@@ -5,6 +5,7 @@
 // in ../i18n so the same issue reads well in every language.
 
 import { distance, sub, length, dot, normalize } from '../core/vec.js';
+import { findPin } from '../parts/pin-names.js';
 
 const issue = (severity, code, params) => ({ severity, code, params });
 const mm = (n) => Math.round(n * 10) / 10;
@@ -121,7 +122,7 @@ export function checkConnections(parts, netlist, { netLabels = {} } = {}) {
 // them only as doubts, under "The kit cannot confirm these work" (sim/index.js wiringIssues → doubtsOf),
 // never as a ✖ to fix; `apply` saves a change that adds one and marks it ⚠, not ✖. The next such
 // finding is one more code here (and its check in wiringIssues).
-export const DOUBT_CODES = new Set(['BUTTON_PINS_JOINED', 'COIL_NO_FLYBACK']);
+export const DOUBT_CODES = new Set(['BUTTON_PINS_JOINED', 'COIL_NO_FLYBACK', 'SUPPLY_PINS_UNWIRED']);
 
 // A push button's pins 1–2 (and 3–4) are one metal piece: two different nets on two pins of the
 // same side are joined for good, and pressing the button changes nothing. It is a finding about the
@@ -181,7 +182,7 @@ export function checkFlyback(program) {
     if (names) for (const n of on(d, names)) if (!switched.has(n)) switched.set(n, d.id);
   }
   const diodes = new Set(devices.filter((d) => d.kind === 'D').flatMap((d) => on(d)));
-  const out = [];
+  const out = checkSupplyPins(program);
   for (const d of devices) {
     if (d.kind !== 'RLY' && d.kind !== 'MOT') continue;
     const ends = on(d, d.kind === 'RLY' ? ['A1', 'A2'] : null);
@@ -201,6 +202,51 @@ export function checkFlyback(program) {
         if (ends.includes(n) && !ends.includes(com) && !diodes.has(n)) out.push(issue('warning', 'COIL_NO_FLYBACK', { part: d.id, by: u.id, variant: d.kind === 'RLY' ? 'relay' : 'motor' }));
       }
     }
+  }
+  return out;
+}
+
+// A part with supply pins (a chip, a sensor module) wired into the circuit whose supply pins are not
+// both wired to something, or are on one net: it has no supply, so it cannot work. The supply pins are
+// the ones the part declares: its model's `supply` (an op-amp's [VCC, GND] or [V+, V-]), else the pins
+// the kit reads as its positive supply and its ground by name (pin-names.js: VCC, VDD, V+ … and GND,
+// VSS …). A development board has none of those names (5V, 3V3: it has its USB), and a part wired to
+// nothing at all is left to the placement notes. Read from a compiled circuit, wires merged, as
+// checkFlyback reads it. A doubt (DOUBT_CODES), never a placement problem; called from checkFlyback,
+// so it reaches every place the wiring doubts go (sim/index.js wiringIssues).
+export function checkSupplyPins(program) {
+  const parent = new Map();
+  const find = (x) => {
+    while (parent.has(x) && parent.get(x) !== x) x = parent.get(x);
+    return x;
+  };
+  const devices = program?.devices ?? [];
+  for (const d of devices) if (d.kind === 'W' && d.pins?.length === 2) {
+    const [a, b] = [find(d.pins[0].node), find(d.pins[1].node)];
+    if (a !== b) parent.set(a, b);
+  }
+  // Who is on each net: the devices (not wires) and the supplies' terminals.
+  const on = new Map();
+  const put = (node, who) => {
+    const k = find(node);
+    if (!on.has(k)) on.set(k, new Set());
+    on.get(k).add(who);
+  };
+  for (const d of devices) if (d.kind !== 'W') for (const pin of d.pins ?? []) if (pin.node != null) put(pin.node, d.id);
+  for (const sup of program?.supplies ?? []) for (const node of [sup.p, sup.n]) if (node != null) put(node, `supply:${sup.id}`);
+  const others = (node, id) => [...(on.get(find(node)) ?? [])].some((w) => w !== id);
+  const out = [];
+  for (const d of devices) {
+    if (d.kind === 'W' || d.kind === 'MCU' || !d.pins?.length) continue;
+    const names = d.pins.map((p) => p.name);
+    const declared = d.params?.model?.supply;
+    const pair = Array.isArray(declared) && declared.length === 2 ? declared : [findPin(names, 'VCC'), findPin(names, 'GND')];
+    if (!pair.every((n) => n && names.includes(n))) continue;
+    const pins = pair.map((n) => d.pins.find((p) => p.name === n));
+    if (!d.pins.some((p) => p.node != null && others(p.node, d.id))) continue; // wired to nothing at all
+    const open = pins.filter((p) => p.node == null || !others(p.node, d.id)).map((p) => p.name);
+    if (open.length) out.push(issue('warning', 'SUPPLY_PINS_UNWIRED', { part: d.id, pins: pair.join(' and '), open: open.join(' and '), variant: open.length === 2 ? 'both' : 'one' }));
+    else if (find(pins[0].node) === find(pins[1].node)) out.push(issue('warning', 'SUPPLY_PINS_UNWIRED', { part: d.id, pins: pair.join(' and '), variant: 'same' }));
   }
   return out;
 }

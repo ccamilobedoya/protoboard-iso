@@ -27,6 +27,9 @@ export default {
   'check.UNKNOWN_PACKAGE': '{part}: unknown package "{package}". Known packages: {options}.',
   'check.BAD_VALUE': '{part}: the kit does not understand the value "{value}".',
   'check.BAD_VALUE.resistance': '{part}: the kit does not understand the value "{value}". It takes a resistance in ohms, such as 330, 4k7 or 1M.',
+  'check.BAD_VALUE.resistance.form': '{part}: the kit does not understand the value "{value}". It takes a resistance in ohms, such as 330, 4k7 or 1M: a number with one of the prefixes p, n, u, m, k, M, G and no exponent (1G, not 1e9), from {min} to {max}.',
+  'check.BAD_VALUE.resistance.notPositive': '{part}: "{value}" is not a resistance: a resistor has more than 0 Ω (for no resistance at all, use a wire). The kit takes {min} to {max}, such as 330, 4k7 or 1M.',
+  'check.BAD_VALUE.resistance.range': '{part}: "{value}" is outside the resistances the kit takes, {min} to {max} (its colour code has no bands for it; m is milli, M is mega).',
   'check.BAD_VALUE.resistance.missing': '{part}: its value is missing. It takes a resistance in ohms, such as "value": "330", "4k7" or "1M".',
   'check.BAD_VALUE.capacitance': '{part}: the kit does not understand the value "{value}". It takes a capacitance in farads, such as 100n, 4u7 or 470u.',
   'check.BAD_VALUE.capacitance.missing': '{part}: its value is missing. It takes a capacitance in farads, such as "value": "100n", "4u7" or "470u".',
@@ -85,6 +88,8 @@ export default {
   'check.CIRCUIT_TOO_MANY_PARTS': 'The circuit would have {size} parts, more than the {limit} the kit accepts.',
   'check.CIRCUIT_TOO_LARGE': 'The circuit takes {size} bytes, more than the {limit} the kit accepts; it is not read.',
   'check.NOTHING_TO_UNDO': 'Nothing to undo.',
+  'check.HISTORY_DAMAGED': 'The history file {file} is damaged at line {line}: it is not an entry the kit can read, so undo and history cannot go on from it and nothing was saved. The circuit itself (circuit.json) is intact. To go on, start a new history from the circuit as it is with {option} (the damaged file is kept beside it, ending .damaged), or repair that line.',
+  'change.newHistory': 'New history from revision {from}: undo goes back no further. The damaged one is kept as {kept}.',
 
   'change.failed': 'Nothing was changed:',
   'change.dryRun': 'Dry run (nothing saved): revision {from} → {to} would change:',
@@ -154,7 +159,8 @@ export default {
   'check.LAYOUT_NETS_JOINED': 'Nets {nets} share {pins}: a pin in two nets joins them, so they are one net here.',
   'check.LAYOUT_TOO_LARGE': 'Too large for one board: about {needed} columns needed, {available} available ({parts} parts). About {fit} parts fit one board: split it into two or more circuits.',
   'check.LAYOUT_SEARCH_LONG': 'A large circuit ({parts} parts): one try of the search takes about {seconds} s, more than its budget of {budget} s. It tries anyway; a larger budget may be needed.',
-  'check.LAYOUT_BUDGET': 'The search stopped at its budget of {seconds} s with its best try so far: {parts} parts not placed, {nets} nets not joined, {blocking} review items open. The options: a larger budget (CLI --budget, MCP budget_s, at most {max} s) or a smaller circuit.',
+  'check.LAYOUT_BUDGET.clock': 'The search stopped at the clock of its budget of {seconds} s, before the placements it counts for that budget were tried: this machine is slower than the kit counts on, so this cut is not repeatable (another run may place other parts). Its best try so far: {parts} parts not placed, {nets} nets not joined, {blocking} review items open. The options: a larger budget (CLI --budget, MCP budget_s, at most {max} s) or a smaller circuit.',
+  'check.LAYOUT_BUDGET': 'The search stopped at its budget of {seconds} s (counted in placements tried, not in time, so the same spec stops at the same place on every run) with its best try so far: {parts} parts not placed, {nets} nets not joined, {blocking} review items open. The options: a larger budget (CLI --budget, MCP budget_s, at most {max} s) or a smaller circuit.',
   'check.LAYOUT_BUDGET_CAPPED': 'A budget of {asked} s is more than the kit allows: it searches for {max} s at most.',
   'check.LAYOUT_REPAIRED': 'Jumper from {from} to {to} routed again so nothing is hidden or left apart.',
   'check.RECIPE_UNKNOWN': 'There is no recipe "{name}". Recipes: {recipes}.',
@@ -230,6 +236,8 @@ export default {
   'layout.fixApplied.swapSupply': 'Applied the fix: swapped the leads of {part} (its + and −).',
   'layout.trialChanges': 'as tried, the circuit would be left with {count} items marked ✖ above (nothing was created). Try another idea in a trial, or apply this one and fix only those.',
   'layout.trial': 'Trial: nothing was saved.',
+  'layout.trialDone': 'as tried, the circuit would be ready: every net is there and the lesson review approves it. This was a trial (--dry-run; MCP: dry_run): nothing was saved; run it again without it to build it.',
+  'layout.trialNotBuilt': 'This was a trial (--dry-run; MCP: dry_run): nothing was saved and no circuit exists yet; run it again without it to build it.',
   'layout.status.warnings': 'the circuit is built and its nets are right, but {hazards} part(s) would be damaged as wired (marked ⚠ above). Tell the user first, in plain words, which part and why it burns; keep it as it is only if showing the failure is what they want, otherwise offer the kit’s fix (its “To fix it” line; when it has none, try an idea in a dry run of layout first). Do not fix it silently and do not refuse.',
   'layout.statusDoubts': 'the circuit is built and its nets are right, but {count} point(s) are marked ⚠ above: things the kit could not check. Tell the user each one first, in plain words, before saying the circuit works; keep the circuit as asked unless the user wants a change. Do not fix it silently and do not refuse.',
   'layout.statusBoth': 'the circuit is built and its nets are right, but {count} point(s) are marked ⚠ above: {hazards} part(s) would be damaged as wired and {doubts} point(s) the kit could not check. Tell the user each one first, in plain words, before saying the circuit works; keep the circuit as asked unless the user wants a change (for the damage, offer the kit’s fix, its “To fix it” line). Do not fix it silently and do not refuse.',
@@ -244,6 +252,7 @@ export default {
   'check.UNKNOWN_PART_NAME.servo': '{part}: the kit does not know "{name}" (a servo). Nearest it has: a DC motor (type motor), which spins but does not hold an angle.',
   'check.UNKNOWN_PART_NAME.transformer': '{part}: the kit does not know "{name}" (a transformer). Nearest it has: a signal generator on the rails (a supply with kind generator) for the AC a secondary gives, or an inductor (type inductor).',
   'check.UNKNOWN_PART_NAME.lcd': '{part}: the kit does not know "{name}" (an LCD). Nearest it has: a 7-segment display (type seven-segment), or the board\'s Serial monitor for text.',
+  'check.ID_HAS_SPACE': '"{part}": a part\'s id has no spaces, because a net names its pins as id.pin ("R1.1"). Write it as "{example}", in the part and in the nets.',
   'check.NET_BAD_REF': 'Net {where}: "{ref}" is neither a pin ("U1.OUT") nor a rail (T+, T-, B+, B-; U+, U- on a double board).',
   'check.NET_UNKNOWN_PART': 'Net {where}: "{ref}" names {part}, which is not in the parts ({parts}).',
   'check.NET_UNKNOWN_PIN': 'Net {where}: {part} has no pin "{pin}". Its pins: {names}.',
@@ -947,14 +956,14 @@ export default {
   protoboard-iso check <target> [--lang en|es] [--json]
   protoboard-iso netlist <target>
   protoboard-iso nets <target> [--lang en|es] [--json]
-  protoboard-iso apply <target> [ops.json | -] [--ops '<json>'] [--dry-run] [--author name] [--note text] [--expect-revision n] [--views front,back] [--json]
+  protoboard-iso apply <target> [ops.json | -] [--ops '<json>'] [--dry-run] [--author name] [--note text] [--expect-revision n] [--views front,back] [--json] [--new-history]
   protoboard-iso query <target> at <hole> | node <node|hole> | free [--near <hole|node|column>] [--limit n] [--empty]
   protoboard-iso suggest <target> --part '<json>' [--between <node>,<node>] [--connect '<json>'] [--near …] [--limit n] [--window mm] [--profile lesson|draft]
   protoboard-iso suggest <target> --parts '[{"part": {…}, "between": […]}, …]' [--profile lesson|draft]
   protoboard-iso review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
-  protoboard-iso undo <target> [--author name] [--json]
+  protoboard-iso undo <target> [--dry-run] [--author name] [--json]
   protoboard-iso history <target> [--json]
-  protoboard-iso catalog [name] [--json] [--lang en|es]   # what the kit knows: part types, modules, boards, recipes; a part's text and limits (parts works too)`,
+  protoboard-iso catalog [name] [--json] [--lang en|es]   # what the kit knows: part types, modules, boards, recipes; a part's text and limits. catalog parts | boards | modules | recipes lists one kind; the command parts is catalog`,
   'cli.written': 'Written {file} ({parts} parts, {issues} issues).',
   'cli.page': 'Page: {file} (open it in a browser)',
   'cli.runOrTransient': 'simulate takes --run or --transient, not both.',
@@ -984,7 +993,7 @@ export default {
   "cli.badJson": "The value of {option} is not valid JSON ({reason}).",
   "cli.internal": "internal error: {message}",
   "cli.internalReport": "This is a fault in the kit, not in your input. Please report it with the command you ran (PROTOBOARD_DEBUG=1 shows the trace).",
-  "change.appliedWithErrors": "Saved as revision {revision} with {count} new error(s) (✖ above): the circuit cannot be simulated until they are fixed. undo takes it back.",
+  "change.appliedWithErrors": "Saved as revision {revision} with {count} new error(s) (✖ above): review says CHANGES, and the circuit does not work as asked until they are fixed. undo takes it back.",
   "layout.again": "Laid out the existing circuit again from its kept spec (revision {revision}); undo brings the earlier layout back.",
   "input.got.null": "null",
   "input.got.list": "a list",
@@ -1000,6 +1009,9 @@ export default {
   "input.shape.objectList": "a list of objects",
   "cli.writeFailed": "Could not write the output ({reason}).",
   "cli.badNumber": "The option {option} takes a number, not \"{value}\".",
+  "cli.layoutNothing": "There is no circuit at {target}: a new one needs a spec (layout {target} spec.json) or a recipe (layout {target} --recipe led-resistor; catalog recipes lists them).",
+  "cli.badRun": "--run takes the seconds to run, a number from {min} to {max} (10m is 10 ms; more than {max} is cut there), not \"{value}\".",
+  "cli.badTransient": "--transient takes the time to simulate, above 0, and optionally the step, above 0 (--transient 5,1m: 5 s in steps of 1 ms), not \"{value}\".",
   "cli.badLang": "The language \"{value}\" is not one the kit knows (choose from {options}).",
   'cli.seeHelp': 'See the options with --help.',
   'cli.nodes': 'Connected groups in use:',
@@ -1443,6 +1455,10 @@ export default {
   'check.COIL_NO_FLYBACK': '{part} is switched by {by} with no diode across it: when {by} turns off, the coil\'s current drives that end far past the supply, and {by} can be damaged. A diode across the coil (a 1N4007, its cathode to the supply side) takes that current.',
   'check.COIL_NO_FLYBACK.relay': '{part}\'s coil is switched by {by} with no diode across it: when {by} turns off, the coil\'s current drives that end far past the supply, and {by} can be damaged. A diode across the coil (a 1N4007, its cathode to the supply side) takes that current.',
   'check.COIL_NO_FLYBACK.motor': 'The motor {part} is switched by {by} with no diode across it: when {by} turns off, the motor\'s coils drive that end far past the supply, and {by} can be damaged. A diode across the motor (a 1N4007, its cathode to the supply side) takes that current.',
+  'check.SUPPLY_PINS_UNWIRED': '{part} has no supply: its supply pins {pins} are not both wired, so it cannot work. Wire each to its side of the supply.',
+  'check.SUPPLY_PINS_UNWIRED.one': '{part} has no supply: its supply pin {open} is wired to nothing (of {pins}), so it cannot work. Wire it to its side of the supply.',
+  'check.SUPPLY_PINS_UNWIRED.both': '{part} has no supply: its supply pins {pins} are wired to nothing, so it cannot work. Wire each to its side of the supply.',
+  'check.SUPPLY_PINS_UNWIRED.same': '{part} has no supply: its supply pins {pins} are on the same net, so it gets no voltage and cannot work. Wire each to its own side of the supply.',
   'check.SIM_OUTPUT_NEVER_ON': '{part} never comes on: the kit found no state in which it does, of those on the Checked line and over the run of the Behaviour line when there is one. Whatever should turn it on does not reach it.',
   'check.SIM_OUTPUT_NEVER_ON.many': '{part} never come on: the kit found no state in which they do, of those on the Checked line and over the run of the Behaviour line when there is one. Whatever should turn them on does not reach them.',
   'check.SIM_OUTPUT_NEVER_ON.channels': '{part}: {channels} never come on while the rest do: the kit found no state in which they do, of those on the Checked line and over the run of the Behaviour line when there is one.',
