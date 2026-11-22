@@ -69,7 +69,8 @@ lists. A part you have not used: `kit catalog <name>` first (its `Simulated:` li
 simulated": nothing about it is checked). Spec details: [references/spec.md](references/spec.md);
 each part's pins (which is +), fields and units:
 [references/parts.md](references/parts.md); a 74HC595, 4017, ULN, PC817 or LM386:
-[references/chips.md](references/chips.md).
+[references/chips.md](references/chips.md). Logic inputs switch at half the supply; a level not
+guaranteed or over the supply is a ⚠; the review follows what chips latch.
 
 ## Read the last line
 
@@ -93,14 +94,13 @@ unchanged. After `DONE`, run more only for a question the answer does not settle
 Before you say a circuit with a program, a sensor or an oscillator does what was asked, run it
 with the user's conditions and quote what it printed (Serial lines, each output's time on):
 `kit simulate circuits/<name> --run 2 --env distance=10`; a `warning:` it prints is a ⚠ to tell,
-even after `DONE`. `Behaviour, first 2 s` is only 2 s: run a longer sequence for its whole
-cycle. Options, examples:
-[references/run-it.md](references/run-it.md).
+even after `DONE` (power: averaged over the run). `Behaviour, first 2 s` is only 2 s: run longer
+for a whole cycle. Options, examples: [references/run-it.md](references/run-it.md).
 
 ## Where the kit has no answer
 
-**A part the kit lacks** ("the kit does not know …"): saying "the kit does not have X; the nearest
-is Y" is the right answer, not a failure. Ask before building with Y: "The kit has no X. Shall I use
+**A part the kit lacks** ("the kit does not know …") is not a failure. Ask before building with the
+nearest, Y: "The kit has no X. Shall I use
 Y instead? It differs in …". With nobody to ask: say what the kit lacks and stop.
 
 **"Fix it"** after `To fix it`: `kit layout <folder> --fix` (connector: `fix: true`), one change.
@@ -112,13 +112,13 @@ most three trials, the smallest change, no redesign unless asked:
 
 ## Reply
 
-In the user's language, in this order, with only the lines the answer printed (Spanish names them
+In the user's language, in this order, with only the lines the kit printed (Spanish names them
 in Spanish):
 
 1. What was built, with the kit's values, in one sentence.
 2. With `WARNINGS`: every ⚠, plainly (which part, what happens or what the kit cannot confirm) and
    the `To fix it` line or that there is none, before any sentence that says the circuit works.
-   A part you added to clear one (a diode across a coil): say what and why.
+   A part you added to clear one: say what and why.
 3. As printed: `Readings`, `Behaviour, first 2 s`, `Solved`, `Worth checking` (information: act
    only if asked); and what `simulate --run` showed for what was asked. A `Note:` line too; not the
    `· note:` lines (drawing, nets, model details: over a limit is a ⚠). "About" is approximate: say so.
@@ -129,16 +129,15 @@ in Spanish):
    of the conversation only, add: "You can change a value, add or remove parts, ask
    about a part or how it is connected, or undo a change; tap a part in the page to see its card."
 
-Three kinds of sentence, never mixed: what the kit says; what you added **and the kit confirmed**
-("the kit confirms D10 stays at 19 mA"); what it cannot check, marked "General knowledge, not from
-the kit:". From the `Checked` line, tell what matters to the request. No closing offers, no wiring
-list in prose unless asked.
+Three kinds of sentence, never mixed: what the kit says; what you added **and the kit confirmed**;
+what it cannot check, marked "General knowledge, not from the kit:". From the `Checked` line, tell
+what matters to the request. No closing offers, no wiring list in prose unless asked.
 
 ## Change it, ask about it
 
 A value of a recipe: the same call with all the `--values`; other parts or nets: `layout` on the
 same folder with the whole spec. One kind of part for another (a MOSFET for an NPN) needs other
-parts around it: `--dry-run` first, and read its ⚠ before saving. Undo, history, a current, the nets, the board (`double`), every
+parts around it: `--dry-run` first, and read its ⚠ before saving. Undo, history, the board (`double`), every
 command and exit code: [references/board-and-cli.md](references/board-and-cli.md); operations
 and checks: [references/operations.md](references/operations.md).
 The kit is a teaching model, not a datasheet: say so when it comes up.

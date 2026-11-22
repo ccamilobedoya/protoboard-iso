@@ -409,3 +409,16 @@ kit simulate circuits/amp --transient 5m,10u
 ```text
 Transient from capacitors discharged — a model, not a measurement: 5 ms solved in steps of 10 µs; 251 samples printed, 20 µs apart.
 ```
+
+Driven too hard (0.4 V instead of 50 mV) it clips. A run judges a power limit on its average over
+the run, not on its peaks: the 8 Ω load is over its 1 W on average and is warned; the chip passes its
+1.25 W only at instants and is not. A voltage limit stays instantaneous (`IN+` at its strongest):
+
+```bash
+kit simulate circuits/amp --run 0.05 --set G1.amplitude=0.4
+```
+
+```text
+  warning: U1.IN+ has 422 mV on it, more than its maximum 400 mV: it can be damaged, at its strongest in the run, at 750 µs.
+  warning: R1 dissipates 1.12 W, more than its 1 W: it overheats, on average over the run, from 250 µs to 50 ms.
+```

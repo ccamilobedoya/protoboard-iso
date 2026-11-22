@@ -65,3 +65,17 @@ test("chips.md: eight red LEDs on 330 Ω take a 74HC595 over its 70 mA in a run,
   const rev = JSON.parse(spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'review', file, '--json'], { encoding: 'utf8' }).stdout);
   assert.ok(rev.hazards.some((h) => h.code === 'SIM_OVER_CURRENT' && h.params.part === 'U2'), JSON.stringify(rev.hazards));
 });
+
+// chips.md (C14): 5 V pins into a 74HC595 fed 3.3 V is damage (an input more than 0.5 V over the
+// chip's supply), and 3.3 V pins into one fed 5 V a ⚠ the datasheet does not guarantee.
+test("chips.md: 5 V pins into a 74HC595 fed 3.3 V are a hazard naming the pin, as it says", async () => {
+  const { autoLayout } = await import('./layout-generous.js');
+  assert.match(text, /The other way, 5 V pins into a chip fed 3\.3 V, is damage \(a ⚠\): an\s+input more than 0\.5 V over the chip's supply\./);
+  assert.match(text, /at 5 V the kit reads 3\.3 V as high\s+\(a real chip switches near half its supply\)/);
+  const spec = JSON.parse([...text.matchAll(/^```json (\S+)\n([\s\S]*?)^```/gm)].find((m) => m[1] === 'shift.json')[2]);
+  const ino = [...text.matchAll(/^```cpp (\S+)\n([\s\S]*?)^```/gm)][0][2];
+  spec.parts.find((p) => p.part === 'UNO').program = ino;
+  const low = { ...spec, nets: spec.nets.map((n) => n.map((p) => (p === 'U1.5V' ? 'U1.3V3' : p))) };
+  const hazards = autoLayout(low).review.hazards.filter((h) => h.code === 'SIM_IC_PIN_VOLTAGE');
+  assert.ok(hazards.some((h) => h.params.part === 'U2.SER'), JSON.stringify(hazards.map((h) => h.params.part)));
+});
