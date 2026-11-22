@@ -119,6 +119,15 @@ Prueba en seco (no se guardó nada): la revisión 0 → 1 cambiaría:
 Aquí el movimiento habría destapado a R1 pero desconectaba el LED: la prueba en seco lo
 muestra antes de guardar nada. `--views front,back` mide las dos vistas.
 
+El diff es el juicio que `review` da de las dos revisiones, menos lo que necesita correr la
+simulación (`judge` en `src/diff.js`): los chequeos de colocación y los problemas del dibujo, las
+conexiones que pidió el spec del montaje (`SPEC_NET_MISSING`, `SPEC_NETS_SHORTED`) y las dudas que
+se hallan sin resolver nada (el archivo del programa de una placa que falta o está fuera de la
+carpeta, un sketch que el kit no puede leer, un componente sin modelo, las dudas del cableado),
+marcadas con ⚠. Así `apply` y `review` nunca discrepan sobre la colocación de una revisión; las
+dudas de los estados que visita el chequeo de peligros y de su ejecución (una salida que nunca se
+enciende) las dice `review`.
+
 **Revisiones.** Cada cambio guardado sube el `revision` del circuito y agrega una línea al
 historial. `--expect-revision n` se niega a aplicar si el circuito ya no está en `n`, así
 dos agentes nunca se pisan: ante `REVISION_MISMATCH`, volver a leer y reintentar.

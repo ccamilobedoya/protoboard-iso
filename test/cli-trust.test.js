@@ -176,11 +176,12 @@ test('apply saves a circuit outcome that is wrong, says so in words, and undo br
   const op = '[{"op":"move","part":"R1","pins":["j6","j2"]}]';
   const saved = cli(['apply', c, '--ops', op]);
   assert.equal(saved.status, 0);
-  assert.match(saved.stdout, /Saved as revision 1 with 2 new error\(s\) \(✖ above\)/);
+  // Two placement errors and the three of the spec's nets that review gives too (C12: apply says what review will say).
+  assert.match(saved.stdout, /Saved as revision 1 with 5 new error\(s\) \(✖ above\): review says CHANGES/);
   assert.equal(cli(['simulate', c]).status, 1);
   assert.equal(cli(['undo', c]).status, 0);
   assert.equal(cli(['simulate', c]).status, 0);
-  assert.equal(JSON.parse(cli(['apply', c, '--ops', op, '--json']).stdout).newErrors, 2);
+  assert.equal(JSON.parse(cli(['apply', c, '--ops', op, '--json']).stdout).newErrors, 5);
 });
 
 test('one language per circuit: --lang at layout is kept, --lang wins later', () => {

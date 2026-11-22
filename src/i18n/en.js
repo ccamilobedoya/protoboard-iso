@@ -986,7 +986,7 @@ export default {
   "cli.badJson": "The value of {option} is not valid JSON ({reason}).",
   "cli.internal": "internal error: {message}",
   "cli.internalReport": "This is a fault in the kit, not in your input. Please report it with the command you ran (PROTOBOARD_DEBUG=1 shows the trace).",
-  "change.appliedWithErrors": "Saved as revision {revision} with {count} new error(s) (✖ above): the circuit cannot be simulated until they are fixed. undo takes it back.",
+  "change.appliedWithErrors": "Saved as revision {revision} with {count} new error(s) (✖ above): review says CHANGES, and the circuit does not work as asked until they are fixed. undo takes it back.",
   "layout.again": "Laid out the existing circuit again from its kept spec (revision {revision}); undo brings the earlier layout back.",
   "input.got.null": "null",
   "input.got.list": "a list",

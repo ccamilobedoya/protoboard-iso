@@ -114,6 +114,14 @@ Dry run (nothing saved): revision 0 → 1 would change:
 Here the move would have hidden less of R1 but disconnected the LED: the dry run shows it
 before anything is saved. `--views front,back` measures both views.
 
+The diff is the judgement `review` gives of the two revisions, less what needs the simulation to
+run (`judge` in `src/diff.js`): the placement checks and drawing problems, the connections the
+layout spec asked for (`SPEC_NET_MISSING`, `SPEC_NETS_SHORTED`), and the doubts found without
+solving anything (a board's program file missing or outside the folder, a sketch the kit cannot
+read, a part with no model, the wiring doubts), marked ⚠. So `apply` and `review` never disagree
+about the placement of a revision; the doubts of the hazard check's states and its run (an output
+that never comes on) are said by `review`.
+
 **Revisions.** Every saved change bumps `revision` in the circuit and appends a line to
 the history. `--expect-revision n` refuses to apply if the circuit is no longer at `n`, so
 two agents never overwrite each other: on `REVISION_MISMATCH`, read again and retry.

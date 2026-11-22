@@ -573,6 +573,7 @@ before saying it works.
 - ✅ A batch of operations within the cap never overflows the stack (C12): `apply` with 850 or more `add` operations ended `internal error: Maximum call stack size exceeded`; the measurement no longer spreads a list as arguments, and 3000 `add` operations are refused by the parts cap (1000)
 - ✅ The page survives any id the kit accepts (C12): a part called `__proto__` was left out of the page's data and its card threw; the page's data is read into objects with no prototype and every lookup by id in the client goes through `own()` (`src/page/client/own.js`), tested with `__proto__`, `constructor`, `toString`, `hasOwnProperty` and `valueOf`
 - ✅ `apply` does not build on a history it cannot read (C12): a damaged `history.jsonl` (a garbage line, random bytes) is `HISTORY_DAMAGED` with the file and line, the circuit said intact, nothing saved; `--new-history` (MCP `new_history`) keeps the damaged file beside a new history that starts at the current revision
+- ✅ `apply` says what `review` will say (C12): the diff is computed from review's judgement less the run (`judge`, `src/diff.js`): a part moved off its strips (`i100`, `i104`) is `✖ new: error: Net 1 of the spec …`, a program file missing or outside the folder is `⚠ new: warning`
 
 ## Optional, later ⬜
 

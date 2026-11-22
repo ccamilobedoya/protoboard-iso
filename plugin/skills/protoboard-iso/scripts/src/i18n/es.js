@@ -985,7 +985,7 @@ export default {
   "cli.badJson": "El valor de {option} no es JSON válido ({reason}).",
   "cli.internal": "error interno: {message}",
   "cli.internalReport": "Es una falla del kit, no de tu entrada. Repórtala con el comando que ejecutaste (PROTOBOARD_DEBUG=1 muestra la traza).",
-  "change.appliedWithErrors": "Guardado como revisión {revision} con {count} error(es) nuevo(s) (✖ arriba): el circuito no se puede simular hasta corregirlos. undo lo deshace.",
+  "change.appliedWithErrors": "Guardado como revisión {revision} con {count} error(es) nuevo(s) (✖ arriba): review dice CHANGES, y el circuito no funciona como se pidió hasta corregirlos. undo lo deshace.",
   "layout.again": "Se montó de nuevo el circuito existente desde su spec guardada (revisión {revision}); undo devuelve el montaje anterior.",
   "input.got.null": "null",
   "input.got.list": "una lista",

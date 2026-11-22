@@ -129,3 +129,30 @@ test('undo and history on a damaged history say the same, with the way on', () =
     assert.match(r.stderr, /damaged at line 2.*--new-history/s, command);
   }
 });
+
+test('apply says what review will say: a part moved off its strips, a program file missing or outside', () => {
+  const dir = tempDir('c12-judge-');
+  const target = led(dir);
+  const moved = cli(['apply', target, '--ops', '{"op":"move","part":"R1","pins":["i100","i104"]}', '--json']);
+  assert.equal(moved.status, 0);
+  const result = JSON.parse(moved.stdout);
+  const review = JSON.parse(cli(['review', target, '--json']).stdout);
+  assert.equal(review.verdict, 'changes');
+  const key = (p) => `${p.code} ${JSON.stringify(p.params)}`;
+  const introduced = new Set(result.diff.introduced.map(key));
+  for (const b of review.blocking) assert.ok(introduced.has(key(b)), `apply said ${b.code} too`);
+  assert.ok(result.newErrors >= 2);
+  const text = cli(['undo', target]).stdout;
+  assert.match(text, /✔ fixed: error: Net 1 of the spec/);
+
+  const uno = join(dir, 'uno');
+  assert.equal(cli(['layout', uno, '--recipe', 'uno-blink']).status, 0);
+  for (const [program, code] of [['missing.ino', 'SIM_PROGRAM_FILE'], ['../../etc/x.ino', 'SIM_PROGRAM_OUTSIDE']]) {
+    const r = cli(['apply', uno, '--ops', JSON.stringify({ op: 'set', part: 'U1', program }), '--json']);
+    assert.equal(r.status, 0);
+    assert.ok(JSON.parse(r.stdout).diff.introduced.some((p) => p.code === code), code);
+    const doubts = JSON.parse(cli(['review', uno, '--json']).stdout).doubts;
+    assert.ok(doubts.some((d) => d.code === code), `review says ${code} too`);
+    assert.match(cli(['undo', uno]).stdout, new RegExp(`✔ fixed: warning: U1: its program file`));
+  }
+});

@@ -11,6 +11,7 @@ detail.
 
 ### Changed
 
+- `apply` and `undo` measure a change with the judgement `review` gives, less the run (`judge` in `src/diff.js`): the spec's connections (a part moved past its strips, `i100`/`i104`, was saved with only a note; now `✖ new: error: Net 1 of the spec …` and the saved-with-errors line) and the doubts found without solving (a `program` file missing or outside the folder, `⚠ new: warning`). The saved-with-errors line says `review says CHANGES` instead of "cannot be simulated".
 - `apply` refuses to save on a damaged `history.jsonl` (it saved a revision that `undo` and `history` could then never read): `HISTORY_DAMAGED` names the file and the line and says the circuit is intact; `apply --new-history` (MCP `apply_ops` `new_history`) keeps the damaged file as `history.jsonl.damaged` and starts a new history from the current revision.
 - A part with the id `__proto__`, `constructor`, `toString`, `hasOwnProperty` or `valueOf` opens its card in the page (`__proto__` was missing from the page's data and its tap threw `(stresses[…] ?? []).find is not a function`).
 - `apply` with 850 or more `add` operations no longer ends `internal error: Maximum call stack size exceeded` (a list spread as arguments in `src/diff.js`); 3000 are refused by the parts cap.

@@ -580,6 +580,7 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ✅ Un lote de operaciones dentro del tope nunca desborda la pila (C12): `apply` con 850 o más operaciones `add` terminaba en `internal error: Maximum call stack size exceeded`; la medición ya no pasa una lista como argumentos, y 3000 operaciones `add` las rechaza el tope de componentes (1000)
 - ✅ La página aguanta cualquier id que el kit acepte (C12): un componente llamado `__proto__` quedaba fuera de los datos de la página y su ficha fallaba; los datos de la página se leen en objetos sin prototipo y toda búsqueda por id en el cliente pasa por `own()` (`src/page/client/own.js`), probado con `__proto__`, `constructor`, `toString`, `hasOwnProperty` y `valueOf`
 - ✅ `apply` no construye sobre un historial que no puede leer (C12): un `history.jsonl` dañado (una línea basura, bytes al azar) es `HISTORY_DAMAGED` con el archivo y la línea, el circuito dicho intacto, nada guardado; `--new-history` (MCP `new_history`) deja el archivo dañado al lado de un historial nuevo que empieza en la revisión actual
+- ✅ `apply` dice lo que dirá `review` (C12): el diff sale del juicio de review menos la ejecución (`judge`, `src/diff.js`): un componente movido fuera de sus tiras (`i100`, `i104`) es `✖ new: error: Net 1 of the spec …`, un archivo de programa que falta o está fuera de la carpeta es `⚠ new: warning`
 
 ## Opcional, más adelante ⬜
 

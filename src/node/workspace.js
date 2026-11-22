@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, mkdirSync, rmSync, renameSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { applyOps, CIRCUIT_FIELDS } from '../ops.js';
-import { evaluate, diffEvaluations, newErrorCount, isInputMistake } from '../diff.js';
+import { judge, diffEvaluations, newErrorCount, isInputMistake } from '../diff.js';
 import { renderCircuit, inspectCircuit, formatIssue } from '../index.js';
 import { renderPage } from '../page.js';
 import { pickLanguage, t } from '../i18n/index.js';
@@ -260,7 +260,7 @@ function applyLocked(target, ops, options) {
   const result = applyOps(current, ops);
   if (result.errors.length) return { applied: false, revision, errors: result.errors };
 
-  const diff = diffEvaluations(evaluate(current, { views, lang }), evaluate(result.circuit, { views, lang }));
+  const diff = diffEvaluations(judge(current, { views, lang }), judge(withFolder(result.circuit, paths), { views, lang }));
   // Input mistakes (diff.js) refuse the whole batch, in a dry run too (it says the real run would).
   const mistakes = options.refuse === false ? [] : diff.introduced.filter(isInputMistake);
   if (mistakes.length) return { applied: false, refused: true, ...(dryRun && { dryRun: true }), revision, errors: mistakes, diff };
@@ -315,7 +315,7 @@ function undoLocked(target, { author = 'unknown', views, lang = 'en', outputLang
   const current = loadCircuit(paths);
   const result = applyOps(current, last.inverse);
   if (result.errors.length) return { applied: false, errors: result.errors };
-  const diff = diffEvaluations(evaluate(current, { views, lang }), evaluate(result.circuit, { views, lang }));
+  const diff = diffEvaluations(judge(current, { views, lang }), judge(withFolder(result.circuit, paths), { views, lang }));
   const saved = commit(paths, result.circuit, { author, note: `undo ${last.revision}`, ops: last.inverse, inverse: last.ops, undoes: last.revision });
   const files = outputs ? writeOutputs(paths, saved, { lang, outputLang }) : null;
   return { applied: true, revision: saved.revision, undid: last.revision, errors: [], diff, files };
