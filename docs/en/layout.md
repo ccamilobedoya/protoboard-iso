@@ -366,8 +366,14 @@ where it is and answers with the best try so far, `STATUS: CHANGES`, and one lin
 stopped at its budget of 60 s with its best try so far: N parts not placed, M nets not joined, K
 review items open. The options: a larger budget … or a smaller circuit" (`LAYOUT_BUDGET`). The
 circuit is still written (exit 2, as any `CHANGES`). The computed fix of its hazards is not searched
-then (seconds of simulations, for a circuit still to fix). A wall-clock budget makes a result depend
-on how busy the machine is, so the tests that are not about the budget lay out through
+then (seconds of simulations, for a circuit still to fix). The budget is counted in work, not in
+time: each placement tried (and each candidate `suggest` measures) counts 1 + the parts of the circuit
+it is checked among, `WORK_PER_SECOND` (5000) for each second of budget, so the same spec stops at the
+same place on every run and machine (a net of 250 resistors: about 45 s on a busy desktop, every part
+placed, the same circuit twice; it took 84 s and placed 203, then 189). The wall clock is only the
+outer guard: a machine slow enough to reach it first stops there, and the line says that cut is not
+repeatable (`LAYOUT_BUDGET`, variant `clock`); the answer has `tried: { placements, max, byClock? }`.
+The tests that are not about the budget lay out through
 `test/layout-generous.js` (the largest budget, 300 s); only the budget's own tests use the default.
 
 **What the search judges.** Each try is judged by its placement: the drawing and the nets (a

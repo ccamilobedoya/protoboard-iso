@@ -267,7 +267,10 @@ export function autoLayout(spec, options = {}) {
   const started = Date.now();
   const asked = Number(options.budget ?? BUDGET_SECONDS);
   const seconds = Math.min(asked > 0 ? asked : BUDGET_SECONDS, LIMITS.layoutSeconds);
-  const clock = { at: started + seconds * 1000, seconds, hit: false };
+  // The budget is counted in placements tried (WORK_PER_SECOND each second of it), so a spec stops at
+  // the same place on every run and machine; the wall clock is only the outer guard (a slow machine
+  // reaches it first, and then the answer says the cut is not repeatable: LAYOUT_BUDGET variant).
+  const clock = { at: started + seconds * 1000, seconds, hit: false, work: 0, workMax: Math.max(1, Math.round(seconds * WORK_PER_SECOND)), wall: false };
   const before = [];
   if (asked > LIMITS.layoutSeconds) before.push({ severity: 'info', code: 'LAYOUT_BUDGET_CAPPED', params: { asked, max: LIMITS.layoutSeconds } });
   const valid = validateSpec(spec);
@@ -278,27 +281,37 @@ export function autoLayout(spec, options = {}) {
   }
   const r = laidOut(spec, { ...options, clock }, started);
   if (r.checked) return r;
-  const out = { ...r, notes: [...before, ...(r.notes ?? [])], budget: seconds };
+  const out = { ...r, notes: [...before, ...(r.notes ?? [])], budget: seconds, tried: { placements: clock.work, max: clock.workMax, ...(clock.wall && { byClock: true }) } };
   // The budget ran out somewhere: the answer is the best try so far, and says so.
-  if (clock.hit && !out.problems.some((p) => p.code === 'LAYOUT_BUDGET')) return { ...out, status: 'changes', problems: [...out.problems, budgetProblem(out, seconds, spec)] };
+  if (clock.hit && !out.problems.some((p) => p.code === 'LAYOUT_BUDGET')) return { ...out, status: 'changes', problems: [...out.problems, budgetProblem(out, seconds, spec, clock)] };
   return out;
 }
 
 export const BUDGET_SECONDS = 60; // a layout's budget when none is given (CLI --budget, MCP budget_s)
 
-// The clock has run out (and stays so): the search stops where it is.
+// What the budget counts per second of it: placements tried, each weighed by 1 + the parts it is
+// checked among. A net of 250 resistors does about 8500 a second on a desktop of 2016 under load, so a
+// budget ends by its count at about 0.6 of its wall clock there, and a machine up to that much
+// slower still ends by the count (repeatable); a slower one reaches the clock and says so.
+export const WORK_PER_SECOND = 5000;
+// The budget has run out (and stays so): its count of placements tried is spent, or, as the outer
+// guard, its wall clock. The search stops where it is.
 const over = (clock) => {
-  if (clock && !clock.hit && Date.now() > clock.at) clock.hit = true;
+  if (clock && !clock.hit && clock.work >= clock.workMax) clock.hit = true;
+  if (clock && !clock.hit && Date.now() > clock.at) {
+    clock.hit = true;
+    clock.wall = true;
+  }
   return Boolean(clock?.hit);
 };
 
 // What the best try still has open when the budget stopped the search.
-function budgetProblem(r, seconds, spec) {
+function budgetProblem(r, seconds, spec, clock) {
   const placed = new Set((r.circuit?.parts ?? []).map((p) => p.id));
   const parts = (spec.parts ?? []).filter((p) => !placed.has(p?.id)).length;
   const nets = (r.check?.missing?.length ?? 0) + (r.check?.shorted?.length ?? 0);
   const blocking = (r.review?.blocking ?? []).filter((b) => !b.code.startsWith('SPEC_NET')).length; // the nets are counted already
-  return { severity: 'warning', code: 'LAYOUT_BUDGET', params: { seconds, parts, nets, blocking, max: LIMITS.layoutSeconds } };
+  return { severity: 'warning', code: 'LAYOUT_BUDGET', params: { seconds, parts, nets, blocking, max: LIMITS.layoutSeconds, tried: clock?.work ?? 0, counted: clock?.workMax ?? 0, ...(clock?.wall && { variant: 'clock' }) } };
 }
 
 // A lower bound of the columns a spec takes, from its parts and nets alone, against the columns the
@@ -786,7 +799,7 @@ function repair(best, spec, { profile, asked, clock }) {
   const attempt = (remove, between, color, fixed) => {
     if (left-- <= 0 || over(clock)) return false;
     const base = remove ? applyOps(circuit, [{ op: 'remove', part: remove }]).circuit : circuit;
-    const s = suggest(base, { type: 'wire', ...(color && { color }) }, { between, profile, limit: 1, candidates: 8, maxCandidates: 24, via: false, deadline: clock?.at });
+    const s = suggest(base, { type: 'wire', ...(color && { color }) }, { between, profile, limit: 1, candidates: 8, maxCandidates: 24, via: false, deadline: clock?.at, work: clock ?? undefined });
     const ops = s.placements?.[0]?.ops;
     if (!ops) return false;
     const r = applyOps(base, ops);
@@ -1027,6 +1040,9 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
     const key = `${state}|${JSON.stringify(ops)}`;
     let r = memo.get(key);
     if (r === undefined) {
+      // A placement tried: what the budget counts, weighed by the parts it is checked among (its cost
+      // grows with them: measured on a net of 250 resistors, the time per part placed stays the same).
+      if (clock) clock.work += 1 + circuit.parts.length;
       r = check(ops);
       if (r) {
         memo.states = (memo.states ?? 0) + 1;
@@ -1515,7 +1531,7 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
     if (!done) {
       // No rule fits (a crowded spot, a part kind without a rule): suggest, near the cursor.
       // Its places in `forbid` are skipped, as for the rules.
-      const r = suggest(circuit, part, { near: `${halfInfo.ascending[s][2]}${cur + 2}`, limit: 3, candidates: 6, maxCandidates: 24, room: false, via: false, deadline: clock?.at });
+      const r = suggest(circuit, part, { near: `${halfInfo.ascending[s][2]}${cur + 2}`, limit: 3, candidates: 6, maxCandidates: 24, room: false, via: false, deadline: clock?.at, work: clock ?? undefined });
       const allowed = (p) => !p.ops.some((o) => o.op === 'add' && o.part?.id === part.id && forbid.has(forbidKey(o.part)));
       const best = r.placements?.find((p) => allowed(p) && tryOps(p.ops));
       if (best) done = best.pins;

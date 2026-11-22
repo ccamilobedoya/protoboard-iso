@@ -305,3 +305,15 @@ test('messages: --json answers are JSON, errors too; catalog lists; layout on an
   assert.equal(empty.stdout.trim().split('\n').length, 1);
   assert.match(empty.stdout, /There is no circuit at .*a new one needs a spec .* or a recipe/);
 });
+
+test('a budget cut is the same on every run, or says plainly that it is not', async () => {
+  const { autoLayout, formatLayout } = await import('../src/layout.js');
+  const { t, formatIssue } = await import('../src/index.js');
+  const leds = Array.from({ length: 10 }, (_, i) => [{ id: `R${i + 1}`, type: 'resistor', value: '220' }, { id: `D${i + 1}`, type: 'led', color: 'red' }]).flat();
+  const nets = [['T+', ...Array.from({ length: 10 }, (_, i) => `R${i + 1}.1`)], ...Array.from({ length: 10 }, (_, i) => [`R${i + 1}.2`, `D${i + 1}.A`]), ['T-', ...Array.from({ length: 10 }, (_, i) => `D${i + 1}.K`)]];
+  const spec = { parts: leds, nets, supplies: [{ voltage: 5 }] };
+  const runs = [autoLayout(spec, { budget: 1 }), autoLayout(spec, { budget: 1 })];
+  for (const r of runs) assert.ok(r.tried.placements > 0 && r.tried.max === 5000);
+  if (runs.every((r) => !r.tried.byClock)) assert.deepEqual(runs[0].circuit.parts, runs[1].circuit.parts);
+  for (const r of runs.filter((x) => x.tried.byClock)) assert.match(formatLayout(r, 'en', { t, formatIssue }), /this cut is not repeatable/);
+});
