@@ -5,7 +5,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { autoLayout } from './layout-generous.js';
-import { runCircuit, parseStimuli } from '../src/sim/run.js';
+import { parseStimuli } from '../src/sim/run.js';
+import { runCircuit } from './run-generous.js';
 import { compile, createEngine } from '../src/sim/index.js';
 import { translateSketch } from '../src/sim/sketch.js';
 import { createRunner } from '../src/sim/program.js';

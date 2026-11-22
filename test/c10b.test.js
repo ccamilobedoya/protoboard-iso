@@ -100,7 +100,7 @@ test('a BME280 on 5 V: its warning names the 5 V board the kit has', () => {
 // ---- 5. A run that ends early says so where it is read
 
 test('a run cut by its time or capped at 60 s says so first, and each figure names its span', async () => {
-  const { runCircuit } = await import('../src/sim/run.js');
+  const { runCircuit } = await import('./run-generous.js');
   const { formatRun } = await import('../src/sim/format.js');
   const { expandRecipe } = await import('../src/recipes/index.js');
   const { LIMITS } = await import('../src/limits.js');
@@ -215,7 +215,7 @@ const LATCH = {
 test('a transistor latch says it has two resting states, with the readings of each, and runs from the first', async () => {
   const { formatLayout } = await import('../src/layout.js');
   const { restingStates, simulate, withStates } = await import('../src/sim/index.js');
-  const { runCircuit } = await import('../src/sim/run.js');
+  const { runCircuit } = await import('./run-generous.js');
   const r = autoLayout(LATCH);
   const two = restingStates(r.circuit);
   assert.equal(two?.states.length, 2);

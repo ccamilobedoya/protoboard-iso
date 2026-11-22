@@ -385,7 +385,7 @@ async function run(seen) {
         sayError(t(lang, 'cli.badRun', { value: String(args.run).slice(0, 40), min: '1 µs', max: LIMITS.runSeconds }));
         fail(1);
       }
-      const result = runCircuit(circuit, { seconds, stimuli: said.stimuli, start: args.start });
+      const result = runCircuit(circuit, { seconds, stimuli: said.stimuli, start: args.start, ...(args.budget && { budgetMs: args.budget * 1000 }) });
       if (result.errors) refuse(result.errors);
       console.log(args.json ? JSON.stringify(result, null, 2) : formatRun(result, lang, { formatIssue, netLabels: circuit.netLabels }));
       fail(result.ok ? 0 : 1);

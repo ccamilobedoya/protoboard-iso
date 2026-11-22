@@ -470,7 +470,8 @@ export default {
   'check.RUN_CAPPED': 'A run covers at most {max} s: it ran the first {max} s of the {asked} s asked.',
   'check.RUN_EVENT_LATE': 'A change at {time} s comes after the run ends ({seconds} s): it did not happen.',
   'check.RUN_STEPS': 'The run stopped at {time} of {seconds}: it needed more than {steps} steps.',
-  'check.RUN_BUDGET': 'The run stopped at {time} of {seconds}: it took more than {budget} of the machine\'s time. A shorter --run gets to its end.',
+  'check.RUN_BUDGET': 'The run stopped at {time} of {seconds}: it took more than {budget} of the machine\'s time. A shorter --run gets to its end, or a larger --budget (seconds of the machine\'s time).',
+  'check.RUN_BUDGET_CAPPED': 'A budget of {asked} s is more than the kit allows a run: it runs for {max} s of the machine\'s time at most.',
   'check.RUN_ENV_ATTACHED': '{part} read {field} by a value of its own; in this run it reads the environment\'s {field}.',
   'check.RUN_ENV_UNUSED': 'No part of this circuit reads {field}: setting it changes nothing.',
   'sim.floating': 'floating',
@@ -953,7 +954,7 @@ export default {
   protoboard-iso layout <target> --recipe <name> [--values '<json>']   # a lesson circuit by name (docs/en/recipes.md)
   protoboard-iso render <target> [-o out.svg|out.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <target> [--transient stop[,step]] [--start zero|dc] [--lang en|es] [--json]
-  protoboard-iso simulate <target> --run <seconds> [--env light=0.5,distance=10] [--set RV1=0.8,SW1=on] [--press SW1@0.5+0.2] [--at 1.0:light=0.5] [--start zero|dc] [--lang en|es] [--json]   # what it does over time, as the page runs it: Serial, outputs, frequency
+  protoboard-iso simulate <target> --run <seconds> [--env light=0.5,distance=10] [--set RV1=0.8,SW1=on] [--press SW1@0.5+0.2] [--at 1.0:light=0.5] [--start zero|dc] [--budget seconds] [--lang en|es] [--json]   # what it does over time, as the page runs it: Serial, outputs, frequency
   protoboard-iso page <target> [-o page.html] [--lang en|es] [--fit parts|board]
   protoboard-iso inspect <target> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
   protoboard-iso check <target> [--lang en|es] [--json]

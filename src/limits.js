@@ -44,6 +44,9 @@ export const fileTooLarge = (bytes) => (bytes > LIMITS.circuitBytes ? tooLarge('
 // (a program that never lets time pass, or a step too short, ends there and says so), and what its
 // answer keeps of a long story: Serial lines and each output's spans lit, the first and the last half.
 Object.assign(LIMITS, { runSeconds: 60, runMs: 15_000, runSerialLines: 200, runIntervals: 200 });
+// The most machine time a run may be given (simulate --run --budget, runCircuit's budgetMs): 15 s by
+// default (runMs), at most this; more is capped and the answer says so.
+LIMITS.runMsMax = 300_000;
 // The shortest run the command line takes: under it the run's 200 steps are shorter than a
 // nanosecond each and a run of 1e-300 s was "0 s, 0 steps" while 0 was refused; one rule for both.
 LIMITS.runMinSeconds = 1e-6;

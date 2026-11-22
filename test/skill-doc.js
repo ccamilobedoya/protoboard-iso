@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
+import { RUN_BUDGET_ARGS } from './run-generous.js';
 
 const root = new URL('../', import.meta.url).pathname;
 
@@ -26,7 +27,9 @@ export function runDoc(text, { prefix = 'pb-skill-doc-', quotes = true } = {}) {
     } else if (b.lang === 'bash') {
       const args = b.body.trim().split(/\s+/);
       assert.equal(args[0], 'kit', b.body);
-      const r = spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), ...args.slice(1)], { cwd: dir, encoding: 'utf8' });
+      // A run is given the largest machine-time budget (test/run-generous.js): a busy machine never cuts it.
+      const budget = args[1] === 'simulate' && args.includes('--run') && !args.includes('--budget') ? RUN_BUDGET_ARGS : [];
+      const r = spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), ...args.slice(1), ...budget], { cwd: dir, encoding: 'utf8' });
       assert.equal(r.status, 0, `${b.body}\n${r.stdout}${r.stderr}`);
       runs.push({ command: b.body.trim(), status: r.status, stdout: r.stdout, lines: new Set(r.stdout.split('\n').map((l) => l.trimEnd())), quoted: 0 });
     } else if (b.lang === 'text' && quotes) {

@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { runCircuit } from '../src/sim/run.js';
+import { runCircuit } from './run-generous.js';
 import { simulate } from '../src/sim/index.js';
 import { formatIssue } from '../src/index.js';
 

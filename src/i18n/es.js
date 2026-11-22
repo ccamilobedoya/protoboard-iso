@@ -469,7 +469,8 @@ export default {
   'check.RUN_CAPPED': 'Una ejecución cubre a lo sumo {max} s: corrió los primeros {max} s de los {asked} s pedidos.',
   'check.RUN_EVENT_LATE': 'Un cambio a los {time} s llega después del final de la ejecución ({seconds} s): no ocurrió.',
   'check.RUN_STEPS': 'La ejecución se detuvo en {time} de {seconds}: necesitaba más de {steps} pasos.',
-  'check.RUN_BUDGET': 'La ejecución se detuvo en {time} de {seconds}: tardó más de {budget} de tiempo de la máquina. Un --run más corto llega a su final.',
+  'check.RUN_BUDGET': 'La ejecución se detuvo en {time} de {seconds}: tardó más de {budget} de tiempo de la máquina. Un --run más corto llega a su final, o un --budget mayor (segundos de tiempo de la máquina).',
+  'check.RUN_BUDGET_CAPPED': 'Un presupuesto de {asked} s es más de lo que el kit permite a una ejecución: corre a lo sumo {max} s de tiempo de la máquina.',
   'check.RUN_ENV_ATTACHED': '{part} leía {field} por un valor propio; en esta ejecución lee el {field} del ambiente.',
   'check.RUN_ENV_UNUSED': 'Ninguna pieza de este circuito lee {field}: cambiarlo no cambia nada.',
   'sim.floating': 'flotante',
@@ -952,7 +953,7 @@ export default {
   protoboard-iso layout <objetivo> --recipe <nombre> [--values '<json>']   # un circuito de clase por su nombre (docs/es/recetas.md)
   protoboard-iso render <objetivo> [-o salida.svg|salida.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <objetivo> [--transient fin[,paso]] [--start zero|dc] [--lang en|es] [--json]
-  protoboard-iso simulate <objetivo> --run <segundos> [--env light=0.5,distance=10] [--set RV1=0.8,SW1=on] [--press SW1@0.5+0.2] [--at 1.0:light=0.5] [--start zero|dc] [--lang en|es] [--json]   # lo que hace en el tiempo, como la página: Serial, salidas, frecuencia
+  protoboard-iso simulate <objetivo> --run <segundos> [--env light=0.5,distance=10] [--set RV1=0.8,SW1=on] [--press SW1@0.5+0.2] [--at 1.0:light=0.5] [--start zero|dc] [--budget segundos] [--lang en|es] [--json]   # lo que hace en el tiempo, como la página: Serial, salidas, frecuencia
   protoboard-iso page <objetivo> [-o pagina.html] [--lang en|es] [--fit parts|board]
   protoboard-iso inspect <objetivo> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
   protoboard-iso check <objetivo> [--lang en|es] [--json]

@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { autoLayout } from './layout-generous.js';
 import { simulate } from '../src/sim/index.js';
-import { runCircuit } from '../src/sim/run.js';
+import { runCircuit } from './run-generous.js';
 import { review, formatIssue, t } from '../src/index.js';
 import { formatLayout } from '../src/layout.js';
 import { catalogEntry, formatCatalogEntry } from '../src/node/catalog.js';

@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { simulate } from '../src/sim/index.js';
-import { runCircuit } from '../src/sim/run.js';
+import { runCircuit } from './run-generous.js';
 import { formatIssue, review } from '../src/index.js';
 import { CIRCUIT_FOLDER } from '../src/beside.js';
 

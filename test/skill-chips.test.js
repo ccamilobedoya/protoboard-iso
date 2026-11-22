@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { FILE, chipsReference } from '../scripts/chips-reference.js';
 import { runDoc } from './skill-doc.js';
+import { RUN_BUDGET_ARGS } from './run-generous.js';
 
 const text = readFileSync(FILE, 'utf8');
 const CHIPS = ['74HC595', 'CD4017', 'ULN2003', 'ULN2803', 'PC817', 'LM386'];
@@ -57,7 +58,7 @@ test("chips.md: eight red LEDs on 330 Ω take a 74HC595 over its 70 mA in a run,
   for (const p of circuit.parts) if (p.type === 'resistor') p.value = '330';
   const file = join(tempDir('pb-chips-595-'), 'red8.json');
   writeFileSync(file, JSON.stringify(circuit));
-  const run = (...extra) => spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'simulate', file, '--run', '2', ...extra], { encoding: 'utf8' }).stdout;
+  const run = (...extra) => spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'simulate', file, '--run', '2', ...RUN_BUDGET_ARGS, ...extra], { encoding: 'utf8' }).stdout;
   assert.match(text, /`U2 carries 71\.3 mA, more than its\s+maximum 70 mA/);
   assert.match(run(), /warning: U2 carries 71\.3 mA, more than its maximum 70 mA/);
   assert.doesNotMatch(run('--set', [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `R${n}=1k`).join(',')), /warning:/);

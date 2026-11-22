@@ -169,7 +169,8 @@ Set them with an operation like any circuit field:
   sets, and the run says so (`RUN_ENV_ATTACHED`). `--env` and `--set` also apply to the DC point
   and to `--transient`. Nothing is saved: the circuit file and its history stay as they were.
   Bounded: at most `runSeconds` (60) of simulated time (more is capped, `RUN_CAPPED`) and
-  `runMs` (15 s) of the machine's (`RUN_BUDGET`: it ends where it got to); a program that never
+  `runMs` (15 s) of the machine's (`RUN_BUDGET`: it ends where it got to; `--budget <s>` gives it more,
+  at most `runMsMax`, 300 s, `RUN_BUDGET_CAPPED` past it); a program that never
   lets time pass ends with `SIM_PROGRAM_STUCK`. A run that covers less than was asked says so on the
   line under its header (the warning, then `Every figure below covers the first 60 s of the 120 s
   asked, not the whole run.`), each heading after it names its span (`Outputs over time in the

@@ -8,7 +8,8 @@ import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { simulate, checkHazards } from '../src/sim/index.js';
-import { runCircuit, parseStimuli, stimuliFromArgs, behaviourOf, BEHAVIOUR_STEPS } from '../src/sim/run.js';
+import { parseStimuli, stimuliFromArgs, behaviourOf, BEHAVIOUR_STEPS } from '../src/sim/run.js';
+import { runCircuit } from './run-generous.js';
 import { formatLayout } from '../src/layout.js';
 import { autoLayout } from './layout-generous.js';
 import { expandRecipe } from '../src/recipes/index.js';
@@ -202,6 +203,23 @@ test('bounded: a run past the cap is capped and says so; a sketch that never let
   const slow = runCircuit(recipe('555-astable'), { seconds: 50, budgetMs: 200 });
   assert.ok(codes(slow.issues).includes('RUN_BUDGET'));
   assert.ok(slow.run.ran < 50 && slow.run.seconds === 50);
+  // A budget past the kit's largest is capped, and the answer says so (C14).
+  const over = runCircuit(blink, { seconds: 0.01, budgetMs: LIMITS.runMsMax * 2 });
+  const note = over.issues.find((i) => i.code === 'RUN_BUDGET_CAPPED');
+  assert.ok(note, JSON.stringify(codes(over.issues)));
+  assert.match(formatIssue(note, 'en'), /more than the kit allows a run: it runs for 300 s of the machine's time at most/);
+});
+
+// simulate --run --budget <s>: the machine's time a run may take, on the command line (C14).
+test('simulate --run takes --budget: a small one cuts the run and names --budget, a huge one is capped', () => {
+  const dir = tempDir('pb-run-budget-');
+  const file = join(dir, 'astable.json');
+  writeFileSync(file, JSON.stringify(recipe('555-astable')));
+  const cut = cli(['simulate', file, '--run', '50', '--budget', '0.2']);
+  assert.equal(cut.status, 0, cut.stderr);
+  assert.match(cut.stdout, /it took more than 200 ms of the machine's time\. A shorter --run gets to its end, or a larger --budget/);
+  const capped = cli(['simulate', file, '--run', '0.01', '--budget', '1000']);
+  assert.match(capped.stdout, /A budget of 1000 s is more than the kit allows a run: it runs for 300 s/);
 });
 
 test('a long Serial story keeps its first and last lines and the true count', () => {

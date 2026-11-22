@@ -7,7 +7,7 @@
 // time. Nothing here changes the circuit it is given.
 //
 //   parseStimuli({ env, set, press, at }) → { stimuli, errors }   the command line's texts, each a list
-//   runCircuit(circuit, { seconds, stimuli, start?, budgetMs }) →   start 'zero' | 'dc', else the page's
+//   runCircuit(circuit, { seconds, stimuli, start?, budgetMs }) →  budgetMs: machine time, LIMITS.runMs by default, at most LIMITS.runMsMax;   start 'zero' | 'dc', else the page's
 //     { ok, start, run: { seconds (asked), ran (covered), step, steps, start, page }, serial: { count, lines: [{ t, text, board? }] },
 //       outputs: [{ id, kind, onShare, changes, frequency, period, duty, intervals: [[on, off]…],
 //         sound?, tone? }],
@@ -394,7 +394,7 @@ function rhythm(w) {
 export const pageStart = (circuit) => (circuit.page?.start === 'zero' ? 'zero' : 'dc');
 const START_MODES = ['zero', 'dc'];
 
-export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budgetMs = LIMITS.runMs, maxSteps = Number.POSITIVE_INFINITY, minStep = 0, checks = CHECKS, compiled = null, extremesUntil = Number.POSITIVE_INFINITY } = {}) {
+export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budgetMs: givenBudget = LIMITS.runMs, maxSteps = Number.POSITIVE_INFINITY, minStep = 0, checks = CHECKS, compiled = null, extremesUntil = Number.POSITIVE_INFINITY } = {}) {
   const asked = Number(seconds);
   if (!(asked > 0)) return { ok: false, errors: [bad('RUN_BAD_TIME', { value: String(seconds).slice(0, 40), max: LIMITS.runSeconds })] };
   if (wanted != null && !START_MODES.includes(wanted)) return { ok: false, errors: [bad('RUN_BAD_START', { value: String(wanted).slice(0, 40) })] };
@@ -404,6 +404,9 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   const { engine, issues, events, compiled: used } = prepared;
   const total = Math.min(asked, LIMITS.runSeconds);
   if (asked > total) issues.push(issue('warning', 'RUN_CAPPED', { asked, max: LIMITS.runSeconds }));
+  // The machine's time it may take: budgetMs, at most LIMITS.runMsMax (said when capped).
+  const budgetMs = Math.min(givenBudget, LIMITS.runMsMax);
+  if (givenBudget > LIMITS.runMsMax) issues.push(issue('info', 'RUN_BUDGET_CAPPED', { asked: givenBudget / 1000, max: LIMITS.runMsMax / 1000 }));
   for (const e of events) if (e.time >= total) issues.push(issue('warning', 'RUN_EVENT_LATE', { time: e.time, seconds: total }));
 
   // The page's step (sim/pace.js); with nothing that changes by itself, short enough for the events.

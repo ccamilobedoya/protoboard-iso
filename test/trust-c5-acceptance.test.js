@@ -13,6 +13,7 @@ import { spawnSync } from 'node:child_process';
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
+import { RUN_BUDGET_ARGS } from './run-generous.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const bin = join(root, 'bin/protoboard-iso.js');
@@ -35,7 +36,7 @@ const lay = (recipe) => {
 
 // `simulate <target> --run <s> [...] --json`, parsed.
 const runJson = (recipe, seconds, extra = []) => {
-  const r = cli(['simulate', lay(recipe).dir, '--run', String(seconds), ...extra, '--json']);
+  const r = cli(['simulate', lay(recipe).dir, '--run', String(seconds), ...RUN_BUDGET_ARGS, ...extra, '--json']);
   assert.equal(r.status, 0, `simulate --run failed (exit ${r.status}): ${r.stdout}${r.stderr}`);
   let j;
   try { j = JSON.parse(r.stdout); } catch (e) { assert.fail(`stdout is not JSON: ${r.stdout.slice(0, 300)}`); }

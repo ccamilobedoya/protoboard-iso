@@ -180,7 +180,8 @@ Se fijan con una operación, como cualquier campo del circuito:
   (`RUN_ENV_ATTACHED`). `--env` y `--set` sirven también para el punto de DC y para
   `--transient`. No se guarda nada: el archivo del circuito y su historial quedan como estaban.
   Acotada: a lo sumo `runSeconds` (60) de tiempo simulado (más se recorta, `RUN_CAPPED`) y `runMs`
-  (15 s) de tiempo de la máquina (`RUN_BUDGET`: termina donde llegó); un programa que nunca deja
+  (15 s) de tiempo de la máquina (`RUN_BUDGET`: termina donde llegó; `--budget <s>` le da más, a lo
+  sumo `runMsMax`, 300 s, `RUN_BUDGET_CAPPED` pasado eso); un programa que nunca deja
   pasar el tiempo termina con `SIM_PROGRAM_STUCK`. Una ejecución que cubre menos de lo pedido lo dice
   en la línea bajo su encabezado (el aviso, luego `Cada cifra de abajo cubre los primeros 60 s de los
   120 s pedidos, no toda la ejecución.`), cada encabezado de después nombra su tramo (`Salidas en el

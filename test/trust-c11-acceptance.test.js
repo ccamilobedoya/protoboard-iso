@@ -18,6 +18,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { LIMITS } from '../src/limits.js';
+import { RUN_BUDGET_ARGS } from './run-generous.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const bin = join(root, 'bin/protoboard-iso.js');
@@ -50,10 +51,10 @@ function circuit(key, makeSpec) {
 const parsed = (r, what) => {
   try { return JSON.parse(r.stdout); } catch { return assert.fail(`${what}: not JSON (exit ${r.status}): ${r.stdout.slice(0, 300)}${r.stderr.slice(0, 300)}`); }
 };
-// simulate --run <s> --json (readings are those at the end of the run). A board's sketch that does not even
+// simulate --run <s> --json, with the largest machine-time budget (a busy machine never cuts the run; test/run-generous.js) (readings are those at the end of the run). A board's sketch that does not even
 // run is the verifier's mistake, not an expected failure: it is checked here.
 const run = (c, seconds, { press = [] } = {}) => {
-  const r = parsed(cli(['simulate', c.target, '--run', String(seconds), ...press.flatMap((p) => ['--press', p]), '--json']), 'simulate --run');
+  const r = parsed(cli(['simulate', c.target, '--run', String(seconds), ...RUN_BUDGET_ARGS, ...press.flatMap((p) => ['--press', p]), '--json']), 'simulate --run');
   for (const [id, p] of Object.entries(r.readings?.parts ?? {})) if (p.program) assert.equal(p.program.error, null, `the sketch of ${id} must run: ${JSON.stringify(p.program)}`);
   return r;
 };
