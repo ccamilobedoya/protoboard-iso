@@ -405,7 +405,7 @@ server.registerTool(
       author: z.string().optional(),
       note: z.string().optional().describe('Why the change is made'),
       views: z.array(z.enum(Object.keys(VIEWS))).optional().describe('Views to measure (default front)'),
-      new_history: z.boolean().optional().describe('Only when told the history is damaged: keep it aside, start anew'),
+      new_history: z.boolean().optional(),
       ...common,
     },
     annotations: WRITE,
