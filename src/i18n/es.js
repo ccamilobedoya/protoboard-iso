@@ -178,7 +178,9 @@ export default {
   'layout.readings.supply': 'fuente',
   'layout.readings.battery': 'batería',
   'layout.readings.more': '{count} más (simulate las lista)',
-  'layout.behaviour': 'Comportamiento, primeros {seconds} (simulado, un modelo): {items}',
+  'layout.behaviour': 'Comportamiento, primeros {seconds} desde {start} (simulado, un modelo): {items}',
+  'layout.behaviour.start.dc': 'su punto de reposo, como empieza la página',
+  'layout.behaviour.start.zero': 'todo descargado, como empieza la página',
   'layout.behaviour.rhythm': '{id} {frequency}, encendido el {percent} % del tiempo',
   'layout.behaviour.rhythmAbout': '{id} unos {frequency}, encendido cerca del {percent} % del tiempo',
   'layout.behaviour.on': '{id} encendido todo el tiempo',
@@ -403,8 +405,10 @@ export default {
   'sim.parts': 'Componentes:',
   'sim.issues': 'Observaciones:',
   'sim.run': 'Ejecución desde {start} — un modelo, no una medición: {seconds} en pasos de {step} ({steps} pasos).',
-  'sim.run.start.dc': 'el encendido (como empieza la página)',
-  'sim.run.start.zero': 'el encendido, con los capacitores descargados',
+  'sim.run.start.dc.page': 'su punto de reposo, como empieza la página (los capacitores ya en sus voltajes de DC; start zero la corre desde todo descargado)',
+  'sim.run.start.dc.other': 'su punto de reposo (los capacitores ya en sus voltajes de DC; la página empieza desde todo descargado)',
+  'sim.run.start.zero.page': 'todo descargado, como empieza la página (los capacitores en 0 V al encenderlo)',
+  'sim.run.start.zero.other': 'todo descargado (los capacitores en 0 V al encenderlo; la página empieza desde su punto de reposo)',
   'sim.run.serial': 'Serial ({count} líneas, en orden):',
   'sim.run.serialNone': 'Serial: el programa no imprimió nada.',
   'sim.run.serialMore': '  … {count} líneas más …',
@@ -438,6 +442,7 @@ export default {
   'check.RUN_UNKNOWN_FIELD': '{part} no tiene el control «{field}» (sus controles: {fields}): escribe {part}.<control>=<valor>.',
   'check.RUN_BAD_VALUE': '{name} = {value}: da {want}.',
   'check.RUN_NOT_A_BUTTON': '{name} no es un pulsador ni un interruptor (su control es {field}): --press es para esos; --at cambia cualquier control en un momento.',
+  'check.RUN_BAD_START': 'start lleva zero (todo descargado) o dc (su punto de reposo), no «{value}».',
   'check.RUN_BAD_TIME': '--run lleva los segundos que dura, un número mayor que 0 (a lo sumo {max}), no «{value}».',
   'check.RUN_ONLY': '{option} funciona con --run, no con --transient.',
   'check.RUN_CAPPED': 'Una ejecución cubre a lo sumo {max} s: corrió los primeros {max} s de los {asked} s pedidos.',
@@ -926,7 +931,7 @@ export default {
   protoboard-iso layout <objetivo> --recipe <nombre> [--values '<json>']   # un circuito de clase por su nombre (docs/es/recetas.md)
   protoboard-iso render <objetivo> [-o salida.svg|salida.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <objetivo> [--transient fin[,paso]] [--start zero|dc] [--lang en|es] [--json]
-  protoboard-iso simulate <objetivo> --run <segundos> [--env light=0.5,distance=10] [--set RV1=0.8,SW1=on] [--press SW1@0.5+0.2] [--at 1.0:light=0.5] [--lang en|es] [--json]   # lo que hace en el tiempo, como la página: Serial, salidas, frecuencia
+  protoboard-iso simulate <objetivo> --run <segundos> [--env light=0.5,distance=10] [--set RV1=0.8,SW1=on] [--press SW1@0.5+0.2] [--at 1.0:light=0.5] [--start zero|dc] [--lang en|es] [--json]   # lo que hace en el tiempo, como la página: Serial, salidas, frecuencia
   protoboard-iso page <objetivo> [-o pagina.html] [--lang en|es] [--fit parts|board]
   protoboard-iso inspect <objetivo> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
   protoboard-iso check <objetivo> [--lang en|es] [--json]
@@ -950,6 +955,7 @@ export default {
   'cli.noIssues': 'Sin problemas.',
   'cli.unknownOption': 'Opción desconocida: {option}.',
   'cli.missingValue': 'La opción {option} necesita un valor después.',
+  'cli.badChoice': 'La opción {option} lleva {choices}, no «{value}».',
   'cli.badBudget': 'La opción {option} lleva un número de segundos mayor que 0 (llegó "{value}").',
   "check.INPUT_MISSING": "{what}: el archivo {file} no existe. Revisa la ruta e inténtalo de nuevo.",
   "check.INPUT_UNREADABLE": "{what}: no se puede leer {file} ({reason}). Revisa que sea un archivo que puedas abrir.",

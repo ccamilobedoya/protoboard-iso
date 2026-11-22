@@ -334,10 +334,14 @@ async function run(seen) {
       console.error(t(lang, 'cli.runOrTransient'));
       fail(1);
     }
+    if (args.start !== undefined && args.start !== 'zero' && args.start !== 'dc') {
+      console.error(t(lang, 'cli.badChoice', { option: '--start', choices: 'zero | dc', value: String(args.start).slice(0, 40) }));
+      fail(2);
+    }
     const said = parseStimuli({ env: args.env, set: args.set, press: args.press, at: args.at });
     if (said.errors.length) refuse(said.errors);
     if (args.run !== undefined) {
-      const result = runCircuit(circuit, { seconds: timeOf(args.run), stimuli: said.stimuli });
+      const result = runCircuit(circuit, { seconds: timeOf(args.run), stimuli: said.stimuli, start: args.start });
       if (result.errors) refuse(result.errors);
       console.log(args.json ? JSON.stringify(result, null, 2) : formatRun(result, lang, { formatIssue, netLabels: circuit.netLabels }));
       fail(result.ok ? 0 : 1);

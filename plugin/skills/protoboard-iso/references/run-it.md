@@ -3,7 +3,8 @@
 `layout` says the circuit is built and nothing burns; it does not say the program or the sensor
 does what the user asked. Before you say so, run the circuit with the user's conditions and quote
 what the kit printed. `kit simulate <folder> --run <seconds>` runs it as the page does, from
-switch-on, and saves nothing (connector: `simulate` with `run_s`, `environment`, `set`, `press`,
+its resting point (capacitors already charged; `--start zero` runs it from everything
+discharged), and saves nothing (connector: `simulate` with `run_s`, `environment`, `set`, `press`,
 `at`).
 
 | Option | What it sets | Example |
@@ -29,7 +30,7 @@ kit layout circuits/alarm --recipe distance-alarm-uno
 It ends `STATUS: DONE` and its `Behaviour` line is for the environment as it is (nothing near):
 
 ```text
-Behaviour, first 2 s (simulated, a model): D1 off throughout · U1.D9 9.8 Hz, on 0 % of the time · U1.D13 off throughout
+Behaviour, first 2 s from its resting point, as the page starts (simulated, a model): D1 off throughout · U1.D9 9.8 Hz, on 0 % of the time · U1.D13 off throughout
 ```
 
 That does not show the LED lighting. Run it with something at 10 cm:

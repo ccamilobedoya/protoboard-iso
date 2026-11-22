@@ -123,8 +123,12 @@ Set them with an operation like any circuit field:
   the program and of the timed modules, so a 10 µs pulse or an echo is at its time; the answer
   then has a note naming `--run`, which says what the program printed and how its outputs toggle.
 - **A run** (`simulate <target> --run <seconds>`, MCP `run_s`). The circuit as the page runs it,
-  from switch-on (the page's start: its DC point, or capacitors discharged with `page.start:
-  "zero"`), for that many simulated seconds: the same engine and the same step (`sim/pace.js`),
+  from where the page starts (its resting point, the DC point, with every capacitor already at its
+  DC voltage; or everything discharged with `page.start: "zero"`), or from the one asked with
+  `--start zero|dc` (MCP `start`), for that many simulated seconds. Its first line says which in
+  plain words (`Run from its resting point, as the page starts` or `Run from everything
+  discharged`): a capacitor behind 22 kΩ that a real circuit takes seconds to charge is already
+  charged in a run from the resting point. The run uses the same engine and the same step (`sim/pace.js`),
   the board's program with `pulseIn`, the library sensors, the encoder and the timed modules. It
   answers what an assistant needs to say whether the circuit does what was asked:
   - **Serial**: what the program printed, each line with its time, in order, and the count (a
@@ -164,7 +168,7 @@ Set them with an operation like any circuit field:
 
   ```text
   $ protoboard-iso simulate alarm --run 1 --env distance=10
-  Run from switch-on (the page's start) — a model, not a measurement: 1 s in steps of 1 ms (1000 steps).
+  Run from its resting point, as the page starts (capacitors already at their DC voltages; start zero runs it from everything discharged) — a model, not a measurement: 1 s in steps of 1 ms (1000 steps).
   Serial (10 lines, in order):
     844 µs     10
     …
@@ -180,7 +184,7 @@ Set them with an operation like any circuit field:
   carrying more than 1 mA).
 
   `layout`'s answer has the same in one line for a circuit that changes by itself (a board's
-  program, a 555, a generator, an op-amp beside a capacitor): `Behaviour, first 2 s (simulated, a
+  program, a 555, a generator, an op-amp beside a capacitor): `Behaviour, first 2 s from its resting point, as the page starts (simulated, a
   model): D1 1 Hz, on 50 % of the time`, from a run bounded at 25 000 steps of the simulation (so the
   same circuit gives the same line on any machine; about as long as the 0.8 s of the machine's
   time it replaced, `BEHAVIOUR_STEPS` in `src/sim/run.js`) and a step no shorter than a 20 000th of
@@ -212,7 +216,8 @@ Set them with an operation like any circuit field:
 A run (`--run`, `run_s`):
 
 ```js
-{ ok: true, run: { seconds: 1, step: 0.001, steps: 1000, start: 'dc' },
+{ ok: true, start: 'dc',                                          // the start used
+  run: { seconds: 1, step: 0.001, steps: 1000, start: 'dc', page: 'dc' },   // page: the page's own
   serial: { count: 10, lines: [{ t: 0.00084, text: '10' }, …] },    // kept: when capped
   outputs: [{ id: 'D1', kind: 'led', onShare: 0.999, changes: 1, frequency: null, period: null, duty: null,
               intervals: [[0.00086, 1]] }, …],                         // an output still on closes at the end

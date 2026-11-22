@@ -112,7 +112,7 @@ export function formatRun(result, lang = 'en', { formatIssue, netLabels = {} } =
     return lines.join('\n');
   }
   const { run, serial, outputs } = result;
-  lines.push(t(lang, 'sim.run', { start: t(lang, `sim.run.start.${run.start}`), seconds: f(run.seconds, 's'), step: f(run.step, 's'), steps: run.steps }));
+  lines.push(t(lang, 'sim.run', { start: t(lang, `sim.run.start.${run.start}.${run.start === (run.page ?? run.start) ? 'page' : 'other'}`), seconds: f(run.seconds, 's'), step: f(run.step, 's'), steps: run.steps }));
   if (result.boards > 0 || serial.count > 0) {
     if (!serial.count) lines.push(t(lang, 'sim.run.serialNone'));
     else {

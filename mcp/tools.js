@@ -462,7 +462,7 @@ server.registerTool(
   {
     title: 'Simulate circuit',
     description:
-      'Node voltages and part currents from the circuit (a model, not a measurement). run_s: seconds run as the page runs it (environment, set, press "S1@0.5+0.2", at "1:light=9"): Serial, outputs, Hz. Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit"; kind "generator" for a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, shorts, floating nodes; a laser\'s light reaches the light sensors. falstad: true adds the link that opens the same circuit in Falstad CircuitJS (DC state, parts Falstad lacks as equivalents, listed). Never show results a learner is asked to predict, and Falstad shows every value.',
+      'Node voltages and part currents from the circuit (a model, not a measurement). run_s: seconds run as the page runs it (environment, set, press "S1@0.5+0.2", at "1:light=9"): Serial, outputs, Hz. Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit"; kind "generator" for a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop and step in seconds; start "zero" (everything discharged, the transient\'s default) or "dc" (its resting point, a run\'s default), for both. Warns about overloads, current limit, shorts, floating nodes; a laser\'s light reaches the light sensors. falstad: true adds the link that opens the same circuit in Falstad CircuitJS (DC state, parts Falstad lacks as equivalents, listed). Never show results a learner is asked to predict, and Falstad shows every value.',
     inputSchema: {
       target: targetArg,
       analysis: z.enum(['dc', 'transient']).optional(),
@@ -487,7 +487,7 @@ server.registerTool(
     const refused = (errors) => ({ ...answer(format, { ok: false, errors }, () => errors.map((e) => formatIssue(e, lang)).join('\n')), isError: true });
     if (said.errors.length) return refused(said.errors);
     if (run_s !== undefined) {
-      const run = runCircuit(circuit, { seconds: run_s, stimuli: said.stimuli });
+      const run = runCircuit(circuit, { seconds: run_s, stimuli: said.stimuli, start });
       if (run.errors) return refused(run.errors);
       const response = answer(format, run, () => formatRun(run, lang, { formatIssue, netLabels: circuit.netLabels }));
       return run.ok ? response : { ...response, isError: true };

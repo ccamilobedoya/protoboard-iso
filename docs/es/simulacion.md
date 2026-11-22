@@ -131,8 +131,12 @@ Se fijan con una operación, como cualquier campo del circuito:
   de 10 µs o un eco quedan en su momento; la respuesta trae entonces una nota que nombra `--run`,
   que dice lo que imprimió el programa y cómo cambian sus salidas.
 - **Una ejecución** (`simulate <objetivo> --run <segundos>`, MCP `run_s`). El circuito como lo
-  corre la página, desde el encendido (como empieza la página: su punto de DC, o los capacitores
-  descargados con `page.start: "zero"`), durante esos segundos simulados: el mismo motor y el
+  corre la página, desde donde empieza la página (su punto de reposo, el punto de DC, con cada
+  capacitor ya en su voltaje de DC; o todo descargado con `page.start: "zero"`), o desde el que se
+  pide con `--start zero|dc` (MCP `start`), durante esos segundos simulados. Su primera línea dice
+  cuál en palabras claras (`Ejecución desde su punto de reposo, como empieza la página` o
+  `Ejecución desde todo descargado`): un capacitor detrás de 22 kΩ que un circuito real tarda
+  segundos en cargar ya está cargado en una ejecución desde el punto de reposo. Usa el mismo motor y el
   mismo paso (`sim/pace.js`), el programa de la placa con `pulseIn`, los sensores de biblioteca, el
   encoder y los módulos temporizados. Responde lo que un asistente necesita para decir si el
   circuito hace lo que se pidió:
@@ -175,7 +179,7 @@ Se fijan con una operación, como cualquier campo del circuito:
 
   ```text
   $ protoboard-iso simulate alarma --run 1 --env distance=10 --lang es
-  Ejecución desde el encendido (como empieza la página) — un modelo, no una medición: 1 s en pasos de 1 ms (1000 pasos).
+  Ejecución desde su punto de reposo, como empieza la página (los capacitores ya en sus voltajes de DC; start zero la corre desde todo descargado) — un modelo, no una medición: 1 s en pasos de 1 ms (1000 pasos).
   Serial (10 líneas, en orden):
     844 µs     10
     …
@@ -192,7 +196,7 @@ Se fijan con una operación, como cualquier campo del circuito:
 
   La respuesta de `layout` trae lo mismo en una línea para un circuito que cambia solo (el
   programa de una placa, un 555, un generador, un amplificador operacional junto a un capacitor):
-  `Comportamiento, primeros 2 s (simulado, un modelo): D1 1 Hz, encendido el 50 % del tiempo`, de
+  `Comportamiento, primeros 2 s desde su punto de reposo, como empieza la página (simulado, un modelo): D1 1 Hz, encendido el 50 % del tiempo`, de
   una ejecución acotada a 25 000 pasos de la simulación (así el mismo circuito da la misma línea en
   cualquier máquina; tarda más o menos lo que los 0,8 s de tiempo de la máquina que reemplazó,
   `BEHAVIOUR_STEPS` en `src/sim/run.js`) y un paso no menor que una veinte milésima de ella (un ritmo de menos de 50 de esos pasos por periodo
@@ -224,7 +228,8 @@ Se fijan con una operación, como cualquier campo del circuito:
 Una ejecución (`--run`, `run_s`):
 
 ```js
-{ ok: true, run: { seconds: 1, step: 0.001, steps: 1000, start: 'dc' },
+{ ok: true, start: 'dc',                                          // el inicio usado
+  run: { seconds: 1, step: 0.001, steps: 1000, start: 'dc', page: 'dc' },   // page: el de la página
   serial: { count: 10, lines: [{ t: 0.00084, text: '10' }, …] },    // kept: cuando se recorta
   outputs: [{ id: 'D1', kind: 'led', onShare: 0.999, changes: 1, frequency: null, period: null, duty: null,
               intervals: [[0.00086, 1]] }, …],                         // una salida aún encendida cierra al final

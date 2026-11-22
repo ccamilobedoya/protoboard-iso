@@ -178,7 +178,7 @@ function behaviourLineOf(circuit) {
   if (b.skipped) return { seconds: b.seconds, skipped: b.skipped };
   // What a person sees first: the parts, then the pins a program drives.
   const outputs = [...b.outputs.filter((o) => o.kind !== 'pin'), ...b.outputs.filter((o) => o.kind === 'pin')];
-  return { seconds: b.seconds, outputs: outputs.map(({ intervals, intervalsTotal, ...o }) => o) };
+  return { seconds: b.seconds, start: b.start, outputs: outputs.map(({ intervals, intervalsTotal, ...o }) => o) };
 }
 
 // The supplies written with a negative voltage: one line in the answer says the rail named + is the
@@ -307,5 +307,5 @@ function behaviourText(b, lang, t, f) {
   };
   const items = b.outputs.slice(0, SHOWN_OUTPUTS).map(item);
   if (b.outputs.length > SHOWN_OUTPUTS) items.push(t(lang, 'layout.behaviour.more', { count: b.outputs.length - SHOWN_OUTPUTS }));
-  return t(lang, 'layout.behaviour', { seconds, items: items.length ? items.join(' · ') : t(lang, 'layout.behaviour.none') });
+  return t(lang, 'layout.behaviour', { seconds, start: t(lang, `layout.behaviour.start.${b.start === 'zero' ? 'zero' : 'dc'}`), items: items.length ? items.join(' · ') : t(lang, 'layout.behaviour.none') });
 }

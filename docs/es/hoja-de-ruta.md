@@ -560,6 +560,7 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ✅ Un componente sin conectar a nada en un circuito con fuente no tiene daño, probado con un LED agregado por operaciones (C9)
 - ⬜ Un pin de una placa que toca un `tone()` se lee `apagado todo el tiempo` en una ejecución (su nivel al inicio de los pasos): el zumbador que maneja se mide bien, la línea propia del pin no
 - ⬜ Lo que agregarían las instrucciones del servidor MCP con una cifra de `scripts/trigger-bench.js` (el contexto de arranque está en sus 48 KB): el `.ino` en la carpeta del circuito, una ejecución antes de decir que un programa funciona
+- ✅ «Desde el encendido» es cierto (C10b): `simulate --run` toma `--start zero|dc` (MCP `start`) como `--transient`, y su primera línea dice cuál en palabras ciertas (`Ejecución desde su punto de reposo, como empieza la página`, `Ejecución desde todo descargado`); por defecto sigue la de la página; la línea Comportamiento de `layout` dice su inicio; `--json` trae `start`
 
 ## Opcional, más adelante ⬜
 

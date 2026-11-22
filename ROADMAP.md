@@ -553,6 +553,7 @@ before saying it works.
 - ✅ A part wired to nothing in a circuit with a source has no hazard, tested on an LED added by operations (C9)
 - ⬜ A board's pin that plays a `tone()` reads `off throughout` in a run (its level at the steps' starts): the buzzer it drives is measured right, the pin's own line is not
 - ⬜ What the MCP server's instructions would add with a number from `scripts/trigger-bench.js` (the startup context is at its 48 KB): the `.ino` in the circuit's folder, a run before saying a program works
+- ✅ "From switch-on" is true (C10b): `simulate --run` takes `--start zero|dc` (MCP `start`) as `--transient` does, and its first line says which in true words (`Run from its resting point, as the page starts`, `Run from everything discharged`); the default stays the page's; `layout`'s Behaviour line says its start; `--json` has `start`
 
 ## Optional, later ⬜
 

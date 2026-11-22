@@ -179,7 +179,9 @@ export default {
   'layout.readings.supply': 'supply',
   'layout.readings.battery': 'battery',
   'layout.readings.more': '{count} more (simulate lists them)',
-  'layout.behaviour': 'Behaviour, first {seconds} (simulated, a model): {items}',
+  'layout.behaviour': 'Behaviour, first {seconds} from {start} (simulated, a model): {items}',
+  'layout.behaviour.start.dc': 'its resting point, as the page starts',
+  'layout.behaviour.start.zero': 'everything discharged, as the page starts',
   'layout.behaviour.rhythm': '{id} {frequency}, on {percent} % of the time',
   'layout.behaviour.rhythmAbout': '{id} about {frequency}, on about {percent} % of the time',
   'layout.behaviour.on': '{id} on throughout',
@@ -404,8 +406,10 @@ export default {
   'sim.parts': 'Parts:',
   'sim.issues': 'Notes:',
   'sim.run': 'Run from {start} — a model, not a measurement: {seconds} in steps of {step} ({steps} steps).',
-  'sim.run.start.dc': 'switch-on (the page\'s start)',
-  'sim.run.start.zero': 'switch-on, capacitors discharged',
+  'sim.run.start.dc.page': 'its resting point, as the page starts (capacitors already at their DC voltages; start zero runs it from everything discharged)',
+  'sim.run.start.dc.other': 'its resting point (capacitors already at their DC voltages; the page starts from everything discharged)',
+  'sim.run.start.zero.page': 'everything discharged, as the page starts (capacitors at 0 V when it is switched on)',
+  'sim.run.start.zero.other': 'everything discharged (capacitors at 0 V when it is switched on; the page starts from its resting point)',
   'sim.run.serial': 'Serial ({count} lines, in order):',
   'sim.run.serialNone': 'Serial: the program printed nothing.',
   'sim.run.serialMore': '  … {count} lines more …',
@@ -439,6 +443,7 @@ export default {
   'check.RUN_UNKNOWN_FIELD': '{part} has no control "{field}" (its controls: {fields}): write {part}.<control>=<value>.',
   'check.RUN_BAD_VALUE': '{name} = {value}: give {want}.',
   'check.RUN_NOT_A_BUTTON': '{name} is not a button or a switch (its control is {field}): --press is for those; --at changes any control at a time.',
+  'check.RUN_BAD_START': 'start takes zero (everything discharged) or dc (its resting point), not "{value}".',
   'check.RUN_BAD_TIME': '--run takes the seconds to run, a number above 0 (at most {max}), not "{value}".',
   'check.RUN_ONLY': '{option} works with --run, not with --transient.',
   'check.RUN_CAPPED': 'A run covers at most {max} s: it ran the first {max} s of the {asked} s asked.',
@@ -927,7 +932,7 @@ export default {
   protoboard-iso layout <target> --recipe <name> [--values '<json>']   # a lesson circuit by name (docs/en/recipes.md)
   protoboard-iso render <target> [-o out.svg|out.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <target> [--transient stop[,step]] [--start zero|dc] [--lang en|es] [--json]
-  protoboard-iso simulate <target> --run <seconds> [--env light=0.5,distance=10] [--set RV1=0.8,SW1=on] [--press SW1@0.5+0.2] [--at 1.0:light=0.5] [--lang en|es] [--json]   # what it does over time, as the page runs it: Serial, outputs, frequency
+  protoboard-iso simulate <target> --run <seconds> [--env light=0.5,distance=10] [--set RV1=0.8,SW1=on] [--press SW1@0.5+0.2] [--at 1.0:light=0.5] [--start zero|dc] [--lang en|es] [--json]   # what it does over time, as the page runs it: Serial, outputs, frequency
   protoboard-iso page <target> [-o page.html] [--lang en|es] [--fit parts|board]
   protoboard-iso inspect <target> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
   protoboard-iso check <target> [--lang en|es] [--json]
@@ -951,6 +956,7 @@ export default {
   'cli.noIssues': 'No problems found.',
   'cli.unknownOption': 'Unknown option {option}.',
   'cli.missingValue': 'The option {option} needs a value after it.',
+  'cli.badChoice': 'The option {option} takes {choices}, not "{value}".',
   'cli.badBudget': 'The option {option} takes a number of seconds above 0 (got "{value}").',
   "check.INPUT_MISSING": "{what}: the file {file} does not exist. Check the path and try again.",
   "check.INPUT_UNREADABLE": "{what}: cannot read {file} ({reason}). Check that it is a file you can open.",
