@@ -575,6 +575,7 @@ before saying it works.
 - ✅ `apply` does not build on a history it cannot read (C12): a damaged `history.jsonl` (a garbage line, random bytes) is `HISTORY_DAMAGED` with the file and line, the circuit said intact, nothing saved; `--new-history` (MCP `new_history`) keeps the damaged file beside a new history that starts at the current revision
 - ✅ `apply` says what `review` will say (C12): the diff is computed from review's judgement less the run (`judge`, `src/diff.js`): a part moved off its strips (`i100`, `i104`) is `✖ new: error: Net 1 of the spec …`, a program file missing or outside the folder is `⚠ new: warning`
 - ✅ Missing supplies are said (C12, `SUPPLY_PINS_UNWIRED` in `DOUBT_CODES`): a part whose supply pins (its model's `supply`, else VCC/GND by name) are not both wired or share a net gets a doubt naming them; an LM358 with its supply open and a 555 with every pin on one net end `WARNINGS`; no recipe or example gets it
+- ✅ Two batteries (C12): a second battery whose leads land near the first's was given the same place off the board (`BT1 and BT2 take up the same space`); it is now laid beside it along that edge (`offset` of its width); two in series simulate at 18 V, two in parallel at 9 V, and two in parallel facing opposite ways get the short-circuit line. A battery short is a doubt, not a hazard: the battery device has no current limit (`src/sim/devices`)
 
 ## Optional, later ⬜
 

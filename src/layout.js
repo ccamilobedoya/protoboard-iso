@@ -59,6 +59,9 @@ const PALETTE = ['orange', 'green', 'yellow', 'blue', 'white', 'violet'];
 const TALL = new Set(['TO-220', 'ams1117-module']);
 const KNOBS = new Set(['pot-vertical']); // packages with a knob towards the front
 const HELD_UP = new Set([...TALL, ...KNOBS]); // bodies held up off the board: leads and jumpers pass below their box
+// The width of a battery across the edge it lies on, in mm (parts/packages/battery.js dimensions):
+// a holder of round cells side by side, or a block.
+const batteryWidth = (params = {}) => (params.shape === 'cell' ? params.cells * params.diameter + (params.cells - 1) * 0.6 + 2.4 : (params.size?.[1] ?? 30));
 const BESIDE = new Set(['switch', 'module', 'battery', 'relay', 'motor']); // bodies off the board: only their holes count
 const SPAN = 8; // columns a part may slide past the cursor looking for room
 const HEADROOM = SPAN + 12; // columns the elastic board keeps past the circuit while placing
@@ -1468,9 +1471,15 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
       });
     };
     let fallback = null;
-    for (const pins of done ? [] : ordered) {
+    // A battery lies beside the board where its leads point: a second one whose leads land near the
+    // first's would lie on it (both get the same place off the board). When it collides as placed, it
+    // is laid beside the other along that edge: offsets of its own width, nearer first. One battery,
+    // or one placed by `offset`, is tried as it was.
+    const along = part.type === 'battery' && part.offset === undefined && (circuit.parts ?? []).some((p) => p.type === 'battery') ? batteryWidth(def.params) + 4 : 0;
+    const shifts = along ? [0, 1, -1, 2, -2, 3, -3].map((k) => k * along) : [0];
+    for (const [pins, shift] of done ? [] : ordered.flatMap((pins) => shifts.map((k) => [pins, k]))) {
       const pinMap = Array.isArray(pins) ? pins : pinNames.map((n) => pins[n]);
-      const op = { op: 'add', part: { ...part, pins: kind === 'beside' ? Object.fromEntries(pinNames.map((n, i) => [n, pinMap[i]])) : pinMap } };
+      const op = { op: 'add', part: { ...part, ...(shift && { offset: Math.round(shift * 10) / 10 }), pins: kind === 'beside' ? Object.fromEntries(pinNames.map((n, i) => [n, pinMap[i]])) : pinMap } };
       if (forbid.has(forbidKey(op.part))) continue;
       const before = { circuit, built, baseline, state };
       if (tryOps([op])) {

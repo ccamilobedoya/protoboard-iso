@@ -182,3 +182,32 @@ test('a chip whose supply pins are not both wired, or share a net, gets a doubt 
     assert.doesNotMatch(r.stdout, /has no supply/, recipe);
   }
 });
+
+test('two batteries lie side by side: in series, in parallel, and in parallel facing opposite ways', () => {
+  const dir = tempDir('c12-batteries-');
+  const bt = [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'BT2', type: 'battery', format: '9V' }];
+  const led = [{ id: 'R1', type: 'resistor', value: '1k' }, { id: 'D1', type: 'led', color: 'red' }];
+  const run = (name, spec) => {
+    writeFileSync(join(dir, `${name}.json`), JSON.stringify(spec));
+    const r = cli(['layout', join(dir, name), join(dir, `${name}.json`), '--json']);
+    return JSON.parse(r.stdout);
+  };
+  const series = run('series', { parts: [...bt, ...led], nets: [['BT1.+', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'BT2.-'], ['BT1.-', 'BT2.+']] });
+  assert.ok(['done', 'warnings'].includes(series.status), series.status);
+  assert.equal(series.failed?.length ?? 0, 0);
+  const sim = JSON.parse(cli(['simulate', join(dir, 'series'), '--json']).stdout);
+  assert.ok(sim.ok);
+  // 18 V across 1 kΩ and a red LED: about 16 mA.
+  assert.ok(Math.abs(sim.parts.D1.current) > 0.014 && Math.abs(sim.parts.D1.current) < 0.018, String(sim.parts.D1.current));
+  const parallel = run('parallel', { parts: [...bt, ...led], nets: [['BT1.+', 'BT2.+', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'BT1.-', 'BT2.-']] });
+  assert.equal(parallel.status, 'done');
+  const opposite = cli(['layout', join(dir, 'opposite'), '--dry-run', writeSpec(dir, 'opposite', { parts: bt, nets: [['BT1.+', 'BT2.-'], ['BT1.-', 'BT2.+']] })]);
+  assert.match(opposite.stdout, /BT2: \+→/);
+  assert.match(opposite.stdout, /that looks like a short circuit/);
+  assert.doesNotMatch(opposite.stdout, /found no place/);
+});
+function writeSpec(dir, name, spec) {
+  const file = join(dir, `${name}.json`);
+  writeFileSync(file, JSON.stringify(spec));
+  return file;
+}
