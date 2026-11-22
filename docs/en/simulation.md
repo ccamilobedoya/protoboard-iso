@@ -379,8 +379,12 @@ tell.
   `SIM_PROGRAM_STOPPED`, a program that stopped with an error at rest, and `SIM_PROGRAM_STUCK`, a
   program that never lets time pass: `setup()` or one call of `loop()` that never returns and never
   waits (`void loop() { while (1) {} }`). The program's runner says so itself
-  (`stuck`, `src/sim/program.js`): one advance used its whole budget of turns inside one call, never
-  by waiting; a `loop()` that returns without a `delay()` is a working program.
+  (`stuck`, `src/sim/program.js`): 200 000 turns of a loop inside one call with no time passing for
+  the program, counted across steps (at t = 0 one advance may take them all), so a long loop that
+  ends is not stuck; a `loop()` that returns without a `delay()` is a working program. Serial output
+  takes time at the rate `Serial.begin` gave (ten bits a character; the program waits once its
+  transmit buffer, 64 bytes on an UNO and 128 on an ESP32, is full), so a loop that prints 100 000
+  lines lets time pass as on a board and is not stuck.
 - Any other warning or error the simulation gives at rest or in one of the states above (with its
   `when`) that is not a hazard and not already blocking: whatever warning the simulator prints can
   no longer be invisible to `layout`. `SIM_FLOATING` is one only when a simulated part wired in by

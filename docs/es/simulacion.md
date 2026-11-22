@@ -397,9 +397,13 @@ dice: el kit revisó el circuito y no encontró nada que decir.
   (`SIM_PROGRAM_IGNORED` sigue siendo una nota). También `SIM_PROGRAM_STOPPED`, un programa que se
   detuvo con un error en reposo, y `SIM_PROGRAM_STUCK`, un programa que nunca deja pasar el tiempo:
   `setup()` o una llamada de `loop()` que nunca vuelve y nunca espera (`void loop() { while (1) {} }`).
-  Lo dice el propio ejecutor del programa (`stuck`, `src/sim/program.js`): un avance gastó todo su
-  presupuesto de pasos dentro de una sola llamada, nunca esperando; un `loop()` que vuelve sin
-  `delay()` es un programa que funciona.
+  Lo dice el propio ejecutor del programa (`stuck`, `src/sim/program.js`): 200 000 vueltas de un
+  bucle dentro de una sola llamada sin que pase el tiempo para el programa, contadas a lo largo de los
+  pasos (en t = 0 un avance puede darlas todas), así que un bucle largo que termina no está atascado;
+  un `loop()` que vuelve sin `delay()` es un programa que funciona. La salida por Serial toma tiempo a
+  la velocidad que dio `Serial.begin` (diez bits por carácter; el programa espera cuando su búfer de
+  envío, 64 bytes en un UNO y 128 en un ESP32, se llena), así que un bucle que imprime 100 000 líneas
+  deja pasar el tiempo como en una placa y no está atascado.
 - Cualquier otro aviso o error que dé la simulación en reposo o en uno de los estados de arriba (con
   su `when`) que no sea un peligro ni esté ya bloqueando: ningún aviso que imprima el simulador puede
   quedar invisible para `layout`. `SIM_FLOATING` lo es solo cuando en los nodos flotantes hay un

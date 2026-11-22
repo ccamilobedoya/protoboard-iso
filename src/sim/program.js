@@ -18,9 +18,10 @@
 //     delayMicroseconds(10) is a pulse of 10 µs and pulseIn measures from the steps that end on edges
 //   runner.time, runner.waitingUntil, runner.log (Serial lines), runner.error, runner.notes
 //   runner.stamps (the time each line of log was ended), runner.printed (lines ended since setup)
-//   runner.stuck: the last advance used its whole budget of turns inside one call (setup() or one
-//     loop()) without it returning and without a wait: a program that never lets time pass
-//     (`void loop() { while (1) {} }`); a loop() that returns without a delay is not stuck
+//   runner.stuck: the program has taken STUCK_TURNS turns of a loop inside one call (setup() or one
+//     loop()) without it returning and without time passing for it (a wait, a full serial buffer),
+//     over any number of steps: a loop that never ends (`void loop() { while (1) {} }`) or does that
+//     much work at once; a loop() that returns without a delay is not stuck, nor a long loop that ends
 //
 // pulseIn(pin, value[, timeout µs]) is a generator the sketch calls with yield* (sketch.js): it
 // waits in simulated time, looking at its pin at the end of every step (it yields LOOK: "run me at
@@ -37,6 +38,15 @@
 import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, heatIndex, altitudeOf, seaLevelOf, isArduinoName } from './libraries.js';
 
 const BUDGET = 2000; // loop turns or loop() calls per advance before it lets the step go on
+// Turns of a loop the program may take without letting time pass (no wait, no Serial output) before
+// the kit says so (`stuck`, SIM_PROGRAM_STUCK, whose text names this count): counted across steps, so a
+// long loop that ends is not stuck. At t = 0 (settle) one advance may take them all, so the start
+// tells a loop that ends from one that does not.
+export const STUCK_TURNS = 200_000;
+// A serial port sends ten bits a character at the rate Serial.begin gave; the program waits only when
+// its transmit buffer is full (an AVR's 64 bytes, an ESP32's 128-byte FIFO), as print() does on a board.
+const TX_BUFFER = { uno: 64 };
+const TX_BUFFER_DEFAULT = 128;
 const LOG = 40; // Serial lines kept
 const LINE_MAX = 1000; // characters kept of one Serial line
 const ARRAY_MAX = 100_000; // elements of one array (an ESP32 has 320 KB of RAM)
@@ -123,11 +133,28 @@ export function createRunner(js, board) {
     return periods.length ? Math.min(...periods) : null;
   };
   let seed = 1;
+  // Serial's time: the rate Serial.begin set (0: never begun, printing costs no time), when the
+  // transmit buffer will be empty, and the time the program owes for a full buffer (it waits that long
+  // at its next turn).
+  let baud = 0;
+  let txFreeAt = 0;
+  let owed = 0;
+  const sent = (chars) => {
+    if (!(baud > 0) || !chars) return;
+    const each = 10 / baud;
+    const now = runner.time + owed;
+    txFreeAt = Math.max(now, txFreeAt) + chars * each;
+    const full = txFreeAt - (TX_BUFFER[board.family] ?? TX_BUFFER_DEFAULT) * each - now;
+    if (full > 0) owed += full;
+  };
   const write = (text) => {
+    const start = runner.time + owed; // the line's time: when it starts out
+    // println ends a line with "\r\n" on a board: two characters on the wire.
+    sent(text.length + (text.match(/\n/g)?.length ?? 0));
     const parts = (runner.line + text).split('\n').map((p) => p.slice(0, LINE_MAX));
     runner.line = parts.pop();
     runner.log.push(...parts);
-    for (const _ of parts) runner.stamps.push(runner.time);
+    for (const _ of parts) runner.stamps.push(start);
     runner.printed += parts.length;
     if (runner.log.length > LOG) {
       runner.log.splice(0, runner.log.length - LOG);
@@ -326,7 +353,10 @@ export function createRunner(js, board) {
     bitClear: (x, b) => x & ~(1 << b),
     bitWrite: (x, b, v) => (v ? x | (1 << b) : x & ~(1 << b)),
     Serial: {
-      begin() {},
+      begin(rate) {
+        const r = Number(rate);
+        baud = Number.isFinite(r) && r > 0 ? r : 0;
+      },
       print: (v, d, kind) => write(show(v, d, kind)),
       println: (v = '', d, kind) => write(`${show(v, d, kind)}\n`),
       // write(byte) sends that byte (65 is "A"); write("text") the text. It returns the bytes written.
@@ -522,6 +552,9 @@ export function createRunner(js, board) {
     return runner;
   }
   let gen = program.setup();
+  // Turns of a loop since time last passed for the program (a wait, a full serial buffer, pulseIn),
+  // across steps; a loop() that returns starts the count again.
+  let spins = 0;
   runner.until = () => {
     if (runner.error) return null;
     if (runner.looking != null) return Math.max(0, runner.looking - runner.time);
@@ -540,8 +573,8 @@ export function createRunner(js, board) {
     runner.looking = null;
     for (const [n, end] of Object.entries(tones)) if (runner.time >= end) api.noTone(Number(n));
     let turns = 0;
-    let spins = 0; // turns of a loop inside the current call since it began, with no wait
-    runner.stuck = false;
+    // At t = 0 a loop inside one call may take every turn it gets before it is said stuck (settle).
+    const budget = dt > 0 ? BUDGET : STUCK_TURNS;
     while (runner.wait <= 1e-12) {
       let r;
       try {
@@ -550,22 +583,33 @@ export function createRunner(js, board) {
         runner.error = errorText(e, at);
         break;
       }
+      // What it printed takes time once its buffer is full: it waits that long.
+      if (owed > 0) {
+        runner.wait += owed;
+        owed = 0;
+        spins = 0;
+      }
       if (r.done) {
         gen = program.loop();
         spins = 0;
+        // A loop() that returns is never stuck: the start gives it the plain budget.
         if (++turns > BUDGET) break;
         continue;
       }
       // pulseIn: nothing new to see before the next step (runner.looking holds its timeout).
-      if (r.value === LOOK) break;
+      if (r.value === LOOK) {
+        spins = 0;
+        break;
+      }
       if (r.value > 0) {
         runner.wait += r.value;
         spins = 0;
-      } else if (++turns > BUDGET) {
-        runner.stuck = ++spins >= BUDGET;
-        break;
-      } else spins++;
+      } else {
+        spins++;
+        if (++turns > budget) break;
+      }
     }
+    runner.stuck = spins >= STUCK_TURNS;
     // Until its delay ends, or until pulseIn's timeout while it looks at its pin.
     runner.waitingUntil = runner.looking ?? runner.time + Math.max(0, runner.wait);
     return runner.changed;

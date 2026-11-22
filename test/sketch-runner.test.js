@@ -211,3 +211,32 @@ test('the review turns a program\'s mistake into a ⚠ with its line', async () 
   const doubts = checkHazards(uno('void setup() { pinMode(8, OUTPUT); }\nvoid loop() {\n  digitalWrite(99, HIGH);\n  analogWrite(8, 50);\n  delay(500);\n}')).doubts;
   assert.deepEqual(doubts.filter((d) => d.code.startsWith('SIM_PROGRAM_')).map((d) => [d.code, d.params.line, d.params.pin]), [['SIM_PROGRAM_PIN_UNKNOWN', 3, '99'], ['SIM_PROGRAM_NO_PWM', 4, 'D8']]);
 });
+
+// ── 4. No false "never lets time pass" ──
+
+test('a loop printing 100 000 lines lets time pass at the serial rate and is not stuck', () => {
+  const flood = 'void setup() { pinMode(13, OUTPUT); Serial.begin(9600); }\nvoid loop() { for (long i = 0; i < 100000; i++) { Serial.println("spam line"); } digitalWrite(13, HIGH); }';
+  const r = runOf(flood, 1);
+  assert.ok(!r.issues.some((i) => i.code === 'SIM_PROGRAM_STUCK'), JSON.stringify(r.issues.map((i) => i.code)));
+  // "spam line" and "\r\n": 11 characters, 11.46 ms at 9600 baud; the first lines fill the 64-byte buffer.
+  assert.ok(r.serial.count > 80 && r.serial.count < 100, String(r.serial.count));
+  const fast = runOf(flood.replace('9600', '115200'), 1);
+  assert.ok(fast.serial.count > 1000 && fast.serial.count < 1100, String(fast.serial.count));
+});
+
+test('a long loop that ends is not stuck; one that never ends is, at its count of turns', () => {
+  const ends = runOf('long n = 0;\nvoid setup() { for (long i = 0; i < 150000; i++) { n++; } Serial.begin(9600); Serial.println(n); }\nvoid loop() { delay(100); }', 0.5);
+  assert.ok(!ends.issues.some((i) => i.code === 'SIM_PROGRAM_STUCK'));
+  assert.deepEqual(ends.serial.lines.map((l) => l.text), ['150000'], 'at t = 0 the start runs it to its end');
+  const inLoop = runOf('long n = 0;\nvoid setup() { Serial.begin(9600); }\nvoid loop() { for (long i = 0; i < 150000; i++) { n++; } Serial.println(n); delay(100); }', 0.5);
+  assert.ok(!inLoop.issues.some((i) => i.code === 'SIM_PROGRAM_STUCK'));
+  assert.ok(inLoop.serial.lines.length >= 2);
+  const never = runOf('void setup() {}\nvoid loop() { while (1) {} }', 0.5);
+  assert.ok(never.issues.some((i) => i.code === 'SIM_PROGRAM_STUCK'));
+  const runner = createRunner(translateSketch('void setup() { while (1) {} }\nvoid loop() {}').js, { family: 'uno', read: () => null });
+  runner.advance(0);
+  assert.equal(runner.stuck, true, 'the start says it at once');
+  const empty = createRunner(translateSketch('void setup() {}\nvoid loop() {}').js, { family: 'uno', read: () => null });
+  empty.advance(0);
+  assert.equal(empty.stuck, false, 'a loop() that returns is not stuck');
+});

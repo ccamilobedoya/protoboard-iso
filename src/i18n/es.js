@@ -1143,7 +1143,7 @@ export default {
   'check.SIM_PROGRAM_UNSUPPORTED': '{part}: {name}() en la línea {line} no es algo que el simulador conozca; devuelve 0.',
   'check.SIM_PROGRAM_LIBRARY': '{part}: la librería {name} (línea {line}) no está en el kit: los objetos y las llamadas del programa a ella no hacen nada aquí (devuelven 0), así que lo que hacen no se comprueba.',
   'check.SIM_PROGRAM_NO_LOOP': '{part}: el programa no tiene setup() o no tiene loop().',
-  'check.SIM_PROGRAM_STUCK': '{part}: el programa nunca deja pasar el tiempo: setup() o loop() corre un ciclo que no termina nunca y nunca llama a delay(), así que el kit no puede avanzarlo en el tiempo y nada de lo que sigue a ese ciclo llega a correr. Revisa que eso sea lo que el sketch quiere hacer.',
+  'check.SIM_PROGRAM_STUCK': '{part}: el programa dio más de 200 000 vueltas de un bucle que nunca deja pasar el tiempo (sin delay() ni salida por Serial en él): el kit no puede saber si ese bucle termina, así que lo que viene después no se comprueba. Una placa real pasa ese tiempo dentro del bucle; revisa que eso sea lo que el programa quiere hacer (un delay() en él deja pasar el tiempo).',
   'check.SIM_PROGRAM_STOPPED': '{part}: el programa se detuvo con un error mientras corría («{message}»); desde ahí no hace nada.',
   'check.SIM_PROGRAM_DELAY_NEGATIVE.delay': '{part}: delay({value}) en la línea {line}: delay recibe un número sin signo, así que una placa real espera {wrapped} ms, unos 49 días; la ejecución lo muestra como una espera hasta el final.',
   'check.SIM_PROGRAM_DELAY_NEGATIVE': '{part}: {name}({value}) en la línea {line}: su argumento no tiene signo, así que una placa real espera {wrapped} en su lugar; la ejecución lo muestra como una espera hasta el final.',

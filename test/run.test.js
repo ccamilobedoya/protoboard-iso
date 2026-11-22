@@ -205,7 +205,9 @@ test('bounded: a run past the cap is capped and says so; a sketch that never let
 });
 
 test('a long Serial story keeps its first and last lines and the true count', () => {
-  const chatty = recipe('uno-blink', { U1: 'int n = 0;\nvoid setup(){ Serial.begin(9600); }\nvoid loop(){ Serial.println(n); n++; delay(1); }' });
+  // At 115200 baud a short line every millisecond keeps up (at 9600 the port itself holds the sketch
+  // to about 200 lines a second, as on a board).
+  const chatty = recipe('uno-blink', { U1: 'int n = 0;\nvoid setup(){ Serial.begin(115200); }\nvoid loop(){ Serial.println(n); n++; delay(1); }' });
   const r = runCircuit(chatty, { seconds: 1 });
   assert.ok(r.serial.count > 900, `${r.serial.count}`);
   assert.equal(r.serial.lines.length, LIMITS.runSerialLines);

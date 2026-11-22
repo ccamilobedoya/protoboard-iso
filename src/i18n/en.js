@@ -1144,7 +1144,7 @@ export default {
   'check.SIM_PROGRAM_UNSUPPORTED': '{part}: {name}() at line {line} is not something the simulator knows; it returns 0.',
   'check.SIM_PROGRAM_LIBRARY': '{part}: the library {name} (line {line}) is not in the kit: the sketch\'s objects and calls of it do nothing here (they return 0), so what they do is not checked.',
   'check.SIM_PROGRAM_NO_LOOP': '{part}: the program has no setup() or no loop().',
-  'check.SIM_PROGRAM_STUCK': '{part}: the program never lets time pass: setup() or loop() runs a loop that never ends and never calls delay(), so the kit cannot run it on in time and nothing after that loop ever runs. Check that this is what the sketch means to do.',
+  'check.SIM_PROGRAM_STUCK': '{part}: the program did more than 200 000 turns of a loop that never lets time pass (no delay() and no Serial output in it): the kit cannot tell whether that loop ends, so what comes after it is not checked. A real board spends that time inside the loop; check that this is what the sketch means to do (a delay() in it lets time pass).',
   'check.SIM_PROGRAM_STOPPED': '{part}: the program stopped with an error while it ran ("{message}"); from there it does nothing.',
   'check.SIM_PROGRAM_DELAY_NEGATIVE.delay': '{part}: delay({value}) at line {line}: delay takes an unsigned number, so a real board waits {wrapped} ms, about 49 days; the run shows it as a wait to the end.',
   'check.SIM_PROGRAM_DELAY_NEGATIVE': '{part}: {name}({value}) at line {line}: its argument is unsigned, so a real board waits {wrapped} instead; the run shows it as a wait to the end.',
