@@ -44,6 +44,8 @@ export const SHIFT_REGISTERS = {
 };
 
 const INPUTS = ['SER', 'SRCLK', 'SRCLR', 'RCLK', 'OE'];
+// What an input left open does, taken as low (SIM_IC_INPUT_OPEN's variant): the datasheet's function table.
+const OPEN_MEANS = { SER: 'shiftsZeros', SRCLK: 'noShift', SRCLR: 'clears', RCLK: 'noLatch', OE: 'enables' };
 const OUTPUTS = ['QA', 'QB', 'QC', 'QD', 'QE', 'QF', 'QG', 'QH', "QH'"];
 
 // The register's logic over a state { reg: [8 bits, QA's first], latch: [8 bits] }.
@@ -72,7 +74,7 @@ export const shiftRegister = {
   holds: true,
   params(part, c) {
     const model = { ...SHIFT_REGISTERS[part.def.electrical.part], ...part.raw.model };
-    return { part: part.def.electrical.part, model, open: openInputs(part, c, INPUTS) };
+    return { part: part.def.electrical.part, model, open: openInputs(part, c, INPUTS, OPEN_MEANS) };
   },
   elements(p, h) {
     const m = p.model;

@@ -170,7 +170,7 @@ holds the register clear, so its LED never lights.
 ```
 
 ```text
-  ⚠ warning: U2: its input SRCLR is left open. On a real CMOS chip an open input is undefined (it picks up noise and may change by itself); the kit takes it as low (0 V). Wire it to GND or to the supply, as the circuit needs.
+  ⚠ warning: U2: its input SRCLR is left open; the kit takes it as low: the register is held clear, so the outputs never light. A real CMOS input left open floats: it may read either level, or change by itself (undefined); the kit's low is a choice. Wire it to GND or to the supply, as the circuit needs.
 ```
 
 ## A 3.3 V pin on a 5 V logic chip

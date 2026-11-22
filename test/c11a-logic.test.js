@@ -167,7 +167,8 @@ test('74HC595: an input left open is warned and read as low; the catalog says wh
   const r = simulate(c);
   const open = r.issues.filter((i) => i.code === 'SIM_IC_INPUT_OPEN');
   assert.deepEqual(open.map((i) => i.params.pin), ['OE']);
-  assert.match(formatIssue(open[0], 'en'), /takes it as low/);
+  assert.match(formatIssue(open[0], 'en'), /OE is left open; the kit takes it as low: the outputs are enabled\. A real CMOS input left open floats.*undefined/);
+  assert.match(formatIssue(open[0], 'es'), /el kit la toma como baja: las salidas quedan habilitadas/);
   assert.equal(pattern(r, 'U2', 5), '10000000', 'OE taken as low: the outputs are on');
   const entry = catalogEntry('74HC595');
   assert.notEqual(entry.simulated, false);

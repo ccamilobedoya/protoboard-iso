@@ -68,6 +68,8 @@ export function counterResistance(table, vdd) {
 export const counterSaturation = (vdd) => SAT_AT_5V * (Math.max(0, Math.min(vdd, 15) - THRESHOLD) / (5 - THRESHOLD)) ** 2 + 1e-9;
 
 const INPUTS = ['CLK', 'CE', 'MR'];
+// What an input left open does, taken as low (SIM_IC_INPUT_OPEN's variant): the datasheet's truth table.
+const OPEN_MEANS = { CLK: 'noClock', CE: 'counts', MR: 'noReset' };
 const OUTPUTS = ['Q0', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'CO'];
 
 const LOGIC = {
@@ -91,7 +93,7 @@ export const counter = {
   holds: true,
   params(part, c) {
     const model = { ...COUNTERS[part.def.electrical.part], ...part.raw.model };
-    return { part: part.def.electrical.part, model, open: openInputs(part, c, INPUTS) };
+    return { part: part.def.electrical.part, model, open: openInputs(part, c, INPUTS, OPEN_MEANS) };
   },
   elements(p, h) {
     const m = p.model;

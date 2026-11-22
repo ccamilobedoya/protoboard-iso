@@ -332,11 +332,12 @@ export function logicReading(entry, h, { vcc, gnd }) {
 }
 
 // The inputs of a part left open: no other part on their strip ({ name: 0 }, read as low).
-export function openInputs(part, c, names) {
+// `meanings`: what low means for each input (the key of check.SIM_IC_INPUT_OPEN.<meaning>), said with it.
+export function openInputs(part, c, names, meanings = {}) {
   const nodeOf = new Map(part.pinNames.map((name, i) => [name, part.holes[i].node]));
   const alone = (name) => (c.members?.[nodeOf.get(name)] ?? []).every((id) => id === part.id);
   const open = Object.fromEntries(names.filter((name) => nodeOf.has(name) && alone(name)).map((name) => [name, 0]));
-  if (c.members && Object.keys(c.members).length) for (const name of Object.keys(open)) c.issues.push(issue('warning', 'SIM_IC_INPUT_OPEN', { part: part.id, pin: name }));
+  if (c.members && Object.keys(c.members).length) for (const name of Object.keys(open)) c.issues.push(issue('warning', 'SIM_IC_INPUT_OPEN', { part: part.id, pin: name, ...(meanings[name] && { variant: meanings[name] }) }));
   return open;
 }
 
