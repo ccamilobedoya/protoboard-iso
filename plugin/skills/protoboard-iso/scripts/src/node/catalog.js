@@ -109,7 +109,10 @@ function facts(raw, lang) {
   const family = raw.part ? lookupModule(raw.part)?.module.family : null;
   const mcu = MCUS[family];
   const pinOutput = mcu && { voltage: mcu.vdd, resistance: mcu.outputResistance, source: t(lang, `catalog.pinOutput.source.${family}`) };
-  return { ...(about && { about }), ...(pinOutput && { pinOutput }), ...(roles.length && { pinRoles: Object.fromEntries(roles.map((r) => [r.name, r.text])) }), ...(ratings && { limits: ratings.limits, ...(ratings.fields && { limitFields: ratings.fields }) }) };
+  // What a chip's model covers and leaves out, when its device says (devices/index.js, `modelText`).
+  const modelKey = deviceFor(part)?.modelText;
+  const model = modelKey ? t(lang, `catalog.model.${modelKey}`) : null;
+  return { ...(about && { about }), ...(model && { model }), ...(pinOutput && { pinOutput }), ...(roles.length && { pinRoles: Object.fromEntries(roles.map((r) => [r.name, r.text])) }), ...(ratings && { limits: ratings.limits, ...(ratings.fields && { limitFields: ratings.fields }) }) };
 }
 
 const pinsOfModule = (m) => m.pins ?? m.headers.flatMap((h) => h.pins.map(([n]) => n));
@@ -350,6 +353,7 @@ export function formatCatalogEntry(e, lang = 'en') {
   if (e.about) lines.push(`  ${t(lang, 'catalog.about')} ${e.about}`);
   if (e.simulated === false) lines.push(`  ${t(lang, 'catalog.simulation.none')}`);
   else if (e.notSimulated) lines.push(`  ${t(lang, 'catalog.simulation.some', { parts: e.notSimulated.join(', ') })}`);
+  if (e.model) lines.push(`  ${e.model}`);
   if (e.pins) lines.push(`  ${t(lang, 'catalog.pins')} ${e.pins.join(' ')}`);
   else lines.push(`  ${t(lang, 'catalog.pins')} ${t(lang, 'catalog.pinsFromPart')}`);
   if (e.pinRoles) lines.push(`  ${t(lang, 'catalog.pinRoles')} ${Object.values(e.pinRoles).join('; ')}`);

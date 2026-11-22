@@ -79,6 +79,12 @@ microcontroladores: [microcontroladores.md](../docs/es/microcontroladores.md).
 | <img src="../docs/img/examples/parts-showcase.png" width="280" alt="Todos los componentes del kit"> | **[parts-showcase.json](parts-showcase.json)**: resistencias (5 % y 1 %), diodos, LED (uno RGB), condensadores, transistores, un módulo AMS1117, un display de 7 segmentos, interruptores deslizante y de inclinación, un LM35 y, al lado de la protoboard, un relé y un motor DC, con cables. Sus notas sobre patas sin conectar son esperadas. |
 | <img src="../docs/img/examples/more-parts.png" width="280" alt="Más componentes"> | **[more-parts.json](more-parts.json)**: trimmer, Zener, inductor, termistor, LDR, zumbador, pines de cabecera, LM324, LM317, PC817 y celdas de litio. |
 
+## Chips analógicos
+
+| | |
+|---|---|
+| <img src="../docs/img/examples/uln2003-relay.png" width="280" alt="Un UNO conmuta un relé con un ULN2003"> | **[uln2003-relay.json](uln2003-relay.json)**: el D8 de un UNO maneja el canal 1 de un ULN2003, cuyo OUT1 recibe la corriente de la bobina del relé desde 5 V; COM en los mismos 5 V es el diodo de protección de la bobina. El relé se activa un segundo y se suelta otro. |
+
 ## Mal a propósito
 
 | | |

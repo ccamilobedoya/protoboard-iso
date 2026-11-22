@@ -1998,4 +1998,13 @@ export default {
   'check.SIM_MODULE_LOW_SUPPLY.dropout': '{part} gets {voltage}, under the {min} its 3.3 V regulator needs: the regulator is in dropout and the chip runs on {rail}, still inside its range.',
   'sim.climate.why.asleep': 'at {time}: no answer, its supply dropped and the chip restarted asleep: it needs begin() again',
   'check.SIM_PROGRAM_IGNORED': '{part}: {name}() at line {line} is accepted and changes nothing in the kit (its readings do not depend on it).',
+  'sim.darlington.on': 'channel {n}: on · IN {vin} · OUT {vout} · {current}',
+  'sim.darlington.off': 'channel {n}: off · IN {vin} · OUT {vout}',
+  'explain.darlington.on': 'This channel is on: its input is high enough (about 2 V or more) to turn its Darlington pair on, so OUT is pulled down to about 0.7 to 1.2 V above GND and the load from the supply to OUT gets its current.',
+  'explain.darlington.off': 'This channel is off: its input is low or left open (the chip\'s own resistors hold it at GND), so OUT is open and the load gets no current.',
+  'explain.darlington.iout': 'Current that flows into OUT of the channel that carries the most: what its load takes from the supply. A channel takes at most 500 mA.',
+  'check.SIM_IC_PIN_VOLTAGE': '{part} has {voltage} on it, more than its maximum {max}{effect}',
+  'catalog.limit.of.clamp': 'clamp diode',
+  'catalog.limit.of.ground': 'GND, all channels',
+  'catalog.model.darlington': 'Simulated: each channel as the datasheet draws it (2.7 kΩ in, a Darlington pair to GND, a clamp diode from OUT to COM): on from about 2 V at its input, OUT saturates at 0.7 to 1.2 V, an open input is off. Not modelled: switching times, temperature. Up to 500 mA per channel and 2.5 A through GND.',
 };

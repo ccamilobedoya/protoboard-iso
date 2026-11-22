@@ -1996,4 +1996,13 @@ export default {
   'check.SIM_MODULE_LOW_SUPPLY.dropout': '{part} recibe {voltage}, menos de los {min} que necesita su regulador de 3,3 V: el regulador está en caída y el chip funciona con {rail}, todavía dentro de su rango.',
   'sim.climate.why.asleep': 'a los {time}: no respondió, su alimentación cayó y el chip volvió a arrancar dormido: necesita begin() otra vez',
   'check.SIM_PROGRAM_IGNORED': '{part}: {name}() en la línea {line} se acepta y no cambia nada en el kit (sus lecturas no dependen de eso).',
+  'sim.darlington.on': 'canal {n}: encendido · IN {vin} · OUT {vout} · {current}',
+  'sim.darlington.off': 'canal {n}: apagado · IN {vin} · OUT {vout}',
+  'explain.darlington.on': 'Este canal está encendido: su entrada está lo bastante alta (unos 2 V o más) para encender su par Darlington, así que OUT baja a entre 0,7 y 1,2 V sobre GND y la carga entre la alimentación y OUT recibe su corriente.',
+  'explain.darlington.off': 'Este canal está apagado: su entrada está baja o al aire (las resistencias propias del chip la llevan a GND), así que OUT queda abierto y la carga no recibe corriente.',
+  'explain.darlington.iout': 'Corriente que entra por OUT del canal que más lleva: lo que su carga toma de la alimentación. Un canal aguanta como mucho 500 mA.',
+  'check.SIM_IC_PIN_VOLTAGE': '{part} tiene {voltage}, más que su máximo de {max}{effect}',
+  'catalog.limit.of.clamp': 'diodo de protección',
+  'catalog.limit.of.ground': 'GND, todos los canales',
+  'catalog.model.darlington': 'Simulado: cada canal como lo dibuja la hoja de datos (2,7 kΩ a la entrada, un par Darlington a GND, un diodo de protección de OUT a COM): enciende desde unos 2 V en su entrada, OUT se satura entre 0,7 y 1,2 V, una entrada al aire queda apagada. Sin modelar: tiempos de conmutación, temperatura. Hasta 500 mA por canal y 2,5 A por GND.',
 };

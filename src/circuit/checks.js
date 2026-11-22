@@ -189,6 +189,19 @@ export function checkFlyback(program) {
     if (!cut.length || ends.some((n) => switched.has(n) && diodes.has(n))) continue;
     out.push(issue('warning', 'COIL_NO_FLYBACK', { part: d.id, by: switched.get(cut[0]), variant: d.kind === 'RLY' ? 'relay' : 'motor' }));
   }
+  // A Darlington array (ULN2003, ULN2803: kind DRV) is a switch at each OUT, with a clamp diode from
+  // each OUT to its COM pin: with COM on the coil's other end (the load's supply) that is the diode;
+  // with COM left open or elsewhere it is not.
+  const drivers = devices.filter((d) => d.kind === 'DRV');
+  for (const u of drivers) {
+    const com = on(u, ['COM'])[0];
+    for (const n of on(u, null).filter((_, i) => /^OUT\d$/.test(u.pins[i].name))) {
+      for (const d of devices.filter((x) => (x.kind === 'RLY' || x.kind === 'MOT') && !out.some((w) => w.params.part === x.id))) {
+        const ends = on(d, d.kind === 'RLY' ? ['A1', 'A2'] : null);
+        if (ends.includes(n) && !ends.includes(com) && !diodes.has(n)) out.push(issue('warning', 'COIL_NO_FLYBACK', { part: d.id, by: u.id, variant: d.kind === 'RLY' ? 'relay' : 'motor' }));
+      }
+    }
+  }
   return out;
 }
 
