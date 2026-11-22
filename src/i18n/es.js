@@ -231,6 +231,8 @@ export default {
   'layout.fixApplied.swapSupply': 'Arreglo aplicado: intercambiados los cables de {part} (su + y su −).',
   'layout.trialChanges': 'tal como se ensayó, el circuito quedaría con {count} puntos marcados con ✖ arriba (no se creó nada). Ensaya otra idea, o aplica esta y arregla solo esos.',
   'layout.trial': 'Ensayo: no se guardó nada.',
+  'layout.trialDone': 'tal como se ensayó, el circuito quedaría listo: están todas las redes y la revisión de lección lo aprueba. Esto fue un ensayo (--dry-run; MCP: dry_run): no se guardó nada; córrelo otra vez sin eso para armarlo.',
+  'layout.trialNotBuilt': 'Esto fue un ensayo (--dry-run; MCP: dry_run): no se guardó nada y el circuito todavía no existe; córrelo otra vez sin eso para armarlo.',
   'layout.status.warnings': 'el circuito está armado y sus redes están bien, pero {hazards} componente(s) se dañarían tal como está conectado (marcados con ⚠ arriba). Díselo primero al usuario, en palabras simples: cuál componente y por qué se quema; déjalo así solo si lo que quiere es mostrar la falla, y si no ofrece el arreglo del kit (su línea «Para arreglarlo»; si no tiene, ensaya antes una idea con layout en ensayo). No lo arregles en silencio ni te niegues.',
   'layout.statusDoubts': 'el circuito está armado y sus redes están bien, pero hay {count} punto(s) marcados con ⚠ arriba: cosas que el kit no pudo comprobar. Díselos primero al usuario, uno por uno y en palabras simples, antes de decir que el circuito funciona; deja el circuito como lo pidió salvo que quiera un cambio. No lo arregles en silencio ni te niegues.',
   'layout.statusBoth': 'el circuito está armado y sus redes están bien, pero hay {count} punto(s) marcados con ⚠ arriba: {hazards} componente(s) se dañarían tal como está conectado y {doubts} punto(s) que el kit no pudo comprobar. Díselos primero al usuario, uno por uno y en palabras simples, antes de decir que el circuito funciona; deja el circuito como lo pidió salvo que quiera un cambio (para el daño, ofrece el arreglo del kit, su línea «Para arreglarlo»). No lo arregles en silencio ni te niegues.',
@@ -245,6 +247,7 @@ export default {
   'check.UNKNOWN_PART_NAME.servo': '{part}: el kit no conoce «{name}» (un servo). Lo más cercano que tiene: un motor DC (tipo motor), que gira pero no se queda en un ángulo.',
   'check.UNKNOWN_PART_NAME.transformer': '{part}: el kit no conoce «{name}» (un transformador). Lo más cercano que tiene: un generador de señal en los rieles (una fuente con kind generator) para la alterna que da un secundario, o una bobina (tipo inductor).',
   'check.UNKNOWN_PART_NAME.lcd': '{part}: el kit no conoce «{name}» (una pantalla LCD). Lo más cercano que tiene: un display de 7 segmentos (tipo seven-segment), o el monitor serie de la placa para texto.',
+  'check.ID_HAS_SPACE': '«{part}»: el id de un componente no lleva espacios, porque una red nombra sus patas como id.pata («R1.1»). Escríbelo «{example}», en el componente y en las redes.',
   'check.NET_BAD_REF': 'Red {where}: «{ref}» no es una pata («U1.OUT») ni un riel (T+, T-, B+, B-; U+, U- en una protoboard doble).',
   'check.NET_UNKNOWN_PART': 'Red {where}: «{ref}» nombra a {part}, que no está entre los componentes ({parts}).',
   'check.NET_UNKNOWN_PIN': 'Red {where}: {part} no tiene la pata «{pin}». Sus patas: {names}.',
@@ -953,7 +956,7 @@ export default {
   protoboard-iso suggest <objetivo> --part '<json>' [--between <node>,<node>] [--connect '<json>'] [--near …] [--limit n] [--window mm] [--profile lesson|draft]
   protoboard-iso suggest <objetivo> --parts '[{"part": {…}, "between": […]}, …]' [--profile lesson|draft]
   protoboard-iso review <objetivo> [--profile lesson|draft] [--views front,back] [--explain] [--json]
-  protoboard-iso undo <objetivo> [--author nombre] [--json]
+  protoboard-iso undo <objetivo> [--dry-run] [--author nombre] [--json]
   protoboard-iso history <objetivo> [--json]
   protoboard-iso catalog [nombre] [--json] [--lang en|es]   # lo que el kit conoce: tipos, módulos, placas, recetas; de un componente, su texto y sus límites (parts también funciona)`,
   'cli.written': 'Escrito {file} ({parts} componentes, {issues} observaciones).',
@@ -1001,6 +1004,8 @@ export default {
   "input.shape.objectList": "una lista de objetos",
   "cli.writeFailed": "No se pudo escribir la salida ({reason}).",
   "cli.badNumber": "La opción {option} recibe un número, no \"{value}\".",
+  "cli.badRun": "--run lleva los segundos que dura, un número de {min} a {max} (10m es 10 ms; más de {max} se corta ahí), no \"{value}\".",
+  "cli.badTransient": "--transient lleva el tiempo que se simula, mayor que 0, y si quieres el paso, mayor que 0 (--transient 5,1m: 5 s en pasos de 1 ms), no \"{value}\".",
   "cli.badLang": "El idioma \"{value}\" no es uno que el kit conozca (elige entre {options}).",
   'cli.seeHelp': 'Las opciones se ven con --help.',
   'cli.nodes': 'Grupos conectados en uso:',

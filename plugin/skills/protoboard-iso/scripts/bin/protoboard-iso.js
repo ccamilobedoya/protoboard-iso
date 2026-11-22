@@ -19,6 +19,7 @@ import { simulate, withStates } from '../src/sim/index.js';
 import { formatSimulation, formatRun } from '../src/sim/format.js';
 import { runCircuit, parseStimuli, prepareRun } from '../src/sim/run.js';
 import { parseValue } from '../src/core/units.js';
+import { LIMITS } from '../src/limits.js';
 import { InputError, inputErrorText, inputIssueFor, readJsonInput, parseJsonInput, resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory, writePage, createTarget, relayoutTarget } from '../src/node/workspace.js';
 import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest } from '../src/layout.js';
 import { resolveRecipe } from '../src/recipes/index.js';
@@ -345,7 +346,13 @@ async function run(seen) {
     const said = parseStimuli({ env: args.env, set: args.set, press: args.press, at: args.at });
     if (said.errors.length) refuse(said.errors);
     if (args.run !== undefined) {
-      const result = runCircuit(circuit, { seconds: timeOf(args.run), stimuli: said.stimuli, start: args.start });
+      // What was typed is what the message echoes (abc and Infinity were "NaN"); 0 and 1e-300 are under one rule.
+      const seconds = timeOf(args.run);
+      if (!Number.isFinite(seconds) || seconds < LIMITS.runMinSeconds) {
+        console.error(t(lang, 'cli.badRun', { value: String(args.run).slice(0, 40), min: '1 µs', max: LIMITS.runSeconds }));
+        fail(1);
+      }
+      const result = runCircuit(circuit, { seconds, stimuli: said.stimuli, start: args.start });
       if (result.errors) refuse(result.errors);
       console.log(args.json ? JSON.stringify(result, null, 2) : formatRun(result, lang, { formatIssue, netLabels: circuit.netLabels }));
       fail(result.ok ? 0 : 1);
@@ -353,7 +360,7 @@ async function run(seen) {
     for (const [option, list] of [['--press', said.stimuli.press], ['--at', said.stimuli.at]]) if (list.length) refuse([{ severity: 'error', code: 'RUN_ONLY', params: { option } }]);
     const [stop, step] = (args.transient ?? []).map(timeOf);
     if (args.transient && (!(stop > 0) || (args.transient[1] !== undefined && !(step > 0)))) {
-      console.error(t(lang, 'cli.badNumber', { option: '--transient', value: args.transient.join(',') }));
+      console.error(t(lang, 'cli.badTransient', { value: args.transient.join(',').slice(0, 40) }));
       fail(2);
     }
     const options = args.transient ? { analysis: 'transient', stop, step, start: args.start } : { analysis: 'dc' };
@@ -438,7 +445,7 @@ async function run(seen) {
     console.log(args.json ? JSON.stringify(result, null, 2) : formatReview(result, lang, { t, formatIssue }));
     fail(result.verdict === 'changes' ? 2 : 0);
   } else if (command === 'undo') {
-    const result = undoTarget(target, { author: args.author, views: args.views, lang, outputLang: args.lang, outputs: args.outputs });
+    const result = undoTarget(target, { author: args.author, views: args.views, lang, outputLang: args.lang, outputs: args.outputs, dryRun: args.dryRun });
     console.log(args.json ? JSON.stringify(result, null, 2) : [formatChange(result, lang, { t, formatIssue }), pageLine(result.files, lang)].filter(Boolean).join('\n'));
     fail(result.errors.length ? 1 : 0);
   } else if (command === 'history') {

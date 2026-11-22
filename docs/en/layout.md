@@ -578,7 +578,9 @@ Can change (layout with the recipe and values): R1 = 330 (current-limiting resis
 
 **A trial** (`--dry-run`; the MCP tool's `dry_run: true`, the word `apply_ops` uses): everything
 above, on the circuit as it would be after the call (a new target, or an existing one laid out
-again), with the same answer and `STATUS`, and nothing written: no circuit file, no history, no page,
+again), with the same answer and `STATUS` (whose words say it was a trial: `DONE · as tried, the
+circuit would be ready … nothing was saved`, and `WARNINGS` ends `This was a trial … nothing was
+saved`), and nothing written: no circuit file, no history, no page,
 no revision, no outputs folder; in an MCP host with the viewer no board is shown (as `try_ops`). Its
 last line before `STATUS:` says so: `Trial: nothing was saved.` (`Ensayo: no se guardó nada.`); the
 page line is left out. It is how an idea the kit did not compute (a fix of an assistant's own) is

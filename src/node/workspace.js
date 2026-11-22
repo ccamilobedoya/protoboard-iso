@@ -305,7 +305,7 @@ export function undoTarget(target, options = {}) {
   return withLock(paths, () => undoLocked(target, options));
 }
 
-function undoLocked(target, { author = 'unknown', views, lang = 'en', outputLang, outputs = true }) {
+function undoLocked(target, { author = 'unknown', views, lang = 'en', outputLang, outputs = true, dryRun = false }) {
   const paths = resolveTarget(target);
   const history = readHistory(paths);
   const undone = new Set(history.filter((h) => h.undoes).map((h) => h.undoes));
@@ -316,6 +316,8 @@ function undoLocked(target, { author = 'unknown', views, lang = 'en', outputLang
   const result = applyOps(current, last.inverse);
   if (result.errors.length) return { applied: false, errors: result.errors };
   const diff = diffEvaluations(judge(current, { views, lang }), judge(withFolder(result.circuit, paths), { views, lang }));
+  // A dry run: what the undo would change, nothing saved (it used to undo for real: the option was read by apply only).
+  if (dryRun) return { applied: false, dryRun: true, revision: current.revision ?? 0, nextRevision: (current.revision ?? 0) + 1, undoes: last.revision, errors: [], diff };
   const saved = commit(paths, result.circuit, { author, note: `undo ${last.revision}`, ops: last.inverse, inverse: last.ops, undoes: last.revision });
   const files = outputs ? writeOutputs(paths, saved, { lang, outputLang }) : null;
   return { applied: true, revision: saved.revision, undid: last.revision, errors: [], diff, files };

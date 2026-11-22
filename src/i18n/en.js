@@ -232,6 +232,8 @@ export default {
   'layout.fixApplied.swapSupply': 'Applied the fix: swapped the leads of {part} (its + and −).',
   'layout.trialChanges': 'as tried, the circuit would be left with {count} items marked ✖ above (nothing was created). Try another idea in a trial, or apply this one and fix only those.',
   'layout.trial': 'Trial: nothing was saved.',
+  'layout.trialDone': 'as tried, the circuit would be ready: every net is there and the lesson review approves it. This was a trial (--dry-run; MCP: dry_run): nothing was saved; run it again without it to build it.',
+  'layout.trialNotBuilt': 'This was a trial (--dry-run; MCP: dry_run): nothing was saved and no circuit exists yet; run it again without it to build it.',
   'layout.status.warnings': 'the circuit is built and its nets are right, but {hazards} part(s) would be damaged as wired (marked ⚠ above). Tell the user first, in plain words, which part and why it burns; keep it as it is only if showing the failure is what they want, otherwise offer the kit’s fix (its “To fix it” line; when it has none, try an idea in a dry run of layout first). Do not fix it silently and do not refuse.',
   'layout.statusDoubts': 'the circuit is built and its nets are right, but {count} point(s) are marked ⚠ above: things the kit could not check. Tell the user each one first, in plain words, before saying the circuit works; keep the circuit as asked unless the user wants a change. Do not fix it silently and do not refuse.',
   'layout.statusBoth': 'the circuit is built and its nets are right, but {count} point(s) are marked ⚠ above: {hazards} part(s) would be damaged as wired and {doubts} point(s) the kit could not check. Tell the user each one first, in plain words, before saying the circuit works; keep the circuit as asked unless the user wants a change (for the damage, offer the kit’s fix, its “To fix it” line). Do not fix it silently and do not refuse.',
@@ -246,6 +248,7 @@ export default {
   'check.UNKNOWN_PART_NAME.servo': '{part}: the kit does not know "{name}" (a servo). Nearest it has: a DC motor (type motor), which spins but does not hold an angle.',
   'check.UNKNOWN_PART_NAME.transformer': '{part}: the kit does not know "{name}" (a transformer). Nearest it has: a signal generator on the rails (a supply with kind generator) for the AC a secondary gives, or an inductor (type inductor).',
   'check.UNKNOWN_PART_NAME.lcd': '{part}: the kit does not know "{name}" (an LCD). Nearest it has: a 7-segment display (type seven-segment), or the board\'s Serial monitor for text.',
+  'check.ID_HAS_SPACE': '"{part}": a part\'s id has no spaces, because a net names its pins as id.pin ("R1.1"). Write it as "{example}", in the part and in the nets.',
   'check.NET_BAD_REF': 'Net {where}: "{ref}" is neither a pin ("U1.OUT") nor a rail (T+, T-, B+, B-; U+, U- on a double board).',
   'check.NET_UNKNOWN_PART': 'Net {where}: "{ref}" names {part}, which is not in the parts ({parts}).',
   'check.NET_UNKNOWN_PIN': 'Net {where}: {part} has no pin "{pin}". Its pins: {names}.',
@@ -954,7 +957,7 @@ export default {
   protoboard-iso suggest <target> --part '<json>' [--between <node>,<node>] [--connect '<json>'] [--near …] [--limit n] [--window mm] [--profile lesson|draft]
   protoboard-iso suggest <target> --parts '[{"part": {…}, "between": […]}, …]' [--profile lesson|draft]
   protoboard-iso review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
-  protoboard-iso undo <target> [--author name] [--json]
+  protoboard-iso undo <target> [--dry-run] [--author name] [--json]
   protoboard-iso history <target> [--json]
   protoboard-iso catalog [name] [--json] [--lang en|es]   # what the kit knows: part types, modules, boards, recipes; a part's text and limits (parts works too)`,
   'cli.written': 'Written {file} ({parts} parts, {issues} issues).',
@@ -1002,6 +1005,8 @@ export default {
   "input.shape.objectList": "a list of objects",
   "cli.writeFailed": "Could not write the output ({reason}).",
   "cli.badNumber": "The option {option} takes a number, not \"{value}\".",
+  "cli.badRun": "--run takes the seconds to run, a number from {min} to {max} (10m is 10 ms; more than {max} is cut there), not \"{value}\".",
+  "cli.badTransient": "--transient takes the time to simulate, above 0, and optionally the step, above 0 (--transient 5,1m: 5 s in steps of 1 ms), not \"{value}\".",
   "cli.badLang": "The language \"{value}\" is not one the kit knows (choose from {options}).",
   'cli.seeHelp': 'See the options with --help.',
   'cli.nodes': 'Connected groups in use:',

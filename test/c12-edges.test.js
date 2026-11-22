@@ -222,3 +222,51 @@ test('a board alone is placed', () => {
     assert.match(r.stdout, /STATUS: DONE/, part);
   }
 });
+
+test('a dry run never says the circuit is built: layout --dry-run, and undo --dry-run changes nothing', () => {
+  const dir = tempDir('c12-dry-');
+  const r = cli(['layout', join(dir, 'c'), '--recipe', 'led-resistor', '--dry-run']);
+  assert.equal(r.status, 0);
+  const status = r.stdout.trim().split('\n').at(-1);
+  assert.match(status, /^STATUS: DONE · as tried, the circuit would be ready.*nothing was saved/);
+  assert.doesNotMatch(status, /the circuit is ready/);
+  const es = cli(['layout', join(dir, 'c'), '--recipe', 'led-resistor', '--dry-run', '--lang', 'es']);
+  assert.match(es.stdout.trim().split('\n').at(-1), /no se guardó nada/);
+  const target = led(dir, 'u');
+  assert.equal(cli(['apply', target, '--ops', '{"op":"set","part":"R1","value":"1k"}']).status, 0);
+  const before = readFileSync(join(target, 'circuit.json'), 'utf8');
+  const u = cli(['undo', target, '--dry-run']);
+  assert.equal(u.status, 0);
+  assert.match(u.stdout, /^Dry run \(nothing saved\)/);
+  assert.equal(readFileSync(join(target, 'circuit.json'), 'utf8'), before);
+});
+
+test('messages: --run echoes what was typed and has one lower bound, --transient says above 0, --start names its values', () => {
+  const dir = tempDir('c12-msg-');
+  const target = led(dir);
+  for (const value of ['abc', 'Infinity', '0', '1e-300']) {
+    const r = cli(['simulate', target, '--run', value]);
+    assert.equal(r.status, 1, value);
+    assert.match(r.stderr, new RegExp(`a number from 1 µs to 60 .*not "${value}"`), value);
+  }
+  assert.equal(cli(['simulate', target, '--run', '1u']).status, 0);
+  const es = cli(['simulate', target, '--run', 'abc', '--lang', 'es']);
+  assert.match(es.stderr, /un número de 1 µs a 60 .*no "abc"/);
+  const tr = cli(['simulate', target, '--transient', '0']);
+  assert.equal(tr.status, 2);
+  assert.match(tr.stderr, /--transient takes the time to simulate, above 0/);
+  const start = cli(['simulate', target, '--transient', '1', '--start', 'xx']);
+  assert.equal(start.status, 2);
+  assert.match(start.stderr, /--start takes zero \| dc, not "xx"/);
+  assert.doesNotMatch(start.stdout + start.stderr, /sim\.start\./);
+});
+
+test('messages: a part id with a space says ids have no spaces', () => {
+  const dir = tempDir('c12-space-');
+  const file = writeSpec(dir, 's', { parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'R 1', type: 'resistor', value: '330' }], nets: [['BT1.+', 'R 1.1'], ['R 1.2', 'BT1.-']] });
+  const r = cli(['layout', join(dir, 'c'), file]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /"R 1": a part's id has no spaces.*Write it as "R1"/);
+  assert.doesNotMatch(r.stdout, /neither a pin/);
+  assert.match(cli(['layout', join(dir, 'c'), file, '--lang', 'es']).stdout, /no lleva espacios/);
+});

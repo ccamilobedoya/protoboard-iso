@@ -576,6 +576,7 @@ before saying it works.
 - ✅ `apply` says what `review` will say (C12): the diff is computed from review's judgement less the run (`judge`, `src/diff.js`): a part moved off its strips (`i100`, `i104`) is `✖ new: error: Net 1 of the spec …`, a program file missing or outside the folder is `⚠ new: warning`
 - ✅ Missing supplies are said (C12, `SUPPLY_PINS_UNWIRED` in `DOUBT_CODES`): a part whose supply pins (its model's `supply`, else VCC/GND by name) are not both wired or share a net gets a doubt naming them; an LM358 with its supply open and a 555 with every pin on one net end `WARNINGS`; no recipe or example gets it
 - ✅ Two batteries (C12): a second battery whose leads land near the first's was given the same place off the board (`BT1 and BT2 take up the same space`); it is now laid beside it along that edge (`offset` of its width); two in series simulate at 18 V, two in parallel at 9 V, and two in parallel facing opposite ways get the short-circuit line. A battery short is a doubt, not a hazard: the battery device has no current limit (`src/sim/devices`)
+- ✅ A dry run does not say the circuit is built (C12): `layout --dry-run` ends `STATUS: DONE · as tried, the circuit would be ready … nothing was saved` (WARNINGS ends `This was a trial … nothing was saved`); `undo --dry-run` is a dry run (it undid for real: only `apply` read the option)
 
 ## Optional, later ⬜
 

@@ -632,7 +632,9 @@ Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitado
 
 **Un ensayo** (`--dry-run`; en la herramienta MCP `dry_run: true`, la palabra que usa `apply_ops`):
 todo lo anterior, sobre el circuito como quedaría después de la llamada (un objetivo nuevo, o uno que
-ya existe montado otra vez), con la misma respuesta y el mismo `STATUS`, sin escribir nada: ni archivo
+ya existe montado otra vez), con la misma respuesta y el mismo `STATUS` (cuyas palabras dicen que fue
+un ensayo: `DONE · tal como se ensayó, el circuito quedaría listo … no se guardó nada`, y `WARNINGS`
+termina en `Esto fue un ensayo … no se guardó nada`), sin escribir nada: ni archivo
 del circuito, ni historial, ni página, ni revisión, ni carpeta de salidas; en un anfitrión MCP con el
 visor no se muestra tablero (como `try_ops`). Su última línea antes de `STATUS:` lo dice: `Ensayo: no
 se guardó nada.` (`Trial: nothing was saved.`); la línea de la página no va. Así se ensaya una idea que

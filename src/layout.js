@@ -137,6 +137,8 @@ export function validateSpec(spec) {
       continue;
     }
     if (seen.has(raw.id)) problems.push({ severity: 'error', code: 'DUPLICATE_ID', params: { part: raw.id } });
+    // A net names a pin as "R1.1": an id with a space in it cannot be named there.
+    if (/\s/.test(String(raw.id))) problems.push({ severity: 'error', code: 'ID_HAS_SPACE', params: { part: String(raw.id), example: String(raw.id).replace(/\s+/g, '') || 'R1' } });
     seen.add(raw.id);
     const r = resolvePart(raw);
     if (r.error) problems.push(r.error);
@@ -160,6 +162,8 @@ export function validateSpec(spec) {
       return;
     }
     const m = /^([^.\s]+)\.(\S+)$/.exec(String(ref).trim());
+    // A pin of a part whose id has a space: that part's own line says so.
+    if (!m && [...seen].some((id) => /\s/.test(String(id)) && String(ref).startsWith(`${id}.`))) return undefined;
     if (!m) {
       problems.push({ severity: 'error', code: 'NET_BAD_REF', params: { where, ref: String(ref) } });
       return undefined;
@@ -187,7 +191,7 @@ export function validateSpec(spec) {
     for (const key of ['positive', 'negative']) if (s[key] != null) out[key] = checkRef(s[key], s.id ?? 'supply') ?? s[key];
     return out;
   });
-  for (const p of parts) if (!inNet.has(p.id)) problems.push({ severity: 'warning', code: 'PART_IN_NO_NET', params: { part: p.id } });
+  for (const p of parts) if (!inNet.has(p.id) && !/\s/.test(String(p.id))) problems.push({ severity: 'warning', code: 'PART_IN_NO_NET', params: { part: p.id } });
   for (const j of joined) problems.push({ severity: 'info', code: 'LAYOUT_NETS_JOINED', params: j });
   return { parts, nets, joined, ...(supplies && { supplies }), problems, ok: !problems.some((p) => p.severity === 'error') };
 }
@@ -1766,8 +1770,10 @@ export function formatLayout(r, lang, { t, formatIssue }) {
   if (r.applied) lines.push(appliedLine(r.applied, lang, t));
   if (r.trial) lines.push(t(lang, 'layout.trial'));
   // A trial that ends CHANGES created nothing: its own words, not "the circuit was created".
-  const said = r.trial && r.status === 'changes' ? 'layout.trialChanges' : `layout.status.${r.status}`;
-  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, warningsKey(r, said), { count: r.status === 'warnings' ? warned : open, hazards: r.review.hazards.length, doubts: doubts.length })}`);
+  const said = r.trial && r.status === 'changes' ? 'layout.trialChanges' : r.trial && r.status === 'done' ? 'layout.trialDone' : `layout.status.${r.status}`;
+  // Its DONE and WARNINGS words say "the circuit is ready" or "built": a trial says nothing was saved.
+  const trialTail = r.trial && r.status === 'warnings' ? ` ${t(lang, 'layout.trialNotBuilt')}` : '';
+  lines.push(`STATUS: ${r.status.toUpperCase()} · ${t(lang, warningsKey(r, said), { count: r.status === 'warnings' ? warned : open, hazards: r.review.hazards.length, doubts: doubts.length })}${trialTail}`);
   return lines.join('\n');
 }
 
