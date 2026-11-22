@@ -84,6 +84,8 @@ export default {
   'check.CIRCUIT_TOO_MANY_PARTS': 'El circuito quedaría con {size} componentes, más de los {limit} que acepta el kit.',
   'check.CIRCUIT_TOO_LARGE': 'El circuito ocupa {size} bytes, más de los {limit} que acepta el kit; no se lee.',
   'check.NOTHING_TO_UNDO': 'No hay nada que deshacer.',
+  'check.HISTORY_DAMAGED': 'El archivo de historial {file} está dañado en la línea {line}: no es una entrada que el kit pueda leer, así que deshacer e historial no pueden seguir desde ahí y no se guardó nada. El circuito en sí (circuit.json) está intacto. Para seguir, empieza un historial nuevo desde el circuito como está con {option} (el archivo dañado queda al lado, terminado en .damaged), o repara esa línea.',
+  'change.newHistory': 'Historial nuevo desde la revisión {from}: deshacer no va más atrás. El dañado queda como {kept}.',
 
   'change.failed': 'No se cambió nada:',
   'change.dryRun': 'Prueba en seco (no se guardó nada): la revisión {from} → {to} cambiaría:',
@@ -946,7 +948,7 @@ export default {
   protoboard-iso check <objetivo> [--lang en|es] [--json]
   protoboard-iso netlist <objetivo>
   protoboard-iso nets <objetivo> [--lang en|es] [--json]
-  protoboard-iso apply <objetivo> [ops.json | -] [--ops '<json>'] [--dry-run] [--author nombre] [--note texto] [--expect-revision n] [--views front,back] [--json]
+  protoboard-iso apply <objetivo> [ops.json | -] [--ops '<json>'] [--dry-run] [--author nombre] [--note texto] [--expect-revision n] [--views front,back] [--json] [--new-history]
   protoboard-iso query <objetivo> at <hole> | node <node|hole> | free [--near <hole|node|column>] [--limit n] [--empty]
   protoboard-iso suggest <objetivo> --part '<json>' [--between <node>,<node>] [--connect '<json>'] [--near …] [--limit n] [--window mm] [--profile lesson|draft]
   protoboard-iso suggest <objetivo> --parts '[{"part": {…}, "between": […]}, …]' [--profile lesson|draft]

@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, appendFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 
@@ -90,4 +90,42 @@ test('page: a part called __proto__, constructor, toString, hasOwnProperty or va
   }
   window.close();
   assert.deepEqual(errors, []);
+});
+
+test('apply refuses to build on a damaged history, and --new-history starts one from the circuit as it is', () => {
+  const dir = tempDir('c12-history-');
+  for (const [name, junk] of [['garbage', 'garbage{\n'], ['bytes', Buffer.from([0xff, 0xfe, 0x00, 0x9c, 0x7b, 0x22, 0x0a, 0xc3])]]) {
+    const target = led(dir, name);
+    appendFileSync(join(target, 'history.jsonl'), junk);
+    const before = readFileSync(join(target, 'circuit.json'), 'utf8');
+    const set = ['--ops', '{"op":"set","part":"R1","value":"1k"}'];
+    for (const extra of [[], ['--dry-run']]) {
+      const r = cli(['apply', target, ...set, ...extra]);
+      assert.equal(r.status, 1, name);
+      assert.match(r.stdout, /history file .*history\.jsonl is damaged at line 2/, name);
+      assert.match(r.stdout, /circuit itself \(circuit\.json\) is intact/);
+      assert.match(r.stdout, /--new-history/);
+    }
+    assert.equal(readFileSync(join(target, 'circuit.json'), 'utf8'), before, 'nothing saved');
+    const es = cli(['apply', target, ...set, '--lang', 'es']);
+    assert.match(es.stdout, /está dañado en la línea 2/);
+    const again = cli(['apply', target, ...set, '--new-history']);
+    assert.equal(again.status, 0, again.stdout + again.stderr);
+    assert.match(again.stdout, /New history from revision 0: undo goes back no further\. The damaged one is kept as .*history\.jsonl\.damaged/);
+    assert.ok(existsSync(join(target, 'history.jsonl.damaged')));
+    assert.equal(cli(['history', target]).status, 0);
+    assert.equal(cli(['undo', target]).status, 0);
+    assert.match(cli(['undo', target]).stdout, /Nothing to undo/);
+  }
+});
+
+test('undo and history on a damaged history say the same, with the way on', () => {
+  const dir = tempDir('c12-history2-');
+  const target = led(dir);
+  appendFileSync(join(target, 'history.jsonl'), '[1,2]\n');
+  for (const command of ['undo', 'history']) {
+    const r = cli([command, target]);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /damaged at line 2.*--new-history/s, command);
+  }
 });

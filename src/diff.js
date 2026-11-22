@@ -114,6 +114,7 @@ export function formatChange(result, lang, { t, formatIssue }) {
   if (visibility.length) lines.push(`  ${t(lang, 'change.visibility')}: ${visibility.map((v) => `${v.part} ${pct(v.before)} → ${pct(v.after)}`).join(', ')}`);
   // Saved, and the kit allows it, but the person is told in words that it does not work now.
   if (result.applied && !result.dryRun && !result.undid && result.newErrors > 0) lines.push(t(lang, 'change.appliedWithErrors', { revision: result.revision, count: result.newErrors }));
+  if (result.newHistory) lines.push(`  ${t(lang, 'change.newHistory', result.newHistory)}`);
   if (result.files) lines.push(`  ${t(lang, 'change.outputs', { svg: result.files.svgFile, report: result.files.reportFile })}`);
   return lines.join('\n');
 }

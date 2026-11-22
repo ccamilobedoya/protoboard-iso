@@ -11,6 +11,7 @@ detail.
 
 ### Changed
 
+- `apply` refuses to save on a damaged `history.jsonl` (it saved a revision that `undo` and `history` could then never read): `HISTORY_DAMAGED` names the file and the line and says the circuit is intact; `apply --new-history` (MCP `apply_ops` `new_history`) keeps the damaged file as `history.jsonl.damaged` and starts a new history from the current revision.
 - A part with the id `__proto__`, `constructor`, `toString`, `hasOwnProperty` or `valueOf` opens its card in the page (`__proto__` was missing from the page's data and its tap threw `(stresses[…] ?? []).find is not a function`).
 - `apply` with 850 or more `add` operations no longer ends `internal error: Maximum call stack size exceeded` (a list spread as arguments in `src/diff.js`); 3000 are refused by the parts cap.
 - The skill: a `· note:` line is said to be about the drawing, the nets or a model detail (anything over a limit is a ⚠ now); with nobody to ask, the assistant says what the kit lacks and stops; swapping one kind of part for another (a MOSFET for an NPN) is laid out with `--dry-run` first and its ⚠ read before saving. `references/run-it.md` adds a run's 60 s cap and early stop, `--start zero`, a latch's two resting states, what to say when the kit checks only part of a request, and a marked place for what a board's program shows; `references/spec.md` no longer calls `shiftOut` unknown and says a chip only drawn names the outputs that hang from it.

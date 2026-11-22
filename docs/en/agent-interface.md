@@ -129,6 +129,13 @@ Each history line: `{ revision, time, author, note, ops, inverse, undoes? }`. `u
 applies the inverse of the latest change not yet undone and records it as a new revision;
 calling it again walks further back.
 
+A history line the kit cannot read (garbage, random bytes, a cut write) is `HISTORY_DAMAGED`:
+`apply`, `undo` and `history` refuse with the file and the line, and nothing is saved (a revision
+added after it could never be undone). The circuit itself is a separate file and is intact.
+`apply … --new-history` (MCP `apply_ops` with `new_history`) keeps the damaged file beside the
+new one (`history.jsonl.damaged`) and starts a history from the circuit as it is: undo goes back
+to that revision and no further.
+
 ## In the API
 
 ```js

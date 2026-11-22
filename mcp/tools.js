@@ -118,7 +118,8 @@ function safely(handler) {
       return await handler({ ...args, outputLang: args.lang, lang: pickLanguage(args.lang, circuitLang(args), DEFAULT_LANG) });
     } catch (e) {
       // A file that cannot be used is said in the person's language, as the command line says it.
-      const text = e instanceof InputError ? inputErrorText(e.issue, pickLanguage(args.lang, circuitLang(args), DEFAULT_LANG)) : e.message;
+      const issue = e?.issue?.code === 'HISTORY_DAMAGED' ? { ...e.issue, params: { ...e.issue.params, option: 'apply_ops new_history' } } : e?.issue;
+      const text = e instanceof InputError ? inputErrorText(issue, pickLanguage(args.lang, circuitLang(args), DEFAULT_LANG)) : e.message;
       return { isError: true, content: [{ type: 'text', text }] };
     }
   };
@@ -404,13 +405,16 @@ server.registerTool(
       author: z.string().optional(),
       note: z.string().optional().describe('Why the change is made'),
       views: z.array(z.enum(Object.keys(VIEWS))).optional().describe('Views to measure (default front)'),
+      new_history: z.boolean().optional().describe('Only when told the history is damaged: keep it aside, start anew'),
       ...common,
     },
     annotations: WRITE,
   },
-  safely(async ({ target, ops, dry_run, expect_revision, author = 'mcp', note = '', views, lang, outputLang, format }) => {
+  safely(async ({ target, ops, dry_run, expect_revision, author = 'mcp', note = '', views, new_history: newHistory, lang, outputLang, format }) => {
     const { full } = existing(target);
-    const result = applyToTarget(full, ops, { dryRun: dry_run, expectRevision: expect_revision, author, note, views, lang, outputLang });
+    const result = applyToTarget(full, ops, { dryRun: dry_run, expectRevision: expect_revision, author, note, views, lang, outputLang, newHistory });
+    // The message names the option of the caller: here new_history, not the CLI's --new-history.
+    for (const e of result.errors) if (e.code === 'HISTORY_DAMAGED') e.params = { ...e.params, option: 'new_history' };
     const out = { ...result, circuit: undefined, files: relFiles(result.files) };
     const response = answer(format, out, () => formatChange(out, lang, { t, formatIssue }) + pageLine(result.files, lang));
     if (result.errors.length) return { ...response, isError: true };

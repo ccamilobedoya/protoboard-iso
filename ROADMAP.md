@@ -572,6 +572,7 @@ before saying it works.
 - ✅ The skill says what this round found (C10b): what a `· note:` line is (drawing, nets, model details; over a limit is a ⚠); with nobody to ask, say what the kit lacks and stop; a swap of one kind of part for another is dry-run first; `references/run-it.md`: a run's 60 s and early stop, `--start zero`, two resting states, what to say when the kit checks only part, and a marked place for the sketch runner's findings; `references/spec.md` no longer says `shiftOut` is unknown
 - ✅ A batch of operations within the cap never overflows the stack (C12): `apply` with 850 or more `add` operations ended `internal error: Maximum call stack size exceeded`; the measurement no longer spreads a list as arguments, and 3000 `add` operations are refused by the parts cap (1000)
 - ✅ The page survives any id the kit accepts (C12): a part called `__proto__` was left out of the page's data and its card threw; the page's data is read into objects with no prototype and every lookup by id in the client goes through `own()` (`src/page/client/own.js`), tested with `__proto__`, `constructor`, `toString`, `hasOwnProperty` and `valueOf`
+- ✅ `apply` does not build on a history it cannot read (C12): a damaged `history.jsonl` (a garbage line, random bytes) is `HISTORY_DAMAGED` with the file and line, the circuit said intact, nothing saved; `--new-history` (MCP `new_history`) keeps the damaged file beside a new history that starts at the current revision
 
 ## Optional, later ⬜
 

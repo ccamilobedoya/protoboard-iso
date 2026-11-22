@@ -85,6 +85,8 @@ export default {
   'check.CIRCUIT_TOO_MANY_PARTS': 'The circuit would have {size} parts, more than the {limit} the kit accepts.',
   'check.CIRCUIT_TOO_LARGE': 'The circuit takes {size} bytes, more than the {limit} the kit accepts; it is not read.',
   'check.NOTHING_TO_UNDO': 'Nothing to undo.',
+  'check.HISTORY_DAMAGED': 'The history file {file} is damaged at line {line}: it is not an entry the kit can read, so undo and history cannot go on from it and nothing was saved. The circuit itself (circuit.json) is intact. To go on, start a new history from the circuit as it is with {option} (the damaged file is kept beside it, ending .damaged), or repair that line.',
+  'change.newHistory': 'New history from revision {from}: undo goes back no further. The damaged one is kept as {kept}.',
 
   'change.failed': 'Nothing was changed:',
   'change.dryRun': 'Dry run (nothing saved): revision {from} → {to} would change:',
@@ -947,7 +949,7 @@ export default {
   protoboard-iso check <target> [--lang en|es] [--json]
   protoboard-iso netlist <target>
   protoboard-iso nets <target> [--lang en|es] [--json]
-  protoboard-iso apply <target> [ops.json | -] [--ops '<json>'] [--dry-run] [--author name] [--note text] [--expect-revision n] [--views front,back] [--json]
+  protoboard-iso apply <target> [ops.json | -] [--ops '<json>'] [--dry-run] [--author name] [--note text] [--expect-revision n] [--views front,back] [--json] [--new-history]
   protoboard-iso query <target> at <hole> | node <node|hole> | free [--near <hole|node|column>] [--limit n] [--empty]
   protoboard-iso suggest <target> --part '<json>' [--between <node>,<node>] [--connect '<json>'] [--near …] [--limit n] [--window mm] [--profile lesson|draft]
   protoboard-iso suggest <target> --parts '[{"part": {…}, "between": […]}, …]' [--profile lesson|draft]

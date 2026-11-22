@@ -10,7 +10,7 @@
 //   { revision, time, author, note, ops, inverse, undoes? }
 // Outputs (SVG, page, report.json) are derived and can be deleted at any time.
 
-import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, mkdirSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, mkdirSync, rmSync, renameSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { applyOps, CIRCUIT_FIELDS } from '../ops.js';
 import { evaluate, diffEvaluations, newErrorCount, isInputMistake } from '../diff.js';
@@ -102,12 +102,46 @@ function checkCircuitShape(circuit, file) {
 }
 const withFolder = (circuit, paths) => Object.defineProperty(circuit, CIRCUIT_FOLDER, { value: dirname(paths.circuitFile), enumerable: false, configurable: true });
 
+// The history, one entry per line. A line that is not an entry (garbage, random bytes, a cut write)
+// is HISTORY_DAMAGED: undo and history cannot go on from it, and apply refuses to add to it (a
+// revision saved after it could never be undone). The circuit itself is a separate file, intact.
 export function readHistory(paths) {
-  if (!existsSync(paths.historyFile)) return [];
-  return readFileSync(paths.historyFile, 'utf8')
-    .split('\n')
-    .filter((line) => line.trim())
-    .map((line, i) => parseJsonInput(line, { what: 'history', file: `${paths.historyFile} (line ${i + 1})` }));
+  const { entries, damage } = scanHistory(paths);
+  if (damage) throw new InputError(damage);
+  return entries;
+}
+
+function scanHistory(paths) {
+  if (!existsSync(paths.historyFile)) return { entries: [], damage: null };
+  const entries = [];
+  const lines = readFileSync(paths.historyFile, 'utf8').split('\n');
+  for (const [i, line] of lines.entries()) {
+    if (!line.trim()) continue;
+    let entry;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      entry = null;
+    }
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry) || !Number.isInteger(entry.revision) || !Array.isArray(entry.ops ?? [])) {
+      return { entries, damage: error('HISTORY_DAMAGED', { file: paths.historyFile, line: i + 1, option: NEW_HISTORY_OPTION }) };
+    }
+    entries.push(entry);
+  }
+  return { entries, damage: null };
+}
+// The CLI's name for starting again (the MCP tools say theirs); the message names it.
+const NEW_HISTORY_OPTION = '--new-history';
+
+// A new history from the circuit as it is: the damaged file is kept beside it (history.jsonl.damaged,
+// .damaged-2, …) and the new one starts with the current revision, so undo stops there.
+function restartHistory(paths, circuit, author) {
+  let kept = `${paths.historyFile}.damaged`;
+  for (let n = 2; existsSync(kept); n++) kept = `${paths.historyFile}.damaged-${n}`;
+  renameSync(paths.historyFile, kept);
+  const revision = circuit.revision ?? 0;
+  writeFileSync(paths.historyFile, `${JSON.stringify({ revision, time: new Date().toISOString(), author, note: `new history (the damaged one is ${basename(kept)})`, created: true, ops: [], inverse: [] })}\n`);
+  return kept;
 }
 
 // The circuit as it was at an earlier revision: the current one with the inverse of every later
@@ -203,7 +237,8 @@ function withLock(paths, fn) {
   }
 }
 
-// options: refuse (default true: input mistakes refuse the batch; layout passes false), dryRun, author, note, expectRevision, views, lang (default), outputLang (asked for), outputs (default true)
+// options: refuse (default true: input mistakes refuse the batch; layout passes false), newHistory (a
+// damaged history is kept aside and a new one starts from the current circuit), dryRun, author, note, expectRevision, views, lang (default), outputLang (asked for), outputs (default true)
 export function applyToTarget(target, ops, options = {}) {
   const paths = resolveTarget(target);
   if (!existsSync(paths.circuitFile)) return applyLocked(target, ops, options);
@@ -218,6 +253,10 @@ function applyLocked(target, ops, options) {
   if (expectRevision !== undefined && Number(expectRevision) !== revision) {
     return { applied: false, revision, errors: [error('REVISION_MISMATCH', { expected: Number(expectRevision), actual: revision })] };
   }
+  // A history it cannot read is refused before anything is measured, in a dry run too (the real run
+  // would be refused), unless the caller asked to start a new one (options.newHistory).
+  const { damage } = scanHistory(paths);
+  if (damage && !options.newHistory) return { applied: false, revision, errors: [damage] };
   const result = applyOps(current, ops);
   if (result.errors.length) return { applied: false, revision, errors: result.errors };
 
@@ -227,9 +266,10 @@ function applyLocked(target, ops, options) {
   if (mistakes.length) return { applied: false, refused: true, ...(dryRun && { dryRun: true }), revision, errors: mistakes, diff };
   if (dryRun) return { applied: false, dryRun: true, revision, nextRevision: revision + 1, errors: [], diff, circuit: result.circuit };
 
+  const damagedKept = damage ? restartHistory(paths, current, author) : null;
   const saved = commit(paths, result.circuit, { author, note, ops, inverse: result.inverse });
   const files = outputs ? writeOutputs(paths, saved, { lang, outputLang }) : null;
-  return { applied: true, revision: saved.revision, errors: [], diff, newErrors: newErrorCount(diff), files };
+  return { applied: true, revision: saved.revision, errors: [], diff, newErrors: newErrorCount(diff), files, ...(damagedKept && { newHistory: { kept: damagedKept, from: revision } }) };
 }
 
 // Creates a circuit folder (circuit.json, history.jsonl, out/). Refuses to overwrite.

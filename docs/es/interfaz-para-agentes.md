@@ -134,6 +134,13 @@ Cada línea del historial: `{ revision, time, author, note, ops, inverse, undoes
 aplica la inversa del último cambio que no se haya deshecho y la registra como una revisión
 nueva; si se vuelve a llamar, sigue retrocediendo.
 
+Una línea del historial que el kit no puede leer (basura, bytes al azar, una escritura cortada) es
+`HISTORY_DAMAGED`: `apply`, `undo` e `history` se niegan con el archivo y la línea, y no se guarda
+nada (una revisión agregada después nunca se podría deshacer). El circuito en sí es otro archivo
+y está intacto. `apply … --new-history` (MCP `apply_ops` con `new_history`) deja el archivo dañado
+al lado del nuevo (`history.jsonl.damaged`) y empieza un historial desde el circuito como está:
+deshacer vuelve hasta esa revisión y no más.
+
 ## En la API
 
 ```js

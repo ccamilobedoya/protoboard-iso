@@ -84,6 +84,7 @@ function parseArgs(argv) {
     else if (a === '--note') args.note = value();
     else if (a === '--expect-revision') args.expectRevision = numOption(a, value(), { integer: true, min: 0 });
     else if (a === '--no-outputs') args.outputs = false;
+    else if (a === '--new-history') args.newHistory = true;
     else if (a === '--part') args.part = value();
     else if (a === '--between') args.between = value()?.split(',');
     else if (a === '--connect') args.connect = value();
@@ -287,7 +288,7 @@ async function run(seen) {
       console.log(args.json ? JSON.stringify({ ...trial, circuit: undefined }, null, 2) : again + formatLayout(trial, outLang, { t, formatIssue }));
       fail(result.status === 'done' || result.status === 'warnings' ? 0 : 2);
     }
-    const save = { author: args.author ?? 'layout', note: args.note ?? (fixed ? 'layout --fix' : 'layout'), lang: outLang, outputs: args.outputs };
+    const save = { author: args.author ?? 'layout', note: args.note ?? (fixed ? 'layout --fix' : 'layout'), lang: outLang, outputs: args.outputs, newHistory: args.newHistory };
     const created = previous ? relayoutTarget(target, result.circuit, { ...save, expectRevision: args.expectRevision }) : createTarget(target, result.circuit, save);
     if (created.errors.length) {
       printIssues(created.errors, outLang);
@@ -399,7 +400,7 @@ async function run(seen) {
       console.log(t(lang, 'cli.usage'));
       fail(1);
     }
-    const result = applyToTarget(target, ops, { dryRun: args.dryRun, author: args.author, note: args.note, expectRevision: args.expectRevision, views: args.views, lang, outputLang: args.lang, outputs: args.outputs });
+    const result = applyToTarget(target, ops, { dryRun: args.dryRun, author: args.author, note: args.note, expectRevision: args.expectRevision, views: args.views, lang, outputLang: args.lang, outputs: args.outputs, newHistory: args.newHistory });
     console.log(args.json ? JSON.stringify({ ...result, circuit: undefined }, null, 2) : [formatChange(result, lang, { t, formatIssue }), pageLine(result.files, lang)].filter(Boolean).join('\n'));
     fail(result.errors.length ? 1 : 0);
   } else if (command === 'query') {
