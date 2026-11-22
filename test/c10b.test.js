@@ -64,3 +64,33 @@ test('an output dark for a reason the kit simulated keeps its doubt beside a chi
   assert.deepEqual(never.map((d) => d.params.part), ['D2'], JSON.stringify(r.review.doubts));
   assert.equal(r.review.doubts.find((d) => d.code === 'SIM_PART_NOT_SIMULATED').params.drives, 'D1');
 });
+
+// ---- 4. A note that is a hazard is a ⚠
+
+const BME_SKETCH = `#include <Wire.h>
+#include <Adafruit_BME280.h>
+Adafruit_BME280 bme;
+void setup() { Serial.begin(9600); Serial.println(bme.begin(0x76)); }
+void loop() { Serial.println(bme.readTemperature()); delay(1000); }
+`;
+const bme = (part, vcc) => autoLayout({
+  parts: [{ id: 'U1', part: 'UNO', program: BME_SKETCH }, { id: 'B1', part }],
+  nets: [[`U1.${vcc}`, 'B1.VCC'], ['U1.GND', 'B1.GND'], ['U1.SCL', 'B1.SCL'], ['U1.SDA', 'B1.SDA']],
+});
+
+test('a BME280 on 3.3 V on a UNO\'s I2C: its bus over the chip\'s maximum is a ⚠, not DONE', () => {
+  const r = bme('BME280', '3V3');
+  assert.equal(r.status, 'warnings', JSON.stringify(r.review.doubts));
+  const over = r.review.doubts.filter((d) => d.code === 'SIM_PIN_OVER_VDDIO');
+  assert.deepEqual(over.map((d) => d.params.pin).sort(), ['SCL', 'SDA']);
+  assert.match(formatIssue(over[0], 'en'), /^warning: B1: S[DC]A idles at 3\.6\d V, over the 3\.6 V/);
+  assert.match(formatIssue(over[0], 'en'), /digitalWrite\(A4, LOW\)/);
+});
+
+test('a BME280 on 5 V: its warning names the 5 V board the kit has', () => {
+  const r = bme('BME280', '5V');
+  const supply = r.review.doubts.find((d) => d.code === 'SIM_IC_SUPPLY');
+  assert.equal(supply.params.instead, 'BME280-5V');
+  assert.match(formatIssue(supply, 'en'), /The kit has BME280-5V, the same sensor on a board with its own 3\.3 V regulator/);
+  assert.match(formatIssue(supply, 'es'), /El kit tiene BME280-5V/);
+});

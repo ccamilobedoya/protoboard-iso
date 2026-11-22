@@ -562,6 +562,7 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ⬜ Lo que agregarían las instrucciones del servidor MCP con una cifra de `scripts/trigger-bench.js` (el contexto de arranque está en sus 48 KB): el `.ino` en la carpeta del circuito, una ejecución antes de decir que un programa funciona
 - ✅ «Desde el encendido» es cierto (C10b): `simulate --run` toma `--start zero|dc` (MCP `start`) como `--transient`, y su primera línea dice cuál en palabras ciertas (`Ejecución desde su punto de reposo, como empieza la página`, `Ejecución desde todo descargado`); por defecto sigue la de la página; la línea Comportamiento de `layout` dice su inicio; `--json` trae `start`
 - ✅ Lo que no se puede juzgar no se declara muerto (C10b): una salida que cuelga de un componente sin modelo de simulación (los LED de un CD4017) no recibe `SIM_OUTPUT_NEVER_ON`; la línea de ese componente la nombra (`ni qué hacen D1, D2, D3, que dependen de él`); una apagada por una razón que el kit sí simuló conserva su duda
+- ✅ Una nota que es un peligro es un ⚠ (C10b): las notas del simulador que dicen que un componente pasa un máximo son avisos, así que dudas de la revisión (`SIM_PIN_OVER_VDDIO`, un BME280 en el I2C de un UNO, juzgado por la ejecución cuando corre un programa; `SIM_BUZZER_CURRENT`, `SIM_VOLTAGE_SENSOR_RANGE`, `SIM_HALL_HIGH_SUPPLY`, `SIM_HALL_LOAD`, `SIM_TOUCH_OUTPUT_SPEC`); un BME280 por encima de su alimentación nombra `BME280-5V`; la línea de VDDIO nombra el arreglo en el sketch
 
 ## Opcional, más adelante ⬜
 

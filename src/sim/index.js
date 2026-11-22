@@ -482,6 +482,14 @@ export function checkHazards(circuit) {
       else if (Math.abs(peak.params.voltage.value) > Math.abs(result.doubts[at].params.voltage.value)) result.doubts[at] = peak;
     }
   }
+  // A bus line over its chip's VDDIO in a DC state, which a program that runs no longer holds there by
+  // the end of its run (a sketch that turns the board's pull-ups off after Wire.begin(): the static
+  // solve stops inside begin()): the run is the circuit as it is.
+  if (result.ok && runs) {
+    // (A run keeps one warning per code and part: the part is what is matched.)
+    const still = new Set((runFirst.issues ?? []).filter((i) => i.code === 'SIM_PIN_OVER_VDDIO').map((i) => i.params.part));
+    result.doubts = result.doubts.filter((d) => d.code !== 'SIM_PIN_OVER_VDDIO' || still.has(d.params.part));
+  }
   const doubts = doubtsOf(circuit, compiled, { ...result, rest, dark });
   return { ...result, checked: coverageOf(compiled, result, doubts), doubts };
 }

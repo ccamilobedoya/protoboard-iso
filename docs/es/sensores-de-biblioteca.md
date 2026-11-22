@@ -68,7 +68,7 @@ Pines `VCC`, `GND`, `SCL`, `SDA`; la placa va acostada sobre su peineta de cuatr
 
 | Pieza | Placa | Mide | Id de chip |
 |---|---|---|---|
-| `BME280` | solo 3,3 V: VCC es la alimentación del chip, de 1,71 a 3,6 V; sobre 3,6 V `SIM_IC_SUPPLY`, sobre 4,25 V (su máximo absoluto) el chip no responde | temperatura, humedad, presión | 0x60 |
+| `BME280` | solo 3,3 V: VCC es la alimentación del chip, de 1,71 a 3,6 V; sobre 3,6 V `SIM_IC_SUPPLY`, que nombra `BME280-5V` como la placa que lo aguanta, sobre 4,25 V (su máximo absoluto) el chip no responde | temperatura, humedad, presión | 0x60 |
 | `BME280-5V` | con regulador: uno de 3,3 V (su riel `min(3,3; VIN − 0,2)`) alimenta el chip y los pull-ups; VIN bajo 3,4 V `SIM_MODULE_LOW_SUPPLY` | temperatura, humedad, presión | 0x60 |
 | `BMP280` | como `BME280`, sin humedad | temperatura, presión | 0x58 |
 
@@ -95,11 +95,13 @@ fijo sin sentido; el kit da lo que dan las comprobaciones de la biblioteca). Un 
 
 **El bus en un UNO.** La biblioteca arranca `Wire`, y en un AVR eso enciende los pull-ups de SDA y SCL
 (unos 35 kΩ a 5 V). Contra los 10 kΩ a 3,3 V de una placa de 3,3 V las líneas quedan en
-(5/35k + 3,3/10k)/(1/35k + 1/10k) ≈ 3,68 V, por encima de VDDIO + 0,3 V = 3,6 V del chip: la nota
-`SIM_PIN_OVER_VDDIO`. El bus funciona (el UNO lee 3,68 V como alto), pero pasa el máximo del chip:
+(5/35k + 3,3/10k)/(1/35k + 1/10k) ≈ 3,68 V, por encima de VDDIO + 0,3 V = 3,6 V del chip: el aviso
+`SIM_PIN_OVER_VDDIO` (un ⚠ de la revisión: un pin por encima de su máximo; con un programa que
+corre, solo cuando su ejecución todavía lo ve). El bus funciona (el UNO lee 3,68 V como alto), pero pasa el máximo del chip:
 un convertidor de nivel deja las líneas dentro, o el programa apaga los pull-ups tras `begin()` con
 `digitalWrite(A4, LOW); digitalWrite(A5, LOW);` (la receta `uno-bmp280-altitude` lo hace: el bus queda
-entonces en 3,3 V; un cálculo estático se detiene dentro de `begin()` y aún muestra 3,68 V). La placa con regulador tampoco trae convertidor: en un UNO
+entonces en 3,3 V; un cálculo estático se detiene dentro de `begin()` y aún muestra 3,68 V, pero la revisión lee la
+ejecución y la receta termina `DONE`). La placa con regulador tampoco trae convertidor: en un UNO
 sus líneas quedan en los mismos 3,68 V. En un ESP32 el bus queda en 3,3 V. `Wire.begin(sda, scl)` en un
 ESP32 mueve el bus a esos dos GPIO. Bajo 3,4 V el regulador de la placa con regulador entra en caída y
 el chip funciona con lo que queda (3,3 V en VIN dan unos 3,1 V): una nota informativa,
