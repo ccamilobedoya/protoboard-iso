@@ -34,8 +34,10 @@ function measured(circuit, { views = ['front'], fit = 'board', lang = 'en' } = {
   const visibility = {};
   views.forEach((view, i) => {
     const report = inspectCircuit(circuit, { view, fit, lang });
-    if (i === 0) problems.push(...report.issues);
-    problems.push(...report.problems.map((p) => (views.length > 1 ? { ...p, view } : p)));
+    // A loop, not push(...list): a spread passes every item as an argument, and a batch of a few
+    // hundred parts has more problems than the stack holds arguments.
+    if (i === 0) for (const p of report.issues) problems.push(p);
+    for (const p of report.problems) problems.push(views.length > 1 ? { ...p, view } : p);
     for (const part of report.parts) visibility[views.length > 1 ? `${part.id}@${view}` : part.id] = part.visible;
   });
   // What check reports counts too: simulate refuses on the same placement errors, so a change that

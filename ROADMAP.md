@@ -570,6 +570,7 @@ before saying it works.
 - ⬜ A spec with one board and no nets ends `✖ U1 found no place` (an UNO alone; an ESP32 alone is placed): a board beside the breadboard gets its pins by name from the nets (`MODULE_PINS`), so with none it has no place; the fix is in `src/layout.js` (found by C10b, not in its files)
 - ✅ A circuit with two resting states says so (C10b): after the DC point a push to each transistor's base or gate, with 1 nF on every node, tells a balance point from a stable one (`restingStates`); a latch's answer gives each state's readings and says a real circuit powers up in one and the kit cannot say which; `simulate` adds `SIM_TWO_STATES`; `--run` starts from the first and says so; no recipe changes
 - ✅ The skill says what this round found (C10b): what a `· note:` line is (drawing, nets, model details; over a limit is a ⚠); with nobody to ask, say what the kit lacks and stop; a swap of one kind of part for another is dry-run first; `references/run-it.md`: a run's 60 s and early stop, `--start zero`, two resting states, what to say when the kit checks only part, and a marked place for the sketch runner's findings; `references/spec.md` no longer says `shiftOut` is unknown
+- ✅ A batch of operations within the cap never overflows the stack (C12): `apply` with 850 or more `add` operations ended `internal error: Maximum call stack size exceeded`; the measurement no longer spreads a list as arguments, and 3000 `add` operations are refused by the parts cap (1000)
 
 ## Optional, later ⬜
 
