@@ -364,7 +364,12 @@ tell.
   motor on a plain switch or straight on a supply has no switch to damage.
 - `SIM_PART_NOT_SIMULATED`: a part wired into the circuit with no simulation model (a 74HC595, an
   LM386, a CD4017…; `catalog` marks them): it is drawn and its pins are left open, so what it does,
-  and what it drives, is unknown. A part wired to nothing is not a doubt.
+  and what it drives, is unknown. The outputs that hang from it are named in its line (`so the kit
+  cannot tell what U2 does, nor what D1, D2, D3 do, which depend on it`): an output whose pins reach
+  a pin of that part through what current flows through (resistors, wires, switches, transistors,
+  relays), not through a rail or another chip (`hangingOutputs` in `src/sim/index.js`). Those
+  outputs get no `SIM_OUTPUT_NEVER_ON`: the kit cannot judge them. A part wired to nothing is not a
+  doubt.
 - `SIM_OUTPUT_NEVER_ON`: a part whose job is to show or move something (an LED, a chip of an RGB
   LED, a segment of a display, a buzzer, a relay, a motor, a laser), wired into a circuit with a
   source, that is off in every state the kit visits: at rest, each control, each end of the

@@ -1152,6 +1152,7 @@ export default {
   'check.SIM_PROGRAM_NO_LOOP': '{part}: the program has no setup() or no loop().',
   'check.SIM_PROGRAM_STUCK': '{part}: the program never lets time pass: setup() or loop() runs a loop that never ends and never calls delay(), so the kit cannot run it on in time and nothing after that loop ever runs. Check that this is what the sketch means to do.',
   'check.SIM_PROGRAM_STOPPED': '{part}: the program stopped with an error while it ran ("{message}"); from there it does nothing.',
+  'check.SIM_PART_NOT_SIMULATED.drives': '{part} ({name}) is drawn and wired, but the kit has no simulation model for it: its pins are left open in the simulation, so the kit cannot tell what {part} does, nor what {drives} do, which depend on it (their readings and the Behaviour line are not what the real circuit gives).',
   'check.SIM_PART_NOT_SIMULATED': '{part} ({name}) is drawn and wired, but the kit has no simulation model for it: its pins are left open in the simulation, so the kit cannot tell what {part} does, nor what the parts it drives do (their readings are not what the real circuit gives).',
   'sim.q.mcu.usb': 'USB',
   'sim.q.mcu.vdd': 'Logic rail',

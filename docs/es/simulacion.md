@@ -379,7 +379,12 @@ dice: el kit revisó el circuito y no encontró nada que decir.
   simple o directo en una fuente no tiene interruptor que dañar.
 - `SIM_PART_NOT_SIMULATED`: un componente conectado al circuito sin modelo de simulación (un
   74HC595, un LM386, un CD4017…; `catalog` los marca): se dibuja y sus pines quedan abiertos, así
-  que lo que hace, y lo que maneja, no se sabe. Un componente sin conectar a nada no es una duda.
+  que lo que hace, y lo que maneja, no se sabe. Las salidas que cuelgan de él se nombran en su línea
+  (`así que el kit no puede decir qué hace U2 ni qué hacen D1, D2, D3, que dependen de él`): una
+  salida cuyos pines llegan a un pin de ese componente por donde pasa corriente (resistencias,
+  cables, interruptores, transistores, relés), no por un riel ni por otro chip (`hangingOutputs` en
+  `src/sim/index.js`). Esas salidas no reciben `SIM_OUTPUT_NEVER_ON`: el kit no puede juzgarlas. Un
+  componente sin conectar a nada no es una duda.
 - `SIM_OUTPUT_NEVER_ON`: un componente cuyo trabajo es mostrar o mover algo (un LED, un chip de un
   LED RGB, un segmento de un display, un zumbador, un relé, un motor, un láser), conectado a un
   circuito con fuente, que está apagado en todos los estados que visita el kit: en reposo, con cada
