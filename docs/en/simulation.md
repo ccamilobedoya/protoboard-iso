@@ -154,7 +154,11 @@ Set them with an operation like any circuit field:
     with D9 high`): a figure of a run belongs to that moment, not to the DC point (a motor on a pin
     takes more as it starts than turning steadily, and drives current back into the pin set low as
     it slows down). The hazard of the DC point names its state too: on a board's pin the program
-    sets high there, `with D9 high, as the program first sets it`.
+    sets high there, `with D9 high, as the program first sets it`. A power limit is thermal: a part
+    over its power at an instant is followed from then and judged on its average power to the end of
+    the run (`on average over the run, from 250 µs to 50 ms`), so a clipped amplifier's peaks are not
+    damage while its average stays under its maximum; `--transient` averages its samples the same way.
+    Currents and voltages stay instantaneous.
 
   Stimuli, each usable several times: `--env light=0.5,distance=10` (fields of the environment,
   in the catalog's units, inside the field's range: an unknown field or a value outside it is an

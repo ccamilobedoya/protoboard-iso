@@ -164,7 +164,11 @@ Se fijan con una operación, como cualquier campo del circuito:
     los 10 ms, con D9 en alto`): una cifra de una ejecución es de ese momento, no del punto de DC (un
     motor en un pin toma más al arrancar que girando estable, y empuja corriente de vuelta al pin
     puesto en bajo mientras frena). El daño del punto de DC también nombra su estado: en un pin de la
-    placa que el programa pone en alto ahí, `con D9 en alto, como el programa lo pone primero`.
+    placa que el programa pone en alto ahí, `con D9 en alto, como el programa lo pone primero`. Un
+    límite de potencia es térmico: un componente que pasa su potencia en un instante se sigue desde ahí
+    y se juzga por su potencia media hasta el final de la ejecución (`en promedio en la corrida, de 250 µs
+    a 50 ms`), así que los picos de un amplificador recortado no son daño mientras su media quede bajo
+    su máximo; `--transient` promedia sus muestras igual. Corrientes y voltajes siguen siendo instantáneos.
 
   Estímulos, cada uno se puede repetir: `--env light=0.5,distance=10` (campos del ambiente, en las
   unidades del catálogo, dentro del rango del campo: un campo desconocido o un valor fuera de él es

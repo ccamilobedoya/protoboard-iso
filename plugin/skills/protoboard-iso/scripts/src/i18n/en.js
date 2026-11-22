@@ -2096,4 +2096,5 @@ export default {
   'check.SIM_IC_INPUT_OPEN.noClock': '{part}: its input {pin} is left open; the kit takes it as low: the counter never advances. A real CMOS input left open floats: it may read either level, or change by itself (undefined); the kit\'s low is a choice. Wire it to GND or to the supply, as the circuit needs.',
   'check.SIM_IC_INPUT_OPEN.counts': '{part}: its input {pin} is left open; the kit takes it as low: counting is enabled. A real CMOS input left open floats: it may read either level, or change by itself (undefined); the kit\'s low is a choice. Wire it to GND or to the supply, as the circuit needs.',
   'check.SIM_IC_INPUT_OPEN.noReset': '{part}: its input {pin} is left open; the kit takes it as low: no reset, it counts. A real CMOS input left open floats: it may read either level, or change by itself (undefined); the kit\'s low is a choice. Wire it to GND or to the supply, as the circuit needs.',
+  'hazard.when.average': 'on average over the run, from {from} to {time}',
 };

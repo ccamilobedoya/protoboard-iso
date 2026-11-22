@@ -2094,4 +2094,5 @@ export default {
   'check.SIM_IC_INPUT_OPEN.noClock': '{part}: su entrada {pin} está al aire; el kit la toma como baja: el contador nunca avanza. Una entrada CMOS real al aire flota: puede leer cualquier nivel, o cambiar sola (no está definida); el bajo del kit es una elección. Conéctala a GND o a la alimentación, según lo que necesite el circuito.',
   'check.SIM_IC_INPUT_OPEN.counts': '{part}: su entrada {pin} está al aire; el kit la toma como baja: la cuenta queda habilitada. Una entrada CMOS real al aire flota: puede leer cualquier nivel, o cambiar sola (no está definida); el bajo del kit es una elección. Conéctala a GND o a la alimentación, según lo que necesite el circuito.',
   'check.SIM_IC_INPUT_OPEN.noReset': '{part}: su entrada {pin} está al aire; el kit la toma como baja: sin reinicio, cuenta. Una entrada CMOS real al aire flota: puede leer cualquier nivel, o cambiar sola (no está definida); el bajo del kit es una elección. Conéctala a GND o a la alimentación, según lo que necesite el circuito.',
+  'hazard.when.average': 'en promedio en la corrida, de {from} a {time}',
 };

@@ -1006,12 +1006,33 @@ function transient(prep, { stop, step, start = 'zero', points = 400 } = {}, driv
   record(0, { h: step * 1e-6 });
   const ctx = { h: step };
   const warnings = new Map();
+  // Power is thermal: each part's dissipation is averaged over the samples (evenly spaced in time) and
+  // judged at the end; currents and voltages are judged at each sample.
+  const power = new Map(); // "SIM_OVER_POWER:R1" → { sum, n, max, issue }
   for (let k = 1; k <= steps; k++) {
     if (!drive.step(k * step, step)) return { analysis: 'transient', model: true, ok: false, issues: [...drive.prep().issues, issue('error', 'SIM_NO_CONVERGENCE_AT', { time: q(k * step, 's') })] };
     if (k % every === 0 || k === steps) {
       record(k * step, ctx);
-      for (const w of limitIssues(drive.prep(), samples.at(-1))) warnings.set(`${w.code}:${w.params.part ?? w.params.supply ?? ''}`, w);
+      const sample = samples.at(-1);
+      for (const w of limitIssues(drive.prep(), sample)) if (w.code !== 'SIM_OVER_POWER') warnings.set(`${w.code}:${w.params.part ?? w.params.supply ?? ''}`, w);
+      for (const p of drive.prep().parts) {
+        const r = sample.parts[p.id];
+        if (!r || r.floating) continue;
+        for (const s of partStresses(p, r)) {
+          if (s.note || s.code !== 'SIM_OVER_POWER') continue;
+          const key = `${s.code}:${s.pin ? `${p.id}.${s.pin}` : p.id}`;
+          const e = power.get(key) ?? { sum: 0, n: 0, max: s.max, id: p.id, s };
+          e.sum += s.value;
+          e.n += 1;
+          e.s = s;
+          power.set(key, e);
+        }
+      }
     }
+  }
+  for (const [key, e] of power) {
+    const average = e.sum / e.n;
+    if (average > e.max) warnings.set(key, { ...stressIssue(e.id, { ...e.s, value: average }), when: { average: true, from: 0, time: steps * step } });
   }
   prep = drive.prep();
 

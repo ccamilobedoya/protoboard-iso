@@ -428,9 +428,21 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   const serial = { count: 0, head: [], tail: [], seen: Object.fromEntries(boards.map((id) => [id, 0])) };
   const flags = new Map(); // a program's error or stuck, once each
   const extremes = new Map(); // "U1.D18" → the sample farthest outside its rail
+  // A dissipation limit is thermal: a part over its power at an instant (a clipped amplifier's peaks, a
+  // resistor in a PWM) is followed from then on, step by step, and judged on its average power from that
+  // moment to the end of the run (`hot`); current and voltage limits stay instantaneous.
+  const hot = new Map(); // "SIM_OVER_POWER:R1" → { id, pin, max, since, last, energy, issue }
+  const powerOf = (entry, reading) => (engine.stresses({ parts: { [entry.id]: reading } })[entry.id] ?? []).find((s) => s.code === 'SIM_OVER_POWER' && (s.pin ?? null) === entry.pin)?.value ?? 0;
   const combos = new Map(); // "U1 D2,D5 | chips" → { part, high, chips? }: each combination seen
   const sample = () => {
     const t = engine.time;
+    if (hot.size) {
+      const now = engine.readParts(new Set([...hot.values()].map((e) => e.id)));
+      for (const e of hot.values()) {
+        if (now[e.id] && !now[e.id].floating) e.energy += powerOf(e, now[e.id]) * (t - e.last);
+        e.last = t;
+      }
+    }
     const r = engine.readParts(ids);
     const latched = chips.filter((id) => r[id]?.logic && !r[id].floating).map((id) => [id, { logic: r[id].logic, label: r[id].label }]);
     const chipKey = latched.map(([id, c]) => `${id}:${JSON.stringify(c.logic)}`).join(' ');
@@ -487,6 +499,14 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
     const now = engine.now();
     for (const w of now?.issues ?? []) {
       if (w.severity === 'info') continue;
+      if (w.code === 'SIM_OVER_POWER') {
+        const key = `${w.code}:${w.params?.part ?? ''}`;
+        if (!hot.has(key)) {
+          const [id, ...rest] = String(w.params.part).split('.');
+          hot.set(key, { id, pin: rest.length ? rest.join('.') : null, max: w.params.max?.value, since: engine.time, last: engine.time, energy: 0, issue: w });
+        }
+        continue;
+      }
       const key = `${w.code}:${w.params?.part ?? w.params?.supply ?? ''}`;
       const was = warnings.get(key);
       if (was && !(strength(w) > strength(was))) continue;
@@ -537,6 +557,12 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   engine.onStep = null;
   const end = Math.abs(engine.time - total) < 1e-9 ? total : engine.time;
   const readings = look();
+  // Each part over its power at some instant: its average from then to the end, against its maximum.
+  for (const [key, e] of hot) {
+    const span = end - e.since;
+    const average = span > 0 ? e.energy / span : powerOf(e, readings?.parts?.[e.id] ?? {});
+    if (average > e.max) warnings.set(key, { ...e.issue, params: { ...e.issue.params, power: { value: average, unit: 'W' } }, when: { average: true, from: e.since, time: end } });
+  }
   const outputs = [...watches, ...pins.values()].map((w) => summary(w, end));
   const lines = [...serial.head, ...serial.tail];
   return {
