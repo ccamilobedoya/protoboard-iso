@@ -189,4 +189,4 @@ Los roles de montaje, revisor y bibliotecario, construidos sobre estas herramien
 
 `apply` guarda un cambio legible pero equivocado (un corto, una colisión) y dice `Guardado como revisión N con K error(es) nuevo(s)`; `undo` lo deshace.
 
-Todos los comandos que informan algo aceptan también `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `nets`, `review`).
+Todos los comandos que informan algo aceptan también `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `nets`, `review`). Con `--json` toda respuesta es un solo valor JSON, también un error: `{ "ok": false, "code": "INPUT_MISSING", "message": "…" }` para un archivo que no está, una opción que el kit no conoce (`BAD_OPTION`), un nombre que `catalog` no conoce (`UNKNOWN_NAME`) o el uso (`USAGE`); `catalog --json` es el catálogo entero y `catalog parts | boards | modules | recipes` lista una clase.

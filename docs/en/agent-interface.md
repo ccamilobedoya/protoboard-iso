@@ -182,4 +182,4 @@ Layout, reviewer and parts librarian roles built on these tools: [agents.md](age
 
 `apply` saves a change that is readable but wrong (a short, a collision) and says `Saved as revision N with K new error(s)`; `undo` takes it back.
 
-Every command that reports something also takes `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `nets`, `review`).
+Every command that reports something also takes `--json` (`check`, `inspect`, `apply`, `undo`, `history`, `query`, `suggest`, `nets`, `review`). With `--json` every answer is one JSON value, an error too: `{ "ok": false, "code": "INPUT_MISSING", "message": "…" }` for a file that is not there, an option the kit does not know (`BAD_OPTION`), a name `catalog` does not know (`UNKNOWN_NAME`) or the usage (`USAGE`); `catalog --json` is the whole catalog and `catalog parts | boards | modules | recipes` lists one kind.

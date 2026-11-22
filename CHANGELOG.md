@@ -11,6 +11,7 @@ detail.
 
 ### Changed
 
+- Messages: `--run` echoes what was typed and takes 1 µs to 60 s (`1e-300` ran "0 s, 0 steps" while 0 was refused); `--transient 0` says above 0; a part id with a space says ids have no spaces; a resistance of 0, -100, 1e12, 1m, 1000G or 1T says which rule it breaks and the range, and `simulate --set R1=10M` reads values as the spec does; with `--json` every answer is one JSON value (`ok`, `code`, `message` on an error); `catalog parts | boards | modules | recipes` list one kind; `layout <folder>` with no circuit and no spec says so in one line.
 - `layout --dry-run` says in its `STATUS` line that nothing was saved (it ended with the words of a real run, "the circuit is ready"); `undo --dry-run` changes nothing (it undid the last change for real).
 - A development board alone in a spec (an UNO, no nets) is laid out, with its ground lead in a strip; it ended `✖ U1 found no place`.
 - Two batteries in one spec are laid out: the second lies beside the first along the board's edge (it was given the same place and ended `CHANGES` with "BT2 found no place"); in series they simulate at 18 V.

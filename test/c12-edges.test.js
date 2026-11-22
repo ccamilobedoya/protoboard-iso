@@ -270,3 +270,38 @@ test('messages: a part id with a space says ids have no spaces', () => {
   assert.doesNotMatch(r.stdout, /neither a pin/);
   assert.match(cli(['layout', join(dir, 'c'), file, '--lang', 'es']).stdout, /no lleva espacios/);
 });
+
+test('messages: a resistance says which rule it breaks, and the spec and --set read it alike', () => {
+  const dir = tempDir('c12-ohms-');
+  const target = led(dir);
+  const cases = [['0', /"0" is not a resistance/], ['-100', /"-100" is not a resistance/], ['1e12', /no exponent \(1G, not 1e9\), from 100 mΩ to 99 GΩ/], ['1m', /"1m" is outside the resistances the kit takes, 100 mΩ to 99 GΩ/], ['1000G', /"1000G" is outside/], ['1T', /prefixes p, n, u, m, k, M, G/]];
+  for (const [value, said] of cases) {
+    const op = cli(['apply', target, '--ops', JSON.stringify({ op: 'set', part: 'R1', value }), '--dry-run']);
+    assert.match(op.stdout, said, `apply ${value}`);
+    const set = cli(['simulate', target, '--set', `R1=${value}`]);
+    assert.equal(set.status, 1, `--set ${value}`);
+    assert.match(set.stderr, said, `--set ${value}`);
+  }
+  assert.equal(cli(['simulate', target, '--set', 'R1=10M']).status, 0, '--set takes the spec\'s forms');
+  assert.match(cli(['apply', target, '--ops', '{"op":"set","part":"R1","value":"0"}', '--dry-run', '--lang', 'es']).stdout, /«0» no es una resistencia/);
+});
+
+test('messages: --json answers are JSON, errors too; catalog lists; layout on an empty folder is one line', () => {
+  const dir = tempDir('c12-json-');
+  const parse = (r) => JSON.parse(r.stdout);
+  assert.ok(parse(cli(['catalog', '--json'])).types.resistor);
+  const unknown = parse(cli(['catalog', 'zzz', '--json']));
+  assert.equal(unknown.ok, false);
+  assert.match(unknown.message, /does not know "zzz"/);
+  const missing = cli(['check', join(dir, 'nope'), '--json']);
+  assert.equal(missing.status, 1);
+  assert.equal(parse(missing).ok, false);
+  assert.equal(parse(cli(['review', join(dir, 'nope'), '--bogus', '--json'])).ok, false);
+  assert.match(cli(['catalog', 'parts']).stdout, /^resistor /);
+  assert.ok(parse(cli(['catalog', 'boards', '--json'])).boards.includes('bb830'));
+  assert.match(cli(['catalog', 'recipes']).stdout, /led-resistor/);
+  const empty = cli(['layout', dir]);
+  assert.equal(empty.status, 1);
+  assert.equal(empty.stdout.trim().split('\n').length, 1);
+  assert.match(empty.stdout, /There is no circuit at .*a new one needs a spec .* or a recipe/);
+});

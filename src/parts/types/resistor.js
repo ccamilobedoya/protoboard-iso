@@ -5,7 +5,7 @@
 // From 3 W up ("3", "5", "10") it is a cement resistor: a white ceramic box with its value
 // printed on top instead of colour bands.
 
-import { parseValue } from '../../core/units.js';
+import { parseValue, formatValue } from '../../core/units.js';
 import { BAND_COLORS, DIGIT_COLORS, MULTIPLIER_COLORS, TOLERANCE_COLORS, MATERIALS } from '../colors.js';
 
 // Body size by power rating: [length, diameter] in mm.
@@ -37,6 +37,13 @@ const LAYOUT = {
   4: { centres: [1.03, 2.43, 3.23, 5.33], width: 0.55 },
   5: { centres: [0.9, 2.2, 2.85, 3.5, 5.3], width: 0.5 },
 };
+
+// The resistances a colour code of `count` bands can say: 10 (or 100) × 0.01 Ω up to 99 (or 999) × 1 GΩ.
+function bandRange(count) {
+  const significant = count === 5 ? 3 : 2;
+  const say = (ohms) => formatValue(ohms, 'Ω', { digits: 3 });
+  return { min: say(10 ** (significant - 1) * 0.01), max: say((10 ** significant - 1) * 1e9) };
+}
 
 export function parseTolerance(input) {
   if (input === undefined) return 5;
@@ -71,7 +78,12 @@ export default {
 
   resolve(part) {
     const ohms = parseValue(part.value);
-    if (!(ohms > 0)) return { error: { code: 'BAD_VALUE', params: { value: String(part.value ?? ''), variant: part.value == null || part.value === '' ? 'resistance.missing' : 'resistance' } } };
+    const given = String(part.value ?? '');
+    // Which rule a value breaks, said as that rule: missing, zero or negative (not a resistance), or a
+    // form the kit does not read (an exponent, a letter it has no prefix for).
+    if (part.value == null || part.value === '') return { error: { code: 'BAD_VALUE', params: { value: given, variant: 'resistance.missing' } } };
+    if (ohms === 0 || /^\s*[-−]/.test(given) || ohms < 0) return { error: { code: 'BAD_VALUE', params: { value: given, variant: 'resistance.notPositive', ...bandRange(4) } } };
+    if (!(ohms > 0)) return { error: { code: 'BAD_VALUE', params: { value: given, variant: 'resistance', ...bandRange(4) } } };
     const tolerance = parseTolerance(part.tolerance);
     const power = String(part.power ?? '1/4').replace(/\s*W$/i, '');
     if (CEMENT_SIZES[power]) {
@@ -85,7 +97,8 @@ export default {
     }
     const count = part.bands ?? (tolerance <= 2 ? 5 : 4);
     const names = resistorBands(ohms, tolerance, count);
-    if (!names) return { error: { code: 'BAD_VALUE', params: { value: `${part.value} ±${part.tolerance ?? 5}%` } } };
+    // No colour code for it: outside the range the bands can say.
+    if (!names) return { error: { code: 'BAD_VALUE', params: { value: given, variant: 'resistance.range', ...bandRange(count) } } };
 
     const [length, diameter] = RESISTOR_SIZES[power] ?? RESISTOR_SIZES['1/4'];
     const layout = LAYOUT[count];

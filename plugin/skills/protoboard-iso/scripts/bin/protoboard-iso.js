@@ -20,6 +20,7 @@ import { formatSimulation, formatRun } from '../src/sim/format.js';
 import { runCircuit, parseStimuli, prepareRun } from '../src/sim/run.js';
 import { parseValue } from '../src/core/units.js';
 import { LIMITS } from '../src/limits.js';
+import { PART_TYPES } from '../src/parts/types/index.js';
 import { InputError, inputErrorText, inputIssueFor, readJsonInput, parseJsonInput, resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory, writePage, createTarget, relayoutTarget } from '../src/node/workspace.js';
 import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest } from '../src/layout.js';
 import { resolveRecipe } from '../src/recipes/index.js';
@@ -139,6 +140,19 @@ rasterSearchIn(MCP_DIR);
 // Exit codes are set with process.exitCode and the process ends when its output has drained, so a
 // pipe is never cut (process.exit would drop what is still buffered). `fail` stops the command.
 class Exit extends Error {}
+// --json: every answer is one JSON value, an error too ({ ok: false, message, code? }), so a program
+// reading it never meets a line of text. Read here, before the arguments are parsed, because an
+// option the kit does not know is answered the same way.
+// The lists `catalog <list>` names (compactCatalog's keys; "parts" is the types, as the command `parts` is catalog).
+const CATALOG_LISTS = { parts: 'types', types: 'types', modules: 'modules', boards: 'boards', batteries: 'batteries', recipes: 'recipes', views: 'views', operations: 'operations', languages: 'languages' };
+const JSON_MODE = process.argv.slice(2).includes('--json');
+// A refusal or a usage text: one JSON value with --json, else the lines on stderr (or stdout).
+function sayError(lines, { stream = 'stderr', ok = false, code } = {}) {
+  const text = [lines].flat().join('\n');
+  if (JSON_MODE) console.log(JSON.stringify({ ok, ...(code && { code }), message: text }, null, 2));
+  else if (stream === 'stdout') console.log(text);
+  else console.error(text);
+}
 // A reader that closes its end (| head -1) is not an error and does not change the command's own exit
 // code: writing just stops. Any other write failure (a full disk) is one line and exit 3.
 let currentLang = 'en';
@@ -170,13 +184,12 @@ async function main() {
   } catch (e) {
     if (e instanceof Exit) return;
     if (e instanceof InputError) {
-      if (command === 'layout') console.log(formatLayout(specProblems([inputIssueFor(e.issue, lang)]), lang, { t, formatIssue }));
-      else console.error(inputErrorText(e.issue, lang));
+      if (command === 'layout' && !JSON_MODE) console.log(formatLayout(specProblems([inputIssueFor(e.issue, lang)]), lang, { t, formatIssue }));
+      else sayError(inputErrorText(e.issue, lang), { code: e.issue?.code });
       process.exitCode = 1;
       return;
     }
-    console.error(t(lang, 'cli.internal', { message: e?.message ?? String(e) }));
-    console.error(t(lang, 'cli.internalReport'));
+    sayError([t(lang, 'cli.internal', { message: e?.message ?? String(e) }), t(lang, 'cli.internalReport')], { code: 'INTERNAL' });
     if (process.env.PROTOBOARD_DEBUG === '1' && e?.stack) console.error(e.stack);
     process.exitCode = 3;
   }
@@ -211,14 +224,14 @@ async function run(seen) {
     // The last line is the one a reader sees: it names the option, and where the options are.
     const said = args.errors.map(([key, params]) => t(lang, key, params));
     said[said.length - 1] += ` ${t(lang, 'cli.seeHelp')}`;
-    for (const line of said) console.error(line);
+    sayError(said, { code: 'BAD_OPTION' });
     fail(2);
   }
   // JSON given on the command line is read like a file: one line and exit 1 when it is wrong.
   if (args.valuesText !== undefined) args.values = parseJsonInput(args.valuesText, { what: 'option', file: '--values' });
 
   if (args.help || !command || (command !== 'parts' && command !== 'catalog' && !target)) {
-    console.log(t(lang, 'cli.usage'));
+    sayError(t(lang, 'cli.usage'), { stream: 'stdout', ok: Boolean(command), code: command ? undefined : 'USAGE' });
     fail(command ? 0 : 1);
   }
 
@@ -253,7 +266,8 @@ async function run(seen) {
       if (fixed.nothing) refuse('LAYOUT_FIX_NONE', 0);
     }
     if (!extra && !previous && !args.recipe) {
-      console.log(t(lang, 'cli.usage'));
+      // A folder (or file) with no circuit and nothing to build: one line, not the whole usage.
+      sayError(t(lang, 'cli.layoutNothing', { target }), { stream: 'stdout', code: 'LAYOUT_NO_CIRCUIT' });
       fail(1);
     }
     const file = extra ? readJsonInput(extra, { what: 'spec' }) : {};
@@ -312,13 +326,13 @@ async function run(seen) {
     if (wantsPng) {
       if (!(await rasterAvailable())) {
         // Only a clone has mcp/ beside bin/ (the plugin and the extension do not): there, say how to get PNG.
-        console.error(`${t(lang, 'cli.pngMissing')}${existsSync(join(MCP_DIR, 'package.json')) ? ` ${t(lang, 'cli.pngClone')}` : ''}`);
+        sayError(`${t(lang, 'cli.pngMissing')}${existsSync(join(MCP_DIR, 'package.json')) ? ` ${t(lang, 'cli.pngClone')}` : ''}`);
         fail(1);
       }
       writeFileSync(out, await svgToPng(svg, { width: args.pngWidth ?? 900 }));
     } else {
       if (args.pngWidth !== undefined) {
-        console.error(t(lang, 'cli.pngWidthNeedsPng'));
+        sayError(t(lang, 'cli.pngWidthNeedsPng'));
         fail(1);
       }
       writeFileSync(out, svg);
@@ -336,20 +350,37 @@ async function run(seen) {
       fail(1);
     };
     if (args.run !== undefined && args.transient) {
-      console.error(t(lang, 'cli.runOrTransient'));
+      sayError(t(lang, 'cli.runOrTransient'));
       fail(1);
     }
     if (args.start !== undefined && args.start !== 'zero' && args.start !== 'dc') {
-      console.error(t(lang, 'cli.badChoice', { option: '--start', choices: 'zero | dc', value: String(args.start).slice(0, 40) }));
+      sayError(t(lang, 'cli.badChoice', { option: '--start', choices: 'zero | dc', value: String(args.start).slice(0, 40) }));
       fail(2);
     }
-    const said = parseStimuli({ env: args.env, set: args.set, press: args.press, at: args.at });
+    // A resistor's value given with --set is read as the spec reads it ("10M", "4k7"), under the same
+    // rules and range, so the two never disagree about what a resistance is.
+    const resistors = new Map((circuit.parts ?? []).filter((p) => p?.type === 'resistor').map((p) => [String(p.id), p]));
+    const set = (args.set ?? []).map((text) =>
+      String(text)
+        .split(',')
+        .map((piece) => {
+          const at = piece.indexOf('=');
+          const name = at > 0 ? piece.slice(0, at).trim() : '';
+          const part = resistors.get(name.replace(/\.resistance$/, ''));
+          if (!part) return piece;
+          const def = PART_TYPES.resistor.resolve({ ...part, value: piece.slice(at + 1).trim(), bands: undefined, power: undefined });
+          if (def.error) refuse([{ severity: 'error', code: def.error.code, params: { part: part.id, ...def.error.params } }]);
+          return `${name}=${def.electrical.resistance}`;
+        })
+        .join(','),
+    );
+    const said = parseStimuli({ env: args.env, set, press: args.press, at: args.at });
     if (said.errors.length) refuse(said.errors);
     if (args.run !== undefined) {
       // What was typed is what the message echoes (abc and Infinity were "NaN"); 0 and 1e-300 are under one rule.
       const seconds = timeOf(args.run);
       if (!Number.isFinite(seconds) || seconds < LIMITS.runMinSeconds) {
-        console.error(t(lang, 'cli.badRun', { value: String(args.run).slice(0, 40), min: '1 µs', max: LIMITS.runSeconds }));
+        sayError(t(lang, 'cli.badRun', { value: String(args.run).slice(0, 40), min: '1 µs', max: LIMITS.runSeconds }));
         fail(1);
       }
       const result = runCircuit(circuit, { seconds, stimuli: said.stimuli, start: args.start });
@@ -360,7 +391,7 @@ async function run(seen) {
     for (const [option, list] of [['--press', said.stimuli.press], ['--at', said.stimuli.at]]) if (list.length) refuse([{ severity: 'error', code: 'RUN_ONLY', params: { option } }]);
     const [stop, step] = (args.transient ?? []).map(timeOf);
     if (args.transient && (!(stop > 0) || (args.transient[1] !== undefined && !(step > 0)))) {
-      console.error(t(lang, 'cli.badTransient', { value: args.transient.join(',').slice(0, 40) }));
+      sayError(t(lang, 'cli.badTransient', { value: args.transient.join(',').slice(0, 40) }));
       fail(2);
     }
     const options = args.transient ? { analysis: 'transient', stop, step, start: args.start } : { analysis: 'dc' };
@@ -404,7 +435,7 @@ async function run(seen) {
   } else if (command === 'apply') {
     const ops = readOps(args, extra);
     if (!ops) {
-      console.log(t(lang, 'cli.usage'));
+      sayError(t(lang, 'cli.usage'), { stream: 'stdout', code: 'USAGE' });
       fail(1);
     }
     const result = applyToTarget(target, ops, { dryRun: args.dryRun, author: args.author, note: args.note, expectRevision: args.expectRevision, views: args.views, lang, outputLang: args.lang, outputs: args.outputs, newHistory: args.newHistory });
@@ -417,7 +448,7 @@ async function run(seen) {
     else if (extra === 'node') out(queryNode(circuit, extra2), formatNode);
     else if (extra === 'free') out(queryFree(circuit, { near: args.near ?? extra2, limit: args.limit, emptyNodes: args.empty }), formatFree);
     else {
-      console.log(t(lang, 'cli.usage'));
+      sayError(t(lang, 'cli.usage'), { stream: 'stdout', code: 'USAGE' });
       fail(1);
     }
   } else if (command === 'suggest' && args.parts) {
@@ -426,7 +457,7 @@ async function run(seen) {
     fail(result.failed.length ? 1 : 0);
   } else if (command === 'suggest') {
     if (!args.part) {
-      console.log(t(lang, 'cli.usage'));
+      sayError(t(lang, 'cli.usage'), { stream: 'stdout', code: 'USAGE' });
       fail(1);
     }
     const result = suggest(loadCircuit(paths), parseJsonInput(args.part, { what: 'option', file: '--part' }), {
@@ -458,21 +489,34 @@ async function run(seen) {
         console.log(t(lang, 'history.entry', { revision: h.revision, time: h.time, author: h.author, note: h.note ? ` (${h.note})` : '', ops }));
       }
     }
+  } else if ((command === 'catalog' || command === 'parts') && target && CATALOG_LISTS[target.toLowerCase()]) {
+    // catalog parts | types | boards | modules | recipes …: one kind of thing the kit knows, listed.
+    const key = CATALOG_LISTS[target.toLowerCase()];
+    const all = compactCatalog(lang);
+    if (args.json) console.log(JSON.stringify({ [key]: all[key] }, null, 2));
+    else if (key === 'types') for (const line of partTypeLines(lang)) console.log(line);
+    else if (key === 'recipes') for (const [name, r] of Object.entries(all.recipes)) console.log(recipeLine(name, r));
+    else if (Array.isArray(all[key])) for (const name of all[key]) console.log(`  ${name}`);
+    else for (const [name, m] of Object.entries(all[key])) console.log(`  ${name.padEnd(16)} ${m.name ?? ''}${m.simulated === false ? ` ${t(lang, 'catalog.typeNotSimulated')}` : ''}`);
   } else if ((command === 'catalog' || command === 'parts') && target) {
     // catalog <name> (parts is the older name, kept): one type, part number, module, board or recipe in detail.
     const entry = catalogEntry(target, lang);
     if (!entry) {
-      console.log(unknownText(target, lang));
+      sayError(unknownText(target, lang), { stream: 'stdout', code: 'UNKNOWN_NAME' });
       fail(1);
     }
     console.log(args.json ? JSON.stringify(entry, null, 2) : formatCatalogEntry(entry, lang));
   } else if (command === 'catalog' || command === 'parts') {
+    if (args.json) {
+      console.log(JSON.stringify(compactCatalog(lang), null, 2));
+      return;
+    }
     // One line per type, with what the simulator only draws marked (node/catalog.js partTypeLines).
     for (const line of partTypeLines(lang)) console.log(line);
     console.log(t(lang, 'catalog.recipes'));
     for (const [name, r] of Object.entries(compactCatalog(lang).recipes)) console.log(recipeLine(name, r));
   } else {
-    console.log(t(lang, 'cli.usage'));
+    sayError(t(lang, 'cli.usage'), { stream: 'stdout', code: 'USAGE' });
     fail(1);
   }
 

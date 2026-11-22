@@ -105,7 +105,7 @@ test('recipe problems: unknown name, item, field, choice and range; never with p
 
 test('a recipe value the kit cannot read is refused before anything is placed, saying what it takes, in both languages', () => {
   const cases = [
-    ['led-resistor', { R1: 'abc' }, 'BAD_VALUE', /^error: R1: the kit does not understand the value "abc"\. It takes a resistance in ohms, such as 330, 4k7 or 1M\.$/, /^error: R1: el kit no entiende el valor «abc»\. Lleva una resistencia en ohmios, como 330, 4k7 o 1M\.$/],
+    ['led-resistor', { R1: 'abc' }, 'BAD_VALUE', /^error: R1: the kit does not understand the value "abc"\. It takes a resistance in ohms, such as 330, 4k7 or 1M: a number with one of the prefixes p, n, u, m, k, M, G and no exponent \(1G, not 1e9\), from 100 mΩ to 99 GΩ\.$/, /^error: R1: el kit no entiende el valor «abc»\. Lleva una resistencia en ohmios, como 330, 4k7 o 1M: un número con uno de los prefijos p, n, u, m, k, M, G y sin exponente \(1G, no 1e9\), de 100 mΩ a 99 GΩ\.$/],
     ['rc-square', { C1: 'xyz' }, 'BAD_VALUE', /^error: C1: the kit does not understand the value "xyz"\. It takes a capacitance in farads, such as 100n/, /^error: C1: el kit no entiende el valor «xyz»\. Lleva una capacidad en faradios, como 100n/],
     ['led-resistor', { V1: 'abc' }, 'RECIPE_VALUE_NUMBER', /^error: V1 = abc is not a number: it takes one from 1\.5 to 15, such as 5\.$/, /^error: V1 = abc no es un número: lleva uno de 1,5 a 15, como 5\.$/],
     ['led-resistor', { D1: 'pink' }, 'UNKNOWN_COLOR', /^error: D1: unknown colour "pink"\. Options: red, green/, /^error: D1: color desconocido/],

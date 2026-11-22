@@ -26,7 +26,9 @@ export default {
   'check.UNKNOWN_KIND': '{part}: unknown kind "{kind}". Options: {options}.',
   'check.UNKNOWN_PACKAGE': '{part}: unknown package "{package}". Known packages: {options}.',
   'check.BAD_VALUE': '{part}: the kit does not understand the value "{value}".',
-  'check.BAD_VALUE.resistance': '{part}: the kit does not understand the value "{value}". It takes a resistance in ohms, such as 330, 4k7 or 1M.',
+  'check.BAD_VALUE.resistance': '{part}: the kit does not understand the value "{value}". It takes a resistance in ohms, such as 330, 4k7 or 1M: a number with one of the prefixes p, n, u, m, k, M, G and no exponent (1G, not 1e9), from {min} to {max}.',
+  'check.BAD_VALUE.resistance.notPositive': '{part}: "{value}" is not a resistance: a resistor has more than 0 Ω (for no resistance at all, use a wire). The kit takes {min} to {max}, such as 330, 4k7 or 1M.',
+  'check.BAD_VALUE.resistance.range': '{part}: "{value}" is outside the resistances the kit takes, {min} to {max} (its colour code has no bands for it; m is milli, M is mega).',
   'check.BAD_VALUE.resistance.missing': '{part}: its value is missing. It takes a resistance in ohms, such as "value": "330", "4k7" or "1M".',
   'check.BAD_VALUE.capacitance': '{part}: the kit does not understand the value "{value}". It takes a capacitance in farads, such as 100n, 4u7 or 470u.',
   'check.BAD_VALUE.capacitance.missing': '{part}: its value is missing. It takes a capacitance in farads, such as "value": "100n", "4u7" or "470u".',
@@ -959,7 +961,7 @@ export default {
   protoboard-iso review <target> [--profile lesson|draft] [--views front,back] [--explain] [--json]
   protoboard-iso undo <target> [--dry-run] [--author name] [--json]
   protoboard-iso history <target> [--json]
-  protoboard-iso catalog [name] [--json] [--lang en|es]   # what the kit knows: part types, modules, boards, recipes; a part's text and limits (parts works too)`,
+  protoboard-iso catalog [name] [--json] [--lang en|es]   # what the kit knows: part types, modules, boards, recipes; a part's text and limits. catalog parts | boards | modules | recipes lists one kind; the command parts is catalog`,
   'cli.written': 'Written {file} ({parts} parts, {issues} issues).',
   'cli.page': 'Page: {file} (open it in a browser)',
   'cli.runOrTransient': 'simulate takes --run or --transient, not both.',
@@ -1005,6 +1007,7 @@ export default {
   "input.shape.objectList": "a list of objects",
   "cli.writeFailed": "Could not write the output ({reason}).",
   "cli.badNumber": "The option {option} takes a number, not \"{value}\".",
+  "cli.layoutNothing": "There is no circuit at {target}: a new one needs a spec (layout {target} spec.json) or a recipe (layout {target} --recipe led-resistor; catalog recipes lists them).",
   "cli.badRun": "--run takes the seconds to run, a number from {min} to {max} (10m is 10 ms; more than {max} is cut there), not \"{value}\".",
   "cli.badTransient": "--transient takes the time to simulate, above 0, and optionally the step, above 0 (--transient 5,1m: 5 s in steps of 1 ms), not \"{value}\".",
   "cli.badLang": "The language \"{value}\" is not one the kit knows (choose from {options}).",
