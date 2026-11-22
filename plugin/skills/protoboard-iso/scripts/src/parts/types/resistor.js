@@ -83,7 +83,7 @@ export default {
     // form the kit does not read (an exponent, a letter it has no prefix for).
     if (part.value == null || part.value === '') return { error: { code: 'BAD_VALUE', params: { value: given, variant: 'resistance.missing' } } };
     if (ohms === 0 || /^\s*[-−]/.test(given) || ohms < 0) return { error: { code: 'BAD_VALUE', params: { value: given, variant: 'resistance.notPositive', ...bandRange(4) } } };
-    if (!(ohms > 0)) return { error: { code: 'BAD_VALUE', params: { value: given, variant: 'resistance', ...bandRange(4) } } };
+    if (!(ohms > 0)) return { error: { code: 'BAD_VALUE', params: { value: given, variant: 'resistance.form', ...bandRange(4) } } };
     const tolerance = parseTolerance(part.tolerance);
     const power = String(part.power ?? '1/4').replace(/\s*W$/i, '');
     if (CEMENT_SIZES[power]) {

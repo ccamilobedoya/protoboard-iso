@@ -33,11 +33,11 @@ test('apply: 3000 add operations are refused by the parts cap, quickly', () => {
   const target = led(dir);
   const ops = Array.from({ length: 3000 }, (_, i) => ({ op: 'add', part: { id: `X${i}`, type: 'resistor', value: '1k', pins: ['a1', 'a5'] } }));
   writeFileSync(join(dir, 'ops.json'), JSON.stringify(ops));
-  const start = Date.now();
+  const start = Date.now(); // real clock: a speed bound
   const r = cli(['apply', target, join(dir, 'ops.json')]);
   assert.equal(r.status, 1);
   assert.match(r.stdout, /more than the 1000 the kit accepts/);
-  assert.ok(Date.now() - start < 30_000);
+  assert.ok(Date.now() - start < 30_000); // real clock: a speed bound
 });
 
 // Every id the kit accepts, also the names an object answers from its prototype.

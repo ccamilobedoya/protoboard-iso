@@ -513,7 +513,9 @@ test('pir and touch: a supply the wrong way round is SIM_REVERSE_VOLTAGE', () =>
 test('pir and touch: a module with no supply has a high-impedance output, so a pull-up raises it to the rail', () => {
   for (const [type, pin, extra] of [['pir-sensor', 'OUT', { warmup: 0, motion: true }], ['touch-sensor', 'SIG', {}], ['touch-sensor', 'SIG', { activeLow: true }]]) {
     const r = autoLayout({ parts: [{ id: 'U1', type, ...extra }, { id: 'R1', type: 'resistor', value: '10k' }], nets: [['T+', 'R1.1'], ['R1.2', `U1.${pin}`], ['U1.GND', 'T-']], supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }] });
-    assert.equal(r.status, 'done', `${type} ${JSON.stringify(extra)}`);
+    // Its VCC is wired to nothing: it cannot work, and the review says so (C12, SUPPLY_PINS_UNWIRED).
+    assert.equal(r.status, 'warnings', `${type} ${JSON.stringify(extra)}`);
+    assert.ok(r.review.doubts.some((d) => d.code === 'SUPPLY_PINS_UNWIRED' && d.params.part === 'U1'), type);
     const e = createEngine(compile(r.circuit).program);
     assert.ok(e.start('dc', H));
     for (let k = 0; k < 100; k++) e.advance(H);

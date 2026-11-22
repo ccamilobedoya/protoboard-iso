@@ -46,7 +46,7 @@ import { setupFocusView } from './focus-view.js';
 import { setupTour, LANDING } from './tour.js';
 import { stageInset, landingInset } from './view.js';
 import { bezier, LIGHT } from './moves.js';
-import { own, table } from './own.js';
+import { ownValue, table } from './own.js';
 
 const BUDGET = 8; // ms of simulation per frame
 const DIRECTOR_STEPS = 20000; // steps per frame at most under the director (its frames take what they need)
@@ -111,7 +111,7 @@ export function setupLive(page) {
     if (!force && time - lastRecord < (2 * recWindow()) / (dynamic ? 1500 : 500)) return;
     lastRecord = time;
     for (const id of Object.keys(data.parts)) {
-      const s = scopeOf(own(r.parts, id));
+      const s = scopeOf(ownValue(r.parts, id));
       if (s) recorder.push(id, time, s.v?.value ?? NaN, s.i?.value ?? NaN);
     }
     for (const node of Object.keys(data.nodes ?? {})) {
@@ -267,10 +267,10 @@ export function setupLive(page) {
   // Current along each dot piece: into the part at a pin, or Kirchhoff along a strip.
   function currents() {
     const pin = (part, name) => {
-      const r = own(reading?.parts, part);
+      const r = ownValue(reading?.parts, part);
       return !r || r.floating ? 0 : r.pinCurrents?.[name] ?? 0;
     };
-    const tap = (tp) => (tp.part ? -pin(tp.part, tp.pin) : tp.sign * (own(reading?.supplies, tp.supply)?.current ?? 0));
+    const tap = (tp) => (tp.part ? -pin(tp.part, tp.pin) : tp.sign * (ownValue(reading?.supplies, tp.supply)?.current ?? 0));
     const running = table();
     for (const [node, holes] of Object.entries(flow.strips)) {
       let sum = 0;
@@ -427,7 +427,7 @@ export function setupLive(page) {
     // the shaft's angle now ('a0' … 'a15', the nearest of its angles), so the shaft turns at its speed.
     for (const list of poses) {
       for (const el of list) {
-        const r = own(reading.parts, el.dataset.part);
+        const r = ownValue(reading.parts, el.dataset.part);
         const turn = /^a(\d+)$/.exec(el.dataset.pose);
         let shown;
         if (turn && typeof r?.angle === 'number') {
@@ -445,7 +445,7 @@ export function setupLive(page) {
       const centres = table();
       const voltage = (ref) => {
         if (ref.node) return reading.nodes[ref.node] ?? null;
-        const r = own(reading.parts, ref.part);
+        const r = ownValue(reading.parts, ref.part);
         const v = r?.pins?.[ref.pin] ?? null;
         if (ref.share == null) return v;
         centres[ref.part] ??= centreVoltage(r?.pins);
@@ -455,7 +455,7 @@ export function setupLive(page) {
       for (const list of wires) list.forEach((el, k) => el && el.setAttribute('stroke', colours[k]));
       const stresses = engine.stresses(reading);
       for (const el of heats) {
-        const power = (own(stresses, el.dataset.heat) ?? []).find((s) => s.quantity === 'power');
+        const power = (ownValue(stresses, el.dataset.heat) ?? []).find((s) => s.quantity === 'power');
         el.style.opacity = heatOpacity(power?.ratio).toFixed(2);
       }
     }
@@ -496,7 +496,7 @@ export function setupLive(page) {
       if (text) data.probes[key] = text;
     }
     if (data.text.results) {
-      for (const id of Object.keys(data.parts)) if (own(reading.parts, id)) data.parts[id].sim = linesFor(own(reading.parts, id), { t, decimal: live.decimal });
+      for (const id of Object.keys(data.parts)) if (ownValue(reading.parts, id)) data.parts[id].sim = linesFor(ownValue(reading.parts, id), { t, decimal: live.decimal });
       for (const [node, n] of Object.entries(data.nodes ?? {})) n.sim = nodeLines(reading, node, n.leads, { t, decimal: live.decimal });
       page.refreshCard?.();
     }
