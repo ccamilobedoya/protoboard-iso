@@ -553,6 +553,7 @@ before saying it works.
 - ✅ A part wired to nothing in a circuit with a source has no hazard, tested on an LED added by operations (C9)
 - ⬜ A board's pin that plays a `tone()` reads `off throughout` in a run (its level at the steps' starts): the buzzer it drives is measured right, the pin's own line is not
 - ⬜ What the MCP server's instructions would add with a number from `scripts/trigger-bench.js` (the startup context is at its 48 KB): the `.ino` in the circuit's folder, a run before saying a program works
+- ✅ `delay()` lasts what it says (C10a): the time a `loop()` ran without waiting was a debt the next delay paid, so after an idle loop a `delay(300)` lasted 0 ms and the next one seemed to end at a button's release; the same in the page (one runner)
 
 ## Optional, later ⬜
 

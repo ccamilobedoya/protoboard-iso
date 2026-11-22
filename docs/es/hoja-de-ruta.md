@@ -560,6 +560,7 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ✅ Un componente sin conectar a nada en un circuito con fuente no tiene daño, probado con un LED agregado por operaciones (C9)
 - ⬜ Un pin de una placa que toca un `tone()` se lee `apagado todo el tiempo` en una ejecución (su nivel al inicio de los pasos): el zumbador que maneja se mide bien, la línea propia del pin no
 - ⬜ Lo que agregarían las instrucciones del servidor MCP con una cifra de `scripts/trigger-bench.js` (el contexto de arranque está en sus 48 KB): el `.ino` en la carpeta del circuito, una ejecución antes de decir que un programa funciona
+- ✅ `delay()` dura lo que dice (C10a): el tiempo que un `loop()` corrió sin esperar era una deuda que pagaba la espera siguiente, así que tras un loop ocioso un `delay(300)` duraba 0 ms y el siguiente parecía acabar al soltar un botón; lo mismo en la página (un solo ejecutor)
 
 ## Opcional, más adelante ⬜
 

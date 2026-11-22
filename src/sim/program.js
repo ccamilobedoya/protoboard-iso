@@ -427,8 +427,11 @@ export function createRunner(js, board) {
     if (runner.error) return false;
     runner.time += dt;
     // A pulseIn looking at its pin goes on now, whatever the step was; a delay counts the step down.
+    // A step past the delay's end (or a program that waits for nothing: a loop() with no delay) leaves
+    // no debt: the program goes on from now, and its next delay lasts all it says. A debt carried on
+    // would eat the next waits (a loop() that ran for 0.5 s without waiting made a delay(300) last 0 ms).
     if (runner.looking != null) runner.wait = 0;
-    else runner.wait -= dt;
+    else runner.wait = Math.max(0, runner.wait - dt);
     runner.looking = null;
     for (const [n, end] of Object.entries(tones)) if (runner.time >= end) api.noTone(Number(n));
     let turns = 0;

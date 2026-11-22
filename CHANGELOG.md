@@ -36,6 +36,7 @@ detail.
 
 ### Fixed### Fixed### Fixed
 
+- A sketch's `delay()` lasts what it says: after a `loop()` that ran a while without waiting (polling a button), the next `delay(300)` lasted 0 ms and the one after it seemed to end at the button's release (the time not waited was carried as a debt). The same fault was in the live page, which runs the same program runner.
 - An H-bridge driven by a sketch got "Q3 dissipates 3.65 W … with D4 high": each program output was raised alone. With a program that runs, the hazard check now visits the combinations of outputs its run reaches (`with D2 + D5 high`).
 - Figures that disagreed: `layout`'s Behaviour line said 1.11 kHz where `simulate --run` said 1.04 kHz (a fast rhythm is now measured again in the page's step; `about` under five periods); a pin overloaded under the half-rail line read "off the whole time" beside LEDs on (a pin is reported by what the program writes); `--transient` gives the step solved and the spacing of the samples printed; a loaded pin's reading names its output resistance.
 - `simulate --run` printed an empty `Supplies:` heading for a board on USB alone; a part wired to nothing is open, never a hazard.
