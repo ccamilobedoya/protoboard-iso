@@ -14,8 +14,8 @@ it and report what it says. A part the kit lacks is the exception (below).
 
 ## How to run it
 
-The kit is [scripts/bin/protoboard-iso.js](scripts/bin/protoboard-iso.js) in this skill's folder
-(plain Node.js); `kit` below means
+The kit is [scripts/bin/protoboard-iso.js](scripts/bin/protoboard-iso.js) in this skill's folder;
+`kit` below means
 `node ${CLAUDE_SKILL_DIR}/scripts/bin/protoboard-iso.js`. If `CLAUDE_SKILL_DIR` is empty, use the
 absolute path of the folder this file is in.
 
@@ -78,9 +78,9 @@ Every `layout` ends in `STATUS:`. Act on it:
 | STATUS | Do |
 |---|---|
 | `DONE` | Checked, nothing to tell. Reply (below). |
-| `WARNINGS` | Built. Each ⚠ is a part that would be damaged (with `To fix it`, or "no computed fix") or something the kit cannot confirm works (an output that never comes on, a coil with no diode across it). Reply, telling each one; do not fix silently or refuse. Each case: [references/warnings.md](references/warnings.md). |
+| `WARNINGS` | Built. Each ⚠ is damage (with `To fix it` or "no computed fix") or something the kit cannot confirm works. Reply, telling each; never fix silently or refuse. Cases: [references/warnings.md](references/warnings.md). |
 | `FIX_SPEC` | Nothing built. Fix exactly the ✖ lines and call again. "Too large for one board": split it into circuits. |
-| `CHANGES` | Built, ✖ open; the kit already tried other orders and the double board. Make the change a ✖ names next, else fix only those ([references/operations.md](references/operations.md)), then `kit review`. "stopped at its budget": `--budget` or a smaller circuit. |
+| `CHANGES` | Built, ✖ open (other orders and the double board already tried). Make the change a ✖ names next, else fix only those ([references/operations.md](references/operations.md)), then `kit review`. "stopped at its budget": `--budget` or a smaller circuit. |
 | `SPEC_OK` | Only after `--check`: call again without it. |
 
 **Stop rule.** At most two corrections per circuit; a correction is a call that saves (a `layout`
@@ -100,10 +100,9 @@ a longer sequence (a traffic light) for its whole cycle. Options and an example:
 
 **A part the kit lacks** ("the kit does not know …"): saying "the kit does not have X; the nearest
 is Y" is the right answer, not a failure. Ask before building with Y: "The kit has no X. Shall I use
-Y instead? It differs in …".
+Y instead? It differs in …". With nobody to ask: say what the kit lacks and stop.
 
-**"Fix it"** after `To fix it`: `kit layout <folder> --fix` (connector: `fix: true`), one change
-(a part in backwards: it turns it round).
+**"Fix it"** after `To fix it`: `kit layout <folder> --fix` (connector: `fix: true`), one change.
 Only where the kit says it has none (a fixed sentence, a `STATUS` it cannot get past, a part it
 lacks) use your own knowledge, and try it first with `layout … --dry-run` (connector:
 `dry_run: true`); apply only what ends `DONE` (or the `WARNINGS` asked for). At
@@ -120,9 +119,9 @@ in Spanish):
    the `To fix it` line or that there is none, before any sentence that says the circuit works.
    A part you added to clear one (a diode across a coil): say what and why.
 3. As printed: `Readings`, `Behaviour, first 2 s`, `Solved`, `Worth checking` (information: act
-   only if asked); and what `simulate --run` showed for what was asked. A `Note:` line (a supply
-   written negative) too; not the `· note:` lines. A figure said "about" is approximate: say so.
-4. The page: the `Page: <path>` file, handed over as written (never pasted, rewritten or redrawn),
+   only if asked); and what `simulate --run` showed for what was asked. A `Note:` line too; not the
+   `· note:` lines (drawing, nets, model details: over a limit is a ⚠). "About" is approximate: say so.
+4. The page: the `Page: <path>` file, handed over as written (never pasted or redrawn),
    again after every change. (With the connector's tools, skip this.)
 5. With a board, the sketch in a code block, exactly as the `Program` block.
 6. The `Can change` line, if printed, for a new circuit or when it differs. On the first circuit
@@ -137,7 +136,8 @@ list in prose unless asked.
 ## Change it, ask about it
 
 A value of a recipe: the same call with all the `--values`; other parts or nets: `layout` on the
-same folder with the whole spec. Undo, history, a current, the nets, the board (`double`), every
+same folder with the whole spec. One kind of part for another (a MOSFET for an NPN) needs other
+parts around it: `--dry-run` first, and read its ⚠ before saving. Undo, history, a current, the nets, the board (`double`), every
 command and exit code: [references/board-and-cli.md](references/board-and-cli.md); operations
 and checks: [references/operations.md](references/operations.md).
 The kit is a teaching model, not a datasheet: say so when it comes up.

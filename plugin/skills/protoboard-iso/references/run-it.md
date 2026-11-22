@@ -78,3 +78,62 @@ sketch does not do it: say so with the run's lines, and do not say it works. Cha
 the parts, lay it out again and run it again; the stop rule counts these as corrections. A run is
 a model: a program with a doubt (⚠: a function the kit does not know, a part not simulated) runs
 only as far as the kit can follow, so what it does there is not checked.
+
+## How long a run covers, and from where
+
+A run covers at most 60 s of simulated time, and stops earlier when it takes more than 15 s of the
+machine's. Then the line under its header says so, and every figure after it is for the span it
+covered, not for what was asked: say that span.
+
+```bash
+kit layout circuits/led --recipe led-resistor
+```
+
+```bash
+kit simulate circuits/led --run 90
+```
+
+```text
+warning: A run covers at most 60 s: it ran the first 60 s of the 90 s asked.
+Every figure below covers the first 60 s of the 90 s asked, not the whole run.
+Outputs over time in the first 60 s:
+```
+
+It starts where the page starts: its resting point, every capacitor already at its DC voltage (a
+capacitor behind 22 kΩ that takes seconds to charge in a real circuit is charged already), unless
+the circuit says `page.start: "zero"`. To see it from the moment it is switched on, `--start zero`
+(connector: `start: "zero"`); the first line says which:
+
+```bash
+kit simulate circuits/led --run 1 --start zero
+```
+
+```text
+Run from everything discharged (capacitors at 0 V when it is switched on; the page starts from its resting point) — a model, not a measurement: 1 s in steps of 5 ms (200 steps).
+```
+
+**Two resting states.** A latch (two transistors that hold each other) has two states it can rest
+in, and its DC point is the balance between them, which a real circuit never sits in. The kit finds
+both: `layout` prints them instead of the `Readings` line, and a run starts from the first and says
+so. Tell the user both, and that a real circuit powers up in one of them and the kit cannot say
+which; to show the other, press what sets it (`--press`):
+
+> Two resting states (a model): the point at rest is a balance between them that a real circuit never stays in; it powers up in one of them, and the kit cannot say which (simulate --run starts from the first):
+>
+> 1. Q1 off, Q2 on · battery BT1 8.98 V · D1 4.54 mA, brightness 23 % of 20 mA
+>
+> 2. Q1 on, Q2 off · battery BT1 8.98 V · D1 0 mA, brightness 0 % of 20 mA
+
+## When the kit checks only part of it
+
+A request the kit simulates only in part (a chip it only draws, a program that calls what the kit
+does not know, a run cut short) is answered for that part: say which part was checked and which was
+not, from the ⚠ lines and the `Checked` line. A ⚠ that says the kit cannot tell what an output does
+(`nor what D1, D2, D3 do`) means unknown, never off.
+
+## Sketches
+
+<!-- SKETCH SESSION: what a run shows about a board's program (interrupts, Serial between boards,
+deep sleep, `char`) goes here, from the sketch runner's own report. Until then: what a sketch may
+use is in sketch.md. -->
+
