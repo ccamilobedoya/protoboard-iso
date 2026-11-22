@@ -381,6 +381,11 @@ tell.
   transistor's collector, a MOSFET's drain or a board's pin with no diode on the node the switch cuts
   (across the coil, or to a rail as in an H-bridge): the switch can be damaged when it turns off. A
   motor on a plain switch or straight on a supply has no switch to damage.
+  `SUPPLY_PINS_UNWIRED`, a part wired into the circuit whose supply pins are not both wired to
+  something, or are on one net (an LM358 with VCC and GND left open, a 555 with every pin on one
+  net): it cannot work. The supply pins are the part's own: its model's `supply`, else the pins the
+  kit reads as positive supply and ground by name (VCC, VDD, V+… and GND, VSS…); a development
+  board (5V, 3V3, its USB) and a part wired to nothing at all are not judged.
 - `SIM_PART_NOT_SIMULATED`: a part wired into the circuit with no simulation model (a 74HC595, an
   LM386, a CD4017…; `catalog` marks them): it is drawn and its pins are left open, so what it does,
   and what it drives, is unknown. The outputs that hang from it are named in its line (`so the kit

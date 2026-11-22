@@ -156,3 +156,29 @@ test('apply says what review will say: a part moved off its strips, a program fi
     assert.match(cli(['undo', uno]).stdout, new RegExp(`✔ fixed: warning: U1: its program file`));
   }
 });
+
+test('a chip whose supply pins are not both wired, or share a net, gets a doubt that names them', () => {
+  const dir = tempDir('c12-supply-');
+  const cases = [
+    ['op', { parts: [{ id: 'U1', part: 'LM358' }, { id: 'R1', type: 'resistor', value: '1k' }], supplies: [{ voltage: 5 }], nets: [['U1.OUT1', 'R1.1'], ['R1.2', 'T-'], ['U1.IN1+', 'T+'], ['U1.IN1-', 'T-']] }, /U1 has no supply: its supply pins VCC and GND are wired to nothing/],
+    ['op-gnd', { parts: [{ id: 'U1', part: 'LM358' }, { id: 'R1', type: 'resistor', value: '1k' }], supplies: [{ voltage: 5 }], nets: [['U1.OUT1', 'R1.1'], ['R1.2', 'T-'], ['U1.IN1+', 'T+'], ['U1.IN1-', 'T-'], ['U1.GND', 'T-']] }, /its supply pin VCC is wired to nothing \(of VCC and GND\)/],
+    ['555-one-net', { parts: [{ id: 'U1', part: 'NE555' }], supplies: [{ voltage: 9 }], nets: [['U1.GND', 'U1.TRIG', 'U1.OUT', 'U1.RESET', 'U1.CTRL', 'U1.THR', 'U1.DIS', 'U1.VCC', 'T+']] }, /U1 has no supply: its supply pins VCC and GND are on the same net/],
+  ];
+  for (const [name, spec, said] of cases) {
+    writeFileSync(join(dir, `${name}.json`), JSON.stringify(spec));
+    const r = cli(['layout', join(dir, name), join(dir, `${name}.json`)]);
+    assert.equal(r.status, 0, name);
+    assert.match(r.stdout, said, name);
+    assert.match(r.stdout, /STATUS: WARNINGS/, name);
+    const check = JSON.parse(cli(['check', join(dir, name), '--json']).stdout);
+    assert.ok(check.issues.some((i) => i.code === 'SUPPLY_PINS_UNWIRED' && i.severity === 'warning'), `check says it: ${name}`);
+    assert.equal(JSON.parse(cli(['review', join(dir, name), '--json']).stdout).verdict, 'approved-with-warnings', name);
+  }
+  const es = cli(['review', join(dir, 'op'), '--lang', 'es']);
+  assert.match(es.stdout, /U1 no tiene alimentación/);
+  // Wired to its supply: nothing to say.
+  for (const recipe of ['555-astable', 'opamp-comparator']) {
+    const r = cli(['layout', join(dir, recipe), '--recipe', recipe, '--dry-run']);
+    assert.doesNotMatch(r.stdout, /has no supply/, recipe);
+  }
+});

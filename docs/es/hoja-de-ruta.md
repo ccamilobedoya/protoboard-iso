@@ -581,6 +581,7 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ✅ La página aguanta cualquier id que el kit acepte (C12): un componente llamado `__proto__` quedaba fuera de los datos de la página y su ficha fallaba; los datos de la página se leen en objetos sin prototipo y toda búsqueda por id en el cliente pasa por `own()` (`src/page/client/own.js`), probado con `__proto__`, `constructor`, `toString`, `hasOwnProperty` y `valueOf`
 - ✅ `apply` no construye sobre un historial que no puede leer (C12): un `history.jsonl` dañado (una línea basura, bytes al azar) es `HISTORY_DAMAGED` con el archivo y la línea, el circuito dicho intacto, nada guardado; `--new-history` (MCP `new_history`) deja el archivo dañado al lado de un historial nuevo que empieza en la revisión actual
 - ✅ `apply` dice lo que dirá `review` (C12): el diff sale del juicio de review menos la ejecución (`judge`, `src/diff.js`): un componente movido fuera de sus tiras (`i100`, `i104`) es `✖ new: error: Net 1 of the spec …`, un archivo de programa que falta o está fuera de la carpeta es `⚠ new: warning`
+- ✅ Se dice cuando falta la alimentación (C12, `SUPPLY_PINS_UNWIRED` en `DOUBT_CODES`): un componente cuyas patas de alimentación (el `supply` de su modelo, o VCC/GND por nombre) no están conectadas las dos o comparten red recibe una duda que las nombra; un LM358 con la alimentación suelta y un 555 con todas las patas en una red terminan en `WARNINGS`; ninguna receta ni ejemplo la recibe
 
 ## Opcional, más adelante ⬜
 

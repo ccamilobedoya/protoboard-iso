@@ -574,6 +574,7 @@ before saying it works.
 - ✅ The page survives any id the kit accepts (C12): a part called `__proto__` was left out of the page's data and its card threw; the page's data is read into objects with no prototype and every lookup by id in the client goes through `own()` (`src/page/client/own.js`), tested with `__proto__`, `constructor`, `toString`, `hasOwnProperty` and `valueOf`
 - ✅ `apply` does not build on a history it cannot read (C12): a damaged `history.jsonl` (a garbage line, random bytes) is `HISTORY_DAMAGED` with the file and line, the circuit said intact, nothing saved; `--new-history` (MCP `new_history`) keeps the damaged file beside a new history that starts at the current revision
 - ✅ `apply` says what `review` will say (C12): the diff is computed from review's judgement less the run (`judge`, `src/diff.js`): a part moved off its strips (`i100`, `i104`) is `✖ new: error: Net 1 of the spec …`, a program file missing or outside the folder is `⚠ new: warning`
+- ✅ Missing supplies are said (C12, `SUPPLY_PINS_UNWIRED` in `DOUBT_CODES`): a part whose supply pins (its model's `supply`, else VCC/GND by name) are not both wired or share a net gets a doubt naming them; an LM358 with its supply open and a 555 with every pin on one net end `WARNINGS`; no recipe or example gets it
 
 ## Optional, later ⬜
 
