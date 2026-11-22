@@ -29,8 +29,10 @@ Wire it right:
   the chip, so `layout` ends `WARNINGS` with `U2 carries 71.3 mA, more than its maximum 70 mA: it can
   be damaged, with U2 QA…QH 11111111 latched …`, and `kit simulate <folder> --run 3` warns the same.
   With 1 kΩ each (the kit's example) there is no warning.
-- From an ESP32 (3.3 V pins) feed the chip from `3V3`, not 5 V: at 5 V its inputs do not reach
-  their high level (a ⚠).
+- From an ESP32 (3.3 V pins) feed the chip from `3V3`, not 5 V: at 5 V the kit reads 3.3 V as high
+  (a real chip switches near half its supply), but the datasheet guarantees high only from 3.5 V,
+  so each such input is a ⚠. The other way, 5 V pins into a chip fed 3.3 V, is damage (a ⚠): an
+  input more than 0.5 V over the chip's supply.
 - `QH'` to the next chip's `SER` (same `SRCLK` and `RCLK`) chains a second one.
 
 Worked spec: an UNO filling four LEDs one by one (`QE`…`QH` take four more the same way; for n
@@ -112,7 +114,8 @@ Wire it right:
   `Q0`, `Q1`, `Q2` in turn (`Q6` on `MR`: six LEDs on `Q0`…`Q5`).
 - `CLK` from a 555's `OUT` (an astable) or a board pin. A real button on `CLK` needs a debounce;
   the kit's buttons do not bounce, so the kit does not show that.
-- `VDD` to + (3 to 15 V), `VSS` to −. An output gives only a few mA; a resistor in series with each
+- `VDD` to + (3 to 18 V), `VSS` to −. From 18 V to 20 V it is past its recommended range (a ⚠);
+  over 20 V it can be damaged. An output gives only a few mA; a resistor in series with each
   LED keeps it in its rating.
 
 Worked spec: a 555 clocking three LEDs.
@@ -358,8 +361,10 @@ Wire it right:
 - `GAIN1` and `GAIN8` open: a gain of 20; a capacitor between them: 200.
 - `BYPASS` may stay open.
 - Run its transient from its resting point, `--start dc`. Run from everything discharged, the
-  220 µF charges through the 8 Ω at switch-on and the run warns that the chip and the resistor
-  overheat: that is the switch-on of a discharged circuit, not the amplifier at work.
+  220 µF charges through the 8 Ω at switch-on and the supply draws about half an ampere at first
+  (the `I(V1)` column): that is the switch-on of a discharged circuit, not the amplifier at work.
+  The run gives no power warning for it, since a power limit is judged on its average over the run,
+  not on that first instant.
 
 Worked spec: a 1 kHz, 50 mV signal from a generator.
 
@@ -401,5 +406,5 @@ kit simulate circuits/amp --transient 5m,10u
 ```
 
 ```text
-  warning: U1 dissipates 1.27 W, more than its 1.25 W: it overheats.
+Transient from capacitors discharged — a model, not a measurement: 5 ms solved in steps of 10 µs; 251 samples printed, 20 µs apart.
 ```
