@@ -345,3 +345,26 @@ test('an interrupt on an UNO pin that has none: warned, the handler never runs (
   esp.advance(0);
   assert.deepEqual(esp.warnings, [], 'an ESP32 has an interrupt on every GPIO');
 });
+
+test('bytes sent on an UNO\'s TX arrive at the ESP32 whose RX2 is on its net: both programs in one run', () => {
+  const uno = 'int n = 0;\nvoid setup() { Serial.begin(9600); }\nvoid loop() { Serial.println(n); n++; delay(1000); }';
+  const esp = 'void setup() { Serial.begin(115200); Serial2.begin(9600, SERIAL_8N1, 16, 17); }\nvoid loop() { if (Serial2.available()) { int v = Serial2.parseInt(); Serial.print("got "); Serial.println(v); } }';
+  const r = runCircuit(link(uno, esp), { seconds: 2.5 });
+  const of = (board) => r.serial.lines.filter((l) => l.board === board).map((l) => l.text);
+  assert.deepEqual(of('U1'), ['0', '1', '2']);
+  assert.deepEqual(of('E1'), ['got 0', 'got 1', 'got 2']);
+  // "0\r\n" is three characters, 3.1 ms at 9600 baud: the line arrives when its bytes are through.
+  const first = r.serial.lines.find((l) => l.board === 'E1');
+  assert.ok(first.t > 0.002 && first.t < 0.01, String(first.t));
+  // readStringUntil reads to its end character.
+  const words = runCircuit(link('void setup() { Serial.begin(9600); Serial.print("hello\\nworld\\n"); }\nvoid loop() { delay(1000); }', 'void setup() { Serial.begin(115200); Serial2.begin(9600); }\nvoid loop() { if (Serial2.available()) { String s = Serial2.readStringUntil(\'\\n\'); Serial.println(s); } }'), { seconds: 0.5 });
+  assert.deepEqual(words.serial.lines.filter((l) => l.board === 'E1').map((l) => l.text), ['hello', 'world']);
+});
+
+test('two rates that differ pass nothing and say so', () => {
+  const uno = 'void setup() { Serial.begin(115200); }\nvoid loop() { Serial.println(7); delay(200); }';
+  const esp = 'void setup() { Serial.begin(115200); Serial2.begin(9600); }\nvoid loop() { if (Serial2.available()) Serial.println("heard"); delay(10); }';
+  const r = runCircuit(link(uno, esp), { seconds: 0.5 });
+  assert.deepEqual(r.serial.lines.filter((l) => l.board === 'E1'), []);
+  assert.ok(r.issues.some((i) => i.code === 'SIM_PROGRAM_BAUD_MISMATCH' && i.params.part === 'E1'), JSON.stringify(r.issues.map((i) => i.code)));
+});

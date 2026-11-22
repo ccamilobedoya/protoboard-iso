@@ -1147,6 +1147,7 @@ export default {
   'check.SIM_PROGRAM_NO_LOOP': '{part}: el programa no tiene setup() o no tiene loop().',
   'check.SIM_PROGRAM_STUCK': '{part}: el programa dio más de 200 000 vueltas de un bucle que nunca deja pasar el tiempo (sin delay() ni salida por Serial en él): el kit no puede saber si ese bucle termina, así que lo que viene después no se comprueba. Una placa real pasa ese tiempo dentro del bucle; revisa que eso sea lo que el programa quiere hacer (un delay() en él deja pasar el tiempo).',
   'check.SIM_PROGRAM_STOPPED': '{part}: el programa se detuvo con un error mientras corría («{message}»); desde ahí no hace nada.',
+  'check.SIM_PROGRAM_BAUD_MISMATCH': '{part}: {port} escucha a {baud} baudios y la placa en su RX envía a {peer}: una placa real lee basura ahí, y el kit no le pasa nada. Dales a las dos la misma velocidad en begin().',
   'check.SIM_PROGRAM_NO_INTERRUPT': '{part}: attachInterrupt en la línea {line}: el pin {pin} no tiene interrupción en esta placa, así que su manejador nunca corre, como en la placa. Lee el pin en loop().',
   'check.SIM_PROGRAM_NO_INTERRUPT.uno': '{part}: attachInterrupt en la línea {line}: el pin {pin} no tiene interrupción en un UNO (solo D2 y D3 la tienen), así que su manejador nunca corre, como en la placa. Pasa el cable a D2 o D3, o lee el pin en loop().',
   'check.SIM_PROGRAM_DELAY_NEGATIVE.delay': '{part}: delay({value}) en la línea {line}: delay recibe un número sin signo, así que una placa real espera {wrapped} ms, unos 49 días; la ejecución lo muestra como una espera hasta el final.',

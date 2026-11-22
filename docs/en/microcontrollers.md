@@ -131,6 +131,12 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   output that idles high, the line's stop level, so what it feeds sees the board's rail: an UNO's TX
   into an ESP32's RX is 5 V on a 3.3 V pin, and the pin-voltage check says so (`SIM_PIN_OVERVOLTAGE`).
   The ESP32-C3's `Serial` is its USB port and takes no pin.
+- **A serial line between two boards:** the bytes a port sends on its TX pin arrive at every port of
+  another board whose RX pin is on the same net, each when its ten bits are through at the sender's
+  rate, so `available()`, `read()`, `parseInt()` and `readStringUntil()` work between them, both
+  programs advancing in the same run (an UNO's `Serial` into an ESP32's `Serial2`). Two rates that
+  differ pass nothing (`SIM_PROGRAM_BAUD_MISMATCH`: a real board reads garbage). The TX pin stays at
+  its idle level in the circuit: its bits are not drawn as edges.
 - **Interrupts:** `attachInterrupt(digitalPinToInterrupt(pin), handler, RISING | FALLING | CHANGE |
   LOW)` and `detachInterrupt` on the pins that have one (an UNO: D2 and D3; an ESP32: every GPIO, also
   `ONLOW` and `ONHIGH`), with `volatile` globals. The handler runs at the step that sees its pin cross

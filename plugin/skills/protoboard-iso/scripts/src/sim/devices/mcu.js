@@ -134,10 +134,25 @@ export const mcu = {
         return best;
       };
       const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, i2c, pins: p.numbers, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull, adcRef: m.adcRef });
+      // Serial lines to other boards: each port of this board whose RX pin shares a net with another
+      // board's TX pin hears what that board sends (program.js `hear`), both programs in the same run.
+      let peers = [];
+      const hearPeers = (runner) => {
+        if (!peers.length || !runner.ports) return;
+        runner.ports.forEach((port, k) => {
+          const rx = port.rx == null ? null : netOfGpio(port.rx);
+          if (rx == null) return;
+          for (const peer of peers) {
+            for (const theirs of peer.runner?.ports ?? []) if (theirs.tx != null && peer.netOfTx(theirs.tx) === rx) runner.hear(k, theirs);
+          }
+        });
+      };
       entry.ctrl = h.add({
         nodes: [],
         links: [],
         x: null,
+        serialBoard: true,
+        netOfTx: (gpio) => netOfGpio(gpio),
         runner: fresh(),
         stamp() {
           sync();
@@ -162,6 +177,7 @@ export const mcu = {
           this.x = x;
           this.runner.read = read;
           this.runner.ask = ask;
+          hearPeers(this.runner);
           if (ctx.h) this.runner.advance?.(ctx.h);
           sync();
         },
@@ -179,6 +195,7 @@ export const mcu = {
         // The engine hands every element of the circuit over once they are all built (engine.js).
         connect(elements) {
           sensors = elements.filter((el) => el.library && typeof el.answer === 'function');
+          peers = elements.filter((el) => el.serialBoard && el !== this);
           root.clear();
           for (const el of elements) {
             if (!el.joins) continue;

@@ -151,8 +151,25 @@ export function createRunner(js, board) {
   // it is through, `sent`, which a board on the other end of its TX reads) and what has arrived
   // (`inbox`). `owed`: the time the program owes for a full buffer (it waits that long at its next turn).
   const portsOf = SERIAL_PORTS[board.family] ?? [null];
-  const ports = portsOf.map((pins) => ({ baud: 0, txFreeAt: 0, line: '', tx: pins?.tx ?? null, rx: pins?.rx ?? null, sent: [], inbox: [], timeout: STREAM_TIMEOUT }));
+  const ports = portsOf.map((pins) => ({ baud: 0, txFreeAt: 0, line: '', tx: pins?.tx ?? null, rx: pins?.rx ?? null, sent: [], count: 0, inbox: [], heard: new WeakMap(), timeout: STREAM_TIMEOUT }));
   runner.ports = ports;
+  // What a board on the other end of a port's RX sent (devices/mcu.js links them by their nets): the
+  // bytes past the last one this port took from that sender, at the times they are through; nothing
+  // when the two rates differ (a real board reads garbage), warned once.
+  runner.hear = (k, peer) => {
+    const port = ports[k];
+    if (!port || !(port.baud > 0) || !peer || !(peer.baud > 0)) return;
+    const last = port.heard.get(peer) ?? 0;
+    if (peer.count <= last) return;
+    port.heard.set(peer, peer.count);
+    if (Math.abs(peer.baud - port.baud) > port.baud * 0.03) {
+      warn('SIM_PROGRAM_BAUD_MISMATCH', { pin: port.rx, port: k === 0 ? 'Serial' : `Serial${k}`, baud: port.baud, peer: peer.baud });
+      return;
+    }
+    const fresh = peer.sent.slice(Math.max(0, peer.sent.length - (peer.count - last)));
+    port.inbox.push(...fresh.map((b) => ({ byte: b.byte, at: b.at })));
+    if (port.inbox.length > SENT_MAX) port.inbox.splice(0, port.inbox.length - SENT_MAX);
+  };
   let owed = 0;
   const transmit = (port, text) => {
     if (!(port.baud > 0) || !text) return;
@@ -160,17 +177,19 @@ export function createRunner(js, board) {
     const now = runner.time + owed;
     const start = Math.max(now, port.txFreeAt);
     for (let k = 0; k < text.length; k++) port.sent.push({ byte: text.charCodeAt(k) & 0xff, at: start + (k + 1) * each });
+    port.count += text.length;
     if (port.sent.length > SENT_MAX) port.sent.splice(0, port.sent.length - SENT_MAX);
     port.txFreeAt = start + text.length * each;
     const full = port.txFreeAt - (TX_BUFFER[board.family] ?? TX_BUFFER_DEFAULT) * each - now;
     if (full > 0) owed += full;
   };
-  // What a port prints: on the wire (println ends a line with "\r\n" on a board), and in the log: Serial's
-  // lines as they are, another port's labelled ("Serial2: got 5"), each port with its own partial line.
-  const write = (text, k = 0) => {
+  // What a port prints: on the wire (`wire`: println ends a line with "\r\n" on a board), and in the
+  // log: Serial's lines as they are, another port's labelled ("Serial2: got 5"), each port with its own
+  // partial line.
+  const write = (text, k = 0, wire = text) => {
     const port = ports[k];
     const start = runner.time + owed; // the line's time: when it starts out
-    transmit(port, text.replace(/\n/g, '\r\n'));
+    transmit(port, wire);
     const partial = k === 0 ? runner.line : port.line;
     const parts = (partial + text).split('\n').map((p) => p.slice(0, LINE_MAX));
     if (k === 0) runner.line = parts.pop();
@@ -555,7 +574,7 @@ export function createRunner(js, board) {
         if (port.tx != null) set(port.tx, { mode: 'output', level: 1, pull: null, pwm: null });
       },
       print: (v, d, kind) => write(show(v, d, kind), k),
-      println: (v = '', d, kind) => write(`${show(v, d, kind)}\n`, k),
+      println: (v = '', d, kind) => write(`${show(v, d, kind)}\n`, k, `${show(v, d, kind)}\r\n`),
       // write(byte) sends that byte (65 is "A"); write("text") the text. It returns the bytes written.
       write(v) {
         const text = typeof v === 'string' ? v : letter(v);

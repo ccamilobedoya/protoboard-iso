@@ -136,6 +136,13 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   la placa: el TX de un UNO en el RX de un ESP32 son 5 V en un pin de 3,3 V, y la revisión del voltaje
   de los pines lo dice (`SIM_PIN_OVERVOLTAGE`). El `Serial` del ESP32-C3 es su puerto USB y no toma
   ningún pin.
+- **Una línea serie entre dos placas:** los bytes que un puerto envía por su pin TX llegan a cada
+  puerto de otra placa cuyo pin RX está en la misma red, cada uno cuando pasan sus diez bits a la
+  velocidad del que envía, así que `available()`, `read()`, `parseInt()` y `readStringUntil()`
+  funcionan entre ellas, los dos programas avanzando en la misma ejecución (el `Serial` de un UNO al
+  `Serial2` de un ESP32). Dos velocidades distintas no pasan nada (`SIM_PROGRAM_BAUD_MISMATCH`: una
+  placa real lee basura). El pin TX queda en su nivel de reposo en el circuito: sus bits no se dibujan
+  como flancos.
 - **Interrupciones:** `attachInterrupt(digitalPinToInterrupt(pin), manejador, RISING | FALLING |
   CHANGE | LOW)` y `detachInterrupt` en los pines que tienen una (un UNO: D2 y D3; un ESP32: todos los
   GPIO, también `ONLOW` y `ONHIGH`), con globales `volatile`. El manejador corre en el paso que ve
