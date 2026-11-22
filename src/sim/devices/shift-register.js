@@ -14,8 +14,8 @@
 // - inputs: VIH 3.15 V and VIL 1.35 V at VCC = 4.5 V, i.e. 0.7·VCC and 0.3·VCC; supply 2 V to 6 V;
 // - outputs: VOH 4.32 V at IO = −6 mA and VOL 0.15 V at IO = 6 mA, VCC = 4.5 V: about 30 Ω to VCC and
 //   25 Ω to GND, taken as constant over the supply range [the resistance grows at lower VCC: assumed];
-// - absolute maximum: ±35 mA per output, ±70 mA through VCC or GND, Ptot 750 mW (DIP16), VCC 7 V (the
-//   kit warns over the 6 V of the recommended range); the recommended drive is 6 mA per output;
+// - absolute maximum: ±35 mA per output, ±70 mA through VCC or GND, Ptot 750 mW (DIP16), VCC 7 V (damage
+//   over it; between the recommended 6 V and 7 V a note: not guaranteed); recommended drive 6 mA per output;
 // - ICC 8 µA at most at 6 V: the chip's own current as a resistance from VCC to GND.
 
 import { resistor } from '../mna.js';
@@ -29,6 +29,7 @@ export const SHIFT_REGISTERS = {
     vil: 0.3,
     minSupply: 2,
     maxSupply: 6,
+    maxAbsolute: 7,
     highResistance: (4.5 - 4.32) / 6e-3,
     lowResistance: 0.15 / 6e-3,
     maxCurrent: 0.035,
@@ -95,7 +96,7 @@ export const shiftRegister = {
     const m = entry.model;
     return [
       ...logicNotes(entry, r, m),
-      stress('SIM_IC_SUPPLY', 'voltage', r.vcc, m.maxSupply, 'V'),
+      stress('SIM_IC_SUPPLY', 'voltage', r.vcc, m.maxAbsolute, 'V'),
       ...OUTPUTS.map((name) => stress('SIM_OVER_CURRENT', 'current', Math.abs(r.outputs?.[name]?.current ?? 0), m.maxCurrent, 'A', { pin: name, of: 'output' })),
       stress('SIM_OVER_CURRENT', 'current', Math.max(Math.abs(r.supply), Math.abs(r.ground)), m.maxSupplyCurrent, 'A', { of: 'supply' }),
       stress('SIM_OVER_POWER', 'power', r.power, m.maxPower, 'W'),

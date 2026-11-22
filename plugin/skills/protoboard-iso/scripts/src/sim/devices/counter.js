@@ -14,8 +14,9 @@
 // Numbers (TI CD4017B datasheet, typical at 25 °C unless said):
 // - inputs: low under 0.3·VDD, high over 0.7·VDD (VIL 1.5 V and VIH 3.5 V at VDD = 5 V); the clock has
 //   Schmitt-trigger action: in between every input keeps its level;
-// - supply: 3 V to 15 V, the range its electrical characteristics cover (the recommended range goes to
-//   18 V, the absolute maximum is 20 V): the kit warns above 15 V;
+// - supply: recommended 3 V to 18 V, absolute maximum 20 V: damage over 20 V, a note between 18 V and
+//   20 V (not guaranteed); the electrical characteristics stop at 15 V, so past 15 V the drive is held
+//   at its 15 V figures;
 // - outputs: IOL 1 mA at VOL 0.4 V (VDD 5 V), 2.6 mA at 0.5 V (10 V), 6.8 mA at 1.5 V (15 V), IOH the
 //   same: about 400 Ω, 192 Ω and 221 Ω near the rail, interpolated in between. Away from the rail the
 //   output transistor runs out of current: IOH −3.2 mA at VO = 2.5 V, VDD = 5 V, is a saturation of
@@ -36,7 +37,8 @@ export const COUNTERS = {
     vih: 0.7,
     vil: 0.3,
     minSupply: 3,
-    maxSupply: 15,
+    maxSupply: 18,
+    maxAbsolute: 20,
     // [VDD, output resistance near the rail]: VOL / IOL at 5, 10 and 15 V.
     resistance: [
       [5, 0.4 / 1e-3],
@@ -59,7 +61,8 @@ export function counterResistance(table, vdd) {
   }
   return table.at(-1)[1];
 }
-export const counterSaturation = (vdd) => SAT_AT_5V * (Math.max(0, vdd - THRESHOLD) / (5 - THRESHOLD)) ** 2 + 1e-9;
+// Held at its 15 V value past 15 V, where the datasheet's figures end.
+export const counterSaturation = (vdd) => SAT_AT_5V * (Math.max(0, Math.min(vdd, 15) - THRESHOLD) / (5 - THRESHOLD)) ** 2 + 1e-9;
 
 const INPUTS = ['CLK', 'CE', 'MR'];
 const OUTPUTS = ['Q0', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'CO'];
@@ -112,7 +115,7 @@ export const counter = {
     const m = entry.model;
     return [
       ...logicNotes(entry, r, m),
-      stress('SIM_IC_SUPPLY', 'voltage', r.vcc, m.maxSupply, 'V'),
+      stress('SIM_IC_SUPPLY', 'voltage', r.vcc, m.maxAbsolute, 'V'),
       ...OUTPUTS.map((name) => stress('SIM_OVER_POWER', 'power', r.dissipation?.[name] ?? 0, m.maxOutputPower, 'W', { pin: name, of: 'output' })),
       stress('SIM_OVER_POWER', 'power', r.power, m.maxPower, 'W'),
       reverseSupply(-r.vcc, REVERSE_LIMITS.ic, 'VDD', 'VSS'),

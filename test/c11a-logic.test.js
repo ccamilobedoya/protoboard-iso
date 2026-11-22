@@ -389,3 +389,15 @@ test('a 74HC595 or a CD4017 with a supply pin left open gets SUPPLY_PINS_UNWIRED
     assert.equal(found[0].params.open, open);
   }
 });
+
+// The supply: damage over the absolute maximum, a softer note between the recommended range's top and it
+// (NXP 74HC595: 2–6 V recommended, 7 V absolute; TI CD4017B: 3–18 V recommended, 20 V absolute).
+test('logic chips: the damage warning is over the absolute maximum; past the recommended range a note', () => {
+  const chip = (part, v) => simulate({ supplies: [{ id: 'V1', voltage: v, positive: 'T+', negative: 'T-' }], parts: [{ id: 'U1', type: 'ic', part, pin1: 'e10' }, { id: 'W1', type: 'wire', pins: ['T+10', 'j10'] }, { id: 'W2', type: 'wire', pins: ['T-17', 'a17'] }] });
+  const supply = (r) => r.issues.filter((i) => i.code === 'SIM_IC_SUPPLY' || i.code === 'SIM_IC_SUPPLY_RANGE').map((i) => i.code);
+  for (const [part, normal, past, damage] of [['CD4017', 18, 19, 21], ['74HC595', 6, 6.5, 7.5]]) {
+    assert.deepEqual(supply(chip(part, normal)), [], `${part} at ${normal} V`);
+    assert.deepEqual(supply(chip(part, past)), ['SIM_IC_SUPPLY_RANGE'], `${part} at ${past} V`);
+    assert.deepEqual(supply(chip(part, damage)), ['SIM_IC_SUPPLY'], `${part} at ${damage} V`);
+  }
+});
