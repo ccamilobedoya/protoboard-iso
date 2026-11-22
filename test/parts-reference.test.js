@@ -33,8 +33,11 @@ test('parts.md: what a run changes and what a sensor reads come from the parts t
   assert.deepEqual(variant('tilt-switch').senses, ['tilt']);
   assert.ok(variant('potentiometer').controls.position, 'a potentiometer has its position');
   assert.ok(variant('rotary-encoder', 'KY-040').controls.angle);
-  assert.equal(variant('ic', '74HC595').simulated, false);
-  assert.match(text, /`74HC595`: drawn, not simulated/);
+  // Since C11a the 74HC595 is simulated; the LM386 is still drawn only.
+  assert.notEqual(variant('ic', '74HC595').simulated, false);
+  assert.equal(variant('ic', 'LM386').simulated, false);
+  assert.match(text, /`LM386`: drawn, not simulated/);
+  assert.doesNotMatch(text, /`74HC595`: drawn, not simulated/);
   assert.match(text, /reads the environment's `distance` in cm \(`--env` 2 … 400 cm\)/);
   assert.match(text, /`program`: [^·]*\.ino file beside the circuit/);
 });

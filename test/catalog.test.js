@@ -129,9 +129,10 @@ test('a part\'s entry carries the card\'s text, its pins\' roles and the simulat
   // Chips of a package that share a limit say which; a chip the simulator does not run, and a
   // breadboard, get no line for what the kit does not know.
   assert.deepEqual(catalogEntry('rgb-led').limits.find((l) => l.kind === 'max' && l.quantity === 'current').pins, ['R', 'G', 'B']);
-  const register = catalogEntry('74HC595');
-  assert.ok(register.about && register.limits === undefined);
-  assert.doesNotMatch(formatCatalogEntry(register, 'en'), /limits/);
+  // (the 74HC595 is simulated since C11a; the DESPI-C02 adapter is drawn only)
+  const adapter = catalogEntry('DESPI-C02');
+  assert.ok(adapter.about && adapter.limits === undefined);
+  assert.doesNotMatch(formatCatalogEntry(adapter, 'en'), /limits/);
   const board = catalogEntry('bb830');
   for (const k of ['about', 'pinRoles', 'limits']) assert.equal(board[k], undefined, k);
 

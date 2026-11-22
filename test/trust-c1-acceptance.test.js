@@ -54,26 +54,22 @@ const shiftSpec = {
   nets: [['U1.5V', 'U2.VCC', 'U2.SRCLR', 'T+'], ['U1.GND', 'U2.GND', 'U2.OE', 'T-'], ['U1.D2', 'U2.SER'], ['U1.D3', 'U2.SRCLK'], ['U1.D4', 'U2.RCLK'], ['U2.QA', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'T-']],
 };
 
-// shiftOut is in the kit's Arduino subset since C8a, so no ⚠ says it is unknown. Since C10b the LED
-// behind the chip is named by the chip's own ⚠ (the kit cannot tell what it does), not called never on.
-test('A1: a 74HC595 with a shiftOut sketch ends WARNINGS, with a ⚠ for U2 that names the LED behind it; review lists the doubts', SLOW, () => {
+// shiftOut is in the kit's Arduino subset since C8a, so no ⚠ says it is unknown. Since C11a the kit
+// simulates the 74HC595 (src/sim/devices/shift-register.js): the counter's bit 0 lands on QA and
+// toggles the LED every 500 ms, so the circuit is checked and ends DONE, with no ⚠ about U2.
+test('A1: a 74HC595 with a shiftOut sketch is simulated: DONE, no ⚠ for U2, the LED behind it is judged', SLOW, () => {
   const { r, circuit, out } = build(shiftSpec);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(lastLine(out), /^STATUS: WARNINGS/, out);
+  assert.match(lastLine(out), /^STATUS: DONE/, out);
   const w = warnLines(out);
-  assert.ok(w.some((l) => /\bU2\b/.test(l)), `a ⚠ line naming U2\n${out}`);
-  assert.ok(w.some((l) => /\bU2\b.*\bD1\b/.test(l)), `the ⚠ line of U2 names D1\n${out}`);
-  assert.ok(!w.some((l) => /\bD1 never comes on/.test(l)), `D1 is not called dead\n${out}`);
+  assert.ok(!w.some((l) => /\bU2\b/.test(l)), `no ⚠ line naming U2\n${out}`);
+  assert.ok(!w.some((l) => /\bD1 never comes on/.test(l)), `D1 lights\n${out}`);
   assert.ok(!w.some((l) => /shiftOut/.test(l)), `shiftOut runs\n${out}`);
   const j = reviewJson(circuit);
-  assert.equal(j.verdict, 'approved-with-warnings');
-  assert.ok(codes(j.doubts).includes('SIM_PART_NOT_SIMULATED'), JSON.stringify(j.doubts));
+  assert.equal(j.verdict, 'approved');
+  assert.ok(!codes(j.doubts).includes('SIM_PART_NOT_SIMULATED'), JSON.stringify(j.doubts));
   assert.ok(!codes(j.doubts).includes('SIM_OUTPUT_NEVER_ON'), JSON.stringify(j.doubts));
   assert.deepEqual(j.hazards, []);
-  assert.ok(j.summary?.doubts >= 1, `summary.doubts: ${JSON.stringify(j.summary)}`);
-  // review says them too, as ⚠ lines.
-  const text = run(['review', circuit]);
-  assert.ok(warnLines(text.stdout).some((l) => /\bU2\b/.test(l)), text.stdout);
 });
 
 // ---- A2
@@ -163,6 +159,7 @@ test('A8: a LED on 9 V with no resistor is still WARNINGS with the damage ⚠ an
   assert.equal((j.doubts ?? []).length, 0);
 });
 
+// Since C11a the 74HC595 is simulated: its doubt here is its three inputs left open (SER, SRCLK, RCLK).
 test('A9: a LED with no resistor and a 74HC595 in one circuit: WARNINGS, a damage ⚠ and a doubt ⚠ under different headings', SLOW, () => {
   const { r, circuit, out } = build(ledNoResistor([{ id: 'U2', part: '74HC595' }], [['T+', 'U2.VCC', 'U2.SRCLR'], ['T-', 'U2.GND', 'U2.OE']], 5));
   assert.equal(r.status, 0, r.stderr);
@@ -181,7 +178,7 @@ test('A9: a LED with no resistor and a 74HC595 in one circuit: WARNINGS, a damag
   assert.match(damage, /As wired, this would damage/);
   assert.notEqual(doubt, damage, 'the doubts have their own heading');
   const j = reviewJson(circuit);
-  assert.ok(j.hazards.length > 0 && codes(j.doubts).includes('SIM_PART_NOT_SIMULATED'));
+  assert.ok(j.hazards.length > 0 && codes(j.doubts).includes('SIM_IC_INPUT_OPEN'));
 });
 
 test('A10: a circuit that needs a fix is still CHANGES', SLOW, () => {
@@ -216,7 +213,8 @@ test('A12: three LEDs on a 9 V battery: the Readings line names BT1 once', SLOW,
 });
 
 // ---- A13
-test('A13: catalog marks 74HC595 and LM386 as not simulated, and NE555 and LM358 not; no text points to src/ or docs/', () => {
+// Since C11a the 74HC595 is simulated: it is no longer marked.
+test('A13: catalog marks LM386 as not simulated, and NE555, LM358 and 74HC595 not; no text points to src/ or docs/', () => {
   const list = run(['catalog']).stdout;
   const controls = ['NE555', 'LM358'];
   const marked = (name) => {
@@ -224,11 +222,12 @@ test('A13: catalog marks 74HC595 and LM386 as not simulated, and NE555 and LM358
     const byLine = list.split('\n').some((l) => /not simulated/i.test(l) && l.includes(name) && !controls.some((c) => l.includes(c)));
     return bySegment || byLine;
   };
-  assert.ok(marked('74HC595'), '74HC595 marked as not simulated');
+  assert.ok(!marked('74HC595'), '74HC595 is simulated');
   assert.ok(marked('LM386'), 'LM386 marked as not simulated');
   assert.ok(!marked('NE555'), 'NE555 is simulated');
   assert.ok(!marked('LM358'), 'LM358 is simulated');
-  assert.match(run(['catalog', '74HC595']).stdout, /not simulated/i, 'catalog <part> says it too');
+  assert.match(run(['catalog', 'LM386']).stdout, /not simulated/i, 'catalog <part> says it too');
+  assert.doesNotMatch(run(['catalog', '74HC595']).stdout, /not simulated/i);
   assert.doesNotMatch(run(['catalog', 'NE555']).stdout, /not simulated/i);
   for (const args of [[], ['buzzer'], ['led']]) {
     const text = run(['catalog', ...args]).stdout;

@@ -67,6 +67,7 @@ The format of each field: [circuit-format.md](../docs/en/circuit-format.md).
 | <img src="../docs/img/examples/esp32-two-boards.png" width="280" alt="ESP32 across two breadboards"> | **[esp32-two-boards.json](esp32-two-boards.json)**: an ESP32 DevKit with nets on both pin headers, laid out on two breadboards side by side (board `double`), across the joint, so each header keeps a free strip: an LED on D4, a button on D15, a potentiometer on D34. Made by `layout` from [layout/esp32-both-headers.json](layout/esp32-both-headers.json). |
 | <img src="../docs/img/examples/uno-led.png" width="280" alt="Arduino UNO lighting an LED"> | **[uno-led.json](uno-led.json)**: an Arduino UNO beside the board, Dupont leads to an LED on D13. |
 | <img src="../docs/img/examples/epaper-esp32.png" width="280" alt="ESP32 with an e-paper panel"> | **[epaper-esp32.json](epaper-esp32.json)**: an ESP32 driving a 7.5" e-paper panel through the DESPI-C02 adapter. |
+| <img src="../docs/img/examples/uno-74hc595-fill.png" width="280" alt="UNO with a 74HC595 and eight LEDs"> | **[uno-74hc595-fill.json](uno-74hc595-fill.json)**: an Arduino UNO fills eight LEDs through a 74HC595 shift register with `shiftOut` (three pins for eight outputs: SER, SRCLK, and RCLK to latch). Made by `layout` from [layout/uno-74hc595-fill.json](layout/uno-74hc595-fill.json). |
 
 Programs (Arduino sketches that run in the simulation) are in the microcontroller recipes:
 [microcontrollers.md](../docs/en/microcontrollers.md).

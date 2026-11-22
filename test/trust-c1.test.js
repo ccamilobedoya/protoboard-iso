@@ -111,7 +111,8 @@ test('hazards alone keep their words and the fix; hazards and doubts together sh
   assert.doesNotMatch(a, /could not check/);
   assert.match(lastLine(a), /would be damaged as wired \(marked ⚠ above\)/);
 
-  const both = autoLayout({ parts: [...led.parts, { id: 'U2', part: '74HC595' }], nets: [['BT1.+', 'D1.anode', 'U2.VCC'], ['BT1.-', 'D1.cathode', 'U2.GND']] });
+  // Since C11a the 74HC595 is simulated: its one doubt here is RCLK left open (the rest tied to a rail).
+  const both = autoLayout({ parts: [...led.parts, { id: 'U2', part: '74HC595' }], nets: [['BT1.+', 'D1.anode', 'U2.VCC', 'U2.SRCLR', 'U2.SER', 'U2.SRCLK'], ['BT1.-', 'D1.cathode', 'U2.GND', 'U2.OE']] });
   assert.equal(both.status, 'warnings');
   const b = text(both);
   assert.match(b, /As wired, this would damage/);
@@ -163,13 +164,14 @@ test('a part hard to see in every view gets its own line in the answer', () => {
 test('catalog marks what is drawn but not simulated, and names no path of the sources', () => {
   const list = formatCompactCatalog(compactCatalog('en'), 'en');
   const ic = list.split('\n').find((l) => l.startsWith('  ic:'));
-  assert.match(ic, /not simulated: .*74HC595/);
+  // Since C11a the 74HC595 is simulated: not marked.
   assert.match(ic, /not simulated: .*LM386/);
-  assert.doesNotMatch(ic.split('not simulated')[1], /NE555|LM358/);
+  assert.doesNotMatch(ic.split('not simulated')[1], /NE555|LM358|74HC595/);
   const cliList = partTypeLines('en').find((l) => l.startsWith('ic '));
-  assert.match(cliList, /74HC595 \(not simulated: drawn only\).*LM386 \(not simulated: drawn only\)/);
-  assert.match(cliList, /NE555, LM358,/);
-  assert.match(formatCatalogEntry(catalogEntry('74HC595'), 'en'), /Not simulated: the kit draws it/);
+  assert.match(cliList, /LM386 \(not simulated: drawn only\)/);
+  assert.match(cliList, /NE555, LM358, 74HC595,/);
+  assert.match(formatCatalogEntry(catalogEntry('LM386'), 'en'), /Not simulated: the kit draws it/);
+  assert.doesNotMatch(formatCatalogEntry(catalogEntry('74HC595'), 'en'), /not simulated/i);
   assert.doesNotMatch(formatCatalogEntry(catalogEntry('NE555'), 'en'), /not simulated/i);
   for (const name of [null, 'buzzer', 'led', 'module', 'UNO', 'ic']) {
     const out = name ? formatCatalogEntry(catalogEntry(name), 'en') : list;

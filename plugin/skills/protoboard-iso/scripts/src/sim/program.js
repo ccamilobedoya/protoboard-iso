@@ -16,6 +16,8 @@
 //   runner.until() → seconds until it wants to run again (a delay ending, or pulseIn looking at its
 //     pin until its timeout), or null; the engine ends a step there (engine.advance's landings), so
 //     delayMicroseconds(10) is a pulse of 10 µs and pulseIn measures from the steps that end on edges
+//   runner.onSet(gpio): optional, set by the board; called after each change of a pin's state, in
+//     the program's order (a clocked chip hears every edge, devices/logic.js)
 //   runner.time, runner.waitingUntil, runner.log (Serial lines), runner.error, runner.notes
 //   runner.stamps (the time each line of log was ended), runner.printed (lines ended since setup)
 //   runner.stuck: the program has taken STUCK_TURNS turns of a loop inside one call (setup() or one
@@ -125,14 +127,19 @@ export function createRunner(js, board) {
     warn('SIM_PROGRAM_PIN_UNKNOWN', { pin: Number.isFinite(Number(n)) ? Number(n) : String(n), name: fn });
     return false;
   };
+  // runner.onSet(n), when the board gives one, hears every change of a pin at once, in order: a chip
+  // clocked by it (devices/logic.js) sees each edge of a shiftOut, which takes no simulated time.
   const set = (n, values) => {
     const p = pin(n);
+    let moved = false;
     for (const [k, v] of Object.entries(values)) {
       if (p[k] !== v) {
         p[k] = v;
         runner.changed = true;
+        moved = true;
       }
     }
+    if (moved) runner.onSet?.(n);
   };
   // Read through runner.read: a rebuilt circuit (a control changed) hands the runner its own.
   const volts = (n) => runner.read(n);

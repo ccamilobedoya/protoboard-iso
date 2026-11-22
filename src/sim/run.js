@@ -484,7 +484,9 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
       const was = warnings.get(key);
       if (was && !(strength(w) > strength(was))) continue;
       const [board, pin] = String(w.params?.part ?? '').split('.');
-      const level = pin ? now.parts?.[board]?.pins?.find((x) => x.name === pin && x.mode === 'output') : null;
+      // A board's pins are a list; a chip's or an LED's pin ("U2.QA", "D1.R") names no board pin.
+      const pins = now.parts?.[board]?.pins;
+      const level = pin && Array.isArray(pins) ? pins.find((x) => x.name === pin && x.mode === 'output') : null;
       warnings.set(key, { ...w, when: { time: engine.time, ...(level && { pin, high: Boolean(level.pwm ? level.pwm.duty > 0 : level.level) }) } });
     }
     return now;

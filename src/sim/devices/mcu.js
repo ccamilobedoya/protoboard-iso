@@ -154,6 +154,29 @@ export const mcu = {
         serialBoard: true,
         netOfTx: (gpio) => netOfGpio(gpio),
         runner: fresh(),
+        // Clocked chips listening to this board's pins (devices/logic.js): each change of a pin the
+        // program makes reaches them at once, in order, with the volts it puts on the pin (a shiftOut's
+        // clock pulse takes no simulated time, so a chip that only read the solved voltages would miss
+        // it); a restart (the program run again from setup at t = 0) tells them to forget what they heard.
+        watchers: [],
+        watch(fn) {
+          this.watchers.push(fn);
+        },
+        gpioNodes: () => new Map([...byGpio].map(([gpio, stage]) => [gpio, stage.nodes[0]])),
+        // The volts a pin holds now as a steady output (not a PWM, not held by engine.drive), or null.
+        steady(gpio) {
+          const st = this.runner.pins[gpio];
+          if (held.has(gpio) || !byGpio.has(gpio) || !st || st.mode !== 'output' || st.pwm) return null;
+          return volt(st.level ? entry.vdd : gnd);
+        },
+        heard(gpio) {
+          const volts = this.steady(gpio);
+          if (volts == null) return;
+          // Every listener takes the edge first, then passes on what it changed (a chip's QH' to the
+          // next one's SER): two chips on one clock both see the instant before it.
+          for (const fn of this.watchers) fn({ gpio, volts, x: this.x });
+          for (const fn of this.watchers) fn({ flush: true });
+        },
         stamp() {
           sync();
           return false;
@@ -169,6 +192,9 @@ export const mcu = {
           if (!this.memos) this.memos = sensors.map((el) => JSON.stringify(el.memo ?? null));
           else sensors.forEach((el, k) => (el.memo = JSON.parse(this.memos[k])));
           this.runner = fresh();
+          for (const fn of this.watchers) fn({ restart: true, x });
+          for (const fn of this.watchers) fn({ flush: true });
+          this.runner.onSet = (gpio) => this.heard(gpio);
           this.runner.advance?.(0);
           sync();
           return JSON.stringify(this.runner.pins) !== before;
@@ -178,6 +204,7 @@ export const mcu = {
           this.runner.read = read;
           this.runner.ask = ask;
           hearPeers(this.runner);
+          this.runner.onSet = (gpio) => this.heard(gpio);
           if (ctx.h) this.runner.advance?.(ctx.h);
           sync();
         },

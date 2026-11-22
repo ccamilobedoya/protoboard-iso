@@ -494,3 +494,18 @@ test('attack: an interrupt handler is only one of the sketch\'s own functions', 
     if (r.r.js) assert.deepEqual(strayNames(r.r.js), [], source);
   }
 });
+
+// Clocked chips (src/sim/devices/logic.js): a 74HC595 clocked as fast as a sketch can (shiftOut in a
+// loop() with no delay) and two of them clocking each other in a ring keep the run's bounds.
+test('attack: a shift register clocked as fast as a sketch can, and a ring of chips, keep the run bounded', { timeout: 120000 }, async () => {
+  const { runCircuit } = await import('../src/sim/run.js');
+  const flood = 'void setup() { pinMode(11, OUTPUT); pinMode(12, OUTPUT); pinMode(8, OUTPUT); }\nvoid loop() { digitalWrite(8, LOW); shiftOut(11, 12, MSBFIRST, millis() & 255); digitalWrite(8, HIGH); }';
+  const { circuit } = autoLayout({
+    parts: [{ id: 'U1', part: 'UNO', program: flood }, { id: 'U2', part: '74HC595' }, { id: 'U3', part: '74HC595' }],
+    nets: [['U1.5V', 'U2.VCC', 'U2.SRCLR', 'U3.VCC', 'U3.SRCLR', 'U3.SER'], ['U1.GND', 'U2.GND', 'U2.OE', 'U3.GND', 'U3.OE'], ['U1.D11', 'U2.SER'], ['U1.D12', 'U2.SRCLK'], ['U1.D8', 'U2.RCLK', 'U3.RCLK'], ['U2.QA', 'U3.SRCLK'], ['U3.QB', 'U2.QH']],
+  });
+  const began = Date.now(); // real clock: the bound is on the machine's time
+  const r = runCircuit(circuit, { seconds: 0.3, budgetMs: 5000 });
+  assert.ok(Date.now() - began < 60000, 'ends in time'); // real clock: the bound is on the machine's time
+  assert.ok(r.ok !== false || r.issues, 'a result, not a hang');
+});

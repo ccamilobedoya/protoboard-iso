@@ -405,7 +405,8 @@ test('RC charging follows V·(1 − e^(−t/RC)) (backward Euler, small step)', 
 
 test('what the simulator cannot do is reported, not guessed', () => {
   assert.deepEqual(codes(simulate({ ...example('led-resistor.json'), supplies: undefined }).issues), ['SIM_NO_SUPPLY']);
-  const withChip = { supplies: supply(5), parts: [{ id: 'U1', type: 'ic', part: '74HC595', pin1: 'e10' }] };
+  // The 74HC595 is simulated since C11a; the DESPI-C02 adapter is drawn only.
+  const withChip = { supplies: supply(5), parts: [{ id: 'U1', type: 'module', part: 'DESPI-C02', pins: { GND: 'j23', '3.3V': 'j24' } }] };
   assert.ok(codes(simulate(withChip).issues).includes('SIM_UNSUPPORTED'));
   const broken = {
     supplies: supply(5),
