@@ -11,6 +11,7 @@ detail.
 
 ### Changed
 
+- A development board alone in a spec (an UNO, no nets) is laid out, with its ground lead in a strip; it ended `✖ U1 found no place`.
 - Two batteries in one spec are laid out: the second lies beside the first along the board's edge (it was given the same place and ended `CHANGES` with "BT2 found no place"); in series they simulate at 18 V.
 - A chip whose supply pins are not both wired, or share a net, is a doubt (`SUPPLY_PINS_UNWIRED`, `src/circuit/checks.js` `checkSupplyPins`): an LM358 with VCC and GND left open and a 555 with every pin on one net ended `DONE`, `APPROVED`; now `WARNINGS` with `U1 has no supply: its supply pins VCC and GND are …`.
 - `apply` and `undo` measure a change with the judgement `review` gives, less the run (`judge` in `src/diff.js`): the spec's connections (a part moved past its strips, `i100`/`i104`, was saved with only a note; now `✖ new: error: Net 1 of the spec …` and the saved-with-errors line) and the doubts found without solving (a `program` file missing or outside the folder, `⚠ new: warning`). The saved-with-errors line says `review says CHANGES` instead of "cannot be simulated".

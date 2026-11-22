@@ -211,3 +211,14 @@ function writeSpec(dir, name, spec) {
   writeFileSync(file, JSON.stringify(spec));
   return file;
 }
+
+test('a board alone is placed', () => {
+  const dir = tempDir('c12-board-');
+  for (const part of ['UNO', 'ESP32-DEVKIT']) {
+    const file = writeSpec(dir, part, { parts: [{ id: 'U1', type: 'module', part }], nets: [] });
+    const r = cli(['layout', join(dir, `c-${part}`), file]);
+    assert.equal(r.status, 0, r.stdout);
+    assert.doesNotMatch(r.stdout, /found no place/);
+    assert.match(r.stdout, /STATUS: DONE/, part);
+  }
+});

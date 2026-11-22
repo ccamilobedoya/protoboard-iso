@@ -41,7 +41,7 @@ import { parseValue, valueText, formatValue } from './core/units.js';
 import { decimalSeparator } from './i18n/index.js';
 import { CIRCUIT_FOLDER } from './beside.js';
 import { PART_TYPES } from './parts/types/index.js';
-import { lookupModule } from './parts/modules.js';
+import { lookupModule, headerPins } from './parts/modules.js';
 import { PACKAGES } from './parts/packages/index.js';
 import { SWITCH_STYLES } from './parts/types/switch.js';
 import { resolvePart, pinsOf } from './parts/resolve.js';
@@ -1122,6 +1122,13 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
     const beside = def.error?.code === 'MODULE_PINS';
     const pkg = PACKAGES[def.package];
     let pinNames = def.error ? named : def.pinNames ?? type.pins ?? named;
+    // A board beside the breadboard is placed by the pins in use (MODULE_PINS); one that no net names
+    // (a board alone) is given its ground lead, so it has a place: nothing else is joined to it.
+    if (beside && part.type === 'module' && !named.length) {
+      const all = headerPins(lookupModule(part.part)?.module ?? {}) ?? [];
+      const ground = findPin(all, 'GND');
+      if (ground) pinNames = [ground];
+    }
     if (beside && part.type === 'switch') {
       const style = SWITCH_STYLES[part.style ?? 'rocker'];
       const partners = style.on.filter((pair) => pair.some((n) => named.includes(n.toLowerCase()))).flat();
