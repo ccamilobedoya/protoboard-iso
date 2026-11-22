@@ -192,7 +192,7 @@ test('bounded: a run past the cap is capped and says so; a sketch that never let
   const blink = recipe('uno-blink');
   const capped = runCircuit(blink, { seconds: 1e5, budgetMs: 300 });
   assert.ok(codes(capped.issues).includes('RUN_CAPPED'));
-  assert.ok(capped.run.seconds <= LIMITS.runSeconds);
+  assert.ok(capped.run.ran <= LIMITS.runSeconds && capped.run.seconds === 1e5);
   const stuck = recipe('uno-blink', { U1: 'void setup(){} void loop(){ while(1){} }' });
   const began = Date.now(); // real clock: the bound is on the machine's time
   const r = runCircuit(stuck, { seconds: 5 });
@@ -201,7 +201,7 @@ test('bounded: a run past the cap is capped and says so; a sketch that never let
   // The machine's budget: a run that would take longer ends where it got to, and says so.
   const slow = runCircuit(recipe('555-astable'), { seconds: 50, budgetMs: 200 });
   assert.ok(codes(slow.issues).includes('RUN_BUDGET'));
-  assert.ok(slow.run.seconds < 50);
+  assert.ok(slow.run.ran < 50 && slow.run.seconds === 50);
 });
 
 test('a long Serial story keeps its first and last lines and the true count', () => {

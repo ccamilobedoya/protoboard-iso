@@ -175,7 +175,11 @@ Se fijan con una operación, como cualquier campo del circuito:
   `--transient`. No se guarda nada: el archivo del circuito y su historial quedan como estaban.
   Acotada: a lo sumo `runSeconds` (60) de tiempo simulado (más se recorta, `RUN_CAPPED`) y `runMs`
   (15 s) de tiempo de la máquina (`RUN_BUDGET`: termina donde llegó); un programa que nunca deja
-  pasar el tiempo termina con `SIM_PROGRAM_STUCK`.
+  pasar el tiempo termina con `SIM_PROGRAM_STUCK`. Una ejecución que cubre menos de lo pedido lo dice
+  en la línea bajo su encabezado (el aviso, luego `Cada cifra de abajo cubre los primeros 60 s de los
+  120 s pedidos, no toda la ejecución.`), cada encabezado de después nombra su tramo (`Salidas en el
+  tiempo en los primeros 60 s:`, `Lecturas a los 60 s:`), y `--json` trae `run.ran` (los segundos
+  cubiertos) junto a `run.seconds` (los pedidos).
 
   ```text
   $ protoboard-iso simulate alarma --run 1 --env distance=10 --lang es
@@ -229,7 +233,7 @@ Una ejecución (`--run`, `run_s`):
 
 ```js
 { ok: true, start: 'dc',                                          // el inicio usado
-  run: { seconds: 1, step: 0.001, steps: 1000, start: 'dc', page: 'dc' },   // page: el de la página
+  run: { seconds: 1, ran: 1, step: 0.001, steps: 1000, start: 'dc', page: 'dc' },   // seconds pedidos, ran cubiertos; page: el inicio de la página
   serial: { count: 10, lines: [{ t: 0.00084, text: '10' }, …] },    // kept: cuando se recorta
   outputs: [{ id: 'D1', kind: 'led', onShare: 0.999, changes: 1, frequency: null, period: null, duty: null,
               intervals: [[0.00086, 1]] }, …],                         // una salida aún encendida cierra al final

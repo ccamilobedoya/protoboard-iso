@@ -556,6 +556,7 @@ before saying it works.
 - ✅ "From switch-on" is true (C10b): `simulate --run` takes `--start zero|dc` (MCP `start`) as `--transient` does, and its first line says which in true words (`Run from its resting point, as the page starts`, `Run from everything discharged`); the default stays the page's; `layout`'s Behaviour line says its start; `--json` has `start`
 - ✅ A part that cannot be judged is not called dead (C10b): an output that hangs from a part with no simulation model (a CD4017's LEDs) gets no `SIM_OUTPUT_NEVER_ON`; the part's not-simulated line names it (`so the kit cannot tell what U2 does, nor what D1, D2, D3 do`); one dark for a reason the kit simulated keeps its doubt
 - ✅ A note that is a hazard is a ⚠ (C10b): the simulator's notes that say a part is over a maximum are warnings, so the review's doubts (`SIM_PIN_OVER_VDDIO`, a BME280 on a UNO's I2C, judged by the run when a program runs; `SIM_BUZZER_CURRENT`, `SIM_VOLTAGE_SENSOR_RANGE`, `SIM_HALL_HIGH_SUPPLY`, `SIM_HALL_LOAD`, `SIM_TOUCH_OUTPUT_SPEC`); a BME280 over its supply names `BME280-5V`; the VDDIO line names the sketch's fix
+- ✅ A run that ends early says so where it is read (C10b): capped at 60 s or stopped by the machine's time or its steps, the warning is the first line under the header, then `Every figure below covers the first … of the … asked`, and each heading names its span; `--json` has `run.ran` beside `run.seconds` asked
 
 ## Optional, later ⬜
 

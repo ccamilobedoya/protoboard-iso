@@ -164,7 +164,11 @@ Set them with an operation like any circuit field:
   and to `--transient`. Nothing is saved: the circuit file and its history stay as they were.
   Bounded: at most `runSeconds` (60) of simulated time (more is capped, `RUN_CAPPED`) and
   `runMs` (15 s) of the machine's (`RUN_BUDGET`: it ends where it got to); a program that never
-  lets time pass ends with `SIM_PROGRAM_STUCK`.
+  lets time pass ends with `SIM_PROGRAM_STUCK`. A run that covers less than was asked says so on the
+  line under its header (the warning, then `Every figure below covers the first 60 s of the 120 s
+  asked, not the whole run.`), each heading after it names its span (`Outputs over time in the
+  first 60 s:`, `Readings at 60 s:`), and `--json` has `run.ran` (the seconds covered) beside
+  `run.seconds` (the seconds asked).
 
   ```text
   $ protoboard-iso simulate alarm --run 1 --env distance=10
@@ -217,7 +221,7 @@ A run (`--run`, `run_s`):
 
 ```js
 { ok: true, start: 'dc',                                          // the start used
-  run: { seconds: 1, step: 0.001, steps: 1000, start: 'dc', page: 'dc' },   // page: the page's own
+  run: { seconds: 1, ran: 1, step: 0.001, steps: 1000, start: 'dc', page: 'dc' },   // seconds asked, ran covered; page: the page's start
   serial: { count: 10, lines: [{ t: 0.00084, text: '10' }, …] },    // kept: when capped
   outputs: [{ id: 'D1', kind: 'led', onShare: 0.999, changes: 1, frequency: null, period: null, duty: null,
               intervals: [[0.00086, 1]] }, …],                         // an output still on closes at the end

@@ -94,3 +94,31 @@ test('a BME280 on 5 V: its warning names the 5 V board the kit has', () => {
   assert.match(formatIssue(supply, 'en'), /The kit has BME280-5V, the same sensor on a board with its own 3\.3 V regulator/);
   assert.match(formatIssue(supply, 'es'), /El kit tiene BME280-5V/);
 });
+
+// ---- 5. A run that ends early says so where it is read
+
+test('a run cut by its time or capped at 60 s says so first, and each figure names its span', async () => {
+  const { runCircuit } = await import('../src/sim/run.js');
+  const { formatRun } = await import('../src/sim/format.js');
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  const { LIMITS } = await import('../src/limits.js');
+  const astable = autoLayout(expandRecipe('555-astable').spec).circuit;
+  const slow = runCircuit(astable, { seconds: 5, budgetMs: 200 });
+  assert.equal(slow.run.seconds, 5);
+  assert.ok(slow.run.ran > 0 && slow.run.ran < 5, JSON.stringify(slow.run));
+  const lines = formatRun(slow, 'en', { formatIssue }).split('\n');
+  assert.match(lines[1], /^warning: The run stopped at .+ of 5 s: it took more than 200 ms of the machine's time/);
+  assert.match(lines[2], /^Every figure below covers the first .+ of the 5 s asked/);
+  assert.ok(lines.some((l) => /^Outputs over time in the first /.test(l)), lines.join('\n'));
+  assert.equal(lines.filter((l) => /The run stopped at/.test(l)).length, 1, 'said once');
+  const capped = runCircuit(autoLayout({
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
+    parts: [{ id: 'R1', type: 'resistor', value: '330' }, { id: 'D1', type: 'led', color: 'red' }],
+    nets: [['T+', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'T-']],
+  }).circuit, { seconds: 120 });
+  assert.deepEqual([capped.run.seconds, capped.run.ran], [120, LIMITS.runSeconds]);
+  const text = formatRun(capped, 'es', { formatIssue }).split('\n');
+  assert.match(text[1], /60 s/);
+  assert.match(text[2], /^Cada cifra de abajo cubre los primeros 60 s de los 120 s pedidos/);
+  assert.match(text.find((l) => l.startsWith('Lecturas')) ?? '', /60 s/);
+});

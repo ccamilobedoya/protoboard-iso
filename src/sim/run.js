@@ -8,7 +8,7 @@
 //
 //   parseStimuli({ env, set, press, at }) → { stimuli, errors }   the command line's texts, each a list
 //   runCircuit(circuit, { seconds, stimuli, start?, budgetMs }) →   start 'zero' | 'dc', else the page's
-//     { ok, start, run: { seconds, step, steps, start, page, asked? }, serial: { count, lines: [{ t, text, board? }] },
+//     { ok, start, run: { seconds (asked), ran (covered), step, steps, start, page }, serial: { count, lines: [{ t, text, board? }] },
 //       outputs: [{ id, kind, onShare, changes, frequency, period, duty, intervals: [[on, off]…],
 //         sound?, tone? }],
 //       readings: engine.now() at the end, issues: [issue…] }
@@ -528,7 +528,8 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   return {
     ok: !issues.some((i) => i.severity === 'error'),
     start,
-    run: { seconds: end, step: h, steps, start, page, ...(asked !== end && { asked }) },
+    // `seconds` as asked, `ran` the seconds really covered (less when capped or stopped early).
+    run: { seconds: asked, ran: end, step: h, steps, start, page },
     serial: { count: serial.count, lines, ...(lines.length < serial.count && { kept: lines.length }) },
     outputs,
     boards: boards.length,
