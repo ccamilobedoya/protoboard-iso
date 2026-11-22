@@ -168,6 +168,13 @@ output, the result tags, the probes and the page find it there.
   an operating point leaves it (true if it moved: the engine solves again), and `times` gives the page
   times of its own for its pace (a relay's coil L/R and its armature's travel). A mechanical side may
   be a node of its own (a motor's shaft: `motorCore`, a gyrator, its speed as the node's voltage).
+- **A clocked chip** (a 74HC595, a CD4017) uses `logicCore` (`src/sim/devices/logic.js`): its logic
+  as three pure functions of a state (`initial`, `step` with the edges, `outputs`), its outputs as
+  push-pull stages. A board's program changes pins in no simulated time (a `shiftOut`'s clock pulse),
+  so the chip listens to the board: the board's program element offers `watch(fn)`, `gpioNodes()` and
+  `steady(gpio)`, and calls each listener on every change of a pin, in order, then `{ flush: true }`;
+  a chip offers the same to the chips whose inputs hang from its outputs (a chain). Inputs nothing
+  of that kind drives are read from the solution after each step.
 
 ## 6. A part up close (a requirement for every new part type)
 

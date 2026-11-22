@@ -10,9 +10,11 @@ const codes = (list) => list.map((i) => i.code);
 
 // ---- 3. A part that cannot be judged is not called dead
 
-// A 555 clocking a CD4017 that would light three LEDs: the LEDs hang from the chip the kit does not
-// simulate, so its doubt names them and none is called never on.
-test('LEDs that hang from a chip not simulated are named by its doubt, not called never on', () => {
+// A 555 clocking a CD4017 that lights three LEDs. Until C11a the kit did not simulate the chip and its
+// doubt named the LEDs; now it does (src/sim/devices/counter.js), so the LEDs are judged like any
+// other. This 555 is slow (10 kΩ, 47 kΩ, 47 µF: f = 1.44 / (104 kΩ · 47 µF) ≈ 0.29 Hz): its first
+// clock edge comes after the review's 2 s run, so D2 and D3 are honestly never seen on there.
+test('LEDs behind a CD4017 clocked by a 555 are judged: no doubt says the chip is not simulated', () => {
   const r = autoLayout({
     supplies: [{ id: 'V1', kind: 'bench', voltage: 9, positive: 'T+', negative: 'T-' }],
     parts: [
@@ -39,11 +41,9 @@ test('LEDs that hang from a chip not simulated are named by its doubt, not calle
     ],
   });
   const doubts = r.review.doubts;
-  assert.ok(!codes(doubts).includes('SIM_OUTPUT_NEVER_ON'), JSON.stringify(doubts));
-  const chip = doubts.find((d) => d.code === 'SIM_PART_NOT_SIMULATED');
-  assert.equal(chip.params.drives, 'D1, D2, D3');
-  assert.match(formatIssue(chip, 'en'), /so the kit cannot tell what U2 does, nor what D1, D2, D3 do/);
-  assert.match(formatIssue(chip, 'es'), /ni qué hacen D1, D2, D3/);
+  assert.ok(!codes(doubts).includes('SIM_PART_NOT_SIMULATED'), JSON.stringify(doubts));
+  const never = doubts.filter((d) => d.code === 'SIM_OUTPUT_NEVER_ON').flatMap((d) => d.parts ?? [d.params.part]);
+  assert.deepEqual(never, ['D2', 'D3'], 'D1 (Q0, the count at power-up) is lit; the others wait for the first edge');
 });
 
 // An LED wired backwards beside the same kind of chip never comes on for a reason the kit simulated:

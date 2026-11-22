@@ -509,3 +509,18 @@ test('attack: a shift register clocked as fast as a sketch can, and a ring of ch
   assert.ok(Date.now() - began < 60000, 'ends in time'); // real clock: the bound is on the machine's time
   assert.ok(r.ok !== false || r.issues, 'a result, not a hang');
 });
+
+// A CD4017 whose clock is its own carry out (CO high at counts 0–4): every edge it makes moves it on.
+// It is read once per step, so it can only count as fast as the steps go: the run ends, bounded.
+test('attack: a decade counter clocked by its own output keeps the run bounded', { timeout: 60000 }, async () => {
+  const { runCircuit } = await import('../src/sim/run.js');
+  const { circuit } = autoLayout({
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
+    parts: [{ id: 'U1', part: 'CD4017' }, { id: 'R1', type: 'resistor', value: '1k' }],
+    nets: [['T+', 'U1.VDD'], ['T-', 'U1.VSS', 'U1.CE', 'U1.MR'], ['U1.CO', 'R1.1'], ['R1.2', 'U1.CLK']],
+  });
+  const began = Date.now(); // real clock: the bound is on the machine's time
+  const r = runCircuit(circuit, { seconds: 1, budgetMs: 5000 });
+  assert.ok(Date.now() - began < 30000, 'ends in time'); // real clock: the bound is on the machine's time
+  assert.ok(r.ok !== false || r.issues, 'a result, not a hang');
+});

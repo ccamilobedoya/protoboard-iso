@@ -72,7 +72,7 @@ part gives itself wins over the environment. Ranges are what the kit accepts; un
 - `NE555`: pins `GND`, `TRIG`, `OUT`, `RESET`, `CTRL`, `THR`, `DIS`, `VCC`; nothing to change while it runs.
 - `LM358`, `LM393`: pins `OUT1`, `IN1-`, `IN1+`, `GND`, `IN2+`, `IN2-`, `OUT2`, `VCC`; nothing to change while it runs.
 - `74HC595`: pins `QB`, `QC`, `QD`, `QE`, `QF`, `QG`, `QH`, `GND`, `QH'`, `SRCLR`, `SRCLK`, `RCLK`, `OE`, `SER`, `QA`, `VCC`; nothing to change while it runs.
-- `CD4017`: drawn, not simulated: it gives no readings and no warnings, and a circuit with it ends `WARNINGS`; pins `Q5`, `Q1`, `Q0`, `Q2`, `Q6`, `Q7`, `Q3`, `VSS`, `Q8`, `Q4`, `Q9`, `CO`, `CE`, `CLK`, `MR`, `VDD`.
+- `CD4017`: pins `Q5`, `Q1`, `Q0`, `Q2`, `Q6`, `Q7`, `Q3`, `VSS`, `Q8`, `Q4`, `Q9`, `CO`, `CE`, `CLK`, `MR`, `VDD`; nothing to change while it runs.
 - `LM324`: pins `OUT1`, `IN1-`, `IN1+`, `VCC`, `IN2+`, `IN2-`, `OUT2`, `OUT3`, `IN3-`, `IN3+`, `GND`, `IN4+`, `IN4-`, `OUT4`; nothing to change while it runs.
 - `UA741`: pins `NULL1`, `IN-`, `IN+`, `V-`, `NULL2`, `OUT`, `V+`, `NC`; nothing to change while it runs.
 - `NE5532`: pins `OUT1`, `IN1-`, `IN1+`, `V-`, `IN2+`, `IN2-`, `OUT2`, `V+`; nothing to change while it runs.

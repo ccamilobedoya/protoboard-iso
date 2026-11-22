@@ -208,3 +208,118 @@ test('74HC595 in the live page: the example fills its LEDs from QA up, one every
   for (const p of ['10000000', '11000000', '11100000', '11110000']) assert.ok(seen.has(p), `${p} in ${[...seen].join(' ')}`);
   for (const p of seen) assert.match(p, /^1*0*$/, `only fills from D1: ${p}`);
 });
+
+// ---- CD4017 (counter.js)
+
+const COUNT = ['Q0', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9'];
+// The output that is high (from the pins' volts against VDD), or a list when more than one is.
+const countOf = (reading, id) => {
+  const vdd = reading.parts[id].vcc;
+  const on = COUNT.filter((q) => reading.parts[id].pins[q] > 0.7 * vdd);
+  return on.length === 1 ? on[0] : on.join('+');
+};
+// A button with a 10 kΩ pull-down on CLK, at 5 V; CE and MR where asked; no LEDs (the pins' volts).
+const buttonCounter = ({ ce = 'T-', mr = 'T-', extra = {} } = {}) => ({
+  supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
+  parts: [{ id: 'S1', type: 'button' }, { id: 'R1', type: 'resistor', value: '10k' }, { id: 'U1', part: 'CD4017' }, ...(extra.parts ?? [])],
+  nets: [['T+', 'S1.1', 'U1.VDD'], ['S1.3', 'R1.1', 'U1.CLK'], ['R1.2', 'T-', 'U1.VSS'], [ce, 'U1.CE'], [mr, 'U1.MR'], ...(extra.nets ?? [])],
+});
+const presses = (n, every = 0.2) => ({ press: Array.from({ length: n }, (_, k) => ({ name: 'S1', at: 0.1 + k * every, duration: every / 2 })) });
+
+test('CD4017 clocked by a button with a pull-down: each press counts one, CO is high for 0–4; CE high holds, MR high resets', () => {
+  const c = layoutOnce('cd4017-button', buttonCounter());
+  // Three presses: three rising edges on CLK with CE low → count 3 (the kit's button does not bounce).
+  const three = runCircuit(c, { seconds: 0.8, stimuli: presses(3) });
+  assert.equal(three.ok, true, JSON.stringify(three.issues));
+  assert.equal(countOf(three.readings, 'U1'), 'Q3');
+  assert.ok(three.readings.parts.U1.pins.CO > 4.5, 'CO high at count 3');
+  // Five: count 5, CO low; ten: back at 0, CO high again (it rose once in ten clocks).
+  const five = runCircuit(c, { seconds: 1.2, stimuli: presses(5) });
+  assert.equal(countOf(five.readings, 'U1'), 'Q5');
+  assert.ok(five.readings.parts.U1.pins.CO < 0.5, 'CO low at count 5');
+  const ten = runCircuit(c, { seconds: 2.2, stimuli: presses(10) });
+  assert.equal(countOf(ten.readings, 'U1'), 'Q0');
+  assert.ok(ten.readings.parts.U1.pins.CO > 4.5);
+  const held = runCircuit(layoutOnce('cd4017-ce-high', buttonCounter({ ce: 'T+' })), { seconds: 0.8, stimuli: presses(3) });
+  assert.equal(countOf(held.readings, 'U1'), 'Q0', 'CE high: the count does not move');
+  const reset = layoutOnce('cd4017-mr-high', buttonCounter({ mr: 'T+' }));
+  assert.equal(countOf(simulate(reset), 'U1'), 'Q0');
+  assert.equal(countOf(runCircuit(reset, { seconds: 0.8, stimuli: presses(3) }).readings, 'U1'), 'Q0', 'MR high: Q0, nothing moves');
+});
+
+test('CD4017 chaser (the example): a 555 clocks it, the five LEDs light in order, each for one clock period, Q5 on MR resets it', async () => {
+  const { readFileSync } = await import('node:fs');
+  const circuit = JSON.parse(readFileSync(new URL('../examples/555-cd4017-chaser.json', import.meta.url), 'utf8'));
+  // 555 astable: f = 1.44 / ((R1 + 2·R2)·C) = 1.44 / (21 kΩ · 10 µF) ≈ 6.86 Hz, T ≈ 146 ms; the kit's
+  // 555 runs within 4 % of it. Twelve periods: about 1.75 s.
+  const run = runCircuit(circuit, { seconds: 1.9 });
+  assert.equal(run.ok, true, JSON.stringify(run.issues));
+  const on = Object.fromEntries(run.outputs.map((o) => [o.id, o.intervals]));
+  const events = ['D1', 'D2', 'D3', 'D4', 'D5'].flatMap((id) => on[id].map(([a, b]) => ({ id, a, b })));
+  events.sort((x, y) => x.a - y.a);
+  const whole = events.filter((e) => e.b < 1.89);
+  const period = (whole.at(-1).a - whole[0].a) / (whole.length - 1);
+  assert.ok(Math.abs(period - 0.146) / 0.146 < 0.06, `period ${period}`);
+  // In order 1, 2, 3, 4, 5, 1, …; each on for one period ± 10 %; one at a time (no overlap past a step).
+  const ids = whole.map((e) => e.id);
+  for (let k = 1; k < ids.length; k++) assert.equal(Number(ids[k].slice(1)), (Number(ids[k - 1].slice(1)) % 5) + 1, ids.join(' '));
+  // D1 is on for the period minus the instant Q5 holds before MR resets it: the 0 count's own period.
+  for (const e of whole.slice(1)) assert.ok(Math.abs(e.b - e.a - period) / period < 0.1, `${e.id} ${e.a}–${e.b}`);
+  for (let k = 1; k < whole.length; k++) assert.ok(whole[k].a >= whole[k - 1].b - 1e-3, 'never two at once');
+});
+
+test('CD4017: an LED with no resistor takes about 3 mA at 5 V (no hazard on it); at 15 V the chip\'s output transistor is over its 100 mW', () => {
+  const spec = (v) => ({
+    supplies: [{ id: 'V1', kind: 'bench', voltage: v, positive: 'T+', negative: 'T-' }],
+    parts: [{ id: 'U1', part: 'CD4017' }, { id: 'D1', type: 'led', color: 'red' }],
+    nets: [['T+', 'U1.VDD'], ['T-', 'U1.VSS', 'U1.CE', 'U1.MR', 'U1.CLK', 'D1.K'], ['U1.Q0', 'D1.A']],
+  });
+  const c = layoutOnce('cd4017-led', spec(5));
+  const r = simulate(c);
+  const i = r.parts.D1.current;
+  // The datasheet: IOH −3.2 mA typical at VO = 2.5 V, VDD = 5 V; near the rail 400 Ω. A red LED drops
+  // about 1.8 V at 3 mA, so the output sits 3.2 V below the rail: the drive's tanh at 3.35 mA,
+  // tanh(3.2 / (400 Ω · 3.35 mA)) · 3.35 mA ≈ 3.3 mA. Under 5 mA, not the 20 mA of a stiff source.
+  const expected = 3.35e-3 * Math.tanh((r.parts.U1.vcc - r.parts.D1.voltage) / (400 * 3.35e-3));
+  assert.ok(i < 5e-3 && Math.abs(i - expected) / expected < 0.02, `${i} vs ${expected}`);
+  assert.ok(!r.issues.some((x) => x.params?.part === 'D1'), JSON.stringify(r.issues));
+  const hot = simulate({ ...c, supplies: [{ ...c.supplies[0], voltage: 15 }] });
+  assert.ok(hot.issues.some((x) => x.code === 'SIM_OVER_POWER' && x.params.part === 'U1.Q0'), JSON.stringify(hot.issues.map((x) => [x.code, x.params.part])));
+});
+
+test('CD4017 clocked by a board\'s pin: each rising edge of the sketch counts, Q3 on MR makes it count to three', () => {
+  const sketch = 'void setup() { pinMode(2, OUTPUT); }\nvoid loop() { digitalWrite(2, HIGH); delay(50); digitalWrite(2, LOW); delay(50); }';
+  const c = layoutOnce('cd4017-uno', {
+    parts: [{ id: 'U1', part: 'UNO', program: sketch }, { id: 'U2', part: 'CD4017' }],
+    nets: [['U1.5V', 'U2.VDD'], ['U1.GND', 'U2.VSS', 'U2.CE'], ['U1.D2', 'U2.CLK'], ['U2.Q3', 'U2.MR']],
+  });
+  // An edge every 100 ms from t = 0 (setup's first HIGH): 0.25 s → the third edge → count 3 → reset to
+  // 0 at once (a step later); at 0.15 s two edges → Q2.
+  assert.equal(countOf(runCircuit(c, { seconds: 0.15 }).readings, 'U2'), 'Q2');
+  assert.equal(countOf(runCircuit(c, { seconds: 0.25 }).readings, 'U2'), 'Q0');
+  assert.equal(countOf(runCircuit(c, { seconds: 0.35 }).readings, 'U2'), 'Q1');
+  const entry = formatCatalogEntry(catalogEntry('CD4017'), 'en');
+  assert.doesNotMatch(entry, /Not simulated/);
+  assert.match(entry, /model: simulated: CLK rising/);
+  assert.match(entry, /maximum power 100 mW \(Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8, Q9, CO\) \(output\)/);
+});
+
+test('CD4017 in the live page: the chaser\'s LEDs light one at a time, in order', async (t) => {
+  const { readFileSync } = await import('node:fs');
+  const { renderPage } = await import('../src/page.js');
+  const circuit = JSON.parse(readFileSync(new URL('../examples/555-cd4017-chaser.json', import.meta.url), 'utf8'));
+  const window = await loadPage(renderPage(circuit, { lang: 'en' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const live = window.protoboardLive;
+  // The page slows this circuit down (its longest time constant every 2 s, sim/pace.js): frames of
+  // 100 ms of wall clock until 0.62 s of simulated time, about four clock periods.
+  const order = [];
+  for (let k = 0; k < 2000 && live.time < 0.62; k++) {
+    live.tick(100);
+    const lit = [1, 2, 3, 4, 5].filter((n) => (live.reading.parts[`D${n}`].brightness ?? 0) > 0.05);
+    assert.ok(lit.length <= 1, `one at a time: ${lit}`);
+    if (lit.length && order.at(-1) !== lit[0]) order.push(lit[0]);
+  }
+  assert.ok(order.length >= 4, order.join(' '));
+  for (let k = 1; k < order.length; k++) assert.equal(order[k], (order[k - 1] % 5) + 1, order.join(' '));
+});

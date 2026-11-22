@@ -1,4 +1,2063 @@
 {
+ "555-cd4017-chaser.json": {
+  "result": {
+   "analysis": "dc",
+   "model": true,
+   "ok": true,
+   "iterations": 1,
+   "ground": "T-",
+   "nodes": {
+    "T-": 0,
+    "2:a-e": 8.9999999999973,
+    "6:a-e": 8.99999995500258,
+    "10:a-e": 8.999999774966382,
+    "12:f-j": 0.0002704110601088835,
+    "11:f-j": 8.999999774965932,
+    "10:f-j": 8.098974117541552,
+    "9:f-j": 8.99999999999955,
+    "9:a-e": 5.999406190469551,
+    "11:a-e": 8.99999995500168,
+    "12:a-e": 8.998974117670897,
+    "14:a-e": 0.00027086100864274224,
+    "15:a-e": 0.0002708610085661318,
+    "16:a-e": 6.324023998944543,
+    "17:a-e": 0.0002708610085662273,
+    "18:a-e": 0.00027086100870610366,
+    "19:a-e": 0.00027086100870610366,
+    "20:a-e": 0.00027086100845259996,
+    "21:a-e": 0.00027086100876945506,
+    "21:f-j": 0.0002708610087061037,
+    "20:f-j": 0.0002708610084527555,
+    "19:f-j": 0.00027086100870610366,
+    "18:f-j": 8.999244076678782,
+    "17:f-j": 0,
+    "16:f-j": 8.098974117541148,
+    "15:f-j": 0.0002708610086427287,
+    "14:f-j": 8.999244078783606,
+    "7:a-e": 0,
+    "22:a-e": 1.760228553151499,
+    "8:a-e": 0.00027086100828485816,
+    "24:a-e": 0.0002708610082851457,
+    "22:f-j": 0.00027086100845254575,
+    "26:f-j": 0.0002708610080706315,
+    "24:f-j": 0.0002708610079436518,
+    "25:a-e": 0.0004855101536365587,
+    "23:a-e": 0.0002708610082848418,
+    "28:a-e": 0.0002708610082851293,
+    "30:f-j": 0.00027086100794361116,
+    "T+": 9
+   },
+   "parts": {
+    "R1": {
+     "kind": "R",
+     "pins": {
+      "1": 8.9999999999973,
+      "2": 8.99999995500258
+     },
+     "voltage": 4.499471906171948e-8,
+     "current": 4.499471906171948e-11,
+     "power": 2.0245247434430623e-18,
+     "pinCurrents": {
+      "1": 4.499471906171948e-11,
+      "2": -4.499471906171948e-11
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 2.0245247434430623e-18,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 8.098098973772249e-18,
+       "level": "fine"
+      }
+     ]
+    },
+    "R2": {
+     "kind": "R",
+     "pins": {
+      "1": 8.99999995500258,
+      "2": 8.999999774966382
+     },
+     "voltage": 1.8003619928208536e-7,
+     "current": 1.8003619928208537e-11,
+     "power": 3.2413033051938756e-18,
+     "pinCurrents": {
+      "1": 1.8003619928208537e-11,
+      "2": -1.8003619928208537e-11
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 3.2413033051938756e-18,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 1.2965213220775502e-17,
+       "level": "fine"
+      }
+     ]
+    },
+    "U1": {
+     "kind": "TMR",
+     "pins": {
+      "GND": 0.0002704110601088835,
+      "TRIG": 8.999999774965932,
+      "OUT": 8.098974117541552,
+      "RESET": 8.99999999999955,
+      "CTRL": 5.999406190469551,
+      "THR": 8.999999774966382,
+      "DIS": 8.99999995500168,
+      "VCC": 8.998974117670897
+     },
+     "state": "high",
+     "vcc": 8.998703706610788,
+     "vout": 8.098703706481443,
+     "vthr": 8.999729363906273,
+     "vtrig": 8.999729363905823,
+     "vctrl": 5.999135779409442,
+     "current": 1.6168219540979578e-11,
+     "supply": 0.005399222245134243,
+     "power": 0.04858600114416801,
+     "currents": {
+      "GND": -0.0053992222289665085,
+      "TRIG": 0,
+      "OUT": -1.6168219540979578e-11,
+      "RESET": 0,
+      "CTRL": -5.999406158495313e-12,
+      "THR": 0,
+      "DIS": 8.999729543941571e-12,
+      "VCC": 0.005399222245134243
+     },
+     "pinCurrents": {
+      "GND": -0.0053992222289665085,
+      "TRIG": 0,
+      "OUT": -1.6168219540979578e-11,
+      "RESET": 0,
+      "CTRL": -5.999406158495313e-12,
+      "THR": 0,
+      "DIS": 8.999729543941571e-12,
+      "VCC": 0.005399222245134243
+     },
+     "stress": [
+      {
+       "quantity": "voltage",
+       "value": 8.998703706610788,
+       "max": 16,
+       "unit": "V",
+       "ratio": 0.5624189816631743,
+       "level": "fine"
+      },
+      {
+       "quantity": "current",
+       "value": 1.6168219540979578e-11,
+       "max": 0.2,
+       "unit": "A",
+       "ratio": 8.084109770489789e-11,
+       "level": "fine"
+      },
+      {
+       "quantity": "power",
+       "value": 0.04858600114416801,
+       "max": 0.6,
+       "unit": "W",
+       "ratio": 0.08097666857361335,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -8.998703706610788,
+       "max": 0.5,
+       "unit": "V",
+       "ratio": -17.997407413221577,
+       "level": "fine"
+      }
+     ]
+    },
+    "U2": {
+     "kind": "CNT",
+     "pins": {
+      "Q5": 0.00027086100864274224,
+      "Q1": 0.0002708610085661318,
+      "Q0": 6.324023998944543,
+      "Q2": 0.0002708610085662273,
+      "Q6": 0.00027086100870610366,
+      "Q7": 0.00027086100870610366,
+      "Q3": 0.00027086100845259996,
+      "VSS": 0.00027086100876945506,
+      "Q8": 0.0002708610087061037,
+      "Q4": 0.0002708610084527555,
+      "Q9": 0.00027086100870610366,
+      "CO": 8.999244076678782,
+      "CE": 0,
+      "CLK": 8.098974117541148,
+      "MR": 0.0002708610086427287,
+      "VDD": 8.999244078783606
+     },
+     "vcc": 8.998973217774838,
+     "outputs": {
+      "Q0": {
+       "level": 1,
+       "voltage": 6.323753137935773,
+       "current": 0.009710203079804205
+      },
+      "Q1": {
+       "level": 0,
+       "voltage": -2.033232523318551e-13,
+       "current": 8.693158807049875e-16
+      },
+      "Q2": {
+       "level": 0,
+       "voltage": -2.0322773412045914e-13,
+       "current": 8.689074891555176e-16
+      },
+      "Q3": {
+       "level": 0,
+       "voltage": -3.1685510335291434e-13,
+       "current": 1.3547253945039992e-15
+      },
+      "Q4": {
+       "level": 0,
+       "voltage": -3.166995745512713e-13,
+       "current": 1.3540604255168089e-15
+      },
+      "Q5": {
+       "level": 0,
+       "voltage": -1.2671282209261725e-13,
+       "current": 5.417652298531523e-16
+      },
+      "Q6": {
+       "level": 0,
+       "voltage": -6.335139661126088e-14,
+       "current": 2.7086117552911535e-16
+      },
+      "Q7": {
+       "level": 0,
+       "voltage": -6.335139661126088e-14,
+       "current": 2.7086117552911535e-16
+      },
+      "Q8": {
+       "level": 0,
+       "voltage": -6.335134240115226e-14,
+       "current": 2.7086094375184545e-16
+      },
+      "Q9": {
+       "level": 0,
+       "voltage": -6.335139661126088e-14,
+       "current": 2.7086117552911535e-16
+      },
+      "CO": {
+       "level": 1,
+       "voltage": 8.998973215670013,
+       "current": 8.999253986223674e-12
+      }
+     },
+     "iout": 0.009710203079804205,
+     "supply": 0.009719202062021235,
+     "ground": 0.000008998973211702622,
+     "power": 0.026057911777381572,
+     "currents": {
+      "Q5": -5.417652298531523e-16,
+      "Q1": -8.693158807049875e-16,
+      "Q0": -0.009710203079804205,
+      "Q2": -8.689074891555176e-16,
+      "Q6": -2.7086117552911535e-16,
+      "Q7": -2.7086117552911535e-16,
+      "Q3": -1.3547253945039992e-15,
+      "VSS": -0.000008998973211702622,
+      "Q8": -2.7086094375184545e-16,
+      "Q4": -1.3540604255168089e-15,
+      "Q9": -2.7086117552911535e-16,
+      "CO": -8.999253986223674e-12,
+      "CE": 0,
+      "CLK": 0,
+      "MR": 0,
+      "VDD": 0.009719202062021235
+     },
+     "levels": {
+      "CLK": 1,
+      "CE": 0,
+      "MR": 0
+     },
+     "between": {},
+     "count": 0,
+     "dissipation": {
+      "Q0": 0.02597693025840734,
+      "Q1": 1.7675213216866903e-28,
+      "Q2": 1.7658610018137327e-28,
+      "Q3": 4.292516548903823e-28,
+      "Q4": 4.288303606778867e-28,
+      "Q5": 6.864860118634838e-29,
+      "Q6": 1.7159433757537337e-29,
+      "Q7": 1.7159433757537337e-29,
+      "Q8": 1.7159404390722404e-29,
+      "Q9": 1.7159433757537337e-29,
+      "CO": 1.8941852602108398e-20
+     },
+     "pinCurrents": {
+      "Q5": -5.417652298531523e-16,
+      "Q1": -8.693158807049875e-16,
+      "Q0": -0.009710203079804205,
+      "Q2": -8.689074891555176e-16,
+      "Q6": -2.7086117552911535e-16,
+      "Q7": -2.7086117552911535e-16,
+      "Q3": -1.3547253945039992e-15,
+      "VSS": -0.000008998973211702622,
+      "Q8": -2.7086094375184545e-16,
+      "Q4": -1.3540604255168089e-15,
+      "Q9": -2.7086117552911535e-16,
+      "CO": -8.999253986223674e-12,
+      "CE": 0,
+      "CLK": 0,
+      "MR": 0,
+      "VDD": 0.009719202062021235
+     },
+     "stress": [
+      {
+       "quantity": "voltage",
+       "value": 8.998973217774838,
+       "max": 15,
+       "unit": "V",
+       "ratio": 0.5999315478516558,
+       "level": "fine"
+      },
+      {
+       "quantity": "power",
+       "value": 0.02597693025840734,
+       "max": 0.1,
+       "unit": "W",
+       "ratio": 0.2597693025840734,
+       "level": "fine",
+       "pin": "Q0"
+      },
+      {
+       "quantity": "power",
+       "value": 1.7675213216866903e-28,
+       "max": 0.1,
+       "unit": "W",
+       "ratio": 1.7675213216866903e-27,
+       "level": "fine",
+       "pin": "Q1"
+      },
+      {
+       "quantity": "power",
+       "value": 1.7658610018137327e-28,
+       "max": 0.1,
+       "unit": "W",
+       "ratio": 1.7658610018137325e-27,
+       "level": "fine",
+       "pin": "Q2"
+      },
+      {
+       "quantity": "power",
+       "value": 4.292516548903823e-28,
+       "max": 0.1,
+       "unit": "W",
+       "ratio": 4.292516548903823e-27,
+       "level": "fine",
+       "pin": "Q3"
+      },
+      {
+       "quantity": "power",
+       "value": 4.288303606778867e-28,
+       "max": 0.1,
+       "unit": "W",
+       "ratio": 4.288303606778867e-27,
+       "level": "fine",
+       "pin": "Q4"
+      },
+      {
+       "quantity": "power",
+       "value": 6.864860118634838e-29,
+       "max": 0.1,
+       "unit": "W",
+       "ratio": 6.864860118634838e-28,
+       "level": "fine",
+       "pin": "Q5"
+      },
+      {
+       "quantity": "power",
+       "value": 1.7159433757537337e-29,
+       "max": 0.1,
+       "unit": "W",
+       "ratio": 1.7159433757537337e-28,
+       "level": "fine",
+       "pin": "Q6"
+      },
+      {
+       "quantity": "power",
+       "value": 1.7159433757537337e-29,
+       "max": 0.1,
+       "unit": "W",
+       "ratio": 1.7159433757537337e-28,
+       "level": "fine",
+       "pin": "Q7"
+      },
+      {
+       "quantity": "power",
+       "value": 1.7159404390722404e-29,
+       "max": 0.1,
+       "unit": "W",
+       "ratio": 1.7159404390722402e-28,
+       "level": "fine",
+       "pin": "Q8"
+      },
+      {
+       "quantity": "power",
+       "value": 1.7159433757537337e-29,
+       "max": 0.1,
+       "unit": "W",
+       "ratio": 1.7159433757537337e-28,
+       "level": "fine",
+       "pin": "Q9"
+      },
+      {
+       "quantity": "power",
+       "value": 1.8941852602108398e-20,
+       "max": 0.1,
+       "unit": "W",
+       "ratio": 1.8941852602108398e-19,
+       "level": "fine",
+       "pin": "CO"
+      },
+      {
+       "quantity": "power",
+       "value": 0.026057911777381572,
+       "max": 0.5,
+       "unit": "W",
+       "ratio": 0.052115823554763144,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -8.998973217774838,
+       "max": 0.5,
+       "unit": "V",
+       "ratio": -17.997946435549675,
+       "level": "fine"
+      }
+     ]
+    },
+    "C1": {
+     "kind": "C",
+     "pins": {
+      "+": 8.999999774965932,
+      "-": 0
+     },
+     "voltage": 8.999999774965932,
+     "current": 0,
+     "power": 0,
+     "pinCurrents": {
+      "+": 0,
+      "-": 0
+     },
+     "stress": [
+      {
+       "quantity": "reverse",
+       "value": -8.999999774965932,
+       "max": 1,
+       "unit": "V",
+       "ratio": -8.999999774965932,
+       "level": "fine"
+      },
+      {
+       "quantity": "voltage",
+       "value": 8.999999774965932,
+       "max": 25,
+       "unit": "V",
+       "ratio": 0.3599999909986373,
+       "level": "fine"
+      }
+     ]
+    },
+    "C2": {
+     "kind": "C",
+     "pins": {
+      "1": 5.999406190469551,
+      "2": 0
+     },
+     "voltage": 5.999406190469551,
+     "current": 0,
+     "power": 0,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     },
+     "stress": [
+      {
+       "quantity": "voltage",
+       "value": 5.999406190469551,
+       "max": 50,
+       "unit": "V",
+       "ratio": 0.11998812380939101,
+       "level": "fine"
+      }
+     ]
+    },
+    "R3": {
+     "kind": "R",
+     "pins": {
+      "1": 6.324023998944543,
+      "2": 1.760228553151499
+     },
+     "voltage": 4.563795445793044,
+     "current": 0.009710203076155412,
+     "power": 0.04431538057668368,
+     "pinCurrents": {
+      "1": 0.009710203076155412,
+      "2": -0.009710203076155412
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 0.04431538057668368,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 0.17726152230673473,
+       "level": "fine"
+      }
+     ]
+    },
+    "R4": {
+     "kind": "R",
+     "pins": {
+      "1": 0.0002708610085661318,
+      "2": 0.00027086100828485816
+     },
+     "voltage": 2.812736480360678e-13,
+     "current": 5.98454570289506e-16,
+     "power": 1.683295001691867e-28,
+     "pinCurrents": {
+      "1": 5.98454570289506e-16,
+      "2": -5.98454570289506e-16
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 1.683295001691867e-28,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 6.733180006767468e-28,
+       "level": "fine"
+      }
+     ]
+    },
+    "R5": {
+     "kind": "R",
+     "pins": {
+      "1": 0.0002708610085662273,
+      "2": 0.0002708610082851457
+     },
+     "voltage": 2.810816358313206e-13,
+     "current": 5.980460336836609e-16,
+     "power": 1.6809975745023648e-28,
+     "pinCurrents": {
+      "1": 5.980460336836609e-16,
+      "2": -5.980460336836609e-16
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 1.6809975745023648e-28,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 6.723990298009459e-28,
+       "level": "fine"
+      }
+     ]
+    },
+    "R6": {
+     "kind": "R",
+     "pins": {
+      "1": 0.00027086100845254575,
+      "2": 0.0002708610080706315
+     },
+     "voltage": 3.8191422680605713e-13,
+     "current": 8.125834612894832e-16,
+     "power": 3.1033718433376263e-28,
+     "pinCurrents": {
+      "1": 8.125834612894832e-16,
+      "2": -8.125834612894832e-16
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 3.1033718433376263e-28,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 1.2413487373350505e-27,
+       "level": "fine"
+      }
+     ]
+    },
+    "R7": {
+     "kind": "R",
+     "pins": {
+      "1": 0.0002708610084527555,
+      "2": 0.0002708610079436518
+     },
+     "voltage": 5.09103664173699e-13,
+     "current": 1.0831992854759553e-15,
+     "power": 5.514607252661415e-28,
+     "pinCurrents": {
+      "1": 1.0831992854759553e-15,
+      "2": -1.0831992854759553e-15
+     },
+     "stress": [
+      {
+       "quantity": "power",
+       "value": 5.514607252661415e-28,
+       "max": 0.25,
+       "unit": "W",
+       "ratio": 2.205842901064566e-27,
+       "level": "fine"
+      }
+     ]
+    },
+    "D1": {
+     "kind": "LED",
+     "pins": {
+      "anode": 1.760228553151499,
+      "cathode": 0.0004855101536365587
+     },
+     "voltage": 1.7597430429978624,
+     "current": 0.009710203072732107,
+     "power": 0.017087462303336794,
+     "brightness": 0.4855101536366054,
+     "pinCurrents": {
+      "anode": 0.009710203072732107,
+      "cathode": -0.009710203072732107
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 0.009710203072732107,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 0.32367343575773694,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -1.7597430429978624,
+       "max": 5,
+       "unit": "V",
+       "ratio": -0.3519486085995725,
+       "level": "fine"
+      }
+     ]
+    },
+    "D2": {
+     "kind": "LED",
+     "pins": {
+      "anode": 0.0002708610082848418,
+      "cathode": 0.0004855101536365587
+     },
+     "voltage": -0.0002146491453517169,
+     "current": -2.1465824524738946e-16,
+     "power": 4.6076208885051396e-20,
+     "brightness": 0,
+     "pinCurrents": {
+      "anode": -2.1465824524738946e-16,
+      "cathode": 2.1465824524738946e-16
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": -2.1465824524738946e-16,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": -7.155274841579648e-15,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": 0.0002146491453517169,
+       "max": 5,
+       "unit": "V",
+       "ratio": 0.00004292982907034338,
+       "level": "fine"
+      }
+     ]
+    },
+    "D3": {
+     "kind": "LED",
+     "pins": {
+      "anode": 0.0002708610082851293,
+      "cathode": 0.0004855101536365587
+     },
+     "voltage": -0.00021464914535142938,
+     "current": -2.1465046079901474e-16,
+     "power": 4.607453795979901e-20,
+     "brightness": 0,
+     "pinCurrents": {
+      "anode": -2.1465046079901474e-16,
+      "cathode": 2.1465046079901474e-16
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": -2.1465046079901474e-16,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": -7.155015359967159e-15,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": 0.00021464914535142938,
+       "max": 5,
+       "unit": "V",
+       "ratio": 0.000042929829070285875,
+       "level": "fine"
+      }
+     ]
+    },
+    "D4": {
+     "kind": "LED",
+     "pins": {
+      "anode": 0.0002708610080706315,
+      "cathode": 0
+     },
+     "voltage": 0.0002708610080706315,
+     "current": 2.7086211892489297e-16,
+     "power": 7.336598658014379e-20,
+     "brightness": 1.3543105946244647e-14,
+     "pinCurrents": {
+      "anode": 2.7086211892489297e-16,
+      "cathode": -2.7086211892489297e-16
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 2.7086211892489297e-16,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 9.028737297496432e-15,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -0.0002708610080706315,
+       "max": 5,
+       "unit": "V",
+       "ratio": -0.0000541722016141263,
+       "level": "fine"
+      }
+     ]
+    },
+    "D5": {
+     "kind": "LED",
+     "pins": {
+      "anode": 0.00027086100794361116,
+      "cathode": 0
+     },
+     "voltage": 0.00027086100794361116,
+     "current": 2.70862118797872e-16,
+     "power": 7.336598651133376e-20,
+     "brightness": 1.3543105939893601e-14,
+     "pinCurrents": {
+      "anode": 2.70862118797872e-16,
+      "cathode": -2.70862118797872e-16
+     },
+     "stress": [
+      {
+       "quantity": "current",
+       "value": 2.70862118797872e-16,
+       "max": 0.03,
+       "unit": "A",
+       "ratio": 9.028737293262401e-15,
+       "level": "fine"
+      },
+      {
+       "quantity": "reverse",
+       "value": -0.00027086100794361116,
+       "max": 5,
+       "unit": "V",
+       "ratio": -0.00005417220158872223,
+       "level": "fine"
+      }
+     ]
+    },
+    "W1": {
+     "kind": "W",
+     "pins": {
+      "1": 8.99999999999955,
+      "2": 9
+     },
+     "voltage": -4.4941828036826337e-13,
+     "current": -8.988365607365267e-12,
+     "power": 4.0395358145833396e-24,
+     "pinCurrents": {
+      "1": -8.988365607365267e-12,
+      "2": 8.988365607365267e-12
+     }
+    },
+    "W2": {
+     "kind": "W",
+     "pins": {
+      "1": 8.999244078783606,
+      "2": 9
+     },
+     "voltage": -0.0007559212163936735,
+     "current": -0.01511842432787347,
+     "power": 0.000011428337707881819,
+     "pinCurrents": {
+      "1": -0.01511842432787347,
+      "2": 0.01511842432787347
+     }
+    },
+    "W3": {
+     "kind": "W",
+     "pins": {
+      "1": 8.998974117670897,
+      "2": 8.999244078783606
+     },
+     "voltage": -0.0002699611127088275,
+     "current": -0.00539922225417655,
+     "power": 0.0000014575800474997653,
+     "pinCurrents": {
+      "1": -0.00539922225417655,
+      "2": 0.00539922225417655
+     }
+    },
+    "W4": {
+     "kind": "W",
+     "pins": {
+      "1": 8.9999999999973,
+      "2": 9
+     },
+     "voltage": -2.7000623958883807e-12,
+     "current": -5.4001247917767614e-11,
+     "power": 1.4580673883381005e-22,
+     "pinCurrents": {
+      "1": -5.4001247917767614e-11,
+      "2": 5.4001247917767614e-11
+     }
+    },
+    "W5": {
+     "kind": "W",
+     "pins": {
+      "1": 8.99999995500258,
+      "2": 8.99999995500168
+     },
+     "voltage": 9.00612917575927e-13,
+     "current": 1.801225835151854e-11,
+     "power": 1.622207254609247e-23,
+     "pinCurrents": {
+      "1": 1.801225835151854e-11,
+      "2": -1.801225835151854e-11
+     }
+    },
+    "W6": {
+     "kind": "W",
+     "pins": {
+      "1": 8.999999774966382,
+      "2": 8.999999774965932
+     },
+     "voltage": 4.4941828036826337e-13,
+     "current": 8.988365607365267e-12,
+     "power": 4.0395358145833396e-24,
+     "pinCurrents": {
+      "1": 8.988365607365267e-12,
+      "2": -8.988365607365267e-12
+     }
+    },
+    "W7": {
+     "kind": "W",
+     "pins": {
+      "1": 0,
+      "2": 0
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    },
+    "W8": {
+     "kind": "W",
+     "pins": {
+      "1": 0.0002704110601088835,
+      "2": 0
+     },
+     "voltage": 0.0002704110601088835,
+     "current": 0.00540822120217767,
+     "power": 0.000001462442828584204,
+     "pinCurrents": {
+      "1": 0.00540822120217767,
+      "2": -0.00540822120217767
+     }
+    },
+    "W9": {
+     "kind": "W",
+     "pins": {
+      "1": 0,
+      "2": 0
+     },
+     "voltage": 0,
+     "current": 0,
+     "power": 0,
+     "pinCurrents": {
+      "1": 0,
+      "2": 0
+     }
+    },
+    "W10": {
+     "kind": "W",
+     "pins": {
+      "1": 0.0002704110601088835,
+      "2": 0.00027086100876945506
+     },
+     "voltage": -4.4994866057156135e-7,
+     "current": -0.000008998973211431227,
+     "power": 4.0490759430028425e-12,
+     "pinCurrents": {
+      "1": -0.000008998973211431227,
+      "2": 0.000008998973211431227
+     }
+    },
+    "W11": {
+     "kind": "W",
+     "pins": {
+      "1": 8.098974117541552,
+      "2": 8.098974117541148
+     },
+     "voltage": 4.0323300254385686e-13,
+     "current": 8.064660050877137e-12,
+     "power": 3.2519370868106814e-24,
+     "pinCurrents": {
+      "1": 8.064660050877137e-12,
+      "2": -8.064660050877137e-12
+     }
+    },
+    "W12": {
+     "kind": "W",
+     "pins": {
+      "1": 0.00027086100864274224,
+      "2": 0.0002708610086427287
+     },
+     "voltage": 1.3552527156068805e-17,
+     "current": 2.710505431213761e-16,
+     "power": 3.6734198463196485e-33,
+     "pinCurrents": {
+      "1": 2.710505431213761e-16,
+      "2": -2.710505431213761e-16
+     }
+    },
+    "W13": {
+     "kind": "W",
+     "pins": {
+      "1": 0.0004855101536365587,
+      "2": 0
+     },
+     "voltage": 0.0004855101536365587,
+     "current": 0.009710203072731174,
+     "power": 0.000004714402185683897,
+     "pinCurrents": {
+      "1": 0.009710203072731174,
+      "2": -0.009710203072731174
+     }
+    },
+    "W14": {
+     "kind": "W",
+     "pins": {
+      "1": 0.00027086100828485816,
+      "2": 0.0002708610082848418
+     },
+     "voltage": 1.6371452804531117e-17,
+     "current": 3.2742905609062234e-16,
+     "power": 5.3604893386197955e-33,
+     "pinCurrents": {
+      "1": 3.2742905609062234e-16,
+      "2": -3.2742905609062234e-16
+     }
+    },
+    "W15": {
+     "kind": "W",
+     "pins": {
+      "1": 0.0002708610082851457,
+      "2": 0.0002708610082851293
+     },
+     "voltage": 1.6371452804531117e-17,
+     "current": 3.2742905609062234e-16,
+     "power": 5.3604893386197955e-33,
+     "pinCurrents": {
+      "1": 3.2742905609062234e-16,
+      "2": -3.2742905609062234e-16
+     }
+    },
+    "W16": {
+     "kind": "W",
+     "pins": {
+      "1": 0.00027086100845259996,
+      "2": 0.00027086100845254575
+     },
+     "voltage": 5.421010862427522e-17,
+     "current": 1.0842021724855044e-15,
+     "power": 5.877471754111438e-32,
+     "pinCurrents": {
+      "1": 1.0842021724855044e-15,
+      "2": -1.0842021724855044e-15
+     }
+    },
+    "W17": {
+     "kind": "W",
+     "pins": {
+      "1": 0.0002708610079436518,
+      "2": 0.00027086100794361116
+     },
+     "voltage": 4.0657581468206416e-17,
+     "current": 8.131516293641283e-16,
+     "power": 3.3060778616876836e-32,
+     "pinCurrents": {
+      "1": 8.131516293641283e-16,
+      "2": -8.131516293641283e-16
+     }
+    }
+   },
+   "supplies": {
+    "V1": {
+     "kind": "bench",
+     "voltage": 9,
+     "current": 0.015118424399851803,
+     "power": 0.13606581959866623,
+     "mode": "CV"
+    }
+   },
+   "issues": []
+  },
+  "text": {
+   "en": "DC operating point — a model, not a measurement (1 Newton iterations).\nSupplies:\n  V1     9 V        15.1 mA    136 mW     constant voltage\nNodes (voltage from rail T-):\n  rail T-                        0 V\n  column 2 (rows a–e)            9 V\n  column 6 (rows a–e)            9 V\n  column 10 (rows a–e)           9 V\n  column 12 (rows f–j)           270 µV\n  column 11 (rows f–j)           9 V\n  column 10 (rows f–j)           8.1 V\n  column 9 (rows f–j)            9 V\n  column 9 (rows a–e)            6 V\n  column 11 (rows a–e)           9 V\n  column 12 (rows a–e)           9 V\n  column 14 (rows a–e)           271 µV\n  column 15 (rows a–e)           271 µV\n  column 16 (rows a–e)           6.32 V\n  column 17 (rows a–e)           271 µV\n  column 18 (rows a–e)           271 µV\n  column 19 (rows a–e)           271 µV\n  column 20 (rows a–e)           271 µV\n  column 21 (rows a–e)           271 µV\n  column 21 (rows f–j)           271 µV\n  column 20 (rows f–j)           271 µV\n  column 19 (rows f–j)           271 µV\n  column 18 (rows f–j)           9 V\n  column 17 (rows f–j)           0 V\n  column 16 (rows f–j)           8.1 V\n  column 15 (rows f–j)           271 µV\n  column 14 (rows f–j)           9 V\n  column 7 (rows a–e)            0 V\n  column 22 (rows a–e)           1.76 V\n  column 8 (rows a–e)            271 µV\n  column 24 (rows a–e)           271 µV\n  column 22 (rows f–j)           271 µV\n  column 26 (rows f–j)           271 µV\n  column 24 (rows f–j)           271 µV\n  column 25 (rows a–e)           486 µV\n  column 23 (rows a–e)           271 µV\n  column 28 (rows a–e)           271 µV\n  column 30 (rows f–j)           271 µV\n  rail T+                        9 V\nParts:\n  R1     45 nV      45 pA      0 W\n  R2     180 nV     18 pA      0 W\n  U1     output high (charging the timing capacitor) · Output 8.1 V · THR 9 V · Output current 16.2 pA · 48.6 mW\n  U2     floating   floating   26.1 mW\n  C1     9 V        0 A        0 W\n  C2     6 V        0 A        0 W\n  R3     4.56 V     9.71 mA    44.3 mW\n  R4     0.281 pV   0 A        0 W\n  R5     0.281 pV   0 A        0 W\n  R6     0.382 pV   0 A        0 W\n  R7     0.509 pV   0.00108 pA 0 W\n  D1     1.76 V     9.71 mA    17.1 mW · brightness 49 % of 20 mA\n  D2     -215 µV    0 A        0 W · brightness 0 % of 20 mA\n  D3     -215 µV    0 A        0 W · brightness 0 % of 20 mA\n  D4     271 µV     0 A        0 W · brightness 0 % of 20 mA\n  D5     271 µV     0 A        0 W · brightness 0 % of 20 mA\n  W1     -0.449 pV  -8.99 pA   0 W\n  W2     -756 µV    -15.1 mA   11.4 µW\n  W3     -270 µV    -5.4 mA    1.46 µW\n  W4     -2.7 pV    -54 pA     0 W\n  W5     0.901 pV   18 pA      0 W\n  W6     0.449 pV   8.99 pA    0 W\n  W7     0 V        0 A        0 W\n  W8     270 µV     5.41 mA    1.46 µW\n  W9     0 V        0 A        0 W\n  W10    -450 nV    -9 µA      4.05 pW\n  W11    0.403 pV   8.06 pA    0 W\n  W12    0 V        0 A        0 W\n  W13    486 µV     9.71 mA    4.71 µW\n  W14    0 V        0 A        0 W\n  W15    0 V        0 A        0 W\n  W16    0 V        0.00108 pA 0 W\n  W17    0 V        0 A        0 W",
+   "es": "Punto de operación en DC — un modelo, no una medición (1 iteraciones de Newton).\nFuentes:\n  V1     9 V        15,1 mA    136 mW     voltaje constante\nGrupos (voltaje medido desde riel T-):\n  riel T-                        0 V\n  columna 2 (filas a–e)          9 V\n  columna 6 (filas a–e)          9 V\n  columna 10 (filas a–e)         9 V\n  columna 12 (filas f–j)         270 µV\n  columna 11 (filas f–j)         9 V\n  columna 10 (filas f–j)         8,1 V\n  columna 9 (filas f–j)          9 V\n  columna 9 (filas a–e)          6 V\n  columna 11 (filas a–e)         9 V\n  columna 12 (filas a–e)         9 V\n  columna 14 (filas a–e)         271 µV\n  columna 15 (filas a–e)         271 µV\n  columna 16 (filas a–e)         6,32 V\n  columna 17 (filas a–e)         271 µV\n  columna 18 (filas a–e)         271 µV\n  columna 19 (filas a–e)         271 µV\n  columna 20 (filas a–e)         271 µV\n  columna 21 (filas a–e)         271 µV\n  columna 21 (filas f–j)         271 µV\n  columna 20 (filas f–j)         271 µV\n  columna 19 (filas f–j)         271 µV\n  columna 18 (filas f–j)         9 V\n  columna 17 (filas f–j)         0 V\n  columna 16 (filas f–j)         8,1 V\n  columna 15 (filas f–j)         271 µV\n  columna 14 (filas f–j)         9 V\n  columna 7 (filas a–e)          0 V\n  columna 22 (filas a–e)         1,76 V\n  columna 8 (filas a–e)          271 µV\n  columna 24 (filas a–e)         271 µV\n  columna 22 (filas f–j)         271 µV\n  columna 26 (filas f–j)         271 µV\n  columna 24 (filas f–j)         271 µV\n  columna 25 (filas a–e)         486 µV\n  columna 23 (filas a–e)         271 µV\n  columna 28 (filas a–e)         271 µV\n  columna 30 (filas f–j)         271 µV\n  riel T+                        9 V\nComponentes:\n  R1     45 nV      45 pA      0 W\n  R2     180 nV     18 pA      0 W\n  U1     salida alta (cargando el condensador de tiempo) · Salida 8,1 V · THR 9 V · Corriente de salida 16,2 pA · 48,6 mW\n  U2     flotante   flotante   26,1 mW\n  C1     9 V        0 A        0 W\n  C2     6 V        0 A        0 W\n  R3     4,56 V     9,71 mA    44,3 mW\n  R4     0,281 pV   0 A        0 W\n  R5     0,281 pV   0 A        0 W\n  R6     0,382 pV   0 A        0 W\n  R7     0,509 pV   0,00108 pA 0 W\n  D1     1,76 V     9,71 mA    17,1 mW · brillo 49 % del de 20 mA\n  D2     -215 µV    0 A        0 W · brillo 0 % del de 20 mA\n  D3     -215 µV    0 A        0 W · brillo 0 % del de 20 mA\n  D4     271 µV     0 A        0 W · brillo 0 % del de 20 mA\n  D5     271 µV     0 A        0 W · brillo 0 % del de 20 mA\n  W1     -0,449 pV  -8,99 pA   0 W\n  W2     -756 µV    -15,1 mA   11,4 µW\n  W3     -270 µV    -5,4 mA    1,46 µW\n  W4     -2,7 pV    -54 pA     0 W\n  W5     0,901 pV   18 pA      0 W\n  W6     0,449 pV   8,99 pA    0 W\n  W7     0 V        0 A        0 W\n  W8     270 µV     5,41 mA    1,46 µW\n  W9     0 V        0 A        0 W\n  W10    -450 nV    -9 µA      4,05 pW\n  W11    0,403 pV   8,06 pA    0 W\n  W12    0 V        0 A        0 W\n  W13    486 µV     9,71 mA    4,71 µW\n  W14    0 V        0 A        0 W\n  W15    0 V        0 A        0 W\n  W16    0 V        0,00108 pA 0 W\n  W17    0 V        0 A        0 W"
+  },
+  "lines": {
+   "en": {
+    "R1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 45 nV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 45 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "R2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 180 nV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 18 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "U1": [
+     {
+      "key": "timer.high",
+      "text": "output high (charging the timing capacitor)"
+     },
+     {
+      "key": "timer.vout",
+      "text": "Output: 8.1 V"
+     },
+     {
+      "key": "timer.vthr",
+      "text": "THR: 9 V"
+     },
+     {
+      "key": "timer.vtrig",
+      "text": "TRIG: 9 V"
+     },
+     {
+      "key": "timer.vctrl",
+      "text": "CTRL: 6 V"
+     },
+     {
+      "key": "timer.iout",
+      "text": "Output current: 16.2 pA"
+     },
+     {
+      "key": "timer.supply",
+      "text": "Supply current: 5.4 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 48.6 mW"
+     }
+    ],
+    "U2": [
+     {
+      "key": "counter.count",
+      "text": "Count 0: Q0 high; CO high (counts 0 to 4)"
+     },
+     {
+      "key": "logic.vcc",
+      "text": "Supply: 9 V"
+     },
+     {
+      "key": "logic.iout",
+      "text": "Largest output current: 9.71 mA"
+     },
+     {
+      "key": "logic.supply",
+      "text": "Supply current: 9.72 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 26.1 mW"
+     }
+    ],
+    "C1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 9 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "C2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 6 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "R3": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 4.56 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 9.71 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 44.3 mW"
+     }
+    ],
+    "R4": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0.281 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "R5": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0.281 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "R6": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0.382 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "R7": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0.509 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0.00108 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 1.76 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 9.71 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 17.1 mW"
+     },
+     {
+      "key": "brightness",
+      "text": "Brightness: brightness 49 % of 20 mA"
+     }
+    ],
+    "D2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -215 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "brightness",
+      "text": "Brightness: brightness 0 % of 20 mA"
+     }
+    ],
+    "D3": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -215 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "brightness",
+      "text": "Brightness: brightness 0 % of 20 mA"
+     }
+    ],
+    "D4": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 271 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "brightness",
+      "text": "Brightness: brightness 0 % of 20 mA"
+     }
+    ],
+    "D5": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 271 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     },
+     {
+      "key": "brightness",
+      "text": "Brightness: brightness 0 % of 20 mA"
+     }
+    ],
+    "W1": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -0.449 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -8.99 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W2": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -756 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -15.1 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 11.4 µW"
+     }
+    ],
+    "W3": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -270 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -5.4 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 1.46 µW"
+     }
+    ],
+    "W4": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -2.7 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -54 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W5": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0.901 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 18 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W6": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0.449 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 8.99 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W7": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W8": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 270 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 5.41 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 1.46 µW"
+     }
+    ],
+    "W9": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W10": [
+     {
+      "key": "voltage",
+      "text": "Voltage: -450 nV"
+     },
+     {
+      "key": "current",
+      "text": "Current: -9 µA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 4.05 pW"
+     }
+    ],
+    "W11": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0.403 pV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 8.06 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W12": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W13": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 486 µV"
+     },
+     {
+      "key": "current",
+      "text": "Current: 9.71 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 4.71 µW"
+     }
+    ],
+    "W14": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W15": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W16": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0.00108 pA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ],
+    "W17": [
+     {
+      "key": "voltage",
+      "text": "Voltage: 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Current: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Power: 0 W"
+     }
+    ]
+   },
+   "es": {
+    "R1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 45 nV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 45 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "R2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 180 nV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 18 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "U1": [
+     {
+      "key": "timer.high",
+      "text": "salida alta (cargando el condensador de tiempo)"
+     },
+     {
+      "key": "timer.vout",
+      "text": "Salida: 8,1 V"
+     },
+     {
+      "key": "timer.vthr",
+      "text": "THR: 9 V"
+     },
+     {
+      "key": "timer.vtrig",
+      "text": "TRIG: 9 V"
+     },
+     {
+      "key": "timer.vctrl",
+      "text": "CTRL: 6 V"
+     },
+     {
+      "key": "timer.iout",
+      "text": "Corriente de salida: 16,2 pA"
+     },
+     {
+      "key": "timer.supply",
+      "text": "Corriente de alimentación: 5,4 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 48,6 mW"
+     }
+    ],
+    "U2": [
+     {
+      "key": "counter.count",
+      "text": "Cuenta 0: Q0 en alto; CO en alto (cuentas 0 a 4)"
+     },
+     {
+      "key": "logic.vcc",
+      "text": "Alimentación: 9 V"
+     },
+     {
+      "key": "logic.iout",
+      "text": "Mayor corriente de salida: 9,71 mA"
+     },
+     {
+      "key": "logic.supply",
+      "text": "Corriente de alimentación: 9,72 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 26,1 mW"
+     }
+    ],
+    "C1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 9 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "C2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 6 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "R3": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 4,56 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 9,71 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 44,3 mW"
+     }
+    ],
+    "R4": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0,281 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "R5": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0,281 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "R6": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0,382 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "R7": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0,509 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0,00108 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "D1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 1,76 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 9,71 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 17,1 mW"
+     },
+     {
+      "key": "brightness",
+      "text": "Brillo: brillo 49 % del de 20 mA"
+     }
+    ],
+    "D2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -215 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "brightness",
+      "text": "Brillo: brillo 0 % del de 20 mA"
+     }
+    ],
+    "D3": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -215 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "brightness",
+      "text": "Brillo: brillo 0 % del de 20 mA"
+     }
+    ],
+    "D4": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 271 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "brightness",
+      "text": "Brillo: brillo 0 % del de 20 mA"
+     }
+    ],
+    "D5": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 271 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     },
+     {
+      "key": "brightness",
+      "text": "Brillo: brillo 0 % del de 20 mA"
+     }
+    ],
+    "W1": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -0,449 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -8,99 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W2": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -756 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -15,1 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 11,4 µW"
+     }
+    ],
+    "W3": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -270 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -5,4 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 1,46 µW"
+     }
+    ],
+    "W4": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -2,7 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -54 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W5": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0,901 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 18 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W6": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0,449 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 8,99 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W7": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W8": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 270 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 5,41 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 1,46 µW"
+     }
+    ],
+    "W9": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W10": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): -450 nV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: -9 µA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 4,05 pW"
+     }
+    ],
+    "W11": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0,403 pV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 8,06 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W12": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W13": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 486 µV"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 9,71 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 4,71 µW"
+     }
+    ],
+    "W14": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W15": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W16": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0,00108 pA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ],
+    "W17": [
+     {
+      "key": "voltage",
+      "text": "Voltaje (tensión): 0 V"
+     },
+     {
+      "key": "current",
+      "text": "Corriente: 0 A"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 0 W"
+     }
+    ]
+   }
+  }
+ },
  "battery-regulator.json": {
   "result": {
    "analysis": "dc",

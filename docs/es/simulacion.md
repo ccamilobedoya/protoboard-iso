@@ -282,7 +282,8 @@ entran por la pata. El transitorio trae `times` y las mismas magnitudes como lis
 | `SIM_FLOATING` | grupos sin camino de corriente continua hasta la fuente (por ejemplo, la compuerta de un MOSFET sin conectar) |
 | `SIM_PIN_OVERVOLTAGE`, `SIM_PIN_UNKNOWN`, `SIM_PIN_STATE`, `SIM_PIN_INPUT_ONLY` | un pin de un microcontrolador fuera de su riel (diodos de protección conduciendo), en un estado de CC de la revisión (lo más alto que llega allí) o en un momento de la ejecución de la revisión, con ese tiempo (el eco de 5 V de un HC-SR04 en un pin de un ESP32, bajo en reposo; `variant: 'run'`); una entrada de `io` que no nombra un GPIO conectado, un estado que no conoce o una salida en un pin que solo puede ser entrada |
 | `SIM_IC_SUPPLY` | un chip alimentado por encima de su máximo (555: 16 V; LM358: 32 V; 741: 36 V en total) |
-| `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | un componente que todavía no se simula (los chips que no son el 555), o una referencia sin modelo propio |
+| `SIM_IC_UNDER_SUPPLY`, `SIM_IC_INPUT_OPEN`, `SIM_IC_INPUT_LEVEL` | un chip lógico (74HC595, CD4017) alimentado por debajo de su mínimo (2 V; 3 V); una entrada suya al aire (no está definida en un chip real: el kit la toma como baja y lo dice); una entrada que queda entre sus niveles bajo y alto (0,3 y 0,7 de su alimentación): un pin de 3,3 V en un chip a 5 V nunca lee alto |
+| `SIM_UNSUPPORTED`, `SIM_DEFAULT_MODEL` | un componente que todavía no se simula (el LM386, los arreglos ULN, el PC817, el adaptador DESPI-C02), o una referencia sin modelo propio |
 
 `review` corre este mismo análisis en DC y lista como **peligro** (`hazards`) cada esfuerzo que pasa
 su límite (los códigos que nombran un componente y un máximo: `SIM_OVER_CURRENT`, `SIM_OVER_POWER`,
@@ -397,7 +398,7 @@ dice: el kit revisó el circuito y no encontró nada que decir.
   riel como en un puente H): el interruptor se puede dañar al apagarse. Un motor en un interruptor
   simple o directo en una fuente no tiene interruptor que dañar.
 - `SIM_PART_NOT_SIMULATED`: un componente conectado al circuito sin modelo de simulación (un
-  74HC595, un LM386, un CD4017…; `catalog` los marca): se dibuja y sus pines quedan abiertos, así
+  LM386, un ULN2003…; `catalog` los marca): se dibuja y sus pines quedan abiertos, así
   que lo que hace, y lo que maneja, no se sabe. Las salidas que cuelgan de él se nombran en su línea
   (`así que el kit no puede decir qué hace U2 ni qué hacen D1, D2, D3, que dependen de él`): una
   salida cuyos pines llegan a un pin de ese componente por donde pasa corriente (resistencias,
@@ -493,6 +494,8 @@ referencia independiente (una fórmula de libro resuelta aparte, o el dato de la
 | amplificador operacional (LM358, LM324, µA741, NE5532) | de comportamiento, DC y baja frecuencia (sin ancho de banda ni velocidad de subida): salida = ganancia·(V+ − V−) centrada en la mitad de la fuente, limitada con suavidad entre swingLow por encima de la fuente negativa y swingHigh por debajo de la positiva (LM358: 5 mV y 1,5 V; 741: 2 V cada uno), detrás de su resistencia de salida; corriente desde la pata positiva cuando entrega y hacia la negativa cuando recibe; las entradas no toman corriente; un amplificador sin nada conectado se deja fuera; límites: fuente total, corriente de salida (cortocircuito), potencia | no inversor 1 + R2/R1 e inversor −R2/R1 con menos de 1 mV de error; seguidor; VOH = VCC − 1,5 V, VOL de pocos mV |
 | comparador (LM393) | colector abierto: OUT unido a la fuente negativa por 60 Ω mientras V− > V+, abierto si no (necesita un pull-up) | estados activo y abierto, el LED que maneja |
 | temporizador NE555 | de comportamiento: su divisor de 5 kΩ pone CTRL en 2/3 de VCC; THR por encima de CTRL desactiva el biestable (salida baja, descarga activa), TRIG por debajo de CTRL/2 lo activa, RESET por debajo de 0,7 V lo mantiene en bajo; el biestable cambia entre pasos de tiempo; salida alta unos 0,9 V por debajo de VCC tras 8 Ω, baja tras 7,5 Ω; descarga 18 Ω; consumo propio 3 mA a 5 V; límites 16 V, 200 mA, 600 mW. En DC muestra su estado al encender (salida alta): un astable solo oscila en un transitorio o en la página en vivo | astable: f = 1,44 / ((R1 + 2·R2)·C) con 4 % de margen y su ciclo útil; la tabla de verdad del biestable |
+| registro de desplazamiento 74HC595 | lógica: el flanco de subida de SRCLK desplaza y mete SER en la etapa de QA, SRCLR en bajo borra el registro, el flanco de subida de RCLK lo copia a los latches (los dos en el mismo instante: los latches reciben el registro de antes del desplazamiento), OE en alto deja QA…QH abiertas, QH' sigue la última etapa del registro; entradas altas sobre 0,7·VCC y bajas bajo 0,3·VCC, que conservan su nivel en medio; oye cada cambio de un pin de una placa en orden (un `shiftOut` no toma tiempo simulado) y, en una cadena, la entrada del chip siguiente después del flanco compartido; salidas de 30 Ω a VCC y 25 Ω a GND (VOH 4,32 V / VOL 0,15 V a 6 mA, 4,5 V); consumo propio 8 µA a 6 V; ceros al encender (los de un chip real no están definidos); límites 6 V, ±35 mA por salida, 70 mA por VCC o GND, 750 mW; una entrada al aire se toma como baja y se avisa (NXP 74HC595) | MSBFIRST pone el bit 7 en QH; lo contrario con LSBFIRST; la corriente de un LED por la ley de mallas con 330 Ω + 30 Ω; dos encadenados; OE, SRCLR; un pin de 3,3 V en un chip a 5 V avisado |
+| contador de décadas CD4017 | lógica: el flanco de subida de CLK con CE en bajo avanza la cuenta (también el flanco de bajada de CE con CLK en alto), MR en alto la reinicia de inmediato; una de Q0…Q9 en alto, CO en alto en las cuentas 0–4; una Qn en MR cuenta hasta n (un paso de tiempo después); entradas como las del 74HC595 (el Schmitt del reloj); salidas de unos 400 Ω cerca del riel a 5 V, 192 Ω a 10 V, 221 Ω a 15 V (interpoladas), que se quedan en 3,35 mA a 5 V (IOH 3,2 mA a 2,5 V) y crecen como (VDD − 1,5 V)² por encima [supuesto]; límites 15 V, 100 mW por transistor de salida, 500 mW; cuenta 0 al encender; los pulsadores del kit no rebotan (TI CD4017B) | un LED sin resistencia a 5 V por la fórmula de la salida (unos 3,3 mA); el orden y el periodo de una carrera con un 555; pulsaciones contadas; CE y MR fijos |
 | inductor | resistencia del alambre en serie; un corto en DC, Euler implícito en el transitorio | RL: I·(1 − e^(−t/τ)) |
 | termistor, fotorresistencia | resistencias cuyo valor sale de la temperatura (ecuación B) o de la luz (curva GL55) | ecuación B a 50 °C; GL5528 a 10 lx |
 | zumbador | su bobina, 16 Ω | — |
@@ -514,8 +517,8 @@ voltaje directo de un LED medido en el banco).
 
 ## Todavía no
 
-Los chips que no son el 555, los amplificadores operacionales ni el LM393 (lógica, optoacopladores, el
-LM386, los arreglos ULN) quedan sin conectar y se avisa, igual que el adaptador DESPI-C02; una placa con
+Los chips que no son el 555, los amplificadores operacionales, el LM393, el 74HC595 ni el CD4017
+(optoacopladores, el LM386, los arreglos ULN) quedan sin conectar y se avisa, igual que el adaptador DESPI-C02; una placa con
 microcontrolador corre su programa (`"program"`, con PWM y `tone`;
 [microcontroladores.md](microcontroladores.md)). Los amplificadores operacionales todavía no
 tienen ancho de banda ni velocidad de subida: una señal rápida sale como si el chip fuera ideal (un oscilador de relajación con realimentación positiva sí corre: Newton se detiene en los bordes del rango lineal a lo sumo dos veces por cálculo, así cambia de riel; uno con un LM358, 47 kΩ y 10 nF oscila a unos 920 Hz, y la fórmula de libro da 968 Hz con rieles ideales). El 555 todavía no tiene recorridos en la vista de conductores: su corriente

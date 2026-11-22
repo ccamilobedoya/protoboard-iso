@@ -1,0 +1,470 @@
+{
+  "version": 1,
+  "title": {
+    "en": "555 clocking a CD4017: a chaser of five LEDs",
+    "es": "555 que da el reloj a un CD4017: cinco LED en carrera"
+  },
+  "description": {
+    "en": "A 555 astable (1 kΩ, 10 kΩ, 10 µF: about 6.9 Hz) clocks a CD4017 decade counter. Each rising edge on CLK moves the count on, and only the output of the count is high: the five LEDs on Q0…Q4 light one after another. Q5 is wired back to MR, so on the sixth count the counter resets to 0 and the chase starts again. CE to ground lets the clock through.",
+    "es": "Un 555 astable (1 kΩ, 10 kΩ, 10 µF: unos 6,9 Hz) da el reloj a un contador de décadas CD4017. Cada flanco de subida en CLK avanza la cuenta, y solo la salida de la cuenta queda en alto: los cinco LED en Q0…Q4 se encienden uno tras otro. Q5 vuelve a MR, así que en la sexta cuenta el contador vuelve a 0 y la carrera empieza otra vez. CE a tierra deja pasar el reloj."
+  },
+  "board": "auto",
+  "clearance": 1,
+  "parts": [
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "1k",
+      "pins": [
+        "e2",
+        "e6"
+      ]
+    },
+    {
+      "id": "R2",
+      "type": "resistor",
+      "value": "10k",
+      "pins": [
+        "b6",
+        "b10"
+      ]
+    },
+    {
+      "id": "U1",
+      "part": "NE555",
+      "type": "ic",
+      "pins": [
+        "f12",
+        "f11",
+        "f10",
+        "f9",
+        "e9",
+        "e10",
+        "e11",
+        "e12"
+      ]
+    },
+    {
+      "id": "U2",
+      "part": "CD4017",
+      "type": "ic",
+      "pins": [
+        "e14",
+        "e15",
+        "e16",
+        "e17",
+        "e18",
+        "e19",
+        "e20",
+        "e21",
+        "f21",
+        "f20",
+        "f19",
+        "f18",
+        "f17",
+        "f16",
+        "f15",
+        "f14"
+      ]
+    },
+    {
+      "id": "C1",
+      "type": "capacitor",
+      "kind": "electrolytic",
+      "value": "10u",
+      "pins": [
+        "j11",
+        "T-11"
+      ]
+    },
+    {
+      "id": "C2",
+      "type": "capacitor",
+      "value": "10n",
+      "pins": [
+        "d9",
+        "d7"
+      ]
+    },
+    {
+      "id": "R3",
+      "type": "resistor",
+      "value": "470",
+      "pins": [
+        "b16",
+        "b22"
+      ]
+    },
+    {
+      "id": "R4",
+      "type": "resistor",
+      "value": "470",
+      "pins": [
+        "c15",
+        "c8"
+      ]
+    },
+    {
+      "id": "R5",
+      "type": "resistor",
+      "value": "470",
+      "pins": [
+        "d17",
+        "d24"
+      ]
+    },
+    {
+      "id": "R6",
+      "type": "resistor",
+      "value": "470",
+      "pins": [
+        "f22",
+        "f26"
+      ]
+    },
+    {
+      "id": "R7",
+      "type": "resistor",
+      "value": "470",
+      "pins": [
+        "i20",
+        "i24"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "red",
+      "pins": [
+        "e22",
+        "e25"
+      ]
+    },
+    {
+      "id": "D2",
+      "type": "led",
+      "color": "yellow",
+      "pins": [
+        "b23",
+        "b25"
+      ]
+    },
+    {
+      "id": "D3",
+      "type": "led",
+      "color": "green",
+      "pins": [
+        "d28",
+        "d25"
+      ]
+    },
+    {
+      "id": "D4",
+      "type": "led",
+      "color": "blue",
+      "pins": [
+        "j26",
+        "T-26"
+      ]
+    },
+    {
+      "id": "D5",
+      "type": "led",
+      "color": "white",
+      "pins": [
+        "j30",
+        "T-30"
+      ]
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "j9",
+        "T+8"
+      ]
+    },
+    {
+      "id": "W2",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "j14",
+        "T+15"
+      ]
+    },
+    {
+      "id": "W3",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "d12",
+        "g14"
+      ]
+    },
+    {
+      "id": "W4",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "d2",
+        "T+2"
+      ]
+    },
+    {
+      "id": "W5",
+      "type": "wire",
+      "color": "orange",
+      "pins": [
+        "c6",
+        "d11"
+      ]
+    },
+    {
+      "id": "W6",
+      "type": "wire",
+      "color": "green",
+      "pins": [
+        "d10",
+        "g11"
+      ]
+    },
+    {
+      "id": "W7",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "e7",
+        "T-3"
+      ]
+    },
+    {
+      "id": "W8",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "j12",
+        "T-12"
+      ]
+    },
+    {
+      "id": "W9",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "j17",
+        "T-17"
+      ]
+    },
+    {
+      "id": "W10",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "g12",
+        "c21"
+      ]
+    },
+    {
+      "id": "W11",
+      "type": "wire",
+      "color": "yellow",
+      "pins": [
+        "j10",
+        "j16"
+      ]
+    },
+    {
+      "id": "W12",
+      "type": "wire",
+      "color": "blue",
+      "pins": [
+        "d14",
+        "g15"
+      ]
+    },
+    {
+      "id": "W13",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "c25",
+        "T-28"
+      ]
+    },
+    {
+      "id": "W14",
+      "type": "wire",
+      "color": "white",
+      "pins": [
+        "e8",
+        "c23"
+      ]
+    },
+    {
+      "id": "W15",
+      "type": "wire",
+      "color": "violet",
+      "pins": [
+        "a24",
+        "a28"
+      ]
+    },
+    {
+      "id": "W16",
+      "type": "wire",
+      "color": "orange",
+      "pins": [
+        "a20",
+        "g22"
+      ]
+    },
+    {
+      "id": "W17",
+      "type": "wire",
+      "color": "green",
+      "pins": [
+        "h24",
+        "h30"
+      ]
+    }
+  ],
+  "supplies": [
+    {
+      "id": "V1",
+      "kind": "bench",
+      "voltage": 9,
+      "positive": "T+",
+      "negative": "T-"
+    }
+  ],
+  "spec": {
+    "nets": [
+      [
+        "T+",
+        "U1.VCC",
+        "U1.RESET",
+        "R1.1",
+        "U2.VDD"
+      ],
+      [
+        "R1.2",
+        "R2.1",
+        "U1.DIS"
+      ],
+      [
+        "R2.2",
+        "U1.THR",
+        "U1.TRIG",
+        "C1.+"
+      ],
+      [
+        "C1.-",
+        "T-"
+      ],
+      [
+        "U1.CTRL",
+        "C2.1"
+      ],
+      [
+        "C2.2",
+        "T-"
+      ],
+      [
+        "U1.GND",
+        "T-",
+        "U2.VSS",
+        "U2.CE"
+      ],
+      [
+        "U1.OUT",
+        "U2.CLK"
+      ],
+      [
+        "U2.Q5",
+        "U2.MR"
+      ],
+      [
+        "U2.Q0",
+        "R3.1"
+      ],
+      [
+        "R3.2",
+        "D1.anode"
+      ],
+      [
+        "D1.cathode",
+        "T-"
+      ],
+      [
+        "U2.Q1",
+        "R4.1"
+      ],
+      [
+        "R4.2",
+        "D2.anode"
+      ],
+      [
+        "D2.cathode",
+        "T-"
+      ],
+      [
+        "U2.Q2",
+        "R5.1"
+      ],
+      [
+        "R5.2",
+        "D3.anode"
+      ],
+      [
+        "D3.cathode",
+        "T-"
+      ],
+      [
+        "U2.Q3",
+        "R6.1"
+      ],
+      [
+        "R6.2",
+        "D4.anode"
+      ],
+      [
+        "D4.cathode",
+        "T-"
+      ],
+      [
+        "U2.Q4",
+        "R7.1"
+      ],
+      [
+        "R7.2",
+        "D5.anode"
+      ],
+      [
+        "D5.cathode",
+        "T-"
+      ]
+    ],
+    "wires": [
+      "W1",
+      "W2",
+      "W3",
+      "W4",
+      "W5",
+      "W6",
+      "W7",
+      "W8",
+      "W9",
+      "W10",
+      "W11",
+      "W12",
+      "W13",
+      "W14",
+      "W15",
+      "W16",
+      "W17"
+    ]
+  },
+  "revision": 0
+}

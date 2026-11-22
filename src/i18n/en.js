@@ -2014,4 +2014,9 @@ export default {
   'explain.logic.supply': 'The current into the supply pin: what the outputs give, plus the chip\'s own few microamperes.',
   'catalog.model': 'model:',
   'catalog.model.74HC595': 'simulated: SRCLK shifts SER in at QA, SRCLR clears the register, RCLK copies it to the outputs, OE high leaves them open, QH\' chains a second chip; inputs high above 0.7·VCC and low under 0.3·VCC; each output 30 Ω to VCC or 25 Ω to GND (6 mA is its recommended drive). At power-up the kit holds zeros (a real chip\'s are undefined: write it before relying on it). Not modelled: propagation delays and timing limits (the kit sees every edge of a sketch).',
+  'sim.counter.count': 'Count {count}: {out} high; CO {carry}',
+  'sim.counter.carryHigh': 'high (counts 0 to 4)',
+  'sim.counter.carryLow': 'low (counts 5 to 9)',
+  'explain.counter.count': 'Where the counter is: each rising edge on CLK (with CE low) moves it on by one, from 9 back to 0; MR high holds it at 0. Only the output of the count is high; CO is high for counts 0 to 4.',
+  'catalog.model.CD4017': 'simulated: CLK rising (CE low) advances the count, CE high holds it, MR high resets it to 0 at once; one of Q0…Q9 high, CO high for counts 0 to 4; a Qn wired to MR makes it count to n (the reset takes one time step); inputs low under 0.3·VDD and high over 0.7·VDD, keeping their level in between (the clock\'s Schmitt action); outputs about 400 Ω near the rail at 5 V (192 Ω at 10 V), levelling off at about 3 mA at 5 V, so an LED straight on an output takes about 3 mA. At power-up the kit counts from 0 (a real chip\'s count is undefined until MR is pulsed); the kit\'s buttons do not bounce, a real one on CLK needs a debounce. Not modelled: propagation delays and the maximum clock rate.',
 };

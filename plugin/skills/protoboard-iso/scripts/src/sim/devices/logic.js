@@ -42,6 +42,8 @@ export const POWERED = 1;
 // Chips a change may run through in no time before the rest waits for the next step [assumed: a
 // chain of eight 74HC595 is 64 LEDs, more than a breadboard holds].
 const CASCADE = 8;
+// How far a saturating output's drop may move in one Newton iteration, in widths r·sat [assumed].
+const LIMIT_WIDTHS = 1;
 let depth = 0;
 
 // The current an output transistor passes with `drop` volts across it (from the rail to the pin for a
@@ -185,19 +187,31 @@ export function logicCore({ vcc, gnd, inputs, outputs }, open, m, chip) {
     readAll(x, steady) {
       return inputs.filter((p) => !(p.name in open)).map((p) => [p.name, this.sample(p.name, p.node, x, steady)]);
     },
+    // A saturating output (finite `sat`) is linearised at a drop that moves at most LIMIT_WIDTHS of its
+    // linear width (r·sat) per Newton iteration: Newton on a tanh started deep in its flat part jumps
+    // past the answer and diverges (an output switching onto an LED); true while a drop is held back.
+    lim: outputs.map(() => 0),
     stamp(st, x) {
       if (this.live.size) this.live.clear();
+      let limited = false;
       this.outs.forEach((level, k) => {
         if (level == null) return;
         const o = outputs[k].node;
         const { r, sat } = stageOf(level, x);
-        const d = drop(x, k, level);
+        let d = drop(x, k, level);
+        if (sat < Infinity) {
+          const width = LIMIT_WIDTHS * r * sat;
+          const held = Math.min(this.lim[k] + width, Math.max(this.lim[k] - width, d));
+          if (Math.abs(held - d) > 1e-9) limited = true;
+          d = held;
+          this.lim[k] = d;
+        }
         const { i, g } = drive(d, r, sat);
         const [a, b] = level ? [vcc, o] : [o, gnd];
         st.conductance(a, b, g + GMIN);
         st.current(a, b, i - g * d);
       });
-      return false;
+      return limited;
     },
     // Into the element at each node, in `nodes` order; also each output's current out of its pin.
     currents(x) {

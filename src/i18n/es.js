@@ -2012,4 +2012,9 @@ export default {
   'explain.logic.supply': 'La corriente que entra por el pin de alimentación: lo que dan las salidas, más los pocos microamperios propios del chip.',
   'catalog.model': 'modelo:',
   'catalog.model.74HC595': 'se simula: SRCLK mete SER en QA y desplaza, SRCLR borra el registro, RCLK lo copia a las salidas, OE en alto las deja abiertas, QH\' encadena un segundo chip; entradas altas sobre 0,7·VCC y bajas bajo 0,3·VCC; cada salida 30 Ω a VCC o 25 Ω a GND (6 mA es su corriente recomendada). Al encender el kit guarda ceros (los de un chip real no están definidos: escríbelo antes de fiarte de él). No se modela: los retardos de propagación ni los límites de tiempo (el kit ve cada flanco de un sketch).',
+  'sim.counter.count': 'Cuenta {count}: {out} en alto; CO {carry}',
+  'sim.counter.carryHigh': 'en alto (cuentas 0 a 4)',
+  'sim.counter.carryLow': 'en bajo (cuentas 5 a 9)',
+  'explain.counter.count': 'Dónde va el contador: cada flanco de subida en CLK (con CE en bajo) lo avanza uno, de 9 vuelve a 0; MR en alto lo deja en 0. Solo la salida de la cuenta está en alto; CO está en alto en las cuentas 0 a 4.',
+  'catalog.model.CD4017': 'se simula: el flanco de subida de CLK (con CE en bajo) avanza la cuenta, CE en alto la detiene, MR en alto la pone en 0 de inmediato; una de Q0…Q9 en alto, CO en alto en las cuentas 0 a 4; una Qn conectada a MR hace que cuente hasta n (el reinicio tarda un paso de tiempo); entradas bajas bajo 0,3·VDD y altas sobre 0,7·VDD, que conservan su nivel en medio (el Schmitt del reloj); salidas de unos 400 Ω cerca del riel a 5 V (192 Ω a 10 V), que se quedan en unos 3 mA a 5 V, así que un LED directo en una salida toma unos 3 mA. Al encender el kit cuenta desde 0 (la cuenta de un chip real no está definida hasta un pulso en MR); los pulsadores del kit no rebotan, uno real en CLK necesita un antirrebote. No se modela: los retardos de propagación ni la frecuencia máxima de reloj.',
 };
