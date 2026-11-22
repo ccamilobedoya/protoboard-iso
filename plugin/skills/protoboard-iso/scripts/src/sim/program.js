@@ -46,6 +46,10 @@ export const STUCK_TURNS = 200_000;
 // A serial port sends ten bits a character at the rate Serial.begin gave; the program waits only when
 // its transmit buffer is full (an AVR's 64 bytes, an ESP32's 128-byte FIFO), as print() does on a board.
 const TX_BUFFER = { uno: 64 };
+// The GPIOs of Serial's UART: Serial.begin makes TX an output that idles high (a UART's stop level), as
+// on a board, so what that pin feeds sees the board's rail (a UNO's 5 V into a 3.3 V input). The
+// ESP32-C3's Serial is its USB port: no pin.
+const SERIAL_PINS = { uno: { tx: 1, rx: 0 }, esp32: { tx: 1, rx: 3 } };
 const TX_BUFFER_DEFAULT = 128;
 const LOG = 40; // Serial lines kept
 const LINE_MAX = 1000; // characters kept of one Serial line
@@ -356,6 +360,8 @@ export function createRunner(js, board) {
       begin(rate) {
         const r = Number(rate);
         baud = Number.isFinite(r) && r > 0 ? r : 0;
+        const port = SERIAL_PINS[board.family];
+        if (port) set(port.tx, { mode: 'output', level: 1, pull: null, pwm: null });
       },
       print: (v, d, kind) => write(show(v, d, kind)),
       println: (v = '', d, kind) => write(`${show(v, d, kind)}\n`),

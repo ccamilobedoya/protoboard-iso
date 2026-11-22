@@ -557,6 +557,7 @@ before saying it works.
 - ✅ A `char` prints as its letter (C10a): `Serial.println('Z')`, a `char` variable, `(char) 65` and a function returning `char` printed the number; `char` arithmetic stays a number, `DEC` prints the number, `Serial.write(65)` prints `A`, `HEX`/`BIN`/`OCT`/`DEC` are an integer's base and a float's second argument its decimals
 - ✅ Mistakes a real board would show, the kit says (C10a), each a ⚠ with its line and the sketch going on as a board would: a pin the board does not have, HIGH to a pin never set as `OUTPUT` (an UNO's pull-up sources it), `analogWrite` on a pin with no PWM, an integer division by zero (an ESP32 stops there), an array outside its bounds, a negative `delay` (about 49 days), a name never declared (a board refuses to compile it), a brace never closed (where its block opened), a library the kit does not have (one line; its calls do nothing)
 - ✅ No false "never lets time pass" (C10a): a loop's turns without time passing are counted across steps (200 000 before `SIM_PROGRAM_STUCK`, whose text says that count), so a long loop that ends is not stuck; Serial output takes time at `Serial.begin`'s rate once the transmit buffer is full, so a loop printing 100 000 lines lets time pass as on a board (it printed 2 million lines in a second and was called stuck)
+- ✅ A UNO's TX idles at 5 V once `Serial.begin` runs (C10a): an ESP32's RX on it is over its rail and the pin-voltage check says so (it read 1.38 V: the TX pin was not driven)
 
 ## Optional, later ⬜
 

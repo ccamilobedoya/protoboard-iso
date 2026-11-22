@@ -131,6 +131,11 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   (`SIM_PROGRAM_LIBRARY`, una línea: sus objetos, `Servo s;`, `WiFi.begin(…)`, y sus constantes no
   hacen nada y leen 0). Los del entorno de ejecución se ven en los estados que resuelve la revisión
   (setup() y loop() hasta su primera espera) y en una ejecución.
+- **`Serial.begin` toma los pines de su UART:** su TX (D1 en un UNO, GPIO1 en un ESP32) pasa a ser
+  una salida que reposa en alto, el nivel de parada de la línea, así que lo que alimenta ve el riel de
+  la placa: el TX de un UNO en el RX de un ESP32 son 5 V en un pin de 3,3 V, y la revisión del voltaje
+  de los pines lo dice (`SIM_PIN_OVERVOLTAGE`). El `Serial` del ESP32-C3 es su puerto USB y no toma
+  ningún pin.
 - **Cómo corre:** cada función pasa a ser un generador, así que `delay()` espera en tiempo simulado.
   El programa corre entre pasos de tiempo, con los voltajes del paso anterior, como el biestable del
   555: un cambio vale un paso después (1 ms en la página). En t = 0 vuelve a empezar con los voltajes

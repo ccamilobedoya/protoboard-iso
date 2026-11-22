@@ -127,6 +127,10 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   does not run); an `#include` of a library the kit does not have (`SIM_PROGRAM_LIBRARY`, one line: its
   objects, `Servo s;`, `WiFi.begin(…)`, and its constants do nothing and read 0). The runtime's are
   seen in the states the review solves (setup() and loop() up to its first wait) and in a run.
+- **`Serial.begin` takes the UART's pins:** its TX (D1 on an UNO, GPIO1 on an ESP32) becomes an
+  output that idles high, the line's stop level, so what it feeds sees the board's rail: an UNO's TX
+  into an ESP32's RX is 5 V on a 3.3 V pin, and the pin-voltage check says so (`SIM_PIN_OVERVOLTAGE`).
+  The ESP32-C3's `Serial` is its USB port and takes no pin.
 - **How it runs:** every function becomes a generator, so `delay()` waits in simulated time. The
   program runs between time steps, from the voltages of the step before, as the 555's latch: a
   change takes effect one step later (1 ms in the page). At t = 0 it starts over from the

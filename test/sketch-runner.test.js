@@ -240,3 +240,32 @@ test('a long loop that ends is not stuck; one that never ends is, at its count o
   empty.advance(0);
   assert.equal(empty.stuck, false, 'a loop() that returns is not stuck');
 });
+
+// ── 7. A serial line from one board to another ──
+
+// An UNO's TX (D1) into an ESP32's RX2, grounds joined, laid out once; each test gives the programs.
+let linked = null;
+const link = (uno, esp) => {
+  linked ??= autoLayout({
+    board: 'auto',
+    parts: [
+      { id: 'U1', part: 'UNO', program: 'void setup() {}\nvoid loop() { delay(10); }' },
+      { id: 'E1', part: 'ESP32-DEVKIT', program: 'void setup() {}\nvoid loop() { delay(10); }' },
+    ],
+    nets: [['U1.D1', 'E1.RX2'], ['U1.GND', 'E1.GND']],
+  }).circuit;
+  return { ...linked, parts: linked.parts.map((p) => (p.id === 'U1' ? { ...p, program: uno } : p.id === 'E1' ? { ...p, program: esp } : p)) };
+};
+
+test('an UNO\'s TX idles at 5 V once Serial.begin runs: the ESP32\'s RX pin over its rail is seen', async () => {
+  const { simulate } = await import('../src/sim/index.js');
+  const esp = 'void setup() { Serial.begin(115200); }\nvoid loop() { delay(100); }';
+  const r = simulate(link('int n = 0;\nvoid setup() { Serial.begin(9600); }\nvoid loop() { Serial.println(n); n++; delay(1000); }', esp));
+  assert.ok(r.ok, JSON.stringify(r.issues));
+  assert.equal(r.parts.U1.pins.find((p) => p.name === 'D1').mode, 'output');
+  assert.ok(r.parts.E1.pins.find((p) => p.name === 'RX2').voltage > 3.6);
+  assert.ok(r.issues.some((i) => i.code === 'SIM_PIN_OVERVOLTAGE' && i.params.pin === 'RX2'), JSON.stringify(r.issues.map((i) => i.code)));
+  // Without Serial.begin the pin is not driven, as on a board.
+  const idle = simulate(link('void setup() {}\nvoid loop() { delay(1000); }', esp));
+  assert.ok(!idle.issues.some((i) => i.code === 'SIM_PIN_OVERVOLTAGE'));
+});
