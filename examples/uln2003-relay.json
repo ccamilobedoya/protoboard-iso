@@ -12,82 +12,55 @@
   },
   "parts": [
     {
+      "id": "U2",
+      "part": "ULN2003",
+      "type": "ic",
+      "pins": [
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "e7",
+        "e8",
+        "e9",
+        "f9",
+        "f8",
+        "f7",
+        "f6",
+        "f5",
+        "f4",
+        "f3",
+        "f2"
+      ]
+    },
+    {
       "id": "U1",
       "part": "UNO",
       "program": "// D8 drives the ULN2003's IN1; OUT1 sinks the relay coil's current from 5 V.\nvoid setup() {\n  pinMode(8, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(8, HIGH);  // channel 1 on: the relay pulls in\n  delay(1000);\n  digitalWrite(8, LOW);   // channel 1 off: the clamp diode to COM takes the coil's current\n  delay(1000);\n}\n",
       "type": "module",
       "pins": {
-        "d8": "f2",
-        "5v": "f4",
-        "gnd": "f6"
+        "d8": "d2",
+        "5v": "g9",
+        "gnd": "d9"
       }
-    },
-    {
-      "id": "U2",
-      "part": "ULN2003",
-      "type": "ic",
-      "pins": [
-        "f14",
-        "f13",
-        "f12",
-        "f11",
-        "f10",
-        "f9",
-        "f8",
-        "f7",
-        "e7",
-        "e8",
-        "e9",
-        "e10",
-        "e11",
-        "e12",
-        "e13",
-        "e14"
-      ]
     },
     {
       "id": "K1",
       "part": "SRD-05VDC-SL-C",
       "type": "relay",
       "pins": {
-        "a2": "d14",
-        "a1": "d7"
+        "a2": "g2",
+        "a1": "h9"
       }
     },
     {
       "id": "W1",
       "type": "wire",
-      "color": "orange",
-      "pins": [
-        "j2",
-        "j14"
-      ]
-    },
-    {
-      "id": "W2",
-      "type": "wire",
-      "color": "red",
-      "pins": [
-        "h4",
-        "b7"
-      ]
-    },
-    {
-      "id": "W3",
-      "type": "wire",
       "color": "black",
       "pins": [
-        "j6",
-        "h7"
-      ]
-    },
-    {
-      "id": "W4",
-      "type": "wire",
-      "color": "black",
-      "pins": [
-        "g6",
-        "B-6"
+        "a9",
+        "B-8"
       ]
     }
   ],
@@ -118,10 +91,7 @@
       }
     ],
     "wires": [
-      "W1",
-      "W2",
-      "W3",
-      "W4"
+      "W1"
     ]
   }
 }

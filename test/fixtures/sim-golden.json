@@ -14021,72 +14021,26 @@
    "ground": "T-",
    "nodes": {
     "T-": 0,
-    "2:f-j": null,
-    "4:f-j": null,
-    "6:f-j": null,
-    "14:f-j": null,
-    "13:f-j": null,
-    "12:f-j": null,
-    "11:f-j": null,
-    "10:f-j": null,
-    "9:f-j": null,
-    "8:f-j": null,
-    "7:f-j": null,
+    "2:a-e": null,
+    "3:a-e": null,
+    "4:a-e": null,
+    "5:a-e": null,
+    "6:a-e": null,
     "7:a-e": null,
     "8:a-e": null,
     "9:a-e": null,
-    "10:a-e": null,
-    "11:a-e": null,
-    "12:a-e": null,
-    "13:a-e": null,
-    "14:a-e": null,
+    "9:f-j": null,
+    "8:f-j": null,
+    "7:f-j": null,
+    "6:f-j": null,
+    "5:f-j": null,
+    "4:f-j": null,
+    "3:f-j": null,
+    "2:f-j": null,
     "B-": null,
     "T+": 5
    },
    "parts": {
-    "U1": {
-     "kind": "MCU",
-     "pins": [
-      {
-       "name": "D8",
-       "gpio": 8,
-       "mode": "output",
-       "level": 1,
-       "pull": null,
-       "voltage": 4.9158049822366205,
-       "current": 0.0013087738226380194,
-       "read": 1,
-       "adc": null,
-       "behind": 40
-      }
-     ],
-     "usb": {
-      "voltage": 4.968155935336732,
-      "current": 0.10614688221097435
-     },
-     "vbus": 4.968155935336732,
-     "vdd": 4.968155935336732,
-     "rail": null,
-     "power": 0.22559182434280906,
-     "currents": {
-      "D8": -0.0013087738226380194,
-      "5V": -0.06012470496529578,
-      "GND": 0.06143347878801796
-     },
-     "program": {
-      "error": null,
-      "time": 0,
-      "until": 1,
-      "serial": [],
-      "notes": []
-     },
-     "floating": true,
-     "pinCurrents": {
-      "D8": -0.0013087738226380194,
-      "5V": -0.06012470496529578,
-      "GND": 0.06143347878801796
-     }
-    },
     "U2": {
      "kind": "DRV",
      "pins": {
@@ -14110,54 +14064,97 @@
      "channels": [
       {
        "name": "1",
-       "vin": 4.9126678695986294,
-       "vout": 0.782604930908481,
-       "current": 0.06012470477971732,
-       "clamp": -5.179473095241079e-12,
-       "input": 0.0013087739816326366,
+       "vin": 4.915734649675194,
+       "vout": 0.7827298835556755,
+       "current": 0.06020997100926362,
+       "clamp": -5.18540020816617e-12,
+       "input": 0.0013098857324798376,
        "on": true
       }
      ],
-     "power": 0.05348346233980428,
-     "ground": 0.061433478761349955,
+     "power": 0.053567194300940785,
+     "ground": 0.061519856741743456,
      "currents": {
-      "IN1": 0.0013087739816326366,
+      "IN1": 0.0013098857324798376,
       "IN2": 0,
       "IN3": 0,
       "IN4": 0,
       "IN5": 0,
       "IN6": 0,
       "IN7": 0,
-      "GND": -0.061433478761349955,
-      "COM": 5.179473095241079e-12,
+      "GND": -0.061519856741743456,
+      "COM": 5.18540020816617e-12,
       "OUT7": 0,
       "OUT6": 0,
       "OUT5": 0,
       "OUT4": 0,
       "OUT3": 0,
       "OUT2": 0,
-      "OUT1": 0.060124704774537845
+      "OUT1": 0.06020997100407822
      },
-     "current": 0.06012470477971732,
-     "vout": 0.782604930908481,
+     "current": 0.06020997100926362,
+     "vout": 0.7827298835556755,
      "floating": true,
      "pinCurrents": {
-      "IN1": 0.0013087739816326366,
+      "IN1": 0.0013098857324798376,
       "IN2": 0,
       "IN3": 0,
       "IN4": 0,
       "IN5": 0,
       "IN6": 0,
       "IN7": 0,
-      "GND": -0.061433478761349955,
-      "COM": 5.179473095241079e-12,
+      "GND": -0.061519856741743456,
+      "COM": 5.18540020816617e-12,
       "OUT7": 0,
       "OUT6": 0,
       "OUT5": 0,
       "OUT4": 0,
       "OUT3": 0,
       "OUT2": 0,
-      "OUT1": 0.060124704774537845
+      "OUT1": 0.06020997100407822
+     }
+    },
+    "U1": {
+     "kind": "MCU",
+     "pins": [
+      {
+       "name": "D8",
+       "gpio": 8,
+       "mode": "output",
+       "level": 1,
+       "pull": null,
+       "voltage": 4.915734649675194,
+       "current": 0.0013098860463016543,
+       "read": 1,
+       "adc": null,
+       "behind": 40
+      }
+     ],
+     "usb": {
+      "voltage": 4.9681300917218465,
+      "current": 0.1062330275939304
+     },
+     "vbus": 4.9681300917218465,
+     "vdd": 4.9681300917218465,
+     "rail": null,
+     "power": 0.22559511840288105,
+     "currents": {
+      "D8": -0.0013098860463016543,
+      "5V": -0.06020997071712215,
+      "GND": 0.06151985676350805
+     },
+     "program": {
+      "error": null,
+      "time": 0,
+      "until": 1,
+      "serial": [],
+      "notes": []
+     },
+     "floating": true,
+     "pinCurrents": {
+      "D8": -0.0013098860463016543,
+      "5V": -0.06020997071712215,
+      "GND": 0.06151985676350805
      }
     },
     "K1": {
@@ -14168,11 +14165,11 @@
      },
      "closed": true,
      "state": "operated",
-     "voltage": 4.17947309524108,
-     "current": 0.059706757650490314,
-     "drive": 4.179473035534322,
+     "voltage": 4.185400208166171,
+     "current": 0.05979143069106771,
+     "drive": 4.18540014837474,
      "kick": 0,
-     "power": 0.24954278720430376,
+     "power": 0.25025106646094797,
      "pullIn": 0.05357142857142857,
      "dropOut": 0.007142857142857143,
      "contacts": {
@@ -14180,61 +14177,16 @@
       "NC": 0
      },
      "currents": {
-      "A2": -0.059706757650490314,
-      "A1": 0.059706757650490314
+      "A2": -0.05979143069106771,
+      "A1": 0.05979143069106771
      },
      "floating": true,
      "pinCurrents": {
-      "A2": -0.059706757650490314,
-      "A1": 0.059706757650490314
+      "A2": -0.05979143069106771,
+      "A1": 0.05979143069106771
      }
     },
     "W1": {
-     "kind": "W",
-     "pins": {
-      "1": null,
-      "2": null
-     },
-     "voltage": 0.00006543869908162856,
-     "current": 0.001308773981632571,
-     "power": 8.564446674991868e-8,
-     "floating": true,
-     "pinCurrents": {
-      "1": 0.001308773981632571,
-      "2": -0.001308773981632571
-     }
-    },
-    "W2": {
-     "kind": "W",
-     "pins": {
-      "1": null,
-      "2": null
-     },
-     "voltage": 0.0030062352482621707,
-     "current": 0.060124704965243414,
-     "power": 0.0001807490073578783,
-     "floating": true,
-     "pinCurrents": {
-      "1": 0.060124704965243414,
-      "2": -0.060124704965243414
-     }
-    },
-    "W3": {
-     "kind": "W",
-     "pins": {
-      "1": null,
-      "2": null
-     },
-     "voltage": -0.0030716739389093917,
-     "current": -0.06143347877818783,
-     "power": 0.00018870361573950273,
-     "floating": true,
-     "pinCurrents": {
-      "1": -0.06143347877818783,
-      "2": 0.06143347877818783
-     }
-    },
-    "W4": {
      "kind": "W",
      "pins": {
       "1": null,
@@ -14264,18 +14216,32 @@
      "severity": "warning",
      "code": "SIM_FLOATING",
      "params": {
-      "nodes": "2:f-j, 4:f-j, 6:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j, 9:f-j, 8:f-j, 7:f-j, 7:a-e, 8:a-e, 9:a-e, 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, B-",
-      "parts": "U1, W1, W2, W3, W4, U2, K1"
+      "nodes": "2:a-e, 3:a-e, 4:a-e, 5:a-e, 6:a-e, 7:a-e, 8:a-e, 9:a-e, 9:f-j, 8:f-j, 7:f-j, 6:f-j, 5:f-j, 4:f-j, 3:f-j, 2:f-j, B-",
+      "parts": "U2, U1, W1, K1"
      }
     }
    ]
   },
   "text": {
-   "en": "DC operating point — a model, not a measurement (1 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T-):\n  rail T-                        0 V\n  column 2 (rows f–j)            floating\n  column 4 (rows f–j)            floating\n  column 6 (rows f–j)            floating\n  column 14 (rows f–j)           floating\n  column 13 (rows f–j)           floating\n  column 12 (rows f–j)           floating\n  column 11 (rows f–j)           floating\n  column 10 (rows f–j)           floating\n  column 9 (rows f–j)            floating\n  column 8 (rows f–j)            floating\n  column 7 (rows f–j)            floating\n  column 7 (rows a–e)            floating\n  column 8 (rows a–e)            floating\n  column 9 (rows a–e)            floating\n  column 10 (rows a–e)           floating\n  column 11 (rows a–e)           floating\n  column 12 (rows a–e)           floating\n  column 13 (rows a–e)           floating\n  column 14 (rows a–e)           floating\n  rail B-                        floating\n  rail T+                        5 V\nParts:\n  U1     USB 4.97 V 106 mA · Logic rail 4.97 V · D8 output HIGH 4.92 V 1.31 mA (through its 40 Ω output resistance) · 226 mW · floating\n  U2     channel 1: on · IN 4.91 V · OUT 783 mV · 60.1 mA · Power: 53.5 mW · floating\n  K1     pulled in: COM–NO · Coil 4.18 V 59.7 mA · COM–NO closed, 0 A · floating\n  W1     65.4 µV    1.31 mA    85.6 nW · floating\n  W2     3.01 mV    60.1 mA    181 µW · floating\n  W3     -3.07 mV   -61.4 mA   189 µW · floating\n  W4     -0.245 pV  -4.9 pA    0 W · floating\nNotes:\n  warning: U1, W1, W2, W3, W4, U2, K1: no DC path to the supply (nodes 2:f-j, 4:f-j, 6:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j, 9:f-j, 8:f-j, 7:f-j, 7:a-e, 8:a-e, 9:a-e, 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, B-), so the voltage there is not defined.",
-   "es": "Punto de operación en DC — un modelo, no una medición (1 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T-):\n  riel T-                        0 V\n  columna 2 (filas f–j)          flotante\n  columna 4 (filas f–j)          flotante\n  columna 6 (filas f–j)          flotante\n  columna 14 (filas f–j)         flotante\n  columna 13 (filas f–j)         flotante\n  columna 12 (filas f–j)         flotante\n  columna 11 (filas f–j)         flotante\n  columna 10 (filas f–j)         flotante\n  columna 9 (filas f–j)          flotante\n  columna 8 (filas f–j)          flotante\n  columna 7 (filas f–j)          flotante\n  columna 7 (filas a–e)          flotante\n  columna 8 (filas a–e)          flotante\n  columna 9 (filas a–e)          flotante\n  columna 10 (filas a–e)         flotante\n  columna 11 (filas a–e)         flotante\n  columna 12 (filas a–e)         flotante\n  columna 13 (filas a–e)         flotante\n  columna 14 (filas a–e)         flotante\n  riel B-                        flotante\n  riel T+                        5 V\nComponentes:\n  U1     USB 4,97 V 106 mA · Riel lógico 4,97 V · D8 salida en ALTO 4,92 V 1,31 mA (a través de su resistencia de salida de 40 Ω) · 226 mW · flotante\n  U2     canal 1: encendido · IN 4,91 V · OUT 783 mV · 60,1 mA · Potencia: 53,5 mW · flotante\n  K1     activado: COM–NO · Bobina 4,18 V 59,7 mA · COM–NO cerrado, 0 A · flotante\n  W1     65,4 µV    1,31 mA    85,6 nW · flotante\n  W2     3,01 mV    60,1 mA    181 µW · flotante\n  W3     -3,07 mV   -61,4 mA   189 µW · flotante\n  W4     -0,245 pV  -4,9 pA    0 W · flotante\nObservaciones:\n  aviso: U1, W1, W2, W3, W4, U2, K1: no hay camino de corriente continua hasta la fuente (grupos 2:f-j, 4:f-j, 6:f-j, 14:f-j, 13:f-j, 12:f-j, 11:f-j, 10:f-j, 9:f-j, 8:f-j, 7:f-j, 7:a-e, 8:a-e, 9:a-e, 10:a-e, 11:a-e, 12:a-e, 13:a-e, 14:a-e, B-), así que ahí el voltaje no está definido."
+   "en": "DC operating point — a model, not a measurement (1 Newton iterations).\nSupplies:\n  V1     5 V        5 pA       25 pW      constant voltage\nNodes (voltage from rail T-):\n  rail T-                        0 V\n  column 2 (rows a–e)            floating\n  column 3 (rows a–e)            floating\n  column 4 (rows a–e)            floating\n  column 5 (rows a–e)            floating\n  column 6 (rows a–e)            floating\n  column 7 (rows a–e)            floating\n  column 8 (rows a–e)            floating\n  column 9 (rows a–e)            floating\n  column 9 (rows f–j)            floating\n  column 8 (rows f–j)            floating\n  column 7 (rows f–j)            floating\n  column 6 (rows f–j)            floating\n  column 5 (rows f–j)            floating\n  column 4 (rows f–j)            floating\n  column 3 (rows f–j)            floating\n  column 2 (rows f–j)            floating\n  rail B-                        floating\n  rail T+                        5 V\nParts:\n  U2     channel 1: on · IN 4.92 V · OUT 783 mV · 60.2 mA · Power: 53.6 mW · floating\n  U1     USB 4.97 V 106 mA · Logic rail 4.97 V · D8 output HIGH 4.92 V 1.31 mA (through its 40 Ω output resistance) · 226 mW · floating\n  K1     pulled in: COM–NO · Coil 4.19 V 59.8 mA · COM–NO closed, 0 A · floating\n  W1     -0.245 pV  -4.9 pA    0 W · floating\nNotes:\n  warning: U2, U1, W1, K1: no DC path to the supply (nodes 2:a-e, 3:a-e, 4:a-e, 5:a-e, 6:a-e, 7:a-e, 8:a-e, 9:a-e, 9:f-j, 8:f-j, 7:f-j, 6:f-j, 5:f-j, 4:f-j, 3:f-j, 2:f-j, B-), so the voltage there is not defined.",
+   "es": "Punto de operación en DC — un modelo, no una medición (1 iteraciones de Newton).\nFuentes:\n  V1     5 V        5 pA       25 pW      voltaje constante\nGrupos (voltaje medido desde riel T-):\n  riel T-                        0 V\n  columna 2 (filas a–e)          flotante\n  columna 3 (filas a–e)          flotante\n  columna 4 (filas a–e)          flotante\n  columna 5 (filas a–e)          flotante\n  columna 6 (filas a–e)          flotante\n  columna 7 (filas a–e)          flotante\n  columna 8 (filas a–e)          flotante\n  columna 9 (filas a–e)          flotante\n  columna 9 (filas f–j)          flotante\n  columna 8 (filas f–j)          flotante\n  columna 7 (filas f–j)          flotante\n  columna 6 (filas f–j)          flotante\n  columna 5 (filas f–j)          flotante\n  columna 4 (filas f–j)          flotante\n  columna 3 (filas f–j)          flotante\n  columna 2 (filas f–j)          flotante\n  riel B-                        flotante\n  riel T+                        5 V\nComponentes:\n  U2     canal 1: encendido · IN 4,92 V · OUT 783 mV · 60,2 mA · Potencia: 53,6 mW · flotante\n  U1     USB 4,97 V 106 mA · Riel lógico 4,97 V · D8 salida en ALTO 4,92 V 1,31 mA (a través de su resistencia de salida de 40 Ω) · 226 mW · flotante\n  K1     activado: COM–NO · Bobina 4,19 V 59,8 mA · COM–NO cerrado, 0 A · flotante\n  W1     -0,245 pV  -4,9 pA    0 W · flotante\nObservaciones:\n  aviso: U2, U1, W1, K1: no hay camino de corriente continua hasta la fuente (grupos 2:a-e, 3:a-e, 4:a-e, 5:a-e, 6:a-e, 7:a-e, 8:a-e, 9:a-e, 9:f-j, 8:f-j, 7:f-j, 6:f-j, 5:f-j, 4:f-j, 3:f-j, 2:f-j, B-), así que ahí el voltaje no está definido."
   },
   "lines": {
    "en": {
+    "U2": [
+     {
+      "key": "darlington.on",
+      "text": "channel 1: on · IN 4.92 V · OUT 783 mV · 60.2 mA"
+     },
+     {
+      "key": "power",
+      "text": "Power: 53.6 mW"
+     },
+     {
+      "key": "floating",
+      "text": "floating"
+     }
+    ],
     "U1": [
      {
       "key": "mcu.program",
@@ -14302,20 +14268,6 @@
       "text": "floating"
      }
     ],
-    "U2": [
-     {
-      "key": "darlington.on",
-      "text": "channel 1: on · IN 4.91 V · OUT 783 mV · 60.1 mA"
-     },
-     {
-      "key": "power",
-      "text": "Power: 53.5 mW"
-     },
-     {
-      "key": "floating",
-      "text": "floating"
-     }
-    ],
     "K1": [
      {
       "key": "relay.operated",
@@ -14323,11 +14275,11 @@
      },
      {
       "key": "relay.coil",
-      "text": "Coil: 4.18 V"
+      "text": "Coil: 4.19 V"
      },
      {
       "key": "relay.current",
-      "text": "Coil current: 59.7 mA"
+      "text": "Coil current: 59.8 mA"
      },
      {
       "key": "relay.pull",
@@ -14349,60 +14301,6 @@
     "W1": [
      {
       "key": "voltage",
-      "text": "Voltage: 65.4 µV"
-     },
-     {
-      "key": "current",
-      "text": "Current: 1.31 mA"
-     },
-     {
-      "key": "power",
-      "text": "Power: 85.6 nW"
-     },
-     {
-      "key": "floating",
-      "text": "floating"
-     }
-    ],
-    "W2": [
-     {
-      "key": "voltage",
-      "text": "Voltage: 3.01 mV"
-     },
-     {
-      "key": "current",
-      "text": "Current: 60.1 mA"
-     },
-     {
-      "key": "power",
-      "text": "Power: 181 µW"
-     },
-     {
-      "key": "floating",
-      "text": "floating"
-     }
-    ],
-    "W3": [
-     {
-      "key": "voltage",
-      "text": "Voltage: -3.07 mV"
-     },
-     {
-      "key": "current",
-      "text": "Current: -61.4 mA"
-     },
-     {
-      "key": "power",
-      "text": "Power: 189 µW"
-     },
-     {
-      "key": "floating",
-      "text": "floating"
-     }
-    ],
-    "W4": [
-     {
-      "key": "voltage",
       "text": "Voltage: -0.245 pV"
      },
      {
@@ -14420,6 +14318,20 @@
     ]
    },
    "es": {
+    "U2": [
+     {
+      "key": "darlington.on",
+      "text": "canal 1: encendido · IN 4,92 V · OUT 783 mV · 60,2 mA"
+     },
+     {
+      "key": "power",
+      "text": "Potencia: 53,6 mW"
+     },
+     {
+      "key": "floating",
+      "text": "flotante"
+     }
+    ],
     "U1": [
      {
       "key": "mcu.program",
@@ -14446,20 +14358,6 @@
       "text": "flotante"
      }
     ],
-    "U2": [
-     {
-      "key": "darlington.on",
-      "text": "canal 1: encendido · IN 4,91 V · OUT 783 mV · 60,1 mA"
-     },
-     {
-      "key": "power",
-      "text": "Potencia: 53,5 mW"
-     },
-     {
-      "key": "floating",
-      "text": "flotante"
-     }
-    ],
     "K1": [
      {
       "key": "relay.operated",
@@ -14467,11 +14365,11 @@
      },
      {
       "key": "relay.coil",
-      "text": "Bobina: 4,18 V"
+      "text": "Bobina: 4,19 V"
      },
      {
       "key": "relay.current",
-      "text": "Corriente de la bobina: 59,7 mA"
+      "text": "Corriente de la bobina: 59,8 mA"
      },
      {
       "key": "relay.pull",
@@ -14491,60 +14389,6 @@
      }
     ],
     "W1": [
-     {
-      "key": "voltage",
-      "text": "Voltaje (tensión): 65,4 µV"
-     },
-     {
-      "key": "current",
-      "text": "Corriente: 1,31 mA"
-     },
-     {
-      "key": "power",
-      "text": "Potencia: 85,6 nW"
-     },
-     {
-      "key": "floating",
-      "text": "flotante"
-     }
-    ],
-    "W2": [
-     {
-      "key": "voltage",
-      "text": "Voltaje (tensión): 3,01 mV"
-     },
-     {
-      "key": "current",
-      "text": "Corriente: 60,1 mA"
-     },
-     {
-      "key": "power",
-      "text": "Potencia: 181 µW"
-     },
-     {
-      "key": "floating",
-      "text": "flotante"
-     }
-    ],
-    "W3": [
-     {
-      "key": "voltage",
-      "text": "Voltaje (tensión): -3,07 mV"
-     },
-     {
-      "key": "current",
-      "text": "Corriente: -61,4 mA"
-     },
-     {
-      "key": "power",
-      "text": "Potencia: 189 µW"
-     },
-     {
-      "key": "floating",
-      "text": "flotante"
-     }
-    ],
-    "W4": [
      {
       "key": "voltage",
       "text": "Voltaje (tensión): -0,245 pV"

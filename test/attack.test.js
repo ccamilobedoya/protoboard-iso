@@ -508,6 +508,6 @@ test('attack: a PC817 whose phototransistor feeds or shunts its own LED ends, bo
     const dc = simulate(circuit);
     assert.ok(typeof dc.ok === 'boolean');
     const r = runCircuit(circuit, { seconds: 0.5 });
-    assert.ok(r && Date.now() - began < 20000, 'ends in time'); // real clock
+    assert.ok(r && Date.now() - began < 20000, 'ends in time'); // real clock: the bound is on the machine's time
   }
 });
