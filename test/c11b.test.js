@@ -179,6 +179,13 @@ test('PC817: 100 mA through its LED is a hazard on the chip; its LED reversed at
   assert.ok(rev.hazards.some((h) => h.code === 'SIM_REVERSE_VOLTAGE' && h.params.part === 'U1'), JSON.stringify(rev.hazards));
 });
 
+test('PC817: with its output side wired to nothing, the LED\'s limits are still checked (its pins do not float)', () => {
+  const r = autoLayout({ parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'R1', type: 'resistor', value: '75' }, { id: 'U1', part: 'PC817' }], nets: [['BT1.+', 'R1.1'], ['R1.2', 'U1.A'], ['U1.K', 'BT1.-']] });
+  const s = simulate(r.circuit);
+  assert.ok(!s.parts.U1.floating);
+  assert.ok(checkHazards(r.circuit).hazards.some((h) => h.code === 'SIM_OVER_CURRENT' && h.params.part === 'U1'));
+});
+
 test('catalog: the PC817 is simulated and says its CTR is the middle of a wide range', () => {
   const text = formatCatalogEntry(catalogEntry('PC817'), 'en');
   assert.doesNotMatch(text, /Not simulated/);

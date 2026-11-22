@@ -63,8 +63,13 @@ export const optocoupler = {
   kind: 'OPT',
   modelText: 'optocoupler',
   accepts: (part) => part.def.electrical?.part === 'PC817',
-  params(part) {
-    return { model: { ...PC817, ...part.raw.model } };
+  params(part, c) {
+    const nodeOf = new Map(part.pinNames.map((name, i) => [name, part.holes[i]?.node]));
+    const alone = (pin) => (c.members?.[nodeOf.get(pin)] ?? []).every((id) => id === part.id);
+    // A side with nothing wired to it (the LED alone on a battery) is tied to the other side with no
+    // element, so its pins do not read as floating and the wired side's limits are still checked.
+    const open = { input: alone('A') && alone('K'), output: alone('C') && alone('E') };
+    return { model: { ...PC817, ...part.raw.model }, open };
   },
   elements(p, h) {
     const m = p.model;
@@ -73,6 +78,8 @@ export const optocoupler = {
     const led = h.add(junction(a, k, m.led));
     const transistor = h.add(bjt(c, b, e, m.transistor));
     const light = h.add(lightCoupling(led, a, k, c, b, m.ctr / (m.transistor.bf + 1), m.led));
+    if (p.open?.output && !p.open.input) h.add({ nodes: [], links: [[c, k], [e, k]], stamp: () => false, currents: () => [] });
+    if (p.open?.input && !p.open.output) h.add({ nodes: [], links: [[a, e], [k, e]], stamp: () => false, currents: () => [] });
     return { led, transistor, light };
   },
   read(entry, h) {
