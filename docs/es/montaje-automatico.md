@@ -692,7 +692,10 @@ El 2026-10-18 lo único que bloqueaba era la visibilidad: el perfil lesson daba 
 las vistas una pieza apenas bajaba del 85 % visible en cada una (el umbral de nota del inspector), y
 contaba como dos vistas dos piezas que la tapaban en la misma. Desde el 2026-10-20 bloquea cuando la
 **mejor vista** de la pieza muestra menos del 70 % (`hiddenBelow` en `PROFILES.lesson`), contado por
-vista. Un 555 que se ve 73 % de frente y 69 % desde atrás ya no bloquea; se lee bien.
+vista. Un 555 que se ve 73 % de frente y 69 % desde atrás ya no bloquea; se lee bien. Una pieza
+oculta en una vista pero bien vista en otra es un consejo: `review` la lista como nota (desde
+2026-11), nunca como aviso junto a un APROBADO, así `review` y `layout` dan un solo veredicto para un
+circuito.
 
 Cuatro circuitos de clase más, probados el 2026-10-20: el NPN como interruptor, el divisor con
 potenciómetro y el 555 astable salen aprobados al primer intento; el ESP32 DevKit con pulsador y LED

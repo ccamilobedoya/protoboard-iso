@@ -75,15 +75,16 @@ test('a joule thief of two uncoupled inductors leaves its LED dark: a doubt, not
   assert.match(formatIssue(neverOn(r)[0], 'es'), /^aviso: D1 nunca se enciende/);
 });
 
-test('LEDs behind a chip that is not simulated are one doubt naming them all', () => {
+// C10b: LEDs that hang from a chip not simulated are not called dead; the chip's own doubt names them.
+test('LEDs behind a chip that is not simulated are named by its doubt, not called never on', () => {
   const r = autoLayout({
     supplies: [{ voltage: 5, positive: 'T+', negative: 'T-' }],
     parts: [{ id: 'U1', part: '74HC595' }, { id: 'R1', type: 'resistor', value: '330' }, { id: 'D1', type: 'led', color: 'red' }, { id: 'R2', type: 'resistor', value: '330' }, { id: 'D2', type: 'led', color: 'green' }],
     nets: [['T+', 'U1.VCC'], ['T-', 'U1.GND', 'D1.K', 'D2.K'], ['U1.QA', 'R1.1'], ['R1.2', 'D1.A'], ['U1.QB', 'R2.1'], ['R2.2', 'D2.A']],
   });
-  const found = neverOn(r);
-  assert.equal(found.length, 1);
-  assert.match(formatIssue(found[0], 'en'), /^warning: D1, D2 never come on/);
+  assert.deepEqual(neverOn(r), []);
+  const chip = r.review.doubts.find((d) => d.code === 'SIM_PART_NOT_SIMULATED');
+  assert.match(formatIssue(chip, 'en'), /the kit cannot tell what U1 does, nor what D1, D2 do, which depend on it/);
 });
 
 test('no example gets SIM_OUTPUT_NEVER_ON (the recipes: test/hazards.test.js)', () => {

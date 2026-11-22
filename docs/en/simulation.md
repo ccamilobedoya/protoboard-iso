@@ -123,8 +123,12 @@ Set them with an operation like any circuit field:
   the program and of the timed modules, so a 10 µs pulse or an echo is at its time; the answer
   then has a note naming `--run`, which says what the program printed and how its outputs toggle.
 - **A run** (`simulate <target> --run <seconds>`, MCP `run_s`). The circuit as the page runs it,
-  from switch-on (the page's start: its DC point, or capacitors discharged with `page.start:
-  "zero"`), for that many simulated seconds: the same engine and the same step (`sim/pace.js`),
+  from where the page starts (its resting point, the DC point, with every capacitor already at its
+  DC voltage; or everything discharged with `page.start: "zero"`), or from the one asked with
+  `--start zero|dc` (MCP `start`), for that many simulated seconds. Its first line says which in
+  plain words (`Run from its resting point, as the page starts` or `Run from everything
+  discharged`): a capacitor behind 22 kΩ that a real circuit takes seconds to charge is already
+  charged in a run from the resting point. The run uses the same engine and the same step (`sim/pace.js`),
   the board's program with `pulseIn`, the library sensors, the encoder and the timed modules. It
   answers what an assistant needs to say whether the circuit does what was asked:
   - **Serial**: what the program printed, each line with its time, in order, and the count (a
@@ -160,11 +164,15 @@ Set them with an operation like any circuit field:
   and to `--transient`. Nothing is saved: the circuit file and its history stay as they were.
   Bounded: at most `runSeconds` (60) of simulated time (more is capped, `RUN_CAPPED`) and
   `runMs` (15 s) of the machine's (`RUN_BUDGET`: it ends where it got to); a program that never
-  lets time pass ends with `SIM_PROGRAM_STUCK`.
+  lets time pass ends with `SIM_PROGRAM_STUCK`. A run that covers less than was asked says so on the
+  line under its header (the warning, then `Every figure below covers the first 60 s of the 120 s
+  asked, not the whole run.`), each heading after it names its span (`Outputs over time in the
+  first 60 s:`, `Readings at 60 s:`), and `--json` has `run.ran` (the seconds covered) beside
+  `run.seconds` (the seconds asked).
 
   ```text
   $ protoboard-iso simulate alarm --run 1 --env distance=10
-  Run from switch-on (the page's start) — a model, not a measurement: 1 s in steps of 1 ms (1000 steps).
+  Run from its resting point, as the page starts (capacitors already at their DC voltages; start zero runs it from everything discharged) — a model, not a measurement: 1 s in steps of 1 ms (1000 steps).
   Serial (10 lines, in order):
     844 µs     10
     …
@@ -180,7 +188,7 @@ Set them with an operation like any circuit field:
   carrying more than 1 mA).
 
   `layout`'s answer has the same in one line for a circuit that changes by itself (a board's
-  program, a 555, a generator, an op-amp beside a capacitor): `Behaviour, first 2 s (simulated, a
+  program, a 555, a generator, an op-amp beside a capacitor): `Behaviour, first 2 s from its resting point, as the page starts (simulated, a
   model): D1 1 Hz, on 50 % of the time`, from a run bounded at 25 000 steps of the simulation (so the
   same circuit gives the same line on any machine; about as long as the 0.8 s of the machine's
   time it replaced, `BEHAVIOUR_STEPS` in `src/sim/run.js`) and a step no shorter than a 20 000th of
@@ -188,6 +196,21 @@ Set them with an operation like any circuit field:
   `simulate --run` measures it, within the same bound; under five whole periods there it says `about`
   with two figures); past the bound it says it was not measured (`the run needed more than 25 000 steps of the
   simulation`) and names `simulate --run 2`.
+- **Two resting states** (a transistor latch, a flip-flop). Its DC point can be the balance between
+  its two stable states, both transistors half on, which a real circuit never sits in. After the DC
+  point of a circuit with two transistors or more (and no board, 555 or op-amp), the kit pushes each
+  transistor's base or gate by 50 mV, up and down, with 1 nF on every node (what a real node has),
+  and lets it settle: a stable point takes the push back, a balance point runs away to a state on each
+  side (`restingStates` in `src/sim/run.js`; the sign of the loop gain would say the same, but the
+  system holds sources and switches whose rows are not dynamics, so the push uses the engine the
+  page runs). Each state is then solved again without the added capacitances, so its readings are
+  the circuit's own. `layout`'s answer then says `Two resting states (a model): … it powers up in one
+  of them, and the kit cannot say which` and each state's readings (`1. Q1 off, Q2 on · battery BT1
+  8.98 V · D1 4.54 mA …`) instead of the `Readings` line; the DC point of `simulate` adds the warning
+  `SIM_TWO_STATES` and `states` in `--json`; `--run` from the resting point starts from the first
+  state and says so (`Run from the first of its two resting states (Q1 off, Q2 on, D1 on); a real
+  circuit may power up in the other …`; `run.state`, `run.states` in `--json`). No recipe or example
+  has two.
 
 ## Results
 
@@ -212,7 +235,8 @@ Set them with an operation like any circuit field:
 A run (`--run`, `run_s`):
 
 ```js
-{ ok: true, run: { seconds: 1, step: 0.001, steps: 1000, start: 'dc' },
+{ ok: true, start: 'dc',                                          // the start used
+  run: { seconds: 1, ran: 1, step: 0.001, steps: 1000, start: 'dc', page: 'dc' },   // seconds asked, ran covered; page: the page's start
   serial: { count: 10, lines: [{ t: 0.00084, text: '10' }, …] },    // kept: when capped
   outputs: [{ id: 'D1', kind: 'led', onShare: 0.999, changes: 1, frequency: null, period: null, duty: null,
               intervals: [[0.00086, 1]] }, …],                         // an output still on closes at the end
@@ -359,7 +383,12 @@ tell.
   motor on a plain switch or straight on a supply has no switch to damage.
 - `SIM_PART_NOT_SIMULATED`: a part wired into the circuit with no simulation model (a 74HC595, an
   LM386, a CD4017…; `catalog` marks them): it is drawn and its pins are left open, so what it does,
-  and what it drives, is unknown. A part wired to nothing is not a doubt.
+  and what it drives, is unknown. The outputs that hang from it are named in its line (`so the kit
+  cannot tell what U2 does, nor what D1, D2, D3 do, which depend on it`): an output whose pins reach
+  a pin of that part through what current flows through (resistors, wires, switches, transistors,
+  relays), not through a rail or another chip (`hangingOutputs` in `src/sim/index.js`). Those
+  outputs get no `SIM_OUTPUT_NEVER_ON`: the kit cannot judge them. A part wired to nothing is not a
+  doubt.
 - `SIM_OUTPUT_NEVER_ON`: a part whose job is to show or move something (an LED, a chip of an RGB
   LED, a segment of a display, a buzzer, a relay, a motor, a laser), wired into a circuit with a
   source, that is off in every state the kit visits: at rest, each control, each end of the
@@ -447,7 +476,7 @@ reference (a textbook formula solved separately, or the datasheet figure).
 | inductor | winding resistance in series; a short in DC, backward Euler in transient | RL: I·(1 − e^(−t/τ)) |
 | thermistor, photoresistor | resistors whose value comes from the temperature (B equation) or the light (GL55 curve) | B equation at 50 °C; GL5528 at 10 lx |
 | buzzer | its coil, 16 Ω | — |
-| active buzzer (TMB12A05) | a load that takes next to nothing under 1.5 V, rises smoothly to 5 V / 30 mA = 167 Ω at 2.0 V and stays there; it sounds (2.3 kHz, about 85 − 40·log10(5/V) dB at 10 cm) from 2.0 V across it, + to −, with no hysteresis; reversed it is 100 kΩ, silent, and warns over 1 V; over 7.5 V `SIM_IC_SUPPLY`, over 35 mA (from about 5.8 V) only the note `SIM_BUZZER_CURRENT` | 30 mA at 5 V, 19.8 mA and sounding at 3.3 V; silent and under 1 mA at 1 V |
+| active buzzer (TMB12A05) | a load that takes next to nothing under 1.5 V, rises smoothly to 5 V / 30 mA = 167 Ω at 2.0 V and stays there; it sounds (2.3 kHz, about 85 − 40·log10(5/V) dB at 10 cm) from 2.0 V across it, + to −, with no hysteresis; reversed it is 100 kΩ, silent, and warns over 1 V; over 7.5 V `SIM_IC_SUPPLY`, over 35 mA (from about 5.8 V) the warning `SIM_BUZZER_CURRENT` | 30 mA at 5 V, 19.8 mA and sounding at 3.3 V; silent and under 1 mA at 1 V |
 | linear Hall sensor 49E | a source of Vs/2 + 1.4 mV/G · (Vs/5) · field held in [0.95 V, Vs − 0.95 V] behind 50 Ω, 6 mA from the supply; stresses: supply over 8 V or reversed; notes: under 2.7 V, over 1.5 mA out | 2.500 / 2.640 / 2.360 V at 0 / +100 / −100 G and 5 V; 1.742 V at +100 G and 3.3 V; 4.05 V clamped |
 | voltage sensor module | 30 kΩ from VIN to S and 7.5 kΩ from S to GND, a milliohm joining − and GND; stress: the 30 kΩ over 100 mW | S = 2.40 V and 0.32 mA at 12 V in |
 | LED | Shockley + 10 Ω, Vf at 20 mA by colour; `"model": { "vf": 2.95 }` overrides | loop equation solved apart |
@@ -457,7 +486,7 @@ reference (a textbook formula solved separately, or the datasheet figure).
 | DC motor (RE-140RA) | V = R·I + L·dI/dt + k·ω and J·dω/dt = k·I − b·ω − T_load as MNA elements: a resistor, an inductor and an ideal gyrator whose other side is the shaft, a node whose voltage is ω, with J as a capacitor and b as a conductance to ground and the load as a brake (a torque against the turning, tanh of ω over 1 rad/s); R, k and b from the datasheet's no-load point and stall current at the nominal voltage (RE-140RA-12240: 7.69 Ω, 5.20 mV·s/rad, 0.518 µN·m·s), J 1 g·cm² and L 1 mH the kit's figures (Mabuchi RE-140RA datasheet); stresses: voltage over the top of its range, a stall (held still by its load) over its maximum-efficiency current | 4800 r/min and 50 mA free at 3 V, 0.39 A stalled; the start against the two-pole solution solved apart, τ = J·R / (k² + R·b) ≈ 25 ms |
 | LM35 | a behavioural source: 10 mV/°C · T (never under 0 V) behind 0.4 Ω (load regulation 0.4 mV/mA) while +VS leaves it 1.5 V (the kit's own figure), 56 µA of its own from +VS (TI SNIS159H); stresses: supply over 30 V or reversed, output over 10 mA; notes: supply under 4 V, a temperature its grade does not read | 250 mV at 25 °C within ±1.5 °C (LM35DZ); 56 µA; 0.4 mV at 1 mA |
 | MOSFET | square law, smooth turn-on, k from Rds(on) | square law solved apart, Rds(on) |
-| BJT | Ebers–Moll, constant β; TIP120 as a Darlington with its two resistors | Ebers–Moll solved apart; hFE ≥ 1000 |
+| BJT | Ebers–Moll, constant β; TIP120 as a Darlington with its two resistors; `off` only when its base is under its threshold and it carries no more than 10 µA (a Darlington at 0.9 V carrying 1.7 mA is `active`; a MOSFET the same, `saturation`) | Ebers–Moll solved apart; hFE ≥ 1000 |
 | bench supply, battery | ideal source, optional limit; battery: emf from format, chemistry, cells and charge, behind its internal resistance | short circuit, Ohm's law with internal resistance |
 
 Any model field can be overridden per part with `"model": { … }` (for example the forward

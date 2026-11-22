@@ -112,11 +112,21 @@ export function formatRun(result, lang = 'en', { formatIssue, netLabels = {} } =
     return lines.join('\n');
   }
   const { run, serial, outputs } = result;
-  lines.push(t(lang, 'sim.run', { start: t(lang, `sim.run.start.${run.start}`), seconds: f(run.seconds, 's'), step: f(run.step, 's'), steps: run.steps }));
+  const gains = (s) => [...s.gains.map((g) => t(lang, g.on ? 'layout.states.on' : 'layout.states.off', { id: g.id })), ...s.on.map((id) => t(lang, 'sim.run.state.lit', { id }))].join(', ');
+  const from = run.states ? t(lang, 'sim.run.start.state', { first: gains(run.states[0]), second: gains(run.states[1]) }) : t(lang, `sim.run.start.${run.start}.${run.start === (run.page ?? run.start) ? 'page' : 'other'}`);
+  lines.push(t(lang, 'sim.run', { start: from, seconds: f(run.seconds, 's'), step: f(run.step, 's'), steps: run.steps }));
+  // A run that covers less than was asked (capped at the limit, stopped by the machine's time or its
+  // steps) says so first, and each heading after it names the span it covers.
+  const ran = run.ran ?? run.seconds;
+  const cut = (result.issues ?? []).filter((i) => CUT.has(i.code));
+  const short = cut.length > 0 || ran < run.seconds - 1e-9;
+  for (const i of cut) lines.push(formatIssue(i, lang));
+  if (short) lines.push(t(lang, 'sim.run.covers', { ran: f(ran, 's'), seconds: f(run.seconds, 's') }));
+  const span = short ? t(lang, 'sim.run.span', { ran: f(ran, 's') }) : '';
   if (result.boards > 0 || serial.count > 0) {
-    if (!serial.count) lines.push(t(lang, 'sim.run.serialNone'));
+    if (!serial.count) lines.push(t(lang, 'sim.run.serialNone', { span }));
     else {
-      lines.push(t(lang, 'sim.run.serial', { count: serial.count }));
+      lines.push(t(lang, 'sim.run.serial', { count: serial.count, span }));
       const shown = serial.lines;
       // What a program printed is shown as it is, but never as a line of the answer of its own.
       const line = (l) => `  ${pad(f(l.t, 's'), 10)} ${l.board ? `${l.board}: ` : ''}${String(l.text).replace(CONTROL, '\uFFFD')}`;
@@ -130,11 +140,11 @@ export function formatRun(result, lang = 'en', { formatIssue, netLabels = {} } =
   }
   if (!outputs.length) lines.push(t(lang, 'sim.run.noOutputs'));
   else {
-    lines.push(t(lang, 'sim.run.outputs'));
+    lines.push(t(lang, 'sim.run.outputs', { span }));
     for (const o of outputs) lines.push(`  ${outputText(o, lang, f)}`);
   }
   if (result.readings?.ok) {
-    lines.push(t(lang, 'sim.run.readings', { time: f(run.seconds, 's') }));
+    lines.push(t(lang, 'sim.run.readings', { time: f(ran, 's') }));
     const nodeName = (n) => {
       const np = nodeParams(n);
       const name = np ? t(lang, np.key, np.params) : n;
@@ -142,9 +152,11 @@ export function formatRun(result, lang = 'en', { formatIssue, netLabels = {} } =
     };
     readingLines(result.readings, lang, { f, lines, nodeName, decimal });
   }
-  notes(result.issues);
+  notes(result.issues?.filter((i) => !CUT.has(i.code)));
   return lines.join('\n');
 }
+// The issues of a run that covers less than was asked: printed first (formatRun).
+const CUT = new Set(['RUN_CAPPED', 'RUN_BUDGET', 'RUN_STEPS']);
 
 // One output in a line: "D1 (LED): 1 Hz, on 50 % of the time (period 1 s) · 7 changes".
 const percentOf = (share) => (share > 0 && share < 0.005 ? '< 1' : share < 1 && share > 0.995 ? '> 99' : String(Math.round(100 * share)));

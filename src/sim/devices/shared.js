@@ -24,6 +24,10 @@ export const reverseSupply = (value, max, low, high, effect = 'maybeDestroyed') 
 // Something to say that is not a limit (a buzzer on DC, a regulator out of regulation).
 export const note = (severity, code, params) => ({ note: issue(severity, code, params) });
 
+// What a transistor carries above which it is never called off (bjt.js, mosfet.js) [assumed: its
+// leakage is pA to nA].
+export const CONDUCTING = 10e-6;
+
 // The warning a stress becomes when it is exceeded.
 export function stressIssue(id, s) {
   return issue('warning', s.code, { part: s.pin ? `${id}.${s.pin}` : id, [s.param]: q(s.value, s.unit), ...(s.reportMax && { max: q(s.max, s.unit) }), ...s.extra });

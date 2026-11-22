@@ -21,7 +21,6 @@ import {
   checkCircuit,
   formatIssue,
   t,
-  PART_TYPES,
   VIEWS,
   ANNOTATION_LAYERS,
   OP_NAMES,
@@ -33,7 +32,7 @@ import { formatAt, formatNode, formatFree, formatSuggest, formatSuggestMany } fr
 import { InputError, inputErrorText, resolveTarget, loadCircuit, readHistory, applyToTarget, undoTarget, createTarget, relayoutTarget, writePage } from '../src/node/workspace.js';
 import { svgToPng, rasterAvailable, rasterSearchIn } from '../src/node/raster.js';
 import { review, formatReview, PROFILES } from '../src/review.js';
-import { simulate } from '../src/sim/index.js';
+import { simulate, withStates } from '../src/sim/index.js';
 import { runCircuit, stimuliFromArgs, prepareRun } from '../src/sim/run.js';
 import { pickLanguage } from '../src/i18n/index.js';
 import { formatSimulation, formatFalstad, formatRun } from '../src/sim/format.js';
@@ -46,7 +45,7 @@ import { LIMITS } from '../src/limits.js';
 import { RECIPES, resolveRecipe } from '../src/recipes/index.js';
 import { formatBoardLayout } from '../src/board/layout-text.js';
 import { appView } from './app.js';
-import { compactCatalog, catalogSuggestions, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
+import { compactCatalog, unknownText, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
 
 // The rasteriser `cd mcp && npm install` puts in mcp/node_modules, which the kit cannot see from src/.
 rasterSearchIn(fileURLToPath(new URL('.', import.meta.url)));
@@ -462,7 +461,7 @@ server.registerTool(
   {
     title: 'Simulate circuit',
     description:
-      'Node voltages and part currents from the circuit (a model, not a measurement). run_s: seconds run as the page runs it (environment, set, press "S1@0.5+0.2", at "1:light=9"): Serial, outputs, Hz. Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit"; kind "generator" for a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop and step in seconds, capacitors start discharged (start "zero") or at their DC values (start "dc"). Warns about overloads, current limit, shorts, floating nodes; a laser\'s light reaches the light sensors. falstad: true adds the link that opens the same circuit in Falstad CircuitJS (DC state, parts Falstad lacks as equivalents, listed). Never show results a learner is asked to predict, and Falstad shows every value.',
+      'Node voltages and part currents from the circuit (a model, not a measurement). run_s: seconds run as the page runs it (environment, set, press "S1@0.5+0.2", at "1:light=9"): Serial, outputs, Hz. Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit"; kind "generator" for a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop, step in s; start "zero" (discharged) or "dc" (resting point; a run\'s default). Warns about overloads, current limit, shorts, floating nodes; a laser\'s light reaches the light sensors. falstad: true adds the link that opens the same circuit in Falstad CircuitJS (DC state, parts Falstad lacks as equivalents, listed). Never show results a learner is asked to predict, and Falstad shows every value.',
     inputSchema: {
       target: targetArg,
       analysis: z.enum(['dc', 'transient']).optional(),
@@ -487,7 +486,7 @@ server.registerTool(
     const refused = (errors) => ({ ...answer(format, { ok: false, errors }, () => errors.map((e) => formatIssue(e, lang)).join('\n')), isError: true });
     if (said.errors.length) return refused(said.errors);
     if (run_s !== undefined) {
-      const run = runCircuit(circuit, { seconds: run_s, stimuli: said.stimuli });
+      const run = runCircuit(circuit, { seconds: run_s, stimuli: said.stimuli, start });
       if (run.errors) return refused(run.errors);
       const response = answer(format, run, () => formatRun(run, lang, { formatIssue, netLabels: circuit.netLabels }));
       return run.ok ? response : { ...response, isError: true };
@@ -499,7 +498,7 @@ server.registerTool(
       if (prepared.errors) return refused(prepared.errors);
       result = prepared.fatal ? { analysis, model: true, ok: false, issues: prepared.issues } : analysis === 'transient' ? prepared.engine.transient({ stop, step, start }) : prepared.engine.dc();
       if (result.issues && prepared.issues?.length) result = { ...result, issues: [...result.issues, ...prepared.issues] };
-    } else result = simulate(circuit, { analysis, stop, step, start });
+    } else result = withStates(circuit, simulate(circuit, { analysis, stop, step, start }));
     if (falstad && result.ok) {
       const { program } = compile(circuit);
       const engine = createEngine(program);
@@ -592,10 +591,7 @@ server.registerTool(
   safely(async ({ name, lang, format }) => {
     if (name) {
       const entry = catalogEntry(name, lang);
-      if (!entry) {
-        const close = catalogSuggestions(name);
-        return { isError: true, content: [{ type: 'text', text: `${t(lang, 'catalog.unknown', { name, types: Object.keys(PART_TYPES).join(', ') })}${close.length ? ` ${t(lang, 'catalog.closest', { names: close.join(', ') })}` : ''}` }] };
-      }
+      if (!entry) return { isError: true, content: [{ type: 'text', text: unknownText(name, lang) }] };
       return answer(format, entry, () => formatCatalogEntry(entry, lang));
     }
     if (format === 'json') return json(fullCatalog(lang));

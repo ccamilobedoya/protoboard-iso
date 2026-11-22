@@ -208,6 +208,21 @@ export function catalogEntry(name, lang = 'en') {
 // The closest names to one the catalog does not know.
 export const catalogSuggestions = (name) => closestNames(name);
 
+// What catalog answers for a name it does not have: for a common ask (a servo, a speaker, an LED
+// strip…) the same "the kit does not know … Nearest it has: …" text layout gives for that part
+// (check.UNKNOWN_PART_NAME.<variant>, without the part's id); otherwise the types and the closest names.
+export function unknownText(name, lang = 'en') {
+  const mark = '@part@';
+  const asked = resolvePart({ id: mark, part: String(name) }).error;
+  const variant = asked?.code === 'UNKNOWN_PART_NAME' ? asked.params?.variant : null;
+  if (variant && variant !== 'none') {
+    const text = t(lang, `check.UNKNOWN_PART_NAME.${variant}`, { ...asked.params, part: mark }).replace(`${mark}: `, '');
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+  const close = catalogSuggestions(name);
+  return `${t(lang, 'catalog.unknown', { name, types: Object.keys(PART_TYPES).join(', ') })}${close.length ? ` ${t(lang, 'catalog.closest', { names: close.join(', ') })}` : ''}`;
+}
+
 // Every registry in full (the catalog's former answer), for tools that want it all.
 export function fullCatalog(lang = 'en') {
   return {

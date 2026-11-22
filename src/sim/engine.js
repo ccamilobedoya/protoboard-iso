@@ -18,6 +18,8 @@
 //   engine.readParts(ids: Set) → { id: reading }  only those parts, now
 //   engine.now() → the values now as dc() gives them (each part's `stress`, the limits' warnings)
 //   engine.onStep                          a function called after every step taken (a run's watch)
+//   engine.nudge(node, dv) → ok            a node's voltage pushed by dv (a resting state's test)
+//   engine.seed({ node: volts }) → ok      solved again from those voltages: the solution nearest
 //   engine.stresses(reading) → { part: [stress…] }   each part against its limits (devices/)
 //   engine.timeConstants() → [seconds…]    τ = C·R and L/R of each capacitor and inductor, with R
 //                                          the resistance it sees at the DC operating point, and
@@ -626,6 +628,35 @@ export function createEngine(source) {
       const out = {};
       for (const p of prep.parts) if (ids.has(p.id)) out[p.id] = partReading(p, x, ctx, prep.floating);
       return out;
+    },
+    // A push to the state (a circuit's resting states, sim/index.js restingStates): a node's voltage
+    // moved by dv, which the capacitors take as theirs, so the next steps show where it settles.
+    nudge(node, dv) {
+      const i = prep.index.get(node);
+      if (!x || i == null || i < 0) return false;
+      x = x.slice();
+      x[i] += dv;
+      for (const el of memories()) el.accept(x, {});
+      pending = null;
+      return true;
+    },
+    // The state solved again from node voltages given ({ node: volts }), as at t = 0: the circuit's
+    // solution nearest to them (one of its resting states), the capacitors holding it.
+    seed(nodes) {
+      if (!x) return false;
+      const start = x.slice();
+      for (const [name, v] of Object.entries(nodes ?? {})) {
+        const i = prep.index.get(name);
+        if (i != null && i >= 0 && Number.isFinite(v)) start[i] = v;
+      }
+      const now = { h: lastH * 1e-6 };
+      const r = solveWithLimits(prep, start, now);
+      if (!r.ok) return false;
+      x = r.x;
+      for (const el of memories()) el.accept(x, {});
+      ctx = now;
+      pending = null;
+      return true;
     },
     // The readings now in the shape dc() gives them: each part with its `stress`, and the warnings
     // of its limits (what `simulate` prints at the end of a run).
