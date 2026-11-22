@@ -78,7 +78,7 @@ function readingLines(result, lang, { f, lines, nodeName, decimal }) {
       text = [p.state === 'ready' ? said : t(lang, p.state === 'warmup' ? 'sim.climate.warmup' : `sim.climate.${p.state}`, { voltage: f(p.vcc, 'V'), time: f(p.left ?? 0, 's'), values: said }), `${t(lang, 'sim.q.climate.vcc')} ${f(p.vcc, 'V')}`, `${t(lang, 'sim.q.climate.own')} ${f(p.current, 'A')}`].join(' · ');
     } else if (p.kind === 'MOT') text = [t(lang, `sim.motor.${p.state}`), `${Math.round(p.rpm)} r/min`, `${pad(f(p.voltage, 'V'), 10)} ${f(p.current, 'A')}`, `${t(lang, 'sim.q.motor.emf')} ${f(p.emf, 'V')}`, f(p.power, 'W')].join(' · ');
     // The chips whose card lines say it all (the Darlington array, the optocoupler, the LM386).
-    else if (CARD_KINDS.has(p.kind)) text = linesFor(p, { t: (key, params) => t(lang, key, params), decimal }).map((l) => l.text).join(' · ');
+    else if (CARD_KINDS.has(p.kind)) text = linesFor(p, { t: (key, params) => t(lang, key, params), decimal }).filter((l) => l.key !== 'floating').map((l) => l.text).join(' · ');
     else if (p.kind === 'BAT' && !p.on) text = t(lang, 'sim.battery.off');
     else if (p.kind === 'BAT') {
       text = `${pad(f(p.voltage, 'V'), 10)} ${pad(f(p.current, 'A'), 10)} ${f(p.power, 'W')} · ${t(lang, 'sim.q.battery.emf')} ${f(p.emf, 'V')}`;

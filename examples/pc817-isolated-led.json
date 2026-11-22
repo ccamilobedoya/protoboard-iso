@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "title": {
+    "en": "A button on a 9 V side lights an LED on a 5 V side through a PC817",
+    "es": "Un botón en un lado de 9 V enciende un LED en un lado de 5 V con un PC817"
+  },
+  "board": "auto",
+  "clearance": 3,
+  "description": {
+    "en": "The 9 V battery, the button and 680 Ω light the PC817's infrared LED (about 11 mA); its phototransistor sinks the green LED's current from the 5 V supply. The two sides share no wire: each has its own ground.",
+    "es": "La batería de 9 V, el botón y 680 Ω encienden el LED infrarrojo del PC817 (unos 11 mA); su fototransistor recibe la corriente del LED verde desde la fuente de 5 V. Los dos lados no comparten ningún cable: cada uno tiene su propia tierra."
+  },
+  "parts": [
+    {
+      "id": "R2",
+      "type": "resistor",
+      "value": "330",
+      "pins": [
+        "b2",
+        "b6"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "led",
+      "color": "green",
+      "pins": [
+        "d6",
+        "d9"
+      ]
+    },
+    {
+      "id": "U1",
+      "part": "PC817",
+      "type": "ic",
+      "pins": [
+        "f12",
+        "f11",
+        "e11",
+        "e12"
+      ]
+    },
+    {
+      "id": "BT1",
+      "type": "battery",
+      "format": "9V",
+      "pins": [
+        "i15",
+        "i11"
+      ]
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "680",
+      "pins": [
+        "i17",
+        "i12"
+      ]
+    },
+    {
+      "id": "S1",
+      "type": "button",
+      "pins": [
+        "f15",
+        "e15",
+        "f17",
+        "e17"
+      ]
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "orange",
+      "pins": [
+        "c9",
+        "c12"
+      ]
+    }
+  ],
+  "supplies": [
+    {
+      "id": "V1",
+      "voltage": 5,
+      "positive": "e2",
+      "negative": "d11"
+    }
+  ],
+  "spec": {
+    "nets": [
+      {
+        "pins": [
+          "BT1.+",
+          "S1.1"
+        ],
+        "color": "red"
+      },
+      [
+        "S1.3",
+        "R1.1"
+      ],
+      [
+        "R1.2",
+        "U1.A"
+      ],
+      {
+        "pins": [
+          "U1.K",
+          "BT1.-"
+        ],
+        "color": "black"
+      },
+      [
+        "R2.2",
+        "D1.anode"
+      ],
+      [
+        "D1.cathode",
+        "U1.C"
+      ]
+    ],
+    "supplies": [
+      {
+        "id": "V1",
+        "voltage": 5,
+        "positive": "R2.1",
+        "negative": "U1.E"
+      }
+    ],
+    "wires": [
+      "W1"
+    ]
+  }
+}

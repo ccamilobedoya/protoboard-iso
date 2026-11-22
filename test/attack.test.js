@@ -494,3 +494,20 @@ test('attack: an interrupt handler is only one of the sketch\'s own functions', 
     if (r.r.js) assert.deepEqual(strayNames(r.r.js), [], source);
   }
 });
+
+// An optocoupler in a loop with itself: its transistor feeding its own LED (positive feedback) or
+// shunting it (negative): the DC point and a run end, bounded, whatever they find.
+test('attack: a PC817 whose phototransistor feeds or shunts its own LED ends, bounded', { timeout: 60_000 }, async () => {
+  const { runCircuit } = await import('../src/sim/run.js');
+  for (const nets of [
+    [['T+', 'R1.1'], ['R1.2', 'U1.A'], ['U1.K', 'U1.C'], ['U1.E', 'T-']],
+    [['T+', 'R1.1'], ['R1.2', 'U1.A', 'U1.C'], ['U1.K', 'T-'], ['U1.E', 'T-']],
+  ]) {
+    const { circuit } = autoLayout({ supplies: [{ id: 'V1', voltage: 5 }], parts: [{ id: 'R1', type: 'resistor', value: '1k' }, { id: 'U1', part: 'PC817' }], nets });
+    const began = Date.now(); // real clock: the bound is on the machine's time
+    const dc = simulate(circuit);
+    assert.ok(typeof dc.ok === 'boolean');
+    const r = runCircuit(circuit, { seconds: 0.5 });
+    assert.ok(r && Date.now() - began < 20000, 'ends in time'); // real clock
+  }
+});

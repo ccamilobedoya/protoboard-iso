@@ -83,6 +83,7 @@ Programs (Arduino sketches that run in the simulation) are in the microcontrolle
 | | |
 |---|---|
 | <img src="../docs/img/examples/uln2003-relay.png" width="280" alt="A UNO switching a relay through a ULN2003"> | **[uln2003-relay.json](uln2003-relay.json)**: a UNO's D8 drives channel 1 of a ULN2003, whose OUT1 sinks the relay coil's current from 5 V; COM on the same 5 V is the coil's flyback diode. The relay pulls in for a second and drops for a second. |
+| <img src="../docs/img/examples/pc817-isolated-led.png" width="280" alt="A PC817 optocoupler between a 9 V and a 5 V side"> | **[pc817-isolated-led.json](pc817-isolated-led.json)**: a button on a 9 V battery lights the PC817's infrared LED through 680 Ω; its phototransistor sinks a green LED's current from a 5 V supply. The two sides share no wire and each has its own ground; press the button in the page. |
 
 ## Wrong on purpose
 

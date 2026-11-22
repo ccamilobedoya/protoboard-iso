@@ -6,9 +6,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { autoLayout } from './layout-generous.js';
 import { simulate, checkHazards, compile } from '../src/sim/index.js';
 import { catalogEntry, formatCatalogEntry, simulates } from '../src/node/catalog.js';
+import { renderPage } from '../src/page.js';
+import { installClock } from './clock.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const cli = (...args) => spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), ...args], { encoding: 'utf8', timeout: 120_000 });
@@ -126,4 +129,91 @@ test('catalog: the Darlington arrays are simulated, with their limits and what t
     assert.match(text, /maximum current 500 mA \(OUT1/);
     assert.match(text, /maximum current 2\.5 A/);
   }
+});
+
+// ---- PC817
+
+// A 9 V battery, a button and 680 Ω light the LED; a 5 V bench supply with its own ground, 1 kΩ to C,
+// E to that ground. No net is shared between the two sides.
+const optoSpec = (reversed = false) => ({
+  supplies: [{ id: 'V1', voltage: 5, positive: 'R2.1', negative: 'U1.E' }],
+  parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'S1', type: 'button' }, { id: 'R1', type: 'resistor', value: '680' }, { id: 'U1', part: 'PC817' }, { id: 'R2', type: 'resistor', value: '1k' }],
+  nets: [['BT1.+', 'S1.1'], ['S1.3', 'R1.1'], reversed ? ['R1.2', 'U1.K'] : ['R1.2', 'U1.A'], reversed ? ['U1.A', 'BT1.-'] : ['U1.K', 'BT1.-'], ['R2.2', 'U1.C']],
+});
+const opto = once(() => autoLayout(optoSpec()));
+const pressed = (circuit, extra = {}) => withParts(circuit, { S1: { pressed: true }, ...extra });
+
+test('PC817: two sides with their own supplies and grounds simulate; released C sits at 5 V, pressed under 0.5 V', () => {
+  const r = opto();
+  assert.equal(r.review.verdict, 'approved', JSON.stringify(r.review.doubts));
+  const rest = simulate(r.circuit);
+  assert.ok(rest.ok);
+  near(rest.parts.U1.pins.C, 5, 0.01, 'collector, LED dark');
+  const on = simulate(pressed(r.circuit));
+  assert.ok(on.ok);
+  assert.ok(on.parts.U1.pins.C < 0.5, `collector ${on.parts.U1.pins.C} V`);
+  // (9 − 1.2) / 680 = 11.5 mA (the battery's own resistance takes a little).
+  near(on.parts.U1.input.current, 0.0115, 0.0115 * 0.15, 'LED current');
+  // Each side against its own ground: the output's E reads 0 V, the input's K too.
+  near(on.parts.U1.output.voltage, on.parts.U1.pins.C - on.parts.U1.pins.E, 1e-9, 'output side');
+  assert.equal(on.parts.U1.state, 'saturated');
+});
+
+test('PC817 against its datasheet: VF 1.2 V at 20 mA, collector current CTR × IF while not saturated', () => {
+  const { circuit } = opto();
+  // 20 mA: (9 − 1.2 − 20 mA · 1.5 Ω of battery) / 20 mA ≈ 389 Ω.
+  const s = simulate(pressed(circuit, { R1: { value: '390' } }));
+  near(s.parts.U1.input.voltage, 1.2, 0.05, 'VF at 20 mA');
+  // 5 mA in, 100 Ω load: 1.7 × 5 mA = 8.5 mA leaves 4.15 V across C–E (active).
+  const a = simulate(pressed(circuit, { R1: { value: '1.5k' }, R2: { value: '100' } }));
+  assert.equal(a.parts.U1.state, 'active');
+  near(a.parts.U1.output.current / a.parts.U1.input.current, 1.7, 0.02, 'CTR');
+});
+
+test('PC817: 100 mA through its LED is a hazard on the chip; its LED reversed at 9 V is a reverse hazard', () => {
+  const { circuit } = opto();
+  const hot = checkHazards(pressed(circuit, { R1: { value: '75' } }));
+  assert.ok(hot.hazards.some((h) => h.code === 'SIM_OVER_CURRENT' && h.params.part === 'U1'), JSON.stringify(hot.hazards));
+  const back = autoLayout(optoSpec(true));
+  const rev = checkHazards(pressed(back.circuit));
+  assert.ok(rev.hazards.some((h) => h.code === 'SIM_REVERSE_VOLTAGE' && h.params.part === 'U1'), JSON.stringify(rev.hazards));
+});
+
+test('catalog: the PC817 is simulated and says its CTR is the middle of a wide range', () => {
+  const text = formatCatalogEntry(catalogEntry('PC817'), 'en');
+  assert.doesNotMatch(text, /Not simulated/);
+  assert.match(text, /170 %/);
+  assert.match(text, /maximum current 50 mA \(LED\)/);
+  assert.match(text, /maximum reverse voltage 6 V \(LED\)/);  assert.doesNotMatch(cli('catalog', 'PC817').stdout, /not simulated/i, 'the CLI says it too');
+});
+
+// ---- The live page (jsdom)
+
+const example = (name) => JSON.parse(readFileSync(join(root, 'examples', name), 'utf8'));
+async function loadPage(html) {
+  let JSDOM;
+  try {
+    ({ JSDOM } = await import('jsdom'));
+  } catch {
+    return null;
+  }
+  const { window } = new JSDOM(html, { runScripts: 'outside-only', url: 'https://page.test/chip.html' });
+  const rect = () => ({ left: 0, top: 0, right: 800, bottom: 500, width: 800, height: 500 });
+  window.document.querySelector('main').getBoundingClientRect = rect;
+  for (const svg of window.document.querySelectorAll('svg')) svg.getBoundingClientRect = rect;
+  window.testClock = installClock(window);
+  window.eval(html.match(/<script>([\s\S]*)<\/script>/)[1]);
+  return window;
+}
+
+test('page: the PC817 example runs in the page, each side on its own ground; pressing the button lights the LED', async (t) => {
+  const window = await loadPage(renderPage(example('pc817-isolated-led.json'), { lang: 'en' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const live = window.protoboardLive;
+  assert.equal(live.reading.parts.U1.state, 'dark');
+  assert.ok(Math.abs(live.reading.parts.D1.current) < 1e-6);
+  live.set('S1', 'pressed', true);
+  live.tick(50, 4);
+  assert.equal(live.reading.parts.U1.state, 'saturated');
+  assert.ok(live.reading.parts.D1.current > 5e-3, `D1 ${live.reading.parts.D1.current}`);
 });

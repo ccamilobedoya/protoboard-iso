@@ -82,6 +82,7 @@ import { voltageSensor } from './voltage-sensor.js';
 import { activeBuzzer } from './active-buzzer.js';
 import { climate } from './climate.js';
 import { darlington } from './darlington.js';
+import { optocoupler } from './optocoupler.js';
 
 // What happens to a part that carries more than it takes: the key of `effect.*` in src/i18n, which a
 // damage line ends with (the stress's own `extra.effect` wins, as a reversed supply's). By the part's
@@ -89,7 +90,7 @@ import { darlington } from './darlington.js';
 const EFFECT_OF_KIND = { R: 'overheats', LED: 'burns', LEDS: 'burns', D: 'burns', LSR: 'burns', BAT: 'battery', Q: 'overheats', M: 'overheats', MOT: 'overheats', RLY: 'overheats', L: 'overheats', C: 'capacitor' };
 const effectOf = (kind, s) => s.extra?.effect ?? (kind === 'MCU' ? (s.pin ? 'pin' : 'board') : EFFECT_OF_KIND[kind] ?? (s.quantity === 'power' ? 'overheats' : 'damaged'));
 
-export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, leds, bridge, mosfet, bjt, regulator, timer, opamp, mcu, lm35, relay, motor, battery, pir, touch, sensorModule, encoder, laser, ultrasonic, hallSensor, voltageSensor, activeBuzzer, climate, darlington];
+export const DEVICES = [wire, resistor, thermistor, ldr, buzzer, capacitor, inductor, potentiometer, button, toggle, header, diode, led, leds, bridge, mosfet, bjt, regulator, timer, opamp, mcu, lm35, relay, motor, battery, pir, touch, sensorModule, encoder, laser, ultrasonic, hallSensor, voltageSensor, activeBuzzer, climate, darlington, optocoupler];
 
 // Every limit a device reports carries that effect, for the text of its issue (shared.js, stressIssue).
 for (const d of DEVICES) {

@@ -84,6 +84,7 @@ microcontroladores: [microcontroladores.md](../docs/es/microcontroladores.md).
 | | |
 |---|---|
 | <img src="../docs/img/examples/uln2003-relay.png" width="280" alt="Un UNO conmuta un relé con un ULN2003"> | **[uln2003-relay.json](uln2003-relay.json)**: el D8 de un UNO maneja el canal 1 de un ULN2003, cuyo OUT1 recibe la corriente de la bobina del relé desde 5 V; COM en los mismos 5 V es el diodo de protección de la bobina. El relé se activa un segundo y se suelta otro. |
+| <img src="../docs/img/examples/pc817-isolated-led.png" width="280" alt="Un optoacoplador PC817 entre un lado de 9 V y uno de 5 V"> | **[pc817-isolated-led.json](pc817-isolated-led.json)**: un botón en una batería de 9 V enciende el LED infrarrojo del PC817 con 680 Ω; su fototransistor recibe la corriente de un LED verde desde una fuente de 5 V. Los dos lados no comparten ningún cable y cada uno tiene su propia tierra; presiona el botón en la página. |
 
 ## Mal a propósito
 
