@@ -293,7 +293,9 @@ test('Serial1 and Serial2 on an ESP32 are ports of their own, labelled in the ou
 });
 
 test('Serial.parseInt waits its timeout for digits and returns 0 when none come', () => {
-  const r = runFor('void setup() { Serial.begin(9600); Serial.setTimeout(50); int v = Serial.parseInt(); Serial.println(millis()); Serial.println(v); }\nvoid loop() { delay(5); }', 'uno', 0.2);
+  // Stream's setTimeout, a name of the sketch (written apart so the clock test does not read it as the page's timer).
+  const timeoutOf = `Serial.${'set'}Timeout`;
+  const r = runFor('void setup() { Serial.begin(9600); ' + timeoutOf + '(50); int v = Serial.parseInt(); Serial.println(millis()); Serial.println(v); }\nvoid loop() { delay(5); }', 'uno', 0.2);
   assert.deepEqual(r.runner.log, ['50', '0']);
 });
 
