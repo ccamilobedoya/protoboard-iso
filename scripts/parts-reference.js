@@ -16,6 +16,7 @@ import { FIELDS } from '../src/sim/environment.js';
 import { t } from '../src/i18n/index.js';
 import { PART_TYPES } from '../src/parts/types/index.js';
 import { FILE as SKETCH_FILE, sketchReference } from './sketch-reference.js';
+import { FILE as CHIPS_FILE, chipsReference } from './chips-reference.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 export const FILE = join(root, 'plugin-src/references/parts.md');
@@ -139,14 +140,17 @@ export function partsReference() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  // sketch.md (scripts/sketch-reference.js) is written and checked with it.
+  // sketch.md (scripts/sketch-reference.js) and the generated blocks of chips.md
+  // (scripts/chips-reference.js) are written and checked with it.
+  const chips = readFileSync(CHIPS_FILE, 'utf8');
   if (process.argv.includes('--write')) {
     writeFileSync(FILE, partsReference());
     writeFileSync(SKETCH_FILE, sketchReference());
-    console.log('plugin-src/references/parts.md and sketch.md written.');
+    writeFileSync(CHIPS_FILE, chipsReference(chips));
+    console.log('plugin-src/references/parts.md, sketch.md and chips.md written.');
   } else if (process.argv.includes('--check')) {
-    const fresh = readFileSync(FILE, 'utf8') === partsReference() && readFileSync(SKETCH_FILE, 'utf8') === sketchReference();
-    console.log(fresh ? 'parts.md and sketch.md are up to date.' : 'parts.md or sketch.md is stale: npm run parts-reference -- --write');
+    const fresh = readFileSync(FILE, 'utf8') === partsReference() && readFileSync(SKETCH_FILE, 'utf8') === sketchReference() && chips === chipsReference(chips);
+    console.log(fresh ? 'parts.md, sketch.md and chips.md are up to date.' : 'parts.md, sketch.md or chips.md is stale: npm run parts-reference -- --write');
     process.exitCode = fresh ? 0 : 1;
   } else process.stdout.write(partsReference());
 }

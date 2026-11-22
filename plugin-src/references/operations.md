@@ -46,8 +46,8 @@ kit review <folder>                          until APPROVED · kit undo <folder>
   (combinations, sensors between the ends of their range, transient peaks of a PWM, a 555, a
   program or a generator). Beside the hazards, `doubts`: ⚠ lines under "The kit cannot confirm
   these work" (a part not simulated, a program that does not run, stops, gets stuck or calls
-  something unknown, a relay that may not pull in, a button across joined pins, a pin over its
-  voltage); one is enough for APPROVED WITH WARNINGS. [beyond-the-kit.md](beyond-the-kit.md) says
+  something unknown, a mistake in a sketch, a chip with no supply, a logic input open or under its
+  high level, a relay that may not pull in, a button across joined pins, a pin over its voltage); one is enough for APPROVED WITH WARNINGS. [beyond-the-kit.md](beyond-the-kit.md) says
   what to do with each.
 - **`kit netlist <folder>`**: every net with its pins, one call to compare with what the circuit
   must do.

@@ -47,18 +47,22 @@ fields.
   [sketch.md](sketch.md); a function the kit does not know (one that list does not have, a
   library's) is a ⚠ under "The kit cannot confirm these work": the program runs only as far as the
   kit can follow. Check what it does with `kit simulate <folder> --run <s>` ([run-it.md](run-it.md)).
-- A part the simulator only draws (`kit catalog` says "Not simulated": a 74HC595, an LM386, a
-  ULN2003…) is built and wired, and the answer ends `WARNINGS`: nothing about it is checked, and its
-  ⚠ names the outputs that hang from it (`nor what D1, D2, D3 do`): say the kit cannot tell what
-  they do, not that they stay off. What
-  every part takes: [parts.md](parts.md).
+- **Is it simulated?** Before building with a part you have not used, `kit catalog <name>`: a
+  `Simulated: …` line says what its model covers and leaves out; `Not simulated` means the kit draws
+  and wires it but checks nothing about it. Today every chip is simulated; the one part drawn only is
+  the `DESPI-C02` e-paper adapter (`kit catalog modules` marks it "not simulated: drawn only"). A
+  circuit with such a part ends `WARNINGS`, and its ⚠ names the outputs that hang from it (`nor what
+  D1, D2, D3 do`): say the kit cannot tell what they do, not that they stay off. What every part
+  takes: [parts.md](parts.md). The 74HC595, CD4017, ULN2003, ULN2803, PC817 and LM386, with the
+  wiring a beginner gets wrong and a worked spec each: [chips.md](chips.md).
 
 ## Nets
 
 Each one the pins it joins (`"R1.2"`) and rails (`"T+"`, `"T-"`, `"B+"`, `"B-"`), as a list or
 `{pins, color}`. Pin names as people write them work: `A`/`K` or `anode`/`cathode`, `VIN`, `VOUT`,
-`DISCH`, `THRESHOLD`, `VDD`, `GPIO4` (the DevKit's `D4`), `3.3V`. A ground net without a rail goes
-to a − rail by itself.
+`DISCH`, `THRESHOLD`, `VDD`, `GPIO4` (the DevKit's `D4`), `3.3V`. A board's serial pins go by the
+names it prints: an UNO's TX is `D1` and RX `D0`; a DevKit's are `TX0`/`RX0` and `TX2`/`RX2`. A
+ground net without a rail goes to a − rail by itself.
 
 ## Supplies and the rest
 

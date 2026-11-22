@@ -38,34 +38,43 @@ voltage: `kit simulate <folder>` (a model); the connections: `kit nets <folder>`
 kit layout <folder> --recipe npn-switch [--values '{"R1":"470"}']
 kit layout <folder> [spec.json] [--check] [--dry-run] [--expect-revision n] [--budget seconds]
 kit layout <folder> --fix [--dry-run]           # the kit's own "To fix it", as one change
-kit apply <folder> --ops '<json>' --dry-run      # then --expect-revision n
-kit review | check | netlist | nets | inspect | history | undo <folder>
+kit apply <folder> --ops '<json>' --dry-run      # then --expect-revision n; --new-history (below)
+kit review | check | netlist | nets | inspect | history | undo <folder>   # undo --dry-run changes nothing
 kit query <folder> at c12 | node 9:a-e | free --near e10
 kit suggest <folder> --part '<json>' --between <group>,<group>
-kit simulate <folder> [--transient stop,step] [--env light=50] [--set RV1=0.8]
-kit simulate <folder> --run <seconds> [--env …] [--set …] [--press S1@0.5+0.2] [--at 1:light=50]
+kit simulate <folder> [--transient stop,step] [--env light=50] [--set RV1=0.8] [--start zero|dc]
+kit simulate <folder> --run <seconds> [--env …] [--set …] [--press S1@0.5+0.2] [--at 1:light=50] [--start zero|dc]
 kit render <folder> -o out.svg [--view back] [--fit parts]
-kit page <folder> · kit catalog [name]
+kit page <folder> · kit catalog [name | parts | boards | modules | recipes]
 ```
 
 A target is a circuit folder (`circuit.json`, `history.jsonl`, `out/`, and a board's `.ino` beside
 `circuit.json`) or a circuit file. `layout`, `apply` and `undo` print where the page is (an absolute
-path) as the line before `STATUS` (`layout`) or the last line. `--json` gives any answer as JSON.
+path) as the line before `STATUS` (`layout`) or the last line. `--json` gives any answer as one
+JSON value; an error is `{"ok": false, "code": …, "message": …}`. A trial (`--dry-run`) says in its
+`STATUS` line that nothing was saved.
 
 Exit codes: **0** done (`layout`: `DONE`, `WARNINGS` or `SPEC_OK`; review APPROVED or APPROVED WITH
 WARNINGS); **1** an input mistake, nothing saved (`layout`: `FIX_SPEC`; a file that is missing or
 not JSON; `apply` with something the kit cannot read); **2** review `CHANGES` (`layout`: `CHANGES`)
-or an option the kit does not take (its name is on the last line); **3** a fault in the kit
+or an option the kit does not take or a value it does not read (`--start foo`; its name is on the last
+line); **3** a fault in the kit
 (`internal error: …`): report it, do not work around it.
 
 `layout` calculates before it places: "Too large for one board" (`FIX_SPEC`, nothing created) gives
 the columns needed and how many parts fit one board, so split the circuit; a large circuit says
 before it starts that one try takes longer than the budget. The search stops at `--budget` seconds
 (60 by default, at most 300; connector: `budget_s`) with its best try, `STATUS: CHANGES` and a line
-saying so. The same spec always gives the same circuit: running it again unchanged gives the same
-answer. Nets that share a pin are joined into one, with a note.
+saying so. The budget is counted in placements tried, so the same spec always gives the same circuit:
+running it again unchanged gives the same answer. Only a cut by the clock of a slow machine is not
+repeatable, and its line says so. Nets that share a pin are joined into one, with a note.
 
 `apply` refuses input the kit cannot read (a value, part, pin, field or hole it does not know):
 nothing is saved, exit 1. A readable change that breaks the circuit (a short, a collision) is saved
 with a line saying how many new errors it brings; `kit undo` takes it back. A circuit keeps the
 language it was made in.
+
+A damaged `history.jsonl` (a line the kit cannot read): `apply` saves nothing and says so (exit 1,
+`HISTORY_DAMAGED`, the circuit is intact); `apply … --new-history` (connector: `new_history`) keeps
+it as `history.jsonl.damaged` and starts a new history from the circuit as it is. Ask the user
+first: undo cannot go back past it ([warnings.md](warnings.md)).

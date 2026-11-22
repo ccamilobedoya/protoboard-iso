@@ -126,13 +126,131 @@ which; to show the other, press what sets it (`--press`):
 
 ## When the kit checks only part of it
 
-A request the kit simulates only in part (a chip it only draws, a program that calls what the kit
+A request the kit simulates only in part (a part it only draws, a program that calls what the kit
 does not know, a run cut short) is answered for that part: say which part was checked and which was
 not, from the ⚠ lines and the `Checked` line. A ⚠ that says the kit cannot tell what an output does
 (`nor what D1, D2, D3 do`) means unknown, never off.
 
 ## Sketches
 
-<!-- SKETCH SESSION: what a run shows about a board's program (interrupts, Serial between boards,
-deep sleep, `char`) goes here, from the sketch runner's own report. Until then: what a sketch may
-use is in sketch.md. -->
+A run of a board's program shows what the program printed on `Serial`, with the simulated time of
+each line, and what each pin it drives did. Its timing is the board's: a `delay(300)` lasts 300 ms,
+Serial output takes the time its baud rate gives (ten bits a character at the rate of
+`Serial.begin`, once the board's buffer is full), and a mistake a real board would show is a ⚠ naming its line
+([warnings.md](warnings.md)). A pin is named as `kit catalog <board>` lists it: an UNO's TX is `D1`
+and its RX `D0`; an ESP32 DevKit's second port is `TX2` and `RX2`.
+
+**A button pressed during a `delay`.** A sketch that reads a button with `digitalRead` sees it only
+when it reads; a press that starts and ends inside a `delay` is missed, on the board and in the kit.
+An interrupt sees it. Test it with presses shorter than the delay: here a button on D2 counted by an
+interrupt (`attachInterrupt` works on an UNO's D2 and D3 and on any ESP32 GPIO; another pin is a ⚠).
+
+```cpp circuits/counter/counter.ino
+volatile int presses = 0;
+
+void count() {
+  presses++;
+}
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(2, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(2), count, FALLING);
+}
+
+void loop() {
+  delay(1000);
+  Serial.println(presses);
+}
+```
+
+```json counter.json
+{
+  "parts": [
+    { "id": "U1", "part": "UNO", "program": "counter.ino" },
+    { "id": "S1", "type": "button" }
+  ],
+  "nets": [["U1.D2", "S1.1"], ["S1.3", "U1.GND"]]
+}
+```
+
+```bash
+kit layout circuits/counter counter.json
+```
+
+```bash
+kit simulate circuits/counter --run 3 --press S1@0.5+0.1 --press S1@1.5+0.1
+```
+
+```text
+Serial (2 lines, in order):
+  1 s        1
+  2 s        2
+```
+
+Both presses are counted, each inside a `delay(1000)`. The same sketch with
+`if (digitalRead(2) == LOW) presses++;` before the `delay` instead of the interrupt prints `0` twice:
+say that a real board misses them too. The kit's buttons do not bounce: one press is one edge, so a
+debounce is not tested by a run.
+
+**Two boards.** The bytes one board sends on a TX pin reach the board whose RX pin is on the same
+net, in the same run, at the sender's baud rate (two rates that differ pass nothing, a ⚠). Here an
+ESP32 sends on `Serial2` (3.3 V into the UNO's `D0` reads high; an UNO's 5 V TX into an ESP32 pin is
+a ⚠ over that pin's voltage):
+
+```cpp circuits/link/sender.ino
+int n = 0;
+
+void setup() {
+  Serial2.begin(9600, SERIAL_8N1, 16, 17);
+}
+
+void loop() {
+  Serial2.println(n);
+  n++;
+  delay(500);
+}
+```
+
+```cpp circuits/link/receiver.ino
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  if (Serial.available()) {
+    int n = Serial.parseInt();
+    Serial.print("got ");
+    Serial.println(n);
+  }
+}
+```
+
+```json link.json
+{
+  "parts": [
+    { "id": "U1", "part": "ESP32-DEVKIT", "program": "sender.ino" },
+    { "id": "U2", "part": "UNO", "program": "receiver.ino" }
+  ],
+  "nets": [["U1.TX2", "U2.D0"], ["U1.GND", "U2.GND"]]
+}
+```
+
+```bash
+kit layout circuits/link link.json
+```
+
+```bash
+kit simulate circuits/link --run 1
+```
+
+```text
+  0 s        U1: Serial2: 0
+  3 ms       U2: got 0
+```
+
+Each line names its board, and a port other than `Serial` is named too.
+
+**Deep sleep.** On an ESP32, `esp_deep_sleep_start()` after `esp_sleep_enable_timer_wakeup(µs)`
+stops the program; after that time it starts again from `setup()`, its globals as at power-up, so a
+run of several seconds shows `setup()`'s lines once per wake-up.

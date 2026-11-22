@@ -4,8 +4,10 @@
 // shows fails here.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { appendFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
 import { fixRequest, formatLayout } from '../src/layout.js';
 import { autoLayout } from './layout-generous.js';
 import { formatIssue, t } from '../src/index.js';
@@ -13,7 +15,7 @@ import { expandRecipe } from '../src/recipes/index.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const text = readFileSync(join(root, 'plugin-src/references/warnings.md'), 'utf8');
-const blocks = [...text.matchAll(/^```(\w*)( fix)?\n([\s\S]*?)^```/gm)].map((m) => ({ lang: m[1], fix: Boolean(m[2]), body: m[3] }));
+const blocks = [...text.matchAll(/^```(\w*)(?: (\w+))?\n([\s\S]*?)^```/gm)].map((m) => ({ lang: m[1], fix: m[2] === 'fix', history: m[2] === 'history', body: m[3] }));
 const linesOf = (r) => new Set(formatLayout(r, 'en', { t, formatIssue }).split('\n').map((l) => l.trimEnd()));
 
 test('warnings.md: each spec is laid out and prints the lines quoted after it', () => {
@@ -28,6 +30,8 @@ test('warnings.md: each spec is laid out and prints the lines quoted after it', 
       specs++;
       continue;
     }
+    // The damaged history is a command's answer, not a layout's: its own test below.
+    if (b.lang === 'bash' || b.history) continue;
     assert.equal(b.lang, 'text', 'only json specs and text quotes');
     assert.ok(laid, 'a quote follows a spec');
     let r = laid;
@@ -43,7 +47,7 @@ test('warnings.md: each spec is laid out and prints the lines quoted after it', 
       quoted++;
     }
   }
-  assert.equal(specs, 4);
+  assert.equal(specs, 8);
   // The buzzer in backwards is also an output that never comes on (its line names the kit, so it is
   // said in prose, not quoted in a block the plugin test reads as commands).
   const buzzer = JSON.parse(blocks.filter((b) => b.lang === 'json')[1].body);
@@ -52,6 +56,23 @@ test('warnings.md: each spec is laid out and prints the lines quoted after it', 
   assert.ok([...linesOf(r)].some((l) => l.startsWith('  ⚠ warning: BZ1 never comes on:')));
   assert.match(text, /`BZ1 never comes on:`/);
   assert.ok(quoted >= 6, `${quoted} lines quoted`);
+});
+
+test('warnings.md: a damaged history: the command quoted refuses with the line quoted, and --new-history saves', () => {
+  const dir = tempDir('pb-warn-history-');
+  const kit = (...args) => spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), ...args], { cwd: dir, encoding: 'utf8' });
+  assert.equal(kit('layout', 'circuits/led', '--recipe', 'led-resistor').status, 0);
+  appendFileSync(join(dir, 'circuits/led/history.jsonl'), 'not an entry\n');
+  const command = blocks.find((b) => b.lang === 'bash').body.trim();
+  const args = command.match(/'[^']*'|\S+/g).map((a) => a.replace(/^'|'$/g, ''));
+  assert.equal(args[0], 'kit');
+  const r = kit(...args.slice(1));
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  const printed = new Set(`${r.stdout}${r.stderr}`.split('\n').map((l) => l.trimEnd()));
+  for (const line of blocks.find((b) => b.history).body.split('\n').filter((l) => l.trim())) assert.ok(printed.has(line.trimEnd()), `${command} prints:\n${line}\n---\n${r.stdout}${r.stderr}`);
+  const again = kit(...args.slice(1), '--new-history');
+  assert.equal(again.status, 0, again.stdout + again.stderr);
+  assert.match(again.stdout, /history\.jsonl\.damaged/);
 });
 
 test('warnings.md: the program section says what sketch.md says', () => {

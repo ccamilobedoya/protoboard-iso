@@ -262,8 +262,9 @@ test('run-it.md quotes the latch\'s two resting states as layout prints them', a
   assert.equal(quoted.length, 3);
   const lines = new Set(formatLayout(autoLayout(LATCH), 'en', { t, formatIssue }).split('\n').map((l) => l.trim()));
   for (const line of quoted) assert.ok(lines.has(line), line);
-  // A clearly marked place for what the sketch session reports.
-  assert.match(text, /<!-- SKETCH SESSION:/);
+  // The place marked for what the sketch session reports is filled (C13): no marker left.
+  assert.doesNotMatch(text, /<!-- SKETCH SESSION:/);
+  assert.match(text, /^## Sketches\n\n[\s\S]*attachInterrupt/m);
 });
 
 test('the skill says what a note is, what to do with nobody to ask, and to dry-run a swap of kinds', async () => {

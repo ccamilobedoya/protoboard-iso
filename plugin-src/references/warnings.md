@@ -98,8 +98,117 @@ measures it over a longer run.
 Behaviour, first 2 s from everything discharged, as the page starts (simulated, a model): D1 about 310 Hz, on about 51 % of the time
 ```
 
-## A board's program
+## A mistake in a board's program
 
-`shiftOut` and `shiftIn` run (a 74HC595 is drawn, not simulated, so what is behind it is a doubt). A
-two-dimensional array (`int a[2][3]`) is refused by its line and the program does not run: write it
-as one list (`a[row * 3 + col]`). What else a sketch may use: [sketch.md](sketch.md).
+A mistake a real board would show (it compiles and misbehaves, or it does not compile) is a ⚠ that
+names its line, and the program goes on as a board would: a pin the board does not have, a write to
+a pin never set `OUTPUT`, `analogWrite` on a pin with no PWM, a division by zero, an array read past
+its end, a negative `delay`, a name never declared, a `{` never closed, a library the kit does not
+have (its calls do nothing). Tell the user the line and the fix the ⚠ gives; never call it a limit of
+the kit.
+
+```json
+{
+  "parts": [
+    { "id": "U1", "part": "UNO", "program": "void setup() {\n}\n\nvoid loop() {\n  digitalWrite(13, HIGH);\n  delay(500);\n}" },
+    { "id": "R1", "type": "resistor", "value": "220" },
+    { "id": "D1", "type": "led", "color": "red" }
+  ],
+  "nets": [["U1.D13", "R1.1"], ["R1.2", "D1.A"], ["D1.K", "U1.GND"]]
+}
+```
+
+```text
+  ⚠ warning: U1: digitalWrite(D13, HIGH) at line 5 writes to a pin never set as OUTPUT. On an UNO that only turns the pin's pull-up on (about 35 kΩ to 5 V), as the kit models it: an LED on it barely glows. Add pinMode(D13, OUTPUT) in setup().
+```
+
+`shiftOut` and `shiftIn` run. A two-dimensional array (`int a[2][3]`) is refused by its line and
+the program does not run: write it as one list (`a[row * 3 + col]`). What else a sketch may use:
+[sketch.md](sketch.md).
+
+## A chip with no supply
+
+A chip whose supply pins are left out of the nets, or both on one net, cannot work: a ⚠, and what
+it drives never comes on.
+
+```json
+{
+  "parts": [
+    { "id": "BT1", "type": "battery", "format": "9V" },
+    { "id": "U1", "part": "LM358" },
+    { "id": "R1", "type": "resistor", "value": "1k" },
+    { "id": "D1", "type": "led", "color": "red" }
+  ],
+  "nets": [["BT1.+", "U1.IN1+"], ["U1.OUT1", "R1.1"], ["R1.2", "D1.A"], ["D1.K", "BT1.-", "U1.IN1-"]]
+}
+```
+
+```text
+  ⚠ warning: U1 has no supply: its supply pins VCC and GND are wired to nothing, so it cannot work. Wire each to its side of the supply.
+```
+
+## A logic input left open
+
+An input of a 74HC595 or a CD4017 left out of the nets is undefined on a real chip; the kit reads it
+low and says so. Tie it as the chip needs ([chips.md](chips.md)): here the 74HC595's `SRCLR`, which
+holds the register clear, so its LED never lights.
+
+```json
+{
+  "parts": [
+    { "id": "U1", "part": "UNO", "program": "void setup() {\n  pinMode(11, OUTPUT);\n  pinMode(12, OUTPUT);\n  pinMode(8, OUTPUT);\n  digitalWrite(8, LOW);\n  shiftOut(11, 12, MSBFIRST, 1);\n  digitalWrite(8, HIGH);\n}\n\nvoid loop() {\n}" },
+    { "id": "U2", "part": "74HC595" },
+    { "id": "R1", "type": "resistor", "value": "330" },
+    { "id": "D1", "type": "led", "color": "red" }
+  ],
+  "nets": [
+    ["U1.5V", "U2.VCC"], ["U1.GND", "U2.GND", "U2.OE", "D1.K"],
+    ["U1.D11", "U2.SER"], ["U1.D12", "U2.SRCLK"], ["U1.D8", "U2.RCLK"],
+    ["U2.QA", "R1.1"], ["R1.2", "D1.A"]
+  ]
+}
+```
+
+```text
+  ⚠ warning: U2: its input SRCLR is left open. On a real CMOS chip an open input is undefined (it picks up noise and may change by itself); the kit takes it as low (0 V). Wire it to GND or to the supply, as the circuit needs.
+```
+
+## A 3.3 V pin on a 5 V logic chip
+
+An ESP32's pins give 3.3 V; a 74HC595 or a CD4017 fed 5 V needs more to read high. Each such input is
+a ⚠: feed the chip from the board's `3V3`, or use a level shifter.
+
+```json
+{
+  "parts": [
+    { "id": "U1", "part": "ESP32-DEVKIT", "program": "void setup() {\n  pinMode(23, OUTPUT);\n  pinMode(18, OUTPUT);\n  pinMode(5, OUTPUT);\n  digitalWrite(5, LOW);\n  shiftOut(23, 18, MSBFIRST, 1);\n  digitalWrite(5, HIGH);\n}\n\nvoid loop() {\n}" },
+    { "id": "U2", "part": "74HC595" },
+    { "id": "R1", "type": "resistor", "value": "330" },
+    { "id": "D1", "type": "led", "color": "red" }
+  ],
+  "nets": [
+    ["U1.VIN", "U2.VCC", "U2.SRCLR"], ["U1.GND", "U2.GND", "U2.OE", "D1.K"],
+    ["U1.D23", "U2.SER"], ["U1.D18", "U2.SRCLK"], ["U1.D5", "U2.RCLK"],
+    ["U2.QA", "R1.1"], ["R1.2", "D1.A"]
+  ]
+}
+```
+
+```text
+  ⚠ warning: U2: its input SER sits at 3.3 V, between the 1.5 V under which it reads low and the 3.49 V over which it reads high: the chip may read either level (the kit keeps the one it had). A 3.3 V pin on a chip fed 5 V does not reach its high level: feed the chip from the board's 3.3 V, or use a level shifter.
+```
+
+## A damaged history
+
+Not a ⚠ but a refusal: when the circuit's `history.jsonl` has a line the kit cannot read, `apply`
+saves nothing (exit 1) and says the circuit is intact. Tell the user; with their agreement,
+`--new-history` (connector: `new_history: true`) keeps the old file as `history.jsonl.damaged` and
+starts again from the circuit as it is (undo then goes back no further).
+
+```bash
+kit apply circuits/led --ops '[{"op":"set","part":"R1","value":"470"}]'
+```
+
+```text history
+  error: The history file circuits/led/history.jsonl is damaged at line 2: it is not an entry the kit can read, so undo and history cannot go on from it and nothing was saved. The circuit itself (circuit.json) is intact. To go on, start a new history from the circuit as it is with --new-history (the damaged file is kept beside it, ending .damaged), or repair that line.
+```

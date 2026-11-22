@@ -23,7 +23,7 @@ absolute path of the folder this file is in.
   instead, same names and arguments: the user sees the board; make no file.
 - Otherwise run `kit` in a shell; once per conversation `node --version` (no Node 22+: say so,
   stop).
-- Keep circuits in `circuits/<name>/` (`green-led`), in the folder for files handed to the user,
+- Keep circuits in `circuits/<name>/`, in the folder for files handed to the user,
   else the working directory; a different circuit gets a new folder.
 - Add `--lang es` when the user writes in Spanish (page, labels, messages).
 
@@ -65,11 +65,11 @@ What each one is: [references/recipes.md](references/recipes.md).
 A part number or common name is enough (`"part": "2N2222A"`, `"UNO"`). A board's program is a
 `.ino` file **in the circuit's folder, beside `circuit.json`** (`circuits/<name>/blink.ino`, written
 before `layout`), named in `"program"`, written only with what [references/sketch.md](references/sketch.md)
-lists (`shiftOut` works; arrays of one dimension only). A part you have not used: `kit catalog
-<name>` first; "drawn, not simulated" means nothing about it is checked. Spec details:
-[references/spec.md](references/spec.md); each
-part's pins (which is +, which way a knob turns, which pins switch), fields and units:
-[references/parts.md](references/parts.md).
+lists. A part you have not used: `kit catalog <name>` first (its `Simulated:` line; "Not
+simulated": nothing about it is checked). Spec details: [references/spec.md](references/spec.md);
+each part's pins (which is +), fields and units:
+[references/parts.md](references/parts.md); a 74HC595, 4017, ULN, PC817 or LM386:
+[references/chips.md](references/chips.md).
 
 ## Read the last line
 
