@@ -149,7 +149,7 @@ export function programOutputs(reading) {
 // placement checks say those).
 const NOT_DOUBTS = new Set(['SIM_UNSUPPORTED', 'SIM_PROGRAM_IGNORED', 'SIM_NO_SUPPLY', 'SIM_PLACEMENT_ERRORS']);
 // Issues of a board's program: doubts whatever their severity (a library not simulated is a note).
-const PROGRAM_DOUBTS = new Set(['SIM_PROGRAM_FILE', 'SIM_PROGRAM_OUTSIDE', 'SIM_PROGRAM_TOO_LARGE', 'SIM_PROGRAM_ERROR', 'SIM_PROGRAM_UNSUPPORTED', 'SIM_PROGRAM_LIBRARY', 'SIM_PROGRAM_NO_LOOP', 'SIM_PROGRAM_NOT_IN_KIT', 'SIM_PROGRAM_ARRAY_DIMENSIONS']);
+const PROGRAM_DOUBTS = new Set(['SIM_PROGRAM_FILE', 'SIM_PROGRAM_FOLDER', 'SIM_PROGRAM_NOT_SKETCH', 'SIM_PROGRAM_OUTSIDE', 'SIM_PROGRAM_TOO_LARGE', 'SIM_PROGRAM_ERROR', 'SIM_PROGRAM_UNSUPPORTED', 'SIM_PROGRAM_LIBRARY', 'SIM_PROGRAM_NO_LOOP', 'SIM_PROGRAM_NOT_IN_KIT', 'SIM_PROGRAM_ARRAY_DIMENSIONS']);
 const warningsOf = (reading) => (reading.issues ?? []).filter((i) => (PROGRAM_DOUBTS.has(i.code) || i.severity === 'warning' || i.severity === 'error') && !NOT_DOUBTS.has(i.code));
 // One doubt per code and part (its readings change from state to state), and per call or file a
 // program's issue names; an issue that names no part, by all its params.

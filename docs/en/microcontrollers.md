@@ -169,7 +169,9 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - **Not run:** classes (but three libraries' objects, [below](#library-objects-dht-bme280-bmp280)), pointers, templates, function-like macros, other libraries (an `#include` other
   than Arduino's is noted: `SIM_PROGRAM_LIBRARY`); a call to a function nobody defines returns 0
   (`SIM_PROGRAM_UNSUPPORTED`); a line it cannot read stops it (`SIM_PROGRAM_ERROR`, with the line);
-  a missing file (`SIM_PROGRAM_FILE`). A global whose value calls `delay`, `pulseIn` or one of the
+  a missing file (`SIM_PROGRAM_FILE`); a folder named as the program (`SIM_PROGRAM_FOLDER`); a
+  one-line program that reads as a file name the kit does not read, with a slash or an ending that is
+  not `.ino` (`SIM_PROGRAM_NOT_SKETCH`: taken for a file name, never parsed as a sketch). A global whose value calls `delay`, `pulseIn` or one of the
   sketch's own functions (`long g = pulseIn(7, HIGH);`, `int x = half(4);`) is `SIM_PROGRAM_ERROR`:
   here those calls wait in simulated time, and a global's value has none to wait in.
 - **A program is external input** (CLAUDE.md, "External input"): its JavaScript names only what

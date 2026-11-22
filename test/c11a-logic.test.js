@@ -362,3 +362,30 @@ test('a 555 too slow for the review\'s run (470 µF: a period of about 34 s): no
   assert.ok(r.review.checked.notChecked.includes('short-run'), JSON.stringify(r.review.checked));
   assert.match(formatLayout(r, 'en', { t, formatIssue }), /^Checked: .*whether every output comes on \(the run was too short to tell\)/m);
 });
+
+// SUPPLY_PINS_UNWIRED (C12) reads a chip's supply pins by name: VCC/GND on the 74HC595, VDD/VSS on the
+// CD4017. Left open, each is said; the examples, wired, are not.
+test('a 74HC595 or a CD4017 with a supply pin left open gets SUPPLY_PINS_UNWIRED; the logic examples do not', async () => {
+  const { compile } = await import('../src/sim/compile.js');
+  const { checkSupplyPins } = await import('../src/circuit/checks.js');
+  const { readFileSync } = await import('node:fs');
+  for (const name of ['uno-74hc595-fill', '555-cd4017-chaser']) {
+    const c = JSON.parse(readFileSync(new URL(`../examples/${name}.json`, import.meta.url), 'utf8'));
+    assert.deepEqual(checkSupplyPins(compile(c).program), [], name);
+  }
+  const register = layoutOnce('595-no-vcc', {
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
+    parts: [{ id: 'U1', part: '74HC595' }, { id: 'R1', type: 'resistor', value: '330' }, { id: 'D1', type: 'led', color: 'red' }],
+    nets: [['T-', 'U1.GND', 'U1.OE', 'U1.SER', 'U1.SRCLK', 'U1.RCLK', 'D1.K'], ['T+', 'U1.SRCLR'], ['U1.QA', 'R1.1'], ['R1.2', 'D1.A']],
+  });
+  const counter = layoutOnce('4017-no-vdd', {
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
+    parts: [{ id: 'U1', part: 'CD4017' }, { id: 'R1', type: 'resistor', value: '1k' }, { id: 'D1', type: 'led', color: 'red' }],
+    nets: [['T-', 'U1.VSS', 'U1.CE', 'U1.MR', 'U1.CLK', 'D1.K'], ['U1.Q0', 'R1.1'], ['R1.2', 'D1.A']],
+  });
+  for (const [c, open] of [[register, 'VCC'], [counter, 'VDD']]) {
+    const found = review(c).doubts.filter((d) => d.code === 'SUPPLY_PINS_UNWIRED');
+    assert.equal(found.length, 1, JSON.stringify(review(c).doubts));
+    assert.equal(found[0].params.open, open);
+  }
+});

@@ -33,7 +33,7 @@ import { deviceFor } from './devices/index.js';
 import { issue } from './devices/shared.js';
 import { translateSketch } from './sketch.js';
 import { LIMITS } from '../limits.js';
-import { readBeside, programFile } from '../beside.js';
+import { readBeside, programFile, looksLikeFileName, isFolderBeside, circuitFolder } from '../beside.js';
 import { FIELDS, cleanEnvironment, createEnvironment } from './environment.js';
 
 // A board's program (docs/en/microcontrollers.md, M2): the sketch's text in "program", or the name
@@ -45,10 +45,22 @@ function sketchOf(circuit, part, issues) {
   if (given == null || given === '') return null;
   let text = String(given);
   const name = programFile(text);
+  const folder = circuitFolder(circuit);
+  const where = folder ? { folder, variant: 'folder' } : { variant: 'noFolder' };
+  // A one-line program that is a file name the kit does not read (not a .ino), or a folder: said so.
+  if (!name && looksLikeFileName(text)) {
+    const file = text.trim();
+    issues.push(issue('warning', isFolderBeside(circuit, file) ? 'SIM_PROGRAM_FOLDER' : 'SIM_PROGRAM_NOT_SKETCH', { part: part.id, file, ...where }));
+    return null;
+  }
   if (name) {
     const read = readBeside(circuit, name, LIMITS.sketchChars);
     if (read.error === 'outside') {
       issues.push(issue('warning', 'SIM_PROGRAM_OUTSIDE', { part: part.id, file: name }));
+      return null;
+    }
+    if (read.error === 'folder') {
+      issues.push(issue('warning', 'SIM_PROGRAM_FOLDER', { part: part.id, file: name, ...where }));
       return null;
     }
     if (read.error === 'size') {

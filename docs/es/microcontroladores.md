@@ -177,7 +177,10 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
 - **Lo que no corre:** clases (salvo los objetos de tres bibliotecas, [más abajo](#objetos-de-biblioteca-dht-bme280-bmp280)), punteros, plantillas, macros con parámetros, otras librerías (un
   `#include` distinto del de Arduino se avisa: `SIM_PROGRAM_LIBRARY`); llamar a una función que nadie
   define devuelve 0 (`SIM_PROGRAM_UNSUPPORTED`); una línea que no entiende lo detiene
-  (`SIM_PROGRAM_ERROR`, con la línea); un archivo que falta (`SIM_PROGRAM_FILE`). Una variable
+  (`SIM_PROGRAM_ERROR`, con la línea); un archivo que falta (`SIM_PROGRAM_FILE`); una carpeta nombrada como
+  programa (`SIM_PROGRAM_FOLDER`); un programa de una línea que se lee como un nombre de archivo que el
+  kit no lee, con una barra o una terminación que no es `.ino` (`SIM_PROGRAM_NOT_SKETCH`: se toma por un
+  nombre de archivo, nunca se lee como sketch). Una variable
   global cuyo valor llama a `delay`, a `pulseIn` o a una función propia del programa
   (`long g = pulseIn(7, HIGH);`, `int x = mitad(4);`) es `SIM_PROGRAM_ERROR`: aquí esas llamadas
   esperan en tiempo simulado, y el valor de una global no tiene tiempo en que esperar.

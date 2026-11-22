@@ -2075,4 +2075,8 @@ export default {
   'check.SIM_REG_INPUT.differential': '{part} tiene {voltage} entre la entrada y la salida, más que su máximo absoluto de {max}{effect} Baja el voltaje de la fuente, o reduce parte de él antes del regulador.',
   'catalog.limit.of.inputOutput': 'entrada a salida',
   'review.notChecked.short-run': 'si cada salida se enciende (la corrida fue demasiado corta para saberlo)',
+  'check.SIM_PROGRAM_FOLDER.folder': '{part}: su programa {file} es una carpeta, no un archivo, así que el programa no corre. El kit buscó en {folder}: nombra el archivo .ino mismo (por ejemplo {file}/sketch.ino, dentro de la carpeta del circuito), o escribe el texto del sketch en "program".',
+  'check.SIM_PROGRAM_FOLDER.noFolder': '{part}: su programa {file} nombra una carpeta, no un archivo, así que el programa no corre (y este circuito no se cargó desde una carpeta). Nombra el archivo .ino mismo, al lado de circuit.json, o escribe el texto del sketch en "program".',
+  'check.SIM_PROGRAM_NOT_SKETCH.folder': '{part}: su programa "{file}" se tomó por un nombre de archivo, no por un sketch (una línea, sin ; ni llaves), y el kit solo lee un archivo .ino en la carpeta del circuito: buscó en {folder}. Nombra ahí un archivo .ino, o escribe el texto del sketch en "program": necesita setup() y loop().',
+  'check.SIM_PROGRAM_NOT_SKETCH.noFolder': '{part}: su programa "{file}" se tomó por un nombre de archivo, no por un sketch (una línea, sin ; ni llaves); el kit solo lee un archivo .ino al lado de circuit.json, y este circuito no se cargó desde una carpeta. Nombra ahí un archivo .ino, o escribe el texto del sketch en "program": necesita setup() y loop().',
 };

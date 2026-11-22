@@ -487,7 +487,8 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
       // Only a board lists its pins (a chip's "U2.OUT1" names a pin of a part whose pins are volts by name).
       const pins = now.parts?.[board]?.pins;
       const level = pin && Array.isArray(pins) ? pins.find((x) => x.name === pin && x.mode === 'output') : null;
-      warnings.set(key, { ...w, when: { time: engine.time, ...(level && { pin, high: Boolean(level.pwm ? level.pwm.duty > 0 : level.level) }) } });
+      // "At its strongest in the run, at …" only for a warning with a quantity (a program's warning has none).
+      warnings.set(key, strength(w) > 0 ? { ...w, when: { time: engine.time, ...(level && { pin, high: Boolean(level.pwm ? level.pwm.duty > 0 : level.level) }) } } : w);
     }
     return now;
   };

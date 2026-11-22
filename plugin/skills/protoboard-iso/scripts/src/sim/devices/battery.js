@@ -26,9 +26,11 @@ export const battery = {
     if (entry.supply.off) return [];
     const b = entry.supply.battery;
     const out = [];
-    // A short: what is outside the battery is less than half an ohm (bare wires).
+    // A short: what is outside the battery is less than half an ohm (bare wires, or a second battery
+    // facing the other way). It is said as such, and it is also the current over the battery's maximum
+    // like any other overload: a hazard (it overheats and its voltage collapses), not only a doubt.
     if (r.current > 0.1 && r.voltage / r.current < 0.5) out.push(note('warning', 'SIM_SHORT_CIRCUIT', { supply: entry.id, current: q(r.current, 'A') }));
-    else out.push(stress('SIM_OVER_CURRENT', 'current', r.current, b.maxCurrent, 'A'));
+    out.push(stress('SIM_OVER_CURRENT', 'current', r.current, b.maxCurrent, 'A'));
     if (r.current < -1e-3) out.push(note(b.rechargeable ? 'info' : 'warning', b.rechargeable ? 'SIM_BATTERY_CHARGING' : 'SIM_BATTERY_REVERSE', { part: entry.id, current: q(-r.current, 'A') }));
     return out;
   },

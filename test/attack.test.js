@@ -541,3 +541,17 @@ test('attack: a PC817 whose phototransistor feeds or shunts its own LED ends, bo
     assert.ok(r && Date.now() - began < 20000, 'ends in time'); // real clock: the bound is on the machine's time
   }
 });
+
+// A one-line program that looks like a path (C11, the loose ends of C12): taken for a file name, never
+// read, never looked up outside the circuit's folder (a parent folder is not called a folder of its).
+test('attack: a program that names a path outside the circuit is not read nor looked into', async () => {
+  const { CIRCUIT_FOLDER } = await import('../src/beside.js');
+  const dir = tempDir('pbi-attack-path-');
+  const blink = autoLayout(expandRecipe('uno-blink').spec).circuit;
+  for (const program of ['../', '../../etc/passwd', '/etc', 'C:\\Windows\\win.ini']) {
+    const c = { ...blink, parts: blink.parts.map((p) => (p.part === 'UNO' ? { ...p, program } : p)), [CIRCUIT_FOLDER]: dir };
+    const codesOf = codes(simulate(c).issues);
+    assert.ok(codesOf.includes('SIM_PROGRAM_NOT_SKETCH'), `${program}: ${codesOf}`);
+    assert.ok(!codesOf.includes('SIM_PROGRAM_FOLDER'), program);
+  }
+});
