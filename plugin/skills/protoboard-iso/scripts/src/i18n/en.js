@@ -2060,4 +2060,5 @@ export default {
   'check.SIM_REG_INPUT.chip': '{part} has {voltage} at its input, more than its absolute maximum {max}{effect} Lower the supply voltage, or drop part of it before the regulator.',
   'check.SIM_REG_INPUT.differential': '{part} has {voltage} between its input and its output, more than its absolute maximum {max}{effect} Lower the supply voltage, or drop part of it before the regulator.',
   'catalog.limit.of.inputOutput': 'input to output',
+  'review.notChecked.short-run': 'whether every output comes on (the run was too short to tell)',
 };

@@ -337,6 +337,12 @@ export function hangingOutputs(program) {
 // Behaviour line. One doubt per part; a part with several outputs (an RGB LED, a display) names the
 // ones that never came on when others did. A relay says its highest coil current and its pull-in.
 const NEVER_ON_SECONDS = 2;
+// A slow oscillation: the plain part of the run covers NEVER_ON_PERIODS of its period, taken as
+// PERIOD_PER_TAU times the longest time constant (a 555 astable's period is 0.7 to 1.4 of its timing
+// capacitor's τ), at most NEVER_ON_MAX simulated seconds [assumed].
+const NEVER_ON_PERIODS = 2;
+const PERIOD_PER_TAU = 2;
+const NEVER_ON_MAX = 30;
 // The scripted run's pieces: each state held this long (a touch module registers after 220 ms), then
 // released for the gap; at most NEVER_ON_STATES of them, after the plain seconds above [assumed].
 const NEVER_ON_HOLD = 0.5;
@@ -361,7 +367,37 @@ function neverOn(circuit, compiled, engine, states, lit, extra = extraStates(cir
     leaveState(engine, s);
   }
   // A passive buzzer is on when it sounds (its run's `sound`), not when a steady current clicks it.
-  if (dark().length) for (const o of visitRun(circuit, compiled, engine, states, extra, true)?.outputs ?? []) if (o.sound ? o.sound.onShare > 0 || o.sound.changes > 0 : o.onShare > 0 || o.changes > 0) lit.on.add(o.id);
+  const see = (run) => {
+    for (const o of run?.outputs ?? []) if (o.sound ? o.sound.onShare > 0 || o.sound.changes > 0 : o.onShare > 0 || o.changes > 0) lit.on.add(o.id);
+  };
+  if (dark().length) see(visitRun(circuit, compiled, engine, states, extra, true));
+  // A circuit that oscillates slowly (a 555 at 0.3 Hz clocking a CD4017) may light an output later than
+  // the plain seconds: the plain part grows, while outputs are still dark, to two periods of the slowest
+  // oscillation the time constants suggest, then doubles while outputs keep coming on for the first time
+  // late in it, up to NEVER_ON_MAX. When that bound (or the run's own steps or time) comes first with an
+  // output still dark and others still coming on, the kit cannot tell: no doubt, and the Checked line
+  // says the run was too short (lit.short).
+  if (dark().length && runsByItself(compiled.program)) {
+    const taus = engine.timeConstants().filter((x) => Number.isFinite(x) && x > 0 && x < NEVER_ON_MAX);
+    // A time constant over NEVER_ON_MAX is a reservoir (a large capacitor), not a rhythm [assumed].
+    const wanted = NEVER_ON_PERIODS * PERIOD_PER_TAU * Math.max(0, ...taus);
+    const target = Math.min(NEVER_ON_MAX, wanted);
+    let plain = NEVER_ON_SECONDS;
+    let run = visitRun(circuit, compiled, engine, states, extra, true, plain);
+    const late = (r, span) => (r?.outputs ?? []).some((o) => o.intervals?.[0] && o.intervals[0][0] > span / 2);
+    const cut = (r) => (r?.issues ?? []).some((i) => i.code === 'RUN_STEPS' || i.code === 'RUN_BUDGET');
+    let open = target > plain || late(run, plain);
+    while (dark().length && open && plain < NEVER_ON_MAX && !cut(run)) {
+      plain = Math.min(NEVER_ON_MAX, Math.max(2 * plain, target));
+      run = visitRun(circuit, compiled, engine, states, extra, true, plain);
+      see(run);
+      open = late(run, plain);
+    }
+    if (dark().length && (cut(run) || plain < wanted || (open && plain >= NEVER_ON_MAX))) {
+      lit.short = true;
+      return [];
+    }
+  }
   const out = [];
   const left = dark();
   // Whole parts that never came on, in one doubt (eight LEDs behind a chip not simulated are one
@@ -389,7 +425,7 @@ function neverOn(circuit, compiled, engine, states, lit, extra = extraStates(cir
 // as a simulation sees it (wires merged, parts in order), so layout's tries pay for it once.
 const RUNS = new Map();
 const RUNS_KEPT = 16;
-function visitRun(circuit, compiled, engine, states, extra, always) {
+function visitRun(circuit, compiled, engine, states, extra, always, plain = NEVER_ON_SECONDS) {
   const program = compiled.program;
   const timed = (program.devices ?? []).some((d) => !d.unsupported && deviceOfProgram(d)?.state);
   if (!runsByItself(program) && !always) return null;
@@ -405,16 +441,16 @@ function visitRun(circuit, compiled, engine, states, extra, always) {
   if (!runsByItself(program) && !timed && !steps.length) return null;
   const at = [];
   steps.forEach((s, k) => {
-    const time = NEVER_ON_SECONDS + k * (NEVER_ON_HOLD + NEVER_ON_GAP);
+    const time = plain + k * (NEVER_ON_HOLD + NEVER_ON_GAP);
     const name = s.part === 'environment' ? s.field : `${s.part}.${s.field}`;
     at.push({ time, name, value: String(s.value) }, { time: time + NEVER_ON_HOLD, name, value: String(s.rest) });
   });
-  const seconds = NEVER_ON_SECONDS + steps.length * (NEVER_ON_HOLD + NEVER_ON_GAP);
-  const key = `${electricalKey(program)} ${JSON.stringify(at)}`;
+  const seconds = plain + steps.length * (NEVER_ON_HOLD + NEVER_ON_GAP);
+  const key = `${electricalKey(program)} ${plain} ${JSON.stringify(at)}`;
   if (RUNS.has(key)) return RUNS.get(key);
   // Until `visited` the run is in the hazard check's own states (the plain seconds, then `states`): a
   // pin's extremes are read there; the rest only answers whether an output comes on.
-  const visited = NEVER_ON_SECONDS + steps.filter((s) => states.includes(s)).length * (NEVER_ON_HOLD + NEVER_ON_GAP);
+  const visited = plain + steps.filter((s) => states.includes(s)).length * (NEVER_ON_HOLD + NEVER_ON_GAP);
   const run = runCircuit(circuit, { seconds, stimuli: { at }, maxSteps: BEHAVIOUR_STEPS * 2, minStep: seconds / 20000, checks: 0, compiled, extremesUntil: visited });
   RUNS.set(key, run);
   if (RUNS.size > RUNS_KEPT) RUNS.delete(RUNS.keys().next().value);
@@ -493,6 +529,7 @@ export function checkHazards(circuit) {
   const runs = runFirst?.ok && !(runFirst.issues ?? []).some((i) => i.code === 'SIM_PROGRAM_STOPPED' || i.code === 'SIM_PROGRAM_STUCK') && !(compiled.program.issues ?? []).some((i) => PROGRAM_DOUBTS.has(i.code) && i.severity !== 'info');
   const { rest, lit, ...result } = engineHazards(engine, [...states, ...undeclaredEnvironmentStates(circuit, compiled.program)], STATES_MAX, { collect: true, ...(runs && runFirst.combinations?.length && { combinations: runFirst.combinations }) });
   const dark = result.ok ? neverOn(circuit, compiled, engine, states, lit) : [];
+  if (lit?.short) result.shortRun = true;
   // A board's pins over the run: the highest voltage each sees, beside the DC states' (a pin seen over
   // its rail at a DC state keeps that finding unless the run sees it higher).
   if (result.ok && programmed) {
@@ -614,6 +651,8 @@ function wired(program, d) {
 //   unsimulated   parts drawn but not simulated (`unsimulated`: their ids)
 //   program       a board's program the kit could not run as written (`programs`: the boards; the
 //                 doubts of doubtsOf say why)
+//   short-run     an output still dark when the review's run reached its bound while others were still
+//                 coming on for the first time (a slow oscillation): whether it comes on is not told
 //   no-source     nothing could be simulated: the circuit has no source
 //   no-simulation nothing could be simulated for another reason (the simulator's issues say which)
 export function coverageOf(compiled, result, doubts = []) {
@@ -635,6 +674,7 @@ export function coverageOf(compiled, result, doubts = []) {
   if (unsimulated.length) notChecked.push('unsimulated');
   const programs = [...new Set(doubts.filter((d) => d.code.startsWith('SIM_PROGRAM_')).map((d) => String(d.params.part)))];
   if (programs.length) notChecked.push('program');
+  if (result.shortRun) notChecked.push('short-run');
   return { rest: true, controls, outputs, ...(environment && { environment }), ...(result.environmentFields && { fields: result.environmentFields }), notChecked, ...(checked < total && { skipped: total - checked }), ...(unsimulated.length && { unsimulated }), ...(programs.length && { programs }) };
 }
 

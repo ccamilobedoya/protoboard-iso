@@ -410,7 +410,12 @@ dice: el kit revisó el circuito y no encontró nada que decir.
   circuito con fuente, que está apagado en todos los estados que visita el kit: en reposo, con cada
   control, en cada extremo del ambiente, con cada salida del programa, luego cada campo de un
   ambiente declarado y cada control que ofrece la página, y una ejecución (los primeros 2 s cuando el
-  circuito cambia solo, y después cada uno de esos estados sostenido 0,5 s y soltado). Los
+  circuito cambia solo, y después cada uno de esos estados sostenido 0,5 s y soltado). Con una salida
+  todavía apagada y una oscilación lenta (un 555 a 0,3 Hz que da el reloj a un CD4017), la primera parte
+  crece hasta dos periodos de ella (tomados como 4 veces la constante de tiempo más larga por debajo de
+  30 s) y se duplica mientras sigan encendiéndose salidas tarde en ella, hasta 30 s; si ese límite, o
+  los pasos o el tiempo de la corrida, llegan primero, el kit no puede saberlo: no hay duda, y la línea
+  Checked dice `si cada salida se enciende (la corrida fue demasiado corta para saberlo)` (`short-run`). Los
   componentes que nunca se encienden son una sola duda (`D1, D2 nunca se encienden`); un chip o
   segmento que nunca enciende mientras los demás sí se nombra (`DS1: dp`); un relé dice lo más que
   recibió su bobina y la corriente de cierre que necesita (una bobina alimentada desde la salida de
@@ -465,6 +470,7 @@ aplican:
   componentes, luego los pines); la revisión también dice cuántos revisó (`Estados revisados por daño:
   24 de 30 …`; JSON `hazardStates: { checked, total, controls, outputs }`).
 - `unsimulated`, **componentes dibujados pero no simulados** (`SIM_UNSUPPORTED`; cada uno también es una duda).
+- `short-run`, **si cada salida se enciende**: la corrida de la revisión llegó a su límite antes de que una oscilación lenta las encendiera (ver `SIM_OUTPUT_NEVER_ON`).
 - `program`, **el programa de una placa donde el kit no puede correrlo** (JSON `programs`: las placas
   con una duda de programa).
 - `no-source` / `no-simulation`, **no se pudo simular nada** (no hay fuente, u otra razón que dicen los

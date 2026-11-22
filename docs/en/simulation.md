@@ -395,7 +395,11 @@ tell.
   source, that is off in every state the kit visits: at rest, each control, each end of the
   environment, each program output, then every field of a declared environment and every control the
   page offers, and a run (the first 2 s when the circuit changes by itself, then each of those states
-  held 0.5 s and released). Parts that never come on are one doubt (`D1, D2 never come on`); a chip
+  held 0.5 s and released). With an output still dark and a slow oscillation (a 555 at 0.3 Hz clocking a
+  CD4017), the first part grows to two periods of it (taken as 4 times the longest time constant under
+  30 s) and doubles while outputs keep coming on late in it, up to 30 s; when that bound, or the run's
+  own steps or time, comes first, the kit cannot tell: no doubt, and the Checked line says
+  `whether every output comes on (the run was too short to tell)` (`short-run`). Parts that never come on are one doubt (`D1, D2 never come on`); a chip
   or segment that never lights while the others do is named (`DS1: dp`); a relay says the most its
   coil got and the pull-in it needs (a coil fed from a sensor module's output: 3.2 mA of 53.6 mA). A
   relay driven past a quarter of its pull-in current that does not pull in is
@@ -445,6 +449,7 @@ The codes, only those that apply:
   pins); the review also says how many were checked (`States checked for damage: 24 of 30 …`; JSON
   `hazardStates: { checked, total, controls, outputs }`).
 - `unsimulated`, **parts drawn but not simulated** (`SIM_UNSUPPORTED`; each also a doubt).
+- `short-run`, **whether every output comes on**: the review's run reached its bound before a slow oscillation could light them (see `SIM_OUTPUT_NEVER_ON`).
 - `program`, **a board's program where the kit cannot run it** (JSON `programs`: the boards with a
   program doubt).
 - `no-source` / `no-simulation`, **nothing could be simulated** (no source, or another reason the

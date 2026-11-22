@@ -6,7 +6,8 @@ import assert from 'node:assert/strict';
 import { autoLayout } from './layout-generous.js';
 import { simulate } from '../src/sim/index.js';
 import { runCircuit } from '../src/sim/run.js';
-import { review, formatIssue } from '../src/index.js';
+import { review, formatIssue, t } from '../src/index.js';
+import { formatLayout } from '../src/layout.js';
 import { catalogEntry, formatCatalogEntry } from '../src/node/catalog.js';
 
 const Q = ['QA', 'QB', 'QC', 'QD', 'QE', 'QF', 'QG', 'QH'];
@@ -336,3 +337,28 @@ for (const [name, entry] of Object.entries(PART_NUMBERS).filter(([n, e]) => e.ty
     assert.doesNotMatch(formatCatalogEntry(catalogEntry(name), 'en'), /not simulated/i, `${entry.model?.function}`);
   });
 }
+
+// A slow chaser: the review's run must follow it long enough to see every LED come on (C11, second
+// round). 555 astable 10 kΩ, 47 kΩ, 47 µF: f = 1.44 / ((10 kΩ + 2 · 47 kΩ) · 47 µF) ≈ 0.29 Hz, a period
+// of about 3.4 s; the five LEDs need four clock edges, over 13 s, far past the plain 2 s.
+const slowChaser = (c1) => {
+  const spec = JSON.parse(JSON.stringify(SLOW_BASE));
+  spec.parts = spec.parts.map((p) => (p.id === 'R1' ? { ...p, value: '10k' } : p.id === 'R2' ? { ...p, value: '47k' } : p.id === 'C1' ? { ...p, value: c1 } : p));
+  return spec;
+};
+const { readFileSync: readSpec } = await import('node:fs');
+const SLOW_BASE = JSON.parse(readSpec(new URL('../examples/layout/555-cd4017-chaser.json', import.meta.url), 'utf8'));
+
+test('a 555 at 0.3 Hz clocking a CD4017 with five LEDs: layout ends DONE, no LED is called never on', () => {
+  const r = autoLayout(slowChaser('47u'));
+  assert.equal(r.status, 'done', JSON.stringify(r.review.doubts));
+  assert.ok(!r.review.doubts.some((d) => d.code === 'SIM_OUTPUT_NEVER_ON'));
+});
+
+test('a 555 too slow for the review\'s run (470 µF: a period of about 34 s): no never-on doubt, the Checked line says the run was too short', () => {
+  // τ of the timing capacitor ≈ 470 µF · 57 kΩ ≈ 27 s: two periods are far over the run's 30 s bound.
+  const r = autoLayout(slowChaser('470u'));
+  assert.ok(!r.review.doubts.some((d) => d.code === 'SIM_OUTPUT_NEVER_ON'), JSON.stringify(r.review.doubts));
+  assert.ok(r.review.checked.notChecked.includes('short-run'), JSON.stringify(r.review.checked));
+  assert.match(formatLayout(r, 'en', { t, formatIssue }), /^Checked: .*whether every output comes on \(the run was too short to tell\)/m);
+});

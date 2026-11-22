@@ -201,11 +201,14 @@ test('G2b: SRCLR tied to GND: nothing is ever shifted in, so every output is low
   for (let n = 1; n <= 8; n++) assert.ok(!touchesWindow(output(r, `D${n}`), 0, 0.5), `D${n} must be off with SRCLR low`);
 });
 
+// The walking bit of G3 (also G6's circuit: it lights every LED at some moment).
+const WALK_SKETCH = 'void setup(){pinMode(2,OUTPUT);pinMode(3,OUTPUT);pinMode(4,OUTPUT);}\nvoid loop(){for(int i=0;i<8;i++){digitalWrite(4,LOW);shiftOut(2,3,MSBFIRST,1<<i);digitalWrite(4,HIGH);delay(100);}}';
+const g3Circuit = () => circuit('g3', () => hc595Spec({ program: WALK_SKETCH }));
+
 test('G3: a walking bit, latched every 100 ms: each LED on for 100 ms +- 15 ms, in order, then it wraps', () => {
   // shiftOut(MSBFIRST, 1 << i): bit i ends at output i (QA = bit 0), so step i lights D(i+1) from about
   // i * 100 ms; the loop runs eight steps of delay(100) = 800 ms, so at 800 ms D1 comes on again.
-  const sketch = 'void setup(){pinMode(2,OUTPUT);pinMode(3,OUTPUT);pinMode(4,OUTPUT);}\nvoid loop(){for(int i=0;i<8;i++){digitalWrite(4,LOW);shiftOut(2,3,MSBFIRST,1<<i);digitalWrite(4,HIGH);delay(100);}}';
-  const c = circuit('g3', () => hc595Spec({ program: sketch }));
+  const c = g3Circuit();
   const r = run(c, 1);
   for (let i = 0; i < 8; i++) {
     const iv = output(r, `D${i + 1}`).intervals;
@@ -272,9 +275,12 @@ test('G5b: a 74HC595 on 5 V driven by 3.3 V pins: the review warns about the chi
   assert.ok(found.length >= 1, `a hazard or a doubt about IC1 (not the "not simulated" one) is expected; the review has: ${codes(rev).join(', ')}`);
 });
 
-test('G6: review of the G1 circuit: no SIM_PART_NOT_SIMULATED, no SIM_OUTPUT_NEVER_ON, verdict approved; layout ends STATUS: DONE', () => {
-  const c = g1Circuit();
-  assert.match(lastLine({ stdout: c.layoutOut }), /^STATUS: DONE\b/, 'layout of the G1 circuit ends DONE');
+// Arbitrated (orchestrator, C11 second round): G1's sketch lights four of the eight LEDs on purpose, so
+// the kit's "never comes on" for the other four is honest and that circuit ends WARNINGS. G6 is checked on
+// the walking bit of G3 instead, whose sketch lights every LED at some moment.
+test('G6: review of the walking-bit circuit (G3): no SIM_PART_NOT_SIMULATED, no SIM_OUTPUT_NEVER_ON, verdict approved; layout ends STATUS: DONE', () => {
+  const c = g3Circuit();
+  assert.match(lastLine({ stdout: c.layoutOut }), /^STATUS: DONE\b/, 'layout of the walking-bit circuit ends DONE');
   const rev = review(c);
   assert.ok(!codes(rev).includes('SIM_PART_NOT_SIMULATED'), 'IC1 is simulated');
   assert.ok(!codes(rev).includes('SIM_OUTPUT_NEVER_ON'), 'every LED comes on in a state the kit visits');

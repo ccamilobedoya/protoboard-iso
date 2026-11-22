@@ -2058,4 +2058,5 @@ export default {
   'check.SIM_REG_INPUT.chip': '{part} tiene {voltage} en la entrada, más que su máximo absoluto de {max}{effect} Baja el voltaje de la fuente, o reduce parte de él antes del regulador.',
   'check.SIM_REG_INPUT.differential': '{part} tiene {voltage} entre la entrada y la salida, más que su máximo absoluto de {max}{effect} Baja el voltaje de la fuente, o reduce parte de él antes del regulador.',
   'catalog.limit.of.inputOutput': 'entrada a salida',
+  'review.notChecked.short-run': 'si cada salida se enciende (la corrida fue demasiado corta para saberlo)',
 };
