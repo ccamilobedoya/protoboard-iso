@@ -313,3 +313,35 @@ test('ESP32 deep sleep: the program stops, its pins are released, and it starts 
   const uno = runFor('void setup() { esp_deep_sleep_start(); }\nvoid loop() { }', 'uno', 0);
   assert.match(uno.runner.error, /^esp_deep_sleep_start is not declared on an UNO/);
 });
+
+// ── 5. Interrupts ──
+
+test('attachInterrupt runs its handler at each edge, while loop() waits in a delay', () => {
+  const sketch = (mode, extra = '') => `volatile int count = 0;\nvoid onPress() { count++; }\nvoid setup() { Serial.begin(9600); pinMode(2, INPUT_PULLUP); attachInterrupt(digitalPinToInterrupt(2), onPress, ${mode}); }\nvoid loop() { ${extra} delay(1000); Serial.println(count); }`;
+  const presses = { press: ['S1@0.2+0.1', 'S1@0.5+0.1', 'S1@0.8+0.1'] };
+  assert.deepEqual(runOf(sketch('FALLING'), 1.05, presses).serial.lines.map((l) => l.text), ['3']);
+  assert.deepEqual(runOf(sketch('RISING'), 1.05, presses).serial.lines.map((l) => l.text), ['3']);
+  assert.deepEqual(runOf(sketch('CHANGE'), 1.05, presses).serial.lines.map((l) => l.text), ['6']);
+  // LOW: at every step the pin is low (a level interrupt), about 100 for a press of 100 ms.
+  const low = Number(runOf(sketch('LOW'), 1.05, { press: ['S1@0.2+0.1'] }).serial.lines[0].text);
+  assert.ok(low >= 95 && low <= 105, String(low));
+  // detachInterrupt: no handler after it.
+  assert.deepEqual(runOf(sketch('FALLING', 'detachInterrupt(digitalPinToInterrupt(2));'), 1.05, presses).serial.lines.map((l) => l.text), ['0']);
+});
+
+test('noInterrupts holds a handler and interrupts() lets it run', () => {
+  const sketch = 'volatile int count = 0;\nvoid onPress() { count++; }\nvoid setup() { Serial.begin(9600); pinMode(2, INPUT_PULLUP); attachInterrupt(digitalPinToInterrupt(2), onPress, FALLING); }\nvoid loop() { noInterrupts(); delay(500); Serial.println(count); interrupts(); Serial.println(count); delay(500); }';
+  assert.deepEqual(runOf(sketch, 0.6, { press: ['S1@0.2+0.1'] }).serial.lines.map((l) => l.text), ['0', '1']);
+});
+
+test('an interrupt on an UNO pin that has none: warned, the handler never runs (as on the board)', () => {
+  const r = loopOnly('', 'void onPress() { }\nvoid other() { attachInterrupt(digitalPinToInterrupt(4), onPress, FALLING); }');
+  assert.deepEqual(warned(r), []);
+  const s = translateSketch('void onPress() { }\nvoid setup() {\n  attachInterrupt(digitalPinToInterrupt(4), onPress, FALLING);\n}\nvoid loop() { delay(10); }');
+  const runner = createRunner(s.js, { family: 'uno', pins: [...Array(20).keys()], read: () => null });
+  runner.advance(0);
+  assert.deepEqual(runner.warnings, [{ code: 'SIM_PROGRAM_NO_INTERRUPT', line: 3, pin: 4, variant: 'uno' }]);
+  const esp = createRunner(s.js, { family: 'esp32', pins: [4, 13], read: () => null });
+  esp.advance(0);
+  assert.deepEqual(esp.warnings, [], 'an ESP32 has an interrupt on every GPIO');
+});

@@ -11,9 +11,9 @@ is below when they want the kit to check it.
 
 ## Functions
 
-- From the simulator's table: `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`, `analogWrite`, `millis`, `micros`, `abs`, `min`, `max`, `map`, `constrain`, `random`, `randomSeed`, `sqrt`, `log`, `pow`, `sin`, `cos`, `round`, `floor`, `ceil`, `bitRead`, `bitWrite`, `bitSet`, `bitClear`, `ledcAttach`, `ledcAttachPin`, `ledcSetup`, `ledcWrite`, `tone`, `noTone`, `pulseIn`, `pulseInLong`, `isnan`, `esp_sleep_enable_timer_wakeup`, `esp_deep_sleep_start`, `shiftOut`, `shiftIn`.
+- From the simulator's table: `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`, `analogWrite`, `millis`, `micros`, `abs`, `min`, `max`, `map`, `constrain`, `random`, `randomSeed`, `sqrt`, `log`, `pow`, `sin`, `cos`, `round`, `floor`, `ceil`, `bitRead`, `bitWrite`, `bitSet`, `bitClear`, `ledcAttach`, `ledcAttachPin`, `ledcSetup`, `ledcWrite`, `tone`, `noTone`, `pulseIn`, `pulseInLong`, `isnan`, `esp_sleep_enable_timer_wakeup`, `esp_deep_sleep_start`, `digitalPinToInterrupt`, `attachInterrupt`, `detachInterrupt`, `interrupts`, `noInterrupts`, `shiftOut`, `shiftIn`.
 - Also: `delay`, `delayMicroseconds`; your own functions, with their types.
-- Not known (noted, they return 0 or stop the program): `attachInterrupt`, `detachInterrupt`, `interrupts`, `noInterrupts`, `analogReference`, `analogReadResolution`, `tan`, `atan2`, `sq`, `highByte`, `lowByte`, `bit`.
+- Not known (noted, they return 0 or stop the program): `analogReference`, `analogReadResolution`, `tan`, `atan2`, `sq`, `highByte`, `lowByte`, `bit`.
 
 ## Serial
 
@@ -21,8 +21,8 @@ is below when they want the kit to check it.
 
 ## Constants
 
-- Known: `HIGH`, `LOW`, `INPUT`, `OUTPUT`, `INPUT_PULLUP`, `INPUT_PULLDOWN`, `LED_BUILTIN`, `A0`, `A5`, `PI`, `true`, `false`, `MSBFIRST`, `LSBFIRST`, `DEG_TO_RAD` (the analog pins of the board: `A0` … `A5` on an UNO); `#define NAME value` and `const` globals of your own.
-- Not defined (a program that uses one stops): `A6`, `A7`, `RISING`, `FALLING`, `CHANGE`.
+- Known: `HIGH`, `LOW`, `INPUT`, `OUTPUT`, `INPUT_PULLUP`, `INPUT_PULLDOWN`, `LED_BUILTIN`, `A0`, `A5`, `PI`, `true`, `false`, `MSBFIRST`, `LSBFIRST`, `RISING`, `FALLING`, `CHANGE`, `DEG_TO_RAD` (the analog pins of the board: `A0` … `A5` on an UNO); `#define NAME value` and `const` globals of your own.
+- Not defined (a program that uses one stops): `A6`, `A7`.
 
 ## Types and arrays
 

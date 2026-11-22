@@ -1148,6 +1148,8 @@ export default {
   'check.SIM_PROGRAM_NO_LOOP': '{part}: the program has no setup() or no loop().',
   'check.SIM_PROGRAM_STUCK': '{part}: the program did more than 200 000 turns of a loop that never lets time pass (no delay() and no Serial output in it): the kit cannot tell whether that loop ends, so what comes after it is not checked. A real board spends that time inside the loop; check that this is what the sketch means to do (a delay() in it lets time pass).',
   'check.SIM_PROGRAM_STOPPED': '{part}: the program stopped with an error while it ran ("{message}"); from there it does nothing.',
+  'check.SIM_PROGRAM_NO_INTERRUPT': '{part}: attachInterrupt at line {line}: pin {pin} has no interrupt on this board, so its handler never runs, as on the board. Read the pin in loop() instead.',
+  'check.SIM_PROGRAM_NO_INTERRUPT.uno': '{part}: attachInterrupt at line {line}: pin {pin} has no interrupt on an UNO (only D2 and D3 have one), so its handler never runs, as on the board. Move the wire to D2 or D3, or read the pin in loop().',
   'check.SIM_PROGRAM_DELAY_NEGATIVE.delay': '{part}: delay({value}) at line {line}: delay takes an unsigned number, so a real board waits {wrapped} ms, about 49 days; the run shows it as a wait to the end.',
   'check.SIM_PROGRAM_DELAY_NEGATIVE': '{part}: {name}({value}) at line {line}: its argument is unsigned, so a real board waits {wrapped} instead; the run shows it as a wait to the end.',
   'check.SIM_PROGRAM_OUT_OF_BOUNDS': '{part}: an array of {size} elements (0 to its size − 1) is used at index {index} at line {line}: the kit reads 0 and drops a write there; a real board reads or overwrites other memory.',

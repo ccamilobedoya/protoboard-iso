@@ -84,7 +84,8 @@ Los flancos van a 12,5 ms en un giro enérgico. Un programa que duerme más que 
 pierde clics, igual que en una placa real. El ciclo usual de sondeo lee CLK tan seguido como puede,
 guarda el último valor y en un flanco de bajada lee DT una vez; la receta `encoder-uno` lo hace con un
 `delay(1)`, y `encoder-dimmer-uno` añade un LED cuyo brillo sigue a la cuenta. Un programa que use una
-interrupción (`attachInterrupt`) todavía no se simula.
+interrupción (`attachInterrupt` en CLK) también corre: su manejador ve cada flanco en su paso
+([microcontroladores.md](microcontroladores.md)).
 
 ## Límites y rebote
 

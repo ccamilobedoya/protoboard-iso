@@ -559,6 +559,7 @@ before saying it works.
 - ✅ No false "never lets time pass" (C10a): a loop's turns without time passing are counted across steps (200 000 before `SIM_PROGRAM_STUCK`, whose text says that count), so a long loop that ends is not stuck; Serial output takes time at `Serial.begin`'s rate once the transmit buffer is full, so a loop printing 100 000 lines lets time pass as on a board (it printed 2 million lines in a second and was called stuck)
 - ✅ A UNO's TX idles at 5 V once `Serial.begin` runs (C10a): an ESP32's RX on it is over its rail and the pin-voltage check says so (it read 1.38 V: the TX pin was not driven)
 - ✅ The names of the family the user wrote (C10a): `Serial1`/`Serial2` on an ESP32 are ports with their own labelled output and `parseInt`, `readStringUntil` and the rest (on an UNO, a line naming `Serial2` and that a real UNO would not compile it; it said "does not read at line 3 (near ".")"); ESP32 deep sleep is simulated: the program stops, its pins go to inputs, and it starts again from `setup()` after its timer
+- ✅ Interrupts (C10a): `attachInterrupt(digitalPinToInterrupt(pin), handler, RISING | FALLING | CHANGE | LOW)`, `detachInterrupt`, `noInterrupts()` / `interrupts()` on the pins that have them (UNO D2 and D3, any ESP32 GPIO); the handler runs at the step that sees the edge, between two statements of the main program; a pin with none is warned
 
 ## Optional, later ⬜
 

@@ -38,7 +38,7 @@ function run(source) {
 const sketch = (body) => `void setup() { ${body} }\nvoid loop() { delay(1000); }`;
 
 // What the JavaScript may name: its own words, the runtime's, and the sketch's ($-prefixed).
-const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
+const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'RISING', 'FALLING', 'CHANGE', 'ONLOW', 'ONHIGH', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
 function strayNames(js) {
   // The body, without the prelude (two lines) and the last line, and without the quoted names of
   // __missing("name", …), which JSON.stringify writes.
@@ -439,8 +439,8 @@ test('attack: shiftOut and shiftIn are digitalWrite sequences, the Arduino const
   assert.equal(runner.error ?? null, null);
   assert.deepEqual(runner.log, ['255', '1']);
   // A name the kit does not have: said by its name, never with the translator's "$".
-  const unknown = run(sketch('int x = CHANGE;'));
-  assert.equal(unknown.error, "CHANGE is not a name the kit's Arduino subset knows (line 1)");
+  const unknown = run(sketch('int x = EXTERNAL;'));
+  assert.equal(unknown.error, "EXTERNAL is not a name the kit's Arduino subset knows (line 1)");
   assert.doesNotMatch(unknown.error, /\$/);
   // Arrays have one dimension: a 2-D one is refused with its own line, not run.
   const two = translateSketch('const int C[6][3] = {{1,2,3},{4,5,6},{7,8,9},{1,1,1},{2,2,2},{3,3,3}};\n' + sketch(''));
@@ -481,5 +481,16 @@ test('attack: Serial1, Serial2, a waiting read and deep sleep name nothing else'
     assert.deepEqual(strayNames(js), [], source);
     const r = run(source);
     assert.equal(r.pwned, undefined, source);
+  }
+});
+
+// attachInterrupt takes the sketch's own function: anything else (a number, a runtime function, a name
+// of JavaScript's) runs nothing and reaches nothing.
+test('attack: an interrupt handler is only one of the sketch\'s own functions', () => {
+  for (const handler of ['5', 'digitalWrite', 'constructor', '__int']) {
+    const source = `void setup() { attachInterrupt(0, ${handler}, CHANGE); attachInterrupt(digitalPinToInterrupt(2), ${handler}, RISING); interrupts(); noInterrupts(); }\nvoid loop() { delay(1000); }`;
+    const r = run(source);
+    assert.equal(r.pwned, undefined, source);
+    if (r.r.js) assert.deepEqual(strayNames(r.r.js), [], source);
   }
 });

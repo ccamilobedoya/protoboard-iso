@@ -248,6 +248,13 @@ export function createRunner(js, board) {
     MSBFIRST: 1,
     LSBFIRST: 0,
     // A serial port's frame (begin's second argument): the kit sends 8N1's ten bits whatever it says.
+    // attachInterrupt's modes, by the AVR core's numbers (LOW is 0, so HIGH reads as CHANGE there, as on
+    // an UNO); ONLOW and ONHIGH are the ESP32's level modes.
+    CHANGE: 1,
+    FALLING: 2,
+    RISING: 3,
+    ONLOW: 4,
+    ONHIGH: 5,
     SERIAL_8N1: 0x06,
     SERIAL_8N2: 0x0e,
     SERIAL_8E1: 0x26,
@@ -420,6 +427,35 @@ export function createRunner(js, board) {
     __at: (n) => {
       at = n;
     },
+    // Interrupts: an UNO has two, on D2 and D3 (numbers 0 and 1; NOT_AN_INTERRUPT, -1, for any other
+    // pin), an ESP32 one on every GPIO (its number is the pin's). The handler (one of the sketch's own
+    // functions) runs when its pin's level crosses as its mode says, at the step that sees it, between
+    // two statements of the main program; LOW and ONLOW run it at every step the pin is low.
+    digitalPinToInterrupt(n) {
+      asked = Number(n);
+      if (board.family === 'uno') return n === 2 ? 0 : n === 3 ? 1 : -1;
+      return Number.isInteger(n) && (!known || known.has(n)) ? n : -1;
+    },
+    attachInterrupt(k, handler, mode) {
+      const pinOf = board.family === 'uno' ? { 0: 2, 1: 3 }[k] : Number.isInteger(k) && k >= 0 && (!known || known.has(k)) ? k : undefined;
+      if (pinOf === undefined) {
+        warn('SIM_PROGRAM_NO_INTERRUPT', { pin: Number.isInteger(asked) && asked >= 0 ? asked : Number(k), variant: board.family });
+        return;
+      }
+      if (typeof handler !== 'function') return;
+      interruptsOn[pinOf] = { handler, mode: Number(mode), last: digital(pinOf), pending: false };
+    },
+    detachInterrupt(k) {
+      const pinOf = board.family === 'uno' ? { 0: 2, 1: 3 }[k] : k;
+      if (pinOf != null) delete interruptsOn[pinOf];
+    },
+    noInterrupts() {
+      held = true;
+    },
+    interrupts() {
+      held = false;
+      runPending();
+    },
     // ESP32 deep sleep: the timer to wake by (µs), then sleep: the program stops, its pins go back to
     // inputs, and after that time it starts again from setup() with its globals as at power-up. With
     // no timer it sleeps to the end. An UNO has neither name: a real one would not compile them.
@@ -561,6 +597,36 @@ export function createRunner(js, board) {
     };
   }
   const apis = ports.map((_, k) => (k === 0 ? api.Serial : portApi(k)));
+  // Interrupts attached, by pin: { handler, mode, last level, pending }; `held` while noInterrupts().
+  const interruptsOn = Object.create(null);
+  let held = false;
+  let asked = null; // the pin digitalPinToInterrupt was last asked about (the warning names it)
+  const ISR_TURNS = 2000; // turns of a handler's loops at most (a handler is meant to be short)
+  const runHandler = (handler) => {
+    const it = handler();
+    if (!it || typeof it.next !== 'function') return;
+    // A delay() inside a handler does not wait (on a board it does not work there either).
+    for (let k = 0; k < ISR_TURNS && !it.next().done; k++);
+  };
+  const runPending = () => {
+    if (held) return;
+    for (const one of Object.values(interruptsOn)) {
+      if (!one.pending) continue;
+      one.pending = false;
+      runHandler(one.handler);
+    }
+  };
+  // At each step: each attached pin's level against the one it had, its handler run when it crossed.
+  const watchInterrupts = () => {
+    for (const [n, one] of Object.entries(interruptsOn)) {
+      const level = digital(Number(n));
+      const crossed = level !== one.last;
+      const m = one.mode;
+      if ((m === 1 && crossed) || (m === 3 && crossed && level === 1) || (m === 2 && crossed && level === 0) || ((m === 0 || m === 4) && level === 0) || (m === 5 && level === 1)) one.pending = true;
+      one.last = level;
+    }
+    runPending();
+  };
   let wakeAfter = null; // s: the timer esp_sleep_enable_timer_wakeup set
   let boot = 0; // s: when the program last started (power-up, or a wake from deep sleep)
   const espOnly = (name) => {
@@ -571,6 +637,8 @@ export function createRunner(js, board) {
   const sleep = () => {
     for (const n of Object.keys(pins)) set(n, { mode: 'input', level: 0, pull: null, pwm: null });
     for (const n of Object.keys(tones)) delete tones[n];
+    for (const n of Object.keys(interruptsOn)) delete interruptsOn[n];
+    held = false;
     for (const port of ports) Object.assign(port, { baud: 0, txFreeAt: 0, line: '', inbox: [] });
     owed = 0;
     runner.sleeping = { until: wakeAfter == null ? null : runner.time + wakeAfter };
@@ -717,6 +785,13 @@ export function createRunner(js, board) {
     else runner.wait = Math.max(0, runner.wait - dt);
     runner.looking = null;
     for (const [n, end] of Object.entries(tones)) if (runner.time >= end) api.noTone(Number(n));
+    try {
+      watchInterrupts();
+    } catch (e) {
+      if (e === SLEEP) sleep();
+      else runner.error = errorText(e, at);
+      return runner.changed;
+    }
     let turns = 0;
     // At t = 0 a loop inside one call may take every turn it gets before it is said stuck (settle).
     const budget = dt > 0 ? BUDGET : STUCK_TURNS;

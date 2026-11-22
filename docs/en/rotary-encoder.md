@@ -81,7 +81,8 @@ The edges are 12.5 ms apart in a brisk turn. A program that sleeps longer than t
 misses clicks, exactly as on a real board. The usual polling loop reads CLK as often as it can, keeps
 the last value, and on a falling edge reads DT once; the recipe `encoder-uno` does so with a
 `delay(1)`, and `encoder-dimmer-uno` adds a LED whose brightness follows the count. A sketch that
-uses an interrupt (`attachInterrupt`) is not simulated yet.
+uses an interrupt (`attachInterrupt` on CLK) runs too: its handler sees each edge at its step
+([microcontrollers.md](microcontrollers.md)).
 
 ## Limits and the bounce
 

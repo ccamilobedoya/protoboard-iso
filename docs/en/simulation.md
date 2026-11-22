@@ -374,7 +374,7 @@ tell.
   doubt says so). The two figures of the run are assumed (`src/sim/index.js`).
 - Every issue about a board's program: the file not found (`SIM_PROGRAM_FILE`, which says the
   folder the kit looked in: the circuit's, beside `circuit.json`), outside the folder, too large, a
-  syntax error with its line, a call the simulator does not know (`attachInterrupt()`), a library or a
+  syntax error with its line, a call the simulator does not know (`analogReference()`), a library or a
   class not in the kit, no `setup()`/`loop()` (`SIM_PROGRAM_IGNORED` stays a note). Also
   `SIM_PROGRAM_STOPPED`, a program that stopped with an error at rest, and `SIM_PROGRAM_STUCK`, a
   program that never lets time pass: `setup()` or one call of `loop()` that never returns and never

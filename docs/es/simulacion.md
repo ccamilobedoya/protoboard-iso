@@ -393,7 +393,7 @@ dice: el kit revisó el circuito y no encontró nada que decir.
 - Todo aviso sobre el programa de una placa: el archivo no encontrado (`SIM_PROGRAM_FILE`, que dice
   la carpeta donde buscó el kit: la del circuito, junto a `circuit.json`), fuera de la carpeta,
   demasiado grande, un error de sintaxis con su línea, una llamada que el simulador no conoce
-  (`attachInterrupt()`), una librería o una clase que no está en el kit, sin `setup()`/`loop()`
+  (`analogReference()`), una librería o una clase que no está en el kit, sin `setup()`/`loop()`
   (`SIM_PROGRAM_IGNORED` sigue siendo una nota). También `SIM_PROGRAM_STOPPED`, un programa que se
   detuvo con un error en reposo, y `SIM_PROGRAM_STUCK`, un programa que nunca deja pasar el tiempo:
   `setup()` o una llamada de `loop()` que nunca vuelve y nunca espera (`void loop() { while (1) {} }`).

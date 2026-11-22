@@ -136,6 +136,15 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   la placa: el TX de un UNO en el RX de un ESP32 son 5 V en un pin de 3,3 V, y la revisión del voltaje
   de los pines lo dice (`SIM_PIN_OVERVOLTAGE`). El `Serial` del ESP32-C3 es su puerto USB y no toma
   ningún pin.
+- **Interrupciones:** `attachInterrupt(digitalPinToInterrupt(pin), manejador, RISING | FALLING |
+  CHANGE | LOW)` y `detachInterrupt` en los pines que tienen una (un UNO: D2 y D3; un ESP32: todos los
+  GPIO, también `ONLOW` y `ONHIGH`), con globales `volatile`. El manejador corre en el paso que ve
+  cruzar su pin (el motor termina un paso al presionar y al soltar un pulsador), entre dos
+  instrucciones del programa principal, también mientras este espera en un `delay`; `LOW` lo corre en
+  cada paso en que el pin está bajo. `noInterrupts()` las retiene e `interrupts()` corre lo que llegó
+  entretanto. Un pin sin interrupción se avisa (`SIM_PROGRAM_NO_INTERRUPT`) y su manejador nunca corre,
+  como en la placa. Los pulsadores del kit no rebotan: un manejador ve un flanco por pulsación, y un
+  antirrebote en él solo actúa como bloqueo.
 - **Puertos serie y sueño profundo:** `Serial1` y `Serial2` en un ESP32 (`Serial1` en un ESP32-C3)
   son puertos propios: `begin(baudios[, config, rx, tx])` (los pines por defecto de Serial2 son RX 16,
   TX 17), `print`, `println`, `write`, `available`, `read`, `peek`, `parseInt`, `parseFloat`,
@@ -301,7 +310,7 @@ de un float escribe dos decimales (`24.00`, como Arduino), de `NaN` `nan` y de u
 | **M4** | Recetas con su programa: `esp32-led`, `esp32-button`, `uno-blink`, `uno-button`, `uno-pot-pwm`, `c3-blink`, `c3-pot-pwm`; probado potenciómetro → ADC → PWM con los números de cada placa | ✅ 2026-10-26 |
 | **M5** | `pulseIn` (2026-11-10): una espera en tiempo simulado que mide entre los pasos que terminan en los flancos; `engine.advance` aterriza en los eventos de cada elemento; recetas `uno-distance`, `esp32-distance`, `distance-alarm-uno` con el HC-SR04 | ✅ 2026-11-10 |
 | **M6** | Objetos de biblioteca (2026-11-10): `DHT`, `Adafruit_BME280`, `Adafruit_BMP280` como números de la tabla del traductor; la placa le pregunta al sensor conectado donde lo busca la biblioteca; recetas `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude` | ✅ 2026-11-10 |
-| después | Un panel propio de consola serie en la página, `analogRead` con la curva real del ADC del ESP32, interrupciones (`attachInterrupt`), versiones simplificadas de librerías comunes, firmware real del UNO con avr8js como modo opcional, las dos filas de pines del ESP32 en un circuito (el límite del montaje) | — |
+| después | Un panel propio de consola serie en la página, `analogRead` con la curva real del ADC del ESP32, versiones simplificadas de librerías comunes, firmware real del UNO con avr8js como modo opcional, las dos filas de pines del ESP32 en un circuito (el límite del montaje) | — |
 
 El programa maneja la memoria que guardan los pines (`gpioStage`: `mode`, `level`, `pull`) a
 través de un elemento sin corriente propia (el controlador de la placa), así que el motor solo

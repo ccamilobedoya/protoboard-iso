@@ -31,7 +31,7 @@ export const SERIAL_WAITING = ['parseInt', 'parseFloat', 'readStringUntil', 'rea
 // Names an Arduino core or its boards define that the kit's subset does not (a sketch that uses one
 // compiles on a real board): the runtime says the kit does not know it, never that it is undeclared.
 // Prefixes cover a family (GPIO_NUM_4, ADC_11db, ESP_SLEEP_WAKEUP_TIMER).
-export const ARDUINO_NAMES = ['RISING', 'FALLING', 'CHANGE', 'ONLOW', 'ONHIGH', 'A6', 'A7', 'EXTERNAL', 'INTERNAL', 'INTERNAL1V1', 'INTERNAL2V56', 'DEFAULT', 'F_CPU', 'NOT_A_PIN', 'NUM_DIGITAL_PINS', 'NUM_ANALOG_INPUTS', 'nullptr', 'LED_BUILTIN_TX', 'LED_BUILTIN_RX', 'SDA', 'SCL', 'SS', 'MOSI', 'MISO', 'SCK', 'TX', 'RX', 'Serial1', 'Serial2', 'Serial3', 'ESP', 'SPI', 'EEPROM', 'WiFi', 'SERIAL_7E1', 'T0', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9'];
+export const ARDUINO_NAMES = ['A6', 'A7', 'EXTERNAL', 'INTERNAL', 'INTERNAL1V1', 'INTERNAL2V56', 'DEFAULT', 'F_CPU', 'NOT_A_PIN', 'NUM_DIGITAL_PINS', 'NUM_ANALOG_INPUTS', 'nullptr', 'LED_BUILTIN_TX', 'LED_BUILTIN_RX', 'SDA', 'SCL', 'SS', 'MOSI', 'MISO', 'SCK', 'TX', 'RX', 'Serial1', 'Serial2', 'Serial3', 'ESP', 'SPI', 'EEPROM', 'WiFi', 'SERIAL_7E1', 'T0', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9'];
 export const ARDUINO_PREFIXES = ['GPIO_NUM_', 'ADC_', 'ESP_', 'SERIAL_', 'PIN_'];
 export const isArduinoName = (name) => ARDUINO_NAMES.includes(name) || ARDUINO_PREFIXES.some((p) => name.startsWith(p));
 // The default I2C address of both Adafruit libraries' begin() (BME280_ADDRESS, BMP280_ADDRESS).

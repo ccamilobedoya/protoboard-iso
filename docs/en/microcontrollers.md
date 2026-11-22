@@ -131,6 +131,14 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   output that idles high, the line's stop level, so what it feeds sees the board's rail: an UNO's TX
   into an ESP32's RX is 5 V on a 3.3 V pin, and the pin-voltage check says so (`SIM_PIN_OVERVOLTAGE`).
   The ESP32-C3's `Serial` is its USB port and takes no pin.
+- **Interrupts:** `attachInterrupt(digitalPinToInterrupt(pin), handler, RISING | FALLING | CHANGE |
+  LOW)` and `detachInterrupt` on the pins that have one (an UNO: D2 and D3; an ESP32: every GPIO, also
+  `ONLOW` and `ONHIGH`), with `volatile` globals. The handler runs at the step that sees its pin cross
+  (the engine ends a step on a button's press and release), between two statements of the main
+  program, also while it waits in a `delay`; `LOW` runs it at every step the pin is low.
+  `noInterrupts()` holds them and `interrupts()` runs what came meanwhile. A pin with no interrupt is
+  warned (`SIM_PROGRAM_NO_INTERRUPT`) and its handler never runs, as on the board. The kit's buttons
+  do not bounce: a handler sees one edge per press, and a debounce in it acts only as a lockout.
 - **Serial ports and deep sleep:** `Serial1` and `Serial2` on an ESP32 (`Serial1` on an ESP32-C3) are
   ports of their own: `begin(baud[, config, rx, tx])` (Serial2's default pins are RX 16, TX 17),
   `print`, `println`, `write`, `available`, `read`, `peek`, `parseInt`, `parseFloat`,
@@ -287,7 +295,7 @@ float writes two decimals (`24.00`, as Arduino does), of `NaN` `nan` and of an i
 | **M4** | Recipes with their program: `esp32-led`, `esp32-button`, `uno-blink`, `uno-button`, `uno-pot-pwm`, `c3-blink`, `c3-pot-pwm`; tested potentiometer → ADC → PWM against each board's numbers | ✅ 2026-10-26 |
 | **M5** | `pulseIn` (2026-11-10): a wait in simulated time that measures between the steps ending on the edges; `engine.advance` lands on each element's events; recipes `uno-distance`, `esp32-distance`, `distance-alarm-uno` with the HC-SR04 | ✅ 2026-11-10 |
 | **M6** | Library objects (2026-11-10): `DHT`, `Adafruit_BME280`, `Adafruit_BMP280` as numbers of the translator's table; the board asks the sensor wired where the library looks; recipes `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude` | ✅ 2026-11-10 |
-| later | A serial console panel of its own in the page, `analogRead` against the ESP32 ADC's real curve, interrupts (`attachInterrupt`), simplified stand-ins for common libraries, real UNO firmware with avr8js as an optional mode, both ESP32 headers in one circuit (the layout limit) | — |
+| later | A serial console panel of its own in the page, `analogRead` against the ESP32 ADC's real curve, simplified stand-ins for common libraries, real UNO firmware with avr8js as an optional mode, both ESP32 headers in one circuit (the layout limit) | — |
 
 The program drives the memory the pins keep (`gpioStage`: `mode`, `level`, `pull`) through one
 element with no current of its own (the board's controller), so the engine only learned to run
