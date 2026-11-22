@@ -49,6 +49,7 @@ export function formatIssue(issue, lang = 'en') {
   const params = Object.fromEntries(
     Object.entries(issue.params).map(([k, v]) => [k, typeof v === 'number' ? String(v).replace('.', decimal) : v && typeof v === 'object' && 'unit' in v ? formatValue(v.value, v.unit, { decimal }) : v]),
   );
+  closerThanItsLimit(issue.params, params, decimal);
   if (params.node) {
     const n = nodeParams(params.node);
     params.node = t(lang, n.key, n.params);
@@ -60,6 +61,17 @@ export function formatIssue(issue, lang = 'en') {
   const text = `${t(lang, `severity.${issue.severity}`)}: ${t(lang, key, params)}${nearest}`;
   // A hazard found with a control operated (sim/index.js checkHazards) says in which state.
   return issue.when ? `${text.replace(/\.$/, '')}, ${whenText(issue.when, lang)}.` : text;
+}
+
+// A reading that rounds to its own limit ("carries 50 mA, more than its maximum 50 mA") is shown with
+// more figures, up to six, until the two differ ("50.04 mA, more than its maximum 50 mA").
+function closerThanItsLimit(raw, params, decimal) {
+  const max = raw.max;
+  if (!max || typeof max !== 'object' || !('unit' in max)) return;
+  for (const [k, v] of Object.entries(raw)) {
+    if (k === 'max' || !v || typeof v !== 'object' || v.unit !== max.unit || v.value === max.value || params[k] !== params.max) continue;
+    for (let digits = 4; digits <= 6 && params[k] === params.max; digits++) params[k] = formatValue(v.value, v.unit, { decimal, digits });
+  }
 }
 
 // "with S1 pressed", "with RV1 at the pin-3 end of its travel", "with D10 high"; a control without words of its own:

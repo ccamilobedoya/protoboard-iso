@@ -253,7 +253,7 @@ kit simulate circuits/darlington --set S1=on
 
 <!-- generated: PC817 (npm run parts-reference -- --write) -->
 - Pins, from pin 1 round the chip (`kit catalog PC817`): `A` `K` `E` `C`
-- Simulated: the infrared LED (1.2 V at 20 mA) and a phototransistor whose collector takes 170 % of the LED's current (the middle of the datasheet's 50 % to 600 %: real parts vary several times over) until it saturates at about 0.1 V. The two sides share no node: each is read against its own ground. Not modelled: switching speed, the CTR's change with current and temperature.
+- Simulated: the infrared LED (1.2 V at 20 mA) and a phototransistor whose collector takes 170 % of the LED's current (one value from the datasheet's 50 % to 600 %, the middle of it; a real part's rank, A to D, fixes it within a factor of two) until it saturates at about 0.1 V. The two sides share no node: each is read against its own ground. Not modelled: switching speed, the CTR's change with current and temperature.
 - Limits (the simulator's): maximum current 50 mA (LED) · maximum reverse voltage 6 V (LED) · maximum power 70 mW (LED) · maximum current 50 mA (output) · maximum voltage 35 V (output) · maximum reverse voltage 6 V (output) · maximum power 150 mW (output) · maximum power 200 mW
 <!-- /generated -->
 
@@ -354,7 +354,8 @@ kit simulate circuits/isolated --run 1 --press S1@0.2+0.5
 
 Wire it right:
 
-- `VS` to + (at most 15 V), `GND` to −.
+- `VS` to + (4 to 12 V for the LM386N-1 and N-3; up to 15 V a ⚠ that it is past that range, over
+  15 V it can be damaged), `GND` to −.
 - The signal through a capacitor to `IN+`; `IN-` to ground.
 - `OUT` through a large capacitor (220 µF) to the loudspeaker. The kit has no loudspeaker: an 8 Ω
   resistor of 1 W stands for it. Say so to the user.

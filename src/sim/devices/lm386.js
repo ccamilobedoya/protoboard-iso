@@ -17,7 +17,8 @@
 //   quiescent 4 mA             quiescent current, VS 6 V, no input (typical; max 8 mA); the kit
 //                              keeps it from about 1 V up (quiescentKnee [assumed])
 //   minSupply 4 V, maxSupply 12 V   operating supply of the LM386N-1 (the -4 takes 5 V to 18 V)
-//   maxAbsolute 15 V           absolute maximum supply voltage (LM386N-1, -3)
+//   maxAbsolute 15 V           absolute maximum supply voltage (LM386N-1, -3; the -4 takes 22 V); both
+//                              supply messages name the variant (check.SIM_IC_SUPPLY*.lm386)
 //   maxInput 0.4 V             absolute maximum input voltage, ±0.4 V
 //   maxPower 1.25 W            absolute maximum package dissipation, LM386N (DIP-8)
 //   swing 1 V                  [assumed]: the datasheet gives output power (700 mW into 8 Ω at 9 V,
@@ -202,14 +203,14 @@ export const lm386 = {
   limits(entry, r) {
     const m = entry.model;
     const out = [
-      stress('SIM_IC_SUPPLY', 'voltage', r.supply, m.maxAbsolute, 'V'),
+      stress('SIM_IC_SUPPLY', 'voltage', r.supply, m.maxAbsolute, 'V', { extra: { variant: 'lm386' } }),
       stress('SIM_IC_PIN_VOLTAGE', 'voltage', Math.abs(r.vplus), m.maxInput, 'V', { pin: 'IN+', of: 'input' }),
       stress('SIM_IC_PIN_VOLTAGE', 'voltage', Math.abs(r.vminus), m.maxInput, 'V', { pin: 'IN-', of: 'input' }),
       stress('SIM_OVER_POWER', 'power', r.power, m.maxPower, 'W'),
       reverseSupply(-r.supply, REVERSE_LIMITS.ic, 'VS', 'GND'),
     ];
     // Outside its operating range (and not off, nor reversed): it is not guaranteed to work.
-    if (r.supply > 0.5 && (r.supply < m.minSupply || (r.supply > m.maxSupply && r.supply <= m.maxAbsolute))) out.push(note('warning', 'SIM_IC_SUPPLY_RANGE', { part: entry.id, voltage: q(r.supply, 'V'), min: q(m.minSupply, 'V'), max: q(m.maxSupply, 'V') }));
+    if (r.supply > 0.5 && (r.supply < m.minSupply || (r.supply > m.maxSupply && r.supply <= m.maxAbsolute))) out.push(note('warning', 'SIM_IC_SUPPLY_RANGE', { part: entry.id, voltage: q(r.supply, 'V'), min: q(m.minSupply, 'V'), max: q(m.maxSupply, 'V'), variant: 'lm386' }));
     return out;
   },
   lines(p, h) {

@@ -10,7 +10,8 @@
 //   led            [fitted]: Is 1.7 pA, n 2, so that VF is 1.2 V at 20 mA (datasheet typical; max 1.4 V)
 //   ctr 1.7        the plain part's CTR is 50 % to 600 % at IF 5 mA, VCE 5 V; the kit takes 170 %, the
 //                  middle of that range on the logarithmic scale its ranks are spread over (√(50·600));
-//                  real parts vary several times over (ranks A to D)
+//                  real parts vary several times over; a part's rank fixes it within a factor of two
+//                  (A 80-160 %, B 130-260 %, C 200-400 %, D 300-600 %, the datasheet's rank table)
 //   bf 100         [assumed]: the phototransistor's own gain (the datasheet gives only the CTR)
 //   br 0.05        [fitted]: VCE(sat) 0.11 V at IF 20 mA, IC 1 mA (datasheet typical 0.1 V, max 0.2 V)
 //   maxForward 50 mA, maxReverse 6 V, maxInputPower 70 mW         the LED's absolute maximum ratings
