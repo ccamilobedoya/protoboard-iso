@@ -101,6 +101,15 @@ detail.
 - `npm run parts-reference -- --write` threw since a two-dimensional array is refused by the translator; `references/sketch.md` lists `shiftOut`, `shiftIn`, `MSBFIRST` and `LSBFIRST` as known and says a two-dimensional array is refused by its line.
 - A board's program in a `.ino` file beside `circuit.json` did not run in `simulate --run` with an environment given, nor in `layout`'s `Behaviour` line (the run's copy of the circuit lost its folder): the LED of a distance alarm stayed off at any distance.
 
+### Added (C11b)
+
+- The ULN2003 and ULN2803 Darlington arrays, the PC817 optocoupler and the LM386 audio amplifier are simulated (they were drawn only and a circuit with them ended `WARNINGS`): their outputs drive LEDs, relays and loads with the datasheet's voltages and limits, and `catalog <part>` says in two or three lines what each model covers and leaves out. A ULN's `COM` on the coil's supply counts as the coil's flyback diode. The PC817's two sides, with separate supplies and grounds, simulate in DC, in a run and in the page. The LM386's transient converges (its clip is smooth). Examples: `uln2003-relay`, `pc817-isolated-led`, `lm386-amplifier`.
+
+### Fixed (C11b)
+
+- A regulator over its absolute maximum input is a hazard: 40 V into a 7805 ended `DONE` (35 V for the 7805 to 7818, 40 V for the 7824, 40 V from input to output for the LM317).
+- A run with an over-current on a chip's pin (`U2.OUT1`) threw: it looked the pin up as a board's.
+
 ## [0.12.1] - 2026-11-18
 
 A fix for videos: a part that lands stays seen when the focus moves on before it touches down.
