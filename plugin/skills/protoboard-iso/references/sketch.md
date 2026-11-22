@@ -17,7 +17,7 @@ is below when they want the kit to check it.
 
 ## Serial
 
-- `Serial.` `begin`, `print`, `println`, `available`, `read`; not known: `write`, `printf`, `flush`.
+- `Serial.` `begin`, `print`, `println`, `available`, `read`, `write`; not known: `printf`, `flush`.
 
 ## Constants
 

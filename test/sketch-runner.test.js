@@ -7,6 +7,18 @@ import assert from 'node:assert/strict';
 import { autoLayout } from './layout-generous.js';
 import { runCircuit, parseStimuli } from '../src/sim/run.js';
 import { compile, createEngine } from '../src/sim/index.js';
+import { translateSketch } from '../src/sim/sketch.js';
+import { createRunner } from '../src/sim/program.js';
+
+// A sketch run alone on an UNO with nothing wired (its setup and first loop up to the first wait).
+const alone = (source, family = 'uno') => {
+  const r = translateSketch(source);
+  assert.ok(r.js, JSON.stringify(r.issues));
+  const runner = createRunner(r.js, { family, read: () => null, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 });
+  runner.advance(0);
+  return { runner, issues: r.issues, log: [...runner.log, ...(runner.line ? [runner.line] : [])] };
+};
+const setupOnly = (body, before = '') => alone(`${before}\nvoid setup() { Serial.begin(9600);\n${body}\n}\nvoid loop() { delay(1000); }`);
 
 // An UNO with a button from D2 to ground and an LED on D8, laid out once; each test gives its sketch.
 let base = null;
@@ -76,4 +88,24 @@ test('the page steps (engine.advance at 60 frames a second) give the same delay'
   const printed = engine.serial().U1.lines.map(Number);
   assert.equal(printed.length, 2, String(printed));
   assert.equal(printed[1] - printed[0], 300);
+});
+
+// ── 2. A char prints as its letter ──
+
+test('print and println of a char show its letter; char arithmetic stays a number', () => {
+  const r = setupOnly(`Serial.println('Z'); char c = 'B'; Serial.println(c); Serial.print((char)65); Serial.println(); Serial.println(f());
+Serial.println(c + 1); c++; Serial.println(c); Serial.println(char(68)); Serial.println(c == 'C' ? 'y' : 'n');
+char letters[3] = {'x', 'y', 'z'}; Serial.println(letters[1]);`, "char f() { return 'Q'; }");
+  assert.deepEqual(r.log, ['Z', 'B', 'A', 'Q', '67', 'C', 'D', 'y', 'y']);
+  assert.deepEqual(r.issues, []);
+});
+
+test('a byte, an unsigned char and a char with DEC print the number; Serial.write sends the byte', () => {
+  const r = setupOnly("unsigned char u = 66; Serial.println(u); byte b = 67; Serial.println(b); char c = 'B'; Serial.println(c, DEC); Serial.write(65); Serial.write('!'); Serial.write(\"hi\"); Serial.println();");
+  assert.deepEqual(r.log, ['66', '67', '66', 'A!hi']);
+});
+
+test('HEX, BIN, OCT and DEC as print\'s second argument; a float\'s second argument is its decimals', () => {
+  const r = setupOnly('Serial.println(255, HEX); Serial.println(5, BIN); Serial.println(8, OCT); Serial.println(42, DEC); Serial.println(-1, HEX); int n = 10; Serial.print(n, HEX); Serial.println(); Serial.println(3.14159, 3); float x = 2; Serial.println(x, 0); Serial.println(1.5);');
+  assert.deepEqual(r.log, ['FF', '101', '10', '42', 'FFFFFFFF', 'A', '3.142', '2', '1.50']);
 });

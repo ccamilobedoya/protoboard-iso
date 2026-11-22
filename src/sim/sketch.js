@@ -44,7 +44,7 @@ const INTEGER = new Set(['int', 'long', 'short', 'byte', 'char', 'unsigned', 'si
 export const SKETCH_API = ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'analogWrite', 'millis', 'micros', 'abs', 'min', 'max', 'map', 'constrain', 'random', 'randomSeed', 'sqrt', 'log', 'pow', 'sin', 'cos', 'round', 'floor', 'ceil', 'bitRead', 'bitWrite', 'bitSet', 'bitClear', 'ledcAttach', 'ledcAttachPin', 'ledcSetup', 'ledcWrite', 'tone', 'noTone', 'pulseIn', 'pulseInLong', 'isnan', 'shiftOut', 'shiftIn'];
 // Runtime functions that wait in simulated time (generators, as one's own functions): yield*.
 const WAITING_API = new Set(['pulseIn', 'pulseInLong']);
-const SKETCH_CONSTANTS = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'Serial', ...Object.keys(LIBRARY_CONSTANTS)];
+const SKETCH_CONSTANTS = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'Serial', ...Object.keys(LIBRARY_CONSTANTS)];
 const ASSIGN = new Set(['=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=']);
 // Runtime functions that return an integer (an int divided by them stays an int).
 const INT_API = new Set(['digitalRead', 'analogRead', 'millis', 'micros', 'map', 'random', 'constrain', 'abs', 'min', 'max', 'bitRead', 'pulseIn', 'pulseInLong', 'isnan', 'shiftIn']);
@@ -55,7 +55,7 @@ const FLOAT_TYPES = new Set(['float', 'double']);
 const CLASS_BY_NAME = new Map(LIBRARY_CLASSES.map((c, i) => [c.name, i]));
 const KEYWORDS = new Set(['if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'return', 'sizeof', 'new', 'delete', 'NULL', 'delay', 'delayMicroseconds', 'Wire', 'F', 'true', 'false']);
 // Serial's methods in the runtime; another one is noted and returns 0.
-const SERIAL_METHODS = new Set(['begin', 'print', 'println', 'available', 'read']);
+const SERIAL_METHODS = new Set(['begin', 'print', 'println', 'write', 'available', 'read']);
 // Names written as they are; every other name the sketch writes is its own: "$" + name.
 const RAW_NAMES = new Set([...SKETCH_CONSTANTS, 'true', 'false']);
 const own = (name) => `$${name}`;
@@ -113,7 +113,7 @@ function tokenize(source, issues) {
         continue;
       }
       const ch = m[1].startsWith('\\') ? { n: '\n', t: '\t', r: '\r', 0: '\0', '\\': '\\', "'": "'" }[m[1][1]] ?? m[1][1] : m[1];
-      out.push({ t: 'num', v: String(ch.charCodeAt(0)), line });
+      out.push({ t: 'num', v: String(ch.charCodeAt(0)), line, char: true });
       i += m[0].length;
     } else {
       const p = PUNCT.find((s) => at(s));
@@ -162,11 +162,13 @@ export function translateSketch(source, { strings = [] } = {}) {
   const functions = new Set();
   const intFunctions = new Set();
   const floatFunctions = new Set();
+  const charFunctions = new Set(); // functions that return a plain char (print shows its letter)
   for (let k = 0; k + 2 < tokens.length; k++) {
     if (tokens[k].t === 'id' && TYPES.has(tokens[k].v) && tokens[k + 1].t === 'id' && tokens[k + 2].v === '(') {
       functions.add(tokens[k + 1].v);
       if (INTEGER.has(tokens[k].v)) intFunctions.add(tokens[k + 1].v);
       if (FLOAT_TYPES.has(tokens[k].v)) floatFunctions.add(tokens[k + 1].v);
+      if (tokens[k].v === 'char' && !['unsigned', 'signed'].includes(tokens[k - 1]?.v)) charFunctions.add(tokens[k + 1].v);
     }
   }
   // Whether the term just read is an integer (for division): set by term().
@@ -177,6 +179,12 @@ export function translateSketch(source, { strings = [] } = {}) {
   let termFloat = false;
   let exprFloat = false;
   let typeFloat = false; // the type readType() just read is float or double
+  // Whether the term or the expression just read is a plain char ('A', a char variable, (char) x, a
+  // function returning char): Serial.print shows it as its letter, as Print::print(char) does. Any
+  // arithmetic on it is an int (C's promotion), so only a single term keeps it.
+  let termChar = false;
+  let exprChar = false;
+  let typeChar = false; // the type readType() just read is plain char (not signed or unsigned char)
   // Library objects (libraries.js): name → { k: its number, cls: its class's number }. A Map, so a
   // name such as "constructor" is never looked up as a key of an object.
   const objects = new Map();
@@ -192,6 +200,7 @@ export function translateSketch(source, { strings = [] } = {}) {
   };
   let returnsInt = false; // the function being read returns an integer type
   const scopes = [new Map()];
+  const isInt = (type) => type === 'int' || type === 'char';
   const typeOf = (name) => {
     for (let s = scopes.length - 1; s >= 0; s--) if (scopes[s].has(name)) return scopes[s].get(name);
     return null;
@@ -206,13 +215,16 @@ export function translateSketch(source, { strings = [] } = {}) {
     let integer = false;
     let any = false;
     typeFloat = false;
+    const words = [];
     while (peek()?.t === 'id' && (TYPES.has(peek().v) || QUALIFIERS.has(peek().v))) {
+      words.push(peek().v);
       if (INTEGER.has(peek().v)) integer = true;
       if (FLOAT_TYPES.has(peek().v)) typeFloat = true;
       if (TYPES.has(peek().v)) any = true;
       pos++;
     }
     if (!any) fail('type');
+    typeChar = words.includes('char') && !words.includes('unsigned') && !words.includes('signed');
     return integer;
   }
 
@@ -222,6 +234,7 @@ export function translateSketch(source, { strings = [] } = {}) {
     const parts = [];
     const ints = []; // per part: an integer term, or null for an operator
     const floats = []; // per part: a float term
+    const chars = []; // per part: a plain char term
     let value = true; // whether a value comes next (and not an operator)
     while (pos < tokens.length) {
       const t = peek();
@@ -242,6 +255,7 @@ export function translateSketch(source, { strings = [] } = {}) {
         parts.push('0');
         ints.push(true);
         floats.push(false);
+        chars.push(false);
         value = false;
         continue;
       }
@@ -250,9 +264,11 @@ export function translateSketch(source, { strings = [] } = {}) {
       if (!isOp && !value && t.v !== '(') fail(t.t === 'str' ? '"' : t.v);
       termInt = false;
       termFloat = false;
+      termChar = false;
       parts.push(term());
       ints.push(isOp ? null : termInt);
       floats.push(!isOp && termFloat);
+      chars.push(!isOp && termChar);
       // After a value an operator comes, except after x++ / x--; after an operator, a value.
       if (!isOp) value = false;
       else if (!(['++', '--'].includes(t.v) && !value)) value = true;
@@ -269,6 +285,7 @@ export function translateSketch(source, { strings = [] } = {}) {
       parts.splice(j, i + 2 - j, merged);
       ints.splice(j, i + 2 - j, true);
       floats.splice(j, i + 2 - j, false);
+      chars.splice(j, i + 2 - j, false);
       i = j;
     }
     exprInt = parts.length > 0 && ints.every((k) => k !== false);
@@ -280,6 +297,12 @@ export function translateSketch(source, { strings = [] } = {}) {
       const colon = parts.findIndex((_, k) => k > ask && op(k, ':'));
       exprFloat = floats.slice(ask + 1, colon < 0 ? undefined : colon).some(Boolean) || (colon >= 0 && floats.slice(colon + 1).some(Boolean));
     } else exprFloat = !parts.some((_, k) => op(k, '==', '!=', '<', '>', '<=', '>=', '&&', '||', '!')) && floats.some(Boolean);
+    // A char: one char term alone, or a ternary whose two branches are each one char term.
+    const oneChar = (from, to) => to - from === 1 && chars[from];
+    if (ask >= 0) {
+      const colon = parts.findIndex((_, k) => k > ask && op(k, ':'));
+      exprChar = colon >= 0 && oneChar(ask + 1, colon) && oneChar(colon + 1, parts.length);
+    } else exprChar = oneChar(0, parts.length);
     return parts.join(' ');
   }
   // One token of an expression, turning calls, casts and C-only words into JavaScript.
@@ -292,10 +315,12 @@ export function translateSketch(source, { strings = [] } = {}) {
       if (peek(k)?.v === ')') {
         const integer = tokens.slice(pos + 1, pos + k).some((x) => INTEGER.has(x.v));
         const float = tokens.slice(pos + 1, pos + k).some((x) => FLOAT_TYPES.has(x.v));
+        const words = tokens.slice(pos + 1, pos + k).map((x) => x.v);
         pos += k + 1;
         const operand = term();
         termInt = integer;
         termFloat = float && !integer;
+        termChar = words.includes('char') && !words.includes('unsigned') && !words.includes('signed');
         return integer ? `__int(${operand})` : `(${operand})`;
       }
     }
@@ -353,6 +378,7 @@ export function translateSketch(source, { strings = [] } = {}) {
       if (method.v === 'print' || method.v === 'println') {
         const first = is(')') ? '' : expression([',']);
         const float = Boolean(first) && exprFloat;
+        const char = Boolean(first) && exprChar;
         let digits = '';
         if (is(',')) {
           pos++;
@@ -360,7 +386,11 @@ export function translateSketch(source, { strings = [] } = {}) {
         }
         expect(')');
         termFloat = false;
+        termChar = false;
+        // The third argument says what C++ would print: 1 a float (digits after the point), 2 a char
+        // (its letter; with a second argument, a number in that base, as print(int, base)).
         if (float) return `Serial.${method.v}(${first}, ${digits || 'undefined'}, 1)`;
+        if (char) return `Serial.${method.v}(${first}, ${digits || 'undefined'}, 2)`;
         return `Serial.${method.v}(${first}${digits ? `, ${digits}` : ''})`;
       }
       const args = expression([')']);
@@ -377,6 +407,7 @@ export function translateSketch(source, { strings = [] } = {}) {
       expect(')');
       termInt = intFunctions.has(name) || INT_API.has(name);
       termFloat = floatFunctions.has(name) || FLOAT_API.has(name) || FLOAT_TYPES.has(name);
+      termChar = charFunctions.has(name) || name === 'char';
       if (name === 'delay') return `(yield ((${args}) / 1e3))`;
       // F("text"): the text itself (on a board it keeps the string in flash).
       if (name === 'F') {
@@ -397,6 +428,7 @@ export function translateSketch(source, { strings = [] } = {}) {
       expect(')');
       termInt = exprInt;
       termFloat = exprFloat;
+      termChar = exprChar;
       return `(${inner})`;
     }
     pos++;
@@ -404,11 +436,13 @@ export function translateSketch(source, { strings = [] } = {}) {
     if (t.t === 'num') {
       termInt = /^(\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/.test(t.v);
       termFloat = !/^0[xXbB]/.test(t.v) && /[.eE]/.test(t.v);
+      termChar = Boolean(t.char);
       // C's octal (010 is 8): the code is strict, where JavaScript has no such literal.
       if (/^0[0-7]+$/.test(t.v)) return String(Number.parseInt(t.v, 8));
       if (/^0\d+$/.test(t.v)) throw new SketchError(t.line, t.v);
     }
-    if (t.t === 'id') termInt = typeOf(t.v) === 'int' || ['HIGH', 'LOW', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'].includes(t.v) || defines.has(t.v);
+    if (t.t === 'id') termChar = typeOf(t.v) === 'char';
+    if (t.t === 'id') termInt = isInt(typeOf(t.v)) || ['HIGH', 'LOW', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'].includes(t.v) || defines.has(t.v);
     if (t.t === 'id') termFloat = typeOf(t.v) === 'float' || t.v === 'PI';
     if (t.t === 'id' && t.v === 'NULL') return '0';
     if (t.t === 'id' && (t.v === 'sizeof' || t.v === 'new' || t.v === 'delete')) throw new SketchError(t.line, t.v);
@@ -420,7 +454,7 @@ export function translateSketch(source, { strings = [] } = {}) {
   // Assignments: name op value, with integer division kept for integer variables.
   function assignment(stops) {
     const start = pos;
-    if (peek()?.t === 'id' && peek(1)?.t === 'p' && ASSIGN.has(peek(1).v) && typeOf(peek().v) === 'int') {
+    if (peek()?.t === 'id' && peek(1)?.t === 'p' && ASSIGN.has(peek(1).v) && isInt(typeOf(peek().v))) {
       const name = own(tokens[pos++].v);
       const op = tokens[pos++].v;
       const value = expression(stops);
@@ -440,7 +474,7 @@ export function translateSketch(source, { strings = [] } = {}) {
       if (peek()?.t !== 'id') fail('name');
       const name = tokens[pos++].v;
       if (objects.has(name)) fail(name);
-      scopes[scopes.length - 1].set(name, integer ? 'int' : float ? 'float' : 'num');
+      scopes[scopes.length - 1].set(name, integer ? (typeChar ? 'char' : 'int') : float ? 'float' : 'num');
       let array = false;
       let size = null;
       while (is('[')) {
@@ -678,7 +712,7 @@ export function translateSketch(source, { strings = [] } = {}) {
           if (peek()?.t !== 'id') fail('name');
           const p = tokens[pos++].v;
           if (objects.has(p)) fail(p);
-          scopes[scopes.length - 1].set(p, isInt ? 'int' : typeFloat ? 'float' : 'num');
+          scopes[scopes.length - 1].set(p, isInt ? (typeChar ? 'char' : 'int') : typeFloat ? 'float' : 'num');
           params.push(own(p));
           if (is(',')) pos++;
         }

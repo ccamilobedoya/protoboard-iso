@@ -139,15 +139,24 @@ export function createRunner(js, board) {
     if (!(yield* until(1 - level))) return 0;
     return Math.round((runner.time - start) * 1e6);
   }
-  // A value as Serial.print writes it: a float with two decimals (or `digits`), NaN as "nan" and an
-  // infinity as "inf" (the AVR core's words), a bool as 1 or 0.
-  const show = (v, digits, float) => {
+  // A value as Serial.print writes it (Print.cpp): a float with two decimals (or `digits`), NaN as
+  // "nan" and an infinity as "inf" (the AVR core's words), a bool as 1 or 0, a char (kind 2, from the
+  // translator) as its letter, an integer in the base its second argument gives (DEC, HEX, OCT, BIN;
+  // a negative one in another base as its 32 bits, as print(long, base) does).
+  const show = (v, digits, kind) => {
     if (typeof v === 'boolean') return v ? '1' : '0';
     if (typeof v !== 'number') return String(v);
     if (Number.isNaN(v)) return 'nan';
     if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf';
-    return Number.isInteger(v) && !float ? String(v) : v.toFixed(digits ?? 2);
+    if (kind === 2 && digits === undefined) return letter(v);
+    if (Number.isInteger(v) && kind !== 1) {
+      const base = Number.isInteger(digits) && digits >= 2 && digits <= 36 ? digits : 10;
+      return base === 10 ? String(v) : (v >>> 0).toString(base).toUpperCase();
+    }
+    return v.toFixed(Math.min(20, Math.max(0, Number.isFinite(digits) ? Math.trunc(digits) : 2)));
   };
+  // One byte as the character it is (Serial.write(65), a char printed): its low eight bits.
+  const letter = (v) => String.fromCharCode(Math.trunc(Number(v)) & 0xff);
   const analog = ANALOG[board.family] ?? [];
   const api = {
     HIGH: 1,
@@ -162,6 +171,10 @@ export function createRunner(js, board) {
     RAD_TO_DEG: 180 / Math.PI,
     MSBFIRST: 1,
     LSBFIRST: 0,
+    DEC: 10,
+    HEX: 16,
+    OCT: 8,
+    BIN: 2,
     // shiftOut and shiftIn are plain digitalWrite / digitalRead sequences, as the Arduino core's: eight
     // bits, the clock high then low for each (no time passes between them in the kit).
     shiftOut(data, clock, order, value) {
@@ -273,8 +286,14 @@ export function createRunner(js, board) {
     bitWrite: (x, b, v) => (v ? x | (1 << b) : x & ~(1 << b)),
     Serial: {
       begin() {},
-      print: (v, d, float) => write(show(v, d, float)),
-      println: (v = '', d, float) => write(`${show(v, d, float)}\n`),
+      print: (v, d, kind) => write(show(v, d, kind)),
+      println: (v = '', d, kind) => write(`${show(v, d, kind)}\n`),
+      // write(byte) sends that byte (65 is "A"); write("text") the text. It returns the bytes written.
+      write(v) {
+        const text = typeof v === 'string' ? v : letter(v);
+        write(text);
+        return text.length;
+      },
       available: () => 0,
       read: () => -1,
     },

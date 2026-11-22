@@ -104,11 +104,18 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   stops the program with `NAME is not a name the kit's Arduino subset knows`. Arrays have one
   dimension: `const int C[6][3] = {…}` is refused with its line (`SIM_PROGRAM_ARRAY_DIMENSIONS`);
   write it as one list, `C[row * 3 + column]`.
+- **Serial prints as a board's `Print` does:** a `char` (`'Z'`, a `char` variable, `(char) 65`, a
+  function returning `char`) as its letter, while arithmetic on it is a number (`c + 1` prints 67);
+  `byte`, `unsigned char` and `char` with `DEC` print the number; `Serial.write(65)` sends the byte
+  (`A`) and `Serial.write("text")` the text; an integer's second argument is its base (`DEC`, `HEX`,
+  `OCT`, `BIN`; a negative one in another base as its 32 bits, `-1` in `HEX` is `FFFFFFFF`), a
+  float's is its decimals (`Serial.println(3.14159, 3)` is `3.142`).
 - **How it runs:** every function becomes a generator, so `delay()` waits in simulated time. The
   program runs between time steps, from the voltages of the step before, as the 555's latch: a
   change takes effect one step later (1 ms in the page). At t = 0 it starts over from the
   voltages there until its pins come out the same (its setup may turn on a pull-up its loop reads).
-  A loop that never waits gets 2000 turns per step, so the page does not freeze. When a control is
+  A `delay` lasts what it says from the moment it is called: the time a `loop()` ran without waiting
+  is not taken off the next delay. A loop that never waits gets 2000 turns per step, so the page does not freeze. When a control is
   used (a button pressed), the program goes on where it was.
 - **In the page:** a circuit with a program runs in real time (`delay(500)` is half a second),
   with steps of 1 ms (shorter, down to 0.1 ms, for a fast RC beside it). The board's card shows the

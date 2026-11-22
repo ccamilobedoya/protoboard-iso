@@ -554,6 +554,7 @@ before saying it works.
 - ⬜ A board's pin that plays a `tone()` reads `off throughout` in a run (its level at the steps' starts): the buzzer it drives is measured right, the pin's own line is not
 - ⬜ What the MCP server's instructions would add with a number from `scripts/trigger-bench.js` (the startup context is at its 48 KB): the `.ino` in the circuit's folder, a run before saying a program works
 - ✅ `delay()` lasts what it says (C10a): the time a `loop()` ran without waiting was a debt the next delay paid, so after an idle loop a `delay(300)` lasted 0 ms and the next one seemed to end at a button's release; the same in the page (one runner)
+- ✅ A `char` prints as its letter (C10a): `Serial.println('Z')`, a `char` variable, `(char) 65` and a function returning `char` printed the number; `char` arithmetic stays a number, `DEC` prints the number, `Serial.write(65)` prints `A`, `HEX`/`BIN`/`OCT`/`DEC` are an integer's base and a float's second argument its decimals
 
 ## Optional, later ⬜
 

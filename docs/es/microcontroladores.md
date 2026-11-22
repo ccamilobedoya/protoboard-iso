@@ -106,11 +106,18 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   el kit no tiene detiene el programa con `NAME is not a name the kit's Arduino subset knows`. Los
   arreglos tienen una dimensión: `const int C[6][3] = {…}` se rechaza con su línea
   (`SIM_PROGRAM_ARRAY_DIMENSIONS`); escríbelo como una sola lista, `C[fila * 3 + columna]`.
+- **Serial imprime como el `Print` de una placa:** un `char` (`'Z'`, una variable `char`, `(char) 65`,
+  una función que devuelve `char`) sale como su letra, y la aritmética con él es un número (`c + 1`
+  imprime 67); `byte`, `unsigned char` y `char` con `DEC` imprimen el número; `Serial.write(65)` envía
+  el byte (`A`) y `Serial.write("texto")` el texto; el segundo argumento de un entero es su base
+  (`DEC`, `HEX`, `OCT`, `BIN`; un negativo en otra base, como sus 32 bits: `-1` en `HEX` es
+  `FFFFFFFF`), el de un float, sus decimales (`Serial.println(3.14159, 3)` es `3.142`).
 - **Cómo corre:** cada función pasa a ser un generador, así que `delay()` espera en tiempo simulado.
   El programa corre entre pasos de tiempo, con los voltajes del paso anterior, como el biestable del
   555: un cambio vale un paso después (1 ms en la página). En t = 0 vuelve a empezar con los voltajes
   de ese momento hasta que sus pines salen iguales (su setup puede activar un pull-up que su loop
-  lee). Un loop que nunca espera recibe 2000 vueltas por paso, así la página no se congela. Cuando
+  lee). Un `delay` dura lo que dice desde que se llama: el tiempo que un `loop()` corrió sin esperar
+  no se descuenta del siguiente. Un loop que nunca espera recibe 2000 vueltas por paso, así la página no se congela. Cuando
   se usa un control (se presiona un pulsador), el programa sigue donde estaba.
 - **En la página:** un circuito con programa corre en tiempo real (`delay(500)` es medio segundo),
   con pasos de 1 ms (más cortos, hasta 0,1 ms, si al lado hay un RC rápido). La ficha de la placa
