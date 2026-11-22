@@ -550,7 +550,7 @@ export function checkHazards(circuit) {
   const programmed = (compiled.program.devices ?? []).some((d) => d.kind === 'MCU' && !d.unsupported && d.params?.sketch);
   // A clocked chip (a 74HC595, a CD4017) latches states a DC point never shows: the run is visited too.
   const clocked = (compiled.program.devices ?? []).some((d) => !d.unsupported && deviceOfProgram(d)?.holds);
-  const runFirst = programmed || clocked ? visitRun(circuit, compiled, engine, states, extraStates(circuit, engine, states), false) : null;
+  const runFirst = programmed || clocked ? visitRun(circuit, compiled, engine, states, extraStates(circuit, engine, states), !programmed) : null;
   const runs = runFirst?.ok && !(runFirst.issues ?? []).some((i) => i.code === 'SIM_PROGRAM_STOPPED' || i.code === 'SIM_PROGRAM_STUCK') && !(compiled.program.issues ?? []).some((i) => PROGRAM_DOUBTS.has(i.code) && i.severity !== 'info');
   const { rest, lit, ...result } = engineHazards(engine, [...states, ...undeclaredEnvironmentStates(circuit, compiled.program)], STATES_MAX, { collect: true, ...(runs && runFirst.combinations?.length && { combinations: runFirst.combinations }) });
   const dark = result.ok ? neverOn(circuit, compiled, engine, states, lit) : [];

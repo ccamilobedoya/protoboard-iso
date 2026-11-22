@@ -11,7 +11,8 @@
 // At power-up the register and the latches hold zero (a real chip's are undefined until written).
 //
 // Numbers (NXP 74HC595 datasheet, typical at 25 °C unless said; TI SN74HC595 agrees):
-// - inputs: VIH 3.15 V and VIL 1.35 V at VCC = 4.5 V, i.e. 0.7·VCC and 0.3·VCC; supply 2 V to 6 V;
+// - inputs: VIH 3.15 V and VIL 1.35 V guaranteed at VCC = 4.5 V (0.7·VCC and 0.3·VCC); typical switching
+//   VIH 2.4 V, VIL 2.1 V (0.53 and 0.47); supply 2 V to 6 V;
 // - outputs: VOH 4.32 V at IO = −6 mA and VOL 0.15 V at IO = 6 mA, VCC = 4.5 V: about 30 Ω to VCC and
 //   25 Ω to GND, taken as constant over the supply range [the resistance grows at lower VCC: assumed];
 // - absolute maximum: ±35 mA per output, ±70 mA through VCC or GND, Ptot 750 mW (DIP16), VCC 7 V (damage
@@ -27,6 +28,8 @@ export const SHIFT_REGISTERS = {
   '74HC595': {
     vih: 0.7,
     vil: 0.3,
+    // Where it switches: NXP's typical VIH 2.4 V and VIL 2.1 V at VCC = 4.5 V (0.53 and 0.47 of it).
+    switching: { default: [0.47, 0.53] },
     minSupply: 2,
     maxSupply: 6,
     maxAbsolute: 7,
@@ -83,7 +86,7 @@ export const shiftRegister = {
       logicCore(
         { vcc, gnd, inputs: INPUTS.map((name) => ({ name, node: h.pin(name) })), outputs: OUTPUTS.map((name) => ({ name, node: h.pin(name) })) },
         p.open,
-        { held: p.held, vih: m.vih, vil: m.vil, outputHigh: stage(m.highResistance), outputLow: stage(m.lowResistance) },
+        { held: p.held, vih: m.vih, vil: m.vil, switching: m.switching, outputHigh: stage(m.highResistance), outputLow: stage(m.lowResistance) },
         LOGIC,
       ),
     );

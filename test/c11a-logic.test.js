@@ -137,11 +137,12 @@ test('74HC595 on an ESP32: on its 3.3 V it works; on 5 V its 3.3 V pins do not r
   assert.equal(pattern(r, 'U2', r.parts.U2.vcc), '10100000');
   const high5 = withProgram(layoutOnce('esp-5v', esp('U1.VIN')), sketch('0b00000101'));
   const five = simulate(high5);
-  // VCC 5 V: high above 3.5 V; 3.3 V is in between and the chip keeps its zeros.
-  assert.equal(pattern(five, 'U2', five.parts.U2.vcc), '00000000');
+  // VCC 5 V: 3.3 V is past where a 74HC input switches (about half the supply: NXP's typical 2.4 V at
+  // 4.5 V), so the chip reads it high and latches; but it is under the guaranteed 0.7 · 5 = 3.5 V: a doubt.
+  assert.equal(pattern(five, 'U2', five.parts.U2.vcc), '10100000');
   const level = five.issues.filter((i) => i.code === 'SIM_IC_INPUT_LEVEL');
   assert.ok(level.length >= 1 && level.every((i) => i.params.part === 'U2'), JSON.stringify(five.issues));
-  assert.match(formatIssue(level[0], 'en'), /does not reach its high level/);
+  assert.match(formatIssue(level[0], 'en'), /reads it as high here .* does not guarantee it: a 3\.3 V pin into a chip fed 5 V/);
   const doubts = review(high5).doubts.filter((d) => d.code === 'SIM_IC_INPUT_LEVEL');
   assert.ok(doubts.length >= 1, 'a doubt in the review');
 });
@@ -400,4 +401,22 @@ test('logic chips: the damage warning is over the absolute maximum; past the rec
     assert.deepEqual(supply(chip(part, past)), ['SIM_IC_SUPPLY_RANGE'], `${part} at ${past} V`);
     assert.deepEqual(supply(chip(part, damage)), ['SIM_IC_SUPPLY'], `${part} at ${damage} V`);
   }
+});
+
+// An input switches where the chip switches (about half its supply), and a level the datasheet does not
+// guarantee is a doubt: a CD4017 at 5 V counting to seven with a white LED straight on Q7 (Q7 sits near
+// 2.9 V under that load: over half of 5 V, under the guaranteed 0.7 · 5 = 3.5 V) resets, and says so.
+test('CD4017: Q7 on MR with a white LED on it resets at about 2.9 V, and the review says the level is not guaranteed', () => {
+  const spec = JSON.parse(JSON.stringify(SLOW_BASE));
+  spec.supplies[0].voltage = 5;
+  spec.nets = spec.nets.filter((n) => !n.includes('U2.MR')).concat([['U2.Q7', 'U2.MR', 'D9.A'], ['D9.K', 'T-']]);
+  spec.parts.push({ id: 'D9', type: 'led', color: 'white' });
+  const r = autoLayout(spec);
+  const level = r.review.doubts.find((d) => d.code === 'SIM_IC_INPUT_LEVEL' && d.params.pin === 'MR');
+  assert.ok(level, JSON.stringify(r.review.doubts));
+  assert.match(formatIssue(level, 'en'), /reads it as high here .*an output loaded by an LED/);
+  const run = runCircuit(r.circuit, { seconds: 2.2 });
+  const q7 = run.outputs.find((o) => o.id === 'D9').intervals;
+  // It resets: Q7 is high for one time step only, and the chase starts again at D1.
+  assert.ok(q7.length >= 1 && q7.every(([a, b]) => b - a < 0.01), JSON.stringify(q7));
 });

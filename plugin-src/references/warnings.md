@@ -175,8 +175,9 @@ holds the register clear, so its LED never lights.
 
 ## A 3.3 V pin on a 5 V logic chip
 
-An ESP32's pins give 3.3 V; a 74HC595 or a CD4017 fed 5 V needs more to read high. Each such input is
-a ⚠: feed the chip from the board's `3V3`, or use a level shifter.
+An ESP32's pins give 3.3 V; a 74HC595 or a CD4017 fed 5 V is guaranteed to read high only from 3.5 V.
+The kit reads 3.3 V as high (a real chip switches near half its supply), and each such input is a ⚠:
+the datasheet does not guarantee it. Feed the chip from the board's `3V3`, or use a level shifter.
 
 ```json
 {
@@ -195,7 +196,7 @@ a ⚠: feed the chip from the board's `3V3`, or use a level shifter.
 ```
 
 ```text
-  ⚠ warning: U2: its input SER sits at 3.3 V, between the 1.5 V under which it reads low and the 3.49 V over which it reads high: the chip may read either level (the kit keeps the one it had). A 3.3 V pin on a chip fed 5 V does not reach its high level: feed the chip from the board's 3.3 V, or use a level shifter.
+  ⚠ warning: U2: its input SER gets 3.3 V from a board's pin, between the 1.5 V and 3.49 V the datasheet guarantees as low and high. The kit reads it as high here (a real chip switches near half its supply), but the datasheet does not guarantee it: a 3.3 V pin into a chip fed 5 V. Feed the chip from the board's 3.3 V, or use a level shifter.
 ```
 
 ## A damaged history

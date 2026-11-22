@@ -3,10 +3,13 @@
 // board's pins. One element per chip (logicCore), a memory like the 555's latch: its state changes only
 // between time steps, so every step solves the output stages as plain sources.
 //
-// Inputs. A level is high above `vih`·VCC and low under `vil`·VCC; in between it keeps the level it had
-// (the datasheets guarantee nothing there; a Schmitt input, the CD4017's clock, behaves exactly so). A
-// reading in that band from a steady source (a board's pin, the DC point) is kept in `between` for a
-// warning: a 3.3 V pin on a chip fed 5 V never reaches its high level. An input left open (no other
+// Inputs. A CMOS input switches near half its supply: it reads high once it rises past `up`·VCC and low
+// once it falls under `down`·VCC, keeping its level in the narrow band between (`switching`, per input:
+// the CD4017's clock has a Schmitt trigger, a wider band). The datasheet guarantees only under `vil`·VCC
+// as low and over `vih`·VCC as high (0.3 and 0.7): a level that settles between them, from a steady
+// source (a board's pin, the DC point, a state the review holds), is read as the chip reads it and kept
+// in `between` for a doubt (SIM_IC_INPUT_LEVEL) that says the datasheet does not guarantee it and why it
+// sits there (a 3.3 V board pin into a chip fed 5 V; an output loaded by an LED). An input left open (no other
 // part on its strip) is undefined on a real chip: the kit takes it as low, ties it there, and says so
 // (SIM_IC_INPUT_OPEN, which names the level).
 //
@@ -55,8 +58,10 @@ export function drive(drop, r, sat) {
   return { i: sat * th, g: (1 - th * th) / r };
 }
 
-// A level from volts against the chip's supply: 1, 0, or `was` in between.
-export const levelOf = (v, vcc, m, was) => (v > m.vih * vcc ? 1 : v < m.vil * vcc ? 0 : was);
+// A level from volts against the chip's supply and an input's switching band [down, up]: 1, 0, or `was`.
+export const levelOf = (v, vcc, [down, up], was) => (v > up * vcc ? 1 : v < down * vcc ? 0 : was);
+// The guaranteed band (vil·VCC to vih·VCC): a steady level inside it is a doubt.
+const unguaranteed = (at, v, m) => at >= m.vil * v && at <= m.vih * v;
 
 // The nets of a circuit: nodes joined by jumper wires (an element with `joins`) are one place.
 function netsOf(elements) {
@@ -86,6 +91,9 @@ export function logicCore({ vcc, gnd, inputs, outputs }, open, m, given) {
   const chip = held ? { initial: () => JSON.parse(JSON.stringify(held)), step: () => {}, outputs: (s, lv) => given.outputs(held, lv) } : given;
   const nodes = [vcc, gnd, ...outputs.map((o) => o.node)];
   const fresh = () => Object.fromEntries(inputs.map((p) => [p.name, open[p.name] ?? null]));
+  const band = (name) => m.switching?.[name] ?? m.switching?.default ?? [0.5, 0.5];
+  // An input in the guaranteed band, steady: its volts, the level read and why it sits there.
+  const doubt = (name, at, level, why) => ({ volts: at, level, why });
   const outVolts = (level, x) => (level == null ? null : level ? volt(x, vcc) : volt(x, gnd));
   const drop = (x, k, level) => (level ? volt(x, vcc) - volt(x, outputs[k].node) : volt(x, outputs[k].node) - volt(x, gnd));
   const supplyOf = (x) => volt(x, vcc) - volt(x, gnd);
@@ -115,7 +123,7 @@ export function logicCore({ vcc, gnd, inputs, outputs }, open, m, given) {
       this.logic = chip.initial();
       this.levels = fresh();
       this.between = {};
-      if (x && supplyOf(x) >= POWERED) for (const p of inputs) if (!(p.name in open) && !this.sources.has(p.name)) this.levels[p.name] = levelOf(volt(x, p.node) - volt(x, gnd), supplyOf(x), m, null);
+      if (x && supplyOf(x) >= POWERED) for (const p of inputs) if (!(p.name in open) && !this.sources.has(p.name)) this.levels[p.name] = levelOf(volt(x, p.node) - volt(x, gnd), supplyOf(x), band(p.name), null);
       this.track(chip.outputs(this.logic, this.levels), true);
     },
     // New outputs: the ones that moved are passed on later (`flush`) when it happens in no time.
@@ -184,8 +192,8 @@ export function logicCore({ vcc, gnd, inputs, outputs }, open, m, given) {
       const src = this.sources.get(name);
       const held = src ? src.board.steady(src.gpio) : null;
       const at = held != null ? held - volt(x, gnd) : volt(x, node) - volt(x, gnd);
-      const level = levelOf(at, v, m, this.levels[name]);
-      if ((steady || held != null) && at >= m.vil * v && at <= m.vih * v) this.between[name] = at;
+      const level = levelOf(at, v, band(name), this.levels[name]);
+      if ((steady || held != null) && unguaranteed(at, v, m)) this.between[name] = doubt(name, at, level, src?.board.serialBoard ? 'pin' : 'held');
       return level;
     },
     readAll(x, steady) {
@@ -265,8 +273,11 @@ export function logicCore({ vcc, gnd, inputs, outputs }, open, m, given) {
       const names = this.byBoard.get(board)?.get(ev.gpio);
       if (!names) return;
       const at = ev.volts - volt(x, gnd);
-      if (at >= m.vil * v && at <= m.vih * v) for (const name of names) this.between[name] = at;
-      this.see(names.map((name) => [name, levelOf(at, v, m, this.levels[name])]), true);
+      const changes = names.map((name) => [name, levelOf(at, v, band(name), this.levels[name])]);
+      for (const [name, level] of changes) {
+        if (unguaranteed(at, v, m)) this.between[name] = doubt(name, at, level ?? 0, board.serialBoard ? 'pin' : 'held');
+      }
+      this.see(changes, true);
     },
     // The engine hands every element over once they are all built: the boards whose pins share a net
     // with an input are listened to.
@@ -332,6 +343,6 @@ export function logicNotes(entry, r, m) {
   const out = [];
   // Outside the recommended range but under the absolute maximum: not damage, not guaranteed either.
   if (r.vcc > 0.1 && (r.vcc < m.minSupply || (r.vcc > m.maxSupply && r.vcc <= m.maxAbsolute))) out.push(note('warning', 'SIM_IC_SUPPLY_RANGE', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(m.minSupply, 'V'), max: q(m.maxSupply, 'V') }));
-  for (const [pin, v] of Object.entries(r.between ?? {})) out.push(note('warning', 'SIM_IC_INPUT_LEVEL', { part: entry.id, pin, voltage: q(v, 'V'), high: q(m.vih * r.vcc, 'V'), low: q(m.vil * r.vcc, 'V') }));
+  for (const [pin, b] of Object.entries(r.between ?? {})) out.push(note('warning', 'SIM_IC_INPUT_LEVEL', { part: entry.id, pin, voltage: q(b.volts, 'V'), high: q(m.vih * r.vcc, 'V'), low: q(m.vil * r.vcc, 'V'), variant: `${b.why}${b.level ? 'High' : 'Low'}` }));
   return out;
 }

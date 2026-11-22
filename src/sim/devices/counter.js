@@ -36,6 +36,9 @@ export const COUNTERS = {
   CD4017: {
     vih: 0.7,
     vil: 0.3,
+    // Where it switches: near half the supply [assumed 0.45–0.55]; the clock has Schmitt-trigger action
+    // (TI CD4017B), about 1 V of hysteresis at 5 V [assumed 0.4–0.6 of VDD].
+    switching: { default: [0.45, 0.55], CLK: [0.4, 0.6] },
     minSupply: 3,
     maxSupply: 18,
     maxAbsolute: 20,
@@ -101,7 +104,7 @@ export const counter = {
       logicCore(
         { vcc: vdd, gnd: vss, inputs: INPUTS.map((name) => ({ name, node: h.pin(name) })), outputs: OUTPUTS.map((name) => ({ name, node: h.pin(name) })) },
         p.open,
-        { held: p.held, vih: m.vih, vil: m.vil, outputHigh: stage, outputLow: stage },
+        { held: p.held, vih: m.vih, vil: m.vil, switching: m.switching, outputHigh: stage, outputLow: stage },
         LOGIC,
       ),
     );
