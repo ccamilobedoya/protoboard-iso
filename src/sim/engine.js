@@ -82,6 +82,16 @@ const LANDINGS = 32;
 const LAND_MIN = 0.5e-6;
 // What an element changes while Newton iterates (junction limiting, an op-amp's rail edge).
 const LIMITING = ['vd', 'vgs', 'vds', 'vbe', 'vbc', 'edge'];
+// Each element's keys of those, found once (a step saves them before Newton runs: the cost of a step).
+const LIMITING_OF = new WeakMap();
+function limitingOf(el) {
+  let keys = LIMITING_OF.get(el);
+  if (!keys) {
+    keys = LIMITING.filter((key) => key in el);
+    LIMITING_OF.set(el, keys);
+  }
+  return keys;
+}
 // A transient of a circuit whose board runs a program steps at most PROGRAM_STEP at a time (the
 // page's step for a program, sim/pace.js), never under MIN_PIECE for a PWM or tone (the page's floor).
 export const PROGRAM_STEP = 1e-3;
@@ -580,13 +590,15 @@ export function createEngine(source) {
       // A failed step leaves everything as the last accepted one did: the sources at its time, and
       // the junctions' limiting voltages too, so a retry starts from that step and not from the
       // failed iterations.
-      const before = prep.system.elements.map((el) => LIMITING.filter((key) => key in el).map((key) => [key, el[key]]));
+      const before = [];
+      for (const el of prep.system.elements) {
+        const keys = limitingOf(el);
+        if (keys.length) before.push([el, keys.map((key) => el[key])]);
+      }
       const r = newton(prep.system, x, next);
       if (!r.ok) {
         setTime(prep, time);
-        prep.system.elements.forEach((el, k) => {
-          for (const [key, value] of before[k]) el[key] = value;
-        });
+        for (const [el, values] of before) limitingOf(el).forEach((key, j) => (el[key] = values[j]));
         return false;
       }
       x = r.x;
