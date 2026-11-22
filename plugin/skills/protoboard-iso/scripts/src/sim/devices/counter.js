@@ -21,7 +21,10 @@
 //   same: about 400 Ω, 192 Ω and 221 Ω near the rail, interpolated in between. Away from the rail the
 //   output transistor runs out of current: IOH −3.2 mA at VO = 2.5 V, VDD = 5 V, is a saturation of
 //   3.35 mA in the drive's tanh (logic.js); at other supplies it grows as (VDD − 1.5 V)² [assumed: a
-//   MOSFET's square law, threshold 1.5 V]. So an LED straight on an output at 5 V takes about 3 mA;
+//   MOSFET's square law, threshold 1.5 V]. So an LED straight on an output at 5 V takes about 3 mA.
+//   Above 10 V that estimate likely overestimates a real output (about 28 mA into an LED at 12 V, where a
+//   real chip gives perhaps 10 to 15 mA): the datasheet's table gives no current far from the rail at
+//   10 V or 15 V, only near it (2.6 mA at 0.5 V, 6.8 mA at 1.5 V), which the model meets; kept, and said;
 // - absolute maximum: 100 mW in each output transistor, 500 mW for the package; IDD 5 µA at most at
 //   5 V: the chip's own current as a resistance from VDD to VSS.
 
