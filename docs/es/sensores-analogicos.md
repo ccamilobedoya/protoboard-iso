@@ -50,9 +50,9 @@ Vout = Vs / 2 + 1,4 mV/G · (Vs / 5 V) · campo          mantenida dentro de [0,
 
 Límites y avisos: `SIM_IC_SUPPLY` por encima de 8 V (las hojas no dan máximo absoluto: la cifra del kit),
 `SIM_REVERSE_VOLTAGE` al revés (el chip queda apagado: su salida se queda en tierra), `SIM_MODULE_LOW_SUPPLY` por debajo de los 2,7 V desde los que se
-especifica (el aviso que usan todos los sensores) `SIM_HALL_LOAD` (una nota) cuando se toman más de
+especifica (el aviso que usan todos los sensores) `SIM_HALL_LOAD` (un aviso: pasa un máximo) cuando se toman más de
 1,5 mA de la salida, `SIM_OVER_CURRENT` cuando a la salida se le pide más de su límite de 5 mA (lo que llevarían los 50 Ω,
-antes del límite: un corto pide 50 mA) y `SIM_HALL_HIGH_SUPPLY` (una nota) entre 6,5 V, el final de su rango de operación, y los 8 V del aviso. La tarjeta muestra el campo, la salida, la alimentación, la corriente que da VOUT y
+antes del límite: un corto pide 50 mA) y `SIM_HALL_HIGH_SUPPLY` (un aviso) entre 6,5 V, el final de su rango de operación, y los 8 V del aviso. La tarjeta muestra el campo, la salida, la alimentación, la corriente que da VOUT y
 la propia del chip.
 
 ## Leerlos con `analogRead`
@@ -88,7 +88,7 @@ fuera de la placa que reciba cables es una mejora para después). `−` y `GND` 
 - `SIM_OVER_POWER` en la de 30 kΩ por encima de 100 mW (una entrada de 68 V). Lo que `S` alcance por
   encima de la alimentación de una placa es la comprobación de esa placa (`SIM_PIN_OVERVOLTAGE`): 25 V de
   entrada ponen 5 V en el pin de una placa de 3,3 V.
-  Sobre los 25 V impresos en el módulo una nota (`SIM_VOLTAGE_SENSOR_RANGE`) dice que está fuera de su rango:
+  Sobre los 25 V impresos en el módulo un aviso (`SIM_VOLTAGE_SENSOR_RANGE`) dice que está fuera de su rango:
   40 V de entrada dan 8 V en `S`.
 
 La tarjeta muestra la entrada, `S`, la relación y la corriente de entrada. La receta multiplica la

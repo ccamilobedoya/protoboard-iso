@@ -38,7 +38,7 @@ function run(source) {
 const sketch = (body) => `void setup() { ${body} }\nvoid loop() { delay(1000); }`;
 
 // What the JavaScript may name: its own words, the runtime's, and the sketch's ($-prefixed).
-const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
+const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'RISING', 'FALLING', 'CHANGE', 'ONLOW', 'ONHIGH', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
 function strayNames(js) {
   // The body, without the prelude (two lines) and the last line, and without the quoted names of
   // __missing("name", …), which JSON.stringify writes.
@@ -48,7 +48,7 @@ function strayNames(js) {
     .slice(2, -1)
     .join('\n')
     .replace(/__missing\("[^"\\]*"/g, '__missing(')
-    .replace(/Serial\.(begin|print|println|available|read)\(/g, 'Serial(');
+    .replace(/Serial\.(begin|print|println|write|available|read|peek|flush|setTimeout|end)\(/g, 'Serial(');
   const names = body.match(/(?<![\w$.])[A-Za-z_$][\w$]*/g) ?? [];
   const members = body.match(/\.[A-Za-z_$]/g) ?? [];
   return [...names.filter((n) => !n.startsWith('$') && !ALLOWED.has(n)), ...members];
@@ -64,7 +64,7 @@ test('attack: a sketch cannot reach JavaScript through a member, an index or a g
   const global = run(sketch('Serial.println(process); Serial.println(globalThis); Serial.println(api);'));
   assert.ok(global.r.js);
   // A name of the sketch is its own ($process); the error names it as the sketch wrote it.
-  assert.equal(global.error, "process is not a name the kit's Arduino subset knows");
+  assert.equal(global.error, 'process is not declared: a real board would not compile this sketch (line 1)');
   const viaCall = run(sketch('int x = Function("globalThis.__pwned = 1"); eval("globalThis.__pwned = 1");'));
   assert.equal(viaCall.pwned, undefined, 'an unknown call returns 0 and is noted');
   assert.deepEqual(codes(viaCall.r.issues), ['SIM_PROGRAM_UNSUPPORTED', 'SIM_PROGRAM_UNSUPPORTED']);
@@ -162,7 +162,7 @@ test('attack: malformed input is an issue with its line, never code that does no
   assert.deepEqual(dht21.issues.map((i) => [i.code, i.line]), [['SIM_PROGRAM_NOT_IN_KIT', 2]]);
   // The code is strict: an assignment to a name nobody declared stops the program, it makes no global.
   const undeclared = run(sketch('zzz = 1;'));
-  assert.equal(undeclared.error, "zzz is not a name the kit's Arduino subset knows");
+  assert.equal(undeclared.error, 'zzz is not declared: a real board would not compile this sketch (line 1)');
   assert.equal(globalThis.$zzz, undefined);
   assert.deepEqual(run(sketch('int x = 010; Serial.println(x);')).log, ['8'], 'C\'s octal');
 });
@@ -439,12 +439,58 @@ test('attack: shiftOut and shiftIn are digitalWrite sequences, the Arduino const
   assert.equal(runner.error ?? null, null);
   assert.deepEqual(runner.log, ['255', '1']);
   // A name the kit does not have: said by its name, never with the translator's "$".
-  const unknown = run(sketch('int x = CHANGE;'));
-  assert.equal(unknown.error, "CHANGE is not a name the kit's Arduino subset knows");
+  const unknown = run(sketch('int x = EXTERNAL;'));
+  assert.equal(unknown.error, "EXTERNAL is not a name the kit's Arduino subset knows (line 1)");
   assert.doesNotMatch(unknown.error, /\$/);
   // Arrays have one dimension: a 2-D one is refused with its own line, not run.
   const two = translateSketch('const int C[6][3] = {{1,2,3},{4,5,6},{7,8,9},{1,1,1},{2,2,2},{3,3,3}};\n' + sketch(''));
   assert.equal(two.js, null);
   assert.deepEqual(two.issues.map((i) => [i.code, i.line, i.name]), [['SIM_PROGRAM_ARRAY_DIMENSIONS', 1, 'C']]);
   assert.match(formatIssue({ severity: 'warning', code: 'SIM_PROGRAM_ARRAY_DIMENSIONS', params: { part: 'U1', name: 'C', line: 1 } }, 'en'), /arrays have one in the kit's Arduino subset/);
+});
+
+// A library the kit does not have (its objects and calls become __missing), the runtime's checks on
+// pins, indexes, divisions and delays, and the line each statement says (__at): nothing of the sketch
+// becomes code.
+test('attack: a library the kit lacks, bounds, divisions and delays reach nothing', () => {
+  const hostile = [
+    '#include <Evil.h>\nEvil constructor("globalThis.__pwned = 1");\nvoid setup() { constructor.call("globalThis.__pwned = 1"); __proto__.x().y(1); Serial.println(PWNED); }\nvoid loop() { delay(1000); }',
+    '#include <Evil.h>\nvoid setup() { process.mainModule.require("child_process"); globalThis.x(); }\nvoid loop() { delay(1000); }',
+    'int a[2] = {1, 2};\nvoid setup() { a[-1] = 1; a[1e9] = 2; Serial.println(a[999999999]); int z = 0; Serial.println(1 / z); delay(-1e30); }\nvoid loop() { delay(1000); }',
+  ];
+  for (const source of hostile) {
+    const r = run(source);
+    assert.equal(r.pwned, undefined, source);
+    assert.ok(r.r.js, source);
+    assert.deepEqual(strayNames(r.r.js), [], source);
+  }
+  // The index outside the array never grows it: a write lands in its one spare slot.
+  const grown = run('int a[2] = {1, 2};\nvoid setup() { a[100000000] = 7; Serial.println(a[100000000]); }\nvoid loop() { delay(1000); }');
+  assert.deepEqual(grown.log, ['0']);
+});
+
+// Serial ports by number (__serial(port, method, …)) and deep sleep: no name of the sketch reaches a
+// member, and a port or method number out of the runtime's tables does nothing.
+test('attack: Serial1, Serial2, a waiting read and deep sleep name nothing else', () => {
+  for (const source of [
+    'void setup() { Serial2.begin(9600, SERIAL_8N1, 16, 17); Serial2.constructor("globalThis.__pwned = 1"); Serial1.__proto__(1); int v = Serial.parseInt(); String s = Serial2.readStringUntil(\'\\n\'); }\nvoid loop() { delay(1000); }',
+    'void setup() { ESP.constructor("globalThis.__pwned = 1"); esp_sleep_enable_timer_wakeup(-1); ESP.deepSleep(1e30); }\nvoid loop() { delay(1000); }',
+  ]) {
+    const { js } = translateSketch(source);
+    assert.ok(js, source);
+    assert.deepEqual(strayNames(js), [], source);
+    const r = run(source);
+    assert.equal(r.pwned, undefined, source);
+  }
+});
+
+// attachInterrupt takes the sketch's own function: anything else (a number, a runtime function, a name
+// of JavaScript's) runs nothing and reaches nothing.
+test('attack: an interrupt handler is only one of the sketch\'s own functions', () => {
+  for (const handler of ['5', 'digitalWrite', 'constructor', '__int']) {
+    const source = `void setup() { attachInterrupt(0, ${handler}, CHANGE); attachInterrupt(digitalPinToInterrupt(2), ${handler}, RISING); interrupts(); noInterrupts(); }\nvoid loop() { delay(1000); }`;
+    const r = run(source);
+    assert.equal(r.pwned, undefined, source);
+    if (r.r.js) assert.deepEqual(strayNames(r.r.js), [], source);
+  }
 });

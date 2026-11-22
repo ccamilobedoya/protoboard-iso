@@ -179,7 +179,7 @@ export const touch = {
     ];
     if (r.vcc > 0.5 && r.vcc < TOUCH.minSupply) out.push(note('warning', 'SIM_MODULE_LOW_SUPPLY', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(TOUCH.minSupply, 'V') }));
     // Between the currents its levels are guaranteed at and where the kit warns: only a note.
-    if (r.current > TOUCH.sourceSpec || -r.current > TOUCH.sinkSpec) out.push(note('info', 'SIM_TOUCH_OUTPUT_SPEC', { part: entry.id, current: q(Math.abs(r.current), 'A'), max: q(r.current > 0 ? TOUCH.sourceSpec : TOUCH.sinkSpec, 'A') }));
+    if (r.current > TOUCH.sourceSpec || -r.current > TOUCH.sinkSpec) out.push(note('warning', 'SIM_TOUCH_OUTPUT_SPEC', { part: entry.id, current: q(Math.abs(r.current), 'A'), max: q(r.current > 0 ? TOUCH.sourceSpec : TOUCH.sinkSpec, 'A') }));
     return out;
   },
   lines(p, h) {

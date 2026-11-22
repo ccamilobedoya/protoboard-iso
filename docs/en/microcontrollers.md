@@ -101,14 +101,67 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   `digitalWrite(pin, HIGH)` on an input turns its pull-up on, as on the real chip. `shiftOut` and
   `shiftIn` with `MSBFIRST` / `LSBFIRST` (eight `digitalWrite`s of the data and clock pins, no time
   between them), `PI`, `TWO_PI`, `HALF_PI`, `DEG_TO_RAD`, `RAD_TO_DEG`. A name the kit does not have
-  stops the program with `NAME is not a name the kit's Arduino subset knows`. Arrays have one
+  stops the program with `NAME is not a name the kit's Arduino subset knows` (a name of Arduino's the
+  kit lacks, such as `RISING`) or `NAME is not declared: a real board would not compile this sketch`,
+  with the line. On an UNO `analogRead(0)` … `analogRead(5)` read the channels A0 … A5. Arrays have one
   dimension: `const int C[6][3] = {…}` is refused with its line (`SIM_PROGRAM_ARRAY_DIMENSIONS`);
   write it as one list, `C[row * 3 + column]`.
+- **Serial prints as a board's `Print` does:** a `char` (`'Z'`, a `char` variable, `(char) 65`, a
+  function returning `char`) as its letter, while arithmetic on it is a number (`c + 1` prints 67);
+  `byte`, `unsigned char` and `char` with `DEC` print the number; `Serial.write(65)` sends the byte
+  (`A`) and `Serial.write("text")` the text; an integer's second argument is its base (`DEC`, `HEX`,
+  `OCT`, `BIN`; a negative one in another base as its 32 bits, `-1` in `HEX` is `FFFFFFFF`), a
+  float's is its decimals (`Serial.println(3.14159, 3)` is `3.142`).
+- **What a real board would show, the kit says** (each a warning with its line, a ⚠ of the review,
+  and the sketch goes on as far as a board would): a pin the board does not have
+  (`SIM_PROGRAM_PIN_UNKNOWN`, the call does nothing); `digitalWrite(pin, HIGH)` on a pin never set as
+  `OUTPUT` (`SIM_PROGRAM_NOT_OUTPUT`: on an UNO the pull-up sources it, an LED barely glows; on an
+  ESP32 nothing changes); `analogWrite` on a pin with no PWM (`SIM_PROGRAM_NO_PWM`, HIGH from 128); an
+  integer division or remainder by zero (`SIM_PROGRAM_DIVIDE_ZERO`: 0 and on, the board's result is
+  undefined; an ESP32 stops there, as its chip raises an exception and restarts); an array read or
+  written outside its elements (`SIM_PROGRAM_OUT_OF_BOUNDS`: the kit reads 0 and drops the write, a
+  board touches other memory; `int a[5] = {1, 2}` has five elements, the rest 0); a negative `delay`
+  (`SIM_PROGRAM_DELAY_NEGATIVE`: an unsigned argument, about 49 days, a wait to the end of the run);
+  a name never declared (`SIM_PROGRAM_UNDECLARED`, a board refuses to compile it; the kit runs until
+  it gets there); a brace never closed (`SIM_PROGRAM_BRACE`, with the line where its block opened; it
+  does not run); an `#include` of a library the kit does not have (`SIM_PROGRAM_LIBRARY`, one line: its
+  objects, `Servo s;`, `WiFi.begin(…)`, and its constants do nothing and read 0). The runtime's are
+  seen in the states the review solves (setup() and loop() up to its first wait) and in a run.
+- **`Serial.begin` takes the UART's pins:** its TX (D1 on an UNO, GPIO1 on an ESP32) becomes an
+  output that idles high, the line's stop level, so what it feeds sees the board's rail: an UNO's TX
+  into an ESP32's RX is 5 V on a 3.3 V pin, and the pin-voltage check says so (`SIM_PIN_OVERVOLTAGE`).
+  The ESP32-C3's `Serial` is its USB port and takes no pin.
+- **A serial line between two boards:** the bytes a port sends on its TX pin arrive at every port of
+  another board whose RX pin is on the same net, each when its ten bits are through at the sender's
+  rate, so `available()`, `read()`, `parseInt()` and `readStringUntil()` work between them, both
+  programs advancing in the same run (an UNO's `Serial` into an ESP32's `Serial2`). Two rates that
+  differ pass nothing (`SIM_PROGRAM_BAUD_MISMATCH`: a real board reads garbage). The TX pin stays at
+  its idle level in the circuit: its bits are not drawn as edges.
+- **Interrupts:** `attachInterrupt(digitalPinToInterrupt(pin), handler, RISING | FALLING | CHANGE |
+  LOW)` and `detachInterrupt` on the pins that have one (an UNO: D2 and D3; an ESP32: every GPIO, also
+  `ONLOW` and `ONHIGH`), with `volatile` globals. The handler runs at the step that sees its pin cross
+  (the engine ends a step on a button's press and release), between two statements of the main
+  program, also while it waits in a `delay`; `LOW` runs it at every step the pin is low.
+  `noInterrupts()` holds them and `interrupts()` runs what came meanwhile. A pin with no interrupt is
+  warned (`SIM_PROGRAM_NO_INTERRUPT`) and its handler never runs, as on the board. The kit's buttons
+  do not bounce: a handler sees one edge per press, and a debounce in it acts only as a lockout.
+- **Serial ports and deep sleep:** `Serial1` and `Serial2` on an ESP32 (`Serial1` on an ESP32-C3) are
+  ports of their own: `begin(baud[, config, rx, tx])` (Serial2's default pins are RX 16, TX 17),
+  `print`, `println`, `write`, `available`, `read`, `peek`, `parseInt`, `parseFloat`,
+  `readStringUntil`, `readString`, `setTimeout`, `flush`, `end`; what they print is in the run's
+  output labelled (`Serial2: got 5`). An UNO has only `Serial`: `Serial2` there stops the program
+  with "Serial2 is not declared on an UNO: a real board would not compile this sketch". A read that
+  waits (`parseInt`) waits its timeout, 1 s unless `setTimeout` says otherwise, and returns 0 when
+  nothing comes. ESP32 deep sleep (`esp_sleep_enable_timer_wakeup(µs)` then `esp_deep_sleep_start()`,
+  or `ESP.deepSleep(µs)`): the program stops, its pins go back to inputs, and after the time given it
+  starts again from `setup()` with its globals as at power-up and `millis()` from 0; with no timer it
+  sleeps to the end. The board's card says it sleeps and when it wakes.
 - **How it runs:** every function becomes a generator, so `delay()` waits in simulated time. The
   program runs between time steps, from the voltages of the step before, as the 555's latch: a
   change takes effect one step later (1 ms in the page). At t = 0 it starts over from the
   voltages there until its pins come out the same (its setup may turn on a pull-up its loop reads).
-  A loop that never waits gets 2000 turns per step, so the page does not freeze. When a control is
+  A `delay` lasts what it says from the moment it is called: the time a `loop()` ran without waiting
+  is not taken off the next delay. A loop that never waits gets 2000 turns per step, so the page does not freeze. When a control is
   used (a button pressed), the program goes on where it was.
 - **In the page:** a circuit with a program runs in real time (`delay(500)` is half a second),
   with steps of 1 ms (shorter, down to 0.1 ms, for a fast RC beside it). The board's card shows the
@@ -248,7 +301,7 @@ float writes two decimals (`24.00`, as Arduino does), of `NaN` `nan` and of an i
 | **M4** | Recipes with their program: `esp32-led`, `esp32-button`, `uno-blink`, `uno-button`, `uno-pot-pwm`, `c3-blink`, `c3-pot-pwm`; tested potentiometer → ADC → PWM against each board's numbers | ✅ 2026-10-26 |
 | **M5** | `pulseIn` (2026-11-10): a wait in simulated time that measures between the steps ending on the edges; `engine.advance` lands on each element's events; recipes `uno-distance`, `esp32-distance`, `distance-alarm-uno` with the HC-SR04 | ✅ 2026-11-10 |
 | **M6** | Library objects (2026-11-10): `DHT`, `Adafruit_BME280`, `Adafruit_BMP280` as numbers of the translator's table; the board asks the sensor wired where the library looks; recipes `uno-dht11`, `esp32-bme280`, `uno-bmp280-altitude` | ✅ 2026-11-10 |
-| later | A serial console panel of its own in the page, `analogRead` against the ESP32 ADC's real curve, interrupts (`attachInterrupt`), simplified stand-ins for common libraries, real UNO firmware with avr8js as an optional mode, both ESP32 headers in one circuit (the layout limit) | — |
+| later | A serial console panel of its own in the page, `analogRead` against the ESP32 ADC's real curve, simplified stand-ins for common libraries, real UNO firmware with avr8js as an optional mode, both ESP32 headers in one circuit (the layout limit) | — |
 
 The program drives the memory the pins keep (`gpioStage`: `mode`, `level`, `pull`) through one
 element with no current of its own (the board's controller), so the engine only learned to run

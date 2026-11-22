@@ -95,7 +95,7 @@ measures it over a longer run.
 ```
 
 ```text
-Behaviour, first 2 s (simulated, a model): D1 about 310 Hz, on about 51 % of the time
+Behaviour, first 2 s from everything discharged, as the page starts (simulated, a model): D1 about 310 Hz, on about 51 % of the time
 ```
 
 ## A board's program

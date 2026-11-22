@@ -21,7 +21,27 @@ import { deviceOfProgram } from './devices/index.js';
 import { buildCircuit } from '../circuit/build.js';
 import { checkButtonPins, checkFlyback } from '../circuit/checks.js';
 import { CIRCUIT_FOLDER } from '../beside.js';
-import { outputsOf, outputOn, runCircuit, runsByItself, BEHAVIOUR_STEPS } from './run.js';
+import { outputsOf, outputOn, runCircuit, runsByItself, BEHAVIOUR_STEPS, restingStates } from './run.js';
+
+export { restingStates };
+
+// The DC point of a circuit with two resting states (restingStates): it is the balance between them,
+// so the answer says so (SIM_TWO_STATES, a warning: the readings shown are not a state the real
+// circuit rests in) and carries each state (`states`: what is on and off in it, and its reading).
+export function withStates(circuit, result) {
+  if (!result?.ok || result.analysis !== 'dc') return result;
+  const two = restingStates(circuit);
+  if (!two) return result;
+  const words = (s) => {
+    const parts = Object.entries(s.reading.parts ?? {}).filter(([, p]) => p.kind === 'Q' || p.kind === 'M');
+    const on = [...parts.filter(([, p]) => p.region !== 'off').map(([id]) => id), ...s.on];
+    const off = [...parts.filter(([, p]) => p.region === 'off').map(([id]) => id), ...outputsOf(compile(circuit).program).filter((o) => !s.on.includes(o.id)).map((o) => o.id)];
+    return { on: on.join(', ') || '—', off: off.join(', ') || '—' };
+  };
+  const [a, b] = two.states.map(words);
+  const states = two.states.map((s) => ({ on: s.on, nodes: s.nodes, parts: s.reading.parts, supplies: s.reading.supplies }));
+  return { ...result, states, issues: [...(result.issues ?? []), issue('warning', 'SIM_TWO_STATES', { on1: a.on, off1: a.off, on2: b.on, off2: b.off })] };
+}
 
 // Findings about the wiring itself that `check` and the hazard check report (not placement checks):
 // each is a doubt of the review (doubtsOf), never a blocking item (circuit/checks.js DOUBT_CODES).
@@ -266,6 +286,50 @@ function litTracker(program) {
   };
 }
 
+// The outputs that hang from a part with no simulation model: { output part → [unsupported ids] }.
+// From each output's pins the search walks the nodes through the parts current flows through
+// (two-terminal parts, wires, switches, transistors, relays), never past a supply's rail (or a strip
+// jumpered to one) and never
+// through a chip, a board or a module (each drives its own pins); an output that reaches a pin of a
+// part not simulated this way depends on what that part does, which the kit cannot tell (its pins are
+// left open). Outputs anything else feeds keep their own findings (SIM_OUTPUT_NEVER_ON).
+const CARRIES = new Set(['R', 'C', 'L', 'D', 'LED', 'LEDS', 'W', 'SW', 'SWT', 'POT', 'Q', 'M', 'RLY', 'BZA', 'MOT', 'LSR', 'BR', 'HDR']);
+export function hangingOutputs(program) {
+  const devices = program.devices ?? [];
+  const missing = devices.filter((d) => d.unsupported && wired(program, d));
+  const out = new Map();
+  if (!missing.length) return out;
+  const onNode = new Map();
+  for (const d of devices) for (const pin of d.pins ?? []) onNode.set(pin.node, [...(onNode.get(pin.node) ?? []), d]);
+  // A supply's rails, and the strips jumpered to them (a chip's supply pin is not what it drives).
+  const rails = new Set();
+  const toRail = (program.supplies ?? []).flatMap((s) => [s.p, s.n]);
+  while (toRail.length) {
+    const node = toRail.pop();
+    if (rails.has(node)) continue;
+    rails.add(node);
+    for (const d of onNode.get(node) ?? []) if (d.kind === 'W') for (const pin of d.pins) toRail.push(pin.node);
+  }
+  const parts = [...new Set(outputsOf(program).filter((o) => o.kind !== 'output').map((o) => o.part))];
+  for (const part of parts) {
+    const own = devices.find((d) => d.id === part);
+    const found = new Set();
+    const seen = new Set();
+    const queue = (own?.pins ?? []).map((p) => p.node);
+    while (queue.length) {
+      const node = queue.pop();
+      if (seen.has(node) || rails.has(node)) continue;
+      seen.add(node);
+      for (const d of onNode.get(node) ?? []) {
+        if (d.unsupported) found.add(d.id);
+        else if (d.id === part || CARRIES.has(d.kind)) for (const pin of d.pins ?? []) queue.push(pin.node);
+      }
+    }
+    if (found.size) out.set(part, [...found]);
+  }
+  return out;
+}
+
 // An output that never comes on (SIM_OUTPUT_NEVER_ON): a part whose job is to show or move something,
 // wired into a circuit with a source, that is off in every state the hazard check solved (at rest,
 // each control, each end of the environment, each program output) and, for a circuit that changes by
@@ -278,8 +342,11 @@ const NEVER_ON_SECONDS = 2;
 const NEVER_ON_HOLD = 0.5;
 const NEVER_ON_GAP = 0.2;
 const NEVER_ON_STATES = 24;
+// An output that hangs from a part not simulated (hangingOutputs) is not judged: that part's own doubt
+// names it.
 function neverOn(circuit, compiled, engine, states, lit, extra = extraStates(circuit, engine, states)) {
-  const dark = () => lit.watched.filter((o) => !lit.on.has(o.id));
+  const hanging = hangingOutputs(compiled.program);
+  const dark = () => lit.watched.filter((o) => !lit.on.has(o.id) && !hanging.has(o.part));
   if (!dark().length) return [];
   // More states, for this question only (they add no hazard): every field of a declared environment
   // (a beam a laser crosses, which no sensor follows) and every control the page offers (a module's
@@ -435,6 +502,14 @@ export function checkHazards(circuit) {
       else if (Math.abs(peak.params.voltage.value) > Math.abs(result.doubts[at].params.voltage.value)) result.doubts[at] = peak;
     }
   }
+  // A bus line over its chip's VDDIO in a DC state, which a program that runs no longer holds there by
+  // the end of its run (a sketch that turns the board's pull-ups off after Wire.begin(): the static
+  // solve stops inside begin()): the run is the circuit as it is.
+  if (result.ok && runs) {
+    // (A run keeps one warning per code and part: the part is what is matched.)
+    const still = new Set((runFirst.issues ?? []).filter((i) => i.code === 'SIM_PIN_OVER_VDDIO').map((i) => i.params.part));
+    result.doubts = result.doubts.filter((d) => d.code !== 'SIM_PIN_OVER_VDDIO' || still.has(d.params.part));
+  }
   const doubts = doubtsOf(circuit, compiled, { ...result, rest, dark });
   return { ...result, checked: coverageOf(compiled, result, doubts), doubts };
 }
@@ -445,7 +520,8 @@ export function checkHazards(circuit) {
 // did not check. One list, from every source:
 // - the wiring findings (wiringIssues: a button whose two joined pins carry the net, BUTTON_PINS_JOINED);
 // - SIM_PART_NOT_SIMULATED: a part wired into the circuit that has no simulation model (it is
-//   drawn and its pins are left open in the simulation: what it does, and what it drives, is unknown);
+//   drawn and its pins are left open in the simulation: what it does, and what it drives, is unknown),
+//   naming the outputs that hang from it (`drives`, hangingOutputs), which get no SIM_OUTPUT_NEVER_ON;
 // - SIM_PROGRAM_STOPPED (a board's program stopped with an error at rest) and SIM_PROGRAM_STUCK (it
 //   never lets time pass: the runner's `stuck`, program.js);
 // - engineHazards' doubts: every warning or error of the DC point at rest and of each state the
@@ -471,10 +547,13 @@ export function doubtsOf(circuit, compiled, result) {
   }
   const { program } = compiled;
   const raw = new Map((circuit.parts ?? []).map((p) => [p.id, p]));
+  const hanging = [...hangingOutputs(program)];
   for (const d of program.devices ?? []) {
     if (!d.unsupported || !wired(program, d)) continue;
     const p = raw.get(d.id);
-    add(issue('warning', 'SIM_PART_NOT_SIMULATED', { part: d.id, name: String(p?.part ?? p?.type ?? d.id) }));
+    // The outputs that depend on it, by name: what the kit cannot tell.
+    const drives = hanging.filter(([, from]) => from.includes(d.id)).map(([part]) => part);
+    add(issue('warning', 'SIM_PART_NOT_SIMULATED', { part: d.id, name: String(p?.part ?? p?.type ?? d.id), ...(drives.length && { variant: 'drives', drives: drives.join(', ') }) }));
   }
   // The program's own issues first (compile's, also when the DC point does not solve), then its run.
   for (const i of program.issues ?? []) if (PROGRAM_DOUBTS.has(i.code)) add(i);

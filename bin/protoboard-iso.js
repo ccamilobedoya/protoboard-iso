@@ -6,16 +6,16 @@
 //             2 review says CHANGES.
 
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join, resolve, extname, dirname } from 'node:path';
+import { join, resolve, extname, dirname, basename, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { renderCircuit, inspectCircuit, formatReport, checkCircuit, formatIssue, PART_TYPES, t } from '../src/index.js';
+import { renderCircuit, inspectCircuit, formatReport, checkCircuit, formatIssue, t } from '../src/index.js';
 import { pickLanguage, LANGUAGES } from '../src/i18n/index.js';
 import { formatChange } from '../src/diff.js';
 import { queryAt, queryNode, queryFree, suggest, suggestMany } from '../src/query.js';
 import { formatAt, formatNode, formatFree, formatSuggest, formatSuggestMany } from '../src/query-format.js';
 import { nets, formatNets } from '../src/nets.js';
 import { review, formatReview } from '../src/review.js';
-import { simulate } from '../src/sim/index.js';
+import { simulate, withStates } from '../src/sim/index.js';
 import { formatSimulation, formatRun } from '../src/sim/format.js';
 import { runCircuit, parseStimuli, prepareRun } from '../src/sim/run.js';
 import { parseValue } from '../src/core/units.js';
@@ -23,7 +23,7 @@ import { InputError, inputErrorText, inputIssueFor, readJsonInput, parseJsonInpu
 import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest } from '../src/layout.js';
 import { resolveRecipe } from '../src/recipes/index.js';
 import { svgToPng, rasterAvailable, rasterSearchIn } from '../src/node/raster.js';
-import { catalogEntry, formatCatalogEntry, compactCatalog, recipeLine, partTypeLines } from '../src/node/catalog.js';
+import { catalogEntry, formatCatalogEntry, compactCatalog, recipeLine, partTypeLines, unknownText } from '../src/node/catalog.js';
 
 // Strict: an option nobody knows, or one whose value is missing, is an error (args.errors), so a
 // typo never runs a command with a default the person did not ask for.
@@ -185,7 +185,10 @@ async function run(seen) {
   // Test hook, not a user feature: PROTOBOARD_TEST_THROW=1 throws an unexpected error right after the
   // arguments are parsed, to prove an internal error is contained (exit 3, no stack unless PROTOBOARD_DEBUG=1).
   if (process.env.PROTOBOARD_TEST_THROW === '1') throw new Error('forced failure (PROTOBOARD_TEST_THROW)');
-  const [command, target, extra, extra2] = args._;
+  const [command, given, extra, extra2] = args._;
+  // A folder named by "." or "..": its real path, so the page and the files are named after the folder
+  // (out/<name>.html), never "..html".
+  const target = given && command !== 'catalog' && command !== 'parts' && /^\.\.?$/.test(basename(normalize(given))) ? resolve(given) : given;
   const paths = target ? resolveTarget(target) : null;
   // Language: --lang if given, else the circuit's own "lang", else English.
   const circuitLang = (() => {
@@ -334,10 +337,14 @@ async function run(seen) {
       console.error(t(lang, 'cli.runOrTransient'));
       fail(1);
     }
+    if (args.start !== undefined && args.start !== 'zero' && args.start !== 'dc') {
+      console.error(t(lang, 'cli.badChoice', { option: '--start', choices: 'zero | dc', value: String(args.start).slice(0, 40) }));
+      fail(2);
+    }
     const said = parseStimuli({ env: args.env, set: args.set, press: args.press, at: args.at });
     if (said.errors.length) refuse(said.errors);
     if (args.run !== undefined) {
-      const result = runCircuit(circuit, { seconds: timeOf(args.run), stimuli: said.stimuli });
+      const result = runCircuit(circuit, { seconds: timeOf(args.run), stimuli: said.stimuli, start: args.start });
       if (result.errors) refuse(result.errors);
       console.log(args.json ? JSON.stringify(result, null, 2) : formatRun(result, lang, { formatIssue, netLabels: circuit.netLabels }));
       fail(result.ok ? 0 : 1);
@@ -355,7 +362,7 @@ async function run(seen) {
       if (prepared.errors) refuse(prepared.errors);
       result = prepared.fatal ? { analysis: options.analysis, model: true, ok: false, issues: prepared.issues } : options.analysis === 'transient' ? prepared.engine.transient(options) : prepared.engine.dc();
       if (result.issues && prepared.issues?.length) result = { ...result, issues: [...result.issues, ...prepared.issues] };
-    } else result = simulate(circuit, options);
+    } else result = withStates(circuit, simulate(circuit, options));
     console.log(args.json ? JSON.stringify(result, null, 2) : formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }));
     fail(result.ok ? 0 : 1);
   } else if (command === 'page') {
@@ -447,7 +454,7 @@ async function run(seen) {
     // catalog <name> (parts is the older name, kept): one type, part number, module, board or recipe in detail.
     const entry = catalogEntry(target, lang);
     if (!entry) {
-      console.log(t(lang, 'catalog.unknown', { name: target, types: Object.keys(PART_TYPES).join(', ') }));
+      console.log(unknownText(target, lang));
       fail(1);
     }
     console.log(args.json ? JSON.stringify(entry, null, 2) : formatCatalogEntry(entry, lang));

@@ -43,11 +43,14 @@ fields.
   folder, beside `circuit.json`**: `circuits/<name>/blink.ino`, written there before `layout`;
   anywhere else it is not read, and the answer says where the kit looked) or the sketch's text. `setup()`, `loop()`, `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`,
   `analogWrite`/`ledcWrite` (PWM), `tone`, `delay`, `millis`, `Serial.println` run in simulated
-  time, and the page runs them in real time. A function the kit does not know (`shiftOut`, a
+  time, and the page runs them in real time. What else a sketch may use (`shiftOut` runs) is in
+  [sketch.md](sketch.md); a function the kit does not know (one that list does not have, a
   library's) is a ⚠ under "The kit cannot confirm these work": the program runs only as far as the
   kit can follow. Check what it does with `kit simulate <folder> --run <s>` ([run-it.md](run-it.md)).
 - A part the simulator only draws (`kit catalog` says "Not simulated": a 74HC595, an LM386, a
-  ULN2003…) is built and wired, and the answer ends `WARNINGS`: nothing about it is checked. What
+  ULN2003…) is built and wired, and the answer ends `WARNINGS`: nothing about it is checked, and its
+  ⚠ names the outputs that hang from it (`nor what D1, D2, D3 do`): say the kit cannot tell what
+  they do, not that they stay off. What
   every part takes: [parts.md](parts.md).
 
 ## Nets

@@ -3,7 +3,7 @@
 
 import { bjt as bjtEl, resistor } from '../mna.js';
 import { BJTS, BJT_DEFAULT } from '../models.js';
-import { issue, stress } from './shared.js';
+import { issue, stress, CONDUCTING } from './shared.js';
 
 export const bjt = {
   types: ['bjt'],
@@ -44,7 +44,9 @@ export const bjt = {
     const vbe = h.volt(b) - h.volt(e);
     const vce = h.volt(c) - h.volt(e);
     const sign = entry.model.polarity === 'pnp' ? -1 : 1;
-    const on = sign * vbe > (entry.model.darlington ? 1.0 : 0.5);
+    // On from its base voltage, or from what it carries: a Darlington under 1 V at its base still
+    // carries milliamps, and a transistor carrying current is not off.
+    const on = sign * vbe > (entry.model.darlington ? 1.0 : 0.5) || Math.abs(ic) > CONDUCTING;
     const region = !on ? 'off' : sign * (vbe - vce) > 0.4 ? 'saturation' : 'active';
     return { currents: { C: ic, B: ib, E: -(ic + ib) }, vbe, vce, power: vce * ic + vbe * ib, region, beta: ib ? ic / ib : null };
   },

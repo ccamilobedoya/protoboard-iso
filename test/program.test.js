@@ -33,11 +33,11 @@ void loop() {
 }`);
   assert.deepEqual(r.issues, []);
   assert.match(r.js, /function\* \$loop\(\)/, 'names of the sketch get a $');
-  assert.match(r.js, /\(yield \(\(\$WAIT\) \/ 1e3\)\)/, 'delay waits in seconds');
+  assert.match(r.js, /\(yield __ms\(\$WAIT\)\)/, 'delay waits (in seconds: __ms)');
   assert.match(r.js, /yield\* \$half\(5\)/, 'a call to its own function');
   // Run it with a stub API and look at what it computes.
   const seen = {};
-  const api = new Proxy({ HIGH: 1, LOW: 0, OUTPUT: 1, __int: Math.trunc, Serial: { begin() {} }, digitalWrite: (p, v) => (seen[p] = v), pinMode() {} }, { get: (o, k) => (k in o ? o[k] : () => 0) });
+  const api = new Proxy({ HIGH: 1, LOW: 0, OUTPUT: 1, __int: Math.trunc, __div: (a, b) => Math.trunc(a / b), __ms: (ms) => ms / 1e3, Serial: { begin() {} }, digitalWrite: (p, v) => (seen[p] = v), pinMode() {} }, { get: (o, k) => (k in o ? o[k] : () => 0) });
   const program = run(`${r.js.replace('return {', 'globalThis.__probe = () => ({ count: $count }); return {')}`)(api);
   [...program.setup()];
   const steps = [...program.loop()];
@@ -246,7 +246,7 @@ test('pulseIn: the timeout is clamped (not a number, negative, huge) to LIMITS.p
 test('sketch: pulseIn waits (yield*), returns an integer, and is a name of the runtime', () => {
   const r = translateSketch('void setup() {}\nvoid loop() { long cm = pulseIn(10, HIGH) / 58; }');
   assert.deepEqual(r.issues, []);
-  assert.match(r.js, /__int\(__int\(\(\(yield\* pulseIn\(10 , HIGH\)\)\) \/ 58\)\)/);
+  assert.match(r.js, /__int\(__div\(\(\(yield\* pulseIn\(10 , HIGH\)\)\), 58\)\)/);
 });
 
 test('SKETCH_API and the runtime give the same names (constants apart)', () => {
@@ -254,11 +254,11 @@ test('SKETCH_API and the runtime give the same names (constants apart)', () => {
   createRunner(js, { family: 'uno', states: {}, read: () => null, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 });
   const names = globalThis.__names;
   delete globalThis.__names;
-  const constants = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN'];
+  const constants = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'RISING', 'FALLING', 'CHANGE', 'ONLOW', 'ONHIGH', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN'];
   const helpers = names.filter((n) => n.startsWith('__'));
   const functions = names.filter((n) => !constants.includes(n) && !helpers.includes(n));
   assert.deepEqual([...functions].sort(), [...SKETCH_API].sort());
-  assert.deepEqual(helpers.sort(), ['__array', '__idx', '__int', '__lib', '__missing', '__new', '__wire']);
+  assert.deepEqual(helpers.sort(), ['__array', '__at', '__deepSleep', '__div', '__idx', '__int', '__lib', '__missing', '__mod', '__ms', '__new', '__serial', '__us', '__wire']);
 });
 
 test('delayMicroseconds: the engine ends a step on the program waking, so a 10 µs pulse lasts 10 µs', () => {

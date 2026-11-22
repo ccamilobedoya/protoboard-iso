@@ -131,8 +131,12 @@ Se fijan con una operación, como cualquier campo del circuito:
   de 10 µs o un eco quedan en su momento; la respuesta trae entonces una nota que nombra `--run`,
   que dice lo que imprimió el programa y cómo cambian sus salidas.
 - **Una ejecución** (`simulate <objetivo> --run <segundos>`, MCP `run_s`). El circuito como lo
-  corre la página, desde el encendido (como empieza la página: su punto de DC, o los capacitores
-  descargados con `page.start: "zero"`), durante esos segundos simulados: el mismo motor y el
+  corre la página, desde donde empieza la página (su punto de reposo, el punto de DC, con cada
+  capacitor ya en su voltaje de DC; o todo descargado con `page.start: "zero"`), o desde el que se
+  pide con `--start zero|dc` (MCP `start`), durante esos segundos simulados. Su primera línea dice
+  cuál en palabras claras (`Ejecución desde su punto de reposo, como empieza la página` o
+  `Ejecución desde todo descargado`): un capacitor detrás de 22 kΩ que un circuito real tarda
+  segundos en cargar ya está cargado en una ejecución desde el punto de reposo. Usa el mismo motor y el
   mismo paso (`sim/pace.js`), el programa de la placa con `pulseIn`, los sensores de biblioteca, el
   encoder y los módulos temporizados. Responde lo que un asistente necesita para decir si el
   circuito hace lo que se pidió:
@@ -171,11 +175,15 @@ Se fijan con una operación, como cualquier campo del circuito:
   `--transient`. No se guarda nada: el archivo del circuito y su historial quedan como estaban.
   Acotada: a lo sumo `runSeconds` (60) de tiempo simulado (más se recorta, `RUN_CAPPED`) y `runMs`
   (15 s) de tiempo de la máquina (`RUN_BUDGET`: termina donde llegó); un programa que nunca deja
-  pasar el tiempo termina con `SIM_PROGRAM_STUCK`.
+  pasar el tiempo termina con `SIM_PROGRAM_STUCK`. Una ejecución que cubre menos de lo pedido lo dice
+  en la línea bajo su encabezado (el aviso, luego `Cada cifra de abajo cubre los primeros 60 s de los
+  120 s pedidos, no toda la ejecución.`), cada encabezado de después nombra su tramo (`Salidas en el
+  tiempo en los primeros 60 s:`, `Lecturas a los 60 s:`), y `--json` trae `run.ran` (los segundos
+  cubiertos) junto a `run.seconds` (los pedidos).
 
   ```text
   $ protoboard-iso simulate alarma --run 1 --env distance=10 --lang es
-  Ejecución desde el encendido (como empieza la página) — un modelo, no una medición: 1 s en pasos de 1 ms (1000 pasos).
+  Ejecución desde su punto de reposo, como empieza la página (los capacitores ya en sus voltajes de DC; start zero la corre desde todo descargado) — un modelo, no una medición: 1 s en pasos de 1 ms (1000 pasos).
   Serial (10 líneas, en orden):
     844 µs     10
     …
@@ -192,7 +200,7 @@ Se fijan con una operación, como cualquier campo del circuito:
 
   La respuesta de `layout` trae lo mismo en una línea para un circuito que cambia solo (el
   programa de una placa, un 555, un generador, un amplificador operacional junto a un capacitor):
-  `Comportamiento, primeros 2 s (simulado, un modelo): D1 1 Hz, encendido el 50 % del tiempo`, de
+  `Comportamiento, primeros 2 s desde su punto de reposo, como empieza la página (simulado, un modelo): D1 1 Hz, encendido el 50 % del tiempo`, de
   una ejecución acotada a 25 000 pasos de la simulación (así el mismo circuito da la misma línea en
   cualquier máquina; tarda más o menos lo que los 0,8 s de tiempo de la máquina que reemplazó,
   `BEHAVIOUR_STEPS` en `src/sim/run.js`) y un paso no menor que una veinte milésima de ella (un ritmo de menos de 50 de esos pasos por periodo
@@ -200,6 +208,21 @@ Se fijan con una operación, como cualquier campo del circuito:
   límite; con menos de cinco periodos enteros dice `unos` con dos cifras); pasado
   el límite dice que no se midió (`la ejecución necesitaba más de 25 000 pasos de la simulación`) y
   nombra `simulate --run 2`.
+- **Dos estados de reposo** (un enclavamiento de transistores, un flip-flop). Su punto de DC puede
+  ser el equilibrio entre sus dos estados estables, los dos transistores a medias, en el que un
+  circuito real nunca se queda. Después del punto de DC de un circuito con dos transistores o más (y
+  sin placa, 555 ni amplificador operacional), el kit empuja la base o la compuerta de cada
+  transistor 50 mV, hacia arriba y hacia abajo, con 1 nF en cada nodo (lo que tiene un nodo real), y
+  lo deja asentarse: un punto estable recoge el empujón, un punto de equilibrio se escapa a un estado
+  a cada lado (`restingStates` en `src/sim/run.js`; el signo de la ganancia del lazo diría lo mismo,
+  pero el sistema tiene fuentes e interruptores cuyas filas no son dinámica, así que el empujón usa
+  el motor que corre la página). Cada estado se resuelve otra vez sin las capacitancias agregadas,
+  así sus lecturas son las del circuito. La respuesta de `layout` dice entonces `Dos estados de
+  reposo (un modelo): … al encenderlo queda en uno de los dos, y el kit no puede decir en cuál` y las
+  lecturas de cada estado (`1. Q1 apagado, Q2 conduce · batería BT1 8,98 V · D1 4,54 mA …`) en vez
+  de la línea `Lecturas`; el punto de DC de `simulate` agrega el aviso `SIM_TWO_STATES` y `states`
+  en `--json`; `--run` desde el punto de reposo empieza desde el primer estado y lo dice (`run.state`,
+  `run.states` en `--json`). Ninguna receta ni ejemplo tiene dos.
 
 ## Resultados
 
@@ -224,7 +247,8 @@ Se fijan con una operación, como cualquier campo del circuito:
 Una ejecución (`--run`, `run_s`):
 
 ```js
-{ ok: true, run: { seconds: 1, step: 0.001, steps: 1000, start: 'dc' },
+{ ok: true, start: 'dc',                                          // el inicio usado
+  run: { seconds: 1, ran: 1, step: 0.001, steps: 1000, start: 'dc', page: 'dc' },   // seconds pedidos, ran cubiertos; page: el inicio de la página
   serial: { count: 10, lines: [{ t: 0.00084, text: '10' }, …] },    // kept: cuando se recorta
   outputs: [{ id: 'D1', kind: 'led', onShare: 0.999, changes: 1, frequency: null, period: null, duty: null,
               intervals: [[0.00086, 1]] }, …],                         // una salida aún encendida cierra al final
@@ -374,7 +398,12 @@ dice: el kit revisó el circuito y no encontró nada que decir.
   simple o directo en una fuente no tiene interruptor que dañar.
 - `SIM_PART_NOT_SIMULATED`: un componente conectado al circuito sin modelo de simulación (un
   74HC595, un LM386, un CD4017…; `catalog` los marca): se dibuja y sus pines quedan abiertos, así
-  que lo que hace, y lo que maneja, no se sabe. Un componente sin conectar a nada no es una duda.
+  que lo que hace, y lo que maneja, no se sabe. Las salidas que cuelgan de él se nombran en su línea
+  (`así que el kit no puede decir qué hace U2 ni qué hacen D1, D2, D3, que dependen de él`): una
+  salida cuyos pines llegan a un pin de ese componente por donde pasa corriente (resistencias,
+  cables, interruptores, transistores, relés), no por un riel ni por otro chip (`hangingOutputs` en
+  `src/sim/index.js`). Esas salidas no reciben `SIM_OUTPUT_NEVER_ON`: el kit no puede juzgarlas. Un
+  componente sin conectar a nada no es una duda.
 - `SIM_OUTPUT_NEVER_ON`: un componente cuyo trabajo es mostrar o mover algo (un LED, un chip de un
   LED RGB, un segmento de un display, un zumbador, un relé, un motor, un láser), conectado a un
   circuito con fuente, que está apagado en todos los estados que visita el kit: en reposo, con cada
@@ -393,13 +422,17 @@ dice: el kit revisó el circuito y no encontró nada que decir.
 - Todo aviso sobre el programa de una placa: el archivo no encontrado (`SIM_PROGRAM_FILE`, que dice
   la carpeta donde buscó el kit: la del circuito, junto a `circuit.json`), fuera de la carpeta,
   demasiado grande, un error de sintaxis con su línea, una llamada que el simulador no conoce
-  (`attachInterrupt()`), una librería o una clase que no está en el kit, sin `setup()`/`loop()`
+  (`analogReference()`), una librería o una clase que no está en el kit, sin `setup()`/`loop()`
   (`SIM_PROGRAM_IGNORED` sigue siendo una nota). También `SIM_PROGRAM_STOPPED`, un programa que se
   detuvo con un error en reposo, y `SIM_PROGRAM_STUCK`, un programa que nunca deja pasar el tiempo:
   `setup()` o una llamada de `loop()` que nunca vuelve y nunca espera (`void loop() { while (1) {} }`).
-  Lo dice el propio ejecutor del programa (`stuck`, `src/sim/program.js`): un avance gastó todo su
-  presupuesto de pasos dentro de una sola llamada, nunca esperando; un `loop()` que vuelve sin
-  `delay()` es un programa que funciona.
+  Lo dice el propio ejecutor del programa (`stuck`, `src/sim/program.js`): 200 000 vueltas de un
+  bucle dentro de una sola llamada sin que pase el tiempo para el programa, contadas a lo largo de los
+  pasos (en t = 0 un avance puede darlas todas), así que un bucle largo que termina no está atascado;
+  un `loop()` que vuelve sin `delay()` es un programa que funciona. La salida por Serial toma tiempo a
+  la velocidad que dio `Serial.begin` (diez bits por carácter; el programa espera cuando su búfer de
+  envío, 64 bytes en un UNO y 128 en un ESP32, se llena), así que un bucle que imprime 100 000 líneas
+  deja pasar el tiempo como en una placa y no está atascado.
 - Cualquier otro aviso o error que dé la simulación en reposo o en uno de los estados de arriba (con
   su `when`) que no sea un peligro ni esté ya bloqueando: ningún aviso que imprima el simulador puede
   quedar invisible para `layout`. `SIM_FLOATING` lo es solo cuando en los nodos flotantes hay un
@@ -463,7 +496,7 @@ referencia independiente (una fórmula de libro resuelta aparte, o el dato de la
 | inductor | resistencia del alambre en serie; un corto en DC, Euler implícito en el transitorio | RL: I·(1 − e^(−t/τ)) |
 | termistor, fotorresistencia | resistencias cuyo valor sale de la temperatura (ecuación B) o de la luz (curva GL55) | ecuación B a 50 °C; GL5528 a 10 lx |
 | zumbador | su bobina, 16 Ω | — |
-| zumbador activo (TMB12A05) | una carga que casi no toma nada bajo 1,5 V, sube suave hasta 5 V / 30 mA = 167 Ω a los 2,0 V y se queda ahí; suena (2,3 kHz, unos 85 − 40·log10(5/V) dB a 10 cm) desde 2,0 V entre sus pines, de + a −, sin histéresis; al revés son 100 kΩ, en silencio, y avisa por encima de 1 V; sobre 7,5 V `SIM_IC_SUPPLY`, sobre 35 mA (desde unos 5,8 V) solo la nota `SIM_BUZZER_CURRENT` | 30 mA a 5 V, 19,8 mA y sonando con 3,3 V; en silencio y bajo 1 mA a 1 V |
+| zumbador activo (TMB12A05) | una carga que casi no toma nada bajo 1,5 V, sube suave hasta 5 V / 30 mA = 167 Ω a los 2,0 V y se queda ahí; suena (2,3 kHz, unos 85 − 40·log10(5/V) dB a 10 cm) desde 2,0 V entre sus pines, de + a −, sin histéresis; al revés son 100 kΩ, en silencio, y avisa por encima de 1 V; sobre 7,5 V `SIM_IC_SUPPLY`, sobre 35 mA (desde unos 5,8 V) el aviso `SIM_BUZZER_CURRENT` | 30 mA a 5 V, 19,8 mA y sonando con 3,3 V; en silencio y bajo 1 mA a 1 V |
 | sensor Hall lineal 49E | una fuente de Vs/2 + 1,4 mV/G · (Vs/5) · campo mantenida en [0,95 V, Vs − 0,95 V] tras 50 Ω, 6 mA de la alimentación; esfuerzos: alimentación sobre 8 V o invertida; avisos: bajo 2,7 V, más de 1,5 mA de salida | 2,500 / 2,640 / 2,360 V a 0 / +100 / −100 G y 5 V; 1,742 V a +100 G y 3,3 V; 4,05 V en el tope |
 | módulo sensor de voltaje | 30 kΩ de VIN a S y 7,5 kΩ de S a GND, un miliohmio que une − y GND; esfuerzo: la de 30 kΩ sobre 100 mW | S = 2,40 V y 0,32 mA con 12 V de entrada |
 | LED | Shockley + 10 Ω, Vf a 20 mA según el color; `"model": { "vf": 2.95 }` lo cambia | ecuación de la malla resuelta aparte |
@@ -473,7 +506,7 @@ referencia independiente (una fórmula de libro resuelta aparte, o el dato de la
 | motor DC (RE-140RA) | V = R·I + L·dI/dt + k·ω y J·dω/dt = k·I − b·ω − T_carga como elementos MNA: una resistencia, un inductor y un girador ideal cuyo otro lado es el eje, un nodo cuyo voltaje es ω, con J como un condensador y b como una conductancia a tierra y la carga como un freno (un par contra el giro, tanh de ω sobre 1 rad/s); R, k y b del punto sin carga y la corriente de bloqueo de la hoja de datos a su voltaje nominal (RE-140RA-12240: 7,69 Ω, 5,20 mV·s/rad, 0,518 µN·m·s), J de 1 g·cm² y L de 1 mH cifras del kit (hoja de datos Mabuchi RE-140RA); esfuerzos: voltaje sobre el tope de su rango, un bloqueo (frenado por su carga) sobre su corriente de máxima eficiencia | 4800 r/min y 50 mA libre a 3 V, 0,39 A bloqueado; el arranque contra la solución de dos polos resuelta aparte, τ = J·R / (k² + R·b) ≈ 25 ms |
 | LM35 | una fuente de comportamiento: 10 mV/°C · T (nunca bajo 0 V) tras 0,4 Ω (regulación de carga 0,4 mV/mA) mientras +VS le deje 1,5 V (cifra del kit), 56 µA propios desde +VS (TI SNIS159H); esfuerzos: alimentación sobre 30 V o invertida, salida sobre 10 mA; notas: alimentación bajo 4 V, una temperatura que su grado no mide | 250 mV a 25 °C dentro de ±1,5 °C (LM35DZ); 56 µA; 0,4 mV a 1 mA |
 | MOSFET | ley cuadrática con encendido suave, k a partir de Rds(on) | ley cuadrática resuelta aparte, Rds(on) |
-| BJT | Ebers–Moll, β constante; TIP120 como Darlington con sus dos resistencias | Ebers–Moll resuelto aparte; hFE ≥ 1000 |
+| BJT | Ebers–Moll, β constante; TIP120 como Darlington con sus dos resistencias; `off` solo cuando su base está bajo el umbral y no lleva más de 10 µA (un Darlington a 0,9 V que lleva 1,7 mA está `active`; un MOSFET igual, `saturation`) | Ebers–Moll resuelto aparte; hFE ≥ 1000 |
 | fuente de banco, batería | fuente ideal, límite opcional; batería: fem según formato, química, celdas y carga, detrás de su resistencia interna | cortocircuito, ley de Ohm con la resistencia interna |
 
 Cualquier campo del modelo se puede cambiar por componente con `"model": { … }` (por ejemplo, el

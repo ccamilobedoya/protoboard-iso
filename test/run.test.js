@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { simulate, checkHazards } from '../src/sim/index.js';
@@ -192,7 +192,7 @@ test('bounded: a run past the cap is capped and says so; a sketch that never let
   const blink = recipe('uno-blink');
   const capped = runCircuit(blink, { seconds: 1e5, budgetMs: 300 });
   assert.ok(codes(capped.issues).includes('RUN_CAPPED'));
-  assert.ok(capped.run.seconds <= LIMITS.runSeconds);
+  assert.ok(capped.run.ran <= LIMITS.runSeconds && capped.run.seconds === 1e5);
   const stuck = recipe('uno-blink', { U1: 'void setup(){} void loop(){ while(1){} }' });
   const began = Date.now(); // real clock: the bound is on the machine's time
   const r = runCircuit(stuck, { seconds: 5 });
@@ -201,11 +201,13 @@ test('bounded: a run past the cap is capped and says so; a sketch that never let
   // The machine's budget: a run that would take longer ends where it got to, and says so.
   const slow = runCircuit(recipe('555-astable'), { seconds: 50, budgetMs: 200 });
   assert.ok(codes(slow.issues).includes('RUN_BUDGET'));
-  assert.ok(slow.run.seconds < 50);
+  assert.ok(slow.run.ran < 50 && slow.run.seconds === 50);
 });
 
 test('a long Serial story keeps its first and last lines and the true count', () => {
-  const chatty = recipe('uno-blink', { U1: 'int n = 0;\nvoid setup(){ Serial.begin(9600); }\nvoid loop(){ Serial.println(n); n++; delay(1); }' });
+  // At 115200 baud a short line every millisecond keeps up (at 9600 the port itself holds the sketch
+  // to about 200 lines a second, as on a board).
+  const chatty = recipe('uno-blink', { U1: 'int n = 0;\nvoid setup(){ Serial.begin(115200); }\nvoid loop(){ Serial.println(n); n++; delay(1); }' });
   const r = runCircuit(chatty, { seconds: 1 });
   assert.ok(r.serial.count > 900, `${r.serial.count}`);
   assert.equal(r.serial.lines.length, LIMITS.runSerialLines);
@@ -227,7 +229,7 @@ test('the op-amp oscillator over time: its output toggles near the formula, also
   assert.ok(Math.abs(out.frequency - formula) / formula < 0.1, `${out.frequency} Hz`);
   const answer = formatLayout(autoLayout(OSCILLATOR), 'en', { t, formatIssue });
   // Its line names the frequency on any machine: the bound is a count of steps, not the clock.
-  assert.match(answer, /\nBehaviour, first 2 s \(simulated, a model\): U1\.OUT1 \d+ Hz, on \d+ % of the time\n/);
+  assert.match(answer, /\nBehaviour, first 2 s from its resting point, as the page starts \(simulated, a model\): U1\.OUT1 \d+ Hz, on \d+ % of the time\n/);
 });
 
 test('layout\'s behaviour line is bounded by steps, not the clock: the same circuit, the same line', () => {
@@ -240,18 +242,18 @@ test('layout\'s behaviour line is bounded by steps, not the clock: the same circ
   assert.equal(cut.skipped.params.steps, 100);
   assert.ok(BEHAVIOUR_STEPS >= 20000, 'room for a 2 s run at its 20 000th step');
   const answer = formatLayout(autoLayout(expandRecipe('c3-pot-pwm').spec), 'en', { t, formatIssue });
-  assert.match(answer, /\nBehaviour, first 2 s(?: \(simulated, a model\): |: not measured, the run needed more than 25 000 steps of the simulation \(simulate --run 2 measures it\)\.\n)/);
+  assert.match(answer, /\nBehaviour, first 2 s(?: from its resting point, as the page starts \(simulated, a model\): |: not measured, the run needed more than 25 000 steps of the simulation \(simulate --run 2 measures it\)\.\n)/);
 });
 
 test('layout\'s answer: a frequency for uno-blink, no behaviour line for led-resistor; both DONE', () => {
   const blink = formatLayout(autoLayout(expandRecipe('uno-blink').spec), 'en', { t, formatIssue });
-  assert.match(blink, /\nBehaviour, first 2 s \(simulated, a model\): D1 1 Hz, on 50 % of the time/);
+  assert.match(blink, /\nBehaviour, first 2 s from its resting point, as the page starts \(simulated, a model\): D1 1 Hz, on 50 % of the time/);
   assert.match(blink, /\nSTATUS: DONE/);
   const led = formatLayout(autoLayout(expandRecipe('led-resistor').spec), 'es', { t, formatIssue });
   assert.doesNotMatch(led, /Hz|Comportamiento/);
   assert.match(led, /\nSTATUS: DONE/);
   const es = formatLayout(autoLayout(expandRecipe('uno-blink').spec), 'es', { t, formatIssue });
-  assert.match(es, /\nComportamiento, primeros 2 s \(simulado, un modelo\): D1 1 Hz, encendido el 50 % del tiempo/);
+  assert.match(es, /\nComportamiento, primeros 2 s desde su punto de reposo, como empieza la página \(simulado, un modelo\): D1 1 Hz, encendido el 50 % del tiempo/);
 });
 
 test('Checked: a sensor visited at both ends of its field says which field', () => {
@@ -282,7 +284,7 @@ test('simulate --run on the command line: the JSON shape, the text, nothing save
   assert.ok(out.readings.parts.D1.current > 5e-3);
   const text = cli(['simulate', target, '--run', '1', '--env', 'distance=10', '--at', '0.5:distance=50']);
   assert.equal(text.status, 0, text.stderr);
-  assert.match(text.stdout, /^Run from switch-on/);
+  assert.match(text.stdout, /^Run from its resting point, as the page starts/);
   assert.match(text.stdout, /\nSerial \(10 lines, in order\):\n/);
   assert.match(text.stdout, /\n {2}D1 \(LED\): on 5\d % of the time · changes: 2 \(on /);
   assert.match(text.stdout, /\nReadings at 1 s:\n/);
@@ -317,4 +319,40 @@ test('simulate without a program or an oscillator says what it said before (firs
     assert.equal(lines.at(-1), last, name);
     assert.equal(lines.length, count, name);
   }
+});
+
+// A run starts where it says it starts: the page's resting point by default (a capacitor behind
+// 10 kΩ already at the supply's 9 V), or everything discharged with start 'zero' (--start zero), and
+// the first line says which, in words that are true; the JSON's `start` is the one used.
+test('a run honours start zero | dc and says which', () => {
+  const circuit = autoLayout({
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 9, positive: 'T+', negative: 'T-' }],
+    parts: [
+      { id: 'R1', type: 'resistor', value: '10k' },
+      { id: 'C1', type: 'capacitor', value: '100u' },
+    ],
+    nets: [['T+', 'R1.1'], ['R1.2', 'C1.+'], ['C1.-', 'T-']],
+  }).circuit;
+  const rest = runCircuit(circuit, { seconds: 0.2 });
+  assert.equal(rest.start, 'dc');
+  assert.ok(rest.readings.parts.C1.voltage > 8.9, `at rest C1 is charged: ${rest.readings.parts.C1.voltage}`);
+  const zero = runCircuit(circuit, { seconds: 0.2, start: 'zero' });
+  assert.equal(zero.start, 'zero');
+  assert.equal(zero.run.start, 'zero');
+  const v = zero.readings.parts.C1.voltage;
+  assert.ok(v > 1.3 && v < 1.9, `from discharged, C1 at 0.2 s is 9·(1 − e^−0.2) ≈ 1.6 V: ${v}`);
+  assert.deepEqual(codes(runCircuit(circuit, { seconds: 0.2, start: 'cold' }).errors), ['RUN_BAD_START']);
+  const dir = tempDir('run-start');
+  const file = join(dir, 'rc.json');
+  writeFileSync(file, JSON.stringify(circuit));
+  const text = cli(['simulate', file, '--run', '0.2', '--start', 'zero']);
+  assert.equal(text.status, 0, text.stderr);
+  assert.match(text.stdout, /^Run from everything discharged/);
+  assert.doesNotMatch(text.stdout, /switch-on/);
+  assert.match(cli(['simulate', file, '--run', '0.2']).stdout, /^Run from its resting point, as the page starts/);
+  assert.equal(JSON.parse(cli(['simulate', file, '--run', '0.2', '--start', 'zero', '--json']).stdout).start, 'zero');
+  assert.equal(cli(['simulate', file, '--run', '0.2', '--start', 'cold']).status, 2);
+  // The page that starts discharged runs discharged by default, and says it is the page's start.
+  writeFileSync(file, JSON.stringify({ ...circuit, page: { ...(circuit.page ?? {}), start: 'zero' } }));
+  assert.match(cli(['simulate', file, '--run', '0.2']).stdout, /^Run from everything discharged, as the page starts/);
 });

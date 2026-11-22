@@ -22,12 +22,22 @@ const code = (s) => `\`${s}\``;
 // program stopped with an error. A sketch the translator refuses (a read error, a two-dimensional
 // array) has no program to run (js is null), as in compile.js: it is "not read", never run.
 export function probe(source) {
+  const { issues, error } = probeRun(source);
+  return { issues, error };
+}
+// The same, run longer on a board of any family, with what it printed, the runtime's warnings and
+// how many times it woke from deep sleep.
+export function probeRun(source, { family = 'uno', seconds = 0.01, pins } = {}) {
   const { js, issues } = translateSketch(source);
   if (js == null || issues.some((i) => i.code === 'SIM_PROGRAM_ERROR')) return { issues, error: 'not read' };
-  const runner = createRunner(js, { family: 'uno', states: {}, read: () => null });
-  runner.advance(0.01);
-  return { issues, error: runner.error };
+  const runner = createRunner(js, { family, states: {}, read: () => null, ...(pins && { pins }) });
+  runner.advance(0);
+  for (let t = 0; t < seconds - 1e-9; t += 0.01) runner.advance(0.01);
+  return { issues, error: runner.error, log: [...runner.log, ...(runner.line ? [runner.line] : [])], warnings: runner.warnings.map((w) => w.code), wakes: runner.wakes ?? 0 };
 }
+// What a probe printed, as one text (for the sentences that quote it).
+const printed = (r) => (r.log ?? []).join(' ');
+const UNO_PINS = [...Array(20).keys()];
 const works = (r) => !r.issues.length && !r.error;
 
 // Common Arduino names beyond the simulator's table, probed one by one.
@@ -42,6 +52,11 @@ const constantOf = (name) => `void setup() { long x = ${name}; } void loop() { d
 const serialOf = (m) => `void setup() { Serial.${m}(1); } void loop() { delay(1000); }`;
 const typeOf = (type) => `${type} v; void setup() { } void loop() { delay(1000); }`;
 const includeOf = (h) => `#include <${h}>\nvoid setup() { } void loop() { delay(1000); }`;
+// Probes of what a program prints, of interrupts, of the serial ports and of deep sleep.
+const PRINTS = "void setup() { Serial.begin(9600); char c = 'B'; Serial.println('Z'); Serial.println(c); Serial.println(c + 1); Serial.println(c, DEC); Serial.write(65); Serial.println(); Serial.println(255, HEX); Serial.println(3.14159, 3); } void loop() { delay(1000); }";
+const INTERRUPT = (pin) => `volatile int n = 0; void count() { n++; } void setup() { attachInterrupt(digitalPinToInterrupt(${pin}), count, FALLING); noInterrupts(); interrupts(); } void loop() { delay(1000); }`;
+const PORT2 = 'void setup() { Serial2.begin(9600, SERIAL_8N1, 16, 17); Serial2.println(1); } void loop() { delay(1000); }';
+const SLEEP = 'int boots = 0; void setup() { Serial.begin(115200); boots++; Serial.println(boots); esp_sleep_enable_timer_wakeup(100000); esp_deep_sleep_start(); } void loop() { }';
 const STRING_METHOD = 'String s = "ab"; void setup() { int n = s.length(); } void loop() { delay(1000); }';
 const STATEMENTS = 'int n = 0; int f(int x) { return (int) x * 2; } void setup() { for (int i = 0; i < 3; i++) { if (i == 1) continue; else n += f(i); } while (n > 100) break; do { n--; } while (n > 50); switch (n) { case 1: n = 2; break; default: n = 3; } unsigned long t = 1000UL; } void loop() { delay(1000); }';
 const ARRAYS = {
@@ -66,6 +81,16 @@ export function sketchReference() {
   const one = works(probe(ARRAYS.one));
   const stringMethods = works(probe(STRING_METHOD));
   const statements = works(probe(STATEMENTS));
+  const prints = probeRun(PRINTS);
+  const charLetter = printed(prints).startsWith('Z B 67 66 A');
+  const onD2 = probeRun(INTERRUPT(2), { pins: UNO_PINS });
+  const onD4 = probeRun(INTERRUPT(4), { pins: UNO_PINS });
+  const interrupts = works(onD2) && onD4.warnings.includes('SIM_PROGRAM_NO_INTERRUPT');
+  const port2 = probeRun(PORT2, { family: 'esp32' });
+  const port2Uno = probeRun(PORT2);
+  const ports = works(port2) && printed(port2) === 'Serial2: 1' && /Serial2 is not declared on an UNO/.test(port2Uno.error ?? '');
+  const sleep = probeRun(SLEEP, { family: 'esp32', seconds: 0.25 });
+  const sleeps = works(sleep) && sleep.wakes === 2 && printed(sleep) === '1 1 1';
   const list = (xs) => (xs.length ? xs.map(code).join(', ') : 'none');
   const lines = [
     '# What a sketch may use',
@@ -98,7 +123,15 @@ export function sketchReference() {
     '',
     `- Types: ${list(types.yes)}${types.no.length ? `; not read: ${list(types.no)}` : ''}${types.yes.includes('String') && !stringMethods ? '. A `String` holds text for `Serial.print`; its methods (`.length()`, `.substring()`…) are not read' : ''}.`,
     `- Arrays: ${one ? 'one dimension, `int a[3] = {1, 2, 3};`' : 'none'}; ${two ? 'two dimensions too (`int a[2][3] = {{…}, {…}};`)' : 'two dimensions are refused (`int a[2][3]`: the kit names the array and its line, and the program does not run): flatten one into one dimension, `a[row * 3 + col]`'}.`,
+    ...(charLetter ? ['- Printing: a `char` prints as its letter (`Serial.println(\'Z\')` prints `Z`, a `char` variable too); arithmetic on it is a number (`c + 1` prints 67) and `Serial.println(c, DEC)` the number; `Serial.write(65)` prints `A`; an integer\'s second argument is its base (`HEX`, `BIN`, `OCT`, `DEC`), a float\'s its decimals (`Serial.println(3.14159, 3)` is `3.142`).'] : []),
     statements ? '- Statements: if / else, while, do … while, for, switch, break, continue, return; casts such as `(int) x`; number suffixes (`1000UL`). No pointers, classes of your own or templates.' : '- Statements: the probe of if, for, while, do, switch and casts did not run: see `kit simulate <folder> --run`.',
+    '',
+    '## Interrupts, serial ports and deep sleep',
+    '',
+    interrupts ? '- `attachInterrupt(digitalPinToInterrupt(pin), handler, RISING | FALLING | CHANGE | LOW)`, `detachInterrupt`, `noInterrupts()` and `interrupts()` work on the pins that have an interrupt: an UNO\'s D2 and D3, any ESP32 GPIO. The handler runs at the step that sees the pin cross, between two statements of `loop()`, also during a `delay`. Another pin is warned and its handler never runs, as on the board.' : '- Interrupts (`attachInterrupt`) are not simulated: read the pin in `loop()` instead.',
+    '- The kit\'s buttons do not bounce: a press is one clean edge, so a debounce in a sketch is exercised only as a lockout (the time it ignores the pin after a press), never against real bounce.',
+    ports ? '- `Serial1` and `Serial2` on an ESP32 (`Serial1` on an ESP32-C3) are ports of their own (`Serial2.begin(9600, SERIAL_8N1, 16, 17)`), their output labelled in the run (`Serial2: …`); the bytes a TX pin sends reach the board whose RX pin is on its net (`available`, `read`, `parseInt`, `readStringUntil`). An UNO has only `Serial`: `Serial2` there stops the program, as a real UNO would not compile it.' : '- `Serial1` and `Serial2` are not simulated.',
+    sleeps ? '- ESP32 deep sleep (`esp_sleep_enable_timer_wakeup(µs)` and `esp_deep_sleep_start()`, or `ESP.deepSleep(µs)`): the program stops, its pins go back to inputs, and after the time given it starts again from `setup()` with its globals as at power-up.' : '- Deep sleep is not simulated: a real ESP32 stops, releases its pins and restarts from `setup()`.',
     '',
     '## Libraries',
     '',

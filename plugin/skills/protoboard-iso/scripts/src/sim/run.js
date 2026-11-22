@@ -1,13 +1,14 @@
 // What a circuit does over time, run as the page runs it (simulate --run, the MCP simulate tool's
 // run_s; docs/en/simulation.md, "A run"): the same engine (engine.js: start, then advance in the
 // page's step, ending a step on each element's event, the board's program, pulseIn, the library
-// sensors, the timed modules), from switch-on, for a number of simulated seconds, with stimuli: the
+// sensors, the timed modules), from the page's start (its resting point, or everything discharged
+// with page.start 'zero') or the one asked, for a number of simulated seconds, with stimuli: the
 // environment's fields, controls set, a button pressed for a while, a field or a control changed at a
 // time. Nothing here changes the circuit it is given.
 //
 //   parseStimuli({ env, set, press, at }) → { stimuli, errors }   the command line's texts, each a list
-//   runCircuit(circuit, { seconds, stimuli, budgetMs }) →
-//     { ok, run: { seconds, step, steps, asked? }, serial: { count, lines: [{ t, text, board? }] },
+//   runCircuit(circuit, { seconds, stimuli, start?, budgetMs }) →   start 'zero' | 'dc', else the page's
+//     { ok, start, run: { seconds (asked), ran (covered), step, steps, start, page }, serial: { count, lines: [{ t, text, board? }] },
 //       outputs: [{ id, kind, onShare, changes, frequency, period, duty, intervals: [[on, off]…],
 //         sound?, tone? }],
 //       readings: engine.now() at the end, issues: [issue…] }
@@ -387,13 +388,19 @@ function rhythm(w) {
 
 // ── The run ────────────────────────────────────────────────────────────────────────────
 
-export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.runMs, maxSteps = Number.POSITIVE_INFINITY, minStep = 0, checks = CHECKS, compiled = null, extremesUntil = Number.POSITIVE_INFINITY } = {}) {
+// Where a run starts: `start` as asked ('zero': everything discharged, 'dc': its resting point), or
+// the page's own start (`page.start`, the resting point unless it says 'zero').
+export const pageStart = (circuit) => (circuit.page?.start === 'zero' ? 'zero' : 'dc');
+const START_MODES = ['zero', 'dc'];
+
+export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budgetMs = LIMITS.runMs, maxSteps = Number.POSITIVE_INFINITY, minStep = 0, checks = CHECKS, compiled = null, extremesUntil = Number.POSITIVE_INFINITY } = {}) {
   const asked = Number(seconds);
   if (!(asked > 0)) return { ok: false, errors: [bad('RUN_BAD_TIME', { value: String(seconds).slice(0, 40), max: LIMITS.runSeconds })] };
+  if (wanted != null && !START_MODES.includes(wanted)) return { ok: false, errors: [bad('RUN_BAD_START', { value: String(wanted).slice(0, 40) })] };
   const prepared = prepareRun(circuit, stimuli, compiled);
   if (prepared.errors) return { ok: false, errors: prepared.errors };
   if (prepared.fatal) return { ok: false, issues: prepared.issues };
-  const { engine, issues, events } = prepared;
+  const { engine, issues, events, compiled: used } = prepared;
   const total = Math.min(asked, LIMITS.runSeconds);
   if (asked > total) issues.push(issue('warning', 'RUN_CAPPED', { asked, max: LIMITS.runSeconds }));
   for (const e of events) if (e.time >= total) issues.push(issue('warning', 'RUN_EVENT_LATE', { time: e.time, seconds: total }));
@@ -401,8 +408,13 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
   // The page's step (sim/pace.js); with nothing that changes by itself, short enough for the events.
   const pace = paceOf(engine.timeConstants(), engine.periods(), Boolean(engine.hasProgram()), engine.stimuli());
   const h = Math.max(minStep, pace.h > 0 ? pace.h : Math.min(0.01, total / 200));
-  const start = circuit.page?.start === 'zero' ? 'zero' : 'dc';
+  const page = pageStart(circuit);
+  const start = wanted ?? page;
   if (!engine.start(start, h)) return { ok: false, issues: [...issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
+  // A circuit with two resting states runs from the first (its DC point is the balance between them,
+  // which a real circuit never sits in): the run says which, and the other.
+  const two = start === 'dc' ? restingStates(circuit, used) : null;
+  const states = two && engine.seed(two.states[0].nodes) ? two.states.map((s) => ({ on: s.on, gains: gainsOf(s.reading) })) : null;
 
   const program = engine.program();
   const watches = outputsOf(program).map(tracker);
@@ -519,7 +531,9 @@ export function runCircuit(circuit, { seconds, stimuli = {}, budgetMs = LIMITS.r
   const lines = [...serial.head, ...serial.tail];
   return {
     ok: !issues.some((i) => i.severity === 'error'),
-    run: { seconds: end, step: h, steps, start, ...(asked !== end && { asked }) },
+    start,
+    // `seconds` as asked, `ran` the seconds really covered (less when capped or stopped early).
+    run: { seconds: asked, ran: end, step: h, steps, start, page, ...(states && { state: 1, states }) },
     serial: { count: serial.count, lines, ...(lines.length < serial.count && { kept: lines.length }) },
     outputs,
     boards: boards.length,
@@ -579,6 +593,79 @@ function spansOf(w, end) {
   };
 }
 
+// ── Resting states ───────────────────────────────────────────────────────────────────
+// A circuit with two resting states (a transistor latch, a flip-flop): its DC point can be the balance
+// between them, both transistors half on, which a real circuit never sits in (any noise tips it). The
+// test is a push: every node gets a small capacitance to ground (PARASITIC, what a real node has,
+// none in the DC point), the circuit starts at its DC point, one node is pushed by PUSH volts up and
+// then down, and it settles. A stable point takes the push back; a balance point runs away from it,
+// to a resting state on each side. The pushed nodes are the transistors' bases and gates, where a
+// loop of gain closes (one transistor alone has no loop: two at least). The states are then solved
+// again without the capacitances (engine.seed), so their readings are the circuit's own.
+// A Jacobian's eigenvalues would say the same without stepping, but the system holds voltage sources
+// and switches whose rows are not dynamics; the push uses the engine the page runs.
+//   restingStates(circuit, compiled?) → null | { states: [{ nodes, reading, on: [output ids] }] }
+const PARASITIC = 1e-9; // F on each node [assumed: a breadboard strip and a part's pins, pF to nF]
+const PUSH = 0.05; // V
+const PUSH_STEP = 1e-6; // s
+const PUSH_STEPS = 4000;
+const RAN_AWAY = 0.5; // V on some node: it did not come back
+const CAME_BACK = PUSH / 10;
+const PUSHED_NODES = 4;
+// Each transistor of a reading, on or off: what tells two resting states apart.
+export const gainsOf = (reading) => Object.entries(reading?.parts ?? {}).filter(([, p]) => p.kind === 'Q' || p.kind === 'M').map(([id, p]) => ({ id, on: p.region !== 'off' }));
+
+export function restingStates(circuit, given = null) {
+  const compiled = given ?? compile(circuit);
+  if (compiled.fatal) return null;
+  const { program } = compiled;
+  const devices = (program.devices ?? []).filter((d) => !d.unsupported);
+  const gains = devices.filter((d) => d.kind === 'Q' || d.kind === 'M');
+  if (gains.length < 2 || runsByItself(program) || devices.some((d) => d.kind === 'MCU' || d.kind === 'TMR' || d.kind === 'OPA')) return null;
+  const rails = new Set([program.ground, ...(program.supplies ?? []).flatMap((s) => [s.p, s.n])]);
+  const pushed = [...new Set(gains.map((d) => d.pins.find((p) => p.name === 'B' || p.name === 'G')?.node).filter((n) => n && !rails.has(n)))].slice(0, PUSHED_NODES);
+  if (!pushed.length) return null;
+  const parasitic = (program.nodes ?? []).filter((n) => !rails.has(n)).map((node, k) => ({ id: `~P${k}`, type: 'capacitor', kind: 'C', pins: [{ name: '+', node }, { name: '-', node: program.ground }], params: { capacitance: PARASITIC, polarised: false, maxVoltage: Number.POSITIVE_INFINITY } }));
+  const engine = createEngine({ ...program, devices: [...program.devices, ...parasitic] });
+  if (!engine.start('dc', PUSH_STEP)) return null;
+  const rest = engine.read().nodes;
+  const away = (nodes) => Math.max(0, ...Object.keys(rest).map((n) => (nodes[n] == null || rest[n] == null ? 0 : Math.abs(nodes[n] - rest[n]))));
+  const found = [];
+  for (const node of pushed) {
+    for (const sign of [1, -1]) {
+      if (!engine.start('dc', PUSH_STEP) || !engine.nudge(node, sign * PUSH)) return null;
+      let last = null;
+      for (let k = 0; k < PUSH_STEPS; k++) {
+        if (!engine.step(PUSH_STEP)) return null;
+        const nodes = engine.read().nodes;
+        const far = away(nodes);
+        if (far < CAME_BACK && k > 10) break;
+        // Settled away from the point: nothing moves by more than a microvolt a step.
+        if (far > RAN_AWAY && last && away(Object.fromEntries(Object.keys(nodes).map((n) => [n, nodes[n] - (last[n] ?? 0) + (rest[n] ?? 0)]))) < 1e-6) {
+          last = nodes;
+          break;
+        }
+        last = nodes;
+      }
+      if (!last || away(last) <= RAN_AWAY) continue;
+      if (!found.some((s) => Math.max(...Object.keys(last).map((n) => Math.abs((s[n] ?? 0) - (last[n] ?? 0)))) < RAN_AWAY)) found.push(last);
+    }
+    if (found.length >= 2) break;
+  }
+  if (found.length < 2) return null;
+  // Each state solved again on the circuit as it is (no capacitances added), from where it settled.
+  const own = createEngine(program);
+  const outputs = outputsOf(program);
+  const states = [];
+  for (const nodes of found.slice(0, 2)) {
+    if (!own.start('dc', PUSH_STEP) || !own.seed(nodes)) return null;
+    const reading = own.now();
+    if (!reading?.ok || away(reading.nodes) <= RAN_AWAY) return null;
+    states.push({ nodes: reading.nodes, reading, on: outputs.filter((o) => outputOn(o, reading.parts?.[o.part])).map((o) => o.id) });
+  }
+  return { states };
+}
+
 // ── Layout's line ──────────────────────────────────────────────────────────────────────
 
 // Whether a circuit changes by itself over time in a way worth a run in layout's answer: a board that
@@ -609,7 +696,8 @@ export function behaviourOf(circuit, { seconds = 2, maxSteps = BEHAVIOUR_STEPS }
   // frequency and duty are measured again as simulate --run measures them, in the page's own step,
   // for as long as the same bound of steps allows. Fewer than ABOUT_PERIODS whole periods there: `about`.
   const coarse = r.outputs.filter((o) => o.period && r.run.step > o.period / FINE_STEPS);
-  if (!coarse.length) return { seconds, outputs: r.outputs };
+  const start = r.run.start;
+  if (!coarse.length) return { seconds, start, outputs: r.outputs };
   const fine = runCircuit(circuit, { seconds, maxSteps, checks: 0, compiled });
   const again = new Map((fine.outputs ?? []).map((o) => [o.id, o]));
   const outputs = r.outputs.map((o) => {
@@ -617,7 +705,7 @@ export function behaviourOf(circuit, { seconds = 2, maxSteps = BEHAVIOUR_STEPS }
     if (!f?.period) return coarse.includes(o) ? { ...o, about: true } : o;
     return { ...o, frequency: f.frequency, period: f.period, duty: f.duty, periods: f.periods, ...(f.periods < ABOUT_PERIODS && { about: true }), ...(o.sound && f.tone && { tone: f.tone }) };
   });
-  return { seconds, outputs };
+  return { seconds, start, outputs };
 }
 const FINE_STEPS = 50; // steps per period under which a rhythm is measured again [assumed]
 const ABOUT_PERIODS = 5; // whole periods under which a frequency is said as "about" (the contract)

@@ -113,7 +113,9 @@ export function review(circuit, { profile = 'lesson', views = ['front', 'back'],
         const worst = all.reduce((a, b) => (b.params.visible < a.params.visible ? b : a));
         if (p === worst) once(blocking, { ...plain, severity: 'warning' });
       } else if (p.severity === 'warning' && !policy.advise) once(blocking, plain);
-      else once(advisory, { ...plain, view });
+      // Seen well enough in another view: the profile approves it, so it is advice (a note), never a
+      // warning beside an APPROVED (the same verdict layout gives).
+      else once(advisory, { ...plain, view, ...(policy.hiddenEverywhere && { severity: 'info' }) });
       continue;
     }
     if (p.severity === 'error' || p.severity === 'warning' || policy.block.includes(p.code)) once(blocking, plain);

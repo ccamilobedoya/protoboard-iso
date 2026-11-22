@@ -46,7 +46,9 @@ export const mcu = {
     const gpios = part.pinNames
       .filter((name) => board.gpio[name] !== undefined)
       .map((name) => ({ name, gpio: board.gpio[name], adc: board.adc?.includes(board.gpio[name]) ?? false, state: io[name] ?? null, used: Boolean(io[name]) || !alone(name) }));
-    return { model, family: e.family, power: board.power, gpios, wired: part.pinNames, usb: part.raw.usb !== false, ground: `~${part.id}:GND`, sketch: c.sketch ?? null };
+    // Every GPIO number the board has (a program's call with another is warned, program.js).
+    const numbers = [...new Set(Object.values(board.gpio))].sort((a, b) => a - b);
+    return { model, family: e.family, power: board.power, gpios, numbers, wired: part.pinNames, usb: part.raw.usb !== false, ground: `~${part.id}:GND`, sketch: c.sketch ?? null };
   },
   elements(p, h) {
     const m = p.model;
@@ -131,11 +133,26 @@ export const mcu = {
         if (!best) for (const [el, miss] of misses) el.note?.(miss);
         return best;
       };
-      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, i2c, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull, adcRef: m.adcRef });
+      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, i2c, pins: p.numbers, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull, adcRef: m.adcRef });
+      // Serial lines to other boards: each port of this board whose RX pin shares a net with another
+      // board's TX pin hears what that board sends (program.js `hear`), both programs in the same run.
+      let peers = [];
+      const hearPeers = (runner) => {
+        if (!peers.length || !runner.ports) return;
+        runner.ports.forEach((port, k) => {
+          const rx = port.rx == null ? null : netOfGpio(port.rx);
+          if (rx == null) return;
+          for (const peer of peers) {
+            for (const theirs of peer.runner?.ports ?? []) if (theirs.tx != null && peer.netOfTx(theirs.tx) === rx) runner.hear(k, theirs);
+          }
+        });
+      };
       entry.ctrl = h.add({
         nodes: [],
         links: [],
         x: null,
+        serialBoard: true,
+        netOfTx: (gpio) => netOfGpio(gpio),
         runner: fresh(),
         stamp() {
           sync();
@@ -160,6 +177,7 @@ export const mcu = {
           this.x = x;
           this.runner.read = read;
           this.runner.ask = ask;
+          hearPeers(this.runner);
           if (ctx.h) this.runner.advance?.(ctx.h);
           sync();
         },
@@ -177,6 +195,7 @@ export const mcu = {
         // The engine hands every element of the circuit over once they are all built (engine.js).
         connect(elements) {
           sensors = elements.filter((el) => el.library && typeof el.answer === 'function');
+          peers = elements.filter((el) => el.serialBoard && el !== this);
           root.clear();
           for (const el of elements) {
             if (!el.joins) continue;
@@ -290,7 +309,7 @@ export const mcu = {
       });
     const power = entry.pins.reduce((sum, x) => sum + h.volt(x.index) * (currents[x.name] ?? 0), 0) + (entry.usb ? 5 * usb : 0);
     const run = entry.ctrl?.runner;
-    const program = run ? { error: run.error, time: run.time, until: run.waitingUntil, serial: [...run.log, ...(run.line ? [run.line] : [])].slice(-12), notes: [...run.notes], ...(run.stuck && { stuck: true }) } : null;
+    const program = run ? { error: run.error, time: run.time, until: run.waitingUntil, serial: [...run.log, ...(run.line ? [run.line] : [])].slice(-12), notes: [...run.notes], ...(run.warnings?.length && { warnings: run.warnings.map((w) => ({ ...w })) }), ...(run.stuck && { stuck: true }), ...(run.sleeping && { sleeping: { ...run.sleeping } }) } : null;
     return { usb: entry.usb ? { voltage: v(entry.vbus), current: usb } : null, vbus: v(entry.vbus), vdd: v(entry.vdd), rail, pins, power, currents, ...(program && { program }) };
   },
   limits(entry, r) {
@@ -298,6 +317,13 @@ export const mcu = {
     // Each pin by its name (U1.D10), so the warning says which one and two pins are two hazards.
     const out = r.pins.map((x) => stress('SIM_OVER_CURRENT', 'current', Math.abs(x.current), m.maxPin, 'A', { pin: x.name }));
     for (const ids of entry.ctrl?.shared ?? []) out.push(note('warning', 'SIM_LIBRARY_SHARED', { part: entry.id, parts: ids.join(', '), first: ids[0] }));
+    // What the program did that a real board would show (program.js `warn`): each a warning with its
+    // line, a pin by the board's name for it (GPIO13 is D13 on an UNO).
+    const nameOf = (gpio) => entry.gpios.find((g) => g.gpio === gpio)?.name ?? `GPIO${gpio}`;
+    for (const w of r.program?.warnings ?? []) {
+      const { code, pin, ...rest } = w;
+      out.push(note('warning', code, { part: entry.id, ...rest, ...(pin != null && { pin: typeof pin === 'number' && code !== 'SIM_PROGRAM_PIN_UNKNOWN' ? nameOf(pin) : String(pin) }), ...(rest.variant == null && { variant: entry.family }) }));
+    }
     if (r.rail != null && entry.power.logic !== entry.power.usb) out.push(stress('SIM_OVER_CURRENT', 'current', r.rail, m.regulator.maxCurrent, 'A', { of: 'regulator' }));
     // A supply pin below the ground pin (a battery the wrong way round): the board's power pin of the USB
     // rail and its logic rail, each named with the ground pin.
@@ -317,6 +343,7 @@ export const mcu = {
     if (p.program) {
       const pr = p.program;
       if (pr.error) lines.push(h.raw('mcu.program', h.t('sim.mcu.programError', { error: pr.error })));
+      else if (pr.sleeping) lines.push(h.raw('mcu.program', pr.sleeping.until == null ? h.t('sim.mcu.programSleepsForever', { time: h.f(pr.time, 's') }) : h.t('sim.mcu.programSleeps', { time: h.f(pr.time, 's'), left: h.f(pr.sleeping.until - pr.time, 's') })));
       else lines.push(h.raw('mcu.program', h.t(pr.until > pr.time + 1e-9 ? 'sim.mcu.programWaits' : 'sim.mcu.programRuns', { time: h.f(pr.time, 's'), left: h.f(pr.until - pr.time, 's') })));
       if (pr.notes.length) lines.push(h.raw('mcu.notYet', h.t('sim.mcu.notYet', { names: pr.notes.join(', ') })));
       for (const text of pr.serial) lines.push(h.raw('mcu.serial', `› ${text}`));
