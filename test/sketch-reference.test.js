@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { FILE, probe, sketchReference } from '../scripts/sketch-reference.js';
+import { FILE, probe, probeRun, sketchReference } from '../scripts/sketch-reference.js';
 import { SKETCH_API } from '../src/sim/sketch.js';
 import { LIBRARY_CLASSES, LIBRARY_INCLUDES } from '../src/sim/libraries.js';
 
@@ -38,4 +38,19 @@ test('sketch.md: shiftOut and shiftIn run, and the bit orders are known constant
   assert.deepEqual(probe('void setup() { shiftOut(2, 3, MSBFIRST, 5); byte b = shiftIn(4, 3, LSBFIRST); } void loop() { delay(1000); }'), { issues: [], error: null });
   assert.doesNotMatch(text, /Not known[^\n]*`shiftOut`/);
   assert.match(text, /Known: [^\n]*`MSBFIRST`, `LSBFIRST`/);
+});
+
+test('sketch.md says what a char prints, what interrupts, Serial2 and deep sleep do, from probes', () => {
+  const chars = probeRun("void setup() { Serial.begin(9600); Serial.println('Z'); } void loop() { delay(1000); }");
+  assert.deepEqual(chars.log, ['Z']);
+  assert.match(text, /a `char` prints as its letter/);
+  const isr = probeRun('void f() { } void setup() { attachInterrupt(digitalPinToInterrupt(2), f, RISING); } void loop() { delay(1000); }', { pins: [...Array(20).keys()] });
+  assert.deepEqual([isr.issues, isr.error, isr.warnings], [[], null, []]);
+  assert.match(text, /`attachInterrupt\(digitalPinToInterrupt\(pin\), handler, RISING \| FALLING \| CHANGE \| LOW\)`[^\n]* work on the pins that have an interrupt/);
+  assert.match(text, /buttons do not bounce/);
+  assert.match(probeRun('void setup() { Serial2.begin(9600); } void loop() { delay(1000); }').error, /Serial2 is not declared on an UNO/);
+  assert.match(text, /An UNO has only `Serial`/);
+  const sleep = probeRun('void setup() { esp_sleep_enable_timer_wakeup(100000); esp_deep_sleep_start(); } void loop() { }', { family: 'esp32', seconds: 0.25 });
+  assert.equal(sleep.wakes, 2);
+  assert.match(text, /deep sleep[^\n]* starts again from `setup\(\)`/);
 });
