@@ -35,7 +35,7 @@
 // checked against the runtime's own arrays. A method asks board.ask({ cls, method, pin | address, … })
 // and the sensor's device answers (it holds the truth: its power, its cache, the environment).
 
-import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, heatIndex, altitudeOf, seaLevelOf, isArduinoName } from './libraries.js';
+import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, SERIAL_PORT_METHODS, SERIAL_WAITING, heatIndex, altitudeOf, seaLevelOf, isArduinoName } from './libraries.js';
 
 const BUDGET = 2000; // loop turns or loop() calls per advance before it lets the step go on
 // Turns of a loop the program may take without letting time pass (no wait, no Serial output) before
@@ -46,10 +46,19 @@ export const STUCK_TURNS = 200_000;
 // A serial port sends ten bits a character at the rate Serial.begin gave; the program waits only when
 // its transmit buffer is full (an AVR's 64 bytes, an ESP32's 128-byte FIFO), as print() does on a board.
 const TX_BUFFER = { uno: 64 };
-// The GPIOs of Serial's UART: Serial.begin makes TX an output that idles high (a UART's stop level), as
-// on a board, so what that pin feeds sees the board's rail (a UNO's 5 V into a 3.3 V input). The
-// ESP32-C3's Serial is its USB port: no pin.
-const SERIAL_PINS = { uno: { tx: 1, rx: 0 }, esp32: { tx: 1, rx: 3 } };
+// Each family's serial ports by number (0 Serial, 1 Serial1, 2 Serial2) and their default GPIOs: begin
+// makes TX an output that idles high (a UART's stop level), as on a board, so what that pin feeds sees
+// the board's rail (a UNO's 5 V into a 3.3 V input). null: a port with no pin by default (the
+// ESP32-C3's Serial is its USB port; Serial1's pins are the ones its begin(baud, config, rx, tx) names).
+// An UNO has one port: Serial1 there is a name a real UNO does not compile.
+const SERIAL_PORTS = { uno: [{ tx: 1, rx: 0 }], esp32: [{ tx: 1, rx: 3 }, null, { tx: 17, rx: 16 }], esp32c3: [null, null] };
+const BOARD_NAMES = { uno: 'an UNO', esp32: 'an ESP32', esp32c3: 'an ESP32-C3' };
+const STREAM_TIMEOUT = 1000; // ms: a Stream's default (parseInt, readStringUntil)
+const POLL = 0.001; // s between two looks of a read that waits for a byte
+const SENT_MAX = 4096; // bytes a port keeps of what it sent, for the board on the other end (devices/mcu.js)
+// What esp_deep_sleep_start() throws through the sketch (the runtime's own object): the program stops
+// and starts again from setup() when its timer wakes it.
+const SLEEP = Object.freeze({ sleep: true });
 const TX_BUFFER_DEFAULT = 128;
 const LOG = 40; // Serial lines kept
 const LINE_MAX = 1000; // characters kept of one Serial line
@@ -95,7 +104,7 @@ export function createRunner(js, board) {
   const pins = Object.create(null);
   for (const [gpio, s] of Object.entries(board.states ?? {})) pins[gpio] = { ...s };
   const pin = (n) => (pins[n] ??= { mode: 'input', level: 0, pull: null, pwm: null });
-  const runner = { read: board.read, ask: board.ask ?? null, pins, time: 0, wait: 0, log: [], stamps: [], printed: 0, line: '', error: null, notes: [], warnings: [], changed: false, waitingUntil: 0, looking: null, stuck: false };
+  const runner = { read: board.read, ask: board.ask ?? null, pins, time: 0, wait: 0, log: [], stamps: [], printed: 0, line: '', error: null, notes: [], warnings: [], sleeping: null, changed: false, waitingUntil: 0, looking: null, stuck: false };
   // The line of the statement running now (the translator's __at), for what the runtime warns of.
   let at = 0;
   // A mistake a real board would show (a pin it does not have, a division by zero…): kept in
@@ -137,26 +146,36 @@ export function createRunner(js, board) {
     return periods.length ? Math.min(...periods) : null;
   };
   let seed = 1;
-  // Serial's time: the rate Serial.begin set (0: never begun, printing costs no time), when the
-  // transmit buffer will be empty, and the time the program owes for a full buffer (it waits that long
-  // at its next turn).
-  let baud = 0;
-  let txFreeAt = 0;
+  // The serial ports (Serial, Serial1, Serial2): each one's rate (0: never begun, printing costs no
+  // time), when its transmit buffer will be empty, its pins, what it has sent (each byte with the time
+  // it is through, `sent`, which a board on the other end of its TX reads) and what has arrived
+  // (`inbox`). `owed`: the time the program owes for a full buffer (it waits that long at its next turn).
+  const portsOf = SERIAL_PORTS[board.family] ?? [null];
+  const ports = portsOf.map((pins) => ({ baud: 0, txFreeAt: 0, line: '', tx: pins?.tx ?? null, rx: pins?.rx ?? null, sent: [], inbox: [], timeout: STREAM_TIMEOUT }));
+  runner.ports = ports;
   let owed = 0;
-  const sent = (chars) => {
-    if (!(baud > 0) || !chars) return;
-    const each = 10 / baud;
+  const transmit = (port, text) => {
+    if (!(port.baud > 0) || !text) return;
+    const each = 10 / port.baud;
     const now = runner.time + owed;
-    txFreeAt = Math.max(now, txFreeAt) + chars * each;
-    const full = txFreeAt - (TX_BUFFER[board.family] ?? TX_BUFFER_DEFAULT) * each - now;
+    const start = Math.max(now, port.txFreeAt);
+    for (let k = 0; k < text.length; k++) port.sent.push({ byte: text.charCodeAt(k) & 0xff, at: start + (k + 1) * each });
+    if (port.sent.length > SENT_MAX) port.sent.splice(0, port.sent.length - SENT_MAX);
+    port.txFreeAt = start + text.length * each;
+    const full = port.txFreeAt - (TX_BUFFER[board.family] ?? TX_BUFFER_DEFAULT) * each - now;
     if (full > 0) owed += full;
   };
-  const write = (text) => {
+  // What a port prints: on the wire (println ends a line with "\r\n" on a board), and in the log: Serial's
+  // lines as they are, another port's labelled ("Serial2: got 5"), each port with its own partial line.
+  const write = (text, k = 0) => {
+    const port = ports[k];
     const start = runner.time + owed; // the line's time: when it starts out
-    // println ends a line with "\r\n" on a board: two characters on the wire.
-    sent(text.length + (text.match(/\n/g)?.length ?? 0));
-    const parts = (runner.line + text).split('\n').map((p) => p.slice(0, LINE_MAX));
-    runner.line = parts.pop();
+    transmit(port, text.replace(/\n/g, '\r\n'));
+    const partial = k === 0 ? runner.line : port.line;
+    const parts = (partial + text).split('\n').map((p) => p.slice(0, LINE_MAX));
+    if (k === 0) runner.line = parts.pop();
+    else port.line = parts.pop();
+    if (k > 0) for (let j = 0; j < parts.length; j++) parts[j] = `Serial${k}: ${parts[j]}`;
     runner.log.push(...parts);
     for (const _ of parts) runner.stamps.push(start);
     runner.printed += parts.length;
@@ -228,6 +247,11 @@ export function createRunner(js, board) {
     RAD_TO_DEG: 180 / Math.PI,
     MSBFIRST: 1,
     LSBFIRST: 0,
+    // A serial port's frame (begin's second argument): the kit sends 8N1's ten bits whatever it says.
+    SERIAL_8N1: 0x06,
+    SERIAL_8N2: 0x0e,
+    SERIAL_8E1: 0x26,
+    SERIAL_8O1: 0x36,
     DEC: 10,
     HEX: 16,
     OCT: 8,
@@ -328,8 +352,9 @@ export function createRunner(js, board) {
       delete tones[n];
       set(n, { level: 0, pwm: null });
     },
-    millis: () => Math.floor(runner.time * 1e3 + 1e-9),
-    micros: () => Math.floor(runner.time * 1e6 + 1e-6),
+    // Since the board started (or woke from deep sleep, which restarts it).
+    millis: () => Math.floor((runner.time - boot) * 1e3 + 1e-9),
+    micros: () => Math.floor((runner.time - boot) * 1e6 + 1e-6),
     abs: Math.abs,
     min: Math.min,
     max: Math.max,
@@ -356,23 +381,16 @@ export function createRunner(js, board) {
     bitSet: (x, b) => x | (1 << b),
     bitClear: (x, b) => x & ~(1 << b),
     bitWrite: (x, b, v) => (v ? x | (1 << b) : x & ~(1 << b)),
-    Serial: {
-      begin(rate) {
-        const r = Number(rate);
-        baud = Number.isFinite(r) && r > 0 ? r : 0;
-        const port = SERIAL_PINS[board.family];
-        if (port) set(port.tx, { mode: 'output', level: 1, pull: null, pwm: null });
-      },
-      print: (v, d, kind) => write(show(v, d, kind)),
-      println: (v = '', d, kind) => write(`${show(v, d, kind)}\n`),
-      // write(byte) sends that byte (65 is "A"); write("text") the text. It returns the bytes written.
-      write(v) {
-        const text = typeof v === 'string' ? v : letter(v);
-        write(text);
-        return text.length;
-      },
-      available: () => 0,
-      read: () => -1,
+    Serial: portApi(0),
+    // Serial1 / Serial2 and the methods that wait: port k's method m (SERIAL_PORT_METHODS), numbers the
+    // translator wrote, checked here; a port the board does not have stops the program, as a real
+    // board would not compile it.
+    *__serial(k, m, ...args) {
+      const name = SERIAL_PORT_METHODS[m];
+      if (!Number.isInteger(k) || k < 0 || k > 2 || !Number.isInteger(m) || !name) return 0;
+      if (!ports[k]) throw new Error(`Serial${k} is not declared on ${BOARD_NAMES[board.family] ?? 'this board'}: a real board would not compile this sketch (it has ${ports.length === 1 ? 'one serial port, Serial' : `Serial to Serial${ports.length - 1}`})`);
+      const methods = apis[k];
+      return SERIAL_WAITING.includes(name) ? yield* methods[name](...args) : methods[name](...args);
     },
     // A comparison is a bool, which C++ turns into 1 or 0 (int pressed = digitalRead(2) == LOW).
     __int: (x) => (typeof x === 'boolean' ? Number(x) : Number.isFinite(x) ? Math.trunc(x) : 0),
@@ -401,6 +419,25 @@ export function createRunner(js, board) {
     },
     __at: (n) => {
       at = n;
+    },
+    // ESP32 deep sleep: the timer to wake by (µs), then sleep: the program stops, its pins go back to
+    // inputs, and after that time it starts again from setup() with its globals as at power-up. With
+    // no timer it sleeps to the end. An UNO has neither name: a real one would not compile them.
+    esp_sleep_enable_timer_wakeup(us) {
+      espOnly('esp_sleep_enable_timer_wakeup');
+      const v = Number(us);
+      wakeAfter = Number.isFinite(v) && v >= 0 ? v / 1e6 : null;
+      return 0;
+    },
+    esp_deep_sleep_start() {
+      espOnly('esp_deep_sleep_start');
+      throw SLEEP;
+    },
+    __deepSleep(us) {
+      espOnly('ESP.deepSleep');
+      const v = Number(us);
+      wakeAfter = Number.isFinite(v) && v > 0 ? v / 1e6 : null;
+      throw SLEEP;
     },
     // C's integer division and remainder. By zero: on an ESP32 (its Xtensa core) the chip stops with
     // an exception and restarts, so the program stops here; elsewhere the kit gives 0 and goes on (a
@@ -437,6 +474,108 @@ export function createRunner(js, board) {
       // A method that waits is a generator (a real DHT read, begin()); the others return at once.
       return WAITS.has(run) ? yield* run(o, ...args) : run(o, ...args);
     },
+  };
+  // A port's methods, as Stream and Print have them: begin(baud[, config, rx, tx]) takes its pins (TX an
+  // output, high); what arrives is read by the time each byte is through.
+  function portApi(k) {
+    const port = ports[k];
+    const arrived = () => port.inbox.filter((b) => b.at <= runner.time + 1e-12);
+    const take = () => {
+      const i = port.inbox.findIndex((b) => b.at <= runner.time + 1e-12);
+      return i < 0 ? -1 : port.inbox.splice(i, 1)[0].byte;
+    };
+    // The next byte within the timeout, or -1 (Stream's timedRead / timedPeek).
+    function* timed(keep) {
+      const deadline = runner.time + port.timeout / 1e3;
+      for (;;) {
+        const first = arrived()[0];
+        if (first) return keep ? first.byte : take();
+        if (runner.time >= deadline - 1e-12) return -1;
+        yield POLL;
+      }
+    }
+    const digit = (c, float) => (c >= 48 && c <= 57) || c === 45 || (float && c === 46);
+    function* parse(float) {
+      let c = yield* timed(true);
+      while (c >= 0 && !digit(c, float)) {
+        take();
+        c = yield* timed(true);
+      }
+      if (c < 0) return 0;
+      let text = '';
+      while (c >= 0 && digit(c, float) && !(c === 45 && text)) {
+        text += String.fromCharCode(take());
+        c = yield* timed(true);
+      }
+      const v = float ? Number.parseFloat(text) : Number.parseInt(text, 10);
+      return Number.isFinite(v) ? v : 0;
+    }
+    return {
+      begin(rate, config, rx, tx) {
+        const r = Number(rate);
+        port.baud = Number.isFinite(r) && r > 0 ? r : 0;
+        if (Number.isInteger(Number(rx)) && Number(rx) >= 0) port.rx = Number(rx);
+        if (Number.isInteger(Number(tx)) && Number(tx) >= 0) port.tx = Number(tx);
+        if (port.tx != null) set(port.tx, { mode: 'output', level: 1, pull: null, pwm: null });
+      },
+      print: (v, d, kind) => write(show(v, d, kind), k),
+      println: (v = '', d, kind) => write(`${show(v, d, kind)}\n`, k),
+      // write(byte) sends that byte (65 is "A"); write("text") the text. It returns the bytes written.
+      write(v) {
+        const text = typeof v === 'string' ? v : letter(v);
+        write(text, k);
+        return text.length;
+      },
+      available: () => arrived().length,
+      read: () => take(),
+      peek: () => arrived()[0]?.byte ?? -1,
+      flush() {
+        owed = Math.max(owed, port.txFreeAt - runner.time);
+      },
+      setTimeout(ms) {
+        const v = Number(ms);
+        port.timeout = Number.isFinite(v) && v >= 0 ? Math.min(v, 60_000) : STREAM_TIMEOUT;
+      },
+      end() {
+        port.baud = 0;
+      },
+      parseInt: () => parse(false),
+      parseFloat: () => parse(true),
+      *readStringUntil(end) {
+        const stop = typeof end === 'string' ? end.charCodeAt(0) : Math.trunc(Number(end));
+        let text = '';
+        for (;;) {
+          const c = yield* timed(false);
+          if (c < 0 || c === stop) return text;
+          if (text.length < LINE_MAX) text += String.fromCharCode(c);
+        }
+      },
+      *readString() {
+        let text = '';
+        for (;;) {
+          const c = yield* timed(false);
+          if (c < 0) return text;
+          if (text.length < LINE_MAX) text += String.fromCharCode(c);
+        }
+      },
+    };
+  }
+  const apis = ports.map((_, k) => (k === 0 ? api.Serial : portApi(k)));
+  let wakeAfter = null; // s: the timer esp_sleep_enable_timer_wakeup set
+  let boot = 0; // s: when the program last started (power-up, or a wake from deep sleep)
+  const espOnly = (name) => {
+    if (board.family !== 'esp32' && board.family !== 'esp32c3') throw new Error(`${name} is not declared on ${BOARD_NAMES[board.family] ?? 'this board'}: a real board would not compile this sketch (deep sleep is an ESP32's)`);
+  };
+  // Into deep sleep: every pin an input with nothing on (tones, PWM and the ports stop), and the time
+  // to wake, or none (runner.sleeping: { until: s | null }).
+  const sleep = () => {
+    for (const n of Object.keys(pins)) set(n, { mode: 'input', level: 0, pull: null, pwm: null });
+    for (const n of Object.keys(tones)) delete tones[n];
+    for (const port of ports) Object.assign(port, { baud: 0, txFreeAt: 0, line: '', inbox: [] });
+    owed = 0;
+    runner.sleeping = { until: wakeAfter == null ? null : runner.time + wakeAfter };
+    runner.wait = wakeAfter == null ? Number.POSITIVE_INFINITY : wakeAfter;
+    wakeAfter = null;
   };
   const sizes = new WeakMap(); // array → its number of elements (__array)
   const byZero = () => {
@@ -582,10 +721,28 @@ export function createRunner(js, board) {
     // At t = 0 a loop inside one call may take every turn it gets before it is said stuck (settle).
     const budget = dt > 0 ? BUDGET : STUCK_TURNS;
     while (runner.wait <= 1e-12) {
+      // Awake again after deep sleep: from setup(), its globals as at power-up.
+      if (runner.sleeping) {
+        runner.sleeping = null;
+        runner.wakes = (runner.wakes ?? 0) + 1;
+        boot = runner.time;
+        try {
+          program = new Function('api', js)(api);
+        } catch (e) {
+          runner.error = errorText(e, at);
+          break;
+        }
+        gen = program.setup();
+        spins = 0;
+      }
       let r;
       try {
         r = gen.next();
       } catch (e) {
+        if (e === SLEEP) {
+          sleep();
+          break;
+        }
         runner.error = errorText(e, at);
         break;
       }

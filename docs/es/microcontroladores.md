@@ -136,6 +136,18 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   la placa: el TX de un UNO en el RX de un ESP32 son 5 V en un pin de 3,3 V, y la revisión del voltaje
   de los pines lo dice (`SIM_PIN_OVERVOLTAGE`). El `Serial` del ESP32-C3 es su puerto USB y no toma
   ningún pin.
+- **Puertos serie y sueño profundo:** `Serial1` y `Serial2` en un ESP32 (`Serial1` en un ESP32-C3)
+  son puertos propios: `begin(baudios[, config, rx, tx])` (los pines por defecto de Serial2 son RX 16,
+  TX 17), `print`, `println`, `write`, `available`, `read`, `peek`, `parseInt`, `parseFloat`,
+  `readStringUntil`, `readString`, `setTimeout`, `flush`, `end`; lo que imprimen sale en la salida de
+  la ejecución con su etiqueta (`Serial2: got 5`). Un UNO solo tiene `Serial`: `Serial2` ahí detiene
+  el programa con «Serial2 is not declared on an UNO: a real board would not compile this sketch».
+  Una lectura que espera (`parseInt`) espera su plazo, 1 s salvo que `setTimeout` diga otro, y
+  devuelve 0 si no llega nada. El sueño profundo del ESP32 (`esp_sleep_enable_timer_wakeup(µs)` y
+  luego `esp_deep_sleep_start()`, o `ESP.deepSleep(µs)`): el programa se detiene, sus pines vuelven a
+  ser entradas y, pasado el tiempo dado, empieza otra vez desde `setup()` con sus globales como al
+  encender y `millis()` desde 0; sin temporizador duerme hasta el final. La ficha de la placa dice que
+  duerme y cuándo despierta.
 - **Cómo corre:** cada función pasa a ser un generador, así que `delay()` espera en tiempo simulado.
   El programa corre entre pasos de tiempo, con los voltajes del paso anterior, como el biestable del
   555: un cambio vale un paso después (1 ms en la página). En t = 0 vuelve a empezar con los voltajes

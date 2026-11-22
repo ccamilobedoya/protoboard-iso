@@ -269,3 +269,47 @@ test('an UNO\'s TX idles at 5 V once Serial.begin runs: the ESP32\'s RX pin over
   const idle = simulate(link('void setup() {}\nvoid loop() { delay(1000); }', esp));
   assert.ok(!idle.issues.some((i) => i.code === 'SIM_PIN_OVERVOLTAGE'));
 });
+
+// ── 6. The names of the family the user wrote ──
+
+const runFor = (source, family, seconds) => {
+  const r = translateSketch(source);
+  assert.ok(r.js, JSON.stringify(r.issues));
+  const runner = createRunner(r.js, { family, read: () => null, vil: 0.3, vih: 0.6, adcBits: 12, adcFull: 3.3 });
+  runner.advance(0);
+  for (let k = 0; k < seconds * 1000 && !runner.error; k++) runner.advance(1e-3);
+  return { runner, issues: r.issues };
+};
+
+test('Serial1 and Serial2 on an ESP32 are ports of their own, labelled in the output; an UNO has none', () => {
+  const esp = runFor('void setup() { Serial.begin(115200); Serial2.begin(9600, SERIAL_8N1, 16, 17); Serial2.println("hi"); Serial2.print(3.5); Serial2.println(); Serial1.begin(9600, SERIAL_8N1, 25, 26); Serial1.write(65); Serial1.println(); Serial.println(Serial2.available()); }\nvoid loop() { delay(10); }', 'esp32', 0.1);
+  assert.deepEqual(esp.issues, []);
+  assert.equal(esp.runner.error, null);
+  assert.deepEqual(esp.runner.log, ['Serial2: hi', 'Serial2: 3.50', 'Serial1: A', '0']);
+  assert.equal(esp.runner.pins[17].mode, 'output', 'Serial2\'s TX idles high');
+  assert.equal(esp.runner.pins[26].level, 1, 'Serial1\'s TX, as its begin named it');
+  const uno = runFor('void setup() { Serial2.begin(9600); }\nvoid loop() { delay(10); }', 'uno', 0);
+  assert.equal(uno.runner.error, 'Serial2 is not declared on an UNO: a real board would not compile this sketch (it has one serial port, Serial) (line 1)');
+});
+
+test('Serial.parseInt waits its timeout for digits and returns 0 when none come', () => {
+  const r = runFor('void setup() { Serial.begin(9600); Serial.setTimeout(50); int v = Serial.parseInt(); Serial.println(millis()); Serial.println(v); }\nvoid loop() { delay(5); }', 'uno', 0.2);
+  assert.deepEqual(r.runner.log, ['50', '0']);
+});
+
+test('ESP32 deep sleep: the program stops, its pins are released, and it starts again from setup()', () => {
+  const source = 'int boots = 0;\nvoid setup() { Serial.begin(115200); pinMode(2, OUTPUT); digitalWrite(2, HIGH); boots++; Serial.println(boots); Serial.println(millis()); esp_sleep_enable_timer_wakeup(2 * 1000000ULL); esp_deep_sleep_start(); }\nvoid loop() { }';
+  const r = runFor(source, 'esp32', 1);
+  assert.deepEqual(r.runner.log, ['1', '0']);
+  assert.equal(r.runner.pins[2].mode, 'input', 'asleep, the pin is let go');
+  assert.ok(Math.abs(r.runner.sleeping.until - 2) < 1e-6);
+  const later = runFor(source, 'esp32', 4.5);
+  assert.deepEqual(later.runner.log, ['1', '0', '1', '0', '1', '0'], 'globals as at power-up, millis() from the wake');
+  assert.equal(later.runner.wakes, 2);
+  const esp = runFor('void setup() { Serial.begin(115200); Serial.println("x"); ESP.deepSleep(1000000); }\nvoid loop() { }', 'esp32c3', 2.5);
+  assert.deepEqual(esp.runner.log, ['x', 'x', 'x']);
+  const forever = runFor('void setup() { esp_deep_sleep_start(); }\nvoid loop() { }', 'esp32', 0.5);
+  assert.deepEqual(forever.runner.sleeping, { until: null });
+  const uno = runFor('void setup() { esp_deep_sleep_start(); }\nvoid loop() { }', 'uno', 0);
+  assert.match(uno.runner.error, /^esp_deep_sleep_start is not declared on an UNO/);
+});

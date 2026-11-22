@@ -131,6 +131,17 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   output that idles high, the line's stop level, so what it feeds sees the board's rail: an UNO's TX
   into an ESP32's RX is 5 V on a 3.3 V pin, and the pin-voltage check says so (`SIM_PIN_OVERVOLTAGE`).
   The ESP32-C3's `Serial` is its USB port and takes no pin.
+- **Serial ports and deep sleep:** `Serial1` and `Serial2` on an ESP32 (`Serial1` on an ESP32-C3) are
+  ports of their own: `begin(baud[, config, rx, tx])` (Serial2's default pins are RX 16, TX 17),
+  `print`, `println`, `write`, `available`, `read`, `peek`, `parseInt`, `parseFloat`,
+  `readStringUntil`, `readString`, `setTimeout`, `flush`, `end`; what they print is in the run's
+  output labelled (`Serial2: got 5`). An UNO has only `Serial`: `Serial2` there stops the program
+  with "Serial2 is not declared on an UNO: a real board would not compile this sketch". A read that
+  waits (`parseInt`) waits its timeout, 1 s unless `setTimeout` says otherwise, and returns 0 when
+  nothing comes. ESP32 deep sleep (`esp_sleep_enable_timer_wakeup(µs)` then `esp_deep_sleep_start()`,
+  or `ESP.deepSleep(µs)`): the program stops, its pins go back to inputs, and after the time given it
+  starts again from `setup()` with its globals as at power-up and `millis()` from 0; with no timer it
+  sleeps to the end. The board's card says it sleeps and when it wakes.
 - **How it runs:** every function becomes a generator, so `delay()` waits in simulated time. The
   program runs between time steps, from the voltages of the step before, as the 555's latch: a
   change takes effect one step later (1 ms in the page). At t = 0 it starts over from the

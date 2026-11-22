@@ -292,7 +292,7 @@ export const mcu = {
       });
     const power = entry.pins.reduce((sum, x) => sum + h.volt(x.index) * (currents[x.name] ?? 0), 0) + (entry.usb ? 5 * usb : 0);
     const run = entry.ctrl?.runner;
-    const program = run ? { error: run.error, time: run.time, until: run.waitingUntil, serial: [...run.log, ...(run.line ? [run.line] : [])].slice(-12), notes: [...run.notes], ...(run.warnings?.length && { warnings: run.warnings.map((w) => ({ ...w })) }), ...(run.stuck && { stuck: true }) } : null;
+    const program = run ? { error: run.error, time: run.time, until: run.waitingUntil, serial: [...run.log, ...(run.line ? [run.line] : [])].slice(-12), notes: [...run.notes], ...(run.warnings?.length && { warnings: run.warnings.map((w) => ({ ...w })) }), ...(run.stuck && { stuck: true }), ...(run.sleeping && { sleeping: { ...run.sleeping } }) } : null;
     return { usb: entry.usb ? { voltage: v(entry.vbus), current: usb } : null, vbus: v(entry.vbus), vdd: v(entry.vdd), rail, pins, power, currents, ...(program && { program }) };
   },
   limits(entry, r) {
@@ -326,6 +326,7 @@ export const mcu = {
     if (p.program) {
       const pr = p.program;
       if (pr.error) lines.push(h.raw('mcu.program', h.t('sim.mcu.programError', { error: pr.error })));
+      else if (pr.sleeping) lines.push(h.raw('mcu.program', pr.sleeping.until == null ? h.t('sim.mcu.programSleepsForever', { time: h.f(pr.time, 's') }) : h.t('sim.mcu.programSleeps', { time: h.f(pr.time, 's'), left: h.f(pr.sleeping.until - pr.time, 's') })));
       else lines.push(h.raw('mcu.program', h.t(pr.until > pr.time + 1e-9 ? 'sim.mcu.programWaits' : 'sim.mcu.programRuns', { time: h.f(pr.time, 's'), left: h.f(pr.until - pr.time, 's') })));
       if (pr.notes.length) lines.push(h.raw('mcu.notYet', h.t('sim.mcu.notYet', { names: pr.notes.join(', ') })));
       for (const text of pr.serial) lines.push(h.raw('mcu.serial', `› ${text}`));

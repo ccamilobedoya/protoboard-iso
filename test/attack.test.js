@@ -38,7 +38,7 @@ function run(source) {
 const sketch = (body) => `void setup() { ${body} }\nvoid loop() { delay(1000); }`;
 
 // What the JavaScript may name: its own words, the runtime's, and the sketch's ($-prefixed).
-const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
+const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
 function strayNames(js) {
   // The body, without the prelude (two lines) and the last line, and without the quoted names of
   // __missing("name", …), which JSON.stringify writes.
@@ -48,7 +48,7 @@ function strayNames(js) {
     .slice(2, -1)
     .join('\n')
     .replace(/__missing\("[^"\\]*"/g, '__missing(')
-    .replace(/Serial\.(begin|print|println|write|available|read)\(/g, 'Serial(');
+    .replace(/Serial\.(begin|print|println|write|available|read|peek|flush|setTimeout|end)\(/g, 'Serial(');
   const names = body.match(/(?<![\w$.])[A-Za-z_$][\w$]*/g) ?? [];
   const members = body.match(/\.[A-Za-z_$]/g) ?? [];
   return [...names.filter((n) => !n.startsWith('$') && !ALLOWED.has(n)), ...members];
@@ -467,4 +467,19 @@ test('attack: a library the kit lacks, bounds, divisions and delays reach nothin
   // The index outside the array never grows it: a write lands in its one spare slot.
   const grown = run('int a[2] = {1, 2};\nvoid setup() { a[100000000] = 7; Serial.println(a[100000000]); }\nvoid loop() { delay(1000); }');
   assert.deepEqual(grown.log, ['0']);
+});
+
+// Serial ports by number (__serial(port, method, …)) and deep sleep: no name of the sketch reaches a
+// member, and a port or method number out of the runtime's tables does nothing.
+test('attack: Serial1, Serial2, a waiting read and deep sleep name nothing else', () => {
+  for (const source of [
+    'void setup() { Serial2.begin(9600, SERIAL_8N1, 16, 17); Serial2.constructor("globalThis.__pwned = 1"); Serial1.__proto__(1); int v = Serial.parseInt(); String s = Serial2.readStringUntil(\'\\n\'); }\nvoid loop() { delay(1000); }',
+    'void setup() { ESP.constructor("globalThis.__pwned = 1"); esp_sleep_enable_timer_wakeup(-1); ESP.deepSleep(1e30); }\nvoid loop() { delay(1000); }',
+  ]) {
+    const { js } = translateSketch(source);
+    assert.ok(js, source);
+    assert.deepEqual(strayNames(js), [], source);
+    const r = run(source);
+    assert.equal(r.pwned, undefined, source);
+  }
 });

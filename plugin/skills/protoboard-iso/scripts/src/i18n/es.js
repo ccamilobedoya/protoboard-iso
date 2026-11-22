@@ -1128,6 +1128,8 @@ export default {
   'check.SIM_BUZZER_DC': '{part}: por el zumbador pasan {current} de corriente continua; un zumbador pasivo solo suena con una señal que cambie (una onda cuadrada), con continua solo calienta su bobina.',
   'sim.mcu.programRuns': 'Programa corriendo · t = {time}',
   'sim.mcu.programWaits': 'Programa en delay() · t = {time}, faltan {left}',
+  'sim.mcu.programSleeps': 'Sueño profundo · t = {time}, despierta y vuelve a empezar desde setup() en {left}',
+  'sim.mcu.programSleepsForever': 'Sueño profundo · t = {time}, sin temporizador que lo despierte',
   'sim.mcu.programError': 'Programa detenido: {error}',
   'sim.mcu.notYet': '{names}: todavía no se simula (no hace nada)',
   'explain.mcu.program': 'El programa de la placa (su .ino), corriendo en el tiempo simulado: setup() una vez y después loop() una y otra vez. Mientras está en delay() no cambia nada en sus pines.',

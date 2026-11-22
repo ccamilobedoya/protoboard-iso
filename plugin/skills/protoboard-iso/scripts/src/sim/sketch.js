@@ -35,16 +35,16 @@
 // - a program longer than LIMITS.sketchChars is not read.
 import { LIMITS } from '../limits.js';
 const LIBRARY_OBJECTS = LIMITS.libraryObjects;
-import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, LIBRARY_INCLUDES, NOT_IN_KIT, isArduinoName } from './libraries.js';
+import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, LIBRARY_INCLUDES, NOT_IN_KIT, SERIAL_PORT_METHODS, SERIAL_WAITING, isArduinoName } from './libraries.js';
 
 const TYPES = new Set(['void', 'int', 'long', 'short', 'byte', 'bool', 'boolean', 'char', 'float', 'double', 'unsigned', 'signed', 'size_t', 'word', 'String', 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t']);
 const QUALIFIERS = new Set(['const', 'static', 'volatile', 'unsigned', 'signed']);
 const INTEGER = new Set(['int', 'long', 'short', 'byte', 'char', 'unsigned', 'signed', 'size_t', 'word', 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t']);
 // What the runtime gives (program.js); anything else called and not defined is noted.
-export const SKETCH_API = ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'analogWrite', 'millis', 'micros', 'abs', 'min', 'max', 'map', 'constrain', 'random', 'randomSeed', 'sqrt', 'log', 'pow', 'sin', 'cos', 'round', 'floor', 'ceil', 'bitRead', 'bitWrite', 'bitSet', 'bitClear', 'ledcAttach', 'ledcAttachPin', 'ledcSetup', 'ledcWrite', 'tone', 'noTone', 'pulseIn', 'pulseInLong', 'isnan', 'shiftOut', 'shiftIn'];
+export const SKETCH_API = ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'analogWrite', 'millis', 'micros', 'abs', 'min', 'max', 'map', 'constrain', 'random', 'randomSeed', 'sqrt', 'log', 'pow', 'sin', 'cos', 'round', 'floor', 'ceil', 'bitRead', 'bitWrite', 'bitSet', 'bitClear', 'ledcAttach', 'ledcAttachPin', 'ledcSetup', 'ledcWrite', 'tone', 'noTone', 'pulseIn', 'pulseInLong', 'isnan', 'esp_sleep_enable_timer_wakeup', 'esp_deep_sleep_start', 'shiftOut', 'shiftIn'];
 // Runtime functions that wait in simulated time (generators, as one's own functions): yield*.
 const WAITING_API = new Set(['pulseIn', 'pulseInLong']);
-const SKETCH_CONSTANTS = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'Serial', ...Object.keys(LIBRARY_CONSTANTS)];
+const SKETCH_CONSTANTS = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'Serial', ...Object.keys(LIBRARY_CONSTANTS)];
 const ASSIGN = new Set(['=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=']);
 // Runtime functions that return an integer (an int divided by them stays an int).
 const INT_API = new Set(['digitalRead', 'analogRead', 'millis', 'micros', 'map', 'random', 'constrain', 'abs', 'min', 'max', 'bitRead', 'pulseIn', 'pulseInLong', 'isnan', 'shiftIn']);
@@ -55,7 +55,7 @@ const FLOAT_TYPES = new Set(['float', 'double']);
 const CLASS_BY_NAME = new Map(LIBRARY_CLASSES.map((c, i) => [c.name, i]));
 const KEYWORDS = new Set(['if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'return', 'sizeof', 'new', 'delete', 'NULL', 'delay', 'delayMicroseconds', 'Wire', 'F', 'true', 'false']);
 // Serial's methods in the runtime; another one is noted and returns 0.
-const SERIAL_METHODS = new Set(['begin', 'print', 'println', 'write', 'available', 'read']);
+const SERIAL_METHODS = new Set(['begin', 'print', 'println', 'write', 'available', 'read', 'peek', 'flush', 'setTimeout', 'end']);
 // Names written as they are; every other name the sketch writes is its own: "$" + name.
 const RAW_NAMES = new Set([...SKETCH_CONSTANTS, 'true', 'false']);
 const own = (name) => `$${name}`;
@@ -403,6 +403,49 @@ export function translateSketch(source, { strings = [] } = {}) {
       }
       termInt = true;
       return `__missing(0${args.length ? `, ${args.join(', ')}` : ''})`;
+    }
+    // ESP.deepSleep(µs): an ESP32's deep sleep (the runtime's __deepSleep); ESP's other methods are noted.
+    if (t.t === 'id' && t.v === 'ESP' && is('.', 1) && peek(2)?.t === 'id' && is('(', 3) && !declared('ESP')) {
+      const method = peek(2).v;
+      pos += 4;
+      const args = expression([')']);
+      expect(')');
+      if (method === 'deepSleep') return `__deepSleep(${args})`;
+      noteMissing(`ESP.${method}`, t.line);
+      return `__missing(0${args ? `, ${args}` : ''})`;
+    }
+    // Serial1.print(…), Serial2.begin(…), and Serial's methods that wait for what arrives
+    // (Serial.parseInt()): __serial(<port>, <method>, …), two numbers (SERIAL_PORT_METHODS), a generator.
+    const port = t.t === 'id' ? ['Serial', 'Serial1', 'Serial2'].indexOf(t.v) : -1;
+    if (port >= 0 && !declared(t.v) && is('.', 1) && peek(2)?.t === 'id' && is('(', 3) && (port > 0 || SERIAL_WAITING.includes(peek(2).v))) {
+      const method = peek(2);
+      const m = SERIAL_PORT_METHODS.indexOf(method.v);
+      if (!inFunction) throw new SketchError(t.line, `${t.v}.${method.v}`);
+      pos += 4;
+      const first = is(')') ? '' : expression([',', ')']);
+      const kind = exprFloat ? 1 : exprChar ? 2 : 0;
+      const rest = [];
+      while (is(',')) {
+        pos++;
+        rest.push(expression([',', ')']));
+      }
+      expect(')');
+      termFloat = method.v === 'parseFloat';
+      termChar = false;
+      termInt = ['available', 'read', 'peek', 'parseInt', 'write'].includes(method.v);
+      if (m < 0) {
+        noteMissing(`${t.v}.${method.v}`, t.line);
+        return `__missing(0${[first, ...rest].filter((a) => a.trim()).map((a) => `, ${a}`).join('')})`;
+      }
+      // print and println carry what C++ would print, as Serial's do (the digits, then the kind).
+      const args = ['print', 'println'].includes(method.v) && first ? [first, rest[0] || 'undefined', String(kind)] : [first, ...rest].filter((a) => a.trim());
+      return `(yield* __serial(${port}, ${m}${args.map((a) => `, ${a}`).join('')}))`;
+    }
+    // Serial1 or Serial2 alone (while (!Serial2)): a port is always ready here.
+    if (port > 0 && !declared(t.v) && !is('.', 1)) {
+      pos++;
+      termInt = true;
+      return '1';
     }
     // Serial.println(…): the one object with methods. Any other "." is refused.
     if (t.t === 'id' && t.v === 'Serial' && is('.', 1)) {
@@ -852,7 +895,7 @@ export function translateSketch(source, { strings = [] } = {}) {
   }
   if (!functions.has('setup') || !functions.has('loop')) issues.push({ code: 'SIM_PROGRAM_NO_LOOP', line: 1 });
   // Strict: an assignment to a name nobody declared throws (it cannot become a global of the page).
-  const prelude = `'use strict'; const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us'].join(', ')} } = api;\nconst __str = [].concat(${strings.map((s) => JSON.stringify(s)).join(', ')});`;
+  const prelude = `'use strict'; const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep'].join(', ')} } = api;\nconst __str = [].concat(${strings.map((s) => JSON.stringify(s)).join(', ')});`;
   const js = `${prelude}\n${out.join('\n')}\nreturn { setup: typeof $setup === 'function' ? $setup : function* () {}, loop: typeof $loop === 'function' ? $loop : function* () {} };`;
   return { js: issues.some((i) => i.code === 'SIM_PROGRAM_ERROR') ? null : js, issues };
 }

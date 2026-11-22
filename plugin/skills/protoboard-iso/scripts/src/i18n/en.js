@@ -1129,6 +1129,8 @@ export default {
   'check.SIM_BUZZER_DC': '{part}: {current} of steady DC flow through the buzzer; a passive buzzer only sounds with a changing signal (a square wave), on DC it just heats its coil.',
   'sim.mcu.programRuns': 'Program running · t = {time}',
   'sim.mcu.programWaits': 'Program in delay() · t = {time}, {left} to go',
+  'sim.mcu.programSleeps': 'Deep sleep · t = {time}, it wakes and starts again from setup() in {left}',
+  'sim.mcu.programSleepsForever': 'Deep sleep · t = {time}, with no timer to wake it',
   'sim.mcu.programError': 'Program stopped: {error}',
   'sim.mcu.notYet': '{names}: not simulated yet (it does nothing)',
   'explain.mcu.program': 'The board\'s program (its .ino), run in the simulated time: setup() once, then loop() again and again. While it is in delay() nothing changes on its pins.',
