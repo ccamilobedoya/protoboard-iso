@@ -187,6 +187,78 @@ test('catalog: the PC817 is simulated and says its CTR is the middle of a wide r
   assert.match(text, /maximum reverse voltage 6 V \(LED\)/);  assert.doesNotMatch(cli('catalog', 'PC817').stdout, /not simulated/i, 'the CLI says it too');
 });
 
+// ---- LM386
+
+// 9 V, the generator through 10 µF into IN+ (IN− to GND), the output through 220 µF into 8 Ω; with
+// `gain`, what goes between pins 1 and 8 (a 10 µF capacitor, alone or with a resistor in series).
+const ampSpec = ({ amplitude = 0.05, gain = null } = {}) => ({
+  supplies: [{ id: 'V1', voltage: 9 }, { id: 'G1', kind: 'generator', waveform: 'sine', frequency: 1000, amplitude, positive: 'C1.+', negative: 'T-' }],
+  parts: [
+    { id: 'C1', type: 'capacitor', kind: 'electrolytic', value: '10u' },
+    { id: 'U1', part: 'LM386' },
+    { id: 'C2', type: 'capacitor', kind: 'electrolytic', value: '220u' },
+    { id: 'R1', type: 'resistor', value: '8', power: 1 },
+    ...(gain ? [{ id: 'C3', type: 'capacitor', kind: 'electrolytic', value: '10u' }, ...(gain.resistor ? [{ id: 'R2', type: 'resistor', value: gain.resistor }] : [])] : []),
+  ],
+  nets: [
+    ['C1.-', 'U1.IN+'], ['U1.IN-', 'T-'], ['U1.GND', 'T-'], ['U1.VS', 'T+'], ['U1.OUT', 'C2.+'], ['C2.-', 'R1.1'], ['R1.2', 'T-'],
+    ...(gain ? (gain.resistor ? [['U1.GAIN1', 'R2.1'], ['R2.2', 'C3.+'], ['C3.-', 'U1.GAIN8']] : [['U1.GAIN1', 'C3.+'], ['C3.-', 'U1.GAIN8']]) : []),
+  ],
+});
+const amp20 = once(() => autoLayout(ampSpec()));
+const amp200 = once(() => autoLayout(ampSpec({ amplitude: 0.005, gain: {} })));
+const ampMid = once(() => autoLayout(ampSpec({ amplitude: 0.01, gain: { resistor: '1.2k' } })));
+// The load's voltage over the last 3 ms of a 5 ms transient from the DC point: its peak and the
+// frequency from its rising zero crossings.
+function swing(circuit) {
+  const r = simulate(circuit, { analysis: 'transient', stop: 0.005, step: 5e-6, start: 'dc', points: 1000 });
+  assert.ok(r.ok, JSON.stringify(r.issues));
+  const from = r.times.findIndex((t) => t >= 0.002);
+  const v = r.parts.R1.voltage.slice(from);
+  const t = r.times.slice(from);
+  const ups = [];
+  for (let i = 1; i < v.length; i++) if (v[i - 1] < 0 && v[i] >= 0) ups.push(t[i - 1] + ((t[i] - t[i - 1]) * -v[i - 1]) / (v[i] - v[i - 1]));
+  return { peak: (Math.max(...v) - Math.min(...v)) / 2, frequency: (ups.length - 1) / (ups.at(-1) - ups[0]) };
+}
+
+test('LM386: at rest its output sits at half the supply; gain 20 with pins 1 and 8 open (1 V peak from 50 mV at 1 kHz)', () => {
+  const r = amp20();
+  assert.equal(r.review.verdict, 'approved', JSON.stringify(r.review.doubts));
+  const dc = simulate(r.circuit);
+  near(dc.parts.U1.pins.OUT, 4.5, 0.1, 'OUT at rest');
+  const s = swing(r.circuit);
+  // 2 · 15 kΩ / (150 Ω + 1.35 kΩ) = 20: 50 mV → 1.0 V.
+  near(s.peak, 1.0, 0.1, 'peak across 8 Ω');
+  near(s.frequency, 1000, 20, 'frequency');
+});
+
+test('LM386: 10 µF between pins 1 and 8 gives about 200; with 1.2 kΩ in series, the datasheet formula', () => {
+  // 2 · 15 kΩ / (150 Ω + |Z|): the 10 µF is 16 Ω at 1 kHz (about 180); with 1.2 kΩ, 1.35 kΩ ∥ 1.2 kΩ
+  // = 635 Ω: 2 · 15k / 785 = 38.
+  near(swing(amp200().circuit).peak, 0.005 * 180, 0.005 * 25, 'gain about 200');
+  near(swing(ampMid().circuit).peak, 0.01 * 38.2, 0.01 * 3, 'gain 38');
+});
+
+test('LM386: under its 4 V minimum a doubt; its output shorted to GND a hazard; over 15 V a hazard', () => {
+  const bare = (voltage, short = false) => autoLayout({ supplies: [{ id: 'V1', voltage }], parts: [{ id: 'U1', part: 'LM386' }], nets: [['U1.IN-', 'T-'], ['U1.IN+', 'T-'], ['U1.GND', 'T-'], ['U1.VS', 'T+'], ...(short ? [['U1.OUT', 'T-']] : [])] });
+  const low = bare(9);
+  const at = (v) => checkHazards({ ...low.circuit, supplies: low.circuit.supplies.map((x) => ({ ...x, voltage: v })) });
+  assert.ok(at(3).doubts.some((d) => d.code === 'SIM_IC_SUPPLY_RANGE' && d.params.part === 'U1'));
+  assert.deepEqual(at(9).doubts, []);
+  assert.ok(at(16).hazards.some((h) => h.code === 'SIM_IC_SUPPLY' && h.params.part === 'U1'));
+  const shorted = checkHazards(bare(9, true).circuit);
+  assert.ok(shorted.hazards.some((h) => h.code === 'SIM_OVER_POWER' && h.params.part === 'U1'), JSON.stringify(shorted.hazards));
+});
+
+test('catalog: the LM386 is simulated, says what it leaves out and that an 8 Ω resistor stands for a speaker', () => {
+  const text = formatCatalogEntry(catalogEntry('LM386'), 'en');
+  assert.doesNotMatch(text, /Not simulated/);
+  assert.match(text, /gain of 20/);
+  assert.match(text, /8 Ω resistor/);
+  assert.match(text, /maximum power 1\.25 W/);
+  assert.match(text, /maximum voltage 15 V \(supply\)/);
+});
+
 // ---- The live page (jsdom)
 
 const example = (name) => JSON.parse(readFileSync(join(root, 'examples', name), 'utf8'));
@@ -216,4 +288,18 @@ test('page: the PC817 example runs in the page, each side on its own ground; pre
   live.tick(50, 4);
   assert.equal(live.reading.parts.U1.state, 'saturated');
   assert.ok(live.reading.parts.D1.current > 5e-3, `D1 ${live.reading.parts.D1.current}`);
+});
+
+test('page: the LM386 example amplifies in the page: the load\'s voltage swings about 1 V', async (t) => {
+  const window = await loadPage(renderPage(example('lm386-amplifier.json'), { lang: 'en' }).html);
+  if (!window) return t.skip('jsdom not installed');
+  const live = window.protoboardLive;
+  near(live.reading.parts.U1.pins.OUT, 4.5, 0.1, 'OUT at rest');
+  const seen = [];
+  for (let k = 0; k < 60; k++) {
+    live.tick(16);
+    seen.push(live.reading.parts.R1.voltage);
+  }
+  const top = Math.max(...seen.map(Math.abs));
+  assert.ok(top > 0.5 && top < 1.2, `load peaks at ${top} V`);
 });

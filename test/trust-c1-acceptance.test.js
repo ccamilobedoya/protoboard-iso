@@ -77,14 +77,14 @@ test('A1: a 74HC595 with a shiftOut sketch ends WARNINGS, with a ⚠ for U2 that
 });
 
 // ---- A2
-test('A2: an LM386 wired to a supply ends WARNINGS with a ⚠ naming U1', SLOW, () => {
-  const { r, out } = build({
-    parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'U1', part: 'LM386' }],
-    nets: [['BT1.+', 'U1.VS'], ['BT1.-', 'U1.GND']],
-  });
+// The LM386 this took is simulated now (C11, its own acceptance file): the part the kit still draws
+// only is the e-paper adapter of examples/epaper-esp32.json, which layout cannot place by itself, so
+// the CLI's review of that example is the answer: approved with warnings, its ⚠ naming EP1.
+test('A2: a part the kit only draws, wired to a supply, has a ⚠ naming it (now the e-paper adapter)', SLOW, () => {
+  const r = run(['review', 'examples/epaper-esp32.json']);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(lastLine(out), /^STATUS: WARNINGS/, out);
-  assert.ok(warnLines(out).some((l) => /\bU1\b/.test(l)), out);
+  assert.match(r.stdout, /^APPROVED WITH WARNINGS/m, r.stdout);
+  assert.ok(warnLines(r.stdout).some((l) => /\bEP1\b/.test(l)), r.stdout);
 });
 
 // ---- A3 (must not change)
@@ -216,7 +216,7 @@ test('A12: three LEDs on a 9 V battery: the Readings line names BT1 once', SLOW,
 });
 
 // ---- A13
-test('A13: catalog marks 74HC595 and LM386 as not simulated, and NE555 and LM358 not; no text points to src/ or docs/', () => {
+test('A13: catalog marks 74HC595 as not simulated, and NE555, LM358 and the LM386 (simulated since C11) not; no text points to src/ or docs/', () => {
   const list = run(['catalog']).stdout;
   const controls = ['NE555', 'LM358'];
   const marked = (name) => {
@@ -225,7 +225,7 @@ test('A13: catalog marks 74HC595 and LM386 as not simulated, and NE555 and LM358
     return bySegment || byLine;
   };
   assert.ok(marked('74HC595'), '74HC595 marked as not simulated');
-  assert.ok(marked('LM386'), 'LM386 marked as not simulated');
+  assert.ok(!marked('LM386'), 'LM386 is simulated (C11)');
   assert.ok(!marked('NE555'), 'NE555 is simulated');
   assert.ok(!marked('LM358'), 'LM358 is simulated');
   assert.match(run(['catalog', '74HC595']).stdout, /not simulated/i, 'catalog <part> says it too');

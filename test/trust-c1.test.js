@@ -32,24 +32,26 @@ const withProgram = (program) => {
   return { ...placed, parts: placed.parts.map((p) => (p.id === 'U1' ? { ...p, program } : p)) };
 };
 
+// The LM386 this used to take is simulated now (C11); the e-paper adapter of examples/epaper-esp32.json
+// is a part the kit still draws only (layout cannot place a module beside the board by itself, so
+// the circuit is the example as drawn and its review is the answer).
+const epaper = () => JSON.parse(readFileSync(join(root, 'examples/epaper-esp32.json'), 'utf8'));
 test('a wired part with no simulation model is a doubt: WARNINGS, its own ⚠ heading, hazards empty', () => {
-  const r = autoLayout({ parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'U1', part: 'LM386' }], nets: [['BT1.+', 'U1.VS'], ['BT1.-', 'U1.GND']] });
-  assert.equal(r.status, 'warnings');
-  assert.equal(r.review.verdict, 'approved-with-warnings');
-  assert.deepEqual(r.review.hazards, []);
-  assert.deepEqual(r.review.doubts.map((d) => d.code), ['SIM_PART_NOT_SIMULATED']);
-  assert.deepEqual(r.review.doubts[0].params, { part: 'U1', name: 'LM386' });
-  assert.deepEqual(r.review.doubts[0].parts, ['U1']);
-  assert.equal(r.review.summary.doubts, 1);
-  const out = text(r);
+  const v = review(epaper());
+  assert.equal(v.verdict, 'approved-with-warnings');
+  assert.deepEqual(v.hazards, []);
+  assert.deepEqual(v.doubts.map((d) => d.code), ['SIM_PART_NOT_SIMULATED']);
+  assert.deepEqual(v.doubts[0].params, { part: 'EP1', name: 'DESPI-C02' });
+  assert.deepEqual(v.doubts[0].parts, ['EP1']);
+  assert.equal(v.summary.doubts, 1);
+  const out = formatReview(v, 'en', { t, formatIssue });
   assert.match(out, /The kit cannot confirm these work/);
   assert.doesNotMatch(out, /As wired, this would damage/);
-  assert.match(out, /⚠ .*U1 \(LM386\) is drawn and wired/);
+  assert.match(out, /⚠ .*EP1 \(DESPI-C02\) is drawn and wired/);
   // The floating nodes it leaves are its own doubt's consequence: not said again.
   assert.doesNotMatch(out, /no DC path/);
-  assert.match(out, /what U1 does \(not simulated\)/);
-  assert.match(lastLine(out), /^STATUS: WARNINGS · .*1 point\(s\) are marked ⚠ above/);
-  for (const lang of ['en', 'es']) assert.doesNotMatch(text(r, lang), /\{\w+\}/);
+  assert.match(out, /what EP1 does \(not simulated\)/);
+  for (const lang of ['en', 'es']) assert.doesNotMatch(formatReview(v, lang, { t, formatIssue }), /\{\w+\}/);
 });
 
 test('a part not wired to anything is not a doubt; a plain header is simulated', () => {
@@ -164,10 +166,11 @@ test('catalog marks what is drawn but not simulated, and names no path of the so
   const list = formatCompactCatalog(compactCatalog('en'), 'en');
   const ic = list.split('\n').find((l) => l.startsWith('  ic:'));
   assert.match(ic, /not simulated: .*74HC595/);
-  assert.match(ic, /not simulated: .*LM386/);
+  assert.doesNotMatch(ic.split('not simulated')[1] ?? '', /LM386|ULN2003|ULN2803|PC817/);
   assert.doesNotMatch(ic.split('not simulated')[1], /NE555|LM358/);
   const cliList = partTypeLines('en').find((l) => l.startsWith('ic '));
-  assert.match(cliList, /74HC595 \(not simulated: drawn only\).*LM386 \(not simulated: drawn only\)/);
+  assert.match(cliList, /74HC595 \(not simulated: drawn only\)/);
+  assert.match(cliList, /LM386, ULN2003, ULN2803, PC817/);
   assert.match(cliList, /NE555, LM358,/);
   assert.match(formatCatalogEntry(catalogEntry('74HC595'), 'en'), /Not simulated: the kit draws it/);
   assert.doesNotMatch(formatCatalogEntry(catalogEntry('NE555'), 'en'), /not simulated/i);
@@ -181,8 +184,7 @@ test('the CLI review --json carries doubts next to hazards', () => {
   const dir = tempDir('pbi-c1-');
   const file = join(dir, 'c', 'circuit.json');
   mkdirSync(join(dir, 'c'));
-  const built = autoLayout({ parts: [{ id: 'BT1', type: 'battery', format: '9V' }, { id: 'U1', part: 'LM386' }], nets: [['BT1.+', 'U1.VS'], ['BT1.-', 'U1.GND']] });
-  writeFileSync(file, JSON.stringify(built.circuit));
+  writeFileSync(file, JSON.stringify(epaper()));
   const r = cli('review', join(dir, 'c'), '--json');
   const j = JSON.parse(r.stdout);
   assert.equal(j.verdict, 'approved-with-warnings');

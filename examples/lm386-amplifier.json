@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "title": {
+    "en": "An LM386 amplifying a 1 kHz signal into 8 Ω",
+    "es": "Un LM386 amplifica una señal de 1 kHz sobre 8 Ω"
+  },
+  "board": "auto",
+  "clearance": 3,
+  "description": {
+    "en": "The generator's 1 kHz, 50 mV wave goes through 10 µF into IN+; with pins 1 and 8 open the gain is 20, so the 8 Ω load (standing for a speaker: the kit has none yet) gets about 1 V peak through 220 µF, around the 4.5 V the output rests at. The oscilloscope shows both.",
+    "es": "La onda de 1 kHz y 50 mV del generador entra por 10 µF a IN+; con las patas 1 y 8 al aire la ganancia es 20, así que la carga de 8 Ω (hace de parlante: el kit todavía no tiene uno) recibe cerca de 1 V de pico a través de 220 µF, alrededor de los 4,5 V en que descansa la salida. El osciloscopio muestra las dos."
+  },
+  "parts": [
+    {
+      "id": "C1",
+      "type": "capacitor",
+      "kind": "electrolytic",
+      "value": "10u",
+      "pins": [
+        "b2",
+        "b4"
+      ]
+    },
+    {
+      "id": "U1",
+      "part": "LM386",
+      "type": "ic",
+      "pins": [
+        "e5",
+        "e6",
+        "e7",
+        "e8",
+        "f8",
+        "f7",
+        "f6",
+        "f5"
+      ]
+    },
+    {
+      "id": "C2",
+      "type": "capacitor",
+      "kind": "electrolytic",
+      "value": "220u",
+      "pins": [
+        "i8",
+        "i11"
+      ]
+    },
+    {
+      "id": "R1",
+      "type": "resistor",
+      "value": "8",
+      "power": 1,
+      "pins": [
+        "j11",
+        "j18"
+      ]
+    },
+    {
+      "id": "W1",
+      "type": "wire",
+      "color": "orange",
+      "pins": [
+        "d4",
+        "d7"
+      ]
+    },
+    {
+      "id": "W2",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "d6",
+        "T-6"
+      ]
+    },
+    {
+      "id": "W3",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "d8",
+        "T-8"
+      ]
+    },
+    {
+      "id": "W4",
+      "type": "wire",
+      "color": "red",
+      "pins": [
+        "j7",
+        "T+8"
+      ]
+    },
+    {
+      "id": "W5",
+      "type": "wire",
+      "color": "black",
+      "pins": [
+        "i18",
+        "T-18"
+      ]
+    }
+  ],
+  "supplies": [
+    {
+      "id": "V1",
+      "voltage": 9
+    },
+    {
+      "id": "G1",
+      "kind": "generator",
+      "waveform": "sine",
+      "frequency": 1000,
+      "amplitude": 0.05,
+      "positive": "e2",
+      "negative": "T-"
+    }
+  ],
+  "spec": {
+    "nets": [
+      [
+        "C1.-",
+        "U1.IN+"
+      ],
+      {
+        "pins": [
+          "U1.IN-",
+          "T-"
+        ],
+        "color": "black"
+      },
+      {
+        "pins": [
+          "U1.GND",
+          "T-"
+        ],
+        "color": "black"
+      },
+      {
+        "pins": [
+          "U1.VS",
+          "T+"
+        ],
+        "color": "red"
+      },
+      [
+        "U1.OUT",
+        "C2.+"
+      ],
+      [
+        "C2.-",
+        "R1.1"
+      ],
+      {
+        "pins": [
+          "R1.2",
+          "T-"
+        ],
+        "color": "black"
+      }
+    ],
+    "supplies": [
+      {
+        "id": "V1",
+        "voltage": 9
+      },
+      {
+        "id": "G1",
+        "kind": "generator",
+        "waveform": "sine",
+        "frequency": 1000,
+        "amplitude": 0.05,
+        "positive": "C1.+",
+        "negative": "T-"
+      }
+    ],
+    "wires": [
+      "W1",
+      "W2",
+      "W3",
+      "W4",
+      "W5"
+    ]
+  }
+}
