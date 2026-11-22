@@ -23,6 +23,7 @@ import { formatValue } from '../../core/units.js';
 import { applyFocus } from './focus.js';
 import { FIELDS, envText, rangeProblem, altitudeOfPressure } from '../../sim/environment.js';
 import { createGauge } from './gauge.js';
+import { own } from './own.js';
 
 const DEBOUNCE = 120; // ms of rest before a slider's value is solved
 const MAX_WAIT = 300; // ms: during a long drag, still solved this often
@@ -306,7 +307,7 @@ export function setupControls(page, { engine, t, decimal, changed, reading = () 
   }
   page.buildControls = (parent, id) => {
     const list = engine.controls().filter((c) => c.id === id);
-    const senses = reading()?.parts?.[id]?.env ?? [];
+    const senses = own(reading()?.parts, id)?.env ?? [];
     if (!list.length && !senses.length) return;
     const box = el(parent, 'div', null, 'adjust');
     el(box, 'h3', t('page.controls.adjust'));

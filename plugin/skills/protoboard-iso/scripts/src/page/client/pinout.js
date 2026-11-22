@@ -17,6 +17,7 @@
 
 import { partsRect } from './view.js';
 import { CHAR, PINOUT, layoutRows } from './pinout-rows.js';
+import { own } from './own.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const FREE = { top: 0.1, right: 0.06, bottom: 0.1, left: 0.06 }; // in the page, outside a recording
@@ -133,7 +134,7 @@ export function setupPinout(page) {
       const own = lit.get(id) ?? new Map();
       // With the symbol beside the part, each row starts with the symbol's name for its pin, unless it
       // already does (a chip's number, a resistor's 1, a capacitor's +).
-      const named = pinout.pins.length <= 4 ? page.symbolIds?.[id] : null;
+      const named = pinout.pins.length <= 4 ? own(page.symbolIds, id) : null;
       const withId = (p, text) => (named?.[p.name] && !text.startsWith(`${named[p.name]} · `) ? `${named[p.name]} · ${text}` : text);
       const rowPins = pinout.pins.map((p, i) => ({ ...p, text: withId(p, own.get(i)?.text ?? p.text) }));
       const holdKey = JSON.stringify([page.state.view, screen.rect.width, screen.rect.height, rowPins.map((p) => p.text)]);

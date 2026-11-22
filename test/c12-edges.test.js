@@ -39,3 +39,55 @@ test('apply: 3000 add operations are refused by the parts cap, quickly', () => {
   assert.match(r.stdout, /more than the 1000 the kit accepts/);
   assert.ok(Date.now() - start < 30_000);
 });
+
+// Every id the kit accepts, also the names an object answers from its prototype.
+const PROTO_IDS = ['__proto__', 'constructor', 'toString', 'hasOwnProperty', 'valueOf'];
+test('page: a part called __proto__, constructor, toString, hasOwnProperty or valueOf opens its card, live and with the current layer', async (t) => {
+  let JSDOM;
+  let VirtualConsole;
+  try {
+    ({ JSDOM, VirtualConsole } = await import('jsdom'));
+  } catch {
+    t.skip('jsdom is not installed');
+    return;
+  }
+  const { renderPage } = await import('../src/page.js');
+  const [a, b, c, d, e] = PROTO_IDS;
+  const circuit = {
+    supplies: [{ id: 'V1', voltage: 5 }],
+    page: { results: true, flow: true },
+    parts: [
+      { id: a, type: 'resistor', value: '220', pins: ['T+5', 'a5'] },
+      { id: b, type: 'led', color: 'red', pins: ['e5', 'f5'] },
+      { id: c, type: 'resistor', value: '1k', pins: ['j5', 'T-6'] },
+      { id: d, type: 'wire', color: 'red', pins: ['b10', 'T+10'] },
+      { id: e, type: 'capacitor', value: '100u', voltage: 25, pins: { '+': 'c10', '-': 'c12' } },
+      { id: 'W9', type: 'wire', color: 'black', pins: ['a12', 'T-12'] },
+    ],
+  };
+  const { html } = renderPage(circuit, { lang: 'en' });
+  const data = JSON.parse(html.match(/<script type="application\/json" id="page-data">([\s\S]*?)<\/script>/)[1]);
+  for (const id of PROTO_IDS) assert.ok(Object.hasOwn(data.parts, id), `${id} is in the page's data`);
+  const errors = [];
+  const virtualConsole = new VirtualConsole();
+  virtualConsole.on('jsdomError', (err) => errors.push(String(err.detail?.message ?? err.message)));
+  const dom = new JSDOM(html, { runScripts: 'outside-only', virtualConsole });
+  const { window } = dom;
+  for (const svg of window.document.querySelectorAll('svg')) svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 500 });
+  window.addEventListener('error', (ev) => errors.push(String(ev.error?.message ?? ev.message)));
+  window.eval(html.match(/<script>([\s\S]*)<\/script>/)[1]);
+  const live = window.protoboardLive;
+  for (let k = 0; k < 10; k++) live?.tick(16);
+  const doc = window.document;
+  const info = doc.querySelector('.info');
+  for (const id of PROTO_IDS) {
+    const el = [...doc.querySelectorAll('svg:not([hidden]) .parts > [data-part]')].find((x) => x.dataset.part === id);
+    assert.ok(el, `${id} is drawn`);
+    el.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    for (let k = 0; k < 3; k++) live?.tick(16);
+    assert.ok(!info.hidden, `${id}: its card is open`);
+    assert.ok(info.querySelector('h2').textContent.startsWith(id), `${id}: the card is its own (${info.querySelector('h2').textContent})`);
+  }
+  window.close();
+  assert.deepEqual(errors, []);
+});
