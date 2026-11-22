@@ -420,3 +420,16 @@ test('CD4017: Q7 on MR with a white LED on it resets at about 2.9 V, and the rev
   // It resets: Q7 is high for one time step only, and the chase starts again at D1.
   assert.ok(q7.length >= 1 && q7.every(([a, b]) => b - a < 0.01), JSON.stringify(q7));
 });
+
+// A UNO's 5 V pins into a 74HC595 fed from its 3.3 V: the inputs go 1.7 V over the chip's supply, past
+// the 0.5 V its datasheets allow (CD4017B: VDD + 0.5 V; 74HC595: its clamp diodes conduct past VCC + 0.5 V).
+test('74HC595 fed 3.3 V and driven by 5 V pins: a hazard naming each input over its supply', () => {
+  const c = layoutOnce('595-on-3v3', {
+    parts: [{ id: 'U1', part: 'UNO', program: LATCH_ONCE('MSBFIRST', '0xFF') }, { id: 'U2', part: '74HC595' }],
+    nets: [['U1.3V3', 'U2.VCC', 'U2.SRCLR'], ['U1.GND', 'U2.GND', 'U2.OE'], ['U1.D11', 'U2.SER'], ['U1.D12', 'U2.SRCLK'], ['U1.D8', 'U2.RCLK']],
+  });
+  const rev = review(c);
+  const over = rev.hazards.filter((h) => h.code === 'SIM_IC_PIN_VOLTAGE').map((h) => h.params.part);
+  assert.ok(over.length >= 1 && over.every((p) => /^U2\.(SER|SRCLK|RCLK)$/.test(p)), JSON.stringify(rev.hazards.map((h) => [h.code, h.params.part])));
+  assert.match(formatIssue(rev.hazards.find((h) => h.code === 'SIM_IC_PIN_VOLTAGE'), 'en'), /U2\.(SER|SRCLK|RCLK) has 4\.9\d V on it, more than its maximum 3\.8\d? V: it can be damaged/);
+});

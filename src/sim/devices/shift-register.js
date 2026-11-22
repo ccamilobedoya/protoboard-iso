@@ -90,7 +90,7 @@ export const shiftRegister = {
         LOGIC,
       ),
     );
-    return { own, core, outputNames: OUTPUTS };
+    return { own, core, outputNames: OUTPUTS, inputNames: INPUTS };
   },
   read(entry, h) {
     const r = logicReading(entry, h, { vcc: 'VCC', gnd: 'GND' });

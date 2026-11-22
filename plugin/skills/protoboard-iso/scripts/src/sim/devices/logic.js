@@ -36,7 +36,7 @@
 // goes to GND, so the supply pins carry what the outputs give.
 
 import { GMIN } from '../models.js';
-import { issue, note, q } from './shared.js';
+import { issue, note, q, stress } from './shared.js';
 
 const volt = (x, i) => (i >= 0 ? (x?.[i] ?? 0) : 0);
 // Under this supply the chip is off: its memory goes back to power-up and its inputs are not read
@@ -324,9 +324,11 @@ export function logicReading(entry, h, { vcc, gnd }) {
   });
   const power = entry.pins.reduce((sum, p) => sum + h.volt(p.index) * currents[p.name], 0);
   const iout = Math.max(0, ...Object.values(outputs).map((o) => Math.abs(o.current)));
+  // Each input's volts from the chip's ground (a signal over its supply is a hazard: logicNotes).
+  const inputsAt = Object.fromEntries((entry.inputNames ?? []).map((name) => [name, h.volt(pin(name)) - ref]));
   // What the chip holds now (its state, carried by a run's combinations so the review can visit it).
   const logic = core.heldLogic ?? core.logic;
-  return { logic: JSON.parse(JSON.stringify(logic)), vcc: h.volt(pin(vcc)) - ref, outputs, iout, supply: currents[vcc], ground: -currents[gnd], power, currents, levels: { ...core.levels }, between: { ...core.between } };
+  return { logic: JSON.parse(JSON.stringify(logic)), inputs: inputsAt, vcc: h.volt(pin(vcc)) - ref, outputs, iout, supply: currents[vcc], ground: -currents[gnd], power, currents, levels: { ...core.levels }, between: { ...core.between } };
 }
 
 // The inputs of a part left open: no other part on their strip ({ name: 0 }, read as low).
@@ -338,9 +340,17 @@ export function openInputs(part, c, names) {
   return open;
 }
 
-// What a logic chip says beside its limits: a supply under its minimum, an input in the undefined band.
+// An input may not go over the supply by more than this (TI CD4017B: input voltage −0.5 V to VDD + 0.5 V;
+// 74HC595: its input clamp diodes conduct past VCC + 0.5 V, IIK ±20 mA at most, NXP/TI).
+export const INPUT_OVER_SUPPLY = 0.5;
+
+// What a logic chip says beside its limits: a supply under its minimum, an input in the undefined band,
+// and an input driven over its supply (a hazard naming the pin: a 5 V board pin into a chip fed 3.3 V).
 export function logicNotes(entry, r, m) {
   const out = [];
+  // "Near the limit" only once an input is past the supply (an input high at its rail is normal use).
+  // Only with the chip's supply known (a reading at rest for the catalog has none: no line there).
+  if (r.vcc > 0) for (const [pin, v] of Object.entries(r.inputs ?? {})) out.push(stress('SIM_IC_PIN_VOLTAGE', 'voltage', v, r.vcc + INPUT_OVER_SUPPLY, 'V', { pin, of: 'input', nearAt: (r.vcc + INPUT_OVER_SUPPLY / 2) / (r.vcc + INPUT_OVER_SUPPLY) }));
   // Outside the recommended range but under the absolute maximum: not damage, not guaranteed either.
   if (r.vcc > 0.1 && (r.vcc < m.minSupply || (r.vcc > m.maxSupply && r.vcc <= m.maxAbsolute))) out.push(note('warning', 'SIM_IC_SUPPLY_RANGE', { part: entry.id, voltage: q(r.vcc, 'V'), min: q(m.minSupply, 'V'), max: q(m.maxSupply, 'V') }));
   for (const [pin, b] of Object.entries(r.between ?? {})) out.push(note('warning', 'SIM_IC_INPUT_LEVEL', { part: entry.id, pin, voltage: q(b.volts, 'V'), high: q(m.vih * r.vcc, 'V'), low: q(m.vil * r.vcc, 'V'), variant: `${b.why}${b.level ? 'High' : 'Low'}` }));
