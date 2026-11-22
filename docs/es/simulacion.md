@@ -535,7 +535,10 @@ voltaje directo de un LED medido en el banco).
 ## Todavía no
 
 Todos los chips del kit se simulan (el 555, los amplificadores operacionales, el LM393, el 74HC595, el
-CD4017, los arreglos ULN, el PC817 y el LM386); el adaptador DESPI-C02 queda sin conectar y se avisa; una placa con
+CD4017, los arreglos ULN, el PC817 y el LM386); el adaptador DESPI-C02 queda sin conectar y se avisa; el kit no tiene parlante (una
+resistencia de 8 Ω y 1 W hace sus veces detrás de un LM386, cuyo transitorio se corre desde su
+punto de reposo, `--start dc`: desde todo descargado su condensador de salida se carga por los 8 Ω y
+se lee como si el chip se recalentara); una placa con
 microcontrolador corre su programa (`"program"`, con PWM y `tone`;
 [microcontroladores.md](microcontroladores.md)). Los amplificadores operacionales todavía no
 tienen ancho de banda ni velocidad de subida: una señal rápida sale como si el chip fuera ideal (un oscilador de relajación con realimentación positiva sí corre: Newton se detiene en los bordes del rango lineal a lo sumo dos veces por cálculo, así cambia de riel; uno con un LM358, 47 kΩ y 10 nF oscila a unos 920 Hz, y la fórmula de libro da 968 Hz con rieles ideales). El 555 todavía no tiene recorridos en la vista de conductores: su corriente

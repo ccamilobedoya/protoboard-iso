@@ -137,6 +137,7 @@ dos agentes nunca se pisan: ante `REVISION_MISMATCH`, volver a leer y reintentar
 ```bash
 node bin/protoboard-iso.js history <objetivo> [--json]
 node bin/protoboard-iso.js undo <objetivo> --author claude
+node bin/protoboard-iso.js undo <objetivo> --dry-run   # lo que cambiaría undo; no se guarda nada
 ```
 
 Cada línea del historial: `{ revision, time, author, note, ops, inverse, undoes? }`. `undo`
@@ -183,8 +184,8 @@ Los roles de montaje, revisor y bibliotecario, construidos sobre estas herramien
 | Código | Significado |
 |---|---|
 | 0 | todo bien |
-| 1 | un error de entrada (`layout`: `STATUS: FIX_SPEC`, no se crea nada), errores en el circuito, un cambio rechazado (`REVISION_MISMATCH`, operaciones mal formadas, o un valor, pieza, pin, campo o agujero que el kit no puede leer: no se guarda nada), un archivo que falta, vacío o que no es JSON, nada que deshacer o ninguna posición encontrada |
-| 2 | `review` pide cambios (`layout`: `STATUS: CHANGES`), o una opción que el comando no acepta o no puede leer (`--expect-revision abc`, `--lang fr`): la opción se nombra en la última línea |
+| 1 | un error de entrada (`layout`: `STATUS: FIX_SPEC`, no se crea nada), errores en el circuito, un cambio rechazado (`REVISION_MISMATCH`, operaciones mal formadas, o un valor, pieza, pin, campo o agujero que el kit no puede leer: no se guarda nada), un archivo que falta, vacío o que no es JSON, nada que deshacer, ninguna posición encontrada o un historial dañado (`HISTORY_DAMAGED`) |
+| 2 | `review` pide cambios (`layout`: `STATUS: CHANGES`), o una opción que el comando no acepta o no puede leer (`--expect-revision abc`, `--lang fr`, `--start foo`): la opción se nombra en la última línea |
 | 3 | un error interno del kit (`error interno: …`; repórtalo con el comando; `PROTOBOARD_DEBUG=1` muestra la traza) |
 
 `apply` guarda un cambio legible pero equivocado (un corto, una colisión) y dice `Guardado como revisión N con K error(es) nuevo(s)`; `undo` lo deshace.

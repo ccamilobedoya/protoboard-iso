@@ -525,7 +525,7 @@ computed fix of the hazards (`To fix it: …`, or "The kit has no computed fix f
 
 ```text
 As wired, this would damage:
-  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA: the pin can be damaged, with D10 high.
+  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA: the pin can be damaged, with D9 + D10 high.
 To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.4 mA (maximum 40 mA).
 Keep it if showing the failure is the point. Say so to the user before changing anything.
 Checked: at rest, 3 program outputs. Not checked: peaks while switching, combinations of program outputs.

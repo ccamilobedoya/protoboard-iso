@@ -131,6 +131,7 @@ two agents never overwrite each other: on `REVISION_MISMATCH`, read again and re
 ```bash
 node bin/protoboard-iso.js history <target> [--json]
 node bin/protoboard-iso.js undo <target> --author claude
+node bin/protoboard-iso.js undo <target> --dry-run   # what undo would change; nothing is saved
 ```
 
 Each history line: `{ revision, time, author, note, ops, inverse, undoes? }`. `undo`
@@ -176,8 +177,8 @@ Layout, reviewer and parts librarian roles built on these tools: [agents.md](age
 | Code | Meaning |
 |---|---|
 | 0 | fine |
-| 1 | an input mistake (`layout`: `STATUS: FIX_SPEC`, nothing created), errors in the circuit, a refused change (`REVISION_MISMATCH`, bad operations, or a value, part, pin, field or hole the kit cannot read: nothing is saved), a file that is missing, empty or not JSON, nothing to undo, or no placement found |
-| 2 | `review` says CHANGES (`layout`: `STATUS: CHANGES`), or an option the command does not take or cannot read (`--expect-revision abc`, `--lang fr`): the option is named on the last line |
+| 1 | an input mistake (`layout`: `STATUS: FIX_SPEC`, nothing created), errors in the circuit, a refused change (`REVISION_MISMATCH`, bad operations, or a value, part, pin, field or hole the kit cannot read: nothing is saved), a file that is missing, empty or not JSON, nothing to undo, no placement found, or a damaged history (`HISTORY_DAMAGED`) |
+| 2 | `review` says CHANGES (`layout`: `STATUS: CHANGES`), or an option the command does not take or cannot read (`--expect-revision abc`, `--lang fr`, `--start foo`): the option is named on the last line |
 | 3 | an internal error in the kit (`internal error: …`; report it with the command; `PROTOBOARD_DEBUG=1` shows the stack) |
 
 `apply` saves a change that is readable but wrong (a short, a collision) and says `Saved as revision N with K new error(s)`; `undo` takes it back.
