@@ -557,6 +557,8 @@ before saying it works.
 - ✅ A part that cannot be judged is not called dead (C10b): an output that hangs from a part with no simulation model (a CD4017's LEDs) gets no `SIM_OUTPUT_NEVER_ON`; the part's not-simulated line names it (`so the kit cannot tell what U2 does, nor what D1, D2, D3 do`); one dark for a reason the kit simulated keeps its doubt
 - ✅ A note that is a hazard is a ⚠ (C10b): the simulator's notes that say a part is over a maximum are warnings, so the review's doubts (`SIM_PIN_OVER_VDDIO`, a BME280 on a UNO's I2C, judged by the run when a program runs; `SIM_BUZZER_CURRENT`, `SIM_VOLTAGE_SENSOR_RANGE`, `SIM_HALL_HIGH_SUPPLY`, `SIM_HALL_LOAD`, `SIM_TOUCH_OUTPUT_SPEC`); a BME280 over its supply names `BME280-5V`; the VDDIO line names the sketch's fix
 - ✅ A run that ends early says so where it is read (C10b): capped at 60 s or stopped by the machine's time or its steps, the warning is the first line under the header, then `Every figure below covers the first … of the … asked`, and each heading names its span; `--json` has `run.ran` beside `run.seconds` asked
+- ✅ Small truths (C10b): a transistor carrying current is never `off` (a TIP120 at 0.9 V carrying 1.7 mA is `active`); the target `.` names the page after the folder (`out/<folder>.html`, never `..html`); `catalog servo`, `SG90`, `speaker` answer with layout's "Nearest it has" text; a part hidden in one view but seen in another is a note of an APPROVED review, never a warning
+- ⬜ A spec with one board and no nets ends `✖ U1 found no place` (an UNO alone; an ESP32 alone is placed): a board beside the breadboard gets its pins by name from the nets (`MODULE_PINS`), so with none it has no place; the fix is in `src/layout.js` (found by C10b, not in its files)
 
 ## Optional, later ⬜
 

@@ -637,7 +637,9 @@ On 2026-10-18 what blocked was only visibility: the lesson profile took a part a
 view as soon as it was below 85 % visible in each (the inspector's note threshold), and counted two
 parts covering it in one view as two views. Since 2026-10-20 it blocks when the part's **best view**
 shows less than 70 % of it (`hiddenBelow` in `PROFILES.lesson`), counted per view. A 555 seen 73 %
-from the front and 69 % from the back no longer blocks; it reads well.
+from the front and 69 % from the back no longer blocks; it reads well. A part hidden in one view
+but seen well enough in another is advice: `review` lists it as a note (since 2026-11), never as a
+warning beside an APPROVED, so `review` and `layout` give one verdict for one circuit.
 
 Four more lesson circuits tried on 2026-10-20: an NPN switch, a potentiometer divider and a 555
 astable come out approved at the first try; an ESP32 DevKit with a button and an LED was left with

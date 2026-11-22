@@ -122,3 +122,71 @@ test('a run cut by its time or capped at 60 s says so first, and each figure nam
   assert.match(text[2], /^Cada cifra de abajo cubre los primeros 60 s de los 120 s pedidos/);
   assert.match(text.find((l) => l.startsWith('Lecturas')) ?? '', /60 s/);
 });
+
+// ---- 6. Small truths
+
+test('a Darlington carrying milliamps under 1 V at its base is not called off', async () => {
+  const { simulate } = await import('../src/sim/index.js');
+  const r = autoLayout({
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 12, positive: 'T+', negative: 'T-' }],
+    parts: [{ id: 'RB', type: 'resistor', value: '100k' }, { id: 'Q1', part: 'TIP120' }, { id: 'RC', type: 'resistor', value: '1k' }],
+    nets: [['T+', 'RB.1'], ['RB.2', 'Q1.B'], ['T+', 'RC.1'], ['RC.2', 'Q1.C'], ['Q1.E', 'T-']],
+  });
+  const q = simulate(r.circuit).parts.Q1;
+  assert.ok(q.vbe < 1 && q.currents.C > 1e-3, `${q.vbe} V, ${q.currents.C} A`);
+  assert.notEqual(q.region, 'off');
+  // One with nothing at its base is still off.
+  const idle = autoLayout({
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 12, positive: 'T+', negative: 'T-' }],
+    parts: [{ id: 'RB', type: 'resistor', value: '10M' }, { id: 'Q1', part: 'TIP120' }, { id: 'RC', type: 'resistor', value: '1k' }],
+    nets: [['T+', 'RB.1'], ['RB.2', 'Q1.B'], ['T+', 'RC.1'], ['RC.2', 'Q1.C'], ['Q1.E', 'T-']],
+  });
+  assert.equal(simulate(idle.circuit).parts.Q1.region, 'off');
+});
+
+const { spawnSync } = await import('node:child_process');
+const { join } = await import('node:path');
+const { mkdirSync, writeFileSync, existsSync } = await import('node:fs');
+const { tempDir } = await import('../scripts/tmp.js');
+const bin = join(new URL('..', import.meta.url).pathname, 'bin', 'protoboard-iso.js');
+const cli = (args, cwd) => spawnSync(process.execPath, [bin, ...args], { cwd, encoding: 'utf8' });
+
+test('the target "." names the page after the folder, not "..html"', () => {
+  const dir = join(tempDir('dot-target'), 'blinker');
+  mkdirSync(dir);
+  writeFileSync(join(dir, 'spec.json'), JSON.stringify({
+    supplies: [{ id: 'V1', kind: 'bench', voltage: 5, positive: 'T+', negative: 'T-' }],
+    parts: [{ id: 'R1', type: 'resistor', value: '330' }, { id: 'D1', type: 'led', color: 'red' }],
+    nets: [['T+', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'T-']],
+  }));
+  assert.equal(cli(['layout', '.', 'spec.json'], dir).status, 0);
+  const page = cli(['page', '.'], dir);
+  assert.equal(page.status, 0, page.stderr);
+  assert.match(page.stdout, /blinker\.html/);
+  assert.ok(existsSync(join(dir, 'out', 'blinker.html')));
+  assert.ok(!existsSync(join(dir, 'out', '..html')));
+});
+
+test('catalog of a servo, an SG90 or a speaker gives layout\'s "nearest it has" text, not the list of types', () => {
+  for (const [name, near] of [['servo', /a DC motor \(type motor\)/], ['SG90', /a DC motor \(type motor\)/], ['speaker', /a passive buzzer \(type buzzer\)/]]) {
+    const r = cli(['catalog', name]);
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, new RegExp(`^The kit does not know "${name}"`));
+    assert.match(r.stdout, near);
+    assert.doesNotMatch(r.stdout, /Types:/);
+  }
+  assert.match(cli(['catalog', 'altavoz', '--lang', 'es']).stdout, /^El kit no conoce «altavoz».*zumbador pasivo/);
+});
+
+test('a jumper hidden in one view only is a note of an APPROVED review, never a warning', async () => {
+  const { review } = await import('../src/review.js');
+  const { expandRecipe } = await import('../src/recipes/index.js');
+  // potentiometer-led: W1 is 20 % visible in one view, well seen in the other.
+  const r = review(autoLayout(expandRecipe('potentiometer-led').spec).circuit, { profile: 'lesson', electrical: false });
+  assert.equal(r.verdict, 'approved');
+  const hidden = r.advisory.filter((a) => a.code === 'PART_HIDDEN');
+  assert.ok(hidden.some((a) => a.params.part === 'W1' && a.params.visible < 50), JSON.stringify(hidden));
+  assert.ok(hidden.every((a) => a.severity === 'info'), JSON.stringify(hidden));
+  // The draft profile keeps what the drawing says.
+  assert.ok(review(autoLayout(expandRecipe('potentiometer-led').spec).circuit, { profile: 'draft', electrical: false }).blocking.some((a) => a.code === 'PART_HIDDEN' && a.severity === 'warning'));
+});

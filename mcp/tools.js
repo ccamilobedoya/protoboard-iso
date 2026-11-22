@@ -21,7 +21,6 @@ import {
   checkCircuit,
   formatIssue,
   t,
-  PART_TYPES,
   VIEWS,
   ANNOTATION_LAYERS,
   OP_NAMES,
@@ -46,7 +45,7 @@ import { LIMITS } from '../src/limits.js';
 import { RECIPES, resolveRecipe } from '../src/recipes/index.js';
 import { formatBoardLayout } from '../src/board/layout-text.js';
 import { appView } from './app.js';
-import { compactCatalog, catalogSuggestions, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
+import { compactCatalog, unknownText, catalogEntry, fullCatalog, formatCompactCatalog, formatCatalogEntry } from '../src/node/catalog.js';
 
 // The rasteriser `cd mcp && npm install` puts in mcp/node_modules, which the kit cannot see from src/.
 rasterSearchIn(fileURLToPath(new URL('.', import.meta.url)));
@@ -592,10 +591,7 @@ server.registerTool(
   safely(async ({ name, lang, format }) => {
     if (name) {
       const entry = catalogEntry(name, lang);
-      if (!entry) {
-        const close = catalogSuggestions(name);
-        return { isError: true, content: [{ type: 'text', text: `${t(lang, 'catalog.unknown', { name, types: Object.keys(PART_TYPES).join(', ') })}${close.length ? ` ${t(lang, 'catalog.closest', { names: close.join(', ') })}` : ''}` }] };
-      }
+      if (!entry) return { isError: true, content: [{ type: 'text', text: unknownText(name, lang) }] };
       return answer(format, entry, () => formatCatalogEntry(entry, lang));
     }
     if (format === 'json') return json(fullCatalog(lang));
