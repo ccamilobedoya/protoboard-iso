@@ -14,7 +14,8 @@ const root = new URL('../', import.meta.url).pathname;
 export const blocksOf = (text) => [...text.matchAll(/^```(\w*)(?: (\S+))?\n([\s\S]*?)^```/gm)].map((m) => ({ lang: m[1], file: m[2] ?? null, body: m[3] }));
 
 // Returns what was run: [{ command, status, stdout, quoted }], `quoted` the lines checked after it.
-export function runDoc(text, { prefix = 'pb-skill-doc-' } = {}) {
+// `quotes: false` runs the commands only (a variant of the text whose quotes no longer apply).
+export function runDoc(text, { prefix = 'pb-skill-doc-', quotes = true } = {}) {
   const dir = tempDir(prefix);
   const runs = [];
   for (const b of blocksOf(text)) {
@@ -28,7 +29,7 @@ export function runDoc(text, { prefix = 'pb-skill-doc-' } = {}) {
       const r = spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), ...args.slice(1)], { cwd: dir, encoding: 'utf8' });
       assert.equal(r.status, 0, `${b.body}\n${r.stdout}${r.stderr}`);
       runs.push({ command: b.body.trim(), status: r.status, stdout: r.stdout, lines: new Set(r.stdout.split('\n').map((l) => l.trimEnd())), quoted: 0 });
-    } else if (b.lang === 'text') {
+    } else if (b.lang === 'text' && quotes) {
       const last = runs.at(-1);
       assert.ok(last, 'a quoted output follows a command');
       for (const line of b.body.split('\n').filter((l) => l.trim())) {

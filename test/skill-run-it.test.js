@@ -17,6 +17,13 @@ test('run-it.md: each command runs and prints the lines quoted after it', () => 
   assert.ok(runs.length >= 4, 'the layout and three runs');
   const quoted = runs.reduce((n, r) => n + r.quoted, 0);
   assert.ok(quoted >= 8, `${quoted} lines quoted`);
+  // What the sketches section says beside its quotes: the same counter read with digitalRead before
+  // the delay misses both presses (it prints 0 twice).
+  const counter = runs.find((r) => r.command.startsWith('kit simulate circuits/counter'));
+  assert.ok(counter, 'the interrupt counter is run');
+  assert.match(text, /`if \(digitalRead\(2\) == LOW\) presses\+\+;` before the `delay` instead of the interrupt prints `0` twice/);
+  const polled = runDoc(text.replace('attachInterrupt(digitalPinToInterrupt(2), count, FALLING);', '').replace('void loop() {\n  delay(1000);', 'void loop() {\n  if (digitalRead(2) == LOW) presses++;\n  delay(1000);').split('## Sketches')[1], { prefix: 'pb-run-it-poll-', quotes: false }).find((r) => r.command.startsWith('kit simulate circuits/counter'));
+  assert.deepEqual(polled.stdout.match(/^ {2}\d+(?:\.\d+)? m?s +\d+$/gm).map((l) => l.trim().split(/\s+/).at(-1)), ['0', '0']);
   // The example's point: at 10 cm the LED is on, at 50 cm it is off.
   assert.match(text, /D1 \(LED\): on > 99 % of the time/);
   assert.match(text, /D1 \(LED\): off the whole time/);

@@ -41,7 +41,7 @@ D10 to ground. `layout` ends:
 
 ```text
 As wired, this would damage:
-  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA: the pin can be damaged, with D10 high.
+  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA: the pin can be damaged, with D9 + D10 high.
 To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.4 mA (maximum 40 mA).
 …
 STATUS: WARNINGS · …
@@ -70,7 +70,7 @@ Write the change yourself only when the kit has no computed fix: the same spec w
 (the parts in any order), tried first with `kit layout <folder> spec.json --dry-run`, then the same
 call without `--dry-run` if it ends `DONE`. A redesign, a transistor driving the buzzer from 5 V,
 was not asked for; tried, it ends `WARNINGS`: the buzzer straight across 5 V dissipates 1.4 W, more
-than its 500 mW, with D10 high. One trial shows it; three changes to the person's circuit would not
+than its 500 mW, with D9 + D10 high. One trial shows it; three changes to the person's circuit would not
 have been needed.
 
 ## A part the kit does not have

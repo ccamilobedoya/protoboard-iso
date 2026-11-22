@@ -8,12 +8,12 @@ that never saves, `inspect`, `query`, `suggest`, `review`, `netlist`, `simulate`
 For a value, a description, a small fix, or a circuit written by hand. Never rewrite the circuit
 file: change it with operations.
 
-```text
-kit history / kit inspect <folder>           what happened, the drawing in numbers
-kit query / kit suggest <folder> …           what is where; where a part fits (never compute holes)
-kit apply <folder> --ops '<json>' --dry-run  what the change fixes and what it breaks
-kit apply <folder> --ops '<json>' --expect-revision n [--author a] [--note t]   → a new revision
-kit review <folder>                          until APPROVED · kit undo <folder> when needed
+```bash
+kit history / kit inspect <folder>           # what happened, the drawing in numbers
+kit query / kit suggest <folder> …           # what is where; where a part fits (never compute holes)
+kit apply <folder> --ops '<json>' --dry-run  # what the change fixes and what it breaks
+kit apply <folder> --ops '<json>' --expect-revision n [--author a] [--note t]   # → a new revision
+kit review <folder>                          # until APPROVED · kit undo <folder> when needed
 ```
 
 - `kit suggest <folder> --part '<json>' --between <group>,<group>` gives placements ready to
