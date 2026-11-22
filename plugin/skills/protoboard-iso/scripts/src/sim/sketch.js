@@ -35,7 +35,7 @@
 // - a program longer than LIMITS.sketchChars is not read.
 import { LIMITS } from '../limits.js';
 const LIBRARY_OBJECTS = LIMITS.libraryObjects;
-import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, LIBRARY_INCLUDES, NOT_IN_KIT } from './libraries.js';
+import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, LIBRARY_INCLUDES, NOT_IN_KIT, isArduinoName } from './libraries.js';
 
 const TYPES = new Set(['void', 'int', 'long', 'short', 'byte', 'bool', 'boolean', 'char', 'float', 'double', 'unsigned', 'signed', 'size_t', 'word', 'String', 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t']);
 const QUALIFIERS = new Set(['const', 'static', 'volatile', 'unsigned', 'signed']);
@@ -192,6 +192,18 @@ export function translateSketch(source, { strings = [] } = {}) {
   const defineText = new Map(); // #define name → its text (a DHTTYPE that says DHT22)
   const defineLines = new Map(); // #define name → its line
   const missing = new Set();
+  // A library the kit does not have (#include <WiFi.h>): its objects (`Servo s;`, `WiFi`) and their
+  // calls do nothing and return 0, under the one line the #include gets (SIM_PROGRAM_LIBRARY).
+  let unknownLibrary = false;
+  const foreign = new Set();
+  // A name used and never declared: a real board refuses to compile it (noted once, with its line).
+  const undeclared = new Set();
+  const declared = (name) => typeOf(name) != null || functions.has(name) || defined.includes(name) || objects.has(name) || foreign.has(name);
+  const noteUndeclared = (name, at) => {
+    if (undeclared.has(name)) return;
+    undeclared.add(name);
+    issues.push({ code: 'SIM_PROGRAM_UNDECLARED', line: at, name });
+  };
   // A call the runtime does not know: noted once (it returns 0). Its name stays out of the code.
   const noteMissing = (name, at) => {
     if (missing.has(name)) return;
@@ -229,7 +241,8 @@ export function translateSketch(source, { strings = [] } = {}) {
   }
 
   // An expression up to (not including) one of the stop tokens, as JavaScript. A division whose
-  // two sides are integers stays integer, as in C: a * b / c → __int((a * b) / c).
+  // two sides are integers stays integer, as in C: a * b / c → __div((a * b), c); a remainder of two
+  // integers is __mod (both warn of a zero divisor).
   function expression(stops) {
     const parts = [];
     const ints = []; // per part: an integer term, or null for an operator
@@ -244,7 +257,10 @@ export function translateSketch(source, { strings = [] } = {}) {
         pos++;
         const index = expression([']']);
         expect(']');
-        parts[parts.length - 1] += `[__idx(${index})]`;
+        // An array named alone is passed too, so the runtime checks the index against its length
+        // (a read or a write outside it is warned; the kit reads 0 and drops the write).
+        const base = parts[parts.length - 1];
+        parts[parts.length - 1] += /^\$\w+$/.test(base) ? `[__idx(${index}, ${base})]` : `[__idx(${index})]`;
         continue;
       }
       // Where a value goes, a "/" would start a regular expression in JavaScript.
@@ -274,14 +290,16 @@ export function translateSketch(source, { strings = [] } = {}) {
       else if (!(['++', '--'].includes(t.v) && !value)) value = true;
     }
     for (let i = 1; i + 1 < parts.length; i++) {
-      if (parts[i] !== '/' || ints[i] !== null) continue;
+      if (!['/', '%'].includes(parts[i]) || ints[i] !== null) continue;
       // The left side: the operands joined by * / % before it (they bind as tightly).
       let j = i - 1;
       while (j >= 2 && ['*', '/', '%'].includes(parts[j - 1]) && ints[j - 1] === null) j -= 2;
       const left = parts.slice(j, i);
       const leftInt = left.every((part, k) => (k % 2 ? true : ints[j + k]));
       if (!leftInt || !ints[i + 1]) continue;
-      const merged = `__int((${left.join(' ')}) / ${parts[i + 1]})`;
+      // __div and __mod: C's integer division and remainder, with a division by zero warned (the
+      // runtime's, program.js).
+      const merged = `${parts[i] === '/' ? '__div' : '__mod'}((${left.join(' ')}), ${parts[i + 1]})`;
       parts.splice(j, i + 2 - j, merged);
       ints.splice(j, i + 2 - j, true);
       floats.splice(j, i + 2 - j, false);
@@ -369,6 +387,23 @@ export function translateSketch(source, { strings = [] } = {}) {
       }
       return `__wire(${args})`;
     }
+    // An object of a library the kit does not have (lcd.print(…), WiFi.begin(…), a chain of them): the
+    // arguments are evaluated, the call does nothing and returns 0. No name of it reaches the code.
+    if (t.t === 'id' && is('.', 1) && t.v !== 'Serial' && (foreign.has(t.v) || (unknownLibrary && !declared(t.v)))) {
+      pos++;
+      const args = [];
+      while (is('.') && peek(1)?.t === 'id') {
+        pos += 2;
+        if (is('(')) {
+          pos++;
+          const a = expression([')']);
+          expect(')');
+          if (a.trim()) args.push(a);
+        }
+      }
+      termInt = true;
+      return `__missing(0${args.length ? `, ${args.join(', ')}` : ''})`;
+    }
     // Serial.println(…): the one object with methods. Any other "." is refused.
     if (t.t === 'id' && t.v === 'Serial' && is('.', 1)) {
       const method = peek(2);
@@ -408,13 +443,15 @@ export function translateSketch(source, { strings = [] } = {}) {
       termInt = intFunctions.has(name) || INT_API.has(name);
       termFloat = floatFunctions.has(name) || FLOAT_API.has(name) || FLOAT_TYPES.has(name);
       termChar = charFunctions.has(name) || name === 'char';
-      if (name === 'delay') return `(yield ((${args}) / 1e3))`;
+      // __ms, __us: the wait in seconds, read as the unsigned number C passes (a negative delay is a
+      // very long one, warned).
+      if (name === 'delay') return `(yield __ms(${args}))`;
       // F("text"): the text itself (on a board it keeps the string in flash).
       if (name === 'F') {
         if (!args.trim()) throw new SketchError(t.line, 'F()');
         return `(${args})`;
       }
-      if (name === 'delayMicroseconds') return `(yield ((${args}) / 1e6))`;
+      if (name === 'delayMicroseconds') return `(yield __us(${args}))`;
       if (functions.has(name)) return `(yield* ${own(name)}(${args}))`;
       if (WAITING_API.has(name)) return `(yield* ${name}(${args}))`;
       if (SKETCH_API.includes(name)) return `${name}(${args})`;
@@ -447,6 +484,14 @@ export function translateSketch(source, { strings = [] } = {}) {
     if (t.t === 'id' && t.v === 'NULL') return '0';
     if (t.t === 'id' && (t.v === 'sizeof' || t.v === 'new' || t.v === 'delete')) throw new SketchError(t.line, t.v);
     if (t.t === 'p' && ['->', '::', '.', '[', '{'].includes(t.v)) throw new SketchError(t.line, t.v);
+    if (t.t === 'id' && !RAW_NAMES.has(t.v) && !declared(t.v) && !isArduinoName(t.v)) {
+      // With a library the kit does not have, a constant of its own (WL_CONNECTED, POSITIVE) reads 0.
+      if (unknownLibrary && /^[A-Z][A-Z0-9_]*$/.test(t.v)) {
+        termInt = true;
+        return '0';
+      }
+      noteUndeclared(t.v, t.line);
+    }
     if (t.t === 'id') return RAW_NAMES.has(t.v) ? t.v : own(t.v);
     return t.v;
   }
@@ -459,7 +504,9 @@ export function translateSketch(source, { strings = [] } = {}) {
       const op = tokens[pos++].v;
       const value = expression(stops);
       if (op === '=' ) return `${name} = __int(${value})`;
-      if (op === '/=' || op === '*=' || op === '+=' || op === '-=') return `${name} = __int(${name} ${op[0]} (${value}))`;
+      if (op === '/=') return `${name} = __div(${name}, (${value}))`;
+      if (op === '%=') return `${name} = __mod(${name}, (${value}))`;
+      if (op === '*=' || op === '+=' || op === '-=') return `${name} = __int(${name} ${op[0]} (${value}))`;
       return `${name} ${op} ${value}`;
     }
     pos = start;
@@ -497,7 +544,8 @@ export function translateSketch(source, { strings = [] } = {}) {
             if (is(',')) pos++;
           }
           expect('}');
-          value = `[${items.join(', ')}]`;
+          // As long as its size (int a[5] = {1, 2} has five elements, the rest 0), or as its list.
+          value = `__array(${size ?? 0}, [${items.join(', ')}])`;
         } else {
           const v = expression([',', ...stops]);
           if (!v.trim()) fail('=');
@@ -514,26 +562,57 @@ export function translateSketch(source, { strings = [] } = {}) {
     return `${keyword} ${out.join(', ')}`;
   }
 
+  // The blocks open now, by the line of their "{": a sketch that ends inside one, or a function
+  // defined inside one, has a brace never closed (SIM_PROGRAM_BRACE names where the block opened).
+  const open = [];
+  const unclosed = () => {
+    throw new SketchError(open[open.length - 1] ?? line(), '{', 'SIM_PROGRAM_BRACE');
+  };
   function block() {
+    open.push(peek()?.line ?? line());
     expect('{');
     scopes.push(new Map());
     const body = [];
     while (!is('}')) {
-      if (pos >= tokens.length) fail('}');
+      if (pos >= tokens.length) unclosed();
       body.push(statement());
     }
     pos++;
+    open.pop();
     scopes.pop();
     return `{ ${body.join(' ')} }`;
   }
+  // A function's definition where a statement goes (`void blink() {` inside loop()'s braces): the
+  // block before it was never closed.
+  const definesFunction = () => {
+    let k = 0;
+    while (peek(k)?.t === 'id' && (TYPES.has(peek(k).v) || QUALIFIERS.has(peek(k).v))) k++;
+    if (k === 0 || peek(k)?.t !== 'id' || !is('(', k + 1)) return false;
+    let depth = 0;
+    for (let j = pos + k + 1; j < tokens.length; j++) {
+      if (tokens[j].t !== 'p') continue;
+      if (tokens[j].v === '(') depth++;
+      else if (tokens[j].v === ')' && --depth === 0) return tokens[j + 1]?.t === 'p' && tokens[j + 1].v === '{';
+    }
+    return false;
+  };
   // A body that may be one statement: always a block in JavaScript, with the loop's turn.
   const loopBody = () => {
     const body = is('{') ? block() : `{ ${statement()} }`;
     return `{ ${body.slice(1, -1)} yield 0; }`;
   };
+  // A statement inside a function says its line first (__at: the runtime's warnings and errors name
+  // it).
   function statement() {
     const t = peek();
+    if (!t) unclosed();
+    const body = statementBody();
+    return inFunction && body && !body.startsWith('{') ? `__at(${t.line}); ${body}` : body;
+  }
+  function statementBody() {
+    const t = peek();
     if (is('{')) return block();
+    if (open.length && isTypeStart() && definesFunction()) unclosed();
     if (t.t === 'pre') {
       pos++;
       return '';
@@ -594,9 +673,11 @@ export function translateSketch(source, { strings = [] } = {}) {
           expect('(');
           const value = expression([]);
           expect(')');
+          open.push(line());
           expect('{');
           const cases = [];
           while (!is('}')) {
+            if (pos >= tokens.length) unclosed();
             if (is('case')) {
               pos++;
               const label = expression([':']);
@@ -609,6 +690,7 @@ export function translateSketch(source, { strings = [] } = {}) {
             } else cases.push(statement());
           }
           pos++;
+          open.pop();
           return `switch (${value}) { ${cases.join(' ')} }`;
         }
         case 'break':
@@ -687,7 +769,25 @@ export function translateSketch(source, { strings = [] } = {}) {
           defineText.set(define[1], define[3].trim());
           defineLines.set(define[1], t.line);
           if (/^-?\d+$/.test(define[3].trim())) defines.add(define[1]);
-        } else if (include && !LIBRARY_INCLUDES.some((n) => n.toLowerCase() === include[1].trim().toLowerCase())) issues.push({ code: 'SIM_PROGRAM_LIBRARY', line: t.line, name: include[1] });
+        } else if (include && !LIBRARY_INCLUDES.some((n) => n.toLowerCase() === include[1].trim().toLowerCase())) {
+          issues.push({ code: 'SIM_PROGRAM_LIBRARY', line: t.line, name: include[1] });
+          unknownLibrary = true;
+        }
+        continue;
+      }
+      // With a library the kit does not have, `LiquidCrystal lcd(12, 11, 5, 4, 3, 2);` or `Servo s;`
+      // declares one of its objects: read past (its arguments are not run) and kept as foreign.
+      if (unknownLibrary && t.t === 'id' && !isTypeStart() && !CLASS_BY_NAME.has(t.v) && peek(1)?.t === 'id' && !reserved(peek(1).v)) {
+        const name = peek(1).v;
+        let depth = 0;
+        for (; pos < tokens.length; pos++) {
+          const v = tokens[pos].t === 'p' ? tokens[pos].v : null;
+          if (v === '(' || v === '{') depth++;
+          else if (v === ')' || v === '}') depth--;
+          else if (v === ';' && depth === 0) break;
+        }
+        expect(';');
+        foreign.add(name);
         continue;
       }
       if (t.t === 'id' && CLASS_BY_NAME.has(t.v)) {
@@ -752,7 +852,7 @@ export function translateSketch(source, { strings = [] } = {}) {
   }
   if (!functions.has('setup') || !functions.has('loop')) issues.push({ code: 'SIM_PROGRAM_NO_LOOP', line: 1 });
   // Strict: an assignment to a name nobody declared throws (it cannot become a global of the page).
-  const prelude = `'use strict'; const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire'].join(', ')} } = api;\nconst __str = [].concat(${strings.map((s) => JSON.stringify(s)).join(', ')});`;
+  const prelude = `'use strict'; const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us'].join(', ')} } = api;\nconst __str = [].concat(${strings.map((s) => JSON.stringify(s)).join(', ')});`;
   const js = `${prelude}\n${out.join('\n')}\nreturn { setup: typeof $setup === 'function' ? $setup : function* () {}, loop: typeof $loop === 'function' ? $loop : function* () {} };`;
   return { js: issues.some((i) => i.code === 'SIM_PROGRAM_ERROR') ? null : js, issues };
 }

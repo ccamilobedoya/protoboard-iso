@@ -101,7 +101,9 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   `digitalWrite(pin, HIGH)` on an input turns its pull-up on, as on the real chip. `shiftOut` and
   `shiftIn` with `MSBFIRST` / `LSBFIRST` (eight `digitalWrite`s of the data and clock pins, no time
   between them), `PI`, `TWO_PI`, `HALF_PI`, `DEG_TO_RAD`, `RAD_TO_DEG`. A name the kit does not have
-  stops the program with `NAME is not a name the kit's Arduino subset knows`. Arrays have one
+  stops the program with `NAME is not a name the kit's Arduino subset knows` (a name of Arduino's the
+  kit lacks, such as `RISING`) or `NAME is not declared: a real board would not compile this sketch`,
+  with the line. On an UNO `analogRead(0)` … `analogRead(5)` read the channels A0 … A5. Arrays have one
   dimension: `const int C[6][3] = {…}` is refused with its line (`SIM_PROGRAM_ARRAY_DIMENSIONS`);
   write it as one list, `C[row * 3 + column]`.
 - **Serial prints as a board's `Print` does:** a `char` (`'Z'`, a `char` variable, `(char) 65`, a
@@ -110,6 +112,21 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   (`A`) and `Serial.write("text")` the text; an integer's second argument is its base (`DEC`, `HEX`,
   `OCT`, `BIN`; a negative one in another base as its 32 bits, `-1` in `HEX` is `FFFFFFFF`), a
   float's is its decimals (`Serial.println(3.14159, 3)` is `3.142`).
+- **What a real board would show, the kit says** (each a warning with its line, a ⚠ of the review,
+  and the sketch goes on as far as a board would): a pin the board does not have
+  (`SIM_PROGRAM_PIN_UNKNOWN`, the call does nothing); `digitalWrite(pin, HIGH)` on a pin never set as
+  `OUTPUT` (`SIM_PROGRAM_NOT_OUTPUT`: on an UNO the pull-up sources it, an LED barely glows; on an
+  ESP32 nothing changes); `analogWrite` on a pin with no PWM (`SIM_PROGRAM_NO_PWM`, HIGH from 128); an
+  integer division or remainder by zero (`SIM_PROGRAM_DIVIDE_ZERO`: 0 and on, the board's result is
+  undefined; an ESP32 stops there, as its chip raises an exception and restarts); an array read or
+  written outside its elements (`SIM_PROGRAM_OUT_OF_BOUNDS`: the kit reads 0 and drops the write, a
+  board touches other memory; `int a[5] = {1, 2}` has five elements, the rest 0); a negative `delay`
+  (`SIM_PROGRAM_DELAY_NEGATIVE`: an unsigned argument, about 49 days, a wait to the end of the run);
+  a name never declared (`SIM_PROGRAM_UNDECLARED`, a board refuses to compile it; the kit runs until
+  it gets there); a brace never closed (`SIM_PROGRAM_BRACE`, with the line where its block opened; it
+  does not run); an `#include` of a library the kit does not have (`SIM_PROGRAM_LIBRARY`, one line: its
+  objects, `Servo s;`, `WiFi.begin(…)`, and its constants do nothing and read 0). The runtime's are
+  seen in the states the review solves (setup() and loop() up to its first wait) and in a run.
 - **How it runs:** every function becomes a generator, so `delay()` waits in simulated time. The
   program runs between time steps, from the voltages of the step before, as the 555's latch: a
   change takes effect one step later (1 ms in the page). At t = 0 it starts over from the

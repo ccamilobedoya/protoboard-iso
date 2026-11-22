@@ -103,7 +103,10 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   chip real.
   `shiftOut` y `shiftIn` con `MSBFIRST` / `LSBFIRST` (ocho `digitalWrite` de las patas de datos y de
   reloj, sin tiempo entre ellos), `PI`, `TWO_PI`, `HALF_PI`, `DEG_TO_RAD`, `RAD_TO_DEG`. Un nombre que
-  el kit no tiene detiene el programa con `NAME is not a name the kit's Arduino subset knows`. Los
+  el kit no tiene detiene el programa con `NAME is not a name the kit's Arduino subset knows` (un
+  nombre de Arduino que el kit no tiene, como `RISING`) o `NAME is not declared: a real board would not
+  compile this sketch`, con la línea. En un UNO `analogRead(0)` … `analogRead(5)` leen los canales
+  A0 … A5. Los
   arreglos tienen una dimensión: `const int C[6][3] = {…}` se rechaza con su línea
   (`SIM_PROGRAM_ARRAY_DIMENSIONS`); escríbelo como una sola lista, `C[fila * 3 + columna]`.
 - **Serial imprime como el `Print` de una placa:** un `char` (`'Z'`, una variable `char`, `(char) 65`,
@@ -112,6 +115,22 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   el byte (`A`) y `Serial.write("texto")` el texto; el segundo argumento de un entero es su base
   (`DEC`, `HEX`, `OCT`, `BIN`; un negativo en otra base, como sus 32 bits: `-1` en `HEX` es
   `FFFFFFFF`), el de un float, sus decimales (`Serial.println(3.14159, 3)` es `3.142`).
+- **Lo que mostraría una placa real, el kit lo dice** (cada uno un aviso con su línea, un ⚠ de la
+  revisión, y el programa sigue hasta donde seguiría una placa): un pin que la placa no tiene
+  (`SIM_PROGRAM_PIN_UNKNOWN`, la llamada no hace nada); `digitalWrite(pin, HIGH)` en un pin que nunca
+  se configuró como `OUTPUT` (`SIM_PROGRAM_NOT_OUTPUT`: en un UNO lo alimenta el pull-up, un LED apenas
+  brilla; en un ESP32 no cambia nada); `analogWrite` en un pin sin PWM (`SIM_PROGRAM_NO_PWM`, HIGH desde
+  128); una división o un resto enteros por cero (`SIM_PROGRAM_DIVIDE_ZERO`: 0 y sigue, en la placa el
+  resultado no está definido; un ESP32 se detiene ahí, porque su chip lanza una excepción y se
+  reinicia); un arreglo leído o escrito fuera de sus elementos (`SIM_PROGRAM_OUT_OF_BOUNDS`: el kit lee
+  0 y descarta lo escrito, una placa toca otra memoria; `int a[5] = {1, 2}` tiene cinco elementos, el
+  resto 0); un `delay` negativo (`SIM_PROGRAM_DELAY_NEGATIVE`: un argumento sin signo, unos 49 días,
+  una espera hasta el final de la ejecución); un nombre nunca declarado (`SIM_PROGRAM_UNDECLARED`, una
+  placa no lo compila; el kit corre hasta llegar ahí); una llave sin cerrar (`SIM_PROGRAM_BRACE`, con la
+  línea donde abrió su bloque; no corre); un `#include` de una librería que el kit no tiene
+  (`SIM_PROGRAM_LIBRARY`, una línea: sus objetos, `Servo s;`, `WiFi.begin(…)`, y sus constantes no
+  hacen nada y leen 0). Los del entorno de ejecución se ven en los estados que resuelve la revisión
+  (setup() y loop() hasta su primera espera) y en una ejecución.
 - **Cómo corre:** cada función pasa a ser un generador, así que `delay()` espera en tiempo simulado.
   El programa corre entre pasos de tiempo, con los voltajes del paso anterior, como el biestable del
   555: un cambio vale un paso después (1 ms en la página). En t = 0 vuelve a empezar con los voltajes

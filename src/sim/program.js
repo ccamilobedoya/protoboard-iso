@@ -34,7 +34,7 @@
 // checked against the runtime's own arrays. A method asks board.ask({ cls, method, pin | address, … })
 // and the sensor's device answers (it holds the truth: its power, its cache, the environment).
 
-import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, heatIndex, altitudeOf, seaLevelOf } from './libraries.js';
+import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, heatIndex, altitudeOf, seaLevelOf, isArduinoName } from './libraries.js';
 
 const BUDGET = 2000; // loop turns or loop() calls per advance before it lets the step go on
 const LOG = 40; // Serial lines kept
@@ -42,8 +42,14 @@ const LINE_MAX = 1000; // characters kept of one Serial line
 const ARRAY_MAX = 100_000; // elements of one array (an ESP32 has 320 KB of RAM)
 const MODE = { INPUT: 0, OUTPUT: 1, INPUT_PULLUP: 2, INPUT_PULLDOWN: 3 };
 // A name the sketch uses that nobody defines: JavaScript says "$NAME is not defined" ($ is the
-// translator's prefix, sketch.js); the error says it is not in the kit's Arduino subset, by its name.
-const errorText = (e) => String(e?.message ?? e).replace(/^\$([A-Za-z_]\w*) is not defined$/, "$1 is not a name the kit's Arduino subset knows");
+// translator's prefix, sketch.js); the error says, by its name, that a real board would not compile
+// it, or, for a name of Arduino's the kit lacks (RISING), that the kit's subset does not know it. The
+// line is the statement's that ran last (__at).
+const errorText = (e, line) => {
+  const text = String(e?.message ?? e).replace(/^\$([A-Za-z_]\w*) is not defined$/, (_, name) => (isArduinoName(name) ? `${name} is not a name the kit's Arduino subset knows` : `${name} is not declared: a real board would not compile this sketch`));
+  return line ? `${text} (line ${line})` : text;
+};
+const WARNINGS_MAX = 16; // distinct runtime warnings a runner keeps (each once: its code, line and pin)
 // Analog pin names: GPIO numbers on each family (Arduino-ESP32 and the UNO's core).
 const ANALOG = {
   uno: [14, 15, 16, 17, 18, 19],
@@ -75,7 +81,27 @@ export function createRunner(js, board) {
   const pins = Object.create(null);
   for (const [gpio, s] of Object.entries(board.states ?? {})) pins[gpio] = { ...s };
   const pin = (n) => (pins[n] ??= { mode: 'input', level: 0, pull: null, pwm: null });
-  const runner = { read: board.read, ask: board.ask ?? null, pins, time: 0, wait: 0, log: [], stamps: [], printed: 0, line: '', error: null, notes: [], changed: false, waitingUntil: 0, looking: null, stuck: false };
+  const runner = { read: board.read, ask: board.ask ?? null, pins, time: 0, wait: 0, log: [], stamps: [], printed: 0, line: '', error: null, notes: [], warnings: [], changed: false, waitingUntil: 0, looking: null, stuck: false };
+  // The line of the statement running now (the translator's __at), for what the runtime warns of.
+  let at = 0;
+  // A mistake a real board would show (a pin it does not have, a division by zero…): kept in
+  // runner.warnings ({ code, line, … }), once per pin for a pin's (its first line) and once per line
+  // otherwise, which the board's limits turn into warnings (devices/mcu.js); the program goes on as the
+  // board would.
+  const keyOf = (w) => (w.pin != null ? `${w.code} pin ${w.pin}` : `${w.code} line ${w.line}`);
+  const warn = (code, params = {}) => {
+    const w = { code, line: at, ...params };
+    if (runner.warnings.length >= WARNINGS_MAX || runner.warnings.some((x) => keyOf(x) === keyOf(w))) return;
+    runner.warnings.push(w);
+  };
+  // The board's GPIO numbers (devices/mcu.js gives them): a call with a number not among them is warned
+  // and does nothing, as on a board that has no such pin. Without the list every number is taken.
+  const known = board.pins ? new Set(board.pins) : null;
+  const has = (n, fn) => {
+    if (!known || known.has(n)) return true;
+    warn('SIM_PROGRAM_PIN_UNKNOWN', { pin: Number.isFinite(Number(n)) ? Number(n) : String(n), name: fn });
+    return false;
+  };
   const set = (n, values) => {
     const p = pin(n);
     for (const [k, v] of Object.entries(values)) {
@@ -194,16 +220,22 @@ export function createRunner(js, board) {
       return value;
     },
     pinMode(n, mode) {
+      if (!has(n, 'pinMode')) return;
       if (mode === MODE.OUTPUT) set(n, { mode: 'output', pull: null });
       else set(n, { mode: 'input', pull: mode === MODE.INPUT_PULLUP ? 'up' : mode === MODE.INPUT_PULLDOWN ? 'down' : null, pwm: null });
     },
     digitalWrite(n, value) {
+      if (!has(n, 'digitalWrite')) return;
       const p = pin(n);
       if (p.mode === 'output') set(n, { level: value ? 1 : 0, pwm: null });
-      // On an AVR, writing HIGH to an input turns its pull-up on (the old way to ask for it).
-      else if (board.family === 'uno') set(n, { pull: value ? 'up' : null });
+      else {
+        // HIGH to a pin never set as an output: on an AVR it turns the pull-up on (the pin sources a
+        // fraction of a milliampere through it), on an ESP32 nothing changes. Said once, with the line.
+        if (value) warn('SIM_PROGRAM_NOT_OUTPUT', { pin: n });
+        if (board.family === 'uno') set(n, { pull: value ? 'up' : null });
+      }
     },
-    digitalRead: (n) => digital(n),
+    digitalRead: (n) => (has(n, 'digitalRead') ? digital(n) : 0),
     *pulseIn(n, value, timeout = PULSE_IN_DEFAULT) {
       return yield* pulse(n, value, timeout);
     },
@@ -212,6 +244,9 @@ export function createRunner(js, board) {
       return yield* pulse(n, value, timeout);
     },
     analogRead(n) {
+      // On an UNO analogRead(0) … analogRead(5) are the channels A0 … A5, as the core reads them.
+      if (board.family === 'uno' && n >= 0 && n <= 5 && Number.isInteger(n)) n += 14;
+      if (!has(n, 'analogRead')) return 0;
       const r = volts(n);
       if (!r) return 0;
       // Full scale: the board's own rail (an AVR's AVcc) or its fixed reference.
@@ -221,9 +256,14 @@ export function createRunner(js, board) {
     // PWM, 8 bits: 0 is LOW, 255 HIGH, in between a square wave. On an UNO only its PWM pins;
     // any other reads it as digitalWrite (128 and up is HIGH), as the core does.
     analogWrite(n, value) {
+      if (!has(n, 'analogWrite')) return;
       const v = Math.min(255, Math.max(0, Math.round(value)));
       const freq = board.family === 'uno' ? UNO_PWM[n] : ESP_PWM;
-      if (!freq) return set(n, { mode: 'output', level: v >= 128 ? 1 : 0, pwm: null, pull: null });
+      if (!freq) {
+        // A pin with no PWM: the core writes it HIGH from 128 and LOW below, said once.
+        warn('SIM_PROGRAM_NO_PWM', { pin: n, value: v });
+        return set(n, { mode: 'output', level: v >= 128 ? 1 : 0, pwm: null, pull: null });
+      }
       set(n, { mode: 'output', pull: null, ...pwmOf(freq, v / 255) });
     },
     // ESP32 LEDC: core 3 attaches a pin (ledcAttach(pin, freq, bits), ledcWrite(pin, duty)); core 2
@@ -249,6 +289,7 @@ export function createRunner(js, board) {
     },
     // A square wave at freq Hz, half the time high; for `ms` milliseconds when given.
     tone(n, freq, ms) {
+      if (!has(n, 'tone')) return;
       set(n, { mode: 'output', pull: null, ...pwmOf(freq, 0.5) });
       tones[n] = ms > 0 ? runner.time + ms / 1e3 : Infinity;
     },
@@ -301,9 +342,40 @@ export function createRunner(js, board) {
     __int: (x) => (typeof x === 'boolean' ? Number(x) : Number.isFinite(x) ? Math.trunc(x) : 0),
     __missing: () => 0,
     // An index is always a whole number, so a[i] can never name a property ("constructor").
-    __idx: (i) => (Number.isFinite(Number(i)) ? Math.trunc(Number(i)) : 0),
+    // With the array (the translator passes one named alone), an index outside its elements is warned
+    // and goes to a spare slot past them, set to 0: a read gives 0 and a write is dropped (a real board
+    // reads or overwrites whatever memory is there).
+    __idx(i, array) {
+      const k = Number.isFinite(Number(i)) ? Math.trunc(Number(i)) : 0;
+      const size = array ? sizes.get(array) : undefined;
+      if (size === undefined || (k >= 0 && k < size)) return k;
+      warn('SIM_PROGRAM_OUT_OF_BOUNDS', { index: k, size });
+      array[size] = 0;
+      return size;
+    },
     // int a[n]: n capped, so a sketch cannot take the machine's memory.
-    __array: (n) => new Array(Math.min(ARRAY_MAX, Math.max(0, Math.trunc(Number(n)) || 0))).fill(0),
+    // int a[5] = {1, 2}: as long as its size (the rest 0, or "" in a list of texts) or as its list,
+    // capped; one spare slot past its elements takes what an index outside them reads or writes.
+    __array(n, items = []) {
+      const size = Math.min(ARRAY_MAX, Math.max(Math.max(0, Math.trunc(Number(n)) || 0), items.length));
+      const fill = items.length && items.every((x) => typeof x === 'string') ? '' : 0;
+      const array = [...items.slice(0, size), ...new Array(Math.max(0, size - items.length)).fill(fill), 0];
+      sizes.set(array, size);
+      return array;
+    },
+    __at: (n) => {
+      at = n;
+    },
+    // C's integer division and remainder. By zero: on an ESP32 (its Xtensa core) the chip stops with
+    // an exception and restarts, so the program stops here; elsewhere the kit gives 0 and goes on (a
+    // real board's result is undefined). Warned with the line either way.
+    __div: (a, b) => (Number(b) === 0 ? byZero() : api.__int(Number(a) / Number(b))),
+    __mod: (a, b) => (Number(b) === 0 ? byZero() : api.__int(Number(a) % Number(b))),
+    // delay(ms) and delayMicroseconds(µs) take unsigned numbers: a negative one is a very long wait
+    // (delay(-1) is 4 294 967 295 ms, about 49.7 days; delayMicroseconds(-1) 65 535 µs on an UNO,
+    // whose argument has 16 bits). Warned; the run shows it as a wait.
+    __ms: (ms) => unsigned(ms, 32, 'delay') / 1e3,
+    __us: (us) => unsigned(us, board.family === 'uno' ? 16 : 32, 'delayMicroseconds') / 1e6,
     ...LIBRARY_CONSTANTS,
     isnan: (x) => Number.isNaN(Number(x)),
     __wire: (sda, scl) => startWire(sda, scl),
@@ -329,6 +401,20 @@ export function createRunner(js, board) {
       // A method that waits is a generator (a real DHT read, begin()); the others return at once.
       return WAITS.has(run) ? yield* run(o, ...args) : run(o, ...args);
     },
+  };
+  const sizes = new WeakMap(); // array → its number of elements (__array)
+  const byZero = () => {
+    warn('SIM_PROGRAM_DIVIDE_ZERO', { variant: board.family === 'esp32' ? 'esp32' : 'other' });
+    if (board.family === 'esp32') throw new Error('integer division by zero: an ESP32 stops with an exception here and restarts');
+    return 0;
+  };
+  const unsigned = (x, bits, name) => {
+    const v = Math.trunc(Number(x));
+    if (!Number.isFinite(v)) return 0;
+    if (v >= 0) return v;
+    const wrapped = bits === 16 ? v & 0xffff : v >>> 0;
+    warn('SIM_PROGRAM_DELAY_NEGATIVE', { name, value: v, wrapped, variant: name });
+    return wrapped;
   };
   // ── Library objects ──
   const objects = [];
@@ -432,7 +518,7 @@ export function createRunner(js, board) {
     // eslint-disable-next-line no-new-func
     program = new Function('api', js)(api);
   } catch (e) {
-    runner.error = errorText(e);
+    runner.error = errorText(e, at);
     return runner;
   }
   let gen = program.setup();
@@ -461,7 +547,7 @@ export function createRunner(js, board) {
       try {
         r = gen.next();
       } catch (e) {
-        runner.error = errorText(e);
+        runner.error = errorText(e, at);
         break;
       }
       if (r.done) {

@@ -555,6 +555,7 @@ before saying it works.
 - ⬜ What the MCP server's instructions would add with a number from `scripts/trigger-bench.js` (the startup context is at its 48 KB): the `.ino` in the circuit's folder, a run before saying a program works
 - ✅ `delay()` lasts what it says (C10a): the time a `loop()` ran without waiting was a debt the next delay paid, so after an idle loop a `delay(300)` lasted 0 ms and the next one seemed to end at a button's release; the same in the page (one runner)
 - ✅ A `char` prints as its letter (C10a): `Serial.println('Z')`, a `char` variable, `(char) 65` and a function returning `char` printed the number; `char` arithmetic stays a number, `DEC` prints the number, `Serial.write(65)` prints `A`, `HEX`/`BIN`/`OCT`/`DEC` are an integer's base and a float's second argument its decimals
+- ✅ Mistakes a real board would show, the kit says (C10a), each a ⚠ with its line and the sketch going on as a board would: a pin the board does not have, HIGH to a pin never set as `OUTPUT` (an UNO's pull-up sources it), `analogWrite` on a pin with no PWM, an integer division by zero (an ESP32 stops there), an array outside its bounds, a negative `delay` (about 49 days), a name never declared (a board refuses to compile it), a brace never closed (where its block opened), a library the kit does not have (one line; its calls do nothing)
 
 ## Optional, later ⬜
 

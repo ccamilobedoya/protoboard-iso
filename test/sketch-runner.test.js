@@ -109,3 +109,105 @@ test('HEX, BIN, OCT and DEC as print\'s second argument; a float\'s second argum
   const r = setupOnly('Serial.println(255, HEX); Serial.println(5, BIN); Serial.println(8, OCT); Serial.println(42, DEC); Serial.println(-1, HEX); int n = 10; Serial.print(n, HEX); Serial.println(); Serial.println(3.14159, 3); float x = 2; Serial.println(x, 0); Serial.println(1.5);');
   assert.deepEqual(r.log, ['FF', '101', '10', '42', 'FFFFFFFF', 'A', '3.142', '2', '1.50']);
 });
+
+// ── 3. Mistakes a real board would show, the kit says (each with its line; the sketch goes on) ──
+
+const warned = (r) => r.runner.warnings.map((w) => [w.code, w.line]);
+const loopOnly = (body, before = '', family = 'uno') => {
+  const r = translateSketch(`${before}\nvoid setup() { Serial.begin(9600); pinMode(13, OUTPUT); }\nvoid loop() {\n${body}\n  delay(500);\n}`);
+  assert.ok(r.js, JSON.stringify(r.issues));
+  const pins = family === 'uno' ? [...Array(20).keys()] : [0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33, 34, 35, 36, 39];
+  const runner = createRunner(r.js, { family, pins, read: () => null, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 });
+  runner.advance(0);
+  return { runner, issues: r.issues, log: [...runner.log, ...(runner.line ? [runner.line] : [])] };
+};
+
+test('a pin the board does not have: warned with its line, and the sketch goes on', () => {
+  const r = loopOnly('  digitalWrite(99, HIGH);\n  Serial.println("after");');
+  assert.deepEqual(warned(r), [['SIM_PROGRAM_PIN_UNKNOWN', 4]]);
+  assert.equal(r.runner.warnings[0].pin, 99);
+  assert.deepEqual(r.log, ['after']);
+});
+
+test('HIGH to a pin never set as OUTPUT: an UNO sources it through its pull-up; warned once', () => {
+  const r = loopOnly('  digitalWrite(12, HIGH);\n  digitalWrite(12, HIGH);');
+  assert.deepEqual(warned(r), [['SIM_PROGRAM_NOT_OUTPUT', 4]]);
+  assert.equal(r.runner.pins[12].pull, 'up');
+  assert.equal(r.runner.pins[12].mode, 'input');
+  const esp = loopOnly('  digitalWrite(12, HIGH);', '', 'esp32');
+  assert.deepEqual(warned(esp), [['SIM_PROGRAM_NOT_OUTPUT', 4]]);
+  assert.equal(esp.runner.pins[12]?.pull ?? null, null, 'an ESP32 leaves it an input');
+  assert.deepEqual(warned(loopOnly('  digitalWrite(13, HIGH);')), [], 'a pin set as OUTPUT is not warned');
+});
+
+test('analogWrite on a pin with no PWM keeps the AVR behaviour and says it', () => {
+  const r = loopOnly('  analogWrite(13, 200);');
+  assert.deepEqual(warned(r), [['SIM_PROGRAM_NO_PWM', 4]]);
+  assert.equal(r.runner.pins[13].level, 1, '200 is HIGH');
+  assert.deepEqual(warned(loopOnly('  analogWrite(9, 200);')), []);
+});
+
+test('an integer division by zero: 0 and a warning; an ESP32 stops there as the chip does', () => {
+  const r = loopOnly('  int x = 10 / d;\n  int y = 7 % d;\n  int z = 10;\n  z /= d;\n  Serial.println(x + y + z);\n  float f = 1.0 / d;', 'int d = 0;');
+  assert.deepEqual(warned(r), [['SIM_PROGRAM_DIVIDE_ZERO', 4], ['SIM_PROGRAM_DIVIDE_ZERO', 5], ['SIM_PROGRAM_DIVIDE_ZERO', 7]]);
+  assert.deepEqual(r.log, ['0'], 'a float division by zero is no warning (it is inf)');
+  assert.equal(r.runner.error, null);
+  const esp = loopOnly('  int x = 10 / d;\n  Serial.println(x);', 'int d = 0;', 'esp32');
+  assert.match(esp.runner.error, /division by zero.*\(line 4\)/);
+  assert.deepEqual(esp.log, []);
+  assert.deepEqual(loopOnly('  Serial.println(7 / 2);\n  Serial.println(-7 % 3);').log, ['3', '-1'], 'C\'s integer division and remainder');
+});
+
+test('an array read or written outside its bounds: warned, reads 0, the write dropped', () => {
+  const r = loopOnly('  Serial.println(a[7]);\n  a[7] = 5;\n  Serial.println(a[7]);\n  Serial.println(a[2]);\n  Serial.println(b[4]);', 'int a[3] = {1, 2, 3};\nint b[5] = {9};');
+  assert.deepEqual(warned(r), [['SIM_PROGRAM_OUT_OF_BOUNDS', 5], ['SIM_PROGRAM_OUT_OF_BOUNDS', 6], ['SIM_PROGRAM_OUT_OF_BOUNDS', 7]]);
+  assert.deepEqual(r.log, ['0', '0', '3', '0'], 'int b[5] = {9} has five elements');
+  assert.deepEqual(r.runner.warnings[0], { code: 'SIM_PROGRAM_OUT_OF_BOUNDS', line: 5, index: 7, size: 3 });
+});
+
+test('a negative delay is the very long wait of an unsigned argument, warned', () => {
+  const r = loopOnly('  Serial.println("on");\n  delay(-1);\n  Serial.println("off");');
+  assert.deepEqual(warned(r), [['SIM_PROGRAM_DELAY_NEGATIVE', 5]]);
+  assert.equal(r.runner.warnings[0].wrapped, 4294967295);
+  assert.ok(r.runner.until() > 4e6, 'it waits about 49.7 days');
+  r.runner.advance(10);
+  assert.deepEqual(r.runner.log, ['on'], 'still waiting after 10 s');
+});
+
+test('a name never declared: a real board refuses to compile it, said with its line', () => {
+  const r = translateSketch('void setup() { Serial.begin(9600); }\nvoid loop() {\n  Serial.println(counter);\n  counter = 5;\n  delay(500);\n}');
+  assert.deepEqual(r.issues.map((i) => [i.code, i.line, i.name]), [['SIM_PROGRAM_UNDECLARED', 3, 'counter']]);
+  const runner = createRunner(r.js, { family: 'uno', read: () => null, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5 });
+  runner.advance(0);
+  assert.equal(runner.error, 'counter is not declared: a real board would not compile this sketch (line 3)');
+  // A name of Arduino's the kit lacks is not "undeclared": a real board compiles it.
+  const arduino = translateSketch('void setup() { int x = RISING; }\nvoid loop() { delay(10); }');
+  assert.deepEqual(arduino.issues, []);
+  // Declared names of every kind are not noted.
+  const fine = translateSketch('#define N 3\nint g = 1;\nint f(int p) { return p + g + N; }\nvoid setup() { for (int i = 0; i < N; i++) { int k = f(i); g += k; } }\nvoid loop() { delay(10); }');
+  assert.deepEqual(fine.issues, []);
+});
+
+test('a brace never closed: said with the line where its block opened', () => {
+  const eof = translateSketch('void setup() {\n  pinMode(13, OUTPUT);\n}\nvoid loop() {\n  digitalWrite(13, HIGH);\n  delay(500);');
+  assert.equal(eof.js, null);
+  assert.deepEqual(eof.issues.map((i) => [i.code, i.line]), [['SIM_PROGRAM_BRACE', 4]]);
+  const inner = translateSketch('void loop() {\n  if (1) {\n    delay(5);\n}\nvoid setup() {\n  delay(1);\n}');
+  assert.deepEqual(inner.issues.map((i) => [i.code, i.line]), [['SIM_PROGRAM_BRACE', 1]], 'a function defined inside a block: the block before it');
+});
+
+test('a library the kit does not have: one line, and its objects and calls do nothing', () => {
+  const r = translateSketch('#include <WiFi.h>\n#include <LiquidCrystal.h>\nLiquidCrystal lcd(12, 11, 5, 4, 3, 2);\nvoid setup() { Serial.begin(9600); WiFi.begin("ssid", "pass"); lcd.begin(16, 2); lcd.setCursor(0, 1).print("x"); }\nvoid loop() { Serial.println(WiFi.status() == WL_CONNECTED); delay(500); }');
+  assert.ok(r.js, JSON.stringify(r.issues));
+  assert.deepEqual(r.issues.map((i) => [i.code, i.line, i.name]), [['SIM_PROGRAM_LIBRARY', 1, 'WiFi.h'], ['SIM_PROGRAM_LIBRARY', 2, 'LiquidCrystal.h']]);
+  const runner = createRunner(r.js, { family: 'esp32', read: () => null, vil: 0.3, vih: 0.6, adcBits: 12, adcFull: 3.3 });
+  runner.advance(0);
+  assert.equal(runner.error, null);
+  assert.deepEqual(runner.log, ['1'], 'WiFi.status() and WL_CONNECTED are both 0 here');
+});
+
+test('the review turns a program\'s mistake into a ⚠ with its line', async () => {
+  const { checkHazards } = await import('../src/sim/index.js');
+  const doubts = checkHazards(uno('void setup() { pinMode(8, OUTPUT); }\nvoid loop() {\n  digitalWrite(99, HIGH);\n  analogWrite(8, 50);\n  delay(500);\n}')).doubts;
+  assert.deepEqual(doubts.filter((d) => d.code.startsWith('SIM_PROGRAM_')).map((d) => [d.code, d.params.line, d.params.pin]), [['SIM_PROGRAM_PIN_UNKNOWN', 3, '99'], ['SIM_PROGRAM_NO_PWM', 4, 'D8']]);
+});

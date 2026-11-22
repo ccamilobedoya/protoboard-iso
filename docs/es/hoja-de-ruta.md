@@ -562,6 +562,7 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ⬜ Lo que agregarían las instrucciones del servidor MCP con una cifra de `scripts/trigger-bench.js` (el contexto de arranque está en sus 48 KB): el `.ino` en la carpeta del circuito, una ejecución antes de decir que un programa funciona
 - ✅ `delay()` dura lo que dice (C10a): el tiempo que un `loop()` corrió sin esperar era una deuda que pagaba la espera siguiente, así que tras un loop ocioso un `delay(300)` duraba 0 ms y el siguiente parecía acabar al soltar un botón; lo mismo en la página (un solo ejecutor)
 - ✅ Un `char` se imprime como su letra (C10a): `Serial.println('Z')`, una variable `char`, `(char) 65` y una función que devuelve `char` imprimían el número; la aritmética con `char` sigue siendo un número, `DEC` imprime el número, `Serial.write(65)` imprime `A`, `HEX`/`BIN`/`OCT`/`DEC` son la base de un entero y el segundo argumento de un float, sus decimales
+- ✅ Los errores que mostraría una placa real, el kit los dice (C10a), cada uno un ⚠ con su línea y el programa sigue como en una placa: un pin que la placa no tiene, HIGH a un pin nunca configurado como `OUTPUT` (lo alimenta el pull-up de un UNO), `analogWrite` en un pin sin PWM, una división entera por cero (un ESP32 se detiene ahí), un arreglo fuera de sus límites, un `delay` negativo (unos 49 días), un nombre nunca declarado (una placa no lo compila), una llave sin cerrar (dónde abrió su bloque), una librería que el kit no tiene (una línea; sus llamadas no hacen nada)
 
 ## Opcional, más adelante ⬜
 
