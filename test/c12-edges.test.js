@@ -127,6 +127,8 @@ test('undo and history on a damaged history say the same, with the way on', () =
     const r = cli([command, target]);
     assert.equal(r.status, 1);
     assert.match(r.stderr, /damaged at line 2.*--new-history/s, command);
+    // C14: they name the command that takes it (undo and history do not).
+    assert.match(r.stderr, /make the next change with apply <folder> --ops '<json>' --new-history: it starts a new history/, command);
   }
 });
 

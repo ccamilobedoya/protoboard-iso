@@ -166,3 +166,13 @@ test('every limit says what it belongs to when the quantity alone does not, in b
     }
   }
 });
+
+// An entry's example is that part, or one of its type with the same pins: `catalog ULN2803` showed the
+// 555 of an example without a ULN2803 (C14, item 9).
+test("a part number's example is that part or one with the same pins, never another chip", () => {
+  assert.equal(catalogEntry('ULN2803').example, null);
+  assert.equal(catalogEntry('ULN2003').example.part.part, 'ULN2003');
+  assert.equal(catalogEntry('2N3904').example.part.part, '2N2222A', 'E, B, C like the 2N3904');
+  assert.equal(catalogEntry('BC548').example.part.part, 'BC547', 'C, B, E like the BC548');
+  assert.equal(catalogEntry('ESP32-C3-SUPERMINI').example, null);
+});

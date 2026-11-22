@@ -88,6 +88,7 @@ export default {
   'check.CIRCUIT_TOO_MANY_PARTS': 'The circuit would have {size} parts, more than the {limit} the kit accepts.',
   'check.CIRCUIT_TOO_LARGE': 'The circuit takes {size} bytes, more than the {limit} the kit accepts; it is not read.',
   'check.NOTHING_TO_UNDO': 'Nothing to undo.',
+  'check.HISTORY_DAMAGED.next': 'The history file {file} is damaged at line {line}: it is not an entry the kit can read, so undo and history cannot go on from it and nothing was saved. The circuit itself (circuit.json) is intact. To go on, make the next change with {option}: it starts a new history from the circuit as it is (the damaged file is kept beside it, ending .damaged). Or repair that line.',
   'check.HISTORY_DAMAGED': 'The history file {file} is damaged at line {line}: it is not an entry the kit can read, so undo and history cannot go on from it and nothing was saved. The circuit itself (circuit.json) is intact. To go on, start a new history from the circuit as it is with {option} (the damaged file is kept beside it, ending .damaged), or repair that line.',
   'change.newHistory': 'New history from revision {from}: undo goes back no further. The damaged one is kept as {kept}.',
 

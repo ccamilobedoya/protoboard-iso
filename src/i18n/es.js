@@ -87,6 +87,7 @@ export default {
   'check.CIRCUIT_TOO_MANY_PARTS': 'El circuito quedaría con {size} componentes, más de los {limit} que acepta el kit.',
   'check.CIRCUIT_TOO_LARGE': 'El circuito ocupa {size} bytes, más de los {limit} que acepta el kit; no se lee.',
   'check.NOTHING_TO_UNDO': 'No hay nada que deshacer.',
+  'check.HISTORY_DAMAGED.next': 'El archivo de historial {file} está dañado en la línea {line}: no es una entrada que el kit pueda leer, así que deshacer e historial no pueden seguir desde ahí y no se guardó nada. El circuito en sí (circuit.json) está intacto. Para seguir, haz el próximo cambio con {option}: empieza un historial nuevo desde el circuito como está (el archivo dañado queda al lado, terminado en .damaged). O repara esa línea.',
   'check.HISTORY_DAMAGED': 'El archivo de historial {file} está dañado en la línea {line}: no es una entrada que el kit pueda leer, así que deshacer e historial no pueden seguir desde ahí y no se guardó nada. El circuito en sí (circuit.json) está intacto. Para seguir, empieza un historial nuevo desde el circuito como está con {option} (el archivo dañado queda al lado, terminado en .damaged), o repara esa línea.',
   'change.newHistory': 'Historial nuevo desde la revisión {from}: deshacer no va más atrás. El dañado queda como {kept}.',
 

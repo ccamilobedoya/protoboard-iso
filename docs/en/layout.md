@@ -86,7 +86,8 @@ Pin names are read as people write them (`findPin`, `src/parts/pin-names.js`): t
 first, ignoring case, then synonyms (`A`/`anode`, `K`/`cathode`, `VIN`/`IN`, `VOUT`/`OUT`,
 `DISCH`/`DIS`, `THRESHOLD`/`THR`, `VDD`/`VCC`, `VSS`/`GND`, `3.3V`/`3V3`, `E`/`emitter`, `G`/`gate`…)
 and GPIO numbers on a board (`GPIO4`, `IO4`, `4` → the DevKit's `D4`), only when exactly one pin
-matches. The nets come back with the part's own names (`D1.K` → `D1.cathode`), so the steps below
+matches; on a board, `TX` and `RX` are its serial pins (the UNO's `D1`/`D0`, the C3's `GPIO21`/`GPIO20`,
+the DevKit's `TX0`/`RX0`) and the DevKit's `GPIO17`/`GPIO16` its `TX2`/`RX2`. The nets come back with the part's own names (`D1.K` → `D1.cathode`), so the steps below
 never see an alias. Circuits, `query` and `suggest` read pins the same way.
 
 ### 1. Layers: signal order from the source

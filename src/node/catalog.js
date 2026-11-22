@@ -33,8 +33,19 @@ import { TYPE_FIELDS } from '../parts/fields.js';
 
 const EXAMPLES = new URL('../../examples/', import.meta.url);
 
-// The first part of that type (and part number, when given) in the kit's examples.
+// The first part of that type (and part number, when given) in the kit's examples. With no example
+// of that number, one of the same type whose pins are the same, in the same order (a 2N3904 shows
+// a 2N2222A); none otherwise: a ULN2803 is never shown a 555's pins.
 function exampleOf(type, number) {
+  const pinsOf = (n) => String(lookupPartNumber(String(n ?? ''))?.entry.pins ?? '');
+  const pins = number ? pinsOf(number) : '';
+  return (
+    firstExample((p) => p.type === type && (!number || String(p.part).toUpperCase() === number.toUpperCase())) ??
+    (number && pins ? firstExample((p) => p.type === type && pinsOf(p.part) === pins) : null)
+  );
+}
+
+function firstExample(match) {
   let files = [];
   try {
     files = readdirSync(EXAMPLES).filter((f) => f.endsWith('.json')).sort();
@@ -48,13 +59,13 @@ function exampleOf(type, number) {
     } catch {
       continue;
     }
-    const part = (circuit.parts ?? []).find((p) => p.type === type && (!number || String(p.part).toUpperCase() === number.toUpperCase()));
+    const part = (circuit.parts ?? []).find(match);
     if (part) {
       const { description, ...plain } = part;
       return { file: `examples/${file}`, part: plain };
     }
   }
-  return number ? exampleOf(type) : null;
+  return null;
 }
 
 // The schema's words point to the kit's sources and docs ("see src/parts/db.js", "(docs/en/…)"),

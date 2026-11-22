@@ -43,3 +43,20 @@ test('findPin: nothing when the guess is unknown or not unique', () => {
   assert.equal(findPin(['IN1', 'IN2'], 'IN'), undefined);
   assert.equal(findPin(['anode', 'cathode'], ''), undefined);
 });
+
+// A board's serial pins by the names people write (C14, item 9): TX and RX on each board, and the
+// DevKit's second port by its GPIO number. Only on a development board.
+test("findPin: a board's TX and RX, and the DevKit's GPIO17 and GPIO16", () => {
+  const c3 = pinsOf({ type: 'module', part: 'ESP32-C3-SUPERMINI' });
+  assert.equal(findPin(uno, 'TX', 'module'), 'D1');
+  assert.equal(findPin(uno, 'rx', 'module'), 'D0');
+  assert.equal(findPin(c3, 'TX', 'module'), 'GPIO21');
+  assert.equal(findPin(c3, 'RX', 'module'), 'GPIO20');
+  assert.equal(findPin(c3, 'D1', 'module'), 'GPIO1', 'a GPIO number is never a serial alias');
+  assert.equal(findPin(devkit, 'TX', 'module'), 'TX0');
+  assert.equal(findPin(devkit, 'GPIO17', 'module'), 'TX2');
+  assert.equal(findPin(devkit, 'IO16', 'module'), 'RX2');
+  assert.equal(findPin(devkit, 'GPIO21', 'module'), 'D21');
+  assert.equal(findPin(uno, 'GPIO17', 'module'), undefined);
+  assert.equal(findPin(uno, 'TX'), undefined, 'not for other parts');
+});

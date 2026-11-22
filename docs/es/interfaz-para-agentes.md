@@ -149,7 +149,8 @@ Una línea del historial que el kit no puede leer (basura, bytes al azar, una es
 nada (una revisión agregada después nunca se podría deshacer). El circuito en sí es otro archivo
 y está intacto. `apply … --new-history` (MCP `apply_ops` con `new_history`) deja el archivo dañado
 al lado del nuevo (`history.jsonl.damaged`) y empieza un historial desde el circuito como está:
-deshacer vuelve hasta esa revisión y no más.
+deshacer vuelve hasta esa revisión y no más. `undo` e `history` no aceptan la opción: su negativa
+dice que el próximo cambio se haga con `apply … --new-history`.
 
 ## En la API
 

@@ -8,6 +8,7 @@
 //   findPin(['EN', …, 'D4', …], 'GPIO4')      → 'D4'
 //   findPin(['1', '2'], 'A')                  → undefined
 //   findPin(['AO', 'DO', 'GND', 'VCC'], 'A0', 'sensor-module') → 'AO' (only for that type)
+//   findPin(['SCL', …, 'D1', 'D0', …], 'TX', 'module')  → 'D1' (a board's serial pins; GPIO17 → a DevKit's TX2)
 //
 // An exact name (ignoring case) always wins, so an alias never hides a real pin.
 
@@ -69,6 +70,12 @@ const BY_TYPE = {
   'voltage-sensor': [['S', 'OUT', 'VOUT', 'SIG', 'SIGNAL']],
 };
 
+// A board's serial pins by the name people write, for a development board only: each alias goes to
+// the one of these pins the board has (UNO D1/D0, ESP32-C3 GPIO21/GPIO20, DevKit TX0/RX0), and the
+// DevKit's second port by its GPIO number (GPIO17 is TX2, GPIO16 RX2; GPIO1 TX0, GPIO3 RX0).
+const SERIAL = { TX: ['D1', 'GPIO21', 'TX0'], RX: ['D0', 'GPIO20', 'RX0'], TXD: ['D1', 'GPIO21', 'TX0'], RXD: ['D0', 'GPIO20', 'RX0'] };
+const SERIAL_GPIO = { 1: 'TX0', 3: 'RX0', 16: 'RX2', 17: 'TX2' };
+
 const norm = (s) => String(s ?? '').trim().toUpperCase().replace(/−/g, '-').replace(/\s+/g, '');
 const groupsOf = (sets) => new Map(sets.flatMap((set) => set.map((n) => [n, new Set(set)])));
 const GROUP = groupsOf(SYNONYMS);
@@ -90,6 +97,8 @@ export function findPin(names, key, type) {
     if (hit !== undefined) return hit;
   }
   const number = gpio(k);
-  if (number !== undefined) return unique(names.filter((n) => /^(?:GPIO|IO|G|D)\d/.test(norm(n)) && gpio(norm(n)) === number));
-  return undefined;
+  const byNumber = number !== undefined ? unique(names.filter((n) => /^(?:GPIO|IO|G|D)\d/.test(norm(n)) && gpio(norm(n)) === number)) : undefined;
+  if (byNumber !== undefined || type !== 'module') return byNumber;
+  const serial = SERIAL[k] ?? (number !== undefined && SERIAL_GPIO[Number(number)] ? [SERIAL_GPIO[Number(number)]] : []);
+  return unique(names.filter((n) => serial.includes(norm(n))));
 }

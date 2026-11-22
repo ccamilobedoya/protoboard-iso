@@ -184,6 +184,8 @@ async function main() {
   } catch (e) {
     if (e instanceof Exit) return;
     if (e instanceof InputError) {
+      // undo and history cannot start a new history: the message names the command that can.
+      if (e.issue?.code === 'HISTORY_DAMAGED' && (command === 'undo' || command === 'history')) e.issue = { ...e.issue, params: { ...e.issue.params, option: "apply <folder> --ops '<json>' --new-history", variant: 'next' } };
       if (command === 'layout' && !JSON_MODE) console.log(formatLayout(specProblems([inputIssueFor(e.issue, lang)]), lang, { t, formatIssue }));
       else sayError(inputErrorText(e.issue, lang), { code: e.issue?.code });
       process.exitCode = 1;

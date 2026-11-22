@@ -92,7 +92,9 @@ Los nombres de las patas se leen como los escribe la gente (`findPin`, `src/part
 primero el nombre propio de la pata, sin distinguir mayúsculas; luego sinónimos (`A`/`anode`,
 `K`/`cathode`, `VIN`/`IN`, `VOUT`/`OUT`, `DISCH`/`DIS`, `THRESHOLD`/`THR`, `VDD`/`VCC`, `VSS`/`GND`,
 `3.3V`/`3V3`, `E`/`emitter`, `G`/`gate`…) y números de GPIO en una placa (`GPIO4`, `IO4`, `4` → el
-`D4` del DevKit), solo cuando coincide exactamente una pata. Las redes vuelven con los nombres
+`D4` del DevKit), solo cuando coincide exactamente una pata; en una placa, `TX` y `RX` son sus patas
+serie (`D1`/`D0` del UNO, `GPIO21`/`GPIO20` del C3, `TX0`/`RX0` del DevKit) y `GPIO17`/`GPIO16` del
+DevKit son sus `TX2`/`RX2`. Las redes vuelven con los nombres
 propios (`D1.K` → `D1.cathode`), así los pasos siguientes nunca ven un alias. Los circuitos,
 `query` y `suggest` leen las patas igual.
 

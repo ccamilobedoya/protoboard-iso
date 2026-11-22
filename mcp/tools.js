@@ -118,7 +118,7 @@ function safely(handler) {
       return await handler({ ...args, outputLang: args.lang, lang: pickLanguage(args.lang, circuitLang(args), DEFAULT_LANG) });
     } catch (e) {
       // A file that cannot be used is said in the person's language, as the command line says it.
-      const issue = e?.issue?.code === 'HISTORY_DAMAGED' ? { ...e.issue, params: { ...e.issue.params, option: 'apply_ops new_history' } } : e?.issue;
+      const issue = e?.issue?.code === 'HISTORY_DAMAGED' ? { ...e.issue, params: { ...e.issue.params, option: 'apply_ops new_history', variant: 'next' } } : e?.issue;
       const text = e instanceof InputError ? inputErrorText(issue, pickLanguage(args.lang, circuitLang(args), DEFAULT_LANG)) : e.message;
       return { isError: true, content: [{ type: 'text', text }] };
     }
