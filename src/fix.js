@@ -123,7 +123,7 @@ function withSeries(program, ref) {
 }
 
 // The state a hazard was found in, from its `when` (a control's or a pin's), to enter on an engine.
-const stateOf = (when) => (!when ? null : when.pin ? { part: when.part, pin: when.pin, value: when.value } : { part: when.part, field: when.field, value: when.value });
+const stateOf = (when) => (!when ? null : when.held ? { part: when.part, chips: when.chips, ...(when.pins && { pins: when.pins }) } : when.pin ? { part: when.part, pin: when.pin, value: when.value } : { part: when.part, field: when.field, value: when.value });
 
 // A hazard's quantity on a DC reading: its stress (the same code, the same pin).
 function quantityOf(engine, reading, hazard) {

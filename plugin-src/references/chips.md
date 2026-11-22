@@ -25,10 +25,10 @@ Wire it right:
 - Each output through its own resistor to its LED. `QA` is on the other side of the chip from
   `QB`…`QH`: name the pins, `layout` places them.
 - The chip takes at most 70 mA through `VCC` for all its outputs together. Eight red LEDs on
-  330 Ω from 5 V go over it when all are on: `layout` can still end `DONE` (its review does not reach
-  that moment) while `kit simulate <folder> --run 3` warns `U2 carries 71.3 mA, more than its
-  maximum 70 mA`. With 1 kΩ each the run has no warning. Run a fill to its last LED and tell any
-  `warning:`.
+  330 Ω from 5 V go over it when all are on: the review visits the states the program latches into
+  the chip, so `layout` ends `WARNINGS` with `U2 carries 71.3 mA, more than its maximum 70 mA: it can
+  be damaged, with U2 QA…QH 11111111 latched …`, and `kit simulate <folder> --run 3` warns the same.
+  With 1 kΩ each (the kit's example) there is no warning.
 - From an ESP32 (3.3 V pins) feed the chip from `3V3`, not 5 V: at 5 V its inputs do not reach
   their high level (a ⚠).
 - `QH'` to the next chip's `SER` (same `SRCLK` and `RCLK`) chains a second one.

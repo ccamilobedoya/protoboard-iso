@@ -34,6 +34,7 @@ import { createEngine, MIN_PIECE } from './engine.js';
 import { paceOf } from './pace.js';
 import { FIELDS } from './environment.js';
 import { issue } from './devices/shared.js';
+import { deviceOfProgram } from './devices/index.js';
 import { LIMITS } from '../limits.js';
 import { CIRCUIT_FOLDER } from '../beside.js';
 
@@ -420,14 +421,20 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   const watches = outputsOf(program).map(tracker);
   const boards = program.devices.filter((d) => d.kind === 'MCU' && !d.unsupported && d.params?.sketch).map((d) => d.id);
   const pins = new Map(); // "U1.D13" → its tracker, once the program has made it an output
-  const ids = new Set([...watches.map((w) => w.part), ...boards]);
+  // Clocked chips (devices that `holds`): what they latch is part of each combination, so the review
+  // visits the states their outputs reach (eight LEDs filled by a 74HC595), not only the board's pins.
+  const chips = program.devices.filter((d) => !d.unsupported && deviceOfProgram(d)?.holds).map((d) => d.id);
+  const ids = new Set([...watches.map((w) => w.part), ...boards, ...chips]);
   const serial = { count: 0, head: [], tail: [], seen: Object.fromEntries(boards.map((id) => [id, 0])) };
   const flags = new Map(); // a program's error or stuck, once each
   const extremes = new Map(); // "U1.D18" → the sample farthest outside its rail
-  const combos = new Map(); // "U1 D2,D5" → { part, high }: each combination of a board's outputs seen
+  const combos = new Map(); // "U1 D2,D5 | chips" → { part, high, chips? }: each combination seen
   const sample = () => {
     const t = engine.time;
     const r = engine.readParts(ids);
+    const latched = chips.filter((id) => r[id]?.logic && !r[id].floating).map((id) => [id, { logic: r[id].logic, label: r[id].label }]);
+    const chipKey = latched.map(([id, c]) => `${id}:${JSON.stringify(c.logic)}`).join(' ');
+    if (!boards.length && latched.length && combos.size < COMBINATIONS && !combos.has(chipKey)) combos.set(chipKey, { part: null, high: [], chips: Object.fromEntries(latched) });
     for (const w of watches) {
       observe(w, t, r[w.part] && !r[w.part].floating ? w.value(r[w.part]) : undefined);
       if (w.sound) soundQuiet(w.sound, t);
@@ -451,8 +458,8 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
       if (combos.size < COMBINATIONS) {
         // A PWM or tone pin counts as high: the hazard check holds it high, its worst case (as before).
         const high = (board.pins ?? []).filter((x) => x.mode === 'output' && (x.pwm ? x.pwm.duty > 0 : x.level)).map((x) => x.name);
-        const key = `${id} ${high.join(',')}`;
-        if (!combos.has(key)) combos.set(key, { part: id, high });
+        const key = `${id} ${high.join(',')} ${chipKey}`;
+        if (!combos.has(key)) combos.set(key, { part: id, high, ...(latched.length && { chips: Object.fromEntries(latched) }) });
       }
       const pr = board.program;
       if (pr?.error && !flags.has(`e${id}`)) flags.set(`e${id}`, issue('warning', 'SIM_PROGRAM_STOPPED', { part: id, message: String(pr.error).slice(0, 80) }));

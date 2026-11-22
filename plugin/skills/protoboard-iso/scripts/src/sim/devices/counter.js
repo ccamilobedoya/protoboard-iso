@@ -84,6 +84,8 @@ export const counter = {
   // The count and what each input last read: carried over when the circuit is rebuilt (a button
   // pressed) and kept between steps.
   state: ['logic', 'levels', 'outs', 'between', 'rested'],
+  // engine.hold: a state the review visits (logic.js `held`).
+  holds: true,
   params(part, c) {
     const model = { ...COUNTERS[part.def.electrical.part], ...part.raw.model };
     return { part: part.def.electrical.part, model, open: openInputs(part, c, INPUTS) };
@@ -99,7 +101,7 @@ export const counter = {
       logicCore(
         { vcc: vdd, gnd: vss, inputs: INPUTS.map((name) => ({ name, node: h.pin(name) })), outputs: OUTPUTS.map((name) => ({ name, node: h.pin(name) })) },
         p.open,
-        { vih: m.vih, vil: m.vil, outputHigh: stage, outputLow: stage },
+        { held: p.held, vih: m.vih, vil: m.vil, outputHigh: stage, outputLow: stage },
         LOGIC,
       ),
     );
@@ -109,7 +111,7 @@ export const counter = {
     const r = logicReading(entry, h, { vcc: 'VDD', gnd: 'VSS' });
     // What each output transistor turns into heat: the drop across it times its current.
     const dissipation = Object.fromEntries(Object.entries(r.outputs).map(([name, o]) => [name, o.level == null ? 0 : Math.abs((o.level ? r.vcc - o.voltage : o.voltage) * o.current)]));
-    return { ...r, count: entry.core.logic.count, dissipation };
+    return { ...r, count: r.logic.count, dissipation, label: `Q${r.logic.count}` };
   },
   limits(entry, r) {
     const m = entry.model;

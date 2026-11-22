@@ -79,7 +79,11 @@ function netsOf(elements) {
 //   initial() → state at power-up
 //   step(state, levels, rising: Set, falling: Set)   the edges, then what the levels hold (a clear)
 //   outputs(state, levels) → [1 | 0 | null] in `outputs` order
-export function logicCore({ vcc, gnd, inputs, outputs }, open, m, chip) {
+// m.held: a state to hold whatever the inputs do (the review visiting a state a run reached, engine.hold):
+// the outputs show it and nothing moves it.
+export function logicCore({ vcc, gnd, inputs, outputs }, open, m, given) {
+  const held = m.held ? JSON.parse(JSON.stringify(m.held)) : null;
+  const chip = held ? { initial: () => JSON.parse(JSON.stringify(held)), step: () => {}, outputs: (s, lv) => given.outputs(held, lv) } : given;
   const nodes = [vcc, gnd, ...outputs.map((o) => o.node)];
   const fresh = () => Object.fromEntries(inputs.map((p) => [p.name, open[p.name] ?? null]));
   const outVolts = (level, x) => (level == null ? null : level ? volt(x, vcc) : volt(x, gnd));
@@ -287,6 +291,7 @@ export function logicCore({ vcc, gnd, inputs, outputs }, open, m, chip) {
     },
   };
   el.outs = chip.outputs(el.logic, el.levels);
+  el.heldLogic = held;
   return el;
 }
 
@@ -308,7 +313,9 @@ export function logicReading(entry, h, { vcc, gnd }) {
   });
   const power = entry.pins.reduce((sum, p) => sum + h.volt(p.index) * currents[p.name], 0);
   const iout = Math.max(0, ...Object.values(outputs).map((o) => Math.abs(o.current)));
-  return { vcc: h.volt(pin(vcc)) - ref, outputs, iout, supply: currents[vcc], ground: -currents[gnd], power, currents, levels: { ...core.levels }, between: { ...core.between } };
+  // What the chip holds now (its state, carried by a run's combinations so the review can visit it).
+  const logic = core.heldLogic ?? core.logic;
+  return { logic: JSON.parse(JSON.stringify(logic)), vcc: h.volt(pin(vcc)) - ref, outputs, iout, supply: currents[vcc], ground: -currents[gnd], power, currents, levels: { ...core.levels }, between: { ...core.between } };
 }
 
 // The inputs of a part left open: no other part on their strip ({ name: 0 }, read as low).

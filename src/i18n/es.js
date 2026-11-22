@@ -2080,4 +2080,6 @@ export default {
   'check.SIM_PROGRAM_FOLDER.noFolder': '{part}: su programa {file} nombra una carpeta, no un archivo, así que el programa no corre (y este circuito no se cargó desde una carpeta). Nombra el archivo .ino mismo, al lado de circuit.json, o escribe el texto del sketch en "program".',
   'check.SIM_PROGRAM_NOT_SKETCH.folder': '{part}: su programa "{file}" se tomó por un nombre de archivo, no por un sketch (una línea, sin ; ni llaves), y el kit solo lee un archivo .ino en la carpeta del circuito: buscó en {folder}. Nombra ahí un archivo .ino, o escribe el texto del sketch en "program": necesita setup() y loop().',
   'check.SIM_PROGRAM_NOT_SKETCH.noFolder': '{part}: su programa "{file}" se tomó por un nombre de archivo, no por un sketch (una línea, sin ; ni llaves); el kit solo lee un archivo .ino al lado de circuit.json, y este circuito no se cargó desde una carpeta. Nombra ahí un archivo .ino, o escribe el texto del sketch en "program": necesita setup() y loop().',
+  'hazard.when.held': 'con {held} fijado, como lo deja el programa en la corrida',
+  'hazard.when.heldPin': 'con {held} fijado y {pin} en alto, como en la corrida',
 };

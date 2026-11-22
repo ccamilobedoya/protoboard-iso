@@ -34,6 +34,8 @@
 //                                          memory, junction voltages, and the keys a device lists
 //                                          in `state`: a timed sensor's phase and clock) and
 //                                          solved again at once
+//   engine.hold(id, logic) → ok            a clocked chip held in a state (null lets it go): the review's
+//                                          visit of what a run's chips latched
 //   engine.drive(id, pin, level) → ok      a board's pin held at a level whatever its program says
 //                                          (1 or 0; null lets the program drive it again): the
 //                                          hazard check's program-output states (sim/index.js)
@@ -752,6 +754,17 @@ export function createEngine(source) {
       if (level == null) delete driven[pin];
       else driven[pin] = level ? 1 : 0;
       d.params = { ...d.params, driven };
+      return rebuildSettled();
+    },
+    // A clocked chip held in a state (its `logic`, as a run's reading gave it; null lets it go): the
+    // review visits the states a run's chips latched (sim/index.js, combinations).
+    hold(id, logic) {
+      const d = program.devices.find((dev) => dev.id === id && !dev.unsupported);
+      if (!d || !deviceOfProgram(d)?.holds) return false;
+      const params = { ...d.params };
+      if (logic == null) delete params.held;
+      else params.held = JSON.parse(JSON.stringify(logic));
+      d.params = params;
       return rebuildSettled();
     },
     resume(id, field) {

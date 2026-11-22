@@ -65,6 +65,8 @@ export const shiftRegister = {
   // The register, the latches and what each input last read: carried over when the circuit is rebuilt
   // (a control moved) and kept between steps.
   state: ['logic', 'levels', 'outs', 'between', 'rested'],
+  // engine.hold: a state the review visits (logic.js `held`).
+  holds: true,
   params(part, c) {
     const model = { ...SHIFT_REGISTERS[part.def.electrical.part], ...part.raw.model };
     return { part: part.def.electrical.part, model, open: openInputs(part, c, INPUTS) };
@@ -81,7 +83,7 @@ export const shiftRegister = {
       logicCore(
         { vcc, gnd, inputs: INPUTS.map((name) => ({ name, node: h.pin(name) })), outputs: OUTPUTS.map((name) => ({ name, node: h.pin(name) })) },
         p.open,
-        { vih: m.vih, vil: m.vil, outputHigh: stage(m.highResistance), outputLow: stage(m.lowResistance) },
+        { held: p.held, vih: m.vih, vil: m.vil, outputHigh: stage(m.highResistance), outputLow: stage(m.lowResistance) },
         LOGIC,
       ),
     );
@@ -89,8 +91,8 @@ export const shiftRegister = {
   },
   read(entry, h) {
     const r = logicReading(entry, h, { vcc: 'VCC', gnd: 'GND' });
-    const { reg, latch } = entry.core.logic;
-    return { ...r, register: reg.join(''), latch: latch.join(''), enabled: entry.core.levels.OE !== 1 };
+    const { reg, latch } = r.logic;
+    return { ...r, register: reg.join(''), latch: latch.join(''), enabled: entry.core.levels.OE !== 1, label: `QA…QH ${latch.join('')}` };
   },
   limits(entry, r) {
     const m = entry.model;

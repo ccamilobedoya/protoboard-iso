@@ -16,7 +16,7 @@
   {
    "id": "R1",
    "type": "resistor",
-   "value": "330"
+   "value": "1k"
   },
   {
    "id": "D1",
@@ -26,7 +26,7 @@
   {
    "id": "R2",
    "type": "resistor",
-   "value": "330"
+   "value": "1k"
   },
   {
    "id": "D2",
@@ -36,7 +36,7 @@
   {
    "id": "R3",
    "type": "resistor",
-   "value": "330"
+   "value": "1k"
   },
   {
    "id": "D3",
@@ -46,7 +46,7 @@
   {
    "id": "R4",
    "type": "resistor",
-   "value": "330"
+   "value": "1k"
   },
   {
    "id": "D4",
@@ -56,7 +56,7 @@
   {
    "id": "R5",
    "type": "resistor",
-   "value": "330"
+   "value": "1k"
   },
   {
    "id": "D5",
@@ -66,7 +66,7 @@
   {
    "id": "R6",
    "type": "resistor",
-   "value": "330"
+   "value": "1k"
   },
   {
    "id": "D6",
@@ -76,7 +76,7 @@
   {
    "id": "R7",
    "type": "resistor",
-   "value": "330"
+   "value": "1k"
   },
   {
    "id": "D7",
@@ -86,7 +86,7 @@
   {
    "id": "R8",
    "type": "resistor",
-   "value": "330"
+   "value": "1k"
   },
   {
    "id": "D8",

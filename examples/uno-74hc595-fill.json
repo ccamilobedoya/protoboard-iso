@@ -5,8 +5,8 @@
     "es": "UNO que llena ocho LED con un 74HC595"
   },
   "description": {
-    "en": "A 74HC595 shift register turns three pins of the UNO into eight outputs: shiftOut sends a byte on SER and SRCLK, a pulse on RCLK puts it on QA…QH. The sketch fills the LEDs from QA up, one every 200 ms, then starts again. OE to GND enables the outputs, SRCLR to 5 V keeps the register from clearing; each LED has its 330 Ω.",
-    "es": "Un registro de desplazamiento 74HC595 convierte tres pines del UNO en ocho salidas: shiftOut manda un byte por SER y SRCLK, un pulso en RCLK lo pone en QA…QH. El sketch llena los LED desde QA, uno cada 200 ms, y vuelve a empezar. OE a GND habilita las salidas, SRCLR a 5 V evita que el registro se borre; cada LED tiene sus 330 Ω."
+    "en": "A 74HC595 shift register turns three pins of the UNO into eight outputs: shiftOut sends a byte on SER and SRCLK, a pulse on RCLK puts it on QA…QH. The sketch fills the LEDs from QA up, one every 200 ms, then starts again. OE to GND enables the outputs, SRCLR to 5 V keeps the register from clearing; each LED has its 1 kΩ, which keeps the chip's total under its 70 mA with all eight on.",
+    "es": "Un registro de desplazamiento 74HC595 convierte tres pines del UNO en ocho salidas: shiftOut manda un byte por SER y SRCLK, un pulso en RCLK lo pone en QA…QH. El sketch llena los LED desde QA, uno cada 200 ms, y vuelve a empezar. OE a GND habilita las salidas, SRCLR a 5 V evita que el registro se borre; cada LED tiene su 1 kΩ, que deja el total del chip por debajo de sus 70 mA con los ocho encendidos."
   },
   "board": "auto",
   "clearance": 1,
@@ -23,7 +23,7 @@
     {
       "id": "R8",
       "type": "resistor",
-      "value": "330",
+      "value": "1k",
       "pins": [
         "b7",
         "b2"
@@ -41,7 +41,7 @@
     {
       "id": "R7",
       "type": "resistor",
-      "value": "330",
+      "value": "1k",
       "pins": [
         "b14",
         "b9"
@@ -59,7 +59,7 @@
     {
       "id": "R6",
       "type": "resistor",
-      "value": "330",
+      "value": "1k",
       "pins": [
         "b21",
         "b16"
@@ -77,7 +77,7 @@
     {
       "id": "R5",
       "type": "resistor",
-      "value": "330",
+      "value": "1k",
       "pins": [
         "b28",
         "b23"
@@ -95,7 +95,7 @@
     {
       "id": "R4",
       "type": "resistor",
-      "value": "330",
+      "value": "1k",
       "pins": [
         "b35",
         "b30"
@@ -113,7 +113,7 @@
     {
       "id": "R3",
       "type": "resistor",
-      "value": "330",
+      "value": "1k",
       "pins": [
         "i6",
         "i2"
@@ -131,7 +131,7 @@
     {
       "id": "R2",
       "type": "resistor",
-      "value": "330",
+      "value": "1k",
       "pins": [
         "i12",
         "i8"
@@ -149,7 +149,7 @@
     {
       "id": "R1",
       "type": "resistor",
-      "value": "330",
+      "value": "1k",
       "pins": [
         "i18",
         "i14"

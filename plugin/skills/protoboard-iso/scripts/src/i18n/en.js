@@ -2082,4 +2082,6 @@ export default {
   'check.SIM_PROGRAM_FOLDER.noFolder': '{part}: its program {file} names a folder, not a file, so the program does not run (and this circuit was not loaded from a folder). Name the .ino file itself, beside circuit.json, or write the sketch\'s text in "program".',
   'check.SIM_PROGRAM_NOT_SKETCH.folder': '{part}: its program "{file}" was taken for a file name, not a sketch (one line, no ; or braces), and the kit reads only a .ino file in the circuit\'s folder: it looked in {folder}. Name a .ino file there, or write the sketch\'s text in "program": it needs setup() and loop().',
   'check.SIM_PROGRAM_NOT_SKETCH.noFolder': '{part}: its program "{file}" was taken for a file name, not a sketch (one line, no ; or braces); the kit reads only a .ino file beside circuit.json, and this circuit was not loaded from a folder. Name a .ino file there, or write the sketch\'s text in "program": it needs setup() and loop().',
+  'hazard.when.held': 'with {held} latched, as the program leaves it in the run',
+  'hazard.when.heldPin': 'with {held} latched and {pin} high, as in the run',
 };

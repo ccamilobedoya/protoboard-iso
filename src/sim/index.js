@@ -158,30 +158,49 @@ const STRONGEST = { SIM_RELAY_UNDERDRIVEN: 'current', SIM_PIN_OVERVOLTAGE: 'volt
 const doubtKey = (i) => (i.params?.part != null ? `${i.code} ${i.params.part} ${i.params.name ?? i.params.file ?? i.params.pin ?? ''} ${i.params.line ?? ''}` : `${i.code} ${JSON.stringify(i.params ?? {})}`);
 const exceededAll = (engine, reading) => Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
 const hazardKey = (h) => `${h.code} ${h.params.part}`;
+const hazardStrength = (h) => Math.abs(Object.values(h.params ?? {}).find((v) => v && typeof v === 'object' && typeof v.value === 'number')?.value ?? 0);
 // The combinations of a run (run.js `combinations`) as states: each board's outputs held as seen
 // (the ones high, the rest low), those equal to the rest point left out. "with D2 and D5 high".
+// A combination with clocked chips (run.js `chips`) holds each chip in the state it latched then
+// (engine.hold): "with U2 holding QA…QH 11111111".
+const sameChips = (rest, chips) => Object.entries(chips ?? {}).every(([id, c]) => JSON.stringify(rest.parts?.[id]?.logic) === JSON.stringify(c.logic));
+function chipState(rest, c) {
+  if (!c.chips || sameChips(rest, c.chips)) return null;
+  const held = Object.entries(c.chips).map(([id, x]) => `${id} ${x.label}`).join(', ');
+  return { part: c.part ?? Object.keys(c.chips)[0], chips: Object.fromEntries(Object.entries(c.chips).map(([id, x]) => [id, x.logic])), held, value: 1, combination: true };
+}
 function combinationStates(rest, combinations) {
   const many = Object.values(rest.parts ?? {}).filter((r) => r?.kind === 'MCU' && r.program).length > 1;
   const out = [];
   for (const c of combinations) {
     const board = rest.parts?.[c.part];
-    if (!board) continue;
+    if (!board) {
+      const s = chipState(rest, c);
+      if (s) out.push(s);
+      continue;
+    }
     const outputs = (board.pins ?? []).filter((x) => x.mode === 'output').map((x) => x.name);
     const now = outputs.filter((n) => board.pins.find((x) => x.name === n).level);
-    // All low, or as at rest: the rest point covers it (a hazard there has no pin to name).
-    if (!c.high.length || (now.length === c.high.length && now.every((n) => c.high.includes(n)))) continue;
+    // All low, or as at rest: the rest point covers it (a hazard there has no pin to name), unless a
+    // clocked chip holds something else then.
+    const chipsHeld = chipState(rest, c);
+    const pinsAsRest = !c.high.length || (now.length === c.high.length && now.every((n) => c.high.includes(n)));
+    if (pinsAsRest && !chipsHeld) continue;
     const name = c.high.map((n) => (many ? `${c.part}.${n}` : n)).join(' + ');
     // A pin the program makes an output only later is one of them too.
     const pins = [...new Set([...outputs, ...c.high])];
-    out.push({ part: c.part, pins: pins.map((n) => [n, c.high.includes(n) ? 1 : 0]), pin: c.high[0], name, value: 1, combination: true });
+    out.push({ part: c.part, pins: pins.map((n) => [n, c.high.includes(n) ? 1 : 0]), ...(c.high.length && { pin: c.high[0], name }), ...(chipsHeld && { chips: chipsHeld.chips, held: chipsHeld.held }), value: 1, combination: true });
   }
   return out;
 }
 
 // A state on and off: a control set, or a pin held (a combination: several pins).
-export const enterState = (engine, s) => (s.pins ? s.pins.every(([pin, v]) => engine.drive(s.part, pin, v)) : s.pin ? engine.drive(s.part, s.pin, s.value) : engine.set(s.part, s.field, s.value));
+const holdChips = (engine, s, release) => Object.entries(s.chips ?? {}).every(([id, logic]) => engine.hold(id, release ? null : logic));
+export const enterState = (engine, s) => holdChips(engine, s, false) && (s.pins ? s.pins.every(([pin, v]) => engine.drive(s.part, pin, v)) : s.pin ? engine.drive(s.part, s.pin, s.value) : s.chips ? true : engine.set(s.part, s.field, s.value));
 export function leaveState(engine, s) {
+  holdChips(engine, s, true);
   if (s.pins) return s.pins.every(([pin]) => engine.drive(s.part, pin, null));
+  if (s.chips) return true;
   if (s.pin) return engine.drive(s.part, s.pin, null);
   const ok = engine.set(s.part, s.field, s.rest);
   if (s.programmed) engine.resume(s.part, s.field); // an environment program runs again, as before
@@ -229,14 +248,18 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
     const eng = s.engine ?? engine; // an environment state of a circuit that declares none runs on its own engine
     if (!enterState(eng, s)) continue;
     const reading = eng.dc();
-    const when = s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value, ...(s.end && { end: s.end }) };
+    const when = s.held ? { part: s.part, held: s.held, chips: s.chips, ...(s.pins && { pins: s.pins }), ...(s.pin && { pin: s.pin, name: s.name }), value: s.value } : s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value, ...(s.end && { end: s.end }) };
     if (reading.ok) {
       lit.see(reading);
       for (const h of exceeded(eng, reading)) {
         if (atRest.has(hazardKey(h))) continue;
         // In a combination, a pin's own hazard names that pin (U1.D10 with D9 + D10 high: D10).
         const own = s.pins && String(h.params.part).startsWith(`${s.part}.`) ? String(h.params.part).slice(s.part.length + 1) : null;
-        hazards.push({ ...h, when: own && s.pins.some(([p, v]) => p === own && v) ? { ...when, pin: own } : when });
+        const found = { ...h, when: own && s.pins.some(([p, v]) => p === own && v) ? { ...when, pin: own } : when };
+        // The same hazard in several states (a chip's supply current as more LEDs latch on): the strongest.
+        const at = hazards.findIndex((x) => hazardKey(x) === hazardKey(found));
+        if (at < 0) hazards.push(found);
+        else if (hazardStrength(found) > hazardStrength(hazards[at])) hazards[at] = found;
       }
       for (const d of warningsOf(reading)) {
         if (!doubted.has(doubtKey(d))) {
@@ -525,7 +548,9 @@ export function checkHazards(circuit) {
   const states = controlStates(compiled.program, engine);
   // A board's program that runs: the review's run first, for the combinations of outputs it reaches.
   const programmed = (compiled.program.devices ?? []).some((d) => d.kind === 'MCU' && !d.unsupported && d.params?.sketch);
-  const runFirst = programmed ? visitRun(circuit, compiled, engine, states, extraStates(circuit, engine, states), false) : null;
+  // A clocked chip (a 74HC595, a CD4017) latches states a DC point never shows: the run is visited too.
+  const clocked = (compiled.program.devices ?? []).some((d) => !d.unsupported && deviceOfProgram(d)?.holds);
+  const runFirst = programmed || clocked ? visitRun(circuit, compiled, engine, states, extraStates(circuit, engine, states), false) : null;
   const runs = runFirst?.ok && !(runFirst.issues ?? []).some((i) => i.code === 'SIM_PROGRAM_STOPPED' || i.code === 'SIM_PROGRAM_STUCK') && !(compiled.program.issues ?? []).some((i) => PROGRAM_DOUBTS.has(i.code) && i.severity !== 'info');
   const { rest, lit, ...result } = engineHazards(engine, [...states, ...undeclaredEnvironmentStates(circuit, compiled.program)], STATES_MAX, { collect: true, ...(runs && runFirst.combinations?.length && { combinations: runFirst.combinations }) });
   const dark = result.ok ? neverOn(circuit, compiled, engine, states, lit) : [];

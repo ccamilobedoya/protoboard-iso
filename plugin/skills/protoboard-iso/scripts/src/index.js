@@ -64,7 +64,9 @@ export function formatIssue(issue, lang = 'en') {
 
 // "with S1 pressed", "with RV1 at the pin-3 end of its travel", "with D10 high"; a control without words of its own:
 // "with S1 on = false".
-function whenText({ part, field, value, pin, name, end, time, high, rest }, lang) {
+function whenText({ part, field, value, pin, name, end, time, high, rest, held }, lang) {
+  // A state a run's clocked chips latched, held by the hazard check: "with U2 holding QA…QH 11111111".
+  if (held) return pin ? t(lang, 'hazard.when.heldPin', { held, pin: name ?? pin }) : t(lang, 'hazard.when.held', { held });
   // A run's warning (sim/run.js): its strongest reading, when, and the pin's level then.
   if (time != null) {
     const at = formatValue(time, 's', { decimal: decimalSeparator(lang) });
