@@ -34,6 +34,10 @@ export const SERIAL_WAITING = ['parseInt', 'parseFloat', 'readStringUntil', 'rea
 // type of the result on that board (1 unsigned long, 2 unsigned int, 4 uint16_t, 8 long).
 export const INT_KIND = { u8: 1, s8: 2, int: 3, uint: 4, u16: 5, s16: 6, u32: 7, s32: 8, bool: 9 };
 export const INT_KIND_MASK = [0, 0, 0, 0, 2, 4, 0, 1, 8, 0];
+// A String's methods, by number (`s.length()` becomes `__strm(0, $s)`); the IN_PLACE ones change the
+// String itself, as Arduino's do (`s.trim();`). Appending keeps the numbers of the others; never reorder.
+export const STRING_METHODS = ['length', 'charAt', 'indexOf', 'lastIndexOf', 'substring', 'toInt', 'toFloat', 'toDouble', 'equals', 'equalsIgnoreCase', 'startsWith', 'endsWith', 'compareTo', 'c_str', 'trim', 'toUpperCase', 'toLowerCase', 'concat', 'replace', 'remove', 'isEmpty'];
+export const STRING_IN_PLACE = ['trim', 'toUpperCase', 'toLowerCase', 'concat', 'replace', 'remove'];
 // Where a value is changed in place (an array element: __upd(array, index, <op>, kind, …)), by number.
 export const UPDATE_OPS = ['=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=', 'bitSet', 'bitClear', 'bitToggle', 'bitWrite', 'post++', 'post--'];
 // Names an Arduino core or its boards define that the kit's subset does not (a sketch that uses one

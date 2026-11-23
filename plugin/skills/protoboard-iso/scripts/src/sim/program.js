@@ -37,7 +37,7 @@
 // checked against the runtime's own arrays. A method asks board.ask({ cls, method, pin | address, … })
 // and the sensor's device answers (it holds the truth: its power, its cache, the environment).
 
-import { INT_KIND, LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, SERIAL_PORT_METHODS, SERIAL_WAITING, heatIndex, altitudeOf, seaLevelOf, isArduinoName } from './libraries.js';
+import { INT_KIND, STRING_METHODS, LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, SERIAL_PORT_METHODS, SERIAL_WAITING, heatIndex, altitudeOf, seaLevelOf, isArduinoName } from './libraries.js';
 
 const BUDGET = 2000; // loop turns or loop() calls per advance before it lets the step go on
 // Turns of a loop the program may take without letting time pass (no wait, no Serial output) before
@@ -302,6 +302,7 @@ export function createRunner(js, board) {
   // a negative one in another base as its 32 bits, as print(long, base) does).
   const show = (v, digits, kind) => {
     if (typeof v === 'boolean') return v ? '1' : '0';
+    if (Array.isArray(v)) return cText(v);
     if (typeof v !== 'number') return String(v);
     if (Number.isNaN(v)) return 'nan';
     if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf';
@@ -314,6 +315,51 @@ export function createRunner(js, board) {
   };
   // One byte as the character it is (Serial.write(65), a char printed): its low eight bits.
   const letter = (v) => String.fromCharCode(Math.trunc(Number(v)) & 0xff);
+  // A char array as C reads it: its characters up to the first 0 (an untouched buffer is empty).
+  const cText = (a) => {
+    let out = '';
+    for (const c of a) {
+      if (typeof c === 'string') return out + c;
+      if (!c) break;
+      out += letter(c);
+      if (out.length >= LINE_MAX) break;
+    }
+    return out;
+  };
+  const textOf = (v) => (typeof v === 'string' ? v : Array.isArray(v) ? cText(v) : show(v));
+  // sprintf's conversions (%d %i %u %ld %lu %x %X %c %s %% with flags - 0 + and a width): an int has
+  // the board's size, as the call reads it; an AVR's sprintf has no %f (it writes "?"), an ESP32's does.
+  const FORMAT = /%([-0+ ]*)(\d*)(?:\.(\d+))?(hh|h|ll|l)?([diuxXcsfFeEgG%])/g;
+  const formatted = (fmt, args) => {
+    let k = 0;
+    return textOf(fmt).replace(FORMAT, (_, flags, width, precision, size, conv) => {
+      if (conv === '%') return '%';
+      const v = args[k++];
+      const long = size === 'l' || size === 'll';
+      let out;
+      if (conv === 'd' || conv === 'i') out = String((long ? WRAP_TO.s32 : WRAPS[INT_KIND.int])(v));
+      else if (conv === 'u' || conv === 'x' || conv === 'X') {
+        const n = (long ? WRAP_TO.u32 : WRAPS[INT_KIND.uint])(v);
+        out = conv === 'u' ? String(n) : conv === 'x' ? n.toString(16) : n.toString(16).toUpperCase();
+      } else if (conv === 'c') out = letter(v);
+      else if (conv === 's') out = textOf(v ?? '');
+      else if (board.family === 'uno') out = '?';
+      else {
+        const p = precision === undefined ? 6 : Math.min(20, Number(precision));
+        const n = Number(v);
+        out = /[fF]/.test(conv) ? n.toFixed(p) : /[eE]/.test(conv) ? n.toExponential(p) : String(Number(n.toPrecision(Math.max(1, p))));
+      }
+      if (conv === 's' && precision !== undefined) out = out.slice(0, Number(precision));
+      if (flags.includes('+') && /[di]/.test(conv) && !out.startsWith('-')) out = `+${out}`;
+      const w = Math.min(LINE_MAX, Number(width) || 0);
+      if (out.length < w) {
+        if (flags.includes('-')) out = out.padEnd(w);
+        else if (flags.includes('0') && /[diuxX]/.test(conv)) out = /^[-+]/.test(out) ? out[0] + out.slice(1).padStart(w - 1, '0') : out.padStart(w, '0');
+        else out = out.padStart(w);
+      }
+      return out;
+    });
+  };
   const analog = ANALOG[board.family] ?? [];
   const WRAPS = wrapsOf(board.family);
   const CHAINS = chainsOf(board.family);
@@ -523,6 +569,45 @@ export function createRunner(js, board) {
       }
       array[i] = api.__w(v, k);
       return op >= 15 ? old : array[i];
+    },
+    // A String's method m (STRING_METHODS) on its text; a char or a float the translator passes already
+    // as text (__tostr). In-place methods give the new text (the translator stores it).
+    __strm(m, value, a, b) {
+      const s = textOf(value);
+      // indexOf, lastIndexOf and replace take a char where a number is given (C++ picks that overload).
+      const one = (v) => (typeof v === 'number' && ['indexOf', 'lastIndexOf', 'replace'].includes(STRING_METHODS[m]) ? letter(v) : textOf(v));
+      const x = a === undefined ? '' : one(a);
+      switch (STRING_METHODS[m]) {
+        case 'length': return s.length;
+        case 'charAt': return s.charCodeAt(Math.trunc(Number(a))) || 0;
+        case 'indexOf': return s.indexOf(x, b === undefined ? 0 : Number(b));
+        case 'lastIndexOf': return s.lastIndexOf(x, b === undefined ? Number.POSITIVE_INFINITY : Number(b));
+        case 'substring': return s.substring(Number(a), b === undefined ? undefined : Number(b));
+        case 'toInt': return Number.parseInt(s, 10) | 0;
+        case 'toFloat':
+        case 'toDouble': return Number.parseFloat(s) || 0;
+        case 'equals': return s === x ? 1 : 0;
+        case 'equalsIgnoreCase': return s.toLowerCase() === x.toLowerCase() ? 1 : 0;
+        case 'startsWith': return s.startsWith(x) ? 1 : 0;
+        case 'endsWith': return s.endsWith(x) ? 1 : 0;
+        case 'compareTo': return s < x ? -1 : s > x ? 1 : 0;
+        case 'c_str': return s;
+        case 'trim': return s.trim();
+        case 'toUpperCase': return s.toUpperCase();
+        case 'toLowerCase': return s.toLowerCase();
+        case 'concat': return (s + x).slice(0, ARRAY_MAX);
+        case 'replace': return s.split(x).join(b === undefined ? '' : one(b)).slice(0, ARRAY_MAX);
+        case 'remove': return s.slice(0, Number(a)) + (b === undefined ? '' : s.slice(Number(a) + Number(b)));
+        case 'isEmpty': return s.length ? 0 : 1;
+        default: return 0;
+      }
+    },
+    // String(x[, base or decimals]): the text Serial.print writes of it (kind 1 a float, 2 a char).
+    __tostr: (v, digits, kind) => show(v, digits, kind),
+    // sprintf / snprintf: n the buffer's size (-1 for sprintf), the text cut to n - 1 characters.
+    __fmt(n, fmt, ...args) {
+      const out = formatted(fmt, args).slice(0, ARRAY_MAX);
+      return Number(n) >= 0 ? out.slice(0, Math.max(0, Number(n) - 1)) : out;
     },
     __missing: () => 0,
     // An index is always a whole number, so a[i] can never name a property ("constructor").

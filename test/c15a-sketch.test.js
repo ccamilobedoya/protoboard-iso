@@ -172,3 +172,49 @@ test('serial input: the command line takes --serial (repeatable) and prints what
   const late = spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'simulate', dir, '--run', '1', '--serial', '1@3', ...RUN_BUDGET_ARGS], { encoding: 'utf8' });
   assert.match(late.stdout, /A change at 3 s comes after the run ends \(1 s\)/);
 });
+
+// ---- What the kit does not read is said in words an assistant can act on; what it can, it reads.
+test('String methods are read: length, charAt, indexOf, substring, toInt, trim, toUpperCase, concat…', () => {
+  const r = runSketch(setup('String a = "Hello"; String b = a + " world"; b = b + 42; Serial.println(b); Serial.println(b.length()); String t = "  ab  "; t.trim(); t.toUpperCase(); Serial.println(t); Serial.println(t.charAt(1)); Serial.println(t.indexOf(\'B\')); Serial.println(b.substring(0, 4)); String n = "42"; Serial.println(n.toInt() + 1); Serial.println(n.toFloat()); if (t.equals("AB") && t.startsWith("A")) Serial.println("yes"); t.concat(\'!\'); Serial.println(t);'));
+  assert.deepEqual(r.issues, []);
+  assert.deepEqual(r.log, ['Hello world42', '13', 'AB', 'B', '1', 'Hell', '43', '42.00', 'yes', 'AB!']);
+  // A char added to a String is its letter, a float its two decimals; an empty String is "".
+  assert.deepEqual(runSketch(setup('String in; char c = 65; in += c; in = in + c + 2.5; Serial.println(in); String e; Serial.println(e.length()); const char *msg = "hi"; Serial.println(msg); Serial.println(String(c) + String(3.14159, 3) + String(255, HEX));')).log, ['AA2.50', '0', 'hi', 'A3.142FF']);
+});
+
+test('sprintf and snprintf format into a char buffer; an AVR has no %f, an ESP32 does', () => {
+  const body = 'char buf[32]; Serial.println(buf); int v = 42; sprintf(buf, "value=%d", v); Serial.println(buf); int n = snprintf(buf, 8, "%05d|%-3s|%x|%c|%%", -42, "ab", 255, 65); Serial.println(buf); sprintf(buf, "%u %lu %.1f", -1, 4294967295UL, 1.26); Serial.println(buf);';
+  assert.deepEqual(runSketch(setup(body)).log, ['', 'value=42', '-0042|a', '65535 4294967295 ?']);
+  assert.deepEqual(runSketch(setup(body), { family: 'esp32' }).log, ['', 'value=42', '-0042|a', '4294967295 4294967295 1.3']);
+});
+
+test('a simple function-like macro is expanded; one the kit cannot expand says to write a function', () => {
+  assert.deepEqual(runSketch(setup('Serial.println(SQUARE(5) + MAXV); Serial.println(MAX(3, SQUARE(2)));', '#define SQUARE(x) ((x) * (x))\n#define MAXV 10\n#define MAX(a, b) ((a) > (b) ? (a) : (b))')).log, ['35', '4']);
+  for (const head of ['#define S(x) #x', '#define SELF(x) SELF(x)\nint y = SELF(1);']) {
+    const r = runSketch(setup('', head));
+    assert.deepEqual(codes(r.issues), ['SIM_PROGRAM_MACRO'], head);
+    assert.match(formatIssue({ severity: 'warning', code: 'SIM_PROGRAM_MACRO', params: { part: 'U1', ...r.issues[0] } }, 'en'), /Write it as a function/);
+  }
+});
+
+test('pointers, struct, class and a member the kit does not read name the construct and what to write', () => {
+  const said = (source) => {
+    const r = runSketch(source);
+    assert.equal(r.log, null, 'the program does not run');
+    assert.equal(r.issues.length, 1, JSON.stringify(r.issues));
+    const i = r.issues[0];
+    return { code: i.code, line: i.line, en: formatIssue({ severity: 'warning', code: i.code, params: { part: 'U1', ...i } }, 'en'), es: formatIssue({ severity: 'warning', code: i.code, params: { part: 'U1', ...i } }, 'es') };
+  };
+  const pointer = said(setup('int x = 7;\n  int *p = &x;'));
+  assert.deepEqual([pointer.code, pointer.line], ['SIM_PROGRAM_POINTER', 3]);
+  assert.match(pointer.en, /pointers \(\*p, &x, p->x\) are not in the kit's Arduino subset/);
+  assert.match(pointer.es, /los punteros/);
+  const struct = said('struct Point { int x; int y; };\nPoint p;\nvoid setup() { }\nvoid loop() { }');
+  assert.equal(struct.code, 'SIM_PROGRAM_TYPE_DECL');
+  assert.match(struct.en, /declares a struct, .*separate variables \(pointX, pointY\) or as arrays/);
+  assert.match(said('class Blinker { public: int pin; };\nvoid setup() { }\nvoid loop() { }').en, /declares a class/);
+  const method = said(setup('String s = "a";\n  s.reverse();'));
+  assert.equal(method.code, 'SIM_PROGRAM_STRING_METHOD');
+  assert.match(method.en, /the String method reverse\(\), which the kit does not read/);
+  assert.match(said(setup('int p = 0;\n  p.x = 3;')).en, /reads a member with "." \(p\.x\)/);
+});

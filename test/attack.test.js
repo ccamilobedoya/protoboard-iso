@@ -38,7 +38,7 @@ function run(source) {
 const sketch = (body) => `void setup() { ${body} }\nvoid loop() { delay(1000); }`;
 
 // What the JavaScript may name: its own words, the runtime's, and the sketch's ($-prefixed).
-const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'RISING', 'FALLING', 'CHANGE', 'ONLOW', 'ONHIGH', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__w', '__u', '__post', '__upd', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
+const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'RISING', 'FALLING', 'CHANGE', 'ONLOW', 'ONHIGH', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__w', '__u', '__post', '__upd', '__strm', '__tostr', '__fmt', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
 function strayNames(js) {
   // The body, without the prelude (two lines) and the last line, and without the quoted names of
   // __missing("name", …), which JSON.stringify writes.
@@ -107,6 +107,24 @@ test('attack: writes wrapped to an integer type reach only the sketch\'s own arr
   assert.deepEqual(run(hostile[2]).log, ['4294967290'], 'unsigned longs wrap at 2^32');
   const noted = run(hostile[1]).r.issues.map((i) => i.code);
   assert.ok(noted.includes('SIM_PROGRAM_NOT_LVALUE'), JSON.stringify(noted));
+});
+test('attack: String methods, sprintf and macros reach nothing but the runtime\'s own table', () => {
+  for (const body of ['String s = "x"; s.constructor();', 'String s = "x"; s.__proto__();', 'String s = "x"; int n = s.length;']) {
+    const r = run(sketch(body));
+    assert.equal(r.r.js, null, body);
+    assert.equal(r.pwned, undefined, body);
+  }
+  const indexed = run(sketch('String s = "x"; s["constructor"]("globalThis.__pwned = 1");'));
+  assert.equal(indexed.pwned, undefined, 'an index is a number: s[0] is not a function, the program stops');
+  assert.ok(indexed.error);
+  const macro = run('#define GET(o) o.constructor\n' + sketch('String s = "x"; GET(s)("globalThis.__pwned = 1")();'));
+  assert.equal(macro.r.js, null, 'a macro expands to tokens the same rules read');
+  assert.equal(macro.pwned, undefined);
+  const fine = run(sketch('char buf[8]; String s = "ab"; sprintf(buf, "%s%d", constructor, s.length()); s.concat(buf); Serial.println(s);'));
+  assert.ok(fine.r.js);
+  assert.equal(fine.pwned, undefined);
+  assert.deepEqual(strayNames(fine.r.js), []);
+  noKeysOf(fine.r.js);
 });
 const noKeysOf = (js) => assert.ok(!/\.constructor|__proto__|prototype|\[\s*["'`]/.test(js.split('\n').slice(2).join('\n')), js);
 

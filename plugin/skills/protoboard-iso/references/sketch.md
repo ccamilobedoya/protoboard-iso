@@ -26,7 +26,7 @@ is below when they want the kit to check it.
 
 ## Types and arrays
 
-- Types: `int`, `long`, `unsigned long`, `byte`, `bool`, `boolean`, `char`, `float`, `double`, `uint8_t`, `uint16_t`, `int32_t`, `word`, `String`. A `String` holds text for `Serial.print`; its methods (`.length()`, `.substring()`…) are not read.
+- Types: `int`, `long`, `unsigned long`, `byte`, `bool`, `boolean`, `char`, `float`, `double`, `uint8_t`, `uint16_t`, `int32_t`, `word`, `String`.
 - Arrays: one dimension, `int a[3] = {1, 2, 3};`; two dimensions are refused (`int a[2][3]`: the kit names the array and its line, and the program does not run): flatten one into one dimension, `a[row * 3 + col]`.
 - Printing: a `char` prints as its letter (`Serial.println('Z')` prints `Z`, a `char` variable too); arithmetic on it is a number (`c + 1` prints 67) and `Serial.println(c, DEC)` the number; `Serial.write(65)` prints `A`; an integer's second argument is its base (`HEX`, `BIN`, `OCT`, `DEC`), a float's its decimals (`Serial.println(3.14159, 3)` is `3.142`).
 - Statements: if / else, while, do … while, for, switch, break, continue, return; casts such as `(int) x`; number suffixes (`1000UL`). No pointers, classes of your own or templates.

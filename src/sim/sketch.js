@@ -35,7 +35,7 @@
 // - a program longer than LIMITS.sketchChars is not read.
 import { LIMITS } from '../limits.js';
 const LIBRARY_OBJECTS = LIMITS.libraryObjects;
-import { INT_KIND, INT_KIND_MASK, LIBRARY_CLASSES, LIBRARY_CONSTANTS, LIBRARY_INCLUDES, NOT_IN_KIT, SERIAL_PORT_METHODS, SERIAL_WAITING, UPDATE_OPS, isArduinoName } from './libraries.js';
+import { INT_KIND, INT_KIND_MASK, STRING_IN_PLACE, STRING_METHODS, LIBRARY_CLASSES, LIBRARY_CONSTANTS, LIBRARY_INCLUDES, NOT_IN_KIT, SERIAL_PORT_METHODS, SERIAL_WAITING, UPDATE_OPS, isArduinoName } from './libraries.js';
 
 // The integer kind of a declared type (INT_KIND), or 0: a float, a String, a 64-bit integer (kept
 // whole, as before), void. A value stored in a variable of a kind is wrapped to it on the board in use.
@@ -60,6 +60,8 @@ const U32_API = new Set(['millis', 'micros', 'pulseIn', 'pulseInLong']);
 // Operators an arithmetic chain is made of (it wraps as a whole: the remainder of + - * << by 2^n is
 // the remainder of its parts); any other operator ends one.
 const CHAIN_OPS = new Set(['+', '-', '*', '~', '!', '<<']);
+// Declarations of types of one's own: the subset has none (SIM_PROGRAM_TYPE_DECL says the usual way round).
+const TYPE_DECLARATIONS = new Set(['struct', 'class', 'union', 'enum', 'typedef', 'template', 'namespace']);
 // The calls that change their first argument (Arduino's macros: bitSet(x, n) is x |= 1UL << n).
 const BIT_ASSIGN = new Map([['bitSet', 11], ['bitClear', 12], ['bitToggle', 13], ['bitWrite', 14]]);
 
@@ -155,6 +157,61 @@ function tokenize(source, issues) {
   return out;
 }
 
+// Function-like macros (#define SQUARE(x) ((x) * (x))), expanded as tokens before the reading, so
+// what they expand to is read by the same rules as the rest. Stringizing (#x), pasting (##) and
+// variadic macros are not read (SIM_PROGRAM_MACRO, with what to write instead); the expansions are
+// capped, so a macro that expands into itself stops. Returns the tokens, or null with an issue.
+const MACRO_EXPANSIONS = 10_000;
+const MACRO_TOKENS = 200_000;
+function expandMacros(tokens, issues) {
+  const macros = new Map();
+  const out = [];
+  for (const t of tokens) {
+    const m = t.t === 'pre' ? /^#\s*define\s+([A-Za-z_]\w*)\(([^)]*)\)\s*([\s\S]*)$/.exec(t.v) : null;
+    if (!m) {
+      out.push(t);
+      continue;
+    }
+    const params = m[2].split(',').map((x) => x.trim()).filter((x, k, all) => x || all.length > 1);
+    if (params.some((x) => !/^[A-Za-z_]\w*$/.test(x)) || m[3].includes('#')) {
+      issues.push({ code: 'SIM_PROGRAM_MACRO', line: t.line, name: m[1] });
+      return null;
+    }
+    const body = tokenize(m[3], issues).map((x) => ({ ...x }));
+    macros.set(m[1], { params, body });
+  }
+  if (!macros.size) return out;
+  let expansions = 0;
+  for (let i = 0; i < out.length; i++) {
+    const t = out[i];
+    const macro = t.t === 'id' ? macros.get(t.v) : null;
+    if (!macro || out[i + 1]?.t !== 'p' || out[i + 1].v !== '(') continue;
+    // Its arguments: the tokens up to the matching ")", split at the commas outside parentheses.
+    const args = [[]];
+    let depth = 0;
+    let j = i + 2;
+    for (; j < out.length; j++) {
+      const x = out[j];
+      if (x.t === 'p' && x.v === '(') depth++;
+      else if (x.t === 'p' && x.v === ')' && depth-- === 0) break;
+      if (x.t === 'p' && x.v === ',' && depth === 0) args.push([]);
+      else args[args.length - 1].push(x);
+    }
+    const given = args.length === 1 && !args[0].length ? 0 : args.length;
+    if (j >= out.length || given !== macro.params.length || ++expansions > MACRO_EXPANSIONS || out.length > MACRO_TOKENS) {
+      issues.push({ code: 'SIM_PROGRAM_MACRO', line: t.line, name: t.v });
+      return null;
+    }
+    const replacement = macro.body.flatMap((x) => {
+      const k = x.t === 'id' ? macro.params.indexOf(x.v) : -1;
+      return (k >= 0 ? args[k] : [x]).map((y) => ({ ...y, line: t.line }));
+    });
+    out.splice(i, j + 1 - i, ...replacement);
+    i--;
+  }
+  return out;
+}
+
 class SketchError extends Error {
   constructor(line, message, code = 'SIM_PROGRAM_ERROR', name = null) {
     super(message);
@@ -170,7 +227,8 @@ export function translateSketch(source, { strings = [] } = {}) {
   const issues = [];
   const text = String(source ?? '');
   if (text.length > LIMITS.sketchChars) return { js: null, issues: [{ code: 'SIM_PROGRAM_TOO_LARGE', line: 1, size: text.length, limit: LIMITS.sketchChars }] };
-  const tokens = tokenize(text, issues);
+  const tokens = expandMacros(tokenize(text, issues), issues);
+  if (!tokens) return { js: null, issues };
   let pos = 0;
   const peek = (k = 0) => tokens[pos + k];
   const is = (v, k = 0) => peek(k)?.v === v && peek(k)?.t !== 'str';
@@ -221,6 +279,11 @@ export function translateSketch(source, { strings = [] } = {}) {
   let termMask = 0;
   let exprMask = 0;
   let exprPure = null; // the expression just read is one x++: its form without the old value
+  // Whether the term or the expression just read is text (a String, a quoted text, char*): a char or a
+  // float added to it is its letter or its digits, as Arduino's String concatenation writes them.
+  let termStr = false;
+  let exprStr = false;
+  let typeStr = false; // the type readType() just read is String
   // Library objects (libraries.js): name → { k: its number, cls: its class's number }. A Map, so a
   // name such as "constructor" is never looked up as a key of an object.
   const objects = new Map();
@@ -289,6 +352,7 @@ export function translateSketch(source, { strings = [] } = {}) {
     if (!any) fail('type');
     typeChar = words.includes('char') && !words.includes('unsigned') && !words.includes('signed');
     typeKind = kindOfWords(words);
+    typeStr = words.includes('String');
     return integer;
   }
 
@@ -304,6 +368,14 @@ export function translateSketch(source, { strings = [] } = {}) {
     const prefix = is('++') || is('--') ? peek().v : null;
     if (prefix) k++;
     const name = peek(k);
+    // A String: `s = c` and `s += c` write a char as its letter and a float with its digits.
+    if (!prefix && name?.t === 'id' && typeOf(name.v) === 'str' && (is('=', k + 1) || is('+=', k + 1))) {
+      const op = peek(k + 1).v;
+      pos += k + 2;
+      const rhs = asText(expression([...stops, ',']));
+      if (!rhs.trim()) fail(op);
+      return { code: op === '=' ? `${own(name.v)} = ${rhs}` : `${own(name.v)} = ${own(name.v)} + ${rhs}`, text: true };
+    }
     if (name?.t !== 'id' || !integerVar(name.v) || is('(', k + 1)) return null;
     let after = k + 1;
     if (is('[', after)) {
@@ -354,8 +426,13 @@ export function translateSketch(source, { strings = [] } = {}) {
     return { code: `${own_} = ${store(kind, `${own_} ${op.v.slice(0, -1)} (${rhs})`)}` };
   }
 
+  // The expression just read as text where a String takes it: a char as its letter, a float with two
+  // decimals (exprChar, exprFloat), anything else as it is.
+  const asText = (code) => (exprChar ? `__tostr(${code}, undefined, 2)` : exprFloat ? `__tostr(${code}, undefined, 1)` : code);
+
   function expression(stops) {
     const parts = [];
+    const strs = []; // per part: a text term
     const ints = []; // per part: an integer term, or null for an operator
     const floats = []; // per part: a float term
     const chars = []; // per part: a plain char term
@@ -369,10 +446,11 @@ export function translateSketch(source, { strings = [] } = {}) {
         const write = lvalue(stops);
         if (write) {
           parts.push(write.code);
-          ints.push(true);
+          ints.push(!write.text);
           floats.push(false);
           chars.push(false);
           masks.push(0);
+          strs.push(Boolean(write.text));
           if (write.pure) pure = write;
           value = false;
           continue;
@@ -391,6 +469,8 @@ export function translateSketch(source, { strings = [] } = {}) {
       }
       // Where a value goes, a "/" would start a regular expression in JavaScript.
       if (value && t.t === 'p' && (t.v === '/' || t.v === '/=')) fail(t.v);
+      // A pointer: &x or *p where a value goes, or p->x (pointers are not in the kit's subset).
+      if ((value && t.t === 'p' && (t.v === '&' || t.v === '*') && !(t.v === '&' && peek(1)?.v === 'Wire')) || is('->')) throw new SketchError(t.line, t.v, 'SIM_PROGRAM_POINTER', peek(1)?.t === 'id' ? peek(1).v : t.v);
       // &Wire (an Adafruit begin's bus argument): the one bus there is, a 0 that nothing reads.
       if (value && t.t === 'p' && t.v === '&' && peek(1)?.t === 'id' && peek(1).v === 'Wire' && !is('.', 2)) {
         pos += 2;
@@ -399,6 +479,7 @@ export function translateSketch(source, { strings = [] } = {}) {
         floats.push(false);
         chars.push(false);
         masks.push(0);
+        strs.push(false);
         value = false;
         continue;
       }
@@ -409,11 +490,13 @@ export function translateSketch(source, { strings = [] } = {}) {
       termFloat = false;
       termChar = false;
       termMask = 0;
+      termStr = false;
       parts.push(term());
       ints.push(isOp ? null : termInt);
       floats.push(!isOp && termFloat);
       chars.push(!isOp && termChar);
       masks.push(isOp ? 0 : termMask);
+      strs.push(!isOp && termStr);
       // After a value an operator comes, except after x++ / x--; after an operator, a value.
       if (!isOp) value = false;
       else if (!(['++', '--'].includes(t.v) && !value)) value = true;
@@ -435,6 +518,7 @@ export function translateSketch(source, { strings = [] } = {}) {
       floats.splice(j, i + 2 - j, false);
       chars.splice(j, i + 2 - j, false);
       masks.splice(j, i + 2 - j, mask);
+      strs.splice(j, i + 2 - j, false);
       i = j;
     }
     // An arithmetic chain of integers with an unsigned one in it (now - start, two unsigned longs)
@@ -458,11 +542,24 @@ export function translateSketch(source, { strings = [] } = {}) {
         floats.splice(k, e - k, false);
         chars.splice(k, e - k, false);
         masks.splice(k, e - k, mask);
+        strs.splice(k, e - k, false);
         e = k + 1;
       }
       k = e;
     }
     exprMask = parts.every((p, k) => ints[k] !== null || CHAIN_OPS.has(p)) ? masks.reduce((a, b) => a | b, 0) : 0;
+    // Text joined by +: after a text, a char is its letter and a float has two decimals (String's
+    // operator+), where JavaScript would write 97 or 3.5.
+    let text = false;
+    for (let k = 0; k < parts.length; k++) {
+      if (ints[k] === null) {
+        if (parts[k] !== '+') text = false;
+        continue;
+      }
+      if (text && parts[k - 1] === '+' && (chars[k] || floats[k])) parts[k] = `__tostr(${parts[k]}, undefined, ${chars[k] ? 2 : 1})`;
+      if (strs[k]) text = true;
+    }
+    exprStr = strs.some(Boolean) && parts.every((p, k) => ints[k] !== null || p === '+');
     exprPure = pure && parts.length === 1 && parts[0] === pure.code ? pure.pure : null;
     exprInt = parts.length > 0 && ints.every((k) => k !== false);
     // A float result: a comparison or a logical operator gives an int (C's 0 or 1); a ternary is float
@@ -679,6 +776,67 @@ export function translateSketch(source, { strings = [] } = {}) {
         issues.push({ code: 'SIM_PROGRAM_NOT_LVALUE', line: t.line, name: t.v });
       }
     }
+    // A String's method (s.length(), s.trim()): __strm(<method>, s, …), a number from STRING_METHODS;
+    // the in-place ones store what they make. Any other "." after a name is a member the subset does
+    // not read (a struct's field, a method of a String the kit does not have): said with its name.
+    if (t.t === 'id' && is('.', 1) && !objects.has(t.v)) {
+      const method = peek(2);
+      const what = `${t.v}.${method?.t === 'id' ? method.v : ''}`;
+      if (typeOf(t.v) !== 'str') throw new SketchError(t.line, '.', 'SIM_PROGRAM_MEMBER', what);
+      const m = method?.t === 'id' && is('(', 3) ? STRING_METHODS.indexOf(method.v) : -1;
+      if (m < 0) throw new SketchError(t.line, '.', 'SIM_PROGRAM_STRING_METHOD', `${method?.v ?? ''}`);
+      pos += 4;
+      const args = [];
+      while (!is(')')) {
+        if (pos >= tokens.length) fail(')');
+        args.push(asText(expression([',', ')'])));
+        if (is(',')) pos++;
+      }
+      expect(')');
+      const call = `__strm(${m}, ${own(t.v)}${args.map((a) => `, ${a}`).join('')})`;
+      termInt = !['substring', 'c_str', 'toFloat', 'toDouble'].includes(method.v);
+      termFloat = ['toFloat', 'toDouble'].includes(method.v);
+      termChar = method.v === 'charAt';
+      termStr = ['substring', 'c_str'].includes(method.v);
+      return STRING_IN_PLACE.includes(method.v) ? `(${own(t.v)} = ${call})` : call;
+    }
+    // String(x), String(x, HEX), String(f, 3): the text Serial.print would write.
+    if (t.t === 'id' && t.v === 'String' && is('(', 1)) {
+      pos += 2;
+      const first = is(')') ? '' : expression([',', ')']);
+      const kind = exprFloat ? 1 : exprChar ? 2 : 0;
+      let digits = 'undefined';
+      if (is(',')) {
+        pos++;
+        digits = expression([')']);
+      }
+      expect(')');
+      termStr = true;
+      return first ? `__tostr(${first}, ${digits}, ${kind})` : `__str[${strings.push('') - 1}]`;
+    }
+    // sprintf(buf, "x=%d", x) and snprintf(buf, n, …): the text is formatted (program.js __fmt) and
+    // stored in the buffer, which then prints as that text; they give its length.
+    if (t.t === 'id' && (t.v === 'sprintf' || t.v === 'snprintf') && !functions.has(t.v) && is('(', 1)) {
+      const buffer = peek(2);
+      if (buffer?.t !== 'id' || typeOf(buffer.v) == null || !is(',', 3)) {
+        if (!missing.has(`lvalue ${t.v}`)) {
+          missing.add(`lvalue ${t.v}`);
+          issues.push({ code: 'SIM_PROGRAM_NOT_LVALUE', line: t.line, name: t.v });
+        }
+      } else {
+        pos += 4;
+        const args = [];
+        while (!is(')')) {
+          if (pos >= tokens.length) fail(')');
+          args.push(expression([',', ')']));
+          if (is(',')) pos++;
+        }
+        expect(')');
+        if (t.v === 'sprintf') args.unshift('-1');
+        termInt = true;
+        return `__strm(0, ${own(buffer.v)} = __fmt(${args.join(', ')}))`;
+      }
+    }
     if (t.t === 'id' && peek(1)?.v === '(') {
       const name = t.v;
       pos += 2;
@@ -718,10 +876,14 @@ export function translateSketch(source, { strings = [] } = {}) {
       termFloat = exprFloat;
       termChar = exprChar;
       termMask = exprMask;
+      termStr = exprStr;
       return `(${inner})`;
     }
     pos++;
-    if (t.t === 'str') return `__str[${strings.push(t.value) - 1}]`;
+    if (t.t === 'str') {
+      termStr = true;
+      return `__str[${strings.push(t.value) - 1}]`;
+    }
     if (t.t === 'num') {
       termInt = /^(\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/.test(t.v);
       termFloat = !/^0[xXbB]/.test(t.v) && /[.eE]/.test(t.v);
@@ -735,6 +897,8 @@ export function translateSketch(source, { strings = [] } = {}) {
     if (t.t === 'id') termInt = isInt(typeOf(t.v)) || kindOf(t.v) === INT_KIND.bool || ['HIGH', 'LOW', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'].includes(t.v) || defines.has(t.v);
     if (t.t === 'id') termFloat = typeOf(t.v) === 'float' || t.v === 'PI';
     if (t.t === 'id') termMask = INT_KIND_MASK[kindOf(t.v)];
+    if (t.t === 'id') termStr = typeOf(t.v) === 'str';
+    if (t.t === 'p' && t.v === '.') throw new SketchError(t.line, '.', 'SIM_PROGRAM_MEMBER', '.');
     if (t.t === 'id' && t.v === 'NULL') return '0';
     if (t.t === 'id' && (t.v === 'sizeof' || t.v === 'new' || t.v === 'delete')) throw new SketchError(t.line, t.v);
     if (t.t === 'p' && ['->', '::', '.', '[', '{'].includes(t.v)) throw new SketchError(t.line, t.v);
@@ -763,10 +927,17 @@ export function translateSketch(source, { strings = [] } = {}) {
     const float = typeFloat && !integer;
     const kind = typeKind;
     for (;;) {
+      // char *text = "…" (or const char*): a text, as a String. Any other pointer is not in the subset.
+      let text = typeStr;
+      if (is('*') && typeChar && peek(1)?.t === 'id') {
+        pos++;
+        text = true;
+      }
+      if (is('*') || is('&')) throw new SketchError(line(), peek().v, 'SIM_PROGRAM_POINTER', peek(1)?.t === 'id' ? peek(1).v : peek().v);
       if (peek()?.t !== 'id') fail('name');
       const name = tokens[pos++].v;
       if (objects.has(name)) fail(name);
-      declare(name, integer ? (typeChar ? 'char' : 'int') : float ? 'float' : 'num', kind);
+      declare(name, text ? 'str' : integer ? (typeChar ? 'char' : 'int') : float ? 'float' : 'num', text ? 0 : kind);
       let array = false;
       let size = null;
       while (is('[')) {
@@ -777,7 +948,9 @@ export function translateSketch(source, { strings = [] } = {}) {
         expect(']');
         array = true;
       }
-      let value = array ? `__array(${size ?? 0})` : '0';
+      const own_ = text ? 0 : kind;
+      // A String with no value is empty ("" on a board), not 0.
+      let value = array ? `__array(${size ?? 0})` : text ? `__str[${strings.push('') - 1}]` : '0';
       if (is('=')) {
         pos++;
         if (is('{')) {
@@ -787,7 +960,7 @@ export function translateSketch(source, { strings = [] } = {}) {
             if (pos >= tokens.length) fail('}');
             const item = expression([',', '}']);
             // Each element as the array's kind (byte a[] = {300} holds 44), a text as it is.
-            items.push(kind && exprInt ? store(kind, item) : item);
+            items.push(own_ && exprInt ? store(own_, item) : item);
             if (is(',')) pos++;
           }
           expect('}');
@@ -796,7 +969,7 @@ export function translateSketch(source, { strings = [] } = {}) {
         } else {
           const v = expression([',', ...stops]);
           if (!v.trim()) fail('=');
-          value = array ? v : kind ? store(kind, v) : integer ? `__int(${v})` : v;
+          value = array ? v : text ? asText(v) : own_ ? store(own_, v) : integer ? `__int(${v})` : v;
         }
       }
       out.push(`${own(name)} = ${value}`);
@@ -865,6 +1038,7 @@ export function translateSketch(source, { strings = [] } = {}) {
       return '';
     }
     if (t.t === 'id') {
+      if (TYPE_DECLARATIONS.has(t.v)) throw new SketchError(t.line, t.v, 'SIM_PROGRAM_TYPE_DECL', t.v);
       // A library object is declared at the top level only (as the libraries' examples do).
       if (CLASS_BY_NAME.has(t.v)) fail(t.v);
       switch (t.v) {
@@ -1041,6 +1215,7 @@ export function translateSketch(source, { strings = [] } = {}) {
         out.push(libraryObject());
         continue;
       }
+      if (TYPE_DECLARATIONS.has(t.v)) throw new SketchError(t.line, t.v, 'SIM_PROGRAM_TYPE_DECL', t.v);
       if (!isTypeStart()) fail(t.v);
       const integer = readType();
       if (peek()?.t === 'id' && peek(1)?.v === '(') {
@@ -1110,7 +1285,7 @@ export function translateSketch(source, { strings = [] } = {}) {
   }
   if (!functions.has('setup') || !functions.has('loop')) issues.push({ code: 'SIM_PROGRAM_NO_LOOP', line: 1 });
   // Strict: an assignment to a name nobody declared throws (it cannot become a global of the page).
-  const prelude = `'use strict'; const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__w', '__u', '__post', '__upd', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep'].join(', ')} } = api;\nconst __str = [].concat(${strings.map((s) => JSON.stringify(s)).join(', ')});`;
+  const prelude = `'use strict'; const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__w', '__u', '__post', '__upd', '__strm', '__tostr', '__fmt', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep'].join(', ')} } = api;\nconst __str = [].concat(${strings.map((s) => JSON.stringify(s)).join(', ')});`;
   const js = `${prelude}\n${out.join('\n')}\nreturn { setup: typeof $setup === 'function' ? $setup : function* () {}, loop: typeof $loop === 'function' ? $loop : function* () {} };`;
   return { js: issues.some((i) => i.code === 'SIM_PROGRAM_ERROR') ? null : js, issues };
 }
