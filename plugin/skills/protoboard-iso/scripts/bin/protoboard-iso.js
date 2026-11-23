@@ -22,7 +22,7 @@ import { parseValue } from '../src/core/units.js';
 import { LIMITS } from '../src/limits.js';
 import { PART_TYPES } from '../src/parts/types/index.js';
 import { InputError, inputErrorText, inputIssueFor, readJsonInput, parseJsonInput, resolveTarget, loadCircuit, applyToTarget, undoTarget, readHistory, writePage, createTarget, relayoutTarget } from '../src/node/workspace.js';
-import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest } from '../src/layout.js';
+import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest, withUnplaced, unplacedFirst } from '../src/layout.js';
 import { resolveRecipe } from '../src/recipes/index.js';
 import { svgToPng, rasterAvailable, rasterSearchIn } from '../src/node/raster.js';
 import { catalogEntry, formatCatalogEntry, compactCatalog, recipeLine, partTypeLines, unknownText } from '../src/node/catalog.js';
@@ -386,9 +386,9 @@ async function run(seen) {
         sayError(t(lang, 'cli.badRun', { value: String(args.run).slice(0, 40), min: '1 µs', max: LIMITS.runSeconds }));
         fail(1);
       }
-      const result = runCircuit(circuit, { seconds, stimuli: said.stimuli, start: args.start, ...(args.budget && { budgetMs: args.budget * 1000 }) });
+      const result = withUnplaced(circuit, runCircuit(circuit, { seconds, stimuli: said.stimuli, start: args.start, ...(args.budget && { budgetMs: args.budget * 1000 }) }));
       if (result.errors) refuse(result.errors);
-      console.log(args.json ? JSON.stringify(result, null, 2) : formatRun(result, lang, { formatIssue, netLabels: circuit.netLabels }));
+      console.log(args.json ? JSON.stringify(result, null, 2) : unplacedFirst(result, lang, formatRun(result, lang, { formatIssue, netLabels: circuit.netLabels })));
       fail(result.ok ? 0 : 1);
     }
     for (const [option, list] of [['--press', said.stimuli.press], ['--at', said.stimuli.at], ['--serial', said.stimuli.serial]]) if (list.length) refuse([{ severity: 'error', code: 'RUN_ONLY', params: { option } }]);
@@ -405,7 +405,8 @@ async function run(seen) {
       result = prepared.fatal ? { analysis: options.analysis, model: true, ok: false, issues: prepared.issues } : options.analysis === 'transient' ? prepared.engine.transient(options) : prepared.engine.dc();
       if (result.issues && prepared.issues?.length) result = { ...result, issues: [...result.issues, ...prepared.issues] };
     } else result = withStates(circuit, simulate(circuit, options));
-    console.log(args.json ? JSON.stringify(result, null, 2) : formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }));
+    result = withUnplaced(circuit, result);
+    console.log(args.json ? JSON.stringify(result, null, 2) : unplacedFirst(result, lang, formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels })));
     fail(result.ok ? 0 : 1);
   } else if (command === 'page') {
     const circuit = loadCircuit(paths);
@@ -475,8 +476,9 @@ async function run(seen) {
     console.log(args.json ? JSON.stringify(result, null, 2) : formatSuggest(result, lang, { formatIssue, target }));
     fail(result.error || !result.placements.length ? 1 : 0);
   } else if (command === 'review') {
-    const result = review(loadCircuit(paths), { profile: args.profile, views: args.views, lang, explain: args.explain });
-    console.log(args.json ? JSON.stringify(result, null, 2) : formatReview(result, lang, { t, formatIssue }));
+    const circuit = loadCircuit(paths);
+    const result = withUnplaced(circuit, review(circuit, { profile: args.profile, views: args.views, lang, explain: args.explain }));
+    console.log(args.json ? JSON.stringify(result, null, 2) : unplacedFirst(result, lang, formatReview(result, lang, { t, formatIssue })));
     fail(result.verdict === 'changes' ? 2 : 0);
   } else if (command === 'undo') {
     const result = undoTarget(target, { author: args.author, views: args.views, lang, outputLang: args.lang, outputs: args.outputs, dryRun: args.dryRun });

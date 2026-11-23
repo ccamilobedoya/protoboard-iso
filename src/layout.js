@@ -38,7 +38,7 @@ import { hazardFix, specWithFix } from './fix.js';
 import { answerExtras, formatExtras } from './layout-answer.js';
 import { solveGoals } from './recipes/solve.js';
 import { parseValue, valueText, formatValue } from './core/units.js';
-import { decimalSeparator } from './i18n/index.js';
+import { decimalSeparator, t as translate } from './i18n/index.js';
 import { CIRCUIT_FOLDER } from './beside.js';
 import { PART_TYPES } from './parts/types/index.js';
 import { lookupModule, headerPins } from './parts/modules.js';
@@ -909,6 +909,14 @@ function repair(best, spec, { profile, asked, clock }) {
 // The parts of a circuit's spec that are not on its board: the ones its layout found no place for
 // (`spec.unplaced`), less any placed by hand since. What simulate and review say first.
 const unplacedOf = (circuit) => (circuit?.spec?.unplaced ?? []).filter((p) => p?.id && !(circuit.parts ?? []).some((q) => q.id === p.id));
+// Their ids, for the first line of simulate and review (`spec.unplaced`): what follows leaves them out.
+export const notOnBoard = (circuit) => unplacedOf(circuit).map((p) => String(p.id));
+// A result of simulate or review with those ids (`unplaced`, in --json), and its text with the line first.
+export const withUnplaced = (circuit, result) => {
+  const ids = notOnBoard(circuit);
+  return ids.length && result && !result.errors ? { ...result, unplaced: ids } : result;
+};
+export const unplacedFirst = (result, lang, text) => (result?.unplaced?.length ? `${translate(lang, 'spec.unplaced', { parts: result.unplaced.join(', ') })}\n${text}` : text);
 
 // The spec of a circuit already laid out, for layout again: its parts (without holes and without
 // layout's jumpers, or without any wire when it has no spec: the nets say what they join), the nets
@@ -1952,11 +1960,12 @@ function warningsKey(r, said) {
 // "→ next the kit would try: add "board": "double" to the spec."
 const nextLine = (n, lang, t) => t(lang, n.kind === 'board' ? 'layout.next.board' : n.kind === 'first' ? 'layout.next.first' : 'layout.next.byHand', n);
 
-// "Applied the fix: R3 = 200 Ω in series with BZ1." (layout --fix); a part turned round or a
-// supply's leads swapped say so, with no value.
+// "Applied the fix: R3 = 200 Ω in series with BZ1." (layout --fix); a part turned round, a supply's
+// leads swapped or a chip fed from another rail say so, with no value.
 function appliedLine(a, lang, t) {
   if (a.kind === 'swap') return t(lang, 'layout.fixApplied.swap', { part: a.part, a: a.pins?.[0] ?? '1', b: a.pins?.[1] ?? '2' });
   if (a.kind === 'swap-supply') return t(lang, 'layout.fixApplied.swapSupply', { part: a.part });
+  if (a.kind === 'resupply') return t(lang, 'layout.fixApplied.resupply', { part: a.part, rail: a.rail, pin: a.pin });
   const value = formatValue(a.value, 'Ω', { decimal: decimalSeparator(lang) });
   return t(lang, a.kind === 'set' ? 'layout.fixApplied.set' : 'layout.fixApplied.add', { part: a.part, value, with: a.with });
 }
