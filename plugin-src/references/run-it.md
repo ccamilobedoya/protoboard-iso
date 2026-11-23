@@ -71,6 +71,111 @@ kit simulate circuits/alarm --run 2 --env distance=50 --at 1:distance=10
   D1 (LED): on 48 % of the time · changes: 1 (on 1.03 s → 2 s)
 ```
 
+## What a run starts from, and what it names
+
+**The environment starts at the kit's defaults** unless `--env` (or the circuit's `environment`)
+says otherwise: light 300 lx, temperature 25 °C, humidity 50 %RH, distance 50 cm, sound 40 dB,
+moisture 30 %, reflectance 80 %, pressure 1013.25 hPa, field 0 G, water 0 mm, angle 0°, and the
+switches off: no rain, motion, touch, vibration or tilt, the beam uncut. A sketch that turns an echo into centimetres with `t * 0.034 / 2` into an `int` prints 9 for
+10 cm: at 25 °C sound is faster than the 340 m/s that 0.034 assumes, and the `int` drops the 0.8.
+
+```json sonar.json
+{
+  "parts": [
+    { "id": "U1", "part": "UNO", "program": "sonar.ino" },
+    { "id": "U2", "part": "HC-SR04" }
+  ],
+  "nets": [["U1.5V", "U2.VCC"], ["U1.D9", "U2.TRIG"], ["U1.D10", "U2.ECHO"], ["U1.GND", "U2.GND"]]
+}
+```
+
+```cpp circuits/sonar/sonar.ino
+void setup() {
+  Serial.begin(9600);
+  pinMode(9, OUTPUT);
+  pinMode(10, INPUT);
+}
+
+void loop() {
+  digitalWrite(9, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(9, LOW);
+  long t = pulseIn(10, HIGH);
+  int cm = t * 0.034 / 2;
+  Serial.println(cm);
+  delay(200);
+}
+```
+
+```bash
+kit layout circuits/sonar sonar.json
+```
+
+```bash
+kit simulate circuits/sonar --run 0.5 --env distance=10
+```
+
+```text
+  837 µs     9
+```
+
+Say it as the kit's: "at 10 cm and 25 °C the sketch prints 9".
+
+**A laser's beam** is the environment's `beam`, a switch: `--env beam=on` cuts it for the whole run,
+`--at 1:beam=on` at 1 s.
+
+```bash
+kit layout circuits/trip --recipe laser-tripwire
+```
+
+```bash
+kit simulate circuits/trip --run 2 --at 1:beam=on
+```
+
+```text
+  D1 (LED): on 50 % of the time · changes: 1 (on 1 s → 2 s)
+```
+
+**A push button** makes its switch between its two pairs: pins 1 and 2 are one side (joined inside),
+3 and 4 the other, so a net on `S1.1` and one on `S1.3` are joined while it is pressed (`kit catalog
+button` lists each pin's side).
+
+**Parts are named by their id** in a run and in `layout`'s answer (`D1 (LED)`, `K1 (relay)`). Tell
+the user which is which from the spec: its colour or role there, and where `layout` put it (its line
+`D1: anode→j15, cathode→T-15`), never by a guess at the order.
+
+**A recipe's supply is a bench supply** (`V1`: a set voltage that holds whatever the circuit draws,
+up to its current limit). For a battery, lay the same circuit out from a spec with a battery part in
+place of the supply (`{ "id": "BT1", "type": "battery", "format": "9V" }`, its `+` and `-` on the
+rails' nets, `"supplies": []`): it sags under load as a battery does.
+
+```json battery.json
+{
+  "supplies": [],
+  "parts": [
+    { "id": "BT1", "type": "battery", "format": "9V" },
+    { "id": "R1", "type": "resistor", "value": "470" },
+    { "id": "D1", "type": "led", "color": "red" }
+  ],
+  "nets": [["BT1.+", "T+"], ["T+", "R1.1"], ["R1.2", "D1.A"], ["D1.K", "T-"], ["BT1.-", "T-"]]
+}
+```
+
+```bash
+kit layout circuits/battery battery.json
+```
+
+```text
+Readings (at rest, a model): battery BT1 8.97 V · D1 15.2 mA, brightness 76 % of 20 mA
+```
+
+**Trials are free; corrections are counted.** `layout … --dry-run` and `apply … --dry-run` save
+nothing and are not corrections: try as many as the skill's trial rule allows. A correction is a
+call that saves; the stop rule allows two per circuit, and after the second that does not end
+`DONE` or `WARNINGS` you stop and say what is left.
+
+<!-- serial-input: the sketch runner's option to send text to a board's Serial during a run goes here (its own session) -->
+
 ## When the run does not show what was asked
 
 If the run shows the opposite of the request (the LED stays off at 10 cm), the circuit or the

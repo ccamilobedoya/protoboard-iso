@@ -350,3 +350,17 @@ test('the kit has no loudspeaker: the same sentence in catalog speaker, the LM38
   assert.ok(chips.includes(SAID));
   assert.doesNotMatch(chips, /stands for it|ask before/i);
 });
+
+// ── 11. The skill says what the testers had to guess ─────────────────────────────────────
+
+test('run-it.md lists every field of the environment at its default, and leaves a place for the serial input', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { FIELDS } = await import('../src/sim/environment.js');
+  const doc = readFileSync(new URL('../plugin-src/references/run-it.md', import.meta.url), 'utf8');
+  const part = doc.split('**The environment starts at the kit\'s defaults**')[1].split('```')[0].replace(/\s+/g, ' ');
+  for (const [name, f] of Object.entries(FIELDS)) {
+    if (f.kind === 'switch') assert.match(part, new RegExp(name === 'beam' ? 'the beam uncut' : `no [a-z, ]*\\b${name}\\b`), name);
+    else assert.ok(part.includes(`${name} ${String(f.default)}${f.unit === '°' ? '°' : ` ${f.unit}`}`), `${name} ${f.default} ${f.unit}`);
+  }
+  assert.match(doc, /<!-- serial-input: /);
+});

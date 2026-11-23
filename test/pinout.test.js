@@ -46,7 +46,7 @@ test('pinout: each pin\'s row says what it does, in the page\'s language; a chip
   assert.deepEqual(pinList(part(b, 'R1'), 'en').map((p) => p.text), ['1 · by the first band', '2 · the other end']);
   // A push button's pins say which one each is joined to inside; without a text of its own, a pin says
   // its name (a header's).
-  assert.deepEqual(pinList(part(b, 'S1'), 'en').map((p) => p.text), ['1 · joined to 2 inside', '2 · joined to 1 inside', '3 · joined to 4 inside', '4 · joined to 3 inside']);
+  assert.deepEqual(pinList(part(b, 'S1'), 'en').map((p) => p.text), ['1 · one side of the switch (joined to 2 inside)', '2 · the same side as 1 (joined to it inside)', '3 · the other side of the switch (joined to 4 inside)', '4 · the same side as 3 (joined to it inside)']);
   const header = part(built('more-parts'), 'J1');
   assert.deepEqual(pinList(header, 'en').map((p) => p.text), header.pinNames);
   const { spec } = expandRecipe('555-astable');
