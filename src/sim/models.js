@@ -205,7 +205,10 @@ export const OPAMPS = {
 // between it is undefined. ADC: `adcBits` over 0…`adcFull` volts (linear here). The board takes
 // `own` amperes from its logic rail (the chip running, no radio); USB gives 5 V behind
 // `usbResistance` (cable and fuse); `regulator`: the 3.3 V regulator's model (REGULATORS or its
-// own numbers). Limits: `maxPin` per pin (absolute maximum), `vdd` + 0.3 V on any pin.
+// own numbers). Limits: `maxPin` per pin (absolute maximum), `vdd` + 0.3 V on any pin; `usbMax`, what
+// the board on USB gives in all, through its 5 V (or VIN) pin and its own rails: a USB 2.0 port's
+// 500 mA (USB 2.0 specification, 7.2.1), and on the UNO its resettable fuse's 500 mA as well
+// (`usbFuse`: Arduino UNO R3 schematic, F1 MF-MSMF050-2); the regulator's own maxCurrent is less.
 // Sources: Espressif ESP32 datasheet v5.3 (VOH 0.8·VDD at 40 mA, VIL 0.25·VDD, VIH 0.75·VDD,
 // pull-ups 45 kΩ, ADC 12 bits up to about 3.1 V at 11 dB); ESP32-C3 datasheet v2.4 (ADC up to
 // 2.5 V at 11 dB); Microchip ATmega328P datasheet (VOH 4.2 V at 20 mA, VIL 0.3·VCC, VIH 0.6·VCC,
@@ -214,9 +217,9 @@ export const OPAMPS = {
 // a little under 5 V behind its cable), not the nominal adcFull: a ratiometric sensor then reads the same
 // count whatever the supply. The ESP32 families keep their fixed reference (adcFull).
 export const MCUS = {
-  esp32: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 3.1, own: 0.04, maxPin: 0.04, usbResistance: 0.2, regulator: { dropout: 1.1, quiescent: 5e-3, maxCurrent: 0.8, maxPower: 1 } },
-  esp32c3: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 2.5, own: 0.02, maxPin: 0.04, usbResistance: 0.2, regulator: { dropout: 0.1, quiescent: 40e-6, maxCurrent: 0.5, maxPower: 0.5 } },
-  uno: { vdd: 5, outputResistance: 40, pull: 35e3, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5, adcRef: 'vdd', own: 0.045, maxPin: 0.04, usbResistance: 0.3, regulator: { dropout: 0.28, quiescent: 1e-3, maxCurrent: 0.15, maxPower: 0.3 } },
+  esp32: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 3.1, own: 0.04, maxPin: 0.04, usbResistance: 0.2, usbMax: 0.5, regulator: { dropout: 1.1, quiescent: 5e-3, maxCurrent: 0.8, maxPower: 1 } },
+  esp32c3: { vdd: 3.3, outputResistance: 17, pull: 45e3, vil: 0.25, vih: 0.75, adcBits: 12, adcFull: 2.5, own: 0.02, maxPin: 0.04, usbResistance: 0.2, usbMax: 0.5, regulator: { dropout: 0.1, quiescent: 40e-6, maxCurrent: 0.5, maxPower: 0.5 } },
+  uno: { vdd: 5, outputResistance: 40, pull: 35e3, vil: 0.3, vih: 0.6, adcBits: 10, adcFull: 5, adcRef: 'vdd', own: 0.045, maxPin: 0.04, usbResistance: 0.3, usbMax: 0.5, usbFuse: true, regulator: { dropout: 0.28, quiescent: 1e-3, maxCurrent: 0.15, maxPower: 0.3 } },
 };
 // The default I2C pins of each family's Arduino core (Wire with no pins), as GPIO numbers: the UNO's
 // A4 = SDA and A5 = SCL [D]; the ESP32 DevKit's GPIO21 / GPIO22 [D]; the ESP32-C3's GPIO8 / GPIO9 [T]

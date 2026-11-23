@@ -166,3 +166,31 @@ test('with a 5 V rail in the circuit, the fix feeds the chip from it, and the ci
   const fixed = autoLayout(specWithFix(spec, r.review.fix).spec);
   assert.deepEqual(fixed.review.hazards, []);
 });
+
+// ── 4. A supply past what it can give ────────────────────────────────────────────────────
+
+// An H-bridge on an UNO's 5V with both transistors of a leg on (each pin drives a PNP of one leg and
+// the NPN of the other): 721 mA from USB, past the port's and the UNO's fuse's 500 mA, said nothing.
+const SHOOT = {
+  parts: [
+    { id: 'U1', part: 'UNO', program: 'void setup(){pinMode(8,OUTPUT);pinMode(9,OUTPUT);}\nvoid loop(){digitalWrite(8,HIGH);digitalWrite(9,LOW);delay(500);digitalWrite(8,LOW);digitalWrite(9,HIGH);delay(500);}' },
+    { id: 'Q1', part: '2N3906' }, { id: 'Q2', part: '2N3906' }, { id: 'Q3', part: '2N2222A' }, { id: 'Q4', part: '2N2222A' },
+    ...[1, 2, 3, 4].map((k) => ({ id: `R${k}`, type: 'resistor', value: '1k' })),
+    { id: 'M1', type: 'motor' },
+  ],
+  nets: [['U1.5V', 'Q1.E', 'Q2.E'], ['U1.GND', 'Q3.E', 'Q4.E'], ['U1.D8', 'R1.1', 'R4.1'], ['R1.2', 'Q1.B'], ['R3.2', 'Q3.B'], ['U1.D9', 'R2.1', 'R3.1'], ['R2.2', 'Q2.B'], ['R4.2', 'Q4.B'], ['Q1.C', 'Q3.C', 'M1.+'], ['Q2.C', 'Q4.C', 'M1.-']],
+};
+test('a board on USB past its 500 mA: a hazard on its 5V pin saying the fuse opens, and no resistor in the supply as a fix', () => {
+  const r = autoLayout(SHOOT);
+  const usb = r.review.hazards.find((h) => h.code === 'SIM_OVER_CURRENT' && h.params.part === 'U1.5V');
+  assert.ok(usb, JSON.stringify(r.review.hazards.map((h) => h.params.part)));
+  assert.match(formatIssue(usb, 'en'), /^warning: U1\.5V gives \d+ mA from USB, more than the 500 mA a USB port gives: the board's 500 mA resettable fuse opens/);
+  assert.ok(!(r.review.fix?.kind === 'add-series' && /U1\.5V/.test(r.review.fix.pin)), JSON.stringify(r.review.fix));
+});
+
+test('an UNO\'s 3V3 pin past its regulator\'s 150 mA is a hazard; uno-blink and esp32-led get none', () => {
+  const r = autoLayout({ parts: [{ id: 'U1', part: 'UNO', program: 'void setup(){}\nvoid loop(){delay(100);}' }, { id: 'R1', type: 'resistor', value: '10' }], nets: [['U1.3V3', 'R1.1'], ['R1.2', 'U1.GND']] });
+  const reg = r.review.hazards.find((h) => h.params.part === 'U1.3V3');
+  assert.match(formatIssue(reg, 'en'), /U1\.3V3 gives 3\d\d mA, more than the 150 mA its 3\.3 V regulator gives: its regulator overheats/);
+  for (const name of ['uno-blink', 'esp32-led']) assert.ok(!autoLayout(expandRecipe(name).spec).review.hazards.length, name);
+});

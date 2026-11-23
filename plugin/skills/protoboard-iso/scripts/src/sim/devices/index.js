@@ -51,6 +51,7 @@
 // adds `senses` and reads c.env(field) in params (docs/en/adding-parts.md, §7).
 
 import { wire } from './wire.js';
+import { stress } from './shared.js';
 import { resistor, thermistor, ldr, buzzer } from './resistor.js';
 import { capacitor } from './capacitor.js';
 import { inductor } from './inductor.js';
@@ -100,6 +101,21 @@ for (const d of DEVICES) {
   if (!d.limits) continue;
   const own = d.limits;
   d.limits = (entry, reading) => own.call(d, entry, reading).map((s) => (s.note ? s : { ...s, extra: { effect: effectOf(d.kind, s), ...s.extra } }));
+}
+
+// A board on USB gives at most what the port (and its fuse) gives (models.js, `usbMax`): past it, a
+// hazard on its USB pin saying what happens there. Added here beside the board's own limits.
+{
+  const own = mcu.limits;
+  mcu.limits = (entry, reading) => {
+    const m = entry.model;
+    const usb = reading.usb && m?.usbMax ? [stress('SIM_OVER_CURRENT', 'current', Math.abs(reading.usb.current), m.usbMax, 'A', { pin: entry.power?.usb ?? 'USB', of: 'usb', extra: { variant: 'usb', effect: m.usbFuse ? 'usbFuse' : 'usbPort' } })] : [];
+    // A 3.3 V pin beside a 5 V logic rail (the UNO's) has a regulator of its own, far smaller.
+    const v3 = entry.power?.v3;
+    const given = entry.reg3 && v3 ? Math.max(0, -(reading.currents?.[v3] ?? 0)) : 0;
+    const reg3 = entry.reg3 && m?.regulator?.maxCurrent ? [stress('SIM_OVER_CURRENT', 'current', given, m.regulator.maxCurrent, 'A', { pin: v3, extra: { variant: 'regulator', effect: 'regulatorHot' } })] : [];
+    return [...own.call(mcu, entry, reading), ...usb, ...reg3];
+  };
 }
 
 // Several devices may share a type (the ICs: timer, op-amp); each one accepts its own parts.

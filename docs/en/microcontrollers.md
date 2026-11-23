@@ -54,7 +54,11 @@ the ESP32's.
 - **Power:** a board on USB (`"usb": true`, the default) is a source: 5 V behind the cable's
   resistance on its USB pin (VIN on a DevKit, 5V on the others). With no other supply, ground is its
   GND, so `esp32-led` simulates with nothing else. `"usb": false`: the board takes its power from the
-  circuit through those pins.
+  circuit through those pins. On USB a board gives 500 mA in all (a USB 2.0 port; the UNO's
+  resettable fuse is 500 mA too): past it, a hazard on its USB pin says what happens (`U1.5V gives
+  721 mA from USB, more than the 500 mA a USB port gives: the board's 500 mA resettable fuse opens…`;
+  on a DevKit or a C3, the computer's port shuts down). The UNO's 3V3 pin has its own LP2985: past its
+  150 mA, a hazard on `U1.3V3`; a DevKit's or a C3's 3.3 V regulator has its maximum on the board.
 - **Pins:** `"io"` sets each GPIO by printed name, GPIO name or number (`"D13"`, `"GPIO13"`, `"13"`):
   `high`, `low`, `input`, `input_pullup`, `input_pulldown`. Unlisted pins are inputs. A GPIO nothing
   is wired to is left out. Mistakes are warnings and are left out: an unknown pin

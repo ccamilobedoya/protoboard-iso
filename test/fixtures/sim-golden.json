@@ -3325,6 +3325,15 @@
        "unit": "V",
        "ratio": -9.97307270366717,
        "level": "fine"
+      },
+      {
+       "quantity": "current",
+       "value": 0.044878827226386794,
+       "max": 0.5,
+       "unit": "A",
+       "ratio": 0.08975765445277359,
+       "level": "fine",
+       "pin": "5V"
       }
      ]
     },
@@ -6560,6 +6569,15 @@
        "unit": "V",
        "ratio": -6.599999264406946,
        "level": "fine"
+      },
+      {
+       "quantity": "current",
+       "value": 0.04499999555034632,
+       "max": 0.5,
+       "unit": "A",
+       "ratio": 0.08999999110069264,
+       "level": "fine",
+       "pin": "VIN"
       }
      ]
     },
@@ -6872,6 +6890,15 @@
        "unit": "V",
        "ratio": -6.59999924441503,
        "level": "fine"
+      },
+      {
+       "quantity": "current",
+       "value": 0.05170381936023185,
+       "max": 0.5,
+       "unit": "A",
+       "ratio": 0.1034076387204637,
+       "level": "fine",
+       "pin": "VIN"
       }
      ]
     },
@@ -7374,6 +7401,15 @@
        "unit": "V",
        "ratio": -6.599999243413108,
        "level": "fine"
+      },
+      {
+       "quantity": "current",
+       "value": 0.052035105425591296,
+       "max": 0.5,
+       "unit": "A",
+       "ratio": 0.10407021085118259,
+       "level": "fine",
+       "pin": "VIN"
       }
      ]
     },
@@ -16387,6 +16423,15 @@
        "unit": "V",
        "ratio": -9.936260183619337,
        "level": "fine"
+      },
+      {
+       "quantity": "current",
+       "value": 0.10623302730610663,
+       "max": 0.5,
+       "unit": "A",
+       "ratio": 0.21246605461221327,
+       "level": "fine",
+       "pin": "5V"
       }
      ]
     },
@@ -17553,6 +17598,15 @@
        "unit": "V",
        "ratio": -9.973068725197562,
        "level": "fine"
+      },
+      {
+       "quantity": "current",
+       "value": 0.044885458009062,
+       "max": 0.5,
+       "unit": "A",
+       "ratio": 0.089770916018124,
+       "level": "fine",
+       "pin": "5V"
       }
      ]
     },
@@ -18814,6 +18868,15 @@
        "ratio": 0.19942600860724757,
        "level": "fine",
        "pin": "D13"
+      },
+      {
+       "quantity": "current",
+       "value": 0.05283438751267927,
+       "max": 0.5,
+       "unit": "A",
+       "ratio": 0.10566877502535854,
+       "level": "fine",
+       "pin": "5V"
       }
      ]
     },

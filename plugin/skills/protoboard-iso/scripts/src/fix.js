@@ -316,7 +316,9 @@ export function hazardFix(circuit, hazards) {
   // another part than the resistor it changes (the LED a resistor feeds, not the resistor's own
   // power), else the first.
   const byKey = new Map();
-  for (const h of hazards) {
+  // A board drawing more than its USB port gives proposes nothing of its own: a resistor in series
+  // with the supply would starve what it feeds. A fix of the other hazards must clear it too.
+  for (const h of hazards.filter((x) => x.params.variant !== 'usb')) {
     for (const c of candidatesOf(program, nets, h)) {
       const key = JSON.stringify(c);
       if (!byKey.has(key)) byKey.set(key, { c, from: [] });
