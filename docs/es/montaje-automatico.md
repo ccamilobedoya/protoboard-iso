@@ -540,6 +540,15 @@ recetas terminaron en `DONE`; estos circuitos escritos a mano no, cada uno medid
   los tres órdenes probados (antes 11 a 14). Las recetas y los ejemplos de montaje conservan cada
   ubicación; sus colocaciones probadas en el banco, 128 410 → 47 507 (el ejemplo de llenado del 74HC595
   102 475 → 17 861).
+- **La respuesta en el límite es la mejor vista, y dice qué ayudaría.** Un intento que el límite cortó
+  tiene menos componentes en la protoboard que se tapen entre sí, así que podía quedar mejor que uno
+  completo con las mismas redes sin unir: una corrida detenida en su límite terminaba peor que una de
+  10 s. Un componente que quedó fuera de la protoboard (`left` en un intento: cortado por el límite, o
+  sin lugar) ahora pesa tanto como redes mal hechas, en el puntaje del ciclo de reintentos y en
+  `rankOf`. Cada ✖ de una respuesta `CHANGES` trae el cambio que el kit probaría después, también
+  cuando la detuvo el límite, y un cambio ofrecido nunca es uno que el kit ya probó (los prueba él
+  primero, `NEXT_TRIALS`); la línea «Antes de esta respuesta el kit también probó» vuelve a salir (la
+  lista quedaba tapada por la cuenta del límite, `tried`, desde el 2026-11-20; ahora `changesTried`).
 
 ### Dos protoboards: un DevKit en las dos filas de pines (desde el 2026-10-31)
 

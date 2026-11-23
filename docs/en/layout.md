@@ -488,6 +488,15 @@ four-core machine shared with other work):
   LEDs `CHANGES` at the budget with 6 items open in each of the three orders tried (11 to 14 before).
   Recipes and layout examples keep every placement; their placements tried over the bench, 128 410 →
   47 507 (the 74HC595 fill example 102 475 → 17 861).
+- **The budget's answer is the best seen, and says what would help.** A try the budget cut short has
+  fewer parts on the board to hide each other, so it could rank better than a whole try with the same
+  nets left apart: a run stopped at its budget ended worse-looking than one of 10 s. A part left off
+  the board (`left` on a try: cut by the budget, or no place found) now weighs as much as nets left
+  wrong, in the relayout loop's score and in `rankOf`. Every ✖ of a `CHANGES` answer carries the change
+  the kit would try next, also when the budget stopped it, and a change offered is never one the kit
+  tried (it tries them itself first, `NEXT_TRIALS`); the line "Before this answer the kit also tried"
+  is printed again (the list was overwritten by the budget's count, `tried`, since 2026-11-20; now
+  `changesTried`).
 
 ### Two boards: a DevKit on both headers (since 2026-10-31)
 

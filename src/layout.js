@@ -495,7 +495,7 @@ function withTrials(spec, best, options) {
   }
   out = { ...out, tries, ms };
   if (out.status !== 'changes') return out;
-  out.tried = done;
+  out.changesTried = done; // `tried` is the budget's count (autoLayout)
   const left = trials.map((x) => x.change).filter((c, i, all) => c.kind !== 'nets' && !done.some((d) => sameChange(d, c)) && all.findIndex((x) => sameChange(x, c)) === i);
   const next = (b) => ({ ...b, next: nextTry(b, spec, out, left, done) });
   const missing = out.check.missing.map((m) => ({ ...m, next: nextTry({ parts: m.pins.map((x) => String(x).split('.')[0]) }, spec, out, left, done) }));
@@ -585,7 +585,10 @@ function nextTry(b, spec, out, left, done) {
 
 // Lower is better: a circuit ready (or built with a hazard) before one left to fix, then what is
 // left to fix, then jumpers and columns.
-const rankOf = (r) => (r.status === 'changes' ? 1e6 : 0) + ((r.check.ok ? 0 : 100) + r.problems.length * 10 + r.review.blocking.length) * 1e3 + (r.wires ?? 0) * 10 + (r.columns ?? 0) / 100;
+// A part left off the board (the budget stopped a try before it, or it found no place) weighs as much
+// as nets left wrong: a try cut short has fewer parts to hide each other, and must not look better
+// than a whole one for it (a run stopped at its budget kept such a try).
+const rankOf = (r) => (r.status === 'changes' ? 1e6 : 0) + ((r.check.ok ? 0 : 100) + (r.left ?? 0) * 100 + r.problems.length * 10 + r.review.blocking.length) * 1e3 + (r.wires ?? 0) * 10 + (r.columns ?? 0) / 100;
 
 // Power pins by name: a net through one of them feeds stages, it does not chain them.
 const POWER_PIN = /^(GND\d*|VSS|0V|5V|3V3|3\.3V|VIN|VCC|VDD|V\+|V-|IOREF)$/i;
@@ -712,7 +715,7 @@ function layoutSpec(spec, { profile = 'lesson', checkOnly = false, previous = nu
   // `resume`: the first search was made already (a scout's, inAnyOrder): only the second runs.
   let best = resume?.best ?? null;
   let tries = 0;
-  const score = (x) => (x.check.ok ? 0 : 100) + x.problems.length * 10 + x.review.blocking.length;
+  const score = (x) => (x.check.ok ? 0 : 100) + (x.left ?? 0) * 100 + x.problems.length * 10 + x.review.blocking.length;
   const ready = (x) => x.check.ok && x.review.verdict !== 'changes' && !x.problems.length;
   // Two searches, the second only when the first ends with something blocking. The first places
   // as layout always has: a circuit it settles (every recipe, test/recipe-visibility.test.js) keeps
@@ -1881,7 +1884,8 @@ function layoutOnce(spec, { profile, forbid, previous, asked, memo = new Map(), 
 
   const columns = buildCircuit(circuit).board?.spec.columns;
   const sequence = circuit.parts.map((p) => p.id); // placement order: parts, then jumpers
-  return { circuit, placed, wires, columns, problems, sequence, check: checkNets(circuit, nets), review: verdict, ms: Date.now() - started };
+  // `left`: parts not on the board (the budget stopped before them, or they found no place).
+  return { circuit, placed, wires, columns, problems, sequence, left: order.length - placed.length, check: checkNets(circuit, nets), review: verdict, ms: Date.now() - started };
 }
 
 // Nothing laid out: the spec has errors found before validating it (a recipe's values).
@@ -1918,7 +1922,7 @@ export function formatLayout(r, lang, { t, formatIssue }) {
   const headline = r.review.verdict === 'approved' ? 'layout.approved' : r.review.verdict === 'changes' ? (blocking.length ? 'layout.changes' : 'layout.changesNets') : 'layout.warnings';
   lines.push(t(lang, headline, { count: blocking.length }));
   for (const b of blocking) lines.push(`  ✖ ${formatIssue(b, lang)}${b.views ? ` [${b.views.join(', ')}]` : ''}`, ...next(b));
-  if (r.tried?.length) lines.push(t(lang, 'layout.tried', { list: r.tried.map((c) => t(lang, `layout.tried.${c.kind}`, c)).join(', ') }));
+  if (r.changesTried?.length) lines.push(t(lang, 'layout.tried', { list: r.changesTried.map((c) => t(lang, `layout.tried.${c.kind}`, c)).join(', ') }));
   // The Checked line only for a circuit built (DONE or WARNINGS): one left to fix is not the answer yet.
   lines.push(...formatHazards(r.review, lang, formatIssue, t, { checked: r.status !== 'changes' }));
   // Parts hard to see in every view: information, one line each (review.js hidden).

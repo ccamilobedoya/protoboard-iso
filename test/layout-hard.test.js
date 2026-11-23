@@ -72,3 +72,17 @@ test('hard cases: the line that says which parts are not on the board, in both l
   assert.match(t('en', 'spec.unplaced', { parts: 'K2, K3' }), /^Not on the board: K2, K3\..*not the whole circuit/);
   assert.match(t('es', 'spec.unplaced', { parts: 'K2, K3' }), /^No están en la protoboard: K2, K3\..*no es el circuito completo/);
 });
+
+// The budget's answer: every ✖ still says the change the kit would try next, and a change offered is
+// never one the kit already tried (it tries the next changes itself while the budget lasts).
+test('hard cases: an answer stopped at its budget offers on each item a change the kit did not try', () => {
+  const s = JSON.parse(readFileSync(new URL('fixtures/layout-trials/uno-595-leds.json', import.meta.url), 'utf8'));
+  const r = layoutWithDefaults({ ...s, board: 'bb830' }, { budget: 1 });
+  assert.equal(r.status, 'changes');
+  const items = [...r.problems.filter((p) => p.code !== 'LAYOUT_BUDGET'), ...r.review.blocking, ...r.check.missing];
+  assert.ok(items.length > 0);
+  for (const b of items) assert.ok(b.next, JSON.stringify(b));
+  const firsts = (r.changesTried ?? []).filter((c) => c.kind === 'first').map((c) => c.parts.split(', ')[0]);
+  for (const b of items) if (b.next.kind === 'first') assert.ok(!firsts.includes(b.next.parts), `${b.next.parts} was tried first already`);
+  if (r.changesTried?.length) assert.match(text(r), /Before this answer the kit also tried/);
+});
