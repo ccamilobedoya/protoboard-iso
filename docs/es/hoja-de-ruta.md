@@ -605,6 +605,7 @@ comprobar. La regla ahora: `DONE` significa que el kit lo revisó y no encontró
 - ✅ El orden que funciona es uno que la búsqueda encuentra (C15c): el orden dado tiene solo su primera búsqueda, luego cada orden de las redes un intento (y un tercero, desde el componente con más pines de señal), buscados completos empezando por el mejor comienzo. Un UNO con un display de 7 segmentos y un botón en `DONE` en 11 618 colocaciones (eran 67 146); dos 74HC595 con dieciséis LED en la protoboard doble en `DONE` (era `CHANGES` en el límite); las recetas conservan sus ubicaciones
 - ⬜ Dos 74HC595 con dieciséis LED en una sola protoboard y un 555 con un CD4017 y diez LED siguen terminando en `CHANGES` en el límite de 60 s (C15c midió 19 y 6 puntos abiertos): cada intento de un circuito así cuesta unas 16 000 colocaciones
 - ✅ La respuesta en el límite es la mejor vista y dice qué ayudaría (C15c): un componente fuera de la protoboard pesa tanto como redes mal hechas al comparar intentos; cada ✖ trae el cambio siguiente, nunca uno que el kit probó; la línea «el kit también probó» vuelve a salir
+- ✅ Un componente que el kit no tiene dice qué hay cerca (C15c): un motor paso a paso (`28BYJ-48`), una OLED, un teclado, un joystick, un módulo Bluetooth y uno Wi-Fi con lo que el kit tiene cerca; una tarjeta SD, un reloj de tiempo real y una celda de carga «Nada cercano»; por las palabras del nombre, en inglés y en español
 
 ## Opcional, más adelante ⬜
 

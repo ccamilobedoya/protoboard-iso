@@ -497,6 +497,12 @@ four-core machine shared with other work):
   tried (it tries them itself first, `NEXT_TRIALS`); the line "Before this answer the kit also tried"
   is printed again (the list was overwritten by the budget's count, `tried`, since 2026-11-20; now
   `changesTried`).
+- **A part the kit lacks.** `28BYJ-48` (a stepper motor) answered "has no part with a close name".
+  The common asks matched by the words in a name (`nearOf`, `src/parts/resolve.js`) gain a stepper (a
+  DC motor turns but does not step; a ULN2003 to four coils drawn as inductors only as a wiring
+  exercise), an OLED, a keypad, a joystick, a Bluetooth and a Wi-Fi module (with what the kit has near
+  them), and an SD card, a real-time clock and a load cell ("Nothing near"), in English and Spanish
+  (`check.UNKNOWN_PART_NAME.<ask>`); the speaker, LED strip, servo, transformer and LCD were there.
 
 ### Two boards: a DevKit on both headers (since 2026-10-31)
 

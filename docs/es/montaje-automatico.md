@@ -549,6 +549,14 @@ recetas terminaron en `DONE`; estos circuitos escritos a mano no, cada uno medid
   cuando la detuvo el límite, y un cambio ofrecido nunca es uno que el kit ya probó (los prueba él
   primero, `NEXT_TRIALS`); la línea «Antes de esta respuesta el kit también probó» vuelve a salir (la
   lista quedaba tapada por la cuenta del límite, `tried`, desde el 2026-11-20; ahora `changesTried`).
+- **Un componente que el kit no tiene.** `28BYJ-48` (un motor paso a paso) respondía «no tiene ningún
+  componente de nombre parecido». Los pedidos comunes que se reconocen por las palabras del nombre
+  (`nearOf`, `src/parts/resolve.js`) suman un motor paso a paso (un motor DC gira pero no da pasos; un
+  ULN2003 a cuatro bobinas dibujadas como inductores solo como ejercicio de cableado), una pantalla
+  OLED, un teclado, un joystick, un módulo Bluetooth y uno Wi-Fi (con lo que el kit tiene cerca), y una
+  tarjeta SD, un reloj de tiempo real y una celda de carga («Nada cercano»), en inglés y en español
+  (`check.UNKNOWN_PART_NAME.<pedido>`); el altavoz, la tira de LED, el servo, el transformador y la LCD
+  ya estaban.
 
 ### Dos protoboards: un DevKit en las dos filas de pines (desde el 2026-10-31)
 
