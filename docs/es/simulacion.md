@@ -581,8 +581,8 @@ voltaje directo de un LED medido en el banco).
 ## Todavía no
 
 Todos los chips del kit se simulan (el 555, los amplificadores operacionales, el LM393, el 74HC595, el
-CD4017, los arreglos ULN, el PC817 y el LM386); el adaptador DESPI-C02 queda sin conectar y se avisa; el kit no tiene parlante (una
-resistencia de 8 Ω y 1 W hace sus veces detrás de un LM386, cuyo transitorio se corre desde su
+CD4017, los arreglos ULN, el PC817 y el LM386); el adaptador DESPI-C02 queda sin conectar y se avisa; el kit no tiene altavoz (una
+resistencia de 8 Ω y 1 W lo reemplaza en la simulación detrás de un LM386, y la respuesta se lo dice al usuario; un LM386 recortado contra sus rieles una quinta parte del tiempo o más recibe una nota, `SIM_AMP_CLIPPING`; su transitorio se corre desde su
 punto de reposo, `--start dc`: desde todo descargado su condensador de salida se carga por los 8 Ω y
 la fuente entrega cerca de medio amperio al principio: es el encendido, no el amplificador); una placa con
 microcontrolador corre su programa (`"program"`, con PWM y `tone`;

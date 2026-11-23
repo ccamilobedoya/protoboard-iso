@@ -320,3 +320,33 @@ test('the CD4017\'s figures for an LED straight on an output are the ones the ki
   assert.match(line, /about 3\.3 mA at 5 V, 15 mA at 9 V \(over the chip's power: a ⚠\) and 28 mA at 12 V; above 10 V the kit's figure likely overestimates/);
   assert.match(readFileSync(new URL('../plugin-src/references/chips.md', import.meta.url), 'utf8'), /3\.3 mA at 5 V, 15 mA at 9 V \(over the chip's power, a ⚠\) and 28 mA at 12 V/);
 });
+
+// ── 8. The LM386 with no loudspeaker, said once; an amplifier that clips, said ──────────
+
+// At gain 200 a 20 mV input drives the LM386 into its rails on 9 V (±3.4 V across the load) with
+// nothing said; at gain 20 and 50 mV it is linear.
+const LM386 = (amplitude, gain200) => ({
+  supplies: [{ id: 'V1', voltage: 9 }, { id: 'G1', kind: 'generator', waveform: 'sine', frequency: 1000, amplitude, offset: 0, positive: 'CIN.-', negative: 'T-' }],
+  parts: [{ id: 'U1', part: 'LM386' }, { id: 'CIN', type: 'capacitor', value: '10u' }, { id: 'COUT', type: 'capacitor', kind: 'electrolytic', value: '220u' }, { id: 'RL', type: 'resistor', value: '8' }, ...(gain200 ? [{ id: 'CG', type: 'capacitor', kind: 'electrolytic', value: '10u' }] : [])],
+  nets: [['U1.VS', 'T+'], ['U1.GND', 'T-'], ['U1.IN-', 'T-'], ['CIN.+', 'U1.IN+'], ['U1.OUT', 'COUT.+'], ['COUT.-', 'RL.1'], ['RL.2', 'T-'], ...(gain200 ? [['U1.GAIN1', 'CG.+'], ['CG.-', 'U1.GAIN8']] : [])],
+});
+test('an LM386 clipped against its rails gets one note saying so; a linear one none', async () => {
+  const { simulate } = await import('../src/sim/index.js');
+  const clipped = simulate(autoLayout(LM386(0.02, true)).circuit, { analysis: 'transient', stop: 0.01, step: 5e-6, start: 'dc' });
+  const notes = clipped.issues.filter((i) => i.code === 'SIM_AMP_CLIPPING');
+  assert.equal(notes.length, 1, JSON.stringify(clipped.issues.map((i) => i.code)));
+  assert.match(formatIssue(notes[0], 'en'), /^note: U1's output is clipped against its rails \d+ % of the time \(it swings from [\d.]+ m?V to [\d.]+ V\): the signal is too large for this gain and supply/);
+  const linear = simulate(autoLayout(LM386(0.05, false)).circuit, { analysis: 'transient', stop: 0.01, step: 5e-6, start: 'dc' });
+  assert.ok(!linear.issues.some((i) => i.code === 'SIM_AMP_CLIPPING'));
+});
+
+test('the kit has no loudspeaker: the same sentence in catalog speaker, the LM386\'s model line and chips.md', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { unknownText, catalogEntry, formatCatalogEntry } = await import('../src/node/catalog.js');
+  const SAID = 'The kit has no loudspeaker: an 8 Ω resistor stands in for it in the simulation; tell the user.';
+  assert.ok(unknownText('speaker', 'en').includes(SAID), unknownText('speaker', 'en'));
+  assert.ok(formatCatalogEntry(catalogEntry('LM386', 'en'), 'en').includes(SAID));
+  const chips = readFileSync(new URL('../plugin-src/references/chips.md', import.meta.url), 'utf8');
+  assert.ok(chips.includes(SAID));
+  assert.doesNotMatch(chips, /stands for it|ask before/i);
+});

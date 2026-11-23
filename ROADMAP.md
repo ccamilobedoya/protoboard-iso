@@ -603,6 +603,7 @@ before saying it works.
 - ✅ What `layout` prints for a circuit with nothing that lights (C15b): its `Readings` line gives the voltage of each net that is not a rail, named by its pins, at most four (a divider said only `supply 5 V`; now `supply 5 V · R1.2 = R2.1 3.33 V`)
 - ✅ Small truths (C15b): a late change is printed as written (`0.8 s`, not `0.7999999999999999 s`) and a press that ends after the run is no warning; a finding names a state only when it is stronger there by more than 5 % (an RX pin at 4.04 V said `with the environment's temperature at its minimum`); `--transient`'s text says its table is eleven of its samples and gives each series' peak and frequency; a run's Serial cut to its first and last lines says so on its heading and names `--json`
 - ✅ The CD4017's drive, said as it is (C15b): `catalog CD4017` and `references/chips.md` give what the kit computes for an LED straight on an output (about 3.3 mA at 5 V, 15 mA at 9 V, a ⚠ on the chip's power, 28 mA at 12 V) and that above 10 V it likely overestimates a real chip; chips.md said `a few mA`
+- ✅ The LM386 with no loudspeaker, said once (C15b): `catalog speaker`, the LM386's model line and `references/chips.md` say the same: the kit has no loudspeaker, an 8 Ω resistor stands in for it in the simulation, tell the user (one place said to ask first, another to build with it, `catalog speaker` offered a buzzer); an LM386 clipped against its rails for a fifth of a run or a transient gets one note (`SIM_AMP_CLIPPING`: gain 200 with 20 mV on 9 V said nothing)
 
 ## Optional, later ⬜
 

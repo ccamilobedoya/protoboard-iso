@@ -1004,6 +1004,29 @@ function fixedDrive(prep) {
   };
 }
 
+// An audio amplifier's output against its rails (a reading's state clipHigh or clipLow: the LM386)
+// for at least CLIPPING_SHARE of the samples of a transient or the looks of a run: one note each,
+// with the span of its output, so a gain or an input too large for the supply is said.
+export const CLIPPING_SHARE = 0.2;
+export function clipCounter() {
+  const seen = new Map(); // id → { clipped, n, low, high }
+  return {
+    see(reading) {
+      for (const [id, r] of Object.entries(reading?.parts ?? {})) {
+        if (!r || r.floating || !('state' in r) || !('vout' in r)) continue;
+        if (r.state !== 'clipHigh' && r.state !== 'clipLow' && r.state !== 'linear') continue;
+        const e = seen.get(id) ?? { clipped: 0, n: 0, low: Infinity, high: -Infinity };
+        e.n++;
+        if (r.state !== 'linear') e.clipped++;
+        e.low = Math.min(e.low, r.vout);
+        e.high = Math.max(e.high, r.vout);
+        seen.set(id, e);
+      }
+    },
+    notes: () => [...seen].filter(([, e]) => e.n > 0 && e.clipped / e.n >= CLIPPING_SHARE).map(([part, e]) => issue('info', 'SIM_AMP_CLIPPING', { part, share: Math.round((100 * e.clipped) / e.n), low: q(e.low, 'V'), high: q(e.high, 'V') })),
+  };
+}
+
 function transient(prep, { stop, step, start = 'zero', points = 400 } = {}, drive = fixedDrive(prep)) {
   stop = Number(stop);
   step = Number(step);
@@ -1028,11 +1051,13 @@ function transient(prep, { stop, step, start = 'zero', points = 400 } = {}, driv
   // Power is thermal: each part's dissipation is averaged over the samples (evenly spaced in time) and
   // judged at the end; currents and voltages are judged at each sample.
   const power = new Map(); // "SIM_OVER_POWER:R1" → { sum, n, max, issue }
+  const clips = clipCounter();
   for (let k = 1; k <= steps; k++) {
     if (!drive.step(k * step, step)) return { analysis: 'transient', model: true, ok: false, issues: [...drive.prep().issues, issue('error', 'SIM_NO_CONVERGENCE_AT', { time: q(k * step, 's') })] };
     if (k % every === 0 || k === steps) {
       record(k * step, ctx);
       const sample = samples.at(-1);
+      clips.see(sample);
       for (const w of limitIssues(drive.prep(), sample)) if (w.code !== 'SIM_OVER_POWER') warnings.set(`${w.code}:${w.params.part ?? w.params.supply ?? ''}`, w);
       for (const p of drive.prep().parts) {
         const r = sample.parts[p.id];
@@ -1065,6 +1090,6 @@ function transient(prep, { stop, step, start = 'zero', points = 400 } = {}, driv
       Object.fromEntries(['voltage', 'current', 'power'].filter((key) => typeof p[key] === 'number').map((key) => [key, series((s) => s.parts[id][key])])),
     ]),
   );
-  return { analysis: 'transient', model: true, ok: true, start, step, stop: steps * step, times, ground: prep.ground, nodes, supplies, parts, issues: [...prep.issues, ...warnings.values()] };
+  return { analysis: 'transient', model: true, ok: true, start, step, stop: steps * step, times, ground: prep.ground, nodes, supplies, parts, issues: [...prep.issues, ...warnings.values(), ...clips.notes()] };
 }
 

@@ -350,7 +350,7 @@ kit simulate circuits/isolated --run 1 --press S1@0.2+0.5
 
 <!-- generated: LM386 (npm run parts-reference -- --write) -->
 - Pins, from pin 1 round the chip (`kit catalog LM386`): `GAIN1` `IN-` `IN+` `GND` `OUT` `VS` `BYPASS` `GAIN8`
-- Simulated: the output at half the supply, a gain of 20 with pins 1 and 8 open and 200 with a capacitor between them (the datasheet's 1.35 kΩ and 15 kΩ), 50 kΩ inputs, a swing to about 1 V from each rail, 4 mA of its own. Not modelled: bandwidth, distortion, noise, the bass boost from pin 1 to pin 5. The kit has no loudspeaker yet: an 8 Ω resistor stands for it.
+- Simulated: the output at half the supply, a gain of 20 with pins 1 and 8 open and 200 with a capacitor between them (the datasheet's 1.35 kΩ and 15 kΩ), 50 kΩ inputs, a swing to about 1 V from each rail, 4 mA of its own. Not modelled: bandwidth, distortion, noise, the bass boost from pin 1 to pin 5. The kit has no loudspeaker: an 8 Ω resistor stands in for it in the simulation; tell the user.
 - Limits (the simulator's): maximum voltage 15 V (supply) · maximum voltage 400 mV (IN+, IN-) (input) · maximum power 1.25 W · maximum reverse voltage 500 mV (supply)
 <!-- /generated -->
 
@@ -359,8 +359,8 @@ Wire it right:
 - `VS` to + (4 to 12 V for the LM386N-1 and N-3; up to 15 V a ⚠ that it is past that range, over
   15 V it can be damaged), `GND` to −.
 - The signal through a capacitor to `IN+`; `IN-` to ground.
-- `OUT` through a large capacitor (220 µF) to the loudspeaker. The kit has no loudspeaker: an 8 Ω
-  resistor of 1 W stands for it. Say so to the user.
+- `OUT` through a large capacitor (220 µF) to the loudspeaker. The kit has no loudspeaker: an 8 Ω resistor stands in for it in the simulation; tell the user.
+  Build it with that resistor (1 W) without asking first.
 - `GAIN1` and `GAIN8` open: a gain of 20; a capacitor between them: 200.
 - `BYPASS` may stay open.
 - Run its transient from its resting point, `--start dc`. Run from everything discharged, the

@@ -36,7 +36,7 @@
 // only clicks). An active buzzer sounds on DC: its fields above are already when it sounds.
 
 import { compile } from './compile.js';
-import { createEngine, MIN_PIECE } from './engine.js';
+import { createEngine, MIN_PIECE, clipCounter } from './engine.js';
 import { paceOf } from './pace.js';
 import { FIELDS } from './environment.js';
 import { issue } from './devices/shared.js';
@@ -566,8 +566,10 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   const settleOf = new Map();
   for (const c of engine.timeConstants(true)) if (c.part) settleOf.set(c.part, Math.max(settleOf.get(c.part) ?? 0, SETTLE_TAUS * c.value));
   const passing = new Map(); // key → { since, last: quantity } of a level warning not settled yet
+  const clips = clipCounter();
   const look = (final = false) => {
     const now = engine.now();
+    clips.see(now);
     const present = new Set();
     for (const w of now?.issues ?? []) {
       if (w.severity === 'info') continue;
@@ -678,7 +680,7 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
     pinExtremes: [...extremes.values()],
     combinations: [...combos.values()],
     readings,
-    issues: [...(readings?.issues ?? []).filter((i) => i.severity === 'info'), ...issues, ...flags.values(), ...warnings.values()],
+    issues: [...(readings?.issues ?? []).filter((i) => i.severity === 'info'), ...issues, ...flags.values(), ...warnings.values(), ...(checks > 0 ? clips.notes() : [])],
   };
 }
 
