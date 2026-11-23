@@ -155,6 +155,7 @@ const warningsOf = (reading) => (reading.issues ?? []).filter((i) => (PROGRAM_DO
 // program's issue names; an issue that names no part, by all its params.
 // Doubts that can show in several states: the quantity whose highest value is the one reported.
 const STRONGEST = { SIM_RELAY_UNDERDRIVEN: 'current', SIM_PIN_OVERVOLTAGE: 'voltage' };
+const DEPENDS = 0.05; // stronger in a state by more than this share: the state is named [assumed]
 const doubtKey = (i) => (i.params?.part != null ? `${i.code} ${i.params.part} ${i.params.name ?? i.params.file ?? i.params.pin ?? ''} ${i.params.line ?? ''}` : `${i.code} ${JSON.stringify(i.params ?? {})}`);
 const exceededAll = (engine, reading) => Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
 const hazardKey = (h) => `${h.code} ${h.params.part}`;
@@ -295,8 +296,10 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
           doubts.push({ ...d, when });
         } else if (STRONGEST[d.code]) {
           // Seen in several states: the one that tells the most (a relay's weak drive: the highest coil current).
+          // A state is named only when the finding depends on it: stronger there by more than DEPENDS
+          // (an RX pin at 4.04 V instead of 4.03 V is not "with the temperature at its minimum").
           const at = doubts.findIndex((x) => doubtKey(x) === doubtKey(d));
-          if (d.params[STRONGEST[d.code]].value > doubts[at].params[STRONGEST[d.code]].value) doubts[at] = { ...d, when };
+          if (d.params[STRONGEST[d.code]].value > doubts[at].params[STRONGEST[d.code]].value * (1 + DEPENDS)) doubts[at] = { ...d, when };
         }
       }
     }
@@ -589,7 +592,7 @@ export function checkHazards(circuit) {
     for (const peak of pinPeaks(runFirst)) {
       const at = result.doubts.findIndex((d) => doubtKey(d) === doubtKey(peak));
       if (at < 0) result.doubts.push(peak);
-      else if (Math.abs(peak.params.voltage.value) > Math.abs(result.doubts[at].params.voltage.value)) result.doubts[at] = peak;
+      else if (Math.abs(peak.params.voltage.value) > Math.abs(result.doubts[at].params.voltage.value) * (1 + DEPENDS)) result.doubts[at] = peak;
     }
   }
   // A bus line over its chip's VDDIO in a DC state, which a program that runs no longer holds there by

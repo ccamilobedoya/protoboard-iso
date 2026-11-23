@@ -4,6 +4,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { runCircuit, RUN_STEPS, behaviourOf } from '../src/sim/run.js';
 import { autoLayout } from './layout-generous.js';
 import { formatLayout } from '../src/layout.js';
@@ -261,4 +262,42 @@ test('layout\'s Readings line of a divider gives the voltage of its middle net',
   // A circuit with an LED keeps its loads, no nets.
   const led = formatLayout(autoLayout(expandRecipe('led-resistor').spec), 'en', { t, formatIssue }).split('\n').find((l) => l.startsWith('Readings'));
   assert.doesNotMatch(led, / = /);
+});
+
+// ── 10. Small ───────────────────────────────────────────────────────────────────────────
+
+test('a late change is printed as written, and a press that ends after the run is not a warning', () => {
+  const c = recipe('uno-button');
+  const late = runCircuit(c, { seconds: 0.5, stimuli: { at: [{ time: 0.3 + 0.5, name: 'S1', value: 'on' }] } });
+  assert.match(formatIssue(late.issues.find((i) => i.code === 'RUN_EVENT_LATE'), 'en'), /A change at 0\.8 s comes after the run ends \(0\.5 s\)/);
+  const held = runCircuit(c, { seconds: 0.5, stimuli: { press: [{ name: 'S1', at: 0.3, duration: 0.5 }] } });
+  assert.ok(!codes(held).includes('RUN_EVENT_LATE'), codes(held).join());
+});
+
+// An UNO's TX into an ESP32's RX2 at 5 V, with an LM35 on the UNO: the pin's finding is the same at
+// rest and in every state, so it names none ("with the environment's temperature at its minimum").
+test('a finding that does not depend on a state names none', () => {
+  const r = autoLayout({
+    parts: [
+      { id: 'U1', part: 'UNO', program: 'void setup() { Serial.begin(9600); }\nvoid loop() { int raw = analogRead(A0); Serial.println(raw * 500.0 / 1024.0, 1); delay(1000); }' },
+      { id: 'T1', part: 'LM35DZ' },
+      { id: 'U2', part: 'ESP32-DEVKIT', program: 'void setup() { Serial.begin(115200); Serial2.begin(9600, SERIAL_8N1, 16, 17); }\nvoid loop() { if (Serial2.available()) { String line = Serial2.readStringUntil(\'\\n\'); Serial.println(line); } }' },
+    ],
+    nets: [['T1.+VS', 'U1.5V'], ['T1.GND', 'U1.GND', 'U2.GND'], ['T1.VOUT', 'U1.A0'], ['U1.D1', 'U2.RX2']],
+  });
+  const rx = [...r.review.doubts, ...r.review.hazards].find((d) => d.params.part === 'U2' || d.params.part === 'U2.RX2');
+  assert.ok(rx, JSON.stringify(r.review.doubts.map((d) => d.code)));
+  assert.doesNotMatch(formatIssue(rx, 'en'), /temperature|at rest\)/);
+});
+
+test('--transient says its table is a sample and gives each series\' peak and frequency', () => {
+  const r = spawnSync(process.execPath, [new URL('../bin/protoboard-iso.js', import.meta.url).pathname, 'simulate', new URL('../examples/lm386-amplifier.json', import.meta.url).pathname, '--transient', '0.01,5u'], { encoding: 'utf8' });
+  const lines = r.stdout.split('\n');
+  assert.match(lines[0], /10 ms solved in steps of 5 µs; the table shows 11 of its 401 samples, 25 µs apart \(--json has them all\)\./);
+  assert.match(r.stdout, /\nPeaks over the 10 ms \(and the frequency of what repeats\): .*V\(R1\) [\d.]+ V, (9\d\d Hz|1(\.0\d)? kHz)/);
+});
+
+test('a run\'s Serial cut in the text says so on its heading and names --json', () => {
+  const r = runCircuit(recipe('uno-distance'), { seconds: 3 });
+  assert.match(text(r), /\nSerial \(\d+ lines, in order; the first and last 5 here, --json has \d+ of them\):\n/);
 });

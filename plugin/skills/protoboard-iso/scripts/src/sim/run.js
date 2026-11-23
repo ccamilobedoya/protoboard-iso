@@ -243,7 +243,8 @@ export function prepareRun(circuit, stimuli = {}, given = null) {
       continue;
     }
     const { id, field, value: rest } = c.control;
-    events.push({ time: p.at, apply: (e) => e.set(id, field, !rest) }, { time: p.at + p.duration, apply: (e) => e.set(id, field, Boolean(rest)) });
+    // A press that ends after the run is a press held to its end, not a late event (`release`).
+    events.push({ time: p.at, apply: (e) => e.set(id, field, !rest) }, { time: p.at + p.duration, release: true, apply: (e) => e.set(id, field, Boolean(rest)) });
   }
   for (const a of at) {
     if (Object.hasOwn(FIELDS, a.name)) {
@@ -455,7 +456,8 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   // The machine's time it may take: budgetMs, at most LIMITS.runMsMax (said when capped).
   const budgetMs = Math.min(givenBudget, LIMITS.runMsMax);
   if (givenBudget > LIMITS.runMsMax) issues.push(issue('info', 'RUN_BUDGET_CAPPED', { asked: givenBudget / 1000, max: LIMITS.runMsMax / 1000 }));
-  for (const e of events) if (e.time >= total) issues.push(issue('warning', 'RUN_EVENT_LATE', { time: e.time, seconds: total }));
+  // Times as written (0.8, not 0.7999999999999999).
+  for (const e of events) if (e.time >= total && !e.release) issues.push(issue('warning', 'RUN_EVENT_LATE', { time: Number(e.time.toPrecision(12)), seconds: total }));
 
   // The page's step (sim/pace.js; with nothing that changes by itself, short enough for the events),
   // never under the run's length over RUN_STEPS: the page's step follows the fastest thing it can show

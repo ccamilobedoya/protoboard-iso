@@ -397,7 +397,7 @@ kit simulate circuits/amp --transient 5m,10u --start dc
 ```
 
 ```text
-Transient from the DC operating point — a model, not a measurement: 5 ms solved in steps of 10 µs; 251 samples printed, 20 µs apart.
+Transient from the DC operating point — a model, not a measurement: 5 ms solved in steps of 10 µs; the table shows 11 of its 251 samples, 20 µs apart (--json has them all).
 ```
 
 and without `--start dc`:
@@ -407,7 +407,7 @@ kit simulate circuits/amp --transient 5m,10u
 ```
 
 ```text
-Transient from capacitors discharged — a model, not a measurement: 5 ms solved in steps of 10 µs; 251 samples printed, 20 µs apart.
+Transient from capacitors discharged — a model, not a measurement: 5 ms solved in steps of 10 µs; the table shows 11 of its 251 samples, 20 µs apart (--json has them all).
 ```
 
 Driven too hard (0.4 V instead of 50 mV) it clips. A run judges a power limit on its average over

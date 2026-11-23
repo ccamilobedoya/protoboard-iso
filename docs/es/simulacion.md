@@ -127,7 +127,10 @@ Se fijan con una operación, como cualquier campo del circuito:
 - **Transitorio.** `stop` y `step` en segundos; los capacitores empiezan descargados y los
   inductores sin corriente (`start: "zero"`, la fuente se enciende en t = 0), o en sus valores de
   DC (`start: "dc"`).
-  Euler implícito con paso fijo; se guardan como mucho 400 muestras (`points`). Un circuito cuya
+  Euler implícito con paso fijo; se guardan como mucho 400 muestras (`points`). El texto muestra once de ellas en una tabla y lo
+  dice (`la tabla muestra 11 de sus 401 muestras … (--json las tiene todas)`), y luego el pico de cada
+  serie y, donde se repite, su frecuencia (`Picos en los 10 ms (y la frecuencia de lo que se repite):
+  … V(R1) 4,72 V, 994 Hz`), como una ejecución da las cifras de sus salidas. Un circuito cuya
   placa corre un programa avanza como lo hace la página (abajo, «Una ejecución»): trozos de 1 ms
   como mucho que terminan en cada evento del programa y de los módulos temporizados, así un pulso
   de 10 µs o un eco quedan en su momento; la respuesta trae entonces una nota que nombra `--run`,

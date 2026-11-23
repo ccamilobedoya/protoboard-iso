@@ -120,7 +120,10 @@ Set them with an operation like any circuit field:
 - **Transient.** `stop` and `step` in seconds; capacitors start discharged and inductors with
   no current (`start: "zero"`, the supply switched on at t = 0), or at their DC values
   (`start: "dc"`). Backward Euler with a
-  fixed step; at most 400 samples are kept (`points`). A circuit whose board runs a program is
+  fixed step; at most 400 samples are kept (`points`). The text shows eleven of them in a table and
+  says so (`the table shows 11 of its 401 samples … (--json has them all)`), then each series' peak and,
+  where it repeats, its frequency (`Peaks over the 10 ms (and the frequency of what repeats): … V(R1)
+  4.72 V, 994 Hz`), as a run gives its outputs' figures. A circuit whose board runs a program is
   stepped as the page steps it (below, "A run"): pieces of at most 1 ms that end on each event of
   the program and of the timed modules, so a 10 µs pulse or an echo is at its time; the answer
   then has a note naming `--run`, which says what the program printed and how its outputs toggle.
