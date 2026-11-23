@@ -218,3 +218,20 @@ test('pointers, struct, class and a member the kit does not read name the constr
   assert.match(method.en, /the String method reverse\(\), which the kit does not read/);
   assert.match(said(setup('int p = 0;\n  p.x = 3;')).en, /reads a member with "." \(p\.x\)/);
 });
+
+// ---- Small: a sensor read before it is ready prints nan, and one note says why.
+test('a DHT11 read in its first second prints nan, with one note saying it was still powering up', () => {
+  const sketch = (wait) => `#include <DHT.h>\nDHT dht(4, DHT11);\nvoid setup() { Serial.begin(115200); dht.begin(); delay(${wait}); Serial.println(dht.readTemperature(), 1); }\nvoid loop() { delay(1000); }`;
+  const of = (wait) => {
+    const laid = autoLayout({ parts: [{ id: 'U1', part: 'ESP32-DEVKIT', program: sketch(wait) }, { id: 'S1', part: 'DHT11' }], nets: [['S1.+', 'U1.3V3'], ['S1.−', 'U1.GND'], ['S1.S', 'U1.D4']] }, { lang: 'en' });
+    return runCircuit(laid.circuit, { seconds: 2 });
+  };
+  const early = of(300);
+  assert.deepEqual(early.serial.lines.map((l) => l.text), ['nan']);
+  const notes = early.issues.filter((i) => i.code === 'SIM_LIBRARY_EARLY');
+  assert.equal(notes.length, 1);
+  assert.match(formatIssue(notes[0], 'en'), /U1: the program read S1 at 300 ms, while it was still powering up/);
+  const ready = of(1500);
+  assert.deepEqual(ready.serial.lines.map((l) => l.text), ['25.0']);
+  assert.ok(!ready.issues.some((i) => i.code === 'SIM_LIBRARY_EARLY'));
+});

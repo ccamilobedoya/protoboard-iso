@@ -192,6 +192,7 @@ export const mcu = {
     // step's voltages; `settle` runs it at t = 0 (setup, then loop until it waits).
     const byGpio = new Map();
     const pinParts = new Map(); // gpio → its stage and protection diodes (a link's RX side, serialLink)
+    const early = new Map(); // a library sensor read while it was still powering up → when (ms)
     if (p.sketch) {
       const states = Object.fromEntries(p.gpios.filter((g) => g.state).map((g) => [g.gpio, g.state]));
       // A pin held by engine.drive (the hazard check's "with D10 high") keeps its level whatever the
@@ -241,6 +242,8 @@ export const mcu = {
           if (!answer) continue;
           if (!answer.mine) misses.push([el, answer.miss]);
           else if (!best || (answer.ok && !best.ok)) best = answer;
+          // Read before it is ready (a DHT11 in its first second): the library gives NaN; limits() says why.
+          if (answer.mine && !answer.ok && el.memo?.verdict?.reason === 'warmup' && !early.has(el.library.id)) early.set(el.library.id, el.memo.verdict.at);
         }
         // Nobody it was for: each sensor of the class that missed notes why (another pin, address…).
         if (!best) for (const [el, miss] of misses) el.note?.(miss);
@@ -290,6 +293,7 @@ export const mcu = {
         x: null,
         serialBoard: true,
         boardId: h.id,
+        early,
         netOfTx: (gpio) => netOfGpio(gpio),
         nodeOfTx: (gpio) => nodeOfGpio(gpio),
         // A TX pin's two levels: the board's rail and its ground, now.
@@ -514,6 +518,7 @@ export const mcu = {
     }
     // A port the program reads whose RX pin gets no byte: a TX reaches it with levels this board does
     // not read as a high and a low (SIM_SERIAL_LEVELS), or nothing that sends is wired to it.
+    for (const [sensor, at] of entry.ctrl?.early ?? []) out.push(note('info', 'SIM_LIBRARY_EARLY', { part: entry.id, sensor: String(sensor), time: q(at / 1000, 's') }));
     for (const d of entry.ctrl?.deaf?.() ?? []) {
       const port = d.k === 0 ? 'Serial' : `Serial${d.k}`;
       if (d.waits) out.push(note('info', 'SIM_SERIAL_WAITS', { part: entry.id, port }));
