@@ -893,6 +893,12 @@ En orden de lo que más rendiría:
    cambia `junction` en `doubleBoard` (`src/board/board.js`) si es distinta. Los cables entre las
    filas de pines de las dos protoboards todavía pasan por encima del DevKit cuando una red necesita
    las dos (tres en el caso del banco).
+7. **Dos circuitos densos de chips siguen terminando en `CHANGES` en una sola protoboard** (medido
+   el 2026-11-23, C15c): dos 74HC595 con dieciséis LED (19 puntos abiertos en el límite de 60 s) y
+   un 555 que da reloj a un CD4017 con diez LED (6 abiertos). Cada intento de un circuito así cuesta
+   unas 16 000 colocaciones, así que el límite permite pocos. El primero termina en `DONE` en la
+   protoboard doble (`"board": "double"`); el segundo todavía no tiene esa salida: un `--budget`
+   mayor, o el circuito en dos partes.
 
 ## Ver también
 

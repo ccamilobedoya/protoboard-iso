@@ -821,6 +821,11 @@ In order of what would pay most:
    block ending one pitch past its outer row): measure two real boards and change `junction` in
    `doubleBoard` (`src/board/board.js`) if it differs. Jumpers between the two boards' headers
    still arch over the DevKit when a net needs both (three in the bench case).
+7. **Two dense chip circuits still end `CHANGES` on one board** (measured 2026-11-23, C15c): two
+   74HC595 with sixteen LEDs (19 items open at the 60 s budget) and a 555 clocking a CD4017 with
+   ten LEDs (6 open). Each try of such a circuit costs about 16 000 placements, so the budget allows
+   few. The first ends `DONE` on the double board (`"board": "double"`); the second has no such way
+   out yet: a larger `--budget`, or the circuit in two parts.
 
 ## See also
 
