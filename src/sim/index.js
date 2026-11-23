@@ -148,8 +148,13 @@ export function programOutputs(reading) {
 // note on a program, a circuit that has no source or is not placed (the Checked line and the
 // placement checks say those).
 const NOT_DOUBTS = new Set(['SIM_UNSUPPORTED', 'SIM_PROGRAM_IGNORED', 'SIM_NO_SUPPLY', 'SIM_PLACEMENT_ERRORS']);
-// Issues of a board's program: doubts whatever their severity (a library not simulated is a note).
-const PROGRAM_DOUBTS = new Set(['SIM_PROGRAM_FILE', 'SIM_PROGRAM_FOLDER', 'SIM_PROGRAM_NOT_SKETCH', 'SIM_PROGRAM_OUTSIDE', 'SIM_PROGRAM_TOO_LARGE', 'SIM_PROGRAM_ERROR', 'SIM_PROGRAM_UNSUPPORTED', 'SIM_PROGRAM_LIBRARY', 'SIM_PROGRAM_NO_LOOP', 'SIM_PROGRAM_NOT_IN_KIT', 'SIM_PROGRAM_ARRAY_DIMENSIONS']);
+// Issues of a board's program: doubts whatever their severity (a library not simulated is a note),
+// also when the DC point does not solve. The subset's refusals (a pointer, a struct, a member, a
+// String method or a macro it lacks) and its warnings on what it reads differently (a bit macro on
+// something that is not a variable, a reference parameter passed as a copy) are among them.
+const PROGRAM_DOUBTS = new Set(['SIM_PROGRAM_FILE', 'SIM_PROGRAM_FOLDER', 'SIM_PROGRAM_NOT_SKETCH', 'SIM_PROGRAM_OUTSIDE', 'SIM_PROGRAM_TOO_LARGE', 'SIM_PROGRAM_ERROR', 'SIM_PROGRAM_UNSUPPORTED', 'SIM_PROGRAM_LIBRARY', 'SIM_PROGRAM_NO_LOOP', 'SIM_PROGRAM_NOT_IN_KIT', 'SIM_PROGRAM_ARRAY_DIMENSIONS', 'SIM_PROGRAM_POINTER', 'SIM_PROGRAM_TYPE_DECL', 'SIM_PROGRAM_STRING_METHOD', 'SIM_PROGRAM_MEMBER', 'SIM_PROGRAM_MACRO', 'SIM_PROGRAM_NOT_LVALUE', 'SIM_PROGRAM_REFERENCE']);
+// Of those, the ones on a program that still runs (its run is visited as for any other).
+const PROGRAM_RUNS_ANYWAY = new Set(['SIM_PROGRAM_NOT_LVALUE', 'SIM_PROGRAM_REFERENCE']);
 const warningsOf = (reading) => (reading.issues ?? []).filter((i) => (PROGRAM_DOUBTS.has(i.code) || i.severity === 'warning' || i.severity === 'error') && !NOT_DOUBTS.has(i.code));
 // One doubt per code and part (its readings change from state to state), and per call or file a
 // program's issue names; an issue that names no part, by all its params.
@@ -582,7 +587,7 @@ export function checkHazards(circuit) {
   // A clocked chip (a 74HC595, a CD4017) latches states a DC point never shows: the run is visited too.
   const clocked = (compiled.program.devices ?? []).some((d) => !d.unsupported && deviceOfProgram(d)?.holds);
   const runFirst = programmed || clocked ? visitRun(circuit, compiled, engine, states, extraStates(circuit, engine, states), !programmed) : null;
-  const runs = runFirst?.ok && !(runFirst.issues ?? []).some((i) => i.code === 'SIM_PROGRAM_STOPPED' || i.code === 'SIM_PROGRAM_STUCK') && !(compiled.program.issues ?? []).some((i) => PROGRAM_DOUBTS.has(i.code) && i.severity !== 'info');
+  const runs = runFirst?.ok && !(runFirst.issues ?? []).some((i) => i.code === 'SIM_PROGRAM_STOPPED' || i.code === 'SIM_PROGRAM_STUCK') && !(compiled.program.issues ?? []).some((i) => PROGRAM_DOUBTS.has(i.code) && !PROGRAM_RUNS_ANYWAY.has(i.code) && i.severity !== 'info');
   const { rest, lit, ...result } = engineHazards(engine, [...states, ...undeclaredEnvironmentStates(circuit, compiled.program)], STATES_MAX, { collect: true, ...(runs && runFirst.combinations?.length && { combinations: runFirst.combinations }) });
   const dark = result.ok ? neverOn(circuit, compiled, engine, states, lit) : [];
   if (lit?.short) result.shortRun = true;
