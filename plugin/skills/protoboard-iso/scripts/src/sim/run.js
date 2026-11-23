@@ -67,6 +67,10 @@ const COMBINATIONS = 64; // combinations of a board's outputs kept from a run
 // Two changes of a passive buzzer's current closer than this are one sound: a tone of 20 Hz or more at
 // any duty from 0 to 100 %; slower changes (a pin toggled at 10 Hz, a button) are clicks [assumed].
 const SOUND_GAP = 0.05;
+const NOTE_SAME = 0.03; // a cycle within 3 % of a note's period is the same note (a semitone is 6 %)
+const NOTE_LULL = 4; // periods of silence inside a sound that end a note
+const NOTE_CYCLES = 3; // cycles a note has at least (fewer: the edge of a change)
+const NOTES = 32; // notes of a tune kept (the text shows fewer)
 
 const t0 = () => globalThis.performance?.now?.() ?? Date.now();
 const num = (text) => {
@@ -311,6 +315,7 @@ function soundChange(s, at, rising) {
     if (s.cycleRise != null) {
       s.cycles++;
       s.cycleTime += at - s.cycleRise;
+      noteCycle(s, s.cycleRise, at);
     }
     s.cycleRise = at;
   }
@@ -322,7 +327,38 @@ function soundQuiet(s, t) {
   if (s.lit && t - s.last >= SOUND_GAP) {
     edge(s, s.last, false);
     s.cycleRise = null;
+    closeNote(s, s.last);
   }
+}
+// The notes of a tune: a run of cycles of one period (within NOTE_SAME of the note's mean) is a note;
+// a cycle of another period, or a lull of more than NOTE_LULL of its periods, starts the next one.
+// Each { start, end, cycles, time }; the first NOTES kept, `notesTotal` counts them all.
+function noteCycle(s, from, to) {
+  const p = to - from;
+  const n = s.note;
+  const mean = n ? n.time / n.cycles : 0;
+  if (n && Math.abs(p - mean) <= NOTE_SAME * mean) {
+    n.cycles++;
+    n.time += p;
+    n.end = to;
+    return;
+  }
+  // A lull inside one sound (two notes 30 ms apart): the cycle across it belongs to neither.
+  if (n && p > NOTE_LULL * mean) {
+    closeNote(s, from);
+    return;
+  }
+  closeNote(s, from);
+  s.note = { start: from, end: to, cycles: 1, time: p };
+}
+function closeNote(s, at) {
+  const n = s.note;
+  s.note = null;
+  if (!n || n.cycles < NOTE_CYCLES) return;
+  // It lasts to the last change of its sound (half a cycle after its last rise).
+  n.end = Math.max(n.end, Math.min(at ?? n.end, n.end + n.time / n.cycles));
+  s.notesTotal = (s.notesTotal ?? 0) + 1;
+  (s.notes ??= []).length < NOTES && s.notes.push(n);
 }
 // A sample (t, v): an edge between the last sample and this one, interpolated at the level.
 function observe(w, t, v) {
@@ -346,6 +382,12 @@ function observe(w, t, v) {
 }
 function edge(w, at, on) {
   if (w.sound) soundChange(w.sound, at, on);
+  // A board's pin playing a tone (cycles faster than SOUND_GAP): its notes, as a buzzer's.
+  if (w.kind === 'pin' && on) {
+    if (w.lastRise != null && at - w.lastRise < SOUND_GAP) noteCycle(w, w.lastRise, at);
+    else closeNote(w, w.lastRise);
+    w.lastRise = at;
+  }
   w.changes++;
   w.lit = on;
   if (on) {
@@ -479,8 +521,10 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
         if (x.mode !== 'output' && !pins.has(key)) continue;
         if (!pins.has(key)) pins.set(key, tracker({ id: key, part: id, kind: 'pin' }));
         // A pin by what the program writes to it (a pin loaded past its rating sags under the half-rail
-        // line, but it is still driven high: its voltage is a reading, not its state); PWM by its voltage.
-        observe(pins.get(key), t, x.mode !== 'output' || !(board.vdd > 0) ? 0 : x.pwm ? x.voltage / board.vdd : x.level ? 1 : 0);
+        // line, but it is still driven high: its voltage is a reading, not its state).
+        // A PWM or a tone too, by the level the program's wave has at this step (a buzzer that loads a
+        // tone's pin under the half-rail line is still played).
+        observe(pins.get(key), t, x.mode !== 'output' || !(board.vdd > 0) ? 0 : x.level ? 1 : 0);
       }
       // Which of its outputs the program holds high now: each combination once (sim/index.js visits them).
       if (combos.size < COMBINATIONS) {
@@ -685,16 +729,30 @@ function keepLine(serial, line) {
   }
 }
 
+const notesOf = (w) => (w.notes ?? []).map((n) => ({ frequency: n.cycles / n.time, start: n.start, length: n.end - n.start }));
+const oneNote = (notes) => notes.every((n) => Math.abs(n.frequency / notes[0].frequency - 1) <= NOTE_SAME);
 function summary(w, end) {
   const out = spansOf(w, end);
+  if (w.kind === 'pin') {
+    closeNote(w, w.lit ? end : w.falls.at(-1));
+    const notes = notesOf(w);
+    // A pin that plays several notes has no one rhythm (the last periods are the last note's).
+    if (notes.length < 2 || oneNote(notes)) return out;
+    return { ...out, frequency: null, period: null, duty: null, notes, ...(w.notesTotal > notes.length && { notesTotal: w.notesTotal }) };
+  }
   if (!w.sound) return out;
   const s = w.sound;
   // A sound still going at the end lasts to its last change, or to the end while it changes.
   if (s.lit && end - s.last >= SOUND_GAP) edge(s, s.last, false);
+  closeNote(s, s.lit ? end : s.last);
   const { id, kind, ...sound } = spansOf(s, end);
-  // The tone: whole cycles, rise to rise, inside the sounds.
-  const tone = s.cycles > 0 && s.cycleTime > 0 ? { frequency: s.cycles / s.cycleTime, period: s.cycleTime / s.cycles } : null;
-  return { ...out, sound: { ...sound, starts: s.kept + (s.lit ? 1 : 0) }, tone };
+  // The tone: whole cycles, rise to rise, inside the sounds; one figure only when every note has it.
+  const notes = notesOf(s);
+  const one = notes.length > 0 && oneNote(notes);
+  const tone = s.cycles > 0 && s.cycleTime > 0 && (one || !notes.length) ? { frequency: s.cycles / s.cycleTime, period: s.cycleTime / s.cycles } : null;
+  // Several notes: its current has no one rhythm either (the last periods are the last note's).
+  if (notes.length > 1 && !one) Object.assign(out, { frequency: null, period: null, duty: null });
+  return { ...out, sound: { ...sound, starts: s.kept + (s.lit ? 1 : 0) }, tone, ...(notes.length && { notes, ...(s.notesTotal > notes.length && { notesTotal: s.notesTotal }) }) };
 }
 function spansOf(w, end) {
   const intervals = w.intervals.slice();

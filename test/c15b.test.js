@@ -213,3 +213,39 @@ test('an H-bridge with no diodes is told four, one from each end to each rail; w
   assert.equal(one[0]?.params.variant, 'motor');
   assert.match(formatIssue(one[0], 'en'), /A diode across the motor \(a 1N4007, its cathode to the supply side\)/);
 });
+
+// ── 3. Notes of a tune ───────────────────────────────────────────────────────────────────
+
+// Six notes with tone() reported "beeps: 5 · tone 385 Hz": their average, two of them merged. Now each
+// note in order with its start and length, in the text and the JSON; the pin's line agrees.
+const TUNE = {
+  parts: [
+    { id: 'U1', part: 'UNO', program: 'int melody[6] = {262, 330, 392, 523, 392, 330};\nint dur[6] = {300, 300, 300, 600, 300, 300};\nvoid setup() { pinMode(2, INPUT_PULLUP); }\nvoid loop() {\n  if (digitalRead(2) == LOW) {\n    for (int i = 0; i < 6; i++) { tone(8, melody[i], dur[i]); delay(dur[i] + 50); }\n    noTone(8);\n  }\n}' },
+    { id: 'S1', type: 'button' },
+    { id: 'BZ1', type: 'buzzer' },
+  ],
+  nets: [['U1.D2', 'S1.1'], ['S1.3', 'U1.GND', 'BZ1.2'], ['U1.D8', 'BZ1.1']],
+};
+test('a tune of six notes is six notes, each its frequency, start and length, in the text and the JSON', () => {
+  const r = runCircuit(autoLayout(TUNE).circuit, { seconds: 3, stimuli: { press: [{ name: 'S1', at: 0.1, duration: 0.2 }] } });
+  const bz = output(r, 'BZ1');
+  assert.deepEqual(bz.notes.map((n) => Math.round(n.frequency)), [262, 330, 392, 523, 392, 330]);
+  assert.deepEqual(bz.notes.map((n) => Math.round(n.length * 100) / 100), [0.3, 0.3, 0.3, 0.6, 0.3, 0.3]);
+  for (let k = 1; k < 6; k++) assert.ok(bz.notes[k].start > bz.notes[k - 1].start + bz.notes[k - 1].length);
+  assert.equal(bz.tone, null);
+  const lines = text(r).split('\n');
+  assert.ok(lines.some((l) => /BZ1 \(buzzer\): .* · 6 notes: 262 Hz at 10\d ms for 29\d ms, 330 Hz at 45\d ms for 29\d ms, 392 Hz .* 523 Hz at 1\.15 s for 59\d ms/.test(l)), lines.join('\n'));
+  // The pin plays the same notes: not "on < 1 %".
+  const pin = lines.find((l) => l.includes('U1.D8 (pin)'));
+  assert.match(pin, /plays 6 notes, 262 Hz to 523 Hz/);
+  assert.doesNotMatch(pin, /< 1 %/);
+});
+
+test('a tone of one frequency keeps its one figure', () => {
+  const one = structuredClone(TUNE);
+  one.parts[0].program = 'void setup() {}\nvoid loop() { tone(8, 440, 200); delay(400); }';
+  const r = runCircuit(autoLayout(one).circuit, { seconds: 2 });
+  const bz = output(r, 'BZ1');
+  assert.ok(Math.abs(bz.tone.frequency - 440) < 5, JSON.stringify(bz.tone));
+  assert.match(text(r), /BZ1 \(buzzer\): .*tone 44\d Hz/);
+});

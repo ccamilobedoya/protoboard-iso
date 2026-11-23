@@ -171,7 +171,11 @@ Se fijan con una operación, como cualquier campo del circuito:
     tono de 20 Hz o más; `SOUND_GAP`, supuesto), así que su línea da los pitidos (la parte de la
     ejecución en que suena, cuántas veces y cada cuánto empieza) y la frecuencia del tono aparte
     (`BZ1 (zumbador): pita 2 Hz (cada 500 ms), sonando el 20 % del tiempo · pitidos: 4 · tono
-    2 kHz`); con corriente continua está en silencio (solo chasquea). Un zumbador activo suena con
+    2 kHz`). Una melodía de varias notas se dice nota por nota, en orden, cada una con su
+    frecuencia, su inicio y su duración (`· 6 notas: 262 Hz a los 103 ms durante 298 ms, …`, las
+    primeras ocho; `--json` trae `notes` y `notesTotal`), y una sola cifra solo cuando todas las notas
+    tienen la misma frecuencia; el pin que la toca dice cuántas notas y su rango. Con corriente
+    continua está en silencio (solo chasquea). Un zumbador activo suena con
     continua: su línea es cuándo suena, como antes;
   - **las lecturas al final**, como las imprime el punto de DC, y cada aviso de la ejecución, una vez
     cada uno en su lectura más fuerte y con cuándo llegó (`en su punto más fuerte de la ejecución, a

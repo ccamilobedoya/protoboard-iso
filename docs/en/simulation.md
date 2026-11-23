@@ -159,7 +159,11 @@ Set them with an operation like any circuit field:
     least every 50 ms (a tone of 20 Hz or more; `SOUND_GAP`, assumed), so its line gives the
     beeps (the share of the run it sounds, how many times and how often it starts) and the
     tone's frequency apart (`BZ1 (buzzer): beeps 2 Hz (every 500 ms), sounding 20 % of the time ·
-    beeps: 4 · tone 2 kHz`); on a steady current it is silent (it only clicks). An active buzzer
+    beeps: 4 · tone 2 kHz`). A tune of several notes is said note by note, in order, each its
+    frequency, start and length (`· 6 notes: 262 Hz at 103 ms for 298 ms, 330 Hz at 452 ms for
+    298 ms, …`, the first eight, `--json` has `notes` and `notesTotal`), and one figure only when every
+    note has the same frequency; the pin that plays it says how many notes and their range. On a
+    steady current it is silent (it only clicks). An active buzzer
     sounds on DC: its line is when it sounds, as before;
   - **the readings at the end**, as the DC point prints them, and every warning the run produced,
     each once at its strongest reading with when it came (`at its strongest in the run, at 10 ms,

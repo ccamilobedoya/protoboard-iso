@@ -170,6 +170,11 @@ export function outputText(o, lang, f) {
   // names, or no figure; its count of changes is the steps', not its own, and is left out.
   if (o.measured && o.frequency) return t(lang, 'sim.run.measured', { ...params, frequency: f(o.frequency, 'Hz'), period: f(o.period, 's'), percent: percentOf(o.duty ?? o.onShare), seconds: f(o.measured.seconds, 's'), step: f(o.measured.step, 's') });
   if (o.fast) return t(lang, 'sim.run.fast', { ...params, percent: percentOf(o.onShare) });
+  // A pin playing a tune: its notes' range, the buzzer's line has them in order.
+  if (o.notes?.length > 1) {
+    const fs = o.notes.map((n) => n.frequency);
+    return t(lang, 'sim.run.share', { ...params, percent: percentOf(o.onShare), spans: '' }) + t(lang, 'sim.run.pinNotes', { count: o.notesTotal ?? o.notes.length, low: f(Number(Math.min(...fs).toPrecision(3)), 'Hz'), high: f(Number(Math.max(...fs).toPrecision(3)), 'Hz') });
+  }
   if (o.frequency) return t(lang, 'sim.run.regular', { ...params, frequency: f(o.frequency, 'Hz'), period: f(o.period, 's'), percent: percentOf(o.duty ?? o.onShare) });
   if (!o.changes) return t(lang, o.onShare > 0.5 ? 'sim.run.always' : 'sim.run.never', params);
   const spans = o.intervals.length && o.intervals.length <= SPANS_SHOWN && !o.intervalsTotal ? t(lang, 'sim.run.spans', { list: o.intervals.map(([a, b]) => `${f(a, 's')} → ${f(b, 's')}`).join(', ') }) : '';
@@ -178,9 +183,17 @@ export function outputText(o, lang, f) {
 
 // A passive buzzer by when it is heard (its beeps) and its tone, apart: "BZ1 (buzzer): beeps 2 Hz
 // (every 500 ms), sounding 20 % of the time · beeps: 4 · tone 2 kHz".
+// A tune's notes in order, each its frequency, start and length, the first NOTES_SHOWN (the JSON has
+// them all, up to the run's cap, and `notesTotal`).
+const NOTES_SHOWN = 8;
+function notesText(o, lang, f) {
+  const total = o.notesTotal ?? o.notes.length;
+  const list = o.notes.slice(0, NOTES_SHOWN).map((n) => t(lang, 'sim.run.note', { frequency: f(Number(n.frequency.toPrecision(3)), 'Hz'), start: f(n.start, 's'), length: f(n.length, 's') })).join(', ');
+  return t(lang, 'sim.run.notes', { count: total, list, more: total > NOTES_SHOWN ? t(lang, 'sim.run.notesMore', { count: total - NOTES_SHOWN }) : '' });
+}
 function soundText(o, lang, f, params) {
   const s = o.sound;
-  const tone = o.tone ? t(lang, 'sim.run.tone', { frequency: f(o.tone.frequency, 'Hz') }) : '';
+  const tone = o.tone ? t(lang, 'sim.run.tone', { frequency: f(o.tone.frequency, 'Hz') }) : o.notes?.length ? notesText(o, lang, f) : '';
   const p = { ...params, starts: s.starts, tone };
   if (s.frequency) return t(lang, 'sim.run.sound.regular', { ...p, frequency: f(s.frequency, 'Hz'), period: f(s.period, 's'), percent: percentOf(s.onShare) });
   if (!s.changes) {
