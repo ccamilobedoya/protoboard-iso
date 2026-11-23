@@ -249,7 +249,7 @@ export default {
   'layout.status.spec_ok': 'el spec es coherente. Vuelve a llamar layout sin check_only (CLI: sin --check) para colocarlo.',
   'check.UNKNOWN_PART_NAME': '{part}: el kit no conoce «{name}». Lo más parecido: {suggestions}.',
   'check.UNKNOWN_PART_NAME.none': '{part}: el kit no conoce «{name}» y no tiene ningún componente de nombre parecido; catalog lista todos los que tiene.',
-  'check.UNKNOWN_PART_NAME.speaker': '{part}: el kit no conoce «{name}» (un altavoz). El kit no tiene altavoz: una resistencia de 8 Ω lo reemplaza en la simulación; díselo al usuario. Lo más cercano que tiene para un tone() de una placa: un zumbador pasivo (tipo buzzer).',
+  'check.UNKNOWN_PART_NAME.speaker': '{part}: el kit no conoce «{name}» (un altavoz). El kit no tiene altavoz: una resistencia de 8 Ω lo reemplaza en la simulación; díselo al usuario. Lo más cercano que tiene: un zumbador pasivo (tipo buzzer), para un tone() de una placa.',
   'check.UNKNOWN_PART_NAME.ledstrip': '{part}: el kit no conoce «{name}» (una tira de LED). Lo más cercano que tiene: LED sueltos (tipo led) o un LED RGB (tipo rgb-led), cada uno con su resistencia; una tira direccionable no está en el kit.',
   'check.UNKNOWN_PART_NAME.servo': '{part}: el kit no conoce «{name}» (un servo). Lo más cercano que tiene: un motor DC (tipo motor), que gira pero no se queda en un ángulo.',
   'check.UNKNOWN_PART_NAME.transformer': '{part}: el kit no conoce «{name}» (un transformador). Lo más cercano que tiene: un generador de señal en los rieles (una fuente con kind generator) para la alterna que da un secundario, o una bobina (tipo inductor).',

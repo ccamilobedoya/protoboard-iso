@@ -250,7 +250,7 @@ export default {
   'layout.status.spec_ok': 'the spec is consistent. Call layout again without check_only (CLI: without --check) to place it.',
   'check.UNKNOWN_PART_NAME': '{part}: the kit does not know "{name}". Closest: {suggestions}.',
   'check.UNKNOWN_PART_NAME.none': '{part}: the kit does not know "{name}" and has no part with a close name; catalog lists every part it has.',
-  'check.UNKNOWN_PART_NAME.speaker': '{part}: the kit does not know "{name}" (a speaker). The kit has no loudspeaker: an 8 Ω resistor stands in for it in the simulation; tell the user. Nearest it has for a tone() from a board: a passive buzzer (type buzzer).',
+  'check.UNKNOWN_PART_NAME.speaker': '{part}: the kit does not know "{name}" (a speaker). The kit has no loudspeaker: an 8 Ω resistor stands in for it in the simulation; tell the user. Nearest it has: a passive buzzer (type buzzer), for a tone() from a board.',
   'check.UNKNOWN_PART_NAME.ledstrip': '{part}: the kit does not know "{name}" (an LED strip). Nearest it has: single LEDs (type led) or an RGB LED (type rgb-led), each with its resistor; an addressable strip is not in the kit.',
   'check.UNKNOWN_PART_NAME.servo': '{part}: the kit does not know "{name}" (a servo). Nearest it has: a DC motor (type motor), which spins but does not hold an angle.',
   'check.UNKNOWN_PART_NAME.transformer': '{part}: the kit does not know "{name}" (a transformer). Nearest it has: a signal generator on the rails (a supply with kind generator) for the AC a secondary gives, or an inductor (type inductor).',
