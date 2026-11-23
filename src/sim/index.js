@@ -194,6 +194,34 @@ function combinationStates(rest, combinations) {
   return out;
 }
 
+// A board's pin that drives a clocked chip's input but was never high in any combination the run saw
+// (a clock pulsed inside shiftOut, high and low again within one step): held high alone, judged only on
+// that chip's pins, so every input a board drives is judged at both its levels. Only the chip's pins:
+// held alone, a pin can make states its program never reaches elsewhere (an H-bridge's leg).
+function chipInputStates(program, rest, combinations) {
+  const chips = (program.devices ?? []).filter((d) => !d.unsupported && deviceOfProgram(d)?.holds);
+  // Nodes joined by jumpers (devices of kind W) are one net.
+  const parent = new Map();
+  const find = (n) => (parent.has(n) && parent.get(n) !== n ? find(parent.get(n)) : n);
+  for (const w of program.devices ?? []) if (w.kind === 'W' && w.pins?.length === 2) {
+    const [a, b] = w.pins.map((p) => find(p.node));
+    if (a !== b) parent.set(a, b);
+  }
+  const out = [];
+  for (const board of (program.devices ?? []).filter((d) => d.kind === 'MCU' && !d.unsupported)) {
+    const pins = rest.parts?.[board.id]?.pins ?? [];
+    const seen = new Set(combinations.filter((c) => c.part === board.id).flatMap((c) => c.high));
+    for (const x of pins) {
+      if (x.mode !== 'output' || seen.has(x.name) || x.level) continue;
+      const node = board.pins.find((p) => p.name === x.name)?.node;
+      const chip = chips.find((c) => c.pins.some((p) => find(p.node) === find(node)));
+      if (!node || !chip) continue;
+      out.push({ part: board.id, pins: [[x.name, 1]], pin: x.name, name: x.name, value: 1, only: (h) => String(h.params.part).startsWith(`${chip.id}.`) });
+    }
+  }
+  return out;
+}
+
 // A state on and off: a control set, or a pin held (a combination: several pins).
 const holdChips = (engine, s, release) => Object.entries(s.chips ?? {}).every(([id, logic]) => engine.hold(id, release ? null : logic));
 export const enterState = (engine, s) => holdChips(engine, s, false) && (s.pins ? s.pins.every(([pin, v]) => engine.drive(s.part, pin, v)) : s.pin ? engine.drive(s.part, s.pin, s.value) : s.chips ? true : engine.set(s.part, s.field, s.value));
@@ -225,7 +253,7 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
   const outputs = programOutputs(rest);
   // A program that runs: its outputs as the run saw them together (each combination once), not each
   // output alone (an H-bridge's sketch never turns on both transistors of one leg).
-  const pinStates = combinations ? combinationStates(rest, combinations) : outputs.states;
+  const pinStates = combinations ? [...combinationStates(rest, combinations), ...chipInputStates(compiledProgram, rest, combinations)] : outputs.states;
   const all = [...states, ...pinStates];
   // A hazard at rest on a board's pin the program sets high there names that state ("with D9 high, as
   // the program first sets it"): the figure is that state's, not one of a run.
@@ -250,9 +278,9 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
     const reading = eng.dc();
     const when = s.held ? { part: s.part, held: s.held, chips: s.chips, ...(s.pins && { pins: s.pins }), ...(s.pin && { pin: s.pin, name: s.name }), value: s.value } : s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value, ...(s.end && { end: s.end }) };
     if (reading.ok) {
-      lit.see(reading);
+      if (!s.only) lit.see(reading);
       for (const h of exceeded(eng, reading)) {
-        if (atRest.has(hazardKey(h))) continue;
+        if (atRest.has(hazardKey(h)) || (s.only && !s.only(h))) continue;
         // In a combination, a pin's own hazard names that pin (U1.D10 with D9 + D10 high: D10).
         const own = s.pins && String(h.params.part).startsWith(`${s.part}.`) ? String(h.params.part).slice(s.part.length + 1) : null;
         const found = { ...h, when: own && s.pins.some(([p, v]) => p === own && v) ? { ...when, pin: own } : when };
@@ -261,7 +289,7 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
         if (at < 0) hazards.push(found);
         else if (hazardStrength(found) > hazardStrength(hazards[at])) hazards[at] = found;
       }
-      for (const d of warningsOf(reading)) {
+      for (const d of s.only ? [] : warningsOf(reading)) {
         if (!doubted.has(doubtKey(d))) {
           doubted.add(doubtKey(d));
           doubts.push({ ...d, when });

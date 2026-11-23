@@ -355,6 +355,14 @@ The kit has no computed fix for this.
   clears every hazard in every state (`fix.kind` `swap` or `swap-supply`). A series resistor is never
   offered for a reverse hazard (it only silences a buzzer): with none of the swaps clearing it, the
   kit has no computed fix.
+- **A logic chip fed less than its signals is fed from theirs.** An input over its chip's supply (a
+  74HC595 on 3.3 V driven by an UNO's 5 V pins) says the cause on its line (`The chip is fed 3.3 V,
+  less than the signal that drives it: feed it from the signal's voltage, or drive it with 3.3 V
+  signals`), and every input a board drives is judged high, a clock pulsed inside `shiftOut` too (`with
+  D12 high`). When the circuit has a rail at the signals' voltage (a board's `5V` pin, a supply's +),
+  the fix moves the chip's supply pin there (`To fix it: feed U2 from U1.5V (4.99 V, the voltage of
+  the signals that drive it): move its VCC there`, `fix.kind` `resupply`); with none, the sentence of
+  the warning is the advice.
 - **Candidates, in this order**, the first that clears everything wins: (1) a new value for a
   resistor already in series with the stressed part or its branch (the part itself when it is a
   resistor), (2) one new resistor in series with the stressed part, or with each load on a board's

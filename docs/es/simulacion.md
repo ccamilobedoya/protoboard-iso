@@ -373,6 +373,15 @@ El kit no tiene un arreglo calculado para esto.
   cables de BT1 (su + y su −)`), el primero que quita todos los peligros en todos los estados
   (`fix.kind` `swap` o `swap-supply`). Nunca se ofrece una resistencia en serie para un peligro
   inverso (solo silencia un zumbador): si ningún intercambio lo quita, el kit no tiene arreglo calculado.
+- **Un chip lógico alimentado con menos que sus señales se alimenta con el de ellas.** Una entrada
+  por encima de la alimentación de su chip (un 74HC595 a 3,3 V manejado por los pines de 5 V de un
+  UNO) dice la causa en su línea (`El chip se alimenta con 3,3 V, menos que la señal que lo maneja:
+  aliméntalo con el voltaje de la señal, o manéjalo con señales de 3,3 V`), y cada entrada que maneja
+  una placa se juzga en alto, también un reloj pulsado dentro de `shiftOut` (`con D12 en alto`). Si el
+  circuito tiene un riel al voltaje de las señales (el pin `5V` de una placa, el + de una fuente), el
+  arreglo pasa ahí el pin de alimentación del chip (`Para arreglarlo: alimenta U2 desde U1.5V (4,99 V,
+  el voltaje de las señales que lo manejan): pasa su VCC ahí`, `fix.kind` `resupply`); si no hay, la
+  frase del aviso es el consejo.
 - **Candidatos, en este orden**, gana el primero que lo quita todo: (1) un valor nuevo para una
   resistencia que ya está en serie con el componente forzado o su rama (el mismo componente si es una
   resistencia), (2) una resistencia nueva en serie con el componente forzado, o con cada carga del pin

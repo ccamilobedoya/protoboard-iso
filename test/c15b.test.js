@@ -7,8 +7,10 @@ import assert from 'node:assert/strict';
 import { runCircuit, RUN_STEPS, behaviourOf } from '../src/sim/run.js';
 import { autoLayout } from './layout-generous.js';
 import { expandRecipe } from '../src/recipes/index.js';
-import { formatIssue } from '../src/index.js';
+import { formatIssue, t } from '../src/index.js';
 import { formatRun } from '../src/sim/format.js';
+import { formatReview } from '../src/review.js';
+import { specWithFix } from '../src/fix.js';
 
 const laid = new Map();
 const recipe = (name, values) => {
@@ -128,4 +130,39 @@ test('a coil held under its pull-in current is under-driven in runs of 0.5 s and
     const r = runCircuit(c, { seconds });
     assert.ok(codes(r).includes('SIM_RELAY_UNDERDRIVEN'), `${seconds} s: ${codes(r).join()}`);
   }
+});
+
+// ── 6. A logic input over its supply: every pin, the cause and the fix ───────────────────
+
+// A 74HC595 fed 3.3 V and driven by an UNO's 5 V pins: SER and RCLK were flagged, SRCLK (a clock
+// pulsed inside shiftOut, never high at a step) was not; no line said the chip is fed less than its
+// signals, and there was no fix.
+const SHIFT = (extra = []) => ({
+  parts: [
+    { id: 'U1', part: 'UNO', program: 'int n = 0;\nvoid setup() { pinMode(11, OUTPUT); pinMode(12, OUTPUT); pinMode(8, OUTPUT); }\nvoid loop() { digitalWrite(8, LOW); shiftOut(11, 12, MSBFIRST, n); digitalWrite(8, HIGH); n = (n + 1) % 256; delay(100); }' },
+    { id: 'U2', part: '74HC595' },
+    { id: 'R1', type: 'resistor', value: '1k' },
+    { id: 'D1', type: 'led', color: 'red' },
+  ],
+  nets: [['U1.3V3', 'U2.VCC'], ['U1.GND', 'U2.GND', 'U2.OE', 'D1.K'], ['U1.D11', 'U2.SER'], ['U1.D12', 'U2.SRCLK'], ['U1.D8', 'U2.RCLK'], ['U2.QA', 'R1.1'], ['R1.2', 'D1.A'], ...extra],
+});
+test('a 74HC595 on 3.3 V driven at 5 V: SER, RCLK and SRCLK flagged, each saying the chip is fed less than its signals', () => {
+  const r = autoLayout(SHIFT([['U1.3V3', 'U2.SRCLR']]));
+  const over = r.review.hazards.filter((h) => h.code === 'SIM_IC_PIN_VOLTAGE');
+  assert.deepEqual(over.map((h) => h.params.part).sort(), ['U2.RCLK', 'U2.SER', 'U2.SRCLK']);
+  for (const h of over) assert.match(formatIssue(h, 'en'), /more than its maximum 3\.8 V: it can be damaged\. The chip is fed 3\.3 V, less than the signal that drives it: feed it from the signal's voltage, or drive it with 3\.3 V signals/);
+  assert.match(formatIssue(over.find((h) => h.params.part === 'U2.SRCLK'), 'en'), /with D12 high\.$/);
+  assert.match(formatIssue(over[0], 'es'), /El chip se alimenta con 3,3 V, menos que la señal que lo maneja/);
+  // No rail at 5 V in the circuit: no computed fix, the sentence says what to do.
+  assert.equal(r.review.fix ?? null, null);
+});
+
+test('with a 5 V rail in the circuit, the fix feeds the chip from it, and the circuit so changed has no hazard', () => {
+  const spec = SHIFT([['U1.5V', 'U2.SRCLR']]);
+  const r = autoLayout(spec);
+  assert.equal(r.review.fix?.kind, 'resupply', JSON.stringify(r.review.fix));
+  assert.deepEqual([r.review.fix.part, r.review.fix.pin, r.review.fix.rail], ['U2', 'VCC', 'U1.5V']);
+  assert.match(formatReview(r.review, 'en', { t, formatIssue }), /To fix it: feed U2 from U1\.5V \(4\.99 V, the voltage of the signals that drive it\): move its VCC there; that clears every hazard above\./);
+  const fixed = autoLayout(specWithFix(spec, r.review.fix).spec);
+  assert.deepEqual(fixed.review.hazards, []);
 });

@@ -84,18 +84,21 @@ lines, which are left out of the reply).
 Note: V1 is written with a negative voltage (-5 V), so the rail named T+ is the lower one: T- is the positive rail in fact.
 ```
 
-## A figure marked "about"
+## A rhythm faster than a run's steps
 
-The `Behaviour` line says "about" when its run saw too few whole periods to measure a rhythm well.
-Pass the figure on as approximate ("about 310 Hz"), never as exact; `kit simulate <folder> --run 1`
-measures it over a longer run.
+A run's steps are at least its length over 20 000 (a 555 at 300 Hz in a run of 2 s: 100 µs, three
+dozen a period). The `Behaviour` line and `simulate --run` measure such a rhythm again in a shorter
+run whose steps follow it, and a run's line names it (`measured in the first 200 ms in steps of
+10 µs`). A figure marked "about" saw fewer than five periods there: pass it on as approximate. One
+with no frequency (`changes faster than this run's steps follow`) comes with a note saying how short
+a `--run` measures it.
 
 ```json
 { "recipe": "555-astable", "values": { "C1": "220n" } }
 ```
 
 ```text
-Behaviour, first 2 s from everything discharged, as the page starts (simulated, a model): D1 about 310 Hz, on about 51 % of the time
+Behaviour, first 2 s from everything discharged, as the page starts (simulated, a model): D1 305 Hz, on 51 % of the time
 ```
 
 ## A mistake in a board's program
