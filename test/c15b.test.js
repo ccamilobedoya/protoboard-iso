@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { runCircuit, RUN_STEPS, behaviourOf } from '../src/sim/run.js';
 import { autoLayout } from './layout-generous.js';
+import { formatLayout } from '../src/layout.js';
 import { expandRecipe } from '../src/recipes/index.js';
 import { formatIssue, t } from '../src/index.js';
 import { formatRun } from '../src/sim/format.js';
@@ -248,4 +249,16 @@ test('a tone of one frequency keeps its one figure', () => {
   const bz = output(r, 'BZ1');
   assert.ok(Math.abs(bz.tone.frequency - 440) < 5, JSON.stringify(bz.tone));
   assert.match(text(r), /BZ1 \(buzzer\): .*tone 44\d Hz/);
+});
+
+// ── 9. What layout prints for a circuit with nothing that lights ─────────────────────────
+
+// A divider's answer said only "supply 5 V": the 3.33 V asked for was not in it.
+test('layout\'s Readings line of a divider gives the voltage of its middle net', () => {
+  const r = autoLayout({ supplies: [{ id: 'V1', voltage: 5 }], parts: [{ id: 'R1', type: 'resistor', value: '10k' }, { id: 'R2', type: 'resistor', value: '20k' }], nets: [['T+', 'R1.1'], ['R1.2', 'R2.1'], ['R2.2', 'T-']] });
+  const line = formatLayout(r, 'en', { t, formatIssue }).split('\n').find((l) => l.startsWith('Readings'));
+  assert.equal(line, 'Readings (at rest, a model): supply 5 V · R1.2 = R2.1 3.33 V');
+  // A circuit with an LED keeps its loads, no nets.
+  const led = formatLayout(autoLayout(expandRecipe('led-resistor').spec), 'en', { t, formatIssue }).split('\n').find((l) => l.startsWith('Readings'));
+  assert.doesNotMatch(led, / = /);
 });

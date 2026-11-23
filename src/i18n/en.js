@@ -189,6 +189,7 @@ export default {
   'layout.states.on': '{id} on',
   'layout.states.off': '{id} off',
   'layout.readings.more': '{count} more (simulate lists them)',
+  'layout.readings.moreNets': '{count} more nets (simulate lists every node)',
   'layout.behaviour': 'Behaviour, first {seconds} from {start} (simulated, a model): {items}',
   'layout.behaviour.start.dc': 'its resting point, as the page starts',
   'layout.behaviour.start.zero': 'everything discharged, as the page starts',

@@ -83,10 +83,37 @@ function readingsOf(circuit) {
   if (!r.ok) return null;
   const rest = readingFrom(r);
   if (!rest) return null;
+  // Nothing that lights or moves: the voltage of each net that is not a rail is what the circuit is
+  // for (a divider's 3.33 V), so the line says those instead.
+  if (!rest.parts.length && !compiled.fatal) rest.nets = netVoltages(compiled.program, r);
   // Two resting states (a latch): the point at rest is a balance between them; each is said instead.
   const two = compiled.fatal ? null : restingStates(circuit, compiled);
   if (!two) return rest;
   return { ...rest, states: two.states.map((s) => ({ ...readingFrom(s.reading), gains: gainsOf(s.reading) })) };
+}
+
+// Each net of the compiled circuit that is not ground or a supply's rail, with the pins on it (wires
+// left out, nodes they join as one) and its voltage at rest, in the order the parts come.
+const SHOWN_NETS = 4;
+function netVoltages(program, r) {
+  const parent = new Map();
+  const find = (x) => (parent.has(x) && parent.get(x) !== x ? find(parent.get(x)) : x);
+  for (const d of program.devices ?? []) if (d.kind === 'W' && d.pins?.length === 2) {
+    const [a, b] = d.pins.map((p) => find(p.node));
+    if (a !== b) parent.set(a, b);
+  }
+  const rails = new Set([program.ground, ...(program.supplies ?? []).flatMap((x) => [x.p, x.n])].map(find));
+  const nets = new Map();
+  for (const d of program.devices ?? []) {
+    if (d.kind === 'W' || d.unsupported) continue;
+    for (const p of d.pins) {
+      const net = find(p.node);
+      if (rails.has(net) || r.nodes?.[p.node] == null) continue;
+      if (!nets.has(net)) nets.set(net, { pins: [], voltage: r.nodes[p.node] });
+      nets.get(net).pins.push(`${d.id}.${p.name}`);
+    }
+  }
+  return [...nets.values()].filter((n) => n.pins.length > 1 || nets.size === 1);
 }
 
 // A reading's sources and loads, as the Readings line says them.
@@ -261,13 +288,15 @@ export function formatExtras(r, lang, t) {
   for (const a of r.advice ?? []) lines.push(adviceLine(a, lang, t, f));
   for (const n of r.negative ?? []) lines.push(t(lang, 'layout.negativeSupply', { id: n.id, voltage: f(n.voltage, 'V'), named: n.named, high: n.high }));
   if (r.readings) {
-    const itemsOf = ({ sources, parts }) => {
+    const itemsOf = ({ sources, parts, nets }) => {
       const many = sources.length > 1;
       // A drawn battery is named by its id (BT1), as the parts are; a bench supply only when there are several.
       const source = (s) => (s.kind === 'usb' ? `${s.id} USB ${f(s.voltage, 'V')}` : `${t(lang, `layout.readings.${s.kind}`)}${many || s.part ? ` ${s.id}` : ''} ${s.off ? t(lang, 'sim.battery.off') : f(s.voltage, 'V')}`);
       const load = (p) => `${p.id} ${p.off ? '0 mA' : f(p.current, 'A')}${p.brightness != null ? `, ${t(lang, 'sim.brightness', { percent: Math.round(p.brightness * 100) })}` : ''}`;
       const items = [...sources.map(source), ...parts.slice(0, SHOWN_LOADS).map(load)];
       if (parts.length > SHOWN_LOADS) items.push(t(lang, 'layout.readings.more', { count: parts.length - SHOWN_LOADS }));
+      for (const n of (nets ?? []).slice(0, SHOWN_NETS)) items.push(`${n.pins.join(' = ')} ${f(n.voltage, 'V')}`);
+      if (nets?.length > SHOWN_NETS) items.push(t(lang, 'layout.readings.moreNets', { count: nets.length - SHOWN_NETS }));
       return items;
     };
     if (r.readings.states) {

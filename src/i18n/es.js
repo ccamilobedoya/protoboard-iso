@@ -188,6 +188,7 @@ export default {
   'layout.states.on': '{id} conduce',
   'layout.states.off': '{id} apagado',
   'layout.readings.more': '{count} más (simulate las lista)',
+  'layout.readings.moreNets': '{count} redes más (simulate da cada nodo)',
   'layout.behaviour': 'Comportamiento, primeros {seconds} desde {start} (simulado, un modelo): {items}',
   'layout.behaviour.start.dc': 'su punto de reposo, como empieza la página',
   'layout.behaviour.start.zero': 'todo descargado, como empieza la página',

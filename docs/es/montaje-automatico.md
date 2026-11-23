@@ -618,7 +618,10 @@ Se puede cambiar (layout con la receta y values): R1 = 330 (resistencia limitado
   brightness? }] }`): el punto de operación en DC del simulador, el que imprime `simulate`. Primero
   las fuentes (una fuente de banco, una batería por su id, el USB de una tarjeta; cada una una vez), luego los componentes cuyo
   trabajo es ser accionados: los LEDs (corriente y brillo), luego zumbadores, motores, bobinas de
-  relé y láseres. A lo sumo cuatro en el texto, y después cuántos más lista `simulate`. Se omiten
+  relé y láseres. A lo sumo cuatro en el texto, y después cuántos más lista `simulate`. Un circuito
+  sin ninguno de ellos (un divisor, un regulador Zener) da en su lugar el voltaje de cada red que no
+  es un riel, nombrada por sus patas (`fuente 5 V · R1.2 = R2.1 3,33 V`; `nets: [{ pins, voltage }]`),
+  a lo sumo cuatro. Se omiten
   cuando el circuito no tiene fuente, el punto en DC no se puede resolver, una tarjeta corre un
   programa (el programa decide qué se enciende; un punto en reposo en el tiempo cero engañaría), una
   fuente es un generador (lo que importa es la señal, no su valor en reposo) o un temporizador está

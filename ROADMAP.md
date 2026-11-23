@@ -600,6 +600,7 @@ before saying it works.
 - ✅ A supply past what it can give (C15b): a board on USB gives 500 mA in all (USB 2.0; the UNO's fuse too, `usbMax` in `sim/models.js`): past it a hazard on its USB pin names what happens (the fuse opens, the port shuts down); an H-bridge with a leg shorted drew 721 mA from an UNO's USB with no ⚠. The UNO's 3V3 pin past its LP2985's 150 mA is a hazard too. The fix never adds a resistor in the supply for it
 - ✅ The flyback advice fits the circuit (C15b): a load driven from both ends (an H-bridge) is told it needs four diodes, from each end to each rail, and why one across it is wrong; a single diode across the motor no longer silences the doubt there; a load switched at one end keeps the one diode
 - ✅ Notes of a tune (C15b): a sketch playing six notes with `tone()` reported `beeps: 5 · tone 385 Hz`, their average with two merged; a run now gives each note's frequency, start and length in order (the first eight in text, `notes` in `--json`), one figure only when every note has it, and the pin that plays it says its notes (it said `on < 1 %`: a tone's pin is read by the level the program writes, not its loaded voltage)
+- ✅ What `layout` prints for a circuit with nothing that lights (C15b): its `Readings` line gives the voltage of each net that is not a rail, named by its pins, at most four (a divider said only `supply 5 V`; now `supply 5 V · R1.2 = R2.1 3.33 V`)
 
 ## Optional, later ⬜
 
