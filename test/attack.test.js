@@ -38,7 +38,7 @@ function run(source) {
 const sketch = (body) => `void setup() { ${body} }\nvoid loop() { delay(1000); }`;
 
 // What the JavaScript may name: its own words, the runtime's, and the sketch's ($-prefixed).
-const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'RISING', 'FALLING', 'CHANGE', 'ONLOW', 'ONHIGH', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
+const ALLOWED = new Set([...SKETCH_API, 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'RISING', 'FALLING', 'CHANGE', 'ONLOW', 'ONHIGH', 'Serial', 'DHT11', 'DHT12', 'DHT21', 'DHT22', 'AM2301', 'NAN', 'true', 'false', '__int', '__w', '__u', '__post', '__upd', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep', '__str', 'let', 'const', 'function', 'yield', 'return', 'if', 'else', 'while', 'do', 'for', 'switch', 'case', 'default', 'break', 'continue', 'undefined']);
 function strayNames(js) {
   // The body, without the prelude (two lines) and the last line, and without the quoted names of
   // __missing("name", …), which JSON.stringify writes.
@@ -87,6 +87,28 @@ test('attack: a string never lands in the code, and a "/" where a value goes is 
   assert.deepEqual(text.log, ['hola', 'a\tb"cA'], 'a #define shares the strings; C escapes are read');
   assert.equal(run(sketch('Serial.println("open);')).r.js, null, 'a string that never closes');
 });
+
+test('attack: writes wrapped to an integer type reach only the sketch\'s own arrays', () => {
+  // An element changed in place goes through __upd with a number index; a hostile index or target
+  // reaches nothing, and a bit macro on something that is not a variable is noted, never run as code.
+  const hostile = [
+    sketch('byte a[2] = {1, 2}; a[a[0]] += 300; a["constructor"]++; bitSet(a["__proto__"], 2); Serial.println(a[1]);'),
+    sketch('int x = 1; bitSet(constructor, 1); bitWrite(x + globalThis, 1, 1); x++; ++x; x <<= 33; Serial.println(x);'),
+    'unsigned long f(unsigned long v) { return v - 1; }\n' + sketch('unsigned long t = f(0) + millis() - 5UL; Serial.println(t);'),
+  ];
+  for (const p of hostile) {
+    const r = run(p);
+    assert.ok(r.r.js, p);
+    assert.equal(r.pwned, undefined, p);
+    assert.deepEqual(strayNames(r.r.js), [], p);
+    noKeysOf(r.r.js);
+  }
+  assert.deepEqual(run(hostile[0]).log, ['46'], 'a[1] is 2 + 300 as a byte; a text as an index is 0');
+  assert.deepEqual(run(hostile[2]).log, ['4294967290'], 'unsigned longs wrap at 2^32');
+  const noted = run(hostile[1]).r.issues.map((i) => i.code);
+  assert.ok(noted.includes('SIM_PROGRAM_NOT_LVALUE'), JSON.stringify(noted));
+});
+const noKeysOf = (js) => assert.ok(!/\.constructor|__proto__|prototype|\[\s*["'`]/.test(js.split('\n').slice(2).join('\n')), js);
 
 test('attack: the JavaScript of every recipe and of hostile sketches names nothing else', () => {
   const programs = Object.keys(RECIPES).flatMap((name) => expandRecipe(name).spec.parts.map((p) => p.program).filter(Boolean));

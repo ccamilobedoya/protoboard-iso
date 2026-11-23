@@ -37,7 +37,7 @@
 // checked against the runtime's own arrays. A method asks board.ask({ cls, method, pin | address, … })
 // and the sensor's device answers (it holds the truth: its power, its cache, the environment).
 
-import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, SERIAL_PORT_METHODS, SERIAL_WAITING, heatIndex, altitudeOf, seaLevelOf, isArduinoName } from './libraries.js';
+import { INT_KIND, LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, SERIAL_PORT_METHODS, SERIAL_WAITING, heatIndex, altitudeOf, seaLevelOf, isArduinoName } from './libraries.js';
 
 const BUDGET = 2000; // loop turns or loop() calls per advance before it lets the step go on
 // Turns of a loop the program may take without letting time pass (no wait, no Serial output) before
@@ -97,6 +97,39 @@ const I2C_BEGIN = 0.1; // s an Adafruit BME280/BMP280 begin() takes (its delay(1
 // DHT.h's sensor types by number, for a note.
 const DHT_TYPES = { 12: 'DHT12', 21: 'DHT21', 22: 'DHT22' };
 const OBJECTS_MAX = 64; // library objects at most (the translator caps them lower: LIMITS.libraryObjects)
+
+// Integers as a board stores them (INT_KIND, libraries.js): ToInt32 inside the operators truncates
+// and wraps, and gives 0 for NaN and the infinities (a float out of range is undefined in C).
+const WRAP_TO = {
+  u8: (v) => v & 0xff,
+  s8: (v) => (v << 24) >> 24,
+  u16: (v) => v & 0xffff,
+  s16: (v) => (v << 16) >> 16,
+  u32: (v) => v >>> 0,
+  s32: (v) => v | 0,
+  // C's bool: anything not zero is 1 (NaN too).
+  bool: (v) => (!v && !Number.isNaN(v) ? 0 : 1),
+};
+// Each kind's wrap on a family: `int` and `unsigned int` have 16 bits on an AVR (the UNO), 32 elsewhere.
+const wrapsOf = (family) => {
+  const avr = family === 'uno';
+  const out = [];
+  for (const [name, k] of Object.entries(INT_KIND)) out[k] = name === 'int' ? WRAP_TO[avr ? 's16' : 's32'] : name === 'uint' ? WRAP_TO[avr ? 'u16' : 'u32'] : WRAP_TO[name];
+  return out;
+};
+// An arithmetic chain's wrap by its mask (sketch.js; INT_KIND_MASK: 1 unsigned long, 2 unsigned int,
+// 4 uint16_t, 8 long), as C's usual conversions type it: an unsigned long makes it one; on an AVR an
+// unsigned int (or a uint16_t, which is one there) makes it 16 bits unless a long holds it; on an
+// ESP32 an unsigned int is 32 bits and a uint16_t is promoted to a (signed) int.
+const chainsOf = (family) => {
+  const avr = family === 'uno';
+  return Array.from({ length: 16 }, (_, m) => {
+    if (m & 1) return WRAP_TO.u32;
+    if (avr) return m & 6 && !(m & 8) ? WRAP_TO.u16 : null;
+    return m & 2 ? WRAP_TO.u32 : null;
+  });
+};
+const U32 = 4294967296;
 
 // A PWM pin's level at time t: high for the first `duty` of each period.
 export const levelAt = (pwm, t) => (pwm.duty >= 1 ? 1 : pwm.duty <= 0 ? 0 : (t * pwm.freq) % 1 < pwm.duty ? 1 : 0);
@@ -260,6 +293,8 @@ export function createRunner(js, board) {
   // One byte as the character it is (Serial.write(65), a char printed): its low eight bits.
   const letter = (v) => String.fromCharCode(Math.trunc(Number(v)) & 0xff);
   const analog = ANALOG[board.family] ?? [];
+  const WRAPS = wrapsOf(board.family);
+  const CHAINS = chainsOf(board.family);
   const api = {
     HIGH: 1,
     LOW: 0,
@@ -385,9 +420,10 @@ export function createRunner(js, board) {
       delete tones[n];
       set(n, { level: 0, pwm: null });
     },
-    // Since the board started (or woke from deep sleep, which restarts it).
-    millis: () => Math.floor((runner.time - boot) * 1e3 + 1e-9),
-    micros: () => Math.floor((runner.time - boot) * 1e6 + 1e-6),
+    // Since the board started (or woke from deep sleep, which restarts it); unsigned longs, which wrap
+    // to 0 at 2^32 (millis after 49.7 days, micros after 71.6 minutes).
+    millis: () => Math.floor((runner.time - boot) * 1e3 + 1e-9) % U32,
+    micros: () => Math.floor((runner.time - boot) * 1e6 + 1e-6) % U32,
     abs: Math.abs,
     min: Math.min,
     max: Math.max,
@@ -414,6 +450,7 @@ export function createRunner(js, board) {
     bitSet: (x, b) => x | (1 << b),
     bitClear: (x, b) => x & ~(1 << b),
     bitWrite: (x, b, v) => (v ? x | (1 << b) : x & ~(1 << b)),
+    bitToggle: (x, b) => x ^ (1 << b),
     Serial: portApi(0),
     // Serial1 / Serial2 and the methods that wait: port k's method m (SERIAL_PORT_METHODS), numbers the
     // translator wrote, checked here; a port the board does not have stops the program, as a real
@@ -427,6 +464,44 @@ export function createRunner(js, board) {
     },
     // A comparison is a bool, which C++ turns into 1 or 0 (int pressed = digitalRead(2) == LOW).
     __int: (x) => (typeof x === 'boolean' ? Number(x) : Number.isFinite(x) ? Math.trunc(x) : 0),
+    // A value stored in a variable of an integer kind (k, a number the translator wrote), as the board
+    // stores it; an arithmetic chain with an unsigned type in it (mask, the same), as the board computes it.
+    __w: (v, k) => (WRAPS[k] ?? api.__int)(v),
+    __u: (v, mask) => {
+      const wrap = CHAINS[mask];
+      return wrap ? wrap(v) : v;
+    },
+    // x++ in an expression: the value before (the second argument has stored the new one).
+    __post: (old) => old,
+    // An array element changed in place (UPDATE_OPS by number: a[i] += v, a[i]++, bitSet(a[i], n)):
+    // its index computed once, the new value wrapped to the array's kind; x++ gives the old value.
+    __upd(array, i, op, k, a, b) {
+      if (!Array.isArray(array) || !Number.isInteger(i) || i < 0 || i >= array.length) return 0;
+      const old = array[i];
+      let v;
+      switch (op) {
+        case 0: v = a; break;
+        case 1: v = old + a; break;
+        case 2: v = old - a; break;
+        case 3: v = old * a; break;
+        case 4: v = api.__div(old, a); break;
+        case 5: v = api.__mod(old, a); break;
+        case 6: v = old & a; break;
+        case 7: v = old | a; break;
+        case 8: v = old ^ a; break;
+        case 9: v = old << a; break;
+        case 10: v = old >> a; break;
+        case 11: v = api.bitSet(old, a); break;
+        case 12: v = api.bitClear(old, a); break;
+        case 13: v = api.bitToggle(old, a); break;
+        case 14: v = api.bitWrite(old, a, b); break;
+        case 15: v = old + 1; break;
+        case 16: v = old - 1; break;
+        default: return 0;
+      }
+      array[i] = api.__w(v, k);
+      return op >= 15 ? old : array[i];
+    },
     __missing: () => 0,
     // An index is always a whole number, so a[i] can never name a property ("constructor").
     // With the array (the translator passes one named alone), an index outside its elements is warned

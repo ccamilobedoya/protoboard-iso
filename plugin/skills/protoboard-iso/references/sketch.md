@@ -11,7 +11,7 @@ is below when they want the kit to check it.
 
 ## Functions
 
-- From the simulator's table: `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`, `analogWrite`, `millis`, `micros`, `abs`, `min`, `max`, `map`, `constrain`, `random`, `randomSeed`, `sqrt`, `log`, `pow`, `sin`, `cos`, `round`, `floor`, `ceil`, `bitRead`, `bitWrite`, `bitSet`, `bitClear`, `ledcAttach`, `ledcAttachPin`, `ledcSetup`, `ledcWrite`, `tone`, `noTone`, `pulseIn`, `pulseInLong`, `isnan`, `esp_sleep_enable_timer_wakeup`, `esp_deep_sleep_start`, `digitalPinToInterrupt`, `attachInterrupt`, `detachInterrupt`, `interrupts`, `noInterrupts`, `shiftOut`, `shiftIn`.
+- From the simulator's table: `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`, `analogWrite`, `millis`, `micros`, `abs`, `min`, `max`, `map`, `constrain`, `random`, `randomSeed`, `sqrt`, `log`, `pow`, `sin`, `cos`, `round`, `floor`, `ceil`, `bitRead`, `bitWrite`, `bitSet`, `bitClear`, `bitToggle`, `ledcAttach`, `ledcAttachPin`, `ledcSetup`, `ledcWrite`, `tone`, `noTone`, `pulseIn`, `pulseInLong`, `isnan`, `esp_sleep_enable_timer_wakeup`, `esp_deep_sleep_start`, `digitalPinToInterrupt`, `attachInterrupt`, `detachInterrupt`, `interrupts`, `noInterrupts`, `shiftOut`, `shiftIn`.
 - Also: `delay`, `delayMicroseconds`; your own functions, with their types.
 - Not known (noted, they return 0 or stop the program): `analogReference`, `analogReadResolution`, `tan`, `atan2`, `sq`, `highByte`, `lowByte`, `bit`.
 

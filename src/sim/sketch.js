@@ -35,13 +35,39 @@
 // - a program longer than LIMITS.sketchChars is not read.
 import { LIMITS } from '../limits.js';
 const LIBRARY_OBJECTS = LIMITS.libraryObjects;
-import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, LIBRARY_INCLUDES, NOT_IN_KIT, SERIAL_PORT_METHODS, SERIAL_WAITING, isArduinoName } from './libraries.js';
+import { INT_KIND, INT_KIND_MASK, LIBRARY_CLASSES, LIBRARY_CONSTANTS, LIBRARY_INCLUDES, NOT_IN_KIT, SERIAL_PORT_METHODS, SERIAL_WAITING, UPDATE_OPS, isArduinoName } from './libraries.js';
+
+// The integer kind of a declared type (INT_KIND), or 0: a float, a String, a 64-bit integer (kept
+// whole, as before), void. A value stored in a variable of a kind is wrapped to it on the board in use.
+function kindOfWords(words) {
+  const w = new Set(words);
+  const unsigned = w.has('unsigned');
+  if (w.has('bool') || w.has('boolean')) return INT_KIND.bool;
+  if (w.has('float') || w.has('double') || w.has('String') || w.has('void')) return 0;
+  if (w.has('uint64_t') || w.has('int64_t') || words.filter((x) => x === 'long').length > 1) return 0;
+  const fixed = { uint8_t: 'u8', byte: 'u8', int8_t: 's8', uint16_t: 'u16', word: 'u16', int16_t: 's16', uint32_t: 'u32', int32_t: 's32', size_t: 'uint' };
+  for (const [name, kind] of Object.entries(fixed)) if (w.has(name)) return INT_KIND[kind];
+  if (w.has('char')) return INT_KIND[unsigned ? 'u8' : 's8'];
+  if (w.has('short')) return INT_KIND[unsigned ? 'u16' : 's16'];
+  if (w.has('long')) return INT_KIND[unsigned ? 'u32' : 's32'];
+  if (w.has('int') || unsigned || w.has('signed')) return INT_KIND[unsigned ? 'uint' : 'int'];
+  return 0;
+}
+// A number literal's kind by its suffix (1000UL is an unsigned long): what it adds to a chain.
+const LITERAL_KIND = { u: INT_KIND.uint, ul: INT_KIND.u32, lu: INT_KIND.u32, l: INT_KIND.s32 };
+// Runtime functions that return an unsigned long (an arithmetic chain with one wraps at 2^32).
+const U32_API = new Set(['millis', 'micros', 'pulseIn', 'pulseInLong']);
+// Operators an arithmetic chain is made of (it wraps as a whole: the remainder of + - * << by 2^n is
+// the remainder of its parts); any other operator ends one.
+const CHAIN_OPS = new Set(['+', '-', '*', '~', '!', '<<']);
+// The calls that change their first argument (Arduino's macros: bitSet(x, n) is x |= 1UL << n).
+const BIT_ASSIGN = new Map([['bitSet', 11], ['bitClear', 12], ['bitToggle', 13], ['bitWrite', 14]]);
 
 const TYPES = new Set(['void', 'int', 'long', 'short', 'byte', 'bool', 'boolean', 'char', 'float', 'double', 'unsigned', 'signed', 'size_t', 'word', 'String', 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t']);
 const QUALIFIERS = new Set(['const', 'static', 'volatile', 'unsigned', 'signed']);
 const INTEGER = new Set(['int', 'long', 'short', 'byte', 'char', 'unsigned', 'signed', 'size_t', 'word', 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t']);
 // What the runtime gives (program.js); anything else called and not defined is noted.
-export const SKETCH_API = ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'analogWrite', 'millis', 'micros', 'abs', 'min', 'max', 'map', 'constrain', 'random', 'randomSeed', 'sqrt', 'log', 'pow', 'sin', 'cos', 'round', 'floor', 'ceil', 'bitRead', 'bitWrite', 'bitSet', 'bitClear', 'ledcAttach', 'ledcAttachPin', 'ledcSetup', 'ledcWrite', 'tone', 'noTone', 'pulseIn', 'pulseInLong', 'isnan', 'esp_sleep_enable_timer_wakeup', 'esp_deep_sleep_start', 'digitalPinToInterrupt', 'attachInterrupt', 'detachInterrupt', 'interrupts', 'noInterrupts', 'shiftOut', 'shiftIn'];
+export const SKETCH_API = ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'analogWrite', 'millis', 'micros', 'abs', 'min', 'max', 'map', 'constrain', 'random', 'randomSeed', 'sqrt', 'log', 'pow', 'sin', 'cos', 'round', 'floor', 'ceil', 'bitRead', 'bitWrite', 'bitSet', 'bitClear', 'bitToggle', 'ledcAttach', 'ledcAttachPin', 'ledcSetup', 'ledcWrite', 'tone', 'noTone', 'pulseIn', 'pulseInLong', 'isnan', 'esp_sleep_enable_timer_wakeup', 'esp_deep_sleep_start', 'digitalPinToInterrupt', 'attachInterrupt', 'detachInterrupt', 'interrupts', 'noInterrupts', 'shiftOut', 'shiftIn'];
 // Runtime functions that wait in simulated time (generators, as one's own functions): yield*.
 const WAITING_API = new Set(['pulseIn', 'pulseInLong']);
 const SKETCH_CONSTANTS = ['HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'INPUT_PULLDOWN', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'PI', 'TWO_PI', 'HALF_PI', 'DEG_TO_RAD', 'RAD_TO_DEG', 'MSBFIRST', 'LSBFIRST', 'DEC', 'HEX', 'OCT', 'BIN', 'SERIAL_8N1', 'SERIAL_8N2', 'SERIAL_8E1', 'SERIAL_8O1', 'RISING', 'FALLING', 'CHANGE', 'ONLOW', 'ONHIGH', 'Serial', ...Object.keys(LIBRARY_CONSTANTS)];
@@ -94,7 +120,7 @@ function tokenize(source, issues) {
       i += m.length;
     } else if (/\d/.test(c) || (c === '.' && /\d/.test(source[i + 1]))) {
       const m = /^(0[xX][0-9a-fA-F]+|0[bB][01]+|\d*\.?\d+(?:[eE][+-]?\d+)?)([uUlLfF]*)/.exec(source.slice(i));
-      out.push({ t: 'num', v: m[1], line });
+      out.push({ t: 'num', v: m[1], suffix: m[2].toLowerCase(), line });
       i += m[0].length;
     } else if (c === '"') {
       let j = i + 1;
@@ -163,9 +189,13 @@ export function translateSketch(source, { strings = [] } = {}) {
   const intFunctions = new Set();
   const floatFunctions = new Set();
   const charFunctions = new Set(); // functions that return a plain char (print shows its letter)
+  const fnKinds = new Map(); // function → the integer kind it returns (INT_KIND), when it has one
   for (let k = 0; k + 2 < tokens.length; k++) {
     if (tokens[k].t === 'id' && TYPES.has(tokens[k].v) && tokens[k + 1].t === 'id' && tokens[k + 2].v === '(') {
       functions.add(tokens[k + 1].v);
+      const words = [];
+      for (let j = k; j >= 0 && tokens[j].t === 'id' && (TYPES.has(tokens[j].v) || QUALIFIERS.has(tokens[j].v)); j--) words.push(tokens[j].v);
+      fnKinds.set(tokens[k + 1].v, kindOfWords(words));
       if (INTEGER.has(tokens[k].v)) intFunctions.add(tokens[k + 1].v);
       if (FLOAT_TYPES.has(tokens[k].v)) floatFunctions.add(tokens[k + 1].v);
       if (tokens[k].v === 'char' && !['unsigned', 'signed'].includes(tokens[k - 1]?.v)) charFunctions.add(tokens[k + 1].v);
@@ -185,6 +215,12 @@ export function translateSketch(source, { strings = [] } = {}) {
   let termChar = false;
   let exprChar = false;
   let typeChar = false; // the type readType() just read is plain char (not signed or unsigned char)
+  // The integer kind readType() just read (INT_KIND, 0 for none), and what the term or expression just
+  // read adds to an arithmetic chain (INT_KIND_MASK bits: an unsigned long in it makes it wrap at 2^32).
+  let typeKind = 0;
+  let termMask = 0;
+  let exprMask = 0;
+  let exprPure = null; // the expression just read is one x++: its form without the old value
   // Library objects (libraries.js): name → { k: its number, cls: its class's number }. A Map, so a
   // name such as "constructor" is never looked up as a key of an object.
   const objects = new Map();
@@ -211,12 +247,27 @@ export function translateSketch(source, { strings = [] } = {}) {
     issues.push({ code: 'SIM_PROGRAM_UNSUPPORTED', line: at, name });
   };
   let returnsInt = false; // the function being read returns an integer type
+  let returnKind = 0; // and its kind
   const scopes = [new Map()];
   const isInt = (type) => type === 'int' || type === 'char';
   const typeOf = (name) => {
     for (let s = scopes.length - 1; s >= 0; s--) if (scopes[s].has(name)) return scopes[s].get(name);
     return null;
   };
+  // A name declared in the innermost scope, with its integer kind (each scope keeps its own).
+  const declare = (name, tag, kind) => {
+    const scope = scopes[scopes.length - 1];
+    scope.set(name, tag);
+    (scope.kinds ??= new Map()).set(name, kind);
+  };
+  const kindOf = (name) => {
+    for (let s = scopes.length - 1; s >= 0; s--) if (scopes[s].has(name)) return scopes[s].kinds?.get(name) ?? 0;
+    return 0;
+  };
+  // A variable whose stores are wrapped (an integer kind) or truncated (a 64-bit integer, as before).
+  const integerVar = (name) => Boolean(kindOf(name)) || isInt(typeOf(name));
+  // A value stored as the variable's kind: wrapped on the board (__w), or truncated (__int).
+  const store = (kind, value) => (kind ? `__w(${value}, ${kind})` : `__int(${value})`);
 
   const isTypeStart = (k = 0) => {
     const t = peek(k);
@@ -237,21 +288,96 @@ export function translateSketch(source, { strings = [] } = {}) {
     }
     if (!any) fail('type');
     typeChar = words.includes('char') && !words.includes('unsigned') && !words.includes('signed');
+    typeKind = kindOfWords(words);
     return integer;
   }
 
   // An expression up to (not including) one of the stop tokens, as JavaScript. A division whose
   // two sides are integers stays integer, as in C: a * b / c → __div((a * b), c); a remainder of two
   // integers is __mod (both warn of a zero divisor).
+  // Where an integer variable or element is written (x = v, x += v, x++, ++a[i]): the value stored is
+  // wrapped to its kind, as the board stores it (a byte at 255 plus 1 is 0). null when what is ahead
+  // is not a write to an integer variable (the expression reads it as before). A write that is a whole
+  // statement (x++;) is `pure`: the same without keeping the old value.
+  function lvalue(stops) {
+    let k = 0;
+    const prefix = is('++') || is('--') ? peek().v : null;
+    if (prefix) k++;
+    const name = peek(k);
+    if (name?.t !== 'id' || !integerVar(name.v) || is('(', k + 1)) return null;
+    let after = k + 1;
+    if (is('[', after)) {
+      let depth = 0;
+      for (; pos + after < tokens.length; after++) {
+        const x = peek(after);
+        if (x.t !== 'p') continue;
+        if (x.v === '[') depth++;
+        else if (x.v === ']' && --depth === 0) break;
+      }
+      after++;
+      if (is('[', after)) return null; // a[i][j]: arrays have one dimension (refused where declared)
+    }
+    const op = peek(after);
+    const assign = !prefix && op?.t === 'p' && ASSIGN.has(op.v);
+    const post = !prefix && op?.t === 'p' && (op.v === '++' || op.v === '--');
+    if (!prefix && !assign && !post) return null;
+    const kind = kindOf(name.v);
+    const own_ = own(name.v);
+    pos += k + 1;
+    let index = null;
+    if (is('[')) {
+      pos++;
+      index = expression([']']);
+      expect(']');
+    }
+    let rhs = '';
+    if (assign || post) pos++;
+    if (assign) {
+      rhs = expression([...stops, ',']);
+      if (!rhs.trim()) fail(op.v);
+    }
+    const sign = (prefix ?? op.v)[0];
+    if (index != null) {
+      const where = `${own_}, __idx(${index}, ${own_})`;
+      if (prefix) return { code: `__upd(${where}, ${UPDATE_OPS.indexOf(`${sign}=`)}, ${kind}, 1)` };
+      if (post) return { code: `__upd(${where}, ${UPDATE_OPS.indexOf(`post${op.v}`)}, ${kind})` };
+      if (op.v === '=') return { code: `${own_}[__idx(${index}, ${own_})] = ${store(kind, rhs)}` };
+      return { code: `__upd(${where}, ${UPDATE_OPS.indexOf(op.v)}, ${kind}, ${rhs})` };
+    }
+    if (prefix || post) {
+      const next = `(${own_} = ${store(kind, `${own_} ${sign} 1`)})`;
+      return prefix ? { code: next } : { code: `__post(${own_}, ${next})`, pure: next };
+    }
+    if (op.v === '=') return { code: `${own_} = ${store(kind, rhs)}` };
+    if (op.v === '/=') return { code: `${own_} = ${store(kind, `__div(${own_}, (${rhs}))`)}` };
+    if (op.v === '%=') return { code: `${own_} = ${store(kind, `__mod(${own_}, (${rhs}))`)}` };
+    return { code: `${own_} = ${store(kind, `${own_} ${op.v.slice(0, -1)} (${rhs})`)}` };
+  }
+
   function expression(stops) {
     const parts = [];
     const ints = []; // per part: an integer term, or null for an operator
     const floats = []; // per part: a float term
     const chars = []; // per part: a plain char term
+    const masks = []; // per part: what it adds to an arithmetic chain (INT_KIND_MASK)
     let value = true; // whether a value comes next (and not an operator)
+    let pure = null; // a statement that is one x++: its plain form
     while (pos < tokens.length) {
       const t = peek();
       if (t.t === 'p' && (stops.includes(t.v) || [')', ']', '}'].includes(t.v))) break;
+      if (value) {
+        const write = lvalue(stops);
+        if (write) {
+          parts.push(write.code);
+          ints.push(true);
+          floats.push(false);
+          chars.push(false);
+          masks.push(0);
+          if (write.pure) pure = write;
+          value = false;
+          continue;
+        }
+      }
       // An index belongs to the value before it: a[i] / 2 divides the element.
       if (t.t === 'p' && t.v === '[' && parts.length && !value) {
         pos++;
@@ -272,6 +398,7 @@ export function translateSketch(source, { strings = [] } = {}) {
         ints.push(true);
         floats.push(false);
         chars.push(false);
+        masks.push(0);
         value = false;
         continue;
       }
@@ -281,10 +408,12 @@ export function translateSketch(source, { strings = [] } = {}) {
       termInt = false;
       termFloat = false;
       termChar = false;
+      termMask = 0;
       parts.push(term());
       ints.push(isOp ? null : termInt);
       floats.push(!isOp && termFloat);
       chars.push(!isOp && termChar);
+      masks.push(isOp ? 0 : termMask);
       // After a value an operator comes, except after x++ / x--; after an operator, a value.
       if (!isOp) value = false;
       else if (!(['++', '--'].includes(t.v) && !value)) value = true;
@@ -300,12 +429,41 @@ export function translateSketch(source, { strings = [] } = {}) {
       // __div and __mod: C's integer division and remainder, with a division by zero warned (the
       // runtime's, program.js).
       const merged = `${parts[i] === '/' ? '__div' : '__mod'}((${left.join(' ')}), ${parts[i + 1]})`;
+      const mask = masks.slice(j, i + 2).reduce((a, b) => a | b, 0);
       parts.splice(j, i + 2 - j, merged);
       ints.splice(j, i + 2 - j, true);
       floats.splice(j, i + 2 - j, false);
       chars.splice(j, i + 2 - j, false);
+      masks.splice(j, i + 2 - j, mask);
       i = j;
     }
+    // An arithmetic chain of integers with an unsigned one in it (now - start, two unsigned longs)
+    // wraps as C's type of the result does on the board: __u(chain, mask), program.js. Signed chains
+    // are left as they are (an int that overflows is undefined in C).
+    for (let k = 0; k < parts.length; k++) {
+      let e = k;
+      let mask = 0;
+      let integer = true;
+      let ops = 0;
+      for (; e < parts.length && (ints[e] !== null || CHAIN_OPS.has(parts[e])); e++) {
+        if (ints[e] === null) ops++;
+        else {
+          mask |= masks[e];
+          if (!ints[e]) integer = false;
+        }
+      }
+      if (ops && integer && mask & 7 && e - k > 1) {
+        parts.splice(k, e - k, `__u((${parts.slice(k, e).join(' ')}), ${mask})`);
+        ints.splice(k, e - k, true);
+        floats.splice(k, e - k, false);
+        chars.splice(k, e - k, false);
+        masks.splice(k, e - k, mask);
+        e = k + 1;
+      }
+      k = e;
+    }
+    exprMask = parts.every((p, k) => ints[k] !== null || CHAIN_OPS.has(p)) ? masks.reduce((a, b) => a | b, 0) : 0;
+    exprPure = pure && parts.length === 1 && parts[0] === pure.code ? pure.pure : null;
     exprInt = parts.length > 0 && ints.every((k) => k !== false);
     // A float result: a comparison or a logical operator gives an int (C's 0 or 1); a ternary is float
     // only when one of its branches is.
@@ -334,12 +492,14 @@ export function translateSketch(source, { strings = [] } = {}) {
         const integer = tokens.slice(pos + 1, pos + k).some((x) => INTEGER.has(x.v));
         const float = tokens.slice(pos + 1, pos + k).some((x) => FLOAT_TYPES.has(x.v));
         const words = tokens.slice(pos + 1, pos + k).map((x) => x.v);
+        const kind = kindOfWords(words);
         pos += k + 1;
         const operand = term();
-        termInt = integer;
+        termInt = integer || kind === INT_KIND.bool;
         termFloat = float && !integer;
         termChar = words.includes('char') && !words.includes('unsigned') && !words.includes('signed');
-        return integer ? `__int(${operand})` : `(${operand})`;
+        termMask = INT_KIND_MASK[kind];
+        return integer || kind ? store(kind, operand) : `(${operand})`;
       }
     }
     // A class's own constant (Adafruit_BME280::MODE_FORCED, an argument of setSampling): 0.
@@ -478,6 +638,47 @@ export function translateSketch(source, { strings = [] } = {}) {
       noteMissing(`Serial.${method.v}`, t.line);
       return `__missing(0${args ? `, ${args}` : ''})`;
     }
+    // bitSet(x, n), bitClear, bitToggle, bitWrite(x, n, b): Arduino's macros assign to their first
+    // argument (x |= 1UL << n), which must be a variable or an array element; anything else is a
+    // compiler error on a board, noted, and the call only gives the value it computes.
+    if (t.t === 'id' && BIT_ASSIGN.has(t.v) && !functions.has(t.v) && is('(', 1)) {
+      const target = peek(2);
+      let after = 3;
+      if (target?.t === 'id' && typeOf(target.v) != null && is('[', 3)) {
+        let depth = 0;
+        for (; pos + after < tokens.length; after++) {
+          const x = peek(after);
+          if (x.t !== 'p') continue;
+          if (x.v === '[') depth++;
+          else if (x.v === ']' && --depth === 0) break;
+        }
+        after++;
+      }
+      if (target?.t === 'id' && typeOf(target.v) != null && is(',', after)) {
+        const op = BIT_ASSIGN.get(t.v);
+        const kind = kindOf(target.v);
+        const name = own(target.v);
+        pos += 3;
+        let index = null;
+        if (is('[')) {
+          pos++;
+          index = expression([']']);
+          expect(']');
+        }
+        expect(',');
+        const args = expression([')']);
+        expect(')');
+        termInt = true;
+        termMask = INT_KIND_MASK[kind];
+        if (index != null) return `__upd(${name}, __idx(${index}, ${name}), ${op}, ${kind}, ${args})`;
+        const value = `${t.v}(${name}, ${args})`;
+        return `(${name} = ${integerVar(target.v) ? store(kind, value) : value})`;
+      }
+      if (!missing.has(`lvalue ${t.v}`)) {
+        missing.add(`lvalue ${t.v}`);
+        issues.push({ code: 'SIM_PROGRAM_NOT_LVALUE', line: t.line, name: t.v });
+      }
+    }
     if (t.t === 'id' && peek(1)?.v === '(') {
       const name = t.v;
       pos += 2;
@@ -486,6 +687,7 @@ export function translateSketch(source, { strings = [] } = {}) {
       termInt = intFunctions.has(name) || INT_API.has(name);
       termFloat = floatFunctions.has(name) || FLOAT_API.has(name) || FLOAT_TYPES.has(name);
       termChar = charFunctions.has(name) || name === 'char';
+      termMask = functions.has(name) ? INT_KIND_MASK[fnKinds.get(name) ?? 0] : U32_API.has(name) ? 1 : 0;
       // __ms, __us: the wait in seconds, read as the unsigned number C passes (a negative delay is a
       // very long one, warned).
       if (name === 'delay') return `(yield __ms(${args}))`;
@@ -498,7 +700,13 @@ export function translateSketch(source, { strings = [] } = {}) {
       if (functions.has(name)) return `(yield* ${own(name)}(${args}))`;
       if (WAITING_API.has(name)) return `(yield* ${name}(${args}))`;
       if (SKETCH_API.includes(name)) return `${name}(${args})`;
-      if (TYPES.has(name)) return INTEGER.has(name) ? `__int(${args})` : `(${args})`; // int(x), float(x)
+      // int(x), byte(x), long(x), float(x): as a cast (word(h, l) and the rest as before).
+      if (TYPES.has(name)) {
+        const kind = name === 'word' ? 0 : kindOfWords([name]);
+        termMask = INT_KIND_MASK[kind];
+        if (kind) return store(kind, `(${args})`);
+        return INTEGER.has(name) ? `__int(${args})` : `(${args})`;
+      }
       noteMissing(name, t.line);
       return `__missing(0${args ? `, ${args}` : ''})`;
     }
@@ -509,6 +717,7 @@ export function translateSketch(source, { strings = [] } = {}) {
       termInt = exprInt;
       termFloat = exprFloat;
       termChar = exprChar;
+      termMask = exprMask;
       return `(${inner})`;
     }
     pos++;
@@ -517,13 +726,15 @@ export function translateSketch(source, { strings = [] } = {}) {
       termInt = /^(\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/.test(t.v);
       termFloat = !/^0[xXbB]/.test(t.v) && /[.eE]/.test(t.v);
       termChar = Boolean(t.char);
+      termMask = INT_KIND_MASK[LITERAL_KIND[t.suffix] ?? 0];
       // C's octal (010 is 8): the code is strict, where JavaScript has no such literal.
       if (/^0[0-7]+$/.test(t.v)) return String(Number.parseInt(t.v, 8));
       if (/^0\d+$/.test(t.v)) throw new SketchError(t.line, t.v);
     }
     if (t.t === 'id') termChar = typeOf(t.v) === 'char';
-    if (t.t === 'id') termInt = isInt(typeOf(t.v)) || ['HIGH', 'LOW', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'].includes(t.v) || defines.has(t.v);
+    if (t.t === 'id') termInt = isInt(typeOf(t.v)) || kindOf(t.v) === INT_KIND.bool || ['HIGH', 'LOW', 'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'].includes(t.v) || defines.has(t.v);
     if (t.t === 'id') termFloat = typeOf(t.v) === 'float' || t.v === 'PI';
+    if (t.t === 'id') termMask = INT_KIND_MASK[kindOf(t.v)];
     if (t.t === 'id' && t.v === 'NULL') return '0';
     if (t.t === 'id' && (t.v === 'sizeof' || t.v === 'new' || t.v === 'delete')) throw new SketchError(t.line, t.v);
     if (t.t === 'p' && ['->', '::', '.', '[', '{'].includes(t.v)) throw new SketchError(t.line, t.v);
@@ -539,32 +750,23 @@ export function translateSketch(source, { strings = [] } = {}) {
     return t.v;
   }
 
-  // Assignments: name op value, with integer division kept for integer variables.
-  function assignment(stops) {
-    const start = pos;
-    if (peek()?.t === 'id' && peek(1)?.t === 'p' && ASSIGN.has(peek(1).v) && isInt(typeOf(peek().v))) {
-      const name = own(tokens[pos++].v);
-      const op = tokens[pos++].v;
-      const value = expression(stops);
-      if (op === '=' ) return `${name} = __int(${value})`;
-      if (op === '/=') return `${name} = __div(${name}, (${value}))`;
-      if (op === '%=') return `${name} = __mod(${name}, (${value}))`;
-      if (op === '*=' || op === '+=' || op === '-=') return `${name} = __int(${name} ${op[0]} (${value}))`;
-      return `${name} ${op} ${value}`;
-    }
-    pos = start;
-    return expression(stops);
-  }
+  // A statement or a for's step: an expression, whose writes to integer variables lvalue() wraps; a
+  // lone x++ without the old value it would give (nothing reads it).
+  const assignment = (stops) => {
+    const e = expression(stops);
+    return exprPure ?? e;
+  };
 
   // A declaration list after its type: a = 1, b[3] = {1, 2, 3}; → let a = 1, b = [1, 2, 3].
   function declarators(integer, keyword, stops) {
     const out = [];
     const float = typeFloat && !integer;
+    const kind = typeKind;
     for (;;) {
       if (peek()?.t !== 'id') fail('name');
       const name = tokens[pos++].v;
       if (objects.has(name)) fail(name);
-      scopes[scopes.length - 1].set(name, integer ? (typeChar ? 'char' : 'int') : float ? 'float' : 'num');
+      declare(name, integer ? (typeChar ? 'char' : 'int') : float ? 'float' : 'num', kind);
       let array = false;
       let size = null;
       while (is('[')) {
@@ -583,7 +785,9 @@ export function translateSketch(source, { strings = [] } = {}) {
           const items = [];
           while (!is('}')) {
             if (pos >= tokens.length) fail('}');
-            items.push(expression([',', '}']));
+            const item = expression([',', '}']);
+            // Each element as the array's kind (byte a[] = {300} holds 44), a text as it is.
+            items.push(kind && exprInt ? store(kind, item) : item);
             if (is(',')) pos++;
           }
           expect('}');
@@ -592,7 +796,7 @@ export function translateSketch(source, { strings = [] } = {}) {
         } else {
           const v = expression([',', ...stops]);
           if (!v.trim()) fail('=');
-          value = integer && !array ? `__int(${v})` : v;
+          value = array ? v : kind ? store(kind, v) : integer ? `__int(${v})` : v;
         }
       }
       out.push(`${own(name)} = ${value}`);
@@ -745,7 +949,7 @@ export function translateSketch(source, { strings = [] } = {}) {
           pos++;
           const value = is(';') ? '' : expression([';']);
           expect(';');
-          return `return ${value && returnsInt ? `__int(${value})` : value};`;
+          return `return ${value && (returnsInt || returnKind) ? store(returnKind, value) : value};`;
         }
         default:
           if (isTypeStart()) {
@@ -843,19 +1047,29 @@ export function translateSketch(source, { strings = [] } = {}) {
         const name = tokens[pos++].v;
         pos++;
         returnsInt = integer;
+        returnKind = typeKind;
         scopes.push(new Map());
         const params = [];
+        const wraps = []; // each integer parameter wrapped to its kind as the function starts
         while (!is(')')) {
           if (is('void') && peek(1)?.v === ')') {
             pos++;
             break;
           }
           const isInt = readType();
-          while (is('&') || is('*')) pos++;
+          let kind = typeKind;
+          // A reference or a pointer (an array passed in) is not one value to wrap.
+          let ref = null;
+          while (is('&') || is('*')) {
+            ref ??= peek().v;
+            pos++;
+          }
+          if (ref) kind = 0;
           if (peek()?.t !== 'id') fail('name');
           const p = tokens[pos++].v;
           if (objects.has(p)) fail(p);
-          scopes[scopes.length - 1].set(p, isInt ? (typeChar ? 'char' : 'int') : typeFloat ? 'float' : 'num');
+          declare(p, isInt ? (typeChar ? 'char' : 'int') : typeFloat ? 'float' : 'num', kind);
+          if (kind) wraps.push(`${own(p)} = ${store(kind, own(p))};`);
           params.push(own(p));
           if (is(',')) pos++;
         }
@@ -867,7 +1081,8 @@ export function translateSketch(source, { strings = [] } = {}) {
           continue;
         }
         inFunction = true;
-        out.push(`function* ${own(name)}(${params.join(', ')}) ${block()}`);
+        const body = block();
+        out.push(`function* ${own(name)}(${params.join(', ')}) ${wraps.length ? `{ ${wraps.join(' ')} ${body.slice(1)}` : body}`);
         inFunction = false;
         scopes.pop();
       } else {
@@ -895,7 +1110,7 @@ export function translateSketch(source, { strings = [] } = {}) {
   }
   if (!functions.has('setup') || !functions.has('loop')) issues.push({ code: 'SIM_PROGRAM_NO_LOOP', line: 1 });
   // Strict: an assignment to a name nobody declared throws (it cannot become a global of the page).
-  const prelude = `'use strict'; const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep'].join(', ')} } = api;\nconst __str = [].concat(${strings.map((s) => JSON.stringify(s)).join(', ')});`;
+  const prelude = `'use strict'; const { ${[...SKETCH_API, ...SKETCH_CONSTANTS, '__int', '__w', '__u', '__post', '__upd', '__missing', '__idx', '__array', '__new', '__lib', '__wire', '__at', '__div', '__mod', '__ms', '__us', '__serial', '__deepSleep'].join(', ')} } = api;\nconst __str = [].concat(${strings.map((s) => JSON.stringify(s)).join(', ')});`;
   const js = `${prelude}\n${out.join('\n')}\nreturn { setup: typeof $setup === 'function' ? $setup : function* () {}, loop: typeof $loop === 'function' ? $loop : function* () {} };`;
   return { js: issues.some((i) => i.code === 'SIM_PROGRAM_ERROR') ? null : js, issues };
 }
