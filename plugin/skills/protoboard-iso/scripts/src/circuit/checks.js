@@ -157,7 +157,7 @@ export function checkButtonPins(parts, netlist, { netLabels = {} } = {}) {
 
 // A relay's coil or a motor switched by a transistor, a MOSFET or a board's pin, with no diode on
 // the node the switch cuts (across the coil, cathode to the supply side, or from that node to a rail
-// as an H-bridge has): when the switch turns off, the coil's current drives that node far past the
+// as an H-bridge has; driven from both ends, two at each end, one to each rail): when the switch turns off, the coil's current drives that node far past the
 // supply and the switch can be damaged. Read from a compiled circuit (sim/compile.js: devices with
 // their pins' nodes), wires merged into one node. A motor on a plain switch or straight on a battery
 // has no switch to damage: nothing to say. A doubt (DOUBT_CODES), never a placement problem.
@@ -181,11 +181,20 @@ export function checkFlyback(program) {
     const names = SWITCH_PINS[d.kind] ?? (d.kind === 'MCU' ? (d.params?.gpios ?? []).map((g) => g.name) : null);
     if (names) for (const n of on(d, names)) if (!switched.has(n)) switched.set(n, d.id);
   }
-  const diodes = new Set(devices.filter((d) => d.kind === 'D').flatMap((d) => on(d)));
+  const diodeList = devices.filter((d) => d.kind === 'D').map((d) => on(d));
+  const diodes = new Set(diodeList.flat());
   const out = checkSupplyPins(program);
   for (const d of devices) {
     if (d.kind !== 'RLY' && d.kind !== 'MOT') continue;
     const ends = on(d, d.kind === 'RLY' ? ['A1', 'A2'] : null);
+    // Driven from both ends (an H-bridge: each end switched): a diode across the load would conduct
+    // when the bridge reverses; each end needs its own to each rail (four), a diode from it to
+    // somewhere else than the load's other end.
+    if (ends.length === 2 && ends[0] !== ends[1] && ends.every((n) => switched.has(n))) {
+      const clamped = (n) => diodeList.filter((pins) => pins.includes(n) && !pins.every((x) => ends.includes(x))).length >= 2;
+      if (!ends.every(clamped)) out.push(issue('warning', 'COIL_NO_FLYBACK', { part: d.id, by: `${switched.get(ends[0])}, ${switched.get(ends[1])}`, variant: d.kind === 'RLY' ? 'relayBridge' : 'motorBridge' }));
+      continue;
+    }
     const cut = ends.filter((n) => switched.has(n) && !diodes.has(n));
     if (!cut.length || ends.some((n) => switched.has(n) && diodes.has(n))) continue;
     out.push(issue('warning', 'COIL_NO_FLYBACK', { part: d.id, by: switched.get(cut[0]), variant: d.kind === 'RLY' ? 'relay' : 'motor' }));

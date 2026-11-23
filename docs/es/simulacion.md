@@ -433,9 +433,11 @@ dice: el kit revisó el circuito y no encontró nada que decir.
   sola pieza de metal) llevan dos redes distintas, así que oprimirlo no cambia nada. `check` lo lista
   como aviso; `apply` guarda un cambio que lo agrega y lo marca con ⚠. `COIL_NO_FLYBACK`, la bobina de
   un relé o un motor conmutados por el colector de un transistor, el drenador de un MOSFET o un pin de
-  una placa sin un diodo en el nodo que corta el interruptor (en paralelo con la bobina, o hacia un
-  riel como en un puente H): el interruptor se puede dañar al apagarse. Un motor en un interruptor
-  simple o directo en una fuente no tiene interruptor que dañar.
+  una placa sin un diodo en el nodo que corta el interruptor (en paralelo con la bobina): el
+  interruptor se puede dañar al apagarse. Una carga manejada desde sus dos extremos (un puente H, cada
+  extremo conmutado) necesita un diodo de cada extremo a cada riel, cuatro en total, y su línea lo dice
+  (un diodo en paralelo conduciría cuando el puente invierte). Un motor en un interruptor simple o
+  directo en una fuente no tiene interruptor que dañar.
   `SUPPLY_PINS_UNWIRED`, un componente conectado al circuito cuyas patas de alimentación no están
   conectadas las dos a algo, o están en una misma red (un LM358 con VCC y GND sueltos, un 555 con
   todas las patas en una red): no puede funcionar. Las patas de alimentación son las del propio

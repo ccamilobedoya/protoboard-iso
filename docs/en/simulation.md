@@ -414,8 +414,10 @@ tell.
   different nets, so pressing it changes nothing. `check` lists it as a warning; `apply` saves a
   change that adds it and marks it ⚠. `COIL_NO_FLYBACK`, a relay's coil or a motor switched by a
   transistor's collector, a MOSFET's drain or a board's pin with no diode on the node the switch cuts
-  (across the coil, or to a rail as in an H-bridge): the switch can be damaged when it turns off. A
-  motor on a plain switch or straight on a supply has no switch to damage.
+  (across the coil): the switch can be damaged when it turns off. A load driven from both ends (an
+  H-bridge, each end switched) needs a diode from each end to each rail, four in all, and its line says
+  so (a diode across it would conduct when the bridge reverses). A motor on a plain switch or straight
+  on a supply has no switch to damage.
   `SUPPLY_PINS_UNWIRED`, a part wired into the circuit whose supply pins are not both wired to
   something, or are on one net (an LM358 with VCC and GND left open, a 555 with every pin on one
   net): it cannot work. The supply pins are the part's own: its model's `supply`, else the pins the

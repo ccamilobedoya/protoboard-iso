@@ -194,3 +194,22 @@ test('an UNO\'s 3V3 pin past its regulator\'s 150 mA is a hazard; uno-blink and 
   assert.match(formatIssue(reg, 'en'), /U1\.3V3 gives 3\d\d mA, more than the 150 mA its 3\.3 V regulator gives: its regulator overheats/);
   for (const name of ['uno-blink', 'esp32-led']) assert.ok(!autoLayout(expandRecipe(name).spec).review.hazards.length, name);
 });
+
+// ── 5. The flyback advice fits the circuit ───────────────────────────────────────────────
+
+// An H-bridge was told to put "a diode across the motor (cathode to the supply side)", which conducts
+// when the bridge reverses. A load switched at both ends needs one from each end to each rail.
+const flyback = (spec) => autoLayout(spec).review.doubts.filter((d) => d.code === 'COIL_NO_FLYBACK');
+test('an H-bridge with no diodes is told four, one from each end to each rail; with the four, nothing', () => {
+  const [w] = flyback(SHOOT);
+  assert.equal(w.params.variant, 'motorBridge');
+  assert.match(formatIssue(w, 'en'), /M1 is driven from both ends \(Q\d, Q\d\).*A diode across the motor would conduct when the bridge reverses; it takes four \(1N4007\): from each end to the \+ rail \(cathode to \+\) and from the − rail to each end \(anode to −\)\./);
+  const four = structuredClone(SHOOT);
+  four.parts.push(...[1, 2, 3, 4].map((k) => ({ id: `D${k}`, part: '1N4007' })));
+  four.nets.push(['M1.+', 'D1.A', 'D3.K'], ['M1.-', 'D2.A', 'D4.K'], ['U1.5V', 'D1.K', 'D2.K'], ['U1.GND', 'D3.A', 'D4.A']);
+  assert.deepEqual(flyback(four), []);
+  // A load switched at one end keeps the one diode across it.
+  const one = flyback({ supplies: [{ id: 'V1', voltage: 9 }], parts: [{ id: 'R1', type: 'resistor', value: '1k' }, { id: 'Q1', part: '2N2222A' }, { id: 'M1', type: 'motor' }], nets: [['T+', 'M1.+', 'R1.1'], ['R1.2', 'Q1.B'], ['M1.-', 'Q1.C'], ['Q1.E', 'T-']] });
+  assert.equal(one[0]?.params.variant, 'motor');
+  assert.match(formatIssue(one[0], 'en'), /A diode across the motor \(a 1N4007, its cathode to the supply side\)/);
+});
