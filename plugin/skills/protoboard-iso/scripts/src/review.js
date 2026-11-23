@@ -247,6 +247,7 @@ export function formatHazards(r, lang, formatIssue, t, { checked = true } = {}) 
 function fixLine(fix, lang, t) {
   if (fix.kind === 'swap') return t(lang, 'review.fix.swap', { part: fix.part, a: fix.pins[0], b: fix.pins[1] });
   if (fix.kind === 'swap-supply') return t(lang, 'review.fix.swapSupply', { supply: fix.supply });
+  if (fix.kind === 'resupply') return t(lang, 'review.fix.resupply', { part: fix.part, pin: fix.pin, rail: fix.rail ?? t(lang, 'review.fix.supplyRail', { supply: fix.supply }), voltage: formatValue(fix.voltage, 'V', { decimal: decimalSeparator(lang) }) });
   const decimal = decimalSeparator(lang);
   const f = (v, unit) => formatValue(v, unit, { decimal });
   const brings = fix.brings

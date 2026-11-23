@@ -92,7 +92,7 @@ part gives itself wins over the environment. Ranges are what the kit accepts; un
 
 - Fields (spec, or `set` in an operation): `pressed`: button state · `color`
 - No part number: pins `1`, `2`, `3`, `4`; while it runs: `pressed` on / off (held: `--press ID@t+dur`).
-- What each pin does: 1 · joined to 2 inside; 2 · joined to 1 inside; 3 · joined to 4 inside; 4 · joined to 3 inside.
+- What each pin does: 1 · one side of the switch (joined to 2 inside); 2 · the same side as 1 (joined to it inside); 3 · the other side of the switch (joined to 4 inside); 4 · the same side as 3 (joined to it inside).
 - Pins 1 and 2 are joined inside, and so are 3 and 4: the switch is between the two pairs, so a net on 1 (or 2) and a net on 3 (or 4) are joined while it is pressed.
 
 ## `wire` · Jumper wire

@@ -565,7 +565,9 @@ Can change (layout with the recipe and values): R1 = 330 (current-limiting resis
   brightness? }] }`): the simulator's DC point, the one `simulate` prints. The sources first (a
   supply, a battery by its id, a board's USB; each once), then the parts whose job is to be driven: LEDs (current and
   brightness), then buzzers, motors, relay coils and lasers. At most four parts in the text, then how
-  many more `simulate` lists. Left out when the circuit has no source, the DC point cannot be solved,
+  many more `simulate` lists. A circuit with none of those (a divider, a Zener regulator) gives instead
+  the voltage of each net that is not a rail, named by its pins (`supply 5 V · R1.2 = R2.1 3.33 V`;
+  `nets: [{ pins, voltage }]`), at most four. Left out when the circuit has no source, the DC point cannot be solved,
   a board runs a program (the program decides what is lit, a rest point at time zero would mislead),
   a supply is a generator (the signal is the point, not its rest value) or a timer is wired as an
   astable (it never rests: its TRIG and THR share a net with a capacitor, and its DIS or OUT is on that

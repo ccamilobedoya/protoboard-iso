@@ -340,7 +340,7 @@ sulphide track in a zigzag between two metal combs, lighter as more light falls,
 decade of lux (1 lx one, 10 000 lx five), V and I and "2.98 kΩ with 100 lx". Both read the temperature,
 the light and the resistance from the reading's `sensor`, which the slider updates.
 
-A push button's rows say which pin each is joined to inside ("1 · joined to 2 inside"); its mark,
+A push button's rows say which side of the switch each pin is and which pin it is joined to inside ("1 · one side of the switch (joined to 2 inside)"); its mark,
 how to tell the pairs on the part ("Legs on opposite faces are joined: 1–2 and 3–4; pressed, all
 four"), with no side: seen from above at an angle the pairs cross on screen. Its symbol is a normally
 open push button, 1–2 down one side and 3–4 down the other, the bar on its plunger over both contacts.

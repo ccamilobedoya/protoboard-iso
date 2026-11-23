@@ -155,6 +155,7 @@ const warningsOf = (reading) => (reading.issues ?? []).filter((i) => (PROGRAM_DO
 // program's issue names; an issue that names no part, by all its params.
 // Doubts that can show in several states: the quantity whose highest value is the one reported.
 const STRONGEST = { SIM_RELAY_UNDERDRIVEN: 'current', SIM_PIN_OVERVOLTAGE: 'voltage' };
+const DEPENDS = 0.05; // stronger in a state by more than this share: the state is named [assumed]
 const doubtKey = (i) => (i.params?.part != null ? `${i.code} ${i.params.part} ${i.params.name ?? i.params.file ?? i.params.pin ?? ''} ${i.params.line ?? ''}` : `${i.code} ${JSON.stringify(i.params ?? {})}`);
 const exceededAll = (engine, reading) => Object.entries(engine.stresses(reading)).flatMap(([id, list]) => list.filter((s) => s.ratio > 1).map((s) => stressIssue(id, s)));
 const hazardKey = (h) => `${h.code} ${h.params.part}`;
@@ -194,6 +195,34 @@ function combinationStates(rest, combinations) {
   return out;
 }
 
+// A board's pin that drives a clocked chip's input but was never high in any combination the run saw
+// (a clock pulsed inside shiftOut, high and low again within one step): held high alone, judged only on
+// that chip's pins, so every input a board drives is judged at both its levels. Only the chip's pins:
+// held alone, a pin can make states its program never reaches elsewhere (an H-bridge's leg).
+function chipInputStates(program, rest, combinations) {
+  const chips = (program.devices ?? []).filter((d) => !d.unsupported && deviceOfProgram(d)?.holds);
+  // Nodes joined by jumpers (devices of kind W) are one net.
+  const parent = new Map();
+  const find = (n) => (parent.has(n) && parent.get(n) !== n ? find(parent.get(n)) : n);
+  for (const w of program.devices ?? []) if (w.kind === 'W' && w.pins?.length === 2) {
+    const [a, b] = w.pins.map((p) => find(p.node));
+    if (a !== b) parent.set(a, b);
+  }
+  const out = [];
+  for (const board of (program.devices ?? []).filter((d) => d.kind === 'MCU' && !d.unsupported)) {
+    const pins = rest.parts?.[board.id]?.pins ?? [];
+    const seen = new Set(combinations.filter((c) => c.part === board.id).flatMap((c) => c.high));
+    for (const x of pins) {
+      if (x.mode !== 'output' || seen.has(x.name) || x.level) continue;
+      const node = board.pins.find((p) => p.name === x.name)?.node;
+      const chip = chips.find((c) => c.pins.some((p) => find(p.node) === find(node)));
+      if (!node || !chip) continue;
+      out.push({ part: board.id, pins: [[x.name, 1]], pin: x.name, name: x.name, value: 1, only: (h) => String(h.params.part).startsWith(`${chip.id}.`) });
+    }
+  }
+  return out;
+}
+
 // A state on and off: a control set, or a pin held (a combination: several pins).
 const holdChips = (engine, s, release) => Object.entries(s.chips ?? {}).every(([id, logic]) => engine.hold(id, release ? null : logic));
 export const enterState = (engine, s) => holdChips(engine, s, false) && (s.pins ? s.pins.every(([pin, v]) => engine.drive(s.part, pin, v)) : s.pin ? engine.drive(s.part, s.pin, s.value) : s.chips ? true : engine.set(s.part, s.field, s.value));
@@ -225,7 +254,7 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
   const outputs = programOutputs(rest);
   // A program that runs: its outputs as the run saw them together (each combination once), not each
   // output alone (an H-bridge's sketch never turns on both transistors of one leg).
-  const pinStates = combinations ? combinationStates(rest, combinations) : outputs.states;
+  const pinStates = combinations ? [...combinationStates(rest, combinations), ...chipInputStates(compiledProgram, rest, combinations)] : outputs.states;
   const all = [...states, ...pinStates];
   // A hazard at rest on a board's pin the program sets high there names that state ("with D9 high, as
   // the program first sets it"): the figure is that state's, not one of a run.
@@ -250,9 +279,9 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
     const reading = eng.dc();
     const when = s.held ? { part: s.part, held: s.held, chips: s.chips, ...(s.pins && { pins: s.pins }), ...(s.pin && { pin: s.pin, name: s.name }), value: s.value } : s.pin ? { part: s.part, pin: s.pin, name: s.name, value: s.value } : { part: s.part, field: s.field, value: s.value, ...(s.end && { end: s.end }) };
     if (reading.ok) {
-      lit.see(reading);
+      if (!s.only) lit.see(reading);
       for (const h of exceeded(eng, reading)) {
-        if (atRest.has(hazardKey(h))) continue;
+        if (atRest.has(hazardKey(h)) || (s.only && !s.only(h))) continue;
         // In a combination, a pin's own hazard names that pin (U1.D10 with D9 + D10 high: D10).
         const own = s.pins && String(h.params.part).startsWith(`${s.part}.`) ? String(h.params.part).slice(s.part.length + 1) : null;
         const found = { ...h, when: own && s.pins.some(([p, v]) => p === own && v) ? { ...when, pin: own } : when };
@@ -261,14 +290,16 @@ export function engineHazards(engine, states, max = STATES_MAX, { collect = fals
         if (at < 0) hazards.push(found);
         else if (hazardStrength(found) > hazardStrength(hazards[at])) hazards[at] = found;
       }
-      for (const d of warningsOf(reading)) {
+      for (const d of s.only ? [] : warningsOf(reading)) {
         if (!doubted.has(doubtKey(d))) {
           doubted.add(doubtKey(d));
           doubts.push({ ...d, when });
         } else if (STRONGEST[d.code]) {
           // Seen in several states: the one that tells the most (a relay's weak drive: the highest coil current).
+          // A state is named only when the finding depends on it: stronger there by more than DEPENDS
+          // (an RX pin at 4.04 V instead of 4.03 V is not "with the temperature at its minimum").
           const at = doubts.findIndex((x) => doubtKey(x) === doubtKey(d));
-          if (d.params[STRONGEST[d.code]].value > doubts[at].params[STRONGEST[d.code]].value) doubts[at] = { ...d, when };
+          if (d.params[STRONGEST[d.code]].value > doubts[at].params[STRONGEST[d.code]].value * (1 + DEPENDS)) doubts[at] = { ...d, when };
         }
       }
     }
@@ -474,7 +505,7 @@ function visitRun(circuit, compiled, engine, states, extra, always, plain = NEVE
   // Until `visited` the run is in the hazard check's own states (the plain seconds, then `states`): a
   // pin's extremes are read there; the rest only answers whether an output comes on.
   const visited = plain + steps.filter((s) => states.includes(s)).length * (NEVER_ON_HOLD + NEVER_ON_GAP);
-  const run = runCircuit(circuit, { seconds, stimuli: { at }, maxSteps: BEHAVIOUR_STEPS * 2, minStep: seconds / 20000, checks: 0, compiled, extremesUntil: visited });
+  const run = runCircuit(circuit, { seconds, stimuli: { at }, maxSteps: BEHAVIOUR_STEPS * 2, checks: 0, compiled, extremesUntil: visited, remeasure: 0 });
   RUNS.set(key, run);
   if (RUNS.size > RUNS_KEPT) RUNS.delete(RUNS.keys().next().value);
   return run;
@@ -561,7 +592,7 @@ export function checkHazards(circuit) {
     for (const peak of pinPeaks(runFirst)) {
       const at = result.doubts.findIndex((d) => doubtKey(d) === doubtKey(peak));
       if (at < 0) result.doubts.push(peak);
-      else if (Math.abs(peak.params.voltage.value) > Math.abs(result.doubts[at].params.voltage.value)) result.doubts[at] = peak;
+      else if (Math.abs(peak.params.voltage.value) > Math.abs(result.doubts[at].params.voltage.value) * (1 + DEPENDS)) result.doubts[at] = peak;
     }
   }
   // A bus line over its chip's VDDIO in a DC state, which a program that runs no longer holds there by

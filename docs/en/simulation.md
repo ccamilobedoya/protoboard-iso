@@ -120,7 +120,10 @@ Set them with an operation like any circuit field:
 - **Transient.** `stop` and `step` in seconds; capacitors start discharged and inductors with
   no current (`start: "zero"`, the supply switched on at t = 0), or at their DC values
   (`start: "dc"`). Backward Euler with a
-  fixed step; at most 400 samples are kept (`points`). A circuit whose board runs a program is
+  fixed step; at most 400 samples are kept (`points`). The text shows eleven of them in a table and
+  says so (`the table shows 11 of its 401 samples … (--json has them all)`), then each series' peak and,
+  where it repeats, its frequency (`Peaks over the 10 ms (and the frequency of what repeats): … V(R1)
+  4.72 V, 994 Hz`), as a run gives its outputs' figures. A circuit whose board runs a program is
   stepped as the page steps it (below, "A run"): pieces of at most 1 ms that end on each event of
   the program and of the timed modules, so a 10 µs pulse or an echo is at its time; the answer
   then has a note naming `--run`, which says what the program printed and how its outputs toggle.
@@ -130,8 +133,20 @@ Set them with an operation like any circuit field:
   `--start zero|dc` (MCP `start`), for that many simulated seconds. Its first line says which in
   plain words (`Run from its resting point, as the page starts` or `Run from everything
   discharged`): a capacitor behind 22 kΩ that a real circuit takes seconds to charge is already
-  charged in a run from the resting point. The run uses the same engine and the same step (`sim/pace.js`),
-  the board's program with `pulseIn`, the library sensors, the encoder and the timed modules. It
+  charged in a run from the resting point. The run uses the same engine as the page, the board's
+  program with `pulseIn`, the library sensors, the encoder and the timed modules, and the page's step
+  (`sim/pace.js`) but never one shorter than the run's length over 20 000 (`RUN_STEPS`): the page's
+  step follows the fastest thing it can show (a decoupling capacitor's nanoseconds), which a run of
+  seconds cannot afford. Each step still ends on every event (a program's writes, a press, a change
+  at a time, a 555's thresholds) and the solver is stable at any step, so a run of 3 s takes about
+  20 000 steps whatever the circuit. Its first line says the step. A time constant shorter than the
+  step is stepped over and one note names the slowest of them (`This run's steps of 150 µs are longer
+  than C1's time constant of 33 ns: what changes that fast is shown settled at each step, not
+  followed`). An output whose rhythm is faster than 100 of the run's steps a period is measured again
+  in a shorter run from the same start whose step follows it, and its line says where its figure comes
+  from (`measured in the first 200 ms in steps of 10 µs`); one that even that cannot follow has no
+  frequency, and a note says how short a run measures it. A run that hits the machine's time in steps
+  of that floor says that only `--budget` helps (a shorter `--run` takes as many steps). It
   answers what an assistant needs to say whether the circuit does what was asked:
   - **Serial**: what the program printed, each line with its time, in order, and the count (a
     long story keeps its first and last lines, `runSerialLines` in `src/limits.js`);
@@ -147,7 +162,11 @@ Set them with an operation like any circuit field:
     least every 50 ms (a tone of 20 Hz or more; `SOUND_GAP`, assumed), so its line gives the
     beeps (the share of the run it sounds, how many times and how often it starts) and the
     tone's frequency apart (`BZ1 (buzzer): beeps 2 Hz (every 500 ms), sounding 20 % of the time ·
-    beeps: 4 · tone 2 kHz`); on a steady current it is silent (it only clicks). An active buzzer
+    beeps: 4 · tone 2 kHz`). A tune of several notes is said note by note, in order, each its
+    frequency, start and length (`· 6 notes: 262 Hz at 103 ms for 298 ms, 330 Hz at 452 ms for
+    298 ms, …`, the first eight, `--json` has `notes` and `notesTotal`), and one figure only when every
+    note has the same frequency; the pin that plays it says how many notes and their range. On a
+    steady current it is silent (it only clicks). An active buzzer
     sounds on DC: its line is when it sounds, as before;
   - **the readings at the end**, as the DC point prints them, and every warning the run produced,
     each once at its strongest reading with when it came (`at its strongest in the run, at 10 ms,
@@ -158,6 +177,13 @@ Set them with an operation like any circuit field:
     over its power at an instant is followed from then and judged on its average power to the end of
     the run (`on average over the run, from 250 µs to 50 ms`), so a clipped amplifier's peaks are not
     damage while its average stays under its maximum; `--transient` averages its samples the same way.
+    A warning about a level that must last (a relay's coil under its pull-in current, a logic input in
+    the uncertain band, a supply outside a part's range, a regulator out of regulation or hot, a
+    stalled motor) is kept only once that level has settled: seen at every look for five of its
+    part's time constants with its figure no longer moving, or still there at the end of the run. A
+    coil whose current rises through the band on its way to pulling in is not under-driven, so runs
+    of different lengths over the same events give the same warnings. A peak that damages at once (a
+    current or a voltage over a maximum) is kept at its strongest.
     Currents and voltages stay instantaneous.
 
   Stimuli, each usable several times: `--env light=0.5,distance=10` (fields of the environment,
@@ -198,10 +224,9 @@ Set them with an operation like any circuit field:
   program, a 555, a generator, an op-amp beside a capacitor): `Behaviour, first 2 s from its resting point, as the page starts (simulated, a
   model): D1 1 Hz, on 50 % of the time`, from a run bounded at 25 000 steps of the simulation (so the
   same circuit gives the same line on any machine; about as long as the 0.8 s of the machine's
-  time it replaced, `BEHAVIOUR_STEPS` in `src/sim/run.js`) and a step no shorter than a 20 000th of
-  it (a rhythm faster than 50 of those steps per period is measured again in the page's own step, as
-  `simulate --run` measures it, within the same bound; under five whole periods there it says `about`
-  with two figures); past the bound it says it was not measured (`the run needed more than 25 000 steps of the
+  time it replaced, `BEHAVIOUR_STEPS` in `src/sim/run.js`): it is `simulate --run 2`, the same step
+  and the same shorter run for a fast rhythm, so the two give the same figures (under five whole
+  periods in that shorter run it says `about` with two figures); past the bound it says it was not measured (`the run needed more than 25 000 steps of the
   simulation`) and names `simulate --run 2`.
 - **Two resting states** (a transistor latch, a flip-flop). Its DC point can be the balance between
   its two stable states, both transistors half on, which a real circuit never sits in. After the DC
@@ -337,6 +362,14 @@ The kit has no computed fix for this.
   clears every hazard in every state (`fix.kind` `swap` or `swap-supply`). A series resistor is never
   offered for a reverse hazard (it only silences a buzzer): with none of the swaps clearing it, the
   kit has no computed fix.
+- **A logic chip fed less than its signals is fed from theirs.** An input over its chip's supply (a
+  74HC595 on 3.3 V driven by an UNO's 5 V pins) says the cause on its line (`The chip is fed 3.3 V,
+  less than the signal that drives it: feed it from the signal's voltage, or drive it with 3.3 V
+  signals`), and every input a board drives is judged high, a clock pulsed inside `shiftOut` too (`with
+  D12 high`). When the circuit has a rail at the signals' voltage (a board's `5V` pin, a supply's +),
+  the fix moves the chip's supply pin there (`To fix it: feed U2 from U1.5V (4.99 V, the voltage of
+  the signals that drive it): move its VCC there`, `fix.kind` `resupply`); with none, the sentence of
+  the warning is the advice.
 - **Candidates, in this order**, the first that clears everything wins: (1) a new value for a
   resistor already in series with the stressed part or its branch (the part itself when it is a
   resistor), (2) one new resistor in series with the stressed part, or with each load on a board's
@@ -388,8 +421,10 @@ tell.
   different nets, so pressing it changes nothing. `check` lists it as a warning; `apply` saves a
   change that adds it and marks it ⚠. `COIL_NO_FLYBACK`, a relay's coil or a motor switched by a
   transistor's collector, a MOSFET's drain or a board's pin with no diode on the node the switch cuts
-  (across the coil, or to a rail as in an H-bridge): the switch can be damaged when it turns off. A
-  motor on a plain switch or straight on a supply has no switch to damage.
+  (across the coil): the switch can be damaged when it turns off. A load driven from both ends (an
+  H-bridge, each end switched) needs a diode from each end to each rail, four in all, and its line says
+  so (a diode across it would conduct when the bridge reverses). A motor on a plain switch or straight
+  on a supply has no switch to damage.
   `SUPPLY_PINS_UNWIRED`, a part wired into the circuit whose supply pins are not both wired to
   something, or are on one net (an LM358 with VCC and GND left open, a 555 with every pin on one
   net): it cannot work. The supply pins are the part's own: its model's `supply`, else the pins the
@@ -518,5 +553,5 @@ voltage of an LED measured on the bench).
 
 ## Not yet
 
-Every chip in the kit is simulated (the 555, the op-amps, the LM393, the 74HC595, the CD4017, the ULN arrays, the PC817 and the LM386); the DESPI-C02 adapter is left unconnected and reported; the kit has no loudspeaker (an 8 Ω resistor of 1 W stands for one behind an LM386, whose transient is run from its resting point, `--start dc`: from everything discharged its output capacitor charges through the 8 Ω and the supply draws about half an ampere at first: that is the switch-on, not the amplifier); a microcontroller board runs its program (`"program"`, with PWM and `tone`; [microcontrollers.md](microcontrollers.md)). Op-amps have no bandwidth or slew rate yet: a fast signal comes out as if the chip were ideal (a relaxation oscillator with positive feedback runs: Newton stops at the edges of the linear range at most twice per solve, so it switches rails; an LM358 one with 47 kΩ and 10 nF runs at about 920 Hz, the textbook formula's 968 Hz with ideal rails). The 555 has no paths in the conductor view yet: its current shows at its pins and strips. Events at a time are for a run (`--press`, `--at`), not for `--transient`; no self-heating, no battery discharge over
+Every chip in the kit is simulated (the 555, the op-amps, the LM393, the 74HC595, the CD4017, the ULN arrays, the PC817 and the LM386); the DESPI-C02 adapter is left unconnected and reported; the kit has no loudspeaker (an 8 Ω resistor of 1 W stands in for it in the simulation behind an LM386, and the answer tells the user so; an LM386 clipped against its rails for a fifth of a run or more gets one note, `SIM_AMP_CLIPPING`; its transient is run from its resting point, `--start dc`: from everything discharged its output capacitor charges through the 8 Ω and the supply draws about half an ampere at first: that is the switch-on, not the amplifier); a microcontroller board runs its program (`"program"`, with PWM and `tone`; [microcontrollers.md](microcontrollers.md)). Op-amps have no bandwidth or slew rate yet: a fast signal comes out as if the chip were ideal (a relaxation oscillator with positive feedback runs: Newton stops at the edges of the linear range at most twice per solve, so it switches rails; an LM358 one with 47 kΩ and 10 nF runs at about 920 Hz, the textbook formula's 968 Hz with ideal rails). The 555 has no paths in the conductor view yet: its current shows at its pins and strips. Events at a time are for a run (`--press`, `--at`), not for `--transient`; no self-heating, no battery discharge over
 time (`charge` is fixed for a run). Animation (stage 3) will read these same results.

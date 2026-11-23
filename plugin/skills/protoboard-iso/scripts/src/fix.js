@@ -7,6 +7,8 @@
 // Candidates, in this order, the first that clears every hazard wins:
 //   1 'set'         a new value for a resistor already in series with the stressed part or branch
 //                   (the part itself when it is a resistor): `part`, `value`
+//   'resupply'    first, for a logic input over its chip's supply: the chip fed from a rail at the
+//                 signals' voltage (tryResupply): `part`, `pin`, `rail` or `supply`, `voltage`
 //   2 'add-series'  one new resistor in series with the stressed part, or with each load on a
 //                   board's pin (`with`: the part, `pin`: where it goes, "BZ1.1"), or with the pin
 //                   itself: `value`
@@ -262,6 +264,40 @@ function trySwaps(program, hazards) {
   return null;
 }
 
+// A logic chip's input over its supply because the chip is fed less than the signals that drive it (a
+// 74HC595 on 3.3 V driven by an UNO's 5 V pins): the chip's supply pin moved to a rail of the circuit
+// at the signals' voltage (a board's 5V pin, a supply's +), within the chip's own supply range; the
+// first that clears every hazard in every state is the fix ('resupply'). A circuit with no such rail
+// has none: the warning's own sentence says what to do.
+const isOverSupply = (h) => h.code === 'SIM_IC_PIN_VOLTAGE' && h.params.variant === 'fed';
+const SUPPLY_PINS = ['VCC', 'VDD'];
+const POWER_PINS = ['5V', 'VIN', '3V3', 'VCC'];
+const SIGNAL_MARGIN = 0.3; // V a rail may sit under the signal it is meant to match
+function tryResupply(program, hazards) {
+  const rest = createEngine(program).dc();
+  if (!rest.ok) return null;
+  const signal = Math.max(...hazards.filter(isOverSupply).map((h) => h.params.voltage.value));
+  const chips = [...new Set(hazards.filter(isOverSupply).map((h) => String(h.params.part).split('.')[0]))];
+  const rails = [
+    ...program.devices.filter((d) => d.kind === 'MCU' && !d.unsupported).flatMap((d) => d.pins.filter((p) => POWER_PINS.includes(p.name)).map((p) => ({ node: p.node, from: { rail: `${d.id}.${p.name}` } }))),
+    ...(program.supplies ?? []).filter((x) => x.id).map((x) => ({ node: x.p, from: { supply: x.id } })),
+  ].filter((r) => rest.nodes[r.node] >= signal - SIGNAL_MARGIN);
+  for (const id of chips) {
+    const chip = program.devices.find((d) => d.id === id);
+    const pin = chip?.pins.find((p) => SUPPLY_PINS.includes(p.name));
+    const max = chip?.params?.model?.maxSupply ?? Number.POSITIVE_INFINITY;
+    if (!pin) continue;
+    for (const rail of rails.filter((r) => r.node !== pin.node && rest.nodes[r.node] <= max)) {
+      const changed = structuredClone(program);
+      changed.devices.find((d) => d.id === id).pins.find((p) => p.name === pin.name).node = rail.node;
+      const engine = createEngine(changed);
+      const r = engineHazards(engine, controlStates(changed, engine));
+      if (r.ok && !r.hazards.length) return { kind: 'resupply', part: id, pin: pin.name, ...rail.from, voltage: rest.nodes[rail.node] };
+    }
+  }
+  return null;
+}
+
 export function hazardFix(circuit, hazards) {
   if (!hazards?.length) return {};
   const compiled = compile(circuit);
@@ -271,12 +307,18 @@ export function hazardFix(circuit, hazards) {
     const fix = trySwaps(program, hazards);
     return fix ? { fix } : { fix: null, noFix: true };
   }
+  if (hazards.some(isOverSupply)) {
+    const fix = tryResupply(program, hazards);
+    if (fix) return { fix };
+  }
   const nets = netsOf(program);
   // Each candidate once, with the hazards that propose it. The one it is aimed at: a hazard on
   // another part than the resistor it changes (the LED a resistor feeds, not the resistor's own
   // power), else the first.
   const byKey = new Map();
-  for (const h of hazards) {
+  // A board drawing more than its USB port gives proposes nothing of its own: a resistor in series
+  // with the supply would starve what it feeds. A fix of the other hazards must clear it too.
+  for (const h of hazards.filter((x) => x.params.variant !== 'usb')) {
     for (const c of candidatesOf(program, nets, h)) {
       const key = JSON.stringify(c);
       if (!byKey.has(key)) byKey.set(key, { c, from: [] });
@@ -306,12 +348,25 @@ export function hazardFix(circuit, hazards) {
 // --fix, the MCP tool's fix: true; docs/en/layout.md, "Applying the kit's fix"). Nothing here
 // decides to fix: it runs only on that request.
 //   'set'         the resistor's new value (and the recipe's, when the circuit came from one)
+//   'resupply'    the chip's supply pin moved to the rail named (`rail`, a board's pin, or `supply`'s +)
 //   'add-series'  a new resistor, the next R number of the circuit, between the pin and the net it
 //                 was on (its pin 1 on the net, pin 2 on the pin; a supply clipped to the pin stays
 //                 on the net), listed just before the part it is in series with (just after a board
 //                 for one of its own pins): signal order. A recipe no longer describes the circuit.
 // → { spec, applied: { kind, part, value, with? } }
 export function specWithFix(spec, fix) {
+  // A chip fed from another rail: its supply pin leaves its net and joins the rail's (a board's pin, or
+  // the supply's + rail).
+  if (fix.kind === 'resupply') {
+    const ref = `${fix.part}.${fix.pin}`;
+    const same = (x) => String(x).toLowerCase() === ref.toLowerCase();
+    const drop = (pins) => pins.filter((x) => !same(x));
+    const nets = spec.nets.map((net) => (Array.isArray(net) ? drop(net) : { ...net, pins: drop(net.pins ?? []) })).filter((net) => (Array.isArray(net) ? net : net.pins).length > 1);
+    const [positive] = supplyRails(typeof spec.board === 'string' ? BOARDS[spec.board] : spec.board);
+    const rail = fix.supply ? (spec.supplies?.find((x) => x.id === fix.supply)?.positive ?? positive) : fix.rail;
+    const { recipe, ...rest } = spec;
+    return { spec: { ...rest, nets: [...nets, [rail, ref]] }, applied: { kind: 'resupply', part: fix.part, pin: fix.pin, rail } };
+  }
   // A part turned round: its two pins swap in the nets; a supply's leads: its + and − swap.
   if (fix.kind === 'swap' || fix.kind === 'swap-supply') {
     const id = fix.kind === 'swap' ? fix.part : fix.supply;

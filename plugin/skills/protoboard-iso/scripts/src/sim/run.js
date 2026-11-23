@@ -10,12 +10,18 @@
 //   runCircuit(circuit, { seconds, stimuli, start?, budgetMs }) →  budgetMs: machine time, LIMITS.runMs by default, at most LIMITS.runMsMax;   start 'zero' | 'dc', else the page's
 //     { ok, start, run: { seconds (asked), ran (covered), step, steps, start, page }, serial: { count, lines: [{ t, text, board? }] },
 //       outputs: [{ id, kind, onShare, changes, frequency, period, duty, intervals: [[on, off]…],
-//         sound?, tone? }],
+//         sound?, tone?, measured?: { seconds, step }, fast? }],
 //       readings: engine.now() at the end, issues: [issue…] }
 //     or { ok: false, errors: [issue…] } for a stimulus that names nothing or is out of range (an
 //     input error: the command exits 1) or { ok: false, issues } when the circuit cannot run.
 //   prepareRun(circuit, stimuli) → { engine, compiled, issues, events } | { errors }   (also --transient)
 //   behaviourOf(circuit, { seconds, maxSteps }) → { outputs, skipped? } | null   layout's line
+//
+// The step: the page's (sim/pace.js), never under the run's length over RUN_STEPS (layout's Behaviour
+// line is a run of 2 s, so the two agree), each step still ending on the events (a program's writes, a
+// press, a 555's thresholds: createEngine's `crossings`). A time constant shorter than that step is
+// stepped over (RUN_STEP_OVER); an output faster than it is measured again in a shorter run whose step
+// follows it (`measured`), or has no figure (`fast`, RUN_TOO_FAST).
 //
 // An output is a part that shows something (an LED, a chip of an RGB LED or a segment of a display, a
 // buzzer, a relay, a motor), each op-amp's output (U1.OUT1, high or low) and each pin a board's
@@ -30,7 +36,7 @@
 // only clicks). An active buzzer sounds on DC: its fields above are already when it sounds.
 
 import { compile } from './compile.js';
-import { createEngine, MIN_PIECE } from './engine.js';
+import { createEngine, MIN_PIECE, clipCounter } from './engine.js';
 import { paceOf } from './pace.js';
 import { FIELDS } from './environment.js';
 import { issue } from './devices/shared.js';
@@ -61,6 +67,10 @@ const COMBINATIONS = 64; // combinations of a board's outputs kept from a run
 // Two changes of a passive buzzer's current closer than this are one sound: a tone of 20 Hz or more at
 // any duty from 0 to 100 %; slower changes (a pin toggled at 10 Hz, a button) are clicks [assumed].
 const SOUND_GAP = 0.05;
+const NOTE_SAME = 0.03; // a cycle within 3 % of a note's period is the same note (a semitone is 6 %)
+const NOTE_LULL = 4; // periods of silence inside a sound that end a note
+const NOTE_CYCLES = 3; // cycles a note has at least (fewer: the edge of a change)
+const NOTES = 32; // notes of a tune kept (the text shows fewer)
 
 const t0 = () => globalThis.performance?.now?.() ?? Date.now();
 const num = (text) => {
@@ -203,7 +213,7 @@ export function prepareRun(circuit, stimuli = {}, given = null) {
   const copy = declared ? Object.defineProperty({ ...circuit, environment }, CIRCUIT_FOLDER, { value: circuit[CIRCUIT_FOLDER], enumerable: false }) : circuit;
   const compiled = given && !named.size ? given : compile(copy);
   if (compiled.fatal) return { fatal: true, issues: compiled.issues };
-  const engine = createEngine(compiled.program);
+  const engine = createEngine(compiled.program, { crossings: true });
   // A sensor that reads its field by a value of its own follows the field the run sets (the run says
   // so); a field nothing reads is said too.
   for (const field of named) {
@@ -233,7 +243,8 @@ export function prepareRun(circuit, stimuli = {}, given = null) {
       continue;
     }
     const { id, field, value: rest } = c.control;
-    events.push({ time: p.at, apply: (e) => e.set(id, field, !rest) }, { time: p.at + p.duration, apply: (e) => e.set(id, field, Boolean(rest)) });
+    // A press that ends after the run is a press held to its end, not a late event (`release`).
+    events.push({ time: p.at, apply: (e) => e.set(id, field, !rest) }, { time: p.at + p.duration, release: true, apply: (e) => e.set(id, field, Boolean(rest)) });
   }
   for (const a of at) {
     if (Object.hasOwn(FIELDS, a.name)) {
@@ -305,6 +316,7 @@ function soundChange(s, at, rising) {
     if (s.cycleRise != null) {
       s.cycles++;
       s.cycleTime += at - s.cycleRise;
+      noteCycle(s, s.cycleRise, at);
     }
     s.cycleRise = at;
   }
@@ -316,7 +328,38 @@ function soundQuiet(s, t) {
   if (s.lit && t - s.last >= SOUND_GAP) {
     edge(s, s.last, false);
     s.cycleRise = null;
+    closeNote(s, s.last);
   }
+}
+// The notes of a tune: a run of cycles of one period (within NOTE_SAME of the note's mean) is a note;
+// a cycle of another period, or a lull of more than NOTE_LULL of its periods, starts the next one.
+// Each { start, end, cycles, time }; the first NOTES kept, `notesTotal` counts them all.
+function noteCycle(s, from, to) {
+  const p = to - from;
+  const n = s.note;
+  const mean = n ? n.time / n.cycles : 0;
+  if (n && Math.abs(p - mean) <= NOTE_SAME * mean) {
+    n.cycles++;
+    n.time += p;
+    n.end = to;
+    return;
+  }
+  // A lull inside one sound (two notes 30 ms apart): the cycle across it belongs to neither.
+  if (n && p > NOTE_LULL * mean) {
+    closeNote(s, from);
+    return;
+  }
+  closeNote(s, from);
+  s.note = { start: from, end: to, cycles: 1, time: p };
+}
+function closeNote(s, at) {
+  const n = s.note;
+  s.note = null;
+  if (!n || n.cycles < NOTE_CYCLES) return;
+  // It lasts to the last change of its sound (half a cycle after its last rise).
+  n.end = Math.max(n.end, Math.min(at ?? n.end, n.end + n.time / n.cycles));
+  s.notesTotal = (s.notesTotal ?? 0) + 1;
+  (s.notes ??= []).length < NOTES && s.notes.push(n);
 }
 // A sample (t, v): an edge between the last sample and this one, interpolated at the level.
 function observe(w, t, v) {
@@ -340,6 +383,12 @@ function observe(w, t, v) {
 }
 function edge(w, at, on) {
   if (w.sound) soundChange(w.sound, at, on);
+  // A board's pin playing a tone (cycles faster than SOUND_GAP): its notes, as a buzzer's.
+  if (w.kind === 'pin' && on) {
+    if (w.lastRise != null && at - w.lastRise < SOUND_GAP) noteCycle(w, w.lastRise, at);
+    else closeNote(w, w.lastRise);
+    w.lastRise = at;
+  }
   w.changes++;
   w.lit = on;
   if (on) {
@@ -394,7 +443,7 @@ function rhythm(w) {
 export const pageStart = (circuit) => (circuit.page?.start === 'zero' ? 'zero' : 'dc');
 const START_MODES = ['zero', 'dc'];
 
-export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budgetMs: givenBudget = LIMITS.runMs, maxSteps = Number.POSITIVE_INFINITY, minStep = 0, checks = CHECKS, compiled = null, extremesUntil = Number.POSITIVE_INFINITY } = {}) {
+export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budgetMs: givenBudget = LIMITS.runMs, maxSteps = Number.POSITIVE_INFINITY, minStep = 0, checks = CHECKS, compiled = null, extremesUntil = Number.POSITIVE_INFINITY, remeasure = REMEASURES } = {}) {
   const asked = Number(seconds);
   if (!(asked > 0)) return { ok: false, errors: [bad('RUN_BAD_TIME', { value: String(seconds).slice(0, 40), max: LIMITS.runSeconds })] };
   if (wanted != null && !START_MODES.includes(wanted)) return { ok: false, errors: [bad('RUN_BAD_START', { value: String(wanted).slice(0, 40) })] };
@@ -407,11 +456,19 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   // The machine's time it may take: budgetMs, at most LIMITS.runMsMax (said when capped).
   const budgetMs = Math.min(givenBudget, LIMITS.runMsMax);
   if (givenBudget > LIMITS.runMsMax) issues.push(issue('info', 'RUN_BUDGET_CAPPED', { asked: givenBudget / 1000, max: LIMITS.runMsMax / 1000 }));
-  for (const e of events) if (e.time >= total) issues.push(issue('warning', 'RUN_EVENT_LATE', { time: e.time, seconds: total }));
+  // Times as written (0.8, not 0.7999999999999999).
+  for (const e of events) if (e.time >= total && !e.release) issues.push(issue('warning', 'RUN_EVENT_LATE', { time: Number(e.time.toPrecision(12)), seconds: total }));
 
-  // The page's step (sim/pace.js); with nothing that changes by itself, short enough for the events.
+  // The page's step (sim/pace.js; with nothing that changes by itself, short enough for the events),
+  // never under the run's length over RUN_STEPS: the page's step follows the fastest thing it can show
+  // (a decoupling capacitor's nanoseconds), which a run of seconds cannot afford. The steps still end
+  // on every event (a program's writes, a press, the 555's thresholds) and stay stable at any length.
   const pace = paceOf(engine.timeConstants(), engine.periods(), Boolean(engine.hasProgram()), engine.stimuli());
-  const h = Math.max(minStep, pace.h > 0 ? pace.h : Math.min(0.01, total / 200));
+  const own = pace.h > 0 ? pace.h : Math.min(0.01, total / 200);
+  const h = Math.max(minStep, own, total / RUN_STEPS);
+  // What the step is longer than: one note, naming the slowest of the times it steps over.
+  const over = h > own ? engine.timeConstants(true).filter((c) => c.value < h).sort((a, b) => b.value - a.value) : [];
+  if (over.length) issues.push(issue('info', over.length > 1 ? 'RUN_STEP_OVER_MANY' : 'RUN_STEP_OVER', { step: { value: h, unit: 's' }, part: over[0].part ?? '—', tau: { value: over[0].value, unit: 's' }, count: over.length }));
   const page = pageStart(circuit);
   const start = wanted ?? page;
   if (!engine.start(start, h)) return { ok: false, issues: [...issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
@@ -466,8 +523,10 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
         if (x.mode !== 'output' && !pins.has(key)) continue;
         if (!pins.has(key)) pins.set(key, tracker({ id: key, part: id, kind: 'pin' }));
         // A pin by what the program writes to it (a pin loaded past its rating sags under the half-rail
-        // line, but it is still driven high: its voltage is a reading, not its state); PWM by its voltage.
-        observe(pins.get(key), t, x.mode !== 'output' || !(board.vdd > 0) ? 0 : x.pwm ? x.voltage / board.vdd : x.level ? 1 : 0);
+        // line, but it is still driven high: its voltage is a reading, not its state).
+        // A PWM or a tone too, by the level the program's wave has at this step (a buzzer that loads a
+        // tone's pin under the half-rail line is still played).
+        observe(pins.get(key), t, x.mode !== 'output' || !(board.vdd > 0) ? 0 : x.level ? 1 : 0);
       }
       // Which of its outputs the program holds high now: each combination once (sim/index.js visits them).
       if (combos.size < COMBINATIONS) {
@@ -498,10 +557,32 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   // and, for a board's pin, whether the program held it high or low then: a figure of a run is not the
   // DC point's (a motor's current at start or coasting into a pin set low is not its steady one).
   const warnings = new Map();
-  const look = () => {
+  // A warning about a level that must last (LEVELS: a coil under its pull-in current, an input in the
+  // uncertain band, a supply out of its range) is a finding only once that level has settled: seen at
+  // every look for SETTLE_TAUS of its part's longest time constant, its quantity moving less than
+  // SETTLED between the last two looks, or still there at the end of the run. A coil's current that
+  // rises through the band on its way to pulling in is not one. A peak that damages at once (a
+  // current, a voltage over a maximum) is kept at its strongest, as before.
+  const settleOf = new Map();
+  for (const c of engine.timeConstants(true)) if (c.part) settleOf.set(c.part, Math.max(settleOf.get(c.part) ?? 0, SETTLE_TAUS * c.value));
+  const passing = new Map(); // key → { since, last: quantity } of a level warning not settled yet
+  const clips = clipCounter();
+  const look = (final = false) => {
     const now = engine.now();
+    clips.see(now);
+    const present = new Set();
     for (const w of now?.issues ?? []) {
       if (w.severity === 'info') continue;
+      if (LEVELS.has(w.code)) {
+        const key = `${w.code}:${w.params?.part ?? w.params?.supply ?? ''}`;
+        present.add(key);
+        const p = passing.get(key);
+        const q = strength(w);
+        if (!p) passing.set(key, { since: engine.time, last: q });
+        else p.settled = engine.time - p.since >= (settleOf.get(String(w.params?.part ?? '').split('.')[0]) ?? 0) && Math.abs(q - p.last) <= SETTLED * Math.abs(q);
+        if (p) p.last = q;
+        if (!final && !passing.get(key).settled) continue;
+      }
       if (w.code === 'SIM_OVER_POWER') {
         const key = `${w.code}:${w.params?.part ?? ''}`;
         if (!hot.has(key)) {
@@ -520,6 +601,7 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
       // "At its strongest in the run, at …" only for a warning with a quantity (a program's warning has none).
       warnings.set(key, strength(w) > 0 ? { ...w, when: { time: engine.time, ...(level && { pin, high: Boolean(level.pwm ? level.pwm.duty > 0 : level.level) }) } } : w);
     }
+    for (const key of passing.keys()) if (!present.has(key)) passing.delete(key);
     return now;
   };
   const began = t0();
@@ -553,20 +635,39 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
       break;
     }
     if (steps % BUDGET_EVERY === 0 && t0() - began > budgetMs) {
-      issues.push(issue('warning', 'RUN_BUDGET', { time: { value: engine.time, unit: 's' }, seconds: { value: total, unit: 's' }, budget: { value: budgetMs / 1000, unit: 's' } }));
+      // A run in steps of its length over RUN_STEPS takes as many steps when shorter: only --budget helps.
+      issues.push(issue('warning', 'RUN_BUDGET', { time: { value: engine.time, unit: 's' }, seconds: { value: total, unit: 's' }, budget: { value: budgetMs / 1000, unit: 's' }, ...(h > own && { variant: 'floor', count: RUN_STEPS }) }));
       break;
     }
   }
   engine.onStep = null;
   const end = Math.abs(engine.time - total) < 1e-9 ? total : engine.time;
-  const readings = look();
+  const readings = look(true);
   // Each part over its power at some instant: its average from then to the end, against its maximum.
   for (const [key, e] of hot) {
     const span = end - e.since;
     const average = span > 0 ? e.energy / span : powerOf(e, readings?.parts?.[e.id] ?? {});
     if (average > e.max) warnings.set(key, { ...e.issue, params: { ...e.issue.params, power: { value: average, unit: 'W' } }, when: { average: true, from: e.since, time: end } });
   }
-  const outputs = [...watches, ...pins.values()].map((w) => summary(w, end));
+  // An output whose rhythm is faster than a step raised by the floor can follow (fewer than FAST steps
+  // in a period, on average) is measured again in a shorter run from the same start, whose step does
+  // follow it; what that cannot follow either has no figure (the step's, not its own) and a note.
+  let outputs = [...watches, ...pins.values()].map((w) => summary(w, end));
+  if (h > own) outputs = outputs.map((o) => unresolved(o, steps, end));
+  const fast = outputs.filter((o) => o.fast);
+  if (fast.length) {
+    const seconds = shorterRun(fast, end, total);
+    const again = remeasure > 0 && seconds < end ? runCircuit(circuit, { seconds, stimuli, start, budgetMs: Math.max(1, budgetMs - (t0() - began)), maxSteps, checks: 0, compiled: used, remeasure: remeasure - 1 }) : null;
+    const by = new Map((again?.ok ? again.outputs : []).map((o) => [o.id, o]));
+    outputs = outputs.map((o) => {
+      const f = o.fast ? by.get(o.id) : null;
+      if (!f?.period || f.fast) return o;
+      const { fast: _, ...rest } = o;
+      return { ...rest, frequency: f.frequency, period: f.period, duty: f.duty, periods: f.periods, ...(f.tone && { tone: f.tone }), measured: f.measured ?? { seconds: again.run.ran, step: again.run.step } };
+    });
+    const left = outputs.filter((o) => o.fast);
+    if (left.length) issues.push(issue('info', 'RUN_TOO_FAST', { parts: left.map((o) => o.id).join(', '), step: { value: h, unit: 's' }, seconds: { value: shorterRun(left, end, total), unit: 's' } }));
+  }
   const lines = [...serial.head, ...serial.tail];
   return {
     ok: !issues.some((i) => i.severity === 'error'),
@@ -579,9 +680,42 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
     pinExtremes: [...extremes.values()],
     combinations: [...combos.values()],
     readings,
-    issues: [...(readings?.issues ?? []).filter((i) => i.severity === 'info'), ...issues, ...flags.values(), ...warnings.values()],
+    issues: [...(readings?.issues ?? []).filter((i) => i.severity === 'info'), ...issues, ...flags.values(), ...warnings.values(), ...(checks > 0 ? clips.notes() : [])],
   };
 }
+
+// A run's steps: at least its length over RUN_STEPS (runCircuit), the same as layout's line.
+export const RUN_STEPS = 20000;
+// Steps per period, on average, under which a run's rhythm of an output is not its own: a 555 at 100
+// steps a period reads 0.6 % slow (backward Euler), at 25 steps 2.6 % [measured, sim/run.js tests].
+const FAST = 100;
+// Shorter runs that may measure a fast rhythm again, each from what the one before counted (a step that
+// beats with the changes counts fewer of them than there are).
+const REMEASURES = 2;
+// Its period, or, when it toggles but not regularly (a step longer than its changes beats with them),
+// two changes' worth of the run.
+const periodOf = (o, end) => (o.period > 0 ? o.period : o.changes > 2 ? (2 * end) / o.changes : null);
+const stepsPer = (o, steps, end) => (periodOf(o, end) > 0 && end > 0 ? (steps * periodOf(o, end)) / end : Number.POSITIVE_INFINITY);
+// A board's pin changes when its program writes it (a step ends there): always measured.
+function unresolved(o, steps, end) {
+  const of = (x) => x.kind !== 'pin' && stepsPer(x, steps, end) < FAST;
+  const sound = o.sound && of(o.sound);
+  if (!of(o) && !sound) return o;
+  const { periods, ...rest } = o;
+  return { ...rest, frequency: null, period: null, duty: null, fast: true, ...(o.tone && of(o) && { tone: null }), ...(sound && { sound: { ...o.sound, frequency: null, period: null, duty: null } }) };
+}
+// The length of run whose step follows the fastest of them (twice FAST steps in its period as the
+// changes counted it), at most the run's: its period may be shorter still, and that run says so.
+function shorterRun(fast, end, total) {
+  const period = Math.min(...fast.map((o) => periodOf(o, end) ?? end));
+  return Math.min(total, Number(((period * RUN_STEPS) / (2 * FAST)).toPrecision(1)));
+}
+
+// Warnings about a level that must last, judged on a settled state (runCircuit's look): the others are
+// about a peak that damages at once, judged at their strongest.
+const LEVELS = new Set(['SIM_RELAY_UNDERDRIVEN', 'SIM_RELAY_COIL', 'SIM_IC_INPUT_LEVEL', 'SIM_IC_SUPPLY_RANGE', 'SIM_MODULE_LOW_SUPPLY', 'SIM_REG_DROPOUT', 'SIM_REG_HOT', 'SIM_REG_HOT_MODULE', 'SIM_LASER_DIM', 'SIM_LASER_POWER', 'SIM_MOTOR_STALL', 'SIM_MOTOR_VOLTAGE', 'SIM_BUZZER_DC', 'SIM_HALL_HIGH_SUPPLY', 'SIM_SUPPLY_LIMITED', 'SIM_BATTERY_CHARGING']);
+const SETTLE_TAUS = 5; // of the part's longest time constant, a level held that long has settled
+const SETTLED = 0.02; // relative change between two looks under which a level has stopped moving [assumed]
 
 // A warning's first quantity ({ value, unit }), as a size to keep the strongest of a run.
 function strength(w) {
@@ -599,16 +733,30 @@ function keepLine(serial, line) {
   }
 }
 
+const notesOf = (w) => (w.notes ?? []).map((n) => ({ frequency: n.cycles / n.time, start: n.start, length: n.end - n.start }));
+const oneNote = (notes) => notes.every((n) => Math.abs(n.frequency / notes[0].frequency - 1) <= NOTE_SAME);
 function summary(w, end) {
   const out = spansOf(w, end);
+  if (w.kind === 'pin') {
+    closeNote(w, w.lit ? end : w.falls.at(-1));
+    const notes = notesOf(w);
+    // A pin that plays several notes has no one rhythm (the last periods are the last note's).
+    if (notes.length < 2 || oneNote(notes)) return out;
+    return { ...out, frequency: null, period: null, duty: null, notes, ...(w.notesTotal > notes.length && { notesTotal: w.notesTotal }) };
+  }
   if (!w.sound) return out;
   const s = w.sound;
   // A sound still going at the end lasts to its last change, or to the end while it changes.
   if (s.lit && end - s.last >= SOUND_GAP) edge(s, s.last, false);
+  closeNote(s, s.lit ? end : s.last);
   const { id, kind, ...sound } = spansOf(s, end);
-  // The tone: whole cycles, rise to rise, inside the sounds.
-  const tone = s.cycles > 0 && s.cycleTime > 0 ? { frequency: s.cycles / s.cycleTime, period: s.cycleTime / s.cycles } : null;
-  return { ...out, sound: { ...sound, starts: s.kept + (s.lit ? 1 : 0) }, tone };
+  // The tone: whole cycles, rise to rise, inside the sounds; one figure only when every note has it.
+  const notes = notesOf(s);
+  const one = notes.length > 0 && oneNote(notes);
+  const tone = s.cycles > 0 && s.cycleTime > 0 && (one || !notes.length) ? { frequency: s.cycles / s.cycleTime, period: s.cycleTime / s.cycles } : null;
+  // Several notes: its current has no one rhythm either (the last periods are the last note's).
+  if (notes.length > 1 && !one) Object.assign(out, { frequency: null, period: null, duty: null });
+  return { ...out, sound: { ...sound, starts: s.kept + (s.lit ? 1 : 0) }, tone, ...(notes.length && { notes, ...(s.notesTotal > notes.length && { notesTotal: s.notesTotal }) }) };
 }
 function spansOf(w, end) {
   const intervals = w.intervals.slice();
@@ -718,33 +866,20 @@ export function runsByItself(program) {
 // The first seconds of a circuit that changes by itself, in a run bounded by a count of steps (the
 // same line on any machine; BEHAVIOUR_STEPS costs about as much as the 0.8 s of machine time it
 // replaced): { seconds, outputs } or { skipped: { code, params } } when the bound was hit; null for a
-// circuit that does not run by itself.
+// circuit that does not run by itself. It is simulate --run of the same length (the same step, a
+// fast rhythm measured again in the same shorter run), so the two give the same figures; fewer than
+// ABOUT_PERIODS whole periods: `about`. Its limits are read once, at the end (the review judges the
+// hazards).
 export const BEHAVIOUR_STEPS = 25000;
 export function behaviourOf(circuit, { seconds = 2, maxSteps = BEHAVIOUR_STEPS } = {}) {
   const compiled = compile(circuit);
   if (compiled.fatal || !runsByItself(compiled.program)) return null;
-  // A step no shorter than a 20 000th of the run: a 555 beside a small capacitor would take the page's
-  // tens of microseconds and seconds of the machine; the edges are still found between two steps.
-  // Its limits are read once, at the end (the review judges the hazards).
-  const r = runCircuit(circuit, { seconds, maxSteps, minStep: seconds / 20000, checks: 0, compiled });
+  const r = runCircuit(circuit, { seconds, maxSteps, checks: 0, compiled });
   if (!r.ok && r.errors) return null;
   if (!r.ok) return { seconds, skipped: r.issues.find((i) => i.severity === 'error') ?? issue('error', 'SIM_NO_CONVERGENCE', {}) };
   const budget = r.issues.find((i) => i.code === 'RUN_STEPS' || i.code === 'RUN_BUDGET');
   if (budget) return { seconds, skipped: budget };
-  // The step above is coarse for a fast rhythm (a 1 kHz 555 in steps of 100 µs reads 7 % high): its
-  // frequency and duty are measured again as simulate --run measures them, in the page's own step,
-  // for as long as the same bound of steps allows. Fewer than ABOUT_PERIODS whole periods there: `about`.
-  const coarse = r.outputs.filter((o) => o.period && r.run.step > o.period / FINE_STEPS);
-  const start = r.run.start;
-  if (!coarse.length) return { seconds, start, outputs: r.outputs };
-  const fine = runCircuit(circuit, { seconds, maxSteps, checks: 0, compiled });
-  const again = new Map((fine.outputs ?? []).map((o) => [o.id, o]));
-  const outputs = r.outputs.map((o) => {
-    const f = coarse.includes(o) ? again.get(o.id) : null;
-    if (!f?.period) return coarse.includes(o) ? { ...o, about: true } : o;
-    return { ...o, frequency: f.frequency, period: f.period, duty: f.duty, periods: f.periods, ...(f.periods < ABOUT_PERIODS && { about: true }), ...(o.sound && f.tone && { tone: f.tone }) };
-  });
-  return { seconds, start, outputs };
+  const outputs = r.outputs.map((o) => (o.measured && o.periods < ABOUT_PERIODS ? { ...o, about: true } : o));
+  return { seconds, start: r.run.start, outputs };
 }
-const FINE_STEPS = 50; // steps per period under which a rhythm is measured again [assumed]
 const ABOUT_PERIODS = 5; // whole periods under which a frequency is said as "about" (the contract)

@@ -315,6 +315,7 @@ export function regulatorElement(inp, ref, out, { vref, dropout, quiescent }) {
 // pins as node indices. The latch is a memory: it changes only when a step is accepted, from the
 // voltages of that step, so every step solves a linear stage (high: VCC − highDrop through
 // highResistance; low: lowLevel through lowResistance; discharge on only while low).
+const CROSS_PAST = 1e-6; // s past a 555's predicted crossing a step ends, at most a hundredth of the step
 export function timerCore({ gnd, trig, out, reset, ctrl, thr, dis, vcc }, m) {
   const gh = 1 / m.highResistance;
   const gl = 1 / m.lowResistance;
@@ -345,12 +346,27 @@ export function timerCore({ gnd, trig, out, reset, ctrl, thr, dis, vcc }, m) {
       const id = (volt(x, dis) - volt(x, gnd)) * (this.q ? GMIN : gd);
       return [(this.q ? 0 : -io) - id, 0, io, 0, 0, 0, id, this.q ? -io : 0];
     },
-    accept(x) {
+    accept(x, ctx = {}) {
       const v = (n) => volt(x, n) - volt(x, gnd);
       const c = v(ctrl);
+      // The comparators' distances to their thresholds, this step's and the one before (`crossing`).
+      const now = { thr: v(thr) - c, trig: v(trig) - c / 2, h: ctx.h };
+      this.seen = this.seen && ctx.h > 0 ? [this.seen[1], now] : [null, now];
       if (v(reset) < m.resetThreshold) this.q = 0;
       else if (v(trig) < c / 2) this.q = 1;
       else if (v(thr) > c) this.q = 0;
+    },
+    // When the comparator the latch waits for will be crossed (seconds from now, or null), from the
+    // slope of the last step: high, THR rising to CTRL; low, TRIG falling to half of it, and a little
+    // more (CROSS_PAST, or a hundredth of the run's `step`), so the step that ends there is past it and the latch switches then. A capacitor's curve
+    // bends away from the line: a guess that comes early is followed by a closer one.
+    crossing(step = 0) {
+      const [a, b] = this.seen ?? [];
+      if (!a || !(b.h > 0)) return null;
+      const key = this.q ? 'thr' : 'trig';
+      const slope = (b[key] - a[key]) / b.h;
+      const ahead = this.q ? b[key] < 0 && slope > 0 : b[key] > 0 && slope < 0;
+      return ahead ? Math.abs(b[key] / slope) + Math.min(CROSS_PAST, step / 100 || CROSS_PAST) : null;
     },
   };
 }

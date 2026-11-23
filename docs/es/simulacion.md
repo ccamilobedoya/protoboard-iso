@@ -127,7 +127,10 @@ Se fijan con una operación, como cualquier campo del circuito:
 - **Transitorio.** `stop` y `step` en segundos; los capacitores empiezan descargados y los
   inductores sin corriente (`start: "zero"`, la fuente se enciende en t = 0), o en sus valores de
   DC (`start: "dc"`).
-  Euler implícito con paso fijo; se guardan como mucho 400 muestras (`points`). Un circuito cuya
+  Euler implícito con paso fijo; se guardan como mucho 400 muestras (`points`). El texto muestra once de ellas en una tabla y lo
+  dice (`la tabla muestra 11 de sus 401 muestras … (--json las tiene todas)`), y luego el pico de cada
+  serie y, donde se repite, su frecuencia (`Picos en los 10 ms (y la frecuencia de lo que se repite):
+  … V(R1) 4,72 V, 994 Hz`), como una ejecución da las cifras de sus salidas. Un circuito cuya
   placa corre un programa avanza como lo hace la página (abajo, «Una ejecución»): trozos de 1 ms
   como mucho que terminan en cada evento del programa y de los módulos temporizados, así un pulso
   de 10 µs o un eco quedan en su momento; la respuesta trae entonces una nota que nombra `--run`,
@@ -138,9 +141,23 @@ Se fijan con una operación, como cualquier campo del circuito:
   pide con `--start zero|dc` (MCP `start`), durante esos segundos simulados. Su primera línea dice
   cuál en palabras claras (`Ejecución desde su punto de reposo, como empieza la página` o
   `Ejecución desde todo descargado`): un capacitor detrás de 22 kΩ que un circuito real tarda
-  segundos en cargar ya está cargado en una ejecución desde el punto de reposo. Usa el mismo motor y el
-  mismo paso (`sim/pace.js`), el programa de la placa con `pulseIn`, los sensores de biblioteca, el
-  encoder y los módulos temporizados. Responde lo que un asistente necesita para decir si el
+  segundos en cargar ya está cargado en una ejecución desde el punto de reposo. Usa el mismo motor que
+  la página, el programa de la placa con `pulseIn`, los sensores de biblioteca, el encoder y los
+  módulos temporizados, y el paso de la página (`sim/pace.js`) pero nunca uno menor que la duración
+  de la ejecución entre 20 000 (`RUN_STEPS`): el paso de la página sigue lo más rápido que puede
+  mostrar (los nanosegundos de un capacitor de desacople), que una ejecución de segundos no puede
+  pagar. Cada paso sigue terminando en cada evento (las escrituras de un programa, una pulsación, un
+  cambio a una hora, los umbrales de un 555) y el cálculo es estable con cualquier paso, así que una
+  ejecución de 3 s da unos 20 000 pasos sea cual sea el circuito. Su primera línea dice el paso. Una
+  constante de tiempo menor que el paso se salta y una nota nombra la más lenta de ellas (`Los pasos
+  de 150 µs de esta ejecución son más largos que la constante de tiempo de C1, 33 ns: lo que cambia
+  así de rápido se muestra ya asentado en cada paso, no se sigue`). Una salida cuyo ritmo es más
+  rápido que 100 pasos de la ejecución por periodo se mide otra vez en una ejecución más corta desde
+  el mismo inicio cuyo paso sí la sigue, y su línea dice de dónde sale la cifra (`medido en los
+  primeros 200 ms en pasos de 10 µs`); la que ni esa puede seguir no tiene frecuencia, y una nota dice
+  qué tan corta debe ser una ejecución para medirla. Una ejecución que agota el tiempo de la máquina
+  en pasos de ese mínimo dice que solo `--budget` ayuda (un `--run` más corto da los mismos pasos).
+  Responde lo que un asistente necesita para decir si el
   circuito hace lo que se pidió:
   - **Serial**: lo que imprimió el programa, cada línea con su tiempo, en orden, y cuántas (una
     historia larga guarda sus primeras y últimas líneas, `runSerialLines` en `src/limits.js`);
@@ -157,7 +174,11 @@ Se fijan con una operación, como cualquier campo del circuito:
     tono de 20 Hz o más; `SOUND_GAP`, supuesto), así que su línea da los pitidos (la parte de la
     ejecución en que suena, cuántas veces y cada cuánto empieza) y la frecuencia del tono aparte
     (`BZ1 (zumbador): pita 2 Hz (cada 500 ms), sonando el 20 % del tiempo · pitidos: 4 · tono
-    2 kHz`); con corriente continua está en silencio (solo chasquea). Un zumbador activo suena con
+    2 kHz`). Una melodía de varias notas se dice nota por nota, en orden, cada una con su
+    frecuencia, su inicio y su duración (`· 6 notas: 262 Hz a los 103 ms durante 298 ms, …`, las
+    primeras ocho; `--json` trae `notes` y `notesTotal`), y una sola cifra solo cuando todas las notas
+    tienen la misma frecuencia; el pin que la toca dice cuántas notas y su rango. Con corriente
+    continua está en silencio (solo chasquea). Un zumbador activo suena con
     continua: su línea es cuándo suena, como antes;
   - **las lecturas al final**, como las imprime el punto de DC, y cada aviso de la ejecución, una vez
     cada uno en su lectura más fuerte y con cuándo llegó (`en su punto más fuerte de la ejecución, a
@@ -169,6 +190,14 @@ Se fijan con una operación, como cualquier campo del circuito:
     y se juzga por su potencia media hasta el final de la ejecución (`en promedio en la corrida, de 250 µs
     a 50 ms`), así que los picos de un amplificador recortado no son daño mientras su media quede bajo
     su máximo; `--transient` promedia sus muestras igual. Corrientes y voltajes siguen siendo instantáneos.
+    Un aviso sobre un nivel que debe durar (la bobina de un relé bajo su corriente de enganche, una
+    entrada lógica en la franja incierta, una alimentación fuera del rango de un componente, un
+    regulador que no regula o caliente, un motor frenado) se guarda solo cuando ese nivel se asentó:
+    visto en cada mirada durante cinco constantes de tiempo de su componente con su cifra ya quieta, o
+    todavía ahí al final de la ejecución. Una bobina cuya corriente cruza la franja camino a
+    engancharse no está mal alimentada, así que ejecuciones de distinta duración con los mismos
+    eventos dan los mismos avisos. Un pico que daña al instante (una corriente o un voltaje por encima
+    de un máximo) se guarda en su punto más fuerte.
 
   Estímulos, cada uno se puede repetir: `--env light=0.5,distance=10` (campos del ambiente, en las
   unidades del catálogo, dentro del rango del campo: un campo desconocido o un valor fuera de él es
@@ -210,9 +239,9 @@ Se fijan con una operación, como cualquier campo del circuito:
   `Comportamiento, primeros 2 s desde su punto de reposo, como empieza la página (simulado, un modelo): D1 1 Hz, encendido el 50 % del tiempo`, de
   una ejecución acotada a 25 000 pasos de la simulación (así el mismo circuito da la misma línea en
   cualquier máquina; tarda más o menos lo que los 0,8 s de tiempo de la máquina que reemplazó,
-  `BEHAVIOUR_STEPS` en `src/sim/run.js`) y un paso no menor que una veinte milésima de ella (un ritmo de menos de 50 de esos pasos por periodo
-  se mide otra vez en el paso propio de la página, como lo mide `simulate --run`, dentro del mismo
-  límite; con menos de cinco periodos enteros dice `unos` con dos cifras); pasado
+  `BEHAVIOUR_STEPS` en `src/sim/run.js`): es `simulate --run 2`, el mismo paso y la misma ejecución
+  más corta para un ritmo rápido, así que las dos dan las mismas cifras (con menos de cinco periodos
+  enteros en esa ejecución más corta dice `unos` con dos cifras); pasado
   el límite dice que no se midió (`la ejecución necesitaba más de 25 000 pasos de la simulación`) y
   nombra `simulate --run 2`.
 - **Dos estados de reposo** (un enclavamiento de transistores, un flip-flop). Su punto de DC puede
@@ -351,6 +380,15 @@ El kit no tiene un arreglo calculado para esto.
   cables de BT1 (su + y su −)`), el primero que quita todos los peligros en todos los estados
   (`fix.kind` `swap` o `swap-supply`). Nunca se ofrece una resistencia en serie para un peligro
   inverso (solo silencia un zumbador): si ningún intercambio lo quita, el kit no tiene arreglo calculado.
+- **Un chip lógico alimentado con menos que sus señales se alimenta con el de ellas.** Una entrada
+  por encima de la alimentación de su chip (un 74HC595 a 3,3 V manejado por los pines de 5 V de un
+  UNO) dice la causa en su línea (`El chip se alimenta con 3,3 V, menos que la señal que lo maneja:
+  aliméntalo con el voltaje de la señal, o manéjalo con señales de 3,3 V`), y cada entrada que maneja
+  una placa se juzga en alto, también un reloj pulsado dentro de `shiftOut` (`con D12 en alto`). Si el
+  circuito tiene un riel al voltaje de las señales (el pin `5V` de una placa, el + de una fuente), el
+  arreglo pasa ahí el pin de alimentación del chip (`Para arreglarlo: alimenta U2 desde U1.5V (4,99 V,
+  el voltaje de las señales que lo manejan): pasa su VCC ahí`, `fix.kind` `resupply`); si no hay, la
+  frase del aviso es el consejo.
 - **Candidatos, en este orden**, gana el primero que lo quita todo: (1) un valor nuevo para una
   resistencia que ya está en serie con el componente forzado o su rama (el mismo componente si es una
   resistencia), (2) una resistencia nueva en serie con el componente forzado, o con cada carga del pin
@@ -402,9 +440,11 @@ dice: el kit revisó el circuito y no encontró nada que decir.
   sola pieza de metal) llevan dos redes distintas, así que oprimirlo no cambia nada. `check` lo lista
   como aviso; `apply` guarda un cambio que lo agrega y lo marca con ⚠. `COIL_NO_FLYBACK`, la bobina de
   un relé o un motor conmutados por el colector de un transistor, el drenador de un MOSFET o un pin de
-  una placa sin un diodo en el nodo que corta el interruptor (en paralelo con la bobina, o hacia un
-  riel como en un puente H): el interruptor se puede dañar al apagarse. Un motor en un interruptor
-  simple o directo en una fuente no tiene interruptor que dañar.
+  una placa sin un diodo en el nodo que corta el interruptor (en paralelo con la bobina): el
+  interruptor se puede dañar al apagarse. Una carga manejada desde sus dos extremos (un puente H, cada
+  extremo conmutado) necesita un diodo de cada extremo a cada riel, cuatro en total, y su línea lo dice
+  (un diodo en paralelo conduciría cuando el puente invierte). Un motor en un interruptor simple o
+  directo en una fuente no tiene interruptor que dañar.
   `SUPPLY_PINS_UNWIRED`, un componente conectado al circuito cuyas patas de alimentación no están
   conectadas las dos a algo, o están en una misma red (un LM358 con VCC y GND sueltos, un 555 con
   todas las patas en una red): no puede funcionar. Las patas de alimentación son las del propio
@@ -541,8 +581,8 @@ voltaje directo de un LED medido en el banco).
 ## Todavía no
 
 Todos los chips del kit se simulan (el 555, los amplificadores operacionales, el LM393, el 74HC595, el
-CD4017, los arreglos ULN, el PC817 y el LM386); el adaptador DESPI-C02 queda sin conectar y se avisa; el kit no tiene parlante (una
-resistencia de 8 Ω y 1 W hace sus veces detrás de un LM386, cuyo transitorio se corre desde su
+CD4017, los arreglos ULN, el PC817 y el LM386); el adaptador DESPI-C02 queda sin conectar y se avisa; el kit no tiene altavoz (una
+resistencia de 8 Ω y 1 W lo reemplaza en la simulación detrás de un LM386, y la respuesta se lo dice al usuario; un LM386 recortado contra sus rieles una quinta parte del tiempo o más recibe una nota, `SIM_AMP_CLIPPING`; su transitorio se corre desde su
 punto de reposo, `--start dc`: desde todo descargado su condensador de salida se carga por los 8 Ω y
 la fuente entrega cerca de medio amperio al principio: es el encendido, no el amplificador); una placa con
 microcontrolador corre su programa (`"program"`, con PWM y `tone`;

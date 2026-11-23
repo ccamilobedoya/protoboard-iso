@@ -238,7 +238,8 @@ test('a pin overloaded under the half-rail line is reported by what the program 
 
 test('--transient says the step it solved and the spacing of the samples it printed', () => {
   const r = cli(['simulate', join(root, 'examples/battery-regulator.json'), '--transient', '0.05,1e-6']);
-  assert.match(r.stdout.split('\n')[0], /50 ms solved in steps of 1 µs; 401 samples printed, 125 µs apart\./);
+  // The table is eleven of them: the line says so and names --json (C15b).
+  assert.match(r.stdout.split('\n')[0], /50 ms solved in steps of 1 µs; the table shows 11 of its 401 samples, 125 µs apart \(--json has them all\)\./);
 });
 
 // ---- 8. Damage is checked in the states a program really reaches

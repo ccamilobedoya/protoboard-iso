@@ -54,7 +54,12 @@ igual a la del ESP32.
 - **Alimentación:** una placa con USB (`"usb": true`, por defecto) es una fuente: 5 V tras la
   resistencia del cable en su pin de USB (VIN en un DevKit, 5V en las otras). Sin otra fuente, la
   tierra es su GND, así que `esp32-led` se simula sin nada más. `"usb": false`: la placa toma su
-  alimentación del circuito por esos pines.
+  alimentación del circuito por esos pines. Por USB una placa da 500 mA en total (un puerto USB 2.0;
+  el fusible rearmable del UNO también es de 500 mA): pasado eso, un peligro en su pin de USB dice qué
+  pasa (`U1.5V da 721 mA desde el USB, más que los 500 mA que da un puerto USB: el fusible rearmable
+  de 500 mA de la placa se abre…`; en un DevKit o un C3, el puerto del computador se apaga). El pin
+  3V3 del UNO tiene su propio LP2985: pasados sus 150 mA, un peligro en `U1.3V3`; el regulador de
+  3,3 V de un DevKit o un C3 tiene su máximo en la placa.
 - **Pines:** `"io"` fija cada GPIO por su nombre impreso, su nombre GPIO o su número (`"D13"`,
   `"GPIO13"`, `"13"`): `high`, `low`, `input`, `input_pullup`, `input_pulldown`. Los que no aparecen
   son entradas. Un GPIO sin nada conectado se deja fuera. Los errores son avisos y se dejan fuera: un

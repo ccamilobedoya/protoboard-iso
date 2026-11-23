@@ -129,8 +129,10 @@ export function formatRun(result, lang = 'en', { formatIssue, netLabels = {} } =
   if (result.boards > 0 || serial.count > 0) {
     if (!serial.count) lines.push(t(lang, 'sim.run.serialNone', { span }));
     else {
-      lines.push(t(lang, 'sim.run.serial', { count: serial.count, span }));
       const shown = serial.lines;
+      // Cut to its first and last lines here: the heading says so, and how many --json keeps.
+      const cut = !(serial.count <= SERIAL_SHOWN && shown.length === serial.count);
+      lines.push(cut ? t(lang, 'sim.run.serialCut', { count: serial.count, span, shown: SERIAL_SHOWN / 2, kept: shown.length }) : t(lang, 'sim.run.serial', { count: serial.count, span }));
       // What a program printed is shown as it is, but never as a line of the answer of its own.
       const line = (l) => `  ${pad(f(l.t, 's'), 10)} ${l.board ? `${l.board}: ` : ''}${String(l.text).replace(CONTROL, '\uFFFD')}`;
       if (serial.count <= SERIAL_SHOWN && shown.length === serial.count) for (const l of shown) lines.push(line(l));
@@ -166,6 +168,15 @@ const percentOf = (share) => (share > 0 && share < 0.005 ? '< 1' : share < 1 && 
 export function outputText(o, lang, f) {
   const params = { id: o.id, kind: t(lang, `sim.run.kind.${o.kind}`), changes: o.changes };
   if (o.sound) return soundText(o, lang, f, params);
+  // A rhythm faster than this run's steps (sim/run.js): measured again in a shorter run, which the line
+  // names, or no figure; its count of changes is the steps', not its own, and is left out.
+  if (o.measured && o.frequency) return t(lang, 'sim.run.measured', { ...params, frequency: f(o.frequency, 'Hz'), period: f(o.period, 's'), percent: percentOf(o.duty ?? o.onShare), seconds: f(o.measured.seconds, 's'), step: f(o.measured.step, 's') });
+  if (o.fast) return t(lang, 'sim.run.fast', { ...params, percent: percentOf(o.onShare) });
+  // A pin playing a tune: its notes' range, the buzzer's line has them in order.
+  if (o.notes?.length > 1) {
+    const fs = o.notes.map((n) => n.frequency);
+    return t(lang, 'sim.run.share', { ...params, percent: percentOf(o.onShare), spans: '' }) + t(lang, 'sim.run.pinNotes', { count: o.notesTotal ?? o.notes.length, low: f(Number(Math.min(...fs).toPrecision(3)), 'Hz'), high: f(Number(Math.max(...fs).toPrecision(3)), 'Hz') });
+  }
   if (o.frequency) return t(lang, 'sim.run.regular', { ...params, frequency: f(o.frequency, 'Hz'), period: f(o.period, 's'), percent: percentOf(o.duty ?? o.onShare) });
   if (!o.changes) return t(lang, o.onShare > 0.5 ? 'sim.run.always' : 'sim.run.never', params);
   const spans = o.intervals.length && o.intervals.length <= SPANS_SHOWN && !o.intervalsTotal ? t(lang, 'sim.run.spans', { list: o.intervals.map(([a, b]) => `${f(a, 's')} → ${f(b, 's')}`).join(', ') }) : '';
@@ -174,9 +185,17 @@ export function outputText(o, lang, f) {
 
 // A passive buzzer by when it is heard (its beeps) and its tone, apart: "BZ1 (buzzer): beeps 2 Hz
 // (every 500 ms), sounding 20 % of the time · beeps: 4 · tone 2 kHz".
+// A tune's notes in order, each its frequency, start and length, the first NOTES_SHOWN (the JSON has
+// them all, up to the run's cap, and `notesTotal`).
+const NOTES_SHOWN = 8;
+function notesText(o, lang, f) {
+  const total = o.notesTotal ?? o.notes.length;
+  const list = o.notes.slice(0, NOTES_SHOWN).map((n) => t(lang, 'sim.run.note', { frequency: f(Number(n.frequency.toPrecision(3)), 'Hz'), start: f(n.start, 's'), length: f(n.length, 's') })).join(', ');
+  return t(lang, 'sim.run.notes', { count: total, list, more: total > NOTES_SHOWN ? t(lang, 'sim.run.notesMore', { count: total - NOTES_SHOWN }) : '' });
+}
 function soundText(o, lang, f, params) {
   const s = o.sound;
-  const tone = o.tone ? t(lang, 'sim.run.tone', { frequency: f(o.tone.frequency, 'Hz') }) : '';
+  const tone = o.tone ? t(lang, 'sim.run.tone', { frequency: f(o.tone.frequency, 'Hz') }) : o.notes?.length ? notesText(o, lang, f) : '';
   const p = { ...params, starts: s.starts, tone };
   if (s.frequency) return t(lang, 'sim.run.sound.regular', { ...p, frequency: f(s.frequency, 'Hz'), period: f(s.period, 's'), percent: percentOf(s.onShare) });
   if (!s.changes) {
@@ -189,17 +208,43 @@ function soundText(o, lang, f, params) {
 
 // A table at about ten evenly spaced times: capacitor voltages and supply currents (the
 // JSON answer has every sample, every node and every part).
+// A series' frequency where it repeats: its rising crossings of the mean of its second half, at least
+// three, evenly spaced (within 10 %); else null (a charge, a step, noise).
+function frequencyOf(times, values) {
+  const half = Math.floor(values.length / 2);
+  const tail = values.slice(half);
+  const mean = tail.reduce((a, b) => a + b, 0) / Math.max(1, tail.length);
+  const span = Math.max(...tail) - Math.min(...tail);
+  if (!(span > 1e-9 * Math.max(1, Math.abs(mean)))) return null;
+  const ups = [];
+  for (let k = half + 1; k < values.length; k++) if (values[k - 1] < mean && values[k] >= mean) ups.push(times[k - 1] + ((mean - values[k - 1]) / (values[k] - values[k - 1])) * (times[k] - times[k - 1]));
+  if (ups.length < 3) return null;
+  const gaps = ups.slice(1).map((x, k) => x - ups[k]);
+  const avg = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+  return gaps.every((g) => Math.abs(g - avg) <= 0.1 * avg) ? 1 / avg : null;
+}
+const SUMMARY_SHOWN = 8; // series a transient's text gives the peak of
 function formatTransient(result, lang, { f, lines, issues }) {
-  lines.push(t(lang, 'sim.transient', { start: t(lang, `sim.start.${result.start}`), stop: f(result.stop, 's'), step: f(result.step, 's'), points: result.times.length, spacing: f(result.times.length > 1 ? result.times[1] - result.times[0] : result.step, 's') }));
+  const n = result.times.length;
+  const rows = [...new Set(Array.from({ length: 11 }, (_, i) => Math.round((i * (n - 1)) / 10)))];
+  lines.push(t(lang, 'sim.transient', { start: t(lang, `sim.start.${result.start}`), stop: f(result.stop, 's'), step: f(result.step, 's'), shown: rows.length, points: n, spacing: f(n > 1 ? result.times[1] - result.times[0] : result.step, 's') }));
   const caps = Object.keys(result.parts).filter((id) => result.parts[id].voltage && /^C/i.test(id));
   const columns = [
     ...caps.map((id) => ({ head: `V(${id})`, values: result.parts[id].voltage, unit: 'V' })),
     ...Object.entries(result.supplies).map(([id, s]) => ({ head: `I(${id})`, values: s.current, unit: 'A' })),
   ];
   lines.push(`  ${pad('t', 10)} ${columns.map((c) => pad(c.head, 11)).join(' ')}`);
-  const n = result.times.length;
-  const rows = [...new Set(Array.from({ length: 11 }, (_, i) => Math.round((i * (n - 1)) / 10)))];
   for (const k of rows) lines.push(`  ${pad(f(result.times[k], 's'), 10)} ${columns.map((c) => pad(f(c.values[k], c.unit), 11)).join(' ')}`);
+  // Each series' peak and, where it repeats, its frequency: the columns, then the voltage across each
+  // other part (an amplifier's load), wires left out; a table of eleven rows cannot show a wave.
+  const others = Object.keys(result.parts).filter((id) => !caps.includes(id) && result.parts[id].voltage && !/^W\d/.test(id)).map((id) => ({ head: `V(${id})`, values: result.parts[id].voltage, unit: 'V' }));
+  const all = [...columns, ...others].filter((c) => c.values?.length);
+  const items = all.slice(0, SUMMARY_SHOWN).map((c) => {
+    const peak = c.values.reduce((m, v) => (Math.abs(v) > Math.abs(m) ? v : m), 0);
+    const freq = frequencyOf(result.times, c.values);
+    return `${c.head} ${f(peak, c.unit)}${freq ? `, ${f(Number(freq.toPrecision(3)), 'Hz')}` : ''}`;
+  });
+  if (items.length) lines.push(t(lang, 'sim.transient.peaks', { stop: f(result.stop, 's'), items: items.join(' · '), more: all.length > SUMMARY_SHOWN ? t(lang, 'sim.transient.more', { count: all.length - SUMMARY_SHOWN }) : '' }));
   issues();
   return lines.join('\n');
 }

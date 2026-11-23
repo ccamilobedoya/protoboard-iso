@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { runCircuit } from './run-generous.js';
+import { runCircuit } from '../src/sim/run.js'; // its runs take under a second since C15b's step
 import { simulate } from '../src/sim/index.js';
 import { formatIssue } from '../src/index.js';
 
