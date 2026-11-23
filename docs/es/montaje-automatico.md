@@ -356,7 +356,15 @@ con el mismo rango):
    tapaba a U2 en una sola»);
 3. **los componentes más altos de primero**, luego **los más anchos** (por el cuerpo en el dibujo
    del mejor intento; una placa de desarrollo y un componente al lado de la protoboard no se
-   mueven), con las capas empezando por ellos (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`).
+   mueven), con las capas empezando por ellos (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`);
+4. **los componentes que no encontraron lugar, de primero**, desde una protoboard vacía
+   (`LAYOUT_TRIED_FIRST`; desde el 2026-11-23), antes de la protoboard doble;
+5. después, mientras el límite alcance, **el cambio que ofrecería a continuación** (un componente de
+   primero, desde una protoboard vacía), como mucho `NEXT_TRIALS` (3): un cambio que la respuesta
+   ofrece nunca es uno que el kit ya probó (desde el 2026-11-23).
+
+Cuando el propio montaje pasó el circuito a la protoboard doble (un pin tapado, abajo), las pruebas
+empiezan allí, no en la protoboard que no podía con él (desde el 2026-11-23).
 
 Nada eléctrico cambia y no se le pregunta a nadie; la respuesta trae una nota que dice qué cambió
 respecto a la especificación escrita. Una prueba corre solo mientras el límite de tiempo alcanza.
@@ -476,6 +484,38 @@ Frente al kit justo antes de este trabajo (con las dudas y la línea `Comportami
 pasaron de 26,5 s a 15,6 s y ninguna se volvió más lenta en más de 10 %. Ubicaciones: todas las
 recetas y los ejemplos de montaje quedan como en la 0.12.1 salvo los cuatro cuyas redes de tierra
 ahora son una (`uno-button`, `encoder-dimmer-uno`, `clap-switch`, `esp32-both-headers.json`).
+
+### Casos difíciles: lo que encontró la última ronda antes de publicar (2026-11-23)
+
+Tres asistentes con solo la habilidad empaquetada armaron 36 circuitos en un clon limpio. Todas las
+recetas terminaron en `DONE`; estos circuitos escritos a mano no, cada uno medido antes del cambio
+(carga de 3 a 4 en una máquina de cuatro núcleos compartida con otro trabajo):
+
+- **Cuatro relés en un ULN2003 y un ESP32 DevKit** (`test/fixtures/layout-hard/`): `CHANGES`, K2 y
+  K3 «no encontraron lugar» en cada orden que probó el asistente (5,6–10,5 s, 29–40 intentos). Un relé
+  queda sobre la mesa a lo largo del borde delantero, donde cae el promedio de sus dos cables: los
+  cables del segundo y del tercero llegan a las mismas salidas del driver, así que sus cuerpos caían
+  sobre el primero, y ninguna regla le daba al cuerpo otro lugar (`suggest` no puede ubicar un
+  componente cableado pata por pata). Tres arreglos:
+  - un relé o un interruptor (`SLIDES`) que no encuentra lugar tal cual prueba las mismas candidatas
+    con el cuerpo corrido a lo largo de su borde en anchos enteros de sí mismo (`offset`, primero los
+    más cercanos, dentro del largo de la protoboard), solo entonces: lo que ya se ubicaba sigue donde
+    estaba;
+  - la protoboard elástica no crecía por una placa ubicada por su pin 1 (un DevKit nombra una columna
+    y ocupa veinte), así que los componentes de después no tenían columnas (cero candidatas): un
+    componente que no encuentra lugar ahora hace crecer la protoboard más allá de la ventana del cursor
+    y se prueba otra vez, una sola (`floor`);
+  - un cable de un componente al lado de la protoboard ya no escoge un agujero bajo un cuerpo (la
+    placa de un DevKit tapa sus tiras): seguía a ningún agujero.
+  Ahora `DONE` en el orden dado y en los tres órdenes que probó el asistente (16–26 s, 27–44 intentos,
+  en dos protoboards, los relés uno al lado del otro). Las recetas y los ejemplos de montaje conservan
+  cada ubicación.
+- **Un circuito guardado con componentes por fuera lo dice.** El `STATUS: CHANGES` estaba en el
+  montaje, pero el circuito guardado no decía qué componentes de la especificación faltaban, y
+  `simulate` y `review` corrían como si estuviera completo. Ahora su `spec` los guarda,
+  `spec.unplaced` (cada componente como se pidió, sin agujeros), y volver a montar el circuito los
+  pide otra vez (`specFromCircuit`); la línea que `simulate` y `review` escriben primero es
+  `spec.unplaced` en `src/i18n/` («No están en la protoboard: K2, K3. …»).
 
 ### Dos protoboards: un DevKit en las dos filas de pines (desde el 2026-10-31)
 

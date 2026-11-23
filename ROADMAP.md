@@ -594,6 +594,7 @@ before saying it works.
 - ✅ An UNO's `TX`/`RX` and a DevKit's `GPIO17` are not pin names a net may use (`D1`/`D0`, `TX2`): they could be aliases (C14: `TX`/`RX` on each board, `GPIO17`/`GPIO16` the DevKit's `TX2`/`RX2`)
 - ✅ `catalog ULN2803` shows an example from a circuit without it (the 555 of `555-cd4017-chaser`) (C14: an example is that part, or one of its type with the same pins, or none)
 - ✅ The chips after a physics review against their datasheets (C14): a logic input switches near half its supply, a level in the guaranteed band is a doubt; an input over the supply is a hazard; damage at the absolute maximum supply, a note past the recommended range; the review visits the states clocked chips latch; a power limit is judged on its average over a run; an open control input says what low means; the CD4017's drive above 10 V said to overestimate; the LM386's supply lines name the variant, a reading at its limit shows more figures, the PC817's rank
+- ✅ Four relays on a driver chip lay out (C15c): each relay's body slides along the edge by its own width when it lands on another; the elastic board grows when a part finds no place (a DevKit placed by pin 1 did not grow it); a lead beside the board never picks a hole under a body; the trials start on the double board when layout moved there, and try the parts that found no place first. A circuit saved with parts left out keeps them in `spec.unplaced` and a layout again asks for them (the line for `simulate` and `review`: `spec.unplaced`)
 
 ## Optional, later ⬜
 

@@ -324,7 +324,15 @@ before it answers `CHANGES` (`withTrials`), from its best try so far, each trial
    `LAYOUT_TRIED_DOUBLE_ORDER`: "placed on the double board … because U1 covered U2 on one board");
 3. **the tallest parts first**, then **the widest** (by the body on the best try's drawing; a
    development board and a part lying beside the board are not moved), with the layers starting
-   from them (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`).
+   from them (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`);
+4. **the parts that found no place first**, from an empty board (`LAYOUT_TRIED_FIRST`; since
+   2026-11-23), before the double board;
+5. then, while the budget lasts, **the change it would offer next** (a part listed first, from an
+   empty board), at most `NEXT_TRIALS` (3): a change the answer offers is never one the kit already
+   tried (since 2026-11-23).
+
+When layout itself moved the circuit to the double board (a covered pin, below), the trials start
+there, not on the board that could not hold it (since 2026-11-23).
 
 Nothing electrical changes and nobody is asked; the answer carries one note saying what changed
 from the spec as written. A trial runs only while the budget allows. When the answer is still
@@ -430,6 +438,33 @@ Against the kit just before this work (with the doubts and the `Behaviour` line)
 from 26.5 s to 15.6 s and none got slower by more than 10 %. Placements: every recipe and layout
 example is placed as on 0.12.1 except the four whose ground nets are now one (`uno-button`,
 `encoder-dimmer-uno`, `clap-switch`, `esp32-both-headers.json`).
+
+### Hard cases: what the last round before the release found (2026-11-23)
+
+Three assistants with only the packed skill built 36 circuits on a clean clone. Every recipe ended
+`DONE`; these hand-written circuits did not, each measured before the change (load 3 to 4 on a
+four-core machine shared with other work):
+
+- **Four relays on a ULN2003 and an ESP32 DevKit** (`test/fixtures/layout-hard/`): `CHANGES`, K2 and
+  K3 "found no place" in every order the assistant tried (5.6–10.5 s, 29–40 tries). A relay lies on
+  the table along the front edge where the mean of its two leads is: the second and the third relay's
+  leads land on the same driver outputs, so their bodies landed on the first, and no rule gave the
+  body another place (`suggest` cannot place a part wired lead by lead). Three fixes:
+  - a relay or a switch (`SLIDES`) that finds no place as it is tries the same candidates again with
+    its body slid along its edge by whole widths of itself (`offset`, nearer first, within the
+    board's length), only then: whatever was placed before stays where it was;
+  - the elastic board did not grow for a board placed by pin 1 (a DevKit names one column and takes
+    twenty), so the parts after it had no columns left (zero candidates): a part that finds no place
+    now makes the board grow past the cursor's window and is tried again, once (`floor`);
+  - a lead beside the board no longer picks a hole under a body (a DevKit's PCB covers its strips):
+    it went on to no hole at all.
+  Now `DONE` in the order given and in the three orders the assistant tried (16–26 s, 27–44 tries, on
+  two boards, the relays side by side). Recipes and layout examples keep every placement.
+- **A circuit saved with parts left out says so.** `STATUS: CHANGES` was there at layout, but the
+  saved circuit did not say which parts of the spec were missing, and `simulate` and `review` ran as
+  if it were whole. Now its `spec` keeps them, `spec.unplaced` (each part as asked, without holes),
+  and a layout again on the circuit asks for them again (`specFromCircuit`); the line `simulate` and
+  `review` print first is `spec.unplaced` in `src/i18n/` ("Not on the board: K2, K3. …").
 
 ### Two boards: a DevKit on both headers (since 2026-10-31)
 

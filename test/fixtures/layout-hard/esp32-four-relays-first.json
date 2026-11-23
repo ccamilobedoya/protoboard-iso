@@ -1,0 +1,87 @@
+{
+ "parts": [
+  {
+   "id": "K2",
+   "part": "SRD-05VDC-SL-C"
+  },
+  {
+   "id": "K3",
+   "part": "SRD-05VDC-SL-C"
+  },
+  {
+   "id": "U1",
+   "part": "ESP32-DEVKIT"
+  },
+  {
+   "id": "U2",
+   "part": "ULN2003"
+  },
+  {
+   "id": "K1",
+   "part": "SRD-05VDC-SL-C"
+  },
+  {
+   "id": "K4",
+   "part": "SRD-05VDC-SL-C"
+  }
+ ],
+ "nets": [
+  [
+   "U1.D16",
+   "U2.IN1"
+  ],
+  [
+   "U1.D17",
+   "U2.IN2"
+  ],
+  [
+   "U1.D18",
+   "U2.IN3"
+  ],
+  [
+   "U1.D19",
+   "U2.IN4"
+  ],
+  [
+   "U1.VIN",
+   "U2.COM"
+  ],
+  [
+   "U1.GND",
+   "U2.GND"
+  ],
+  [
+   "U2.OUT1",
+   "K1.A2"
+  ],
+  [
+   "U1.VIN",
+   "K1.A1"
+  ],
+  [
+   "U2.OUT2",
+   "K2.A2"
+  ],
+  [
+   "U1.VIN",
+   "K2.A1"
+  ],
+  [
+   "U2.OUT3",
+   "K3.A2"
+  ],
+  [
+   "U1.VIN",
+   "K3.A1"
+  ],
+  [
+   "U2.OUT4",
+   "K4.A2"
+  ],
+  [
+   "U1.VIN",
+   "K4.A1"
+  ]
+ ],
+ "clearance": 0
+}
