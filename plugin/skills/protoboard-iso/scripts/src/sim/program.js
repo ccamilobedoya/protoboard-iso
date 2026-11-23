@@ -55,6 +55,8 @@ const TX_BUFFER = { uno: 64 };
 // An UNO has one port: Serial1 there is a name a real UNO does not compile.
 const SERIAL_PORTS = { uno: [{ tx: 1, rx: 0 }], esp32: [{ tx: 1, rx: 3 }, null, { tx: 17, rx: 16 }], esp32c3: [null, null] };
 const BOARD_NAMES = { uno: 'an UNO', esp32: 'an ESP32', esp32c3: 'an ESP32-C3' };
+// How many serial ports a family has (Serial, Serial1, Serial2): a run types only to one it has.
+export const serialPortCount = (family) => (SERIAL_PORTS[family] ?? [null]).length;
 const STREAM_TIMEOUT = 1000; // ms: a Stream's default (parseInt, readStringUntil)
 const POLL = 0.001; // s between two looks of a read that waits for a byte
 const SENT_MAX = 4096; // bytes a port keeps of what it sent, for the board on the other end (devices/mcu.js)
@@ -193,6 +195,24 @@ export function createRunner(js, board) {
   const portsOf = SERIAL_PORTS[board.family] ?? [null];
   const ports = portsOf.map((pins) => ({ baud: 0, txFreeAt: 0, line: '', tx: pins?.tx ?? null, rx: pins?.rx ?? null, sent: [], count: 0, inbox: [], heard: new WeakMap(), timeout: STREAM_TIMEOUT }));
   runner.ports = ports;
+  // What a run types to the board (simulate --run … --serial "1@0.5"): [{ port, text, time }], each
+  // text delivered to its port at its time, a character every ten bits at the port's rate (after the
+  // port is begun: a text typed before reaches it as begin() starts it).
+  const typed = (Array.isArray(board.typed) ? board.typed : [])
+    .filter((x) => Number.isInteger(x?.port) && ports[x.port] && Number.isFinite(Number(x.time)) && typeof x.text === 'string')
+    .map((x) => ({ port: x.port, text: x.text.slice(0, SENT_MAX), time: Number(x.time), done: false }));
+  for (const x of typed) ports[x.port].typed = true;
+  const deliver = () => {
+    for (const x of typed) {
+      const port = ports[x.port];
+      if (x.done || x.time > runner.time + 1e-12 || !(port.baud > 0)) continue;
+      const each = 10 / port.baud;
+      const from = Math.max(x.time, port.begunAt ?? 0);
+      for (let k = 0; k < x.text.length; k++) port.inbox.push({ byte: x.text.charCodeAt(k) & 0xff, at: from + (k + 1) * each });
+      if (port.inbox.length > SENT_MAX) port.inbox.splice(0, port.inbox.length - SENT_MAX);
+      x.done = true;
+    }
+  };
   // What a board on the other end of a port's RX sent (devices/mcu.js links them by their nets): the
   // bytes past the last one this port took from that sender, at the times they are through; nothing
   // when the two rates differ (a real board reads garbage), warned once.
@@ -658,6 +678,7 @@ export function createRunner(js, board) {
       begin(rate, config, rx, tx) {
         const r = Number(rate);
         port.baud = Number.isFinite(r) && r > 0 ? r : 0;
+        port.begunAt = runner.time;
         if (Number.isInteger(Number(rx)) && Number(rx) >= 0) port.rx = Number(rx);
         if (Number.isInteger(Number(tx)) && Number(tx) >= 0) port.tx = Number(tx);
         if (port.tx != null) set(port.tx, { mode: 'output', level: 1, pull: null, pwm: null });
@@ -893,6 +914,7 @@ export function createRunner(js, board) {
     else runner.wait = Math.max(0, runner.wait - dt);
     runner.looking = null;
     for (const [n, end] of Object.entries(tones)) if (runner.time >= end) api.noTone(Number(n));
+    deliver();
     try {
       watchInterrupts();
     } catch (e) {

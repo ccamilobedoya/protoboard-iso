@@ -30,6 +30,7 @@
 // only clicks). An active buzzer sounds on DC: its fields above are already when it sounds.
 
 import { compile } from './compile.js';
+import { serialPortCount } from './program.js';
 import { createEngine, MIN_PIECE } from './engine.js';
 import { paceOf } from './pace.js';
 import { FIELDS } from './environment.js';
@@ -86,9 +87,17 @@ function pairs(text) {
 
 // What --env, --set, --press and --at say (each a list of texts, as given). The values stay texts
 // here: what they mean depends on the circuit (runCircuit checks them).
-export function parseStimuli({ env = [], set = [], press = [], at = [] } = {}) {
-  const stimuli = { env: [], set: [], press: [], at: [] };
+export function parseStimuli({ env = [], set = [], press = [], at = [], serial = [] } = {}) {
+  const stimuli = { env: [], set: [], press: [], at: [], serial: [] };
   const errors = [];
+  // --serial "[U1:][Serial2:]text@seconds": text typed to a board (its USB serial unless a port is
+  // named), with \n, \r, \t and \\ read; the board and port are resolved by serialTargets.
+  for (const text of serial) {
+    const m = /^([\s\S]*)@([^@]+)$/.exec(String(text));
+    const time = m ? num(m[2]) : Number.NaN;
+    if (!m || !(time >= 0)) errors.push(bad('RUN_BAD_STIMULUS', { option: '--serial', value: String(text).slice(0, 60), form: '"U1:1\\n@0.5"' }));
+    else stimuli.serial.push({ text: m[1].replace(/\\([nrt\\])/g, (_, c) => ({ n: '\n', r: '\r', t: '\t', '\\': '\\' })[c]), time });
+  }
   for (const text of env) {
     const list = pairs(text);
     if (!list?.length) errors.push(bad('RUN_BAD_STIMULUS', { option: '--env', value: String(text).slice(0, 60), form: 'light=0.5,distance=10' }));
@@ -120,7 +129,7 @@ export function parseStimuli({ env = [], set = [], press = [], at = [] } = {}) {
 // The MCP tool's arguments in the same shape: `environment` an object (or a text), `set` an object
 // (or a text), `press` and `at` lists of texts or of objects ({ part, at, duration } and
 // { time, field | part, value }).
-export function stimuliFromArgs({ environment, set, press, at } = {}) {
+export function stimuliFromArgs({ environment, set, press, at, serial } = {}) {
   const asText = (o) => (o && typeof o === 'object' && !Array.isArray(o) ? Object.entries(o).map(([k, v]) => `${k}=${v}`).join(',') : o);
   const list = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
   return parseStimuli({
@@ -128,6 +137,7 @@ export function stimuliFromArgs({ environment, set, press, at } = {}) {
     set: list(asText(set)).filter((x) => x !== ''),
     press: list(press).map((p) => (p && typeof p === 'object' ? `${p.part}@${p.at}+${p.duration}` : p)),
     at: list(at).map((a) => (a && typeof a === 'object' ? `${a.time}:${a.field ?? a.part}=${a.value}` : a)),
+    serial: list(serial),
   });
 }
 
@@ -169,7 +179,7 @@ function controlValue(control, text) {
 // The circuit with the run's environment (a copy), its engine with the controls set, and the timed
 // events (each { time, apply(engine) → ok }), or the input errors.
 export function prepareRun(circuit, stimuli = {}, given = null) {
-  const { env = [], set = [], press = [], at = [] } = stimuli;
+  const { env = [], set = [], press = [], at = [], serial = [] } = stimuli;
   const errors = [];
   const issues = [];
   // The fields the run names: set at the start, or changed later.
@@ -201,8 +211,10 @@ export function prepareRun(circuit, stimuli = {}, given = null) {
   // `given`: the circuit compiled already (layout's line), used when the run changes no field.
   // The copy keeps the circuit's folder (a hidden key), where a board's .ino file is read from.
   const copy = declared ? Object.defineProperty({ ...circuit, environment }, CIRCUIT_FOLDER, { value: circuit[CIRCUIT_FOLDER], enumerable: false }) : circuit;
-  const compiled = given && !named.size ? given : compile(copy);
+  const compiled = given && !named.size && !serial.length ? given : compile(copy);
   if (compiled.fatal) return { fatal: true, issues: compiled.issues };
+  const typed = serialTargets(compiled.program.devices, serial);
+  if (typed.errors.length) return { errors: typed.errors };
   const engine = createEngine(compiled.program);
   // A sensor that reads its field by a value of its own follows the field the run sets (the run says
   // so); a field nothing reads is said too.
@@ -247,9 +259,45 @@ export function prepareRun(circuit, stimuli = {}, given = null) {
     if (v.error) errors.push(v.error);
     else events.push({ time: a.time, apply: (e) => e.set(c.control.id, c.control.field, v.value) });
   }
+  // A typed text ends a step at its time (the board takes it then) and is said when it is past the run.
+  for (const x of typed.events) events.push({ time: x.time, apply: () => true });
   if (errors.length) return { errors };
   events.sort((a, b) => a.time - b.time);
   return { engine, compiled, issues, events };
+}
+
+// The texts --serial types, each to its board's port (devices/mcu.js `serialInput`, program.js
+// `typed`): "U1:" names the board (needed when two have a program), "Serial1:"/"Serial2:" the port
+// (Serial, the USB one, by default). Set on the compiled devices before the engine is made.
+function serialTargets(devices = [], serial = []) {
+  const errors = [];
+  const events = [];
+  const boards = devices.filter((d) => d.kind === 'MCU' && d.params?.sketch);
+  for (const x of serial) {
+    let text = x.text;
+    let board = boards.length === 1 ? boards[0] : null;
+    let port = 0;
+    for (let k = 0; k < 2; k++) {
+      const m = /^([A-Za-z_]\w*):/.exec(text);
+      const named = m && boards.find((d) => d.id.toLowerCase() === m[1].toLowerCase());
+      const ported = m && /^Serial([12]?)$/.exec(m[1]);
+      if (named) board = named;
+      else if (ported) port = Number(ported[1] || 0);
+      else break;
+      text = text.slice(m[0].length);
+    }
+    if (!board) {
+      errors.push(bad('RUN_SERIAL_BOARD', { value: x.text.slice(0, 40), boards: boards.map((d) => d.id).join(', ') || '—' }));
+      continue;
+    }
+    if (port >= serialPortCount(board.params.family)) {
+      errors.push(bad('RUN_SERIAL_PORT', { part: board.id, port: `Serial${port}`, count: serialPortCount(board.params.family) }));
+      continue;
+    }
+    board.params = { ...board.params, serialInput: [...(board.params.serialInput ?? []), { port, text, time: x.time }] };
+    events.push({ time: x.time });
+  }
+  return { errors, events };
 }
 
 // ── Watching the outputs ──────────────────────────────────────────────────────────────
@@ -736,7 +784,10 @@ export function behaviourOf(circuit, { seconds = 2, maxSteps = BEHAVIOUR_STEPS }
   // for as long as the same bound of steps allows. Fewer than ABOUT_PERIODS whole periods there: `about`.
   const coarse = r.outputs.filter((o) => o.period && r.run.step > o.period / FINE_STEPS);
   const start = r.run.start;
-  if (!coarse.length) return { seconds, start, outputs: r.outputs };
+  // The boards whose program waits for serial input nothing gives it (layout.behaviour.waitsSerial).
+  const waits = [...new Set(r.issues.filter((i) => i.code === 'SIM_SERIAL_WAITS').map((i) => String(i.params.part)))];
+  const serialWaits = waits.length ? { serialWaits: waits } : {};
+  if (!coarse.length) return { seconds, start, outputs: r.outputs, ...serialWaits };
   const fine = runCircuit(circuit, { seconds, maxSteps, checks: 0, compiled });
   const again = new Map((fine.outputs ?? []).map((o) => [o.id, o]));
   const outputs = r.outputs.map((o) => {
@@ -744,7 +795,7 @@ export function behaviourOf(circuit, { seconds = 2, maxSteps = BEHAVIOUR_STEPS }
     if (!f?.period) return coarse.includes(o) ? { ...o, about: true } : o;
     return { ...o, frequency: f.frequency, period: f.period, duty: f.duty, periods: f.periods, ...(f.periods < ABOUT_PERIODS && { about: true }), ...(o.sound && f.tone && { tone: f.tone }) };
   });
-  return { seconds, start, outputs };
+  return { seconds, start, outputs, ...serialWaits };
 }
 const FINE_STEPS = 50; // steps per period under which a rhythm is measured again [assumed]
 const ABOUT_PERIODS = 5; // whole periods under which a frequency is said as "about" (the contract)

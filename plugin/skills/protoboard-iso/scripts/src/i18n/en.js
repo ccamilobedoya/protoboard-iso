@@ -457,6 +457,8 @@ export default {
   'sim.run.kind.output': 'op-amp output',
   'sim.run.readings': 'Readings at {time}:',
   'check.SIM_TRANSIENT_PROGRAM': 'A board\'s program ran in this transient as it runs in the page. What it printed and how its outputs toggle (frequency, share of the time on): simulate <target> --run <seconds>.',
+  'check.RUN_SERIAL_BOARD': '--serial "{value}" names no board with a program to type to: put one in front (boards with a program: {boards}), as "U1:1@0.5".',
+  'check.RUN_SERIAL_PORT': '--serial: {part} has no {port} (it has {count} serial port(s): Serial first, the USB one).',
   'check.RUN_BAD_STIMULUS': '{option} "{value}" is not understood: write it as {form}.',
   'check.RUN_ENV_RANGE': 'environment: {field} = {value} is outside its range, {min} … {max} {unit}.',
   'check.RUN_UNKNOWN_CONTROL': '"{name}" is not a part with a control in this circuit (parts with controls: {parts}).',
@@ -954,7 +956,7 @@ export default {
   protoboard-iso layout <target> --recipe <name> [--values '<json>']   # a lesson circuit by name (docs/en/recipes.md)
   protoboard-iso render <target> [-o out.svg|out.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <target> [--transient stop[,step]] [--start zero|dc] [--lang en|es] [--json]
-  protoboard-iso simulate <target> --run <seconds> [--env light=0.5,distance=10] [--set RV1=0.8,SW1=on] [--press SW1@0.5+0.2] [--at 1.0:light=0.5] [--start zero|dc] [--budget seconds] [--lang en|es] [--json]   # what it does over time, as the page runs it: Serial, outputs, frequency
+  protoboard-iso simulate <target> --run <seconds> [--env light=0.5,distance=10] [--set RV1=0.8,SW1=on] [--press SW1@0.5+0.2] [--at 1.0:light=0.5] [--serial "U1:1\\n@0.5"] [--start zero|dc] [--budget seconds] [--lang en|es] [--json]   # what it does over time, as the page runs it: Serial, outputs, frequency
   protoboard-iso page <target> [-o page.html] [--lang en|es] [--fit parts|board]
   protoboard-iso inspect <target> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
   protoboard-iso check <target> [--lang en|es] [--json]
@@ -2016,6 +2018,8 @@ export default {
   'page.tour.legend.climate.membrane': 'Lid: a membrane over a sealed cavity, it bends with the air pressure (BME280, BMP280)',
   'check.SIM_SERIAL_LEVELS': '{part}: {port} reads its RX pin {pin}, which {peer}\'s TX reaches through the circuit at {high} when it idles high and {low} when it sends a 0: this board reads above {vih} as high and below {vil} as low, so the line cannot carry data and no byte arrives. Change the path (a divider of about 1 kΩ over 2 kΩ from 5 V to 3.3 V, or a direct wire between boards of the same voltage).',
   'check.SIM_SERIAL_NO_TX': '{part}: {port} reads its RX pin {pin}, and nothing on that pin sends (no other board\'s TX reaches it through the circuit): no byte arrives, so the kit cannot tell what the program does with them. Wire a TX to it, or type to the board with simulate --run … --serial "text@seconds".',
+  'check.SIM_SERIAL_WAITS': '{part}: the program reads {port}, and nothing reaches it (no text typed to it, nothing wired to its RX pin): it waits for input that never comes, so what it does with that input is not run. Type to it with simulate --run … --serial "1@0.5" (repeatable; \\n for a new line; U1: or Serial2: in front names the board or the port).',
+  'layout.behaviour.waitsSerial': '{id} waits for serial input (simulate --run … --serial "text@seconds" types to it)',
   'check.SIM_LIBRARY_SHARED': '{part}: {parts} are at the same place for its library (one data pin, or one I2C address on one bus): the board cannot tell them apart and reads {first}.',
   'check.SIM_PIN_OVER_VDDIO': '{part}: {pin} idles at {voltage}, over the {max} its chip\'s pins take (VDDIO + 0.3 V): an AVR board\'s own pull-ups to 5 V meet the board\'s 10 kΩ to 3.3 V. It works, but it is over the chip\'s maximum; a level shifter keeps it inside, or the sketch turns the board\'s own pull-ups off after Wire.begin() (on an UNO or a Nano, digitalWrite(A4, LOW) and digitalWrite(A5, LOW), as the recipe uno-bmp280-altitude does).',
   'check.SIM_MODULE_LOW_SUPPLY.dropout': '{part} gets {voltage}, under the {min} its 3.3 V regulator needs: the regulator is in dropout and the chip runs on {rail}, still inside its range.',

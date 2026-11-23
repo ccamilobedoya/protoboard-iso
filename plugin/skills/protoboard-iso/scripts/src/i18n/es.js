@@ -456,6 +456,8 @@ export default {
   'sim.run.kind.output': 'salida del amplificador',
   'sim.run.readings': 'Lecturas a los {time}:',
   'check.SIM_TRANSIENT_PROGRAM': 'El programa de una placa corrió en este transitorio como corre en la página. Lo que imprimió y cómo cambian sus salidas (frecuencia, parte del tiempo encendidas): simulate <objetivo> --run <segundos>.',
+  'check.RUN_SERIAL_BOARD': '--serial "{value}" no nombra una placa con programa a la cual escribirle: pon una delante (placas con programa: {boards}), como "U1:1@0.5".',
+  'check.RUN_SERIAL_PORT': '--serial: {part} no tiene {port} (tiene {count} puerto(s) serie: primero Serial, el de USB).',
   'check.RUN_BAD_STIMULUS': '{option} «{value}» no se entiende: escríbelo como {form}.',
   'check.RUN_ENV_RANGE': 'environment: {field} = {value} está fuera de su rango, {min} … {max} {unit}.',
   'check.RUN_UNKNOWN_CONTROL': '«{name}» no es una pieza con un control en este circuito (piezas con controles: {parts}).',
@@ -953,7 +955,7 @@ export default {
   protoboard-iso layout <objetivo> --recipe <nombre> [--values '<json>']   # un circuito de clase por su nombre (docs/es/recetas.md)
   protoboard-iso render <objetivo> [-o salida.svg|salida.png] [--png-width 900] [--view front|back] [--lang en|es] [--scale 5] [--fit board|parts] [--annotate pins,boxes,nodes,grid|all] [--labels both|id|value] [--no-labels] [--sim] [--focus R1,D1] [--flow]
   protoboard-iso simulate <objetivo> [--transient fin[,paso]] [--start zero|dc] [--lang en|es] [--json]
-  protoboard-iso simulate <objetivo> --run <segundos> [--env light=0.5,distance=10] [--set RV1=0.8,SW1=on] [--press SW1@0.5+0.2] [--at 1.0:light=0.5] [--start zero|dc] [--budget segundos] [--lang en|es] [--json]   # lo que hace en el tiempo, como la página: Serial, salidas, frecuencia
+  protoboard-iso simulate <objetivo> --run <segundos> [--env light=0.5,distance=10] [--set RV1=0.8,SW1=on] [--press SW1@0.5+0.2] [--at 1.0:light=0.5] [--serial "U1:1\\n@0.5"] [--start zero|dc] [--budget segundos] [--lang en|es] [--json]   # lo que hace en el tiempo, como la página: Serial, salidas, frecuencia
   protoboard-iso page <objetivo> [-o pagina.html] [--lang en|es] [--fit parts|board]
   protoboard-iso inspect <objetivo> [--view …] [--fit …] [--scale …] [--lang en|es] [--json]
   protoboard-iso check <objetivo> [--lang en|es] [--json]
@@ -2014,6 +2016,8 @@ export default {
   'page.tour.legend.climate.membrane': 'Tapa: una membrana sobre una cavidad sellada, se dobla con la presión del aire (BME280, BMP280)',
   'check.SIM_SERIAL_LEVELS': '{part}: {port} lee su pin RX {pin}, al que el TX de {peer} llega por el circuito con {high} en reposo (alto) y {low} cuando envía un 0: esta placa lee como alto lo que pasa de {vih} y como bajo lo que queda bajo {vil}, así que la línea no lleva datos y no llega ningún byte. Cambia el camino (un divisor de unos 1 kΩ sobre 2 kΩ de 5 V a 3,3 V, o un cable directo entre placas del mismo voltaje).',
   'check.SIM_SERIAL_NO_TX': '{part}: {port} lee su pin RX {pin}, y nada en ese pin envía (el TX de ninguna otra placa le llega por el circuito): no llega ningún byte, así que el kit no puede decir qué hace el programa con ellos. Conéctale un TX, o escríbele a la placa con simulate --run … --serial "texto@segundos".',
+  'check.SIM_SERIAL_WAITS': '{part}: el programa lee {port} y nada le llega (no se le escribe ningún texto ni hay nada conectado a su pin RX): espera una entrada que nunca llega, así que lo que hace con ella no se corre. Escríbele con simulate --run … --serial "1@0.5" (se repite; \\n para una línea nueva; U1: o Serial2: delante nombra la placa o el puerto).',
+  'layout.behaviour.waitsSerial': '{id} espera una entrada por serie (simulate --run … --serial "texto@segundos" le escribe)',
   'check.SIM_LIBRARY_SHARED': '{part}: {parts} están en el mismo lugar para su biblioteca (un mismo pin de datos, o una misma dirección I2C en un bus): la placa no los distingue y lee {first}.',
   'check.SIM_PIN_OVER_VDDIO': '{part}: {pin} queda en {voltage}, por encima de los {max} que aguantan los pines de su chip (VDDIO + 0,3 V): los pull-ups propios de una placa AVR a 5 V se juntan con los 10 kΩ de la placa a 3,3 V. Funciona, pero pasa el máximo del chip; un convertidor de nivel lo deja dentro, o el sketch apaga los pull-ups propios de la placa después de Wire.begin() (en un UNO o un Nano, digitalWrite(A4, LOW) y digitalWrite(A5, LOW), como hace la receta uno-bmp280-altitude).',
   'check.SIM_MODULE_LOW_SUPPLY.dropout': '{part} recibe {voltage}, menos de los {min} que necesita su regulador de 3,3 V: el regulador está en caída y el chip funciona con {rail}, todavía dentro de su rango.',

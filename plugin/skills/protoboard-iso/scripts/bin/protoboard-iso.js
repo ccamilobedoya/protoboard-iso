@@ -102,6 +102,7 @@ function parseArgs(argv) {
     else if (a === '--set') (args.set ??= []).push(value());
     else if (a === '--press') (args.press ??= []).push(value());
     else if (a === '--at') (args.at ??= []).push(value());
+    else if (a === '--serial') (args.serial ??= []).push(value());
     else if (a === '--sim') args.sim = true;
     else if (a === '--focus') args.focus = value()?.split(',');
     else if (a === '--flow') args.flow = true;
@@ -376,7 +377,7 @@ async function run(seen) {
         })
         .join(','),
     );
-    const said = parseStimuli({ env: args.env, set, press: args.press, at: args.at });
+    const said = parseStimuli({ env: args.env, set, press: args.press, at: args.at, serial: args.serial });
     if (said.errors.length) refuse(said.errors);
     if (args.run !== undefined) {
       // What was typed is what the message echoes (abc and Infinity were "NaN"); 0 and 1e-300 are under one rule.
@@ -390,7 +391,7 @@ async function run(seen) {
       console.log(args.json ? JSON.stringify(result, null, 2) : formatRun(result, lang, { formatIssue, netLabels: circuit.netLabels }));
       fail(result.ok ? 0 : 1);
     }
-    for (const [option, list] of [['--press', said.stimuli.press], ['--at', said.stimuli.at]]) if (list.length) refuse([{ severity: 'error', code: 'RUN_ONLY', params: { option } }]);
+    for (const [option, list] of [['--press', said.stimuli.press], ['--at', said.stimuli.at], ['--serial', said.stimuli.serial]]) if (list.length) refuse([{ severity: 'error', code: 'RUN_ONLY', params: { option } }]);
     const [stop, step] = (args.transient ?? []).map(timeOf);
     if (args.transient && (!(stop > 0) || (args.transient[1] !== undefined && !(step > 0)))) {
       sayError(t(lang, 'cli.badTransient', { value: args.transient.join(',').slice(0, 40) }));

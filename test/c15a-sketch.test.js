@@ -7,7 +7,14 @@ import assert from 'node:assert/strict';
 import { translateSketch } from '../src/sim/sketch.js';
 import { createRunner } from '../src/sim/program.js';
 import { autoLayout } from './layout-generous.js';
-import { runCircuit } from './run-generous.js';
+import { runCircuit, RUN_BUDGET_ARGS } from './run-generous.js';
+import { parseStimuli, behaviourOf } from '../src/sim/run.js';
+import { spawnSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
+
+const root = new URL('../', import.meta.url).pathname;
 import { formatIssue } from '../src/index.js';
 
 // A sketch run for a moment on a board of a family with nothing wired: what it printed and noted.
@@ -124,4 +131,44 @@ test('serial: a path that never gives RX both levels, or no TX at all, is a doub
   assert.deepEqual(none.got, []);
   assert.ok(none.codes.includes('SIM_SERIAL_NO_TX'), JSON.stringify(none.codes));
   assert.match(none.text.find((t) => t.includes('nothing on that pin sends')), /--serial/);
+});
+
+// ---- Something can type to the board: simulate --run … --serial "<text>@<seconds>".
+const MENU = "void setup() { Serial.begin(9600); pinMode(8, OUTPUT); pinMode(9, OUTPUT); Serial.println(\"Type 1 or 2\"); }\nvoid loop() { if (Serial.available() > 0) { char c = Serial.read(); if (c == '1' || c == '2') { digitalWrite(8, c == '1' ? HIGH : LOW); digitalWrite(9, c == '2' ? HIGH : LOW); Serial.print(\"LED \"); Serial.print(c); Serial.println(\" on\"); } else if (c != '\\n') Serial.println(\"Unknown option\"); } }";
+const menuSpec = () => ({ parts: [{ id: 'U1', part: 'UNO', program: MENU }, { id: 'R1', type: 'resistor', value: '220' }, { id: 'D1', type: 'led', color: 'red' }], nets: [['U1.D8', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'U1.GND']] });
+let menu = null;
+const menuCircuit = () => (menu ??= autoLayout(menuSpec(), { lang: 'en' }));
+
+test('serial input: --serial types text to the board at its time, with \\n and a board named in front', () => {
+  const { stimuli, errors } = parseStimuli({ serial: ['2@0.3', 'U1:1\\n@0.6', 'x@0.9'] });
+  assert.deepEqual(errors, []);
+  assert.deepEqual(stimuli.serial.map((s) => [s.text, s.time]), [['2', 0.3], ['U1:1\n', 0.6], ['x', 0.9]]);
+  const run = runCircuit(menuCircuit().circuit, { seconds: 1.2, stimuli });
+  assert.deepEqual(run.serial.lines.map((l) => l.text), ['Type 1 or 2', 'LED 2 on', 'LED 1 on', 'Unknown option']);
+  assert.ok(run.serial.lines[1].t >= 0.3 && run.serial.lines[1].t < 0.31, String(run.serial.lines[1].t));
+  const d8 = run.outputs.find((o) => o.id === 'U1.D8');
+  assert.ok(d8.onShare > 0.4 && d8.onShare < 0.6, String(d8.onShare));
+  assert.ok(!run.issues.some((i) => i.code === 'SIM_SERIAL_WAITS'), 'typed: no note');
+  // A port the board does not have, a board nobody has, and a text without its time are input errors.
+  assert.deepEqual(runCircuit(menuCircuit().circuit, { seconds: 1, stimuli: parseStimuli({ serial: ['Serial2:1@0.5'] }).stimuli }).errors.map((e) => e.code), ['RUN_SERIAL_PORT']);
+  assert.deepEqual(parseStimuli({ serial: ['1'] }).errors.map((e) => e.code), ['RUN_BAD_STIMULUS']);
+});
+
+test('serial input: a sketch that reads Serial with nothing sent gets one note naming --serial, and layout says it waits', () => {
+  const run = runCircuit(menuCircuit().circuit, { seconds: 1 });
+  const notes = run.issues.filter((i) => i.code === 'SIM_SERIAL_WAITS');
+  assert.equal(notes.length, 1);
+  assert.match(formatIssue(notes[0], 'en'), /U1: the program reads Serial, and nothing reaches it .*--serial "1@0.5"/);
+  assert.match(formatIssue(notes[0], 'es'), /--serial "1@0.5"/);
+  assert.deepEqual(behaviourOf(menuCircuit().circuit).serialWaits, ['U1']);
+});
+
+test('serial input: the command line takes --serial (repeatable) and prints what the board answered', () => {
+  const dir = tempDir('c15a-serial-');
+  writeFileSync(join(dir, 'circuit.json'), JSON.stringify(menuCircuit().circuit));
+  const r = spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'simulate', dir, '--run', '1', '--serial', '2@0.2', '--serial', 'U1:1@0.5', ...RUN_BUDGET_ARGS], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /LED 2 on[\s\S]*LED 1 on/);
+  const late = spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'simulate', dir, '--run', '1', '--serial', '1@3', ...RUN_BUDGET_ARGS], { encoding: 'utf8' });
+  assert.match(late.stdout, /A change at 3 s comes after the run ends \(1 s\)/);
 });

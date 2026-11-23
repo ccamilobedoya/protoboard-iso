@@ -246,7 +246,7 @@ export const mcu = {
         if (!best) for (const [el, miss] of misses) el.note?.(miss);
         return best;
       };
-      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, i2c, pins: p.numbers, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull, adcRef: m.adcRef });
+      const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, i2c, typed: p.serialInput, pins: p.numbers, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull, adcRef: m.adcRef });
       // Serial lines to other boards: each port of this board hears what another board's TX pin sends
       // (program.js `hear`), both programs in the same run, when the TX pin's two levels arrive at its RX
       // pin as a high and a low for this board: on one net, or through a passive path (a series
@@ -298,13 +298,15 @@ export const mcu = {
         deaf() {
           const out = [];
           (this.runner.ports ?? []).forEach((port, k) => {
-            if (!port.reads || port.rx == null) return;
+            if (!port.reads || port.typed) return;
             const all = linksOf(this.runner, k);
             if (all.some((l) => l.link.ok)) return;
-            const wired = p.gpios.find((g) => g.gpio === port.rx)?.used;
+            const wired = port.rx != null && p.gpios.find((g) => g.gpio === port.rx)?.used;
             const bad = all.find((l) => l.link.reaches);
             if (bad) out.push({ k, rx: port.rx, peer: bad.peer.boardId, link: bad.link });
             else if (wired) out.push({ k, rx: port.rx, peer: null, link: null });
+            // Nothing wired and nothing typed: it waits for input that never comes (a note).
+            else out.push({ k, rx: port.rx, waits: true });
           });
           return out;
         },
@@ -514,7 +516,8 @@ export const mcu = {
     // not read as a high and a low (SIM_SERIAL_LEVELS), or nothing that sends is wired to it.
     for (const d of entry.ctrl?.deaf?.() ?? []) {
       const port = d.k === 0 ? 'Serial' : `Serial${d.k}`;
-      if (d.link) out.push(note('warning', 'SIM_SERIAL_LEVELS', { part: entry.id, port, pin: nameOf(d.rx), peer: String(d.peer), high: q(d.link.high, 'V'), low: q(d.link.low, 'V'), vih: q(d.link.vih, 'V'), vil: q(d.link.vil, 'V') }));
+      if (d.waits) out.push(note('info', 'SIM_SERIAL_WAITS', { part: entry.id, port }));
+      else if (d.link) out.push(note('warning', 'SIM_SERIAL_LEVELS', { part: entry.id, port, pin: nameOf(d.rx), peer: String(d.peer), high: q(d.link.high, 'V'), low: q(d.link.low, 'V'), vih: q(d.link.vih, 'V'), vil: q(d.link.vil, 'V') }));
       else out.push(note('warning', 'SIM_SERIAL_NO_TX', { part: entry.id, port, pin: nameOf(d.rx) }));
     }
     if (r.rail != null && entry.power.logic !== entry.power.usb) out.push(stress('SIM_OVER_CURRENT', 'current', r.rail, m.regulator.maxCurrent, 'A', { of: 'regulator' }));
