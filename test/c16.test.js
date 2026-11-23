@@ -6,7 +6,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { autoLayout } from './layout-generous.js';
-import { review } from '../src/index.js';
+import { spawnSync } from 'node:child_process';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tempDir } from '../scripts/tmp.js';
+import { autoLayout as layoutAtBudget, formatLayout } from '../src/layout.js';
+import { runCircuit } from './run-generous.js';
+import { review, formatIssue, t } from '../src/index.js';
 
 // ── 1. Every warning of the sketch runner is a doubt of the review ─────────────────────────────
 
@@ -54,3 +60,86 @@ for (const [code, path] of [['SIM_SERIAL_LEVELS', 'weak'], ['SIM_SERIAL_NO_TX', 
     assert.equal(r.verdict, 'approved-with-warnings');
   });
 }
+
+// ── 2. What each branch left for a file it did not own ──────────────────────────────────────────
+
+const bin = new URL('../bin/protoboard-iso.js', import.meta.url).pathname;
+const kit = (cwd, ...args) => spawnSync(process.execPath, [bin, ...args], { cwd, encoding: 'utf8' });
+
+// The Behaviour line of a sketch that waits for serial input said "D1 off throughout · U1.D8 off
+// throughout"; it says the board waits, and how to type to it.
+const MENU = "void setup() { Serial.begin(9600); pinMode(8, OUTPUT); Serial.println(\"Type 1\"); }\nvoid loop() { if (Serial.available() > 0) { char c = Serial.read(); if (c == '1') { digitalWrite(8, HIGH); Serial.println(\"LED on\"); } } }";
+const menuSpec = { parts: [{ id: 'U1', part: 'UNO', program: MENU }, { id: 'R1', type: 'resistor', value: '220' }, { id: 'D1', type: 'led', color: 'red' }], nets: [['U1.D8', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'U1.GND']] };
+test('layout\'s Behaviour line says a board waits for serial input, not that its outputs are off throughout', () => {
+  const r = autoLayout(menuSpec);
+  const en = formatLayout(r, 'en', { t, formatIssue }).split('\n').find((l) => l.startsWith('Behaviour'));
+  assert.match(en, /: U1 waits for serial input \(simulate --run … --serial "text@seconds" types to it\)$/);
+  assert.doesNotMatch(en, /off throughout/);
+  const es = formatLayout(r, 'es', { t, formatIssue }).split('\n').find((l) => l.startsWith('Comportamiento'));
+  assert.match(es, /U1 espera una entrada por serie/);
+  // An output that does change still shows beside it: a blink the sketch keeps doing while it waits.
+  const blinking = autoLayout({ ...menuSpec, parts: [{ id: 'U1', part: 'UNO', program: MENU.replace('void loop() {', 'void loop() { digitalWrite(8, millis() % 1000 < 500);') }, ...menuSpec.parts.slice(1)] });
+  const line = formatLayout(blinking, 'en', { t, formatIssue }).split('\n').find((l) => l.startsWith('Behaviour'));
+  assert.match(line, /U1 waits for serial input .* · D1 1 Hz, on 50 % of the time/);
+});
+
+// A print at a run's last instant was lost: the engine accepts a step at the start of the next one,
+// and a run never took the step after its last.
+test('a print exactly at the end of a run is in the run: every 500 ms in 1 s prints at 0, 0.5 and 1 s', () => {
+  const program = 'void setup() { Serial.begin(9600); pinMode(13, OUTPUT); }\nvoid loop() { Serial.println(millis()); delay(500); }';
+  const c = withProgram(program);
+  const one = runCircuit(c, { seconds: 1 });
+  assert.deepEqual(one.serial.lines.map((l) => l.text), ['0', '500', '1000']);
+  assert.deepEqual(one.serial.lines.map((l) => Math.round(l.t * 1000) / 1000), [0, 0.5, 1]);
+  assert.deepEqual(runCircuit(c, { seconds: 0.5 }).serial.lines.map((l) => l.text), ['0', '500']);
+  // A run that ends between two prints has the ones before its end only.
+  assert.deepEqual(runCircuit(c, { seconds: 1.25 }).serial.lines.map((l) => l.text), ['0', '500', '1000']);
+});
+
+// A circuit saved with parts left out (a layout stopped at its budget): simulate and review said
+// nothing of them, so a run or an APPROVED read as the whole circuit's.
+test('simulate and review on a circuit saved with parts left out name them on their first line', () => {
+  const parts = Array.from({ length: 12 }, (_, i) => ({ id: `R${i + 1}`, type: 'resistor', value: '1k' }));
+  const nets = parts.slice(1).map((p, i) => [`R${i + 1}.2`, `${p.id}.1`]);
+  // A budget of a few placements (counted in work, the same on every machine) places R1 only.
+  const r = layoutAtBudget({ parts, nets, supplies: [{ id: 'V1', voltage: 5, p: 'R1.1', n: 'R12.2' }] }, { budget: 0.05 });
+  const left = r.circuit.spec.unplaced.map((p) => p.id);
+  assert.ok(left.length > 0 && left.length < parts.length, JSON.stringify(left));
+  const dir = tempDir('pb-c16-unplaced-');
+  mkdirSync(join(dir, 'c'));
+  writeFileSync(join(dir, 'c', 'circuit.json'), JSON.stringify(r.circuit));
+  const first = t('en', 'spec.unplaced', { parts: left.join(', ') });
+  for (const args of [['simulate', 'c'], ['simulate', 'c', '--run', '0.1'], ['review', 'c']]) {
+    const out = kit(dir, ...args);
+    assert.equal(out.stdout.split('\n')[0], first, args.join(' '));
+  }
+  assert.equal(kit(dir, 'review', 'c', '--lang', 'es').stdout.split('\n')[0], t('es', 'spec.unplaced', { parts: left.join(', ') }));
+  assert.deepEqual(JSON.parse(kit(dir, 'review', 'c', '--json').stdout).unplaced, left);
+  // The schema takes the field: check says nothing about it.
+  assert.doesNotMatch(kit(dir, 'check', 'c/circuit.json').stdout, /unplaced/);
+});
+
+// layout --fix on a 74HC595 fed 3.3 V and driven by an UNO printed "Applied the fix: U2 = ? in
+// series with {with}."; it says the chip is fed from the 5 V rail, and the circuit has no hazard.
+test('layout --fix applies the resupply fix, says so, and ends with no hazard', () => {
+  const dir = tempDir('pb-c16-resupply-');
+  const spec = {
+    parts: [
+      { id: 'U1', part: 'UNO', program: 'int n = 0;\nvoid setup() { pinMode(11, OUTPUT); pinMode(12, OUTPUT); pinMode(8, OUTPUT); }\nvoid loop() { digitalWrite(8, LOW); shiftOut(11, 12, MSBFIRST, n); digitalWrite(8, HIGH); n = (n + 1) % 256; delay(100); }' },
+      { id: 'U2', part: '74HC595' },
+      { id: 'R1', type: 'resistor', value: '1k' },
+      { id: 'D1', type: 'led', color: 'red' },
+    ],
+    nets: [['U1.3V3', 'U2.VCC'], ['U1.GND', 'U2.GND', 'U2.OE', 'D1.K'], ['U1.D11', 'U2.SER'], ['U1.D12', 'U2.SRCLK'], ['U1.D8', 'U2.RCLK'], ['U2.QA', 'R1.1'], ['R1.2', 'D1.A'], ['U1.5V', 'U2.SRCLR']],
+  };
+  writeFileSync(join(dir, 'shift.json'), JSON.stringify(spec));
+  const made = kit(dir, 'layout', 'shift', 'shift.json');
+  assert.match(made.stdout, /To fix it: feed U2 from U1\.5V/);
+  const fixed = kit(dir, 'layout', 'shift', '--fix');
+  assert.match(fixed.stdout, /^Applied the fix: U2 fed from U1\.5V \(its VCC moved there\)\.$/m);
+  assert.doesNotMatch(fixed.stdout, /\{with\}|= \?/);
+  assert.match(fixed.stdout, /^STATUS: DONE/m);
+  const r = JSON.parse(kit(dir, 'review', 'shift', '--json').stdout);
+  assert.deepEqual(r.hazards, []);
+  assert.match(t('es', 'layout.fixApplied.resupply', { part: 'U2', rail: 'U1.5V', pin: 'VCC' }), /U2/);
+});
