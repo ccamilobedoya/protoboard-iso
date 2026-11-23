@@ -166,6 +166,10 @@ const percentOf = (share) => (share > 0 && share < 0.005 ? '< 1' : share < 1 && 
 export function outputText(o, lang, f) {
   const params = { id: o.id, kind: t(lang, `sim.run.kind.${o.kind}`), changes: o.changes };
   if (o.sound) return soundText(o, lang, f, params);
+  // A rhythm faster than this run's steps (sim/run.js): measured again in a shorter run, which the line
+  // names, or no figure; its count of changes is the steps', not its own, and is left out.
+  if (o.measured && o.frequency) return t(lang, 'sim.run.measured', { ...params, frequency: f(o.frequency, 'Hz'), period: f(o.period, 's'), percent: percentOf(o.duty ?? o.onShare), seconds: f(o.measured.seconds, 's'), step: f(o.measured.step, 's') });
+  if (o.fast) return t(lang, 'sim.run.fast', { ...params, percent: percentOf(o.onShare) });
   if (o.frequency) return t(lang, 'sim.run.regular', { ...params, frequency: f(o.frequency, 'Hz'), period: f(o.period, 's'), percent: percentOf(o.duty ?? o.onShare) });
   if (!o.changes) return t(lang, o.onShare > 0.5 ? 'sim.run.always' : 'sim.run.never', params);
   const spans = o.intervals.length && o.intervals.length <= SPANS_SHOWN && !o.intervalsTotal ? t(lang, 'sim.run.spans', { list: o.intervals.map(([a, b]) => `${f(a, 's')} → ${f(b, 's')}`).join(', ') }) : '';

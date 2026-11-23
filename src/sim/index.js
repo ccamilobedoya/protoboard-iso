@@ -474,7 +474,7 @@ function visitRun(circuit, compiled, engine, states, extra, always, plain = NEVE
   // Until `visited` the run is in the hazard check's own states (the plain seconds, then `states`): a
   // pin's extremes are read there; the rest only answers whether an output comes on.
   const visited = plain + steps.filter((s) => states.includes(s)).length * (NEVER_ON_HOLD + NEVER_ON_GAP);
-  const run = runCircuit(circuit, { seconds, stimuli: { at }, maxSteps: BEHAVIOUR_STEPS * 2, minStep: seconds / 20000, checks: 0, compiled, extremesUntil: visited });
+  const run = runCircuit(circuit, { seconds, stimuli: { at }, maxSteps: BEHAVIOUR_STEPS * 2, checks: 0, compiled, extremesUntil: visited, remeasure: 0 });
   RUNS.set(key, run);
   if (RUNS.size > RUNS_KEPT) RUNS.delete(RUNS.keys().next().value);
   return run;

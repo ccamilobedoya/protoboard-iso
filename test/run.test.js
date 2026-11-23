@@ -217,7 +217,8 @@ test('simulate --run takes --budget: a small one cuts the run and names --budget
   writeFileSync(file, JSON.stringify(recipe('555-astable')));
   const cut = cli(['simulate', file, '--run', '50', '--budget', '0.2']);
   assert.equal(cut.status, 0, cut.stderr);
-  assert.match(cut.stdout, /it took more than 200 ms of the machine's time\. A shorter --run gets to its end, or a larger --budget/);
+  // Its steps are 50 s / 20000: a shorter run takes as many, so only --budget is offered (C15b).
+  assert.match(cut.stdout, /it took more than 200 ms of the machine's time\. Its steps are its length over 20000, so a shorter --run takes as many: a larger --budget/);
   const capped = cli(['simulate', file, '--run', '0.01', '--budget', '1000']);
   assert.match(capped.stdout, /A budget of 1000 s is more than the kit allows a run: it runs for 300 s/);
 });

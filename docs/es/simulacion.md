@@ -138,9 +138,23 @@ Se fijan con una operación, como cualquier campo del circuito:
   pide con `--start zero|dc` (MCP `start`), durante esos segundos simulados. Su primera línea dice
   cuál en palabras claras (`Ejecución desde su punto de reposo, como empieza la página` o
   `Ejecución desde todo descargado`): un capacitor detrás de 22 kΩ que un circuito real tarda
-  segundos en cargar ya está cargado en una ejecución desde el punto de reposo. Usa el mismo motor y el
-  mismo paso (`sim/pace.js`), el programa de la placa con `pulseIn`, los sensores de biblioteca, el
-  encoder y los módulos temporizados. Responde lo que un asistente necesita para decir si el
+  segundos en cargar ya está cargado en una ejecución desde el punto de reposo. Usa el mismo motor que
+  la página, el programa de la placa con `pulseIn`, los sensores de biblioteca, el encoder y los
+  módulos temporizados, y el paso de la página (`sim/pace.js`) pero nunca uno menor que la duración
+  de la ejecución entre 20 000 (`RUN_STEPS`): el paso de la página sigue lo más rápido que puede
+  mostrar (los nanosegundos de un capacitor de desacople), que una ejecución de segundos no puede
+  pagar. Cada paso sigue terminando en cada evento (las escrituras de un programa, una pulsación, un
+  cambio a una hora, los umbrales de un 555) y el cálculo es estable con cualquier paso, así que una
+  ejecución de 3 s da unos 20 000 pasos sea cual sea el circuito. Su primera línea dice el paso. Una
+  constante de tiempo menor que el paso se salta y una nota nombra la más lenta de ellas (`Los pasos
+  de 150 µs de esta ejecución son más largos que la constante de tiempo de C1, 33 ns: lo que cambia
+  así de rápido se muestra ya asentado en cada paso, no se sigue`). Una salida cuyo ritmo es más
+  rápido que 100 pasos de la ejecución por periodo se mide otra vez en una ejecución más corta desde
+  el mismo inicio cuyo paso sí la sigue, y su línea dice de dónde sale la cifra (`medido en los
+  primeros 200 ms en pasos de 10 µs`); la que ni esa puede seguir no tiene frecuencia, y una nota dice
+  qué tan corta debe ser una ejecución para medirla. Una ejecución que agota el tiempo de la máquina
+  en pasos de ese mínimo dice que solo `--budget` ayuda (un `--run` más corto da los mismos pasos).
+  Responde lo que un asistente necesita para decir si el
   circuito hace lo que se pidió:
   - **Serial**: lo que imprimió el programa, cada línea con su tiempo, en orden, y cuántas (una
     historia larga guarda sus primeras y últimas líneas, `runSerialLines` en `src/limits.js`);
@@ -210,9 +224,9 @@ Se fijan con una operación, como cualquier campo del circuito:
   `Comportamiento, primeros 2 s desde su punto de reposo, como empieza la página (simulado, un modelo): D1 1 Hz, encendido el 50 % del tiempo`, de
   una ejecución acotada a 25 000 pasos de la simulación (así el mismo circuito da la misma línea en
   cualquier máquina; tarda más o menos lo que los 0,8 s de tiempo de la máquina que reemplazó,
-  `BEHAVIOUR_STEPS` en `src/sim/run.js`) y un paso no menor que una veinte milésima de ella (un ritmo de menos de 50 de esos pasos por periodo
-  se mide otra vez en el paso propio de la página, como lo mide `simulate --run`, dentro del mismo
-  límite; con menos de cinco periodos enteros dice `unos` con dos cifras); pasado
+  `BEHAVIOUR_STEPS` en `src/sim/run.js`): es `simulate --run 2`, el mismo paso y la misma ejecución
+  más corta para un ritmo rápido, así que las dos dan las mismas cifras (con menos de cinco periodos
+  enteros en esa ejecución más corta dice `unos` con dos cifras); pasado
   el límite dice que no se midió (`la ejecución necesitaba más de 25 000 pasos de la simulación`) y
   nombra `simulate --run 2`.
 - **Dos estados de reposo** (un enclavamiento de transistores, un flip-flop). Su punto de DC puede

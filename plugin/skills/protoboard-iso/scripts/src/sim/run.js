@@ -10,12 +10,18 @@
 //   runCircuit(circuit, { seconds, stimuli, start?, budgetMs }) →  budgetMs: machine time, LIMITS.runMs by default, at most LIMITS.runMsMax;   start 'zero' | 'dc', else the page's
 //     { ok, start, run: { seconds (asked), ran (covered), step, steps, start, page }, serial: { count, lines: [{ t, text, board? }] },
 //       outputs: [{ id, kind, onShare, changes, frequency, period, duty, intervals: [[on, off]…],
-//         sound?, tone? }],
+//         sound?, tone?, measured?: { seconds, step }, fast? }],
 //       readings: engine.now() at the end, issues: [issue…] }
 //     or { ok: false, errors: [issue…] } for a stimulus that names nothing or is out of range (an
 //     input error: the command exits 1) or { ok: false, issues } when the circuit cannot run.
 //   prepareRun(circuit, stimuli) → { engine, compiled, issues, events } | { errors }   (also --transient)
 //   behaviourOf(circuit, { seconds, maxSteps }) → { outputs, skipped? } | null   layout's line
+//
+// The step: the page's (sim/pace.js), never under the run's length over RUN_STEPS (layout's Behaviour
+// line is a run of 2 s, so the two agree), each step still ending on the events (a program's writes, a
+// press, a 555's thresholds: createEngine's `crossings`). A time constant shorter than that step is
+// stepped over (RUN_STEP_OVER); an output faster than it is measured again in a shorter run whose step
+// follows it (`measured`), or has no figure (`fast`, RUN_TOO_FAST).
 //
 // An output is a part that shows something (an LED, a chip of an RGB LED or a segment of a display, a
 // buzzer, a relay, a motor), each op-amp's output (U1.OUT1, high or low) and each pin a board's
@@ -203,7 +209,7 @@ export function prepareRun(circuit, stimuli = {}, given = null) {
   const copy = declared ? Object.defineProperty({ ...circuit, environment }, CIRCUIT_FOLDER, { value: circuit[CIRCUIT_FOLDER], enumerable: false }) : circuit;
   const compiled = given && !named.size ? given : compile(copy);
   if (compiled.fatal) return { fatal: true, issues: compiled.issues };
-  const engine = createEngine(compiled.program);
+  const engine = createEngine(compiled.program, { crossings: true });
   // A sensor that reads its field by a value of its own follows the field the run sets (the run says
   // so); a field nothing reads is said too.
   for (const field of named) {
@@ -394,7 +400,7 @@ function rhythm(w) {
 export const pageStart = (circuit) => (circuit.page?.start === 'zero' ? 'zero' : 'dc');
 const START_MODES = ['zero', 'dc'];
 
-export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budgetMs: givenBudget = LIMITS.runMs, maxSteps = Number.POSITIVE_INFINITY, minStep = 0, checks = CHECKS, compiled = null, extremesUntil = Number.POSITIVE_INFINITY } = {}) {
+export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budgetMs: givenBudget = LIMITS.runMs, maxSteps = Number.POSITIVE_INFINITY, minStep = 0, checks = CHECKS, compiled = null, extremesUntil = Number.POSITIVE_INFINITY, remeasure = REMEASURES } = {}) {
   const asked = Number(seconds);
   if (!(asked > 0)) return { ok: false, errors: [bad('RUN_BAD_TIME', { value: String(seconds).slice(0, 40), max: LIMITS.runSeconds })] };
   if (wanted != null && !START_MODES.includes(wanted)) return { ok: false, errors: [bad('RUN_BAD_START', { value: String(wanted).slice(0, 40) })] };
@@ -409,9 +415,16 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   if (givenBudget > LIMITS.runMsMax) issues.push(issue('info', 'RUN_BUDGET_CAPPED', { asked: givenBudget / 1000, max: LIMITS.runMsMax / 1000 }));
   for (const e of events) if (e.time >= total) issues.push(issue('warning', 'RUN_EVENT_LATE', { time: e.time, seconds: total }));
 
-  // The page's step (sim/pace.js); with nothing that changes by itself, short enough for the events.
+  // The page's step (sim/pace.js; with nothing that changes by itself, short enough for the events),
+  // never under the run's length over RUN_STEPS: the page's step follows the fastest thing it can show
+  // (a decoupling capacitor's nanoseconds), which a run of seconds cannot afford. The steps still end
+  // on every event (a program's writes, a press, the 555's thresholds) and stay stable at any length.
   const pace = paceOf(engine.timeConstants(), engine.periods(), Boolean(engine.hasProgram()), engine.stimuli());
-  const h = Math.max(minStep, pace.h > 0 ? pace.h : Math.min(0.01, total / 200));
+  const own = pace.h > 0 ? pace.h : Math.min(0.01, total / 200);
+  const h = Math.max(minStep, own, total / RUN_STEPS);
+  // What the step is longer than: one note, naming the slowest of the times it steps over.
+  const over = h > own ? engine.timeConstants(true).filter((c) => c.value < h).sort((a, b) => b.value - a.value) : [];
+  if (over.length) issues.push(issue('info', over.length > 1 ? 'RUN_STEP_OVER_MANY' : 'RUN_STEP_OVER', { step: { value: h, unit: 's' }, part: over[0].part ?? '—', tau: { value: over[0].value, unit: 's' }, count: over.length }));
   const page = pageStart(circuit);
   const start = wanted ?? page;
   if (!engine.start(start, h)) return { ok: false, issues: [...issues, issue('error', 'SIM_NO_CONVERGENCE', {})] };
@@ -553,7 +566,8 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
       break;
     }
     if (steps % BUDGET_EVERY === 0 && t0() - began > budgetMs) {
-      issues.push(issue('warning', 'RUN_BUDGET', { time: { value: engine.time, unit: 's' }, seconds: { value: total, unit: 's' }, budget: { value: budgetMs / 1000, unit: 's' } }));
+      // A run in steps of its length over RUN_STEPS takes as many steps when shorter: only --budget helps.
+      issues.push(issue('warning', 'RUN_BUDGET', { time: { value: engine.time, unit: 's' }, seconds: { value: total, unit: 's' }, budget: { value: budgetMs / 1000, unit: 's' }, ...(h > own && { variant: 'floor', count: RUN_STEPS }) }));
       break;
     }
   }
@@ -566,7 +580,25 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
     const average = span > 0 ? e.energy / span : powerOf(e, readings?.parts?.[e.id] ?? {});
     if (average > e.max) warnings.set(key, { ...e.issue, params: { ...e.issue.params, power: { value: average, unit: 'W' } }, when: { average: true, from: e.since, time: end } });
   }
-  const outputs = [...watches, ...pins.values()].map((w) => summary(w, end));
+  // An output whose rhythm is faster than a step raised by the floor can follow (fewer than FAST steps
+  // in a period, on average) is measured again in a shorter run from the same start, whose step does
+  // follow it; what that cannot follow either has no figure (the step's, not its own) and a note.
+  let outputs = [...watches, ...pins.values()].map((w) => summary(w, end));
+  if (h > own) outputs = outputs.map((o) => unresolved(o, steps, end));
+  const fast = outputs.filter((o) => o.fast);
+  if (fast.length) {
+    const seconds = shorterRun(fast, end, total);
+    const again = remeasure > 0 && seconds < end ? runCircuit(circuit, { seconds, stimuli, start, budgetMs: Math.max(1, budgetMs - (t0() - began)), maxSteps, checks: 0, compiled: used, remeasure: remeasure - 1 }) : null;
+    const by = new Map((again?.ok ? again.outputs : []).map((o) => [o.id, o]));
+    outputs = outputs.map((o) => {
+      const f = o.fast ? by.get(o.id) : null;
+      if (!f?.period || f.fast) return o;
+      const { fast: _, ...rest } = o;
+      return { ...rest, frequency: f.frequency, period: f.period, duty: f.duty, periods: f.periods, ...(f.tone && { tone: f.tone }), measured: f.measured ?? { seconds: again.run.ran, step: again.run.step } };
+    });
+    const left = outputs.filter((o) => o.fast);
+    if (left.length) issues.push(issue('info', 'RUN_TOO_FAST', { parts: left.map((o) => o.id).join(', '), step: { value: h, unit: 's' }, seconds: { value: shorterRun(left, end, total), unit: 's' } }));
+  }
   const lines = [...serial.head, ...serial.tail];
   return {
     ok: !issues.some((i) => i.severity === 'error'),
@@ -581,6 +613,33 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
     readings,
     issues: [...(readings?.issues ?? []).filter((i) => i.severity === 'info'), ...issues, ...flags.values(), ...warnings.values()],
   };
+}
+
+// A run's steps: at least its length over RUN_STEPS (runCircuit), the same as layout's line.
+export const RUN_STEPS = 20000;
+// Steps per period, on average, under which a run's rhythm of an output is not its own: a 555 at 100
+// steps a period reads 0.6 % slow (backward Euler), at 25 steps 2.6 % [measured, sim/run.js tests].
+const FAST = 100;
+// Shorter runs that may measure a fast rhythm again, each from what the one before counted (a step that
+// beats with the changes counts fewer of them than there are).
+const REMEASURES = 2;
+// Its period, or, when it toggles but not regularly (a step longer than its changes beats with them),
+// two changes' worth of the run.
+const periodOf = (o, end) => (o.period > 0 ? o.period : o.changes > 2 ? (2 * end) / o.changes : null);
+const stepsPer = (o, steps, end) => (periodOf(o, end) > 0 && end > 0 ? (steps * periodOf(o, end)) / end : Number.POSITIVE_INFINITY);
+// A board's pin changes when its program writes it (a step ends there): always measured.
+function unresolved(o, steps, end) {
+  const of = (x) => x.kind !== 'pin' && stepsPer(x, steps, end) < FAST;
+  const sound = o.sound && of(o.sound);
+  if (!of(o) && !sound) return o;
+  const { periods, ...rest } = o;
+  return { ...rest, frequency: null, period: null, duty: null, fast: true, ...(o.tone && of(o) && { tone: null }), ...(sound && { sound: { ...o.sound, frequency: null, period: null, duty: null } }) };
+}
+// The length of run whose step follows the fastest of them (twice FAST steps in its period as the
+// changes counted it), at most the run's: its period may be shorter still, and that run says so.
+function shorterRun(fast, end, total) {
+  const period = Math.min(...fast.map((o) => periodOf(o, end) ?? end));
+  return Math.min(total, Number(((period * RUN_STEPS) / (2 * FAST)).toPrecision(1)));
 }
 
 // A warning's first quantity ({ value, unit }), as a size to keep the strongest of a run.
@@ -718,33 +777,20 @@ export function runsByItself(program) {
 // The first seconds of a circuit that changes by itself, in a run bounded by a count of steps (the
 // same line on any machine; BEHAVIOUR_STEPS costs about as much as the 0.8 s of machine time it
 // replaced): { seconds, outputs } or { skipped: { code, params } } when the bound was hit; null for a
-// circuit that does not run by itself.
+// circuit that does not run by itself. It is simulate --run of the same length (the same step, a
+// fast rhythm measured again in the same shorter run), so the two give the same figures; fewer than
+// ABOUT_PERIODS whole periods: `about`. Its limits are read once, at the end (the review judges the
+// hazards).
 export const BEHAVIOUR_STEPS = 25000;
 export function behaviourOf(circuit, { seconds = 2, maxSteps = BEHAVIOUR_STEPS } = {}) {
   const compiled = compile(circuit);
   if (compiled.fatal || !runsByItself(compiled.program)) return null;
-  // A step no shorter than a 20 000th of the run: a 555 beside a small capacitor would take the page's
-  // tens of microseconds and seconds of the machine; the edges are still found between two steps.
-  // Its limits are read once, at the end (the review judges the hazards).
-  const r = runCircuit(circuit, { seconds, maxSteps, minStep: seconds / 20000, checks: 0, compiled });
+  const r = runCircuit(circuit, { seconds, maxSteps, checks: 0, compiled });
   if (!r.ok && r.errors) return null;
   if (!r.ok) return { seconds, skipped: r.issues.find((i) => i.severity === 'error') ?? issue('error', 'SIM_NO_CONVERGENCE', {}) };
   const budget = r.issues.find((i) => i.code === 'RUN_STEPS' || i.code === 'RUN_BUDGET');
   if (budget) return { seconds, skipped: budget };
-  // The step above is coarse for a fast rhythm (a 1 kHz 555 in steps of 100 µs reads 7 % high): its
-  // frequency and duty are measured again as simulate --run measures them, in the page's own step,
-  // for as long as the same bound of steps allows. Fewer than ABOUT_PERIODS whole periods there: `about`.
-  const coarse = r.outputs.filter((o) => o.period && r.run.step > o.period / FINE_STEPS);
-  const start = r.run.start;
-  if (!coarse.length) return { seconds, start, outputs: r.outputs };
-  const fine = runCircuit(circuit, { seconds, maxSteps, checks: 0, compiled });
-  const again = new Map((fine.outputs ?? []).map((o) => [o.id, o]));
-  const outputs = r.outputs.map((o) => {
-    const f = coarse.includes(o) ? again.get(o.id) : null;
-    if (!f?.period) return coarse.includes(o) ? { ...o, about: true } : o;
-    return { ...o, frequency: f.frequency, period: f.period, duty: f.duty, periods: f.periods, ...(f.periods < ABOUT_PERIODS && { about: true }), ...(o.sound && f.tone && { tone: f.tone }) };
-  });
-  return { seconds, start, outputs };
+  const outputs = r.outputs.map((o) => (o.measured && o.periods < ABOUT_PERIODS ? { ...o, about: true } : o));
+  return { seconds, start: r.run.start, outputs };
 }
-const FINE_STEPS = 50; // steps per period under which a rhythm is measured again [assumed]
 const ABOUT_PERIODS = 5; // whole periods under which a frequency is said as "about" (the contract)

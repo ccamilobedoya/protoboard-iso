@@ -130,8 +130,20 @@ Set them with an operation like any circuit field:
   `--start zero|dc` (MCP `start`), for that many simulated seconds. Its first line says which in
   plain words (`Run from its resting point, as the page starts` or `Run from everything
   discharged`): a capacitor behind 22 kΩ that a real circuit takes seconds to charge is already
-  charged in a run from the resting point. The run uses the same engine and the same step (`sim/pace.js`),
-  the board's program with `pulseIn`, the library sensors, the encoder and the timed modules. It
+  charged in a run from the resting point. The run uses the same engine as the page, the board's
+  program with `pulseIn`, the library sensors, the encoder and the timed modules, and the page's step
+  (`sim/pace.js`) but never one shorter than the run's length over 20 000 (`RUN_STEPS`): the page's
+  step follows the fastest thing it can show (a decoupling capacitor's nanoseconds), which a run of
+  seconds cannot afford. Each step still ends on every event (a program's writes, a press, a change
+  at a time, a 555's thresholds) and the solver is stable at any step, so a run of 3 s takes about
+  20 000 steps whatever the circuit. Its first line says the step. A time constant shorter than the
+  step is stepped over and one note names the slowest of them (`This run's steps of 150 µs are longer
+  than C1's time constant of 33 ns: what changes that fast is shown settled at each step, not
+  followed`). An output whose rhythm is faster than 100 of the run's steps a period is measured again
+  in a shorter run from the same start whose step follows it, and its line says where its figure comes
+  from (`measured in the first 200 ms in steps of 10 µs`); one that even that cannot follow has no
+  frequency, and a note says how short a run measures it. A run that hits the machine's time in steps
+  of that floor says that only `--budget` helps (a shorter `--run` takes as many steps). It
   answers what an assistant needs to say whether the circuit does what was asked:
   - **Serial**: what the program printed, each line with its time, in order, and the count (a
     long story keeps its first and last lines, `runSerialLines` in `src/limits.js`);
@@ -198,10 +210,9 @@ Set them with an operation like any circuit field:
   program, a 555, a generator, an op-amp beside a capacitor): `Behaviour, first 2 s from its resting point, as the page starts (simulated, a
   model): D1 1 Hz, on 50 % of the time`, from a run bounded at 25 000 steps of the simulation (so the
   same circuit gives the same line on any machine; about as long as the 0.8 s of the machine's
-  time it replaced, `BEHAVIOUR_STEPS` in `src/sim/run.js`) and a step no shorter than a 20 000th of
-  it (a rhythm faster than 50 of those steps per period is measured again in the page's own step, as
-  `simulate --run` measures it, within the same bound; under five whole periods there it says `about`
-  with two figures); past the bound it says it was not measured (`the run needed more than 25 000 steps of the
+  time it replaced, `BEHAVIOUR_STEPS` in `src/sim/run.js`): it is `simulate --run 2`, the same step
+  and the same shorter run for a fast rhythm, so the two give the same figures (under five whole
+  periods in that shorter run it says `about` with two figures); past the bound it says it was not measured (`the run needed more than 25 000 steps of the
   simulation`) and names `simulate --run 2`.
 - **Two resting states** (a transistor latch, a flip-flop). Its DC point can be the balance between
   its two stable states, both transistors half on, which a real circuit never sits in. After the DC
