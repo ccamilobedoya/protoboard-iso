@@ -37,7 +37,7 @@
 // checked against the runtime's own arrays. A method asks board.ask({ cls, method, pin | address, … })
 // and the sensor's device answers (it holds the truth: its power, its cache, the environment).
 
-import { LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, SERIAL_PORT_METHODS, SERIAL_WAITING, heatIndex, altitudeOf, seaLevelOf, isArduinoName } from './libraries.js';
+import { INT_KIND, STRING_METHODS, LIBRARY_CLASSES, LIBRARY_CONSTANTS, I2C_DEFAULT_ADDRESS, SERIAL_PORT_METHODS, SERIAL_WAITING, heatIndex, altitudeOf, seaLevelOf, isArduinoName } from './libraries.js';
 
 const BUDGET = 2000; // loop turns or loop() calls per advance before it lets the step go on
 // Turns of a loop the program may take without letting time pass (no wait, no Serial output) before
@@ -55,6 +55,8 @@ const TX_BUFFER = { uno: 64 };
 // An UNO has one port: Serial1 there is a name a real UNO does not compile.
 const SERIAL_PORTS = { uno: [{ tx: 1, rx: 0 }], esp32: [{ tx: 1, rx: 3 }, null, { tx: 17, rx: 16 }], esp32c3: [null, null] };
 const BOARD_NAMES = { uno: 'an UNO', esp32: 'an ESP32', esp32c3: 'an ESP32-C3' };
+// How many serial ports a family has (Serial, Serial1, Serial2): a run types only to one it has.
+export const serialPortCount = (family) => (SERIAL_PORTS[family] ?? [null]).length;
 const STREAM_TIMEOUT = 1000; // ms: a Stream's default (parseInt, readStringUntil)
 const POLL = 0.001; // s between two looks of a read that waits for a byte
 const SENT_MAX = 4096; // bytes a port keeps of what it sent, for the board on the other end (devices/mcu.js)
@@ -97,6 +99,39 @@ const I2C_BEGIN = 0.1; // s an Adafruit BME280/BMP280 begin() takes (its delay(1
 // DHT.h's sensor types by number, for a note.
 const DHT_TYPES = { 12: 'DHT12', 21: 'DHT21', 22: 'DHT22' };
 const OBJECTS_MAX = 64; // library objects at most (the translator caps them lower: LIMITS.libraryObjects)
+
+// Integers as a board stores them (INT_KIND, libraries.js): ToInt32 inside the operators truncates
+// and wraps, and gives 0 for NaN and the infinities (a float out of range is undefined in C).
+const WRAP_TO = {
+  u8: (v) => v & 0xff,
+  s8: (v) => (v << 24) >> 24,
+  u16: (v) => v & 0xffff,
+  s16: (v) => (v << 16) >> 16,
+  u32: (v) => v >>> 0,
+  s32: (v) => v | 0,
+  // C's bool: anything not zero is 1 (NaN too).
+  bool: (v) => (!v && !Number.isNaN(v) ? 0 : 1),
+};
+// Each kind's wrap on a family: `int` and `unsigned int` have 16 bits on an AVR (the UNO), 32 elsewhere.
+const wrapsOf = (family) => {
+  const avr = family === 'uno';
+  const out = [];
+  for (const [name, k] of Object.entries(INT_KIND)) out[k] = name === 'int' ? WRAP_TO[avr ? 's16' : 's32'] : name === 'uint' ? WRAP_TO[avr ? 'u16' : 'u32'] : WRAP_TO[name];
+  return out;
+};
+// An arithmetic chain's wrap by its mask (sketch.js; INT_KIND_MASK: 1 unsigned long, 2 unsigned int,
+// 4 uint16_t, 8 long), as C's usual conversions type it: an unsigned long makes it one; on an AVR an
+// unsigned int (or a uint16_t, which is one there) makes it 16 bits unless a long holds it; on an
+// ESP32 an unsigned int is 32 bits and a uint16_t is promoted to a (signed) int.
+const chainsOf = (family) => {
+  const avr = family === 'uno';
+  return Array.from({ length: 16 }, (_, m) => {
+    if (m & 1) return WRAP_TO.u32;
+    if (avr) return m & 6 && !(m & 8) ? WRAP_TO.u16 : null;
+    return m & 2 ? WRAP_TO.u32 : null;
+  });
+};
+const U32 = 4294967296;
 
 // A PWM pin's level at time t: high for the first `duty` of each period.
 export const levelAt = (pwm, t) => (pwm.duty >= 1 ? 1 : pwm.duty <= 0 ? 0 : (t * pwm.freq) % 1 < pwm.duty ? 1 : 0);
@@ -160,6 +195,24 @@ export function createRunner(js, board) {
   const portsOf = SERIAL_PORTS[board.family] ?? [null];
   const ports = portsOf.map((pins) => ({ baud: 0, txFreeAt: 0, line: '', tx: pins?.tx ?? null, rx: pins?.rx ?? null, sent: [], count: 0, inbox: [], heard: new WeakMap(), timeout: STREAM_TIMEOUT }));
   runner.ports = ports;
+  // What a run types to the board (simulate --run … --serial "1@0.5"): [{ port, text, time }], each
+  // text delivered to its port at its time, a character every ten bits at the port's rate (after the
+  // port is begun: a text typed before reaches it as begin() starts it).
+  const typed = (Array.isArray(board.typed) ? board.typed : [])
+    .filter((x) => Number.isInteger(x?.port) && ports[x.port] && Number.isFinite(Number(x.time)) && typeof x.text === 'string')
+    .map((x) => ({ port: x.port, text: x.text.slice(0, SENT_MAX), time: Number(x.time), done: false }));
+  for (const x of typed) ports[x.port].typed = true;
+  const deliver = () => {
+    for (const x of typed) {
+      const port = ports[x.port];
+      if (x.done || x.time > runner.time + 1e-12 || !(port.baud > 0)) continue;
+      const each = 10 / port.baud;
+      const from = Math.max(x.time, port.begunAt ?? 0);
+      for (let k = 0; k < x.text.length; k++) port.inbox.push({ byte: x.text.charCodeAt(k) & 0xff, at: from + (k + 1) * each });
+      if (port.inbox.length > SENT_MAX) port.inbox.splice(0, port.inbox.length - SENT_MAX);
+      x.done = true;
+    }
+  };
   // What a board on the other end of a port's RX sent (devices/mcu.js links them by their nets): the
   // bytes past the last one this port took from that sender, at the times they are through; nothing
   // when the two rates differ (a real board reads garbage), warned once.
@@ -198,7 +251,9 @@ export function createRunner(js, board) {
     const start = runner.time + owed; // the line's time: when it starts out
     transmit(port, wire);
     const partial = k === 0 ? runner.line : port.line;
-    const parts = (partial + text).split('\n').map((p) => p.slice(0, LINE_MAX));
+    // A "\r" (println's, or one received and printed again) moves nothing in the log: a terminal's
+    // carriage return; the wire keeps it.
+    const parts = (partial + text.replaceAll('\r', '')).split('\n').map((p) => p.slice(0, LINE_MAX));
     if (k === 0) runner.line = parts.pop();
     else port.line = parts.pop();
     if (k > 0) for (let j = 0; j < parts.length; j++) parts[j] = `Serial${k}: ${parts[j]}`;
@@ -247,6 +302,7 @@ export function createRunner(js, board) {
   // a negative one in another base as its 32 bits, as print(long, base) does).
   const show = (v, digits, kind) => {
     if (typeof v === 'boolean') return v ? '1' : '0';
+    if (Array.isArray(v)) return cText(v);
     if (typeof v !== 'number') return String(v);
     if (Number.isNaN(v)) return 'nan';
     if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf';
@@ -259,7 +315,54 @@ export function createRunner(js, board) {
   };
   // One byte as the character it is (Serial.write(65), a char printed): its low eight bits.
   const letter = (v) => String.fromCharCode(Math.trunc(Number(v)) & 0xff);
+  // A char array as C reads it: its characters up to the first 0 (an untouched buffer is empty).
+  const cText = (a) => {
+    let out = '';
+    for (const c of a) {
+      if (typeof c === 'string') return out + c;
+      if (!c) break;
+      out += letter(c);
+      if (out.length >= LINE_MAX) break;
+    }
+    return out;
+  };
+  const textOf = (v) => (typeof v === 'string' ? v : Array.isArray(v) ? cText(v) : show(v));
+  // sprintf's conversions (%d %i %u %ld %lu %x %X %c %s %% with flags - 0 + and a width): an int has
+  // the board's size, as the call reads it; an AVR's sprintf has no %f (it writes "?"), an ESP32's does.
+  const FORMAT = /%([-0+ ]*)(\d*)(?:\.(\d+))?(hh|h|ll|l)?([diuxXcsfFeEgG%])/g;
+  const formatted = (fmt, args) => {
+    let k = 0;
+    return textOf(fmt).replace(FORMAT, (_, flags, width, precision, size, conv) => {
+      if (conv === '%') return '%';
+      const v = args[k++];
+      const long = size === 'l' || size === 'll';
+      let out;
+      if (conv === 'd' || conv === 'i') out = String((long ? WRAP_TO.s32 : WRAPS[INT_KIND.int])(v));
+      else if (conv === 'u' || conv === 'x' || conv === 'X') {
+        const n = (long ? WRAP_TO.u32 : WRAPS[INT_KIND.uint])(v);
+        out = conv === 'u' ? String(n) : conv === 'x' ? n.toString(16) : n.toString(16).toUpperCase();
+      } else if (conv === 'c') out = letter(v);
+      else if (conv === 's') out = textOf(v ?? '');
+      else if (board.family === 'uno') out = '?';
+      else {
+        const p = precision === undefined ? 6 : Math.min(20, Number(precision));
+        const n = Number(v);
+        out = /[fF]/.test(conv) ? n.toFixed(p) : /[eE]/.test(conv) ? n.toExponential(p) : String(Number(n.toPrecision(Math.max(1, p))));
+      }
+      if (conv === 's' && precision !== undefined) out = out.slice(0, Number(precision));
+      if (flags.includes('+') && /[di]/.test(conv) && !out.startsWith('-')) out = `+${out}`;
+      const w = Math.min(LINE_MAX, Number(width) || 0);
+      if (out.length < w) {
+        if (flags.includes('-')) out = out.padEnd(w);
+        else if (flags.includes('0') && /[diuxX]/.test(conv)) out = /^[-+]/.test(out) ? out[0] + out.slice(1).padStart(w - 1, '0') : out.padStart(w, '0');
+        else out = out.padStart(w);
+      }
+      return out;
+    });
+  };
   const analog = ANALOG[board.family] ?? [];
+  const WRAPS = wrapsOf(board.family);
+  const CHAINS = chainsOf(board.family);
   const api = {
     HIGH: 1,
     LOW: 0,
@@ -385,9 +488,10 @@ export function createRunner(js, board) {
       delete tones[n];
       set(n, { level: 0, pwm: null });
     },
-    // Since the board started (or woke from deep sleep, which restarts it).
-    millis: () => Math.floor((runner.time - boot) * 1e3 + 1e-9),
-    micros: () => Math.floor((runner.time - boot) * 1e6 + 1e-6),
+    // Since the board started (or woke from deep sleep, which restarts it); unsigned longs, which wrap
+    // to 0 at 2^32 (millis after 49.7 days, micros after 71.6 minutes).
+    millis: () => Math.floor((runner.time - boot) * 1e3 + 1e-9) % U32,
+    micros: () => Math.floor((runner.time - boot) * 1e6 + 1e-6) % U32,
     abs: Math.abs,
     min: Math.min,
     max: Math.max,
@@ -414,6 +518,7 @@ export function createRunner(js, board) {
     bitSet: (x, b) => x | (1 << b),
     bitClear: (x, b) => x & ~(1 << b),
     bitWrite: (x, b, v) => (v ? x | (1 << b) : x & ~(1 << b)),
+    bitToggle: (x, b) => x ^ (1 << b),
     Serial: portApi(0),
     // Serial1 / Serial2 and the methods that wait: port k's method m (SERIAL_PORT_METHODS), numbers the
     // translator wrote, checked here; a port the board does not have stops the program, as a real
@@ -427,6 +532,83 @@ export function createRunner(js, board) {
     },
     // A comparison is a bool, which C++ turns into 1 or 0 (int pressed = digitalRead(2) == LOW).
     __int: (x) => (typeof x === 'boolean' ? Number(x) : Number.isFinite(x) ? Math.trunc(x) : 0),
+    // A value stored in a variable of an integer kind (k, a number the translator wrote), as the board
+    // stores it; an arithmetic chain with an unsigned type in it (mask, the same), as the board computes it.
+    __w: (v, k) => (WRAPS[k] ?? api.__int)(v),
+    __u: (v, mask) => {
+      const wrap = CHAINS[mask];
+      return wrap ? wrap(v) : v;
+    },
+    // x++ in an expression: the value before (the second argument has stored the new one).
+    __post: (old) => old,
+    // An array element changed in place (UPDATE_OPS by number: a[i] += v, a[i]++, bitSet(a[i], n)):
+    // its index computed once, the new value wrapped to the array's kind; x++ gives the old value.
+    __upd(array, i, op, k, a, b) {
+      if (!Array.isArray(array) || !Number.isInteger(i) || i < 0 || i >= array.length) return 0;
+      const old = array[i];
+      let v;
+      switch (op) {
+        case 0: v = a; break;
+        case 1: v = old + a; break;
+        case 2: v = old - a; break;
+        case 3: v = old * a; break;
+        case 4: v = api.__div(old, a); break;
+        case 5: v = api.__mod(old, a); break;
+        case 6: v = old & a; break;
+        case 7: v = old | a; break;
+        case 8: v = old ^ a; break;
+        case 9: v = old << a; break;
+        case 10: v = old >> a; break;
+        case 11: v = api.bitSet(old, a); break;
+        case 12: v = api.bitClear(old, a); break;
+        case 13: v = api.bitToggle(old, a); break;
+        case 14: v = api.bitWrite(old, a, b); break;
+        case 15: v = old + 1; break;
+        case 16: v = old - 1; break;
+        default: return 0;
+      }
+      array[i] = api.__w(v, k);
+      return op >= 15 ? old : array[i];
+    },
+    // A String's method m (STRING_METHODS) on its text; a char or a float the translator passes already
+    // as text (__tostr). In-place methods give the new text (the translator stores it).
+    __strm(m, value, a, b) {
+      const s = textOf(value);
+      // indexOf, lastIndexOf and replace take a char where a number is given (C++ picks that overload).
+      const one = (v) => (typeof v === 'number' && ['indexOf', 'lastIndexOf', 'replace'].includes(STRING_METHODS[m]) ? letter(v) : textOf(v));
+      const x = a === undefined ? '' : one(a);
+      switch (STRING_METHODS[m]) {
+        case 'length': return s.length;
+        case 'charAt': return s.charCodeAt(Math.trunc(Number(a))) || 0;
+        case 'indexOf': return s.indexOf(x, b === undefined ? 0 : Number(b));
+        case 'lastIndexOf': return s.lastIndexOf(x, b === undefined ? Number.POSITIVE_INFINITY : Number(b));
+        case 'substring': return s.substring(Number(a), b === undefined ? undefined : Number(b));
+        case 'toInt': return Number.parseInt(s, 10) | 0;
+        case 'toFloat':
+        case 'toDouble': return Number.parseFloat(s) || 0;
+        case 'equals': return s === x ? 1 : 0;
+        case 'equalsIgnoreCase': return s.toLowerCase() === x.toLowerCase() ? 1 : 0;
+        case 'startsWith': return s.startsWith(x) ? 1 : 0;
+        case 'endsWith': return s.endsWith(x) ? 1 : 0;
+        case 'compareTo': return s < x ? -1 : s > x ? 1 : 0;
+        case 'c_str': return s;
+        case 'trim': return s.trim();
+        case 'toUpperCase': return s.toUpperCase();
+        case 'toLowerCase': return s.toLowerCase();
+        case 'concat': return (s + x).slice(0, ARRAY_MAX);
+        case 'replace': return s.split(x).join(b === undefined ? '' : one(b)).slice(0, ARRAY_MAX);
+        case 'remove': return s.slice(0, Number(a)) + (b === undefined ? '' : s.slice(Number(a) + Number(b)));
+        case 'isEmpty': return s.length ? 0 : 1;
+        default: return 0;
+      }
+    },
+    // String(x[, base or decimals]): the text Serial.print writes of it (kind 1 a float, 2 a char).
+    __tostr: (v, digits, kind) => show(v, digits, kind),
+    // sprintf / snprintf: n the buffer's size (-1 for sprintf), the text cut to n - 1 characters.
+    __fmt(n, fmt, ...args) {
+      const out = formatted(fmt, args).slice(0, ARRAY_MAX);
+      return Number(n) >= 0 ? out.slice(0, Math.max(0, Number(n) - 1)) : out;
+    },
     __missing: () => 0,
     // An index is always a whole number, so a[i] can never name a property ("constructor").
     // With the array (the translator passes one named alone), an index outside its elements is warned
@@ -541,8 +723,13 @@ export function createRunner(js, board) {
   // output, high); what arrives is read by the time each byte is through.
   function portApi(k) {
     const port = ports[k];
-    const arrived = () => port.inbox.filter((b) => b.at <= runner.time + 1e-12);
+    // Whether the program reads this port (a board whose RX pin gets nothing is told so, devices/mcu.js).
+    const arrived = () => {
+      port.reads = true;
+      return port.inbox.filter((b) => b.at <= runner.time + 1e-12);
+    };
     const take = () => {
+      port.reads = true;
       const i = port.inbox.findIndex((b) => b.at <= runner.time + 1e-12);
       return i < 0 ? -1 : port.inbox.splice(i, 1)[0].byte;
     };
@@ -576,6 +763,7 @@ export function createRunner(js, board) {
       begin(rate, config, rx, tx) {
         const r = Number(rate);
         port.baud = Number.isFinite(r) && r > 0 ? r : 0;
+        port.begunAt = runner.time;
         if (Number.isInteger(Number(rx)) && Number(rx) >= 0) port.rx = Number(rx);
         if (Number.isInteger(Number(tx)) && Number(tx) >= 0) port.tx = Number(tx);
         if (port.tx != null) set(port.tx, { mode: 'output', level: 1, pull: null, pwm: null });
@@ -811,6 +999,7 @@ export function createRunner(js, board) {
     else runner.wait = Math.max(0, runner.wait - dt);
     runner.looking = null;
     for (const [n, end] of Object.entries(tones)) if (runner.time >= end) api.noTone(Number(n));
+    deliver();
     try {
       watchInterrupts();
     } catch (e) {

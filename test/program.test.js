@@ -37,7 +37,7 @@ void loop() {
   assert.match(r.js, /yield\* \$half\(5\)/, 'a call to its own function');
   // Run it with a stub API and look at what it computes.
   const seen = {};
-  const api = new Proxy({ HIGH: 1, LOW: 0, OUTPUT: 1, __int: Math.trunc, __div: (a, b) => Math.trunc(a / b), __ms: (ms) => ms / 1e3, Serial: { begin() {} }, digitalWrite: (p, v) => (seen[p] = v), pinMode() {} }, { get: (o, k) => (k in o ? o[k] : () => 0) });
+  const api = new Proxy({ HIGH: 1, LOW: 0, OUTPUT: 1, __int: Math.trunc, __w: Math.trunc, __u: (v) => v, __div: (a, b) => Math.trunc(a / b), __ms: (ms) => ms / 1e3, Serial: { begin() {} }, digitalWrite: (p, v) => (seen[p] = v), pinMode() {} }, { get: (o, k) => (k in o ? o[k] : () => 0) });
   const program = run(`${r.js.replace('return {', 'globalThis.__probe = () => ({ count: $count }); return {')}`)(api);
   [...program.setup()];
   const steps = [...program.loop()];
@@ -246,7 +246,7 @@ test('pulseIn: the timeout is clamped (not a number, negative, huge) to LIMITS.p
 test('sketch: pulseIn waits (yield*), returns an integer, and is a name of the runtime', () => {
   const r = translateSketch('void setup() {}\nvoid loop() { long cm = pulseIn(10, HIGH) / 58; }');
   assert.deepEqual(r.issues, []);
-  assert.match(r.js, /__int\(__div\(\(\(yield\* pulseIn\(10 , HIGH\)\)\), 58\)\)/);
+  assert.match(r.js, /__w\(__div\(\(\(yield\* pulseIn\(10 , HIGH\)\)\), 58\), 8\)/);
 });
 
 test('SKETCH_API and the runtime give the same names (constants apart)', () => {
@@ -258,7 +258,7 @@ test('SKETCH_API and the runtime give the same names (constants apart)', () => {
   const helpers = names.filter((n) => n.startsWith('__'));
   const functions = names.filter((n) => !constants.includes(n) && !helpers.includes(n));
   assert.deepEqual([...functions].sort(), [...SKETCH_API].sort());
-  assert.deepEqual(helpers.sort(), ['__array', '__at', '__deepSleep', '__div', '__idx', '__int', '__lib', '__missing', '__mod', '__ms', '__new', '__serial', '__us', '__wire']);
+  assert.deepEqual(helpers.sort(), ['__array', '__at', '__deepSleep', '__div', '__fmt', '__idx', '__int', '__lib', '__missing', '__mod', '__ms', '__new', '__post', '__serial', '__strm', '__tostr', '__u', '__upd', '__us', '__w', '__wire']);
 });
 
 test('delayMicroseconds: the engine ends a step on the program waking, so a 10 µs pulse lasts 10 µs', () => {

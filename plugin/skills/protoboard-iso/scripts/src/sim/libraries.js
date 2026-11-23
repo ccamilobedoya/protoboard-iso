@@ -28,6 +28,18 @@ export const NOT_IN_KIT = ['DHT12', 'DHT21', 'DHT22', 'AM2301'];
 // Appending keeps the numbers of the others; never reorder.
 export const SERIAL_PORT_METHODS = ['begin', 'print', 'println', 'write', 'available', 'read', 'peek', 'flush', 'setTimeout', 'end', 'parseInt', 'parseFloat', 'readStringUntil', 'readString'];
 export const SERIAL_WAITING = ['parseInt', 'parseFloat', 'readStringUntil', 'readString'];
+// The integer types a stored value is wrapped to (sketch.js writes `__w(value, <kind>)`, program.js
+// wraps it on the board in use): `int` and `unsigned int` are 16 bits on an AVR and 32 on an ESP32.
+// MASK: the bits a kind adds to an arithmetic chain (`now - start`), which program.js turns into C's
+// type of the result on that board (1 unsigned long, 2 unsigned int, 4 uint16_t, 8 long).
+export const INT_KIND = { u8: 1, s8: 2, int: 3, uint: 4, u16: 5, s16: 6, u32: 7, s32: 8, bool: 9 };
+export const INT_KIND_MASK = [0, 0, 0, 0, 2, 4, 0, 1, 8, 0];
+// A String's methods, by number (`s.length()` becomes `__strm(0, $s)`); the IN_PLACE ones change the
+// String itself, as Arduino's do (`s.trim();`). Appending keeps the numbers of the others; never reorder.
+export const STRING_METHODS = ['length', 'charAt', 'indexOf', 'lastIndexOf', 'substring', 'toInt', 'toFloat', 'toDouble', 'equals', 'equalsIgnoreCase', 'startsWith', 'endsWith', 'compareTo', 'c_str', 'trim', 'toUpperCase', 'toLowerCase', 'concat', 'replace', 'remove', 'isEmpty'];
+export const STRING_IN_PLACE = ['trim', 'toUpperCase', 'toLowerCase', 'concat', 'replace', 'remove'];
+// Where a value is changed in place (an array element: __upd(array, index, <op>, kind, …)), by number.
+export const UPDATE_OPS = ['=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=', 'bitSet', 'bitClear', 'bitToggle', 'bitWrite', 'post++', 'post--'];
 // Names an Arduino core or its boards define that the kit's subset does not (a sketch that uses one
 // compiles on a real board): the runtime says the kit does not know it, never that it is undeclared.
 // Prefixes cover a family (GPIO_NUM_4, ADC_11db, ESP_SLEEP_WAKEUP_TIMER).

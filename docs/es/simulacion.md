@@ -204,7 +204,7 @@ Se fijan con una operación, como cualquier campo del circuito:
   un error de entrada, salida 1), `--set RV1=0.8,SW1=on` (un control: la posición de un
   potenciómetro, un interruptor, un campo propio de un sensor como `U2=30` en un LM35;
   `ID.campo=valor` cuando tiene varios), `--press SW1@0.5+0.2` (presionado a los 0,5 s durante
-  0,2 s), `--at 1.0:light=0.1` (un campo o un control que cambia en un momento). Un sensor que lee
+  0,2 s), `--at 1.0:light=0.1` (un campo o un control que cambia en un momento), `--serial "U1:1\n@0.5"` (un texto que se le escribe al puerto serie de una placa en un momento; [microcontroladores.md](microcontroladores.md)). Un sensor que lee
   un campo por un valor propio sigue el campo que fija la ejecución, y la ejecución lo dice
   (`RUN_ENV_ATTACHED`). `--env` y `--set` sirven también para el punto de DC y para
   `--transient`. No se guarda nada: el archivo del circuito y su historial quedan como estaban.

@@ -191,7 +191,8 @@ Set them with an operation like any circuit field:
   input error, exit 1), `--set RV1=0.8,SW1=on` (a control: a potentiometer's position, a
   switch, a sensor's own field such as `U2=30` on an LM35; `ID.field=value` when it has several),
   `--press SW1@0.5+0.2` (pressed at 0.5 s for 0.2 s), `--at 1.0:light=0.1` (a field or a control
-  changed at a time). A sensor that reads a field by a value of its own follows the field a run
+  changed at a time), `--serial "U1:1\n@0.5"` (text typed to a board's serial port at a time;
+  [microcontrollers.md](microcontrollers.md)). A sensor that reads a field by a value of its own follows the field a run
   sets, and the run says so (`RUN_ENV_ATTACHED`). `--env` and `--set` also apply to the DC point
   and to `--transient`. Nothing is saved: the circuit file and its history stay as they were.
   Bounded: at most `runSeconds` (60) of simulated time (more is capped, `RUN_CAPPED`) and

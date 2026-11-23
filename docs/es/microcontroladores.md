@@ -141,13 +141,44 @@ void loop() { digitalWrite(LED, HIGH); delay(500); digitalWrite(LED, LOW); delay
   la placa: el TX de un UNO en el RX de un ESP32 son 5 V en un pin de 3,3 V, y la revisión del voltaje
   de los pines lo dice (`SIM_PIN_OVERVOLTAGE`). El `Serial` del ESP32-C3 es su puerto USB y no toma
   ningún pin.
-- **Una línea serie entre dos placas:** los bytes que un puerto envía por su pin TX llegan a cada
-  puerto de otra placa cuyo pin RX está en la misma red, cada uno cuando pasan sus diez bits a la
-  velocidad del que envía, así que `available()`, `read()`, `parseInt()` y `readStringUntil()`
+- **Los enteros tienen el tamaño de su placa** (2026-11): un valor guardado en una variable, un
+  parámetro, un elemento de un arreglo o el retorno de una función se ajusta a su tipo en la placa en
+  uso: `byte`/`uint8_t` 8 bits, `char`/`int8_t` 8 con signo, `int` y `unsigned int` 16 bits en un UNO
+  y 32 en un ESP32, `long`, `unsigned long`, `uint32_t` 32, `bool` 0 o 1 (`byte b = 255; b++;` es 0).
+  Una cadena aritmética con un `unsigned long` (o, en un UNO, un `unsigned int`) da la vuelta como C la
+  tipa, así que `now - start` funciona al pasar por la vuelta; `millis()` y `micros()` dan la vuelta en
+  2^32. Una suma con signo que se desborda dentro de una expresión no se ajusta (C la deja indefinida);
+  guardada, sí. `bitSet`, `bitClear`, `bitToggle` y `bitWrite` cambian su variable o elemento; sobre
+  otra cosa son una advertencia (`SIM_PROGRAM_NOT_LVALUE`), como un compilador las rechaza. Un
+  parámetro por referencia (`int &x`) es una copia en el kit, con advertencia (`SIM_PROGRAM_REFERENCE`).
+- **Texto:** `String` con sus métodos de siempre (`length`, `charAt`, `indexOf`, `substring`, `toInt`,
+  `toFloat`, `equals`, `startsWith`, `trim`, `toUpperCase`, `toLowerCase`, `concat`… la lista está en
+  `references/sketch.md` de la skill), un `char` sumado a un String como su letra y un `float` con dos
+  decimales, `char *texto = "…"`; `sprintf` y `snprintf` en un búfer `char` (`%d %u %ld %lu %x %c %s
+  %%` y anchos; un UNO no tiene `%f`, escribe `?` como avr-libc). Las macros sencillas con argumentos
+  se expanden donde se usan.
+- **Lo que se rechaza, con qué escribir en su lugar** (el programa no corre, la advertencia nombra la
+  construcción y su línea): punteros (`SIM_PROGRAM_POINTER`), `struct`, `class`, `enum` y otras
+  declaraciones de tipos (`SIM_PROGRAM_TYPE_DECL`), un método de `String` que el kit no tiene
+  (`SIM_PROGRAM_STRING_METHOD`), un miembro leído con `.` (`SIM_PROGRAM_MEMBER`), una macro que no
+  puede expandir (`SIM_PROGRAM_MACRO`).
+- **Una línea serie entre dos placas:** los bytes que un puerto envía por su pin TX llegan a un puerto
+  de otra placa cuando el alto y el bajo del pin TX llegan a su pin RX como un alto y un bajo para
+  ella: en la misma red, o por un camino pasivo (una resistencia en serie, el divisor de siempre de
+  1 kΩ sobre 2 kΩ de 5 V a 3,3 V), juzgado una vez por enlace con la solución DC con el pin TX en cada
+  nivel. Un programa que lee un puerto cuyo pin RX nunca recibe los dos niveles, o ningún TX, es una
+  advertencia que dice por qué (`SIM_SERIAL_LEVELS`, `SIM_SERIAL_NO_TX`). Cada byte llega cuando
+  pasan sus diez bits a la velocidad del que envía, así que `available()`, `read()`, `parseInt()` y `readStringUntil()`
   funcionan entre ellas, los dos programas avanzando en la misma ejecución (el `Serial` de un UNO al
   `Serial2` de un ESP32). Dos velocidades distintas no pasan nada (`SIM_PROGRAM_BAUD_MISMATCH`: una
   placa real lee basura). El pin TX queda en su nivel de reposo en el circuito: sus bits no se dibujan
-  como flancos.
+  como flancos. Un `\r` recibido se imprime como nada.
+- **Escribirle a una placa:** `simulate --run 3 --serial "1@0.5"` le entrega el texto a su `Serial` de
+  USB a los 0,5 s, un carácter cada diez bits a la velocidad del puerto (se repite; `\n` para una
+  línea nueva; `U1:` delante nombra la placa, `Serial2:` el puerto). Un programa que lee un puerto sin
+  nada escrito ni nada conectado a su pin RX recibe una nota que nombra la opción (`SIM_SERIAL_WAITS`).
+  Un DHT11 leído en su primer segundo imprime `nan`, como en una placa, con una nota que dice que aún
+  se estaba encendiendo (`SIM_LIBRARY_EARLY`).
 - **Interrupciones:** `attachInterrupt(digitalPinToInterrupt(pin), manejador, RISING | FALLING |
   CHANGE | LOW)` y `detachInterrupt` en los pines que tienen una (un UNO: D2 y D3; un ESP32: todos los
   GPIO, también `ONLOW` y `ONHIGH`), con globales `volatile`. El manejador corre en el paso que ve
