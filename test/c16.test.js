@@ -11,7 +11,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { autoLayout as layoutAtBudget, formatLayout } from '../src/layout.js';
-import { runCircuit } from './run-generous.js';
+import { runCircuit } from '../src/sim/run.js';
 import { review, formatIssue, t } from '../src/index.js';
 
 // ── 1. Every warning of the sketch runner is a doubt of the review ─────────────────────────────

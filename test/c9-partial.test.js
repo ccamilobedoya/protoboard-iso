@@ -13,7 +13,8 @@ import { formatLayout } from '../src/layout.js';
 import { autoLayout } from './layout-generous.js';
 import { formatIssue, t } from '../src/index.js';
 import { compile, createEngine } from '../src/sim/index.js';
-import { runCircuit, RUN_BUDGET_ARGS } from './run-generous.js';
+// Its runs take under a second of a free machine: the default machine-time budget.
+import { runCircuit } from '../src/sim/run.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const bin = join(root, 'bin/protoboard-iso.js');
@@ -36,13 +37,13 @@ test('a passive buzzer that beeps: simulate --run says the beeps and the tone ap
   const laid = cli(['layout', target, join(dir, 'spec.json')]);
   assert.equal(laid.status, 0, laid.stderr);
   assert.match(laid.stdout, /^Behaviour.*BZ1 beeps 2 Hz, sounding 20 % of the time, tone 2 kHz/m);
-  const run = cli(['simulate', target, '--run', '2', ...RUN_BUDGET_ARGS]);
+  const run = cli(['simulate', target, '--run', '2']);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^ {2}BZ1 \(buzzer\): beeps 2 Hz \(every 500 ms\), sounding 20 % of the time · beeps: 4 · tone 2 kHz$/m);
   assert.doesNotMatch(run.stdout, /BZ1 \(buzzer\): 2 kHz, on 50 %/);
-  const es = cli(['simulate', target, '--run', '2', ...RUN_BUDGET_ARGS, '--lang', 'es']);
+  const es = cli(['simulate', target, '--run', '2', '--lang', 'es']);
   assert.match(es.stdout, /BZ1 \(zumbador\): pita 2 Hz \(cada 500 ms\), sonando el 20 % del tiempo · pitidos: 4 · tono 2 kHz/);
-  const json = JSON.parse(cli(['simulate', target, '--run', '2', ...RUN_BUDGET_ARGS, '--json']).stdout);
+  const json = JSON.parse(cli(['simulate', target, '--run', '2', '--json']).stdout);
   const bz = json.outputs.find((o) => o.id === 'BZ1');
   // The fields that were there keep their meaning: the current's (each cycle of the tone).
   assert.ok(Math.abs(bz.frequency - 2000) < 1, bz.frequency);
@@ -86,7 +87,7 @@ test('a motor straight on a UNO pin: layout names the state of its figure, and a
   const dc = cli(['simulate', target]);
   assert.match(dc.stdout, new RegExp(`D9 output HIGH [\\d.]+ V ${steady[1].replace('.', '\\.')} mA`));
   // A run's figure is its strongest, at a time, with the pin's level then.
-  const run = cli(['simulate', target, '--run', '2', ...RUN_BUDGET_ARGS]);
+  const run = cli(['simulate', target, '--run', '2']);
   assert.match(run.stdout, /U1\.D9 carries [\d.]+ mA, more than its maximum 40 mA: the pin can be damaged, at its strongest in the run, at [\d.]+ m?s, with D9 (high|low)\./);
 });
 

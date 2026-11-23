@@ -6,7 +6,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { autoLayout } from './layout-generous.js';
 import { parseStimuli } from '../src/sim/run.js';
-import { runCircuit } from './run-generous.js';
+// Its runs take under a second of a free machine: the default machine-time budget.
+import { runCircuit } from '../src/sim/run.js';
 import { compile, createEngine } from '../src/sim/index.js';
 import { translateSketch } from '../src/sim/sketch.js';
 import { createRunner } from '../src/sim/program.js';

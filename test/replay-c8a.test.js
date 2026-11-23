@@ -12,7 +12,6 @@ import { formatIssue, t } from '../src/index.js';
 import { UNSIMULATED } from './unsimulated-part.js';
 import { specWithFix } from '../src/fix.js';
 import { checkHazards, simulate } from '../src/sim/index.js';
-import { RUN_BUDGET_ARGS } from './run-generous.js';
 
 const root = new URL('../', import.meta.url).pathname;
 const bin = join(root, 'bin/protoboard-iso.js');
@@ -216,7 +215,7 @@ test('an op-amp oscillator: the Behaviour line and simulate --run give the same 
   }));
   const laid = cli(['layout', join(dir, 'c'), join(dir, 'osc.json')]);
   const line = laid.stdout.split('\n').find((l) => l.startsWith('Behaviour'));
-  const run = cli(['simulate', join(dir, 'c'), '--run', '2', ...RUN_BUDGET_ARGS]);
+  const run = cli(['simulate', join(dir, 'c'), '--run', '2']);
   const fromLine = /U1\.OUT1 (?:about )?([\d.]+ kHz)/.exec(line)?.[1];
   const fromRun = /U1\.OUT1 \(op-amp output\): ([\d.]+ kHz)/.exec(run.stdout)?.[1];
   assert.ok(fromLine && fromRun, `${line}\n${run.stdout}`);

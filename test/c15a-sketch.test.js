@@ -7,8 +7,9 @@ import assert from 'node:assert/strict';
 import { translateSketch } from '../src/sim/sketch.js';
 import { createRunner } from '../src/sim/program.js';
 import { autoLayout } from './layout-generous.js';
-import { runCircuit, RUN_BUDGET_ARGS } from './run-generous.js';
-import { parseStimuli, behaviourOf } from '../src/sim/run.js';
+// Its runs take under a second of a free machine (a run's step is at least its length over 20 000):
+// the default machine-time budget, not test/run-generous.js.
+import { runCircuit, parseStimuli, behaviourOf } from '../src/sim/run.js';
 import { spawnSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -166,10 +167,10 @@ test('serial input: a sketch that reads Serial with nothing sent gets one note n
 test('serial input: the command line takes --serial (repeatable) and prints what the board answered', () => {
   const dir = tempDir('c15a-serial-');
   writeFileSync(join(dir, 'circuit.json'), JSON.stringify(menuCircuit().circuit));
-  const r = spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'simulate', dir, '--run', '1', '--serial', '2@0.2', '--serial', 'U1:1@0.5', ...RUN_BUDGET_ARGS], { encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'simulate', dir, '--run', '1', '--serial', '2@0.2', '--serial', 'U1:1@0.5'], { encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /LED 2 on[\s\S]*LED 1 on/);
-  const late = spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'simulate', dir, '--run', '1', '--serial', '1@3', ...RUN_BUDGET_ARGS], { encoding: 'utf8' });
+  const late = spawnSync(process.execPath, [join(root, 'bin/protoboard-iso.js'), 'simulate', dir, '--run', '1', '--serial', '1@3'], { encoding: 'utf8' });
   assert.match(late.stdout, /A change at 3 s comes after the run ends \(1 s\)/);
 });
 
