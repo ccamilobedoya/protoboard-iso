@@ -90,8 +90,9 @@ brief** and return a short **layout report**. You do not talk to the end user.
      positive in fact) goes into the report as printed; a figure the answer says "about" is
      reported as approximate.
    - `CHANGES` → the circuit exists. Layout already tried, from its best try, the orders the nets
-     give, the double board (when a development board covers a part or a strip) and the tallest or
-     widest parts first; a ✖ followed by `→ next the kit would try: …` names one spec change: make
+     give, the double board (when a development board covers a part or a strip), the tallest or
+     widest parts first and the changes it would offer; a part that "found no place" is off the board
+     (later `review` and `simulate` start `Not on the board:`): report it under `Open:`. A ✖ followed by `→ next the kit would try: …` names one spec change: make
      it and call `layout` once (that call is your one correction). Else fix only the ✖ items, with
      Path B steps 3 to 6. A ✖ saying a
      pin cannot be reached because a board covers its strip (`LAYOUT_PIN_COVERED`) has no fix by
@@ -105,7 +106,7 @@ brief** and return a short **layout report**. You do not talk to the end user.
    current, floating), **never values**: a value may be waiting for a learner's prediction. (A part
    past a maximum is already in `layout`'s answer as a hazard: report it as in `WARNINGS` above.)
    With a program, a sensor or an oscillator, also `simulate` with `run_s` and the brief's
-   conditions (`environment`, `set`, `press`, `at`) and report what the outputs did (on, off,
+   conditions (`environment`, `set`, `press`, `at`, `serial`) and report what the outputs did (on, off,
    frequency) and the Serial lines, as printed, under `Simulation:`. An output that does not do what
    the brief says is `Open:`, not done.
 5. Report.

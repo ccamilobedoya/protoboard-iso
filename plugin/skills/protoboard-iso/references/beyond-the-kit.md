@@ -78,8 +78,11 @@ have been needed.
 Say so, with the kit's sentence: "the kit does not have X; the nearest it has is Y" is a complete
 and right answer, not a failure (building in prose instead of the kit is what is ruled out, not
 this). The kit finds the common asks inside longer names too ("LED strip 12V", "tira de LED",
-"parlante 8 ohm", "micro servo SG90", "pantalla LCD"). Before building with the nearest part, ask,
-in the person's language:
+"parlante 8 ohm", "micro servo SG90", "pantalla LCD"), in English and Spanish. A stepper
+(`28BYJ-48`), an OLED, a keypad, a joystick, a Bluetooth (`HC-05`) or a Wi-Fi module (`ESP8266`)
+name what is near ("Nearest it has: push buttons (type button), one per key, each on a board's pin.");
+an SD card, a real-time clock (`DS3231`) and a load cell (`HX711`) say "Nothing near: …". Before
+building with the nearest part, ask, in the person's language:
 
 > The kit has no X. The nearest it has is Y, which differs in … (its values, its pins, what is not
 > simulated). Shall I build it with Y?

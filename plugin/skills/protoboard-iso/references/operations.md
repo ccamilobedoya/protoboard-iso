@@ -30,6 +30,15 @@ kit review <folder>                          # until APPROVED · kit undo <folde
   saved, exit 1. A readable change that adds errors (a short, a collision) is saved and says so
   (`with K new error(s)`): try it with `--dry-run` first, and `kit undo` takes it back.
 
+## After `CHANGES`
+
+`layout` has already tried other orders of the parts and nets, and the changes it would offer,
+before it answers: each ✖ ends with an arrow line, `→ next …`, naming the change it would try next,
+one it has not tried. A part it found no place for (`R4 found no place`) is left off the board and
+kept in the circuit's `spec` as asked: from then on `review` and `simulate` start with
+`Not on the board: R4, R5. …`, and what they say leaves those parts out. Tell the user the circuit
+is not whole; `layout` again on the folder asks for them, or place them with `suggest` and `apply`.
+
 ## Check it
 
 - **`kit review <folder>`** is the definition of done: APPROVED, APPROVED WITH WARNINGS or CHANGES,

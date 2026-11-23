@@ -69,8 +69,7 @@ lists. A part you have not used: `kit catalog <name>` first (its `Simulated:` li
 simulated": nothing about it is checked). Spec details: [references/spec.md](references/spec.md);
 each part's pins (which is +), fields and units:
 [references/parts.md](references/parts.md); a 74HC595, 4017, ULN, PC817 or LM386:
-[references/chips.md](references/chips.md). Logic inputs switch at half the supply; a level not
-guaranteed or over the supply is a ⚠; the review follows what chips latch.
+[references/chips.md](references/chips.md).
 
 ## Read the last line
 
@@ -81,7 +80,7 @@ guaranteed or over the supply is a ⚠; the review follows what chips latch.
 | `DONE` | Checked, nothing to tell. Reply (below). |
 | `WARNINGS` | Built. Each ⚠ is damage (with `To fix it` or "no computed fix") or something the kit cannot confirm works. Reply, telling each; never fix silently or refuse. Cases: [references/warnings.md](references/warnings.md). |
 | `FIX_SPEC` | Nothing built. Fix exactly the ✖ lines and call again. "Too large for one board": split it into circuits. |
-| `CHANGES` | Built, ✖ open (other orders already tried). Make the change a ✖ names next, else fix only those ([references/operations.md](references/operations.md)), then `kit review`. "stopped at its budget": `--budget` or a smaller circuit. |
+| `CHANGES` | Built, ✖ open (it tried other orders and changes already). Make the change a ✖ names next (not tried yet), else fix only those ([references/operations.md](references/operations.md)), then `kit review`. "stopped at its budget": `--budget` or a smaller circuit. A part that "found no place" is off the board: say so. |
 | `SPEC_OK` | Only after `--check`: call again without it. |
 
 **Stop rule.** At most two corrections per circuit; a correction is a call that saves (a `layout`
@@ -93,8 +92,8 @@ unchanged. After `DONE`, run more only for a question the answer does not settle
 
 Before you say a circuit with a program, a sensor or an oscillator does what was asked, run it
 with the user's conditions and quote what it printed (Serial lines, each output's time on):
-`kit simulate circuits/<name> --run 2 --env distance=10`; a `warning:` it prints is a ⚠ to tell,
-even after `DONE` (power: averaged over the run). `Behaviour, first 2 s` is only 2 s: run longer
+`kit simulate circuits/<name> --run 2 --env distance=10` (`--serial 1@0.5` types to a board); a
+`warning:` it prints is a ⚠ to tell, even after `DONE` (power: averaged over the run). `Behaviour, first 2 s` is only 2 s: run longer
 for a whole cycle. Options, examples: [references/run-it.md](references/run-it.md).
 
 ## Where the kit has no answer

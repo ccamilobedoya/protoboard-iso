@@ -229,6 +229,55 @@ kit simulate circuits/menu --run 2 --serial 1@0.5 --serial 0@1.5
 
 Say it as the kit's: "typing 1 at 0.5 s turns D1 on, 0 at 1.5 s turns it off".
 
+## A tune, note by note
+
+A passive buzzer (or the pin) playing `tone()` notes is reported note by note: each note's
+frequency, start and length, in order (the first eight in the text, all in `--json` as `notes`);
+one tone figure only when every note has it. Quote the notes, not the `beeps` average.
+
+```json tune.json
+{
+  "parts": [
+    { "id": "U1", "part": "UNO", "program": "tune.ino" },
+    { "id": "R1", "type": "resistor", "value": "100" },
+    { "id": "BZ1", "type": "buzzer" }
+  ],
+  "nets": [["U1.D8", "R1.1"], ["R1.2", "BZ1.1"], ["BZ1.2", "U1.GND"]]
+}
+```
+
+```cpp circuits/tune/tune.ino
+int notes[] = {262, 294, 330, 349};
+
+void setup() {
+  delay(100);
+  for (int i = 0; i < 4; i++) {
+    tone(8, notes[i], 200);
+    delay(250);
+  }
+}
+
+void loop() {
+}
+```
+
+```bash
+kit layout circuits/tune tune.json
+```
+
+```bash
+kit simulate circuits/tune --run 1.2
+```
+
+```text
+  BZ1 (buzzer): beeps 3.99 Hz (every 250 ms), sounding 66 % of the time · beeps: 4 · 4 notes: 262 Hz at 103 ms for 197 ms, 294 Hz at 350 ms for 199 ms, 330 Hz at 603 ms for 195 ms, 349 Hz at 851 ms for 199 ms
+  U1.D8 (pin): on 33 % of the time · changes: 495 · plays 4 notes, 262 Hz to 349 Hz
+```
+
+A rhythm faster than the run's steps is measured again in a shorter run, and its line says so
+(`measured in the first 200 ms in steps of 10 µs`); one the kit cannot follow has no figure and a
+note saying how short a `--run` measures it ([warnings.md](warnings.md)).
+
 ## When the run does not show what was asked
 
 If the run shows the opposite of the request (the LED stays off at 10 cm), the circuit or the

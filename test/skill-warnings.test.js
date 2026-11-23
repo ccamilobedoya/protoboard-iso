@@ -47,7 +47,7 @@ test('warnings.md: each spec is laid out and prints the lines quoted after it', 
       quoted++;
     }
   }
-  assert.equal(specs, 8);
+  assert.equal(specs, 11);
   // The buzzer in backwards is also an output that never comes on (its line names the kit, so it is
   // said in prose, not quoted in a block the plugin test reads as commands).
   const buzzer = JSON.parse(blocks.filter((b) => b.lang === 'json')[1].body);

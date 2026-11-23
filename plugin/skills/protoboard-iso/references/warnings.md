@@ -202,6 +202,86 @@ the datasheet does not guarantee it. Feed the chip from the board's `3V3`, or us
   ⚠ warning: U2: its input SER gets 3.3 V from a board's pin, between the 1.5 V and 3.49 V the datasheet guarantees as low and high. The kit reads it as high here (a real chip switches near half its supply), but the datasheet does not guarantee it: a 3.3 V pin into a chip fed 5 V. Feed the chip from the board's 3.3 V, or use a level shifter.
 ```
 
+## A board on USB past what the port gives
+
+A board on USB gives at most 500 mA in all (a USB 2.0 port; an UNO's resettable fuse too), and an
+UNO's `3V3` pin at most the 150 mA of its regulator. Past it, a ⚠ on its USB pin says what happens;
+the kit proposes no resistor in the supply for it. Feed the load from its own supply (a battery, a
+bench supply) and keep the board's ground joined to it.
+
+```json
+{
+  "parts": [
+    { "id": "U1", "part": "UNO", "program": "void setup() {\n  pinMode(8, OUTPUT);\n  digitalWrite(8, HIGH);\n}\n\nvoid loop() {\n}" },
+    { "id": "R1", "type": "resistor", "value": "1k" },
+    { "id": "Q1", "part": "TIP120" },
+    { "id": "R2", "type": "resistor", "value": "8.2", "power": "10" }
+  ],
+  "nets": [["U1.D8", "R1.1"], ["R1.2", "Q1.B"], ["U1.5V", "R2.1"], ["R2.2", "Q1.C"], ["Q1.E", "U1.GND"]]
+}
+```
+
+```text
+  ⚠ warning: U1.5V gives 542 mA from USB, more than the 500 mA a USB port gives: the board's 500 mA resettable fuse opens, and the board switches off until it cools (the computer's port may shut down first).
+The kit has no computed fix for this.
+```
+
+## A chip fed less than its signals
+
+A 74HC595 or a CD4017 fed 3.3 V and driven by an UNO's 5 V pins: every input the board drives high
+is a ⚠ (the clock that `shiftOut` pulses too), and the line says the chip is fed less than the
+signal that drives it. With a rail at the signals' voltage in the circuit, the fix feeds the chip
+from it (`resupply`); `kit layout <folder> --fix` (connector: `fix: true`) applies it.
+
+```json
+{
+  "parts": [
+    { "id": "U1", "part": "UNO", "program": "int n = 0;\nvoid setup() { pinMode(11, OUTPUT); pinMode(12, OUTPUT); pinMode(8, OUTPUT); }\nvoid loop() { digitalWrite(8, LOW); shiftOut(11, 12, MSBFIRST, n); digitalWrite(8, HIGH); n = (n + 1) % 256; delay(100); }" },
+    { "id": "U2", "part": "74HC595" },
+    { "id": "R1", "type": "resistor", "value": "1k" },
+    { "id": "D1", "type": "led", "color": "red" }
+  ],
+  "nets": [["U1.3V3", "U2.VCC"], ["U1.GND", "U2.GND", "U2.OE", "D1.K"], ["U1.D11", "U2.SER"], ["U1.D12", "U2.SRCLK"], ["U1.D8", "U2.RCLK"], ["U2.QA", "R1.1"], ["R1.2", "D1.A"], ["U1.5V", "U2.SRCLR"]]
+}
+```
+
+```text
+  ⚠ warning: U2.SRCLK has 4.99 V on it, more than its maximum 3.8 V: it can be damaged. The chip is fed 3.3 V, less than the signal that drives it: feed it from the signal's voltage, or drive it with 3.3 V signals, with D12 high.
+To fix it: feed U2 from U1.5V (4.99 V, the voltage of the signals that drive it): move its VCC there; that clears every hazard above.
+```
+
+Then `kit layout <folder> --fix` prints:
+
+```text fix
+Applied the fix: U2 fed from U1.5V (its VCC moved there).
+```
+
+## A serial line that carries no data
+
+A board's RX reads another board's TX only when the TX's high and low reach it as a high and a low
+for it, through the wire or the resistors between (a 1 kΩ over 2 kΩ divider from an UNO's 5 V to an
+ESP32's 3.3 V does). When the path does not, a ⚠ says so, and no byte arrives in a run: the
+receiving sketch prints nothing of it. Tell the user, with the path the line proposes.
+
+```json
+{
+  "parts": [
+    { "id": "U1", "part": "UNO", "program": "void setup() {\n  Serial.begin(9600);\n}\n\nvoid loop() {\n  Serial.println(24.9, 1);\n  delay(1000);\n}" },
+    { "id": "U2", "part": "ESP32-DEVKIT", "program": "void setup() {\n  Serial.begin(115200);\n  Serial2.begin(9600, SERIAL_8N1, 16, 17);\n}\n\nvoid loop() {\n  if (Serial2.available()) {\n    String line = Serial2.readStringUntil('\\n');\n    Serial.println(line);\n  }\n}" },
+    { "id": "R1", "type": "resistor", "value": "10k" },
+    { "id": "R2", "type": "resistor", "value": "1k" }
+  ],
+  "nets": [["U1.GND", "U2.GND", "R2.2"], ["U1.D1", "R1.1"], ["R1.2", "U2.RX2", "R2.1"]]
+}
+```
+
+```text
+  ⚠ warning: U2: Serial2 reads its RX pin RX2, which U1's TX reaches through the circuit at 453 mV when it idles high and 0 V when it sends a 0: this board reads above 2.47 V as high and below 825 mV as low, so the line cannot carry data and no byte arrives. Change the path (a divider of about 1 kΩ over 2 kΩ from 5 V to 3.3 V, or a direct wire between boards of the same voltage).
+```
+
+A sketch that reads `Serial` with nothing typed to it is a note, not a ⚠: type to it with
+`--serial` ([run-it.md](run-it.md)).
+
 ## A damaged history
 
 Not a ⚠ but a refusal: when the circuit's `history.jsonl` has a line the kit cannot read, `apply`

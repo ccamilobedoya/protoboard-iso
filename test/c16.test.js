@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { autoLayout } from './layout-generous.js';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { autoLayout as layoutAtBudget, formatLayout } from '../src/layout.js';
@@ -99,12 +99,12 @@ test('a print exactly at the end of a run is in the run: every 500 ms in 1 s pri
 // A circuit saved with parts left out (a layout stopped at its budget): simulate and review said
 // nothing of them, so a run or an APPROVED read as the whole circuit's.
 test('simulate and review on a circuit saved with parts left out name them on their first line', () => {
-  const parts = Array.from({ length: 12 }, (_, i) => ({ id: `R${i + 1}`, type: 'resistor', value: '1k' }));
-  const nets = parts.slice(1).map((p, i) => [`R${i + 1}.2`, `${p.id}.1`]);
-  // A budget of a few placements (counted in work, the same on every machine) places R1 only.
-  const r = layoutAtBudget({ parts, nets, supplies: [{ id: 'V1', voltage: 5, p: 'R1.1', n: 'R12.2' }] }, { budget: 0.05 });
-  const left = r.circuit.spec.unplaced.map((p) => p.id);
-  assert.ok(left.length > 0 && left.length < parts.length, JSON.stringify(left));
+  // A layout that left R2 and R3 out saves them, as asked and without holes, in spec.unplaced (as
+  // test/layout-hard.test.js shows at a small budget): the same circuit, written so here, whatever
+  // the machine's clock.
+  const whole = layoutAtBudget({ parts: [{ id: 'R1', type: 'resistor', value: '1k' }, { id: 'R2', type: 'resistor', value: '1k' }, { id: 'R3', type: 'resistor', value: '1k' }], nets: [['T+', 'R1.1'], ['R1.2', 'R2.1'], ['R2.2', 'R3.1'], ['R3.2', 'T-']], supplies: [{ id: 'V1', voltage: 5 }] }).circuit;
+  const left = ['R2', 'R3'];
+  const r = { circuit: { ...whole, parts: whole.parts.filter((p) => !left.includes(p.id)), spec: { ...whole.spec, unplaced: left.map((id) => ({ id, type: 'resistor', value: '1k' })) } } };
   const dir = tempDir('pb-c16-unplaced-');
   mkdirSync(join(dir, 'c'));
   writeFileSync(join(dir, 'c', 'circuit.json'), JSON.stringify(r.circuit));
@@ -142,4 +142,31 @@ test('layout --fix applies the resupply fix, says so, and ends with no hazard', 
   const r = JSON.parse(kit(dir, 'review', 'shift', '--json').stdout);
   assert.deepEqual(r.hazards, []);
   assert.match(t('es', 'layout.fixApplied.resupply', { part: 'U2', rail: 'U1.5V', pin: 'VCC' }), /U2/);
+});
+
+// ── 3. What the skill says the three branches changed, as the kit prints it ────────────────────
+
+const skillFile = (f) => readFileSync(new URL(`../plugin-src/${f}`, import.meta.url), 'utf8');
+
+test('the skill points at --serial and at parts left off the board, inside its size', () => {
+  const skill = skillFile('SKILL.md');
+  assert.match(skill, /`--serial 1@0\.5` types to a board/);
+  assert.match(skill, /A part that "found no place" is off the board: say so\./);
+  assert.match(t('en', 'check.LAYOUT_PART_FAILED', { part: 'R4' }), /^R4 found no place/);
+  // operations.md's lines are the kit's: the first line of review on such a circuit, the arrow.
+  const ops = skillFile('references/operations.md');
+  assert.match(ops, /`Not on the board: R4, R5\. …`/);
+  assert.ok(t('en', 'spec.unplaced', { parts: 'R4, R5' }).startsWith('Not on the board: R4, R5. '));
+  assert.match(t('en', 'layout.next.board', {}), /^→ next /);
+  // The rule moved out of SKILL.md is in chips.md.
+  assert.match(skillFile('references/chips.md'), /A logic input switches at about half the chip's supply/);
+});
+
+test('beyond-the-kit.md: the asks it names say what it quotes', () => {
+  const text = skillFile('references/beyond-the-kit.md').replace(/\s+/g, ' ');
+  const say = (name) => kit(tempDir('pb-c16-ask-'), 'catalog', name).stdout;
+  assert.match(say('keypad'), /Nearest it has: push buttons \(type button\), one per key, each on a board's pin\./);
+  assert.ok(text.includes('"Nearest it has: push buttons (type button), one per key, each on a board\'s pin."'));
+  for (const name of ['28BYJ-48', 'OLED', 'joystick', 'HC-05', 'ESP8266']) assert.match(say(name), /Nearest it has: /, name);
+  for (const name of ['SD card', 'DS3231', 'HX711']) assert.match(say(name), /Nothing near: /, name);
 });

@@ -47,6 +47,9 @@ fields.
   [sketch.md](sketch.md); a function the kit does not know (one that list does not have, a
   library's) is a ⚠ under "The kit cannot confirm these work": the program runs only as far as the
   kit can follow. Check what it does with `kit simulate <folder> --run <s>` ([run-it.md](run-it.md)).
+- **Relays and switches beside the board** (a relay module, a rocker switch) lie along its edge,
+  side by side, each slid along by its own width when it would land on another: four relays on a
+  ULN2003 or a board's pins lay out like one.
 - **Is it simulated?** Before building with a part you have not used, `kit catalog <name>`: a
   `Simulated: …` line says what its model covers and leaves out; `Not simulated` means the kit draws
   and wires it but checks nothing about it. Today every chip is simulated; the one part drawn only is

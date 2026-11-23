@@ -125,6 +125,10 @@ componente, los componentes más altos o más anchos de primero, cada uno desde 
 cada ✖ que queda termina con el único cambio de la especificación que probaría después (`→ lo
 siguiente que probaría el kit: …`); el agente de montaje hace ese cambio en una llamada antes de
 arreglar con operaciones ([montaje-automatico.md](montaje-automatico.md#lo-que-prueba-el-montaje-antes-de-changes-desde-el-2026-11-20)).
+Nunca ofrece un cambio que ya probó. Un componente para el que no encontró lugar queda por fuera de
+la protoboard y guardado en `spec.unplaced` del circuito; desde entonces `review` y `simulate`
+empiezan con `No están en la protoboard: …`, que el revisor trata como bloqueante (desde el 2026-11-23). Los
+dos agentes corren un programa que lee `Serial` con `serial` (`--serial`).
 
 Desde el 2026-10-20 (pensando en modelos pequeños): el archivo del agente empieza eligiendo camino
 (A: `layout` para un circuito nuevo; B: operaciones para cambios y arreglos) en vez de un solo ciclo

@@ -46,8 +46,9 @@ Use the `protoboard-iso` MCP tools; if they are missing, the CLI from the reposi
   the same verdict: report each one as written, never "it works". A `Note:` (a supply written
   negative) is reported as printed; a figure said "about" as approximate.
 - With a program, a sensor or an oscillator, check what the brief says it does: `simulate` with
-  `run_s` and the brief's conditions (`environment`, `set`, `press`, `at`; CLI `simulate --run`).
-  An output that does not do what the brief says (an LED that stays off at the distance it should
+  `run_s` and the brief's conditions (`environment`, `set`, `press`, `at`, `serial` for text typed
+  to a board; CLI `simulate --run`). An answer that starts `Not on the board:` names parts the
+  layout left off: blocking. An output that does not do what the brief says (an LED that stays off at the distance it should
   light) is blocking, named with the run's line; behaviour (on/off, frequency, Serial lines) is not
   a value a learner predicts.
   Otherwise report warnings only, **never values** (a value may be waiting

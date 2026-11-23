@@ -5,6 +5,9 @@ each: its pins, what the kit models and its limits (as `kit catalog <part>` prin
 beginner gets wrong, and a worked spec that `layout` builds to `STATUS: DONE`. A pin left out of the
 nets is open: on the 74HC595 and the CD4017 an open input is a ⚠ (the kit reads it low), so tie
 every control input to a rail. A chip whose supply pins are not wired is a ⚠ too ("has no supply").
+A logic input switches at about half the chip's supply; a level between the two the datasheet
+guarantees is a ⚠ (the kit cannot vouch for it), and one over the supply is damage. The review
+follows what the 74HC595 and the CD4017 latch: it visits the states a program clocks into them.
 
 ## 74HC595 shift register: eight outputs from three board pins
 
@@ -412,7 +415,8 @@ kit simulate circuits/amp --transient 5m,10u
 Transient from capacitors discharged — a model, not a measurement: 5 ms solved in steps of 10 µs; the table shows 11 of its 251 samples, 20 µs apart (--json has them all).
 ```
 
-Driven too hard (0.4 V instead of 50 mV) it clips. A run judges a power limit on its average over
+Driven too hard (0.4 V instead of 50 mV) it clips, and a run (or a transient) where it is clipped
+for a fifth of the time or more says so in one note with its swing. A run judges a power limit on its average over
 the run, not on its peaks: the 8 Ω load is over its 1 W on average and is warned; the chip passes its
 1.25 W only at instants and is not. A voltage limit stays instantaneous (`IN+` at its strongest):
 
@@ -423,4 +427,7 @@ kit simulate circuits/amp --run 0.05 --set G1.amplitude=0.4
 ```text
   warning: U1.IN+ has 422 mV on it, more than its maximum 400 mV: it can be damaged, at its strongest in the run, at 750 µs.
   warning: R1 dissipates 1.12 W, more than its 1 W: it overheats, on average over the run, from 250 µs to 50 ms.
+  note: U1's output is clipped against its rails 50 % of the time (it swings from 1.11 V to 7.88 V): the signal is too large for this gain and supply, so what it drives is distorted. A smaller input or a lower gain keeps it linear.
 ```
+
+Tell the user the sound would be distorted, and the note's way out (a smaller input or a lower gain).
