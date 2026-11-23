@@ -103,7 +103,7 @@ kit simulate circuits/shift --run 1.25
 
 <!-- generated: CD4017 (npm run parts-reference -- --write) -->
 - Pins, from pin 1 round the chip (`kit catalog CD4017`): `Q5` `Q1` `Q0` `Q2` `Q6` `Q7` `Q3` `VSS` `Q8` `Q4` `Q9` `CO` `CE` `CLK` `MR` `VDD`
-- Simulated: CLK rising (CE low) advances the count, CE high holds it, MR high resets it to 0 at once; one of Q0…Q9 high, CO high for counts 0 to 4; a Qn wired to MR makes it count to n (the reset takes one time step); inputs switch near half the supply, the clock with a Schmitt band (guaranteed only under 0.3·VDD and over 0.7·VDD a level between is a doubt; more than 0.5 V over the supply is a hazard); outputs about 400 Ω near the rail at 5 V (192 Ω at 10 V), levelling off at about 3 mA at 5 V, so an LED straight on an output takes about 3 mA at 5 V (above 10 V the kit's figure likely overestimates a real chip's). At power-up the kit counts from 0 (a real chip's count is undefined until MR is pulsed); the kit's buttons do not bounce, a real one on CLK needs a debounce. Not modelled: propagation delays and the maximum clock rate.
+- Simulated: CLK rising (CE low) advances the count, CE high holds it, MR high resets it to 0 at once; one of Q0…Q9 high, CO high for counts 0 to 4; a Qn wired to MR makes it count to n (the reset takes one time step); inputs switch near half the supply, the clock with a Schmitt band (guaranteed only under 0.3·VDD and over 0.7·VDD a level between is a doubt; more than 0.5 V over the supply is a hazard); outputs about 400 Ω near the rail at 5 V (192 Ω at 10 V), levelling off at about 3 mA at 5 V, so an LED straight on an output takes, as the kit computes it, about 3.3 mA at 5 V, 15 mA at 9 V (over the chip's power: a ⚠) and 28 mA at 12 V; above 10 V the kit's figure likely overestimates a real chip's, whose datasheet gives a few mA. At power-up the kit counts from 0 (a real chip's count is undefined until MR is pulsed); the kit's buttons do not bounce, a real one on CLK needs a debounce. Not modelled: propagation delays and the maximum clock rate.
 - Limits (the simulator's): maximum voltage 20 V (supply) · maximum power 100 mW (Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8, Q9, CO) (output) · maximum power 500 mW · maximum reverse voltage 500 mV (supply)
 <!-- /generated -->
 
@@ -115,7 +115,9 @@ Wire it right:
 - `CLK` from a 555's `OUT` (an astable) or a board pin. A real button on `CLK` needs a debounce;
   the kit's buttons do not bounce, so the kit does not show that.
 - `VDD` to + (3 to 18 V), `VSS` to −. From 18 V to 20 V it is past its recommended range (a ⚠);
-  over 20 V it can be damaged. An output gives only a few mA; a resistor in series with each
+  over 20 V it can be damaged. An LED straight on an output takes, as the kit computes it, about
+  3.3 mA at 5 V, 15 mA at 9 V (over the chip's power, a ⚠) and 28 mA at 12 V; above 10 V the kit
+  likely overestimates a real chip, whose datasheet gives a few mA. A resistor in series with each
   LED keeps it in its rating.
 
 Worked spec: a 555 clocking three LEDs.

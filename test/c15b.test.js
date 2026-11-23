@@ -301,3 +301,22 @@ test('a run\'s Serial cut in the text says so on its heading and names --json', 
   const r = runCircuit(recipe('uno-distance'), { seconds: 3 });
   assert.match(text(r), /\nSerial \(\d+ lines, in order; the first and last 5 here, --json has \d+ of them\):\n/);
 });
+
+// ── 7. The CD4017's drive, said as it is ────────────────────────────────────────────────
+
+// chips.md said "about 3 mA at 5 V" and an LED on a CD4017 at 9 V took 9.6 to 11.3 mA with nothing
+// said. The catalog's line and the reference now give the kit's own figures at 5, 9 and 12 V.
+test('the CD4017\'s figures for an LED straight on an output are the ones the kit computes, at 5, 9 and 12 V', async () => {
+  const { simulate } = await import('../src/sim/index.js');
+  const { catalogEntry, formatCatalogEntry } = await import('../src/node/catalog.js');
+  const { readFileSync } = await import('node:fs');
+  const said = { 5: 3.3, 9: 15, 12: 28 };
+  for (const [v, mA] of Object.entries(said)) {
+    const r = autoLayout({ supplies: [{ id: 'V1', voltage: Number(v) }], parts: [{ id: 'U1', part: 'CD4017' }, { id: 'D1', type: 'led', color: 'red' }], nets: [['T+', 'U1.VDD'], ['T-', 'U1.VSS', 'U1.MR', 'U1.CE', 'U1.CLK', 'D1.K'], ['U1.Q0', 'D1.A']] });
+    const got = simulate(r.circuit).parts.D1.current * 1e3;
+    assert.ok(Math.abs(got / mA - 1) < 0.1, `${v} V: ${got} mA, said ${mA}`);
+  }
+  const line = formatCatalogEntry(catalogEntry('CD4017', 'en'), 'en');
+  assert.match(line, /about 3\.3 mA at 5 V, 15 mA at 9 V \(over the chip's power: a ⚠\) and 28 mA at 12 V; above 10 V the kit's figure likely overestimates/);
+  assert.match(readFileSync(new URL('../plugin-src/references/chips.md', import.meta.url), 'utf8'), /3\.3 mA at 5 V, 15 mA at 9 V \(over the chip's power, a ⚠\) and 28 mA at 12 V/);
+});
