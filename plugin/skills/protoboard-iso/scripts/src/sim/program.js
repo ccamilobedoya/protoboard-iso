@@ -231,7 +231,9 @@ export function createRunner(js, board) {
     const start = runner.time + owed; // the line's time: when it starts out
     transmit(port, wire);
     const partial = k === 0 ? runner.line : port.line;
-    const parts = (partial + text).split('\n').map((p) => p.slice(0, LINE_MAX));
+    // A "\r" (println's, or one received and printed again) moves nothing in the log: a terminal's
+    // carriage return; the wire keeps it.
+    const parts = (partial + text.replaceAll('\r', '')).split('\n').map((p) => p.slice(0, LINE_MAX));
     if (k === 0) runner.line = parts.pop();
     else port.line = parts.pop();
     if (k > 0) for (let j = 0; j < parts.length; j++) parts[j] = `Serial${k}: ${parts[j]}`;
@@ -616,8 +618,13 @@ export function createRunner(js, board) {
   // output, high); what arrives is read by the time each byte is through.
   function portApi(k) {
     const port = ports[k];
-    const arrived = () => port.inbox.filter((b) => b.at <= runner.time + 1e-12);
+    // Whether the program reads this port (a board whose RX pin gets nothing is told so, devices/mcu.js).
+    const arrived = () => {
+      port.reads = true;
+      return port.inbox.filter((b) => b.at <= runner.time + 1e-12);
+    };
     const take = () => {
+      port.reads = true;
       const i = port.inbox.findIndex((b) => b.at <= runner.time + 1e-12);
       return i < 0 ? -1 : port.inbox.splice(i, 1)[0].byte;
     };

@@ -6,6 +6,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { translateSketch } from '../src/sim/sketch.js';
 import { createRunner } from '../src/sim/program.js';
+import { autoLayout } from './layout-generous.js';
+import { runCircuit } from './run-generous.js';
+import { formatIssue } from '../src/index.js';
 
 // A sketch run for a moment on a board of a family with nothing wired: what it printed and noted.
 function runSketch(source, { family = 'uno', seconds = 0.01 } = {}) {
@@ -74,4 +77,51 @@ test('a bit macro on something that is not a variable is what a compiler refuses
   assert.deepEqual(codes(r.issues), ['SIM_PROGRAM_NOT_LVALUE', 'SIM_PROGRAM_NOT_LVALUE']);
   assert.deepEqual(r.issues.map((i) => [i.name, i.line]), [['bitSet', 3], ['bitClear', 4]]);
   assert.deepEqual(r.log, ['7']);
+});
+
+// ---- A serial line follows the wire: an UNO's TX into an ESP32's RX2, the ESP32 printing what it gets.
+const TX = 'void setup() { Serial.begin(9600); }\nvoid loop() { Serial.println(24.9, 1); delay(1000); }';
+const RX = "void setup() { Serial.begin(115200); Serial2.begin(9600, SERIAL_8N1, 16, 17); }\nvoid loop() { if (Serial2.available()) { String line = Serial2.readStringUntil('\\n'); Serial.print(\"Temperature: \"); Serial.println(line); } }";
+function link(path) {
+  const parts = [{ id: 'U1', part: 'UNO', program: TX }, { id: 'U2', part: 'ESP32-DEVKIT', program: RX }];
+  const nets = [['U1.GND', 'U2.GND']];
+  if (path === 'wire') nets.push(['U1.D1', 'U2.RX2']);
+  else if (path === 'none') {
+    parts.push({ id: 'R2', type: 'resistor', value: '10k' });
+    nets.push(['U2.RX2', 'R2.1'], ['R2.2', 'U1.GND']);
+  } else {
+    const [top, bottom] = path;
+    parts.push({ id: 'R1', type: 'resistor', value: top });
+    if (bottom) parts.push({ id: 'R2', type: 'resistor', value: bottom });
+    nets.push(['U1.D1', 'R1.1'], bottom ? ['R1.2', 'U2.RX2', 'R2.1'] : ['R1.2', 'U2.RX2']);
+    if (bottom) nets.push(['R2.2', 'U1.GND']);
+  }
+  const laid = autoLayout({ parts, nets }, { lang: 'en' });
+  const run = runCircuit(laid.circuit, { seconds: 1.5 });
+  const all = [...(laid.review?.doubts ?? []), ...(laid.review?.hazards ?? []), ...(run.issues ?? [])];
+  return { status: laid.status, got: run.serial.lines.filter((l) => l.board === 'U2').map((l) => l.text), codes: [...new Set(all.map((i) => i.code))], text: all.map((i) => formatIssue(i, 'en')) };
+}
+
+test('serial: bytes arrive through a 1k/2k divider and through a series resistor, as on the wire', () => {
+  const divider = link(['1k', '2k']);
+  assert.deepEqual(divider.got, ['Temperature: 24.9', 'Temperature: 24.9'], 'a received \\r is shown as nothing');
+  assert.equal(divider.status, 'done');
+  assert.ok(!divider.codes.includes('SIM_PIN_OVERVOLTAGE'), 'the divider keeps RX2 at 3.3 V: no 5 V hazard');
+  assert.deepEqual(link(['1k']).got, ['Temperature: 24.9', 'Temperature: 24.9']);
+  // The direct wire still carries data, and still warns of 5 V into a 3.3 V pin.
+  const wire = link('wire');
+  assert.deepEqual(wire.got, ['Temperature: 24.9', 'Temperature: 24.9']);
+  assert.ok(wire.codes.includes('SIM_PIN_OVERVOLTAGE'), JSON.stringify(wire.codes));
+});
+
+test('serial: a path that never gives RX both levels, or no TX at all, is a doubt that says why', () => {
+  const weak = link(['10k', '1k']);
+  assert.deepEqual(weak.got, []);
+  assert.equal(weak.status, 'warnings');
+  const why = weak.text.find((t) => t.includes('SIM_SERIAL') || t.includes('cannot carry data'));
+  assert.match(why, /U2: Serial2 reads its RX pin RX2, which U1's TX reaches through the circuit at 453 mV when it idles high and 0 V when it sends a 0/);
+  const none = link('none');
+  assert.deepEqual(none.got, []);
+  assert.ok(none.codes.includes('SIM_SERIAL_NO_TX'), JSON.stringify(none.codes));
+  assert.match(none.text.find((t) => t.includes('nothing on that pin sends')), /--serial/);
 });

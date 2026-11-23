@@ -22,6 +22,115 @@ const MODES = { high: { mode: 'output', level: 1 }, low: { mode: 'output', level
 // Over this current (1 mA) an output pin's reading names its output resistance [assumed].
 const LOADED_PIN = 1e-3;
 
+// A serial link from a TX node to an RX node (devices/mcu.js, linkOf): the RX node's DC voltage with
+// the TX node held at its high and at its low, the rest of the circuit as the solution x has it. The
+// path is made of the linear two-terminal elements (resistors, wires; at DC a capacitor is open and an
+// inductor a short): each is probed for its conductance. A node with anything else on it (a source, a
+// pin, a chip) keeps the voltage x gives it; the RX pin's own stage counts only by its pull. Returns
+// null without both nodes, { ok, reaches, high, low, vih, vil } otherwise: `reaches` whether the TX
+// node is on the RX node's passive path at all, `ok` whether its two levels read as a high and a low.
+function serialLink({ rx, tx, net, x, elements, own, pull, vdd, gnd, levels, m }) {
+  if (rx == null || tx == null) return null;
+  const at = (i) => (i >= 0 ? (x[i] ?? 0) : 0);
+  const rail = at(vdd) - at(gnd);
+  // Volts to the millivolt: a level is said as a pin reads it (2 µV is 0 V).
+  const mv = (v) => Math.round(v * 1e3) / 1e3 || 0;
+  const judge = (high, low) => ({ ok: (high - at(gnd)) / rail > m.vih && (low - at(gnd)) / rail < m.vil, reaches: true, high: mv(high - at(gnd)), low: mv(low - at(gnd)), vih: m.vih * rail, vil: m.vil * rail });
+  if (net(rx) === net(tx)) return judge(levels.high, levels.low);
+  const size = x.length;
+  const probe = (el, a, b, va) => {
+    const v = new Array(size).fill(0);
+    if (a >= 0) v[a] = va;
+    return el.currents(v, {})[0];
+  };
+  const edges = [];
+  const fixed = new Set([-1]);
+  const skip = new Set(own);
+  for (const el of elements) {
+    if (skip.has(el) || !el.nodes?.length || typeof el.currents !== 'function') continue;
+    let linear = false;
+    if (el.nodes.length === 2 && el.nodes[0] !== el.nodes[1]) {
+      const [a, b] = el.nodes;
+      try {
+        const g = probe(el, a, b, 1);
+        linear = Number.isFinite(g) && Math.abs(probe(el, a, b, 2) - 2 * g) <= 1e-9 * Math.abs(g) + 1e-18 && Math.abs(probe(el, a, b, -1) + g) <= 1e-9 * Math.abs(g) + 1e-18 && a >= 0;
+        if (linear && g > 0) edges.push([a, b, g]);
+      } catch {
+        linear = false;
+      }
+    }
+    if (!linear) for (const n of el.nodes) fixed.add(n);
+  }
+  fixed.add(tx);
+  fixed.delete(rx);
+  const near = new Map();
+  for (const [a, b, g] of edges) {
+    for (const [u, w] of [[a, b], [b, a]]) {
+      if (!near.has(u)) near.set(u, []);
+      near.get(u).push([w, g]);
+    }
+  }
+  // The nodes whose voltage the TX level moves: from the RX node through the path, up to fixed nodes.
+  const unknown = [rx];
+  const index = new Map([[rx, 0]]);
+  let reaches = false;
+  for (let k = 0; k < unknown.length; k++) {
+    for (const [w] of near.get(unknown[k]) ?? []) {
+      if (w === tx) reaches = true;
+      if (fixed.has(w) || index.has(w)) continue;
+      index.set(w, unknown.length);
+      unknown.push(w);
+    }
+  }
+  if (!reaches) return { ok: false, reaches: false };
+  const solveAt = (level) => {
+    const n = unknown.length;
+    const G = Array.from({ length: n }, () => new Array(n).fill(0));
+    const rhs = new Array(n).fill(0);
+    const value = (node) => (node === tx ? level : at(node));
+    for (const [a, b, g] of edges) {
+      const ia = index.get(a);
+      const ib = index.get(b);
+      if (ia != null) {
+        G[ia][ia] += g;
+        if (ib != null) G[ia][ib] -= g;
+        else rhs[ia] += g * value(b);
+      }
+      if (ib != null) {
+        G[ib][ib] += g;
+        if (ia != null) G[ib][ia] -= g;
+        else rhs[ib] += g * value(a);
+      }
+    }
+    if (pull?.pull === 'up' || pull?.pull === 'down') {
+      G[0][0] += 1 / m.pull;
+      rhs[0] += (1 / m.pull) * at(pull.pull === 'up' ? vdd : gnd);
+    }
+    // Gaussian elimination with partial pivoting (a few nodes).
+    for (let c = 0; c < n; c++) {
+      let best = c;
+      for (let r = c + 1; r < n; r++) if (Math.abs(G[r][c]) > Math.abs(G[best][c])) best = r;
+      [G[c], G[best]] = [G[best], G[c]];
+      [rhs[c], rhs[best]] = [rhs[best], rhs[c]];
+      if (Math.abs(G[c][c]) < 1e-30) continue;
+      for (let r = c + 1; r < n; r++) {
+        const f = G[r][c] / G[c][c];
+        if (!f) continue;
+        for (let j = c; j < n; j++) G[r][j] -= f * G[c][j];
+        rhs[r] -= f * rhs[c];
+      }
+    }
+    const v = new Array(n).fill(0);
+    for (let r = n - 1; r >= 0; r--) {
+      let sum = rhs[r];
+      for (let j = r + 1; j < n; j++) sum -= G[r][j] * v[j];
+      v[r] = Math.abs(G[r][r]) < 1e-30 ? 0 : sum / G[r][r];
+    }
+    return v[0];
+  };
+  return judge(solveAt(levels.high), solveAt(levels.low));
+}
+
 export const mcu = {
   types: ['module'],
   kind: 'MCU',
@@ -82,6 +191,7 @@ export const mcu = {
     // pin states reach the stages before they stamp. It runs when a step is accepted, from that
     // step's voltages; `settle` runs it at t = 0 (setup, then loop until it waits).
     const byGpio = new Map();
+    const pinParts = new Map(); // gpio → its stage and protection diodes (a link's RX side, serialLink)
     if (p.sketch) {
       const states = Object.fromEntries(p.gpios.filter((g) => g.state).map((g) => [g.gpio, g.state]));
       // A pin held by engine.drive (the hazard check's "with D10 high") keeps its level whatever the
@@ -137,17 +247,41 @@ export const mcu = {
         return best;
       };
       const fresh = () => createRunner(p.sketch, { family: p.family, states, read, ask, i2c, pins: p.numbers, vil: m.vil, vih: m.vih, adcBits: m.adcBits, adcFull: m.adcFull, adcRef: m.adcRef });
-      // Serial lines to other boards: each port of this board whose RX pin shares a net with another
-      // board's TX pin hears what that board sends (program.js `hear`), both programs in the same run.
+      // Serial lines to other boards: each port of this board hears what another board's TX pin sends
+      // (program.js `hear`), both programs in the same run, when the TX pin's two levels arrive at its RX
+      // pin as a high and a low for this board: on one net, or through a passive path (a series
+      // resistor, a divider), judged once per link from the DC solution with the TX pin held at each
+      // level (linkOf). No bit is simulated.
       let peers = [];
+      let everything = [];
+      const links = new Map();
+      const linkOf = (rxGpio, peer, txGpio) => {
+        const key = `${rxGpio}|${peers.indexOf(peer)}|${txGpio}`;
+        if (!links.has(key)) {
+          const x = entry.ctrl.x;
+          if (!x) return null;
+          links.set(key, serialLink({ rx: nodeOfGpio(rxGpio), tx: peer.nodeOfTx(txGpio), net, x, elements: everything, own: pinParts.get(Math.trunc(Number(rxGpio))) ?? [], pull: byGpio.get(Math.trunc(Number(rxGpio))), vdd: entry.vdd, gnd, levels: peer.txLevels(), m }));
+        }
+        return links.get(key);
+      };
+      // Each port's links: [{ peer, port, link }] for every port of another board that has a TX pin.
+      const linksOf = (runner, k) => {
+        const port = runner.ports?.[k];
+        if (port?.rx == null || nodeOfGpio(port.rx) == null) return [];
+        const out = [];
+        for (const peer of peers) {
+          (peer.runner?.ports ?? []).forEach((theirs, j) => {
+            if (theirs.tx == null) return;
+            const link = linkOf(port.rx, peer, theirs.tx);
+            if (link) out.push({ peer, port: j, theirs, link });
+          });
+        }
+        return out;
+      };
       const hearPeers = (runner) => {
         if (!peers.length || !runner.ports) return;
-        runner.ports.forEach((port, k) => {
-          const rx = port.rx == null ? null : netOfGpio(port.rx);
-          if (rx == null) return;
-          for (const peer of peers) {
-            for (const theirs of peer.runner?.ports ?? []) if (theirs.tx != null && peer.netOfTx(theirs.tx) === rx) runner.hear(k, theirs);
-          }
+        runner.ports.forEach((_, k) => {
+          for (const { theirs, link } of linksOf(runner, k)) if (link.ok) runner.hear(k, theirs);
         });
       };
       entry.ctrl = h.add({
@@ -155,7 +289,25 @@ export const mcu = {
         links: [],
         x: null,
         serialBoard: true,
+        boardId: h.id,
         netOfTx: (gpio) => netOfGpio(gpio),
+        nodeOfTx: (gpio) => nodeOfGpio(gpio),
+        // A TX pin's two levels: the board's rail and its ground, now.
+        txLevels: () => ({ high: volt(entry.vdd), low: volt(gnd) }),
+        // The ports this board's program reads whose RX pin gets no data (limits() says why).
+        deaf() {
+          const out = [];
+          (this.runner.ports ?? []).forEach((port, k) => {
+            if (!port.reads || port.rx == null) return;
+            const all = linksOf(this.runner, k);
+            if (all.some((l) => l.link.ok)) return;
+            const wired = p.gpios.find((g) => g.gpio === port.rx)?.used;
+            const bad = all.find((l) => l.link.reaches);
+            if (bad) out.push({ k, rx: port.rx, peer: bad.peer.boardId, link: bad.link });
+            else if (wired) out.push({ k, rx: port.rx, peer: null, link: null });
+          });
+          return out;
+        },
         runner: fresh(),
         // Clocked chips listening to this board's pins (devices/logic.js): each change of a pin the
         // program makes reaches them at once, in order, with the volts it puts on the pin (a shiftOut's
@@ -226,6 +378,8 @@ export const mcu = {
         connect(elements) {
           sensors = elements.filter((el) => el.library && typeof el.answer === 'function');
           peers = elements.filter((el) => el.serialBoard && el !== this);
+          everything = elements;
+          links.clear();
           root.clear();
           for (const el of elements) {
             if (!el.joins) continue;
@@ -252,11 +406,13 @@ export const mcu = {
       }
       const stage = gpioStage({ pin: node, vdd: entry.vdd, gnd }, m, pin.state ?? {});
       byGpio.set(pin.gpio, stage);
-      return {
+      const parts = {
         stage: add(stage),
         up: add(junction(node, entry.vdd, ESD)),
         down: add(junction(gnd, node, ESD)),
       };
+      pinParts.set(pin.gpio, [parts.stage, parts.up, parts.down]);
+      return parts;
     });
     return entry;
   },
@@ -353,6 +509,13 @@ export const mcu = {
     for (const w of r.program?.warnings ?? []) {
       const { code, pin, ...rest } = w;
       out.push(note('warning', code, { part: entry.id, ...rest, ...(pin != null && { pin: typeof pin === 'number' && code !== 'SIM_PROGRAM_PIN_UNKNOWN' ? nameOf(pin) : String(pin) }), ...(rest.variant == null && { variant: entry.family }) }));
+    }
+    // A port the program reads whose RX pin gets no byte: a TX reaches it with levels this board does
+    // not read as a high and a low (SIM_SERIAL_LEVELS), or nothing that sends is wired to it.
+    for (const d of entry.ctrl?.deaf?.() ?? []) {
+      const port = d.k === 0 ? 'Serial' : `Serial${d.k}`;
+      if (d.link) out.push(note('warning', 'SIM_SERIAL_LEVELS', { part: entry.id, port, pin: nameOf(d.rx), peer: String(d.peer), high: q(d.link.high, 'V'), low: q(d.link.low, 'V'), vih: q(d.link.vih, 'V'), vil: q(d.link.vil, 'V') }));
+      else out.push(note('warning', 'SIM_SERIAL_NO_TX', { part: entry.id, port, pin: nameOf(d.rx) }));
     }
     if (r.rail != null && entry.power.logic !== entry.power.usb) out.push(stress('SIM_OVER_CURRENT', 'current', r.rail, m.regulator.maxCurrent, 'A', { of: 'regulator' }));
     // A supply pin below the ground pin (a battery the wrong way round): the board's power pin of the USB
