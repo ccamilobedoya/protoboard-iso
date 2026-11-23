@@ -401,3 +401,22 @@ test('simulate run_s: the same run, text and structure as simulate --run on the 
   assert.ok(bad.isError);
   assert.match(textOf(bad), /"nonsense" is not a field of the environment/);
 });
+
+test('simulate serial: text typed to a board in a run, as simulate --run … --serial; only with run_s', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const menu = "void setup() { Serial.begin(9600); pinMode(8, OUTPUT); Serial.println(\"Type 1 or 2\"); }\nvoid loop() { if (Serial.available() > 0) { char c = Serial.read(); if (c == '1') { digitalWrite(8, HIGH); Serial.println(\"LED 1 on\"); } } }";
+  const laid = await call('layout', { target: 'run-serial', parts: [{ id: 'U1', part: 'UNO', program: menu }, { id: 'R1', type: 'resistor', value: '220' }, { id: 'D1', type: 'led', color: 'red' }], nets: [['U1.D8', 'R1.1'], ['R1.2', 'D1.A'], ['D1.K', 'U1.GND']] });
+  assert.ok(!laid.isError, textOf(laid));
+  const args = { target: 'run-serial', run_s: 1, serial: ['1\\n@0.5'] };
+  const json = jsonOf(await call('simulate', { ...args, format: 'json' }));
+  assert.deepEqual(json.serial.lines.map((l) => l.text), ['Type 1 or 2', 'LED 1 on']);
+  const bin = new URL('../../bin/protoboard-iso.js', import.meta.url).pathname;
+  const cli = spawnSync(process.execPath, [bin, 'simulate', join(root, 'run-serial'), '--run', '1', '--serial', '1\\n@0.5'], { encoding: 'utf8' });
+  assert.equal(textOf(await call('simulate', args)), cli.stdout.trimEnd());
+  const dc = await call('simulate', { target: 'run-serial', serial: ['1@0.5'] });
+  assert.ok(dc.isError);
+  assert.match(textOf(dc), /serial works with --run/);
+  const bad = await call('simulate', { target: 'run-serial', run_s: 1, serial: ['1'] });
+  assert.ok(bad.isError);
+  assert.match(textOf(bad), /--serial/);
+});

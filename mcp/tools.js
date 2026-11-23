@@ -40,7 +40,7 @@ import { compile, createEngine } from '../src/sim/index.js';
 import { toFalstad } from '../src/sim/falstad.js';
 import { nets, formatNets } from '../src/nets.js';
 import { createBoard, boardLayout, BOARDS } from '../src/board/board.js';
-import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest, BUDGET_SECONDS } from '../src/layout.js';
+import { autoLayout, formatLayout, specFromCircuit, specProblems, fixRequest, BUDGET_SECONDS, withUnplaced, unplacedFirst } from '../src/layout.js';
 import { LIMITS } from '../src/limits.js';
 import { RECIPES, resolveRecipe } from '../src/recipes/index.js';
 import { formatBoardLayout } from '../src/board/layout-text.js';
@@ -174,7 +174,7 @@ export const INSTRUCTIONS = [
   'Operations: history and inspect (numbers, not pictures) → query / suggest → apply_ops with dry_run → apply_ops with expect_revision, author and note → review until APPROVED → undo if needed.',
   'Check: review is the definition of done (it also checks the nets of a circuit made by layout); netlist lists every net; simulate gives a model, and a value a learner must predict is never shown. render returns a PNG only when asked: images are slow to read.',
   'Holes: a1…j63 (row letter + column), rails T-, T+, B+, B- plus the column (T+9). Rows a–e of a column are connected, f–j too; each rail is one group. Board "double": two boards side by side for a wide development board across the joint, rows a–t (k–o, p–t on the back board), rails B± and U± (no T); layout picks it by itself when a DevKit would cover a pin\'s strip.',
-  'Microcontroller boards (ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO) are simulated pin by pin: on USB they are a source (no supplies needed), and each GPIO state goes in the part: "io": {"D13": "high", "D27": "input_pullup"} (high, low, input, input_pullup, input_pulldown), or it runs a program: "program": "blink.ino" (a file beside circuit.json) or the sketch\'s text (setup, loop, pinMode, digitalWrite, digitalRead, analogRead, analogWrite/ledcWrite PWM, tone, delay, millis, Serial).',
+  'Microcontroller boards (ESP32-DEVKIT, ESP32-C3-SUPERMINI, UNO) are simulated pin by pin: on USB they are a source (no supplies needed), and each GPIO state goes in the part: "io": {"D13": "high", "D27": "input_pullup"} (high, low, input, input_pullup, input_pulldown), or it runs a program: "program": "blink.ino" (a file beside circuit.json) or the sketch\'s text (Arduino\'s subset: setup, loop, pins, PWM, tone, delay, millis, Serial).',
   'The page out/<name>.html of a circuit with a source runs the simulation by default: values of the tapped part, oscilloscope, lit LEDs, and the Current button in the bar (not pressed). Turn it off with page.simulation false while a learner must predict a value (page.results false or page.flow false turn off one each).',
 ].join('\n');
 
@@ -455,8 +455,9 @@ server.registerTool(
   },
   safely(async ({ target, profile, views, explain, lang, format }) => {
     const { paths } = existing(target);
-    const result = review(loadCircuit(paths), { profile, views, lang, explain });
-    return answer(format, result, () => formatReview(result, lang, { t, formatIssue }));
+    const circuit = loadCircuit(paths);
+    const result = withUnplaced(circuit, review(circuit, { profile, views, lang, explain }));
+    return answer(format, result, () => unplacedFirst(result, lang, formatReview(result, lang, { t, formatIssue })));
   }),
 );
 
@@ -465,7 +466,7 @@ server.registerTool(
   {
     title: 'Simulate circuit',
     description:
-      'Node voltages and part currents from the circuit (a model, not a measurement). run_s: seconds run as the page runs it (environment, set, press "S1@0.5+0.2", at "1:light=9"): Serial, outputs, Hz. Needs a power source: "supplies" in the circuit (set them with apply_ops, op "circuit"; kind "generator" for a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop, step in s; start "zero" (discharged) or "dc" (resting point; a run\'s default). Warns about overloads, current limit, shorts, floating nodes; a laser\'s light reaches the light sensors. falstad: true adds the link that opens the same circuit in Falstad CircuitJS (DC state, parts Falstad lacks as equivalents, listed). Never show results a learner is asked to predict, and Falstad shows every value.',
+      'Node voltages and part currents from the circuit (a model, not a measurement). run_s: seconds run as the page runs it (environment, set, press "S1@0.5+0.2", at "1:light=9", serial "1@0.5" typed to a board): Serial, outputs, Hz. Needs a power source: "supplies" in the circuit (set with apply_ops op "circuit"; kind "generator", a signal generator: waveform, frequency, amplitude, offset) or a battery part (type "battery": format AA/AAA/18650/9V/pouch, chemistry, cells in series, charge). DC operating point by default; transient: stop, step in s; start "zero" (discharged) or "dc" (resting point; a run\'s default). Warns about overloads, current limit, shorts, floating nodes; a laser\'s light reaches the light sensors. falstad: true adds a link opening it in Falstad CircuitJS (DC state; parts it lacks as equivalents, listed). Never show a result a learner must predict; Falstad shows every value.',
     inputSchema: {
       target: targetArg,
       analysis: z.enum(['dc', 'transient']).optional(),
@@ -477,25 +478,27 @@ server.registerTool(
       set: z.any().optional(),
       press: z.array(z.string()).optional(),
       at: z.array(z.string()).optional(),
+      serial: z.array(z.string()).optional(),
       falstad: z.boolean().optional().describe('also the link that opens this circuit in Falstad CircuitJS'),
       ...common,
     },
     annotations: READ,
   },
-  safely(async ({ target, analysis = 'dc', stop, step, start, run_s, environment, set, press, at, falstad = false, lang, format }) => {
+  safely(async ({ target, analysis = 'dc', stop, step, start, run_s, environment, set, press, at, serial, falstad = false, lang, format }) => {
     const { paths } = existing(target);
     const circuit = loadCircuit(paths);
     // The same stimuli and run as the command line (simulate --run, src/sim/run.js); nothing is saved.
-    const said = stimuliFromArgs({ environment, set, press, at });
+    const said = stimuliFromArgs({ environment, set, press, at, serial });
     const refused = (errors) => ({ ...answer(format, { ok: false, errors }, () => errors.map((e) => formatIssue(e, lang)).join('\n')), isError: true });
     if (said.errors.length) return refused(said.errors);
     if (run_s !== undefined) {
-      const run = runCircuit(circuit, { seconds: run_s, stimuli: said.stimuli, start });
+      const run = withUnplaced(circuit, runCircuit(circuit, { seconds: run_s, stimuli: said.stimuli, start }));
       if (run.errors) return refused(run.errors);
-      const response = answer(format, run, () => formatRun(run, lang, { formatIssue, netLabels: circuit.netLabels }));
+      const response = answer(format, run, () => unplacedFirst(run, lang, formatRun(run, lang, { formatIssue, netLabels: circuit.netLabels })));
       return run.ok ? response : { ...response, isError: true };
     }
-    if (said.stimuli.press.length || said.stimuli.at.length) return refused([{ severity: 'error', code: 'RUN_ONLY', params: { option: said.stimuli.press.length ? 'press' : 'at' } }]);
+    const runOnly = ['press', 'at', 'serial'].find((option) => said.stimuli[option].length);
+    if (runOnly) return refused([{ severity: 'error', code: 'RUN_ONLY', params: { option: runOnly } }]);
     let result;
     if (said.stimuli.env.length || said.stimuli.set.length) {
       const prepared = prepareRun(circuit, said.stimuli);
@@ -510,7 +513,8 @@ server.registerTool(
       result.falstad = toFalstad(program, { reading: engine.read(), timeConstants: engine.timeConstants() });
       delete result.falstad.text;
     }
-    const response = answer(format, result, () => [formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }), result.falstad && formatFalstad(result.falstad, lang)].filter(Boolean).join('\n\n'));
+    result = withUnplaced(circuit, result);
+    const response = answer(format, result, () => unplacedFirst(result, lang, [formatSimulation(result, lang, { formatIssue, netLabels: circuit.netLabels }), result.falstad && formatFalstad(result.falstad, lang)].filter(Boolean).join('\n\n')));
     return result.ok ? response : { ...response, isError: true };
   }),
 );
