@@ -215,7 +215,7 @@ function behaviourLineOf(circuit) {
   if (b.skipped) return { seconds: b.seconds, skipped: b.skipped };
   // What a person sees first: the parts, then the pins a program drives.
   const outputs = [...b.outputs.filter((o) => o.kind !== 'pin'), ...b.outputs.filter((o) => o.kind === 'pin')];
-  return { seconds: b.seconds, start: b.start, outputs: outputs.map(({ intervals, intervalsTotal, ...o }) => o) };
+  return { seconds: b.seconds, start: b.start, outputs: outputs.map(({ intervals, intervalsTotal, ...o }) => o), ...(b.serialWaits && { serialWaits: b.serialWaits }) };
 }
 
 // The supplies written with a negative voltage: one line in the answer says the rail named + is the
@@ -338,6 +338,12 @@ function soundItem(o, lang, t, f) {
   return t(lang, 'layout.behaviour.soundShare', { id: o.id, percent: Math.round(100 * s.onShare), starts: s.starts, tone });
 }
 
+// An output that stays off (or silent) for the whole line.
+const offThroughout = (o) => {
+  const s = o.sound ?? o;
+  return !s.frequency && !s.changes && !(s.onShare > 0.5);
+};
+
 // "Behaviour, first 2 s (simulated): D1 1 Hz, on 50 % of the time · U1.D13 1 Hz, on 50 % of the time".
 function behaviourText(b, lang, t, f) {
   const seconds = f(b.seconds, 's');
@@ -354,7 +360,11 @@ function behaviourText(b, lang, t, f) {
     if (!o.changes) return t(lang, o.onShare > 0.5 ? 'layout.behaviour.on' : 'layout.behaviour.off', { id: o.id });
     return t(lang, 'layout.behaviour.share', { id: o.id, percent: Math.round(100 * o.onShare), changes: o.changes });
   };
-  const items = b.outputs.slice(0, SHOWN_OUTPUTS).map(item);
-  if (b.outputs.length > SHOWN_OUTPUTS) items.push(t(lang, 'layout.behaviour.more', { count: b.outputs.length - SHOWN_OUTPUTS }));
+  // A board whose program waits for serial input nothing gives it: said first, and the outputs that
+  // only stay off while it waits are not listed as "off throughout" (they wait with it).
+  const waits = (b.serialWaits ?? []).map((id) => t(lang, 'layout.behaviour.waitsSerial', { id }));
+  const outputs = waits.length ? b.outputs.filter((o) => !offThroughout(o)) : b.outputs;
+  const items = [...waits, ...outputs.slice(0, SHOWN_OUTPUTS).map(item)];
+  if (outputs.length > SHOWN_OUTPUTS) items.push(t(lang, 'layout.behaviour.more', { count: outputs.length - SHOWN_OUTPUTS }));
   return t(lang, 'layout.behaviour', { seconds, start: t(lang, `layout.behaviour.start.${b.start === 'zero' ? 'zero' : 'dc'}`), items: items.length ? items.join(' · ') : t(lang, 'layout.behaviour.none') });
 }

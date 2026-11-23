@@ -26,6 +26,9 @@
 //                                          an element's own times (a relay's `times`); named:
 //                                          [{ value, part }]
 //   engine.serial() → { id: { printed, lines, stamps } }   what each board's program printed
+//   engine.acceptLast()                    the last step taken accepted now (a step is accepted at the
+//                                          start of the next): a run's end, so what a program does at
+//                                          that instant (a print) is in the run
 //   engine.periods() → [seconds…]          the period of each signal generator (generator.js);
 //                                          their sources follow the wave at every time step
 // Controls (sliders, the push button):
@@ -715,6 +718,11 @@ export function createEngine(source, { crossings = false } = {}) {
         if (list.length) out[p.id] = list;
       }
       return out;
+    },
+    // A run's end: the last step is accepted as the next step would (a program advances to its end).
+    acceptLast() {
+      if (pending) for (const el of memories()) el.accept(x, pending);
+      pending = null;
     },
     // What each board's program printed: { id: { printed, lines, stamps } } (an element's `serial()`,
     // devices/mcu.js): `printed` counts every line ended since setup, `lines` keeps the last few.

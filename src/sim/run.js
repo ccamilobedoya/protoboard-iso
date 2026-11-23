@@ -587,6 +587,10 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
       if (pr?.error && !flags.has(`e${id}`)) flags.set(`e${id}`, issue('warning', 'SIM_PROGRAM_STOPPED', { part: id, message: String(pr.error).slice(0, 80) }));
       if (pr?.stuck && !flags.has(`s${id}`)) flags.set(`s${id}`, issue('warning', 'SIM_PROGRAM_STUCK', { part: id }));
     }
+    readSerial(t);
+  };
+  // What each board printed since the last look, with the time each line ended.
+  const readSerial = (t) => {
     const printed = engine.serial();
     for (const id of boards) {
       const s = printed[id];
@@ -691,6 +695,10 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   engine.onStep = null;
   const end = Math.abs(engine.time - total) < 1e-9 ? total : engine.time;
   const readings = look(true);
+  // The last step is accepted only by the next, which a run that ends never takes: accepted here, so a
+  // program's print at the run's last instant (every 500 ms in a run of 1 s) is in the run.
+  engine.acceptLast();
+  readSerial(end);
   // Each part over its power at some instant: its average from then to the end, against its maximum.
   for (const [key, e] of hot) {
     const span = end - e.since;

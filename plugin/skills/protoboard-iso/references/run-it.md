@@ -174,7 +174,60 @@ nothing and are not corrections: try as many as the skill's trial rule allows. A
 call that saves; the stop rule allows two per circuit, and after the second that does not end
 `DONE` or `WARNINGS` you stop and say what is left.
 
-<!-- serial-input: the sketch runner's option to send text to a board's Serial during a run goes here (its own session) -->
+## Typing to a board
+
+A sketch that reads `Serial` (a menu, a command) waits until text arrives: with nothing typed
+the run says so in a note, and `layout`'s Behaviour line says `U1 waits for serial input` instead
+of its outputs. `--serial text@seconds` types the text to the board at that time (repeatable; a
+character every ten bits at the port's rate; `\n` for a new line inside quotes, `U1:` or
+`Serial2:` in front names the board or the port; connector: `serial: ["1@0.5"]`).
+
+```json menu.json
+{
+  "parts": [
+    { "id": "U1", "part": "UNO", "program": "menu.ino" },
+    { "id": "R1", "type": "resistor", "value": "220" },
+    { "id": "D1", "type": "led", "color": "red" }
+  ],
+  "nets": [["U1.D8", "R1.1"], ["R1.2", "D1.A"], ["D1.K", "U1.GND"]]
+}
+```
+
+```cpp circuits/menu/menu.ino
+void setup() {
+  Serial.begin(9600);
+  pinMode(8, OUTPUT);
+  Serial.println("Type 1 for on, 0 for off");
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    char c = Serial.read();
+    if (c == '1') { digitalWrite(8, HIGH); Serial.println("LED on"); }
+    if (c == '0') { digitalWrite(8, LOW); Serial.println("LED off"); }
+  }
+}
+```
+
+```bash
+kit layout circuits/menu menu.json
+```
+
+```text
+Behaviour, first 2 s from its resting point, as the page starts (simulated, a model): U1 waits for serial input (simulate --run … --serial "text@seconds" types to it)
+```
+
+```bash
+kit simulate circuits/menu --run 2 --serial 1@0.5 --serial 0@1.5
+```
+
+```text
+  502 ms     LED on
+  1.5 s      LED off
+  D1 (LED): on 50 % of the time · changes: 2 (on 502 ms → 1.5 s)
+```
+
+Say it as the kit's: "typing 1 at 0.5 s turns D1 on, 0 at 1.5 s turns it off".
 
 ## When the run does not show what was asked
 
@@ -284,7 +337,7 @@ kit layout circuits/counter counter.json
 ```
 
 ```bash
-kit simulate circuits/counter --run 3 --press S1@0.5+0.1 --press S1@1.5+0.1
+kit simulate circuits/counter --run 2.5 --press S1@0.5+0.1 --press S1@1.5+0.1
 ```
 
 ```text
