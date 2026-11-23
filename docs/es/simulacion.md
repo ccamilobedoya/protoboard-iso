@@ -183,6 +183,14 @@ Se fijan con una operación, como cualquier campo del circuito:
     y se juzga por su potencia media hasta el final de la ejecución (`en promedio en la corrida, de 250 µs
     a 50 ms`), así que los picos de un amplificador recortado no son daño mientras su media quede bajo
     su máximo; `--transient` promedia sus muestras igual. Corrientes y voltajes siguen siendo instantáneos.
+    Un aviso sobre un nivel que debe durar (la bobina de un relé bajo su corriente de enganche, una
+    entrada lógica en la franja incierta, una alimentación fuera del rango de un componente, un
+    regulador que no regula o caliente, un motor frenado) se guarda solo cuando ese nivel se asentó:
+    visto en cada mirada durante cinco constantes de tiempo de su componente con su cifra ya quieta, o
+    todavía ahí al final de la ejecución. Una bobina cuya corriente cruza la franja camino a
+    engancharse no está mal alimentada, así que ejecuciones de distinta duración con los mismos
+    eventos dan los mismos avisos. Un pico que daña al instante (una corriente o un voltaje por encima
+    de un máximo) se guarda en su punto más fuerte.
 
   Estímulos, cada uno se puede repetir: `--env light=0.5,distance=10` (campos del ambiente, en las
   unidades del catálogo, dentro del rango del campo: un campo desconocido o un valor fuera de él es

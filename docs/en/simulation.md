@@ -170,6 +170,13 @@ Set them with an operation like any circuit field:
     over its power at an instant is followed from then and judged on its average power to the end of
     the run (`on average over the run, from 250 µs to 50 ms`), so a clipped amplifier's peaks are not
     damage while its average stays under its maximum; `--transient` averages its samples the same way.
+    A warning about a level that must last (a relay's coil under its pull-in current, a logic input in
+    the uncertain band, a supply outside a part's range, a regulator out of regulation or hot, a
+    stalled motor) is kept only once that level has settled: seen at every look for five of its
+    part's time constants with its figure no longer moving, or still there at the end of the run. A
+    coil whose current rises through the band on its way to pulling in is not under-driven, so runs
+    of different lengths over the same events give the same warnings. A peak that damages at once (a
+    current or a voltage over a maximum) is kept at its strongest.
     Currents and voltages stay instantaneous.
 
   Stimuli, each usable several times: `--env light=0.5,distance=10` (fields of the environment,

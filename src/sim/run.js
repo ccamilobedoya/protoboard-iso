@@ -511,10 +511,30 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   // and, for a board's pin, whether the program held it high or low then: a figure of a run is not the
   // DC point's (a motor's current at start or coasting into a pin set low is not its steady one).
   const warnings = new Map();
-  const look = () => {
+  // A warning about a level that must last (LEVELS: a coil under its pull-in current, an input in the
+  // uncertain band, a supply out of its range) is a finding only once that level has settled: seen at
+  // every look for SETTLE_TAUS of its part's longest time constant, its quantity moving less than
+  // SETTLED between the last two looks, or still there at the end of the run. A coil's current that
+  // rises through the band on its way to pulling in is not one. A peak that damages at once (a
+  // current, a voltage over a maximum) is kept at its strongest, as before.
+  const settleOf = new Map();
+  for (const c of engine.timeConstants(true)) if (c.part) settleOf.set(c.part, Math.max(settleOf.get(c.part) ?? 0, SETTLE_TAUS * c.value));
+  const passing = new Map(); // key → { since, last: quantity } of a level warning not settled yet
+  const look = (final = false) => {
     const now = engine.now();
+    const present = new Set();
     for (const w of now?.issues ?? []) {
       if (w.severity === 'info') continue;
+      if (LEVELS.has(w.code)) {
+        const key = `${w.code}:${w.params?.part ?? w.params?.supply ?? ''}`;
+        present.add(key);
+        const p = passing.get(key);
+        const q = strength(w);
+        if (!p) passing.set(key, { since: engine.time, last: q });
+        else p.settled = engine.time - p.since >= (settleOf.get(String(w.params?.part ?? '').split('.')[0]) ?? 0) && Math.abs(q - p.last) <= SETTLED * Math.abs(q);
+        if (p) p.last = q;
+        if (!final && !passing.get(key).settled) continue;
+      }
       if (w.code === 'SIM_OVER_POWER') {
         const key = `${w.code}:${w.params?.part ?? ''}`;
         if (!hot.has(key)) {
@@ -533,6 +553,7 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
       // "At its strongest in the run, at …" only for a warning with a quantity (a program's warning has none).
       warnings.set(key, strength(w) > 0 ? { ...w, when: { time: engine.time, ...(level && { pin, high: Boolean(level.pwm ? level.pwm.duty > 0 : level.level) }) } } : w);
     }
+    for (const key of passing.keys()) if (!present.has(key)) passing.delete(key);
     return now;
   };
   const began = t0();
@@ -573,7 +594,7 @@ export function runCircuit(circuit, { seconds, stimuli = {}, start: wanted, budg
   }
   engine.onStep = null;
   const end = Math.abs(engine.time - total) < 1e-9 ? total : engine.time;
-  const readings = look();
+  const readings = look(true);
   // Each part over its power at some instant: its average from then to the end, against its maximum.
   for (const [key, e] of hot) {
     const span = end - e.since;
@@ -641,6 +662,12 @@ function shorterRun(fast, end, total) {
   const period = Math.min(...fast.map((o) => periodOf(o, end) ?? end));
   return Math.min(total, Number(((period * RUN_STEPS) / (2 * FAST)).toPrecision(1)));
 }
+
+// Warnings about a level that must last, judged on a settled state (runCircuit's look): the others are
+// about a peak that damages at once, judged at their strongest.
+const LEVELS = new Set(['SIM_RELAY_UNDERDRIVEN', 'SIM_RELAY_COIL', 'SIM_IC_INPUT_LEVEL', 'SIM_IC_SUPPLY_RANGE', 'SIM_MODULE_LOW_SUPPLY', 'SIM_REG_DROPOUT', 'SIM_REG_HOT', 'SIM_REG_HOT_MODULE', 'SIM_LASER_DIM', 'SIM_LASER_POWER', 'SIM_MOTOR_STALL', 'SIM_MOTOR_VOLTAGE', 'SIM_BUZZER_DC', 'SIM_HALL_HIGH_SUPPLY', 'SIM_SUPPLY_LIMITED', 'SIM_BATTERY_CHARGING']);
+const SETTLE_TAUS = 5; // of the part's longest time constant, a level held that long has settled
+const SETTLED = 0.02; // relative change between two looks under which a level has stopped moving [assumed]
 
 // A warning's first quantity ({ value, unit }), as a size to keep the strongest of a run.
 function strength(w) {

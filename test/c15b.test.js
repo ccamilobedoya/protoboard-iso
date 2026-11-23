@@ -93,3 +93,39 @@ test('motor-npn: runs of 0.5, 3 and 30 s take the same count of steps', () => {
     assert.equal(r.run.steps, RUN_STEPS, `${seconds} s: ${r.run.steps}`);
   }
 });
+
+// ── 2. A warning seen in passing is not a finding ────────────────────────────────────────
+
+// An ESP32 switching four relays through a ULN2003, one at a time each second: K1's coil current rises
+// through the band under its pull-in (49.9 mA at 2.6 ms) and it pulls in at 8.25 ms. A run of 0.5 s
+// warned that it may not pull in; one of 1.5 s did not. Now neither does, whatever the length.
+const RELAYS = {
+  parts: [
+    { id: 'U1', part: 'ESP32-DEVKIT', program: 'const int pins[4] = {16, 17, 18, 19};\nint k = 0;\nvoid setup() { for (int i = 0; i < 4; i++) { pinMode(pins[i], OUTPUT); digitalWrite(pins[i], LOW); } }\nvoid loop() { digitalWrite(pins[k], HIGH); delay(1000); digitalWrite(pins[k], LOW); k = (k + 1) % 4; }' },
+    { id: 'U2', part: 'ULN2003' },
+    ...[1, 2, 3, 4].map((k) => ({ id: `K${k}`, part: 'SRD-05VDC-SL-C' })),
+  ],
+  nets: [
+    ...[16, 17, 18, 19].map((p, k) => [`U1.D${p}`, `U2.IN${k + 1}`]),
+    ['U1.VIN', 'U2.COM', 'K1.A1', 'K2.A1', 'K3.A1', 'K4.A1'],
+    ['U1.GND', 'U2.GND'],
+    ...[1, 2, 3, 4].map((k) => [`U2.OUT${k}`, `K${k}.A2`]),
+  ],
+};
+test('a coil whose current passes through the band on its way to pulling in is not under-driven, at any run length', () => {
+  const c = autoLayout(RELAYS).circuit;
+  const warned = [0.5, 1.5, 2.5].map((seconds) => runCircuit(c, { seconds, budgetMs: 60_000 }).issues.filter((i) => i.severity !== 'info' && !/^RUN_/.test(i.code)).map((i) => `${i.code}:${i.params.part}`).sort());
+  assert.ok(!warned[0].some((w) => w.startsWith('SIM_RELAY_UNDERDRIVEN')), warned[0].join());
+  assert.deepEqual(warned[1], warned[0]);
+  assert.deepEqual(warned[2], warned[0]);
+});
+
+// A coil held in the band (47 Ω in series from 5 V: about 42 mA, under its 53.6 mA) is a finding in a
+// short run and a long one.
+test('a coil held under its pull-in current is under-driven in runs of 0.5 s and 3 s', () => {
+  const c = autoLayout({ supplies: [{ id: 'V1', voltage: 5 }], parts: [{ id: 'R1', type: 'resistor', value: '47' }, { id: 'K1', part: 'SRD-05VDC-SL-C' }], nets: [['T+', 'R1.1'], ['R1.2', 'K1.A1'], ['K1.A2', 'T-']] }).circuit;
+  for (const seconds of [0.5, 3]) {
+    const r = runCircuit(c, { seconds });
+    assert.ok(codes(r).includes('SIM_RELAY_UNDERDRIVEN'), `${seconds} s: ${codes(r).join()}`);
+  }
+});
