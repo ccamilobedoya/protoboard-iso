@@ -104,8 +104,9 @@ test('ten LEDs from one pin are built, not left to fix: the second search settle
   assert.ok(['done', 'warnings'].includes(r.status), formatLayout(r, 'en', { t, formatIssue }));
   assert.ok(r.check.ok);
   // The first search (without measuring what each place hides) runs its 8 tries first, so that a
-  // circuit it settles keeps its placement (src/layout.js, layoutSpec); the second ends in one or two.
-  assert.ok(r.tries <= 8 + 2, `${r.tries} tries`);
+  // circuit it settles keeps its placement (src/layout.js, layoutSpec); then one try of each order of
+  // the nets (at most three: inAnyOrder's scouts), and the second search ends in one or two.
+  assert.ok(r.tries <= 8 + 3 + 2, `${r.tries} tries`);
 });
 
 test('the budget stops the search with its best try and a line that says so', () => {

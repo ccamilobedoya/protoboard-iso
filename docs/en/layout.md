@@ -465,6 +465,29 @@ four-core machine shared with other work):
   if it were whole. Now its `spec` keeps them, `spec.unplaced` (each part as asked, without holes),
   and a layout again on the circuit asks for them again (`specFromCircuit`); the line `simulate` and
   `review` print first is `spec.unplaced` in `src/i18n/` ("Not on the board: K2, K3. …").
+- **The order that works is one the search could have found.** An UNO, a 7-segment display and a
+  button (the `uno-seven-segment` recipe and one button) took 31 s (67 146 placements, 51 tries) where
+  the recipe takes 1.8 s; listed with the display first it ended `DONE` in 10 tries. The order given
+  spent 16 tries (two whole searches) before any order of the nets was tried, and each of those 16
+  more. What the working order has: the display (the part with most signal pins) placed first and the
+  rest laid out in layers from it; its first try left 2 items to fix where the order given's left 7.
+  So `inAnyOrder` now:
+  - searches the order given with its first search only (a spec it settles, every recipe and layout
+    example, ends exactly as before);
+  - when that leaves something, gives each order of the nets one try (`scout`), and a third order:
+    the chip (the part that is not a board with at least `CHIP_PINS` (4) pins in signal nets) first,
+    the layers from it;
+  - searches them whole by how their first try ended, best first; the order given goes on from its
+    first search (its second search only, `resume`) and keeps its place on a tie. Laid out again on a
+    circuit already made (`previous`), the orders are searched as before.
+  Measured (load 3 to 11 on a machine shared with two other sessions; placements are the comparable
+  figure): the display and button `DONE` in 11 618 placements, 5.1 s at load 3 (before 67 146, 31 s
+  at load 3.5); two 74HC595 with sixteen LEDs on the double board `DONE` in 109 288 and, listed LEDs
+  first, 90 136 placements (before `CHANGES` at the budget, 300 025 and 279 850); on one board still
+  `CHANGES` at the budget's clock (19 items open at load 11, 18 before); a 555 with a CD4017 and ten
+  LEDs `CHANGES` at the budget with 6 items open in each of the three orders tried (11 to 14 before).
+  Recipes and layout examples keep every placement; their placements tried over the bench, 128 410 →
+  47 507 (the 74HC595 fill example 102 475 → 17 861).
 
 ### Two boards: a DevKit on both headers (since 2026-10-31)
 
@@ -662,6 +685,8 @@ missing. The CLI exits 0 for `DONE` and `WARNINGS` (1 for `FIX_SPEC`, 2 for `CHA
 | `PAIRS_PER_GROUP`, `JOIN_TRIES` | 40, 40 | jumper pairs measured per pair of groups; rejections before a net gives up |
 | `OVER_COST`, `OVER_MARGIN` | 12 mm, 0.3 mm | a jumper's cost per body it crosses; a jumper ending at a body's edge does not cross it |
 | `TRIES`, `REPAIRS` | 8, 4 | relayouts at most; jumpers the repair routes again at most |
+| `NEXT_TRIALS`, `CHIP_PINS` | 3, 4 | changes the kit would offer, tried by itself first; signal pins that make a part the chip an order of the nets starts from |
+| `SLIDES`, `SLIDE_STEPS` | relay, switch; 12 | parts off the board that slide along their edge when their body lands on another; widths they may slide each way |
 | `TRIAL_TRIES` | 2 | tries of the relayout loop each trial before `CHANGES` gets ("What layout tries before CHANGES"); the trials that worked took one or two |
 | `SEEN_SHARE` | 75 % | a place that leaves a part under this share in its best view is used only when no other is free of it (`src/layout-sight.js`; the review blocks under 70 %) |
 | `MEMO_STATES` | 1500 | states the memo of one layout keeps |

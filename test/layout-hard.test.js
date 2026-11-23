@@ -29,6 +29,25 @@ for (const name of ['esp32-four-relays', 'esp32-four-relays-first']) {
   });
 }
 
+// The order that works is one the search finds itself (inAnyOrder): each order of the nets gets one
+// try before any is searched whole, and the one with the best start is searched first; a part with
+// many signal pins (a display, a shift register) gives an order of its own, from it.
+test('hard cases: an UNO, a 7-segment display and a button end without CHANGES in few placements', () => {
+  const r = autoLayout(spec('uno-seven-segment-d10-button'));
+  assert.notEqual(r.status, 'changes', text(r));
+  assert.ok(r.check.ok);
+  // Counted in placements tried, not seconds: 67 146 before (the order given searched whole, then
+  // both orders of the nets, then a trial); about 11 600 with the display's order searched first.
+  assert.ok(r.tried.placements < 20000, `${r.tried.placements} placements`);
+});
+
+test('hard cases: an UNO, two 74HC595 and sixteen LEDs on the double board end without CHANGES', () => {
+  const r = autoLayout(spec('uno-two-595-sixteen-leds-double'));
+  assert.notEqual(r.status, 'changes', text(r));
+  assert.ok(r.check.ok);
+  assert.equal(r.review.blocking.length, 0);
+});
+
 // A circuit saved with parts left out says which: its spec keeps them (`unplaced`), so simulate and
 // review can say so on every later answer, and a layout again on it tries them again.
 test('hard cases: a circuit saved with parts left out keeps them in its spec, and layout again asks for them', () => {

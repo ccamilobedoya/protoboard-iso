@@ -516,6 +516,30 @@ recetas terminaron en `DONE`; estos circuitos escritos a mano no, cada uno medid
   `spec.unplaced` (cada componente como se pidió, sin agujeros), y volver a montar el circuito los
   pide otra vez (`specFromCircuit`); la línea que `simulate` y `review` escriben primero es
   `spec.unplaced` en `src/i18n/` («No están en la protoboard: K2, K3. …»).
+- **El orden que funciona es uno que la búsqueda podía encontrar.** Un UNO, un display de 7
+  segmentos y un botón (la receta `uno-seven-segment` y un botón) tardaba 31 s (67 146 colocaciones, 51
+  intentos) donde la receta tarda 1,8 s; con el display de primero terminaba en `DONE` en 10 intentos.
+  El orden dado gastaba 16 intentos (dos búsquedas completas) antes de probar un orden de las redes, y
+  cada uno de esos 16 más. Lo que tiene el orden que funciona: el display (el componente con más pines
+  de señal) de primero y lo demás en capas desde él; su primer intento dejaba 2 puntos por arreglar
+  donde el del orden dado dejaba 7. Así que `inAnyOrder` ahora:
+  - busca el orden dado solo con su primera búsqueda (una especificación que esta resuelve, cada
+    receta y cada ejemplo de montaje, termina exactamente como antes);
+  - cuando deja algo, le da un intento a cada orden de las redes (`scout`) y a un tercer orden: el
+    chip (el componente que no es una placa con al menos `CHIP_PINS` (4) pines en redes de señal) de
+    primero, las capas desde él;
+  - los busca completos según cómo terminó su primer intento, el mejor primero; el orden dado sigue
+    desde su primera búsqueda (solo la segunda, `resume`) y conserva su lugar en un empate. Al volver a
+    montar un circuito que ya existe (`previous`), los órdenes se buscan como antes.
+  Medido (carga de 3 a 11 en una máquina compartida con otras dos sesiones; las colocaciones son la
+  cifra comparable): el display y el botón en `DONE` en 11 618 colocaciones, 5,1 s con carga 3 (antes
+  67 146, 31 s con carga 3,5); dos 74HC595 con dieciséis LED en la protoboard doble en `DONE` en 109 288
+  y, con los LED de primero, 90 136 colocaciones (antes `CHANGES` en el límite, 300 025 y 279 850); en
+  una sola protoboard sigue en `CHANGES` en el reloj del límite (19 puntos abiertos con carga 11, 18
+  antes); un 555 con un CD4017 y diez LED, `CHANGES` en el límite con 6 puntos abiertos en cada uno de
+  los tres órdenes probados (antes 11 a 14). Las recetas y los ejemplos de montaje conservan cada
+  ubicación; sus colocaciones probadas en el banco, 128 410 → 47 507 (el ejemplo de llenado del 74HC595
+  102 475 → 17 861).
 
 ### Dos protoboards: un DevKit en las dos filas de pines (desde el 2026-10-31)
 
@@ -724,6 +748,8 @@ con una red sin conectar. La consola sale con 0 con `DONE` y `WARNINGS` (1 con `
 | `PAIRS_PER_GROUP`, `JOIN_TRIES` | 40, 40 | pares de agujeros que se miden por par de grupos; rechazos antes de que una red se rinda |
 | `OVER_COST`, `OVER_MARGIN` | 12 mm, 0,3 mm | el costo de un cable por cada cuerpo que cruza; un cable que termina en el borde de un cuerpo no lo cruza |
 | `TRIES`, `REPAIRS` | 8, 4 | reintentos como máximo; cables que la reparación vuelve a trazar como máximo |
+| `NEXT_TRIALS`, `CHIP_PINS` | 3, 4 | cambios que el kit ofrecería, probados primero por él mismo; pines de señal que hacen de un componente el chip desde el que empieza un orden de las redes |
+| `SLIDES`, `SLIDE_STEPS` | relay, switch; 12 | componentes fuera de la protoboard que se corren a lo largo de su borde cuando su cuerpo cae sobre otro; anchos que pueden correrse a cada lado |
 | `TRIAL_TRIES` | 2 | intentos del ciclo de reintentos que recibe cada prueba antes de `CHANGES` («Lo que prueba el montaje antes de CHANGES»); las pruebas que sirvieron tomaron uno o dos |
 | `SEEN_SHARE` | 75 % | un lugar que deja a un componente por debajo de esta parte en su mejor vista se usa solo si ningún otro se libra (`src/layout-sight.js`; la revisión bloquea por debajo de 70 %) |
 | `MEMO_STATES` | 1500 | estados que guarda la memoria de un montaje |
