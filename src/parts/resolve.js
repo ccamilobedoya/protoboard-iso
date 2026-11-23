@@ -110,10 +110,19 @@ const NEAR = {
   servo: ['SERVO', 'SERVOMOTOR', 'SG90', 'MG90S', 'MG996R'],
   transformer: ['TRANSFORMER', 'TRANSFORMADOR', 'TRAFO'],
   lcd: ['LCD', 'LCD1602', 'LCD16X2', 'LCD2004', 'LCD20X4', '1602', 'LCDI2C', 'PANTALLALCD'],
+  stepper: ['STEPPER', 'STEPPERMOTOR', '28BYJ48', '28BYJ', 'NEMA17', 'PASOAPASO', 'MOTORPASOAPASO', 'MOTORDEPASOS', 'MOTORPAP'],
+  oled: ['OLED', 'SSD1306', 'SH1106', 'PANTALLAOLED', 'OLEDI2C'],
+  keypad: ['KEYPAD', 'KEYPAD4X4', 'KEYPAD4X3', 'TECLADO', 'TECLADOMATRICIAL', 'MEMBRANEKEYPAD', 'MATRIXKEYPAD'],
+  joystick: ['JOYSTICK', 'KY023', 'PALANCA', 'PALANCADEMANDO'],
+  bluetooth: ['BLUETOOTH', 'HC05', 'HC06', 'HM10', 'BLE'],
+  wifi: ['WIFI', 'ESP01', 'ESP8266', 'NODEMCU', 'WEMOS', 'D1MINI'],
+  sdcard: ['SD', 'SDCARD', 'MICROSD', 'MICROSDCARD', 'TARJETASD', 'TARJETAMICROSD', 'SDMODULE'],
+  rtc: ['RTC', 'DS1307', 'DS3231', 'PCF8563', 'TINYRTC', 'REALTIMECLOCK', 'RELOJDETIEMPOREAL', 'RELOJRTC'],
+  loadcell: ['LOADCELL', 'HX711', 'CELDADECARGA', 'GALGA', 'STRAINGAUGE', 'BALANZA'],
 };
 // Words that name a common ask only when they are the whole name ("strip" alone; "pin header strip"
-// is no LED strip).
-const WHOLE_ONLY = new Set(['STRIP']);
+// is no LED strip; "SD" alone, or as "SD card", is the card).
+const WHOLE_ONLY = new Set(['STRIP', 'SD', 'BLE']);
 // Matched on the whole name, then on the words it contains and the runs of words next to each other
 // joined ("LED strip 12V" → LED, STRIP, 12V, LEDSTRIP…; "tira de LED" → TIRADELED), in English and
 // Spanish: a size or a voltage written after the name does not hide what was asked.

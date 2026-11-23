@@ -356,7 +356,15 @@ con el mismo rango):
    tapaba a U2 en una sola»);
 3. **los componentes más altos de primero**, luego **los más anchos** (por el cuerpo en el dibujo
    del mejor intento; una placa de desarrollo y un componente al lado de la protoboard no se
-   mueven), con las capas empezando por ellos (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`).
+   mueven), con las capas empezando por ellos (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`);
+4. **los componentes que no encontraron lugar, de primero**, desde una protoboard vacía
+   (`LAYOUT_TRIED_FIRST`; desde el 2026-11-23), antes de la protoboard doble;
+5. después, mientras el límite alcance, **el cambio que ofrecería a continuación** (un componente de
+   primero, desde una protoboard vacía), como mucho `NEXT_TRIALS` (3): un cambio que la respuesta
+   ofrece nunca es uno que el kit ya probó (desde el 2026-11-23).
+
+Cuando el propio montaje pasó el circuito a la protoboard doble (un pin tapado, abajo), las pruebas
+empiezan allí, no en la protoboard que no podía con él (desde el 2026-11-23).
 
 Nada eléctrico cambia y no se le pregunta a nadie; la respuesta trae una nota que dice qué cambió
 respecto a la especificación escrita. Una prueba corre solo mientras el límite de tiempo alcanza.
@@ -476,6 +484,79 @@ Frente al kit justo antes de este trabajo (con las dudas y la línea `Comportami
 pasaron de 26,5 s a 15,6 s y ninguna se volvió más lenta en más de 10 %. Ubicaciones: todas las
 recetas y los ejemplos de montaje quedan como en la 0.12.1 salvo los cuatro cuyas redes de tierra
 ahora son una (`uno-button`, `encoder-dimmer-uno`, `clap-switch`, `esp32-both-headers.json`).
+
+### Casos difíciles: lo que encontró la última ronda antes de publicar (2026-11-23)
+
+Tres asistentes con solo la habilidad empaquetada armaron 36 circuitos en un clon limpio. Todas las
+recetas terminaron en `DONE`; estos circuitos escritos a mano no, cada uno medido antes del cambio
+(carga de 3 a 4 en una máquina de cuatro núcleos compartida con otro trabajo):
+
+- **Cuatro relés en un ULN2003 y un ESP32 DevKit** (`test/fixtures/layout-hard/`): `CHANGES`, K2 y
+  K3 «no encontraron lugar» en cada orden que probó el asistente (5,6–10,5 s, 29–40 intentos). Un relé
+  queda sobre la mesa a lo largo del borde delantero, donde cae el promedio de sus dos cables: los
+  cables del segundo y del tercero llegan a las mismas salidas del driver, así que sus cuerpos caían
+  sobre el primero, y ninguna regla le daba al cuerpo otro lugar (`suggest` no puede ubicar un
+  componente cableado pata por pata). Tres arreglos:
+  - un relé o un interruptor (`SLIDES`) que no encuentra lugar tal cual prueba las mismas candidatas
+    con el cuerpo corrido a lo largo de su borde en anchos enteros de sí mismo (`offset`, primero los
+    más cercanos, dentro del largo de la protoboard), solo entonces: lo que ya se ubicaba sigue donde
+    estaba;
+  - la protoboard elástica no crecía por una placa ubicada por su pin 1 (un DevKit nombra una columna
+    y ocupa veinte), así que los componentes de después no tenían columnas (cero candidatas): un
+    componente que no encuentra lugar ahora hace crecer la protoboard más allá de la ventana del cursor
+    y se prueba otra vez, una sola (`floor`);
+  - un cable de un componente al lado de la protoboard ya no escoge un agujero bajo un cuerpo (la
+    placa de un DevKit tapa sus tiras): seguía a ningún agujero.
+  Ahora `DONE` en el orden dado y en los tres órdenes que probó el asistente (16–26 s, 27–44 intentos,
+  en dos protoboards, los relés uno al lado del otro). Las recetas y los ejemplos de montaje conservan
+  cada ubicación.
+- **Un circuito guardado con componentes por fuera lo dice.** El `STATUS: CHANGES` estaba en el
+  montaje, pero el circuito guardado no decía qué componentes de la especificación faltaban, y
+  `simulate` y `review` corrían como si estuviera completo. Ahora su `spec` los guarda,
+  `spec.unplaced` (cada componente como se pidió, sin agujeros), y volver a montar el circuito los
+  pide otra vez (`specFromCircuit`); la línea que `simulate` y `review` escriben primero es
+  `spec.unplaced` en `src/i18n/` («No están en la protoboard: K2, K3. …»).
+- **El orden que funciona es uno que la búsqueda podía encontrar.** Un UNO, un display de 7
+  segmentos y un botón (la receta `uno-seven-segment` y un botón) tardaba 31 s (67 146 colocaciones, 51
+  intentos) donde la receta tarda 1,8 s; con el display de primero terminaba en `DONE` en 10 intentos.
+  El orden dado gastaba 16 intentos (dos búsquedas completas) antes de probar un orden de las redes, y
+  cada uno de esos 16 más. Lo que tiene el orden que funciona: el display (el componente con más pines
+  de señal) de primero y lo demás en capas desde él; su primer intento dejaba 2 puntos por arreglar
+  donde el del orden dado dejaba 7. Así que `inAnyOrder` ahora:
+  - busca el orden dado solo con su primera búsqueda (una especificación que esta resuelve, cada
+    receta y cada ejemplo de montaje, termina exactamente como antes);
+  - cuando deja algo, le da un intento a cada orden de las redes (`scout`) y a un tercer orden: el
+    chip (el componente que no es una placa con al menos `CHIP_PINS` (4) pines en redes de señal) de
+    primero, las capas desde él;
+  - los busca completos según cómo terminó su primer intento, el mejor primero; el orden dado sigue
+    desde su primera búsqueda (solo la segunda, `resume`) y conserva su lugar en un empate. Al volver a
+    montar un circuito que ya existe (`previous`), los órdenes se buscan como antes.
+  Medido (carga de 3 a 11 en una máquina compartida con otras dos sesiones; las colocaciones son la
+  cifra comparable): el display y el botón en `DONE` en 11 618 colocaciones, 5,1 s con carga 3 (antes
+  67 146, 31 s con carga 3,5); dos 74HC595 con dieciséis LED en la protoboard doble en `DONE` en 109 288
+  y, con los LED de primero, 90 136 colocaciones (antes `CHANGES` en el límite, 300 025 y 279 850); en
+  una sola protoboard sigue en `CHANGES` en el reloj del límite (19 puntos abiertos con carga 11, 18
+  antes); un 555 con un CD4017 y diez LED, `CHANGES` en el límite con 6 puntos abiertos en cada uno de
+  los tres órdenes probados (antes 11 a 14). Las recetas y los ejemplos de montaje conservan cada
+  ubicación; sus colocaciones probadas en el banco, 128 410 → 47 507 (el ejemplo de llenado del 74HC595
+  102 475 → 17 861).
+- **La respuesta en el límite es la mejor vista, y dice qué ayudaría.** Un intento que el límite cortó
+  tiene menos componentes en la protoboard que se tapen entre sí, así que podía quedar mejor que uno
+  completo con las mismas redes sin unir: una corrida detenida en su límite terminaba peor que una de
+  10 s. Un componente que quedó fuera de la protoboard (`left` en un intento: cortado por el límite, o
+  sin lugar) ahora pesa tanto como redes mal hechas, en el puntaje del ciclo de reintentos y en
+  `rankOf`. Cada ✖ de una respuesta `CHANGES` trae el cambio que el kit probaría después, también
+  cuando la detuvo el límite, y un cambio ofrecido nunca es uno que el kit ya probó (los prueba él
+  primero, `NEXT_TRIALS`); la línea «Antes de esta respuesta el kit también probó» vuelve a salir (la
+  lista quedaba tapada por la cuenta del límite, `tried`, desde el 2026-11-20; ahora `changesTried`).
+- **Un componente que el kit no tiene.** `28BYJ-48` (un motor paso a paso) respondía «no tiene ningún
+  componente de nombre parecido». Los pedidos comunes que se reconocen por las palabras del nombre
+  (`nearOf`, `src/parts/resolve.js`) suman un motor paso a paso (un motor DC gira pero no da pasos; un
+  ULN2003 a cuatro bobinas dibujadas como inductores solo como ejercicio de cableado), una pantalla
+  OLED, un teclado, un joystick, un módulo Bluetooth y uno Wi-Fi (con lo que el kit tiene cerca), y una
+  tarjeta SD, un reloj de tiempo real y una celda de carga («Nada cercano»), en inglés y en español
+  (`check.UNKNOWN_PART_NAME.<pedido>`); el altavoz, la tira de LED, el servo, el transformador y la LCD
+  ya estaban.
 
 ### Dos protoboards: un DevKit en las dos filas de pines (desde el 2026-10-31)
 
@@ -687,6 +768,8 @@ con una red sin conectar. La consola sale con 0 con `DONE` y `WARNINGS` (1 con `
 | `PAIRS_PER_GROUP`, `JOIN_TRIES` | 40, 40 | pares de agujeros que se miden por par de grupos; rechazos antes de que una red se rinda |
 | `OVER_COST`, `OVER_MARGIN` | 12 mm, 0,3 mm | el costo de un cable por cada cuerpo que cruza; un cable que termina en el borde de un cuerpo no lo cruza |
 | `TRIES`, `REPAIRS` | 8, 4 | reintentos como máximo; cables que la reparación vuelve a trazar como máximo |
+| `NEXT_TRIALS`, `CHIP_PINS` | 3, 4 | cambios que el kit ofrecería, probados primero por él mismo; pines de señal que hacen de un componente el chip desde el que empieza un orden de las redes |
+| `SLIDES`, `SLIDE_STEPS` | relay, switch; 12 | componentes fuera de la protoboard que se corren a lo largo de su borde cuando su cuerpo cae sobre otro; anchos que pueden correrse a cada lado |
 | `TRIAL_TRIES` | 2 | intentos del ciclo de reintentos que recibe cada prueba antes de `CHANGES` («Lo que prueba el montaje antes de CHANGES»); las pruebas que sirvieron tomaron uno o dos |
 | `SEEN_SHARE` | 75 % | un lugar que deja a un componente por debajo de esta parte en su mejor vista se usa solo si ningún otro se libra (`src/layout-sight.js`; la revisión bloquea por debajo de 70 %) |
 | `MEMO_STATES` | 1500 | estados que guarda la memoria de un montaje |

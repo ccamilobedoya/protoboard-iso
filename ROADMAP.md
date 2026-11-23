@@ -611,6 +611,11 @@ before saying it works.
 - ⬜ The MCP `simulate` tool's `serial` argument (`run.js` `stimuliFromArgs` takes it; `mcp/tools.js` must declare and pass it)
 - ⬜ `layout`'s `Behaviour` line says a sketch waits for serial input (`behaviourOf` returns `serialWaits`; `src/layout-answer.js` must print `layout.behaviour.waitsSerial`)
 - ⬜ A print exactly at the end of a run is lost (the engine accepts a step at the start of the next one; the run never accepts its last)
+- ✅ Four relays on a driver chip lay out (C15c): each relay's body slides along the edge by its own width when it lands on another; the elastic board grows when a part finds no place (a DevKit placed by pin 1 did not grow it); a lead beside the board never picks a hole under a body; the trials start on the double board when layout moved there, and try the parts that found no place first. A circuit saved with parts left out keeps them in `spec.unplaced` and a layout again asks for them (the line for `simulate` and `review`: `spec.unplaced`)
+- ✅ The order that works is one the search finds (C15c): the order given gets its first search only, then each order of the nets one try (and a third, from the part with most signal pins), searched whole best start first. An UNO with a 7-segment display and a button `DONE` in 11 618 placements (was 67 146); two 74HC595 with sixteen LEDs on the double board `DONE` (was `CHANGES` at the budget); recipes keep their placements
+- ⬜ Two 74HC595 with sixteen LEDs on one board and a 555 with a CD4017 and ten LEDs still end `CHANGES` at the 60 s budget (C15c measured 19 and 6 items open): each try of such a circuit costs about 16 000 placements
+- ✅ The budget's answer is the best seen and says what would help (C15c): a part left off the board weighs as much as nets left wrong when tries are ranked; every ✖ carries the next change, never one the kit tried; the "kit also tried" line is printed again
+- ✅ A part the kit lacks says what is near (C15c): a stepper (`28BYJ-48`), an OLED, a keypad, a joystick, a Bluetooth and a Wi-Fi module with what the kit has near them; an SD card, a real-time clock and a load cell "Nothing near"; matched by the words in the name, in English and Spanish
 
 ## Optional, later ⬜
 

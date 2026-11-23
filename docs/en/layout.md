@@ -324,7 +324,15 @@ before it answers `CHANGES` (`withTrials`), from its best try so far, each trial
    `LAYOUT_TRIED_DOUBLE_ORDER`: "placed on the double board … because U1 covered U2 on one board");
 3. **the tallest parts first**, then **the widest** (by the body on the best try's drawing; a
    development board and a part lying beside the board are not moved), with the layers starting
-   from them (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`).
+   from them (`LAYOUT_TRIED_TALLEST`, `LAYOUT_TRIED_WIDEST`);
+4. **the parts that found no place first**, from an empty board (`LAYOUT_TRIED_FIRST`; since
+   2026-11-23), before the double board;
+5. then, while the budget lasts, **the change it would offer next** (a part listed first, from an
+   empty board), at most `NEXT_TRIALS` (3): a change the answer offers is never one the kit already
+   tried (since 2026-11-23).
+
+When layout itself moved the circuit to the double board (a covered pin, below), the trials start
+there, not on the board that could not hold it (since 2026-11-23).
 
 Nothing electrical changes and nobody is asked; the answer carries one note saying what changed
 from the spec as written. A trial runs only while the budget allows. When the answer is still
@@ -430,6 +438,71 @@ Against the kit just before this work (with the doubts and the `Behaviour` line)
 from 26.5 s to 15.6 s and none got slower by more than 10 %. Placements: every recipe and layout
 example is placed as on 0.12.1 except the four whose ground nets are now one (`uno-button`,
 `encoder-dimmer-uno`, `clap-switch`, `esp32-both-headers.json`).
+
+### Hard cases: what the last round before the release found (2026-11-23)
+
+Three assistants with only the packed skill built 36 circuits on a clean clone. Every recipe ended
+`DONE`; these hand-written circuits did not, each measured before the change (load 3 to 4 on a
+four-core machine shared with other work):
+
+- **Four relays on a ULN2003 and an ESP32 DevKit** (`test/fixtures/layout-hard/`): `CHANGES`, K2 and
+  K3 "found no place" in every order the assistant tried (5.6–10.5 s, 29–40 tries). A relay lies on
+  the table along the front edge where the mean of its two leads is: the second and the third relay's
+  leads land on the same driver outputs, so their bodies landed on the first, and no rule gave the
+  body another place (`suggest` cannot place a part wired lead by lead). Three fixes:
+  - a relay or a switch (`SLIDES`) that finds no place as it is tries the same candidates again with
+    its body slid along its edge by whole widths of itself (`offset`, nearer first, within the
+    board's length), only then: whatever was placed before stays where it was;
+  - the elastic board did not grow for a board placed by pin 1 (a DevKit names one column and takes
+    twenty), so the parts after it had no columns left (zero candidates): a part that finds no place
+    now makes the board grow past the cursor's window and is tried again, once (`floor`);
+  - a lead beside the board no longer picks a hole under a body (a DevKit's PCB covers its strips):
+    it went on to no hole at all.
+  Now `DONE` in the order given and in the three orders the assistant tried (16–26 s, 27–44 tries, on
+  two boards, the relays side by side). Recipes and layout examples keep every placement.
+- **A circuit saved with parts left out says so.** `STATUS: CHANGES` was there at layout, but the
+  saved circuit did not say which parts of the spec were missing, and `simulate` and `review` ran as
+  if it were whole. Now its `spec` keeps them, `spec.unplaced` (each part as asked, without holes),
+  and a layout again on the circuit asks for them again (`specFromCircuit`); the line `simulate` and
+  `review` print first is `spec.unplaced` in `src/i18n/` ("Not on the board: K2, K3. …").
+- **The order that works is one the search could have found.** An UNO, a 7-segment display and a
+  button (the `uno-seven-segment` recipe and one button) took 31 s (67 146 placements, 51 tries) where
+  the recipe takes 1.8 s; listed with the display first it ended `DONE` in 10 tries. The order given
+  spent 16 tries (two whole searches) before any order of the nets was tried, and each of those 16
+  more. What the working order has: the display (the part with most signal pins) placed first and the
+  rest laid out in layers from it; its first try left 2 items to fix where the order given's left 7.
+  So `inAnyOrder` now:
+  - searches the order given with its first search only (a spec it settles, every recipe and layout
+    example, ends exactly as before);
+  - when that leaves something, gives each order of the nets one try (`scout`), and a third order:
+    the chip (the part that is not a board with at least `CHIP_PINS` (4) pins in signal nets) first,
+    the layers from it;
+  - searches them whole by how their first try ended, best first; the order given goes on from its
+    first search (its second search only, `resume`) and keeps its place on a tie. Laid out again on a
+    circuit already made (`previous`), the orders are searched as before.
+  Measured (load 3 to 11 on a machine shared with two other sessions; placements are the comparable
+  figure): the display and button `DONE` in 11 618 placements, 5.1 s at load 3 (before 67 146, 31 s
+  at load 3.5); two 74HC595 with sixteen LEDs on the double board `DONE` in 109 288 and, listed LEDs
+  first, 90 136 placements (before `CHANGES` at the budget, 300 025 and 279 850); on one board still
+  `CHANGES` at the budget's clock (19 items open at load 11, 18 before); a 555 with a CD4017 and ten
+  LEDs `CHANGES` at the budget with 6 items open in each of the three orders tried (11 to 14 before).
+  Recipes and layout examples keep every placement; their placements tried over the bench, 128 410 →
+  47 507 (the 74HC595 fill example 102 475 → 17 861).
+- **The budget's answer is the best seen, and says what would help.** A try the budget cut short has
+  fewer parts on the board to hide each other, so it could rank better than a whole try with the same
+  nets left apart: a run stopped at its budget ended worse-looking than one of 10 s. A part left off
+  the board (`left` on a try: cut by the budget, or no place found) now weighs as much as nets left
+  wrong, in the relayout loop's score and in `rankOf`. Every ✖ of a `CHANGES` answer carries the change
+  the kit would try next, also when the budget stopped it, and a change offered is never one the kit
+  tried (it tries them itself first, `NEXT_TRIALS`); the line "Before this answer the kit also tried"
+  is printed again (the list was overwritten by the budget's count, `tried`, since 2026-11-20; now
+  `changesTried`).
+- **A part the kit lacks.** `28BYJ-48` (a stepper motor) answered "has no part with a close name".
+  The common asks matched by the words in a name (`nearOf`, `src/parts/resolve.js`) gain a stepper (a
+  DC motor turns but does not step; a ULN2003 to four coils drawn as inductors only as a wiring
+  exercise), an OLED, a keypad, a joystick, a Bluetooth and a Wi-Fi module (with what the kit has near
+  them), and an SD card, a real-time clock and a load cell ("Nothing near"), in English and Spanish
+  (`check.UNKNOWN_PART_NAME.<ask>`); the speaker, LED strip, servo, transformer and LCD were there.
 
 ### Two boards: a DevKit on both headers (since 2026-10-31)
 
@@ -629,6 +702,8 @@ missing. The CLI exits 0 for `DONE` and `WARNINGS` (1 for `FIX_SPEC`, 2 for `CHA
 | `PAIRS_PER_GROUP`, `JOIN_TRIES` | 40, 40 | jumper pairs measured per pair of groups; rejections before a net gives up |
 | `OVER_COST`, `OVER_MARGIN` | 12 mm, 0.3 mm | a jumper's cost per body it crosses; a jumper ending at a body's edge does not cross it |
 | `TRIES`, `REPAIRS` | 8, 4 | relayouts at most; jumpers the repair routes again at most |
+| `NEXT_TRIALS`, `CHIP_PINS` | 3, 4 | changes the kit would offer, tried by itself first; signal pins that make a part the chip an order of the nets starts from |
+| `SLIDES`, `SLIDE_STEPS` | relay, switch; 12 | parts off the board that slide along their edge when their body lands on another; widths they may slide each way |
 | `TRIAL_TRIES` | 2 | tries of the relayout loop each trial before `CHANGES` gets ("What layout tries before CHANGES"); the trials that worked took one or two |
 | `SEEN_SHARE` | 75 % | a place that leaves a part under this share in its best view is used only when no other is free of it (`src/layout-sight.js`; the review blocks under 70 %) |
 | `MEMO_STATES` | 1500 | states the memo of one layout keeps |
