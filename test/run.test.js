@@ -8,8 +8,9 @@ import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tempDir } from '../scripts/tmp.js';
 import { simulate, checkHazards } from '../src/sim/index.js';
-import { parseStimuli, stimuliFromArgs, behaviourOf, BEHAVIOUR_STEPS } from '../src/sim/run.js';
-import { runCircuit } from './run-generous.js';
+// A run's steps are at least its length over 20 000 (C15b): these runs take well under a second, so
+// they keep the default machine-time budget (test/run-generous.js is for the slow ones).
+import { parseStimuli, stimuliFromArgs, behaviourOf, BEHAVIOUR_STEPS, runCircuit } from '../src/sim/run.js';
 import { formatLayout } from '../src/layout.js';
 import { autoLayout } from './layout-generous.js';
 import { expandRecipe } from '../src/recipes/index.js';
