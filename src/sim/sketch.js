@@ -456,6 +456,17 @@ export function translateSketch(source, { strings = [] } = {}) {
           continue;
         }
       }
+      // A method of the text before it: String(x).length(), (a + b).substring(1), names[i].length().
+      if (t.t === 'p' && t.v === '.' && parts.length && !value && strs[strs.length - 1]) {
+        const k = parts.length - 1;
+        parts[k] = stringCall(parts[k], false);
+        ints[k] = termInt;
+        floats[k] = termFloat;
+        chars[k] = termChar;
+        strs[k] = termStr;
+        masks[k] = 0;
+        continue;
+      }
       // An index belongs to the value before it: a[i] / 2 divides the element.
       if (t.t === 'p' && t.v === '[' && parts.length && !value) {
         pos++;
@@ -578,6 +589,30 @@ export function translateSketch(source, { strings = [] } = {}) {
     } else exprChar = oneChar(0, parts.length);
     return parts.join(' ');
   }
+  // .method(…) of a text (pos at the "."): __strm(<method>, text, …) with the term flags of its result;
+  // `stored`: the text is a variable, which an in-place method (trim) changes.
+  function stringCall(target, stored) {
+    const at = peek()?.line ?? line();
+    const method = peek(1);
+    const m = method?.t === 'id' && is('(', 2) ? STRING_METHODS.indexOf(method.v) : -1;
+    if (m < 0) throw new SketchError(at, '.', 'SIM_PROGRAM_STRING_METHOD', `${method?.v ?? ''}`);
+    pos += 3;
+    const args = [];
+    while (!is(')')) {
+      if (pos >= tokens.length) fail(')');
+      args.push(asText(expression([',', ')'])));
+      if (is(',')) pos++;
+    }
+    expect(')');
+    const call = `__strm(${m}, ${target}${args.map((a) => `, ${a}`).join('')})`;
+    termInt = !['substring', 'c_str', 'toFloat', 'toDouble', ...STRING_IN_PLACE].includes(method.v);
+    termFloat = ['toFloat', 'toDouble'].includes(method.v);
+    termChar = method.v === 'charAt';
+    termStr = ['substring', 'c_str', ...STRING_IN_PLACE].includes(method.v);
+    termMask = 0;
+    return stored && STRING_IN_PLACE.includes(method.v) ? `(${target} = ${call})` : call;
+  }
+
   // One token of an expression, turning calls, casts and C-only words into JavaScript.
   function term() {
     const t = tokens[pos];
@@ -783,22 +818,8 @@ export function translateSketch(source, { strings = [] } = {}) {
       const method = peek(2);
       const what = `${t.v}.${method?.t === 'id' ? method.v : ''}`;
       if (typeOf(t.v) !== 'str') throw new SketchError(t.line, '.', 'SIM_PROGRAM_MEMBER', what);
-      const m = method?.t === 'id' && is('(', 3) ? STRING_METHODS.indexOf(method.v) : -1;
-      if (m < 0) throw new SketchError(t.line, '.', 'SIM_PROGRAM_STRING_METHOD', `${method?.v ?? ''}`);
-      pos += 4;
-      const args = [];
-      while (!is(')')) {
-        if (pos >= tokens.length) fail(')');
-        args.push(asText(expression([',', ')'])));
-        if (is(',')) pos++;
-      }
-      expect(')');
-      const call = `__strm(${m}, ${own(t.v)}${args.map((a) => `, ${a}`).join('')})`;
-      termInt = !['substring', 'c_str', 'toFloat', 'toDouble'].includes(method.v);
-      termFloat = ['toFloat', 'toDouble'].includes(method.v);
-      termChar = method.v === 'charAt';
-      termStr = ['substring', 'c_str'].includes(method.v);
-      return STRING_IN_PLACE.includes(method.v) ? `(${own(t.v)} = ${call})` : call;
+      pos++;
+      return stringCall(own(t.v), true);
     }
     // String(x), String(x, HEX), String(f, 3): the text Serial.print would write.
     if (t.t === 'id' && t.v === 'String' && is('(', 1)) {
@@ -1242,6 +1263,8 @@ export function translateSketch(source, { strings = [] } = {}) {
           if (ref) kind = 0;
           if (peek()?.t !== 'id') fail('name');
           const p = tokens[pos++].v;
+          // int &x: the kit passes a copy (a board passes the variable), so the caller never sees a change.
+          if (ref === '&') issues.push({ code: 'SIM_PROGRAM_REFERENCE', line: line(), name: p });
           if (objects.has(p)) fail(p);
           declare(p, isInt ? (typeChar ? 'char' : 'int') : typeFloat ? 'float' : 'num', kind);
           if (kind) wraps.push(`${own(p)} = ${store(kind, own(p))};`);

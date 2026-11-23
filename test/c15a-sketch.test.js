@@ -235,3 +235,11 @@ test('a DHT11 read in its first second prints nan, with one note saying it was s
   assert.deepEqual(ready.serial.lines.map((l) => l.text), ['25.0']);
   assert.ok(!ready.issues.some((i) => i.code === 'SIM_LIBRARY_EARLY'));
 });
+
+test('a reference parameter is a copy in the kit, with a warning; a method of a text expression is read', () => {
+  const r = runSketch(setup('int a = 1;\n  inc(a); Serial.println(a);', 'void inc(int &x) { x++; }'));
+  assert.deepEqual(codes(r.issues), ['SIM_PROGRAM_REFERENCE']);
+  assert.deepEqual(r.log, ['1']);
+  assert.match(formatIssue({ severity: 'warning', code: 'SIM_PROGRAM_REFERENCE', params: { part: 'U1', ...r.issues[0] } }, 'en'), /the kit passes a copy/);
+  assert.deepEqual(runSketch(setup('Serial.println(String(42).toInt() + 1); Serial.println(names[1].length()); String s = "ab"; Serial.println((s + "cd").substring(1, 3));', 'String names[2] = {"ab", "cde"};')).log, ['43', '3', 'bc']);
+});

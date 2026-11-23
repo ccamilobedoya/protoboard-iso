@@ -594,6 +594,12 @@ before saying it works.
 - ✅ An UNO's `TX`/`RX` and a DevKit's `GPIO17` are not pin names a net may use (`D1`/`D0`, `TX2`): they could be aliases (C14: `TX`/`RX` on each board, `GPIO17`/`GPIO16` the DevKit's `TX2`/`RX2`)
 - ✅ `catalog ULN2803` shows an example from a circuit without it (the 555 of `555-cd4017-chaser`) (C14: an example is that part, or one of its type with the same pins, or none)
 - ✅ The chips after a physics review against their datasheets (C14): a logic input switches near half its supply, a level in the guaranteed band is a doubt; an input over the supply is a hazard; damage at the absolute maximum supply, a note past the recommended range; the review visits the states clocked chips latch; a power limit is judged on its average over a run; an open control input says what low means; the CD4017's drive above 10 V said to overestimate; the LM386's supply lines name the variant, a reading at its limit shows more figures, the PC817's rank
+- ✅ A board's sketch computes what the board computes (C15a): integers keep their type's size on the board in use (`int` 16 bits on an UNO, 32 on an ESP32; `now - start` of two `unsigned long`s across the wrap; `millis()` wraps at 2^32); `bitSet`, `bitClear`, `bitToggle`, `bitWrite` change their variable; `String`'s usual methods, `sprintf`/`snprintf` and simple function-like macros are read; pointers, `struct`/`class`, an unknown `String` method, a member and an unexpandable macro say the construct and what to write
+- ✅ A serial line follows the wire (C15a): bytes reach an RX pin through a series resistor or a divider when the TX levels arrive as a high and a low; a path that never gives both levels, or no TX, is a doubt saying why; a received `\r` prints as nothing
+- ✅ A run can type to a board (C15a): `simulate --run … --serial "U1:1\n@0.5"`; a sketch that reads Serial with nothing typed or wired gets one note naming the option; a DHT11 read in its first second gets a note
+- ⬜ The MCP `simulate` tool's `serial` argument (`run.js` `stimuliFromArgs` takes it; `mcp/tools.js` must declare and pass it)
+- ⬜ `layout`'s `Behaviour` line says a sketch waits for serial input (`behaviourOf` returns `serialWaits`; `src/layout-answer.js` must print `layout.behaviour.waitsSerial`)
+- ⬜ A print exactly at the end of a run is lost (the engine accepts a step at the start of the next one; the run never accepts its last)
 
 ## Optional, later ⬜
 
