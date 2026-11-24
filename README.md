@@ -63,7 +63,7 @@ And an honest answer. An Arduino driving a buzzer directly from a pin
 ```text
 Review (lesson): APPROVED WITH WARNINGS.
 As wired, this would damage:
-  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA: the pin can be damaged, with D10 high.
+  ⚠ warning: U1.D10 carries 88.3 mA, more than its maximum 40 mA: the pin can be damaged, with D9 + D10 high.
 To fix it: a 200 Ω resistor in series with BZ1 brings U1's D10 to 19.4 mA (maximum 40 mA).
 ```
 
